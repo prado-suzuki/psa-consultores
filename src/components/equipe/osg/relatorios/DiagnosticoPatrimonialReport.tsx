@@ -112,7 +112,7 @@ function BlocoIntegralizados({ titulo, meta, bens }: { titulo: string; meta: str
       <header className="flex flex-wrap items-center gap-3 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
         <Building2 className="h-4 w-4 shrink-0 text-osg-600" />
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-osg-800">{titulo}</h3>
+          <h3 className="text-sm font-semibold text-osg-moss">{titulo}</h3>
           <p className="text-xs text-muted-foreground">{meta}</p>
         </div>
       </header>
@@ -153,7 +153,7 @@ function BlocoForaProjeto({
       <header className="flex flex-wrap items-center gap-3 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
         <FileWarning className="h-4 w-4 shrink-0 text-osg-600" />
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-osg-800">{titulo}</h3>
+          <h3 className="text-sm font-semibold text-osg-moss">{titulo}</h3>
           <p className="text-xs text-muted-foreground">{meta}</p>
         </div>
       </header>
@@ -243,7 +243,7 @@ export function DiagnosticoPatrimonialReport({ clienteId }: { clienteId: string 
   if (bens.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center">
-        <Landmark className="h-10 w-10 text-osg-400" />
+        <Landmark className="h-10 w-10 text-osg-500" />
         <p className="text-sm text-muted-foreground">Nenhum bem cadastrado no Diagnóstico Patrimonial de {clienteNome || 'este cliente'}.</p>
       </div>
     );

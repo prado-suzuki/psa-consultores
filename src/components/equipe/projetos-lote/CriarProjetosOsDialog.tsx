@@ -220,7 +220,7 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
                               <CalendarDays className="h-3 w-3" />{periodoLabel(option.os)}
                             </span>
                             {option.irregular ? (
-                              <span className="mt-0.5 flex items-start gap-1.5 text-[11px] text-amber-700">
+                              <span className="mt-0.5 flex items-start gap-1.5 text-[11px] text-warning">
                                 <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
                                 {option.irregular} — {CORRIGIR_OS_HINT}
                               </span>

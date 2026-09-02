@@ -86,8 +86,8 @@ export const AuditTempoMedioProduto = ({
   return (
     <div className="space-y-2">
       <div>
-        <h3 className="text-sm font-semibold text-slate-900">Tempo médio por tipo de produto</h3>
-        <p className="text-xs text-slate-500">
+        <h3 className="text-sm font-semibold text-foreground">Tempo médio por tipo de produto</h3>
+        <p className="text-xs text-muted-foreground">
           Itens concluídos no período agrupados pelo produto contratado na OS — soma da equipe.
           Clique num produto para ver os clientes dele e, dentro do cliente, quem está executando.
         </p>
@@ -103,7 +103,7 @@ export const AuditTempoMedioProduto = ({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span
-                          className="border-b border-dotted border-slate-300"
+                          className="border-b border-dotted border-border"
                           aria-description={ajuda}
                         >
                           {label}
@@ -120,13 +120,13 @@ export const AuditTempoMedioProduto = ({
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={COLUNAS.length} className="py-8 text-center text-slate-500">
+                  <TableCell colSpan={COLUNAS.length} className="py-8 text-center text-muted-foreground">
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : linhas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={COLUNAS.length} className="py-8 text-center text-slate-500">
+                  <TableCell colSpan={COLUNAS.length} className="py-8 text-center text-muted-foreground">
                     Nenhum item concluído no período
                   </TableCell>
                 </TableRow>
@@ -137,11 +137,11 @@ export const AuditTempoMedioProduto = ({
                   return (
                     <Fragment key={linha.produtoId}>
                       <TableRow
-                        className="cursor-pointer hover:bg-slate-50"
+                        className="cursor-pointer hover:bg-muted"
                         onClick={() => alternar(linha.produtoId)}
                       >
                         <TableCell
-                          className={cn('text-sm', semVinculo ? 'italic text-slate-400' : 'font-medium')}
+                          className={cn('text-sm', semVinculo ? 'italic text-muted-foreground' : 'font-medium')}
                         >
                           <span className="flex items-center gap-1.5">
                             <button
@@ -152,7 +152,7 @@ export const AuditTempoMedioProduto = ({
                                 event.stopPropagation();
                                 alternar(linha.produtoId);
                               }}
-                              className="text-slate-400 transition-colors hover:text-slate-700"
+                              className="text-muted-foreground transition-colors hover:text-foreground"
                             >
                               {aberta
                                 ? <ChevronDown className="h-4 w-4" />
@@ -163,13 +163,13 @@ export const AuditTempoMedioProduto = ({
                         </TableCell>
                         <TableCell className="text-right text-sm">{linha.concluidos}</TableCell>
                         <TableCell className="whitespace-nowrap text-right text-sm">
-                          <span className="text-slate-500">{formatarHoras(linha.horasPlanejadas)}</span>
-                          <span className="text-slate-300"> / </span>
-                          <span className="font-medium text-slate-900">
+                          <span className="text-muted-foreground">{formatarHoras(linha.horasPlanejadas)}</span>
+                          <span className="text-muted-foreground/50"> / </span>
+                          <span className="font-medium text-foreground">
                             {formatarHoras(linha.horasExecutadas)}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right text-sm text-slate-500">
+                        <TableCell className="text-right text-sm text-muted-foreground">
                           {linha.itensComHorasExecutadas} de {linha.concluidos}
                         </TableCell>
                         <TableCell className="text-right text-sm font-semibold">
@@ -177,7 +177,7 @@ export const AuditTempoMedioProduto = ({
                         </TableCell>
                       </TableRow>
                       {aberta && (
-                        <TableRow className="bg-slate-50/50 hover:bg-slate-50/50">
+                        <TableRow className="bg-muted/50 hover:bg-muted/50">
                           <TableCell colSpan={COLUNAS.length} className="p-4">
                             <AuditClientesDoProduto
                               produto={linha.nome}

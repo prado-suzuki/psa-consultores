@@ -11,9 +11,9 @@
   height: 34px;
   flex-shrink: 0;
   border-radius: 999px;
-  border: 1px solid var(--outline-variant, #e2e8f0);
+  border: 1px solid var(--outline-variant, hsl(var(--slate-200)));
   background: var(--surface-lowest, #ffffff);
-  color: var(--accent-color, #0d9488);
+  color: var(--accent-color, hsl(var(--primary)));
   cursor: pointer;
   transition: background var(--transition-fast, 0.15s ease),
     border-color var(--transition-fast, 0.15s ease),
@@ -23,8 +23,8 @@
 }
 
 @keyframes mapa-tour-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.45); }
-  50% { box-shadow: 0 0 0 7px rgba(13, 148, 136, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.45); }
+  50% { box-shadow: 0 0 0 7px hsl(var(--primary) / 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -33,11 +33,11 @@
 
 .mapa-tour-trigger:hover {
   background: var(--accent-50, #f0fdfa);
-  border-color: var(--accent-color, #0d9488);
+  border-color: var(--accent-color, hsl(var(--primary)));
 }
 
 .mapa-tour-trigger:focus-visible {
-  outline: 2px solid var(--accent-color, #0d9488);
+  outline: 2px solid var(--accent-color, hsl(var(--primary)));
   outline-offset: 2px;
 }
 

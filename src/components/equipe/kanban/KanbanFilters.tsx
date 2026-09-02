@@ -46,7 +46,7 @@ interface KanbanFiltersProps {
 
 export function KanbanFilters(props: KanbanFiltersProps) {
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+    <div className="bg-white border border-border rounded-lg p-4 mb-4">
       <div className="flex items-center gap-2 mb-3">
         <Filter className="h-4 w-4 text-gray-500" />
         <span className="text-sm font-medium text-gray-700">Filtros</span>
@@ -68,7 +68,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
           <SelectTrigger className="w-40 text-gray-900 h-9">
             <SelectValue placeholder="Sprint" />
           </SelectTrigger>
-          <SelectContent className="border-gray-200">
+          <SelectContent className="border-border">
             <SelectItem value="all">Todas Sprints</SelectItem>
             {props.sprints.map((sprint) => (
               <SelectItem key={sprint.id} value={sprint.id}>
@@ -82,7 +82,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
           <SelectTrigger className="w-44 text-gray-900 h-9">
             <SelectValue placeholder="Responsável" />
           </SelectTrigger>
-          <SelectContent className="border-gray-200">
+          <SelectContent className="border-border">
             <SelectItem value="all">Todos Responsáveis</SelectItem>
             {props.profiles.map((profile) => (
               <SelectItem key={profile.id} value={profile.id}>
@@ -96,7 +96,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
           <SelectTrigger className="w-44 text-gray-900 h-9">
             <SelectValue placeholder="Projeto" />
           </SelectTrigger>
-          <SelectContent className="border-gray-200">
+          <SelectContent className="border-border">
             <SelectItem value="all">Todos Projetos</SelectItem>
             {props.projects.map((project) => (
               <SelectItem key={project.id} value={project.id}>
@@ -110,7 +110,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
           <SelectTrigger className="w-44 text-gray-900 h-9">
             <SelectValue placeholder="Processo" />
           </SelectTrigger>
-          <SelectContent className="border-gray-200">
+          <SelectContent className="border-border">
             <SelectItem value="all">Todos Processos</SelectItem>
             {props.processes.map((process) => (
               <SelectItem key={process.id} value={process.id}>
@@ -126,7 +126,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
               variant="outline"
               size="sm"
               className={cn(
-                'h-9 px-3 border-gray-300 bg-white',
+                'h-9 px-3 border-border bg-white',
                 props.filterStartDate && 'text-gray-900',
               )}
             >
@@ -147,7 +147,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
               variant="outline"
               size="sm"
               className={cn(
-                'h-9 px-3 border-gray-300 bg-white',
+                'h-9 px-3 border-border bg-white',
                 props.filterEndDate && 'text-gray-900',
               )}
             >
@@ -166,12 +166,12 @@ export function KanbanFilters(props: KanbanFiltersProps) {
       <div className="mt-3 text-xs text-gray-500">
         {props.mainTaskCount} tarefas principais ({props.totalTaskCount} total incluindo subtarefas)
         {props.hiddenCount > 0 && (
-          <span className="ml-2 font-medium text-amber-600">
+          <span className="ml-2 font-medium text-warning">
             · {props.hiddenCount} subtarefa(s) aninhada(s) em tarefa-mãe fora da visão — não exibida(s) como card
           </span>
         )}
         {props.nestedOpenCount > 0 && (
-          <span className="ml-2 font-medium text-amber-600">
+          <span className="ml-2 font-medium text-warning">
             · {props.nestedOpenCount} tarefa(s) aberta(s) estão dentro de tarefas-mãe em progresso ou
             concluídas — aparecem aninhadas na coluna da mãe, não em "A Fazer"
           </span>

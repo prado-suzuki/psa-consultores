@@ -37,6 +37,8 @@ import { TaskStatusTransitionDialog } from '@/components/equipe/fiscal/tasks/Tas
  import { useTaskCompletionHours } from '@/hooks/useTaskCompletionHours';
  import { useTaskStatusTransition } from '@/hooks/useTaskStatusTransition';
 import { toast } from 'sonner';
+import { BarraDeMes } from '@/components/shared/BarraDeMes';
+import type { PeriodoDeTarefas } from '@/hooks/usePeriodoDeTarefas';
 
 interface TaskTableProps {
   tasks: OrgTask[];
@@ -47,6 +49,8 @@ interface TaskTableProps {
   onMove?: (task: OrgTask) => void;
   onAddSubtask?: (parentTask: OrgTask) => void;
   currentUserId?: string | null;
+  /** O mes e do painel: ele atravessa Lista, Tabela e Calendario. */
+  periodo: PeriodoDeTarefas;
 }
  
  const priorityColors = {
@@ -68,7 +72,7 @@ const statusLabels = Object.fromEntries(
 ) as Record<OrgTaskStatus, string>;
  
  
- export const TaskTable = ({ tasks, area, onEdit, onDelete, onReassign, onMove, onAddSubtask, currentUserId }: TaskTableProps) => {
+ export const TaskTable = ({ tasks, area, onEdit, onDelete, onReassign, onMove, onAddSubtask, currentUserId, periodo }: TaskTableProps) => {
    const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
    const updateTask = useUpdateOrgTask(area);
    const conclusao = useTaskCompletionHours();
@@ -269,8 +273,13 @@ const statusLabels = Object.fromEntries(
      );
    };
  
+   // `bg-card` explicito: o container da tabela sempre foi transparente, e isso
+   // nao aparecia porque as linhas da Table carregam fundo proprio. Com a barra
+   // do mes em cima, a faixa dela ficava no fundo da PAGINA — a tabela era a
+   // unica das quatro abas sem a superficie do card.
    return (
-     <div className="border rounded-lg">
+     <div className="border rounded-lg overflow-hidden bg-card">
+       <BarraDeMes periodo={periodo} />
        <Table>
          <TableHeader>
            <TableRow>

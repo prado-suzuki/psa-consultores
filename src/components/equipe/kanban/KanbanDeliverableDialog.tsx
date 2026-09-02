@@ -200,7 +200,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
           )}
 
           {selectedDeliverable && !selectedDeliverable.parent_id && props.subtasks.length > 0 && (
-            <div className="space-y-3 border-t border-gray-200 pt-4">
+            <div className="space-y-3 border-t border-border pt-4">
               <Label className="text-gray-700 flex items-center gap-2">
                 Subtarefas (
                 {props.subtasks.filter((subtask) => subtask.status === 'completed').length}/
@@ -211,7 +211,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                   <div
                     key={subtask.id}
                     className={cn(
-                      'flex items-center gap-3 p-2 rounded-md bg-gray-50 border border-gray-100',
+                      'flex items-center gap-3 p-2 rounded-md bg-gray-50 border border-border',
                       subtask.status === 'completed' && 'opacity-60',
                     )}
                   >
@@ -268,7 +268,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel className="bg-white border-gray-300 text-gray-700">
+                <AlertDialogCancel className="bg-white border-border text-gray-700">
                   Cancelar
                 </AlertDialogCancel>
                 <AlertDialogAction
@@ -283,7 +283,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
           </AlertDialog>
 
           <div className="flex gap-2">
-            <Button variant="outline" onClick={props.onClose} className="border-gray-300">
+            <Button variant="outline" onClick={props.onClose} className="border-border">
               Cancelar
             </Button>
             <Button onClick={props.onSave} className="bg-primary hover:bg-primary/90">

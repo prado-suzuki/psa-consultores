@@ -1017,6 +1017,25 @@ export function mapearIntegralizacoes(
   return itens;
 }
 
+/**
+ * Ids das matrículas que a seção {{#integralizacoes}} de fato DESCREVE: as de
+ * titular sócio (a mesma condição do laço acima), sem repetir a que dois sócios
+ * dividem — a alínea é por sócio, a matrícula é uma só.
+ *
+ * Existe para responder "quais imóveis entram neste contrato" a quem precisa da
+ * MATRÍCULA e não da alínea: é do georref delas que sai o memorial descritivo,
+ * que não tem imóvel próprio a escolher.
+ */
+export function matriculasDescritasNasIntegralizacoes(
+  socios: SocioParaMapear[],
+  matriculas: MatriculaIntegralizacao[],
+): string[] {
+  const sociosIds = new Set(socios.map((s) => s.pessoa.id));
+  return matriculas
+    .filter((m) => dedupTitulares(m.titulares).some((t) => t.pessoaId && sociosIds.has(t.pessoaId)))
+    .map((m) => m.id);
+}
+
 /** Os campos comuns a toda alínea de aporte, seja qual for a forma. */
 function camposDoAporte(alinea: string, quotas: number | null, valor: number | null): Campos {
   const out: Campos = { alinea };
@@ -1190,6 +1209,98 @@ export interface CessaoParaMapear {
  * quadro resultante continua saindo, do consolidado; o que faltava era o
  * movimento.
  */
+/**
+ * Quem está NESTA lista de pessoas e NÃO está no quadro societário resultante.
+ *
+ * Uma pergunta, dois usos, e por isso mora aqui e não no chamador: os sócios que
+ * cederam a totalidade das quotas (os RETIRANTES do instrumento) e os
+ * administradores que seguem administrando sem estar no quadro (os
+ * ADMINISTRADORES NÃO SÓCIOS). Nos dois casos a resposta é a mesma subtração
+ * contra o quadro final, que é justamente a justificativa que o instrumento
+ * registrado dá: "por terem cedido a totalidade de suas quotas, os sócios …
+ * retiram-se da sociedade".
+ *
+ * Pessoa sem id não é comparável e fica FORA do resultado: afirmar retirada de
+ * quem não se consegue casar com o quadro inventaria um fato: o silêncio é o
+ * lado seguro (o consultor liga na mão).
+ */
+export function foraDoQuadro(pessoas: readonly PessoaRow[], socios: readonly SocioParaMapear[]): PessoaRow[] {
+  const noQuadro = new Set(socios.map((s) => s.pessoa.id).filter(Boolean));
+  const vistos = new Set<string>();
+  return pessoas.filter((p) => {
+    if (!p.id || noQuadro.has(p.id) || vistos.has(p.id)) return false;
+    vistos.add(p.id);
+    return true;
+  });
+}
+
+/**
+ * Os sócios RETIRANTES desta alteração: cedentes das cessões que a peça
+ * formaliza e que não sobraram no quadro resultante.
+ *
+ * Deriva do ATO (as cessões pendentes) e não do baseline da peça anterior: é o
+ * mesmo critério do instrumento registrado, dispensa snapshot e continua certo
+ * na primeira alteração de uma sociedade, onde baseline não existe.
+ */
+export function retirantesDaCessao(
+  cessoes: readonly CessaoParaMapear[],
+  socios: readonly SocioParaMapear[],
+): PessoaRow[] {
+  return foraDoQuadro(cessoes.map((c) => c.cedente), socios);
+}
+
+/** Itens da seção {{#retirantes}}: uma pessoa por item, na ordem das cessões. */
+export function mapearRetirantes(retirantes: readonly PessoaRow[]): ItemLista[] {
+  return retirantes.map((pessoa, i) => ({
+    retirante: derivarCampos('pessoa', mapearPessoa(pessoa)),
+    ordem: String(i + 1),
+    ordemRomana: romano(i + 1).toLowerCase(),
+  }));
+}
+
+/**
+ * As palavras da cláusula de retirada que concordam com QUANTOS e QUAIS saem.
+ *
+ * Ficam aqui, e não no bloco, pela razão de sempre: o bloco imprime, o código
+ * concorda. Uma cláusula que diga "os sócios … retiram-se" quando só uma sócia
+ * sai é a mesma classe de erro que o fecho cometia ao chamar de "Sócio" quem
+ * assina no feminino, e nenhum `sep`/`fim` de seção resolve flexão de verbo.
+ */
+export function vocabularioDaRetirada(retirantes: readonly PessoaRow[]): Campos {
+  // NINGUÉM sai: as três palavras saem VAZIAS, e não no plural.
+  //
+  // Não é preciosismo de concordância, é o que faz o bloco SUMIR. A cláusula de
+  // retirada tem três placeholders de topo e a lista {{#retirantes}}; quando o
+  // ato foi só ingresso (aumento de capital sem cessão nenhuma), a lista vem
+  // vazia, e devolver "os sócios"/"por terem cedido"/"retiram-se" alimentava
+  // `motivoDeDescarte` com três segmentos de valor preenchidos. Ele conta isso
+  // como dado, deixava o bloco no documento, e a peça afirmava
+  // "por terem cedido a totalidade de suas quotas, os sócios  retiram-se da
+  // sociedade" com o nome de ninguém no meio (o espaço duplo era a lista vazia).
+  //
+  // Com os três vazios sobra só a seção de repetição sem item, e o descarte por
+  // 'lista-vazia' tira o bloco da composição, que é o comportamento correto: numa
+  // alteração em que ninguém se retirou, a cláusula de retirada não existe.
+  if (retirantes.length === 0) {
+    return { titulo: '', porTerCedido: '', verbo: '' };
+  }
+
+  const umSo = retirantes.length === 1;
+  const todasFemininas = retirantes.every(
+    (p) => generoDeConcordancia(
+      p.genero === 'F' || p.genero === 'M' ? p.genero : null,
+      p.tipo_pessoa,
+    ) === 'F',
+  );
+  return {
+    titulo: umSo
+      ? (todasFemininas ? 'a sócia' : 'o sócio')
+      : (todasFemininas ? 'as sócias' : 'os sócios'),
+    porTerCedido: umSo ? 'por ter cedido' : 'por terem cedido',
+    verbo: umSo ? 'retira-se' : 'retiram-se',
+  };
+}
+
 export function mapearCessoes(cessoes: CessaoParaMapear[]): ItemLista[] {
   return cessoes.map((c, i) => {
     const cedente = mapearPessoa(c.cedente);

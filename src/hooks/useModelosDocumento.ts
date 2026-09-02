@@ -130,10 +130,19 @@ async function copiarBlocosDeModelo(origemId: string, destinoId: string) {
   }
 }
 
+/**
+ * Se as peças do modelo participam da vida societária (registro na junta,
+ * carimbo no ledger de quotas, sucessão por alteração contratual) ou são
+ * avulsas. Declarado, com CHECK no banco — diferente de `tipo`, que é rótulo
+ * livre e não decide comportamento nenhum.
+ */
+export type EscopoModelo = 'sociedade' | 'avulso';
+
 export interface SalvarModeloInput {
   id?: string;
   nome: string;
   tipo: string | null;
+  escopo: EscopoModelo;
   descricao: string | null;
   /** Ao criar (sem id), copia os blocos deste modelo de origem para o novo. */
   baseId?: string | null;
@@ -149,7 +158,7 @@ export function useSalvarModelo() {
       if (input.id) {
         const { data, error } = await supabase
           .from('tmpl_documento')
-          .update({ nome: input.nome, tipo: input.tipo, descricao: input.descricao })
+          .update({ nome: input.nome, tipo: input.tipo, escopo: input.escopo, descricao: input.descricao })
           .eq('id', input.id)
           .select('*')
           .single();
@@ -158,7 +167,7 @@ export function useSalvarModelo() {
       }
       const { data, error } = await supabase
         .from('tmpl_documento')
-        .insert({ nome: input.nome, tipo: input.tipo, descricao: input.descricao })
+        .insert({ nome: input.nome, tipo: input.tipo, escopo: input.escopo, descricao: input.descricao })
         .select('*')
         .single();
       if (error) throw error;
@@ -191,14 +200,19 @@ export function useDuplicarModelo() {
     mutationFn: async (id: string) => {
       const { data: original, error: erroOriginal } = await supabase
         .from('tmpl_documento')
-        .select('nome, tipo, descricao')
+        .select('nome, tipo, escopo, descricao')
         .eq('id', id)
         .single();
       if (erroOriginal) throw erroOriginal;
 
       const { data: novo, error: erroNovo } = await supabase
         .from('tmpl_documento')
-        .insert({ nome: `${original.nome} (cópia)`, tipo: original.tipo, descricao: original.descricao })
+        .insert({
+          nome: `${original.nome} (cópia)`,
+          tipo: original.tipo,
+          escopo: original.escopo,
+          descricao: original.descricao,
+        })
         .select('*')
         .single();
       if (erroNovo) throw erroNovo;

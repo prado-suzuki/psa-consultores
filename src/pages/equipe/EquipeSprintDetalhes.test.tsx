@@ -1183,9 +1183,15 @@ describe('EquipeSprintDetalhes: regras puras extraídas', () => {
     );
     expect(risks.overdue.map((item) => item.id)).toEqual(['late']);
     expect(Math.round(risks.sprintProgress)).toBe(68);
+    // O Gantt não calcula mais geometria aqui: a janela e a posição da barra
+    // vivem em `ganttTimeline`, com teste próprio. O que sobrou nesta lib são as
+    // datas resolvidas — início do entregável, ou o começo da sprint quando ele
+    // não tem um.
     const gantt = buildGanttData(sprint, [deliverables[0]]);
-    expect(gantt.totalDays).toBe(31);
-    expect(gantt.deliverables[0]).toMatchObject({ startOffset: 0, duration: 25 });
+    expect(gantt.deliverables[0]).toMatchObject({
+      startDate: new Date(2026, 6, 1),
+      endDate: new Date(2026, 6, 25),
+    });
     expect(suggestNextTaskCode(deliverables, 'parent')).toBe('7.11');
     expect(siblingShifts(deliverables, 'parent', '7.2')).toEqual([
       { deliverableId: 'child-10', taskCode: '7.11' },

@@ -110,7 +110,7 @@ export function GerarDocumentoDialogs({ controller }: { controller: GerarDocumen
                 event.preventDefault();
                 void confirmarDownloadIncompleto();
               }}
-              className="bg-amber-600 hover:bg-amber-700"
+              className="bg-warning hover:bg-warning/90"
             >
               Baixar como rascunho
             </AlertDialogAction>

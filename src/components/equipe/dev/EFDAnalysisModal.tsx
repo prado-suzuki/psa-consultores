@@ -131,13 +131,13 @@ export function EFDAnalysisModal({
         <DialogTitle className="sr-only">Análise EFD</DialogTitle>
         <DialogDescription className="sr-only">Visualização detalhada de registros SPED EFD</DialogDescription>
         {/* Header */}
-        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 bg-white/95 backdrop-blur flex-shrink-0">
+        <div className="h-20 flex items-center justify-between px-6 border-b border-border bg-white/95 backdrop-blur flex-shrink-0">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
               <BarChart3 className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-slate-900 flex items-center gap-3">
+              <h3 className="text-xl font-bold text-foreground flex items-center gap-3">
                 <span>{arquivo.NOME}</span>
                 <Badge 
                   variant={arquivo.TIPO_ESCRIT === 0 ? 'default' : 'secondary'}
@@ -146,8 +146,8 @@ export function EFDAnalysisModal({
                   {arquivo.TIPO_ESCRIT === 0 ? 'Original' : 'Retificadora'}
                 </Badge>
               </h3>
-              <p className="text-sm text-slate-500 mt-0.5 font-medium">
-                Período: <span className="text-slate-700">
+              <p className="text-sm text-muted-foreground mt-0.5 font-medium">
+                Período: <span className="text-foreground">
                   {formatPeriodo(arquivo.DT_INI, arquivo.DT_FIN)}
                 </span>
               </p>
@@ -157,13 +157,13 @@ export function EFDAnalysisModal({
           <div className="flex items-center gap-6">
             {/* Totais dinâmicos (PIS/COFINS ou ICMS/ICMS-ST) */}
             {totaisConfig.length > 0 && (
-              <div className="hidden xl:flex items-center gap-8 border-r border-slate-200 pr-6 h-12">
+              <div className="hidden xl:flex items-center gap-8 border-r border-border pr-6 h-12">
                 {totaisConfig.map((total, index) => (
                   <div key={index} className="text-right">
-                    <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
+                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-0.5">
                       {total.label}
                     </p>
-                    <p className="text-lg font-mono font-bold text-slate-800">
+                    <p className="text-lg font-mono font-bold text-foreground">
                       {formatCurrency(total.value)}
                     </p>
                   </div>
@@ -175,7 +175,7 @@ export function EFDAnalysisModal({
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="h-10 w-10 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50"
+              className="h-10 w-10 rounded-full text-muted-foreground hover:text-red-500 hover:bg-red-50"
             >
               <X className="h-6 w-6" />
             </Button>
@@ -185,7 +185,7 @@ export function EFDAnalysisModal({
         {/* Body: Sidebar + Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Sidebar - Árvore de Blocos */}
-          <aside className="w-72 bg-slate-50 border-r border-slate-200 flex flex-col flex-shrink-0">
+          <aside className="w-72 bg-muted border-r border-border flex flex-col flex-shrink-0">
             <div className="flex-1 overflow-y-auto p-4">
               <EFDBlockTree
                 blocosDisponiveis={blocosDisponiveis}
@@ -198,12 +198,12 @@ export function EFDAnalysisModal({
           {/* Área Principal */}
           <div className="flex-1 flex flex-col min-w-0 bg-white">
             {/* Header do Registro */}
-            <div className="h-14 border-b border-slate-200 flex items-center justify-between px-6 bg-white flex-shrink-0">
+            <div className="h-14 border-b border-border flex items-center justify-between px-6 bg-white flex-shrink-0">
               <div className="flex items-center gap-4">
                 <Badge className="bg-primary text-primary-foreground text-sm font-mono font-bold px-4 py-1.5 shadow-sm">
                   REG {regCode}
                 </Badge>
-                <h4 className="text-lg font-bold text-slate-800">
+                <h4 className="text-lg font-bold text-foreground">
                   {regDescription}
                 </h4>
               </div>
@@ -214,7 +214,7 @@ export function EFDAnalysisModal({
             </div>
             
             {/* Tabela de Dados */}
-            <div className="flex-1 overflow-auto bg-slate-50/30">
+            <div className="flex-1 overflow-auto bg-muted/30">
               <EFDFiscalTable
                 data={tableData}
                 isLoading={loadingDetail}
@@ -225,13 +225,13 @@ export function EFDAnalysisModal({
 
             {/* Footer - Paginação */}
             {detail?.paginacao && (
-              <div className="h-12 px-6 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between flex-shrink-0">
-                <span className="text-xs text-slate-500">
+              <div className="h-12 px-6 border-t border-border bg-muted/50 flex items-center justify-between flex-shrink-0">
+                <span className="text-xs text-muted-foreground">
                   Exibindo {tableData.length} de {detail.paginacao.total_registros} registros
                 </span>
                 
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-muted-foreground">
                     Página {detail.paginacao.page} de {detail.paginacao.total_paginas}
                   </span>
                   <div className="flex gap-1">

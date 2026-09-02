@@ -22,6 +22,9 @@ export interface ChamadoStatusConfig {
   solid: string;
   /** Ponto indicador. */
   dot: string;
+  /** Cor cheia como TEXTO, sobre a superfície do tema — número de KPI, rótulo.
+      Espelha o campo de mesmo nome em `taskStatusColors`. */
+  text: string;
 }
 
 function papel(key: string, label: string, nome: string): ChamadoStatusConfig {
@@ -31,6 +34,7 @@ function papel(key: string, label: string, nome: string): ChamadoStatusConfig {
     badge: `bg-status-${nome}-soft text-status-${nome}`,
     solid: `bg-status-${nome} text-white hover:bg-status-${nome}/90`,
     dot: `bg-status-${nome}`,
+    text: `text-status-${nome}`,
   };
 }
 
@@ -68,6 +72,7 @@ const FALLBACK: ChamadoStatusConfig = {
   badge: 'bg-muted text-muted-foreground',
   solid: 'bg-muted-foreground text-white hover:bg-muted-foreground/90',
   dot: 'bg-muted-foreground',
+  text: 'text-muted-foreground',
 };
 
 /** Configuração com fallback neutro — o valor no banco é texto livre. */

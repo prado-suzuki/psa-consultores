@@ -4,6 +4,17 @@ As convenções, regras inegociáveis e padrões de arquitetura deste repositór
 
 OBRIGATORIAMENTE Leia-o antes de qualquer alteração e siga-o como fonte única de verdade.
 
+## Antes de abrir qualquer plano em `docs/`
+
+Leia `docs/INDICE-PLANOS.md` primeiro. Ele classifica cada documento de `docs/` em feito,
+parcial, aberto, morto ou referência, e lista os que **mentem sobre o próprio status** — há
+plano marcado "em execução" que foi concluído, e plano sem marca de conclusão que foi
+entregue inteiro. Abrir um plano de centenas de linhas para descobrir que ele já foi
+executado, ou reexecutar algo que foi revertido de propósito, é o desperdício que esse
+índice existe para evitar.
+
+Ao fechar uma frente, mude a linha dela no índice **no mesmo commit** do código.
+
 ## Qual banco esta na sua frente
 
 Existem dois: o sandbox (desenvolvimento) e producao. A regra completa esta na secao
@@ -25,4 +36,5 @@ Existem dois: o sandbox (desenvolvimento) e producao. A regra completa esta na s
 - Para acompanhar erros TypeScript durante alteracoes extensas, prefira `bunx tsc --build --watch --noEmit`; execute `bun run typecheck` na validacao final.
 - Nao execute o build completo a cada mudanca. Use `bun run dev` durante o desenvolvimento e reserve `bun run build` para a validacao final.
 - Mantenha lint, typecheck e build completos na CI e antes da entrega; as verificacoes rapidas locais nao os substituem.
-- Lazy-loading de rotas com `React.lazy()` pode reduzir o bundle e o tempo de build, mas deve ser tratado como uma refatoracao separada e testada. Nao reintroduza `manualChunks` sem investigar o historico documentado em `vite.config.ts`, pois a configuracao anterior causou erros de inicializacao circular/TDZ em producao.
+- As rotas do `App.tsx` **sao** `lazy`, e ja estiveram nos dois lados dessa decisao: o commit `ba0c461b` reverteu a primeira tentativa porque o Vite compila chunk sob demanda em DEV e a navegacao no preview do Lovable ficou lenta. As duas pecas que impedem a volta do problema sao `server.warmup` (no `vite.config.ts`, so dev) e `src/components/PrefetchDeRotas.tsx` (traz os chunks depois do primeiro paint). Mexer no lazy sem elas e repetir 15/04 — o historico esta escrito no proprio `App.tsx`.
+- **Nao reintroduza `manualChunks`.** O historico esta em `vite.config.ts`: forcar agrupamento de vendor causou erro de inicializacao circular/TDZ em producao. A divisao de hoje vem dos `import()` das rotas, que e outro mecanismo; se um chunk especifico incomodar, mexa no `import()` que o gerou.

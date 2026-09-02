@@ -10,6 +10,22 @@ const alertVariants = cva(
       variant: {
         default: "bg-background text-foreground",
         destructive: "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
+        /* Painel de aviso — o papel `alerta`.
+
+           O texto fica em `text-warning`, como o `destructive` logo acima fica
+           em `text-destructive`: num painel de sinal a cor do texto É parte do
+           sinal. Fecha AA com folga — `--warning` é `var(--status-alerta)`
+           (`20 72% 32%`) e dá 7,4:1 sobre o card, ou 6,8:1 sobre o próprio
+           fundo a 10%.
+
+           O que esta variante acrescenta ao desenho do `destructive` é o fundo
+           suave, e ele vem do semântico com ALFA e não de `bg-status-alerta-soft`:
+           o `.dark` não declara nenhum `--status-*`, então o painel cairia no
+           valor do tema claro quando o escuro entrar. `--warning` o `.dark`
+           declara. É também a recomendação registrada em
+           `docs/geral/comparacoes-de-cor/superficie-de-estado.html`, e o padrão
+           que a casa já usava à mão antes desta variante existir. */
+        warning: "border-warning/40 bg-warning/10 text-warning [&>svg]:text-warning",
       },
     },
     defaultVariants: {

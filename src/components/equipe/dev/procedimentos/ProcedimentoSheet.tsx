@@ -83,7 +83,7 @@ export function ProcedimentoSheet({
         <SheetHeader className="text-left">
           <div className="flex flex-wrap gap-1.5">
             {p.status_publicacao === 'arquivado' && (
-              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground">
                 Arquivado
               </span>
             )}
@@ -111,22 +111,22 @@ export function ProcedimentoSheet({
         <div className="mt-5 space-y-6">
           {p.ai_resumo && (
             <section>
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
                 Resumo
               </h4>
-              <p className="text-sm text-slate-600 leading-relaxed">{p.ai_resumo}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{p.ai_resumo}</p>
             </section>
           )}
 
           <section>
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               Etapas
             </h4>
             {p.ai_etapas.length > 0 ? (
               <ol className="space-y-2">
                 {p.ai_etapas.map((etapa, i) => (
-                  <li key={i} className="flex gap-3 text-sm text-slate-700">
-                    <span className="flex-shrink-0 h-5 w-5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-semibold flex items-center justify-center mt-0.5">
+                  <li key={i} className="flex gap-3 text-sm text-foreground">
+                    <span className="flex-shrink-0 h-5 w-5 rounded-full bg-muted text-muted-foreground text-[11px] font-semibold flex items-center justify-center mt-0.5">
                       {i + 1}
                     </span>
                     <span className="leading-relaxed">{etapa}</span>
@@ -134,7 +134,7 @@ export function ProcedimentoSheet({
                 ))}
               </ol>
             ) : (
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-muted-foreground">
                 Nenhuma etapa registrada. O documento de origem é a única referência.
               </p>
             )}
@@ -144,7 +144,7 @@ export function ProcedimentoSheet({
             <section className="space-y-3">
               {complex && (
                 <div>
-                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
                     Complexidade
                   </h4>
                   <div className="flex items-center gap-1.5">
@@ -152,18 +152,18 @@ export function ProcedimentoSheet({
                     <span className="text-sm font-medium" style={{ color: complex.color }}>
                       {complex.label}
                     </span>
-                    <span className="text-xs text-slate-400">— {complex.ajuda}</span>
+                    <span className="text-xs text-muted-foreground">— {complex.ajuda}</span>
                   </div>
                 </div>
               )}
               {p.ai_tags.length > 0 && (
                 <div>
-                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
                     Tags
                   </h4>
                   <div className="flex flex-wrap gap-1">
                     {p.ai_tags.map((t) => (
-                      <span key={t} className="text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-500">
+                      <span key={t} className="text-[11px] px-2 py-0.5 rounded bg-muted text-muted-foreground">
                         {t}
                       </span>
                     ))}
@@ -173,7 +173,7 @@ export function ProcedimentoSheet({
             </section>
           )}
 
-          <section className="border-t border-slate-100 pt-4 space-y-1.5 text-xs text-slate-400">
+          <section className="border-t border-border pt-4 space-y-1.5 text-xs text-muted-foreground">
             <p>
               Documento de origem:{' '}
               {p.source_type === 'link' ? 'link externo' : p.source_type.toUpperCase()}
@@ -191,7 +191,7 @@ export function ProcedimentoSheet({
           </section>
         </div>
 
-        <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-slate-100">
+        <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-border">
           {p.source_url ? (
             <Button size="sm" variant="outline" onClick={() => window.open(p.source_url!, '_blank')}>
               <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Abrir documento
@@ -210,7 +210,7 @@ export function ProcedimentoSheet({
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-slate-500"
+                className="text-muted-foreground"
                 onClick={() => onArquivar(p, p.status_publicacao !== 'arquivado')}
               >
                 {p.status_publicacao === 'arquivado' ? (

@@ -36,8 +36,8 @@ const FieldTooltip = ({ text }: { text: string }) => (
 );
 
 const TOOLTIPS = {
-  cliente: 'Filtra os processos de PERDCOMP por cliente ou grupo.',
-  contribuinte: 'CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.',
+  cliente: 'Lista apenas os clientes que já têm PER cadastrado.',
+  contribuinte: 'CNPJ/CPF do cliente que já tem PER cadastrado. Obrigatório para a busca.',
   situacao: 'Filtra por status do processo (múltipla seleção).',
   exercicio: 'Limita a listagem ao ano-calendário do crédito.',
   numeroProcesso: 'Busca direta pelo número do PER/DCOMP.',
@@ -87,7 +87,7 @@ export function ControlePerdcompFilters({
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-lg text-primary">
           <Filter className="h-5 w-5 text-primary" />
-          <span className="uppercase text-sm tracking-wider font-bold text-slate-800">
+          <span className="uppercase text-sm tracking-wider font-bold text-foreground">
             Filtros de Busca
           </span>
         </CardTitle>
@@ -95,12 +95,12 @@ export function ControlePerdcompFilters({
       <CardContent className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 md:col-span-3">
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
               Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} />
             </label>
             <Select value={clienteId} onValueChange={onClienteChange}>
               <SelectTrigger className="h-11">
-                <SelectValue placeholder="Selecione o cliente" />
+                <SelectValue placeholder={clientes.length === 0 ? 'Nenhum cliente com PER' : 'Selecione o cliente'} />
               </SelectTrigger>
               <SelectContent className="z-50">
                 {clientes.map((cliente) => (
@@ -113,7 +113,7 @@ export function ControlePerdcompFilters({
           </div>
 
           <div className="col-span-12 md:col-span-3">
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
               Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} />
             </label>
             <Select
@@ -122,7 +122,13 @@ export function ControlePerdcompFilters({
               disabled={!clienteId}
             >
               <SelectTrigger className="h-11">
-                <SelectValue placeholder="Selecione o contribuinte" />
+                <SelectValue
+                  placeholder={
+                    clienteId && contribuintes.length === 0
+                      ? 'Nenhum contribuinte com PER'
+                      : 'Selecione o contribuinte'
+                  }
+                />
               </SelectTrigger>
               <SelectContent className="z-50">
                 {contribuintes.map((contribuinte) => (
@@ -135,7 +141,7 @@ export function ControlePerdcompFilters({
           </div>
 
           <div className="col-span-6 md:col-span-2">
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
               Situação <FieldTooltip text={TOOLTIPS.situacao} />
             </label>
             <Popover>
@@ -197,7 +203,7 @@ export function ControlePerdcompFilters({
           </div>
 
           <div className="col-span-6 md:col-span-2">
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
               Exercício <FieldTooltip text={TOOLTIPS.exercicio} />
             </label>
             <Select
@@ -219,7 +225,7 @@ export function ControlePerdcompFilters({
           </div>
 
           <div className="col-span-12 md:col-span-2">
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
               Nº do Processo <FieldTooltip text={TOOLTIPS.numeroProcesso} />
             </label>
             <Input

@@ -52,10 +52,10 @@ export function ProcedimentoCard({
 
     if (isStuck) {
       return (
-        <div className="bg-amber-50 rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-amber-200 flex flex-col items-center justify-center min-h-[280px] gap-3">
-          <AlertTriangle className="h-8 w-8 text-amber-500" />
-          <p className="text-sm text-amber-800 font-medium text-center">Leitura travada</p>
-          <p className="text-xs text-amber-600 text-center">
+        <div className="bg-warning/10 rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-warning/40 flex flex-col items-center justify-center min-h-[280px] gap-3">
+          <AlertTriangle className="h-8 w-8 text-warning" />
+          <p className="text-sm text-warning font-medium text-center">Leitura travada</p>
+          <p className="text-xs text-warning text-center">
             Começou {formatDistanceToNow(new Date(p.created_at), { addSuffix: true, locale: ptBR })} e não terminou.
           </p>
           <div className="flex gap-2 mt-2">
@@ -123,7 +123,7 @@ export function ProcedimentoCard({
     <>
       <div
         className={`bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] transition-shadow duration-200 flex flex-col min-h-[280px] overflow-hidden cursor-pointer ${
-          aguardandoConfirmacao ? 'border-2 border-dashed border-amber-400' : ''
+          aguardandoConfirmacao ? 'border-2 border-dashed border-warning/40' : ''
         }`}
         onClick={() => onAbrir(p)}
         role="button"
@@ -141,12 +141,12 @@ export function ProcedimentoCard({
           {/* Top: Process chips + selos de estado */}
           <div className="flex flex-wrap gap-1.5 mb-3">
             {aguardandoConfirmacao && (
-              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-warning/10 text-warning">
                 Aguardando confirmação
               </span>
             )}
             {p.status_publicacao === 'arquivado' && (
-              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground">
                 Arquivado
               </span>
             )}
@@ -162,10 +162,10 @@ export function ProcedimentoCard({
           </div>
 
           {/* Body */}
-          <h3 className="text-base font-semibold text-slate-900 line-clamp-2 mb-1.5">
+          <h3 className="text-base font-semibold text-foreground line-clamp-2 mb-1.5">
             {p.ai_titulo || 'Sem título'}
           </h3>
-          <p className="text-[13px] text-slate-500 line-clamp-3 mb-3">
+          <p className="text-[13px] text-muted-foreground line-clamp-3 mb-3">
             {p.ai_resumo || 'Sem resumo disponível'}
           </p>
 
@@ -173,13 +173,13 @@ export function ProcedimentoCard({
           {p.ai_etapas.length > 0 && (
             <ul className="space-y-1 mb-3">
               {p.ai_etapas.slice(0, 3).map((e, i) => (
-                <li key={i} className="text-xs text-slate-400 flex items-start gap-1.5">
-                  <span className="mt-1.5 h-1 w-1 rounded-full bg-slate-300 flex-shrink-0" />
+                <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                  <span className="mt-1.5 h-1 w-1 rounded-full bg-muted flex-shrink-0" />
                   <span className="line-clamp-1">{e}</span>
                 </li>
               ))}
               {p.ai_etapas.length > 3 && (
-                <li className="text-xs text-slate-400 pl-2.5">
+                <li className="text-xs text-muted-foreground pl-2.5">
                   + {p.ai_etapas.length - 3} etapas — abrir para ver
                 </li>
               )}
@@ -190,7 +190,7 @@ export function ProcedimentoCard({
           <div className="flex-1" />
 
           {/* Footer */}
-          <div className="border-t border-slate-100 pt-3 space-y-2">
+          <div className="border-t border-border pt-3 space-y-2">
             <div className="flex items-center justify-between">
               {complexConfig && (
                 <div className="flex items-center gap-1">
@@ -200,7 +200,7 @@ export function ProcedimentoCard({
                   </span>
                 </div>
               )}
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true, locale: ptBR })}
               </span>
             </div>
@@ -209,12 +209,12 @@ export function ProcedimentoCard({
             {p.ai_tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {p.ai_tags.slice(0, 3).map((t) => (
-                  <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-500">
+                  <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground">
                     {t}
                   </span>
                 ))}
                 {p.ai_tags.length > 3 && (
-                  <span className="text-[10px] text-slate-400">+{p.ai_tags.length - 3}</span>
+                  <span className="text-[10px] text-muted-foreground">+{p.ai_tags.length - 3}</span>
                 )}
               </div>
             )}

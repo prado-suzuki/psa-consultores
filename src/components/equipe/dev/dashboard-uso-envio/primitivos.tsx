@@ -211,11 +211,20 @@ export const FaixaResumo = ({
     <FaixaEmCartoes itens={itens} carregando={carregando} colunas={colunas} />
   ) : (
   // `--surface-escura` e não `GRAY[900]`: a superfície escura é token de TEMA, e
-  // cada área já declara a sua (base/tax/osg/rotina em azul-marinho
-  // `229 84% 5%`; sistema em grafite quente `35 10% 8%`). Com o hex cravado, esta
-  // faixa ignorava o tema da rota e ficava azul-marinho no Board inteiro, que
-  // resolve por `.sistema-theme`. O `GRAY` do módulo continua servindo a série
-  // p95 dos gráficos, que é dado e não superfície.
+  // o tema da rota já declara a sua. Hoje são DUAS: a casa em teal profundo
+  // (`178 60% 8%`) e a Tax/OSG em azul-marinho (`229 84% 5%`). Esta tela é do
+  // Dev, que fica na casa desde 31/08/2026 — antes disso vestia a
+  // `.sistema-theme` e a faixa saía em grafite quente. Com o hex cravado, ela
+  // ignorava tudo isso e ficava azul-marinho em qualquer rota. O `GRAY` do
+  // módulo continua servindo a série p95 dos gráficos, que é dado e não
+  // superfície.
+  //
+  // ⚠️ Esta tela é a que derrubou o grafite do Dev. Ela usa `--bd-accent-d` e
+  // `--bd-accent-t` (mais abaixo, no link e no hover de linha), e os dois NÃO
+  // andam juntos: o `-t` sai de `var(--primary)` e o `-d` está cravado em teal
+  // no `:root`. Sob a `.sistema-theme` isso dava link teal com hover grafite na
+  // mesma tabela. Hoje coincide porque o Dev é a casa; se algum dia ele voltar
+  // a ter acento próprio, é aqui que quebra primeiro.
   <div className="rounded-xl px-4 py-4" style={{ background: 'hsl(var(--surface-escura))' }}>
     <div
       className={cn(
@@ -234,7 +243,7 @@ export const FaixaResumo = ({
             style={{ background: TOM_BARRA[k.tom ?? 'neutro'] }}
           />
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-slate-400">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
               <span>{k.label}</span>
               {k.tooltip && <AjudaTooltip texto={k.tooltip} />}
             </div>
@@ -276,13 +285,13 @@ export const FaixaResumo = ({
                   </span>
                 )}
                 {k.variacao.valor && (
-                  <span className="font-semibold text-slate-200">{k.variacao.valor}</span>
+                  <span className="font-semibold text-foreground">{k.variacao.valor}</span>
                 )}
-                <span className="text-slate-400">{k.variacao.rotulo}</span>
+                <span className="text-muted-foreground">{k.variacao.rotulo}</span>
               </p>
             )}
             {k.detalhe && (
-              <p className="mt-1 text-[11px] leading-snug text-slate-400">{k.detalhe}</p>
+              <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{k.detalhe}</p>
             )}
           </div>
         </div>

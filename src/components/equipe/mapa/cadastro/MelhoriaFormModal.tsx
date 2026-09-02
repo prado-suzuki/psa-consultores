@@ -77,7 +77,7 @@ function RateioEditor({
           <button type="button" className="btn-chip-add" onClick={handlers.add}>{addLabel}</button>
         </IconTooltip>
         {arr.length > 0 && (
-          <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+          <span style={{ fontSize: '0.78rem', color: 'hsl(var(--slate-500))' }}>
             Total: <strong style={{ color: 'var(--accent-color)' }}>{formatDecimal(total, 'h')}</strong>
           </span>
         )}

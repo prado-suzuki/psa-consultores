@@ -11,6 +11,9 @@ import { AlertTriangle, ArrowUpFromLine, Info, Loader2 } from 'lucide-react';
 import { fieldCls, labelCls } from '@/components/equipe/osg/formKit';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { useQuadroDaEmpresa, useSubirQuotas, type SocioDoQuadro } from '@/hooks/useMovimentacaoQuotas';
+import { useConstitutivosRegistrados } from '@/hooks/useDocumentoGerado';
+import { avaliarTravaDaSubida } from '@/lib/osg/travaDaSubida';
+import type { TravaDoIngresso } from '@/lib/osg/travaDoIngresso';
 import { planejarSubidaDeQuotas, type SocioQueSobe } from '@/lib/osg/subidaDeQuotas';
 import { fmtBRL, fmtInt } from './quadroFmt';
 
@@ -36,6 +39,12 @@ interface SubirQuotasDialogProps {
   quadro: SocioDoQuadro[];
   /** Candidatas a controladora: as PJ tipo CN do cliente. */
   controladoras: PessoaRow[];
+  /**
+   * A trava do ingresso pendente, avaliada pelo card lá fora e recebida pronta:
+   * ela é sobre o quadro da Proprietária, e nada do que se escolhe aqui dentro
+   * muda a resposta. Quem relê o fato é `useSubirQuotas`, no instante de gravar.
+   */
+  travaDoIngresso: TravaDoIngresso;
 }
 
 const paraSocioQueSobe = (s: SocioDoQuadro): SocioQueSobe => ({
@@ -51,6 +60,7 @@ export const SubirQuotasDialog = ({
   proprietaria,
   quadro,
   controladoras,
+  travaDoIngresso,
 }: SubirQuotasDialogProps) => {
   const [controladoraId, setControladoraId] = useState('');
   const [data, setData] = useState('');
@@ -60,6 +70,24 @@ export const SubirQuotasDialog = ({
   // O quadro da controladora é o capital de constituição a que o aporte SOMA:
   // sem ele não dá para dizer qual proporção o ato vai produzir lá.
   const { data: quadroCN = [], isLoading: carregandoCN } = useQuadroDaEmpresa(controladoraId || null);
+  // As duas pontas precisam existir na junta. O card lá fora já confere a
+  // Proprietária; aqui a conferência fecha, porque é aqui que a controladora é
+  // escolhida, e uma CN recém-cadastrada não tem contrato registrado nenhum.
+  const { data: constitutivosRegistrados, isLoading: carregandoRegistros } =
+    useConstitutivosRegistrados(proprietaria.cliente_id ?? null);
+  const trava = avaliarTravaDaSubida(
+    controladora
+      ? [
+          { pessoaId: proprietaria.id, denominacao: proprietaria.denominacao },
+          { pessoaId: controladora.id, denominacao: controladora.denominacao },
+        ]
+      : [{ pessoaId: proprietaria.id, denominacao: proprietaria.denominacao }],
+    constitutivosRegistrados ?? new Set<string>(),
+  );
+  // A ordem das duas é a ordem do fluxo: sem as duas sociedades na junta não há
+  // o que perguntar sobre quem entrou no quadro de uma delas.
+  const motivoDaOrdem = trava.motivo ?? travaDoIngresso.motivo;
+  const travado = carregandoRegistros || !!motivoDaOrdem;
 
   const plano = useMemo(() => {
     if (!controladora) return null;
@@ -84,14 +112,25 @@ export const SubirQuotasDialog = ({
     if (!plano || !controladora || !proprietaria.cliente_id) return;
     await subir.mutateAsync({
       clienteId: proprietaria.cliente_id,
+      proprietariaPessoaId: proprietaria.id,
       plano,
+      empresas: [
+        { pessoaId: proprietaria.id, denominacao: proprietaria.denominacao },
+        { pessoaId: controladora.id, denominacao: controladora.denominacao },
+      ],
       descricao: `Subida das quotas da ${proprietaria.denominacao} para a ${controladora.denominacao}`,
       dataMovimento: data || null,
     });
     fechar(false);
   };
 
-  const totalQuotas = quadro.reduce((s, l) => s + l.quotas, 0);
+  // As quotas que REALMENTE sobem, lidas do plano e não do quadro inteiro: na
+  // segunda concentração a holding já é sócia da proprietária, e as quotas dela
+  // ficam onde estão. Somar o quadro faria a quantidade não bater com o valor
+  // cedido logo ao lado.
+  const totalQuotas = (plano?.lancamentos ?? [])
+    .filter((l) => l.movimento.tipo === 'cessao')
+    .reduce((s, l) => s + l.movimento.quotas, 0);
 
   return (
     <Dialog open={open} onOpenChange={fechar}>
@@ -102,7 +141,7 @@ export const SubirQuotasDialog = ({
             Transferir quotas para a controladora
           </DialogTitle>
           <DialogDescription>
-            Os sócios de <span className="font-medium text-slate-700">{proprietaria.denominacao}</span>{' '}
+            Os sócios de <span className="font-medium text-foreground">{proprietaria.denominacao}</span>{' '}
             cedem as quotas que têm nela e recebem, em troca, quotas da controladora, no mesmo ato.
           </DialogDescription>
         </DialogHeader>
@@ -138,10 +177,17 @@ export const SubirQuotasDialog = ({
           </div>
 
           {controladoras.length === 0 && (
-            <p className="rounded-md border border-amber-300/70 bg-amber-50/60 p-3 text-xs text-amber-900">
+            <p className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
               Este cliente não tem empresa Controladora (CN) cadastrada. Cadastre-a em Qualificação
               das Partes antes de subir as quotas.
             </p>
+          )}
+
+          {!carregandoRegistros && motivoDaOrdem && (
+            <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{motivoDaOrdem}</span>
+            </div>
           )}
 
           {controladora && carregandoCN && (
@@ -161,7 +207,7 @@ export const SubirQuotasDialog = ({
                     <p className="text-xs font-semibold uppercase tracking-wide text-osg-700">
                       O que será gravado
                     </p>
-                    <ul className="mt-2 space-y-1 text-sm text-slate-700">
+                    <ul className="mt-2 space-y-1 text-sm text-foreground">
                       <li>
                         {plano.lancamentos.length / 2} cessão(ões) em {proprietaria.denominacao}:{' '}
                         {fmtInt.format(totalQuotas)} quotas ({fmtBRL.format(plano.totalValorCedido)}) para{' '}
@@ -175,10 +221,10 @@ export const SubirQuotasDialog = ({
                   </div>
 
                   <div className="rounded-md border border-osg-200/80 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Quadro da controladora depois do ato
                     </p>
-                    <ul className="mt-2 space-y-1 text-sm text-slate-700">
+                    <ul className="mt-2 space-y-1 text-sm text-foreground">
                       {plano.quadroResultante.map((s) => (
                         <li key={s.pessoaId} className="flex justify-between gap-3">
                           <span className="truncate">{s.denominacao}</span>
@@ -191,7 +237,7 @@ export const SubirQuotasDialog = ({
                   </div>
 
                   {plano.avisoDeProporcao && (
-                    <div className="flex items-start gap-2 rounded-md border border-amber-300/70 bg-amber-50/60 p-3 text-xs text-amber-900">
+                    <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
                       <Info className="mt-0.5 h-4 w-4 shrink-0" />
                       <span>{plano.avisoDeProporcao}</span>
                     </div>
@@ -208,7 +254,7 @@ export const SubirQuotasDialog = ({
           </Button>
           <Button
             onClick={gravar}
-            disabled={!plano || !!plano.problema || carregandoCN || subir.isPending}
+            disabled={!plano || !!plano.problema || carregandoCN || travado || subir.isPending}
           >
             {subir.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
             Transferir quotas

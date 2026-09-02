@@ -104,10 +104,10 @@ export const T02CfopTab = ({ enabled, contribuinteId, start_date, end_date }: T0
 
   if (!enabled) {
     return (
-      <Card className="border-slate-200 border-dashed">
+      <Card className="border-border border-dashed">
         <CardContent className="p-12 text-center">
-          <Calculator className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-          <p className="text-slate-500">Selecione os filtros e clique em Buscar para carregar o resumo por CFOP.</p>
+          <Calculator className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
+          <p className="text-muted-foreground">Selecione os filtros e clique em Buscar para carregar o resumo por CFOP.</p>
         </CardContent>
       </Card>
     );
@@ -161,10 +161,10 @@ const CfopTable = ({ title, rows, isLoading }: CfopTableProps) => {
   );
 
   return (
-    <Card className="border-slate-200 shadow-sm">
+    <Card className="border-border shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
-          <Calculator className="h-4 w-4 text-slate-500" />
+          <Calculator className="h-4 w-4 text-muted-foreground" />
           {title}
         </CardTitle>
       </CardHeader>
@@ -176,14 +176,14 @@ const CfopTable = ({ title, rows, isLoading }: CfopTableProps) => {
             <Skeleton className="h-10 w-full" />
           </div>
         ) : rows.length === 0 ? (
-          <div className="p-12 text-center text-sm text-slate-500">
+          <div className="p-12 text-center text-sm text-muted-foreground">
             Nenhum registro encontrado para os filtros selecionados.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                <TableRow className="bg-muted hover:bg-muted">
                   <TableHead className="w-[80px]">
                     {renderColumnLabel('CFOP', ICMS_T02_TOOLTIPS.cfop)}
                   </TableHead>
@@ -208,21 +208,21 @@ const CfopTable = ({ title, rows, isLoading }: CfopTableProps) => {
                 {rows.map((r) => (
                   <TableRow key={r.cfop}>
                     <TableCell className="font-mono font-medium">{r.cfop}</TableCell>
-                    <TableCell className="text-sm text-slate-700">{r.descricao}</TableCell>
+                    <TableCell className="text-sm text-foreground">{r.descricao}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{fmt(r.vlItem)}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{fmt(r.vlBcIcms)}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{fmt(r.vlIcms)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm text-slate-600">
+                    <TableCell className="text-right font-mono text-sm text-muted-foreground">
                       {fmtPct(r.pctVlIcms)}
                     </TableCell>
                   </TableRow>
                 ))}
-                <TableRow className="bg-slate-100 hover:bg-slate-100 border-t-2 border-slate-300">
+                <TableRow className="bg-muted hover:bg-muted border-t-2 border-border">
                   <TableCell className="font-bold" colSpan={2}>TOTAL</TableCell>
                   <TableCell className="text-right font-mono text-sm font-bold">{fmt(totals.vlItem)}</TableCell>
                   <TableCell className="text-right font-mono text-sm font-bold">{fmt(totals.vlBcIcms)}</TableCell>
                   <TableCell className="text-right font-mono text-sm font-bold">{fmt(totals.vlIcms)}</TableCell>
-                  <TableCell className="text-right font-mono text-sm font-bold text-slate-700">
+                  <TableCell className="text-right font-mono text-sm font-bold text-foreground">
                     {fmtPct(totals.pctVlIcms)}
                   </TableCell>
                 </TableRow>

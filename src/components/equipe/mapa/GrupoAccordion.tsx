@@ -25,7 +25,7 @@ export default function GrupoAccordion<T>({ grupos, renderGrupo, substantivo, em
 
   if (grupos.length === 0) {
     return (
-      <p style={{ marginTop: 20, color: '#94a3b8' }}>
+      <p style={{ marginTop: 20, color: 'hsl(var(--slate-400))' }}>
         {emptyMessage || 'Nenhum registro encontrado para os filtros selecionados.'}
       </p>
     );

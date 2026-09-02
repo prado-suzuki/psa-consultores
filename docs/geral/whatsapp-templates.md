@@ -9,8 +9,9 @@ Tarefas **ALE-11** (os três primeiros) e **GES-04** (o quarto). Idioma `pt_BR`,
 **utility** e tipo **Padrão** nos quatro — nenhum é promocional. Assinatura
 `PSA Prado Suzuki` no componente Rodapé.
 
-Contexto da conta, identificadores e a decisão pela API oficial estão em
-[`whatsapp-meta-onboarding.md`](whatsapp-meta-onboarding.md). O cenário preenchido de
+Contexto da conta, identificadores e a decisão pela API oficial estavam prometidos num
+`whatsapp-meta-onboarding.md` que **nunca foi commitado neste repositório** — o que existe
+aqui sobre a conta é a seção de saúde do canal, no fim deste arquivo. O cenário preenchido de
 cada modelo e as amostras de variável para copiar no formulário estão em
 [`avisos-cliente-validacao.md`](avisos-cliente-validacao.md).
 

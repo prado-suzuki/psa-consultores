@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useAuth } from '@/contexts/AuthContext';
 import { DOWNLOADS_QUERY_KEY } from '@/hooks/useDomainDocumentoDownload';
 import { getApiUrl, currentAmbiente } from '@/config/api';
 import type { Database } from '@/integrations/supabase/types';
@@ -402,8 +403,7 @@ export function useSoftDeleteDocumentoCliente(clienteId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase.rpc as any)('soft_delete_documento_cliente', { _id: id });
+      const { error } = await supabase.rpc('soft_delete_documento_cliente', { _id: id });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -435,11 +435,12 @@ export function useRevisarDocumento() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ documentoId, veredito, motivo }: RevisarDocumentoArgs) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase.rpc as any)('revisar_documento_pendencia', {
+      // `_motivo` tem DEFAULT NULL na função: omitir e mandar null são a mesma
+      // coisa para o Postgres, e `undefined` é o que a assinatura gerada aceita.
+      const { error } = await supabase.rpc('revisar_documento_pendencia', {
         _documento_id: documentoId,
         _veredito: veredito,
-        _motivo: motivo ?? null,
+        _motivo: motivo ?? undefined,
       });
       if (error) throw error;
     },
@@ -468,11 +469,10 @@ export function useUploaderNames(userIds: string[]) {
     queryKey: ['uploader-names', uniqSorted.join(',')],
     enabled: uniqSorted.length > 0,
     queryFn: async (): Promise<Record<string, string>> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.rpc as any)('get_uploader_names', { _ids: uniqSorted });
+      const { data, error } = await supabase.rpc('get_uploader_names', { _ids: uniqSorted });
       if (error) throw error;
       const map: Record<string, string> = {};
-      for (const row of (data ?? []) as Array<{ user_id: string; display_name: string | null }>) {
+      for (const row of data ?? []) {
         if (row.user_id && row.display_name) map[row.user_id] = row.display_name;
       }
       return map;
@@ -538,8 +538,7 @@ export function useSolicitacaoAtivaCliente(clienteId: string | null) {
     queryKey: ['solicitacao-ativa-cliente', clienteId ?? '∅'],
     enabled: !!clienteId,
     queryFn: async (): Promise<SolicitacaoAtivaCliente> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.rpc as any)('get_solicitacao_ativa_cliente');
+      const { data, error } = await supabase.rpc('get_solicitacao_ativa_cliente');
       if (error) throw error;
       return (data ?? SOLICITACAO_VAZIA) as SolicitacaoAtivaCliente;
     },
@@ -600,6 +599,7 @@ const CAMPOS_AUDITADOS = [
 export function useAtualizarDocumento(clienteId: string) {
   const qc = useQueryClient();
   const { logAction } = useAuditLog();
+  const { user } = useAuth();
   return useMutation({
     mutationFn: async (
       { id, patch, origem }: { id: string; patch: AtualizarDocumentoPatch; origem?: string },
@@ -608,14 +608,7 @@ export function useAtualizarDocumento(clienteId: string) {
       // Busco a anterior aqui dentro, e não peço ao chamador, por dois motivos:
       // os quatro consumidores auditam sem precisar ser alterados, e ninguém
       // registra um "antes" errado por esquecer de passar.
-      // `documento_tipo_id` ainda não está no types.ts autogerado (migration
-      // 20260807120000, aplicada pelo Lovable). Sem o alias, tanto o select
-      // abaixo quanto o update recusam a coluna em tempo de compilação. Some
-      // sozinho na próxima regeneração de tipos.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sb = supabase as any;
-
-      const { data: anterior } = await sb
+      const { data: anterior } = await supabase
         .from('documento_arquivo')
         .select('pessoa_id, bem_id, matricula_id, triado_em, documento_tipo_id, revisao')
         .eq('id', id)
@@ -632,8 +625,7 @@ export function useAtualizarDocumento(clienteId: string) {
         revisao_motivo?: string | null;
       } = patch;
       if ('triado_em' in patch || 'revisao' in patch) {
-        const { data: sessao } = await supabase.auth.getUser();
-        const autor = sessao.user?.id ?? null;
+        const autor = user?.id ?? null;
         if ('triado_em' in patch) {
           corpo = { ...corpo, triado_por: patch.triado_em ? autor : null };
         }
@@ -650,7 +642,7 @@ export function useAtualizarDocumento(clienteId: string) {
           };
         }
       }
-      const { data, error } = await sb
+      const { data, error } = await supabase
         .from('documento_arquivo')
         .update(corpo)
         .eq('id', id)

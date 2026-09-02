@@ -156,7 +156,7 @@ Levantados ao escrever as tarefas; conferidos no código em 31/07/2026.
 | `~/Downloads/11_Sprint_OSG_fluxo-solicitacao.xlsx` | a sprint, 15 tarefas / 47h, no formato da equipe (EDU-19..27, ALE-26..31) |
 | `~/Downloads/SPRINT_solicitacao_documentos_RASCUNHO_2026-07-31.xlsx` | rascunho de validação (Tarefas / Sequência / Decisões / Fora de escopo) |
 | `RELATORIO_estrutura_solicitacao_checklist.md` (Alexandre, 30/07) | os 9 débitos E1-E3 / A1-A6 e as 3 opções de modelagem. A recomendação era a Opção 3, que é o que foi adotado no núcleo |
-| `docs/planos/area-cliente-documentos-por-tematica.md` | plano de 28/07 **superado** pelas 4 gavetas — ler só como histórico |
+| ~~`docs/planos/area-cliente-documentos-por-tematica.md`~~ | plano de 28/07, **superado** pelas 4 gavetas e **apagado em 01/09/2026** junto das duas tarefas da sprint 10 que dele derivavam. Está no histórico do git se alguém precisar do diagnóstico da tela antiga |
 
 ## 7. O que a frente seguinte herda
 

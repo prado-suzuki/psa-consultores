@@ -57,7 +57,7 @@ const Missao = () => {
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Missão, Visão e Valores
             </h1>
-            <p className="text-lg text-gray-300">
+            <p className="text-lg text-gray-400">
               Os princípios que guiam nossa atuação há mais de 20 anos no agronegócio brasileiro.
             </p>
           </motion.div>
@@ -96,7 +96,7 @@ const Missao = () => {
             transition={{ duration: 0.6 }}
             className="max-w-2xl mx-auto"
           >
-            <div className="aspect-video rounded-lg overflow-hidden shadow-lg border border-gray-200">
+            <div className="aspect-video rounded-lg overflow-hidden shadow-lg border border-border">
               <iframe
                 src="https://www.youtube.com/embed/9E-EcRz-Gig"
                 title="PSA Consultores"

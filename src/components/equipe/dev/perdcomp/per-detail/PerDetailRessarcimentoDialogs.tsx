@@ -113,7 +113,7 @@ export function PerDetailRessarcimentoDialogs({
               </Popover>
             </div>
             {ressarcimentoData && valorNumerico > 0 && (
-              <div className="rounded-md border bg-slate-50 p-3 text-sm">
+              <div className="rounded-md border bg-muted p-3 text-sm">
                 {selicIndisponivel ? (
                   <p className="text-xs text-destructive">
                     SELIC indisponível: {selicError ?? 'sem dados da API'}
@@ -122,7 +122,7 @@ export function PerDetailRessarcimentoDialogs({
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="text-xs text-muted-foreground">Valor Original (calculado)</p>
-                      <p className="font-mono font-bold text-slate-800">
+                      <p className="font-mono font-bold text-foreground">
                         {formatCurrency(valorOriginal)}
                       </p>
                     </div>

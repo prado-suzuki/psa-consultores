@@ -74,7 +74,7 @@ export function AbaPorEstado({ filtros, idContribuinte }: AbaPorEstadoProps) {
     return <div className="space-y-4"><Skeleton className="h-72" /><Skeleton className="h-72" /></div>;
   }
   if (fatosFiltrados.length === 0) {
-    return <Alert className="bg-amber-50 border-amber-200"><AlertTriangle className="h-4 w-4 text-amber-600" /><AlertDescription className="text-amber-900 text-xs">Nenhum dado para os filtros atuais. Tente remover restrições de UF ou Anexo.</AlertDescription></Alert>;
+    return <Alert variant="warning"><AlertTriangle className="h-4 w-4" /><AlertDescription className="text-xs">Nenhum dado para os filtros atuais. Tente remover restrições de UF ou Anexo.</AlertDescription></Alert>;
   }
 
   return (

@@ -42,9 +42,6 @@ Mapeamento/
 _sops_export/
 _roi_dump/
 
-# Plano de feature (local, não commitar) — especificação para o dev
-docs/plano-revisao-delegada-tarefas.md
-
 
 # OSG — planilhas locais (não commitar)
 _osg_planilha/
@@ -114,3 +111,32 @@ supabase/.temp/
 # Dailies/anotações pessoais na raiz (local, não commitar)
 /dailies-*.md
 
+
+# Artefatos temporarios da auditoria de cor: scripts que varrem rota/token e
+# despejam JSON na RAIZ. Sao gerados, grandes e nao descrevem o codigo -- o
+# .auditcor-tmp.json passa de 8 mil linhas de contagem por rota.
+#
+# Glob e nao lista: em poucos minutos apareceram .auditcor-tmp.json,
+# .mortas-tmp.json e .tw-cores.json. E familia, nao excecao, e enumerar o que
+# cresce apodrece. O sufixo -tmp e a convencao que esses scripts ja seguem.
+#
+# Entraram aqui depois de um `git add -A` commitar dois deles por acidente.
+/*-tmp.json
+/.tw-cores.json
+
+# Material de trabalho da calculadora de ITCMD (SUC-01) — fontes da OSG, relatórios,
+# scripts de análise e WPs gerados. Fica local: os PPTX de exemplo somam 47 MB.
+docs/osg/sucessao/
+
+# Material de execução da SUC-01, que fica local: a spec do motor, o mapa funcional,
+# o golden master, os scripts de análise do WP, as specs de execução e a planilha de
+# serviços. Nada disso é entregável do app, e a planilha na raiz já era ignorada pela
+# regra `/*.xlsx` — ela só tinha sido rastreada antes da regra existir.
+/servicos-osg.xlsx
+docs/itcmd-mt/
+scripts/itcmd/
+/spec/
+
+# Seed do SANDBOX. Migration de schema publica, seed não: são dados de exemplo com
+# nomes do caso, e o Lovable roda o que estiver aqui.
+supabase/migrations/*_dev_*.sql

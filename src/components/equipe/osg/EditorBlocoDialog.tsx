@@ -31,6 +31,13 @@ const FORM_VAZIO: FormState = {
   repeteColecao: '', ancora: '', changelog: '', flagIds: [],
 };
 
+// Quem pode repetir por item de uma coleção. Parágrafo é o caso de sempre (um
+// parágrafo por sócio que integraliza); o bloco LIVRE entrou com o memorial do
+// georreferenciamento, que é um trecho inteiro (título + tabela) por imóvel do
+// documento. Capítulo e cláusula ficam de fora: repetir título de estrutura
+// bagunçaria a numeração do documento.
+const TIPOS_QUE_REPETEM: readonly TipoBloco[] = ['paragrafo', 'livre'];
+
 /** Âncora precisa caber num caminho de placeholder ({{ refs.<ancora> }}). */
 const ANCORA_VALIDA = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -106,8 +113,8 @@ export function EditorBlocoDialog({ open, onOpenChange, bloco, onSaved }: Props)
       categoria: form.categoria.trim() || null,
       descricao: form.descricao.trim() || null,
       conteudo: form.conteudo,
-      // Repetição só existe em parágrafo — trocar o tipo limpa sem estado fantasma.
-      repeteColecao: form.tipo === 'paragrafo' ? form.repeteColecao || null : null,
+      // Trocar para um tipo que não repete limpa, sem estado fantasma.
+      repeteColecao: TIPOS_QUE_REPETEM.includes(form.tipo) ? form.repeteColecao || null : null,
       ancora: form.tipo === 'livre' ? null : form.ancora.trim() || null,
       changelog: form.changelog.trim() || null,
       flagIds: form.flagIds,
@@ -160,7 +167,7 @@ export function EditorBlocoDialog({ open, onOpenChange, bloco, onSaved }: Props)
             </p>
           )}
 
-          {form.tipo === 'paragrafo' && (
+          {TIPOS_QUE_REPETEM.includes(form.tipo) && (
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-muted-foreground">Repetição</Label>
               <Select
@@ -171,23 +178,24 @@ export function EditorBlocoDialog({ open, onOpenChange, bloco, onSaved }: Props)
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="nenhuma">Não repete — um parágrafo só</SelectItem>
+                  <SelectItem value="nenhuma">Não repete — um bloco só</SelectItem>
                   {Object.entries(PAPEIS_LISTA).map(([nome, papel]) => (
                     <SelectItem key={nome} value={nome}>
-                      Um parágrafo por item de: {papel.label}
+                      Um bloco por item de: {papel.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {form.repeteColecao && (
                 <p className="text-[11px] text-muted-foreground">
-                  Na geração, este bloco vira um parágrafo POR ITEM da coleção (numerados em sequência).
+                  Na geração, este bloco vira uma instância POR ITEM da coleção (numeradas em sequência,
+                  quando o tipo numera). Coleção sem nenhum item: o bloco não entra no documento.
                   Escreva o conteúdo como o texto de UM item — os campos do item (ex.:{' '}
                   <code className="rounded bg-osg-50 px-1">
                     {'{{ ' + (PAPEIS_LISTA[form.repeteColecao]?.itemKey ?? 'item') + '.nome }}'}
                   </code>
                   ) resolvem por instância, e <code className="rounded bg-osg-50 px-1">{'{{ ref }}'}</code> é o
-                  número do próprio parágrafo (também disponível nos loops de outros blocos).
+                  número da própria instância (também disponível nos loops de outros blocos).
                 </p>
               )}
             </div>

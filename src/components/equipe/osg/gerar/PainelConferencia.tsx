@@ -18,10 +18,10 @@ import { fieldCls, labelCls, textareaCls } from '@/components/equipe/osg/formKit
 import type { LinhaNotificacao } from '@/hooks/useGerarDocumentoController';
 
 const SecaoPainel = ({ icone, titulo, contagem, children }: { icone: ReactNode; titulo: string; contagem?: number; children: ReactNode }) => (
-  <div className="space-y-2.5"><div className="flex items-center gap-1.5 text-sm font-semibold text-slate-600"><span className="text-osg-600 [&>svg]:h-4 [&>svg]:w-4">{icone}</span>{titulo}{contagem != null && <span className="ml-auto rounded-full bg-osg-100 px-1.5 py-px text-xs font-bold tabular-nums text-osg-700">{contagem}</span>}</div>{children}</div>
+  <div className="space-y-2.5"><div className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground"><span className="text-osg-600 [&>svg]:h-4 [&>svg]:w-4">{icone}</span>{titulo}{contagem != null && <span className="ml-auto rounded-full bg-osg-100 px-1.5 py-px text-xs font-bold tabular-nums text-osg-700">{contagem}</span>}</div>{children}</div>
 );
 const AvisoPendencia = ({ children, acao, onAcao }: { children: ReactNode; acao?: string; onAcao?: () => void }) => (
-  <div className="space-y-2 rounded-md border border-amber-300/70 bg-amber-50/70 p-3 text-sm text-amber-800"><div className="flex items-start gap-1.5"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span>{children}</span></div>{acao && <Button variant="outline" size="sm" className="h-8 border-amber-300 bg-white text-sm text-amber-900 hover:bg-amber-100 hover:text-amber-900" onClick={onAcao}>{acao}</Button>}</div>
+  <div className="space-y-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning"><div className="flex items-start gap-1.5"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span>{children}</span></div>{acao && <Button variant="outline" size="sm" className="h-8 border-warning/40 bg-white text-sm text-warning hover:bg-warning/20" onClick={onAcao}>{acao}</Button>}</div>
 );
 
 const ListaNotificacoes = ({ linhas, naoLidas, onMarcarLido, marcando }: {
@@ -32,23 +32,23 @@ const ListaNotificacoes = ({ linhas, naoLidas, onMarcarLido, marcando }: {
 }) => (
   <div className="space-y-3">
     <div className="flex items-center justify-between gap-2">
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted-foreground">
         {naoLidas > 0 ? `${naoLidas} ${naoLidas > 1 ? 'alterações' : 'alteração'} desde a validação` : 'Tudo em dia desde a validação'}
       </p>
-      <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs text-osg-600 hover:text-osg-800 disabled:opacity-40" onClick={onMarcarLido} disabled={naoLidas === 0 || marcando}>
+      <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs text-osg-600 hover:text-osg-700 disabled:opacity-40" onClick={onMarcarLido} disabled={naoLidas === 0 || marcando}>
         {marcando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Marcar como lido
       </Button>
     </div>
     {linhas.length === 0 ? (
-      <p className="rounded-md border border-dashed border-osg-200/70 bg-osg-50/40 px-3 py-6 text-center text-sm text-slate-500">Nenhuma alteração desde a validação.</p>
+      <p className="rounded-md border border-dashed border-osg-200/70 bg-osg-50/40 px-3 py-6 text-center text-sm text-muted-foreground">Nenhuma alteração desde a validação.</p>
     ) : (
       <ul className="space-y-2">
         {linhas.map((linha) => (
           <li key={linha.key} className="rounded-md border border-osg-200/60 bg-white px-3 py-2 text-sm shadow-sm shadow-osg-300/10">
-            <p className="leading-snug text-slate-700">
-              {linha.action === 'field' ? <><span className="font-semibold text-slate-700">{linha.label}</span> de <em className="not-italic font-medium text-slate-600">{linha.entityName}</em> alterado para <span className="font-semibold text-osg-700">{linha.newValue}</span></> : <><em className="not-italic font-medium text-slate-600">{linha.entityName}</em> {linha.action === 'created' ? 'adicionado ao cadastro' : linha.action === 'deleted' ? 'removido do cadastro' : 'atualizado'}</>}
+            <p className="leading-snug text-foreground">
+              {linha.action === 'field' ? <><span className="font-semibold text-foreground">{linha.label}</span> de <em className="not-italic font-medium text-muted-foreground">{linha.entityName}</em> alterado para <span className="font-semibold text-osg-700">{linha.newValue}</span></> : <><em className="not-italic font-medium text-muted-foreground">{linha.entityName}</em> {linha.action === 'created' ? 'adicionado ao cadastro' : linha.action === 'deleted' ? 'removido do cadastro' : 'atualizado'}</>}
             </p>
-            <p className="mt-1 text-xs text-slate-400">{linha.meta}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{linha.meta}</p>
           </li>
         ))}
       </ul>
@@ -95,7 +95,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                               'flex-1 rounded px-2 py-1 text-sm font-medium transition-colors',
                               abaEfetiva === 'conferencia'
                                 ? 'bg-white text-osg-700 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700',
+                                : 'text-muted-foreground hover:text-foreground',
                             )}
                           >
                             Conferência
@@ -107,7 +107,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                               'flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1 text-sm font-medium transition-colors',
                               abaEfetiva === 'notificacoes'
                                 ? 'bg-white text-osg-700 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700',
+                                : 'text-muted-foreground hover:text-foreground',
                             )}
                           >
                             <Bell className="h-4 w-4" />
@@ -148,7 +148,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                         {empresaId && (capitalValor != null || totalQuotas != null) && (
                           <div className="divide-y divide-osg-200/60 overflow-hidden rounded-md border border-osg-200/70 bg-osg-50/50">
                             <div className="flex items-center justify-between gap-3 px-3.5 py-2.5">
-                              <p className="flex shrink-0 items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                              <p className="flex shrink-0 items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                 <Landmark className="h-3.5 w-3.5 shrink-0 text-osg-600" /> Capital social
                               </p>
                               <p className="whitespace-nowrap text-base font-bold tabular-nums text-osg-700">
@@ -156,7 +156,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                               </p>
                             </div>
                             <div className="flex items-center justify-between gap-3 px-3.5 py-2.5">
-                              <p className="flex shrink-0 items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                              <p className="flex shrink-0 items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                 <PieChart className="h-3.5 w-3.5 shrink-0 text-osg-600" /> Quotas
                               </p>
                               <p className="whitespace-nowrap text-base font-bold tabular-nums text-osg-700">
@@ -188,16 +188,16 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                 {socios.map((s, i) => (
                                   <li
                                     key={s.pessoa.id}
-                                    className="flex items-baseline gap-2 text-sm text-slate-700"
+                                    className="flex items-baseline gap-2 text-sm text-foreground"
                                   >
-                                    <span className="w-4 shrink-0 text-right tabular-nums text-slate-400">
+                                    <span className="w-4 shrink-0 text-right tabular-nums text-muted-foreground">
                                       {i + 1}.
                                     </span>
                                     <span className="min-w-0 flex-1 truncate" title={s.pessoa.denominacao}>
                                       {s.pessoa.denominacao}
                                     </span>
                                     {s.quotas != null && (
-                                      <span className="shrink-0 tabular-nums text-slate-500">
+                                      <span className="shrink-0 tabular-nums text-muted-foreground">
                                         {fmtInt.format(s.quotas)} quotas
                                       </span>
                                     )}
@@ -234,16 +234,16 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                 {administradores.map((a, i) => (
                                   <li
                                     key={a.pessoa.id}
-                                    className="flex items-baseline gap-2 text-sm text-slate-700"
+                                    className="flex items-baseline gap-2 text-sm text-foreground"
                                   >
-                                    <span className="w-4 shrink-0 text-right tabular-nums text-slate-400">
+                                    <span className="w-4 shrink-0 text-right tabular-nums text-muted-foreground">
                                       {i + 1}.
                                     </span>
                                     <span className="min-w-0 flex-1 truncate" title={a.pessoa.denominacao}>
                                       {a.pessoa.denominacao}
                                     </span>
                                     {a.cargo && (
-                                      <span className="shrink-0 text-slate-500">{a.cargo}</span>
+                                      <span className="shrink-0 text-muted-foreground">{a.cargo}</span>
                                     )}
                                   </li>
                                 ))}
@@ -268,8 +268,8 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                             ) : (
                               <ul className="max-h-40 space-y-1.5 overflow-y-auto pr-1">
                                 {integralizacoes.map((m) => (
-                                  <li key={m.id} className="flex items-baseline gap-2 text-sm text-slate-700">
-                                    <span className="shrink-0 tabular-nums text-slate-500">
+                                  <li key={m.id} className="flex items-baseline gap-2 text-sm text-foreground">
+                                    <span className="shrink-0 tabular-nums text-muted-foreground">
                                       Matr. {m.numero ?? 's/ nº'}
                                     </span>
                                     <span
@@ -299,7 +299,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                               <p className="flex items-center gap-1.5 font-semibold text-osg-700">
                                 <Sparkles className="h-4 w-4" /> Ajustado ao perfil da empresa
                               </p>
-                              <p className="text-slate-600">
+                              <p className="text-muted-foreground">
                                 {fraseExcluidosPorFlag(
                                   blocosExcluidosPorPerfil.map((b) => nomePorBlocoId.get(b.id) ?? b.id),
                                 )}
@@ -309,7 +309,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                         )}
 
                         {empresaId && (mostraSocios || mostraIntegralizacoes) && (
-                          <p className="flex items-start gap-1.5 text-xs text-slate-500">
+                          <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
                             <Database className="mt-0.5 h-3 w-3 shrink-0 text-osg-600" />
                             {ehEmpresaPR
                               ? 'Sócios calculados das integralizações aprovadas (participação decrescente); administradores do cadastro.'
@@ -335,7 +335,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                         titulo="Preencher à mão"
                         contagem={desconhecidosVisiveis.length}
                       >
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                           Estes campos do modelo não vêm do cadastro.
                         </p>
                         <div className="space-y-3">
@@ -373,16 +373,16 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                           </button>
                         </CollapsibleTrigger>
                         <CollapsibleContent className="space-y-5 pt-4">
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             Os ajustes valem só para este documento — o cadastro não muda.
                           </p>
                           {bindings.map((b) => (
                             <div key={b.nome} className="space-y-2.5">
-                              <p className="text-sm font-semibold text-slate-600">
+                              <p className="text-sm font-semibold text-muted-foreground">
                                 {labelDoBinding(b.nome)}
                               </p>
                               {b.tipo === 'sociedade' && !empresaId && (
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs text-muted-foreground">
                                   Selecione a empresa para preencher.
                                 </p>
                               )}
@@ -413,7 +413,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                         />
                                       )}
                                       {foraDoCatalogo && (
-                                        <p className="flex items-start gap-1 text-xs text-amber-700">
+                                        <p className="flex items-start gap-1 text-xs text-warning">
                                           <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
                                           <span>
                                             "{c.id}" não existe no cadastro de {labelDoBinding(b.nome)} —

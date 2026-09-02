@@ -19,6 +19,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useAuth } from '@/contexts/AuthContext';
 import { CATEGORIA_PROPOSTA } from '@/components/equipe/osg/documentos/docMeta';
 import {
   useUploadDocumento,
@@ -83,6 +84,7 @@ export function usePropostasDoCliente(clienteId: string | null) {
 export function useAnexarProposta(clienteId: string) {
   const upload = useUploadDocumento();
   const { logAction } = useAuditLog();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (file: File): Promise<DocumentoArquivoRow> => {
@@ -111,10 +113,9 @@ export function useAnexarProposta(clienteId: string) {
       // Erro aqui não derruba a mutação, no mesmo espírito do registro de
       // download: o arquivo já está anexado, e acionar o onError faria a pessoa
       // reenviar e duplicar. Vai ao console porque é o único aviso.
-      const { data: sessao } = await supabase.auth.getUser();
       const { error: erroTriagem } = await supabase
         .from('documento_arquivo')
-        .update({ triado_em: new Date().toISOString(), triado_por: sessao.user?.id ?? null })
+        .update({ triado_em: new Date().toISOString(), triado_por: user?.id ?? null })
         .eq('id', linha.id);
       if (erroTriagem) console.error('Falha ao marcar a proposta como triada', erroTriagem);
 

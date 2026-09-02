@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { EquipeSprintDetalhesController } from '@/hooks/useEquipeSprintDetalhesController';
+import { entregavelStatusColors } from '@/lib/entregavelStatusColors';
 
 const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -66,7 +67,7 @@ export function SprintHeaderFilters({
                 ? 'bg-primary/10 text-primary border-primary/20'
                 : c.sprint.status === 'completed'
                   ? 'bg-green-100 text-green-700'
-                  : 'bg-gray-100 text-gray-700'
+                  : 'bg-muted text-gray-700'
             }
           >
             {c.sprint.status === 'active'
@@ -99,7 +100,7 @@ export function SprintHeaderFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos status</SelectItem>
-            <SelectItem value="pending">Pendente</SelectItem>
+            <SelectItem value="pending">{entregavelStatusColors.pending.label}</SelectItem>
             <SelectItem value="in_progress">Em Progresso</SelectItem>
             <SelectItem value="completed">Concluído</SelectItem>
           </SelectContent>

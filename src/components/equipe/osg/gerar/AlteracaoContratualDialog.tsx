@@ -90,7 +90,7 @@ export const AlteracaoContratualDialog = ({
             Gerar alteração contratual
           </DialogTitle>
           <DialogDescription>
-            A partir de <span className="font-medium text-slate-700">{documentoDeOrigem}</span>
+            A partir de <span className="font-medium text-foreground">{documentoDeOrigem}</span>
             {empresaLabel ? <> · {empresaLabel}</> : null}
           </DialogDescription>
         </DialogHeader>
@@ -98,8 +98,8 @@ export const AlteracaoContratualDialog = ({
         {passo === 1 && (
           <div className="space-y-4">
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-slate-800">O que mudou desde o registro</p>
-              <p className="text-xs leading-relaxed text-slate-500">
+              <p className="text-sm font-semibold text-foreground">O que mudou desde o registro</p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
                 A lista vem do que o cadastro registra depois do documento anterior: o livro de
                 movimentos de quota e as mudanças de endereço e administração. Confira, e desmarque
                 o que não deve entrar nesta peça. Cada evento marcado traz a resolução dele.
@@ -121,12 +121,12 @@ export const AlteracaoContratualDialog = ({
                   >
                     <ToggleRight
                       aria-hidden
-                      className={cn('h-4 w-4 shrink-0', ligada ? 'text-osg-moss' : 'text-slate-300')}
+                      className={cn('h-4 w-4 shrink-0', ligada ? 'text-osg-moss' : 'text-muted-foreground/40')}
                     />
                     <div className="min-w-0 flex-1 space-y-0.5">
                       <Label
                         htmlFor={`evento-${flag.id}`}
-                        className="block cursor-pointer text-sm font-medium text-slate-800"
+                        className="block cursor-pointer text-sm font-medium text-foreground"
                       >
                         {flag.descricao || flag.nome}
                       </Label>
@@ -138,7 +138,7 @@ export const AlteracaoContratualDialog = ({
                       <p
                         className={cn(
                           'text-xs',
-                          evidencia ? 'text-osg-700' : 'text-slate-400',
+                          evidencia ? 'text-osg-700' : 'text-muted-foreground',
                         )}
                       >
                         {evidencia ?? 'nada no cadastro registra este evento'}
@@ -160,7 +160,7 @@ export const AlteracaoContratualDialog = ({
         {passo === 2 && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-slate-800">
+              <p className="text-sm font-semibold text-foreground">
                 {marcadas.length === 0
                   ? 'Nenhum evento marcado'
                   : `${marcadas.length} evento${marcadas.length === 1 ? '' : 's'} nesta alteração`}
@@ -168,7 +168,7 @@ export const AlteracaoContratualDialog = ({
               {marcadas.length > 0 && (
                 <ul className="space-y-1.5 rounded-md border border-osg-300/60 bg-osg-50/50 p-3">
                   {marcadas.map((f) => (
-                    <li key={f.id} className="flex gap-2 text-sm text-slate-700">
+                    <li key={f.id} className="flex gap-2 text-sm text-foreground">
                       <span aria-hidden className="text-osg-moss">
                         •
                       </span>
@@ -182,11 +182,11 @@ export const AlteracaoContratualDialog = ({
             {/* O aviso que faz o caminho B funcionar. Ver o comentário do
                 componente: sem cadastro atualizado, o consolidado sai velho e
                 nada no motor tem como perceber. */}
-            <div className="space-y-1.5 rounded-md border border-amber-300/70 bg-amber-50/60 p-3">
-              <p className="text-sm font-semibold text-amber-900">
+            <div className="space-y-1.5 rounded-md border border-warning/40 bg-warning/10 p-3">
+              <p className="text-sm font-semibold text-warning">
                 Antes de gerar, o cadastro precisa estar atualizado
               </p>
-              <p className="text-xs leading-relaxed text-amber-900/80">
+              <p className="text-xs leading-relaxed text-warning">
                 O quadro societário e o capital saem do livro de movimentos, e esses já estão
                 conferidos acima. O resto do consolidado é escrito do cadastro de hoje: endereço,
                 objeto social e administração já devem refletir o estado DEPOIS do evento. O

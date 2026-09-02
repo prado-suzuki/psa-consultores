@@ -387,7 +387,7 @@ export function OrganizarDocumentos({ clienteId }: Props) {
                   <div key={g.label}>
                     <div className="flex items-center gap-2 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-osg-700/80">
                       <span>{g.label}</span>
-                      <span className="rounded-full bg-slate-100 px-1.5 text-[11px] tabular-nums text-slate-500">
+                      <span className="rounded-full bg-muted px-1.5 text-[11px] tabular-nums text-muted-foreground">
                         {g.docs.length}
                       </span>
                     </div>
@@ -400,13 +400,13 @@ export function OrganizarDocumentos({ clienteId }: Props) {
                               <button
                                 type="button"
                                 onClick={() => abrirPreview(d)}
-                                className="block w-full min-w-0 truncate text-left font-medium text-slate-800 hover:text-osg-700 hover:underline"
+                                className="block w-full min-w-0 truncate text-left font-medium text-foreground hover:text-osg-700 hover:underline"
                                 title="Pré-visualizar"
                               >
                                 {d.nome_original}
                               </button>
                             ) : (
-                              <p className="truncate font-medium text-slate-800">{d.nome_original}</p>
+                              <p className="truncate font-medium text-foreground">{d.nome_original}</p>
                             )}
                             <p className="truncate text-xs text-muted-foreground">
                               {vinculoLabel(d)} · {formatBytes(d.tamanho)} · enviado por{' '}

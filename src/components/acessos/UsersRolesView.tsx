@@ -12,7 +12,7 @@ const ROLE_VISUALS: Record<AppRole, RoleVisual> = {
   team_member: { key: 'team_member', label: 'Membro',       className: 'bg-blue-100 text-blue-700 border-0' },
   lider:       { key: 'lider',       label: 'Líder Geral',  className: 'bg-amber-100 text-amber-700 border-0' },
   sublider:    { key: 'sublider',    label: 'Sublíder',     className: 'bg-orange-100 text-orange-700 border-0' },
-  client:      { key: 'client',      label: 'Cliente',      className: 'bg-foreground/[0.05] text-slate-600 border-0' },
+  client:      { key: 'client',      label: 'Cliente',      className: 'bg-foreground/[0.05] text-muted-foreground border-0' },
   timecliente: { key: 'timecliente', label: 'Time Cliente', className: 'bg-cyan-100 text-cyan-700 border-0' },
   marketing:   { key: 'marketing',   label: 'Marketing',    className: 'bg-violet-100 text-violet-700 border-0' },
 };
@@ -89,7 +89,7 @@ export const UsersRolesView = ({
         <MetricCard
           title="Total de Usuários"
           value={stats.total}
-          icon={<Users className="h-5 w-5 text-slate-600" />}
+          icon={<Users className="h-5 w-5 text-muted-foreground" />}
           iconColor="bg-foreground/[0.05]"
         />
         <MetricCard
@@ -113,9 +113,9 @@ export const UsersRolesView = ({
       </div>
 
       {/* Users Table */}
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
-          <CardTitle className="text-slate-700">Usuários e Permissões</CardTitle>
+          <CardTitle className="text-foreground">Usuários e Permissões</CardTitle>
           <CardDescription>
             Lista de todos os usuários e seus níveis de acesso
           </CardDescription>
@@ -142,26 +142,26 @@ export const UsersRolesView = ({
               <TableBody>
                 {usersWithRoles?.map((user) => (
                   <TableRow key={user.id} className="hover:bg-foreground/[0.03]">
-                    <TableCell className="font-medium text-slate-700">
+                    <TableCell className="font-medium text-foreground">
                       {user.first_name} {user.last_name}
                     </TableCell>
-                    <TableCell className="text-slate-500">{user.email}</TableCell>
+                    <TableCell className="text-muted-foreground">{user.email}</TableCell>
                     <TableCell>
                       <div className="flex gap-1 flex-wrap">
                         {user.roles.map((role) => (
                           <span key={role}>{getRoleBadge(role)}</span>
                         ))}
                         {user.roles.length === 0 && (
-                          <span className="text-slate-400 text-sm">Sem permissões</span>
+                          <span className="text-muted-foreground text-sm">Sem permissões</span>
                         )}
                       </div>
                     </TableCell>
                     {columns.map((role) => (
                       <TableCell key={role} className="text-center">
                         {user.roles.includes(role) ? (
-                          <CheckCircle className="h-5 w-5 text-emerald-500 mx-auto" />
+                          <CheckCircle className="h-5 w-5 text-status-feito mx-auto" />
                         ) : (
-                          <XCircle className="h-5 w-5 text-slate-300 mx-auto" />
+                          <XCircle className="h-5 w-5 text-muted-foreground/40 mx-auto" />
                         )}
                       </TableCell>
                     ))}
@@ -174,9 +174,9 @@ export const UsersRolesView = ({
       </Card>
 
       {/* Access Legend */}
-      <Card className="mt-6 border-slate-200 shadow-sm">
+      <Card className="mt-6 border-border shadow-sm">
         <CardHeader>
-          <CardTitle className="text-base text-slate-700">Legenda de Permissões</CardTitle>
+          <CardTitle className="text-base text-foreground">Legenda de Permissões</CardTitle>
         </CardHeader>
         <CardContent>
           <div
@@ -187,10 +187,10 @@ export const UsersRolesView = ({
             {columns.map((role) => (
               <div
                 key={role}
-                className="p-4 border border-slate-200 rounded-lg bg-muted"
+                className="p-4 border border-border rounded-lg bg-muted"
               >
                 <div className="flex items-center gap-2 mb-2">{getRoleBadge(role)}</div>
-                <p className="text-sm text-slate-600">{LEGEND_DESCRIPTIONS[role]}</p>
+                <p className="text-sm text-muted-foreground">{LEGEND_DESCRIPTIONS[role]}</p>
               </div>
             ))}
           </div>

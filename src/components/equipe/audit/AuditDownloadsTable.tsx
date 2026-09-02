@@ -65,7 +65,7 @@ export const AuditDownloadsTable = () => {
             ))}
           </SelectContent>
         </Select>
-        <span className="text-sm text-slate-500">
+        <span className="text-sm text-muted-foreground">
           {isLoading
             ? 'Carregando…'
             : `${linhas.length.toLocaleString('pt-BR')} acesso(s) no período`}
@@ -73,7 +73,7 @@ export const AuditDownloadsTable = () => {
       </div>
 
       {vazio && (
-        <p className="rounded-md border border-dashed p-6 text-center text-sm text-slate-500">
+        <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
           Nenhum acesso a documento registrado neste período.
         </p>
       )}
@@ -82,7 +82,7 @@ export const AuditDownloadsTable = () => {
         <>
           <section className="space-y-2">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-medium text-slate-700">Por usuário</h3>
+              <h3 className="text-sm font-medium text-foreground">Por usuário</h3>
               <Button
                 variant="outline"
                 size="sm"
@@ -110,12 +110,12 @@ export const AuditDownloadsTable = () => {
                 {porUsuario.map(linha => (
                   <TableRow key={linha.usuarioId}>
                     <TableCell className="font-medium">{linha.nome}</TableCell>
-                    <TableCell className="text-slate-600">
+                    <TableCell className="text-muted-foreground">
                       {linha.papeis.map(rotuloOrigem).join(', ') || '—'}
                     </TableCell>
                     <TableCell className="text-right">{linha.downloads}</TableCell>
                     <TableCell className="text-right">{linha.documentosDistintos}</TableCell>
-                    <TableCell className="text-slate-600">{quando(linha.ultimoEm)}</TableCell>
+                    <TableCell className="text-muted-foreground">{quando(linha.ultimoEm)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -124,7 +124,7 @@ export const AuditDownloadsTable = () => {
 
           <section className="space-y-2">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-medium text-slate-700">Por documento</h3>
+              <h3 className="text-sm font-medium text-foreground">Por documento</h3>
               <Button
                 variant="outline"
                 size="sm"
@@ -153,13 +153,13 @@ export const AuditDownloadsTable = () => {
                   <TableRow key={linha.documentoId}>
                     <TableCell className="font-medium">
                       {linha.nome ?? (
-                        <span className="text-slate-400 italic">Documento excluído</span>
+                        <span className="text-muted-foreground italic">Documento excluído</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-slate-600">{linha.cliente ?? '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">{linha.cliente ?? '—'}</TableCell>
                     <TableCell className="text-right">{linha.downloads}</TableCell>
                     <TableCell className="text-right">{linha.usuariosDistintos}</TableCell>
-                    <TableCell className="text-slate-600">{quando(linha.ultimoEm)}</TableCell>
+                    <TableCell className="text-muted-foreground">{quando(linha.ultimoEm)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -170,7 +170,7 @@ export const AuditDownloadsTable = () => {
 
       <AuditLimiteAviso total={linhas.length} />
 
-      <p className="flex items-start gap-2 text-xs text-slate-500">
+      <p className="flex items-start gap-2 text-xs text-muted-foreground">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         <span>
           Cada linha registra que <strong className="font-medium">o link assinado foi entregue

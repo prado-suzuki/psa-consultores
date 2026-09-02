@@ -558,7 +558,7 @@ export default function EstruturaManager() {
                 className="font-mono"
               />
               {cnpjIncompleto(clusterForm.cnpj) && (
-                <p className="text-xs text-amber-700">CNPJ incompleto — faltam dígitos.</p>
+                <p className="text-xs text-warning">CNPJ incompleto — faltam dígitos.</p>
               )}
             </div>
             <div className="space-y-2">

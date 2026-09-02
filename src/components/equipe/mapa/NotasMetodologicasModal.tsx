@@ -305,7 +305,7 @@ export function NotasMetodologicasModal({ isOpen, onClose, escopo }: NotasMetodo
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="modal" style={{ maxWidth: 960 }}>
         <h2>{TITULOS[escopo]}</h2>
-        <p style={{ marginTop: -12, marginBottom: 16, color: '#475569', fontSize: '0.9rem' }}>
+        <p style={{ marginTop: -12, marginBottom: 16, color: 'hsl(var(--slate-600))', fontSize: '0.9rem' }}>
           Como cada número é calculado e <strong>qual campo de qual página</strong> o abastece.
         </p>
 
@@ -324,7 +324,7 @@ export function NotasMetodologicasModal({ isOpen, onClose, escopo }: NotasMetodo
         {ativa.blocos.map((b) => (
           <div key={b.titulo} style={{ marginTop: 24 }}>
             <h3 style={{ marginBottom: 4 }}>{b.titulo}</h3>
-            {b.intro && <p style={{ marginTop: 0, color: '#475569', fontSize: '0.9rem' }}>{b.intro}</p>}
+            {b.intro && <p style={{ marginTop: 0, color: 'hsl(var(--slate-600))', fontSize: '0.9rem' }}>{b.intro}</p>}
             <div className="notasv2-dict-table">
               <div className="notasv2-dict-head" style={{ gridTemplateColumns: '1.1fr 1.6fr 1.5fr' }}>
                 <div><Tooltip text={dica('notas.col.indicador')}>Indicador</Tooltip></div>
@@ -336,7 +336,7 @@ export function NotasMetodologicasModal({ isOpen, onClose, escopo }: NotasMetodo
                   <div><strong>{l.indicador}</strong></div>
                   <div>
                     <code style={{ whiteSpace: 'normal' }}>{l.formula}</code>
-                    {l.nota && <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 4 }}>{l.nota}</div>}
+                    {l.nota && <div style={{ fontSize: '0.78rem', color: 'hsl(var(--slate-500))', marginTop: 4 }}>{l.nota}</div>}
                   </div>
                   <div style={{ fontSize: '0.82rem' }}>
                     {l.fontes.map((f, i) => <div key={i}>{f}</div>)}

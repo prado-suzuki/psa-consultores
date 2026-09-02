@@ -140,17 +140,21 @@ export function DashboardIframe({
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center py-16">
-        <RefreshCw className="h-6 w-6 animate-spin text-slate-400" />
+        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (!embed?.ok || !embed.url) {
+    // O NOME do relatório entra no aviso porque a tela tem seletor: sem ele, o
+    // recado é "algum relatório não abriu" e quem for pedir revisão não sabe
+    // dizer qual. O `title` já chega aqui para o `<iframe>`.
     return (
       <div className="flex h-full items-center justify-center p-8">
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-8 text-center">
-          <p className="text-sm text-amber-700">
-            {EMBED_REASON_LABEL[embed?.reason ?? ''] ?? 'Não foi possível carregar este dashboard.'}
+        <div className="rounded-xl border border-warning/40 bg-warning/10 p-8 text-center">
+          <p className="text-sm font-semibold text-warning">{title}</p>
+          <p className="mt-1 text-sm text-warning">
+            {EMBED_REASON_LABEL[embed?.reason ?? ''] ?? 'Não foi possível carregar este relatório.'}
           </p>
         </div>
       </div>

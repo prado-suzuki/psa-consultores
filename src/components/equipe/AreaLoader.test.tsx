@@ -58,7 +58,12 @@ describe('AreaLoader', () => {
 
     const tax = read(render(<AreaLoader area="tax" className="mx-auto block" />).container);
     expect(tax).toContain('mx-auto');
-    expect(tax).toContain('text-[#0e4b5a]');
+    // O porquinho carrega `text-primary` e não mais o hexadecimal `#0e4b5a`: o
+    // valor medido neste desenho VIROU a âncora da Tax, e o literal deixava a
+    // fonte da cor como o único lugar que não a seguia. O que este teste guarda
+    // é a relação — o glifo tem cor PRÓPRIA e a classe de layout do call site
+    // não a apaga —, e ela continua valendo.
+    expect(tax).toContain('text-primary');
 
     const osg = read(render(<AreaLoader area="osg" className="mx-auto block" />).container);
     expect(osg).toContain('mx-auto');

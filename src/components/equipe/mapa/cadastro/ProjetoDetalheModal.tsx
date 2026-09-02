@@ -27,11 +27,11 @@ const formatarData = (iso?: string | null) => {
 
 // Veredito binário do doutor por processo (cores institucionais; sem CSS novo).
 function DoctorBadge({ ok, n }: { ok: boolean; n: number }) {
-  const cor = ok ? '#0d9488' : '#dc2626';
+  const cor = ok ? 'hsl(var(--primary))' : '#dc2626';
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.72rem',
-      fontWeight: 700, color: cor, background: `${cor}14`, borderRadius: 6, padding: '2px 8px',
+      fontWeight: 700, color: cor, background: 'color-mix(in srgb, currentColor 8%, transparent)', borderRadius: 6, padding: '2px 8px',
     }}>
       {ok ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
       {ok ? 'ROI completo' : `Pendente · ${n}`}
@@ -185,9 +185,9 @@ export default function ProjetoDetalheModal({
                   </div>
                 )}
                 {/* Resumo do doutor — quantos processos entram no ROI consolidado */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: '0.85rem', color: '#475569', flexWrap: 'wrap' }}>
-                  <strong style={{ color: '#0f172a' }}>{completos}</strong> de
-                  <strong style={{ color: '#0f172a' }}>{processos.length}</strong> processos com ROI completo
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: '0.85rem', color: 'hsl(var(--slate-600))', flexWrap: 'wrap' }}>
+                  <strong style={{ color: 'hsl(var(--slate-900))' }}>{completos}</strong> de
+                  <strong style={{ color: 'hsl(var(--slate-900))' }}>{processos.length}</strong> processos com ROI completo
                   {emMapeamento > 0 && (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#dc2626', fontWeight: 600 }}>
                       <AlertTriangle size={13} /> {emMapeamento} em mapeamento (fora do consolidado)
@@ -219,7 +219,7 @@ export default function ProjetoDetalheModal({
                             {!vd.ok && (
                               <div style={{ margin: '0 0 10px' }}>
                                 <strong style={{ fontSize: '0.8rem', color: '#dc2626' }}>Falta para o ROI contar:</strong>
-                                <ul style={{ margin: '4px 0 0', paddingLeft: 18, fontSize: '0.8rem', color: '#475569' }}>
+                                <ul style={{ margin: '4px 0 0', paddingLeft: 18, fontSize: '0.8rem', color: 'hsl(var(--slate-600))' }}>
                                   {vd.faltando.map((f, i) => <li key={i}>{f}</li>)}
                                 </ul>
                               </div>
@@ -236,7 +236,7 @@ export default function ProjetoDetalheModal({
                                 onClick={() => setEditProc(processo)}
                                 style={{
                                   display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none',
-                                  border: 'none', padding: 0, color: '#0d9488', cursor: 'pointer',
+                                  border: 'none', padding: 0, color: 'hsl(var(--primary))', cursor: 'pointer',
                                   fontSize: '0.82rem', fontWeight: 600,
                                 }}
                               >
@@ -305,7 +305,7 @@ export default function ProjetoDetalheModal({
                           {temEtapas && (
                             <button
                               type="button"
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'center', marginRight: 10, fontSize: '0.78rem', fontWeight: 700, color: '#0d9488', background: '#f0fdfa', border: '1px solid #0d9488', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'center', marginRight: 10, fontSize: '0.78rem', fontWeight: 700, color: 'hsl(var(--primary))', background: 'hsl(var(--teal-50))', border: '1px solid hsl(var(--primary))', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
                               onClick={() => setDiagramaCol({ modo: 'as', proc: p })}
                             >
                               <Network size={14} strokeWidth={2.2} /> Ver diagrama
@@ -375,7 +375,7 @@ export default function ProjetoDetalheModal({
                           {temEtapas && (
                             <button
                               type="button"
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'center', marginRight: 10, fontSize: '0.78rem', fontWeight: 700, color: '#0d9488', background: '#f0fdfa', border: '1px solid #0d9488', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'center', marginRight: 10, fontSize: '0.78rem', fontWeight: 700, color: 'hsl(var(--primary))', background: 'hsl(var(--teal-50))', border: '1px solid hsl(var(--primary))', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
                               onClick={() => setDiagramaCol({ modo: 'to', proc: p })}
                             >
                               <Network size={14} strokeWidth={2.2} /> Ver diagrama
@@ -438,7 +438,7 @@ export default function ProjetoDetalheModal({
                           <span className="projeto-process-name">{p.name}</span>
                           <span className="projeto-process-count">{nAs} → {nTo} etapa{nTo === 1 ? '' : 's'}</span>
                           <span className="projeto-process-status">
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: temEtapas ? '#4f46e5' : '#94a3b8' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: temEtapas ? '#4f46e5' : 'hsl(var(--slate-400))' }}>
                               <Network size={13} /> {temEtapas ? 'Ver comparativo' : 'Sem etapas'}
                             </span>
                           </span>

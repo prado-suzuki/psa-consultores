@@ -1,0 +1,478 @@
+---
+title: Aumento de capital por integralização de novos imóveis
+slug: aumento-capital-novos-imoveis
+kind: plan
+---
+
+### Objetivo
+
+Quando um imóvel é aprovado para integralização **depois** que o contrato social da
+Proprietária já foi registrado na junta, a alteração contratual seguinte tem de publicar o
+aumento de capital que essa integralização produz: a resolução do delta, a subscrição por
+sócio, as alíneas descrevendo cada imóvel e a parcela em moeda corrente, e o carimbo que vira
+o bem para `Integralizado` no registro.
+
+Hoje isso não acontece. Não por falta da redação nem do assistente: falta um elo, e ele é o
+primeiro da corrente.
+
+Pronto significa: aprovar imóveis novos para a MMS Agro no Diagnóstico Patrimonial, registrar
+o aumento (imóveis mais a parcela em dinheiro), abrir a tela Gerar e ver o assistente acender
+"aumento de capital de R$ 872.674,00 para R$ 4.234.822,00" sem que ninguém marque nada à mão,
+gerar a peça com as alíneas dos imóveis e da moeda, registrar, e conferir que os bens saíram
+da lista de elegíveis e os movimentos ganharam `documento_gerado_id`.
+
+### Onde a corrente arrebenta
+
+<Diagram id="dg-corrente" frame="show" caption="A mesma corrente, nos dois momentos da vida da sociedade.">
+
+```html
+<div style="display:flex;flex-direction:column;gap:16px">
+  <div class="diagram-panel" style="display:flex;flex-direction:column;gap:10px;padding:14px">
+    <div><span class="tag">Constituição da PR, funciona hoje</span></div>
+    <div class="chain">
+      <div class="diagram-card"><strong>Bem aprovado</strong><small>Diagnóstico Patrimonial</small></div>
+      <div class="link">&#8594;</div>
+      <div class="diagram-card"><strong>Aporte no livro</strong><small>movimentacao_quotas, com bem_id</small></div>
+      <div class="link">&#8594;</div>
+      <div class="diagram-card"><strong>Contrato social</strong><small>capital + alíneas dos imóveis</small></div>
+      <div class="link">&#8594;</div>
+      <div class="diagram-card"><strong>Registro na junta</strong><small>carimbo, bem Integralizado</small></div>
+    </div>
+  </div>
+
+  <div class="diagram-panel" style="display:flex;flex-direction:column;gap:10px;padding:14px">
+    <div><span class="tag warn">Imóvel aprovado depois do registro</span></div>
+    <div class="chain">
+      <div class="diagram-card"><strong>Bem aprovado</strong><small>Diagnóstico Patrimonial</small></div>
+      <div class="broken">&#10005;</div>
+      <div class="diagram-card faded"><strong>Aporte no livro</strong><small>não existe</small></div>
+      <div class="link faded">&#8594;</div>
+      <div class="diagram-card faded"><strong>Alteração contratual</strong><small>nenhum evento acende</small></div>
+      <div class="link faded">&#8594;</div>
+      <div class="diagram-card faded"><strong>Capital inalterado</strong><small>bem segue Aprovado</small></div>
+    </div>
+    <div class="diagram-muted" style="font-size:12px">O elo que falta: nada transforma o bem aprovado em aporte pendente depois da constituição.</div>
+  </div>
+</div>
+```
+
+```css
+.chain {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+  align-items: stretch;
+  gap: 8px;
+}
+.chain .diagram-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+.chain .diagram-card small { color: var(--wf-muted); }
+.link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--wf-muted);
+  padding: 0 2px;
+}
+.broken {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--wf-warn);
+  border-left: 1.6px dashed var(--wf-warn);
+  border-right: 1.6px dashed var(--wf-warn);
+  padding: 0 10px;
+  font-weight: 600;
+}
+.faded { opacity: 0.55; }
+.tag {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: var(--wf-radius);
+  background: var(--wf-accent-soft);
+  font-size: 11px;
+}
+.tag.warn { background: var(--wf-warn); color: var(--wf-paper); }
+```
+
+</Diagram>
+
+A tela do Quadro Societário deriva a proposta de aporte dos bens aprovados, mas só enquanto a
+empresa não tem movimento nenhum. Gravado o quadro, ela passa a mostrar o acumulado do livro e
+nunca mais olha o Diagnóstico Patrimonial. Isso está certo para o capital (capital registrado
+não segue valor contábil), e errado para o bem novo: ele fica sem porta de entrada.
+
+A saída manual não cobre o caso. O `MovimentoModal` registra aporte, mas não coleta forma de
+pagamento: o `Draft` tem tipo, origem, destino, quotas e data, e nada mais. Aporte lançado ali
+chega com `bem_id` nulo, cai em `forma: 'moeda'`, e o documento sai sem as alíneas dos imóveis
+enquanto o bem segue `Aprovado` para sempre.
+
+<TabsBlock
+  id="tabs-elo"
+  orientation="vertical"
+  tabs={[
+    {
+      id: "tab-quadro",
+      label: "QuadroEmpresaProprietaria.tsx",
+      blocks: [
+        {
+          id: "ac-quadro",
+          type: "annotated-code",
+          data: {
+            filename: "src/components/equipe/osg/quadro-societario/QuadroEmpresaProprietaria.tsx",
+            language: "ts",
+            code: "const { data: matriculas = [], isLoading: carregandoBens } = useIntegralizacoesAprovadas(empresa.id);\nconst { data: quadro = [], isLoading: carregandoQuadro } = useQuadroDaEmpresa(empresa.id);\nconst gravar = useGravarAporteInicial();\n\nconst proposta = useMemo(() => proporAportesIniciais(matriculas), [matriculas]);\nconst gravado = quadro.length > 0;",
+            annotations: [
+              {
+                lines: "6",
+                label: "O elo",
+                note: "Com quadro gravado a tela para de olhar `matriculas`, e a proposta (a única coisa no app que cria aporte com `bem_id`) fica inalcançável para sempre."
+              },
+              {
+                lines: "1",
+                note: "A query dos bens elegíveis continua rodando e já traz o imóvel novo. Só ninguém a usa depois da constituição."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      id: "tab-aportes",
+      label: "useGeracaoDocumento.ts",
+      blocks: [
+        {
+          id: "ac-aportes",
+          type: "annotated-code",
+          data: {
+            filename: "src/hooks/useGeracaoDocumento.ts",
+            language: "ts",
+            code: "return linhas.map((l): AporteParaMapear => {\n  const origemId = l.pago_com_empresa_pessoa_id;\n  return {\n    id: l.id,\n    pessoaId: l.destino_pessoa_id!,\n    quotas: Number(l.quotas ?? 0),\n    valor: Number(l.vlr_capital_arredondado ?? 0),\n    forma: origemId ? 'quotas' : l.bem_id ? 'bem' : 'moeda',\n    bemId: l.bem_id,",
+            annotations: [
+              {
+                lines: "8-9",
+                label: "bem_id decide tudo",
+                note: "É daqui que saem as alíneas de {{#integralizacoes}}. Sem `bem_id` o aporte vira moeda corrente, e o imóvel desaparece do instrumento."
+              },
+              {
+                lines: "1",
+                note: "A query lê na ordem `created_at` e depois `sequencia`. É essa ordem que as alíneas imprimem, e por isso a gravação precisa carimbar os dois."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      id: "tab-procedencia",
+      label: "projecaoQuadro.ts",
+      blocks: [
+        {
+          id: "ac-procedencia",
+          type: "annotated-code",
+          data: {
+            filename: "src/lib/osg/projecaoQuadro.ts",
+            language: "ts",
+            code: "let naConstituicao = true;\nfor (const m of doEmpresa) {\n  if (naConstituicao && m.tipo === 'aporte' && !m.atoId) {\n    rotulos.set(m.id, 'Constituição');\n    continue;\n  }\n  naConstituicao = false;",
+            annotations: [
+              {
+                lines: "3-4",
+                label: "Armadilha",
+                note: "O prefixo Constituição só fecha no primeiro movimento que não é aporte ou que pertence a um ato. Numa PR cuja história é só aportes, um aumento gravado SEM `ato_id` entra no prefixo e a tela rotula o aumento como capital de abertura."
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]}
+/>
+
+### O que já está pronto e não precisa mudar
+
+<Table
+  id="tb-downstream"
+  columns={["Peça", "Arquivo", "O que já faz"]}
+  rows={[
+    ["Evento do assistente", "src/lib/osg/eventosDaAlteracao.ts", "Deriva evento_aumento_capital e evento_integralizacao dos aportes pendentes, enumerando as formas de pagamento presentes"],
+    ["Alíneas dos imóveis", "src/hooks/useGeracaoDocumento.ts (useAportesDoLivro)", "Entrega forma 'bem', 'moeda' ou 'quotas' e o bemId para {{#integralizacoes}}, só dos movimentos pendentes"],
+    ["Cláusula do capital", "src/lib/templates/historicoCapital.ts", "capitalAnterior, capitalDelta e o condicional houveAumentoCapital"],
+    ["De quanto para quanto", "src/lib/osg/baselineDaPeca.ts", "Lê capital e sócios do snapshot da peça registrada que esta substitui"],
+    ["Carimbo e status do bem", "src/hooks/useEventosDaAlteracao.ts (useFormalizarMovimentos)", "No registro, carimba documento_gerado_id e vira os bens carimbados para Integralizado"],
+    ["Aritmética do capital", "src/lib/templates/capital.ts", "quotasDeValor e capitalDeQuotas: a quota é indivisível e o capital segue as quotas"]
+  ]}
+/>
+
+O trabalho, portanto, é criar o aporte pendente. Tudo depois disso já é código em produção,
+exercitado pela 1ª alteração da MMS Participações e pela 2ª da MMS Agro.
+
+### O gesto mora na tela do Quadro Societário
+
+<Callout id="co-onde" tone="decision">
+
+Com quadro gravado e imóvel elegível fora do livro, a tela do Quadro Societário mostra o card
+"Imóveis aprovados fora do capital" e abre o modal que grava o aumento.
+
+O livro continua sendo a única fonte, a peça só formaliza, e o assistente da alteração
+contratual não muda uma linha de código: ele acende porque o aporte pendente passou a existir.
+O gesto também é o que o consultor já conhece, no mesmo lugar onde gravou o quadro de
+constituição.
+
+</Callout>
+
+### O aumento é um ato societário, não aportes soltos
+
+<Callout id="co-ato" tone="decision">
+
+Os lançamentos nascem sob um `ato_societario` nomeado, no molde exato de `useSubirQuotas`.
+
+Três razões, e a primeira é defeito e não preferência:
+
+- **Procedência.** `procedenciaDosMovimentos` rotula como "Constituição" o prefixo de aportes
+  sem ato. Numa PR que só tem aportes na história, um aumento sem `ato_id` cai dentro desse
+  prefixo e a tela passa a chamar o aumento de capital de abertura.
+- **Reversão de graça.** O card `AtosSocietarios` já sabe desfazer um ato inteiro enquanto
+  nenhum documento o formalizou, com a guarda em `useReverterAto`. Aporte solto exigiria um
+  gesto novo de exclusão linha a linha.
+- **Nome legível.** O ato carrega `descricao` e `data`, então o consultor lê "Aumento de
+  capital por integralização de imóveis" ao lado do sócio, em vez de "Aporte de 27/12/2023".
+
+</Callout>
+
+### A proposta: imóveis rateados mais moeda digitada
+
+A cláusula real mistura as duas formas na mesma subscrição. Na 2ª alteração da MMS Agro o
+sócio integraliza "através dos bens imóveis e valor em moeda corrente nacional abaixo
+descritos", e o modal reproduz isso: os imóveis entram calculados e em leitura, a parcela em
+dinheiro entra digitada por sócio.
+
+Cada parcela em moeda vira um lançamento próprio (aporte sem `bem_id`, que é como o banco
+representa moeda corrente: ausência das outras colunas, ver o check
+`movimentacao_quotas_forma_pagamento_check`). Isso mantém uma regra que o resto do sistema já
+assume: **um movimento por coisa aportada**, que é o que faz as alíneas enumerarem em vez de
+somarem.
+
+A ordem dos lançamentos é significativa e não incidental. `useAportesDoLivro` lê o livro por
+`created_at` e depois `sequencia`, e é nessa ordem que as alíneas saem no instrumento. A
+proposta ordena por sócio, e dentro do sócio os imóveis dele seguidos da parcela em moeda,
+que é a ordem em que o contrato de referência descreve.
+
+As quotas da parcela em dinheiro saem de `quotasDeValor`, e o valor gravado de
+`capitalDeQuotas`, exatamente como no rateio dos imóveis. É a regra da casa registrada em
+`capital.ts`: a quota é indivisível, o capital segue as quotas, e o resíduo de centavos é
+absorvido pelo valor integralizado do sócio em vez de sumir. Um lançamento de R$ 95.209,23
+vira 95.209 quotas e R$ 95.209,00 integralizados, sem que o total do instrumento fique com
+centavo pendurado.
+
+O campo de moeda lista os sócios do quadro atual mais os titulares dos imóveis novos, e não
+todas as pessoas do cliente. É o conjunto que este aumento realmente envolve: cobre o sócio que
+reforça em dinheiro e o entrante que integraliza imóvel e complementa em dinheiro, sem abrir a
+porta para lançar aporte de quem não tem nada a ver com o ato.
+
+### Quais bens entram
+
+O critério é o mais preciso disponível e se autocorrige sem depender de data: bem com
+`status_integralizacao` elegível, `participa_estruturacao`, `empresa_destino_pessoa_id` desta
+empresa, sem impedimento ativo (tudo isso `useIntegralizacoesAprovadas` já filtra) **e sem
+nenhuma linha em `movimentacao_quotas`**.
+
+Essa última condição é a nova, e cobre dois casos com uma regra só: o imóvel adquirido depois
+da constituição, e o imóvel que ficou de fora dela por atraso de matrícula. Nenhum dos dois
+precisa de carimbo de data para ser reconhecido.
+
+Titular de imóvel novo que ainda não é sócio entra subscrevendo, sem gesto preparatório. Isso
+sai de graça: `evento_mudanca_socios` deriva o ingresso comparando o quadro que a peça anterior
+publicou com a projeção de hoje, casando por CPF/CNPJ, e o instrumento já sabe escrever a
+entrada.
+
+### A forma do que entra
+
+<TabsBlock
+  id="tabs-novo"
+  orientation="vertical"
+  tabs={[
+    {
+      id: "tab-propor",
+      label: "aporteInicial.ts",
+      blocks: [
+        {
+          id: "ac-propor",
+          type: "annotated-code",
+          data: {
+            filename: "src/lib/osg/aporteInicial.ts",
+            language: "ts",
+            code: "export interface LancamentoDoAumento {\n  pessoaId: string;\n  denominacao: string;\n  quotas: number;\n  pagamento: FormaPagamento;\n}\n\nexport function proporAumentoDeCapital(args: {\n  matriculas: MatriculaIntegralizacao[];\n  bensNoLivro: ReadonlySet<string>;\n  moedaPorPessoaId: Readonly<Record<string, number>>;\n}): {\n  lancamentos: LancamentoDoAumento[];\n  titularesLegados: string[];\n  totalQuotas: number;\n};",
+            annotations: [
+              {
+                lines: "10",
+                label: "O filtro",
+                note: "Os `bem_id` que já têm movimento no livro saem antes do rateio. Conjunto vazio reproduz a constituição bit a bit, o que os testes atuais de proporAportesIniciais já garantem."
+              },
+              {
+                lines: "11",
+                label: "Moeda digitada",
+                note: "Reais por sócio. Ausente ou zero não gera lançamento: aporte de R$ 0,00 seria alínea vazia no instrumento."
+              },
+              {
+                lines: "13",
+                label: "Ordem",
+                note: "Devolve ORDENADO: por sócio, e dentro do sócio os imóveis seguidos da parcela em moeda. Quem grava só precisa preservar a ordem."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      id: "tab-hook",
+      label: "useMovimentacaoQuotas.ts",
+      blocks: [
+        {
+          id: "ac-hook",
+          type: "annotated-code",
+          data: {
+            filename: "src/hooks/useMovimentacaoQuotas.ts",
+            language: "ts",
+            code: "export function useGravarAumentoDeCapital() {\n  // No molde de useSubirQuotas: o ato nasce primeiro, os lançamentos\n  // apontam para ele, e o ato é apagado na volta se o insert falhar.\n  const { data: ato } = await supabase\n    .from('ato_societario')\n    .insert({ cliente_id: clienteId, data: dataDoAto, descricao })\n    .select('id')\n    .single();\n\n  const base = Date.now();\n  await supabase.from('movimentacao_quotas').insert(\n    lancamentos.map((l, i) => ({\n      cliente_id: clienteId,\n      tipo: 'aporte',\n      empresa_pessoa_id: empresaPessoaId,\n      destino_pessoa_id: l.pessoaId,\n      quotas: l.quotas,\n      vlr_capital_arredondado: capitalDeQuotas(l.quotas),\n      data_movimento: dataDoAto,\n      ato_id: ato.id,\n      sequencia: i + 1,\n      created_at: new Date(base + i).toISOString(),\n      ...colunasDoPagamento(l.pagamento),\n    })),\n  );\n}",
+            annotations: [
+              {
+                lines: "4-8",
+                label: "Ato primeiro",
+                note: "O PostgREST não expõe transação: o ato nasce antes para os lançamentos poderem apontar, e é apagado se o insert falhar, senão sobra ato vazio que a tela oferece reverter sem ter o que reverter."
+              },
+              {
+                lines: "20",
+                label: "ato_id",
+                note: "É o que impede procedenciaDosMovimentos de rotular o aumento como Constituição, e o que dá reversão pelo card de Atos Societários."
+              },
+              {
+                lines: "21-22",
+                label: "Ordem preservada",
+                note: "`now()` é o timestamp da TRANSAÇÃO e empataria todas as linhas. Os dois carimbos juntos, escalonados de um milissegundo, são o que fixa a ordem das alíneas."
+              },
+              {
+                lines: "23",
+                label: "bem ou moeda",
+                note: "colunasDoPagamento devolve bem_id no imóvel e tudo nulo na moeda. É esse único ponto que decide qual alínea o instrumento imprime."
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]}
+/>
+
+### Passos
+
+1. **`src/lib/osg/aporteInicial.ts`**: `proporAumentoDeCapital`, com o filtro de bens já no
+   livro e a mesclagem das parcelas em moeda na ordem certa. O rateio dos imóveis reusa
+   `calcularParticipacoesPR` e `ratearMatriculaEntreTitulares` sem mudança;
+   `proporAportesIniciais` continua existindo para a constituição.
+2. **`src/hooks/useMovimentacaoQuotas.ts`**: `useGravarAumentoDeCapital`, no molde de
+   `useSubirQuotas`. Invalida `quadro-da-empresa`, `socios-geracao`, `movimentos-da-empresa`,
+   `aportes-do-livro` e `integralizacoes-geracao`, e registra o ato em `audit_logs`.
+3. **`AumentoDeCapitalDialog.tsx`**: imóveis em leitura, um campo de moeda por sócio, descrição
+   e data do ato, e o rodapé com o delta e o capital resultante. A lista de sócios do campo de
+   moeda é o quadro atual mais os titulares dos imóveis novos.
+4. **`QuadroEmpresaProprietaria.tsx`**: o segundo estado. Com `gravado === true` e imóveis
+   elegíveis fora do livro, o card aparece acima da lista de sócios. Sem imóveis pendentes o
+   card não existe.
+5. **Testes**: `aporteInicial.test.ts` ganha o filtro, a mesclagem da moeda, a ordem por sócio
+   e a identidade Σ quotas dos lançamentos igual ao total; `eventosDaAlteracao.test.ts` ganha o
+   cenário de segunda rodada, com aportes de bem e de moeda sob um ato pendente derivando
+   aumento e integralização com a evidência das duas formas.
+
+<FileTree
+  id="ft-arquivos"
+  title="Arquivos"
+  entries={[
+    { path: "src/lib/osg/aporteInicial.ts", change: "modified", note: "proporAumentoDeCapital: filtro, moeda e ordem. Rateio intacto." },
+    { path: "src/lib/osg/aporteInicial.test.ts", change: "modified", note: "Filtro, moeda, ordem, e a constituição continuando idêntica." },
+    { path: "src/hooks/useMovimentacaoQuotas.ts", change: "modified", note: "useGravarAumentoDeCapital: ato mais lançamentos de bem e de moeda." },
+    { path: "src/components/equipe/osg/quadro-societario/AumentoDeCapitalDialog.tsx", change: "added", note: "Imóveis em leitura, moeda por sócio, nome e data do ato." },
+    { path: "src/components/equipe/osg/quadro-societario/QuadroEmpresaProprietaria.tsx", change: "modified", note: "Segundo estado: o card dos imóveis fora do capital." },
+    { path: "src/lib/osg/eventosDaAlteracao.test.ts", change: "modified", note: "Segunda rodada de integralização, com bem e moeda." }
+  ]}
+/>
+
+Nada de migration: `ato_societario`, `movimentacao_quotas.ato_id`, `bem_id` e as colunas de
+pagamento já existem, e o carimbo do registro já lê `bem_id` dos movimentos carimbados.
+
+### Riscos
+
+<Callout id="co-moeda" tone="risk">
+
+**A parcela em moeda não tem cadastro atrás dela.** É o único número deste fluxo que ninguém
+pode conferir depois contra uma fonte: o valor do imóvel vem do Diagnóstico Patrimonial e
+aparece na notificação de variável alterada, o dinheiro digitado não aparece em lugar nenhum.
+
+Mitigação dentro do que já existe: o ato carrega `descricao` e `data`, o `audit_logs` registra
+quem lançou, e o card `AtosSocietarios` permite reverter o ato inteiro enquanto nenhuma peça o
+formalizou. O modal deve exibir o delta e o capital resultante antes de gravar, porque é a
+única conferência possível no momento da digitação.
+
+</Callout>
+
+<Callout id="co-valor" tone="risk">
+
+**O valor congela na gravação.** As quotas do aumento saem do `vlr_contabil` do bem no momento
+em que o aporte é gravado, igual à constituição. Corrigir o valor contábil depois não mexe no
+capital, e quem avisa da divergência é a notificação de variável alterada na tela Gerar. É a
+regra da sociedade de verdade, e é deliberado, mas vale dizer ao consultor no modal.
+
+</Callout>
+
+<Callout id="co-legado" tone="warning">
+
+**Titular sem pessoa cadastrada trava, igual à constituição.** A proposta devolve
+`titularesLegados` preenchido e não pode ser gravada, porque `destino_pessoa_id` é FK. O card
+deve reaproveitar o mesmo aviso âmbar que a tela já mostra para a constituição, e não sumir em
+silêncio.
+
+</Callout>
+
+### Fora de escopo
+
+<Callout id="co-so-moeda" tone="decision">
+
+**Aumento puramente em dinheiro segue no `MovimentoModal`.** O card nasce da varredura do
+Diagnóstico Patrimonial e se chama "imóveis aprovados fora do capital": aumento sem imóvel não
+tem bem para varrer, e o gesto avulso já o representa. Manter o card condicionado a haver imóvel
+pendente é o que o mantém informativo, em vez de sempre presente na tela pedindo atenção sem ter
+nada a dizer.
+
+</Callout>
+
+<Callout id="co-parcial" tone="info">
+
+**Aumento parcial de imóveis não entra nesta primeira volta.** A proposta leva todos os imóveis
+elegíveis fora do livro. Para integralizar só um de três, o consultor desmarca o bem no
+Diagnóstico Patrimonial (`participa_estruturacao`) antes de gravar. Seleção por linha dentro do
+modal é a extensão natural depois, e não muda nada do que está acima.
+
+</Callout>
+
+### Verificação
+
+<Checklist
+  id="ck-verificacao"
+  items={[
+    { id: "lint", label: "bunx eslint nos arquivos alterados" },
+    { id: "types", label: "bun run typecheck" },
+    { id: "unit", label: "vitest em aporteInicial, eventosDaAlteracao e projecaoQuadro" },
+    { id: "e2e-aprovar", label: "No app: aprovar dois imóveis novos para a MMS Agro no Diagnóstico Patrimonial", note: "A MMS Agro já tem contrato social registrado no sandbox, então é o caso real." },
+    { id: "e2e-gravar", label: "No Quadro Societário: o card aparece, gravar o aumento com uma parcela em moeda para um dos sócios" },
+    { id: "e2e-procedencia", label: "Conferir a procedência do sócio na tabela", note: "Deve ler o nome do ato, nunca Constituição. É o defeito que o ato_id evita." },
+    { id: "e2e-centavos", label: "Conferir que a parcela em moeda com centavos fechou pela regra da casa", note: "R$ 95.209,23 vira 95.209 quotas e R$ 95.209,00 integralizados, sem centavo pendurado no total." },
+    { id: "e2e-assistente", label: "Na tela Gerar: o assistente acende aumento e integralização sozinho, com a evidência de R$ 872.674,00 para R$ 4.234.822,00 e as duas formas de pagamento" },
+    { id: "e2e-peca", label: "Gerar a peça e conferir a cláusula do delta, as alíneas dos imóveis e a alínea da moeda, na ordem certa" },
+    { id: "e2e-registro", label: "Registrar e conferir as duas marcas: documento_gerado_id nos movimentos e bens em Integralizado" },
+    { id: "e2e-idempotencia", label: "Abrir a alteração seguinte e conferir que os eventos NÃO reaparecem" },
+    { id: "e2e-reverter", label: "Num ato ainda não formalizado, reverter pelo card de Atos Societários e conferir que o capital volta" }
+  ]}
+/>

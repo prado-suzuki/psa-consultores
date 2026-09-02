@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 import {
   Briefcase,
+  Calculator,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -264,7 +265,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           <button
             onClick={() => navigate('/equipe/osg/inicio')}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
               location.pathname === '/equipe/osg/inicio'
                 ? "bg-osg-100 text-primary"
                 : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
@@ -276,7 +277,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           <button
             onClick={() => navigate('/equipe/osg/dashboard')}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
               location.pathname === '/equipe/osg/dashboard'
                 ? "bg-osg-100 text-primary"
                 : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
@@ -330,7 +331,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                       key={path}
                       onClick={() => navigate(path)}
                       className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
                         location.pathname === path
                           ? "bg-osg-100 text-primary"
                           : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
@@ -395,7 +396,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                       key={path}
                       onClick={() => navigate(path)}
                       className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
                         location.pathname === path
                           ? "bg-osg-100 text-primary"
                           : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
@@ -411,7 +412,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           <button
             onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
               location.pathname === '/equipe/osg/work/qualificacao-das-partes'
                 ? "bg-osg-100 text-primary"
                 : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
@@ -423,7 +424,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           <button
             onClick={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
               location.pathname === '/equipe/osg/work/diagnostico-patrimonial'
                 ? "bg-osg-100 text-primary"
                 : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
@@ -435,7 +436,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           <button
             onClick={() => navigate('/equipe/osg/work/controle-matriculas')}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
               location.pathname === '/equipe/osg/work/controle-matriculas'
                 ? "bg-osg-100 text-primary"
                 : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
@@ -488,7 +489,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                       key={path}
                       onClick={() => navigate(path)}
                       className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
                         location.pathname === path
                           ? "bg-osg-100 text-primary"
                           : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
@@ -504,7 +505,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           <button
             onClick={() => navigate('/equipe/osg/work/quadro-societario')}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
               location.pathname === '/equipe/osg/work/quadro-societario'
                 ? "bg-osg-100 text-primary"
                 : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
@@ -512,6 +513,18 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           >
             <PieChart className="h-4 w-4 flex-shrink-0" />
             <span className={cn(rotuloCls, "whitespace-nowrap")}>Quadro Societário</span>
+          </button>
+          <button
+            onClick={() => navigate('/equipe/osg/work/calculadora-itcmd')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+              location.pathname === '/equipe/osg/work/calculadora-itcmd'
+                ? "bg-osg-100 text-primary"
+                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
+            )}
+          >
+            <Calculator className="h-4 w-4 flex-shrink-0" />
+            <span className={cn(rotuloCls, "whitespace-nowrap")}>Calculadora de ITCD</span>
           </button>
           {/* Agrupador "Documentos do Cliente" — expande no hover com animação suave */}
           <div className="group/docsCli">
@@ -557,7 +570,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                       key={path}
                       onClick={() => navigate(path)}
                       className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
                         location.pathname === path
                           ? "bg-osg-100 text-primary"
                           : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
@@ -573,7 +586,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           <button
             onClick={() => navigate('/equipe/osg/work/relatorios')}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
               location.pathname === '/equipe/osg/work/relatorios'
                 ? "bg-osg-100 text-primary"
                 : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
@@ -638,7 +651,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                         // reticências em vez de vazar, e o título traz o inteiro.
                         title={label}
                         className={cn(
-                          "w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium min-w-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+                          "w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium min-w-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
                           location.pathname === path
                             ? "bg-osg-100 text-primary"
                             : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
@@ -664,7 +677,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             <button
               onClick={() => navigate(linkEspelhado('/equipe/chamados', 'osg'))}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
                 location.pathname.startsWith('/equipe/chamados')
                   ? "bg-osg-100 text-primary"
                   : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"

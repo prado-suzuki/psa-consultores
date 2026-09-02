@@ -35,6 +35,13 @@ export interface BlocoFolha {
 
 interface FolhaDocumentoProps {
   titulo: string;
+  /**
+   * Onde o consultor está no fluxo: peça, situação e quantos atos pendentes ela
+   * formaliza ("1ª alteração · rascunho · formalizando 2 atos pendentes"). Sem
+   * isso, uma peça que formaliza dois atos parece que está concatenando
+   * alterações, quando é uma peça só que nunca foi registrada.
+   */
+  situacao?: string | null;
   estado: EstadoFolha;
   /** O que falta para gerar (estado 'pendente'), em linguagem de usuário. */
   mensagemPendente?: string;
@@ -59,6 +66,7 @@ interface FolhaDocumentoProps {
  */
 export const FolhaDocumento = ({
   titulo,
+  situacao,
   estado,
   mensagemPendente,
   erro,
@@ -75,8 +83,8 @@ export const FolhaDocumento = ({
     {estado === 'pendente' && (
       <div className="rounded-md border-2 border-dashed border-osg-200 bg-card/60 px-8 py-20 text-center">
         <FileSignature className="mx-auto h-8 w-8 text-osg-300" />
-        <p className="mt-3 text-sm font-medium text-slate-600">{mensagemPendente}</p>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-3 text-sm font-medium text-muted-foreground">{mensagemPendente}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
           O documento aparece aqui assim que os passos acima estiverem completos.
         </p>
       </div>
@@ -85,7 +93,7 @@ export const FolhaDocumento = ({
     {estado === 'carregando' && (
       <div className="rounded-md border-2 border-dashed border-osg-200 bg-card/60 px-8 py-20 text-center">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-osg-300" />
-        <p className="mt-3 text-sm font-medium text-slate-600">
+        <p className="mt-3 text-sm font-medium text-muted-foreground">
           Buscando os dados do cadastro…
         </p>
       </div>
@@ -97,8 +105,12 @@ export const FolhaDocumento = ({
         <p className="mt-3 text-sm font-semibold text-destructive">
           Algo impediu a geração do documento.
         </p>
-        {erro && <code className="mt-2 block text-xs text-slate-600">{erro}</code>}
-        <p className="mt-2 text-xs text-slate-500">
+        {/* A folha não compõe, e é aqui que saber em que peça se está mais
+            importa: o que consertar (e se consertar destrava alguma coisa)
+            depende de a peça ser um rascunho ou uma que já foi registrada. */}
+        {situacao && <p className="mt-1 text-[11px] font-medium text-osg-600">{situacao}</p>}
+        {erro && <code className="mt-2 block text-xs text-muted-foreground">{erro}</code>}
+        <p className="mt-2 text-xs text-muted-foreground">
           Confira os dados em "Ajustar dados manualmente" ou o conteúdo do modelo na Montagem.
         </p>
       </div>
@@ -115,11 +127,14 @@ export const FolhaDocumento = ({
             documento
           </p>
           <h3
-            className="mt-8 text-lg font-semibold text-slate-900"
+            className="mt-8 text-lg font-semibold text-foreground"
             style={{ fontFamily: FONTE_DOCUMENTO }}
           >
             {titulo}
           </h3>
+          {situacao && (
+            <p className="mt-2 text-[11px] font-medium text-osg-600">{situacao}</p>
+          )}
         </div>
         <div
           className="whitespace-pre-wrap text-justify text-[15px] leading-[1.9] text-stone-800"
@@ -183,7 +198,7 @@ export const FolhaDocumento = ({
                   {bloco.blocoId && (
                     <button
                       type="button"
-                      className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 font-sans text-xs font-medium text-slate-700 transition-colors hover:bg-osg-50 hover:text-osg-700"
+                      className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 font-sans text-xs font-medium text-foreground transition-colors hover:bg-osg-50 hover:text-osg-700"
                       onClick={() => {
                         setPopoverAberto(null);
                         onEditarBloco?.(bloco);
@@ -197,7 +212,7 @@ export const FolhaDocumento = ({
                     <button
                       key={v.id}
                       type="button"
-                      className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 font-sans text-xs font-medium text-slate-700 transition-colors hover:bg-osg-50 hover:text-osg-700"
+                      className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 font-sans text-xs font-medium text-foreground transition-colors hover:bg-osg-50 hover:text-osg-700"
                       onClick={() => {
                         setPopoverAberto(null);
                         onEditarBloco?.(bloco, v.id);

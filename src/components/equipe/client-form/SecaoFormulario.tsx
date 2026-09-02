@@ -47,7 +47,7 @@ export default function SecaoFormulario({
           <span className={cn('shrink-0 text-xs font-bold tabular-nums', pendente ? 'text-destructive' : acento.texto)}>
             {String(numero).padStart(2, '0')}
           </span>
-          <span className="truncate text-xs font-semibold uppercase tracking-wide text-slate-700">
+          <span className="truncate text-xs font-semibold uppercase tracking-wide text-foreground">
             {titulo}
           </span>
         </h5>

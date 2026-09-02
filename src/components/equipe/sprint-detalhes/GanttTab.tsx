@@ -1,153 +1,90 @@
-import { format, isSameDay } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { ChevronDown } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useMemo } from 'react';
 import { TabsContent } from '@/components/ui/tabs';
-import { getTodayBrazil } from '@/lib/dateUtils';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import { GanttChart } from '@/components/equipe/gantt/GanttChart';
+import type { GanttGrupo, GanttPapel } from '@/components/equipe/gantt/tiposDeGantt';
 import type { EquipeSprintDetalhesController } from '@/hooks/useEquipeSprintDetalhesController';
+import { entregavelStatusColors } from '@/lib/entregavelStatusColors';
 
-const statusColor = (status: string) =>
-  status === 'completed'
-    ? 'bg-green-500'
-    : status === 'in_progress'
-      ? 'bg-yellow-500'
-      : 'bg-gray-400';
+/**
+ * A aba Gantt da sprint. Mesmo componente da aba Gantt do painel de tarefas —
+ * esta tela só traduz entregável para o contrato dele. Antes era uma segunda
+ * implementação, que já tinha divergido: pintava com verde/amarelo/cinza de
+ * estoque, fora da paleta por papel, e ficava de fora de qualquer melhoria
+ * feita na outra.
+ */
 
-function GanttDayGrid({ days }: { days: Date[] }) {
-  return (
-    <div className="absolute inset-0 flex" data-testid="gantt-day-grid">
-      {days.map((day) => (
-        <div
-          key={day.toISOString()}
-          className={`flex-1 border-r border-gray-100 last:border-r-0 ${
-            isSameDay(day, getTodayBrazil()) ? 'bg-primary/5' : ''
-          }`}
-          style={{ minWidth: '45px' }}
-        />
-      ))}
-    </div>
-  );
-}
+/** Os três status de entregável, nos papéis de status do sistema. */
+const PAPEL_POR_STATUS: Record<string, GanttPapel> = {
+  pending: 'fila',
+  in_progress: 'andamento',
+  completed: 'feito',
+};
+
+const LEGENDA: ReadonlyArray<{ papel: GanttPapel; rotulo: string; ponto: string }> = [
+  { papel: 'fila', rotulo: entregavelStatusColors.pending.label, ponto: 'bg-status-fila' },
+  { papel: 'andamento', rotulo: 'Em Progresso', ponto: 'bg-status-andamento' },
+  { papel: 'feito', rotulo: 'Concluído', ponto: 'bg-status-feito' },
+];
 
 export function GanttTab({ controller: c }: { controller: EquipeSprintDetalhesController }) {
+  const grupos = useMemo<GanttGrupo[]>(
+    () =>
+      c.ganttByPerson.map((person) => ({
+        id: person.personId,
+        nome: person.personName,
+        // Pluralização preservada de propósito: `entregávelis` é o texto que a
+        // tela publica hoje, e o teste de caracterização o trava.
+        resumo: `${person.count} entregável${person.count !== 1 ? 'is' : ''} • ${person.totalHours}h • ${person.completedCount}/${person.count} concluídos`,
+        itens: person.deliverables.map((item) => ({
+          id: item.id,
+          titulo: item.title,
+          inicio: item.startDate,
+          fim: item.endDate,
+          papel: PAPEL_POR_STATUS[item.status] ?? 'neutro',
+          concluido: item.status === 'completed',
+        })),
+      })),
+    [c.ganttByPerson],
+  );
+
+  const porId = useMemo(
+    () => new Map(c.ganttByPerson.flatMap((person) => person.deliverables).map((item) => [item.id, item])),
+    [c.ganttByPerson],
+  );
+
   return (
     <TabsContent value="gantt" className="space-y-4">
-      <Card className="border-gray-200 overflow-hidden">
-        <CardContent className="p-0">
-          <div className="border border-gray-200 rounded-lg overflow-auto bg-white">
-            <div className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
-              <div className="flex">
-                <div className="w-[340px] flex-shrink-0 px-4 py-3 font-medium text-gray-700 border-r">
-                  Responsável / Entregável
-                </div>
-                <div className="flex-1 flex min-w-[500px]">
-                  {c.ganttChartData.days.map((day) => (
-                    <div
-                      key={day.toISOString()}
-                      className={`flex-1 text-center py-2 text-xs border-r ${isSameDay(day, getTodayBrazil()) ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-500'}`}
-                      style={{ minWidth: 45 }}
-                    >
-                      <div>{format(day, 'EEE', { locale: ptBR })}</div>
-                      <div>{format(day, 'dd')}</div>
-                    </div>
-                  ))}
-                </div>
+      <GanttChart
+        grupos={grupos}
+        rotuloDaColuna="Responsável / Entregável"
+        onSelecionarItem={(item) => {
+          const entregavel = porId.get(item.id);
+          if (entregavel) c.openEditModal(entregavel);
+        }}
+        legenda={
+          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+            {LEGENDA.map((status) => (
+              <div key={status.papel} className="flex items-center gap-2">
+                <div className={cn('h-3 w-3 rounded-full', status.ponto)} />
+                <span>{status.rotulo}</span>
               </div>
-            </div>
-            <div className="divide-y">
-              {!c.ganttByPerson.length ? (
-                <div className="py-12 text-center text-gray-500">Nenhum entregável encontrado</div>
-              ) : (
-                c.ganttByPerson.map((person) => {
-                  const expanded = c.expandedPersons.has(person.personId);
-                  return (
-                    <div key={person.personId}>
-                      <button
-                        onClick={() => c.togglePerson(person.personId)}
-                        className="w-full flex hover:bg-gray-50/80"
-                      >
-                        <div className="w-[340px] flex-shrink-0 px-4 py-3 border-r bg-gray-50/50 text-left">
-                          <div className="flex gap-2">
-                            <ChevronDown className={`h-4 w-4 ${expanded ? '' : '-rotate-90'}`} />
-                            <div>
-                              <div className="font-medium">{person.personName}</div>
-                              <div className="text-xs text-gray-500">
-                                {person.count} entregável{person.count !== 1 ? 'is' : ''} •{' '}
-                                {person.totalHours}h • {person.completedCount}/{person.count}{' '}
-                                concluídos
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex-1 relative h-12 min-w-[500px]">
-                          <GanttDayGrid days={c.ganttChartData.days} />
-                          {!expanded && (
-                            <div
-                              className="absolute top-4 h-4 rounded-full bg-primary/30 border border-primary/50"
-                              style={{
-                                left: `${person.consolidatedBarLeft}%`,
-                                width: `${Math.max(person.consolidatedBarWidth, 3)}%`,
-                                minWidth: 20,
-                              }}
-                            />
-                          )}
-                        </div>
-                      </button>
-                      {expanded && (
-                        <div className="divide-y bg-white">
-                          {person.deliverables.map((item) => (
-                            <div key={item.id} className="flex group">
-                              <div className="w-[340px] flex-shrink-0 px-4 py-2 pl-10 border-r">
-                                <button
-                                  onClick={() => c.openEditModal(item)}
-                                  className="w-full text-left"
-                                >
-                                  <div
-                                    className={
-                                      item.status === 'completed'
-                                        ? 'line-through text-gray-400'
-                                        : 'text-gray-900'
-                                    }
-                                  >
-                                    {item.title}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {format(item.startDate, 'dd/MM')} -{' '}
-                                    {format(item.endDate, 'dd/MM')}
-                                  </div>
-                                </button>
-                              </div>
-                              <div className="flex-1 relative h-10 min-w-[500px]">
-                                <GanttDayGrid days={c.ganttChartData.days} />
-                                <button
-                                  aria-label={item.title}
-                                  onClick={() => c.openEditModal(item)}
-                                  className={`absolute top-3 h-4 rounded-full ${statusColor(item.status)}`}
-                                  style={{
-                                    left: `${item.barLeft}%`,
-                                    width: `${Math.max(item.barWidth, 3)}%`,
-                                    minWidth: 20,
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+            ))}
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-8 rounded-full border border-primary/50 bg-primary/30" />
+              <span>Período consolidado</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
-      <div className="flex gap-4 text-sm text-gray-600">
-        <span>● Pendente</span>
-        <span className="text-yellow-600">● Em Progresso</span>
-        <span className="text-green-600">● Concluído</span>
-        <span>Período consolidado</span>
-      </div>
+        }
+        vazio={
+          <Card className="border-border">
+            <CardContent className="py-12 text-center text-muted-foreground">
+              Nenhum entregável encontrado
+            </CardContent>
+          </Card>
+        }
+      />
     </TabsContent>
   );
 }

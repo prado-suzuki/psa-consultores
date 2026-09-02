@@ -197,6 +197,49 @@ export interface TaskFilters {
  };
  
 /**
+ * Uma tarefa pelo id, para o deep-link (`?taskId=`).
+ *
+ * Existe porque a lista da tela NAO serve de fonte para o deep-link. O
+ * `useOrgTasks` recorta por `ambiente` dentro do proprio hook, e o
+ * `PainelTarefas` recorta por cluster: uma tarefa que caia fora de qualquer um
+ * dos dois nunca chega ao array, e o modal simplesmente nao abre. Foi o que
+ * aconteceu em 01/09/2026 com os avisos de prazo do sino: o clique marcava o
+ * aviso como lido, navegava, e a tarefa nao aparecia.
+ *
+ * Aqui o recorte de ambiente e IGNORADO de proposito. Um id explicito e intencao
+ * explicita, e quem decide o que a pessoa pode ler continua sendo a RLS de
+ * `org_tasks`, nao este filtro, que existe para organizar a lista e nao para
+ * proteger linha.
+ *
+ * So busca quando `enabled`, para a tela sem deep-link nao pagar uma consulta.
+ */
+export const useOrgTaskById = (taskId?: string | null, enabled = true) => {
+  return useQuery({
+    queryKey: ['org-tasks', 'by-id', taskId],
+    enabled: !!taskId && enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('org_tasks')
+        .select(`
+          *,
+          project:org_projects(id, name, external_client_id),
+          client:cliente(id, nome),
+          contribuinte:contribuinte(id, nome_razao_social)
+        `)
+        .eq('id', taskId as string)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      return {
+        ...data,
+        reviewer_id: data.reviewer_id ?? null,
+        parent_task_id: data.parent_task_id === data.id ? null : data.parent_task_id,
+      } as OrgTask;
+    },
+  });
+};
+
+/**
  * Subtarefas diretas de uma tarefa (usada na seção "Subtarefas" do modal).
  *
  * A query key começa com 'org-tasks' de propósito: as mutations de tarefa

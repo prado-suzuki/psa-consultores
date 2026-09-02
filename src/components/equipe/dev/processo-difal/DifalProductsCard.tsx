@@ -39,10 +39,10 @@ export function DifalProductsCard({
   onPageChange,
 }: DifalProductsCardProps) {
   return (
-    <Card className="border-slate-200 shadow-sm">
+    <Card className="border-border shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
-          <Package className="h-4 w-4 text-slate-500" />
+          <Package className="h-4 w-4 text-muted-foreground" />
           Produtos para classificação
         </CardTitle>
       </CardHeader>
@@ -59,7 +59,7 @@ export function DifalProductsCard({
             <p>Erro ao carregar produtos</p>
           </div>
         ) : groupedItems.length === 0 ? (
-          <div className="p-6 text-center text-slate-500">
+          <div className="p-6 text-center text-muted-foreground">
             <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p>Nenhum produto encontrado para o período selecionado</p>
           </div>
@@ -67,7 +67,7 @@ export function DifalProductsCard({
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                <TableRow className="bg-muted hover:bg-muted">
                   <TableHead className="w-[100px]">
                     <ColumnTooltip name="colStatus">Status</ColumnTooltip>
                   </TableHead>
@@ -95,7 +95,7 @@ export function DifalProductsCard({
                     className={
                       group.status === 'pendente'
                         ? 'cursor-pointer hover:bg-amber-50'
-                        : 'hover:bg-slate-50'
+                        : 'hover:bg-muted'
                     }
                     onClick={() => onGroupClick(group)}
                   >
@@ -114,8 +114,8 @@ export function DifalProductsCard({
                     </TableCell>
                     <TableCell>
                       <div className="space-y-0.5">
-                        <p className="font-medium text-slate-900 line-clamp-1">{group.xProd}</p>
-                        <p className="text-xs text-slate-500">Cód: {group.cod_produto}</p>
+                        <p className="font-medium text-foreground line-clamp-1">{group.xProd}</p>
+                        <p className="text-xs text-muted-foreground">Cód: {group.cod_produto}</p>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -126,11 +126,11 @@ export function DifalProductsCard({
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <span className="text-slate-600">CST:</span>{' '}
+                        <span className="text-muted-foreground">CST:</span>{' '}
                         <span className="font-mono">{group.cst_icms || '—'}</span>
                         {group.aliq_icms && (
                           <>
-                            <span className="text-slate-400 mx-1">|</span>
+                            <span className="text-muted-foreground mx-1">|</span>
                             <span className="font-mono">{group.aliq_icms}%</span>
                           </>
                         )}
@@ -141,13 +141,13 @@ export function DifalProductsCard({
                         <div className="text-sm">
                           <span className="font-mono">{group.classificacao.aliquota_st}%</span>
                           {group.classificacao.percentual_reducao && (
-                            <span className="text-slate-500 text-xs ml-1">
+                            <span className="text-muted-foreground text-xs ml-1">
                               (Red. {group.classificacao.percentual_reducao}%)
                             </span>
                           )}
                         </div>
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -156,8 +156,8 @@ export function DifalProductsCard({
             </Table>
 
             {totalItems > PROCESSO_DIFAL_ITEMS_PER_PAGE && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
-                <p className="text-sm text-slate-500">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                <p className="text-sm text-muted-foreground">
                   Página {currentPage} de {totalPages} ({totalItems} produtos)
                 </p>
                 <div className="flex items-center gap-2">

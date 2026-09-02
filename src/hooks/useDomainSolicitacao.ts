@@ -95,16 +95,6 @@ const SELECT_SOLICITACAO = `
   )
 `;
 
-/**
- * Cliente sem tipo para as escritas em `documento_tipo`.
- *
- * `cliente_id` e `solicitacao_item_id` (migration 20260807150000) ainda não
- * estão no types.ts autogerado, e o Update tipado do PostgREST estoura a
- * inferência com o cast pontual. Some na próxima regeneração de tipos.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const sbTipo = supabase as any;
-
 /** Violação de índice único no Postgres. */
 const UNIQUE_VIOLATION = '23505';
 
@@ -407,7 +397,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
       // (migration 20260807150000). Não dá para inserir os dois numa transação
       // daqui, então a falha do segundo desfaz o primeiro: item pedido sem tipo
       // é justamente o buraco que isto veio fechar, e é pior que não ter pedido.
-      const { error: erroTipo } = await sbTipo
+      const { error: erroTipo } = await supabase
         .from('documento_tipo')
         .insert(montarTipoAvulso(data.id, clienteId, entrada));
       if (erroTipo) {
@@ -448,7 +438,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
       const camposDoTipo = ['documento', 'entidade', 'nota'] as const;
       const mudouTexto = camposDoTipo.some((campo) => campo in alteracoes);
       if (!linha.item_padrao_id && mudouTexto) {
-        await sbTipo
+        await supabase
           .from('documento_tipo')
           .update({
             documento: alteracoes.documento ?? linha.documento,

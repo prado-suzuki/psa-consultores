@@ -60,14 +60,14 @@ export const HistoricoVersoes = ({
           <button type="button" className="flex w-full items-center gap-2 px-3 py-2.5 text-left">
             <History className="h-4 w-4 shrink-0 text-osg-moss" />
             <span className="min-w-0 flex-1">
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Histórico de versões
               </span>
-              <span className="block truncate text-xs font-semibold text-slate-900">{resumo}</span>
+              <span className="block truncate text-xs font-semibold text-foreground">{resumo}</span>
             </span>
             <ChevronDown
               className={cn(
-                'h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200',
+                'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200',
                 aberto && 'rotate-180',
               )}
             />
@@ -87,7 +87,7 @@ export const HistoricoVersoes = ({
                   'flex w-full items-start gap-2 rounded px-2.5 py-2 text-left transition-colors',
                   selecionado
                     ? 'bg-osg-moss/10 text-osg-700'
-                    : 'text-slate-600 hover:bg-osg-50 hover:text-slate-900',
+                    : 'text-muted-foreground hover:bg-osg-50 hover:text-foreground',
                 )}
               >
                 <span className="min-w-0 flex-1">
@@ -99,7 +99,7 @@ export const HistoricoVersoes = ({
                       </span>
                     )}
                   </span>
-                  <span className="mt-0.5 block truncate text-[11px] text-slate-500">
+                  <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
                     {fmtDataHora(dataVersao(v))}
                     {autor ? ` · ${autor}` : ''}
                   </span>
@@ -151,7 +151,7 @@ export const BannerVersaoAnterior = ({
       <Button
         variant="outline"
         size="sm"
-        className="border-osg-moss/40 text-osg-700 hover:bg-osg-moss/10 hover:text-osg-800"
+        className="border-osg-moss/40 text-osg-700 hover:bg-osg-moss/10"
         onClick={onBaixar}
         disabled={baixando}
       >

@@ -39,7 +39,7 @@ const Relatorios = () => {
     >
       <div className="mx-auto max-w-5xl space-y-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Label className="text-sm font-semibold text-slate-600 sm:w-24">Relatório</Label>
+          <Label className="text-sm font-semibold text-muted-foreground sm:w-24">Relatório</Label>
           <Select value={relatorio} onValueChange={setRelatorio}>
             <SelectTrigger className="w-full sm:max-w-sm"><SelectValue /></SelectTrigger>
             <SelectContent>

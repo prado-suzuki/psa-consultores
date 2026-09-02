@@ -1,6 +1,7 @@
  import { useMemo } from 'react';
  import { format, addWeeks, startOfWeek, endOfWeek, isWithinInterval, addMonths, startOfMonth, endOfMonth, isAfter } from 'date-fns';
  import { parseDate } from '@/lib/dateUtils';
+ import { ordenarPorVencimento } from '@/lib/periodoDeTarefas';
  import { ptBR } from 'date-fns/locale';
  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  import { Badge } from '@/components/ui/badge';
@@ -20,12 +21,15 @@
  export const TaskFutureView = ({ tasks, onEdit, onDelete, onReassign }: TaskFutureViewProps) => {
    const today = new Date();
  
+   // Ordenado UMA vez, na origem: os filtros por semana abaixo preservam a
+   // ordem (`Array.filter` e estavel), entao cada grupo sai da mais proxima para
+   // a mais distante sem ordenar doze vezes.
    const futureTasks = useMemo(() => {
-     return tasks.filter(task => 
-       task.due_date && 
+     return ordenarPorVencimento(tasks.filter(task =>
+       task.due_date &&
        isAfter(parseDate(task.due_date), today) &&
        task.status !== 'done'
-     );
+     ));
    }, [tasks, today]);
  
    const weekGroups = useMemo(() => {

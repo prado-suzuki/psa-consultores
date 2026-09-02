@@ -109,17 +109,29 @@ sobre esse fundo, ponto, barra, e fundo de badge com texto branco). No Tailwind 
    tijolo escuro (13%) contra o carmim claro da OSG (40%).
 
 3. **Quente é exceção.** Entra só onde há gente envolvida (`espera`) ou erro (`ajuste`), e
-   o amarelo do `alerta` é o único amarelo — reservado para o que exige ação. Amarelo
+   um só papel ocupa a faixa amarela — reservado para o que exige ação. Amarelo
    distribuído por toda a tela é o que dá cara de template.
+
+   > **Qual papel é o amarelo mudou, e esta linha já mentiu.** Ela dizia "o amarelo do
+   > `alerta`". Hoje o `alerta` é matiz **20** (tijolo/ferrugem, `20 72% 32%` no `:root`) e
+   > quem está na faixa amarela é o `espera`, matiz **44**. A troca veio da fusão dos
+   > semânticos, quando `--warning` passou a ser `var(--status-alerta)`: o amarelo a 92% de
+   > saturação não tinha luminosidade que servisse de texto sem trocar junto o
+   > `-foreground` dele. **Confira o `index.css` antes de citar matiz por aqui.**
 
 ## Onde cada paleta mora
 
 | Bloco em `src/index.css` | Quem aplica | Identidade | Arco verde | Quentes |
 |---|---|---|---|---|
 | `:root` | ninguém — é a base | marfim + verde sábio; fallback de área sem paleta | 89–122 (sábio/oliva) | vinho 343, barro 32, palha 48–54 |
+| `.base-theme` | `AreaThemeProvider`, em TODA rota | teal institucional; superfícies com cast de teal (matiz 168–180) | 89–122 (sábio/oliva) | vinho 343, barro 32, palha 48–54 |
 | `.tax-theme` | `FiscalLayout` | teal `#0d9488` da marca | 163–197 (teal) | tijolo 7–12, ocre 30–36 (escala `--tax-*`) |
 | `.osg-theme` | `OsgLayout` | verde musgo, dourado marca-texto, carmim | 127–160 (musgo) | carmim 356, taupe 18–19, dourado 41 |
-| `.board-theme` | `AreaThemeProvider` | teal institucional (delta: acento + superfície) | herda o do piso | herda os do piso |
+
+São **três blocos, e só**. Toda rota veste `.base-theme`; Tax e OSG põem a classe delas por
+cima. Já existiram mais: `.rotina-theme` (saiu 29/08/2026), `.board-theme` e
+`.sistema-theme` (as duas em 31/08). Os três caíram pelo mesmo motivo — a âncora da área
+era a do piso, então o bloco era uma cópia dele.
 
 A OSG é a **âncora** do sistema, não a variável: a identidade dela (`--osg-moss`,
 `--osg-highlighter`, `--osg-red`, escala `--osg-*`) existia antes de haver sistema de
@@ -135,43 +147,82 @@ O `:root` é **base**, não a paleta da Tax. Área que ainda não declarou a sua
 (Marketing, portal do cliente) cai na base — num lugar coerente, em vez de vestir a
 identidade de outra área.
 
-### O Board declara acento e superfície, e HERDA os papéis
+### O Board VIROU a casa (31/08/2026)
 
-Desde 21/08/2026 o Board tem `.board-theme` (ver `index.css` e `src/lib/areaTheme.ts`).
-É um **delta**, não uma paleta de área: declara o acento (o teal institucional) e as
-superfícies (neutro com cast de teal, matiz 168–180), e **herda do piso os oito papéis
-de status e os quatro tons de tag**.
+O Board teve bloco próprio por dez dias. Em 21/08 ele saiu da infraestrutura e ganhou
+a `.board-theme` — um delta de acento + superfície. Em 31/08 esse delta **virou o piso**:
+as superfícies com cast de teal (matiz 168–180) foram MOVIDAS para o `.base-theme` e a
+`.board-theme` saiu do `index.css`. Hoje `/equipe/board` resolve `base-theme` sozinho.
 
-A herança é escolhida, não esquecida, e o motivo é este documento: não há arco verde
-livre para o Board declarar. O 163–197 é da Tax, o 127–160 é da OSG e o 89–122 é o do
-piso; a regra é "quem se move é a área nova", e não há para onde mover. O arco do piso
-(sábio) também não disputa espaço com o acento do Board (teal 175), então as pílulas de
-tarefa continuam legíveis ao lado dos cartões teal.
+Não é o Board perdendo identidade — é a identidade dele deixando de ser exceção. A
+âncora do Board sempre foi a da casa: ele é a tela da diretoria, e diretoria olha a
+**empresa**, não uma área dela. E área cuja âncora é a do piso não tem delta a declarar.
+É a mesma regra que apagou a `.rotina-theme` em 29/08, aplicada no outro sentido: lá a
+área desceu para o piso, aqui o piso subiu para a área.
 
-Consequência prática: **o Board não entra em `TEMAS`, em `src/lib/paletaDeArea.ts`** —
-ele não declara papéis, logo não há papéis dele para o teste medir. Quem cobra a
-consistência dele é `areaTheme.test.ts`, que exige que todo tema seja classificado como
-*congelado* (declara as 46 variáveis do contrato) ou *delta* (declara um subconjunto,
-sem inventar variável). O `board-theme` é delta.
+Três coisas empurraram para essa direção:
 
-O que o obrigou a existir: o Board era mapeado como INFRAESTRUTURA e vestia o grafite
-da `.sistema-theme`, enquanto o design system próprio dele (o bloco `--bd-*`) virou
-teal. Na tela isso deu quatro famílias ao mesmo tempo — cartão e gráfico em teal, botão
-e anel de foco em grafite, superfícies dos módulos compartilhados em marfim. Dev e
-Acessos continuam grafite: eles servem o sistema. O Board é a tela da diretoria.
+- o bloco `--bd-*` do design system do Board mora no `:root` do `index.css`, ou seja **já
+  valia em toda rota** — só Tax e OSG o sobrescreviam. Nas rotas da casa o chrome do Board
+  já saía teal ao lado de controles shadcn marfim: era o desencontro de 21/08 outra vez,
+  em 41 telas em vez de 21;
+- a `.rotina-theme` tinha acabado de sair por ser uma cópia do piso. Manter a
+  `.board-theme` era manter a mesma figura de cabeça para baixo;
+- e o `.base-theme`, que é aplicado em TODA rota, passou a ser o único lugar que descreve
+  a cor da casa.
 
-### O Digital fica na base, por decisão
+**O que repintou:** as 41 rotas que ficavam no piso puro (site institucional, portal do
+cliente, Gestão, e as telas de Rotina e Digital dentro de `/equipe`) e as 27 do Dev, que
+herda superfície do piso de propósito. As 21 do Board renderizam idêntico. Tax e OSG não
+se mexeram: são **congeladas**, declaram o contrato inteiro e não herdam superfície.
+
+Os papéis de status **não** entraram nessa mudança — nem entrariam. O Board nunca
+declarou os seus, e o motivo é este documento: não há arco verde livre. O 163–197 é da
+Tax, o 127–160 é da OSG e o 89–122 é o do piso; a regra é "quem se move é a área nova", e
+não há para onde mover. O arco do piso (sábio) também não disputa espaço com o acento
+(teal 175), então as pílulas de tarefa seguem legíveis ao lado dos cartões teal.
+
+Consequência prática que continua valendo: **o Board não entra em `TEMAS`, em
+`src/lib/paletaDeArea.ts`** — não declara papéis, logo não há papéis dele para o teste
+medir. Quem cobra a consistência é `areaTheme.test.ts`, que exige que todo tema declarado
+seja classificado como *congelado* (declara as 46 variáveis do contrato) ou *delta*
+(subconjunto, sem inventar variável). Hoje **não sobrou nenhum delta**.
+
+### O Dev perdeu o grafite (31/08/2026)
+
+A `.sistema-theme` vestia as 27 rotas de `/equipe/dev` com um acento grafite quente
+(`35 10% 26%`) e um par de superfície escura na mesma matiz. Era delta de **acento**: as
+superfícies claras ela herdava do piso, de propósito.
+
+Caiu por dois fatos medidos, e o primeiro já era verdade **antes** da dobra do Board:
+
+- a tela `/equipe/dev/uso-envio` usa os tokens `--bd-*`. Três seguem o `--primary` e
+  viravam grafite; dois estão **cravados em teal** no `:root` — `--bd-accent-d` (pinta
+  letra, chip cheio e avatar) e `--bd-accent-soft`. Na mesma tabela: link e chip teal,
+  hover de linha e anel de foco grafite. É o defeito de 21/08 (Board) e o de 31/08
+  (Digital) pela terceira vez. A dobra não criou isso — ela fez alguém olhar;
+- a justificativa escrita do tom quente era "o canvas da base é marfim e o texto é marrom,
+  um grafite azulado brigaria com os dois". A dobra derrubou os dois fatos.
+
+**A regra "a quem a tela serve" não caiu — ela deixou de pintar.** `sistema` continua sendo
+área em `MAPA_DE_ROTAS`, e `areaDaRota('/equipe/dev')` continua respondendo `'sistema'`.
+
+⚠️ **Para quem for dar cor ao Dev de novo:** o acento sozinho **não** resolve. Enquanto
+`--bd-accent-d` e `--bd-accent-soft` estiverem cravados em teal no `:root` (só `.tax-theme`
+e `.osg-theme` os sobrescrevem), qualquer acento novo reabre o mesmo desencontro. Um delta
+para o Dev tem de incluir os `--bd-*` — ou esses dois tokens têm de passar a seguir o
+`--primary` antes.
+
+### O Digital e a Rotina ficam na base, por decisão
 
 Os três blocos de `/equipe/digital` — **Digital Rotina** (o dia a dia da equipe), **Digital
-Mapa** (cadastro de projetos e processos de mapeamento) e **Acessos** — usam a paleta base.
-Não é omissão: é o padrão do sistema exposto numa área real, e é dele que uma área nova
-parte antes de ajustar a própria identidade.
+Mapa** (cadastro de projetos e processos de mapeamento) e **Acessos** — usam a paleta base,
+e as telas de Rotina (`/equipe/kanban`, `/equipe/daily`, `/equipe/sprints`…) também.
 
-`.rotina-theme`, aplicado pelo `EquipeLayout`, **declara hoje o contrato inteiro — com os
-valores da base**. Ele nasceu trocando só o anel de foco dos campos e herdando as outras 40
-variáveis; o congelamento escreveu as 40 com o que ela já computava, para desacoplar a área
-sem mudar um pixel. O bloco é grande, mas a **decisão de cor da Rotina continua não tomada**:
-declarar não é escolher.
+Não é omissão. A `.rotina-theme` existiu até 29/08/2026: nasceu trocando só o anel de foco
+dos campos, foi congelada com o contrato inteiro, e aí se mediu que cada variável dela era,
+uma a uma, a mesma do `.base-theme` — inclusive o `--ring`. Apagar o bloco não moveu um
+pixel. A âncora da Rotina é a da casa, e a casa é o que o piso pinta.
 
 Consequência para o teste: `.rotina-theme` **está em `TEMAS`** e cumpre completude, contraste,
 faixa e separação interna — cumpre por ser cópia de uma paleta que cumpre. O único par
@@ -304,19 +355,153 @@ saturação é escolha), separação par a par (vermelho, verde, amarelo e azul 
 construção) e separação entre áreas (o vermelho de excluir *pode* ser o mesmo em duas áreas,
 e na maioria delas é).
 
+### "Token que nenhum tema declara" é o defeito recorrente deste sistema
+
+O `--warning` a 2,13:1 não foi um valor errado passando pelo teste — foi um token fora do
+contrato. **Esse mesmo defeito reapareceu quatro vezes**, e em 31/08/2026 os quatro foram
+cobrados de uma vez. O contrato foi de 46 para 50 variáveis.
+
+| token | onde vivia | o que produzia |
+|---|---|---|
+| `--accent-d` | cravado no `:root`, no bloco `--bd-*` | o degrau escuro que pinta **letra** (link, chip cheio, avatar) era o teal da casa em qualquer tema que não fosse Tax nem OSG |
+| `--accent-soft` | idem | o card tingido de KPI, igual |
+| `--border` | só no `:root`, `40 12% 91%` bege | borda de controle bege em **toda** rota, inclusive sobre as superfícies frias da casa (matiz 168) e da Tax (170) |
+| `--input` | idem | idem |
+
+O caso do `--border` tinha um agravante que só apareceu ao medir: o `--bd-line` do design
+system do Board era **frio** na casa (cravado) e **bege** na Tax e na OSG (onde resolvia
+`var(--border)`). Mesmo token, duas temperaturas, dependendo da rota.
+
+Agora cada tema declara a linha da família da superfície dele, e o peso é o mesmo nos três
+— que é a regra deste documento aplicada a linha em vez de a papel de status:
+
+| tema | `--border` | contraste no card |
+|---|---|---|
+| `.base-theme` | `168 14% 89%` | 1,26:1 (era 1,21) |
+| `.tax-theme` | `170 16% 89%` | 1,24:1 (era 1,20) |
+| `.osg-theme` | `32 20% 88%` | 1,26:1 (era 1,18) |
+
+A OSG **não** usa `var(--osg-100)`, e isso foi medido: daria 1,38:1, ou seja a mesma borda
+leria mais pesada na OSG do que nas outras áreas. As paletas conversam no **registro** e
+mudam de **família**; o peso da linha é registro.
+
+⚠️ **Dívida aberta, com número:** nenhuma das três passa em **WCAG 1.4.11**, que pede 3:1
+para borda de controle. 1,26 está longe. Chegar a 3:1 exige luminosidade por volta de 72% no
+lugar de 89% — borda visivelmente escura em todo input do produto. É decisão de design em
+aberto, e a mudança de 31/08 não a resolve; só tira a divergência de temperatura.
+
+Restam **três** valores cravados no bloco `--bd-*`, e os três estão comentados um a um no
+`index.css`: `--bd-surface2` (zebra, `168 20% 98%`), `--bd-line2` (divisória, `168 16% 94%`) e
+`--bd-accent-l` (série secundária de gráfico, `175 45% 72%`). O critério para não derivá-los é
+o mesmo nos três: o valor da casa **não tem par no contrato**, então derivar mexeria em pixel
+— nos dois primeiros escurecendo zebra e divisória, no terceiro trocando opaco por alfa. Isso
+é decisão de design, não limpeza, e é por isso que ficam visíveis em vez de entrarem de
+carona.
+
 A resolução passa por herança e por `var()`: nenhuma área declara `--card` própria, e os
 semânticos da OSG são `var(--osg-moss)` / `var(--osg-highlighter)`. Ler só o literal do bloco
 daria "não declarado" justamente na área que mais personalizou os quatro.
 
-**A dívida de hoje está fixada item a item em `DIVIDA_SEMANTICA`**, no arquivo de teste, com
-12 entradas — valores que já estão em produção, cuja correção é decisão de identidade visual
-e não de teste. A asserção é de igualdade exata, o que faz da lista uma catraca nos dois
-sentidos: falha nova derruba o teste, e item corrigido também derruba, pedindo que saia da
-lista. A dívida só pode diminuir, e nunca de fininho. Em resumo: o `--warning` reprova como
-texto nos quatro temas (1,54:1 a 2,13:1 — é o amarelo, e é a decisão que está na mesa), o
-`--success` reprova por pouco em três (4,18–4,21:1 contra 4,5:1), o `--destructive` do `:root`
-reprova nos dois empregos (Tax, OSG e Rotina já corrigiram o deles), e o `--info` passa com
-folga nos quatro.
+**A dívida está fixada item a item em `DIVIDA_SEMANTICA`**, no arquivo de teste — valores já
+em produção, cuja correção é decisão de identidade visual e não de teste. A asserção é de
+igualdade exata, o que faz da lista uma catraca nos dois sentidos: falha nova derruba o
+teste, e item corrigido também derruba, pedindo que saia da lista. A dívida só pode diminuir,
+e nunca de fininho.
+
+**Hoje ela está vazia**, e a lista continua existindo para que voltar a encher seja uma
+decisão escrita e não um descuido. Ela teve 12 itens: o `--warning` reprovava como texto nos
+quatro temas (1,54:1 a 2,13:1), o `--success` reprovava por pouco em três, e o `--destructive`
+do `:root` reprovava nos dois empregos. Os 12 saíram **de uma vez**, e não um a um:
+`--destructive`, `--warning` e `--success` passaram a ser o `ajuste`, o `alerta` e o `feito`
+da área. Como papéis de status eles já nascem calibrados para receber texto claro, então
+nenhum dos 12 precisou de um valor novo escolhido à mão.
+
+## Status tem mapa, não classe — e o mapa provavelmente já existe
+
+Papel de status **não** tem variante no `ui/`, e a razão é que ele não mora num
+componente: mora num **mapa de domínio**, que traduz o valor gravado no banco para o papel.
+Antes de escrever `bg-green-100` num status novo, procure o mapa:
+
+| arquivo em `src/lib/` | domínio | chaves |
+|---|---|---|
+| `taskStatusColors.ts` | tarefa | backlog, waiting_client, todo, in_progress, review, em_ajuste, done |
+| `projetoStatusColors.ts` | projeto (`org_projects`) | planned, active, on_hold, completed, cancelled |
+| `chamadoStatusColors.ts` | chamado | status, prioridade, atividade e prazo |
+| `mapeamentoStatusColors.ts` | processo mapeado | not_started, in_progress, completed |
+| `entregavelStatusColors.ts` | entregável de sprint | pending, in_progress, completed |
+
+Todos têm a mesma forma: um helper `papel(chave, nome)` que monta as classes a partir de
+`--status-<papel>`, um `Record` por domínio, e uma função `…Config(valor)` com fallback —
+porque a coluna de status é `text` livre no banco em todos eles, e valor fora da lista não
+pode quebrar o render.
+
+**O defeito que esses mapas existem para matar não é a cor errada: é a cor incoerente.** O
+`chamadoStatusColors` nasceu porque o mesmo status vivia em seis mapas e "Aberto" era azul
+sólido para o cliente, `--info` na gestão e azul claro na equipe. O `entregavelStatusColors`
+nasceu porque o mesmo âmbar dizia "não começou" numa tela e "está andando" na outra, nas
+duas telas do **mesmo** entregável.
+
+> **Duas coisas que a unificação não decide, e que já apareceram.** Chave divergente entre
+> tabelas (`planned` em `org_projects`, `planning` em `projects`) é migração de dado. Rótulo
+> divergente na tela (`pending` é "Pendente" no calendário e "A Fazer" no dashboard de
+> horas) é decisão de produto. Nos dois casos o mapa carrega a **cor** e deixa o conflito
+> escrito, em vez de escolher por tabela.
+
+## O papel `alerta` tem variante no `ui/` — use ela
+
+`<Alert variant="warning">` e `<Badge variant="warning">` existem desde 01/09/2026, e são o
+destino de todo aviso novo. Nada de `bg-amber-50` à mão.
+
+| forma | o que usar |
+|---|---|
+| painel de aviso que já é `<Alert>` | `variant="warning"` |
+| painel feito à mão (`<div>`, `<Card>`, `<p>`) | `border-warning/40 bg-warning/10 text-warning` |
+| pílula/chip | `<Badge variant="warning">` |
+| ícone de atenção solto | `text-warning` |
+| fundo cheio (botão, ponto, contador) | `bg-warning text-warning-foreground`, hover em `/90` |
+
+O fundo suave é **alfa sobre o semântico**, e não `bg-status-alerta-soft`: o `.dark` não
+declara nenhum `--status-*`, então o painel cairia no valor do tema claro no dia em que o
+escuro entrar. O `--warning` o `.dark` declara. É a recomendação registrada em
+`comparacoes-de-cor/superficie-de-estado.html`.
+
+### O que NÃO é `alerta`, embora seja âmbar
+
+Foi o achado da conversão, e vale para os papéis que ainda faltam (`sucesso`, e o `feito` e o
+`ajuste` onde eles ainda são verde e vermelho crus). **Antes de trocar a classe, olhe o que
+está escrito na tela:**
+
+- **Degrau de escada.** `Validado`/`Pendente`, `Concluída`/`Em Avaliação`/`Cancelada`,
+  `Alta`/`Média`/`Baixa`. Converter só o degrau âmbar põe token e cor de estoque na mesma
+  coluna — troca escada crua por escada meio crua, que é pior. Essas escadas inteiras se
+  convertem por papel, no modelo do `taskStatusColors`.
+- **Outro papel com a mesma cor.** "Oportunidades" com uma lâmpada é ideia, não aviso.
+  "Editando etapa" tem `--edit-shadow-color` próprio. Realce de diff (`isChanged`) é `info`.
+- **Escala que não é status.** "Hoje"/"Amanhã" é proximidade; risco alto/médio/baixo é
+  gradiente.
+- **Decoração.** Ícone de 48px de estado vazio, ao lado de texto em `muted-foreground`. Em
+  `text-warning` cheio ele passa a gritar.
+- **Rótulo que não é estado.** "Líder", "Admin".
+
+**Essa classificação não vive só nesta prosa.** `src/lib/filaDoAlerta.test.ts` inventaria o
+âmbar que sobrou, arquivo a arquivo, **agrupado por motivo**, e afirma igualdade exata — a
+mesma catraca da `DIVIDA_SEMANTICA`. Âmbar novo em arquivo limpo derruba o teste; sítio
+convertido também derruba, pedindo que a contagem caia. A fila só diminui, e nunca de
+fininho. Quem for converter `sucesso`, `feito` ou `ajuste` começa dessa lista em vez de
+reclassificar do zero.
+
+O slate tem a sua, `src/lib/filaDoSlate.test.ts`, e ela **nasce vazia**: a família foi a zero em 01/09 e a catraca existe para que não volte. As duas compartilham o scanner de `src/lib/medirCorCrua.ts` — se for escrever a terceira, é de lá que ela sai.
+
+Não virou regra de ESLint porque `bg-amber-50` é classe válida do Tailwind: a regra
+`escala/cor-de-estoque` só dispara em nome que o projeto **também** define (`teal`, `lime`,
+`gray`). Sobrariam `warn` global, que joga os sítios num monte indistinto e perde o motivo,
+ou escopo por pasta — medido, e protege o terço errado: as pastas já em zero são as quietas,
+e `equipe/dev`, onde está o maior naco da fila, ficaria de fora inteira.
+
+E três armadilhas que a conversão em massa produz sozinha, todas já mordidas aqui:
+`hover:` que fica **idêntico** ao estado normal; `text-white` cravado sobre um token (o par é
+`-foreground`, que é quem garante o contraste); e tom claro do Tailwind com alfa baixo
+(`bg-amber-50/20`) que vira um `/10` do token e **pesa mais** do que pesava.
 
 ## Fora do módulo de tarefas
 

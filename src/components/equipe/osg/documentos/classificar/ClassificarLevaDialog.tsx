@@ -157,7 +157,7 @@ export function ClassificarLevaDialog({
     if (erro) {
       return (
         <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-          <p className="text-[12px] text-slate-700">{erro}</p>
+          <p className="text-[12px] text-foreground">{erro}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => assinar(doc)} className="gap-1.5">
             <RefreshCw className="h-3.5 w-3.5" aria-hidden /> Tentar de novo
           </Button>

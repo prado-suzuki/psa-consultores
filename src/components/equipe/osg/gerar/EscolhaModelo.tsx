@@ -31,7 +31,7 @@ export const EscolhaModelo = ({ modelos, carregando, modeloId, onEscolher }: Esc
   if (ativos.length === 0) {
     return (
       <div className="py-6 text-center">
-        <p className="text-sm text-slate-600">Ainda não há modelos prontos para gerar.</p>
+        <p className="text-sm text-muted-foreground">Ainda não há modelos prontos para gerar.</p>
         <Button
           variant="outline"
           size="sm"
@@ -72,13 +72,13 @@ export const EscolhaModelo = ({ modelos, carregando, modeloId, onEscolher }: Esc
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-osg-100 text-osg-600">
                 <ScrollText className="h-4 w-4" />
               </div>
-              <span className="min-w-0 flex-1 text-sm font-semibold leading-snug text-slate-900">
+              <span className="min-w-0 flex-1 text-sm font-semibold leading-snug text-foreground">
                 {m.nome}
               </span>
               {selecionado && <CheckCircle2 className="h-4 w-4 shrink-0 text-osg-moss" />}
             </div>
-            {m.descricao && <p className="line-clamp-2 text-xs text-slate-500">{m.descricao}</p>}
-            <span className="text-[11px] text-slate-400">
+            {m.descricao && <p className="line-clamp-2 text-xs text-muted-foreground">{m.descricao}</p>}
+            <span className="text-[11px] text-muted-foreground">
               {m.num_blocos > 0 ? `${m.num_blocos} blocos` : 'sem blocos'}
             </span>
           </button>

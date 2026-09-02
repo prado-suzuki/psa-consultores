@@ -42,7 +42,7 @@ export const ColumnTooltip = ({
 }) => (
   <Tooltip>
     <TooltipTrigger asChild>
-      <span className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+      <span className="cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/40">
         {children}
       </span>
     </TooltipTrigger>

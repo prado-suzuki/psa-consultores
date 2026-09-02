@@ -56,14 +56,14 @@ function KpiCard({ label, value, sub, accent, trend, tooltip }: KpiCardProps) {
   }[accent];
 
   const card = (
-    <Card className={`relative overflow-hidden border-slate-200 ${tooltip ? 'cursor-help' : ''}`}>
+    <Card className={`relative overflow-hidden border-border ${tooltip ? 'cursor-help' : ''}`}>
       <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: accentColor }} />
       <CardContent className="p-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
           {label}
         </p>
-        <p className="text-2xl font-bold text-slate-900 leading-none mb-1 tabular-nums">{value}</p>
-        {sub && <div className="text-xs text-slate-500 mt-2 space-y-0.5">{sub}</div>}
+        <p className="text-2xl font-bold text-foreground leading-none mb-1 tabular-nums">{value}</p>
+        {sub && <div className="text-xs text-muted-foreground mt-2 space-y-0.5">{sub}</div>}
         {trend && (
           <div
             className={`mt-2 inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -87,7 +87,7 @@ function KpiCard({ label, value, sub, accent, trend, tooltip }: KpiCardProps) {
   return (
     <UITooltip>
       <TooltipTrigger asChild>{card}</TooltipTrigger>
-      <TooltipContent side="bottom" className="max-w-xs shadow-2xl ring-1 ring-slate-200">
+      <TooltipContent side="bottom" className="max-w-xs shadow-2xl ring-1 ring-border">
         {tooltip}
       </TooltipContent>
     </UITooltip>
@@ -125,7 +125,7 @@ function SegmentoCard({
   const isEmpty = segmento.qtdItens === 0;
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardContent className="p-5">
         <div className="flex items-center gap-2 mb-3">
           <div
@@ -134,37 +134,37 @@ function SegmentoCard({
           >
             {icon}
           </div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
         </div>
         {isEmpty ? (
           <div>
-            <p className="text-lg font-semibold text-slate-400 mb-1">Sem ocorrências</p>
-            <p className="text-xs text-slate-400">{emptyHint}</p>
+            <p className="text-lg font-semibold text-muted-foreground mb-1">Sem ocorrências</p>
+            <p className="text-xs text-muted-foreground">{emptyHint}</p>
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-3 text-xs">
             <div>
-              <p className="text-slate-400 uppercase tracking-wider mb-0.5">Faturamento</p>
-              <p className="font-bold text-slate-900 tabular-nums">
+              <p className="text-muted-foreground uppercase tracking-wider mb-0.5">Faturamento</p>
+              <p className="font-bold text-foreground tabular-nums">
                 {fmtBRL(segmento.faturamento)}
               </p>
-              <p className="text-slate-500 font-mono">{fmtPct(pct)} do fat.</p>
+              <p className="text-muted-foreground font-mono">{fmtPct(pct)} do fat.</p>
             </div>
             <div>
-              <p className="text-slate-400 uppercase tracking-wider mb-0.5">Tributo DEPOIS</p>
+              <p className="text-muted-foreground uppercase tracking-wider mb-0.5">Tributo DEPOIS</p>
               <>
                 <p className="font-bold text-primary tabular-nums">
                   {fmtBRL(segmento.tributoDepoisIbsCbs)}
                 </p>
-                <p className="text-slate-500">Carga {fmtPct(cargaDepois)}</p>
+                <p className="text-muted-foreground">Carga {fmtPct(cargaDepois)}</p>
               </>
             </div>
             <div>
-              <p className="text-slate-400 uppercase tracking-wider mb-0.5">Volume</p>
-              <p className="font-bold text-slate-900 tabular-nums">
+              <p className="text-muted-foreground uppercase tracking-wider mb-0.5">Volume</p>
+              <p className="font-bold text-foreground tabular-nums">
                 {segmento.qtdNFs.toLocaleString('pt-BR')} NFs
               </p>
-              <p className="text-slate-500">{segmento.qtdItens.toLocaleString('pt-BR')} itens</p>
+              <p className="text-muted-foreground">{segmento.qtdItens.toLocaleString('pt-BR')} itens</p>
             </div>
           </div>
         )}
@@ -296,9 +296,9 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
 
   return (
     <div className="space-y-6">
-      <Alert className="bg-amber-50 border-amber-200">
-        <AlertTriangle className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="text-amber-900 text-xs">
+      <Alert variant="warning">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription className="text-xs">
           Cálculo sobre <strong>saídas</strong> apenas — não considera créditos de entradas.
           Resultado representa <strong>carga sobre faturamento</strong>, não saldo a recolher.
         </AlertDescription>
@@ -324,7 +324,7 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
             <>
               <p>Carga efetiva {fmtPct(cargaDepoisIbsCbsPct)}</p>
               {totais.aliqNominalMediaTributada > 0 && (
-                <p className="text-slate-400">
+                <p className="text-muted-foreground">
                   Alíq nominal {totais.aliqNominalMediaTributada.toFixed(1)}% (em{' '}
                   {fmtPct(totais.faturamentoTributado / Math.max(1, totais.faturamento))} do fat.)
                 </p>
@@ -334,22 +334,22 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
           accent="depois"
           tooltip={
             <div className="space-y-2 text-xs">
-              <p className="font-semibold text-slate-900">Tributo DEPOIS exibido no dashboard</p>
+              <p className="font-semibold text-foreground">Tributo DEPOIS exibido no dashboard</p>
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-4">
-                  <span className="flex items-center gap-1.5 text-slate-600">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
                     <span
                       className="inline-block h-2 w-2 rounded-full"
                       style={{ background: CORES.depois }}
                     />
                     IBS/CBS real
                   </span>
-                  <span className="tabular-nums font-semibold text-slate-900">
+                  <span className="tabular-nums font-semibold text-foreground">
                     {fmtBRL(totais.tributoDepoisIbsCbs)}
                   </span>
                 </div>
               </div>
-              <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-200">
+              <p className="text-[11px] text-muted-foreground pt-1 border-t border-border">
                 Os cards e gráficos comparativos desta página passaram a considerar apenas o valor
                 de IBS/CBS, sem somar ICMS monofásico.
               </p>
@@ -392,9 +392,9 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-slate-200">
+        <Card className="border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-slate-700">
+            <CardTitle className="text-sm font-semibold text-foreground">
               Carga tributária comparada
             </CardTitle>
           </CardHeader>
@@ -421,15 +421,15 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200">
+        <Card className="border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-slate-700">
+            <CardTitle className="text-sm font-semibold text-foreground">
               Composição dos tributos ANTES
             </CardTitle>
           </CardHeader>
           <CardContent>
             {composicaoData.length === 0 ? (
-              <p className="text-sm text-slate-400 py-12 text-center">Sem dados no período</p>
+              <p className="text-sm text-muted-foreground py-12 text-center">Sem dados no período</p>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
@@ -464,15 +464,15 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
         </Card>
       </div>
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-slate-700">
+          <CardTitle className="text-sm font-semibold text-foreground">
             Evolução mensal — antes vs depois
           </CardTitle>
         </CardHeader>
         <CardContent>
           {linhaTemporal.length === 0 ? (
-            <p className="text-sm text-slate-400 py-12 text-center">Sem dados no período</p>
+            <p className="text-sm text-muted-foreground py-12 text-center">Sem dados no período</p>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={linhaTemporal} margin={{ left: 8, right: 16, top: 8 }}>

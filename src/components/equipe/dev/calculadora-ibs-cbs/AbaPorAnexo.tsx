@@ -41,7 +41,7 @@ function HeaderTip({ label, children }: { label: string; children: React.ReactNo
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="underline decoration-dotted decoration-slate-400 underline-offset-2 cursor-help">
+        <span className="underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 cursor-help">
           {label}
         </span>
       </TooltipTrigger>
@@ -107,20 +107,20 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
 
   return (
     <div className="space-y-6">
-      <Alert className="bg-amber-50 border-amber-200">
-        <AlertTriangle className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="text-amber-900 text-xs">
+      <Alert variant="warning">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription className="text-xs">
           Agrupamento por <strong>regra_reducao</strong> (Anexos da LC 214/2025). Cálculo sobre
           saídas — não considera créditos.
         </AlertDescription>
       </Alert>
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+          <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="underline decoration-dotted decoration-slate-400 underline-offset-2 cursor-help">
+                <span className="underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 cursor-help">
                   Apuração por anexo
                 </span>
               </TooltipTrigger>
@@ -162,7 +162,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                <TableRow className="bg-muted hover:bg-muted">
                   <TableHead>Anexo</TableHead>
                   <TableHead className="text-right">
                     <HeaderTip label="Faturamento">
@@ -218,7 +218,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
               <TableBody>
                 {porAnexo.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-slate-400">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       Sem dados no período
                     </TableCell>
                   </TableRow>
@@ -234,7 +234,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
                         <span
                           className={`font-medium ${
                             base
-                              ? 'underline decoration-dotted decoration-slate-400 underline-offset-2 cursor-help'
+                              ? 'underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 cursor-help'
                               : ''
                           }`}
                         >
@@ -255,7 +255,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
                                 <div className="font-semibold mb-1">
                                   {a.anexo} — {base.artigo}
                                 </div>
-                                <div className="text-slate-900 whitespace-pre-line">
+                                <div className="text-foreground whitespace-pre-line">
                                   {base.texto}
                                 </div>
                               </TooltipContent>
@@ -285,7 +285,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
                         <TableCell className="text-right tabular-nums">
                           <Badge
                             variant="secondary"
-                            className="bg-slate-100 text-slate-700 font-medium"
+                            className="bg-muted text-foreground font-medium"
                           >
                             {fmtPct(a.cargaDepoisIbsCbs)}
                           </Badge>
@@ -306,15 +306,15 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-slate-700">
+          <CardTitle className="text-sm font-semibold text-foreground">
             Tributo IBS/CBS por anexo
           </CardTitle>
         </CardHeader>
         <CardContent>
           {barData.length === 0 ? (
-            <p className="text-sm text-slate-400 py-12 text-center">Sem dados</p>
+            <p className="text-sm text-muted-foreground py-12 text-center">Sem dados</p>
           ) : (
             <ResponsiveContainer width="100%" height={340}>
               <BarChart data={barData} margin={{ left: 12, right: 24, top: 8, bottom: 24 }}>

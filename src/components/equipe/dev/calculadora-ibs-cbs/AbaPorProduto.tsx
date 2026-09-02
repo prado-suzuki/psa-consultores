@@ -215,19 +215,19 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
 
   return (
     <div className="space-y-6">
-      <Alert className="bg-amber-50 border-amber-200">
-        <AlertTriangle className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="text-amber-900 text-xs">
+      <Alert variant="warning">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription className="text-xs">
           Comparativo por produto (NCM × xProd). Cálculo sobre saídas — a coluna DEPOIS considera
           apenas IBS/CBS.
         </AlertDescription>
       </Alert>
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <CardTitle className="text-sm font-semibold text-slate-700">
+          <CardTitle className="text-sm font-semibold text-foreground">
             Onde a reforma muda mais
-            <span className="ml-2 text-xs font-normal text-slate-500">
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
               X: faturamento · Y: Δ pp na carga · cor: anexo
             </span>
           </CardTitle>
@@ -239,7 +239,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                     className="inline-block h-2.5 w-2.5 rounded-full"
                     style={{ background: l.cor }}
                   />
-                  <span className="text-xs text-slate-600">{l.anexo}</span>
+                  <span className="text-xs text-muted-foreground">{l.anexo}</span>
                 </div>
               ))}
             </div>
@@ -247,7 +247,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
         </CardHeader>
         <CardContent>
           {scatterData.length === 0 ? (
-            <p className="text-sm text-slate-400 py-12 text-center">Sem dados</p>
+            <p className="text-sm text-muted-foreground py-12 text-center">Sem dados</p>
           ) : (
             <ResponsiveContainer width="100%" height={340}>
               <ScatterChart margin={{ top: 12, right: 24, bottom: 8, left: 8 }}>
@@ -277,11 +277,11 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                     if (!active || !payload || payload.length === 0) return null;
                     const d = payload[0].payload;
                     return (
-                      <div className="bg-white border border-slate-200 rounded-lg shadow-md p-3 text-xs">
-                        <p className="font-semibold text-slate-800 max-w-[260px] truncate">
+                      <div className="bg-white border border-border rounded-lg shadow-md p-3 text-xs">
+                        <p className="font-semibold text-foreground max-w-[260px] truncate">
                           {d.produto}
                         </p>
-                        <p className="text-slate-500 font-mono">NCM {d.ncm}</p>
+                        <p className="text-muted-foreground font-mono">NCM {d.ncm}</p>
                         <span
                           className="inline-block mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
                           style={{
@@ -291,10 +291,10 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                         >
                           {d.anexo}
                         </span>
-                        <div className="mt-1 text-slate-700">
+                        <div className="mt-1 text-foreground">
                           Faturamento: <strong>{fmtBRL(d.x)}</strong>
                         </div>
-                        <div className="text-slate-700">
+                        <div className="text-foreground">
                           Δ pp: <strong>{fmtPp(d.y)}</strong>
                         </div>
                       </div>
@@ -312,17 +312,17 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <CardTitle className="text-sm font-semibold text-slate-700">
+          <CardTitle className="text-sm font-semibold text-foreground">
             Top NCMs por faturamento
-            <span className="ml-2 text-xs font-normal text-slate-500">
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
               ({fmtInt(sorted.length)} NCMs)
             </span>
           </CardTitle>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por NCM ou produto..."
                 value={search}
@@ -343,8 +343,8 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50 hover:bg-slate-50">
-                  <TableHead className="sticky left-0 bg-slate-50 z-10 min-w-[140px] font-mono">
+                <TableRow className="bg-muted hover:bg-muted">
+                  <TableHead className="sticky left-0 bg-muted z-10 min-w-[140px] font-mono">
                     NCM
                   </TableHead>
                   <TableHead className="min-w-[260px]">Produto (exemplo)</TableHead>
@@ -408,7 +408,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
               <TableBody>
                 {pageRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-slate-400">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       Sem produtos para os filtros atuais
                     </TableCell>
                   </TableRow>
@@ -421,12 +421,12 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                       <TableCell>
                         <div>
                           <p
-                            className="font-medium text-slate-900 line-clamp-1"
+                            className="font-medium text-foreground line-clamp-1"
                             title={p.xProdExemplo}
                           >
                             {p.xProdExemplo}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             {p.produtosDistintos === 1
                               ? '1 produto distinto'
                               : `${fmtInt(p.produtosDistintos)} produtos distintos`}
@@ -460,7 +460,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                                 <div className="font-semibold mb-1">
                                   {p.anexo} — {base.artigo}
                                 </div>
-                                <div className="text-slate-900 whitespace-pre-line">
+                                <div className="text-foreground whitespace-pre-line">
                                   {base.texto}
                                 </div>
                               </TooltipContent>
@@ -484,7 +484,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                               </span>
                             </TooltipTrigger>
                             <TooltipContent side="left" className="text-xs p-3 max-w-[280px]">
-                              <div className="font-semibold text-slate-800 mb-1.5">
+                              <div className="font-semibold text-foreground mb-1.5">
                                 Composição estimada — Trib. ANTES
                               </div>
                               <table className="w-full text-xs">
@@ -497,18 +497,18 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                                     const valor = p.tributoAntes * linha.fator;
                                     return (
                                       <tr key={linha.label}>
-                                        <td className="pr-3 text-slate-600">{linha.label}</td>
-                                        <td className="text-right tabular-nums text-slate-500 pr-2">
+                                        <td className="pr-3 text-muted-foreground">{linha.label}</td>
+                                        <td className="text-right tabular-nums text-muted-foreground pr-2">
                                           {(linha.fator * 100).toFixed(1)}%
                                         </td>
-                                        <td className="text-right tabular-nums text-slate-900 font-medium">
+                                        <td className="text-right tabular-nums text-foreground font-medium">
                                           {fmtBRL(valor)}
                                         </td>
                                       </tr>
                                     );
                                   })}
-                                  <tr className="border-t border-slate-200">
-                                    <td className="pr-3 pt-1 text-slate-700 font-semibold">Total</td>
+                                  <tr className="border-t border-border">
+                                    <td className="pr-3 pt-1 text-foreground font-semibold">Total</td>
                                     <td className="pt-1" />
                                     <td className="pt-1 text-right tabular-nums text-orange-700 font-semibold">
                                       {fmtBRL(p.tributoAntes)}
@@ -516,7 +516,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                                   </tr>
                                 </tbody>
                               </table>
-                              <p className="mt-2 text-[10px] text-slate-500 leading-snug">
+                              <p className="mt-2 text-[10px] text-muted-foreground leading-snug">
                                 Composição estimada por rateio proporcional sobre o total do período.
                               </p>
                             </TooltipContent>
@@ -546,8 +546,8 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
             </Table>
           </div>
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
-              <p className="text-xs text-slate-500">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+              <p className="text-xs text-muted-foreground">
                 Página {currentPage} de {totalPages} · {fmtInt(sorted.length)} produtos
               </p>
               <div className="flex items-center gap-2">

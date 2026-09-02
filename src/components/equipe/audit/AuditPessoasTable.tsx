@@ -78,7 +78,7 @@ const ConteudoUltimoRegistro = ({ linha }: { linha: LinhaPessoa }) => (
   <>
     <span>{dataHora(linha.ultimoRegistro)}</span>
     {linha.ultimoRegistro && (
-      <span className="ml-2 text-xs text-slate-400">
+      <span className="ml-2 text-xs text-muted-foreground">
         {rotuloDiasSemRegistro(linha.diasSemRegistro)}
       </span>
     )}
@@ -97,7 +97,7 @@ const COLUNAS: Record<ColunaPessoa, DefinicaoColuna> = {
     label: 'Área / Equipe',
     numerica: false,
     ajuda: 'Onde a pessoa está lotada na estrutura da empresa. Quem está em mais de uma equipe aparece com as duas. "—" significa que ela não está em nenhuma equipe cadastrada — não que não tenha área.',
-    classeCelula: 'text-slate-600',
+    classeCelula: 'text-muted-foreground',
     render: linha => (linha.area || linha.equipe
       ? [linha.area, linha.equipe].filter(Boolean).join(' / ')
       : '—'),
@@ -106,7 +106,7 @@ const COLUNAS: Record<ColunaPessoa, DefinicaoColuna> = {
     label: 'Último acesso',
     numerica: false,
     ajuda: 'Data do último login no sistema. É entrada, não tempo de uso: o sistema não mede quanto tempo a pessoa ficou dentro nem em que tela. "—" significa que ela nunca logou. Visível apenas para administradores.',
-    classeCelula: 'whitespace-nowrap text-slate-600',
+    classeCelula: 'whitespace-nowrap text-muted-foreground',
     render: linha => dataHora(linha.ultimoAcesso),
   },
   ultimoRegistro: {
@@ -157,9 +157,9 @@ interface Kpi {
 const KpiCard = ({ label, valor, hint }: Kpi) => (
   <Card>
     <CardContent className="p-4">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">{valor}</p>
-      <p className="text-xs text-slate-400">{hint}</p>
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-foreground">{valor}</p>
+      <p className="text-xs text-muted-foreground">{hint}</p>
     </CardContent>
   </Card>
 );
@@ -196,13 +196,13 @@ const HeaderOrdenavel = ({
             // recebe o conteúdo do tooltip visual.
             aria-description={ajuda}
             className={cn(
-              'flex w-full items-center gap-1 px-4 py-3 text-left transition-colors hover:text-slate-900',
+              'flex w-full items-center gap-1 px-4 py-3 text-left transition-colors hover:text-foreground',
               numerica && 'justify-end',
               centralizada && 'justify-center',
-              ativa ? 'font-semibold text-slate-900' : 'text-slate-500',
+              ativa ? 'font-semibold text-foreground' : 'text-muted-foreground',
             )}
           >
-            <span className="border-b border-dotted border-slate-300">{label}</span>
+            <span className="border-b border-dotted border-border">{label}</span>
             <Icone className={cn('h-3.5 w-3.5 shrink-0', ativa ? 'opacity-100' : 'opacity-40')} />
           </button>
         </TooltipTrigger>
@@ -342,13 +342,13 @@ export const AuditPessoasTable = ({ area }: AuditPessoasTableProps) => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={colunas.length} className="text-center py-8 text-slate-500">
+                  <TableCell colSpan={colunas.length} className="text-center py-8 text-muted-foreground">
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : linhas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={colunas.length} className="text-center py-8 text-slate-500">
+                  <TableCell colSpan={colunas.length} className="text-center py-8 text-muted-foreground">
                     Nenhuma pessoa com registro no período
                   </TableCell>
                 </TableRow>
@@ -376,7 +376,7 @@ export const AuditPessoasTable = ({ area }: AuditPessoasTableProps) => {
 
       <AuditLimiteAviso total={logs.length} />
 
-      <p className="flex items-start gap-2 text-xs text-slate-500">
+      <p className="flex items-start gap-2 text-xs text-muted-foreground">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         <span>
           <strong className="font-medium">Passe o mouse no nome de qualquer coluna</strong> para

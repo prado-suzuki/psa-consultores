@@ -74,7 +74,7 @@ const FILTROS_GRUPO: Array<{ value: FiltroGrupo; label: string; Icon: LucideIcon
 
 const FILTROS_STATUS: Array<{ value: FiltroStatus; label: string; dot?: string }> = [
   { value: 'todos', label: 'Todos' },
-  { value: 'faltando', label: 'Falta enviar', dot: 'bg-amber-500' },
+  { value: 'faltando', label: 'Falta enviar', dot: 'bg-warning' },
   { value: 'recebidos', label: 'Recebidos', dot: 'bg-primary' },
 ];
 
@@ -87,9 +87,9 @@ const ESTADO_LABEL: Record<EstadoDocumento, string> = {
 };
 const ESTADO_CHIP: Record<EstadoDocumento, string> = {
   pendente: 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-400',
-  em_analise: 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-400',
+  em_analise: 'border-border bg-muted text-muted-foreground hover:border-muted-foreground/50',
   recusado: 'border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400',
-  aprovado: 'border-teal-200 bg-teal-50 text-primary hover:border-teal-400',
+  aprovado: 'border-primary/15 bg-accent/5 text-primary hover:border-primary/40',
 };
 
 const estadoDaPendencia = (pendencia: PendenciaCliente): EstadoDocumento =>
@@ -193,17 +193,17 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
   };
 
   if (isLoading) {
-    return <p className="py-12 text-center text-sm text-slate-500">Carregando a sua lista de documentos...</p>;
+    return <p className="py-12 text-center text-sm text-muted-foreground">Carregando a sua lista de documentos...</p>;
   }
 
   if (pendencias.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-300/80 bg-white/70 px-6 py-16 text-center shadow-sm">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50 text-primary">
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/80 bg-white/70 px-6 py-16 text-center shadow-sm">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/5 text-primary">
           <ShieldCheck className="h-7 w-7" />
         </span>
-        <p className="font-semibold text-slate-800">Nada pendente no momento.</p>
-        <p className="max-w-md text-sm text-slate-500">
+        <p className="font-semibold text-foreground">Nada pendente no momento.</p>
+        <p className="max-w-md text-sm text-muted-foreground">
           Assim que a PSA precisar de um documento novo, ele aparece aqui com o envio na própria
           linha.
         </p>
@@ -216,14 +216,14 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
       <ResumoHero {...resumo} />
 
       {encerrada && (
-        <p className="rounded-xl border border-slate-200/70 bg-slate-50/70 px-4 py-3 text-sm text-slate-600">
+        <p className="rounded-xl border border-border/70 bg-muted/70 px-4 py-3 text-sm text-muted-foreground">
           Este pedido foi encerrado. A lista fica para consulta e o envio está desligado. Se
           precisar mandar algo, fale com a PSA.
         </p>
       )}
 
-      <div className="space-y-3 rounded-2xl border border-slate-200/70 bg-white/70 p-3 shadow-[0_8px_24px_-20px_rgba(15,23,42,0.28)]">
-        <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-slate-100 bg-slate-50 p-1">
+      <div className="space-y-3 rounded-2xl border border-border/70 bg-white/70 p-3 shadow-[0_8px_24px_-20px_rgba(15,23,42,0.28)]">
+        <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border bg-muted p-1">
           {FILTROS_GRUPO.map(({ value, label, Icon }) => {
             const ativo = filtroGrupo === value;
             const total = value === 'todos'
@@ -237,11 +237,11 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
                 className={cn(
                   'relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
                   FOCO,
-                  ativo ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-100/70 hover:text-slate-700',
+                  ativo ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />{label}
-                <span className={cn('text-[10px] tabular-nums', ativo ? 'text-primary' : 'text-slate-400')}>{total}</span>
+                <span className={cn('text-[10px] tabular-nums', ativo ? 'text-primary' : 'text-muted-foreground')}>{total}</span>
                 {ativo && <span aria-hidden className="absolute inset-x-3 bottom-0.5 h-0.5 rounded-full bg-primary" />}
               </button>
             );
@@ -261,8 +261,8 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
                     'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
                     FOCO,
                     ativo
-                      ? 'border-primary bg-teal-50 text-primary'
-                      : 'border-slate-200/80 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700',
+                      ? 'border-primary bg-accent/5 text-primary'
+                      : 'border-border/80 bg-white text-muted-foreground hover:border-border hover:text-foreground',
                   )}
                 >
                   {dot && <span aria-hidden className={cn('h-2 w-2 rounded-full', dot)} />}
@@ -272,7 +272,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
             })}
           </div>
           <div className="relative ml-auto min-w-[220px] flex-1 sm:max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={busca}
               onChange={(evento) => setBusca(evento.target.value)}
@@ -284,7 +284,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
       </div>
 
       {gavetasVisiveis.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 py-14 text-center text-sm text-slate-500">
+        <div className="rounded-2xl border border-dashed border-border py-14 text-center text-sm text-muted-foreground">
           Nenhum documento para os filtros selecionados.
         </div>
       ) : gavetasVisiveis.map((gaveta) => (
@@ -345,33 +345,33 @@ function ResumoHero({ pct, total, recebidos, faltando }: {
   pct: number; total: number; recebidos: number; faltando: number;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.4)] sm:p-7">
+    <section className="relative overflow-hidden rounded-2xl border border-border/80 bg-white/80 p-5 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.4)] sm:p-7">
       <div aria-hidden className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
       <div className="relative grid gap-7 lg:grid-cols-[1fr_240px] lg:items-center">
         <div>
           <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
             Documentos solicitados
           </span>
-          <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-800">
+          <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-foreground">
             Documentos que faltam
           </h2>
           <div className="mt-1 h-[3px] w-8 rounded-full bg-primary" />
-          <p className="mt-3 max-w-2xl text-sm text-slate-500">
+          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
             Cada documento aparece junto de quem ele é, e o envio acontece ali mesmo: assim ele já
             chega organizado, e você não precisa renomear nem separar nada.
           </p>
           <div className="mt-6 flex flex-wrap items-end gap-x-4 gap-y-1">
             <span className="text-4xl font-extrabold leading-none tabular-nums text-primary">{pct}%</span>
-            <span className="text-sm text-slate-500">{recebidos} de {total} documentos recebidos</span>
+            <span className="text-sm text-muted-foreground">{recebidos} de {total} documentos recebidos</span>
           </div>
-          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-primary transition-[width] duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 border-slate-100 lg:border-l lg:pl-7">
+        <div className="grid grid-cols-2 gap-3 border-border lg:border-l lg:pl-7">
           <Metrica label="Falta enviar" value={faltando} tom="atencao" />
           <Metrica label="Recebidos" value={recebidos} tom="neutro" />
         </div>
@@ -382,14 +382,14 @@ function ResumoHero({ pct, total, recebidos, faltando }: {
 
 function Metrica({ label, value, tom }: { label: string; value: number; tom: 'atencao' | 'neutro' }) {
   return (
-    <div className="flex flex-col items-center rounded-xl bg-slate-50/80 px-2 py-3 text-center">
+    <div className="flex flex-col items-center rounded-xl bg-muted/80 px-2 py-3 text-center">
       <div className={cn(
         'text-xl font-bold leading-none tabular-nums',
         tom === 'atencao' ? 'text-amber-600' : 'text-primary',
       )}>
         {value}
       </div>
-      <div className="mt-1 text-[10px] font-semibold uppercase leading-tight text-slate-500">{label}</div>
+      <div className="mt-1 text-[10px] font-semibold uppercase leading-tight text-muted-foreground">{label}</div>
     </div>
   );
 }
@@ -410,15 +410,15 @@ function SecaoGaveta({ gaveta, onAbrir }: {
       <div className="mb-4">
         <div className="flex flex-wrap items-center gap-4">
           <div className="min-w-0">
-            <h3 className="truncate text-xl font-bold tracking-tight text-slate-800">{gaveta.titulo}</h3>
+            <h3 className="truncate text-xl font-bold tracking-tight text-foreground">{gaveta.titulo}</h3>
             <div className="mt-1 h-[3px] w-8 rounded-full bg-primary" />
           </div>
           <div className="w-32 shrink-0 sm:w-36">
             <div className="mb-1 flex items-baseline justify-between text-[11px] font-semibold">
               <span className="tabular-nums text-primary">{pct}%</span>
-              <span className="tabular-nums text-slate-500">{recebidos}/{total}</span>
+              <span className="tabular-nums text-muted-foreground">{recebidos}/{total}</span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
               <span
                 className="block h-full rounded-full bg-primary transition-[width] duration-500"
                 style={{ width: `${pct}%` }}
@@ -426,7 +426,7 @@ function SecaoGaveta({ gaveta, onAbrir }: {
             </div>
           </div>
         </div>
-        <span className="mt-2 block text-xs font-semibold tabular-nums text-slate-500">
+        <span className="mt-2 block text-xs font-semibold tabular-nums text-muted-foreground">
           {gaveta.subtitulo} · {gaveta.entidades.length} {gaveta.entidades.length === 1 ? 'item' : 'itens'}
         </span>
       </div>
@@ -473,7 +473,7 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
   return (
     <div
       className={cn(
-        'group relative flex h-full min-h-48 w-full flex-col rounded-2xl border border-slate-200/80 bg-white/80 p-5 text-left shadow-[0_8px_24px_-22px_rgba(15,23,42,0.4)] transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_16px_30px_-20px_rgba(13,148,136,0.3)] focus-within:border-primary/40',
+        'group relative flex h-full min-h-48 w-full flex-col rounded-2xl border border-border/80 bg-white/80 p-5 text-left shadow-[0_8px_24px_-22px_rgba(15,23,42,0.4)] transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_16px_30px_-20px_rgba(13,148,136,0.3)] focus-within:border-primary/40',
       )}
     >
       <button
@@ -483,40 +483,40 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
         className={cn('absolute inset-0 z-0 rounded-2xl', FOCO)}
       />
       <div className="pointer-events-none relative z-10 flex items-start justify-between gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-primary">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/5 text-primary">
           <Icon className="h-5 w-5" />
         </span>
         <span className={cn(
           'rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]',
-          entidade.faltando > 0 ? 'bg-amber-50 text-amber-700' : 'bg-teal-50 text-primary',
+          entidade.faltando > 0 ? 'bg-warning/10 text-warning' : 'bg-accent/5 text-primary',
         )}>
           {entidade.faltando > 0
             ? `${entidade.faltando} pendente${entidade.faltando === 1 ? '' : 's'}`
             : 'Completo'}
         </span>
       </div>
-      <h4 className="pointer-events-none relative z-10 mt-5 font-semibold leading-snug text-slate-800">
+      <h4 className="pointer-events-none relative z-10 mt-5 font-semibold leading-snug text-foreground">
         {entidade.nome}
       </h4>
       {entidade.detalhe && (
-        <p className="pointer-events-none relative z-10 text-xs font-medium text-slate-500">
+        <p className="pointer-events-none relative z-10 text-xs font-medium text-muted-foreground">
           {entidade.detalhe}
         </p>
       )}
-      <p className="pointer-events-none relative z-10 mt-1 line-clamp-2 min-h-10 text-sm leading-relaxed text-slate-500">
+      <p className="pointer-events-none relative z-10 mt-1 line-clamp-2 min-h-10 text-sm leading-relaxed text-muted-foreground">
         {previa || 'Você já enviou tudo desta ficha.'}
       </p>
 
       <ChipsDeEstado contagem={contagem} onEscolher={onAbrir} />
 
       <div className="pointer-events-none relative z-10 mt-auto flex items-center gap-3 pt-5">
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
           <div
             className={cn('h-full rounded-full', entidade.faltando > 0 ? 'bg-amber-400' : 'bg-primary')}
             style={{ width: `${pct}%` }}
           />
         </div>
-        <span className="text-sm font-bold tabular-nums text-slate-600">{recebidos}/{total}</span>
+        <span className="text-sm font-bold tabular-nums text-muted-foreground">{recebidos}/{total}</span>
       </div>
       <span className="pointer-events-none relative z-10 mt-3 text-xs font-semibold text-primary group-hover:underline">
         {entidade.faltando > 0
@@ -581,11 +581,11 @@ function EntidadeDialog({
   return (
     <Dialog open={!!selecionada} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-hidden p-0">
-        <DialogHeader className="border-b border-slate-100 bg-slate-50/60 px-6 py-5 text-left">
+        <DialogHeader className="border-b border-border bg-muted/60 px-6 py-5 text-left">
           <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
             {selecionada?.gaveta.titulo}
           </span>
-          <DialogTitle className="text-xl text-slate-800">{selecionada?.entidade.nome}</DialogTitle>
+          <DialogTitle className="text-xl text-foreground">{selecionada?.entidade.nome}</DialogTitle>
           <DialogDescription>
             {selecionada?.entidade.detalhe
               ? `${selecionada.entidade.detalhe}. Envie cada documento na própria linha.`
@@ -603,14 +603,14 @@ function EntidadeDialog({
               <button
                 type="button"
                 onClick={onLimparFiltro}
-                className={cn('rounded-md text-[11px] font-semibold text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline', FOCO)}
+                className={cn('rounded-md text-[11px] font-semibold text-muted-foreground underline-offset-2 hover:text-foreground hover:underline', FOCO)}
               >
                 ver todos os {selecionada?.entidade.pendencias.length}
               </button>
             </div>
           )}
         </DialogHeader>
-        <div className="max-h-[calc(90vh-140px)] divide-y divide-slate-100 overflow-y-auto px-4 pb-2 sm:px-6">
+        <div className="max-h-[calc(90vh-140px)] divide-y divide-border overflow-y-auto px-4 pb-2 sm:px-6">
           {pendencias.map((pendencia) => (
             <LinhaPendencia
               key={`${pendencia.solicitacao_item_id}|${pendencia.alvo.id ?? 'cliente'}`}
@@ -657,7 +657,7 @@ function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo, onRemo
     <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start">
       <span className={cn(
         'mt-0.5 hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg sm:flex',
-        pendencia.recebido ? 'bg-teal-50 text-primary'
+        pendencia.recebido ? 'bg-accent/5 text-primary'
           : recusado ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700',
       )}>
         {pendencia.recebido ? <Check className="h-4 w-4" />
@@ -666,15 +666,15 @@ function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo, onRemo
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className={cn('text-sm font-medium', pendencia.recebido ? 'text-slate-500' : 'text-slate-800')}>
+          <span className={cn('text-sm font-medium', pendencia.recebido ? 'text-muted-foreground' : 'text-foreground')}>
             {pendencia.documento}
           </span>
           {selo && (
             <span className={cn(
               'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
               recusado ? 'bg-rose-50 text-rose-700'
-                : estado === 'em_analise' ? 'bg-slate-100 text-slate-600'
-                  : 'bg-teal-50 text-primary',
+                : estado === 'em_analise' ? 'bg-muted text-muted-foreground'
+                  : 'bg-accent/5 text-primary',
             )}>
               {recusado ? <TriangleAlert className="h-3 w-3" />
                 : estado === 'em_analise' ? <Hourglass className="h-3 w-3" />
@@ -684,7 +684,7 @@ function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo, onRemo
           )}
         </div>
         {pendencia.nota && !pendencia.recebido && (
-          <p className="mt-1 text-xs leading-relaxed text-slate-500">{pendencia.nota}</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{pendencia.nota}</p>
         )}
         {pendencia.arquivos.length > 0 && (
           <ul className="mt-2 space-y-1.5">
@@ -702,11 +702,11 @@ function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo, onRemo
 
       {!pendencia.recebido && !somenteLeitura && (
         semTipo ? (
-          <span className="shrink-0 text-xs text-slate-500">Fale com a PSA para enviar este</span>
+          <span className="shrink-0 text-xs text-muted-foreground">Fale com a PSA para enviar este</span>
         ) : (
           <label
             className={cn(
-              'inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-primary/30 bg-white px-3 py-2 text-xs font-semibold text-primary transition-colors hover:border-primary/60 hover:bg-teal-50',
+              'inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-primary/30 bg-white px-3 py-2 text-xs font-semibold text-primary transition-colors hover:border-primary/60 hover:bg-accent/5',
               FOCO,
               ocupado && 'pointer-events-none opacity-60',
             )}
@@ -750,20 +750,20 @@ function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
   return (
     <li className={cn(
       'rounded-xl border px-3 py-2',
-      recusado ? 'border-rose-200/80 bg-rose-50/50' : 'border-slate-200/80 bg-slate-50/60',
+      recusado ? 'border-rose-200/80 bg-rose-50/50' : 'border-border/80 bg-muted/60',
     )}>
       <div className="flex items-center gap-2">
-        <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? 'text-rose-600' : 'text-slate-400')} />
+        <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? 'text-rose-600' : 'text-muted-foreground')} />
         <span className={cn(
           'min-w-0 flex-1 truncate text-xs font-medium',
-          recusado ? 'text-rose-700 line-through' : 'text-slate-600',
+          recusado ? 'text-rose-700 line-through' : 'text-muted-foreground',
         )}>
           {arquivo.nome}
         </span>
         <span className={cn(
           'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]',
           recusado ? 'bg-rose-100 text-rose-700'
-            : aprovado ? 'bg-teal-100 text-primary' : 'bg-slate-200/70 text-slate-600',
+            : aprovado ? 'bg-accent/10 text-primary' : 'bg-muted/70 text-muted-foreground',
         )}>
           {recusado ? 'Recusado' : aprovado ? 'Aprovado' : 'Em análise'}
         </span>
@@ -773,7 +773,7 @@ function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
             onClick={() => onRemover(arquivo)}
             title="Remover este arquivo"
             className={cn(
-              'shrink-0 rounded-lg p-1 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600',
+              'shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600',
               FOCO,
             )}
           >

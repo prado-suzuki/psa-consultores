@@ -46,7 +46,7 @@ export const ProjectProcessesTab = ({
     ) : processes.length > 0 ? (
       <div className="space-y-2">
         {processes.map((process) => (
-          <Card key={process.id} className="bg-muted border-gray-200">
+          <Card key={process.id} className="bg-muted border-border">
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">

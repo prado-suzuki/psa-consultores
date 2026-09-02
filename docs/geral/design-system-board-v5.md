@@ -78,8 +78,9 @@ barra recolhida.
 A primeira versão desta refatoração pintou o chrome do Board de teal e **deixou o
 tema semântico como estava** — e estava errado: `/equipe/board` era mapeado como
 infraestrutura em `src/lib/areaTheme.ts`, então o `<html>` carregava
-`.sistema-theme`, cujo `--primary`/`--accent`/`--ring` é grafite quente
-(`35 10% 26%`).
+`.sistema-theme`, cujo `--primary`/`--accent`/`--ring` era grafite quente
+(`35 10% 26%`). Esse bloco não existe mais: saiu em 31/08/2026, quando o mesmo
+desencontro apareceu no Dev — ver `docs/geral/paleta-por-area.md`.
 
 Resultado na tela, e foi a usuária que viu ao abrir: **quatro famílias ao mesmo
 tempo**. Cartões, gráficos, tabelas e barra lateral em teal (os `--bd-*`); todo
@@ -95,10 +96,18 @@ A correção tem três partes:
    `board`). Dev e Acessos *servem* o sistema; o Board é a tela da diretoria, e
    área de negócio veste a marca. O comentário do próprio arquivo já previa que a
    mudança seria uma palavra na tabela.
-2. **`.board-theme`**, um delta de acento + superfície (20 das 46 variáveis do
-   contrato), com os MESMOS números do bloco `--bd-*` — é o que faz o card do
-   shadcn e o card do Board serem o mesmo branco. Herda do piso os papéis de
-   status e os tons de tag, e o porquê está em `docs/geral/paleta-por-area.md`.
+2. **`.board-theme`**, um delta de acento + superfície, com os MESMOS números do
+   bloco `--bd-*` — é o que faz o card do shadcn e o card do Board serem o mesmo
+   branco. Herdava do piso os papéis de status e os tons de tag, e o porquê está
+   em `docs/geral/paleta-por-area.md`.
+
+   > **Atualização de 31/08/2026:** esse bloco não existe mais. As superfícies
+   > dele foram movidas para o `.base-theme` e viraram as da CASA — o Board é a
+   > tela da diretoria, e a âncora dele sempre foi a do piso. `/equipe/board`
+   > resolve `base-theme` sozinho, e renderiza idêntico ao que este documento
+   > descreve. O que mudou foi o alcance: as mesmas superfícies agora valem
+   > também nas 41 rotas que ficavam no piso puro e nas 27 do Dev. Ver a seção
+   > "O Board VIROU a casa" em `docs/geral/paleta-por-area.md`.
 3. **As oito subtelas de Desempenho entraram na família**: ~55 hexadecimais de
    estoque viraram token, e a faixa escura dos cartões de PPR passou de grafite
    para teal profundo (branco em cima: 16,8:1 e 12,5:1, medidos nos valores

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { motivoDeDescarte } from './descarte';
 import { gerarBlocos, gerarComposicao, gerarDocumento } from './index';
-import { mapearMatricula, mapearSociedade, type MatriculaParaMapear } from './mapeadores';
+import { mapearMatricula, mapearRetirantes, mapearSociedade, vocabularioDaRetirada, type MatriculaParaMapear } from './mapeadores';
 import { prefixosNumeracao } from './numeracao';
 import { renderBloco } from './render';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
@@ -456,5 +456,69 @@ describe('motivoDeDescarte — a regra, caso a caso', () => {
     };
     const texto = gerarDocumento(template, { foroComarca: '', foroUf: '', dataAssinatura: '' });
     expect(texto).toBe('/, ____ de ______________ de 20__.');
+  });
+});
+
+// A cláusula de retirada numa alteração em que NINGUÉM se retirou.
+//
+// Achado pela demonstração do aumento de capital (01/09/2026): a AC que teve só
+// INGRESSO de sócio saiu com "por terem cedido a totalidade de suas quotas, os
+// sócios  retiram-se da sociedade", sem nome nenhum e com espaço duplo no lugar
+// da lista. O descarte por lista vazia já existia e deveria ter derrubado o
+// bloco; quem o segurava era o vocabulário, que devolvia as palavras no plural
+// mesmo sem retirante e assim entregava três segmentos de valor preenchidos.
+describe('cláusula de retirada sem retirante nenhum', () => {
+  // O conteúdo real do bloco "Resolução: retirada dos sócios cedentes".
+  const CLAUSULA_RETIRADA =
+    'Em virtude das cessões e transferências descritas nas cláusulas anteriores, ' +
+    '{{ retirada.porTerCedido }} a totalidade de suas quotas, {{ retirada.titulo }} ' +
+    '{{#retirantes sep=", " fim=" e "}}*{{ retirante.nomeMaiusculo }}*{{/retirantes}} ' +
+    '{{ retirada.verbo }} da sociedade.';
+
+  const renderCom = (retirantes: readonly PessoaRow[]) =>
+    renderBloco(CLAUSULA_RETIRADA, {
+      retirada: vocabularioDaRetirada(retirantes),
+      retirantes: mapearRetirantes(retirantes),
+    } as unknown as Contexto);
+
+  const pf = (denominacao: string, genero: 'M' | 'F' = 'M') =>
+    ({ id: denominacao, denominacao, tipo_pessoa: 'PF', genero }) as unknown as PessoaRow;
+
+  it('some do documento: sem retirante o bloco é descartado por lista vazia', () => {
+    const render = renderCom([]);
+    expect(motivoDeDescarte(render)).toBe('lista-vazia');
+  });
+
+  it('e o que ele imprimiria não afirma retirada nenhuma', () => {
+    // Mesmo que alguém force o bloco no documento, o texto não pode dizer que
+    // sócios se retiraram: era essa a frase que saía na peça registrada.
+    const texto = renderCom([]).segmentos.map((s) => s.texto).join('');
+    expect(texto).not.toMatch(/retiram-se|retira-se/);
+    expect(texto).not.toMatch(/os sócios|o sócio/);
+  });
+
+  it('com UM retirante o bloco fica, no singular e com o nome', () => {
+    const render = renderCom([pf('Lucas Nogueira')]);
+    expect(motivoDeDescarte(render)).toBeNull();
+    const texto = render.segmentos.map((s) => s.texto).join('');
+    expect(texto).toContain('por ter cedido a totalidade de suas quotas, o sócio');
+    expect(texto).toContain('LUCAS NOGUEIRA');
+    expect(texto).toContain('retira-se da sociedade');
+  });
+
+  it('com DOIS retirantes o bloco fica, no plural e com os dois nomes', () => {
+    const render = renderCom([pf('Lucas Nogueira'), pf('Marina Salgado', 'F')]);
+    expect(motivoDeDescarte(render)).toBeNull();
+    const texto = render.segmentos.map((s) => s.texto).join('');
+    expect(texto).toContain('por terem cedido a totalidade de suas quotas, os sócios');
+    expect(texto).toContain('LUCAS NOGUEIRA');
+    expect(texto).toContain('MARINA SALGADO');
+    expect(texto).toContain('retiram-se da sociedade');
+  });
+
+  it('duas sócias mulheres concordam no feminino', () => {
+    const texto = renderCom([pf('Ana Lima', 'F'), pf('Marina Salgado', 'F')])
+      .segmentos.map((s) => s.texto).join('');
+    expect(texto).toContain('as sócias');
   });
 });

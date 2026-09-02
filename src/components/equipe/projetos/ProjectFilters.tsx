@@ -37,7 +37,7 @@ export const ProjectFilters = ({
       <SelectTrigger className="w-48">
         <SelectValue placeholder="Todos os clusters" />
       </SelectTrigger>
-      <SelectContent className="border-gray-200">
+      <SelectContent className="border-border">
         <SelectItem value="__todos__">Todos os clusters</SelectItem>
         <SelectItem value={SEM_CLUSTER}>— Sem cluster</SelectItem>
         {clusters
@@ -53,7 +53,7 @@ export const ProjectFilters = ({
       <SelectTrigger className="w-40">
         <SelectValue placeholder="Todos status" />
       </SelectTrigger>
-      <SelectContent className="border-gray-200">
+      <SelectContent className="border-border">
         <SelectItem value="all">Todos status</SelectItem>
         <SelectItem value="active">Ativo</SelectItem>
         <SelectItem value="completed">Concluído</SelectItem>

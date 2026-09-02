@@ -52,14 +52,14 @@ export const AuditClientesDoProduto = ({
           <button
             type="button"
             onClick={() => setClienteId(null)}
-            className="flex items-center gap-0.5 rounded text-slate-500 transition-colors hover:text-slate-900"
+            className="flex items-center gap-0.5 rounded text-muted-foreground transition-colors hover:text-foreground"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
             Clientes
           </button>
-          <span className="text-slate-300">/</span>
-          <span className="font-medium text-slate-700">{clienteAberto.nome}</span>
-          <span className="text-slate-400">em {produto}</span>
+          <span className="text-muted-foreground/50">/</span>
+          <span className="font-medium text-foreground">{clienteAberto.nome}</span>
+          <span className="text-muted-foreground">em {produto}</span>
         </div>
         <AuditPessoasDoProduto
           linhas={pessoasPorCliente[clienteAberto.clienteId] ?? []}
@@ -78,10 +78,10 @@ export const AuditClientesDoProduto = ({
 
       <TabsContent value="clientes" className="mt-0">
         {clientes.length === 0 ? (
-          <p className="text-xs text-slate-500">Nenhum cliente com registro neste produto no período.</p>
+          <p className="text-xs text-muted-foreground">Nenhum cliente com registro neste produto no período.</p>
         ) : (
           <>
-            <p className="mb-1 text-xs text-slate-500">
+            <p className="mb-1 text-xs text-muted-foreground">
               Clique num cliente para ver quem está executando nele.
             </p>
             <Table>
@@ -112,19 +112,19 @@ export const AuditClientesDoProduto = ({
                           }}
                           className={cn(
                             'flex items-center gap-1 text-left',
-                            semVinculo ? 'italic text-slate-400' : 'font-medium text-slate-700',
+                            semVinculo ? 'italic text-muted-foreground' : 'font-medium text-foreground',
                           )}
                         >
-                          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           {linha.nome}
                         </button>
                       </TableCell>
                       <TableCell className="py-1.5 text-right text-xs">{linha.itensTocados}</TableCell>
                       <TableCell className="py-1.5 text-right text-xs">{linha.concluidos}</TableCell>
                       <TableCell className="whitespace-nowrap py-1.5 text-right text-xs">
-                        <span className="text-slate-500">{formatarHoras(linha.horasPlanejadas)}</span>
-                        <span className="text-slate-300"> / </span>
-                        <span className="font-medium text-slate-900">
+                        <span className="text-muted-foreground">{formatarHoras(linha.horasPlanejadas)}</span>
+                        <span className="text-muted-foreground/50"> / </span>
+                        <span className="font-medium text-foreground">
                           {formatarHoras(linha.horasExecutadas)}
                         </span>
                       </TableCell>

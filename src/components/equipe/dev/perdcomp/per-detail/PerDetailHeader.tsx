@@ -41,22 +41,22 @@ export function PerDetailHeader({
   onClose,
 }: PerDetailHeaderProps) {
   return (
-    <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 bg-white/95 backdrop-blur flex-shrink-0">
+    <div className="h-20 flex items-center justify-between px-6 border-b border-border bg-white/95 backdrop-blur flex-shrink-0">
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
           <FileText className="w-7 h-7" />
         </div>
         <div>
-          <h3 className="text-xl font-bold text-slate-900 flex items-center gap-3">
+          <h3 className="text-xl font-bold text-foreground flex items-center gap-3">
             <span>{formatProcessNumber(nrPer)}</span>
             <Badge variant="secondary" className="text-xs uppercase">
               {tipoCredito}
             </Badge>
           </h3>
-          <p className="text-sm text-slate-500 mt-0.5 font-medium">
+          <p className="text-sm text-muted-foreground mt-0.5 font-medium">
             {contribuinteNome || 'Contribuinte'}
             {' • '}
-            <span className="text-slate-700 ml-1">
+            <span className="text-foreground ml-1">
               {exercicio}/{trimestre}T
             </span>
           </p>
@@ -73,17 +73,17 @@ export function PerDetailHeader({
       </div>
 
       <div className="flex items-center gap-6">
-        <div className="hidden xl:flex items-center gap-8 border-r border-slate-200 pr-6 h-12">
+        <div className="hidden xl:flex items-center gap-8 border-r border-border pr-6 h-12">
           <div className="text-right">
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
+            <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-0.5">
               Valor Crédito
             </p>
-            <p className="text-lg font-mono font-bold text-slate-800">
+            <p className="text-lg font-mono font-bold text-foreground">
               {formatCurrency(valorCredito)}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
+            <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-0.5">
               Saldo Restante do PER
             </p>
             <p
@@ -93,18 +93,18 @@ export function PerDetailHeader({
                   ?'text-green-600'
                   : saldoRestante < 0
                     ?'text-red-600'
-                    :'text-slate-800',
+                    :'text-foreground',
               )}
             >
               {formatCurrency(saldoRestante)}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
+            <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-0.5">
               Vlr. Selic
             </p>
             {emCarencia ? (
-              <p className="text-lg font-mono font-bold text-slate-400">
+              <p className="text-lg font-mono font-bold text-muted-foreground">
                 Em carência
               </p>
             ) : valorSelic ? (
@@ -119,7 +119,7 @@ export function PerDetailHeader({
                 SELIC indisponível
               </p>
             ) : (
-              <p className="text-lg font-mono font-bold text-slate-400">—</p>
+              <p className="text-lg font-mono font-bold text-muted-foreground">—</p>
             )}
           </div>
         </div>
@@ -129,7 +129,7 @@ export function PerDetailHeader({
             variant="ghost"
             size="icon"
             onClick={onDelete}
-            className="h-10 w-10 rounded-full text-slate-400 hover:text-destructive hover:bg-destructive/10"
+            className="h-10 w-10 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
           >
             <Trash2 className="h-5 w-5" />
           </Button>
@@ -137,7 +137,7 @@ export function PerDetailHeader({
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="h-10 w-10 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50"
+            className="h-10 w-10 rounded-full text-muted-foreground hover:text-red-500 hover:bg-red-50"
           >
             <X className="h-6 w-6" />
           </Button>

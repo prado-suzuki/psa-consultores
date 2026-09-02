@@ -7,7 +7,7 @@ Versão visual (mesmo conteúdo, com os fluxogramas renderizados):
 <https://claude.ai/code/artifact/44452f60-024f-4762-9838-ad1eaabfa292>
 
 Leitura relacionada: [`plano-osg-documentos-recebidos.md`](plano-osg-documentos-recebidos.md),
-[`area-cliente-documentos-por-tematica.md`](area-cliente-documentos-por-tematica.md),
+[`checklist-por-subtracao.md`](checklist-por-subtracao.md),
 [`../geral/notificacoes-chamados.md`](../geral/notificacoes-chamados.md).
 
 ## Princípio

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { AREA_CATEGORIES_MAP, ALL_AREA_CATEGORIES } from '@/config/areaCategories';
 import { useSyncUserAreaAccess } from './useUserPageAccess';
-import { paraRoleDoBanco, type AppRole } from './useUsersWithRoles';
+import { paraRoleDoBanco } from './useUsersWithRoles';
 import { N8N_WELCOME_WEBHOOK } from '@/lib/webhooks';
 import { assertCanPerform } from './useRlsPrecheck';
 import { useAuditLog } from './useAuditLog';

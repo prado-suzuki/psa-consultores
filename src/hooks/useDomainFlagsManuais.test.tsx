@@ -12,6 +12,7 @@ const dbMocks = vi.hoisted(() => ({ from: vi.fn(), getUser: vi.fn() }));
 vi.mock('@tanstack/react-query', () => reactQueryMocks);
 vi.mock('@/hooks/use-toast', () => ({ toast: vi.fn() }));
 vi.mock('@/hooks/useAuditLog', () => ({ useAuditLog: () => ({ logAction: auditMocks.logAction }) }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'user-1' } }) }));
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: { from: dbMocks.from, auth: { getUser: dbMocks.getUser } },
 }));

@@ -351,7 +351,7 @@ export default function ContribuintesTab({
           <span className="flex flex-wrap items-center gap-1">
             <Badge variant="outline" className="text-[10px]">{e.tipo_pessoa}</Badge>
             {e.contribuinte_faturamento && (
-              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">Faturamento</span>
+              <span className="rounded bg-warning/10 px-1.5 py-0.5 text-[10px] font-bold text-warning">Faturamento</span>
             )}
             {e.simples_nacional === "optante" && (
               <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold text-foreground">Simples</span>

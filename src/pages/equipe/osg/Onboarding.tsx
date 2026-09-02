@@ -248,7 +248,7 @@ const Onboarding = () => {
         </OnboardingEmptyState>
       ) : carregando ? (
         <div
-          className={`${panelContainerCls} flex items-center justify-center gap-3 py-16 text-sm text-slate-500`}
+          className={`${panelContainerCls} flex items-center justify-center gap-3 py-16 text-sm text-muted-foreground`}
         >
           <Loader2 className="h-5 w-5 animate-spin text-osg-moss" />
           Carregando a solicitação e o catálogo...

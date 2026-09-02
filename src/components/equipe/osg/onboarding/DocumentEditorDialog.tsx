@@ -315,7 +315,7 @@ export function DocumentEditorDialog({
           </Field>
 
           {mode === 'edit' && item?.doCatalogo && (
-            <p className="px-1 text-xs leading-relaxed text-slate-500">
+            <p className="px-1 text-xs leading-relaxed text-muted-foreground">
               Deixar o nome ou a orientação em branco faz o texto voltar a vir do catálogo.
             </p>
           )}

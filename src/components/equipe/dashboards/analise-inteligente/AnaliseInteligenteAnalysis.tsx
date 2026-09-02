@@ -58,10 +58,10 @@ export function AnaliseInteligenteAnalysis({
   }
 
   return (
-    <Card className="border-teal-200 bg-gradient-to-br from-teal-50 to-white shadow-md">
+    <Card className="border-primary/15 bg-gradient-to-br from-accent/5 to-white shadow-md">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base text-teal-900 flex items-center gap-2">
+          <CardTitle className="text-base text-primary flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-teal-600" />
             Análise Estratégica (Claude AI)
           </CardTitle>
@@ -70,42 +70,42 @@ export function AnaliseInteligenteAnalysis({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="p-3 bg-white/80 rounded-md border-l-4 border-teal-500">
-          <p className="text-sm text-teal-900 font-medium">{analise.sintese_executiva}</p>
+          <p className="text-sm text-primary font-medium">{analise.sintese_executiva}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="bg-white/70 p-3 rounded-md border border-slate-200">
-            <h4 className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
+          <div className="bg-white/70 p-3 rounded-md border border-border">
+            <h4 className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
               <TrendingUp className="h-3 w-3 text-teal-600" /> Evolução das Entregas
             </h4>
-            <p className="text-xs text-slate-600 leading-relaxed">{analise.evolucao_entregas}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{analise.evolucao_entregas}</p>
           </div>
-          <div className="bg-white/70 p-3 rounded-md border border-slate-200">
-            <h4 className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
+          <div className="bg-white/70 p-3 rounded-md border border-border">
+            <h4 className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
               <Clock className="h-3 w-3 text-teal-600" /> Tempo vs Resultado
             </h4>
-            <p className="text-xs text-slate-600 leading-relaxed">{analise.tempo_vs_resultado}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{analise.tempo_vs_resultado}</p>
           </div>
-          <div className="bg-white/70 p-3 rounded-md border border-slate-200">
-            <h4 className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
+          <div className="bg-white/70 p-3 rounded-md border border-border">
+            <h4 className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3 text-teal-600" /> Saudabilidade
             </h4>
-            <p className="text-xs text-slate-600 leading-relaxed">{analise.saudabilidade_sprint}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{analise.saudabilidade_sprint}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="bg-white/70 p-3 rounded-md border border-slate-200">
-            <h4 className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
+          <div className="bg-white/70 p-3 rounded-md border border-border">
+            <h4 className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
               <Target className="h-3 w-3 text-blue-600" /> Aderência ao Escopo
             </h4>
-            <p className="text-xs text-slate-600 leading-relaxed">{analise.aderencia_escopo}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{analise.aderencia_escopo}</p>
           </div>
-          <div className="bg-white/70 p-3 rounded-md border border-slate-200">
-            <h4 className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
+          <div className="bg-white/70 p-3 rounded-md border border-border">
+            <h4 className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
               <DollarSign className="h-3 w-3 text-red-600" /> Gastos Extras
             </h4>
-            <p className="text-xs text-slate-600 leading-relaxed">{analise.gastos_extras}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{analise.gastos_extras}</p>
           </div>
         </div>
 
@@ -138,11 +138,11 @@ export function AnaliseInteligenteAnalysis({
               ))}
             </ul>
           </div>
-          <div className="bg-teal-50/70 p-3 rounded-md border border-teal-100">
+          <div className="bg-accent/5/70 p-3 rounded-md border border-primary/10">
             <h4 className="text-xs font-semibold text-teal-700 mb-2 flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3" /> Recomendações
             </h4>
-            <ul className="space-y-1 text-xs text-teal-800">
+            <ul className="space-y-1 text-xs text-primary">
               {analise.recomendacoes.map((r, i) => (
                 <li key={i} className="flex gap-1">
                   <span>•</span>

@@ -56,7 +56,7 @@ export const PilarCard = ({
             {titulo}
           </h3>
         </div>
-        <p className="text-sm text-gray-300 line-clamp-2 group-hover:opacity-0 transition-opacity duration-300">
+        <p className="text-sm text-gray-400 line-clamp-2 group-hover:opacity-0 transition-opacity duration-300">
           {descricao}
         </p>
       </div>

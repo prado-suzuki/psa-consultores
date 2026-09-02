@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAuditLog } from '@/hooks/useAuditLog';
+import { useAuth } from '@/contexts/AuthContext';
 import type { BlocoComVersao } from '@/hooks/useBibliotecaModelos';
 
 // Override de bloco escopado a um documento gerado: edita o texto SÓ deste
@@ -30,6 +32,12 @@ export interface SalvarOverrideInput {
   modeloId?: string | null;
 }
 
+/**
+ * O texto ANTES e DEPOIS não entra em `changed_fields` de propósito: ele já é
+ * versionado em `tmpl_bloco_versao`, que é o lugar onde se lê a redação de cada
+ * versão. Duplicá-lo aqui encheria os painéis de histórico (que renderizam o
+ * diff campo a campo) com cláusulas inteiras de contrato.
+ */
 function invalidar(queryClient: ReturnType<typeof useQueryClient>, documentoGeradoId: string) {
   queryClient.invalidateQueries({ queryKey: ['documento-overrides', documentoGeradoId] });
   queryClient.invalidateQueries({ queryKey: ['modelo-blocos'] });
@@ -38,11 +46,12 @@ function invalidar(queryClient: ReturnType<typeof useQueryClient>, documentoGera
 /** Cria (1ª vez) ou re-edita (nova versão do derivado) o override de um bloco. */
 export function useSalvarOverride() {
   const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: SalvarOverrideInput) => {
-      const { data: userData } = await supabase.auth.getUser();
-      const autorId = userData.user?.id ?? null;
+      const autorId = user?.id ?? null;
       const { blocoAlvo } = input;
 
       // ----- Caso 2 — re-edição: nova versão do bloco derivado existente -----
@@ -58,23 +67,19 @@ export function useSalvarOverride() {
 
         // Sem mudança de conteúdo: só atualiza o motivo no override e encerra.
         const conteudoMudou = (versaoAtual?.conteudo ?? '') !== input.novoConteudo;
+        let numeroNovo = versaoAtual?.numero_versao ?? 0;
         if (conteudoMudou) {
-          if (versaoAtual) {
-            const { error } = await supabase
-              .from('tmpl_bloco_versao')
-              .update({ atual: false })
-              .eq('id', versaoAtual.id);
-            if (error) throw error;
-          }
-          const { error } = await supabase.from('tmpl_bloco_versao').insert({
-            bloco_id: derivadoId,
-            numero_versao: (versaoAtual?.numero_versao ?? 0) + 1,
-            conteudo: input.novoConteudo,
-            atual: true,
-            autor_id: autorId,
-            changelog: input.justificativa ?? 'Ajuste pontual no documento',
+          // Baixar a versão atual e subir a nova numa transação só: feito daqui,
+          // em duas escritas, o bloco ficava sem versão `atual` entre uma e outra
+          // — e para sempre, se a segunda falhasse. Quem lê resolve
+          // `find(v => v.atual) ?? null`, ou seja, texto vazio no documento.
+          const { data: versaoNova, error } = await supabase.rpc('nova_versao_bloco', {
+            _bloco_id: derivadoId,
+            _conteudo: input.novoConteudo,
+            _changelog: input.justificativa ?? 'Ajuste pontual no documento',
           });
           if (error) throw error;
+          numeroNovo = versaoNova?.numero_versao ?? numeroNovo;
         }
 
         const { error: erroOverride } = await supabase
@@ -82,6 +87,23 @@ export function useSalvarOverride() {
           .update({ observacao: input.justificativa })
           .eq('id', input.overrideExistenteId);
         if (erroOverride) throw erroOverride;
+
+        await logAction({
+          area: 'osg',
+          entity_type: 'documento_override',
+          entity_id: input.overrideExistenteId,
+          entity_name: blocoAlvo.nome,
+          action: 'updated',
+          details: conteudoMudou
+            ? 'Ajuste do bloco reeditado neste documento'
+            : 'Motivo do ajuste reescrito (texto do bloco inalterado)',
+          changed_fields: {
+            observacao: { old: null, new: input.justificativa },
+            ...(conteudoMudou
+              ? { numero_versao: { old: versaoAtual?.numero_versao ?? 0, new: numeroNovo } }
+              : {}),
+          },
+        });
 
         return { overrideId: input.overrideExistenteId, blocoSubstitutoId: derivadoId, acao: 're-editado' as const };
       }
@@ -106,13 +128,13 @@ export function useSalvarOverride() {
         .single();
       if (erroDerivado) throw erroDerivado;
 
-      const { error: erroVersao } = await supabase.from('tmpl_bloco_versao').insert({
-        bloco_id: derivado.id,
-        numero_versao: 1,
-        conteudo: input.novoConteudo,
-        atual: true,
-        autor_id: autorId,
-        changelog: input.justificativa ?? 'Ajuste pontual no documento',
+      // Mesmo caminho da re-edição: quem numera e marca a versão atual é a RPC,
+      // num lugar só. Aqui é a versão 1 de um bloco recém-criado, então não há
+      // versão anterior a baixar.
+      const { error: erroVersao } = await supabase.rpc('nova_versao_bloco', {
+        _bloco_id: derivado.id,
+        _conteudo: input.novoConteudo,
+        _changelog: input.justificativa ?? 'Ajuste pontual no documento',
       });
       if (erroVersao) {
         // Evita derivado órfão sem versão se a 2ª etapa falhar.
@@ -132,6 +154,20 @@ export function useSalvarOverride() {
         .select('id')
         .single();
       if (erroOverride) throw erroOverride;
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'documento_override',
+        entity_id: override.id,
+        entity_name: blocoAlvo.nome,
+        action: 'created',
+        details: 'Bloco ajustado só para este documento',
+        changed_fields: {
+          bloco_alvo_id: { old: null, new: blocoAlvo.id },
+          bloco_substituto_id: { old: null, new: derivado.id },
+          observacao: { old: null, new: input.justificativa },
+        },
+      });
 
       return { overrideId: override.id, blocoSubstitutoId: derivado.id, acao: 'criado' as const };
     },
@@ -153,12 +189,15 @@ export function useSalvarOverride() {
  */
 export function useReverterOverride() {
   const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
 
   return useMutation({
     mutationFn: async ({ overrideId }: { overrideId: string; documentoGeradoId: string }) => {
+      // O nome do bloco alvo vem junto na mesma leitura: depois do delete não há
+      // mais de onde tirá-lo, e a trilha sem nome não diz o que foi revertido.
       const { data: ov, error: erroBusca } = await supabase
         .from('documento_override')
-        .select('bloco_substituto_id')
+        .select('bloco_substituto_id, bloco_alvo_id, observacao, alvo:tmpl_bloco!bloco_alvo_id(nome)')
         .eq('id', overrideId)
         .maybeSingle();
       if (erroBusca) throw erroBusca;
@@ -176,6 +215,20 @@ export function useReverterOverride() {
           .eq('id', ov.bloco_substituto_id);
         if (erroDerivado) throw erroDerivado;
       }
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'documento_override',
+        entity_id: overrideId,
+        entity_name: ov?.alvo?.nome ?? 'Bloco ajustado',
+        action: 'deleted',
+        details: 'Ajuste revertido: o bloco voltou ao texto da biblioteca',
+        changed_fields: {
+          bloco_alvo_id: { old: ov?.bloco_alvo_id ?? null, new: null },
+          bloco_substituto_id: { old: ov?.bloco_substituto_id ?? null, new: null },
+          observacao: { old: ov?.observacao ?? null, new: null },
+        },
+      });
     },
     onSuccess: (_res, { documentoGeradoId }) => {
       invalidar(queryClient, documentoGeradoId);

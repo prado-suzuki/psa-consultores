@@ -78,8 +78,8 @@ export function DashboardEmbedView({
   // mesmo que o usuário não tenha relatório do Looker liberado.
   if (opcoes.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-200 p-8 text-center">
-        <p className="text-sm text-slate-500">{emptyMessage}</p>
+      <div className="rounded-xl border border-border p-8 text-center">
+        <p className="text-sm text-muted-foreground">{emptyMessage}</p>
       </div>
     );
   }
@@ -88,9 +88,9 @@ export function DashboardEmbedView({
     <div className={className}>
       <div className="mb-3 flex flex-wrap items-end gap-3">
         <div className="min-w-0">
-          <label className="text-[11px] font-medium uppercase tracking-wide mb-1 block text-slate-500">Relatório</label>
+          <label className="text-[11px] font-medium uppercase tracking-wide mb-1 block text-muted-foreground">Relatório</label>
           <Select value={selecionado} onValueChange={setEscolhido}>
-            <SelectTrigger className="w-[320px] h-10 rounded-lg px-3 text-left text-sm font-medium text-slate-800 shadow-sm">
+            <SelectTrigger className="w-[320px] h-10 rounded-lg px-3 text-left text-sm font-medium text-foreground shadow-sm">
               <SelectValue placeholder="Selecione um relatório" />
             </SelectTrigger>
             <SelectContent>
@@ -105,7 +105,7 @@ export function DashboardEmbedView({
         {selected?.sop_url && (
           <Button
             variant="outline"
-            className="h-10 rounded-lg border-slate-200 bg-white text-slate-700 shadow-sm"
+            className="h-10 rounded-lg border-border bg-white text-foreground shadow-sm"
             onClick={() => window.open(selected.sop_url!, '_blank', 'noopener,noreferrer')}
           >
             <BookOpen className="h-4 w-4 mr-1.5" />
@@ -117,7 +117,7 @@ export function DashboardEmbedView({
       {ehNativo ? (
         nativo!.conteudo
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
           <DashboardIframe
             embed={embed}
             isLoading={isLoadingUrl}

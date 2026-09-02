@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Database } from '@/integrations/supabase/types';
 import type { RegistroFamilias, TipoBloco, VarianteFamilia } from '@/lib/templates';
 
@@ -215,11 +216,11 @@ async function sincronizarFlagsDoBloco(blocoId: string, flagIds: string[]) {
 export function useSalvarBloco() {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: SalvarBlocoInput) => {
-      const { data: userData } = await supabase.auth.getUser();
-      const autorId = userData.user?.id ?? null;
+      const autorId = user?.id ?? null;
 
       // ----- Criação -----
       if (!input.id) {
@@ -238,13 +239,13 @@ export function useSalvarBloco() {
           .single();
         if (erroBloco) throw erroBloco;
 
-        const { error: erroVersao } = await supabase.from('tmpl_bloco_versao').insert({
-          bloco_id: bloco.id,
-          numero_versao: 1,
-          conteudo: input.conteudo,
-          atual: true,
-          autor_id: autorId,
-          changelog: 'Versão inicial',
+        // Versão 1 de um bloco recém-criado: sem versão anterior a baixar, mas
+        // pela mesma porta das outras, para numeração e marca de `atual` viverem
+        // num lugar só.
+        const { error: erroVersao } = await supabase.rpc('nova_versao_bloco', {
+          _bloco_id: bloco.id,
+          _conteudo: input.conteudo,
+          _changelog: 'Versão inicial',
         });
         if (erroVersao) {
           // Evita bloco órfão sem versão se a segunda etapa falhar.
@@ -282,20 +283,14 @@ export function useSalvarBloco() {
 
       const conteudoMudou = (versaoAtual?.conteudo ?? '') !== input.conteudo;
       if (conteudoMudou) {
-        if (versaoAtual) {
-          const { error } = await supabase
-            .from('tmpl_bloco_versao')
-            .update({ atual: false })
-            .eq('id', versaoAtual.id);
-          if (error) throw error;
-        }
-        const { error } = await supabase.from('tmpl_bloco_versao').insert({
-          bloco_id: input.id,
-          numero_versao: (versaoAtual?.numero_versao ?? 0) + 1,
-          conteudo: input.conteudo,
-          atual: true,
-          autor_id: autorId,
-          changelog: input.changelog ?? null,
+        // Baixar a atual e subir a nova numa transação só. Em duas escritas, o
+        // bloco ficava sem versão `atual` entre uma e outra — e para sempre, se
+        // a segunda falhasse; quem lê resolve `find(v => v.atual) ?? null`, ou
+        // seja, o bloco sairia com texto vazio em todo documento que o cita.
+        const { error } = await supabase.rpc('nova_versao_bloco', {
+          _bloco_id: input.id,
+          _conteudo: input.conteudo,
+          _changelog: input.changelog ?? undefined,
         });
         if (error) throw error;
       }

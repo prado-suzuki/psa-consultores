@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { gerarDocumento, type Template } from './index';
-import { detectarBindingsDeConteudo, listarPlaceholders, normalizarReferenciasLegadas, normalizarSelecaoLegada } from './binding';
+import { conteudoParaDeteccao, detectarBindingsDeConteudo, listarPlaceholders, normalizarReferenciasLegadas, normalizarSelecaoLegada } from './binding';
 
 describe('normalizarReferenciasLegadas — contratos societários', () => {
   it('liga campos planos à sociedade selecionada', () => {
@@ -134,6 +134,68 @@ describe('detectarBindingsDeConteudo — papel de lista dentro de uma condiciona
   it('a mesma lista em duas condicionais entra uma vez', () => {
     const duas = `${memorial}${memorial.replace('georefArea', 'georefPerimetro')}`;
     expect(detectarBindingsDeConteudo(duas).listas.map((l) => l.nome)).toEqual(['vertices']);
+  });
+});
+
+describe('o memorial do georreferenciamento é repetidor por imóvel do documento', () => {
+  // O mesmo trecho do describe acima, agora como bloco REPETIDOR sobre
+  // {{#memoriais}}. A condicional de topo pedia UM imóvel escolhido a dedo só
+  // para o gerador saber se desenhava o memorial, e esse binding travava o passo
+  // de seleções (e com ele a prévia) num contrato social inteiro. Como coleção,
+  // quem manda é o documento: uma instância por matrícula que entra nele e tem
+  // certificação no SIGEF, nenhuma instância quando nenhuma tem.
+  const memorial = {
+    conteudo:
+      '{{#imovel.georefArea}}Área de {{ imovel.georefArea }} ha:\n' +
+      '{{#vertices}}| {{ vertice.codVertice }} | {{ vertice.azimute }} |{{/vertices}}{{/imovel.georefArea}}',
+    repeteColecao: 'memoriais',
+  };
+
+  it('vê a coleção e não pede mais um imóvel escolhido a dedo', () => {
+    const det = detectarBindingsDeConteudo(conteudoParaDeteccao(memorial));
+    expect(det.listas.map((l) => [l.nome, l.papel.fonte])).toEqual([['memoriais', 'georef']]);
+    expect(det.bindings).toEqual([]);
+    expect(det.secoesDesconhecidas).toEqual([]);
+    expect(det.desconhecidos).toEqual([]);
+  });
+
+  it('imóvel e vértices ficam no escopo do item, sem campo de topo', () => {
+    const { campos } = detectarBindingsDeConteudo(conteudoParaDeteccao(memorial));
+    expect(campos).not.toContain('imovel.georefArea');
+    expect(campos).not.toContain('vertice.codVertice');
+  });
+
+  it('uma instância por imóvel certificado, cada uma com os próprios vértices', () => {
+    const template: Template = {
+      id: 't',
+      nome: 'n',
+      blocos: [{ id: 'memorial', tipo: 'livre', obrigatorio: true, ...memorial }],
+    };
+    const ctx = {
+      memoriais: [
+        { imovel: { georefArea: '120,0000' }, vertices: [{ vertice: { codVertice: 'V-01', azimute: '10°' } }] },
+        { imovel: { georefArea: '80,0000' }, vertices: [{ vertice: { codVertice: 'V-02', azimute: '20°' } }] },
+      ],
+    };
+    const texto = gerarDocumento(template, ctx);
+    expect(texto).toContain('Área de 120,0000 ha');
+    expect(texto).toContain('Área de 80,0000 ha');
+    expect(texto).toContain('V-01');
+    expect(texto).toContain('V-02');
+  });
+
+  it('nenhum imóvel certificado: o bloco não entra no documento', () => {
+    const template: Template = {
+      id: 't',
+      nome: 'n',
+      blocos: [
+        { id: 'foro', tipo: 'clausula', obrigatorio: true, conteudo: 'Fica eleito o foro da comarca.' },
+        { id: 'memorial', tipo: 'livre', obrigatorio: true, ...memorial },
+      ],
+    };
+    const texto = gerarDocumento(template, { memoriais: [] });
+    expect(texto).toContain('Fica eleito o foro');
+    expect(texto).not.toContain('Área de');
   });
 });
 

@@ -53,8 +53,10 @@ const FORM_FECHADO = { aberto: false, alvo: null };
  * desfazer no que muda muita linha de uma vez.
  *
  * A tela usa só token semântico. Ela vive em `/equipe/acessos`, que o resolvedor
- * de tema resolve para `base-theme sistema-theme`, então o acento sai grafite
- * sem que nada aqui saiba disso.
+ * de tema resolve para `base-theme` e mais nada, então o acento sai no teal da
+ * casa sem que nada aqui saiba disso. Saiu do grafite em 31/08/2026, junto com o
+ * resto do Digital, e esta tela não precisou de uma linha para acompanhar — é o
+ * que o token semântico compra.
  */
 export default function ProdutosServicosTab() {
   const [produtoEscolhidoId, setProdutoEscolhidoId] = useState<string | null>(null);

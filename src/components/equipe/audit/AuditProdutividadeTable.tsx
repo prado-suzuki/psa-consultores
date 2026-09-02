@@ -76,9 +76,9 @@ const ConteudoHoras = ({ linha }: { linha: LinhaProdutividade }) => {
 
   return (
     <>
-      <span className="text-slate-500">{formatarHoras(linha.horasPlanejadas)}</span>
-      <span className="text-slate-300"> / </span>
-      <span className={cn('font-medium', estourou ? 'text-red-700' : 'text-slate-900')}>
+      <span className="text-muted-foreground">{formatarHoras(linha.horasPlanejadas)}</span>
+      <span className="text-muted-foreground/50"> / </span>
+      <span className={cn('font-medium', estourou ? 'text-red-700' : 'text-foreground')}>
         {formatarHoras(linha.horasExecutadas)}
       </span>
     </>
@@ -92,9 +92,9 @@ const ConteudoHoras = ({ linha }: { linha: LinhaProdutividade }) => {
  */
 const ConteudoPar = ({ abertos, entregues }: { abertos: number; entregues: number }) => (
   <>
-    <span className="text-slate-500">{abertos}</span>
-    <span className="text-slate-300"> / </span>
-    <span className="font-semibold text-slate-900">{entregues}</span>
+    <span className="text-muted-foreground">{abertos}</span>
+    <span className="text-muted-foreground/50"> / </span>
+    <span className="font-semibold text-foreground">{entregues}</span>
   </>
 );
 
@@ -203,7 +203,7 @@ const COLUNAS: Record<ColunaProdutividade, DefinicaoColuna> = {
     label: 'Tipo mais frequente',
     numerica: false,
     ajuda: 'Onde ela mexeu mais no período: Projeto, Tarefa ou Subtarefa.',
-    classeCelula: 'text-slate-600',
+    classeCelula: 'text-muted-foreground',
     render: linha => (linha.tipoMaisFrequente
       ? ENTITY_LABELS[linha.tipoMaisFrequente] ?? linha.tipoMaisFrequente
       : '—'),
@@ -212,7 +212,7 @@ const COLUNAS: Record<ColunaProdutividade, DefinicaoColuna> = {
     label: 'Último registro',
     numerica: false,
     ajuda: 'Data e hora da ação mais recente dela dentro do período selecionado. Serve para ver quem parou de registrar.',
-    classeCelula: 'whitespace-nowrap text-slate-600',
+    classeCelula: 'whitespace-nowrap text-muted-foreground',
     render: linha => format(new Date(linha.ultimoRegistro), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
   },
 };
@@ -287,9 +287,9 @@ function kpisDaVisao(
 const KpiCard = ({ label, valor, hint }: Kpi) => (
   <Card>
     <CardContent className="p-4">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">{valor}</p>
-      <p className="text-xs text-slate-400">{hint}</p>
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-foreground">{valor}</p>
+      <p className="text-xs text-muted-foreground">{hint}</p>
     </CardContent>
   </Card>
 );
@@ -325,13 +325,13 @@ const HeaderOrdenavel = ({
             // recebe o conteúdo do tooltip visual.
             aria-description={ajuda}
             className={cn(
-              'flex w-full items-center gap-1 px-4 py-3 text-left transition-colors hover:text-slate-900',
+              'flex w-full items-center gap-1 px-4 py-3 text-left transition-colors hover:text-foreground',
               numerica && 'justify-end',
-              ativa ? 'font-semibold text-slate-900' : 'text-slate-500',
+              ativa ? 'font-semibold text-foreground' : 'text-muted-foreground',
             )}
           >
             {/* Sublinhado pontilhado sinaliza que há explicação no hover. */}
-            <span className="border-b border-dotted border-slate-300">{label}</span>
+            <span className="border-b border-dotted border-border">{label}</span>
             <Icone className={cn('h-3.5 w-3.5 shrink-0', ativa ? 'opacity-100' : 'opacity-40')} />
           </button>
         </TooltipTrigger>
@@ -472,13 +472,13 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={colunas.length} className="text-center py-8 text-slate-500">
+                  <TableCell colSpan={colunas.length} className="text-center py-8 text-muted-foreground">
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : linhas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={colunas.length} className="text-center py-8 text-slate-500">
+                  <TableCell colSpan={colunas.length} className="text-center py-8 text-muted-foreground">
                     Nenhum registro no período
                   </TableCell>
                 </TableRow>
@@ -488,7 +488,7 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
                   return (
                     <Fragment key={linha.userId}>
                       <TableRow
-                        className={expansivel ? 'cursor-pointer hover:bg-slate-50' : undefined}
+                        className={expansivel ? 'cursor-pointer hover:bg-muted' : undefined}
                         onClick={expansivel ? () => alternarExpandida(linha.userId) : undefined}
                       >
                         {colunas.map((coluna, indice) => {
@@ -509,7 +509,7 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
                                       event.stopPropagation();
                                       alternarExpandida(linha.userId);
                                     }}
-                                    className="text-slate-400 transition-colors hover:text-slate-700"
+                                    className="text-muted-foreground transition-colors hover:text-foreground"
                                   >
                                     {aberta
                                       ? <ChevronDown className="h-4 w-4" />
@@ -523,7 +523,7 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
                         })}
                       </TableRow>
                       {expansivel && aberta && (
-                        <TableRow className="bg-slate-50/50 hover:bg-slate-50/50">
+                        <TableRow className="bg-muted/50 hover:bg-muted/50">
                           <TableCell colSpan={colunas.length} className="p-4">
                             <AuditProdutosDaPessoa
                               nome={linha.nome}
@@ -543,7 +543,7 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
 
       <AuditLimiteAviso total={logs.length} />
 
-      <p className="flex items-start gap-2 text-xs text-slate-500">
+      <p className="flex items-start gap-2 text-xs text-muted-foreground">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         <strong className="font-medium">Passe o mouse no nome de qualquer coluna</strong> para
         ver o que aquele número significa. Todos os valores são contados dos logs de

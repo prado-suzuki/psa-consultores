@@ -64,6 +64,7 @@ function renderTable(tasks: OrgTask[]) {
       onDelete={noop}
       onReassign={noop}
       currentUserId="U1"
+      periodo={periodoParado}
     />,
   );
 }
@@ -75,6 +76,35 @@ beforeEach(() => {
   mocks.updateTask.mockClear();
   mocks.updateTaskAsync.mockClear();
   mocks.createComment.mockClear();
+});
+
+/** O mês não é o assunto deste teste: um período parado basta. */
+const periodoParado = {
+  mes: new Date(2026, 7, 1),
+  tarefas: [],
+  onPasso: () => {},
+  onHoje: () => {},
+};
+
+describe('TaskTable — barra de período', () => {
+  it('a Tabela ganhou a mesma barra da Lista, do Calendário e do Gantt', () => {
+    renderTable([]);
+
+    expect(screen.getByRole('button', { name: 'Hoje' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mês anterior' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Próximo mês' })).toBeInTheDocument();
+    expect(screen.getByText('Agosto de 2026')).toBeInTheDocument();
+  });
+
+  it('a barra fica sobre a superficie do card, e nao no fundo da pagina', () => {
+    // A tabela era a unica das quatro abas cujo container nao declarava fundo:
+    // as linhas da Table carregam o proprio, entao a falta so apareceu quando a
+    // barra do mes entrou em cima.
+    renderTable([]);
+
+    const container = screen.getByText('Agosto de 2026').closest('.rounded-lg');
+    expect(container?.className).toContain('bg-card');
+  });
 });
 
 describe('TaskTable — troca de status pelo seletor', () => {

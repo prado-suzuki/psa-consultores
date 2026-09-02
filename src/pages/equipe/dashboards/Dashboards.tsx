@@ -25,7 +25,7 @@ import { DASHBOARDS, resolverDashboard } from './registro';
 const PARAM_PAINEL = 'painel';
 
 const DashboardFallback = () => (
-  <div className="flex min-h-[50vh] items-center justify-center text-sm text-slate-500">
+  <div className="flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground">
     Carregando dashboard…
   </div>
 );

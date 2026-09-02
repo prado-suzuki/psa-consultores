@@ -39,7 +39,7 @@ const KIND_LABEL: Record<ScenarioKind, string> = {
 const KIND_COLOR: Record<ScenarioKind, string> = {
   scale: 'bg-blue-100 text-blue-700 border-blue-200',
   efficiency: 'bg-amber-100 text-amber-700 border-amber-200',
-  investment: 'bg-teal-100 text-teal-700 border-teal-200',
+  investment: 'bg-accent/10 text-teal-700 border-primary/15',
 };
 
 const STATUS_LABEL: Record<ScenarioStatus, string> = {
@@ -51,11 +51,11 @@ const STATUS_LABEL: Record<ScenarioStatus, string> = {
 };
 
 const STATUS_COLOR: Record<ScenarioStatus, string> = {
-  draft: 'bg-slate-100 text-slate-700',
+  draft: 'bg-muted text-foreground',
   analyzing: 'bg-blue-100 text-blue-700',
   approved: 'bg-emerald-100 text-emerald-700',
   promoted: 'bg-violet-100 text-violet-700',
-  archived: 'bg-slate-100 text-slate-500',
+  archived: 'bg-muted text-muted-foreground',
 };
 
 export function ScenarioList({ processes, onCreateClick }: ScenarioListProps) {
@@ -174,14 +174,14 @@ export function ScenarioList({ processes, onCreateClick }: ScenarioListProps) {
             return (
               <Card
                 key={s.id}
-                className={`transition-all cursor-pointer ${isSelected ? 'ring-2 ring-teal-500' : 'hover:border-slate-300'}`}
+                className={`transition-all cursor-pointer ${isSelected ? 'ring-2 ring-teal-500' : 'hover:border-border'}`}
                 onClick={() => toggleCompare(s.id)}
               >
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-semibold text-slate-900 truncate">{s.name}</h4>
+                        <h4 className="font-semibold text-foreground truncate">{s.name}</h4>
                         {s.is_locked && (
                           <TooltipProvider>
                             <Tooltip>
@@ -218,7 +218,7 @@ export function ScenarioList({ processes, onCreateClick }: ScenarioListProps) {
                     </div>
                     <div>
                       <p className="text-[10px] text-muted-foreground uppercase">Economia/mês</p>
-                      <p className="font-semibold text-slate-900">
+                      <p className="font-semibold text-foreground">
                         {savings !== null ? `R$ ${savings.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}` : '—'}
                       </p>
                     </div>

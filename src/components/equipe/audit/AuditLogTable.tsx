@@ -55,7 +55,7 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por nome..."
             value={search}
@@ -121,13 +121,13 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : filteredLogs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     Nenhum registro encontrado
                   </TableCell>
                 </TableRow>
@@ -147,12 +147,12 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
                     <Collapsible key={log.id} open={isExpanded} onOpenChange={() => isExpandable && toggleRow(log.id)} asChild>
                       <>
                         <CollapsibleTrigger asChild disabled={!isExpandable}>
-                          <TableRow className={isExpandable ? 'cursor-pointer hover:bg-slate-50' : ''}>
+                          <TableRow className={isExpandable ? 'cursor-pointer hover:bg-muted' : ''}>
                             <TableCell className="px-2">
                               {isExpandable && (
                                 isExpanded
-                                  ? <ChevronDown className="h-4 w-4 text-slate-400" />
-                                  : <ChevronRight className="h-4 w-4 text-slate-400" />
+                                  ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                  : <ChevronRight className="h-4 w-4 text-muted-foreground" />
                               )}
                             </TableCell>
                             <TableCell className="text-sm whitespace-nowrap">
@@ -174,27 +174,27 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
                         </CollapsibleTrigger>
                         {isExpandable && (
                           <CollapsibleContent asChild>
-                            <TableRow className="bg-slate-50/50">
+                            <TableRow className="bg-muted/50">
                               <TableCell colSpan={6} className="p-4">
                                 <div className="text-xs space-y-1">
                                   {/* Details (e.g. reassignment reason) */}
                                   {hasDetails && (
-                                    <p className="text-slate-600 italic mb-2">{log.details}</p>
+                                    <p className="text-muted-foreground italic mb-2">{log.details}</p>
                                   )}
 
                                   {/* Changed fields */}
                                   {formattedChanges.length > 0 && (
                                     <>
-                                      <p className="font-semibold text-slate-700 mb-2">Campos alterados:</p>
+                                      <p className="font-semibold text-foreground mb-2">Campos alterados:</p>
                                       {formattedChanges.map((change, idx) => (
                                         <div key={idx} className="flex gap-2 items-baseline">
-                                          <span className="font-medium text-slate-600 min-w-[140px]">
+                                          <span className="font-medium text-muted-foreground min-w-[140px]">
                                             {change.label}:
                                           </span>
                                           <span className="text-red-600 line-through">
                                             {change.oldValue}
                                           </span>
-                                          <span className="text-slate-400">→</span>
+                                          <span className="text-muted-foreground">→</span>
                                           <span className="text-emerald-600">
                                             {change.newValue}
                                           </span>

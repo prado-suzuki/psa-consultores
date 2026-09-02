@@ -129,17 +129,17 @@ export const DifalAuditModal = ({
         <DialogTitle className="sr-only">Classificar Item DIFAL</DialogTitle>
         <DialogDescription className="sr-only">Modal de classificação de item fiscal DIFAL/ICMS-ST</DialogDescription>
         {/* Header */}
-        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 bg-white/95 backdrop-blur flex-shrink-0">
+        <div className="h-20 flex items-center justify-between px-6 border-b border-border bg-white/95 backdrop-blur flex-shrink-0">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
               <Scale className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-slate-900">
+              <h3 className="text-xl font-bold text-foreground">
                 Classificar Item
               </h3>
-              <p className="text-sm text-slate-500 mt-0.5">
-                NCM: <span className="font-mono font-medium text-slate-700">{group?.cod_ncm}</span>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                NCM: <span className="font-mono font-medium text-foreground">{group?.cod_ncm}</span>
               </p>
             </div>
           </div>
@@ -148,7 +148,7 @@ export const DifalAuditModal = ({
             variant="ghost"
             size="icon"
             onClick={() => onOpenChange(false)}
-            className="h-10 w-10 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50"
+            className="h-10 w-10 rounded-full text-muted-foreground hover:text-red-500 hover:bg-red-50"
           >
             <X className="h-6 w-6" />
           </Button>
@@ -158,60 +158,60 @@ export const DifalAuditModal = ({
         {group && (
           <div className="flex-1 flex overflow-hidden">
             {/* Left Column: Product Data */}
-            <div className="w-[30%] border-r border-slate-200 p-6 overflow-y-auto bg-slate-50/30">
+            <div className="w-[30%] border-r border-border p-6 overflow-y-auto bg-muted/30">
               <div className="flex items-center gap-2 mb-4">
-                <FileText className="h-5 w-5 text-slate-500" />
-                <h3 className="font-semibold text-lg text-slate-900">Dados do Produto</h3>
+                <FileText className="h-5 w-5 text-muted-foreground" />
+                <h3 className="font-semibold text-lg text-foreground">Dados do Produto</h3>
               </div>
 
-              <Card className="border-slate-200">
+              <Card className="border-border">
                 <CardContent className="p-5 space-y-4">
                   <div>
-                    <span className="text-xs text-slate-500 uppercase font-medium">Produto</span>
-                    <p className="font-medium text-slate-900 text-lg mt-1">{group.xProd}</p>
+                    <span className="text-xs text-muted-foreground uppercase font-medium">Produto</span>
+                    <p className="font-medium text-foreground text-lg mt-1">{group.xProd}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-xs text-slate-500 uppercase font-medium">Código</span>
-                      <p className="font-mono text-sm text-slate-700 mt-1">{group.cod_produto}</p>
+                      <span className="text-xs text-muted-foreground uppercase font-medium">Código</span>
+                      <p className="font-mono text-sm text-foreground mt-1">{group.cod_produto}</p>
                     </div>
                     <div>
-                      <span className="text-xs text-slate-500 uppercase font-medium">NCM</span>
-                      <p className="font-mono text-sm text-slate-700 mt-1">{group.cod_ncm}</p>
+                      <span className="text-xs text-muted-foreground uppercase font-medium">NCM</span>
+                      <p className="font-mono text-sm text-foreground mt-1">{group.cod_ncm}</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-xs text-slate-500 uppercase font-medium">CFOP</span>
-                      <p className="text-slate-700 mt-1">{group.cfop}</p>
+                      <span className="text-xs text-muted-foreground uppercase font-medium">CFOP</span>
+                      <p className="text-foreground mt-1">{group.cfop}</p>
                     </div>
                     <div>
-                      <span className="text-xs text-slate-500 uppercase font-medium">UF Destino</span>
-                      <p className="text-slate-700 mt-1">{ufDestino}</p>
+                      <span className="text-xs text-muted-foreground uppercase font-medium">UF Destino</span>
+                      <p className="text-foreground mt-1">{ufDestino}</p>
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100">
-                    <span className="text-xs text-slate-500 uppercase font-medium">
+                  <div className="pt-4 border-t border-border">
+                    <span className="text-xs text-muted-foreground uppercase font-medium">
                       Tributação
                     </span>
                     <div className="flex gap-6 mt-2 flex-wrap">
                       <div>
-                        <span className="text-xs text-slate-400">CST ICMS:</span>
+                        <span className="text-xs text-muted-foreground">CST ICMS:</span>
                         <span className="ml-2 font-mono text-sm font-medium">
                           {group.cst_icms || '—'}
                         </span>
                       </div>
                       <div>
-                        <span className="text-xs text-slate-400">Alíquota:</span>
+                        <span className="text-xs text-muted-foreground">Alíquota:</span>
                         <span className="ml-2 font-mono text-sm font-medium">
                           {group.aliq_icms !== null ? `${group.aliq_icms}%` : '—'}
                         </span>
                       </div>
                       <div>
-                        <span className="text-xs text-slate-400">Red BC:</span>
+                        <span className="text-xs text-muted-foreground">Red BC:</span>
                         <span className="ml-2 font-mono text-sm font-medium">
                           {group.pRedBC !== null && group.pRedBC !== undefined ? `${group.pRedBC}%` : '—'}
                         </span>
@@ -220,26 +220,26 @@ export const DifalAuditModal = ({
                   </div>
 
                   {/* Resumo do Grupo */}
-                  <div className="pt-4 border-t border-slate-100">
-                    <span className="text-xs text-slate-500 uppercase font-medium">
+                  <div className="pt-4 border-t border-border">
+                    <span className="text-xs text-muted-foreground uppercase font-medium">
                       Resumo do Grupo
                     </span>
                     <div className="grid grid-cols-2 gap-3 mt-3">
-                      <div className="bg-slate-50 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-slate-900">{group.count}</p>
-                        <p className="text-xs text-slate-500">Itens</p>
+                      <div className="bg-muted rounded-lg p-3 text-center">
+                        <p className="text-2xl font-bold text-foreground">{group.count}</p>
+                        <p className="text-xs text-muted-foreground">Itens</p>
                       </div>
-                      <div className="bg-slate-50 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-slate-900">{group.nfesCount}</p>
-                        <p className="text-xs text-slate-500">NFes</p>
+                      <div className="bg-muted rounded-lg p-3 text-center">
+                        <p className="text-2xl font-bold text-foreground">{group.nfesCount}</p>
+                        <p className="text-xs text-muted-foreground">NFes</p>
                       </div>
                     </div>
                     <div className="mt-3">
-                      <div className="bg-slate-50 rounded-lg p-3 text-center">
-                        <p className="text-lg font-bold text-slate-900">
+                      <div className="bg-muted rounded-lg p-3 text-center">
+                        <p className="text-lg font-bold text-foreground">
                           {formatCurrency(group.totalValue)}
                         </p>
-                        <p className="text-xs text-slate-500">Valor Total</p>
+                        <p className="text-xs text-muted-foreground">Valor Total</p>
                       </div>
                     </div>
                   </div>
@@ -250,8 +250,8 @@ export const DifalAuditModal = ({
             {/* Right Column: Available Rules */}
             <div className="w-[70%] p-6 overflow-y-auto flex flex-col bg-white">
               <div className="flex items-center gap-2 mb-4">
-                <Scale className="h-5 w-5 text-slate-500" />
-                <h3 className="font-semibold text-lg text-slate-900">Regras Disponíveis</h3>
+                <Scale className="h-5 w-5 text-muted-foreground" />
+                <h3 className="font-semibold text-lg text-foreground">Regras Disponíveis</h3>
                 <Badge variant="secondary" className="ml-auto">
                   UF: {ufDestino}
                 </Badge>
@@ -279,7 +279,7 @@ export const DifalAuditModal = ({
                         "cursor-pointer transition-all",
                         selectedRegraId === regra.id
                           ?'border-primary bg-primary/5 ring-2 ring-ring/20'
-                          :'border-slate-200 hover:border-primary/40 hover:bg-slate-50'
+                          :'border-border hover:border-primary/40 hover:bg-muted'
                       )}
                       onClick={() => setSelectedRegraId(regra.id)}
                     >
@@ -298,15 +298,15 @@ export const DifalAuditModal = ({
                               >
                                 {regra.tipo_st}
                               </Badge>
-                              <span className="font-bold text-xl text-slate-900">
+                              <span className="font-bold text-xl text-foreground">
                                 {regra.aliquota_st}%
                               </span>
                             </div>
-                            <p className="text-sm text-slate-600 mt-2">
+                            <p className="text-sm text-muted-foreground mt-2">
                               {regra.base_legal}
                             </p>
                             {regra.percentual_reducao && (
-                              <p className="text-sm text-slate-500 mt-1">
+                              <p className="text-sm text-muted-foreground mt-1">
                                 Redução: <span className="font-medium">{regra.percentual_reducao}%</span>
                               </p>
                             )}
@@ -351,7 +351,7 @@ export const DifalAuditModal = ({
         )}
 
         {/* Footer */}
-        <div className="h-16 px-6 border-t border-slate-200 bg-white flex items-center justify-end gap-3 flex-shrink-0">
+        <div className="h-16 px-6 border-t border-border bg-white flex items-center justify-end gap-3 flex-shrink-0">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}

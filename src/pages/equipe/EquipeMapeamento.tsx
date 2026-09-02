@@ -13,6 +13,7 @@ import { AreaAccordion } from '@/components/equipe/mapeamento/AreaAccordion';
 import { ProcessSpreadsheet } from '@/components/equipe/mapeamento/ProcessSpreadsheet';
 import { ScenarioList } from '@/components/equipe/mapeamento/ScenarioList';
 import { ScenarioCreateModal } from '@/components/equipe/mapeamento/ScenarioCreateModal';
+import { mapeamentoStatusList } from '@/lib/mapeamentoStatusColors';
 
 type StatusFilter = 'all' | 'not_started' | 'in_progress' | 'completed';
 type MappingFilter = 'all' | 'mapped' | 'not_mapped';
@@ -168,9 +169,9 @@ export default function EquipeMapeamento() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os status</SelectItem>
-                    <SelectItem value="not_started">Não Iniciado</SelectItem>
-                    <SelectItem value="in_progress">Em Andamento</SelectItem>
-                    <SelectItem value="completed">Concluído</SelectItem>
+                    {mapeamentoStatusList.map(s => (
+                      <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Select value={mappingFilter} onValueChange={(v: MappingFilter) => setMappingFilter(v)}>
