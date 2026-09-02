@@ -9795,6 +9795,13 @@ export type Database = {
       }
     }
     Functions: {
+      alertar_tarefas_por_prazo: {
+        Args: { _hoje?: string }
+        Returns: {
+          avisos_criados: number
+          reservas_negadas: number
+        }[]
+      }
       anexar_documento_pendencia: {
         Args: {
           _alvo_id: string
@@ -10367,6 +10374,19 @@ export type Database = {
       }
       sprint_visivel: { Args: { p_sprint_id: string }; Returns: boolean }
       sublider_na_os: { Args: { _ordem_servico_id: string }; Returns: boolean }
+      tarefas_a_alertar: {
+        Args: { _hoje?: string }
+        Returns: {
+          destinatario_id: string
+          due_date: string
+          marco: string
+          papel: string
+          task_id: string
+          task_status: Database["public"]["Enums"]["fiscal_task_status"]
+          task_title: string
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
+        }[]
+      }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
       user_estrutura_equipe_ids: {
         Args: { _user_id: string }
