@@ -1,4 +1,4 @@
-# TAREFA — Ordem de serviço passa a excluir de vez
+# TAREFA 5 — Ordem de serviço passa a excluir de vez
 
 > **Decisão da Patricia, 02/09/2026:** só `cliente` e `contribuinte` guardam linha excluída.
 > Todo o resto apaga de verdade.

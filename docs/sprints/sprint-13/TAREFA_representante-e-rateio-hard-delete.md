@@ -1,4 +1,4 @@
-# TAREFA — Representante e rateio passam a excluir de vez
+# TAREFA 4 — Representante e rateio passam a excluir de vez
 
 > **Decisão da Patricia, 02/09/2026:** só `cliente` e `contribuinte` guardam linha excluída.
 > Todo o resto apaga de verdade.
@@ -17,15 +17,19 @@ O que se perde, e é o preço da decisão:
 
 | | Hoje guardadas | O que some do histórico |
 |---|---|---|
-| `representante` | 9 linhas com `excluido = true` | quem já foi representante do cliente e quem teve acesso ao portal |
-| `distribuicao_receita` | 187 linhas de 400 | como a receita da OS já foi repartida entre centros de custo |
+| `representante` | 9 de 81 linhas com `excluido = true` | quem já foi representante do cliente e quem teve acesso ao portal |
+| `distribuicao_receita` | 189 linhas de 401 | como a receita da OS já foi repartida entre centros de custo |
 
 O rastro que sobra é o `audit_logs`, que registra o **ato** de excluir, não os valores.
+
+> **Contagens conferidas em produção por SELECT em 02/09/2026.** Elas andam: a primeira medição
+> desta tarefa dizia 187 linhas de rateio e 196 no total, e dois dias de uso já mudaram os dois
+> números. Antes de executar a fase 2, medir de novo — é ela que apaga.
 
 ## A entrega vai em duas fases, e a segunda é opcional
 
 **Fase 1 — muda o comportamento, sem apagar nada.** A tela passa a apagar de verdade daqui
-para frente. A coluna `excluido` continua existindo e as 196 linhas já marcadas continuam onde
+para frente. A coluna `excluido` continua existindo e as 198 linhas já marcadas continuam onde
 estão, invisíveis como sempre foram. **Totalmente reversível.**
 
 **Fase 2 — limpa e simplifica.** Apaga as 196 linhas já marcadas e derruba a coluna. Depois
