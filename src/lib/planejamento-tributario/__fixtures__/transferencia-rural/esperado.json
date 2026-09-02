@@ -5,272 +5,598 @@
   "valores": [
     {
       "bloco": "apuracao",
-      "rotulo": "Saldo de prejuízo a compensar de exercício(s) anterior(es)",
+      "rotulo": "Bens da atividade rural",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 53039953.901676014,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!C116"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!C19"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Dívidas da atividade rural",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2026,
+      "valor": 49445070.66338941,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!C20"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Diferença",
+      "nivel": 0,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2026,
+      "valor": 3594883.238286607,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!C21"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Resultado do exercício",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2026,
       "valor": 18439600.37877118,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!C117"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!C26"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Compensação de prejuízo",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2026,
       "valor": 0.0,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!C118"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!C27"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Lucro/Prejuízo fiscal do exercício",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2026,
       "valor": 18439600.37877118,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!C119"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!C28"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Presunção de 20%",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2026,
       "valor": 3687920.075754236,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!C120"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!C29"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Resultado tributável",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2026,
       "valor": 3687920.075754236,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!C121"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!C30"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Total a recolher",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2026,
       "valor": 1014178.020832415,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!C122"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!C31"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Saldo de prejuízo a compensar",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2026,
       "valor": 0.0,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!C123"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!C32"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Saldo de prejuízo a compensar de exercício(s) anterior(es)",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2027,
       "valor": 0.0,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!D116"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!D25"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Resultado do exercício",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2027,
-      "valor": 8164725.313800001,
+      "valor": 8164725.42504046,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!D117"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!D26"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Compensação de prejuízo",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2027,
       "valor": 0.0,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!D118"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!D27"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Lucro/Prejuízo fiscal do exercício",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2027,
-      "valor": 8164725.313800001,
+      "valor": 8164725.42504046,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!D119"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!D28"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Presunção de 20%",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2027,
-      "valor": 1632945.0627600001,
+      "valor": 1632945.0850080922,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!D120"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!D29"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Resultado tributável",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2027,
-      "valor": 1632945.0627600001,
+      "valor": 1632945.0850080922,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!D121"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!D30"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Total a recolher",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2027,
-      "valor": 449059.89225900004,
+      "valor": 449059.8983772254,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!D122"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!D31"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Saldo de prejuízo a compensar",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2027,
       "valor": 0.0,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!D123"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!D32"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Saldo de prejuízo a compensar de exercício(s) anterior(es)",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2028,
       "valor": 0.0,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!E116"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!E25"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Resultado do exercício",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2028,
-      "valor": 7667744.478,
+      "valor": 7667744.448290456,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!E117"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!E26"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Compensação de prejuízo",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2028,
       "valor": 0.0,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!E118"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!E27"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Lucro/Prejuízo fiscal do exercício",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2028,
-      "valor": 7667744.478,
+      "valor": 7667744.448290456,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!E119"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!E28"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Presunção de 20%",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2028,
-      "valor": 1533548.8956000002,
+      "valor": 1533548.8896580914,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!E120"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!E29"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Resultado tributável",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2028,
-      "valor": 1533548.8956000002,
+      "valor": 1533548.8896580914,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!E121"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!E30"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Total a recolher",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2028,
-      "valor": 421725.94629000005,
+      "valor": 421725.94465597515,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!E122"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!E31"
     },
     {
       "bloco": "apuracao",
       "rotulo": "Saldo de prejuízo a compensar",
       "nivel": 1,
-      "cenario": "Cenário Atual (PF)",
-      "contribuinte": "Aurora Agro",
+      "cenario": "Cenário 02 (Venda de Ativos)",
       "ano": 2028,
       "valor": 0.0,
       "unidade": "moeda",
-      "origemCelula": "Cenário Atual (PF)!E123"
+      "origemCelula": "Cenário 02 (Venda de Ativos)!E32"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Saldo de prejuízo a compensar de exercício(s) anterior(es)",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2029,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!F25"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Resultado do exercício",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2029,
+      "valor": 6653605.433462834,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!F26"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Compensação de prejuízo",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2029,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!F27"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Lucro/Prejuízo fiscal do exercício",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2029,
+      "valor": 6653605.433462834,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!F28"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Presunção de 20%",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2029,
+      "valor": 1330721.086692567,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!F29"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Resultado tributável",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2029,
+      "valor": 1330721.086692567,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!F30"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Total a recolher",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2029,
+      "valor": 365948.29884045594,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!F31"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Saldo de prejuízo a compensar",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2029,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!F32"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Saldo de prejuízo a compensar de exercício(s) anterior(es)",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2030,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!G25"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Resultado do exercício",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2030,
+      "valor": 3396063.1704916623,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!G26"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Compensação de prejuízo",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2030,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!G27"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Lucro/Prejuízo fiscal do exercício",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2030,
+      "valor": 3396063.1704916623,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!G28"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Presunção de 20%",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2030,
+      "valor": 679212.6340983325,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!G29"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Resultado tributável",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2030,
+      "valor": 679212.6340983325,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!G30"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Total a recolher",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2030,
+      "valor": 186783.47437704145,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!G31"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Saldo de prejuízo a compensar",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2030,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!G32"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Saldo de prejuízo a compensar de exercício(s) anterior(es)",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2031,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!H25"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Resultado do exercício",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2031,
+      "valor": 3014761.494968811,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!H26"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Compensação de prejuízo",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2031,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!H27"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Lucro/Prejuízo fiscal do exercício",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2031,
+      "valor": 3014761.494968811,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!H28"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Presunção de 20%",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2031,
+      "valor": 602952.2989937622,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!H29"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Resultado tributável",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2031,
+      "valor": 602952.2989937622,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!H30"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Total a recolher",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2031,
+      "valor": 165811.88222328463,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!H31"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Saldo de prejuízo a compensar",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2031,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!H32"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Saldo de prejuízo a compensar de exercício(s) anterior(es)",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2032,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!I25"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Resultado do exercício",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2032,
+      "valor": 2108570.312364,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!I26"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Compensação de prejuízo",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2032,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!I27"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Lucro/Prejuízo fiscal do exercício",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2032,
+      "valor": 2108570.312364,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!I28"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Presunção de 20%",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2032,
+      "valor": 421714.0624728,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!I29"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Resultado tributável",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2032,
+      "valor": 421714.0624728,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!I30"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Total a recolher",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2032,
+      "valor": 115971.36718002001,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!I31"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Saldo de prejuízo a compensar",
+      "nivel": 1,
+      "cenario": "Cenário 02 (Venda de Ativos)",
+      "ano": 2032,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário 02 (Venda de Ativos)!I32"
     }
   ],
   "slide": {
     "titulo": "3.4 Transferência da Atividade Rural",
     "linhas": [
+      {
+        "linha": "nota",
+        "rotulo": "Bens da atividade rural",
+        "valores": "53.039.954"
+      },
+      {
+        "linha": "nota",
+        "rotulo": "Dívidas da atividade rural",
+        "valores": "49.445.071"
+      },
       {
         "linha": "L4",
         "rotulo": "Informação do exercício anterior",
@@ -282,7 +608,11 @@
         "valores": {
           "2026": "-",
           "2027": "-",
-          "2028": "-"
+          "2028": "-",
+          "2029": "-",
+          "2030": "-",
+          "2031": "-",
+          "2032": "-"
         }
       },
       {
@@ -296,7 +626,11 @@
         "valores": {
           "2026": "18.439.600",
           "2027": "8.164.725",
-          "2028": "7.667.744"
+          "2028": "7.667.744",
+          "2029": "6.653.605",
+          "2030": "3.396.063",
+          "2031": "3.014.761",
+          "2032": "2.108.570"
         }
       },
       {
@@ -305,7 +639,11 @@
         "valores": {
           "2026": "-",
           "2027": "-",
-          "2028": "-"
+          "2028": "-",
+          "2029": "-",
+          "2030": "-",
+          "2031": "-",
+          "2032": "-"
         }
       },
       {
@@ -314,7 +652,11 @@
         "valores": {
           "2026": "18.439.600",
           "2027": "8.164.725",
-          "2028": "7.667.744"
+          "2028": "7.667.744",
+          "2029": "6.653.605",
+          "2030": "3.396.063",
+          "2031": "3.014.761",
+          "2032": "2.108.570"
         }
       },
       {
@@ -323,7 +665,11 @@
         "valores": {
           "2026": "3.687.920",
           "2027": "1.632.945",
-          "2028": "1.533.549"
+          "2028": "1.533.549",
+          "2029": "1.330.721",
+          "2030": "679.213",
+          "2031": "602.952",
+          "2032": "421.714"
         }
       },
       {
@@ -332,7 +678,11 @@
         "valores": {
           "2026": "Presumido",
           "2027": "Presumido",
-          "2028": "Presumido"
+          "2028": "Presumido",
+          "2029": "Presumido",
+          "2030": "Presumido",
+          "2031": "Presumido",
+          "2032": "Presumido"
         }
       },
       {
@@ -341,7 +691,11 @@
         "valores": {
           "2026": "-",
           "2027": "-",
-          "2028": "-"
+          "2028": "-",
+          "2029": "-",
+          "2030": "-",
+          "2031": "-",
+          "2032": "-"
         }
       },
       {
@@ -350,7 +704,11 @@
         "valores": {
           "2026": "3.687.920",
           "2027": "1.632.945",
-          "2028": "1.533.549"
+          "2028": "1.533.549",
+          "2029": "1.330.721",
+          "2030": "679.213",
+          "2031": "602.952",
+          "2032": "421.714"
         }
       },
       {
@@ -359,7 +717,11 @@
         "valores": {
           "2026": "1.014.178",
           "2027": "449.060",
-          "2028": "421.726"
+          "2028": "421.726",
+          "2029": "365.948",
+          "2030": "186.783",
+          "2031": "165.812",
+          "2032": "115.971"
         }
       },
       {
@@ -368,7 +730,11 @@
         "valores": {
           "2026": "-",
           "2027": "-",
-          "2028": "-"
+          "2028": "-",
+          "2029": "-",
+          "2030": "-",
+          "2031": "-",
+          "2032": "-"
         }
       }
     ]

@@ -61,33 +61,113 @@ describe('soma de bloco', () => {
   });
 });
 
-describe('a corrente da apuração do IRPF', () => {
-  const valores = le('transferencia-rural');
+/**
+ * Um valor sintético, para provar uma proporção sem precisar de uma fixture
+ * inteira. A corrente da presunção junta a `Receita`, que mora na DRE, com a
+ * apuração, que fica setenta linhas abaixo, e nenhuma das três fixtures recorta
+ * os dois blocos ao mesmo tempo.
+ */
+function valor(
+  cenario: string,
+  rotulo: string,
+  numero: number,
+  celula: string,
+  contribuinte?: string,
+): ValorWp {
+  return {
+    bloco: 'apuracao',
+    rotulo,
+    nivel: 1,
+    cenario,
+    contribuinte,
+    ano: 2026,
+    valor: numero,
+    unidade: 'moeda',
+    origemCelula: `${cenario}!${celula}`,
+  };
+}
 
-  it('acusa quando a presunção deixa de ser 20% do resultado', () => {
-    const problemas = validar(adultera(valores, 'Presunção de 20%', 999));
+/*
+ * A base da presunção é a RECEITA, não o resultado do exercício. Está nas
+ * fórmulas do modelo (`Cenário Atual (PF)` C120 = `C31*20%`, e C31 é a `Receita`)
+ * e no WP da Família Lunardi, onde a presunção lançada, 7.925.405,11, é 20% da
+ * receita de 39.627.025,54 e não teria como sair do resultado de 1.417.963,56.
+ */
+describe('a corrente da apuração do IRPF, na aba de cenário', () => {
+  const CENARIO = 'Cenário Atual (PF)';
+  const coerente = [
+    valor(CENARIO, 'Receita', 1_000_000, 'C31', 'Aurora Agro'),
+    valor(CENARIO, 'Presunção de 20%', 200_000, 'C120', 'Aurora Agro'),
+    valor(CENARIO, 'Resultado tributável', 150_000, 'C121', 'Aurora Agro'),
+    valor(CENARIO, 'Total a recolher', 41_250, 'C122', 'Aurora Agro'),
+  ];
+
+  it('não reclama da corrente inteira quando ela fecha', () => {
+    expect(validar(coerente)).toEqual([]);
+  });
+
+  it('acusa quando a presunção deixa de ser 20% da receita', () => {
+    const problemas = validar(adultera(coerente, 'Presunção de 20%', 999));
     const daPresuncao = problemas.filter((p) => p.detalhe.includes('Presunção de 20%'));
 
     expect(daPresuncao.length).toBeGreaterThan(0);
-    expect(daPresuncao[0].detalhe).toContain('20.0%');
+    expect(daPresuncao[0].detalhe).toContain('`Receita`');
+    expect(daPresuncao[0].onde).toBe(`${CENARIO}!C120`);
   });
 
-  it('acusa quando o imposto deixa de ser 27,5% da presunção', () => {
-    const problemas = validar(adultera(valores, 'Total a recolher', 999));
+  it('acusa quando o imposto deixa de ser 27,5% do resultado tributável', () => {
+    const problemas = validar(adultera(coerente, 'Total a recolher', 999));
     const doImposto = problemas.filter((p) => p.detalhe.includes('Total a recolher'));
 
     expect(doImposto.length).toBeGreaterThan(0);
     expect(doImposto[0].detalhe).toContain('27.5%');
+    expect(doImposto[0].detalhe).toContain('`Resultado tributável`');
   });
 
   /*
-   * Adulterar o resultado do exercício quebra as duas proporções de uma vez, e é
-   * assim que se distingue "digitaram o imposto errado" de "a base mudou": no
-   * primeiro caso reclama uma regra, no segundo reclamam duas.
+   * Mexer na receita derruba a presunção, e é assim que se distingue "digitaram o
+   * imposto errado" de "a base mudou": no primeiro caso reclama uma regra só.
    */
-  it('mexer na base derruba as duas proporções', () => {
-    const problemas = validar(adultera(valores, 'Resultado do exercício', 1));
+  it('mexer na base derruba a proporção que depende dela', () => {
+    const problemas = validar(adultera(coerente, 'Receita', 1));
     expect(problemas.filter((p) => p.tipo === 'conta_nao_fecha').length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+/*
+ * Na Venda de Ativos a mesma linha tem outra base: C29 = `C26*20%`, o resultado
+ * do exercício. É por isso que a regra da presunção precisou de escopo de cenário.
+ */
+describe('a corrente da apuração do IRPF, na Venda de Ativos', () => {
+  const CENARIO = 'Cenário 02 (Venda de Ativos)';
+  const coerente = [
+    valor(CENARIO, 'Resultado do exercício', 500_000, 'C26'),
+    valor(CENARIO, 'Presunção de 20%', 100_000, 'C29'),
+    valor(CENARIO, 'Resultado tributável', 80_000, 'C30'),
+    valor(CENARIO, 'Total a recolher', 22_000, 'C31'),
+  ];
+
+  it('não reclama quando a corrente fecha pela base de lá', () => {
+    expect(validar(coerente)).toEqual([]);
+  });
+
+  it('acusa a presunção contra o resultado do exercício', () => {
+    const problemas = validar(adultera(coerente, 'Presunção de 20%', 999));
+    const daPresuncao = problemas.filter((p) => p.detalhe.includes('Presunção de 20%'));
+
+    expect(daPresuncao.length).toBeGreaterThan(0);
+    expect(daPresuncao[0].detalhe).toContain('`Resultado do exercício`');
+  });
+
+  /*
+   * A regra da aba de cenário não pode vazar para cá, e não basta que hoje não
+   * exista uma linha `Receita` nesta aba: o escopo é declarado, não é sorte. Uma
+   * linha com esse rótulo aqui tem de passar batido.
+   */
+  it('a regra da aba de cenário não se aplica aqui', () => {
+    const comReceitaErrada = [...coerente, valor(CENARIO, 'Receita', 42, 'C19')];
+    const problemas = validar(comReceitaErrada).filter((p) => p.detalhe.includes('`Receita`'));
+    expect(problemas).toEqual([]);
   });
 });
 

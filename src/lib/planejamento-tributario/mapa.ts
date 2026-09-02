@@ -3,6 +3,9 @@ import type {
   AbaCenarioWp,
   AbaFarolWp,
   AbaResumoWp,
+  AbaVendaDeAtivosWp,
+  CabecalhoWp,
+  ParametrosWp,
   ValidacaoWp,
 } from '@/lib/planejamento-tributario/tipos';
 
@@ -30,7 +33,26 @@ import type {
  * mudar, a versão sobe, e as revisões antigas continuam explicáveis porque se
  * sabe com que régua foram lidas. É exigência do "pronto quando" da PT-02.
  */
-export const VERSAO_DO_MAPA = '1.3';
+export const VERSAO_DO_MAPA = '1.4';
+
+/**
+ * O cabeçalho do estudo. Não vira slide: é o que identifica a revisão importada,
+ * e é de onde saem o nome do cliente escrito na planilha e os anos do estudo.
+ */
+export const CABECALHO_DO_ESTUDO: CabecalhoWp = {
+  aba: 'Resumo',
+  cliente: 'B3',
+  dataBase: 'B4',
+  preparadoPor: 'B7',
+  revisadoPor: 'B8',
+};
+
+/** As duas premissas de projeção, na única aba que as declara. */
+export const PARAMETROS: ParametrosWp = {
+  aba: 'DRE Projetada',
+  crescimentoAnual: 'C5',
+  anoBase: 'C7',
+};
 
 /**
  * A DRE é uma lista fixa de contas, e não muda de estudo para estudo: o que muda
@@ -2027,6 +2049,47 @@ export const ABAS_DE_CENARIO: AbaCenarioWp[] = [
   },
 ];
 
+/**
+ * A aba de Venda de Ativos, origem do slide de Transferência da Atividade Rural.
+ *
+ * Responde quanto de IRPF sobra se o produtor vender bens para pagar as dívidas.
+ * A conta olha o cronograma de amortização da dívida e, para cada ano, realiza só
+ * o tanto de bem que cobre a parcela daquele ano, o que faz a apuração correr
+ * sete anos em vez dos três do estudo.
+ *
+ * **Estava fora do mapa até a versão 1.4.** O gerador descarta aba de cenário com
+ * "Venda" no nome, e o documento em prosa apontava este slide para a apuração de
+ * dentro das abas de cenário, que é outra coisa: aquela é o IRPF da operação
+ * normal, esta é o da venda.
+ */
+export const ABA_VENDA_DE_ATIVOS: AbaVendaDeAtivosWp = {
+  nome: 'Cenário 02 (Venda de Ativos)',
+  cabecalhoValores: 18,
+  colunaDoValor: 'C',
+  valores: [
+    { linha: 19, rotulo: 'Bens da atividade rural', nivel: 1, unidade: 'moeda' },
+    { linha: 20, rotulo: 'Dívidas da atividade rural', nivel: 1, unidade: 'moeda' },
+    { linha: 21, rotulo: 'Diferença', nivel: 0, unidade: 'moeda', eTotal: true },
+  ],
+  anos: 24,
+  colunas: ['C', 'D', 'E', 'F', 'G', 'H', 'I'],
+  apuracao: [
+    {
+      linha: 25,
+      rotulo: 'Saldo de prejuízo a compensar de exercício(s) anterior(es)',
+      nivel: 1,
+      unidade: 'moeda',
+    },
+    { linha: 26, rotulo: 'Resultado do exercício', nivel: 1, unidade: 'moeda' },
+    { linha: 27, rotulo: 'Compensação de prejuízo', nivel: 1, unidade: 'moeda' },
+    { linha: 28, rotulo: 'Lucro/Prejuízo fiscal do exercício', nivel: 1, unidade: 'moeda' },
+    { linha: 29, rotulo: 'Presunção de 20%', nivel: 1, unidade: 'moeda' },
+    { linha: 30, rotulo: 'Resultado tributável', nivel: 1, unidade: 'moeda' },
+    { linha: 31, rotulo: 'Total a recolher', nivel: 1, unidade: 'moeda' },
+    { linha: 32, rotulo: 'Saldo de prejuízo a compensar', nivel: 1, unidade: 'moeda' },
+  ],
+};
+
 export const ABAS_DE_APOIO: AbaApoioWp[] = [
   {
     nome: 'Imóveis Explorados',
@@ -2091,7 +2154,40 @@ export const VALIDACOES: ValidacaoWp[] = [
     total: 'Total',
     partes: ['Pessoa Física', 'PJ - Lucro Presumido', 'PJ - Lucro Real'],
   },
-  { tipo: 'proporcao', de: 'Presunção de 20%', sobre: 'Resultado do exercício', fator: 0.2 },
-  { tipo: 'proporcao', de: 'Total a recolher', sobre: 'Presunção de 20%', fator: 0.275 },
+  /*
+   * A presunção sai da RECEITA nas abas de cenário, conferido nas fórmulas do
+   * modelo (`Cenário Atual (PF)` C120 = `C31*20%`, e C31 é a linha `Receita`) e no
+   * WP da Família Lunardi, onde 20% de 39.627.025,54 dá os 7.925.405,11 lançados.
+   *
+   * **Cada aba declara a sua base, e nenhuma regra vale por omissão.** A Venda de
+   * Ativos usa outra (C29 = `C26*20%`, o resultado do exercício), e uma regra sem
+   * escopo cairia sobre ela no dia em que aparecesse ali uma linha chamada
+   * `Receita`. O `Cenário 02 (PJxPJ)` não entra porque não tem apuração: sem
+   * pessoa física não há IRPF a apurar.
+   */
+  {
+    tipo: 'proporcao',
+    de: 'Presunção de 20%',
+    sobre: 'Receita',
+    fator: 0.2,
+    cenario: 'Cenário Atual (PF)',
+  },
+  {
+    tipo: 'proporcao',
+    de: 'Presunção de 20%',
+    sobre: 'Receita',
+    fator: 0.2,
+    cenario: 'Cenário 01 (PFxPJ)',
+  },
+  {
+    tipo: 'proporcao',
+    de: 'Presunção de 20%',
+    sobre: 'Resultado do exercício',
+    fator: 0.2,
+    cenario: 'Cenário 02 (Venda de Ativos)',
+  },
+  // O imposto incide sobre o resultado tributável, que é o menor entre lucro
+  // fiscal e presunção, não sobre a presunção. Vale nas duas formas de apuração.
+  { tipo: 'proporcao', de: 'Total a recolher', sobre: 'Resultado tributável', fator: 0.275 },
   { tipo: 'zero_antes_de', rotulo: 'CBS (a partir de 2027)', ano: 2027 },
 ];

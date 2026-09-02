@@ -5,6 +5,9 @@ import {
   ABAS_DE_CENARIO,
   ABA_FAROL,
   ABA_RESUMO,
+  ABA_VENDA_DE_ATIVOS,
+  CABECALHO_DO_ESTUDO,
+  PARAMETROS,
   VALIDACOES,
   VERSAO_DO_MAPA,
 } from '@/lib/planejamento-tributario/mapa';
@@ -31,6 +34,8 @@ const TODAS_AS_LISTAS: Array<{ onde: string; linhas: readonly LinhaWp[] }> = [
     { onde: `${aba.nome} · DRE`, linhas: aba.dre },
     { onde: `${aba.nome} · apuração`, linhas: aba.apuracao },
   ]),
+  { onde: 'Venda de Ativos · valores', linhas: ABA_VENDA_DE_ATIVOS.valores },
+  { onde: 'Venda de Ativos · apuração', linhas: ABA_VENDA_DE_ATIVOS.apuracao },
 ];
 
 describe('versão do mapa', () => {
@@ -272,6 +277,111 @@ describe('validações declaradas', () => {
 
   it('a presunção é 20% e o imposto é 27,5%', () => {
     const proporcoes = VALIDACOES.filter((v) => v.tipo === 'proporcao');
-    expect(proporcoes.map((v) => v.fator)).toEqual([0.2, 0.275]);
+    expect(proporcoes.map((v) => v.fator)).toEqual([0.2, 0.2, 0.2, 0.275]);
+  });
+
+  /*
+   * São três presunções porque a base muda de aba para aba, e é o tipo de detalhe
+   * que passa despercebido: nas abas de cenário ela sai da `Receita`, na Venda de
+   * Ativos sai do `Resultado do exercício`. Toda presunção declara o cenário, para
+   * que uma aba nova não herde a base da vizinha por omissão.
+   */
+  it('toda presunção declara em que cenário vale', () => {
+    const presuncoes = VALIDACOES.filter(
+      (v) => v.tipo === 'proporcao' && v.de === 'Presunção de 20%',
+    );
+
+    expect(presuncoes).toHaveLength(3);
+    for (const regra of presuncoes) {
+      expect(regra.tipo === 'proporcao' && regra.cenario).toBeTruthy();
+    }
+    expect(presuncoes.map((v) => v.tipo === 'proporcao' && v.sobre)).toEqual([
+      'Receita',
+      'Receita',
+      'Resultado do exercício',
+    ]);
+  });
+});
+
+/*
+ * A aba de Venda de Ativos entrou só na versão 1.4. Ela ficou de fora porque o
+ * gerador do mapa descarta aba de cenário com "Venda" no nome, e o buraco não
+ * aparecia em lugar nenhum: o slide de Transferência simplesmente sairia vazio.
+ */
+describe('aba de Venda de Ativos', () => {
+  it('a apuração corre sete anos, não os três do estudo', () => {
+    expect(ABA_VENDA_DE_ATIVOS.colunas).toEqual(['C', 'D', 'E', 'F', 'G', 'H', 'I']);
+  });
+
+  it('o bloco de cima mora numa coluna só, e fecha em Diferença', () => {
+    expect(ABA_VENDA_DE_ATIVOS.colunaDoValor).toBe('C');
+    expect(ABA_VENDA_DE_ATIVOS.valores.map((l) => l.rotulo)).toEqual([
+      'Bens da atividade rural',
+      'Dívidas da atividade rural',
+      'Diferença',
+    ]);
+    expect(ABA_VENDA_DE_ATIVOS.valores.at(-1)?.eTotal).toBe(true);
+  });
+
+  it('os cabeçalhos vêm antes das linhas que descrevem', () => {
+    const primeiroValor = Math.min(...ABA_VENDA_DE_ATIVOS.valores.map((l) => l.linha));
+    const primeiraApuracao = Math.min(...ABA_VENDA_DE_ATIVOS.apuracao.map((l) => l.linha));
+
+    expect(ABA_VENDA_DE_ATIVOS.cabecalhoValores).toBeLessThan(primeiroValor);
+    expect(ABA_VENDA_DE_ATIVOS.anos).toBeLessThan(primeiraApuracao);
+  });
+
+  /*
+   * A apuração daqui é a mesma corrente das abas de cenário, com os mesmos
+   * rótulos. É o que permite validar as duas com a mesma regra, mudando só a base
+   * da presunção.
+   */
+  it('repete a corrente de rótulos das abas de cenário', () => {
+    const daVenda = ABA_VENDA_DE_ATIVOS.apuracao.map((l) => l.rotulo);
+    const doCenario = ABAS_DE_CENARIO.find((a) => a.nome === 'Cenário Atual (PF)')?.apuracao.map(
+      (l) => l.rotulo,
+    );
+
+    expect(daVenda).toEqual(doCenario);
+  });
+});
+
+/*
+ * Cabeçalho e parâmetros não viram slide. Estão no mapa porque identificam a
+ * revisão importada e porque o crescimento anual é premissa do estudo, e nenhum
+ * dos dois tem outra origem no arquivo.
+ */
+describe('cabeçalho e parâmetros', () => {
+  it('todo endereço é uma célula, coluna e linha', () => {
+    const celulas = [
+      CABECALHO_DO_ESTUDO.cliente,
+      CABECALHO_DO_ESTUDO.dataBase,
+      CABECALHO_DO_ESTUDO.preparadoPor,
+      CABECALHO_DO_ESTUDO.revisadoPor,
+      PARAMETROS.crescimentoAnual,
+      PARAMETROS.anoBase,
+    ];
+
+    for (const celula of celulas) {
+      expect(celula).toMatch(/^[A-Z]+\d+$/);
+    }
+  });
+
+  it('saem de abas que o mapa conhece', () => {
+    expect(CABECALHO_DO_ESTUDO.aba).toBe(ABA_RESUMO.nome);
+    expect(PARAMETROS.aba).toBe('DRE Projetada');
+  });
+
+  /*
+   * A `DRE Projetada` é a única aba do modelo que o mapa cita sem mapear linha por
+   * linha, e é de propósito: as abas de cenário puxam a receita de lá por fórmula
+   * e já chegam com o número calculado, então ler as duas seria ler duas vezes.
+   */
+  it('a DRE Projetada não é lida como aba', () => {
+    const nomes = [ABA_RESUMO.nome, ABA_FAROL.nome, ABA_VENDA_DE_ATIVOS.nome]
+      .concat(ABAS_DE_CENARIO.map((a) => a.nome))
+      .concat(ABAS_DE_APOIO.map((a) => a.nome));
+
+    expect(nomes).not.toContain(PARAMETROS.aba);
   });
 });

@@ -166,10 +166,12 @@ function confereProporcao(
   deRotulo: string,
   sobreRotulo: string,
   fator: number,
+  cenario?: string,
 ): ProblemaWp[] {
   const problemas: ProblemaWp[] = [];
 
   for (const [, doGrupo] of agrupaPorCoordenada(valores)) {
+    if (cenario !== undefined && doGrupo[0]?.cenario !== cenario) continue;
     const de = doGrupo.find((v) => v.rotulo === deRotulo);
     const sobre = doGrupo.find((v) => v.rotulo === sobreRotulo);
     const achado = numero(de);
@@ -236,7 +238,9 @@ export function validar(valores: ValorWp[]): ProblemaWp[] {
         problemas.push(...confereSomaDeRotulos(valores, regra.total, regra.partes));
         break;
       case 'proporcao':
-        problemas.push(...confereProporcao(valores, regra.de, regra.sobre, regra.fator));
+        problemas.push(
+          ...confereProporcao(valores, regra.de, regra.sobre, regra.fator, regra.cenario),
+        );
         break;
       case 'zero_antes_de':
         problemas.push(...confereZeroAntesDe(valores, regra.rotulo, regra.ano));

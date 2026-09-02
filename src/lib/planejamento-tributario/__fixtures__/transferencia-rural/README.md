@@ -5,24 +5,36 @@ O fator unico preserva as validacoes: soma de bloco, percentuais, presuncao de
 
 # Transferencia da Atividade Rural
 
+Aba `Cenario 02 (Venda de Ativos)` do modelo. Numeros do WP do Grupo Bahia
+Potrich: total de bens pela coluna de Valor Total, que e a que o slide usa, e
+cronograma de dividas pela linha de TOTAL, sete anos de 2026 a 2032.
+
+A corrente aritmetica e recalculada pelas formulas do MODELO, nao copiada do
+Bahia Potrich. Os dois discordam e o modelo mais recente vence: no Bahia Potrich
+o imposto sai da presuncao, no modelo sai do resultado tributavel.
+
 ## O que este caso prova
 
-- **A ordem muda entre a planilha e o slide.** Na planilha, `Compensacao de
-  prejuizo` esta na linha 118 e `Presuncao de 20%` na 120. No slide, o limite de
-  20% vem primeiro (L12) e a compensacao depois (L14). Importar na ordem da
-  planilha produz um slide errado.
-- **Rotulo trocado.** `Resultado do exercicio` na planilha vira `Receita com a
-  venda dos bens da atividade rural` no slide, e `Presuncao de 20%` vira `Limite
-  de 20% sobre a receita bruta total`.
-- **Linha do slide que nao existe na planilha.** `Despesas de custeio e
-  investimento total`, L9, sai sempre como traco. Nao ha origem para ela.
-- **Linhas de titulo sem dado.** L4 e L7 sao cabecalhos internos da tabela.
-- **Valor de texto.** `Opcao pela forma de apuracao` traz `Presumido`, nao numero.
-- **A corrente aritmetica:** presuncao e 20% do resultado, e o imposto e 27,5% da
-  presuncao. As duas continuam valendo depois da anonimizacao.
+- **A aba de Venda de Ativos e a origem deste slide**, e nao a apuracao de dentro
+  das abas de cenario. Aquela e o IRPF da operacao normal; esta e o da venda.
+- **Sete anos, nao tres.** A apuracao acompanha o cronograma da divida, que vai
+  ate 2032, enquanto o estudo tem tres anos. Ler so tres perde metade do slide.
+- **Nao ha linha de contribuinte.** A venda e do produtor e nao se reparte, entao
+  as colunas vem fixas do mapa em vez de descobertas pelo cabecalho.
+- **Celula vazia nao e zero.** No primeiro ano o saldo de prejuizo anterior nao
+  existe, e a leitura tem de pular a linha em vez de gravar zero.
+- **Um bloco sem ano.** Bens, dividas e a diferenca moram numa coluna so, e
+  entram com o primeiro ano da apuracao para o slide poder mostra-los junto.
+- **A ordem muda entre a planilha e o slide.** Na planilha a compensacao vem
+  antes da presuncao; no slide o limite de 20% vem primeiro.
+- **Rotulo trocado.** `Resultado do exercicio` vira `Receita com a venda dos bens
+  da atividade rural`, e `Presuncao de 20%` vira `Limite de 20% sobre a receita
+  bruta total`.
+- **A corrente:** a presuncao e 20% do resultado do exercicio, e o imposto e
+  27,5% do resultado tributavel. As duas continuam valendo apos a anonimizacao.
 
 ## Quebra se
 
-- A importacao preservar a ordem da planilha no slide.
-- O tratamento de tipo assumir numero em toda celula.
-- A linha sem origem for omitida em vez de sair como traco.
+- A leitura assumir tres anos, ou tentar descobrir contribuinte nesta aba.
+- Celula vazia virar zero.
+- A validacao da presuncao usar a base das abas de cenario, que e a receita.

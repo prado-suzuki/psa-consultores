@@ -77,6 +77,34 @@ export interface AbaCenarioWp {
   apuracao: LinhaWp[];
 }
 
+/**
+ * A aba `Cenário 02 (Venda de Ativos)`, origem do slide de Transferência da
+ * Atividade Rural.
+ *
+ * Tem forma própria e não cabe em `AbaCenarioWp` por três motivos: não tem linha
+ * de contribuinte, tem em cima um bloco de três valores numa coluna única, e a
+ * apuração corre **sete anos** (2026 a 2032) em vez dos três do estudo, porque
+ * acompanha o cronograma de amortização da dívida, que vai até 2032 na aba
+ * `Dívidas da Atv. Rural`.
+ *
+ * As três linhas do bloco de cima (bens, dívidas e a diferença entre os dois) são
+ * fórmula somando as abas de apoio, então chegam com valor em cache e a leitura
+ * não precisa recalcular nada.
+ */
+export interface AbaVendaDeAtivosWp {
+  nome: string;
+  /** Linha do cabeçalho do bloco de valores, `Descrição | Valor`. */
+  cabecalhoValores: number;
+  /** Coluna única onde mora o valor do bloco de cima. */
+  colunaDoValor: string;
+  valores: LinhaWp[];
+  /** Linha do cabeçalho com os anos da apuração. */
+  anos: number;
+  /** Colunas da apuração, uma por ano, em ordem. */
+  colunas: string[];
+  apuracao: LinhaWp[];
+}
+
 /** Uma aba de apoio, preenchida a partir dos documentos do cliente. */
 export interface AbaApoioWp {
   nome: string;
@@ -86,11 +114,57 @@ export interface AbaApoioWp {
 }
 
 /**
+ * Onde estão os dados de identificação do estudo, na aba `Resumo`.
+ *
+ * **Rótulo e valor moram na mesma célula.** `B4` é a string
+ * `'Data-base: 2026 a 2028'` inteira e `B7` é `'Preparado por: '`, então a leitura
+ * parte no dois-pontos em vez de procurar o valor numa célula vizinha. Os dois
+ * anos saem da própria data-base, que é o único lugar do modelo onde o período do
+ * estudo está escrito.
+ */
+export interface CabecalhoWp {
+  aba: string;
+  /** Nome do cliente. No modelo em branco vem `[Nome do Cliente]`. */
+  cliente: string;
+  /** `Data-base: <ano inicial> a <ano final>`. */
+  dataBase: string;
+  preparadoPor: string;
+  revisadoPor: string;
+}
+
+/**
+ * Os dois parâmetros de projeção, na aba `DRE Projetada`.
+ *
+ * **Essa aba não é lida como aba.** Ela é a entrada de onde as abas de cenário
+ * puxam a receita por fórmula (`'DRE Projetada'!F10` e vizinhas), e a aba de
+ * cenário já carrega o número calculado. Dela só saem estes dois campos, que são
+ * premissa do estudo e não têm outra origem.
+ */
+export interface ParametrosWp {
+  aba: string;
+  /** Taxa de crescimento anual da receita, em fração. No modelo, 0,05. */
+  crescimentoAnual: string;
+  /** Ano-base da projeção, anterior ao primeiro ano do estudo. */
+  anoBase: string;
+}
+
+/**
  * As conferências que a leitura deve aplicar, em forma declarativa para o
  * validador não precisar conhecer o domínio.
  */
 export type ValidacaoWp =
   | { tipo: 'soma_do_grupo'; aba: string; grupo: string }
   | { tipo: 'soma_de_rotulos'; aba: string; total: string; partes: string[] }
-  | { tipo: 'proporcao'; de: string; sobre: string; fator: number }
+  | {
+      tipo: 'proporcao';
+      de: string;
+      sobre: string;
+      fator: number;
+      /**
+       * Restringe a regra a um cenário. Necessário porque a mesma linha tem base
+       * diferente em abas diferentes: `Presunção de 20%` é 20% da `Receita` nas
+       * abas de cenário e 20% do `Resultado do exercício` na de Venda de Ativos.
+       */
+      cenario?: string;
+    }
   | { tipo: 'zero_antes_de'; rotulo: string; ano: number };

@@ -25,6 +25,9 @@ import esperadoTransferencia from './__fixtures__/transferencia-rural/esperado.j
 
 const PASTA = join(__dirname, '__fixtures__');
 
+/** Os sete anos da aba de Venda de Ativos, 2026 a 2032. */
+const ANOS_DA_VENDA = [2026, 2027, 2028, 2029, 2030, 2031, 2032];
+
 function abre(caso: string): Uint8Array {
   return new Uint8Array(readFileSync(join(PASTA, caso, 'entrada.xlsx')));
 }
@@ -100,7 +103,7 @@ describe('lerWp na aba Resumo', () => {
   });
 });
 
-describe('lerWp na apuração do IRPF', () => {
+describe('lerWp na Venda de Ativos', () => {
   const resultado = lerWp(abre('transferencia-rural'));
 
   it('não encontra problema num arquivo bom', () => {
@@ -111,29 +114,72 @@ describe('lerWp na apuração do IRPF', () => {
     expect(resultado.valores).toEqual(esperadoTransferencia.valores);
   });
 
-  it('descobre os três anos e o contribuinte de cada coluna', () => {
-    expect([...new Set(resultado.valores.map((v) => v.ano))]).toEqual([2026, 2027, 2028]);
-    expect([...new Set(resultado.valores.map((v) => v.contribuinte))]).toEqual(['Aurora Agro']);
+  /*
+   * Sete anos, e não os três do estudo: a apuração acompanha o cronograma de
+   * amortização da dívida, que vai até 2032. Ler só três perderia metade do slide.
+   */
+  it('lê os sete anos da apuração', () => {
+    expect([...new Set(resultado.valores.map((v) => v.ano))]).toEqual(ANOS_DA_VENDA);
   });
 
   /*
-   * A corrente que o slide de Transferência mostra: a presunção é 20% do resultado
-   * do exercício, e o imposto é 27,5% da presunção. Vale a pena prender aqui,
-   * porque é o teste que pega troca de linha na leitura: se a leitura pegasse a
-   * linha vizinha, o número sairia plausível e as duas proporções não fechariam.
+   * Esta aba não tem linha de contribuinte, porque a venda é do produtor e não se
+   * reparte por pessoa. Se a leitura tentasse descobrir contribuinte aqui, viria
+   * o rótulo de outra linha no lugar.
+   */
+  it('não inventa contribuinte', () => {
+    expect(resultado.valores.every((v) => v.contribuinte === undefined)).toBe(true);
+  });
+
+  it('o cenário é o nome da aba', () => {
+    expect([...new Set(resultado.valores.map((v) => v.cenario))]).toEqual([
+      'Cenário 02 (Venda de Ativos)',
+    ]);
+  });
+
+  /*
+   * O bloco de cima não tem ano: bens, dívidas e a diferença moram numa coluna só.
+   * Entram com o primeiro ano da apuração, que é quando a venda começa, para o
+   * slide poder mostrar os dois lado a lado sem inventar coordenada.
+   */
+  it('o bloco de bens e dívidas entra no primeiro ano', () => {
+    const daColunaC = resultado.valores.filter((v) => /!C(19|20|21)$/.test(v.origemCelula));
+
+    expect(daColunaC.map((v) => v.rotulo)).toEqual([
+      'Bens da atividade rural',
+      'Dívidas da atividade rural',
+      'Diferença',
+    ]);
+    expect(daColunaC.every((v) => v.ano === 2026)).toBe(true);
+  });
+
+  /*
+   * No primeiro ano não há saldo de exercício anterior, e a célula está vazia no
+   * modelo. Vazio tem de ser ausência de linha, nunca zero: zero seria afirmar que
+   * a apuração foi feita e deu nada.
+   */
+  it('célula vazia no primeiro ano não vira zero', () => {
+    const saldos = resultado.valores.filter(
+      (v) => v.rotulo === 'Saldo de prejuízo a compensar de exercício(s) anterior(es)',
+    );
+
+    expect(saldos.map((v) => v.ano)).toEqual(ANOS_DA_VENDA.slice(1));
+  });
+
+  /*
+   * A corrente aritmética, que é o teste que pega troca de linha na leitura: se a
+   * leitura pegasse a linha vizinha, o número sairia plausível e as proporções não
+   * fechariam. Aqui a presunção sai do resultado do exercício, e não da receita
+   * como nas abas de cenário, e o imposto sai do resultado tributável.
    */
   it('a corrente de 20% e 27,5% fecha em todos os anos', () => {
-    for (const ano of [2026, 2027, 2028]) {
+    for (const ano of ANOS_DA_VENDA) {
       const de = (rotulo: string) =>
         Number(resultado.valores.find((v) => v.ano === ano && v.rotulo === rotulo)?.valor);
 
       expect(de('Presunção de 20%')).toBeCloseTo(de('Resultado do exercício') * 0.2, 2);
-      expect(de('Total a recolher')).toBeCloseTo(de('Presunção de 20%') * 0.275, 2);
+      expect(de('Total a recolher')).toBeCloseTo(de('Resultado tributável') * 0.275, 2);
     }
-  });
-
-  it('o cenário é o nome da aba, não o do cabeçalho do Resumo', () => {
-    expect([...new Set(resultado.valores.map((v) => v.cenario))]).toEqual(['Cenário Atual (PF)']);
   });
 });
 

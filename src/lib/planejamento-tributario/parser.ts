@@ -1,6 +1,10 @@
 import * as XLSX from 'xlsx';
 
-import { ABAS_DE_CENARIO, ABA_RESUMO } from '@/lib/planejamento-tributario/mapa';
+import {
+  ABAS_DE_CENARIO,
+  ABA_RESUMO,
+  ABA_VENDA_DE_ATIVOS,
+} from '@/lib/planejamento-tributario/mapa';
 import type { AbaCenarioWp, LinhaWp, UnidadeWp } from '@/lib/planejamento-tributario/tipos';
 
 /**
@@ -301,6 +305,72 @@ function leCenario(aba: XLSX.WorkSheet, mapa: AbaCenarioWp): ResultadoLeitura {
 }
 
 /**
+ * Lê a aba de Venda de Ativos, origem do slide de Transferência da Atividade
+ * Rural.
+ *
+ * Tem duas diferenças que impedem reusar `leCenario`. Não há linha de
+ * contribuinte, porque a venda é do produtor e não se reparte por pessoa, então
+ * as colunas não precisam ser descobertas: vêm fixas do mapa. E a apuração corre
+ * sete anos em vez dos três do estudo, acompanhando o cronograma de amortização
+ * da dívida.
+ *
+ * O bloco de cima, bens contra dívidas, mora numa coluna só e não tem ano. Ele
+ * entra com o primeiro ano da apuração, que é o ano em que a venda começa, para
+ * que o slide consiga mostrar os dois lado a lado sem inventar coordenada.
+ */
+function leVendaDeAtivos(aba: XLSX.WorkSheet): ResultadoLeitura {
+  const valores: ValorWp[] = [];
+  const problemas: ProblemaWp[] = [];
+  const mapa = ABA_VENDA_DE_ATIVOS;
+
+  const anos: Array<{ coluna: string; ano: number }> = [];
+  for (const coluna of mapa.colunas) {
+    const celula = leCelula(aba, endereco(coluna, mapa.anos));
+    if (celula.estado !== 'valor') continue;
+    const ano = Number(celula.valor);
+    if (Number.isFinite(ano)) anos.push({ coluna, ano });
+  }
+
+  const registra = (
+    bloco: ValorWp['bloco'],
+    linha: LinhaWp,
+    coluna: string,
+    ano: number | undefined,
+  ) => {
+    if (linha.eTitulo || ano === undefined) return;
+
+    const alvo = endereco(coluna, linha.linha);
+    const onde = `${mapa.nome}!${alvo}`;
+    const celula = leCelula(aba, alvo);
+
+    if (celula.estado === 'erro') {
+      problemas.push({ tipo: celula.motivo, onde, detalhe: celula.detalhe });
+      return;
+    }
+    if (celula.estado === 'vazia') return;
+
+    valores.push({
+      bloco,
+      rotulo: linha.rotulo,
+      nivel: linha.nivel,
+      cenario: mapa.nome,
+      ano,
+      valor: celula.valor,
+      unidade: linha.unidade,
+      origemCelula: onde,
+    });
+  };
+
+  const primeiroAno = anos[0]?.ano;
+  for (const linha of mapa.valores) registra('apuracao', linha, mapa.colunaDoValor, primeiroAno);
+  for (const { coluna, ano } of anos) {
+    for (const linha of mapa.apuracao) registra('apuracao', linha, coluna, ano);
+  }
+
+  return { valores, problemas };
+}
+
+/**
  * Confere que o rótulo da coluna B é o que o mapa espera, aba por aba.
  *
  * É o que pega WP de formato antigo e WP com linha inserida. Sem isto, a leitura
@@ -361,9 +431,9 @@ function conferePosicaoDosRotulos(
 /**
  * Lê o WP e devolve os valores e os problemas.
  *
- * Cobre a aba `Resumo` e as três abas de cenário. As abas de apoio (imóveis, bens
- * e dívidas) entram depois; até lá, a ausência delas não é reportada para não
- * fingir cobertura que não existe.
+ * Cobre a aba `Resumo`, as três abas de cenário e a de Venda de Ativos. As abas de
+ * apoio (imóveis, bens e dívidas) entram depois; até lá, a ausência delas não é
+ * reportada para não fingir cobertura que não existe.
  *
  * **Aba que não está no arquivo não é erro por si.** Um recorte de WP, como as
  * fixtures, tem uma aba só, e um estudo pode ter dois cenários em vez de três.
@@ -402,8 +472,34 @@ export function lerWp(dados: ArrayBuffer | Uint8Array): ResultadoLeitura {
     problemas.push(...lido.problemas);
   }
 
+  const vendaDeAtivos = planilha.Sheets[ABA_VENDA_DE_ATIVOS.nome];
+  if (vendaDeAtivos) {
+    achouAlgumaAba = true;
+    problemas.push(
+      ...conferePosicaoDosRotulos(
+        vendaDeAtivos,
+        ABA_VENDA_DE_ATIVOS.nome,
+        ABA_VENDA_DE_ATIVOS.valores,
+      ),
+    );
+    problemas.push(
+      ...conferePosicaoDosRotulos(
+        vendaDeAtivos,
+        ABA_VENDA_DE_ATIVOS.nome,
+        ABA_VENDA_DE_ATIVOS.apuracao,
+      ),
+    );
+    const lido = leVendaDeAtivos(vendaDeAtivos);
+    valores.push(...lido.valores);
+    problemas.push(...lido.problemas);
+  }
+
   if (!achouAlgumaAba) {
-    const conhecidas = [ABA_RESUMO.nome, ...ABAS_DE_CENARIO.map((a) => a.nome)];
+    const conhecidas = [
+      ABA_RESUMO.nome,
+      ...ABAS_DE_CENARIO.map((a) => a.nome),
+      ABA_VENDA_DE_ATIVOS.nome,
+    ];
     return {
       valores: [],
       problemas: [
