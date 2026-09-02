@@ -9796,7 +9796,7 @@ export type Database = {
     }
     Functions: {
       alertar_tarefas_por_prazo: {
-        Args: { _hoje?: string }
+        Args: { _ambiente?: string; _hoje?: string }
         Returns: {
           avisos_criados: number
           reservas_negadas: number
@@ -10380,7 +10380,7 @@ export type Database = {
       }
       sublider_na_os: { Args: { _ordem_servico_id: string }; Returns: boolean }
       tarefas_a_alertar: {
-        Args: { _hoje?: string }
+        Args: { _ambiente?: string; _hoje?: string }
         Returns: {
           destinatario_id: string
           dono_nome: string
