@@ -35,6 +35,13 @@ export interface BlocoFolha {
 
 interface FolhaDocumentoProps {
   titulo: string;
+  /**
+   * Onde o consultor está no fluxo: peça, situação e quantos atos pendentes ela
+   * formaliza ("1ª alteração · rascunho · formalizando 2 atos pendentes"). Sem
+   * isso, uma peça que formaliza dois atos parece que está concatenando
+   * alterações, quando é uma peça só que nunca foi registrada.
+   */
+  situacao?: string | null;
   estado: EstadoFolha;
   /** O que falta para gerar (estado 'pendente'), em linguagem de usuário. */
   mensagemPendente?: string;
@@ -59,6 +66,7 @@ interface FolhaDocumentoProps {
  */
 export const FolhaDocumento = ({
   titulo,
+  situacao,
   estado,
   mensagemPendente,
   erro,
@@ -97,6 +105,10 @@ export const FolhaDocumento = ({
         <p className="mt-3 text-sm font-semibold text-destructive">
           Algo impediu a geração do documento.
         </p>
+        {/* A folha não compõe, e é aqui que saber em que peça se está mais
+            importa: o que consertar (e se consertar destrava alguma coisa)
+            depende de a peça ser um rascunho ou uma que já foi registrada. */}
+        {situacao && <p className="mt-1 text-[11px] font-medium text-osg-600">{situacao}</p>}
         {erro && <code className="mt-2 block text-xs text-slate-600">{erro}</code>}
         <p className="mt-2 text-xs text-slate-500">
           Confira os dados em "Ajustar dados manualmente" ou o conteúdo do modelo na Montagem.
@@ -120,6 +132,9 @@ export const FolhaDocumento = ({
           >
             {titulo}
           </h3>
+          {situacao && (
+            <p className="mt-2 text-[11px] font-medium text-osg-600">{situacao}</p>
+          )}
         </div>
         <div
           className="whitespace-pre-wrap text-justify text-[15px] leading-[1.9] text-stone-800"

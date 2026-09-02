@@ -59,6 +59,10 @@ const mocks = vi.hoisted(() => ({
   /** O livro de movimentos da empresa (useMovimentosDaEmpresa). */
   movimentos: [] as unknown[],
   rascunho: null as Record<string, unknown> | null,
+  /** pj_pessoa_id com constitutivo REGISTRADO (useConstitutivosRegistrados). */
+  constitutivosRegistrados: new Set<string>(),
+  /** documento_gerado que substitui a peça base (useDocumentoSucessor). */
+  sucessor: null as Record<string, unknown> | null,
   overrides: new Map<string, { conteudoSubstituto: string }>(),
   versoes: [] as Array<{ row: Record<string, unknown>; numero: number; ehHead: boolean }>,
   notificacoes: [] as Array<Record<string, unknown>>,
@@ -93,6 +97,7 @@ vi.mock('@/components/equipe/osg/OsgLayout', () => ({
 }));
 
 vi.mock('@/contexts/OsgWorkContext', () => ({ useOsgWork: () => ({ clienteId: 'cliente-1' }) }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'user-1' } }) }));
 
 vi.mock('@/hooks/useModelosDocumento', () => ({
   useModelos: () => ({
@@ -118,9 +123,14 @@ vi.mock('@/hooks/useDocumentoGerado', () => ({
     mocks.hookCalls.rascunho.push(args);
     return { data: mocks.rascunho };
   },
+  // As sociedades que já existem na junta: é o fato que a trava do constitutivo
+  // lê para saber se validar criaria um SEGUNDO contrato social da mesma PJ.
+  useConstitutivosRegistrados: () => ({ data: mocks.constitutivosRegistrados }),
   useDocumentoGeradoPorId: () => ({ data: null }),
   useRegistrarDocumento: () => ({ mutateAsync: mocks.registrarDocumento, isPending: false }),
-  useDocumentoSucessor: () => ({ data: null }),
+  // A peça que já sucede a base, se existir: é ela que impede "Gerar alteração
+  // contratual" de abrir uma SEGUNDA alteração sobre o mesmo antecessor.
+  useDocumentoSucessor: () => ({ data: mocks.sucessor }),
   // Elos até a base da sucessão: com o registrado servindo de base, a peça em
   // composição é a primeira alteração (0 + 1).
   useOrdemNaSucessao: () => ({ data: 0 }),
@@ -314,6 +324,8 @@ beforeAll(() => {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.rascunho = null;
+  mocks.constitutivosRegistrados = new Set();
+  mocks.sucessor = null;
   mocks.overrides = new Map();
   mocks.versoes = [];
   mocks.notificacoes = [];
@@ -741,6 +753,18 @@ describe('GerarDocumento — o porteiro: folha em erro não é selada nem regist
     expect(mocks.registrarDocumento).not.toHaveBeenCalled();
   });
 
+  it('com erro de composição, "Atualizar do cadastro" também fica fechado', async () => {
+    // Era o único dos três gestos de selagem sem o porteiro: recongelava o
+    // snapshot por cima da folha em erro, com o mesmo estrago permanente.
+    mocks.docBlocos[0].bloco.conteudo = CITA_ANCORA_ORFA;
+    await abrirDocumentoCongelado();
+
+    const atualizar = screen.getByRole('button', { name: /Atualizar do cadastro/i });
+    expect(atualizar).toBeDisabled();
+    await userEvent.click(atualizar);
+    expect(mocks.mutateAsync).not.toHaveBeenCalled();
+  });
+
   it('PENDÊNCIA não é erro: campo em branco continua podendo validar', async () => {
     // O porteiro é sobre a folha que não compõe, não sobre o rascunho incompleto:
     // validar antes de preencher tudo é caminho legítimo, e o aviso dele mora no
@@ -780,6 +804,9 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
     const view = render(<GerarDocumento />);
     await escolherModelo();
     mocks.rascunho = registrado();
+    // Contrato social registrado nesta empresa é, no banco, exatamente isto: a
+    // sociedade passa a constar como já constituída. É o fato que a trava lê.
+    mocks.constitutivosRegistrados = new Set(['empresa-1']);
     view.rerender(<GerarDocumento />);
     await screen.findByText('Registrado na junta');
     return view;
@@ -802,6 +829,11 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
     await screen.findByText('Conferência dos dados');
     expect(screen.queryByText('Marque o que se aplica')).not.toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: 'Houve aumento de capital' })).not.toBeInTheDocument();
+  });
+
+  it('a peça registrada declara que já produziu efeito, e não fala em formalizar', async () => {
+    await abrirRegistrado();
+    expect(screen.getByText('Contrato social · registrada na junta')).toBeInTheDocument();
   });
 
   it('modelo que passa a citar campo novo não quebra documento já validado', async () => {
@@ -846,12 +878,33 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
   it('registrado, a peça trava e o caminho adiante é gerar OUTRO documento', async () => {
     await abrirRegistrado();
 
-    // Some tudo que reescreveria a peça que já valeu.
-    expect(screen.queryByRole('button', { name: 'Atualizar versão' })).not.toBeInTheDocument();
+    // Os gestos que reescreveriam a peça que já valeu ficam VISÍVEIS e travados,
+    // com o motivo: botão sumido faz procurar um gesto que existe (foi o que
+    // deixou o consultor sem saída no incidente do segundo constitutivo).
+    const validar = screen.getByRole('button', { name: /Validar versão/ });
+    expect(validar).toBeDisabled();
+    expect(validar).toHaveAttribute('title', expect.stringContaining('já foi constituída'));
+    const atualizar = screen.getByRole('button', { name: /Atualizar versão/ });
+    expect(atualizar).toBeDisabled();
+    expect(atualizar).toHaveAttribute('title', expect.stringContaining('alteração contratual'));
     expect(screen.queryByRole('button', { name: 'Atualizar do cadastro' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Registrar na junta' })).not.toBeInTheDocument();
-    // E aparece o caminho de saída.
-    expect(screen.getByRole('button', { name: 'Gerar alteração contratual' })).toBeInTheDocument();
+    // E o caminho de saída, este sim clicável.
+    expect(screen.getByRole('button', { name: 'Gerar alteração contratual' })).toBeEnabled();
+  });
+
+  it('peça que já foi sucedida não gera uma SEGUNDA alteração', async () => {
+    // A primeira alteração já nasceu desta peça (em outra aba, ou antes de esta
+    // tela carregar). Gerar outra faria duas linhagens apontando para o mesmo
+    // antecessor, e as duas se diriam a mesma alteração da sociedade.
+    mocks.sucessor = { id: 'doc-alteracao', status: 'rascunho' };
+    await abrirRegistrado();
+
+    const gerar = screen.getByRole('button', { name: 'Gerar alteração contratual' });
+    expect(gerar).toBeDisabled();
+    expect(gerar).toHaveAttribute('title', expect.stringContaining('já tem uma alteração contratual'));
+    // E o motivo é lido sem passar o mouse em nada.
+    expect(screen.getByText(/Continue naquela/)).toBeInTheDocument();
   });
 
   it('o assistente grava TODAS as respostas ancoradas no documento registrado, marcadas ou não', async () => {
@@ -887,6 +940,10 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
     const view = render(<GerarDocumento />);
     await escolherModelo();
     mocks.rascunho = registrado();
+    // A sociedade JÁ está constituída, e mesmo assim validar segue liberado: a
+    // peça que nasce daqui substitui a registrada e nasce 'alterador'. É a
+    // fronteira da trava do constitutivo, e ela não pode fechar sobre este caso.
+    mocks.constitutivosRegistrados = new Set(['empresa-1']);
     view.rerender(<GerarDocumento />);
 
     // A tela deixou de ser a do registrado: é o documento novo, ainda por validar.
@@ -940,6 +997,27 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
 
     await validar();
     expect(chamadaDoCarimbo()).toBeUndefined();
+  });
+
+  it('a folha DECLARA onde o consultor está: peça, situação e atos que ela formaliza', async () => {
+    // A metade "avisar" do plano: dois atos na mesma peça é legítimo, e o que
+    // faltava era a peça dizer o que é. Sem esta linha, uma alteração
+    // formalizando mais de um ato parecia concatenação de alterações.
+    mocks.valoresFlagsManuais = [
+      {
+        id: 'pfv-1', cliente_id: 'cliente-1', pj_pessoa_id: 'empresa-1',
+        documento_base_id: 'doc-head', flag_id: 'flag-manual-1', valor: true,
+      },
+    ];
+    mocks.movimentos = [movimento('mov-1')];
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    mocks.rascunho = registrado();
+    view.rerender(<GerarDocumento />);
+
+    expect(
+      await screen.findByText('1ª alteração · em composição, ainda não validada · formalizando 1 ato pendente'),
+    ).toBeInTheDocument();
   });
 
   it('registrar o CONTRATO SOCIAL carimba todos os pendentes (é ele que os conta)', async () => {
@@ -1012,6 +1090,10 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
         documento_base_id: 'doc-base', flag_id: 'flag-manual-1', valor: true,
       },
     ];
+    // O sucessor da peça base é ESTA alteração (a raiz da linhagem em cena). A
+    // trava da sucessão não pode fechar sobre ela: reabrir o assistente da
+    // própria alteração é o caminho normal, não uma segunda alteração.
+    mocks.sucessor = { id: 'doc-raiz', status: 'rascunho' };
     const view = render(<GerarDocumento />);
     await escolherModelo();
     mocks.rascunho = alteracaoValidada();

@@ -2,9 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useAuth } from '@/contexts/AuthContext';
 import { computeFieldDiff } from '@/lib/diffUtils';
 import type { Database, Json } from '@/integrations/supabase/types';
 import type { ItemLista } from '@/lib/templates/mapeadores';
+import { avaliarTravaDoConstitutivo, type TravaDoConstitutivo } from '@/lib/osg/travaDoConstitutivo';
+import { avaliarTravaDaSucessao } from '@/lib/osg/travaDaSucessao';
 
 export type DocumentoGeradoRow = Database['public']['Tables']['documento_gerado']['Row'];
 
@@ -252,6 +255,8 @@ export type PapelDocumento = 'constitutivo' | 'alterador';
 async function papelDaRaiz(
   modeloId: string,
   substituiDocumentoId: string | null | undefined,
+  clienteId: string,
+  pjPessoaId: string | null,
 ): Promise<PapelDocumento | null> {
   const { data: modelo, error } = await supabase
     .from('tmpl_documento')
@@ -260,7 +265,73 @@ async function papelDaRaiz(
     .single();
   if (error) throw error;
   if (modelo.escopo !== 'sociedade') return null;
-  return substituiDocumentoId ? 'alterador' : 'constitutivo';
+
+  if (substituiDocumentoId) {
+    // Nasceria ALTERADOR: a peça anterior só pode ser sucedida uma vez. Sem esta
+    // leitura, duas linhagens apontam para o mesmo antecessor e as duas se
+    // dizem a mesma alteração da sociedade (ver useOrdemNaSucessao). A tela não
+    // oferece o gesto duas vezes, mas ela pode estar velha: a primeira alteração
+    // pode ter nascido em outra aba depois que esta carregou.
+    const { data: sucessor, error: erroSucessor } = await supabase
+      .from('documento_gerado')
+      .select('status')
+      .eq('substitui_documento_id', substituiDocumentoId)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (erroSucessor) throw erroSucessor;
+    const trava = avaliarTravaDaSucessao(sucessor);
+    if (!trava.liberado) throw new Error(trava.motivo!);
+    return 'alterador';
+  }
+
+  // Nasceria CONSTITUTIVO: antes de carimbar, pergunte se a sociedade já não foi
+  // constituída. Este é o ponto exato em que o segundo contrato social nascia,
+  // porque a busca da head acima só enxerga rascunho: com a peça anterior
+  // REGISTRADA, `head` vem nulo e o fluxo cai aqui como se fosse a primeira vez.
+  const trava = await travaDoConstitutivoNoBanco(clienteId, pjPessoaId);
+  if (!trava.liberado) throw new Error(trava.motivo!);
+  return 'constitutivo';
+}
+
+/**
+ * Relê do banco os fatos da trava e a avalia com a mesma função pura da tela.
+ *
+ * É a SEGUNDA leitura da regra, e não preciosismo: o rail pode estar com dado
+ * velho (aberto numa aba enquanto a peça é registrada em outra), e estes são os
+ * gestos que gravam. O hook não reimplementa a regra, relê o FATO.
+ */
+async function travaDoConstitutivoNoBanco(
+  clienteId: string,
+  pjPessoaId: string | null,
+): Promise<TravaDoConstitutivo> {
+  if (!pjPessoaId) return { liberado: true, motivo: null };
+
+  const { data, error } = await supabase
+    .from('documento_gerado')
+    .select('pj_pessoa_id')
+    .eq('cliente_id', clienteId)
+    .eq('papel', 'constitutivo')
+    .eq('status', 'registrado');
+  if (error) throw error;
+  const registrados = new Set(
+    (data ?? []).map((d) => d.pj_pessoa_id).filter((id): id is string => !!id),
+  );
+  if (!registrados.has(pjPessoaId)) return { liberado: true, motivo: null };
+
+  // A denominação só é buscada quando a trava vai morder: ela existe para a
+  // frase dizer QUAL sociedade já foi constituída, e no caminho liberado (que é
+  // o normal) seria uma consulta a mais por nada. Sem ela a frase ainda fecha.
+  const { data: pessoa } = await supabase
+    .from('pessoa')
+    .select('denominacao')
+    .eq('id', pjPessoaId)
+    .maybeSingle();
+
+  return avaliarTravaDoConstitutivo(
+    { pessoaId: pjPessoaId, denominacao: pessoa?.denominacao ?? null },
+    registrados,
+  );
 }
 
 /**
@@ -277,11 +348,11 @@ async function papelDaRaiz(
 export function useSalvarDocumentoGerado() {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: SalvarDocumentoGeradoInput): Promise<DocumentoGeradoRow> => {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id ?? null;
+      const userId = user?.id ?? null;
 
       // Head = rascunho mais recente da combinação. pj_pessoa_id IS NULL e = <id>
       // são filtros distintos no Postgres.
@@ -322,7 +393,12 @@ export function useSalvarDocumentoGerado() {
         // O escopo é lido do banco, e não recebido do chamador, porque é ele que
         // decide se a peça tem papel: quem grava a invariante não deveria depender
         // da tela ter passado o valor certo. Uma consulta só, no caminho raro.
-        const papel = await papelDaRaiz(input.modeloId, input.substituiDocumentoId);
+        const papel = await papelDaRaiz(
+          input.modeloId,
+          input.substituiDocumentoId,
+          input.clienteId,
+          input.pjPessoaId,
+        );
 
         const { data: comRaiz, error: erroInsert } = await supabase
           .from('documento_gerado')
@@ -458,11 +534,29 @@ export interface RegistrarDocumentoInput {
 export function useRegistrarDocumento() {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: RegistrarDocumentoInput): Promise<DocumentoGeradoRow> => {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id ?? null;
+      const userId = user?.id ?? null;
+
+      // Segunda leitura da trava do constitutivo, agora no gesto irreversível.
+      // Registrar é o que torna a peça oponível a terceiros, e é a hora em que um
+      // segundo contrato social da mesma sociedade deixaria de ser rascunho.
+      // Quem barrava aqui era o índice único
+      // `documento_gerado_um_constitutivo_registrado`, e o consultor recebia a
+      // mensagem crua do Postgres.
+      const { data: peca, error: erroPeca } = await supabase
+        .from('documento_gerado')
+        .select('cliente_id, pj_pessoa_id, papel')
+        .eq('id', input.documentoGeradoId)
+        .maybeSingle();
+      if (erroPeca) throw erroPeca;
+      if (!peca) throw new Error('Este documento não existe mais: recarregue a tela.');
+      if (peca.papel === 'constitutivo') {
+        const trava = await travaDoConstitutivoNoBanco(peca.cliente_id, peca.pj_pessoa_id);
+        if (!trava.liberado) throw new Error(trava.motivo!);
+      }
 
       const { data, error } = await supabase
         .from('documento_gerado')
@@ -471,7 +565,18 @@ export function useRegistrarDocumento() {
         .eq('status', 'rascunho')
         .select('*')
         .maybeSingle();
-      if (error) throw error;
+      // A trava acima fecha a janela normal; sobra a corrida entre duas sessões
+      // registrando constitutivos da mesma sociedade ao mesmo tempo, e aí quem
+      // decide é o índice único. Traduzir aqui é o que impede o 23505 de chegar
+      // cru na tela, como chegava antes.
+      if (error) {
+        if ((error as { code?: string } | null)?.code === UNIQUE_VIOLATION) {
+          throw new Error(
+            'O contrato social desta sociedade acabou de ser registrado em outra aba ou por outra pessoa: recarregue a tela.',
+          );
+        }
+        throw error;
+      }
       if (!data) {
         throw new Error('Este documento não está mais em rascunho — recarregue a tela.');
       }
@@ -491,6 +596,10 @@ export function useRegistrarDocumento() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [RASCUNHO_KEY] });
       queryClient.invalidateQueries({ queryKey: ['documento-versoes'] });
+      // Registrar é o gesto que MUDA o fato lido pelas travas de ordem (a do
+      // constitutivo e a da subida de quotas): a sociedade passa a existir na
+      // junta. Sem esta invalidação as duas seguem lendo o mundo de antes.
+      queryClient.invalidateQueries({ queryKey: ['constitutivos-registrados'] });
       toast({
         title: 'Documento registrado',
         description: 'A peça está travada. Para mudar a sociedade, gere uma alteração contratual.',
