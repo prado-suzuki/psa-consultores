@@ -6,7 +6,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { AlertTriangle, ArrowUpFromLine, Calculator, ChartPie, Landmark, Loader2, Tag, Users } from 'lucide-react';
+import { AlertTriangle, ArrowUpFromLine, Calculator, ChartPie, Landmark, Loader2, Tag, TrendingUp, Users } from 'lucide-react';
 import { useCountUp } from '@/hooks/useCountUp';
 import { useIntegralizacoesAprovadas } from '@/hooks/useGeracaoDocumento';
 import { useConstitutivosRegistrados } from '@/hooks/useDocumentoGerado';
@@ -15,12 +15,14 @@ import {
   useMovimentosDaEmpresa,
   useQuadroDaEmpresa,
 } from '@/hooks/useMovimentacaoQuotas';
-import { proporAportesIniciais } from '@/lib/osg/aporteInicial';
+import { contarImoveis, matriculasForaDoLivro, proporAportesIniciais } from '@/lib/osg/aporteInicial';
 import { avaliarTravaDaSubida } from '@/lib/osg/travaDaSubida';
+import { avaliarTravaDoIngresso } from '@/lib/osg/travaDoIngresso';
 import { procedenciaDosMovimentos } from '@/lib/osg/projecaoQuadro';
 import { capitalDeQuotas } from '@/lib/templates/capital';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { AtosSocietarios } from './AtosSocietarios';
+import { AumentoDeCapitalDialog } from './AumentoDeCapitalDialog';
 import { SubirQuotasDialog } from './SubirQuotasDialog';
 import { fmtBRL, fmtInt } from './quadroFmt';
 import { KpiCard } from './quadroKit';
@@ -55,10 +57,11 @@ interface QuadroEmpresaProprietariaProps {
 export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmpresaProprietariaProps) => {
   const navigate = useNavigate();
   const [subirAberto, setSubirAberto] = useState(false);
+  const [aumentoAberto, setAumentoAberto] = useState(false);
 
   const { data: matriculas = [], isLoading: carregandoBens } = useIntegralizacoesAprovadas(empresa.id);
   const { data: quadro = [], isLoading: carregandoQuadro } = useQuadroDaEmpresa(empresa.id);
-  const { data: livro } = useMovimentosDaEmpresa(empresa.id);
+  const { data: livro, isPending: carregandoLivro } = useMovimentosDaEmpresa(empresa.id);
   const { data: constitutivosRegistrados, isLoading: carregandoRegistros } =
     useConstitutivosRegistrados(empresa.cliente_id ?? null);
   const gravar = useGravarAporteInicial();
@@ -74,6 +77,24 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
   const procedencia = useMemo(
     () => procedenciaDosMovimentos(livro?.movimentos ?? [], empresa.id, livro?.atos ?? []),
     [livro, empresa.id],
+  );
+
+  // Os bens que JÁ estão no capital: qualquer linha do livro desta empresa paga
+  // com bem. É o critério do aumento, e ele se autocorrige sem depender de data —
+  // cobre tanto o imóvel adquirido depois da constituição quanto o que ficou de
+  // fora dela por atraso de matrícula (ver `matriculasForaDoLivro`).
+  const bensNoLivro = useMemo(() => {
+    const ids = new Set<string>();
+    for (const m of livro?.movimentos ?? []) {
+      if (m.pagamento.tipo === 'bem') ids.add(m.pagamento.bemId);
+    }
+    return ids;
+  }, [livro]);
+  // Só depois que o LIVRO chegou: com ele vazio por carregamento, `bensNoLivro`
+  // sai vazio e todo imóvel da constituição pareceria estar fora do capital.
+  const imoveisForaDoCapital = useMemo(
+    () => (livro ? matriculasForaDoLivro(matriculas, bensNoLivro) : []),
+    [livro, matriculas, bensNoLivro],
   );
 
   // A tabela é a mesma nos dois estados; muda a origem das linhas.
@@ -134,7 +155,30 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
     [{ pessoaId: empresa.id, denominacao: empresa.denominacao }],
     constitutivosRegistrados ?? new Set<string>(),
   );
-  const subidaLiberada = !carregandoRegistros && travaDaSubida.liberado;
+
+  // Os nomes que a frase do ingresso vai usar. Vêm das duas fontes que a tela já
+  // tem: o quadro nomeia quem está nele, e as pessoas do cliente alcançam quem
+  // entrou e saiu no mesmo par de lançamentos pendentes e por isso não aparece
+  // no saldo.
+  const nomePorPessoa = useMemo(() => {
+    const nomes = new Map<string, string>();
+    for (const p of pessoasCliente) if (p.denominacao) nomes.set(p.id, p.denominacao);
+    for (const s of quadro) nomes.set(s.pessoaId, s.denominacao);
+    return nomes;
+  }, [pessoasCliente, quadro]);
+
+  // E exige que ninguém tenha entrado no quadro por ato ainda não registrado:
+  // a alteração que narrasse esta cessão descreveria esse sócio entrando e
+  // saindo de uma vez (ver travaDoIngresso).
+  const travaDoIngresso = useMemo(
+    () => avaliarTravaDoIngresso(livro?.movimentos ?? [], empresa.id, nomePorPessoa),
+    [livro, empresa.id, nomePorPessoa],
+  );
+
+  // A ordem das duas é a ordem do fluxo: sem sociedade na junta não há o que
+  // perguntar sobre o quadro dela.
+  const motivoDaSubida = travaDaSubida.motivo ?? travaDoIngresso.motivo;
+  const subidaLiberada = !carregandoRegistros && !carregandoLivro && !motivoDaSubida;
 
   return (
     <div className="space-y-4">
@@ -188,14 +232,14 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
           acima: é a segunda razão pela qual o quadro não anda, e o consultor
           lê as duas na mesma moldura. O botão fica visível e travado, e não
           escondido: escondê-lo faria procurar um gesto que existe. */}
-      {gravado && !carregandoRegistros && !travaDaSubida.liberado && (
+      {gravado && !carregandoRegistros && !carregandoLivro && motivoDaSubida && (
         <div
           className="rounded-lg border border-amber-300 bg-amber-50/60 p-3 animate-osg-rise motion-reduce:animate-none"
           style={{ animationDelay: '150ms' }}
         >
           <div className="flex items-start gap-2 text-xs text-amber-800">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-            <span>{travaDaSubida.motivo}</span>
+            <span>{motivoDaSubida}</span>
           </div>
           <Button
             variant="outline"
@@ -204,6 +248,41 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
             onClick={() => navigate('/equipe/osg/work/gerar-documento')}
           >
             Ir para Gerar Documento
+          </Button>
+        </div>
+      )}
+
+      {/* O segundo estado da tela. Gravado o quadro, ela passa a mostrar o
+          acumulado do livro e nunca mais olha o Diagnóstico Patrimonial — o que
+          está certo para o capital e deixava o imóvel novo sem porta de entrada.
+          Este é o gesto que a abre, e ele só existe quando há imóvel pendente:
+          card sempre presente pediria atenção sem ter nada a dizer, e aumento
+          puramente em dinheiro continua no movimento avulso. */}
+      {gravado && !carregandoBens && !carregandoLivro && imoveisForaDoCapital.length > 0 && (
+        <div
+          className="flex flex-col gap-3 rounded-lg border border-osg-300/60 bg-osg-50/50 p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] animate-osg-rise motion-reduce:animate-none sm:flex-row sm:items-center sm:justify-between"
+          style={{ animationDelay: '160ms' }}
+        >
+          <div className="flex items-start gap-2">
+            <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss" />
+            <div className="text-xs text-slate-700">
+              <p className="text-sm font-semibold text-osg-700">
+                {contarImoveis(imoveisForaDoCapital)} imóvel(is) aprovado(s) fora do capital
+              </p>
+              <p className="mt-0.5">
+                Aprovados no Diagnóstico Patrimonial depois da constituição, eles ainda não
+                entraram no capital desta empresa. Registre o aumento para que a próxima alteração
+                contratual o publique.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            className="h-9 shrink-0 gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
+            onClick={() => setAumentoAberto(true)}
+          >
+            <TrendingUp className="h-3.5 w-3.5" />
+            Registrar aumento de capital
           </Button>
         </div>
       )}
@@ -234,7 +313,7 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
                   className="h-9 gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
                   onClick={() => setSubirAberto(true)}
                   disabled={!subidaLiberada}
-                  title={travaDaSubida.motivo ?? undefined}
+                  title={motivoDaSubida ?? undefined}
                 >
                   <ArrowUpFromLine className="h-3.5 w-3.5" />
                   Transferir quotas para a controladora
@@ -325,12 +404,22 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
 
       <AtosSocietarios movimentos={livro?.movimentos ?? []} atos={livro?.atos ?? []} />
 
+      <AumentoDeCapitalDialog
+        open={aumentoAberto}
+        onOpenChange={setAumentoAberto}
+        empresa={empresa}
+        matriculas={matriculas}
+        bensNoLivro={bensNoLivro}
+        quadro={quadro}
+      />
+
       <SubirQuotasDialog
         open={subirAberto}
         onOpenChange={setSubirAberto}
         proprietaria={empresa}
         quadro={quadro}
         controladoras={controladoras}
+        travaDoIngresso={travaDoIngresso}
       />
     </div>
   );

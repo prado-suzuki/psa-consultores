@@ -4,6 +4,7 @@ import {
   movimentosDoAto,
   movimentosPendentes,
   ordenarMovimentos,
+  procedenciaDosMovimentos,
   quadroEm,
   type LinhaCrua,
   type MovimentoDoLedger,
@@ -198,5 +199,45 @@ describe('movimentoDaLinha', () => {
         crua({ pago_com_empresa_pessoa_id: CN, pago_com_quotas: '500', pago_com_valor: '500' }),
       ).pagamento,
     ).toEqual({ tipo: 'quotas', empresaPessoaId: CN, quotas: 500, valor: 500 });
+  });
+});
+
+describe('procedenciaDosMovimentos', () => {
+  it('o prefixo de aportes sem ato é a constituição', () => {
+    const movs = [
+      mov({ id: 'c1', destinoPessoaId: ANA, quotas: 600, valor: 600 }),
+      mov({ id: 'c2', destinoPessoaId: BRUNO, quotas: 400, valor: 400 }),
+    ];
+    expect([...procedenciaDosMovimentos(movs, PR).values()]).toEqual([
+      'Constituição', 'Constituição',
+    ]);
+  });
+
+  it('o aumento gravado sob um ato é o NOME do ato, e nunca Constituição', () => {
+    // A armadilha que o `ato_id` do aumento de capital evita: numa PR cuja
+    // história é só aportes, o prefixo "Constituição" só fecharia num movimento
+    // que não fosse aporte, e o aumento entraria nele — a tela chamaria o
+    // aumento de capital de abertura.
+    const movs = [
+      mov({ id: 'c1', destinoPessoaId: ANA, quotas: 600, valor: 600 }),
+      mov({ id: 'a1', atoId: 'ato-1', sequencia: 1, destinoPessoaId: ANA, quotas: 900, valor: 900 }),
+    ];
+    const atos = [{ id: 'ato-1', data: '2026-08-31', descricao: 'Aumento de capital por integralização de imóveis' }];
+    expect([...procedenciaDosMovimentos(movs, PR, atos).values()]).toEqual([
+      'Constituição',
+      'Aumento de capital por integralização de imóveis',
+    ]);
+  });
+
+  it('ato sem descrição cai na data, e movimento avulso na forma mais a data', () => {
+    const movs = [
+      mov({ id: 'c1', destinoPessoaId: ANA, quotas: 600, valor: 600 }),
+      mov({ id: 'a1', atoId: 'ato-1', destinoPessoaId: ANA, quotas: 100, valor: 100 }),
+      mov({ id: 'x1', tipo: 'cessao', origemPessoaId: ANA, destinoPessoaId: BRUNO, quotas: 50, valor: 50, dataMovimento: '2026-08-30' }),
+    ];
+    const atos = [{ id: 'ato-1', data: '2026-08-31', descricao: null }];
+    expect([...procedenciaDosMovimentos(movs, PR, atos).values()]).toEqual([
+      'Constituição', 'Ato de 31/08/2026', 'Cessão de 30/08/2026',
+    ]);
   });
 });

@@ -2,11 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
-import type { AporteProposto } from '@/lib/osg/aporteInicial';
+import type { AporteProposto, LancamentoDoAumento } from '@/lib/osg/aporteInicial';
 import {
   capitalDoMovimento,
   colunasDoPagamento,
   FORMAS_MOVIMENTO,
+  problemaDoPagamento,
   type MovimentoDeQuotas,
 } from '@/lib/osg/movimentoQuotas';
 import {
@@ -17,6 +18,7 @@ import {
 } from '@/lib/osg/projecaoQuadro';
 import type { PlanoDaSubida } from '@/lib/osg/subidaDeQuotas';
 import { avaliarTravaDaSubida, type EmpresaDaSubida } from '@/lib/osg/travaDaSubida';
+import { avaliarTravaDoIngresso } from '@/lib/osg/travaDoIngresso';
 
 // Camada de dados do livro de movimentos de quota (`movimentacao_quotas`) e do
 // quadro societário que sai dele (`v_quadro_societario`). Uma fonte só para a
@@ -130,6 +132,17 @@ export function useGravarAporteInicial() {
     onSuccess: async ({ linhas, aportes, empresaPessoaId }) => {
       queryClient.invalidateQueries({ queryKey: ['quadro-da-empresa', empresaPessoaId] });
       queryClient.invalidateQueries({ queryKey: ['socios-geracao', empresaPessoaId] });
+      // O LIVRO também, e não só o saldo. Quando este hook nasceu, a tela do
+      // Quadro Societário não lia os movimentos, e faltar esta chave não tinha
+      // efeito visível. Passou a ter: o card dos imóveis fora do capital deriva
+      // `bensNoLivro` daqui, então com o saldo fresco e o livro velho a tela
+      // dizia que os bens recém-integralizados estavam fora do capital, no
+      // instante seguinte ao clique que os pôs dentro.
+      queryClient.invalidateQueries({ queryKey: ['movimentos-da-empresa', empresaPessoaId] });
+      // Os aportes de constituição nascem pendentes e são as alíneas que a tela
+      // Gerar imprime: sem isto ela seguiria lendo a lista vazia de antes.
+      queryClient.invalidateQueries({ queryKey: ['aportes-do-livro', empresaPessoaId] });
+      queryClient.invalidateQueries({ queryKey: ['relatorio-societario'] });
 
       const nomePorPessoa = new Map(aportes.map((a) => [a.pessoaId, a.denominacao]));
       for (const linha of linhas) {
@@ -308,12 +321,15 @@ export function useSubirQuotas() {
   return useMutation({
     mutationFn: async ({
       clienteId,
+      proprietariaPessoaId,
       plano,
       empresas,
       descricao,
       dataMovimento,
     }: {
       clienteId: string;
+      /** De onde as quotas saem: a empresa cujo quadro a trava do ingresso lê. */
+      proprietariaPessoaId: string;
       plano: PlanoDaSubida;
       /**
        * As duas pontas do ato. Só os NOMES vêm daqui, para a mensagem de erro
@@ -327,6 +343,15 @@ export function useSubirQuotas() {
     }) => {
       if (plano.problema) throw new Error(plano.problema);
       if (plano.lancamentos.length === 0) throw new Error('Nada a gravar: o plano está vazio.');
+
+      // Segunda leitura da regra de pagamento, sobre os lançamentos que ESTE
+      // gesto grava. O `plano` chega pronto da tela, e uma tela velha traz o
+      // problema junto; o macro é justamente o caminho que não passa pelo
+      // formulário, e por isso `problemaDoPagamento` existe separada.
+      for (const l of plano.lancamentos) {
+        const problema = problemaDoPagamento(l.movimento, l.empresaPessoaId);
+        if (problema) throw new Error(problema);
+      }
 
       // A trava das duas pontas é relida AQUI, e não só na tela, pela mesma razão
       // que a guarda do documento em useReverterAto: a tela pode estar com dado
@@ -344,6 +369,46 @@ export function useSubirQuotas() {
         new Set((constitutivos ?? []).map((d) => d.pj_pessoa_id).filter((id): id is string => !!id)),
       );
       if (!trava.liberado) throw new Error(trava.motivo!);
+
+      // E o LIVRO da Proprietária, pela mesma razão e no mesmo instante: sócio
+      // que entrou no quadro por ato ainda não registrado faria esta cessão
+      // nascer numa alteração contratual que o descreve entrando e saindo de
+      // uma vez. A tela já confere, e pode estar com dado velho: o modal fica
+      // aberto numa aba enquanto a alteração é registrada em outra.
+      const { data: linhasDoLivro, error: erroLivro } = await supabase
+        .from('movimentacao_quotas')
+        .select('empresa_pessoa_id, origem_pessoa_id, destino_pessoa_id, quotas, documento_gerado_id')
+        .eq('empresa_pessoa_id', proprietariaPessoaId);
+      if (erroLivro) throw erroLivro;
+
+      const doLivro = (linhasDoLivro ?? []).map((l) => ({
+        empresaPessoaId: l.empresa_pessoa_id,
+        origemPessoaId: l.origem_pessoa_id,
+        destinoPessoaId: l.destino_pessoa_id,
+        quotas: Number(l.quotas ?? 0),
+        documentoGeradoId: l.documento_gerado_id,
+      }));
+      // Só os adquirentes dos movimentos PENDENTES podem ser nomeados na frase,
+      // e são poucos: buscar o nome de todo mundo do livro seria uma leitura
+      // maior para dizer a mesma coisa. Quem decide se algum deles é ingresso
+      // continua sendo a função pura.
+      const candidatos = [
+        ...new Set(
+          doLivro.filter((m) => !m.documentoGeradoId && m.destinoPessoaId).map((m) => m.destinoPessoaId!),
+        ),
+      ];
+      const nomePorPessoa = new Map<string, string>();
+      if (candidatos.length > 0) {
+        const { data: pessoas, error: erroPessoas } = await supabase
+          .from('pessoa')
+          .select('id, denominacao')
+          .in('id', candidatos);
+        if (erroPessoas) throw erroPessoas;
+        for (const p of pessoas ?? []) if (p.denominacao) nomePorPessoa.set(p.id, p.denominacao);
+      }
+
+      const travaIngresso = avaliarTravaDoIngresso(doLivro, proprietariaPessoaId, nomePorPessoa);
+      if (!travaIngresso.liberado) throw new Error(travaIngresso.motivo!);
 
       const { data: ato, error: erroAto } = await supabase
         .from('ato_societario')
@@ -403,6 +468,121 @@ export function useSubirQuotas() {
     onError: (error: Error) => {
       toast({
         title: 'Erro ao transferir as quotas',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
+/**
+ * Grava o ato do AUMENTO DE CAPITAL: os imóveis aprovados depois da constituição
+ * mais a parcela em moeda corrente, num ato só.
+ *
+ * É o elo que faltava. Sem ele o imóvel aprovado depois do registro do contrato
+ * social não vira aporte nenhum, a alteração contratual seguinte não tem
+ * movimento pendente de que derivar o evento, e o bem fica `Aprovado` para
+ * sempre. Daqui para a frente tudo já é código em produção: o assistente acende
+ * porque o aporte pendente passou a existir, as alíneas saem de
+ * `useAportesDoLivro` e o registro da peça carimba `documento_gerado_id` e vira
+ * os bens para `Integralizado`.
+ *
+ * O lançamento nasce sob um `ato_societario`, no molde de `useSubirQuotas`, e o
+ * `ato_id` não é enfeite: `procedenciaDosMovimentos` rotula como "Constituição"
+ * o PREFIXO de aportes sem ato, então numa PR cuja história é só aportes um
+ * aumento solto entraria nesse prefixo e a tela chamaria o aumento de capital de
+ * abertura. O ato também é o que dá reversão pelo card de Atos Societários e o
+ * nome legível ao lado do sócio.
+ *
+ * `created_at` e `sequencia` vão os DOIS, explícitos e escalonados: `now()` é o
+ * timestamp da TRANSAÇÃO e empataria todas as linhas, e `useAportesDoLivro` lê
+ * por `created_at` e depois `sequencia` — é essa ordem que as alíneas do
+ * instrumento imprimem.
+ */
+export function useGravarAumentoDeCapital() {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async ({
+      clienteId,
+      empresaPessoaId,
+      lancamentos,
+      descricao,
+      dataDoAto,
+    }: {
+      clienteId: string;
+      empresaPessoaId: string;
+      /** Na ordem de `proporAumentoDeCapital`, que é a ordem das alíneas. */
+      lancamentos: LancamentoDoAumento[];
+      /** Frase que nomeia o ato para o consultor (vira a procedência na tabela). */
+      descricao: string;
+      dataDoAto: string | null;
+    }) => {
+      if (lancamentos.length === 0) throw new Error('Nada a gravar: a proposta está vazia.');
+
+      const { data: ato, error: erroAto } = await supabase
+        .from('ato_societario')
+        .insert({ cliente_id: clienteId, data: dataDoAto, descricao })
+        .select('id')
+        .single();
+      if (erroAto) throw erroAto;
+
+      const base = Date.now();
+      const { error } = await supabase
+        .from('movimentacao_quotas')
+        .insert(
+          lancamentos.map((l, i) => ({
+            cliente_id: clienteId,
+            tipo: 'aporte',
+            empresa_pessoa_id: empresaPessoaId,
+            destino_pessoa_id: l.pessoaId,
+            quotas: l.quotas,
+            vlr_capital_arredondado: capitalDoMovimento(l.quotas),
+            data_movimento: dataDoAto,
+            ato_id: ato.id,
+            sequencia: i + 1,
+            created_at: new Date(base + i).toISOString(),
+            // O único ponto que decide qual alínea o instrumento imprime: bem_id
+            // no imóvel, os quatro nulos na moeda corrente.
+            ...colunasDoPagamento(l.pagamento),
+          })),
+        )
+        .select('id');
+      if (error) {
+        // Ato sem lançamento nenhum é lixo que a tela ofereceria reverter.
+        await supabase.from('ato_societario').delete().eq('id', ato.id);
+        throw error;
+      }
+      return { atoId: ato.id, lancamentos, descricao, empresaPessoaId };
+    },
+    onSuccess: async ({ atoId, lancamentos, descricao, empresaPessoaId }) => {
+      queryClient.invalidateQueries({ queryKey: ['quadro-da-empresa', empresaPessoaId] });
+      queryClient.invalidateQueries({ queryKey: ['socios-geracao', empresaPessoaId] });
+      queryClient.invalidateQueries({ queryKey: ['movimentos-da-empresa', empresaPessoaId] });
+      // A tela Gerar lê os aportes pendentes e os bens elegíveis por estas duas:
+      // sem invalidá-las o assistente continuaria mostrando a lista de antes.
+      queryClient.invalidateQueries({ queryKey: ['aportes-do-livro', empresaPessoaId] });
+      queryClient.invalidateQueries({ queryKey: ['integralizacoes-geracao', empresaPessoaId] });
+      queryClient.invalidateQueries({ queryKey: ['relatorio-societario'] });
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'ato_societario',
+        entity_id: atoId,
+        entity_name: descricao,
+        action: 'created',
+      });
+
+      const socios = new Set(lancamentos.map((l) => l.pessoaId)).size;
+      toast({
+        title: 'Aumento de capital gravado',
+        description: `${lancamentos.length} lançamento(s) de ${socios} sócio(s) em um ato.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao gravar o aumento de capital',
         description: error.message,
         variant: 'destructive',
       });

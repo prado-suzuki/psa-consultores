@@ -13,6 +13,7 @@ import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { useQuadroDaEmpresa, useSubirQuotas, type SocioDoQuadro } from '@/hooks/useMovimentacaoQuotas';
 import { useConstitutivosRegistrados } from '@/hooks/useDocumentoGerado';
 import { avaliarTravaDaSubida } from '@/lib/osg/travaDaSubida';
+import type { TravaDoIngresso } from '@/lib/osg/travaDoIngresso';
 import { planejarSubidaDeQuotas, type SocioQueSobe } from '@/lib/osg/subidaDeQuotas';
 import { fmtBRL, fmtInt } from './quadroFmt';
 
@@ -38,6 +39,12 @@ interface SubirQuotasDialogProps {
   quadro: SocioDoQuadro[];
   /** Candidatas a controladora: as PJ tipo CN do cliente. */
   controladoras: PessoaRow[];
+  /**
+   * A trava do ingresso pendente, avaliada pelo card lá fora e recebida pronta:
+   * ela é sobre o quadro da Proprietária, e nada do que se escolhe aqui dentro
+   * muda a resposta. Quem relê o fato é `useSubirQuotas`, no instante de gravar.
+   */
+  travaDoIngresso: TravaDoIngresso;
 }
 
 const paraSocioQueSobe = (s: SocioDoQuadro): SocioQueSobe => ({
@@ -53,6 +60,7 @@ export const SubirQuotasDialog = ({
   proprietaria,
   quadro,
   controladoras,
+  travaDoIngresso,
 }: SubirQuotasDialogProps) => {
   const [controladoraId, setControladoraId] = useState('');
   const [data, setData] = useState('');
@@ -76,7 +84,10 @@ export const SubirQuotasDialog = ({
       : [{ pessoaId: proprietaria.id, denominacao: proprietaria.denominacao }],
     constitutivosRegistrados ?? new Set<string>(),
   );
-  const travado = carregandoRegistros || !trava.liberado;
+  // A ordem das duas é a ordem do fluxo: sem as duas sociedades na junta não há
+  // o que perguntar sobre quem entrou no quadro de uma delas.
+  const motivoDaOrdem = trava.motivo ?? travaDoIngresso.motivo;
+  const travado = carregandoRegistros || !!motivoDaOrdem;
 
   const plano = useMemo(() => {
     if (!controladora) return null;
@@ -101,6 +112,7 @@ export const SubirQuotasDialog = ({
     if (!plano || !controladora || !proprietaria.cliente_id) return;
     await subir.mutateAsync({
       clienteId: proprietaria.cliente_id,
+      proprietariaPessoaId: proprietaria.id,
       plano,
       empresas: [
         { pessoaId: proprietaria.id, denominacao: proprietaria.denominacao },
@@ -112,7 +124,13 @@ export const SubirQuotasDialog = ({
     fechar(false);
   };
 
-  const totalQuotas = quadro.reduce((s, l) => s + l.quotas, 0);
+  // As quotas que REALMENTE sobem, lidas do plano e não do quadro inteiro: na
+  // segunda concentração a holding já é sócia da proprietária, e as quotas dela
+  // ficam onde estão. Somar o quadro faria a quantidade não bater com o valor
+  // cedido logo ao lado.
+  const totalQuotas = (plano?.lancamentos ?? [])
+    .filter((l) => l.movimento.tipo === 'cessao')
+    .reduce((s, l) => s + l.movimento.quotas, 0);
 
   return (
     <Dialog open={open} onOpenChange={fechar}>
@@ -165,10 +183,10 @@ export const SubirQuotasDialog = ({
             </p>
           )}
 
-          {!carregandoRegistros && !trava.liberado && (
+          {!carregandoRegistros && motivoDaOrdem && (
             <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{trava.motivo}</span>
+              <span>{motivoDaOrdem}</span>
             </div>
           )}
 
