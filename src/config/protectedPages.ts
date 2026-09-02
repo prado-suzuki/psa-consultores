@@ -194,7 +194,8 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/dev/consulta-sped',
     page_name: 'Consulta SPED',
-    page_description: 'Area de acesso as consultas e analises do Sistema Publico de Escrituracao Digital',
+    page_description:
+      'Area de acesso as consultas e analises do Sistema Publico de Escrituracao Digital',
     category: 'dev',
     requires_admin: false,
     requires_team_member: true,
@@ -258,7 +259,8 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/dev/levantamento-pis-cofins',
     page_name: 'Area Levantamento PIS/COFINS',
-    page_description: 'Area de acesso as ferramentas de parametrizacao, apuracao, auditoria e revisao do levantamento de creditos de PIS e COFINS',
+    page_description:
+      'Area de acesso as ferramentas de parametrizacao, apuracao, auditoria e revisao do levantamento de creditos de PIS e COFINS',
     category: 'dev',
     requires_admin: false,
     requires_team_member: true,
@@ -266,7 +268,8 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/dev/perdcomp',
     page_name: 'Area PERDCOMP',
-    page_description: 'Area de acesso ao painel analitico e ao controle operacional dos pedidos de restituicao e compensacao',
+    page_description:
+      'Area de acesso ao painel analitico e ao controle operacional dos pedidos de restituicao e compensacao',
     category: 'dev',
     requires_admin: false,
     requires_team_member: true,
@@ -282,7 +285,8 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/dev/analise-icms',
     page_name: 'Area Analise ICMS',
-    page_description: 'Area de acesso a apuracao de saidas e a auditoria de classificacao para diferencial de aliquota',
+    page_description:
+      'Area de acesso a apuracao de saidas e a auditoria de classificacao para diferencial de aliquota',
     category: 'dev',
     requires_admin: false,
     requires_team_member: true,
@@ -371,6 +375,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     page_path: '/equipe/dev/apuracao-difal/icms-saidas',
     page_name: 'ICMS das Saídas',
     page_description: 'Classificação fiscal de produtos em saídas interestaduais (Beta)',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/dev/planejamento-tributario',
+    page_name: 'Planejamento Tributario',
+    page_description: 'Area do estudo de Planejamento Tributario rural',
     category: 'dev',
     requires_admin: false,
     requires_team_member: true,
@@ -613,7 +625,8 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/osg/projetos/tarefas',
     page_name: 'Tarefas OSG',
-    page_description: 'Gestão de tarefas e eventos da área OSG (ferramenta compartilhada com o Tax)',
+    page_description:
+      'Gestão de tarefas e eventos da área OSG (ferramenta compartilhada com o Tax)',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,
@@ -788,7 +801,8 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/board/chamados/dashboard',
     page_name: 'Board - Dashboard de Chamados',
-    page_description: 'Atendimento consolidado: tempo de resposta, prazos e rankings (somente líder+)',
+    page_description:
+      'Atendimento consolidado: tempo de resposta, prazos e rankings (somente líder+)',
     category: 'board',
     requires_admin: false,
     requires_team_member: true,
@@ -796,7 +810,8 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/board/capacidade',
     page_name: 'Board - Capacidade',
-    page_description: 'Carga do time, workload de 14 dias, atrasos e horas por cliente — Tax + OSG (somente líder+)',
+    page_description:
+      'Carga do time, workload de 14 dias, atrasos e horas por cliente — Tax + OSG (somente líder+)',
     category: 'board',
     requires_admin: false,
     requires_team_member: true,
@@ -804,7 +819,8 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/board/logs-equipe',
     page_name: 'Board - Logs de Equipe',
-    page_description: 'Produtividade, acesso e pendências do time nas áreas somadas (somente líder+)',
+    page_description:
+      'Produtividade, acesso e pendências do time nas áreas somadas (somente líder+)',
     category: 'board',
     requires_admin: false,
     requires_team_member: true,

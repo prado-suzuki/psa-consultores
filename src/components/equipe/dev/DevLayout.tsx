@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { NotificationPopover } from "@/components/notifications/NotificationPopover";
-import { PendingTicketsAlert } from "@/components/notifications/PendingTicketsAlert";
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { NotificationPopover } from '@/components/notifications/NotificationPopover';
+import { PendingTicketsAlert } from '@/components/notifications/PendingTicketsAlert';
 import {
   LayoutDashboard,
   LogOut,
@@ -18,11 +18,10 @@ import {
   User,
   Calculator,
   BookOpen,
-  FileSpreadsheet,
   type LucideIcon,
-} from "lucide-react";
-import { DEV_HUBS } from "@/constants/devHubDefinitions";
-import { DEV_NAV_LABELS } from "@/constants/devNavLabels";
+} from 'lucide-react';
+import { DEV_HUBS } from '@/constants/devHubDefinitions';
+import { DEV_NAV_LABELS } from '@/constants/devNavLabels';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
 
 interface DevLayoutProps {
@@ -52,9 +51,9 @@ interface HubSidebarSectionProps {
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: DEV_NAV_LABELS.inicio, path: "/equipe/dev" },
-  { icon: Plus, label: DEV_NAV_LABELS.novaFerramenta, path: "/equipe/dev/nova-ferramenta" },
-  { icon: LayoutDashboard, label: DEV_NAV_LABELS.consultaXmls, path: "/equipe/dev/consulta-xmls" },
+  { icon: LayoutDashboard, label: DEV_NAV_LABELS.inicio, path: '/equipe/dev' },
+  { icon: Plus, label: DEV_NAV_LABELS.novaFerramenta, path: '/equipe/dev/nova-ferramenta' },
+  { icon: LayoutDashboard, label: DEV_NAV_LABELS.consultaXmls, path: '/equipe/dev/consulta-xmls' },
 ];
 
 const spedSubItems: NavItem[] = DEV_HUBS.consultaSped.options.map((option) => ({
@@ -81,6 +80,14 @@ const perdcompSubItems: NavItem[] = DEV_HUBS.perdcomp.options.map((option) => ({
   path: option.path,
 }));
 
+const planejamentoTributarioSubItems: NavItem[] = DEV_HUBS.planejamentoTributario.options.map(
+  (option) => ({
+    icon: option.icon,
+    label: option.title,
+    path: option.path,
+  }),
+);
+
 const gerenciarDadosSubItems: NavItem[] = DEV_HUBS.gerenciarDados.options.map((option) => ({
   icon: option.icon,
   label: option.title,
@@ -88,14 +95,17 @@ const gerenciarDadosSubItems: NavItem[] = DEV_HUBS.gerenciarDados.options.map((o
 }));
 
 const navItemsAfterGroups: NavItem[] = [
-  { icon: Calculator, label: DEV_NAV_LABELS.calculadoraIbsCbs, path: "/equipe/dev/calculadora-ibs-cbs" },
-  { icon: FileText, label: DEV_NAV_LABELS.controleBalancetes, path: "/equipe/dev/controle-balancetes" },
-  { icon: BookOpen, label: DEV_NAV_LABELS.procedimentos, path: "/equipe/dev/procedimentos" },
   {
-    icon: FileSpreadsheet,
-    label: DEV_NAV_LABELS.papelDeTrabalho,
-    path: "/equipe/dev/planejamento-tributario/papel-de-trabalho",
+    icon: Calculator,
+    label: DEV_NAV_LABELS.calculadoraIbsCbs,
+    path: '/equipe/dev/calculadora-ibs-cbs',
   },
+  {
+    icon: FileText,
+    label: DEV_NAV_LABELS.controleBalancetes,
+    path: '/equipe/dev/controle-balancetes',
+  },
+  { icon: BookOpen, label: DEV_NAV_LABELS.procedimentos, path: '/equipe/dev/procedimentos' },
 ];
 
 const HubSidebarSection = ({
@@ -111,7 +121,7 @@ const HubSidebarSection = ({
   <Collapsible open={open} onOpenChange={onOpenChange}>
     <div
       className={`flex items-center gap-1 rounded-lg px-3 py-1 text-sm font-medium transition-colors h-auto ${
-        active ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted hover:text-primary"
+        active ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted hover:text-primary'
       }`}
     >
       <button
@@ -131,11 +141,13 @@ const HubSidebarSection = ({
           size="icon"
           className={`h-8 w-8 flex-shrink-0 ${
             active
-              ? "text-primary hover:bg-primary/10 hover:text-primary"
-              : "text-foreground hover:bg-muted hover:text-primary"
+              ? 'text-primary hover:bg-primary/10 hover:text-primary'
+              : 'text-foreground hover:bg-muted hover:text-primary'
           }`}
         >
-          <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+          <ChevronDown
+            className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          />
         </Button>
       </CollapsibleTrigger>
     </div>
@@ -147,8 +159,8 @@ const HubSidebarSection = ({
           variant="ghost"
           className={`w-full justify-start rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
             currentPath === item.path
-              ? "bg-primary/10 text-primary hover:bg-primary/15"
-              : "text-muted-foreground hover:bg-muted hover:text-primary"
+              ? 'bg-primary/10 text-primary hover:bg-primary/15'
+              : 'text-muted-foreground hover:bg-muted hover:text-primary'
           }`}
           onClick={() => navigate(item.path)}
         >
@@ -169,11 +181,13 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/");
+    navigate('/');
   };
 
   const [spedOpen, setSpedOpen] = useState(
-    () => location.pathname === DEV_HUBS.consultaSped.landingPath || spedSubItems.some((item) => location.pathname === item.path),
+    () =>
+      location.pathname === DEV_HUBS.consultaSped.landingPath ||
+      spedSubItems.some((item) => location.pathname === item.path),
   );
   const [pisCofinsOpen, setPisCofinsOpen] = useState(
     () =>
@@ -181,10 +195,19 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
       pisCofinsSubItems.some((item) => location.pathname === item.path),
   );
   const [analiseIcmsOpen, setAnaliseIcmsOpen] = useState(
-    () => location.pathname === DEV_HUBS.analiseIcms.landingPath || analiseIcmsSubItems.some((item) => location.pathname === item.path),
+    () =>
+      location.pathname === DEV_HUBS.analiseIcms.landingPath ||
+      analiseIcmsSubItems.some((item) => location.pathname === item.path),
   );
   const [perdcompOpen, setPerdcompOpen] = useState(
-    () => location.pathname === DEV_HUBS.perdcomp.landingPath || perdcompSubItems.some((item) => location.pathname === item.path),
+    () =>
+      location.pathname === DEV_HUBS.perdcomp.landingPath ||
+      perdcompSubItems.some((item) => location.pathname === item.path),
+  );
+  const [planejamentoTributarioOpen, setPlanejamentoTributarioOpen] = useState(
+    () =>
+      location.pathname === DEV_HUBS.planejamentoTributario.landingPath ||
+      planejamentoTributarioSubItems.some((item) => location.pathname === item.path),
   );
   const [gerenciarDadosOpen, setGerenciarDadosOpen] = useState(
     () =>
@@ -196,14 +219,20 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
     item.path === location.pathname || item.matchPaths?.includes(location.pathname) === true;
 
   const isSpedActive =
-    location.pathname === DEV_HUBS.consultaSped.landingPath || spedSubItems.some((item) => location.pathname === item.path);
+    location.pathname === DEV_HUBS.consultaSped.landingPath ||
+    spedSubItems.some((item) => location.pathname === item.path);
   const isPisCofinsActive =
     location.pathname === DEV_HUBS.levantamentoPisCofins.landingPath ||
     pisCofinsSubItems.some((item) => location.pathname === item.path);
   const isAnaliseIcmsActive =
-    location.pathname === DEV_HUBS.analiseIcms.landingPath || analiseIcmsSubItems.some((item) => location.pathname === item.path);
+    location.pathname === DEV_HUBS.analiseIcms.landingPath ||
+    analiseIcmsSubItems.some((item) => location.pathname === item.path);
   const isPerdcompActive =
-    location.pathname === DEV_HUBS.perdcomp.landingPath || perdcompSubItems.some((item) => location.pathname === item.path);
+    location.pathname === DEV_HUBS.perdcomp.landingPath ||
+    perdcompSubItems.some((item) => location.pathname === item.path);
+  const isPlanejamentoTributarioActive =
+    location.pathname === DEV_HUBS.planejamentoTributario.landingPath ||
+    planejamentoTributarioSubItems.some((item) => location.pathname === item.path);
   const isGerenciarDadosActive =
     location.pathname === DEV_HUBS.gerenciarDados.landingPath ||
     gerenciarDadosSubItems.some((item) => location.pathname === item.path);
@@ -211,7 +240,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
   return (
     <div className="flex min-h-screen w-full bg-muted">
       <aside
-        className={`${collapsed ? "w-0" : "w-64 border-r border-border/60"} sticky top-0 h-screen flex-shrink-0 overflow-x-hidden overflow-y-auto bg-white transition-all duration-300 ease-in-out scrollbar-hide`}
+        className={`${collapsed ? 'w-0' : 'w-64 border-r border-border/60'} sticky top-0 h-screen flex-shrink-0 overflow-x-hidden overflow-y-auto bg-white transition-all duration-300 ease-in-out scrollbar-hide`}
       >
         {!collapsed && (
           <>
@@ -237,8 +266,8 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   variant="ghost"
                   className={`w-full justify-start rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     isItemActive(item)
-                      ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : "text-foreground hover:bg-muted hover:text-primary"
+                      ? 'bg-primary/10 text-primary hover:bg-primary/15'
+                      : 'text-foreground hover:bg-muted hover:text-primary'
                   }`}
                   onClick={() => navigate(item.path)}
                 >
@@ -296,14 +325,25 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   variant="ghost"
                   className={`w-full justify-start rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     isItemActive(item)
-                      ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : "text-foreground hover:bg-muted hover:text-primary"
+                      ? 'bg-primary/10 text-primary hover:bg-primary/15'
+                      : 'text-foreground hover:bg-muted hover:text-primary'
                   }`}
                   onClick={() => navigate(item.path)}
                 >
                   {item.label}
                 </Button>
               ))}
+
+              <HubSidebarSection
+                label={DEV_HUBS.planejamentoTributario.label}
+                landingPath={DEV_HUBS.planejamentoTributario.landingPath}
+                items={planejamentoTributarioSubItems}
+                open={planejamentoTributarioOpen}
+                onOpenChange={setPlanejamentoTributarioOpen}
+                active={isPlanejamentoTributarioActive}
+                currentPath={location.pathname}
+                navigate={navigate}
+              />
 
               <HubSidebarSection
                 label={DEV_HUBS.gerenciarDados.label}
@@ -323,7 +363,9 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   <User className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{user?.email?.split("@")[0] || "Usuario"}</p>
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {user?.email?.split('@')[0] || 'Usuario'}
+                  </p>
                   <p className="text-xs text-muted-foreground">Digital Dev</p>
                 </div>
               </div>
@@ -331,7 +373,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
               <Button
                 variant="ghost"
                 className="w-full justify-start rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
-                onClick={() => navigate("/equipe/digital")}
+                onClick={() => navigate('/equipe/digital')}
               >
                 <ArrowLeft className="mr-3 h-4 w-4" />
                 Voltar para Digital
