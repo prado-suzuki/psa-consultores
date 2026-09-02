@@ -3880,13 +3880,17 @@ export type Database = {
           aprovada_em: string | null
           aprovada_por: string | null
           cliente_id: string
+          com_reserva: boolean
           competencia: string
           created_at: string
           created_by: string | null
           empresa_pessoa_id: string
           id: string
+          nome: string | null
           observacao: string | null
           origem_simulacao_id: string | null
+          pct_base_instituicao: number
+          pct_base_reserva: number
           quotas_total: number
           status: Database["public"]["Enums"]["itcd_simulacao_status"]
           updated_at: string
@@ -3904,13 +3908,17 @@ export type Database = {
           aprovada_em?: string | null
           aprovada_por?: string | null
           cliente_id: string
+          com_reserva?: boolean
           competencia: string
           created_at?: string
           created_by?: string | null
           empresa_pessoa_id: string
           id?: string
+          nome?: string | null
           observacao?: string | null
           origem_simulacao_id?: string | null
+          pct_base_instituicao?: number
+          pct_base_reserva?: number
           quotas_total: number
           status?: Database["public"]["Enums"]["itcd_simulacao_status"]
           updated_at?: string
@@ -3928,13 +3936,17 @@ export type Database = {
           aprovada_em?: string | null
           aprovada_por?: string | null
           cliente_id?: string
+          com_reserva?: boolean
           competencia?: string
           created_at?: string
           created_by?: string | null
           empresa_pessoa_id?: string
           id?: string
+          nome?: string | null
           observacao?: string | null
           origem_simulacao_id?: string | null
+          pct_base_instituicao?: number
+          pct_base_reserva?: number
           quotas_total?: number
           status?: Database["public"]["Enums"]["itcd_simulacao_status"]
           updated_at?: string
@@ -3966,6 +3978,76 @@ export type Database = {
           {
             foreignKeyName: "itcd_simulacao_origem_simulacao_id_fkey"
             columns: ["origem_simulacao_id"]
+            isOneToOne: false
+            referencedRelation: "itcd_simulacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itcd_simulacao_concessao: {
+        Row: {
+          created_at: string
+          de_pessoa_id: string
+          id: string
+          origem: Database["public"]["Enums"]["itcd_origem_usufruto"]
+          para_pessoa_id: string
+          quotas: number
+          simulacao_id: string
+          vlr_base_contabil: number | null
+          vlr_base_itr: number | null
+          vlr_base_mercado: number | null
+          vlr_imposto_contabil: number | null
+          vlr_imposto_itr: number | null
+          vlr_imposto_mercado: number | null
+        }
+        Insert: {
+          created_at?: string
+          de_pessoa_id: string
+          id?: string
+          origem: Database["public"]["Enums"]["itcd_origem_usufruto"]
+          para_pessoa_id: string
+          quotas: number
+          simulacao_id: string
+          vlr_base_contabil?: number | null
+          vlr_base_itr?: number | null
+          vlr_base_mercado?: number | null
+          vlr_imposto_contabil?: number | null
+          vlr_imposto_itr?: number | null
+          vlr_imposto_mercado?: number | null
+        }
+        Update: {
+          created_at?: string
+          de_pessoa_id?: string
+          id?: string
+          origem?: Database["public"]["Enums"]["itcd_origem_usufruto"]
+          para_pessoa_id?: string
+          quotas?: number
+          simulacao_id?: string
+          vlr_base_contabil?: number | null
+          vlr_base_itr?: number | null
+          vlr_base_mercado?: number | null
+          vlr_imposto_contabil?: number | null
+          vlr_imposto_itr?: number | null
+          vlr_imposto_mercado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itcd_simulacao_concessao_de_pessoa_id_fkey"
+            columns: ["de_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itcd_simulacao_concessao_para_pessoa_id_fkey"
+            columns: ["para_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itcd_simulacao_concessao_simulacao_id_fkey"
+            columns: ["simulacao_id"]
             isOneToOne: false
             referencedRelation: "itcd_simulacao"
             referencedColumns: ["id"]
@@ -4095,6 +4177,60 @@ export type Database = {
           },
           {
             foreignKeyName: "itcd_simulacao_donatario_simulacao_id_fkey"
+            columns: ["simulacao_id"]
+            isOneToOne: false
+            referencedRelation: "itcd_simulacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itcd_simulacao_usufruto: {
+        Row: {
+          created_at: string
+          id: string
+          papel: Database["public"]["Enums"]["itcd_papel_usufruto"]
+          pessoa_id: string
+          quotas: number
+          quotas_nua_instituicao: number
+          quotas_nua_reserva: number
+          quotas_plena: number
+          quotas_usufruto: number
+          simulacao_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          papel: Database["public"]["Enums"]["itcd_papel_usufruto"]
+          pessoa_id: string
+          quotas?: number
+          quotas_nua_instituicao?: number
+          quotas_nua_reserva?: number
+          quotas_plena?: number
+          quotas_usufruto?: number
+          simulacao_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          papel?: Database["public"]["Enums"]["itcd_papel_usufruto"]
+          pessoa_id?: string
+          quotas?: number
+          quotas_nua_instituicao?: number
+          quotas_nua_reserva?: number
+          quotas_plena?: number
+          quotas_usufruto?: number
+          simulacao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itcd_simulacao_usufruto_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itcd_simulacao_usufruto_simulacao_id_fkey"
             columns: ["simulacao_id"]
             isOneToOne: false
             referencedRelation: "itcd_simulacao"
@@ -10121,6 +10257,8 @@ export type Database = {
         | "review"
         | "em_ajuste"
         | "done"
+      itcd_origem_usufruto: "reserva" | "instituicao"
+      itcd_papel_usufruto: "usufrui" | "concede"
       itcd_simulacao_status: "rascunho" | "gerada" | "aprovada" | "substituida"
       notificacao_canal: "sino" | "email" | "whatsapp"
       notificacao_envio_status:
@@ -10390,6 +10528,8 @@ export const Constants = {
         "em_ajuste",
         "done",
       ],
+      itcd_origem_usufruto: ["reserva", "instituicao"],
+      itcd_papel_usufruto: ["usufrui", "concede"],
       itcd_simulacao_status: ["rascunho", "gerada", "aprovada", "substituida"],
       notificacao_canal: ["sino", "email", "whatsapp"],
       notificacao_envio_status: [
