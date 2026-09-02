@@ -35,9 +35,23 @@ CREATE POLICY rls_ordem_servico_insert ON public.ordem_servico
   WITH CHECK (public.has_role_or_higher(auth.uid(), 'sublider'::public.app_role));
 ```
 
-### Frontend
+### Frontend (obrigatório — sem ele o erro continua idêntico)
 
-Nenhuma alteração. As telas já refletem o piso `sublider`+ para criação/edição de cliente, representante e OS. A remoção da condição de cluster só amplia quem consegue salvar; nenhum botão que hoje aparece para team_member passa a falhar.
+Ampliar só a policy de INSERT não resolve. Dois inserts do salvamento pedem a linha de volta (`.select("id").single()`), o que liga o `RETURNING`; com `RETURNING` o Postgres avalia a policy de **SELECT** sobre a linha nova e recusa o comando inteiro com o mesmo `42501 new row violates row-level security policy`. A leitura de `contribuinte` é `(excluido = false) AND (has_role(admin) OR cliente_visivel_para(cliente_id))` — falsa quando o cliente é de outro cluster; a da OS é equivalente.
+
+Arquivo: `src/hooks/useSaveClientTransaction.ts`
+
+- Linha 494 (`contribuinte`): incluir `id: crypto.randomUUID()` no payload e remover `.select("id").single()`; `contribId` passa a ser o id gerado.
+- Linhas 717-721 (`ordem_servico`): mesma mudança; `osId` passa a ser o id gerado.
+
+Sem `.select()`, o supabase-js envia `Prefer: return=minimal`, não há `RETURNING` e a policy de leitura não é consultada. `crypto.randomUUID()` já é padrão no repo (ex.: `useDomainOrgComments.ts:392`).
+
+Os outros cinco inserts do salvamento (`inscricao_contribuinte`, `representante`, `distribuicao_receita`, `os_produtos_contratados`, `cliente_clusters`) não pedem retorno e ficam como estão. O cliente é criado por `criar_cliente_com_clusters`, que é `SECURITY DEFINER` e devolve a linha de dentro da função, fora do alcance da policy.
+
+Migration e mudança de front vão juntas: aplicar só a migration e testar parece "não funcionou", porque o texto do erro é literalmente o mesmo.
+
+Nenhum ajuste de UI/permissão é necessário — as telas já refletem o piso `sublider`+.
+
 
 ## O que não muda
 
@@ -50,15 +64,18 @@ Nenhuma alteração. As telas já refletem o piso `sublider`+ para criação/edi
 
 1. Criar o arquivo de migration no repo com o SQL acima.
 2. Aplicar a migration no sandbox via `supabase db push`.
-3. Rodar `supabase gen types typescript` contra o sandbox e commitar `src/integrations/supabase/types.ts` sozinho (embora a mudança seja só RLS, regenerar mantém o arquivo alinhado ao banco da branch).
-4. Verificar `bunx eslint` nos arquivos potencialmente afetados e `bun run typecheck`.
-5. Na merge para `main`, o humano solicita ao Lovable a aplicação do mesmo SQL em produção; o bot regenera `types.ts` de produção.
+3. Ajustar os dois inserts em `useSaveClientTransaction.ts` (id no cliente, sem `.select()`), no mesmo lote.
+4. Rodar `supabase gen types typescript` contra o sandbox e commitar `src/integrations/supabase/types.ts` sozinho.
+5. Verificar `bunx eslint src/hooks/useSaveClientTransaction.ts` e `bun run typecheck`.
+6. Na merge para `main`, o humano solicita ao Lovable a aplicação do mesmo SQL em produção; o bot regenera `types.ts` de produção.
 
 ## Verificação
 
 - `supabase--linter` após aplicação para confirmar que não introduziu policies faltantes ou tabelas sem RLS.
-- Testes existentes de cliente/OS continuam passando (`FiscalProjetosCadastro.test.tsx`, `EquipeProjetos.test.tsx` e similares).
+- Testes existentes de cliente/OS continuam passando (`FiscalProjetosCadastro.test.tsx`, `EquipeProjetos.test.tsx` e similares) — os que checam o payload do insert precisam aceitar o novo campo `id`.
+- Salvar um cliente de outro cluster como sublíder: contribuinte e OS gravam sem `42501`, e os registros filhos (IEs, rateio, produtos) ficam ligados aos ids gerados.
 - Spot-check via `supabase--read_query` confirmando que as novas policies têm `with_check = has_role_or_higher(...)` sem cláusula de cluster.
+
 
 ## Riscos e mitigações
 
