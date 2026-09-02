@@ -1,5 +1,5 @@
 import { capitalDeQuotas, quotasDeValor } from '@/lib/templates/capital';
-import { type MovimentoDeQuotas } from './movimentoQuotas';
+import { problemaDoPagamento, type MovimentoDeQuotas } from './movimentoQuotas';
 
 // O macro da subida: os sócios da empresa Proprietária passam as quotas dela
 // para a Controladora e recebem, em troca, quotas da Controladora.
@@ -99,12 +99,21 @@ export function planejarSubidaDeQuotas(args: ArgsDaSubida): PlanoDaSubida {
   if (comQuotas.length === 0) {
     return { ...vazio, problema: 'A proprietária não tem quadro societário para transferir.' };
   }
-  // A controladora já sócia da proprietária é o caso em que a subida já
-  // aconteceu: repetir emitiria quota contra quota que a holding já tem.
-  if (comQuotas.some((s) => s.pessoaId === controladoraPessoaId)) {
+  // A controladora não cede para si mesma: as quotas que ela já tem na
+  // proprietária são o resultado de uma subida anterior e ficam onde estão.
+  //
+  // Isto NÃO é o mesmo que "a subida já aconteceu, não repita". O ciclo da casa
+  // passa por aqui mais de uma vez: depois da concentração, um aumento de
+  // capital por integralização de imóveis novos traz os subscritores de volta ao
+  // quadro da proprietária (ver aporteInicial.ts), e a alteração contratual
+  // seguinte tem de concentrar OUTRA VEZ, agora só o que entrou. Antes, a
+  // presença da holding no quadro travava o macro inteiro e a segunda
+  // concentração não tinha por onde ser gravada.
+  const queSobem = comQuotas.filter((s) => s.pessoaId !== controladoraPessoaId);
+  if (queSobem.length === 0) {
     return {
       ...vazio,
-      problema: 'A controladora já é sócia da proprietária: as quotas já subiram.',
+      problema: 'A controladora já é a única sócia da proprietária: não há quotas a subir.',
     };
   }
 
@@ -113,7 +122,7 @@ export function planejarSubidaDeQuotas(args: ArgsDaSubida): PlanoDaSubida {
 
   // Primeiro as cessões, todas: o sócio precisa ter cedido para poder
   // integralizar com o que cedeu, e é essa a ordem em que a peça as escreve.
-  for (const s of comQuotas) {
+  for (const s of queSobem) {
     lancamentos.push({
       empresaPessoaId: proprietariaPessoaId,
       denominacao: s.denominacao,
@@ -130,7 +139,7 @@ export function planejarSubidaDeQuotas(args: ArgsDaSubida): PlanoDaSubida {
 
   // Depois os aportes na controladora, cada um pago com as quotas cedidas.
   const emitidasPorSocio = new Map<string, number>();
-  for (const s of comQuotas) {
+  for (const s of queSobem) {
     // 1:1 em VALOR: o que ele tinha lá, convertido ao nominal daqui.
     const emitidas = quotasDeValor(s.valor);
     emitidasPorSocio.set(s.pessoaId, emitidas);
@@ -154,7 +163,7 @@ export function planejarSubidaDeQuotas(args: ArgsDaSubida): PlanoDaSubida {
     });
   }
 
-  const totalValorCedido = comQuotas.reduce((soma, s) => soma + s.valor, 0);
+  const totalValorCedido = queSobem.reduce((soma, s) => soma + s.valor, 0);
   const totalValorAportado = [...emitidasPorSocio.values()].reduce(
     (soma, q) => soma + capitalDeQuotas(q),
     0,
@@ -164,19 +173,28 @@ export function planejarSubidaDeQuotas(args: ArgsDaSubida): PlanoDaSubida {
   // do quadro da proprietária não é múltiplo do nominal (quadro legado, gravado
   // antes de o capital seguir as quotas): aí a conversão arredonda e o valor
   // some, em vez de aparecer.
-  const porSocioDesbate = comQuotas.find(
+  const porSocioDesbate = queSobem.find(
     (s) => Math.abs(capitalDeQuotas(emitidasPorSocio.get(s.pessoaId) ?? 0) - s.valor) >= 0.005,
   );
+  // A forma de pagamento dos aportes, conferida pela MESMA função do formulário.
+  // É para isto que `problemaDoPagamento` foi separada de `problemaDoMovimento`:
+  // o macro monta o par espelhado sem passar pelo formulário, então nenhuma das
+  // regras de pagamento tinha sido lida neste caminho, e quem recusava um aporte
+  // pago com quota de valor zero era o CHECK do banco, com mensagem de
+  // constraint. Reimplementar a regra aqui é o que faria as duas divergirem.
+  const pagamentoInvalido = lancamentos
+    .map((l) => problemaDoPagamento(l.movimento, l.empresaPessoaId))
+    .find((p): p is string => !!p);
   const problema = porSocioDesbate
     ? `O valor das quotas de ${porSocioDesbate.denominacao} na proprietária (R$ ${fmt(porSocioDesbate.valor)}) não fecha com o das quotas a emitir na controladora (R$ ${fmt(capitalDeQuotas(emitidasPorSocio.get(porSocioDesbate.pessoaId) ?? 0))}). Corrija o quadro da proprietária antes de subir.`
-    : null;
+    : (pagamentoInvalido ?? null);
 
   // O quadro que a controladora passa a ter: o dela MAIS o que sobe.
   const resultante = new Map<string, SocioQueSobe>();
   for (const s of quadroControladora) {
     resultante.set(s.pessoaId, { ...s });
   }
-  for (const s of comQuotas) {
+  for (const s of queSobem) {
     const emitidas = emitidasPorSocio.get(s.pessoaId) ?? 0;
     const atual = resultante.get(s.pessoaId);
     if (atual) {
@@ -196,7 +214,11 @@ export function planejarSubidaDeQuotas(args: ArgsDaSubida): PlanoDaSubida {
   return {
     lancamentos,
     problema,
-    avisoDeProporcao: avisoDeProporcao(comQuotas, quadroResultante),
+    avisoDeProporcao: avisoDeProporcao(
+      queSobem,
+      quadroResultante,
+      comQuotas.reduce((soma, s) => soma + s.quotas, 0),
+    ),
     totalValorCedido,
     totalValorAportado,
     quadroResultante,
@@ -216,8 +238,13 @@ export function planejarSubidaDeQuotas(args: ArgsDaSubida): PlanoDaSubida {
 function avisoDeProporcao(
   naProprietaria: readonly SocioQueSobe[],
   naControladora: readonly SocioQueSobe[],
+  /**
+   * Capital TOTAL da proprietária, e não a soma de quem sobe. Na primeira
+   * concentração os dois são a mesma coisa; na segunda, a holding já detém uma
+   * parte, e dividir pela soma de quem sobe inflaria a participação de cada um.
+   */
+  totalPR: number,
 ): string | null {
-  const totalPR = naProprietaria.reduce((s, x) => s + x.quotas, 0);
   const totalCN = naControladora.reduce((s, x) => s + x.quotas, 0);
   if (totalPR === 0 || totalCN === 0) return null;
 

@@ -1267,8 +1267,26 @@ export function mapearRetirantes(retirantes: readonly PessoaRow[]): ItemLista[] 
  * assina no feminino, e nenhum `sep`/`fim` de seção resolve flexão de verbo.
  */
 export function vocabularioDaRetirada(retirantes: readonly PessoaRow[]): Campos {
+  // NINGUÉM sai: as três palavras saem VAZIAS, e não no plural.
+  //
+  // Não é preciosismo de concordância, é o que faz o bloco SUMIR. A cláusula de
+  // retirada tem três placeholders de topo e a lista {{#retirantes}}; quando o
+  // ato foi só ingresso (aumento de capital sem cessão nenhuma), a lista vem
+  // vazia, e devolver "os sócios"/"por terem cedido"/"retiram-se" alimentava
+  // `motivoDeDescarte` com três segmentos de valor preenchidos. Ele conta isso
+  // como dado, deixava o bloco no documento, e a peça afirmava
+  // "por terem cedido a totalidade de suas quotas, os sócios  retiram-se da
+  // sociedade" com o nome de ninguém no meio (o espaço duplo era a lista vazia).
+  //
+  // Com os três vazios sobra só a seção de repetição sem item, e o descarte por
+  // 'lista-vazia' tira o bloco da composição, que é o comportamento correto: numa
+  // alteração em que ninguém se retirou, a cláusula de retirada não existe.
+  if (retirantes.length === 0) {
+    return { titulo: '', porTerCedido: '', verbo: '' };
+  }
+
   const umSo = retirantes.length === 1;
-  const todasFemininas = retirantes.length > 0 && retirantes.every(
+  const todasFemininas = retirantes.every(
     (p) => generoDeConcordancia(
       p.genero === 'F' || p.genero === 'M' ? p.genero : null,
       p.tipo_pessoa,

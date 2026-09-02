@@ -308,3 +308,73 @@ describe('evento_mudanca_administracao pela consequência da retirada', () => {
     expect(eventos.some((e) => e.flagNome === 'evento_mudanca_administracao')).toBe(true);
   });
 });
+
+describe('segunda rodada de integralização: imóvel aprovado depois do registro', () => {
+  // O caso que o gesto do Quadro Societário passou a produzir: a constituição já
+  // está carimbada pelo contrato social registrado, e o ato do aumento traz os
+  // imóveis novos MAIS a parcela em moeda corrente do mesmo sócio. É a cláusula
+  // real, que mistura as duas formas na mesma subscrição.
+  const ATO = 'ato-aumento';
+  const aumento = [
+    mov({ id: 'n1', atoId: ATO, sequencia: 1, destinoPessoaId: ANA, quotas: 1681074, valor: 1681074, pagamento: { tipo: 'bem', bemId: 'bem-novo-1' } }),
+    mov({ id: 'n2', atoId: ATO, sequencia: 2, destinoPessoaId: ANA, quotas: 95209, valor: 95209, pagamento: { tipo: 'moeda' } }),
+    mov({ id: 'n3', atoId: ATO, sequencia: 3, destinoPessoaId: BRUNO, quotas: 1681074, valor: 1681074, pagamento: { tipo: 'bem', bemId: 'bem-novo-2' } }),
+  ];
+
+  it('o aumento e a integralização acendem sozinhos, com as duas formas na evidência', () => {
+    const eventos = derivarEventosDaAlteracao({
+      movimentos: [...constituicao, ...aumento],
+      empresaPessoaId: PR,
+      baseline: baselineDoContratoSocial,
+      cpfCnpjPorPessoaId: CPFS,
+    });
+
+    expect(eventos.map((e) => e.flagNome)).toEqual([
+      'evento_aumento_capital',
+      'evento_integralizacao',
+    ]);
+    const aumentoDeCapital = eventos.find((e) => e.flagNome === 'evento_aumento_capital');
+    expect(aumentoDeCapital?.evidencia).toBe(
+      'aumento de capital de R$ 872.674,00 para R$ 4.330.031,00',
+    );
+    // Os três lançamentos do ato, e nenhum da constituição já carimbada.
+    expect(aumentoDeCapital?.movimentoIds).toEqual(['n1', 'n2', 'n3']);
+
+    const integralizacao = eventos.find((e) => e.flagNome === 'evento_integralizacao');
+    expect(integralizacao?.evidencia).toBe('3 aporte(s) integralizado(s) com bens, moeda corrente');
+    expect(integralizacao?.movimentoIds).toEqual(['n1', 'n2', 'n3']);
+  });
+
+  it('o titular do imóvel novo que ainda não era sócio deriva ingresso sem gesto preparatório', () => {
+    const eventos = derivarEventosDaAlteracao({
+      movimentos: [
+        ...constituicao,
+        mov({ id: 'n4', atoId: ATO, sequencia: 1, destinoPessoaId: HOLDING, quotas: 500000, valor: 500000, pagamento: { tipo: 'bem', bemId: 'bem-novo-3' } }),
+      ],
+      empresaPessoaId: PR,
+      baseline: baselineDoContratoSocial,
+      cpfCnpjPorPessoaId: CPFS,
+    });
+    expect(eventos.map((e) => e.flagNome)).toEqual([
+      'evento_aumento_capital',
+      'evento_integralizacao',
+      'evento_mudanca_socios',
+    ]);
+    expect(eventos.find((e) => e.flagNome === 'evento_mudanca_socios')?.evidencia).toBe(
+      '1 ingresso(s) no quadro societário',
+    );
+  });
+
+  it('registrada a peça, a alteração seguinte não repete o aumento', () => {
+    const carimbados = aumento.map((m) => ({ ...m, documentoGeradoId: 'doc-1a-alteracao' }));
+    expect(
+      derivarEventosDaAlteracao({
+        movimentos: [...constituicao, ...carimbados],
+        empresaPessoaId: PR,
+        // O baseline da peça seguinte é o que a 1ª alteração publicou.
+        baseline: { capitalAnterior: 4330031, cpfCnpjDosSocios: baselineDoContratoSocial.cpfCnpjDosSocios },
+        cpfCnpjPorPessoaId: CPFS,
+      }),
+    ).toEqual([]);
+  });
+});

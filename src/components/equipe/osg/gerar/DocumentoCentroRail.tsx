@@ -33,7 +33,7 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
   abrirCadastroOrigem, fecharCadastroOrigem, resultado, copiar, nomeModelo, baixando,
   baixar, empresas, bindingsNaoSociedade, modeloPronto, passo1Estado, passo2Estado,
   documentoRegistrado, alteracaoEmCurso, podeReverEventos, podeGerarAlteracao,
-  resumoDaAlteracao, motivoDeBloqueio,
+  podeRegistrarNaJunta, resumoDaAlteracao, travas, declaracaoDaPeca,
   abrirAlteracao, setRegistrarConfirmOpen, registrandoDocumento,
   modoDocumento, empresaLabel, labelsRegistros, resumoPasso2, mensagemPendente,
   blocosFolha, versaoView, modoVisualizacao, blocosFolhaVersao, baixandoVersao,
@@ -46,6 +46,11 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
   // do documento novo compondo ao vivo.
   const travado = !!documentoRegistrado && !alteracaoEmCurso;
   const somenteLeitura = modoVisualizacao || travado;
+  // Por que os gestos de edição estão fechados sobre a peça registrada, na frase
+  // da própria trava: ela nomeia a sociedade quando sabe quem é ("Jatobá
+  // Sementes S.A. já foi constituída…") e cai na explicação da peça travada
+  // quando não sabe (registro antigo, sem papel carimbado).
+  const motivoDaOrdem = travas.validar.motivo ?? '';
   // O assistente segue alcançável depois de validar: a folha passa a renderizar do
   // snapshot, então mudar uma resposta aqui só reescreve o texto depois de
   // "Atualizar do cadastro". É o que a tooltip diz, em vez de a tela calar.
@@ -82,6 +87,10 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                 )}
                 <FolhaDocumento
                   titulo={nomeModelo}
+                  // Onde o consultor está: que peça é esta, em que situação, e
+                  // quantos atos pendentes ela formaliza. Na versão antiga sob
+                  // leitura a declaração sai de cena: o banner acima já diz.
+                  situacao={modoVisualizacao ? null : declaracaoDaPeca?.linha ?? null}
                   estado={modoVisualizacao ? (versaoView?.erro ? 'erro' : 'pronto') : folhaEstado}
                   mensagemPendente={mensagemPendente}
                   erro={modoVisualizacao ? versaoView?.erro : resultado.erro}
@@ -120,19 +129,55 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                       <Lock className="h-3.5 w-3.5 text-muted-foreground" />
                       Registrado na junta
                     </div>
-                    <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
-                      Esta peça está travada: ela já produziu efeito e não se reescreve.
-                    </p>
+                    <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">{motivoDaOrdem}</p>
+                    {/* Uma peça é sucedida UMA vez: com a alteração dela já
+                        gerada, o gesto fica visível e travado dizendo onde
+                        continuar, em vez de abrir uma segunda peça sobre o mesmo
+                        antecessor (ver `travas.gerarAlteracao`). */}
                     {podeGerarAlteracao && (
                       <Button
                         variant="outline"
                         className="w-full border-osg-moss/40 text-osg-700 hover:bg-osg-moss/[0.06]"
                         onClick={abrirAlteracao}
+                        disabled={!travas.gerarAlteracao.liberado}
+                        title={travas.gerarAlteracao.motivo ?? undefined}
                       >
                         <FileStack className="mr-1.5 h-4 w-4" />
                         Gerar alteração contratual
                       </Button>
                     )}
+                    {!travas.gerarAlteracao.liberado && (
+                      <p className="px-1 text-[11px] leading-relaxed text-warning">
+                        {travas.gerarAlteracao.motivo}
+                      </p>
+                    )}
+                    {/* Os gestos que a ordem não permite ficam VISÍVEIS e
+                        travados, com o motivo. Escondê-los foi o que deixou o
+                        consultor sem saída no incidente do segundo constitutivo:
+                        o rail trocou tudo pelo selo, e o único gesto que sobrou
+                        levava ao erro. Botão sumido não ensina nada; botão
+                        travado com motivo ensina o fluxo. O `title` é o mesmo
+                        recurso do card da subida — tooltip não abre sobre botão
+                        desabilitado. */}
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled
+                      title={motivoDaOrdem}
+                    >
+                      <ShieldCheck className="mr-1.5 h-4 w-4" />
+                      Validar versão
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      disabled
+                      title={motivoDaOrdem}
+                    >
+                      <Layers className="mr-1.5 h-3.5 w-3.5" />
+                      Atualizar versão
+                    </Button>
                   </div>
                 ) : alteracaoEmCurso ? (
                   <div className="space-y-2">
@@ -153,7 +198,8 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                           variant="outline"
                           className="w-full border-osg-moss/40 text-osg-700 hover:bg-osg-moss/[0.06]"
                           onClick={() => setValidarConfirmOpen(true)}
-                          disabled={salvarDocumento.isPending || !!motivoDeBloqueio}
+                          disabled={salvarDocumento.isPending || !travas.validar.liberado}
+                          title={travas.validar.motivo ?? undefined}
                         >
                           {salvarDocumento.isPending ? (
                             <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
@@ -164,9 +210,8 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs text-xs leading-relaxed">
-                        {motivoDeBloqueio
-                          ? `${motivoDeBloqueio}. Conserte antes de validar: selar uma folha em erro grava um documento que não existe como texto.`
-                          : 'Cria a alteração contratual como documento próprio, apontando para a peça registrada que ela substitui, e congela os valores atuais nela.'}
+                        {travas.validar.motivo ??
+                          'Cria a alteração contratual como documento próprio, apontando para a peça registrada que ela substitui, e congela os valores atuais nela.'}
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -208,20 +253,32 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                           size="sm"
                           className="w-full text-xs text-osg-600 hover:text-osg-700"
                           onClick={() => void revalidar()}
-                          disabled={salvarDocumento.isPending}
+                          disabled={salvarDocumento.isPending || !travas.atualizarDoCadastro.liberado}
+                          title={travas.atualizarDoCadastro.motivo ?? undefined}
                         >
                           {salvarDocumento.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
                           Atualizar do cadastro
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs text-xs leading-relaxed">
-                        Puxa os dados atuais dos cadastros e congela esta versão de novo.
+                        {travas.atualizarDoCadastro.motivo ??
+                          'Puxa os dados atuais dos cadastros e congela esta versão de novo.'}
                       </TooltipContent>
                     </Tooltip>
                     {/* Fim da linha do documento: ele foi levado à junta e
                         registrado. Daqui em diante só se muda por outro
                         documento, e é isso que destrava o assistente de
-                        alteração contratual. */}
+                        alteração contratual.
+
+                        Só para modelo de escopo `sociedade`: a junta comercial
+                        registra ato societário, e um contrato de parceria ou uma
+                        descrição de imóvel não têm o que registrar lá. Registrar
+                        carimba o ledger de quotas, o que numa peça avulsa não
+                        significaria nada. */}
+                    {/* `travas.registrar` fecha quando OUTRO constitutivo desta
+                        sociedade já foi à junta: este não pode ir, e o índice
+                        único deixa de ser quem conta isso ao consultor. */}
+                    {podeRegistrarNaJunta && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -229,7 +286,12 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                           size="sm"
                           className="w-full text-xs text-muted-foreground hover:text-foreground"
                           onClick={() => setRegistrarConfirmOpen(true)}
-                          disabled={registrandoDocumento || salvarDocumento.isPending || !!motivoDeBloqueio}
+                          disabled={
+                            registrandoDocumento ||
+                            salvarDocumento.isPending ||
+                            !travas.registrar.liberado
+                          }
+                          title={travas.registrar.motivo ?? undefined}
                         >
                           {registrandoDocumento ? (
                             <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -240,20 +302,24 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs text-xs leading-relaxed">
-                        {motivoDeBloqueio
-                          ? `${motivoDeBloqueio}. Registrar é o gesto irreversível: ele carimba o ledger e vira o status dos bens.`
-                          : 'Marca que esta peça foi registrada e a trava para edição. Depois disso, a forma de mudar a sociedade é gerar uma alteração contratual a partir dela.'}
+                        {travas.registrar.motivo ??
+                          'Marca que esta peça foi registrada e a trava para edição. Depois disso, a forma de mudar a sociedade é gerar uma alteração contratual a partir dela.'}
                       </TooltipContent>
                     </Tooltip>
+                    )}
                   </div>
                 ) : (
+                  /* A sociedade já constituída trava o gesto AQUI também: sem
+                     head em rascunho, validar criaria uma segunda linhagem
+                     constitutiva da mesma PJ (ver `travas.validar`). */
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         variant="outline"
                         className="w-full border-osg-moss/40 text-osg-700 hover:bg-osg-moss/[0.06]"
                         onClick={() => setValidarConfirmOpen(true)}
-                        disabled={salvarDocumento.isPending || !!motivoDeBloqueio}
+                        disabled={salvarDocumento.isPending || !travas.validar.liberado}
+                        title={travas.validar.motivo ?? undefined}
                       >
                         {salvarDocumento.isPending ? (
                           <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
@@ -264,9 +330,8 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs text-xs leading-relaxed">
-                      {motivoDeBloqueio
-                        ? `${motivoDeBloqueio}. Conserte antes de validar: selar uma folha em erro grava um documento que não existe como texto.`
-                        : 'Confirma que os cadastros estão completos e revisados e congela os valores atuais nesta versão do documento. Depois de validar, você pode ajustar blocos só deste documento.'}
+                      {travas.validar.motivo ??
+                        'Confirma que os cadastros estão completos e revisados e congela os valores atuais nesta versão do documento. Depois de validar, você pode ajustar blocos só deste documento.'}
                     </TooltipContent>
                   </Tooltip>
                 )}

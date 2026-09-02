@@ -1,0 +1,171 @@
+{
+  "rodada": "v3-01-09-2026-headed",
+  "alvo_supabase": "https://vgzomuwnsdgrxbkyoavq.supabase.co",
+  "login": "user001@exemplo.dev",
+  "cliente": "[TESTE] Dinossauro Aposentado Previdência e Fósseis Ltda",
+  "passos": [
+    {
+      "passo": "0 - alvo do app",
+      "esperado": "vgzomuwnsdgrxbkyoavq.supabase.co",
+      "observado": "https://vgzomuwnsdgrxbkyoavq.supabase.co",
+      "prova": "saida do curl",
+      "veredito": "OK"
+    },
+    {
+      "passo": "1 - quadro proposto Farroupilha",
+      "esperado": "Quadro proposto (3), Ainda nao gravado, Lucas 1.846.667 / Heitor 415.209 / Marina 366.666, total 2.628.542, sem card de aumento",
+      "observado": "Quadro proposto (3) / Ainda nao gravado / Gravar quadro societario; CAPITAL SOCIAL TOTAL R$ 2.628.542,00; TOTAL DE QUOTAS 2.628.542; VALOR NOMINAL R$ 1,00; Lucas Nogueira 1.846.667 R$ 1.846.667,00 70,25%; Heitor Cardoso 415.209 R$ 415.209,00 15,80%; Marina Salgado 366.666 R$ 366.666,00 13,95%; Total 2.628.542 R$ 2.628.542,00 100,00%. Nenhuma ocorrencia de 'fora do capital' nem de 'Registrar aumento de capital' no main.",
+      "prova": ".playwright-mcp/v3-p01-quadro-proposto-farroupilha.png",
+      "veredito": "OK"
+    },
+    {
+      "passo": "2 - gravar quadro de constituicao",
+      "esperado": "toast 'Quadro societario gravado'; segundo estado (Lista de Socios (3), chip 'Quadro registrado, apurado da movimentacao de quotas', botao Transferir quotas); card do aumento CONTINUA NAO EXISTINDO",
+      "observado": "Dialogo: 'Gravar o quadro de constituicao / 3 socio(s) e 2.628.542 quotas (R$ 2.628.542,00) entram como aporte de constituicao de Farroupilha Comercio Ltda, um movimento por bem integralizado.' POST /rest/v1/movimentacao_quotas 201. Toast: 'Quadro societario gravado / 4 aporte(s) de 3 socio(s).' Segundo estado presente: 'Lista de Socios (3) / Quadro registrado, apurado da movimentacao de quotas / Transferir quotas para a controladora'. PORÉM apareceu o card: '3 imovel(is) aprovado(s) fora do capital / Aprovados no Diagnostico Patrimonial depois da constituicao, eles ainda nao entraram no capital desta empresa. Registre o aumento para que a proxima alteracao contratual o publique. / Registrar aumento de capital'",
+      "prova": ".playwright-mcp/v3-p02-toast-quadro-gravado.png, .playwright-mcp/v3-p02-DIVERGE-card-aumento-aparece.png",
+      "veredito": "DIVERGE (o card de aumento aparece; o roteiro esperava ausencia)"
+    },
+    {
+      "passo": "3 - contrato social da Farroupilha",
+      "esperado": "capital R$ 2.628.542,00 e tres imoveis (31.401, 31.402, 31.403)",
+      "observado": "'CLAUSULA QUINTA: O capital social da empresa sera de R$ 2.628.542,00 (dois milhoes, seiscentos e vinte e oito mil, quinhentos e quarenta e dois reais), dividido em 2.628.542 ... quotas, no valor nominal de R$ 1,00 (um real) cada uma'; tabela 'Lucas Nogueira 1.846.667 1.846.667,00 70,254% / Heitor Cardoso 415.209 415.209,00 15,796% / Marina Salgado 366.666 366.666,00 13,949%'; alineas: a) Fazenda Pterodactilo matricula 31.401; b) 50,000% ... Fazenda Ossada Boa matricula 31.402; a) imovel urbano ... Sala Comercial Cratera matricula 31.403",
+      "prova": ".playwright-mcp/v3-p03-contrato-farroupilha-clausula-capital.png",
+      "veredito": "OK"
+    },
+    {
+      "passo": "4 - validar versao",
+      "esperado": "rail passa a oferecer Atualizar versao e Registrar na junta",
+      "observado": "botoes do rail apos validar: 'Atualizar versao', 'Atualizar do cadastro', 'Registrar na junta', 'Baixar .docx', 'Copiar texto'",
+      "prova": ".playwright-mcp/v3-p04-rail-validado.png",
+      "veredito": "OK"
+    },
+    {
+      "passo": "5 - registrar contrato na junta + V4 primeira metade",
+      "esperado": "selo Registrado na junta; BS 60/61/62 Integralizado; quadro sem card de aumento",
+      "observado": "HTTP 200. Rail: 'Registrado na junta / Esta peca esta travada: ela ja produziu efeito e nao se reescreve. / Gerar alteracao contratual'. Diagnostico: 'BS 60 Imovel Rural Fazenda Pterodactilo R$ 1.480.000,00 - Integralizado BS 61 Imovel Rural Fazenda Ossada Boa R$ 733.333,33 - Integralizado BS 62 Imovel Urbano Sala Comercial Cratera R$ 415.209,00 - Integralizado'. Quadro Farroupilha: nenhuma ocorrencia de 'fora do capital'; procedencia 'Constituicao' nos tres socios",
+      "prova": ".playwright-mcp/v3-p05-rail-registrado-junta.png, .playwright-mcp/v3-p05-diagnostico-bs60-61-62-integralizado.png, .playwright-mcp/v3-p05-quadro-sem-card-aumento.png",
+      "veredito": "OK"
+    },
+    {
+      "passo": "6 - constituir a Jatoba",
+      "esperado": "Lista de Socios (2), 1.000 quotas, R$ 1.000,00",
+      "observado": "dois POST 201. 'CAPITAL SOCIAL TOTAL R$ 1.000,00 / TOTAL DE QUOTAS 1.000 / VALOR NOMINAL R$ 1,00 / Lista de Socios (2) / Lucas Nogueira 500 R$ 500,00 50,00% / Marina Salgado 500 R$ 500,00 50,00% / Total 1.000 R$ 1.000,00 100,00%'",
+      "prova": ".playwright-mcp/v3-p06-quadro-jatoba-1000-quotas.png",
+      "veredito": "OK"
+    },
+    {
+      "passo": "7 - contrato social da Jatoba registrado",
+      "esperado": "rail travado com selo Registrado na junta",
+      "observado": "previa: 'CLAUSULA QUINTA: O capital social da empresa sera de R$ 1.000,00 (mil reais), dividido em 1.000 (mil) quotas ... i) 500 (quinhentas) quotas ... integralizadas neste ato pelo socio LUCAS NOGUEIRA em moeda corrente nacional'. Apos registrar (HTTP 200): 'Registrado na junta / Esta peca esta travada: ela ja produziu efeito e nao se reescreve.'",
+      "prova": ".playwright-mcp/v3-p07-jatoba-registrada-junta.png",
+      "veredito": "OK"
+    },
+    {
+      "passo": "8 - concentrar quotas na controladora",
+      "esperado": "3 cessoes 2.628.542 quotas; 3 aportes na Jatoba; aviso ambar de proporcao; depois Lista de Socios (1) so Jatoba",
+      "observado": "Modal antes de gravar: 'O QUE SERA GRAVADO / 3 cessao(oes) em Farroupilha Comercio Ltda: 2.628.542 quotas (R$ 2.628.542,00) para Jatoba Sementes S.A.. / 3 aporte(s) em Jatoba Sementes S.A., integralizados com essas quotas: R$ 2.628.542,00.' QUADRO DA CONTROLADORA DEPOIS DO ATO: Lucas Nogueira 1.847.167 quotas R$ 1.847.167,00 / Marina Salgado 367.166 quotas R$ 367.166,00 / Heitor Cardoso 415.209 quotas R$ 415.209,00. Aviso: 'O capital de constituicao da controladora nao some, entao o quadro dela nao reproduz a proporcao da proprietaria (Lucas Nogueira: 70,254% na proprietaria, 70,247% na controladora; Heitor Cardoso: 15,796% na proprietaria, 15,790% na controladora; Marina Salgado: 13,949% na proprietaria, 13,963% na controladora). Ajuste antes de subir, ou aceite que a proporcao sera corrigida por uma alteracao contratual propria.' POST 201. Depois: 'Lista de Socios (1) ... Jatoba Sementes S.A. PJ 69.575.004/4630-30 / Subida das quotas da Farroupilha Comercio Ltda para a Jatoba Sementes S.A. 2.628.542 R$ 2.628.542,00 100,00%'",
+      "prova": ".playwright-mcp/v3-p08-modal-transferencia-antes-de-gravar.png, .playwright-mcp/v3-p08-farroupilha-um-socio-jatoba.png",
+      "veredito": "OK"
+    },
+    {
+      "passo": "9 - AC1 a concentracao",
+      "esperado": "assistente ja marcado com cessao (3 cessoes somando 2.628.542 quotas), entrada/retirada, possivelmente administracao; SEM aumento e SEM integralizacao",
+      "observado": "switches lidos por aria-checked: 'Houve mudanca do endereco da sede' = false ('nada no cadastro registra este evento'); 'Houve aumento do capital social' = false ('nada no cadastro registra este evento'); 'Houve cessao de quotas entre socios ou para terceiro' = TRUE ('3 cessao(oes) somando 2.628.542 quotas'); 'Houve integralizacao de capital (em imoveis, quotas ou dinheiro)' = false ('nada no cadastro registra este evento'); 'Houve mudanca na administracao da sociedade' = TRUE ('2 administrador(es) passa(m) a administrar sem estar no quadro societario'); 'Houve entrada ou retirada de socio' = TRUE ('1 ingresso(s) e 3 retirada(s) no quadro societario'). Folha: 'PRIMEIRA ALTERACAO E CONSOLIDACAO DO CONTRATO SOCIAL' + 'CLAUSULA PRIMEIRA: Formaliza-se a cessao e transferencia de quotas ... i) LUCAS NOGUEIRA ... cede e transfere 1.846.667 ... quotas ... a JATOBA SEMENTES S.A.' + 'CLAUSULA SEGUNDA: Em virtude das cessoes e transferencias descritas nas clausulas anteriores, por terem cedido a totalidade de suas quotas, os socios LUCAS NOGUEIRA, HEITOR CARDOSO e MARINA SALGADO retiram-se da sociedade.'",
+      "prova": ".playwright-mcp/v3-p09-assistente-ac1-eventos.png, .playwright-mcp/v3-p09-folha-ac1-resolucao-cessao.png",
+      "veredito": "OK"
+    },
+    {
+      "passo": "10 - registrar a AC1",
+      "esperado": "rail travado no selo Registrado na junta",
+      "observado": "HTTP 200. 'Registrado na junta / Esta peca esta travada: ela ja produziu efeito e nao se reescreve. / 87 de 99 blocos - 3 fora por condicao nao marcada'",
+      "prova": ".playwright-mcp/v3-p10-ac1-registrada-junta.png",
+      "veredito": "OK"
+    },
+    {
+      "passo": "11 - aprovar BS 01, card do aumento (V1) e rodape do modal (V3)",
+      "esperado": "BS 01 Aprovado; card '1 imovel(is) aprovado(s) fora do capital'; parcela 95.209,23 vira 95.209 quotas; Capital hoje 2.628.542,00, Aumento 345.209,00, Capital depois 2.973.751,00",
+      "observado": "BS 01 apos salvar (PATCH 200): 'BS 01 Imovel Rural Imovel A3B8FE R$ 250.000,00 - Aprovado'. Quadro: '1 imovel(is) aprovado(s) fora do capital / Aprovados no Diagnostico Patrimonial depois da constituicao, eles ainda nao entraram no capital desta empresa. Registre o aumento para que a proxima alteracao contratual o publique. / Registrar aumento de capital'. Modal, IMOVEIS QUE ENTRAM (1): 'Imovel A3B8FE / Matricula 2.424 - Lucas do Rio Verde/MT - Lucas Nogueira / R$ 250.000,00'. Campo de moeda do Lucas relido = '95.209,23'. Rodape: 'O QUE SERA GRAVADO / 2 lancamento(s) de aporte, em um ato / 345.209 quotas / Capital hoje R$ 2.628.542,00 / Aumento R$ 345.209,00 / Capital depois do ato R$ 2.973.751,00'. POST 201 ao gravar.",
+      "prova": ".playwright-mcp/v3-p11-bs01-aprovado.png, .playwright-mcp/v3-p11-card-1-imovel-fora-do-capital.png, .playwright-mcp/v3-p11-V3-rodape-modal-aumento.png",
+      "veredito": "OK"
+    },
+    {
+      "passo": "12 - procedencia na tabela (V2)",
+      "esperado": "linha do Lucas traz 'Aumento de capital por integralizacao de imoveis' entre os rotulos; card Atos societarios lista o ato",
+      "observado": "'Lucas Nogueira PF 990.337.577-88 / Constituicao / Subida das quotas da Farroupilha Comercio Ltda para a Jatoba Sementes S.A. / Aumento de capital por integralizacao de imoveis / 345.209 R$ 345.209,00 11,61%'. Card: 'Atos societarios (2) ... Subida das quotas da Farroupilha Comercio Ltda para a Jatoba Sementes S.A. 01/09/2026 - 3 lancamento(s) nesta empresa - Formalizado em documento / Aumento de capital por integralizacao de imoveis 01/09/2026 - 2 lancamento(s) nesta empresa - Desfazer'. Card do aumento sumiu; KPIs: R$ 2.973.751,00 / 2.973.751 quotas.",
+      "prova": ".playwright-mcp/v3-p12-V2-procedencia-lucas.png, .playwright-mcp/v3-p12-card-atos-societarios.png",
+      "veredito": "OK"
+    },
+    {
+      "passo": "13 - AC2, o aumento (inclui a checagem do conserto da retirada)",
+      "esperado": "assistente marca aumento, integralizacao e entrada/retirada; folha traz o delta e as alineas (imovel depois moeda); NENHUMA frase de retirada; numeracao sem buraco",
+      "observado": "Switches: 'Houve aumento do capital social' = TRUE ('aumento de capital de R$ 2.628.542,00 para R$ 2.973.751,00'); 'Houve integralizacao de capital (em imoveis, quotas ou dinheiro)' = TRUE ('2 aporte(s) integralizado(s) com bens, moeda corrente'); 'Houve entrada ou retirada de socio' = TRUE ('1 ingresso(s) no quadro societario'); os outros tres false com 'nada no cadastro registra este evento'. Folha 'SEGUNDA ALTERACAO E CONSOLIDACAO DO CONTRATO SOCIAL'. Clausulas do bloco DAS ALTERACOES CONTRATUAIS, em sequencia: PRIMEIRA (Aumenta-se o capital social em R$ 345.209,00 ... de R$ 2.628.542,00 ... passara a ser de R$ 2.973.751,00), SEGUNDA (Integralizam-se as quotas subscritas ... i) pelo socio LUCAS NOGUEIRA, no valor total de R$ 345.209,00: a) Um imovel rural ... denominado Imovel A3B8FE ... matricula de n 2.424 ... pelo valor de R$ 250.000,00. b) em moeda corrente nacional, no valor de R$ 95.209,00 (noventa e cinco mil, duzentos e nove reais).), TERCEIRA (Altera-se a composicao do quadro societario), QUARTA (ratificacao das demais clausulas), QUINTA (consolidacao). Depois disso a numeracao reinicia no consolidado, PRIMEIRA a VIGESIMA SEGUNDA, sem salto. Varredura de /retir\\w*/ na folha inteira: 6 ocorrencias, TODAS do consolidado boilerplate ('o socio alienante/cedente podera retirar-se da sociedade', 'pedido de retirada do quadro societario', 'retirada(s) mensal(is) a titulo de pro-labore', 'uma retirada anual', 'efetivacao das retiradas') mais o rotulo do rail. Nenhuma clausula resolutiva de retirada. A frase 'cedido a totalidade' nao aparece na folha da AC2. Rodape do rail: '85 de 99 blocos - 5 fora por condicao nao marcada - 1 sem dado para preencher'",
+      "prova": ".playwright-mcp/v3-p13-assistente-ac2-eventos.png, .playwright-mcp/v3-p13-folha-ac2-clausula-aumento.png, .playwright-mcp/v3-p13-folha-ac2-alinea-moeda-sem-retirada.png",
+      "veredito": "OK"
+    },
+    {
+      "passo": "14 - registrar a AC2 + V4 segunda metade",
+      "esperado": "rail travado; BS 01 vira Integralizado sozinho",
+      "observado": "HTTP 200; 'Registrado na junta / Esta peca esta travada: ela ja produziu efeito e nao se reescreve.' Diagnostico Patrimonial, sem editar cadastro: 'BS 01 Imovel Rural Imovel A3B8FE R$ 250.000,00 - Integralizado' (BS 02, BS 03, BS 08 seguem Pendente)",
+      "prova": ".playwright-mcp/v3-p14-ac2-registrada-junta.png, .playwright-mcp/v3-p14-V4-bs01-integralizado.png",
+      "veredito": "OK"
+    },
+    {
+      "passo": "15 - a AC seguinte nao repete (V5)",
+      "esperado": "lista vazia, ou ao menos sem aumento e sem integralizacao",
+      "observado": "os SEIS eventos com aria-checked=false e a mesma evidencia 'nada no cadastro registra este evento': endereco da sede, aumento do capital social, cessao de quotas, integralizacao de capital, mudanca na administracao, entrada ou retirada de socio. Assistente fechado em Cancelar, nenhuma peca gerada.",
+      "prova": ".playwright-mcp/v3-p15-V5-assistente-lista-vazia.png",
+      "veredito": "OK"
+    },
+    {
+      "passo": "16 - a segunda concentracao (V6)",
+      "esperado": "sem a mensagem 'A controladora ja e socia da proprietaria'; 1 cessao com as quotas do Lucas; Jatoba nao cede; quotas do Lucas somam na controladora",
+      "observado": "Modal: 'O QUE SERA GRAVADO / 1 cessao(oes) em Farroupilha Comercio Ltda: 345.209 quotas (R$ 345.209,00) para Jatoba Sementes S.A.. / 1 aporte(s) em Jatoba Sementes S.A., integralizados com essas quotas: R$ 345.209,00.' QUADRO DA CONTROLADORA DEPOIS DO ATO: Lucas Nogueira 2.192.376 quotas R$ 2.192.376,00 (soma de 1.847.167 + 345.209); Marina Salgado 367.166; Heitor Cardoso 415.209. Aviso de proporcao: 'Lucas Nogueira: 11,609% na proprietaria, 73,699% na controladora'. NENHUMA ocorrencia da frase 'A controladora ja e socia da proprietaria'. POST 201. Depois: 'Lista de Socios (1) / Jatoba Sementes S.A. ... 2.973.751 R$ 2.973.751,00 100,00%' e 'Atos societarios (3)'",
+      "prova": ".playwright-mcp/v3-p16-V6-modal-segunda-concentracao.png, .playwright-mcp/v3-p16-farroupilha-um-socio-depois-2a-concentracao.png",
+      "veredito": "OK"
+    },
+    {
+      "passo": "17 - AC3, a nova concentracao",
+      "esperado": "assistente traz cessao e retirada, sem aumento; clausula de retirada nomeando quem saiu; rail travado",
+      "observado": "Switches: cessao = TRUE ('1 cessao(oes) somando 345.209 quotas'); administracao = TRUE ('2 administrador(es) passa(m) a administrar sem estar no quadro societario'); entrada ou retirada = TRUE ('1 retirada(s) no quadro societario'); aumento de capital = false ('nada no cadastro registra este evento'); integralizacao = false; endereco = false. Folha 'TERCEIRA ALTERACAO E CONSOLIDACAO DO CONTRATO SOCIAL' com 'CLAUSULA SEGUNDA: Em virtude das cessoes e transferencias descritas nas clausulas anteriores, por ter cedido a totalidade de suas quotas, o socio LUCAS NOGUEIRA retira-se da sociedade.' (singular concordado). Registro HTTP 200: 'Registrado na junta / Esta peca esta travada: ela ja produziu efeito e nao se reescreve. / 87 de 99 blocos - 3 fora por condicao nao marcada'",
+      "prova": ".playwright-mcp/v3-p17-assistente-ac3-eventos.png, .playwright-mcp/v3-p17-folha-ac3-clausula-retirada-lucas.png, .playwright-mcp/v3-p17-ac3-registrada-junta.png",
+      "veredito": "OK"
+    }
+  ],
+  "pontos_verificacao": {
+    "V1": {
+      "veredito": "PROVADO COM RESSALVA",
+      "prova": "ausencia nos passos 1 e 5, presenca no passo 11; mas no passo 2, entre gravar o quadro e registrar o constitutivo, o card aparece com '3 imovel(is) aprovado(s) fora do capital', que sao os tres bens que acabaram de entrar no capital"
+    },
+    "V2": {
+      "veredito": "PROVADO",
+      "prova": "passo 12: linha do Lucas com 'Constituicao / Subida das quotas da Farroupilha Comercio Ltda para a Jatoba Sementes S.A. / Aumento de capital por integralizacao de imoveis'"
+    },
+    "V3": {
+      "veredito": "PROVADO",
+      "prova": "passo 11: 95.209,23 digitado, '345.209 quotas', 'Capital hoje R$ 2.628.542,00 / Aumento R$ 345.209,00 / Capital depois do ato R$ 2.973.751,00'"
+    },
+    "V4": {
+      "veredito": "PROVADO",
+      "prova": "passo 5 (BS 60/61/62 Integralizado) e passo 14 (BS 01 Integralizado sem editar cadastro)"
+    },
+    "V5": {
+      "veredito": "PROVADO",
+      "prova": "passo 15: os seis eventos com 'nada no cadastro registra este evento'"
+    },
+    "V6": {
+      "veredito": "PROVADO",
+      "prova": "passo 16: '1 cessao(oes) ... 345.209 quotas', Jatoba nao cede, Lucas 1.847.167 -> 2.192.376 na controladora, sem a mensagem de recusa"
+    },
+    "conserto_retirada_AC2": {
+      "veredito": "CORRIGIDO",
+      "prova": "passo 13: nenhuma clausula resolutiva de retirada na folha da AC2, a frase 'cedido a totalidade' ausente, numeracao PRIMEIRA a QUINTA sem buraco; passo 17: a clausula volta na AC3 como 'por ter cedido a totalidade de suas quotas, o socio LUCAS NOGUEIRA retira-se da sociedade'"
+    }
+  },
+  "observacoes": [
+    "Login usado: user001@exemplo.dev, conforme o roteiro (secao 2.2), e nao bi@psaconsultores.com.br das instrucoes gerais do agente. O roteiro manda.",
+    "O campo 'Nome do ato *' do modal de aumento chegou VAZIO com placeholder 'Aumento de capital por integralizacao de imoveis'. Deixado como estava, conforme o roteiro. O ato foi gravado com esse nome, confirmado no card Atos societarios e na procedencia.",
+    "Erros de console durante a geracao: 401 Unauthorized em http://localhost:8000/api/v1/osg/documentos/georreferenciamento (backend local de georref fora do ar nesta sessao). Nao afetou o texto das pecas.",
+    "Observacao de redacao, fora dos pontos de verificacao: o contrato da Farroupilha traz 'subscrito e integralizado neste ato pela socia HEITOR CARDOSO' (concordancia de genero) e 'HEITOR CARDOSO, inscrita no CPF/CNPJ'.",
+    "Dados de teste deixados escritos no sandbox: quadro de constituicao da Farroupilha, constituicao da Jatoba (2 aportes de 500), duas concentracoes, um aumento de capital, e 5 documentos registrados na junta (2 constitutivos + AC1 + AC2 + AC3). BS 01 alterado de Pendente para Aprovado pela UI (passo 11) e depois virado para Integralizado pelo proprio registro da AC2. Nada foi revertido: a passagem e cumulativa por desenho e o reset e gesto de quem conduz."
+  ]
+}

@@ -1,0 +1,223 @@
+<DesignBoard id="board-aumento-capital">
+<Section id="sec-fluxo" label="Do imóvel aprovado à cláusula de aumento">
+
+<Artboard id="ab-quadro" label="1 · Quadro Societário, com imóveis fora do capital" x={0} y={0} height={1700}>
+  <Screen
+    surface="desktop"
+    html={`
+<div style="display:flex;flex-direction:column;gap:12px;padding:16px;height:100%;box-sizing:border-box">
+  <div>
+    <h2>Quadro Societário</h2>
+    <small class="wf-muted">Distribuição de quotas e participação dos sócios por empresa</small>
+  </div>
+
+  <div style="display:flex;gap:6px;white-space:nowrap;overflow:hidden">
+    <span class="wf-pill accent">MMS Agro Ltda · PR</span>
+    <span class="wf-pill">MMS Participações Ltda · CN</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+    <div class="wf-card" style="padding:10px 12px">
+      <small class="wf-muted">Capital Social Total</small><br /><strong>R$ 872.674,00</strong>
+    </div>
+    <div class="wf-card" style="padding:10px 12px">
+      <small class="wf-muted">Total de Quotas</small><br /><strong>872.674</strong>
+    </div>
+    <div class="wf-card" style="padding:10px 12px">
+      <small class="wf-muted">Valor Nominal</small><br /><strong>R$ 1,00</strong>
+    </div>
+  </div>
+
+  <div class="wf-card" style="display:flex;flex-direction:column;gap:10px;border-color:var(--wf-warn)">
+    <div style="display:flex;align-items:center;gap:10px;white-space:nowrap">
+      <strong style="flex:1;min-width:0">Imóveis aprovados fora do capital (2)</strong>
+      <button class="primary">Registrar aumento de capital</button>
+    </div>
+    <small class="wf-muted">Aprovados no Diagnóstico Patrimonial depois do contrato registrado. Ainda não existem no livro de movimentos, então nenhuma alteração contratual os integraliza.</small>
+    <div style="display:flex;flex-direction:column">
+      <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1.4px solid var(--wf-line)">
+        <div style="flex:1;min-width:0">
+          <strong>Matrícula 91.687</strong><br /><small class="wf-muted">Cuiabá / MT · José Eduardo de Macedo Soares Junior</small>
+        </div>
+        <div style="text-align:right;white-space:nowrap">
+          <strong>R$ 1.585.864,77</strong><br /><small class="wf-muted">1.585.865 quotas</small>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;padding:8px 0">
+        <div style="flex:1;min-width:0">
+          <strong>Matrícula 31.539</strong><br /><small class="wf-muted">Cuiabá / MT · Maria Auxiliadora Malheiros</small>
+        </div>
+        <div style="text-align:right;white-space:nowrap">
+          <strong>R$ 1.681.074,00</strong><br /><small class="wf-muted">1.681.074 quotas</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wf-card" style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center;gap:10px;white-space:nowrap">
+      <strong style="flex:1;min-width:0">Lista de Sócios (2)</strong>
+      <span class="wf-pill accent">Quadro registrado</span>
+      <button>Transferir quotas para a controladora</button>
+    </div>
+    <div style="display:flex;flex-direction:column">
+      <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1.4px solid var(--wf-line)">
+        <div style="flex:1;min-width:0">
+          <strong>José Eduardo de Macedo Soares Junior</strong><br /><small class="wf-muted">Constituição</small>
+        </div>
+        <div style="text-align:right;white-space:nowrap"><strong>436.337</strong><br /><small class="wf-muted">50,00%</small></div>
+      </div>
+      <div style="display:flex;gap:12px;padding:8px 0">
+        <div style="flex:1;min-width:0">
+          <strong>Maria Auxiliadora Malheiros</strong><br /><small class="wf-muted">Constituição</small>
+        </div>
+        <div style="text-align:right;white-space:nowrap"><strong>436.337</strong><br /><small class="wf-muted">50,00%</small></div>
+      </div>
+    </div>
+  </div>
+</div>
+`}
+  />
+</Artboard>
+
+<Annotation id="an-quadro" targetId="ab-quadro" placement="bottom">
+O card só existe quando há bem elegível sem movimento no livro, e some sozinho depois de gravado.
+
+O livro segue sendo a única fonte: a peça formaliza, nunca cria.
+</Annotation>
+
+<Artboard id="ab-modal" label="2 · Registrar aumento de capital" x={1600} y={0} height={2000}>
+  <Screen
+    surface="panel"
+    html={`
+<div style="display:flex;flex-direction:column;gap:12px;padding:16px;height:100%;box-sizing:border-box">
+  <div>
+    <strong>Registrar aumento de capital</strong><br />
+    <small class="wf-muted">MMS Agro Ltda · capital registrado de R$ 872.674,00</small>
+  </div>
+
+  <div>
+    <small class="wf-muted">IMÓVEIS APROVADOS</small>
+    <div class="wf-card" style="display:flex;flex-direction:column;padding:0;margin-top:6px">
+      <div style="display:flex;gap:10px;padding:9px 12px;border-bottom:1.4px solid var(--wf-line)">
+        <div style="flex:1;min-width:0"><strong>Matrícula 91.687</strong><br /><small class="wf-muted">José Eduardo de Macedo Soares Junior</small></div>
+        <div style="text-align:right;white-space:nowrap"><strong>1.585.865</strong><br /><small class="wf-muted">quotas</small></div>
+      </div>
+      <div style="display:flex;gap:10px;padding:9px 12px">
+        <div style="flex:1;min-width:0"><strong>Matrícula 31.539</strong><br /><small class="wf-muted">Maria Auxiliadora Malheiros</small></div>
+        <div style="text-align:right;white-space:nowrap"><strong>1.681.074</strong><br /><small class="wf-muted">quotas</small></div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <small class="wf-muted">MOEDA CORRENTE, POR SÓCIO</small>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">José Eduardo de Macedo Soares Junior</span>
+        <input value="95.209,23" style="width:110px" />
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Maria Auxiliadora Malheiros</span>
+        <input value="0,00" style="width:110px" />
+      </div>
+    </div>
+    <small class="wf-muted">Digitado, não vem de cadastro. Entra como um lançamento próprio depois dos imóveis do sócio.</small>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <label>Descrição do ato<input value="Aumento de capital por integralização de imóveis" /></label>
+    <label>Data do ato<input value="27/12/2023" style="width:130px" /></label>
+  </div>
+
+  <div style="flex:1"></div>
+
+  <div class="wf-card" style="display:flex;flex-direction:column;gap:6px">
+    <div style="display:flex;justify-content:space-between;white-space:nowrap"><small class="wf-muted">Aumento</small><strong>R$ 3.362.148,00</strong></div>
+    <div style="display:flex;justify-content:space-between;white-space:nowrap"><small class="wf-muted">Capital passa a ser</small><strong>R$ 4.234.822,00</strong></div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
+    <div style="flex:1"></div>
+    <button>Cancelar</button>
+    <button class="primary">Gravar aumento</button>
+  </div>
+</div>
+`}
+  />
+</Artboard>
+
+<Annotation id="an-modal" targetId="ab-modal" placement="bottom">
+Os imóveis são leitura, rateados pela fração de titularidade. A moeda é digitada por sócio.
+
+Um ato societário nomeado agrupa os dois tipos de lançamento, e é ele que a tela oferece reverter enquanto nenhuma peça o formalizou.
+</Annotation>
+
+<Artboard id="ab-assistente" label="3 · Assistente da alteração, acendendo sozinho" x={2800} y={0} height={1500}>
+  <Screen
+    surface="panel"
+    html={`
+<div style="display:flex;flex-direction:column;gap:12px;padding:16px;height:100%;box-sizing:border-box">
+  <div>
+    <strong>Gerar alteração contratual</strong><br />
+    <small class="wf-muted">A partir de Contrato Social MMS Agro Ltda · MMS Agro Ltda</small>
+  </div>
+
+  <div>
+    <strong>O que mudou desde o registro</strong><br />
+    <small class="wf-muted">Confira e desmarque o que não deve entrar nesta peça.</small>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div class="wf-box" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px">
+      <input type="checkbox" checked />
+      <div style="flex:1;min-width:0">
+        <strong>Aumento de capital</strong><br />
+        <small class="wf-muted">de R$ 872.674,00 para R$ 4.234.822,00</small>
+      </div>
+    </div>
+    <div class="wf-box" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px">
+      <input type="checkbox" checked />
+      <div style="flex:1;min-width:0">
+        <strong>Integralização</strong><br />
+        <small class="wf-muted">3 aporte(s) integralizado(s) com bens, moeda corrente</small>
+      </div>
+    </div>
+    <div class="wf-box" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px">
+      <input type="checkbox" checked />
+      <div style="flex:1;min-width:0">
+        <strong>Endereço da sede</strong><br />
+        <small class="wf-muted">o endereço mudou no cadastro depois do documento registrado</small>
+      </div>
+    </div>
+    <div class="wf-box" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px">
+      <input type="checkbox" />
+      <div style="flex:1;min-width:0">
+        <strong>Cessão de quotas</strong><br />
+        <small class="wf-muted">sem evidência no cadastro</small>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex:1"></div>
+  <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
+    <small class="wf-muted" style="flex:1;min-width:0">Passo 1 de 2</small>
+    <button>Cancelar</button>
+    <button class="primary">Avançar</button>
+  </div>
+</div>
+`}
+  />
+</Artboard>
+
+<Annotation id="an-assistente" targetId="ab-assistente" placement="bottom">
+Nada muda nesta tela. Ela acende porque o aporte pendente passou a existir no livro.
+
+A evidência da integralização já enumera as formas de pagamento presentes, então a moeda aparece ao lado dos bens sem código novo.
+</Annotation>
+
+<Connector id="cn-1" from="ab-quadro" to="ab-modal" />
+<Connector id="cn-2" from="ab-modal" to="ab-assistente" />
+
+</Section>
+</DesignBoard>
