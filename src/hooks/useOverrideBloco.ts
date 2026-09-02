@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useAuth } from '@/contexts/AuthContext';
 import type { BlocoComVersao } from '@/hooks/useBibliotecaModelos';
 
 // Override de bloco escopado a um documento gerado: edita o texto SÓ deste
@@ -46,11 +47,11 @@ function invalidar(queryClient: ReturnType<typeof useQueryClient>, documentoGera
 export function useSalvarOverride() {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: SalvarOverrideInput) => {
-      const { data: userData } = await supabase.auth.getUser();
-      const autorId = userData.user?.id ?? null;
+      const autorId = user?.id ?? null;
       const { blocoAlvo } = input;
 
       // ----- Caso 2 — re-edição: nova versão do bloco derivado existente -----

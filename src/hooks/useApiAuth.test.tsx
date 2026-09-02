@@ -1,28 +1,21 @@
-// B21 · o caminho da API não pode arrastar quem está trabalhando.
+// B21: o caminho da API não pode arrastar quem está trabalhando.
 //
-// `handleSessionExpired` navegava para /equipe. Isso rodava em qualquer refetch
-// de fundo do React Query, então uma consulta que ninguém pediu levava embora o
-// formulário aberto — inclusive por baixo do diálogo que promete o contrário.
+// Um 401 do backend não é veredito sobre a sessão do Supabase. O endpoint pode
+// estar mal configurado ou negar a requisição por outros motivos; só uma falha
+// definitiva do refresh token deve abrir o diálogo global de reautenticação.
 import { renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  navigate: vi.fn(),
-  toast: vi.fn(),
-  getUser: vi.fn(),
   getSessionSupabase: vi.fn(),
   refreshSession: vi.fn(),
-  sinalizarSessaoExpirada: vi.fn(),
   sessaoExpirada: false,
   session: null as unknown,
 }));
 
-vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.navigate }));
-vi.mock('@/hooks/use-toast', () => ({ toast: mocks.toast }));
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     auth: {
-      getUser: mocks.getUser,
       getSession: mocks.getSessionSupabase,
     },
   },
@@ -32,15 +25,14 @@ vi.mock('@/contexts/AuthContext', () => ({
     session: mocks.session,
     refreshSession: mocks.refreshSession,
     sessaoExpirada: mocks.sessaoExpirada,
-    sinalizarSessaoExpirada: mocks.sinalizarSessaoExpirada,
   }),
 }));
 
 import { useApiAuth } from '@/hooks/useApiAuth';
 
 const agora = () => Math.floor(Date.now() / 1000);
-const sessao = (expiresAt: number) => ({
-  access_token: 'token-vigente',
+const sessao = (expiresAt: number, accessToken = 'token-vigente') => ({
+  access_token: accessToken,
   refresh_token: 'refresh-vigente',
   expires_at: expiresAt,
   user: { id: 'u-1' },
@@ -52,10 +44,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.sessaoExpirada = false;
   mocks.session = sessao(agora() + 3600);
-  mocks.getUser.mockResolvedValue({ data: { user: { id: 'u-1' } }, error: null });
   mocks.getSessionSupabase.mockResolvedValue({ data: { session: mocks.session } });
   mocks.refreshSession.mockResolvedValue(null);
-  mocks.sinalizarSessaoExpirada.mockReturnValue(true);
   fetchMock = vi.fn();
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -66,39 +56,45 @@ afterEach(() => {
 
 const resposta = (status: number) => ({ status, ok: status < 400 }) as Response;
 
-describe('sessão perdida no meio de uma chamada', () => {
-  it('com sessão viva na tela, o diálogo assume e ninguém navega', async () => {
+describe('401 devolvido pela API', () => {
+  it('reutiliza o token que já foi renovado durante a chamada', async () => {
+    const anterior = sessao(agora() + 3600);
+    const nova = sessao(agora() + 3600, 'token-novo');
+    mocks.getSessionSupabase
+      .mockResolvedValueOnce({ data: { session: anterior } })
+      .mockResolvedValueOnce({ data: { session: nova } });
+    fetchMock.mockResolvedValueOnce(resposta(401)).mockResolvedValueOnce(resposta(401));
+    const { result } = renderHook(() => useApiAuth());
+
+    const response = await result.current.fetchWithAuth('/api/qualquer');
+
+    expect(response.status).toBe(401);
+    expect(mocks.refreshSession).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const headers = (fetchMock.mock.calls[1][1] as RequestInit).headers as Record<string, string>;
+    expect(headers.Authorization).toBe('Bearer token-novo');
+  });
+
+  it('401 com token ainda válido pertence ao endpoint e não força refresh', async () => {
     fetchMock.mockResolvedValue(resposta(401));
     const { result } = renderHook(() => useApiAuth());
 
-    await expect(result.current.fetchWithAuth('/api/qualquer')).rejects.toThrow('Sessão expirada');
+    const response = await result.current.fetchWithAuth('/api/qualquer');
 
-    expect(mocks.sinalizarSessaoExpirada).toHaveBeenCalled();
-    expect(mocks.navigate).not.toHaveBeenCalled();
-    expect(mocks.toast).not.toHaveBeenCalled();
+    expect(response.status).toBe(401);
+    expect(mocks.refreshSession).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('sem sessão viva na tela, volta o comportamento antigo', async () => {
-    // Boot frio ou já deslogado: não há formulário a preservar nem conta para
-    // reautenticar, então mandar para o login continua sendo o certo.
-    mocks.sinalizarSessaoExpirada.mockReturnValue(false);
-    fetchMock.mockResolvedValue(resposta(401));
-    const { result } = renderHook(() => useApiAuth());
-
-    await expect(result.current.fetchWithAuth('/api/qualquer')).rejects.toThrow('Sessão expirada');
-
-    expect(mocks.navigate).toHaveBeenCalledWith('/equipe');
-    expect(mocks.toast).toHaveBeenCalled();
-  });
-
-  it('com o diálogo já aberto, a chamada falha rápido em vez de renovar de novo', async () => {
+  it('com o diálogo já aberto, a chamada completa falha sem renovar de novo', async () => {
     mocks.sessaoExpirada = true;
     fetchMock.mockResolvedValue(resposta(200));
     const { result } = renderHook(() => useApiAuth());
 
-    expect(await result.current.getValidToken()).toBeNull();
-    expect(mocks.getUser).not.toHaveBeenCalled();
+    await expect(result.current.fetchWithAuth('/api/qualquer')).rejects.toThrow('Sessão expirada');
+
     expect(mocks.refreshSession).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
@@ -118,6 +114,8 @@ describe('renovação preventiva por chamada de API', () => {
   });
 
   it('o 401 continua renovando e repetindo a chamada', async () => {
+    mocks.session = sessao(agora() - 1);
+    mocks.getSessionSupabase.mockResolvedValue({ data: { session: mocks.session } });
     mocks.refreshSession.mockResolvedValue({ access_token: 'token-novo' });
     fetchMock.mockResolvedValueOnce(resposta(401)).mockResolvedValueOnce(resposta(200));
     const { result } = renderHook(() => useApiAuth());
@@ -129,6 +127,5 @@ describe('renovação preventiva por chamada de API', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const cabecalhosDaRepeticao = (fetchMock.mock.calls[1][1] as RequestInit).headers as Record<string, string>;
     expect(cabecalhosDaRepeticao.Authorization).toBe('Bearer token-novo');
-    expect(mocks.navigate).not.toHaveBeenCalled();
   });
 });

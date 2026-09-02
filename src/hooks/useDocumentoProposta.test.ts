@@ -34,6 +34,7 @@ vi.mock('@/hooks/use-toast', () => ({ toast: toastMocks.toast }));
 vi.mock('@/hooks/useAuditLog', () => ({
   useAuditLog: () => ({ logAction: auditMocks.logAction }),
 }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'user-1' } }) }));
 vi.mock('@/hooks/useDocumentoArquivo', () => ({
   useUploadDocumento: () => ({ mutateAsync: uploadMocks.mutateAsync }),
 }));

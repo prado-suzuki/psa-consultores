@@ -6,9 +6,12 @@ const reactQueryMocks = vi.hoisted(() => ({
   useMutation: vi.fn((options: unknown) => ({ mutate: vi.fn(), ...(options as object) })),
   useQueryClient: vi.fn(() => ({ invalidateQueries: vi.fn() })),
 }));
+const authMocks = vi.hoisted(() => ({ sessaoExpirada: false }));
 
 vi.mock('@tanstack/react-query', () => reactQueryMocks);
-vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'U1' } }) }));
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'U1' }, sessaoExpirada: authMocks.sessaoExpirada }),
+}));
 vi.mock('@/config/api', () => ({ currentAmbiente: 'prod' }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: vi.fn() } }));
 
@@ -55,7 +58,7 @@ function queryRegistro() {
       queryFn: () => Promise<unknown[]>;
       enabled: boolean;
       staleTime: number;
-      refetchInterval: number;
+      refetchInterval: number | false;
     },
   ];
   return options;
@@ -84,6 +87,7 @@ const linha = (extra: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  authMocks.sessaoExpirada = false;
   dbCalls.length = 0;
   resultado = { data: [], error: null };
   vi.mocked(supabase.from).mockImplementation((table: string) => makeSupabaseChain(table) as never);
@@ -98,6 +102,14 @@ describe('useNotificacoesInternas — registro da query', () => {
     expect(queryRegistro().enabled).toBe(true);
     expect(queryRegistro().staleTime).toBe(30000);
     expect(queryRegistro().refetchInterval).toBe(30000);
+  });
+
+  it('suspende leitura e polling durante a reautenticação', () => {
+    authMocks.sessaoExpirada = true;
+    renderHook(() => useNotificacoesInternas());
+
+    expect(queryRegistro().enabled).toBe(false);
+    expect(queryRegistro().refetchInterval).toBe(false);
   });
 });
 

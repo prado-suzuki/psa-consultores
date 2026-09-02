@@ -22,6 +22,7 @@ vi.mock('@/hooks/useApiAuth', () => ({
 vi.mock('@/hooks/useAuditLog', () => ({
   useAuditLog: () => ({ logAction: auditMocks.logAction }),
 }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'U1' } }) }));
 vi.mock('@/hooks/use-toast', () => ({ toast: toastMocks.toast }));
 vi.mock('@/config/api', () => ({
   getApiUrl: (path: string) => `https://api.test${path}`,

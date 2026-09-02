@@ -62,7 +62,7 @@ function calcularPrazoNotification(
 }
 
 export function useTicketNotifications() {
-  const { user } = useAuth();
+  const { user, sessaoExpirada } = useAuth();
   const userId = user?.id;
   
   const { data: notifications = [], isLoading, refetch } = useQuery({
@@ -137,9 +137,9 @@ export function useTicketNotifications() {
         return a.prazoInfo.daysRemaining - b.prazoInfo.daysRemaining;
       });
     },
-    enabled: !!userId,
+    enabled: !!userId && !sessaoExpirada,
     staleTime: 30000,
-    refetchInterval: 30000,
+    refetchInterval: sessaoExpirada ? false : 30000,
   });
   
   // Calculate urgent count

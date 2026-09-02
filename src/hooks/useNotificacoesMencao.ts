@@ -77,7 +77,7 @@ export const notificacoesMencaoQueryKey = (userId?: string) =>
   ['mencao-notifications', userId] as const;
 
 export function useNotificacoesMencao() {
-  const { user } = useAuth();
+  const { user, sessaoExpirada } = useAuth();
   const userId = user?.id;
   const queryClient = useQueryClient();
 
@@ -102,9 +102,9 @@ export function useNotificacoesMencao() {
       );
       return montarNotificacoesDeMencao(mencoes, comentarios, userId);
     },
-    enabled: !!userId,
+    enabled: !!userId && !sessaoExpirada,
     staleTime: 30000,
-    refetchInterval: 30000,
+    refetchInterval: sessaoExpirada ? false : 30000,
   });
 
   const marcarComoLidas = useMutation({

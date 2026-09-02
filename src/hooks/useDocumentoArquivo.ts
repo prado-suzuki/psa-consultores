@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useAuth } from '@/contexts/AuthContext';
 import { DOWNLOADS_QUERY_KEY } from '@/hooks/useDomainDocumentoDownload';
 import { getApiUrl, currentAmbiente } from '@/config/api';
 import type { Database } from '@/integrations/supabase/types';
@@ -598,6 +599,7 @@ const CAMPOS_AUDITADOS = [
 export function useAtualizarDocumento(clienteId: string) {
   const qc = useQueryClient();
   const { logAction } = useAuditLog();
+  const { user } = useAuth();
   return useMutation({
     mutationFn: async (
       { id, patch, origem }: { id: string; patch: AtualizarDocumentoPatch; origem?: string },
@@ -623,8 +625,7 @@ export function useAtualizarDocumento(clienteId: string) {
         revisao_motivo?: string | null;
       } = patch;
       if ('triado_em' in patch || 'revisao' in patch) {
-        const { data: sessao } = await supabase.auth.getUser();
-        const autor = sessao.user?.id ?? null;
+        const autor = user?.id ?? null;
         if ('triado_em' in patch) {
           corpo = { ...corpo, triado_por: patch.triado_em ? autor : null };
         }
