@@ -108,11 +108,17 @@ export function decideImportacao(
   const avisos = todos.filter((p) => !IMPEDEM.has(p.tipo));
 
   /*
-   * O arquivo vazio entra como impedimento e não como veredito à parte, para que
-   * a tela tenha sempre uma linha explicando o que houve, em vez de uma recusa
-   * sem motivo listado.
+   * O arquivo sem número entra como impedimento, e não como veredito à parte, para
+   * a tela ter sempre uma linha explicando o que houve em vez de uma recusa sem
+   * motivo listado.
+   *
+   * **Só quando a leitura ainda não disse isso.** Quando o arquivo não é um WP, a
+   * leitura já devolve `aba_ausente` dizendo quais abas esperava e quais achou, o
+   * que é mais útil; somar "nenhum número foi lido" em cima repete a mesma
+   * informação com menos detalhe, e a tela passa a acusar duas coisas onde há uma.
    */
-  if (nenhumNumero(leitura)) {
+  const jaDisseQueNaoEhWp = impedimentos.some((p) => p.tipo === 'aba_ausente');
+  if (nenhumNumero(leitura) && !jaDisseQueNaoEhWp) {
     impedimentos.push({
       tipo: 'aba_ausente',
       onde: 'arquivo',

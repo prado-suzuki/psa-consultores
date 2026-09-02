@@ -18,6 +18,7 @@ import {
   User,
   Calculator,
   BookOpen,
+  FileSpreadsheet,
   type LucideIcon,
 } from "lucide-react";
 import { DEV_HUBS } from "@/constants/devHubDefinitions";
@@ -90,6 +91,11 @@ const navItemsAfterGroups: NavItem[] = [
   { icon: Calculator, label: DEV_NAV_LABELS.calculadoraIbsCbs, path: "/equipe/dev/calculadora-ibs-cbs" },
   { icon: FileText, label: DEV_NAV_LABELS.controleBalancetes, path: "/equipe/dev/controle-balancetes" },
   { icon: BookOpen, label: DEV_NAV_LABELS.procedimentos, path: "/equipe/dev/procedimentos" },
+  {
+    icon: FileSpreadsheet,
+    label: DEV_NAV_LABELS.papelDeTrabalho,
+    path: "/equipe/dev/planejamento-tributario/papel-de-trabalho",
+  },
 ];
 
 const HubSidebarSection = ({

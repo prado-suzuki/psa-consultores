@@ -115,6 +115,18 @@ describe('o que impede a importação', () => {
   });
 
   /*
+   * Uma coisa errada, uma linha na tela. Quando o arquivo não é um WP, a leitura
+   * já explica quais abas esperava; acrescentar "nenhum número foi lido" em cima
+   * faria a tela acusar dois problemas onde existe um.
+   */
+  it('não repete o motivo quando a leitura já disse que não é um WP', () => {
+    const decisao = decideImportacao(lerWp(planilhaAlheia()));
+
+    expect(decisao.impedimentos).toHaveLength(1);
+    expect(decisao.impedimentos[0].detalhe).toContain('Esperava uma de');
+  });
+
+  /*
    * Só comentário não basta. Um recorte que traz o texto e nenhum valor não é um
    * estudo, e a régua olha número, não linha de texto.
    */
