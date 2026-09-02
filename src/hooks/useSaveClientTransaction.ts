@@ -491,9 +491,15 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             }
           }
         } else {
-          const { data: newContrib, error } = await supabase.from(contribuinteTable).insert(buildContribFields(e)).select("id").single();
+          // Id gerado no cliente de propósito: pedir a linha de volta ligaria o
+          // RETURNING, e aí o Postgres avalia a policy de SELECT sobre a linha
+          // nova — que é falsa quando o cliente é de outro cluster — recusando o
+          // INSERT inteiro com o mesmo 42501. Sem `.select()` o supabase-js manda
+          // `Prefer: return=minimal` e a leitura nunca é consultada.
+          const novoContribId = crypto.randomUUID();
+          const { error } = await supabase.from(contribuinteTable).insert({ ...buildContribFields(e), id: novoContribId });
           if (error) throw error;
-          contribId = newContrib.id;
+          contribId = novoContribId;
         }
 
         // Persist inscricoes estaduais
