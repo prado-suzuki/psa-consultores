@@ -58,7 +58,7 @@ function makeChain(table: string) {
   const record: ChainRecord = { table, calls: [] };
   chains.push(record);
   const chain: Record<string, unknown> = {};
-  for (const method of ['select', 'update', 'delete', 'eq', 'neq', 'in', 'or', 'gte', 'lte', 'order', 'single', 'maybeSingle']) {
+  for (const method of ['select', 'update', 'delete', 'eq', 'neq', 'in', 'or', 'gte', 'lte', 'not', 'order', 'single', 'maybeSingle']) {
     chain[method] = vi.fn((...args: unknown[]) => {
       record.calls.push({ method, args });
       return chain;
@@ -511,13 +511,13 @@ describe('useDeleteOrgTask (guarda do cascade)', () => {
     expect(chainOf('org_tasks', 'delete')).toHaveLength(0);
   });
 
-  it('conta pela mãe e ignora as concluídas', async () => {
+  it('conta pela mãe e ignora Backlog/A Fazer', async () => {
     queueDelete(1);
 
     await expect(deleteMutation().mutationFn('mae-1')).rejects.toThrow();
-    const contagem = chainOf('org_tasks', 'neq')[0];
+    const contagem = chainOf('org_tasks', 'not')[0];
     expect(argsOf(contagem, 'eq')).toEqual([['parent_task_id', 'mae-1']]);
-    expect(argsOf(contagem, 'neq')).toEqual([['status', 'done']]);
+    expect(argsOf(contagem, 'not')).toEqual([['status', 'in', '("backlog","todo")']]);
   });
 
   it('apaga quando o banco não tem nenhuma filha ativa', async () => {
