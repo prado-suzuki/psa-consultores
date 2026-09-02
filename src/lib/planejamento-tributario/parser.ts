@@ -83,7 +83,13 @@ export interface ProblemaWp {
     | 'cabecalho_ilegivel'
     | 'tipo_inesperado'
     /** Leu bem, mas a conta não fecha. Vem do validador, não da leitura. */
-    | 'conta_nao_fecha';
+    | 'conta_nao_fecha'
+    /**
+     * Leu bem, e o que veio não basta: falta campo que a tabela exige. Vem da
+     * decisão de recusa, não da leitura, porque quem sabe o que é obrigatório é o
+     * banco e não a planilha.
+     */
+    | 'campo_obrigatorio';
   onde: string;
   detalhe: string;
 }
