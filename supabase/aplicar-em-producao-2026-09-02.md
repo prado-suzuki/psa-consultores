@@ -41,6 +41,24 @@ não precisa auditar o que já existe: aplique todas, na ordem.
   linha**, em vez de decidir por conta. Um erro na metade é mais fácil de
   resolver do que uma correção que eu não pedi.
 
+## Duas destas 29 são REVERSÕES, e é de propósito
+
+`20260827180632_reverte_projeto_restrito_tarefa_pausada.sql` e
+`20260827180800_reverte_projeto_restrito_texto_identico_a_producao.sql` desfazem o
+que os arquivos 2 a 5 criam. A frente de "projeto restrito" foi **pausada** em
+27/08/2026 e o trabalho saiu para uma branch local.
+
+**Aplique as duas, na ordem em que estão.** O efeito líquido do bloco 2 a 7 é
+nenhum: as colunas `org_projects.restricted` e `org_tasks.project_restricted` e as
+funções `audit_log_projeto`, `org_projects_espelha_restricted`,
+`org_projects_guarda_restricted`, `org_projects_sincroniza_membros`,
+`org_tasks_guarda_restrito` e `org_tasks_herda_restricted` nascem no meio do
+pacote e são removidas no fim. Isso é o estado correto, e é o estado do nosso banco
+de desenvolvimento, que já aplicou as 29.
+
+Se você aplicar da 2 à 5 e parar, produção fica com schema de uma frente pausada.
+Não pare no meio deste bloco.
+
 ## Os 29 arquivos, na ordem
 
  1. 20260826154524_itcd_calculadora_schema.sql
@@ -82,75 +100,72 @@ para não existir schema que só um dos bancos tem.
 
 ## Verificação, para rodar depois e me mostrar o resultado
 
-Nenhuma linha deve voltar com `FALTA`:
+Nenhuma linha deve voltar com `FALTA` (objeto que devia existir e não existe) nem
+com `SOBRA` (objeto que devia ter sido removido e ficou). Os valores esperados foram
+lidos do nosso banco de desenvolvimento depois de aplicar as 29, e não deduzidos do
+texto das migrations:
 
 ```sql
--- Verificação do pacote: rode isto DEPOIS de aplicar, e nenhuma linha deve
--- voltar com "FALTA". São 7 tabelas, 19 colunas e 20 funções.
-with tab(nome) as (values
-  ('itcd_simulacao'),
-  ('itcd_simulacao_concessao'),
-  ('itcd_simulacao_doador'),
-  ('itcd_simulacao_donatario'),
-  ('itcd_simulacao_gia'),
-  ('itcd_simulacao_usufruto'),
-  ('psa_migrations_aplicadas')
-), col(t, c) as (values
-  ('documento_gerado', 'acompanha_documento_id'),
-  ('documento_gerado', 'papel'),
-  ('itcd_simulacao', 'com_reserva'),
-  ('itcd_simulacao', 'nome'),
-  ('itcd_simulacao', 'pct_base_instituicao'),
-  ('itcd_simulacao', 'pct_base_reserva'),
-  ('itcd_simulacao_doador', 'conjuge_pessoa_id'),
-  ('itcd_simulacao_doador', 'emissao_conjunta'),
-  ('itcd_simulacao_doador', 'quotas_do_aporte'),
-  ('itcd_simulacao_doador', 'quotas_final'),
-  ('itcd_simulacao_doador', 'quotas_transmitidas'),
-  ('itcd_simulacao_doador', 'vlr_aporte_moeda'),
-  ('itcd_simulacao_donatario', 'quotas_atuais'),
-  ('itcd_simulacao_donatario', 'quotas_do_aporte'),
-  ('itcd_simulacao_donatario', 'quotas_final'),
-  ('itcd_simulacao_donatario', 'vlr_aporte_moeda'),
-  ('org_projects', 'restricted'),
-  ('org_tasks', 'project_restricted'),
-  ('tmpl_documento', 'escopo')
-), fn(nome) as (values
-  ('alertar_tarefas_por_prazo'),
-  ('audit_log_projeto'),
-  ('can_view_org_project'),
-  ('cliente_id_de_itcd_simulacao'),
-  ('documento_gerado_raiz_default'),
-  ('feed_org_comments'),
-  ('itcd_gravar_simulacao'),
-  ('itcd_simulacao_retrato_imutavel'),
-  ('nova_versao_bloco'),
-  ('org_projects_espelha_restricted'),
-  ('org_projects_guarda_restricted'),
-  ('org_projects_sincroniza_membros'),
-  ('org_task_visivel'),
-  ('org_tasks_guarda_restrito'),
-  ('org_tasks_herda_restricted'),
-  ('own_org_task_ids'),
-  ('selar_e_forkar_documento'),
-  ('status_de_itcd_simulacao'),
-  ('tarefas_a_alertar'),
-  ('visible_org_project_ids')
-)
-select 'TABELA' as tipo, nome as objeto,
-       case when to_regclass('public.' || nome) is not null then 'ok' else 'FALTA' end as estado
-  from tab
-union all
-select 'COLUNA', t || '.' || c,
-       case when exists (select 1 from information_schema.columns
-                          where table_schema='public' and table_name=t and column_name=c)
-            then 'ok' else 'FALTA' end
-  from col
-union all
-select 'FUNCAO', nome,
-       case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-                          where n.nspname='public' and p.proname=nome)
-            then 'ok' else 'FALTA' end
-  from fn
-order by 3 desc, 1, 2;
+-- Verificação pelo efeito LÍQUIDO das 29 migrations, não pelo que cada uma cria.
+--
+-- Os valores esperados foram LIDOS do banco de desenvolvimento, que já aplicou as
+-- 29 na ordem, e não deduzidos do texto das migrations. É por isso que a lista tem
+-- dois lados: 38 objetos devem existir no fim e 15 NÃO devem.
+--
+-- Esperado: nenhuma linha com 'FALTA' e nenhuma com 'SOBRA'.
+
+select 'deve existir' as regra, 'COLUNA' as tipo, 'documento_gerado.acompanha_documento_id' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='documento_gerado' and column_name='acompanha_documento_id') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'documento_gerado.papel' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='documento_gerado' and column_name='papel') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'itcd_simulacao.com_reserva' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao' and column_name='com_reserva') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'itcd_simulacao.nome' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao' and column_name='nome') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'itcd_simulacao.pct_base_instituicao' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao' and column_name='pct_base_instituicao') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'itcd_simulacao.pct_base_reserva' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao' and column_name='pct_base_reserva') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'itcd_simulacao_doador.conjuge_pessoa_id' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_doador' and column_name='conjuge_pessoa_id') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'itcd_simulacao_doador.emissao_conjunta' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_doador' and column_name='emissao_conjunta') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'itcd_simulacao_doador.quotas_do_aporte' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_doador' and column_name='quotas_do_aporte') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'itcd_simulacao_doador.quotas_final' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_doador' and column_name='quotas_final') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'itcd_simulacao_doador.quotas_transmitidas' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_doador' and column_name='quotas_transmitidas') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'itcd_simulacao_doador.vlr_aporte_moeda' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_doador' and column_name='vlr_aporte_moeda') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'itcd_simulacao_donatario.quotas_atuais' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_donatario' and column_name='quotas_atuais') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'itcd_simulacao_donatario.quotas_do_aporte' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_donatario' and column_name='quotas_do_aporte') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'itcd_simulacao_donatario.quotas_final' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_donatario' and column_name='quotas_final') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'itcd_simulacao_donatario.vlr_aporte_moeda' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_donatario' and column_name='vlr_aporte_moeda') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'COLUNA' as tipo, 'tmpl_documento.escopo' as objeto, case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='tmpl_documento' and column_name='escopo') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'FUNCAO' as tipo, 'alertar_tarefas_por_prazo' as objeto, case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='alertar_tarefas_por_prazo') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'FUNCAO' as tipo, 'can_view_org_project' as objeto, case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='can_view_org_project') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'FUNCAO' as tipo, 'cliente_id_de_itcd_simulacao' as objeto, case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='cliente_id_de_itcd_simulacao') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'FUNCAO' as tipo, 'documento_gerado_raiz_default' as objeto, case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='documento_gerado_raiz_default') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'FUNCAO' as tipo, 'feed_org_comments' as objeto, case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='feed_org_comments') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'FUNCAO' as tipo, 'itcd_gravar_simulacao' as objeto, case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='itcd_gravar_simulacao') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'FUNCAO' as tipo, 'itcd_simulacao_retrato_imutavel' as objeto, case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='itcd_simulacao_retrato_imutavel') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'FUNCAO' as tipo, 'nova_versao_bloco' as objeto, case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='nova_versao_bloco') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'FUNCAO' as tipo, 'org_task_visivel' as objeto, case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='org_task_visivel') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'FUNCAO' as tipo, 'own_org_task_ids' as objeto, case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='own_org_task_ids') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'FUNCAO' as tipo, 'selar_e_forkar_documento' as objeto, case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='selar_e_forkar_documento') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'FUNCAO' as tipo, 'status_de_itcd_simulacao' as objeto, case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='status_de_itcd_simulacao') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'FUNCAO' as tipo, 'tarefas_a_alertar' as objeto, case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='tarefas_a_alertar') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'FUNCAO' as tipo, 'visible_org_project_ids' as objeto, case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='visible_org_project_ids') then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'TABELA' as tipo, 'itcd_simulacao' as objeto, case when to_regclass('public.itcd_simulacao') is not null then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'TABELA' as tipo, 'itcd_simulacao_concessao' as objeto, case when to_regclass('public.itcd_simulacao_concessao') is not null then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'TABELA' as tipo, 'itcd_simulacao_doador' as objeto, case when to_regclass('public.itcd_simulacao_doador') is not null then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'TABELA' as tipo, 'itcd_simulacao_donatario' as objeto, case when to_regclass('public.itcd_simulacao_donatario') is not null then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'TABELA' as tipo, 'itcd_simulacao_gia' as objeto, case when to_regclass('public.itcd_simulacao_gia') is not null then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'TABELA' as tipo, 'itcd_simulacao_usufruto' as objeto, case when to_regclass('public.itcd_simulacao_usufruto') is not null then 'ok' else 'FALTA' end as estado union all
+select 'deve existir' as regra, 'TABELA' as tipo, 'psa_migrations_aplicadas' as objeto, case when to_regclass('public.psa_migrations_aplicadas') is not null then 'ok' else 'FALTA' end as estado union all
+select 'NAO deve existir', 'COLUNA', 'itcd_simulacao_donatario.pct_doacao_anterior', case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_donatario' and column_name='pct_doacao_anterior') then 'SOBRA' else 'ok' end union all
+select 'NAO deve existir', 'COLUNA', 'itcd_simulacao_donatario.vlr_base_contabil', case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_donatario' and column_name='vlr_base_contabil') then 'SOBRA' else 'ok' end union all
+select 'NAO deve existir', 'COLUNA', 'itcd_simulacao_donatario.vlr_base_itr', case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_donatario' and column_name='vlr_base_itr') then 'SOBRA' else 'ok' end union all
+select 'NAO deve existir', 'COLUNA', 'itcd_simulacao_donatario.vlr_base_mercado', case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_donatario' and column_name='vlr_base_mercado') then 'SOBRA' else 'ok' end union all
+select 'NAO deve existir', 'COLUNA', 'itcd_simulacao_donatario.vlr_imposto_contabil', case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_donatario' and column_name='vlr_imposto_contabil') then 'SOBRA' else 'ok' end union all
+select 'NAO deve existir', 'COLUNA', 'itcd_simulacao_donatario.vlr_imposto_itr', case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_donatario' and column_name='vlr_imposto_itr') then 'SOBRA' else 'ok' end union all
+select 'NAO deve existir', 'COLUNA', 'itcd_simulacao_donatario.vlr_imposto_mercado', case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='itcd_simulacao_donatario' and column_name='vlr_imposto_mercado') then 'SOBRA' else 'ok' end union all
+select 'NAO deve existir', 'COLUNA', 'org_projects.restricted', case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='org_projects' and column_name='restricted') then 'SOBRA' else 'ok' end union all
+select 'NAO deve existir', 'COLUNA', 'org_tasks.project_restricted', case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='org_tasks' and column_name='project_restricted') then 'SOBRA' else 'ok' end union all
+select 'NAO deve existir', 'FUNCAO', 'audit_log_projeto', case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='audit_log_projeto') then 'SOBRA' else 'ok' end union all
+select 'NAO deve existir', 'FUNCAO', 'org_projects_espelha_restricted', case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='org_projects_espelha_restricted') then 'SOBRA' else 'ok' end union all
+select 'NAO deve existir', 'FUNCAO', 'org_projects_guarda_restricted', case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='org_projects_guarda_restricted') then 'SOBRA' else 'ok' end union all
+select 'NAO deve existir', 'FUNCAO', 'org_projects_sincroniza_membros', case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='org_projects_sincroniza_membros') then 'SOBRA' else 'ok' end union all
+select 'NAO deve existir', 'FUNCAO', 'org_tasks_guarda_restrito', case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='org_tasks_guarda_restrito') then 'SOBRA' else 'ok' end union all
+select 'NAO deve existir', 'FUNCAO', 'org_tasks_herda_restricted', case when exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='org_tasks_herda_restricted') then 'SOBRA' else 'ok' end
+order by 4 desc, 1, 2, 3;
 ```
