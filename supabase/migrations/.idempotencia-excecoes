@@ -1,0 +1,18 @@
+# Migrations dispensadas da catraca de idempotência
+# (scripts/checa-idempotencia-migrations.ts).
+#
+# Só entram aqui dois casos:
+#
+#   1. o baseline, que é um pg_dump e por definição só roda em banco vazio;
+#   2. arquivo que é TRANSCRIÇÃO LITERAL do `statements` do ledger, trazido para
+#      o repositório para ele voltar a descrever o banco. Editar desfaz a razão
+#      de o arquivo existir, e o próprio cabeçalho dele diz para não editar.
+#
+# A cópia com nome de UUID de um DDL NOSSO não entra aqui: ela é o nosso próprio
+# texto com outro nome, então herda a idempotência do original. Se ela reprovou,
+# o original também reprovou, e o conserto é no original.
+#
+# Um arquivo por linha, só o nome base, com o motivo em comentário.
+
+# pg_dump oficial do Lovable de 14/08/2026. Roda uma vez, em banco limpo.
+00000000000000_baseline.sql
