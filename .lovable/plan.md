@@ -64,15 +64,18 @@ Nenhum ajuste de UI/permissão é necessário — as telas já refletem o piso `
 
 1. Criar o arquivo de migration no repo com o SQL acima.
 2. Aplicar a migration no sandbox via `supabase db push`.
-3. Rodar `supabase gen types typescript` contra o sandbox e commitar `src/integrations/supabase/types.ts` sozinho (embora a mudança seja só RLS, regenerar mantém o arquivo alinhado ao banco da branch).
-4. Verificar `bunx eslint` nos arquivos potencialmente afetados e `bun run typecheck`.
-5. Na merge para `main`, o humano solicita ao Lovable a aplicação do mesmo SQL em produção; o bot regenera `types.ts` de produção.
+3. Ajustar os dois inserts em `useSaveClientTransaction.ts` (id no cliente, sem `.select()`), no mesmo lote.
+4. Rodar `supabase gen types typescript` contra o sandbox e commitar `src/integrations/supabase/types.ts` sozinho.
+5. Verificar `bunx eslint src/hooks/useSaveClientTransaction.ts` e `bun run typecheck`.
+6. Na merge para `main`, o humano solicita ao Lovable a aplicação do mesmo SQL em produção; o bot regenera `types.ts` de produção.
 
 ## Verificação
 
 - `supabase--linter` após aplicação para confirmar que não introduziu policies faltantes ou tabelas sem RLS.
-- Testes existentes de cliente/OS continuam passando (`FiscalProjetosCadastro.test.tsx`, `EquipeProjetos.test.tsx` e similares).
+- Testes existentes de cliente/OS continuam passando (`FiscalProjetosCadastro.test.tsx`, `EquipeProjetos.test.tsx` e similares) — os que checam o payload do insert precisam aceitar o novo campo `id`.
+- Salvar um cliente de outro cluster como sublíder: contribuinte e OS gravam sem `42501`, e os registros filhos (IEs, rateio, produtos) ficam ligados aos ids gerados.
 - Spot-check via `supabase--read_query` confirmando que as novas policies têm `with_check = has_role_or_higher(...)` sem cláusula de cluster.
+
 
 ## Riscos e mitigações
 
