@@ -59,7 +59,7 @@ jobs:
           if-no-files-found: error
 
   migrations:
-    name: Migrations idempotentes
+    name: Schema (migrations, types.ts, mapa)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: github.event_name == 'pull_request'
@@ -91,3 +91,21 @@ jobs:
           fi
           echo "$novas"
           bun scripts/checa-idempotencia-migrations.ts $novas
+
+      # O mapa do banco e funcao PURA do types.ts (scripts/gen-mapa-banco.mjs so le
+      # aquele arquivo). Entao a CI consegue PROVAR que os dois correspondem, sem
+      # falar com banco nenhum: regenera e exige diff vazio.
+      - name: Mapa do banco em dia com o types.ts
+        run: |
+          node scripts/gen-mapa-banco.mjs
+          if ! git diff --exit-code -- docs/rls/mapa-do-banco.md; then
+            echo "::error::docs/rls/mapa-do-banco.md nao corresponde ao types.ts deste commit."
+            echo "Rode: node scripts/gen-mapa-banco.mjs && git add docs/rls/mapa-do-banco.md"
+            exit 1
+          fi
+
+      # A metade que machuca: coluna nova no types.ts sem migration que a crie quase
+      # sempre e trabalho nao mesclado de outra pessoa, importado do sandbox
+      # compartilhado. Nao existe em producao, e a main e buildada contra producao.
+      - name: types.ts nao importou schema de fora
+        run: bun scripts/checa-types-vs-migrations.ts ${{ github.event.pull_request.base.sha }}
