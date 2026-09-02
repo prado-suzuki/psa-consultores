@@ -38,7 +38,10 @@ describe('apresentacaoDoAviso', () => {
     // Duas cores diferentes, senão o sino não distingue urgência de aviso.
     expect(apresentacaoDoAviso('tarefa_prazo_proximo').tom).toContain('amber');
     expect(apresentacaoDoAviso('tarefa_atrasada').tom).toContain('destructive');
-    expect(apresentacaoDoAviso('tarefa_prazo_proximo').rotulo).toBe('Prazo próximo');
+    // "Prazo de tarefa" cobre os dois avisos que vêm antes do vencimento — três
+    // dias antes e vence hoje —, e é por isso que não se chama "Prazo próximo".
+    // Patricia, 02/09/2026, em docs/geral/avisos-prazo-tarefa.md.
+    expect(apresentacaoDoAviso('tarefa_prazo_proximo').rotulo).toBe('Prazo de tarefa');
     expect(apresentacaoDoAviso('tarefa_atrasada').rotulo).toBe('Tarefa atrasada');
   });
 
