@@ -55,7 +55,7 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
   const { data: clientes = [] } = useClientesLista();
   const { data: bens = [], isLoading: loadingDP } = useRelatorioDP(clienteId);
   const { data: todasMat = [], isLoading: loadingMat } = useAllMatriculas();
-  const { data: exploracoes = [] } = useExploracaoRural(clienteId);
+  const { data: exploracoes = [], isLoading: loadingExpl, isError: erroExpl } = useExploracaoRural(clienteId);
   const clienteNome = clientes.find((c) => c.id === clienteId)?.nome ?? '';
 
   const matriculas = useMemo(
@@ -63,7 +63,7 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
     [todasMat, clienteId],
   );
 
-  if (loadingDP || loadingMat) {
+  if (loadingDP || loadingMat || loadingExpl) {
     return <p className="py-16 text-center text-sm text-muted-foreground">Carregando abertura de demanda…</p>;
   }
 
@@ -74,8 +74,16 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
   ];
   // Se houver registros estruturados em exploracao_rural, usa-os; senão, fallback para matrículas
   // (mesmas colunas de exploração vazias, comportamento atual).
+  //
+  // LEITURA QUE FALHOU E CLIENTE SEM EXPLORAÇÃO CADASTRADA NÃO SÃO A MESMA COISA.
+  // Em erro, `exploracoes` cai para [] e o `usaExploracoes` fica falso, então sem o
+  // `erroExpl` a tabela trocaria de FONTE calada: imprimiria área de matrícula num
+  // pacote que vai para a área Fiscal como se fosse área explorada, e o total do
+  // cabeçalho da seção viria da fonte errada junto. Erro de leitura tem de aparecer.
   const usaExploracoes = exploracoes.length > 0;
-  const rows = usaExploracoes
+  const rows = erroExpl
+    ? []
+    : usaExploracoes
     ? exploracoes.map(exprRow)
     : matriculas.map((m) => [
         m.tipo_exploracao_posse || '—',
@@ -92,11 +100,15 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
   const totalAreaExplorada = usaExploracoes
     ? exploracoes.reduce((s, r) => s + (Number(r.area_explorada) || 0), 0)
     : matriculas.reduce((s, m) => s + (Number(m.area_explorada) || 0), 0);
-  const secaoMeta = usaExploracoes
+  const secaoMeta = erroExpl
+    ? 'leitura indisponível'
+    : usaExploracoes
     ? `${exploracoes.length} registro${exploracoes.length === 1 ? '' : 's'} · ${totalAreaExplorada.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} ha`
     : `${matriculas.length} matrículas · ${totalAreaExplorada.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} ha`;
   const semLinhas = rows.length === 0;
-  const emptyMsg = usaExploracoes
+  const emptyMsg = erroExpl
+    ? 'Não foi possível ler as explorações rurais deste cliente. Recarregue antes de entregar este pacote: sem essa leitura a tabela cairia para os dados de matrícula, que não são a mesma coisa.'
+    : usaExploracoes
     ? 'Nenhuma exploração rural cadastrada para este cliente.'
     : 'Nenhuma matrícula cadastrada para este cliente.';
 
@@ -124,7 +136,7 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
       {/* Imóveis e áreas exploradas */}
       <Secao icon={Landmark} titulo="Imóveis e áreas exploradas" meta={secaoMeta}>
         {semLinhas ? (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">{emptyMsg}</p>
+          <p className={cn('px-4 py-8 text-center text-sm', erroExpl ? 'text-osg-red' : 'text-muted-foreground')}>{emptyMsg}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[12.5px]">
