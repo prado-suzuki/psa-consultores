@@ -130,7 +130,7 @@ export type CadastroItem =
 
 export type CadastroAcao = 'cadastrar' | 'atualizar' | 'excluir';
 
-export type RecusaCategoria = 'permissao' | 'falha' | 'zero_linhas';
+export type RecusaCategoria = 'permissao' | 'regra' | 'falha' | 'zero_linhas';
 
 export interface CadastroOperacao {
   item: CadastroItem;
@@ -147,6 +147,17 @@ const FECHO_SUPORTE_NO_SALVAMENTO = 'Tente novamente.';
 
 /** Papel exigido para gravar no módulo, quando o banco não disse qual. */
 const PAPEL_PADRAO: RlsRequiredRole = 'sublider';
+
+/**
+ * A escrita no cadastro de cliente já é decidida só por cargo em produção?
+ *
+ * Enquanto for `false`, uma recusa crua de permissão (código do Postgres, sem o
+ * precheck dizendo o papel) **ainda pode ser por cluster** — as tarefas 1 a 3 da
+ * sprint 12 é que fecham isso. Nesse estado a frase não afirma cargo: cai em
+ * Falha, porque prometer "papel de Sublíder" a quem já é sublíder é pior do que
+ * não explicar. Virar `true` quando as três migrações estiverem em produção.
+ */
+const RECUSA_DE_ESCRITA_E_SO_POR_CARGO = false;
 
 interface CelulaCatalogo {
   /** Fragmento `{ação} {item}` da Falha e da Zero linhas: "atualizar a OS {numero}". */
@@ -265,6 +276,113 @@ const CATALOGO: Partial<Record<ChaveCatalogo, CelulaCatalogo>> = {
   },
 };
 
+/**
+ * Regra de negócio que a pessoa consegue corrigir.
+ *
+ * Terceira categoria, decidida em 02/09/2026: quando a recusa é uma regra
+ * conhecida, esconder o motivo atrás de "Não foi possível cadastrar o cliente"
+ * tira dela justamente a informação necessária para agir. A frase que aparece é
+ * a daqui — curada — e não a do banco, que cita nome de tabela e identificador
+ * interno.
+ */
+export interface RegraDeNegocio {
+  titulo: string;
+  detalhe: string;
+}
+
+/**
+ * As regras do cadastro que hoje chegam ao usuário, conferidas no schema de
+ * produção em 02/09/2026.
+ *
+ * `constraints` casa pelo nome da constraint, que vem na frase do PostgREST —
+ * é o casamento firme. `frases` casa por trecho, e serve para o que sai de um
+ * `RAISE EXCEPTION` nosso: são frases das nossas próprias funções, não texto do
+ * Postgres em inglês. Sem casamento, a recusa cai em Falha — degrada, não
+ * mente.
+ */
+const REGRAS_DE_NEGOCIO: Array<{
+  constraints?: string[];
+  frases?: string[];
+  texto: RegraDeNegocio;
+}> = [
+  {
+    // `criar_cliente_com_clusters` na criação; `enforce_cliente_tem_cluster`
+    // (gatilho DEFERRED) na edição. Mesma regra, dois caminhos.
+    frases: ['selecione ao menos 1 cluster', 'precisa estar vinculado a pelo menos 1 cluster'],
+    texto: {
+      titulo: 'É necessário informar pelo menos um cluster.',
+      detalhe: 'Selecione o cluster do cliente e salve novamente.',
+    },
+  },
+  {
+    frases: ['nao e possivel remover o ultimo cluster'],
+    texto: {
+      titulo: 'É necessário manter pelo menos um cluster no cliente.',
+      detalhe: 'Vincule outro cluster antes de remover este.',
+    },
+  },
+  {
+    constraints: ['unique_cliente_cluster'],
+    texto: {
+      titulo: 'Este cluster já está vinculado ao cliente.',
+      detalhe: 'Remova a repetição na lista de clusters e salve novamente.',
+    },
+  },
+  {
+    // B5: a única recusa só no último passo, depois de tudo gravado. A tela
+    // deveria impedir antes de salvar — isso continua sendo tarefa própria.
+    constraints: ['os_produtos_contratados_ordem_servico_id_produto_segmento_i_key'],
+    texto: {
+      titulo: 'Este produto já está na OS.',
+      detalhe: 'Cada produto entra uma vez por OS. Ajuste a lista de produtos e salve novamente.',
+    },
+  },
+];
+
+/** Códigos em que vale procurar regra: check, unicidade e `RAISE EXCEPTION` nosso. */
+const CODIGOS_DE_REGRA = ['23514', '23505', 'P0001'];
+
+/**
+ * Recusas de permissão em que o motivo **é** o cargo, com certeza.
+ *
+ * `criar_cliente_com_clusters` é SECURITY DEFINER e o único 42501 que ela
+ * levanta é o teste de `has_role_or_higher(sublider)` — conferido no schema de
+ * produção em 02/09/2026. Logo aqui não se está adivinhando causa: é a recusa
+ * de cargo, e é justamente a que barrou o cadastro em 01/09.
+ *
+ * Fora desta lista, permissão só quando o precheck disser o papel.
+ */
+const RECUSAS_DE_CARGO_CONHECIDAS = ['sem permissao para cadastrar cliente'];
+
+function ehRecusaDeCargoConhecida(error: unknown): boolean {
+  if (codigoDoErro(error) !== '42501') return false;
+  const alvo = normalizeForMatch(extractErrorMessage(error) ?? '');
+  return RECUSAS_DE_CARGO_CONHECIDAS.some(frase => alvo.includes(frase));
+}
+
+/**
+ * A regra de negócio por trás da recusa, quando é uma conhecida.
+ *
+ * Procurar trecho de texto é o que rebaixava as mensagens em português (B2), mas
+ * aqui o casamento é **aditivo** e sobre frase nossa: se ele não acertar, a
+ * recusa vira Falha; nunca vira uma causa inventada.
+ */
+export function regraDeNegocioDaRecusa(error: unknown): RegraDeNegocio | null {
+  const ehGatilho = error instanceof RlsPrecheckError && error.resultado.reason === 'trigger_blocked';
+  const codigo = codigoDoErro(error);
+  if (!ehGatilho && !(codigo && CODIGOS_DE_REGRA.includes(codigo))) return null;
+
+  const bruto = [extractErrorMessage(error), detalheDoErro(error)].filter(Boolean).join(' ');
+  const alvo = normalizeForMatch(bruto);
+  if (!alvo) return null;
+
+  for (const regra of REGRAS_DE_NEGOCIO) {
+    if ((regra.constraints ?? []).some(nome => alvo.includes(normalizeForMatch(nome)))) return regra.texto;
+    if ((regra.frases ?? []).some(frase => alvo.includes(normalizeForMatch(frase)))) return regra.texto;
+  }
+  return null;
+}
+
 /** Operação sem célula no catálogo (cluster não se atualiza) cai no genérico. */
 const FRAGMENTO_GENERICO = { falha: 'concluir a alteração', permissao: 'realizar esta ação' };
 
@@ -344,31 +462,49 @@ function codigoDoErro(error: unknown): string | null {
   return null;
 }
 
+/** `details` e `hint` do PostgREST: é onde o nome da constraint costuma vir. */
+function detalheDoErro(error: unknown): string | null {
+  if (!error || typeof error !== 'object') return null;
+  const campos = ['details', 'hint'] as const;
+  const partes = campos
+    .map(campo => (error as Record<string, unknown>)[campo])
+    .filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+  return partes.length > 0 ? partes.join(' ') : null;
+}
+
 /**
  * Em qual categoria a recusa cai.
  *
- * "Permissão" só quando o sistema SABE: o precheck respondeu que a policy
- * barra, ou o banco devolveu o código de privilégio insuficiente. Nada de
- * procurar palavra em inglês na mensagem — era isso que rebaixava toda frase
- * escrita em português (B2) e prometia cargo para quem já tinha o cargo.
+ * Três coisas diferentes, nesta ordem de prioridade:
  *
- * `grant_missing` fica de fora de propósito: o precheck usa esse motivo também
- * quando a própria chamada falhou (rede, função ausente), e aí não há
- * confirmação de que o motivo foi permissão.
+ * 1. **Regra de negócio conhecida** — tem frase curada e acionável.
+ * 2. **Permissão por cargo confirmada** — o precheck disse qual papel falta.
+ *    Só isso conta como confirmação: enquanto a escrita puder ser barrada por
+ *    cluster (ver `RECUSA_DE_ESCRITA_E_SO_POR_CARGO`), um código de permissão
+ *    cru não diz que a causa é cargo, e afirmar cargo seria mentir.
+ * 3. **Falha** — causa técnica ou desconhecida.
+ *
+ * Nada de procurar palavra em inglês na mensagem: era isso que rebaixava toda
+ * frase escrita em português (B2). `grant_missing` fica de fora de propósito —
+ * o precheck usa esse motivo também quando a própria chamada dele falhou (rede,
+ * função ausente), e aí não se sabe se havia permissão.
  */
 export function categoriaDaRecusa(
   error: unknown,
   opcoes?: { zeroLinhas?: boolean },
 ): RecusaCategoria {
+  if (regraDeNegocioDaRecusa(error)) return 'regra';
+
   if (error instanceof RlsPrecheckError) {
-    const motivo = error.resultado.reason;
-    if (motivo === 'rls_blocked') return 'permissao';
+    const { reason, required_role } = error.resultado;
+    if (reason === 'rls_blocked' && required_role) return 'permissao';
     // Linha que não existe mais é o mesmo caso de "os dados podem ter sido
     // modificados" — quem removeu foi outra pessoa, ou outra aba.
-    if (motivo === 'row_not_found') return 'zero_linhas';
+    if (reason === 'row_not_found') return 'zero_linhas';
     return 'falha';
   }
-  if (codigoDoErro(error) === '42501') return 'permissao';
+  if (ehRecusaDeCargoConhecida(error)) return 'permissao';
+  if (codigoDoErro(error) === '42501' && RECUSA_DE_ESCRITA_E_SO_POR_CARGO) return 'permissao';
   return opcoes?.zeroLinhas ? 'zero_linhas' : 'falha';
 }
 
@@ -388,6 +524,8 @@ export class RecusaDeOperacao extends Error {
   readonly operacao: CadastroOperacao;
   readonly categoria: RecusaCategoria;
   readonly papel: RlsRequiredRole | null;
+  /** Preenchida só quando a categoria é `regra`. */
+  readonly regra: RegraDeNegocio | null;
   readonly detalheTecnico: string | null;
 
   constructor(
@@ -395,14 +533,35 @@ export class RecusaDeOperacao extends Error {
     categoria: RecusaCategoria,
     papel: RlsRequiredRole | null,
     detalheTecnico: string | null,
+    regra: RegraDeNegocio | null = null,
   ) {
-    super(mensagemDeRecusa(operacao, categoria, papel));
+    super(mensagemDaRecusa({ operacao, categoria, papel, regra }));
     this.name = 'RecusaDeOperacao';
     this.operacao = operacao;
     this.categoria = categoria;
     this.papel = papel;
+    this.regra = regra;
     this.detalheTecnico = detalheTecnico;
   }
+}
+
+interface RecusaClassificada {
+  operacao: CadastroOperacao;
+  categoria: RecusaCategoria;
+  papel?: RlsRequiredRole | null;
+  regra?: RegraDeNegocio | null;
+}
+
+/** O que a pessoa lê, para uma recusa já classificada. */
+export function textoDaRecusa(recusa: RecusaClassificada): TextoDeRecusa {
+  if (recusa.categoria === 'regra' && recusa.regra) return recusa.regra;
+  return textoDeRecusa(recusa.operacao, recusa.categoria, recusa.papel);
+}
+
+/** A mesma frase em texto único — é o que vai no `Error.message`. */
+function mensagemDaRecusa(recusa: RecusaClassificada): string {
+  const { titulo, detalhe } = textoDaRecusa(recusa);
+  return [titulo, detalhe].join('\n');
 }
 
 /**
@@ -419,8 +578,15 @@ export function recusaDeOperacao(
   if (error instanceof RecusaDeOperacao) return error;
   const categoria = categoriaDaRecusa(error, opcoes);
   const codigo = codigoDoErro(error);
-  const detalhe = [extractErrorMessage(error), codigo].filter(Boolean).join(' · ') || null;
-  return new RecusaDeOperacao(operacao, categoria, papelDaRecusa(error), detalhe);
+  const detalhe =
+    [extractErrorMessage(error), detalheDoErro(error), codigo].filter(Boolean).join(' · ') || null;
+  return new RecusaDeOperacao(
+    operacao,
+    categoria,
+    papelDaRecusa(error),
+    detalhe,
+    regraDeNegocioDaRecusa(error),
+  );
 }
 
 /**
@@ -431,11 +597,12 @@ export function recusaDeOperacao(
  */
 export function textoDoSalvamentoRecusado(recusa: RecusaDeOperacao): TextoDeRecusa {
   const titulo = 'Não foi possível salvar o cliente.';
-  if (recusa.categoria === 'permissao') {
-    const permissao = textoDeRecusa(recusa.operacao, 'permissao', recusa.papel);
-    // As duas frases da permissão viram um parágrafo só: a primeira linha do
-    // aviso é a de que o salvamento inteiro não aconteceu.
-    return { titulo, detalhe: `${permissao.titulo} ${permissao.detalhe}` };
+  if (recusa.categoria === 'permissao' || recusa.categoria === 'regra') {
+    const dentro = textoDaRecusa(recusa);
+    // As duas frases viram um parágrafo só: a primeira linha do aviso é a de
+    // que o salvamento inteiro não aconteceu. No caso de regra de negócio, o
+    // motivo acionável fica logo abaixo, sem passar pelo genérico.
+    return { titulo, detalhe: `${dentro.titulo} ${dentro.detalhe}` };
   }
   const fecho =
     recusa.categoria === 'zero_linhas'

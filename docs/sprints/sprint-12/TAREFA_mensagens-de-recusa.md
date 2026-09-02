@@ -11,8 +11,8 @@
 >
 > **T1 a T5 ✅ CONCLUÍDO (02/09/2026)** — catálogo e tradução em `src/lib/rlsMessages.ts`,
 > pontos silenciosos fechados em `src/hooks/useSaveClientTransaction.ts`, testes em
-> `src/lib/rlsMessages.cadastro.test.ts`. **Falta T6** (conferência na tela, com usuário
-> `lider`/`sublider`) e as três decisões de D1–D3, aplicadas por ora pela recomendação.
+> `src/lib/rlsMessages.cadastro.test.ts`. As decisões D1 a D5 estão fechadas. **Falta a T6**,
+> a conferência na tela como `lider`/`sublider` — é da Patricia.
 
 ## O funil de hoje
 
@@ -98,13 +98,22 @@ abrir chamado sem reproduzir o erro. Sai só do texto da interface.
 
 | Categoria | Quando usar | Texto |
 |---|---|---|
-| **Permissão** | só quando o sistema **sabe** que a recusa foi por permissão: o `can_perform` respondeu `allowed: false`, ou o erro veio com o código `42501` | `Você não tem permissão para {ação} {item}.` <br> `É necessário ter o papel de {papel} ou superior para realizar esta ação.` |
-| **Falha** | não deu para concluir e **não** há confirmação de que o motivo é permissão | `Não foi possível {ação} {item}.` <br> `{fecho}` |
+| **Permissão confirmada** | o sistema **sabe** que faltou cargo: o `can_perform` respondeu qual papel falta, ou a recusa é uma das de cargo conhecidas (ver T1) | `Você não tem permissão para {ação} {item}.` <br> `É necessário ter o papel de {papel} ou superior para realizar esta ação.` |
+| **Regra de negócio conhecida** | a recusa é uma regra do catálogo de regras (T1), que a pessoa consegue corrigir | a frase curada da regra — nunca o texto do banco |
+| **Falha** | causa técnica ou desconhecida | `Não foi possível {ação} {item}.` <br> `{fecho}` |
 | **Zero linhas** | a operação deveria alterar ou excluir um registro e não afetou nenhum | `Não foi possível {ação} {item}.` <br> `Os dados podem ter sido modificados. Atualize a página e tente novamente.` |
 | **Sucesso** | a operação aconteceu | `{Item} {ação concluída} com sucesso.` |
 
-Nenhum erro do banco vira "sem permissão" por parecer com um. Fora das duas condições da
-primeira linha, a categoria é **Falha**.
+Nenhum erro do banco vira "sem permissão" por parecer com um, e **nenhuma frase afirma uma
+causa que o sistema não conhece**. Um código de permissão cru não basta: enquanto a escrita
+puder ser barrada por cluster — ou seja, até as tarefas 1 a 3 estarem em produção — a recusa
+pode não ser por cargo, e prometer "papel de Sublíder" a quem já é sublíder é pior do que não
+explicar. Nesse caso, Falha.
+
+Regra de negócio é a exceção que faz diferença na prática: se a pessoa consegue corrigir,
+esconder o motivo atrás de "Não foi possível cadastrar o cliente" tira dela exatamente a
+informação necessária para agir. A frase que aparece é a do catálogo, curada; a do banco, que
+cita nome de tabela e identificador interno, continua só no `console.error`.
 
 E "Fale com a liderança" sai de todas. O destino agora é específico: se falta cargo, a frase
 diz **qual papel**; se é problema técnico, manda ao suporte; se algum dia houver limite que
@@ -121,8 +130,12 @@ e devolve a frase pronta, montada a partir das tabelas abaixo.
 ali, em vez de criar outro, para não repetir o defeito de ter duas fontes para a mesma frase.
 
 O catálogo entra no código como **uma tabela de dados**, não como frases espalhadas pelos
-pontos de chamada: cada operação passa a chave do item e a ação, e a montagem das quatro
-categorias é uma função só.
+pontos de chamada: cada operação passa a chave do item e a ação, e a montagem das categorias é
+uma função só. São quatro tabelas — A e B pelos fragmentos de cada operação, C pelo sucesso e
+**D pelas regras de negócio**, que não dependem da operação e sim do que o banco recusou.
+
+O aviso vai ao toast partido em duas partes (o que aconteceu · o que fazer): num texto único o
+`\n` não quebra linha no `sonner` e as duas frases apareceriam coladas.
 
 ### Tabela A — o fragmento `{ação} {item}` da Falha e da Zero linhas
 
@@ -171,6 +184,33 @@ Exemplo montado:
 Você não tem permissão para atualizar esta inscrição estadual.
 É necessário ter o papel de Sublíder ou superior para realizar esta ação.
 ```
+
+### Tabela D — Regras de negócio (conferidas no schema de produção em 02/09/2026)
+
+Estas são as recusas que a pessoa consegue corrigir. A coluna da esquerda é como o sistema
+reconhece a regra — nome da constraint (casamento firme) ou trecho de frase de uma função
+**nossa**, nunca palavra em inglês do Postgres. Sem casamento, a recusa cai em Falha: degrada,
+não inventa causa.
+
+| Reconhecida por | Texto na tela |
+|---|---|
+| `Selecione ao menos 1 cluster` (RPC de criação) · `precisa estar vinculado a pelo menos 1 cluster` (gatilho, na edição) | **É necessário informar pelo menos um cluster.** Selecione o cluster do cliente e salve novamente. |
+| `Não é possível remover o último cluster` | **É necessário manter pelo menos um cluster no cliente.** Vincule outro cluster antes de remover este. |
+| constraint `unique_cliente_cluster` | **Este cluster já está vinculado ao cliente.** Remova a repetição na lista de clusters e salve novamente. |
+| constraint de unicidade de `(OS, produto)` | **Este produto já está na OS.** Cada produto entra uma vez por OS. Ajuste a lista de produtos e salve novamente. |
+
+As três primeiras nascem de `RAISE EXCEPTION` com `ERRCODE 23514`; as de unicidade, `23505`.
+Todas citam identificador interno ou nome de tabela na frase original — por isso o texto da
+tela vem daqui.
+
+Outras três regras existem no banco e hoje a tela barra antes (`cliente_nome_nao_vazio`,
+`contribuinte_tipo_pessoa_check`, `ordem_servico_numero_parcelas_faixa`). Ficam fora do
+catálogo até aparecerem de fato — entram com uma linha cada.
+
+**A regra de cargo que dá certeza.** `criar_cliente_com_clusters` é SECURITY DEFINER e o único
+`42501` que ela levanta é o teste de cargo (`has_role_or_higher(sublider)`), conferido em
+produção. Essa recusa entra em Permissão confirmada, com "Sublíder" — é justamente a que barrou
+o cadastro em 01/09. Fora dela, permissão só quando o `can_perform` disser o papel.
 
 ### Tabela C — Sucesso
 
@@ -276,66 +316,68 @@ Em `src/lib/`, sobre a função de tradução — sem banco:
 5. Zero linhas afetadas produz a mensagem da categoria Zero linhas e faz o salvamento falhar —
    para cada um dos pontos de T3.
 
-## T6 — Conferência
+## T6 — Conferência (Patricia)
 
 Reproduzir cada recusa como um `lider` ou `sublider` e comparar com a coluna de mensagens do
-artefato da auditoria. Nenhuma recusa pode terminar em "Cliente atualizado com sucesso!", e
-nenhuma frase pode conter os termos proibidos.
+artefato da auditoria. **Não vale conferir só que "apareceu um erro".** Em cada recusa, quatro
+pontos:
+
+| | |
+|---|---|
+| **Entidade** | a frase nomeia o item que recusou — e é a aba onde o problema está |
+| **Ação** | cadastrar, atualizar ou excluir, a que foi tentada |
+| **Motivo** | quando conhecido, aparece: qual papel falta, ou qual regra de negócio |
+| **Nenhum sucesso depois** | nenhuma mensagem de sucesso aparece na sequência da recusa |
+
+O último é o essencial: é ele que pega as falhas silenciosas. Nenhuma recusa pode terminar em
+"Cliente atualizado com sucesso", e nenhuma frase pode conter os termos proibidos.
 
 ---
 
-## Decisões que faltam
+## Decisões fechadas (Patricia, 02/09/2026)
 
-**D1 — O aviso de sucesso do salvamento: "salvo" ou "cadastrado/atualizado"?**
-O catálogo (tabela C) traz `Cliente cadastrado com sucesso.` e `Cliente atualizado com
-sucesso.`; a regra do salvamento completo pede `Cliente salvo com sucesso.`
-*Recomendação:* manter as duas frases da tabela C — a tela sabe se está criando ou editando, e
-"cadastrado" x "atualizado" informa mais do que "salvo". `Cliente salvo com sucesso.` fica
-para a tela que não souber distinguir.
+**D1 — O aviso de sucesso do salvamento.** Ficam `Cliente cadastrado com sucesso.` e `Cliente
+atualizado com sucesso.`, sem exclamação. A tela sabe se é criação ou edição, e a mensagem
+específica informa mais do que "Cliente salvo com sucesso".
 
-**D2 — De onde sai o `{papel}` da frase de permissão.**
-O catálogo diz "Sublíder ou superior", que é a regra do módulo depois das tarefas 1 a 3.
-Enquanto elas não estiverem em produção, parte das recusas ainda é por **cluster**, e aí a
-frase mentiria para quem já é sublíder.
-*Recomendação:* usar o `required_role` que o `can_perform` devolve quando ele existe; sem ele
-(42501 cru), usar Sublíder, a regra do módulo. Assim a frase acompanha o banco em vez de
-repetir uma promessa.
+**D2 — De onde sai o `{papel}`.** Do `required_role` que o banco devolve, quando existe. Sem
+ele, "Sublíder" **somente** quando a recusa é de cargo com certeza (a lista de recusas de cargo
+conhecidas, em T1). Se a recusa ainda puder ser por cluster, é Falha genérica. A regra é não
+afirmar uma causa que o sistema não conhece. Quando as tarefas 1 a 3 estiverem em produção, a
+escrita passa a ser só por cargo: aí a chave `RECUSA_DE_ESCRITA_E_SO_POR_CARGO` vira `true` em
+`src/lib/rlsMessages.ts` e todo código de permissão volta a informar o papel.
 
-**D3 — As frases de sucesso das outras entidades entram no código agora?**
-Hoje só as do Cliente têm onde aparecer (T4).
-*Recomendação:* deixar a tabela C no documento e implementar apenas o que alguma tela usa —
-constante sem consumidor é detrito, e o AGENTS.md pede que não fique.
+**D3 — Sucesso das outras entidades.** Só documentado (tabela C). Sem salvamento próprio, não
+faz sentido criar constante que ninguém consome.
 
-**D4 — Recusa em que o precheck falhou por outro motivo (`grant_missing`).**
-O precheck usa esse mesmo motivo quando a própria chamada dele falha (rede, função ausente),
-então ele não confirma que houve recusa por permissão.
-*Aplicado:* cai em Falha, não em Permissão — a regra é só usar Permissão quando se sabe. Se
-preferir o contrário, é uma linha em `categoriaDaRecusa`.
+**D4 — Precheck que falhou por outro motivo (`grant_missing`).** Falha, não falta de permissão:
+se a chamada caiu por rede ou função indisponível, não se sabe se a pessoa tinha permissão.
+"Você não tem permissão" só quando confirmado.
 
-**D5 — Mensagem escrita por gatilho de validação do banco.**
-Há gatilhos que devolvem frase em português, curada (é o caso de B2). Pela regra de não exibir
-texto vindo do banco, essa frase agora fica só no `console.error` e a tela mostra a Falha do
-item.
-*Aplicado assim*, mas é justamente a frase que B2 reclamava de ver rebaixada. Se essas frases
-devem aparecer, elas precisam virar catálogo aqui, uma por regra de negócio.
+**D5 — Validação de negócio do banco.** Vira a terceira categoria, com catálogo próprio
+(tabela D): regra que a pessoa consegue corrigir continua aparecendo, curada, porque esconder o
+motivo tira dela a informação necessária para agir. Texto bruto do banco fica só no log.
 
 ## Critérios de aceite
 
 Desta tarefa:
 
-- [ ] Nenhuma mensagem chama tudo de "cliente": a frase nomeia a entidade certa.
-- [ ] Nenhuma mensagem da interface contém RLS, `42501`, nome de tabela, UUID, RPC, `upsert`
+- [x] Nenhuma mensagem chama tudo de "cliente": a frase nomeia a entidade certa.
+- [x] Nenhuma mensagem da interface contém RLS, `42501`, nome de tabela, UUID, RPC, `upsert`
       ou texto cru do banco. O diagnóstico continua no `console.error`.
-- [ ] A categoria Permissão é decidida pelo motivo do erro (`can_perform` ou código `42501`),
-      nunca por procurar palavra em inglês na mensagem.
-- [ ] Quando o motivo é cargo, a frase informa qual papel é necessário.
-- [ ] "Fale com a liderança" não aparece em nenhuma mensagem do módulo.
-- [ ] Toda operação de update e de delete confere se houve linha afetada.
-- [ ] Zero linhas afetadas nunca termina em sucesso.
-- [ ] Nenhum dos pontos silenciosos de T3 continua silencioso.
-- [ ] No salvamento completo, qualquer falha intermediária impede o aviso final de sucesso.
-- [ ] A mensagem final identifica a operação e a entidade que falharam.
-- [ ] Os testes de T5 passam, com uma asserção por célula das tabelas A e B.
+- [x] A categoria vem do motivo do erro (`can_perform`, código do banco, catálogo de regras),
+      nunca de procurar palavra em inglês na mensagem.
+- [x] Quando o motivo é cargo **e isso é certeza**, a frase informa qual papel é necessário; nos
+      demais casos não afirma causa.
+- [x] Regra de negócio conhecida aparece curada e acionável, em vez de virar genérico.
+- [x] "Fale com a liderança" não aparece em nenhuma mensagem do módulo.
+- [x] Toda operação de update e de delete confere se houve linha afetada.
+- [x] Zero linhas afetadas nunca termina em sucesso.
+- [x] Nenhum dos pontos silenciosos de T3 continua silencioso.
+- [x] No salvamento completo, qualquer falha intermediária impede o aviso final de sucesso.
+- [x] A mensagem final identifica a operação e a entidade que falharam.
+- [x] Os testes de T5 passam, com uma asserção por célula das tabelas A e B.
+- [ ] Os quatro pontos da T6 conferidos na tela (entidade, ação, motivo, nenhum sucesso depois).
 
 Das tarefas 1 a 3, conferidos aqui só para não serem mascarados por mensagem:
 

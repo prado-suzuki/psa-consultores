@@ -3,7 +3,9 @@ import {
   mensagemDeRecusa,
   mensagemDoSalvamentoRecusado,
   textoDeRecusa,
+  textoDaRecusa,
   textoDoSalvamentoRecusado,
+  regraDeNegocioDaRecusa,
   categoriaDaRecusa,
   recusaDeOperacao,
   RlsPrecheckError,
@@ -61,6 +63,42 @@ const CELULAS: Array<{
 
 const op = (item: CadastroItem, acao: CadastroAcao): CadastroOperacao => ({ item, acao, numeroOs: '1234' });
 
+/**
+ * As recusas de regra de negócio como o banco as devolve.
+ *
+ * Frases e códigos conferidos no schema de produção em 02/09/2026
+ * (`criar_cliente_com_clusters`, `enforce_cliente_tem_cluster`,
+ * `enforce_cliente_cluster_last` e as duas constraints de unicidade). Note que
+ * todas citam identificador interno ou nome de tabela — é por isso que a frase
+ * da tela vem do catálogo, e não daqui.
+ */
+const ERROS_DE_REGRA = [
+  { code: '23514', message: 'Selecione ao menos 1 cluster' },
+  {
+    code: '23514',
+    message:
+      'Cliente Frigobom (0f8f2c1e-4b7a-4c3d-9e21-5a6b7c8d9e01) precisa estar vinculado a ' +
+      'pelo menos 1 cluster (cliente_clusters).',
+  },
+  {
+    code: '23514',
+    message:
+      'Não é possível remover o último cluster do cliente ' +
+      '3a1c4d5e-6f70-4812-9a3b-4c5d6e7f8091. Vincule outro cluster antes.',
+  },
+  {
+    code: '23505',
+    message: 'duplicate key value violates unique constraint "unique_cliente_cluster"',
+    details: 'Key (cliente_id, cluster_id)=(0f8f2c1e-4b7a-4c3d-9e21-5a6b7c8d9e01, 1) already exists.',
+  },
+  {
+    code: '23505',
+    message:
+      'duplicate key value violates unique constraint ' +
+      '"os_produtos_contratados_ordem_servico_id_produto_segmento_i_key"',
+  },
+];
+
 describe('mensagens de recusa do cadastro de cliente', () => {
   describe.each(CELULAS)('$item / $acao', ({ item, acao, falha, permissao, fecho }) => {
     it('falha: nomeia o item e orienta', () => {
@@ -112,6 +150,9 @@ describe('nada de linguagem técnica no texto da tela', () => {
   ];
   const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 
+  const RECUSA_POR_CARGO = () =>
+    new RlsPrecheckError({ allowed: false, reason: 'rls_blocked', required_role: 'sublider' });
+
   const todasAsFrases = (): string[] => {
     const frases: string[] = [];
     for (const { item, acao } of CELULAS) {
@@ -119,12 +160,17 @@ describe('nada de linguagem técnica no texto da tela', () => {
         frases.push(mensagemDeRecusa(op(item, acao), categoria));
         frases.push(
           mensagemDoSalvamentoRecusado(
-            recusaDeOperacao(op(item, acao), categoria === 'permissao' ? { code: '42501' } : undefined, {
+            recusaDeOperacao(op(item, acao), categoria === 'permissao' ? RECUSA_POR_CARGO() : undefined, {
               zeroLinhas: categoria === 'zero_linhas',
             }),
           ),
         );
       }
+    }
+    // As regras de negócio conhecidas também passam pela varredura.
+    for (const erro of ERROS_DE_REGRA) {
+      const recusa = recusaDeOperacao({ item: 'cliente', acao: 'atualizar' }, erro);
+      frases.push(recusa.message, mensagemDoSalvamentoRecusado(recusa));
     }
     return frases;
   };
@@ -155,8 +201,28 @@ describe('nada de linguagem técnica no texto da tela', () => {
 });
 
 describe('a categoria vem do motivo, não de palavra na mensagem', () => {
-  it('código de privilégio insuficiente é permissão', () => {
-    expect(categoriaDaRecusa({ code: '42501', message: 'permission denied' })).toBe('permissao');
+  it('código de permissão cru não afirma cargo enquanto a recusa puder ser por cluster', () => {
+    // As tarefas 1 a 3 é que deixam a escrita só por cargo. Antes delas, um
+    // 42501 pode ser cluster — dizer "papel de Sublíder" mentiria para quem já
+    // é sublíder.
+    expect(categoriaDaRecusa({ code: '42501', message: 'permission denied' })).toBe('falha');
+  });
+
+  it('a recusa de cargo da criação de cliente é permissão, e diz o papel', () => {
+    // Única 42501 que `criar_cliente_com_clusters` levanta, conferida em
+    // produção: ali o motivo é o cargo, não o cluster.
+    const erro = { code: '42501', message: 'Sem permissão para cadastrar cliente' };
+    const recusa = recusaDeOperacao({ item: 'cliente', acao: 'cadastrar' }, erro);
+    expect(recusa.categoria).toBe('permissao');
+    expect(textoDaRecusa(recusa)).toEqual({
+      titulo: 'Você não tem permissão para cadastrar este cliente.',
+      detalhe: PAPEL,
+    });
+  });
+
+  it('precheck sem o papel também não afirma cargo', () => {
+    const erro = new RlsPrecheckError({ allowed: false, reason: 'rls_blocked' });
+    expect(categoriaDaRecusa(erro)).toBe('falha');
   });
 
   it('precheck que diz que a policy barra é permissão, com o papel', () => {
@@ -195,6 +261,59 @@ describe('a categoria vem do motivo, não de palavra na mensagem', () => {
   });
 });
 
+describe('regra de negócio conhecida aparece, curada e acionável', () => {
+  it('cliente sem cluster diz o que fazer, nos dois caminhos', () => {
+    for (const erro of ERROS_DE_REGRA.slice(0, 2)) {
+      const recusa = recusaDeOperacao({ item: 'cliente', acao: 'cadastrar' }, erro);
+      expect(recusa.categoria).toBe('regra');
+      expect(textoDaRecusa(recusa)).toEqual({
+        titulo: 'É necessário informar pelo menos um cluster.',
+        detalhe: 'Selecione o cluster do cliente e salve novamente.',
+      });
+    }
+  });
+
+  it('remover o último cluster explica a saída', () => {
+    const recusa = recusaDeOperacao({ item: 'cluster', acao: 'excluir' }, ERROS_DE_REGRA[2]);
+    expect(textoDaRecusa(recusa)).toEqual({
+      titulo: 'É necessário manter pelo menos um cluster no cliente.',
+      detalhe: 'Vincule outro cluster antes de remover este.',
+    });
+  });
+
+  it('cluster repetido é reconhecido pelo nome da constraint', () => {
+    const recusa = recusaDeOperacao({ item: 'cluster', acao: 'cadastrar' }, ERROS_DE_REGRA[3]);
+    expect(recusa.categoria).toBe('regra');
+    expect(textoDaRecusa(recusa).titulo).toBe('Este cluster já está vinculado ao cliente.');
+  });
+
+  it('produto repetido na mesma OS diz qual é a regra (B5)', () => {
+    const recusa = recusaDeOperacao({ item: 'produto', acao: 'cadastrar', numeroOs: '1234' }, ERROS_DE_REGRA[4]);
+    expect(textoDaRecusa(recusa)).toEqual({
+      titulo: 'Este produto já está na OS.',
+      detalhe: 'Cada produto entra uma vez por OS. Ajuste a lista de produtos e salve novamente.',
+    });
+  });
+
+  it('no salvamento, a regra vem abaixo de "não foi possível salvar", não escondida por ele', () => {
+    const recusa = recusaDeOperacao({ item: 'cliente', acao: 'atualizar' }, ERROS_DE_REGRA[1]);
+    expect(textoDoSalvamentoRecusado(recusa)).toEqual({
+      titulo: 'Não foi possível salvar o cliente.',
+      detalhe: 'É necessário informar pelo menos um cluster. Selecione o cluster do cliente e salve novamente.',
+    });
+  });
+
+  it('regra desconhecida não inventa causa: cai em falha', () => {
+    const erro = { code: '23514', message: 'violates check constraint "alguma_regra_nova"' };
+    expect(categoriaDaRecusa(erro)).toBe('falha');
+    expect(regraDeNegocioDaRecusa(erro)).toBeNull();
+  });
+
+  it('mesma frase sem código de regra não é promovida', () => {
+    expect(regraDeNegocioDaRecusa({ message: 'Selecione ao menos 1 cluster' })).toBeNull();
+  });
+});
+
 describe('mensagem final do salvamento completo', () => {
   it('nomeia a etapa que falhou', () => {
     const recusa = recusaDeOperacao({ item: 'contribuinte', acao: 'cadastrar' }, { code: '23502' });
@@ -212,7 +331,10 @@ describe('mensagem final do salvamento completo', () => {
   });
 
   it('na recusa por permissão, diz que o salvamento não aconteceu e qual papel resolve', () => {
-    const recusa = recusaDeOperacao({ item: 'inscricao', acao: 'atualizar' }, { code: '42501' });
+    const recusa = recusaDeOperacao(
+      { item: 'inscricao', acao: 'atualizar' },
+      new RlsPrecheckError({ allowed: false, reason: 'rls_blocked', required_role: 'sublider' }),
+    );
     expect(mensagemDoSalvamentoRecusado(recusa)).toBe(
       'Não foi possível salvar o cliente.\n' +
         `Você não tem permissão para atualizar esta inscrição estadual. ${PAPEL}`,
