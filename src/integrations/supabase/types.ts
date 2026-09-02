@@ -4123,7 +4123,6 @@ export type Database = {
           created_at: string
           donatario_pessoa_id: string
           id: string
-          pct_doacao_anterior: number | null
           percentual: number
           quotas_atuais: number
           quotas_disponivel: number
@@ -4132,18 +4131,11 @@ export type Database = {
           quotas_legitima: number
           simulacao_id: string
           vlr_aporte_moeda: number
-          vlr_base_contabil: number
-          vlr_base_itr: number
-          vlr_base_mercado: number
-          vlr_imposto_contabil: number
-          vlr_imposto_itr: number
-          vlr_imposto_mercado: number
         }
         Insert: {
           created_at?: string
           donatario_pessoa_id: string
           id?: string
-          pct_doacao_anterior?: number | null
           percentual: number
           quotas_atuais?: number
           quotas_disponivel?: number
@@ -4152,18 +4144,11 @@ export type Database = {
           quotas_legitima: number
           simulacao_id: string
           vlr_aporte_moeda?: number
-          vlr_base_contabil: number
-          vlr_base_itr: number
-          vlr_base_mercado: number
-          vlr_imposto_contabil: number
-          vlr_imposto_itr: number
-          vlr_imposto_mercado: number
         }
         Update: {
           created_at?: string
           donatario_pessoa_id?: string
           id?: string
-          pct_doacao_anterior?: number | null
           percentual?: number
           quotas_atuais?: number
           quotas_disponivel?: number
@@ -4172,12 +4157,6 @@ export type Database = {
           quotas_legitima?: number
           simulacao_id?: string
           vlr_aporte_moeda?: number
-          vlr_base_contabil?: number
-          vlr_base_itr?: number
-          vlr_base_mercado?: number
-          vlr_imposto_contabil?: number
-          vlr_imposto_itr?: number
-          vlr_imposto_mercado?: number
         }
         Relationships: [
           {
@@ -4189,6 +4168,79 @@ export type Database = {
           },
           {
             foreignKeyName: "itcd_simulacao_donatario_simulacao_id_fkey"
+            columns: ["simulacao_id"]
+            isOneToOne: false
+            referencedRelation: "itcd_simulacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itcd_simulacao_gia: {
+        Row: {
+          created_at: string
+          doador_pessoa_id: string
+          donatario_pessoa_id: string
+          id: string
+          pct_da_gia: number
+          quotas_recebidas: number
+          simulacao_id: string
+          vlr_base_contabil: number
+          vlr_base_itr: number
+          vlr_base_mercado: number
+          vlr_doacao_anterior: number | null
+          vlr_imposto_contabil: number
+          vlr_imposto_itr: number
+          vlr_imposto_mercado: number
+        }
+        Insert: {
+          created_at?: string
+          doador_pessoa_id: string
+          donatario_pessoa_id: string
+          id?: string
+          pct_da_gia: number
+          quotas_recebidas: number
+          simulacao_id: string
+          vlr_base_contabil: number
+          vlr_base_itr: number
+          vlr_base_mercado: number
+          vlr_doacao_anterior?: number | null
+          vlr_imposto_contabil: number
+          vlr_imposto_itr: number
+          vlr_imposto_mercado: number
+        }
+        Update: {
+          created_at?: string
+          doador_pessoa_id?: string
+          donatario_pessoa_id?: string
+          id?: string
+          pct_da_gia?: number
+          quotas_recebidas?: number
+          simulacao_id?: string
+          vlr_base_contabil?: number
+          vlr_base_itr?: number
+          vlr_base_mercado?: number
+          vlr_doacao_anterior?: number | null
+          vlr_imposto_contabil?: number
+          vlr_imposto_itr?: number
+          vlr_imposto_mercado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itcd_simulacao_gia_doador_pessoa_id_fkey"
+            columns: ["doador_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itcd_simulacao_gia_donatario_pessoa_id_fkey"
+            columns: ["donatario_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itcd_simulacao_gia_simulacao_id_fkey"
             columns: ["simulacao_id"]
             isOneToOne: false
             referencedRelation: "itcd_simulacao"
