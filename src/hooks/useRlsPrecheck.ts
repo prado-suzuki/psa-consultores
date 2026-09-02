@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { RlsPrecheckResult } from '@/lib/rlsMessages';
-import { rlsMessage } from '@/lib/rlsMessages';
+import { RlsPrecheckError } from '@/lib/rlsMessages';
 
 export type PrecheckTable = 'tools' | 'tool_area_access' | 'sprint_backlog_items' | 'sprint_deliverables' | 'catalog_clients' | 'cliente' | 'comentarios_avaliacao' | 'contatos' | 'contribuinte' | 'contribuinte_bal_config' | 'ticket_attachments' | 'correcoes_icms' | 'profiles' | 'deliverable_attachments' | 'difal_decisao' | 'difal_sessao' | 'distribuicao_dcomp' | 'distribuicao_receita' | 'export_profiles' | 'inscricao_contribuinte' | 'novidades' | 'ordem_servico' | 'org_comment_attachments' | 'org_comment_mentions' | 'org_comments' | 'org_project_members' | 'org_projects' | 'org_tasks' | 'per_situacao' | 'pis_cofins_regra' | 'procedimentos' | 'process_stages' | 'processes' | 'project_documents' | 'project_processes' | 'projects' | 'relatorios_gerados' | 'sprint_metrics' | 'sprints' | 'tasks' | 'ticket_messages' | 'tickets' | 'user_roles';
 export type PrecheckOp = 'update' | 'delete';
@@ -39,6 +39,10 @@ export async function canPerform(
 /**
  * Throws an Error with a user-friendly message if the user cannot perform
  * the operation. No-op when allowed.
+ *
+ * O erro é um `RlsPrecheckError`: a mensagem é a mesma de antes, e o motivo
+ * (`reason`, `required_role`) segue junto, para quem trata a falha escolher a
+ * categoria da mensagem sem procurar palavra no texto.
  */
 export async function assertCanPerform(
   table: PrecheckTable,
@@ -47,6 +51,6 @@ export async function assertCanPerform(
 ): Promise<void> {
   const result = await canPerform(table, op, id);
   if (!result.allowed) {
-    throw new Error(rlsMessage(result));
+    throw new RlsPrecheckError(result);
   }
 }

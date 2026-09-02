@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
-import { assertCanPerform } from '@/hooks/useRlsPrecheck';
+import { assertCanPerform, type PrecheckTable, type PrecheckOp } from '@/hooks/useRlsPrecheck';
 import { useAuth } from '@/contexts/AuthContext';
 import { isProductionEnvironment, currentAmbiente } from '@/config/api';
 import { toast } from 'sonner';
@@ -20,6 +20,13 @@ import {
   validateOrdemServico,
 } from '@/lib/clientFormValidation';
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftOrdemServico } from '@/types/clientForm';
+import {
+  RecusaDeOperacao,
+  recusaDeOperacao,
+  textoDeRecusa,
+  textoDoSalvamentoRecusado,
+  type CadastroOperacao,
+} from '@/lib/rlsMessages';
 import { N8N_WELCOME_WEBHOOK } from '@/lib/webhooks';
 import { splitName } from '@/lib/nameUtils';
 import { chaveDeNomeCliente } from '@/lib/nomeProprio';
@@ -56,24 +63,45 @@ const syncCadastrosToDW = (payload: any) => {
  * `softDeleteViaRpc` — e estas duas tabelas têm o MESMO defeito de RLS descrito
  * lá, ainda sem correção (fora do escopo da tarefa que consertou as outras).
  */
+/**
+ * Precheck traduzido para o item da tela.
+ *
+ * `assertCanPerform` devolve a frase genérica dele ("Você precisa do papel…"),
+ * que não diz em qual item o salvamento parou. Aqui a recusa passa a carregar a
+ * operação, e o motivo (`reason`, `required_role`) segue junto para a categoria
+ * da mensagem ser escolhida pelo motivo, não por palavra no texto.
+ */
+const precheck = async (
+  table: PrecheckTable,
+  op: PrecheckOp,
+  id: string,
+  operacao: CadastroOperacao,
+): Promise<void> => {
+  try {
+    await assertCanPerform(table, op, id);
+  } catch (err) {
+    throw recusaDeOperacao(operacao, err);
+  }
+};
+
 const softDeleteVerificado = async (
   table: string,
   idField: string,
   ids: string[],
-  rotulo: string,
+  operacao: CadastroOperacao,
 ): Promise<void> => {
   // Tabelas de OS/rateio não estão no schema tipado — cast justificado
   const { error } = await (supabase.from(table as any) as any).update({ excluido: true }).in(idField, ids);
-  if (error) throw error;
+  if (error) throw recusaDeOperacao(operacao, error);
   const { data: restantes, error: reReadError } = await (supabase.from(table as any) as any)
     .select(idField)
     .in(idField, ids)
     .eq("excluido", false);
-  if (reReadError) throw reReadError;
+  if (reReadError) throw recusaDeOperacao(operacao, reReadError);
   if (restantes && restantes.length > 0) {
-    throw new Error(
-      `Não foi possível excluir ${restantes.length} ${rotulo}. O banco recusou a exclusão (permissão/RLS) — nada foi removido. Fale com a liderança.`
-    );
+    // A linha continuar visível com `excluido = false` é a recusa silenciosa:
+    // nenhuma linha foi marcada e o banco não devolveu erro.
+    throw recusaDeOperacao(operacao, null, { zeroLinhas: true });
   }
 };
 
@@ -102,16 +130,18 @@ const softDeleteVerificado = async (
 const softDeleteViaRpc = async (
   rpc: "soft_delete_ordem_servico" | "soft_delete_distribuicao_receita",
   ids: string[],
-  rotulo: string,
+  operacao: CadastroOperacao,
 ): Promise<number> => {
   // RPCs criadas por migração, ainda fora do schema tipado — cast justificado
   const { data, error } = await (supabase.rpc as any)(rpc, { _ids: ids });
-  if (error) throw error;
+  // A frase que a função devolve nomeia a tabela e quantas linhas barrou: útil
+  // no console, longe do texto que a pessoa lê.
+  if (error) throw recusaDeOperacao(operacao, error);
   const marcadas = typeof data === "number" ? data : 0;
   // Só acontece quando a linha já estava excluída (caso de admin re-excluindo).
   // Qualquer id inexistente ou sem permissão já teria abortado a chamada.
   if (marcadas < ids.length) {
-    console.warn(`[${rpc}] marcou ${marcadas} de ${ids.length} ${rotulo} — o resto já estava excluído.`);
+    console.warn(`[${rpc}] marcou ${marcadas} de ${ids.length} (${operacao.item}) — o resto já estava excluído.`);
   }
   return marcadas;
 };
@@ -374,7 +404,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             .eq("id", editingClienteId!)
             .select()
             .single();
-          if (error) throw error;
+          if (error) throw recusaDeOperacao({ item: 'cliente', acao: 'atualizar' }, error);
           clienteResult = updated;
         } else {
           // Nada mudou na aba Cliente: não há o que gravar. A linha ainda é
@@ -397,7 +427,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const removedContribIds = (dbContribs || []).map(c => c.id).filter(id => !currentContribDbIds.includes(id));
         if (removedContribIds.length > 0) {
           currentStep = "contribuinte/soft-delete";
-          await softDeleteVerificado(contribuinteTable, "id", removedContribIds, "contribuinte(s)");
+          await softDeleteVerificado(contribuinteTable, "id", removedContribIds, { item: 'contribuinte', acao: 'excluir' });
         }
 
         // --- Representantes: update existentes, insert novos, soft-delete removidos ---
@@ -407,7 +437,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const removedPartIds = (dbParts || []).map((p: any) => p[partIdField]).filter((id: string) => !currentPartDbIds.includes(id));
         if (removedPartIds.length > 0) {
           currentStep = "representante/soft-delete";
-          await softDeleteVerificado(representanteTable, partIdField, removedPartIds, "representante(s)");
+          await softDeleteVerificado(representanteTable, partIdField, removedPartIds, { item: 'representante', acao: 'excluir' });
         }
 
         // --- Ordens de Serviço: update existentes, insert novos, soft-delete removidos ---
@@ -416,8 +446,11 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const { data: dbOS } = await (supabase.from("ordem_servico" as any) as any).select("id").eq("id_cliente", clienteId).eq("excluido", false);
         const removedOsIds = (dbOS || []).map((o: any) => o.id).filter((id: string) => !currentOsDbIds.includes(id));
         if (removedOsIds.length > 0) {
+          // A OS removida já saiu do rascunho: quem ainda sabe o número dela é o
+          // snapshot do load. Sem isto a mensagem sairia com "(sem número)".
+          const numeroOsRemovida = snapOsPorId.get(removedOsIds[0])?.ordem_servico || null;
           currentStep = "ordem_servico/soft-delete";
-          await softDeleteViaRpc("soft_delete_ordem_servico", removedOsIds, "OS");
+          await softDeleteViaRpc("soft_delete_ordem_servico", removedOsIds, { item: 'os', acao: 'excluir', numeroOs: numeroOsRemovida });
 
           // O rateio acompanha a OS: sem isso sobra linha de distribuicao_receita
           // ativa apontando pra OS excluída (receita fantasma nos relatórios).
@@ -425,11 +458,11 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             .select("id")
             .in("id_ordem_servico", removedOsIds)
             .eq("excluido", false);
-          if (distOrfaError) throw distOrfaError;
+          if (distOrfaError) throw recusaDeOperacao({ item: 'rateio', acao: 'excluir', numeroOs: numeroOsRemovida }, distOrfaError);
           const distOrfaIds = ((distDeOsRemovida || []) as Array<{ id: string }>).map(r => r.id);
           if (distOrfaIds.length > 0) {
             currentStep = "distribuicao_receita/soft-delete-orfas";
-            await softDeleteViaRpc("soft_delete_distribuicao_receita", distOrfaIds, "linha(s) de rateio da OS excluída");
+            await softDeleteViaRpc("soft_delete_distribuicao_receita", distOrfaIds, { item: 'rateio', acao: 'excluir', numeroOs: numeroOsRemovida });
           }
         }
       } else {
@@ -441,7 +474,10 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           'criar_cliente_com_clusters',
           { p_cliente: clientPayload, p_cluster_ids: clusterIds }
         );
-        if (error) throw error;
+        // A RPC grava cliente e vínculo de cluster na mesma transação: a recusa
+        // pode ser de qualquer um dos dois, e o cadastro do cliente é o que a
+        // pessoa está tentando fazer.
+        if (error) throw recusaDeOperacao({ item: 'cliente', acao: 'cadastrar' }, error);
         clienteId = (novo as any).id;
         createdClienteId = clienteId;
         clienteResult = novo;
@@ -474,8 +510,10 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         contribuinte_faturamento: e.contribuinte_faturamento ?? false,
       });
 
-      currentStep = "contribuinte/upsert";
       for (const e of entities) {
+        // Rotulado a cada volta: o trecho das inscrições estaduais, no fim do
+        // laço, deixa o passo em `inscricao_contribuinte/*`.
+        currentStep = "contribuinte/upsert";
         let contribId = e._dbId;
         if (e._dbId) {
           // Contribuinte intocado não vai ao banco. O pulo é só desta linha: as
@@ -485,9 +523,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             // Usar .select() garante que uma falha silenciosa de RLS (0 rows
             // afetadas) apareça como erro, em vez de o save "concluir" sem gravar.
             const { data: updRows, error } = await supabase.from(contribuinteTable).update(buildContribFields(e)).eq("id", e._dbId).select("id");
-            if (error) throw error;
+            if (error) throw recusaDeOperacao({ item: 'contribuinte', acao: 'atualizar' }, error);
             if (!updRows || updRows.length === 0) {
-              throw new Error(`UPDATE de contribuinte ${e._dbId} não atingiu nenhuma linha (RLS ou id inválido).`);
+              throw recusaDeOperacao({ item: 'contribuinte', acao: 'atualizar' }, null, { zeroLinhas: true });
             }
           }
         } else {
@@ -498,7 +536,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           // `Prefer: return=minimal` e a leitura nunca é consultada.
           const novoContribId = crypto.randomUUID();
           const { error } = await supabase.from(contribuinteTable).insert({ ...buildContribFields(e), id: novoContribId });
-          if (error) throw error;
+          if (error) throw recusaDeOperacao({ item: 'contribuinte', acao: 'cadastrar' }, error);
           contribId = novoContribId;
         }
 
@@ -506,6 +544,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const entityKey = e._dbId || String(e._id);
         const ies = inscricoesMap[entityKey] || [];
         if (contribId) {
+          // O passo era `contribuinte/upsert` durante toda a gravação das
+          // inscrições, e a pista apontava para a tabela errada (B6).
+          currentStep = "inscricao_contribuinte/read";
           const { data: existingIEs } = await (supabase as any)
             .from("inscricao_contribuinte")
             .select("id")
@@ -513,14 +554,23 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           const currentDbIds = ies.filter(ie => ie._dbId).map(ie => ie._dbId!);
           const removedIds = (existingIEs || []).map((r: any) => r.id).filter((id: string) => !currentDbIds.includes(id));
           if (removedIds.length > 0) {
+            currentStep = "inscricao_contribuinte/delete";
             // Precheck do delete em lote — RLS uniforme, basta uma linha pra cobrir todas.
-            await assertCanPerform('inscricao_contribuinte', 'delete', removedIds[0]);
-            await (supabase as any).from("inscricao_contribuinte").delete().in("id", removedIds);
+            await precheck('inscricao_contribuinte', 'delete', removedIds[0], { item: 'inscricao', acao: 'excluir' });
+            // O retorno destas três chamadas era aguardado sem ser lido: um 42501
+            // aqui não produzia mensagem nenhuma e o salvamento seguia (B7).
+            const { data: ieApagadas, error: ieDelError } = await (supabase as any)
+              .from("inscricao_contribuinte").delete().in("id", removedIds).select("id");
+            if (ieDelError) throw recusaDeOperacao({ item: 'inscricao', acao: 'excluir' }, ieDelError);
+            if ((ieApagadas || []).length < removedIds.length) {
+              throw recusaDeOperacao({ item: 'inscricao', acao: 'excluir' }, null, { zeroLinhas: true });
+            }
           }
           // Precheck do update uma única vez antes do loop — se houver pelo menos uma IE existente.
           const firstUpdateIe = ies.find(ie => ie._dbId);
           if (firstUpdateIe?._dbId) {
-            await assertCanPerform('inscricao_contribuinte', 'update', firstUpdateIe._dbId);
+            currentStep = "inscricao_contribuinte/update";
+            await precheck('inscricao_contribuinte', 'update', firstUpdateIe._dbId, { item: 'inscricao', acao: 'atualizar' });
           }
           for (const ie of ies) {
             const iePayload = {
@@ -530,9 +580,17 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
               uf: ie.uf,
             };
             if (ie._dbId) {
-              await (supabase as any).from("inscricao_contribuinte").update(iePayload).eq("id", ie._dbId);
+              currentStep = "inscricao_contribuinte/update";
+              const { data: ieAtualizada, error: ieUpdError } = await (supabase as any)
+                .from("inscricao_contribuinte").update(iePayload).eq("id", ie._dbId).select("id");
+              if (ieUpdError) throw recusaDeOperacao({ item: 'inscricao', acao: 'atualizar' }, ieUpdError);
+              if (!ieAtualizada || ieAtualizada.length === 0) {
+                throw recusaDeOperacao({ item: 'inscricao', acao: 'atualizar' }, null, { zeroLinhas: true });
+              }
             } else {
-              await (supabase as any).from("inscricao_contribuinte").insert(iePayload);
+              currentStep = "inscricao_contribuinte/insert";
+              const { error: ieInsError } = await (supabase as any).from("inscricao_contribuinte").insert(iePayload);
+              if (ieInsError) throw recusaDeOperacao({ item: 'inscricao', acao: 'cadastrar' }, ieInsError);
             }
           }
         }
@@ -643,15 +701,21 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           // isto, um representante que só ganhou conta de acesso não teria o
           // `user_id` gravado.
           if (linhaAlterada(partDiffMap, p._dbId) || linkedUserId !== currentUserId) {
-            const { error } = await (supabase.from(representanteTable) as any)
+            // `.select()` para que a recusa de 0 linhas apareça: sem ela o
+            // salvamento seguia e terminava anunciando sucesso (B3).
+            const { data: updPart, error } = await (supabase.from(representanteTable) as any)
               .update(buildPartFields(p, linkedUserId))
-              .eq(pIdField, p._dbId);
-            if (error) throw error;
+              .eq(pIdField, p._dbId)
+              .select(pIdField);
+            if (error) throw recusaDeOperacao({ item: 'representante', acao: 'atualizar' }, error);
+            if (!updPart || updPart.length === 0) {
+              throw recusaDeOperacao({ item: 'representante', acao: 'atualizar' }, null, { zeroLinhas: true });
+            }
           }
         } else {
           const linkedUserId = await ensureRepresentanteUser(p, null);
           const { error } = await (supabase.from(representanteTable) as any).insert(buildPartFields(p, linkedUserId));
-          if (error) throw error;
+          if (error) throw recusaDeOperacao({ item: 'representante', acao: 'cadastrar' }, error);
         }
       }
 
@@ -697,7 +761,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       // Precheck do update uma única vez antes do loop — se houver pelo menos uma OS existente.
       const firstUpdateOs = contracts.find(c => c._dbId);
       if (firstUpdateOs?._dbId) {
-        await assertCanPerform('ordem_servico', 'update', firstUpdateOs._dbId);
+        await precheck('ordem_servico', 'update', firstUpdateOs._dbId, {
+          item: 'os', acao: 'atualizar', numeroOs: firstUpdateOs.ordem_servico,
+        });
       }
 
       for (const c of contracts) {
@@ -710,9 +776,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             // .select() para que uma falha silenciosa de RLS (0 rows) apareça como
             // erro, em vez de o save "concluir" sem gravar a OS.
             const { data: updOs, error } = await (supabase.from("ordem_servico" as any) as any).update(buildOsFields(c)).eq("id", c._dbId).select("id");
-            if (error) throw error;
+            if (error) throw recusaDeOperacao({ item: 'os', acao: 'atualizar', numeroOs: c.ordem_servico }, error);
             if (!updOs || updOs.length === 0) {
-              throw new Error(`UPDATE da OS ${c.ordem_servico || "(sem número)"} não atingiu nenhuma linha (RLS ou id inválido).`);
+              throw recusaDeOperacao({ item: 'os', acao: 'atualizar', numeroOs: c.ordem_servico }, null, { zeroLinhas: true });
             }
           }
         } else {
@@ -725,7 +791,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           const novaOsId = crypto.randomUUID();
           const { error } = await (supabase.from("ordem_servico" as any) as any)
             .insert({ ...buildOsFields(c), data_emissao: c.data_emissao || todayIsoBrazil(), id: novaOsId });
-          if (error) throw error;
+          if (error) throw recusaDeOperacao({ item: 'os', acao: 'cadastrar', numeroOs: c.ordem_servico }, error);
           osId = novaOsId;
         }
 
@@ -744,7 +810,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             .select("id")
             .eq("id_ordem_servico", osId)
             .eq("excluido", false);
-          if (dbDistError) throw dbDistError;
+          if (dbDistError) throw recusaDeOperacao({ item: 'rateio', acao: 'atualizar', numeroOs: c.ordem_servico }, dbDistError);
 
           const rotuloOs = c.ordem_servico || "(sem número)";
           const mantidos = new Set(draftDist.map(d => d._dbId).filter(Boolean) as string[]);
@@ -762,7 +828,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             // não pega porque o precheck dele não reproduz esse caso. A função
             // dispensa o precheck de propósito (ela é a própria validação).
             currentStep = "distribuicao_receita/soft-delete";
-            await softDeleteViaRpc("soft_delete_distribuicao_receita", distRemovidos, `linha(s) de rateio da OS ${rotuloOs}`);
+            await softDeleteViaRpc("soft_delete_distribuicao_receita", distRemovidos, { item: 'rateio', acao: 'excluir', numeroOs: c.ordem_servico });
             filhosDeOsAlterados = true;
             logAction({
               area: 'dev',
@@ -797,13 +863,11 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
               .update({ id_centro_custo: d.id_centro_custo, percentual_rateio: d.percentual_rateio || 0 })
               .eq("id", d._dbId)
               .select("id");
-            if (updDistError) throw updDistError;
+            if (updDistError) throw recusaDeOperacao({ item: 'rateio', acao: 'atualizar', numeroOs: c.ordem_servico }, updDistError);
             // 0 rows aqui significa linha inexistente ou RLS barrando. Reinserir
             // seria justamente o que duplicava o rateio — então falha alto.
             if (!updDist || updDist.length === 0) {
-              throw new Error(
-                `Não foi possível atualizar a Distribuição de Receita da OS ${rotuloOs}. Feche e abra o cadastro para recarregar os dados e tente de novo.`
-              );
+              throw recusaDeOperacao({ item: 'rateio', acao: 'atualizar', numeroOs: c.ordem_servico }, null, { zeroLinhas: true });
             }
             filhosDeOsAlterados = true;
             // Diff campo-a-campo, como o AGENTS.md exige de toda escrita.
@@ -840,7 +904,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
                 percentual_rateio: d.percentual_rateio || 0,
               }))
             );
-            if (distError) throw distError;
+            if (distError) throw recusaDeOperacao({ item: 'rateio', acao: 'cadastrar', numeroOs: c.ordem_servico }, distError);
             filhosDeOsAlterados = true;
             logAction({
               area: 'dev',
@@ -867,8 +931,13 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           // Delete removed
           if (toDelete.length > 0) {
             currentStep = "os_produtos_contratados/delete";
-            const { error: delProdError } = await (supabase.from("os_produtos_contratados" as any) as any).delete().in("id", toDelete);
-            if (delProdError) throw delProdError;
+            // `.select()` para a recusa de 0 linhas não passar como sucesso (B3).
+            const { data: prodApagados, error: delProdError } = await (supabase.from("os_produtos_contratados" as any) as any)
+              .delete().in("id", toDelete).select("id");
+            if (delProdError) throw recusaDeOperacao({ item: 'produto', acao: 'excluir', numeroOs: c.ordem_servico }, delProdError);
+            if ((prodApagados || []).length < toDelete.length) {
+              throw recusaDeOperacao({ item: 'produto', acao: 'excluir', numeroOs: c.ordem_servico }, null, { zeroLinhas: true });
+            }
             filhosDeOsAlterados = true;
             for (const delId of toDelete) {
               const delProdId = existingMap.get(delId);
@@ -893,7 +962,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
               horas_contratadas: p.horas_contratadas ?? null,
             }));
             const { error: insErr } = await (supabase.from("os_produtos_contratados" as any) as any).insert(insertPayload);
-            if (insErr) throw insErr;
+            if (insErr) throw recusaDeOperacao({ item: 'produto', acao: 'cadastrar', numeroOs: c.ordem_servico }, insErr);
             filhosDeOsAlterados = true;
             for (const ins of toInsert) {
               logAction({
@@ -915,13 +984,17 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             const horasChanged = (old.horas_contratadas ?? null) !== (dp.horas_contratadas ?? null);
             if (prodChanged || horasChanged) {
               currentStep = "os_produtos_contratados/update";
-              const { error: updProdError } = await (supabase.from("os_produtos_contratados" as any) as any)
+              const { data: updProd, error: updProdError } = await (supabase.from("os_produtos_contratados" as any) as any)
                 .update({
                   produto_segmento_id: dp.produto_segmento_id,
                   horas_contratadas: dp.horas_contratadas ?? null,
                 })
-                .eq("id", dp._dbId);
-              if (updProdError) throw updProdError;
+                .eq("id", dp._dbId)
+                .select("id");
+              if (updProdError) throw recusaDeOperacao({ item: 'produto', acao: 'atualizar', numeroOs: c.ordem_servico }, updProdError);
+              if (!updProd || updProd.length === 0) {
+                throw recusaDeOperacao({ item: 'produto', acao: 'atualizar', numeroOs: c.ordem_servico }, null, { zeroLinhas: true });
+              }
               filhosDeOsAlterados = true;
             }
           }
@@ -945,15 +1018,21 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           currentStep = "cliente_clusters/insert";
           const payload = toInsertClusters.map(cid => ({ cliente_id: clienteId, cluster_id: cid }));
           const { error: insErr } = await (supabase.from('cliente_clusters' as any) as any).insert(payload);
-          if (insErr) throw insErr;
+          if (insErr) throw recusaDeOperacao({ item: 'cluster', acao: 'cadastrar' }, insErr);
         }
         // DELETE removed
         const toDeleteClusterRows = (existingClusters || []).filter((r: any) => !desiredClusterIds.has(r.cluster_id));
         if (toDeleteClusterRows.length > 0) {
           currentStep = "cliente_clusters/delete";
           const deleteIds = toDeleteClusterRows.map((r: any) => r.id);
-          const { error: delErr } = await (supabase.from('cliente_clusters' as any) as any).delete().in('id', deleteIds);
-          if (delErr) throw delErr;
+          // `.select()` para a recusa de 0 linhas não passar como sucesso (B3):
+          // o vínculo continuaria no banco e a tela diria que removeu.
+          const { data: clustersRemovidos, error: delErr } = await (supabase.from('cliente_clusters' as any) as any)
+            .delete().in('id', deleteIds).select('id');
+          if (delErr) throw recusaDeOperacao({ item: 'cluster', acao: 'excluir' }, delErr);
+          if ((clustersRemovidos || []).length < deleteIds.length) {
+            throw recusaDeOperacao({ item: 'cluster', acao: 'excluir' }, null, { zeroLinhas: true });
+          }
         }
       }
 
@@ -1087,7 +1166,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       if (nothingChanged) {
         toast.info("Nenhuma alteração detectada. Se você editou algum item, confirme o botão Salvar da linha antes de salvar o cliente.");
       } else {
-        toast.success(isEditing ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
+        // Um aviso só para o salvamento inteiro: as frases de cada item servem
+        // para nomear a etapa que falhou, não para anunciar etapa concluída.
+        toast.success(isEditing ? "Cliente atualizado com sucesso." : "Cliente cadastrado com sucesso.");
       }
 
       // Aviso (não bloqueante) do que já estava incompleto e não foi tocado:
@@ -1102,33 +1183,50 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       }
       onSuccess();
     } catch (error: any) {
-      // Rollback: delete newly created client (CASCADE removes children)
+      // Rollback: desfaz o cliente recém-criado (CASCADE remove os filhos).
+      //
+      // O retorno não era lido: quando o desfazer era recusado, o cliente
+      // continuava no banco pela metade e ninguém ficava sabendo — é o que
+      // deixou cliente órfão em produção.
+      // A conferência é por releitura, e não por `.select()`: pedir a linha de
+      // volta ligaria o RETURNING, e o cliente recém-criado pode nascer
+      // invisível para quem o criou (cluster de outra área) — a policy de
+      // leitura recusaria o DELETE inteiro, justamente o oposto do que se quer
+      // aqui. Se a linha continuar visível, o desfazer não gravou.
+      let desfazerFalhou = false;
       if (createdClienteId) {
-        try {
-          await supabase.from(clienteTable).delete().eq("id", createdClienteId);
+        const { error: rollbackError } = await supabase
+          .from(clienteTable).delete().eq("id", createdClienteId);
+        const { data: aindaLa } = await supabase
+          .from(clienteTable).select("id").eq("id", createdClienteId);
+        desfazerFalhou = !!rollbackError || (aindaLa || []).length > 0;
+        if (desfazerFalhou) {
+          console.error("[rollback] Falha ao remover cliente:", createdClienteId, rollbackError);
+        } else {
           console.log("[rollback] Cliente removido:", createdClienteId);
-        } catch (rollbackErr) {
-          console.error("[rollback] Falha ao remover cliente:", rollbackErr);
         }
       }
-      console.error("[cadastro cliente] erro:", error, "passo:", currentStep);
-      const rlsMsg = (error?.message || "").toLowerCase();
-      const isRls =
-        error?.code === "42501" ||
-        rlsMsg.includes("row-level security") ||
-        rlsMsg.includes("violates row") ||
-        rlsMsg.includes("permission denied");
-      const acao = isEditing ? "atualizar" : "cadastrar";
-      // O texto genérico escondia o que o banco tinha dito. As funções
-      // `soft_delete_*` já devolvem uma frase que nomeia OS ou rateio e quantas
-      // linhas foram barradas — repassar isso, com o passo e o código, é o que
-      // permite abrir um chamado sem precisar reproduzir o erro.
-      const detalhe = [currentStep, error?.code].filter(Boolean).join(", ");
-      toast.error(
-        isRls
-          ? `Sem permissão para ${acao} cliente. ${error.message} (${detalhe}). Fale com a liderança.`
-          : `Erro ao ${acao} cliente: ` + error.message
+
+      // O diagnóstico — passo, código e frase crua do banco — fica aqui, para
+      // abrir chamado sem reproduzir o erro. Nada disso vai para a tela.
+      const recusa = error instanceof RecusaDeOperacao ? error : null;
+      console.error(
+        "[cadastro cliente] erro:", error,
+        "passo:", currentStep,
+        recusa ? `categoria: ${recusa.categoria} · item: ${recusa.operacao.item}/${recusa.operacao.acao}` : "",
       );
+
+      const texto = recusa
+        ? textoDoSalvamentoRecusado(recusa)
+        // Falha que não passou pela tradução (rede, bug, validação de trigger):
+        // ainda assim a pessoa precisa saber que o salvamento não aconteceu.
+        : textoDeRecusa({ item: 'cliente', acao: isEditing ? 'atualizar' : 'cadastrar' }, 'falha');
+      toast.error(texto.titulo, { description: texto.detalhe });
+
+      if (desfazerFalhou) {
+        const desfazer = textoDeRecusa({ item: 'cliente', acao: 'excluir' }, 'falha');
+        toast.error(desfazer.titulo, { description: desfazer.detalhe, duration: 10000 });
+      }
     } finally {
       setSaving(false);
     }
