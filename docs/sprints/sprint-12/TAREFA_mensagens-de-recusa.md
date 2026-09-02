@@ -213,6 +213,22 @@ Outras três regras existem no banco e hoje a tela barra antes (`cliente_nome_na
 `contribuinte_tipo_pessoa_check`, `ordem_servico_numero_parcelas_faixa`). Ficam fora do
 catálogo até aparecerem de fato — entram com uma linha cada.
 
+### Quando entra mensagem nova no catálogo
+
+**Regra de manutenção, fechada em 02/09/2026.** O catálogo de regras é curto de propósito, e
+tem que continuar curto. Uma frase nova só entra quando as duas coisas valem:
+
+1. existe uma **regra de negócio específica** por trás da recusa; **e**
+2. a orientação é **diferente** das que já existem, e ajuda de fato a pessoa a corrigir.
+
+Fora disso, usa um dos três padrões — permissão, falha ou zero linhas — parametrizado pela
+entidade e pela ação. Vinte e quatro frases escritas à mão só trocariam a confusão de hoje por
+um catálogo grande de manter: a variação vem dos dados (item, ação, número da OS, papel), não
+de dezenas de textos.
+
+É por isso que o código guarda **fragmentos**, e não mensagens: `cadastrar o contribuinte`,
+`atualizar a OS {numero}`. Quem monta a frase é uma função só, uma por categoria.
+
 **A regra de cargo que dá certeza.** `criar_cliente_com_clusters` é SECURITY DEFINER e o único
 `42501` que ela levanta é o teste de cargo (`has_role_or_higher(sublider)`), conferido em
 produção. Essa recusa entra em Permissão confirmada, com "Sublíder" — é justamente a que barrou
