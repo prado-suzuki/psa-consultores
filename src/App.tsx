@@ -155,6 +155,7 @@ const CadastroPorDocumento = lazy(() => import("./pages/equipe/osg/CadastroPorDo
 const QualificacaoDasPartes = lazy(() => import("./pages/equipe/osg/QualificacaoDasPartes"));
 const DiagnosticoPatrimonial = lazy(() => import("./pages/equipe/osg/DiagnosticoPatrimonial"));
 const ControleMatriculas = lazy(() => import("./pages/equipe/osg/ControleMatriculas"));
+const OrgaosGovernanca = lazy(() => import("./pages/equipe/osg/OrgaosGovernanca"));
 const BibliotecaModelos = lazy(() => import("./pages/equipe/osg/BibliotecaModelos"));
 const MontagemDocumentos = lazy(() => import("./pages/equipe/osg/MontagemDocumentos"));
 const GerarDocumento = lazy(() => import("./pages/equipe/osg/GerarDocumento"));
@@ -350,6 +351,7 @@ const App = () => (
                 <Route path="/equipe/osg/work/qualificacao-das-partes" element={<PageAccessGate pagePath="/equipe/osg/work/qualificacao-das-partes"><QualificacaoDasPartes /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/diagnostico-patrimonial" element={<PageAccessGate pagePath="/equipe/osg/work/diagnostico-patrimonial"><DiagnosticoPatrimonial /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/controle-matriculas" element={<PageAccessGate pagePath="/equipe/osg/work/controle-matriculas"><ControleMatriculas /></PageAccessGate>} />
+                <Route path="/equipe/osg/work/governanca/orgaos" element={<PageAccessGate pagePath="/equipe/osg/work/governanca/orgaos"><OrgaosGovernanca /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/gerar-documento" element={<ProtectedRoute><GerarDocumento /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/biblioteca-modelos" element={<ProtectedRoute><BibliotecaModelos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/montagem-documentos" element={<ProtectedRoute><MontagemDocumentos /></ProtectedRoute>} />

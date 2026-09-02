@@ -652,6 +652,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/osg/work/governanca/orgaos',
+    page_name: 'Órgãos de Governança',
+    page_description: 'Instâncias de decisão do cliente, que viram as colunas da Matriz de Alçadas',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/osg/work/controle-matriculas',
     page_name: 'Controle de Matrículas',
     page_description: 'Registro de todas as matrículas (vinculadas ou órfãs), com vínculo a bens',

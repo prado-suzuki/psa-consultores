@@ -20,7 +20,9 @@ type AuditEntityType =
   | 'documento_gerado' | 'documento_override'
   | 'solicitacao' | 'solicitacao_item' | 'solicitacao_item_nao_aplicavel'
   | 'org_comment'
-  | 'itcd_simulacao';
+  | 'itcd_simulacao'
+  // GOV-01: orgao de governanca por cliente.
+  | 'orgao_governanca';
 
 interface AuditLogEntry {
   area: AuditArea;

@@ -33,6 +33,7 @@ import {
   Home,
   LineChart,
   Rocket,
+  Scale,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
@@ -195,6 +196,16 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
     { path: '/equipe/osg/work/checklists', label: 'Checklists de documentos' },
   ];
   const isDocClienteActive = docClienteItems.some((item) => item.path === location.pathname);
+
+  // Itens do agrupador "Governança" (GOV-01). Nasce com um item só, de propósito:
+  // o levantamento mapeou seis documentos de governança, e cada um vira tela ou
+  // parte de tela. Criar o agrupador agora evita que o segundo entre solto e o
+  // terceiro obrigue a renomear endereço já com permissão concedida, o que exige
+  // migration com UPDATE porque o sincronizador de páginas casa por CAMINHO.
+  const govItems = [
+    { path: '/equipe/osg/work/governanca/orgaos', label: 'Órgãos de Governança' },
+  ];
+  const isGovActive = govItems.some((item) => item.path === location.pathname);
 
   const areaLabel = isWork ? 'OSG Work' : isProjects ? 'OSG Projects' : 'OSG';
   const areaSubtitle = isWork
@@ -526,6 +537,63 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             <Calculator className="h-4 w-4 flex-shrink-0" />
             <span className={cn(rotuloCls, "whitespace-nowrap")}>Calculadora de ITCD</span>
           </button>
+          {/* Agrupador "Governança" — mesmo padrão de dropdown por hover */}
+          <div className="group/gov">
+            <button
+              type="button"
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                isGovActive
+                  ? "bg-osg-50 text-primary"
+                  : "text-muted-foreground group-hover/gov:bg-osg-50 group-hover/gov:text-primary"
+              )}
+            >
+              <Scale className="h-4 w-4 flex-shrink-0" />
+              <span className={cn(rotuloCls, "flex-1 min-w-0 truncate text-left")}>Governança</span>
+              <ChevronDown
+                className={cn(
+                  rotuloCls,
+                  "h-4 w-4 flex-shrink-0 duration-300",
+                  isGovActive ? "rotate-180" : "group-hover/gov:rotate-180"
+                )}
+              />
+            </button>
+
+            <div
+              className={cn(
+                "grid transition-[grid-template-rows] duration-300 ease-out",
+                collapsed
+                  ? "grid-rows-[0fr]"
+                  : isGovActive
+                    ? "grid-rows-[1fr]"
+                    : "grid-rows-[0fr] group-hover/gov:grid-rows-[1fr]"
+              )}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <div
+                  className={cn(
+                    "space-y-1 pt-1",
+                    collapsed ? "" : "ml-2 pl-2 border-l border-osg-100"
+                  )}
+                >
+                  {govItems.map(({ path, label }) => (
+                    <button
+                      key={path}
+                      onClick={() => navigate(path)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+                        location.pathname === path
+                          ? "bg-osg-100 text-primary"
+                          : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
+                      )}
+                    >
+                      <span className={cn(rotuloCls, "whitespace-nowrap")}>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
           {/* Agrupador "Documentos do Cliente" — expande no hover com animação suave */}
           <div className="group/docsCli">
             <button
