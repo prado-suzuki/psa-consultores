@@ -311,21 +311,26 @@ const REGRAS_DE_NEGOCIO: Array<{
     frases: ['selecione ao menos 1 cluster', 'precisa estar vinculado a pelo menos 1 cluster'],
     texto: {
       titulo: 'É necessário informar pelo menos um cluster.',
-      detalhe: 'Selecione o cluster do cliente e salve novamente.',
+      detalhe: 'Selecione um cluster para o cliente e salve novamente.',
     },
   },
   {
     frases: ['nao e possivel remover o ultimo cluster'],
     texto: {
-      titulo: 'É necessário manter pelo menos um cluster no cliente.',
+      // Feedback da ação, não enunciado da regra: o que a pessoa precisa saber
+      // é a consequência de remover este vínculo.
+      titulo: 'O cliente precisa permanecer vinculado a pelo menos um cluster.',
       detalhe: 'Vincule outro cluster antes de remover este.',
     },
   },
+  // As duas duplicidades usam a mesma construção de propósito — "já está
+  // vinculado" + "remova o item duplicado" —, para não pedir interpretação
+  // diferente de uma para a outra.
   {
     constraints: ['unique_cliente_cluster'],
     texto: {
       titulo: 'Este cluster já está vinculado ao cliente.',
-      detalhe: 'Remova a repetição na lista de clusters e salve novamente.',
+      detalhe: 'Remova o item duplicado e salve novamente.',
     },
   },
   {
@@ -333,8 +338,8 @@ const REGRAS_DE_NEGOCIO: Array<{
     // deveria impedir antes de salvar — isso continua sendo tarefa própria.
     constraints: ['os_produtos_contratados_ordem_servico_id_produto_segmento_i_key'],
     texto: {
-      titulo: 'Este produto já está na OS.',
-      detalhe: 'Cada produto entra uma vez por OS. Ajuste a lista de produtos e salve novamente.',
+      titulo: 'Este produto já está vinculado à OS.',
+      detalhe: 'Remova o item duplicado e salve novamente.',
     },
   },
 ];

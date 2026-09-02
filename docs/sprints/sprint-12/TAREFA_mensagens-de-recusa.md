@@ -194,10 +194,16 @@ não inventa causa.
 
 | Reconhecida por | Texto na tela |
 |---|---|
-| `Selecione ao menos 1 cluster` (RPC de criação) · `precisa estar vinculado a pelo menos 1 cluster` (gatilho, na edição) | **É necessário informar pelo menos um cluster.** Selecione o cluster do cliente e salve novamente. |
-| `Não é possível remover o último cluster` | **É necessário manter pelo menos um cluster no cliente.** Vincule outro cluster antes de remover este. |
-| constraint `unique_cliente_cluster` | **Este cluster já está vinculado ao cliente.** Remova a repetição na lista de clusters e salve novamente. |
-| constraint de unicidade de `(OS, produto)` | **Este produto já está na OS.** Cada produto entra uma vez por OS. Ajuste a lista de produtos e salve novamente. |
+| `Selecione ao menos 1 cluster` (RPC de criação) · `precisa estar vinculado a pelo menos 1 cluster` (gatilho, na edição) | **É necessário informar pelo menos um cluster.** Selecione um cluster para o cliente e salve novamente. |
+| `Não é possível remover o último cluster` | **O cliente precisa permanecer vinculado a pelo menos um cluster.** Vincule outro cluster antes de remover este. |
+| constraint `unique_cliente_cluster` | **Este cluster já está vinculado ao cliente.** Remova o item duplicado e salve novamente. |
+| constraint de unicidade de `(OS, produto)` | **Este produto já está vinculado à OS.** Remova o item duplicado e salve novamente. |
+
+Duas escolhas de texto, fechadas em 02/09: no último cluster a frase é o **feedback da ação**
+("o cliente precisa permanecer vinculado"), não o enunciado da regra ("é necessário manter") —
+a consequência de remover fica clara. E as duas duplicidades usam a **mesma construção**, "já
+está vinculado" + "remova o item duplicado", para não pedir interpretação diferente de uma para
+a outra. Há teste travando as duas coisas.
 
 As três primeiras nascem de `RAISE EXCEPTION` com `ERRCODE 23514`; as de unicidade, `23505`.
 Todas citam identificador interno ou nome de tabela na frase original — por isso o texto da
@@ -318,7 +324,7 @@ Em `src/lib/`, sobre a função de tradução — sem banco:
 
 ## T6 — Conferência (Patricia)
 
-Reproduzir cada recusa como um `lider` ou `sublider` e comparar com a coluna de mensagens do
+Reproduzir cada recusa **como Líder e como Sublíder**, comparando com a coluna de mensagens do
 artefato da auditoria. **Não vale conferir só que "apareceu um erro".** Em cada recusa, quatro
 pontos:
 

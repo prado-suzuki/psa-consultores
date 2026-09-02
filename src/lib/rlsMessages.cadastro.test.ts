@@ -268,15 +268,15 @@ describe('regra de negócio conhecida aparece, curada e acionável', () => {
       expect(recusa.categoria).toBe('regra');
       expect(textoDaRecusa(recusa)).toEqual({
         titulo: 'É necessário informar pelo menos um cluster.',
-        detalhe: 'Selecione o cluster do cliente e salve novamente.',
+        detalhe: 'Selecione um cluster para o cliente e salve novamente.',
       });
     }
   });
 
-  it('remover o último cluster explica a saída', () => {
+  it('remover o último cluster explica a consequência, não a regra', () => {
     const recusa = recusaDeOperacao({ item: 'cluster', acao: 'excluir' }, ERROS_DE_REGRA[2]);
     expect(textoDaRecusa(recusa)).toEqual({
-      titulo: 'É necessário manter pelo menos um cluster no cliente.',
+      titulo: 'O cliente precisa permanecer vinculado a pelo menos um cluster.',
       detalhe: 'Vincule outro cluster antes de remover este.',
     });
   });
@@ -284,22 +284,33 @@ describe('regra de negócio conhecida aparece, curada e acionável', () => {
   it('cluster repetido é reconhecido pelo nome da constraint', () => {
     const recusa = recusaDeOperacao({ item: 'cluster', acao: 'cadastrar' }, ERROS_DE_REGRA[3]);
     expect(recusa.categoria).toBe('regra');
-    expect(textoDaRecusa(recusa).titulo).toBe('Este cluster já está vinculado ao cliente.');
+    expect(textoDaRecusa(recusa)).toEqual({
+      titulo: 'Este cluster já está vinculado ao cliente.',
+      detalhe: 'Remova o item duplicado e salve novamente.',
+    });
   });
 
   it('produto repetido na mesma OS diz qual é a regra (B5)', () => {
     const recusa = recusaDeOperacao({ item: 'produto', acao: 'cadastrar', numeroOs: '1234' }, ERROS_DE_REGRA[4]);
     expect(textoDaRecusa(recusa)).toEqual({
-      titulo: 'Este produto já está na OS.',
-      detalhe: 'Cada produto entra uma vez por OS. Ajuste a lista de produtos e salve novamente.',
+      titulo: 'Este produto já está vinculado à OS.',
+      detalhe: 'Remova o item duplicado e salve novamente.',
     });
+  });
+
+  it('as duas duplicidades usam a mesma construção', () => {
+    const cluster = recusaDeOperacao({ item: 'cluster', acao: 'cadastrar' }, ERROS_DE_REGRA[3]);
+    const produto = recusaDeOperacao({ item: 'produto', acao: 'cadastrar' }, ERROS_DE_REGRA[4]);
+    expect(textoDaRecusa(cluster).titulo).toMatch(/^Este .+ já está vinculado a/);
+    expect(textoDaRecusa(produto).titulo).toMatch(/^Este .+ já está vinculado à/);
+    expect(textoDaRecusa(produto).detalhe).toBe(textoDaRecusa(cluster).detalhe);
   });
 
   it('no salvamento, a regra vem abaixo de "não foi possível salvar", não escondida por ele', () => {
     const recusa = recusaDeOperacao({ item: 'cliente', acao: 'atualizar' }, ERROS_DE_REGRA[1]);
     expect(textoDoSalvamentoRecusado(recusa)).toEqual({
       titulo: 'Não foi possível salvar o cliente.',
-      detalhe: 'É necessário informar pelo menos um cluster. Selecione o cluster do cliente e salve novamente.',
+      detalhe: 'É necessário informar pelo menos um cluster. Selecione um cluster para o cliente e salve novamente.',
     });
   });
 
