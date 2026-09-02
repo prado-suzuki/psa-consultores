@@ -35,9 +35,9 @@ const FILA_DO_SLATE: Record<string, number> = {};
  *   fase 3a, e o Mapa está cheio dela. Aquela fase tirou o valor da mão DE PROPÓSITO
  *   sem escolher papel; escolher papel é a fase 4. Perseguir isso aqui seria cobrar
  *   uma fase que ainda não começou;
- * - prosa de comentário que cite `slate-600` ao contar história — `PageLoader`,
- *   `formKit` e `DashboardUsoEnvioGerencial` fazem isso, e comentário que explica por
- *   que uma cor saiu é para ficar.
+ * - prosa de comentário que cite um tom de slate ao contar história — `PageLoader`
+ *   (`slate-50`), `formKit` e `DashboardUsoEnvioGerencial` (`slate-600`) fazem isso, e
+ *   comentário que explica por que uma cor saiu é para ficar.
  *
  * Os dois ficam de fora pelo mesmo mecanismo, sem exceção escrita: `familiaCrua` exige
  * o prefixo de propriedade (`bg-`, `text-`…), e nenhum dos dois tem.
