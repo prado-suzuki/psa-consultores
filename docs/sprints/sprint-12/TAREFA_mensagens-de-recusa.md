@@ -146,14 +146,19 @@ O aviso vai ao toast partido em duas partes (o que aconteceu · o que fazer): nu
 | Contribuinte | cadastrar o contribuinte | atualizar o contribuinte | excluir o contribuinte |
 | Inscrição estadual | cadastrar a inscrição estadual | atualizar a inscrição estadual | excluir a inscrição estadual |
 | Representante | cadastrar o representante | atualizar o representante | excluir o representante |
-| Ordem de serviço | cadastrar a ordem de serviço | atualizar a OS {número} ⚑ | excluir a OS {número} |
-| Rateio da receita | cadastrar o rateio de receita | atualizar o rateio de receita da OS {número} ⚑ | excluir o rateio de receita |
+| Ordem de serviço | cadastrar a ordem de serviço | atualizar a OS {número} | excluir a OS {número} |
+| Rateio da receita | cadastrar o rateio de receita | atualizar o rateio de receita da OS {número} | excluir o rateio de receita |
 | Produto contratado | adicionar o produto à OS | atualizar o produto contratado | excluir o produto contratado |
 
-**Fecho da Falha:** `Tente novamente. Se o problema continuar, entre em contato com o suporte.`
-⚑ **exceção:** nas duas células marcadas o fecho é `Atualize os dados e tente novamente.`
+**Fecho da Falha**, sempre o mesmo: `Tente novamente. Se o problema continuar, entre em contato com o suporte.`
 
 **Fecho da Zero linhas**, sempre: `Os dados podem ter sido modificados. Atualize a página e tente novamente.`
+
+Atualizar OS e atualizar rateio tinham fecho próprio (`Atualize os dados e tente novamente`).
+Saiu em 02/09: depois que Zero linhas ganhou tratamento próprio, aquela exceção criava
+distinção onde a situação da pessoa já não era diferente. **A regra daqui para frente: se a
+próxima ação do usuário é a mesma, a mensagem é a mesma.** Exceção só quando muda de fato o que
+a pessoa precisa fazer.
 
 Exemplo montado:
 
@@ -307,7 +312,16 @@ Ocorreu um problema ao cadastrar o contribuinte. Tente novamente.
 
 ```
 Não foi possível salvar o cliente.
-Ocorreu um problema ao atualizar a OS 1234. Atualize os dados e tente novamente.
+Ocorreu um problema ao atualizar a OS 1234. Tente novamente.
+```
+
+Dentro do salvamento o fecho da Falha é o curto — "Tente novamente." A menção ao suporte já
+vem no aviso da operação isolada; repetir no salvamento inteiro só alonga a frase. Quando a
+etapa parou por zero linhas, o fecho é o de Zero linhas:
+
+```
+Não foi possível salvar o cliente.
+Ocorreu um problema ao atualizar a OS 1234. Os dados podem ter sido modificados. Atualize a página e tente novamente.
 ```
 
 Quando a recusa é de permissão, a primeira linha permanece e as duas linhas da categoria
