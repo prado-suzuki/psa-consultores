@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint + Typecheck + Tests + Build
+    name: Lint + Typecheck + Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -34,9 +34,6 @@ jobs:
       - name: Typecheck
         run: bunx tsc --build --noEmit
 
-      - name: Tests
-        run: bunx vitest run
-
       - name: Build
         run: bun run build
         env:
@@ -57,6 +54,43 @@ jobs:
           path: dist/
           retention-days: 7
           if-no-files-found: error
+
+  # Os testes saem do job de qualidade e viram job proprio, em SHARDS.
+  #
+  # Duas medidas de 02/09/2026 explicam as duas decisoes. Job proprio: os testes
+  # levavam 300s dos 445s do job unico, e lint (21s), typecheck (61s) e build (50s)
+  # esperavam na fila sem precisar. Shards: a suite roda em 21s numa maquina de 32
+  # nucleos e em 300s no runner de 4, ou seja ela e limitada por CPU, nao por
+  # trabalho. Tres jobs em paralelo dao 12 nucleos.
+  #
+  # A soma dos shards foi conferida: 129+128+128 arquivos e 1558+1470+1531 testes,
+  # que fecha os 385 arquivos e 4559 testes da suite inteira.
+  tests:
+    name: Testes ${{ matrix.shard }}/3
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      # Sem fail-fast: shard que quebra nao deve cancelar os outros dois, senao a
+      # primeira falha esconde as demais e a proxima rodada descobre uma por vez.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Tests
+        run: bunx vitest run --shard=${{ matrix.shard }}/3
 
   migrations:
     name: Schema (migrations, types.ts, mapa)
