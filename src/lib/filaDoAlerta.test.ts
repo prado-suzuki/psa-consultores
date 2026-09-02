@@ -1,7 +1,6 @@
-import { readFileSync, readdirSync } from 'node:fs';
-import { join, relative, resolve, sep } from 'node:path';
-
 import { describe, expect, it } from 'vitest';
+
+import { familiaCrua, medirCorCrua } from '@/lib/medirCorCrua';
 
 /**
  * Catraca da fila do papel `alerta`.
@@ -106,6 +105,7 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     'src/components/equipe/sprint-detalhes/SprintHeaderFilters.tsx': 6,
   },
   'paleta-categorica': {
+    'src/pages/equipe/DigitalAreaSelector.tsx': 1,
     'src/components/equipe/ImprovementHistoryModal.tsx': 1,
     'src/components/acessos/pageCategoryStyles.ts': 3,
     'src/components/equipe/dev/consulta-efd-icms/EfdResultsTable.tsx': 3,
@@ -131,34 +131,11 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
   },
 };
 
-/** As mesmas famílias que a auditoria do `paleta-por-area.md` procura, restritas ao
-    âmbar e ao amarelo — as duas que o papel `alerta` reivindica. */
-const COR_CRUA_DE_AVISO =
-  /\b(?:hover:)?(?:bg|text|border|fill|ring|stroke|divide)-(?:amber|yellow)-\d{2,3}\b/g;
-
-const RAIZ = resolve(__dirname, '../..');
-
-function arquivosDeCodigo(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap(entrada => {
-    const caminho = join(dir, entrada.name);
-    if (entrada.isDirectory()) return arquivosDeCodigo(caminho);
-    if (!/\.tsx?$/.test(entrada.name)) return [];
-    // O próprio teste cita as classes que procura; arquivo de teste não pinta tela.
-    if (/\.(test|spec)\.tsx?$/.test(entrada.name)) return [];
-    return [caminho];
-  });
-}
-
-function filaMedida(): Record<string, number> {
-  const medido: Record<string, number> = {};
-  for (const raiz of ['src/components', 'src/pages']) {
-    for (const caminho of arquivosDeCodigo(resolve(RAIZ, raiz))) {
-      const achados = readFileSync(caminho, 'utf8').match(COR_CRUA_DE_AVISO);
-      if (achados) medido[relative(RAIZ, caminho).split(sep).join('/')] = achados.length;
-    }
-  }
-  return medido;
-}
+/** Âmbar e amarelo — as duas famílias que o papel `alerta` reivindica.
+    O recorte de propriedade e o de variante vêm de `familiaCrua`, e são mais largos
+    que a versão que esta catraca nasceu usando: aquela olhava sete propriedades e um
+    `hover:` só, e por isso deixou passar o `from-amber-500` do DigitalAreaSelector. */
+const COR_CRUA_DE_AVISO = familiaCrua('amber', 'yellow');
 
 describe('fila do papel `alerta`', () => {
   it('a cor crua de aviso que sobrou é exatamente a que está inventariada', () => {
@@ -166,7 +143,7 @@ describe('fila do papel `alerta`', () => {
       Object.values(FILA_DO_ALERTA).flatMap(grupo => Object.entries(grupo)),
     );
     expect(
-      filaMedida(),
+      medirCorCrua(COR_CRUA_DE_AVISO),
       'A fila do `alerta` mudou.\n'
         + '· Arquivo NOVO na medição: alguém escreveu âmbar cru. Use a variante — o contrato\n'
         + '  está em docs/geral/paleta-por-area.md, seção "O papel `alerta` tem variante no ui/".\n'

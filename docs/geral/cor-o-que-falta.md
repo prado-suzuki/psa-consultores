@@ -21,7 +21,7 @@ uma medição já feita.
 | papéis `feito`/`ajuste`/`espera` | três escadas convertidas, cinco mapas de domínio consolidados |
 | rótulo `pending` | onze telas decidiam a palavra sozinhas → uma, no mapa |
 
-Ficaram três guardas novas: a catraca [`src/lib/filaDoAlerta.test.ts`](../../src/lib/filaDoAlerta.test.ts),
+Ficaram quatro guardas novas: as catracas [`filaDoAlerta`](../../src/lib/filaDoAlerta.test.ts) e [`filaDoSlate`](../../src/lib/filaDoSlate.test.ts),
 a variante `warning` no `ui/alert` e no `ui/badge`, e a seção do contrato que lista os cinco
 mapas de status.
 
@@ -113,17 +113,32 @@ sozinho ao trocar os mapas locais pelo `chamadoPrioridadeConfig`, que já tem `m
 | cor crua âmbar/amarela | catraca `src/lib/filaDoAlerta.test.ts` — igualdade exata, por arquivo, com o motivo |
 | `teal-500/600/700` | aviso de ESLint (`no-restricted-syntax`) |
 | tom que a escala não tem | `escala/cor-inexistente` e `escala/cor-de-estoque` |
-| **verde, vermelho, azul, roxo, e o slate recém-zerado** | **nenhuma** |
+| cor crua **slate** | catraca `src/lib/filaDoSlate.test.ts` — nasce **vazia**, e qualquer classe slate nova derruba |
+| **verde, vermelho, azul, roxo, laranja** | **nenhuma** |
 | **rótulo divergente** | **nenhuma** — nem teste, nem lint |
 
-As duas linhas em negrito são o buraco. O `slate` acabou de ir a zero e **nada impede** que
-volte: a regra `escala/cor-de-estoque` só dispara em nome que o projeto **também** define no
-`tailwind.config.ts` (`teal`, `lime`, `gray`), e `slate` não está lá — foi por isso que ele
-cresceu até 1529 sem ninguém ver.
+As duas linhas em negrito são o buraco que sobrou.
 
-O molde já existe e é barato de copiar: a `filaDoAlerta` guarda o **motivo** de cada sobra, o
-que faz a lista servir para a conversão seguinte em vez de só contar. Para o slate a catraca
-nasceria vazia, que é o caso mais fácil de manter.
+**Por que o slate precisou de catraca própria, e por que as outras famílias também vão
+precisar:** a regra `escala/cor-de-estoque` só dispara em nome que o projeto **também** define
+no `tailwind.config.ts` (`teal`, `lime`, `gray`) — aí o tom faltante cai no estoque sem avisar.
+`slate` não está lá, nunca esteve, então `bg-slate-50` sempre foi classe válida e nenhuma regra
+teve o que dizer. Foi assim que ele cresceu até 1529 sem ninguém ver. `red`, `emerald`, `blue`
+e as demais estão na mesma situação.
+
+O molde para a próxima está pronto e é barato: `src/lib/medirCorCrua.ts` tem o scanner, e a
+catraca em si são vinte linhas. Duas formas, conforme o caso:
+
+- **família já zerada** → igualdade contra objeto vazio, como a `filaDoSlate`. É a mais fácil
+  de manter, e a única que não envelhece;
+- **família com fila** → inventário agrupado pelo **motivo** de cada sobra, como a
+  `filaDoAlerta`. É o motivo que faz a lista servir para a conversão seguinte em vez de só
+  contar.
+
+> Ao extrair o scanner, a varredura ficou mais larga que a original e **achou um caso que
+> quatro lotes tinham deixado passar**: um `from-amber-500` de gradiente. A lista de
+> propriedades da auditoria não incluía `from`/`to`/`decoration`. Se você escrever uma
+> auditoria à mão, use `PROPRIEDADES_DE_COR` de `medirCorCrua.ts` em vez de listar de cabeça.
 
 ## 6. Fase 3b e fase 4 — as duas que dependem de decisão antiga
 
@@ -161,7 +176,7 @@ Nesta ordem, do mecânico ao que exige decisão:
 
 1. **Os mapas de rótulo duplicados** (§4) — os seis `statusLabels` de chamado e os seis de
    prioridade. Os textos já batem; é troca de import, e fecha o badge vazio de quebra.
-2. **A catraca do slate** (§5) — nasce vazia, e é o que impede 1529 de voltarem.
+2. **A catraca de mais uma família** (§5) — `red` e `emerald` são as maiores sem guarda. O molde está em `medirCorCrua.ts`.
 3. **`in_progress`, `cancelled`, `completed`** (§4) — uma decisão sua, três pares, e o rótulo
    passa a sair do mapa.
 4. **Os papéis que faltam** (§1) — por mapa, nunca por classe.
