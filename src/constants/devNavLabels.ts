@@ -35,4 +35,7 @@ export const DEV_NAV_LABELS = {
   gerenciarDados: "Gerenciar dados",
   carregarDados: "Carregar dados",
   dashboardsGerenciarDados: "Dashboards",
+
+  // Planejamento Tributário
+  papelDeTrabalho: "Papel de Trabalho",
 } as const;

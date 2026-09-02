@@ -98,6 +98,7 @@ const DevDashboard = lazy(() => import("./pages/equipe/dev/DevDashboard"));
 const NovaFerramenta = lazy(() => import("./pages/equipe/dev/NovaFerramenta"));
 const DetalheFerramenta = lazy(() => import("./pages/equipe/dev/DetalheFerramenta"));
 const ConsultaXMLs = lazy(() => import("./pages/equipe/dev/ConsultaXMLs"));
+const PapelDeTrabalho = lazy(() => import("./pages/equipe/dev/PapelDeTrabalho"));
 const ConsultaSpedHub = lazy(() => import("./pages/equipe/dev/ConsultaSpedHub"));
 const ConsultaEFD = lazy(() => import("./pages/equipe/dev/ConsultaEFD"));
 const ConsultaEFDICMS = lazy(() => import("./pages/equipe/dev/ConsultaEFDICMS"));
@@ -267,6 +268,7 @@ const App = () => (
               <Route path="/equipe/dev/nova-ferramenta" element={<PageAccessGate pagePath="/equipe/dev/nova-ferramenta"><NovaFerramenta /></PageAccessGate>} />
               <Route path="/equipe/dev/ferramenta/:id" element={<PageAccessGate pagePath="/equipe/dev/ferramenta"><DetalheFerramenta /></PageAccessGate>} />
               <Route path="/equipe/dev/consulta-xmls" element={<PageAccessGate pagePath="/equipe/dev/consulta-xmls"><ConsultaXMLs /></PageAccessGate>} />
+              <Route path="/equipe/dev/planejamento-tributario/papel-de-trabalho" element={<PageAccessGate pagePath="/equipe/dev/planejamento-tributario/papel-de-trabalho"><PapelDeTrabalho /></PageAccessGate>} />
               <Route path="/equipe/dev/consulta-sped" element={<PageAccessGate pagePath="/equipe/dev/consulta-sped"><ConsultaSpedHub /></PageAccessGate>} />
               <Route path="/equipe/dev/consulta-efd" element={<PageAccessGate pagePath="/equipe/dev/consulta-efd"><ConsultaEFD /></PageAccessGate>} />
               <Route path="/equipe/dev/consulta-efd-icms" element={<PageAccessGate pagePath="/equipe/dev/consulta-efd-icms"><ConsultaEFDICMS /></PageAccessGate>} />

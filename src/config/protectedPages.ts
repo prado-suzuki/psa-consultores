@@ -375,6 +375,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  {
+    page_path: '/equipe/dev/planejamento-tributario/papel-de-trabalho',
+    page_name: 'Papel de Trabalho',
+    page_description: 'Conferir e importar o papel de trabalho de Planejamento Tributario',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 
   // =============================================
   // === MAPA PAGES (Mapeamento de Processos OSG) ===
