@@ -10145,6 +10145,30 @@ export type Database = {
         Args: { _detalhe?: string; _evento: string; _solicitacao_id: string }
         Returns: Json
       }
+      nova_versao_bloco: {
+        Args: { _bloco_id: string; _changelog?: string; _conteudo: string }
+        Returns: {
+          atual: boolean
+          autor_id: string | null
+          bloco_id: string
+          caminho_arquivo: string | null
+          changelog: string | null
+          checksum: string | null
+          conteudo: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          numero_versao: number
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tmpl_bloco_versao"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       org_project_cluster_ids: {
         Args: { _project_id: string }
         Returns: string[]
@@ -10210,6 +10234,43 @@ export type Database = {
       revisar_documento_pendencia: {
         Args: { _documento_id: string; _motivo?: string; _veredito: string }
         Returns: undefined
+      }
+      selar_e_forkar_documento: {
+        Args: {
+          _head_id: string
+          _snapshot_dados: Json
+          _snapshot_flags: Json
+          _snapshot_versoes_blocos: Json
+          _validado_em: string
+        }
+        Returns: {
+          caminho_arquivo: string | null
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          documento_anterior_id: string | null
+          documento_raiz_id: string | null
+          documento_template_id: string | null
+          gerado_em: string | null
+          gerado_por_id: string | null
+          id: string
+          observacao: string | null
+          pj_pessoa_id: string | null
+          snapshot_dados: Json | null
+          snapshot_flags: Json | null
+          snapshot_validado_em: string | null
+          snapshot_versoes_blocos: Json | null
+          status: string
+          substitui_documento_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "documento_gerado"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       sistema_cluster_visivel: {
         Args: { _sistema_id: string }
