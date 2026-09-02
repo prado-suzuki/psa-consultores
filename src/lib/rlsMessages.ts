@@ -140,7 +140,6 @@ export interface CadastroOperacao {
 }
 
 const FECHO_SUPORTE = 'Tente novamente. Se o problema continuar, entre em contato com o suporte.';
-const FECHO_ATUALIZE = 'Atualize os dados e tente novamente.';
 const FECHO_ZERO_LINHAS = 'Os dados podem ter sido modificados. Atualize a página e tente novamente.';
 /** Dentro do salvamento do cliente a orientação é mais curta (T4 da tarefa). */
 const FECHO_SUPORTE_NO_SALVAMENTO = 'Tente novamente.';
@@ -164,8 +163,6 @@ interface CelulaCatalogo {
   falha: string;
   /** Fragmento da Permissão, no demonstrativo: "atualizar esta inscrição estadual". */
   permissao: string;
-  /** Só as duas células que orientam a recarregar em vez de acionar o suporte. */
-  fecho?: 'atualize';
   /**
    * Aviso de sucesso. Preenchido só onde alguma tela mostra — as demais
    * operações são etapas do "Salvar cliente", que avisa uma vez no fim, e
@@ -243,7 +240,6 @@ const CATALOGO: Partial<Record<ChaveCatalogo, CelulaCatalogo>> = {
   'os/atualizar': {
     falha: 'atualizar a OS {numero}',
     permissao: 'atualizar a OS {numero}',
-    fecho: 'atualize',
   },
   'os/excluir': {
     falha: 'excluir a OS {numero}',
@@ -256,7 +252,6 @@ const CATALOGO: Partial<Record<ChaveCatalogo, CelulaCatalogo>> = {
   'rateio/atualizar': {
     falha: 'atualizar o rateio de receita da OS {numero}',
     permissao: 'atualizar este rateio de receita',
-    fecho: 'atualize',
   },
   'rateio/excluir': {
     falha: 'excluir o rateio de receita',
@@ -401,12 +396,6 @@ function fragmento(op: CadastroOperacao, campo: 'falha' | 'permissao'): string {
   return texto.replace('{numero}', numero);
 }
 
-/** Fecho da categoria Falha: só duas células mandam recarregar em vez de acionar o suporte. */
-function fechoDaFalha(op: CadastroOperacao, noSalvamento: boolean): string {
-  if (celula(op)?.fecho === 'atualize') return FECHO_ATUALIZE;
-  return noSalvamento ? FECHO_SUPORTE_NO_SALVAMENTO : FECHO_SUPORTE;
-}
-
 /**
  * A recusa em duas partes: o que aconteceu e o que fazer agora.
  *
@@ -433,7 +422,7 @@ export function textoDeRecusa(
   }
   return {
     titulo: `Não foi possível ${fragmento(op, 'falha')}.`,
-    detalhe: categoria === 'zero_linhas' ? FECHO_ZERO_LINHAS : fechoDaFalha(op, false),
+    detalhe: categoria === 'zero_linhas' ? FECHO_ZERO_LINHAS : FECHO_SUPORTE,
   };
 }
 
@@ -610,9 +599,7 @@ export function textoDoSalvamentoRecusado(recusa: RecusaDeOperacao): TextoDeRecu
     return { titulo, detalhe: `${dentro.titulo} ${dentro.detalhe}` };
   }
   const fecho =
-    recusa.categoria === 'zero_linhas'
-      ? FECHO_ZERO_LINHAS
-      : fechoDaFalha(recusa.operacao, true);
+    recusa.categoria === 'zero_linhas' ? FECHO_ZERO_LINHAS : FECHO_SUPORTE_NO_SALVAMENTO;
   return { titulo, detalhe: `Ocorreu um problema ao ${fragmento(recusa.operacao, 'falha')}. ${fecho}` };
 }
 

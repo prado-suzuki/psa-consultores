@@ -108,7 +108,10 @@ const APRESENTACAO: Record<NotificacaoTipo, ApresentacaoDoAviso> = {
   // que também é um fato consumado. Ao contrário dos `chamado_*` e do
   // `solicitacao_vencida`, estes dois RENDERIZAM aqui de verdade: nascem por
   // `criar_notificacao`, na varredura diária de prazo.
-  tarefa_prazo_proximo: { rotulo: 'Prazo próximo', tom: AMBAR },
+  // "Prazo de tarefa", e não "Prazo próximo": o mesmo tipo cobre os dois avisos
+  // que vêm antes do vencimento — três dias antes e vence hoje. Patricia,
+  // 02/09/2026, em docs/geral/avisos-prazo-tarefa.md.
+  tarefa_prazo_proximo: { rotulo: 'Prazo de tarefa', tom: AMBAR },
   tarefa_atrasada: { rotulo: 'Tarefa atrasada', tom: VERMELHO },
 };
 

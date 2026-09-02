@@ -1,5 +1,19 @@
 # TAREFA — Rateio e produtos saem junto com a OS, pelo banco
 
+> ## ⛔ APOSENTADA em 02/09/2026 — absorvida pela conversão da OS
+>
+> Esta tarefa existia para fazer **por trigger** o que a exclusão física faz sozinha. Com a
+> decisão de que a ordem de serviço passa a apagar de verdade, a cascata volta a ser nativa
+> das chaves estrangeiras, que **já estão** como `ON DELETE CASCADE` para rateio e produtos.
+> Trigger nenhum é preciso.
+>
+> **A limpeza dos 26 rateios fantasma e dos 40 produtos presos migrou** para a
+> [tarefa da ordem de serviço](TAREFA_os-hard-delete.md), onde vira pré-requisito da
+> conversão — os órfãos precisam sair antes, senão viram lixo permanente sem OS viva que os
+> alcance.
+>
+> O conteúdo abaixo fica como registro do diagnóstico. **Não executar.**
+
 > **Decisão da Patricia, 02/09/2026:** *"coloca rateio pra excluir em cascata também — se
 > está dentro da OS tem que excluir junto com ela."*
 >
@@ -95,7 +109,7 @@ CREATE TRIGGER trg_ordem_servico_cascata_exclusao
 > rateio tem a coluna e a mantém, para o valor continuar auditável.
 
 > **Atenção ao aplicar junto com a
-> [tarefa de permissões](TAREFA_gravar-cadastro-cliente-por-cargo.md):** aquela tarefa reemite
+> [tarefa da ordem de serviço](TAREFA_os-hard-delete.md):** aquela tarefa reemite
 > `soft_delete_ordem_servico` (T2 de lá). Este trigger dispara **por dentro** daquela função,
 > no `UPDATE` final. Nenhum conflito — mas aplicar a tarefa de permissões primeiro, para o
 > trigger nascer no mundo já ajustado.
@@ -179,7 +193,7 @@ Precisa de escolha explícita — apagar de vez ou manter.
 
 ## Referências
 
-- [`TAREFA_gravar-cadastro-cliente-por-cargo.md`](TAREFA_gravar-cadastro-cliente-por-cargo.md)
+- [`TAREFA_os-hard-delete.md`](TAREFA_os-hard-delete.md)
   — tarefa irmã; aplicar antes desta.
 - [`20260820132950_soft_delete_os_e_rateio_security_definer.sql`](../../../supabase/migrations/20260820132950_soft_delete_os_e_rateio_security_definer.sql)
   — por que exclusão lógica com RLS precisa de SECURITY DEFINER.

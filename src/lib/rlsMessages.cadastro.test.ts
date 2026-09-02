@@ -24,41 +24,44 @@ import {
  */
 
 const FECHO_SUPORTE = 'Tente novamente. Se o problema continuar, entre em contato com o suporte.';
-const FECHO_ATUALIZE = 'Atualize os dados e tente novamente.';
 const FECHO_ZERO = 'Os dados podem ter sido modificados. Atualize a página e tente novamente.';
 const PAPEL = 'É necessário ter o papel de Sublíder ou superior para realizar esta ação.';
 
-/** Uma linha por célula das tabelas A e B, com o fecho da Falha. */
+/**
+ * Uma linha por célula das tabelas A e B.
+ *
+ * O fecho da Falha é o mesmo em todas: se a próxima ação da pessoa é a mesma, a
+ * mensagem também é. Quem trata dado desatualizado é a categoria Zero linhas.
+ */
 const CELULAS: Array<{
   item: CadastroItem;
   acao: CadastroAcao;
   falha: string;
   permissao: string;
-  fecho: string;
 }> = [
-  { item: 'cliente', acao: 'cadastrar', falha: 'cadastrar o cliente', permissao: 'cadastrar este cliente', fecho: FECHO_SUPORTE },
-  { item: 'cliente', acao: 'atualizar', falha: 'atualizar o cliente', permissao: 'atualizar este cliente', fecho: FECHO_SUPORTE },
-  { item: 'cliente', acao: 'excluir', falha: 'desfazer o cadastro do cliente', permissao: 'excluir este cliente', fecho: FECHO_SUPORTE },
-  { item: 'cluster', acao: 'cadastrar', falha: 'vincular o cluster ao cliente', permissao: 'vincular este cluster ao cliente', fecho: FECHO_SUPORTE },
-  { item: 'cluster', acao: 'excluir', falha: 'remover o cluster do cliente', permissao: 'remover este cluster do cliente', fecho: FECHO_SUPORTE },
-  { item: 'contribuinte', acao: 'cadastrar', falha: 'cadastrar o contribuinte', permissao: 'cadastrar este contribuinte', fecho: FECHO_SUPORTE },
-  { item: 'contribuinte', acao: 'atualizar', falha: 'atualizar o contribuinte', permissao: 'atualizar este contribuinte', fecho: FECHO_SUPORTE },
-  { item: 'contribuinte', acao: 'excluir', falha: 'excluir o contribuinte', permissao: 'excluir este contribuinte', fecho: FECHO_SUPORTE },
-  { item: 'inscricao', acao: 'cadastrar', falha: 'cadastrar a inscrição estadual', permissao: 'cadastrar esta inscrição estadual', fecho: FECHO_SUPORTE },
-  { item: 'inscricao', acao: 'atualizar', falha: 'atualizar a inscrição estadual', permissao: 'atualizar esta inscrição estadual', fecho: FECHO_SUPORTE },
-  { item: 'inscricao', acao: 'excluir', falha: 'excluir a inscrição estadual', permissao: 'excluir esta inscrição estadual', fecho: FECHO_SUPORTE },
-  { item: 'representante', acao: 'cadastrar', falha: 'cadastrar o representante', permissao: 'cadastrar este representante', fecho: FECHO_SUPORTE },
-  { item: 'representante', acao: 'atualizar', falha: 'atualizar o representante', permissao: 'atualizar este representante', fecho: FECHO_SUPORTE },
-  { item: 'representante', acao: 'excluir', falha: 'excluir o representante', permissao: 'excluir este representante', fecho: FECHO_SUPORTE },
-  { item: 'os', acao: 'cadastrar', falha: 'cadastrar a ordem de serviço', permissao: 'cadastrar esta ordem de serviço', fecho: FECHO_SUPORTE },
-  { item: 'os', acao: 'atualizar', falha: 'atualizar a OS 1234', permissao: 'atualizar a OS 1234', fecho: FECHO_ATUALIZE },
-  { item: 'os', acao: 'excluir', falha: 'excluir a OS 1234', permissao: 'excluir a OS 1234', fecho: FECHO_SUPORTE },
-  { item: 'rateio', acao: 'cadastrar', falha: 'cadastrar o rateio de receita', permissao: 'cadastrar este rateio de receita', fecho: FECHO_SUPORTE },
-  { item: 'rateio', acao: 'atualizar', falha: 'atualizar o rateio de receita da OS 1234', permissao: 'atualizar este rateio de receita', fecho: FECHO_ATUALIZE },
-  { item: 'rateio', acao: 'excluir', falha: 'excluir o rateio de receita', permissao: 'excluir este rateio de receita', fecho: FECHO_SUPORTE },
-  { item: 'produto', acao: 'cadastrar', falha: 'adicionar o produto à OS', permissao: 'adicionar este produto à OS', fecho: FECHO_SUPORTE },
-  { item: 'produto', acao: 'atualizar', falha: 'atualizar o produto contratado', permissao: 'atualizar este produto contratado', fecho: FECHO_SUPORTE },
-  { item: 'produto', acao: 'excluir', falha: 'excluir o produto contratado', permissao: 'excluir este produto contratado', fecho: FECHO_SUPORTE },
+  { item: 'cliente', acao: 'cadastrar', falha: 'cadastrar o cliente', permissao: 'cadastrar este cliente' },
+  { item: 'cliente', acao: 'atualizar', falha: 'atualizar o cliente', permissao: 'atualizar este cliente' },
+  { item: 'cliente', acao: 'excluir', falha: 'desfazer o cadastro do cliente', permissao: 'excluir este cliente' },
+  { item: 'cluster', acao: 'cadastrar', falha: 'vincular o cluster ao cliente', permissao: 'vincular este cluster ao cliente' },
+  { item: 'cluster', acao: 'excluir', falha: 'remover o cluster do cliente', permissao: 'remover este cluster do cliente' },
+  { item: 'contribuinte', acao: 'cadastrar', falha: 'cadastrar o contribuinte', permissao: 'cadastrar este contribuinte' },
+  { item: 'contribuinte', acao: 'atualizar', falha: 'atualizar o contribuinte', permissao: 'atualizar este contribuinte' },
+  { item: 'contribuinte', acao: 'excluir', falha: 'excluir o contribuinte', permissao: 'excluir este contribuinte' },
+  { item: 'inscricao', acao: 'cadastrar', falha: 'cadastrar a inscrição estadual', permissao: 'cadastrar esta inscrição estadual' },
+  { item: 'inscricao', acao: 'atualizar', falha: 'atualizar a inscrição estadual', permissao: 'atualizar esta inscrição estadual' },
+  { item: 'inscricao', acao: 'excluir', falha: 'excluir a inscrição estadual', permissao: 'excluir esta inscrição estadual' },
+  { item: 'representante', acao: 'cadastrar', falha: 'cadastrar o representante', permissao: 'cadastrar este representante' },
+  { item: 'representante', acao: 'atualizar', falha: 'atualizar o representante', permissao: 'atualizar este representante' },
+  { item: 'representante', acao: 'excluir', falha: 'excluir o representante', permissao: 'excluir este representante' },
+  { item: 'os', acao: 'cadastrar', falha: 'cadastrar a ordem de serviço', permissao: 'cadastrar esta ordem de serviço' },
+  { item: 'os', acao: 'atualizar', falha: 'atualizar a OS 1234', permissao: 'atualizar a OS 1234' },
+  { item: 'os', acao: 'excluir', falha: 'excluir a OS 1234', permissao: 'excluir a OS 1234' },
+  { item: 'rateio', acao: 'cadastrar', falha: 'cadastrar o rateio de receita', permissao: 'cadastrar este rateio de receita' },
+  { item: 'rateio', acao: 'atualizar', falha: 'atualizar o rateio de receita da OS 1234', permissao: 'atualizar este rateio de receita' },
+  { item: 'rateio', acao: 'excluir', falha: 'excluir o rateio de receita', permissao: 'excluir este rateio de receita' },
+  { item: 'produto', acao: 'cadastrar', falha: 'adicionar o produto à OS', permissao: 'adicionar este produto à OS' },
+  { item: 'produto', acao: 'atualizar', falha: 'atualizar o produto contratado', permissao: 'atualizar este produto contratado' },
+  { item: 'produto', acao: 'excluir', falha: 'excluir o produto contratado', permissao: 'excluir este produto contratado' },
 ];
 
 const op = (item: CadastroItem, acao: CadastroAcao): CadastroOperacao => ({ item, acao, numeroOs: '1234' });
@@ -100,9 +103,9 @@ const ERROS_DE_REGRA = [
 ];
 
 describe('mensagens de recusa do cadastro de cliente', () => {
-  describe.each(CELULAS)('$item / $acao', ({ item, acao, falha, permissao, fecho }) => {
+  describe.each(CELULAS)('$item / $acao', ({ item, acao, falha, permissao }) => {
     it('falha: nomeia o item e orienta', () => {
-      expect(mensagemDeRecusa(op(item, acao), 'falha')).toBe(`Não foi possível ${falha}.\n${fecho}`);
+      expect(mensagemDeRecusa(op(item, acao), 'falha')).toBe(`Não foi possível ${falha}.\n${FECHO_SUPORTE}`);
     });
 
     it('zero linhas: manda recarregar, nunca vira sucesso', () => {
@@ -124,7 +127,14 @@ describe('mensagens de recusa do cadastro de cliente', () => {
 
   it('OS sem número não expõe identificador interno', () => {
     const texto = mensagemDeRecusa({ item: 'os', acao: 'atualizar' }, 'falha');
-    expect(texto).toBe(`Não foi possível atualizar a OS (sem número).\n${FECHO_ATUALIZE}`);
+    expect(texto).toBe(`Não foi possível atualizar a OS (sem número).\n${FECHO_SUPORTE}`);
+  });
+
+  it('a falha tem um fecho só, sem exceção por operação', () => {
+    const fechos = new Set(
+      CELULAS.map(({ item, acao }) => mensagemDeRecusa(op(item, acao), 'falha').split('\n')[1]),
+    );
+    expect([...fechos]).toEqual([FECHO_SUPORTE]);
   });
 });
 

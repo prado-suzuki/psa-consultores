@@ -1,8 +1,8 @@
 # TAREFA 2 de 4 — Alterar no cadastro de cliente passa a ser por cargo
 
 > **Uma das quatro tarefas** que aplicam a regra decidida em 02/09/2026 no módulo de cadastro
-> de cliente. As outras: [registrar](TAREFA_registrar-por-cargo.md) ·
-> [excluir](TAREFA_excluir-por-cargo.md) · [mensagens](TAREFA_mensagens-de-recusa.md).
+> de cliente. As outras: [registrar](../sprint-12/TAREFA_registrar-por-cargo.md) ·
+> [excluir](TAREFA_excluir-por-cargo.md) · [mensagens](../sprint-12/TAREFA_mensagens-de-recusa.md).
 >
 > **Atenção:** a [tarefa de excluir](TAREFA_excluir-por-cargo.md) **depende desta**. Ver
 > "Esta tarefa também destrava a exclusão lógica", abaixo.
@@ -17,16 +17,23 @@
 Cinco tabelas do módulo excluem **logicamente** — marcam `excluido = true`. Isso é um
 `UPDATE`. Logo, **quem autoriza a exclusão lógica é a policy de UPDATE, não a de DELETE**:
 
+Pela decisão de 02/09/2026, **só `cliente` e `contribuinte` continuam guardando linha
+excluída**. Exclusão lógica é um `UPDATE` — logo, quem autoriza é a permissão de UPDATE, que
+sai desta tarefa:
+
 | Tabela | Exclui como | Autorizada por |
 |---|---|---|
-| `contribuinte` | lógica | `rls_contribuinte_update` ← **esta tarefa** |
-| `representante` | lógica | `rls_representante_update` ← **esta tarefa** |
-| `ordem_servico` | lógica | função SECURITY DEFINER (tarefa de excluir) |
-| `distribuicao_receita` | lógica | função SECURITY DEFINER (tarefa de excluir) |
-| `cliente` | não exclui — só o desfazer, que é física | `rls_cliente_delete` (tarefa de excluir) |
+| `contribuinte` | **lógica** | `rls_contribuinte_update` ← **esta tarefa** |
+| `cliente` | **lógica** (a tela ainda não usa) | `rls_cliente_update` ← **esta tarefa** |
+| `representante` · `ordem_servico` · `distribuicao_receita` | passam a **física** | tarefas de conversão, abaixo |
 
-Por isso as duas tarefas se tocam: sem esta, contribuinte e representante continuam sem poder
-ser excluídos por cluster errado, mesmo depois da tarefa de excluir.
+Por isso esta tarefa e a de [soft delete de cliente e
+contribuinte](TAREFA_soft-delete-cliente-e-contribuinte.md) se tocam: sem esta, aqueles dois
+continuam sem poder ser excluídos por cluster errado.
+
+As conversões para exclusão física estão em
+[representante e rateio](TAREFA_representante-e-rateio-hard-delete.md) e
+[ordem de serviço](TAREFA_os-hard-delete.md), e não dependem desta.
 
 ## T1 — ⚠️ MIGRAÇÃO · As quatro policies de UPDATE
 
@@ -77,7 +84,7 @@ continua recortando por cluster. Medido em dev e registrado no corpo de
 
 **O problema não é o limite, é o silêncio:** dá zero linhas e a tela anuncia
 "Cliente atualizado com sucesso!". Isso é da
-[tarefa das mensagens](TAREFA_mensagens-de-recusa.md).
+[tarefa das mensagens](../sprint-12/TAREFA_mensagens-de-recusa.md).
 
 ## T2 — Conferência
 
