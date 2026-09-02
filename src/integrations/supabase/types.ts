@@ -7753,6 +7753,33 @@ export type Database = {
           },
         ]
       }
+      psa_migrations_aplicadas: {
+        Row: {
+          aplicada_em: string
+          arquivo: string
+          autor: string | null
+          branch: string | null
+          commit_sha: string | null
+          sha256: string
+        }
+        Insert: {
+          aplicada_em?: string
+          arquivo: string
+          autor?: string | null
+          branch?: string | null
+          commit_sha?: string | null
+          sha256: string
+        }
+        Update: {
+          aplicada_em?: string
+          arquivo?: string
+          autor?: string | null
+          branch?: string | null
+          commit_sha?: string | null
+          sha256?: string
+        }
+        Relationships: []
+      }
       relatorios_gerados: {
         Row: {
           ciclo_id: string | null
@@ -9796,7 +9823,7 @@ export type Database = {
     }
     Functions: {
       alertar_tarefas_por_prazo: {
-        Args: { _hoje?: string }
+        Args: { _ambiente?: string; _hoje?: string }
         Returns: {
           avisos_criados: number
           reservas_negadas: number
@@ -10198,6 +10225,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      itcd_gravar_simulacao: { Args: { p: Json }; Returns: string }
       list_profiles_safe: {
         Args: never
         Returns: {
@@ -10373,11 +10401,16 @@ export type Database = {
         }[]
       }
       sprint_visivel: { Args: { p_sprint_id: string }; Returns: boolean }
+      status_de_itcd_simulacao: {
+        Args: { p_simulacao_id: string }
+        Returns: Database["public"]["Enums"]["itcd_simulacao_status"]
+      }
       sublider_na_os: { Args: { _ordem_servico_id: string }; Returns: boolean }
       tarefas_a_alertar: {
-        Args: { _hoje?: string }
+        Args: { _ambiente?: string; _hoje?: string }
         Returns: {
           destinatario_id: string
+          dono_nome: string
           due_date: string
           marco: string
           papel: string
