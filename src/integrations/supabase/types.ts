@@ -3974,27 +3974,46 @@ export type Database = {
       }
       itcd_simulacao_doador: {
         Row: {
+          conjuge_pessoa_id: string | null
           created_at: string
           doador_pessoa_id: string
+          emissao_conjunta: boolean
           id: string
           quotas: number
+          quotas_final: number
+          quotas_transmitidas: number
           simulacao_id: string
         }
         Insert: {
+          conjuge_pessoa_id?: string | null
           created_at?: string
           doador_pessoa_id: string
+          emissao_conjunta?: boolean
           id?: string
           quotas: number
+          quotas_final?: number
+          quotas_transmitidas?: number
           simulacao_id: string
         }
         Update: {
+          conjuge_pessoa_id?: string | null
           created_at?: string
           doador_pessoa_id?: string
+          emissao_conjunta?: boolean
           id?: string
           quotas?: number
+          quotas_final?: number
+          quotas_transmitidas?: number
           simulacao_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "itcd_simulacao_doador_conjuge_pessoa_id_fkey"
+            columns: ["conjuge_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "itcd_simulacao_doador_doador_pessoa_id_fkey"
             columns: ["doador_pessoa_id"]
@@ -4018,7 +4037,9 @@ export type Database = {
           id: string
           pct_doacao_anterior: number | null
           percentual: number
+          quotas_atuais: number
           quotas_disponivel: number
+          quotas_final: number
           quotas_legitima: number
           simulacao_id: string
           vlr_base_contabil: number
@@ -4034,7 +4055,9 @@ export type Database = {
           id?: string
           pct_doacao_anterior?: number | null
           percentual: number
+          quotas_atuais?: number
           quotas_disponivel?: number
+          quotas_final?: number
           quotas_legitima: number
           simulacao_id: string
           vlr_base_contabil: number
@@ -4050,7 +4073,9 @@ export type Database = {
           id?: string
           pct_doacao_anterior?: number | null
           percentual?: number
+          quotas_atuais?: number
           quotas_disponivel?: number
+          quotas_final?: number
           quotas_legitima?: number
           simulacao_id?: string
           vlr_base_contabil?: number
