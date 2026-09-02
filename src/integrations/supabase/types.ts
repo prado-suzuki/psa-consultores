@@ -10425,6 +10425,8 @@ export type Database = {
         | "chamado_vencido"
         | "chamado_resolvido"
         | "solicitacao_vencida"
+        | "tarefa_prazo_proximo"
+        | "tarefa_atrasada"
       org_comment_entity: "org_task" | "org_project"
       org_comment_kind:
         | "comment"
@@ -10697,6 +10699,8 @@ export const Constants = {
         "chamado_vencido",
         "chamado_resolvido",
         "solicitacao_vencida",
+        "tarefa_prazo_proximo",
+        "tarefa_atrasada",
       ],
       org_comment_entity: ["org_task", "org_project"],
       org_comment_kind: [
