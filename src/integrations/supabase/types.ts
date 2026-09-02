@@ -5339,6 +5339,7 @@ export type Database = {
           ordem_servico_id: string | null
           produto_segmento_id: string | null
           responsible_id: string | null
+          restricted: boolean
           servico_id: string | null
           start_date: string | null
           status: string | null
@@ -5361,6 +5362,7 @@ export type Database = {
           ordem_servico_id?: string | null
           produto_segmento_id?: string | null
           responsible_id?: string | null
+          restricted?: boolean
           servico_id?: string | null
           start_date?: string | null
           status?: string | null
@@ -5383,6 +5385,7 @@ export type Database = {
           ordem_servico_id?: string | null
           produto_segmento_id?: string | null
           responsible_id?: string | null
+          restricted?: boolean
           servico_id?: string | null
           start_date?: string | null
           status?: string | null
@@ -5521,6 +5524,7 @@ export type Database = {
           parent_task_id: string | null
           priority: Database["public"]["Enums"]["fiscal_task_priority"]
           project_id: string
+          project_restricted: boolean
           recurrence_type:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
@@ -5555,6 +5559,7 @@ export type Database = {
           parent_task_id?: string | null
           priority?: Database["public"]["Enums"]["fiscal_task_priority"]
           project_id: string
+          project_restricted?: boolean
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
@@ -5589,6 +5594,7 @@ export type Database = {
           parent_task_id?: string | null
           priority?: Database["public"]["Enums"]["fiscal_task_priority"]
           project_id?: string
+          project_restricted?: boolean
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
