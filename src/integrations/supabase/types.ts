@@ -4062,9 +4062,11 @@ export type Database = {
           emissao_conjunta: boolean
           id: string
           quotas: number
+          quotas_do_aporte: number
           quotas_final: number
           quotas_transmitidas: number
           simulacao_id: string
+          vlr_aporte_moeda: number
         }
         Insert: {
           conjuge_pessoa_id?: string | null
@@ -4073,9 +4075,11 @@ export type Database = {
           emissao_conjunta?: boolean
           id?: string
           quotas: number
+          quotas_do_aporte?: number
           quotas_final?: number
           quotas_transmitidas?: number
           simulacao_id: string
+          vlr_aporte_moeda?: number
         }
         Update: {
           conjuge_pessoa_id?: string | null
@@ -4084,9 +4088,11 @@ export type Database = {
           emissao_conjunta?: boolean
           id?: string
           quotas?: number
+          quotas_do_aporte?: number
           quotas_final?: number
           quotas_transmitidas?: number
           simulacao_id?: string
+          vlr_aporte_moeda?: number
         }
         Relationships: [
           {
@@ -4121,9 +4127,11 @@ export type Database = {
           percentual: number
           quotas_atuais: number
           quotas_disponivel: number
+          quotas_do_aporte: number
           quotas_final: number
           quotas_legitima: number
           simulacao_id: string
+          vlr_aporte_moeda: number
           vlr_base_contabil: number
           vlr_base_itr: number
           vlr_base_mercado: number
@@ -4139,9 +4147,11 @@ export type Database = {
           percentual: number
           quotas_atuais?: number
           quotas_disponivel?: number
+          quotas_do_aporte?: number
           quotas_final?: number
           quotas_legitima: number
           simulacao_id: string
+          vlr_aporte_moeda?: number
           vlr_base_contabil: number
           vlr_base_itr: number
           vlr_base_mercado: number
@@ -4157,9 +4167,11 @@ export type Database = {
           percentual?: number
           quotas_atuais?: number
           quotas_disponivel?: number
+          quotas_do_aporte?: number
           quotas_final?: number
           quotas_legitima?: number
           simulacao_id?: string
+          vlr_aporte_moeda?: number
           vlr_base_contabil?: number
           vlr_base_itr?: number
           vlr_base_mercado?: number
