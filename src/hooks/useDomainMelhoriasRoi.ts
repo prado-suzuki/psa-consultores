@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { MelhoriaRoi } from '@/lib/boardExecutivo';
+import { melhoriaEstaImplementada } from '@/lib/boardFerramentasLeitura';
 
 const STALE_TIME = 5 * 60 * 1000;
 
@@ -14,8 +15,9 @@ const STALE_TIME = 5 * 60 * 1000;
  *   avaliadas entrariam na conta assim que a coluna fosse corrigida.
  *
  * Aqui usamos as colunas reais e o mesmo recorte do painel Impacto
- * (`evaluation_status = 'completed'`): só economia JÁ MEDIDA entra no número
- * que a diretoria vê. Assim as três telas contam a mesma história.
+ * (`evaluation_status = 'completed'` **ou** `improvement_status = Concluído`):
+ * a maior parte das horas medidas está em Concluído com avaliação nula —
+ * filtrar só `completed` escondia as ferramentas implementadas.
  *
  * A queryKey começa com `board-` de propósito: o botão "Atualizar" do painel
  * Operacional invalida tudo que começa com `perf`/`board-`.
@@ -29,11 +31,19 @@ export function useDomainMelhoriasRoi() {
         // `cluster_id` entra para o seletor global de cliente do Board poder
         // recortar a economia. Antes ela era necessariamente global: o filtro
         // era por ÁREA e esta tabela nunca teve área, só cluster.
-        .select('id, cluster_id, cost_saved_monthly, implementation_cost, one_time_external_cost, created_at')
-        .eq('evaluation_status', 'completed');
+        .select('id, cluster_id, cost_saved_monthly, time_saved_hours, time_saved_percent, baseline_time_hours, improved_time_hours, improvement_description, improvement_status, evaluation_status, implementation_cost, one_time_external_cost, created_at, processes(name, area)');
 
       if (error) throw error;
-      return (data ?? []) as MelhoriaRoi[];
+      return (data ?? []).map((row) => {
+        const { processes, ...rest } = row as MelhoriaRoi & {
+          processes?: { name: string | null; area: string | null } | null;
+        };
+        return {
+          ...rest,
+          process_name: processes?.name ?? null,
+          process_area: processes?.area ?? null,
+        };
+      }).filter(melhoriaEstaImplementada);
     },
     staleTime: STALE_TIME,
   });

@@ -25,6 +25,9 @@ import { BoardClusterContext } from '@/hooks/useBoardCluster';
 const PARAM_CLUSTER = 'boardCluster';
 const PARAM_AREA = 'boardArea';
 const PARAM_EQUIPE = 'boardEquipe';
+const PARAM_CLIENTE = 'boardCliente';
+const PARAM_ANO = 'boardAno';
+const PARAM_MES = 'boardMes';
 
 export function BoardClusterProvider({ children }: { children: ReactNode }) {
   const [params, setParams] = useSearchParams();
@@ -32,6 +35,9 @@ export function BoardClusterProvider({ children }: { children: ReactNode }) {
   const cluster = params.get(PARAM_CLUSTER) ?? '';
   const area = params.get(PARAM_AREA) ?? '';
   const equipe = params.get(PARAM_EQUIPE) ?? '';
+  const cliente = params.get(PARAM_CLIENTE) ?? '';
+  const ano = params.get(PARAM_ANO) ?? '';
+  const mes = params.get(PARAM_MES) ?? '';
 
   const setCluster = useCallback((id: string) => {
     setParams((prev) => {
@@ -39,6 +45,7 @@ export function BoardClusterProvider({ children }: { children: ReactNode }) {
       if (id) next.set(PARAM_CLUSTER, id); else next.delete(PARAM_CLUSTER);
       next.delete(PARAM_AREA);
       next.delete(PARAM_EQUIPE);
+      next.delete(PARAM_CLIENTE);
       return next;
     }, { replace: true });
   }, [setParams]);
@@ -60,9 +67,37 @@ export function BoardClusterProvider({ children }: { children: ReactNode }) {
     }, { replace: true });
   }, [setParams]);
 
+  const setCliente = useCallback((id: string) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id) next.set(PARAM_CLIENTE, id); else next.delete(PARAM_CLIENTE);
+      return next;
+    }, { replace: true });
+  }, [setParams]);
+
+  const setAno = useCallback((id: string) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id) next.set(PARAM_ANO, id); else next.delete(PARAM_ANO);
+      if (!id) next.delete(PARAM_MES);
+      return next;
+    }, { replace: true });
+  }, [setParams]);
+
+  const setMes = useCallback((id: string) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id) next.set(PARAM_MES, id); else next.delete(PARAM_MES);
+      return next;
+    }, { replace: true });
+  }, [setParams]);
+
   const value = useMemo(
-    () => ({ cluster, setCluster, area, setArea, equipe, setEquipe }),
-    [cluster, setCluster, area, setArea, equipe, setEquipe],
+    () => ({
+      cluster, setCluster, area, setArea, equipe, setEquipe,
+      cliente, setCliente, ano, setAno, mes, setMes,
+    }),
+    [cluster, setCluster, area, setArea, equipe, setEquipe, cliente, setCliente, ano, setAno, mes, setMes],
   );
 
   return (

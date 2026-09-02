@@ -22,6 +22,7 @@ import { format, addDays, differenceInCalendarDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { isPastBrazil, isTodayBrazil, isTomorrowBrazil, parseDate } from '@/lib/dateUtils';
 import { chamadoStatusConfig } from '@/lib/chamadoStatusColors';
+import { departmentLabels } from '@/lib/chamadosDepartamentos';
 
 const statusLabels: Record<string, string> = {
   aberto: 'Aberto',
@@ -37,14 +38,6 @@ const priorityLabels: Record<string, string> = {
   urgente: 'Urgente',
 };
 
-const departmentLabels: Record<string, string> = {
-  contabilidade: 'Contabilidade/Societário',
-  icms_ipi: 'ICMS/IPI',
-  irpj_csll: 'IRPJ/CSLL',
-  pis_cofins: 'PIS/COFINS',
-  produtor_rural: 'Produtor Rural PF',
-  outros: 'Outros',
-};
 
 const deadlineOptions: Record<string, string> = {
   'none': 'Sem prazo',

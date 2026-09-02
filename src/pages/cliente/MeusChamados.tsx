@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { departmentLabels } from '@/lib/chamadosDepartamentos';
 
 const statusLabels: Record<string, string> = {
   aberto: 'Aberto',
@@ -37,14 +38,6 @@ const activityStatusLabels: Record<string, string> = {
   em_analise: 'Em Análise',
 };
 
-const departmentLabels: Record<string, string> = {
-  contabilidade: 'Contabilidade',
-  icms_ipi: 'ICMS/IPI',
-  irpj_csll: 'IRPJ/CSLL',
-  pis_cofins: 'PIS/COFINS',
-  produtor_rural: 'Produtor Rural',
-  outros: 'Outros',
-};
 
 export default function MeusChamados() {
   const navigate = useNavigate();

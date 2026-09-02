@@ -287,6 +287,21 @@ export interface MelhoriaRoi {
   /** Cluster da melhoria — permite recortar a economia pelo cliente global. */
   cluster_id?: string | null;
   cost_saved_monthly: number | null;
+  /**
+   * Horas/mês devolvidas pela melhoria — a matéria-prima do FTE liberado que a
+   * diretoria pede (28/08). Vinha da tabela mas ninguém lia.
+   */
+  time_saved_hours?: number | null;
+  time_saved_percent?: number | null;
+  baseline_time_hours?: number | null;
+  improved_time_hours?: number | null;
+  improvement_description?: string | null;
+  /** Nome do processo em `processes` — o que a diretoria reconhece como ferramenta. */
+  process_name?: string | null;
+  process_area?: string | null;
+  /** `Concluído` no cadastro de implementação — a maior parte das linhas medidas. */
+  improvement_status?: string | null;
+  evaluation_status?: string | null;
   implementation_cost: number | null;
   one_time_external_cost: number | null;
   created_at: string | null;

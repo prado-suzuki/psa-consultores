@@ -58,8 +58,6 @@ export function AgenteConversa({
     <div className="agente-corpo">
       {turnos.length === 0 && !pensando && (
         <div className="agente-vazio">
-          Pergunte sobre o que está nesta tela. Eu respondo com os números que ela
-          mostra — e digo quando o dado não está aqui.
           {(sugestoes ?? []).map((s) => (
             <button key={s} type="button" className="agente-sugestao" onClick={() => onSugestao(s)}>
               {s}

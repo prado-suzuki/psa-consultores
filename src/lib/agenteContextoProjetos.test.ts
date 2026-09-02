@@ -141,4 +141,24 @@ describe('contextoBoardProjetos', () => {
     expect(rotuloMes('2026-01')).toBe('jan/26');
     expect(rotuloMes('sem-data')).toBe('sem-data');
   });
+
+  it('leitura de diretoria põe mix/caixa na frente e tira faturamento total', () => {
+    const ctx = contextoBoardProjetos({
+      ...base,
+      leitura: {
+        mix: {
+          ativos: 12,
+          iniciadasJanela: 3,
+          iniciadasAnterior: 1,
+          delta: 2,
+          fatias: { cliente_novo: 1, aditivo: 2, entrega_planejada: 8, inclassificavel: 1 },
+        },
+        caixa: 2_400_000,
+        horizonteSemFim: 4,
+      },
+    });
+    expect(ctx.blocos[0]?.id).toBe('mix');
+    expect(ctx.blocos.some((b) => b.id === 'visao_geral')).toBe(false);
+    expect(campo(ctx, 'caixa', 'Caixa vigente')?.valor).toBe('R$ 2,4 mi');
+  });
 });

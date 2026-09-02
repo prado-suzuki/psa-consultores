@@ -62,13 +62,7 @@ export const ROUTES: RouteCase[] = [
   { path: '/equipe/board/dashboard', label: 'Board Dashboard' },
   { path: '/equipe/board/clientes', label: 'Board Clientes (mapa + lista)' },
   { path: '/equipe/board/performance', label: 'Board Performance' },
-  { path: '/equipe/board/desempenho', label: 'Desempenho: Visão Geral' },
-  { path: '/equipe/board/desempenho/ciclos', label: 'Desempenho: Ciclos' },
-  { path: '/equipe/board/desempenho/metas', label: 'Desempenho: Metas' },
-  { path: '/equipe/board/desempenho/feedbacks', label: 'Desempenho: Feedbacks' },
-  { path: '/equipe/board/desempenho/1a1', label: 'Desempenho: 1a1' },
-  { path: '/equipe/board/desempenho/evolucao', label: 'Desempenho: Evolução' },
-  { path: '/equipe/board/desempenho/decisoes', label: 'Desempenho: Decisões' },
-  { path: '/equipe/board/desempenho/relatorios', label: 'Desempenho: Relatórios' },
-  { path: '/equipe/board/desempenho/minha-evolucao', label: 'Desempenho: Minha Evolução' },
+  // As oito telas da aba "Desempenho" e a "Minha Evolucao" sairam do menu e
+  // tiveram as rotas desativadas em App.tsx — varrer por elas so testaria o
+  // NotFound.
 ];

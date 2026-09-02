@@ -31,6 +31,10 @@ import {
   ACENTO, PAPEL, SERIES, AXIS, GRID, TOOLTIP, brl, brlMil, milAxis, num, pct, mesLabel, dataBR,
   th, td,
 } from '@/components/equipe/board/clientes-os/shared';
+import { filtrarLegado } from '@/lib/boardLegado';
+import { BoardToolbar } from '@/components/board/BoardToolbar';
+import { BoardClusterBar } from '@/components/equipe/board/BoardClusterBar';
+import { BoardProjetosContent } from '@/pages/equipe/board/BoardProjetosContent';
 
 type Aba = 'clientes' | 'operacional' | 'projetos';
 type SortDir = 'asc' | 'desc';
@@ -122,7 +126,7 @@ export const DashboardClientesOsContent = ({
   /** Área Gerencial: restringe a aba de projetos aos clientes visíveis (cluster). */
   scopeProjetosAClientesVisiveis?: boolean;
   /**
-   * Board: obedece o seletor global de empresa da `BoardClusterBar`.
+   * Board: obedece o seletor de cluster à direita do título.
    *
    * Opt-in explícito, e não "o contexto devolve '' fora do provider": esta tela
    * também é a Gerencial do Tax e da OSG, e depender da posição na árvore faria
@@ -161,9 +165,12 @@ export const DashboardClientesOsContent = ({
     if (containerRef.current) revealRef(containerRef.current);
   }, [revealRef, isLoading, aba]);
 
-  const clienteRows = data?.clienteRows ?? EMPTY_CLIENTES;
-  const osRows = data?.osRows ?? EMPTY_OS;
-  const projetoRows = data?.projetoRows ?? EMPTY_PROJETOS;
+  const clienteRowsBrutos = data?.clienteRows ?? EMPTY_CLIENTES;
+  const osRowsBrutos = data?.osRows ?? EMPTY_OS;
+  const projetoRowsBrutos = data?.projetoRows ?? EMPTY_PROJETOS;
+  const clienteRows = usarClusterGlobal ? filtrarLegado(clienteRowsBrutos) : clienteRowsBrutos;
+  const osRows = usarClusterGlobal ? filtrarLegado(osRowsBrutos) : osRowsBrutos;
+  const projetoRows = usarClusterGlobal ? filtrarLegado(projetoRowsBrutos) : projetoRowsBrutos;
   const rateioPorOs = data?.rateioPorOs ?? EMPTY_RATEIO;
   const rateioProdutoPorOs = data?.rateioProdutoPorOs ?? EMPTY_RATEIO;
 
@@ -367,19 +374,14 @@ export const DashboardClientesOsContent = ({
 
   return (
       <div ref={containerRef} style={{ background: 'var(--bd-page)' }}>
-        <div className="pg-head">
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-            <div>
-              <div className="pg-title">Dashboard · {tituloInterno}</div>
-              <div className="pg-sub">Dados ao vivo do Supabase · clique nos gráficos para filtrar e nos títulos das colunas para ordenar</div>
-            </div>
-            <div className="v3-segs">
-              {([['clientes', 'Clientes'], ['operacional', 'Operacional'], ['projetos', 'OS / Projetos']] as const).map(([k, l]) => (
-                <button key={k} className={`v3-seg ${aba === k ? 'on' : ''}`} onClick={() => setAba(k as Aba)}>{l}</button>
-              ))}
-            </div>
+        <BoardToolbar>
+          {usarClusterGlobal && <BoardClusterBar />}
+          <div className="v3-segs">
+            {([['clientes', 'Clientes'], ['operacional', 'Operacional'], ['projetos', 'OS / Projetos']] as const).map(([k, l]) => (
+              <button key={k} className={`v3-seg ${aba === k ? 'on' : ''}`} onClick={() => setAba(k as Aba)}>{l}</button>
+            ))}
           </div>
-        </div>
+        </BoardToolbar>
 
         <div className="v4-card" style={{ marginBottom: 18 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 14 }}>
@@ -663,12 +665,16 @@ export const DashboardClientesOsContent = ({
   );
 };
 
-// Wrapper de rota do Board: o conteúdo nativo (DashboardClientesOsContent) é
-// reaproveitado na área Gerencial da Tax (/equipe/tax/gerencial) dentro do
-// FiscalLayout, então o miolo vive separado do layout.
+// Wrapper de rota do Board. O miolo operacional (`DashboardClientesOsContent`)
+// continua na Gerencial da Tax e da OSG. Aqui a diretoria lê mix e caixa —
+// mesma fonte, outra pergunta (reunião 28/08).
 const BoardDashboardClientesOs = () => (
-  <BoardLayout title="Projetos" subtitle="Painel nativo (teste)">
-    <DashboardClientesOsContent usarClusterGlobal tituloInterno="Projetos" escopoAgente="board.projetos" />
+  <BoardLayout
+    title="Projetos"
+    subtitle="Mix · ticket · caixa vigente"
+    headerActions={<BoardClusterBar />}
+  >
+    <BoardProjetosContent />
   </BoardLayout>
 );
 

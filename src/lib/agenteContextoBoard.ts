@@ -72,9 +72,9 @@ export interface EntradaContextoBoard {
 
 /** Perguntas de partida. Ficam aqui porque dependem do que a tela tem. */
 const SUGESTOES = [
-  'De quem depende a minha receita hoje?',
-  'O que exige decisão nesta semana?',
-  'Qual área está entregando fora do prazo e quanto isso vale?',
+  'O crescimento de ativos é cliente novo ou entrega já paga?',
+  'O caixa vigente cobre a folha — e até quando?',
+  'A OSG chega em 30 clientes no ritmo de agora?',
 ];
 
 function blocoDecisao(e: EntradaContextoBoard): BlocoContexto | null {

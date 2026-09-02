@@ -411,7 +411,12 @@ const App = () => (
 
               {/* Capacidade e Logs de Equipe — dashboard de área e auditoria das
                   áreas somadas, nos mesmos componentes do Tax e da OSG. Líder+ pelo
-                  mesmo motivo das originais: é leitura sobre o time todo. */}
+                  mesmo motivo das originais: é leitura sobre o time todo.
+
+                  "Capacidade" saiu do menu (BoardLayout.tsx), mas a rota fica ATIVA
+                  de propósito, como a do Operacional: o alerta "projetos que não
+                  cabem no prazo do contrato" da faixa do Estratégico navega para
+                  ela (`boardEstrategico.ts`). Desativá-la quebraria esse link. */}
               <Route path="/equipe/board/capacidade" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/capacidade"><BoardCapacidade /></PageAccessGate></LiderRoute>} />
               <Route path="/equipe/board/logs-equipe" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/logs-equipe"><BoardLogsEquipe /></PageAccessGate></LiderRoute>} />
 
@@ -421,6 +426,13 @@ const App = () => (
                   olhar" e "Acompanhamento de execução" no Estratégico, e um card da
                   faixa de KPIs, navegam para aqui como detalhe. */}
               <Route path="/equipe/board/performance" element={<DesempenhoAccessGate><PerformanceDashboard /></DesempenhoAccessGate>} />
+              {/* REMOVIDO DO BOARD: a aba "Desempenho" e seus oito submenus sairam
+                  do menu (BoardLayout.tsx) e as rotas estao desativadas aqui.
+                  Os arquivos das paginas ficam intactos em
+                  src/pages/gerencial/desempenho/, como ja foi feito com
+                  "Dashboards" e "Chamados" (reuniao 17/08). O
+                  DesempenhoAccessGate continua em uso: e ele que protege
+                  /equipe/board/performance, logo acima.
               <Route path="/equipe/board/desempenho" element={<DesempenhoAccessGate><DesempenhoVisaoGeral /></DesempenhoAccessGate>} />
               <Route path="/equipe/board/desempenho/ciclos" element={<DesempenhoAccessGate><DesempenhoCiclos /></DesempenhoAccessGate>} />
               <Route path="/equipe/board/desempenho/metas" element={<DesempenhoAccessGate><DesempenhoMetas /></DesempenhoAccessGate>} />
@@ -429,7 +441,12 @@ const App = () => (
               <Route path="/equipe/board/desempenho/evolucao" element={<DesempenhoAccessGate><DesempenhoEvolucao /></DesempenhoAccessGate>} />
               <Route path="/equipe/board/desempenho/decisoes" element={<DesempenhoAccessGate><DesempenhoDecisoes /></DesempenhoAccessGate>} />
               <Route path="/equipe/board/desempenho/relatorios" element={<DesempenhoAccessGate><DesempenhoRelatorios /></DesempenhoAccessGate>} />
+              */}
+              {/* REMOVIDO DO BOARD: a secao "Minha Area" saiu da barra lateral junto
+                  com a aba Desempenho, e esta era a unica tela dela. Rota
+                  desativada; MinhaEvolucao.tsx fica intacto.
               <Route path="/equipe/board/desempenho/minha-evolucao" element={<ProtectedRoute><MinhaEvolucao /></ProtectedRoute>} />
+              */}
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

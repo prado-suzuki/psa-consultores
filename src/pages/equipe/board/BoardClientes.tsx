@@ -1,73 +1,83 @@
 import { useMemo } from 'react';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
-import { BoardMapaClientes } from '@/components/board/BoardMapaClientes';
-import { BoardClientesLista } from '@/components/board/BoardClientesLista';
-import { useAuth } from '@/contexts/AuthContext';
+import { BoardClusterBar } from '@/components/equipe/board/BoardClusterBar';
+import { BoardBriefingClientes } from '@/components/board/BoardBriefingClientes';
 import { useDashboardAmbiente } from '@/lib/dashboardAmbiente';
-import { useDomainClientesPorRegiao } from '@/hooks/useDomainClientesPorRegiao';
-import { agregarClientesPorRegiao } from '@/lib/clientesPorRegiao';
-import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
-import { contextoBoardClientes } from '@/lib/agenteContextoClientes';
+import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
+import { useBoardCluster } from '@/hooks/useBoardCluster';
+import { ticketMedioAno } from '@/lib/boardDiretoria';
+import { filtrarPorCluster } from '@/lib/boardExecutivo';
+import { filtrarLegado } from '@/lib/boardLegado';
+import { aplicarRecorteClientes, aplicarRecorteOs, hojeDoRecorte } from '@/lib/boardRecorte';
+import {
+  distribuicaoRegiao, lacunasAditivo, ocorrenciaServicos,
+} from '@/lib/boardOportunidade';
+import { carteiraClientes, tempoMedioAditivo } from '@/lib/boardCarteira';
 
 /**
- * Clientes — módulo Gerencial (Board).
- *
- * Duas partes: o mapa de calor por estado e a lista de clientes.
- *
- * A LISTA (reunião Mariana, 17/08, P8) é `BoardClientesLista`, enxuta e
- * somente leitura -- nome, status e um cartão de detalhe ao clicar. Até
- * 20/08 esta tela reaproveitava `GestaoClientesContent` (o módulo de
- * cadastro completo, com criar/editar/excluir, compartilhado com a Gerencial
- * da Tax e da OSG). Deixou de ser montada aqui porque não é estratégica para
- * quem olha o Board -- o componente de cadastro continua intacto e do jeito
- * que sempre foi para Tax/OSG, em `GestaoClientes.tsx`.
+ * Clientes — ocorrência de serviço e similaridade de praça.
+ * Sem mapa. Fonte: as mesmas OS/clientes do Estratégico.
  */
 const BoardClientes = () => {
-  const { isAdmin } = useAuth();
   const { ambiente } = useDashboardAmbiente();
-  const { data: clientes, isLoading, error } = useDomainClientesPorRegiao(ambiente);
+  const { cluster, cliente, ano, mes } = useBoardCluster();
+  const recorte = useMemo(() => ({ cliente, ano, mes }), [cliente, ano, mes]);
+  const negocio = useDashboardClientesOs(ambiente);
 
-  // O agente le a MESMA agregacao que pinta o mapa. Recalcular aqui daria dois
-  // numeros para a mesma pergunta -- o do mapa e o do chat.
-  const agregacao = useMemo(() => agregarClientesPorRegiao(clientes ?? []), [clientes]);
-  const contextoAgente = useMemo(() => contextoBoardClientes({
-    agregacao,
-    escopoTotal: isAdmin,
-    falhas: error ? ['distribuição de clientes'] : [],
-  }), [agregacao, isAdmin, error]);
-  useRegistrarContextoAgente('board.clientes', contextoAgente, isLoading);
+  const osRows = useMemo(
+    () => aplicarRecorteOs(
+      filtrarLegado(filtrarPorCluster(negocio.data?.osRows ?? [], cluster)),
+      recorte,
+    ),
+    [negocio.data, cluster, recorte],
+  );
+  const clienteRows = useMemo(
+    () => aplicarRecorteClientes(
+      filtrarLegado(filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster)),
+      osRows,
+      recorte,
+    ),
+    [negocio.data, cluster, recorte, osRows],
+  );
+  const hoje = hojeDoRecorte(negocio.hoje, recorte);
+  const produtosPorOs = negocio.data?.rateioProdutoPorOs;
+  const ticket = useMemo(() => ticketMedioAno(osRows, hoje), [osRows, hoje]);
+  const ativos = useMemo(() => clienteRows.filter((c) => c.ativo).length, [clienteRows]);
+  const regioes = useMemo(() => distribuicaoRegiao(clienteRows, osRows), [clienteRows, osRows]);
+  const servicos = useMemo(() => ocorrenciaServicos(osRows, produtosPorOs), [osRows, produtosPorOs]);
+  const lacunas = useMemo(
+    () => lacunasAditivo(clienteRows, osRows, { produtosPorOs }),
+    [clienteRows, osRows, produtosPorOs],
+  );
+  const carteira = useMemo(() => carteiraClientes(osRows, hoje), [osRows, hoje]);
+  const diasAditivo = useMemo(() => tempoMedioAditivo(osRows), [osRows]);
 
   return (
-    <BoardLayout title="Clientes" subtitle="Carteira da empresa e distribuição geográfica">
-      <div className="space-y-4">
-        {isLoading ? (
-          <div
-            className="board-card flex h-[320px] items-center justify-center"
-            role="status"
-            aria-label="Carregando mapa de clientes"
-          >
-            <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--board-indigo)' }} />
-          </div>
-        ) : error ? (
-          <div className="board-card flex items-start gap-3 p-4">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: 'var(--board-red)' }} />
-            <div>
-              <p className="text-[13px] font-semibold" style={{ color: 'var(--board-t1)' }}>
-                Não foi possível carregar a distribuição de clientes
-              </p>
-              <p className="mt-0.5 text-[12px]" style={{ color: 'var(--board-t3)' }}>
-                {error instanceof Error ? error.message : 'Erro desconhecido.'} O mapa não é exibido
-                em vez de mostrar um Brasil vazio, que pareceria "nenhum cliente".
-              </p>
-            </div>
-          </div>
-        ) : (
-          <BoardMapaClientes clientes={clientes ?? []} escopoTotal={isAdmin} />
-        )}
-
-        <BoardClientesLista />
-      </div>
+    <BoardLayout
+      title="Clientes"
+      subtitle="Receita · renovação · oferta · aditivo"
+      headerActions={<BoardClusterBar />}
+    >
+      {negocio.isLoading ? (
+        <div
+          className="board-card flex h-[280px] items-center justify-center"
+          role="status"
+          aria-label="Carregando carteira"
+        >
+          <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--bd-accent-d)' }} />
+        </div>
+      ) : (
+        <BoardBriefingClientes
+          regioes={regioes}
+          servicos={servicos}
+          lacunas={lacunas}
+          ticket={ticket}
+          ativos={ativos}
+          carteira={carteira}
+          diasAditivo={diasAditivo}
+        />
+      )}
     </BoardLayout>
   );
 };

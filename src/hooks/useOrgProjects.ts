@@ -562,6 +562,27 @@ export const useUpdateOrgProject = () => {
   });
 };
 
+/**
+ * Resumo da exclusão de um projeto, consultado NO BANCO antes de abrir o
+ * diálogo de confirmação.
+ *
+ * A FK `org_tasks_project_id_fkey` é ON DELETE CASCADE: excluir o projeto leva
+ * as tarefas junto. O trigger `trg_org_tasks_bloqueia_delete_iniciada` recusa a
+ * cascata se qualquer tarefa estiver fora de Backlog/A Fazer — este resumo
+ * permite à tela recusar antes de abrir o diálogo (`bloqueantes > 0`) ou avisar
+ * quantas tarefas vão junto (`total`).
+ */
+export const resumoExclusaoProjeto = async (projectId: string) => {
+  const { data, error } = await supabase
+    .from('org_tasks')
+    .select('status')
+    .eq('project_id', projectId);
+  if (error) throw error;
+  const bloqueantes = (data ?? [])
+    .filter(t => t.status !== 'backlog' && t.status !== 'todo').length;
+  return { total: data?.length ?? 0, bloqueantes };
+};
+
 export const useDeleteOrgProject = () => {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();

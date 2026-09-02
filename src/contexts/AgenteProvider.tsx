@@ -22,19 +22,23 @@ interface Publicado {
 
 export function AgenteProvider({ children }: { children: ReactNode }) {
   const [publicado, setPublicado] = useState<Publicado | null>(null);
-  // Guarda o escopo vigente sem entrar no estado: a limpeza da tela que SAIU
-  // chega depois da publicação da que ENTROU (ordem dos efeitos do React), e
-  // sem esta checagem a navegação entre duas telas com agente apagaria o balão.
+  // A tela que SAI chega ao cleanup DEPOIS da que ENTROU publicar. Escopo
+  // igual (as quatro leituras do Board) não basta — o dono tem que ser o
+  // mesmo registro, senão a saída apaga o snapshot novo.
   const escopoVigente = useRef<string | null>(null);
+  const donoVigente = useRef<symbol | null>(null);
 
-  const publicar = useCallback((escopo: string, contexto: ContextoTela, carregando: boolean) => {
+  const publicar = useCallback((escopo: string, contexto: ContextoTela, carregando: boolean, dono?: symbol) => {
     escopoVigente.current = escopo;
+    donoVigente.current = dono ?? null;
     setPublicado({ escopo, contexto, carregando });
   }, []);
 
-  const despublicar = useCallback((escopo: string) => {
+  const despublicar = useCallback((escopo: string, dono?: symbol) => {
     if (escopoVigente.current !== escopo) return;
+    if (dono && donoVigente.current && dono !== donoVigente.current) return;
     escopoVigente.current = null;
+    donoVigente.current = null;
     setPublicado(null);
   }, []);
 

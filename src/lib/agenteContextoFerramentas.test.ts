@@ -112,6 +112,29 @@ describe('contextoBoardFerramentas', () => {
     expect(ctx.blocos.find((b) => b.id === 'pessoas')?.itens).toHaveLength(10);
   });
 
+  it('Board sem uso não publica adoção nem retenção', () => {
+    const ctx = contextoBoardFerramentas({
+      ...base,
+      incluirUso: false,
+      beneficio: { horasLiberadas: 176, fte: 1, melhoriasMedidas: 1 },
+    });
+    expect(ctx.blocos.map((b) => b.id)).toEqual(['beneficio']);
+  });
+
+  it('benefício medido entra na frente; sem cadastro o FTE fica null', () => {
+    const ctx = contextoBoardFerramentas({
+      ...base,
+      beneficio: { horasLiberadas: 352, fte: 2, melhoriasMedidas: 3 },
+    });
+    expect(ctx.blocos[0]?.id).toBe('beneficio');
+    expect(campo(ctx, 'beneficio', 'FTE')?.valor).toBe('2');
+    expect(campo(ctx, 'beneficio', 'Demanda vs FTE')?.valor).toBeNull();
+  });
+
+  it('sem bloco de benefício quando a tela ainda não apurou', () => {
+    expect(contextoBoardFerramentas(base).blocos.some((b) => b.id === 'beneficio')).toBe(false);
+  });
+
   it('carrega escopo e pessoa nos filtros publicados', () => {
     const ctx = contextoBoardFerramentas({ ...base, escopo: 'PSA Norte', pessoa: 'ana@psa' });
     expect(ctx.filtros).toEqual({ periodo: 'tudo', escopo: 'PSA Norte', pessoa: 'ana@psa' });

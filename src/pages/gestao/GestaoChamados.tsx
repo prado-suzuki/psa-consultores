@@ -43,6 +43,7 @@ import { toast } from '@/hooks/use-toast';
 import { isTodayBrazil, isTomorrowBrazil, isPastBrazil, parseDate } from '@/lib/dateUtils';
 import * as XLSX from 'xlsx';
 import { chamadoStatusConfig } from '@/lib/chamadoStatusColors';
+import { departmentLabels } from '@/lib/chamadosDepartamentos';
 
 const deadlineOptions: Record<string, string> = {
   'none': 'Sem prazo',
@@ -64,14 +65,6 @@ const statusLabels: Record<string, string> = {
   fechado: 'Fechado',
 };
 
-const departmentLabels: Record<string, string> = {
-  contabilidade: 'Contabilidade/Societário',
-  icms_ipi: 'ICMS/IPI',
-  irpj_csll: 'IRPJ/CSLL',
-  pis_cofins: 'PIS/COFINS',
-  produtor_rural: 'Produtor Rural PF',
-  outros: 'Outros',
-};
 
 /**
  * Tela de Gestao de Chamados.

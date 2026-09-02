@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { FilterX, SlidersHorizontal, X, Check } from 'lucide-react';
-import { Drawer, DrawerContent, DrawerClose, DrawerTitle } from '@/components/ui/drawer';
+import { FilterX, SlidersHorizontal, X } from 'lucide-react';
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 export interface FilterConfig {
@@ -12,6 +13,8 @@ export interface FilterConfig {
   options?: { value: string; label: string }[];
   placeholder?: string;
   width?: string;
+  /** Sem o rótulo ao lado — o valor do controle já diz o que é. */
+  hideLabel?: boolean;
 }
 
 interface BoardFilterBarProps {
@@ -23,11 +26,13 @@ interface BoardFilterBarProps {
   rightSlot?: React.ReactNode;
   resultCount?: number;
   totalCount?: number;
+  /** Sem o rótulo "Filtros" — a barra já vive ao lado do título. */
+  hideHeading?: boolean;
 }
 
 export const BoardFilterBar: React.FC<BoardFilterBarProps> = ({
   filters, onFilterChange, activeFilters, onReset, activeCount = 0,
-  rightSlot, resultCount, totalCount,
+  rightSlot, resultCount, totalCount, hideHeading = false,
 }) => {
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -52,8 +57,8 @@ export const BoardFilterBar: React.FC<BoardFilterBarProps> = ({
       case 'segmented':
         return (
           <div key={f.key} className="flex items-center gap-1.5" style={vertical ? { flexDirection: 'column', alignItems: 'stretch' } : {}}>
-            {!vertical && <span className="v3-fi-label">{f.label}</span>}
-            {vertical && <span className="text-xs font-semibold mb-1" style={{ color: 'var(--bd-ink3)' }}>{f.label}</span>}
+            {!vertical && !f.hideLabel && <span className="v3-fi-label">{f.label}</span>}
+            {vertical && !f.hideLabel && <span className="text-xs font-semibold mb-1" style={{ color: 'var(--bd-ink3)' }}>{f.label}</span>}
             <div className="v3-segs" style={vertical ? { width: '100%' } : {}}>
               {f.options?.map(o => (
                 <button key={o.value} className={`v3-seg ${val === o.value ? 'on' : ''}`} onClick={() => onFilterChange(f.key, o.value)}>
@@ -67,17 +72,25 @@ export const BoardFilterBar: React.FC<BoardFilterBarProps> = ({
       case 'select':
         return (
           <div key={f.key} className="flex items-center gap-1.5" style={vertical ? { flexDirection: 'column', alignItems: 'stretch' } : {}}>
-            {!vertical && <span className="v3-fi-label">{f.label}</span>}
-            {vertical && <span className="text-xs font-semibold mb-1" style={{ color: 'var(--bd-ink3)' }}>{f.label}</span>}
-            <select
-              className="v3-fi"
-              value={val as string}
-              onChange={e => onFilterChange(f.key, e.target.value)}
-              aria-label={f.label}
-              style={{ ...style, padding: '4px 9px' }}
-            >
-              {f.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            {!vertical && !f.hideLabel && <span className="v3-fi-label">{f.label}</span>}
+            {vertical && !f.hideLabel && <span className="text-xs font-semibold mb-1" style={{ color: 'var(--bd-ink3)' }}>{f.label}</span>}
+            <Select value={val as string} onValueChange={(v) => onFilterChange(f.key, v)}>
+              <SelectTrigger
+                className="h-8 rounded-md text-[12.5px] font-medium"
+                aria-label={f.label}
+                style={{
+                  width: vertical ? '100%' : (f.width || 'auto'),
+                  minWidth: vertical ? undefined : (f.width || 128),
+                  backgroundColor: 'var(--bd-surface)',
+                  borderColor: 'var(--bd-line)',
+                }}
+              >
+                <SelectValue placeholder={f.placeholder || f.label} />
+              </SelectTrigger>
+              <SelectContent>
+                {f.options?.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         );
 
@@ -162,12 +175,12 @@ export const BoardFilterBar: React.FC<BoardFilterBarProps> = ({
   return (
     <>
       <div className="v3-fbar">
-        {/* Rótulo da barra: sem ele os controles flutuavam sem dizer o que
-            governam. Mesmo tom dos cabeçalhos de tabela. */}
-        <span className="v3-fi-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-          <SlidersHorizontal style={{ width: 12, height: 12 }} />
-          Filtros
-        </span>
+        {!hideHeading && (
+          <span className="v3-fi-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <SlidersHorizontal style={{ width: 12, height: 12 }} />
+            Filtros
+          </span>
+        )}
         {filters.map(f => renderFilter(f))}
         {activeCount > 0 && (
           <>

@@ -203,38 +203,31 @@ const DesempenhoVisaoGeral = () => {
   }), isLoading);
 
   return (
-    <BoardLayout title="Visão Geral" subtitle="Desempenho da equipe">
+    <BoardLayout
+      title="Desempenho"
+      subtitle={
+        selectedCiclo
+          ? `${selectedCiclo.nome}${selectedCiclo.status === 'em_andamento' ? ' · Em andamento' : ''}`
+          : carregandoCiclo ? 'Carregando ciclo…' : 'Nenhum ciclo de avaliação cadastrado'
+      }
+      headerActions={(
+        <select
+          className="v3-fi"
+          value={cicloId ?? ''}
+          onChange={e => setFilter('ciclo', e.target.value)}
+          disabled={carregandoCiclo || semCiclo}
+          aria-label="Ciclo de avaliação"
+        >
+          {(carregandoCiclo || semCiclo) && (
+            <option value="">{carregandoCiclo ? 'Carregando…' : 'Nenhum ciclo'}</option>
+          )}
+          {ciclos?.map(c => (
+            <option key={c.id} value={c.id}>{c.nome}{c.status === 'em_andamento' ? ' (Ativo)' : ''}</option>
+          ))}
+        </select>
+      )}
+    >
       <div ref={revealRef} style={{ background: 'var(--board-v4-page)' }}>
-        {/* Header + Cycle selector */}
-        <div className="pg-head" data-reveal>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ flex: 1 }}>
-              <div className="pg-title">Desempenho da Equipe</div>
-              <div className="pg-sub">
-                {selectedCiclo
-                  ? selectedCiclo.nome
-                  : carregandoCiclo ? 'Carregando ciclo…' : 'Nenhum ciclo de avaliação cadastrado'}
-                {selectedCiclo?.status === 'em_andamento' ? ' · Em andamento' : ''}
-              </div>
-            </div>
-            {/* Sem ciclo, o seletor ficava um combobox OCO -- clicável e vazio.
-                Placeholder desabilitado diz o que há para escolher: nada. */}
-            <select
-              className="v3-fi"
-              value={cicloId ?? ''}
-              onChange={e => setFilter('ciclo', e.target.value)}
-              disabled={carregandoCiclo || semCiclo}
-              aria-label="Ciclo de avaliação"
-            >
-              {(carregandoCiclo || semCiclo) && (
-                <option value="">{carregandoCiclo ? 'Carregando…' : 'Nenhum ciclo'}</option>
-              )}
-              {ciclos?.map(c => (
-                <option key={c.id} value={c.id}>{c.nome}{c.status === 'em_andamento' ? ' (Ativo)' : ''}</option>
-              ))}
-            </select>
-          </div>
-        </div>
 
         {isLoading ? (
           <div className="space-y-3"><Skeleton className="h-[80px] rounded-xl" /><Skeleton className="h-[100px] rounded-xl" /></div>

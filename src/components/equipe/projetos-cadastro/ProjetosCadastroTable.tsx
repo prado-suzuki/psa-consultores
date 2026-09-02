@@ -48,7 +48,7 @@ function ProjectsTableHeader() {
 }
 
 function ProjectRow({ project }: { project: OrgProject }) {
-  const { listingOsProdutosByOs, handleOpenModal, setDeleteProjectId } = useProjetosCadastro();
+  const { listingOsProdutosByOs, handleOpenModal, handleRequestDelete } = useProjetosCadastro();
   const executorName = project.responsible ? `${project.responsible.first_name} ${project.responsible.last_name}` : null;
   const leaderName = project.leader ? `${project.leader.first_name} ${project.leader.last_name}` : null;
   const products = project.ordem_servico_id ? (listingOsProdutosByOs[project.ordem_servico_id] || []) : [];
@@ -75,7 +75,7 @@ function ProjectRow({ project }: { project: OrgProject }) {
       <TableCell className="text-sm text-right text-muted-foreground whitespace-nowrap">{totalHours > 0 ? `${totalHours}h` : '-'}</TableCell>
       <TableCell className="text-right" onClick={event => event.stopPropagation()}><div className="flex justify-end gap-2">
         <Button variant="ghost" size="icon" onClick={() => handleOpenModal(project)}><Pencil className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteProjectId(project.id)}><Trash2 className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleRequestDelete(project.id)}><Trash2 className="h-4 w-4" /></Button>
       </div></TableCell>
     </TableRow>
   );

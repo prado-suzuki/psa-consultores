@@ -9,15 +9,24 @@ import { DashboardRankings } from '@/components/gestao/chamados-dashboard/Dashbo
 import { TaxTopicsCloud } from '@/components/gestao/chamados-dashboard/TaxTopicsCloud';
 import { Button } from '@/components/ui/button';
 import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
+import { useEquipePorPessoa } from '@/hooks/useEstruturaEquipes';
 import { useTicketAgents, useTicketsFirstResponse, useTicketsList } from '@/hooks/useTickets';
+import { DashboardPrazoDetalhe } from '@/components/gestao/chamados-dashboard/DashboardPrazoDetalhe';
 import {
   calculateDashboardAnalytics,
   type DashboardFilters as Filters,
   filterDashboardTickets,
+  listarChamadosPorPrazo,
+  rankingAtrasoPorPessoa,
+  type RecortePrazo,
 } from '@/lib/gestaoChamadosDashboardAnalytics';
 
 const initialFilters: Filters = {
-  periodo: '30dias',
+  // A tela abre na série inteira do canal, não numa janela móvel: a pergunta que
+  // ela responde é "como está o atendimento deste cliente desde que a ferramenta
+  // começou", e 30 dias escondia o histórico que sustenta essa resposta.
+  periodo: 'canal',
+  cliente: 'todos',
   departamento: 'todos',
   area: 'todos',
   cluster: 'todos',
@@ -42,11 +51,13 @@ export interface ChamadosDashboardContentProps {
 export function ChamadosDashboardContent({ listaPath }: ChamadosDashboardContentProps) {
   const navigate = useNavigate();
   const [filters, setFilters] = useState(initialFilters);
+  const [recorte, setRecorte] = useState<RecortePrazo | null>(null);
   const { data: tickets = [], isLoading: loadingTickets } = useTicketsList();
   const { data: agents = [] } = useTicketAgents();
   const { data: firstResponseMap } = useTicketsFirstResponse();
   const { data: areas = [] } = useAllActiveAreas();
   const { data: clusters = [] } = useAllActiveClusters();
+  const { data: equipePorPessoa } = useEquipePorPessoa();
 
   const agentNames = useMemo(
     () =>
@@ -59,13 +70,47 @@ export function ChamadosDashboardContent({ listaPath }: ChamadosDashboardContent
     [agents],
   );
   const areaNames = useMemo(() => new Map(areas.map((area) => [area.id, area.name])), [areas]);
+  // Os clientes do filtro saem dos próprios chamados carregados, não de uma
+  // consulta à parte: assim a lista nunca oferece um cliente que não tem chamado
+  // nenhum, e não custa uma requisição a mais.
+  const clientes = useMemo(
+    () =>
+      Array.from(
+        new Set(tickets.flatMap((ticket) => (ticket.cliente_nome ? [ticket.cliente_nome] : []))),
+      ).sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [tickets],
+  );
   const filteredTickets = useMemo(
     () => filterDashboardTickets(tickets, filters, new Date()),
     [tickets, filters],
   );
   const analytics = useMemo(
-    () => calculateDashboardAnalytics(filteredTickets, firstResponseMap, agentNames, areaNames),
-    [filteredTickets, firstResponseMap, agentNames, areaNames],
+    () =>
+      calculateDashboardAnalytics(
+        filteredTickets,
+        firstResponseMap,
+        agentNames,
+        areaNames,
+        equipePorPessoa ?? new Map(),
+      ),
+    [filteredTickets, firstResponseMap, agentNames, areaNames, equipePorPessoa],
+  );
+  const chamadosPorPrazo = useMemo(() => {
+    const now = new Date();
+    return {
+      fora: listarChamadosPorPrazo(filteredTickets, firstResponseMap, agentNames, 'fora', now),
+      sem_resposta: listarChamadosPorPrazo(
+        filteredTickets,
+        firstResponseMap,
+        agentNames,
+        'sem_resposta',
+        now,
+      ),
+    };
+  }, [filteredTickets, firstResponseMap, agentNames]);
+  const rankingAtrasos = useMemo(
+    () => rankingAtrasoPorPessoa(chamadosPorPrazo.fora),
+    [chamadosPorPrazo],
   );
   const openTickets = () => navigate(listaPath);
 
@@ -84,6 +129,7 @@ export function ChamadosDashboardContent({ listaPath }: ChamadosDashboardContent
       </div>
       <DashboardFilters
         filters={filters}
+        clientes={clientes}
         areas={areas}
         clusters={clusters}
         onChange={setFilters}
@@ -92,7 +138,19 @@ export function ChamadosDashboardContent({ listaPath }: ChamadosDashboardContent
         stats={analytics.stats}
         periodo={filters.periodo}
         loading={loadingTickets || firstResponseMap === undefined}
+        recorte={recorte}
+        onRecorteToggle={(alvo) => setRecorte((atual) => (atual === alvo ? null : alvo))}
       />
+      {recorte && (
+        <DashboardPrazoDetalhe
+          recorte={recorte}
+          onRecorteChange={setRecorte}
+          onClose={() => setRecorte(null)}
+          foraDoPrazo={chamadosPorPrazo.fora}
+          semResposta={chamadosPorPrazo.sem_resposta}
+          onNavigate={(ticketId) => navigate(`${listaPath}/${ticketId}`)}
+        />
+      )}
       <DashboardDistributions
         total={analytics.stats.total}
         statusSegments={analytics.statusSegments}
@@ -105,6 +163,8 @@ export function ChamadosDashboardContent({ listaPath }: ChamadosDashboardContent
         representantes={analytics.rankingRepresentantes}
         departamentos={analytics.rankingDepartamentos}
         areas={analytics.rankingAreas}
+        equipes={analytics.rankingEquipes}
+        atrasos={rankingAtrasos}
       />
       <TaxTopicsCloud topics={analytics.taxTopics} totalTickets={filteredTickets.length} />
     </div>
