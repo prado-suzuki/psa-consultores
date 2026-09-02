@@ -7753,6 +7753,33 @@ export type Database = {
           },
         ]
       }
+      psa_migrations_aplicadas: {
+        Row: {
+          aplicada_em: string
+          arquivo: string
+          autor: string | null
+          branch: string | null
+          commit_sha: string | null
+          sha256: string
+        }
+        Insert: {
+          aplicada_em?: string
+          arquivo: string
+          autor?: string | null
+          branch?: string | null
+          commit_sha?: string | null
+          sha256: string
+        }
+        Update: {
+          aplicada_em?: string
+          arquivo?: string
+          autor?: string | null
+          branch?: string | null
+          commit_sha?: string | null
+          sha256?: string
+        }
+        Relationships: []
+      }
       relatorios_gerados: {
         Row: {
           ciclo_id: string | null
