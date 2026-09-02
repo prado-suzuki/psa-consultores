@@ -720,11 +720,13 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           // instante. O formulário já preenche na criação da linha, mas o
           // fallback aqui fecha os caminhos que não passam por lá (rascunho
           // antigo, OS clonada) — a coluna nunca nasce vazia.
-          const { data: newOs, error } = await (supabase.from("ordem_servico" as any) as any)
-            .insert({ ...buildOsFields(c), data_emissao: c.data_emissao || todayIsoBrazil() })
-            .select("id").single();
+          // Id gerado no cliente pelo mesmo motivo do contribuinte: RETURNING
+          // faria a policy de SELECT recusar o INSERT com 42501.
+          const novaOsId = crypto.randomUUID();
+          const { error } = await (supabase.from("ordem_servico" as any) as any)
+            .insert({ ...buildOsFields(c), data_emissao: c.data_emissao || todayIsoBrazil(), id: novaOsId });
           if (error) throw error;
-          osId = newOs.id;
+          osId = novaOsId;
         }
 
         // Persist distribuicao_receita: reconciliação por _dbId (linha a linha).
