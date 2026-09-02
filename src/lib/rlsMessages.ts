@@ -285,6 +285,36 @@ function fechoDaFalha(op: CadastroOperacao, noSalvamento: boolean): string {
 }
 
 /**
+ * A recusa em duas partes: o que aconteceu e o que fazer agora.
+ *
+ * Separado porque o toast tem slot próprio para a segunda parte — num texto só,
+ * com `\n`, as duas frases apareceriam coladas na mesma linha.
+ */
+export interface TextoDeRecusa {
+  /** O que aconteceu, em qual item. */
+  titulo: string;
+  /** O que a pessoa deve fazer agora. */
+  detalhe: string;
+}
+
+export function textoDeRecusa(
+  op: CadastroOperacao,
+  categoria: RecusaCategoria,
+  papel?: RlsRequiredRole | null,
+): TextoDeRecusa {
+  if (categoria === 'permissao') {
+    return {
+      titulo: `Você não tem permissão para ${fragmento(op, 'permissao')}.`,
+      detalhe: `É necessário ter o papel de ${ROLE_LABEL[papel ?? PAPEL_PADRAO]} ou superior para realizar esta ação.`,
+    };
+  }
+  return {
+    titulo: `Não foi possível ${fragmento(op, 'falha')}.`,
+    detalhe: categoria === 'zero_linhas' ? FECHO_ZERO_LINHAS : fechoDaFalha(op, false),
+  };
+}
+
+/**
  * A frase que a pessoa lê quando uma operação do cadastro é recusada.
  *
  * Responde às três perguntas da tarefa, nesta ordem: o que aconteceu, em qual
@@ -295,14 +325,8 @@ export function mensagemDeRecusa(
   categoria: RecusaCategoria,
   papel?: RlsRequiredRole | null,
 ): string {
-  if (categoria === 'permissao') {
-    return [
-      `Você não tem permissão para ${fragmento(op, 'permissao')}.`,
-      `É necessário ter o papel de ${ROLE_LABEL[papel ?? PAPEL_PADRAO]} ou superior para realizar esta ação.`,
-    ].join('\n');
-  }
-  const fecho = categoria === 'zero_linhas' ? FECHO_ZERO_LINHAS : fechoDaFalha(op, false);
-  return [`Não foi possível ${fragmento(op, 'falha')}.`, fecho].join('\n');
+  const { titulo, detalhe } = textoDeRecusa(op, categoria, papel);
+  return [titulo, detalhe].join('\n');
 }
 
 /** Aviso de sucesso da operação, quando ela tem salvamento próprio. */
@@ -405,14 +429,22 @@ export function recusaDeOperacao(
  * As 24 operações são etapas de um salvamento só, então não há aviso
  * intermediário: a frase de cada item serve para NOMEAR a etapa que falhou.
  */
-export function mensagemDoSalvamentoRecusado(recusa: RecusaDeOperacao): string {
-  const abertura = 'Não foi possível salvar o cliente.';
+export function textoDoSalvamentoRecusado(recusa: RecusaDeOperacao): TextoDeRecusa {
+  const titulo = 'Não foi possível salvar o cliente.';
   if (recusa.categoria === 'permissao') {
-    return [abertura, mensagemDeRecusa(recusa.operacao, 'permissao', recusa.papel)].join('\n');
+    const permissao = textoDeRecusa(recusa.operacao, 'permissao', recusa.papel);
+    // As duas frases da permissão viram um parágrafo só: a primeira linha do
+    // aviso é a de que o salvamento inteiro não aconteceu.
+    return { titulo, detalhe: `${permissao.titulo} ${permissao.detalhe}` };
   }
   const fecho =
     recusa.categoria === 'zero_linhas'
       ? FECHO_ZERO_LINHAS
       : fechoDaFalha(recusa.operacao, true);
-  return [abertura, `Ocorreu um problema ao ${fragmento(recusa.operacao, 'falha')}. ${fecho}`].join('\n');
+  return { titulo, detalhe: `Ocorreu um problema ao ${fragmento(recusa.operacao, 'falha')}. ${fecho}` };
+}
+
+export function mensagemDoSalvamentoRecusado(recusa: RecusaDeOperacao): string {
+  const { titulo, detalhe } = textoDoSalvamentoRecusado(recusa);
+  return [titulo, detalhe].join('\n');
 }

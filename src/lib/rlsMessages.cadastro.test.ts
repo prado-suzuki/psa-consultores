@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   mensagemDeRecusa,
   mensagemDoSalvamentoRecusado,
+  textoDeRecusa,
+  textoDoSalvamentoRecusado,
   categoriaDaRecusa,
   recusaDeOperacao,
   RlsPrecheckError,
@@ -213,8 +215,21 @@ describe('mensagem final do salvamento completo', () => {
     const recusa = recusaDeOperacao({ item: 'inscricao', acao: 'atualizar' }, { code: '42501' });
     expect(mensagemDoSalvamentoRecusado(recusa)).toBe(
       'Não foi possível salvar o cliente.\n' +
-        'Você não tem permissão para atualizar esta inscrição estadual.\n' +
-        PAPEL,
+        `Você não tem permissão para atualizar esta inscrição estadual. ${PAPEL}`,
     );
+  });
+
+  it('o aviso vem partido em título e detalhe, para o toast não colar as frases', () => {
+    const recusa = recusaDeOperacao({ item: 'produto', acao: 'excluir' }, null, { zeroLinhas: true });
+    expect(textoDoSalvamentoRecusado(recusa)).toEqual({
+      titulo: 'Não foi possível salvar o cliente.',
+      detalhe:
+        'Ocorreu um problema ao excluir o produto contratado. ' +
+        'Os dados podem ter sido modificados. Atualize a página e tente novamente.',
+    });
+    expect(textoDeRecusa({ item: 'produto', acao: 'excluir' }, 'zero_linhas')).toEqual({
+      titulo: 'Não foi possível excluir o produto contratado.',
+      detalhe: 'Os dados podem ter sido modificados. Atualize a página e tente novamente.',
+    });
   });
 });

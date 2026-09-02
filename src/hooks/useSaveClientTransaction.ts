@@ -23,8 +23,8 @@ import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftOrdemServico } 
 import {
   RecusaDeOperacao,
   recusaDeOperacao,
-  mensagemDeRecusa,
-  mensagemDoSalvamentoRecusado,
+  textoDeRecusa,
+  textoDoSalvamentoRecusado,
   type CadastroOperacao,
 } from '@/lib/rlsMessages';
 import { N8N_WELCOME_WEBHOOK } from '@/lib/webhooks';
@@ -1216,18 +1216,16 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         recusa ? `categoria: ${recusa.categoria} · item: ${recusa.operacao.item}/${recusa.operacao.acao}` : "",
       );
 
-      if (recusa) {
-        toast.error(mensagemDoSalvamentoRecusado(recusa));
-      } else {
+      const texto = recusa
+        ? textoDoSalvamentoRecusado(recusa)
         // Falha que não passou pela tradução (rede, bug, validação de trigger):
         // ainda assim a pessoa precisa saber que o salvamento não aconteceu.
-        toast.error(
-          mensagemDeRecusa({ item: 'cliente', acao: isEditing ? 'atualizar' : 'cadastrar' }, 'falha'),
-        );
-      }
+        : textoDeRecusa({ item: 'cliente', acao: isEditing ? 'atualizar' : 'cadastrar' }, 'falha');
+      toast.error(texto.titulo, { description: texto.detalhe });
 
       if (desfazerFalhou) {
-        toast.error(mensagemDeRecusa({ item: 'cliente', acao: 'excluir' }, 'falha'), { duration: 10000 });
+        const desfazer = textoDeRecusa({ item: 'cliente', acao: 'excluir' }, 'falha');
+        toast.error(desfazer.titulo, { description: desfazer.detalhe, duration: 10000 });
       }
     } finally {
       setSaving(false);
