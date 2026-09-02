@@ -35,9 +35,23 @@ CREATE POLICY rls_ordem_servico_insert ON public.ordem_servico
   WITH CHECK (public.has_role_or_higher(auth.uid(), 'sublider'::public.app_role));
 ```
 
-### Frontend
+### Frontend (obrigatório — sem ele o erro continua idêntico)
 
-Nenhuma alteração. As telas já refletem o piso `sublider`+ para criação/edição de cliente, representante e OS. A remoção da condição de cluster só amplia quem consegue salvar; nenhum botão que hoje aparece para team_member passa a falhar.
+Ampliar só a policy de INSERT não resolve. Dois inserts do salvamento pedem a linha de volta (`.select("id").single()`), o que liga o `RETURNING`; com `RETURNING` o Postgres avalia a policy de **SELECT** sobre a linha nova e recusa o comando inteiro com o mesmo `42501 new row violates row-level security policy`. A leitura de `contribuinte` é `(excluido = false) AND (has_role(admin) OR cliente_visivel_para(cliente_id))` — falsa quando o cliente é de outro cluster; a da OS é equivalente.
+
+Arquivo: `src/hooks/useSaveClientTransaction.ts`
+
+- Linha 494 (`contribuinte`): incluir `id: crypto.randomUUID()` no payload e remover `.select("id").single()`; `contribId` passa a ser o id gerado.
+- Linhas 717-721 (`ordem_servico`): mesma mudança; `osId` passa a ser o id gerado.
+
+Sem `.select()`, o supabase-js envia `Prefer: return=minimal`, não há `RETURNING` e a policy de leitura não é consultada. `crypto.randomUUID()` já é padrão no repo (ex.: `useDomainOrgComments.ts:392`).
+
+Os outros cinco inserts do salvamento (`inscricao_contribuinte`, `representante`, `distribuicao_receita`, `os_produtos_contratados`, `cliente_clusters`) não pedem retorno e ficam como estão. O cliente é criado por `criar_cliente_com_clusters`, que é `SECURITY DEFINER` e devolve a linha de dentro da função, fora do alcance da policy.
+
+Migration e mudança de front vão juntas: aplicar só a migration e testar parece "não funcionou", porque o texto do erro é literalmente o mesmo.
+
+Nenhum ajuste de UI/permissão é necessário — as telas já refletem o piso `sublider`+.
+
 
 ## O que não muda
 
