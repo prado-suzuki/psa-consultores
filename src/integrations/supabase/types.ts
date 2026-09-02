@@ -10198,6 +10198,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      itcd_gravar_simulacao: { Args: { p: Json }; Returns: string }
       list_profiles_safe: {
         Args: never
         Returns: {
