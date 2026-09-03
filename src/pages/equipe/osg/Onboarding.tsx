@@ -254,7 +254,7 @@ const Onboarding = () => {
           Carregando a solicitação e o catálogo...
         </div>
       ) : erro || !catalogo.data ? (
-        <div className="flex items-start gap-3 rounded-2xl border border-osg-red/30 bg-osg-red/[0.04] p-5 text-osg-red">
+        <div className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/[0.04] p-5 text-destructive">
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
           <div>
             <p className="font-semibold">Não foi possível carregar o onboarding.</p>

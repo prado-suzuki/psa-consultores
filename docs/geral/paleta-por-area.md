@@ -552,6 +552,14 @@ reclassificar do zero.
 
 O slate tem a sua, `src/lib/filaDoSlate.test.ts`, e ela **nasce vazia**: a família foi a zero em 01/09 e a catraca existe para que não volte. As duas compartilham o scanner de `src/lib/medirCorCrua.ts` — se for escrever a terceira, é de lá que ela sai.
 
+A terceira saiu em 03/09: `src/lib/filaDoOsgRed.test.ts`, também nascendo vazia. Ela guarda
+o caso oposto ao das outras duas — ali o problema não era cor de estoque, era **token nosso
+no lugar errado**: o `--osg-red` é âncora da OSG, e âncora não pinta papel de status (ver
+"As três camadas"). Por ser token do projeto, nenhuma regra de lint tinha o que dizer, e
+`text-osg-red` passava por certo em toda revisão. Ela não usa `familiaCrua`, porque a âncora
+não tem tom numérico; monta o padrão direto sobre `PROPRIEDADES_DE_COR`, que é o mesmo
+recorte — prefixo de propriedade separa código de prosa.
+
 Não virou regra de ESLint porque `bg-amber-50` é classe válida do Tailwind: a regra
 `escala/cor-de-estoque` só dispara em nome que o projeto **também** define (`teal`, `lime`,
 `gray`). Sobrariam `warn` global, que joga os sítios num monte indistinto e perde o motivo,

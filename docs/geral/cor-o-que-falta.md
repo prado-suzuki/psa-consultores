@@ -1,8 +1,8 @@
 # Cor: o que falta, e por que cada coisa parou onde parou
 
 Estado em **03/09/2026**. O corpo do documento é a rodada de 19 commits de 01/09; em 03/09
-vieram três rodadas em cima dele — os rótulos de chamado, o estado de documento e a palavra
-única dos três pares —, e o §5 ganhou duas catracas.
+vieram quatro rodadas em cima dele — os rótulos de chamado, o estado de documento, a palavra
+única dos três pares e a âncora vermelha da OSG —, e o §5 ganhou três catracas.
 
 Este documento é o ponto de retomada. Ele não repete o contrato — o contrato é
 [`paleta-por-area.md`](paleta-por-area.md), e continua sendo a fonte. Aqui está só **o que
@@ -137,6 +137,7 @@ domínios de uma vez — foi ele que ficou com o masculino.
 | `teal-500/600/700` | aviso de ESLint (`no-restricted-syntax`) |
 | tom que a escala não tem | `escala/cor-inexistente` e `escala/cor-de-estoque` |
 | cor crua **slate** | catraca `src/lib/filaDoSlate.test.ts` — nasce **vazia**, e qualquer classe slate nova derruba |
+| âncora `osg-red` pintando status | catraca `src/lib/filaDoOsgRed.test.ts` — nasce **vazia**; não é cor de estoque, é token nosso no lugar errado |
 | **verde, vermelho, azul, roxo, laranja** | **nenhuma** |
 | rótulo divergente de **chamado** | catraca `src/lib/chamadoStatusColors.test.ts` — nasce **vazia**, varre pelo conjunto de chaves |
 | rótulo divergente de status | catraca `src/lib/rotulosDeStatus.test.ts` — pega "Em Progresso" em JSX e trava a palavra dos três mapas |
@@ -186,12 +187,20 @@ estado, e o resto dos tokens escritos à mão.
   `grep -rnE '\$\{[A-Za-z_.]+\}[0-9a-fA-F]{2}' src --include=*.tsx --include=*.ts`
 - **`#0d9488`** — o teal residual da Rotina. Parte em comentário do `index.css`, que é prosa.
   Ver [`fase-3a-cor-crua-na-mao.md`](fase-3a-cor-crua-na-mao.md).
-- **`osg-red` fora do checklist** — a âncora vermelha da área pintando papel de status.
-  Saiu do checklist em 03/09/2026 (virou `ajuste`, e o botão "Recusar" virou `destructive`), e
-  segue em `ModalAvisarCliente`, `HistoricoFlutuante`, `onboarding/DocumentGroups`,
-  `relatorios/FiscalReport` e `pages/equipe/osg/Onboarding`. A regra para decidir cada uma
-  está no comentário de `src/lib/estadoDocumentoColors.ts`.
-  `grep -rl osg-red src/components src/pages`
+- **`osg-red` — fechado em 03/09/2026.** Saiu do checklist quando o estado de documento
+  virou mapa, e depois das cinco telas que sobraram. Aplicada uma a uma a regra do comentário
+  de `estadoDocumentoColors` — *se o vermelho ali significa estado, é papel; se é decoração da
+  área, fica* —, **nenhuma das sete ocorrências era decoração**: três eram mensagem de erro,
+  uma era o hover da lixeira, uma era o número de recusados (o próprio comentário do arquivo
+  já dizia "documento devolvido"), e a última era o `ACTION_LABELS` do `HistoricoFlutuante` —
+  um mapa com três línguas dentro, `emerald-100` e `blue-100` do estoque ao lado da âncora, e
+  que por isso andou inteiro. Erro e ação destrutiva foram para `destructive`; estado, para o
+  papel. A catraca é [`filaDoOsgRed.test.ts`](../../src/lib/filaDoOsgRed.test.ts) e nasce vazia.
+  O que **não** virou papel foi o diff `oldValue → newValue` do histórico: valor antigo não
+  "deu problema" e valor novo não está "feito", então ali o antigo recua em
+  `muted-foreground` e o novo é `foreground` — cor nenhuma afirmando o que o dado não diz. Se
+  fosse `ajuste`, o vermelho passaria a significar duas coisas no mesmo painel, porque o
+  `deleted` do mapa logo acima é `ajuste`.
 - **WCAG 1.4.11** — borda de controle a 1,26:1 contra os 3:1 exigidos, nos três temas. Chegar
   lá escurece todo input do produto; é decisão de design, registrada no contrato.
 - **`getProcessStageInfo` × `getStageBadge`** — etapa desconhecida vira "Descoberta" num e
@@ -210,10 +219,10 @@ Nesta ordem, do mecânico ao que exige decisão:
    anteriores; é inventário por motivo, na forma da `filaDoAlerta`. O molde está em
    `medirCorCrua.ts`, e a `chamadoStatusColors.test.ts` mostra a variante que varre por
    conjunto de chaves em vez de por classe.
-2. **Os papéis que faltam** (§1) — por mapa, nunca por classe. É o que rendeu nas três
-   rodadas de 03/09: procurar o mapa do domínio antes de escrever classe achou, das três
-   vezes, reuso que não tinha acontecido.
-3. **O `osg-red` que sobrou na OSG** (§7) — saiu do checklist em 03/09, com a
-   regra escrita no comentário de `estadoDocumentoColors`: se o vermelho ali significa estado,
-   é papel; se é decoração da área, fica. Cada tela é a mesma pergunta.
-4. **`projects.status`** (§3) — precisa da decisão de produto antes de tudo.
+2. **Os papéis que faltam** (§1) — por mapa, nunca por classe. É o que rendeu nas quatro
+   rodadas de 03/09: procurar o mapa do domínio antes de escrever classe achou, das quatro
+   vezes, reuso que não tinha acontecido — na última, um `ACTION_LABELS` de três entradas
+   com três vocabulários de cor dentro.
+3. **`projects.status`** (§3) — precisa da decisão de produto antes de tudo.
+
+O `osg-red` saiu desta lista: fechou em 03/09 e virou catraca (§7).

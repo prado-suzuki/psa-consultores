@@ -214,7 +214,7 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
       {/* Imóveis e áreas exploradas */}
       <Secao icon={Landmark} titulo="Imóveis e áreas exploradas" meta={secaoMeta}>
         {semLinhas ? (
-          <p className={cn('px-4 py-8 text-center text-sm', erroExpl ? 'text-osg-red' : 'text-muted-foreground')}>{emptyMsg}</p>
+          <p className={cn('px-4 py-8 text-center text-sm', erroExpl ? 'text-destructive' : 'text-muted-foreground')}>{emptyMsg}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[12.5px]">
