@@ -368,7 +368,7 @@ function paragrafosDoBloco(
   docx: DocxModule,
   bloco: Bloco,
   estado: EstadoDocumento,
-  alineasCompactas: boolean,
+  estiloCompacto: boolean,
 ): (Paragraph | Table)[] {
   const { Paragraph } = docx;
   const tipo = bloco.tipo ?? 'livre';
@@ -388,9 +388,16 @@ function paragrafosDoBloco(
     if (!primeiraLinha || estado.tipoAnterior === undefined || estado.terminaEmBranco) return false;
     if (tipo === 'capitulo') return true;
     if (tipo === 'clausula') return estado.tipoAnterior !== 'capitulo';
-    // Fecho e anexos (livre) depois do corpo numerado também abrem com linha
-    // em branco; livre depois de livre (sócios do preâmbulo) não.
-    if (tipo === 'livre') return estado.tipoAnterior !== 'livre';
+    // Fecho e anexos (livre) depois do corpo numerado sempre abrem com linha
+    // em branco. Livre depois de livre é o ponto de divergência entre os dois
+    // estilos: no Contrato Social os "sócios do preâmbulo" (uma qualificação
+    // por bloco) colam um no outro para formar UMA frase corrida — por isso
+    // `estiloCompacto=true` mantém colado. No instrumento agrário o preâmbulo
+    // é o oposto: título, outorgante, outorgado e "as partes acima
+    // identificadas" são PARÁGRAFOS separados no assinado (Parceria e
+    // Composse, medido byte a byte), cada um com linha em branco antes —
+    // por isso `estiloCompacto=false` abre sempre, também entre dois livres.
+    if (tipo === 'livre') return estiloCompacto ? estado.tipoAnterior !== 'livre' : true;
     return false;
   };
 
@@ -417,16 +424,16 @@ function paragrafosDoBloco(
     }
     return false;
   };
-  // Lista de alíneas é COMPACTA por padrão: uma vez aberta, linha em branco
-  // entre itens não sai (a lista de bens integralizados da alteração
-  // contratual vem com os itens separados por linha em branco no conteúdo do
-  // bloco). O registrado da MMS Agro tem essa linha em branco também no
-  // original — Bernardo mediu isso e decidiu compactar assim mesmo (commit
-  // 7f9f2a25). O instrumento agrário é o caso oposto: os dois assinados do MMS
-  // (Parceria e Composse) TÊM linha em branco entre as alíneas de imóvel, e o
-  // padrão desta frente é bater com o assinado, não estilizar por cima dele —
-  // por isso `alineasCompactas=false` para `tmpl_documento.escopo =
-  // 'exploracao_rural'`.
+  // Segunda metade do mesmo `estiloCompacto`: com ele ligado, lista de
+  // alíneas é COMPACTA — uma vez aberta, linha em branco entre itens não sai
+  // (a lista de bens integralizados da alteração contratual vem com os itens
+  // separados por linha em branco no conteúdo do bloco). O registrado da MMS
+  // Agro tem essa linha em branco também no original — Bernardo mediu isso e
+  // decidiu compactar assim mesmo (commit 7f9f2a25). O instrumento agrário é
+  // o caso oposto: os dois assinados do MMS (Parceria e Composse) TÊM linha
+  // em branco entre as alíneas de imóvel, e o padrão desta frente é bater com
+  // o assinado, não estilizar por cima dele — por isso `estiloCompacto=false`
+  // para `tmpl_documento.escopo = 'exploracao_rural'`.
   let listaAberta = false;
 
   for (const [indice, seg] of segs.entries()) {
@@ -440,7 +447,7 @@ function paragrafosDoBloco(
     const linha = seg.texto.replace(/\s+$/, '');
     if (linha.trim() === '') {
       // Dentro de uma lista de alíneas a linha em branco é descartada.
-      if (alineasCompactas && listaAberta && proximaEhAlinea(indice)) continue;
+      if (estiloCompacto && listaAberta && proximaEhAlinea(indice)) continue;
       // Duas linhas em branco seguidas no conteúdo não viram duas no documento.
       if (!estado.terminaEmBranco) saida.push(linhaEmBranco(docx));
       assinatura = 0;
@@ -521,10 +528,10 @@ function paragrafosDoBloco(
 }
 
 /** Monta o Document a partir dos blocos gerados pelo engine. */
-function blocosParaDocx(docx: DocxModule, blocos: Bloco[], alineasCompactas: boolean): Document {
+function blocosParaDocx(docx: DocxModule, blocos: Bloco[], estiloCompacto: boolean): Document {
   const { AlignmentType, Footer, PageNumber, Paragraph, TextRun } = docx;
   const estado: EstadoDocumento = { abertura: 'aberta', terminaEmBranco: false };
-  const paragrafos = blocos.flatMap((bloco) => paragrafosDoBloco(docx, bloco, estado, alineasCompactas));
+  const paragrafos = blocos.flatMap((bloco) => paragrafosDoBloco(docx, bloco, estado, estiloCompacto));
 
   const rodape = (texto: string | (typeof PageNumber)[keyof typeof PageNumber], bold = false) =>
     new TextRun({ children: [texto], font: FONTE, size: PT12, bold: bold || undefined });
@@ -585,18 +592,18 @@ function nomeArquivo(nome: string): string {
 /**
  * Gera e dispara o download do .docx no navegador.
  *
- * `alineasCompactas` (padrão `true`) preserva o comportamento do Contrato
+ * `estiloCompacto` (padrão `true`) preserva o comportamento do Contrato
  * Social e da Alteração Contratual — ver o comentário em `paragrafosDoBloco`.
  * Passe `false` para o instrumento agrário, cujo assinado tem linha em branco
- * entre as alíneas de imóvel.
+ * entre as alíneas de imóvel e entre os parágrafos do preâmbulo.
  */
 export async function baixarDocx(
   nome: string,
   blocos: Bloco[],
-  alineasCompactas = true,
+  estiloCompacto = true,
 ): Promise<void> {
   const docx = await import('docx');
-  const doc = blocosParaDocx(docx, blocos, alineasCompactas);
+  const doc = blocosParaDocx(docx, blocos, estiloCompacto);
   const blob = await docx.Packer.toBlob(doc);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -609,7 +616,7 @@ export async function baixarDocx(
 }
 
 /** Exposto para testes: serializa o Document em XML sem disparar download. */
-export async function montarDocx(blocos: Bloco[], alineasCompactas = true): Promise<Document> {
+export async function montarDocx(blocos: Bloco[], estiloCompacto = true): Promise<Document> {
   const docx = await import('docx');
-  return blocosParaDocx(docx, blocos, alineasCompactas);
+  return blocosParaDocx(docx, blocos, estiloCompacto);
 }
