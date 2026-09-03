@@ -66,11 +66,57 @@ describe('PapelDeTrabalho', () => {
     expect(screen.getByText(/Nada sai daqui enquanto você não confirmar/)).toBeInTheDocument();
   });
 
+  /*
+   * O bloco responde "cada slide tem de onde sair?", e não "quantas células eu li".
+   * A contagem crua misturava célula, linha de texto e registro, e ninguém sabe
+   * conferir 1.394 valores: o número não pegava leitura incompleta, que era o
+   * motivo de existir.
+   */
+  it('lista os slides com a fonte de cada um', async () => {
+    render(<PapelDeTrabalho />);
+    escolhe(fixture('bens-e-dividas'), 'WP.xlsx');
+
+    await waitFor(() => expect(screen.getByText('De onde sai cada slide')).toBeInTheDocument());
+
+    expect(screen.getByText('Premissas, cartões')).toBeInTheDocument();
+    expect(screen.getByText('Resumo da Tributação')).toBeInTheDocument();
+    expect(screen.getByText('Transferência da Atividade Rural')).toBeInTheDocument();
+  });
+
+  /*
+   * Slide sem fonte tem de aparecer nomeado. Antes ele ficava escondido atrás de
+   * um zero numa contagem, e ninguém descobria que a apresentação sairia furada.
+   */
+  it('conta quantos slides sairiam vazios, e diz quais', async () => {
+    render(<PapelDeTrabalho />);
+    escolhe(fixture('bens-e-dividas'), 'so-apoio.xlsx');
+
+    await waitFor(() => expect(screen.getByText('De onde sai cada slide')).toBeInTheDocument());
+
+    /* A fixture só traz bens e dívidas, então quase todo slide fica sem fonte. */
+    expect(screen.getByText(/slides sairiam vazios/)).toBeInTheDocument();
+    expect(screen.getByText(/a DRE veio vazia/)).toBeInTheDocument();
+    expect(screen.getByText(/o resumo veio vazio/)).toBeInTheDocument();
+  });
+
+  /*
+   * O cartão de hectares não tem fonte no banco: a tabela de imóveis ficou fora do
+   * escopo por decisão de 02/09/2026. A tela precisa dizer isso, senão o slide sai
+   * incompleto sem explicação.
+   */
+  it('avisa que o cart\u00e3o de hect\u00e1res n\u00e3o tem fonte', async () => {
+    render(<PapelDeTrabalho />);
+    escolhe(fixture('bens-e-dividas'), 'WP.xlsx');
+
+    await waitFor(() => expect(screen.getByText('De onde sai cada slide')).toBeInTheDocument());
+    expect(screen.getByText(/cartão de hectares não tem fonte/)).toBeInTheDocument();
+  });
+
   it('mostra o que foi lido, sem bloco de problema, num WP bom', async () => {
     render(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'WP do cliente.xlsx');
 
-    await waitFor(() => expect(screen.getByText('O que foi lido')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('De onde sai cada slide')).toBeInTheDocument());
 
     expect(screen.getByText('O que o arquivo diz de si')).toBeInTheDocument();
     expect(screen.getByText('WP do cliente.xlsx')).toBeInTheDocument();
@@ -87,7 +133,7 @@ describe('PapelDeTrabalho', () => {
     render(<PapelDeTrabalho />);
     escolhe(fixture('transferencia-rural'), 'venda.xlsx');
 
-    await waitFor(() => expect(screen.getByText('O que foi lido')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('De onde sai cada slide')).toBeInTheDocument());
 
     /* A fixture não traz cabeçalho, então cai no intervalo simples. */
     expect(screen.getByText('2026 a 2032')).toBeInTheDocument();
@@ -104,7 +150,7 @@ describe('PapelDeTrabalho', () => {
     render(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'bom.xlsx');
 
-    await waitFor(() => expect(screen.getByText('O que foi lido')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('De onde sai cada slide')).toBeInTheDocument());
 
     expect(screen.getByRole('button', { name: /Confirmar e gravar/ })).toBeDisabled();
     expect(screen.getByText(/A gravação ainda não está ligada/)).toBeInTheDocument();
@@ -126,10 +172,10 @@ describe('PapelDeTrabalho', () => {
     render(<PapelDeTrabalho />);
     escolhe(fixture('dre'), 'dre.xlsx');
 
-    await waitFor(() => expect(screen.getByText('O que foi lido')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('De onde sai cada slide')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: /Começar de novo/ }));
 
     expect(screen.getByText(/Escolha o papel de trabalho preenchido/)).toBeInTheDocument();
-    expect(screen.queryByText('O que foi lido')).not.toBeInTheDocument();
+    expect(screen.queryByText('De onde sai cada slide')).not.toBeInTheDocument();
   });
 });

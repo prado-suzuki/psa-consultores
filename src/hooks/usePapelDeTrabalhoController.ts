@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react';
 
-import { lerWp, type ResultadoLeitura } from '@/lib/planejamento-tributario/parser';
+import { lerWp, type ResultadoLeitura, type ValorWp } from '@/lib/planejamento-tributario/parser';
 import { decideImportacao, type Decisao } from '@/lib/planejamento-tributario/recusa';
 import { validar } from '@/lib/planejamento-tributario/validacoes';
-import { VERSAO_DO_MAPA } from '@/lib/planejamento-tributario/mapa';
+import { ABA_FAROL, ABA_VENDA_DE_ATIVOS, VERSAO_DO_MAPA } from '@/lib/planejamento-tributario/mapa';
 
 /**
  * Controla a tela de conferência do papel de trabalho.
@@ -23,6 +23,25 @@ import { VERSAO_DO_MAPA } from '@/lib/planejamento-tributario/mapa';
  */
 
 export type EstadoDaAnalise = 'vazio' | 'lendo' | 'pronto' | 'falhou';
+
+/**
+ * Um slide da apresentação e o estado da fonte dele.
+ *
+ * **É esta a pergunta que a tela responde**, e não "quantas células eu li". A
+ * contagem crua não era verificável: ninguém sabe se 1.394 valores é o número
+ * certo, então ela não cumpria a função de pegar leitura incompleta. "3 cenários em
+ * 3 anos" e "9 blocos de comentário" se conferem abrindo a planilha, e slide sem
+ * fonte aparece nomeado em vez de escondido atrás de um zero.
+ */
+export interface SlideLido {
+  /** Como o slide se chama na apresentação. */
+  slide: string;
+  /** De onde ele sai, no vocabulário da planilha. */
+  fonte: string;
+  temFonte: boolean;
+  /** O que foi achado, em termos conferíveis na planilha. */
+  detalhe: string;
+}
 
 /** Quanto de cada bloco a leitura trouxe, para a tela mostrar sem recontar. */
 export interface ResumoDaLeitura {
@@ -53,6 +72,100 @@ export interface Analise {
   leitura: ResultadoLeitura;
   decisao: Decisao;
   resumo: ResumoDaLeitura;
+  slides: SlideLido[];
+}
+
+/**
+ * De onde sai cada slide, e o que foi achado para ele.
+ *
+ * A ordem é a da apresentação. Os comentários das notas do Farol não entram na
+ * conta das caixas de texto do Resumo, porque acompanham outro slide.
+ *
+ * **`Imóveis Explorados` não tem tabela no banco**, por decisão do Bernardo em
+ * 02/09/2026, e por isso o cartão de hectares aparece sem fonte mesmo quando a
+ * planilha traz os imóveis. É melhor a tela dizer isso do que o slide sair vazio
+ * sem ninguém saber por quê.
+ */
+function montaSlides(leitura: ResultadoLeitura): SlideLido[] {
+  const contaDe = (bloco: ValorWp['bloco'], filtro?: (v: ValorWp) => boolean) =>
+    leitura.valores.filter((v) => v.bloco === bloco && (filtro?.(v) ?? true));
+
+  const distintos = <T>(itens: T[]) => new Set(itens).size;
+  const plural = (n: number, um: string, muitos: string) => `${n} ${n === 1 ? um : muitos}`;
+
+  const daVenda = leitura.valores.filter((v) => v.cenario === ABA_VENDA_DE_ATIVOS.nome);
+  const daApuracao = contaDe('apuracao', (v) => v.cenario !== ABA_VENDA_DE_ATIVOS.nome);
+  const doResumo = contaDe('resumo');
+  const daDre = contaDe('dre');
+  const doFarol = leitura.farol;
+  const caixas = leitura.comentarios.filter((c) => c.cenario !== null);
+  const notas = leitura.comentarios.filter((c) => c.cenario === null);
+
+  return [
+    {
+      slide: 'Premissas, cartões',
+      fonte: 'totais de bens, dívidas e imóveis',
+      temFonte: leitura.bens.length > 0 || leitura.dividas.length > 0,
+      detalhe:
+        leitura.bens.length + leitura.dividas.length === 0
+          ? 'nenhum bem e nenhuma dívida na planilha'
+          : `${plural(leitura.bens.length, 'bem', 'bens')} e ${plural(leitura.dividas.length, 'dívida', 'dívidas')}. O cartão de hectares não tem fonte: a tabela de imóveis ficou fora do escopo`,
+    },
+    {
+      slide: 'Premissas, DRE',
+      fonte: 'DRE das abas de cenário',
+      temFonte: daDre.length > 0,
+      detalhe: daDre.length
+        ? `${plural(distintos(daDre.map((v) => v.rotulo)), 'conta', 'contas')} em ${plural(distintos(daDre.map((v) => v.ano)), 'ano', 'anos')}`
+        : 'a DRE veio vazia',
+    },
+    {
+      slide: 'Carga Tributária',
+      fonte: `aba ${ABA_FAROL.nome}`,
+      temFonte: doFarol.length > 0,
+      detalhe: doFarol.length
+        ? `${plural(distintos(doFarol.map((f) => f.rotulo)), 'linha', 'linhas')} nos quatro regimes`
+        : 'o farol veio vazio',
+    },
+    {
+      slide: 'Transferência da Atividade Rural',
+      fonte: 'aba de Venda de Ativos',
+      temFonte: daVenda.length > 0,
+      detalhe: daVenda.length
+        ? `${plural(distintos(daVenda.map((v) => v.ano)), 'ano', 'anos')} de apuração`
+        : 'a venda de ativos veio vazia',
+    },
+    {
+      slide: 'Resumo da Tributação',
+      fonte: 'aba Resumo',
+      temFonte: doResumo.length > 0,
+      detalhe: doResumo.length
+        ? `${plural(distintos(doResumo.map((v) => v.cenario)), 'cenário', 'cenários')} em ${plural(distintos(doResumo.map((v) => v.ano)), 'ano', 'anos')}`
+        : 'o resumo veio vazio',
+    },
+    {
+      slide: 'Resumo, caixas de texto',
+      fonte: 'comentários das abas de cenário',
+      temFonte: caixas.length > 0,
+      detalhe: caixas.length
+        ? `${plural(distintos(caixas.map((c) => `${c.cenario}|${c.tributo}`)), 'bloco', 'blocos')}, ${plural(caixas.length, 'linha', 'linhas')} de texto`
+        : 'nenhum comentário preenchido',
+    },
+    {
+      slide: 'Notas da Carga Tributária',
+      fonte: `notas de rodapé da aba ${ABA_FAROL.nome}`,
+      temFonte: notas.length > 0,
+      detalhe: notas.length ? `${plural(notas.length, 'nota', 'notas')}` : 'sem notas',
+    },
+    {
+      slide: 'Apuração do IRPF, por cenário',
+      fonte: 'apuração das abas de cenário',
+      temFonte: daApuracao.length > 0,
+      detalhe: daApuracao.length
+        ? `${plural(distintos(daApuracao.map((v) => v.cenario)), 'cenário', 'cenários')} em ${plural(distintos(daApuracao.map((v) => v.ano)), 'ano', 'anos')}`
+        : 'a apuração veio vazia',
+    },
+  ];
 }
 
 /** `Resumo!D16` e `Bens da Atv. Rural!8` viram `Resumo` e `Bens da Atv. Rural`. */
@@ -106,6 +219,7 @@ export function usePapelDeTrabalhoController() {
         leitura: { ...leitura, problemas: [...leitura.problemas, ...daValidacao] },
         decisao,
         resumo: resume(leitura),
+        slides: montaSlides(leitura),
       });
       setEstado('pronto');
     } catch (causa) {

@@ -1,10 +1,17 @@
 import { useRef } from 'react';
-import { AlertTriangle, FileSpreadsheet, RotateCcw, ShieldAlert, Upload } from 'lucide-react';
+import {
+  AlertTriangle,
+  Check,
+  FileSpreadsheet,
+  Minus,
+  RotateCcw,
+  ShieldAlert,
+  Upload,
+} from 'lucide-react';
 
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { usePapelDeTrabalhoController, type Analise } from '@/hooks/usePapelDeTrabalhoController';
 import type { ProblemaWp } from '@/lib/planejamento-tributario/parser';
 
@@ -119,40 +126,65 @@ function anosPorExtenso(analise: Analise): string | undefined {
   return primeiro === ultimo ? String(primeiro) : `${primeiro} a ${ultimo}`;
 }
 
-function Contagem({ analise }: { analise: Analise }) {
-  const { resumo } = analise;
-  const blocos = [
-    { rotulo: 'Valores', n: resumo.valores, onde: 'Resumo, DRE e apuração' },
-    { rotulo: 'Carga tributária', n: resumo.farol, onde: 'aba Farol' },
-    { rotulo: 'Comentários', n: resumo.comentarios, onde: 'caixas de texto do slide' },
-    { rotulo: 'Bens', n: resumo.bens, onde: 'anexo de bens' },
-    { rotulo: 'Dívidas', n: resumo.dividas, onde: 'anexo de dívidas' },
-  ];
+/**
+ * De onde sai cada slide.
+ *
+ * Substituiu um bloco de contagens cruas, que somava célula, linha de texto e
+ * registro com o mesmo peso e não dava para conferir: ninguém sabe se 1.394
+ * valores é o número certo, então o número não pegava leitura incompleta, que era
+ * a razão de ele existir.
+ *
+ * Aqui cada linha é um slide da apresentação, e o detalhe está em termos que se
+ * conferem abrindo a planilha: "3 cenários em 3 anos", "9 blocos de comentário".
+ * Slide sem fonte aparece nomeado, em vez de escondido atrás de um zero.
+ */
+function DeOndeSaiCadaSlide({ analise }: { analise: Analise }) {
+  const semFonte = analise.slides.filter((s) => !s.temFonte).length;
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">O que foi lido</CardTitle>
+        <CardTitle className="text-base">De onde sai cada slide</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          {semFonte === 0
+            ? 'Todos os slides têm de onde sair.'
+            : semFonte === 1
+              ? '1 slide sairia vazio.'
+              : `${semFonte} slides sairiam vazios.`}
+        </p>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-          {blocos.map((b) => (
-            <div key={b.rotulo}>
-              <p className="text-2xl font-semibold tabular-nums">{b.n.toLocaleString('pt-BR')}</p>
-              <p className="text-sm">{b.rotulo}</p>
-              <p className="text-xs text-muted-foreground">{b.onde}</p>
-            </div>
-          ))}
-        </div>
-        {resumo.anos.length > 0 && (
-          <>
-            <Separator />
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Campo rotulo="Anos" valor={anosPorExtenso(analise)} />
-              <Campo rotulo="Abas lidas" valor={resumo.abasLidas.join(' · ')} />
-            </div>
-          </>
-        )}
+      <CardContent className="divide-y divide-border/60">
+        {analise.slides.map((s) => (
+          <div
+            key={s.slide}
+            className="grid grid-cols-1 gap-1 py-2.5 first:pt-0 last:pb-0 md:grid-cols-[minmax(0,14rem)_minmax(0,11rem)_1fr] md:items-baseline md:gap-4"
+          >
+            <p className="flex items-center gap-2 text-sm font-medium">
+              {s.temFonte ? (
+                <Check className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+              ) : (
+                <Minus className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+              )}
+              {s.slide}
+            </p>
+            <p className="pl-6 text-sm text-muted-foreground md:pl-0">{s.fonte}</p>
+            <p className={`pl-6 text-sm md:pl-0 ${s.temFonte ? '' : 'text-muted-foreground'}`}>
+              {s.detalhe}
+            </p>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Os anos e as abas, que confirmam que a leitura pegou as colunas certas. */
+function ComoFoiLido({ analise }: { analise: Analise }) {
+  return (
+    <Card>
+      <CardContent className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
+        <Campo rotulo="Anos" valor={anosPorExtenso(analise)} />
+        <Campo rotulo="Abas lidas" valor={analise.resumo.abasLidas.join(' \u00b7 ')} />
       </CardContent>
     </Card>
   );
@@ -271,7 +303,8 @@ const PapelDeTrabalho = () => {
             )}
 
             <Cabecalho analise={analise} />
-            <Contagem analise={analise} />
+            <DeOndeSaiCadaSlide analise={analise} />
+            <ComoFoiLido analise={analise} />
 
             <Card>
               <CardContent className="flex flex-wrap items-center gap-3 py-4">
