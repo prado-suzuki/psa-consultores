@@ -1,6 +1,7 @@
-import { addMonths, format, isSameMonth, startOfMonth } from 'date-fns';
+import { addMonths, format, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDate } from '@/lib/dateUtils';
+import { matchesUrgency, type UrgencyFilter } from '@/lib/areaDashboardData';
 import type { OrgTask } from '@/hooks/useOrgTasks';
 
 /**
@@ -11,10 +12,15 @@ import type { OrgTask } from '@/hooks/useOrgTasks';
  * corrente. O Gantt fica fora — ele tem âncora e escala próprias
  * (semana/mês/trimestre), e forçá-lo a compartilhar o mês tiraria a escala.
  *
- * O recorte tem dois estados: `tudo` (o projeto inteiro, que é o PADRÃO) e um
- * mês. Só o mês existia, e a trava aparecia justamente onde ela mais dói —
- * quem abre um projeto no Kanban ou na Tabela quer ver as entregas dele, e
- * entrega do mês que vem ficava fora da tela sem dizer que estava fora.
+ * `tudo` (o projeto inteiro) é o PADRÃO. Só o mês existia, e a trava aparecia
+ * justamente onde ela mais dói — quem abre um projeto no Kanban ou na Tabela
+ * quer ver as entregas dele, e entrega do mês que vem ficava fora da tela sem
+ * dizer que estava fora.
+ *
+ * Os outros três recortes — atrasadas, próximos 30 dias, sem prazo — NÃO têm
+ * conta própria: são os do dashboard de área, pelo `matchesUrgency`. "Atrasada"
+ * já tinha definição no sistema, e duas contas de atrasada é como uma tela passa
+ * a discordar da outra.
  */
 
 /** "Agosto de 2026" — o mesmo formato do título do Gantt na escala de mês. */
@@ -32,10 +38,24 @@ export const ESCOPO_TUDO = 'tudo';
 /** O rótulo de `ESCOPO_TUDO`, que também é o título da barra nesse estado. */
 export const ROTULO_TUDO = 'Tudo';
 
+/**
+ * O recorte: tudo, um mês, ou uma das três faixas de prazo.
+ *
+ * As três faixas são valores do `UrgencyFilter` do dashboard de área, de
+ * propósito: assim o filtro daqui e o de lá não podem divergir.
+ */
+export type EscopoDeTarefas = 'tudo' | 'mes' | 'overdue' | 'next_30' | 'no_due';
+
+export interface RecorteDeTarefas {
+  escopo: EscopoDeTarefas;
+  /** O mês âncora. Vale para o escopo `mes`, e é onde as setas continuam de. */
+  mes: Date;
+}
+
 export interface OpcaoDeEscopo {
-  /** `ESCOPO_TUDO` ou o mês em `yyyy-MM`. */
+  /** Um `EscopoDeTarefas` que não seja `mes`, ou um mês em `yyyy-MM`. */
   valor: string;
-  /** O rótulo como o menu mostra: "Tudo", "set/2026". */
+  /** O rótulo como o menu mostra: "Tudo", "Atrasadas", "set". */
   rotulo: string;
 }
 
@@ -51,9 +71,6 @@ export function mesDoValor(valor: string): Date | null {
   return new Date(ano, mes - 1, 1);
 }
 
-/** Meia dúzia para cada lado de hoje é o alcance do seletor sem virar rolagem. */
-const MESES_AO_REDOR = 6;
-
 /** O título começa frase; `tituloDoMes` vem do date-fns em minúscula. */
 const maiusculaInicial = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1);
 
@@ -62,38 +79,98 @@ export function rotuloDoMes(mes: Date): string {
   return maiusculaInicial(tituloDoMes(mes));
 }
 
-/**
- * O mês como ITEM do menu: "set/2026".
- *
- * O nome inteiro treze vezes empilhado vira parede de texto, e é a forma que a
- * competência fiscal já tem em todo lugar. O título continua por extenso: lá é
- * uma linha só, e ele diz em que mês a tela está.
- */
-export function rotuloCurtoDoMes(mes: Date): string {
-  return format(mes, 'MMM/yyyy', { locale: ptBR });
+/** O mês como ITEM da grade: "set". O ano está no cabeçalho dela. */
+export function abreviacaoDoMes(mes: Date): string {
+  return format(mes, 'MMM', { locale: ptBR });
 }
 
 /**
- * As opções do seletor: `Tudo` e uma janela de meses em volta de hoje.
+ * Os atalhos do menu, na ordem em que aparecem.
  *
- * `mes` entra na lista mesmo fora da janela porque as setas levam mais longe do
- * que o seletor mostra, e o `Select` sem o próprio valor abre em branco.
+ * "Este mês" é o mês corrente, então o valor dele é um MÊS e não um escopo
+ * próprio: escolher o atalho e clicar em `set` na grade têm de ser o mesmo
+ * estado, senão a tela passa a ter duas maneiras de estar em setembro.
+ *
+ * A redação é a do dashboard de área ("Atrasadas", "Próximos 30 dias", "Sem
+ * prazo"), porque o filtro por baixo é literalmente o mesmo.
  */
-export function opcoesDeEscopo(hoje: Date, mes: Date): OpcaoDeEscopo[] {
-  const janela = new Map<string, Date>();
-  for (let passo = -MESES_AO_REDOR; passo <= MESES_AO_REDOR; passo++) {
-    const candidato = startOfMonth(addMonths(hoje, passo));
-    janela.set(valorDoMes(candidato), candidato);
-  }
-  const ancora = startOfMonth(mes);
-  janela.set(valorDoMes(ancora), ancora);
-
+export function atalhosDeEscopo(hoje: Date): OpcaoDeEscopo[] {
   return [
     { valor: ESCOPO_TUDO, rotulo: ROTULO_TUDO },
-    ...[...janela.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([valor, data]) => ({ valor, rotulo: rotuloCurtoDoMes(data) })),
+    { valor: 'overdue', rotulo: 'Atrasadas' },
+    { valor: valorDoMes(hoje), rotulo: 'Este mês' },
+    { valor: 'next_30', rotulo: 'Próximos 30 dias' },
+    { valor: 'no_due', rotulo: 'Sem prazo' },
   ];
+}
+
+/**
+ * Os doze meses de um ano, para a grade.
+ *
+ * A grade existe porque a lista única de treze meses era rolagem: mês e ano
+ * separados, o ano navega no cabeçalho e os doze cabem sem rolar.
+ */
+export function mesesDoAno(ano: number): OpcaoDeEscopo[] {
+  return Array.from({ length: 12 }, (_, indice) => {
+    const data = new Date(ano, indice, 1);
+    return { valor: valorDoMes(data), rotulo: abreviacaoDoMes(data) };
+  });
+}
+
+/** O valor que marca o item escolhido no menu. */
+export function valorDoRecorte({ escopo, mes }: RecorteDeTarefas): string {
+  return escopo === 'mes' ? valorDoMes(mes) : escopo;
+}
+
+/** O caminho de volta: do valor clicado no menu para o recorte. */
+export function recorteDoValor(valor: string, ancora: Date): RecorteDeTarefas {
+  const mes = mesDoValor(valor);
+  if (mes) return { escopo: 'mes', mes };
+  const escopo = valor as EscopoDeTarefas;
+  return {
+    escopo: escopo === 'mes' ? 'tudo' : escopo,
+    mes: ancora,
+  };
+}
+
+/** O que a barra escreve como título. */
+export function rotuloDoRecorte({ escopo, mes }: RecorteDeTarefas): string {
+  if (escopo === 'mes') return rotuloDoMes(mes);
+  if (escopo === ESCOPO_TUDO) return ROTULO_TUDO;
+  const atalho = atalhosDeEscopo(mes).find(opcao => opcao.valor === escopo);
+  return atalho?.rotulo ?? ROTULO_TUDO;
+}
+
+/**
+ * A frase que explica a tela vazia, ou `null` quando não há recorte a culpar.
+ *
+ * Existe porque "Nenhuma tarefa encontrada" num recorte é meia informação: a
+ * tarefa existe, ela é que está fora dele. Em `tudo` o vazio é o vazio, e quem
+ * chama escreve o texto próprio.
+ */
+export function mensagemDoVazio({ escopo, mes }: RecorteDeTarefas): string | null {
+  if (escopo === 'mes') return `Nada com prazo em ${tituloDoMes(mes)}`;
+  if (escopo === 'overdue') return 'Nenhuma tarefa atrasada';
+  if (escopo === 'next_30') return 'Nada com prazo nos próximos 30 dias';
+  if (escopo === 'no_due') return 'Nenhuma tarefa sem prazo';
+  return null;
+}
+
+/**
+ * O recorte aplicado.
+ *
+ * As faixas de prazo saem do `matchesUrgency` do dashboard de área — mesma
+ * conta, mesma resposta nas duas telas.
+ */
+export function tarefasNoEscopo(
+  tasks: OrgTask[],
+  { escopo, mes }: RecorteDeTarefas,
+  hoje: Date,
+): OrgTask[] {
+  if (escopo === ESCOPO_TUDO) return tasks;
+  if (escopo === 'mes') return tarefasNoPeriodo(tasks, mes, hoje);
+  const urgencia: UrgencyFilter = escopo;
+  return tasks.filter(task => matchesUrgency(task, urgencia, hoje));
 }
 
 /**

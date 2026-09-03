@@ -38,7 +38,7 @@ import { TaskStatusTransitionDialog } from '@/components/equipe/fiscal/tasks/Tas
  import { useTaskStatusTransition } from '@/hooks/useTaskStatusTransition';
 import { toast } from 'sonner';
 import { BarraDeMes } from '@/components/shared/BarraDeMes';
-import { tituloDoMes } from '@/lib/periodoDeTarefas';
+import { mensagemDoVazio } from '@/lib/periodoDeTarefas';
 import type { PeriodoDeTarefas } from '@/hooks/usePeriodoDeTarefas';
 
 interface TaskTableProps {
@@ -274,6 +274,10 @@ const statusLabels = Object.fromEntries(
      );
    };
  
+   // Diz a CAUSA quando ela é o recorte: "nenhuma tarefa encontrada" num mês
+   // vazio soa como projeto sem tarefa. `null` = não há recorte a culpar.
+   const vazioDoRecorte = mensagemDoVazio(periodo);
+
    // `bg-card` explicito: o container da tabela sempre foi transparente, e isso
    // nao aparecia porque as linhas da Table carregam fundo proprio. Com a barra
    // do mes em cima, a faixa dela ficava no fundo da PAGINA — a tabela era a
@@ -298,10 +302,8 @@ const statusLabels = Object.fromEntries(
            {parentTasks.length === 0 ? (
              <TableRow>
                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                 {/* Diz a CAUSA quando ela é o recorte: "nenhuma tarefa
-                     encontrada" num mês vazio soa como projeto sem tarefa. */}
-                 {periodo.escopo === 'mes'
-                   ? `Nenhuma tarefa com prazo em ${tituloDoMes(periodo.mes)}. Use "Ver tudo" na barra acima.`
+                 {vazioDoRecorte
+                   ? `${vazioDoRecorte}. Use "Ver tudo" na barra acima.`
                    : 'Nenhuma tarefa encontrada'}
                </TableCell>
              </TableRow>

@@ -1,16 +1,21 @@
 import { useMemo, useState } from 'react';
-import { ESCOPO_TUDO, mesDoValor, passoDeMes, tarefasNoPeriodo } from '@/lib/periodoDeTarefas';
+import {
+  passoDeMes,
+  recorteDoValor,
+  tarefasNoEscopo,
+  tarefasNoPeriodo,
+  type EscopoDeTarefas,
+} from '@/lib/periodoDeTarefas';
 import { getTodayBrazil } from '@/lib/dateUtils';
 import type { OrgTask } from '@/hooks/useOrgTasks';
 
-/** `tudo` é o projeto inteiro; `mes`, o recorte de um mês. */
-export type EscopoDeTarefas = 'tudo' | 'mes';
+export type { EscopoDeTarefas };
 
 export interface PeriodoDeTarefas {
   /** O mês âncora. Existe mesmo em `tudo`: é onde as setas e o Calendário caem. */
   mes: Date;
   escopo: EscopoDeTarefas;
-  /** As tarefas do escopo: todas, ou as do mês. */
+  /** As tarefas do escopo: todas, as do mês, ou as da faixa de prazo. */
   tarefas: OrgTask[];
   /**
    * Sempre o recorte do mês, para quem não sabe desenhar "tudo" — a grade do
@@ -20,7 +25,7 @@ export interface PeriodoDeTarefas {
   tarefasDoMes: OrgTask[];
   onPasso: (direcao: 1 | -1) => void;
   onHoje: () => void;
-  /** `ESCOPO_TUDO` ou um mês em `yyyy-MM` — os valores de `opcoesDeEscopo`. */
+  /** Os valores de `atalhosDeEscopo` e `mesesDoAno` — ver `recorteDoValor`. */
   onEscopo: (valor: string) => void;
 }
 
@@ -33,8 +38,8 @@ export interface PeriodoDeTarefas {
  *
  * **`tudo` é o padrão.** O mês nasceu como recorte único e virou trava: a
  * Tabela e o Kanban de um projeto escondiam a entrega do mês seguinte, que é
- * exatamente o que se abre um projeto para ver. O mês continua a um clique, no
- * seletor do título ou na seta.
+ * exatamente o que se abre um projeto para ver. O mês continua a um clique, na
+ * grade do título ou na seta, ao lado das faixas de prazo.
  *
  * `hoje` entra no recorte do mês porque tarefa sem prazo fica parada em hoje:
  * ela só aparece enquanto o mês corrente está à vista.
@@ -52,11 +57,16 @@ export function usePeriodoDeTarefas(tasks: OrgTask[]): PeriodoDeTarefas {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `diaDeHoje` representa `hoje`; ver o comentário acima.
     [tasks, mes, diaDeHoje],
   );
+  const tarefas = useMemo(
+    () => tarefasNoEscopo(tasks, { escopo, mes }, hoje),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `diaDeHoje` representa `hoje`; ver o comentário acima.
+    [tasks, escopo, mes, diaDeHoje],
+  );
 
   return {
     mes,
     escopo,
-    tarefas: escopo === 'tudo' ? tasks : tarefasDoMes,
+    tarefas,
     tarefasDoMes,
     /* A seta ANDA o mês e entra no recorte no mesmo gesto — é o caminho de quem
        está em `tudo` e quer olhar mês a mês. Ela não para no mês corrente antes
@@ -72,14 +82,9 @@ export function usePeriodoDeTarefas(tasks: OrgTask[]): PeriodoDeTarefas {
       setMes(new Date());
     },
     onEscopo: valor => {
-      if (valor === ESCOPO_TUDO) {
-        setEscopo('tudo');
-        return;
-      }
-      const escolhido = mesDoValor(valor);
-      if (!escolhido) return;
-      setEscopo('mes');
-      setMes(escolhido);
+      const recorte = recorteDoValor(valor, mes);
+      setEscopo(recorte.escopo);
+      setMes(recorte.mes);
     },
   };
 }

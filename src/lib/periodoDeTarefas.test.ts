@@ -1,19 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import {
   ESCOPO_TUDO,
+  atalhosDeEscopo,
+  mensagemDoVazio,
   mesDoValor,
-  opcoesDeEscopo,
+  mesesDoAno,
   ordenarPorVencimento,
   passoDeMes,
+  recorteDoValor,
   rotuloDoMes,
+  rotuloDoRecorte,
+  tarefasNoEscopo,
   tarefasNoPeriodo,
   tituloDoMes,
   valorDoMes,
+  valorDoRecorte,
 } from '@/lib/periodoDeTarefas';
 import type { OrgTask } from '@/hooks/useOrgTasks';
 
-const tarefa = (id: string, due_date: string | null): OrgTask =>
-  ({ id, title: id, due_date, status: 'todo' }) as OrgTask;
+const tarefa = (id: string, due_date: string | null, status = 'todo'): OrgTask =>
+  ({ id, title: id, due_date, status }) as OrgTask;
 
 const AGOSTO = new Date(2026, 7, 1);
 const HOJE = new Date(2026, 7, 12);
@@ -79,35 +85,95 @@ describe('tarefasNoPeriodo', () => {
   });
 });
 
-describe('opcoesDeEscopo', () => {
-  it('abre em Tudo e oferece meia dúzia de meses para cada lado de hoje', () => {
-    const opcoes = opcoesDeEscopo(HOJE, AGOSTO);
-
-    expect(opcoes[0]).toEqual({ valor: ESCOPO_TUDO, rotulo: 'Tudo' });
-    // 13 meses: fevereiro de 2026 até fevereiro de 2027.
-    expect(opcoes).toHaveLength(14);
-    expect(opcoes[1].valor).toBe('2026-02');
-    expect(opcoes[opcoes.length - 1].valor).toBe('2027-02');
+describe('atalhosDeEscopo', () => {
+  it('abre em Tudo e traz as faixas de prazo, na ordem do menu', () => {
+    expect(atalhosDeEscopo(HOJE)).toEqual([
+      { valor: ESCOPO_TUDO, rotulo: 'Tudo' },
+      { valor: 'overdue', rotulo: 'Atrasadas' },
+      { valor: '2026-08', rotulo: 'Este mês' },
+      { valor: 'next_30', rotulo: 'Próximos 30 dias' },
+      { valor: 'no_due', rotulo: 'Sem prazo' },
+    ]);
   });
 
-  it('inclui o mês âncora quando a seta já o levou fora da janela', () => {
-    // O menu abriria em branco se o valor selecionado não estivesse na lista.
-    const LONGE = new Date(2028, 4, 1);
-    const opcoes = opcoesDeEscopo(HOJE, LONGE);
+  it('"Este mês" é o mês corrente, e não um escopo à parte', () => {
+    // Se fosse escopo próprio, escolher o atalho e clicar em `ago` na grade
+    // seriam dois estados diferentes para a mesma tela.
+    const atalho = atalhosDeEscopo(HOJE).find(o => o.rotulo === 'Este mês');
 
-    expect(opcoes.map(o => o.valor)).toContain('2028-05');
-    // E a lista segue em ordem: o mês de fora entra no lugar dele, não no fim.
-    const meses = opcoes.slice(1).map(o => o.valor);
-    expect(meses).toEqual([...meses].sort());
+    expect(atalho?.valor).toBe(valorDoMes(HOJE));
+    expect(recorteDoValor(atalho!.valor, AGOSTO)).toEqual({ escopo: 'mes', mes: AGOSTO });
   });
+});
 
-  it('o item do menu é curto, e o título da barra é por extenso', () => {
-    // Treze nomes de mês empilhados viram parede de texto; o título é um só e
-    // acompanha o do Gantt e do Calendário.
-    const agosto = opcoesDeEscopo(HOJE, AGOSTO).find(o => o.valor === '2026-08');
+describe('mesesDoAno', () => {
+  it('doze meses abreviados, com o ano no valor e fora do rótulo', () => {
+    // O ano vive no cabeçalho da grade: repetir "2026" doze vezes é o que
+    // fazia a lista antiga precisar de rolagem.
+    const meses = mesesDoAno(2026);
 
-    expect(agosto?.rotulo).toBe('ago/2026');
+    expect(meses).toHaveLength(12);
+    expect(meses[0]).toEqual({ valor: '2026-01', rotulo: 'jan' });
+    expect(meses[11]).toEqual({ valor: '2026-12', rotulo: 'dez' });
+  });
+});
+
+describe('valorDoRecorte, rotuloDoRecorte e mensagemDoVazio', () => {
+  it('o mês marca a grade e escreve o título por extenso', () => {
+    const recorte = { escopo: 'mes' as const, mes: AGOSTO };
+
+    expect(valorDoRecorte(recorte)).toBe('2026-08');
+    expect(rotuloDoRecorte(recorte)).toBe('Agosto de 2026');
+    expect(mensagemDoVazio(recorte)).toBe('Nada com prazo em agosto de 2026');
     expect(rotuloDoMes(AGOSTO)).toBe('Agosto de 2026');
+  });
+
+  it('a faixa de prazo marca o atalho e diz o próprio vazio', () => {
+    const recorte = { escopo: 'overdue' as const, mes: AGOSTO };
+
+    expect(valorDoRecorte(recorte)).toBe('overdue');
+    expect(rotuloDoRecorte(recorte)).toBe('Atrasadas');
+    expect(mensagemDoVazio(recorte)).toBe('Nenhuma tarefa atrasada');
+  });
+
+  it('em Tudo não há recorte a culpar pelo vazio', () => {
+    const recorte = { escopo: ESCOPO_TUDO as 'tudo', mes: AGOSTO };
+
+    expect(rotuloDoRecorte(recorte)).toBe('Tudo');
+    expect(mensagemDoVazio(recorte)).toBeNull();
+  });
+});
+
+describe('tarefasNoEscopo', () => {
+  const tarefas = [
+    tarefa('atrasada', '2026-08-01'),
+    tarefa('atrasada-concluida', '2026-08-02', 'done'),
+    tarefa('daqui-uma-semana', '2026-08-19'),
+    tarefa('daqui-dois-meses', '2026-10-19'),
+    tarefa('sem-prazo', null),
+  ];
+  const ids = (escopo: 'tudo' | 'mes' | 'overdue' | 'next_30' | 'no_due') =>
+    tarefasNoEscopo(tarefas, { escopo, mes: AGOSTO }, HOJE).map(t => t.id);
+
+  it('tudo não recorta nada', () => {
+    expect(ids('tudo')).toHaveLength(tarefas.length);
+  });
+
+  it('as faixas de prazo são as do dashboard de área, sem conta nova', () => {
+    // Atrasada exclui a concluída — é a regra do `matchesUrgency`, e o teste
+    // está aqui para a divergência entre as duas telas aparecer.
+    expect(ids('overdue')).toEqual(['atrasada']);
+    expect(ids('next_30')).toEqual(['daqui-uma-semana']);
+    expect(ids('no_due')).toEqual(['sem-prazo']);
+  });
+
+  it('o mês continua sendo o mês, com a tarefa sem prazo parada em hoje', () => {
+    expect(ids('mes')).toEqual([
+      'atrasada',
+      'atrasada-concluida',
+      'daqui-uma-semana',
+      'sem-prazo',
+    ]);
   });
 });
 
