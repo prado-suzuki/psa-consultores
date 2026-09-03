@@ -64,8 +64,11 @@ type MotivoDeFicar =
 const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
   'escada-de-status': {
     'src/components/equipe/HorasAcumuladas.tsx': 1,
+    // O `AuditPendenciasTable` fica, e o motivo é mais forte que "ainda não
+    // converteram": o `CORES_MOTIVO` é ESCALA de severidade, não escada de status, e
+    // o contrato diz que gradiente não veste papel. O `AuditPessoasTable` saiu em
+    // 03/09 — o `parou` dele era estado de verdade, e virou `alerta`.
     'src/components/equipe/audit/AuditPendenciasTable.tsx': 4,
-    'src/components/equipe/audit/AuditPessoasTable.tsx': 2,
     'src/components/equipe/dashboards/analise-inteligente/AnaliseInteligenteKpis.tsx': 2,
     'src/components/equipe/dev/calculadora-ibs-cbs/por-estado/PorEstadoKpis.tsx': 1,
     'src/components/equipe/dev/efd-export/EFDExportStatus.tsx': 2,

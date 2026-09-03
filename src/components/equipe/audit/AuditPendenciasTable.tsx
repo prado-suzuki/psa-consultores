@@ -42,7 +42,17 @@ const SEM_NOMES: Record<string, string> = {};
 
 const TODOS = 'todos';
 
-/** Cor por severidade: quanto mais em cima na fila, mais forte o aviso. */
+/**
+ * Cor por severidade: quanto mais em cima na fila, mais forte o aviso.
+ *
+ * ⚠️ **Fica em cor crua de propósito, e não é esquecimento.** Isto é ESCALA, não
+ * papel de status: os seis motivos são um gradiente de gravidade, e o contrato
+ * (`docs/geral/paleta-por-area.md`, "escala que não é status") diz que gradiente
+ * não veste papel — `ajuste`/`alerta`/`neutro` aqui fariam três degraus parecerem
+ * três estados diferentes de uma coisa. Enquanto não houver escala institucional
+ * para severidade, converter isto piora. Está registrado no §2 de
+ * `docs/geral/cor-o-que-falta.md`, junto com as outras que esperam decisão.
+ */
 const CORES_MOTIVO: Record<MotivoPendencia, string> = {
   sem_projeto: 'bg-red-100 text-red-700',
   sem_cliente: 'bg-red-100 text-red-700',
@@ -217,7 +227,7 @@ export const AuditPendenciasTable = ({ area }: AuditPendenciasTableProps) => {
                 <TableRow>
                   <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                     <span className="flex items-center justify-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <CheckCircle2 className="h-4 w-4 text-status-feito" />
                       {linhas.length === 0
                         ? 'Nada pendente: todo item tocado no período tem cliente, OS e produto.'
                         : 'Nenhum item com esse motivo no período.'}

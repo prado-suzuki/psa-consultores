@@ -59,10 +59,19 @@ interface DefinicaoColuna {
   classeCelula?: string;
 }
 
+/**
+ * A situação de registro da pessoa, nos papéis de status da área.
+ *
+ * `sem_registro` NÃO é `ajuste`: como o texto de ajuda da coluna faz questão de
+ * dizer, isto é sobre registro no sistema e não sobre o trabalho da pessoa —
+ * ausência de dado na janela escolhida não é falha de ninguém, e vermelho ali
+ * acusaria. Fica `neutro`. `parou` é `alerta` porque é o único dos três em que a
+ * urgência sobe com o tempo.
+ */
 const CORES_SITUACAO: Record<SituacaoPessoa, string> = {
-  ativo: 'bg-emerald-100 text-emerald-700',
-  parou: 'bg-amber-100 text-amber-700',
-  sem_registro: 'bg-red-100 text-red-700',
+  ativo: 'bg-status-andamento-soft text-status-andamento',
+  parou: 'bg-status-alerta-soft text-status-alerta',
+  sem_registro: 'bg-status-neutro-soft text-status-neutro',
 };
 
 /** Data e hora curtas; `—` quando não há valor a mostrar. */
@@ -132,8 +141,15 @@ const COLUNAS: Record<ColunaPessoa, DefinicaoColuna> = {
     label: 'Atrasadas',
     numerica: true,
     ajuda: 'Das tarefas abertas dela, quantas já passaram do prazo. Tarefa sem prazo preenchido nunca conta como atrasada.',
-    classeCelula: 'text-red-700',
-    render: linha => linha.tarefasAtrasadas,
+    // A cor sai do `classeCelula`, que pintava a coluna inteira: em vermelho
+    // estático, "0 atrasadas" também aparecia em vermelho, afirmando problema onde
+    // não há nenhum. Agora só marca quando há atraso — a mesma regra do estouro de
+    // horas em `AuditProdutividadeTable`.
+    render: linha => (
+      <span className={cn(linha.tarefasAtrasadas > 0 && 'font-medium text-status-ajuste')}>
+        {linha.tarefasAtrasadas}
+      </span>
+    ),
   },
   situacao: {
     label: 'Situação',

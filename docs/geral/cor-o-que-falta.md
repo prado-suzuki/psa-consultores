@@ -1,8 +1,14 @@
 # Cor: o que falta, e por que cada coisa parou onde parou
 
 Estado em **03/09/2026**. O corpo do documento é a rodada de 19 commits de 01/09; em 03/09
-vieram quatro rodadas em cima dele — os rótulos de chamado, o estado de documento, a palavra
-única dos três pares e a âncora vermelha da OSG —, e o §5 ganhou três catracas.
+vieram cinco rodadas em cima dele — os rótulos de chamado, o estado de documento, a palavra
+única dos três pares, a âncora vermelha da OSG e a pasta `equipe/audit` —, e o §5 ganhou três
+catracas.
+
+> **A alavanca que funciona, medida cinco vezes seguidas:** procurar o **mapa de domínio**
+> antes de escrever classe. Das cinco rodadas, cinco acharam reuso que não tinha acontecido —
+> a última achou a segunda cópia de um mapa que a rodada anterior tinha acabado de consertar,
+> em outra pasta. Varredura por família de cor, no mesmo período, não rendeu nenhuma vez.
 
 Este documento é o ponto de retomada. Ele não repete o contrato — o contrato é
 [`paleta-por-area.md`](paleta-por-area.md), e continua sendo a fonte. Aqui está só **o que
@@ -51,6 +57,23 @@ do `chamadoStatusColors`, o mapeamento tinha o mesmo trio em quatro lugares, e o
 A lista dos cinco mapas está na seção "Status tem mapa, não classe" do
 [`paleta-por-area.md`](paleta-por-area.md).
 
+**A pasta `equipe/audit` fechou em 03/09/2026**, e ela é a prova da regra acima: o
+`AuditProdutividadeTable` pintava Criações/Edições/Exclusões com **o mesmo trio**
+esmeralda/azul/vermelho do `ACTION_LABELS` do `HistoricoFlutuante`, sobre a mesma
+`audit_logs.action` — duas cópias do mesmo mapa, achadas porque a rodada anterior tinha
+convertido a primeira. O `AuditLogTable` tinha a terceira cópia do diff `oldValue → newValue`.
+O que a rodada decidiu, e vale como precedente:
+
+- **selo veste papel; contagem não.** As três colunas numéricas perderam a cor — vermelho em
+  "Exclusões" afirmava problema sobre atividade normal, e as outras colunas da mesma tabela
+  (`registros`, `itensDistintos`, `diasAtivos`) nunca tiveram tom nenhum;
+- **número só ganha cor quando a condição é verdadeira.** "Atrasadas" pintava a coluna inteira
+  em vermelho estático, então "0 atrasadas" aparecia em vermelho. Agora só marca acima de zero,
+  como o estouro de horas ao lado já fazia;
+- **ausência de dado não é falha.** `sem_registro` foi para `neutro`, não `ajuste`: o texto de
+  ajuda da própria coluna diz que aquilo é sobre registro no sistema, não sobre o trabalho da
+  pessoa.
+
 ## 2. As escadas que exigem decisão, não conversão
 
 Estas ficaram paradas de propósito. Cada uma precisa de uma escolha sua antes de virar código.
@@ -60,6 +83,7 @@ Estas ficaram paradas de propósito. Cada uma precisa de uma escolha sua antes d
 | `projectPresentation.tsx`, `getStatusBadge` | `blocked` é `espera` ("travado por alguém de fora") ou `ajuste` ("deu problema")? Hoje é vermelho, e o `archived` do lado já está em papel |
 | `PerDetailModal.tsx` | ~20 estados de PER/DCOMP que não mapeiam nos oito papéis. Precisa decidir o vocabulário antes da cor |
 | as 12 paletas categóricas | `pageCategoryStyles`, `roleOptions`, `AgendaTab` e outras têm 5 a 7 categorias. O contrato tem **quatro** `--tag-*`, e são quatro de propósito. Não há token para a quinta |
+| `AuditPendenciasTable`, `CORES_MOTIVO` | Os seis motivos são **gradiente de gravidade**, não estados — e o contrato diz que escala não veste papel. Ou nasce uma escala institucional para severidade, ou fica em cor crua. Foi a única coisa que ficou de pé na rodada da pasta `audit`, e o motivo está escrito no próprio arquivo |
 
 ## 3. `projects.status` — não é dívida de cor, é defeito de produto
 
