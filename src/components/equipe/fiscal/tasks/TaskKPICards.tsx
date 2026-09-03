@@ -12,8 +12,10 @@ export const TaskKPICards = ({ tasks }: TaskKPICardsProps) => {
     return acc;
   }, {} as Record<string, number>);
 
+  // Sem cartão próprio: a barra é a primeira faixa da barra de ferramentas do
+  // painel, que é quem desenha a borda e o raio. Consumidor único.
   return (
-    <div className="flex overflow-x-auto rounded-xl border bg-card p-1 shadow-sm">
+    <div className="flex overflow-x-auto p-1">
       {statusList.map((status, index) => {
         const total = counts[status.key] ?? 0;
         return (
