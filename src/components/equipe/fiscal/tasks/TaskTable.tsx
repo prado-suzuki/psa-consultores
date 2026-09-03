@@ -38,6 +38,7 @@ import { TaskStatusTransitionDialog } from '@/components/equipe/fiscal/tasks/Tas
  import { useTaskStatusTransition } from '@/hooks/useTaskStatusTransition';
 import { toast } from 'sonner';
 import { BarraDeMes } from '@/components/shared/BarraDeMes';
+import { tituloDoMes } from '@/lib/periodoDeTarefas';
 import type { PeriodoDeTarefas } from '@/hooks/usePeriodoDeTarefas';
 
 interface TaskTableProps {
@@ -297,7 +298,11 @@ const statusLabels = Object.fromEntries(
            {parentTasks.length === 0 ? (
              <TableRow>
                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                 Nenhuma tarefa encontrada
+                 {/* Diz a CAUSA quando ela é o recorte: "nenhuma tarefa
+                     encontrada" num mês vazio soa como projeto sem tarefa. */}
+                 {periodo.escopo === 'mes'
+                   ? `Nenhuma tarefa com prazo em ${tituloDoMes(periodo.mes)}. Use "Ver tudo" na barra acima.`
+                   : 'Nenhuma tarefa encontrada'}
                </TableCell>
              </TableRow>
            ) : (

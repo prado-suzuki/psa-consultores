@@ -59,6 +59,7 @@ import { TaskStatusTransitionDialog } from '@/components/equipe/fiscal/tasks/Tas
  import { useTaskStatusTransition } from '@/hooks/useTaskStatusTransition';
 import { BarraDeMes } from '@/components/shared/BarraDeMes';
 import type { PeriodoDeTarefas } from '@/hooks/usePeriodoDeTarefas';
+import { tituloDoMes } from '@/lib/periodoDeTarefas';
 import { TaskStatusDot } from '@/components/equipe/tarefas/TaskStatusDot';
 import {
   esforcoDaTarefa,
@@ -450,6 +451,18 @@ export function ProjetosTarefasList({
         <p className="font-medium">Nenhuma tarefa corresponde aos filtros</p>
         <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Clientes, OS e projetos sem tarefas correspondentes ficam ocultos. Limpe os filtros para ver toda a estrutura.</p>
         {onClearFilters && <Button variant="outline" size="sm" className="mt-4 gap-2" onClick={onClearFilters}><FilterX className="h-4 w-4" />Limpar filtros</Button>}
+      </div>);
+    }
+    // No recorte de um mês, o vazio quase nunca é "não há projeto": é o mês que
+    // não tem prazo nenhum. Dizer "crie um projeto" ali manda a pessoa criar o
+    // que ela já tem.
+    if (periodo.escopo === 'mes') {
+      return comBarra(<div className="rounded-xl border border-dashed py-16 text-center">
+        <FolderKanban className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
+        <p className="font-medium">Nada com prazo em {tituloDoMes(periodo.mes)}</p>
+        {/* Sem botão aqui: o "Ver tudo" da barra está logo acima, e duas saídas
+            com o mesmo nome na mesma tela não são duas saídas. */}
+        <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">O recorte é do mês. Use "Ver tudo", na barra acima, para o projeto inteiro.</p>
       </div>);
     }
     return comBarra(<div className="rounded-xl border border-dashed py-16 text-center"><FolderKanban className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" /><p className="font-medium">Nenhum projeto ou tarefa encontrado</p><p className="mt-1 text-sm text-muted-foreground">Crie um novo projeto para começar.</p></div>);
