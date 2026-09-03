@@ -10,7 +10,9 @@ import type { OnboardingOrdemServico } from '@/hooks/useOnboarding';
 import { railItemCls } from './onboardingKit';
 
 /**
- * Escolhe DE QUAL OS gerar a lista, quando o cliente tem mais de uma na OSG.
+ * Escolhe DE QUAL OS gerar a lista, quando o cliente tem mais de uma com produto
+ * da OSG. Quais OS chegam aqui é decidido em `src/lib/ordensDaArea.ts`, pelo
+ * produto contratado — nunca pela empresa que fatura.
  *
  * Existe porque antes a geração somava todas as OS em silêncio. O consultor não
  * tinha como saber de onde cada documento veio, e a solicitação — que guarda um
@@ -42,9 +44,9 @@ export function SelecionarOsDialog({
         <DialogHeader>
           <DialogTitle>De qual OS gerar a lista?</DialogTitle>
           <DialogDescription>
-            Este cliente tem mais de uma OS na OSG. A lista sai dos produtos de uma delas, e
-            fica registrada na solicitação. Depois você pode incluir e dispensar documentos à
-            mão.
+            Este cliente tem mais de uma OS com produto da OSG. A lista sai dos produtos de
+            uma delas, e fica registrada na solicitação. Depois você pode incluir e dispensar
+            documentos à mão.
           </DialogDescription>
         </DialogHeader>
 

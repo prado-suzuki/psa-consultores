@@ -7,21 +7,43 @@ import {
   type ProdutosPorDocumento,
 } from '@/lib/solicitacao';
 import { useDomainClusterPorCategoria } from '@/hooks/useDomainClusterPorCategoria';
+import { montarOrdensDaArea, produtosDaArea } from '@/lib/ordensDaArea';
 
 /**
  * Catálogo e OS que alimentam a tela de solicitação inicial de documentos.
  *
  * COMO A TELA SABE O QUE É "DA OSG"
  *
- * Pela OS, no campo que o cadastro chama de **Empresa / Faturamento** — que é
- * obrigatório para salvar uma OS (`clientFormValidation.ts`) e que grava
- * `ordem_servico.cluster_id` (ver o comentário em `ContratosTab.tsx`). O select
- * mostra o nome da empresa do cluster e guarda o cluster.
+ * Pelo PRODUTO contratado, em `produto_segmento.cluster_id` — não pela OS.
  *
- * E qual cluster é o da OSG vem de `useDomainClusterPorCategoria('osg')`: a
- * categoria da página, que já existe em `protectedPages.ts` e já está espelhada
- * em `estrutura_areas.page_categories`. Assim não há uuid no código nem
- * comparação com nome editável.
+ * Até 03/09/2026 a pergunta era feita à OS, no campo que o cadastro chama de
+ * **Empresa / Faturamento** (`ordem_servico.cluster_id`). Isso pergunta "quem
+ * emitiu a nota?" para responder "de quem é o trabalho?", e as duas divergem
+ * sempre que a OSG executa algo faturado por outra empresa do grupo. Medido em
+ * produção no dia da troca: **17 das 82 OS que pedem documento da OSG ficavam
+ * invisíveis** — 8 na Familly Business (Governança), 2 na PSA Norte, 1 na TAX e
+ * **6 sem cluster nenhum**, apesar de `clientFormValidation.ts:181` exigir o
+ * campo. Nenhum daqueles 17 clientes tinha solicitação aberta.
+ *
+ * O produto responde certo porque é ele que carrega a área que executa: os 7
+ * produtos do cluster OSG são exatamente os 7 que têm documento mapeado, e os 19
+ * da TAX não têm nenhum (conferido em 03/09/2026). E porque é DADO, não lista no
+ * código — quando a TAX mapear os documentos dela, nada aqui precisa mudar.
+ *
+ * Qual cluster é o da página continua vindo de `useDomainClusterPorCategoria`,
+ * que resolve pela categoria já espelhada em `estrutura_areas.page_categories`.
+ * É o que permite a mesma tela servir a outra área depois, sem uuid no código.
+ *
+ * O FILTRO E A CONTAGEM RESPONDEM PERGUNTAS DIFERENTES
+ *
+ * QUAIS OS aparecem: as que têm ao menos um produto do cluster desta página.
+ * QUANTOS documentos cada uma traz: todos os que a `gerar_solicitacao_os` criaria
+ * — ela não olha cluster, gera de todos os produtos da OS. Contar só os da área
+ * faria a tela prometer um número e o botão entregar outro. Hoje os dois dão o
+ * mesmo resultado (a TAX tem zero documento mapeado); no dia em que não derem, a
+ * divergência é do desenho e precisa de decisão: `uq_solicitacao_ativa_por_cliente`
+ * só admite UMA solicitação aberta por cliente, então as duas áreas dividem o
+ * mesmo pedido — ou a RPC passa a recortar os itens por cluster do produto.
  *
  * UMA OS POR SOLICITAÇÃO
  *
@@ -36,7 +58,9 @@ import { useDomainClusterPorCategoria } from '@/hooks/useDomainClusterPorCategor
  * - Lista de códigos de produto escrita à mão: existia aqui e quebrou em
  *   03/08/2026, quando o cadastro passou de 11 para 8 produtos (`DSS`→`DSSG`, as
  *   5 modalidades de reorganização viraram `RS`, nasceu `RSSG`). Cliente com
- *   DSSG caía em "nenhum produto contratado", sem erro na tela.
+ *   DSSG caía em "nenhum produto contratado", sem erro na tela. O filtro de hoje
+ *   é o oposto disso: pergunta ao cadastro de qual área é o produto.
+ * - `ordem_servico.cluster_id`: ver acima. É empresa de faturamento.
  * - Centro de custo (`distribuicao_receita`): é rateio de receita, com
  *   percentuais. Filtrar por ele traz 13 OSs quando só 2 são da OSG — uma OS da
  *   TAX que aloca 70% na consultoria continua sendo trabalho da TAX.
@@ -46,14 +70,16 @@ import { useDomainClusterPorCategoria } from '@/hooks/useDomainClusterPorCategor
  *   outra fonte faria a lista divergir do que o botão gera.
  */
 
-/** Produto contratado na OS da OSG. */
+/** Produto contratado numa OS do cliente. */
 export interface OnboardingProdutoContratado {
   id: string;
   code: string;
   name: string;
+  /** A área dona do produto. É por ela que a OS entra ou não na lista. */
+  clusterId: string | null;
 }
 
-/** Uma OS da OSG do cliente, com o que ela pede. */
+/** Uma OS do cliente que contrata algum produto desta área. */
 export interface OnboardingOrdemServico {
   id: string;
   numeroOs: string;
@@ -64,13 +90,20 @@ export interface OnboardingOrdemServico {
 
 export interface OnboardingCatalogData {
   /**
-   * As OS da OSG do cliente. Zero significa "nenhum produto OSG contratado";
-   * mais de uma faz a tela perguntar de qual gerar.
+   * As OS do cliente que contratam algum produto desta área. Zero significa
+   * "nenhum produto da área contratado"; mais de uma faz a tela perguntar de
+   * qual gerar.
    */
   ordensServico: OnboardingOrdemServico[];
   /**
-   * Todos os produtos das OS da OSG, sem repetir. É o que o rail mostra quando a
-   * solicitação não aponta para uma OS — pedido montado à mão, por exemplo.
+   * Os produtos DESTA ÁREA nas OS acima, sem repetir. É o que o rail mostra
+   * quando a solicitação não aponta para uma OS — pedido montado à mão, por
+   * exemplo.
+   *
+   * Recortado por área de propósito: o rail existe para filtrar a lista de
+   * documentos, e produto de outra área não recorta nada (não tem vínculo em
+   * `produto_documento_tipo`). Numa OS híbrida ele viraria um botão que sempre
+   * devolve lista vazia.
    */
   produtosContratados: OnboardingProdutoContratado[];
   /**
@@ -111,12 +144,12 @@ export function useOnboarding(clienteId: string | null) {
     queryFn: async () => {
       if (!clienteId || !clusterOsg) return VAZIO;
 
-      // A OS da OSG: Empresa/Faturamento aponta para o cluster da OSG.
+      // TODAS as OS do cliente. O recorte por área não cabe aqui: ele depende
+      // dos produtos, que só são conhecidos duas consultas abaixo.
       const { data: orderRows, error: orderError } = await supabase
         .from('ordem_servico')
         .select('id, numero_os')
         .eq('id_cliente', clienteId)
-        .eq('cluster_id', clusterOsg)
         .eq('excluido', false)
         .order('numero_os');
       if (orderError) throw orderError;
@@ -135,7 +168,7 @@ export function useOnboarding(clienteId: string | null) {
       const { data: productRows, error: productError } = produtoIds.length
         ? await supabase
           .from('produto_segmento')
-          .select('id, codigo, nome')
+          .select('id, codigo, nome, cluster_id')
           .in('id', produtoIds)
           .order('codigo')
         : { data: [], error: null };
@@ -144,10 +177,16 @@ export function useOnboarding(clienteId: string | null) {
       // Sem filtro de `is_active`: produto desativado depois de contratado
       // continua contratado, e escondê-lo aqui seria sumir com documento que o
       // cliente deve entregar.
-      const produtosContratados: OnboardingProdutoContratado[] = (productRows ?? []).map(
-        (product) => ({ id: product.id, code: product.codigo, name: product.nome }),
+      const todosOsProdutos: OnboardingProdutoContratado[] = (productRows ?? []).map(
+        (product) => ({
+          id: product.id,
+          code: product.codigo,
+          name: product.nome,
+          clusterId: product.cluster_id,
+        }),
       );
-      const produtoPorId = new Map(produtosContratados.map((produto) => [produto.id, produto]));
+      const produtoPorId = new Map(todosOsProdutos.map((produto) => [produto.id, produto]));
+      const produtosContratados = produtosDaArea(todosOsProdutos, clusterOsg);
 
       const { data: vinculoRows, error: vinculoError } = produtoIds.length
         ? await supabase
@@ -212,23 +251,25 @@ export function useOnboarding(clienteId: string | null) {
         produtosPorOs.set(contratado.ordem_servico_id, atuais);
       }
 
-      const ordensServico: OnboardingOrdemServico[] = (orderRows ?? []).map((order) => {
-        const ids = produtosPorOs.get(order.id) ?? [];
-        const documentos = new Set<string>();
-        for (const produtoId of ids) {
-          for (const itemId of documentosPorProduto.get(produtoId) ?? []) {
-            if (catalogoPorId.has(itemId)) documentos.add(itemId);
-          }
-        }
-        return {
+      // `documentosPorProduto` restrito ao catálogo ATIVO antes de contar: é a
+      // mesma condição do `AND t.ativo` da RPC, e a função pura conta o que
+      // recebe.
+      const ativosPorProduto = new Map<string, Set<string>>();
+      documentosPorProduto.forEach((itens, produtoId) => {
+        const ativos = new Set([...itens].filter((itemId) => catalogoPorId.has(itemId)));
+        if (ativos.size > 0) ativosPorProduto.set(produtoId, ativos);
+      });
+
+      const ordensServico: OnboardingOrdemServico[] = montarOrdensDaArea(
+        (orderRows ?? []).map((order) => ({
           id: order.id,
           numeroOs: order.numero_os ?? '',
-          produtos: ids
-            .map((produtoId) => produtoPorId.get(produtoId))
-            .filter((produto): produto is OnboardingProdutoContratado => Boolean(produto)),
-          documentos: documentos.size,
-        };
-      });
+          produtoIds: produtosPorOs.get(order.id) ?? [],
+        })),
+        produtoPorId,
+        ativosPorProduto,
+        clusterOsg,
+      );
 
       const catalogDocuments: OnboardingDocument[] = (itemRows ?? []).map((item) => ({
         id: item.id,

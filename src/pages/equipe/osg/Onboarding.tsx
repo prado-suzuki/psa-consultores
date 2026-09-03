@@ -265,9 +265,10 @@ const Onboarding = () => {
         </div>
       ) : semOrigemNaOs ? (
         <OnboardingEmptyState icon={PackageOpen} title="Nenhum produto OSG contratado">
-          Este cliente não tem OS com Empresa/Faturamento da OSG e produto contratado. A
-          solicitação sai dos produtos da OS, então não há o que pedir enquanto isso não
-          existir. Cadastre ou ajuste a OS no cadastro do cliente e volte aqui.
+          Nenhuma OS deste cliente contrata produto da OSG. A solicitação sai dos produtos da
+          OS, então não há o que pedir enquanto isso não existir — e note que quem decide é o
+          produto contratado, não a empresa que fatura. Cadastre ou ajuste a OS no cadastro do
+          cliente e volte aqui.
         </OnboardingEmptyState>
       ) : convidarAGerar ? (
         <SolicitacaoVazia
