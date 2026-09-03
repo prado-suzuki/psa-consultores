@@ -365,6 +365,7 @@ const App = () => (
                 <Route path="/equipe/osg/work/documentos" element={<ProtectedRoute><DocumentosCliente /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/checklists" element={<ProtectedRoute><ChecklistsDocumentos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
+                <Route path="/equipe/osg/work/governanca/orgaos" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/orgaos"> <OrgaosGovernanca /> </PageAccessGate> } />
               </Route>
               {/* Gestão de Chamados dentro da Gerencial da OSG. Espelha a Tax. Hoje
                   nasce vazia: não há chamado com cluster OSG. */}
@@ -375,7 +376,6 @@ const App = () => (
               {/* Logs de Uso (ex-Auditoria, ex-Logs de Equipe) — líder+, igual à Tax; quem não é volta para a home do OSG. */}
               <Route path="/equipe/osg/gerencial/logs-equipe" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/logs-equipe"><OsgAuditoria /></PageAccessGate></LiderRoute>} />
               <Route path="/equipe/osg/auditoria" element={<Navigate to="/equipe/osg/gerencial/logs-equipe" replace />} />
-                      <Route path="/equipe/osg/work/governanca/orgaos" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/orgaos"> <OrgaosGovernanca /> </PageAccessGate> } />
 
               {/* Board Routes */}
               {/* Rota sem path só para o Provider: o seletor global de cliente
