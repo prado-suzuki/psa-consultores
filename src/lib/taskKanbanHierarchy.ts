@@ -94,7 +94,7 @@ function groupByStatus<T extends KanbanTask>(
  *
  * Antes disso, o quadro só desenhava as raízes e pendurava TODAS as filhas na
  * coluna da mãe: filha concluída aparecia dentro de um card no Backlog, filha
- * em andamento não aparecia na coluna "Em Progresso", e o contador da coluna
+ * em andamento não aparecia na coluna "Em Andamento", e o contador da coluna
  * (que contava cards) nunca batia com o KPI do topo (que conta tarefas).
  *
  * Casos de borda tratados:

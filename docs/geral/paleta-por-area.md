@@ -23,7 +23,7 @@ veste a paleta de quem o hospeda.
 |---|---|---|
 | `neutro` | Backlog, Planejado, prioridade Baixa, contador de tarefas em aberto | não começou / sem carga |
 | `fila` | A Fazer, prioridade Média | entrou na fila |
-| `andamento` | Em Progresso, projeto Ativo | está andando |
+| `andamento` | Em Andamento, projeto Ativo | está andando |
 | `revisao` | Revisão, todo o fluxo de revisão do modal | passou para outra pessoa |
 | `espera` | Pendente Cliente, projeto Pausado | travado por alguém de fora |
 | `ajuste` | Em Ajuste, Cancelado, devolver para ajuste, prioridade Urgente | deu problema |
@@ -475,6 +475,37 @@ volte a mapear `aberto` e `fechado` para texto dentro de `src/components` ou `sr
 derruba o teste. A varredura é pelo **conjunto** de chaves, não pelo nome de uma: `aberto`,
 `em_andamento` e `em_analise` também são vocabulário do checklist de documentos, dos ciclos de
 desempenho e das reuniões 1a1, que são outros domínios e têm rótulo próprio de direito.
+
+### Uma palavra por chave, e ela é masculina
+
+Decidido em 03/09/2026. Quando a MESMA chave aparece em domínios diferentes, a palavra é uma
+só, no masculino:
+
+| chave | palavra |
+|---|---|
+| `in_progress` | **Em Andamento** (não "Em Progresso") |
+| `completed`, `done` | **Concluído** |
+| `cancelled` | **Cancelado** |
+
+Antes, `taskStatusColors` e `entregavelStatusColors` diziam "Em Progresso" e
+`mapeamentoStatusColors`, `chamadoStatusColors` e o `auditFieldFormatter` diziam "Em
+Andamento" — para o mesmo valor de banco. O `auditFieldFormatter`, que formata os quatro
+domínios de uma vez, dizia "Concluída"/"Cancelada".
+
+**Onde a regra NÃO vale**, e isso é decisão, não descuido:
+
+- **prosa** — o gênero concorda com o substantivo da frase: "tarefas concluídas", "Entregas
+  Concluídas". Mexer piora o português;
+- **domínio com vocabulário feminino inteiro e coerente**, que não tem par para resolver:
+  sprint (`Ativa`/`Concluída`/`Planejada`), melhoria, meta e situação de OS. Uniformizar só o
+  `completed` desses deixaria "Ativa / Concluído / Planejada", que é pior que os dois lados.
+  Se um dia forem para o masculino, vão INTEIROS — e nos dois últimos o valor é o que está
+  gravado no banco, então é migração de dado.
+
+A catraca é `src/lib/rotulosDeStatus.test.ts`. Ela varre o literal **em JSX** (texto entre `>`
+e `<`), e não a palavra no arquivo, exatamente para não perseguir prosa nem comentário — e
+vários comentários citam "Em Progresso" de propósito, para contar por que aquela cópia era
+errada.
 
 ## O papel `alerta` tem variante no `ui/` — use ela
 

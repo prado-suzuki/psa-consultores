@@ -12,14 +12,17 @@ import {
   type HierarchicalEquipeKanbanDeliverable,
 } from '@/lib/equipeKanban';
 import { formatBlockerTooltip, type DeliverableBlocker } from '@/hooks/useDeliverableBlockers';
+import { entregavelStatusColors } from '@/lib/entregavelStatusColors';
 
-// "A Fazer", "Em Progresso" e "Concluído" são, palavra por palavra, os rótulos
-// que o contrato dá aos papéis `fila`, `andamento` e `feito`
-// (docs/geral/paleta-por-area.md). O ponto da coluna passa a ser o papel.
+// O rótulo da coluna sai do mapa do entregável (`entregavelStatusColors`), que é o
+// mesmo dado que o Gantt, o calendário e o formulário leem — antes as três palavras
+// estavam escritas aqui, e "Em Progresso" divergiu de "Em Andamento" por isso. O
+// ponto continua sendo o papel: `fila`, `andamento` e `feito`
+// (docs/geral/paleta-por-area.md).
 const columns = [
-  { id: 'pending', title: 'A Fazer', color: 'bg-status-fila' },
-  { id: 'in_progress', title: 'Em Progresso', color: 'bg-status-andamento' },
-  { id: 'completed', title: 'Concluído', color: 'bg-status-feito' },
+  { id: 'pending', title: entregavelStatusColors.pending.label, color: 'bg-status-fila' },
+  { id: 'in_progress', title: entregavelStatusColors.in_progress.label, color: 'bg-status-andamento' },
+  { id: 'completed', title: entregavelStatusColors.completed.label, color: 'bg-status-feito' },
 ];
 
 interface KanbanBoardProps {

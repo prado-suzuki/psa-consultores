@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { FilterMultiSelectField } from './FilterMultiSelectField';
+import { statusList } from '@/lib/taskStatusColors';
 import { type OrgTaskPriority, type OrgTaskStatus, type TaskFilters as TaskFiltersType } from '@/hooks/useOrgTasks';
 import { useExternalClients } from '@/hooks/useTaxReferenceData';
 
@@ -18,15 +19,13 @@ interface TaskFiltersProps {
   projects?: { id: string; name: string }[];
 }
 
-const statusOptions: { value: OrgTaskStatus; label: string }[] = [
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'waiting_client', label: 'Pendente Cliente' },
-  { value: 'todo', label: 'A Fazer' },
-  { value: 'in_progress', label: 'Em Progresso' },
-  { value: 'review', label: 'Revisão' },
-  { value: 'em_ajuste', label: 'Em Ajuste' },
-  { value: 'done', label: 'Concluído' },
-];
+// As sete opções e a ORDEM delas saem do `statusList` de `taskStatusColors`, que é
+// o mapa do domínio da tarefa. A lista escrita aqui repetia os mesmos sete rótulos
+// e foi por essa cópia que `in_progress` ficou "Em Progresso" enquanto o mapa e o
+// resto do sistema diziam "Em Andamento".
+const statusOptions: { value: OrgTaskStatus; label: string }[] = statusList.map(
+  ({ key, label }) => ({ value: key, label }),
+);
 
 const priorityOptions: { value: OrgTaskPriority; label: string }[] = [
   { value: 'urgent', label: 'Urgente' },

@@ -385,7 +385,7 @@ describe('ProjetosTarefasList — troca de status pelo seletor', () => {
     expandirAteTarefa('Coleta');
 
     await user.click(screen.getAllByRole('combobox')[0]);
-    await user.click(screen.getByRole('option', { name: 'Em Progresso' }));
+    await user.click(screen.getByRole('option', { name: 'Em Andamento' }));
 
     expect(mocks.updateTask).toHaveBeenCalledWith({ id: 'Coleta', status: 'in_progress' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

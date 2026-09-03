@@ -1,5 +1,6 @@
 import { STATUS_CHART_COLORS } from '@/constants/brandColors';
 import { matchCluster } from '@/lib/clusterFilter';
+import { entregavelStatusColors } from '@/lib/entregavelStatusColors';
 
 export const ANALISE_INTELIGENTE_ALL = '__ALL__';
 
@@ -302,9 +303,9 @@ export function buildEntregasPorSemana(deliverables: AnaliseInteligenteDeliverab
 
 export function buildStatusData(kpis: AnaliseInteligenteKpis) {
   return [
-    { name: 'Concluído', value: kpis.completed, color: STATUS_CHART_COLORS.completed },
-    { name: 'Em Progresso', value: kpis.inProgress, color: STATUS_CHART_COLORS.in_progress },
-    { name: 'Pendente', value: kpis.pending, color: STATUS_CHART_COLORS.pending },
+    { name: entregavelStatusColors.completed.label, value: kpis.completed, color: STATUS_CHART_COLORS.completed },
+    { name: entregavelStatusColors.in_progress.label, value: kpis.inProgress, color: STATUS_CHART_COLORS.in_progress },
+    { name: entregavelStatusColors.pending.label, value: kpis.pending, color: STATUS_CHART_COLORS.pending },
     { name: 'Atrasado', value: kpis.overdue, color: '#ef4444' },
   ].filter((item) => item.value > 0);
 }
