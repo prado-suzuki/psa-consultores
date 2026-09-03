@@ -99,9 +99,12 @@ const tarefa = (id: string, overrides: Partial<OrgTask> = {}) => ({
 /** O mês não é o assunto deste teste: um período parado basta. */
 const periodoParado = {
   mes: new Date(2026, 7, 1),
+  escopo: 'mes' as const,
   tarefas: [],
+  tarefasDoMes: [],
   onPasso: () => {},
   onHoje: () => {},
+  onEscopo: () => {},
 };
 
 describe('ProjetosTarefasList — barra de período', () => {
@@ -222,10 +225,28 @@ describe('ProjetosTarefasList — estado de carregamento', () => {
   });
 
   it('mantém o vazio real quando o carregamento termina sem dados', () => {
-    renderList({ isLoading: false });
+    // Em `tudo` o vazio é o vazio: não há recorte a quem culpar.
+    renderList({ isLoading: false, periodo: { ...periodoParado, escopo: 'tudo' } });
 
     expect(screen.getByText('Nenhum projeto ou tarefa encontrado')).toBeInTheDocument();
     expect(screen.queryByText('Carregando projetos e tarefas…')).not.toBeInTheDocument();
+  });
+
+  it('com filtro e sem recorte, o vazio é o da filtragem', () => {
+    renderList({ hideEmpty: true, periodo: { ...periodoParado, escopo: 'tudo' } });
+
+    expect(screen.getByText('Nenhuma tarefa corresponde aos filtros')).toBeInTheDocument();
+  });
+
+  it('no recorte de um mês, o vazio acusa o mês em vez de mandar criar projeto', () => {
+    // "Crie um novo projeto para começar" num mês sem prazo manda a gestora
+    // criar o que ela já tem — e o projeto está ali, no mês seguinte.
+    renderList({ isLoading: false });
+
+    expect(screen.getByText('Nada com prazo em agosto de 2026')).toBeInTheDocument();
+    // A saída é a da barra, uma só: o vazio aponta para ela e não repete o botão.
+    expect(screen.getAllByRole('button', { name: 'Ver tudo' })).toHaveLength(1);
+    expect(screen.queryByText('Nenhum projeto ou tarefa encontrado')).not.toBeInTheDocument();
   });
 
   it('com dados parciais renderiza a lista, mesmo ainda carregando o resto', () => {

@@ -77,7 +77,18 @@ export function filterAreaProjects(projects: FiscalDashProject[], filters: AreaD
   });
 }
 
-export function matchesUrgency(task: FiscalDashTask, urgency: UrgencyFilter, today: Date) {
+/**
+ * A faixa de prazo de uma tarefa — e a definição de "atrasada" do sistema.
+ *
+ * Recebe só `due_date` e `status` porque o segundo consumidor é o recorte do
+ * painel de tarefas (`tarefasNoEscopo`), que trabalha com `OrgTask`. Duas contas
+ * de atrasada é como uma tela passa a discordar da outra.
+ */
+export function matchesUrgency(
+  task: Pick<FiscalDashTask, 'due_date' | 'status'>,
+  urgency: UrgencyFilter,
+  today: Date,
+) {
   if (urgency === AREA_DASHBOARD_ALL) return true;
   if (urgency === 'no_due') return !task.due_date;
   if (!task.due_date) return false;

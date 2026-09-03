@@ -59,6 +59,7 @@ import { TaskStatusTransitionDialog } from '@/components/equipe/fiscal/tasks/Tas
  import { useTaskStatusTransition } from '@/hooks/useTaskStatusTransition';
 import { BarraDeMes } from '@/components/shared/BarraDeMes';
 import type { PeriodoDeTarefas } from '@/hooks/usePeriodoDeTarefas';
+import { mensagemDoVazio } from '@/lib/periodoDeTarefas';
 import { TaskStatusDot } from '@/components/equipe/tarefas/TaskStatusDot';
 import {
   esforcoDaTarefa,
@@ -442,14 +443,27 @@ export function ProjetosTarefasList({
         <p className="mt-3 font-medium">Carregando projetos e tarefas…</p>
       </div>);
     }
-    // Com filtros ativos, o vazio é resultado da filtragem — ensina o comportamento
-    // (grupos sem tarefas ficam ocultos) e oferece limpar os filtros de uma vez.
-    if (hideEmpty) {
+    // O RECORTE vem antes dos filtros porque ele também liga o `hideEmpty`, e a
+    // causa mais específica é a que ajuda: "Nenhuma tarefa corresponde aos
+    // filtros" com o drawer vazio faz a pessoa procurar filtro que não existe.
+    // Dizer "crie um projeto" aqui seria pior ainda — o projeto está ali, fora
+    // do recorte.
+    const vazioDoRecorte = mensagemDoVazio(periodo);
+    if (hideEmpty && !vazioDoRecorte) {
       return comBarra(<div className="rounded-xl border border-dashed py-16 text-center">
         <FilterX className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
         <p className="font-medium">Nenhuma tarefa corresponde aos filtros</p>
         <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Clientes, OS e projetos sem tarefas correspondentes ficam ocultos. Limpe os filtros para ver toda a estrutura.</p>
         {onClearFilters && <Button variant="outline" size="sm" className="mt-4 gap-2" onClick={onClearFilters}><FilterX className="h-4 w-4" />Limpar filtros</Button>}
+      </div>);
+    }
+    if (vazioDoRecorte) {
+      return comBarra(<div className="rounded-xl border border-dashed py-16 text-center">
+        <FolderKanban className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
+        <p className="font-medium">{vazioDoRecorte}</p>
+        {/* Sem botão aqui: o "Ver tudo" da barra está logo acima, e duas saídas
+            com o mesmo nome na mesma tela não são duas saídas. */}
+        <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">O recorte está no título. Use "Ver tudo", na barra acima, para o projeto inteiro.</p>
       </div>);
     }
     return comBarra(<div className="rounded-xl border border-dashed py-16 text-center"><FolderKanban className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" /><p className="font-medium">Nenhum projeto ou tarefa encontrado</p><p className="mt-1 text-sm text-muted-foreground">Crie um novo projeto para começar.</p></div>);
@@ -500,13 +514,19 @@ export function ProjetosTarefasList({
       const isExpanded = expanded.has(groupId);
       const showClientDivider = index === 0 || sortedHierarchy[index - 1].clientKey !== group.clientKey;
       return <Fragment key={group.id}>
-        {showClientDivider && <div className={cn('flex items-center gap-2 border-b border-t bg-muted/60 px-4 py-2.5 first:border-t-0', FULL_ROW_MIN_WIDTH)}>
+        {/* A faixa do cliente carrega a ÂNCORA da área, e não o neutro. Ela era
+            `bg-muted/60` e a linha da OS logo abaixo era `bg-primary/[0.045]`:
+            compostas sobre o card ficavam a 1,02:1 uma da outra — menos que o
+            1,24:1 com que a borda de 1px se separa do card. A faixa é o
+            cabeçalho do bloco, então é ela que recebe a cor da área e a linha
+            da OS volta ao card limpo. */}
+        {showClientDivider && <div className={cn('flex items-center gap-2 border-b border-t border-primary/20 bg-primary/10 px-4 py-2.5 first:border-t-0', FULL_ROW_MIN_WIDTH)}>
           <Building2 className="h-4 w-4 text-primary" />
-          <span className="text-xs font-bold uppercase tracking-wider text-foreground">{group.clientName}</span>
+          <span className="text-sm font-bold uppercase tracking-wider text-foreground">{group.clientName}</span>
           <span className="text-xs text-muted-foreground">{sortedHierarchy.filter(item => item.clientKey === group.clientKey).length} OS/grupo(s)</span>
         </div>}
         <section>
-        <div className={cn(GRID, 'border-b bg-primary/[0.045]')}>
+        <div className={cn(GRID, 'border-b')}>
           <div className="flex min-w-0 items-center gap-3 px-3 py-3">
             <button type="button" onClick={() => toggle(groupId)} className="rounded p-1 text-muted-foreground hover:bg-primary/10" aria-label={isExpanded ? 'Recolher OS' : 'Expandir OS'}>{isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
             <div className="h-5 w-1 rounded-full bg-primary" />
@@ -528,7 +548,14 @@ export function ProjetosTarefasList({
           const projectTaskIds = collectNodeTaskIds(projectNode.tasks);
           const selectedInProject = projectTaskIds.filter(id => selectedTaskIds.has(id)).length;
           return <div key={projectId}>
-            <div className={cn(GRID, 'group relative z-10 bg-muted/30 text-sm shadow-md hover:bg-muted/45')}>
+            {/* O fundo sai do neutro e vai para a âncora, na mesma família da
+                faixa do cliente. Na OSG a superfície é bege (matiz 32) e a
+                âncora é musgo (149): com a faixa verde logo acima, o neutro
+                quente encostado nela era lido como ROSA — contraste simultâneo,
+                o mesmo efeito do `--muted-foreground` matiz 220 sobre marfim.
+                `bg-primary/5` é o degrau que a linha de tarefa selecionada já
+                usa. */}
+            <div className={cn(GRID, 'group relative z-10 bg-primary/5 text-sm shadow-md hover:bg-primary/10')}>
               <div className="relative flex min-w-0 items-center gap-2 px-4 py-2.5" style={{ paddingLeft: `${PROJECT_INDENT}px` }}>
                 <LevelGuide left={OS_GUIDE} />
                 <span className={TOGGLE_SLOT}>

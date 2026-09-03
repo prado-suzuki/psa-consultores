@@ -1,10 +1,14 @@
-# TAREFA 2 de 4 — Alterar no cadastro de cliente passa a ser por cargo
+# TAREFA 1 — Alterar no cadastro de cliente passa a ser por cargo
 
-> **Uma das quatro tarefas** que aplicam a regra decidida em 02/09/2026 no módulo de cadastro
-> de cliente. As outras: [registrar](../sprint-12/TAREFA_registrar-por-cargo.md) ·
-> [excluir](TAREFA_excluir-por-cargo.md) · [mensagens](../sprint-12/TAREFA_mensagens-de-recusa.md).
+> **Primeira das cinco tarefas** que aplicam a regra decidida em 02/09/2026 no módulo de
+> cadastro de cliente. As outras: [apagar cliente e contribuinte](TAREFA_excluir-por-cargo.md) ·
+> [soft delete](TAREFA_soft-delete-cliente-e-contribuinte.md) ·
+> [representante e rateio](TAREFA_representante-e-rateio-hard-delete.md) ·
+> [ordem de serviço](TAREFA_os-hard-delete.md). O
+> [registrar](../sprint-12/TAREFA_registrar-por-cargo.md) e as
+> [mensagens](../sprint-12/TAREFA_mensagens-de-recusa.md) saíram na sprint 12.
 >
-> **Atenção:** a [tarefa de excluir](TAREFA_excluir-por-cargo.md) **depende desta**. Ver
+> **Atenção:** a [tarefa 3](TAREFA_soft-delete-cliente-e-contribuinte.md) **depende desta**. Ver
 > "Esta tarefa também destrava a exclusão lógica", abaixo.
 
 ## A regra

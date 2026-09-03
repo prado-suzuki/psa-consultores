@@ -1,4 +1,4 @@
-# TAREFA — Apagar cliente e contribuinte por cargo
+# TAREFA 2 — Apagar cliente e contribuinte por cargo
 
 > **Escopo reduzido em 02/09/2026.** Esta tarefa cuidava das oito tabelas. Com a decisão de
 > deixar só `cliente` e `contribuinte` com exclusão lógica, as outras três conversões ganharam

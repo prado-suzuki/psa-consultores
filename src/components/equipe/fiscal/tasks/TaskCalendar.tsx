@@ -16,11 +16,16 @@ import { statusColors, statusList } from '@/lib/taskStatusColors';
 import { Badge } from '@/components/ui/badge';
 
 interface TaskCalendarProps {
+  /**
+   * Sempre as tarefas do MÊS (`periodo.tarefasDoMes`), nunca as do escopo:
+   * a grade aqui é de um mês, e o escopo `tudo` das outras abas viraria
+   * descarte silencioso do que não cabe em célula nenhuma.
+   */
   tasks: OrgTask[];
   onEdit: (task: OrgTask) => void;
   onDelete: (taskId: string) => void;
   onReassign: (task: OrgTask) => void;
-  /** O mês é do painel, não desta aba: ele atravessa Lista, Tabela e aqui. */
+  /** O mês é do painel, não desta aba: ele atravessa Lista, Tabela, Kanban e aqui. */
   periodo: PeriodoDeTarefas;
 }
 
@@ -72,8 +77,12 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: T
         {/* A mesma barra do Gantt, no mesmo lugar: `Hoje · ‹ › · título`, à
             esquerda. Antes o título ficava solto à esquerda e os controles na
             direita, grudados na legenda — duas telas que andam no tempo, duas
-            aparências. */}
-        <BarraDeMes periodo={periodo} />
+            aparências.
+
+            Travada no mês: nas outras abas o título abre o seletor de escopo, e
+            "tudo" não tem grade que o desenhe aqui. A seta continua andando, e
+            o mês que ela deixa é o mesmo das outras abas. */}
+        <BarraDeMes periodo={periodo} travadaNoMes />
 
         <div className="grid grid-cols-7 border-b bg-muted/40">
           {weekDays.map(day => (

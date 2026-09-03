@@ -1,4 +1,4 @@
-# TAREFA — Cliente e contribuinte: consertar o soft delete
+# TAREFA 3 — Cliente e contribuinte: consertar o soft delete
 
 > **Decisão da Patricia, 02/09/2026:** no módulo de cadastro de cliente, **só `cliente` e
 > `contribuinte` guardam linha excluída** (soft delete). Todo o resto passa a apagar de vez.
