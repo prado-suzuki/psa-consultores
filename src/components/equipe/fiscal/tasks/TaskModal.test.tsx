@@ -1144,6 +1144,49 @@ describe('TaskModal — subtarefas', () => {
     expect(payloadOf('update')).toEqual({ id: 'S1', status: 'in_progress' });
   });
 
+  it('o atalho da linha abre a subtarefa no modal completo, por cima da mãe', async () => {
+    const user = userEvent.setup();
+    mocks.subtasks = [subtask({ id: 'S1' })];
+    renderModal({ task: baseTask });
+
+    await user.click(
+      within(subtarefasSection()).getByRole('button', {
+        name: 'Editar Mapeamento - Revisão de IRPF',
+      }),
+    );
+
+    // O segundo modal é o mesmo componente: prova disso é o formulário da
+    // subtarefa aparecer com o título dela carregado.
+    const titulos = await screen.findAllByDisplayValue('Mapeamento - Revisão de IRPF');
+    expect(titulos.length).toBeGreaterThan(0);
+    // E a mãe continua aberta atrás — nada foi salvo nem fechado.
+    expect(kinds()).toEqual([]);
+  });
+
+  it('o modal aninhado não repete o atalho: a pilha para em um nível', async () => {
+    const user = userEvent.setup();
+    mocks.subtasks = [subtask({ id: 'S1' })];
+    renderModal({ task: baseTask });
+
+    await user.click(
+      within(subtarefasSection()).getByRole('button', {
+        name: 'Editar Mapeamento - Revisão de IRPF',
+      }),
+    );
+
+    // O mock devolve a mesma lista para qualquer mãe, então o modal aninhado
+    // lista a subtarefa de novo — e é justamente aí que o atalho tem de sumir.
+    //
+    // Zero, e não um: com o segundo diálogo aberto, o Radix marca o de baixo
+    // como aria-hidden, então o botão da mãe sai da árvore acessível. Sobra o
+    // que o modal do topo oferece — que é nada, e é o que se quer provar.
+    await waitFor(() =>
+      expect(
+        screen.queryAllByRole('button', { name: 'Editar Mapeamento - Revisão de IRPF' }),
+      ).toHaveLength(0),
+    );
+  });
+
   it('não oferece criação ao revisor delegado', () => {
     renderModal({
       task: { ...baseTask, status: 'review', assigned_to: 'U2', reviewer_id: 'U1' },

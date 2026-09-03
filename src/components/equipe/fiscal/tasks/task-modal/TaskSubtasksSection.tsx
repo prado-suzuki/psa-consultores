@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, ListTree, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, ListTree, Pencil, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { TaskCompletionHoursDialog } from '@/components/equipe/fiscal/tasks/TaskCompletionHoursDialog';
@@ -30,7 +30,8 @@ import {
 import { statusList } from '@/lib/taskStatusColors';
 import { cn } from '@/lib/utils';
 
-const GRID = 'grid grid-cols-[minmax(0,1fr)_8rem_6rem] items-center';
+/** A última faixa é a do botão de editar; sem o atalho ela fica vazia. */
+const GRID = 'grid grid-cols-[minmax(0,1fr)_8rem_6rem_2rem] items-center';
 
 interface TaskSubtasksSectionProps {
   /** Tarefa-mãe: dela saem o vínculo e os campos herdados na criação rápida. */
@@ -40,17 +41,29 @@ interface TaskSubtasksSectionProps {
   teamMembers: { id: string; name: string }[];
   /** Revisor delegado apenas revisa: não cria nem altera subtarefa. */
   disabled?: boolean;
+  /**
+   * Abre a subtarefa no modal completo. Ausente = a linha não oferece o atalho,
+   * que é o caso do modal aberto DE uma subtarefa: ali o próximo nível já é o
+   * fundo do poço prático, e empilhar modal sem fim confunde mais que ajuda.
+   */
+  onEditarSubtarefa?: (subtask: OrgTask) => void;
 }
 
 /**
  * Lista as subtarefas vinculadas à tarefa aberta e permite criar novas sem sair
  * do modal: o nome basta, o resto (projeto e cliente) é herdado da tarefa-mãe.
+ *
+ * Status, responsável e prioridade se resolvem na própria linha. Para o resto —
+ * nome, prazo, descrição, horas — a linha tem o botão de editar, que abre a
+ * subtarefa no mesmo modal de sempre, por cima deste. É atalho, não uma segunda
+ * tela de edição: quem grava continua sendo o formulário que já existia.
  */
 export function TaskSubtasksSection({
   parentTask,
   area,
   teamMembers,
   disabled = false,
+  onEditarSubtarefa,
 }: TaskSubtasksSectionProps) {
   const { data: subtasks = [], isLoading } = useOrgSubtasks(parentTask.id);
   const createSubtask = useCreateOrgTask(area, { showToasts: false });
@@ -173,6 +186,7 @@ export function TaskSubtasksSection({
               <div className="px-3 py-2">Nome</div>
               <div className="px-2 py-2">Responsável</div>
               <div className="px-2 py-2">Prioridade</div>
+              <div className="px-2 py-2" />
             </div>
           )}
 
@@ -254,6 +268,24 @@ export function TaskSubtasksSection({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* O atalho para o modal da subtarefa. Fica na linha porque é ali
+                  que o consultor decide "esta aqui eu preciso abrir". */}
+              <div className="px-1 py-1.5">
+                {onEditarSubtarefa && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                    aria-label={`Editar ${subtask.title}`}
+                    title="Abrir esta subtarefa"
+                    onClick={() => onEditarSubtarefa(subtask)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             </div>
           ))}

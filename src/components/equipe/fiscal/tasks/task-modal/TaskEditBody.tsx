@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { SectionHeading } from '@/components/ui/section-heading';
 import type { AreaKey } from '@/config/areaCategories';
+import type { OrgTask } from '@/hooks/useOrgTasks';
 import type { TaskFormValues } from '@/lib/orgTaskForm';
 
 interface TaskEditBodyProps {
@@ -23,6 +24,8 @@ interface TaskEditBodyProps {
   teamMembers: { id: string; name: string }[];
   /** Leva o foco para o compositor de comentários, onde o anexo é enviado. */
   onAddAttachment: () => void;
+  /** Abre a subtarefa no modal completo; ausente esconde o atalho da linha. */
+  onEditarSubtarefa?: (subtask: OrgTask) => void;
 }
 
 /** Corpo do modo edição: descrição, subtarefas e os anexos já enviados na conversa. */
@@ -36,6 +39,7 @@ export function TaskEditBody({
   assignedToName,
   teamMembers,
   onAddAttachment,
+  onEditarSubtarefa,
 }: TaskEditBodyProps) {
   return (
     <div className="space-y-6 px-6 pb-6 pt-5">
@@ -99,6 +103,7 @@ export function TaskEditBody({
         area={area}
         teamMembers={teamMembers}
         disabled={isReviewer}
+        onEditarSubtarefa={onEditarSubtarefa}
       />
 
       <section>
