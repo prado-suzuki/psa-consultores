@@ -97,6 +97,28 @@ function Cabecalho({ analise }: { analise: Analise }) {
   );
 }
 
+/**
+ * A linha dos anos, escrita por extenso.
+ *
+ * O intervalo cru brigava com o período do cabeçalho logo acima: o estudo tem
+ * três anos, e a leitura acha sete, porque a aba de Venda de Ativos acompanha o
+ * cronograma de amortização da dívida. Os números estavam certos e a tela
+ * convidava à conclusão errada, então ela passa a dizer de onde vêm os anos a mais.
+ */
+function anosPorExtenso(analise: Analise): string | undefined {
+  const { anos } = analise.resumo;
+  if (anos.length === 0) return undefined;
+
+  const primeiro = anos[0];
+  const ultimo = anos[anos.length - 1];
+  const { anoInicial, anoFinal } = analise.leitura.cabecalho;
+
+  if (anoInicial !== undefined && anoFinal !== undefined && ultimo > anoFinal) {
+    return `${anoInicial} a ${anoFinal} no estudo, e até ${ultimo} na venda de ativos`;
+  }
+  return primeiro === ultimo ? String(primeiro) : `${primeiro} a ${ultimo}`;
+}
+
 function Contagem({ analise }: { analise: Analise }) {
   const { resumo } = analise;
   const blocos = [
@@ -126,8 +148,8 @@ function Contagem({ analise }: { analise: Analise }) {
           <>
             <Separator />
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Campo rotulo="Anos encontrados" valor={resumo.anos.join(', ')} />
-              <Campo rotulo="Cenários" valor={resumo.cenarios.join(' · ')} />
+              <Campo rotulo="Anos" valor={anosPorExtenso(analise)} />
+              <Campo rotulo="Abas lidas" valor={resumo.abasLidas.join(' · ')} />
             </div>
           </>
         )}

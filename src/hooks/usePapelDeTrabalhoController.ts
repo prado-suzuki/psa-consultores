@@ -31,10 +31,19 @@ export interface ResumoDaLeitura {
   comentarios: number;
   bens: number;
   dividas: number;
-  /** Anos distintos encontrados nos valores, em ordem. */
+  /** Anos distintos encontrados, em ordem. */
   anos: number[];
-  /** Cenários distintos encontrados, em ordem de leitura. */
-  cenarios: string[];
+  /**
+   * As abas que de fato produziram dado, deduzidas do endereço de origem de cada
+   * valor.
+   *
+   * **Não é a lista de cenários, e isso é de propósito.** O WP chama o mesmo
+   * cenário por dois nomes: `Cenário 01` no cabeçalho de coluna da aba `Resumo` e
+   * `Cenário 01 (PFxPJ)` no nome da aba dele. Mostrar os dois fazia três cenários
+   * parecerem sete na tela. Reconciliar os dois vocabulários é decisão da
+   * gravação; para conferir a leitura, o que importa é qual aba foi aberta.
+   */
+  abasLidas: string[];
 }
 
 export interface Analise {
@@ -46,7 +55,19 @@ export interface Analise {
   resumo: ResumoDaLeitura;
 }
 
+/** `Resumo!D16` e `Bens da Atv. Rural!8` viram `Resumo` e `Bens da Atv. Rural`. */
+function abaDoEndereco(origem: string): string {
+  return origem.split('!')[0];
+}
+
 function resume(leitura: ResultadoLeitura): ResumoDaLeitura {
+  const abas = new Set<string>();
+  for (const v of leitura.valores) abas.add(abaDoEndereco(v.origemCelula));
+  for (const f of leitura.farol) abas.add(abaDoEndereco(f.origemCelula));
+  for (const c of leitura.comentarios) abas.add(abaDoEndereco(c.origemCelula));
+  for (const b of leitura.bens) abas.add(abaDoEndereco(b.origemLinha));
+  for (const d of leitura.dividas) abas.add(abaDoEndereco(d.origemLinha));
+
   return {
     valores: leitura.valores.length,
     farol: leitura.farol.length,
@@ -54,7 +75,7 @@ function resume(leitura: ResultadoLeitura): ResumoDaLeitura {
     bens: leitura.bens.length,
     dividas: leitura.dividas.length,
     anos: [...new Set(leitura.valores.map((v) => v.ano))].sort((a, b) => a - b),
-    cenarios: [...new Set(leitura.valores.map((v) => v.cenario))],
+    abasLidas: [...abas],
   };
 }
 

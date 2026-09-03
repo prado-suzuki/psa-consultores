@@ -65,7 +65,7 @@ describe('usePapelDeTrabalhoController', () => {
     expect(resumo.comentarios).toBe(leitura.comentarios.length);
   });
 
-  it('traz os anos em ordem e os cenários encontrados', async () => {
+  it('traz os anos em ordem e a aba de onde vieram', async () => {
     const { result } = renderHook(() => usePapelDeTrabalhoController());
 
     await act(async () => {
@@ -74,7 +74,26 @@ describe('usePapelDeTrabalhoController', () => {
     await waitFor(() => expect(result.current.estado).toBe('pronto'));
 
     expect(result.current.analise?.resumo.anos).toEqual([2026, 2027, 2028, 2029, 2030, 2031, 2032]);
-    expect(result.current.analise?.resumo.cenarios).toEqual(['Cenário 02 (Venda de Ativos)']);
+    expect(result.current.analise?.resumo.abasLidas).toEqual(['Cenário 02 (Venda de Ativos)']);
+  });
+
+  /*
+   * O WP chama o mesmo cenário por dois nomes, `Cenário 01` no cabeçalho de coluna
+   * do `Resumo` e `Cenário 01 (PFxPJ)` no nome da aba. A tela mostrava os dois e
+   * três cenários pareciam sete. `abasLidas` conta aba, não cenário: uma entrada
+   * por aba que produziu dado, sem duplicar vocabulário.
+   */
+  it('conta aba, e não cenário: uma entrada por aba lida', async () => {
+    const { result } = renderHook(() => usePapelDeTrabalhoController());
+
+    await act(async () => {
+      await result.current.analisar(arquivo('bens-e-dividas'));
+    });
+    await waitFor(() => expect(result.current.estado).toBe('pronto'));
+
+    const abas = result.current.analise!.resumo.abasLidas;
+    expect(abas).toEqual(['Bens da Atv. Rural', 'Dívidas da Atv. Rural']);
+    expect(new Set(abas).size).toBe(abas.length);
   });
 
   /*

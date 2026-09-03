@@ -79,6 +79,23 @@ describe('PapelDeTrabalho', () => {
   });
 
   /*
+   * A linha dos anos brigava com o período do cabeçalho: o estudo tem três anos e a
+   * Venda de Ativos acha sete, porque segue o cronograma da dívida. Agora a tela
+   * diz de onde vêm os anos a mais, em vez de mostrar o intervalo cru.
+   */
+  it('explica os anos que passam do período do estudo', async () => {
+    render(<PapelDeTrabalho />);
+    escolhe(fixture('transferencia-rural'), 'venda.xlsx');
+
+    await waitFor(() => expect(screen.getByText('O que foi lido')).toBeInTheDocument());
+
+    /* A fixture não traz cabeçalho, então cai no intervalo simples. */
+    expect(screen.getByText('2026 a 2032')).toBeInTheDocument();
+    expect(screen.getByText('Abas lidas')).toBeInTheDocument();
+    expect(screen.queryByText('Cenários')).not.toBeInTheDocument();
+  });
+
+  /*
    * O botão fica desabilitado nos dois casos, mas por motivos diferentes, e o
    * texto ao lado tem de dizer qual: "ainda não está ligada" é coisa nossa a
    * fazer, "não há o que gravar" é coisa da planilha.
