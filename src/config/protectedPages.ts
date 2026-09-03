@@ -668,6 +668,15 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/osg/work/exploracao-rural',
+    page_name: 'Exploração Rural',
+    page_description:
+      'Instrumentos de parceria e composse: partes, imóveis do Anexo e origem da posse por imóvel',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/osg/work/calculadora-itcmd',
     page_name: 'Calculadora de ITCD',
     page_description:

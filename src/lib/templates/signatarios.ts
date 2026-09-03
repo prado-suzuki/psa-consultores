@@ -53,7 +53,11 @@ export interface EntradaSignatarios {
  * várias (sócia que administra e ainda outorga como cônjuge de outro sócio), e o
  * `papel` diz todas elas: nenhuma qualidade some em silêncio.
  */
-export type QualidadeSignatario = 'socio' | 'retirante' | 'administrador' | 'conjuge';
+export type QualidadeSignatario =
+  | 'socio' | 'retirante' | 'administrador' | 'conjuge'
+  // Instrumentos agrários. NÃO acumulam com as societárias: quem é parte de um
+  // contrato rural assina naquela qualidade e só nela.
+  | 'outorgante' | 'outorgado' | 'compossuidor';
 
 /** Ordem das qualidades dentro do rótulo ("Sócio administrador e cônjuge outorgante"). */
 const PESO_QUALIDADE: Record<QualidadeSignatario, number> = {
@@ -61,6 +65,9 @@ const PESO_QUALIDADE: Record<QualidadeSignatario, number> = {
   retirante: 1,
   administrador: 2,
   conjuge: 3,
+  outorgante: 4,
+  outorgado: 5,
+  compossuidor: 6,
 };
 
 const administradorTitulo = (g: Genero) => concordar(g, 'Administrador', 'Administradora');
@@ -85,8 +92,29 @@ const administradorNaoSocioTitulo = (g: Genero) =>
   concordar(g, 'Administrador não sócio', 'Administradora não sócia');
 /** Sócio que se RETIRA neste instrumento, por ter cedido a totalidade das quotas. */
 const retiranteTitulo = (g: Genero) => concordar(g, 'Sócio retirante', 'Sócia retirante');
+// Títulos dos instrumentos agrários. A PJ concorda no FEMININO
+// (`generoDeConcordancia`), e é por isso que a sociedade outorgante do contrato
+// de parceria assina como *PARCEIRA* outorgante sem ter gênero cadastrado.
+const outorganteTitulo = (g: Genero) => concordar(g, 'Parceiro Outorgante', 'Parceira Outorgante');
+const outorgadoTitulo = (g: Genero) => concordar(g, 'Parceiro Outorgado', 'Parceira Outorgada');
+const compossuidorTitulo = (g: Genero) => concordar(g, 'Compossuidor Rural', 'Compossuidora Rural');
 /** "Cônjuge" é o substantivo dos dois gêneros e "outorgante" é invariável. */
 const eOutorgante = (base: string) => `${base} e cônjuge outorgante`;
+
+/**
+ * O complemento da linha em que uma pessoa jurídica assina POR um administrador.
+ *
+ * Fica aqui, e não no mapeador agrário, porque é vocabulário de linha de
+ * assinatura — a mesma razão pela qual `complementoDaLinha` mora neste arquivo.
+ *
+ * A concordância é com o ADMINISTRADOR, não com a sociedade: os contratos
+ * assinados trazem as duas formas embaixo da mesma empresa, "representada por
+ * seu Administrador Jose Eduardo de Macedo Soares Junior" e "representada por
+ * sua Administradora Maria Auxiliadora Malheiros".
+ */
+export function representadaPorAdministrador(nome: string, genero: Genero): string {
+  return `representada ${concordar(genero, 'por seu Administrador', 'por sua Administradora')} ${nome}`;
+}
 
 /** Primeira letra em minúscula: o título entra no MEIO do rótulo, não o abre. */
 const minuscula = (t: string) => t.charAt(0).toLocaleLowerCase('pt-BR') + t.slice(1);
@@ -106,6 +134,17 @@ const ROTULOS: Record<string, (g: Genero) => string> = {
   administrador: administradorTitulo,
   'administrador+conjuge': (g) => eOutorgante(administradorTitulo(g)),
   conjuge: () => 'Cônjuge outorgante',
+
+  // --- Instrumentos agrários -----------------------------------------------
+  // Uma qualidade por linha, sem combinações: ser NOMEADO administrador da
+  // composse não é qualidade de assinatura — quem foi nomeado já assina como
+  // compossuidor, a nomeação é dita na cláusula de administração, e os contratos
+  // assinados trazem uma linha por parte. Se a banca quiser a nomeação embaixo do
+  // nome, o lugar é uma entrada nova aqui ('compossuidor+administrador'), não uma
+  // segunda linha no fecho.
+  outorgante: outorganteTitulo,
+  outorgado: outorgadoTitulo,
+  compossuidor: compossuidorTitulo,
 
   // --- Retirante -----------------------------------------------------------
   // `retirante` NUNCA vem sozinho: só se retira quem era sócio, então a chave
@@ -157,7 +196,7 @@ export function papelDeQualidades(qualidades: Set<QualidadeSignatario>, genero: 
   return rotulo(genero);
 }
 
-interface DadosSignatario {
+export interface DadosSignatario {
   nome: string;
   nomeMaiusculo: string;
   papel: string;
@@ -169,12 +208,23 @@ interface DadosSignatario {
   eConjuge?: boolean;
   eTestemunha?: boolean;
   eAdvogado?: boolean;
+  eOutorgante?: boolean;
+  eOutorgado?: boolean;
+  eCompossuidor?: boolean;
 }
 
 /** Condicional de item: 'sim' / '' (o engine não tem "else"). */
 const sim = (v: boolean | undefined): string => (v ? 'sim' : '');
 
-function itemSignatario(dados: DadosSignatario): Campos {
+/**
+ * A LINHA de assinatura como campos, com todas as condicionais publicadas
+ * (ausente vira ''). Exportada porque cada instrumento monta a sua lista — o
+ * Contrato Social acumula qualidades por pessoa a partir do quadro societário
+ * (`mapearSignatarios`, abaixo), o contrato rural sai das partes do cadastro de
+ * exploração — mas o FORMATO do item é um só. Duas fábricas fariam
+ * {{ signatario.eTestemunha }} resolver num documento e sumir no outro.
+ */
+export function itemSignatario(dados: DadosSignatario): Campos {
   return {
     nome: dados.nome,
     nomeMaiusculo: dados.nomeMaiusculo,
@@ -187,7 +237,28 @@ function itemSignatario(dados: DadosSignatario): Campos {
     eConjuge: sim(dados.eConjuge),
     eTestemunha: sim(dados.eTestemunha),
     eAdvogado: sim(dados.eAdvogado),
+    eOutorgante: sim(dados.eOutorgante),
+    eOutorgado: sim(dados.eOutorgado),
+    eCompossuidor: sim(dados.eCompossuidor),
   };
+}
+
+/**
+ * A linha de uma testemunha digitada na tela Gerar.
+ *
+ * Exportada porque cada instrumento monta a sua lista de signatários, mas o
+ * RÓTULO da testemunha é um só — deixar cada mapeador escrever "Testemunha" na
+ * mão é como as duas fábricas de item que este arquivo existe para evitar.
+ */
+export function itemTestemunha(s: SignatarioAvulso): Campos {
+  return itemSignatario({
+    nome: s.nome,
+    nomeMaiusculo: s.nome.toLocaleUpperCase('pt-BR'),
+    papel: PAPEL_AVULSO.testemunha(),
+    cpfCnpj: s.cpfCnpj ?? '',
+    qualificacao: s.qualificacao ?? '',
+    eTestemunha: true,
+  });
 }
 
 /** Pessoa do cadastro enquanto a lista é montada: qualidades e complementos acumulam aqui. */

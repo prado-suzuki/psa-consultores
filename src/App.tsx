@@ -159,6 +159,7 @@ const BibliotecaModelos = lazy(() => import("./pages/equipe/osg/BibliotecaModelo
 const MontagemDocumentos = lazy(() => import("./pages/equipe/osg/MontagemDocumentos"));
 const GerarDocumento = lazy(() => import("./pages/equipe/osg/GerarDocumento"));
 const QuadroSocietario = lazy(() => import("./pages/equipe/osg/QuadroSocietario"));
+const ExploracaoRural = lazy(() => import("./pages/equipe/osg/ExploracaoRural"));
 const CalculadoraItcmd = lazy(() => import("./pages/equipe/osg/CalculadoraItcmd"));
 const DocumentosCliente = lazy(() => import("./pages/equipe/osg/DocumentosCliente"));
 const ChecklistsDocumentos = lazy(() => import("./pages/equipe/osg/ChecklistsDocumentos"));
@@ -354,6 +355,7 @@ const App = () => (
                 <Route path="/equipe/osg/work/biblioteca-modelos" element={<ProtectedRoute><BibliotecaModelos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/montagem-documentos" element={<ProtectedRoute><MontagemDocumentos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/quadro-societario" element={<PageAccessGate pagePath="/equipe/osg/work/quadro-societario"><QuadroSocietario /></PageAccessGate>} />
+                <Route path="/equipe/osg/work/exploracao-rural" element={<PageAccessGate pagePath="/equipe/osg/work/exploracao-rural"><ExploracaoRural /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/calculadora-itcmd" element={<PageAccessGate pagePath="/equipe/osg/work/calculadora-itcmd"><CalculadoraItcmd /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/documentos" element={<ProtectedRoute><DocumentosCliente /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/checklists" element={<ProtectedRoute><ChecklistsDocumentos /></ProtectedRoute>} />

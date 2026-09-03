@@ -5,7 +5,7 @@ import { useClientesLista } from '@/hooks/useGestaoClientes';
 import { useAllMatriculas, type MatriculaEnriched } from '@/hooks/useDiagnosticoPatrimonial';
 import { useRelatorioDP } from '@/hooks/useRelatorioDP';
 import { EstruturaAtual } from './EstruturaAtual';
-import { useExploracaoRural, type ExploracaoRuralRow, type OsgTipoExploracao } from '@/hooks/useExploracaoRural';
+import { useExploracaoRural, type ExploracaoRuralEnriched, type OsgTipoExploracao } from '@/hooks/useExploracaoRural';
 
 const TIPO_EXPLORACAO_LABEL: Record<OsgTipoExploracao, string> = {
   arrendamento: 'Arrendamento',
@@ -25,21 +25,85 @@ const fmtDate = (v: string | null): string => {
 const fmtNum = (v: number | null): string =>
   v == null || Number.isNaN(Number(v)) ? '—' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
 
-const exprRow = (r: ExploracaoRuralRow): string[] => [
-  TIPO_EXPLORACAO_LABEL[r.tipo_exploracao] ?? '—',
-  r.explorador_nome ?? r.explorador?.denominacao ?? '—',
-  r.outorgante_nome ?? r.outorgante?.denominacao ?? '—',
-  r.bem?.denominacao ?? r.imovel_descricao ?? '—',
-  r.matricula_texto ?? '—',
-  [r.municipio ?? '', r.uf ?? ''].filter(Boolean).join('/') || '—',
-  fmtArea(r.area_total, r.area_unidade),
-  fmtArea(r.area_explorada, r.area_unidade),
-  r.declarado_irpf ? 'Sim' : 'Não',
-  fmtDate(r.data_assinatura),
-  fmtDate(r.data_encerramento),
-  r.vigencia ?? '—',
-  fmtNum(r.sacas_por_hectare),
-];
+/**
+ * Vigência, DERIVADA das datas — a coluna de texto livre `exploracao_rural.vigencia`
+ * saiu do schema em 01/09/2026 porque duplicava `data_assinatura`/`data_encerramento`
+ * e divergia delas.
+ *
+ * O início nem sempre é a assinatura: o contrato da Agro Aliança foi assinado em
+ * 20/03/2026 e vigora "a partir de 16 de setembro de 2.026". Quando
+ * `data_inicio_vigencia` está preenchida, é ela que manda.
+ */
+const vigenciaTexto = (r: ExploracaoRuralEnriched): string => {
+  const inicio = r.data_inicio_vigencia ?? r.data_assinatura;
+  if (r.tipo_exploracao === 'composse') {
+    // Composse não expira: ela tem prazo de INDIVISÃO, que é outra coisa.
+    if (!r.prazo_indivisao_quantidade) return inicio ? `desde ${fmtDate(inicio)}` : '—';
+    const unidade = r.prazo_indivisao_unidade ?? 'anos';
+    const prorroga = r.indivisao_prorrogavel ? ', prorrogável' : '';
+    return `indivisão de ${r.prazo_indivisao_quantidade} ${unidade}${prorroga}`;
+  }
+  if (!inicio && !r.data_encerramento) return '—';
+  if (r.data_encerramento) {
+    return `${fmtDate(inicio)} a ${fmtDate(r.data_encerramento)}${r.vigencia_prorrogavel ? ' (prorrogável)' : ''}`;
+  }
+  return `desde ${fmtDate(inicio)}${r.vigencia_prorrogavel ? ' (prorrogável)' : ''}`;
+};
+
+/** Nomes das partes do lado que explora: exploradores na parceria, compossuidores na composse. */
+const partesQueExploram = (r: ExploracaoRuralEnriched): string => {
+  const papel = r.tipo_exploracao === 'composse' ? 'compossuidor' : 'explorador';
+  const nomes = r.partes
+    .filter((p) => p.papel === papel)
+    .sort((a, b) => a.ordem - b.ordem)
+    .map((p) => p.pessoa?.denominacao)
+    .filter((n): n is string => !!n);
+  return nomes.length ? nomes.join('; ') : '—';
+};
+
+/**
+ * UMA LINHA POR IMÓVEL, repetindo os dados do instrumento.
+ *
+ * Mudou junto com a migration que criou `exploracao_rural_imovel` (01/09/2026): antes
+ * o cabeçalho tinha um imóvel só, então instrumento e linha eram a mesma coisa. O
+ * `[BV-COM]` reúne 15 imóveis numa composse, e a seção se chama "Imóveis e áreas
+ * exploradas" — uma linha agregada esconderia justamente o que ela promete mostrar.
+ *
+ * Instrumento sem imóvel ainda rende uma linha, com as colunas de imóvel vazias: não
+ * cadastrar o Anexo não pode fazer o instrumento desaparecer do relatório.
+ */
+const exprRows = (r: ExploracaoRuralEnriched): string[][] => {
+  const comuns = {
+    tipo: TIPO_EXPLORACAO_LABEL[r.tipo_exploracao] ?? '—',
+    partes: partesQueExploram(r),
+    outorgante: r.outorgante?.denominacao ?? '—',
+    irpf: r.declarado_irpf ? 'Sim' : 'Não',
+    assinatura: fmtDate(r.data_assinatura),
+    encerramento: fmtDate(r.data_encerramento),
+    vigencia: vigenciaTexto(r),
+    sacas: fmtNum(r.sacas_por_hectare),
+  };
+  const linha = (imovel: string, matricula: string, munUf: string, total: string, cedida: string) => [
+    comuns.tipo, comuns.partes, comuns.outorgante, imovel, matricula, munUf,
+    total, cedida, comuns.irpf, comuns.assinatura, comuns.encerramento,
+    comuns.vigencia, comuns.sacas,
+  ];
+  if (r.imoveis.length === 0) return [linha('—', '—', '—', '—', '—')];
+  return [...r.imoveis]
+    .sort((a, b) => a.ordem - b.ordem)
+    .map((item) => {
+      const m = item.matricula;
+      return linha(
+        m?.bem?.denominacao ?? (m?.numero ? `Matrícula ${m.numero}` : '—'),
+        m?.numero ? `Mat. ${m.numero}` : '—',
+        [m?.municipio_imovel ?? '', m?.uf_imovel ?? ''].filter(Boolean).join('/') || '—',
+        // Área total é da MATRÍCULA (o imóvel); área explorada é a cedida NESTE
+        // instrumento. No Anexo do [BV-COM] a segunda é sempre menor que a primeira.
+        fmtArea(m?.area_documento ?? null, m?.area_unidade ?? null),
+        fmtArea(item.area_explorada, item.area_unidade),
+      );
+    });
+};
 
 const areaUnit = (u: string | null): string => (u === 'm2' ? 'm²' : 'ha');
 const fmtArea = (v: number | null, u: string | null): string =>
@@ -68,7 +132,9 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
   }
 
   const HEAD = [
-    'Tipo', 'Explorador', 'Outorgante', 'Imóvel', 'Matrícula',
+    // "Explorador / Compossuidor" porque a coluna troca de significado com o tipo:
+    // na parceria são os outorgados, na composse os compossuidores.
+    'Tipo', 'Explorador / Compossuidor', 'Outorgante', 'Imóvel', 'Matrícula',
     'Município/UF', 'Área total', 'Área explorada', 'Decl. IRPF',
     'Assinatura', 'Encerramento', 'Vigência', 'Sacas/ha',
   ];
@@ -84,7 +150,7 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
   const rows = erroExpl
     ? []
     : usaExploracoes
-    ? exploracoes.map(exprRow)
+    ? exploracoes.flatMap(exprRows)
     : matriculas.map((m) => [
         m.tipo_exploracao_posse || '—',
         '—',
@@ -97,13 +163,25 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
         '—', '—', '—', '—', '—',
       ]);
 
+  // A área cedida agora mora no ITEM, não no cabeçalho: soma sobre os imóveis de
+  // todos os instrumentos. Converte para ha antes de somar — item em m² e item em ha
+  // no mesmo total seria número sem significado.
   const totalAreaExplorada = usaExploracoes
-    ? exploracoes.reduce((s, r) => s + (Number(r.area_explorada) || 0), 0)
+    ? exploracoes.reduce(
+        (s, r) =>
+          s +
+          r.imoveis.reduce((si, i) => {
+            const valor = Number(i.area_explorada) || 0;
+            return si + (i.area_unidade === 'm2' ? valor / 10000 : valor);
+          }, 0),
+        0,
+      )
     : matriculas.reduce((s, m) => s + (Number(m.area_explorada) || 0), 0);
+  const totalImoveis = exploracoes.reduce((s, r) => s + r.imoveis.length, 0);
   const secaoMeta = erroExpl
     ? 'leitura indisponível'
     : usaExploracoes
-    ? `${exploracoes.length} registro${exploracoes.length === 1 ? '' : 's'} · ${totalAreaExplorada.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} ha`
+    ? `${exploracoes.length} instrumento${exploracoes.length === 1 ? '' : 's'} · ${totalImoveis} imóvel${totalImoveis === 1 ? '' : 'is'} · ${totalAreaExplorada.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} ha`
     : `${matriculas.length} matrículas · ${totalAreaExplorada.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} ha`;
   const semLinhas = rows.length === 0;
   const emptyMsg = erroExpl

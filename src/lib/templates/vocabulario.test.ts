@@ -304,7 +304,7 @@ describe('descrição de imóvel urbano — campos e condicionais do seed', () =
     const texto = gerarUrbano(MAT_URBANA);
     expect(texto).toContain('área total de 360,0000 m² (trezentos e sessenta metros quadrados)');
     expect(texto).toContain('sendo 180,0000 m² de área construída');
-    expect(texto).toContain('localizado na Rua das Acácias, nº 119, apartamento 302, Centro');
+    expect(texto).toContain('localizado na Rua das Acácias, n.º 119, apartamento 302, Centro');
     expect(texto).toContain('no município de Cuiabá, Estado de Mato Grosso, CEP 78000-000');
     expect(texto).toContain('inscrito no cadastro municipal sob o nº 1.234.567-8');
     expect(texto).toContain('no Livro 02 (dois), folhas/ficha 15 (quinze)');
@@ -317,17 +317,17 @@ describe('descrição de imóvel urbano — campos e condicionais do seed', () =
       ...MAT_URBANA,
       bem: { ...MAT_URBANA.bem!, endereco_complemento: null, area_construida_m2: null },
     });
-    expect(texto).toContain('nº 119, Centro,');
+    expect(texto).toContain('n.º 119, Centro,');
     expect(texto).not.toContain('área construída');
   });
 
-  it('imóvel sem número sai "s/nº", e não "nº s/n"', () => {
+  it('imóvel sem número sai "s/n.º", e não "n.º s/n"', () => {
     const texto = gerarUrbano({
       ...MAT_URBANA,
       bem: { ...MAT_URBANA.bem!, endereco_numero: 's/n' },
     });
-    expect(texto).toContain('localizado na Rua das Acácias, s/nº, apartamento 302');
-    expect(texto).not.toContain('nº s/n');
+    expect(texto).toContain('localizado na Rua das Acácias, s/n.º, apartamento 302');
+    expect(texto).not.toContain('n.º s/n');
   });
 
   it('área construída igual à total não entra no texto', () => {
@@ -672,6 +672,68 @@ describe('concordância de gênero', () => {
 });
 
 describe('qualificação completa (pessoa.qualificacao)', () => {
+  // Regressão: a naturalidade era CALCULADA e não entrava na frase.
+  //
+  // `montarQualificacao` montava `const naturalidade = …` e o array de montagem
+  // não o incluía — então o outorgado da parceria saía "brasileiro, nascido em
+  // 23/05/1.957" onde o assinado diz "brasileiro, natural de São Paulo/SP nascido
+  // em 23/05/1.957". O campo derivado `pessoa.naturalidade` resolvia certo, e era
+  // ele que os testes olhavam: o defeito estava entre o campo e a prosa.
+  it('a naturalidade entra na prosa, e antes do nascimento', () => {
+    const c = derivarCampos('pessoa', {
+      nome: 'José Eduardo de Macedo Soares Júnior',
+      tipoPessoa: 'PF',
+      genero: 'M',
+      nacionalidade: 'brasileiro',
+      naturalidadeMunicipio: 'São Paulo',
+      naturalidadeUf: 'SP',
+      dataNascimento: '23/05/1957',
+      estadoCivil: 'casado',
+      regimeBens: 'comunhão parcial de bens',
+      estiloQualificacao: 'naturalidade',
+    });
+    expect(c.naturalidade).toBe('natural de São Paulo/SP');
+    expect(c.qualificacao).toContain(
+      'brasileiro, natural de São Paulo/SP, nascido em 23/05/1957, casado sob o regime',
+    );
+  });
+
+  it('no estilo filiação a naturalidade NÃO entra, mesmo cadastrada', () => {
+    // O administrador da mesma parceria sai com filiação e sem naturalidade — as
+    // duas formas convivem no mesmo documento, uma por papel.
+    const c = derivarCampos('pessoa', {
+      nome: 'José Eduardo de Macedo Soares Júnior',
+      tipoPessoa: 'PF',
+      genero: 'M',
+      nacionalidade: 'brasileiro',
+      naturalidadeMunicipio: 'São Paulo',
+      naturalidadeUf: 'SP',
+      filiacaoPai: 'José Eduardo de Macedo Soares Sobrinho',
+      filiacaoMae: 'Teresa Maria Alcantara Machado de Macedo Soares',
+      dataNascimento: '23/05/1957',
+      estiloQualificacao: 'filiacao',
+    });
+    expect(c.qualificacao).not.toContain('natural de');
+    expect(c.qualificacao).toContain('nascido em 23/05/1957, filho de José Eduardo');
+  });
+
+  it('sem estilo declarado, nenhum dos dois entra — é o Contrato Social', () => {
+    const c = derivarCampos('pessoa', {
+      nome: 'Ana',
+      tipoPessoa: 'PF',
+      genero: 'F',
+      nacionalidade: 'brasileira',
+      naturalidadeMunicipio: 'Cuiabá',
+      naturalidadeUf: 'MT',
+      filiacaoPai: 'Pai',
+      filiacaoMae: 'Mãe',
+      dataNascimento: '19/05/1960',
+    });
+    expect(c.qualificacao).not.toContain('natural de');
+    expect(c.qualificacao).not.toContain('filha de');
+    expect(c.qualificacao).not.toContain('nascida em');
+  });
+
   // Casos calcados no Contrato Social da Agropecuária Bom Pastor (modelo real).
   function pf(extra: Record<string, unknown>): PessoaRow {
     return { ...pessoa('M'), tipo_pessoa: 'PF', ...extra } as unknown as PessoaRow;
@@ -690,9 +752,9 @@ describe('qualificação completa (pessoa.qualificacao)', () => {
     }));
     expect(campos.qualificacao).toBe(
       '*WILSON CARLOS GALERA*, brasileiro, casado em regime de comunhão universal de bens, ' +
-      'engenheiro civil, portador do RG nº 498924-0 SSP/SP, inscrito no CPF/MF sob o nº 803.465.108-72, ' +
-      'residente e domiciliado na Rua Professor Estevão Correa, nº 119, ' +
-      'no município de Cuiabá, Estado de Mato Grosso, CEP: 78000-000',
+      'engenheiro civil, portador do RG n.º 498924-0 SSP/SP, inscrito no CPF/MF sob o n.º 803.465.108-72, ' +
+      'residente e domiciliado na Rua Professor Estevão Correa, n.º 119, ' +
+      'no município de Cuiabá, Estado de Mato Grosso, CEP 78000-000',
     );
   });
 
@@ -704,8 +766,10 @@ describe('qualificação completa (pessoa.qualificacao)', () => {
       documento_identidade_numero: '622.505', documento_identidade_orgao: 'SSP', documento_identidade_uf: 'MT',
       nacionalidade: 'Brasileira',
     }));
-    expect(campos.qualificacao).toContain('brasileira, solteira, nascida em 04/06/1969, administradora de empresas');
-    expect(campos.qualificacao).toContain('portadora do RG nº 622.505 SSP/MT, inscrita no CPF/MF sob o nº 452.895.221-15');
+    // A data sai com o ponto no ano ("04/06/1.969"), como a casa escreve — ver
+    // `formatarDataBR`.
+    expect(campos.qualificacao).toContain('brasileira, solteira, nascida em 04/06/1.969, administradora de empresas');
+    expect(campos.qualificacao).toContain('portadora do RG n.º 622.505 SSP/MT, inscrita no CPF/MF sob o n.º 452.895.221-15');
   });
 
   it('PF viúva sai sem regime e sem data de nascimento; campos ausentes são omitidos', () => {
@@ -717,7 +781,7 @@ describe('qualificação completa (pessoa.qualificacao)', () => {
       nacionalidade: 'Brasileira',
     }));
     expect(campos.qualificacao).toBe(
-      '*MARTA BOIAGO SANSÃO*, brasileira, viúva, do lar, inscrita no CPF/MF sob o nº 406.174.831-91',
+      '*MARTA BOIAGO SANSÃO*, brasileira, viúva, do lar, inscrita no CPF/MF sob o n.º 406.174.831-91',
     );
   });
 
@@ -734,10 +798,14 @@ describe('qualificação completa (pessoa.qualificacao)', () => {
     } as unknown as PessoaRow);
     expect(campos.qualificacao).toBe(
       '*AGROPECUÁRIA BOM PASTOR LTDA.*, pessoa jurídica de direito privado, ' +
-      'inscrita no CNPJ/MF sob o nº 07.013.633/0001-83, ' +
-      'registrada na Junta Comercial do Estado de Mato Grosso sob o nº 51200912501, ' +
-      'com sede estabelecida na Rodovia MT 343, km 10, s/nº, lado direito, zona rural, ' +
-      'no município de Barra do Bugres, Estado de Mato Grosso, CEP: 78393-970',
+      'inscrita no CNPJ/MF sob o n.º 07.013.633/0001-83, ' +
+      // "sob o NIRE n.º", não "sob o n.º": sem dizer NIRE a frase entrega um
+      // número sem nome logo depois do CNPJ, e é a redação dos assinados.
+      'registrada na Junta Comercial do Estado de Mato Grosso sob o NIRE n.º 51200912501, ' +
+      // "Bairro zona rural": o prefixo é do modelo e a caixa do nome é do
+      // cadastro — o preâmbulo assinado do MMS traz "Bairro Zona Rural".
+      'com sede estabelecida na Rodovia MT 343, km 10, s/n.º, lado direito, Bairro zona rural, ' +
+      'no município de Barra do Bugres, Estado de Mato Grosso, CEP 78393-970',
     );
   });
 

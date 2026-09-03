@@ -16,6 +16,10 @@ type AuditEntityType =
   | 'pessoa' | 'parentesco' | 'administracao' | 'quadro_societario' | 'movimentacao_quotas'
   | 'ato_societario'
   | 'bem' | 'matricula' | 'titularidade' | 'impedimento' | 'cartorio'
+  // O instrumento rural é auditado INTEIRO, não uma linha por parte ou por imóvel:
+  // um instrumento de 15 imóveis viraria 15 entradas e ninguém leria nenhuma. Por
+  // isso as três tabelas filhas (parte / imóvel / origem externa) não têm tipo próprio.
+  | 'exploracao_rural'
   | 'tmpl_bloco' | 'tmpl_documento' | 'documento_arquivo' | 'projeto_flag_valor'
   | 'documento_gerado' | 'documento_override'
   | 'solicitacao' | 'solicitacao_item' | 'solicitacao_item_nao_aplicavel'

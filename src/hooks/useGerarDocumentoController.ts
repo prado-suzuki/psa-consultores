@@ -9,6 +9,7 @@ import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCess
 import { quotasDoSocio } from '@/lib/templates/capital';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { montarRegistroFamilias, useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
+import { listasDoInstrumentoRural, mapearInstrumentoRural, type EntradaInstrumentoRural } from '@/lib/templates/contextoRural';
 import { useConstitutivosRegistrados, useDocumentoGeradoHead, useDocumentoGeradoPorId, useDocumentoOverrides, useDocumentoSucessor, useDocumentoVersoes, useOrdemNaSucessao, useRegistrarDocumento, useSalvarDocumentoGerado, type DocumentoGeradoRow, type OverrideAplicavel, type SnapshotDados } from '@/hooks/useDocumentoGerado';
 import { escopoDaFlag, nomesDasFlagsManuaisLigadas, useFlagsManuaisProjeto, useResponderEventosDaAlteracao } from '@/hooks/useDomainFlagsManuais';
 import { useEventosDerivados, useFormalizarMovimentos } from '@/hooks/useEventosDaAlteracao';
@@ -462,7 +463,7 @@ export function useGerarDocumentoController() {
       }
       const id = registroPorBinding[b.nome];
       const reg = id ? registros[b.tipo].find((r) => r.id === id) : undefined;
-      if (reg) selecaoFresh[b.nome] = mapearRegistro(b.tipo, reg.row);
+      if (reg) selecaoFresh[b.nome] = camposDoRegistro(b.tipo, reg.row);
     }
     // mapearRegistro (matrícula) não traz o georref; re-mescla o cabeçalho atual
     // para o snapshot recém-feito não perder os campos georef* da matrícula.
@@ -796,10 +797,28 @@ export function useGerarDocumentoController() {
     [georef],
   );
 
+  /**
+   * Campos de um binding unitário.
+   *
+   * `instrumento` não passa por `mapearRegistro`: o mapeador agrário importa
+   * `mapeadores.ts` (é de lá que saem pessoa e matrícula), e pôr a seta de volta lá
+   * criaria ciclo de import — que nesta aplicação já custou erro de inicialização em
+   * produção. O desvio mora aqui, num lugar só, em vez de espalhar `if` pelos quatro
+   * pontos que escolhem registro.
+   */
+  const camposDoRegistro = (tipo: TipoEntidade, row: unknown) =>
+    tipo === 'instrumento'
+      ? mapearInstrumentoRural(row as EntradaInstrumentoRural)
+      : mapearRegistro(tipo, row);
+
   // Listas relacionais (sócios/administradores) carregam da empresa escolhida;
   // a empresa também alimenta as flags, então o passo aparece em ambos os casos.
-  // Vértices (fonte 'georef') vêm da matrícula, não da empresa — não contam aqui.
-  const usaListas = listas.some((l) => !['georef', 'selecao'].includes(l.papel.fonte));
+  // Vértices (fonte 'georef') vêm da matrícula e as listas do instrumento agrário
+  // (fonte 'exploracao_rural') vêm da linha de exploração rural — nenhuma das duas
+  // depende da empresa, então não fazem o passo de Empresa aparecer.
+  const usaListas = listas.some(
+    (l) => !['georef', 'selecao', 'exploracao_rural'].includes(l.papel.fonte),
+  );
   // A "Sociedade" (objeto do contrato) é dirigida pela mesma Empresa que alimenta
   // listas e flags — não tem seletor próprio. Detectar aqui faz o passo de Empresa
   // aparecer mesmo num modelo que só usa sociedade.* (sem listas nem flags).
@@ -896,11 +915,23 @@ export function useGerarDocumentoController() {
     () => registrosPorLista.imoveis ?? [],
     [registrosPorLista.imoveis],
   );
+  // A entrada agrária vem pronta no `row` do registro (useGeracaoDocumento resolve
+  // pessoas e matrículas); aqui só se pergunta se há instrumento escolhido.
+  //
+  // Fica ANTES do conjunto de matrículas do documento porque as matrículas do
+  // Anexo Único entram nele: é delas que sai o georref dos Elementos do Perímetro.
+  const entradaRural = useMemo<EntradaInstrumentoRural | null>(() => {
+    const binding = bindings.find((b) => b.tipo === 'instrumento');
+    const id = binding ? registroPorBinding[binding.nome] : undefined;
+    const reg = id ? registros.instrumento.find((r) => r.id === id) : undefined;
+    return (reg?.row as EntradaInstrumentoRural | undefined) ?? null;
+  }, [bindings, registroPorBinding, registros]);
+
   // Toda matrícula que ENTRA no documento, na ordem em que ele as descreve: as
   // integralizadas (alíneas de {{#integralizacoes}}), as escolhidas a dedo
-  // ({{#imoveis}}) e as de binding unitário ({{ imovel.* }}, a matrícula
-  // digitada). É deste conjunto — e não de um imóvel escolhido à parte — que sai
-  // o memorial do georreferenciamento.
+  // ({{#imoveis}}), as de binding unitário ({{ imovel.* }}, a matrícula digitada)
+  // e as do Anexo Único do instrumento agrário. É deste conjunto — e não de um
+  // imóvel escolhido à parte — que sai o georreferenciamento.
   const idsMatriculasDoDocumento = useMemo(() => {
     const ids = new Set<string>(matriculasDescritasNasIntegralizacoes(socios, integralizacoes));
     for (const id of idsImoveisSelecionados) ids.add(id);
@@ -909,8 +940,9 @@ export function useGerarDocumentoController() {
       const id = registroPorBinding[b.nome];
       if (id) ids.add(id);
     }
+    for (const i of entradaRural?.imoveis ?? []) ids.add(i.matricula.id);
     return [...ids];
-  }, [socios, integralizacoes, idsImoveisSelecionados, bindings, registroPorBinding]);
+  }, [socios, integralizacoes, idsImoveisSelecionados, bindings, registroPorBinding, entradaRural]);
   const { porMatricula: georefsPorMatricula, isFetching: carregandoGeorefs } =
     useGeorefsByMatriculas(idsMatriculasDoDocumento);
   const imoveisSelecionados = useMemo<ItemLista[]>(
@@ -1010,6 +1042,13 @@ export function useGerarDocumentoController() {
     [administradores, socios],
   );
 
+  const listasDoInstrumentoRural_ouVazio = useMemo(
+    // O georref entra por parâmetro: os *Elementos do Perímetro* da alínea do
+    // Anexo saem da MESMA coleção do memorial SIGEF, e quem a busca é este hook.
+    () => (entradaRural ? listasDoInstrumentoRural(entradaRural, georefsPorMatricula) : {}),
+    [entradaRural, georefsPorMatricula],
+  );
+
   const itensPorLista = useMemo<Record<string, ItemLista[]>>(
     () => ({
       socios: quadro.itens,
@@ -1032,8 +1071,14 @@ export function useGerarDocumentoController() {
       memoriais,
       // Listas de seleção manual de pessoas ({{#partes}}), por nome do papel.
       ...partesPorLista,
+      // As cinco listas do instrumento agrário saem da MESMA linha escolhida no
+      // binding `instrumento`, não da empresa. Vêm por último de propósito: num
+      // contrato rural quem assina são as PARTES do instrumento, e a lista
+      // `signatarios` daqui substitui a do quadro societário acima. Sem instrumento
+      // escolhido, o objeto é vazio e nada é substituído.
+      ...listasDoInstrumentoRural_ouVazio,
     }),
-    [quadro, socios, administradores, integralizacoes, aportes, cessoes, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista],
+    [quadro, socios, administradores, integralizacoes, aportes, cessoes, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista, listasDoInstrumentoRural_ouVazio],
   );
 
   // --- Notificações de mudança de variável (só com versão validada) ---------
@@ -1253,7 +1298,7 @@ export function useGerarDocumentoController() {
       if (chave.startsWith(`${nome}.`)) camposEditadosRef.current.delete(chave);
     }
     setRegistroPorBinding((prev) => ({ ...prev, [nome]: registroId }));
-    setSelecao((prev) => ({ ...prev, [nome]: mapearRegistro(tipo, reg.row) }));
+    setSelecao((prev) => ({ ...prev, [nome]: camposDoRegistro(tipo, reg.row) }));
     setPassoAberto(null);
     if (congelado) setRecongelarPendente(true);
   };
@@ -1374,7 +1419,7 @@ export function useGerarDocumentoController() {
         const reg = registros[b.tipo].find((r) => r.id === origemPendenteRemap);
         if (!reg) continue;
         next = next ?? { ...prev };
-        next[b.nome] = mapearRegistro(b.tipo, reg.row);
+        next[b.nome] = camposDoRegistro(b.tipo, reg.row);
       }
       return next ?? prev;
     });

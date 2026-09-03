@@ -33,6 +33,7 @@ import {
   Home,
   LineChart,
   Rocket,
+  Sprout,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
@@ -513,6 +514,20 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           >
             <PieChart className="h-4 w-4 flex-shrink-0" />
             <span className={cn(rotuloCls, "whitespace-nowrap")}>Quadro Societário</span>
+          </button>
+          {/* Ao lado do Quadro Societário porque é o irmão conceitual: cadastro
+              relacional (instrumento + partes), não cadastro atômico. */}
+          <button
+            onClick={() => navigate('/equipe/osg/work/exploracao-rural')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+              location.pathname === '/equipe/osg/work/exploracao-rural'
+                ? "bg-osg-100 text-primary"
+                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
+            )}
+          >
+            <Sprout className="h-4 w-4 flex-shrink-0" />
+            <span className={cn(rotuloCls, "whitespace-nowrap")}>Exploração Rural</span>
           </button>
           <button
             onClick={() => navigate('/equipe/osg/work/calculadora-itcmd')}

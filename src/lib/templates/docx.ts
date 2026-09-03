@@ -1,6 +1,6 @@
 import type { Document, ISpacingProperties, Paragraph, Table, TextRun } from 'docx';
 import type { Bloco, TipoBloco } from './types';
-import { extrairRunsLinha, removerMarcas } from './marcas';
+import { extrairRunsLinha, removerMarcas, type RunMarcado } from './marcas';
 import { segmentar, type Alinhamento, type Segmento } from './tabela';
 
 // Adapter de saída .docx: converte os blocos gerados pelo engine (numerados e
@@ -37,6 +37,15 @@ type DocxModule = typeof import('docx');
 // --- Constantes do modelo de referência (twips; half-points para fontes) ----
 const FONTE = 'Arial Narrow';
 const PT12 = 24;
+/**
+ * Corpo do título dos INSTRUMENTOS AGRÁRIOS: 14pt, negrito, centralizado, SEM
+ * sublinhado. Medido nos dois .docx assinados do MMS (`w:sz="28"` nos dois
+ * parágrafos do título, nos dois contratos).
+ *
+ * Não é o mesmo cabeçalho do Contrato Social, que é 18pt sublinhado seguido da
+ * razão social em 20pt — ver `detectarCapa`.
+ */
+const PT14 = 28;
 const PT18 = 36;
 const PT20 = 40;
 /** 1 cm = 567 twips. */
@@ -84,19 +93,20 @@ interface EstiloBase {
  * compondo com o estilo estrutural do parágrafo (negrito de rótulo/título soma
  * com as marcas; nunca as desliga). Fonte e corpo saem explícitos em todo run.
  */
-function runsInline(docx: DocxModule, texto: string, base: EstiloBase = {}): TextRun[] {
+function runDoMarcado(docx: DocxModule, r: RunMarcado, base: EstiloBase = {}): TextRun {
   const { TextRun, UnderlineType } = docx;
-  return extrairRunsLinha(texto).map(
-    (r) =>
-      new TextRun({
-        text: r.texto,
-        font: FONTE,
-        size: base.size ?? PT12,
-        bold: base.bold || r.negrito || undefined,
-        italics: r.italico || undefined,
-        underline: base.underline || r.sublinhado ? { type: UnderlineType.SINGLE } : undefined,
-      }),
-  );
+  return new TextRun({
+    text: r.texto,
+    font: FONTE,
+    size: base.size ?? PT12,
+    bold: base.bold || r.negrito || undefined,
+    italics: r.italico || undefined,
+    underline: base.underline || r.sublinhado ? { type: UnderlineType.SINGLE } : undefined,
+  });
+}
+
+function runsInline(docx: DocxModule, texto: string, base: EstiloBase = {}): TextRun[] {
+  return extrairRunsLinha(texto).map((r) => runDoMarcado(docx, r, base));
 }
 
 /** Espaçamento do modelo: entrelinha 1,15 e nada antes nem depois do parágrafo. */
@@ -123,6 +133,38 @@ function linhaCentralizada(docx: DocxModule, texto: string, base: EstiloBase): P
  * Linha justificada com o rótulo ("CLÁUSULA X:" / "Parágrafo X:") em negrito.
  * Alínea recebe recuo pendente e marcador em negrito.
  */
+/**
+ * Força negrito nos `n` primeiros caracteres dos runs, partindo o run que for
+ * atravessado pelo corte.
+ *
+ * Existe porque medir o rótulo numa string e cortar em OUTRA não funciona: o
+ * `ALINEA` casa em `removerMarcas(linha)` ("a) …"), e a linha real tem marcas
+ * ("*a)* …"). Cortar 3 caracteres da segunda devolvia `*a)`, deixava um `*`
+ * órfão no resto, e a contagem ímpar de delimitadores deslocava TODO o
+ * pareamento — o negrito escapava para o corpo e o `*` de fechamento saía
+ * literal no .docx. Trabalhando em espaço de RUNS o problema não existe: os runs
+ * já vêm sem marca, e a contagem é sobre o texto que o leitor vê.
+ */
+function comNegritoNoInicio(runs: RunMarcado[], n: number): RunMarcado[] {
+  const out: RunMarcado[] = [];
+  let restante = n;
+  for (const r of runs) {
+    if (restante <= 0) {
+      out.push(r);
+      continue;
+    }
+    if (r.texto.length <= restante) {
+      out.push({ ...r, negrito: true });
+      restante -= r.texto.length;
+      continue;
+    }
+    out.push({ ...r, texto: r.texto.slice(0, restante), negrito: true });
+    out.push({ ...r, texto: r.texto.slice(restante) });
+    restante = 0;
+  }
+  return out;
+}
+
 function linhaComRotulo(docx: DocxModule, linha: string): Paragraph {
   const { AlignmentType, Paragraph, TextRun } = docx;
   const limpo = removerMarcas(linha);
@@ -131,12 +173,11 @@ function linhaComRotulo(docx: DocxModule, linha: string): Paragraph {
   let children: TextRun[];
   if (marcador) {
     // "a) " em negrito, o resto da alínea com a formatação normal do corpo.
-    const semEspacos = linha.replace(/^\s+/, '');
-    const rotulo = semEspacos.slice(0, marcador[0].replace(/^\s+/, '').length);
-    children = [
-      new TextRun({ text: rotulo, font: FONTE, size: PT12, bold: true }),
-      ...runsInline(docx, semEspacos.slice(rotulo.length)),
-    ];
+    // A contagem é sobre o texto SEM marca, e a aplicação também — ver
+    // `comNegritoNoInicio`.
+    const runs = extrairRunsLinha(linha.replace(/^\s+/, ''));
+    const tamanhoDoRotulo = marcador[0].replace(/^\s+/, '').replace(/\s+$/, '').length;
+    children = comNegritoNoInicio(runs, tamanhoDoRotulo).map((r) => runDoMarcado(docx, r));
   } else {
     const m = linha.match(ROTULO);
     children = m
@@ -272,15 +313,54 @@ function tabelaParaDocx(docx: DocxModule, seg: Extract<Segmento, { tipo: 'tabela
  */
 interface EstadoDocumento {
   /**
-   * Onde a abertura do instrumento está: 'titulo' espera o título (1ª linha em
-   * caixa alta do documento), 'razao' espera a razão social logo abaixo dele,
-   * 'corpo' significa abertura encerrada.
+   * A abertura do documento ainda está em curso ('aberta') ou já entrou no corpo
+   * ('corpo')? Enquanto aberta, uma linha em caixa alta num bloco livre é título
+   * do instrumento; depois dela, é título de seção.
    */
-  abertura: 'titulo' | 'razao' | 'corpo';
+  abertura: 'aberta' | 'corpo';
   /** Tipo do bloco anterior — cláusula logo depois de capítulo não leva linha em branco. */
   tipoAnterior?: TipoBloco;
   /** O documento já termina em parágrafo vazio? Evita abrir bloco com linha dupla. */
   terminaEmBranco: boolean;
+}
+
+/**
+ * A capa do Contrato Social dentro de UM bloco: título, linha em branco, razão
+ * social. Devolve os índices dos dois segmentos, ou `null` quando o bloco não
+ * tem essa forma.
+ *
+ * ── POR QUE A DECISÃO É POR BLOCO, E NÃO POR ESTADO QUE ATRAVESSA BLOCOS ────
+ *
+ * A versão anterior guardava 'titulo' → 'razao' → 'corpo' no estado do
+ * DOCUMENTO: a primeira linha em caixa alta virava título, e a PRÓXIMA linha
+ * livre — de qualquer bloco — virava razão social, em 20pt centralizado. Isso
+ * funcionava por acidente no Contrato Social, onde as duas moram no mesmo bloco
+ * ("Cabeçalho e razão social"), e produzia dois defeitos fora dele:
+ *
+ *   · no instrumento agrário COMPLETO, o parágrafo "PARCEIRA OUTORGANTE: MMS
+ *     AGRO LTDA, pessoa jurídica…" caía no slot da razão social e saía inteiro
+ *     centralizado em 20pt;
+ *   · no instrumento agrário em RASCUNHO, a tarja "RASCUNHO — DOCUMENTO
+ *     INCOMPLETO" consumia o slot do título e empurrava o título de verdade para
+ *     o da razão social — o que MASCARAVA o defeito acima.
+ *
+ * Olhando o bloco, a capa é reconhecida pelo que ela é (duas linhas separadas por
+ * uma vazia) e nenhum bloco seguinte herda um slot que não é dele.
+ */
+function detectarCapa(segs: Segmento[]): { titulo: number; razao: number } | null {
+  const indices = segs
+    .map((s, i) => ({ i, texto: s.tipo === 'tabela' ? null : removerMarcas(s.texto).trim() }))
+    .filter((s) => s.texto !== null) as { i: number; texto: string }[];
+
+  const titulo = indices.find((s) => s.texto !== '');
+  if (!titulo || !ehCaixaAlta(titulo.texto)) return null;
+
+  const depois = indices.filter((s) => s.i > titulo.i);
+  // Exatamente a forma da capa: pelo menos uma linha VAZIA e, depois dela, texto.
+  const vazia = depois.find((s) => s.texto === '');
+  if (!vazia) return null;
+  const razao = depois.find((s) => s.i > vazia.i && s.texto !== '');
+  return razao ? { titulo: titulo.i, razao: razao.i } : null;
 }
 
 /** Converte um bloco em parágrafos (e tabelas) Word conforme o tipo estrutural. */
@@ -322,6 +402,9 @@ function paragrafosDoBloco(
   };
 
   const segs = segmentar(bloco.conteudo.split('\n'));
+  // A capa (título + razão social) é forma DESTE bloco, e só vale enquanto a
+  // abertura do documento não terminou.
+  const capa = tipo === 'livre' && estado.abertura === 'aberta' ? detectarCapa(segs) : null;
   /** A próxima linha de conteúdo (pulando vazias) abre uma alínea? */
   const proximaEhAlinea = (i: number): boolean => {
     for (let k = i + 1; k < segs.length; k++) {
@@ -379,21 +462,31 @@ function paragrafosDoBloco(
     const texto = linha.trim();
     const limpo = removerMarcas(texto);
 
-    // Abertura: o título do instrumento (caixa alta, 18pt sublinhado) e, logo
-    // abaixo, a razão social (20pt, sem sublinhado) — as duas centralizadas em
-    // negrito, como nos dois contratos registrados.
-    if (estado.abertura === 'titulo') {
-      // Só há abertura se a 1ª linha do documento for o título em caixa alta.
-      estado.abertura = ehCaixaAlta(limpo) ? 'razao' : 'corpo';
-      if (estado.abertura === 'razao') {
-        emitir(linhaCentralizada(docx, texto, { bold: true, underline: true, size: PT18 }));
-        continue;
-      }
-    } else if (estado.abertura === 'razao') {
+    // Capa do Contrato Social: título (18pt sublinhado) e, depois da linha em
+    // branco, a razão social (20pt sem sublinhado) — as duas centralizadas em
+    // negrito, como nos dois contratos registrados na Jucemat.
+    if (capa && indice === capa.titulo) {
+      emitir(linhaCentralizada(docx, texto, { bold: true, underline: true, size: PT18 }));
+      continue;
+    }
+    if (capa && indice === capa.razao) {
       estado.abertura = 'corpo';
       emitir(linhaCentralizada(docx, texto, { bold: true, size: PT20 }));
       continue;
     }
+
+    // Título do instrumento SEM capa: os agrários abrem com uma linha só, em
+    // 14pt negrito centralizado e sem sublinhado. A tarja de rascunho, que é um
+    // bloco livre de uma linha em caixa alta prependado ao documento, cai aqui
+    // também — e é exatamente o que se quer dela.
+    if (capa === null && estado.abertura === 'aberta' && ehCaixaAlta(limpo) && !ALINEA.test(limpo)) {
+      emitir(linhaCentralizada(docx, texto, { bold: true, size: PT14 }));
+      continue;
+    }
+    // Primeira linha livre que não é título encerra a abertura: daí para frente,
+    // caixa alta é título de SEÇÃO (o "PREÂMBULO" do composse, o "ANEXO ÚNICO"),
+    // e não mais o nome do instrumento.
+    estado.abertura = 'corpo';
 
     if (REGUA_ASSINATURA.test(limpo)) {
       emitir(linhaCentralizada(docx, limpo, {}));
@@ -422,7 +515,7 @@ function paragrafosDoBloco(
 /** Monta o Document a partir dos blocos gerados pelo engine. */
 function blocosParaDocx(docx: DocxModule, blocos: Bloco[]): Document {
   const { AlignmentType, Footer, PageNumber, Paragraph, TextRun } = docx;
-  const estado: EstadoDocumento = { abertura: 'titulo', terminaEmBranco: false };
+  const estado: EstadoDocumento = { abertura: 'aberta', terminaEmBranco: false };
   const paragrafos = blocos.flatMap((bloco) => paragrafosDoBloco(docx, bloco, estado));
 
   const rodape = (texto: string | (typeof PageNumber)[keyof typeof PageNumber], bold = false) =>

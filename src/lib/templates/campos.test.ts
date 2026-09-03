@@ -168,3 +168,36 @@ describe('B2 (motor) · pendências do documento', () => {
     ]);
   });
 });
+
+// Campo DERIVADO de um manual herda o `manual` da base.
+//
+// Sem isso o derivado resolvia '' e a cláusula de foro saía "Estado de ," — com a
+// vírgula pendurada — e o fecho saía "em ______ () vias", com o parêntese vazio
+// ao lado da lacuna da base. Herdando, os dois viram lacuna assinalável e a frase
+// fica legível para quem vai preencher à mão.
+describe('campo derivado de manual herda a lacuna', () => {
+  it('o Estado por extenso do foro é lacuna, porque a UF do foro é digitada na tela Gerar', () => {
+    expect(classificarCaminho('instrumento.foroUf')?.manual).toBe(true);
+    expect(classificarCaminho('instrumento.foroUfExtenso')?.manual).toBe(true);
+    expect(marcacaoDoCaminho('instrumento.foroUfExtenso')?.lacuna).toBe('____________________');
+  });
+
+  it('o número de vias por extenso também, e com a lacuna do TIPO de cada um', () => {
+    // A base é inteiro (lacuna curta), o extenso é texto (traço longo): é o que
+    // faz "em ______ (____________________) vias" em vez de "em ______ () vias".
+    expect(marcacaoDoCaminho('instrumento.numeroVias')?.lacuna).toBe('______');
+    expect(marcacaoDoCaminho('instrumento.numeroViasExtenso')?.lacuna).toBe('____________________');
+  });
+
+  it('o `obrigatorio` NÃO sobe: a pendência é da base, e contar as duas duplicaria o aviso', () => {
+    expect(classificarCaminho('instrumento.foroUf')?.obrigatorio).toBe(true);
+    expect(classificarCaminho('instrumento.foroUfExtenso')?.obrigatorio).toBe(false);
+  });
+
+  it('derivado de campo de CADASTRO segue não sendo lacuna', () => {
+    // `areaExtenso` deriva de `area`, que vem da matrícula: não há o que preencher
+    // à mão, e marcar lacuna aqui poria traço em documento completo.
+    expect(classificarCaminho('imovel.areaExtenso')?.manual).toBe(false);
+    expect(marcacaoDoCaminho('imovel.areaExtenso')).toBeUndefined();
+  });
+});

@@ -265,6 +265,69 @@ export function formatarInteiro(valor: number): string {
   return agruparMilhar(String(Math.floor(Math.abs(valor))));
 }
 
+/**
+ * Numeral CONTADO dos instrumentos — o que vem seguido do extenso entre
+ * parênteses: "04 (quatro) vias", "03 (três) anos", "02 (duas) testemunhas",
+ * "no Livro 02 (dois), folhas/ficha 01 (um)".
+ *
+ * Uma casa ganha zero à esquerda. Não é preferência: nos cinco assinados são 59
+ * ocorrências com o zero e NENHUMA sem ("01 (um)" 22x, "02 (dois)" 26x, mais 04,
+ * 06, 07 e 08). De dois dígitos para cima nada muda.
+ *
+ * Valor que NÃO é puramente numérico sai íntegro: o cartório registra livro
+ * "2-AUX", e "02-AUX" seria um número que não existe.
+ *
+ * Separado de `formatarInteiro` de propósito: aquele formata quota e quantidade
+ * de milhar, onde "01" seria absurdo. Aqui o domínio é o numeral pequeno que o
+ * contrato lê em voz alta. É a fonte única da regra — `numeralCampo`
+ * (vocabulario.ts) delega para cá, para o livro da matrícula e o número de vias
+ * não divergirem no mesmo contrato.
+ */
+export function numeralContrato(valor: string | number | null | undefined): string {
+  const bruto = String(valor ?? '').trim();
+  return /^\d+$/.test(bruto) ? bruto.padStart(2, '0') : bruto;
+}
+
+const MESES = [
+  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+];
+
+/**
+ * Data na redação dos instrumentos: `10 de outubro de 2.025`.
+ *
+ * Repare o PONTO no ano — não é acidente de digitação, é como os contratos
+ * assinados escrevem ("2.022", "1.957", "Lei 4.504/1.964"). Sai de
+ * `agruparMilhar`, o mesmo separador do resto do arquivo.
+ *
+ * Recebe a data ISO do banco e NÃO passa por `Date`: `new Date('2022-10-10')`
+ * interpreta como UTC e, em fuso negativo, devolve o dia 9. Contrato com a data
+ * errada por um dia é exatamente o tipo de defeito que ninguém revisa.
+ */
+export function dataExtenso(data: string | null | undefined): string {
+  const bruto = data ?? '';
+  // Aceita as DUAS formas em que uma data circula por aqui: a ISO do banco, para
+  // quem chama do mapeador, e a `dd/mm/aaaa` já formatada, porque é essa que um
+  // campo DERIVADO recebe — a base dele foi publicada por `formatarDataBR`, e é
+  // essa que o consultor edita no "Ajustar dados manualmente".
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(bruto);
+  // O ano da forma brasileira vem COM o ponto de milhar ("10/10/2.025"), porque é
+  // assim que `formatarDataBR` o escreve — e era assim que este parser deixava de
+  // reconhecê-lo. Sem o `\.?`, a data de encerramento da vigência e a do fecho
+  // saíam "10/10/2.025" no lugar de "10 de outubro de 2.025": o campo derivado
+  // recebia a base já formatada, não casava, e devolvia a entrada intacta.
+  const br = /^(\d{1,2})\/(\d{1,2})\/(\d\.?\d{3})$/.exec(bruto.trim());
+  const partes = iso
+    ? { ano: iso[1], mes: iso[2], dia: iso[3] }
+    : br
+      ? { ano: br[3].replace('.', ''), mes: br[2], dia: br[1] }
+      : null;
+  if (!partes) return bruto;
+  const nomeDoMes = MESES[Number(partes.mes) - 1];
+  if (!nomeDoMes) return bruto;
+  return `${Number(partes.dia)} de ${nomeDoMes} de ${agruparMilhar(partes.ano)}`;
+}
+
 /** Percentual pt-BR com 3 casas e sufixo "%". Ex.: 23.8999 → "23,900%". */
 export function formatarPercentual(valor: number): string {
   const [inteiro, decimais] = Math.abs(valor).toFixed(3).split('.');
@@ -287,3 +350,4 @@ export function percentualExtenso(valor: number): string {
   if (partes.length === 0) return 'zero por cento';
   return `${partes.join(' e ')} por cento`;
 }
+

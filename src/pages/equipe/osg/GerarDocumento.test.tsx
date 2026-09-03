@@ -526,7 +526,10 @@ describe('GerarDocumento — caracterização O1', () => {
     await abrirDocumentoVivo();
 
     expect(
-      await screen.findByText(/Um imóvel urbano na Avenida das Itaúbas, nº 3255/),
+      // "n.º", com ponto: é a abreviação da casa, contada no corpus dos
+      // assinados em 02/09/2026 — 68 contra 8 nos instrumentos agrários e 71
+      // contra 2 nos Contratos Sociais. Ver `numeroProsa` em vocabulario.ts.
+      await screen.findByText(/Um imóvel urbano na Avenida das Itaúbas, n\.º 3255/),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Um imóvel rural/)).not.toBeInTheDocument();
 
