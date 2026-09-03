@@ -35,7 +35,7 @@ export const ROTULO_TUDO = 'Tudo';
 export interface OpcaoDeEscopo {
   /** `ESCOPO_TUDO` ou o mês em `yyyy-MM`. */
   valor: string;
-  /** O rótulo como o menu mostra, já com a maiúscula: "Setembro de 2026". */
+  /** O rótulo como o menu mostra: "Tudo", "set/2026". */
   rotulo: string;
 }
 
@@ -54,8 +54,24 @@ export function mesDoValor(valor: string): Date | null {
 /** Meia dúzia para cada lado de hoje é o alcance do seletor sem virar rolagem. */
 const MESES_AO_REDOR = 6;
 
-/** O rótulo do menu começa frase; `tituloDoMes` vem do date-fns em minúscula. */
+/** O título começa frase; `tituloDoMes` vem do date-fns em minúscula. */
 const maiusculaInicial = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1);
+
+/** O mês como TÍTULO da barra: "Setembro de 2026", igual ao Gantt e ao Calendário. */
+export function rotuloDoMes(mes: Date): string {
+  return maiusculaInicial(tituloDoMes(mes));
+}
+
+/**
+ * O mês como ITEM do menu: "set/2026".
+ *
+ * O nome inteiro treze vezes empilhado vira parede de texto, e é a forma que a
+ * competência fiscal já tem em todo lugar. O título continua por extenso: lá é
+ * uma linha só, e ele diz em que mês a tela está.
+ */
+export function rotuloCurtoDoMes(mes: Date): string {
+  return format(mes, 'MMM/yyyy', { locale: ptBR });
+}
 
 /**
  * As opções do seletor: `Tudo` e uma janela de meses em volta de hoje.
@@ -76,7 +92,7 @@ export function opcoesDeEscopo(hoje: Date, mes: Date): OpcaoDeEscopo[] {
     { valor: ESCOPO_TUDO, rotulo: ROTULO_TUDO },
     ...[...janela.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([valor, data]) => ({ valor, rotulo: maiusculaInicial(tituloDoMes(data)) })),
+      .map(([valor, data]) => ({ valor, rotulo: rotuloCurtoDoMes(data) })),
   ];
 }
 

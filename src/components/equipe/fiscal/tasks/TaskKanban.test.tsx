@@ -91,10 +91,16 @@ describe('TaskKanban — barra de período', () => {
 
       // E o mês continua a um clique, no próprio título.
       await usuario.click(screen.getByRole('button', { name: 'Tudo' }));
-      await usuario.click(screen.getByRole('menuitemradio', { name: 'Setembro de 2026' }));
+      await usuario.click(screen.getByRole('menuitemradio', { name: 'set/2026' }));
 
       expect(screen.getByText('Entrega de setembro')).toBeInTheDocument();
       expect(screen.queryByText('Entrega de agosto')).not.toBeInTheDocument();
+
+      // E a saída do mês fica à vista, sem precisar reabrir o menu: "não
+      // aparece nada" tem esta causa comum.
+      await usuario.click(screen.getByRole('button', { name: 'Ver tudo' }));
+      expect(screen.getByText('Entrega de agosto')).toBeInTheDocument();
+      expect(screen.getByText('Entrega de setembro')).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }

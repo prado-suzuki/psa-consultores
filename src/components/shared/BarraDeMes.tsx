@@ -9,7 +9,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { BarraDePeriodo } from '@/components/shared/BarraDePeriodo';
-import { ESCOPO_TUDO, ROTULO_TUDO, opcoesDeEscopo, tituloDoMes, valorDoMes } from '@/lib/periodoDeTarefas';
+import {
+  ESCOPO_TUDO,
+  ROTULO_TUDO,
+  opcoesDeEscopo,
+  rotuloDoMes,
+  tituloDoMes,
+  valorDoMes,
+} from '@/lib/periodoDeTarefas';
 import { getTodayBrazil } from '@/lib/dateUtils';
 import type { PeriodoDeTarefas } from '@/hooks/usePeriodoDeTarefas';
 
@@ -53,27 +60,44 @@ export function BarraDeMes({
 function SeletorDeEscopo({ periodo }: { periodo: PeriodoDeTarefas }) {
   const opcoes = useMemo(() => opcoesDeEscopo(getTodayBrazil(), periodo.mes), [periodo.mes]);
   const valor = periodo.escopo === 'tudo' ? ESCOPO_TUDO : valorDoMes(periodo.mes);
-  // O rótulo do botão sai da própria lista: o mês âncora está garantido nela
-  // (ver `opcoesDeEscopo`), e assim título e opção marcada não divergem.
-  const rotulo = opcoes.find(opcao => opcao.valor === valor)?.rotulo ?? ROTULO_TUDO;
+  // O título é por extenso ("Setembro de 2026") e o item do menu é curto
+  // ("set/2026"): a lista é de treze, o título é um só e fica ao lado do do
+  // Gantt e do Calendário, que são por extenso.
+  const rotulo = periodo.escopo === 'tudo' ? ROTULO_TUDO : rotuloDoMes(periodo.mes);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 gap-1 px-2 text-base font-semibold">
-          {rotulo}
-          <ChevronDown className="h-4 w-4 opacity-60" />
+    <span className="flex items-center gap-1">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-8 gap-1 px-2 text-base font-semibold">
+            {rotulo}
+            <ChevronDown className="h-4 w-4 opacity-60" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="max-h-80 overflow-y-auto">
+          <DropdownMenuRadioGroup value={valor} onValueChange={periodo.onEscopo}>
+            {opcoes.map(opcao => (
+              <DropdownMenuRadioItem key={opcao.valor} value={opcao.valor}>
+                {opcao.rotulo}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* A saída do mês, à vista. "Não aparece nada" tem uma causa comum — o
+          mês em que a tela está não tem tarefa — e quem cai nela não devia ter
+          de descobrir que o título abre menu para sair de lá. */}
+      {periodo.escopo === 'mes' && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 px-2 text-xs font-medium text-muted-foreground"
+          onClick={() => periodo.onEscopo(ESCOPO_TUDO)}
+        >
+          Ver tudo
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="max-h-80 overflow-y-auto">
-        <DropdownMenuRadioGroup value={valor} onValueChange={periodo.onEscopo}>
-          {opcoes.map(opcao => (
-            <DropdownMenuRadioItem key={opcao.valor} value={opcao.valor}>
-              {opcao.rotulo}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      )}
+    </span>
   );
 }

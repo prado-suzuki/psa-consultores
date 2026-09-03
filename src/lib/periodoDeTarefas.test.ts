@@ -5,6 +5,7 @@ import {
   opcoesDeEscopo,
   ordenarPorVencimento,
   passoDeMes,
+  rotuloDoMes,
   tarefasNoPeriodo,
   tituloDoMes,
   valorDoMes,
@@ -100,10 +101,13 @@ describe('opcoesDeEscopo', () => {
     expect(meses).toEqual([...meses].sort());
   });
 
-  it('o rótulo já vem como o menu mostra: o mesmo título, começando frase', () => {
+  it('o item do menu é curto, e o título da barra é por extenso', () => {
+    // Treze nomes de mês empilhados viram parede de texto; o título é um só e
+    // acompanha o do Gantt e do Calendário.
     const agosto = opcoesDeEscopo(HOJE, AGOSTO).find(o => o.valor === '2026-08');
 
-    expect(agosto?.rotulo).toBe('Agosto de 2026');
+    expect(agosto?.rotulo).toBe('ago/2026');
+    expect(rotuloDoMes(AGOSTO)).toBe('Agosto de 2026');
   });
 });
 
