@@ -473,6 +473,20 @@ describe('useOrgTasks (filtro por responsável)', () => {
     expect(tasks.map(task => task.id)).toEqual(['em-revisao']);
   });
 
+  it('"unassigned" é a fila do que ninguém pegou, e ignora revisor', async () => {
+    queueTasks([
+      tarefa({ id: 'sem-ninguem', assigned_to: null }),
+      tarefa({ id: 'de-alguem', assigned_to: 'monica' }),
+      // Revisora não vale como responsável aqui: sem responsável é sem
+      // responsável, mesmo com revisão em andamento.
+      tarefa({ id: 'sem-ninguem-em-revisao', assigned_to: null, status: 'review', reviewer_id: 'anderson' }),
+    ]);
+
+    const tasks = await queryFnOf({ assignedTo: 'unassigned' })();
+
+    expect(tasks.map(task => task.id)).toEqual(['sem-ninguem', 'sem-ninguem-em-revisao']);
+  });
+
   it('resolve "mine" para o usuário logado', async () => {
     queueTasks([
       tarefa({ id: 'minha', assigned_to: 'user-1' }),

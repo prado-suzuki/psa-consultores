@@ -115,7 +115,10 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
                   <Label htmlFor="task-filter-assignee">Responsável</Label>
                   <Select value={draftFilters.assignedTo || 'all'} onValueChange={value => setDraftFilters({ ...draftFilters, assignedTo: value === 'all' ? undefined : value })}>
                     <SelectTrigger id="task-filter-assignee" className="w-full"><User className="mr-2 h-4 w-4 shrink-0" /><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="all">Todas as pessoas</SelectItem><SelectItem value="mine">Minhas tarefas</SelectItem>{teamMembers.map(member => <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>)}</SelectContent>
+                    {/* "Sem responsável" é a fila do que ninguém pegou. Fica
+                        aqui, junto das pessoas, e não no menu de prazo do
+                        título: quem responde é uma pessoa, não uma data. */}
+                    <SelectContent><SelectItem value="all">Todas as pessoas</SelectItem><SelectItem value="mine">Minhas tarefas</SelectItem><SelectItem value="unassigned">Sem responsável</SelectItem>{teamMembers.map(member => <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">

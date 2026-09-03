@@ -64,7 +64,8 @@ export interface OrgTask {
  
 export interface TaskFilters {
   search?: string;
-  assignedTo?: string | 'mine' | 'all';
+  /** Um id de pessoa, `mine`, `unassigned` (sem responsável) ou `all`. */
+  assignedTo?: string | 'mine' | 'all' | 'unassigned';
   status?: OrgTaskStatus[];
   priority?: OrgTaskPriority[];
   projectId?: string;
@@ -174,10 +175,15 @@ export interface TaskFilters {
         // quem dividia a mesma mãe (e inflava KPIs e esforço, que leem esta
         // mesma lista).
         if (filters?.assignedTo && filters.assignedTo !== 'all') {
+          // `unassigned` é a fila do que ninguém pegou — a pergunta que a
+          // gestora faz olhando um projeto: falta responsável em quê? Ela não
+          // tem revisor a considerar: tarefa sem responsável é sem responsável.
+          const semResponsavel = filters.assignedTo === 'unassigned';
           const targetId = filters.assignedTo === 'mine' ? user?.id : filters.assignedTo;
-          if (targetId) {
-            const belongsToTarget = (task: OrgTask) =>
-              task.assigned_to === targetId ||
+          if (semResponsavel || targetId) {
+            const belongsToTarget = (task: OrgTask) => semResponsavel
+              ? !task.assigned_to
+              : task.assigned_to === targetId ||
               (task.reviewer_id === targetId && task.status === 'review');
             const matchingSubtaskParentIds = new Set(
               allTasks

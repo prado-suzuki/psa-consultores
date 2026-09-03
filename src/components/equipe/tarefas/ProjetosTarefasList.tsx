@@ -443,9 +443,13 @@ export function ProjetosTarefasList({
         <p className="mt-3 font-medium">Carregando projetos e tarefas…</p>
       </div>);
     }
-    // Com filtros ativos, o vazio é resultado da filtragem — ensina o comportamento
-    // (grupos sem tarefas ficam ocultos) e oferece limpar os filtros de uma vez.
-    if (hideEmpty) {
+    // O RECORTE vem antes dos filtros porque ele também liga o `hideEmpty`, e a
+    // causa mais específica é a que ajuda: "Nenhuma tarefa corresponde aos
+    // filtros" com o drawer vazio faz a pessoa procurar filtro que não existe.
+    // Dizer "crie um projeto" aqui seria pior ainda — o projeto está ali, fora
+    // do recorte.
+    const vazioDoRecorte = mensagemDoVazio(periodo);
+    if (hideEmpty && !vazioDoRecorte) {
       return comBarra(<div className="rounded-xl border border-dashed py-16 text-center">
         <FilterX className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
         <p className="font-medium">Nenhuma tarefa corresponde aos filtros</p>
@@ -453,10 +457,6 @@ export function ProjetosTarefasList({
         {onClearFilters && <Button variant="outline" size="sm" className="mt-4 gap-2" onClick={onClearFilters}><FilterX className="h-4 w-4" />Limpar filtros</Button>}
       </div>);
     }
-    // Dentro de um recorte, o vazio quase nunca é "não há projeto": é o recorte
-    // que não tem prazo nenhum. Dizer "crie um projeto" ali manda a pessoa criar
-    // o que ela já tem.
-    const vazioDoRecorte = mensagemDoVazio(periodo);
     if (vazioDoRecorte) {
       return comBarra(<div className="rounded-xl border border-dashed py-16 text-center">
         <FolderKanban className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />

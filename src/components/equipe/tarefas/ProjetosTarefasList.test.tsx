@@ -232,6 +232,12 @@ describe('ProjetosTarefasList — estado de carregamento', () => {
     expect(screen.queryByText('Carregando projetos e tarefas…')).not.toBeInTheDocument();
   });
 
+  it('com filtro e sem recorte, o vazio é o da filtragem', () => {
+    renderList({ hideEmpty: true, periodo: { ...periodoParado, escopo: 'tudo' } });
+
+    expect(screen.getByText('Nenhuma tarefa corresponde aos filtros')).toBeInTheDocument();
+  });
+
   it('no recorte de um mês, o vazio acusa o mês em vez de mandar criar projeto', () => {
     // "Crie um novo projeto para começar" num mês sem prazo manda a gestora
     // criar o que ela já tem — e o projeto está ali, no mês seguinte.

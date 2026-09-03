@@ -182,9 +182,15 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   // Ensina o comportamento novo no momento exato: quando um filtro de tarefa deixa algum
   // cliente/OS/projeto sem tarefas (portanto oculto), avisa uma vez por sessão de
   // filtragem. Reseta ao limpar os filtros, para reaparecer numa próxima filtragem.
+  // O recorte de tempo esconde grupo vazio pelo MESMO motivo que o filtro: em
+  // "Atrasadas", a Lista continuava mostrando todo projeto sem tarefa atrasada,
+  // e a linha do projeto (status "Ativo", "Não atribuído", prazo "—") lê como
+  // tarefa sem prazo e sem responsável que furou o filtro. Relatado em 03/09/2026.
+  const escondeGrupoVazio = hasActiveTaskFilters || periodo.escopo !== 'tudo';
+
   const hintShownRef = useRef(false);
   useEffect(() => {
-    if (activeView !== 'list' || !hasActiveTaskFilters) {
+    if (activeView !== 'list' || !escondeGrupoVazio) {
       hintShownRef.current = false;
       return;
     }
@@ -197,7 +203,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
         description: 'Clientes, OS e projetos sem tarefas correspondentes ficam ocultos.',
       });
     }
-  }, [activeView, hasActiveTaskFilters, tasks, visibleListProjects]);
+  }, [activeView, escondeGrupoVazio, tasks, visibleListProjects]);
 
   const handleEditTask = (task: OrgTask) => {
     setSelectedTask(task);
@@ -447,7 +453,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 osRows={osRows}
                 search={filters.search || ''}
                 isLoading={isTasksLoading || projectController.isLoading || isScopeUnresolved}
-                hideEmpty={hasActiveTaskFilters}
+                hideEmpty={escondeGrupoVazio}
                 onClearFilters={() => setFilters({})}
                 onEditProject={projectController.handleOpenModal}
                 onDeleteProject={projectController.handleRequestDelete}
