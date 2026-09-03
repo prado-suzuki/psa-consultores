@@ -163,6 +163,31 @@ describe('export .docx (formatação do modelo de referência)', () => {
     expect(xml.slice(xml.indexOf('Terceiro imóvel'), xml.indexOf('CLÁUSULA SEXTA:'))).toMatch(VAZIO);
   });
 
+  // O instrumento agrário é o caso OPOSTO do teste acima: os dois assinados do
+  // MMS (Parceria e Composse) têm linha em branco entre as alíneas de imóvel —
+  // medido byte a byte contra o .docx registrado — e o padrão desta frente é
+  // bater com o assinado, não compactar por estilo. `alineasCompactas=false`
+  // é o mesmo `tmpl_documento.escopo === 'exploracao_rural'` que já distingue
+  // o instrumento agrário do Contrato Social em `useGerarDocumentoController`.
+  it('instrumento agrário (alineasCompactas=false): linha em branco entre alíneas sobrevive', async () => {
+    const doc = await montarDocx(
+      [
+        bloco(
+          'cl',
+          'clausula',
+          '*CLÁUSULA PRIMEIRA:* Os imóveis:\n\na) Primeiro imóvel.\n\nb) Segundo imóvel.\n\nc) Terceiro imóvel.',
+        ),
+        bloco('cl2', 'clausula', '*CLÁUSULA SEGUNDA:* Vigência.'),
+      ],
+      false,
+    );
+    const xml = await parteXml(doc, /word\/document\.xml$/);
+    const VAZIO = /<w:p><w:pPr><w:spacing[^>]*\/><\/w:pPr><\/w:p>/g;
+
+    expect(xml.slice(xml.indexOf('Primeiro imóvel'), xml.indexOf('Segundo imóvel'))).toMatch(VAZIO);
+    expect(xml.slice(xml.indexOf('Segundo imóvel'), xml.indexOf('Terceiro imóvel'))).toMatch(VAZIO);
+  });
+
   // Regressão do marcador de alínea em NEGRITO quando a linha tem marca inline.
   //
   // `linhaComRotulo` media o marcador na linha SEM marcas e cortava por índice na

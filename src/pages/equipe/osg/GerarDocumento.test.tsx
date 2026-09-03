@@ -504,7 +504,7 @@ describe('GerarDocumento — caracterização O1', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Baixar .docx' }));
     await waitFor(() => expect(mocks.baixarDocx).toHaveBeenCalledWith(
-      'Contrato Social (versão 1)', expect.arrayContaining([expect.objectContaining({ id: 'posicao-1' })]),
+      'Contrato Social (versão 1)', expect.arrayContaining([expect.objectContaining({ id: 'posicao-1' })]), true,
     ));
     await userEvent.click(screen.getByRole('button', { name: 'Voltar à versão atual' }));
     expect(screen.getByRole('button', { name: 'Atualizar versão' })).toBeInTheDocument();
@@ -562,7 +562,7 @@ describe('GerarDocumento — caracterização O1', () => {
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining(empresa.denominacao));
     await userEvent.click(screen.getByRole('button', { name: 'Baixar .docx' }));
     await waitFor(() => expect(mocks.baixarDocx).toHaveBeenCalledWith(
-      'Contrato Social', expect.arrayContaining([expect.objectContaining({ id: 'posicao-1' })]),
+      'Contrato Social', expect.arrayContaining([expect.objectContaining({ id: 'posicao-1' })]), true,
     ));
   });
 });
@@ -723,7 +723,7 @@ describe('GerarDocumento — B2 · baixar com pendência avisa e marca o arquivo
 
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     await waitFor(() => expect(mocks.baixarDocx).toHaveBeenCalledWith(
-      'Modelo alternativo', expect.arrayContaining([expect.objectContaining({ id: 'posicao-1' })]),
+      'Modelo alternativo', expect.arrayContaining([expect.objectContaining({ id: 'posicao-1' })]), true,
     ));
   });
 });

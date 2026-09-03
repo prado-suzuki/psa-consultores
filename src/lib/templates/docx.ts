@@ -368,6 +368,7 @@ function paragrafosDoBloco(
   docx: DocxModule,
   bloco: Bloco,
   estado: EstadoDocumento,
+  alineasCompactas: boolean,
 ): (Paragraph | Table)[] {
   const { Paragraph } = docx;
   const tipo = bloco.tipo ?? 'livre';
@@ -416,9 +417,16 @@ function paragrafosDoBloco(
     }
     return false;
   };
-  // Lista de alíneas é COMPACTA: uma vez aberta, linha em branco entre itens
-  // não sai (a lista de imóveis integralizados vem com os itens separados por
-  // linha em branco no conteúdo do bloco).
+  // Lista de alíneas é COMPACTA por padrão: uma vez aberta, linha em branco
+  // entre itens não sai (a lista de bens integralizados da alteração
+  // contratual vem com os itens separados por linha em branco no conteúdo do
+  // bloco). O registrado da MMS Agro tem essa linha em branco também no
+  // original — Bernardo mediu isso e decidiu compactar assim mesmo (commit
+  // 7f9f2a25). O instrumento agrário é o caso oposto: os dois assinados do MMS
+  // (Parceria e Composse) TÊM linha em branco entre as alíneas de imóvel, e o
+  // padrão desta frente é bater com o assinado, não estilizar por cima dele —
+  // por isso `alineasCompactas=false` para `tmpl_documento.escopo =
+  // 'exploracao_rural'`.
   let listaAberta = false;
 
   for (const [indice, seg] of segs.entries()) {
@@ -432,7 +440,7 @@ function paragrafosDoBloco(
     const linha = seg.texto.replace(/\s+$/, '');
     if (linha.trim() === '') {
       // Dentro de uma lista de alíneas a linha em branco é descartada.
-      if (listaAberta && proximaEhAlinea(indice)) continue;
+      if (alineasCompactas && listaAberta && proximaEhAlinea(indice)) continue;
       // Duas linhas em branco seguidas no conteúdo não viram duas no documento.
       if (!estado.terminaEmBranco) saida.push(linhaEmBranco(docx));
       assinatura = 0;
@@ -513,10 +521,10 @@ function paragrafosDoBloco(
 }
 
 /** Monta o Document a partir dos blocos gerados pelo engine. */
-function blocosParaDocx(docx: DocxModule, blocos: Bloco[]): Document {
+function blocosParaDocx(docx: DocxModule, blocos: Bloco[], alineasCompactas: boolean): Document {
   const { AlignmentType, Footer, PageNumber, Paragraph, TextRun } = docx;
   const estado: EstadoDocumento = { abertura: 'aberta', terminaEmBranco: false };
-  const paragrafos = blocos.flatMap((bloco) => paragrafosDoBloco(docx, bloco, estado));
+  const paragrafos = blocos.flatMap((bloco) => paragrafosDoBloco(docx, bloco, estado, alineasCompactas));
 
   const rodape = (texto: string | (typeof PageNumber)[keyof typeof PageNumber], bold = false) =>
     new TextRun({ children: [texto], font: FONTE, size: PT12, bold: bold || undefined });
@@ -574,10 +582,21 @@ function nomeArquivo(nome: string): string {
   return `${base}.docx`;
 }
 
-/** Gera e dispara o download do .docx no navegador. */
-export async function baixarDocx(nome: string, blocos: Bloco[]): Promise<void> {
+/**
+ * Gera e dispara o download do .docx no navegador.
+ *
+ * `alineasCompactas` (padrão `true`) preserva o comportamento do Contrato
+ * Social e da Alteração Contratual — ver o comentário em `paragrafosDoBloco`.
+ * Passe `false` para o instrumento agrário, cujo assinado tem linha em branco
+ * entre as alíneas de imóvel.
+ */
+export async function baixarDocx(
+  nome: string,
+  blocos: Bloco[],
+  alineasCompactas = true,
+): Promise<void> {
   const docx = await import('docx');
-  const doc = blocosParaDocx(docx, blocos);
+  const doc = blocosParaDocx(docx, blocos, alineasCompactas);
   const blob = await docx.Packer.toBlob(doc);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -590,7 +609,7 @@ export async function baixarDocx(nome: string, blocos: Bloco[]): Promise<void> {
 }
 
 /** Exposto para testes: serializa o Document em XML sem disparar download. */
-export async function montarDocx(blocos: Bloco[]): Promise<Document> {
+export async function montarDocx(blocos: Bloco[], alineasCompactas = true): Promise<Document> {
   const docx = await import('docx');
-  return blocosParaDocx(docx, blocos);
+  return blocosParaDocx(docx, blocos, alineasCompactas);
 }

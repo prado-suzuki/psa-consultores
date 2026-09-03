@@ -52,6 +52,11 @@ export function useGerarDocumentoController() {
   // renomeados em 31/08/2026 sem que nada avisasse, e um `tipo` com um espaço
   // sobrando derrubaria a composição em silêncio.
   const modeloSocietario = modelo?.escopo === 'sociedade';
+  // O instrumento agrário bate byte a byte com o assinado (é o padrão desta
+  // frente); Contrato Social e Alteração Contratual compactam a lista de
+  // alíneas por decisão de estilo própria — ver o comentário em
+  // `paragrafosDoBloco` (docx.ts).
+  const alineasCompactas = modelo?.escopo !== 'exploracao_rural';
 
   // Cliente vem da barra global da área OSG (igual aos cadastros).
   const { clienteId } = useOsgWork();
@@ -1565,7 +1570,7 @@ export function useGerarDocumentoController() {
     setBaixando(true);
     try {
       const download = prepararDownloadDocumento(nomeModelo, resultado.blocos, rascunho);
-      await baixarDocx(download.nome, download.blocos);
+      await baixarDocx(download.nome, download.blocos, alineasCompactas);
     } finally {
       setBaixando(false);
     }
@@ -1750,7 +1755,7 @@ export function useGerarDocumentoController() {
     if (!versaoView?.blocos?.length) return;
     setBaixandoVersao(true);
     try {
-      await baixarDocx(`${nomeModelo} (versão ${versaoView.numero})`, versaoView.blocos);
+      await baixarDocx(`${nomeModelo} (versão ${versaoView.numero})`, versaoView.blocos, alineasCompactas);
     } finally {
       setBaixandoVersao(false);
     }
