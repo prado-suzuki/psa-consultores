@@ -161,7 +161,7 @@ function DeOndeSaiCadaSlide({ analise }: { analise: Analise }) {
           >
             <p className="flex items-center gap-2 text-sm font-medium">
               {s.temFonte ? (
-                <Check className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+                <Check className="h-4 w-4 shrink-0 text-success" aria-hidden />
               ) : (
                 <Minus className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
               )}
@@ -281,9 +281,9 @@ const PapelDeTrabalho = () => {
             )}
 
             {avisos.length > 0 && (
-              <Card className="border-amber-400/60">
+              <Card className="border-warning/40 bg-warning/10">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base text-amber-700 dark:text-amber-500">
+                  <CardTitle className="flex items-center gap-2 text-base text-warning">
                     <AlertTriangle className="h-4 w-4" />
                     {avisos.length === 1 ? '1 aviso' : `${avisos.length} avisos`}
                   </CardTitle>
