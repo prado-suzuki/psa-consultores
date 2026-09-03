@@ -86,3 +86,30 @@ export function erroDeOrgaoGovernanca(erro: unknown): string {
   }
   return mensagem || 'Não foi possível salvar o órgão. Tente novamente.';
 }
+
+/** É um dos três padrão da OSG? */
+export function ehOrgaoPadrao(nome: string): boolean {
+  return ORGAOS_GOVERNANCA_PADRAO.some((p) => mesmaChaveDeOrgao(p.nome, nome));
+}
+
+/**
+ * A hierarquia está arrumada?
+ *
+ * Arrumada quer dizer: os padrão que existem ocupam as primeiras posições, na
+ * ordem oficial, e os do cliente vêm depois. No contrato social a ordem dos três
+ * é dada (Reunião de Sócios, Conselho de Administração, Diretor Executivo), e a
+ * consultoria confirmou em 03/09/2026 que órgão de cliente nunca fica acima
+ * deles.
+ *
+ * Serve para o botão de padrões continuar aparecendo quando os três já existem
+ * mas estão fora de lugar, que é o caso de quem cadastrou um deles à mão em vez
+ * de usar o botão.
+ */
+export function hierarquiaArrumada(nomesNaOrdem: readonly string[]): boolean {
+  const padroesPresentes = ORGAOS_GOVERNANCA_PADRAO
+    .map((p) => p.nome)
+    .filter((nome) => nomesNaOrdem.some((n) => mesmaChaveDeOrgao(n, nome)));
+
+  const topo = nomesNaOrdem.slice(0, padroesPresentes.length);
+  return padroesPresentes.every((nome, i) => topo[i] && mesmaChaveDeOrgao(topo[i], nome));
+}

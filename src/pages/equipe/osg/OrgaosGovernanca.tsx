@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
-import { Landmark, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { type ReactNode, useMemo, useState } from 'react';
+import { ArrowDown, ArrowUp, Landmark, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
 
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { OrgaoGovernancaModal } from '@/components/equipe/osg/governanca/OrgaoGovernancaModal';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -19,7 +20,11 @@ import {
   useOrgaoGovernancaMutations,
   type OrgaoGovernanca,
 } from '@/hooks/useDomainOrgaoGovernanca';
-import { padroesFaltando } from '@/lib/orgaosGovernancaPadrao';
+import {
+  ehOrgaoPadrao,
+  hierarquiaArrumada,
+  padroesFaltando,
+} from '@/lib/orgaosGovernancaPadrao';
 import { cn } from '@/lib/utils';
 
 /**
@@ -32,10 +37,30 @@ import { cn } from '@/lib/utils';
  * um seletor próprio: quem está trabalhando um cliente não deveria escolhê-lo de
  * novo a cada tela.
  */
+/**
+ * Cabeçalho de coluna com explicação no hover.
+ *
+ * Vale só onde o rótulo é vocabulário de quem já sabe: "Hierarquia", "Status" e
+ * "Vigência" não dizem o efeito que têm. Onde o texto da página já explica,
+ * tooltip vira ruído.
+ */
+function ComAjuda({ texto, children }: { texto: string; children: ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="cursor-help border-b border-dotted border-muted-foreground/40">
+          {children}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs text-xs leading-relaxed">{texto}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 const OrgaosGovernanca = () => {
   const { clienteId } = useOsgWork();
   const { data: orgaos = [], isLoading } = useOrgaosGovernanca(clienteId);
-  const { criar, atualizar, excluir, semear } = useOrgaoGovernancaMutations(clienteId);
+  const { criar, atualizar, excluir, semear, mover } = useOrgaoGovernancaMutations(clienteId);
 
   const [modalAberto, setModalAberto] = useState(false);
   const [emEdicao, setEmEdicao] = useState<OrgaoGovernanca | null>(null);
@@ -46,6 +71,10 @@ const OrgaosGovernanca = () => {
 
   const nomes = useMemo(() => orgaos.map((o) => o.nome), [orgaos]);
   const faltamPadroes = useMemo(() => padroesFaltando(nomes), [nomes]);
+  // O botão também serve para arrumar: os três podem existir e estar fora de
+  // lugar, se alguém cadastrou um deles à mão em vez de usar o botão.
+  const foraDeOrdem = useMemo(() => !hierarquiaArrumada(nomes), [nomes]);
+  const mostrarBotaoPadroes = faltamPadroes.length > 0 || foraDeOrdem;
   const proximaOrdem = orgaos.length;
 
   const abrirNovo = () => {
@@ -97,24 +126,28 @@ const OrgaosGovernanca = () => {
               depois da primeira vez: quem apagou um por engano traz de volta sem
               digitar. Some quando os três já estão lá, para não virar ruído.
             */}
-            {faltamPadroes.length > 0 && (
+            {mostrarBotaoPadroes && (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-osg-200 bg-osg-50/60 p-4">
                 <div className="space-y-0.5">
                   <p className="text-sm font-semibold text-osg-700">
-                    Usar os órgãos padrão da OSG
+                    {faltamPadroes.length > 0
+                      ? 'Usar os órgãos padrão da OSG'
+                      : 'Arrumar a hierarquia'}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Acrescenta {faltamPadroes.map((o) => o.nome).join(', ')}. Nem todo cliente tem
-                    os três: apague o que não se aplica.
+                    {faltamPadroes.length > 0
+                      ? `Acrescenta ${faltamPadroes.map((o) => o.nome).join(', ')} no topo da hierarquia. Nem todo cliente tem os três: apague o que não se aplica.`
+                      : 'Os órgãos padrão estão fora de lugar. No contrato social a ordem deles é fixa e nenhum órgão do cliente fica acima.'}
                   </p>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={semear.isPending}
-                  onClick={() => semear.mutate(nomes)}
+                  onClick={() => semear.mutate(orgaos)}
                 >
-                  <Sparkles className="mr-2 h-4 w-4" /> Adicionar padrões
+                  <Sparkles className="mr-2 h-4 w-4" />{' '}
+                  {faltamPadroes.length > 0 ? 'Adicionar padrões' : 'Arrumar ordem'}
                 </Button>
               </div>
             )}
@@ -131,15 +164,67 @@ const OrgaosGovernanca = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
+                      <TableHead className={cn(cabecalhoCls, 'w-16')}>
+                        <ComAjuda texto="A lista está em ordem de autoridade, do maior para o menor. É ela que diz para onde a decisão sobe quando o valor passa da alçada.">
+                          Hierarquia
+                        </ComAjuda>
+                      </TableHead>
                       <TableHead className={cabecalhoCls}>Nome do órgão</TableHead>
-                      <TableHead className={cabecalhoCls}>Status</TableHead>
-                      <TableHead className={cabecalhoCls}>Vigência</TableHead>
+                      <TableHead className={cabecalhoCls}>
+                        <ComAjuda texto="Recebe competência: o contrato social ganha uma cláusula “Compete a este órgão…”. Só na Matriz: vira coluna da Matriz de Alçadas, mas fica fora do contrato.">
+                          Status
+                        </ComAjuda>
+                      </TableHead>
+                      <TableHead className={cabecalhoCls}>
+                        <ComAjuda texto="O período em que o órgão existiu na estrutura do cliente. Em branco quer dizer que está vigente hoje.">
+                          Vigência
+                        </ComAjuda>
+                      </TableHead>
                       <TableHead className={cn(cabecalhoCls, 'w-24 text-right')}>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orgaos.map((orgao) => (
+                    {orgaos.map((orgao, indice) => {
+                      // Órgão padrão não se move: no contrato social a ordem dos
+                      // três é dada, e a consultoria confirmou que órgão do cliente
+                      // nunca fica acima deles. Livre é só a ordem entre os do
+                      // cliente, abaixo dos padrão.
+                      const travado = ehOrgaoPadrao(orgao.nome);
+                      return (
                       <TableRow key={orgao.id} {...rowActivateProps(() => abrirEdicao(orgao))}>
+                        <TableCell className="py-2.5">
+                          {/*
+                            Setas em vez de arrastar: a lista tem de três a seis
+                            itens, e arrasto pediria estado de origem, alvo e
+                            indicador de posição para o mesmo resultado. Setas
+                            funcionam no teclado e no toque sem nada extra.
+                          */}
+                          <div className="flex items-center gap-0.5">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              title={travado ? 'A ordem dos órgãos padrão é fixa' : 'Subir na hierarquia'}
+                              aria-label={`Subir ${orgao.nome} na hierarquia`}
+                              disabled={indice === 0 || mover.isPending || travado
+                                || ehOrgaoPadrao(orgaos[indice - 1]?.nome ?? '')}
+                              onClick={() => mover.mutate({ lista: orgaos, indice, direcao: 'cima' })}
+                            >
+                              <ArrowUp className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              title={travado ? 'A ordem dos órgãos padrão é fixa' : 'Descer na hierarquia'}
+                              aria-label={`Descer ${orgao.nome} na hierarquia`}
+                              disabled={indice === orgaos.length - 1 || mover.isPending || travado}
+                              onClick={() => mover.mutate({ lista: orgaos, indice, direcao: 'baixo' })}
+                            >
+                              <ArrowDown className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
                         <TableCell className="py-2.5 text-sm font-medium">{orgao.nome}</TableCell>
                         <TableCell className="py-2.5">
                           {orgao.entra_no_contrato ? (
@@ -179,7 +264,8 @@ const OrgaosGovernanca = () => {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>

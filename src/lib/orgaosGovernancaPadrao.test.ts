@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ORGAOS_GOVERNANCA_PADRAO,
+  ehOrgaoPadrao,
   erroDeOrgaoGovernanca,
+  hierarquiaArrumada,
   mesmaChaveDeOrgao,
   padroesFaltando,
 } from '@/lib/orgaosGovernancaPadrao';
@@ -82,5 +84,43 @@ describe('erroDeOrgaoGovernanca', () => {
 
   it('erro sem mensagem cai num texto útil', () => {
     expect(erroDeOrgaoGovernanca({})).toBe('Não foi possível salvar o órgão. Tente novamente.');
+  });
+});
+
+describe('ehOrgaoPadrao', () => {
+  it('reconhece os três, sem se importar com caixa', () => {
+    expect(ehOrgaoPadrao('conselho de administração')).toBe(true);
+    expect(ehOrgaoPadrao('Gerentes corporativos')).toBe(false);
+  });
+});
+
+describe('hierarquiaArrumada', () => {
+  it('padrões no topo na ordem oficial, cliente depois', () => {
+    expect(hierarquiaArrumada([
+      'Reunião de Sócios', 'Conselho de Administração', 'Diretor Executivo', 'Gerentes corporativos',
+    ])).toBe(true);
+  });
+
+  it('órgão do cliente acima de um padrão está errado', () => {
+    // Foi o caso real: quem cadastrou os gerentes antes de clicar no botão
+    // ficava com eles acima da Reunião de Sócios.
+    expect(hierarquiaArrumada([
+      'Gerentes corporativos', 'Reunião de Sócios', 'Conselho de Administração',
+    ])).toBe(false);
+  });
+
+  it('dois padrões trocados entre si está errado', () => {
+    expect(hierarquiaArrumada([
+      'Conselho de Administração', 'Reunião de Sócios', 'Diretor Executivo',
+    ])).toBe(false);
+  });
+
+  it('só parte dos padrões cadastrada, e no topo, está certo', () => {
+    // Nem todo cliente tem Conselho: a lista de dois é válida.
+    expect(hierarquiaArrumada(['Reunião de Sócios', 'Diretor Executivo', 'Gerente de Unidade'])).toBe(true);
+  });
+
+  it('lista sem nenhum padrão não está errada', () => {
+    expect(hierarquiaArrumada(['Gerentes corporativos'])).toBe(true);
   });
 });
