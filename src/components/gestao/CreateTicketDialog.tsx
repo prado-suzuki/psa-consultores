@@ -20,6 +20,7 @@ import { toast } from '@/hooks/use-toast';
 import { Plus, Upload, X, FileText } from 'lucide-react';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { departmentLabels } from '@/lib/chamadosDepartamentos';
+import { CHAMADO_PRIORIDADE_OPCOES } from '@/lib/chamadoStatusColors';
 
 interface CreateTicketDialogProps {
   open: boolean;
@@ -27,13 +28,6 @@ interface CreateTicketDialogProps {
   onSuccess: () => void;
 }
 
-
-const priorityLabels: Record<string, string> = {
-  baixa: 'Baixa',
-  normal: 'Normal',
-  alta: 'Alta',
-  urgente: 'Urgente',
-};
 
 export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTicketDialogProps) {
   const { user } = useAuth();
@@ -283,8 +277,8 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(priorityLabels).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  {CHAMADO_PRIORIDADE_OPCOES.map((p) => (
+                    <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

@@ -1,6 +1,7 @@
 # Cor: o que falta, e por que cada coisa parou onde parou
 
-Estado em **01/09/2026**, ao fim de uma rodada de 19 commits na `develop`.
+Estado em **03/09/2026**. O corpo do documento é a rodada de 19 commits de 01/09; em 03/09
+fechou só o §4 dos rótulos de chamado, e a §5 ganhou uma catraca.
 
 Este documento é o ponto de retomada. Ele não repete o contrato — o contrato é
 [`paleta-por-area.md`](paleta-por-area.md), e continua sendo a fonte. Aqui está só **o que
@@ -89,7 +90,15 @@ migração)? É decisão de produto, e vem antes de qualquer linha de código.
 
 ## 4. Outro rótulo divergente, além do `pending` que foi corrigido
 
-Levantado por auditoria em 01/09, **não corrigido**:
+**Os mapas de chamado fecharam em 03/09/2026** — `statusLabels` em seis arquivos,
+`priorityLabels` em quatro e `activityStatusLabels` em dois viraram o campo `label` da config
+que já dava a cor, e as opções de `Select` viraram as listas `CHAMADO_*_OPCOES`. Com eles foi o
+defeito visível: a pílula de prioridade vazia no portal do cliente, que era a chave `media`
+faltando na cópia local. A catraca é `src/lib/chamadoStatusColors.test.ts`, e o desenho está
+na seção "O rótulo sai da mesma config que a cor" do [`paleta-por-area.md`](paleta-por-area.md).
+
+**Segue aberto o que exige escolha de palavra.** Levantado por auditoria em 01/09, não
+corrigido:
 
 | chave | palavras em uso | onde |
 |---|---|---|
@@ -98,13 +107,13 @@ Levantado por auditoria em 01/09, **não corrigido**:
 | `completed` | "Concluído" × "Concluída" | três mapas × `auditFieldFormatter` |
 
 Quase mecânico: as duas palavras de cada par já estão em uso, então é escolher qual vira a
-canônica — sem inventar rótulo novo. O caminho é o mesmo do `pending`: o rótulo passa a sair
-do mapa, e aí a troca seguinte é uma linha.
+canônica — sem inventar rótulo novo. O caminho é o mesmo do `pending` e do chamado: o rótulo
+passa a sair do mapa, e aí a troca seguinte é uma linha.
 
-**Um defeito visível junto:** `MeusChamados.tsx:278` renderiza `{priorityLabels[ticket.priority]}`
-sem fallback, e o mapa local não tem a chave `media` — que existe no banco. A pílula sai
-**vazia**. Nas outras duas telas de chamado o fallback mostra `"media"` cru, minúsculo. Some
-sozinho ao trocar os mapas locais pelo `chamadoPrioridadeConfig`, que já tem `media`.
+⚠️ **O gênero é a razão de o par existir, e não descuido.** "Concluída" concorda com *tarefa*
+e *sprint*; "Concluído" com *chamado* e *projeto*. O `auditFieldFormatter` é o único que
+atende os quatro domínios de uma vez, e é lá que a escolha dói. Decidir "qual palavra" sem
+decidir "com que substantivo ela concorda" só troca a divergência de lugar.
 
 ## 5. Onde a dívida pode crescer sem ninguém ver
 
@@ -115,7 +124,8 @@ sozinho ao trocar os mapas locais pelo `chamadoPrioridadeConfig`, que já tem `m
 | tom que a escala não tem | `escala/cor-inexistente` e `escala/cor-de-estoque` |
 | cor crua **slate** | catraca `src/lib/filaDoSlate.test.ts` — nasce **vazia**, e qualquer classe slate nova derruba |
 | **verde, vermelho, azul, roxo, laranja** | **nenhuma** |
-| **rótulo divergente** | **nenhuma** — nem teste, nem lint |
+| rótulo divergente de **chamado** | catraca `src/lib/chamadoStatusColors.test.ts` — nasce **vazia**, varre pelo conjunto de chaves |
+| **rótulo divergente nos outros quatro mapas** | **nenhuma** — nem teste, nem lint |
 
 As duas linhas em negrito são o buraco que sobrou.
 
@@ -174,10 +184,10 @@ estado, e o resto dos tokens escritos à mão.
 
 Nesta ordem, do mecânico ao que exige decisão:
 
-1. **Os mapas de rótulo duplicados** (§4) — os seis `statusLabels` de chamado e os seis de
-   prioridade. Os textos já batem; é troca de import, e fecha o badge vazio de quebra.
-2. **A catraca de mais uma família** (§5) — `red` e `emerald` são as maiores sem guarda. O molde está em `medirCorCrua.ts`.
-3. **`in_progress`, `cancelled`, `completed`** (§4) — uma decisão sua, três pares, e o rótulo
+1. **A catraca de mais uma família** (§5) — `red` e `emerald` são as maiores sem guarda. O molde
+   está em `medirCorCrua.ts`, e a do chamado em `chamadoStatusColors.test.ts` mostra a variante
+   que varre por conjunto de chaves em vez de por classe.
+2. **`in_progress`, `cancelled`, `completed`** (§4) — uma decisão sua, três pares, e o rótulo
    passa a sair do mapa.
-4. **Os papéis que faltam** (§1) — por mapa, nunca por classe.
-5. **`projects.status`** (§3) — precisa da decisão de produto antes de tudo.
+3. **Os papéis que faltam** (§1) — por mapa, nunca por classe.
+4. **`projects.status`** (§3) — precisa da decisão de produto antes de tudo.

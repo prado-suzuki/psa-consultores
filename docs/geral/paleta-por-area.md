@@ -447,6 +447,31 @@ duas telas do **mesmo** entregável.
 > horas) é decisão de produto. Nos dois casos o mapa carrega a **cor** e deixa o conflito
 > escrito, em vez de escolher por tabela.
 
+### O rótulo sai da mesma config que a cor
+
+O `label` é campo da config, ao lado de `badge` e `dot`, e não um `Record` separado. Não é
+conveniência: em 03/09/2026 o `statusLabels` do chamado estava copiado em **seis** arquivos e
+o `priorityLabels` em quatro, com os mesmos textos — até uma cópia não ter a chave `media`,
+que existe no banco, e a pílula de prioridade sair **vazia** no portal do cliente. Enquanto
+rótulo e cor moram em lugares diferentes, uma tela pode pegar um e esquecer o outro.
+
+| o que a tela precisa | de onde vem |
+|---|---|
+| texto de um valor | `<dominio>Config(valor).label` — já devolve o valor cru se a chave for desconhecida, então não precisa de `\|\| ticket.status` |
+| opções de um `Select` | as listas `CHAMADO_*_OPCOES`, na ordem do ciclo de vida |
+| subconjunto que a equipe pode escolher | filtre a lista por `equipePodeSelecionarStatus` |
+
+A lista de opções é **escrita**, e não `Object.keys` do mapa, por causa de `media`: ela e
+`normal` são o mesmo conceito com dois nomes gravados. Ler as duas é obrigatório; oferecer as
+duas num seletor seria continuar criando o problema. Quem for aplicar isso aos outros quatro
+mapas herda a mesma distinção: **o mapa lê tudo, a lista de opções oferece o canônico.**
+
+A catraca é `src/lib/chamadoStatusColors.test.ts`, e ela nasce vazia: qualquer objeto que
+volte a mapear `aberto` e `fechado` para texto dentro de `src/components` ou `src/pages`
+derruba o teste. A varredura é pelo **conjunto** de chaves, não pelo nome de uma: `aberto`,
+`em_andamento` e `em_analise` também são vocabulário do checklist de documentos, dos ciclos de
+desempenho e das reuniões 1a1, que são outros domínios e têm rótulo próprio de direito.
+
 ## O papel `alerta` tem variante no `ui/` — use ela
 
 `<Alert variant="warning">` e `<Badge variant="warning">` existem desde 01/09/2026, e são o

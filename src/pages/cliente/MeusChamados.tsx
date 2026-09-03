@@ -8,7 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, FileText, User, Filter, X } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay, subDays, subMonths, startOfMonth, endOfMonth, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { chamadoPrioridadeConfig, chamadoStatusConfig } from '@/lib/chamadoStatusColors';
+import {
+  CHAMADO_ATIVIDADE_OPCOES,
+  CHAMADO_STATUS_OPCOES,
+  chamadoPrioridadeConfig,
+  chamadoStatusConfig,
+} from '@/lib/chamadoStatusColors';
 import {
   Select,
   SelectContent,
@@ -17,26 +22,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { departmentLabels } from '@/lib/chamadosDepartamentos';
-
-const statusLabels: Record<string, string> = {
-  aberto: 'Aberto',
-  em_andamento: 'Em Andamento',
-  resolvido: 'Resolvido',
-  fechado: 'Fechado',
-};
-
-const priorityLabels: Record<string, string> = {
-  baixa: 'Baixa',
-  normal: 'Normal',
-  alta: 'Alta',
-  urgente: 'Urgente',
-};
-
-const activityStatusLabels: Record<string, string> = {
-  aguardando_resposta: 'Aguardando Resposta',
-  respondido: 'Respondido',
-  em_analise: 'Em Análise',
-};
 
 
 export default function MeusChamados() {
@@ -172,11 +157,11 @@ export default function MeusChamados() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
-                    {Object.entries(statusLabels).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
+                    {CHAMADO_STATUS_OPCOES.map((s) => (
+                      <SelectItem key={s.key} value={s.key}>
+                        {s.label}
                       </SelectItem>
-                    ))}
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -189,11 +174,11 @@ export default function MeusChamados() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
-                    {Object.entries(activityStatusLabels).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
+                    {CHAMADO_ATIVIDADE_OPCOES.map((a) => (
+                      <SelectItem key={a.key} value={a.key}>
+                        {a.label}
                       </SelectItem>
-                    ))}
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -265,10 +250,10 @@ export default function MeusChamados() {
                       </p>
                       <div className="flex items-center gap-3 mb-2">
                         <Badge className={chamadoStatusConfig(ticket.status).solid}>
-                          {statusLabels[ticket.status]}
+                          {chamadoStatusConfig(ticket.status).label}
                         </Badge>
                         <Badge variant="outline" className={chamadoPrioridadeConfig(ticket.priority).badge}>
-                          {priorityLabels[ticket.priority]}
+                          {chamadoPrioridadeConfig(ticket.priority).label}
                         </Badge>
                         {ticket.department && (
                           <Badge variant="outline" className="bg-accent/10 text-teal-700">

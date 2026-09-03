@@ -102,7 +102,8 @@ describe('ticketMessageFeedback — pendências', () => {
       outcome({ warnings: ['status_nao_atualizado'] }),
       'equipe',
     );
-    // Mesmo texto de activityLabels.aguardando_resposta em src/lib/equipeChamados.ts
+    // Mesmo texto de chamadoAtividadeColors.aguardando_resposta.label,
+    // em src/lib/chamadoStatusColors.ts
     expect(t.description).toContain('"Aguardando resposta"');
   });
 
