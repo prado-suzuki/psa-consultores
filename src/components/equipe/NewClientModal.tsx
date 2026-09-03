@@ -18,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, X, CheckCircle2, Pencil, Building2, FileSignature, History, AlertCircle } from "lucide-react";
 import { AreaLoader } from "@/components/equipe/AreaLoader";
 import { cn } from "@/lib/utils";
+import { textoDeRecusa } from "@/lib/rlsMessages";
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
 import { defaultClientData } from "./client-form/constants";
 import { AcentoAreaProvider, acentoDaArea } from "./client-form/acentoArea";
@@ -266,7 +267,21 @@ export default function NewClientModal({
       return;
     }
 
-    executeSave();
+    // `executeSave` devolve promessa. A parte dele que roda ANTES do try interno
+    // — validação, verificação de nome duplicado, o diálogo que ela abre — pode
+    // rejeitar, e a rejeição não tinha ninguém para pegá-la: o `finally` soltava
+    // a trava e o `saving`, o botão voltava ao normal e a pessoa ficava achando
+    // que nada tinha acontecido, sem erro nenhum na tela. O `catch` aqui é o
+    // último anteparo: o que chega nele é falha inesperada, então vale o mesmo
+    // texto de recusa genérico, e o diagnóstico cru vai para o console.
+    void executeSave().catch((erro) => {
+      console.error("[cadastro cliente] salvamento interrompido:", erro);
+      const texto = textoDeRecusa(
+        { item: 'cliente', acao: isEditing ? 'atualizar' : 'cadastrar' },
+        'falha',
+      );
+      toast.error(texto.titulo, { description: texto.detalhe });
+    });
   };
 
   /**
