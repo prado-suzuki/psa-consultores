@@ -514,13 +514,19 @@ export function ProjetosTarefasList({
       const isExpanded = expanded.has(groupId);
       const showClientDivider = index === 0 || sortedHierarchy[index - 1].clientKey !== group.clientKey;
       return <Fragment key={group.id}>
-        {showClientDivider && <div className={cn('flex items-center gap-2 border-b border-t bg-muted/60 px-4 py-2.5 first:border-t-0', FULL_ROW_MIN_WIDTH)}>
+        {/* A faixa do cliente carrega a ÂNCORA da área, e não o neutro. Ela era
+            `bg-muted/60` e a linha da OS logo abaixo era `bg-primary/[0.045]`:
+            compostas sobre o card ficavam a 1,02:1 uma da outra — menos que o
+            1,24:1 com que a borda de 1px se separa do card. A faixa é o
+            cabeçalho do bloco, então é ela que recebe a cor da área e a linha
+            da OS volta ao card limpo. */}
+        {showClientDivider && <div className={cn('flex items-center gap-2 border-b border-t border-primary/20 bg-primary/10 px-4 py-2.5 first:border-t-0', FULL_ROW_MIN_WIDTH)}>
           <Building2 className="h-4 w-4 text-primary" />
-          <span className="text-xs font-bold uppercase tracking-wider text-foreground">{group.clientName}</span>
+          <span className="text-sm font-bold uppercase tracking-wider text-foreground">{group.clientName}</span>
           <span className="text-xs text-muted-foreground">{sortedHierarchy.filter(item => item.clientKey === group.clientKey).length} OS/grupo(s)</span>
         </div>}
         <section>
-        <div className={cn(GRID, 'border-b bg-primary/[0.045]')}>
+        <div className={cn(GRID, 'border-b')}>
           <div className="flex min-w-0 items-center gap-3 px-3 py-3">
             <button type="button" onClick={() => toggle(groupId)} className="rounded p-1 text-muted-foreground hover:bg-primary/10" aria-label={isExpanded ? 'Recolher OS' : 'Expandir OS'}>{isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
             <div className="h-5 w-1 rounded-full bg-primary" />
