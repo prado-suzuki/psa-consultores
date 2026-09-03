@@ -429,11 +429,15 @@ Antes de escrever `bg-green-100` num status novo, procure o mapa:
 | `chamadoStatusColors.ts` | chamado | status, prioridade, atividade e prazo |
 | `mapeamentoStatusColors.ts` | processo mapeado | not_started, in_progress, completed |
 | `entregavelStatusColors.ts` | entregável de sprint | pending, in_progress, completed |
+| `estadoDocumentoColors.ts` | documento pedido, e a revisão de um arquivo | pendente, em_analise, recusado, aprovado |
 
 Todos têm a mesma forma: um helper `papel(chave, nome)` que monta as classes a partir de
 `--status-<papel>`, um `Record` por domínio, e uma função `…Config(valor)` com fallback —
 porque a coluna de status é `text` livre no banco em todos eles, e valor fora da lista não
-pode quebrar o render.
+pode quebrar o render. **A exceção é o `estadoDocumentoColors`**, e ela se explica: o estado
+de um documento não vem de coluna nenhuma, é calculado por `estadoDoDocumento()` a partir da
+pendência e da pilha de arquivos, então o tipo é união fechada e não há valor fora da lista
+para tratar. Onde o valor for `text` livre, a função com fallback continua obrigatória.
 
 **O defeito que esses mapas existem para matar não é a cor errada: é a cor incoerente.** O
 `chamadoStatusColors` nasceu porque o mesmo status vivia em seis mapas e "Aberto" era azul

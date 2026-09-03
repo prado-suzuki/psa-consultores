@@ -63,7 +63,6 @@ type MotivoDeFicar =
 
 const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
   'escada-de-status': {
-    'src/components/cliente/ChecklistDocumentosCliente.tsx': 8,
     'src/components/equipe/HorasAcumuladas.tsx': 1,
     'src/components/equipe/audit/AuditPendenciasTable.tsx': 4,
     'src/components/equipe/audit/AuditPessoasTable.tsx': 2,
@@ -76,7 +75,6 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     'src/components/equipe/dev/processo-difal/DifalProductsCard.tsx': 4,
     'src/components/equipe/mapeamento/ScenarioComparator.tsx': 2,
     'src/components/equipe/mapeamento/ScenarioList.tsx': 3,
-    'src/components/equipe/osg/checklists/DocumentosClienteChecklist.tsx': 6,
     'src/components/equipe/projetos/projectPresentation.tsx': 3,
     'src/components/equipe/sprint-detalhes/AgendaTab.tsx': 2,
     'src/components/equipe/sprint-detalhes/MetricsTab.tsx': 2,
