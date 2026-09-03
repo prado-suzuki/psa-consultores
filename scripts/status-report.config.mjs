@@ -42,8 +42,14 @@ export const DETECT = {
   },
   // P1-LOG-ANOTACOES foi FUNDIDO aqui na v7 (24/07) — as keywords dele vieram para cá.
   "P1-PAGINA-PROJETO": {
-    files: ["src/pages/equipe/osg/PaginaProjeto*.tsx", "src/pages/equipe/osg/ProjetoDetalhe*.tsx"],
-    keywords: ["Página do Projeto", "@menção", "anotações do projeto", "mencionar responsável"],
+    // Corrigido 03/09/2026: os dois arquivos da regra anterior NUNCA existiram.
+    // A página é a OsgProjetos e a @menção vive em components/comentarios/.
+    files: [
+      "src/pages/equipe/osg/OsgProjetos.tsx",
+      "src/components/comentarios/MencaoUsuario.ts",
+      "src/hooks/useDomainOrgComments.ts",
+    ],
+    keywords: ["org_comment_mentions", "criar_org_comment"],
   },
   // Conversa em thread (o "Slack" da área de projetos) — marco próprio a partir de 25/07.
   "P1-FEED-PROJETO": { keywords: ["thread", "responder anotação", "projeto_comentario", "notificar mencionado"] },
@@ -58,7 +64,13 @@ export const DETECT = {
     keywords: ["Kanban aninhado"],
   },
   "P1-GERACAO-TAREFAS": {
-    keywords: ["geração automática de tarefas", "gerar tarefas do produto", "tarefas pré-ordenadas"],
+    // Corrigido 03/09/2026: as keywords anteriores eram a PROSA do roadmap
+    // ("geração automática de tarefas"), que o código nunca escreve.
+    files: [
+      "src/hooks/useGerarTarefasProjeto.ts",
+      "src/components/equipe/ProdutosServicosTab.tsx",
+    ],
+    keywords: ["gerar_tarefas_projeto", "produto_tarefa_padrao"],
   },
   "P1-CADASTRO-UNICO": { files: ["src/hooks/useExternalConsults.ts"], keywords: ["brasilapi", "cnpj/v1"] },
   "P1-PROPOSTA-ANEXA": { keywords: ["proposta comercial"] },
@@ -69,8 +81,21 @@ export const DETECT = {
     files: ["src/pages/equipe/osg/Relatorios.tsx", "src/hooks/useOsgChecklist.ts"],
     keywords: ["checklist_cliente_item"],
   },
-  "P1-NOTIF-REVISAO": { keywords: ["notificação ao gestor", "entrou em revisão", "notificar revisão"] },
-  "P1-DASHBOARDS-KPI": { keywords: ["faturamento da área", "7 KPIs", "dashboard do gestor", "DashboardGerencial"] },
+  // Corrigido 03/09/2026: o gatilho existe como tipo no catálogo de avisos internos.
+  "P1-NOTIF-REVISAO": {
+    files: ["src/lib/notificacoesInternas.ts"],
+    keywords: ["tarefa_em_revisao"],
+  },
+  // Corrigido 03/09/2026: "7 KPIs" e "DashboardGerencial" não existem no código.
+  // O Board de diretoria saiu entre 21/08 e 01/09, nos PRs #71 a #82.
+  "P1-DASHBOARDS-KPI": {
+    files: [
+      "src/components/board/BoardStatStrip.tsx",
+      "src/components/board/BoardBriefingDiretoria.tsx",
+      "src/components/equipe/board/BoardLayout.tsx",
+    ],
+    keywords: ["BoardStatStrip", "BoardBriefingDiretoria"],
+  },
   "P1-ALERTA-PARADO": { keywords: ["projeto parado", "estagnação", "sem movimentação há"] },
   "P1-HUB-DOCUMENTAL": { keywords: ["hub documental", "repositório único"] },
   "P1-DEVOLUTIVA": { keywords: ["notificação ao cliente", "devolutiva ao cliente"] },
@@ -79,6 +104,66 @@ export const DETECT = {
   "P1-CLIENTES-OSG": { routes: ["osg/projetos/clientes"], files: ["src/pages/equipe/osg/OsgClientes.tsx"] },
   "P1-TAREFAS-OSG": { routes: ["osg/projetos/tarefas"], files: ["src/pages/equipe/osg/OsgTarefas.tsx"] },
   "P1-AUDITORIA": { routes: ["osg/auditoria"], files: ["src/pages/equipe/osg/OsgAuditoria.tsx"] },
+
+  // ---- As 7 regras escritas em 03/09/2026 ----
+  // Eram marcos JA CONCLUIDOS sem regra nenhuma: o relatorio nao tinha como
+  // conferir o que estava pronto, e eles apareciam em "sem evidencia" junto com
+  // obra que nem comecou. Cada uma abaixo foi casada com o codigo real, nao com
+  // a prosa do roadmap -- o erro que tinha deixado outras cinco sem casar nunca.
+
+  "P1-FLUXO-SOLICITACAO": {
+    // 74h, a maior entrega do ciclo, e entrou no meio da S10 sem marco.
+    files: [
+      "src/hooks/useDomainSolicitacao.ts",
+      "src/hooks/useChecklistDerivado.ts",
+      "src/components/equipe/osg/checklists/DocumentosClienteChecklist.tsx",
+      "src/components/equipe/osg/checklists/ChecklistPendentes.tsx",
+    ],
+    keywords: ["solicitacao_item", "produto_checklist_item", "checklist_cliente_item"],
+  },
+
+  "P1-AUTOMACAO-NOTIFICACOES": {
+    // Os tres disparos do escopo: atribuicao, documento recebido e prazo (GES-01A).
+    files: ["src/lib/notificacoesInternas.ts", "src/components/notifications/NotificationPopover.tsx"],
+    keywords: ["tarefa_atribuida", "documento_recebido", "criar_notificacao"],
+  },
+
+  "P1-GESTAO-CHAMADOS": {
+    // O chamado delegado nasce como tarefa no projeto de canal do cliente.
+    files: ["src/components/gestao/ClienteSemProjetoChamadosAlert.tsx"],
+    keywords: ["delegar_chamado_gera_tarefa"],
+  },
+
+  "P1-ACESSOS-GRUPOS": {
+    // So a metade de codigo: a limpeza dos drives acontece no Google Workspace.
+    files: ["src/pages/equipe/EquipeControleAcessos.tsx", "src/components/acessos/UsersRolesView.tsx"],
+    keywords: ["EquipesEstruturaField"],
+  },
+
+  "P2-COLUNAS-DP": {
+    // Colunas de estrutura que faltavam na tela do Diagnostico Patrimonial.
+    files: [
+      "src/components/equipe/osg/diagnostico-patrimonial/TitularidadesPanel.tsx",
+      "src/components/equipe/osg/diagnostico-patrimonial/MatriculaModal.tsx",
+    ],
+    keywords: ["titularidade", "fracaoUtils"],
+  },
+
+  "P4-CADASTROS-GOVERNANCA": {
+    // ATENCAO: em 03/09/2026 esta obra estava PRONTA NA MAQUINA DO EDUARDO, sem
+    // push. Ate o push chegar, esta regra vai acusar "sem evidencia" -- e isso
+    // esta CERTO: e exatamente o teste de que o push aconteceu. Se depois do
+    // push ela continuar sem casar, a regra e que esta errada.
+    keywords: ["governanca_cadastro", "conselho_membro", "acordo_quotistas"],
+  },
+
+  "GED-EXCLUSAO-GEF": {
+    // NAO e mensuravel aqui, e nao e falha: a entrega foi APAGAR os dados do GEF
+    // do Lovable, do GCS e do BigQuery. Exclusao nao deixa codigo, e o que ela
+    // mexeu vive fora deste repositorio. Escrever keyword aqui seria inventar
+    // evidencia; declarar false e dizer a verdade.
+    detectavel: false,
+  },
 
   // Recebimento / GED (projeto P1 no roadmap.json)
   "GED-UPLOAD": {
@@ -96,7 +181,15 @@ export const DETECT = {
     keywords: ["osg_doc_categoria", "checklist_item_id"],
   },
   "GED-RASTREABILIDADE": { keywords: ["rastreabilidade", "quem baixou", "log de download"] },
-  "GED-V1-INTEGRADA": { keywords: ["recebimento v1", "integrado ao cadastro"] },
+  // Corrigido 03/09/2026: "recebimento v1" era o nome do marco, não do código.
+  // O "integrado ao cadastro" é o vínculo do documento a pessoa/empresa/matrícula.
+  "GED-V1-INTEGRADA": {
+    files: [
+      "src/hooks/useDocumentoArquivo.ts",
+      "src/components/equipe/osg/documentos/DocVinculoDialog.tsx",
+    ],
+    keywords: ["useDocumentoArquivo"],
+  },
 
   // ---------------- P2 · Contratos (OSG Work) ----------------
   "P2-TEMPLATE-BUILDER": {

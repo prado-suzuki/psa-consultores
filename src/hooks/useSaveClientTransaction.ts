@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -211,7 +211,13 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
 
-  const executeSave = useCallback(async () => {
+  /**
+   * O salvamento em si. Quem chama é o `executeSave` abaixo, que segura a porta.
+   *
+   * `saving` não é ligado aqui dentro: ele precisa valer desde o primeiro clique,
+   * antes da verificação de nome duplicado e do diálogo que ela abre.
+   */
+  const executarSalvamento = useCallback(async () => {
     const clienteObs = (clientData.observacoes || "").trim();
 
     // ─── Validação: barra só o que o usuário mexeu ──────────────────────────
@@ -300,10 +306,27 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
     if (!isEditing) {
       const nomeDigitado = clientData.nome.trim();
       const chaveDigitada = chaveDeNomeCliente(nomeDigitado);
-      const { data: candidatos } = await supabase
+      // O recorte é o mesmo do cadastro que está prestes a nascer: o insert
+      // carimba `ambiente: currentAmbiente`, então homônimo do outro ambiente
+      // não é duplicata nenhuma. Sem este filtro, quem cadastra em prod é
+      // avisado por causa de um cliente que só existe em dev (e vice-versa) —
+      // um registro que ele não consegue abrir em tela nenhuma para conferir se
+      // é mesmo o mesmo, porque as listas também recortam por `ambiente`.
+      const { data: candidatos, error: erroCandidatos } = await supabase
         .from(clienteTable)
         .select("id, nome")
-        .eq("excluido", false);
+        .eq("excluido", false)
+        .eq("ambiente", currentAmbiente);
+      // Consulta falhou: `candidatos` vem nulo e a lista vazia responderia "não
+      // há homônimo" com a mesma cara de quem conferiu de verdade. O salvamento
+      // para aqui, porque seguir calado é criar a duplicata que esta verificação
+      // existe para evitar, sem que ninguém saiba que o exame nem aconteceu.
+      if (erroCandidatos) {
+        console.error("[cadastro cliente] verificação de nome duplicado falhou:", erroCandidatos);
+        const texto = textoDeRecusa({ item: 'cliente', acao: 'cadastrar' }, 'falha');
+        toast.error(texto.titulo, { description: texto.detalhe });
+        return;
+      }
       const existe = (candidatos || []).some(c => chaveDeNomeCliente(c.nome) === chaveDigitada);
       if (existe) {
         const confirmed = await onDuplicateFound(nomeDigitado);
@@ -311,7 +334,6 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       }
     }
 
-    setSaving(true);
     let createdClienteId: string | null = null;
     // Passo corrente atualizado antes de cada write; usado no toast de RLS
     // pra dizer QUAL tabela/op recusou, em vez de um genérico "sem permissão".
@@ -1227,10 +1249,34 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const desfazer = textoDeRecusa({ item: 'cliente', acao: 'excluir' }, 'falha');
         toast.error(desfazer.titulo, { description: desfazer.detalhe, duration: 10000 });
       }
-    } finally {
-      setSaving(false);
     }
   }, [clientData, entities, participants, contracts, inscricoesMap, clusterIds, isEditing, editingClienteId, setoresCliente, centrosCusto, onDuplicateFound, onSuccess, logAction, queryClient, originalSnapshot, authUser]);
+
+  /**
+   * Um salvamento por vez, do primeiro clique até o fim.
+   *
+   * `disabled={saving}` no botão não bastava: `saving` só virava `true` depois da
+   * verificação de nome duplicado e do diálogo de confirmação que ela abre, então
+   * dois cliques seguidos disparavam duas verificações e dois cadastros do mesmo
+   * cliente. Agora a bandeira sobe antes de qualquer `await`.
+   *
+   * A trava é a `ref`, não o estado: `setSaving` só chega ao botão no render
+   * seguinte, e dois cliques no mesmo quadro passariam os dois. A `ref` muda no
+   * ato. O estado continua existindo para a tela (botão desabilitado e spinner),
+   * agora pelo tempo inteiro da operação, inclusive enquanto o diálogo está aberto.
+   */
+  const salvamentoEmCurso = useRef(false);
+  const executeSave = useCallback(async () => {
+    if (salvamentoEmCurso.current) return;
+    salvamentoEmCurso.current = true;
+    setSaving(true);
+    try {
+      await executarSalvamento();
+    } finally {
+      salvamentoEmCurso.current = false;
+      setSaving(false);
+    }
+  }, [executarSalvamento]);
 
   // Mantido para as telas que ainda barram o save quando há rascunho de aba
   // aberto; devolve as abas pendentes em vez de salvar.

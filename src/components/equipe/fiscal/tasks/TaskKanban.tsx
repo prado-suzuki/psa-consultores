@@ -40,7 +40,7 @@ interface TaskKanbanProps {
  *
  * A subtarefa aparece na coluna do STATUS DELA, e não na da mãe — antes só a
  * mãe era arrastável e as filhas iam todas juntas no card dela, então não havia
- * como puxar uma para "Em Progresso" e deixar as irmãs em "A Fazer".
+ * como puxar uma para "Em Andamento" e deixar as irmãs em "A Fazer".
  *
  * Para isso o card da mãe se repete em cada coluna onde ela tem filha, como
  * cópia marcada com o status real dela, levando junto a lista daquelas filhas.

@@ -33,22 +33,10 @@ export interface PrazoInfo {
   tipo: 'expirado' | 'urgente' | 'atencao' | 'normal' | 'concluido' | 'aguardando_cliente';
 }
 
-export const statusLabels: Record<string, string> = {
-  aberto: 'Aberto',
-  em_andamento: 'Em Andamento',
-  resolvido: 'Resolvido',
-  fechado: 'Fechado',
-};
-
-export const activityLabels: Record<string, string> = {
-  aguardando_resposta: 'Aguardando resposta',
-  respondido: 'Respondido',
-  em_analise: 'Em análise',
-};
-
-// As cores de status, prioridade, atividade e prazo vivem em
-// `@/lib/chamadoStatusColors` — em papéis de status, não em matiz fixa, para o
-// chamado pegar a paleta da área que o hospeda. Aqui ficam só rótulos e regras.
+// Rótulo E cor de status, prioridade, atividade e prazo vivem em
+// `@/lib/chamadoStatusColors`: o rótulo sai do campo `label` da mesma config que
+// dá a classe, então os dois não podem divergir. A cor é papel de status, e não
+// matiz fixa, para o chamado pegar a paleta da área que o hospeda.
 
 export { departmentLabels } from '@/lib/chamadosDepartamentos';
 

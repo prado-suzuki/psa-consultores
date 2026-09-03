@@ -163,6 +163,70 @@ describe('export .docx (formatação do modelo de referência)', () => {
     expect(xml.slice(xml.indexOf('Terceiro imóvel'), xml.indexOf('CLÁUSULA SEXTA:'))).toMatch(VAZIO);
   });
 
+  // O instrumento agrário é o caso OPOSTO do teste acima: os dois assinados do
+  // MMS (Parceria e Composse) têm linha em branco entre as alíneas de imóvel —
+  // medido byte a byte contra o .docx registrado — e o padrão desta frente é
+  // bater com o assinado, não compactar por estilo. `estiloCompacto=false`
+  // é o mesmo `tmpl_documento.escopo === 'exploracao_rural'` que já distingue
+  // o instrumento agrário do Contrato Social em `useGerarDocumentoController`.
+  it('instrumento agrário (estiloCompacto=false): linha em branco entre alíneas sobrevive', async () => {
+    const doc = await montarDocx(
+      [
+        bloco(
+          'cl',
+          'clausula',
+          '*CLÁUSULA PRIMEIRA:* Os imóveis:\n\na) Primeiro imóvel.\n\nb) Segundo imóvel.\n\nc) Terceiro imóvel.',
+        ),
+        bloco('cl2', 'clausula', '*CLÁUSULA SEGUNDA:* Vigência.'),
+      ],
+      false,
+    );
+    const xml = await parteXml(doc, /word\/document\.xml$/);
+    const VAZIO = /<w:p><w:pPr><w:spacing[^>]*\/><\/w:pPr><\/w:p>/g;
+
+    expect(xml.slice(xml.indexOf('Primeiro imóvel'), xml.indexOf('Segundo imóvel'))).toMatch(VAZIO);
+    expect(xml.slice(xml.indexOf('Segundo imóvel'), xml.indexOf('Terceiro imóvel'))).toMatch(VAZIO);
+  });
+
+  // Segundo defeito do mesmo tipo, no preâmbulo: título, outorgante, outorgado
+  // e "as partes acima identificadas" são 4 blocos 'livre' SEPARADOS no
+  // catálogo, e os dois assinados do MMS têm linha em branco entre cada um —
+  // inclusive entre dois livres seguidos, o que o Contrato Social (sócios do
+  // preâmbulo, colados de propósito) não quer. Regressão do que a imagem do
+  // Word (Parceria_Rural_rascunho) mostrou faltando entre "PARCEIROS
+  // OUTORGADOS" e "As partes acima identificadas".
+  it('instrumento agrário (estiloCompacto=false): preâmbulo com livre-após-livre também abre linha em branco', async () => {
+    const doc = await montarDocx(
+      [
+        bloco('titulo', 'livre', '*INSTRUMENTO PARTICULAR DE PARCERIA*\n*PARA FINS DE EXPLORAÇÃO AGROPECUÁRIA*'),
+        bloco('outorgante', 'livre', '*PARCEIRA OUTORGANTE:* MMS AGRO LTDA, pessoa jurídica.'),
+        bloco('outorgado', 'livre', '*PARCEIROS OUTORGADOS:* José Eduardo, brasileiro.'),
+        bloco('partes', 'livre', 'As partes acima identificadas têm, entre si, justas e contratadas…'),
+      ],
+      false,
+    );
+    const xml = await parteXml(doc, /word\/document\.xml$/);
+    const VAZIO = /<w:p><w:pPr><w:spacing[^>]*\/><\/w:pPr><\/w:p>/g;
+
+    expect(xml.slice(xml.indexOf('PARA FINS'), xml.indexOf('PARCEIRA OUTORGANTE'))).toMatch(VAZIO);
+    expect(xml.slice(xml.indexOf('PARCEIRA OUTORGANTE'), xml.indexOf('PARCEIROS OUTORGADOS'))).toMatch(VAZIO);
+    expect(xml.slice(xml.indexOf('PARCEIROS OUTORGADOS'), xml.indexOf('As partes'))).toMatch(VAZIO);
+  });
+
+  // O Contrato Social continua colado: mesmo conteúdo, `estiloCompacto`
+  // padrão (`true`) — os "sócios do preâmbulo" formam UMA frase corrida.
+  it('Contrato Social (estiloCompacto padrão): livre-após-livre no preâmbulo continua colado', async () => {
+    const doc = await montarDocx([
+      bloco('razao', 'livre', 'Agro Aliança Ltda'),
+      bloco('socio1', 'livre', '*FULANO DE TAL*, brasileiro, casado.'),
+      bloco('socio2', 'livre', '*SICRANO DE TAL*, brasileiro, solteiro.'),
+    ]);
+    const xml = await parteXml(doc, /word\/document\.xml$/);
+    const VAZIO = /<w:p><w:pPr><w:spacing[^>]*\/><\/w:pPr><\/w:p>/g;
+
+    expect(xml.slice(xml.indexOf('FULANO DE TAL'), xml.indexOf('SICRANO DE TAL'))).not.toMatch(VAZIO);
+  });
+
   // Regressão do marcador de alínea em NEGRITO quando a linha tem marca inline.
   //
   // `linhaComRotulo` media o marcador na linha SEM marcas e cortava por índice na

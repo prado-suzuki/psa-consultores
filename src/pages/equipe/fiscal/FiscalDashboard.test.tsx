@@ -274,7 +274,7 @@ describe('DashboardContent Tax', () => {
     expect(screen.getByTestId('hero')).toHaveTextContent('1 tarefas precisam de atenção');
     expect(screen.getByText('Backlog:1')).toBeInTheDocument();
     expect(screen.getByText('A Fazer:1')).toBeInTheDocument();
-    expect(screen.getByText('Em Progresso:1')).toBeInTheDocument();
+    expect(screen.getByText('Em Andamento:1')).toBeInTheDocument();
     expect(screen.getByText('Revisão:1')).toBeInTheDocument();
     expect(screen.getByText('Concluído:1')).toBeInTheDocument();
     expect(screen.getByText('Fiscal Federal:4')).toBeInTheDocument();
@@ -322,7 +322,7 @@ describe('DashboardContent Tax', () => {
     await chooseSelect(user, 3, 'Cliente Beta');
     expect(kpi('Total Tarefas')).toHaveTextContent('1');
     expect(screen.getByTestId('hero')).toHaveTextContent('Visão com 1 filtro(s) aplicado(s). 1 tarefas no recorte atual.');
-    expect(screen.getByText('Em Progresso:1')).toBeInTheDocument();
+    expect(screen.getByText('Em Andamento:1')).toBeInTheDocument();
     expect(kpi('Horas Planejadas')).toHaveTextContent('4h');
     expect(screen.queryByText('Obrigação atrasada')).not.toBeInTheDocument();
 
@@ -333,7 +333,7 @@ describe('DashboardContent Tax', () => {
 
     await user.click(screen.getByRole('button', { name: 'Próximos 7 dias' }));
     expect(kpi('Total Tarefas')).toHaveTextContent('1');
-    expect(screen.getByText('Em Progresso:1')).toBeInTheDocument();
+    expect(screen.getByText('Em Andamento:1')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Apenas atrasadas' }));
     expect(kpi('Total Tarefas')).toHaveTextContent('1');
@@ -360,7 +360,7 @@ describe('DashboardContent Tax', () => {
     await user.type(dateInputs[1], dateAt(2));
     // Caracterização: o período só compara tarefas que possuem due_date; sem prazo permanece.
     expect(kpi('Total Tarefas')).toHaveTextContent('2');
-    expect(screen.getByText('Em Progresso:1')).toBeInTheDocument();
+    expect(screen.getByText('Em Andamento:1')).toBeInTheDocument();
     expect(screen.getByText('Backlog:1')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Limpar tudo' }));

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useDomainAdminPerformance } from '@/hooks/useDomainAdminPerformance';
 import { Users, FolderKanban, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { ENTREGAVEL_STATUS_OPCOES } from '@/lib/entregavelStatusColors';
 
 const AdminPerformance = () => {
   const {
@@ -92,19 +93,20 @@ const AdminPerformance = () => {
                 />
               </div>
 
+              {/* Rótulo e cor dos três saem do mapa do entregável. Estavam em
+                  amarelo, azul e verde do estoque do Tailwind — nenhuma das três
+                  acompanha tema de área — e o do meio dizia "Em Progresso". */}
               <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="p-3 bg-yellow-50 rounded-lg">
-                  <p className="text-2xl font-bold text-yellow-600">{deliverablesData?.pending || 0}</p>
-                  <p className="text-xs text-yellow-600">Pendentes</p>
-                </div>
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600">{deliverablesData?.inProgress || 0}</p>
-                  <p className="text-xs text-blue-600">Em Progresso</p>
-                </div>
-                <div className="p-3 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">{deliverablesData?.completed || 0}</p>
-                  <p className="text-xs text-green-600">Concluídos</p>
-                </div>
+                {ENTREGAVEL_STATUS_OPCOES.map((s) => (
+                  <div key={s.key} className={`rounded-lg p-3 ${s.badge}`}>
+                    <p className="text-2xl font-bold">
+                      {(s.key === 'in_progress'
+                        ? deliverablesData?.inProgress
+                        : deliverablesData?.[s.key]) || 0}
+                    </p>
+                    <p className="text-xs">{s.label}</p>
+                  </div>
+                ))}
               </div>
 
               <div className="flex items-center justify-center gap-2 pt-2">

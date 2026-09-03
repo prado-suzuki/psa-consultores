@@ -165,7 +165,7 @@ describe('TaskTable — troca de status pelo seletor', () => {
     renderTable([tarefa()]);
 
     await user.click(statusSelect());
-    await user.click(await screen.findByRole('option', { name: 'Em Progresso' }));
+    await user.click(await screen.findByRole('option', { name: 'Em Andamento' }));
 
     expect(mocks.updateTask).toHaveBeenCalledWith({ id: 'T1', status: 'in_progress' });
   });

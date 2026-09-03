@@ -21,11 +21,12 @@ interface SprintCalendarProps {
   onEdit: (deliverable: Deliverable) => void;
 }
 
-const statusLabels: Record<string, string> = {
-  pending: entregavelStatusColors.pending.label,
-  in_progress: 'Em Progresso',
-  completed: 'Concluído',
-};
+// Os três rótulos saem do mapa do domínio, e não de cópia local: era por cópia que
+// "Em Progresso" e "Em Andamento" conviviam para a mesma chave. O `|| d.status` de
+// quem consome continua valendo, porque a coluna é texto livre no banco.
+const statusLabels: Record<string, string> = Object.fromEntries(
+  Object.entries(entregavelStatusColors).map(([chave, config]) => [chave, config.label]),
+);
 
 export const SprintCalendar = ({ deliverables, onEdit }: SprintCalendarProps) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());

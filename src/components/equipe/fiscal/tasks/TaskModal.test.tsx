@@ -621,7 +621,7 @@ describe('TaskModal — edição', () => {
       task: baseTask,
     };
     const { rerender } = render(<TaskModal {...props} />);
-    expect(screen.getByLabelText(/^Status/)).toHaveTextContent('Em Progresso');
+    expect(screen.getByLabelText(/^Status/)).toHaveTextContent('Em Andamento');
 
     // Fecha; a tarefa muda por fora (arrasto no Kanban, seletor da Lista, horas
     // apontadas por outra pessoa); a MESMA tarefa é reaberta. O id não muda, então
@@ -699,7 +699,7 @@ describe('TaskModal — edição', () => {
       'Backlog',
       'Pendente Cliente',
       'A Fazer',
-      'Em Progresso',
+      'Em Andamento',
       'Revisão',
       'Em Ajuste',
       'Concluído',
@@ -981,7 +981,7 @@ describe('TaskModal — revisor delegado', () => {
       'Backlog',
       'Pendente Cliente',
       'A Fazer',
-      'Em Progresso',
+      'Em Andamento',
       'Revisão',
       'Em Ajuste',
     ]);
@@ -1138,7 +1138,7 @@ describe('TaskModal — subtarefas', () => {
     await user.click(
       within(subtarefasSection()).getByLabelText('Status de Mapeamento - Revisão de IRPF'),
     );
-    await user.click(await screen.findByRole('option', { name: 'Em Progresso' }));
+    await user.click(await screen.findByRole('option', { name: 'Em Andamento' }));
 
     await waitFor(() => expect(kinds()).toEqual(['update']));
     expect(payloadOf('update')).toEqual({ id: 'S1', status: 'in_progress' });

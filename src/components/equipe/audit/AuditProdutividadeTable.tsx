@@ -78,7 +78,7 @@ const ConteudoHoras = ({ linha }: { linha: LinhaProdutividade }) => {
     <>
       <span className="text-muted-foreground">{formatarHoras(linha.horasPlanejadas)}</span>
       <span className="text-muted-foreground/50"> / </span>
-      <span className={cn('font-medium', estourou ? 'text-red-700' : 'text-foreground')}>
+      <span className={cn('font-medium', estourou ? 'text-status-ajuste' : 'text-foreground')}>
         {formatarHoras(linha.horasExecutadas)}
       </span>
     </>
@@ -160,25 +160,30 @@ const COLUNAS: Record<ColunaProdutividade, DefinicaoColuna> = {
     ajuda: 'Total de ações que ela deixou registradas: criações + edições + exclusões. Uma mesma tarefa editada 5 vezes gera 5 registros.',
     render: linha => linha.registros,
   },
+  // Estas três já foram verde, azul e vermelho — o mesmo trio que o
+  // `ACTION_LABELS` do `HistoricoFlutuante` usava sobre a mesma
+  // `audit_logs.action`, e a segunda cópia dele. Lá as três viraram papel porque
+  // são SELO de uma ação; aqui são contagem numa coluna, e o vermelho em
+  // "Exclusões" afirmava problema sobre atividade normal — excluir um item é
+  // trabalho, não defeito. Sem cor, elas ficam iguais a `registros`,
+  // `itensDistintos` e `diasAtivos`, que são a mesma espécie de número e nunca
+  // tiveram tom nenhum.
   criacoes: {
     label: 'Criações',
     numerica: true,
     ajuda: 'Quantos projetos, tarefas ou subtarefas ela criou no período.',
-    classeCelula: 'text-emerald-700',
     render: linha => linha.criacoes,
   },
   edicoes: {
     label: 'Edições',
     numerica: true,
     ajuda: 'Quantas alterações ela fez em itens que já existiam — mudar status, prazo, responsável, descrição e afins.',
-    classeCelula: 'text-blue-700',
     render: linha => linha.edicoes,
   },
   exclusoes: {
     label: 'Exclusões',
     numerica: true,
     ajuda: 'Quantos itens ela excluiu no período.',
-    classeCelula: 'text-red-700',
     render: linha => linha.exclusoes,
   },
   itensDistintos: {

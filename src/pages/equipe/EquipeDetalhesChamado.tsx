@@ -11,29 +11,19 @@ import { TicketRichTextEditor } from '@/components/chamados/TicketRichTextEditor
 import { TicketRichTextView } from '@/components/chamados/TicketRichTextView';
 import { isTicketRichTextEmpty } from '@/components/chamados/ticketRichTextFormat';
 import { ticketMessageErrorFeedback, ticketMessageFeedback } from '@/lib/ticketMessageOutcome';
-import { TOOLTIP_FECHADO_INDISPONIVEL } from '@/lib/chamadosStatus';
+import { equipePodeSelecionarStatus, TOOLTIP_FECHADO_INDISPONIVEL } from '@/lib/chamadosStatus';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Send, FileText, Download, Image as ImageIcon, Upload, X, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { chamadoStatusConfig } from '@/lib/chamadoStatusColors';
+import {
+  CHAMADO_STATUS_OPCOES,
+  chamadoPrioridadeConfig,
+  chamadoStatusConfig,
+} from '@/lib/chamadoStatusColors';
 import { departmentLabels } from '@/lib/chamadosDepartamentos';
-
-const statusLabels: Record<string, string> = {
-  aberto: 'Aberto',
-  em_andamento: 'Em Andamento',
-  resolvido: 'Resolvido',
-  fechado: 'Fechado',
-};
-
-const priorityLabels: Record<string, string> = {
-  baixa: 'Baixa',
-  normal: 'Normal',
-  alta: 'Alta',
-  urgente: 'Urgente',
-};
 
 
 const ALLOWED_FILE_TYPES = [
@@ -189,7 +179,7 @@ export default function EquipeDetalhesChamado() {
       });
       toast({
         title: 'Status atualizado',
-        description: `Status alterado para ${statusLabels[newStatus]}.`,
+        description: `Status alterado para ${chamadoStatusConfig(newStatus).label}.`,
       });
     } catch {
       toast({
@@ -244,9 +234,9 @@ export default function EquipeDetalhesChamado() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="aberto">Aberto</SelectItem>
-                      <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                      <SelectItem value="resolvido">Resolvido</SelectItem>
+                      {CHAMADO_STATUS_OPCOES.filter((s) => equipePodeSelecionarStatus(s.key)).map((s) => (
+                        <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+                      ))}
                       {/* "Fechado" é decisão do sistema, não do analista: fica
                           visível e somente leitura. O item permanece no Select
                           para que o rótulo apareça quando esse já for o status
@@ -260,7 +250,7 @@ export default function EquipeDetalhesChamado() {
                             disabled
                             className="data-[disabled]:pointer-events-auto data-[disabled]:cursor-not-allowed"
                           >
-                            Fechado
+                            {chamadoStatusConfig('fechado').label}
                           </SelectItem>
                         </TooltipTrigger>
                         <TooltipContent side="right" className="max-w-xs">
@@ -274,7 +264,7 @@ export default function EquipeDetalhesChamado() {
               
               <div className="flex gap-2 flex-wrap">
                 <Badge variant="outline">
-                  Prioridade: {priorityLabels[ticket.priority] || ticket.priority}
+                  Prioridade: {chamadoPrioridadeConfig(ticket.priority).label}
                 </Badge>
                 <Badge variant="outline">
                   Departamento: {departmentLabels[ticket.department] || ticket.department}

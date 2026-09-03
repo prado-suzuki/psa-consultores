@@ -140,7 +140,7 @@ export function DocumentGroups({
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 text-osg-500/70 hover:bg-osg-red/10 hover:text-osg-red"
+                                  className="h-8 w-8 text-osg-500/70 hover:bg-destructive/10 hover:text-destructive"
                                   onClick={() => onRemove(document)}
                                   title="Remover desta solicitação"
                                 >

@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils';
 import { AnexosEntregavel } from '@/components/equipe/AnexosEntregavel';
 import { AvisoHorasDigitadas } from '@/components/equipe/AvisoHorasDigitadas';
 import { TarefaRichTextEditor } from '@/components/equipe/TarefaRichTextEditor';
+import { ENTREGAVEL_STATUS_OPCOES } from '@/lib/entregavelStatusColors';
 import type {
   EquipeKanbanDeliverable,
   EquipeKanbanEditForm,
@@ -130,9 +131,9 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">A Fazer</SelectItem>
-                  <SelectItem value="in_progress">Em Progresso</SelectItem>
-                  <SelectItem value="completed">Concluído</SelectItem>
+                  {ENTREGAVEL_STATUS_OPCOES.map((s) => (
+                    <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

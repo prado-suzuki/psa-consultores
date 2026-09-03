@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { EquipeSprintDetalhesController } from '@/hooks/useEquipeSprintDetalhesController';
-import { entregavelStatusColors } from '@/lib/entregavelStatusColors';
+import { ENTREGAVEL_STATUS_OPCOES } from '@/lib/entregavelStatusColors';
 
 const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -100,9 +100,9 @@ export function SprintHeaderFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos status</SelectItem>
-            <SelectItem value="pending">{entregavelStatusColors.pending.label}</SelectItem>
-            <SelectItem value="in_progress">Em Progresso</SelectItem>
-            <SelectItem value="completed">Concluído</SelectItem>
+            {ENTREGAVEL_STATUS_OPCOES.map((s) => (
+              <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={c.filterYear} onValueChange={c.changeYear}>

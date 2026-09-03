@@ -26,6 +26,7 @@ import {
 
 import { parseDate } from '@/lib/dateUtils';
 import { CHART_COLORS, STATUS_CHART_COLORS } from '@/constants/brandColors';
+import { ENTREGAVEL_STATUS_OPCOES, entregavelStatusConfig, entregavelStatusLabel } from '@/lib/entregavelStatusColors';
 
 const EquipeDashboard = () => {
   const { user } = useAuth();
@@ -41,32 +42,21 @@ const EquipeDashboard = () => {
   } = useDomainEquipeDashboard(user?.id, selectedSprintId);
   const [activeTab, setActiveTab] = useState<string>('sprint');
 
-  const getStatusLabel = (status: string | null) => {
-    const labels: Record<string, string> = {
-      pending: 'A Fazer',
-      in_progress: 'Em Progresso',
-      completed: 'Concluído'
-    };
-    return labels[status ?? ''] || status;
-  };
-
-  const getStatusColor = (status: string | null) => {
-    switch (status) {
-      case 'completed': return 'bg-emerald-100 text-emerald-700 border-0';
-      case 'in_progress': return 'bg-amber-100 text-amber-700 border-0';
-      default: return 'bg-blue-100 text-blue-700 border-0';
-    }
-  };
+  // Rótulo e cor do entregável saem do mesmo mapa. A cópia que estava aqui pintava
+  // esmeralda, âmbar e azul do estoque do Tailwind — três famílias que não
+  // acompanham tema de área nenhum — e ainda chamava `completed` de "Concluídas",
+  // no feminino plural, contra o "Concluído" do resto do sistema.
+  const getStatusLabel = (status: string | null) => entregavelStatusLabel(status);
+  const getStatusColor = (status: string | null) => `${entregavelStatusConfig(status).badge} border-0`;
 
   const progressPercent = stats.total > 0
     ? Math.round((stats.completed / stats.total) * 100)
     : 0;
 
-  const volumeData = [
-    { name: 'A Fazer', value: stats.pending, fill: STATUS_CHART_COLORS.pending },
-    { name: 'Em Progresso', value: stats.in_progress, fill: STATUS_CHART_COLORS.in_progress },
-    { name: 'Concluídas', value: stats.completed, fill: STATUS_CHART_COLORS.completed },
-  ];
+  // O gráfico e os KPIs leem a MESMA lista, na mesma ordem.
+  const volumeData = ENTREGAVEL_STATUS_OPCOES.map((s) => ({
+    name: s.label, value: stats[s.key], fill: STATUS_CHART_COLORS[s.key],
+  }));
 
   return (
     <EquipeLayout
@@ -144,24 +134,17 @@ const EquipeDashboard = () => {
                 <p className="text-2xl font-bold text-foreground">{stats.total}</p>
               </CardContent>
             </Card>
-            <Card className="border-border shadow-sm">
-              <CardContent className="pt-4 pb-4">
-                <p className="text-sm text-muted-foreground mb-1">A Fazer</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.pending}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border shadow-sm">
-              <CardContent className="pt-4 pb-4">
-                <p className="text-sm text-muted-foreground mb-1">Em Progresso</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats.in_progress}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border shadow-sm">
-              <CardContent className="pt-4 pb-4">
-                <p className="text-sm text-muted-foreground mb-1">Concluídas</p>
-                <p className="text-2xl font-bold text-primary">{stats.completed}</p>
-              </CardContent>
-            </Card>
+            {/* Os três KPIs saem do mapa do entregável: rótulo e cor no papel de
+                status. Estavam com azul, amarelo e `primary` na mão, e o do meio
+                dizia "Em Progresso" contra o "Em Andamento" do resto. */}
+            {ENTREGAVEL_STATUS_OPCOES.map((s) => (
+              <Card key={s.key} className="border-border shadow-sm">
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-sm text-muted-foreground mb-1">{s.label}</p>
+                  <p className={`text-2xl font-bold ${s.text}`}>{stats[s.key]}</p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">

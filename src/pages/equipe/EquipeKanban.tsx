@@ -31,6 +31,7 @@ import {
   type EquipeKanbanProject as Project,
   type EquipeKanbanSprint as Sprint,
 } from '@/lib/equipeKanban';
+import { entregavelStatusLabel } from '@/lib/entregavelStatusColors';
 
 const EquipeKanban = () => {
   // Quadro de três colunas ocupando a largura toda: a barra recolhe sozinha.
@@ -308,14 +309,8 @@ const EquipeKanban = () => {
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      pending: 'A Fazer',
-      in_progress: 'Em Progresso',
-      completed: 'Concluído',
-    };
-    return labels[normalizeEquipeKanbanStatus(status)];
-  };
+  const getStatusLabel = (status: string) =>
+    entregavelStatusLabel(normalizeEquipeKanbanStatus(status));
 
   const openDeliverableDetail = async (deliverable: Deliverable) => {
     setSelectedDeliverable(deliverable);

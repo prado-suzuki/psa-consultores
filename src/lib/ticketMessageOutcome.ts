@@ -61,7 +61,7 @@ export function isDuplicateMessageError(error: unknown): boolean {
  *   Diz o que aconteceu e, se houver, o que ele deve fazer.
  * - `equipe` é comunicação operacional: precisa nomear a pendência exata e a
  *   provável causa, para ser acionável. Usa o rótulo da tela
- *   ("Aguardando resposta", de activityLabels) para não divergir da UI.
+ *   ("Aguardando resposta", de `chamadoAtividadeColors`) para não divergir da UI.
  */
 export function ticketMessageFeedback(
   outcome: TicketMessageOutcome,

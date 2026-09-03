@@ -1,6 +1,14 @@
 # Cor: o que falta, e por que cada coisa parou onde parou
 
-Estado em **01/09/2026**, ao fim de uma rodada de 19 commits na `develop`.
+Estado em **03/09/2026**. O corpo do documento é a rodada de 19 commits de 01/09; em 03/09
+vieram cinco rodadas em cima dele — os rótulos de chamado, o estado de documento, a palavra
+única dos três pares, a âncora vermelha da OSG e a pasta `equipe/audit` —, e o §5 ganhou três
+catracas.
+
+> **A alavanca que funciona, medida cinco vezes seguidas:** procurar o **mapa de domínio**
+> antes de escrever classe. Das cinco rodadas, cinco acharam reuso que não tinha acontecido —
+> a última achou a segunda cópia de um mapa que a rodada anterior tinha acabado de consertar,
+> em outra pasta. Varredura por família de cor, no mesmo período, não rendeu nenhuma vez.
 
 Este documento é o ponto de retomada. Ele não repete o contrato — o contrato é
 [`paleta-por-area.md`](paleta-por-area.md), e continua sendo a fonte. Aqui está só **o que
@@ -49,6 +57,23 @@ do `chamadoStatusColors`, o mapeamento tinha o mesmo trio em quatro lugares, e o
 A lista dos cinco mapas está na seção "Status tem mapa, não classe" do
 [`paleta-por-area.md`](paleta-por-area.md).
 
+**A pasta `equipe/audit` fechou em 03/09/2026**, e ela é a prova da regra acima: o
+`AuditProdutividadeTable` pintava Criações/Edições/Exclusões com **o mesmo trio**
+esmeralda/azul/vermelho do `ACTION_LABELS` do `HistoricoFlutuante`, sobre a mesma
+`audit_logs.action` — duas cópias do mesmo mapa, achadas porque a rodada anterior tinha
+convertido a primeira. O `AuditLogTable` tinha a terceira cópia do diff `oldValue → newValue`.
+O que a rodada decidiu, e vale como precedente:
+
+- **selo veste papel; contagem não.** As três colunas numéricas perderam a cor — vermelho em
+  "Exclusões" afirmava problema sobre atividade normal, e as outras colunas da mesma tabela
+  (`registros`, `itensDistintos`, `diasAtivos`) nunca tiveram tom nenhum;
+- **número só ganha cor quando a condição é verdadeira.** "Atrasadas" pintava a coluna inteira
+  em vermelho estático, então "0 atrasadas" aparecia em vermelho. Agora só marca acima de zero,
+  como o estouro de horas ao lado já fazia;
+- **ausência de dado não é falha.** `sem_registro` foi para `neutro`, não `ajuste`: o texto de
+  ajuda da própria coluna diz que aquilo é sobre registro no sistema, não sobre o trabalho da
+  pessoa.
+
 ## 2. As escadas que exigem decisão, não conversão
 
 Estas ficaram paradas de propósito. Cada uma precisa de uma escolha sua antes de virar código.
@@ -58,6 +83,7 @@ Estas ficaram paradas de propósito. Cada uma precisa de uma escolha sua antes d
 | `projectPresentation.tsx`, `getStatusBadge` | `blocked` é `espera` ("travado por alguém de fora") ou `ajuste` ("deu problema")? Hoje é vermelho, e o `archived` do lado já está em papel |
 | `PerDetailModal.tsx` | ~20 estados de PER/DCOMP que não mapeiam nos oito papéis. Precisa decidir o vocabulário antes da cor |
 | as 12 paletas categóricas | `pageCategoryStyles`, `roleOptions`, `AgendaTab` e outras têm 5 a 7 categorias. O contrato tem **quatro** `--tag-*`, e são quatro de propósito. Não há token para a quinta |
+| `AuditPendenciasTable`, `CORES_MOTIVO` | Os seis motivos são **gradiente de gravidade**, não estados — e o contrato diz que escala não veste papel. Ou nasce uma escala institucional para severidade, ou fica em cor crua. Foi a única coisa que ficou de pé na rodada da pasta `audit`, e o motivo está escrito no próprio arquivo |
 
 ## 3. `projects.status` — não é dívida de cor, é defeito de produto
 
@@ -89,22 +115,43 @@ migração)? É decisão de produto, e vem antes de qualquer linha de código.
 
 ## 4. Outro rótulo divergente, além do `pending` que foi corrigido
 
-Levantado por auditoria em 01/09, **não corrigido**:
+**Os mapas de chamado fecharam em 03/09/2026** — `statusLabels` em seis arquivos,
+`priorityLabels` em quatro e `activityStatusLabels` em dois viraram o campo `label` da config
+que já dava a cor, e as opções de `Select` viraram as listas `CHAMADO_*_OPCOES`. Com eles foi o
+defeito visível: a pílula de prioridade vazia no portal do cliente, que era a chave `media`
+faltando na cópia local. A catraca é `src/lib/chamadoStatusColors.test.ts`, e o desenho está
+na seção "O rótulo sai da mesma config que a cor" do [`paleta-por-area.md`](paleta-por-area.md).
 
-| chave | palavras em uso | onde |
-|---|---|---|
-| `in_progress` | "Em Progresso" × "Em Andamento" | `taskStatusColors` × `mapeamentoStatusColors` × `auditFieldFormatter` |
-| `cancelled` | "Cancelado" × "Cancelada" | `projetosCadastro` × `auditFieldFormatter` |
-| `completed` | "Concluído" × "Concluída" | três mapas × `auditFieldFormatter` |
+**Os três pares fecharam em 03/09/2026, por decisão dela: uma forma só, masculina.**
+`in_progress` é "Em Andamento", `completed`/`done` é "Concluído", `cancelled` é "Cancelado" —
+e os rótulos passaram a sair do mapa do domínio em vez de literal na tela. Quinze cópias
+saíram: os três `getStatusLabel` idênticos (dashboard, kanban e rotinas da equipe), quatro
+listas de `<SelectItem>` escritas à mão, os `statusLabels` do calendário e do painel de horas
+de sprint, o `STATUS_PRESENTATION` do daily e as opções do filtro de tarefa. Ficaram
+`ENTREGAVEL_STATUS_OPCOES` e `entregavelStatusLabel` como os pontos únicos, e a catraca é
+[`rotulosDeStatus.test.ts`](../../src/lib/rotulosDeStatus.test.ts).
 
-Quase mecânico: as duas palavras de cada par já estão em uso, então é escolher qual vira a
-canônica — sem inventar rótulo novo. O caminho é o mesmo do `pending`: o rótulo passa a sair
-do mapa, e aí a troca seguinte é uma linha.
+Três divergências de COR vieram de carona, porque estavam nas mesmas cópias: o daily pintava
+`in_progress` com o papel `alerta` em vez de `andamento` (a mesma tarefa mudava de cor entre o
+daily e o Gantt), e os KPIs do dashboard da equipe e do `AdminPerformance` pintavam os três
+estados com azul, amarelo, verde e esmeralda do estoque do Tailwind. Duas entradas saíram da
+fila do `filaDoAlerta` por isso.
 
-**Um defeito visível junto:** `MeusChamados.tsx:278` renderiza `{priorityLabels[ticket.priority]}`
-sem fallback, e o mapa local não tem a chave `media` — que existe no banco. A pílula sai
-**vazia**. Nas outras duas telas de chamado o fallback mostra `"media"` cru, minúsculo. Some
-sozinho ao trocar os mapas locais pelo `chamadoPrioridadeConfig`, que já tem `media`.
+⚠️ **O que NÃO foi uniformizado, e é decisão em aberto — não esquecimento.** A regra vale
+onde a MESMA chave tinha duas palavras. Ela não vale para:
+
+- **prosa**, onde o gênero concorda com o substantivo da frase ("tarefas concluídas",
+  "Entregas Concluídas");
+- **domínio com vocabulário feminino inteiro e coerente**, que não tem par para resolver:
+  sprint (`Ativa`/`Concluída`/`Planejada`), melhoria (`Concluída`/`Cancelada`), meta
+  (`ativa`/`pausada`/`concluida`/`cancelada`) e situação de OS (`concluida`/`cancelada`, que é
+  o valor gravado no banco). Uniformizar só o `completed` desses deixaria
+  **"Ativa / Concluído / Planejada"**, que é pior que os dois lados. Se forem para o
+  masculino, vão INTEIROS — e aí a de meta e de OS é migração de dado, não rótulo.
+
+O motivo original do par segue valendo como registro: "Concluída" concorda com *tarefa* e
+*sprint*, "Concluído" com *chamado* e *projeto*, e o `auditFieldFormatter` atende os quatro
+domínios de uma vez — foi ele que ficou com o masculino.
 
 ## 5. Onde a dívida pode crescer sem ninguém ver
 
@@ -114,10 +161,12 @@ sozinho ao trocar os mapas locais pelo `chamadoPrioridadeConfig`, que já tem `m
 | `teal-500/600/700` | aviso de ESLint (`no-restricted-syntax`) |
 | tom que a escala não tem | `escala/cor-inexistente` e `escala/cor-de-estoque` |
 | cor crua **slate** | catraca `src/lib/filaDoSlate.test.ts` — nasce **vazia**, e qualquer classe slate nova derruba |
+| âncora `osg-red` pintando status | catraca `src/lib/filaDoOsgRed.test.ts` — nasce **vazia**; não é cor de estoque, é token nosso no lugar errado |
 | **verde, vermelho, azul, roxo, laranja** | **nenhuma** |
-| **rótulo divergente** | **nenhuma** — nem teste, nem lint |
+| rótulo divergente de **chamado** | catraca `src/lib/chamadoStatusColors.test.ts` — nasce **vazia**, varre pelo conjunto de chaves |
+| rótulo divergente de status | catraca `src/lib/rotulosDeStatus.test.ts` — pega "Em Progresso" em JSX e trava a palavra dos três mapas |
 
-As duas linhas em negrito são o buraco que sobrou.
+A linha em negrito é o buraco que sobrou: cor crua nas famílias que não têm guarda nenhuma.
 
 **Por que o slate precisou de catraca própria, e por que as outras famílias também vão
 precisar:** a regra `escala/cor-de-estoque` só dispara em nome que o projeto **também** define
@@ -162,6 +211,20 @@ estado, e o resto dos tokens escritos à mão.
   `grep -rnE '\$\{[A-Za-z_.]+\}[0-9a-fA-F]{2}' src --include=*.tsx --include=*.ts`
 - **`#0d9488`** — o teal residual da Rotina. Parte em comentário do `index.css`, que é prosa.
   Ver [`fase-3a-cor-crua-na-mao.md`](fase-3a-cor-crua-na-mao.md).
+- **`osg-red` — fechado em 03/09/2026.** Saiu do checklist quando o estado de documento
+  virou mapa, e depois das cinco telas que sobraram. Aplicada uma a uma a regra do comentário
+  de `estadoDocumentoColors` — *se o vermelho ali significa estado, é papel; se é decoração da
+  área, fica* —, **nenhuma das sete ocorrências era decoração**: três eram mensagem de erro,
+  uma era o hover da lixeira, uma era o número de recusados (o próprio comentário do arquivo
+  já dizia "documento devolvido"), e a última era o `ACTION_LABELS` do `HistoricoFlutuante` —
+  um mapa com três línguas dentro, `emerald-100` e `blue-100` do estoque ao lado da âncora, e
+  que por isso andou inteiro. Erro e ação destrutiva foram para `destructive`; estado, para o
+  papel. A catraca é [`filaDoOsgRed.test.ts`](../../src/lib/filaDoOsgRed.test.ts) e nasce vazia.
+  O que **não** virou papel foi o diff `oldValue → newValue` do histórico: valor antigo não
+  "deu problema" e valor novo não está "feito", então ali o antigo recua em
+  `muted-foreground` e o novo é `foreground` — cor nenhuma afirmando o que o dado não diz. Se
+  fosse `ajuste`, o vermelho passaria a significar duas coisas no mesmo painel, porque o
+  `deleted` do mapa logo acima é `ajuste`.
 - **WCAG 1.4.11** — borda de controle a 1,26:1 contra os 3:1 exigidos, nos três temas. Chegar
   lá escurece todo input do produto; é decisão de design, registrada no contrato.
 - **`getProcessStageInfo` × `getStageBadge`** — etapa desconhecida vira "Descoberta" num e
@@ -174,10 +237,16 @@ estado, e o resto dos tokens escritos à mão.
 
 Nesta ordem, do mecânico ao que exige decisão:
 
-1. **Os mapas de rótulo duplicados** (§4) — os seis `statusLabels` de chamado e os seis de
-   prioridade. Os textos já batem; é troca de import, e fecha o badge vazio de quebra.
-2. **A catraca de mais uma família** (§5) — `red` e `emerald` são as maiores sem guarda. O molde está em `medirCorCrua.ts`.
-3. **`in_progress`, `cancelled`, `completed`** (§4) — uma decisão sua, três pares, e o rótulo
-   passa a sair do mapa.
-4. **Os papéis que faltam** (§1) — por mapa, nunca por classe.
-5. **`projects.status`** (§3) — precisa da decisão de produto antes de tudo.
+1. **A catraca de mais uma família** (§5) — `red` e `emerald` são as maiores sem guarda, e
+   nenhuma tem concentração: em 03/09 eram 207 e 135 ocorrências espalhadas por ~100 arquivos,
+   com o maior arquivo em 9. Ou seja, **não** é conversão por mapa como as três rodadas
+   anteriores; é inventário por motivo, na forma da `filaDoAlerta`. O molde está em
+   `medirCorCrua.ts`, e a `chamadoStatusColors.test.ts` mostra a variante que varre por
+   conjunto de chaves em vez de por classe.
+2. **Os papéis que faltam** (§1) — por mapa, nunca por classe. É o que rendeu nas quatro
+   rodadas de 03/09: procurar o mapa do domínio antes de escrever classe achou, das quatro
+   vezes, reuso que não tinha acontecido — na última, um `ACTION_LABELS` de três entradas
+   com três vocabulários de cor dentro.
+3. **`projects.status`** (§3) — precisa da decisão de produto antes de tudo.
+
+O `osg-red` saiu desta lista: fechou em 03/09 e virou catraca (§7).

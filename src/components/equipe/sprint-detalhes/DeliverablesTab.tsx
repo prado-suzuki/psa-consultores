@@ -16,7 +16,7 @@ import { TabsContent } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { isPastBrazil, isTodayBrazil, isTomorrowBrazil, parseDate } from '@/lib/dateUtils';
 import type { EquipeSprintDetalhesController } from '@/hooks/useEquipeSprintDetalhesController';
-import { entregavelStatusColors } from '@/lib/entregavelStatusColors';
+import { entregavelStatusConfig } from '@/lib/entregavelStatusColors';
 
 function DateBadge({ date }: { date: string }) {
   const parsedDate = parseDate(date);
@@ -193,11 +193,7 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                         </Button>
                       )}
                       <Badge variant="outline">
-                        {task.status === 'completed'
-                          ? 'Concluído'
-                          : task.status === 'in_progress'
-                            ? 'Em Progresso'
-                            : entregavelStatusColors.pending.label}
+                        {entregavelStatusConfig(task.status).label}
                       </Badge>
                     </div>
                   </CardContent>

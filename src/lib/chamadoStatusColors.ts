@@ -99,3 +99,24 @@ export function chamadoPrazoBadge(prazo: PrazoInfo): { className: string; texto:
   if (prazo.tipo === 'atencao') return { className: 'bg-status-alerta-soft text-status-alerta hover:bg-status-alerta-soft', texto: `${prazo.dias} dias` };
   return { className: 'bg-status-fila-soft text-status-fila hover:bg-status-fila-soft', texto: `${prazo.dias} dias` };
 }
+
+/**
+ * Opções de Select, na ordem do ciclo de vida.
+ *
+ * É lista escrita, e não `Object.keys`, por dois motivos: a ordem passa a ser a
+ * do ciclo de vida em vez da de declaração por acidente, e `media` fica **de
+ * fora** da prioridade — ela existe no mapa para ler o que já está gravado no
+ * banco, e oferecê-la num seletor criaria registro novo com a chave duplicada.
+ *
+ * Cada item já é a config inteira, então o mesmo objeto serve para o rótulo e
+ * para a cor. Quem precisa do subconjunto que o analista pode escolher filtra
+ * por `equipePodeSelecionarStatus` (em `@/lib/chamadosStatus`).
+ */
+export const CHAMADO_STATUS_OPCOES: ChamadoStatusConfig[] =
+  ['aberto', 'em_andamento', 'resolvido', 'fechado'].map((k) => chamadoStatusColors[k]);
+
+export const CHAMADO_PRIORIDADE_OPCOES: ChamadoStatusConfig[] =
+  ['baixa', 'normal', 'alta', 'urgente'].map((k) => chamadoPrioridadeColors[k]);
+
+export const CHAMADO_ATIVIDADE_OPCOES: ChamadoStatusConfig[] =
+  ['aguardando_resposta', 'respondido', 'em_analise'].map((k) => chamadoAtividadeColors[k]);

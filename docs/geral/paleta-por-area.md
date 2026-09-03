@@ -23,7 +23,7 @@ veste a paleta de quem o hospeda.
 |---|---|---|
 | `neutro` | Backlog, Planejado, prioridade Baixa, contador de tarefas em aberto | não começou / sem carga |
 | `fila` | A Fazer, prioridade Média | entrou na fila |
-| `andamento` | Em Progresso, projeto Ativo | está andando |
+| `andamento` | Em Andamento, projeto Ativo | está andando |
 | `revisao` | Revisão, todo o fluxo de revisão do modal | passou para outra pessoa |
 | `espera` | Pendente Cliente, projeto Pausado | travado por alguém de fora |
 | `ajuste` | Em Ajuste, Cancelado, devolver para ajuste, prioridade Urgente | deu problema |
@@ -429,11 +429,15 @@ Antes de escrever `bg-green-100` num status novo, procure o mapa:
 | `chamadoStatusColors.ts` | chamado | status, prioridade, atividade e prazo |
 | `mapeamentoStatusColors.ts` | processo mapeado | not_started, in_progress, completed |
 | `entregavelStatusColors.ts` | entregável de sprint | pending, in_progress, completed |
+| `estadoDocumentoColors.ts` | documento pedido, e a revisão de um arquivo | pendente, em_analise, recusado, aprovado |
 
 Todos têm a mesma forma: um helper `papel(chave, nome)` que monta as classes a partir de
 `--status-<papel>`, um `Record` por domínio, e uma função `…Config(valor)` com fallback —
 porque a coluna de status é `text` livre no banco em todos eles, e valor fora da lista não
-pode quebrar o render.
+pode quebrar o render. **A exceção é o `estadoDocumentoColors`**, e ela se explica: o estado
+de um documento não vem de coluna nenhuma, é calculado por `estadoDoDocumento()` a partir da
+pendência e da pilha de arquivos, então o tipo é união fechada e não há valor fora da lista
+para tratar. Onde o valor for `text` livre, a função com fallback continua obrigatória.
 
 **O defeito que esses mapas existem para matar não é a cor errada: é a cor incoerente.** O
 `chamadoStatusColors` nasceu porque o mesmo status vivia em seis mapas e "Aberto" era azul
@@ -446,6 +450,62 @@ duas telas do **mesmo** entregável.
 > divergente na tela (`pending` é "Pendente" no calendário e "A Fazer" no dashboard de
 > horas) é decisão de produto. Nos dois casos o mapa carrega a **cor** e deixa o conflito
 > escrito, em vez de escolher por tabela.
+
+### O rótulo sai da mesma config que a cor
+
+O `label` é campo da config, ao lado de `badge` e `dot`, e não um `Record` separado. Não é
+conveniência: em 03/09/2026 o `statusLabels` do chamado estava copiado em **seis** arquivos e
+o `priorityLabels` em quatro, com os mesmos textos — até uma cópia não ter a chave `media`,
+que existe no banco, e a pílula de prioridade sair **vazia** no portal do cliente. Enquanto
+rótulo e cor moram em lugares diferentes, uma tela pode pegar um e esquecer o outro.
+
+| o que a tela precisa | de onde vem |
+|---|---|
+| texto de um valor | `<dominio>Config(valor).label` — já devolve o valor cru se a chave for desconhecida, então não precisa de `\|\| ticket.status` |
+| opções de um `Select` | as listas `CHAMADO_*_OPCOES`, na ordem do ciclo de vida |
+| subconjunto que a equipe pode escolher | filtre a lista por `equipePodeSelecionarStatus` |
+
+A lista de opções é **escrita**, e não `Object.keys` do mapa, por causa de `media`: ela e
+`normal` são o mesmo conceito com dois nomes gravados. Ler as duas é obrigatório; oferecer as
+duas num seletor seria continuar criando o problema. Quem for aplicar isso aos outros quatro
+mapas herda a mesma distinção: **o mapa lê tudo, a lista de opções oferece o canônico.**
+
+A catraca é `src/lib/chamadoStatusColors.test.ts`, e ela nasce vazia: qualquer objeto que
+volte a mapear `aberto` e `fechado` para texto dentro de `src/components` ou `src/pages`
+derruba o teste. A varredura é pelo **conjunto** de chaves, não pelo nome de uma: `aberto`,
+`em_andamento` e `em_analise` também são vocabulário do checklist de documentos, dos ciclos de
+desempenho e das reuniões 1a1, que são outros domínios e têm rótulo próprio de direito.
+
+### Uma palavra por chave, e ela é masculina
+
+Decidido em 03/09/2026. Quando a MESMA chave aparece em domínios diferentes, a palavra é uma
+só, no masculino:
+
+| chave | palavra |
+|---|---|
+| `in_progress` | **Em Andamento** (não "Em Progresso") |
+| `completed`, `done` | **Concluído** |
+| `cancelled` | **Cancelado** |
+
+Antes, `taskStatusColors` e `entregavelStatusColors` diziam "Em Progresso" e
+`mapeamentoStatusColors`, `chamadoStatusColors` e o `auditFieldFormatter` diziam "Em
+Andamento" — para o mesmo valor de banco. O `auditFieldFormatter`, que formata os quatro
+domínios de uma vez, dizia "Concluída"/"Cancelada".
+
+**Onde a regra NÃO vale**, e isso é decisão, não descuido:
+
+- **prosa** — o gênero concorda com o substantivo da frase: "tarefas concluídas", "Entregas
+  Concluídas". Mexer piora o português;
+- **domínio com vocabulário feminino inteiro e coerente**, que não tem par para resolver:
+  sprint (`Ativa`/`Concluída`/`Planejada`), melhoria, meta e situação de OS. Uniformizar só o
+  `completed` desses deixaria "Ativa / Concluído / Planejada", que é pior que os dois lados.
+  Se um dia forem para o masculino, vão INTEIROS — e nos dois últimos o valor é o que está
+  gravado no banco, então é migração de dado.
+
+A catraca é `src/lib/rotulosDeStatus.test.ts`. Ela varre o literal **em JSX** (texto entre `>`
+e `<`), e não a palavra no arquivo, exatamente para não perseguir prosa nem comentário — e
+vários comentários citam "Em Progresso" de propósito, para contar por que aquela cópia era
+errada.
 
 ## O papel `alerta` tem variante no `ui/` — use ela
 
@@ -491,6 +551,14 @@ fininho. Quem for converter `sucesso`, `feito` ou `ajuste` começa dessa lista e
 reclassificar do zero.
 
 O slate tem a sua, `src/lib/filaDoSlate.test.ts`, e ela **nasce vazia**: a família foi a zero em 01/09 e a catraca existe para que não volte. As duas compartilham o scanner de `src/lib/medirCorCrua.ts` — se for escrever a terceira, é de lá que ela sai.
+
+A terceira saiu em 03/09: `src/lib/filaDoOsgRed.test.ts`, também nascendo vazia. Ela guarda
+o caso oposto ao das outras duas — ali o problema não era cor de estoque, era **token nosso
+no lugar errado**: o `--osg-red` é âncora da OSG, e âncora não pinta papel de status (ver
+"As três camadas"). Por ser token do projeto, nenhuma regra de lint tinha o que dizer, e
+`text-osg-red` passava por certo em toda revisão. Ela não usa `familiaCrua`, porque a âncora
+não tem tom numérico; monta o padrão direto sobre `PROPRIEDADES_DE_COR`, que é o mesmo
+recorte — prefixo de propriedade separa código de prosa.
 
 Não virou regra de ESLint porque `bg-amber-50` é classe válida do Tailwind: a regra
 `escala/cor-de-estoque` só dispara em nome que o projeto **também** define (`teal`, `lime`,

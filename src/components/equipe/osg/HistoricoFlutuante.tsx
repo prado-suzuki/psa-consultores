@@ -13,10 +13,18 @@ interface HistoricoFlutuanteProps {
   entityIds: string[];
 }
 
+/**
+ * A ação de uma linha de auditoria, nos papéis de status da área.
+ *
+ * As três entradas falavam três línguas: `created` e `updated` em esmeralda e
+ * azul do estoque do Tailwind, que não acompanham tema nenhum, e `deleted` em
+ * `osg-red`, que é a ÂNCORA da OSG e não pinta papel de status. Como é um mapa,
+ * as três andam juntas — converter só a vermelha deixaria escada meio crua.
+ */
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
-  created: { label: 'Criação', color: 'bg-emerald-100 text-emerald-700' },
-  updated: { label: 'Edição', color: 'bg-blue-100 text-blue-700' },
-  deleted: { label: 'Exclusão', color: 'bg-osg-red/10 text-osg-red' },
+  created: { label: 'Criação', color: 'bg-status-feito-soft text-status-feito' },
+  updated: { label: 'Edição', color: 'bg-status-andamento-soft text-status-andamento' },
+  deleted: { label: 'Exclusão', color: 'bg-status-ajuste-soft text-status-ajuste' },
 };
 
 const ENTITY_LABELS_OSG: Record<string, string> = {
@@ -205,10 +213,17 @@ export function HistoricoFlutuante({ entityIds }: HistoricoFlutuanteProps) {
                         {changes.map((c, idx) => (
                           <div key={idx} className="space-y-0.5">
                             <span className="font-medium text-osg-700">{c.label}</span>
+                            {/* O diff não veste papel de status, de propósito: o valor
+                                antigo não "deu problema", ele só é o passado, e o novo
+                                não está "feito", ele só é o valor de agora. O antigo
+                                recua e o novo é o texto normal. Vermelho aqui também
+                                colidiria com o `deleted` do ACTION_LABELS, três linhas
+                                acima — o mesmo tom significando duas coisas no mesmo
+                                painel. */}
                             <div className="flex flex-wrap items-baseline gap-1.5">
-                              <span className="text-osg-red line-through">{c.oldValue}</span>
+                              <span className="text-muted-foreground line-through">{c.oldValue}</span>
                               <span className="text-muted-foreground">→</span>
-                              <span className="text-emerald-700">{c.newValue}</span>
+                              <span className="font-medium text-foreground">{c.newValue}</span>
                             </div>
                           </div>
                         ))}
