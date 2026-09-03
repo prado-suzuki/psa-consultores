@@ -702,7 +702,37 @@ All colors MUST be HSL.
     --background: 170 18% 99.6%;
     --card: 170 18% 99.6%;
     --popover: 170 18% 99.6%;
-    --canvas: 170 16% 98.8%;
+    /* ─── O fundo de página da área, e ele mudou de valor E de consumidor ───
+       Até aqui o `FiscalLayout` pintava a tela com `bg-muted`, e este `--canvas`
+       não tinha consumidor nenhum. São trabalhos diferentes: o `--muted` é a
+       superfície REBAIXADA (barra de filtro, cabeçalho de tabela, linha zebra),
+       e os 92% dele foram escolhidos para a pílula de um segmented control
+       saltar em cima — ver a nota do `:root`. Espalhado pela tela inteira, esse
+       mesmo valor vira uma parede de tinta, e foi o que a usuária viu como "a
+       Tax está com fundo verde". A OSG nunca teve o problema porque o layout
+       dela já usava o canvas (`OsgLayout.tsx`, `bg-osg-canvas`).
+
+       Os três números, e nenhum deles é gosto:
+
+       98,8% → 96%. O valor antigo era quase branco puro e o cartão sumia dentro
+       do fundo; a tela perdia a camada em que o conteúdo se apoia. 96% é a
+       altura em que a OSG já está (`--osg-canvas`), então as duas áreas passam
+       a ter a mesma profundidade de fundo — o mesmo raciocínio que alinhou o
+       `--muted` das três em 92%.
+
+       Matiz 170 → 192, a da âncora. A 170 a superfície ficava a 22° do botão:
+       perto demais para ser outra coisa, longe demais para ser a mesma, e o
+       olho lia duas cores discutindo. Na matiz da âncora o fundo passa a ser a
+       cor do botão muito diluída, que é relação e não briga.
+
+       Saturação 16% → 10%. Cast quente lê como papel, cast frio lê como cor: a
+       OSG passa despercebida a 24% porque é quente, e a Tax é fria. Copiar o
+       número de uma para a outra não funciona.
+
+       O `--muted` abaixo NÃO muda: os 92% dele estão alinhados entre as três
+       áreas de propósito, e mexer neles quebra o contraste que aquela nota
+       calibrou. */
+    --canvas: 192 10% 96%;
     --muted: 168 20% 92%;
 
     /* O secundário acompanha a temperatura da superfície: com o fundo da Tax

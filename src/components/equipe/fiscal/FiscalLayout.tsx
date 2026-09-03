@@ -35,12 +35,16 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
   // carregava o papel do usuário — era de onde vinha o anel de foco lime em
   // /equipe/tax/gerencial/chamados.
 
+  // `bg-canvas` e não `bg-muted`: o `--muted` é a superfície REBAIXADA, e os 92%
+  // dele foram calibrados para uma pílula saltar em cima — não para cobrir a
+  // tela. Espalhado, virava a parede verde da área. O canvas é o token que
+  // existe para ser fundo de página, e é o que a OSG já usa.
   return (
     // O provider embrulha a área: o guia de cada tela abre por rota, e o "?" do
     // header precisa do contexto. A árvore abaixo fica sem reindentar de
     // propósito, para o diff mostrar o que mudou e não o arquivo inteiro.
     <TourProvider registro={REGISTRO_TAX}>
-    <div className="min-h-screen bg-muted flex w-full">
+    <div className="min-h-screen bg-canvas flex w-full">
       {/* Sidebar */}
       <FiscalSidebar
         isCollapsed={isCollapsed}
