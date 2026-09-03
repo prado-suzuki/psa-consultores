@@ -239,10 +239,12 @@ export const TaskKanban = ({
 
   return (
     <>
-      {/* A unica coluna do sistema sem recorte de tempo era a Concluido daqui:
-          o quadro recebia toda tarefa que ja existiu. O mes da o recorte, e
-          arrastar um cartao muda o STATUS e nao a data — nada desaparece
-          debaixo da mao de quem arrasta. */}
+      {/* O recorte de tempo do quadro NASCE em "tudo": quem abre um projeto
+          aqui quer as entregas dele, e o mes escondia a do mes seguinte. O mes
+          fica a um clique no titulo (ou na seta) para quando a Concluido virar
+          historico — ela era a unica coluna do sistema sem recorte nenhum, e
+          crescia para sempre. Arrastar um cartao muda o STATUS e nao a data,
+          entao nada desaparece debaixo da mao de quem arrasta. */}
       <div className="mb-4 overflow-hidden rounded-lg border bg-card">
         <BarraDeMes periodo={periodo} />
       </div>

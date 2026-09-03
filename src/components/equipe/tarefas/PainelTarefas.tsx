@@ -469,8 +469,10 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
             </TabsContent>
 
             <TabsContent value="calendar" className="m-0">
+              {/* `tarefasDoMes`, e não `tarefas`: a grade é de um mês e o escopo
+                  padrão das outras abas é "tudo" — ver `usePeriodoDeTarefas`. */}
               <TaskCalendar
-                tasks={periodo.tarefas}
+                tasks={periodo.tarefasDoMes}
                 onEdit={handleEditTask}
                 onDelete={handleDeleteTask}
                 onReassign={handleReassignTask}

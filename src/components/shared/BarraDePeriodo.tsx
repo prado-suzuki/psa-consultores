@@ -3,9 +3,25 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+/**
+ * A maiúscula da primeira letra, e só dela.
+ *
+ * Quem monta o título usa date-fns em ptBR, que devolve mês em minúscula
+ * ("agosto de 2026"). `capitalize` transformaria cada palavra, e o título do
+ * Gantt na escala de semana é "23 ago – 29 ago". Quem manda um NÓ como título
+ * já traz o rótulo pronto.
+ */
+const rotuloDoPeriodo = (titulo: string) => titulo.charAt(0).toUpperCase() + titulo.slice(1);
+
 interface BarraDePeriodoProps {
-  /** O período desenhado agora: "Agosto de 2026", "23 ago – 29 ago 2026". */
-  titulo: string;
+  /**
+   * O período desenhado agora: "Agosto de 2026", "23 ago – 29 ago 2026".
+   *
+   * Texto ganha a maiúscula e o estilo de título aqui. Nó vem pronto — é como
+   * o painel de tarefas põe o seletor de recorte no lugar do título, que é
+   * onde a pessoa clica para escolher entre um mês e tudo.
+   */
+  titulo: ReactNode;
   onHoje: () => void;
   onPasso: (direcao: 1 | -1) => void;
   rotuloAnterior?: string;
@@ -41,12 +57,6 @@ export function BarraDePeriodo({
   children,
   className,
 }: BarraDePeriodoProps) {
-  // A barra assume a maiúscula porque quem monta o título usa date-fns em ptBR,
-  // que devolve mês em minúscula ("agosto de 2026"). Só a primeira letra: o
-  // título do Gantt na escala de semana é "23 ago – 29 ago", e `capitalize`
-  // transformaria cada palavra dele.
-  const rotulo = titulo.charAt(0).toUpperCase() + titulo.slice(1);
-
   return (
     <div
       className={cn(
@@ -81,7 +91,9 @@ export function BarraDePeriodo({
         </Button>
       </div>
 
-      <span className="text-base font-semibold text-foreground">{rotulo}</span>
+      {typeof titulo === 'string'
+        ? <span className="text-base font-semibold text-foreground">{rotuloDoPeriodo(titulo)}</span>
+        : titulo}
     </div>
   );
 }
