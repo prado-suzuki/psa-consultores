@@ -548,7 +548,14 @@ export function ProjetosTarefasList({
           const projectTaskIds = collectNodeTaskIds(projectNode.tasks);
           const selectedInProject = projectTaskIds.filter(id => selectedTaskIds.has(id)).length;
           return <div key={projectId}>
-            <div className={cn(GRID, 'group relative z-10 bg-muted/30 text-sm shadow-md hover:bg-muted/45')}>
+            {/* O fundo sai do neutro e vai para a âncora, na mesma família da
+                faixa do cliente. Na OSG a superfície é bege (matiz 32) e a
+                âncora é musgo (149): com a faixa verde logo acima, o neutro
+                quente encostado nela era lido como ROSA — contraste simultâneo,
+                o mesmo efeito do `--muted-foreground` matiz 220 sobre marfim.
+                `bg-primary/5` é o degrau que a linha de tarefa selecionada já
+                usa. */}
+            <div className={cn(GRID, 'group relative z-10 bg-primary/5 text-sm shadow-md hover:bg-primary/10')}>
               <div className="relative flex min-w-0 items-center gap-2 px-4 py-2.5" style={{ paddingLeft: `${PROJECT_INDENT}px` }}>
                 <LevelGuide left={OS_GUIDE} />
                 <span className={TOGGLE_SLOT}>
