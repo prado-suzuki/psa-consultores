@@ -25,6 +25,7 @@ import {
 import {
   contarEstados, estadoDoDocumento, ESTADOS_DOCUMENTO, type EstadoDocumento,
 } from '@/lib/estadoDocumento';
+import { estadoDocumentoColors, revisaoArquivoColors } from '@/lib/estadoDocumentoColors';
 
 /**
  * O checklist do consultor: a leitura da subtração, mais o veredito sobre o que
@@ -95,19 +96,15 @@ const STATUS_LINHA: Record<StatusChecklist, { label: string; classe: string }> =
 /**
  * O vocabulário do consultor para os quatro estados (o portal chama de outro
  * jeito: "Falta enviar" no lugar de "Pendente", por exemplo). A conta em si é a
- * mesma, e mora em `@/lib/estadoDocumento`.
+ * mesma, e mora em `@/lib/estadoDocumento`; a COR é a mesma, e mora em
+ * `@/lib/estadoDocumentoColors`, em papéis de status — dentro do `.osg-theme`
+ * eles já resolvem no tom da OSG. Só o rótulo abaixo é por público.
  */
 const ESTADO_LABEL: Record<EstadoDocumento, string> = {
   pendente: 'Pendente',
   em_analise: 'A revisar',
   recusado: 'Recusado',
   aprovado: 'Aprovado',
-};
-const ESTADO_CHIP: Record<EstadoDocumento, string> = {
-  pendente: 'border-osg-highlighter/50 bg-osg-highlighter/20 text-osg-700 hover:border-osg-highlighter',
-  em_analise: 'border-osg-200 bg-osg-100/60 text-osg-600 hover:border-osg-300',
-  recusado: 'border-osg-red/30 bg-osg-red/10 text-osg-red hover:border-osg-red/60',
-  aprovado: 'border-osg-moss/30 bg-osg-moss/10 text-osg-moss hover:border-osg-moss/60',
 };
 
 /**
@@ -569,7 +566,7 @@ function ChipsDeEstado({ contagem, onEscolher }: {
           onClick={() => onEscolher(estado)}
           className={cn(
             'pointer-events-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
-            ESTADO_CHIP[estado],
+            estadoDocumentoColors[estado].chip,
           )}
         >
           {ESTADO_LABEL[estado]}
@@ -619,7 +616,7 @@ function DocumentosDialog({ grupo, filtro, onLimparFiltro, onOpenChange, ...acoe
             <div className="flex items-center gap-2 pt-1">
               <span className={cn(
                 'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
-                ESTADO_CHIP[filtro],
+                estadoDocumentoColors[filtro].chip,
               )}>
                 {ESTADO_LABEL[filtro]}
                 <span className="tabular-nums opacity-70">{linhas.length}</span>
@@ -691,17 +688,20 @@ function ArquivoRevisavel({ arquivo, emRevisao, onAprovar, onRecusar, onDesfazer
   const doCliente = arquivo.fonte === 'cliente';
   const recusado = arquivo.revisao === 'recusado';
   const aprovado = arquivo.revisao === 'aprovado';
+  const cor = revisaoArquivoColors[arquivo.revisao];
 
   return (
     <li className={cn(
       'rounded-lg border px-3 py-2',
-      recusado ? 'border-osg-red/30 bg-osg-red/5' : 'border-osg-100 bg-osg-50/50',
+      // Só a linha recusada se colore: é a única que pede ação. As outras ficam
+      // no neutro da OSG para a pilha de arquivos não competir com a lista.
+      recusado ? cor.linha : 'border-osg-100 bg-osg-50/50',
     )}>
       <div className="flex flex-wrap items-center gap-2">
-        <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? 'text-osg-red' : 'text-osg-moss')} />
+        <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? cor.texto : 'text-osg-moss')} />
         <span className={cn(
           'min-w-0 flex-1 truncate text-xs font-medium',
-          recusado ? 'text-osg-red line-through' : 'text-osg-600',
+          recusado ? cn(cor.texto, 'line-through') : 'text-osg-600',
         )}>
           {arquivo.nome}
         </span>
@@ -712,21 +712,14 @@ function ArquivoRevisavel({ arquivo, emRevisao, onAprovar, onRecusar, onDesfazer
           <Loader2 className="h-4 w-4 animate-spin text-osg-500" />
         ) : (
           <div className="flex shrink-0 items-center gap-1">
-            {aprovado && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-osg-moss/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-osg-moss">
-                <Check className="h-3 w-3" />Aprovado
-              </span>
-            )}
-            {recusado && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-osg-red/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-osg-red">
-                <TriangleAlert className="h-3 w-3" />Recusado
-              </span>
-            )}
-            {!aprovado && !recusado && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-osg-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-osg-500">
-                <Hourglass className="h-3 w-3" />A revisar
-              </span>
-            )}
+            <span className={cn(
+              'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]',
+              cor.pilula,
+            )}>
+              {aprovado ? <Check className="h-3 w-3" />
+                : recusado ? <TriangleAlert className="h-3 w-3" /> : <Hourglass className="h-3 w-3" />}
+              {ESTADO_LABEL[aprovado ? 'aprovado' : recusado ? 'recusado' : 'em_analise']}
+            </span>
 
             {!aprovado && (
               <BotaoVeredito tom="aprovar" onClick={() => onAprovar(arquivo)}>
@@ -748,7 +741,7 @@ function ArquivoRevisavel({ arquivo, emRevisao, onAprovar, onRecusar, onDesfazer
         )}
       </div>
       {recusado && arquivo.motivo && (
-        <p className="mt-1 pl-5 text-xs leading-relaxed text-osg-red">{arquivo.motivo}</p>
+        <p className={cn('mt-1 pl-5 text-xs leading-relaxed', cor.texto)}>{arquivo.motivo}</p>
       )}
     </li>
   );
@@ -767,7 +760,7 @@ function BotaoVeredito({ tom, onClick, children }: {
       className={cn(
         'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
         tom === 'aprovar' && 'border-osg-moss/30 text-osg-moss hover:bg-osg-moss/10',
-        tom === 'recusar' && 'border-osg-red/30 text-osg-red hover:bg-osg-red/10',
+        tom === 'recusar' && 'border-destructive/30 text-destructive hover:bg-destructive/10',
         tom === 'desfazer' && 'border-osg-200 text-osg-500 hover:bg-osg-100/70 hover:text-osg-700',
       )}
     >
@@ -826,7 +819,7 @@ function RecusaDialog({ arquivo, motivo, onMotivo, onOpenChange, onConfirmar }: 
 }
 
 function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'danger' }) {
-  return <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', tone === 'danger' ? 'bg-osg-red/10 text-osg-red' : 'bg-osg-100/70 text-osg-600')}>{children}</span>;
+  return <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', tone === 'danger' ? 'bg-destructive/10 text-destructive' : 'bg-osg-100/70 text-osg-600')}>{children}</span>;
 }
 
 export default ChecklistPendentes;

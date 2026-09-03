@@ -34,6 +34,36 @@ const CAT_LABEL: Record<DocCategoria, string> = {
 
 type ReqDoc = { assunto: string; descricao: string; cat: DocCategoria | null; kw: string[]; modelo?: boolean };
 type ChecklistState = 'encontrado' | 'solicitar' | 'modelo';
+
+/**
+ * A cor dos três estados, em papéis de status — mesma regra do
+ * `estadoDocumentoColors`, com o vocabulário desta tela (que é o do documento
+ * EXIGIDO, não o do documento pedido: aqui "solicitar" é o que ainda nem foi
+ * pedido ao cliente).
+ *
+ * `solicitar` é `espera` pela mesma razão que fechou o chip do checklist em
+ * 03/09/2026: documento que falta é trabalho parado num terceiro. A tela tinha as
+ * duas respostas ao mesmo tempo — o chip em `amber-*` do estoque e o fundo da
+ * linha em `bg-warning/5`, que é `alerta`. O `encontrado` saiu de `osg-moss`, que
+ * é a ÂNCORA da OSG e nunca deveria pintar papel de status.
+ */
+const ESTADO_CHECKLIST: Record<ChecklistState, { chip: string; pilula: string; linha: string }> = {
+  encontrado: {
+    chip: 'border-status-feito/30 bg-status-feito-soft text-status-feito',
+    pilula: 'border-status-feito/30 bg-status-feito-soft text-status-feito',
+    linha: 'hover:bg-osg-50/35',
+  },
+  solicitar: {
+    chip: 'border-status-espera/30 bg-status-espera-soft text-status-espera',
+    pilula: 'border-status-espera/40 bg-status-espera-soft text-status-espera',
+    linha: 'bg-status-espera-soft/30 hover:bg-status-espera-soft/50',
+  },
+  modelo: {
+    chip: 'border-border bg-muted text-muted-foreground',
+    pilula: 'border-border bg-muted text-muted-foreground',
+    linha: 'hover:bg-osg-50/35',
+  },
+};
 type StatusFilter = 'todos' | ChecklistState;
 
 const DOCS_FISCAL: ReqDoc[] = [
@@ -163,8 +193,8 @@ export function DocumentosClienteChecklist({ clienteId }: { clienteId: string })
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 border-osg-100 lg:border-l lg:pl-7">
-            <Metric label="A solicitar" value={faltantes} tone="warning" />
-            <Metric label="Encontrados" value={encontrados} tone="success" />
+            <Metric label="A solicitar" value={faltantes} tone="espera" />
+            <Metric label="Encontrados" value={encontrados} tone="feito" />
             <div className="col-span-2 grid gap-2">
               <Button size="sm" className="w-full" onClick={criarProjeto} disabled={!podeCriarProjeto || !clienteNome}>
                 <FolderPlus className="mr-2 h-4 w-4" /> Criar projeto
@@ -252,13 +282,11 @@ function ChecklistRow({ number, req, state, matches, downloading, onDownload, up
   onUpload: (file: File) => void;
 }) {
   return (
-    <li className={cn('group px-4 py-4 transition-colors sm:px-5', state === 'solicitar' ? 'bg-warning/5 hover:bg-warning/10' : 'hover:bg-osg-50/35')}>
+    <li className={cn('group px-4 py-4 transition-colors sm:px-5', ESTADO_CHECKLIST[state].linha)}>
       <div className="flex items-start gap-3 sm:gap-4">
         <span className={cn(
           'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold tabular-nums',
-          state === 'encontrado' && 'border-osg-moss/30 bg-osg-moss/10 text-osg-moss',
-          state === 'solicitar' && 'border-amber-300/70 bg-amber-50 text-amber-700',
-          state === 'modelo' && 'border-border bg-muted text-muted-foreground',
+          ESTADO_CHECKLIST[state].pilula,
         )}>
           {state === 'encontrado' ? <Check className="h-4 w-4" /> : number}
         </span>
@@ -360,18 +388,18 @@ function FileDownloadButton({ file, downloading, onDownload }: {
 }
 
 function StatusPill({ state, count }: { state: ChecklistState; count: number }) {
-  const config = {
-    encontrado: { label: `Correspondência encontrada${count > 1 ? ` (${count})` : ''}`, className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
-    solicitar: { label: 'A solicitar', className: 'border-amber-200 bg-amber-50 text-amber-700' },
-    modelo: { label: 'Modelo de referência', className: 'border-border bg-muted text-muted-foreground' },
+  const label = {
+    encontrado: `Correspondência encontrada${count > 1 ? ` (${count})` : ''}`,
+    solicitar: 'A solicitar',
+    modelo: 'Modelo de referência',
   }[state];
-  return <span className={cn('inline-flex w-fit shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-bold', config.className)}>{config.label}</span>;
+  return <span className={cn('inline-flex w-fit shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-bold', ESTADO_CHECKLIST[state].chip)}>{label}</span>;
 }
 
-function Metric({ label, value, tone }: { label: string; value: number; tone: 'warning' | 'success' }) {
+function Metric({ label, value, tone }: { label: string; value: number; tone: 'espera' | 'feito' }) {
   return (
     <div className="rounded-xl bg-osg-50/70 px-3 py-3 text-center">
-      <div className={cn('text-2xl font-bold tabular-nums', tone === 'warning' ? 'text-warning' : 'text-osg-moss')}>{value}</div>
+      <div className={cn('text-2xl font-bold tabular-nums', tone === 'espera' ? 'text-status-espera' : 'text-status-feito')}>{value}</div>
       <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-osg-500">{label}</div>
     </div>
   );

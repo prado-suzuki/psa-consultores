@@ -23,6 +23,7 @@ import {
 import {
   contarEstados, estadoDoDocumento, ESTADOS_DOCUMENTO, type EstadoDocumento,
 } from '@/lib/estadoDocumento';
+import { estadoDocumentoColors, revisaoArquivoColors } from '@/lib/estadoDocumentoColors';
 import {
   usePendenciasCliente, useAnexarPendencia, useRemoverDocumentoPendencia,
   type ArquivoDaPendencia, type PendenciaCliente,
@@ -74,7 +75,7 @@ const FILTROS_GRUPO: Array<{ value: FiltroGrupo; label: string; Icon: LucideIcon
 
 const FILTROS_STATUS: Array<{ value: FiltroStatus; label: string; dot?: string }> = [
   { value: 'todos', label: 'Todos' },
-  { value: 'faltando', label: 'Falta enviar', dot: 'bg-warning' },
+  { value: 'faltando', label: 'Falta enviar', dot: 'bg-status-espera' },
   { value: 'recebidos', label: 'Recebidos', dot: 'bg-primary' },
 ];
 
@@ -85,12 +86,8 @@ const ESTADO_LABEL: Record<EstadoDocumento, string> = {
   recusado: 'Recusado',
   aprovado: 'Aprovado',
 };
-const ESTADO_CHIP: Record<EstadoDocumento, string> = {
-  pendente: 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-400',
-  em_analise: 'border-border bg-muted text-muted-foreground hover:border-muted-foreground/50',
-  recusado: 'border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400',
-  aprovado: 'border-primary/15 bg-accent/5 text-primary hover:border-primary/40',
-};
+// A COR dos quatro é compartilhada com o checklist do consultor, em papéis de
+// status: `@/lib/estadoDocumentoColors`. Só o rótulo acima é por público.
 
 const estadoDaPendencia = (pendencia: PendenciaCliente): EstadoDocumento =>
   estadoDoDocumento(pendencia.recebido, pendencia.arquivos);
@@ -385,7 +382,7 @@ function Metrica({ label, value, tom }: { label: string; value: number; tom: 'at
     <div className="flex flex-col items-center rounded-xl bg-muted/80 px-2 py-3 text-center">
       <div className={cn(
         'text-xl font-bold leading-none tabular-nums',
-        tom === 'atencao' ? 'text-amber-600' : 'text-primary',
+        tom === 'atencao' ? 'text-status-espera' : 'text-primary',
       )}>
         {value}
       </div>
@@ -488,7 +485,7 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
         </span>
         <span className={cn(
           'rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]',
-          entidade.faltando > 0 ? 'bg-warning/10 text-warning' : 'bg-accent/5 text-primary',
+          entidade.faltando > 0 ? estadoDocumentoColors.pendente.pilula : 'bg-accent/5 text-primary',
         )}>
           {entidade.faltando > 0
             ? `${entidade.faltando} pendente${entidade.faltando === 1 ? '' : 's'}`
@@ -512,7 +509,7 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
       <div className="pointer-events-none relative z-10 mt-auto flex items-center gap-3 pt-5">
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
           <div
-            className={cn('h-full rounded-full', entidade.faltando > 0 ? 'bg-amber-400' : 'bg-primary')}
+            className={cn('h-full rounded-full', entidade.faltando > 0 ? 'bg-status-espera' : 'bg-primary')}
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -550,7 +547,7 @@ function ChipsDeEstado({ contagem, onEscolher }: {
           onClick={() => onEscolher(estado)}
           className={cn(
             'pointer-events-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors',
-            ESTADO_CHIP[estado],
+            estadoDocumentoColors[estado].chip,
             FOCO,
           )}
         >
@@ -595,7 +592,7 @@ function EntidadeDialog({
             <div className="flex items-center gap-2 pt-1">
               <span className={cn(
                 'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
-                ESTADO_CHIP[filtro],
+                estadoDocumentoColors[filtro].chip,
               )}>
                 {ESTADO_LABEL[filtro]}
                 <span className="tabular-nums opacity-70">{pendencias.length}</span>
@@ -657,8 +654,7 @@ function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo, onRemo
     <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start">
       <span className={cn(
         'mt-0.5 hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg sm:flex',
-        pendencia.recebido ? 'bg-accent/5 text-primary'
-          : recusado ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700',
+        estadoDocumentoColors[estado].pilula,
       )}>
         {pendencia.recebido ? <Check className="h-4 w-4" />
           : recusado ? <TriangleAlert className="h-4 w-4" /> : <UploadCloud className="h-4 w-4" />}
@@ -672,9 +668,7 @@ function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo, onRemo
           {selo && (
             <span className={cn(
               'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
-              recusado ? 'bg-rose-50 text-rose-700'
-                : estado === 'em_analise' ? 'bg-muted text-muted-foreground'
-                  : 'bg-accent/5 text-primary',
+              estadoDocumentoColors[estado].pilula,
             )}>
               {recusado ? <TriangleAlert className="h-3 w-3" />
                 : estado === 'em_analise' ? <Hourglass className="h-3 w-3" />
@@ -746,24 +740,26 @@ function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
 }) {
   const recusado = arquivo.revisao === 'recusado';
   const aprovado = arquivo.revisao === 'aprovado';
+  const cor = revisaoArquivoColors[arquivo.revisao];
 
   return (
     <li className={cn(
       'rounded-xl border px-3 py-2',
-      recusado ? 'border-rose-200/80 bg-rose-50/50' : 'border-border/80 bg-muted/60',
+      // Só a linha recusada se colore: ela é a única que pede ação do cliente.
+      // Arquivo em análise ou aprovado fica neutro para a lista não gritar.
+      recusado ? cor.linha : 'border-border/80 bg-muted/60',
     )}>
       <div className="flex items-center gap-2">
-        <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? 'text-rose-600' : 'text-muted-foreground')} />
+        <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? cor.texto : 'text-muted-foreground')} />
         <span className={cn(
           'min-w-0 flex-1 truncate text-xs font-medium',
-          recusado ? 'text-rose-700 line-through' : 'text-muted-foreground',
+          recusado ? cn(cor.texto, 'line-through') : 'text-muted-foreground',
         )}>
           {arquivo.nome}
         </span>
         <span className={cn(
           'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]',
-          recusado ? 'bg-rose-100 text-rose-700'
-            : aprovado ? 'bg-accent/10 text-primary' : 'bg-muted/70 text-muted-foreground',
+          cor.pilula,
         )}>
           {recusado ? 'Recusado' : aprovado ? 'Aprovado' : 'Em análise'}
         </span>
@@ -773,7 +769,7 @@ function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
             onClick={() => onRemover(arquivo)}
             title="Remover este arquivo"
             className={cn(
-              'shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600',
+              'shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive',
               FOCO,
             )}
           >
@@ -783,7 +779,7 @@ function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
         )}
       </div>
       {recusado && arquivo.motivo && (
-        <p className="mt-1 pl-5 text-xs leading-relaxed text-rose-700">{arquivo.motivo}</p>
+        <p className={cn('mt-1 pl-5 text-xs leading-relaxed', cor.texto)}>{arquivo.motivo}</p>
       )}
     </li>
   );

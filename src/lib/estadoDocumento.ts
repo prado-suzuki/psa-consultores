@@ -11,7 +11,10 @@ import type { DocFonte, DocRevisao } from '@/hooks/useDocumentoArquivo';
  * diferentes ("Pendente" lá, "Falta enviar" cá). O que NÃO pode divergir é a
  * conta: se um lado classificar como "em análise" o que o outro conta como
  * "aprovado", os dois passam a discordar sobre o mesmo arquivo. Então a regra
- * mora aqui, e cada tela só escolhe rótulo e cor.
+ * mora aqui, e cada tela só escolhe o RÓTULO. A cor deixou de ser escolha da tela
+ * em 03/09/2026 e virou `estadoDocumentoColors`, no arquivo ao lado: o portal
+ * pintava âmbar e rosa do estoque do Tailwind, o consultor pintava a âncora da
+ * OSG, e nenhum dos dois acompanhava tema.
  *
  * OS ESTADOS SÃO EXCLUSIVOS, e a precedência sai do estado da PENDÊNCIA, não da
  * pilha de arquivos:
