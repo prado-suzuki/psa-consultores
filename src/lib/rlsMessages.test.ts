@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { extractErrorMessage, taskSaveErrorMessage } from './rlsMessages';
 
 const MAPPED =
-  'Esta tarefa foi criada por outra pessoa. Você pode alterar status, horas e revisor. ' +
+  'Esta tarefa foi criada por outra pessoa. Você pode alterar status, horas, revisor e contribuinte. ' +
   'Título, descrição e os demais campos só quem criou a tarefa pode mudar.';
 
 const FALLBACK = 'Não foi possível salvar a tarefa. Tente novamente.';

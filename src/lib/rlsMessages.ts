@@ -57,8 +57,11 @@ export function extractErrorMessage(error: unknown): string | null {
 
 const TASK_SAVE_FALLBACK = 'Não foi possível salvar a tarefa. Tente novamente.';
 
+// A lista tem de espelhar a whitelist do trigger `org_tasks_team_member_status_only`.
+// Contribuinte entrou nela em 26/08/2026 e o texto aqui tinha ficado atrás, dizendo
+// ao usuário que ele não podia mexer num campo que já salvava.
 const TEAM_MEMBER_STATUS_ONLY_MESSAGE =
-  'Esta tarefa foi criada por outra pessoa. Você pode alterar status, horas e revisor. ' +
+  'Esta tarefa foi criada por outra pessoa. Você pode alterar status, horas, revisor e contribuinte. ' +
   'Título, descrição e os demais campos só quem criou a tarefa pode mudar.';
 
 function normalizeForMatch(value: string): string {
