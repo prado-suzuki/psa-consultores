@@ -392,7 +392,14 @@ function buildReport() {
     const detect = DETECT[rm.id] || null;
     const { detected, evidence, filesFound, docsFound } = detectSignals(detect, idx);
     const roadmapStatus = normStatus(rm.status);
-    const detectavel = detectavelFromTipo(rm.tipo);
+    // O tipo decide por padrao, mas a regra pode dizer `detectavel: false` quando a
+    // entrega nao deixa rastro AQUI: exclusao de dado, mudanca no Lovable/GCS/BigQuery,
+    // configuracao de drive. Sem isso, entrega real fica marcada como divergencia para
+    // sempre, e a unica saida seria escrever regra falsa.
+    const detectavel =
+      detect && typeof detect.detectavel === "boolean"
+        ? detect.detectavel
+        : detectavelFromTipo(rm.tipo);
     // Sem regra em status-report.config.mjs, "sem evidencia" quer dizer NAO MEDIDO,
     // nao "nao existe". Em 03/09/2026 eram 51 dos 120 marcos sem regra. Misturar as
     // duas coisas transformava a lacuna do config em divergencia do roadmap.

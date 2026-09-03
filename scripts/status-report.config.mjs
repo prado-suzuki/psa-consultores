@@ -105,6 +105,66 @@ export const DETECT = {
   "P1-TAREFAS-OSG": { routes: ["osg/projetos/tarefas"], files: ["src/pages/equipe/osg/OsgTarefas.tsx"] },
   "P1-AUDITORIA": { routes: ["osg/auditoria"], files: ["src/pages/equipe/osg/OsgAuditoria.tsx"] },
 
+  // ---- As 7 regras escritas em 03/09/2026 ----
+  // Eram marcos JA CONCLUIDOS sem regra nenhuma: o relatorio nao tinha como
+  // conferir o que estava pronto, e eles apareciam em "sem evidencia" junto com
+  // obra que nem comecou. Cada uma abaixo foi casada com o codigo real, nao com
+  // a prosa do roadmap -- o erro que tinha deixado outras cinco sem casar nunca.
+
+  "P1-FLUXO-SOLICITACAO": {
+    // 74h, a maior entrega do ciclo, e entrou no meio da S10 sem marco.
+    files: [
+      "src/hooks/useDomainSolicitacao.ts",
+      "src/hooks/useChecklistDerivado.ts",
+      "src/components/equipe/osg/checklists/DocumentosClienteChecklist.tsx",
+      "src/components/equipe/osg/checklists/ChecklistPendentes.tsx",
+    ],
+    keywords: ["solicitacao_item", "produto_checklist_item", "checklist_cliente_item"],
+  },
+
+  "P1-AUTOMACAO-NOTIFICACOES": {
+    // Os tres disparos do escopo: atribuicao, documento recebido e prazo (GES-01A).
+    files: ["src/lib/notificacoesInternas.ts", "src/components/notifications/NotificationPopover.tsx"],
+    keywords: ["tarefa_atribuida", "documento_recebido", "criar_notificacao"],
+  },
+
+  "P1-GESTAO-CHAMADOS": {
+    // O chamado delegado nasce como tarefa no projeto de canal do cliente.
+    files: ["src/components/gestao/ClienteSemProjetoChamadosAlert.tsx"],
+    keywords: ["delegar_chamado_gera_tarefa"],
+  },
+
+  "P1-ACESSOS-GRUPOS": {
+    // So a metade de codigo: a limpeza dos drives acontece no Google Workspace.
+    files: ["src/pages/equipe/EquipeControleAcessos.tsx", "src/components/acessos/UsersRolesView.tsx"],
+    keywords: ["EquipesEstruturaField"],
+  },
+
+  "P2-COLUNAS-DP": {
+    // Colunas de estrutura que faltavam na tela do Diagnostico Patrimonial.
+    files: [
+      "src/components/equipe/osg/diagnostico-patrimonial/TitularidadesPanel.tsx",
+      "src/components/equipe/osg/diagnostico-patrimonial/MatriculaModal.tsx",
+    ],
+    keywords: ["titularidade", "fracaoUtils"],
+  },
+
+  "P4-CADASTROS-GOVERNANCA": {
+    // ATENCAO: em 03/09/2026 esta obra estava PRONTA NA MAQUINA DO EDUARDO, sem
+    // push. Ate o push chegar, esta regra vai acusar "sem evidencia" -- e isso
+    // esta CERTO: e exatamente o teste de que o push aconteceu. Se depois do
+    // push ela continuar sem casar, a regra e que esta errada.
+    keywords: ["governanca_cadastro", "conselho_membro", "acordo_quotistas"],
+  },
+
+  "GED-EXCLUSAO-GEF": {
+    // NAO e mensuravel aqui, e nao e falha: a entrega foi APAGAR os dados do GEF
+    // do Lovable, do GCS e do BigQuery. Exclusao nao deixa codigo, e o que ela
+    // mexeu vive fora deste repositorio. Escrever keyword aqui seria inventar
+    // evidencia; declarar false e dizer a verdade.
+    detectavel: false,
+  },
+
   // Recebimento / GED (projeto P1 no roadmap.json)
   "GED-UPLOAD": {
     routes: ["osg/work/documentos"],
