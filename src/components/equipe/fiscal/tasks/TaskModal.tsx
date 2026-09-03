@@ -29,6 +29,7 @@ import {
 } from '@/hooks/useOrgProjects';
 import { useReviewerCandidates } from '@/hooks/useReviewerCandidates';
 import { statusList } from '@/lib/taskStatusColors';
+import { ordenarPorTitulo } from '@/lib/ordemDeTarefas';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 import { resolveActiveReviewerName } from '@/lib/orgTaskReviewer';
 import { taskSaveErrorMessage } from '@/lib/rlsMessages';
@@ -228,9 +229,18 @@ export const TaskModal = ({
     return projects.filter((p) => p.external_client_id === watchedClientId);
   }, [projects, watchedClientId]);
 
-  const filteredParentTasks = watchedProjectId
-    ? parentTasks.filter((t) => t.project_id === watchedProjectId)
-    : parentTasks;
+  // Com projeto escolhido, este seletor É o escopo "tarefas-pai de um projeto":
+  // alfabético. Sem projeto (o seletor cai para todos), a ordem alfabética
+  // continua servindo — aqui ela organiza um seletor, não uma visualização, e
+  // procurar por nome numa lista misturada é pior do que numa ordenada.
+  const filteredParentTasks = useMemo(
+    () => ordenarPorTitulo(
+      watchedProjectId
+        ? parentTasks.filter((t) => t.project_id === watchedProjectId)
+        : parentTasks,
+    ),
+    [parentTasks, watchedProjectId],
+  );
 
   // Effect A: When project changes by user action, clear dependent fields
   useEffect(() => {

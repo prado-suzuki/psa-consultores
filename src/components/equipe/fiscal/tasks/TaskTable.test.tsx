@@ -110,6 +110,40 @@ describe('TaskTable — barra de período', () => {
   });
 });
 
+describe('TaskTable — ordem das linhas', () => {
+  const linhas = () => screen.getAllByRole('row').slice(1).map(row => row.textContent ?? '');
+
+  it('ordena as subtarefas por título, com número lido como número', async () => {
+    const user = userEvent.setup();
+    renderTable([
+      tarefa({ id: 'mae', title: '4. Transferência' }),
+      tarefa({ id: 'f10', title: '4.10 Décima', parent_task_id: 'mae' }),
+      tarefa({ id: 'f2', title: '4.2 Segunda', parent_task_id: 'mae' }),
+      tarefa({ id: 'f1', title: '4.1 Primeira', parent_task_id: 'mae' }),
+    ]);
+
+    // A seta de expandir é o primeiro botão da linha da mãe (sem rótulo).
+    const linhaDaMae = screen.getByText('4. Transferência').closest('tr') as HTMLElement;
+    await user.click(within(linhaDaMae).getAllByRole('button')[0]);
+
+    // Só a numeração: o texto da linha emenda o título nos rótulos das células.
+    const ordem = linhas()
+      .slice(1)
+      .map(texto => texto.match(/4\.\d+/)?.[0]);
+    expect(ordem).toEqual(['4.1', '4.2', '4.10']);
+  });
+
+  it('não reordena as tarefas-pai: a tabela mistura projetos numa lista só', () => {
+    renderTable([
+      tarefa({ id: 'z', title: 'Zebra', project_id: 'PRJ1' }),
+      tarefa({ id: 'a', title: 'Abacate', project_id: 'PRJ2' }),
+    ]);
+
+    expect(linhas()[0]).toContain('Zebra');
+    expect(linhas()[1]).toContain('Abacate');
+  });
+});
+
 describe('TaskTable — troca de status pelo seletor', () => {
   it('mandar para revisão abre o diálogo e não grava direto', async () => {
     const user = userEvent.setup();

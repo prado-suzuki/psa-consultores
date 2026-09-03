@@ -1,5 +1,6 @@
 import type { OrgProject } from '@/hooks/useOrgProjects';
 import type { OrgTask, TaskFilters } from '@/hooks/useOrgTasks';
+import { compararTitulosDeTarefa } from '@/lib/ordemDeTarefas';
 import { agregarEsforco, somarEsforco, type EsforcoAgregado } from '@/lib/projetosTarefasEsforco';
 
 export interface ProjetosTarefasOs {
@@ -119,8 +120,11 @@ function buildTaskTree(tasks: OrgTask[]) {
     else roots.push(node);
   }
 
+  // Alfabética em toda a profundidade: raízes do projeto, filhas, netas. Cada
+  // nível ordena entre irmãs — ver `compararTitulosDeTarefa` para o porquê do
+  // `numeric` (sem ele, "4.10" vinha antes de "4.2").
   const sortNodes = (items: ProjetosTarefasTaskNode[]) => {
-    items.sort((a, b) => a.task.title.localeCompare(b.task.title, 'pt-BR'));
+    items.sort((a, b) => compararTitulosDeTarefa(a.task.title, b.task.title));
     items.forEach(item => sortNodes(item.children));
   };
   sortNodes(roots);

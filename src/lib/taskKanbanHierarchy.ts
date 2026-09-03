@@ -1,11 +1,12 @@
 import type { OrgTask, OrgTaskStatus } from '@/hooks/useOrgTasks';
+import { compararTitulosDeTarefa } from '@/lib/ordemDeTarefas';
 
 /**
  * O mínimo que o quadro precisa saber de uma tarefa. As regras de montagem
- * dependem só de id/status/mãe, então ficam testáveis sem montar uma OrgTask
- * inteira.
+ * dependem de id/status/mãe, mais o título — que ordena a lista de filhas
+ * dentro do card.
  */
-export type KanbanTask = Pick<OrgTask, 'id' | 'status' | 'parent_task_id'>;
+export type KanbanTask = Pick<OrgTask, 'id' | 'status' | 'parent_task_id' | 'title'>;
 
 /** Filhas que estão em OUTRA coluna, agrupadas pelo status onde foram parar. */
 export interface TaskKanbanSubtaskGroup {
@@ -124,6 +125,15 @@ export function buildTaskKanbanColumns<T extends KanbanTask>(
     const list = childrenByParent.get(parent.id) ?? [];
     list.push(task);
     childrenByParent.set(parent.id, list);
+  }
+  // As irmãs da mesma mãe saem em ordem alfabética — é o único escopo do quadro
+  // onde isso significa alguma coisa. Os CARDS da coluna continuam na ordem de
+  // entrada: ali convivem raízes de projetos diferentes, e ordenar misturaria
+  // as numerações de dois clientes. Ordenado uma vez aqui, vale para a lista do
+  // card (`children`) e para os destinos (`elsewhere`), em qualquer nível — a
+  // mãe do meio de uma neta usa este mesmo mapa.
+  for (const list of childrenByParent.values()) {
+    list.sort((a, b) => compararTitulosDeTarefa(a.title, b.title));
   }
 
   const columns = new Map<OrgTaskStatus, TaskKanbanColumn<T>>(

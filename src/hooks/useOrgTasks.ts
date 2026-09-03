@@ -7,6 +7,7 @@
 import { AreaKey } from '@/config/areaCategories';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 import { MENSAGEM_HORAS_OBRIGATORIAS, temHorasApontadas } from '@/lib/orgTaskHours';
+import { ordenarPorTitulo } from '@/lib/ordemDeTarefas';
 import { computeFieldDiff } from '@/lib/diffUtils';
 import { ambientePorClienteQuery } from '@/hooks/useDomainAmbienteClientes';
 import { isTarefaDoAmbiente } from '@/lib/ambienteScope';
@@ -250,6 +251,13 @@ export const useOrgTaskById = (taskId?: string | null, enabled = true) => {
  *
  * A query key começa com 'org-tasks' de propósito: as mutations de tarefa
  * invalidam esse prefixo, então criar/editar uma subtarefa já reflete aqui.
+ *
+ * Ordem alfabética, e não a de criação: são todas irmãs da mesma mãe, o escopo
+ * onde a ordem alfabética significa alguma coisa. A seção recebe a tarefa
+ * ABERTA, seja ela de que nível for — abrir uma subtarefa lista as netas dela
+ * pelo mesmo caminho. Ordenado no cliente porque o banco compara por collation
+ * e não lê número como número (ver `compararTitulosDeTarefa`); `created_at`
+ * segue como desempate estável para títulos iguais.
  */
 export const useOrgSubtasks = (parentTaskId?: string | null) => {
   return useQuery({
@@ -262,7 +270,7 @@ export const useOrgSubtasks = (parentTaskId?: string | null) => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      return (data || []) as OrgTask[];
+      return ordenarPorTitulo((data || []) as OrgTask[]);
     },
     enabled: !!parentTaskId,
   });
