@@ -48,10 +48,13 @@ const semAcoes = { onEdit: vi.fn(), onDelete: vi.fn(), onReassign: vi.fn() };
  * O mês do calendário vem do painel, e o recorte por mês vem do mesmo hook. O
  * teste monta os dois juntos de propósito: separar o mês do filtro faria a seta
  * andar sem o conteúdo acompanhar, e é justamente isso que se quer travar.
+ *
+ * `tarefasDoMes`, e não `tarefas`: é o que o painel entrega aqui, porque o
+ * escopo "tudo" das outras abas não tem grade que o desenhe.
  */
 function CalendarioComPeriodo({ tasks = [] as OrgTask[] }) {
   const periodo = usePeriodoDeTarefas(tasks);
-  return <TaskCalendar tasks={periodo.tarefas} {...semAcoes} periodo={periodo} />;
+  return <TaskCalendar tasks={periodo.tarefasDoMes} {...semAcoes} periodo={periodo} />;
 }
 
 describe('TaskCalendar', () => {

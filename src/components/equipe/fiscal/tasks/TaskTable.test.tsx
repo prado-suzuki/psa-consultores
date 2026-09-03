@@ -81,9 +81,12 @@ beforeEach(() => {
 /** O mês não é o assunto deste teste: um período parado basta. */
 const periodoParado = {
   mes: new Date(2026, 7, 1),
+  escopo: 'mes' as const,
   tarefas: [],
+  tarefasDoMes: [],
   onPasso: () => {},
   onHoje: () => {},
+  onEscopo: () => {},
 };
 
 describe('TaskTable — barra de período', () => {

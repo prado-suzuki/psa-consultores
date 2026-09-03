@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ESCOPO_TUDO,
+  mesDoValor,
+  opcoesDeEscopo,
   ordenarPorVencimento,
   passoDeMes,
   tarefasNoPeriodo,
   tituloDoMes,
+  valorDoMes,
 } from '@/lib/periodoDeTarefas';
 import type { OrgTask } from '@/hooks/useOrgTasks';
 
@@ -71,6 +75,47 @@ describe('tarefasNoPeriodo', () => {
     const tarefas = [tarefa('agosto-2025', '2025-08-15'), tarefa('agosto-2026', '2026-08-15')];
 
     expect(tarefasNoPeriodo(tarefas, AGOSTO, HOJE).map(t => t.id)).toEqual(['agosto-2026']);
+  });
+});
+
+describe('opcoesDeEscopo', () => {
+  it('abre em Tudo e oferece meia dúzia de meses para cada lado de hoje', () => {
+    const opcoes = opcoesDeEscopo(HOJE, AGOSTO);
+
+    expect(opcoes[0]).toEqual({ valor: ESCOPO_TUDO, rotulo: 'Tudo' });
+    // 13 meses: fevereiro de 2026 até fevereiro de 2027.
+    expect(opcoes).toHaveLength(14);
+    expect(opcoes[1].valor).toBe('2026-02');
+    expect(opcoes[opcoes.length - 1].valor).toBe('2027-02');
+  });
+
+  it('inclui o mês âncora quando a seta já o levou fora da janela', () => {
+    // O menu abriria em branco se o valor selecionado não estivesse na lista.
+    const LONGE = new Date(2028, 4, 1);
+    const opcoes = opcoesDeEscopo(HOJE, LONGE);
+
+    expect(opcoes.map(o => o.valor)).toContain('2028-05');
+    // E a lista segue em ordem: o mês de fora entra no lugar dele, não no fim.
+    const meses = opcoes.slice(1).map(o => o.valor);
+    expect(meses).toEqual([...meses].sort());
+  });
+
+  it('o rótulo já vem como o menu mostra: o mesmo título, começando frase', () => {
+    const agosto = opcoesDeEscopo(HOJE, AGOSTO).find(o => o.valor === '2026-08');
+
+    expect(agosto?.rotulo).toBe('Agosto de 2026');
+  });
+});
+
+describe('valorDoMes e mesDoValor', () => {
+  it('vão e voltam', () => {
+    expect(valorDoMes(AGOSTO)).toBe('2026-08');
+    expect(mesDoValor('2026-08')).toEqual(AGOSTO);
+  });
+
+  it('valor que não é mês devolve nulo, e o hook lê isso como Tudo', () => {
+    expect(mesDoValor(ESCOPO_TUDO)).toBeNull();
+    expect(mesDoValor('2026-13')).toBeNull();
   });
 });
 
