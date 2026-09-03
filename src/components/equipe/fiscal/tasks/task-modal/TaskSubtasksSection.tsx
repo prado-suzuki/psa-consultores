@@ -30,8 +30,14 @@ import {
 import { statusList } from '@/lib/taskStatusColors';
 import { cn } from '@/lib/utils';
 
-/** A última faixa é a do botão de editar; sem o atalho ela fica vazia. */
-const GRID = 'grid grid-cols-[minmax(0,1fr)_8rem_6rem_2rem] items-center';
+/**
+ * A última faixa é a do botão de editar; sem o atalho ela fica vazia.
+ *
+ * 4rem, e não a largura do ícone: a coluna precisa caber o rótulo "Editar" do
+ * cabeçalho, senão ele quebra em duas linhas e desalinha a faixa inteira. Todas
+ * as células usam `px-2`, que é o que põe cada conteúdo debaixo do seu título.
+ */
+const GRID = 'grid grid-cols-[minmax(0,1fr)_8rem_6rem_4rem] items-center';
 
 interface TaskSubtasksSectionProps {
   /** Tarefa-mãe: dela saem o vínculo e os campos herdados na criação rápida. */
@@ -186,7 +192,7 @@ export function TaskSubtasksSection({
               <div className="px-3 py-2">Nome</div>
               <div className="px-2 py-2">Responsável</div>
               <div className="px-2 py-2">Prioridade</div>
-              <div className="px-2 py-2" />
+              <div className="px-2 py-2">{onEditarSubtarefa ? 'Editar' : ''}</div>
             </div>
           )}
 
@@ -271,14 +277,18 @@ export function TaskSubtasksSection({
               </div>
 
               {/* O atalho para o modal da subtarefa. Fica na linha porque é ali
-                  que o consultor decide "esta aqui eu preciso abrir". */}
-              <div className="px-1 py-1.5">
+                  que o consultor decide "esta aqui eu preciso abrir".
+
+                  `hover:bg-muted` no lugar do fundo do variant ghost, que puxa
+                  o accent da área — um disco verde forte atrás de um lápis de
+                  14px, competindo com o próprio conteúdo da linha. */}
+              <div className="px-2 py-1.5">
                 {onEditarSubtarefa && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                    className="h-7 w-7 text-muted-foreground hover:bg-muted hover:text-foreground"
                     aria-label={`Editar ${subtask.title}`}
                     title="Abrir esta subtarefa"
                     onClick={() => onEditarSubtarefa(subtask)}
