@@ -5,6 +5,40 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+/*
+ * A tela passou a escolher cliente e OS e a ler o historico, e isso e Supabase.
+ * Os hooks entram mockados, como o `ConsultaEFDICMS.test.tsx` faz: o que este
+ * arquivo prende e o que a pessoa VE, e nao a consulta.
+ */
+const mocks = vi.hoisted(() => ({
+  clientes: [{ id: 'cli-1', nome: 'Fazenda Aurora' }],
+  ordens: [
+    {
+      id: 'os-1',
+      numero_os: 'OS-001',
+      situacao: 'em_andamento',
+      data_inicio: null,
+      data_fim: null,
+    },
+  ],
+  estudos: [] as Array<{ id: string; ordem_servico_id: string | null }>,
+  revisoes: [] as unknown[],
+  gravar: vi.fn(),
+}));
+
+vi.mock('@/hooks/useDevClients', () => ({
+  useClientesList: () => ({ data: mocks.clientes }),
+}));
+
+vi.mock('@/hooks/useDomainPapelDeTrabalho', () => ({
+  useOrdensDeServicoDoCliente: () => ({ data: mocks.ordens, isLoading: false }),
+  useEstudosDoCliente: () => ({ data: mocks.estudos }),
+  useRevisoesDoEstudo: () => ({ data: mocks.revisoes, isLoading: false }),
+  useImportarPapelDeTrabalho: () => ({ mutateAsync: mocks.gravar, isPending: false }),
+}));
+
+vi.mock('@/hooks/use-toast', () => ({ toast: vi.fn() }));
+
 vi.mock('@/components/equipe/dev/DevLayout', () => ({
   DevLayout: ({ children, title }: PropsWithChildren<{ title: string }>) => (
     <main>
@@ -146,14 +180,33 @@ describe('PapelDeTrabalho', () => {
    * texto ao lado tem de dizer qual: "ainda não está ligada" é coisa nossa a
    * fazer, "não há o que gravar" é coisa da planilha.
    */
-  it('num WP bom, diz que a gravação ainda não está ligada', async () => {
+  /*
+   * O botao desabilitado sem dizer por que e o defeito que o `ControleBalancetes`
+   * evita listando o que falta. Sem cliente e sem OS, a tela nomeia os dois.
+   */
+  it('sem cliente e sem OS, o botão diz o que falta', async () => {
     render(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'bom.xlsx');
 
     await waitFor(() => expect(screen.getByText('De onde sai cada slide')).toBeInTheDocument());
 
     expect(screen.getByRole('button', { name: /Confirmar e gravar/ })).toBeDisabled();
-    expect(screen.getByText(/A gravação ainda não está ligada/)).toBeInTheDocument();
+    expect(screen.getByText(/Falta o cliente, a OS/)).toBeInTheDocument();
+  });
+
+  /*
+   * O nome que a planilha declara nao barra nada, mas tem de aparecer: e a
+   * protecao contra subir o WP de um cliente no cadastro de outro.
+   */
+  it('mostra o cliente que a planilha declara, para conferência', async () => {
+    render(<PapelDeTrabalho />);
+    escolhe(fixture('cabecalho-do-estudo'), 'cab.xlsx');
+
+    await waitFor(() =>
+      expect(screen.getByText(/A planilha diz que o cliente é/)).toBeInTheDocument(),
+    );
+    /* Aparece duas vezes de propósito: no cabeçalho lido e na linha de conferência. */
+    expect(screen.getAllByText('Grupo Aurora Agro').length).toBeGreaterThanOrEqual(2);
   });
 
   it('num arquivo trocado, mostra o impedimento e diz que não há o que gravar', async () => {
@@ -163,7 +216,7 @@ describe('PapelDeTrabalho', () => {
     await waitFor(() => expect(screen.getByText(/impede(m)? a importação/)).toBeInTheDocument());
 
     expect(screen.getByText(/Corrija a planilha e escolha o arquivo de novo/)).toBeInTheDocument();
-    expect(screen.getByText(/não há o que gravar/)).toBeInTheDocument();
+    expect(screen.getByText(/corrigir o que impede/)).toBeInTheDocument();
     /* O endereço do problema é o que a pessoa leva para o Excel. */
     expect(screen.getByText(/Esperava uma de/)).toBeInTheDocument();
   });

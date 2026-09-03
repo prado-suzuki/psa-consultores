@@ -129,6 +129,46 @@ export function useRevisoesDoEstudo(estudoId: string | null) {
   });
 }
 
+/** Uma OS do cliente, para o seletor. */
+export interface OrdemDeServicoDoCliente {
+  id: string;
+  numero_os: string | null;
+  situacao: string | null;
+  data_inicio: string | null;
+  data_fim: string | null;
+}
+
+/**
+ * As OS de um cliente, as em andamento primeiro.
+ *
+ * **Traz todas, inclusive suspensa e concluída.** Filtrar só as ativas deixaria
+ * sem porta de entrada o estudo cuja OS já encerrou: ele continua no banco, com
+ * as revisões, e a tela não teria como chegar nele. Hoje são 15 OS fora de
+ * andamento em 153, então a lista não cresce a ponto de atrapalhar, e a situação
+ * aparece escrita ao lado para o engano ficar visível.
+ */
+export function useOrdensDeServicoDoCliente(clienteId: string | null) {
+  return useQuery({
+    queryKey: ['ordem_servico_do_cliente', clienteId],
+    enabled: !!clienteId,
+    queryFn: async (): Promise<OrdemDeServicoDoCliente[]> => {
+      const { data, error } = await supabase
+        .from('ordem_servico')
+        .select('id, numero_os, situacao, data_inicio, data_fim')
+        .eq('id_cliente', clienteId as string)
+        .eq('excluido', false);
+      if (error) throw error;
+
+      const peso = (s: string | null) => (s === 'em_andamento' ? 0 : s === 'suspenso' ? 1 : 2);
+      return (data ?? []).sort(
+        (a, b) =>
+          peso(a.situacao) - peso(b.situacao) ||
+          (b.numero_os ?? '').localeCompare(a.numero_os ?? ''),
+      );
+    },
+  });
+}
+
 export interface ArgsDaImportacao {
   clienteId: string;
   ordemServicoId: string;

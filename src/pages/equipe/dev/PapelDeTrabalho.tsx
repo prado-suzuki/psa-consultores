@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   Check,
@@ -12,6 +12,21 @@ import {
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from '@/hooks/use-toast';
+import { useClientesList } from '@/hooks/useDevClients';
+import {
+  useEstudosDoCliente,
+  useImportarPapelDeTrabalho,
+  useOrdensDeServicoDoCliente,
+  useRevisoesDoEstudo,
+} from '@/hooks/useDomainPapelDeTrabalho';
 import { usePapelDeTrabalhoController, type Analise } from '@/hooks/usePapelDeTrabalhoController';
 import type { ProblemaWp } from '@/lib/planejamento-tributario/parser';
 
@@ -36,12 +51,6 @@ import type { ProblemaWp } from '@/lib/planejamento-tributario/parser';
  */
 
 const CAIXA = 'rounded-md border px-3 py-2 text-sm';
-
-function tamanhoLegivel(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function Campo({ rotulo, valor }: { rotulo: string; valor: string | number | undefined }) {
   return (
@@ -68,6 +77,15 @@ function LinhaDeProblema({ problema }: { problema: ProblemaWp }) {
   );
 }
 
+/**
+ * O que o arquivo diz de si: os campos que identificam o estudo.
+ *
+ * **A versão do mapa NÃO entra aqui**, e o tamanho do arquivo em lugar nenhum. A
+ * régua com que a leitura foi feita é pergunta de auditoria, não de conferência:
+ * ela serve para explicar uma revisão depois que o modelo mudar, e o lugar dela é
+ * a lista de revisões, onde se compara uma com a outra. Neste card ela destoava,
+ * porque aqui é a planilha falando dela mesma, e a régua é o sistema falando de si.
+ */
 function Cabecalho({ analise }: { analise: Analise }) {
   const { cabecalho } = analise.leitura;
   const periodo =
@@ -95,10 +113,6 @@ function Cabecalho({ analise }: { analise: Analise }) {
         <Campo rotulo="Preparado por" valor={cabecalho.preparadoPor} />
         <Campo rotulo="Revisado por" valor={cabecalho.revisadoPor} />
         <Campo rotulo="Arquivo" valor={analise.nomeDoArquivo} />
-        <Campo
-          rotulo="Régua da leitura"
-          valor={`mapa ${analise.versaoDoMapa} · ${tamanhoLegivel(analise.tamanho)}`}
-        />
       </CardContent>
     </Card>
   );
@@ -184,7 +198,163 @@ function ComoFoiLido({ analise }: { analise: Analise }) {
     <Card>
       <CardContent className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
         <Campo rotulo="Anos" valor={anosPorExtenso(analise)} />
-        <Campo rotulo="Abas lidas" valor={analise.resumo.abasLidas.join(' \u00b7 ')} />
+        <Campo rotulo="Abas lidas" valor={analise.resumo.abasLidas.join(' · ')} />
+      </CardContent>
+    </Card>
+  );
+}
+
+const SITUACAO_LABEL: Record<string, string> = {
+  em_andamento: 'em andamento',
+  suspenso: 'suspensa',
+  concluido: 'concluída',
+};
+
+/**
+ * O par cliente e OS, que é o que identifica o estudo.
+ *
+ * **Não sai do WP, e não teria como sair.** O nome do cliente está na planilha,
+ * na célula `B3` do `Resumo`, mas é texto livre: casar texto com cadastro é
+ * adivinhação, e adivinhar errado pendura o estudo no cliente errado. A OS não
+ * está no WP em lugar nenhum. Então a escolha é da pessoa, e o nome lido da
+ * planilha serve para CONFERIR o que ela escolheu.
+ *
+ * A forma é a que a área já usa no `ControleBalancetes` e na `CalculadoraIbsCbs`:
+ * cliente, depois o segundo nível, com seleção automática quando há uma só.
+ */
+function Escolha({
+  clienteId,
+  onCliente,
+  ordemServicoId,
+  onOrdemServico,
+}: {
+  clienteId: string;
+  onCliente: (id: string) => void;
+  ordemServicoId: string;
+  onOrdemServico: (id: string) => void;
+}) {
+  const { data: clientes = [] } = useClientesList({ ativo: true });
+  const { data: ordens = [], isLoading: carregandoOs } = useOrdensDeServicoDoCliente(
+    clienteId || null,
+  );
+
+  /* Uma OS só: marca sozinho, como o Controle Balancetes faz com o contribuinte. */
+  useEffect(() => {
+    if (clienteId && ordens.length === 1 && !ordemServicoId) onOrdemServico(ordens[0].id);
+  }, [clienteId, ordens, ordemServicoId, onOrdemServico]);
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">De quem é este estudo</CardTitle>
+      </CardHeader>
+      <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="space-y-1.5">
+          <p className="text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Cliente
+          </p>
+          <Select
+            value={clienteId}
+            onValueChange={(v) => {
+              onCliente(v);
+              onOrdemServico('');
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Escolha o cliente" />
+            </SelectTrigger>
+            <SelectContent>
+              {clientes.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <p className="text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Ordem de serviço
+          </p>
+          <Select value={ordemServicoId} onValueChange={onOrdemServico} disabled={!clienteId}>
+            <SelectTrigger>
+              <SelectValue
+                placeholder={
+                  !clienteId
+                    ? 'Escolha o cliente primeiro'
+                    : carregandoOs
+                      ? 'Carregando…'
+                      : ordens.length === 0
+                        ? 'Este cliente não tem OS'
+                        : 'Escolha a OS'
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {ordens.map((o) => (
+                <SelectItem key={o.id} value={o.id}>
+                  {o.numero_os ?? 'sem número'}
+                  {o.situacao && o.situacao !== 'em_andamento'
+                    ? ` · ${SITUACAO_LABEL[o.situacao] ?? o.situacao}`
+                    : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * As revisões já importadas daquele estudo.
+ *
+ * É o histórico, e existe para duas coisas: chegar num estudo que já existe, e
+ * saber que a próxima importação vai ser a versão 4 e não a primeira.
+ */
+function Revisoes({ estudoId }: { estudoId: string | null }) {
+  const { data: revisoes = [], isLoading } = useRevisoesDoEstudo(estudoId);
+
+  if (!estudoId) {
+    return (
+      <Card>
+        <CardContent className="py-6 text-center text-sm text-muted-foreground">
+          Este cliente e OS ainda não têm estudo. A primeira importação cria um.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">
+          {isLoading
+            ? 'Revisões…'
+            : revisoes.length === 1
+              ? '1 revisão importada'
+              : `${revisoes.length} revisões importadas`}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="divide-y divide-border/60">
+        {revisoes.map((r) => (
+          <div key={r.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
+            <span className="text-sm font-medium tabular-nums">v{r.versao}</span>
+            <span className="text-sm">{r.nome_original ?? 'sem nome'}</span>
+            <span className="text-xs text-muted-foreground">
+              {new Date(r.created_at).toLocaleDateString('pt-BR')}
+              {r.ano_inicial && r.ano_final ? ` · ${r.ano_inicial} a ${r.ano_final}` : ''}
+              {` · mapa ${r.versao_do_mapa}`}
+            </span>
+            {r.problemas > 0 && (
+              <span className="text-xs text-warning">
+                {r.problemas === 1 ? '1 aviso' : `${r.problemas} avisos`}
+              </span>
+            )}
+          </div>
+        ))}
       </CardContent>
     </Card>
   );
@@ -193,6 +363,18 @@ function ComoFoiLido({ analise }: { analise: Analise }) {
 const PapelDeTrabalho = () => {
   const { estado, analise, erro, analisar, limpar } = usePapelDeTrabalhoController();
   const entrada = useRef<HTMLInputElement>(null);
+  const [clienteId, setClienteId] = useState('');
+  const [ordemServicoId, setOrdemServicoId] = useState('');
+  const [arquivo, setArquivo] = useState<File | null>(null);
+
+  const { data: estudos = [] } = useEstudosDoCliente(clienteId || null);
+  const importar = useImportarPapelDeTrabalho();
+
+  /* O estudo daquele par. Nulo quando ainda não existe: a primeira gravação cria. */
+  const estudo = useMemo(
+    () => estudos.find((e) => e.ordem_servico_id === ordemServicoId) ?? null,
+    [estudos, ordemServicoId],
+  );
 
   const escolher = () => entrada.current?.click();
 
@@ -200,20 +382,77 @@ const PapelDeTrabalho = () => {
   const avisos = analise?.decisao.avisos ?? [];
   const aceito = analise?.decisao.veredito !== 'recusa';
 
+  /*
+   * O que falta para poder gravar, nomeado. O botão desabilitado sem dizer por quê
+   * é o defeito que o `ControleBalancetes` evita listando o que falta, e aqui vale
+   * o mesmo: a pessoa não adivinha se o problema é a OS ou a planilha.
+   */
+  const falta: string[] = [];
+  if (!clienteId) falta.push('o cliente');
+  if (!ordemServicoId) falta.push('a OS');
+  if (!analise) falta.push('o arquivo');
+  else if (!aceito) falta.push('corrigir o que impede');
+
+  /*
+   * O nome que a planilha declara contra o cliente escolhido. Não barra, avisa: o
+   * WP costuma trazer razão social e o cadastro um nome curto, então divergir é
+   * comum. O que não pode é subir o WP de um cliente no cadastro de outro sem
+   * ninguém ver.
+   */
+  const clienteNoWp = analise?.leitura.cabecalho.clienteNoWp;
+
+  const gravar = async () => {
+    if (!analise || !arquivo || !clienteId || !ordemServicoId) return;
+    try {
+      const revisao = await importar.mutateAsync({
+        clienteId,
+        ordemServicoId,
+        arquivo,
+        analise,
+      });
+      toast({
+        title: `Revisão ${revisao.versao} gravada`,
+        description: Object.entries(revisao.gravados)
+          .map(([bloco, n]) => `${n} de ${bloco}`)
+          .join(', '),
+      });
+      limpar();
+      setArquivo(null);
+    } catch (causa) {
+      toast({
+        title: 'Não consegui gravar',
+        description: causa instanceof Error ? causa.message : 'Tente de novo.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <DevLayout
       title="Papel de Trabalho"
       subtitle="Confira o que o sistema entendeu do WP antes de gravar"
     >
       <div className="space-y-4">
+        <Escolha
+          clienteId={clienteId}
+          onCliente={setClienteId}
+          ordemServicoId={ordemServicoId}
+          onOrdemServico={setOrdemServicoId}
+        />
+
+        {clienteId && ordemServicoId && <Revisoes estudoId={estudo?.id ?? null} />}
+
         <input
           ref={entrada}
           type="file"
           accept=".xlsx"
           className="hidden"
           onChange={(e) => {
-            const arquivo = e.target.files?.[0];
-            if (arquivo) void analisar(arquivo);
+            const escolhido = e.target.files?.[0];
+            if (escolhido) {
+              setArquivo(escolhido);
+              void analisar(escolhido);
+            }
             /* Zera para o mesmo arquivo poder ser escolhido de novo depois de um ajuste. */
             e.target.value = '';
           }}
@@ -306,15 +545,29 @@ const PapelDeTrabalho = () => {
             <DeOndeSaiCadaSlide analise={analise} />
             <ComoFoiLido analise={analise} />
 
+            {clienteNoWp && (
+              <Card>
+                <CardContent className="py-3 text-sm">
+                  A planilha diz que o cliente é <strong>{clienteNoWp}</strong>. Confira se é o
+                  mesmo que você escolheu acima.
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardContent className="flex flex-wrap items-center gap-3 py-4">
-                <Button disabled title="A gravação entra quando os tipos do banco forem gerados">
-                  Confirmar e gravar a revisão
+                <Button
+                  onClick={() => void gravar()}
+                  disabled={falta.length > 0 || importar.isPending}
+                >
+                  {importar.isPending ? 'Gravando…' : 'Confirmar e gravar a revisão'}
                 </Button>
                 <p className="text-sm text-muted-foreground">
-                  {aceito
-                    ? 'A gravação ainda não está ligada. Esta tela confere; a revisão entra no banco na próxima etapa.'
-                    : 'Enquanto houver impedimento, não há o que gravar.'}
+                  {falta.length === 0
+                    ? estudo
+                      ? 'Entra como revisão nova deste estudo. Nada é sobrescrito.'
+                      : 'Cria o estudo deste cliente e OS, na revisão 1.'
+                    : `Falta ${falta.join(', ')}.`}
                 </p>
               </CardContent>
             </Card>
