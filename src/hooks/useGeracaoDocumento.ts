@@ -3,10 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { usePessoasByCliente, type PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { useBensByCliente, useCartorios } from '@/hooks/useDiagnosticoPatrimonial';
+import { useExploracaoRural, type ExploracaoRuralEnriched } from '@/hooks/useExploracaoRural';
 import { STATUS_ELEGIVEIS_PARA_INTEGRALIZACAO } from '@/lib/osg/statusIntegralizacao';
 import type { TipoEntidade } from '@/lib/templates/vocabulario';
 import { PARES } from '@/lib/templates/concordancia';
 import {
+  calcularCapitalSociedade,
   calcularParticipacoesPR,
   mapearPessoa,
   type AdministradorParaMapear,
@@ -16,6 +18,11 @@ import {
   type MatriculaParaMapear,
   type SocioParaMapear,
 } from '@/lib/templates/mapeadores';
+import type { EntradaInstrumentoRural } from '@/lib/templates/contextoRural';
+// A conversão linha→entrada é PURA e mora fora daqui porque o arnês de
+// comparação com o contrato assinado usa a mesma: duas cópias já divergiram uma
+// vez, e o teste passou a validar outra coisa. Ver src/lib/osg/entradaRural.ts.
+import { entradaDoInstrumento, matriculaParaMapear } from '@/lib/osg/entradaRural';
 
 // Glue entre o cadastro OSG (pessoa/bem/matrícula/cartório) e o binding por entidade
 // do gerador. Para cada tipo de entidade, devolve os registros do cliente como
@@ -117,11 +124,57 @@ function foraDaEstruturacao(bem: { participa_estruturacao?: boolean | null } | n
  * são globais (não pertencem a um cliente). Bem (e matrícula de bem) fora da
  * estruturação não entra em nenhum dos dois — ver `participaDaEstruturacao`.
  */
+
+/**
+ * Quem administra cada pessoa jurídica outorgante dos instrumentos agrários.
+ *
+ * Uma consulta para o conjunto, não uma por instrumento: os ids saem das
+ * explorações já carregadas e são poucos por cliente.
+ *
+ * As pessoas vêm INTEIRAS porque há dois consumidores e os dois precisam da linha
+ * toda — o preâmbulo qualifica cada administrador por extenso (filiação, RG, CPF,
+ * endereço) e o fecho concorda o rótulo em gênero ("por sua Administradora").
+ *
+ * ⚠️ É a administração de HOJE, não a da data da assinatura: `administracao` não
+ * guarda histórico. Para um instrumento sendo redigido agora é o certo; ao
+ * reimprimir um contrato antigo, pode divergir de quem assinou na época — a mesma
+ * limitação que o fecho societário já tem.
+ */
+function useAdministradoresDasOutorgantes(exploracoes: ExploracaoRuralEnriched[] | undefined) {
+  const ids = useMemo(
+    () => [...new Set((exploracoes ?? []).map((e) => e.outorgante_pessoa_id).filter((id): id is string => !!id))].sort(),
+    [exploracoes],
+  );
+  return useQuery({
+    queryKey: ['osg', 'exploracao-rural', 'administradores-outorgante', ids],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('administracao')
+        .select('pj_pessoa_id, administrador:administrador_pessoa_id (*)')
+        .in('pj_pessoa_id', ids)
+        .order('created_at');
+      if (error) throw error;
+      const porPj = new Map<string, PessoaRow[]>();
+      for (const a of (data ?? []) as unknown as Array<{
+        pj_pessoa_id: string;
+        administrador: PessoaRow | null;
+      }>) {
+        if (!a.administrador) continue;
+        porPj.set(a.pj_pessoa_id, [...(porPj.get(a.pj_pessoa_id) ?? []), a.administrador]);
+      }
+      return porPj;
+    },
+  });
+}
+
 export function useRegistrosPorTipo(clienteId: string | null) {
   const pessoasQ = usePessoasByCliente(clienteId);
   const bensQ = useBensByCliente(clienteId);
   const matriculasQ = useMatriculasGeracao(clienteId);
   const cartoriosQ = useCartorios();
+  const exploracoesQ = useExploracaoRural(clienteId);
+  const administradoresQ = useAdministradoresDasOutorgantes(exploracoesQ.data);
 
   const registros = useMemo<Record<TipoEntidade, Registro[]>>(() => {
     const pessoa: Registro[] = (pessoasQ.data ?? []).map((p) => ({
@@ -148,43 +201,7 @@ export function useRegistrosPorTipo(clienteId: string | null) {
       .map((m) => ({
         id: m.id,
         label: `${m.numero ?? 's/ nº'}${m.bem?.denominacao ? ` — ${m.bem.denominacao}` : ''}`,
-        row: {
-          id: m.id,
-          numero: m.numero,
-          livro: m.livro,
-          folha: m.folha,
-          municipio_imovel: m.municipio_imovel,
-          uf_imovel: m.uf_imovel,
-          area_documento: m.area_documento,
-          area_unidade: m.area_unidade,
-          vlr_contabil: m.vlr_contabil,
-          confrontacoes_texto: m.confrontacoes_texto,
-          descricao_psa_completa: m.descricao_psa_completa,
-          tipo_bem: m.tipo_bem,
-          tipo_exploracao_posse: m.tipo_exploracao_posse,
-          bem: m.bem
-            ? {
-                denominacao: m.bem.denominacao,
-                vlr_contabil: m.bem.vlr_contabil,
-                ccir_codigo: m.bem.ccir_codigo,
-                tipo_bem: m.bem.tipo_bem,
-                inscricao_municipal: m.bem.inscricao_municipal,
-                endereco_logradouro: m.bem.endereco_logradouro,
-                endereco_numero: m.bem.endereco_numero,
-                endereco_complemento: m.bem.endereco_complemento,
-                endereco_bairro: m.bem.endereco_bairro,
-                endereco_cep: m.bem.endereco_cep,
-                area_construida_m2: m.bem.area_construida_m2,
-              }
-            : null,
-          cartorio: m.cartorio,
-          titulares: (m.titularidade ?? []).map((t) => ({
-            pessoaId: t.titular?.id ?? null,
-            denominacao: t.titular?.denominacao ?? null,
-            integralizador: !!t.integralizador,
-            fracao: t.fracao ?? null,
-          })),
-        },
+        row: matriculaParaMapear(m),
       }));
 
     const cartorio: Registro[] = (cartoriosQ.data ?? []).map((c) => ({
@@ -198,15 +215,42 @@ export function useRegistrosPorTipo(clienteId: string | null) {
     // registros segue exaustivo por TipoEntidade.
     const sociedade: Registro[] = pessoa.filter((r) => (r.row as PessoaRow).tipo_pessoa === 'PJ');
 
-    // `vertice` nunca tem registro/seletor (é só item de lista do georref); entra
-    // vazio para satisfazer o Record<TipoEntidade, …>.
-    return { pessoa, sociedade, bem, matricula, cartorio, vertice: [] };
-  }, [pessoasQ.data, bensQ.data, matriculasQ.data, cartoriosQ.data, clienteId]);
+    // O instrumento agrário é binding UNITÁRIO (como a sociedade): o consultor
+    // escolhe QUAL exploração rural o contrato descreve, e dela saem tanto os
+    // campos de {{ instrumento.* }} quanto as cinco listas do documento. O `row`
+    // já vai resolvido — pessoas e matrículas inteiras —, porque é o que os
+    // mapeadores agrários consomem.
+    const pessoaPorId = new Map(pessoa.map((r) => [r.id, r.row as PessoaRow]));
+    const matriculaPorId = new Map(matricula.map((r) => [r.id, r.row]));
+    const instrumento: Registro<EntradaInstrumentoRural>[] = (exploracoesQ.data ?? []).map((e) => ({
+      id: e.id,
+      label: [
+        e.referencia,
+        e.tipo_exploracao,
+        e.data_assinatura ? new Date(`${e.data_assinatura}T00:00:00`).toLocaleDateString('pt-BR') : null,
+      ].filter(Boolean).join(' — '),
+      row: entradaDoInstrumento(
+        e,
+        pessoaPorId,
+        matriculaPorId,
+        administradoresQ.data ?? new Map(),
+        // A origem INTERNA aponta para outro instrumento do mesmo cliente, e é de
+        // lá que saem a data e o outorgante que o Considerando V nomeia.
+        new Map((exploracoesQ.data ?? []).map((outra) => [outra.id, outra])),
+      ),
+    }));
+
+    // `vertice` e `origemPosse` nunca têm registro/seletor (são só itens de lista,
+    // do georref e do Considerando V); entram vazios para satisfazer o
+    // Record<TipoEntidade, …>.
+    return { pessoa, sociedade, bem, matricula, cartorio, vertice: [], instrumento, origemPosse: [] };
+  }, [pessoasQ.data, bensQ.data, matriculasQ.data, cartoriosQ.data, exploracoesQ.data, administradoresQ.data, clienteId]);
 
   return {
     registros,
     isFetching:
-      pessoasQ.isFetching || bensQ.isFetching || matriculasQ.isFetching || cartoriosQ.isFetching,
+      pessoasQ.isFetching || bensQ.isFetching || matriculasQ.isFetching || cartoriosQ.isFetching
+      || exploracoesQ.isFetching,
   };
 }
 
@@ -522,6 +566,42 @@ export function useCessoesDoLivro(empresaId: string | null) {
       });
     },
   });
+}
+
+/**
+ * O capital social VIGENTE de uma pessoa jurídica, no formato que o formulário usa.
+ *
+ * Existe para o cadastro de exploração rural PRÉ-PREENCHER o capital da outorgante
+ * quando o instrumento está sendo redigido agora — e só isso. O valor gravado
+ * continua sendo um retrato (ver a coluna `outorgante_capital_social_na_assinatura`):
+ * este hook diz qual retrato tirar HOJE, e o consultor sobrescreve quando estiver
+ * cadastrando um contrato antigo.
+ *
+ * Reusa `calcularCapitalSociedade`, e é o ponto todo. Somar `vlr_total` do quadro
+ * daria número diferente do que o Contrato Social imprime: o capital do contrato é
+ * `totalQuotas × valor nominal`, e era do somatório cru que vinha a cláusula
+ * afirmando "capital de R$ 558.413,55 dividido em 558.414 quotas de R$ 1,00".
+ *
+ * Devolve `null` — não zero — quando não há empresa escolhida, quando ela é pessoa
+ * física ou enquanto as listas carregam: quem chama precisa distinguir "ainda não
+ * sei" de "é zero", senão pré-preencheria o formulário com um valor inventado.
+ */
+export function useCapitalSocialVigente(pessoa: PessoaRow | null | undefined) {
+  const ehPj = pessoa?.tipo_pessoa === 'PJ';
+  const { socios, integralizacoes, quadroGravado, isFetching } = useListasDaEmpresa(
+    ehPj ? pessoa!.id : null,
+    pessoa?.tipo_empresa,
+  );
+  return useMemo(() => {
+    if (!ehPj || isFetching) return null;
+    const { capitalValor } = calcularCapitalSociedade(
+      pessoa ?? undefined,
+      socios,
+      integralizacoes,
+      quadroGravado,
+    );
+    return capitalValor;
+  }, [ehPj, isFetching, pessoa, socios, integralizacoes, quadroGravado]);
 }
 
 export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: string | null) {

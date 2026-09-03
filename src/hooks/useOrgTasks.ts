@@ -739,26 +739,30 @@ export const useMoveOrgTasksToProject = (area: AreaKey = 'tax') => {
 };
 
 /**
- * Subtarefas ativas de uma tarefa CONTADAS NO BANCO — nunca na lista da tela.
+ * Subtarefas bloqueantes de uma tarefa CONTADAS NO BANCO — nunca na lista da tela.
  *
  * A lista está filtrada, e por isso não enxerga as filhas que o filtro escondeu
  * (de outro responsável, de outro status). Como `org_tasks_parent_task_id_fkey`
  * é ON DELETE CASCADE, contar na lista liberava apagar uma mãe cujas filhas
- * ativas estavam fora da tela — e elas morriam em silêncio, sem aparecer na
+ * estavam fora da tela — e elas morriam em silêncio, sem aparecer na
  * confirmação e sem entrar no audit_logs (o cascade não passa pelo app).
+ *
+ * Bloqueante = fora de Backlog/A Fazer: espelha o trigger
+ * `trg_org_tasks_bloqueia_delete_iniciada`, que só permite excluir tarefa em
+ * `backlog` ou `todo` (em qualquer nível da hierarquia).
  */
-export const contarSubtarefasAtivas = async (taskId: string) => {
+export const contarSubtarefasBloqueantes = async (taskId: string) => {
   const { count, error } = await supabase
     .from('org_tasks')
     .select('id', { count: 'exact', head: true })
     .eq('parent_task_id', taskId)
-    .neq('status', 'done');
+    .not('status', 'in', '("backlog","todo")');
   if (error) throw error;
   return count ?? 0;
 };
 
-export const mensagemSubtarefasAtivas = (quantidade: number) =>
-  `Existe(m) ${quantidade} subtarefa(s) ativa(s). Conclua ou exclua as subtarefas primeiro.`;
+export const mensagemSubtarefasBloqueantes = (quantidade: number) =>
+  `Existe(m) ${quantidade} subtarefa(s) fora de Backlog/A Fazer. Só tarefas em Backlog ou A Fazer podem ser excluídas.`;
 
  export const useDeleteOrgTask = (area: AreaKey = 'tax') => {
    const queryClient = useQueryClient();
@@ -771,8 +775,8 @@ export const mensagemSubtarefasAtivas = (quantidade: number) =>
 
        // Trava real contra o cascade: vale para qualquer tela e qualquer filtro,
        // porque é o único ponto por onde a exclusão passa.
-       const ativas = await contarSubtarefasAtivas(id);
-       if (ativas > 0) throw new Error(mensagemSubtarefasAtivas(ativas));
+       const bloqueantes = await contarSubtarefasBloqueantes(id);
+       if (bloqueantes > 0) throw new Error(mensagemSubtarefasBloqueantes(bloqueantes));
 
        await assertCanPerform('org_tasks', 'delete', id);
        // `.select()` permite detectar o caso em que a RLS bloqueia silenciosamente

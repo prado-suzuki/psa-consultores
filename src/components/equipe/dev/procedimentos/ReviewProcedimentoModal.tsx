@@ -139,7 +139,7 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange, modo
           {/* Preview Column (40%) */}
           <div className="md:col-span-2 bg-muted rounded-xl p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 Como vai aparecer
               </h4>
               {(procedimento.source_url || procedimento.arquivo_path) && (
@@ -168,7 +168,7 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange, modo
             {etapas.length > 0 && (
               <ul className="space-y-1">
                 {etapas.map((e, i) => (
-                  <li key={i} className="text-xs text-slate-400 flex items-start gap-1.5">
+                  <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
                     <span className="mt-1.5 h-1 w-1 rounded-full bg-muted flex-shrink-0" />
                     {e}
                   </li>
@@ -239,7 +239,7 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange, modo
                   <label key={key} className="flex items-center gap-1.5 text-sm cursor-pointer">
                     <RadioGroupItem value={key} />
                     <span style={{ color: cfg.color }}>{cfg.label}</span>
-                    <span className="text-xs text-slate-400">— {cfg.ajuda}</span>
+                    <span className="text-xs text-muted-foreground">— {cfg.ajuda}</span>
                   </label>
                 ))}
               </RadioGroup>

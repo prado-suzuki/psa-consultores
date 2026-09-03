@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { areaExtenso, cardinalExtenso, formatarArea, formatarPercentual, formatarValor, ordinalExtenso, percentualExtenso, romano, valorExtenso } from './extenso';
+import { areaExtenso, cardinalExtenso, dataExtenso, formatarArea, formatarPercentual, formatarValor, numeralContrato, ordinalExtenso, percentualExtenso, romano, valorExtenso } from './extenso';
+import { formatarDataBR } from './mapeadores';
 
 describe('cardinalExtenso', () => {
   it.each([
@@ -164,5 +165,58 @@ describe('cardinalExtenso — feminino (conta quotas)', () => {
   it('sem o sinalizador, segue masculino', () => {
     expect(cardinalExtenso(500)).toBe('quinhentos');
     expect(cardinalExtenso(2)).toBe('dois');
+  });
+});
+
+// A data na redação dos instrumentos. Duas coisas se defendem aqui: o PONTO no
+// ano ("10 de outubro de 2.025", como os assinados escrevem) e a INDEPENDÊNCIA
+// DE FUSO — `new Date('2022-10-10')` é lida como UTC e, em fuso negativo, volta o
+// dia 9. Um contrato com a data errada por um dia é o tipo de defeito que ninguém
+// revisa.
+describe('dataExtenso', () => {
+  it.each([
+    ['2025-10-10', '10 de outubro de 2.025'],
+    ['2022-10-11', '11 de outubro de 2.022'],
+    ['2024-08-28', '28 de agosto de 2.024'],
+    ['1957-05-23', '23 de maio de 1.957'],
+    ['2026-01-01', '1 de janeiro de 2.026'],
+  ])('ISO %s → "%s"', (iso, esperado) => {
+    expect(dataExtenso(iso)).toBe(esperado);
+  });
+
+  // A forma que um campo DERIVADO recebe: a base foi publicada por
+  // `formatarDataBR` e é essa que o consultor edita no "Ajustar dados
+  // manualmente". Sem aceitar as duas, o derivado devolvia a própria data crua.
+  it.each([
+    ['10/10/2025', '10 de outubro de 2.025'],
+    ['1/1/2026', '1 de janeiro de 2.026'],
+    // COM o ponto de milhar no ano, que é a forma que `formatarDataBR` publica
+    // desde 02/09/2026. Sem isto o derivado devolvia "10/10/2.025" intacto, e a
+    // vigência da parceria saía em dd/mm/aaaa no lugar do extenso.
+    ['10/10/2.025', '10 de outubro de 2.025'],
+    ['23/05/1.957', '23 de maio de 1.957'],
+    ['1/1/2.026', '1 de janeiro de 2.026'],
+  ])('dd/mm/aaaa %s → "%s"', (br, esperado) => {
+    expect(dataExtenso(br)).toBe(esperado);
+  });
+
+  // Guarda de ida e volta: o que `formatarDataBR` escreve, `dataExtenso` tem de
+  // ler. As duas funções vivem em arquivos diferentes e mudaram no mesmo dia por
+  // motivos diferentes — foi assim que uma quebrou a outra em silêncio.
+  it('lê de volta tudo o que formatarDataBR escreve', () => {
+    for (const iso of ['2025-10-10', '2022-10-11', '1957-05-23', '2026-01-01']) {
+      expect(dataExtenso(formatarDataBR(iso))).toBe(dataExtenso(iso));
+    }
+  });
+
+  it('não passa por Date: o primeiro dia do mês em ISO não retrocede um dia', () => {
+    expect(dataExtenso('2022-10-01')).toBe('1 de outubro de 2.022');
+  });
+
+  it('o que não é data volta como veio, sem inventar', () => {
+    expect(dataExtenso(null)).toBe('');
+    expect(dataExtenso('')).toBe('');
+    expect(dataExtenso('a combinar')).toBe('a combinar');
+    expect(dataExtenso('2022-13-01')).toBe('2022-13-01');
   });
 });

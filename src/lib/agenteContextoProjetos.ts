@@ -22,6 +22,8 @@ import type {
   KpisClientes, KpisOperacional, KpisProjetos, MatrizMensal, MesFaturamento,
   StatusContagem,
 } from '@/lib/dashboardClientesOs/types';
+import type { MixAtivos } from '@/lib/boardDiretoria';
+import { MIX_ROTULO } from '@/lib/boardDiretoria';
 
 /** Mesma formatação da tela (`FaturamentoDetalhe`/`KpiStrip`): R$ mil. */
 const brl = (v: number) =>
@@ -60,6 +62,21 @@ export interface EntradaContextoProjetos {
   /** Como a matriz está quebrada: centro de custo, produto ou cliente. */
   detalhe: 'centro_custo' | 'produto' | 'cliente';
   status: StatusContagem[];
+  /**
+   * Leitura de diretoria (Board). Quando presente, vai na frente e o
+   * faturamento total operacional deixa de ser a história da tela.
+   */
+  leitura?: {
+    mix: MixAtivos;
+    caixa: number;
+    horizonteSemFim: number;
+  };
+  carga?: {
+    projetos: number;
+    pessoas: number;
+    valor: number;
+    absorviveis: number | null;
+  };
   /** Falhas de carregamento; viram `avisos`. */
   falhas: string[];
 }
@@ -68,6 +85,18 @@ const SUGESTOES = [
   'Qual mês foge do padrão de faturamento?',
   'De quem depende o faturamento desta carteira?',
   'Quanto de faturamento está em OS sem data de início?',
+];
+
+const SUGESTOES_DIRETORIA = [
+  'O crescimento de ativos é cliente novo ou aditivo?',
+  'Quanto de caixa contratado vence nos próximos meses?',
+  'Mais projeto sem cliente novo ou aditivo é só entrega já paga?',
+];
+
+const SUGESTOES_CARGA = [
+  'Quais projetos concentram hora e gente?',
+  'Quantos projetos a mais a hora das ferramentas cobre?',
+  'O custo interno por cargo existe no cadastro?',
 ];
 
 /**
@@ -111,6 +140,46 @@ function blocoMensal(e: EntradaContextoProjetos): BlocoContexto | null {
       mes: rotuloMes(m.mes),
       faturamento: brl(m.faturamento),
     })),
+  };
+}
+
+function blocoMix(e: EntradaContextoProjetos): BlocoContexto | null {
+  if (!e.leitura) return null;
+  const m = e.leitura.mix;
+  return {
+    id: 'mix',
+    titulo: 'De onde veio o ativo',
+    janela: e.janela,
+    nota: 'Mais projeto só é saúde se for cliente novo ou aditivo.',
+    campos: [
+      { rotulo: 'OS ativas', valor: String(m.ativos) },
+      {
+        rotulo: 'Delta vs 30d anteriores',
+        valor: `${m.delta > 0 ? '+' : ''}${m.delta}`,
+      },
+      { rotulo: MIX_ROTULO.cliente_novo, valor: String(m.fatias.cliente_novo) },
+      { rotulo: MIX_ROTULO.aditivo, valor: String(m.fatias.aditivo) },
+      { rotulo: MIX_ROTULO.entrega_planejada, valor: String(m.fatias.entrega_planejada) },
+      { rotulo: MIX_ROTULO.inclassificavel, valor: String(m.fatias.inclassificavel) },
+    ],
+  };
+}
+
+function blocoCaixa(e: EntradaContextoProjetos): BlocoContexto | null {
+  if (!e.leitura) return null;
+  return {
+    id: 'caixa',
+    titulo: 'Caixa vigente',
+    janela: e.janela,
+    nota: 'Contratado, não faturado. Total de faturamento incompleto não entra.',
+    campos: [
+      { rotulo: 'Caixa vigente', valor: brl(e.leitura.caixa) },
+      {
+        rotulo: 'OS sem data de fim',
+        valor: String(e.leitura.horizonteSemFim),
+        nota: 'ficam fora do horizonte',
+      },
+    ],
   };
 }
 
@@ -190,6 +259,27 @@ function blocoOperacional(e: EntradaContextoProjetos): BlocoContexto {
   };
 }
 
+function blocoCarga(e: EntradaContextoProjetos): BlocoContexto | null {
+  if (!e.carga) return null;
+  return {
+    id: 'carga',
+    titulo: 'Carga dos projetos',
+    campos: [
+      { rotulo: 'Projetos', valor: String(e.carga.projetos) },
+      { rotulo: 'Pessoas no time', valor: String(e.carga.pessoas) },
+      { rotulo: 'Contratado', valor: brl(e.carga.valor) },
+      {
+        rotulo: 'Projetos a mais que as ferramentas cobrem',
+        valor: e.carga.absorviveis == null ? null : num(e.carga.absorviveis),
+        nota: e.carga.absorviveis == null
+          ? 'sem hora liberada ou sem hora estimada no projeto'
+          : 'hora das ferramentas ÷ mediana do projeto',
+      },
+      { rotulo: 'Custo interno por cargo', valor: null, nota: 'pessoa não tem cargo/hora no cadastro' },
+    ],
+  };
+}
+
 function blocoExecucao(e: EntradaContextoProjetos): BlocoContexto {
   const k = e.kpisProjetos;
   return {
@@ -211,16 +301,26 @@ function blocoExecucao(e: EntradaContextoProjetos): BlocoContexto {
 }
 
 export function contextoBoardProjetos(e: EntradaContextoProjetos): ContextoTela {
+  const diretoria = Boolean(e.leitura || e.carga);
   const blocos = [
-    blocoVisaoGeral(e),
+    blocoCarga(e),
+    blocoMix(e),
+    blocoCaixa(e),
+    // Faturamento total operacional só na Gerencial (Tax/OSG). No Board a
+    // reunião de 28/08 tirou essa leitura da frente.
+    diretoria ? null : blocoVisaoGeral(e),
     blocoMensal(e),
-    blocoMatriz(e),
-    blocoOperacional(e),
-    blocoExecucao(e),
+    diretoria ? null : blocoMatriz(e),
+    diretoria ? null : blocoOperacional(e),
+    diretoria ? null : blocoExecucao(e),
   ].filter((b): b is BlocoContexto => b !== null);
 
   return {
-    rotulo: 'Board · Projetos (clientes, OS e faturamento)',
+    rotulo: e.carga
+      ? 'Board · Projetos (carga, hora, gente e capacidade das ferramentas)'
+      : diretoria
+      ? 'Board · Projetos (mix do ativo, caixa vigente e horizonte)'
+      : 'Board · Projetos (clientes, OS e faturamento)',
     filtros: {
       janela: e.janela,
       empresa: e.filtros.empresa ?? 'todas',
@@ -231,6 +331,6 @@ export function contextoBoardProjetos(e: EntradaContextoProjetos): ContextoTela 
     },
     blocos,
     avisos: e.falhas.length > 0 ? [`falha ao carregar: ${e.falhas.join(', ')}`] : undefined,
-    sugestoes: SUGESTOES,
+    sugestoes: e.carga ? SUGESTOES_CARGA : diretoria ? SUGESTOES_DIRETORIA : SUGESTOES,
   };
 }

@@ -55,7 +55,7 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por nome..."
             value={search}
@@ -151,8 +151,8 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
                             <TableCell className="px-2">
                               {isExpandable && (
                                 isExpanded
-                                  ? <ChevronDown className="h-4 w-4 text-slate-400" />
-                                  : <ChevronRight className="h-4 w-4 text-slate-400" />
+                                  ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                  : <ChevronRight className="h-4 w-4 text-muted-foreground" />
                               )}
                             </TableCell>
                             <TableCell className="text-sm whitespace-nowrap">
@@ -194,7 +194,7 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
                                           <span className="text-red-600 line-through">
                                             {change.oldValue}
                                           </span>
-                                          <span className="text-slate-400">→</span>
+                                          <span className="text-muted-foreground">→</span>
                                           <span className="text-emerald-600">
                                             {change.newValue}
                                           </span>

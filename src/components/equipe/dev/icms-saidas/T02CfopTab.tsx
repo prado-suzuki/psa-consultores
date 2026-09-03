@@ -106,7 +106,7 @@ export const T02CfopTab = ({ enabled, contribuinteId, start_date, end_date }: T0
     return (
       <Card className="border-border border-dashed">
         <CardContent className="p-12 text-center">
-          <Calculator className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+          <Calculator className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
           <p className="text-muted-foreground">Selecione os filtros e clique em Buscar para carregar o resumo por CFOP.</p>
         </CardContent>
       </Card>

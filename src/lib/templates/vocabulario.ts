@@ -1,6 +1,11 @@
-import { areaExtenso, cardinalExtenso, percentualExtenso, valorExtenso, type UnidadeArea } from './extenso';
+import {
+  areaExtenso, cardinalExtenso, dataExtenso, numeralContrato, percentualExtenso, valorExtenso,
+  type UnidadeArea,
+} from './extenso';
 import { tituloDoInstrumento } from './instrumento';
-import { PARES, concordarTexto, generoDeConcordancia, ufPorExtenso, type Genero } from './concordancia';
+import {
+  PARES, concordar, concordarTexto, generoDeConcordancia, ufComPreposicao, ufPorExtenso, type Genero,
+} from './concordancia';
 
 // Vocabulário de campos organizado POR ENTIDADE (pessoa/bem/matricula/cartorio).
 // Cada placeholder é `binding.campo` (ex.: {{ proprietario.nome }}, {{ imovel.area }});
@@ -10,7 +15,13 @@ import { PARES, concordarTexto, generoDeConcordancia, ufPorExtenso, type Genero 
 
 export type TipoCampo = 'texto' | 'textarea' | 'area' | 'valor' | 'inteiro' | 'data';
 
-export type TipoEntidade = 'pessoa' | 'sociedade' | 'bem' | 'matricula' | 'cartorio' | 'vertice';
+export type TipoEntidade =
+  | 'pessoa' | 'sociedade' | 'bem' | 'matricula' | 'cartorio' | 'vertice'
+  // Instrumentos agrários (cadastro de exploração rural): o cabeçalho do
+  // instrumento e a origem da posse de cada imóvel. Pessoa e matrícula NÃO
+  // ganham entidade nova — o contrato rural qualifica as mesmas pessoas e
+  // descreve os mesmos imóveis que o Contrato Social.
+  | 'instrumento' | 'origemPosse';
 
 export interface CampoEntidade {
   /** Id do campo dentro da entidade (parte após o ponto no placeholder). */
@@ -173,6 +184,9 @@ function cardinalCampo(id: string, label: string, derivadoDe: string): CampoEnti
  * numeral E extenso lado a lado ("no Livro 02 (dois), folhas/ficha 01 (um)"),
  * e fazer o extenso devolver "02 (dois)" o faria mentir sobre o que é, além de
  * tirar a opção de quem quer só o extenso.
+ *
+ * A regra em si mora em `numeralContrato` (extenso.ts), que os mapeadores também
+ * chamam para o número de vias e os prazos do instrumento agrário.
  */
 function numeralCampo(id: string, label: string, derivadoDe: string): CampoEntidade {
   return {
@@ -180,9 +194,42 @@ function numeralCampo(id: string, label: string, derivadoDe: string): CampoEntid
     label,
     tipo: 'texto',
     derivadoDe,
+    derivar: (v) => numeralContrato(v[derivadoDe]),
+  };
+}
+
+/**
+ * Condicional derivada ('sim' / '') — o engine não tem "else", então cada lado
+ * da pergunta é publicado como um campo. `derivar` devolve string porque é isso
+ * que uma seção {{#campo}} lê; booleano funcionaria por acaso.
+ */
+function condicionalCampo(
+  id: string,
+  label: string,
+  derivadoDe: string | string[],
+  ligada: (v: Record<string, string>) => boolean,
+): CampoEntidade {
+  return { id, label, tipo: 'texto', derivadoDe, derivar: (v) => (ligada(v) ? 'sim' : '') };
+}
+
+/**
+ * Campo derivado com o percentual por extenso na forma CARTORIAL — a mesma do
+ * Contrato Social ("trinta inteiros por cento").
+ *
+ * Houve uma tentativa de dar aos instrumentos agrários uma forma própria, sem
+ * "inteiros". O contrato de parceria ASSINADO desmente: ele escreve
+ * "30,00 % (trinta inteiros por cento)" e "70% (setenta inteiros por cento)".
+ * É a mesma convenção do societário, e por isso não há duas.
+ */
+function percentualCartorialCampo(id: string, label: string, derivadoDe: string): CampoEntidade {
+  return {
+    id,
+    label,
+    tipo: 'texto',
+    derivadoDe,
     derivar: (v) => {
-      const bruto = (v[derivadoDe] ?? '').trim();
-      return /^\d+$/.test(bruto) ? bruto.padStart(2, '0') : bruto;
+      const n = paraNumeroBR(v[derivadoDe]);
+      return Number.isFinite(n) ? percentualExtenso(n) : '';
     },
   };
 }
@@ -195,6 +242,34 @@ function ufExtensoCampo(id: string, label: string, derivadoDe: string): CampoEnt
     tipo: 'texto',
     derivadoDe,
     derivar: (v) => ufPorExtenso(v[derivadoDe]),
+  };
+}
+
+/**
+ * A UF por extenso já com a preposição, para o bloco escrever `Estado {{ … }}`.
+ *
+ * Existe ao lado de `ufExtensoCampo` porque as duas formas são usadas: a tabela
+ * do Anexo quer só o nome ("Lucas do Rio Verde/Mato Grosso") e a prosa quer a
+ * regência ("Estado da Bahia", "Estado de Mato Grosso").
+ */
+function ufComPreposicaoCampo(id: string, label: string, derivadoDe: string): CampoEntidade {
+  return {
+    id,
+    label,
+    tipo: 'texto',
+    derivadoDe,
+    derivar: (v) => ufComPreposicao(v[derivadoDe]),
+  };
+}
+
+/** Campo derivado com a data na redação dos instrumentos ("10 de outubro de 2.025"). */
+function dataExtensoCampo(id: string, label: string, derivadoDe: string): CampoEntidade {
+  return {
+    id,
+    label,
+    tipo: 'texto',
+    derivadoDe,
+    derivar: (v) => dataExtenso(v[derivadoDe]),
   };
 }
 
@@ -240,13 +315,19 @@ function regimeProsa(regime: string): string {
  * Estado civil em prosa: "casado em regime de comunhão universal de bens",
  * "solteira, nascida em 04/06/1969" (a Junta exige a data para solteiros),
  * "viúva", "em união estável sob o regime de…".
+ *
+ * A preposição do casamento varia por instrumento: o societário escreve "casado
+ * EM regime de", e os dois instrumentos agrários assinados escrevem "casado SOB O
+ * regime de". Quem decide é `estiloQualificacao` (ver `montarQualificacao`) —
+ * default continua o societário, para nenhum contrato existente mudar de texto.
  */
 function estadoCivilProsa(v: Record<string, string>): string {
   const g = (v.genero || null) as Genero;
   const concordado = concordarTexto(v.estadoCivil, g).toLowerCase();
   if (!concordado) return '';
   if (concordado.startsWith('casad')) {
-    return v.regimeBens ? `${concordado} em regime de ${regimeProsa(v.regimeBens)}` : concordado;
+    const prep = v.estiloQualificacao ? 'sob o regime de' : 'em regime de';
+    return v.regimeBens ? `${concordado} ${prep} ${regimeProsa(v.regimeBens)}` : concordado;
   }
   if (concordado === 'união estável') {
     return v.regimeBens
@@ -260,14 +341,18 @@ function estadoCivilProsa(v: Record<string, string>): string {
 }
 
 /**
- * "s/n", "s/nº", "S.N."… → forma canônica dos contratos; número normal ganha "nº".
+ * "s/n", "s/nº", "S.N."… → forma canônica dos contratos; número normal ganha "n.º".
  * Mora aqui (e não em mapeadores.ts) porque serve tanto ao endereço em prosa dos
  * mapeadores quanto ao campo DERIVADO `matricula.enderecoNumeroProsa`, e
  * vocabulario.ts não pode importar de mapeadores (a dependência é a inversa).
+ *
+ * "n.º", com ponto, é a abreviação da casa: 68 ocorrências contra 8 nos dois
+ * instrumentos agrários assinados do MMS, e 71 contra 2 nos dois Contratos
+ * Sociais (contado em 02/09/2026).
  */
 export function numeroProsa(numero: string | null | undefined): string {
   if (!numero) return '';
-  return /^s[/.]?\s*n[ºo°.]*$/i.test(numero.trim()) ? 's/nº' : `nº ${numero}`;
+  return /^s[/.]?\s*n[ºo°.]*$/i.test(numero.trim()) ? 's/n.º' : `n.º ${numero}`;
 }
 
 // Tipos de logradouro masculinos — o resto (rua, avenida, rodovia, praça…) é "na".
@@ -296,16 +381,36 @@ function porContraido(texto: string): string {
  */
 function montarQualificacao(v: Record<string, string>): string {
   // Caixa alta + *negrito* (marca inline de marcas.ts), como nos contratos da casa.
-  const nome = v.nome ? `*${v.nome.toLocaleUpperCase('pt-BR')}*` : '';
+  //
+  // A exceção é a pessoa qualificada DENTRO da qualificação de outra: os
+  // administradores que a pessoa jurídica outorgante traz consigo ("neste ato
+  // representado por seus administradores *José Eduardo de Macedo Soares
+  // Júnior*, brasileiro, …") saem em Title Case no instrumento assinado, porque
+  // ali eles não são PARTE — são como a parte se representa. Quem pede a
+  // exceção é o mapeador que aninha (`qualificacaoDoOutorgante`), pelo campo
+  // `estiloNome`; sem ele nada muda.
+  const caixa = v.estiloNome === 'natural'
+    ? (v.nome ?? '')
+    : (v.nome ?? '').toLocaleUpperCase('pt-BR');
+  const nome = v.nome ? `*${caixa}*` : '';
   if (v.tipoPessoa === 'PJ') {
     return [
       nome,
       'pessoa jurídica de direito privado',
-      v.cpfCnpj && `inscrita no CNPJ/MF sob o nº ${v.cpfCnpj}`,
+      v.cpfCnpj && `inscrita no CNPJ/MF sob o n.º ${v.cpfCnpj}`,
+      // "sob o NIRE n.º", não "sob o n.º": sem dizer NIRE a frase entrega um número
+      // sem nome, logo depois do CNPJ — e é a redação dos contratos assinados,
+      // tanto do MMS quanto do Bela Vista.
       v.nire &&
         `registrada na Junta Comercial${
-          v.juntaComercialUf ? ` do Estado de ${ufPorExtenso(v.juntaComercialUf)}` : ''
-        } sob o nº ${v.nire}`,
+          v.juntaComercialUf ? ` do Estado ${ufComPreposicao(v.juntaComercialUf)}` : ''
+        } sob o NIRE n.º ${v.nire}`,
+      // Capital social: exigência literal do preâmbulo dos instrumentos agrários
+      // ("com capital social totalmente subscrito e integralizado no valor de R$
+      // 872.674,00 (…)"). Como `representante`, é campo mesclado pelo mapeador
+      // que conhece a sociedade — não coluna de `pessoa`.
+      v.capitalSocial && `com capital social totalmente subscrito e integralizado no valor de R$ ${
+        v.capitalSocial}${v.capitalSocialExtenso ? ` (${v.capitalSocialExtenso})` : ''}`,
       v.endereco && `com sede estabelecida ${naEndereco(v.endereco)}`,
       v.representante && `neste ato representada ${porContraido(v.representante)}`,
     ].filter(Boolean).join(', ');
@@ -316,13 +421,34 @@ function montarQualificacao(v: Record<string, string>): string {
       ? PARES.brasileiro(g)
       : v.nacionalidade.toLowerCase()
     : '';
+  // Os dois trechos opcionais da PF, e por que são ESCOLHA e não acúmulo: os
+  // contratos assinados qualificam a MESMA pessoa de duas formas diferentes —
+  // os outorgados da parceria saem com "natural de São Paulo/SP nascido em
+  // 23/05/1.957", e os administradores da mesma parceria (e os compossuidores da
+  // composse) saem com "nascido em 23/05/1.957, filho de X e Y". Nenhum dos dois
+  // traz os dois. Quem escolhe é o mapeador do PAPEL, por `estiloQualificacao`;
+  // sem estilo, nada entra, e o Contrato Social continua como está.
+  const naturalidade = v.estiloQualificacao === 'naturalidade' ? v.naturalidade : '';
+  const filiacao = v.estiloQualificacao === 'filiacao' ? v.filiacao : '';
+  const nascimento = v.estiloQualificacao && v.dataNascimento
+    ? `${PARES.nascido(g)} em ${v.dataNascimento}`
+    : '';
   return [
     nome,
     nacionalidade,
+    // A ordem é a do assinado: "brasileiro, natural de São Paulo/SP, nascido em
+    // 23/05/1.957, casado…" para o outorgado; "brasileiro, nascido em…, filho de
+    // X e Y, casado…" para o administrador. Como só um dos dois trechos entra por
+    // papel, a mesma sequência serve aos dois.
+    naturalidade,
+    nascimento,
+    filiacao,
     estadoCivilProsa(v),
     v.profissao,
-    v.rg && `${PARES.portador(g)} do RG nº ${v.rg}${v.orgaoExpedidor ? ` ${v.orgaoExpedidor}` : ''}`,
-    v.cpfCnpj && `${PARES.inscrito(g)} no CPF/MF sob o nº ${v.cpfCnpj}`,
+    // "do RG n.º" e não "do RG sob o n.º": os assinados escrevem sem o "sob o" 11
+    // vezes contra 3 — ao contrário do CPF, que sempre leva "sob o".
+    v.rg && `${PARES.portador(g)} do RG n.º ${v.rg}${v.orgaoExpedidor ? ` ${v.orgaoExpedidor}` : ''}`,
+    v.cpfCnpj && `${PARES.inscrito(g)} no CPF/MF sob o n.º ${v.cpfCnpj}`,
     v.endereco && `${PARES.residente(g)} ${naEndereco(v.endereco)}`,
   ].filter(Boolean).join(', ');
 }
@@ -350,6 +476,43 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'nire', label: 'NIRE (registro na Junta)', tipo: 'texto' },
       { id: 'juntaComercialUf', label: 'UF da Junta Comercial', tipo: 'texto' },
       { id: 'genero', label: 'Gênero (M/F)', tipo: 'texto' },
+      // Naturalidade e filiação: existem no cadastro desde sempre e nunca eram
+      // publicadas. Entram como base + um derivado em prosa cada, porque é a
+      // prosa que o preâmbulo escreve.
+      { id: 'naturalidadeMunicipio', label: 'Naturalidade — município', tipo: 'texto' },
+      { id: 'naturalidadeUf', label: 'Naturalidade — UF', tipo: 'texto' },
+      {
+        id: 'naturalidade',
+        label: 'Naturalidade em prosa ("natural de São Paulo/SP")',
+        tipo: 'texto',
+        derivadoDe: ['naturalidadeMunicipio', 'naturalidadeUf'],
+        derivar: (v) => (v.naturalidadeMunicipio
+          ? `natural de ${v.naturalidadeMunicipio}${v.naturalidadeUf ? `/${v.naturalidadeUf}` : ''}`
+          : ''),
+      },
+      { id: 'filiacaoPai', label: 'Filiação — pai', tipo: 'texto' },
+      { id: 'filiacaoMae', label: 'Filiação — mãe', tipo: 'texto' },
+      {
+        id: 'filiacao',
+        label: 'Filiação em prosa ("filho de X e Y")',
+        tipo: 'texto',
+        derivadoDe: ['filiacaoPai', 'filiacaoMae', 'genero'],
+        derivar: (v) => {
+          const nomes = [v.filiacaoPai, v.filiacaoMae].filter(Boolean);
+          if (nomes.length === 0) return '';
+          const g = generoDeConcordancia((v.genero || null) as Genero, v.tipoPessoa);
+          return `${concordar(g, 'filho', 'filha')} de ${nomes.join(' e ')}`;
+        },
+      },
+      // Qual das duas formas o preâmbulo daquele PAPEL usa: 'naturalidade',
+      // 'filiacao', ou vazio (societário). É o mapeador do papel que preenche;
+      // não é dado de cadastro, e por isso não tem coluna.
+      { id: 'estiloQualificacao', label: 'Estilo da qualificação (naturalidade/filiacao)', tipo: 'texto' },
+      // Caixa do NOME na qualificação: vazio (o padrão) põe em caixa alta, como
+      // toda parte de contrato da casa; 'natural' mantém a caixa do cadastro,
+      // para a pessoa qualificada DENTRO da qualificação de outra — ver
+      // `montarQualificacao` e `qualificacaoDoOutorgante`.
+      { id: 'estiloNome', label: 'Caixa do nome na qualificação (vazio = caixa alta, "natural")', tipo: 'texto' },
       // Concordância de gênero (campos derivados, sem nova sintaxe no template).
       concordanciaCampo('artigo', 'Artigo (o/a)', PARES.artigo),
       concordanciaCampo('brasileiro', 'Nacionalidade concordada (brasileiro/a)', PARES.brasileiro),
@@ -559,6 +722,10 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       cardinalCampo('folhaExtenso', 'Folha (por extenso)', 'folha'),
       { id: 'municipio', label: 'Município do imóvel', tipo: 'texto' },
       { id: 'uf', label: 'Estado (UF) do imóvel', tipo: 'texto' },
+      // A alínea do Anexo escreve "situado no município de X, Estado DE Mato
+      // Grosso" / "Estado DA Bahia": a regência é do nome do estado, e o bloco
+      // não pode emendar "Estado de " ao campo cru.
+      ufComPreposicaoCampo('ufComPreposicao', 'Estado do imóvel com a preposição', 'uf'),
       // Classificação do imóvel: é o que separa as redações da família "Descrição
       // de imóvel" (seletores em supabase/migrations/20260806140000). Condicionais
       // com 'sim'/'' como fracionado/inteiro — o engine não tem "else".
@@ -712,6 +879,7 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         tipo: 'texto',
       },
       { id: 'ufCartorio', label: 'Estado (UF) do cartório', tipo: 'texto' },
+      ufComPreposicaoCampo('ufCartorioComPreposicao', 'Estado do cartório com a preposição', 'ufCartorio'),
       { id: 'ccir', label: 'Cadastro do imóvel rural (CCIR/SNCR)', tipo: 'texto' },
       // Equivalente urbano do CCIR ("inscrito no cadastro municipal sob o nº").
       // Mora em `bem`, como o CCIR, mas o binding do imóvel precisa do seu.
@@ -751,6 +919,252 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'azimute', label: 'Azimute', tipo: 'texto' },
       { id: 'distancia', label: 'Distância vante (m)', tipo: 'texto' },
       { id: 'confrontacoes', label: 'Confrontações', tipo: 'texto' },
+    ],
+  },
+  // --- Instrumentos agrários -------------------------------------------------
+  //
+  // O CABEÇALHO do instrumento de exploração rural: o que vale para o contrato
+  // inteiro, e não para uma das partes nem para um dos imóveis. Sai da linha de
+  // `exploracao_rural`, menos foro e número de vias, que são do ATO de gerar e
+  // por isso vêm marcados como manuais (mesmo tratamento da data de assinatura
+  // do Contrato Social: vazios, viram lacuna assinalável em vez de sumir).
+  //
+  // Extensos e condicionais são DERIVADOS aqui, e não montados no mapeador: é o
+  // que faz o "Ajustar dados manualmente" oferecer o campo-base certo (trocar 30
+  // por 40 reescreve "quarenta por cento" sozinho) em vez de deixar o número e a
+  // frase discordarem dentro do mesmo contrato.
+  instrumento: {
+    tipo: 'instrumento',
+    label: 'Instrumento (exploração rural)',
+    campos: [
+      { id: 'tipoExploracao', label: 'Tipo de exploração (parceria/composse)', tipo: 'texto' },
+      { id: 'dataAssinatura', label: 'Data da assinatura', tipo: 'data', obrigatorio: true },
+      { id: 'dataInicioVigencia', label: 'Início da vigência', tipo: 'data' },
+      { id: 'dataEncerramento', label: 'Encerramento da vigência', tipo: 'data' },
+      // As datas por extenso ao lado das numéricas: os assinados escrevem a
+      // vigência e o fecho em prosa ("findará em 10 de outubro de 2.025",
+      // "Lucas do Rio Verde/MT, 10 de outubro de 2.022"), e a numérica segue
+      // servindo a quem só precisa da referência curta.
+      dataExtensoCampo('dataAssinaturaExtenso', 'Data da assinatura (por extenso)', 'dataAssinatura'),
+      dataExtensoCampo('dataEncerramentoExtenso', 'Encerramento da vigência (por extenso)', 'dataEncerramento'),
+      { id: 'prorrogavel', label: 'Vigência prorrogável? (condicional)', tipo: 'texto' },
+
+      // A pecuária troca UMA palavra em três trechos (título, vigência e capítulo
+      // de atividades). Não é campo de texto: deriva do "inclui pecuária?".
+      { id: 'pecuaria', label: 'Inclui pecuária? (condicional)', tipo: 'texto' },
+      {
+        id: 'natureza',
+        label: 'Natureza da exploração (AGROPECUÁRIA/AGRÍCOLA)',
+        tipo: 'texto',
+        derivadoDe: 'pecuaria',
+        derivar: (v) => (v.pecuaria ? 'AGROPECUÁRIA' : 'AGRÍCOLA'),
+      },
+      {
+        id: 'naturezaPlural',
+        label: 'Natureza da exploração no plural',
+        tipo: 'texto',
+        // Deriva de `pecuaria`, não de `natureza`: o formulário de ajuste manual
+        // troca o campo derivado pelos seus BASES, e encadear derivado sobre
+        // derivado ofereceria um campo não editável como se fosse editável.
+        derivadoDe: 'pecuaria',
+        derivar: (v) => (v.pecuaria ? 'AGROPECUÁRIAS' : 'AGRÍCOLAS'),
+      },
+      // As mesmas palavras na CAIXA de quem as recebe. O assinado põe a natureza
+      // em caixa alta só no título; no meio da frase escreve minúscula
+      // ("constituem parceria rural para exploração agropecuária", "para fins de
+      // exploração agropecuária tem vigência"), e no subtítulo do capítulo ela
+      // acompanha o Title Case do resto ("Das Atividades Agropecuárias").
+      //
+      // São campos próprios, e não uma função de caixa no motor: o bloco escolhe
+      // a forma que a frase dele pede, e "AGROPECUÁRIA" no meio de um período é
+      // exatamente o tipo de erro que passa despercebido na revisão.
+      {
+        id: 'naturezaMinuscula',
+        label: 'Natureza da exploração em minúscula (agropecuária/agrícola)',
+        tipo: 'texto',
+        derivadoDe: 'pecuaria',
+        derivar: (v) => (v.pecuaria ? 'agropecuária' : 'agrícola'),
+      },
+      {
+        // Para o nome do instrumento CITADO no meio da prosa, que o fecho do
+        // preâmbulo escreve em Title Case: "o presente *Instrumento Particular
+        // de Parceria para Fins de Exploração Agropecuária*".
+        id: 'naturezaTitulo',
+        label: 'Natureza da exploração em Title Case (Agropecuária/Agrícola)',
+        tipo: 'texto',
+        derivadoDe: 'pecuaria',
+        derivar: (v) => (v.pecuaria ? 'Agropecuária' : 'Agrícola'),
+      },
+      {
+        id: 'naturezaPluralTitulo',
+        label: 'Natureza da exploração no plural, em Title Case',
+        tipo: 'texto',
+        derivadoDe: 'pecuaria',
+        derivar: (v) => (v.pecuaria ? 'Agropecuárias' : 'Agrícolas'),
+      },
+      { id: 'culturas', label: 'Culturas exploradas', tipo: 'textarea' },
+      /**
+       * As três modalidades de pecuária, uma condicional cada.
+       *
+       * NÃO derivam de `pecuaria`, que é outra pergunta: aquele diz se há gado
+       * (e troca AGRÍCOLA por AGROPECUÁRIA); estas dizem O QUE SE MEDE na
+       * partilha da Cláusula Quinta — ganho de peso, bezerros nascidos, ou peso
+       * apurado a cada 12 meses. Um contrato pode ter as três (a parceria do MMS
+       * tem, com seis parágrafos) ou duas (a do Bela Vista, com cinco), então não
+       * é escolha entre variantes nem consequência de um booleano.
+       *
+       * Vêm do cadastro (`exploracao_rural.pecuaria_modalidades`), como `pecuaria`
+       * e `penhor` — e não de flag manual: a escolha é fato DESTE contrato, e o
+       * mesmo cliente pode ter duas parcerias com modalidades diferentes.
+       */
+      { id: 'pecuariaRecriaEngorda', label: 'Pecuária de recria e engorda? (condicional)', tipo: 'texto' },
+      { id: 'pecuariaCria', label: 'Pecuária de cria? (condicional)', tipo: 'texto' },
+      { id: 'pecuariaCicloCompleto', label: 'Pecuária de ciclo completo? (condicional)', tipo: 'texto' },
+      { id: 'penhor', label: 'Autoriza penhor da produção? (condicional)', tipo: 'texto' },
+
+      // Partilha dos frutos (parceria).
+      { id: 'percentualOutorgante', label: 'Percentual do outorgante', tipo: 'texto' },
+      percentualCartorialCampo('percentualOutorganteExtenso', 'Percentual do outorgante (por extenso)', 'percentualOutorgante'),
+      { id: 'percentualExplorador', label: 'Percentual do explorador', tipo: 'texto' },
+      percentualCartorialCampo('percentualExploradorExtenso', 'Percentual do explorador (por extenso)', 'percentualExplorador'),
+
+      // Indivisão da coisa comum (composse). Quantidade e unidade separadas, com
+      // o extenso ao lado — a frase "3 (três) anos" é montada pelo BLOCO, como
+      // em "{{ numeroVias }} ({{ numeroViasExtenso }}) vias".
+      { id: 'prazoIndivisaoQuantidade', label: 'Prazo de indivisão — quantidade', tipo: 'inteiro' },
+      cardinalCampo('prazoIndivisaoQuantidadeExtenso', 'Prazo de indivisão — quantidade (por extenso)', 'prazoIndivisaoQuantidade'),
+      { id: 'prazoIndivisaoUnidade', label: 'Prazo de indivisão — unidade (anos/meses)', tipo: 'texto' },
+      { id: 'indivisaoProrrogavel', label: 'Indivisão prorrogável? (condicional)', tipo: 'texto' },
+      { id: 'indivisaoAvisoQuantidade', label: 'Aviso de divisão — antecedência', tipo: 'inteiro' },
+      cardinalCampo('indivisaoAvisoQuantidadeExtenso', 'Aviso de divisão — antecedência (por extenso)', 'indivisaoAvisoQuantidade'),
+      { id: 'indivisaoAvisoUnidade', label: 'Aviso de divisão — unidade (meses/dias)', tipo: 'texto' },
+
+      // Administração da composse.
+      { id: 'regraAdministracao', label: 'Regra de administração (maioria/nomeados)', tipo: 'texto' },
+      condicionalCampo('administracaoMaioria', 'Administração por maioria? (condicional)',
+        ['regraAdministracao', 'tipoExploracao'],
+        (v) => v.tipoExploracao === 'composse' && v.regraAdministracao === 'maioria'),
+      condicionalCampo('administracaoNomeados', 'Administração por nomeados? (condicional)',
+        ['regraAdministracao', 'tipoExploracao'],
+        (v) => v.tipoExploracao === 'composse' && v.regraAdministracao === 'nomeados'),
+      // Isoladamente vs. em conjunto NÃO é campo do cadastro: sai de quantos
+      // nomeados a lista tem, e quem conta é o mapeador.
+      { id: 'nomeadoUnico', label: 'Administrador nomeado é único? (condicional)', tipo: 'texto' },
+      { id: 'nomeadosEmConjunto', label: 'Nomeados administram em conjunto? (condicional)', tipo: 'texto' },
+
+      // Liquidação de haveres (composse).
+      { id: 'liquidacaoParcelas', label: 'Liquidação — nº de parcelas', tipo: 'inteiro' },
+      cardinalCampo('liquidacaoParcelasExtenso', 'Liquidação — nº de parcelas (por extenso)', 'liquidacaoParcelas'),
+      { id: 'liquidacaoPeriodicidade', label: 'Liquidação — periodicidade (anual/mensal)', tipo: 'texto' },
+      {
+        id: 'liquidacaoPeriodicidadeProsa',
+        label: 'Liquidação — periodicidade em prosa',
+        tipo: 'texto',
+        derivadoDe: 'liquidacaoPeriodicidade',
+        // "anuais", e não "anuais e consecutivas": o composse assinado do MMS diz
+        // "em 10 (dez) parcelas iguais e anuais atualizadas monetariamente", e o
+        // "e consecutivas" era acréscimo meu dentro de cláusula assinada — o
+        // mesmo caso do "dele" da Cláusula Décima Sexta da parceria e do "Da" do
+        // Capítulo III do composse.
+        //
+        // Este campo é derivado e editável: contrato que de fato diga
+        // "consecutivas" ganha a palavra pelo "Ajustar dados manualmente", em vez
+        // de todos os contratos a receberem de graça.
+        derivar: (v) => (v.liquidacaoPeriodicidade === 'anual' ? 'anuais' : 'mensais'),
+      },
+      // NÃO deriva da periodicidade, por mais que pareça: dois contratos reais
+      // com parcelas anuais discordam do vencimento da primeira (um usa "1 (um)
+      // ano do evento", outro "30 (trinta) dias"). São eixos independentes, e
+      // amarrá-los faria o gerador escrever com confiança uma data que o
+      // contrato do cliente não tem. O mapeador põe o padrão; o consultor troca
+      // no "Ajustar dados manualmente".
+      { id: 'liquidacaoPrimeiroVencimento', label: 'Liquidação — vencimento da 1ª parcela', tipo: 'texto' },
+
+      // Nome sob o qual a composse gira. O complemento não é derivável ("E
+      // OUTROS" em três compossuidores, "E ESPOSA" num casal, e nem toda dupla é
+      // um casal): o mapeador põe o padrão e o consultor corrige.
+      { id: 'nomeComposse', label: 'Nome pelo qual a composse gira', tipo: 'texto' },
+
+      // Preenchidos pelo mapeador a partir das listas — o Anexo e a Cláusula
+      // Primeira citam a faixa de alíneas e o dono/cartório comuns.
+      { id: 'primeiraAlinea', label: 'Primeira alínea do Anexo', tipo: 'texto' },
+      { id: 'ultimaAlinea', label: 'Última alínea do Anexo', tipo: 'texto' },
+      // "advém do seguinte instrumento" / "dos seguintes instrumentos". Conta os
+      // GRUPOS de origem, não os imóveis: seis imóveis de uma parceria só são um
+      // instrumento. O engine não tem "else", daí os dois campos.
+      { id: 'origemUnica', label: 'A posse vem de um só instrumento? (condicional)', tipo: 'texto' },
+      { id: 'origensVarias', label: 'A posse vem de dois ou mais instrumentos? (condicional)', tipo: 'texto' },
+      { id: 'proprietarioComum', label: 'Proprietário comum dos imóveis', tipo: 'texto' },
+      { id: 'cartorioComum', label: 'Cartório comum dos imóveis', tipo: 'texto' },
+      { id: 'cartorioComumComarca', label: 'Comarca a dizer depois do nome do cartório', tipo: 'texto' },
+      /**
+       * A qualificação da outorgante como o preâmbulo assinado a escreve: a frase
+       * de `pessoa` MAIS o capital social vigente na assinatura MAIS os
+       * administradores qualificados por inteiro.
+       *
+       * Mora no instrumento, e não em `{{ outorgante }}`, porque os dois dados que
+       * `pessoa` não tem — o capital NAQUELA data e quem assinava por ela — são
+       * fatos deste instrumento. É a mesma razão pela qual o capital da origem da
+       * posse é campo da relação. Quem escreve a frase continua sendo
+       * `montarQualificacao`; ver `qualificacaoDoOutorgante` em contextoRural.ts.
+       */
+      { id: 'outorganteQualificacao', label: 'Qualificação da parceira outorgante', tipo: 'textarea' },
+
+      // Do ATO de gerar, não do cadastro.
+      { id: 'foroComarca', label: 'Foro — comarca', tipo: 'texto', manual: true, obrigatorio: true },
+      { id: 'foroUf', label: 'Foro — UF', tipo: 'texto', manual: true, obrigatorio: true },
+      ufExtensoCampo('foroUfExtenso', 'Foro — Estado por extenso', 'foroUf'),
+      ufComPreposicaoCampo('foroUfComPreposicao', 'Foro — Estado com a preposição', 'foroUf'),
+      { id: 'numeroVias', label: 'Número de vias', tipo: 'inteiro', manual: true },
+      cardinalCampo('numeroViasExtenso', 'Número de vias (por extenso)', 'numeroVias'),
+      /**
+       * O instituto que apura o preço na praça do foro, citado no parágrafo da
+       * mora ("os preços apurados pelo IMEA – Instituto Mato-Grossense de
+       * Economia e Agropecuária").
+       *
+       * `manual` e NÃO derivado da UF de propósito: o corpus tem dois institutos
+       * (IMEA no Mato Grosso, IAGRO na Bahia) e não existe tabela dos vinte e
+       * sete. Derivar de duas amostras seria inventar o nome do órgão para
+       * vinte e cinco estados, e um contrato que cita um instituto inexistente é
+       * pior do que um contrato com lacuna assinalável.
+       */
+      { id: 'institutoPreco', label: 'Instituto que apura o preço (sigla e nome)', tipo: 'texto', manual: true },
+    ],
+  },
+  // De onde vem a posse de um grupo de imóveis, como o Considerando V escreve.
+  // É sempre item de lista ({{#origensDaPosse}}), nunca binding unitário — e o
+  // OUTORGANTE dela não mora aqui: é uma `pessoa` de verdade, alcançada por
+  // {{ outorgante.* }} dentro do item, pelo mesmo mapeador que qualifica
+  // qualquer outra. O único dado que `pessoa` não guarda é o capital social na
+  // DATA daquele instrumento, que é retrato e por isso é campo desta relação.
+  origemPosse: {
+    tipo: 'origemPosse',
+    label: 'Origem da posse',
+    campos: [
+      { id: 'letra', label: 'Letra da origem (a, b, c…)', tipo: 'texto' },
+      { id: 'itens', label: 'Itens do Anexo que vêm desta origem', tipo: 'texto' },
+      { id: 'advir', label: 'Verbo concordado (advém/advêm)', tipo: 'texto' },
+      { id: 'tipo', label: 'Tipo do instrumento de origem', tipo: 'texto' },
+      { id: 'tipoPorExtenso', label: 'Tipo do instrumento de origem, com a preposição', tipo: 'texto' },
+      { id: 'propria', label: 'Exploração própria? (condicional)', tipo: 'texto' },
+      { id: 'deTerceiro', label: 'Vem de terceiro? (condicional, o engine não tem else)', tipo: 'texto' },
+      { id: 'tituloInstrumento', label: 'Título do instrumento de origem', tipo: 'texto' },
+      { id: 'dataAssinatura', label: 'Data de assinatura da origem', tipo: 'data' },
+      // O Considerando V escreve a data POR EXTENSO ("firmado em 10 de outubro de
+      // 2.022"), como o assinado. Em dd/mm/aaaa a citação do instrumento anterior
+      // sai num formato que nenhum outro trecho do contrato usa.
+      dataExtensoCampo('dataAssinaturaExtenso', 'Data de assinatura da origem (por extenso)', 'dataAssinatura'),
+      { id: 'capitalSocialNaAssinatura', label: 'Capital social do outorgante na assinatura (R$)', tipo: 'valor' },
+      {
+        id: 'capitalSocialNaAssinaturaExtenso',
+        label: 'Capital social do outorgante na assinatura (por extenso)',
+        tipo: 'texto',
+        derivadoDe: 'capitalSocialNaAssinatura',
+        derivar: (v) => {
+          const n = paraNumeroBR(v.capitalSocialNaAssinatura);
+          return Number.isFinite(n) ? valorExtenso(n) : '';
+        },
+      },
     ],
   },
 };

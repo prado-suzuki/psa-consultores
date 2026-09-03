@@ -152,16 +152,16 @@ export const UsersRolesView = ({
                           <span key={role}>{getRoleBadge(role)}</span>
                         ))}
                         {user.roles.length === 0 && (
-                          <span className="text-slate-400 text-sm">Sem permissões</span>
+                          <span className="text-muted-foreground text-sm">Sem permissões</span>
                         )}
                       </div>
                     </TableCell>
                     {columns.map((role) => (
                       <TableCell key={role} className="text-center">
                         {user.roles.includes(role) ? (
-                          <CheckCircle className="h-5 w-5 text-emerald-500 mx-auto" />
+                          <CheckCircle className="h-5 w-5 text-status-feito mx-auto" />
                         ) : (
-                          <XCircle className="h-5 w-5 text-slate-300 mx-auto" />
+                          <XCircle className="h-5 w-5 text-muted-foreground/40 mx-auto" />
                         )}
                       </TableCell>
                     ))}

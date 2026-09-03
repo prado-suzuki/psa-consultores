@@ -1,0 +1,168 @@
+{
+  "rodada": "demonstracao aumento-capital-novos-imoveis 01/09/2026",
+  "alvo_do_app": {
+    "comando": "curl -s http://localhost:8080/src/integrations/supabase/client.ts | grep -oE 'https://[a-z]+\\.supabase\\.co' | sort -u",
+    "saida_literal": "https://vgzomuwnsdgrxbkyoavq.supabase.co",
+    "branch": "feat/papeis-de-documento",
+    "status": "OK - sandbox confirmado"
+  },
+  "cenario_no_inicio": {
+    "status": "DIVERGE - cenario NAO estava zerado; estava no estado de fim do passo 10",
+    "provas": [
+      "Quadro/Farroupilha: 'Lista de Socios (1)' + 'Quadro registrado, apurado da movimentacao de quotas' + 'Jatoba Sementes S.A. ... 2.628.542 ... 100,00%'",
+      "Quadro/Farroupilha: 'Atos societarios (1) ... Subida das quotas da Farroupilha Comercio Ltda para a Jatoba Sementes S.A. 02/09/2026 - 3 lancamento(s) nesta empresa / Formalizado em documento'",
+      "Quadro/Jatoba: 'Lista de Socios (3)' Marina 367.166, Lucas 1.847.167, Heitor 415.209, Total 2.629.542",
+      "Diagnostico: BS 60/61/62 = 'Integralizado' (roteiro secao 3 diz 'Aprovado para 2a Instancia')",
+      "Gerar/Agro/Farroupilha: folha compoe 'PRIMEIRA ALTERACAO E CONSOLIDACAO DO CONTRATO SOCIAL' e o rail diz 'Registrado na junta / Esta peca esta travada: ela ja produziu efeito e nao se reescreve. / Gerar alteracao contratual'"
+    ],
+    "decisao": "passos 1 a 10 nao foram executados (impossivel: ja gravados/registrados). Segui do passo 11, cuja precondicao esta exatamente satisfeita.",
+    "screenshots": [
+      ".playwright-mcp/estado-inicial-farroupilha.png",
+      ".playwright-mcp/estado-inicial-jatoba.png",
+      ".playwright-mcp/estado-inicial-diagnostico.png",
+      ".playwright-mcp/estado-inicial-gerar-farroupilha.png"
+    ]
+  },
+  "passos": [
+    {
+      "passo": "1-10",
+      "status": "NAO EXECUTADO (ja estavam feitos no cenario)",
+      "obs": "ver cenario_no_inicio"
+    },
+    {
+      "passo": "5 (V1 ausencia) - reobservado no estado herdado",
+      "status": "OK",
+      "prova": "Quadro/Farroupilha antes do passo 11: main innerText nao contem 'fora do capital' nem 'Registrar aumento de capital'; card diz 'Lista de Socios (1) / Quadro registrado, apurado da movimentacao de quotas / Transferir quotas para a controladora'",
+      "screenshot": ".playwright-mcp/estado-inicial-farroupilha.png"
+    },
+    {
+      "passo": "5 (V4 1a metade) - reobservado",
+      "status": "OK",
+      "prova": "Diagnostico: 'BS 60 Imovel Rural Fazenda Pterodactilo R$ 1.480.000,00 - Integralizado', 'BS 61 ... Fazenda Ossada Boa R$ 733.333,33 - Integralizado', 'BS 62 Imovel Urbano Sala Comercial Cratera R$ 415.209,00 - Integralizado'",
+      "screenshot": ".playwright-mcp/estado-inicial-diagnostico.png"
+    },
+    {
+      "passo": "11 parte 1 - aprovar BS 01",
+      "status": "OK",
+      "http": "200 PATCH .../rest/v1/bem?id=eq.fd6e6868-1be6-41c5-b7d9-9c3537874647",
+      "prova": "linha da tabela: 'BS 01 | Imovel Rural | Imovel A3B8FE | R$ 250.000,00 | - | Aprovado'",
+      "screenshot": ".playwright-mcp/p11a-bs01-aprovado.png"
+    },
+    {
+      "passo": "11 parte 2 - card do aumento (V1 presenca)",
+      "status": "OK",
+      "prova": "'1 imovel(is) aprovado(s) fora do capital' / 'Aprovados no Diagnostico Patrimonial depois da constituicao, eles ainda nao entraram no capital desta empresa. Registre o aumento para que a proxima alteracao contratual o publique.' / botao 'Registrar aumento de capital'",
+      "screenshot": ".playwright-mcp/p11b-card-aumento.png"
+    },
+    {
+      "passo": "11 parte 3 - rodape do modal (V3)",
+      "status": "OK",
+      "prova": "'O QUE SERA GRAVADO / 2 lancamento(s) de aporte, em um ato / 345.209 quotas / Capital hoje R$ 2.628.542,00 / Aumento R$ 345.209,00 / Capital depois do ato R$ 2.973.751,00'; digitado 95.209,23 no campo do Lucas; imovel lido: 'Imovel A3B8FE / Matricula 2.424 - Lucas do Rio Verde/MT - Lucas Nogueira / R$ 250.000,00'; nome do ato default ja preenchido: 'Aumento de capital por integralizacao de imoveis'",
+      "screenshot": ".playwright-mcp/p11c-modal-aumento-antes-de-gravar.png"
+    },
+    {
+      "passo": "11 parte 4 - gravar",
+      "status": "OK",
+      "http": "201 POST .../rest/v1/ato_societario?select=id",
+      "prova": "toast 'Aumento de capital gravado'; card do aumento sumiu (regex 'fora do capital' = false)",
+      "screenshot": ".playwright-mcp/p12-quadro-apos-aumento.png"
+    },
+    {
+      "passo": "12 - procedencia (V2)",
+      "status": "OK com ressalva",
+      "prova": "linha Lucas Nogueira, rotulos na ordem: 'Constituicao' / 'Subida das quotas da Farroupilha Comercio Ltda para a Jatoba Sementes S.A.' / 'Aumento de capital por integralizacao de imoveis' | 345.209 | R$ 345.209,00 | 11,61%. Linha Jatoba: 'Subida das quotas...' | 2.628.542 | 88,39%. Total 2.973.751 / R$ 2.973.751,00. Card 'Atos societarios (2)' traz 'Aumento de capital por integralizacao de imoveis / 01/09/2026 - 2 lancamento(s) nesta empresa / Desfazer'",
+      "ressalva": "a assercao limpa que o roteiro pede na linha do Heitor Cardoso nao e observavel: Heitor nao esta no quadro da Farroupilha (foi a saldo zero na concentracao e nao voltou, porque o BS 01 e do Lucas). O roteiro diz 'Heitor NAO e fundador: entrou no quadro so pelo aumento, com o BS 62', o que contradiz a propria secao 3 do roteiro, que poe o BS 62 na constituicao. Divergencia interna do roteiro, nao do software.",
+      "screenshot": ".playwright-mcp/p12-quadro-apos-aumento.png"
+    },
+    {
+      "passo": "13 - assistente da AC2",
+      "status": "OK",
+      "prova": "switches marcados sozinhos, data-state: 'Houve aumento do capital social'=checked, 'Houve integralizacao de capital (em imoveis, quotas ou dinheiro)'=checked, 'Houve entrada ou retirada de socio'=checked; os outros tres=unchecked. Evidencias literais: 'aumento de capital de R$ 2.628.542,00 para R$ 2.973.751,00' / '2 aporte(s) integralizado(s) com bens, moeda corrente' / '1 ingresso(s) no quadro societario'. Os nao marcados dizem 'nada no cadastro registra este evento'.",
+      "screenshot": ".playwright-mcp/p13-assistente-ac2.png"
+    },
+    {
+      "passo": "13 - folha da AC2",
+      "status": "OK no aumento e na integralizacao / DIVERGE na clausula de socios",
+      "prova_ok": "Titulo 'SEGUNDA ALTERACAO E CONSOLIDACAO DO CONTRATO SOCIAL'. CLAUSULA PRIMEIRA: 'Aumenta-se o capital social em R$ 345.209,00 (trezentos e quarenta e cinco mil, duzentos e nove reais), de modo que o capital social anterior de R$ 2.628.542,00 ... passara a ser de R$ 2.973.751,00 ...'. CLAUSULA TERCEIRA: 'Integralizam-se as quotas subscritas, nos termos e pelos valores abaixo: i) pelo socio LUCAS NOGUEIRA, no valor total de R$ 345.209,00 ...: a) Um imovel rural com area de 200,6846 ha ... denominado Imovel A3B8FE ... matricula de no 2.424 ... pelo valor de R$ 250.000,00 (duzentos e cinquenta mil reais). b) em moeda corrente nacional, no valor de R$ 95.209,00 (noventa e cinco mil, duzentos e nove reais).' -> ordem imovel depois moeda, e a parcela em moeda saiu 95.209,00 (nao 95.209,23), confirmando V3 tambem no texto.",
+      "defeito": "CLAUSULA SEGUNDA saiu assim, literal: 'CLAUSULA SEGUNDA: Em virtude das cessoes e transferencias descritas nas clausulas anteriores, por terem cedido a totalidade de suas quotas, os socios  retiram-se da sociedade.' Nesta AC nao houve cessao nenhuma (o evento 'Houve cessao de quotas' veio desmarcado, com 'nada no cadastro registra este evento') e ninguem se retirou: o evento marcado foi '1 ingresso(s) no quadro societario' (Lucas voltando). Alem disso a lista de socios sai vazia, com espaco duplo entre 'os socios' e 'retiram-se'.",
+      "screenshot": ".playwright-mcp/p13-folha-ac2.png"
+    },
+    {
+      "passo": "14 - registrar a AC2",
+      "status": "OK",
+      "http": "validar 201, registrar 200",
+      "prova": "apos validar: 'Versao validada - rascunho | Rever os eventos | Atualizar versaoAtualizar do cadastro | Registrar na junta'. Dialogo: 'Registrar este documento na junta? Marca que Contrato Social - (Agro) foi registrado e trava a peca...'. Depois: 'Registrado na junta | Esta peca esta travada: ela ja produziu efeito e nao se reescreve. | Gerar alteracao contratual'",
+      "screenshot": ".playwright-mcp/p14-rail-ac2-registrada.png"
+    },
+    {
+      "passo": "14 - V4 2a metade",
+      "status": "OK",
+      "prova": "Diagnostico apos o registro, sem ninguem editar o cadastro: 'BS 01 | Imovel Rural | Imovel A3B8FE | R$ 250.000,00 | - | Integralizado'. BS 02/03/08/09 seguem 'Pendente'.",
+      "screenshot": ".playwright-mcp/p14-diagnostico-bs01-integralizado.png"
+    },
+    {
+      "passo": "15 - V5",
+      "status": "OK",
+      "prova": "assistente reaberto: os SEIS eventos trazem 'nada no cadastro registra este evento' e os seis switches estao com data-state=unchecked. Nenhum evento repetido.",
+      "screenshot": ".playwright-mcp/p15-assistente-vazio-v5.png"
+    },
+    {
+      "passo": "16 - V6 segunda concentracao",
+      "status": "OK",
+      "prova": "o modal abriu normal, SEM a mensagem 'A controladora ja e socia da proprietaria: as quotas ja subiram'. 'O QUE SERA GRAVADO: 1 cessao(oes) em Farroupilha Comercio Ltda: 345.209 quotas (R$ 345.209,00) para Jatoba Sementes S.A.. / 1 aporte(s) em Jatoba Sementes S.A., integralizados com essas quotas: R$ 345.209,00.' 'QUADRO DA CONTROLADORA DEPOIS DO ATO: Marina Salgado 367.166 quotas - R$ 367.166,00 / Lucas Nogueira 2.192.376 quotas - R$ 2.192.376,00 / Heitor Cardoso 415.209 quotas - R$ 415.209,00'. Lucas somou (1.847.167 + 345.209 = 2.192.376). Jatoba nao aparece cedendo. Aviso ambar esperado presente: 'O capital de constituicao da controladora nao some, entao o quadro dela nao reproduz a proporcao da proprietaria (Lucas Nogueira: 11,609% na proprietaria, 73,699% na controladora). Ajuste antes de subir, ou aceite que a proporcao sera corrigida por uma alteracao contratual propria.'",
+      "http": "201 POST rest/v1",
+      "depois": "Farroupilha: 'Lista de Socios (1)' / 'Jatoba Sementes S.A. ... 2.973.751 | R$ 2.973.751,00 | 100,00%'; 'Atos societarios (3)' com a segunda 'Subida das quotas ... 01/09/2026 - 1 lancamento(s) nesta empresa / Desfazer'",
+      "screenshots": [
+        ".playwright-mcp/p16-modal-2a-concentracao-antes.png",
+        ".playwright-mcp/p16-quadro-apos-2a-concentracao.png"
+      ]
+    },
+    {
+      "passo": "17 - AC3 assistente",
+      "status": "OK",
+      "prova": "switches: 'Houve cessao de quotas entre socios ou para terceiro'=checked com '1 cessao(oes) somando 345.209 quotas'; 'Houve mudanca na administracao da sociedade'=checked com '2 administrador(es) passa(m) a administrar sem estar no quadro societario'; 'Houve entrada ou retirada de socio'=checked com '1 retirada(s) no quadro societario'. 'Houve aumento do capital social'=unchecked, 'nada no cadastro registra este evento'.",
+      "screenshot": ".playwright-mcp/p17-assistente-ac3.png"
+    },
+    {
+      "passo": "17 - AC3 folha e registro",
+      "status": "OK",
+      "http": "gerar 201, validar ok, registrar 200",
+      "prova": "'TERCEIRA ALTERACAO E CONSOLIDACAO DO CONTRATO SOCIAL'. CLAUSULA PRIMEIRA: 'Formaliza-se a cessao e transferencia de quotas ... i) LUCAS NOGUEIRA ... cede e transfere 345.209 ... quotas ... a JATOBA SEMENTES S.A. ...'. CLAUSULA SEGUNDA: 'Em virtude das cessoes e transferencias descritas nas clausulas anteriores, por ter cedido a totalidade de suas quotas, o socio LUCAS NOGUEIRA retira-se da sociedade.' Rail final: 'Registrado na junta | Esta peca esta travada: ela ja produziu efeito e nao se reescreve.'",
+      "nota": "aqui a clausula de retirada saiu com o nome do socio, o que confirma que a versao vazia da AC2 (passo 13) e defeito, nao ausencia de dado por desenho.",
+      "screenshots": [
+        ".playwright-mcp/p17-folha-ac3.png",
+        ".playwright-mcp/p17-rail-ac3-registrada.png"
+      ]
+    }
+  ],
+  "veredito_pontos": {
+    "V1": "PROVADO - ausencia observada duas vezes (Farroupilha antes do passo 11, sem 'fora do capital' nem botao) e presenca no passo 11: '1 imovel(is) aprovado(s) fora do capital'; sumiu de novo depois de gravar.",
+    "V2": "PROVADO com ressalva - a linha do Lucas traz os tres rotulos, na ordem 'Constituicao' / 'Subida das quotas...' / 'Aumento de capital por integralizacao de imoveis'. A assercao limpa do Heitor nao e observavel: ele nao esta no quadro da Farroupilha, e o roteiro se contradiz sobre a origem dele.",
+    "V3": "PROVADO - 95.209,23 digitado virou 95.209 quotas; rodape 'Capital hoje R$ 2.628.542,00 / Aumento R$ 345.209,00 / Capital depois do ato R$ 2.973.751,00'; e o texto da AC2 diz 'em moeda corrente nacional, no valor de R$ 95.209,00'.",
+    "V4": "PROVADO nas duas metades - 1a metade herdada do cenario (BS 60/61/62 Integralizado); 2a metade executada por mim: BS 01 virou Integralizado sozinho depois do registro da AC2.",
+    "V5": "PROVADO - assistente reaberto com os seis eventos em 'nada no cadastro registra este evento' e todos unchecked.",
+    "V6": "PROVADO - sem a mensagem de bloqueio; '1 cessao(oes) em Farroupilha Comercio Ltda: 345.209 quotas (R$ 345.209,00)'; Lucas somou para 2.192.376 na controladora; Farroupilha voltou a 'Lista de Socios (1)'."
+  },
+  "defeitos": [
+    {
+      "onde": "passo 13, folha da AC2",
+      "sintoma": "clausula de retirada de socio narra cessao e retirada que nao existiram nesta peca, e sai sem nome de socio",
+      "texto_literal": "CLAUSULA SEGUNDA: Em virtude das cessoes e transferencias descritas nas clausulas anteriores, por terem cedido a totalidade de suas quotas, os socios  retiram-se da sociedade.",
+      "contexto": "nesta AC o unico evento de socio era '1 ingresso(s) no quadro societario' (Lucas voltando pelo aumento); 'Houve cessao de quotas' veio desmarcado com 'nada no cadastro registra este evento'. A lista de socios sai vazia (espaco duplo entre 'os socios' e 'retiram-se').",
+      "contraprova": "na AC3, com cessao real, o mesmo bloco saiu correto: 'por ter cedido a totalidade de suas quotas, o socio LUCAS NOGUEIRA retira-se da sociedade'"
+    }
+  ],
+  "fora_de_escopo": [
+    {
+      "o_que": "3 erros de console 401 Unauthorized em http://localhost:8000/api/v1/osg/documentos/georreferenciamento?matricula_id=57cb6f91-1868-4323-b04c-c9c021b578f5",
+      "obs": "backend separado na porta 8000, nao e o app da 8080; nao bloqueou nenhum passo"
+    }
+  ],
+  "alteracoes_de_dado": [
+    "BS 01: status 'Pendente' -> 'Aprovado' (autorizado pelo passo 11); depois virou 'Integralizado' sozinho pelo registro da AC2",
+    "Gravado o ato 'Aumento de capital por integralizacao de imoveis' (01/09/2026, 2 lancamentos) na Farroupilha",
+    "Gerada e registrada a AC2 (SEGUNDA ALTERACAO) e a AC3 (TERCEIRA ALTERACAO) da Farroupilha",
+    "Gravada a segunda subida de quotas (01/09/2026, 1 lancamento)",
+    "NADA foi revertido: o cenario ficou no fim do passo 17. Reset e gesto de quem conduz."
+  ]
+}

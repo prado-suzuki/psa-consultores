@@ -6,20 +6,33 @@ import { useClienteClusters } from '@/hooks/useClienteClusters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Send, FileText, X } from 'lucide-react';
 import { z } from 'zod';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { TicketRichTextEditor } from '@/components/chamados/TicketRichTextEditor';
 import { ticketRichTextToPlain } from '@/components/chamados/ticketRichTextFormat';
+import { DEPARTAMENTO_VALUES, DEPARTAMENTOS_CHAMADO } from '@/lib/chamadosDepartamentos';
 
 const ticketSchema = z.object({
-  title: z.string().min(5, 'Título deve ter no mínimo 5 caracteres').max(100, 'Título deve ter no máximo 100 caracteres'),
-  department: z.enum(['contabilidade', 'icms_ipi', 'irpj_csll', 'pis_cofins', 'produtor_rural', 'outros'], {
-    errorMap: () => ({ message: 'Selecione um departamento' })
+  title: z
+    .string()
+    .min(5, 'Título deve ter no mínimo 5 caracteres')
+    .max(100, 'Título deve ter no máximo 100 caracteres'),
+  department: z.enum(DEPARTAMENTO_VALUES, {
+    errorMap: () => ({ message: 'Selecione um departamento' }),
   }),
-  descriptionPlain: z.string().min(10, 'Descrição deve ter no mínimo 10 caracteres').max(5000, 'Descrição deve ter no máximo 5000 caracteres'),
+  descriptionPlain: z
+    .string()
+    .min(10, 'Descrição deve ter no mínimo 10 caracteres')
+    .max(5000, 'Descrição deve ter no máximo 5000 caracteres'),
   priority: z.enum(['baixa', 'normal', 'alta', 'urgente']),
 });
 
@@ -43,7 +56,7 @@ export default function NovoChamado() {
   // Auto-select when exactly 1 cluster
   useEffect(() => {
     if (clusters.length === 1 && !form.cluster_id) {
-      setForm(prev => ({ ...prev, cluster_id: clusters[0].id }));
+      setForm((prev) => ({ ...prev, cluster_id: clusters[0].id }));
     }
   }, [clusters]);
   const [errors, setErrors] = useState<any>({});
@@ -52,7 +65,7 @@ export default function NovoChamado() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      const validFiles = files.filter(file => {
+      const validFiles = files.filter((file) => {
         if (file.size > MAX_FILE_SIZE) {
           toast({
             title: 'Arquivo muito grande',
@@ -149,21 +162,30 @@ export default function NovoChamado() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6 bg-background p-8 rounded-lg shadow-sm">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-6 bg-background p-8 rounded-lg shadow-sm"
+          >
             {/* Cluster select — only shown when client has 2+ clusters */}
             {!loadingClusters && clusters.length > 1 && (
               <div className="space-y-2">
-                <Label>Para qual empresa é o chamado? <RequiredMark /></Label>
+                <Label>
+                  Para qual empresa é o chamado? <RequiredMark />
+                </Label>
                 <Select
                   value={form.cluster_id}
                   onValueChange={(value) => setForm({ ...form, cluster_id: value })}
                 >
-                  <SelectTrigger className={!form.cluster_id && errors.cluster_id ? 'border-destructive' : ''}>
+                  <SelectTrigger
+                    className={!form.cluster_id && errors.cluster_id ? 'border-destructive' : ''}
+                  >
                     <SelectValue placeholder="Selecione a empresa" />
                   </SelectTrigger>
                   <SelectContent>
                     {clusters.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -178,7 +200,9 @@ export default function NovoChamado() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="title">Título do Chamado <RequiredMark /></Label>
+              <Label htmlFor="title">
+                Título do Chamado <RequiredMark />
+              </Label>
               <Input
                 id="title"
                 placeholder="Descreva brevemente o assunto"
@@ -186,37 +210,39 @@ export default function NovoChamado() {
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 className={errors.title ? 'border-destructive' : ''}
               />
-              {errors.title && (
-                <p className="text-sm text-destructive">{errors.title}</p>
-              )}
+              {errors.title && <p className="text-sm text-destructive">{errors.title}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="department">Departamento <RequiredMark /> (Para qual área é sua dúvida?)</Label>
-              <Select 
-                value={form.department} 
+              <Label htmlFor="department">
+                Departamento <RequiredMark /> (Para qual área é sua dúvida?)
+              </Label>
+              <Select
+                value={form.department}
                 onValueChange={(value) => setForm({ ...form, department: value })}
               >
                 <SelectTrigger className={errors.department ? 'border-destructive' : ''}>
                   <SelectValue placeholder="Selecione o departamento" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="contabilidade">Contabilidade/Societário</SelectItem>
-                  <SelectItem value="icms_ipi">ICMS/IPI</SelectItem>
-                  <SelectItem value="irpj_csll">IRPJ/CSLL</SelectItem>
-                  <SelectItem value="pis_cofins">PIS/COFINS</SelectItem>
-                  <SelectItem value="produtor_rural">Produtor Rural PF</SelectItem>
-                  <SelectItem value="outros">Outros</SelectItem>
+                  {DEPARTAMENTOS_CHAMADO.map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              {errors.department && (
-                <p className="text-sm text-destructive">{errors.department}</p>
-              )}
+              {errors.department && <p className="text-sm text-destructive">{errors.department}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="priority">Prioridade <RequiredMark /></Label>
-              <Select value={form.priority} onValueChange={(value) => setForm({ ...form, priority: value })}>
+              <Label htmlFor="priority">
+                Prioridade <RequiredMark />
+              </Label>
+              <Select
+                value={form.priority}
+                onValueChange={(value) => setForm({ ...form, priority: value })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -230,7 +256,9 @@ export default function NovoChamado() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Descrição Detalhada <RequiredMark /></Label>
+              <Label htmlFor="description">
+                Descrição Detalhada <RequiredMark />
+              </Label>
               <TicketRichTextEditor
                 value={form.description}
                 onChange={(v) => setForm({ ...form, description: v })}
@@ -260,7 +288,10 @@ export default function NovoChamado() {
               {selectedFiles.length > 0 && (
                 <div className="space-y-1 mt-2">
                   {selectedFiles.map((file, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm bg-muted p-2 rounded">
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 text-sm bg-muted p-2 rounded"
+                    >
                       <FileText className="h-4 w-4" />
                       <span className="flex-1 truncate">{file.name}</span>
                       <span className="text-muted-foreground">

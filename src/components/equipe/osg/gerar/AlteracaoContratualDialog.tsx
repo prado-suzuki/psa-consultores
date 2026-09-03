@@ -121,7 +121,7 @@ export const AlteracaoContratualDialog = ({
                   >
                     <ToggleRight
                       aria-hidden
-                      className={cn('h-4 w-4 shrink-0', ligada ? 'text-osg-moss' : 'text-slate-300')}
+                      className={cn('h-4 w-4 shrink-0', ligada ? 'text-osg-moss' : 'text-muted-foreground/40')}
                     />
                     <div className="min-w-0 flex-1 space-y-0.5">
                       <Label
@@ -138,7 +138,7 @@ export const AlteracaoContratualDialog = ({
                       <p
                         className={cn(
                           'text-xs',
-                          evidencia ? 'text-osg-700' : 'text-slate-400',
+                          evidencia ? 'text-osg-700' : 'text-muted-foreground',
                         )}
                       >
                         {evidencia ?? 'nada no cadastro registra este evento'}

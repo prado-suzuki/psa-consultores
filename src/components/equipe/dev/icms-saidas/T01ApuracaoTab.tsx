@@ -38,7 +38,7 @@ export const T01ApuracaoTab = ({
     return (
       <Card className="border-border border-dashed">
         <CardContent className="p-12 text-center">
-          <Calculator className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+          <Calculator className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
           <p className="text-muted-foreground">Selecione os filtros e clique em Buscar para carregar a apuração.</p>
         </CardContent>
       </Card>

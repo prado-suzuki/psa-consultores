@@ -141,12 +141,12 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
           {mode === 'existente' && (
             <div>
               <Label>Documentação já cadastrada no sistema</Label>
-              <p className="text-xs text-slate-400 mt-0.5 mb-2">
+              <p className="text-xs text-muted-foreground mt-0.5 mb-2">
                 SOPs dos processos mapeados. Escolher daqui não cria uma segunda cópia do arquivo.
               </p>
 
               <div className="relative mb-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar processo..."
                   value={buscaFonte}
@@ -157,9 +157,9 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
 
               <div className="max-h-56 overflow-y-auto border border-border rounded-lg divide-y divide-border">
                 {carregandoFontes ? (
-                  <p className="text-sm text-slate-400 p-4 text-center">Carregando...</p>
+                  <p className="text-sm text-muted-foreground p-4 text-center">Carregando...</p>
                 ) : fontesFiltradas.length === 0 ? (
-                  <p className="text-sm text-slate-400 p-4 text-center">
+                  <p className="text-sm text-muted-foreground p-4 text-center">
                     {fontes.length === 0
                       ? 'Nenhum processo mapeado tem SOP em PDF, DOCX ou link.'
                       : 'Nenhum processo com esse nome.'}
@@ -181,13 +181,13 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
                         }`}
                       >
                         {f.tipo === 'link' ? (
-                          <ExternalLink className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                          <ExternalLink className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                         ) : (
-                          <FileText className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                          <FileText className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                         )}
                         <span className="flex-1 min-w-0">
                           <span className="block text-sm text-foreground truncate">{f.titulo}</span>
-                          <span className="block text-xs text-slate-400">
+                          <span className="block text-xs text-muted-foreground">
                             {f.jaNaBiblioteca ? 'Já está na biblioteca' : f.subtitulo}
                           </span>
                         </span>
@@ -211,7 +211,7 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
               {/* O leitor busca a página sem estar logado em nada. Documento
                   privado do Drive/Notion devolve a tela de login, e era ela que
                   a IA acabava resumindo. */}
-              <p className="text-xs text-slate-400 mt-1.5 flex gap-1.5">
+              <p className="text-xs text-muted-foreground mt-1.5 flex gap-1.5">
                 <Info className="h-3.5 w-3.5 flex-shrink-0 mt-px" />
                 O link precisa abrir sem login. Documento restrito do Drive, Notion ou
                 Confluence não pode ser lido — nesse caso, anexe o arquivo.
@@ -229,7 +229,7 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
                 {file ? (
                   <p className="text-sm text-foreground font-medium">{file.name}</p>
                 ) : (
-                  <p className="text-sm text-slate-400">Clique ou arraste um arquivo PDF/DOCX</p>
+                  <p className="text-sm text-muted-foreground">Clique ou arraste um arquivo PDF/DOCX</p>
                 )}
               </div>
               <input
@@ -247,7 +247,7 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
                   setFile(f);
                 }}
               />
-              <p className="text-xs text-slate-400 mt-1.5 flex gap-1.5">
+              <p className="text-xs text-muted-foreground mt-1.5 flex gap-1.5">
                 <Info className="h-3.5 w-3.5 flex-shrink-0 mt-px" />
                 PDF escaneado não tem texto, só imagem — a leitura vai falhar e avisar.
               </p>
@@ -257,7 +257,7 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
           {/* Processos */}
           <div>
             <Label className="text-muted-foreground">Processos sugeridos (opcional)</Label>
-            <p className="text-xs text-slate-400 mt-0.5 mb-2">
+            <p className="text-xs text-muted-foreground mt-0.5 mb-2">
               A IA sugere os dela; o que você marcar aqui entra junto.
             </p>
             <div className="grid grid-cols-2 gap-2">

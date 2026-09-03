@@ -19,6 +19,8 @@ interface NamedOption {
 
 interface DashboardFiltersProps {
   filters: Filters;
+  /** Nomes de cliente presentes nos chamados carregados, já ordenados. */
+  clientes: string[];
   areas: NamedOption[];
   clusters: NamedOption[];
   onChange: (filters: Filters) => void;
@@ -53,17 +55,32 @@ function FilterSelect({ label, value, options, onChange }: FilterSelectProps) {
   );
 }
 
-export function DashboardFilters({ filters, areas, clusters, onChange }: DashboardFiltersProps) {
+export function DashboardFilters({
+  filters,
+  clientes,
+  areas,
+  clusters,
+  onChange,
+}: DashboardFiltersProps) {
   const update = (field: keyof Filters) => (value: string) =>
     onChange({ ...filters, [field]: value });
   return (
     <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <FilterSelect
           label="Período"
           value={filters.periodo}
           options={Object.entries(periodoLabels)}
           onChange={update('periodo')}
+        />
+        <FilterSelect
+          label="Cliente"
+          value={filters.cliente}
+          options={[
+            ['todos', 'Todos'],
+            ...clientes.map((nome) => [nome, nome] as [string, string]),
+          ]}
+          onChange={update('cliente')}
         />
         <FilterSelect
           label="Departamento"

@@ -19,6 +19,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Plus, Upload, X, FileText } from 'lucide-react';
 import { RequiredMark } from '@/components/ui/required-mark';
+import { departmentLabels } from '@/lib/chamadosDepartamentos';
 
 interface CreateTicketDialogProps {
   open: boolean;
@@ -26,14 +27,6 @@ interface CreateTicketDialogProps {
   onSuccess: () => void;
 }
 
-const departmentLabels: Record<string, string> = {
-  contabilidade: 'Contabilidade/Societário',
-  icms_ipi: 'ICMS/IPI',
-  irpj_csll: 'IRPJ/CSLL',
-  pis_cofins: 'PIS/COFINS',
-  produtor_rural: 'Produtor Rural PF',
-  outros: 'Outros',
-};
 
 const priorityLabels: Record<string, string> = {
   baixa: 'Baixa',

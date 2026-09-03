@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   createMutate: vi.fn(),
   updateMutate: vi.fn(),
   deleteMutate: vi.fn(),
+  resumoExclusaoProjeto: vi.fn(),
   useTeamProfilesSafe: vi.fn(),
   useTeamRolesForProjects: vi.fn(),
   useExternalClients: vi.fn(),
@@ -97,6 +98,7 @@ vi.mock('@/hooks/useOrgProjects', () => ({
   useCreateOrgProject: () => ({ mutate: mocks.createMutate, isPending: false }),
   useUpdateOrgProject: () => ({ mutate: mocks.updateMutate, isPending: false }),
   useDeleteOrgProject: () => ({ mutate: mocks.deleteMutate, isPending: false }),
+  resumoExclusaoProjeto: mocks.resumoExclusaoProjeto,
 }));
 vi.mock('@/hooks/useEstruturaEquipe', () => ({ useEstruturaEquipe: mocks.useEstruturaEquipe }));
 vi.mock('@/hooks/useEstruturaEquipes', () => ({
@@ -270,6 +272,8 @@ beforeEach(() => {
     ),
   }));
   mocks.useProjectHours.mockReturnValue({ data: {} });
+  // Padrão: projeto sem tarefas bloqueantes — a guarda abre o diálogo.
+  mocks.resumoExclusaoProjeto.mockResolvedValue({ total: 0, bloqueantes: 0 });
   mocks.useProjectMemberAreas.mockReturnValue({
     data: {
       'project-tax': { ids: ['area-tax'], names: ['Fiscal'] },
@@ -425,13 +429,44 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
     const row = screen.getByText('Zeta Tax').closest('tr');
     if (!row) throw new Error('Linha do projeto ausente');
     await user.click(within(row).getAllByRole('button')[1]);
-    expect(screen.getByRole('alertdialog')).toHaveTextContent('Esta ação não pode ser desfeita');
+    // A guarda consulta o resumo no banco antes — o diálogo abre de forma assíncrona.
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent('Esta ação não pode ser desfeita');
     await user.click(screen.getByRole('button', { name: 'Excluir' }));
 
     expect(mocks.deleteMutate).toHaveBeenCalledWith(
       { id: 'project-tax', name: 'Zeta Tax' },
       expect.objectContaining({ onSuccess: expect.any(Function) }),
     );
+  });
+
+  it('avisa no diálogo quantas tarefas em Backlog/A Fazer vão junto com o projeto', async () => {
+    mocks.resumoExclusaoProjeto.mockResolvedValue({ total: 3, bloqueantes: 0 });
+    const user = userEvent.setup();
+    render(<ProjetosCadastroContent />);
+
+    const row = screen.getByText('Zeta Tax').closest('tr');
+    if (!row) throw new Error('Linha do projeto ausente');
+    await user.click(within(row).getAllByRole('button')[1]);
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent(
+      'Este projeto tem 3 tarefa(s) em Backlog/A Fazer, que serão excluídas junto com ele. Esta ação não pode ser desfeita.',
+    );
+  });
+
+  it('recusa a exclusão antes de abrir o diálogo quando há tarefa fora de Backlog/A Fazer', async () => {
+    mocks.resumoExclusaoProjeto.mockResolvedValue({ total: 5, bloqueantes: 2 });
+    const user = userEvent.setup();
+    render(<ProjetosCadastroContent />);
+
+    const row = screen.getByText('Zeta Tax').closest('tr');
+    if (!row) throw new Error('Linha do projeto ausente');
+    await user.click(within(row).getAllByRole('button')[1]);
+
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith(
+      'Não é possível excluir este projeto: 2 tarefa(s) estão fora de Backlog/A Fazer.',
+      expect.objectContaining({ description: expect.any(String) }),
+    ));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(mocks.deleteMutate).not.toHaveBeenCalled();
   });
 
   it('valida em ordem e cria com OS/produto/equipe, datas automáticas e payload integral', async () => {

@@ -490,6 +490,8 @@ convertido também derruba, pedindo que a contagem caia. A fila só diminui, e n
 fininho. Quem for converter `sucesso`, `feito` ou `ajuste` começa dessa lista em vez de
 reclassificar do zero.
 
+O slate tem a sua, `src/lib/filaDoSlate.test.ts`, e ela **nasce vazia**: a família foi a zero em 01/09 e a catraca existe para que não volte. As duas compartilham o scanner de `src/lib/medirCorCrua.ts` — se for escrever a terceira, é de lá que ela sai.
+
 Não virou regra de ESLint porque `bg-amber-50` é classe válida do Tailwind: a regra
 `escala/cor-de-estoque` só dispara em nome que o projeto **também** define (`teal`, `lime`,
 `gray`). Sobrariam `warn` global, que joga os sítios num monte indistinto e perde o motivo,

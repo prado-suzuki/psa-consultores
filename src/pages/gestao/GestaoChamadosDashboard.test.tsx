@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   firstResponses: vi.fn(),
   areas: vi.fn(),
   clusters: vi.fn(),
+  equipePorPessoa: vi.fn(),
 }));
 
 vi.mock('@/hooks/useTickets', () => ({
@@ -27,6 +28,10 @@ vi.mock('@/hooks/useTickets', () => ({
 vi.mock('@/hooks/useEstruturaAreas', () => ({
   useAllActiveAreas: mocks.areas,
   useAllActiveClusters: mocks.clusters,
+}));
+
+vi.mock('@/hooks/useEstruturaEquipes', () => ({
+  useEquipePorPessoa: mocks.equipePorPessoa,
 }));
 
 vi.mock('@/components/gestao/GestaoLayout', () => ({
@@ -168,6 +173,7 @@ function renderPage() {
       <Routes>
         <Route path="/gestao/chamados/dashboard" element={<GestaoChamadosDashboard />} />
         <Route path="/gestao/chamados" element={<h1>Destino lista</h1>} />
+        <Route path="/gestao/chamados/:id" element={<h1>Destino detalhe</h1>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -216,6 +222,12 @@ beforeEach(() => {
       { id: 'cluster-b', name: 'Cluster Beta' },
     ],
   });
+  mocks.equipePorPessoa.mockReturnValue({
+    data: new Map([
+      ['agente-1', 'Equipe Fiscal'],
+      ['agente-2', 'Equipe Pontuais'],
+    ]),
+  });
 });
 
 afterEach(() => {
@@ -223,14 +235,19 @@ afterEach(() => {
 });
 
 describe('GestaoChamadosDashboard', () => {
-  it('calcula KPIs, tempos e distribuições sobre o intervalo móvel padrão', () => {
+  it('calcula KPIs, tempos e distribuições sobre o intervalo móvel de 30 dias', () => {
     renderPage();
 
+    // O padrão da tela é a série do canal; aqui o recorte móvel é o assunto.
+    chooseFilter(0, 'Últimos 30 dias');
     expect(kpi('Total')).toHaveTextContent('3');
     expect(kpi('Total')).toHaveTextContent('Últimos 30 dias');
     expect(kpi('Respondidos')).toHaveTextContent('3');
     expect(kpi('Respondidos')).toHaveTextContent('100% taxa de resposta');
     expect(kpi('Sem Resposta')).toHaveTextContent('0');
+    expect(kpi('No Prazo')).toHaveTextContent('3');
+    expect(kpi('No Prazo')).toHaveTextContent('100% dos respondidos');
+    expect(kpi('Fora do Prazo')).toHaveTextContent('0');
     expect(kpi('Resolvidos')).toHaveTextContent('2');
     expect(kpi('Tempo Médio Resposta')).toHaveTextContent('1.3h');
     expect(kpi('Tempo Médio Resolução')).toHaveTextContent('2.0d');
@@ -268,15 +285,151 @@ describe('GestaoChamadosDashboard', () => {
   it('aplica filtros por departamento, área e cluster usando os IDs carregados', async () => {
     renderPage();
 
-    chooseFilter(1, 'ICMS/IPI');
+    chooseFilter(2, 'ICMS/IPI');
     expect(kpi('Total')).toHaveTextContent('2');
 
-    chooseFilter(2, 'Fiscal');
+    chooseFilter(3, 'Fiscal');
     expect(kpi('Total')).toHaveTextContent('2');
 
-    chooseFilter(3, 'Cluster Beta');
+    chooseFilter(4, 'Cluster Beta');
     expect(kpi('Total')).toHaveTextContent('1');
     expect(card('Clientes com Mais Chamados').getByText('Cliente A')).toBeInTheDocument();
+  });
+
+  it('separa dentro e fora do prazo pela data-limite de cada chamado', () => {
+    mocks.tickets.mockReturnValue({
+      isLoading: false,
+      data: [
+        // Prazo próprio, respondido no mesmo dia: dentro.
+        ticket({
+          id: 'no-prazo',
+          created_at: iso(-4 * day),
+          deadline: new Date(NOW.getTime() - 2 * day).toISOString().slice(0, 10),
+          cliente_nome: 'Cliente A',
+        }),
+        // Mesmo prazo, respondido dois dias depois dele: fora.
+        ticket({
+          id: 'estourado',
+          created_at: iso(-4 * day),
+          deadline: new Date(NOW.getTime() - 2 * day).toISOString().slice(0, 10),
+          cliente_nome: 'Cliente B',
+        }),
+        // Sem prazo próprio cai em abertura + 5 dias, e a resposta veio no 6º.
+        ticket({ id: 'sem-deadline', created_at: iso(-8 * day), cliente_nome: 'Cliente B' }),
+        // Nunca respondido: não conta nem como dentro nem como fora.
+        ticket({ id: 'mudo', created_at: iso(-day), cliente_nome: 'Cliente B' }),
+      ],
+    });
+    mocks.firstResponses.mockReturnValue({
+      data: new Map<string, TicketFirstResponse>([
+        ['no-prazo', response('no-prazo', 'agente-1', iso(-2 * day - 6 * hour))],
+        ['estourado', response('estourado', 'agente-1', iso(0))],
+        ['sem-deadline', response('sem-deadline', 'agente-2', iso(-2 * day))],
+      ]),
+    });
+    renderPage();
+
+    expect(kpi('Total')).toHaveTextContent('4');
+    expect(kpi('No Prazo')).toHaveTextContent('1');
+    expect(kpi('Fora do Prazo')).toHaveTextContent('2');
+    expect(kpi('Sem Resposta')).toHaveTextContent('1');
+    // A taxa mede os respondidos, então o chamado ainda mudo não a derruba.
+    expect(kpi('No Prazo')).toHaveTextContent('33% dos respondidos');
+
+    // O filtro de cliente recorta o mesmo cálculo.
+    chooseFilter(1, 'Cliente A');
+    expect(kpi('Total')).toHaveTextContent('1');
+    expect(kpi('No Prazo')).toHaveTextContent('1');
+    expect(kpi('Fora do Prazo')).toHaveTextContent('0');
+  });
+
+  it('abre a tabela do recorte ao clicar no KPI e navega para o chamado', () => {
+    mocks.tickets.mockReturnValue({
+      isLoading: false,
+      data: [
+        ticket({
+          id: 'atrasado',
+          title: 'Mapeamento tributário',
+          created_at: iso(-9 * day),
+          cliente_nome: 'Cliente A',
+        }),
+        // Sem resposta, a coluna mostra o designado — de quem se cobra.
+        ticket({
+          id: 'mudo',
+          title: 'Baixa de veículo',
+          created_at: iso(-day),
+          assigned_to: 'agente-2',
+        }),
+      ],
+    });
+    mocks.firstResponses.mockReturnValue({
+      data: new Map<string, TicketFirstResponse>([
+        ['atrasado', response('atrasado', 'agente-1', iso(-2 * day))],
+      ]),
+    });
+    renderPage();
+
+    // Sem clique, nenhuma tabela de prazo na tela.
+    expect(screen.queryByRole('heading', { name: 'Chamados por prazo' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTitle('Ver os chamados respondidos fora do prazo'));
+    const painel = screen.getByRole('heading', { name: 'Chamados por prazo' });
+    expect(painel).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Fora do prazo (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Sem resposta (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mapeamento tributário' })).toBeInTheDocument();
+    // Quem respondeu com atraso aparece na linha.
+    expect(screen.getByRole('columnheader', { name: 'Respondido por' })).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: 'Alice Fiscal' })).toBeInTheDocument();
+
+    // Clicar no mesmo card de novo fecha o painel.
+    fireEvent.click(screen.getByTitle('Ver os chamados respondidos fora do prazo'));
+    expect(screen.queryByRole('heading', { name: 'Chamados por prazo' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTitle('Ver os chamados sem resposta'));
+    expect(screen.getByRole('button', { name: 'Baixa de veículo' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Responsável' })).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: 'Bruno Contábil' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Baixa de veículo' }));
+    expect(screen.getByRole('heading', { name: 'Destino detalhe' })).toBeInTheDocument();
+  });
+
+  it('lista o ranking inteiro, sem cortar num top N', () => {
+    mocks.tickets.mockReturnValue({
+      isLoading: false,
+      data: Array.from({ length: 11 }, (_, indice) =>
+        ticket({ id: `c${indice}`, cliente_nome: `Cliente ${indice}` }),
+      ),
+    });
+    mocks.firstResponses.mockReturnValue({ data: new Map() });
+    renderPage();
+
+    const clientes = card('Clientes com Mais Chamados');
+    expect(clientes.getByText('Cliente 0')).toBeInTheDocument();
+    expect(clientes.getByText('Cliente 10')).toBeInTheDocument();
+    expect(screen.queryByText(/fora do top/)).not.toBeInTheDocument();
+  });
+
+  it('recorta o histórico importado pelo período do início do canal', () => {
+    mocks.tickets.mockReturnValue({
+      isLoading: false,
+      data: [
+        ticket({ id: 'carga', created_at: '2025-09-10T12:00:00.000Z', cliente_nome: 'Cliente A' }),
+        ticket({ id: 'canal', created_at: iso(-2 * day), cliente_nome: 'Cliente A' }),
+      ],
+    });
+    mocks.firstResponses.mockReturnValue({ data: new Map() });
+    renderPage();
+
+    // É o recorte padrão da tela, então a carga já entra fora sem tocar no filtro.
+    expect(kpi('Total')).toHaveTextContent('1');
+    expect(kpi('Total')).toHaveTextContent('Desde o início do canal');
+
+    chooseFilter(0, 'Todas as datas');
+    expect(kpi('Total')).toHaveTextContent('2');
+
+    chooseFilter(0, 'Desde o início do canal');
+    expect(kpi('Total')).toHaveTextContent('1');
   });
 
   it('preserva os agrupamentos atuais por nome ou ID e os responsáveis efetivos/fallback', () => {
@@ -299,6 +452,11 @@ describe('GestaoChamadosDashboard', () => {
     expect(card('Áreas Internas').getByText('Fiscal')).toBeInTheDocument();
     expect(card('Áreas Internas').getByText('Contábil')).toBeInTheDocument();
 
+    // A equipe do chamado vem de quem respondeu, já que o chamado não guarda uma.
+    const equipes = card('Equipes Internas');
+    expect(equipes.getByText('Equipe Fiscal').closest('li')).toHaveTextContent(/2\s*chamados/);
+    expect(equipes.getByText('Equipe Pontuais').closest('li')).toHaveTextContent(/1\s*chamados/);
+
     const responsaveis = card('Responsáveis pela 1ª Resposta');
     expect(responsaveis.getByText('Alice Fiscal')).toBeInTheDocument();
     expect(responsaveis.getByText('Bruno Contábil')).toBeInTheDocument();
@@ -308,6 +466,7 @@ describe('GestaoChamadosDashboard', () => {
   it('conta cada chamado no máximo uma vez por tópico fiscal, incluindo padrões sobrepostos', () => {
     renderPage();
 
+    chooseFilter(0, 'Últimos 30 dias');
     expect(screen.getByTitle('ICMS — 1 chamado')).toBeInTheDocument();
     expect(screen.getByTitle('ICMS-ST — 1 chamado')).toBeInTheDocument();
     expect(screen.getByTitle('PIS — 1 chamado')).toBeInTheDocument();
@@ -342,6 +501,8 @@ describe('GestaoChamadosDashboard', () => {
       'Total',
       'Respondidos',
       'Sem Resposta',
+      'No Prazo',
+      'Fora do Prazo',
       'Resolvidos',
       'Tempo Médio Resposta',
       'Tempo Médio Resolução',

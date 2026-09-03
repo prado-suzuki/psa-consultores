@@ -34,7 +34,7 @@ const FieldTooltip = ({ text }: { text: string }) => (
 
 const ColumnTooltip = ({ label, text }: { label: string; text: string }) => (
   <Tooltip>
-    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/40">
       {label}
     </TooltipTrigger>
     <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
@@ -256,7 +256,7 @@ const MapaNCMPisCofins = () => {
                   <FieldTooltip text={TOOLTIPS.buscar} />
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="NCM, descrição CST, base legal ou setor..."
                     value={search}
@@ -364,13 +364,13 @@ const MapaNCMPisCofins = () => {
                 {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-12">
-                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-12">
-                      <FileSpreadsheet className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+                      <FileSpreadsheet className="h-10 w-10 mx-auto text-muted-foreground/40 mb-2" />
                       <p className="text-sm text-muted-foreground">Nenhuma regra encontrada</p>
                     </TableCell>
                   </TableRow>
@@ -389,7 +389,7 @@ const MapaNCMPisCofins = () => {
                       {regra.permite_credito === 'S' ? (
                         <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-xs">Sim</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-slate-400 text-xs">Não</Badge>
+                        <Badge variant="outline" className="text-muted-foreground text-xs">Não</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">

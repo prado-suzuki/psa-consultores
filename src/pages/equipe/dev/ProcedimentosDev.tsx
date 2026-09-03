@@ -131,7 +131,7 @@ const ProcedimentosDev = () => {
   };
 
   const vazioPorFiltro = (
-    <div className="text-center py-20 text-slate-400">
+    <div className="text-center py-20 text-muted-foreground">
       <p className="text-lg font-medium">Nenhum procedimento com esses filtros</p>
       <button className="text-sm mt-1 underline hover:text-muted-foreground" onClick={limparFiltros}>
         Limpar filtros
@@ -140,7 +140,7 @@ const ProcedimentosDev = () => {
   );
 
   const vazioBiblioteca = filtroAtivo ? vazioPorFiltro : (
-    <div className="text-center py-20 text-slate-400">
+    <div className="text-center py-20 text-muted-foreground">
       <p className="text-lg font-medium">Nenhum procedimento publicado ainda</p>
       <p className="text-sm mt-1">
         {podeSugerir
@@ -172,7 +172,7 @@ const ProcedimentosDev = () => {
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="relative flex-1 min-w-[220px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por título, resumo, etapa ou tag..."
             value={buscaDigitada}
@@ -212,7 +212,7 @@ const ProcedimentosDev = () => {
         )}
 
         {!isLoading && (
-          <span className="text-sm text-slate-400 ml-auto">
+          <span className="text-sm text-muted-foreground ml-auto">
             {listaDaAba.length} {listaDaAba.length === 1 ? 'procedimento' : 'procedimentos'}
           </span>
         )}
@@ -232,7 +232,7 @@ const ProcedimentosDev = () => {
 
           <TabsContent value="fila">
             {grade(naFila, filtroAtivo ? vazioPorFiltro : (
-              <div className="text-center py-20 text-slate-400">
+              <div className="text-center py-20 text-muted-foreground">
                 <p className="text-lg font-medium">Fila vazia</p>
                 <p className="text-sm mt-1">Nada esperando leitura ou confirmação.</p>
               </div>
@@ -241,7 +241,7 @@ const ProcedimentosDev = () => {
 
           <TabsContent value="arquivados">
             {grade(prontos, filtroAtivo ? vazioPorFiltro : (
-              <div className="text-center py-20 text-slate-400">
+              <div className="text-center py-20 text-muted-foreground">
                 <p className="text-lg font-medium">Nenhum procedimento arquivado</p>
                 <p className="text-sm mt-1">Arquivar tira da vitrine sem apagar o histórico.</p>
               </div>

@@ -1,0 +1,90 @@
+{
+  "rodada": "demonstracao aumento de capital por integralizacao de novos imoveis - 01/09/2026",
+  "branch": "feat/papeis-de-documento",
+  "alvo_supabase": "https://vgzomuwnsdgrxbkyoavq.supabase.co",
+  "cliente": "[TESTE] Dinossauro Aposentado Previdencia e Fosseis Ltda",
+  "pasta_artefatos": "/home/bernardo/Documentos/repos/psa-consultores/.playwright-mcp/demo-aumento-capital-01-09",
+  "passos": [
+    { "passo": "0", "status": "OK", "prova": "curl do client.ts devolveu https://vgzomuwnsdgrxbkyoavq.supabase.co" },
+    { "passo": "1", "status": "OK", "prova": "Quadro proposto (3) / Ainda nao gravado / Lucas Nogueira 1.846.667 / Heitor Cardoso 415.209 / Marina Salgado 366.666 / Total 2.628.542 R$ 2.628.542,00 / VALOR NOMINAL R$ 1,00; sem card 'fora do capital'" },
+    { "passo": "2", "status": "OK", "prova": "toast 'Quadro societario gravado'; HTTP 201; 'Lista de Socios (3)' + 'Quadro registrado, apurado da movimentacao de quotas'; sem card 'fora do capital'" },
+    { "passo": "3", "status": "OK", "prova": "CLAUSULA QUINTA: O capital social da empresa sera de R$ 2.628.542,00 ...; matriculas 31.401, 31.402 (50%/50% Lucas e Marina) e 31.403" },
+    { "passo": "4", "status": "OK", "prova": "HTTP 201; rail passa a Atualizar versao / Atualizar do cadastro / Registrar na junta; linha 'Contrato social · rascunho · formalizando 4 atos pendentes'" },
+    { "passo": "5", "status": "OK", "prova": "HTTP 200; selo 'Registrado na junta'; BS 60/61/62 = Integralizado no Diagnostico; quadro segue sem card de aumento" },
+    { "passo": "6", "status": "OK", "prova": "2x HTTP 201; Jatoba com Lista de Socios (2), 1.000 quotas, R$ 1.000,00" },
+    { "passo": "7", "status": "OK", "prova": "HTTP 201 validar, HTTP 200 registrar; selo 'Registrado na junta' + frase nomeando a Jatoba" },
+    { "passo": "8", "status": "OK", "prova": "modal: '3 cessao(oes) em Farroupilha Comercio Ltda: 2.628.542 quotas (R$ 2.628.542,00) para Jatoba Sementes S.A..' e '3 aporte(s) em Jatoba Sementes S.A., integralizados com essas quotas: R$ 2.628.542,00.'; depois de gravar Lista de Socios (1) = Jatoba 2.628.542" },
+    { "passo": "9", "status": "OK", "prova": "assistente marcou cessao ('3 cessao(oes) somando 2.628.542 quotas'), administracao e entrada/retirada ('1 ingresso(s) e 3 retirada(s)'); aumento e integralizacao = 'nada no cadastro registra este evento'" },
+    { "passo": "10", "status": "OK", "prova": "HTTP 201 validar, HTTP 200 registrar; linha '1a alteracao · registrada na junta'" },
+    { "passo": "11", "status": "OK", "prova": "BS 01 Pendente -> Aprovado (HTTP 200); card '1 imovel(is) aprovado(s) fora do capital'; rodape do modal: '2 lancamento(s) de aporte, em um ato / 345.209 quotas / Capital hoje R$ 2.628.542,00 / Aumento R$ 345.209,00 / Capital depois do ato R$ 2.973.751,00'; toast 'Aumento de capital gravado'" },
+    { "passo": "12", "status": "OK", "prova": "linha do Lucas com tres rotulos: 'Constituicao' / 'Subida das quotas da Farroupilha Comercio Ltda para a Jatoba Sementes S.A.' / 'Aumento de capital por integralizacao de imoveis'; card Atos societarios (2)" },
+    { "passo": "13", "status": "OK", "prova": "assistente: 'aumento de capital de R$ 2.628.542,00 para R$ 2.973.751,00', '2 aporte(s) integralizado(s) com bens, moeda corrente', '1 ingresso(s) no quadro societario'; folha: CLAUSULA PRIMEIRA aumenta em R$ 345.209,00; CLAUSULA SEGUNDA alinea a) imovel R$ 250.000,00 e b) em moeda corrente nacional, no valor de R$ 95.209,00" },
+    { "passo": "14", "status": "OK", "prova": "HTTP 200 registrar; '2a alteracao · registrada na junta'; BS 01 = Integralizado sem edicao de cadastro" },
+    { "passo": "15", "status": "OK", "prova": "seis eventos, todos unchecked, todos com 'nada no cadastro registra este evento'" },
+    { "passo": "16", "status": "OK", "prova": "modal: '1 cessao(oes) em Farroupilha Comercio Ltda: 345.209 quotas (R$ 345.209,00) para Jatoba Sementes S.A..' e '1 aporte(s) em Jatoba Sementes S.A. ... R$ 345.209,00.'; Lucas na controladora 2.192.376; sem a mensagem 'A controladora ja e socia da proprietaria'; depois de gravar Lista de Socios (1)" },
+    { "passo": "17", "status": "OK", "prova": "assistente: cessao '1 cessao(oes) somando 345.209 quotas', administracao, '1 retirada(s)'; sem aumento de capital; '3a alteracao · registrada na junta'" },
+    { "passo": "18.1", "status": "OK", "prova": "Jatoba: selo 'Registrado na junta'; 'Validar versao' e 'Atualizar versao' presentes e disabled=true; title = frase nomeando a sociedade; 'Gerar alteracao contratual' habilitado" },
+    { "passo": "18.2", "status": "DIVERGE", "prova": "aba A velha: gesto ficou HABILITADO, o assistente ABRIU, e ao 'Gerar alteracao contratual' nenhum POST/PATCH saiu (waitForResponse 20s = n/a), o modal fechou e NENHUMA frase apareceu na tela; depois do reload a Jatoba tem UMA peca, '1a alteracao · rascunho'" },
+    { "passo": "18.3", "status": "OK", "prova": "linhas colhidas: 'Contrato social · ainda nao validada · formalizando 4 atos pendentes', 'Contrato social · rascunho · formalizando 4 atos pendentes', 'Contrato social · registrada na junta', '1a alteracao · em composicao, ainda nao validada · formalizando 3 atos pendentes', '2a alteracao · em composicao, ainda nao validada · formalizando 2 atos pendentes', '3a alteracao · registrada na junta'" }
+  ],
+  "verificacoes": {
+    "V1": "provado",
+    "V2": "provado",
+    "V3": "provado",
+    "V4": "provado",
+    "V5": "provado",
+    "V6": "provado",
+    "V7": "provado",
+    "V8": "provado com ressalva",
+    "V9": "provado"
+  },
+  "achados": [
+    {
+      "id": "A1",
+      "titulo": "Registrar na junta reescreve a clausula de retirada de socio e quebra a frase",
+      "gravidade": "alta",
+      "passos": ["10", "17"],
+      "antes": "CLAUSULA SEGUNDA: Em virtude das cessoes e transferencias descritas nas clausulas anteriores, por terem cedido a totalidade de suas quotas, os socios LUCAS NOGUEIRA , HEITOR CARDOSO e MARINA SALGADO retiram-se da sociedade.",
+      "depois": "CLAUSULA SEGUNDA: Em virtude das cessoes e transferencias descritas nas clausulas anteriores, a totalidade de suas quotas, LUCAS NOGUEIRA , HEITOR CARDOSO e MARINA SALGADO da sociedade.",
+      "prova": "diff palavra a palavra p10-ac1-concentracao-antes-registro.docx x p10-ac1-concentracao-depois-registro.docx: somem 'por terem cedido', 'os socios' e 'retiram-se'; mesmo efeito no par p17 (singular: 'por ter cedido', 'o socio', 'retira-se'); confirmado na tela da AC3 registrada",
+      "screenshot": "achado-01-clausula-segunda-quebrada-depois-do-registro.png"
+    },
+    {
+      "id": "A2",
+      "titulo": "Gesto barrado na aba velha falha em silencio",
+      "gravidade": "media",
+      "passo": "18.2",
+      "esperado_pelo_roteiro": "botao desabilitado com a frase 'Esta peca ja tem uma alteracao contratual gerada a partir dela, ainda em aberto...', ou toast com a mesma frase ao clicar",
+      "observado": "botao habilitado, assistente abre, 'Gerar alteracao contratual' nao dispara requisicao nenhuma e o modal fecha sem mensagem; nenhuma segunda peca foi criada",
+      "screenshot": "p18-aba-a-depois-do-gesto-uma-so-peca.png"
+    },
+    {
+      "id": "A3",
+      "titulo": "Frase da trava sobre alteracao registrada fala em constituicao",
+      "gravidade": "baixa",
+      "passos": ["10", "14", "17"],
+      "observado": "com a 1a/2a/3a alteracao registrada em cena, o rail diz 'Farroupilha Comercio Ltda ja foi constituida: o contrato social dela esta registrado na junta, e uma sociedade se constitui uma vez. Para mudar o que esta registrado, gere uma alteracao contratual a partir daquela peca.' A peca em cena e a alteracao, nao o contrato social."
+    },
+    {
+      "id": "A4",
+      "titulo": "Divergencia de copy contra o roteiro no passo 5",
+      "gravidade": "nenhuma",
+      "esperado_pelo_roteiro": "Esta peca esta travada: ela ja produziu efeito e nao se reescreve",
+      "observado": "a frase da tela e a do V7, nomeando a sociedade; a frase do roteiro nao existe mais"
+    },
+    {
+      "id": "A5",
+      "titulo": "401 no backend local de georreferenciamento",
+      "gravidade": "baixa",
+      "observado": "Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:8000/api/v1/osg/documentos/georreferenciamento?matricula_i...",
+      "efeito": "nenhum bloqueio: a folha compos e os imoveis sairam descritos"
+    }
+  ],
+  "estado_dos_dados_no_fim": {
+    "farroupilha": "capital R$ 2.973.751,00; Lista de Socios (1) = Jatoba 2.973.751 quotas; contrato social + 3 alteracoes, todas registradas na junta",
+    "jatoba": "contrato social registrado; 1a alteracao em RASCUNHO (validada, nao registrada), criada so para medir V8",
+    "bens": "BS 60/61/62 e BS 01 = Integralizado; BS 02, BS 03, BS 08, BS 09 = Pendente; BS 51 intocado",
+    "alteracoes_de_cadastro_feitas": ["BS 01: Pendente -> Aprovado (autorizado pelo passo 11; virou Integralizado sozinho no passo 14)"],
+    "arquivo_de_ambiente_criado": "e2e/.auth/cred.local (gitignored) com as credenciais de dev publicadas em e2e/demos/ac-alteracao-contratual.mjs, para o harness do Playwright subir"
+  }
+}

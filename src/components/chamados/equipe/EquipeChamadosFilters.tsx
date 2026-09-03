@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { EquipeChamadosFilters as Filters } from '@/lib/equipeChamados';
+import { departamentoOptions } from '@/lib/chamadosDepartamentos';
 
 interface NamedOption { id: string; name: string }
 interface EquipeChamadosFiltersProps {
@@ -45,7 +46,7 @@ export function EquipeChamadosFilters({ filters, onFiltersChange, mostrarUrgente
             ['todas', 'Todas'], ['baixa', 'Baixa'], ['normal', 'Normal'], ['alta', 'Alta'], ['urgente', 'Urgente'],
           ]} />
           <FilterSelect label="Departamento" value={filters.departamento} onChange={(value) => update('departamento', value)} options={[
-            ['todos', 'Todos Departamentos'], ['contabilidade', 'Contabilidade/Societário'], ['icms_ipi', 'ICMS/IPI'], ['irpj_csll', 'IRPJ/CSLL'], ['pis_cofins', 'PIS/COFINS'], ['produtor_rural', 'Produtor Rural PF'], ['outros', 'Outros'],
+            ['todos', 'Todos Departamentos'], ...departamentoOptions,
           ]} />
           <FilterSelect label="Área" value={filters.area} onChange={(value) => update('area', value)} options={[
             ['todos', 'Todas Áreas'], ...areas.map((area) => [area.id, area.name] as [string, string]),

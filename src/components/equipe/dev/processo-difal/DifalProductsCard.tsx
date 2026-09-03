@@ -130,7 +130,7 @@ export function DifalProductsCard({
                         <span className="font-mono">{group.cst_icms || '—'}</span>
                         {group.aliq_icms && (
                           <>
-                            <span className="text-slate-400 mx-1">|</span>
+                            <span className="text-muted-foreground mx-1">|</span>
                             <span className="font-mono">{group.aliq_icms}%</span>
                           </>
                         )}
@@ -147,7 +147,7 @@ export function DifalProductsCard({
                           )}
                         </div>
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
                   </TableRow>

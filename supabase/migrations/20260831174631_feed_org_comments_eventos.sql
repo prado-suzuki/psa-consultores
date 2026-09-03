@@ -89,17 +89,17 @@ COMMENT ON FUNCTION public.feed_org_comments(
 
 -- Os tres indices que a funcao usa, sem o `kind` no predicado.
 DROP INDEX IF EXISTS public.org_comments_feed_cronologico_idx;
-CREATE INDEX org_comments_feed_cronologico_idx
+CREATE INDEX IF NOT EXISTS org_comments_feed_cronologico_idx
   ON public.org_comments USING btree (created_at DESC, id DESC)
   WHERE (excluido = false);
 
 DROP INDEX IF EXISTS public.org_comments_feed_autor_idx;
-CREATE INDEX org_comments_feed_autor_idx
+CREATE INDEX IF NOT EXISTS org_comments_feed_autor_idx
   ON public.org_comments USING btree (author_id, created_at DESC, id DESC)
   WHERE (excluido = false);
 
 DROP INDEX IF EXISTS public.org_comments_project_feed_idx;
-CREATE INDEX org_comments_project_feed_idx
+CREATE INDEX IF NOT EXISTS org_comments_project_feed_idx
   ON public.org_comments USING btree (project_id, created_at DESC, id DESC)
   WHERE (excluido = false);
 

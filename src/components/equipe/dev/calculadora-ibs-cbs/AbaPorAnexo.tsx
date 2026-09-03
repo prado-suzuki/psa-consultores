@@ -41,7 +41,7 @@ function HeaderTip({ label, children }: { label: string; children: React.ReactNo
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="underline decoration-dotted decoration-slate-400 underline-offset-2 cursor-help">
+        <span className="underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 cursor-help">
           {label}
         </span>
       </TooltipTrigger>
@@ -120,7 +120,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
           <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="underline decoration-dotted decoration-slate-400 underline-offset-2 cursor-help">
+                <span className="underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 cursor-help">
                   Apuração por anexo
                 </span>
               </TooltipTrigger>
@@ -218,7 +218,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
               <TableBody>
                 {porAnexo.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-slate-400">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       Sem dados no período
                     </TableCell>
                   </TableRow>
@@ -234,7 +234,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
                         <span
                           className={`font-medium ${
                             base
-                              ? 'underline decoration-dotted decoration-slate-400 underline-offset-2 cursor-help'
+                              ? 'underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 cursor-help'
                               : ''
                           }`}
                         >
@@ -314,7 +314,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
         </CardHeader>
         <CardContent>
           {barData.length === 0 ? (
-            <p className="text-sm text-slate-400 py-12 text-center">Sem dados</p>
+            <p className="text-sm text-muted-foreground py-12 text-center">Sem dados</p>
           ) : (
             <ResponsiveContainer width="100%" height={340}>
               <BarChart data={barData} margin={{ left: 12, right: 24, top: 8, bottom: 24 }}>

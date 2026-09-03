@@ -247,7 +247,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
         </CardHeader>
         <CardContent>
           {scatterData.length === 0 ? (
-            <p className="text-sm text-slate-400 py-12 text-center">Sem dados</p>
+            <p className="text-sm text-muted-foreground py-12 text-center">Sem dados</p>
           ) : (
             <ResponsiveContainer width="100%" height={340}>
               <ScatterChart margin={{ top: 12, right: 24, bottom: 8, left: 8 }}>
@@ -322,7 +322,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
           </CardTitle>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por NCM ou produto..."
                 value={search}
@@ -408,7 +408,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
               <TableBody>
                 {pageRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-slate-400">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       Sem produtos para os filtros atuais
                     </TableCell>
                   </TableRow>

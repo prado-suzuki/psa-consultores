@@ -78,7 +78,7 @@ export const EscolhaModelo = ({ modelos, carregando, modeloId, onEscolher }: Esc
               {selecionado && <CheckCircle2 className="h-4 w-4 shrink-0 text-osg-moss" />}
             </div>
             {m.descricao && <p className="line-clamp-2 text-xs text-muted-foreground">{m.descricao}</p>}
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[11px] text-muted-foreground">
               {m.num_blocos > 0 ? `${m.num_blocos} blocos` : 'sem blocos'}
             </span>
           </button>

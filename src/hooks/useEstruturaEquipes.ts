@@ -19,6 +19,41 @@ export interface EstruturaEquipeOption {
  * consolidado do Board pega as equipes do Tax e da OSG juntas. Categoria única
  * segue com o `contains` de sempre.
  */
+/**
+ * Mapa pessoa -> equipe ATIVA a que ela pertence.
+ *
+ * Serve para atribuir um chamado a uma equipe, coisa que `tickets` não sabe
+ * fazer sozinho: não existe `equipe_id` na tabela, então a equipe é a de quem
+ * atendeu. Há gente em mais de uma equipe no cadastro, e nesse caso vale a
+ * primeira encontrada — as pessoas que hoje respondem chamados estão todas em
+ * uma equipe ativa só, então o desempate não decide nada por enquanto; se
+ * passar a decidir, o certo é o chamado ganhar equipe própria, não este mapa
+ * ficar mais esperto.
+ */
+export const useEquipePorPessoa = () => {
+  return useQuery({
+    queryKey: ['estrutura-equipes', 'por-pessoa'],
+    queryFn: async () => {
+      const [{ data: equipes, error: eErr }, { data: membros, error: mErr }] = await Promise.all([
+        supabase.from('estrutura_equipes').select('id, name').eq('is_active', true),
+        supabase.from('estrutura_equipe_membros').select('user_id, equipe_id'),
+      ]);
+      if (eErr) throw eErr;
+      if (mErr) throw mErr;
+
+      const nomePorEquipe = new Map((equipes || []).map((e) => [e.id, e.name]));
+      const porPessoa = new Map<string, string>();
+      (membros || []).forEach((membro) => {
+        if (!membro.user_id || porPessoa.has(membro.user_id)) return;
+        const nome = nomePorEquipe.get(membro.equipe_id);
+        if (nome) porPessoa.set(membro.user_id, nome);
+      });
+      return porPessoa;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
 export const useEstruturaEquipesByCategory = (category: string | string[]) => {
   // Ordenado para ['tax','osg'] e ['osg','tax'] caírem na mesma entrada de cache.
   const categorias = Array.isArray(category) ? [...category].sort() : category;

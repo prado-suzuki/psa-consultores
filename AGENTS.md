@@ -39,14 +39,62 @@ Sistema de gestão interna e portal de clientes da PSA Consultores, com foco em 
 
 **Mudança de schema, na ordem (agente executa 1 e 2, para em 3):**
 
-1. Migration em `supabase/migrations/`, timestamp real (`date -u +%Y%m%d%H%M%S`) e **idempotente** (`if not exists`, `create or replace`, `drop policy if exists`): ela vai ser aplicada por dois caminhos e existir em duas versões.
-2. `supabase db push` (sandbox) e `supabase gen types typescript --project-id vgzomuwnsdgrxbkyoavq > src/integrations/supabase/types.ts`, commitado **sozinho**. Sem CLI logada, pare e peça ao humano. O código da feature vem depois, normal, sem cast de contorno.
+1. Migration em `supabase/migrations/`, timestamp real (`date -u +%Y%m%d%H%M%S`) e **idempotente** (ver "Toda migration é idempotente", abaixo: é cobrado pela CI).
+2. `bun run db:sync --apply` (sandbox; **não** use `supabase db push`, ver "O sandbox é compartilhado") e `supabase gen types typescript --project-id vgzomuwnsdgrxbkyoavq > src/integrations/supabase/types.ts`, commitado **sozinho**. Sem CLI logada, pare e peça ao humano. O código da feature vem depois, normal, sem cast de contorno.
 3. **Humano** pede ao Lovable para aplicar o SQL em produção; o bot regenera o `types.ts` de lá e commita na `main`.
 4. `main → develop` sobrescreve o `types.ts` pelo da `main`. Só então o PR `develop → main`.
 
 **Regra dura:** produção recebe a coluna **antes** de o código que a usa chegar na `main`, porque o app publicado é buildado da `main` e fala com produção. Coluna aditiva parada em produção é inofensiva; o inverso quebra na cara do cliente.
 
 **Sobre o `types.ts`:** ele descreve o banco **daquela** branch (`main` = produção, pelo bot; branch de trabalho = sandbox, pelo CLI). Conflito nele se resolve **regenerando** a partir do banco da branch, nunca costurando os dois lados: o conteúdo é função do schema, e costurar produz arquivo que não corresponde a banco nenhum.
+
+**Toda migration é idempotente.** Rodar duas vezes tem de dar no mesmo. Não é
+preferência de estilo: o mesmo DDL existe em **dois** arquivos, porque quando a
+migration é aplicada por fora do repositório (chat do Lovable em produção, ou SQL
+direto no sandbox) o arquivo é depois reconstruído a partir do ledger, com o nome que
+o ledger registrou (às vezes um UUID). Para o outro banco essa segunda versão é uma
+migration inédita, e o DDL roda de novo. Idempotente, isso é um no-op inofensivo; não
+idempotente, é erro no meio de um push, e o push seguinte de outra pessoa vem junto.
+
+Na prática: `create table if not exists`, `add column if not exists`, `create index if
+not exists`, `create or replace function/view`, `add value if not exists`, `drop ... if
+exists`. Para o que não tem cláusula de guarda (policy, trigger, constraint), o par
+`drop ... if exists` + `create`. Para enum e constraint, alternativamente um `do $$ ...
+end $$` consultando `pg_type` / `pg_constraint`. `insert` de dado leva `on conflict`.
+
+Cobrado pela CI (job `Migrations idempotentes`), que roda
+`scripts/checa-idempotencia-migrations.ts` **só nas migrations do diff do PR**, nunca no
+histórico. Escotilha: `-- idempotencia-ok: <motivo>` na linha, com motivo escrito. Sem
+motivo não libera. Dispensa de arquivo inteiro em
+`supabase/migrations/.idempotencia-excecoes`, que hoje tem só o baseline (é um `pg_dump`,
+roda uma vez em banco vazio).
+
+### O sandbox é compartilhado, e isso muda duas coisas
+
+Quatro pessoas empurram para o mesmo sandbox, de branches diferentes.
+
+**Aplique com `bun run db:sync`, não com `supabase db push`.** O `db push` mantém uma
+lista ordenada e **se recusa** a aplicar versão mais antiga que a última registrada
+("found local migration older than remote"), então quem tem o timestamp menor fica
+travado por trabalho de outra pessoa que ele nem sabe que existe. O `db:sync` pergunta
+outra coisa: "quais dos MEUS arquivos ainda não rodaram". Ordem deixa de importar.
+Ele tem ledger próprio (`public.psa_migrations_aplicadas`, com autor, branch e o
+`sha256` do conteúdo), e reaplica arquivo editado depois de aplicado, o que só é seguro
+porque toda migration é idempotente. Sem flag ele apenas **planeja**; escreve com
+`--apply`. Primeira vez num banco novo: `--bootstrap`.
+
+**O `types.ts` regenerado contra o sandbox traz trabalho não mesclado.** O sandbox
+contém, a qualquer momento, schema de branch que ninguém pushou (em 02/09/2026 eram
+23 migrations aplicadas por fora do repositório). Regenerar o arquivo inteiro nesse
+estado leva para a sua branch coluna que nenhuma migration do repo cria e que não
+existe em produção: o typecheck passa, o build passa, e o app publicado quebra. O
+`bun run db:sync` lista essas migrations no fim do plano, e a CI reprova o PR pela
+trava `types.ts não importou schema de fora`. Enquanto houver divergência, aplique no
+`types.ts` só o delta da sua mudança.
+
+O `docs/rls/mapa-do-banco.md` é o oposto: sai do `types.ts` por função pura
+(`node scripts/gen-mapa-banco.mjs`), a CI prova a correspondência sem tocar em banco, e
+pode ser regenerado sempre.
 
 **Migration exclusiva do sandbox nunca altera schema**, só dados (ex.: `20260814190000_dev_clientes_prefixo_teste.sql`). Schema que só existe no sandbox faz o código compilar em `develop` e quebrar em produção.
 

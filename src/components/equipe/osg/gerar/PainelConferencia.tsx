@@ -48,7 +48,7 @@ const ListaNotificacoes = ({ linhas, naoLidas, onMarcarLido, marcando }: {
             <p className="leading-snug text-foreground">
               {linha.action === 'field' ? <><span className="font-semibold text-foreground">{linha.label}</span> de <em className="not-italic font-medium text-muted-foreground">{linha.entityName}</em> alterado para <span className="font-semibold text-osg-700">{linha.newValue}</span></> : <><em className="not-italic font-medium text-muted-foreground">{linha.entityName}</em> {linha.action === 'created' ? 'adicionado ao cadastro' : linha.action === 'deleted' ? 'removido do cadastro' : 'atualizado'}</>}
             </p>
-            <p className="mt-1 text-xs text-slate-400">{linha.meta}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{linha.meta}</p>
           </li>
         ))}
       </ul>
@@ -190,7 +190,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                     key={s.pessoa.id}
                                     className="flex items-baseline gap-2 text-sm text-foreground"
                                   >
-                                    <span className="w-4 shrink-0 text-right tabular-nums text-slate-400">
+                                    <span className="w-4 shrink-0 text-right tabular-nums text-muted-foreground">
                                       {i + 1}.
                                     </span>
                                     <span className="min-w-0 flex-1 truncate" title={s.pessoa.denominacao}>
@@ -236,7 +236,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                     key={a.pessoa.id}
                                     className="flex items-baseline gap-2 text-sm text-foreground"
                                   >
-                                    <span className="w-4 shrink-0 text-right tabular-nums text-slate-400">
+                                    <span className="w-4 shrink-0 text-right tabular-nums text-muted-foreground">
                                       {i + 1}.
                                     </span>
                                     <span className="min-w-0 flex-1 truncate" title={a.pessoa.denominacao}>

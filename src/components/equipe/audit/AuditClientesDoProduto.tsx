@@ -57,9 +57,9 @@ export const AuditClientesDoProduto = ({
             <ChevronLeft className="h-3.5 w-3.5" />
             Clientes
           </button>
-          <span className="text-slate-300">/</span>
+          <span className="text-muted-foreground/50">/</span>
           <span className="font-medium text-foreground">{clienteAberto.nome}</span>
-          <span className="text-slate-400">em {produto}</span>
+          <span className="text-muted-foreground">em {produto}</span>
         </div>
         <AuditPessoasDoProduto
           linhas={pessoasPorCliente[clienteAberto.clienteId] ?? []}
@@ -112,10 +112,10 @@ export const AuditClientesDoProduto = ({
                           }}
                           className={cn(
                             'flex items-center gap-1 text-left',
-                            semVinculo ? 'italic text-slate-400' : 'font-medium text-foreground',
+                            semVinculo ? 'italic text-muted-foreground' : 'font-medium text-foreground',
                           )}
                         >
-                          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           {linha.nome}
                         </button>
                       </TableCell>
@@ -123,7 +123,7 @@ export const AuditClientesDoProduto = ({
                       <TableCell className="py-1.5 text-right text-xs">{linha.concluidos}</TableCell>
                       <TableCell className="whitespace-nowrap py-1.5 text-right text-xs">
                         <span className="text-muted-foreground">{formatarHoras(linha.horasPlanejadas)}</span>
-                        <span className="text-slate-300"> / </span>
+                        <span className="text-muted-foreground/50"> / </span>
                         <span className="font-medium text-foreground">
                           {formatarHoras(linha.horasExecutadas)}
                         </span>

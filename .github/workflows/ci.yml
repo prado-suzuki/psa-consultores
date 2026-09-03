@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint + Typecheck + Tests + Build
+    name: Lint + Typecheck + Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -34,9 +34,6 @@ jobs:
       - name: Typecheck
         run: bunx tsc --build --noEmit
 
-      - name: Tests
-        run: bunx vitest run
-
       - name: Build
         run: bun run build
         env:
@@ -57,3 +54,92 @@ jobs:
           path: dist/
           retention-days: 7
           if-no-files-found: error
+
+  # Os testes saem do job de qualidade e viram job proprio, em SHARDS.
+  #
+  # Duas medidas de 02/09/2026 explicam as duas decisoes. Job proprio: os testes
+  # levavam 300s dos 445s do job unico, e lint (21s), typecheck (61s) e build (50s)
+  # esperavam na fila sem precisar. Shards: a suite roda em 21s numa maquina de 32
+  # nucleos e em 300s no runner de 4, ou seja ela e limitada por CPU, nao por
+  # trabalho. Tres jobs em paralelo dao 12 nucleos.
+  #
+  # A soma dos shards foi conferida: 129+128+128 arquivos e 1558+1470+1531 testes,
+  # que fecha os 385 arquivos e 4559 testes da suite inteira.
+  tests:
+    name: Testes ${{ matrix.shard }}/3
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      # Sem fail-fast: shard que quebra nao deve cancelar os outros dois, senao a
+      # primeira falha esconde as demais e a proxima rodada descobre uma por vez.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Tests
+        run: bunx vitest run --shard=${{ matrix.shard }}/3
+
+  migrations:
+    name: Schema (migrations, types.ts, mapa)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+
+    steps:
+      # fetch-depth: 0 e obrigatorio: sem historico nao existe diff contra a base.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # A catraca olha SO as migrations do diff do PR, nunca as 165 do historico.
+      # O schema do banco tem dois escritores (nos no sandbox, o Lovable em
+      # producao) e o Lovable devolve o mesmo DDL num arquivo com nome de UUID.
+      # O DDL roda duas vezes; se for idempotente isso e no-op, se nao for e erro.
+      - name: Migration idempotente
+        run: |
+          novas=$(git diff --name-only --diff-filter=AM \
+            ${{ github.event.pull_request.base.sha }} HEAD \
+            -- 'supabase/migrations/*.sql')
+          if [ -z "$novas" ]; then
+            echo "PR sem migration nova ou alterada."
+            exit 0
+          fi
+          echo "$novas"
+          bun scripts/checa-idempotencia-migrations.ts $novas
+
+      # O mapa do banco e funcao PURA do types.ts (scripts/gen-mapa-banco.mjs so le
+      # aquele arquivo). Entao a CI consegue PROVAR que os dois correspondem, sem
+      # falar com banco nenhum: regenera e exige diff vazio.
+      - name: Mapa do banco em dia com o types.ts
+        run: |
+          node scripts/gen-mapa-banco.mjs
+          if ! git diff --exit-code -- docs/rls/mapa-do-banco.md; then
+            echo "::error::docs/rls/mapa-do-banco.md nao corresponde ao types.ts deste commit."
+            echo "Rode: node scripts/gen-mapa-banco.mjs && git add docs/rls/mapa-do-banco.md"
+            exit 1
+          fi
+
+      # A metade que machuca: coluna nova no types.ts sem migration que a crie quase
+      # sempre e trabalho nao mesclado de outra pessoa, importado do sandbox
+      # compartilhado. Nao existe em producao, e a main e buildada contra producao.
+      - name: types.ts nao importou schema de fora
+        run: bun scripts/checa-types-vs-migrations.ts ${{ github.event.pull_request.base.sha }}

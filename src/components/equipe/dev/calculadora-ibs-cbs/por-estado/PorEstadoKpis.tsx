@@ -19,7 +19,7 @@ export function PorEstadoKpis({ totais, ufs, pctTop3Ufs, quantidadeClientes, tot
       <KpiCard
         label="UFs atendidas"
         value={fmtInt(totais.qtdUfs)}
-        sub={<><p>Top destino: <strong className="text-foreground">{ufs[0]?.uf ?? "—"}</strong></p><p className="text-slate-400">{filtrosAtivos ? `${fmtInt(quantidadeClientes)} clientes no filtro` : `${fmtInt(totalClientesDistintos)} clientes distintos`}</p></>}
+        sub={<><p>Top destino: <strong className="text-foreground">{ufs[0]?.uf ?? "—"}</strong></p><p className="text-muted-foreground">{filtrosAtivos ? `${fmtInt(quantidadeClientes)} clientes no filtro` : `${fmtInt(totalClientesDistintos)} clientes distintos`}</p></>}
         accent={CORES_POR_ESTADO.neutral}
         icon={<MapPin className="h-4 w-4" />}
         hint={<>Quantidade de Unidades Federativas que aparecem como <strong>destino (uf_dest)</strong> nas saídas. Não considera tipo de operação — interno e interestadual entram juntos.</>}
@@ -27,7 +27,7 @@ export function PorEstadoKpis({ totais, ufs, pctTop3Ufs, quantidadeClientes, tot
       <KpiCard
         label="Concentração Top-3 UFs"
         value={`${pctTop3Ufs.toFixed(1)}%`}
-        sub={<><p className={`font-semibold ${pctTop3Ufs > 80 ? "text-rose-600" : pctTop3Ufs > 60 ? "text-amber-600" : "text-emerald-600"}`}>{pctTop3Ufs > 80 ? "Alta concentração geográfica" : pctTop3Ufs > 60 ? "Concentração moderada" : "Distribuição saudável"}</p><p className="text-slate-400">{ufs.slice(0, 3).map((uf) => uf.uf).join(" + ")}</p></>}
+        sub={<><p className={`font-semibold ${pctTop3Ufs > 80 ? "text-rose-600" : pctTop3Ufs > 60 ? "text-amber-600" : "text-emerald-600"}`}>{pctTop3Ufs > 80 ? "Alta concentração geográfica" : pctTop3Ufs > 60 ? "Concentração moderada" : "Distribuição saudável"}</p><p className="text-muted-foreground">{ufs.slice(0, 3).map((uf) => uf.uf).join(" + ")}</p></>}
         accent={pctTop3Ufs > 80 ? "#E11D48" : "#F2810A"}
         icon={<ShieldAlert className="h-4 w-4" />}
         hint={<>Soma do <strong>% de faturamento</strong> das 3 UFs com maior volume. Acima de 80% sinaliza dependência geográfica — qualquer mudança regulatória regional ou instabilidade comercial nesses estados afeta diretamente o resultado.</>}
@@ -43,7 +43,7 @@ export function PorEstadoKpis({ totais, ufs, pctTop3Ufs, quantidadeClientes, tot
       <KpiCard
         label="Δ pp ponderado"
         value={fmtPp(totais.deltaPp)}
-        sub={<><p className="text-slate-400">Antes: <strong className="text-muted-foreground">{totais.cargaAntesPct.toFixed(2)}%</strong> · Depois: <strong className="text-muted-foreground">{totais.cargaDepoisPct.toFixed(2)}%</strong></p><div className={`mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold ${totais.deltaPp < 0 ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>{totais.deltaPp < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}{totais.deltaPp < 0 ? "Reforma alivia carga" : "Reforma aumenta carga"}</div></>}
+        sub={<><p className="text-muted-foreground">Antes: <strong className="text-muted-foreground">{totais.cargaAntesPct.toFixed(2)}%</strong> · Depois: <strong className="text-muted-foreground">{totais.cargaDepoisPct.toFixed(2)}%</strong></p><div className={`mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold ${totais.deltaPp < 0 ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>{totais.deltaPp < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}{totais.deltaPp < 0 ? "Reforma alivia carga" : "Reforma aumenta carga"}</div></>}
         accent={totais.deltaPp < 0 ? CORES_POR_ESTADO.anexoI : "#E11D48"}
         icon={totais.deltaPp < 0 ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
         hint={<>Variação em <strong>pontos percentuais</strong> da carga tributária sobre o faturamento, ANTES vs DEPOIS da reforma. Fórmula: <code className="text-[10px]">((tributoDepois - tributoAntes) / faturamento) × 100</code>. Tributo antes = ICMS + ICMS-ST + IPI + PIS + COFINS somados do XML. Tributo depois = valor IBS+CBS calculado pela classificação no anexo.</>}

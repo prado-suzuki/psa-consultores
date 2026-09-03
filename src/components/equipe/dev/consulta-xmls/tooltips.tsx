@@ -7,7 +7,7 @@ export function FieldTooltip({ text }: { text: string }) {
 }
 
 export function ColumnTooltip({ label, text }: { label: string; text: string }) {
-  return <Tooltip><TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">{label}</TooltipTrigger><TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">{text}</TooltipContent></Tooltip>;
+  return <Tooltip><TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/40">{label}</TooltipTrigger><TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">{text}</TooltipContent></Tooltip>;
 }
 
 export function ButtonTooltip({ text, children }: { text: string; children: ReactNode }) {

@@ -330,7 +330,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
                   <FileSpreadsheet className="h-12 w-12 text-primary" />
                   <div>
                     <p className="text-sm font-medium text-foreground break-all">{file.name}</p>
-                    <p className="text-xs text-slate-400 mt-1">{(file.size / 1024).toFixed(1)} KB</p>
+                    <p className="text-xs text-muted-foreground mt-1">{(file.size / 1024).toFixed(1)} KB</p>
                   </div>
                   <Button
                     type="button"
@@ -345,12 +345,12 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-3 px-4 text-center">
-                  <Upload className="h-10 w-10 text-slate-300" />
+                  <Upload className="h-10 w-10 text-muted-foreground/40" />
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Arraste o arquivo aqui</p>
-                    <p className="text-xs text-slate-400 mt-1">ou clique para selecionar</p>
+                    <p className="text-xs text-muted-foreground mt-1">ou clique para selecionar</p>
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-2">.xlsx ou .xls</p>
+                  <p className="text-[10px] text-muted-foreground mt-2">.xlsx ou .xls</p>
                 </div>
               )}
             </div>
@@ -426,7 +426,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
                 <Label htmlFor="descricao-balancete" className="text-sm font-medium text-muted-foreground">
                   Descrição <span className="text-red-500">*</span>
                 </Label>
-                <span className="text-[11px] text-slate-400">{descricao.length}/{DESCRICAO_MAX}</span>
+                <span className="text-[11px] text-muted-foreground">{descricao.length}/{DESCRICAO_MAX}</span>
               </div>
               <Textarea
                 id="descricao-balancete"

@@ -13,6 +13,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "typecheck": "tsc --build --noEmit",
     "typecheck:strict": "tsc -p tsconfig.strict.json",
+    "db:sync": "bun scripts/db-sync.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",

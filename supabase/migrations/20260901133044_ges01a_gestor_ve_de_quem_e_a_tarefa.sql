@@ -33,7 +33,7 @@
 
 DROP FUNCTION IF EXISTS public.tarefas_a_alertar(date);
 
-CREATE FUNCTION public.tarefas_a_alertar(_hoje date DEFAULT NULL)
+CREATE OR REPLACE FUNCTION public.tarefas_a_alertar(_hoje date DEFAULT NULL)
 RETURNS TABLE (
   task_id          uuid,
   task_title       text,

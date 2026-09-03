@@ -196,7 +196,9 @@ describe('useRegistrosPorTipo — colunas da query de matrícula', () => {
     expect(campos.area).toBe('360,0000 m²');
     expect(campos.areaExtenso).toBe('trezentos e sessenta metros quadrados');
     expect(campos.temAreaConstruida).toBe('sim');
-    expect(campos.enderecoNumeroProsa).toBe('nº 119');
+    // "n.º", com ponto: é a abreviação da casa (68 contra 8 nos instrumentos
+    // agrários assinados, 71 contra 2 nos Contratos Sociais). Ver `numeroProsa`.
+    expect(campos.enderecoNumeroProsa).toBe('n.º 119');
     expect(campos.inscricaoMunicipal).toBe('1.234.567-8');
   });
 });
@@ -305,6 +307,6 @@ describe('useIntegralizacoesAprovadas — colunas da query de bem + matrícula',
     expect(campos.area).toBe('360,0000 m²');
     expect(campos.areaConstruida).toBe('180,0000 m²');
     expect(campos.temAreaConstruida).toBe('sim');
-    expect(campos.enderecoNumeroProsa).toBe('s/nº');
+    expect(campos.enderecoNumeroProsa).toBe('s/n.º');
   });
 });

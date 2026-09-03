@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function EFDRecordSelector({ blocosDisponiveis, expanded, selected, onToggleBlockOpen, onToggleBlock, onToggleRecord }: Props) {
-  return <div className={cn('flex-1 overflow-y-auto p-6 bg-muted','[&::-webkit-scrollbar]:w-3','[&::-webkit-scrollbar-thumb]:bg-slate-400','[&::-webkit-scrollbar-thumb]:rounded-full')}>
+  return <div className={cn('flex-1 overflow-y-auto p-6 bg-muted','[&::-webkit-scrollbar]:w-3','[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40','[&::-webkit-scrollbar-thumb]:rounded-full')}>
     <div className="space-y-3">{Object.entries(blocosDisponiveis).map(([block, records]) => {
       const selectedCount = records.filter(record => selected.has(record.codigo)).length;
       const isExpanded = expanded.has(block);
@@ -28,7 +28,7 @@ export function EFDRecordSelector({ blocosDisponiveis, expanded, selected, onTog
             <span className="font-bold text-sm text-foreground">{BLOCK_DESCRIPTIONS[block] ||`Bloco ${block}`}</span>
             <Badge variant="secondary" className="text-[10px]">{selectedCount}/{records.length}</Badge>
           </div>
-          <ChevronDown className={cn('h-5 w-5 text-slate-400 transition-transform duration-300', isExpanded && 'rotate-180')} />
+          <ChevronDown className={cn('h-5 w-5 text-muted-foreground transition-transform duration-300', isExpanded && 'rotate-180')} />
         </div>
         <div className={cn('overflow-hidden transition-all duration-300', isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0')}>
           <div className="p-4 bg-muted border-t border-border">

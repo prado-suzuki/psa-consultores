@@ -173,13 +173,13 @@ export function ProcedimentoCard({
           {p.ai_etapas.length > 0 && (
             <ul className="space-y-1 mb-3">
               {p.ai_etapas.slice(0, 3).map((e, i) => (
-                <li key={i} className="text-xs text-slate-400 flex items-start gap-1.5">
+                <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
                   <span className="mt-1.5 h-1 w-1 rounded-full bg-muted flex-shrink-0" />
                   <span className="line-clamp-1">{e}</span>
                 </li>
               ))}
               {p.ai_etapas.length > 3 && (
-                <li className="text-xs text-slate-400 pl-2.5">
+                <li className="text-xs text-muted-foreground pl-2.5">
                   + {p.ai_etapas.length - 3} etapas — abrir para ver
                 </li>
               )}
@@ -200,7 +200,7 @@ export function ProcedimentoCard({
                   </span>
                 </div>
               )}
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true, locale: ptBR })}
               </span>
             </div>
@@ -214,7 +214,7 @@ export function ProcedimentoCard({
                   </span>
                 ))}
                 {p.ai_tags.length > 3 && (
-                  <span className="text-[10px] text-slate-400">+{p.ai_tags.length - 3}</span>
+                  <span className="text-[10px] text-muted-foreground">+{p.ai_tags.length - 3}</span>
                 )}
               </div>
             )}

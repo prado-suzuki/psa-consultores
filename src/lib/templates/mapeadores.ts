@@ -2,7 +2,7 @@ import { cardinalExtenso, formatarArea, formatarInteiro, formatarPercentual, for
 import { capitalDeQuotas, quotasDeValor, quotasDoSocio, VALOR_NOMINAL_QUOTA } from './capital';
 import { comarcaComplementar, CARTORIO_SEM_NOME, nomeDoCartorio } from './cartorio';
 import { marcarSintetizados } from './sintetizado';
-import { generoDeConcordancia, ufPorExtenso } from './concordancia';
+import { generoDeConcordancia, ufComPreposicao, ufPorExtenso } from './concordancia';
 import { comOrigem } from './origem';
 import { camposDaEntidade, derivarCampos, numeroProsa } from './vocabulario';
 import type { Binding, BindingLista } from './binding';
@@ -15,10 +15,17 @@ import type { BemRow, CartorioRow } from '@/hooks/useDiagnosticoPatrimonial';
 // vocabulário da entidade correspondente, já com os derivados (extensos via
 // extenso.ts e concordância via concordancia.ts, ambos aplicados por derivarCampos).
 
-type Campos = Record<string, string>;
+export type Campos = Record<string, string>;
 
 /** Acumula só valores presentes — campo ausente deixa o placeholder "não resolvido" (falha cedo). */
-function coletor() {
+/**
+ * Coletor de campos que IGNORA nulo/vazio: campo ausente não vira a string
+ * "null", e o que sobra é preenchido depois por `publicarOpcionais`. Exportado
+ * para os mapeadores de domínio que moram em arquivos irmãos (contrato rural)
+ * publicarem com a mesma disciplina — duas regras de publicação fariam o mesmo
+ * campo ausente sumir num documento e virar "undefined" no outro.
+ */
+export function coletor() {
   const out: Campos = {};
   const set = (chave: string, valor: unknown) => {
     if (valor !== null && valor !== undefined && valor !== '') out[chave] = String(valor);
@@ -31,10 +38,22 @@ const TIPO_BEM_LABEL: Record<string, string> = {
   PS: 'Participação Societária', OU: 'Outros',
 };
 
-/** 'AAAA-MM-DD' (ISO do banco) → 'DD/MM/AAAA', sem passar por Date (evita fuso). */
-function formatarDataBR(iso: string | null): string {
+/**
+ * 'AAAA-MM-DD' (ISO do banco) → 'DD/MM/A.AAA', sem passar por Date (evita fuso).
+ *
+ * Exportada em 01/09/2026 para o `contextoRural.ts` usar a MESMA função em vez de
+ * escrever a sua: data formatada de dois jeitos diferentes no mesmo documento é o
+ * tipo de divergência que ninguém encontra lendo código.
+ *
+ * O ANO SAI COM O PONTO DE MILHAR ("23/05/1.957"), que é como a casa escreve.
+ * Contado em 02/09/2026 sobre os assinados — os dois instrumentos agrários do MMS,
+ * os dois Contratos Sociais e o Condomínio: 24 datas com o ponto contra 3 sem, e
+ * as três sem estão todas no mesmo arquivo. Não é enfeite: sem o ponto a data
+ * gerada destoa da data escrita à mão na mesma página.
+ */
+export function formatarDataBR(iso: string | null): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso ?? '');
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso ?? '');
+  return m ? `${m[3]}/${m[2]}/${m[1].slice(0, 1)}.${m[1].slice(1)}` : (iso ?? '');
 }
 
 /**
@@ -49,10 +68,23 @@ function semPontoFinal(texto: string | null): string | null {
   return podado === '' ? texto : podado;
 }
 
-/** Prefixa "bairro" salvo quando o valor já é zona/distrito ("zona rural" fica como está). */
+/**
+ * Prefixa "Bairro" — com maiúscula, e inclusive na zona rural.
+ *
+ * Os dois assinados escrevem "Bairro" 10 vezes e "bairro" nenhuma, e o mesmo vale
+ * nos Contratos Sociais (20 contra 2). A zona rural também leva o prefixo: a sede
+ * da MMS Agro sai como "Fazenda Capuaba, s/n.º, *Bairro* Zona Rural" no preâmbulo
+ * assinado — a guarda anterior, que deixava "zona" passar sem prefixo, comia a
+ * palavra.
+ *
+ * "Distrito" continua sem prefixo: não há caso no corpus, e "Bairro Distrito
+ * Industrial" seria uma afirmação que nenhum documento assinado sustenta.
+ */
 function bairroProsa(bairro: string | null): string {
   if (!bairro) return '';
-  return /^(zona|distrito|bairro)\b/i.test(bairro.trim()) ? bairro : `bairro ${bairro}`;
+  const limpo = bairro.trim();
+  if (/^bairro\b/i.test(limpo)) return `Bairro${limpo.slice('bairro'.length)}`;
+  return /^distrito\b/i.test(limpo) ? limpo : `Bairro ${limpo}`;
 }
 
 /**
@@ -71,8 +103,11 @@ interface PartesEndereco {
 }
 
 /**
- * Endereço no formato de prosa dos contratos: "Rua X, nº 119, bairro Centro,
- * no município de Cuiabá, Estado de Mato Grosso, CEP: 78000-000".
+ * Endereço no formato de prosa dos contratos: "Rua X, n.º 119, Bairro Centro,
+ * no município de Cuiabá, Estado de Mato Grosso, CEP 78000-000".
+ *
+ * O CEP vem SEM dois-pontos: nenhum dos cinco assinados usa "CEP:" (34 ocorrências
+ * de "CEP 78…" contra zero).
  */
 function enderecoProsa(row: PartesEndereco): string {
   return [
@@ -81,8 +116,12 @@ function enderecoProsa(row: PartesEndereco): string {
     row.endereco_complemento,
     bairroProsa(row.endereco_bairro),
     row.endereco_municipio ? `no município de ${row.endereco_municipio}` : '',
-    row.endereco_uf ? `Estado de ${ufPorExtenso(row.endereco_uf)}` : '',
-    row.endereco_cep ? `CEP: ${row.endereco_cep}` : '',
+    // "Estado da Bahia", não "Estado de Bahia": a regência é do nome do estado, e
+    // dezesseis das vinte e sete unidades da federação não aceitam o "de" seco.
+    // Aqui isso pesa mais que em outros pontos, porque o endereço aparece na
+    // qualificação de CADA parte — um contrato com cinco pessoas erra cinco vezes.
+    row.endereco_uf ? `Estado ${ufComPreposicao(row.endereco_uf)}` : '',
+    row.endereco_cep ? `CEP ${row.endereco_cep}` : '',
   ].filter(Boolean).join(', ');
 }
 
@@ -101,7 +140,7 @@ function enderecoProsa(row: PartesEndereco): string {
  * cadastro não o tem, e o placeholder falha cedo em vez de deixar o documento
  * sair mudo no dado que o identifica.
  */
-function publicarOpcionais(tipo: TipoEntidade, campos: Campos): Campos {
+export function publicarOpcionais(tipo: TipoEntidade, campos: Campos): Campos {
   for (const campo of camposDaEntidade(tipo)) {
     if (!campo.obrigatorio) campos[campo.id] = campos[campo.id] ?? '';
   }
@@ -123,6 +162,12 @@ export function mapearPessoa(row: PessoaRow): Campos {
   set('rg', row.documento_identidade_numero);
   set('orgaoExpedidor', [row.documento_identidade_orgao, row.documento_identidade_uf].filter(Boolean).join('/'));
   set('genero', row.genero);
+  // Estavam no cadastro e não chegavam ao documento: é o que faltava para o
+  // preâmbulo dizer "natural de São Paulo/SP" e "filho de X e Y".
+  set('naturalidadeMunicipio', row.naturalidade_municipio);
+  set('naturalidadeUf', row.naturalidade_uf);
+  set('filiacaoPai', row.filiacao_pai);
+  set('filiacaoMae', row.filiacao_mae);
 
   set('endereco', enderecoProsa(row));
 
@@ -1267,8 +1312,26 @@ export function mapearRetirantes(retirantes: readonly PessoaRow[]): ItemLista[] 
  * assina no feminino, e nenhum `sep`/`fim` de seção resolve flexão de verbo.
  */
 export function vocabularioDaRetirada(retirantes: readonly PessoaRow[]): Campos {
+  // NINGUÉM sai: as três palavras saem VAZIAS, e não no plural.
+  //
+  // Não é preciosismo de concordância, é o que faz o bloco SUMIR. A cláusula de
+  // retirada tem três placeholders de topo e a lista {{#retirantes}}; quando o
+  // ato foi só ingresso (aumento de capital sem cessão nenhuma), a lista vem
+  // vazia, e devolver "os sócios"/"por terem cedido"/"retiram-se" alimentava
+  // `motivoDeDescarte` com três segmentos de valor preenchidos. Ele conta isso
+  // como dado, deixava o bloco no documento, e a peça afirmava
+  // "por terem cedido a totalidade de suas quotas, os sócios  retiram-se da
+  // sociedade" com o nome de ninguém no meio (o espaço duplo era a lista vazia).
+  //
+  // Com os três vazios sobra só a seção de repetição sem item, e o descarte por
+  // 'lista-vazia' tira o bloco da composição, que é o comportamento correto: numa
+  // alteração em que ninguém se retirou, a cláusula de retirada não existe.
+  if (retirantes.length === 0) {
+    return { titulo: '', porTerCedido: '', verbo: '' };
+  }
+
   const umSo = retirantes.length === 1;
-  const todasFemininas = retirantes.length > 0 && retirantes.every(
+  const todasFemininas = retirantes.every(
     (p) => generoDeConcordancia(
       p.genero === 'F' || p.genero === 'M' ? p.genero : null,
       p.tipo_pessoa,
@@ -1415,9 +1478,19 @@ export function mapearRegistro(tipo: TipoEntidade, row: unknown): Campos {
       return mapearMatricula(row as MatriculaParaMapear);
     case 'cartorio':
       return mapearCartorio(row as CartorioRow);
+    case 'instrumento':
+      // Instrumento agrário: quem mapeia é `mapearInstrumentoRural`
+      // (contextoRural.ts), e ele importa ESTE arquivo (pessoa e matrícula). Pôr a
+      // seta de volta aqui criaria ciclo de import — e ciclo de inicialização já
+      // derrubou esta aplicação em produção uma vez (ver vite.config.ts). Quem
+      // despacha é `camposDoRegistro`, na tela Gerar, junto das listas do mesmo
+      // cadastro.
+      return {};
     case 'vertice':
-      // Vértice é sempre item de lista ({{#vertices}}), nunca binding unitário —
-      // não tem registro/seletor próprio. Ver mapearVertice.
+    case 'origemPosse':
+      // Sempre itens de lista ({{#vertices}}, {{#origensDaPosse}}), nunca binding
+      // unitário — não têm registro/seletor próprio. Ver mapearVertice e
+      // listasDoInstrumentoRural.
       return {};
   }
 }

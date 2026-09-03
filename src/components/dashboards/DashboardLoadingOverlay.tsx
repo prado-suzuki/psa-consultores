@@ -15,7 +15,7 @@ export function DashboardLoadingOverlay({ label = 'Carregando relatório…' }: 
       </div>
       <div className="text-center">
         <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="text-xs text-slate-400">Isso pode levar alguns segundos</p>
+        <p className="text-xs text-muted-foreground">Isso pode levar alguns segundos</p>
       </div>
       <div className="mt-1 w-64 space-y-2" aria-hidden>
         <div className="h-2 rounded bg-muted animate-pulse" />

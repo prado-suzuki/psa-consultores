@@ -4,7 +4,13 @@ import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useClientesLista } from '@/hooks/useGestaoClientes';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 import {
   Briefcase,
@@ -34,6 +40,7 @@ import {
   LineChart,
   Rocket,
   Scale,
+  Sprout,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
@@ -53,9 +60,7 @@ const OsgWorkClienteBar = () => {
     <div
       className={cn(
         'border-b px-6 py-3 transition-colors',
-        semCliente
-          ? 'bg-osg-50 border-osg-100'
-          : 'bg-osg-50/40 border-osg-100',
+        semCliente ? 'bg-osg-50 border-osg-100' : 'bg-osg-50/40 border-osg-100',
       )}
     >
       <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
@@ -68,16 +73,10 @@ const OsgWorkClienteBar = () => {
           >
             <Building2 className="h-4 w-4 flex-shrink-0" />
           </div>
-          <Label className="text-sm font-bold text-osg-700 uppercase tracking-wide">
-            Cliente
-          </Label>
+          <Label className="text-sm font-bold text-osg-700 uppercase tracking-wide">Cliente</Label>
         </div>
         <div className="flex-1 max-w-md">
-          <Select
-            value={clienteId || undefined}
-            onValueChange={setClienteId}
-            disabled={isLoading}
-          >
+          <Select value={clienteId || undefined} onValueChange={setClienteId} disabled={isLoading}>
             <SelectTrigger
               className={cn(
                 'h-10 font-medium',
@@ -90,7 +89,9 @@ const OsgWorkClienteBar = () => {
             </SelectTrigger>
             <SelectContent>
               {clientes.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nome}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -146,13 +147,14 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   };
 
   const isWork = location.pathname.startsWith('/equipe/osg/work');
-  const isProjects = location.pathname.startsWith('/equipe/osg/inicio')
-    || location.pathname.startsWith('/equipe/osg/dashboard')
-    || location.pathname.startsWith('/equipe/osg/projetos')
+  const isProjects =
+    location.pathname.startsWith('/equipe/osg/inicio') ||
+    location.pathname.startsWith('/equipe/osg/dashboard') ||
+    location.pathname.startsWith('/equipe/osg/projetos') ||
     // `/equipe/osg/gerencial` cobre tudo do agrupador novo, inclusive
     // logs-equipe e chamados, que agora vivem debaixo dele.
-    || location.pathname.startsWith('/equipe/osg/gerencial')
-    || location.pathname.startsWith('/equipe/osg/auditoria');
+    location.pathname.startsWith('/equipe/osg/gerencial') ||
+    location.pathname.startsWith('/equipe/osg/auditoria');
 
   // Itens do agrupador "Projetos" — espelhado da área Tax (Dashboard / Projetos /
   // Auditoria). Expande no hover e fica aberto quando uma rota filha está ativa.
@@ -169,7 +171,11 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   const gerencialItems = [
     { path: '/equipe/osg/gerencial', label: 'Dashboards', icon: LayoutDashboard },
     { path: '/equipe/osg/gerencial/chamados', label: 'Gestão de Chamados', icon: MessageSquare },
-    { path: '/equipe/osg/gerencial/chamados/dashboard', label: 'Dashboard de Chamados', icon: LineChart },
+    {
+      path: '/equipe/osg/gerencial/chamados/dashboard',
+      label: 'Dashboard de Chamados',
+      icon: LineChart,
+    },
     { path: '/equipe/osg/gerencial/logs-equipe', label: 'Logs de Uso', icon: Shield },
   ];
   const isGerencialActive = location.pathname.startsWith('/equipe/osg/gerencial');
@@ -202,22 +208,18 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   // parte de tela. Criar o agrupador agora evita que o segundo entre solto e o
   // terceiro obrigue a renomear endereço já com permissão concedida, o que exige
   // migration com UPDATE porque o sincronizador de páginas casa por CAMINHO.
-  const govItems = [
-    { path: '/equipe/osg/work/governanca/orgaos', label: 'Órgãos de Governança' },
-  ];
+  const govItems = [{ path: '/equipe/osg/work/governanca/orgaos', label: 'Órgãos de Governança' }];
   const isGovActive = govItems.some((item) => item.path === location.pathname);
 
   const areaLabel = isWork ? 'OSG Work' : isProjects ? 'OSG Projects' : 'OSG';
-  const areaSubtitle = isWork
-    ? 'Ferramentas OSG'
-    : isProjects
-      ? 'Projetos OSG'
-      : 'Área OSG';
-  const AreaIcon = isWork
-    ? <OsgWorkIcon size={40} className="h-full w-full block" />
-    : isProjects
-      ? <OsgProjectsIcon size={40} className="h-full w-full block" />
-      : <Briefcase className="h-5 w-5 text-osg-600" />;
+  const areaSubtitle = isWork ? 'Ferramentas OSG' : isProjects ? 'Projetos OSG' : 'Área OSG';
+  const AreaIcon = isWork ? (
+    <OsgWorkIcon size={40} className="h-full w-full block" />
+  ) : isProjects ? (
+    <OsgProjectsIcon size={40} className="h-full w-full block" />
+  ) : (
+    <Briefcase className="h-5 w-5 text-osg-600" />
+  );
 
   return (
     <div className="min-h-screen bg-osg-canvas flex w-full">
@@ -254,543 +256,566 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
         {/* overflow-x-hidden: é este clipe que "engole" os rótulos conforme a
             largura diminui, em vez de eles sumirem de uma vez. */}
         <aside className="h-full w-full bg-background border-r border-border/60 flex flex-col overflow-y-auto overflow-x-hidden">
-        {/* Header */}
-        <div className="px-4 py-6 border-b border-border/60">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 flex items-center justify-center flex-shrink-0">
-              {AreaIcon}
-            </div>
-            <div className={cn(rotuloCls, "min-w-0 whitespace-nowrap")}>
-              <h2 className="font-semibold text-foreground text-lg">{areaLabel}</h2>
-              <p className="text-xs text-muted-foreground">{areaSubtitle}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="p-4 space-y-1">
-          {/* ───── OSG Projects: Dashboard + Projetos (espelhado da área Tax). */}
-          {/* Aparece só fora do OSG Work, que mantém suas próprias ferramentas. */}
-          {isProjects && (
-          <>
-          <button
-            onClick={() => navigate('/equipe/osg/inicio')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-              location.pathname === '/equipe/osg/inicio'
-                ? "bg-osg-100 text-primary"
-                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
-            )}
-          >
-            <Home className="h-4 w-4 flex-shrink-0" />
-            <span className={cn(rotuloCls, "whitespace-nowrap")}>Início</span>
-          </button>
-          <button
-            onClick={() => navigate('/equipe/osg/dashboard')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-              location.pathname === '/equipe/osg/dashboard'
-                ? "bg-osg-100 text-primary"
-                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
-            )}
-          >
-            <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
-            <span className={cn(rotuloCls, "whitespace-nowrap")}>Dashboard</span>
-          </button>
-
-          {/* Agrupador "Projetos" — expande no hover (e fica aberto na rota ativa) */}
-          <div className="group/proj">
-            <button
-              type="button"
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                isProjetosActive
-                  ? "bg-osg-50 text-primary"
-                  : "text-muted-foreground [&>svg]:opacity-75 group-hover/proj:bg-osg-50 group-hover/proj:text-primary"
-              )}
-            >
-              <FolderKanban className="h-4 w-4 flex-shrink-0" />
-              <span className={cn(rotuloCls, "whitespace-nowrap")}>Projetos</span>
-              <ChevronDown
-                className={cn(
-                  rotuloCls,
-                  "h-4 w-4 ml-auto flex-shrink-0 duration-300",
-                  isProjetosActive ? "rotate-180" : "group-hover/proj:rotate-180"
-                )}
-              />
-            </button>
-
-            <div
-              className={cn(
-                "grid transition-[grid-template-rows] duration-300 ease-out",
-                collapsed
-                  ? "grid-rows-[0fr]"
-                  : isProjetosActive
-                    ? "grid-rows-[1fr]"
-                    : "grid-rows-[0fr] group-hover/proj:grid-rows-[1fr]"
-              )}
-            >
-              <div className="min-h-0 overflow-hidden">
-                <div
-                  className={cn(
-                    "space-y-1 pt-1",
-                    collapsed ? "" : "ml-2 pl-2 border-l border-osg-100"
-                  )}
-                >
-                  {projetosItems.map(({ path, label, icon: Icon }) => (
-                    <button
-                      key={path}
-                      onClick={() => navigate(path)}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-                        location.pathname === path
-                          ? "bg-osg-100 text-primary"
-                          : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
-                      )}
-                    >
-                      <Icon className="h-4 w-4 flex-shrink-0" />
-                      <span className={cn(rotuloCls, "whitespace-nowrap")}>{label}</span>
-                    </button>
-                  ))}
-                </div>
+          {/* Header */}
+          <div className="px-4 py-6 border-b border-border/60">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 flex items-center justify-center flex-shrink-0">
+                {AreaIcon}
+              </div>
+              <div className={cn(rotuloCls, 'min-w-0 whitespace-nowrap')}>
+                <h2 className="font-semibold text-foreground text-lg">{areaLabel}</h2>
+                <p className="text-xs text-muted-foreground">{areaSubtitle}</p>
               </div>
             </div>
           </div>
 
-          </>
-          )}
-
-          {/* ───── OSG Work: ferramentas próprias (inalteradas) ───── */}
-          {isWork && (
-          <>
-          {/* Agrupador "Onboarding" — expande no hover (e fica aberto na rota ativa) */}
-          <div className="group/onb">
-            <button
-              type="button"
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                isOnbActive
-                  ? "bg-osg-50 text-primary"
-                  : "text-muted-foreground group-hover/onb:bg-osg-50 group-hover/onb:text-primary"
-              )}
-            >
-              <Rocket className="h-4 w-4 flex-shrink-0" />
-              <span className={cn(rotuloCls, "flex-1 min-w-0 truncate text-left")}>Onboarding</span>
-              <ChevronDown
-                className={cn(
-                  rotuloCls,
-                  "h-4 w-4 flex-shrink-0 duration-300",
-                  isOnbActive ? "rotate-180" : "group-hover/onb:rotate-180"
-                )}
-              />
-            </button>
-
-            <div
-              className={cn(
-                "grid transition-[grid-template-rows] duration-300 ease-out",
-                collapsed
-                  ? "grid-rows-[0fr]"
-                  : isOnbActive
-                    ? "grid-rows-[1fr]"
-                    : "grid-rows-[0fr] group-hover/onb:grid-rows-[1fr]"
-              )}
-            >
-              <div className="min-h-0 overflow-hidden">
-                <div
+          {/* Navigation */}
+          <nav className="p-4 space-y-1">
+            {/* ───── OSG Projects: Dashboard + Projetos (espelhado da área Tax). */}
+            {/* Aparece só fora do OSG Work, que mantém suas próprias ferramentas. */}
+            {isProjects && (
+              <>
+                <button
+                  onClick={() => navigate('/equipe/osg/inicio')}
                   className={cn(
-                    "space-y-1 pt-1",
-                    collapsed ? "" : "ml-2 pl-2 border-l border-osg-100"
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                    location.pathname === '/equipe/osg/inicio'
+                      ? 'bg-osg-100 text-primary'
+                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
                   )}
                 >
-                  {onbItems.map(({ path, label }) => (
-                    <button
-                      key={path}
-                      onClick={() => navigate(path)}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-                        location.pathname === path
-                          ? "bg-osg-100 text-primary"
-                          : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
-                      )}
-                    >
-                      <span className={cn(rotuloCls, "whitespace-nowrap")}>{label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-              location.pathname === '/equipe/osg/work/qualificacao-das-partes'
-                ? "bg-osg-100 text-primary"
-                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
-            )}
-          >
-            <Users className="h-4 w-4 flex-shrink-0" />
-            <span className={cn(rotuloCls, "whitespace-nowrap")}>Qualificação das Partes</span>
-          </button>
-          <button
-            onClick={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-              location.pathname === '/equipe/osg/work/diagnostico-patrimonial'
-                ? "bg-osg-100 text-primary"
-                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
-            )}
-          >
-            <Landmark className="h-4 w-4 flex-shrink-0" />
-            <span className={cn(rotuloCls, "whitespace-nowrap")}>Diagnóstico Patrimonial</span>
-          </button>
-          <button
-            onClick={() => navigate('/equipe/osg/work/controle-matriculas')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-              location.pathname === '/equipe/osg/work/controle-matriculas'
-                ? "bg-osg-100 text-primary"
-                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
-            )}
-          >
-            <FileText className="h-4 w-4 flex-shrink-0" />
-            <span className={cn(rotuloCls, "whitespace-nowrap")}>Controle de Matrículas</span>
-          </button>
-          {/* Agrupador "Oficina de Contratos" — expande no hover com animação suave */}
-          <div className="group/docs">
-            <button
-              type="button"
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                isDocsActive
-                  ? "bg-osg-50 text-primary"
-                  : "text-muted-foreground group-hover/docs:bg-osg-50 group-hover/docs:text-primary"
-              )}
-            >
-              <FileSignature className="h-4 w-4 flex-shrink-0" />
-              <span className={cn(rotuloCls, "whitespace-nowrap")}>Oficina de Contratos</span>
-              <ChevronDown
-                className={cn(
-                  rotuloCls,
-                  "h-4 w-4 ml-auto flex-shrink-0 duration-300",
-                  isDocsActive ? "rotate-180" : "group-hover/docs:rotate-180"
-                )}
-              />
-            </button>
-
-            <div
-              className={cn(
-                "grid transition-[grid-template-rows] duration-300 ease-out",
-                collapsed
-                  ? "grid-rows-[0fr]"
-                  : isDocsActive
-                    ? "grid-rows-[1fr]"
-                    : "grid-rows-[0fr] group-hover/docs:grid-rows-[1fr]"
-              )}
-            >
-              <div className="min-h-0 overflow-hidden">
-                <div
+                  <Home className="h-4 w-4 flex-shrink-0" />
+                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Início</span>
+                </button>
+                <button
+                  onClick={() => navigate('/equipe/osg/dashboard')}
                   className={cn(
-                    "space-y-1 pt-1",
-                    collapsed ? "" : "ml-2 pl-2 border-l border-osg-100"
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                    location.pathname === '/equipe/osg/dashboard'
+                      ? 'bg-osg-100 text-primary'
+                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
                   )}
                 >
-                  {docItems.map(({ path, label }) => (
-                    <button
-                      key={path}
-                      onClick={() => navigate(path)}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-                        location.pathname === path
-                          ? "bg-osg-100 text-primary"
-                          : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
-                      )}
-                    >
-                      <span className={cn(rotuloCls, "whitespace-nowrap")}>{label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/equipe/osg/work/quadro-societario')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-              location.pathname === '/equipe/osg/work/quadro-societario'
-                ? "bg-osg-100 text-primary"
-                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
-            )}
-          >
-            <PieChart className="h-4 w-4 flex-shrink-0" />
-            <span className={cn(rotuloCls, "whitespace-nowrap")}>Quadro Societário</span>
-          </button>
-          <button
-            onClick={() => navigate('/equipe/osg/work/calculadora-itcmd')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-              location.pathname === '/equipe/osg/work/calculadora-itcmd'
-                ? "bg-osg-100 text-primary"
-                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
-            )}
-          >
-            <Calculator className="h-4 w-4 flex-shrink-0" />
-            <span className={cn(rotuloCls, "whitespace-nowrap")}>Calculadora de ITCD</span>
-          </button>
-          {/* Agrupador "Governança" — mesmo padrão de dropdown por hover */}
-          <div className="group/gov">
-            <button
-              type="button"
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                isGovActive
-                  ? "bg-osg-50 text-primary"
-                  : "text-muted-foreground group-hover/gov:bg-osg-50 group-hover/gov:text-primary"
-              )}
-            >
-              <Scale className="h-4 w-4 flex-shrink-0" />
-              <span className={cn(rotuloCls, "flex-1 min-w-0 truncate text-left")}>Governança</span>
-              <ChevronDown
-                className={cn(
-                  rotuloCls,
-                  "h-4 w-4 flex-shrink-0 duration-300",
-                  isGovActive ? "rotate-180" : "group-hover/gov:rotate-180"
-                )}
-              />
-            </button>
+                  <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
+                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Dashboard</span>
+                </button>
 
-            <div
-              className={cn(
-                "grid transition-[grid-template-rows] duration-300 ease-out",
-                collapsed
-                  ? "grid-rows-[0fr]"
-                  : isGovActive
-                    ? "grid-rows-[1fr]"
-                    : "grid-rows-[0fr] group-hover/gov:grid-rows-[1fr]"
-              )}
-            >
-              <div className="min-h-0 overflow-hidden">
-                <div
+                {/* Agrupador "Projetos" — expande no hover (e fica aberto na rota ativa) */}
+                <div className="group/proj">
+                  <button
+                    type="button"
+                    className={cn(
+                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                      isProjetosActive
+                        ? 'bg-osg-50 text-primary'
+                        : 'text-muted-foreground [&>svg]:opacity-75 group-hover/proj:bg-osg-50 group-hover/proj:text-primary',
+                    )}
+                  >
+                    <FolderKanban className="h-4 w-4 flex-shrink-0" />
+                    <span className={cn(rotuloCls, 'whitespace-nowrap')}>Projetos</span>
+                    <ChevronDown
+                      className={cn(
+                        rotuloCls,
+                        'h-4 w-4 ml-auto flex-shrink-0 duration-300',
+                        isProjetosActive ? 'rotate-180' : 'group-hover/proj:rotate-180',
+                      )}
+                    />
+                  </button>
+
+                  <div
+                    className={cn(
+                      'grid transition-[grid-template-rows] duration-300 ease-out',
+                      collapsed
+                        ? 'grid-rows-[0fr]'
+                        : isProjetosActive
+                          ? 'grid-rows-[1fr]'
+                          : 'grid-rows-[0fr] group-hover/proj:grid-rows-[1fr]',
+                    )}
+                  >
+                    <div className="min-h-0 overflow-hidden">
+                      <div
+                        className={cn(
+                          'space-y-1 pt-1',
+                          collapsed ? '' : 'ml-2 pl-2 border-l border-osg-100',
+                        )}
+                      >
+                        {projetosItems.map(({ path, label, icon: Icon }) => (
+                          <button
+                            key={path}
+                            onClick={() => navigate(path)}
+                            className={cn(
+                              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                              location.pathname === path
+                                ? 'bg-osg-100 text-primary'
+                                : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                            )}
+                          >
+                            <Icon className="h-4 w-4 flex-shrink-0" />
+                            <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ───── OSG Work: ferramentas próprias (inalteradas) ───── */}
+            {isWork && (
+              <>
+                {/* Agrupador "Onboarding" — expande no hover (e fica aberto na rota ativa) */}
+                <div className="group/onb">
+                  <button
+                    type="button"
+                    className={cn(
+                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                      isOnbActive
+                        ? 'bg-osg-50 text-primary'
+                        : 'text-muted-foreground group-hover/onb:bg-osg-50 group-hover/onb:text-primary',
+                    )}
+                  >
+                    <Rocket className="h-4 w-4 flex-shrink-0" />
+                    <span className={cn(rotuloCls, 'flex-1 min-w-0 truncate text-left')}>
+                      Onboarding
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        rotuloCls,
+                        'h-4 w-4 flex-shrink-0 duration-300',
+                        isOnbActive ? 'rotate-180' : 'group-hover/onb:rotate-180',
+                      )}
+                    />
+                  </button>
+
+                  <div
+                    className={cn(
+                      'grid transition-[grid-template-rows] duration-300 ease-out',
+                      collapsed
+                        ? 'grid-rows-[0fr]'
+                        : isOnbActive
+                          ? 'grid-rows-[1fr]'
+                          : 'grid-rows-[0fr] group-hover/onb:grid-rows-[1fr]',
+                    )}
+                  >
+                    <div className="min-h-0 overflow-hidden">
+                      <div
+                        className={cn(
+                          'space-y-1 pt-1',
+                          collapsed ? '' : 'ml-2 pl-2 border-l border-osg-100',
+                        )}
+                      >
+                        {onbItems.map(({ path, label }) => (
+                          <button
+                            key={path}
+                            onClick={() => navigate(path)}
+                            className={cn(
+                              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                              location.pathname === path
+                                ? 'bg-osg-100 text-primary'
+                                : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                            )}
+                          >
+                            <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
                   className={cn(
-                    "space-y-1 pt-1",
-                    collapsed ? "" : "ml-2 pl-2 border-l border-osg-100"
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                    location.pathname === '/equipe/osg/work/qualificacao-das-partes'
+                      ? 'bg-osg-100 text-primary'
+                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
                   )}
                 >
-                  {govItems.map(({ path, label }) => (
-                    <button
-                      key={path}
-                      onClick={() => navigate(path)}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-                        location.pathname === path
-                          ? "bg-osg-100 text-primary"
-                          : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
-                      )}
-                    >
-                      <span className={cn(rotuloCls, "whitespace-nowrap")}>{label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-          {/* Agrupador "Documentos do Cliente" — expande no hover com animação suave */}
-          <div className="group/docsCli">
-            <button
-              type="button"
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                isDocClienteActive
-                  ? "bg-osg-50 text-primary"
-                  : "text-muted-foreground group-hover/docsCli:bg-osg-50 group-hover/docsCli:text-primary"
-              )}
-            >
-              <FolderArchive className="h-4 w-4 flex-shrink-0" />
-              <span className={cn(rotuloCls, "flex-1 min-w-0 truncate text-left")}>Documentos</span>
-              <ChevronDown
-                className={cn(
-                  rotuloCls,
-                  "h-4 w-4 flex-shrink-0 duration-300",
-                  isDocClienteActive ? "rotate-180" : "group-hover/docsCli:rotate-180"
-                )}
-              />
-            </button>
-
-            <div
-              className={cn(
-                "grid transition-[grid-template-rows] duration-300 ease-out",
-                collapsed
-                  ? "grid-rows-[0fr]"
-                  : isDocClienteActive
-                    ? "grid-rows-[1fr]"
-                    : "grid-rows-[0fr] group-hover/docsCli:grid-rows-[1fr]"
-              )}
-            >
-              <div className="min-h-0 overflow-hidden">
-                <div
+                  <Users className="h-4 w-4 flex-shrink-0" />
+                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>
+                    Qualificação das Partes
+                  </span>
+                </button>
+                <button
+                  onClick={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}
                   className={cn(
-                    "space-y-1 pt-1",
-                    collapsed ? "" : "ml-2 pl-2 border-l border-osg-100"
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                    location.pathname === '/equipe/osg/work/diagnostico-patrimonial'
+                      ? 'bg-osg-100 text-primary'
+                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
                   )}
                 >
-                  {docClienteItems.map(({ path, label }) => (
-                    <button
-                      key={path}
-                      onClick={() => navigate(path)}
+                  <Landmark className="h-4 w-4 flex-shrink-0" />
+                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>
+                    Diagnóstico Patrimonial
+                  </span>
+                </button>
+                <button
+                  onClick={() => navigate('/equipe/osg/work/controle-matriculas')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                    location.pathname === '/equipe/osg/work/controle-matriculas'
+                      ? 'bg-osg-100 text-primary'
+                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                  )}
+                >
+                  <FileText className="h-4 w-4 flex-shrink-0" />
+                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Controle de Matrículas</span>
+                </button>
+                {/* Agrupador "Oficina de Contratos" — expande no hover com animação suave */}
+                <div className="group/docs">
+                  <button
+                    type="button"
+                    className={cn(
+                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                      isDocsActive
+                        ? 'bg-osg-50 text-primary'
+                        : 'text-muted-foreground group-hover/docs:bg-osg-50 group-hover/docs:text-primary',
+                    )}
+                  >
+                    <FileSignature className="h-4 w-4 flex-shrink-0" />
+                    <span className={cn(rotuloCls, 'whitespace-nowrap')}>Oficina de Contratos</span>
+                    <ChevronDown
                       className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-                        location.pathname === path
-                          ? "bg-osg-100 text-primary"
-                          : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
+                        rotuloCls,
+                        'h-4 w-4 ml-auto flex-shrink-0 duration-300',
+                        isDocsActive ? 'rotate-180' : 'group-hover/docs:rotate-180',
                       )}
-                    >
-                      <span className={cn(rotuloCls, "whitespace-nowrap")}>{label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/equipe/osg/work/relatorios')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-              location.pathname === '/equipe/osg/work/relatorios'
-                ? "bg-osg-100 text-primary"
-                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
-            )}
-          >
-            <FileBarChart2 className="h-4 w-4 flex-shrink-0" />
-            <span className={cn(rotuloCls, "whitespace-nowrap")}>Relatórios</span>
-          </button>
-          </>
-          )}
+                    />
+                  </button>
 
-          {/* Agrupador "Gerencial" — exclusivo da área Projetos e só para líder+.
+                  <div
+                    className={cn(
+                      'grid transition-[grid-template-rows] duration-300 ease-out',
+                      collapsed
+                        ? 'grid-rows-[0fr]'
+                        : isDocsActive
+                          ? 'grid-rows-[1fr]'
+                          : 'grid-rows-[0fr] group-hover/docs:grid-rows-[1fr]',
+                    )}
+                  >
+                    <div className="min-h-0 overflow-hidden">
+                      <div
+                        className={cn(
+                          'space-y-1 pt-1',
+                          collapsed ? '' : 'ml-2 pl-2 border-l border-osg-100',
+                        )}
+                      >
+                        {docItems.map(({ path, label }) => (
+                          <button
+                            key={path}
+                            onClick={() => navigate(path)}
+                            className={cn(
+                              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                              location.pathname === path
+                                ? 'bg-osg-100 text-primary'
+                                : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                            )}
+                          >
+                            <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/equipe/osg/work/quadro-societario')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                    location.pathname === '/equipe/osg/work/quadro-societario'
+                      ? 'bg-osg-100 text-primary'
+                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                  )}
+                >
+                  <PieChart className="h-4 w-4 flex-shrink-0" />
+                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Quadro Societário</span>
+                </button>
+                {/* Ao lado do Quadro Societário porque é o irmão conceitual: cadastro
+              relacional (instrumento + partes), não cadastro atômico. */}
+                <button
+                  onClick={() => navigate('/equipe/osg/work/exploracao-rural')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                    location.pathname === '/equipe/osg/work/exploracao-rural'
+                      ? 'bg-osg-100 text-primary'
+                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                  )}
+                >
+                  <Sprout className="h-4 w-4 flex-shrink-0" />
+                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Exploração Rural</span>
+                </button>
+                <button
+                  onClick={() => navigate('/equipe/osg/work/calculadora-itcmd')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                    location.pathname === '/equipe/osg/work/calculadora-itcmd'
+                      ? 'bg-osg-100 text-primary'
+                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                  )}
+                >
+                  <Calculator className="h-4 w-4 flex-shrink-0" />
+                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Calculadora de ITCD</span>
+                </button>
+                {/* Agrupador "Governança" — mesmo padrão de dropdown por hover */}
+                <div className="group/gov">
+                  <button
+                    type="button"
+                    className={cn(
+                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                      isGovActive
+                        ? 'bg-osg-50 text-primary'
+                        : 'text-muted-foreground group-hover/gov:bg-osg-50 group-hover/gov:text-primary',
+                    )}
+                  >
+                    <Scale className="h-4 w-4 flex-shrink-0" />
+                    <span className={cn(rotuloCls, 'flex-1 min-w-0 truncate text-left')}>
+                      Governança
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        rotuloCls,
+                        'h-4 w-4 flex-shrink-0 duration-300',
+                        isGovActive ? 'rotate-180' : 'group-hover/gov:rotate-180',
+                      )}
+                    />
+                  </button>
+
+                  <div
+                    className={cn(
+                      'grid transition-[grid-template-rows] duration-300 ease-out',
+                      collapsed
+                        ? 'grid-rows-[0fr]'
+                        : isGovActive
+                          ? 'grid-rows-[1fr]'
+                          : 'grid-rows-[0fr] group-hover/gov:grid-rows-[1fr]',
+                    )}
+                  >
+                    <div className="min-h-0 overflow-hidden">
+                      <div
+                        className={cn(
+                          'space-y-1 pt-1',
+                          collapsed ? '' : 'ml-2 pl-2 border-l border-osg-100',
+                        )}
+                      >
+                        {govItems.map(({ path, label }) => (
+                          <button
+                            key={path}
+                            onClick={() => navigate(path)}
+                            className={cn(
+                              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                              location.pathname === path
+                                ? 'bg-osg-100 text-primary'
+                                : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                            )}
+                          >
+                            <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Agrupador "Documentos do Cliente" — expande no hover com animação suave */}
+                <div className="group/docsCli">
+                  <button
+                    type="button"
+                    className={cn(
+                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                      isDocClienteActive
+                        ? 'bg-osg-50 text-primary'
+                        : 'text-muted-foreground group-hover/docsCli:bg-osg-50 group-hover/docsCli:text-primary',
+                    )}
+                  >
+                    <FolderArchive className="h-4 w-4 flex-shrink-0" />
+                    <span className={cn(rotuloCls, 'flex-1 min-w-0 truncate text-left')}>
+                      Documentos
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        rotuloCls,
+                        'h-4 w-4 flex-shrink-0 duration-300',
+                        isDocClienteActive ? 'rotate-180' : 'group-hover/docsCli:rotate-180',
+                      )}
+                    />
+                  </button>
+
+                  <div
+                    className={cn(
+                      'grid transition-[grid-template-rows] duration-300 ease-out',
+                      collapsed
+                        ? 'grid-rows-[0fr]'
+                        : isDocClienteActive
+                          ? 'grid-rows-[1fr]'
+                          : 'grid-rows-[0fr] group-hover/docsCli:grid-rows-[1fr]',
+                    )}
+                  >
+                    <div className="min-h-0 overflow-hidden">
+                      <div
+                        className={cn(
+                          'space-y-1 pt-1',
+                          collapsed ? '' : 'ml-2 pl-2 border-l border-osg-100',
+                        )}
+                      >
+                        {docClienteItems.map(({ path, label }) => (
+                          <button
+                            key={path}
+                            onClick={() => navigate(path)}
+                            className={cn(
+                              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                              location.pathname === path
+                                ? 'bg-osg-100 text-primary'
+                                : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                            )}
+                          >
+                            <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/equipe/osg/work/relatorios')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                    location.pathname === '/equipe/osg/work/relatorios'
+                      ? 'bg-osg-100 text-primary'
+                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                  )}
+                >
+                  <FileBarChart2 className="h-4 w-4 flex-shrink-0" />
+                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Relatórios</span>
+                </button>
+              </>
+            )}
+
+            {/* Agrupador "Gerencial" — exclusivo da área Projetos e só para líder+.
               Reúne o que antes eram dois itens soltos (Gerencial e Auditoria) mais
               as duas telas de chamados que vieram da área de Gestão. Espelha o
               agrupador "Projetos" logo acima; clicar no próprio grupo abre
               "Dashboards", que é a tela que antes se chamava Gerencial. */}
-          {isProjects && canGerencial && (
-            <div className="group/ger">
-              <button
-                type="button"
-                onClick={() => navigate('/equipe/osg/gerencial')}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                  isGerencialActive
-                    ? "bg-osg-50 text-primary"
-                    : "text-muted-foreground group-hover/ger:bg-osg-50 group-hover/ger:text-primary"
-                )}
-              >
-                <LineChart className="h-4 w-4 flex-shrink-0" />
-                <span className={cn(rotuloCls, "whitespace-nowrap")}>Gerencial</span>
-                <ChevronDown
+            {isProjects && canGerencial && (
+              <div className="group/ger">
+                <button
+                  type="button"
+                  onClick={() => navigate('/equipe/osg/gerencial')}
                   className={cn(
-                    rotuloCls,
-                    "h-4 w-4 ml-auto flex-shrink-0 duration-300",
-                    isGerencialActive ? "rotate-180" : "group-hover/ger:rotate-180"
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                    isGerencialActive
+                      ? 'bg-osg-50 text-primary'
+                      : 'text-muted-foreground group-hover/ger:bg-osg-50 group-hover/ger:text-primary',
                   )}
-                />
-              </button>
-
-              <div
-                className={cn(
-                  "grid transition-[grid-template-rows] duration-300 ease-out",
-                  collapsed
-                    ? "grid-rows-[0fr]"
-                    : isGerencialActive
-                      ? "grid-rows-[1fr]"
-                      : "grid-rows-[0fr] group-hover/ger:grid-rows-[1fr]"
-                )}
-              >
-                <div className="min-h-0 overflow-hidden">
-                  <div
+                >
+                  <LineChart className="h-4 w-4 flex-shrink-0" />
+                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Gerencial</span>
+                  <ChevronDown
                     className={cn(
-                      "space-y-1 pt-1",
-                      collapsed ? "" : "ml-2 pl-2 border-l border-osg-100"
+                      rotuloCls,
+                      'h-4 w-4 ml-auto flex-shrink-0 duration-300',
+                      isGerencialActive ? 'rotate-180' : 'group-hover/ger:rotate-180',
                     )}
-                  >
-                    {gerencialItems.map(({ path, label, icon: Icon }) => (
-                      <button
-                        key={path}
-                        onClick={() => navigate(path)}
-                        // Rótulo comprido ("Dashboard de Chamados") corta com
-                        // reticências em vez de vazar, e o título traz o inteiro.
-                        title={label}
-                        className={cn(
-                          "w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium min-w-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-                          location.pathname === path
-                            ? "bg-osg-100 text-primary"
-                            : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
-                        )}
-                      >
-                        <Icon className="h-4 w-4 flex-shrink-0" />
-                        <span className={cn(rotuloCls, "min-w-0 truncate")}>{label}</span>
-                      </button>
-                    ))}
+                  />
+                </button>
+
+                <div
+                  className={cn(
+                    'grid transition-[grid-template-rows] duration-300 ease-out',
+                    collapsed
+                      ? 'grid-rows-[0fr]'
+                      : isGerencialActive
+                        ? 'grid-rows-[1fr]'
+                        : 'grid-rows-[0fr] group-hover/ger:grid-rows-[1fr]',
+                  )}
+                >
+                  <div className="min-h-0 overflow-hidden">
+                    <div
+                      className={cn(
+                        'space-y-1 pt-1',
+                        collapsed ? '' : 'ml-2 pl-2 border-l border-osg-100',
+                      )}
+                    >
+                      {gerencialItems.map(({ path, label, icon: Icon }) => (
+                        <button
+                          key={path}
+                          onClick={() => navigate(path)}
+                          // Rótulo comprido ("Dashboard de Chamados") corta com
+                          // reticências em vez de vazar, e o título traz o inteiro.
+                          title={label}
+                          className={cn(
+                            'w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium min-w-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                            location.pathname === path
+                              ? 'bg-osg-100 text-primary'
+                              : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                          )}
+                        >
+                          <Icon className="h-4 w-4 flex-shrink-0" />
+                          <span className={cn(rotuloCls, 'min-w-0 truncate')}>{label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Chamados — atalho espelhado da área Tax (mesma página /equipe/chamados,
+            {/* Chamados — atalho espelhado da área Tax (mesma página /equipe/chamados,
               que já escopa o filtro de cluster pelo cluster do usuário OSG).
               Some para o Líder Geral, que tem "Gestão de Chamados" no dropdown
               Gerencial: dois caminhos para chamado no mesmo menu confundem.
               Admin NÃO perde o item — admin vê tudo. É só o menu; a página
               segue liberada para quem tiver o link. */}
-          {isProjects && !isLider && (
-            <button
-              onClick={() => navigate(linkEspelhado('/equipe/chamados', 'osg'))}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-                location.pathname.startsWith('/equipe/chamados')
-                  ? "bg-osg-100 text-primary"
-                  : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
-              )}
+            {isProjects && !isLider && (
+              <button
+                onClick={() => navigate(linkEspelhado('/equipe/chamados', 'osg'))}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                  location.pathname.startsWith('/equipe/chamados')
+                    ? 'bg-osg-100 text-primary'
+                    : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                )}
+              >
+                <MessageSquare className="h-4 w-4 flex-shrink-0" />
+                <span className={cn(rotuloCls, 'whitespace-nowrap')}>Chamados</span>
+              </button>
+            )}
+          </nav>
+
+          {/* Footer Actions */}
+          <div className="mt-auto p-4 border-t border-border/60 space-y-2">
+            {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
+            <SidebarCartaoUsuario area="osg" collapsed={collapsed} />
+
+            <Button
+              variant="ghost"
+              className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-osg-600 transition-colors"
+              onClick={() => navigate('/equipe/osg')}
+              title={collapsed ? 'Trocar área' : undefined}
             >
-              <MessageSquare className="h-4 w-4 flex-shrink-0" />
-              <span className={cn(rotuloCls, "whitespace-nowrap")}>Chamados</span>
-            </button>
-          )}
-        </nav>
-
-        {/* Footer Actions */}
-        <div className="mt-auto p-4 border-t border-border/60 space-y-2">
-          {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
-          <SidebarCartaoUsuario area="osg" collapsed={collapsed} />
-
-          <Button
-            variant="ghost"
-            className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-osg-600 transition-colors"
-            onClick={() => navigate('/equipe/osg')}
-            title={collapsed ? 'Trocar área' : undefined}
-          >
-            <ArrowLeft className="h-4 w-4 mr-3 flex-shrink-0" />
-            <span className={cn(rotuloCls, "whitespace-nowrap")}>Trocar área</span>
-          </Button>
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-osg-600 transition-colors"
-            onClick={() => navigate('/')}
-            title={collapsed ? 'Voltar ao site' : undefined}
-          >
-            <ArrowLeft className="h-4 w-4 mr-3 flex-shrink-0" />
-            <span className={cn(rotuloCls, "whitespace-nowrap")}>Voltar ao site</span>
-          </Button>
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-            onClick={handleSignOut}
-            title={collapsed ? 'Sair' : undefined}
-          >
-            <LogOut className="h-4 w-4 mr-3 flex-shrink-0" />
-            <span className={cn(rotuloCls, "whitespace-nowrap")}>Sair</span>
-          </Button>
-        </div>
-      </aside>
+              <ArrowLeft className="h-4 w-4 mr-3 flex-shrink-0" />
+              <span className={cn(rotuloCls, 'whitespace-nowrap')}>Trocar área</span>
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-osg-600 transition-colors"
+              onClick={() => navigate('/')}
+              title={collapsed ? 'Voltar ao site' : undefined}
+            >
+              <ArrowLeft className="h-4 w-4 mr-3 flex-shrink-0" />
+              <span className={cn(rotuloCls, 'whitespace-nowrap')}>Voltar ao site</span>
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+              onClick={handleSignOut}
+              title={collapsed ? 'Sair' : undefined}
+            >
+              <LogOut className="h-4 w-4 mr-3 flex-shrink-0" />
+              <span className={cn(rotuloCls, 'whitespace-nowrap')}>Sair</span>
+            </Button>
+          </div>
+        </aside>
       </div>
 
       {/* Main Content */}
@@ -826,9 +851,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
-            {children}
-          </div>
+          <div className="p-6">{children}</div>
         </div>
       </main>
     </div>

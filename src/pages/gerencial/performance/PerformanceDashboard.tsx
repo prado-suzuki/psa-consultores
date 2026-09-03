@@ -11,6 +11,7 @@ import { useBoardFilters } from '@/hooks/useBoardFilters';
 import { BoardFilterBar, FilterEmptyState } from '@/components/board/BoardFilterBar';
 import { BoardStatStrip } from '@/components/board/BoardStatStrip';
 import { BoardChip } from '@/components/board/BoardChip';
+import { BoardClusterBar } from '@/components/equipe/board/BoardClusterBar';
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE } from '@/lib/board-chart-defaults';
 import { useBoardReveal } from '@/hooks/useBoardReveal';
 import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
@@ -246,41 +247,37 @@ const PerformanceDashboard = () => {
   }), isLoading);
 
   return (
-    <BoardLayout title="Operacional" subtitle="Visao consolidada">
+    <BoardLayout
+      title="Operacional"
+      subtitle="Projetos e tarefas de Tax e OSG · equipe e economia validada"
+      headerActions={(
+        <>
+          <BoardClusterBar />
+          <BoardFilterBar
+            hideHeading
+            filters={[
+              { key: 'periodo', label: 'Período', type: 'select', hideLabel: true, width: '128px', options: [{ value: '7d', label: '7 dias' }, { value: '30d', label: '30 dias' }, { value: '90d', label: '90 dias' }, { value: 'ciclo', label: 'Ciclo' }] },
+            ]}
+            activeFilters={filters}
+            onFilterChange={(key, value) => {
+              if (key === 'periodo') handlePeriodChange(value as string);
+              else setFilter(key, value);
+            }}
+            onReset={resetFilters}
+            activeCount={activeCount}
+            rightSlot={
+              <>
+                <span style={{ fontSize: 11, color: 'var(--bd-ink4)' }}>Atualizado {format(lastUpdate, 'HH:mm')}</span>
+                <button className="v3-fi" onClick={handleRefresh} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, padding: '5px 10px' }}>
+                  <RefreshCw style={{ width: 11, height: 11 }} />Atualizar
+                </button>
+              </>
+            }
+          />
+        </>
+      )}
+    >
       <div ref={revealRef} style={{ background: 'var(--bd-page)' }}>
-        {/* Header */}
-        <div className="pg-head" data-reveal>
-          <div className="pg-title">Operacional</div>
-          {/* O subtítulo nomeia a FONTE em vez de prometer cobertura. "Todas as
-              áreas" aqui significa "todas as áreas presentes em org_projects" —
-              o trabalho da Digital vive em sprints (sprint_deliverables) e entra
-              pelo Estratégico, não por esta tela. */}
-          <div className="pg-sub">
-            Projetos e tarefas de Tax e OSG · equipe e economia validada · atualizado a cada 5 min
-          </div>
-        </div>
-
-        {/* Filter Bar */}
-        <BoardFilterBar
-          filters={[
-            { key: 'periodo', label: 'Período', type: 'segmented', options: [{ value: '7d', label: '7d' }, { value: '30d', label: '30d' }, { value: '90d', label: '90d' }, { value: 'ciclo', label: 'Ciclo' }] },
-          ]}
-          activeFilters={filters}
-          onFilterChange={(key, value) => {
-            if (key === 'periodo') handlePeriodChange(value as string);
-            else setFilter(key, value);
-          }}
-          onReset={resetFilters}
-          activeCount={activeCount}
-          rightSlot={
-            <>
-              <span style={{ fontSize: 11, color: 'var(--bd-ink4)' }}>Atualizado {format(lastUpdate, 'HH:mm')}</span>
-              <button className="v3-fi" onClick={handleRefresh} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, padding: '5px 10px' }}>
-                <RefreshCw style={{ width: 11, height: 11 }} />Atualizar
-              </button>
-            </>
-          }
-        />
 
         {/* REMOVIDO (21/08): o banner "Dados incompletos" era um cartão no
             topo da grade. A informação NÃO foi descartada -- `falhas` continua

@@ -46,7 +46,7 @@ export const AuditProdutosDaPessoa = ({ nome, linhas }: AuditProdutosDaPessoaPro
                 className={cn(
                   'py-1.5 text-xs',
                   linha.produtoId === PRODUTO_SEM_VINCULO
-                    ? 'italic text-slate-400'
+                    ? 'italic text-muted-foreground'
                     : 'font-medium text-foreground',
                 )}
               >
@@ -56,7 +56,7 @@ export const AuditProdutosDaPessoa = ({ nome, linhas }: AuditProdutosDaPessoaPro
               <TableCell className="py-1.5 text-right text-xs">{linha.concluidos}</TableCell>
               <TableCell className="whitespace-nowrap py-1.5 text-right text-xs">
                 <span className="text-muted-foreground">{formatarHoras(linha.horasPlanejadas)}</span>
-                <span className="text-slate-300"> / </span>
+                <span className="text-muted-foreground/50"> / </span>
                 <span className="font-medium text-foreground">
                   {formatarHoras(linha.horasExecutadas)}
                 </span>

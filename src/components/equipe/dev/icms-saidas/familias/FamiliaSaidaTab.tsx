@@ -156,7 +156,7 @@ export function FamiliaSaidaTab({
     return (
       <Card className="border-border border-dashed">
         <CardContent className="p-12 text-center">
-          <Calculator className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+          <Calculator className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
           <p className="text-muted-foreground">Selecione os filtros e clique em Buscar para carregar os dados.</p>
         </CardContent>
       </Card>
@@ -253,7 +253,7 @@ export function FamiliaSaidaTab({
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-foreground">
             Análise Detalhada
             {isFetching && !showInitialLoading && (
-              <Loader2 className="inline-block h-3.5 w-3.5 ml-2 animate-spin text-slate-400" />
+              <Loader2 className="inline-block h-3.5 w-3.5 ml-2 animate-spin text-muted-foreground" />
             )}
           </CardTitle>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">

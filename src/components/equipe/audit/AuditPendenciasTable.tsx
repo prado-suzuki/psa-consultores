@@ -57,7 +57,7 @@ const KpiCard = ({ label, valor, hint }: { label: string; valor: string; hint: s
     <CardContent className="p-4">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-1 text-2xl font-semibold text-foreground">{valor}</p>
-      <p className="text-xs text-slate-400">{hint}</p>
+      <p className="text-xs text-muted-foreground">{hint}</p>
     </CardContent>
   </Card>
 );
@@ -262,7 +262,7 @@ export const AuditPendenciasTable = ({ area }: AuditPendenciasTableProps) => {
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                       {linha.ultimoToquePor}
-                      <span className="ml-2 text-xs text-slate-400">
+                      <span className="ml-2 text-xs text-muted-foreground">
                         {format(new Date(linha.ultimoToqueEm), 'dd/MM/yyyy', { locale: ptBR })}
                       </span>
                     </TableCell>

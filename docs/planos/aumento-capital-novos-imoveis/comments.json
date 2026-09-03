@@ -1,0 +1,25 @@
+[
+  {
+    "id": "cmt_9698d5349051ef63",
+    "planId": "local-aumento-capital-novos-imoveis",
+    "parentCommentId": null,
+    "sectionId": null,
+    "kind": "comment",
+    "status": "open",
+    "anchor": null,
+    "message": "Use these question answers to revise the plan:\nQuestion block: qf-abertas\n- Aumento só em dinheiro, sem imóvel nenhum, entra por este gesto?: Não, segue no MovimentoModal\n- Quem aparece na lista de moeda corrente?: Sócios do quadro mais os titulares dos imóveis novos\n- Alguma restrição que o plano ainda não considera?: No answer yet",
+    "createdBy": "human",
+    "authorEmail": "local@agent-native.local",
+    "authorName": null,
+    "resolutionTarget": "agent",
+    "mentions": [],
+    "mentionsJson": null,
+    "resolvedBy": null,
+    "resolvedAt": null,
+    "consumedAt": null,
+    "deletedAt": null,
+    "deletedBy": null,
+    "createdAt": "2026-08-31T20:27:06.015Z",
+    "updatedAt": "2026-08-31T20:27:06.015Z"
+  }
+]

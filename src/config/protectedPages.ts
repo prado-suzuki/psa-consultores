@@ -697,6 +697,15 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/osg/work/exploracao-rural',
+    page_name: 'Exploração Rural',
+    page_description:
+      'Instrumentos de parceria e composse: partes, imóveis do Anexo e origem da posse por imóvel',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/osg/work/calculadora-itcmd',
     page_name: 'Calculadora de ITCD',
     page_description:
@@ -833,74 +842,16 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  // A aba "Desempenho" saiu do menu e suas rotas estao desativadas (App.tsx),
+  // por isso as sete sub-paginas nao sao mais declaradas aqui. Esta linha-raiz
+  // FICA: o `DesempenhoAccessGate` que protege /equipe/board/performance
+  // libera por ela, e sem a pagina cadastrada o `usePageAccess` trataria a
+  // raiz como rota livre num banco novo. O sincronizador so insere e atualiza,
+  // nunca apaga — as linhas ja gravadas em `page_permissions` continuam la.
   {
     page_path: '/equipe/board/desempenho',
-    page_name: 'Desempenho - Visão Geral',
-    page_description: 'Painel geral de desempenho e performance',
-    category: 'board',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/equipe/board/desempenho/ciclos',
-    page_name: 'Desempenho - Ciclos',
-    page_description: 'Gestão de ciclos de avaliação',
-    category: 'board',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/equipe/board/desempenho/metas',
-    page_name: 'Desempenho - Metas',
-    page_description: 'Gestão de metas hierárquicas',
-    category: 'board',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/equipe/board/desempenho/feedbacks',
-    page_name: 'Desempenho - Feedbacks',
-    page_description: 'Registro e visualização de feedbacks',
-    category: 'board',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/equipe/board/desempenho/1a1',
-    page_name: 'Desempenho - 1:1s',
-    page_description: 'Registro de reuniões 1:1',
-    category: 'board',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/equipe/board/desempenho/evolucao',
-    page_name: 'Desempenho - Evolução',
-    page_description: 'Análise de evolução individual',
-    category: 'board',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/equipe/board/desempenho/decisoes',
-    page_name: 'Desempenho - Decisões',
-    page_description: 'Recomendações de IA para promoção e reajuste',
-    category: 'board',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/equipe/board/desempenho/relatorios',
-    page_name: 'Desempenho - Relatórios',
-    page_description: 'Geração de relatórios individuais com IA',
-    category: 'board',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/equipe/board/desempenho/minha-evolucao',
-    page_name: 'Minha Evolução',
-    page_description: 'Visão individual de metas, feedbacks e PPR',
+    page_name: 'Desempenho - Visão Geral (rota desativada)',
+    page_description: 'Permissão-raiz herdada pelo painel Operacional (/equipe/board/performance)',
     category: 'board',
     requires_admin: false,
     requires_team_member: true,

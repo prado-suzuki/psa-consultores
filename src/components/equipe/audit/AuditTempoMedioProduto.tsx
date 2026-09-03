@@ -141,7 +141,7 @@ export const AuditTempoMedioProduto = ({
                         onClick={() => alternar(linha.produtoId)}
                       >
                         <TableCell
-                          className={cn('text-sm', semVinculo ? 'italic text-slate-400' : 'font-medium')}
+                          className={cn('text-sm', semVinculo ? 'italic text-muted-foreground' : 'font-medium')}
                         >
                           <span className="flex items-center gap-1.5">
                             <button
@@ -152,7 +152,7 @@ export const AuditTempoMedioProduto = ({
                                 event.stopPropagation();
                                 alternar(linha.produtoId);
                               }}
-                              className="text-slate-400 transition-colors hover:text-foreground"
+                              className="text-muted-foreground transition-colors hover:text-foreground"
                             >
                               {aberta
                                 ? <ChevronDown className="h-4 w-4" />
@@ -164,7 +164,7 @@ export const AuditTempoMedioProduto = ({
                         <TableCell className="text-right text-sm">{linha.concluidos}</TableCell>
                         <TableCell className="whitespace-nowrap text-right text-sm">
                           <span className="text-muted-foreground">{formatarHoras(linha.horasPlanejadas)}</span>
-                          <span className="text-slate-300"> / </span>
+                          <span className="text-muted-foreground/50"> / </span>
                           <span className="font-medium text-foreground">
                             {formatarHoras(linha.horasExecutadas)}
                           </span>

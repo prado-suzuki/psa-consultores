@@ -149,15 +149,16 @@ describe('mapearSociedade — PJ objeto do contrato', () => {
     const c = mapearSociedade(pj);
     expect(c.juntaUfExtenso).toBe('Mato Grosso');
     expect(c.sedeUfExtenso).toBe('Mato Grosso');
-    expect(c.dataConstituicao).toBe('01/03/2024');
+    // Ano com o ponto de milhar, como a casa escreve — ver `formatarDataBR`.
+    expect(c.dataConstituicao).toBe('01/03/2.024');
   });
 
   it('monta a sede em prosa e nas partes atômicas', () => {
     const c = mapearSociedade(pj);
     expect(c.sede).toContain('Rua das Acácias');
-    expect(c.sede).toContain('nº 119');
+    expect(c.sede).toContain('n.º 119');
     expect(c.sede).toContain('no município de Cuiabá');
-    expect(c.sedeEndereco).toBe('Rua das Acácias, nº 119');
+    expect(c.sedeEndereco).toBe('Rua das Acácias, n.º 119');
     expect(c.sedeBairro).toBe('Centro');
     expect(c.sedeMunicipio).toBe('Cuiabá');
     expect(c.sedeCep).toBe('78000-000');
@@ -625,29 +626,31 @@ describe('mapearMatricula — endereço do imóvel (identificação do urbano)',
 
   it('a prosa junta as partes com município e UF da MATRÍCULA (fonte única)', () => {
     expect(mapearMatricula(URBANO).endereco).toBe(
-      'Rua das Acácias, nº 119, apartamento 302, bairro Centro, ' +
-        'no município de Cuiabá, Estado de Mato Grosso, CEP: 78000-000',
+      'Rua das Acácias, n.º 119, apartamento 302, Bairro Centro, ' +
+        'no município de Cuiabá, Estado de Mato Grosso, CEP 78000-000',
     );
   });
 
-  it('o número em prosa evita o "nº s/n" do modelo', () => {
-    expect(mapearMatricula(URBANO).enderecoNumeroProsa).toBe('nº 119');
+  it('o número em prosa evita o "n.º s/n" do modelo', () => {
+    expect(mapearMatricula(URBANO).enderecoNumeroProsa).toBe('n.º 119');
     const semNumero = mapearMatricula({
       ...URBANO,
       bem: { ...URBANO.bem!, endereco_numero: 's/n' },
     });
     // O cru continua cru (quem já usa {{ enderecoNumero }} não muda de comportamento).
     expect(semNumero.enderecoNumero).toBe('s/n');
-    expect(semNumero.enderecoNumeroProsa).toBe('s/nº');
+    expect(semNumero.enderecoNumeroProsa).toBe('s/n.º');
   });
 
-  it('reaproveita as regras de prosa da pessoa (s/nº e bairro já prefixado)', () => {
+  it('reaproveita as regras de prosa da pessoa (s/n.º e "Bairro" na zona rural)', () => {
     const c = mapearMatricula({
       ...URBANO,
       bem: { ...URBANO.bem!, endereco_numero: 's/n', endereco_complemento: null, endereco_bairro: 'zona rural' },
     });
+    // A zona rural TAMBÉM leva o prefixo: o preâmbulo assinado do MMS diz
+    // "Fazenda Capuaba, s/n.º, Bairro Zona Rural".
     expect(c.endereco).toBe(
-      'Rua das Acácias, s/nº, zona rural, no município de Cuiabá, Estado de Mato Grosso, CEP: 78000-000',
+      'Rua das Acácias, s/n.º, Bairro zona rural, no município de Cuiabá, Estado de Mato Grosso, CEP 78000-000',
     );
   });
 

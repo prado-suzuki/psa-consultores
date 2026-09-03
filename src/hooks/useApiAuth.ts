@@ -1,17 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-let validarUsuarioPromise: ReturnType<typeof supabase.auth.getUser> | null = null;
-
-function validarUsuarioSingleFlight() {
-  if (validarUsuarioPromise) return validarUsuarioPromise;
-  validarUsuarioPromise = supabase.auth.getUser().finally(() => {
-    validarUsuarioPromise = null;
-  });
-  return validarUsuarioPromise;
-}
+const MARGEM_REFRESH_SEGUNDOS = 30;
 
 function caminhoSeguro(url: string): string {
   try {
@@ -64,8 +54,7 @@ function aguardarBackoff(delayMs: number, signal?: AbortSignal | null): Promise<
 }
 
 export function useApiAuth() {
-  const { session, refreshSession, sessaoExpirada, sinalizarSessaoExpirada } = useAuth();
-  const navigate = useNavigate();
+  const { refreshSession, sessaoExpirada } = useAuth();
 
   const getAuthHeaders = async (): Promise<Record<string, string> | null> => {
     try {
@@ -87,23 +76,13 @@ export function useApiAuth() {
     // resolve é a pessoa digitando a senha; até lá, a chamada falha rápido.
     if (sessaoExpirada) return null;
 
-    const currentSession = session ?? (await supabase.auth.getSession()).data.session;
+    // A função pode permanecer viva durante uploads e consultas em lote. Ler o
+    // storage evita que uma closure antiga continue enviando o token anterior
+    // depois de um TOKEN_REFRESHED recebido no meio da operação.
+    const currentSession = (await supabase.auth.getSession()).data.session;
 
     if (!currentSession) {
       console.warn('[Auth] Sem sessão ativa');
-      return null;
-    }
-
-    // Verificar se sessão é válida fazendo chamada ao Supabase
-    const {
-      data: { user },
-      error,
-    } = await validarUsuarioSingleFlight();
-    if (error || !user) {
-      console.error('[Auth] Sessão inválida:', error?.message);
-      const newSession = await refreshSession();
-      if (newSession) return newSession.access_token;
-      handleSessionExpired();
       return null;
     }
 
@@ -116,31 +95,6 @@ export function useApiAuth() {
     // Aqui basta o caminho reativo: manda o token, e se voltar 401 renova e
     // repete (ver `fetchWithAuth`).
     return currentSession.access_token;
-  };
-
-  /**
-   * Sessão perdida no meio de uma chamada.
-   *
-   * Navegar daqui era destrutivo e silencioso: qualquer refetch de fundo (o
-   * OSG usa `useDocumentoArquivo` e `useGeorefByMatricula`, o fiscal usa uns
-   * trinta hooks) arrastava a pessoa para /equipe e levava junto o formulário
-   * aberto. Pior: com o diálogo de reautenticação prometendo que nada se
-   * perdeu, e com `user` em estado, /equipe nem mostra login, mostra o seletor
-   * de áreas, como se estivesse tudo bem.
-   *
-   * Enquanto houver sessão viva na tela, quem resolve é o diálogo: aqui a
-   * chamada só falha e devolve o erro a quem pediu. Sem sessão viva (boot frio,
-   * já deslogado) o comportamento antigo continua valendo, porque aí não há
-   * formulário aberto para preservar nem conta para reautenticar.
-   */
-  const handleSessionExpired = () => {
-    if (sinalizarSessaoExpirada()) return;
-    toast({
-      title: 'Sessão expirada',
-      description: 'Faça login novamente para continuar.',
-      variant: 'destructive',
-    });
-    navigate('/equipe');
   };
 
   const fetchWithAuth = async (
@@ -161,9 +115,10 @@ export function useApiAuth() {
 
         const token = await getValidToken();
         if (!token) {
+          if (sessaoExpirada) throw new Error('Sessão expirada');
           const newSession = await refreshSession();
           if (!newSession) {
-            throw new Error('Sessão expirada');
+            throw new Error('Não foi possível renovar a sessão');
           }
           const isFormData = options.body instanceof FormData;
           const headers: Record<string, string> = {
@@ -191,21 +146,39 @@ export function useApiAuth() {
 
         console.log(`[API] Resposta: ${response.status} em ${Date.now() - startTime}ms`);
 
-        // If 401, try refreshing token and retry once
+        // Um 401 pode ser do endpoint, não da sessão. Primeiro aproveita uma
+        // rotação que já tenha acontecido; só força refresh se o token realmente
+        // estiver no fim. Isso evita uma rotação por matrícula/arquivo em lote.
         if (response.status === 401) {
-          console.log('[API] Recebido 401, tentando refresh do token...');
-          const newSession = await refreshSession();
+          const currentSession = (await supabase.auth.getSession()).data.session;
+          let retryToken: string | null = null;
 
-          if (!newSession) {
-            handleSessionExpired();
-            throw new Error('Sessão expirada');
+          if (currentSession?.access_token !== token) {
+            retryToken = currentSession?.access_token ?? null;
+          } else {
+            const expiresAt = currentSession?.expires_at;
+            const aindaValido = expiresAt == null
+              || expiresAt > Math.floor(Date.now() / 1000) + MARGEM_REFRESH_SEGUNDOS;
+            if (aindaValido) {
+              sinal.limpar();
+              return response;
+            }
+
+            console.log('[API] Token expirado após 401, tentando refresh...');
+            retryToken = (await refreshSession())?.access_token ?? null;
+            if (!retryToken) throw new Error('Não foi possível renovar a sessão');
           }
 
-          // Retry with new token
+          if (!retryToken) {
+            sinal.limpar();
+            return response;
+          }
+
+          // Repete com o token encontrado/renovado.
           const isFormDataRetry = options.body instanceof FormData;
           const retryHeaders: Record<string, string> = {
             ...(options.headers as Record<string, string>),
-            Authorization: `Bearer ${newSession.access_token}`,
+            Authorization: `Bearer ${retryToken}`,
             ...(isFormDataRetry ? {} : { 'Content-Type': 'application/json' }),
           };
 
@@ -216,8 +189,11 @@ export function useApiAuth() {
           });
 
           if (response.status === 401) {
-            handleSessionExpired();
-            throw new Error('Sessão expirada');
+            // O Supabase acabou de aceitar o refresh token e emitir uma sessão
+            // nova. Um 401 que persiste aqui pertence ao endpoint (configuração,
+            // autorização ou validação do JWT), não prova que a sessão morreu.
+            // Devolver a resposta evita abrir o diálogo global por falso positivo.
+            console.error(`[API] Endpoint recusou uma sessão recém-renovada: ${caminhoSeguro(url)}`);
           }
         }
 

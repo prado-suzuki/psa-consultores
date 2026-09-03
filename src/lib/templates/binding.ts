@@ -42,6 +42,9 @@ export const PAPEIS: Record<string, Papel> = {
   matricula: { tipo: 'matricula', label: 'Matrícula' },
   bem: { tipo: 'bem', label: 'Bem' },
   cartorio: { tipo: 'cartorio', label: 'Cartório' },
+  // Cabeçalho do instrumento agrário (cadastro de exploração rural). Papel
+  // unitário como `sociedade`: vale para o contrato inteiro, não para uma parte.
+  instrumento: { tipo: 'instrumento', label: 'Instrumento (exploração rural)' },
 };
 
 // Contratos societários anteriores ao binding namespaced usam campos planos ou
@@ -153,9 +156,15 @@ export function normalizarSelecaoLegada(
  * - `signatarios`: derivada dessas relações (quem assina o documento);
  * - `georef`: BigQuery, pela matrícula selecionada (não depende da empresa);
  * - `selecao`: registros que o consultor escolhe a dedo na tela Gerar (também
- *   não depende da empresa — ver `usaListas` em useGerarDocumentoController).
+ *   não depende da empresa — ver `usaListas` em useGerarDocumentoController);
+ * - `exploracao_rural`: as partes, os imóveis e as origens da posse de UMA linha
+ *   de `exploracao_rural`. Diferente das demais, a lista inteira sai de um só
+ *   cadastro — não há o que o consultor amarrar registro a registro, e é por
+ *   isso que ela é fonte própria em vez de `selecao`.
  */
-export type FonteLista = 'quadro' | 'administracao' | 'integralizacao' | 'georef' | 'signatarios' | 'selecao';
+export type FonteLista =
+  | 'quadro' | 'administracao' | 'integralizacao' | 'georef' | 'signatarios' | 'selecao'
+  | 'exploracao_rural';
 
 export interface CampoExtra {
   id: string;
@@ -220,6 +229,9 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
       { id: 'eConjuge', label: 'É cônjuge outorgante? (condicional)' },
       { id: 'eTestemunha', label: 'É testemunha? (condicional)' },
       { id: 'eAdvogado', label: 'É advogado? (condicional)' },
+      { id: 'eOutorgante', label: 'É parceiro outorgante? (condicional)' },
+      { id: 'eOutorgado', label: 'É parceiro outorgado? (condicional)' },
+      { id: 'eCompossuidor', label: 'É compossuidor rural? (condicional)' },
     ],
   },
   imoveis: {
@@ -319,6 +331,78 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     tipo: 'vertice',
     itemKey: 'vertice',
     fonte: 'georef',
+    camposExtras: [],
+  },
+  // --- Instrumentos agrários --------------------------------------------------
+  //
+  // Todas saem da MESMA linha de `exploracao_rural`, e por isso compartilham a
+  // fonte. Pessoa e matrícula continuam sendo pessoa e matrícula: o que muda de
+  // uma lista para a outra é o PAPEL e os campos da RELAÇÃO (a fração do
+  // compossuidor, a área cedida do imóvel), que é exatamente o que `camposExtras`
+  // existe para dizer.
+  exploradores: {
+    label: 'Parceiros outorgados (exploração rural)',
+    tipo: 'pessoa',
+    itemKey: 'explorador',
+    fonte: 'exploracao_rural',
+    camposExtras: [
+      { id: 'ordem', label: 'Ordem do outorgado (1, 2…)' },
+      { id: 'ordemRomana', label: 'Ordem em romano minúsculo (i, ii…)' },
+    ],
+  },
+  compossuidores: {
+    label: 'Compossuidores rurais',
+    tipo: 'pessoa',
+    itemKey: 'compossuidor',
+    fonte: 'exploracao_rural',
+    camposExtras: [
+      // A fração é campo da RELAÇÃO, não da pessoa: a mesma pessoa tem frações
+      // diferentes em composses diferentes.
+      { id: 'fracao', label: 'Fração na composse (%)' },
+      { id: 'fracaoExtenso', label: 'Fração na composse (por extenso)' },
+      { id: 'ordem', label: 'Ordem do compossuidor (1, 2…)' },
+      { id: 'ordemRomana', label: 'Ordem em romano minúsculo (i, ii…)' },
+    ],
+  },
+  administradoresNomeados: {
+    label: 'Administradores nomeados da composse',
+    tipo: 'pessoa',
+    itemKey: 'adminNomeado',
+    fonte: 'exploracao_rural',
+    camposExtras: [],
+  },
+  // Os imóveis do ANEXO ÚNICO, na ordem em que o contrato os alinea. A alínea e a
+  // área cedida são da relação: a área da matrícula é uma, a cedida NESTE
+  // instrumento é outra, e confundi-las cede terra que o contrato não cede.
+  //
+  // `secoesItem: ['vertices']` porque a alínea do Anexo da parceria termina nos
+  // *Elementos do Perímetro* — o mesmo de-para/azimute/distância/confrontação do
+  // memorial SIGEF, aqui embutido na descrição de cada imóvel em vez de numa
+  // tabela apartada. É a mesma coleção com outra apresentação: declarar uma
+  // segunda faria os dois documentos divergirem sobre o mesmo dado.
+  imoveisDoAnexo: {
+    label: 'Imóveis do Anexo Único (exploração rural)',
+    tipo: 'matricula',
+    itemKey: 'imovel',
+    secoesItem: ['vertices'],
+    fonte: 'exploracao_rural',
+    camposExtras: [
+      { id: 'alinea', label: 'Alínea do imóvel no Anexo (a, b, c…)' },
+      { id: 'areaCedida', label: 'Área cedida neste instrumento' },
+      { id: 'areaCedidaExtenso', label: 'Área cedida (por extenso)' },
+    ],
+  },
+  // O Considerando V: de onde vem a posse de cada grupo de imóveis. O outorgante
+  // da origem entra como `pessoa` no escopo do item ({{ outorgante.qualificacao }}
+  // dentro do laço), pelo mesmo mapeador que qualifica qualquer outra — e não por
+  // um segundo escritor de qualificação, que é como o mesmo CNPJ passaria a ter
+  // duas redações no mesmo contrato.
+  origensDaPosse: {
+    label: 'Origens da posse (Considerando V)',
+    tipo: 'origemPosse',
+    itemKey: 'origemPosse',
+    itemKeysExtras: ['outorgante'],
+    fonte: 'exploracao_rural',
     camposExtras: [],
   },
 };

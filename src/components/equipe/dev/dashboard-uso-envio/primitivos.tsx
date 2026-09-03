@@ -243,7 +243,7 @@ export const FaixaResumo = ({
             style={{ background: TOM_BARRA[k.tom ?? 'neutro'] }}
           />
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-slate-400">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
               <span>{k.label}</span>
               {k.tooltip && <AjudaTooltip texto={k.tooltip} />}
             </div>
@@ -285,13 +285,13 @@ export const FaixaResumo = ({
                   </span>
                 )}
                 {k.variacao.valor && (
-                  <span className="font-semibold text-slate-200">{k.variacao.valor}</span>
+                  <span className="font-semibold text-foreground">{k.variacao.valor}</span>
                 )}
-                <span className="text-slate-400">{k.variacao.rotulo}</span>
+                <span className="text-muted-foreground">{k.variacao.rotulo}</span>
               </p>
             )}
             {k.detalhe && (
-              <p className="mt-1 text-[11px] leading-snug text-slate-400">{k.detalhe}</p>
+              <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{k.detalhe}</p>
             )}
           </div>
         </div>

@@ -78,7 +78,7 @@ const ConteudoUltimoRegistro = ({ linha }: { linha: LinhaPessoa }) => (
   <>
     <span>{dataHora(linha.ultimoRegistro)}</span>
     {linha.ultimoRegistro && (
-      <span className="ml-2 text-xs text-slate-400">
+      <span className="ml-2 text-xs text-muted-foreground">
         {rotuloDiasSemRegistro(linha.diasSemRegistro)}
       </span>
     )}
@@ -159,7 +159,7 @@ const KpiCard = ({ label, valor, hint }: Kpi) => (
     <CardContent className="p-4">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-1 text-2xl font-semibold text-foreground">{valor}</p>
-      <p className="text-xs text-slate-400">{hint}</p>
+      <p className="text-xs text-muted-foreground">{hint}</p>
     </CardContent>
   </Card>
 );

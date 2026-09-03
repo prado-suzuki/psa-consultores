@@ -235,7 +235,7 @@ const DevDashboard = () => {
             </div>
 
             <div className="flex shrink-0 items-center md:flex-col md:items-end">
-              <span className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-md transition-transform group-hover:translate-x-1">
+              <span className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background shadow-md transition-transform group-hover:translate-x-1">
                 Abrir manual
                 <ExternalLink className="h-4 w-4" />
               </span>
@@ -396,7 +396,7 @@ const DevDashboard = () => {
                                   <ExternalLink className="h-2.5 w-2.5" />
                                 </a>
                               ) : (
-                                <span className="text-[11px] italic text-slate-400">Sem manual</span>
+                                <span className="text-[11px] italic text-muted-foreground">Sem manual</span>
                               )}
 
                               <button
@@ -476,7 +476,7 @@ const DevDashboard = () => {
                   className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
                 >
                   {group.label}
-                  <span className="text-slate-400">{group.tools.length}</span>
+                  <span className="text-muted-foreground">{group.tools.length}</span>
                 </button>
               ))}
             </div>
