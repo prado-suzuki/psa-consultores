@@ -500,7 +500,7 @@ export function ProjetosTarefasList({
         {allOsExpanded ? 'Recolher tudo' : 'Expandir tudo'}
       </Button>
     </div>
-    <div className="overflow-x-auto overflow-y-hidden rounded-xl border bg-card shadow-sm">
+    <div className="overflow-x-auto overflow-y-hidden rounded-xl border bg-card">
     <BarraDeMes periodo={periodo} />
     <div className={cn(GRID, 'border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground')}>
       <div className="px-4 py-2.5">Nome</div><div className="px-3 py-2.5">Status</div><div className="px-3 py-2.5">Responsável</div>
@@ -555,7 +555,11 @@ export function ProjetosTarefasList({
                 o mesmo efeito do `--muted-foreground` matiz 220 sobre marfim.
                 `bg-primary/5` é o degrau que a linha de tarefa selecionada já
                 usa. */}
-            <div className={cn(GRID, 'group relative z-10 bg-primary/5 text-sm shadow-md hover:bg-primary/10')}>
+            {/* A sombra saiu junto com o `z-10`, que só existia para levantá-la
+                acima dos vizinhos: quem separa a linha agora é o preenchimento,
+                e a sombra virava reforço de uma coisa já dita — sombra preta
+                neutra sobre superfície quente ainda por cima acinzenta. */}
+            <div className={cn(GRID, 'group bg-primary/5 text-sm hover:bg-primary/10')}>
               <div className="relative flex min-w-0 items-center gap-2 px-4 py-2.5" style={{ paddingLeft: `${PROJECT_INDENT}px` }}>
                 <LevelGuide left={OS_GUIDE} />
                 <span className={TOGGLE_SLOT}>
