@@ -58,7 +58,7 @@ const EXECUCAO_DIR = path.join(OSG_BASE, "09_Gerencial", "01_Sprints", "02_Execu
 const DRY_RUN = process.argv.includes("--dry-run");
 const ENTREGA = process.argv.includes("--entrega");
 
-const ROADMAP_EMOJI = { no_ar: "🟢", parcial: "🟡", novo: "⚪" };
+const ROADMAP_EMOJI = { no_ar: "🟢", feito: "✅", parcial: "🟡", novo: "⚪", cancelado: "⛔" };
 const DETECTED_META = {
   encontrado: { emoji: "✅", label: "evidência no código" },
   parcial: { emoji: "🟨", label: "sinais parciais" },
@@ -279,8 +279,17 @@ function detectavelFromTipo(tipo) {
   return tipo === "obra" || tipo === "ajuste";
 }
 
+/**
+ * Os status que o `roadmap.json` usa de verdade, espelhando `meta.legenda_status`
+ * mais o `cancelado`. Antes a lista tinha tres e o fallback jogava todo o resto em
+ * `novo`: `feito` e `cancelado` apareciam como "a construir", e a regra de
+ * divergencia abaixo passava a pedir para "atualizar" marco que estava certo. Em
+ * 03/09/2026 isso atingia 33 dos 120 marcos. Status novo no roadmap entra AQUI.
+ */
+const ROADMAP_STATUS = ["no_ar", "feito", "parcial", "novo", "cancelado"];
+
 function normStatus(s) {
-  return s === "no_ar" || s === "parcial" || s === "novo" ? s : "novo";
+  return ROADMAP_STATUS.includes(s) ? s : "novo";
 }
 
 function pendenciasCount(detect) {
@@ -384,11 +393,23 @@ function buildReport() {
     const { detected, evidence, filesFound, docsFound } = detectSignals(detect, idx);
     const roadmapStatus = normStatus(rm.status);
     const detectavel = detectavelFromTipo(rm.tipo);
-    const declaredGreen = roadmapStatus === "no_ar";
+    // Sem regra em status-report.config.mjs, "sem evidencia" quer dizer NAO MEDIDO,
+    // nao "nao existe". Em 03/09/2026 eram 51 dos 120 marcos sem regra. Misturar as
+    // duas coisas transformava a lacuna do config em divergencia do roadmap.
+    const temRegra = detect != null;
+    // `feito` e `no_ar` declaram a mesma coisa para efeito de deteccao: a obra
+    // existe. `cancelado` nao declara nada e nunca diverge.
+    const declaredGreen = roadmapStatus === "no_ar" || roadmapStatus === "feito";
     const declaredNovo = roadmapStatus === "novo";
+    // MESMA regra do `divergencia` do status.json, senao o relatorio humano e o
+    // arquivo de maquina contam numeros diferentes (chegaram a 15 contra 5).
+    const mensuravel = detectavel && temRegra;
     let diverge = "";
-    if (declaredGreen && detected === "ausente")
-      diverge = "⚠️ roadmap diz no ar, mas o código não mostra evidência — conferir";
+    if (declaredGreen && mensuravel && detected === "ausente")
+      diverge =
+        roadmapStatus === "feito"
+          ? "⚠️ roadmap diz concluído, mas o código não mostra evidência — conferir (pode ser obra na máquina do dev, sem push)"
+          : "⚠️ roadmap diz no ar, mas o código não mostra evidência — conferir";
     else if (declaredNovo && detected === "encontrado")
       diverge = "ℹ️ roadmap diz 'a construir', mas já há código — talvez adiantado";
     return {
@@ -402,6 +423,7 @@ function buildReport() {
       tipo: rm.tipo,
       depende_de: rm.depende_de || [],
       statusRoadmap: roadmapStatus,
+      temRegra,
       detectavel,
       detect,
       detected,
@@ -445,6 +467,7 @@ function buildReport() {
   L.push(`| ⬜ sem evidência | ${totals.ausente} |`);
   L.push(`| Cobertura (com evidência) | ${progressBar(totals.encontrado, totals.total)} |`);
   L.push(`| ⚠️ divergências roadmap × código | ${divergencias.length} |`);
+  L.push(`| 🔍 obra sem regra de detecção (não medida) | ${evaluated.filter((m) => m.detectavel && !m.temRegra).length} |`);
   L.push("");
 
   L.push("## ⚠️ Divergências para conferir");
@@ -498,7 +521,7 @@ function buildReport() {
   L.push("- **Regras de detecção:** `scripts/status-report.config.mjs` (casadas por `id`).");
   L.push("- **Gatilho:** tarefas agendadas (seg/sex) + hooks git. Manual: `node scripts/gen-status-report.mjs`.");
   L.push("");
-  L.push(`_Legenda — Roadmap: 🟢 no ar · 🟡 parcial · ⚪ a construir. Código: ✅ evidência · 🟨 parcial · ⬜ sem evidência._`);
+  L.push(`_Legenda — Roadmap: 🟢 no ar · ✅ concluído · 🟡 parcial · ⚪ a construir · ⛔ cancelado. Código: ✅ evidência · 🟨 parcial · ⬜ sem evidência._`);
   L.push("");
 
   // ------------------------------- status.json (máquina) -------------------------------
@@ -508,12 +531,21 @@ function buildReport() {
     const deadline = sprintMaxNum(m.sprint);
     const atraso = m.detectavel && codigo === "sem_evidencia" && deadline != null && curNum != null && deadline < curNum;
     const hasCode = codigo === "no_ar" || codigo === "ajuste";
-    const divergencia = (m.statusRoadmap === "no_ar" && codigo === "sem_evidencia") || (m.statusRoadmap === "novo" && hasCode);
+    const declaradoPronto = m.statusRoadmap === "no_ar" || m.statusRoadmap === "feito";
+    // Divergencia exige que o marco seja MENSURAVEL: tipo que deve virar codigo
+    // (obra/ajuste) e com regra escrita. Teste, estudo, medicao e adocao nunca
+    // deixam rastro no codigo, e marco sem regra nao foi medido.
+    const mensuravel = m.detectavel && m.temRegra;
+    const divergencia =
+      m.statusRoadmap !== "cancelado" &&
+      ((declaradoPronto && mensuravel && codigo === "sem_evidencia") ||
+       (m.statusRoadmap === "novo" && hasCode));
     const docs = m.docsFound || [];
     let acao = null;
     if (atraso) acao = `atraso: sprint-alvo ${m.sprint} passou sem evidência no código`;
     else if (divergencia && m.statusRoadmap === "novo") acao = "roadmap diz 'novo', mas há código — atualizar p/ parcial ou ajuste";
     else if (divergencia && m.statusRoadmap === "no_ar") acao = "roadmap diz 'no ar', mas sem evidência no código — conferir";
+    else if (divergencia && m.statusRoadmap === "feito") acao = "roadmap diz 'concluído', mas sem evidência no código — conferir (pode ser obra na máquina do dev, sem push)";
     else if (codigo === "sem_evidencia" && docs.length) acao = "documentado em docs/ (plano/tarefa), mas ainda sem código";
     return {
       id: m.id,
@@ -525,6 +557,7 @@ function buildReport() {
       roadmap: m.statusRoadmap,
       codigo,
       detectavel: m.detectavel,
+      tem_regra: m.temRegra,
       depende_de: m.depende_de,
       evidencia: m.evidence.map((e) => e.replace(/`/g, "")).slice(0, 5),
       documentos_relacionados: docs,
@@ -540,6 +573,11 @@ function buildReport() {
   const extras = buildExtras(idx);
   const resumo = {
     marcos: marcosJson.length,
+    // por status DO ROADMAP, que e o que a legenda_status declara
+    roadmap_feito: marcosJson.filter((x) => x.roadmap === "feito").length,
+    roadmap_cancelado: marcosJson.filter((x) => x.roadmap === "cancelado").length,
+    // a lacuna do config, medida: marco que DEVERIA virar codigo e nao tem regra
+    sem_regra_deteccao: marcosJson.filter((x) => x.detectavel && !x.tem_regra).length,
     no_ar: cnt("no_ar"),
     ajuste: cnt("ajuste"),
     parcial: cnt("parcial"),
