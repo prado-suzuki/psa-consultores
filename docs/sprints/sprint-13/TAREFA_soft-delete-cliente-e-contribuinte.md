@@ -1,4 +1,4 @@
-# TAREFA — Cliente e contribuinte: consertar o soft delete
+# TAREFA 3: consertar o soft delete de cliente e contribuinte
 
 > **Decisão da Patricia, 02/09/2026:** no módulo de cadastro de cliente, **só `cliente` e
 > `contribuinte` guardam linha excluída** (soft delete). Todo o resto passa a apagar de vez.
@@ -16,7 +16,7 @@ Excluir logicamente grava `excluido = true`. As permissões de **leitura** dessa
 exigem `excluido = false`. A linha nova sai da vista de quem está gravando **no meio da própria
 gravação**, e o banco recusa o comando inteiro com 42501.
 
-Não é questão de cluster: **recusa todo mundo que não é admin**, mesmo no cluster certo.
+Cluster não tem nada a ver: **recusa todo mundo que não é admin**, mesmo no cluster certo.
 
 Medido nesta casa, em transação com rollback (líder Ricardo Migueis, 20/08/2026), em
 [`20260820132950_soft_delete_os_e_rateio_security_definer.sql`](../../../supabase/migrations/20260820132950_soft_delete_os_e_rateio_security_definer.sql):
@@ -31,21 +31,21 @@ não é o retorno que dispara, é o `WHERE`. Aquela migração corrigiu OS e rat
 `SECURITY DEFINER` e deixou escrito: *"`cliente`, `contribuinte`, `representante`,
 `correcoes_icms` e `documento_arquivo` têm o mesmo defeito e ficam para outra tarefa."*
 
-Com a decisão de 02/09, `representante` sai da lista por outro caminho — vira hard delete.
+Com a decisão de 02/09, `representante` sai da lista por outro caminho: vira hard delete.
 Restam **`cliente` e `contribuinte`**, e são estes dois.
 
 ## Quanto disso a tela usa hoje
 
 | | |
 |---|---|
-| `contribuinte` | a aba Contribuintes exclui logicamente a cada remoção de linha — **é o caminho quente** |
+| `contribuinte` | a aba Contribuintes exclui logicamente a cada remoção de linha, **é o caminho quente** |
 | `cliente` | o cadastro **nunca** exclui cliente logicamente. A coluna existe e nenhuma tela a usa |
 
 Então a função de `cliente` é preventiva: entra para a regra ficar completa e para a próxima
 tela que precisar não repetir o defeito. Se preferir enxugar, dá para entregar só a de
-`contribuinte` — mas aí o `cliente` fica com uma armadilha documentada e sem dono.
+`contribuinte`, mas aí o `cliente` fica com uma armadilha documentada e sem dono.
 
-## T1 — ⚠️ MIGRAÇÃO · Função de exclusão lógica para os dois
+## T1 · ⚠️ MIGRAÇÃO · Função de exclusão lógica para os dois
 
 Espelha `soft_delete_ordem_servico`, que já está em produção e é o padrão da casa.
 
@@ -54,8 +54,8 @@ Espelha `soft_delete_ordem_servico`, que já está em produção e é o padrão 
 - `cliente` e `contribuinte` são de `postgres` e **não** têm FORCE ROW LEVEL SECURITY, então a
   função `SECURITY DEFINER` escapa da permissão.
 - Triggers: `contribuinte` só tem `update_contribuinte_updated_at`. `cliente` tem esse e o
-  `trg_cliente_tem_cluster`, que é `DEFERRABLE INITIALLY DEFERRED` e checa vínculo de cluster —
-  não é afetado por marcar `excluido`.
+  `trg_cliente_tem_cluster`, que é `DEFERRABLE INITIALLY DEFERRED` e checa vínculo de cluster.
+  Marcar `excluido` não mexe nele.
 - `updated_at` não entra no `UPDATE`: o trigger `BEFORE UPDATE` já resolve.
 - Chaves primárias: `cliente.id` e `contribuinte.id`.
 
@@ -140,7 +140,7 @@ duas mensagens para "Cliente nao encontrado" e "Sem permissao para excluir % de 
 > **Ordem:** depois da [tarefa de alterar](TAREFA_alterar-por-cargo.md). A autorização de dentro
 > da função espelha a permissão de alterar; aplicada antes, ficaria mais frouxa que ela.
 
-## T2 — Front usa a função nova
+## T2 · Front usa a função nova
 
 Em `src/hooks/useSaveClientTransaction.ts`:
 
@@ -148,10 +148,10 @@ Em `src/hooks/useSaveClientTransaction.ts`:
    `soft_delete_contribuinte`.
 2. Ampliar o tipo do parâmetro `rpc` de `softDeleteViaRpc`.
 3. Depois que [representante virar hard delete](TAREFA_representante-e-rateio-hard-delete.md),
-   `softDeleteVerificado` fica sem nenhum uso — **remover a função e o comentário** que
+   `softDeleteVerificado` fica sem nenhum uso: **remover a função e o comentário** que
    documenta a pendência, que passa a estar errado.
 
-## T3 — Conferência
+## T3 · Conferência
 
 Como um `lider` ou `sublider`, num cliente do seu cluster: remover um contribuinte da aba e
 salvar. Tem que excluir, sem 42501. Depois, conferir que a linha sumiu da tela e continua no
@@ -159,5 +159,5 @@ banco com `excluido = true`.
 
 ## O que fica de fora
 
-`correcoes_icms` e `documento_arquivo` seguem com o mesmo defeito — dos cinco listados na
+`correcoes_icms` e `documento_arquivo` seguem com o mesmo defeito: dos cinco listados na
 migração de 20/08, continuam pendentes e não pertencem a este módulo.
