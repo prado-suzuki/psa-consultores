@@ -450,10 +450,53 @@ describe('EquipeChamados espelhada', () => {
     expect(screen.queryByText('Do cluster 1')).not.toBeInTheDocument();
   });
 
-  it('trava o filtro de Cluster: o escopo não é do usuário, é de onde a tela está', () => {
-    setTickets([ticket({ id: 'ticket-00000001', cluster_id: 'cluster-2' })]);
+  /*
+   * O FILTRO DE CLUSTER FICA ABERTO, inclusive espelhado.
+   *
+   * Ele já foi travado, e o preço apareceu em produção: chamado que nasce sem
+   * cluster não casa com cluster nenhum, sumia das duas telas de gestão e não
+   * havia como pedi-lo — um chamado em andamento ficou invisível para o
+   * responsável e para a diretoria. O espelho dá o valor inicial; quem precisa
+   * sair dele sai.
+   *
+   * O que substitui a trava é o par abaixo: os cartões acompanham a escolha, de
+   * modo que a tela nunca afirma um escopo que a lista não tem — que era o que a
+   * trava protegia.
+   */
+  it('deixa sair do cluster do espelho, e os cartões acompanham', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    setTickets([
+      ticket({ id: 'ticket-00000001', title: 'Do cluster 1', status: 'aberto', cluster_id: 'cluster-1' }),
+      ticket({ id: 'ticket-00000002', title: 'Do cluster 2', status: 'fechado', cluster_id: 'cluster-2' }),
+    ]);
     render(<EquipeChamados />);
-    expect(screen.getByText('Definido pelo ambiente desta tela')).toBeInTheDocument();
+    expect(screen.queryByText('Do cluster 1')).not.toBeInTheDocument();
+
+    await selectOption(user, 5, 'Cluster Norte');
+
+    expect(screen.getByText('Do cluster 1')).toBeInTheDocument();
+    expect(screen.queryByText('Do cluster 2')).not.toBeInTheDocument();
+    expect(screen.getByText('1 de 1 chamados')).toBeInTheDocument();
+    const cartoes = screen.getAllByText(/^\d+$/, { selector: '.text-3xl' }).map((e) => e.textContent);
+    // Total 1, Abertos 1, Em Andamento 0, Resolvidos 0 — o cluster escolhido.
+    expect(cartoes).toEqual(['1', '1', '0', '0']);
+  });
+
+  it('isola os chamados sem cluster, que nenhuma outra opção mostra', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    setTickets([
+      ticket({ id: 'ticket-00000001', title: 'Do cluster 2', cluster_id: 'cluster-2' }),
+      ticket({ id: 'ticket-00000002', title: 'Órfão de cluster', cluster_id: null }),
+    ]);
+    render(<EquipeChamados />);
+    // No cluster do espelho o órfão não aparece — é justamente o defeito.
+    expect(screen.queryByText('Órfão de cluster')).not.toBeInTheDocument();
+
+    await selectOption(user, 5, 'Sem cluster');
+
+    expect(screen.getByText('Órfão de cluster')).toBeInTheDocument();
+    expect(screen.queryByText('Do cluster 2')).not.toBeInTheDocument();
+    expect(screen.getByText('1 de 1 chamados')).toBeInTheDocument();
   });
 
   it('limpar filtros mantém o escopo do espelho', () => {

@@ -52,6 +52,26 @@ export const activityLabels: Record<string, string> = {
 
 export { departmentLabels } from '@/lib/chamadosDepartamentos';
 
+/**
+ * O valor do filtro de Cluster que pede os chamados SEM cluster.
+ *
+ * Não é um cluster: é a ausência dele. Existe porque chamado sem cluster não
+ * casa com nenhuma opção da lista, e sem esta opção ele só aparecia em "Todos",
+ * misturado — não havia como isolar os que precisam de roteamento. Ver
+ * `combinaComCluster`.
+ */
+export const CLUSTER_SEM_VINCULO = 'sem-cluster';
+
+/** Regra única do filtro de cluster — a tela da equipe e a da gestão usam esta. */
+export function combinaComCluster(
+  ticket: Pick<TicketListItem, 'cluster_id'>,
+  cluster: string,
+) {
+  if (cluster === 'todos') return true;
+  if (cluster === CLUSTER_SEM_VINCULO) return !ticket.cluster_id;
+  return ticket.cluster_id === cluster;
+}
+
 export function createEquipeChamadosFilters(defaultCluster: string): EquipeChamadosFilters {
   return {
     periodo: 'todas',
@@ -155,8 +175,7 @@ export function filterAndSortTickets(
     filtered = filtered.filter((ticket) => ticket.department === filters.departamento);
   if (filters.area !== 'todos')
     filtered = filtered.filter((ticket) => ticket.estrutura_area_id === filters.area);
-  if (filters.cluster !== 'todos')
-    filtered = filtered.filter((ticket) => ticket.cluster_id === filters.cluster);
+  filtered = filtered.filter((ticket) => combinaComCluster(ticket, filters.cluster));
   if (filters.searchId) {
     const searchId = filters.searchId.toLowerCase();
     filtered = filtered.filter((ticket) => ticket.id.toLowerCase().includes(searchId));
