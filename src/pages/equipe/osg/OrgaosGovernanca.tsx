@@ -40,9 +40,9 @@ import { cn } from '@/lib/utils';
 /**
  * Cabeçalho de coluna com explicação no hover.
  *
- * Vale só onde o rótulo é vocabulário de quem já sabe: "Hierarquia", "Status" e
- * "Vigência" não dizem o efeito que têm. Onde o texto da página já explica,
- * tooltip vira ruído.
+ * Vale só onde o rótulo é vocabulário de quem já sabe: "Hierarquia" e "Vigência"
+ * não dizem o efeito que têm. Onde o próprio rótulo já explica, tooltip vira
+ * ruído, e é por isso que a coluna do contrato não tem um.
  */
 function ComAjuda({ texto, children }: { texto: string; children: ReactNode }) {
   return (
@@ -90,9 +90,12 @@ const OrgaosGovernanca = () => {
   return (
     <OsgLayout
       title="Órgãos de Governança"
-      subtitle="As instâncias de decisão do cliente, que viram as colunas da Matriz de Alçadas"
+      subtitle="Cadastre os grupos ou instâncias responsáveis por aprovar decisões do cliente, como Diretoria, Conselho ou Comitê. Cada órgão cadastrado será usado na Matriz de Alçadas."
       headerActions={
-        clienteId ? (
+        // Com a lista vazia a orientação inteira vive na caixa do meio, que já
+        // traz este mesmo botão ao lado do de padrões. Repeti-lo aqui em cima
+        // poria a mesma ação duas vezes na tela, com dois textos diferentes.
+        clienteId && orgaos.length > 0 ? (
           <Button size="sm" onClick={abrirNovo}>
             <Plus className="mr-2 h-4 w-4" /> Novo órgão
           </Button>
@@ -100,23 +103,12 @@ const OrgaosGovernanca = () => {
       }
     >
       <div className="mx-auto max-w-7xl space-y-5">
-        {/*
-          Uma linha dizendo para que a tela serve. Quem chega aqui pela primeira
-          vez não sabe que este cadastro é a fonte das colunas da Matriz, e sem
-          isso o campo do contrato social parece detalhe em vez de decisão.
-        */}
-        <p className="max-w-3xl text-xs leading-relaxed text-muted-foreground/75">
-          As instâncias que decidem na empresa do cliente. Cada órgão vira uma coluna da{' '}
-          <span className="font-medium">Matriz de Alçadas</span>, e os marcados como{' '}
-          <span className="font-medium">Recebe competência</span> ganham cláusula no contrato
-          social. Três são padrão da OSG, e o cliente pode ter os próprios.
-        </p>
-
         {!clienteId ? (
           <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center text-muted-foreground">
             <Landmark className="h-10 w-10 opacity-50" />
-            <p className="text-sm">
-              Selecione um cliente na barra acima para cadastrar os órgãos de governança dele.
+            <p className="max-w-md text-sm">
+              Selecione um cliente na barra acima para visualizar os órgãos já cadastrados ou
+              adicionar novos responsáveis pelas decisões.
             </p>
           </div>
         ) : (
@@ -125,18 +117,24 @@ const OrgaosGovernanca = () => {
               O botão dos padrões acrescenta só o que falta, então continua útil
               depois da primeira vez: quem apagou um por engano traz de volta sem
               digitar. Some quando os três já estão lá, para não virar ruído.
+
+              Com a lista vazia a faixa também não aparece, porque a caixa do meio
+              já oferece a mesma ação. O caso que a faixa resolve é o outro: o
+              consultor cadastrou um órgão do cliente à mão primeiro e só depois
+              percebe que faltam os padrão. Aí a caixa não existe e é aqui que os
+              dois caminhos convivem, por isso o texto nomeia o outro botão.
             */}
-            {mostrarBotaoPadroes && (
+            {mostrarBotaoPadroes && orgaos.length > 0 && (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-osg-200 bg-osg-50/60 p-4">
                 <div className="space-y-0.5">
                   <p className="text-sm font-semibold text-osg-700">
                     {faltamPadroes.length > 0
-                      ? 'Usar os órgãos padrão da OSG'
+                      ? 'Faltam os órgãos padrão da OSG'
                       : 'Arrumar a hierarquia'}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {faltamPadroes.length > 0
-                      ? `Acrescenta ${faltamPadroes.map((o) => o.nome).join(', ')} no topo da hierarquia. Nem todo cliente tem os três: apague o que não se aplica.`
+                      ? `Acrescenta ${faltamPadroes.map((o) => o.nome).join(', ')} no topo da hierarquia, acima dos que você já cadastrou. Para uma instância própria do cliente, use Novo órgão.`
                       : 'Os órgãos padrão estão fora de lugar. No contrato social a ordem deles é fixa e nenhum órgão do cliente fica acima.'}
                   </p>
                 </div>
@@ -147,7 +145,7 @@ const OrgaosGovernanca = () => {
                   onClick={() => semear.mutate(orgaos)}
                 >
                   <Sparkles className="mr-2 h-4 w-4" />{' '}
-                  {faltamPadroes.length > 0 ? 'Adicionar padrões' : 'Arrumar ordem'}
+                  {faltamPadroes.length > 0 ? 'Adicionar órgãos padrão' : 'Arrumar ordem'}
                 </Button>
               </div>
             )}
@@ -155,9 +153,34 @@ const OrgaosGovernanca = () => {
             {isLoading ? (
               <p className="py-12 text-center text-sm text-muted-foreground">Carregando…</p>
             ) : orgaos.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center text-muted-foreground">
-                <Landmark className="h-10 w-10 opacity-50" />
-                <p className="text-sm">Nenhum órgão cadastrado para este cliente.</p>
+              /*
+                A caixa vazia é o único lugar da orientação enquanto não há órgão:
+                diz o que fazer, oferece os dois caminhos lado a lado e contrasta
+                um com o outro na mesma frase. Explicar a diferença só funciona
+                com os dois à vista, e o destaque do primeiro botão responde
+                "qual eu sigo primeiro" sem precisar de mais texto.
+              */
+              <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 px-6 py-16 text-center">
+                <Landmark className="h-10 w-10 text-muted-foreground opacity-50" />
+                <p className="text-sm font-medium">Nenhum órgão cadastrado para este cliente.</p>
+                <p className="max-w-lg text-sm text-muted-foreground">
+                  Comece pelos órgãos padrão da OSG, Reunião de Sócios, Conselho de
+                  Administração e Diretor Executivo, e apague os que não se aplicam. Se o
+                  cliente tiver uma instância própria, como um comitê ou os gerentes, cadastre
+                  manualmente.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    disabled={semear.isPending}
+                    onClick={() => semear.mutate(orgaos)}
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" /> Adicionar órgãos padrão
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={abrirNovo}>
+                    <Plus className="mr-2 h-4 w-4" /> Cadastrar órgão manualmente
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="overflow-hidden rounded-xl border border-osg-200 bg-background">
@@ -170,11 +193,12 @@ const OrgaosGovernanca = () => {
                         </ComAjuda>
                       </TableHead>
                       <TableHead className={cabecalhoCls}>Nome do órgão</TableHead>
-                      <TableHead className={cabecalhoCls}>
-                        <ComAjuda texto="Recebe competência: o contrato social ganha uma cláusula “Compete a este órgão…”. Só na Matriz: vira coluna da Matriz de Alçadas, mas fica fora do contrato.">
-                          Status
-                        </ComAjuda>
-                      </TableHead>
+                      {/*
+                        Sem tooltip de propósito: "Status" precisava de um, porque
+                        prometia ativo e inativo e entregava outra coisa. Nomeando
+                        o contrato, as duas células leem sozinhas.
+                      */}
+                      <TableHead className={cabecalhoCls}>Contrato social</TableHead>
                       <TableHead className={cabecalhoCls}>
                         <ComAjuda texto="O período em que o órgão existiu na estrutura do cliente. Em branco quer dizer que está vigente hoje.">
                           Vigência

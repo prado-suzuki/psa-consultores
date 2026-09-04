@@ -99,9 +99,15 @@ export function OrgaoGovernancaModal({
           <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
             <div className="space-y-0.5">
               <Label htmlFor="orgao-contrato">Recebe competência no contrato social</Label>
+              {/*
+                A frase fala do contrato do cliente, e não do gerador de cláusula,
+                que é peça nossa: quem preenche esta tela tem o documento na
+                cabeça, não o software que o escreve.
+              */}
               <p className="text-xs text-muted-foreground">
-                Ligado, o gerador escreve &quot;Compete a...&quot; para este órgão. Deixe desligado
-                para quem existe só na Matriz, como os gerentes.
+                Quando marcado, este órgão ganha uma cláusula própria no contrato, dizendo o
+                que compete a ele. Desmarcado, ele continua na Matriz de Alçadas mas fica fora
+                do contrato.
               </p>
             </div>
             <Switch
