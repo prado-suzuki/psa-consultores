@@ -40,6 +40,7 @@ import {
   type ProjectPrefillLocationState,
 } from '@/lib/projetosCadastro';
 import { computeAvailableMembers, computeExecutores, computeLideres, splitProjectMembers } from '@/lib/projetoEquipe';
+import { FECHO_SUPORTE } from '@/lib/rlsMessages';
 
 export function useProjetosCadastroController(area: AreaKey) {
   const location = useLocation();
@@ -440,8 +441,9 @@ export function useProjetosCadastroController(area: AreaKey) {
     try {
       resumo = await resumoExclusaoProjeto(projectId);
     } catch (error) {
+      console.error('[projetos] resumo de exclusão do projeto falhou:', error, 'projeto:', projectId);
       toast.error('Não foi possível verificar as tarefas deste projeto.', {
-        description: error instanceof Error ? error.message : 'Tente novamente.',
+        description: FECHO_SUPORTE,
       });
       return;
     }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, CalendarDays, FolderPlus, Table2, Trello, Sun, CalendarRange, GanttChart, ListTree } from 'lucide-react';
 import { toast } from 'sonner';
+import { FECHO_SUPORTE } from '@/lib/rlsMessages';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
@@ -278,8 +279,9 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     } catch (error) {
       // Sem saber quantas filhas existem, não se abre um diálogo que pode
       // apagá-las em cascata.
+      console.error('[tarefas] contagem de subtarefas bloqueantes falhou:', error, 'tarefa:', taskId);
       toast.error('Não foi possível verificar as subtarefas desta tarefa.', {
-        description: error instanceof Error ? error.message : 'Tente novamente.',
+        description: FECHO_SUPORTE,
       });
       return;
     }
