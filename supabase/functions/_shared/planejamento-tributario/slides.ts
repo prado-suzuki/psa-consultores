@@ -32,11 +32,7 @@
  * estas quatro strings com as do mapa e quebra se divergirem.
  */
 export const ABA_VENDA_DE_ATIVOS = 'Cenário 02 (Venda de Ativos)';
-export const ABAS_DE_CENARIO = [
-  'Cenário Atual (PF)',
-  'Cenário 01 (PFxPJ)',
-  'Cenário 02 (PJxPJ)',
-];
+export const ABAS_DE_CENARIO = ['Cenário Atual (PF)', 'Cenário 01 (PFxPJ)', 'Cenário 02 (PJxPJ)'];
 
 /** Uma unidade de valor, igual à do mapa. */
 export type UnidadeWp = 'moeda' | 'percentual' | 'texto' | 'data' | 'inteiro';
@@ -114,6 +110,19 @@ export interface TabelaDoSlide {
   titulo: string;
   /** As colunas, na ordem, para o molde saber o que preencher. */
   colunas: string[];
+  /**
+   * As duas dimensões da coluna, separadas.
+   *
+   * **O molde tem um número FIXO de espaços por ano** e o estudo nem sempre
+   * preenche todos: o `Cenário Atual (PF)` tem um contribuinte só, e a DRE do
+   * molde tem dois espaços por ano. Casar a lista achatada com os espaços por
+   * posição jogava 2027 no lugar do segundo contribuinte de 2026, com números
+   * certos debaixo do cabeçalho errado. Com as dimensões separadas, o gerador
+   * monta a chave de cada espaço e deixa vazio o que não existe.
+   */
+  anos: string[];
+  /** Contribuintes na DRE, cenários no Resumo, vazio quando a coluna é só o ano. */
+  subs: string[];
   linhas: LinhaDaTabela[];
   /** Quantas linhas saíram além do que cabe. Zero é o normal. */
   transbordou: number;
@@ -275,7 +284,15 @@ function montaTabela(
     for (const c of colunas) if (!(c in linha.valores)) linha.valores[c] = '-';
   }
 
-  return { titulo, colunas, linhas, transbordou: Math.max(0, linhas.length - cabem) };
+  const anos: string[] = [];
+  const subs: string[] = [];
+  for (const c of colunas) {
+    const [ano, sub] = c.split('|');
+    if (!anos.includes(ano)) anos.push(ano);
+    if (sub && !subs.includes(sub)) subs.push(sub);
+  }
+
+  return { titulo, colunas, anos, subs, linhas, transbordou: Math.max(0, linhas.length - cabem) };
 }
 
 /**
@@ -296,7 +313,10 @@ function montaTabela(
  * arquivo. O `nivel` acompanha cada linha porque o molde tem três linhas-modelo,
  * uma por nível, e é ele que decide se a conta sai em negrito, normal ou recuada.
  */
-function montaDre(valores: ValorDaRevisao[]): { tabela: TabelaDoSlide; problemas: ProblemaDoDeck[] } {
+function montaDre(valores: ValorDaRevisao[]): {
+  tabela: TabelaDoSlide;
+  problemas: ProblemaDoDeck[];
+} {
   const daDre = valores.filter((v) => v.bloco === 'dre');
   const cenarios = [...new Set(daDre.map((v) => v.cenario))];
   const base = ABAS_DE_CENARIO.find((n) => cenarios.includes(n)) ?? cenarios[0];
@@ -470,6 +490,8 @@ function montaTransferencia(valores: ValorDaRevisao[]): {
     tabela: {
       titulo: '3.4 Transferência da Atividade Rural',
       colunas: anos,
+      anos,
+      subs: [],
       linhas,
       transbordou: Math.max(0, linhas.length - CABEM.transferencia),
     },
@@ -532,33 +554,63 @@ function normaliza(s: string): string {
     .replace(/[^a-z0-9]+/g, '');
 }
 
+/** Quantas linhas de comentário cabem numa caixa do slide, antes de transbordar. */
+const CABEM_NA_CAIXA = 8;
+
 function montaComentarios(comentarios: ComentarioDaRevisao[]): {
   caixas: { tributo: string; texto: string }[];
   problemas: ProblemaDoDeck[];
 } {
-  const porTributo = new Map<string, string[]>();
+  /* Agrupa por tributo e, dentro dele, por cenário, na ordem de leitura. */
+  const porTributo = new Map<string, Map<string, string[]>>();
   for (const c of comentarios) {
     if (c.cenario === null) continue;
-    const atual = porTributo.get(c.tributo) ?? [];
-    atual.push(c.texto);
-    porTributo.set(c.tributo, atual);
+    const doTributo = porTributo.get(c.tributo) ?? new Map<string, string[]>();
+    const doCenario = doTributo.get(c.cenario) ?? [];
+    /* Linha repetida dentro do MESMO cenário não acrescenta nada. */
+    if (!doCenario.includes(c.texto)) doCenario.push(c.texto);
+    doTributo.set(c.cenario, doCenario);
+    porTributo.set(c.tributo, doTributo);
   }
 
   const caixas: { tributo: string; texto: string }[] = [];
   const problemas: ProblemaDoDeck[] = [];
   const doMolde = new Set(CAIXAS_DO_MOLDE.map(normaliza));
 
-  for (const [tributo, linhas] of porTributo) {
-    const texto = linhas.join('\n');
-    if (doMolde.has(normaliza(tributo))) {
-      caixas.push({ tributo, texto });
-    } else {
+  for (const [tributo, porCenario] of porTributo) {
+    /*
+     * **Com mais de um cenário, cada linha diz de qual ela é.**
+     * O mesmo comentário costuma aparecer sob dois cenários com uma palavra de
+     * diferença ("regime de lucro real" contra "regime do lucro real"), e sem o
+     * prefixo a caixa parece ter duplicata. O deck de origem prefixa assim.
+     */
+    const varios = porCenario.size > 1;
+    const linhas: string[] = [];
+    for (const [cenario, doCenario] of porCenario) {
+      for (const linha of doCenario) {
+        linhas.push(varios ? `${raizDoCenario(cenario)} · ${linha}` : linha);
+      }
+    }
+
+    if (!doMolde.has(normaliza(tributo))) {
       problemas.push({
         tipo: 'tipo_inesperado',
         onde: `comentário de ${tributo}`,
         detalhe: `O molde não tem caixa para "${tributo}", então esse comentário não sai no slide.`,
       });
+      continue;
     }
+
+    if (linhas.length > CABEM_NA_CAIXA) {
+      problemas.push({
+        tipo: 'tipo_inesperado',
+        onde: `caixa de ${tributo}`,
+        detalhe:
+          `A caixa de ${tributo} saiu com ${linhas.length} linhas e cabem cerca de ` +
+          `${CABEM_NA_CAIXA}. O texto vai transbordar e precisa ser encurtado no PowerPoint.`,
+      });
+    }
+    caixas.push({ tributo, texto: linhas.join('\n') });
   }
   return { caixas, problemas };
 }
@@ -609,4 +661,3 @@ export function montaDeck(leitura: Revisao): Deck {
     problemas,
   };
 }
-

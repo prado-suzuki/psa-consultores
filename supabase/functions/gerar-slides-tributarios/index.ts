@@ -20,10 +20,17 @@ import { buildCorsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts
 import { packPptx, readText, unpackPptx, writeText, type PptxParts } from '../_shared/ooxml/zip.ts';
 import { parseXml, qsa, serializeXml } from '../_shared/ooxml/xml.ts';
 import { applyTokensToNode, stripRemainingTokens } from '../_shared/ooxml/runs.ts';
-import { cloneRow, insertRowBefore, listRows, removeRow, rowContainsToken } from '../_shared/ooxml/table.ts';
+import {
+  cloneRow,
+  insertRowBefore,
+  listRows,
+  removeRow,
+  rowContainsToken,
+} from '../_shared/ooxml/table.ts';
 import { validatePptx } from '../_shared/ooxml/validate.ts';
 import {
   montaDeck,
+  type TabelaDoSlide,
   type ComentarioDaRevisao,
   type Deck,
   type FarolDaRevisao,
@@ -37,17 +44,52 @@ const VERSAO_DO_GERADOR = '1.0';
 const BUCKET_MOLDES = 'osg-templates';
 const BUCKET_SAIDA = 'wp-apresentacoes';
 const MOLDE = 'TEMPLATE_TRIBUTARIO.pptx';
-const PPTX_MIME =
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 
-/** Onde cada tabela mora no molde, e quais colunas do slide são de valor. */
+/**
+ * Onde cada tabela mora no molde, quais células são de valor, e quantas delas o
+ * molde reserva por ano.
+ *
+ * `porAno` é o que evita o pior defeito silencioso desta tela: a DRE tem dois
+ * espaços por ano, e um estudo com um contribuinte só devolve três colunas.
+ * Encaixando por posição, 2027 caía no espaço do segundo contribuinte de 2026,
+ * com o número certo debaixo do cabeçalho errado.
+ */
 const SLIDES = {
-  dre: { arquivo: 'ppt/slides/slide2.xml', colunas: [2, 3, 5, 6, 8, 9] },
-  farol: { arquivo: 'ppt/slides/slide7.xml', colunas: [] as number[] },
-  transferencia: { arquivo: 'ppt/slides/slide8.xml', colunas: [2, 4, 6, 8, 10, 12] },
-  resumo: { arquivo: 'ppt/slides/slide9.xml', colunas: [2, 3, 4, 6, 7, 8, 10, 11, 12] },
-  comentarios: { arquivo: 'ppt/slides/slide10.xml', colunas: [] as number[] },
+  dre: { arquivo: 'ppt/slides/slide2.xml', colunas: [2, 3, 5, 6, 8, 9], porAno: 2 },
+  farol: { arquivo: 'ppt/slides/slide7.xml', colunas: [] as number[], porAno: 0 },
+  transferencia: {
+    arquivo: 'ppt/slides/slide8.xml',
+    colunas: [2, 4, 6, 8, 10, 12],
+    porAno: 1,
+  },
+  resumo: {
+    arquivo: 'ppt/slides/slide9.xml',
+    colunas: [2, 3, 4, 6, 7, 8, 10, 11, 12],
+    porAno: 3,
+  },
+  comentarios: { arquivo: 'ppt/slides/slide10.xml', colunas: [] as number[], porAno: 0 },
 };
+
+/**
+ * A chave de cada espaço do molde, na ordem em que eles aparecem.
+ *
+ * Vazio onde o estudo não tem o que pôr: um ano a menos, ou um contribuinte a
+ * menos, deixa a célula em branco em vez de puxar o valor do vizinho.
+ */
+function chavesDosEspacos(t: TabelaDoSlide, porAno: number): string[] {
+  const chaves: string[] = [];
+  for (const ano of t.anos) {
+    if (t.subs.length === 0) {
+      chaves.push(ano);
+      continue;
+    }
+    for (let i = 0; i < porAno; i++) {
+      chaves.push(t.subs[i] ? `${ano}|${t.subs[i]}` : '');
+    }
+  }
+  return chaves;
+}
 
 const WINGDINGS = 'Wingdings 2';
 const A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
@@ -120,7 +162,7 @@ function preencheTabela(
   moldura: Element,
   prefixos: string[],
   linhas: LinhaDaTabela[],
-  colunas: string[],
+  chavesPorEspaco: string[],
   indicesDeValor: number[],
 ): void {
   const modelos = new Map<string, Element>();
@@ -133,7 +175,8 @@ function preencheTabela(
   const primeiro = [...modelos.values()][0];
 
   for (const linha of linhas) {
-    const p = prefixos.length === 1 ? prefixos[0] : prefixos[Math.min(linha.nivel, prefixos.length - 1)];
+    const p =
+      prefixos.length === 1 ? prefixos[0] : prefixos[Math.min(linha.nivel, prefixos.length - 1)];
     const molde = modelos.get(p) ?? primeiro;
     const nova = cloneRow(molde);
 
@@ -146,8 +189,8 @@ function preencheTabela(
         return;
       }
       const pos = indicesDeValor.indexOf(i);
-      const coluna = pos >= 0 && pos < colunas.length ? colunas[pos] : null;
-      escreveNaCelula(tc, coluna ? (linha.valores[coluna] ?? '-') : '');
+      const chave = pos >= 0 ? (chavesPorEspaco[pos] ?? '') : '';
+      escreveNaCelula(tc, chave ? (linha.valores[chave] ?? '-') : '');
     });
 
     insertRowBefore(nova, primeiro);
@@ -230,9 +273,7 @@ function tokensGlobais(deck: Deck): Record<string, string> {
     t[`CEN${i + 1}`] = c;
   });
   /* Nomes de contribuinte: o molde tem duas colunas e o WP pode ter uma só. */
-  const contribuintes = [
-    ...new Set(deck.dre.colunas.map((c) => c.split('|')[1]).filter(Boolean)),
-  ];
+  const contribuintes = [...new Set(deck.dre.colunas.map((c) => c.split('|')[1]).filter(Boolean))];
   t.PF = contribuintes[0] ?? 'Pessoa Física';
   t.PJ = contribuintes[1] ?? 'Pessoa Jurídica';
   return t;
@@ -257,14 +298,21 @@ function montaPptx(molde: Uint8Array, deck: Deck): { bytes: Uint8Array; avisos: 
       avisos.push(`O molde não tem tabela em ${arquivo}.`);
       continue;
     }
-    const daTabela = chave === 'dre' ? deck.dre : chave === 'resumo' ? deck.resumo : deck.transferencia;
+    const daTabela =
+      chave === 'dre' ? deck.dre : chave === 'resumo' ? deck.resumo : deck.transferencia;
     /* A Transferência tem linha de seção, que é título sem valor: nível 0. */
     const comNivel = linhas.map((l) =>
       chave === 'transferencia'
         ? { ...l, nivel: Object.keys(l.valores).length === 0 ? 0 : l.nivel }
         : l,
     );
-    preencheTabela(moldura, prefixos, comNivel, daTabela.colunas, indices);
+    preencheTabela(
+      moldura,
+      prefixos,
+      comNivel,
+      chavesDosEspacos(daTabela, SLIDES[chave].porAno),
+      indices,
+    );
     applyTokensToNode(doc.documentElement, globais);
     stripRemainingTokens(doc.documentElement);
     writeText(partes, arquivo, serializeXml(doc));
@@ -277,7 +325,9 @@ function montaPptx(molde: Uint8Array, deck: Deck): { bytes: Uint8Array; avisos: 
     if (moldura) {
       const semDado = preencheFarol(moldura, deck.farol, deParaDoFarol(moldura));
       if (semDado > 0) {
-        avisos.push(`${semDado} célula(s) da Carga Tributária ficaram sem dado e saíram como traço.`);
+        avisos.push(
+          `${semDado} célula(s) da Carga Tributária ficaram sem dado e saíram como traço.`,
+        );
       }
     }
     applyTokensToNode(doc.documentElement, globais);
@@ -326,6 +376,21 @@ async function crc32cBase64(bytes: Uint8Array): Promise<string> {
   return btoa(String.fromCharCode(...new Uint8Array(hash).slice(0, 16)));
 }
 
+function descreveErro(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (e && typeof e === 'object') {
+    const o = e as { message?: string; details?: string; hint?: string; code?: string };
+    const partes = [o.message, o.details, o.hint, o.code ? `(${o.code})` : null].filter(Boolean);
+    if (partes.length) return partes.join(' ');
+    try {
+      return JSON.stringify(e);
+    } catch {
+      /* objeto circular: cai no genérico abaixo */
+    }
+  }
+  return 'Falha sem descrição ao gerar a apresentação.';
+}
+
 serve(async (req) => {
   const pre = handleCorsPreflightRequest(req);
   if (pre) return pre;
@@ -357,7 +422,9 @@ serve(async (req) => {
 
     const { data: revisao, error: erroRevisao } = await comoUsuario
       .from('wp_importacao')
-      .select('id, versao, cliente_no_wp, estudo_id')
+      .select(
+        'id, versao, cliente_no_wp, estudo_id, wp_estudo!inner(cliente_id, cliente!inner(nome))',
+      )
       .eq('id', importacaoId)
       .maybeSingle();
     if (erroRevisao) throw erroRevisao;
@@ -371,11 +438,7 @@ serve(async (req) => {
      * teste de ponta a ponta.
      */
     const PAGINA = 1000;
-    async function buscaTudo<T>(
-      tabela: string,
-      colunas: string,
-      ordem?: string,
-    ): Promise<T[]> {
+    async function buscaTudo<T>(tabela: string, colunas: string, ordem?: string): Promise<T[]> {
       const tudo: T[] = [];
       for (let de = 0; ; de += PAGINA) {
         let q = comoUsuario
@@ -392,6 +455,17 @@ serve(async (req) => {
       }
     }
 
+    /*
+     * **O nome do cliente sai do cadastro, não da planilha.**
+     * `cliente_no_wp` é o que o consultor digitou dentro do arquivo, e o mesmo WP
+     * pode ser importado para clientes diferentes: as três primeiras gerações
+     * saíram com o mesmo nome de arquivo para três clientes distintos, o que faz
+     * um parecer o outro. Quem manda é o cadastro.
+     */
+    const doCadastro =
+      (revisao as unknown as { wp_estudo?: { cliente?: { nome?: string } } }).wp_estudo?.cliente
+        ?.nome ?? null;
+
     const [valores, farol, comentarios] = await Promise.all([
       buscaTudo<Record<string, never>>(
         'wp_valor',
@@ -405,7 +479,7 @@ serve(async (req) => {
     ]);
 
     const deck = montaDeck({
-      clienteNoWp: revisao.cliente_no_wp ?? undefined,
+      clienteNoWp: doCadastro ?? revisao.cliente_no_wp ?? undefined,
       valores: valores.map((v) => ({
         bloco: v.bloco,
         rotulo: v.rotulo,
@@ -504,6 +578,11 @@ serve(async (req) => {
       problemas,
     });
   } catch (e) {
-    return json({ error: e instanceof Error ? e.message : String(e) }, 500);
+    /*
+     * **`String(e)` não serve aqui.** O erro do PostgREST é um objeto simples,
+     * não um `Error`, e virava a string "[object Object]" na tela: um erro que
+     * não diz nada é pior do que erro nenhum, porque some com a pista.
+     */
+    return json({ error: descreveErro(e) }, 500);
   }
 });
