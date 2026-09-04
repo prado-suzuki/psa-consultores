@@ -47,8 +47,19 @@ const SEM_DOM = [
   'src/utils/**/*.{test,spec}.{ts,tsx}',
   'src/config/**/*.{test,spec}.{ts,tsx}',
   'eslint-rules/**/*.{test,spec}.{ts,tsx}',
+  /*
+   * O gerador de conteúdo dos slides mora em `supabase/functions/_shared` porque
+   * quem usa é a Edge Function, e Deno não alcança `src/`. É TypeScript puro,
+   * sem DOM e sem API de Deno, então roda aqui como qualquer outro.
+   */
+  'supabase/functions/_shared/**/*.{test,spec}.{ts,tsx}',
 ];
 
+/*
+ * `supabase/functions/_shared` NÃO entra aqui de propósito: o projeto `dom`
+ * exclui `SEM_DOM`, e no vitest o `exclude` vence o `include`, então a entrada
+ * seria morta. Ela vive só em `SEM_DOM`, no projeto `node`.
+ */
 const TUDO = ['src/**/*.{test,spec}.{ts,tsx}', 'eslint-rules/**/*.{test,spec}.{ts,tsx}'];
 
 const comum = {
