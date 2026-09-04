@@ -10117,6 +10117,65 @@ export type Database = {
         }
         Relationships: []
       }
+      wp_apresentacao: {
+        Row: {
+          checksum: string | null
+          created_at: string
+          excluido: boolean
+          gerado_por: string | null
+          id: string
+          importacao_id: string
+          nome_arquivo: string
+          problemas: Json
+          storage_path: string
+          tamanho: number | null
+          template_checksum: string | null
+          template_nome: string
+          versao: number
+          versao_do_gerador: string
+        }
+        Insert: {
+          checksum?: string | null
+          created_at?: string
+          excluido?: boolean
+          gerado_por?: string | null
+          id?: string
+          importacao_id: string
+          nome_arquivo: string
+          problemas?: Json
+          storage_path: string
+          tamanho?: number | null
+          template_checksum?: string | null
+          template_nome: string
+          versao: number
+          versao_do_gerador: string
+        }
+        Update: {
+          checksum?: string | null
+          created_at?: string
+          excluido?: boolean
+          gerado_por?: string | null
+          id?: string
+          importacao_id?: string
+          nome_arquivo?: string
+          problemas?: Json
+          storage_path?: string
+          tamanho?: number | null
+          template_checksum?: string | null
+          template_nome?: string
+          versao?: number
+          versao_do_gerador?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_apresentacao_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "wp_importacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wp_bem: {
         Row: {
           categoria: string
@@ -10248,7 +10307,7 @@ export type Database = {
           descricao: string | null
           excluido: boolean
           id: string
-          ordem_servico_id: string | null
+          ordem_servico_id: string
           updated_at: string
         }
         Insert: {
@@ -10258,7 +10317,7 @@ export type Database = {
           descricao?: string | null
           excluido?: boolean
           id?: string
-          ordem_servico_id?: string | null
+          ordem_servico_id: string
           updated_at?: string
         }
         Update: {
@@ -10268,7 +10327,7 @@ export type Database = {
           descricao?: string | null
           excluido?: boolean
           id?: string
-          ordem_servico_id?: string | null
+          ordem_servico_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -11279,6 +11338,10 @@ export type Database = {
       ve_todas_as_sprints: { Args: never; Returns: boolean }
       visible_org_project_ids: { Args: { _uid: string }; Returns: string[] }
       wp_estudo_visivel: { Args: { _estudo_id: string }; Returns: boolean }
+      wp_importacao_visivel: {
+        Args: { _importacao_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
