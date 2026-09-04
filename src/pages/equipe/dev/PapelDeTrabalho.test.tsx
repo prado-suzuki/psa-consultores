@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { PropsWithChildren } from 'react';
+import { fireEvent, render as renderCru, screen, waitFor } from '@testing-library/react';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import type { PropsWithChildren, ReactElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 /*
@@ -65,6 +66,13 @@ import PapelDeTrabalho, { Revisoes } from '@/pages/equipe/dev/PapelDeTrabalho';
  * sentido, e isso é o tipo de regressão que passa em revisão de código.
  */
 
+/*
+ * O `TooltipProvider` mora no `App.tsx`, então a tela conta com ele em produção. O
+ * teste renderiza fora da árvore do app, e o Tooltip do Radix lança sem provider:
+ * daí este `render` próprio, em vez de espalhar o provider em cada caso.
+ */
+const render = (ui: ReactElement) => renderCru(<TooltipProvider>{ui}</TooltipProvider>);
+
 const FIXTURES = join(
   __dirname,
   '..',
@@ -97,7 +105,7 @@ describe('PapelDeTrabalho', () => {
 
     expect(screen.getByRole('heading', { name: 'Papel de Trabalho' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Escolher o WP/ })).toBeInTheDocument();
-    expect(screen.getByText(/Escolha o papel de trabalho preenchido/)).toBeInTheDocument();
+    expect(screen.getByText(/Escolha o papel de trabalho do estudo/)).toBeInTheDocument();
   });
 
   /* A promessa que a tela faz, e que sustenta o preview: nada sai daqui. */
@@ -117,7 +125,9 @@ describe('PapelDeTrabalho', () => {
     render(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'WP.xlsx');
 
-    await waitFor(() => expect(screen.getByText('De onde sai cada slide')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('O que vai para a apresentação')).toBeInTheDocument(),
+    );
 
     expect(screen.getByText('Premissas, cartões')).toBeInTheDocument();
     expect(screen.getByText('Resumo da Tributação')).toBeInTheDocument();
@@ -132,10 +142,12 @@ describe('PapelDeTrabalho', () => {
     render(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'so-apoio.xlsx');
 
-    await waitFor(() => expect(screen.getByText('De onde sai cada slide')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('O que vai para a apresentação')).toBeInTheDocument(),
+    );
 
     /* A fixture só traz bens e dívidas, então quase todo slide fica sem fonte. */
-    expect(screen.getByText(/slides sairiam vazios/)).toBeInTheDocument();
+    expect(screen.getByText(/slides sairiam sem número/)).toBeInTheDocument();
     expect(screen.getByText(/a DRE veio vazia/)).toBeInTheDocument();
     expect(screen.getByText(/o resumo veio vazio/)).toBeInTheDocument();
   });
@@ -149,17 +161,58 @@ describe('PapelDeTrabalho', () => {
     render(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'WP.xlsx');
 
-    await waitFor(() => expect(screen.getByText('De onde sai cada slide')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('O que vai para a apresentação')).toBeInTheDocument(),
+    );
     expect(screen.getByText(/cartão de hectares não tem fonte/)).toBeInTheDocument();
+  });
+
+  /*
+   * E o sinal ao lado do slide tem de concordar com esse texto.
+   *
+   * Enquanto a fonte era um booleano, "Premissas, cartões" mostrava visto verde de
+   * completo ao lado do aviso de que faltava o cartão de hectares. Uma linha
+   * dizendo duas coisas opostas é pior do que não ter sinal nenhum: quem confia no
+   * visto não lê o resto.
+   */
+  it('não dá visto de completo ao slide que sai com parte dos números', async () => {
+    render(<PapelDeTrabalho />);
+    escolhe(fixture('bens-e-dividas'), 'WP.xlsx');
+
+    await waitFor(() =>
+      expect(screen.getByText('O que vai para a apresentação')).toBeInTheDocument(),
+    );
+
+    const linha = screen.getByText('Premissas, cartões').closest('tr');
+    expect(linha).not.toBeNull();
+    expect(linha).toHaveTextContent('sai com parte dos números');
+    expect(linha).not.toHaveTextContent('tem tudo de que precisa');
+    expect(screen.getByText(/slide sai com parte dos números/)).toBeInTheDocument();
+  });
+
+  /* Os títulos das colunas dizem o que cada uma é, sem depender do tooltip. */
+  it('nomeia as três colunas da tabela de slides', async () => {
+    render(<PapelDeTrabalho />);
+    escolhe(fixture('bens-e-dividas'), 'WP.xlsx');
+
+    await waitFor(() =>
+      expect(screen.getByText('O que vai para a apresentação')).toBeInTheDocument(),
+    );
+
+    expect(screen.getByRole('columnheader', { name: /^Slide/ })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /^Origem/ })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /^O que foi encontrado/ })).toBeInTheDocument();
   });
 
   it('mostra o que foi lido, sem bloco de problema, num WP bom', async () => {
     render(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'WP do cliente.xlsx');
 
-    await waitFor(() => expect(screen.getByText('De onde sai cada slide')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('O que vai para a apresentação')).toBeInTheDocument(),
+    );
 
-    expect(screen.getByText('O que o arquivo diz de si')).toBeInTheDocument();
+    expect(screen.getByText('O que a planilha informa')).toBeInTheDocument();
     expect(screen.getByText('WP do cliente.xlsx')).toBeInTheDocument();
     expect(screen.queryByText(/impede(m)? a importação/)).not.toBeInTheDocument();
     expect(screen.queryByText(/^\d+ avisos?$/)).not.toBeInTheDocument();
@@ -174,11 +227,13 @@ describe('PapelDeTrabalho', () => {
     render(<PapelDeTrabalho />);
     escolhe(fixture('transferencia-rural'), 'venda.xlsx');
 
-    await waitFor(() => expect(screen.getByText('De onde sai cada slide')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('O que vai para a apresentação')).toBeInTheDocument(),
+    );
 
     /* A fixture não traz cabeçalho, então cai no intervalo simples. */
     expect(screen.getByText('2026 a 2032')).toBeInTheDocument();
-    expect(screen.getByText('Abas lidas')).toBeInTheDocument();
+    expect(screen.getByText('De onde vieram os números')).toBeInTheDocument();
     expect(screen.queryByText('Cenários')).not.toBeInTheDocument();
   });
 
@@ -195,7 +250,9 @@ describe('PapelDeTrabalho', () => {
     render(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'bom.xlsx');
 
-    await waitFor(() => expect(screen.getByText('De onde sai cada slide')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('O que vai para a apresentação')).toBeInTheDocument(),
+    );
 
     expect(screen.getByRole('button', { name: /Confirmar e gravar/ })).toBeDisabled();
     expect(screen.getByText(/Falta o cliente, a OS/)).toBeInTheDocument();
@@ -232,11 +289,13 @@ describe('PapelDeTrabalho', () => {
     render(<PapelDeTrabalho />);
     escolhe(fixture('dre'), 'dre.xlsx');
 
-    await waitFor(() => expect(screen.getByText('De onde sai cada slide')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('O que vai para a apresentação')).toBeInTheDocument(),
+    );
     fireEvent.click(screen.getByRole('button', { name: /Começar de novo/ }));
 
-    expect(screen.getByText(/Escolha o papel de trabalho preenchido/)).toBeInTheDocument();
-    expect(screen.queryByText('De onde sai cada slide')).not.toBeInTheDocument();
+    expect(screen.getByText(/Escolha o papel de trabalho do estudo/)).toBeInTheDocument();
+    expect(screen.queryByText('O que vai para a apresentação')).not.toBeInTheDocument();
   });
 
   /*

@@ -38,10 +38,21 @@ export interface SlideLido {
   slide: string;
   /** De onde ele sai, no vocabulário da planilha. */
   fonte: string;
-  temFonte: boolean;
+  estadoDaFonte: EstadoDaFonte;
   /** O que foi achado, em termos conferíveis na planilha. */
   detalhe: string;
 }
+
+/**
+ * Quanto do slide a leitura conseguiu alimentar.
+ *
+ * **`parcial` existe porque um slide pode ter mais de uma fonte**, e o de
+ * cartões tem três: bens, dívidas e hectares. Enquanto era booleano, aquele
+ * slide mostrava visto verde de completo ao lado de um texto dizendo que o
+ * cartão de hectares não tem de onde sair. O visto agora só aparece quando o
+ * slide inteiro tem número.
+ */
+export type EstadoDaFonte = 'completa' | 'parcial' | 'ausente';
 
 /** Quanto de cada bloco a leitura trouxe, para a tela mostrar sem recontar. */
 export interface ResumoDaLeitura {
@@ -91,6 +102,7 @@ function montaSlides(leitura: ResultadoLeitura): SlideLido[] {
     leitura.valores.filter((v) => v.bloco === bloco && (filtro?.(v) ?? true));
 
   const distintos = <T>(itens: T[]) => new Set(itens).size;
+  const seVeio = (n: number): EstadoDaFonte => (n > 0 ? 'completa' : 'ausente');
   const plural = (n: number, um: string, muitos: string) => `${n} ${n === 1 ? um : muitos}`;
 
   const daVenda = leitura.valores.filter((v) => v.cenario === ABA_VENDA_DE_ATIVOS.nome);
@@ -105,7 +117,7 @@ function montaSlides(leitura: ResultadoLeitura): SlideLido[] {
     {
       slide: 'Premissas, cartões',
       fonte: 'totais de bens, dívidas e imóveis',
-      temFonte: leitura.bens.length > 0 || leitura.dividas.length > 0,
+      estadoDaFonte: leitura.bens.length > 0 || leitura.dividas.length > 0 ? 'parcial' : 'ausente',
       detalhe:
         leitura.bens.length + leitura.dividas.length === 0
           ? 'nenhum bem e nenhuma dívida na planilha'
@@ -114,7 +126,7 @@ function montaSlides(leitura: ResultadoLeitura): SlideLido[] {
     {
       slide: 'Premissas, DRE',
       fonte: 'DRE das abas de cenário',
-      temFonte: daDre.length > 0,
+      estadoDaFonte: seVeio(daDre.length),
       detalhe: daDre.length
         ? `${plural(distintos(daDre.map((v) => v.rotulo)), 'conta', 'contas')} em ${plural(distintos(daDre.map((v) => v.ano)), 'ano', 'anos')}`
         : 'a DRE veio vazia',
@@ -122,7 +134,7 @@ function montaSlides(leitura: ResultadoLeitura): SlideLido[] {
     {
       slide: 'Carga Tributária',
       fonte: `aba ${ABA_FAROL.nome}`,
-      temFonte: doFarol.length > 0,
+      estadoDaFonte: seVeio(doFarol.length),
       detalhe: doFarol.length
         ? `${plural(distintos(doFarol.map((f) => f.rotulo)), 'linha', 'linhas')} nos quatro regimes`
         : 'o farol veio vazio',
@@ -130,7 +142,7 @@ function montaSlides(leitura: ResultadoLeitura): SlideLido[] {
     {
       slide: 'Transferência da Atividade Rural',
       fonte: 'aba de Venda de Ativos',
-      temFonte: daVenda.length > 0,
+      estadoDaFonte: seVeio(daVenda.length),
       detalhe: daVenda.length
         ? `${plural(distintos(daVenda.map((v) => v.ano)), 'ano', 'anos')} de apuração`
         : 'a venda de ativos veio vazia',
@@ -138,7 +150,7 @@ function montaSlides(leitura: ResultadoLeitura): SlideLido[] {
     {
       slide: 'Resumo da Tributação',
       fonte: 'aba Resumo',
-      temFonte: doResumo.length > 0,
+      estadoDaFonte: seVeio(doResumo.length),
       detalhe: doResumo.length
         ? `${plural(distintos(doResumo.map((v) => v.cenario)), 'cenário', 'cenários')} em ${plural(distintos(doResumo.map((v) => v.ano)), 'ano', 'anos')}`
         : 'o resumo veio vazio',
@@ -146,7 +158,7 @@ function montaSlides(leitura: ResultadoLeitura): SlideLido[] {
     {
       slide: 'Resumo, caixas de texto',
       fonte: 'comentários das abas de cenário',
-      temFonte: caixas.length > 0,
+      estadoDaFonte: seVeio(caixas.length),
       detalhe: caixas.length
         ? `${plural(distintos(caixas.map((c) => `${c.cenario}|${c.tributo}`)), 'bloco', 'blocos')}, ${plural(caixas.length, 'linha', 'linhas')} de texto`
         : 'nenhum comentário preenchido',
@@ -154,13 +166,13 @@ function montaSlides(leitura: ResultadoLeitura): SlideLido[] {
     {
       slide: 'Notas da Carga Tributária',
       fonte: `notas de rodapé da aba ${ABA_FAROL.nome}`,
-      temFonte: notas.length > 0,
+      estadoDaFonte: seVeio(notas.length),
       detalhe: notas.length ? `${plural(notas.length, 'nota', 'notas')}` : 'sem notas',
     },
     {
       slide: 'Apuração do IRPF, por cenário',
       fonte: 'apuração das abas de cenário',
-      temFonte: daApuracao.length > 0,
+      estadoDaFonte: seVeio(daApuracao.length),
       detalhe: daApuracao.length
         ? `${plural(distintos(daApuracao.map((v) => v.cenario)), 'cenário', 'cenários')} em ${plural(distintos(daApuracao.map((v) => v.ano)), 'ano', 'anos')}`
         : 'a apuração veio vazia',

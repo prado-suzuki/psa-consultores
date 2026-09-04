@@ -13,6 +13,17 @@ import {
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { RequiredMark } from '@/components/ui/required-mark';
+import { FieldTooltip } from '@/components/equipe/dev/auditoria/tooltipHelpers';
 import {
   Select,
   SelectContent,
@@ -31,7 +42,11 @@ import {
   useOrdensDeServicoDoCliente,
   useRevisoesDoEstudo,
 } from '@/hooks/useDomainPapelDeTrabalho';
-import { usePapelDeTrabalhoController, type Analise } from '@/hooks/usePapelDeTrabalhoController';
+import {
+  usePapelDeTrabalhoController,
+  type Analise,
+  type EstadoDaFonte,
+} from '@/hooks/usePapelDeTrabalhoController';
 import type { ProblemaWp } from '@/lib/planejamento-tributario/parser';
 
 /**
@@ -59,9 +74,7 @@ const CAIXA = 'rounded-md border px-3 py-2 text-sm';
 function Campo({ rotulo, valor }: { rotulo: string; valor: string | number | undefined }) {
   return (
     <div>
-      <p className="text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-        {rotulo}
-      </p>
+      <p className="text-sm font-medium text-muted-foreground">{rotulo}</p>
       <p className="text-sm">{valor === undefined || valor === '' ? '—' : valor}</p>
     </div>
   );
@@ -100,7 +113,7 @@ function Cabecalho({ analise }: { analise: Analise }) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">O que o arquivo diz de si</CardTitle>
+        <CardTitle className="text-base">O que a planilha informa</CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Campo rotulo="Cliente no WP" valor={cabecalho.clienteNoWp} />
@@ -156,41 +169,101 @@ function anosPorExtenso(analise: Analise): string | undefined {
  * conferem abrindo a planilha: "3 cenários em 3 anos", "9 blocos de comentário".
  * Slide sem fonte aparece nomeado, em vez de escondido atrás de um zero.
  */
+/**
+ * O sinal da esquerda, em três estados.
+ *
+ * O visto verde afirma que o slide tem tudo; o triângulo diz que ele sai, mas
+ * com buraco; o traço diz que não sai número nenhum. Antes eram dois estados, e
+ * "Premissas, cartões" aparecia com visto verde ao lado de um texto avisando que
+ * o cartão de hectares não tem fonte.
+ */
+function MarcaDaFonte({ estado }: { estado: EstadoDaFonte }) {
+  if (estado === 'completa') {
+    return (
+      <>
+        <Check className="h-4 w-4 shrink-0 text-success" aria-hidden />
+        <span className="sr-only">tem tudo de que precisa:</span>
+      </>
+    );
+  }
+  if (estado === 'parcial') {
+    return (
+      <>
+        <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden />
+        <span className="sr-only">sai com parte dos números:</span>
+      </>
+    );
+  }
+  return (
+    <>
+      <Minus className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+      <span className="sr-only">sai sem número:</span>
+    </>
+  );
+}
+
 function DeOndeSaiCadaSlide({ analise }: { analise: Analise }) {
-  const semFonte = analise.slides.filter((s) => !s.temFonte).length;
+  const ausentes = analise.slides.filter((s) => s.estadoDaFonte === 'ausente').length;
+  const parciais = analise.slides.filter((s) => s.estadoDaFonte === 'parcial').length;
+  const plural = (n: number, um: string, muitos: string) => `${n} ${n === 1 ? um : muitos}`;
+  const recado = [
+    ausentes && `${plural(ausentes, 'slide sairia', 'slides sairiam')} sem número`,
+    parciais && `${plural(parciais, 'slide sai', 'slides saem')} com parte dos números`,
+  ]
+    .filter(Boolean)
+    .join(', e ');
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">De onde sai cada slide</CardTitle>
+        <CardTitle className="text-base">O que vai para a apresentação</CardTitle>
         <p className="text-sm text-muted-foreground">
-          {semFonte === 0
-            ? 'Todos os slides têm de onde sair.'
-            : semFonte === 1
-              ? '1 slide sairia vazio.'
-              : `${semFonte} slides sairiam vazios.`}
+          {recado === '' ? 'Todos os slides têm os números de que precisam.' : `${recado}.`}
         </p>
       </CardHeader>
-      <CardContent className="divide-y divide-border/60">
-        {analise.slides.map((s) => (
-          <div
-            key={s.slide}
-            className="grid grid-cols-1 gap-1 py-2.5 first:pt-0 last:pb-0 md:grid-cols-[minmax(0,14rem)_minmax(0,11rem)_1fr] md:items-baseline md:gap-4"
-          >
-            <p className="flex items-center gap-2 text-sm font-medium">
-              {s.temFonte ? (
-                <Check className="h-4 w-4 shrink-0 text-success" aria-hidden />
-              ) : (
-                <Minus className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-              )}
-              {s.slide}
-            </p>
-            <p className="pl-6 text-sm text-muted-foreground md:pl-0">{s.fonte}</p>
-            <p className={`pl-6 text-sm md:pl-0 ${s.temFonte ? '' : 'text-muted-foreground'}`}>
-              {s.detalhe}
-            </p>
-          </div>
-        ))}
+      <CardContent className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>
+                <span className="flex items-center gap-1.5">
+                  Slide
+                  <FieldTooltip text="O slide da apresentação que vai usar estes números." />
+                </span>
+              </TableHead>
+              <TableHead>
+                <span className="flex items-center gap-1.5">
+                  Origem
+                  <FieldTooltip text="A aba do papel de trabalho de onde os números do slide saem." />
+                </span>
+              </TableHead>
+              <TableHead>
+                <span className="flex items-center gap-1.5">
+                  O que foi encontrado
+                  <FieldTooltip text="O que a leitura achou nessa aba, em termos que dá para conferir abrindo a planilha." />
+                </span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {analise.slides.map((s) => (
+              <TableRow key={s.slide}>
+                <TableCell className="font-medium">
+                  <span className="flex items-center gap-2">
+                    <MarcaDaFonte estado={s.estadoDaFonte} />
+                    {s.slide}
+                  </span>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{s.fonte}</TableCell>
+                <TableCell
+                  className={s.estadoDaFonte === 'ausente' ? 'text-muted-foreground' : undefined}
+                >
+                  {s.detalhe}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
@@ -202,7 +275,7 @@ function ComoFoiLido({ analise }: { analise: Analise }) {
     <Card>
       <CardContent className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
         <Campo rotulo="Anos" valor={anosPorExtenso(analise)} />
-        <Campo rotulo="Abas lidas" valor={analise.resumo.abasLidas.join(' · ')} />
+        <Campo rotulo="De onde vieram os números" valor={analise.resumo.abasLidas.join(' · ')} />
       </CardContent>
     </Card>
   );
@@ -260,16 +333,17 @@ function Escolha({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">De quem é este estudo</CardTitle>
+        <CardTitle className="text-base">Escolha o cliente e a OS do estudo</CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="space-y-1.5">
-          <p className="text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Cliente{' '}
-            <span aria-hidden className="text-destructive">
-              *
-            </span>
-          </p>
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor="pt-cliente">
+              Cliente
+              <RequiredMark />
+            </Label>
+            <FieldTooltip text="O cliente para quem o estudo foi feito. É ele que define quem enxerga esta revisão depois." />
+          </div>
           <Select
             value={clienteId}
             onValueChange={(v) => {
@@ -281,8 +355,8 @@ function Escolha({
               if (!aberto) setMexeuNoCliente(true);
             }}
           >
-            <SelectTrigger aria-invalid={faltaCliente || undefined}>
-              <SelectValue placeholder="Escolha o cliente" />
+            <SelectTrigger id="pt-cliente" aria-invalid={faltaCliente || undefined}>
+              <SelectValue placeholder="Selecione um cliente" />
             </SelectTrigger>
             <SelectContent>
               {clientes.map((c) => (
@@ -293,17 +367,18 @@ function Escolha({
             </SelectContent>
           </Select>
           {faltaCliente && (
-            <p className="text-sm text-destructive">Escolha o cliente para continuar.</p>
+            <p className="text-sm font-medium text-destructive">Selecione um cliente</p>
           )}
         </div>
 
-        <div className="space-y-1.5">
-          <p className="text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Ordem de serviço{' '}
-            <span aria-hidden className="text-destructive">
-              *
-            </span>
-          </p>
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor="pt-os">
+              Ordem de serviço
+              <RequiredMark />
+            </Label>
+            <FieldTooltip text="O trabalho a que este estudo pertence. Aparecem todas as OS do cliente, com as em andamento primeiro." />
+          </div>
           <Select
             value={ordemServicoId}
             onValueChange={(v) => {
@@ -315,16 +390,16 @@ function Escolha({
             }}
             disabled={!clienteId}
           >
-            <SelectTrigger>
+            <SelectTrigger id="pt-os" aria-invalid={faltaOs || undefined}>
               <SelectValue
                 placeholder={
                   !clienteId
-                    ? 'Escolha o cliente primeiro'
+                    ? 'Selecione um cliente primeiro'
                     : carregandoOs
                       ? 'Carregando…'
                       : ordens.length === 0
                         ? 'Este cliente não tem OS'
-                        : 'Escolha a OS'
+                        : 'Selecione uma ordem de serviço'
                 }
               />
             </SelectTrigger>
@@ -340,10 +415,10 @@ function Escolha({
             </SelectContent>
           </Select>
           {faltaOs && (
-            <p className="text-sm text-destructive">
+            <p className="text-sm font-medium text-destructive">
               {ordens.length === 0
-                ? 'Este cliente não tem ordem de serviço. Sem ela não é possível gravar o estudo.'
-                : 'Escolha a ordem de serviço para continuar.'}
+                ? 'Este cliente não tem ordem de serviço. Sem ela não é possível guardar o estudo.'
+                : 'Selecione uma ordem de serviço'}
             </p>
           )}
         </div>
@@ -524,7 +599,7 @@ const PapelDeTrabalho = () => {
   return (
     <DevLayout
       title="Papel de Trabalho"
-      subtitle="Confira o que o sistema entendeu do WP antes de gravar"
+      subtitle="Traga o papel de trabalho preenchido e o sistema confere as contas dele"
     >
       <div className="space-y-4">
         <Escolha
@@ -575,8 +650,9 @@ const PapelDeTrabalho = () => {
             <CardContent className="py-16 text-center">
               <FileSpreadsheet className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                Escolha o papel de trabalho preenchido, no modelo atual, para conferir o que o
-                sistema entendeu dele.
+                Escolha o papel de trabalho do estudo: o arquivo Excel já preenchido, no modelo
+                atual. O sistema vai conferir as somas, as alíquotas e os anos, e mostrar o que
+                encontrou antes de guardar.
               </p>
             </CardContent>
           </Card>
