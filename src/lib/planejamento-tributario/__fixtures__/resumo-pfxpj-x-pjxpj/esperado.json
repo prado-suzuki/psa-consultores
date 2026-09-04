@@ -6,6 +6,7 @@
     {
       "bloco": "resumo",
       "rotulo": "Pessoa Física",
+      "nivel": 0,
       "cenario": "Cenário Atual",
       "ano": 2026,
       "valor": 6235637.419404061,
@@ -15,6 +16,7 @@
     {
       "bloco": "resumo",
       "rotulo": "IRPF",
+      "nivel": 1,
       "cenario": "Cenário Atual",
       "ano": 2026,
       "valor": 3699447.847710609,
@@ -24,15 +26,17 @@
     {
       "bloco": "resumo",
       "rotulo": "CBS (a partir de 2027)",
+      "nivel": 1,
       "cenario": "Cenário Atual",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!D18"
     },
     {
       "bloco": "resumo",
       "rotulo": "INSS",
+      "nivel": 1,
       "cenario": "Cenário Atual",
       "ano": 2026,
       "valor": 2536189.571693451,
@@ -42,96 +46,107 @@
     {
       "bloco": "resumo",
       "rotulo": "PJ - Lucro Presumido",
+      "nivel": 0,
       "cenario": "Cenário Atual",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!D21"
     },
     {
       "bloco": "resumo",
       "rotulo": "IRPJ/CSLL",
+      "nivel": 1,
       "cenario": "Cenário Atual",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!D22"
     },
     {
       "bloco": "resumo",
       "rotulo": "PIS/Cofins",
+      "nivel": 1,
       "cenario": "Cenário Atual",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!D23"
     },
     {
       "bloco": "resumo",
       "rotulo": "CBS (a partir de 2027)",
+      "nivel": 1,
       "cenario": "Cenário Atual",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!D24"
     },
     {
       "bloco": "resumo",
       "rotulo": "INSS",
+      "nivel": 1,
       "cenario": "Cenário Atual",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!D25"
     },
     {
       "bloco": "resumo",
       "rotulo": "PJ - Lucro Real",
+      "nivel": 0,
       "cenario": "Cenário Atual",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!D27"
     },
     {
       "bloco": "resumo",
       "rotulo": "IRPJ/CSLL",
+      "nivel": 1,
       "cenario": "Cenário Atual",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!D28"
     },
     {
       "bloco": "resumo",
       "rotulo": "PIS/Cofins",
+      "nivel": 1,
       "cenario": "Cenário Atual",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!D29"
     },
     {
       "bloco": "resumo",
       "rotulo": "CBS (a partir de 2027)",
+      "nivel": 1,
       "cenario": "Cenário Atual",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!D30"
     },
     {
       "bloco": "resumo",
       "rotulo": "INSS",
+      "nivel": 1,
       "cenario": "Cenário Atual",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!D31"
     },
     {
       "bloco": "resumo",
       "rotulo": "Total",
+      "nivel": 0,
       "cenario": "Cenário Atual",
       "ano": 2026,
       "valor": 6235637.419404061,
@@ -141,6 +156,7 @@
     {
       "bloco": "resumo",
       "rotulo": "Pessoa Física",
+      "nivel": 0,
       "cenario": "Cenário 01",
       "ano": 2026,
       "valor": 3887756.312679354,
@@ -150,6 +166,7 @@
     {
       "bloco": "resumo",
       "rotulo": "IRPF",
+      "nivel": 1,
       "cenario": "Cenário 01",
       "ano": 2026,
       "valor": 1588451.1288154742,
@@ -159,15 +176,17 @@
     {
       "bloco": "resumo",
       "rotulo": "CBS (a partir de 2027)",
+      "nivel": 1,
       "cenario": "Cenário 01",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!E18"
     },
     {
       "bloco": "resumo",
       "rotulo": "INSS",
+      "nivel": 1,
       "cenario": "Cenário 01",
       "ano": 2026,
       "valor": 2299305.18386388,
@@ -177,6 +196,7 @@
     {
       "bloco": "resumo",
       "rotulo": "PJ - Lucro Presumido",
+      "nivel": 0,
       "cenario": "Cenário 01",
       "ano": 2026,
       "valor": 824464.7765350483,
@@ -186,6 +206,7 @@
     {
       "bloco": "resumo",
       "rotulo": "IRPJ/CSLL",
+      "nivel": 1,
       "cenario": "Cenário 01",
       "ano": 2026,
       "valor": 510572.94311266666,
@@ -195,6 +216,7 @@
     {
       "bloco": "resumo",
       "rotulo": "PIS/Cofins",
+      "nivel": 1,
       "cenario": "Cenário 01",
       "ano": 2026,
       "valor": 309616.38156478154,
@@ -204,15 +226,17 @@
     {
       "bloco": "resumo",
       "rotulo": "CBS (a partir de 2027)",
+      "nivel": 1,
       "cenario": "Cenário 01",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!E24"
     },
     {
       "bloco": "resumo",
       "rotulo": "INSS",
+      "nivel": 1,
       "cenario": "Cenário 01",
       "ano": 2026,
       "valor": 4275.451857600001,
@@ -222,51 +246,57 @@
     {
       "bloco": "resumo",
       "rotulo": "PJ - Lucro Real",
+      "nivel": 0,
       "cenario": "Cenário 01",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!E27"
     },
     {
       "bloco": "resumo",
       "rotulo": "IRPJ/CSLL",
+      "nivel": 1,
       "cenario": "Cenário 01",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!E28"
     },
     {
       "bloco": "resumo",
       "rotulo": "PIS/Cofins",
+      "nivel": 1,
       "cenario": "Cenário 01",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!E29"
     },
     {
       "bloco": "resumo",
       "rotulo": "CBS (a partir de 2027)",
+      "nivel": 1,
       "cenario": "Cenário 01",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!E30"
     },
     {
       "bloco": "resumo",
       "rotulo": "INSS",
+      "nivel": 1,
       "cenario": "Cenário 01",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!E31"
     },
     {
       "bloco": "resumo",
       "rotulo": "Total",
+      "nivel": 0,
       "cenario": "Cenário 01",
       "ano": 2026,
       "valor": 4712221.089214402,
@@ -276,6 +306,7 @@
     {
       "bloco": "resumo",
       "rotulo": "Redução",
+      "nivel": 0,
       "cenario": "Cenário 01",
       "ano": 2026,
       "valor": -0.24430803584715977,
@@ -285,6 +316,7 @@
     {
       "bloco": "resumo",
       "rotulo": "Pessoa Física",
+      "nivel": 0,
       "cenario": "Cenário 02",
       "ano": 2026,
       "valor": 1014178.020832415,
@@ -294,6 +326,7 @@
     {
       "bloco": "resumo",
       "rotulo": "IRPF",
+      "nivel": 1,
       "cenario": "Cenário 02",
       "ano": 2026,
       "valor": 1014178.020832415,
@@ -303,24 +336,27 @@
     {
       "bloco": "resumo",
       "rotulo": "CBS (a partir de 2027)",
+      "nivel": 1,
       "cenario": "Cenário 02",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!F18"
     },
     {
       "bloco": "resumo",
       "rotulo": "INSS",
+      "nivel": 1,
       "cenario": "Cenário 02",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!F19"
     },
     {
       "bloco": "resumo",
       "rotulo": "PJ - Lucro Presumido",
+      "nivel": 0,
       "cenario": "Cenário 02",
       "ano": 2026,
       "valor": 824464.7765350483,
@@ -330,6 +366,7 @@
     {
       "bloco": "resumo",
       "rotulo": "IRPJ/CSLL",
+      "nivel": 1,
       "cenario": "Cenário 02",
       "ano": 2026,
       "valor": 510572.94311266666,
@@ -339,6 +376,7 @@
     {
       "bloco": "resumo",
       "rotulo": "PIS/Cofins",
+      "nivel": 1,
       "cenario": "Cenário 02",
       "ano": 2026,
       "valor": 309616.38156478154,
@@ -348,15 +386,17 @@
     {
       "bloco": "resumo",
       "rotulo": "CBS (a partir de 2027)",
+      "nivel": 1,
       "cenario": "Cenário 02",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!F24"
     },
     {
       "bloco": "resumo",
       "rotulo": "INSS",
+      "nivel": 1,
       "cenario": "Cenário 02",
       "ano": 2026,
       "valor": 4275.451857600001,
@@ -366,6 +406,7 @@
     {
       "bloco": "resumo",
       "rotulo": "PJ - Lucro Real",
+      "nivel": 0,
       "cenario": "Cenário 02",
       "ano": 2026,
       "valor": 7743977.254539887,
@@ -375,15 +416,17 @@
     {
       "bloco": "resumo",
       "rotulo": "IRPJ/CSLL",
+      "nivel": 1,
       "cenario": "Cenário 02",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!F28"
     },
     {
       "bloco": "resumo",
       "rotulo": "PIS/Cofins",
+      "nivel": 1,
       "cenario": "Cenário 02",
       "ano": 2026,
       "valor": 4985153.227797441,
@@ -393,15 +436,17 @@
     {
       "bloco": "resumo",
       "rotulo": "CBS (a partir de 2027)",
+      "nivel": 1,
       "cenario": "Cenário 02",
       "ano": 2026,
-      "valor": 0.0,
+      "valor": 0,
       "unidade": "moeda",
       "origemCelula": "Resumo!F30"
     },
     {
       "bloco": "resumo",
       "rotulo": "INSS",
+      "nivel": 1,
       "cenario": "Cenário 02",
       "ano": 2026,
       "valor": 2758824.026742446,
@@ -411,6 +456,7 @@
     {
       "bloco": "resumo",
       "rotulo": "Total",
+      "nivel": 0,
       "cenario": "Cenário 02",
       "ano": 2026,
       "valor": 9582620.051907351,
@@ -420,6 +466,7 @@
     {
       "bloco": "resumo",
       "rotulo": "Redução",
+      "nivel": 0,
       "cenario": "Cenário 02",
       "ano": 2026,
       "valor": 0.5367506811874834,

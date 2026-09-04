@@ -303,6 +303,13 @@ function leResumo(aba: XLSX.WorkSheet): LeituraDeBloco {
         valores.push({
           bloco: 'resumo',
           rotulo: linha.rotulo,
+          /*
+           * O nível vem do mapa e não pode ficar de fora: é ele que diz que
+           * `Pessoa Física` é seção e `IRPF` é detalhe, e é por ele que o slide
+           * escolhe a linha em negrito com faixa ou a linha simples. Sem isto o
+           * Resumo saía inteiro em negrito, sem hierarquia.
+           */
+          nivel: linha.nivel,
           cenario,
           ano,
           valor: celula.valor,
