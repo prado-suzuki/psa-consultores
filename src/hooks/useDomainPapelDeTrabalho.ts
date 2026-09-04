@@ -4,6 +4,7 @@ import { useApiAuth } from '@/hooks/useApiAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { subirArquivoGcs } from '@/hooks/useDocumentoArquivo';
 import { supabase } from '@/integrations/supabase/client';
+import { crc32cBase64 } from '@/lib/planejamento-tributario/crc32c';
 import type { Json } from '@/integrations/supabase/types';
 import type { Analise } from '@/hooks/usePapelDeTrabalhoController';
 
@@ -233,6 +234,46 @@ export function useImportarPapelDeTrabalho() {
         throw new Error(
           'Este arquivo tem impedimento e não pode ser gravado. Corrija a planilha e escolha de novo.',
         );
+      }
+
+      /*
+       * A conferência do arquivo repetido acontece ANTES de subir.
+       *
+       * A RPC também recusa, e é ela que garante a regra sob concorrência. Mas
+       * quando a recusa vem de lá o binário já está no bucket, e vira lixo que
+       * ninguém apaga: o endpoint de exclusão do backend apaga por
+       * `documento_id`, e o WP não cria linha em `documento_arquivo`. O enunciado
+       * pede justamente para evitar arquivo órfão quando o banco recusa.
+       *
+       * O checksum é o `crc32c` que o GCS calcula, e `crc32cBase64` reproduz o
+       * mesmo número aqui. Se um dia divergir, esta conferência deixa de achar o
+       * repetido e a importação segue para a RPC, que recusa igual: perde-se o
+       * ganho, não a proteção.
+       */
+      const checksumLocal = crc32cBase64(new Uint8Array(await arquivo.arrayBuffer()));
+      const { data: estudoExistente } = await supabase
+        .from('wp_estudo')
+        .select('id')
+        .eq('cliente_id', clienteId)
+        .eq('ordem_servico_id', ordemServicoId)
+        .eq('excluido', false)
+        .maybeSingle();
+
+      if (estudoExistente) {
+        const { data: repetida } = await supabase
+          .from('wp_importacao')
+          .select('versao')
+          .eq('estudo_id', estudoExistente.id)
+          .eq('checksum', checksumLocal)
+          .eq('excluido', false)
+          .maybeSingle();
+
+        if (repetida) {
+          throw new Error(
+            `Este arquivo já foi importado neste estudo, na revisão ${repetida.versao}. ` +
+              'Para gerar uma revisão nova, altere a planilha e suba de novo.',
+          );
+        }
       }
 
       /*

@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
+import { extractErrorMessage } from '@/lib/rlsMessages';
 import { useClientesList } from '@/hooks/useDevClients';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -503,9 +504,18 @@ const PapelDeTrabalho = () => {
       limpar();
       setArquivo(null);
     } catch (causa) {
+      /*
+       * `causa instanceof Error` não serve aqui: o erro do Supabase é objeto
+       * simples, e caía no texto genérico "Tente de novo", que é conselho errado
+       * quando o motivo é arquivo repetido, porque tentar de novo falha sempre.
+       * O `extractErrorMessage` é o mesmo que o resto da casa usa e alcança a
+       * mensagem que a RPC escreveu.
+       */
       toast({
         title: 'Não consegui gravar',
-        description: causa instanceof Error ? causa.message : 'Tente de novo.',
+        description:
+          extractErrorMessage(causa) ??
+          'Não consegui identificar o motivo. Confira a conexão e tente de novo.',
         variant: 'destructive',
       });
     }
