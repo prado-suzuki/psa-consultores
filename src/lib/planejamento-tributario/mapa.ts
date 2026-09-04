@@ -2182,14 +2182,20 @@ export const VALIDACOES: ValidacaoWp[] = [
   },
   /*
    * A presunção sai da RECEITA nas abas de cenário, conferido nas fórmulas do
-   * modelo (`Cenário Atual (PF)` C120 = `C31*20%`, e C31 é a linha `Receita`) e no
-   * WP da Família Lunardi, onde 20% de 39.627.025,54 dá os 7.925.405,11 lançados.
+   * modelo (`Cenário Atual (PF)` C120 = `C31*20%`) e no WP da Família Lunardi,
+   * onde 20% de 39.627.025,54 dá os 7.925.405,11 lançados.
    *
-   * **Cada aba declara a sua base, e nenhuma regra vale por omissão.** A Venda de
-   * Ativos usa outra (C29 = `C26*20%`, o resultado do exercício), e uma regra sem
-   * escopo cairia sobre ela no dia em que aparecesse ali uma linha chamada
-   * `Receita`. O `Cenário 02 (PJxPJ)` não entra porque não tem apuração: sem
-   * pessoa física não há IRPF a apurar.
+   * **Toda regra de IRPF exclui a coluna da pessoa jurídica.** Presunção de 20% é
+   * regime do produtor rural pessoa física, e o bloco onde essas linhas moram se
+   * chama `IRPF`. O `Cenário 01 (PFxPJ)` tem duas colunas por ano, e sem excluir
+   * a da pessoa jurídica a regra a conferia, sendo que ela apura por IRPJ e CSLL
+   * em bloco próprio. Exclusão e não inclusão porque nos WPs antigos aquela linha
+   * traz o NOME do contribuinte, e uma regra presa ao texto `Pessoa Física`
+   * pararia de conferir em silêncio ali.
+   *
+   * O `Cenário 02 (PJxPJ)` não entra em nenhuma: não tem apuração, porque não há
+   * pessoa física a apurar. E a Venda de Ativos não tem linha de contribuinte,
+   * então não há o que excluir nela.
    */
   {
     tipo: 'proporcao',
@@ -2197,6 +2203,7 @@ export const VALIDACOES: ValidacaoWp[] = [
     sobre: 'Receita',
     fator: 0.2,
     cenario: 'Cenário Atual (PF)',
+    excetoContribuinte: 'Pessoa Jurídica',
   },
   {
     tipo: 'proporcao',
@@ -2204,6 +2211,7 @@ export const VALIDACOES: ValidacaoWp[] = [
     sobre: 'Receita',
     fator: 0.2,
     cenario: 'Cenário 01 (PFxPJ)',
+    excetoContribuinte: 'Pessoa Jurídica',
   },
   {
     tipo: 'proporcao',
@@ -2213,7 +2221,29 @@ export const VALIDACOES: ValidacaoWp[] = [
     cenario: 'Cenário 02 (Venda de Ativos)',
   },
   // O imposto incide sobre o resultado tributável, que é o menor entre lucro
-  // fiscal e presunção, não sobre a presunção. Vale nas duas formas de apuração.
-  { tipo: 'proporcao', de: 'Total a recolher', sobre: 'Resultado tributável', fator: 0.275 },
+  // fiscal e presunção, e não sobre a presunção. Mesmo escopo, pela mesma razão.
+  {
+    tipo: 'proporcao',
+    de: 'Total a recolher',
+    sobre: 'Resultado tributável',
+    fator: 0.275,
+    cenario: 'Cenário Atual (PF)',
+    excetoContribuinte: 'Pessoa Jurídica',
+  },
+  {
+    tipo: 'proporcao',
+    de: 'Total a recolher',
+    sobre: 'Resultado tributável',
+    fator: 0.275,
+    cenario: 'Cenário 01 (PFxPJ)',
+    excetoContribuinte: 'Pessoa Jurídica',
+  },
+  {
+    tipo: 'proporcao',
+    de: 'Total a recolher',
+    sobre: 'Resultado tributável',
+    fator: 0.275,
+    cenario: 'Cenário 02 (Venda de Ativos)',
+  },
   { tipo: 'zero_antes_de', rotulo: 'CBS (a partir de 2027)', ano: 2027 },
 ];

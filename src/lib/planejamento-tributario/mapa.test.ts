@@ -277,7 +277,7 @@ describe('validações declaradas', () => {
 
   it('a presunção é 20% e o imposto é 27,5%', () => {
     const proporcoes = VALIDACOES.filter((v) => v.tipo === 'proporcao');
-    expect(proporcoes.map((v) => v.fator)).toEqual([0.2, 0.2, 0.2, 0.275]);
+    expect(proporcoes.map((v) => v.fator)).toEqual([0.2, 0.2, 0.2, 0.275, 0.275, 0.275]);
   });
 
   /*
@@ -286,6 +286,25 @@ describe('validações declaradas', () => {
    * Ativos sai do `Resultado do exercício`. Toda presunção declara o cenário, para
    * que uma aba nova não herde a base da vizinha por omissão.
    */
+  /*
+   * Presunção de 20% é regime de pessoa física, e o bloco onde ela mora se chama
+   * `IRPF`. No `Cenário 01 (PFxPJ)` cada ano tem duas colunas, e sem excluir a da
+   * pessoa jurídica a regra acusava conta que nunca deveria fechar ali.
+   *
+   * A exclusão vale para as regras dos cenários e não para a da Venda de Ativos,
+   * que não tem linha de contribuinte: não há o que excluir.
+   */
+  it('nenhuma regra de IRPF confere a coluna da pessoa jurídica', () => {
+    const dosCenarios = VALIDACOES.filter(
+      (v) => v.tipo === 'proporcao' && v.cenario !== 'Cenário 02 (Venda de Ativos)',
+    );
+
+    expect(dosCenarios).toHaveLength(4);
+    for (const regra of dosCenarios) {
+      expect(regra.tipo === 'proporcao' && regra.excetoContribuinte).toBe('Pessoa Jurídica');
+    }
+  });
+
   it('toda presunção declara em que cenário vale', () => {
     const presuncoes = VALIDACOES.filter(
       (v) => v.tipo === 'proporcao' && v.de === 'Presunção de 20%',

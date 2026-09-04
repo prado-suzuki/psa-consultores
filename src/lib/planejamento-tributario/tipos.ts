@@ -194,5 +194,23 @@ export type ValidacaoWp =
        * abas de cenário e 20% do `Resultado do exercício` na de Venda de Ativos.
        */
       cenario?: string;
+      /**
+       * Não aplica a regra à coluna daquele contribuinte.
+       *
+       * O `Cenário 01 (PFxPJ)` tem duas colunas por ano, uma da pessoa física e
+       * outra da jurídica, e o bloco de apuração ali se chama `IRPF`. Presunção de
+       * 20% é regime do produtor rural pessoa física: a PJ apura por IRPJ e CSLL,
+       * com outra base, em bloco próprio logo abaixo. Sem isto a regra conferia a
+       * coluna da PJ e acusava conta que nunca deveria fechar ali. O modelo
+       * concorda: a fórmula `C130 = C41*20%` existe só nas colunas de pessoa
+       * física.
+       *
+       * **É exclusão e não inclusão, de propósito.** No modelo aquela linha traz
+       * `Pessoa Física` e `Pessoa Jurídica`, mas nos WPs antigos ela traz o NOME
+       * do contribuinte. Uma regra que só valesse para o texto `Pessoa Física`
+       * pararia de conferir em silêncio nesses arquivos, que é o defeito pior.
+       * Excluindo a PJ, o caso duvidoso vira aviso, e não silêncio.
+       */
+      excetoContribuinte?: string;
     }
   | { tipo: 'zero_antes_de'; rotulo: string; ano: number };
