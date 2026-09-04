@@ -20,6 +20,15 @@ Conferido por SELECT em produção, 02/09/2026:
 | `notificacao_tipo` | tem os dois valores novos (`tarefa_prazo_proximo`, `tarefa_atrasada`) |
 | `tarefas_a_alertar(date, text)` · `alertar_tarefas_por_prazo(date, text)` | versão `20260901135620`, a do texto de trabalho |
 | Cron `alertar-tarefas-prazo-diario` | **`active = true`**, `0 11 * * *`, chamando `alertar_tarefas_por_prazo(NULL, 'prod')` |
+
+> **Medido de novo em 04/09, nos avisos que o cron gravou em 03 e 04/09** (20 envios, 10 deles
+> para gestores). O aviso de atraso **já sai** com `O prazo era 03/09/2026.`: a versão em produção só
+> erra o tempo verbal quando a tarefa atrasada tem contexto (em revisão ou aguardando o cliente), e
+> isso não aconteceu nesses dois dias. O que está errado todo dia: `Responsavel:` sem acento em todo
+> corpo com dono, e o gestor recebendo os três marcos (8 dos 10 envios dele seriam suprimidos pela
+> redação nova). A urgência é menor do que "contradição toda manhã"; a migração é a mesma.
+> Versão sem comentários, pronta para colar: `14_COLAR_NO_LOVABLE_tarefa6_redacao_avisos.sql`
+> (na pasta da sprint, fora do repositório).
 | Rótulo no sino | já existe no front |
 
 E é isso que a equipe lê hoje:

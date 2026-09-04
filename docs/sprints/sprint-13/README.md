@@ -29,9 +29,11 @@ naquele dia levou a GES-01A, ITCD, feed de comentários e o ledger do `db:sync`,
 nenhuma policy do cadastro**. Números do dia: 26 rateios ativos em OS excluída, 40 produtos
 presos, 198 linhas marcadas como excluídas em representante e rateio.
 
-> ⚠️ **Um número da tarefa 2 não se sustenta mais.** Ela cita "9 clientes órfãos em 01/09", e
-> hoje **não há nenhum cliente ativo sem cluster**. Ou foram limpos, ou "órfão" media outra
-> coisa. Conferir antes de usar esse número para justificar a tarefa.
+> **Os 9 órfãos da tarefa 2, conferidos em produção em 04/09:** os nove existem, todos
+> `excluido = true`, `ativo = true`, cluster OSG, zero contribuintes, criados em 01/09 entre 18h39
+> e 20h59. Alguém já os marcou como excluídos, e é por isso que "cliente ativo sem cluster" não os
+> achava. O décimo, "Bombonatto Indústria de Alimentos S/A (Frigobom)" de 02/09, é o cadastro que
+> deu certo. A decisão "apagar ou marcar" já está tomada na prática: marcados.
 
 ### Ordem sugerida
 

@@ -66,8 +66,10 @@ A consulta não pode ganhar linha nova depois do teste.
 
 ## O que fica de fora
 
-**Os nove órfãos que já existem.** Esta tarefa impede novos; não limpa os antigos. A Patricia
-decide o destino deles: apagar, ou marcar como excluídos.
+**Os nove órfãos que já existem.** Esta tarefa impede novos; não limpa os antigos. Em 04/09 os
+nove estavam com `excluido = true`: já foram marcados, e a decisão da Patricia (apagar ou marcar)
+está tomada na prática. Seguem invisíveis na tela e contam na fase 2 de exclusão física, se ela
+um dia chegar a `cliente`.
 
 ## Referências
 
