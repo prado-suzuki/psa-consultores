@@ -213,6 +213,49 @@ export function useDescartarRevisao() {
   });
 }
 
+/**
+ * O texto que a pessoa lê quando o arquivo já entrou neste estudo.
+ *
+ * São dois casos, e a diferença muda o que ela faz a seguir. Se a revisão está na
+ * lista, é só olhar para lá. Se foi descartada, ela não está vendo nada e
+ * precisa saber por que o sistema recusa um arquivo que "não existe mais".
+ */
+export function mensagemDeRepetido(versao: number, descartada: boolean): string {
+  if (!descartada) {
+    return (
+      `Este arquivo já foi importado neste estudo, na revisão ${versao}. ` +
+      'Para gerar uma revisão nova, altere a planilha e suba de novo.'
+    );
+  }
+  return (
+    `Este arquivo já foi importado neste estudo, na revisão ${versao}, que depois foi ` +
+    'descartada. Descartar tira a revisão da lista, mas não libera o arquivo: para ' +
+    'importar de novo, altere a planilha e suba a versão nova.'
+  );
+}
+
+/**
+ * Rede de segurança para a recusa que vem do banco.
+ *
+ * A conferência acima pega o caso normal, mas ela depende de **enxergar** a
+ * revisão repetida, e a policy de `select` esconde a descartada de quem não é
+ * admin. Nesse caminho quem recusa é a `unique (estudo_id, checksum)`, e sem esta
+ * tradução o toast mostrava `duplicate key value violates unique constraint
+ * "wp_importacao_checksum_unico"`, que não diz à pessoa nem o que houve nem o que
+ * fazer.
+ */
+export function explicaRecusaDoBanco(error: { code?: string; message?: string }): string {
+  const texto = error.message ?? '';
+  if (error.code === '23505' || texto.includes('wp_importacao_checksum_unico')) {
+    return (
+      'Este arquivo já foi importado neste estudo, em uma revisão que você não está ' +
+      'vendo, provavelmente porque ela foi descartada. Descartar não libera o arquivo: ' +
+      'para importar de novo, altere a planilha e suba a versão nova.'
+    );
+  }
+  return texto || 'Não consegui gravar a importação. Tente de novo.';
+}
+
 export interface ArgsDaImportacao {
   clienteId: string;
   ordemServicoId: string;
@@ -260,19 +303,23 @@ export function useImportarPapelDeTrabalho() {
         .maybeSingle();
 
       if (estudoExistente) {
+        /*
+         * **A revisão descartada conta como repetida**, e a conferência não pode
+         * filtrar `excluido`. Quem impede de verdade é a `unique (estudo_id,
+         * checksum)`, e ela não sabe o que é descarte: enquanto esta consulta
+         * escondia a descartada, o arquivo subia, a RPC deixava passar e quem
+         * recusava era a constraint, devolvendo o texto cru do Postgres num toast
+         * vermelho e deixando o binário órfão no bucket.
+         */
         const { data: repetida } = await supabase
           .from('wp_importacao')
-          .select('versao')
+          .select('versao, excluido')
           .eq('estudo_id', estudoExistente.id)
           .eq('checksum', checksumLocal)
-          .eq('excluido', false)
           .maybeSingle();
 
         if (repetida) {
-          throw new Error(
-            `Este arquivo já foi importado neste estudo, na revisão ${repetida.versao}. ` +
-              'Para gerar uma revisão nova, altere a planilha e suba de novo.',
-          );
+          throw new Error(mensagemDeRepetido(repetida.versao, repetida.excluido));
         }
       }
 
@@ -301,7 +348,7 @@ export function useImportarPapelDeTrabalho() {
         _conteudo: montaConteudo(analise) as unknown as Json,
         ...(descricao ? { _descricao: descricao } : {}),
       });
-      if (error) throw error;
+      if (error) throw new Error(explicaRecusaDoBanco(error));
 
       return data as unknown as RevisaoGravada;
     },
