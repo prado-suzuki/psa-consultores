@@ -5,7 +5,7 @@ import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
 import { contextoBoardChamados } from '@/lib/agenteContextoChamados';
 import type { ChaveDeEspelho } from '@/lib/areaTheme';
 import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
-import { CLUSTER_SEM_VINCULO, combinaComCluster } from '@/lib/equipeChamados';
+import { CLUSTER_SEM_VINCULO, RESPONSAVEL_SEM_ATRIBUICAO, combinaComCluster, combinaComResponsavel } from '@/lib/equipeChamados';
 import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
 import { useAssignTicket, useUpdateTicketDeadline, useDeleteTickets } from '@/hooks/useTicketMutations';
 import { CreateTicketDialog } from '@/components/gestao/CreateTicketDialog';
@@ -136,6 +136,15 @@ export function ChamadosGestaoContent({
     return map;
   }, [areasData]);
 
+  // A RPC entrega os internos sem ordem; num filtro com dezenas de nomes,
+  // procurar em lista fora de ordem é o mesmo que não ter filtro.
+  const agentesOrdenados = useMemo(
+    () => [...agents].sort((a, b) =>
+      `${a.first_name ?? ''} ${a.last_name ?? ''}`.trim()
+        .localeCompare(`${b.first_name ?? ''} ${b.last_name ?? ''}`.trim(), 'pt-BR')),
+    [agents],
+  );
+
   const clusterMap = useMemo(() => {
     const map = new Map<string, string>();
     clustersData.forEach(c => map.set(c.id, c.name));
@@ -161,6 +170,7 @@ export function ChamadosGestaoContent({
     departamento: 'todos',
     area: 'todos',
     cluster: 'todos',
+    responsavel: 'todos',
     searchId: '',
   });
 
@@ -221,6 +231,11 @@ export function ChamadosGestaoContent({
     }
 
     filtered = filtered.filter(t => combinaComCluster(t, filters.cluster));
+
+    // "Sem responsável" é opção porque chamado sem atribuir é o que trava a
+    // fila: em "Todos" ele se perde no meio dos demais, e é justamente ele que
+    // alguém precisa pegar.
+    filtered = filtered.filter(t => combinaComResponsavel(t, filters.responsavel));
 
     if (filters.searchId) {
       filtered = filtered.filter(t => 
@@ -584,6 +599,27 @@ export function ChamadosGestaoContent({
                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                   <SelectItem value={CLUSTER_SEM_VINCULO}>Sem cluster</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Responsável</Label>
+              {/* A mesma lista do seletor de atribuição (`useTicketAgents`), para
+                  o filtro não oferecer nome que não pode ser responsável. */}
+              <Select value={filters.responsavel}
+                onValueChange={(v) => setFilters({...filters, responsavel: v})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {agentesOrdenados.map((agent) => (
+                    <SelectItem key={agent.id} value={agent.id}>
+                      {`${agent.first_name ?? ''} ${agent.last_name ?? ''}`.trim() || 'Sem nome'}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={RESPONSAVEL_SEM_ATRIBUICAO}>Sem responsável</SelectItem>
                 </SelectContent>
               </Select>
             </div>

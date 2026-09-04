@@ -62,6 +62,9 @@ export { departmentLabels } from '@/lib/chamadosDepartamentos';
  */
 export const CLUSTER_SEM_VINCULO = 'sem-cluster';
 
+/** Mesma ideia no filtro de Responsável: pedir os que ainda não têm dono. */
+export const RESPONSAVEL_SEM_ATRIBUICAO = 'sem-responsavel';
+
 /** Regra única do filtro de cluster — a tela da equipe e a da gestão usam esta. */
 export function combinaComCluster(
   ticket: Pick<TicketListItem, 'cluster_id'>,
@@ -70,6 +73,16 @@ export function combinaComCluster(
   if (cluster === 'todos') return true;
   if (cluster === CLUSTER_SEM_VINCULO) return !ticket.cluster_id;
   return ticket.cluster_id === cluster;
+}
+
+/** Regra única do filtro de responsável. */
+export function combinaComResponsavel(
+  ticket: Pick<TicketListItem, 'assigned_to'>,
+  responsavel: string,
+) {
+  if (responsavel === 'todos') return true;
+  if (responsavel === RESPONSAVEL_SEM_ATRIBUICAO) return !ticket.assigned_to;
+  return ticket.assigned_to === responsavel;
 }
 
 export function createEquipeChamadosFilters(defaultCluster: string): EquipeChamadosFilters {
