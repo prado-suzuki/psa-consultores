@@ -169,6 +169,49 @@ export function useOrdensDeServicoDoCliente(clienteId: string | null) {
   });
 }
 
+/**
+ * Marca uma revisão como descartada. Só admin, e nunca apaga.
+ *
+ * **É marca e não exclusão**, e a policy do banco só permite isso: importação é
+ * retrato, e o retrato de que alguém subiu o arquivo errado é justamente o que a
+ * auditoria existe para guardar. A revisão sai da lista e continua consultável
+ * por quem for investigar.
+ *
+ * **Duas coisas que o descarte NÃO desfaz**, e é bom saber antes de usar. O
+ * arquivo continua no bucket, porque apagar binário é irreversível e ninguém
+ * pediu isso. E o checksum continua ocupado pelo índice único de
+ * `(estudo_id, checksum)`, então subir o MESMO arquivo de novo é recusado: para
+ * reimportar, o arquivo precisa ter mudado, o que é a regra de versionamento
+ * funcionando e não um efeito colateral.
+ */
+export function useDescartarRevisao() {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async (args: { importacaoId: string; estudoId: string; versao: number }) => {
+      const { error } = await supabase
+        .from('wp_importacao')
+        .update({ excluido: true })
+        .eq('id', args.importacaoId);
+      if (error) throw error;
+      return args;
+    },
+
+    onSuccess: async (args) => {
+      await logAction({
+        area: 'dev',
+        entity_type: 'wp_importacao',
+        entity_id: args.importacaoId,
+        entity_name: `revisão ${args.versao}`,
+        action: 'deleted',
+        details: 'Revisão descartada. O conteúdo continua no banco, fora da lista.',
+      });
+      await queryClient.invalidateQueries({ queryKey: ['wp_importacao', args.estudoId] });
+    },
+  });
+}
+
 export interface ArgsDaImportacao {
   clienteId: string;
   ordemServicoId: string;

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 /*
  * A tela passou a escolher cliente e OS e a ler o historico, e isso e Supabase.
@@ -24,6 +24,12 @@ const mocks = vi.hoisted(() => ({
   estudos: [] as Array<{ id: string; ordem_servico_id: string | null }>,
   revisoes: [] as unknown[],
   gravar: vi.fn(),
+  descartar: vi.fn(),
+  isAdmin: false,
+}));
+
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ isAdmin: mocks.isAdmin }),
 }));
 
 vi.mock('@/hooks/useDevClients', () => ({
@@ -35,6 +41,7 @@ vi.mock('@/hooks/useDomainPapelDeTrabalho', () => ({
   useEstudosDoCliente: () => ({ data: mocks.estudos }),
   useRevisoesDoEstudo: () => ({ data: mocks.revisoes, isLoading: false }),
   useImportarPapelDeTrabalho: () => ({ mutateAsync: mocks.gravar, isPending: false }),
+  useDescartarRevisao: () => ({ mutate: mocks.descartar, isPending: false }),
 }));
 
 vi.mock('@/hooks/use-toast', () => ({ toast: vi.fn() }));
@@ -48,7 +55,7 @@ vi.mock('@/components/equipe/dev/DevLayout', () => ({
   ),
 }));
 
-import PapelDeTrabalho from '@/pages/equipe/dev/PapelDeTrabalho';
+import PapelDeTrabalho, { Revisoes } from '@/pages/equipe/dev/PapelDeTrabalho';
 
 /**
  * Confere a tela de conferência do WP.
@@ -230,5 +237,74 @@ describe('PapelDeTrabalho', () => {
 
     expect(screen.getByText(/Escolha o papel de trabalho preenchido/)).toBeInTheDocument();
     expect(screen.queryByText('De onde sai cada slide')).not.toBeInTheDocument();
+  });
+
+  /*
+   * Descartar é marca e não exclusão, e a policy do banco só deixa admin fazer.
+   * O botão precisa acompanhar isso: quem não é admin não pode nem ver a oferta.
+   */
+  describe('descartar uma revisão', () => {
+    const comRevisao = () => {
+      mocks.estudos = [{ id: 'est-1', ordem_servico_id: 'os-1' }];
+      mocks.revisoes = [
+        {
+          id: 'imp-1',
+          versao: 1,
+          nome_original: 'WP.xlsx',
+          cliente_no_wp: null,
+          ano_inicial: 2026,
+          ano_final: 2028,
+          versao_do_mapa: '1.4',
+          problemas: 0,
+          created_at: '2026-09-03T12:00:00Z',
+        },
+      ];
+    };
+
+    afterEach(() => {
+      mocks.estudos = [];
+      mocks.revisoes = [];
+      mocks.isAdmin = false;
+      mocks.descartar.mockClear();
+    });
+
+    it('quem não é admin não vê o botão', () => {
+      comRevisao();
+      mocks.isAdmin = false;
+      render(<Revisoes estudoId="est-1" />);
+
+      /* A revisão aparece; só o botão é que não. */
+      expect(screen.getByText('WP.xlsx')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Descartar/ })).not.toBeInTheDocument();
+    });
+
+    it('admin vê o botão, e ele pergunta antes', () => {
+      comRevisao();
+      mocks.isAdmin = true;
+      const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      render(<Revisoes estudoId="est-1" />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Descartar/ }));
+
+      expect(confirmar).toHaveBeenCalled();
+      /* Respondeu que não: nada acontece. */
+      expect(mocks.descartar).not.toHaveBeenCalled();
+      confirmar.mockRestore();
+    });
+
+    it('confirmado, descarta aquela revisão', () => {
+      comRevisao();
+      mocks.isAdmin = true;
+      const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      render(<Revisoes estudoId="est-1" />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Descartar/ }));
+
+      expect(mocks.descartar).toHaveBeenCalledWith(
+        { importacaoId: 'imp-1', estudoId: 'est-1', versao: 1 },
+        expect.anything(),
+      );
+      confirmar.mockRestore();
+    });
   });
 });

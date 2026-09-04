@@ -5,6 +5,7 @@ import {
   FileSpreadsheet,
   Minus,
   RotateCcw,
+  Trash2,
   ShieldAlert,
   Upload,
 } from 'lucide-react';
@@ -21,7 +22,9 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { useClientesList } from '@/hooks/useDevClients';
+import { useAuth } from '@/contexts/AuthContext';
 import {
+  useDescartarRevisao,
   useEstudosDoCliente,
   useImportarPapelDeTrabalho,
   useOrdensDeServicoDoCliente,
@@ -238,6 +241,16 @@ function Escolha({
     clienteId || null,
   );
 
+  /*
+   * A mensagem só aparece depois que a pessoa mexeu no campo e saiu sem escolher.
+   * Cobrar antes de ela ter chance de responder é ruído: a tela abriria vermelha
+   * dizendo que falta tudo, e o vermelho perde o sentido.
+   */
+  const [mexeuNoCliente, setMexeuNoCliente] = useState(false);
+  const [mexeuNaOs, setMexeuNaOs] = useState(false);
+  const faltaCliente = mexeuNoCliente && !clienteId;
+  const faltaOs = mexeuNaOs && !!clienteId && !ordemServicoId;
+
   /* Uma OS só: marca sozinho, como o Controle Balancetes faz com o contribuinte. */
   useEffect(() => {
     if (clienteId && ordens.length === 1 && !ordemServicoId) onOrdemServico(ordens[0].id);
@@ -251,16 +264,23 @@ function Escolha({
       <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="space-y-1.5">
           <p className="text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Cliente
+            Cliente{' '}
+            <span aria-hidden className="text-destructive">
+              *
+            </span>
           </p>
           <Select
             value={clienteId}
             onValueChange={(v) => {
+              setMexeuNoCliente(true);
               onCliente(v);
               onOrdemServico('');
             }}
+            onOpenChange={(aberto) => {
+              if (!aberto) setMexeuNoCliente(true);
+            }}
           >
-            <SelectTrigger>
+            <SelectTrigger aria-invalid={faltaCliente || undefined}>
               <SelectValue placeholder="Escolha o cliente" />
             </SelectTrigger>
             <SelectContent>
@@ -271,13 +291,29 @@ function Escolha({
               ))}
             </SelectContent>
           </Select>
+          {faltaCliente && (
+            <p className="text-sm text-destructive">Escolha o cliente para continuar.</p>
+          )}
         </div>
 
         <div className="space-y-1.5">
           <p className="text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Ordem de serviço
+            Ordem de serviço{' '}
+            <span aria-hidden className="text-destructive">
+              *
+            </span>
           </p>
-          <Select value={ordemServicoId} onValueChange={onOrdemServico} disabled={!clienteId}>
+          <Select
+            value={ordemServicoId}
+            onValueChange={(v) => {
+              setMexeuNaOs(true);
+              onOrdemServico(v);
+            }}
+            onOpenChange={(aberto) => {
+              if (!aberto) setMexeuNaOs(true);
+            }}
+            disabled={!clienteId}
+          >
             <SelectTrigger>
               <SelectValue
                 placeholder={
@@ -302,6 +338,13 @@ function Escolha({
               ))}
             </SelectContent>
           </Select>
+          {faltaOs && (
+            <p className="text-sm text-destructive">
+              {ordens.length === 0
+                ? 'Este cliente não tem ordem de serviço. Sem ela não é possível gravar o estudo.'
+                : 'Escolha a ordem de serviço para continuar.'}
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -314,8 +357,12 @@ function Escolha({
  * É o histórico, e existe para duas coisas: chegar num estudo que já existe, e
  * saber que a próxima importação vai ser a versão 4 e não a primeira.
  */
-function Revisoes({ estudoId }: { estudoId: string | null }) {
+/* Exportado para o teste alcançar a lista sem ter de dirigir o Select do Radix,
+   que precisa de eventos de ponteiro que o jsdom não tem. */
+export function Revisoes({ estudoId }: { estudoId: string | null }) {
   const { data: revisoes = [], isLoading } = useRevisoesDoEstudo(estudoId);
+  const { isAdmin } = useAuth();
+  const descartar = useDescartarRevisao();
 
   if (!estudoId) {
     return (
@@ -352,6 +399,43 @@ function Revisoes({ estudoId }: { estudoId: string | null }) {
               <span className="text-xs text-warning">
                 {r.problemas === 1 ? '1 aviso' : `${r.problemas} avisos`}
               </span>
+            )}
+            {/*
+              Só admin, e é marca e não exclusão: a revisão sai da lista e continua
+              no banco. Quem subiu o arquivo errado deixa rastro, que é o que a
+              auditoria existe para guardar.
+            */}
+            {isAdmin && estudoId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto h-7 px-2 text-muted-foreground hover:text-destructive"
+                disabled={descartar.isPending}
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      `Descartar a revisão ${r.versao}? Ela sai da lista e continua no banco. ` +
+                        'O arquivo segue no bucket, e o mesmo arquivo não pode ser subido de novo.',
+                    )
+                  ) {
+                    return;
+                  }
+                  descartar.mutate(
+                    { importacaoId: r.id, estudoId, versao: r.versao },
+                    {
+                      onError: (causa) =>
+                        toast({
+                          title: 'Não consegui descartar',
+                          description: causa instanceof Error ? causa.message : 'Tente de novo.',
+                          variant: 'destructive',
+                        }),
+                    },
+                  );
+                }}
+              >
+                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                Descartar
+              </Button>
             )}
           </div>
         ))}
