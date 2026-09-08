@@ -382,13 +382,25 @@ function montaDre(valores: ValorDaRevisao[]): {
   const cenarios = [...new Set(daDre.map((v) => v.cenario))];
   const base = ABAS_DE_CENARIO.find((n) => cenarios.includes(n)) ?? cenarios[0];
 
+  /*
+   * **A DRE das Premissas é a do Cenário Atual, e isso está medido.** No deck da
+   * Família Lunardi o lucro do exercício das Premissas é 1.417.964 na pessoa
+   * física e 9.863.001 na jurídica em 2026, que é célula por célula a aba
+   * `Cenário Atual`; a mesma linha no `Cenário Avaliado 01` dá 1.971.812 e não
+   * aparece em slide nenhum. Faz sentido: a premissa descreve o resultado
+   * projetado como ele é hoje, e os cenários é que mexem na estrutura.
+   *
+   * Por isso o aviso só sai quando o Cenário Atual NÃO veio na leitura e a DRE
+   * teve de sair de outra aba, que é o caso em que alguém precisa conferir.
+   */
   const problemas: ProblemaDoDeck[] = [];
-  if (cenarios.length > 1) {
+  if (base !== ABAS_DE_CENARIO[0]) {
     problemas.push({
       tipo: 'origem',
       onde: '3.1 Premissas, a DRE',
       detalhe:
-        `O WP tem DRE em ${cenarios.length} cenários e o slide mostra um. Saiu o "${base}".`,
+        `O WP não trouxe DRE do "${ABAS_DE_CENARIO[0]}", que é a aba das Premissas. ` +
+        `Saiu a do "${base}".`,
     });
   }
 
@@ -481,8 +493,40 @@ interface LinhaDeclarada {
   daPlanilha?: string;
   /** Linha que é só título de seção, sem número. */
   titulo?: boolean;
-  /** Linha do slide que a PT-01 não mapeou e que ninguém sabe de onde vem. */
-  semFonte?: boolean;
+  /** Linha que não se lê da planilha: sai de comparar duas outras linhas. */
+  deduzida?: 'opcao_de_apuracao';
+}
+
+/** Os dois rótulos da planilha de que a opção pela forma de apuração depende. */
+const PRESUNCAO_DE_20 = 'Presunção de 20%';
+const RESULTADO_TRIBUTAVEL = 'Resultado tributável';
+
+/**
+ * "Real" ou "Presumido", **deduzido e não lido**.
+ *
+ * O WP não tem célula para isto: a opção se enxerga no resultado. Na apuração do
+ * IRPF rural o contribuinte escolhe entre o resultado efetivo, apurado no livro
+ * caixa, e o presumido de 20% da receita bruta, e o `Resultado tributável` da
+ * planilha guarda o que foi escolhido. Se ele é o presumido, a opção foi
+ * Presumido; se é outro número, foi Real.
+ *
+ * **Medido em dois decks antes de virar regra.** No gabarito da PT-01 o
+ * tributável é igual ao limite de 20% nos sete exercícios e o deck diz
+ * "Presumido" nos sete. No deck da Família Lunardi, 2026 tem tributável zerado
+ * pela compensação de prejuízo contra um limite de 169.701, e o deck diz "Real"
+ * só naquele ano, "Presumido" nos cinco seguintes. A regra acerta os treze
+ * casos, e faz sentido na lei: a opção pelo presumido não admite compensar
+ * prejuízo, então ano com compensação nunca é presumido.
+ *
+ * Ano sem presunção nenhuma sai como traço, porque ali não houve escolha a fazer.
+ */
+export function opcaoDeApuracao(
+  presuncao: number | string | undefined | null,
+  tributavel: number | string | undefined | null,
+): ValorDoSlide {
+  if (typeof presuncao !== 'number' || Math.round(presuncao) === 0) return '-';
+  if (typeof tributavel !== 'number') return '-';
+  return Math.round(presuncao) === Math.round(tributavel) ? 'Presumido' : 'Real';
 }
 
 const LINHAS_DA_TRANSFERENCIA: LinhaDeclarada[] = [
@@ -502,15 +546,16 @@ const LINHAS_DA_TRANSFERENCIA: LinhaDeclarada[] = [
    * par Bahia Potrich. */
   { slide: 'Despesas de custeio e investimento total' },
   { slide: 'Resultado da Atividade Rural', daPlanilha: 'Lucro/Prejuízo fiscal do exercício' },
-  { slide: 'Limite de 20% sobre a receita bruta total', daPlanilha: 'Presunção de 20%' },
-  /* No deck de origem sai "Presumido" em todos os anos, mas a PT-01 não mapeou a
-   * célula de onde isso vem. Enquanto não mapear, sai traço e o deck avisa. */
-  { slide: 'Opção pela forma de apuração do resultado tributável', semFonte: true },
+  { slide: 'Limite de 20% sobre a receita bruta total', daPlanilha: PRESUNCAO_DE_20 },
+  {
+    slide: 'Opção pela forma de apuração do resultado tributável',
+    deduzida: 'opcao_de_apuracao',
+  },
   {
     slide: 'Compensação de prejuízo(s) de exercício(s) anteriores',
     daPlanilha: 'Compensação de prejuízo',
   },
-  { slide: 'Resultado Tributável', daPlanilha: 'Resultado tributável' },
+  { slide: 'Resultado Tributável', daPlanilha: RESULTADO_TRIBUTAVEL },
   { slide: 'Imposto a pagar', daPlanilha: 'Total a recolher' },
   {
     slide: 'Saldo de prejuízo a compensar nos exercícios seguintes',
@@ -549,12 +594,15 @@ function montaTransferencia(valores: ValorDaRevisao[]): {
         valoresDaLinha[ano] = formataValor(celula?.valor, celula?.unidade);
       }
     }
-    if (d.semFonte) {
-      problemas.push({
-        tipo: 'origem',
-        onde: `slide, "${d.slide}"`,
-        detalhe: 'Sai como traço: a origem dela no WP nunca foi mapeada.',
-      });
+    if (d.deduzida === 'opcao_de_apuracao') {
+      const presuncao = porRotulo.get(PRESUNCAO_DE_20);
+      const tributavel = porRotulo.get(RESULTADO_TRIBUTAVEL);
+      for (const ano of anos) {
+        valoresDaLinha[ano] = opcaoDeApuracao(
+          presuncao?.get(ano)?.valor,
+          tributavel?.get(ano)?.valor,
+        );
+      }
     }
     return { rotulo: d.slide, nivel: d.titulo ? 0 : 1, valores: valoresDaLinha };
   });
