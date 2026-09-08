@@ -10,6 +10,7 @@ import {
   GitCompare,
   LayoutGrid,
   Map,
+  Presentation,
   Receipt,
   Sprout,
   Sparkles,
@@ -323,20 +324,20 @@ export const DEV_HUBS: Record<
     label: DEV_NAV_LABELS.planejamentoTributario,
     landingPath: '/equipe/dev/planejamento-tributario',
     landingDescription:
-      'Área do estudo de Planejamento Tributário rural: importar o papel de trabalho preenchido, conferir o que o sistema leu dele e acompanhar as revisões de cada estudo.',
+      'Área do Planejamento Tributário rural: importar o papel de trabalho preenchido, conferir o que o sistema leu dele, acompanhar as revisões e gerar os slides.',
     landingIcon: Sprout,
     title: 'PLANEJAMENTO TRIBUTÁRIO',
-    subtitle: 'Ferramentas do estudo de Planejamento Tributário rural.',
+    subtitle: 'Ferramentas do Planejamento Tributário rural.',
     heroEyebrow: '',
     heroTitle: 'Planejamento Tributário',
     heroDescription:
-      'Use esta área para trabalhar o estudo que compara como o produtor rural explora a fazenda: como pessoa física, em parceria com a pessoa jurídica dele, ou tudo dentro da pessoa jurídica. O estudo nasce numa planilha, o papel de trabalho, e é dela que saem os números da apresentação entregue ao cliente.',
+      'Use esta área para trabalhar o planejamento que compara como o produtor rural explora a fazenda: como pessoa física, em parceria com a pessoa jurídica dele, ou tudo dentro da pessoa jurídica. O planejamento nasce numa planilha, o papel de trabalho, e é dela que saem os números da apresentação entregue ao cliente.',
     heroIcon: LayoutGrid,
     options: [
       {
         badge: 'Fiscal',
         description:
-          'Escolha o papel de trabalho preenchido e confira o que o sistema entendeu dele antes de gravar: o cabeçalho do estudo, quanto entrou de cada bloco, os anos e cenários encontrados, e o que a leitura reclamou.',
+          'Escolha o papel de trabalho preenchido e confira o que o sistema entendeu dele antes de gravar: o cabeçalho do planejamento, quanto entrou de cada bloco, os anos e cenários encontrados, e o que a leitura reclamou.',
         highlights: [
           'Leitura no navegador: o arquivo não sai daqui antes da confirmação',
           'Impedimento e aviso separados, com o endereço da célula de cada um',
@@ -345,6 +346,19 @@ export const DEV_HUBS: Record<
         icon: FileSpreadsheet,
         path: '/equipe/dev/planejamento-tributario/papel-de-trabalho',
         title: DEV_NAV_LABELS.papelDeTrabalho,
+      },
+      {
+        badge: 'Fiscal',
+        description:
+          'Monte a seção tributária da apresentação a partir de uma revisão já importada: premissas, carga tributária, transferência da atividade rural e resumo, com tabelas editáveis no PowerPoint.',
+        highlights: [
+          'Os números são lidos no servidor, não na tela',
+          'O que não couber no slide vira aviso, em vez de encolher a fonte',
+          'Histórico por revisão, para baixar de novo sem regerar',
+        ],
+        icon: Presentation,
+        path: '/equipe/dev/planejamento-tributario/gerador-de-slides',
+        title: DEV_NAV_LABELS.geradorDeSlides,
       },
     ],
   },

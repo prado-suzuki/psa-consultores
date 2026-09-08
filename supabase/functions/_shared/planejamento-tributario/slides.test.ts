@@ -157,7 +157,7 @@ describe('montaDeck, contra os gabaritos da PT-01', () => {
     const { deck } = leFixture('transferencia-rural');
     const aviso = deck.problemas.find((p) => p.onde.includes('Opção pela forma'));
     expect(aviso, 'o deck tem de avisar da linha sem fonte').toBeDefined();
-    expect(aviso!.detalhe).toContain('Fiscal');
+    expect(aviso!.detalhe).toContain('nunca foi mapeada');
   });
 
   /* Na DRE o gabarito é uma escolha do consultor, então o que se confere é o
@@ -189,7 +189,7 @@ describe('o que o deck avisa', () => {
     const cabem = deck.dre.linhas.length - deck.dre.transbordou;
     expect(cabem).toBe(20);
     if (deck.dre.transbordou > 0) {
-      expect(deck.problemas.some((p) => p.detalhe.includes('PowerPoint'))).toBe(true);
+      expect(deck.problemas.some((p) => p.detalhe.startsWith('Não cabe:'))).toBe(true);
     }
   });
 
@@ -276,8 +276,8 @@ describe('a DRE esconde conta zerada', () => {
       ]),
     );
 
-    const aviso = deck.problemas.find((p) => p.detalhe.includes('não têm valor em nenhum ano'));
-    expect(aviso?.detalhe).toContain('1 conta(s)');
+    const aviso = deck.problemas.find((p) => p.detalhe.includes('sem valor ficaram fora'));
+    expect(aviso?.detalhe).toBe('1 contas sem valor ficaram fora. Restaram 1.');
   });
 
   it('não esconde nada quando tudo tem valor', () => {
@@ -299,12 +299,10 @@ describe('o aviso de caixa cheia', () => {
 
   /* Encolher a fonte foi o que produziu a DRE de 7pt e o cartão ilegível do
    * Mattei. Agora o gerador não mexe no tamanho e diz quanto precisa sair. */
-  it('diz que não vai caber e quantas letras tirar', () => {
+  it('diz que não cabe, e só o tamanho', () => {
     const deck = montaDeck(comComentario(CABEM_NA_CAIXA + 100));
     const aviso = deck.problemas.find((p) => p.onde === 'caixa de CBS');
-    expect(aviso?.detalhe).toContain('NÃO VAI CABER');
-    expect(aviso?.detalhe).toContain('Encurte o comentário em 100 letras');
-    expect(aviso?.detalhe).not.toContain('fonte foi reduzida');
+    expect(aviso?.detalhe).toBe(`Não cabe: 520 letras para cerca de ${CABEM_NA_CAIXA}.`);
   });
 
   it('não avisa quando o texto cabe', () => {

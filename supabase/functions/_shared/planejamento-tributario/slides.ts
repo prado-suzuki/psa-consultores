@@ -77,7 +77,17 @@ export interface Revisao {
 
 /** Um problema para registrar em `wp_apresentacao.problemas`. */
 export interface ProblemaDoDeck {
-  tipo: string;
+  /**
+   * `formatacao` quando é sobre o espaço do slide, `origem` quando é sobre de
+   * onde o dado vem.
+   *
+   * **A separação existe porque o molde é provisório.** Enquanto o modelo
+   * consolidado não chega, célula não mapeada e linha que não veio na leitura
+   * dizem mais sobre o molde de teste do que sobre o estudo, e a tela mostra só
+   * `formatacao`. Os dois tipos continuam gravados em `wp_apresentacao.problemas`,
+   * então nada se perde: o que muda é o que aparece.
+   */
+  tipo: 'formatacao' | 'origem';
   onde: string;
   detalhe: string;
 }
@@ -96,15 +106,13 @@ const CABEM = {
   resumo: 18,
 } as const;
 
-/**
- * **A fonte é sempre a do molde.** O gerador já encolheu tabela e caixa para
- * fazer caber, e em 08/09/2026 o resultado foi a DRE do Grupo Mattei inteira a
- * 7pt, ilegível, com o cartão do CBS transbordando assim mesmo. Não vale a
- * troca: um slide que ninguém lê e parece pronto é pior que um slide que passa
- * do fim e está avisado.
- *
- * Então o que não couber vira aviso, e a poda acontece no PowerPoint, onde as
- * tabelas são nativas. Os números acima são a capacidade no tamanho do molde.
+/*
+ * **E a fonte é sempre a do molde**, então estes números valem sempre. O gerador
+ * já encolheu tabela e caixa para fazer caber, e em 08/09/2026 o resultado foi a
+ * DRE do Grupo Mattei inteira a 7pt, ilegível, com o cartão do CBS transbordando
+ * assim mesmo. Um slide que ninguém lê e parece pronto é pior que um slide que
+ * passa do fim e está avisado, então o que não couber vira aviso e a poda
+ * acontece no PowerPoint.
  */
 
 export type ValorDoSlide = string;
@@ -377,10 +385,10 @@ function montaDre(valores: ValorDaRevisao[]): {
   const problemas: ProblemaDoDeck[] = [];
   if (cenarios.length > 1) {
     problemas.push({
-      tipo: 'tipo_inesperado',
+      tipo: 'origem',
       onde: '3.1 Premissas, a DRE',
       detalhe:
-        `A DRE veio de ${cenarios.length} cenários e o slide mostra um. ` + `Saiu o de "${base}".`,
+        `O WP tem DRE em ${cenarios.length} cenários e o slide mostra um. Saiu o "${base}".`,
     });
   }
 
@@ -399,11 +407,10 @@ function montaDre(valores: ValorDaRevisao[]): {
    */
   if (tabela.escondidas > 0) {
     problemas.push({
-      tipo: 'tipo_inesperado',
+      tipo: 'formatacao',
       onde: '3.1 Premissas, a DRE',
       detalhe:
-        `${tabela.escondidas} conta(s) não têm valor em nenhum ano e ficaram fora do slide. ` +
-        `Restaram ${tabela.linhas.length}. Os subtotais continuam fechando.`,
+        `${tabela.escondidas} contas sem valor ficaram fora. Restaram ${tabela.linhas.length}.`,
     });
   }
 
@@ -443,7 +450,7 @@ function montaResumo(valores: ValorDaRevisao[]): {
   const problemas: ProblemaDoDeck[] = [];
   if (cenarios.length > CENARIOS_NO_MOLDE) {
     problemas.push({
-      tipo: 'tipo_inesperado',
+      tipo: 'origem',
       onde: '3.5 Resumo da Tributação',
       detalhe:
         `O estudo tem ${cenarios.length} cenários e o slide tem ${CENARIOS_NO_MOLDE} colunas. ` +
@@ -532,7 +539,7 @@ function montaTransferencia(valores: ValorDaRevisao[]): {
       const daPlanilha = d.daPlanilha ? porRotulo.get(d.daPlanilha) : undefined;
       if (d.daPlanilha && !daPlanilha) {
         problemas.push({
-          tipo: 'tipo_inesperado',
+          tipo: 'origem',
           onde: ABA_VENDA_DE_ATIVOS,
           detalhe: `A linha "${d.daPlanilha}" não veio na leitura, então "${d.slide}" sai vazia no slide.`,
         });
@@ -544,11 +551,9 @@ function montaTransferencia(valores: ValorDaRevisao[]): {
     }
     if (d.semFonte) {
       problemas.push({
-        tipo: 'tipo_inesperado',
+        tipo: 'origem',
         onde: `slide, "${d.slide}"`,
-        detalhe:
-          'Esta linha existe no slide e a PT-01 não mapeou a célula de origem, ' +
-          'então ela sai como traço. Precisa ser levantada com o Fiscal.',
+        detalhe: 'Sai como traço: a origem dela no WP nunca foi mapeada.',
       });
     }
     return { rotulo: d.slide, nivel: d.titulo ? 0 : 1, valores: valoresDaLinha };
@@ -679,7 +684,7 @@ function montaComentarios(comentarios: ComentarioDaRevisao[]): {
 
     if (!doMolde.has(normaliza(tributo))) {
       problemas.push({
-        tipo: 'tipo_inesperado',
+        tipo: 'origem',
         onde: `comentário de ${tributo}`,
         detalhe: `O molde não tem caixa para "${tributo}", então esse comentário não sai no slide.`,
       });
@@ -689,16 +694,14 @@ function montaComentarios(comentarios: ComentarioDaRevisao[]): {
     const letras = linhas.join(' ').length;
     if (letras > CABEM_NA_CAIXA) {
       /*
-       * Quem corta texto é quem escreveu, não o gerador. Por isso o aviso diz
-       * quanto sobra, em letras, em vez de encolher a fonte e entregar calado.
+       * O aviso dá o tamanho e para por aí. Quem escreveu decide o que cortar
+       * olhando o texto, e dizer "encurte em 1.650 letras" só faz o aviso ficar
+       * comprido justamente onde a queixa é excesso de texto.
        */
       problemas.push({
-        tipo: 'tipo_inesperado',
+        tipo: 'formatacao',
         onde: `caixa de ${tributo}`,
-        detalhe:
-          `A caixa de ${tributo} saiu com ${letras} letras e NÃO VAI CABER: ela comporta cerca ` +
-          `de ${CABEM_NA_CAIXA}. Encurte o comentário em ${letras - CABEM_NA_CAIXA} letras no ` +
-          `papel de trabalho.`,
+        detalhe: `Não cabe: ${letras} letras para cerca de ${CABEM_NA_CAIXA}.`,
       });
     }
     caixas.push({ tributo, texto: linhas.join('\n') });
@@ -728,11 +731,11 @@ export function montaDeck(leitura: Revisao): Deck {
   ] as const) {
     if (t.transbordou > 0) {
       problemas.push({
-        tipo: 'tipo_inesperado',
+        tipo: 'formatacao',
         onde: t.titulo,
         detalhe:
-          `${nome} saiu com ${t.linhas.length} linhas e NÃO VAI CABER: o slide comporta ` +
-          `${t.linhas.length - t.transbordou}. Tire ${t.transbordou} linha(s) no PowerPoint.`,
+          `Não cabe: ${t.linhas.length} linhas para ${t.linhas.length - t.transbordou} ` +
+          `de espaço.`,
       });
     }
   }
