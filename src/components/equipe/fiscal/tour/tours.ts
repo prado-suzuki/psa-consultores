@@ -290,4 +290,7 @@ export const REGISTRO_TAX: RegistroDeTour = {
   chave: 'taxTourSeen',
   tours: TAX_TOURS,
   resolve: resolverTourTax,
+  // Sem isto, o guia que abre sozinho aparece como um ponto pulsante que a
+  // pessoa precisa descobrir e clicar. Aqui ele já entra falando.
+  opcoes: { skipBeacon: true },
 };

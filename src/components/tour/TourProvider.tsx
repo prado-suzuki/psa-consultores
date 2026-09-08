@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { STATUS, useJoyride, type EventData, type Step } from 'react-joyride';
+import { STATUS, useJoyride, type EventData, type Options, type Step } from 'react-joyride';
 import { TourContext, type TourApi } from './useTour';
 import { TOUR_LOCALE, TOUR_OPTIONS, TOUR_STYLES } from './tourTheme';
 import { marcarTourVisto, tourVisto } from './tourStorage';
@@ -21,15 +21,32 @@ export interface RegistroDeTour {
   resolve: (pathname: string) => string | null;
   /** Tour aberto pelo "?" numa rota sem tour próprio. */
   fallback?: string;
+  /**
+   * Ajustes de opção do Joyride para este módulo, mesclados sobre o tema comum.
+   *
+   * Existe por causa do `skipBeacon`: por padrão o Joyride abre o primeiro passo
+   * como um ponto pulsante, que só vira tooltip no clique. Para um guia que abre
+   * sozinho isso é a tela "não acontecer nada", então a Tax pula o beacon. O
+   * MAPA fica como está: lá o guia já é conhecido assim.
+   */
+  opcoes?: Partial<Options>;
 }
 
-function TourRunner({ passos, onEnd }: { passos: Step[]; onEnd: () => void }) {
+function TourRunner({
+  passos,
+  opcoes,
+  onEnd,
+}: {
+  passos: Step[];
+  opcoes?: Partial<Options>;
+  onEnd: () => void;
+}) {
   const { Tour } = useJoyride({
     steps: passos,
     run: passos.length > 0,
     continuous: true,
     scrollToFirstStep: true,
-    options: TOUR_OPTIONS,
+    options: { ...TOUR_OPTIONS, ...opcoes },
     styles: TOUR_STYLES,
     locale: TOUR_LOCALE,
     onEvent: (data: EventData) => {
@@ -119,7 +136,9 @@ export function TourProvider({
   return (
     <TourContext.Provider value={api}>
       {children}
-      {tourAtivo && <TourRunner key={tourAtivo} passos={passos} onEnd={handleEnd} />}
+      {tourAtivo && (
+        <TourRunner key={tourAtivo} passos={passos} opcoes={registro.opcoes} onEnd={handleEnd} />
+      )}
     </TourContext.Provider>
   );
 }
