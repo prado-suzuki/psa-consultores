@@ -2678,6 +2678,9 @@ export type Database = {
           granularidade: string
           grupo: Database["public"]["Enums"]["osg_doc_grupo"]
           id: string
+          modelo_bucket: string | null
+          modelo_nome: string | null
+          modelo_path: string | null
           modulo: string
           nota: string | null
           obrigatorio_default: boolean
@@ -2700,6 +2703,9 @@ export type Database = {
           granularidade?: string
           grupo: Database["public"]["Enums"]["osg_doc_grupo"]
           id?: string
+          modelo_bucket?: string | null
+          modelo_nome?: string | null
+          modelo_path?: string | null
           modulo: string
           nota?: string | null
           obrigatorio_default?: boolean
@@ -2722,6 +2728,9 @@ export type Database = {
           granularidade?: string
           grupo?: Database["public"]["Enums"]["osg_doc_grupo"]
           id?: string
+          modelo_bucket?: string | null
+          modelo_nome?: string | null
+          modelo_path?: string | null
           modulo?: string
           nota?: string | null
           obrigatorio_default?: boolean
