@@ -472,7 +472,10 @@ export default function NewClientModal({
             <div className="flex items-center gap-1">
               {temGuia && (
                 <TourTrigger
-                  tourId={activeTab === "contratos" ? "modal-os" : "modal-cliente"}
+                  // Em leitura o formulário é outro e as âncoras de campo não
+                  // existem: o "?" ali abre o guia do próprio estado, que diz
+                  // como sair dele.
+                  tourId={isReadOnly ? "modal-leitura" : activeTab === "contratos" ? "modal-os" : "modal-cliente"}
                   dataTour="modal-help"
                   label="Ver o guia deste cadastro"
                   className="p-2 text-gray-400 hover:text-gray-700 hover:bg-muted rounded-full transition-colors"
@@ -623,6 +626,7 @@ export default function NewClientModal({
                     {canEdit && (
                       <Button
                         onClick={() => { setIsReadOnly(false); setEscopoEdicao('cliente'); }}
+                        data-tour="modal-editar"
                         className={cn("gap-2 shadow-lg", acento.botao)}
                       >
                         <Pencil size={16} /> Editar
