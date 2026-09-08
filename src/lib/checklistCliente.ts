@@ -16,6 +16,7 @@ import {
   type GrupoDocumento,
   type GrupoDocumentoKey,
 } from '@/lib/agrupadorDocumentos';
+import { estadoDoDocumento, type EstadoDocumento } from '@/lib/estadoDocumento';
 
 /** Uma entidade do cadastro do cliente, com o que falta nela. */
 export interface EntidadeChecklist {
@@ -122,3 +123,23 @@ export function resumirPendencias(
     pct: total ? Math.round((recebidos / total) * 100) : 0,
   };
 }
+
+/** O vocabulário do portal para os quatro estados (o consultor usa outro). */
+export const ESTADO_LABEL: Record<EstadoDocumento, string> = {
+  pendente: 'Falta enviar',
+  em_analise: 'Em análise',
+  recusado: 'Recusado',
+  aprovado: 'Aprovado',
+};
+// A COR dos quatro é compartilhada com o checklist do consultor, em papéis de
+// status: `@/lib/estadoDocumentoColors`. Só o rótulo acima é por público.
+
+/**
+ * O estado de uma pendência inteira, derivado dos arquivos dela.
+ *
+ * Mora aqui, e não na tela, porque é lida dos dois lados do corte de
+ * `ChecklistDocumentosCliente`: o pai recorta a ficha por estado e a linha
+ * escolhe o selo com ela.
+ */
+export const estadoDaPendencia = (pendencia: PendenciaCliente): EstadoDocumento =>
+  estadoDoDocumento(pendencia.recebido, pendencia.arquivos);
