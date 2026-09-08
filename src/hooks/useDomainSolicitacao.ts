@@ -96,6 +96,50 @@ const SELECT_SOLICITACAO = `
   )
 `;
 
+/**
+ * Traduz a recusa da RLS na frase que diz O QUE FAZER.
+ *
+ * As seis policies de escrita de `solicitacao` e `solicitacao_item` dependem de uma
+ * função só, `sublider_na_os`, e ela devolve um booleano — o motivo se perde no
+ * caminho. Sem reconstruí-lo aqui, toda recusa vira "você não tem permissão", que
+ * é falso e improdutivo quando o problema é a OS não ter projeto nenhum: aí não há
+ * o que pedir para você, há um projeto a criar.
+ *
+ * RESSALVA CONHECIDA: a contagem passa pela RLS de `org_projects`, que libera admin,
+ * criador, responsável, líder e `can_view_org_project`. Quem não enxerga os projetos
+ * da OS conta zero e recebe a frase da OS vazia mesmo havendo projeto. Na prática é
+ * estreito — admin agora escreve sem cair aqui, e quem é da área enxerga os projetos
+ * dela —, mas está escrito para quem for depurar não se surpreender.
+ */
+async function motivoDaRecusa(ordemServicoId: string | null): Promise<string> {
+  if (!ordemServicoId) {
+    return 'Esta solicitação está sem ordem de serviço vinculada, e nesse estado só um '
+      + 'administrador consegue alterá-la. Fale com o time do Digital.';
+  }
+
+  const { count, error } = await supabase
+    .from('org_projects')
+    .select('id', { count: 'exact', head: true })
+    .eq('ordem_servico_id', ordemServicoId);
+
+  // Sondagem falhou: dizer que não se sabe é melhor que escolher um motivo no chute.
+  if (error) {
+    return 'Não foi possível alterar esta solicitação, e não deu para apurar o motivo. '
+      + 'Fale com o time do Digital.';
+  }
+
+  if ((count ?? 0) === 0) {
+    return 'A ordem de serviço deste cliente não tem nenhum projeto vinculado — e é a '
+      + 'participação em um projeto da OS que autoriza enviar a solicitação. Peça a '
+      + 'criação do projeto desta OS: enquanto ele não existir, ninguém da equipe '
+      + 'consegue enviar.';
+  }
+
+  return 'Você não participa de nenhum projeto da OS deste cliente, e é isso que '
+    + 'autoriza enviar a solicitação. Peça para ser incluído como membro, responsável '
+    + 'ou líder de um dos projetos desta OS.';
+}
+
 /** Violação de índice único no Postgres. */
 const UNIQUE_VIOLATION = '23505';
 
@@ -540,17 +584,22 @@ export function useDomainSolicitacao(clienteId: string | null) {
     if (error) throw error;
     if (!data || data.length === 0) {
       /**
-       * Zero linhas tem DUAS causas, e acusar a errada custou tempo de verdade:
+       * Zero linhas tem TRÊS causas, e acusar a errada custou tempo de verdade:
        *
        *   a) alguém mudou o status antes (a corrida que o WHERE existe para pegar);
-       *   b) a RLS de escrita recusou. Desde a migration 20260812160000, escrever
-       *      em `solicitacao` exige papel de sublíder ou acima E ser membro de
-       *      algum projeto da OS do cliente. A LEITURA não mudou, então a tela
-       *      mostra o pedido inteiro e só as ações falham, o que faz a recusa
-       *      parecer bug de estado.
+       *   b) a OS do cliente não tem NENHUM projeto vinculado. Aí a recusa não é
+       *      sobre quem você é: `sublider_na_os` devolve falso para todo mundo,
+       *      porque não existe projeto de que ser participante. Medido em
+       *      08/09/2026: 43 das 51 OS com produto OSG estavam nesse estado;
+       *   c) você não participa de nenhum projeto daquela OS.
        *
-       * A leitura é permitida a quem vê o cliente, então uma consulta separa as
-       * duas: se o status continua onde estava, ninguém correu, foi permissão.
+       * A mensagem precisa distinguir (b) de (c) porque a saída é oposta: em (b)
+       * alguém tem de criar o projeto da OS, e em (c) basta te incluírem num que
+       * já existe. Dizer "você não tem permissão" quando o problema é a OS vazia
+       * manda a pessoa procurar o erro no lugar errado.
+       *
+       * A leitura é permitida a quem vê o cliente, então uma consulta separa (a):
+       * se o status continua onde estava, ninguém correu, foi a RLS.
        */
       const { data: agora } = await supabase
         .from('solicitacao')
@@ -559,10 +608,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
         .maybeSingle();
       const statusAgora = agora?.status as SolicitacaoStatus | undefined;
       if (statusAgora && de.includes(statusAgora)) {
-        throw new Error(
-          'Você não tem permissão para alterar esta solicitação. A escrita exige papel de '
-          + 'sublíder ou acima e ser membro de algum projeto da OS deste cliente.',
-        );
+        throw new Error(await motivoDaRecusa(atual.ordem_servico_id));
       }
       throw new Error(erroSeNaoMoveu);
     }
