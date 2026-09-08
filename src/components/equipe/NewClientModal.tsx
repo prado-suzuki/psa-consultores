@@ -108,24 +108,31 @@ export default function NewClientModal({
   }, [open, readOnly]);
 
   /**
-   * O guia do cadastro abre junto com o modal, na 1ª vez, e o da OS na 1ª vez
-   * que a aba dela é aberta. As âncoras dos dois só existem com o modal aberto,
-   * então o auto-open por rota do provider não alcança nenhum deles.
+   * O guia do cadastro abre junto com o modal, e o da OS na 1ª vez que a aba
+   * dela é aberta. As âncoras dos dois só existem com o modal aberto, então o
+   * auto-open por rota do provider não alcança nenhum deles.
+   *
+   * `isReadOnly` na condição não é detalhe: em leitura o formulário inteiro é
+   * outro (ClienteTab devolve `ReadRow`, a OS devolve `OsLeitura`), e nenhuma
+   * das âncoras existe. Abrir o guia ali mostraria um passo só E gastaria a
+   * flag de "já viu", matando a versão boa antes de ela aparecer uma vez.
+   * Como `isReadOnly` está nas dependências, o guia abre no clique em "Editar",
+   * que é quando a pessoa pode de fato digitar.
    *
    * O atraso cobre a animação de entrada do Dialog: sem ele o Joyride mede a
    * âncora no meio do fade e o tooltip nasce fora de lugar.
    */
   useEffect(() => {
-    if (!open || !temGuia) return;
+    if (!open || !temGuia || isReadOnly) return;
     const timer = window.setTimeout(() => startTourOnce('modal-cliente'), 650);
     return () => window.clearTimeout(timer);
-  }, [open, temGuia, startTourOnce]);
+  }, [open, temGuia, isReadOnly, startTourOnce]);
 
   useEffect(() => {
-    if (!open || !temGuia || activeTab !== 'contratos') return;
+    if (!open || !temGuia || isReadOnly || activeTab !== 'contratos') return;
     const timer = window.setTimeout(() => startTourOnce('modal-os'), 450);
     return () => window.clearTimeout(timer);
-  }, [open, temGuia, activeTab, startTourOnce]);
+  }, [open, temGuia, isReadOnly, activeTab, startTourOnce]);
 
 
   const isEditing = !!editingClienteId;
