@@ -63,6 +63,7 @@ declare
   v_kind      public.org_comment_kind;
   v_titulo    text;
   v_corpo     text;
+  v_corpo_sino text;
   v_prefixo   text;
   v_envio     uuid;
   v_eventos   int := 0;
@@ -121,7 +122,7 @@ begin
     false
   ) then
     raise exception
-      'Você não está no projeto "%". Só quem é líder, responsável ou membro dele pode ligar o papel de trabalho a esse projeto.',
+      'Você não está no projeto "%". Só quem é líder, responsável ou membro dele pode ligar o papel de trabalho a ele.',
       v_proj.name
       using errcode = '42501';
   end if;
@@ -153,18 +154,29 @@ begin
   from public.profiles p where p.id = v_uid;
   v_autor := coalesce(v_autor, 'Sistema');
 
+  -- **O sino recebe um texto mais curto que a thread, e não é descuido.**
+  --
+  -- Na thread o texto aprovado pela Patricia cabe inteiro, e "este planejamento"
+  -- se entende porque a linha está DENTRO do projeto. No sino são duas linhas de
+  -- `line-clamp-2` e nenhum contexto ao redor: o texto longo era cortado no meio
+  -- ("Os slides j…"), a linha do Responsável nunca aparecia, e "este
+  -- planejamento" não dizia qual. Então o sino nomeia o projeto, que é a
+  -- informação que falta ali, e guarda o Responsável no que sobra.
   if v_versao <= 1 then
     v_kind   := 'papel_de_trabalho_importado';
     v_titulo := 'Papel de trabalho importado';
     v_corpo  := 'O papel de trabalho foi importado para este planejamento. '
              || 'Os slides já podem ser gerados.' || chr(10)
              || 'Responsável: ' || v_resp;
+    v_corpo_sino := v_proj.name || '. Responsável: ' || v_resp;
   else
     v_kind   := 'papel_de_trabalho_revisado';
     v_titulo := 'Nova revisão do papel de trabalho';
     v_corpo  := 'A revisão ' || v_versao::text || ' foi importada. '
              || 'As versões anteriores continuam disponíveis.' || chr(10)
              || 'Responsável: ' || v_resp;
+    v_corpo_sino := 'Revisão ' || v_versao::text || ' em ' || v_proj.name
+                 || '. Responsável: ' || v_resp;
   end if;
 
   -- **A chave de idempotência é por REVISÃO**, e não por dia como na GES-03.
@@ -235,7 +247,7 @@ begin
         _titulo          => v_titulo,
         _entidade_tipo   => 'org_project',
         _entidade_id     => v_proj.id,
-        _corpo           => v_corpo,
+        _corpo           => v_corpo_sino,
         _href            => null,
         _agrupamento     => 'papel_de_trabalho_importado:projeto:' || v_proj.id::text,
         _metadata        => jsonb_build_object(

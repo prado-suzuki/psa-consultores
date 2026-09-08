@@ -323,8 +323,14 @@ function InternaNotificationItem({
           <p className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">
             {notification.titulo}
           </p>
+          {/*
+            Três linhas, e não duas: com duas, um nome de projeto comprido junto
+            do responsável era cortado no meio de uma palavra ("Os slides j…") e
+            o aviso chegava incompleto. A linha só cresce quando o texto pede,
+            então avisos curtos continuam com a mesma altura de antes.
+          */}
           {notification.corpo && (
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-3">
               {notification.corpo}
             </p>
           )}
