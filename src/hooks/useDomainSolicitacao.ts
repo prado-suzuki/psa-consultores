@@ -617,17 +617,34 @@ export function useDomainSolicitacao(clienteId: string | null) {
          * a borda resolve e-mail e WhatsApp por conta própria, cada um com sua
          * rota no n8n e sua linha de registro.
          *
-         * `invoke` sem `await` e com a falha morrendo no `catch`, igual aos seis
-         * pontos de chamada de `notify-ticket` (useTicketMutations.ts:144 e :192):
-         * o aviso não pode desfazer a mutação, que já gravou status e data e já
-         * registrou auditoria.
+         * `invoke` sem `await`: o aviso não pode desfazer a mutação, que já gravou
+         * status e data e já registrou auditoria. Falhar o envio por causa do
+         * aviso faria o analista reenviar um pedido que já saiu.
+         *
+         * Mas a falha APARECE. Até 08/09/2026 ela morria em `.catch(console.error)`,
+         * e o pior modo de falha deste fluxo é justamente esse: a tela diz que
+         * enviou, o cliente nunca recebe o e-mail, e ninguém fica sabendo até ele
+         * cobrar. Os dois caminhos de erro são tratados porque `invoke` resolve com
+         * `{ error }` em vez de rejeitar quando a borda responde com falha — só o
+         * `catch` deixaria passar exatamente o caso mais provável.
          */
-        supabase.functions.invoke('notificar', {
-          body: {
-            event_type: 'solicitacao_enviada',
-            solicitacao_id: atual.id,
-          },
-        }).catch(console.error);
+        void supabase.functions
+          .invoke('notificar', {
+            body: {
+              event_type: 'solicitacao_enviada',
+              solicitacao_id: atual.id,
+            },
+          })
+          .then(({ error }) => {
+            if (error) throw error;
+          })
+          .catch((erro: unknown) => {
+            console.error('[solicitacao_enviada] aviso ao cliente falhou', erro);
+            toast.error(
+              'A solicitação foi enviada, mas o aviso ao cliente não saiu. '
+              + 'Avise o cliente por fora e reporte ao time.',
+            );
+          });
       }
     },
     onError: (error: Error) => {
