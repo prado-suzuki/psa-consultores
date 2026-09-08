@@ -56,6 +56,17 @@ export function TourProvider({
   const [tourAtivo, setTourAtivo] = useState<string | null>(null);
 
   const startTour = useCallback((id: string) => setTourAtivo(id), []);
+
+  // Abre uma vez só. `setTourAtivo(atual => atual ?? id)` é o que garante que um
+  // tour em andamento não seja interrompido por outro que acabou de nascer.
+  const startTourOnce = useCallback(
+    (id: string) => {
+      if (tourVisto(registro.chave, id)) return;
+      marcarTourVisto(registro.chave, id);
+      setTourAtivo((atual) => atual ?? id);
+    },
+    [registro],
+  );
   const startForRoute = useCallback(
     (pathname: string) => {
       const id = registro.resolve(pathname) ?? registro.fallback ?? null;
@@ -69,15 +80,9 @@ export function TourProvider({
   useEffect(() => {
     const id = registro.resolve(location.pathname);
     if (!id || tourVisto(registro.chave, id)) return;
-    const timer = window.setTimeout(() => {
-      setTourAtivo((atual) => {
-        if (atual) return atual; // já há tour rodando — não interrompe
-        marcarTourVisto(registro.chave, id);
-        return id;
-      });
-    }, 700);
+    const timer = window.setTimeout(() => startTourOnce(id), 700);
     return () => window.clearTimeout(timer);
-  }, [location.pathname, registro]);
+  }, [location.pathname, registro, startTourOnce]);
 
   const handleEnd = useCallback(() => setTourAtivo(null), []);
 
@@ -100,7 +105,16 @@ export function TourProvider({
     });
   }, [tourAtivo, registro]);
 
-  const api = useMemo<TourApi>(() => ({ startTour, startForRoute }), [startTour, startForRoute]);
+  const api = useMemo<TourApi>(
+    () => ({
+      startTour,
+      startTourOnce,
+      startForRoute,
+      disponivel: true,
+      emAndamento: tourAtivo !== null,
+    }),
+    [startTour, startTourOnce, startForRoute, tourAtivo],
+  );
 
   return (
     <TourContext.Provider value={api}>

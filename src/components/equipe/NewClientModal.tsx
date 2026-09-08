@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, X, CheckCircle2, Pencil, Building2, FileSignature, History, AlertCircle } from "lucide-react";
+import TourTrigger from "@/components/tour/TourTrigger";
+import { useTour } from "@/components/tour/useTour";
 import { AreaLoader } from "@/components/equipe/AreaLoader";
 import { cn } from "@/lib/utils";
 import { textoDeRecusa } from "@/lib/rlsMessages";
@@ -66,6 +68,9 @@ export default function NewClientModal({
   }, []);
 
   const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "representantes" | "contratos" | "faturamento" | "proposta" | "historico">("cliente");
+  // Guia autoguiado da tela. `disponivel` é falso onde a área ainda não tem
+  // tours (hoje a OSG): sem provider acima, o "?" não é oferecido.
+  const { startTourOnce, disponivel: temGuia, emAndamento: guiaEmAndamento } = useTour();
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   /** O que confirmar o descarte deve fazer: fechar o modal ou só sair da edição. */
@@ -101,6 +106,26 @@ export default function NewClientModal({
       setEscopoEdicao(readOnly ? null : 'cliente');
     }
   }, [open, readOnly]);
+
+  /**
+   * O guia do cadastro abre junto com o modal, na 1ª vez, e o da OS na 1ª vez
+   * que a aba dela é aberta. As âncoras dos dois só existem com o modal aberto,
+   * então o auto-open por rota do provider não alcança nenhum deles.
+   *
+   * O atraso cobre a animação de entrada do Dialog: sem ele o Joyride mede a
+   * âncora no meio do fade e o tooltip nasce fora de lugar.
+   */
+  useEffect(() => {
+    if (!open || !temGuia) return;
+    const timer = window.setTimeout(() => startTourOnce('modal-cliente'), 650);
+    return () => window.clearTimeout(timer);
+  }, [open, temGuia, startTourOnce]);
+
+  useEffect(() => {
+    if (!open || !temGuia || activeTab !== 'contratos') return;
+    const timer = window.setTimeout(() => startTourOnce('modal-os'), 450);
+    return () => window.clearTimeout(timer);
+  }, [open, temGuia, activeTab, startTourOnce]);
 
 
   const isEditing = !!editingClienteId;
@@ -414,7 +439,14 @@ export default function NewClientModal({
         <DialogContent
           ref={conteudoRef}
           className={cn("max-w-7xl h-[95vh] p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden", acento.fundoModal)}
-          onInteractOutside={(e) => { e.preventDefault(); handleAttemptClose(); }}
+          onInteractOutside={(e) => {
+            e.preventDefault();
+            // Com o guia rodando, o clique veio do tooltip dele, que mora num
+            // portal fora deste conteúdo. Fechar o cadastro aí seria perder o
+            // preenchimento no primeiro "Próximo".
+            if (guiaEmAndamento) return;
+            handleAttemptClose();
+          }}
         >
           <AcentoAreaProvider area={area}>
           <DialogTitle className="sr-only">{isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</DialogTitle>
@@ -430,7 +462,17 @@ export default function NewClientModal({
               </div>
               <h2 className="text-xl font-bold text-gray-900">{isReadOnly ? "Visualizar Cliente" : isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</h2>
             </div>
+            <div className="flex items-center gap-1">
+              {temGuia && (
+                <TourTrigger
+                  tourId={activeTab === "contratos" ? "modal-os" : "modal-cliente"}
+                  dataTour="modal-help"
+                  label="Ver o guia deste cadastro"
+                  className="p-2 text-gray-400 hover:text-gray-700 hover:bg-muted rounded-full transition-colors"
+                />
+              )}
               <button onClick={handleAttemptClose} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-muted rounded-full transition-colors"><X size={20} /></button>
+            </div>
           </div>
 
           {loadingEdit ? (

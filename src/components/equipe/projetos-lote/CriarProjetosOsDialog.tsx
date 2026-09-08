@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useTour } from '@/components/tour/useTour';
 import { useOrgProjects } from '@/hooks/useOrgProjects';
 import { useOsAbertasComProdutos } from '@/hooks/useDomainOsAbertas';
 import { useExternalClients } from '@/hooks/useTaxReferenceData';
@@ -67,6 +68,7 @@ function periodoLabel(os: LoteOsCandidata) {
 export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjetosOsDialogProps) => {
   const navigate = useNavigate();
   const routes = resolveLoteRoutes(area);
+  const { startTourOnce, disponivel: temGuia } = useTour();
   const [clientSearch, setClientSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedOsId, setSelectedOsId] = useState('');
@@ -75,6 +77,14 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
   // Só consulta quando o seletor abre: são as OS de todos os clientes.
   const { data: osAbertas = [], isLoading: loadingOs } = useOsAbertasComProdutos(open);
   const { data: allProjects = [] } = useOrgProjects();
+
+  // O guia deste diálogo abre na 1ª vez que ele é usado: as âncoras (as duas
+  // listas e o botão que conta) só existem com ele aberto.
+  useEffect(() => {
+    if (!open || !temGuia) return;
+    const timer = window.setTimeout(() => startTourOnce('criar-projeto'), 500);
+    return () => window.clearTimeout(timer);
+  }, [open, temGuia, startTourOnce]);
 
   // Cada abertura começa do zero: reaproveitar a escolha anterior levaria para a
   // OS errada num clique distraído.
