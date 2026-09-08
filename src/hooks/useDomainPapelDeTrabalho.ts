@@ -380,3 +380,106 @@ export function useImportarPapelDeTrabalho() {
     },
   });
 }
+
+/** Uma apresentação já gerada, para a lista de histórico. */
+export interface ApresentacaoGerada {
+  id: string;
+  versao: number;
+  nome_arquivo: string;
+  storage_path: string;
+  tamanho: number | null;
+  template_nome: string;
+  /** Quantos avisos a geração registrou. Zero é geração limpa. */
+  problemas: number;
+  created_at: string;
+}
+
+/**
+ * As apresentações geradas a partir de uma revisão, da mais nova para a mais velha.
+ *
+ * `problemas` vem contado aqui porque a coluna é `jsonb`: contar na tela obrigaria
+ * a trazer o conteúdo inteiro de cada uma só para saber se está vazio.
+ */
+export function useApresentacoesDaRevisao(importacaoId: string | null) {
+  return useQuery({
+    queryKey: ['wp_apresentacao', importacaoId],
+    enabled: !!importacaoId,
+    queryFn: async (): Promise<ApresentacaoGerada[]> => {
+      const { data, error } = await supabase
+        .from('wp_apresentacao')
+        .select(
+          'id, versao, nome_arquivo, storage_path, tamanho, template_nome, problemas, created_at',
+        )
+        .eq('importacao_id', importacaoId as string)
+        .eq('excluido', false)
+        .order('versao', { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map((linha) => ({
+        ...linha,
+        problemas: Array.isArray(linha.problemas) ? linha.problemas.length : 0,
+      }));
+    },
+  });
+}
+
+/** O que a geração devolve, incluindo o que ficou por ajustar. */
+export interface ResultadoDaGeracao {
+  apresentacaoId: string;
+  versao: number;
+  nomeArquivo: string;
+  url: string | null;
+  problemas: { tipo: string; onde: string; detalhe: string }[];
+}
+
+/**
+ * Manda gerar os slides de uma revisão.
+ *
+ * **Só o id da revisão vai daqui.** Os números são lidos pela função direto do
+ * banco, e é isso que garante que o slide mostra o mesmo que a conferência
+ * aprovou: se a tela pudesse mandar valor, um número errado passaria sem deixar
+ * rastro.
+ */
+export function useGerarApresentacaoTributaria() {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async (importacaoId: string): Promise<ResultadoDaGeracao> => {
+      const { data, error } = await supabase.functions.invoke<ResultadoDaGeracao>(
+        'gerar-slides-tributarios',
+        { body: { importacaoId } },
+      );
+      if (error) throw error;
+      if (!data) throw new Error('A geração não devolveu resposta.');
+      return data;
+    },
+
+    onSuccess: async (resultado, importacaoId) => {
+      await logAction({
+        area: 'osg',
+        entity_type: 'wp_apresentacao',
+        entity_id: resultado.apresentacaoId,
+        entity_name: resultado.nomeArquivo,
+        action: 'created',
+        details:
+          `Apresentação tributária gerada (versão ${resultado.versao}).` +
+          (resultado.problemas.length ? ` ${resultado.problemas.length} ponto(s) a ajustar.` : ''),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['wp_apresentacao', importacaoId] });
+    },
+  });
+}
+
+/** Abre o arquivo já gerado, gerando um link novo porque o anterior expira. */
+export function useBaixarApresentacao() {
+  return useMutation({
+    mutationFn: async (storagePath: string): Promise<string> => {
+      const { data, error } = await supabase.storage
+        .from('wp-apresentacoes')
+        .createSignedUrl(storagePath, 60 * 5);
+      if (error) throw error;
+      if (!data?.signedUrl) throw new Error('Não consegui gerar o link do arquivo.');
+      return data.signedUrl;
+    },
+  });
+}
