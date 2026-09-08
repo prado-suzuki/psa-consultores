@@ -6,7 +6,7 @@ import type { BemRow } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { NovoCadastro, TipoFicha } from '@/lib/classificarFicha';
 import type {
-  DraftBem, DraftMatricula, TitularInicialDraft,
+  DraftBem, DraftMatricula, TitularesIniciaisDraft,
 } from '@/lib/diagnosticoPatrimonialModalModels';
 import type { PessoaDraft } from '@/lib/pessoaModalModel';
 
@@ -16,7 +16,7 @@ export interface RascunhoFicha {
   parentesco: ParentescoDraft;
   bem: DraftBem;
   matricula: DraftMatricula;
-  titular: TitularInicialDraft;
+  titulares: TitularesIniciaisDraft;
   /** Imóvel a que a matrícula pertence: campo da coluna, não do MatriculaModal. */
   bemIdMatricula: string;
 }
@@ -62,10 +62,10 @@ export function FichaPopout({
         onClose={onFechar}
         rascunhoExterno={{
           draft: rascunho.bem,
-          titular: rascunho.titular,
+          titulares: rascunho.titulares,
           rotuloSalvar,
-          onSalvar: (values, titular) => onCadastrar({ tipo: 'bem', values, titular }),
-          onDevolver: (bem, titular) => onDevolver({ bem, titular }),
+          onSalvar: (values, titulares) => onCadastrar({ tipo: 'bem', values, titulares }),
+          onDevolver: (bem, titulares) => onDevolver({ bem, titulares }),
         }}
       />
     );
@@ -86,10 +86,10 @@ export function FichaPopout({
         onClose={onFechar}
         rascunhoExterno={{
           draft: rascunho.matricula,
-          titular: rascunho.titular,
+          titulares: rascunho.titulares,
           rotuloSalvar,
-          onSalvar: (values, titular) => onCadastrar({ tipo: 'matricula', values, titular }),
-          onDevolver: (matricula, titular) => onDevolver({ matricula, titular }),
+          onSalvar: (values, titulares) => onCadastrar({ tipo: 'matricula', values, titulares }),
+          onDevolver: (matricula, titulares) => onDevolver({ matricula, titulares }),
         }}
       />
     );

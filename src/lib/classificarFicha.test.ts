@@ -3,7 +3,7 @@ import {
   alvoDeValor, camposComProcedencia, impedimentoDeVinculo, patchDesfazerTriagem,
   patchVinculo, validarBem, validarMatricula, validarPessoa,
 } from './classificarFicha';
-import { emptyBemDraft, emptyMatriculaDraft, emptyTitularInicial } from './diagnosticoPatrimonialModalModels';
+import { emptyBemDraft, emptyMatriculaDraft, emptyTitularesIniciais, novaLinhaTitular } from './diagnosticoPatrimonialModalModels';
 import { emptyPessoaDraft } from './pessoaModalModel';
 import type { DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
 
@@ -98,6 +98,13 @@ describe('impedimentoDeVinculo', () => {
   });
 });
 
+/** Uma linha de titular de DT já preenchida, que é o caso comum dos testes. */
+const umTitular = (pessoaId: string, fracao = '') => ({
+  ...novaLinhaTitular('DIREITO'),
+  titular_pessoa_id: pessoaId,
+  fracao,
+});
+
 describe('validarPessoa', () => {
   it('cobra o nome e valida o tamanho do documento, com os textos dos modais', () => {
     expect(validarPessoa(emptyPessoaDraft())).toBe('Nome completo é obrigatório');
@@ -114,22 +121,30 @@ describe('validarBem', () => {
   const base = { ...emptyBemDraft(), referencia_dp: 'IR-01', denominacao: 'Fazenda' };
 
   it('imóvel não pede valor contábil nem titular (os titulares vivem na matrícula)', () => {
-    expect(validarBem({ ...base, tipo_bem: 'IR' }, emptyTitularInicial())).toBeNull();
+    expect(validarBem({ ...base, tipo_bem: 'IR' }, emptyTitularesIniciais())).toBeNull();
   });
 
   it('bem sem matrícula pede valor contábil e titular inicial', () => {
     const movel = { ...base, tipo_bem: 'AP' as const };
-    expect(validarBem(movel, emptyTitularInicial())).toBe('Valor contábil é obrigatório');
-    expect(validarBem({ ...movel, vlr_contabil: '1000' }, emptyTitularInicial()))
-      .toBe('Selecione o titular inicial do bem');
-    expect(validarBem({ ...movel, vlr_contabil: '1000' }, { ...emptyTitularInicial(), titular_pessoa_id: 'P1' }))
-      .toBeNull();
+    expect(validarBem(movel, emptyTitularesIniciais())).toBe('Valor contábil é obrigatório');
+    expect(validarBem({ ...movel, vlr_contabil: '1000' }, emptyTitularesIniciais()))
+      .toBe('Selecione ao menos um titular do bem');
+    expect(validarBem({ ...movel, vlr_contabil: '1000' }, [umTitular('P1')])).toBeNull();
   });
 
   it('recusa fração fora de 0–100', () => {
-    const titular = { ...emptyTitularInicial(), titular_pessoa_id: 'P1', fracao: '120' };
-    expect(validarBem({ ...base, tipo_bem: 'AP', vlr_contabil: '1' }, titular))
-      .toBe('Fração do titular deve estar entre 0 e 100');
+    expect(validarBem({ ...base, tipo_bem: 'AP', vlr_contabil: '1' }, [umTitular('P1', '120')]))
+      .toBe('Fração de cada titular deve estar entre 0 e 100');
+  });
+
+  it('aceita vários titulares, e recusa a mesma pessoa repetida na mesma espécie', () => {
+    const movel = { ...base, tipo_bem: 'AP' as const, vlr_contabil: '1000' };
+    expect(validarBem(movel, [umTitular('P1', '60'), umTitular('P2', '40')])).toBeNull();
+    // A mesma pessoa pode ser FT e DT do mesmo bem; duas vezes na mesma, não.
+    expect(validarBem(movel, [umTitular('P1'), { ...novaLinhaTitular('FATO'), titular_pessoa_id: 'P1' }]))
+      .toBeNull();
+    expect(validarBem(movel, [umTitular('P1'), umTitular('P1')]))
+      .toBe('A mesma pessoa aparece duas vezes na mesma espécie de titularidade');
   });
 });
 
@@ -142,7 +157,7 @@ describe('validarMatricula', () => {
     uf_imovel: 'MT',
     area_documento: '120',
   };
-  const titular = { ...emptyTitularInicial(), titular_pessoa_id: 'P1' };
+  const titular = [umTitular('P1')];
 
   it('exige o imóvel antes de tudo', () => {
     expect(validarMatricula(cheia, titular, '')).toMatch(/imóvel/i);
@@ -155,8 +170,9 @@ describe('validarMatricula', () => {
       .toBe('Área do documento é obrigatória');
   });
 
-  it('exige titular inicial', () => {
-    expect(validarMatricula(cheia, emptyTitularInicial(), 'B1')).toBe('Selecione o titular inicial da matrícula');
+  it('exige ao menos um titular', () => {
+    expect(validarMatricula(cheia, emptyTitularesIniciais(), 'B1'))
+      .toBe('Selecione ao menos um titular da matrícula');
     expect(validarMatricula(cheia, titular, 'B1')).toBeNull();
   });
 });

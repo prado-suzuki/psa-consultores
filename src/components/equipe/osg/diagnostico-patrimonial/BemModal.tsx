@@ -17,8 +17,8 @@ import { MatriculaModal } from '@/components/equipe/osg/diagnostico-patrimonial/
 import { TitularidadesPanel } from '@/components/equipe/osg/diagnostico-patrimonial/TitularidadesPanel';
 import { VincularMatriculaDialog } from '@/components/equipe/osg/diagnostico-patrimonial/VincularMatriculaDialog';
 import { BemDadosTab } from '@/components/equipe/osg/diagnostico-patrimonial/bem/BemDadosTab';
-import { TitularInicialSection } from '@/components/equipe/osg/diagnostico-patrimonial/titularidade/TitularInicialSection';
-import { bemDraftToValues, bemToDraft, emptyBemDraft, emptyTitularInicial, parseTitularInicial, type DraftBem, type TitularInicialDraft } from '@/lib/diagnosticoPatrimonialModalModels';
+import { TitularesIniciaisSection } from '@/components/equipe/osg/diagnostico-patrimonial/titularidade/TitularesIniciaisSection';
+import { bemDraftToValues, bemToDraft, conferirTitularesIniciais, emptyBemDraft, emptyTitularesIniciais, parseTitularesIniciais, type DraftBem, type TitularesIniciaisDraft } from '@/lib/diagnosticoPatrimonialModalModels';
 
 /**
  * Rascunho emprestado — ver `PessoaRascunhoExterno` em PessoaModal para o porquê:
@@ -28,11 +28,11 @@ import { bemDraftToValues, bemToDraft, emptyBemDraft, emptyTitularInicial, parse
  */
 export interface BemRascunhoExterno {
   draft: DraftBem;
-  titular: TitularInicialDraft;
+  titulares: TitularesIniciaisDraft;
   /** Substitui o upsert interno: recebe o payload já validado por estas mesmas regras. */
-  onSalvar: (values: BemInsert, titular?: TitularInicial) => void;
+  onSalvar: (values: BemInsert, titulares?: TitularInicial[]) => void;
   /** Devolve o que foi digitado aqui dentro — fechar não pode perder uma letra. */
-  onDevolver: (draft: DraftBem, titular: TitularInicialDraft) => void;
+  onDevolver: (draft: DraftBem, titulares: TitularesIniciaisDraft) => void;
   /** Rótulo do botão de gravar: quem abriu diz o que o clique vai fazer de verdade. */
   rotuloSalvar: string;
 }
@@ -41,7 +41,7 @@ interface BemModalProps { open: boolean; clienteId: string; bem: BemRow | null; 
 
 export function BemModal({ open, clienteId, bem, pessoasCliente, onClose, rascunhoExterno }: BemModalProps) {
   const [draft, setDraft] = useState<DraftBem>(emptyBemDraft);
-  const [titularInicial, setTitularInicial] = useState(emptyTitularInicial);
+  const [titularesIniciais, setTitularesIniciais] = useState(emptyTitularesIniciais);
   const [activeTab, setActiveTab] = useState('dados');
   const [matriculaModal, setMatriculaModal] = useState<{ open: boolean; matricula: MatriculaRow | null }>({ open: false, matricula: null });
   const [vincularOpen, setVincularOpen] = useState(false);
@@ -69,15 +69,15 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose, rascun
     // Emprestar rascunho só faz sentido em cadastro novo — editar carrega da linha.
     const emprestado = bem ? undefined : externoRef.current;
     const nextDraft = bem ? bemToDraft(bem) : emprestado?.draft ?? emptyBemDraft();
-    const nextTitular = emprestado?.titular ?? emptyTitularInicial();
-    setDraft(nextDraft); setTitularInicial(nextTitular); setActiveTab('dados');
+    const nextTitulares = emprestado?.titulares ?? emptyTitularesIniciais();
+    setDraft(nextDraft); setTitularesIniciais(nextTitulares); setActiveTab('dados');
     initialDraftRef.current = JSON.stringify(nextDraft);
-    initialTitularRef.current = JSON.stringify(nextTitular);
+    initialTitularRef.current = JSON.stringify(nextTitulares);
   }, [open, bem]);
 
-  const isDirty = JSON.stringify(draft) !== initialDraftRef.current || (!isEdit && temTitularidade && JSON.stringify(titularInicial) !== initialTitularRef.current);
+  const isDirty = JSON.stringify(draft) !== initialDraftRef.current || (!isEdit && temTitularidade && JSON.stringify(titularesIniciais) !== initialTitularRef.current);
   const fechar = () => {
-    rascunhoExterno?.onDevolver(draft, titularInicial);
+    rascunhoExterno?.onDevolver(draft, titularesIniciais);
     onClose();
   };
   // Com rascunho emprestado nada se perde ao fechar (volta para quem abriu), então
@@ -85,7 +85,7 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose, rascun
   const { requestClose, alertProps } = useDirtyClose({ isDirty: rascunhoExterno ? false : isDirty, onClose: fechar });
   const handleSave = () => {
     const exigeTitularInicial = temTitularidade && !isEdit;
-    const titularEscolhido = exigeTitularInicial ? parseTitularInicial(titularInicial) : null;
+    const falhaTitulares = exigeTitularInicial ? conferirTitularesIniciais(titularesIniciais) : null;
     // Uma trilha só de falha: a regra diz o que falta, o utilitário avisa, abre a
     // aba onde o campo mora e leva o foco até ele (ver @/lib/osg/validacaoFormulario).
     const ok = validarFormulario([
@@ -93,31 +93,32 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose, rascun
       { invalido: !draft.denominacao.trim(), mensagem: 'Informe a denominação do bem.', aba: 'dados', campo: 'denominacao' },
       { invalido: draft.tipo_bem === 'OU' && !draft.descricao_outros.trim(), mensagem: 'Especifique o tipo de bem.', aba: 'dados', campo: 'descricao_outros' },
       { invalido: !isImovel && (!draft.vlr_contabil.trim() || Number.isNaN(Number(draft.vlr_contabil))), mensagem: 'Informe o valor contábil do bem.', aba: 'dados', campo: 'vlr_contabil' },
-      { invalido: exigeTitularInicial && !titularInicial.titular_pessoa_id, mensagem: 'Selecione o titular inicial do bem, na aba Titularidade.', aba: 'titulares', campo: 'titular_pessoa_id' },
-      { invalido: exigeTitularInicial && !!titularInicial.titular_pessoa_id && !titularEscolhido, mensagem: 'A fração do titular deve estar entre 0 e 100.', aba: 'titulares', campo: 'titular_fracao' },
+      { invalido: falhaTitulares === 'sem_titular', mensagem: 'Selecione ao menos um titular do bem, na aba Titularidade.', aba: 'titulares', campo: 'titular_pessoa_id' },
+      { invalido: falhaTitulares === 'fracao_invalida', mensagem: 'A fração de cada titular deve estar entre 0 e 100.', aba: 'titulares', campo: 'titular_fracao' },
+      { invalido: falhaTitulares === 'duplicado', mensagem: 'A mesma pessoa aparece duas vezes na mesma espécie de titularidade.', aba: 'titulares', campo: 'titular_pessoa_id' },
     ], { abrirAba: setActiveTab });
     if (!ok) return;
-    const titular = titularEscolhido ?? undefined;
+    const titulares = exigeTitularInicial ? parseTitularesIniciais(titularesIniciais) : undefined;
     if (rascunhoExterno) {
       // Quem abriu grava: criar o bem é só metade do que o clique promete.
-      rascunhoExterno.onSalvar(bemDraftToValues(draft, clienteId), titular);
+      rascunhoExterno.onSalvar(bemDraftToValues(draft, clienteId), titulares);
       fechar();
       return;
     }
-    upsert.mutate({ values: bemDraftToValues(draft, clienteId), original: bem, titular }, { onSuccess: onClose });
+    upsert.mutate({ values: bemDraftToValues(draft, clienteId), original: bem, titulares }, { onSuccess: onClose });
   };
 
   return <>
     <Dialog open={open} onOpenChange={(value) => !value && requestClose()}><DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-visible p-0 sm:[clip-path:none]">
       <Tabs value={mostrarTabsList ? activeTab : 'dados'} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col">
         <div className="shrink-0 rounded-t-lg bg-background px-6 pt-5"><DialogHeader className="mb-4 space-y-0 text-left"><DialogTitle className="flex items-center gap-2.5 text-base font-semibold">{isEdit ? 'Editar bem' : 'Novo bem'}{isEdit && bem?.referencia_dp && <span className="rounded-md bg-osg-50 px-2 py-0.5 font-mono text-sm font-semibold text-osg-700">{bem.referencia_dp}</span>}</DialogTitle></DialogHeader>
-          {mostrarTabsList && <TabsList className={`${osgTabsListCls}${temTitularidade ? ' animate-in fade-in slide-in-from-top-2 duration-300' : ''}`}><TabsTrigger value="dados" className={osgTabTriggerCls}>Dados</TabsTrigger>{temTitularidade && <TabsTrigger value="titulares" className={osgTabTriggerCls}>Titularidade{!isEdit && !titularInicial.titular_pessoa_id && <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5" aria-hidden><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-osg-moss opacity-75" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-osg-moss" /></span>}</TabsTrigger>}<TabsTrigger value="documentos" disabled={!isEdit} className={osgTabTriggerCls}>Documentos</TabsTrigger></TabsList>}
+          {mostrarTabsList && <TabsList className={`${osgTabsListCls}${temTitularidade ? ' animate-in fade-in slide-in-from-top-2 duration-300' : ''}`}><TabsTrigger value="dados" className={osgTabTriggerCls}>Dados</TabsTrigger>{temTitularidade && <TabsTrigger value="titulares" className={osgTabTriggerCls}>Titularidade{!isEdit && !titularesIniciais.some((linha) => linha.titular_pessoa_id) && <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5" aria-hidden><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-osg-moss opacity-75" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-osg-moss" /></span>}</TabsTrigger>}<TabsTrigger value="documentos" disabled={!isEdit} className={osgTabTriggerCls}>Documentos</TabsTrigger></TabsList>}
         </div>
         {/* `formScopeCls`: as grades do formulário medem ESTE contêiner (848px aqui),
                 não a janela — ver formKit. Mantém o modal largo como era. */}
             <div className={`min-h-0 flex-1 overflow-y-auto px-6 py-5 ${formScopeCls}`}>
           <TabsContent value="dados" className="mt-0 focus-visible:ring-0"><BemDadosTab draft={draft} onChange={setDraft} pessoas={pessoasCliente} isEdit={isEdit} loadingMatriculas={loadingMatriculas} matriculas={matriculas} onLink={() => setVincularOpen(true)} onAdd={() => setMatriculaModal({ open: true, matricula: null })} onEdit={(matricula) => setMatriculaModal({ open: true, matricula })} onUnlink={(matricula) => setMatriculaBem.mutate({ matricula, bemId: null })} onDelete={(matricula) => deleteMatricula.mutate(matricula)} /></TabsContent>
-          <TabsContent value="titulares" className="mt-0 focus-visible:ring-0">{isEdit && bem ? <TitularidadesPanel anchor={{ kind: 'bem', id: bem.id }} pessoasCliente={pessoasCliente} requireAtLeastOne /> : <TitularInicialSection entity="bem" pessoas={pessoasCliente} value={titularInicial} onChange={setTitularInicial} />}</TabsContent>
+          <TabsContent value="titulares" className="mt-0 focus-visible:ring-0">{isEdit && bem ? <TitularidadesPanel anchor={{ kind: 'bem', id: bem.id }} pessoasCliente={pessoasCliente} requireAtLeastOne /> : <TitularesIniciaisSection entity="bem" pessoas={pessoasCliente} value={titularesIniciais} onChange={setTitularesIniciais} />}</TabsContent>
           <TabsContent value="documentos" className="mt-0 focus-visible:ring-0">{isEdit && bem?.id && <DocumentosTab clienteId={clienteId} vinculo={{ bemId: bem.id }} categoriaPadrao="bens_direitos" />}</TabsContent>
         </div>
         <DialogFooter className="shrink-0 rounded-b-lg border-t border-osg-100 bg-background px-6 py-3.5"><Button variant="outline" onClick={requestClose} disabled={upsert.isPending}>Cancelar</Button><Button onClick={handleSave} disabled={upsert.isPending || (temTitularidade && !isEdit && semPessoas)} className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90">{upsert.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{rascunhoExterno?.rotuloSalvar ?? (isEdit ? 'Salvar alterações' : 'Cadastrar bem')}</Button></DialogFooter>

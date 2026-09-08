@@ -4,10 +4,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FieldSection, fieldCls, labelCls } from '@/components/equipe/osg/formKit';
 import { BemDadosTab } from '@/components/equipe/osg/diagnostico-patrimonial/bem/BemDadosTab';
 import { MatriculaDadosTab } from '@/components/equipe/osg/diagnostico-patrimonial/matricula/MatriculaDadosTab';
-import { TitularInicialSection } from '@/components/equipe/osg/diagnostico-patrimonial/titularidade/TitularInicialSection';
+import { TitularesIniciaisSection } from '@/components/equipe/osg/diagnostico-patrimonial/titularidade/TitularesIniciaisSection';
 import type { BemRow } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
-import type { DraftBem, DraftMatricula, TitularInicialDraft } from '@/lib/diagnosticoPatrimonialModalModels';
+import type { DraftBem, DraftMatricula, TitularesIniciaisDraft } from '@/lib/diagnosticoPatrimonialModalModels';
 import { bemEhImovel } from '@/lib/classificarFicha';
 
 /**
@@ -20,27 +20,27 @@ import { bemEhImovel } from '@/lib/classificarFicha';
 const SEM_MATRICULAS = { isEdit: false, loadingMatriculas: false, matriculas: [], onLink: () => {}, onAdd: () => {}, onEdit: () => {}, onUnlink: () => {}, onDelete: () => {} };
 
 export function FormBem({
-  draft, onChange, pessoas, titular, onTitular,
+  draft, onChange, pessoas, titulares, onTitulares,
 }: {
   draft: DraftBem;
   onChange: (draft: DraftBem) => void;
   pessoas: PessoaRow[];
-  titular: TitularInicialDraft;
-  onTitular: (titular: TitularInicialDraft) => void;
+  titulares: TitularesIniciaisDraft;
+  onTitulares: (titulares: TitularesIniciaisDraft) => void;
 }) {
   return (
     <>
       <BemDadosTab draft={draft} onChange={onChange} pessoas={pessoas} {...SEM_MATRICULAS} />
       {/* Imóvel tem titular na matrícula; os demais bens precisam do titular aqui. */}
       {!bemEhImovel(draft) && (
-        <TitularInicialSection entity="bem" pessoas={pessoas} value={titular} onChange={onTitular} />
+        <TitularesIniciaisSection entity="bem" pessoas={pessoas} value={titulares} onChange={onTitulares} />
       )}
     </>
   );
 }
 
 export function FormMatricula({
-  draft, onChange, pessoas, imoveis, bemId, onBemId, titular, onTitular,
+  draft, onChange, pessoas, imoveis, bemId, onBemId, titulares, onTitulares,
 }: {
   draft: DraftMatricula;
   onChange: (draft: DraftMatricula) => void;
@@ -48,8 +48,8 @@ export function FormMatricula({
   imoveis: BemRow[];
   bemId: string;
   onBemId: (bemId: string) => void;
-  titular: TitularInicialDraft;
-  onTitular: (titular: TitularInicialDraft) => void;
+  titulares: TitularesIniciaisDraft;
+  onTitulares: (titulares: TitularesIniciaisDraft) => void;
 }) {
   const bem = imoveis.find((item) => item.id === bemId) ?? null;
   return (
@@ -88,7 +88,7 @@ export function FormMatricula({
         matricula={null}
         matriculasDoBem={[]}
       />
-      <TitularInicialSection entity="matrícula" pessoas={pessoas} value={titular} onChange={onTitular} />
+      <TitularesIniciaisSection entity="matrícula" pessoas={pessoas} value={titulares} onChange={onTitulares} />
     </>
   );
 }

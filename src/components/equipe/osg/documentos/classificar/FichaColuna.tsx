@@ -16,8 +16,8 @@ import {
   type NovoCadastro, type TipoFicha,
 } from '@/lib/classificarFicha';
 import {
-  bemDraftToValues, emptyBemDraft, emptyMatriculaDraft, emptyTitularInicial, matriculaDraftToValues,
-  parseTitularInicial, type DraftBem, type DraftMatricula, type TitularInicialDraft,
+  bemDraftToValues, emptyBemDraft, emptyMatriculaDraft, emptyTitularesIniciais, matriculaDraftToValues,
+  parseTitularesIniciais, type DraftBem, type DraftMatricula, type TitularesIniciaisDraft,
 } from '@/lib/diagnosticoPatrimonialModalModels';
 import { buildPessoaPayload, emptyPessoaDraft, type PessoaDraft } from '@/lib/pessoaModalModel';
 import { cn } from '@/lib/utils';
@@ -87,7 +87,7 @@ export function FichaColuna({
   const [parentesco, setParentesco] = useState<ParentescoDraft>({ parenteId: '', tipo: '', natureza: '' });
   const [bem, setBem] = useState<DraftBem>(emptyBemDraft);
   const [matricula, setMatricula] = useState<DraftMatricula>(() => emptyMatriculaDraft());
-  const [titular, setTitular] = useState<TitularInicialDraft>(emptyTitularInicial);
+  const [titulares, setTitulares] = useState<TitularesIniciaisDraft>(emptyTitularesIniciais);
   const [bemIdMatricula, setBemIdMatricula] = useState('');
 
   // Expandir abre o modal de cadastro de verdade — o mesmo das outras telas —
@@ -162,7 +162,7 @@ export function FichaColuna({
       return;
     }
     if (tipo === 'bem') {
-      const erro = validarBem(bem, titular);
+      const erro = validarBem(bem, titulares);
       if (erro) {
         toast.error(erro);
         return;
@@ -170,11 +170,11 @@ export function FichaColuna({
       onCadastrar({
         tipo: 'bem',
         values: bemDraftToValues(bem, clienteId),
-        titular: parseTitularInicial(titular) ?? undefined,
+        titulares: parseTitularesIniciais(titulares),
       });
       return;
     }
-    const erro = validarMatricula(matricula, titular, bemIdMatricula);
+    const erro = validarMatricula(matricula, titulares, bemIdMatricula);
     if (erro) {
       toast.error(erro);
       return;
@@ -183,7 +183,7 @@ export function FichaColuna({
     onCadastrar({
       tipo: 'matricula',
       values: matriculaDraftToValues(matricula, bemIdMatricula, null, bemTipo),
-      titular: parseTitularInicial(titular) ?? undefined,
+      titulares: parseTitularesIniciais(titulares),
     });
   };
 
@@ -352,7 +352,7 @@ export function FichaColuna({
             </p>
           </div>
         ) : tipo === 'bem' ? (
-          <FormBem draft={bem} onChange={setBem} pessoas={pessoasCliente} titular={titular} onTitular={setTitular} />
+          <FormBem draft={bem} onChange={setBem} pessoas={pessoasCliente} titulares={titulares} onTitulares={setTitulares} />
         ) : tipo === 'matricula' ? (
           <FormMatricula
             draft={matricula}
@@ -361,8 +361,8 @@ export function FichaColuna({
             imoveis={imoveis}
             bemId={bemIdMatricula}
             onBemId={setBemIdMatricula}
-            titular={titular}
-            onTitular={setTitular}
+            titulares={titulares}
+            onTitulares={setTitulares}
           />
         ) : (
           <PessoaDadosTab
@@ -423,14 +423,14 @@ export function FichaColuna({
         clienteId={clienteId}
         pessoasCliente={pessoasCliente}
         imoveis={imoveis}
-        rascunho={{ pessoa, parentesco, bem, matricula, titular, bemIdMatricula }}
+        rascunho={{ pessoa, parentesco, bem, matricula, titulares, bemIdMatricula }}
         rotuloSalvar={rotuloAcao}
         onDevolver={(patch) => {
           if (patch.pessoa) setPessoa(patch.pessoa);
           if (patch.parentesco) setParentesco(patch.parentesco);
           if (patch.bem) setBem(patch.bem);
           if (patch.matricula) setMatricula(patch.matricula);
-          if (patch.titular) setTitular(patch.titular);
+          if (patch.titulares) setTitulares(patch.titulares);
         }}
         onFechar={() => setExpandido(false)}
         onCadastrar={(novo) => {

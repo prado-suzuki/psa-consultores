@@ -357,7 +357,7 @@ export function ClassificarDocumentos({ clienteId, docs, carregando }: Props) {
 
     if (novo.tipo === 'bem') {
       upsertBem.mutate(
-        { values: novo.values, titular: novo.titular },
+        { values: novo.values, titulares: novo.titulares },
         {
           onSuccess: async ({ row }) => {
             try {
@@ -375,7 +375,7 @@ export function ClassificarDocumentos({ clienteId, docs, carregando }: Props) {
     }
 
     upsertMatricula.mutate(
-      { values: novo.values, titular: novo.titular },
+      { values: novo.values, titulares: novo.titulares },
       {
         onSuccess: async ({ row }) => {
           try {
