@@ -3,6 +3,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { BotaoModelo } from '@/components/shared/BotaoModelo';
+import { cn } from '@/lib/utils';
 import { GRUPOS_DOCUMENTO } from '@/lib/agrupadorDocumentos';
 import {
   findAvailableCatalogDocuments,
@@ -120,44 +121,48 @@ export function DocumentGroups({
                         {groupDocuments.map((document) => (
                           <div key={document.id} className={documentRowCls}>
                             <div className="min-w-0 flex-1">
-                              {/* O chip fica FORA do rail de ações e fora do guard de
-                                  somente-leitura: baixar o modelo é consulta, não
-                                  edição, e o analista precisa dele também num pedido
-                                  já encerrado. Ao lado do título, e não à direita,
-                                  porque é atributo do documento — a direita da linha
-                                  pertence às ações. */}
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-sm font-medium text-foreground">
-                                  {document.title}
-                                </p>
-                                <BotaoModelo modelo={document.modelo} tom="osg" />
-                              </div>
+                              <p className="text-sm font-medium text-foreground">
+                                {document.title}
+                              </p>
                               <p className="mt-0.5 max-w-3xl text-xs leading-relaxed text-muted-foreground">
                                 {document.note || 'Sem orientação adicional.'}
                               </p>
                             </div>
-                            {!somenteLeitura && (
-                              <div className={rowActionsCls}>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-osg-500/70 hover:bg-white hover:text-osg-moss"
-                                  onClick={() => onEdit(document)}
-                                  title="Editar nesta solicitação"
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-osg-500/70 hover:bg-osg-red/10 hover:text-osg-red"
-                                  onClick={() => onRemove(document)}
-                                  title="Remover desta solicitação"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            )}
+                            {/*
+                              O modelo é BOTÃO no canto direito, no MESMO rail de
+                              editar e remover — aparece no hover como eles. Ao lado
+                              do título ele era lido como etiqueta do documento, e
+                              não como algo em que se clica.
+
+                              Fica fora do guard de somente-leitura, e só ele: baixar
+                              modelo é consulta, não edição, então num pedido já
+                              encerrado os dois vizinhos somem e este continua.
+                            */}
+                            <div className={cn(rowActionsCls, 'gap-1')}>
+                              <BotaoModelo modelo={document.modelo} tom="osg" />
+                              {!somenteLeitura && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-osg-500/70 hover:bg-white hover:text-osg-moss"
+                                    onClick={() => onEdit(document)}
+                                    title="Editar nesta solicitação"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-osg-500/70 hover:bg-osg-red/10 hover:text-osg-red"
+                                    onClick={() => onRemove(document)}
+                                    title="Remover desta solicitação"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -179,29 +184,29 @@ export function DocumentGroups({
                               className="flex items-start gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-white"
                             >
                               <div className="min-w-0 flex-1">
-                                {/* Também nos opcionais: é aqui que o analista decide
-                                    incluir, e saber que o documento vem com formulário
-                                    pronto faz parte da decisão. */}
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <p className="text-sm text-foreground">{document.title}</p>
-                                  <BotaoModelo modelo={document.modelo} tom="osg" />
-                                </div>
+                                <p className="text-sm text-foreground">{document.title}</p>
                                 {document.note && (
                                   <p className="mt-0.5 line-clamp-2 max-w-3xl text-xs leading-relaxed text-muted-foreground">
                                     {document.note}
                                   </p>
                                 )}
                               </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 shrink-0 gap-1 border-osg-200/80 bg-white px-2 text-xs text-osg-700 hover:border-osg-moss/40 hover:bg-osg-moss/[0.07] hover:text-osg-moss"
-                                onClick={() => onAddOptional(document)}
-                                title="Incluir nesta solicitação"
-                              >
-                                <Plus className="h-3.5 w-3.5" />
-                                Incluir
-                              </Button>
+                              {/* Antes do "Incluir", e não depois: aqui o analista está
+                                  DECIDINDO, e conferir o formulário que a PSA manda faz
+                                  parte da decisão — ver vem antes de incluir. */}
+                              <div className="flex shrink-0 items-center gap-1">
+                                <BotaoModelo modelo={document.modelo} tom="osg" />
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 shrink-0 gap-1 border-osg-200/80 bg-white px-2 text-xs text-osg-700 hover:border-osg-moss/40 hover:bg-osg-moss/[0.07] hover:text-osg-moss"
+                                  onClick={() => onAddOptional(document)}
+                                  title="Incluir nesta solicitação"
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                  Incluir
+                                </Button>
+                              </div>
                             </div>
                           ))}
                         </div>

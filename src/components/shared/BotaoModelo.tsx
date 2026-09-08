@@ -13,20 +13,30 @@ import { cn } from '@/lib/utils';
 import { useModeloDocumento } from '@/hooks/useModeloDocumento';
 import type { ModeloDocumento } from '@/lib/solicitacao';
 
-/** Onde o chip está sendo desenhado. Só muda cor e anel de foco. */
+/**
+ * Onde o botão está sendo desenhado — e os dois são formas diferentes, não só
+ * cores diferentes.
+ *
+ * `osg` é BOTÃO: mora no canto direito da linha, ao lado de editar e remover, e
+ * copia a assinatura do "Incluir" que já existe nos Opcionais. Ao lado do título
+ * ele era lido como etiqueta do documento, e não como coisa em que se clica.
+ *
+ * `portal` é LINK discreto: a gaveta do cliente é caixa de ENTRADA, e um botão
+ * sólido ali competiria com o alvo de upload, que é a ação principal do card.
+ */
 export type TomDoModelo = 'osg' | 'portal';
 
 const TONS: Record<TomDoModelo, string> = {
   osg: cn(
-    'bg-white text-osg-600 ring-1 ring-osg-200/70',
-    'hover:ring-osg-moss/40 hover:text-osg-moss',
+    'h-7 gap-1 rounded-md border border-osg-200/80 bg-white px-2 text-xs font-medium text-osg-700',
+    'hover:border-osg-moss/40 hover:bg-osg-moss/[0.07] hover:text-osg-moss',
     'focus-visible:ring-2 focus-visible:ring-osg-moss/40',
   ),
   // `primary`, e não a escala teal crua: a primitiva mora no :root e nenhum tema
   // a sobrescreve, então ela não acompanha a área. O token é o que faz o chip
   // seguir o portal se a cor dele mudar.
   portal: cn(
-    'bg-white text-primary ring-1 ring-primary/20',
+    'gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-primary ring-1 ring-primary/20',
     'hover:ring-primary/40 hover:bg-accent/5',
     'focus-visible:ring-2 focus-visible:ring-primary/40',
   ),
@@ -59,17 +69,15 @@ export function BotaoModelo({ modelo, tom, className }: BotaoModeloProps) {
       disabled={baixar.isPending}
       title={`Baixar o modelo: ${modelo.nome}`}
       className={cn(
-        'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5',
-        'text-[11px] font-medium transition-colors',
-        'focus-visible:outline-none',
+        'inline-flex shrink-0 items-center transition-colors focus-visible:outline-none',
         TONS[tom],
         baixar.isPending && 'cursor-wait opacity-70',
         className,
       )}
     >
       {baixar.isPending
-        ? <Loader2 className="h-3 w-3 animate-spin" />
-        : <Download className="h-3 w-3" />}
+        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        : <Download className="h-3.5 w-3.5" />}
       Modelo
     </button>
   );
