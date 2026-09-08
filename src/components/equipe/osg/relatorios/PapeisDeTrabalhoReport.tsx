@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Download, FileSpreadsheet, Loader2, Presentation } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { FiltroDeBusca } from '@/components/equipe/FiltroDeBusca';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -47,19 +48,54 @@ const fmtData = (iso: string): string =>
 const fmtTamanho = (bytes: number | null): string =>
   bytes == null ? '—' : `${Math.round(bytes / 1024)} KB`;
 
+/**
+ * A cor da área que hospeda o relatório.
+ *
+ * **O mesmo componente serve à OSG Work e à Digital**, e as duas áreas têm cor
+ * própria: a OSG é verde, a Digital usa os tokens padrão do app. Antes disso o
+ * verde estava escrito à mão em oito pontos daqui, o que impedia a Digital de
+ * usar a tela sem parecer OSG.
+ */
+export type PaletaDaArea = 'osg' | 'digital';
+
+const PALETA: Record<PaletaDaArea, Record<string, string>> = {
+  osg: {
+    borda: 'border-osg-200',
+    cabecalho: 'border-osg-100 bg-osg-50/60',
+    titulo: 'text-osg-moss',
+    divisor: 'divide-osg-100',
+    vazio: 'border-osg-300 bg-osg-50/40',
+    icone: 'text-osg-600',
+    destaque: 'text-osg-700',
+  },
+  digital: {
+    borda: 'border-border',
+    cabecalho: 'border-border bg-muted/50',
+    titulo: 'text-foreground',
+    divisor: 'divide-border',
+    vazio: 'border-border bg-muted/30',
+    icone: 'text-primary',
+    destaque: 'text-primary',
+  },
+};
+
 function Secao({
   titulo,
   meta,
+  cor,
   children,
 }: {
   titulo: string;
   meta?: string;
+  cor: Record<string, string>;
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm">
-      <header className="flex flex-wrap items-center gap-3 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
-        <h3 className="text-sm font-semibold text-osg-moss">{titulo}</h3>
+    <section className={cn('overflow-hidden rounded-xl border bg-background shadow-sm', cor.borda)}>
+      <header
+        className={cn('flex flex-wrap items-center gap-3 border-b px-4 py-2.5', cor.cabecalho)}
+      >
+        <h3 className={cn('text-sm font-semibold', cor.titulo)}>{titulo}</h3>
         {meta && <span className="ml-auto text-[11px] text-muted-foreground">{meta}</span>}
       </header>
       {children}
@@ -68,12 +104,24 @@ function Secao({
 }
 
 /**
+ * Enquanto o molde é provisório, a tela mostra só o que é de formatação.
+ *
+ * O modelo consolidado chega esta semana. Até lá, célula não mapeada e linha que
+ * não veio na leitura dizem mais sobre o molde de teste do que sobre o estudo, e
+ * poluem a lista de retoques com coisa que ninguém vai ajustar. Os avisos de
+ * `origem` continuam gravados em `wp_apresentacao.problemas`: some da tela, não
+ * do registro. **Quando o modelo entrar, é esta linha que sai.**
+ */
+const SO_FORMATACAO = true;
+
+/**
  * Os pontos que a geração deixou para ajustar.
  *
  * Aparece só quando há algo, e o texto é o que fazer, não o que aconteceu: o
  * arquivo já está pronto e baixado, e isto é a lista de retoques no PowerPoint.
  */
-function OQueAjustar({ problemas }: { problemas: ResultadoDaGeracao['problemas'] }) {
+function OQueAjustar({ problemas: todos }: { problemas: ResultadoDaGeracao['problemas'] }) {
+  const problemas = SO_FORMATACAO ? todos.filter((p) => p.tipo === 'formatacao') : todos;
   if (problemas.length === 0) return null;
   return (
     <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/[0.07] px-4 py-3">
@@ -94,7 +142,14 @@ function OQueAjustar({ problemas }: { problemas: ResultadoDaGeracao['problemas']
   );
 }
 
-export function PapeisDeTrabalhoReport({ clienteId }: { clienteId: string }) {
+export function PapeisDeTrabalhoReport({
+  clienteId,
+  paleta = 'osg',
+}: {
+  clienteId: string;
+  paleta?: PaletaDaArea;
+}) {
+  const cor = PALETA[paleta];
   const { data: clientes = [] } = useClientesLista();
   const clienteNome = clientes.find((c) => c.id === clienteId)?.nome ?? 'cliente';
 
@@ -191,8 +246,13 @@ export function PapeisDeTrabalhoReport({ clienteId }: { clienteId: string }) {
   /* Sem papel de trabalho não há o que gerar, e o texto diz onde se importa um. */
   if (estudos.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center">
-        <FileSpreadsheet className="h-10 w-10 text-osg-600 opacity-50" aria-hidden />
+      <div
+        className={cn(
+          'flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-16 text-center',
+          cor.vazio,
+        )}
+      >
+        <FileSpreadsheet className={cn('h-10 w-10 opacity-50', cor.icone)} aria-hidden />
         <p className="text-sm font-medium text-foreground">
           Este cliente ainda não tem papel de trabalho importado.
         </p>
@@ -209,63 +269,32 @@ export function PapeisDeTrabalhoReport({ clienteId }: { clienteId: string }) {
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-base font-semibold text-foreground">
           Papéis de Trabalho, Planejamento Tributário ·{' '}
-          <span className="text-osg-700">{clienteNome}</span>
+          <span className={cor.destaque}>{clienteNome}</span>
         </h2>
         <span className="text-xs text-muted-foreground">
           Os slides saem com tabelas editáveis, para ajustar no PowerPoint
         </span>
       </div>
 
-      <Secao titulo="Qual papel de trabalho usar">
-        <div className="grid grid-cols-1 gap-4 px-4 py-4 md:grid-cols-2">
-          {estudos.length > 1 && (
-            <div className="space-y-2">
-              <Label htmlFor="pt-estudo">Ordem de serviço</Label>
-              <Select value={estudoEscolhido} onValueChange={setEstudoId}>
-                <SelectTrigger id="pt-estudo">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {estudos.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>
-                      {e.descricao ?? `Estudo de ${fmtData(e.created_at)}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="pt-revisao">Revisão</Label>
-            <Select
-              value={revisaoEscolhida}
-              onValueChange={setRevisaoId}
-              disabled={carregandoRevisoes || revisoes.length === 0}
-            >
-              <SelectTrigger id="pt-revisao">
-                <SelectValue placeholder={carregandoRevisoes ? 'Carregando…' : 'Nenhuma revisão'} />
-              </SelectTrigger>
-              <SelectContent>
-                {revisoes.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>
-                    Revisão {r.versao} · {fmtData(r.created_at)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {revisao && (
-              <p className="text-[12.5px] text-muted-foreground">
-                {revisao.nome_original ?? 'planilha sem nome'}
-                {revisao.ano_inicial && revisao.ano_final
-                  ? ` · ${revisao.ano_inicial} a ${revisao.ano_final}`
-                  : ''}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 border-t border-osg-100 bg-osg-50/30 px-4 py-3">
+      {/*
+        A escolha do papel de trabalho usa a caixa de filtro padrão, e não uma
+        seção própria: é a mesma moldura das outras ferramentas da equipe, pedida
+        pela Patricia em 08/09/2026. Duas colunas e não quatro, porque são dois
+        campos, e a grade de quatro deixaria metade da linha vazia.
+      */}
+      {/*
+        **Esta caixa NAO se chama "Filtros de Busca", e e de proposito.**
+        A Patricia pediu que o filtro de busca fique igual em toda ferramenta, e
+        fica: na Digital ele e a caixa de escolher o cliente, logo acima. Esta
+        aqui nao filtra nada, ela escolhe qual revisao virar apresentacao e tem o
+        botao que faz isso. Repetir o titulo deixava duas caixas identicas na
+        mesma tela, e a pessoa lia a segunda como se fosse continuacao do filtro.
+      */}
+      <FiltroDeBusca
+        titulo="Qual revisão vai para os slides"
+        colunas={2}
+        descricao="Saem quatro tabelas: premissas, carga tributária, transferência da atividade rural e resumo."
+        acoes={
           <Button size="sm" onClick={aoGerar} disabled={!revisaoEscolhida || gerar.isPending}>
             {gerar.isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
@@ -274,17 +303,60 @@ export function PapeisDeTrabalhoReport({ clienteId }: { clienteId: string }) {
             )}
             {gerar.isPending ? 'Gerando…' : 'Gerar os slides'}
           </Button>
-          <span className="text-[12.5px] text-muted-foreground">
-            Gera a seção tributária: premissas, carga tributária, transferência da atividade rural e
-            resumo.
-          </span>
+        }
+      >
+        {estudos.length > 1 && (
+          <div className="space-y-2">
+            <Label htmlFor="pt-estudo">Ordem de serviço</Label>
+            <Select value={estudoEscolhido} onValueChange={setEstudoId}>
+              <SelectTrigger id="pt-estudo">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {estudos.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.descricao ?? `Planejamento de ${fmtData(e.created_at)}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <Label htmlFor="pt-revisao">Revisão</Label>
+          <Select
+            value={revisaoEscolhida}
+            onValueChange={setRevisaoId}
+            disabled={carregandoRevisoes || revisoes.length === 0}
+          >
+            <SelectTrigger id="pt-revisao">
+              <SelectValue placeholder={carregandoRevisoes ? 'Carregando…' : 'Nenhuma revisão'} />
+            </SelectTrigger>
+            <SelectContent>
+              {revisoes.map((r) => (
+                <SelectItem key={r.id} value={r.id}>
+                  Revisão {r.versao} · {fmtData(r.created_at)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {revisao && (
+            <p className="text-[12.5px] text-muted-foreground">
+              {revisao.nome_original ?? 'planilha sem nome'}
+              {revisao.ano_inicial && revisao.ano_final
+                ? ` · ${revisao.ano_inicial} a ${revisao.ano_final}`
+                : ''}
+            </p>
+          )}
         </div>
-      </Secao>
+      </FiltroDeBusca>
 
       {ultima && <OQueAjustar problemas={ultima.problemas} />}
 
       <Secao
         titulo="Já geradas desta revisão"
+        cor={cor}
         meta={geradas.length > 0 ? `${geradas.length} arquivo(s)` : undefined}
       >
         {geradas.length === 0 ? (
@@ -292,7 +364,7 @@ export function PapeisDeTrabalhoReport({ clienteId }: { clienteId: string }) {
             Nenhuma ainda. A primeira aparece aqui depois que você gerar.
           </p>
         ) : (
-          <ul className="divide-y divide-osg-100">
+          <ul className={cn('divide-y', cor.divisor)}>
             {geradas.map((a) => (
               <li key={a.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
                 <div className="min-w-0 flex-1">
