@@ -25,7 +25,20 @@ vi.mock('@/hooks/useRlsPrecheck', () => rlsMocks);
 vi.mock('@/hooks/useAuditLog', () => ({ useAuditLog: () => ({ logAction: auditMocks.logAction }) }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'user-1' } }) }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
-vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: vi.fn() } }));
+vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: vi.fn(), rpc: vi.fn() } }));
+
+/**
+ * A régua de ambiente saiu do `select` em cliente e virou a RPC
+ * `ambiente_por_cliente` (SECURITY DEFINER, para a RLS por cluster não truncar a
+ * régua — ver useDomainAmbienteClientes). Ela não passa mais pelo `dbQueue`.
+ */
+function mockReguaDeAmbiente(linhas: Array<{ id: string; ambiente: string }>) {
+  vi.mocked(supabase.rpc).mockImplementation(((fn: string) => Promise.resolve(
+    fn === 'ambiente_por_cliente'
+      ? { data: linhas.map(l => ({ cliente_id: l.id, ambiente: l.ambiente })), error: null }
+      : { data: null, error: null },
+  )) as never);
+}
 
 import {
   useDeleteOrgTask,
@@ -370,16 +383,13 @@ describe('useOrgTasks (escopo de ambiente)', () => {
     ...patch,
   });
 
-  /** Tarefas + a régua de ambiente, na ordem em que o hook aguarda as consultas. */
+  /** Tarefas na fila do `from`; a régua de ambiente vem da RPC, fora dela. */
   function queueTasks(tarefas: unknown[]) {
     dbQueue.push({ data: tarefas, error: null });
-    dbQueue.push({
-      data: [
-        { id: 'client-dev', ambiente: currentAmbiente },
-        { id: 'client-fora', ambiente: OUTRO_AMBIENTE },
-      ],
-      error: null,
-    });
+    mockReguaDeAmbiente([
+      { id: 'client-dev', ambiente: currentAmbiente },
+      { id: 'client-fora', ambiente: OUTRO_AMBIENTE },
+    ]);
   }
 
   it('descarta a tarefa cujo cliente é de outro ambiente', async () => {
@@ -446,7 +456,7 @@ describe('useOrgTasks (filtro por responsável)', () => {
 
   function queueTasks(tarefas: unknown[]) {
     dbQueue.push({ data: tarefas, error: null });
-    dbQueue.push({ data: [], error: null });
+    mockReguaDeAmbiente([]);
   }
 
   it('traz a subtarefa da pessoa e a mãe dela, mas não a subtarefa irmã', async () => {

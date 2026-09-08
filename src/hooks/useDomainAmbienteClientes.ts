@@ -19,6 +19,16 @@ export const ambienteClientesQueryKeys = {
  * colunas deixam a consulta leve o bastante para valer uma só, cacheada e
  * compartilhada. Use com `queryClient.fetchQuery` dentro de outras queries para
  * não repetir a ida ao banco a cada mudança de filtro.
+ *
+ * A RÉGUA VEM DE RPC, E NÃO DE `select` NA TABELA. Lida direto, `cliente` passa
+ * pela RLS `cliente_select_scoped`, que recorta POR CLUSTER — então a régua
+ * chegava incompleta, e "ausente da régua" (que `isDoAmbiente` deixa passar de
+ * propósito, para não sumir com trabalho real) virava o caso NORMAL de todo
+ * cliente de outro cluster. Efeito medido em produção em 08/09/2026: projeto de
+ * `ambiente = dev`, com cliente do cluster OSG, aparecendo na lista de PRODUÇÃO
+ * de quem é do cluster TAX — e com o nome do cliente em branco, pela mesma
+ * ausência. `ambiente_por_cliente()` é SECURITY DEFINER e devolve só o par
+ * (id, ambiente): nenhum nome, nenhum dado de cadastro.
  */
 export function ambientePorClienteQuery() {
   return {
@@ -28,15 +38,16 @@ export function ambientePorClienteQuery() {
     // errar por poucos minutos nunca some com trabalho da tela.
     staleTime: CADASTRO_STALE_TIME,
     queryFn: async (): Promise<AmbientePorCliente> => {
-      const { data, error } = await supabase
-        .from('cliente')
-        .select('id, ambiente')
-        .eq('excluido', false);
-      if (error) throw error;
+      // `ambiente_por_cliente` ainda não está no schema tipado gerado — mesma
+      // forma de chamada já usada em useDashboardProjectIds.
+      const { data, error } = await (supabase.rpc as unknown as (
+        fn: string,
+      ) => Promise<{ data: unknown; error: unknown }>)('ambiente_por_cliente');
+      if (error) throw error as Error;
 
       const porCliente: AmbientePorCliente = {};
-      for (const cliente of data || []) {
-        if (cliente.ambiente) porCliente[cliente.id] = cliente.ambiente;
+      for (const linha of (data ?? []) as Array<{ cliente_id: string; ambiente: string | null }>) {
+        if (linha.ambiente) porCliente[linha.cliente_id] = linha.ambiente;
       }
       return porCliente;
     },
