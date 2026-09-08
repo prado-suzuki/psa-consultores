@@ -2,7 +2,11 @@ import { Menu } from 'lucide-react';
 import { FiscalSidebar } from './FiscalSidebar';
 import { Button } from '@/components/ui/button';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
-import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
+import {
+  useFecharGavetaAoNavegar,
+  useSidebarRecolhimentoController,
+} from '@/hooks/useSidebarRecolhimentoController';
+import { SidebarFundoGaveta } from '@/components/shared/SidebarFundoGaveta';
 import { TourProvider } from '@/components/tour/TourProvider';
 import TourTrigger from '@/components/tour/TourTrigger';
 import { REGISTRO_TAX, resolverTourTax } from './tour/tours';
@@ -18,8 +22,10 @@ interface FiscalLayoutProps {
 export const FiscalLayout = ({ children, title, subtitle, headerActions }: FiscalLayoutProps) => {
   // O recolhimento automático em telas de trabalho largo mora no hook — é a
   // tela que pede, com `useTelaDeTrabalhoLargo()`; o layout não conhece rotas.
-  const { collapsed: isCollapsed, setCollapsed: setIsCollapsed } =
-    useSidebarRecolhimentoController();
+  const barra = useSidebarRecolhimentoController();
+  const { collapsed: isCollapsed, setCollapsed: setIsCollapsed, emGaveta } = barra;
+  // No celular a barra é gaveta: cada navegação a fecha (ver o hook).
+  useFecharGavetaAoNavegar(barra);
   const { pathname } = useLocation();
   const temGuia = resolverTourTax(pathname) !== null;
 
@@ -36,14 +42,21 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
     <TourProvider registro={REGISTRO_TAX}>
     <div className="min-h-screen bg-muted flex w-full">
       {/* Sidebar */}
-      <FiscalSidebar isCollapsed={isCollapsed} onToggle={() => setIsCollapsed(!isCollapsed)} />
+      <FiscalSidebar
+        isCollapsed={isCollapsed}
+        emGaveta={emGaveta}
+        onToggle={() => setIsCollapsed(!isCollapsed)}
+      />
+
+      {/* Fundo que fecha a gaveta no toque. Só aparece abaixo de `md`. */}
+      <SidebarFundoGaveta aberta={!isCollapsed} onFechar={() => setIsCollapsed(true)} />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header — altura, tipografia e conteúdo espelhados do OSG Projects. O
             usuário mora no rodapé da barra da esquerda; aqui ficam só o título
             da página e as ações. */}
-        <header className="h-16 border-b border-border/60 bg-card flex items-center justify-between px-6 flex-shrink-0">
+        <header className="h-16 border-b border-border/60 bg-card flex items-center justify-between px-4 md:px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -81,7 +94,7 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
+          <div className="p-4 md:p-6">
             {children}
           </div>
         </div>

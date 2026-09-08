@@ -22,7 +22,12 @@ import {
 } from 'lucide-react';
 import { DEV_HUBS } from '@/constants/devHubDefinitions';
 import { DEV_NAV_LABELS } from '@/constants/devNavLabels';
-import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
+import {
+  useFecharGavetaAoNavegar,
+  useSidebarRecolhimentoController,
+} from '@/hooks/useSidebarRecolhimentoController';
+import { SidebarFundoGaveta } from '@/components/shared/SidebarFundoGaveta';
+import { classesGavetaBarra } from '@/lib/sidebarMedidas';
 
 interface DevLayoutProps {
   children: React.ReactNode;
@@ -177,7 +182,13 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
   const location = useLocation();
   // O recolhimento automático em telas de trabalho largo mora no hook — é a
   // tela que pede, com `useTelaDeTrabalhoLargo()`; o layout não conhece rotas.
-  const { collapsed, setCollapsed } = useSidebarRecolhimentoController();
+  const barra = useSidebarRecolhimentoController();
+  const { collapsed, setCollapsed, emGaveta } = barra;
+  // No celular a barra é gaveta: cada navegação a fecha (ver o hook).
+  useFecharGavetaAoNavegar(barra);
+  // A barra desta área recolhe até `w-0`, sem trilho. Na gaveta ela também
+  // não encolhe: ela desliza para fora da tela, com os rótulos montados.
+  const trilho = collapsed && !emGaveta;
 
   const handleSignOut = async () => {
     await signOut();
@@ -240,9 +251,9 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
   return (
     <div className="flex min-h-screen w-full bg-muted">
       <aside
-        className={`${collapsed ? 'w-0' : 'w-64 border-r border-border/60'} sticky top-0 h-screen flex-shrink-0 overflow-x-hidden overflow-y-auto bg-white transition-all duration-300 ease-in-out scrollbar-hide`}
+        className={`${trilho ? 'w-0' : 'w-64 border-r border-border/60'} ${classesGavetaBarra(collapsed)} sticky top-0 h-screen flex-shrink-0 overflow-x-hidden overflow-y-auto bg-white transition-all duration-300 ease-in-out scrollbar-hide`}
       >
-        {!collapsed && (
+        {!trilho && (
           <>
             <div className="flex flex-shrink-0 items-center justify-between border-b border-border/60 p-6">
               <div className="min-w-0">
@@ -392,12 +403,15 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
         )}
       </aside>
 
+      {/* Fundo que fecha a gaveta no toque. Só aparece abaixo de `md`. */}
+      <SidebarFundoGaveta aberta={!collapsed} onFechar={() => setCollapsed(true)} />
+
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {/* `min-h` e não `h-16` fixo: alguns títulos de hub (ex. PIS/COFINS,
             PERDCOMP) passam de 100 caracteres em CAIXA ALTA e quebram em 2-3
             linhas. Com altura fixa + `overflow-hidden` do <main>, o título
             simplesmente cortava no meio — a caixa agora cresce para caber. */}
-        <header className="flex min-h-16 flex-shrink-0 items-center justify-between gap-3 border-b border-border/60 bg-card px-6 py-2">
+        <header className="flex min-h-16 flex-shrink-0 items-center justify-between gap-3 border-b border-border/60 bg-card px-4 py-2 md:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             {collapsed && (
               <Button
@@ -446,7 +460,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
         <PendingTicketsAlert navigateTo="/equipe/chamados" backTo={location.pathname} />
 
         <div className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto">
-          <div className="w-full min-w-0 p-6">{children}</div>
+          <div className="w-full min-w-0 p-4 md:p-6">{children}</div>
         </div>
       </main>
     </div>

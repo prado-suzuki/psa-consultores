@@ -57,6 +57,36 @@ export function classeRecuoCabecalho(recolhida: boolean): string {
 }
 
 /**
+ * A barra como GAVETA, abaixo de `md` (768px, o mesmo `MOBILE_BREAKPOINT` de
+ * `use-mobile`). Some com a barra do fluxo e a faz deslizar por cima.
+ *
+ * Por que sair do fluxo é o ponto: enquanto a barra é irmã do `<main>` num
+ * `flex`, qualquer largura que ela tenha é largura que o conteúdo perde. Num
+ * aparelho de 390px, a barra aberta (256px) deixava ~130px de conteúdo, e o
+ * trilho de 80px deixava 310px — e o `<main>` tem `overflow-hidden`, então o
+ * que não cabia era CORTADO, não rolava. `fixed` resolve os dois de uma vez: a
+ * gaveta passa a flutuar e o conteúdo recebe a viewport inteira.
+ *
+ * As classes vão com `max-md:`, e não invertendo a lógica para `md:`, porque a
+ * base (`sticky`, `h-screen`, largura) é a mesma de sempre — o celular é a
+ * exceção, e escrever a exceção como exceção deixa o desktop intocado.
+ *
+ * A largura continua vindo de `classeLarguraBarra()`, à qual o layout passa o
+ * TRILHO (`collapsed && !emGaveta`) e não o `collapsed`: na gaveta não existe
+ * trilho, ela é sempre de 16rem e mostra os rótulos.
+ *
+ * O fundo escuro que fecha a gaveta no toque é `<SidebarFundoGaveta />`, em
+ * `@/components/shared`; sem ele a gaveta aberta só fecha pelo hambúrguer.
+ */
+export function classesGavetaBarra(recolhida: boolean): string {
+  return [
+    'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:shadow-2xl',
+    'max-md:transition-transform max-md:duration-300 max-md:motion-reduce:transition-none',
+    recolhida ? 'max-md:-translate-x-full' : 'max-md:translate-x-0',
+  ].join(' ');
+}
+
+/**
  * A largura em CSS, para os layouts que posicionam o botão flutuante de
  * recolher com `left: calc(var(--sidebar-width) - 12px)`.
  */

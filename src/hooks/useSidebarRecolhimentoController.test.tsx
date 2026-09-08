@@ -30,6 +30,18 @@ function pedirMenosMovimento(reduzido: boolean) {
   });
 }
 
+/**
+ * Largura da janela. O `innerWidth` do jsdom é 1024, então o padrão dos testes
+ * acima já é "desktop" e nenhum deles muda de resultado.
+ */
+function definirLargura(px: number) {
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    writable: true,
+    value: px,
+  });
+}
+
 describe('useSidebarRecolhimentoController', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -38,6 +50,8 @@ describe('useSidebarRecolhimentoController', () => {
   afterEach(() => {
     vi.useRealTimers();
     delete (window as { matchMedia?: unknown }).matchMedia;
+    definirLargura(1024);
+    localStorage.clear();
   });
 
   it('não recolhe nada quando nenhuma tela se declarou de trabalho largo', () => {
@@ -227,5 +241,78 @@ describe('useTelaDeTrabalhoLargo', () => {
       tela.rerender({ largo: false });
     });
     expect(layout.result.current.collapsed).toBe(false);
+  });
+});
+
+/**
+ * Em tela estreita a barra deixa de ser coluna e passa a ser gaveta. É o hook
+ * que decide, porque é o ponto por onde as nove áreas passam.
+ */
+describe('tela estreita: a barra é gaveta', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    delete (window as { matchMedia?: unknown }).matchMedia;
+    definirLargura(1024);
+    localStorage.clear();
+  });
+
+  it('nasce fechada, porque quem monta o layout é a página', () => {
+    definirLargura(390);
+
+    const layout = montarLayout();
+
+    // Nascia aberta. Como a página monta o layout, cada navegação remontava e
+    // devolvia uma coluna de 256px sobre 390px de tela: da tela parecia que o
+    // menu não fechava.
+    expect(layout.result.current.collapsed).toBe(true);
+    expect(layout.result.current.emGaveta).toBe(true);
+  });
+
+  it('a preferência gravada no desktop não abre a gaveta', () => {
+    localStorage.setItem('barraTeste', 'false');
+    definirLargura(390);
+
+    expect(montarLayout({ persistKey: 'barraTeste' }).result.current.collapsed).toBe(true);
+  });
+
+  it('abrir e fechar a gaveta não grava preferência de barra', () => {
+    localStorage.setItem('barraTeste', 'true');
+    definirLargura(390);
+    const layout = montarLayout({ persistKey: 'barraTeste' });
+
+    act(() => {
+      layout.result.current.setCollapsed(false);
+    });
+
+    // Se gravasse, a barra do desktop apareceria aberta na próxima sessão só
+    // porque alguém abriu o menu uma vez no celular.
+    expect(localStorage.getItem('barraTeste')).toBe('true');
+  });
+
+  it('o recolhimento automático de tela larga não mexe na gaveta', () => {
+    definirLargura(390);
+    const layout = montarLayout();
+    montarTelaLarga();
+
+    act(() => {
+      vi.advanceTimersByTime(5_000);
+    });
+
+    // A gaveta já está fora do caminho; o ramo que devolve a barra aberta ao
+    // sair da tela larga a REABRIRIA sobre o conteúdo.
+    expect(layout.result.current.collapsed).toBe(true);
+  });
+
+  it('no desktop nada disso vale: a barra continua entrando aberta', () => {
+    definirLargura(1024);
+
+    const layout = montarLayout();
+
+    expect(layout.result.current.collapsed).toBe(false);
+    expect(layout.result.current.emGaveta).toBe(false);
   });
 });

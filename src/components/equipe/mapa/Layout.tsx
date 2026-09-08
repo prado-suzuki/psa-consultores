@@ -74,8 +74,17 @@ export default function Layout() {
   // depende disso: a tela larga se declara com `useTelaDeTrabalhoLargo()` e o
   // recolhimento automático chega igual. A preferencia manual (formato legado
   // '1'/'0') continua sendo lida e passa a ser gravada pelo hook.
-  const { collapsed: sidebarCollapsed, setCollapsed: setSidebarCollapsed } =
-    useSidebarRecolhimentoController({ persistKey: 'sidebarCollapsed' });
+  const {
+    collapsed: sidebarCollapsed,
+    setCollapsed: setSidebarCollapsed,
+    emGaveta,
+  } = useSidebarRecolhimentoController({ persistKey: 'sidebarCollapsed' });
+  // O Mapeamento JÁ tem gaveta própria (`sidebarOpen`, o `.sidebar.open` do
+  // mapa.css) — o que ele não tem é imunidade ao trilho: `.sidebar.collapsed`
+  // tem duas classes de especificidade e vence o `width: 260px` que a media
+  // query de 768px dá à gaveta, então a gaveta abriria como um trilho de 80px
+  // sem rótulo nenhum. Abaixo de `md` o trilho simplesmente não se aplica.
+  const trilho = sidebarCollapsed && !emGaveta;
   const rotaEmCadastros = linksCadastros.some((l) => location.pathname.startsWith(l.to));
   const [cadastrosOpen, setCadastrosOpen] = useState<boolean>(() => {
     return localStorage.getItem('mapaCadastrosOpen') === '1';
@@ -97,15 +106,15 @@ export default function Layout() {
   const toggleCollapsed = () => setSidebarCollapsed((c) => !c);
 
   useEffect(() => {
-    document.body.classList.toggle('sidebar-collapsed', sidebarCollapsed);
+    document.body.classList.toggle('sidebar-collapsed', trilho);
     return () => { document.body.classList.remove('sidebar-collapsed'); };
-  }, [sidebarCollapsed]);
+  }, [trilho]);
 
   return (
     <MapaClusterProvider>
     <MapaTourProvider>
     <div
-      className={`app-root${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}
+      className={`app-root${trilho ? ' sidebar-collapsed' : ''}`}
       // O CSS do Mapeamento é legado e escapa ao Tailwind, mas a medida do
       // trilho recolhido é a mesma do resto do sistema: em vez de um 72px solto
       // no arquivo .css, a variável é alimentada pela constante compartilhada.
@@ -127,7 +136,7 @@ export default function Layout() {
 
       <div className={`sidebar-overlay${sidebarOpen ? ' active' : ''}`} onClick={closeSidebar} />
 
-      <nav className={`sidebar${sidebarOpen ? ' open' : ''}${sidebarCollapsed ? ' collapsed' : ''}`}>
+      <nav className={`sidebar${sidebarOpen ? ' open' : ''}${trilho ? ' collapsed' : ''}`}>
         <div className="sidebar-header">
           <img src="/favicon.png" alt="" className="sidebar-logo-icon" aria-hidden="true" />
           <span className="sidebar-logo-text">PSA Consultores</span>
@@ -207,17 +216,19 @@ export default function Layout() {
           </button>
           <button
             type="button"
-            className="sidebar-action-btn"
+            // `max-md:hidden`: minimizar é uma escolha sobre a barra-coluna.
+            // Na gaveta não há o que minimizar, e o botão ficaria sem efeito.
+            className="sidebar-action-btn max-md:hidden"
             onClick={toggleCollapsed}
-            aria-label={sidebarCollapsed ? 'Expandir menu' : 'Minimizar menu'}
-            title={sidebarCollapsed ? 'Expandir menu' : 'Minimizar menu'}
+            aria-label={trilho ? 'Expandir menu' : 'Minimizar menu'}
+            title={trilho ? 'Expandir menu' : 'Minimizar menu'}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              {sidebarCollapsed
+              {trilho
                 ? <polyline points="9 18 15 12 9 6"/>
                 : <polyline points="15 18 9 12 15 6"/>}
             </svg>
-            <span className="sidebar-label">{sidebarCollapsed ? 'Expandir' : 'Minimizar'}</span>
+            <span className="sidebar-label">{trilho ? 'Expandir' : 'Minimizar'}</span>
           </button>
         </div>
       </nav>

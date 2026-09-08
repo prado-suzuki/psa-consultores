@@ -7,6 +7,7 @@ import {
   MEDIDAS_TRILHO_SIDEBAR,
   classeLarguraBarra,
   classeRecuoCabecalho,
+  classesGavetaBarra,
   larguraBarraCss,
 } from './sidebarMedidas';
 
@@ -83,5 +84,75 @@ describe('as cinco barras do padrão não têm cópia própria da medida', () =>
     expect(ler('../pages/equipe/mapa/mapa.css')).not.toMatch(
       /--sidebar-width-collapsed:\s*\d/,
     );
+  });
+});
+
+describe('a barra vira gaveta em tela estreita', () => {
+  it('só toca no celular: toda classe é prefixada com max-md', () => {
+    for (const recolhida of [true, false]) {
+      for (const classe of classesGavetaBarra(recolhida).split(/\s+/)) {
+        // Uma classe sem prefixo aqui vazaria para o desktop, onde a barra é
+        // coluna: `fixed` no desktop tiraria a barra do fluxo e o conteúdo
+        // passaria por baixo dela.
+        expect(classe.startsWith('max-md:')).toBe(true);
+      }
+    }
+  });
+
+  it('fechada desliza para fora da tela; aberta volta ao lugar', () => {
+    expect(classesGavetaBarra(true)).toContain('max-md:-translate-x-full');
+    expect(classesGavetaBarra(false)).toContain('max-md:translate-x-0');
+    expect(classesGavetaBarra(true)).not.toContain('max-md:translate-x-0');
+  });
+
+  it('sai do fluxo, senão a largura dela é largura que o conteúdo perde', () => {
+    // O `<main>` é irmão da barra num flex e tem `overflow-hidden`: em 390px de
+    // tela, o que não caber é cortado, não rola. `fixed` é o que resolve.
+    expect(classesGavetaBarra(false)).toContain('max-md:fixed');
+  });
+});
+
+/**
+ * O bug do celular era o MESMO nas nove áreas, e chegou lá porque cada layout
+ * tem a sua própria linha de classes na barra. Este teste lê o fonte: é o que
+ * impede uma área de ficar para trás na próxima vez que alguém mexer numa só.
+ */
+describe('todas as barras laterais viram gaveta no celular', () => {
+  const BARRAS = {
+    Administração: '../components/administracao/AdminLayout.tsx',
+    Tax: '../components/equipe/fiscal/FiscalSidebar.tsx',
+    Fixos: '../components/equipe/fixos/FixosLayout.tsx',
+    OSG: '../components/equipe/osg/OsgLayout.tsx',
+    Gestão: '../components/gestao/GestaoLayout.tsx',
+    'Digital Rotina': '../components/equipe/EquipeLayout.tsx',
+    'Digital Dev': '../components/equipe/dev/DevLayout.tsx',
+  } as const;
+
+  for (const [area, caminho] of Object.entries(BARRAS)) {
+    it(`${area}: a barra usa classesGavetaBarra e o trilho não vale na gaveta`, () => {
+      const fonte = ler(caminho);
+
+      expect(fonte).toContain('classesGavetaBarra(');
+      // `collapsed` na gaveta quer dizer "fechada", não "trilho de 80px": a
+      // gaveta abre inteira, com os rótulos.
+      expect(fonte).toMatch(/const trilho = \w+ && !emGaveta;/);
+    });
+  }
+
+  it('Mapeamento: tem gaveta própria no CSS legado, e o trilho não a alcança', () => {
+    const fonte = ler('../components/equipe/mapa/Layout.tsx');
+
+    // `.sidebar.collapsed` (duas classes) vence o `width: 260px` que a media
+    // query dá à gaveta — sem esta linha a gaveta abriria como trilho de 80px.
+    expect(fonte).toMatch(/const trilho = sidebarCollapsed && !emGaveta;/);
+    expect(ler('../pages/equipe/mapa/mapa.css')).toContain('.sidebar.open');
+  });
+
+  it('Board: a gaveta dele é o <Sheet>, e por isso não usa as classes', () => {
+    const fonte = ler('../components/equipe/board/BoardLayout.tsx');
+
+    expect(fonte).toContain('<Sheet ');
+    // A barra-coluna do Board não existe no celular, então não há o que deslocar.
+    expect(fonte).toContain('hidden md:flex');
   });
 });
