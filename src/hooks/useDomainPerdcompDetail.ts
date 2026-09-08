@@ -16,6 +16,7 @@ import type {
 
 type PerSituacaoRow = Database['public']['Tables']['per_situacao']['Row'];
 type PerSituacaoInsert = Database['public']['Tables']['per_situacao']['Insert'];
+type PerUpdate = Database['public']['Tables']['per']['Update'];
 type PerdcompSyncPayload = Parameters<typeof syncPerdcompToDW>[0];
 type DetailMutationOptions<TData, TVariables> = Omit<
   UseMutationOptions<TData, Error, TVariables>,
@@ -43,6 +44,30 @@ async function insertPerSituation(payload: PerSituacaoInsert): Promise<PerSituac
   const { data, error } = await supabase.from('per_situacao').insert(payload).select().single();
   if (error) throw error;
   return data;
+}
+
+/**
+ * UPDATE em `per` que não mente.
+ *
+ * RLS recusando um UPDATE não devolve erro — devolve ZERO linhas, e a operação
+ * é reportada como bem-sucedida. Sem o `.select()`, "ressarcimento registrado"
+ * e "ressarcimento excluído" apareciam mesmo com o banco intacto. No registro
+ * de ressarcimento isso era pior que cosmético: a situação "PER deferido" era
+ * inserida logo em seguida, deixando o PER deferido e sem valor.
+ */
+async function updatePer(nrPer: string, patch: PerUpdate, acao: string): Promise<void> {
+  const { data, error } = await supabase
+    .from('per')
+    .update(patch)
+    .eq('nr_per', nrPer)
+    .select('nr_per');
+  if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error(
+      `Não foi possível ${acao}: a alteração foi recusada pelo banco, ou este PER não está ` +
+        `mais disponível para você. Atualize a página e tente novamente.`,
+    );
+  }
 }
 
 export function useSyncPerdcompDetail() {
@@ -137,14 +162,17 @@ export function useRegisterPerReimbursement(
 ): UseMutationResult<RegisterPerReimbursementResult, Error, RegisterPerReimbursementInput> {
   return useMutation({
     mutationFn: async ({ nrPer, valor, valorOriginal, dataPagamento }) => {
-      const { error } = await supabase
-        .from('per')
-        .update({
+      // Sem esta guarda o filtro virava `nr_per=eq.undefined`, que não casa com
+      // nada: o update não alterava linha alguma e ninguém ficava sabendo.
+      if (!nrPer) throw new Error('PER inválido');
+      await updatePer(
+        nrPer,
+        {
           vlr_ressarcido: valor,
           vlr_ressarcido_original: Math.round(valorOriginal * 100) / 100,
-        })
-        .eq('nr_per', nrPer);
-      if (error) throw error;
+        },
+        'registrar o ressarcimento',
+      );
 
       const sitData = await insertPerSituation({
         nr_proc_per: nrPer,
@@ -163,16 +191,16 @@ export function useClearPerReimbursement(
   return useMutation({
     mutationFn: async ({ nrPer, userId }) => {
       if (!nrPer) throw new Error('PER inválido');
-      const { error } = await supabase
-        .from('per')
-        .update({
+      await updatePer(
+        nrPer,
+        {
           vlr_ressarcido: null,
           vlr_ressarcido_original: null,
           atualizado_em: new Date().toISOString(),
           atualizado_por: userId,
-        })
-        .eq('nr_per', nrPer);
-      if (error) throw error;
+        },
+        'excluir o ressarcimento',
+      );
     },
     ...options,
   });

@@ -21,7 +21,6 @@ type ContribuinteTable = Database['public']['Tables']['contribuinte'];
 type PerTable = Database['public']['Tables']['per'];
 type PerSituacaoTable = Database['public']['Tables']['per_situacao'];
 type DcompTable = Database['public']['Tables']['dcomp'];
-type DistribuicaoDcompTable = Database['public']['Tables']['distribuicao_dcomp'];
 
 export type ClientePerdcomp = Pick<ClienteTable['Row'], 'id' | 'nome'>;
 export type ContribuintePerdcomp = Pick<
@@ -43,8 +42,6 @@ export type PerSituacaoRow = PerSituacaoTable['Row'];
 export type PerSituacaoInsert = PerSituacaoTable['Insert'];
 export type PerSituacaoUpdate = PerSituacaoTable['Update'];
 export type DcompInsert = DcompTable['Insert'];
-export type DistribuicaoDcompInsert = DistribuicaoDcompTable['Insert'];
-export type DistribuicaoDcompAmostra = Pick<DistribuicaoDcompTable['Row'], 'id'>;
 export type ClienteControlePerdcomp = Pick<ClienteTable['Row'], 'id' | 'nome'>;
 export type ContribuinteControlePerdcomp = Pick<
   ContribuinteTable['Row'],
@@ -94,9 +91,6 @@ const PERDCOMP_MUTATION_KEYS = {
   inserirSituacoesPerEmLote: ['perdcomp', 'per-situacao', 'inserir-em-lote'],
   atualizarSituacaoPerPorId: ['perdcomp', 'per-situacao', 'atualizar-por-id'],
   inserirDcomps: ['perdcomp', 'dcomp', 'inserir'],
-  buscarAmostraDistribuicao: ['perdcomp', 'distribuicao-dcomp', 'buscar-amostra'],
-  excluirDistribuicoesPorDocumento: ['perdcomp', 'distribuicao-dcomp', 'excluir-por-documento'],
-  inserirDistribuicoesEmLote: ['perdcomp', 'distribuicao-dcomp', 'inserir-em-lote'],
   buscarProcessoGlobal: ['perdcomp', 'processo', 'buscar-global'],
 } as const;
 
@@ -466,8 +460,21 @@ export function useAtualizarPerPorNumero(): UseMutationResult<
   return useMutation({
     mutationKey: PERDCOMP_MUTATION_KEYS.atualizarPerPorNumero,
     mutationFn: async ({ nrPer, payload }) => {
-      const { error } = await supabase.from('per').update(payload).eq('nr_per', nrPer);
+      // Sem a guarda, o filtro virava `nr_per=eq.undefined` e não casava com
+      // nada — update de zero linhas, reportado como salvo.
+      if (!nrPer) throw new Error('PER inválido');
+      const { data, error } = await supabase
+        .from('per')
+        .update(payload)
+        .eq('nr_per', nrPer)
+        .select('nr_per');
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error(
+          'Não foi possível salvar este PER: a alteração foi recusada pelo banco, ou o ' +
+            'processo não está mais disponível para você. Atualize a página e tente novamente.',
+        );
+      }
     },
   });
 }
@@ -543,102 +550,141 @@ export function useInserirDcomps(): UseMutationResult<void, Error, DcompInsert[]
   });
 }
 
-export function useBuscarAmostraDistribuicaoDcomp(): UseMutationResult<
-  DistribuicaoDcompAmostra | null,
-  Error,
-  string
-> {
-  return useMutation({
-    mutationKey: PERDCOMP_MUTATION_KEYS.buscarAmostraDistribuicao,
-    mutationFn: async (nrDocumento) => {
-      // O precheck atual é best-effort e não trata erro desta leitura amostral.
-      const { data } = await supabase
-        .from('distribuicao_dcomp')
-        .select('id')
-        .eq('nr_documento', nrDocumento)
-        .limit(1)
-        .maybeSingle();
+export type PerDcompTipo = 'per' | 'dcomp';
 
-      return data;
-    },
-  });
+const ROTULO_PERDCOMP: Record<PerDcompTipo, string> = { per: 'PER', dcomp: 'DCOMP' };
+
+/**
+ * A linha ainda está visível para quem pediu a exclusão?
+ *
+ * Serve para separar as duas causas de "zero linhas apagadas", que a mesma
+ * resposta do PostgREST não distingue: sem permissão de excluir (a linha
+ * aparece na leitura, some no delete) ou a linha não está mais lá (já excluída
+ * por outra pessoa, ou de um cliente fora dos clusters de quem pediu). Só roda
+ * quando o delete já falhou, então não custa nada no caminho feliz.
+ *
+ * O terceiro estado existe porque a própria sondagem pode falhar (sessão
+ * expirada, rede). Tratar essa falha como "não está mais lá" seria inventar uma
+ * causa a partir de uma leitura que nem aconteceu.
+ */
+type SondagemPerDcomp = 'visivel' | 'ausente' | 'indeterminado';
+
+async function sondarPerDcomp(
+  type: PerDcompTipo,
+  identifier: string,
+): Promise<SondagemPerDcomp> {
+  const { data, error } =
+    type === 'per'
+      ? await supabase.from('per').select('nr_per').eq('nr_per', identifier).maybeSingle()
+      : await supabase
+          .from('dcomp')
+          .select('nr_documento')
+          .eq('nr_documento', identifier)
+          .maybeSingle();
+
+  if (error) {
+    console.error('[perdcomp] falha ao sondar o registro após exclusão recusada', error);
+    return 'indeterminado';
+  }
+  return data ? 'visivel' : 'ausente';
 }
 
-export function useExcluirDistribuicoesDcompPorDocumento(): UseMutationResult<void, Error, string> {
-  return useMutation({
-    mutationKey: PERDCOMP_MUTATION_KEYS.excluirDistribuicoesPorDocumento,
-    mutationFn: async (nrDocumento) => {
-      const { error } = await supabase
-        .from('distribuicao_dcomp')
-        .delete()
-        .eq('nr_documento', nrDocumento);
+/**
+ * As duas FKs de retificação são as únicas que ficaram sem cascata, de
+ * propósito. Elas apontam para tabelas diferentes, e ao excluir um PER as duas
+ * podem disparar: `per_nr_proc_ret_fkey` quando outro PER o retifica, e
+ * `dcomp_nr_dcomp_ret_fkey` quando um DCOMP de OUTRO processo retifica um dos
+ * DCOMPs que a cascata levaria junto. Uma frase só para os dois casos mandaria
+ * a pessoa procurar um PER retificador que não existe.
+ */
+function mensagemDeRetificacao(type: PerDcompTipo, error: unknown): string {
+  if (type === 'dcomp') {
+    return (
+      'Este DCOMP não pode ser excluído porque outro DCOMP o aponta como documento ' +
+      'retificado. Exclua o retificador primeiro.'
+    );
+  }
 
-      if (error) throw error;
-    },
-  });
+  const detalhe = ['message', 'details']
+    .map((campo) => (error as Record<string, unknown>)?.[campo])
+    .filter((valor): valor is string => typeof valor === 'string')
+    .join(' ');
+
+  if (detalhe.includes('dcomp_nr_dcomp_ret_fkey')) {
+    return (
+      'Este PER não pode ser excluído porque um DCOMP de outro processo aponta como ' +
+      'retificado um dos DCOMPs deste PER. Exclua o DCOMP retificador primeiro.'
+    );
+  }
+  return (
+    'Este PER não pode ser excluído porque outro PER o aponta como processo retificado. ' +
+    'Exclua o retificador primeiro.'
+  );
 }
 
-export function useInserirDistribuicoesDcompEmLote(): UseMutationResult<
-  void,
-  Error,
-  DistribuicaoDcompInsert[]
-> {
-  return useMutation({
-    mutationKey: PERDCOMP_MUTATION_KEYS.inserirDistribuicoesEmLote,
-    mutationFn: async (payload) => {
-      const { error } = await supabase.from('distribuicao_dcomp').insert(payload);
-      if (error) throw error;
-    },
-  });
-}
-
+/**
+ * Exclusão definitiva de um PER ou de um DCOMP.
+ *
+ * **Um comando só, de propósito.** Antes eram quatro deletes em sequência, sem
+ * transação e na ordem errada: `distribuicao_dcomp` saía primeiro, e ela era
+ * justamente a única das quatro tabelas que o sublíder já tinha permissão para
+ * apagar. Resultado: a recusa chegava no passo seguinte, as distribuições já
+ * tinham ido embora, o DCOMP continuava de pé e a tela dizia que concluiu.
+ * A migration `20260908212829_perdcomp_exclusao_sublider_cascata` pôs
+ * `on delete cascade` nas FKs `per_situacao.nr_proc_per` e `dcomp.nr_per_orig`
+ * (a de `distribuicao_dcomp.nr_documento` já era), então apagar o PER arrasta
+ * situações, DCOMPs e distribuições numa transação só. **Este hook depende
+ * daquela migration estar em produção** — sem ela, o delete do PER bate na FK
+ * das situações e volta 23503.
+ *
+ * **O `.select()` não é enfeite.** Quando a RLS recusa um DELETE, o Postgres não
+ * devolve erro: a cláusula `using` da política filtra a linha e a operação
+ * termina com sucesso afetando ZERO linhas. Sem conferir isso, o sucesso era
+ * anunciado, a lista era invalidada e o registro reaparecia — que é exatamente
+ * o "clico em excluir e não exclui" relatado em 08/09/2026.
+ */
 export function useExcluirPerDcompDefinitivamente(
-  type: 'per' | 'dcomp',
+  type: PerDcompTipo,
   identifier: string,
   options?: DomainMutationOptions<void, void>,
 ): UseMutationResult<void, Error, void> {
   return useMutation({
     mutationFn: async () => {
-      if (type === 'per') {
-        // Buscar DCOMPs filhos para apagar as distribuições primeiro
-        const { data: dcompsFilhos, error: dcompsErr } = await supabase
-          .from('dcomp')
-          .select('nr_documento')
-          .eq('nr_per_orig', identifier);
-        if (dcompsErr) throw dcompsErr;
+      const rotulo = ROTULO_PERDCOMP[type];
 
-        const nrDocs = (dcompsFilhos || []).map((d) => d.nr_documento);
-        if (nrDocs.length > 0) {
-          const { error: distErr } = await supabase
-            .from('distribuicao_dcomp')
-            .delete()
-            .in('nr_documento', nrDocs);
-          if (distErr) throw distErr;
+      const { data, error } =
+        type === 'per'
+          ? await supabase.from('per').delete().eq('nr_per', identifier).select('nr_per')
+          : await supabase
+              .from('dcomp')
+              .delete()
+              .eq('nr_documento', identifier)
+              .select('nr_documento');
+
+      if (error) {
+        // Apagar o processo original porque pediram para apagar o retificador
+        // seria dano silencioso: a recusa aqui é correta, só precisa ser legível.
+        if ((error as { code?: string }).code === '23503') {
+          throw new Error(mensagemDeRetificacao(type, error));
         }
+        throw error;
+      }
 
-        const { error: dcompErr } = await supabase
-          .from('dcomp')
-          .delete()
-          .eq('nr_per_orig', identifier);
-        if (dcompErr) throw dcompErr;
-
-        const { error: sitErr } = await supabase
-          .from('per_situacao')
-          .delete()
-          .eq('nr_proc_per', identifier);
-        if (sitErr) throw sitErr;
-
-        const { error: perErr } = await supabase.from('per').delete().eq('nr_per', identifier);
-        if (perErr) throw perErr;
-      } else {
-        const { error: distErr } = await supabase
-          .from('distribuicao_dcomp')
-          .delete()
-          .eq('nr_documento', identifier);
-        if (distErr) throw distErr;
-
-        const { error } = await supabase.from('dcomp').delete().eq('nr_documento', identifier);
-        if (error) throw error;
+      if (!data || data.length === 0) {
+        const sondagem = await sondarPerDcomp(type, identifier);
+        if (sondagem === 'indeterminado') {
+          throw new Error(
+            `A exclusão deste ${rotulo} não foi efetivada, e não foi possível confirmar o ` +
+              `motivo. Atualize a página e tente novamente.`,
+          );
+        }
+        throw new Error(
+          sondagem === 'visivel'
+            ? `A exclusão foi recusada pelo banco. Você não tem permissão para excluir este ` +
+              `${rotulo}: é necessário ter o papel de Sublíder ou superior.`
+            : `Este ${rotulo} não está mais disponível para você — pode ter sido excluído por ` +
+              `outra pessoa. Atualize a página e tente novamente.`,
+        );
       }
     },
     ...options,

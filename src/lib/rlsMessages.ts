@@ -139,7 +139,14 @@ export interface CadastroOperacao {
   numeroOs?: string | null;
 }
 
-const FECHO_SUPORTE = 'Tente novamente. Se o problema continuar, entre em contato com o suporte.';
+/**
+ * Fecho padrão de toda falha técnica que a pessoa não consegue corrigir sozinha.
+ *
+ * Exportado porque a mesma frase é o que substitui a mensagem crua do banco nos
+ * guardas de exclusão fora do cadastro de cliente (o primeiro é o do PERDCOMP):
+ * duas cópias do mesmo texto é o começo de duas redações do mesmo texto.
+ */
+export const FECHO_SUPORTE = 'Tente novamente. Se o problema continuar, entre em contato com o suporte.';
 const FECHO_ZERO_LINHAS = 'Os dados podem ter sido modificados. Atualize a página e tente novamente.';
 /** Dentro do salvamento do cliente a orientação é mais curta (T4 da tarefa). */
 const FECHO_SUPORTE_NO_SALVAMENTO = 'Tente novamente.';
