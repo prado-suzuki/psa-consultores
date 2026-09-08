@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   apresentacaoDoAviso,
   avisosDoAmbiente,
+  ondeDoAviso,
   destinoDoAviso,
   textoDaRepeticao,
   type NotificacaoTipo,
@@ -133,5 +134,22 @@ describe('avisosDoAmbiente', () => {
 
   it('ambiente desconhecido nos metadados lê como sem ambiente', () => {
     expect(avisosDoAmbiente([aviso({ ambiente: 'homolog' })], 'prod')).toHaveLength(1);
+  });
+});
+
+describe('ondeDoAviso', () => {
+  /* O texto do aviso é aprovado pela Patricia e diz "este planejamento". No sino
+   * a linha aparece solta, então de que projeto ele fala vem dos metadados, em
+   * vez de a frase dela ser reescrita. */
+  it('devolve o projeto gravado no evento', () => {
+    expect(ondeDoAviso({ projeto: 'Diagnóstico Societário' })).toBe('Diagnóstico Societário');
+  });
+
+  it('devolve nulo quando o evento não gravou projeto', () => {
+    expect(ondeDoAviso({ ambiente: 'prod' })).toBeNull();
+    expect(ondeDoAviso(null)).toBeNull();
+    expect(ondeDoAviso('  ')).toBeNull();
+    expect(ondeDoAviso({ projeto: '   ' })).toBeNull();
+    expect(ondeDoAviso({ projeto: 42 })).toBeNull();
   });
 });

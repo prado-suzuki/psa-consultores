@@ -184,6 +184,24 @@ function ambienteDoAviso(metadata: unknown): Ambiente | null {
 }
 
 /**
+ * De onde o aviso fala, quando o evento gravou isso nos metadados.
+ *
+ * **Existe para o texto do aviso não precisar carregar o contexto.** Os textos
+ * são aprovados pela Patricia e dizem "este planejamento", que se entende na
+ * conversa do projeto e não se entende no sino, onde a linha aparece solta. Em
+ * vez de reescrever a frase dela, o evento grava o nome do projeto e a tela
+ * desenha em linha separada.
+ *
+ * O nome vem copiado no evento, não buscado agora: o sino é retrato de um
+ * momento e a tela dele não faz join.
+ */
+export function ondeDoAviso(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== 'object') return null;
+  const valor = (metadata as Record<string, unknown>).projeto;
+  return typeof valor === 'string' && valor.trim() !== '' ? valor : null;
+}
+
+/**
  * Descarta os avisos de outro ambiente.
  *
  * `public.notificacao` não tem coluna `ambiente` de propósito: o destinatário é

@@ -31,6 +31,7 @@ import { hrefDeOrigem, origemDoComentario, type AreaDeProjetos } from '@/lib/fee
 import {
   apresentacaoDoAviso,
   destinoDoAviso,
+  ondeDoAviso,
   textoDaRepeticao,
   type NotificacaoTipo,
 } from '@/lib/notificacoesInternas';
@@ -307,6 +308,7 @@ function InternaNotificationItem({
   const { rotulo, tom } = apresentacaoDoAviso(notification.tipo);
   const Icone = ICONES_INTERNAS[notification.tipo] ?? Bell;
   const repeticao = textoDaRepeticao(notification.quantidade);
+  const onde = ondeDoAviso(notification.metadata);
 
   return (
     <button
@@ -323,14 +325,20 @@ function InternaNotificationItem({
           <p className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">
             {notification.titulo}
           </p>
+          {/* De que projeto o aviso fala. O texto dele diz "este planejamento",
+              que se entende na conversa do projeto e não aqui. */}
+          {onde && <p className="text-xs text-muted-foreground mt-0.5 truncate">{onde}</p>}
+
           {/*
-            Três linhas, e não duas: com duas, um nome de projeto comprido junto
-            do responsável era cortado no meio de uma palavra ("Os slides j…") e
-            o aviso chegava incompleto. A linha só cresce quando o texto pede,
-            então avisos curtos continuam com a mesma altura de antes.
+            **Sem corte, e respeitando a quebra de linha do texto.** Havia um
+            `line-clamp-2` aqui, e ele cortava o aviso no meio de uma palavra
+            ("Os slides j…"), engolindo a linha do Responsável. Os textos são
+            aprovados pela Patricia, então quem cede é a tela, não a frase: o
+            corpo mais comprido que existe hoje tem 118 caracteres e ocupa quatro
+            linhas, o que não faz parede de texto nenhuma.
           */}
           {notification.corpo && (
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-3">
+            <p className="text-xs text-muted-foreground mt-0.5 whitespace-pre-line">
               {notification.corpo}
             </p>
           )}
