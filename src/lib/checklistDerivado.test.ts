@@ -25,6 +25,7 @@ const item = (overrides: Partial<ItemSolicitacao> = {}): ItemSolicitacao => ({
   sobrescrito: { documento: false, entidade: false, nota: false },
   codigo: 'pf--cpf',
   confidencial: false,
+  modelo: null,
   ...overrides,
 });
 
