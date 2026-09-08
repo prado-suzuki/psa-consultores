@@ -48,27 +48,40 @@ const replayModal: Step = {
 };
 
 /**
- * Abre a aba do cadastro antes do passo, e espera o conteúdo trocar.
+ * Abre a aba do cadastro antes do passo, e só devolve quando o alvo existe.
  *
- * Devolve uma função porque o Joyride chama `before` no momento do passo. Quando
- * a aba já está aberta, resolve na hora: voltar um passo não pisca a tela.
+ * Duas armadilhas moram aqui, e as duas custaram um guia que pulava metade dos
+ * passos. A primeira: `elemento.click()` NÃO troca a aba, porque o Radix ativa
+ * no `mousedown` — daí a sequência de eventos abaixo. A segunda: o conteúdo da
+ * aba monta depois, então esperar um tempo fixo é aposta; aqui se espera o
+ * próprio alvo do passo aparecer, com teto de 2s.
  */
-const abrirAba = (aba: string) => () =>
+const abrirAbaPara = (aba: string, alvo: unknown) => () =>
   new Promise<void>((resolve) => {
     const gatilho = document.querySelector<HTMLElement>(`[data-tour="modal-aba-${aba}"]`);
-    if (!gatilho || gatilho.getAttribute('aria-selected') === 'true') {
-      resolve();
-      return;
+    const jaAberta = !gatilho || gatilho.getAttribute('aria-selected') === 'true';
+    if (gatilho && !jaAberta) {
+      gatilho.focus();
+      gatilho.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+      gatilho.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+      gatilho.click();
     }
-    gatilho.click();
-    window.setTimeout(resolve, 340);
+    const limite = Date.now() + 2000;
+    const esperar = () => {
+      if (typeof alvo !== 'string' || document.querySelector(alvo) || Date.now() > limite) {
+        resolve();
+        return;
+      }
+      window.setTimeout(esperar, 120);
+    };
+    window.setTimeout(esperar, 60);
   });
 
 /** Marca todos os passos de um bloco com a aba que eles precisam. */
 const naAba = (aba: string, passos: PassoDeTour[]): PassoDeTour[] =>
   passos.map((passo) => ({
     ...passo,
-    before: abrirAba(aba),
+    before: abrirAbaPara(aba, passo.target),
     exige: `[data-tour="modal-aba-${aba}"]`,
   }));
 
@@ -125,7 +138,7 @@ const visaoGeral: PassoDeTour[] = [
     target: '[data-tour="modal-aba-contribuintes"]',
     placement: 'bottom',
     title: 'Aba 2 · Contribuintes',
-    content: 'Um cadastro por CNPJ ou CPF. É quem recebe a nota.',
+    content: 'As empresas do grupo, ou a pessoa física quando o cliente é CPF.',
   },
   {
     target: '[data-tour="modal-aba-representantes"]',
@@ -155,7 +168,7 @@ const visaoGeral: PassoDeTour[] = [
     target: '[data-tour="modal-abas"]',
     placement: 'bottom',
     title: 'A ordem importa',
-    content: 'O contribuinte precisa existir antes da OS, e a OS antes do projeto.',
+    content: 'Os contribuintes vêm antes da OS, que escolhe um deles para faturar.',
   },
 ];
 
@@ -180,7 +193,7 @@ const detalheContribuintes = naAba('contribuintes', [
     target: '[data-tour="contrib-lista"]',
     placement: 'top',
     title: 'Um cadastro por documento',
-    content: 'Cada CNPJ ou CPF do grupo é um contribuinte desta lista.',
+    content: 'Cada CNPJ do grupo entra aqui, e o CPF quando o cliente é pessoa física.',
   },
   {
     target: '[data-tour="contrib-lista"]',
@@ -193,6 +206,12 @@ const detalheContribuintes = naAba('contribuintes', [
     placement: 'top',
     title: 'O endereço é obrigatório',
     content: 'CEP, logradouro, bairro, município e UF. Em PJ, também CNAE e Simples.',
+  },
+  {
+    target: '[data-tour="contrib-lista"]',
+    placement: 'top',
+    title: 'Faturar é decisão da OS',
+    content: 'Cadastre todas. Qual delas recebe a nota, cada OS escolhe.',
   },
 ]);
 

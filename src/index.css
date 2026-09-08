@@ -3038,3 +3038,19 @@ All colors MUST be HSL.
   0%, 100% { opacity: .25; transform: translateY(0); }
   50% { opacity: 1; transform: translateY(-3px); }
 }
+
+/* ─── Guia autoguiado dentro de modal ───────────────────────────────────────
+   O `Dialog` do Radix, enquanto está aberto, põe `pointer-events: none` no
+   `body` para travar o resto da página. O tooltip do guia (React Joyride) vive
+   num portal FORA do conteúdo do dialog, então herdava esse `none` e nenhum
+   botão dele clicava: foi exatamente o "o botão Voltar não está funcionando",
+   medido com `getComputedStyle` no app rodando.
+
+   Devolvemos o ponteiro só ao tooltip. O overlay segue inerte de propósito:
+   com ponteiro, ele viraria uma área de clique cobrindo a tela inteira, e um
+   clique distraído fora do balão fecharia o guia. */
+.react-joyride__floater,
+.react-joyride__tooltip {
+  pointer-events: auto !important;
+  z-index: 3001;
+}

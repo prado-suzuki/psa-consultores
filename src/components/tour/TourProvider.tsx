@@ -6,7 +6,7 @@
 // `key={tourAtivo}`, o que garante reset limpo entre tours sem mexer em
 // `reset()`/stepIndex.
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { STATUS, useJoyride, type EventData, type Options, type Step } from 'react-joyride';
 import { TourContext, type TourApi } from './useTour';
@@ -84,37 +84,85 @@ export function TourProvider({
 }) {
   const location = useLocation();
   const [tourAtivo, setTourAtivo] = useState<string | null>(null);
+  const temporizadores = useRef<number[]>([]);
 
-  const startTour = useCallback((id: string) => setTourAtivo(id), []);
+  const limparEspera = useCallback(() => {
+    temporizadores.current.forEach((t) => window.clearTimeout(t));
+    temporizadores.current = [];
+  }, []);
 
-  // Abre uma vez só. `setTourAtivo(atual => atual ?? id)` é o que garante que um
-  // tour em andamento não seja interrompido por outro que acabou de nascer.
+  /**
+   * Abre o tour SÓ quando a tela dele existe.
+   *
+   * Sem esta espera, um guia que abre junto com a tela pega o DOM ainda vazio:
+   * o filtro de âncoras descarta todos os passos, sobra o "Pronto" do fim (que
+   * aponta o "?", já renderizado) e o guia estreia mostrando o último passo, com
+   * o "Voltar" sem para onde ir. Foi assim que ele apareceu no cadastro de
+   * cliente, que leva ~5s carregando. Espera até 10s e desiste calada: guia é
+   * ajuda, não pode virar um erro na cara de quem só queria trabalhar.
+   */
+  const abrirQuandoPronto = useCallback(
+    (id: string, { marcar, forcar }: { marcar: boolean; forcar: boolean }) => {
+      const primeiro = (registro.tours[id] ?? [])[0];
+      const alvo = primeiro?.exige ?? primeiro?.target;
+      const seletor = typeof alvo === 'string' ? alvo : null;
+
+      const tentar = (n: number) => {
+        const pronto = !seletor || !!document.querySelector(seletor);
+        if (pronto) {
+          if (marcar) {
+            if (tourVisto(registro.chave, id)) return;
+            marcarTourVisto(registro.chave, id);
+          }
+          setTourAtivo((atual) => (forcar ? id : (atual ?? id)));
+          return;
+        }
+        if (n >= 50) return;
+        temporizadores.current.push(window.setTimeout(() => tentar(n + 1), 200));
+      };
+      tentar(0);
+    },
+    [registro],
+  );
+
+  const startTour = useCallback(
+    (id: string) => abrirQuandoPronto(id, { marcar: false, forcar: true }),
+    [abrirQuandoPronto],
+  );
+
+  // Abre uma vez só, e a marca de "já viu" só é gasta quando o guia realmente
+  // abre: tela que nunca ficou pronta não consome a única aparição dele.
   const startTourOnce = useCallback(
     (id: string) => {
       if (tourVisto(registro.chave, id)) return;
-      marcarTourVisto(registro.chave, id);
-      setTourAtivo((atual) => atual ?? id);
+      abrirQuandoPronto(id, { marcar: true, forcar: false });
     },
-    [registro],
+    [abrirQuandoPronto, registro],
   );
+
   const startForRoute = useCallback(
     (pathname: string) => {
       const id = registro.resolve(pathname) ?? registro.fallback ?? null;
-      if (id) setTourAtivo(id);
+      if (id) startTour(id);
     },
-    [registro],
+    [registro, startTour],
   );
 
-  // Auto-abre na 1ª visita de cada rota. Marca como visto no momento da abertura
-  // → só auto-abre uma vez. O atraso cobre o carregamento assíncrono da tela.
+  // Auto-abre na 1ª visita de cada rota.
   useEffect(() => {
     const id = registro.resolve(location.pathname);
     if (!id || tourVisto(registro.chave, id)) return;
-    const timer = window.setTimeout(() => startTourOnce(id), 700);
-    return () => window.clearTimeout(timer);
-  }, [location.pathname, registro, startTourOnce]);
+    const timer = window.setTimeout(() => startTourOnce(id), 500);
+    return () => {
+      window.clearTimeout(timer);
+      limparEspera();
+    };
+  }, [location.pathname, registro, startTourOnce, limparEspera]);
 
-  const handleEnd = useCallback(() => setTourAtivo(null), []);
+  const handleEnd = useCallback(() => {
+    limparEspera();
+    setTourAtivo(null);
+  }, [limparEspera]);
 
   /**
    * Só entram os passos cuja âncora já está no DOM. Sem esse filtro, um alvo

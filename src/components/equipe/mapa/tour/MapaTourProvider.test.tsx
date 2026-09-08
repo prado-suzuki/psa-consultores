@@ -107,10 +107,34 @@ describe('MapaTourProvider', () => {
   });
 
   it('marca o tour como visto ao auto-iniciar (só abre uma vez)', () => {
+    mountTargets(TOURS.welcome);
     renderAt(MAPA_BASE);
     act(() => {
       vi.advanceTimersByTime(700);
     });
+    expect(isTourSeen('welcome')).toBe(true);
+  });
+
+  /**
+   * Contrato novo, e é o que consertou o guia estreando no último passo: o
+   * provider espera a âncora do 1º passo aparecer antes de abrir, e enquanto
+   * espera NÃO gasta a marca de "já viu". Tela lenta (o cadastro de cliente leva
+   * ~5s carregando) não pode consumir a única aparição automática do guia.
+   */
+  it('não marca como visto enquanto a tela não existe', () => {
+    renderAt(MAPA_BASE); // sem montar âncora nenhuma
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+    expect(hoisted.calls.length).toBe(0);
+    expect(isTourSeen('welcome')).toBe(false);
+
+    // A tela chega depois: aí sim abre, e aí sim marca.
+    mountTargets(TOURS.welcome);
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(hoisted.calls.find((c) => c.run)).toBeDefined();
     expect(isTourSeen('welcome')).toBe(true);
   });
 
