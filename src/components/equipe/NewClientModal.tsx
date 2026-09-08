@@ -47,6 +47,24 @@ import FaturamentoTab from "./client-form/FaturamentoTab";
 import PropostaTab from "./client-form/PropostaTab";
 import HistoricoTab from "./client-form/HistoricoTab";
 
+/**
+ * Âncora do guia em cada aba, com o nome ESCRITO por extenso.
+ *
+ * Poderia ser `data-tour={`modal-aba-${tab}`}`, e era assim antes: o teste que
+ * confere as âncoras varre o código procurando o literal, e uma âncora montada
+ * por interpolação passa despercebida por ele. Escrever o nome aqui é o que faz
+ * o teste conseguir provar que o passo do guia aponta para algo que existe.
+ */
+const ANCORA_DA_ABA: Record<string, string> = {
+  cliente: 'modal-aba-cliente',
+  contribuintes: 'modal-aba-contribuintes',
+  representantes: 'modal-aba-representantes',
+  contratos: 'modal-aba-contratos',
+  faturamento: 'modal-aba-faturamento',
+  proposta: 'modal-aba-proposta',
+  historico: 'modal-aba-historico',
+};
+
 export default function NewClientModal({
   open, onOpenChange, editingClienteId, readOnly = false, canEdit = true, area,
 }: NewClientModalProps) {
@@ -495,7 +513,7 @@ export default function NewClientModal({
                 <div className="px-6 py-3 bg-black/[0.02] border-b border-border shrink-0">
                   <TabsList data-tour="modal-abas" className={cn("w-full grid bg-black/[0.04] p-1 rounded-lg h-auto", tabsGridClass)}>
                     {visibleTabs.map((tab) => (
-                      <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1.5">
+                      <TabsTrigger key={tab} value={tab} data-tour={ANCORA_DA_ABA[tab]} className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1.5">
                         {tab === "cliente"
                           ? "Dados do Cliente/Grupo"
                           : tab === "contribuintes"
@@ -517,12 +535,12 @@ export default function NewClientModal({
                       </TabsTrigger>
                     ))}
                     {podeVerProposta && (
-                      <TabsTrigger value="proposta" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
+                      <TabsTrigger value="proposta" data-tour="modal-aba-proposta" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
                         <FileSignature size={14} /> Proposta
                       </TabsTrigger>
                     )}
                     {editingClienteId && (
-                      <TabsTrigger value="historico" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
+                      <TabsTrigger value="historico" data-tour="modal-aba-historico" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
                         <History size={14} /> Histórico
                       </TabsTrigger>
                     )}

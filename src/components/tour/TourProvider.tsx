@@ -13,10 +13,23 @@ import { TourContext, type TourApi } from './useTour';
 import { TOUR_LOCALE, TOUR_OPTIONS, TOUR_STYLES } from './tourTheme';
 import { marcarTourVisto, tourVisto } from './tourStorage';
 
+/**
+ * Passo com uma condição própria de entrada.
+ *
+ * `exige` existe para o passo que ABRE o que ele explica: o guia do cadastro
+ * troca de aba sozinho, então a âncora do campo ainda não está no DOM quando o
+ * guia começa. Nesses passos, quem decide se o passo entra é a existência da
+ * ABA (que está sempre na fita), e não a do campo.
+ */
+export type PassoDeTour = Step & {
+  /** Seletor consultado no lugar do alvo, para decidir se o passo entra. */
+  exige?: string;
+};
+
 export interface RegistroDeTour {
   /** Prefixo da chave de localStorage. Um por módulo (ex.: 'taxTourSeen'). */
   chave: string;
-  tours: Record<string, Step[]>;
+  tours: Record<string, PassoDeTour[]>;
   /** Tour da rota, ou null quando aquela rota não tem tour próprio. */
   resolve: (pathname: string) => string | null;
   /** Tour aberto pelo "?" numa rota sem tour próprio. */
@@ -37,7 +50,7 @@ function TourRunner({
   opcoes,
   onEnd,
 }: {
-  passos: Step[];
+  passos: PassoDeTour[];
   opcoes?: Partial<Options>;
   onEnd: () => void;
 }) {
@@ -113,9 +126,10 @@ export function TourProvider({
   const passos = useMemo(() => {
     if (!tourAtivo) return [];
     return (registro.tours[tourAtivo] ?? []).filter((passo) => {
-      if (typeof passo.target !== 'string') return true;
+      const seletor = passo.exige ?? passo.target;
+      if (typeof seletor !== 'string') return true;
       try {
-        return !!document.querySelector(passo.target);
+        return !!document.querySelector(seletor);
       } catch {
         return true;
       }

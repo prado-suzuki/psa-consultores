@@ -1,4 +1,10 @@
-// Tours guiados da Tax: o manual de cadastro dentro da própria ferramenta.
+// Guias autoguiados da Tax: o manual de cadastro dentro da própria ferramenta.
+//
+// DESENHO DO GUIA DO CADASTRO, a pedido dela: primeiro uma passada por TODAS as
+// abas, dizendo o que cada uma é, e só então o detalhe do que fazer em cada uma.
+// Quem troca de aba é o guia, no `before` de cada passo do detalhe: sem isso os
+// passos de Contribuintes e Representantes nem apareciam, porque a âncora deles
+// só existe com aquela aba aberta, e o provider descarta passo sem âncora.
 //
 // A régua da escrita: UMA ideia por passo, no máximo duas linhas. O primeiro
 // desenho juntava as quatro abas, a ordem delas e o que as outras três fazem num
@@ -6,18 +12,13 @@
 // barato, é um clique em "Próximo"; passo comprido, não. O porquê de cada regra
 // continua nos manuais em PDF: o guia aponta, o manual explica.
 //
-// Três tours abrem por ROTA (clientes, tarefas, lote) e três abrem junto com o
-// que eles explicam (o modal de cadastro, a aba de OS, o diálogo de criação),
-// porque as âncoras deles só existem com aquilo aberto. Quem dispara os de
-// modal é o próprio componente, via `startTour`.
-//
-// Os `target` apontam para `[data-tour="…"]`, estáveis e independentes de
-// classe de estilo. Passo cuja âncora não está na tela é descartado pelo
-// provider: é o que faz o mesmo tour servir para líder e para sublíder, que não
-// enxerga a aba de OS.
+// O detalhe da OS não entra aqui, e não é esquecimento: as seções dela só
+// existem com uma OS selecionada e em edição, e um alvo que some no meio do
+// caminho faz o Joyride pular para o último passo. A aba de OS tem o guia dela
+// (`modal-os`), que abre quando a pessoa entra na aba, quando as seções existem.
 
 import type { Step } from 'react-joyride';
-import type { RegistroDeTour } from '@/components/tour/TourProvider';
+import type { PassoDeTour, RegistroDeTour } from '@/components/tour/TourProvider';
 
 export type TaxTourId =
   | 'clientes'
@@ -47,8 +48,33 @@ const replayModal: Step = {
   content: 'Para rever este guia, clique no “?” deste modal.',
 };
 
+/**
+ * Abre a aba do cadastro antes do passo, e espera o conteúdo trocar.
+ *
+ * Devolve uma função porque o Joyride chama `before` no momento do passo. Quando
+ * a aba já está aberta, resolve na hora: voltar um passo não pisca a tela.
+ */
+const abrirAba = (aba: string) => () =>
+  new Promise<void>((resolve) => {
+    const gatilho = document.querySelector<HTMLElement>(`[data-tour="modal-aba-${aba}"]`);
+    if (!gatilho || gatilho.getAttribute('aria-selected') === 'true') {
+      resolve();
+      return;
+    }
+    gatilho.click();
+    window.setTimeout(resolve, 340);
+  });
+
+/** Marca todos os passos de um bloco com a aba que eles precisam. */
+const naAba = (aba: string, passos: PassoDeTour[]): PassoDeTour[] =>
+  passos.map((passo) => ({
+    ...passo,
+    before: abrirAba(aba),
+    exige: `[data-tour="modal-aba-${aba}"]`,
+  }));
+
 // ─── Tela de Clientes ────────────────────────────────────────────────────────
-const clientes: Step[] = [
+const clientes: PassoDeTour[] = [
   {
     target: '[data-tour="clientes-busca"]',
     placement: 'bottom',
@@ -83,7 +109,7 @@ const clientes: Step[] = [
 ];
 
 // ─── Modal em leitura: o que dá para fazer neste estado ──────────────────────
-const modalLeitura: Step[] = [
+const modalLeitura: PassoDeTour[] = [
   {
     target: '[data-tour="modal-abas"]',
     placement: 'bottom',
@@ -99,14 +125,60 @@ const modalLeitura: Step[] = [
   replayModal,
 ];
 
-// ─── Modal de cadastro: as quatro abas ───────────────────────────────────────
-const modalCliente: Step[] = [
+// ─── Cadastro, parte 1: uma passada por todas as abas ────────────────────────
+const visaoGeral: PassoDeTour[] = [
   {
     target: '[data-tour="modal-abas"]',
     placement: 'bottom',
-    title: 'Preencha da esquerda para a direita',
-    content: 'Cliente, Contribuintes, Representantes e OS.',
+    title: 'Primeiro, o mapa',
+    content: 'Uma passada pelas abas, e depois o que fazer em cada uma.',
   },
+  {
+    target: '[data-tour="modal-aba-cliente"]',
+    placement: 'bottom',
+    title: 'Aba 1 · Cliente/Grupo',
+    content: 'Quem é o cliente: nome, categoria e os clusters.',
+  },
+  {
+    target: '[data-tour="modal-aba-contribuintes"]',
+    placement: 'bottom',
+    title: 'Aba 2 · Contribuintes',
+    content: 'Um cadastro por CNPJ ou CPF. É quem recebe a nota.',
+  },
+  {
+    target: '[data-tour="modal-aba-representantes"]',
+    placement: 'bottom',
+    title: 'Aba 3 · Representantes',
+    content: 'Os contatos do cliente, e quem entra no portal de chamados.',
+  },
+  {
+    target: '[data-tour="modal-aba-contratos"]',
+    placement: 'bottom',
+    title: 'Aba 4 · OS',
+    content: 'O contrato: período, produtos, valores e rateio.',
+  },
+  {
+    target: '[data-tour="modal-aba-faturamento"]',
+    placement: 'bottom',
+    title: 'Faturamento não se preenche',
+    content: 'É espelho: mostra o que já foi gravado na OS e no contribuinte.',
+  },
+  {
+    target: '[data-tour="modal-aba-historico"]',
+    placement: 'bottom',
+    title: 'Proposta e Histórico',
+    content: 'A proposta anexada, e quem mexeu no cadastro.',
+  },
+  {
+    target: '[data-tour="modal-abas"]',
+    placement: 'bottom',
+    title: 'A ordem importa',
+    content: 'O contribuinte precisa existir antes da OS, e a OS antes do projeto.',
+  },
+];
+
+// ─── Cadastro, parte 2: o detalhe de cada aba ────────────────────────────────
+const detalheCliente = naAba('cliente', [
   {
     target: '[data-tour="cliente-nome"]',
     placement: 'bottom',
@@ -119,6 +191,9 @@ const modalCliente: Step[] = [
     title: 'Clusters',
     content: 'Obrigatório. É o cluster que decide em qual área o cliente aparece.',
   },
+]);
+
+const detalheContribuintes = naAba('contribuintes', [
   {
     target: '[data-tour="contrib-criar"]',
     placement: 'left',
@@ -128,15 +203,36 @@ const modalCliente: Step[] = [
   {
     target: '[data-tour="contrib-criar"]',
     placement: 'left',
-    title: 'Por que antes da OS',
-    content: 'É o contribuinte que recebe a nota, e a OS escolhe um deles.',
+    title: 'O endereço é obrigatório',
+    content: 'CEP, logradouro, bairro, município e UF. O CEP traz os quatro.',
+  },
+]);
+
+const detalheRepresentantes = naAba('representantes', [
+  {
+    target: '[data-tour="repr-criar"]',
+    placement: 'left',
+    title: 'Nome, cargo e e-mail',
+    content: 'Os três são obrigatórios.',
   },
   {
     target: '[data-tour="repr-criar"]',
     placement: 'left',
-    title: 'Representantes',
-    content: 'Contatos do cliente. A chave “Acesso Chamados” libera o portal.',
+    title: 'Acesso Chamados',
+    content: 'A chave que libera o portal do cliente para aquela pessoa.',
   },
+]);
+
+const detalheOs = naAba('contratos', [
+  {
+    target: '[data-tour="os-criar"]',
+    placement: 'left',
+    title: 'A OS tem guia próprio',
+    content: 'Ele abre sozinho ao entrar nesta aba, e o “?” reabre quando quiser.',
+  },
+]);
+
+const fecharCadastro: PassoDeTour[] = [
   {
     target: '[data-tour="modal-salvar"]',
     placement: 'top',
@@ -152,8 +248,17 @@ const modalCliente: Step[] = [
   replayModal,
 ];
 
+const modalCliente: PassoDeTour[] = [
+  ...visaoGeral,
+  ...detalheCliente,
+  ...detalheContribuintes,
+  ...detalheRepresentantes,
+  ...detalheOs,
+  ...fecharCadastro,
+];
+
 // ─── Modal de cadastro: a aba de OS ──────────────────────────────────────────
-const modalOs: Step[] = [
+const modalOs: PassoDeTour[] = [
   {
     target: '[data-tour="os-criar"]',
     placement: 'left',
@@ -194,7 +299,7 @@ const modalOs: Step[] = [
 ];
 
 // ─── Projetos e tarefas ──────────────────────────────────────────────────────
-const tarefas: Step[] = [
+const tarefas: PassoDeTour[] = [
   {
     target: '[data-tour="tarefas-visoes"]',
     placement: 'bottom',
@@ -217,7 +322,7 @@ const tarefas: Step[] = [
 ];
 
 // ─── Diálogo de criação a partir da OS ───────────────────────────────────────
-const criarProjeto: Step[] = [
+const criarProjeto: PassoDeTour[] = [
   {
     target: '[data-tour="criar-lista-clientes"]',
     placement: 'bottom',
@@ -239,7 +344,7 @@ const criarProjeto: Step[] = [
 ];
 
 // ─── Tela de lote: um cartão por produto ─────────────────────────────────────
-const lote: Step[] = [
+const lote: PassoDeTour[] = [
   {
     target: '[data-tour="lote-equipe"]',
     placement: 'right',

@@ -16,8 +16,12 @@ const fontes = import.meta.glob('../../../../**/*.{tsx,ts}', {
   eager: true,
 }) as Record<string, string>;
 
+// Só `.tsx`, e é isso que dá valor ao teste: âncora mora em JSX, e o arquivo de
+// passos é `.ts`. Varrendo tudo, `target: '[data-tour="x"]'` casava com o padrão
+// de definição e toda âncora citada se "definia" sozinha — o teste não tinha
+// como falhar. Assim, quem responde pela existência da âncora é a tela.
 const codigo = Object.entries(fontes)
-  .filter(([caminho]) => !caminho.includes('.test.'))
+  .filter(([caminho]) => caminho.endsWith('.tsx') && !caminho.includes('.test.'))
   .map(([, src]) => src)
   .join('\n');
 
@@ -28,6 +32,12 @@ for (const m of codigo.matchAll(/(?:data-tour|dataTour)=(?:"([^"]+)"|\{['"]([^'"
 // Âncora condicional, do tipo `data-tour={ancoraDoTour ? 'clientes-seta' : undefined}`:
 // só a primeira linha da lista e o primeiro cartão do lote a recebem.
 for (const m of codigo.matchAll(/ancoraDoTour \? '([a-z-]+)'/g)) {
+  ancorasNoCodigo.add(m[1]);
+}
+// Âncora vinda de mapa: a fita de abas do cadastro aplica
+// `data-tour={ANCORA_DA_ABA[tab]}`, com os nomes escritos por extenso no mapa.
+// Mesmo caso do NAV_TOURS no teste irmão do MAPA.
+for (const m of codigo.matchAll(/['"](modal-aba-[a-z-]+)['"]/g)) {
   ancorasNoCodigo.add(m[1]);
 }
 
