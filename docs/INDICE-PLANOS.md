@@ -129,6 +129,7 @@ o P1 do RLS, e o `color_index`, que uma fila de agosto dava como pendente e em p
 | [`mapa/checklist-melhorias-preenchimento.md`](mapa/checklist-melhorias-preenchimento.md) | ✅ FEITO | Fechado pelo diagnóstico de 31/07. O auto-select inline foi **descartado pela Patrícia** — não reimplementar |
 | [`mapa/2026-07-31-diagnostico-fechamento-tarefas.md`](mapa/2026-07-31-diagnostico-fechamento-tarefas.md) | 📘 REF | O relatório que fechou o checklist acima |
 | [`mapa/relatorio-teste-uso-asis.md`](mapa/relatorio-teste-uso-asis.md) | 📘 REF | Relato de teste de uso |
+| [`geral/guia-autoguiado.md`](geral/guia-autoguiado.md) | 📘 REF | **Normativo e em vigor.** A mecânica do tour saiu do MAPA para `src/components/tour` em 08/09/2026 e hoje atende Tax e MAPA. Quem for dar guia a outra área lê antes: as cinco armadilhas listadas lá não dão erro no console |
 
 ---
 
