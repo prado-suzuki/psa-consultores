@@ -554,8 +554,18 @@ function normaliza(s: string): string {
     .replace(/[^a-z0-9]+/g, '');
 }
 
-/** Quantas linhas de comentário cabem numa caixa do slide, antes de transbordar. */
-const CABEM_NA_CAIXA = 8;
+/**
+ * Quantas LETRAS cabem numa caixa de comentário, no tamanho de fonte do molde.
+ *
+ * **Contar linha não serve.** O que estoura é caractere depois de quebrar: a
+ * caixa de IRPF tinha cinco linhas e 806 letras, e transbordava, enquanto a de
+ * PIS/Cofins tinha seis linhas e 508 letras e cabia.
+ *
+ * **420 e não 500, de propósito.** O PIS/Cofins com 508 letras cabia *no limite*,
+ * então calibrar por ele deixava tudo na borda. Com margem, o encolhimento
+ * acontece um pouco antes e o texto sobra dentro da caixa.
+ */
+export const CABEM_NA_CAIXA = 420;
 
 function montaComentarios(comentarios: ComentarioDaRevisao[]): {
   caixas: { tributo: string; texto: string }[];
@@ -601,13 +611,14 @@ function montaComentarios(comentarios: ComentarioDaRevisao[]): {
       continue;
     }
 
-    if (linhas.length > CABEM_NA_CAIXA) {
+    const letras = linhas.join(' ').length;
+    if (letras > CABEM_NA_CAIXA) {
       problemas.push({
         tipo: 'tipo_inesperado',
         onde: `caixa de ${tributo}`,
         detalhe:
-          `A caixa de ${tributo} saiu com ${linhas.length} linhas e cabem cerca de ` +
-          `${CABEM_NA_CAIXA}. O texto vai transbordar e precisa ser encurtado no PowerPoint.`,
+          `A caixa de ${tributo} saiu com ${letras} letras e cabem cerca de ` +
+          `${CABEM_NA_CAIXA}. A fonte foi reduzida; se ainda transbordar, encurte o texto.`,
       });
     }
     caixas.push({ tributo, texto: linhas.join('\n') });

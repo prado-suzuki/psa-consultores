@@ -29,6 +29,7 @@ import {
 } from '../_shared/ooxml/table.ts';
 import { validatePptx } from '../_shared/ooxml/validate.ts';
 import {
+  CABEM_NA_CAIXA,
   montaDeck,
   type TabelaDoSlide,
   type ComentarioDaRevisao,
@@ -152,6 +153,27 @@ function escreveNaCelula(tc: Element, valor: string, fonte?: string): void {
 }
 
 /**
+ * Encolhe a fonte de um pedaço do slide.
+ *
+ * **É o "reduzir texto ao transbordar" do PowerPoint, feito à mão.** A tabela do
+ * molde cresce quando o conteúdo não cabe, e um slide vazando é entregue como se
+ * estivesse pronto. Aqui a fonte cai na proporção do excesso, com piso: abaixo de
+ * 7pt ninguém lê, e nesse caso o aviso continua valendo e a poda é no PowerPoint.
+ *
+ * Só mexe em `sz` que já existe. Célula que herda o tamanho do tema fica como
+ * está, porque inventar um tamanho onde não havia mudaria o desenho.
+ */
+const PISO_DA_FONTE = 700;
+
+function encolheFonte(no: Element, fator: number): void {
+  for (const rPr of qsa(no, 'a:rPr')) {
+    const atual = Number(rPr.getAttribute('sz') ?? 0);
+    if (!atual) continue;
+    rPr.setAttribute('sz', String(Math.max(PISO_DA_FONTE, Math.round(atual * fator))));
+  }
+}
+
+/**
  * Troca as linhas-modelo pelas linhas de dado.
  *
  * O molde traz uma linha por estilo, com token, e ela é clonada por linha que
@@ -164,6 +186,7 @@ function preencheTabela(
   linhas: LinhaDaTabela[],
   chavesPorEspaco: string[],
   indicesDeValor: number[],
+  cabem: number,
 ): void {
   const modelos = new Map<string, Element>();
   for (const tr of listRows(moldura)) {
@@ -173,6 +196,9 @@ function preencheTabela(
   }
   if (modelos.size === 0) return;
   const primeiro = [...modelos.values()][0];
+
+  /* Proporção do excesso: 25 linhas em 20 de espaço encolhem para 80%. */
+  const fator = cabem > 0 && linhas.length > cabem ? cabem / linhas.length : 1;
 
   for (const linha of linhas) {
     const p =
@@ -193,6 +219,7 @@ function preencheTabela(
       escreveNaCelula(tc, chave ? (linha.valores[chave] ?? '-') : '');
     });
 
+    if (fator < 1) encolheFonte(nova, fator);
     insertRowBefore(nova, primeiro);
   }
   for (const tr of modelos.values()) removeRow(tr);
@@ -274,8 +301,13 @@ function tokensGlobais(deck: Deck): Record<string, string> {
   });
   /* Nomes de contribuinte: o molde tem duas colunas e o WP pode ter uma só. */
   const contribuintes = [...new Set(deck.dre.colunas.map((c) => c.split('|')[1]).filter(Boolean))];
+  /*
+   * **Sem segundo contribuinte, o rótulo dele sai vazio.** Escrever "Pessoa
+   * Jurídica" sobre uma coluna que o estudo não tem promete um dado que não
+   * existe, e quem lê o slide fica procurando o número que falta.
+   */
   t.PF = contribuintes[0] ?? 'Pessoa Física';
-  t.PJ = contribuintes[1] ?? 'Pessoa Jurídica';
+  t.PJ = contribuintes[1] ?? '';
   return t;
 }
 
@@ -312,6 +344,7 @@ function montaPptx(molde: Uint8Array, deck: Deck): { bytes: Uint8Array; avisos: 
       comNivel,
       chavesDosEspacos(daTabela, SLIDES[chave].porAno),
       indices,
+      daTabela.linhas.length - daTabela.transbordou,
     );
     applyTokensToNode(doc.documentElement, globais);
     stripRemainingTokens(doc.documentElement);
@@ -342,17 +375,55 @@ function montaPptx(molde: Uint8Array, deck: Deck): { bytes: Uint8Array; avisos: 
     for (const c of deck.comentarios) {
       tokens[`COM_${c.tributo.replace(/[^A-Za-z]/g, '').toUpperCase()}`] = c.texto;
     }
+
+    /*
+     * A caixa que passou do que cabe encolhe antes de receber o texto, pelo mesmo
+     * critério das tabelas. Cada caixa é encolhida sozinha: uma caixa cheia não
+     * deve diminuir a fonte das outras três.
+     */
+    for (const c of deck.comentarios) {
+      const letras = c.texto.length;
+      if (letras <= CABEM_NA_CAIXA) continue;
+      /*
+       * **Raiz quadrada, e não proporção direta.** A área que o texto ocupa cai
+       * com o QUADRADO do tamanho da fonte: metade da fonte é um quarto da área.
+       * Encolhendo linearmente eu reduzia demais, e a caixa ficava ilegível antes
+       * de precisar.
+       */
+      const fator = Math.sqrt(CABEM_NA_CAIXA / letras);
+      const alvo = `{{COM_${c.tributo.replace(/[^A-Za-z]/g, '').toUpperCase()}}}`;
+      for (const sp of qsa(doc, 'p:sp')) {
+        if (textoDe(sp).includes(alvo)) encolheFonte(sp, fator);
+      }
+    }
+
     applyTokensToNode(doc.documentElement, tokens);
     stripRemainingTokens(doc.documentElement);
     writeText(partes, arquivo, serializeXml(doc));
   }
 
-  /* O rodapé mora no layout, não no slide. */
+  /*
+   * O rodapé mora no layout, não no slide, e o nome do cliente pode ser longo:
+   * "Elefante de Pijama Colchões Industriais Eireli" quebrava em duas linhas e a
+   * segunda saía cortada pela borda. Passando de 28 caracteres a fonte encolhe na
+   * proporção, com o mesmo piso das tabelas.
+   */
+  const CABE_NO_RODAPE = 28;
   for (const caminho of Object.keys(partes)) {
     if (!caminho.startsWith('ppt/slideLayouts/slideLayout')) continue;
     const xml = readText(partes, caminho);
     if (!xml.includes('{{CLIENTE}}')) continue;
-    writeText(partes, caminho, xml.replaceAll('{{CLIENTE}}', globais.CLIENTE));
+
+    const doc = parseXml(xml);
+    if (globais.CLIENTE.length > CABE_NO_RODAPE) {
+      for (const sp of qsa(doc, 'p:sp')) {
+        if (textoDe(sp).includes('{{CLIENTE}}')) {
+          encolheFonte(sp, CABE_NO_RODAPE / globais.CLIENTE.length);
+        }
+      }
+    }
+    applyTokensToNode(doc.documentElement, { CLIENTE: globais.CLIENTE });
+    writeText(partes, caminho, serializeXml(doc));
   }
 
   return { bytes: packPptx(partes), avisos };
@@ -369,7 +440,7 @@ function slug(s: string): string {
     .slice(0, 60);
 }
 
-async function crc32cBase64(bytes: Uint8Array): Promise<string> {
+async function resumoDosBytes(bytes: Uint8Array): Promise<string> {
   /* O checksum do arquivo gerado. `SHA-256` serve: aqui ele identifica o pacote,
    * e não precisa casar com o do GCS como na importação. */
   const hash = await crypto.subtle.digest('SHA-256', bytes);
@@ -514,7 +585,15 @@ serve(async (req) => {
       );
     }
 
-    const { bytes, avisos } = montaPptx(new Uint8Array(await molde.arrayBuffer()), deck);
+    const bytesDoMolde = new Uint8Array(await molde.arrayBuffer());
+    /*
+     * O checksum DO MOLDE, e não do arquivo gerado: é ele que responde "quais
+     * apresentações saíram do deck velho" quando o modelo definitivo chegar.
+     * Sem isso a coluna existiria e nasceria vazia, que é o mesmo que não ter.
+     */
+    const checksumDoMolde = await resumoDosBytes(bytesDoMolde);
+
+    const { bytes, avisos } = montaPptx(bytesDoMolde, deck);
 
     /* Falha estrutural não entrega arquivo: nada sobe e nada é gravado. */
     const problemasDoPacote = validatePptx(unpackPptx(bytes));
@@ -557,8 +636,9 @@ serve(async (req) => {
         storage_path: caminho,
         nome_arquivo: nomeArquivo,
         tamanho: bytes.byteLength,
-        checksum: await crc32cBase64(bytes),
+        checksum: await resumoDosBytes(bytes),
         template_nome: MOLDE,
+        template_checksum: checksumDoMolde,
         versao_do_gerador: VERSAO_DO_GERADOR,
         problemas,
       })
