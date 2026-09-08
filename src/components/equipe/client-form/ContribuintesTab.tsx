@@ -338,6 +338,7 @@ export default function ContribuintesTab({
   return (
     <ListaMestreDetalhe
       titulo={"Contribuintes (" + entities.length + ")"}
+      dataTour="contrib-lista"
       acaoCriar={mostrarCriar && editingEntityId == null ? (
         <Button size="sm" onClick={createEntity} data-tour="contrib-criar" className={cn("gap-1.5 h-7 text-xs", acento.botao)}>
           <Plus size={14} /> Adicionar contribuinte

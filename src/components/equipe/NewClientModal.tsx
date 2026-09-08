@@ -130,21 +130,21 @@ export default function NewClientModal({
    * dela é aberta. As âncoras dos dois só existem com o modal aberto, então o
    * auto-open por rota do provider não alcança nenhum deles.
    *
-   * `isReadOnly` na condição não é detalhe: em leitura o formulário inteiro é
-   * outro (ClienteTab devolve `ReadRow`, a OS devolve `OsLeitura`), e nenhuma
-   * das âncoras existe. Abrir o guia ali mostraria um passo só E gastaria a
-   * flag de "já viu", matando a versão boa antes de ela aparecer uma vez.
-   * Como `isReadOnly` está nas dependências, o guia abre no clique em "Editar",
-   * que é quando a pessoa pode de fato digitar.
+   * O guia do cadastro serve os DOIS modos: as âncoras dele estão na fita de
+   * abas e nas cascas de lista, que existem tanto em leitura quanto em edição.
+   * Foi o contrário disto que ela reclamou: com um guia só para o estado da
+   * tela, as sete abas mostravam sempre os mesmos três passos e ninguém
+   * aprendia o cadastro. O da OS continua exigindo edição, porque as seções
+   * dele não existem em leitura.
    *
    * O atraso cobre a animação de entrada do Dialog: sem ele o Joyride mede a
    * âncora no meio do fade e o tooltip nasce fora de lugar.
    */
   useEffect(() => {
-    if (!open || !temGuia || isReadOnly) return;
+    if (!open || !temGuia) return;
     const timer = window.setTimeout(() => startTourOnce('modal-cliente'), 650);
     return () => window.clearTimeout(timer);
-  }, [open, temGuia, isReadOnly, startTourOnce]);
+  }, [open, temGuia, startTourOnce]);
 
   useEffect(() => {
     if (!open || !temGuia || isReadOnly || activeTab !== 'contratos') return;
@@ -490,10 +490,9 @@ export default function NewClientModal({
             <div className="flex items-center gap-1">
               {temGuia && (
                 <TourTrigger
-                  // Em leitura o formulário é outro e as âncoras de campo não
-                  // existem: o "?" ali abre o guia do próprio estado, que diz
-                  // como sair dele.
-                  tourId={isReadOnly ? "modal-leitura" : activeTab === "contratos" ? "modal-os" : "modal-cliente"}
+                  // O guia da OS só tem o que mostrar com o cadastro em
+                  // edição; no resto, o guia do cadastro, que serve os dois modos.
+                  tourId={activeTab === "contratos" && !isReadOnly ? "modal-os" : "modal-cliente"}
                   dataTour="modal-help"
                   label="Ver o guia deste cadastro"
                   className="p-2 text-gray-400 hover:text-gray-700 hover:bg-muted rounded-full transition-colors"

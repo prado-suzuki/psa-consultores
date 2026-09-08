@@ -286,6 +286,7 @@ export default function ContratosTab({
   return (
     <ListaMestreDetalhe
       titulo={`OS - Ordem de Serviço (${contracts.length})`}
+      dataTour="os-lista"
       acaoCriar={mostrarCriarOs && editingContractId == null ? (
         <Button size="sm" onClick={createOs} disabled={isCreatingOs} data-tour="os-criar" className={cn('gap-1.5 h-7 text-xs', acento.botao)}>
           <Plus size={14} /> {isCreatingOs ? "Criando..." : "Criar nova OS"}

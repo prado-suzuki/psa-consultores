@@ -25,7 +25,6 @@ export type TaxTourId =
   | 'tarefas'
   | 'lote'
   // Abrem com o que explicam:
-  | 'modal-leitura'
   | 'modal-cliente'
   | 'modal-os'
   | 'criar-projeto';
@@ -108,23 +107,6 @@ const clientes: PassoDeTour[] = [
   replay,
 ];
 
-// ─── Modal em leitura: o que dá para fazer neste estado ──────────────────────
-const modalLeitura: PassoDeTour[] = [
-  {
-    target: '[data-tour="modal-abas"]',
-    placement: 'bottom',
-    title: 'O cadastro tem sete abas',
-    content: 'Quatro se preenchem. Faturamento, Proposta e Histórico só mostram.',
-  },
-  {
-    target: '[data-tour="modal-editar"]',
-    placement: 'top',
-    title: 'Está em leitura',
-    content: 'O “Editar” libera o cadastro, e o guia de preenchimento abre junto.',
-  },
-  replayModal,
-];
-
 // ─── Cadastro, parte 1: uma passada por todas as abas ────────────────────────
 const visaoGeral: PassoDeTour[] = [
   {
@@ -195,29 +177,35 @@ const detalheCliente = naAba('cliente', [
 
 const detalheContribuintes = naAba('contribuintes', [
   {
-    target: '[data-tour="contrib-criar"]',
-    placement: 'left',
+    target: '[data-tour="contrib-lista"]',
+    placement: 'top',
     title: 'Um cadastro por documento',
-    content: 'Digite o CNPJ e razão social, CNAE e endereço vêm da consulta.',
+    content: 'Cada CNPJ ou CPF do grupo é um contribuinte desta lista.',
   },
   {
-    target: '[data-tour="contrib-criar"]',
-    placement: 'left',
+    target: '[data-tour="contrib-lista"]',
+    placement: 'top',
+    title: 'O CNPJ preenche sozinho',
+    content: 'Razão social, CNAE e endereço vêm da consulta; o CEP traz o resto.',
+  },
+  {
+    target: '[data-tour="contrib-lista"]',
+    placement: 'top',
     title: 'O endereço é obrigatório',
-    content: 'CEP, logradouro, bairro, município e UF. O CEP traz os quatro.',
+    content: 'CEP, logradouro, bairro, município e UF. Em PJ, também CNAE e Simples.',
   },
 ]);
 
 const detalheRepresentantes = naAba('representantes', [
   {
-    target: '[data-tour="repr-criar"]',
-    placement: 'left',
-    title: 'Nome, cargo e e-mail',
-    content: 'Os três são obrigatórios.',
+    target: '[data-tour="repr-lista"]',
+    placement: 'top',
+    title: 'Os contatos do cliente',
+    content: 'Nome, cargo e e-mail são obrigatórios em cada um.',
   },
   {
-    target: '[data-tour="repr-criar"]',
-    placement: 'left',
+    target: '[data-tour="repr-lista"]',
+    placement: 'top',
     title: 'Acesso Chamados',
     content: 'A chave que libera o portal do cliente para aquela pessoa.',
   },
@@ -225,14 +213,28 @@ const detalheRepresentantes = naAba('representantes', [
 
 const detalheOs = naAba('contratos', [
   {
-    target: '[data-tour="os-criar"]',
-    placement: 'left',
-    title: 'A OS tem guia próprio',
-    content: 'Ele abre sozinho ao entrar nesta aba, e o “?” reabre quando quiser.',
+    target: '[data-tour="os-lista"]',
+    placement: 'top',
+    title: 'A OS é o contrato',
+    content: 'Uma linha por OS: período, produtos contratados, valores e rateio.',
+  },
+  {
+    target: '[data-tour="os-lista"]',
+    placement: 'top',
+    title: 'Ela tem guia próprio',
+    content: 'Com o cadastro em edição, o guia da OS abre ao entrar nesta aba.',
   },
 ]);
 
 const fecharCadastro: PassoDeTour[] = [
+  {
+    // Só existe em leitura, e é o passo que diz como sair dela. Em edição o
+    // filtro do provider descarta este e mantém os dois de baixo.
+    target: '[data-tour="modal-editar"]',
+    placement: 'top',
+    title: 'Para preencher, clique em Editar',
+    content: 'Você está vendo o cadastro em leitura.',
+  },
   {
     target: '[data-tour="modal-salvar"]',
     placement: 'top',
@@ -382,7 +384,6 @@ export const TAX_TOURS: Record<TaxTourId, Step[]> = {
   clientes,
   tarefas,
   lote,
-  'modal-leitura': modalLeitura,
   'modal-cliente': modalCliente,
   'modal-os': modalOs,
   'criar-projeto': criarProjeto,

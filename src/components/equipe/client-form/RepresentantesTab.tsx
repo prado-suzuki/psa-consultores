@@ -170,6 +170,7 @@ export default function RepresentantesTab({
   return (
     <ListaMestreDetalhe
       titulo={`Representantes (${participants.length})`}
+      dataTour="repr-lista"
       acaoCriar={mostrarCriar && editingParticipantId == null ? (
         <Button size="sm" onClick={createParticipant} data-tour="repr-criar" className={cn("gap-1.5 h-7 text-xs", acento.botao)}>
           <Plus size={14} /> Adicionar representante
