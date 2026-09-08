@@ -14,8 +14,15 @@ const item = (
   nota: null,
   entidade: null,
   ordem: null,
+  modelo: null,
   ...extra,
 });
+
+const MODELO = {
+  bucket: 'osg-modelos',
+  path: 'documento-tipo/dre/Modelo_DRE_Projetada.xlsx',
+  nome: 'DRE Projetada (modelo).xlsx',
+};
 
 const doc = (
   id: string,
@@ -64,7 +71,43 @@ describe('montarGruposColeta', () => {
     );
 
     expect(grupos[0].documentos).toEqual([
-      { nome: 'IRPF', instrucao: 'Últimos 3 exercícios, com recibo de entrega' },
+      { nome: 'IRPF', instrucao: 'Últimos 3 exercícios, com recibo de entrega', modelo: null },
+    ]);
+  });
+
+  // Card 4: alguns documentos não são papel que o cliente já tem — são planilhas
+  // que a PSA manda em branco. O modelo vem do catálogo, pela RPC.
+  it('leva o modelo do documento junto, quando o catálogo tem um', () => {
+    const grupos = montarGruposColeta(
+      [item('Planilha de resultado projetado', 'outros', { modelo: MODELO })],
+      [],
+    );
+
+    expect(grupos[3].documentos).toEqual([
+      { nome: 'Planilha de resultado projetado', instrucao: null, modelo: MODELO },
+    ]);
+  });
+
+  it('documento sem modelo fica com modelo nulo, que é o caso comum', () => {
+    const grupos = montarGruposColeta([item('CPF', 'pf')], []);
+
+    expect(grupos[0].documentos[0].modelo).toBeNull();
+  });
+
+  // A junção de repetidos precisa ser CAMPO A CAMPO. O mesmo documento é pedido
+  // uma vez por pessoa, e instrução e modelo podem chegar em ocorrências
+  // diferentes: trocar o objeto inteiro perderia o que a outra já tinha.
+  it('ao juntar repetidos, herda instrução e modelo de ocorrências diferentes', () => {
+    const grupos = montarGruposColeta(
+      [
+        item('Planilha de áreas', 'bens_imoveis', { modelo: MODELO }),
+        item('Planilha de áreas', 'bens_imoveis', { nota: 'Uma linha por fazenda' }),
+      ],
+      [],
+    );
+
+    expect(grupos[2].documentos).toEqual([
+      { nome: 'Planilha de áreas', instrucao: 'Uma linha por fazenda', modelo: MODELO },
     ]);
   });
 
@@ -80,7 +123,9 @@ describe('montarGruposColeta', () => {
       [],
     );
 
-    expect(grupos[0].documentos).toEqual([{ nome: 'CPF', instrucao: 'De todos os sócios' }]);
+    expect(grupos[0].documentos).toEqual([
+      { nome: 'CPF', instrucao: 'De todos os sócios', modelo: null },
+    ]);
   });
 
   // O motivo da EDU-26: a gaveta é a coluna `grupo`, não mais um palpite sobre o

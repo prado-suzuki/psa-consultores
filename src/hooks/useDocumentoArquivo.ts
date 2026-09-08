@@ -11,6 +11,7 @@ import type { Database } from '@/integrations/supabase/types';
 // Só o tipo: as chaves dos 4 grupos são definidas em agrupadorDocumentos, que é
 // a fonte única. O import é `type` dos dois lados, então o ciclo some no build.
 import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
+import type { ModeloDocumento } from '@/lib/solicitacao';
 import { computeFieldDiff } from '@/lib/diffUtils';
 
 /**
@@ -504,6 +505,14 @@ export interface SolicitacaoItemCliente {
   nota: string | null;
   entidade: string | null;
   ordem: number | null;
+  /**
+   * O modelo em branco que a PSA manda junto, quando existe (card 4).
+   *
+   * Chega montado pela RPC, com `bucket`, `path` e `nome` — e SÓ do catálogo,
+   * nunca do tipo avulso: o modelo é fixo para todos os clientes. Nulo é o caso
+   * comum, e é o que faz a tela não mostrar botão nenhum.
+   */
+  modelo: ModeloDocumento | null;
 }
 
 /** EDU-24: cabeçalho da solicitação enviada. Nulo quando não há pedido enviado. */

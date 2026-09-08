@@ -2,6 +2,7 @@ import { ChevronDown, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { BotaoModelo } from '@/components/shared/BotaoModelo';
 import { GRUPOS_DOCUMENTO } from '@/lib/agrupadorDocumentos';
 import {
   findAvailableCatalogDocuments,
@@ -119,9 +120,18 @@ export function DocumentGroups({
                         {groupDocuments.map((document) => (
                           <div key={document.id} className={documentRowCls}>
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-foreground">
-                                {document.title}
-                              </p>
+                              {/* O chip fica FORA do rail de ações e fora do guard de
+                                  somente-leitura: baixar o modelo é consulta, não
+                                  edição, e o analista precisa dele também num pedido
+                                  já encerrado. Ao lado do título, e não à direita,
+                                  porque é atributo do documento — a direita da linha
+                                  pertence às ações. */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-sm font-medium text-foreground">
+                                  {document.title}
+                                </p>
+                                <BotaoModelo modelo={document.modelo} tom="osg" />
+                              </div>
                               <p className="mt-0.5 max-w-3xl text-xs leading-relaxed text-muted-foreground">
                                 {document.note || 'Sem orientação adicional.'}
                               </p>
@@ -169,7 +179,13 @@ export function DocumentGroups({
                               className="flex items-start gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-white"
                             >
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm text-foreground">{document.title}</p>
+                                {/* Também nos opcionais: é aqui que o analista decide
+                                    incluir, e saber que o documento vem com formulário
+                                    pronto faz parte da decisão. */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="text-sm text-foreground">{document.title}</p>
+                                  <BotaoModelo modelo={document.modelo} tom="osg" />
+                                </div>
                                 {document.note && (
                                   <p className="mt-0.5 line-clamp-2 max-w-3xl text-xs leading-relaxed text-muted-foreground">
                                     {document.note}

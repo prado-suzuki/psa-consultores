@@ -80,6 +80,9 @@ function paraExibicao(item: ItemSolicitacao): DisplayDocument {
     note: item.nota ?? '',
     grupo: item.grupo,
     granularidade: item.granularidade,
+    // Vem resolvido do catálogo pelo `resolverItem`, na mesma herança do texto:
+    // o modelo é do tipo de documento, nunca da linha deste cliente.
+    modelo: item.modelo,
   };
 }
 

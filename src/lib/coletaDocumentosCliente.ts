@@ -14,6 +14,7 @@ import {
   type GrupoDocumento,
   type GrupoDocumentoKey,
 } from '@/lib/agrupadorDocumentos';
+import type { ModeloDocumento } from '@/lib/solicitacao';
 
 /**
  * Um documento pedido, do jeito que a gaveta mostra.
@@ -25,6 +26,13 @@ import {
 export interface DocumentoPedido {
   nome: string;
   instrucao: string | null;
+  /**
+   * A planilha em branco que a PSA manda junto, quando existe (card 4).
+   *
+   * Vem do CATÁLOGO pela RPC, então é a mesma para todos os clientes e para todas
+   * as ocorrências do mesmo documento. Nulo é o caso comum.
+   */
+  modelo: ModeloDocumento | null;
 }
 
 export interface GrupoColeta extends GrupoDocumento {
@@ -56,8 +64,18 @@ export function montarGruposColeta(
   for (const item of itens) {
     const porNome = pedidosPorGrupo.get(item.grupo) ?? new Map<string, DocumentoPedido>();
     const jaVisto = porNome.get(item.documento);
-    if (!jaVisto || (!jaVisto.instrucao && item.nota)) {
-      porNome.set(item.documento, { nome: item.documento, instrucao: item.nota });
+    if (!jaVisto) {
+      porNome.set(item.documento, {
+        nome: item.documento,
+        instrucao: item.nota,
+        modelo: item.modelo,
+      });
+    } else {
+      // Campo a campo, e não substituindo o objeto inteiro: instrução e modelo
+      // podem vir de ocorrências diferentes do mesmo documento (uma por pessoa,
+      // uma por matrícula), e trocar o objeto perderia o que a outra já tinha.
+      if (!jaVisto.instrucao && item.nota) jaVisto.instrucao = item.nota;
+      if (!jaVisto.modelo && item.modelo) jaVisto.modelo = item.modelo;
     }
     pedidosPorGrupo.set(item.grupo, porNome);
   }
