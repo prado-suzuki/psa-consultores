@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useAuth } from '@/contexts/AuthContext';
 import { subirArquivoGcs } from '@/hooks/useDocumentoArquivo';
 import { supabase } from '@/integrations/supabase/client';
 import { crc32cBase64 } from '@/lib/planejamento-tributario/crc32c';
@@ -45,6 +46,8 @@ export interface EstudoDoCliente {
   id: string;
   cliente_id: string;
   ordem_servico_id: string | null;
+  /** O projeto da OS a que este planejamento pertence. Nulo nos antigos. */
+  projeto_id: string | null;
   descricao: string | null;
   created_at: string;
 }
@@ -90,7 +93,7 @@ export function useEstudosDoCliente(clienteId: string | null) {
     queryFn: async (): Promise<EstudoDoCliente[]> => {
       const { data, error } = await supabase
         .from('wp_estudo')
-        .select('id, cliente_id, ordem_servico_id, descricao, created_at')
+        .select('id, cliente_id, ordem_servico_id, projeto_id, descricao, created_at')
         .eq('cliente_id', clienteId as string)
         .eq('excluido', false)
         .order('created_at', { ascending: false });
@@ -428,7 +431,7 @@ export interface ResultadoDaGeracao {
   versao: number;
   nomeArquivo: string;
   url: string | null;
-  problemas: { tipo: string; onde: string; detalhe: string }[];
+  problemas: { tipo: 'formatacao' | 'origem'; onde: string; detalhe: string }[];
 }
 
 /**
@@ -480,6 +483,128 @@ export function useBaixarApresentacao() {
       if (error) throw error;
       if (!data?.signedUrl) throw new Error('Não consegui gerar o link do arquivo.');
       return data.signedUrl;
+    },
+  });
+}
+
+/** Um projeto da OS, para o analista dizer a qual deles o papel de trabalho é. */
+export interface ProjetoDaOrdemDeServico {
+  id: string;
+  name: string;
+  status: string | null;
+  /**
+   * Se quem está usando a tela pode ligar o papel de trabalho a este projeto.
+   *
+   * **Sem isto o modal oferece projeto que a função vai recusar**, e o preço é
+   * uma revisão gravada sem vínculo. A regra é a mesma da função: ser líder,
+   * responsável ou membro. O projeto continua aparecendo na lista, marcado, em
+   * vez de desaparecer: esconder faria a pessoa achar que a OS tem menos
+   * projetos do que tem.
+   */
+  podeVincular: boolean;
+}
+
+/**
+ * Os projetos de uma ordem de serviço.
+ *
+ * **Uma OS tem vários projetos**, e é justamente isso que a PT-04 conserta: o
+ * Agro Amazônia tem Planejamento Tributário, Recuperação de Créditos e
+ * Levantamento de Créditos na mesma OS, e ninguém sabia a qual deles o papel de
+ * trabalho pertencia. Sem esta lista o aviso teria de ir para todos.
+ */
+export function useProjetosDaOrdemDeServico(ordemServicoId: string | null) {
+  const { user } = useAuth();
+  const meuId = user?.id ?? null;
+
+  return useQuery({
+    queryKey: ['org_projects_da_os', ordemServicoId, meuId],
+    enabled: !!ordemServicoId,
+    queryFn: async (): Promise<ProjetoDaOrdemDeServico[]> => {
+      const { data, error } = await supabase
+        .from('org_projects')
+        .select('id, name, status, leader_id, responsible_id, org_project_members(user_id)')
+        .eq('ordem_servico_id', ordemServicoId as string)
+        .order('name');
+      if (error) throw error;
+
+      return (data ?? []).map((p) => {
+        const membros = (p.org_project_members ?? []) as { user_id: string | null }[];
+        return {
+          id: p.id,
+          name: p.name,
+          status: p.status,
+          podeVincular:
+            meuId !== null &&
+            (p.leader_id === meuId ||
+              p.responsible_id === meuId ||
+              membros.some((m) => m.user_id === meuId)),
+        };
+      });
+    },
+  });
+}
+
+/** O que a função devolve: o vínculo feito e quanta gente foi avisada. */
+export interface VinculoDoProjeto {
+  projeto_id: string;
+  projeto: string;
+  versao: number;
+  eventos: number;
+  sinos: number;
+}
+
+/**
+ * Liga o planejamento a um projeto da OS, e avisa aquele projeto.
+ *
+ * **Passa por função, e não por `update` direto, por causa da regra de escrita.**
+ * A coluna `projeto_id` fica sob a policy herdada da PT-02, que é `team_member+`
+ * com cliente visível: qualquer pessoa do cluster mexia no planejamento de um
+ * projeto que não é dela. Testando com a identidade da `bi@` isso ficou claro. A
+ * regra combinada é estar LIGADO AO PROJETO, como líder, responsável ou membro,
+ * e ela vive dentro da função.
+ *
+ * **O aviso sai de lá também.** Um evento na thread do projeto, que o Feed
+ * mostra por ser a vista da mesma tabela, e um sino por pessoa ligada ao
+ * projeto, tirando quem subiu. Idempotente por revisão: retry não duplica.
+ *
+ * **Escrever é passo separado da importação, e não é descuido.** A RPC de
+ * importar cria o planejamento quando ele não existe, então na primeira revisão
+ * o id só existe depois dela voltar. E na segunda o vínculo já existe e o que se
+ * faz é confirmar ou trocar, que é escrita de qualquer jeito.
+ */
+export function useVincularProjetoAoPlanejamento() {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async (args: {
+      estudoId: string;
+      projetoId: string;
+      importacaoId: string;
+      clienteId: string;
+      nomeDoProjeto: string;
+    }): Promise<VinculoDoProjeto> => {
+      const { data, error } = await supabase.rpc('vincular_planejamento_ao_projeto', {
+        _estudo_id: args.estudoId,
+        _projeto_id: args.projetoId,
+        _importacao_id: args.importacaoId,
+      });
+      if (error) throw error;
+      return data as unknown as VinculoDoProjeto;
+    },
+
+    onSuccess: async (vinculo, args) => {
+      await logAction({
+        area: 'dev',
+        entity_type: 'wp_estudo',
+        entity_id: args.estudoId,
+        entity_name: vinculo.projeto,
+        action: 'updated',
+        details:
+          `Planejamento vinculado ao projeto "${vinculo.projeto}". ` +
+          `Avisos: ${vinculo.eventos} na conversa do projeto, ${vinculo.sinos} pessoa(s) notificada(s).`,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['wp_estudo', args.clienteId] });
     },
   });
 }

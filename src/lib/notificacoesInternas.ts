@@ -60,8 +60,8 @@ export interface ApresentacaoDoAviso {
 }
 
 const PRIMARIO = 'bg-primary/10 text-primary';
-const ROXO ='bg-purple-100 text-purple-700';
-const VERDE ='bg-emerald-100 text-emerald-700';
+const ROXO = 'bg-purple-100 text-purple-700';
+const VERDE = 'bg-emerald-100 text-emerald-700';
 const VERMELHO = 'bg-destructive text-destructive-foreground';
 const AMBAR = 'bg-amber-500 text-white';
 
@@ -113,6 +113,13 @@ const APRESENTACAO: Record<NotificacaoTipo, ApresentacaoDoAviso> = {
   // 02/09/2026, em docs/geral/avisos-prazo-tarefa.md.
   tarefa_prazo_proximo: { rotulo: 'Prazo de tarefa', tom: AMBAR },
   tarefa_atrasada: { rotulo: 'Tarefa atrasada', tom: VERMELHO },
+  /*
+   * PT-04. Um tipo só no sino, porque o título vem como parâmetro na
+   * `criar_notificacao` e muda entre primeira importação e revisão seguinte. O
+   * rótulo aqui é o do grupo, que é o que aparece quando o sino agrupa avisos do
+   * mesmo projeto.
+   */
+  papel_de_trabalho_importado: { rotulo: 'Papel de trabalho', tom: PRIMARIO },
 };
 
 const PADRAO: ApresentacaoDoAviso = { rotulo: 'Aviso', tom: PRIMARIO };

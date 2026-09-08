@@ -22,10 +22,19 @@ const mocks = vi.hoisted(() => ({
       data_fim: null,
     },
   ],
-  estudos: [] as Array<{ id: string; ordem_servico_id: string | null }>,
+  estudos: [] as Array<{
+    id: string;
+    ordem_servico_id: string | null;
+    projeto_id?: string | null;
+  }>,
   revisoes: [] as unknown[],
+  projetos: [
+    { id: 'prj-1', name: 'Planejamento Tributário', status: 'active', podeVincular: true },
+    { id: 'prj-2', name: 'Recuperação de Créditos', status: 'active', podeVincular: true },
+  ],
   gravar: vi.fn(),
   descartar: vi.fn(),
+  vincular: vi.fn(),
   isAdmin: false,
 }));
 
@@ -43,6 +52,8 @@ vi.mock('@/hooks/useDomainPapelDeTrabalho', () => ({
   useRevisoesDoEstudo: () => ({ data: mocks.revisoes, isLoading: false }),
   useImportarPapelDeTrabalho: () => ({ mutateAsync: mocks.gravar, isPending: false }),
   useDescartarRevisao: () => ({ mutate: mocks.descartar, isPending: false }),
+  useProjetosDaOrdemDeServico: () => ({ data: mocks.projetos, isLoading: false }),
+  useVincularProjetoAoPlanejamento: () => ({ mutateAsync: mocks.vincular, isPending: false }),
 }));
 
 vi.mock('@/hooks/use-toast', () => ({ toast: vi.fn() }));
@@ -57,6 +68,7 @@ vi.mock('@/components/equipe/dev/DevLayout', () => ({
 }));
 
 import PapelDeTrabalho, { Revisoes } from '@/pages/equipe/dev/PapelDeTrabalho';
+import { EscolhaDoProjeto } from '@/components/equipe/dev/planejamento-tributario/EscolhaDoProjeto';
 
 /**
  * Confere a tela de conferência do WP.
@@ -105,7 +117,7 @@ describe('PapelDeTrabalho', () => {
 
     expect(screen.getByRole('heading', { name: 'Papel de Trabalho' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Escolher o WP/ })).toBeInTheDocument();
-    expect(screen.getByText(/Escolha o papel de trabalho do estudo/)).toBeInTheDocument();
+    expect(screen.getByText(/Escolha o papel de trabalho do planejamento/)).toBeInTheDocument();
   });
 
   /* A promessa que a tela faz, e que sustenta o preview: nada sai daqui. */
@@ -233,7 +245,9 @@ describe('PapelDeTrabalho', () => {
 
     /* A fixture não traz cabeçalho, então cai no intervalo simples. */
     expect(screen.getByText('2026 a 2032')).toBeInTheDocument();
-    expect(screen.getByText('De onde vieram os números')).toBeInTheDocument();
+    expect(screen.getByText('Abas que trouxeram números')).toBeInTheDocument();
+    /* E o rótulo dos anos diz de que anos se trata, em vez de só "Anos". */
+    expect(screen.getByText('Exercícios lidos na planilha')).toBeInTheDocument();
     expect(screen.queryByText('Cenários')).not.toBeInTheDocument();
   });
 
@@ -294,7 +308,7 @@ describe('PapelDeTrabalho', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /Começar de novo/ }));
 
-    expect(screen.getByText(/Escolha o papel de trabalho do estudo/)).toBeInTheDocument();
+    expect(screen.getByText(/Escolha o papel de trabalho do planejamento/)).toBeInTheDocument();
     expect(screen.queryByText('O que vai para a apresentação')).not.toBeInTheDocument();
   });
 
@@ -365,5 +379,256 @@ describe('PapelDeTrabalho', () => {
       );
       confirmar.mockRestore();
     });
+  });
+});
+
+/*
+ * O modal do projeto, que e o coracao da PT-04.
+ *
+ * Uma OS tem varios projetos, e antes disso o planejamento se prendia so a OS:
+ * ninguem sabia de qual projeto o papel de trabalho era, e o aviso teria de ir
+ * para todos. O que estes casos prendem e que a pergunta acontece, que ela nao
+ * aceita resposta vazia, e que gravar sem responder nao existe.
+ */
+describe('PapelDeTrabalho, a escolha do projeto', () => {
+  function preparaComArquivoAceito() {
+    mocks.estudos = [{ id: 'est-1', ordem_servico_id: 'os-1', projeto_id: null }];
+    render(<PapelDeTrabalho />);
+    escolhe(fixture('bens-e-dividas'), 'WP.xlsx');
+  }
+
+  /*
+   * O que este caso realmente prova: o modal NAO aparece sozinho. Ele guarda
+   * contra abrir no carregamento, que atrapalharia quem só quer conferir a
+   * planilha sem gravar. A abertura pelo botão depende de escolher cliente e OS
+   * em `Select` do Radix, que não se opera em jsdom, e está coberta pelos casos
+   * do próprio modal abaixo.
+   */
+  it('o modal não aparece antes de a pessoa mandar gravar', async () => {
+    preparaComArquivoAceito();
+    await waitFor(() =>
+      expect(screen.getByText('O que vai para a apresentação')).toBeInTheDocument(),
+    );
+
+    expect(
+      screen.queryByText(/A que projeto este papel de trabalho pertence/),
+    ).not.toBeInTheDocument();
+    expect(mocks.gravar).not.toHaveBeenCalled();
+  });
+
+  it('o modal lista os projetos daquela OS', () => {
+    render(
+      <EscolhaDoProjeto
+        aberto
+        onFechar={() => {}}
+        ordemServicoId="os-1"
+        projetoAtual={null}
+        gravando={false}
+        onConfirmar={() => {}}
+      />,
+    );
+
+    expect(screen.getByText(/A que projeto este papel de trabalho pertence/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Projeto/)).toBeInTheDocument();
+  });
+
+  /* Confirmar sem escolher gravaria uma revisão sem a quem avisar, que é
+   * exatamente o problema que a PT-04 existe para acabar. */
+  it('não deixa confirmar sem escolher projeto', () => {
+    render(
+      <EscolhaDoProjeto
+        aberto
+        onFechar={() => {}}
+        ordemServicoId="os-1"
+        projetoAtual={null}
+        gravando={false}
+        onConfirmar={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /Gravar a revisão/ })).toBeDisabled();
+  });
+
+  it('devolve o projeto escolhido, e não só o id', async () => {
+    const confirmou = vi.fn();
+    render(
+      <EscolhaDoProjeto
+        aberto
+        onFechar={() => {}}
+        ordemServicoId="os-1"
+        projetoAtual="prj-2"
+        gravando={false}
+        onConfirmar={confirmou}
+      />,
+    );
+
+    /* Vem pré-selecionado com o que já está ligado, então confirmar já funciona. */
+    const botao = screen.getByRole('button', { name: /Gravar a revisão/ });
+    expect(botao).toBeEnabled();
+    fireEvent.click(botao);
+
+    await waitFor(() => expect(confirmou).toHaveBeenCalledTimes(1));
+    expect(confirmou.mock.calls[0][0]).toMatchObject({
+      id: 'prj-2',
+      name: 'Recuperação de Créditos',
+    });
+  });
+
+  /*
+   * Trocar o projeto de um planejamento que já tem um é permitido, porque errar
+   * na primeira revisão não pode virar sentença. O que a tela deve é dizer o que
+   * muda: as revisões antigas ficam, o aviso desta em diante vai para o novo.
+   */
+  it('avisa quando está trocando o projeto', async () => {
+    render(
+      <EscolhaDoProjeto
+        aberto
+        onFechar={() => {}}
+        ordemServicoId="os-1"
+        projetoAtual="prj-1"
+        gravando={false}
+        onConfirmar={() => {}}
+      />,
+    );
+
+    /* Começa no que está ligado, então não há troca e não há aviso. */
+    expect(screen.queryByText(/Você está trocando o projeto/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText(/Projeto/));
+    fireEvent.click(await screen.findByRole('option', { name: 'Recuperação de Créditos' }));
+
+    expect(await screen.findByText(/Você está trocando o projeto/)).toBeInTheDocument();
+  });
+
+  it('quando a OS não tem projeto, diz o que fazer', () => {
+    mocks.projetos = [];
+    render(
+      <EscolhaDoProjeto
+        aberto
+        onFechar={() => {}}
+        ordemServicoId="os-1"
+        projetoAtual={null}
+        gravando={false}
+        onConfirmar={() => {}}
+      />,
+    );
+
+    expect(
+      screen.getByText(/Nenhum projeto foi cadastrado nesta ordem de serviço/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Gravar a revisão/ })).toBeDisabled();
+  });
+});
+
+/*
+ * O que a PT-04 acrescentou na tela depois que o vinculo passou a avisar.
+ */
+describe('PapelDeTrabalho, o aviso do projeto', () => {
+  /*
+   * Planejamento sem projeto nao avisa ninguem. Antes disso a tela nao dizia, e
+   * existia um planejamento assim com revisao importada: o trabalho entrava e
+   * nao chegava a projeto nenhum, sem ninguem saber.
+   */
+  it('avisa quando o planejamento não está ligado a projeto nenhum', () => {
+    mocks.revisoes = [
+      {
+        id: 'rev-1',
+        versao: 1,
+        nome_original: 'WP.xlsx',
+        cliente_no_wp: null,
+        ano_inicial: null,
+        ano_final: null,
+        versao_do_mapa: '1.4',
+        problemas: 0,
+        created_at: '2026-09-08T12:00:00Z',
+      },
+    ];
+    render(<Revisoes estudoId="est-1" semProjeto />);
+
+    expect(screen.getByText(/não está ligado a nenhum projeto da OS/)).toBeInTheDocument();
+    expect(screen.getByText(/Na próxima importação a tela pergunta/)).toBeInTheDocument();
+  });
+
+  /* Com projeto o aviso nao aparece: ele existe para o caso que precisa de acao. */
+  it('não avisa quando o planejamento tem projeto', () => {
+    mocks.revisoes = [
+      {
+        id: 'rev-1',
+        versao: 1,
+        nome_original: 'WP.xlsx',
+        cliente_no_wp: null,
+        ano_inicial: null,
+        ano_final: null,
+        versao_do_mapa: '1.4',
+        problemas: 0,
+        created_at: '2026-09-08T12:00:00Z',
+      },
+    ];
+    render(<Revisoes estudoId="est-1" />);
+
+    expect(screen.queryByText(/não está ligado a nenhum projeto/)).not.toBeInTheDocument();
+  });
+
+  /* Sem revisao o aviso tambem nao aparece: nao ha trabalho para deixar de
+   * avisar, e a tela ja diz que a primeira importacao cria o planejamento. */
+  it('não avisa quando ainda não há revisão', () => {
+    mocks.revisoes = [];
+    render(<Revisoes estudoId="est-1" semProjeto />);
+
+    expect(screen.queryByText(/não está ligado a nenhum projeto/)).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * O modal nao pode oferecer projeto que a funcao vai recusar.
+ *
+ * Aconteceu de verdade em 08/09: o modal listou "Teste ponta a ponta", que e do
+ * Alexandre, o Eduardo escolheu, a revisao gravou e o vinculo foi recusado. A
+ * regra estava certa; o fluxo deixava andar ate a parede.
+ */
+describe('EscolhaDoProjeto, projeto de outra pessoa', () => {
+  it('marca o projeto em que a pessoa não está, e não deixa escolher', async () => {
+    mocks.projetos = [
+      { id: 'prj-1', name: 'Planejamento Tributário', status: 'active', podeVincular: true },
+      { id: 'prj-2', name: 'Teste ponta a ponta', status: 'active', podeVincular: false },
+    ];
+    render(
+      <EscolhaDoProjeto
+        aberto
+        onFechar={() => {}}
+        ordemServicoId="os-1"
+        projetoAtual={null}
+        gravando={false}
+        onConfirmar={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText(/Projeto/));
+    const indisponivel = await screen.findByRole('option', { name: /Teste ponta a ponta/ });
+    expect(indisponivel).toHaveTextContent('você não está neste projeto');
+    expect(indisponivel).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  /* Quando NENHUM projeto da OS é dela, o modal diz o que fazer em vez de
+   * mostrar uma lista inteira que não serve. */
+  it('quando nenhum projeto é da pessoa, diz o que fazer', () => {
+    mocks.projetos = [
+      { id: 'prj-2', name: 'Teste ponta a ponta', status: 'active', podeVincular: false },
+    ];
+    render(
+      <EscolhaDoProjeto
+        aberto
+        onFechar={() => {}}
+        ordemServicoId="os-1"
+        projetoAtual={null}
+        gravando={false}
+        onConfirmar={() => {}}
+      />,
+    );
+
+    expect(
+      screen.getByText(/Você não está em nenhum dos projetos desta ordem/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Gravar a revisão/ })).toBeDisabled();
   });
 });
