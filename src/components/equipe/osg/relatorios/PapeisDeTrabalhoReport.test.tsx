@@ -110,7 +110,7 @@ describe('PapeisDeTrabalhoReport', () => {
       versao: 1,
       nomeArquivo: 'PSA_Tributario.pptx',
       url: null,
-      problemas: [{ tipo: 'x', onde: 'DRE', detalhe: 'Vai ser preciso tirar 5 linhas.' }],
+      problemas: [{ tipo: 'formatacao' as const, onde: 'DRE', detalhe: 'Não cabe: 25 linhas para 20 de espaço.' }],
     });
 
     render(<PapeisDeTrabalhoReport clienteId="cli-1" />);
@@ -119,8 +119,36 @@ describe('PapeisDeTrabalhoReport', () => {
     await waitFor(() =>
       expect(screen.getByText('Um ponto para ajustar no PowerPoint')).toBeInTheDocument(),
     );
-    expect(screen.getByText('Vai ser preciso tirar 5 linhas.')).toBeInTheDocument();
+    expect(screen.getByText('Não cabe: 25 linhas para 20 de espaço.')).toBeInTheDocument();
     expect(mocks.gerar).toHaveBeenCalledWith('rev-1');
+  });
+
+  /*
+   * Enquanto o molde é provisório, aviso de origem não é retoque: ninguém vai
+   * mapear célula no PowerPoint. Ele continua gravado, só não polui a lista.
+   */
+  it('não mostra aviso de origem enquanto o molde é provisório', async () => {
+    mocks.estudos = [{ id: 'est-1', descricao: null, created_at: '2026-09-01T12:00:00Z' }];
+    mocks.revisoes = [UMA_REVISAO];
+    mocks.gerar.mockResolvedValue({
+      apresentacaoId: 'ap-1',
+      versao: 1,
+      nomeArquivo: 'PSA_Tributario.pptx',
+      url: null,
+      problemas: [
+        { tipo: 'origem' as const, onde: 'slide', detalhe: 'Sai como traço: a origem dela no WP nunca foi mapeada.' },
+        { tipo: 'formatacao' as const, onde: 'DRE', detalhe: 'Não cabe: 25 linhas para 20 de espaço.' },
+      ],
+    });
+
+    render(<PapeisDeTrabalhoReport clienteId="cli-1" />);
+    fireEvent.click(screen.getByRole('button', { name: /Gerar os slides/ }));
+
+    await waitFor(() =>
+      expect(screen.getByText('Não cabe: 25 linhas para 20 de espaço.')).toBeInTheDocument(),
+    );
+    expect(screen.getByText('Um ponto para ajustar no PowerPoint')).toBeInTheDocument();
+    expect(screen.queryByText(/nunca foi mapeada/)).not.toBeInTheDocument();
   });
 
   /* A tela manda o id da revisão e mais nada: é o que impede número de tela

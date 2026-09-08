@@ -395,6 +395,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  {
+    page_path: '/equipe/dev/planejamento-tributario/gerador-de-slides',
+    page_name: 'Gerador de Slides',
+    page_description: 'Gerar a secao tributaria da apresentacao a partir do papel de trabalho',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 
   // =============================================
   // === MAPA PAGES (Mapeamento de Processos OSG) ===

@@ -167,6 +167,7 @@ const Relatorios = lazy(() => import("./pages/equipe/osg/Relatorios"));
 const OsgAuditoria = lazy(() => import("./pages/equipe/osg/OsgAuditoria"));
 const OrgaosGovernanca = lazy(() => import('./pages/equipe/osg/OrgaosGovernanca'));
 const PapelDeTrabalho = lazy(() => import('./pages/equipe/dev/PapelDeTrabalho'));
+const GeradorDeSlides = lazy(() => import('./pages/equipe/dev/GeradorDeSlides'));
 const PlanejamentoTributarioHub = lazy(() => import('./pages/equipe/dev/PlanejamentoTributarioHub'));
 import { BoardClusterProvider } from "./contexts/BoardClusterContext";
 const BoardDashboard = lazy(() => import("./pages/equipe/board/BoardDashboard"));
@@ -296,6 +297,7 @@ const App = () => (
               <Route path="/equipe/dev/apuracao-difal/icms-saidas" element={<PageAccessGate pagePath="/equipe/dev/apuracao-difal/icms-saidas"><IcmsSaidas /></PageAccessGate>} />
                     <Route path="/equipe/dev/planejamento-tributario" element={ <PageAccessGate pagePath="/equipe/dev/planejamento-tributario"> <PlanejamentoTributarioHub /> </PageAccessGate> } />
                     <Route path="/equipe/dev/planejamento-tributario/papel-de-trabalho" element={ <PageAccessGate pagePath="/equipe/dev/planejamento-tributario/papel-de-trabalho"> <PapelDeTrabalho /> </PageAccessGate> } />
+                    <Route path="/equipe/dev/planejamento-tributario/gerador-de-slides" element={ <PageAccessGate pagePath="/equipe/dev/planejamento-tributario/gerador-de-slides"> <GeradorDeSlides /> </PageAccessGate> } />
               <Route path="/equipe/acessos" element={<AdminRoute><EquipeControleAcessos /></AdminRoute>} />
 
               {/* Gestão Routes - Protected by access gate (admin or with explicit permission) */}
