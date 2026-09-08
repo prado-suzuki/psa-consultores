@@ -29,7 +29,6 @@ import {
 } from '../_shared/ooxml/table.ts';
 import { validatePptx } from '../_shared/ooxml/validate.ts';
 import {
-  CABEM_NA_CAIXA,
   montaDeck,
   type TabelaDoSlide,
   type ComentarioDaRevisao,
@@ -155,10 +154,12 @@ function escreveNaCelula(tc: Element, valor: string, fonte?: string): void {
 /**
  * Encolhe a fonte de um pedaço do slide.
  *
- * **É o "reduzir texto ao transbordar" do PowerPoint, feito à mão.** A tabela do
- * molde cresce quando o conteúdo não cabe, e um slide vazando é entregue como se
- * estivesse pronto. Aqui a fonte cai na proporção do excesso, com piso: abaixo de
- * 7pt ninguém lê, e nesse caso o aviso continua valendo e a poda é no PowerPoint.
+ * **Serve só para o nome do cliente no rodapé**, que é uma linha e um espaço
+ * fixo. Tabela e caixa de comentário NÃO encolhem mais: em 08/09/2026 a DRE do
+ * Grupo Mattei saiu inteira a 7pt, ilegível, e o cartão do CBS transbordou mesmo
+ * assim. Encolher trocava um defeito visível por um pior, que é o slide que
+ * ninguém lê e ainda parece pronto. Hoje o tamanho é o do molde e o que não cabe
+ * vira aviso, para a poda acontecer no PowerPoint, onde as tabelas são nativas.
  *
  * Só mexe em `sz` que já existe. Célula que herda o tamanho do tema fica como
  * está, porque inventar um tamanho onde não havia mudaria o desenho.
@@ -186,7 +187,6 @@ function preencheTabela(
   linhas: LinhaDaTabela[],
   chavesPorEspaco: string[],
   indicesDeValor: number[],
-  cabem: number,
 ): void {
   const modelos = new Map<string, Element>();
   for (const tr of listRows(moldura)) {
@@ -196,9 +196,6 @@ function preencheTabela(
   }
   if (modelos.size === 0) return;
   const primeiro = [...modelos.values()][0];
-
-  /* Proporção do excesso: 25 linhas em 20 de espaço encolhem para 80%. */
-  const fator = cabem > 0 && linhas.length > cabem ? cabem / linhas.length : 1;
 
   for (const linha of linhas) {
     const p =
@@ -219,7 +216,6 @@ function preencheTabela(
       escreveNaCelula(tc, chave ? (linha.valores[chave] ?? '-') : '');
     });
 
-    if (fator < 1) encolheFonte(nova, fator);
     insertRowBefore(nova, primeiro);
   }
   for (const tr of modelos.values()) removeRow(tr);
@@ -344,7 +340,6 @@ function montaPptx(molde: Uint8Array, deck: Deck): { bytes: Uint8Array; avisos: 
       comNivel,
       chavesDosEspacos(daTabela, SLIDES[chave].porAno),
       indices,
-      daTabela.linhas.length - daTabela.transbordou,
     );
     applyTokensToNode(doc.documentElement, globais);
     stripRemainingTokens(doc.documentElement);
@@ -374,27 +369,6 @@ function montaPptx(molde: Uint8Array, deck: Deck): { bytes: Uint8Array; avisos: 
     const tokens: Record<string, string> = { ...globais };
     for (const c of deck.comentarios) {
       tokens[`COM_${c.tributo.replace(/[^A-Za-z]/g, '').toUpperCase()}`] = c.texto;
-    }
-
-    /*
-     * A caixa que passou do que cabe encolhe antes de receber o texto, pelo mesmo
-     * critério das tabelas. Cada caixa é encolhida sozinha: uma caixa cheia não
-     * deve diminuir a fonte das outras três.
-     */
-    for (const c of deck.comentarios) {
-      const letras = c.texto.length;
-      if (letras <= CABEM_NA_CAIXA) continue;
-      /*
-       * **Raiz quadrada, e não proporção direta.** A área que o texto ocupa cai
-       * com o QUADRADO do tamanho da fonte: metade da fonte é um quarto da área.
-       * Encolhendo linearmente eu reduzia demais, e a caixa ficava ilegível antes
-       * de precisar.
-       */
-      const fator = Math.sqrt(CABEM_NA_CAIXA / letras);
-      const alvo = `{{COM_${c.tributo.replace(/[^A-Za-z]/g, '').toUpperCase()}}}`;
-      for (const sp of qsa(doc, 'p:sp')) {
-        if (textoDe(sp).includes(alvo)) encolheFonte(sp, fator);
-      }
     }
 
     applyTokensToNode(doc.documentElement, tokens);

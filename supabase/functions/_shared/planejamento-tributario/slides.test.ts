@@ -7,7 +7,13 @@ import {
   ABAS_DE_CENARIO as ABAS_AQUI,
   ABA_VENDA_DE_ATIVOS as VENDA_AQUI,
 } from './slides.ts';
-import { formataValor, montaDeck, type Revisao } from './slides.ts';
+import {
+  CABEM_NA_CAIXA,
+  formataValor,
+  linhaSemValor,
+  montaDeck,
+  type Revisao,
+} from './slides.ts';
 import { ABAS_DE_CENARIO, ABA_VENDA_DE_ATIVOS } from '@/lib/planejamento-tributario/mapa';
 import { lerWp } from '@/lib/planejamento-tributario/parser';
 
@@ -199,5 +205,110 @@ describe('o que o deck avisa', () => {
     expect(percentuais.length).toBeGreaterThan(0);
     for (const m of marcadores) expect(['P', 'O']).toContain(m.valor);
     for (const p of percentuais) expect(p.valor).not.toBe('P');
+  });
+});
+
+/*
+ * O que o Grupo Mattei mostrou em 08/09/2026, medido no pptx gerado: a DRE saiu
+ * com 84 linhas, das quais 55 eram só traço, e precisava de 14 polegadas num
+ * slide que tem 5. A caixa do CBS saiu com 2.070 letras e transbordou mesmo
+ * depois de a fonte cair até o piso de 7pt.
+ */
+describe('linha sem valor', () => {
+  it('traço em todas as colunas é ausência', () => {
+    expect(linhaSemValor({ rotulo: 'Sorgo', nivel: 2, valores: { '2026': '-', '2027': '-' } })).toBe(
+      true,
+    );
+  });
+
+  /* Um valor em UM ano basta para a conta existir no estudo. */
+  it('valor em um ano só mantém a linha', () => {
+    expect(
+      linhaSemValor({ rotulo: 'Soja', nivel: 2, valores: { '2026': '12.600.000', '2027': '-' } }),
+    ).toBe(false);
+  });
+
+  /* Título de seção da Transferência não tem coluna nenhuma, e some se a regra
+   * não abrir exceção para ele. */
+  it('linha sem coluna nenhuma não é escondida', () => {
+    expect(linhaSemValor({ rotulo: 'Ganho de capital', nivel: 0, valores: {} })).toBe(false);
+  });
+});
+
+function revisaoComDre(contas: { rotulo: string; valor: number }[]): Revisao {
+  return {
+    clienteNoWp: 'Cliente de teste',
+    valores: contas.map((c, i) => ({
+      bloco: 'dre' as const,
+      rotulo: c.rotulo,
+      nivel: 1,
+      cenario: ABAS_AQUI[0],
+      ano: 2026,
+      valor: c.valor,
+      unidade: 'moeda' as const,
+      origemCelula: `DRE!B${10 + i}`,
+    })),
+    farol: [],
+    comentarios: [],
+  };
+}
+
+describe('a DRE esconde conta zerada', () => {
+  it('tira do slide a conta sem valor em ano nenhum', () => {
+    const deck = montaDeck(
+      revisaoComDre([
+        { rotulo: 'Soja - Própria', valor: 12600000 },
+        { rotulo: 'Sorgo - Própria', valor: 0 },
+        { rotulo: 'Arroz - Própria', valor: 0 },
+      ]),
+    );
+
+    expect(deck.dre.linhas.map((l) => l.rotulo)).toEqual(['Soja - Própria']);
+    expect(deck.dre.escondidas).toBe(2);
+  });
+
+  /* Esconder calado seria o mesmo defeito de encolher calado. */
+  it('diz quantas escondeu', () => {
+    const deck = montaDeck(
+      revisaoComDre([
+        { rotulo: 'Soja - Própria', valor: 12600000 },
+        { rotulo: 'Sorgo - Própria', valor: 0 },
+      ]),
+    );
+
+    const aviso = deck.problemas.find((p) => p.detalhe.includes('não têm valor em nenhum ano'));
+    expect(aviso?.detalhe).toContain('1 conta(s)');
+  });
+
+  it('não esconde nada quando tudo tem valor', () => {
+    const deck = montaDeck(revisaoComDre([{ rotulo: 'Soja - Própria', valor: 12600000 }]));
+    expect(deck.dre.escondidas).toBe(0);
+  });
+});
+
+describe('o aviso de caixa cheia', () => {
+  function comComentario(letras: number): Revisao {
+    return {
+      valores: [],
+      farol: [],
+      comentarios: [
+        { cenario: 'Cenário 01 (PFxPJ)', tributo: 'CBS', ordem: 1, texto: 'a'.repeat(letras) },
+      ],
+    };
+  }
+
+  /* Encolher a fonte foi o que produziu a DRE de 7pt e o cartão ilegível do
+   * Mattei. Agora o gerador não mexe no tamanho e diz quanto precisa sair. */
+  it('diz que não vai caber e quantas letras tirar', () => {
+    const deck = montaDeck(comComentario(CABEM_NA_CAIXA + 100));
+    const aviso = deck.problemas.find((p) => p.onde === 'caixa de CBS');
+    expect(aviso?.detalhe).toContain('NÃO VAI CABER');
+    expect(aviso?.detalhe).toContain('Encurte o comentário em 100 letras');
+    expect(aviso?.detalhe).not.toContain('fonte foi reduzida');
+  });
+
+  it('não avisa quando o texto cabe', () => {
+    const deck = montaDeck(comComentario(CABEM_NA_CAIXA - 20));
+    expect(deck.problemas.some((p) => p.onde === 'caixa de CBS')).toBe(false);
   });
 });

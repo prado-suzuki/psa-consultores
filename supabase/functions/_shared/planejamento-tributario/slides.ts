@@ -96,6 +96,17 @@ const CABEM = {
   resumo: 18,
 } as const;
 
+/**
+ * **A fonte é sempre a do molde.** O gerador já encolheu tabela e caixa para
+ * fazer caber, e em 08/09/2026 o resultado foi a DRE do Grupo Mattei inteira a
+ * 7pt, ilegível, com o cartão do CBS transbordando assim mesmo. Não vale a
+ * troca: um slide que ninguém lê e parece pronto é pior que um slide que passa
+ * do fim e está avisado.
+ *
+ * Então o que não couber vira aviso, e a poda acontece no PowerPoint, onde as
+ * tabelas são nativas. Os números acima são a capacidade no tamanho do molde.
+ */
+
 export type ValorDoSlide = string;
 
 export interface LinhaDaTabela {
@@ -126,6 +137,8 @@ export interface TabelaDoSlide {
   linhas: LinhaDaTabela[];
   /** Quantas linhas saíram além do que cabe. Zero é o normal. */
   transbordou: number;
+  /** Quantas linhas foram omitidas por não ter valor em coluna nenhuma. */
+  escondidas: number;
 }
 
 export interface CelulaDoFarol {
@@ -246,11 +259,28 @@ function naOrdemDaPlanilha(a: ValorDaRevisao, b: ValorDaRevisao): number {
   return la - lb || ca - cb;
 }
 
+/**
+ * A linha não tem valor em coluna nenhuma.
+ *
+ * **Traço conta como ausência**, porque é assim que uma coluna sem dado é
+ * escrita logo acima. Zero escrito de verdade não conta: `0` é uma informação,
+ * traço é a falta dela.
+ *
+ * **Linha sem nenhuma coluna fica de fora da regra.** É o título de seção da
+ * Transferência, que existe para separar blocos e não tem valor por desenho.
+ */
+export function linhaSemValor(linha: LinhaDaTabela): boolean {
+  const valores = Object.values(linha.valores);
+  if (valores.length === 0) return false;
+  return valores.every((v) => v.trim() === '' || /^[-–—]$/.test(v.trim()));
+}
+
 function montaTabela(
   titulo: string,
   valoresFora: ValorDaRevisao[],
   coluna: (v: ValorDaRevisao) => string,
   cabem: number,
+  escondeZeradas = false,
 ): TabelaDoSlide {
   const linhas: LinhaDaTabela[] = [];
   const porChave = new Map<string, LinhaDaTabela>();
@@ -292,7 +322,30 @@ function montaTabela(
     if (sub && !subs.includes(sub)) subs.push(sub);
   }
 
-  return { titulo, colunas, anos, subs, linhas, transbordou: Math.max(0, linhas.length - cabem) };
+  /*
+   * **Linha sem valor nenhum não vai para o slide.**
+   *
+   * Isto não contraria a decisão de 31/08 do topo do arquivo, que é sobre o
+   * sistema não escolher QUAIS contas interessam. Aqui não há escolha: a conta
+   * não foi preenchida em ano nenhum, e o que apareceria é uma fileira de
+   * traços. No Grupo Mattei eram 55 das 84 linhas da DRE, e é o que fazia a
+   * tabela precisar de 14 polegadas num slide de 5.
+   *
+   * **Os subtotais continuam fechando**, porque uma parcela que vale nada não
+   * muda soma nenhuma; e um grupo cujos filhos são todos vazios tem o próprio
+   * cabeçalho vazio, então some inteiro em vez de virar título órfão.
+   */
+  const visiveis = escondeZeradas ? linhas.filter((l) => !linhaSemValor(l)) : linhas;
+
+  return {
+    titulo,
+    colunas,
+    anos,
+    subs,
+    linhas: visiveis,
+    transbordou: Math.max(0, visiveis.length - cabem),
+    escondidas: linhas.length - visiveis.length,
+  };
 }
 
 /**
@@ -331,15 +384,30 @@ function montaDre(valores: ValorDaRevisao[]): {
     });
   }
 
-  return {
-    tabela: montaTabela(
-      '3.1 Premissas, a DRE',
-      daDre.filter((v) => v.cenario === base),
-      (v) => (v.contribuinte ? `${v.ano}|${v.contribuinte}` : String(v.ano)),
-      CABEM.dre,
-    ),
-    problemas,
-  };
+  const tabela = montaTabela(
+    '3.1 Premissas, a DRE',
+    daDre.filter((v) => v.cenario === base),
+    (v) => (v.contribuinte ? `${v.ano}|${v.contribuinte}` : String(v.ano)),
+    CABEM.dre,
+    true,
+  );
+
+  /*
+   * O corte é dito, e não feito calado: quem monta o slide precisa saber que a
+   * lista de contas está menor do que a do papel de trabalho, para não procurar
+   * uma linha que ele sabe que preencheu com zero.
+   */
+  if (tabela.escondidas > 0) {
+    problemas.push({
+      tipo: 'tipo_inesperado',
+      onde: '3.1 Premissas, a DRE',
+      detalhe:
+        `${tabela.escondidas} conta(s) não têm valor em nenhum ano e ficaram fora do slide. ` +
+        `Restaram ${tabela.linhas.length}. Os subtotais continuam fechando.`,
+    });
+  }
+
+  return { tabela, problemas };
 }
 
 /**
@@ -494,6 +562,13 @@ function montaTransferencia(valores: ValorDaRevisao[]): {
       subs: [],
       linhas,
       transbordou: Math.max(0, linhas.length - CABEM.transferencia),
+      /*
+       * **A Transferência não esconde linha vazia, de propósito.** As linhas dela
+       * são fixas, vêm de `LINHAS_DA_TRANSFERENCIA`, e uma que saiu como traço é
+       * dado que faltou na leitura, não conta zerada. Some-la esconderia a falha
+       * que os avisos acima acabaram de apontar.
+       */
+      escondidas: 0,
     },
     problemas,
   };
@@ -613,12 +688,17 @@ function montaComentarios(comentarios: ComentarioDaRevisao[]): {
 
     const letras = linhas.join(' ').length;
     if (letras > CABEM_NA_CAIXA) {
+      /*
+       * Quem corta texto é quem escreveu, não o gerador. Por isso o aviso diz
+       * quanto sobra, em letras, em vez de encolher a fonte e entregar calado.
+       */
       problemas.push({
         tipo: 'tipo_inesperado',
         onde: `caixa de ${tributo}`,
         detalhe:
-          `A caixa de ${tributo} saiu com ${letras} letras e cabem cerca de ` +
-          `${CABEM_NA_CAIXA}. A fonte foi reduzida; se ainda transbordar, encurte o texto.`,
+          `A caixa de ${tributo} saiu com ${letras} letras e NÃO VAI CABER: ela comporta cerca ` +
+          `de ${CABEM_NA_CAIXA}. Encurte o comentário em ${letras - CABEM_NA_CAIXA} letras no ` +
+          `papel de trabalho.`,
       });
     }
     caixas.push({ tributo, texto: linhas.join('\n') });
@@ -651,8 +731,8 @@ export function montaDeck(leitura: Revisao): Deck {
         tipo: 'tipo_inesperado',
         onde: t.titulo,
         detalhe:
-          `${nome} saiu com ${t.linhas.length} linhas e cabem cerca de ` +
-          `${t.linhas.length - t.transbordou}. Vai ser preciso tirar ${t.transbordou} no PowerPoint.`,
+          `${nome} saiu com ${t.linhas.length} linhas e NÃO VAI CABER: o slide comporta ` +
+          `${t.linhas.length - t.transbordou}. Tire ${t.transbordou} linha(s) no PowerPoint.`,
       });
     }
   }
