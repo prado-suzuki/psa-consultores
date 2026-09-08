@@ -125,8 +125,30 @@ delete from public.tmpl_bloco_flag
  where bloco_id in (select id from public.tmpl_bloco where categoria in ('parceria-rural','composse-rural'));
 delete from public.tmpl_bloco_versao
  where bloco_id in (select id from public.tmpl_bloco where categoria in ('parceria-rural','composse-rural'));
-update public.tmpl_bloco set familia_id = null
- where categoria in ('parceria-rural','composse-rural') and familia_id is not null;
+-- Desfaz a FAMÍLIA antes do delete, e desfaz por inteiro.
+--
+-- Zerar só `familia_id` era o suficiente em 01/09 e deixou de ser: a constraint
+-- `tmpl_bloco_variante_coerente` exige que `familia_id` e o trio
+-- `variante_seletor/rotulo/ordem` sejam nulos JUNTOS, ou preenchidos juntos.
+-- Quem preencheu o trio nestas categorias foi
+-- `20260902213602_alinea_de_imovel_vira_familia`, um dia depois desta migration;
+-- daí em diante uma reexecução daqui morria em 23514 no meio da limpeza, com
+-- "Alínea — Imóvel cedido" pendurada. Como esta seção existe justamente para
+-- tornar o seed reexecutável (é a regra de idempotência do AGENTS.md), ela tem
+-- de devolver a linha ao estado sem variante, não a meio caminho.
+--
+-- Reconstruir a família é responsabilidade da migration de 02/09, que roda
+-- depois desta e refaz as duas variantes a partir do nome do bloco.
+update public.tmpl_bloco
+   set familia_id       = null,
+       variante_seletor = null,
+       variante_rotulo  = null,
+       variante_ordem   = null
+ where categoria in ('parceria-rural','composse-rural')
+   and (familia_id is not null
+        or variante_seletor is not null
+        or variante_rotulo is not null
+        or variante_ordem is not null);
 delete from public.tmpl_bloco where categoria in ('parceria-rural','composse-rural');
 delete from public.tmpl_documento where nome in ('Parceria Rural','Composse Rural Pro Indiviso');
 
