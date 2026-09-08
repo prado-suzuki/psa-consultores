@@ -608,7 +608,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
         .maybeSingle();
       const statusAgora = agora?.status as SolicitacaoStatus | undefined;
       if (statusAgora && de.includes(statusAgora)) {
-        throw new Error(await motivoDaRecusa(atual.ordem_servico_id));
+        throw new Error(await motivoDaRecusa(atual.ordemServicoId));
       }
       throw new Error(erroSeNaoMoveu);
     }
