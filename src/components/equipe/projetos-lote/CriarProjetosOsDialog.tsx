@@ -146,7 +146,7 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
                 className="pl-9"
               />
             </div>
-            <div className="max-h-64 min-h-[3rem] overflow-y-auto rounded-lg border p-1">
+            <div className="max-h-64 min-h-[3rem] overflow-y-auto rounded-lg border p-1" data-tour="criar-lista-clientes">
               {loadingClients || loadingOs ? (
                 <p className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />Carregando clientes…
@@ -190,7 +190,7 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
 
             <div className="space-y-2">
               <Label className="text-sm font-medium">Ordem de serviço</Label>
-              <div className="max-h-56 min-h-[3rem] overflow-y-auto rounded-lg border p-2">
+              <div className="max-h-56 min-h-[3rem] overflow-y-auto rounded-lg border p-2" data-tour="criar-lista-os">
                 {/* Sem estado de carregamento: as OS já vieram junto com a lista
                     de clientes — é ela que depende delas para filtrar. */}
                 {osOptions.length === 0 ? (
@@ -244,7 +244,7 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
 
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button onClick={handleConfirm} disabled={!selectedOs} className="gap-2">
+              <Button onClick={handleConfirm} disabled={!selectedOs} data-tour="criar-confirmar" className="gap-2">
                 <FolderPlus className="h-4 w-4" />
                 {selectedOs
                   ? `Criar ${selectedOs.disponiveis} projeto${selectedOs.disponiveis !== 1 ? 's' : ''}`

@@ -120,7 +120,7 @@ export default function ClienteTab({
         <SecaoFormulario numero={1} titulo="Identificação" pendente={secaoPendente(1)}>
         <div className="flex flex-col gap-2.5">
         {/* 1. Nome */}
-        <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
+        <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3" data-tour="cliente-nome">
           <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground md:pt-2">
             Nome do Cliente / Grupo <RequiredMark />
           </Label>
@@ -275,7 +275,7 @@ export default function ClienteTab({
         </div>
 
         {/* 4.5. Clusters */}
-        <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
+        <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3" data-tour="cliente-clusters">
           <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground md:pt-2">
             Clusters <RequiredMark />
           </Label>

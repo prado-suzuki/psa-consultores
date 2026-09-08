@@ -441,7 +441,7 @@ export default function NewClientModal({
                 {/* Escurecimento neutro em vez de cinza fixo: funciona igual
                     sobre o branco da Tax e sobre a folha quente da OSG. */}
                 <div className="px-6 py-3 bg-black/[0.02] border-b border-border shrink-0">
-                  <TabsList className={cn("w-full grid bg-black/[0.04] p-1 rounded-lg h-auto", tabsGridClass)}>
+                  <TabsList data-tour="modal-abas" className={cn("w-full grid bg-black/[0.04] p-1 rounded-lg h-auto", tabsGridClass)}>
                     {visibleTabs.map((tab) => (
                       <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1.5">
                         {tab === "cliente"
@@ -610,6 +610,7 @@ export default function NewClientModal({
                       )}
                       <Button
                         onClick={handleSave} disabled={saving}
+                        data-tour="modal-salvar"
                         className={cn("gap-2 shadow-lg", acento.botao)}
                       >
                         {saving ? <AreaLoader area={area} size={20} /> : <CheckCircle2 size={20} />}

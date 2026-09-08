@@ -25,6 +25,8 @@ export interface SecaoFormularioProps {
    */
   pendente?: boolean;
   className?: string;
+  /** Âncora do tour guiado (`data-tour`), quando esta seção é passo de um tour. */
+  dataTour?: string;
   children: ReactNode;
 }
 
@@ -34,6 +36,7 @@ export default function SecaoFormulario({
   acao,
   pendente,
   className,
+  dataTour,
   children,
 }: SecaoFormularioProps) {
   const acento = useAcentoArea();
@@ -41,7 +44,10 @@ export default function SecaoFormulario({
     // `min-w-0` não é enfeite: sem ele um conteúdo comprido dentro da seção
     // alarga o painel de detalhe inteiro e empurra os botões do cabeçalho para
     // fora da tela.
-    <section className={cn('min-w-0 border-l-2 pl-4', pendente ? 'border-l-destructive' : acento.barra, className)}>
+    <section
+      data-tour={dataTour}
+      className={cn('min-w-0 border-l-2 pl-4', pendente ? 'border-l-destructive' : acento.barra, className)}
+    >
       <div className="mb-3 flex items-center justify-between gap-3">
         <h5 className="flex min-w-0 items-baseline gap-2">
           <span className={cn('shrink-0 text-xs font-bold tabular-nums', pendente ? 'text-destructive' : acento.texto)}>

@@ -399,7 +399,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
         <Tabs value={activeView} onValueChange={setActiveView} className="min-w-0">
           <div className="space-y-2 rounded-xl border bg-card p-2 shadow-sm">
             <div className="overflow-x-auto">
-              <TabsList className="w-max min-w-full justify-start">
+              <TabsList data-tour="tarefas-visoes" className="w-max min-w-full justify-start">
                 <TabsTrigger value="list" className="gap-2"><ListTree className="h-4 w-4" />Lista</TabsTrigger>
                 <TabsTrigger value="calendar" className="gap-2"><CalendarDays className="h-4 w-4" />Calendário</TabsTrigger>
                 <TabsTrigger value="table" className="gap-2"><Table2 className="h-4 w-4" />Tabela</TabsTrigger>
@@ -427,12 +427,13 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                     size="sm"
                     variant="outline"
                     className="h-9 shrink-0"
+                    data-tour="tarefas-criar-projeto"
                     onClick={() => setIsCriarProjetosOsOpen(true)}
                   >
                     <FolderPlus className="mr-2 h-4 w-4" />Criar Projeto
                   </Button>
                 )}
-                <Button size="sm" className="h-9 shrink-0" onClick={() => handleNewTask()}>
+                <Button size="sm" className="h-9 shrink-0" data-tour="tarefas-nova-tarefa" onClick={() => handleNewTask()}>
                   <Plus className="mr-2 h-4 w-4" />Nova tarefa
                 </Button>
               </div>

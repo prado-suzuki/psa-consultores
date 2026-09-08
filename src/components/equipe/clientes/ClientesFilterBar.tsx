@@ -175,7 +175,7 @@ const ClientesFilterBar = ({
       <div className="flex flex-col gap-6">
         {/* Linha de topo: busca + contador + limpar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1 max-w-md" data-tour="clientes-busca">
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
               <Search className="h-5 w-5" />
             </span>
@@ -207,7 +207,7 @@ const ClientesFilterBar = ({
               </button>
             )}
             {canCreate && onNewCliente && (
-              <Button size="sm" onClick={onNewCliente}>
+              <Button size="sm" onClick={onNewCliente} data-tour="clientes-novo">
                 <Plus className="h-4 w-4 mr-1.5" />
                 Novo cliente
               </Button>
@@ -216,7 +216,10 @@ const ClientesFilterBar = ({
         </div>
 
         {/* Grupos de filtro */}
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
+        <div
+          className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-6"
+          data-tour="clientes-filtros"
+        >
           <div>
             <GroupLabel>Status</GroupLabel>
             <Segment

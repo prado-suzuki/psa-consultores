@@ -339,7 +339,7 @@ export default function ContribuintesTab({
     <ListaMestreDetalhe
       titulo={"Contribuintes (" + entities.length + ")"}
       acaoCriar={mostrarCriar && editingEntityId == null ? (
-        <Button size="sm" onClick={createEntity} className={cn("gap-1.5 h-7 text-xs", acento.botao)}>
+        <Button size="sm" onClick={createEntity} data-tour="contrib-criar" className={cn("gap-1.5 h-7 text-xs", acento.botao)}>
           <Plus size={14} /> Adicionar contribuinte
         </Button>
       ) : null}
@@ -463,6 +463,7 @@ export default function ContribuintesTab({
                       numero={1}
                       titulo="Identificação"
                       pendente={secaoPendente(1)}
+                      dataTour="contrib-documento"
                     >
                       <div className="flex flex-col gap-2.5">
                         {/* Tipo */}
@@ -537,6 +538,7 @@ export default function ContribuintesTab({
                       numero={2}
                       titulo="Endereço"
                       pendente={secaoPendente(2)}
+                      dataTour="contrib-endereco"
                       acao={entities.length > 1 ? (
                         <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => handleCopyFirstAddress(ent._id)}>
                           <Copy size={14} /> Copiar de outro

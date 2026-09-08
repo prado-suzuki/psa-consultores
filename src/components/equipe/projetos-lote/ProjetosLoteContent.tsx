@@ -65,7 +65,7 @@ export function ProjetosLoteContent({ area }: { area: AreaKey }) {
       {/* Rodapé */}
       <div className="flex items-center justify-between border-t pt-4">
         <Button variant="outline" onClick={() => navigate(routes.projetos)}>Cancelar</Button>
-        <Button onClick={handleCreate} disabled={createBatch.isPending || includedCount === 0} className="gap-2">
+        <Button onClick={handleCreate} disabled={createBatch.isPending || includedCount === 0} data-tour="lote-criar" className="gap-2">
           {createBatch.isPending ? <AreaLoader area={area} size={18} /> : <FolderPlus className="h-4 w-4" />}
           Criar {includedCount} projeto{includedCount !== 1 ? 's' : ''}
         </Button>
