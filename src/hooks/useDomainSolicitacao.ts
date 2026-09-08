@@ -90,7 +90,8 @@ const SELECT_SOLICITACAO = `
     id, item_padrao_id, granularidade, grupo, documento, entidade, nota,
     status, ordem, observacao,
     catalogo:documento_tipo!solicitacao_item_item_padrao_id_fkey (
-      id, codigo, documento, entidade, nota, granularidade, grupo, ordem, confidencial
+      id, codigo, documento, entidade, nota, granularidade, grupo, ordem, confidencial,
+      modelo_bucket, modelo_path, modelo_nome
     )
   )
 `;

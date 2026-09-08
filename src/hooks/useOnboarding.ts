@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { resolverModelo } from '@/lib/modeloDocumento';
 import { supabase } from '@/integrations/supabase/client';
 import type { OnboardingDocument } from '@/lib/onboarding';
 import {
@@ -218,7 +219,7 @@ export function useOnboarding(clienteId: string | null) {
       const { data: itemRows, error: itemError } = await supabase
         .from('documento_tipo')
         .select(
-          'id, codigo, documento, entidade, modulo, nota, categoria, categoria_docbox, confidencial, ordem, granularidade, grupo',
+          'id, codigo, documento, entidade, modulo, nota, categoria, categoria_docbox, confidencial, ordem, granularidade, grupo, modelo_bucket, modelo_path, modelo_nome',
         )
         .is('cliente_id', null)
         .eq('ativo', true)
@@ -236,6 +237,9 @@ export function useOnboarding(clienteId: string | null) {
           grupo: item.grupo,
           ordem: item.ordem,
           confidencial: item.confidencial,
+          modelo_bucket: item.modelo_bucket,
+          modelo_path: item.modelo_path,
+          modelo_nome: item.modelo_nome,
         }]),
       );
 
@@ -281,6 +285,7 @@ export function useOnboarding(clienteId: string | null) {
         // Estreita o texto do banco para o domínio fechado, levantando se algum
         // valor fugir do CHECK — a gaveta errada em silêncio é o pior desfecho.
         granularidade: paraGranularidade(item.granularidade),
+        modelo: resolverModelo(item),
       }));
 
       return {

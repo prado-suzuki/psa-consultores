@@ -1,6 +1,7 @@
 import { ChevronDown, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
+import { BotaoBaixarModelo } from '@/components/documentos/BotaoBaixarModelo';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { GRUPOS_DOCUMENTO } from '@/lib/agrupadorDocumentos';
 import {
@@ -126,6 +127,17 @@ export function DocumentGroups({
                                 {document.note || 'Sem orientação adicional.'}
                               </p>
                             </div>
+                            {/* Fora do `!somenteLeitura`: solicitação encerrada
+                                continua sendo consulta, e baixar é consulta. E
+                                fora do `rowActionsCls`, que é o par
+                                editar/remover — o modelo não é ação de edição, e
+                                o analista não pode trocá-lo. */}
+                            {document.modelo && (
+                              <BotaoBaixarModelo
+                                modelo={document.modelo}
+                                className="border-osg-200/80 bg-white text-osg-700 hover:border-osg-300"
+                              />
+                            )}
                             {!somenteLeitura && (
                               <div className={rowActionsCls}>
                                 <Button

@@ -22,6 +22,9 @@ import {
 
 const catalogo = (overrides: Partial<CatalogoDocumento> = {}): CatalogoDocumento => ({
   id: 'cat-1',
+  modelo_bucket: null,
+  modelo_path: null,
+  modelo_nome: null,
   codigo: 'RG',
   documento: 'RG',
   entidade: 'Pessoa Física',
@@ -58,6 +61,28 @@ describe('resolverItem', () => {
     expect(item.sobrescrito).toEqual({ documento: false, entidade: false, nota: false });
     expect(item.doCatalogo).toBe(true);
     expect(item.codigo).toBe('RG');
+  });
+
+  it('leva o modelo do catálogo, e só do catálogo', () => {
+    const item = resolverItem(linha({
+      catalogo: catalogo({
+        modelo_bucket: 'osg-modelos',
+        modelo_path: 'documento-tipo/bem--x/Modelo X.xlsx',
+        modelo_nome: null,
+      }),
+    }));
+
+    // Sem `modelo_nome`, o nome cai no basename — o mesmo recorte que as RPCs
+    // do portal fazem, para os dois lados escreverem a mesma coisa.
+    expect(item.modelo).toEqual({
+      bucket: 'osg-modelos',
+      path: 'documento-tipo/bem--x/Modelo X.xlsx',
+      nome: 'Modelo X.xlsx',
+    });
+  });
+
+  it('documento sem modelo no catálogo não vira botão', () => {
+    expect(resolverItem(linha()).modelo).toBeNull();
   });
 
   it('marca como sobrescrito só o campo preenchido na linha', () => {

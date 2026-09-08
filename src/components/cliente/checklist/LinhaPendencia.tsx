@@ -4,6 +4,7 @@ import { ACCEPT } from '@/components/equipe/osg/documentos/docMeta';
 import { ESTADO_LABEL, estadoDaPendencia } from '@/lib/checklistCliente';
 import { estadoDocumentoColors } from '@/lib/estadoDocumentoColors';
 import type { ArquivoDaPendencia, PendenciaCliente } from '@/hooks/useDomainPendenciasCliente';
+import { BotaoBaixarModelo } from '@/components/documentos/BotaoBaixarModelo';
 import { ArquivoEnviado } from './ArquivoEnviado';
 import { FOCO } from './checklistKit';
 
@@ -62,6 +63,15 @@ export function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo,
         </div>
         {pendencia.nota && !pendencia.recebido && (
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{pendencia.nota}</p>
+        )}
+        {/* Sem o `&& !pendencia.recebido` que a nota tem: a nota some depois do
+            envio porque virou instrução cumprida, mas o modelo continua útil —
+            documento recusado precisa dele de novo. */}
+        {pendencia.modelo && (
+          <BotaoBaixarModelo
+            modelo={pendencia.modelo}
+            className="mt-2 border-primary/30 bg-white text-primary hover:border-primary/60 hover:bg-accent/5"
+          />
         )}
         {pendencia.arquivos.length > 0 && (
           <ul className="mt-2 space-y-1.5">

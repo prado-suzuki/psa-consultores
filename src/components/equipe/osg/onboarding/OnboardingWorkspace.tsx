@@ -80,6 +80,7 @@ function paraExibicao(item: ItemSolicitacao): DisplayDocument {
     note: item.nota ?? '',
     grupo: item.grupo,
     granularidade: item.granularidade,
+    modelo: item.modelo,
   };
 }
 

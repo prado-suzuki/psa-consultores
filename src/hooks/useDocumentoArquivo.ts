@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { ModeloDocumento } from '@/lib/modeloDocumento';
 import { toast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -504,6 +505,11 @@ export interface SolicitacaoItemCliente {
   nota: string | null;
   entidade: string | null;
   ordem: number | null;
+  /**
+   * A planilha em branco do catálogo, quando o documento tem uma. Nulo em item
+   * pedido à mão: modelo é campo do catálogo, e item manual não tem catálogo.
+   */
+  modelo: ModeloDocumento | null;
 }
 
 /** EDU-24: cabeçalho da solicitação enviada. Nulo quando não há pedido enviado. */

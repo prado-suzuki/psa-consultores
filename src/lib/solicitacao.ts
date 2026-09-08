@@ -11,6 +11,7 @@
 // puras e testadas, em vez de espalhadas no hook.
 
 import type { Database } from '@/integrations/supabase/types';
+import { resolverModelo, type ModeloDocumento } from '@/lib/modeloDocumento';
 
 export type OsgDocGrupo = Database['public']['Enums']['osg_doc_grupo'];
 /**
@@ -129,6 +130,9 @@ export interface CatalogoDocumento {
   grupo: OsgDocGrupo;
   ordem: number;
   confidencial: boolean;
+  modelo_bucket: string | null;
+  modelo_path: string | null;
+  modelo_nome: string | null;
 }
 
 /**
@@ -176,6 +180,13 @@ export interface ItemSolicitacao {
   /** Do catálogo; nulo no item manual. */
   codigo: string | null;
   confidencial: boolean;
+  /**
+   * A planilha em branco que a PSA manda para o cliente preencher. Vem SÓ do
+   * catálogo: não existe campo equivalente em `solicitacao_item` para
+   * sobrescrever, e é isso que garante que o analista não troca nem apaga o
+   * modelo — trocá-lo vale para todos os clientes ao mesmo tempo.
+   */
+  modelo: ModeloDocumento | null;
 }
 
 /**
@@ -220,6 +231,7 @@ export function resolverItem(row: SolicitacaoItemRow): ItemSolicitacao {
     },
     codigo: catalogo?.codigo ?? null,
     confidencial: catalogo?.confidencial ?? false,
+    modelo: resolverModelo(catalogo),
   };
 }
 

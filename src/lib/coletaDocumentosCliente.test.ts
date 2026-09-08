@@ -9,6 +9,7 @@ const item = (
   extra: Partial<SolicitacaoItemCliente> = {},
 ): SolicitacaoItemCliente => ({
   id: `${grupo}:${documento}`,
+  modelo: null,
   grupo,
   documento,
   nota: null,
@@ -64,7 +65,7 @@ describe('montarGruposColeta', () => {
     );
 
     expect(grupos[0].documentos).toEqual([
-      { nome: 'IRPF', instrucao: 'Últimos 3 exercícios, com recibo de entrega' },
+      { nome: 'IRPF', instrucao: 'Últimos 3 exercícios, com recibo de entrega', modelo: null },
     ]);
   });
 
@@ -80,7 +81,26 @@ describe('montarGruposColeta', () => {
       [],
     );
 
-    expect(grupos[0].documentos).toEqual([{ nome: 'CPF', instrucao: 'De todos os sócios' }]);
+    expect(grupos[0].documentos).toEqual([
+      { nome: 'CPF', instrucao: 'De todos os sócios', modelo: null },
+    ]);
+  });
+
+  it('ao juntar repetidos, fica com o primeiro modelo preenchido', () => {
+    const modelo = { bucket: 'osg-modelos', path: 'documento-tipo/x/M.xlsx', nome: 'M.xlsx' };
+    const grupos = montarGruposColeta(
+      [
+        item('Áreas exploradas', 'bens_imoveis'),
+        item('Áreas exploradas', 'bens_imoveis', { modelo }),
+        item('Áreas exploradas', 'bens_imoveis', { modelo: null }),
+      ],
+      [],
+    );
+
+    // A repetição sem modelo não pode apagar o modelo que a anterior trouxe: o
+    // mesmo documento chega uma vez por entidade, e a gaveta mostra um só.
+    const bens = grupos.find((grupo) => grupo.key === 'bens_imoveis');
+    expect(bens?.documentos[0].modelo).toEqual(modelo);
   });
 
   // O motivo da EDU-26: a gaveta é a coluna `grupo`, não mais um palpite sobre o

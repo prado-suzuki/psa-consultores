@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { ModeloDocumento } from '@/lib/modeloDocumento';
 import { toast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { currentAmbiente } from '@/config/api';
@@ -60,6 +61,11 @@ export interface PendenciaCliente {
   /** Recebido porque a PSA já tinha o arquivo, não porque o cliente enviou. */
   recebido_interno: boolean;
   arquivos: ArquivoDaPendencia[];
+  /**
+   * A planilha em branco que a PSA manda para o cliente preencher, quando existe.
+   * Vem do CATÁLOGO e é a mesma para todos os clientes; item pedido à mão não tem.
+   */
+  modelo: ModeloDocumento | null;
 }
 
 export interface PendenciasCliente {

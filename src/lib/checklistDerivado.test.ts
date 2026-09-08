@@ -13,6 +13,7 @@ import type { ItemSolicitacao } from './solicitacao';
 const item = (overrides: Partial<ItemSolicitacao> = {}): ItemSolicitacao => ({
   id: 'item-cpf',
   itemPadraoId: 'tipo-cpf',
+  modelo: null,
   doCatalogo: true,
   granularidade: 'pessoa_pf',
   grupo: 'pf',

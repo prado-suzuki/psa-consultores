@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { montarGavetasChecklist, resumirPendencias } from './checklistCliente';
+import {
+  ESTADO_LABEL, estadoDaPendencia, montarGavetasChecklist, resumirPendencias,
+} from './checklistCliente';
 import type { PendenciaCliente } from '@/hooks/useDomainPendenciasCliente';
 
 const pendencia = (over: Partial<PendenciaCliente> = {}): PendenciaCliente => ({
@@ -10,6 +12,7 @@ const pendencia = (over: Partial<PendenciaCliente> = {}): PendenciaCliente => ({
   nota: null,
   granularidade: 'pessoa_pf',
   alvo: { kind: 'pessoa', id: 'p1', nome: 'João', detalhe: null },
+  modelo: null,
   recebido: false,
   recebido_interno: false,
   arquivos: [],
@@ -86,5 +89,43 @@ describe('resumirPendencias', () => {
 
   it('não divide por zero sem pendência', () => {
     expect(resumirPendencias([])).toEqual({ faltando: 0, recebidos: 0, total: 0, pct: 0 });
+  });
+});
+
+describe('estadoDaPendencia', () => {
+  const arquivo = (revisao: 'pendente' | 'aprovado' | 'recusado') => ({
+    id: 'a1', nome: 'x.pdf', revisao, motivo: null,
+  });
+
+  it('sem arquivo, falta enviar', () => {
+    expect(estadoDaPendencia(pendencia({ recebido: false, arquivos: [] }))).toBe('pendente');
+  });
+
+  it('não recebida com arquivo recusado é recusado, e é o que pede ação', () => {
+    expect(estadoDaPendencia(pendencia({
+      recebido: false, arquivos: [arquivo('recusado')],
+    }))).toBe('recusado');
+  });
+
+  it('o caso ambíguo: recusado + aprovado está RECEBIDA, logo é aprovado', () => {
+    // A precedência sai do estado da pendência, não da pilha de arquivos. Um
+    // arquivo bom fecha o pedido, e a ficha não pode reaparecer em "recusado"
+    // mandando o consultor perseguir linha já resolvida (ver estadoDocumento.ts).
+    expect(estadoDaPendencia(pendencia({
+      recebido: true, arquivos: [arquivo('aprovado'), arquivo('recusado')],
+    }))).toBe('aprovado');
+  });
+
+  it('enviado e ainda não conferido fica em análise', () => {
+    expect(estadoDaPendencia(pendencia({
+      recebido: true, arquivos: [arquivo('pendente')],
+    }))).toBe('em_analise');
+  });
+
+  it('o portal fala a língua do cliente, não a do consultor', () => {
+    expect(ESTADO_LABEL.pendente).toBe('Falta enviar');
+    expect(ESTADO_LABEL.em_analise).toBe('Em análise');
+    expect(ESTADO_LABEL.recusado).toBe('Recusado');
+    expect(ESTADO_LABEL.aprovado).toBe('Aprovado');
   });
 });

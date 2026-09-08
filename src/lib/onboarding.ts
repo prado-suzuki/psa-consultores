@@ -18,6 +18,7 @@
 // do grão, e quem agrupa é a gaveta.
 
 import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
+import type { ModeloDocumento } from '@/lib/modeloDocumento';
 import { GRUPOS_DOCUMENTO } from '@/lib/agrupadorDocumentos';
 import { normalizarNomeDocumento, type Granularidade } from '@/lib/solicitacao';
 
@@ -32,6 +33,11 @@ export interface OnboardingDocument {
   grupo: GrupoDocumentoKey;
   /** O grão: por qual coisa o documento se repete. */
   granularidade: Granularidade;
+  /**
+   * A planilha em branco do catálogo, quando existe. Opcional porque documento
+   * pedido à mão não tem catálogo, logo não tem modelo.
+   */
+  modelo?: ModeloDocumento | null;
 }
 
 /**

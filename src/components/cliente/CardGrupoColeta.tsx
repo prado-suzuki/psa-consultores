@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { BotaoBaixarModelo } from '@/components/documentos/BotaoBaixarModelo';
 import type { DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
 import { ACCEPT, MAX_BYTES, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
 import type { GrupoColeta } from '@/lib/coletaDocumentosCliente';
@@ -294,6 +295,12 @@ export function CardGrupoColeta({
                     {doc.instrucao && (
                       <span className="mt-0.5 block leading-snug">{doc.instrucao}</span>
                     )}
+                    {doc.modelo && (
+                      <BotaoBaixarModelo
+                        modelo={doc.modelo}
+                        className="mt-1 border-teal-600/30 bg-white text-teal-700 hover:border-teal-600/60"
+                      />
+                    )}
                   </li>
                 ))}
               </ul>
@@ -330,6 +337,12 @@ export function CardGrupoColeta({
                 <span className="font-medium text-foreground">{doc.nome}</span>
                 {doc.instrucao && (
                   <span className="mt-0.5 block leading-snug">{doc.instrucao}</span>
+                )}
+                {doc.modelo && (
+                  <BotaoBaixarModelo
+                    modelo={doc.modelo}
+                    className="mt-1 border-teal-600/30 bg-white text-teal-700 hover:border-teal-600/60"
+                  />
                 )}
               </li>
             ))}

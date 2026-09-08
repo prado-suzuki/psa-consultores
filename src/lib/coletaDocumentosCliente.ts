@@ -8,6 +8,7 @@
 // erro e sem aviso. Os nomes saem sem repetir, porque o mesmo documento pode
 // ser pedido para mais de uma pessoa ou matrícula.
 import type { DocumentoArquivoRow, SolicitacaoItemCliente } from '@/hooks/useDocumentoArquivo';
+import type { ModeloDocumento } from '@/lib/modeloDocumento';
 import {
   GRUPOS_DOCUMENTO,
   grupoDaCategoria,
@@ -25,6 +26,8 @@ import {
 export interface DocumentoPedido {
   nome: string;
   instrucao: string | null;
+  /** A planilha em branco do catálogo, quando o documento tem uma. */
+  modelo: ModeloDocumento | null;
 }
 
 export interface GrupoColeta extends GrupoDocumento {
@@ -56,8 +59,16 @@ export function montarGruposColeta(
   for (const item of itens) {
     const porNome = pedidosPorGrupo.get(item.grupo) ?? new Map<string, DocumentoPedido>();
     const jaVisto = porNome.get(item.documento);
-    if (!jaVisto || (!jaVisto.instrucao && item.nota)) {
-      porNome.set(item.documento, { nome: item.documento, instrucao: item.nota });
+    // Mesma regra da instrução, agora também para o modelo: prevalece o primeiro
+    // preenchido. O documento chega repetido (uma vez por pessoa, uma por
+    // matrícula) e a gaveta mostra um só — sem isto, a repetição sem modelo
+    // apagaria o modelo que a primeira trouxe.
+    if (!jaVisto || (!jaVisto.instrucao && item.nota) || (!jaVisto.modelo && item.modelo)) {
+      porNome.set(item.documento, {
+        nome: item.documento,
+        instrucao: item.nota ?? jaVisto?.instrucao ?? null,
+        modelo: item.modelo ?? jaVisto?.modelo ?? null,
+      });
     }
     pedidosPorGrupo.set(item.grupo, porNome);
   }
