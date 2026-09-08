@@ -114,11 +114,123 @@ export function computeExecutores<T extends { id: string }>(
   return eligible;
 }
 
+/** Área como `useTeamMembersByArea` a devolve, no mínimo que estas funções leem. */
+export interface AreaComEquipes<T> {
+  area_id: string;
+  area_name: string;
+  cluster_id: string | null;
+  cluster_name: string;
+  members: T[];
+  equipes: { equipe_id: string; equipe_name: string; members: T[] }[];
+}
+
+/** Cluster da área do projeto, ou null quando a área não tem ninguém listado. */
+export function clusterIdDaArea<T>(
+  allAreaGroups: AreaComEquipes<T>[],
+  areaId: string | null,
+): string | null {
+  if (!areaId) return null;
+  return allAreaGroups.find(group => group.area_id === areaId)?.cluster_id ?? null;
+}
+
+/**
+ * Áreas oferecidas na caixa "Membros do Projeto", já sem os líderes escolhidos.
+ *
+ * - multidisciplinar: todas as áreas, que é o que o modo existe para permitir —
+ *   projeto que atravessa cluster de verdade.
+ * - com equipe selecionada: as áreas do MESMO cluster do projeto. Escolher a
+ *   Equipe Fiscal passa a oferecer também Fixos, Pontuais e Sinop sem ligar o
+ *   multidisciplinar, porque as quatro são do cluster TAX.
+ *
+ * O corte é por CLUSTER, e não por área ou por equipe, porque cluster é
+ * exatamente o que decide em que quadro o projeto aparece: a página de projetos
+ * de cada área filtra por `dashboard_project_ids_for_cluster`, e o cluster do
+ * projeto é a união do cluster da área dele com o de cada membro
+ * (`org_project_cluster_ids`). Oferecer o cluster inteiro é, portanto, o maior
+ * conjunto que não muda em que quadro o projeto vai parar.
+ *
+ * Devolve vazio quando não há cluster resolvido — aí a tela cai no corte antigo
+ * por equipe (`computeAvailableMembers`), em vez de abrir a casa inteira.
+ */
+export function computeOfferedAreaGroups<T extends { id: string }>(
+  allAreaGroups: AreaComEquipes<T>[],
+  isMultidisciplinar: boolean,
+  clusterIdDoProjeto: string | null,
+  selectedLeaderIds: string[],
+): AreaComEquipes<T>[] {
+  const escopo = isMultidisciplinar
+    ? allAreaGroups
+    : (clusterIdDoProjeto
+        ? allAreaGroups.filter(group => group.cluster_id === clusterIdDoProjeto)
+        : []);
+  const excluded = new Set(selectedLeaderIds);
+  return escopo
+    .map(group => ({
+      ...group,
+      members: group.members.filter(member => !excluded.has(member.id)),
+      equipes: group.equipes
+        .map(team => ({ ...team, members: team.members.filter(member => !excluded.has(member.id)) }))
+        .filter(team => team.members.length > 0),
+    }))
+    .filter(group => group.members.length > 0);
+}
+
+/**
+ * Por pessoa, os clusters que ela carrega ALÉM do cluster do projeto.
+ *
+ * O recorte por cluster reduz o acidente, mas não o elimina: quem está em
+ * equipes de dois clusters aparece no grupo do projeto e, ainda assim, publica o
+ * projeto no quadro do outro — `resolve_user_cluster_ids` olha TODAS as equipes
+ * da pessoa, não a equipe pela qual ela foi escolhida. Foi assim que um projeto
+ * do Tax passou a aparecer na OSG em 08/09/2026. Este mapa é o que permite dizer
+ * isso na hora da escolha, em vez de a pessoa descobrir pelo quadro errado.
+ */
+export function computeClustersExtras<T extends { id: string }>(
+  allAreaGroups: AreaComEquipes<T>[],
+  clusterIdDoProjeto: string | null,
+): Record<string, string[]> {
+  const extras: Record<string, Set<string>> = {};
+  for (const group of allAreaGroups) {
+    if (!group.cluster_id || group.cluster_id === clusterIdDoProjeto) continue;
+    for (const member of group.members) {
+      if (!extras[member.id]) extras[member.id] = new Set();
+      extras[member.id].add(group.cluster_name || 'outra área');
+    }
+  }
+  return Object.fromEntries(
+    Object.entries(extras).map(([id, nomes]) => [id, [...nomes].sort((a, b) => a.localeCompare(b, 'pt-BR'))]),
+  );
+}
+
+/**
+ * Em que quadros o projeto vai aparecer, pelos nomes dos clusters — o do próprio
+ * projeto mais o de cada pessoa escolhida. Espelha `org_project_cluster_ids`, que
+ * é quem decide isso no banco, e serve para a seção de equipe dizer a
+ * consequência antes do salvamento.
+ */
+export function computeQuadrosDoProjeto<T extends { id: string }>(
+  allAreaGroups: AreaComEquipes<T>[],
+  selectedIds: string[],
+  clusterNameDoProjeto: string | null,
+): string[] {
+  const quadros = new Set<string>();
+  if (clusterNameDoProjeto) quadros.add(clusterNameDoProjeto);
+  const escolhidos = new Set(selectedIds);
+  for (const group of allAreaGroups) {
+    if (!group.cluster_name) continue;
+    if (group.members.some(member => escolhidos.has(member.id))) quadros.add(group.cluster_name);
+  }
+  return [...quadros].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+}
+
 /**
  * Membros disponíveis para seleção, excluindo os líderes já escolhidos.
  * - multidisciplinar: união de todos os membros de todas as áreas.
  * - com equipe: membros da equipe (ou já selecionados).
  * - sem equipe: apenas os já selecionados (nada a adicionar sem equipe).
+ *
+ * Continua sendo a lista PLANA, usada quando não há grupo de área resolvido (ver
+ * `computeOfferedAreaGroups`) — é o corte antigo, mantido como piso.
  */
 export function computeAvailableMembers<T extends { id: string }>(
   teamMembers: T[],

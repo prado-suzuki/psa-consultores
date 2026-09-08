@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   computeLideres, computeExecutores, computeAvailableMembers, splitProjectMembers,
+  clusterIdDaArea, computeOfferedAreaGroups, computeClustersExtras, computeQuadrosDoProjeto,
+  type AreaComEquipes,
 } from './projetoEquipe';
 
 interface M { id: string; first_name: string; last_name: string; }
@@ -109,5 +111,103 @@ describe('computeAvailableMembers', () => {
     const groups = [{ members: [m('e1'), m('e2')] }, { members: [m('e2'), m('e3')] }];
     const result = computeAvailableMembers(members, null, [], ['e1'], [], true, groups);
     expect(result.map(x => x.id).sort()).toEqual(['e2', 'e3']);
+  });
+});
+
+// A estrutura real em 08/09/2026, reduzida ao que estas funções leem: o cluster
+// TAX tem UMA área com quatro equipes (Fiscal, Fixos, Pontuais e Sinop — é o
+// caso que motivou o recorte por cluster) e a OSG tem uma equipe só. `robo` está
+// nos dois clusters, como a Automação PSA, que é a única pessoa da empresa
+// nessa situação e a que derrubou um projeto do Tax no quadro da OSG.
+const equipe = (equipe_id: string, equipe_name: string, ids: string[]) => ({
+  equipe_id, equipe_name, members: ids.map(m),
+});
+const AREAS: AreaComEquipes<M>[] = [
+  {
+    area_id: 'a-tax', area_name: 'Tax', cluster_id: 'c-tax', cluster_name: 'TAX',
+    members: [m('fis1'), m('fix1'), m('pon1'), m('sin1'), m('robo')],
+    equipes: [
+      equipe('e-fiscal', 'Fiscal', ['fis1', 'robo']),
+      equipe('e-fixos', 'Fixos', ['fix1']),
+      equipe('e-pontuais', 'Pontuais', ['pon1']),
+      equipe('e-sinop', 'Sinop', ['sin1']),
+    ],
+  },
+  {
+    area_id: 'a-osg', area_name: 'OSG', cluster_id: 'c-osg', cluster_name: 'OSG',
+    members: [m('osg1'), m('robo')],
+    equipes: [equipe('e-osg', 'Equipe OSG', ['osg1', 'robo'])],
+  },
+  {
+    area_id: 'a-digital', area_name: 'Digital', cluster_id: 'c-pps', cluster_name: 'PSA Prado Suzuki',
+    members: [m('dig1')],
+    equipes: [equipe('e-digital', 'Equipe Digital', ['dig1'])],
+  },
+];
+
+describe('clusterIdDaArea', () => {
+  it('resolve o cluster pela área gravada no projeto', () => {
+    expect(clusterIdDaArea(AREAS, 'a-tax')).toBe('c-tax');
+  });
+
+  it('área vazia ou desconhecida não resolve cluster', () => {
+    expect(clusterIdDaArea(AREAS, null)).toBeNull();
+    expect(clusterIdDaArea(AREAS, 'a-que-nao-existe')).toBeNull();
+  });
+});
+
+describe('computeOfferedAreaGroups', () => {
+  it('com equipe: oferece o cluster do projeto inteiro, e só ele', () => {
+    // O pedido que originou isto: cliente 100% Tax, e a caixa de Membros só
+    // deixava escolher a Equipe Fiscal.
+    const grupos = computeOfferedAreaGroups(AREAS, false, 'c-tax', []);
+    expect(grupos.map(g => g.area_id)).toEqual(['a-tax']);
+    expect(grupos[0].equipes.map(e => e.equipe_name)).toEqual(['Fiscal', 'Fixos', 'Pontuais', 'Sinop']);
+  });
+
+  it('multidisciplinar: volta a oferecer a casa inteira', () => {
+    expect(computeOfferedAreaGroups(AREAS, true, 'c-tax', []).map(g => g.area_id))
+      .toEqual(['a-tax', 'a-osg', 'a-digital']);
+  });
+
+  it('sem cluster resolvido: não oferece nada, para a tela cair no corte por equipe', () => {
+    expect(computeOfferedAreaGroups(AREAS, false, null, [])).toEqual([]);
+  });
+
+  it('tira os líderes escolhidos, e some a equipe que fica vazia', () => {
+    const grupos = computeOfferedAreaGroups(AREAS, false, 'c-tax', ['fix1']);
+    expect(grupos[0].members.map(x => x.id)).not.toContain('fix1');
+    expect(grupos[0].equipes.map(e => e.equipe_name)).toEqual(['Fiscal', 'Pontuais', 'Sinop']);
+  });
+});
+
+describe('computeClustersExtras', () => {
+  it('marca quem está em equipe de outro cluster, mesmo aparecendo no grupo daqui', () => {
+    // `robo` está na Fiscal (TAX) E na Equipe OSG: escolhê-la pelo grupo Tax
+    // ainda publica o projeto no quadro da OSG, porque
+    // `resolve_user_cluster_ids` olha TODAS as equipes da pessoa.
+    expect(computeClustersExtras(AREAS, 'c-tax')).toEqual({
+      robo: ['OSG'],
+      osg1: ['OSG'],
+      dig1: ['PSA Prado Suzuki'],
+    });
+  });
+
+  it('quem só existe no cluster do projeto não recebe marca', () => {
+    expect(computeClustersExtras(AREAS, 'c-tax').fis1).toBeUndefined();
+  });
+});
+
+describe('computeQuadrosDoProjeto', () => {
+  it('só o quadro do projeto quando todo mundo é de casa', () => {
+    expect(computeQuadrosDoProjeto(AREAS, ['fis1', 'fix1', 'sin1'], 'TAX')).toEqual(['TAX']);
+  });
+
+  it('a pessoa de dois clusters acrescenta o segundo quadro', () => {
+    expect(computeQuadrosDoProjeto(AREAS, ['fis1', 'robo'], 'TAX')).toEqual(['OSG', 'TAX']);
+  });
+
+  it('sem ninguém escolhido, resta o quadro da própria área', () => {
+    expect(computeQuadrosDoProjeto(AREAS, [], 'TAX')).toEqual(['TAX']);
   });
 });
