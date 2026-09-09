@@ -761,6 +761,18 @@ describe('TaskModal — a edição cabe em tela estreita', () => {
     expect(areaQueRola?.contains(salvar)).toBe(false);
   });
 
+  /**
+   * `max-lg:hidden` em QUALQUER ancestral esconde o elemento em tela estreita.
+   * Medir só o elemento (como a primeira versão deste teste fazia) deixa passar
+   * o defeito que importa: o seletor sumir junto com a metade que se esconde.
+   */
+  const escondidoEmTelaEstreita = (alvo: Element | null): boolean => {
+    for (let no = alvo; no; no = no.parentElement) {
+      if (String(no.className ?? '').includes('max-lg:hidden')) return true;
+    }
+    return false;
+  };
+
   it('o seletor mostra uma metade por vez, e começa na Tarefa', async () => {
     const user = userEvent.setup();
     renderModal({ task: baseTask });
@@ -773,17 +785,46 @@ describe('TaskModal — a edição cabe em tela estreita', () => {
     // Repartir a altura entre as duas foi tentado e reprovado: em 601px de
     // telefone a Atividade ficava com ~240px, e o cabeçalho mais o compositor
     // comiam quase tudo. Uma por vez recebe o modal inteiro.
-    const painel = () => screen.getByTestId('activity-panel').parentElement;
-    expect(painel()?.className).toContain('max-lg:hidden');
-    expect(screen.getByRole('heading', { name: 'Editar Tarefa' }).closest('form')?.className)
-      .not.toContain('max-lg:hidden');
+    const painel = () => screen.getByTestId('activity-panel');
+    const corpoDoForm = () => screen.getByLabelText(/^Título/).closest('.overflow-y-auto');
+
+    expect(escondidoEmTelaEstreita(painel())).toBe(true);
+    expect(escondidoEmTelaEstreita(corpoDoForm())).toBe(false);
 
     await user.click(atividade);
 
     expect(atividade).toHaveAttribute('aria-pressed', 'true');
-    expect(painel()?.className).not.toContain('max-lg:hidden');
-    expect(screen.getByRole('heading', { name: 'Editar Tarefa' }).closest('form')?.className)
-      .toContain('max-lg:hidden');
+    expect(escondidoEmTelaEstreita(painel())).toBe(false);
+    expect(escondidoEmTelaEstreita(corpoDoForm())).toBe(true);
+  });
+
+  it('o seletor NUNCA se esconde — nem quando a metade dele sai da tela', async () => {
+    /*
+      O defeito que este teste existe para pegar, e que a primeira versão do
+      teste acima ANCORAVA em vez de pegar: o seletor vive dentro do `<form>`,
+      junto da moldura do modal, e o `<form>` recebia `max-lg:hidden` ao trocar
+      para a Atividade. Resultado: entrava-se na Atividade e o botão de voltar
+      ia embora com o formulário — "em projeto a barra superior para alternar
+      funciona, agora dentro da tarefa não" (09/09).
+
+      Medir o className do próprio seletor não pega isso; o que pega é subir a
+      árvore. Vale para o Salvar e o fechar pelo mesmo motivo: eles são vizinhos
+      do seletor.
+    */
+    const user = userEvent.setup();
+    renderModal({ task: baseTask });
+
+    const seletor = () => screen.getByRole('group', { name: 'O que mostrar da tarefa' });
+    const salvar = () => screen.getByRole('button', { name: 'Salvar' });
+    const fechar = () => screen.getByRole('button', { name: 'Fechar' });
+
+    for (const aba of ['Atividade', 'Tarefa', 'Atividade'] as const) {
+      await user.click(screen.getByRole('button', { name: aba }));
+
+      expect(escondidoEmTelaEstreita(seletor())).toBe(false);
+      expect(escondidoEmTelaEstreita(salvar())).toBe(false);
+      expect(escondidoEmTelaEstreita(fechar())).toBe(false);
+    }
   });
 
   it('trocar de aba esconde por CSS e não desmonta, para não perder o que foi digitado', async () => {

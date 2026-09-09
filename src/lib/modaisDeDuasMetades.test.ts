@@ -95,6 +95,28 @@ describe('modais de duas metades têm saída em tela baixa', () => {
         // Desmontar perderia o que estivesse digitado ao trocar de aba.
         expect(fonte).toContain('max-lg:hidden');
       });
+
+      it('o `max-lg:hidden` fica na metade que sai, e não no bloco que guarda o seletor', () => {
+        /*
+          O defeito de 09/09, e o mais perigoso desta família: o seletor mora no
+          mesmo bloco que a moldura do modal, e esse bloco recebeu
+          `max-lg:hidden` ao trocar de metade. Trocar para a Atividade levava
+          embora o próprio botão de voltar — "em projeto a barra superior para
+          alternar funciona, agora dentro da tarefa não".
+
+          A assinatura no fonte é a condição INVERTIDA: `!== 'metade'` com
+          `max-lg:hidden` na mesma expressão é o que esconde o bloco de fora;
+          o certo é o bloco de fora receber `max-lg:flex-1` quando ATIVO, e só o
+          corpo interno se esconder.
+
+          Isto é o que dá para ver lendo o fonte. Quem prova de verdade — que o
+          seletor não tem nenhum ancestral escondido — é o teste de render de
+          cada modal, porque exige subir a árvore.
+        */
+        const blocoDeFora = fonte.slice(0, fonte.indexOf('role="group"'));
+        expect(blocoDeFora).toMatch(/abaEstreita === '\w+' && 'max-lg:flex-1'/);
+        expect(blocoDeFora).not.toMatch(/abaEstreita !== '\w+' && 'max-lg:hidden'/);
+      });
     });
   }
 });

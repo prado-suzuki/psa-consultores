@@ -630,9 +630,13 @@ export const TaskModal = ({
               onSubmit={form.handleSubmit((values) => onSubmit(values), handleInvalidSubmit)}
               className={cn(
                 'flex min-h-0 flex-col bg-background',
-                // Escondido por CSS, não desmontado: o que estiver digitado
-                // sobrevive à troca de aba.
-                isEditing && task && abaEstreita !== 'tarefa' && 'max-lg:hidden',
+                // O `<form>` NUNCA se esconde: ele guarda a moldura do modal
+                // (Salvar, fechar) e o seletor de aba. Esconder ele ao trocar
+                // para a Atividade tirava da tela o próprio botão de voltar —
+                // "em projeto a barra superior para alternar funciona, agora
+                // dentro da tarefa não" (09/09). Quem se esconde é só o CORPO
+                // dele, no `<div>` de baixo.
+                isEditing && task && abaEstreita === 'tarefa' && 'max-lg:flex-1',
               )}
             >
               {isEditing && task ? (
