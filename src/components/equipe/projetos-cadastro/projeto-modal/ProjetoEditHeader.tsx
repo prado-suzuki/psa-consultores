@@ -25,10 +25,12 @@ import { ProjetoOsProdutoFields } from '@/components/equipe/projetos-cadastro/Pr
 import { useProjetosCadastro } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContext';
 import { cn } from '@/lib/utils';
 
-interface ProjetoEditHeaderProps {
-  /** Botões de ação (salvar), renderizados na barra do topo. */
-  actions: ReactNode;
-}
+// A `ModalTopBar` saiu daqui em 09/09, pelo mesmo motivo que saiu do
+// `TaskEditHeader`: ela era `sticky top-0` DENTRO da área que rola, e em tela
+// baixa desaparecia junto com o Salvar e o fechar. Quem a renderiza agora é o
+// `ProjetoDialog`, acima do seletor de metade. Com a barra foi a prop `actions`,
+// que só existia para repassar os botões até ela — o componente ficou sem
+// props, e lê o resto do contexto de `useProjetosCadastro`.
 
 /**
  * Cabeçalho do modo edição: o nome do projeto é o próprio campo, e o contexto
@@ -38,7 +40,7 @@ interface ProjetoEditHeaderProps {
  * equipe zera líderes e membros —, então esses campos ficam atrás de "Alterar
  * contexto", no mesmo padrão do modal de tarefa.
  */
-export function ProjetoEditHeader({ actions }: ProjetoEditHeaderProps) {
+export function ProjetoEditHeader() {
   const {
     formData,
     setFormData,
@@ -70,13 +72,6 @@ export function ProjetoEditHeader({ actions }: ProjetoEditHeaderProps) {
 
   return (
     <div className="px-6">
-      <ModalTopBar
-        icon={<FolderKanban className="h-3.5 w-3.5" />}
-        title="Editar Projeto"
-        description="Formulário de projeto"
-        actions={actions}
-      />
-
       <div className="mt-3">
         <Label htmlFor="projeto-nome" className="sr-only">
           Nome do Projeto

@@ -241,6 +241,32 @@ para a barra.
 recebe o modal inteiro. Uma região só exigiria o `OrgCommentsPanel` parar de rolar por
 dentro, e ele é compartilhado.
 
+### O modal de PROJETO tinha o mesmo defeito, e era pior
+
+Achado em 09/09, depois de a fase 4 estar aprovada: o `ProjetoDialog` copia a anatomia do
+modal de tarefa — mesma altura fixa, mesmo `lg:grid`, mesmo `min-h-[32rem]` na metade da
+Atividade. Nunca tinha sido tocado por esta frente.
+
+E ali a consequência é pior do que uma fresta. O formulário é o **primeiro** filho e é quem
+carrega o Salvar e o fechar; com a Atividade exigindo 512px, em tela baixa ele era empurrado
+inteiro para fora e recortado pelo `overflow-hidden`. **Não sobrava saída do modal:**
+*"quando a tela fica muito pequena eu não consigo sair de atividade"*, *"só se eu clicar bem
+no cantinho"* — o cantinho era o overlay, fora do modal.
+
+Mesmo remédio, portado inteiro: coluna flexível abaixo de `lg`, seletor
+"Projeto" | "Atividade" com o mesmo desenho (dois modais irmãos não devem ensinar gestos
+diferentes), moldura sempre montada e fora da área que rola, piso de altura removido. A
+`ModalTopBar` saiu do `ProjetoEditHeader` junto com a prop `actions`, que só existia para
+repassar os botões até ela.
+
+**A régua que impede a terceira vez:** `src/lib/modaisDeDuasMetades.test.ts` **descobre** os
+modais pela altura fixa em vez de listar os dois que existem, então o próximo que copiar a
+anatomia nasce cobrado — sem piso de altura, com coluna flexível, com seletor de volta, e
+escondendo por CSS em vez de desmontar. Tem sentinela contra vacuidade: se a assinatura
+mudar e a busca voltar vazia, o teste falha em vez de passar sem medir nada. É o buraco que
+a régua dos modais (`ui/dialog.regua.test.ts`) não cobre — aquela lê só o className do
+próprio `DialogContent` e nunca olha filho.
+
 Ajuda aqui uma mudança que veio de fora desta frente (commit `106ed744`): o editor de
 descrição perdeu o `maxHeight` próprio, que desenhava uma segunda barra de rolagem encostada
 na primeira. Numa coluna única que rola inteira, descrição sem teto é exatamente o que se
