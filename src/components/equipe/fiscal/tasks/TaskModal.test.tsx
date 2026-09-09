@@ -722,6 +722,50 @@ describe('TaskModal — edição', () => {
   });
 });
 
+describe('TaskModal — a edição cabe em tela estreita', () => {
+  /*
+    Abaixo de `lg` não existem as duas colunas: sobra o `grid` de uma coluna da
+    primitiva de dialog, com o formulário e a Atividade como duas LINHAS.
+
+    O modal tem altura FIXA (`h-[min(94vh,54rem)]`) e a Atividade pedia
+    `min-h-[32rem]`. Num telefone de 640px de viewport o modal mede 601px, a
+    Atividade levava 512, e sobravam ~89px para o formulário inteiro — fresta
+    que rola, ou recorte seco, dependendo do conteúdo. Nenhuma das duas dá erro
+    de build, de lint ou de tipo, e é por isso que o contrato vive aqui.
+  */
+  const dialogo = () => document.querySelector('[role="dialog"]');
+
+  it('reparte a altura entre formulário e Atividade, em vez de deixar as linhas soltas', () => {
+    renderModal({ task: baseTask });
+
+    // `minmax(0, ...)` nas duas: sem o mínimo zero, uma linha de grade não
+    // encolhe abaixo do conteúdo dela e o rateio não acontece.
+    expect(dialogo()?.className).toContain('max-lg:grid-rows-[minmax(0,3fr)_minmax(0,2fr)]');
+  });
+
+  it('a linha da Atividade não tem mais piso de altura próprio', () => {
+    renderModal({ task: baseTask });
+
+    // O painel é dublado neste arquivo, então quem se mede aqui é a LINHA que o
+    // envolve. O piso de 512px vivia nela e era o que estrangulava o
+    // formulário; quem dá altura ao painel agora é a grade. O outro lado do
+    // contrato — o painel ser `h-full` e rolar por dentro — está travado em
+    // `OrgCommentsPanel.test.tsx`.
+    const linha = screen.getByTestId('activity-panel').parentElement;
+
+    expect(linha?.className).not.toContain('min-h-[32rem]');
+    expect(linha?.className).toContain('min-h-0');
+  });
+
+  it('a altura fixa continua tendo teto, que é o que a régua dos modais cobra', () => {
+    renderModal({ task: baseTask });
+
+    const classes = dialogo()?.className ?? '';
+    expect(classes).toContain('h-[min(94vh,54rem)]');
+    expect(classes).toContain('max-h-[94vh]');
+  });
+});
+
 describe('TaskModal — cabeçalho da edição', () => {
   it('mostra o contexto da tarefa como texto e o título como campo', () => {
     renderModal({ task: baseTask, parentTasks: [{ ...baseTask, id: 'P1', title: 'Pai do Alfa' }] });

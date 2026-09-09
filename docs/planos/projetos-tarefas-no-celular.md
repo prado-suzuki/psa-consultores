@@ -32,7 +32,7 @@ cronograma no telefone é o caso menos provável de todos.
 | 1 | ✅ **A porta de entrada** | Duas visões já funcionam e ela não as vê | `PainelTarefas` | P |
 | 2 | ✅ **A moldura do topo** | Mata 1 dos 3 scrollbars, e vale nas 7 abas | `TaskKPICards`, `TaskFilters` | P |
 | 3 | ✅ **Tabela** | Quebra pior que todas, e é o remédio menor | `TaskTable` | P |
-| 4 | **O detalhe da tarefa** | É o fim do caminho de leitura, e quebra lá | `TaskModal` | P |
+| 4 | ✅ **O detalhe da tarefa** | É o fim do caminho de leitura, e quebra lá | `TaskModal` | P |
 | 5 | **Lista** | É a visão de trabalho dela no desktop | `ProjetosTarefasList` | G |
 | 6 | **Kanban** | Rende leitura, não operação — ver a ressalva | `TaskKanban` | M |
 | 7 | **Calendário** | Uso pontual no celular | `TaskCalendar` | M |
@@ -190,11 +190,34 @@ E não é dívida da primitiva de dialog: o `max-h-[94vh]` e o `overflow-hidden`
 `TaskModal` vencem os da primitiva por `tailwind-merge`, então ele nunca sentiu a mudança
 dela. É dívida de tela pequena, desta frente.
 
-**O conserto:** abaixo de `lg` o modal deixa de ter altura fixa e passa a ter teto, e o
-piso de 512px dos comentários sai. As duas linhas voltam a se dimensionar pelo conteúdo,
-com **uma** região de rolagem — que é o que um telefone quer: uma coluna que rola de cima
-a baixo, form e comentários em sequência. O desktop não muda: de `lg` para cima continua o
-grid de duas colunas com altura fixa, que é o desenho certo lá.
+**O conserto que este plano previa estava errado, e a razão importa.** Ele dizia: tirar a
+altura fixa, tirar o piso de 512px, deixar as duas linhas crescerem e o modal rolar de cima
+a baixo. Só que o `OrgCommentsPanel` é `h-full` com a lista num `flex-1` que rola por
+dentro — ele **preenche** altura, não a produz. Sem altura definida na linha, ele colapsa a
+zero, e era exatamente para isso que o `min-h-[32rem]` existia. Tirar o piso sem mais nada
+não conserta: troca a fresta do formulário pelo desaparecimento da Atividade.
+
+**O conserto que foi feito:** manter a altura fixa e **repartir** o que ela dá.
+`max-lg:grid-rows-[minmax(0,3fr)_minmax(0,2fr)]` no `DialogContent` divide os 601px em ~360
+para o formulário e ~240 para a Atividade. As duas linhas recebem altura **definida**, que é
+o que o `h-full` das duas precisa, e cada uma rola por dentro. O piso de 512px sai porque a
+grade passou a dar a altura. O desktop não muda: de `lg` para cima continua o grid de duas
+colunas.
+
+`minmax(0, …)` nas duas linhas, e não `3fr_2fr` seco: sem o mínimo zero, linha de grade não
+encolhe abaixo do conteúdo dela e o rateio não acontece.
+
+Conferido que a classe arbitrária **sobrevive ao build** — `@media not all and
+(min-width:1024px){…grid-template-rows:minmax(0,3fr) minmax(0,2fr)}`. É a checagem que o
+`duration-[120ms]` e o `ease-[…]` ensinaram a fazer: valor arbitrário ambíguo sai do bundle
+sem erro nenhum.
+
+**Duas regiões de rolagem, e é de propósito.** O ideal num telefone seria uma só — mas isso
+exigiria o `OrgCommentsPanel` parar de rolar por dentro abaixo de `lg`, e ele é
+compartilhado. **Se ~240px de Atividade ficarem apertados, o próximo passo é aba
+("Tarefa" | "Atividade") abaixo de `lg`**, que dá os 601px inteiros para o que se está
+lendo, mantém o painel intocado e é o padrão que a Patrícia prefere para dois blocos
+irmãos. Só abrir se ela apontar.
 
 Ajuda aqui uma mudança que veio de fora desta frente (commit `106ed744`): o editor de
 descrição perdeu o `maxHeight` próprio, que desenhava uma segunda barra de rolagem encostada
@@ -206,8 +229,15 @@ teste varrendo o fonte (`src/components/ui/dialog.regua.test.ts`) que cobra isso
 declara altura própria sem teto. Ele lê só o className do próprio `DialogContent` e nunca
 olha filho, então o `min-h` de um filho não é cobrado por ele — este conserto é desta frente.
 
-**Validar:** abrir uma tarefa pelo celular e conseguir ler o formulário e os comentários,
-rolando a coluna de cima a baixo, sem fresta.
+**Validar:** abrir uma tarefa pelo celular e ver o formulário ocupando a maior parte do
+modal, com a Atividade embaixo — as duas com espaço de leitura, nenhuma reduzida a uma
+fresta.
+
+**✅ FEITO em 09/09/2026.** O contrato ficou travado nos dois lados, em arquivos diferentes:
+`TaskModal.test.tsx` cobra o rateio das linhas e a ausência do piso; a asserção nova em
+`OrgCommentsPanel.test.tsx` cobra que o painel é `h-full` e rola por dentro — que é a razão
+pela qual o rateio precisa existir. O painel é dublado no teste do modal, então a asserção
+sobre a classe dele só valeria no arquivo dele.
 
 ---
 
@@ -227,6 +257,11 @@ px não sobrevive a 358px de tela.
 É a fase grande do plano: 597 linhas, e a grade é usada por quatro tipos de linha (grupo de
 OS, projeto, tarefa, subtarefa). Vale escrever teste de caracterização antes, como pede o
 AGENTS.md §"Teste de caracterização primeiro" — o comportamento no desktop **não** muda.
+
+Esta fase herdou trabalho de outra frente. O `lista-de-tarefas-texto-e-prazo.md` (feedback
+do Welber, 09/09) pôs tooltip nas quatro linhas da grade e fez o título caber em duas
+linhas no desktop. Ao virar cartão, **preserve as duas coisas**: no telefone não existe
+passar o mouse, então cartão que corta o título perde o texto sem saída nenhuma.
 
 **Validar:** dá para saber o status e o responsável de uma tarefa sem rolar de lado.
 

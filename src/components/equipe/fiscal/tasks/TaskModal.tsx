@@ -562,6 +562,20 @@ export const TaskModal = ({
             isEditing
               ? 'h-[min(94vh,54rem)] w-[calc(100vw-1rem)] max-w-[78rem] lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(22rem,0.9fr)]'
               : 'max-w-3xl',
+            // Abaixo de `lg` não há duas colunas: sobra o `grid` de uma coluna
+            // da primitiva, com o formulário e a Atividade como duas LINHAS. Sem
+            // dizer o tamanho delas, as duas eram `auto` e a Atividade levava os
+            // `min-h-[32rem]` que ela pedia — de um modal que mede 601px num
+            // telefone de 640px. Sobravam ~89px para o formulário inteiro: uma
+            // fresta que rola, ou recorte seco, dependendo do conteúdo. As duas
+            // coisas são inutilizáveis, e nenhuma delas dá erro.
+            //
+            // 3fr/2fr reparte os 601px em ~360 e ~240. Cada linha recebe altura
+            // DEFINIDA, que é o que o `h-full` do formulário e o do
+            // `OrgCommentsPanel` precisam para rolar por dentro — o painel é
+            // feito para preencher altura e rolar, então tirar a altura dele o
+            // colapsaria a zero, e não é isso que se quer.
+            isEditing && 'max-lg:grid-rows-[minmax(0,3fr)_minmax(0,2fr)]',
           )}
         >
           <Form {...form}>
@@ -621,8 +635,12 @@ export const TaskModal = ({
             </form>
           </Form>
 
+          {/* O piso de `32rem` saiu do <div> abaixo: com as linhas repartidas
+              no DialogContent, esta recebe altura definida e o `h-full` do
+              painel resolve sozinho. O piso era o que estrangulava o
+              formulário abaixo de `lg`. */}
           {isEditing && task && (
-            <div className="min-h-[32rem] border-t lg:min-h-0 lg:border-l lg:border-t-0">
+            <div className="min-h-0 border-t lg:border-l lg:border-t-0">
               <OrgCommentsPanel
                 entityId={task.id}
                 projectId={task.project_id}
