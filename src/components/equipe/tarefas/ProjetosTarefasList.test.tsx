@@ -452,7 +452,10 @@ describe('ProjetosTarefasList — a grade reflui em cartão no celular', () => {
   const comArvoreAberta = () => {
     renderList({
       projects: [projeto],
-      tasks: [tarefa('Tarefa da lista', { assigned_to_name: 'Monica Matunaga' })],
+      tasks: [tarefa('Tarefa da lista', { assigned_to: 'U2', assigned_to_name: 'Geizi Andrade' })],
+      // Sem gente no projeto a linha não vira seletor de responsável, e é ele o
+      // segundo dos dois chevrons que saem do celular.
+      assigneesByProject: { p1: [{ id: 'U2', name: 'Geizi Andrade' }] },
     });
     fireEvent.click(screen.getByLabelText('Expandir OS'));
     fireEvent.click(screen.getByLabelText('Expandir projeto'));
@@ -462,21 +465,40 @@ describe('ProjetosTarefasList — a grade reflui em cartão no celular', () => {
   const linhaDaGrade = (dentro: HTMLElement) =>
     dentro.closest('[class*="grid-cols-["]');
 
-  it('a linha larga de 1.200px deixa de valer no celular, e vira duas colunas', () => {
+  it('a linha larga de 1.200px deixa de valer no celular, e vira faixa de chips', () => {
     comArvoreAberta();
 
     const linha = linhaDaGrade(screen.getByRole('button', { name: 'Tarefa da lista' }));
-    expect(linha?.className).toContain('max-md:grid-cols-2');
-    // Sem soltar o piso, as duas colunas continuariam somando 1.200px e a
-    // rolagem de lado voltaria.
+    // Grade de duas colunas foi a primeira tentativa e foi reprovada: cada
+    // célula ficava com metade da largura e o conteúdo encostado à esquerda,
+    // então sobrava um vão morto no meio e a tarefa gastava ~140px de altura.
+    expect(linha?.className).toContain('max-md:flex');
+    expect(linha?.className).toContain('max-md:flex-wrap');
+    expect(linha?.className).not.toContain('max-md:grid-cols-2');
+    // Sem soltar o piso, a faixa continuaria com 1.200px e a rolagem de lado
+    // voltaria.
     expect(linha?.className).toContain('max-md:min-w-0');
+    // O recuo das células é apertado de uma vez, e não célula por célula.
+    expect(linha?.className).toContain('max-md:[&>*]:py-0.5');
   });
 
-  it('o nome ocupa a linha inteira do cartão, e as outras cinco se dividem em duas', () => {
+  it('o nome ocupa a largura inteira, e as outras seis encolhem para o conteúdo', () => {
     comArvoreAberta();
 
-    const nome = screen.getByRole('button', { name: 'Tarefa da lista' }).closest('div');
-    expect(nome?.closest('[class*="col-span-2"]')).not.toBeNull();
+    const nome = screen
+      .getByRole('button', { name: 'Tarefa da lista' })
+      .closest('[class*="max-md:w-full"]');
+    expect(nome).not.toBeNull();
+  });
+
+  it('o seletor de status encolhe no celular, em vez de plantar o chevron a 90px do chip', () => {
+    comArvoreAberta();
+
+    // Era este `w-[138px]` fixo que criava o vão morto no meio da linha. O
+    // primeiro combobox da linha é o de status; o segundo, o de responsável.
+    const gatilho = screen.getAllByRole('combobox')[0];
+    expect(gatilho.className).toContain('w-[138px]');
+    expect(gatilho.className).toContain('max-md:w-auto');
   });
 
   it('o cabeçalho de coluna sai do celular, porque rótulo de coluna não sobrevive ao refluxo', () => {
@@ -529,6 +551,33 @@ describe('ProjetosTarefasList — a grade reflui em cartão no celular', () => {
     // como o nível de baixo.
     expect(tarefa?.className).toContain('bg-background');
     expect(tarefa?.className).not.toContain('max-md:bg-');
+  });
+
+  it('o cromo de edição sai do celular: dois chevrons por linha e a seleção em massa', () => {
+    // "isso aqui está uma poluição visual" (09/09). O que poluía era sobretudo
+    // cromo de EDIÇÃO, que no celular não serve: a tela é de leitura.
+    comArvoreAberta();
+
+    const [status, responsavel] = screen.getAllByRole('combobox');
+    // O chevron sai, o seletor FICA: o chip continua abrindo no toque. Esconder
+    // o seletor duplicaria DOM, e com `css: false` no vitest os dois elementos
+    // passariam a existir — foi o que fez desistir da mesma ideia na Tabela.
+    expect(status.className).toContain('max-md:[&>svg]:hidden');
+    expect(responsavel.className).toContain('max-md:[&>svg]:hidden');
+
+    const caixa = screen.getAllByRole('checkbox')[0];
+    expect(caixa.closest('[class*="max-md:hidden"]')).not.toBeNull();
+  });
+
+  it('o ponto de status sai do celular, porque o chip já nomeia o estado', () => {
+    // Ponto colorido MAIS chip colorido é a mesma informação duas vezes. No
+    // desktop o ponto vale: lá o chip fica na coluna de status, a 320px do
+    // título.
+    comArvoreAberta();
+
+    const titulo = screen.getByRole('button', { name: 'Tarefa da lista' });
+    const ponto = titulo.parentElement?.querySelector('[class*="max-md:hidden"][class*="rounded-full"]');
+    expect(ponto).not.toBeNull();
   });
 
   it('o tooltip e as duas linhas do título sobrevivem ao cartão', () => {

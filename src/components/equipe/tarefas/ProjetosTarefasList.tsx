@@ -125,18 +125,20 @@ interface ProjetosTarefasListProps {
  * úteis cabia a PRIMEIRA — o nome — e status, responsável, prazo, esforço e
  * progresso ficavam todos fora, alcançáveis só arrastando de lado.
  *
- * Abaixo de `md` as mesmas sete células se refluem em DUAS colunas, com o nome
- * ocupando a linha inteira (`CELULA_NOME`). O cartão sai do refluxo, sem
- * remontar JSX nenhum: célula que era coluna vira linha do cartão, e a borda que
- * já separava as linhas passa a separar os cartões.
+ * Abaixo de `md` a linha deixa de ser grade e vira **faixa de chips**: o nome
+ * ocupa a largura inteira e as outras seis células fluem em `flex-wrap`, cada
+ * uma do tamanho do seu conteúdo. O cartão sai do refluxo, sem remontar JSX
+ * nenhum — e a borda que já separava as linhas passa a separar os cartões.
  *
- *   ┌─────────────────────────────────┐
- *   │ ▸ ☐ ● Título da tarefa          │  ← nome, as duas colunas
- *   ├────────────────┬────────────────┤
- *   │ Status         │ Responsável    │
- *   │ Prazo          │ Esforço        │
- *   │ Progresso      │ ⋯              │
- *   └────────────────┴────────────────┘
+ *   ▸ ☐ ● Título da tarefa
+ *   [A FAZER]  usuario teste  📅 18 set  1h est.  ⋯
+ *
+ * Duas colunas foi a primeira tentativa, e foi reprovada: cada célula ocupava
+ * metade da largura e o conteúdo dela ficava na borda esquerda, então sobrava um
+ * vão morto no meio de cada linha — o `⌄` do seletor de status pousava a 90px do
+ * chip. Somando os três pares, a tarefa gastava ~140px de altura para mostrar
+ * seis campos curtos. Nas palavras dela: "as tarefas estão muito grandes, sem
+ * definir bem a formatação, o contorno".
  *
  * Nada é escondido: o gestor vê os seis campos sem arrastar. O cabeçalho de
  * coluna é que sai (`max-md:hidden` na linha dele) — rótulo de coluna não
@@ -145,10 +147,14 @@ interface ProjetosTarefasListProps {
  */
 const GRID =
   'grid grid-cols-[minmax(320px,1fr)_150px_180px_130px_140px_160px_44px] min-w-[1200px]' +
-  ' max-md:grid-cols-2 max-md:min-w-0';
+  ' max-md:flex max-md:min-w-0 max-md:flex-wrap max-md:items-center' +
+  ' max-md:gap-x-1 max-md:py-1' +
+  // Aperta o recuo de TODAS as células de uma vez, em vez de caçar cada uma:
+  // `px-3 py-1.5` por célula é o que engordava o cartão.
+  ' max-md:[&>*]:px-2 max-md:[&>*]:py-0.5';
 
-/** A célula do nome ocupa a linha inteira do cartão. */
-const CELULA_NOME = 'max-md:col-span-2';
+/** A célula do nome ocupa a largura inteira; as outras encolhem para o conteúdo. */
+const CELULA_NOME = 'max-md:w-full';
 /** Radix Select não aceita valor vazio: o "não atribuído" precisa de sentinela. */
 const SEM_RESPONSAVEL = '_none';
 /** Faixas que atravessam a tabela inteira (divisor de cliente, "adicionar tarefa"). */
@@ -181,7 +187,13 @@ const PROJECT_INDENT_ESTREITO = 10;
 const TASK_INDENT_ESTREITO = 26;
 const INDENT_STEP_ESTREITO = 14;
 const TOGGLE_SLOT = 'flex h-5 w-5 shrink-0 items-center justify-center';
-const CHECK_SLOT = 'flex h-4 w-4 shrink-0 items-center justify-center';
+/**
+ * A caixa de seleção em massa (mover várias tarefas de uma vez) é cromo de
+ * EDIÇÃO, e no celular esta tela é superfície de leitura — decisão de 09/09.
+ * `max-md:hidden`: ela ocupava um glifo à esquerda de cada título, somava com a
+ * seta e com o ponto de status, e não serve para quem só olha.
+ */
+const CHECK_SLOT = 'flex h-4 w-4 shrink-0 items-center justify-center max-md:hidden';
 /** x das guias verticais: o centro da seta do nível imediatamente acima. */
 const OS_GUIDE = 24;
 const PROJECT_GUIDE = PROJECT_INDENT + 10;
@@ -452,7 +464,12 @@ export function ProjetosTarefasList({
               aria-label={`Selecionar tarefa ${task.title}`}
             />
           </span>
-          <TaskStatusDot status={task.status} />
+          {/* `max-md:hidden`: o chip de status na faixa de chips já nomeia o
+              estado. Ponto colorido MAIS chip colorido é a mesma informação
+              duas vezes, e num telefone dois sinais de cor por linha viram
+              poluição. No desktop o ponto vale: lá o chip está longe, na coluna
+              de status, a 320px de distância do título. */}
+          <TaskStatusDot status={task.status} className="max-md:hidden" />
           <button type="button" title={task.title} className="line-clamp-2 break-words text-left font-medium text-foreground hover:underline" onClick={() => onEditTask(task)}>
             {task.title}
           </button>
@@ -460,7 +477,13 @@ export function ProjetosTarefasList({
         </div>
         <div className="flex items-center px-3 py-1.5">
           <Select value={task.status} onValueChange={value => updateStatus(task, value as OrgTaskStatus)}>
-            <SelectTrigger className="h-6 w-[138px] border-0 bg-transparent px-1 shadow-none focus:ring-0 [&>span]:!line-clamp-none [&>span]:whitespace-nowrap [&>span]:overflow-visible">
+            {/* `max-md:w-auto`: os 138px fixos punham o `⌄` na borda oposta do
+                chip, com um vão morto no meio. Na faixa de chips o seletor
+                encolhe para o próprio conteúdo. */}
+            {/* `max-md:[&>svg]:hidden` esconde o chevron, não o seletor: o chip
+                continua abrindo no toque, e o que sai é o glifo. Dois chevrons
+                por linha, vezes as tarefas da tela, era metade da poluição. */}
+            <SelectTrigger className="h-6 w-[138px] max-md:w-auto max-md:[&>svg]:hidden border-0 bg-transparent px-1 shadow-none focus:ring-0 [&>span]:!line-clamp-none [&>span]:whitespace-nowrap [&>span]:overflow-visible">
               <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-normal', statusColors[task.status].combined)}>{statusColors[task.status].label}</span>
             </SelectTrigger>
             <SelectContent>{statusList.map(status => <SelectItem key={status.key} value={status.key}>{status.label}</SelectItem>)}</SelectContent>
@@ -469,7 +492,7 @@ export function ProjetosTarefasList({
         <div className="flex min-w-0 items-center px-3 py-1.5">
           {podeEditar && candidatos.length > 0
             ? <Select value={task.assigned_to ?? SEM_RESPONSAVEL} onValueChange={value => updateResponsavel(task, value, candidatos)}>
-                <SelectTrigger aria-label={`Responsável por ${task.title}`} className="h-6 border-0 bg-transparent px-1 text-xs shadow-none focus:ring-0">
+                <SelectTrigger aria-label={`Responsável por ${task.title}`} className="h-6 max-md:[&>svg]:hidden border-0 bg-transparent px-1 text-xs shadow-none focus:ring-0">
                   <span title={task.assigned_to_name || 'Não atribuído'} className={cn('truncate', !task.assigned_to && 'text-muted-foreground')}>{task.assigned_to_name || 'Não atribuído'}</span>
                 </SelectTrigger>
                 <SelectContent>
