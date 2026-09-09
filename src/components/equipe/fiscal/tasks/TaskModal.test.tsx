@@ -735,12 +735,74 @@ describe('TaskModal — a edição cabe em tela estreita', () => {
   */
   const dialogo = () => document.querySelector('[role="dialog"]');
 
-  it('reparte a altura entre formulário e Atividade, em vez de deixar as linhas soltas', () => {
+  it('em tela estreita a caixa é coluna flexível, não grade', () => {
     renderModal({ task: baseTask });
 
-    // `minmax(0, ...)` nas duas: sem o mínimo zero, uma linha de grade não
-    // encolhe abaixo do conteúdo dela e o rateio não acontece.
-    expect(dialogo()?.className).toContain('max-lg:grid-rows-[minmax(0,3fr)_minmax(0,2fr)]');
+    // Com grade seria preciso declarar de antemão qual LINHA estica, e isso muda
+    // a cada troca de aba. Em coluna, quem estica diz por si.
+    expect(dialogo()?.className).toContain('max-lg:flex');
+    expect(dialogo()?.className).toContain('max-lg:flex-col');
+  });
+
+  it('o Salvar e o fechar vêm ANTES do seletor de aba, e fora do que rola', () => {
+    renderModal({ task: baseTask });
+
+    const salvar = screen.getByRole('button', { name: 'Salvar' });
+    const seletor = screen.getByRole('group', { name: 'O que mostrar da tarefa' });
+
+    // Pedido dela em 09/09: a moldura do modal primeiro, a navegação do conteúdo
+    // depois. `DOCUMENT_POSITION_FOLLOWING` = o seletor vem depois do Salvar.
+    expect(salvar.compareDocumentPosition(seletor) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
+
+    // E a barra saiu da área que rola: antes ela era `sticky` dentro dela e
+    // sumia em tela estreita.
+    const areaQueRola = seletor.parentElement?.querySelector('.overflow-y-auto');
+    expect(areaQueRola?.contains(salvar)).toBe(false);
+  });
+
+  it('o seletor mostra uma metade por vez, e começa na Tarefa', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: baseTask });
+
+    const tarefa = screen.getByRole('button', { name: 'Tarefa' });
+    const atividade = screen.getByRole('button', { name: 'Atividade' });
+    expect(tarefa).toHaveAttribute('aria-pressed', 'true');
+    expect(atividade).toHaveAttribute('aria-pressed', 'false');
+
+    // Repartir a altura entre as duas foi tentado e reprovado: em 601px de
+    // telefone a Atividade ficava com ~240px, e o cabeçalho mais o compositor
+    // comiam quase tudo. Uma por vez recebe o modal inteiro.
+    const painel = () => screen.getByTestId('activity-panel').parentElement;
+    expect(painel()?.className).toContain('max-lg:hidden');
+    expect(screen.getByRole('heading', { name: 'Editar Tarefa' }).closest('form')?.className)
+      .not.toContain('max-lg:hidden');
+
+    await user.click(atividade);
+
+    expect(atividade).toHaveAttribute('aria-pressed', 'true');
+    expect(painel()?.className).not.toContain('max-lg:hidden');
+    expect(screen.getByRole('heading', { name: 'Editar Tarefa' }).closest('form')?.className)
+      .toContain('max-lg:hidden');
+  });
+
+  it('trocar de aba esconde por CSS e não desmonta, para não perder o que foi digitado', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: baseTask });
+
+    await user.clear(screen.getByLabelText(/^Título/));
+    await user.type(screen.getByLabelText(/^Título/), 'Rascunho não salvo');
+
+    await user.click(screen.getByRole('button', { name: 'Atividade' }));
+    await user.click(screen.getByRole('button', { name: 'Tarefa' }));
+
+    expect(screen.getByLabelText(/^Título/)).toHaveValue('Rascunho não salvo');
+  });
+
+  it('o seletor não existe na criação, que não tem Atividade', () => {
+    renderModal();
+
+    expect(screen.queryByRole('group', { name: 'O que mostrar da tarefa' })).toBeNull();
   });
 
   it('a linha da Atividade não tem mais piso de altura próprio', () => {

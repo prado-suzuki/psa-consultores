@@ -212,12 +212,34 @@ Conferido que a classe arbitrária **sobrevive ao build** — `@media not all an
 `duration-[120ms]` e o `ease-[…]` ensinaram a fazer: valor arbitrário ambíguo sai do bundle
 sem erro nenhum.
 
-**Duas regiões de rolagem, e é de propósito.** O ideal num telefone seria uma só — mas isso
-exigiria o `OrgCommentsPanel` parar de rolar por dentro abaixo de `lg`, e ele é
-compartilhado. **Se ~240px de Atividade ficarem apertados, o próximo passo é aba
-("Tarefa" | "Atividade") abaixo de `lg`**, que dá os 601px inteiros para o que se está
-lendo, mantém o painel intocado e é o padrão que a Patrícia prefere para dois blocos
-irmãos. Só abrir se ela apontar.
+**O rateio 3fr/2fr foi reprovado na validação, e a aba entrou no mesmo dia.** Os ~240px de
+Atividade são comidos pelo cabeçalho dela e pelo compositor de comentário (barra de
+formatação + campo + Publicar, ~140px): sobrava uma faixa que não mostrava lista nenhuma.
+Nas palavras dela: *"atividade ficou fixo e o restante rolando"*, e depois *"eu não consigo
+ver o que tem em atividade"*.
+
+**O desenho que ficou:** abaixo de `lg`, uma metade por vez, com o modal INTEIRO — seletor
+"Tarefa" | "Atividade". Três coisas que isso obrigou:
+
+- **a caixa deixa de ser grade e vira coluna flexível** (`max-lg:flex max-lg:flex-col`).
+  Com grade seria preciso declarar de antemão qual linha estica, e isso muda a cada troca de
+  aba; em coluna, quem estica diz por si (`flex-1` na metade visível, e a escondida é
+  `display:none`, logo nem participa). O desktop segue em `lg:grid` com duas colunas;
+- **os dois lados ficam MONTADOS**, e quem sai é escondido por CSS. Desmontar o formulário
+  perderia o que estivesse digitado ao trocar de aba — travado em teste;
+- **a `ModalTopBar` saiu do corpo que rola** e subiu para dentro do `<form>`, acima do
+  seletor. Pedido dela: *"só salvar que tinha que estar pra cima, e tarefa e atividade
+  embaixo"* — a moldura do modal (Salvar, fechar) vem primeiro, a navegação do conteúdo
+  depois. Ela era `sticky top-0` **dentro** da área de rolagem, e em tela estreita sumia.
+  Ficou dentro do `<form>` de propósito: o Salvar é `type="submit"` e depende disso — foi o
+  que evitou ter de dar `id` ao formulário e `form=` ao botão.
+
+Isso tirou a prop `actions` do `TaskEditHeader`, que existia só para repassar os botões
+para a barra.
+
+**Duas regiões de rolagem seguem existindo**, uma em cada aba, e agora está certo: cada uma
+recebe o modal inteiro. Uma região só exigiria o `OrgCommentsPanel` parar de rolar por
+dentro, e ele é compartilhado.
 
 Ajuda aqui uma mudança que veio de fora desta frente (commit `106ed744`): o editor de
 descrição perdeu o `maxHeight` próprio, que desenhava uma segunda barra de rolagem encostada
@@ -229,9 +251,8 @@ teste varrendo o fonte (`src/components/ui/dialog.regua.test.ts`) que cobra isso
 declara altura própria sem teto. Ele lê só o className do próprio `DialogContent` e nunca
 olha filho, então o `min-h` de um filho não é cobrado por ele — este conserto é desta frente.
 
-**Validar:** abrir uma tarefa pelo celular e ver o formulário ocupando a maior parte do
-modal, com a Atividade embaixo — as duas com espaço de leitura, nenhuma reduzida a uma
-fresta.
+**Validar:** abrir uma tarefa pelo celular, ver o Salvar e o fechar no topo com as abas
+logo abaixo, e conseguir ler os comentários na aba Atividade.
 
 **✅ FEITO em 09/09/2026.** O contrato ficou travado nos dois lados, em arquivos diferentes:
 `TaskModal.test.tsx` cobra o rateio das linhas e a ausência do piso; a asserção nova em
