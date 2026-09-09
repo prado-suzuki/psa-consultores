@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CELULAS, FECHA_A_GRADE, TaskCalendar } from '@/components/equipe/fiscal/tasks/TaskCalendar';
@@ -197,6 +197,45 @@ describe('TaskCalendar — a célula do dia cabe no celular', () => {
     // Linha de grade tem a altura da célula mais alta.
     expect(deFora.className).toContain('min-h-[3rem]');
     expect(deFora.className).not.toMatch(/sm:min-h-/);
+  });
+
+  it('tocar num dia abre a lista dele, sem estourar a zona morta do `today`', () => {
+    /*
+      Regressão real, achada por ela em 09/09: tocar num dia derrubava a tela
+      com "Cannot access 'today' before initialization".
+
+      A causa vinha de 3d69a7b1: `getTasksForDate` passou a ler `today` para
+      hospedar tarefa sem prazo na célula de hoje, mas `const today` estava
+      declarada DEPOIS de `selectedDateTasks`, que chama a função no corpo do
+      componente. Sem dia selecionado o ternário não chamava nada e o defeito
+      ficava latente; a fase 7 fez do toque o caminho principal no celular e ele
+      apareceu na primeira tentativa.
+
+      Nenhum teste selecionava um dia — é por isso que passou verde. Este
+      seleciona.
+    */
+    /*
+      A tarefa é SEM PRAZO de propósito, e é o detalhe que faz o teste medir
+      algo. `today` só é lido no ramo do filtro que hospeda tarefa sem prazo na
+      célula de hoje:
+
+          task.due_date ? isSameDay(parseDate(task.due_date), date)
+                        : isSameDay(date, today)
+
+      Com prazo, o ternário nem chega no `today` e a zona morta não estoura —
+      foi assim que a primeira versão deste teste passou verde com o defeito de
+      volta. Conferido: devolvendo `const today` para depois do uso, ESTE teste
+      falha com "Cannot access 'today' before initialization".
+    */
+    render(<CalendarioComPeriodo tasks={[tarefa({ id: 'T9', due_date: null, title: 'Definir escopo' })]} />);
+
+    const celulaDeHoje = screen.getByTestId('calendario-hoje').closest('button');
+    fireEvent.click(celulaDeHoje as HTMLElement);
+
+    // O cabeçalho do painel só existe depois da seleção. Medir o título da
+    // tarefa seria vazio: o vitest roda com `css: false`, então a tira
+    // escondida do desktop (`hidden md:flex`) já renderiza o título.
+    expect(screen.getByText('12 de agosto, 2026')).toBeInTheDocument();
   });
 
   it('as tiras de tarefa saem do celular e entra a contagem', () => {

@@ -51,6 +51,22 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: T
     return Array.from({ length: CELULAS }, (_, i) => addDays(inicio, i));
   }, [currentMonth]);
 
+  /*
+    `today` fica ANTES de `getTasksForDate`, e isso não é estilo.
+
+    A função lê `today`, e `selectedDateTasks` a chama logo abaixo — no corpo do
+    componente, durante o render. Com a declaração depois disso, `const` deixa a
+    variável na zona morta e o acesso estoura: "Cannot access 'today' before
+    initialization". Só acontecia com um dia SELECIONADO, porque sem seleção o
+    ternário nem chama a função; era o caminho de tocar num dia para ver as
+    tarefas dele, que a fase 7 tornou o caminho principal no celular.
+
+    Mesma família do TDZ que o `manualChunks` causava em produção (ver o
+    histórico no `vite.config.ts`): não dá erro de build, de lint nem de tipo —
+    aparece na tela do usuário.
+  */
+  const today = getTodayBrazil();
+
   // Tarefa sem prazo cai na célula de HOJE, e não em nenhuma outra: ela fica
   // parada ali, marcada, até alguém definir a data. Ver `tarefasNoPeriodo`.
   const getTasksForDate = (date: Date) => {
@@ -64,7 +80,6 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: T
   const selectedDateTasks = selectedDate ? getTasksForDate(selectedDate) : [];
 
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  const today = getTodayBrazil();
 
   return (
     <div className="space-y-4">
