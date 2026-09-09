@@ -1,5 +1,6 @@
 import type { SnapshotDados } from '@/hooks/useDocumentoGerado';
 import { derivarCampos } from '@/lib/templates/vocabulario';
+import { digitosDe } from '@/lib/osg/baselineDaPeca';
 
 // A alteração contratual por EVENTOS: o que mudou entre o instrumento registrado
 // (o snapshot que a peça anterior publicou na junta) e o cadastro de hoje, campo
@@ -406,6 +407,23 @@ export function pessoaDoCandidatoDeEndereco(id: string): string | null {
  * Recalcular `qualificacao` é o que impede o consolidado de seguir imprimindo o
  * endereço velho: a prosa é derivada, foi congelada na base com o valor de lá, e
  * trocar só o campo atômico deixaria os dois em desacordo dentro da mesma peça.
+ *
+ * POR QUE O CPF ENTRA AQUI, se o resto do módulo diz que identidade é o id.
+ * ------------------------------------------------------------------
+ * Porque nem toda ocorrência tem id. No snapshot real, `socios[].socio` carrega
+ * `id` e `administradores[].administrador` NÃO (conferido no sandbox, inclusive
+ * em peça registrada no mesmo dia). Exigir id aqui fazia a peça sair com o
+ * endereço novo no preâmbulo e na cláusula de capital, e o ANTIGO na cláusula de
+ * administração: exatamente o defeito que o parágrafo acima diz evitar.
+ *
+ * O CPF não decide identidade; ele apenas RECONHECE, dentro do mesmo estado, uma
+ * segunda ocorrência de quem já foi identificado por id na lista de sócios. É
+ * diferente do que `analisarAlteracao` recusa, que é usar CPF para afirmar
+ * ingresso ou retirada entre DOIS estados. Aqui não se conclui nada sobre quem
+ * entrou ou saiu: aplica-se um valor já aprovado a outra aparição da mesma
+ * pessoa, e o CPF lido é o do próprio estado, não o do cadastro de hoje.
+ *
+ * Ocorrência sem id e sem CPF não recebe nada, como antes.
  */
 export function aplicarEnderecosDeSocios(
   estado: SnapshotDados,
@@ -417,8 +435,19 @@ export function aplicarEnderecosDeSocios(
     if (c.tipo === 'enderecoSocio' && alvo) aprovados.set(alvo, c.depois);
   }
   if (aprovados.size === 0) return;
-  for (const o of ocorrencias(estado)) {
-    const depois = o.sociedade || !o.id ? undefined : aprovados.get(o.id);
+  const ocs = ocorrencias(estado);
+  // O CPF de cada pessoa aprovada, lido das ocorrências que TÊM id. É o que
+  // permite reconhecer as que não têm, na passada seguinte.
+  const pessoaPorCpf = new Map<string, string>();
+  for (const o of ocs) {
+    if (o.sociedade || !o.id || !aprovados.has(o.id)) continue;
+    const cpf = digitosDe(o.campos.cpfCnpj);
+    if (cpf) pessoaPorCpf.set(cpf, o.id);
+  }
+  for (const o of ocs) {
+    if (o.sociedade) continue;
+    const alvo = o.id ?? pessoaPorCpf.get(digitosDe(o.campos.cpfCnpj)) ?? null;
+    const depois = alvo ? aprovados.get(alvo) : undefined;
     if (!depois) continue;
     let tocou = false;
     for (const [k, v] of Object.entries(depois)) {

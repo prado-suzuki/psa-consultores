@@ -262,6 +262,31 @@ describe('estado proposto: endereco de socio aprovado', () => {
     expect(p.profissao).toBe('Medica');
   });
 
+  // O defeito de 09/09/2026, medido no app: preambulo e capital com o endereco
+  // novo, clausula de administracao com o antigo. `administradores[].administrador`
+  // nao carrega `id` no snapshot real, e a aplicacao exigia id.
+  it('alcanca a clausula de administracao, cujo item nao carrega id', () => {
+    const b = base();
+    const semId = { ...(b.itensPorLista.administradores[0].administrador as Record<string, string>) };
+    delete semId.id;
+    b.itensPorLista.administradores = [{ administrador: semId }];
+    const v = vivo();
+    const novo = 'Rua Nova, 99';
+    for (const item of v.itensPorLista.socios) (item.socio as Record<string, string>).endereco = novo;
+    (v.itensPorLista.cessoes[0].cedente as Record<string, string>).endereco = novo;
+    const candidatos = analisarAlteracao(b, v).candidatos;
+    const { estado } = comporEstadoProposto({
+      base: b, vivo: v, eventosConfirmados: new Set(['evento_alteracao_qualificacao']),
+      bindingsSociedade: ['sociedade'], sede: null,
+      enderecosDeSocios: candidatos.filter((c) => c.tipo === 'enderecoSocio' && c.elegivel),
+    });
+    const admin = estado.itensPorLista.administradores[0].administrador as Record<string, string>;
+    expect(admin.endereco).toBe(novo);
+    expect(admin.qualificacao).toContain(novo);
+    // Uma pessoa, uma qualificacao: socio e administrador nao podem divergir.
+    expect((estado.itensPorLista.socios[0].socio as Record<string, string>).endereco).toBe(novo);
+  });
+
   it('endereco aprovado convive com a sede confirmada, sem uma escrever na outra', () => {
     const { estado } = comEndereco(['evento_alteracao_endereco', 'evento_alteracao_qualificacao']);
     expect(estado.selecao.sociedade.sedeLogradouro).toBe('Rua B');

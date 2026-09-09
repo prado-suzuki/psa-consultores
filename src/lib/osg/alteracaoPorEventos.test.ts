@@ -462,6 +462,53 @@ describe('alteracao por eventos: endereco de socio pessoa fisica', () => {
     expect(propostaPrecisaRevisao(proposta, mudaEndereco(base, 'Rua Terceira, 7'))).toBe(true);
   });
 
+  // Defeito encontrado dirigindo o app em 09/09/2026: a peca saia com o endereco
+  // novo no preambulo e na clausula de capital, e o ANTIGO na de administracao.
+  // No snapshot real `socios[].socio` tem `id` e `administradores[].administrador`
+  // nao tem, e a aplicacao exigia id. Conferido no sandbox, inclusive em peca
+  // registrada no mesmo dia.
+  it('aplica tambem na ocorrencia SEM id, reconhecida pelo CPF do mesmo estado', () => {
+    const base = comSocioPF();
+    // Como o mapeador de administrador entrega de verdade: sem `id`.
+    const semId = { ...socioDe(base) };
+    delete semId.id;
+    base.itensPorLista.administradores = [{ pessoa: { ...semId, cargo: 'Administradora' } }];
+    const atual = structuredClone(base);
+    socioDe(atual).endereco = 'Rua Nova, 99';
+    (atual.itensPorLista.administradores[0].pessoa as Record<string, string>).endereco = 'Rua Nova, 99';
+
+    const { estadoProposto } = soEndereco(base, atual);
+    const admin = estadoProposto.itensPorLista.administradores[0].pessoa as Record<string, string>;
+    expect(admin.endereco).toBe('Rua Nova, 99');
+    expect(admin.qualificacao).toContain('Rua Nova, 99');
+    expect(admin.cargo).toBe('Administradora');
+  });
+
+  it('ocorrencia sem id e sem CPF nao recebe nada: reconhecer nao e adivinhar', () => {
+    const base = comSocioPF();
+    // Homonima sem id e sem CPF: nada a liga a pessoa-1 alem do nome, e nome
+    // nao identifica ninguem.
+    base.itensPorLista.signatarios = [
+      { pessoa: { tipoPessoa: 'PF', nome: 'Ana', endereco: 'Rua A, 10, Centro, Cuiaba/MT' } },
+    ];
+    const atual = mudaEndereco(base);
+    const { estadoProposto } = soEndereco(base, atual);
+    expect((estadoProposto.itensPorLista.signatarios[0].pessoa as Record<string, string>).endereco)
+      .toBe('Rua A, 10, Centro, Cuiaba/MT');
+  });
+
+  it('CPF de OUTRA pessoa nao e alcancado pelo endereco aprovado', () => {
+    const base = comSocioPF();
+    base.itensPorLista.administradores = [{
+      pessoa: { tipoPessoa: 'PF', nome: 'Bia', cpfCnpj: '987.654.321-00', endereco: 'Rua B, 20' },
+    }];
+    const atual = structuredClone(base);
+    socioDe(atual).endereco = 'Rua Nova, 99';
+    const { estadoProposto } = soEndereco(base, atual);
+    expect((estadoProposto.itensPorLista.administradores[0].pessoa as Record<string, string>).endereco)
+      .toBe('Rua B, 20');
+  });
+
   it('candidato de endereco tem fingerprint proprio, por pessoa', () => {
     const base = comSocioPF();
     const bia = {
