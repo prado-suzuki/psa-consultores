@@ -1,3 +1,3 @@
 # Roadmap
 
-- [x] Corrigir erros de typecheck do preview (`/tmp/observability/build-errors.log`), inclusive os anteriores às mudanças de segurança.
+- [x] Corrigir erros de build do preview: remover @ts-expect-error não usado (sync-cadastros, sync-perdcomp) e instalar unpdf@1.8.1. Build OK.
