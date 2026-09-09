@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
+import { invocarBorda } from '@/lib/bordaSupabase';
 import { useAvisoProjetosDaOS } from '@/hooks/useAvisoProjetosDaOS';
 import { alcanceDosCanais, useDestinatariosCliente } from '@/hooks/useDestinatariosCliente';
 import { useHistoricoNotificacoes } from '@/hooks/useHistoricoNotificacoes';
@@ -348,13 +348,14 @@ export function ModalAvisarCliente({
   const enviar = async () => {
     setEnviando(true);
     try {
-      const { data, error } = await supabase.functions.invoke('notificar', {
-        body: {
-          event_type: 'situacao_documentos',
-          solicitacao_id: solicitacaoId,
-          situacao: dados,
-          canais,
-        },
+      // `invocarBorda` e não `functions.invoke`: renova a sessão antes e repete uma
+      // vez no 401. Ver o cabeçalho de `bordaSupabase.ts` — em 09/09/2026 a borda
+      // recusou um aviso com "Invalid token" enquanto o UPDATE da mesma sessão passava.
+      const { data, error } = await invocarBorda('notificar', {
+        event_type: 'situacao_documentos',
+        solicitacao_id: solicitacaoId,
+        situacao: dados,
+        canais,
       });
       // `invoke` só rejeita em falha de transporte; recusa da função vem em `data`.
       if (error) throw error;

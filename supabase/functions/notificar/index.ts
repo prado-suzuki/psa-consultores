@@ -204,8 +204,22 @@ async function validateCaller(req: Request): Promise<Caller> {
     { global: { headers: { Authorization: authHeader } } }
   );
 
+  /**
+   * As duas saídas ficam SEPARADAS de propósito (09/09/2026).
+   *
+   * Elas caíam na mesma mensagem, "Invalid token", e isso custou meia hora de
+   * investigação no go-live: um aviso não saiu, o log dizia "Invalid token", e
+   * não havia como saber se o token do usuário tinha vencido ou se o `getClaims`
+   * não conseguira falar com o Auth. As saídas são opostas — no primeiro caso
+   * quem chamou renova e repete; no segundo, repetir é o certo mas o problema é
+   * nosso, não da credencial de quem clicou.
+   */
   const { data, error } = await supabase.auth.getClaims(token);
-  if (error || !data?.claims) return { authorized: false, error: "Invalid token" };
+  if (error) {
+    console.error("[notificar] getClaims falhou:", error.message);
+    return { authorized: false, error: "Auth service unavailable" };
+  }
+  if (!data?.claims) return { authorized: false, error: "Invalid token" };
   if (data.claims.role === "service_role") return { authorized: true, equipe: true };
 
   const userId = data.claims.sub as string | undefined;

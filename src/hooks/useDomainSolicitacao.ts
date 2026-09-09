@@ -5,6 +5,8 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { useAvisoProjetosDaOS } from '@/hooks/useAvisoProjetosDaOS';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { descreverEnvio, type RespostaNotificar } from '@/lib/avisoSituacaoDocumentos';
+import { invocarBorda } from '@/lib/bordaSupabase';
 import { computeFieldDiff } from '@/lib/diffUtils';
 import {
   CAMPOS_AUDITADOS_ITEM,
@@ -673,22 +675,30 @@ export function useDomainSolicitacao(clienteId: string | null) {
          * cobrar. Os dois caminhos de erro são tratados porque `invoke` resolve com
          * `{ error }` em vez de rejeitar quando a borda responde com falha — só o
          * `catch` deixaria passar exatamente o caso mais provável.
+         *
+         * `invocarBorda` e não `functions.invoke` desde 09/09/2026: naquele dia a
+         * borda recusou este aviso com "Auth failed: Invalid token" enquanto o
+         * UPDATE da mesma sessão passava. Ver o cabeçalho de `bordaSupabase.ts`.
+         *
+         * `descreverEnvio` é a mesma tradução que o botão manual de cobrança usa.
+         * Sem ela, resposta `{ skipped: true }` chega como sucesso e o analista lê
+         * "enviada" para um aviso que a borda recusou de propósito.
          */
-        void supabase.functions
-          .invoke('notificar', {
-            body: {
-              event_type: 'solicitacao_enviada',
-              solicitacao_id: atual.id,
-            },
-          })
-          .then(({ error }) => {
+        void invocarBorda<RespostaNotificar>('notificar', {
+          event_type: 'solicitacao_enviada',
+          solicitacao_id: atual.id,
+        })
+          .then(({ data, error }) => {
             if (error) throw error;
+            const { texto, ok } = descreverEnvio(data ?? {});
+            if (!ok) throw new Error(texto);
           })
           .catch((erro: unknown) => {
             console.error('[solicitacao_enviada] aviso ao cliente falhou', erro);
             toast.error(
               'A solicitação foi enviada, mas o aviso ao cliente não saiu. '
               + 'Avise o cliente por fora e reporte ao time.',
+              { description: (erro as Error).message },
             );
           });
       }
@@ -753,14 +763,30 @@ export function useDomainSolicitacao(clienteId: string | null) {
        *
        * Sem `await` e com a falha no `catch`, pelo mesmo motivo do envio: o aviso
        * não desfaz a transição, que já gravou status e data.
+       *
+       * A falha APARECE, desde 09/09/2026. Este ponto ainda estava em
+       * `.catch(console.error)` — o mesmo defeito que o envio perdeu em 08/09 e
+       * que custou um aviso não entregue no go-live. Encerrar é o último ato do
+       * fluxo: se o "recebemos e conferimos" não sai, ninguém volta para conferir.
        */
       if (atual?.enviadaEm) {
-        supabase.functions.invoke('notificar', {
-          body: {
-            event_type: 'documento_aprovado',
-            solicitacao_id: atual.id,
-          },
-        }).catch(console.error);
+        void invocarBorda<RespostaNotificar>('notificar', {
+          event_type: 'documento_aprovado',
+          solicitacao_id: atual.id,
+        })
+          .then(({ data, error }) => {
+            if (error) throw error;
+            const { texto, ok } = descreverEnvio(data ?? {});
+            if (!ok) throw new Error(texto);
+          })
+          .catch((erro: unknown) => {
+            console.error('[documento_aprovado] aviso ao cliente falhou', erro);
+            toast.error(
+              'A solicitação foi finalizada, mas o aviso de conferência não saiu. '
+              + 'Avise o cliente por fora e reporte ao time.',
+              { description: (erro as Error).message },
+            );
+          });
 
         /**
          * Aviso 3, lado interno (GES-03). Mesma guarda de `enviadaEm` do aviso ao
