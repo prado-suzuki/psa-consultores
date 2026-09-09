@@ -132,6 +132,7 @@ export const TaskModal = ({
 
   const watchedProjectId = form.watch('project_id') as string | undefined;
   const watchedClientId = form.watch('client_id') as string | undefined;
+  const watchedParentTaskId = form.watch('parent_task_id') as string | undefined;
   const watchedStatus = form.watch('status');
   const watchedAssignedTo = form.watch('assigned_to');
 
@@ -252,6 +253,13 @@ export const TaskModal = ({
   const filteredParentTasks = watchedProjectId
     ? parentTasks.filter((t) => t.project_id === watchedProjectId)
     : parentTasks;
+
+  // Teto do calendário de Vencimento quando a tarefa é subtarefa. Sai da lista
+  // que já veio para o seletor de mãe; se a mãe não estiver nela (a lista da
+  // tela é recortada por mês), fica nulo e a recusa vem de `useUpdateOrgTask`.
+  const prazoDaMae = watchedParentTaskId
+    ? parentTasks.find((t) => t.id === watchedParentTaskId)?.due_date ?? null
+    : null;
 
   // Effect A: When project changes by user action, clear dependent fields
   useEffect(() => {
@@ -703,6 +711,7 @@ export const TaskModal = ({
                     onAssigneeChange={handleAssigneeChange}
                     reviewerName={activeReviewerName}
                     disabled={currentUserIsReviewer}
+                    prazoDaMae={prazoDaMae}
                   />
                   <TaskEditBody
                     form={form}
@@ -722,6 +731,7 @@ export const TaskModal = ({
                   form={form}
                   options={fieldOptions}
                   onAssigneeChange={handleAssigneeChange}
+                  prazoDaMae={prazoDaMae}
                   showDraftNotice={showDraftNotice}
                   isSaving={isSaving}
                   onCancel={() => handleOpenChange(false)}

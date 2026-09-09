@@ -85,9 +85,17 @@ Uma fase = um commit = um pedido de validação. O agente para ao fim de cada um
 
 | # | Fase | O que entra | Banco | Tamanho |
 |---|---|---|---|---|
-| 1 | O texto aparece inteiro | `title` nos cinco pontos sem ele; título em 2 linhas | — | P |
-| 2 | O calendário não oferece data inválida | `disabled` no calendário da linha e do modal; guard no hook | — | P |
+| 1 | ✅ O texto aparece inteiro | `title` nos cinco pontos sem ele; título em 2 linhas | — | P |
+| 2 | 🟡 O calendário não oferece data inválida | `disabled` no calendário da linha e do modal; guard no hook | — | P |
 | 3 | A regra vale por qualquer caminho | trigger em `org_tasks` | migration | M |
+
+**Estado em 09/09/2026, fim do dia.** A Fase 1 saiu no commit `4fb990e3` e foi validada pela
+Patrícia na tela. A Fase 2 saiu inteira menos **uma** peça: o calendário da linha da Lista.
+`ProjetosTarefasList.tsx` estava sendo reescrito pela Fase 5 do plano do celular na mesma
+hora, e cinco linhas minhas por cima de uma reescrita é conflito de graça. O que já está no
+ar cobre o caso mesmo assim — a recusa mora no `useUpdateOrgTask`, que vale para os dois
+caminhos; o que falta na linha é só a **prevenção** (dia apagado em vez de recusa depois do
+clique).
 
 ### Fase 1 — o texto aparece inteiro na Lista
 
@@ -116,8 +124,22 @@ próprio hook já faz isso para descendentes (`useOrgTasks.ts:470`, "buscados no
 na lista já carregada na tela, que pode estar filtrada"). O guard dispara só quando `due_date`
 muda, nos dois sentidos: filha depois da mãe, e mãe antes de uma filha.
 
-**A redação das duas mensagens é da Patrícia.** É regra de negócio, e regra de negócio tem
-texto curado (`geral/avisos-prazo-tarefa.md` é o precedente).
+**A redação das duas mensagens é da Patrícia**, fechada em 09/09/2026. É regra de negócio, e
+regra de negócio tem texto curado (`geral/avisos-prazo-tarefa.md` é o precedente):
+
+> Esta subtarefa não pode vencer depois de 30/09/2026, que é o prazo da tarefa-principal.
+
+> 3 subtarefas vencem depois desta data (a última em 12/10/2026). Ajuste o prazo delas antes.
+
+Elas moram em `src/lib/orgTaskPrazo.ts`, num lugar só, com teste que trava o texto.
+
+**Uma colisão de palavra, registrada e não resolvida.** "Tarefa principal" já significa outra
+coisa na tela: é a tarefa **sem mãe**. O `MoveTaskModal` diz que a subtarefa movida "passará a
+ser uma tarefa principal do projeto de destino", e o seletor de mãe oferece "Nenhuma (tarefa
+principal)". Nos dois níveis de hoje isso não incomoda — a mãe de uma subtarefa é, de fato,
+uma tarefa principal. Incomoda na neta (a árvore chega a `1.4.1`): ali a mãe é ela própria uma
+subtarefa, e a mensagem vai chamá-la de "tarefa-principal". Se um dia isso morder, a saída
+menor é trocar o fecho por "o prazo da tarefa acima" — decisão dela, não do agente.
 
 **Validar:** numa subtarefa, tentar marcar data depois do prazo da mãe pelo calendário da
 linha e pelo modal.

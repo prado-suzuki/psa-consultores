@@ -1262,3 +1262,38 @@ describe('TaskModal — subtarefas', () => {
     expect(within(secao).queryByRole('button', { name: 'Adicionar' })).not.toBeInTheDocument();
   });
 });
+
+describe('TaskModal — o prazo da subtarefa para no prazo da mãe', () => {
+  const mae: OrgTask = { ...baseTask, id: 'MAE', title: 'Reestruturação societária', due_date: '2026-04-15' };
+  const subtarefa: OrgTask = { ...baseTask, id: 'T2', title: 'Ata AGE', parent_task_id: 'MAE', due_date: '2026-04-10' };
+
+  it('o calendário de Vencimento apaga os dias depois do prazo da mãe', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: subtarefa, parentTasks: [mae] });
+
+    await user.click(screen.getByLabelText(/^Vencimento/));
+
+    expect(await screen.findByRole('button', { name: '15' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '16' })).toBeDisabled();
+  });
+
+  it('tarefa sem mãe segue com o calendário inteiro', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: baseTask, parentTasks: [mae] });
+
+    await user.click(screen.getByLabelText(/^Vencimento/));
+
+    expect(await screen.findByRole('button', { name: '30' })).toBeEnabled();
+  });
+
+  // A lista da tela é recortada por mês: a mãe pode não estar nela. Aqui o teto
+  // some, e quem recusa é o guard de `useUpdateOrgTask`, que busca no banco.
+  it('mãe fora da lista carregada não trava o calendário', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: subtarefa, parentTasks: [] });
+
+    await user.click(screen.getByLabelText(/^Vencimento/));
+
+    expect(await screen.findByRole('button', { name: '16' })).toBeEnabled();
+  });
+});
