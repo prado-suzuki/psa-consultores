@@ -28,7 +28,55 @@ type Canal = Database['public']['Enums']['notificacao_canal'];
 export type EnvioParaHistorico = Pick<
   LinhaEnvio,
   'tipo' | 'canal' | 'status' | 'enviado_em' | 'entregue_em' | 'lido_em'
+  | 'destinatario_email' | 'destinatario_telefone'
 >;
+
+/**
+ * Para onde um disparo foi, do jeito que ficou GRAVADO.
+ *
+ * O nome NÃO entra aqui, e a ausência é deliberada. `notificacao_envio` guarda
+ * e-mail e telefone, mas não o nome — `destinatario_id` vem nulo em aviso de
+ * cliente. Resolver o nome pelo cadastro atual, na hora de ler, produz mentira
+ * assim que alguém renomeia ou remove um representante: em 09/09/2026 um
+ * representante deste módulo foi renomeado e outro foi removido no mesmo dia, e
+ * as linhas de histórico anteriores passariam a exibir gente que não recebeu
+ * nada.
+ *
+ * Quem quiser mostrar nome resolve na tela, ao lado do contato e nunca no lugar
+ * dele: o contato é o que aconteceu, o nome é o palpite de hoje.
+ */
+export interface DestinoDoDisparo {
+  email: string | null;
+  telefone: string | null;
+}
+
+/** Identidade de um destino, para não repetir a mesma pessoa por causa do canal. */
+const chaveDoDestino = (d: DestinoDoDisparo) => `${d.email ?? ''}|${d.telefone ?? ''}`;
+
+/**
+ * Contato → nome, para o histórico poder anotar quem era.
+ *
+ * Indexa por e-mail E por telefone porque a linha gravada pode ter só um dos dois,
+ * e porque o mesmo representante costuma aparecer pelos dois canais.
+ *
+ * O tipo de entrada é estrutural de propósito: a lib do histórico não deve saber
+ * que existe um hook de destinatários.
+ */
+export function nomePorContato(
+  destinatarios: readonly { nome: string; email: string | null; telefone: string | null }[],
+): Map<string, string> {
+  const mapa = new Map<string, string>();
+  for (const d of destinatarios) {
+    const nome = d.nome?.trim();
+    if (!nome) continue;
+    // O primeiro vence: dois representantes no mesmo contato existe — era o caso
+    // deste módulo até 09/09 —, qualquer escolha ali é arbitrária, e alternar o
+    // nome a cada render seria pior que escolher um e ficar com ele.
+    if (d.email && !mapa.has(d.email)) mapa.set(d.email, nome);
+    if (d.telefone && !mapa.has(d.telefone)) mapa.set(d.telefone, nome);
+  }
+  return mapa;
+}
 
 /** Um clique do analista, ou um disparo automático, como o painel exibe. */
 export interface DisparoHistorico {
@@ -50,6 +98,15 @@ export interface DisparoHistorico {
    * "e-mail já enviado às 09:15" na caixa do e-mail, e nada na do WhatsApp.
    */
   porCanal: Partial<Record<Canal, string>>;
+  /**
+   * Para quem foi, sem repetir a pessoa por causa do canal.
+   *
+   * Um clique com dois canais produz duas linhas para o MESMO destinatário, e a
+   * borda preenche e-mail e telefone nas duas. Sem deduplicar, o painel listaria
+   * o mesmo contato duas vezes e o analista leria dois destinatários onde há um
+   * — que é exatamente o engano que a contagem do modal já cometia.
+   */
+  destinos: DestinoDoDisparo[];
   /** Quantas linhas o disparo produziu — destinatários vezes canais. */
   linhas: number;
 }
@@ -109,6 +166,25 @@ export function montarHistorico(
   linhas: readonly EnvioParaHistorico[],
 ): DisparoHistorico[] {
   const grupos = new Map<string, DisparoHistorico>();
+  // Chaves de destino já vistas, por grupo. Fora do `DisparoHistorico` porque é
+  // andaime da montagem, não coisa que o painel precise ler.
+  const vistos = new Map<string, Set<string>>();
+
+  const acumularDestino = (chave: string, linha: EnvioParaHistorico) => {
+    const destino: DestinoDoDisparo = {
+      email: linha.destinatario_email?.trim() || null,
+      telefone: linha.destinatario_telefone?.trim() || null,
+    };
+    // Linha sem contato nenhum não é destino: seria uma entrada em branco na lista.
+    if (!destino.email && !destino.telefone) return;
+
+    const jaVistos = vistos.get(chave) ?? new Set<string>();
+    vistos.set(chave, jaVistos);
+    const id = chaveDoDestino(destino);
+    if (jaVistos.has(id)) return;
+    jaVistos.add(id);
+    grupos.get(chave)?.destinos.push(destino);
+  };
 
   for (const linha of linhas) {
     if (!chegouAoCliente(linha)) continue;
@@ -122,12 +198,15 @@ export function montarHistorico(
     if (!grupo) {
       grupos.set(chave, {
         chave, dia, tipo: linha.tipo, quando,
-        canais: [linha.canal], porCanal: { [linha.canal]: quando }, linhas: 1,
+        canais: [linha.canal], porCanal: { [linha.canal]: quando },
+        destinos: [], linhas: 1,
       });
+      acumularDestino(chave, linha);
       continue;
     }
 
     grupo.linhas += 1;
+    acumularDestino(chave, linha);
     const anterior = grupo.porCanal[linha.canal];
     if (!anterior || quando < anterior) grupo.porCanal[linha.canal] = quando;
     // O instante do disparo é o do PRIMEIRO envio do grupo: os outros saíram em

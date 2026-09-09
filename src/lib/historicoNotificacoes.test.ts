@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   chegouAoCliente, diaLocal, disparoDeHoje, formatarDia, formatarQuando, diaSeguinte,
-  montarHistorico, rotuloDoAviso, rotuloDosCanais, canaisEnviadosHoje,
+  montarHistorico, nomePorContato, rotuloDoAviso, rotuloDosCanais, canaisEnviadosHoje,
   type EnvioParaHistorico,
 } from '@/lib/historicoNotificacoes';
 
@@ -13,6 +13,8 @@ const linha = (over: Partial<EnvioParaHistorico> = {}): EnvioParaHistorico => ({
   enviado_em: '2026-08-17T17:32:00.000Z',
   entregue_em: null,
   lido_em: null,
+  destinatario_email: 'ana@fazenda.com',
+  destinatario_telefone: '65999990000',
   ...over,
 } as EnvioParaHistorico);
 
@@ -31,6 +33,34 @@ describe('chegouAoCliente', () => {
     expect(['falhou', 'ignorado', 'pendente'].some(
       (s) => chegouAoCliente(linha({ status: s } as Partial<EnvioParaHistorico>)),
     )).toBe(false);
+  });
+});
+
+describe('nomePorContato', () => {
+  it('indexa pelos dois contatos, para casar com a linha que só tem um', () => {
+    const mapa = nomePorContato([
+      { nome: 'Ana Prado', email: 'ana@fazenda.com', telefone: '65999990000' },
+    ]);
+    expect(mapa.get('ana@fazenda.com')).toBe('Ana Prado');
+    expect(mapa.get('65999990000')).toBe('Ana Prado');
+  });
+
+  /**
+   * Dois representantes no mesmo e-mail existe — era o caso do módulo até 09/09.
+   * Qualquer escolha é arbitrária; o que não pode é alternar entre renders.
+   */
+  it('com dois nomes no mesmo contato, o primeiro vence e fica', () => {
+    const entrada = [
+      { nome: 'Ana Prado', email: 'contato@fazenda.com', telefone: null },
+      { nome: 'Bruno Prado', email: 'contato@fazenda.com', telefone: null },
+    ];
+    expect(nomePorContato(entrada).get('contato@fazenda.com')).toBe('Ana Prado');
+    expect(nomePorContato(entrada).get('contato@fazenda.com')).toBe('Ana Prado');
+  });
+
+  it('representante sem nome não entra no mapa', () => {
+    const mapa = nomePorContato([{ nome: '  ', email: 'x@y.com', telefone: null }]);
+    expect(mapa.has('x@y.com')).toBe(false);
   });
 });
 
@@ -53,6 +83,49 @@ describe('montarHistorico', () => {
     ]);
     expect(h).toHaveLength(1);
     expect(h[0].linhas).toBe(3);
+  });
+
+  /**
+   * O engano que o painel cometia sem isto: a borda grava e-mail E telefone nas
+   * DUAS linhas de um destinatário que recebeu pelos dois canais. Sem deduplicar,
+   * um clique com dois canais listaria a mesma pessoa duas vezes.
+   */
+  it('o mesmo destinatário nos dois canais aparece uma vez só', () => {
+    const h = montarHistorico([
+      linha({ canal: 'email' }),
+      linha({ canal: 'whatsapp', enviado_em: '2026-08-17T17:32:04.000Z' }),
+    ]);
+    expect(h[0].linhas).toBe(2);
+    expect(h[0].destinos).toEqual([
+      { email: 'ana@fazenda.com', telefone: '65999990000' },
+    ]);
+  });
+
+  it('destinatários diferentes viram entradas diferentes, na ordem em que saíram', () => {
+    const h = montarHistorico([
+      linha({ destinatario_email: 'ana@fazenda.com', destinatario_telefone: null }),
+      linha({
+        destinatario_email: 'bruno@fazenda.com',
+        destinatario_telefone: null,
+        enviado_em: '2026-08-17T17:32:01.000Z',
+      }),
+    ]);
+    expect(h[0].destinos.map((d) => d.email)).toEqual(['ana@fazenda.com', 'bruno@fazenda.com']);
+  });
+
+  it('linha sem contato nenhum não vira destino em branco', () => {
+    const h = montarHistorico([
+      linha({ destinatario_email: null, destinatario_telefone: null }),
+    ]);
+    expect(h).toHaveLength(1);
+    expect(h[0].destinos).toEqual([]);
+  });
+
+  it('espaço em branco no contato conta como ausente', () => {
+    const h = montarHistorico([
+      linha({ destinatario_email: '  ', destinatario_telefone: '  ' }),
+    ]);
+    expect(h[0].destinos).toEqual([]);
   });
 
   it('o instante do disparo é o do PRIMEIRO envio, não o do último', () => {

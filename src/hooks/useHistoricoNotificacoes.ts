@@ -42,7 +42,14 @@ export function useHistoricoNotificacoes(solicitacaoId: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notificacao_envio')
-        .select('tipo, canal, status, enviado_em, entregue_em, lido_em')
+        // `destinatario_email` e `destinatario_telefone` entram por pedido da Luana
+        // (OSG, 09/09/2026): o painel dizia QUANDO e POR ONDE, nunca PARA QUEM. O
+        // nome não vem porque não é gravado — ver `DestinoDoDisparo`.
+        //
+        // A lista fica em UMA linha, feia e comprida, porque o supabase-js infere o
+        // tipo do retorno a partir do literal: quebrada com `+`, a inferência morre
+        // e o resultado volta como `GenericStringError[]`.
+        .select('tipo, canal, status, enviado_em, entregue_em, lido_em, destinatario_email, destinatario_telefone')
         .eq('entidade_tipo', 'solicitacao')
         .eq('entidade_id', solicitacaoId as string)
         .in('status', STATUS_QUE_CHEGARAM)

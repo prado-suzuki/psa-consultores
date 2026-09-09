@@ -40,8 +40,9 @@ import {
 import type { LinhaChecklist } from '@/lib/checklistDerivado';
 import {
   canaisEnviadosHoje, diaSeguinte, disparoDeHoje, formatarDia, formatarQuando,
-  rotuloDoAviso, rotuloDosCanais,
+  nomePorContato, rotuloDosCanais,
 } from '@/lib/historicoNotificacoes';
+import { ListaDeDestinatarios, PainelDeHistorico } from './AvisoDestinatarios';
 
 /**
  * O aviso 2 grava com o valor de enum `cobranca_pendencia`, e não com o nome da API.
@@ -274,6 +275,9 @@ export function ModalAvisarCliente({
 
   const alcance = useMemo(() => alcanceDosCanais(destinatarios), [destinatarios]);
   const jaHoje = useMemo(() => disparoDeHoje(historico, TIPO_NO_BANCO), [historico]);
+  // Contato → nome, para o histórico anotar quem era. Sai do cadastro de AGORA e
+  // por isso acompanha o contato gravado, nunca o substitui — ver `AvisoDestinatarios`.
+  const nomes = useMemo(() => nomePorContato(destinatarios), [destinatarios]);
 
   /**
    * O que já saiu HOJE, por canal — e o bloqueio é por canal, não pelo aviso.
@@ -468,6 +472,18 @@ export function ModalAvisarCliente({
               </p>
             </section>
 
+            {/* PARA QUEM antes de POR ONDE: o analista decide o canal olhando
+                quem tem e-mail e quem tem telefone, e a ordem inversa o fazia
+                marcar a caixa para só depois descobrir que ninguém era alcançável
+                por ali. Pedido da Luana (OSG, 09/09/2026). */}
+            <section>
+              <Rotulo>Para quem vai</Rotulo>
+              <ListaDeDestinatarios
+                destinatarios={destinatarios}
+                carregando={carregandoDest}
+              />
+            </section>
+
             <section>
               <Rotulo>Por onde enviar</Rotulo>
               <div className="mt-3 space-y-2">
@@ -513,39 +529,13 @@ export function ModalAvisarCliente({
           <aside className="border-t border-osg-100 bg-osg-50/40 px-5 py-5 md:border-l md:border-t-0">
             <Rotulo>Notificações enviadas</Rotulo>
 
-            {carregandoHist && <p className="mt-3 text-sm text-osg-500">Carregando...</p>}
-
-            {/* Painel que não carregou e painel vazio são coisas diferentes, e o
-                analista precisa saber qual é: sem isso, uma falha de leitura
-                pareceria "nunca avisamos" e ele mandaria um aviso repetido. */}
-            {erroHist && (
-              <p className="mt-3 text-sm text-osg-red">
-                Não foi possível carregar o histórico. Recarregue antes de enviar.
-              </p>
-            )}
-
-            {!carregandoHist && !erroHist && historico.length === 0 && (
-              <p className="mt-3 text-sm text-osg-500">Nenhuma notificação enviada ainda.</p>
-            )}
-
-            <ul className="mt-3 space-y-3">
-              {historico.map((d) => (
-                <li
-                  key={d.chave}
-                  className={cn(
-                    'rounded-lg border bg-background px-3 py-2',
-                    d === jaHoje ? 'border-osg-moss/30' : 'border-osg-100',
-                  )}
-                >
-                  <p className="flex items-center gap-1.5 text-[13px] font-semibold text-osg-700">
-                    {formatarQuando(d.quando)}
-                    {d === jaHoje && <CheckCircle2 className="h-3.5 w-3.5 text-osg-moss" />}
-                  </p>
-                  <p className="mt-0.5 text-xs text-osg-500">{rotuloDoAviso(d.tipo)}</p>
-                  <p className="text-xs text-osg-500">{rotuloDosCanais(d.canais)}</p>
-                </li>
-              ))}
-            </ul>
+            <PainelDeHistorico
+              historico={historico}
+              jaHoje={jaHoje}
+              nomes={nomes}
+              carregando={carregandoHist}
+              erro={Boolean(erroHist)}
+            />
           </aside>
         </div>
 
