@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { useClientesLista } from '@/hooks/useGestaoClientes';
 import { useChecklistDerivado } from '@/hooks/useChecklistDerivado';
 import { useRevisarDocumento } from '@/hooks/useDocumentoArquivo';
+import { AvisoClienteNaoNotificado } from '@/components/equipe/osg/AvisoClienteNaoNotificado';
 import { BotaoAvisarCliente } from './BotaoAvisarCliente';
 import { BotaoComprovante } from './BotaoComprovante';
 import { DocumentosDialog, RecusaDialog } from './DocumentosDialog';
@@ -179,6 +180,14 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
           solicitacao={solicitacao}
         />
       </div>
+
+      {/* Antes dos avisos de estado: os outros descrevem em que fase o pedido
+          está, e este desmente a premissa de todos eles — que o cliente sabe do
+          pedido. Ele some sozinho quando um aviso bem-sucedido for registrado. */}
+      <AvisoClienteNaoNotificado
+        solicitacaoId={solicitacao.id}
+        enviadaEm={solicitacao.enviadaEm}
+      />
 
       {solicitacao.status === 'rascunho' && (
         <Aviso>

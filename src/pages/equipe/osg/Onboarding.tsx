@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AlertCircle, ListChecks, Loader2, Lock, PackageOpen, Rocket, Send } from 'lucide-react';
 import { toast } from 'sonner';
+import { AvisoClienteNaoNotificado } from '@/components/equipe/osg/AvisoClienteNaoNotificado';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { OnboardingWorkspace } from '@/components/equipe/osg/onboarding/OnboardingWorkspace';
 import { SolicitacaoAcoes } from '@/components/equipe/osg/onboarding/SolicitacaoAcoes';
@@ -279,6 +280,14 @@ const Onboarding = () => {
         />
       ) : (
         <div className="space-y-3">
+          {/* Primeiro de todos, e acima do "aberta desde": aquela faixa diz que o
+              cliente está vendo a lista, e é justamente a impressão que precisa
+              ser desmentida quando o aviso não saiu. */}
+          <AvisoClienteNaoNotificado
+            solicitacaoId={solicitacao?.id ?? null}
+            enviadaEm={solicitacao?.enviadaEm}
+          />
+
           {solicitacao?.status === 'enviada' && (
             <div className="flex items-start gap-3 rounded-2xl border border-osg-200/70 bg-osg-50/60 p-4 text-sm text-osg-700">
               <Send className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss/70" />
