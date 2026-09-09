@@ -164,6 +164,15 @@ function collectNodeTaskIds(nodes: ProjetosTarefasTaskNode[]): string[] {
   return nodes.flatMap(node => [node.task.id, ...collectNodeTaskIds(node.children)]);
 }
 
+/**
+ * Texto da linha de OS: número mais produtos. Sai daqui e não do JSX porque o
+ * mesmo texto vai no tooltip — a linha corta em duas e o resto se lê no hover.
+ */
+function tituloDaOs(group: { os: ProjetosTarefasOs | null; hasLinkedOs: boolean }) {
+  if (group.os?.numero_os) return `${group.os.numero_os}${group.os.produtos ? ` - ${group.os.produtos}` : ''}`;
+  return group.hasLinkedOs ? 'OS vinculada' : 'Sem OS';
+}
+
 function initials(name: string | null) {
   return name ? name.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase() : '?';
 }
@@ -357,7 +366,7 @@ export function ProjetosTarefasList({
             />
           </span>
           <TaskStatusDot status={task.status} />
-          <button type="button" className="truncate text-left font-medium text-foreground hover:underline" onClick={() => onEditTask(task)}>
+          <button type="button" title={task.title} className="line-clamp-2 break-words text-left font-medium text-foreground hover:underline" onClick={() => onEditTask(task)}>
             {task.title}
           </button>
           <ContadorTarefas total={children.length} concluidas={children.filter(child => child.task.status === 'done').length} />
@@ -374,14 +383,14 @@ export function ProjetosTarefasList({
           {podeEditar && candidatos.length > 0
             ? <Select value={task.assigned_to ?? SEM_RESPONSAVEL} onValueChange={value => updateResponsavel(task, value, candidatos)}>
                 <SelectTrigger aria-label={`Responsável por ${task.title}`} className="h-6 border-0 bg-transparent px-1 text-xs shadow-none focus:ring-0">
-                  <span className={cn('truncate', !task.assigned_to && 'text-muted-foreground')}>{task.assigned_to_name || 'Não atribuído'}</span>
+                  <span title={task.assigned_to_name || 'Não atribuído'} className={cn('truncate', !task.assigned_to && 'text-muted-foreground')}>{task.assigned_to_name || 'Não atribuído'}</span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={SEM_RESPONSAVEL}>Não atribuído</SelectItem>
                   {candidatos.map(member => <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-            : <span className="truncate text-xs text-muted-foreground">{task.assigned_to_name || 'Não atribuído'}</span>}
+            : <span title={task.assigned_to_name || 'Não atribuído'} className="truncate text-xs text-muted-foreground">{task.assigned_to_name || 'Não atribuído'}</span>}
         </div>
         <div className={cn('flex items-center px-3 py-1.5 text-xs', atrasada ? 'font-medium text-destructive' : 'text-muted-foreground')}>
           {podeEditar
@@ -510,7 +519,7 @@ export function ProjetosTarefasList({
           <div className="flex min-w-0 items-center gap-3 px-3 py-3">
             <button type="button" onClick={() => toggle(groupId)} className="rounded p-1 text-muted-foreground hover:bg-primary/10" aria-label={isExpanded ? 'Recolher OS' : 'Expandir OS'}>{isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
             <div className="h-5 w-1 rounded-full bg-primary" />
-            <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="truncate font-semibold">{group.os?.numero_os ? `${group.os.numero_os}${group.os.produtos ? ` - ${group.os.produtos}` : ''}` : (group.hasLinkedOs ? 'OS vinculada' : 'Sem OS')}</span><Badge variant="outline" className="shrink-0 font-normal">{group.projects.length} {group.projects.length === 1 ? 'projeto' : 'projetos'}</Badge></div><p className="truncate text-xs text-muted-foreground">{group.os ? group.os.cliente_nome : group.hasLinkedOs ? 'Carregando dados da ordem de serviço vinculada' : 'Projetos e tarefas agrupados sem ordem de serviço'}</p></div>
+            <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span title={tituloDaOs(group)} className="line-clamp-2 break-words font-semibold">{tituloDaOs(group)}</span><Badge variant="outline" className="shrink-0 font-normal">{group.projects.length} {group.projects.length === 1 ? 'projeto' : 'projetos'}</Badge></div><p title={group.os?.cliente_nome} className="truncate text-xs text-muted-foreground">{group.os ? group.os.cliente_nome : group.hasLinkedOs ? 'Carregando dados da ordem de serviço vinculada' : 'Projetos e tarefas agrupados sem ordem de serviço'}</p></div>
           </div>
           <div />
           <div />
@@ -542,7 +551,7 @@ export function ProjetosTarefasList({
                   />}
                 </span>
                 <FolderKanban className="h-4 w-4 shrink-0 text-primary" />
-                <button type="button" disabled={!projectNode.project} onClick={() => projectNode.project && onEditProject(projectNode.project)} title={projectNode.project?.name} className="truncate text-left font-semibold hover:underline disabled:no-underline">{projectNode.project ? shortProjectName(projectNode.project.name, group.clientName, group.os?.numero_os) : 'Sem projeto'}</button>
+                <button type="button" disabled={!projectNode.project} onClick={() => projectNode.project && onEditProject(projectNode.project)} title={projectNode.project?.name} className="line-clamp-2 break-words text-left font-semibold hover:underline disabled:no-underline">{projectNode.project ? shortProjectName(projectNode.project.name, group.clientName, group.os?.numero_os) : 'Sem projeto'}</button>
                 <ContadorTarefas total={projectNode.taskCount} concluidas={projectNode.completedTaskCount} />
               </div>
               {/* Pílula de status do projeto: a mesma fonte do modal de projeto

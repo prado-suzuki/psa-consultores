@@ -391,3 +391,49 @@ describe('ProjetosTarefasList — troca de status pelo seletor', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
+
+describe('ProjetosTarefasList — o texto inteiro da coluna Nome', () => {
+  const tituloLongo = '1.4.1 Elaborar Protocolo e Justificativa da Reestruturação Societária';
+  const projetoComOs = { ...projeto, ordem_servico_id: 'os1' } as unknown as OrgProject;
+  const osRows = [{
+    os_id: 'os1',
+    numero_os: '035/2026',
+    cliente_id: 'c1',
+    cliente_nome: 'Cliente Um',
+    servico_nome: null,
+    data_fim: null,
+    produtos: 'CC — Consultoria contábil, CHA — Canal de chamados',
+  }];
+
+  const renderComTarefaLonga = () => renderList({
+    projects: [projetoComOs],
+    tasks: [tarefa(tituloLongo, { assigned_to_name: 'Monica Matunaga' })],
+    osRows,
+  });
+
+  it('o título da tarefa quebra em duas linhas em vez de sumir em reticências', () => {
+    renderComTarefaLonga();
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+
+    const titulo = screen.getByRole('button', { name: tituloLongo });
+    expect(titulo.className).toContain('line-clamp-2');
+    // Uma linha só era o defeito: no piso de 1.200px da grade sobram ~30
+    // caracteres na subtarefa, e a tarefa mediana tem mais que isso.
+    expect(titulo.className).not.toContain('truncate');
+  });
+
+  it('o mouse revela o texto na tarefa, na OS e no responsável — não só na linha do projeto', () => {
+    renderComTarefaLonga();
+
+    // A OS aparece fechada; as outras duas linhas pedem a árvore aberta.
+    expect(screen.getByTitle('035/2026 - CC — Consultoria contábil, CHA — Canal de chamados')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    // O tooltip do projeto já existia, e é o único que mostra coisa diferente
+    // do texto da linha: ali se lê o nome inteiro, não o encurtado.
+    expect(screen.getByTitle('Projeto Alfa')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+    expect(screen.getByTitle(tituloLongo)).toBeInTheDocument();
+    expect(screen.getByTitle('Monica Matunaga')).toBeInTheDocument();
+  });
+});
