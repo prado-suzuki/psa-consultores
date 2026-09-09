@@ -394,7 +394,10 @@ export function ModalAvisarCliente({
 
   return (
     <Dialog open={aberto} onOpenChange={(v) => !enviando && !v && onFechar()}>
-      <DialogContent className="max-w-3xl gap-0 overflow-hidden p-0">
+      {/* `overflow-hidden` descarta a rolagem que a primitiva dá, então o corpo
+          precisa rolar por conta: o teto de 90vh vem de lá, e sem isto o
+          histórico de notificações mais comprido ficaria cortado sem barra. */}
+      <DialogContent className="flex max-w-3xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="px-6 pt-6">
           <DialogTitle className="text-lg font-extrabold tracking-tight text-osg-700">
             Avisar o cliente sobre a documentação
@@ -404,7 +407,7 @@ export function ModalAvisarCliente({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid md:grid-cols-[1fr_260px]">
+        <div className="grid min-h-0 flex-1 overflow-y-auto md:grid-cols-[1fr_260px]">
           {/* ── ESQUERDA · o que vai ser enviado ── */}
           <div className="space-y-5 px-6 py-5">
             {/* A faixa só aparece quando NÃO SOBROU canal. Enquanto houver um

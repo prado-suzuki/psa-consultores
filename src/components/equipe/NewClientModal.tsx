@@ -463,7 +463,7 @@ export default function NewClientModal({
         */}
         <DialogContent
           ref={conteudoRef}
-          className={cn("max-w-7xl h-[95vh] p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden", acento.fundoModal)}
+          className={cn("max-w-7xl h-[95vh] max-h-none p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden", acento.fundoModal)}
           onInteractOutside={(e) => {
             e.preventDefault();
             // Com o guia rodando, o clique veio do tooltip dele, que mora num
