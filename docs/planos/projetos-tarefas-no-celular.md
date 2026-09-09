@@ -35,7 +35,7 @@ cronograma no telefone é o caso menos provável de todos.
 | 4 | ✅ **O detalhe da tarefa** | É o fim do caminho de leitura, e quebra lá | `TaskModal` | P |
 | 5 | ✅ **Lista** | É a visão de trabalho dela no desktop | `ProjetosTarefasList` | G |
 | 6 | ✅ **Kanban** | Rende leitura, não operação — ver a ressalva | `TaskKanban` | M |
-| 7 | **Calendário** | Uso pontual no celular | `TaskCalendar` | M |
+| 7 | ✅ **Calendário** | Uso pontual no celular | `TaskCalendar` | M |
 | 8 | **Gantt** | O mais caro e o menos provável no telefone | `GanttChart` | G |
 
 ---
@@ -438,11 +438,30 @@ barrinhas que a fase 2 tirou.
 por dia** — cabe o número, não cabe nome de tarefa nenhum. E as células têm `min-h-[80px]`,
 então a tela fica alta e vazia ao mesmo tempo.
 
-No celular, **uma semana por vez**, com as sete colunas virando sete linhas: cada dia uma
-faixa, com as tarefas dele dentro. Mês inteiro em grade de sete colunas não existe em
-358px, e fingir que existe é o que produz o 51px.
+**O plano previa "uma semana por vez", e não foi o que se fez** — porque o calendário já
+tinha metade da solução pronta e ninguém tinha olhado: **tocar num dia já abria um painel
+com a lista inteira daquele dia**, desde antes desta frente. O que faltava não era
+navegação nova, era uma célula que caiba.
 
-**Validar:** dá para ver o que vence nesta semana sem abrir tarefa por tarefa.
+E havia um agravante que decidiu o desenho: as tiras de tarefa dentro da célula dependem de
+`HoverCard` para o título inteiro se ler — e **em toque não existe hover**. No celular elas
+eram quatro letras truncadas sem saída nenhuma.
+
+Então, abaixo de `md`: célula compacta (`min-h-[3rem]`, contra os 80px que faziam a tela
+ficar alta e vazia ao mesmo tempo), as tiras saem e entra a **contagem** de tarefas do dia.
+A contagem diz que há trabalho ali; o toque diz qual. O mês inteiro passa a caber numa
+olhada, que é para isso que existe visão de mês.
+
+Uma armadilha de ordem de breakpoint no caminho: com `min-h-[3rem]` na base mais o
+`sm:min-h-[100px]` que já existia, o desktop (≥768px) ficaria em 80px e a faixa de
+640–767px em 100px — o desktop **encolheria**. O `sm:` saiu e ficou só `md:min-h-[100px]`.
+A célula de dia de fora do mês acompanhou: linha de grade tem a altura da célula mais alta,
+então um dia de fora em 80px manteria a semana inteira alta.
+
+**Validar:** dá para ver o mês inteiro numa olhada, e tocar num dia mostra o que vence
+nele.
+
+**✅ FEITO em 09/09/2026.**
 
 ---
 

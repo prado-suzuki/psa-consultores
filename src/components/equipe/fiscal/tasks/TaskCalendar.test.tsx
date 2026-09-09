@@ -153,3 +153,60 @@ describe('TaskCalendar', () => {
     expect(chip.className).not.toMatch(/bg-(blue|green|purple|orange|pink|red|gray|slate)-/);
   });
 });
+
+describe('TaskCalendar — a célula do dia cabe no celular', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(DENTRO_DE_AGOSTO_DE_2026);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const montarCalendario = () =>
+    render(<CalendarioComPeriodo tasks={[tarefa({ due_date: '2026-08-10' })]} />);
+
+  /*
+    `grid-cols-7` divide o que tem por sete, sempre: em 358px úteis dá 51px por
+    dia. Não cabe título de tarefa em 51px — as tiras de 10px truncavam em
+    quatro letras — e os 80px de altura mínima faziam a tela ficar alta e vazia
+    ao mesmo tempo.
+
+    O agravante que decidiu o desenho: as tiras dependem de `HoverCard` para o
+    título inteiro se ler, e em toque não existe hover. No celular elas eram
+    quatro letras sem saída nenhuma.
+  */
+  it('no celular a célula é compacta, e o desktop não encolhe', () => {
+    montarCalendario();
+
+    const dia = screen.getAllByTestId('calendario-dia')[0];
+    // 3rem: o mês inteiro cabe numa olhada, que é para isso que existe visão de
+    // mês.
+    expect(dia.className).toContain('min-h-[3rem]');
+    expect(dia.className).toContain('md:min-h-[100px]');
+    // O `sm:min-h-` do original tinha de sair: com ele a ordem das media
+    // queries deixava o desktop em 80px e a faixa de 640-767px em 100px.
+    expect(dia.className).not.toMatch(/sm:min-h-/);
+  });
+
+  it('o dia de fora do mês acompanha a altura, senão a semana fica alta', () => {
+    montarCalendario();
+
+    const deFora = screen.getAllByTestId('calendario-dia-de-fora')[0];
+    // Linha de grade tem a altura da célula mais alta.
+    expect(deFora.className).toContain('min-h-[3rem]');
+    expect(deFora.className).not.toMatch(/sm:min-h-/);
+  });
+
+  it('as tiras de tarefa saem do celular e entra a contagem', () => {
+    const comTarefa = montarCalendario();
+
+    // A contagem diz que há trabalho no dia; o toque diz qual — e tocar no dia
+    // já abria o painel com a lista inteira antes desta frente.
+    const tiras = comTarefa.container.querySelector('[class*="md:flex"][class*="hidden"]');
+    expect(tiras).not.toBeNull();
+    expect(comTarefa.container.querySelector('[class*="md:hidden"][class*="tabular-nums"]'))
+      .not.toBeNull();
+  });
+});
