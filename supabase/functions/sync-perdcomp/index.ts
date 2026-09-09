@@ -170,7 +170,6 @@ Deno.serve(async (req) => {
     }
 
     // Fire-and-forget
-    // @ts-expect-error - EdgeRuntime é disponível em runtime no Deno Deploy
     const edgeRuntime = (globalThis as any).EdgeRuntime;
     if (edgeRuntime?.waitUntil) {
       edgeRuntime.waitUntil(syncWithDW(body, userToken));
