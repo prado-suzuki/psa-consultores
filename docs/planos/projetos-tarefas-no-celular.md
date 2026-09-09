@@ -29,7 +29,7 @@ cronograma no telefone é o caso menos provável de todos.
 
 | # | Fase | Por que aqui | Arquivo principal | Tamanho |
 |---|---|---|---|---|
-| 1 | **A porta de entrada** | Duas visões já funcionam e ela não as vê | `PainelTarefas` | P |
+| 1 | ✅ **A porta de entrada** | Duas visões já funcionam e ela não as vê | `PainelTarefas` | P |
 | 2 | **A régua de status** | Mata 1 dos 3 scrollbars, e vale nas 7 abas | `TaskKPICards` | P |
 | 3 | **Tabela** | Quebra pior que todas, e é o remédio menor | `TaskTable` | P |
 | 4 | **Lista** | É a visão de trabalho dela no desktop | `ProjetosTarefasList` | G |
@@ -55,7 +55,13 @@ Nada de esconder as outras cinco: visão que não caiu bem ainda é melhor que v
 desapareceu sem explicação.
 
 **Validar:** abrir `/equipe/tax/projetos/tarefas` no celular e ver se cai numa tela que dá
-para usar de imediato, e se as duas abas boas estão à mão.
+para ler de imediato, e se as duas abas boas estão à mão.
+
+**✅ FEITO em 09/09/2026.** `telaEstreita()` saiu de dentro do controlador da barra lateral
+e virou export de `hooks/use-mobile`, ao lado do `MOBILE_BREAKPOINT` — as duas decisões que
+dependem da largura no primeiro quadro (qual estado a barra nasce, em que visão o painel
+abre) passam a ler o mesmo número. `max-md:order-first` nas duas abas; a ordem no DOM não
+mudou.
 
 ---
 
@@ -124,17 +130,21 @@ setas de "anterior/próximo" andam entre os status. A alternativa considerada �
 `78vw`, com a próxima "espiando" — perde para essa, porque um cartão de tarefa a 78vw ainda
 é estreito e o gesto de arrastar de lado disputa com a rolagem vertical dos cartões.
 
-**Ressalva que muda o valor desta fase, e a Patrícia precisa saber antes:** arrastar cartão
-usa `draggable` + `onDragStart`/`onDrop` do HTML5 (`TaskKanbanCard.tsx`), que **não dispara
-em toque** no iOS nem no Android, e o projeto não tem biblioteca de arrastar. Ou seja:
-mesmo com o quadro cabendo, **mover cartão arrastando não vai funcionar no celular**, e
-isso não é largura — é a API. O caminho que já existe continua valendo: tocar no cartão
-abre a tarefa, e o status se muda lá dentro. Fazer o arrastar funcionar no toque é frente
-separada (biblioteca de DnD com sensor de ponteiro), e é bem maior que esta fase.
+**Arrastar no toque: decidido em 09/09, não fazer.** O `draggable` +
+`onDragStart`/`onDrop` do HTML5 (`TaskKanbanCard.tsx`) **não dispara em toque** no iOS nem
+no Android, e o projeto não tem biblioteca de arrastar. Levada a limitação à Patrícia, a
+resposta fecha a questão: *"é só p visualizar msm, o gestor quer só olhar mas ele quer ver
+pelo celular"* — o celular desta tela é **superfície de leitura**, e é por isso que os
+ajustes existem.
 
-Então esta fase entrega um Kanban que se **lê** no celular, não um que se **opera**
-arrastando. Se ler não bastar, o que fecha o caso é o arrastar por toque — e aí a decisão é
-sobre a biblioteca, não sobre a largura.
+Então esta fase entrega um Kanban que se **lê**, e isso é o suficiente. Não abrir frente de
+biblioteca de DnD com sensor de ponteiro por conta disso. O caminho de escrita continua
+existindo para quem precisar: tocar no cartão abre a tarefa e o status se muda lá dentro.
+
+E a decisão vale para o plano inteiro, não só para esta fase: **em tela estreita, o que
+manda é ler**. Onde um controle de edição estiver disputando largura com a informação
+(o `Select` de status de 138px na Lista, a coluna de ações, o cursor de arrastar), no
+celular a informação ganha e o controle recua.
 
 **Validar:** dá para ler a coluna inteira de um status e trocar de status sem rolar de lado.
 

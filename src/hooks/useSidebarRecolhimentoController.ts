@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { MOBILE_BREAKPOINT } from './use-mobile';
+import { MOBILE_BREAKPOINT, telaEstreita } from './use-mobile';
 
 /**
  * Recolhimento automático da barra lateral em telas de trabalho largo.
@@ -99,18 +99,6 @@ export function useTelaDeTrabalhoLargo(ativo = true): void {
       notificar();
     };
   }, [ativo]);
-}
-
-/**
- * Tela estreita: a barra lateral não é mais uma coluna, é uma gaveta que cobre o
- * conteúdo. Consultada de forma síncrona (e não pelo `useIsMobile`, que só sabe
- * a largura depois do primeiro efeito) porque o estado INICIAL depende dela: um
- * primeiro quadro com a barra aberta num celular empurra o conteúdo para ~130px
- * de largura, e é esse quadro que o usuário vê a cada navegação.
- */
-function telaEstreita(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.innerWidth < MOBILE_BREAKPOINT;
 }
 
 function prefereMenosMovimento(): boolean {

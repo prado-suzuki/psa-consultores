@@ -8,6 +8,20 @@ import * as React from "react";
  */
 export const MOBILE_BREAKPOINT = 768;
 
+/**
+ * A tela é estreita AGORA, de forma síncrona.
+ *
+ * Existe ao lado do `useIsMobile` porque aquele só sabe a largura depois do
+ * primeiro efeito, e há decisões que precisam da resposta no estado INICIAL:
+ * a barra lateral nasce fechada ou aberta, o painel de tarefas abre numa visão
+ * que cabe ou numa que não cabe. Nos dois casos o primeiro quadro é o que o
+ * usuário vê a cada navegação, então "descobrir depois" é tarde.
+ */
+export function telaEstreita(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < MOBILE_BREAKPOINT;
+}
+
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
 
