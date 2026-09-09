@@ -34,9 +34,11 @@ export function DailyEditDialog({
         vários parágrafos, e o modal é centralizado por translate. Sem o teto o
         conteúdo cresce para os dois lados e o título e o X saem pela borda de
         cima, fora de alcance. O maxHeight dos editores segura cada campo antes
-        disso, para o texto longo rolar dentro do próprio campo.
+        disso, para o texto longo rolar dentro do próprio campo. A largura é a
+        dos modais de formulário com editor rico, e não a `lg` do padrão: a
+        daily é texto corrido, e linha mais larga é o que a mantém baixa.
       */}
-      <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-lg">
+      <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-2xl">
         <DialogHeader><DialogTitle>Editar Daily</DialogTitle></DialogHeader>
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-4 pr-1">
           <div className="space-y-2">
