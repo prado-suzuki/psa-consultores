@@ -23,15 +23,26 @@ export function telaEstreita(): boolean {
 }
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
+  // Nasce com a resposta CERTA, e não `undefined`. O valor inicial virava
+  // `false` no primeiro render, então quem decide layout por ele desenhava um
+  // quadro de desktop antes de corrigir — e num celular esse quadro pisca. O
+  // efeito abaixo continua sendo quem acompanha o resize.
+  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(telaEstreita);
 
   React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    // Nem todo ambiente tem `matchMedia`: o jsdom não implementa, e Safari
+    // antigo devolve MediaQueryList sem `addEventListener`. Sem esta guarda o
+    // hook DERRUBA quem o usa em vez de simplesmente não acompanhar o resize —
+    // e agora ele decide layout no Gantt, então derrubava a tela da sprint em
+    // teste. Mesma guarda que `useSidebarRecolhimentoController` já tem.
+    const mql = window.matchMedia?.(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    setIsMobile(telaEstreita());
+    if (typeof mql?.addEventListener !== "function") return;
+
     const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+      setIsMobile(telaEstreita());
     };
     mql.addEventListener("change", onChange);
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
     return () => mql.removeEventListener("change", onChange);
   }, []);
 

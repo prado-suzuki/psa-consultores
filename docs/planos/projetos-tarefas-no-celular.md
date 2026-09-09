@@ -36,7 +36,7 @@ cronograma no telefone é o caso menos provável de todos.
 | 5 | ✅ **Lista** | É a visão de trabalho dela no desktop | `ProjetosTarefasList` | G |
 | 6 | ✅ **Kanban** | Rende leitura, não operação — ver a ressalva | `TaskKanban` | M |
 | 7 | ✅ **Calendário** | Uso pontual no celular | `TaskCalendar` | M |
-| 8 | **Gantt** | O mais caro e o menos provável no telefone | `GanttChart` | G |
+| 8 | ✅ **Gantt** | O mais caro e o menos provável no telefone | `GanttChart` | G |
 
 ---
 
@@ -490,12 +490,35 @@ erro de build, de lint nem de tipo.
 **1.620px**. A coluna do nome sozinha ocupa 84% da tela dela, então nome e barra nunca
 aparecem juntos — que é a única coisa que o Gantt existe para mostrar.
 
-No celular o nome sai da coluna e vira **cabeçalho acima** da barra, e a linha do tempo
-recebe a largura toda. Mexe no `GanttChart`, que é compartilhado com o Gantt da sprint
-(`sprint-detalhes/GanttTab.tsx`) — então a mudança tem de ser por breakpoint, não por
-troca de desenho, e o Gantt da sprint precisa ser conferido junto.
+**O plano previa "nome como cabeçalho acima da barra", e não foi o que se fez** — porque o
+Gantt é melhor construído do que este plano supôs: a coluna de nomes **já era
+`sticky left-0`** antes desta frente, então ela não sai da tela quando a linha do tempo
+rola. Cabeçalho acima da barra custaria duas linhas por item e ainda tiraria a comparação
+entre linhas, que é o que um Gantt entrega.
+
+O que faltava era só a coluna **caber**: 300px sobre 358px úteis é 84% da tela gasta antes
+da primeira barra. A 132px sobram ~226px de linha do tempo, uns cinco dias na escala de
+mês — pouco, mas é a natureza de um Gantt num telefone, e esta é a fase que o plano já
+classificava como a menos provável de ser usada ali.
+
+Duas coisas que vieram no caminho:
+
+- **`title` no que trunca**, no grupo e no item. É a lição da Lista: texto cortado sem
+  tooltip é texto perdido, e a coluna a 132px corta mais. Em toque não há hover para
+  recuperá-lo, mas sem o `title` não se recupera em lugar nenhum;
+- **o `useIsMobile` nascia errado.** O valor inicial era `undefined`, que virava `false` no
+  primeiro render: quem decide LAYOUT por ele desenhava um quadro de desktop e corrigia
+  depois — num celular esse quadro pisca. Passou a nascer de `telaEstreita()`. E ganhou a
+  guarda de `matchMedia` que faltava: sem ela o hook **derrubava** quem o usasse em
+  ambiente sem `matchMedia` (o jsdom não implementa), o que apareceu como duas telas de
+  sprint quebradas assim que o Gantt passou a consumi-lo.
+
+O `GanttChart` é compartilhado com o Gantt da sprint (`sprint-detalhes/GanttTab.tsx`), e a
+mudança é por breakpoint: no desktop os 300px seguem intactos, travados em teste.
 
 **Validar:** dá para ver de quem é a tarefa e onde ela cai no mês na mesma olhada.
+
+**✅ FEITO em 09/09/2026.**
 
 ---
 

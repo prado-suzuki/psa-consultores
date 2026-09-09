@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { MOBILE_BREAKPOINT, telaEstreita } from './use-mobile';
+import { renderHook } from '@testing-library/react';
+
+import { MOBILE_BREAKPOINT, telaEstreita, useIsMobile } from './use-mobile';
 
 /**
  * `telaEstreita()` é consultada no estado INICIAL de duas coisas: a barra
@@ -45,5 +47,34 @@ describe('telaEstreita', () => {
     } finally {
       globalThis.window = janela;
     }
+  });
+});
+
+describe('useIsMobile', () => {
+  afterEach(() => {
+    definirLargura(1024);
+    delete (window as { matchMedia?: unknown }).matchMedia;
+  });
+
+  it('já nasce com a resposta certa, sem um quadro de desktop antes', () => {
+    // O valor inicial era `undefined`, que virava `false` no primeiro render:
+    // quem decide LAYOUT por ele desenhava um quadro de desktop e corrigia
+    // depois — num celular esse quadro pisca. É o caso da coluna de nomes do
+    // Gantt, que mede 300px no desktop e 132px no celular.
+    definirLargura(390);
+
+    const { result } = renderHook(() => useIsMobile());
+    expect(result.current).toBe(true);
+  });
+
+  it('sem `matchMedia` responde pela largura, em vez de derrubar quem o usa', () => {
+    // O jsdom não implementa `matchMedia`, e Safari antigo devolve
+    // MediaQueryList sem `addEventListener`. O hook derrubava a tela nesses
+    // ambientes — o pior que pode acontecer aqui é não acompanhar o resize.
+    definirLargura(390);
+    expect(window.matchMedia).toBeUndefined();
+
+    const { result } = renderHook(() => useIsMobile());
+    expect(result.current).toBe(true);
   });
 });
