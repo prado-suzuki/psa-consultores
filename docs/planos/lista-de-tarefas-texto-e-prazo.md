@@ -87,7 +87,7 @@ Uma fase = um commit = um pedido de validação. O agente para ao fim de cada um
 |---|---|---|---|---|
 | 1 | ✅ O texto aparece inteiro | `title` nos cinco pontos sem ele; título em 2 linhas | — | P |
 | 2 | ✅ O calendário não oferece data inválida | `disabled` no calendário da linha e do modal; guard no hook | — | P |
-| 3 | A regra vale por qualquer caminho | trigger em `org_tasks` | migration | M |
+| 3 | 🟡 A regra vale por qualquer caminho | trigger em `org_tasks` | migration escrita, **falta aplicar** | M |
 
 **Estado em 09/09/2026, fim do dia.** A Fase 1 saiu no commit `4fb990e3` e foi validada pela
 Patrícia na tela. A Fase 2 saiu em dois commits, e o motivo fica registrado porque
@@ -149,12 +149,37 @@ linha e pelo modal.
 
 ### Fase 3 — a regra vale por qualquer caminho
 
-Trigger idempotente em `org_tasks`, com a mesma regra da Fase 2. Sem ela, importação, SQL
-direto e qualquer escrita fora da tela continuam furando. Migration aplicada no sandbox pela
-Patrícia (`bun run db:sync --apply`) e em produção por passo humano no chat do Lovable.
+`supabase/migrations/20260909173700_org_tasks_prazo_dentro_da_mae.sql`: a mesma regra dos dois
+lados, agora no banco. Sem ela, importação, SQL direto e qualquer escrita fora da tela
+continuam furando — o front cobre os dois calendários e só eles.
 
-Só faz sentido depois da Fase 2 validada: se a mensagem da tela ainda não estiver acertada, o
-erro do banco chega cru na cara de quem clicou.
+O gatilho é **por coluna** (`before insert or update of due_date, parent_task_id`) e ainda
+confere `is distinct from` por dentro. Os dois filtros dizem a mesma coisa que o guard do
+hook: linha que já estava torta continua editável em tudo o mais, e só para de piorar. As
+mensagens são idênticas às do front, de propósito — quem furar por fora lê o mesmo texto que
+leria na tela.
+
+Não atrapalha o que já existia no banco: `gerar_tarefas_projeto` e a geração de tarefa por
+chamado inserem **só tarefa-pai** (`parent_task_id` nulo), então nem entram no ramo. E
+`sprint_deliverables` é outra tabela — lá a data da mãe é derivada como o **máximo** das
+filhas, convenção oposta a esta e fora do alcance deste gatilho.
+
+**Aplicar (é passo humano, o agente não escreve schema):**
+
+```
+! bun run db:sync --apply
+```
+
+Depois, conferir por SELECT que o gatilho existe:
+
+```sql
+select tgname from pg_trigger where tgname = 'trg_org_tasks_prazo_dentro_da_mae'
+```
+
+Produção é o passo do Bernardo, pelo **chat** do Lovable — nunca pelo editor SQL, que corta o
+statement em `;` e `--` (ver `sql-editor-lovable-quebra-statement` na memória do projeto e o
+`CLAUDE.md`). A migration é aditiva e não toca em dado: coluna nenhuma muda, linha nenhuma é
+reescrita, e as 35 linhas fora da regra continuam onde estão.
 
 ## Conflito registrado
 
