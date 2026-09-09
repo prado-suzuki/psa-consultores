@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -114,6 +114,92 @@ describe('TaskKanban — barra de período', () => {
 
       await usuario.click(screen.getByRole('button', { name: 'Hoje' }));
       expect(screen.getByText('Definir escopo')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('TaskKanban — uma coluna por vez no celular', () => {
+  /*
+    Sete colunas de 340px mais as folgas pedem 2.476px. Num celular de 358px
+    úteis cabia UMA coluna e uma tira da seguinte — e a tira era o que aparecia
+    no print de 08/09. A rolagem de lado do quadro era ainda a terceira de três
+    barrinhas empilhadas na tela.
+
+    Estas asserções olham classe porque jsdom não calcula layout, e porque
+    nenhuma delas dá erro de build se cair.
+  */
+  /**
+   * A coluna cujo cabeçalho traz `rotulo`.
+   *
+   * `getAllByText` e não `getByText`: o seletor de coluna mostra o MESMO rótulo
+   * do cabeçalho da coluna escolhida, então o texto aparece duas vezes na tela.
+   * O que distingue é o ancestral de 340px, que só a coluna tem.
+   */
+  const colunaDe = (rotulo: string) =>
+    screen
+      .getAllByText(rotulo)
+      .map((no) => no.closest('[class*="w-[340px]"]'))
+      .find((no): no is HTMLElement => no !== null) ?? null;
+
+  it('só a coluna escolhida ocupa a largura; as outras seis saem por CSS', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(HOJE);
+    try {
+      montar([tarefa({ status: 'backlog', due_date: '2026-08-10' })]);
+
+      // Começa no primeiro status, sempre — e não no primeiro que tem cartão:
+      // visão que troca de identidade conforme o dado ninguém prevê.
+      expect(colunaDe('Backlog')?.className).toContain('max-md:w-full');
+      expect(colunaDe('A Fazer')?.className).toContain('max-md:hidden');
+
+      // Saem por CSS e não desmontadas, então rolagem e arraste de cada coluna
+      // sobrevivem à troca.
+      expect(colunaDe('A Fazer')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('as setas andam entre as colunas e param nas pontas', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(HOJE);
+    try {
+      montar([]);
+
+      const anterior = screen.getByRole('button', { name: 'Coluna anterior' });
+      const proxima = screen.getByRole('button', { name: 'Próxima coluna' });
+
+      // Desabilitar nas pontas é o que dá a sensação de onde se está nas sete,
+      // sem um "3 de 7" escrito na tela.
+      expect(anterior).toBeDisabled();
+      expect(proxima).toBeEnabled();
+
+      fireEvent.click(proxima);
+      expect(colunaDe('Pendente Cliente')?.className).toContain('max-md:w-full');
+      expect(colunaDe('Backlog')?.className).toContain('max-md:hidden');
+      expect(anterior).toBeEnabled();
+
+      fireEvent.click(anterior);
+      expect(colunaDe('Backlog')?.className).toContain('max-md:w-full');
+      expect(anterior).toBeDisabled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('o quadro não rola de lado no celular, porque não há nada ao lado', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(HOJE);
+    try {
+      montar([]);
+
+      const quadro = colunaDe('Backlog')?.parentElement;
+      expect(quadro?.className).toContain('overflow-x-auto');
+      // Deixar a rolagem ligada devolveria uma das três barrinhas que a fase 2
+      // tirou da tela.
+      expect(quadro?.className).toContain('max-md:overflow-x-hidden');
     } finally {
       vi.useRealTimers();
     }

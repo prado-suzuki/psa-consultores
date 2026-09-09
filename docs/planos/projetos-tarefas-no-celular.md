@@ -34,7 +34,7 @@ cronograma no telefone é o caso menos provável de todos.
 | 3 | ✅ **Tabela** | Quebra pior que todas, e é o remédio menor | `TaskTable` | P |
 | 4 | ✅ **O detalhe da tarefa** | É o fim do caminho de leitura, e quebra lá | `TaskModal` | P |
 | 5 | ✅ **Lista** | É a visão de trabalho dela no desktop | `ProjetosTarefasList` | G |
-| 6 | **Kanban** | Rende leitura, não operação — ver a ressalva | `TaskKanban` | M |
+| 6 | ✅ **Kanban** | Rende leitura, não operação — ver a ressalva | `TaskKanban` | M |
 | 7 | **Calendário** | Uso pontual no celular | `TaskCalendar` | M |
 | 8 | **Gantt** | O mais caro e o menos provável no telefone | `GanttChart` | G |
 
@@ -413,6 +413,22 @@ manda é ler**. Onde um controle de edição estiver disputando largura com a in
 celular a informação ganha e o controle recua.
 
 **Validar:** dá para ler a coluna inteira de um status e trocar de status sem rolar de lado.
+
+**✅ FEITO em 09/09/2026.** Três decisões que valem registrar:
+
+- **começa no primeiro status, sempre** — e não no primeiro que tem cartão. O seletor mostra
+  a contagem, então coluna vazia se explica sozinha; visão que troca de identidade conforme
+  o dado é visão que ninguém prevê;
+- **o cabeçalho da coluna some abaixo de `md`**, porque o seletor já traz o rótulo e a
+  contagem na cor do status. Mostrar duas vezes gastaria 36px de um quadro que no telefone
+  já é curto;
+- **as outras seis colunas saem por CSS, não desmontadas**: rolagem e arraste de cada uma
+  sobrevivem à troca. É a mesma regra das metades do modal.
+
+As setas desabilitam nas pontas de propósito — é o que dá a sensação de onde se está nas
+sete sem um "3 de 7" escrito na tela. E o quadro perde a rolagem horizontal abaixo de `md`:
+com uma coluna por vez não há nada ao lado, e deixá-la ligada devolveria uma das três
+barrinhas que a fase 2 tirou.
 
 ---
 
