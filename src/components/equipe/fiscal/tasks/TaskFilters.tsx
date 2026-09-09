@@ -79,7 +79,17 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
   };
 
   return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+    // `w-full` abaixo de `md`: a busca e o "Filtros" ficam com a linha toda, e
+    // as ações do painel ("Criar Projeto", "Nova tarefa") caem para a linha de
+    // baixo. Sem isto, quem quebrava era o `flex-wrap` DESTE bloco: o "Filtros"
+    // descia sozinho para uma segunda linha enquanto a busca continuava
+    // espremida na primeira, entre ele e os dois botões — três controles numa
+    // linha e um órfão embaixo.
+    //
+    // `md:w-auto md:flex-1` e não `basis-full`: `flex-1` é o atalho de
+    // `flex: 1 1 0%`, que carrega o próprio flex-basis e venceria um
+    // `basis-full` por ordem de folha. Largura não entra nessa disputa.
+    <div className="flex w-full min-w-0 flex-wrap items-center gap-2 md:w-auto md:flex-1">
       <div className="relative min-w-52 flex-1 sm:max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input

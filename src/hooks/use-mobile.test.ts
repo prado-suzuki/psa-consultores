@@ -39,8 +39,7 @@ describe('telaEstreita', () => {
 
   it('responde false sem window, para não quebrar renderização fora do navegador', () => {
     const janela = globalThis.window;
-    // @ts-expect-error — simulando ambiente sem DOM
-    delete globalThis.window;
+    delete (globalThis as { window?: unknown }).window;
     try {
       expect(telaEstreita()).toBe(false);
     } finally {

@@ -30,7 +30,7 @@ cronograma no telefone é o caso menos provável de todos.
 | # | Fase | Por que aqui | Arquivo principal | Tamanho |
 |---|---|---|---|---|
 | 1 | ✅ **A porta de entrada** | Duas visões já funcionam e ela não as vê | `PainelTarefas` | P |
-| 2 | **A régua de status** | Mata 1 dos 3 scrollbars, e vale nas 7 abas | `TaskKPICards` | P |
+| 2 | ✅ **A moldura do topo** | Mata 1 dos 3 scrollbars, e vale nas 7 abas | `TaskKPICards`, `TaskFilters` | P |
 | 3 | **Tabela** | Quebra pior que todas, e é o remédio menor | `TaskTable` | P |
 | 4 | **Lista** | É a visão de trabalho dela no desktop | `ProjetosTarefasList` | G |
 | 5 | **Kanban** | Rende leitura, não operação — ver a ressalva | `TaskKanban` | M |
@@ -65,17 +65,48 @@ mudou.
 
 ---
 
-## Fase 2 — A régua de status
+## Fase 2 — A moldura do topo
+
+Cresceu de "a régua" para "a moldura" no meio da execução: a Patrícia reduziu a janela e
+apontou a faixa de ações. São os dois blocos que ficam **acima** das abas e valem para as
+sete visões, então validam-se na mesma olhada.
+
+### A régua de status
 
 Sete status a `min-w-[120px]`: **840px** pedidos, com `overflow-x-auto` própria. É a
 primeira das três rolagens horizontais do print, e ela aparece **em todas as sete abas**.
 
-No celular a régua vira grade de chips em duas linhas, sem rolagem nenhuma. A alternativa
-— tirá-la do celular, já que o Kanban repete a mesma contagem em cima de cada coluna — fica
-registrada e **não** é o que se propõe: a régua é a única leitura de "como está o mês" que
-existe fora do Kanban.
+No celular a régua vira grade: duas colunas até `sm`, três de `sm` a `md`, e a linha de
+sempre a partir de `md`. A sétima célula ocupa a linha inteira — 7 não divide nem por 2 nem
+por 3, e "Concluído" sozinho num canto lê como célula faltando.
 
-**Validar:** o scrollbar de cima do print tem de ter sumido, em qualquer aba.
+A alternativa — tirá-la do celular, já que o Kanban repete a mesma contagem em cima de cada
+coluna — fica registrada e **não** é o que se fez: a régua é a única leitura de "como está o
+mês" que existe fora do Kanban.
+
+### A faixa de busca e ações
+
+Relato dela em 09/09: *"o botao de filtro buscar tarefa criar projeto e nova tarefa nao
+estao harmoniosos"*. E não estavam: em ~515px de janela a linha saía como busca +
+"Criar Projeto" + "Nova tarefa" na primeira linha, e "Filtros" **órfão** na segunda.
+
+A causa não era o container de fora, era o `flex-wrap` de **dentro** do `TaskFilters`:
+quebrando ali, o "Filtros" descia sozinho enquanto a busca continuava espremida na primeira
+linha, entre ele e os dois botões. O conserto é o `TaskFilters` tomar a linha inteira
+abaixo de `md` (`w-full`), o que empurra as ações para a linha de baixo, onde o `ml-auto`
+que já existia as alinha à direita. Resultado: busca + "Filtros" em cima, as duas ações
+embaixo.
+
+`md:w-auto md:flex-1`, e **não** `basis-full`: `flex-1` é o atalho de `flex: 1 1 0%`, que
+carrega o próprio flex-basis e venceria um `basis-full` por ordem de folha. Largura não
+entra nessa disputa.
+
+**Validar:** o scrollbar de cima do print tem de ter sumido em qualquer aba, e a linha de
+busca/ações tem de sair em dois blocos limpos, sem botão órfão.
+
+**✅ FEITO em 09/09/2026.** `TaskKPICards.test.tsx` trava as duas coisas que não dão erro de
+build: a régua não pode ter `overflow-x-auto` sem prefixo, e a última célula tem de fechar
+a linha.
 
 ---
 
