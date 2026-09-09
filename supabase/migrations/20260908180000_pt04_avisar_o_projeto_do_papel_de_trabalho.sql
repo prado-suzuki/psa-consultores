@@ -63,7 +63,6 @@ declare
   v_kind      public.org_comment_kind;
   v_titulo    text;
   v_corpo     text;
-  v_corpo_sino text;
   v_prefixo   text;
   v_envio     uuid;
   v_eventos   int := 0;
@@ -154,29 +153,28 @@ begin
   from public.profiles p where p.id = v_uid;
   v_autor := coalesce(v_autor, 'Sistema');
 
-  -- **O sino recebe um texto mais curto que a thread, e não é descuido.**
+  -- **O texto é UM só, o que a Patricia aprovou, e vai igual nos dois lugares.**
   --
-  -- Na thread o texto aprovado pela Patricia cabe inteiro, e "este planejamento"
-  -- se entende porque a linha está DENTRO do projeto. No sino são duas linhas de
-  -- `line-clamp-2` e nenhum contexto ao redor: o texto longo era cortado no meio
-  -- ("Os slides j…"), a linha do Responsável nunca aparecia, e "este
-  -- planejamento" não dizia qual. Então o sino nomeia o projeto, que é a
-  -- informação que falta ali, e guarda o Responsável no que sobra.
+  -- Houve uma tentativa de encurtar para o sino, porque lá o texto batia no
+  -- `line-clamp-2` e chegava cortado no meio ("Os slides j…"). Foi desfeita: o
+  -- texto do aviso é decisão dela, não do espaço disponível. Quem cedeu foi a
+  -- tela, que passou a mostrar o corpo inteiro.
+  --
+  -- O que o sino precisava e o texto não dá, que é DE QUE projeto ele fala, vai
+  -- nos metadados e a tela desenha em linha separada. Assim a frase continua
+  -- palavra por palavra a aprovada e ninguém precisa adivinhar o projeto.
   if v_versao <= 1 then
     v_kind   := 'papel_de_trabalho_importado';
     v_titulo := 'Papel de trabalho importado';
     v_corpo  := 'O papel de trabalho foi importado para este planejamento. '
              || 'Os slides já podem ser gerados.' || chr(10)
              || 'Responsável: ' || v_resp;
-    v_corpo_sino := v_proj.name || '. Responsável: ' || v_resp;
   else
     v_kind   := 'papel_de_trabalho_revisado';
     v_titulo := 'Nova revisão do papel de trabalho';
     v_corpo  := 'A revisão ' || v_versao::text || ' foi importada. '
              || 'As versões anteriores continuam disponíveis.' || chr(10)
              || 'Responsável: ' || v_resp;
-    v_corpo_sino := 'Revisão ' || v_versao::text || ' em ' || v_proj.name
-                 || '. Responsável: ' || v_resp;
   end if;
 
   -- **A chave de idempotência é por REVISÃO**, e não por dia como na GES-03.
@@ -247,13 +245,19 @@ begin
         _titulo          => v_titulo,
         _entidade_tipo   => 'org_project',
         _entidade_id     => v_proj.id,
-        _corpo           => v_corpo_sino,
+        _corpo           => v_corpo,
         _href            => null,
         _agrupamento     => 'papel_de_trabalho_importado:projeto:' || v_proj.id::text,
+        -- **`projeto` é o NOME, copiado, e não só o id.** O sino é retrato de um
+        -- momento e a tela dele não faz join: com o id ela teria de ir buscar o
+        -- nome numa segunda consulta por aviso. Renome de projeto depois disso
+        -- deixa o aviso antigo com o nome antigo, que é o certo para um registro
+        -- do que aconteceu naquele dia.
         _metadata        => jsonb_build_object(
                               'estudo_id', v_est.id,
                               'importacao_id', _importacao_id,
-                              'versao', v_versao)
+                              'versao', v_versao,
+                              'projeto', v_proj.name)
       );
 
       perform public.confirmar_envio(v_envio, 'enviado'::public.notificacao_envio_status);
