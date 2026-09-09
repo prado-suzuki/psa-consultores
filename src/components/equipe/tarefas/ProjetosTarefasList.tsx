@@ -221,7 +221,11 @@ function LevelGuide({ left, leftEstreito }: { left: number; leftEstreito: number
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute inset-y-0 border-l border-border/60 left-[var(--guia)] max-md:left-[var(--guia-estreita)]"
+      // No celular o fio também sobe de tinta: `border/60` dava 1,14:1, que não
+      // é linha, é nada. `/35` dá 1,62:1 — perceptível, e um degrau bem abaixo
+      // do 4,29:1 do cotovelo, de propósito: o fio é contexto, o cotovelo é a
+      // informação.
+      className="pointer-events-none absolute inset-y-0 border-l border-border/60 max-md:border-muted-foreground/35 left-[var(--guia)] max-md:left-[var(--guia-estreita)]"
       style={{ '--guia': `${left}px`, '--guia-estreita': `${leftEstreito}px` } as React.CSSProperties}
     />
   );
@@ -243,7 +247,25 @@ function CotoveloDaFilha({ nivel }: { nivel: number }) {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute top-0 hidden h-[13px] rounded-bl-md border-b border-l border-border max-md:block left-[var(--cotovelo)] w-[var(--cotovelo-largura)]"
+      /*
+        A cor saiu de `border` e a opacidade é MEDIDA, não escolhida.
+
+        Na Tax o `--border` é `170 16% 89%`, quase branco: o cotovelo original
+        dava **1,25:1** de contraste sobre a superfície branca da tarefa, o que
+        é invisível de fato — "esse cantinho tá muito claro, não consigo
+        enxergar" (09/09). O `--muted-foreground` da área é `185 8% 40.5%`,
+        tinta de texto.
+
+        `/90` porque o piso da WCAG para elemento gráfico que CARREGA
+        informação é 3:1, e o cotovelo carrega — ele é quem diz de que linha
+        esta desce. A 70% dá 2,90:1 e não passa (foi a primeira tentativa deste
+        conserto); a 90% dá **4,29:1**. Os números estão no teste, que é o único
+        jeito de isto não voltar a apagar em silêncio.
+
+        Este elemento só existe abaixo de `md` (`hidden max-md:block`), então a
+        cor não precisa de prefixo: ela nunca alcança o desktop.
+      */
+      className="pointer-events-none absolute top-0 hidden h-[13px] rounded-bl-md border-b-2 border-l-2 border-muted-foreground/90 max-md:block left-[var(--cotovelo)] w-[var(--cotovelo-largura)]"
       style={{
         // Sai do fio da MÃE, um nível acima.
         '--cotovelo': `${PROJECT_GUIDE_ESTREITO + (nivel - 1) * INDENT_STEP_ESTREITO}px`,
