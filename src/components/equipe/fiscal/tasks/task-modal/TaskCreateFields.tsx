@@ -173,7 +173,9 @@ export function TaskCreateFields({
                   withCode={false}
                   placeholder="Descreva a tarefa..."
                   minHeight="min-h-[104px]"
-                  maxHeight="max-h-[280px]"
+                  // Sem teto, como na edição: o corpo do modal já rola e a
+                  // descrição é o último campo. Ver TaskEditBody.
+
                   className="rounded-xl bg-muted/20"
                 />
               </FormControl>
