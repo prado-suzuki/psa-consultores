@@ -62,14 +62,17 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
 
   return (
     <Dialog open={!!selectedDeliverable} onOpenChange={(open) => !open && props.onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      {/* Cabeçalho e rodapé parados, só o corpo rolando: é o outro modal do
+          sistema onde se digita descrição em texto rico, e rolar tudo junto
+          levava o título e os botões de salvar para fora da vista. */}
+      <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-gray-900">
             {selectedDeliverable?.parent_id ? 'Detalhes da Subtarefa' : 'Detalhes do Entregável'}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
           {selectedDeliverable?.task_code && (
             <div className="text-sm text-gray-500">
               Código: <span className="font-mono">{selectedDeliverable.task_code}</span>
