@@ -1055,12 +1055,26 @@ export function mapearIntegralizacoes(
     for (const id of ['quotas', 'quotasExtenso', 'vlrTotal', 'vlrTotalExtenso']) {
       socioCampos[id] = socioCampos[id] ?? '';
     }
+    const aportesDoAto = montarAportesDoSocio(aportesDoSocio, doSocio, imoveis);
+    // O cabeçalho anuncia o total DESTE ato, que é a soma das alíneas logo
+    // abaixo dele — e não o `vlrTotal` que `mapearSocio` trouxe do quadro.
+    //
+    // Na constituição os dois coincidem, e foi por isso que a diferença passou
+    // despercebida. Num aumento posterior não coincidem: medido no app em
+    // 09/09/2026, a peça saía "pelo sócio OTÁVIO PANTANAL, no valor total de
+    // R$ 500.000,00" (o total dele DEPOIS do aumento) sobre uma única alínea de
+    // R$ 200.000,00 (o aporte do ato). O documento se contradizia sozinho.
+    const totalDoAto = somaDasAlineas(aportesDoAto);
+    if (totalDoAto != null) {
+      socioCampos.vlrTotal = formatarValor(totalDoAto);
+      socioCampos.vlrTotalExtenso = valorExtenso(totalDoAto);
+    }
     itens.push({
       socio: socioCampos,
       sePF: base.sePF,
       sePJ: base.sePJ,
       imoveis,
-      aportes: montarAportesDoSocio(aportesDoSocio, doSocio, imoveis),
+      aportes: aportesDoAto,
     });
   }
 
@@ -1092,6 +1106,39 @@ export function matriculasDescritasNasIntegralizacoes(
 }
 
 /** Os campos comuns a toda alínea de aporte, seja qual for a forma. */
+/**
+ * O número por trás de um valor que ESTE módulo formatou ("1.234,56" → 1234.56).
+ *
+ * Só serve para reler a própria saída, e é por isso que pode ser simples: o
+ * formato é o de `formatarValor`, não entrada de usuário.
+ */
+function numeroDeValorBR(valor: unknown): number | null {
+  if (typeof valor !== 'string' || !valor.trim()) return null;
+  const n = Number(valor.replace(/\./g, '').replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * A soma das alíneas de um sócio, quando alguma delas tem valor.
+ *
+ * É o número que o CABEÇALHO da integralização tem de anunciar: a cláusula diz
+ * "integralizam-se as quotas subscritas, nos termos e pelos valores abaixo" e
+ * abre com "no valor total de R$ X:", seguido das alíneas. X é a soma delas, por
+ * definição. Devolve null quando nenhuma alínea tem valor, e aí o cabeçalho fica
+ * com o que tinha.
+ */
+function somaDasAlineas(aportes: readonly ItemLista[]): number | null {
+  let total = 0;
+  let achou = false;
+  for (const item of aportes) {
+    const n = numeroDeValorBR((item.aporte as Campos | undefined)?.valor);
+    if (n == null) continue;
+    total += n;
+    achou = true;
+  }
+  return achou ? total : null;
+}
+
 function camposDoAporte(alinea: string, quotas: number | null, valor: number | null): Campos {
   const out: Campos = { alinea };
   if (quotas != null) {

@@ -1382,3 +1382,53 @@ describe('proveniência (origem) anexada pelos mapeadores', () => {
     expect(origemDe(sem)).toBeUndefined();
   });
 });
+
+
+// Defeito medido no app em 09/09/2026, num AUMENTO de capital: a peca saia
+// "pelo socio OTAVIO PANTANAL, no valor total de R$ 500.000,00" (o total do
+// socio DEPOIS do aumento) sobre uma unica alinea de R$ 200.000,00 (o aporte do
+// ato). O cabecalho vinha do `vlrTotal` do quadro, via `mapearSocio`.
+//
+// Na constituicao os dois numeros coincidem, e foi por isso que passou: quem
+// integraliza tudo de uma vez tem total do quadro igual a soma das alineas.
+describe('mapearIntegralizacoes — o cabecalho e a soma das alineas dele', () => {
+  const socio = (vlrTotalNoQuadro: number): SocioParaMapear => ({
+    pessoa: { id: 'p1', denominacao: 'Otavio Pantanal', tipo_pessoa: 'PF', genero: 'M' } as unknown as PessoaRow,
+    quotas: vlrTotalNoQuadro,
+    vlr_total: vlrTotalNoQuadro,
+    representante: null,
+  });
+  const aporteEmMoeda = (valor: number) => ({
+    id: `a-${valor}`, pessoaId: 'p1', forma: 'moeda' as const, valor, quotas: valor,
+  });
+
+  it('aumento: anuncia o aporte DESTE ato, nao o total do socio no quadro', () => {
+    // Quadro depois do aumento: 500.000. Aporte deste ato: 200.000.
+    const [item] = mapearIntegralizacoes([socio(500000)], [], [aporteEmMoeda(200000)]);
+    const cabecalho = item.socio as Record<string, string>;
+    expect(cabecalho.vlrTotal).toBe('200.000,00');
+    expect(cabecalho.vlrTotalExtenso).toBe('duzentos mil reais');
+    const alineas = item.aportes as Array<Record<string, Record<string, string>>>;
+    expect(alineas.map((a) => a.aporte.valor)).toEqual(['200.000,00']);
+  });
+
+  it('duas alineas: o cabecalho soma as duas', () => {
+    const [item] = mapearIntegralizacoes(
+      [socio(500000)], [], [aporteEmMoeda(200000), aporteEmMoeda(45000)],
+    );
+    expect((item.socio as Record<string, string>).vlrTotal).toBe('245.000,00');
+  });
+
+  it('constituicao: quando coincidem, nada muda', () => {
+    const [item] = mapearIntegralizacoes([socio(200000)], [], [aporteEmMoeda(200000)]);
+    expect((item.socio as Record<string, string>).vlrTotal).toBe('200.000,00');
+  });
+
+  it('sem alinea com valor, o cabecalho fica com o do quadro', () => {
+    const [item] = mapearIntegralizacoes([socio(500000)], [], [
+      { id: 'a-sem', pessoaId: 'p1', forma: 'moeda' as const,
+        valor: null as unknown as number, quotas: null as unknown as number },
+    ]);
+    expect((item.socio as Record<string, string>).vlrTotal).toBe('500.000,00');
+  });
+});

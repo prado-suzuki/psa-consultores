@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { SnapshotDados } from '@/hooks/useDocumentoGerado';
 import { analisarAlteracao } from '@/lib/osg/alteracaoPorEventos';
-import { comporEstadoProposto, validarSelecaoDeEventos } from '@/lib/osg/estadoProposto';
+import { CAMPOS_DE_CAPITAL, comporEstadoProposto, validarSelecaoDeEventos } from '@/lib/osg/estadoProposto';
+import { camposDaEntidade } from '@/lib/templates/vocabulario';
 
 // Dados sinteticos: o contrato do compositor, nao uma fixture juridica.
 const pessoa = (id: string, extra: Record<string, string> = {}) => ({
@@ -15,7 +16,8 @@ function base(): SnapshotDados {
     selecao: {
       sociedade: {
         id: 'empresa-1', numeroAlteracao: '0', tituloInstrumento: 'CONTRATO SOCIAL', razaoSocial: 'Empresa',
-        cnpj: '', nire: '', objeto: 'Objeto registrado', capitalValor: '100,00', totalQuotas: '100',
+        cnpj: '', nire: '', objeto: 'Objeto registrado', capitalValor: '100,00',
+        capitalExtenso: 'cem reais', totalQuotas: '100', totalQuotasExtenso: 'cem',
         sede: 'Rua A, 10, Centro, Cuiaba, MT, CEP 78000-000', sedeEndereco: 'Rua A, 10', sedeLogradouro: 'Rua A',
         sedeNumero: '10', sedeComplemento: '', sedeBairro: 'Centro', sedeMunicipio: 'Cuiaba', sedeUf: 'MT',
         sedeCep: '78000-000', sedeUfExtenso: 'Mato Grosso',
@@ -40,7 +42,8 @@ function vivo(): SnapshotDados {
   const v = structuredClone(base());
   Object.assign(v.selecao.sociedade, {
     numeroAlteracao: '1', tituloInstrumento: 'PRIMEIRA ALTERACAO', cnpj: '12.345.678/0001-90', nire: '5100000',
-    objeto: 'Objeto novo', capitalValor: '300,00', totalQuotas: '300',
+    objeto: 'Objeto novo', capitalValor: '300,00',
+    capitalExtenso: 'trezentos reais', totalQuotas: '300', totalQuotasExtenso: 'trezentos',
     sede: 'Rua B, 20, Centro, Cuiaba, MT, CEP 78000-000', sedeEndereco: 'Rua B, 20', sedeLogradouro: 'Rua B', sedeNumero: '20',
   });
   const p1 = pessoa('p1', { profissao: 'Engenheira', qualificacao: 'Pessoa p1, engenheira, Rua Velha, 1' });
@@ -304,5 +307,31 @@ describe('estado proposto: endereco de socio aprovado', () => {
     // vira requalificado — nao houve alteracao de endereco dele.
     expect(p2.id).toBe('p2');
     expect(estado.itensPorLista.requalificados).toHaveLength(1);
+  });
+});
+
+
+// Defeito medido no app em 09/09/2026: o aumento saia
+// "R$ 700.000,00 (quinhentos mil reais)" — algarismo novo, extenso do capital
+// anterior, duas vezes no documento. `CAMPOS_DE_CAPITAL` listava
+// `capitalValorExtenso`, que nao e id de campo nenhum, e nao listava
+// `capitalExtenso`, que e o real. Nome fantasma nao falha: so nunca casa.
+describe('capital: os campos seguem o movimento, e todos existem', () => {
+  it('todo campo de capital existe no vocabulario de sociedade', () => {
+    const ids = new Set(camposDaEntidade('sociedade').map((c) => c.id));
+    expect(CAMPOS_DE_CAPITAL.filter((k) => !ids.has(k))).toEqual([]);
+  });
+
+  it('com evento de movimento, o extenso acompanha o algarismo', () => {
+    const { estado } = compor(['evento_aumento_capital']);
+    expect(estado.selecao.sociedade.capitalValor).toBe('300,00');
+    expect(estado.selecao.sociedade.capitalExtenso).toBe('trezentos reais');
+    expect(estado.selecao.sociedade.totalQuotasExtenso).toBe('trezentos');
+  });
+
+  it('sem evento de movimento, capital inteiro fica o da base', () => {
+    const { estado } = compor(['evento_alteracao_endereco']);
+    expect(estado.selecao.sociedade.capitalValor).toBe('100,00');
+    expect(estado.selecao.sociedade.capitalExtenso).toBe('cem reais');
   });
 });

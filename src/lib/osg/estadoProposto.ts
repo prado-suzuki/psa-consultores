@@ -55,10 +55,23 @@ const LISTAS_VIVAS_SEMPRE = ['vertices', 'memoriais'] as const;
 
 /** Campos da sociedade que o MOTOR sintetiza para esta peça, não o cadastro. */
 const SINTETIZADOS_DA_PECA = ['numeroAlteracao', 'tituloInstrumento'] as const;
-/** Campos de capital: seguem o quadro, logo seguem os eventos de movimento. */
-const CAMPOS_DE_CAPITAL = [
-  'capitalValor', 'capitalValorExtenso', 'totalQuotas', 'totalQuotasExtenso',
+/**
+ * Campos de capital: seguem o quadro, logo seguem os eventos de movimento.
+ *
+ * Todo nome aqui precisa ser id REAL do vocabulário de `sociedade`. Nome que não
+ * existe não dá erro nenhum: ele simplesmente nunca casa, o campo verdadeiro
+ * fica de fora da lista e o valor da BASE atravessa a peça inteira. Foi o que
+ * aconteceu com `capitalValorExtenso`, que não é id de nada: o aumento saía
+ * "R$ 700.000,00 (quinhentos mil reais)", com o algarismo novo e o extenso do
+ * capital anterior. O teste `todo campo de capital existe no vocabulário`
+ * (estadoProposto.test.ts) existe para esta classe de defeito.
+ */
+export const CAMPOS_DE_CAPITAL = [
+  'capitalValor', 'capitalExtenso', 'totalQuotas', 'totalQuotasExtenso',
   'capitalAnterior', 'capitalAnteriorExtenso', 'capitalDelta', 'capitalDeltaExtenso',
+  // Condicional derivada de `capitalDelta`: se o delta segue o movimento, ela
+  // também. Sem isso o bloco do aumento decidiria aparecer pelo delta da base.
+  'houveAumentoCapital',
   'tituloColetivoSocios', 'quotaValorNominal', 'quotaValorNominalExtenso',
 ] as const;
 /**

@@ -1,0 +1,127 @@
+{
+ "rodada": "2 - 2026-09-09, confirmacao do fix da80f593 e varredura do que ficou aberto",
+ "branch": "develop",
+ "head": "da80f593 fix(osg): endereco aprovado alcanca a clausula de administracao",
+ "banco": "SANDBOX vgzomuwnsdgrxbkyoavq",
+ "prova_do_banco": "curl http://localhost:8080/src/integrations/supabase/client.ts -> import.meta.env = {... \"VITE_SUPABASE_PROJECT_ID\": \"vgzomuwnsdgrxbkyoavq\", \"VITE_SUPABASE_URL\": \"https://vgzomuwnsdgrxbkyoavq.supabase.co\"}; e todo request do browser saiu para vgzomuwnsdgrxbkyoavq.supabase.co. OBS: o arquivo .env do repo tem VITE_SUPABASE_URL=https://zwoainzzqhudmmknuycq.supabase.co, mas o dev server serve o sandbox (.env.sandbox), como manda o AGENTS.md fora da main.",
+ "ferramenta": "Playwright MCP indisponivel de novo (ToolSearch nao acha mcp__playwright__*). Reusei o driver da rodada 1: .playwright-mcp/drv.mjs + snippets em .playwright-mcp/r2/.",
+ "itens": [
+  {
+   "id": "P1-fix-administracao",
+   "pergunta": "O endereco aprovado alcanca a clausula de administracao?",
+   "status": "CORRIGIDO",
+   "reproducao": "Dinossauro / Jatoba / trocar endereco de Marina Salgado (socia E administradora) -> Rever os eventos -> ligar 'Houve mudanca de endereco de socio pessoa fisica' -> causa 'Mudanca de domicilio' -> Confirmar -> Baixar .docx",
+   "contagem_no_docx": ".playwright-mcp/r2-p1-marina-domicilio.docx: 'Karina Teixeira' (ANTIGO) 0x, '57730-000' (CEP ANTIGO) 0x, 'Miguel Sutil' (NOVO) 4x, '78048-250' (CEP NOVO) 4x. Na rodada 1 era antigo 1x / novo 3x.",
+   "prova_clausula_sexta": "CLAUSULA SEXTA: A sociedade e administrada isoladamente por Lucas Nogueira, brasileiro, Casado, Agricultor, portador da Cedula de Identidade RG no 54952264 - SSP/SP, inscrito no CPF/MF sob o no 990.337.577-88, residente e domiciliado no endereco Rua Elisa Freitas, no 303, Sala 1, bairro Centro, no municipio de Cuiaba, Estado de Mato Grosso, CEP: 78575-000; e Marina Salgado, brasileira, Casada, Agricultora, portadora da Cedula de Identidade RG no 73417630 - SJ/MT, inscrita no CPF/MF sob o no 420.384.121-62, residente e domiciliada no endereco Avenida Miguel Sutil, n.o 8000, Apto 1204, Bairro Santa Rosa, no municipio de Cuiaba, Estado de Mato Grosso, CEP 78048-250, a quem compete representar a sociedade...",
+   "observacao": "Dentro da MESMA clausula, a qualificacao reescrita e a congelada saem com tipografia diferente: Marina traz 'n.o 8000', 'Bairro Santa Rosa' e 'CEP 78048-250'; Lucas, que nao mudou, traz 'no 303', 'bairro Centro' e 'CEP: 78575-000'. E consequencia de recalcular a prosa so de quem mudou. Cosmetico, mas visivel no mesmo paragrafo.",
+   "confirmado_de_novo_em": "cenario novo Tartaruga (r2-p3): antigo 0x, novo 4x, clausula de administracao com o endereco novo; e no plural (r2-p5): os dois enderecos antigos 0x, os dois novos 4x cada, os dois administradores com o endereco novo. Na rodada 1 esse era justamente o caso que saia com os DOIS enderecos antigos."
+  },
+  {
+   "id": "P2-comQualificacaoDaBase-profissao",
+   "pergunta": "Com o evento de administracao ligado junto, a profissao NOVA vaza para a clausula de administracao?",
+   "status": "NAO - sem defeito irmao",
+   "reproducao": "Dinossauro / Jatoba / Marina Salgado com endereco E profissao trocados no cadastro (Agricultora -> Veterinaria, PATCH 200) -> assistente com 'endereco de socio PF' + 'mudanca na administracao' (este ligado a forca, a evidencia dizia 'nada no cadastro registra este evento') -> Confirmar -> Baixar .docx",
+   "contagem_no_docx": ".playwright-mcp/r2-p2-endereco-e-administracao.docx: 'Veterinaria' (profissao NOVA) 0x, 'Agricultora' (profissao ANTIGA, a do instrumento registrado) 5x, 'Karina Teixeira' 0x, 'Miguel Sutil' 5x, '78048-250' 5x.",
+   "prova": "CLAUSULA SEGUNDA: Altera-se a administracao da sociedade, ... 'A sociedade e administrada isoladamente por Lucas Nogueira, ... e Marina Salgado, brasileira, Casada, Agricultora, ... residente e domiciliada no endereco Avenida Miguel Sutil, n.o 8000, Apto 1204, Bairro Santa Rosa, no municipio de Cuiaba, Estado de Mato Grosso, CEP 78048-250'",
+   "leitura": "Com o evento de administracao confirmado, a lista de administradores passa a vir do estado VIVO e comQualificacaoDaBase reescreve a qualificacao a partir da base — logo o administrador do estado vivo TEM id, ao contrario do administrador do snapshot gravado. O endereco aprovado chega por cima, pelo CPF. Nas duas metades o resultado saiu certo.",
+   "prova_de_que_o_app_viu_a_profissao_nova": "a divergencia 'Qualificacao detectada, sem autorizacao juridica ou modelo homologado.' aparece na lista de 'Divergencias que nao viram evento nesta peca' SOMENTE depois da troca de profissao; antes dela nao estava la."
+  },
+  {
+   "id": "P3a-premarcacao",
+   "pergunta": "Numa peca aberta pela PRIMEIRA vez, o interruptor de endereco de socio nasce ligado?",
+   "status": "CONFIRMADO",
+   "como": "Montei a sociedade [TESTE] Tartaruga Veloz Sementes Ltda do zero (PJ, 2 PF, bem BS 90 aprovado para integralizacao, quadro gravado, 2 administradores), gerei o contrato social, validei e registrei na junta. So depois troquei o endereco de Otavio Pantanal e cliquei 'Gerar alteracao contratual' pela primeira vez, sem tocar em nenhum interruptor.",
+   "prova": "aria-checked do interruptor 'Houve mudanca de endereco de socio pessoa fisica' = true na primeira leitura, com a evidencia 'Endereco de Otavio Pantanal: Rua Presidente Marques, n.o 500, Sala 1, Bairro Quilombo, no municipio de Cuiaba, Estado de Mato Grosso, CEP 78043-000 -> Rua Engenheiro Ricardo Franco, n.o 2200, Casa 3, Bairro Duque de Caxias, no municipio de Cuiaba, Estado de Mato Grosso, CEP 78065-000'. Todos os outros seis nasceram false.",
+   "observacao": "A CAUSA nao nasce escolhida: os tres radios vem vazios e 'Continuar' exige a escolha. E confirmei o outro lado da regra: depois que ha proposta confirmada, evidencia NOVA nao e pre-marcada. Ao gravar o aumento de capital da Tartaruga, os interruptores de aumento e de integralizacao apareceram com evidencia ('aumento de capital de R$ 500.000,00 para R$ 700.000,00' e '1 aporte(s) integralizado(s) com bens') e mesmo assim vieram DESLIGADOS, porque a peca ja tinha propostaAC."
+  },
+  {
+   "id": "P3b-evento-de-quota",
+   "pergunta": "Gerar documento por evento de quota sai coerente (quadro, capital, resolucao)?",
+   "status": "PARCIAL - dois defeitos na clausula de capital",
+   "reproducao": "Tartaruga Veloz: bem BS 91 (Sitio Casco Rapido, R$ 200.000,00, titular Otavio 100%) aprovado para integralizacao -> Quadro Societario -> 'Registrar aumento de capital' -> assistente -> ligar 'Houve aumento do capital social' + 'Houve integralizacao de capital' -> Confirmar -> Baixar .docx (.playwright-mcp/r2-p4-quota-aumento-capital.docx)",
+   "o_que_saiu_certo": "quadro do consolidado correto: 'Otavio Pantanal 500.000 500.000,00 71,429% / Rita Bandeira 200.000 200.000,00 28,571%'; total de quotas 'dividido em 700.000 (setecentas mil) quotas'; e a resolucao do evento existe e cita a Clausula Quinta.",
+   "defeito_1_extenso_do_capital": "'O capital social e de R$ 700.000,00 (quinhentos mil reais)' — o algarismo esta certo (700.000) e o extenso e o do capital ANTIGO (500.000 = quinhentos mil). Contagem no arquivo: '700.000,00 (quinhentos mil reais)' 2x (uma na resolucao do aumento, outra na CLAUSULA QUINTA do consolidado); 'setecentos mil reais' 0x. O extenso certo nao aparece em lugar nenhum do documento.",
+   "causa_provavel_defeito_1": "o modelo usa {{ sociedade.capitalExtenso }} (id real do vocabulario, src/lib/templates/vocabulario.ts:610, derivado de capitalValor). A lista CAMPOS_DE_CAPITAL de src/lib/osg/estadoProposto.ts:59-63 traz 'capitalValorExtenso', que nao existe como id, e NAO traz 'capitalExtenso'. Como so os campos dessa lista sao atualizados do cadastro quando ha evento de quota (estadoProposto.ts:230), 'capitalValor' sobe para 700.000,00 e 'capitalExtenso' fica congelado no da base. 'totalQuotasExtenso' esta na lista com o nome certo, e por isso saiu correto. Reforca a leitura o fato de derivarCampos (vocabulario.ts:1224-1233) recalcular todo campo com 'derivar' sem condicao: se ela fosse chamada sobre o binding da sociedade no estado proposto, o extenso sairia certo. No caminho da AC ela so e chamada sobre as ocorrencias de pessoa que aplicarEnderecosDeSocios toca.",
+   "defeito_2_valor_total_da_integralizacao": "'i) pelo socio OTAVIO PANTANAL , no valor total de R$ 500.000,00 (quinhentos mil reais): a) Um imovel rural ... no valor de R$ 200.000,00 (duzentos mil reais)' — o cabecalho da alinea anuncia R$ 500.000,00 e a unica alinea abaixo dele soma R$ 200.000,00. O aporte deste ato foi de R$ 200.000,00; R$ 500.000,00 e o total de quotas do socio depois do aumento.",
+   "causa_provavel_defeito_2": "o modelo (supabase/migrations/20260827224332_...sql:16) usa {{ socio.vlrTotal }} no cabecalho de {{#integralizacoes}}, e src/lib/templates/mapeadores.ts:1047-1056 preenche esse socio com mapearSocio(s), que traz o vlrTotal do QUADRO, nao a soma dos aportes do ato. Na constituicao os dois valores coincidem, e por isso o problema so aparece num aumento posterior.",
+   "observacao_3_texto_duplicado": "'... no valor de R$ 200.000,00 (duzentos mil reais) ., pelo valor de R$ 200.000,00 (duzentos mil reais).' — a familia 'Descricao de imovel' ja fecha com o valor e ponto final, e o modelo concatena ', pelo valor de ...' depois. Pode ser conteudo do modelo/base e nao do motor de AC; nao classifiquei como defeito do software.",
+   "linha_de_base": "nao existe artefato de rodada anterior com essa clausula (procurei 'Integralizam-se as quotas' em todos os .docx de .playwright-mcp/ e so o desta rodada tem). Entao e primeira medicao, nao regressao comprovada deste commit."
+  },
+  {
+   "id": "P4a-resolucao-primeira",
+   "pergunta": "A resolucao de qualificacao e a primeira?",
+   "status": "CONFIRMADO",
+   "prova": "r2-p1.txt: 'DAS ALTERACOES CONTRATUAIS Da atualizacao da qualificacao de socio. Altera-se a qualificacao da socia MARINA SALGADO , para fazer constar o atual endereco desta, ... CLAUSULA PRIMEIRA: Altera-se o endereco da sede da sociedade' — vem antes da de sede."
+  },
+  {
+   "id": "P4b-causa-postal",
+   "pergunta": "Com 'Atualizacao postal' a resolucao abre com a formula do CEP e o verbo em minuscula?",
+   "status": "CONFIRMADO",
+   "prova": "r2-p5 (Tartaruga, dois socios): 'Da atualizacao da qualificacao de socio. Em decorrencia da atualizacao do Codigo de Enderecamento Postal - CEP, alteram-se as qualificacoes dos socios OTAVIO PANTANAL e RITA BANDEIRA, para fazer constar os atuais enderecos destes'"
+  },
+  {
+   "id": "P4c-plural",
+   "pergunta": "Dois socios levam a flexao para o plural?",
+   "status": "CONFIRMADO",
+   "prova": "'alteram-se as qualificacoes dos socios OTAVIO PANTANAL e RITA BANDEIRA, para fazer constar os atuais enderecos destes, permanecendo inalterados os demais dados da qualificacao'. Tabela 'Ver antes e depois, socio a socio' com as duas linhas. E no singular masculino a concordancia tambem esta certa: 'Altera-se a qualificacao do socio OTAVIO PANTANAL, para fazer constar o atual endereco deste'.",
+   "extra": "r2-p5-plural-postal.docx: 'Presidente Marques' 0x, 'Comandante Costa' 0x (os dois enderecos antigos), 'Ricardo Franco' 4x, 'Getulio Vargas' 4x, e a CLAUSULA SEXTA traz os dois administradores com o endereco novo. Era exatamente este caso que falhava na rodada 1."
+  },
+  {
+   "id": "P4d-cpf-profissao-sozinhos",
+   "pergunta": "Profissao sozinha continua pendencia sem interruptor?",
+   "status": "CONFIRMADO",
+   "prova": "Com o endereco de Marina revertido e so a profissao mudada (Veterinaria): 7 interruptores, nenhum de profissao ou CPF; o de endereco volta a 'nada no cadastro registra este evento'; e a divergencia sai em 'Divergencias que nao viram evento nesta peca' como 'Qualificacao detectada, sem autorizacao juridica ou modelo homologado.'",
+   "nao_repetido": "o caso do CPF sozinho nao foi refeito nesta rodada; a rodada 1 ja o mediu com o mesmo resultado."
+  },
+  {
+   "id": "OBS-campos-a-mao-nao-persistem",
+   "pergunta": "Os 7 campos de 'Ajustar dados manualmente' gravam?",
+   "status": "nao verificavel com confianca nesta rodada",
+   "o_que_vi": "Preenchi dataAssinatura e as 6 de testemunha, dei blur e esperei 4s; o contador 'Preencher a mao 7' continuou 7 e a versao validada saiu como 'rascunho'. Depois do registro na junta, porem, o documento da alteracao saiu SEM o sufixo _rascunho e com 'Tereza Guapore' e 'Vicente Araguaia' impressos nas testemunhas, ou seja os valores TINHAM sido gravados. Ou o contador nao reage, ou reage tarde. Nao consegui separar as duas hipoteses sem entrar no codigo da tela, e isso esta fora do escopo do roteiro."
+  }
+ ],
+ "cenarios": {
+  "reaproveitado": "[TESTE] Dinossauro Aposentado Previdencia e Fosseis Ltda / Jatoba Sementes S.A. / Contrato Social - (Participacoes), rascunho de AC 3f6f8c42 (o mesmo da rodada 1)",
+  "novo": "[TESTE] Tartaruga Veloz Sementes Ltda (CNPJ 11.222.333/0001-81, NIRE 51900000001), criada nesta rodada dentro do cliente [TESTE] Dinossauro Aposentado (ambiente dev). Socios/administradores: Otavio Pantanal (111.444.777-35) e Rita Bandeira (529.982.247-25), tambem criados nesta rodada. Contrato social gerado, validado e REGISTRADO na junta pela UI (protocolo QA2-TARTARUGA-0001, 02/09/2026). O campo 'PDF registrado' NAO e obrigatorio no dialogo, entao registrei sem PDF nenhum."
+ },
+ "alteracoes_de_dado": [
+  {
+   "pessoa": "Marina Salgado (ac4de794-bb04-4d8e-bdf9-1f34632aef72)",
+   "o_que": "endereco Rua Karina Teixeira 1063/Sala 1/Centro/Cuiaba/57730-000 -> Avenida Miguel Sutil 8000/Apto 1204/Santa Rosa/Cuiaba/78048-250; profissao Agricultora -> Veterinaria",
+   "revertido": "SIM, os dois (PATCH 200 em cada volta; releitura final confere endereco e profissao originais)"
+  },
+  {
+   "documento": "rascunho de AC 3f6f8c42 (Jatoba, pre-existente)",
+   "o_que": "reabri e reconfirmei a proposta 4x",
+   "estado_final": "restaurado ao original: so 'Houve mudanca do endereco da sede', causa 'Mudanca fisica da sede', qualificacao e administracao DESMARCADAS; a folha nao contem mais 'Da atualizacao da qualificacao de socio'"
+  },
+  {
+   "criado": "PJ [TESTE] Tartaruga Veloz Sementes Ltda",
+   "detalhe": "CNPJ 11.222.333/0001-81, NIRE 51900000001, sede Avenida Historiador Rubens de Mendonca 1000, Sala 10, Bosque da Saude, Cuiaba/MT, 78048-250. FICA (ambiente dev), como o roteiro autorizou."
+  },
+  {
+   "criado": "PF Otavio Pantanal (111.444.777-35) e PF Rita Bandeira (529.982.247-25)",
+   "detalhe": "criados para a sociedade nova, no cliente [TESTE] Dinossauro. Enderecos alterados durante o teste e NAO revertidos, de proposito: eles sao a prova viva do cenario e reverter quebraria a coerencia da peca registrada. Otavio: Rua Presidente Marques 500 -> Rua Engenheiro Ricardo Franco 2200/Casa 3/Duque de Caxias/78065-000. Rita: Rua Comandante Costa 800 -> Avenida Getulio Vargas 1500/Apto 902/Goiabeiras/78050-970."
+  },
+  {
+   "criado": "bens BS 90 (Fazenda Tartaruga Veloz, matricula 90001, R$ 500.000,00) e BS 91 (Sitio Casco Rapido, matricula 91001, R$ 200.000,00)",
+   "detalhe": "no Diagnostico Patrimonial do cliente [TESTE] Dinossauro, aprovados com destino a Tartaruga. FICAM: os dois estao formalizados em peca registrada/rascunho da Tartaruga."
+  },
+  {
+   "criado": "peca de contrato social da Tartaruga REGISTRADA na junta (protocolo QA2-TARTARUGA-0001, 02/09/2026, arquivamento 51900000002, JUCEMAT) e um rascunho de AC em cima dela",
+   "detalhe": "sem PDF: o campo 'PDF registrado' nao e obrigatorio no dialogo, entao nao precisei usar nenhum PDF do repositorio."
+  },
+  {
+   "nao_corrigido": "endereco_complemento de Clarice do Amaral Vasconcelos continua string vazia onde era NULL",
+   "porque": "o formulario de pessoa nao converte vazio em NULL (src/hooks/useQualificacaoDasPartes.ts nao tem essa conversao), entao pela UI nao da; e SQL de escrita esta proibido para mim. Nao cruzei com ela nesta rodada por outro motivo."
+  }
+ ],
+ "artefatos": [
+  ".playwright-mcp/r2-p1-marina-domicilio.docx + r2-p1.txt (P1, fix confirmado)",
+  ".playwright-mcp/r2-p2-endereco-e-administracao.docx + r2-p2.txt (P2, endereco novo e profissao antiga)",
+  ".playwright-mcp/r2-p3-tartaruga-premarcado.docx + r2-p3.txt (P3a, cenario novo)",
+  ".playwright-mcp/r2-p4-quota-aumento-capital.docx + r2-p4.txt (P3b, evento de quota, com os dois defeitos)",
+  ".playwright-mcp/r2-p5-plural-postal.docx + r2-p5.txt (P4, plural + causa postal)",
+  ".playwright-mcp/r2/*.mjs (os snippets desta rodada)"
+ ]
+}
