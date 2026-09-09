@@ -31,7 +31,7 @@ cronograma no telefone é o caso menos provável de todos.
 |---|---|---|---|---|
 | 1 | ✅ **A porta de entrada** | Duas visões já funcionam e ela não as vê | `PainelTarefas` | P |
 | 2 | ✅ **A moldura do topo** | Mata 1 dos 3 scrollbars, e vale nas 7 abas | `TaskKPICards`, `TaskFilters` | P |
-| 3 | **Tabela** | Quebra pior que todas, e é o remédio menor | `TaskTable` | P |
+| 3 | ✅ **Tabela** | Quebra pior que todas, e é o remédio menor | `TaskTable` | P |
 | 4 | **O detalhe da tarefa** | É o fim do caminho de leitura, e quebra lá | `TaskModal` | P |
 | 5 | **Lista** | É a visão de trabalho dela no desktop | `ProjetosTarefasList` | G |
 | 6 | **Kanban** | Rende leitura, não operação — ver a ressalva | `TaskKanban` | M |
@@ -63,12 +63,12 @@ para ler de imediato, e se as duas abas boas estão à mão.
 **cortado** na borda — e o `<main>` é `overflow-hidden`, então não havia nem rolagem para
 alcançá-lo. `flex-wrap` no cabeçalho e a data um degrau menor abaixo de `sm`.
 
-**Em aberto, e é decisão dela:** a "Hoje" mostra só tarefa com vencimento **no dia**. Na
-tela da Patrícia em 09/09 havia 41 em "A Fazer" e nenhuma vencendo hoje, ou seja o gestor
-cairia em "Nenhuma tarefa para hoje. Aproveite!" — o que derrota o propósito da fase. A
-"Futuras" (vencimento futuro, agrupado por semana) tende a ter conteúdo, mas também pode
-estar vazia. Alternativa de fundo: quando a Tabela ficar legível (fase 3), ela mostra o mês
-inteiro e praticamente nunca está vazia.
+**Decidido em 09/09: fica na "Hoje".** Foi levantado que a "Hoje" só lista tarefa com
+vencimento no dia, e que na tela dela naquele momento havia 41 em "A Fazer" e nenhuma
+vencendo — ou seja, o gestor cai em "Nenhuma tarefa para hoje. Aproveite!". As alternativas
+oferecidas foram a "Futuras" (vencimento futuro por semana) e, mais adiante, a Tabela do
+mês. A escolha dela foi manter a "Hoje" como está. Não reabrir sem pedido: dia sem
+vencimento **é** informação para quem só quer olhar.
 
 **✅ FEITO em 09/09/2026.** `telaEstreita()` saiu de dentro do controlador da barra lateral
 e virou export de `hooks/use-mobile`, ao lado do `MOBILE_BREAKPOINT` — as duas decisões que
@@ -132,13 +132,33 @@ aceita e **comprime** para 45px por coluna. É a quebra letra-por-linha do Feed.
 lado seria melhor do que o que acontece hoje.
 
 Largura mínima real na tabela, para ela **rolar** em vez de comprimir. É exatamente o que a
-tabela de Clientes já faz (`min-w-[1100px]` + o contêiner `overflow-auto` do `ui/table`), e
-o `<div>` de fora precisa deixar de ser `overflow-hidden` para a rolagem existir.
+tabela de Clientes já faz (`min-w-[1100px]` + o contêiner `overflow-auto` do `ui/table`).
 
 Fase pequena de propósito: **não** é aqui que a tabela vira cartão. Primeiro ela para de
 esmagar; se depois disso ainda não servir, isso é outra fase, com o desenho decidido junto.
 
 **Validar:** a tabela tem de ficar legível e arrastar de lado, sem palavra quebrada no meio.
+
+**✅ FEITO em 09/09/2026.** Uma linha: `min-w-[1260px]` (a soma exata dos oito `w-[...]`)
+mais `scrollbar-thin` no contêiner.
+
+Duas correções ao que este plano dizia:
+
+- **o `<div>` de fora podia continuar `overflow-hidden`.** O contêiner que rola é o do
+  `ui/table`, filho dele: um pai `overflow-hidden` não impede filho com `overflow-auto` de
+  rolar. Melhor assim, inclusive — é o que mantém a barra do mês fora da rolagem, parada,
+  em vez de ela sair da tela junto com as colunas;
+- **chips de leitura em vez dos dois `Select` foram tentados e desfeitos.** Os seletores de
+  status (144px) e prioridade (112px) somam 256px, mas de **1.260** — 8%, que não muda se
+  ela rola ou não. Em troca, duplicavam DOM e texto por linha, e como o vitest roda com
+  `css: false` os dois elementos "existem" em teste, o que transforma qualquer
+  `getByText` de status em "found multiple elements". Não vale.
+
+  **O que sobra do experimento, e vale como fase própria:** um dropdown de 144px numa linha
+  que se arrasta de lado é armadilha de toque — puxar para rolar abre o seletor. Vale para a
+  Tabela e para a Lista (que tem o mesmo `Select` de status, ver fase 5). Não é largura, é
+  gesto, então é outro assunto e outra fase. **Só abrir se a Patrícia apontar**, para não
+  virar refatoração especulativa em cima de uma tela que ela usa no desktop.
 
 ---
 
