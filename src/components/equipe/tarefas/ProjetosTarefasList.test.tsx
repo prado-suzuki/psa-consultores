@@ -580,6 +580,69 @@ describe('ProjetosTarefasList — a grade reflui em cartão no celular', () => {
     expect(ponto).not.toBeNull();
   });
 
+  it('a subtarefa desce da mãe por um cotovelo, e não parece tarefa irmã', () => {
+    // "eu abro a tarefa e as subtarefas parecem outras tarefas" (09/09). Com
+    // recuo curto e a mesma superfície branca, filha lia como irmã. Fio reto
+    // diz "existe um bloco"; cotovelo diz "ESTA linha desce daquela".
+    renderList({
+      projects: [projeto],
+      tasks: [
+        tarefa('Fechamento contábil', { id: 'T1' }),
+        tarefa('Validar números', { id: 'T2', parent_task_id: 'T1' }),
+      ],
+      assigneesByProject: { p1: [{ id: 'U2', name: 'Geizi Andrade' }] },
+    });
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+    fireEvent.click(screen.getByLabelText('Expandir tarefa'));
+
+    const filha = screen
+      .getByRole('button', { name: 'Validar números' })
+      .closest('[class*="max-md:pl-[var("]') as HTMLElement;
+
+    const cotovelo = filha.querySelector('[class*="rounded-bl-md"]') as HTMLElement | null;
+    expect(cotovelo).not.toBeNull();
+    // Só no celular: no desktop há 24px de degrau e as guias inteiras.
+    expect(cotovelo?.className).toContain('max-md:block');
+    expect(cotovelo?.className).toContain('hidden');
+
+    // O cotovelo sai do fio da MÃE e para 4px antes do conteúdo da filha. Vão
+    // entre os dois desfaz o "desce daqui", que é o ponto todo.
+    const fioDaMae = 16;
+    const conteudoDaFilha = 26 + 20;
+    expect(cotovelo?.style.getPropertyValue('--cotovelo')).toBe(`${fioDaMae}px`);
+    expect(cotovelo?.style.getPropertyValue('--cotovelo-largura'))
+      .toBe(`${conteudoDaFilha - fioDaMae - 4}px`);
+
+    // A mãe não recebe cotovelo: ela não desce de tarefa nenhuma.
+    const mae = screen
+      .getByRole('button', { name: 'Fechamento contábil' })
+      .closest('[class*="max-md:pl-[var("]') as HTMLElement;
+    expect(mae.querySelector('[class*="rounded-bl-md"]')).toBeNull();
+  });
+
+  it('a filha pesa menos que a mãe no celular, e igual no desktop', () => {
+    renderList({
+      projects: [projeto],
+      tasks: [
+        tarefa('Fechamento contábil', { id: 'T1' }),
+        tarefa('Validar números', { id: 'T2', parent_task_id: 'T1' }),
+      ],
+    });
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+    fireEvent.click(screen.getByLabelText('Expandir tarefa'));
+
+    const filha = screen.getByRole('button', { name: 'Validar números' });
+    expect(filha.className).toContain('max-md:text-[0.8125rem]');
+    expect(filha.className).toContain('max-md:font-normal');
+
+    // No desktop as duas são iguais, que é como sempre foi.
+    const mae = screen.getByRole('button', { name: 'Fechamento contábil' });
+    expect(mae.className).toContain('font-medium');
+    expect(mae.className).not.toContain('max-md:font-normal');
+  });
+
   it('o tooltip e as duas linhas do título sobrevivem ao cartão', () => {
     // Herdado da frente do Welber (`lista-de-tarefas-texto-e-prazo.md`): no
     // telefone não existe passar o mouse, então cartão que corta o título

@@ -148,7 +148,10 @@ interface ProjetosTarefasListProps {
 const GRID =
   'grid grid-cols-[minmax(320px,1fr)_150px_180px_130px_140px_160px_44px] min-w-[1200px]' +
   ' max-md:flex max-md:min-w-0 max-md:flex-wrap max-md:items-center' +
-  ' max-md:gap-x-1 max-md:py-1' +
+  // `gap-y` também, e não só `gap-x`: quando os chips não cabem numa linha eles
+  // quebram, e sem folga vertical as duas linhas se encostam. É a diferença que
+  // faltava para a tela bater com o espécime A escolhido em 09/09.
+  ' max-md:gap-x-1.5 max-md:gap-y-1 max-md:py-1' +
   // Aperta o recuo de TODAS as células de uma vez, em vez de caçar cada uma:
   // `px-3 py-1.5` por célula é o que engordava o cartão.
   ' max-md:[&>*]:px-2 max-md:[&>*]:py-0.5';
@@ -185,7 +188,13 @@ const INDENT_STEP = 24;
  */
 const PROJECT_INDENT_ESTREITO = 10;
 const TASK_INDENT_ESTREITO = 26;
-const INDENT_STEP_ESTREITO = 14;
+/**
+ * 20px, e não 14: com 14 a subtarefa ficava a um empurrão da mãe e lia como
+ * tarefa irmã — "eu abro a tarefa e as subtarefas parecem outras tarefas"
+ * (09/09). Degrau sozinho não resolve, mas degrau pequeno garante que nada
+ * resolva; o que fecha o caso é o `CotoveloDaFilha`, abaixo.
+ */
+const INDENT_STEP_ESTREITO = 20;
 const TOGGLE_SLOT = 'flex h-5 w-5 shrink-0 items-center justify-center';
 /**
  * A caixa de seleção em massa (mover várias tarefas de uma vez) é cromo de
@@ -214,6 +223,36 @@ function LevelGuide({ left, leftEstreito }: { left: number; leftEstreito: number
       aria-hidden
       className="pointer-events-none absolute inset-y-0 border-l border-border/60 left-[var(--guia)] max-md:left-[var(--guia-estreita)]"
       style={{ '--guia': `${left}px`, '--guia-estreita': `${leftEstreito}px` } as React.CSSProperties}
+    />
+  );
+}
+
+/**
+ * O cotovelo que entra na linha da subtarefa, saindo do fio da mãe.
+ *
+ * Fio reto diz "existe um bloco aqui"; cotovelo diz "ESTA linha desce
+ * daquela". É a diferença que faltava no celular: com recuo curto e a mesma
+ * superfície branca, subtarefa lia como tarefa irmã. Mesmo idioma do painel de
+ * comentários, que resolve o mesmo problema para resposta dentro de comentário
+ * (ver `data-thread-connector` em `OrgCommentsPanel`).
+ *
+ * Só abaixo de `md`. No desktop há 24px de degrau e as guias inteiras, e a
+ * hierarquia já se lê — e este plano promete não mexer no desktop.
+ */
+function CotoveloDaFilha({ nivel }: { nivel: number }) {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute top-0 hidden h-[13px] rounded-bl-md border-b border-l border-border max-md:block left-[var(--cotovelo)] w-[var(--cotovelo-largura)]"
+      style={{
+        // Sai do fio da MÃE, um nível acima.
+        '--cotovelo': `${PROJECT_GUIDE_ESTREITO + (nivel - 1) * INDENT_STEP_ESTREITO}px`,
+        // E entra até 4px antes de onde o conteúdo da filha começa. A conta é
+        // `recuo da filha − fio da mãe`, e dá o mesmo em qualquer nível porque
+        // os dois andam com o mesmo degrau: cotovelo curto sobrava um vão de
+        // 14px entre o fio e a linha, e o vão desfaz o "desce daqui".
+        '--cotovelo-largura': `${TASK_INDENT_ESTREITO + INDENT_STEP_ESTREITO - PROJECT_GUIDE_ESTREITO - 4}px`,
+      } as React.CSSProperties}
     />
   );
 }
@@ -450,6 +489,7 @@ export function ProjetosTarefasList({
               leftEstreito={PROJECT_GUIDE_ESTREITO + level * INDENT_STEP_ESTREITO}
             />
           ))}
+          {depth > 0 && <CotoveloDaFilha nivel={depth} />}
           <span className={TOGGLE_SLOT}>
             {children.length > 0 && (
               <button type="button" onClick={() => toggle(rowId)} className="rounded p-0.5 text-muted-foreground hover:bg-muted" aria-label={isExpanded ? 'Recolher tarefa' : 'Expandir tarefa'}>
@@ -470,7 +510,20 @@ export function ProjetosTarefasList({
               poluição. No desktop o ponto vale: lá o chip está longe, na coluna
               de status, a 320px de distância do título. */}
           <TaskStatusDot status={task.status} className="max-md:hidden" />
-          <button type="button" title={task.title} className="line-clamp-2 break-words text-left font-medium text-foreground hover:underline" onClick={() => onEditTask(task)}>
+          {/* A filha pesa menos que a mãe: no celular ela vem um degrau abaixo
+              no tamanho e sem o `font-medium`. É a terceira pista da escadinha,
+              junto do recuo e do cotovelo — e a única que funciona mesmo quando
+              a subtarefa é a primeira coisa que se vê ao rolar. O desktop
+              mantém as duas iguais, que é como sempre foi. */}
+          <button
+            type="button"
+            title={task.title}
+            className={cn(
+              'line-clamp-2 break-words text-left text-foreground hover:underline',
+              depth > 0 ? 'font-medium max-md:text-[0.8125rem] max-md:font-normal' : 'font-medium',
+            )}
+            onClick={() => onEditTask(task)}
+          >
             {task.title}
           </button>
           <ContadorTarefas total={children.length} concluidas={children.filter(child => child.task.status === 'done').length} />

@@ -319,10 +319,43 @@ O conserto soma três pistas, porque nenhuma delas sozinha basta em 358px:
 **Validar:** dá para saber o status e o responsável de uma tarefa sem rolar de lado, e dá
 para bater o olho e ver o que está dentro de quê.
 
+### A escadinha: a terceira e última reprovação desta fase
+
+Depois da profundidade entre OS / projeto / tarefa, sobrou a de dentro: *"eu abro a tarefa
+e as subtarefas parecem outras tarefas"*. E pareciam — a filha ficava 14px à direita da
+mãe, na mesma superfície branca, com o mesmo peso de texto. Um empurrão, não uma escada.
+
+Três pistas somadas, e a do meio é a que fecha o caso:
+
+- **degrau de 20px** em vez de 14;
+- **cotovelo** (`CotoveloDaFilha`), que sai do fio da mãe e entra na linha da filha. Fio
+  reto diz "existe um bloco aqui"; cotovelo diz "ESTA linha desce daquela". É o mesmo
+  idioma que o painel de comentários já usa para resposta dentro de comentário
+  (`data-thread-connector` em `OrgCommentsPanel`) — não foi inventado aqui;
+- **a filha pesa menos**: um degrau abaixo no tamanho e sem `font-medium`. É a única das
+  três que funciona quando a subtarefa é a primeira coisa que aparece ao rolar.
+
+A largura do cotovelo é conta, não número escolhido: `recuo da filha − fio da mãe − 4`, o
+que dá 26px em **qualquer** nível, porque os dois andam com o mesmo degrau. A primeira
+versão usava `degrau − 4` e sobrava um vão de 14px entre o fio e a linha — vão desfaz o
+"desce daqui", que é o ponto todo. A conta está travada em teste.
+
+No desktop nada disso aparece: lá há 24px de degrau e as guias inteiras, e este plano
+promete não mexer no desktop.
+
 **✅ FEITO em 09/09/2026.** O tooltip e as duas linhas do título herdados da frente do
 Welber seguem de pé, travados em teste — no telefone não existe passar o mouse. Conferido
-no CSS do build que as doze classes novas sobreviveram, incluindo as arbitrárias com
+no CSS do build que todas as classes novas sobreviveram, incluindo as arbitrárias com
 `var()`.
+
+**Como o desenho foi escolhido, e o que isso ensinou.** Três rodadas de adivinhação
+("muito grandes", "poluição visual", "bagunçado") antes de montar uma página com os quatro
+desenhos lado a lado, no mesmo dado real da tela dela
+(<https://claude.ai/code/artifact/d7c61421-4d2a-473e-aa24-c5a42bf3156d>). Ela escolheu na
+primeira olhada. **A página tinha de ser clara à força:** a primeira versão seguia o tema
+do aparelho, e num celular em modo escuro os espécimes apareciam escuros — mas a tela real
+é clara, então a escolha estava sendo feita sobre uma cor que o sistema não tem. Espécime
+que não tem a cor da tela mente sobre o que se está escolhendo.
 
 ---
 
