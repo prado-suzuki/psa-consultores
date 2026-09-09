@@ -117,11 +117,41 @@ interface ProjetosTarefasListProps {
   canEditTaskFields?: (task: OrgTask) => boolean;
 }
 
-const GRID = 'grid grid-cols-[minmax(320px,1fr)_150px_180px_130px_140px_160px_44px] min-w-[1200px]';
+/**
+ * A grade das quatro linhas (OS, projeto, tarefa, subtarefa).
+ *
+ * No desktop são sete colunas somando 1.200px de piso. Num celular de 358px
+ * úteis cabia a PRIMEIRA — o nome — e status, responsável, prazo, esforço e
+ * progresso ficavam todos fora, alcançáveis só arrastando de lado.
+ *
+ * Abaixo de `md` as mesmas sete células se refluem em DUAS colunas, com o nome
+ * ocupando a linha inteira (`CELULA_NOME`). O cartão sai do refluxo, sem
+ * remontar JSX nenhum: célula que era coluna vira linha do cartão, e a borda que
+ * já separava as linhas passa a separar os cartões.
+ *
+ *   ┌─────────────────────────────────┐
+ *   │ ▸ ☐ ● Título da tarefa          │  ← nome, as duas colunas
+ *   ├────────────────┬────────────────┤
+ *   │ Status         │ Responsável    │
+ *   │ Prazo          │ Esforço        │
+ *   │ Progresso      │ ⋯              │
+ *   └────────────────┴────────────────┘
+ *
+ * Nada é escondido: o gestor vê os seis campos sem arrastar. O cabeçalho de
+ * coluna é que sai (`max-md:hidden` na linha dele) — rótulo de coluna não
+ * significa nada depois do refluxo, e cada célula se explica: o status é chip
+ * colorido, o prazo tem ícone de calendário, o esforço traz o "h".
+ */
+const GRID =
+  'grid grid-cols-[minmax(320px,1fr)_150px_180px_130px_140px_160px_44px] min-w-[1200px]' +
+  ' max-md:grid-cols-2 max-md:min-w-0';
+
+/** A célula do nome ocupa a linha inteira do cartão. */
+const CELULA_NOME = 'max-md:col-span-2';
 /** Radix Select não aceita valor vazio: o "não atribuído" precisa de sentinela. */
 const SEM_RESPONSAVEL = '_none';
 /** Faixas que atravessam a tabela inteira (divisor de cliente, "adicionar tarefa"). */
-const FULL_ROW_MIN_WIDTH = 'min-w-[1150px]';
+const FULL_ROW_MIN_WIDTH = 'min-w-[1150px] max-md:min-w-0';
 
 /**
  * Recuos da coluna Nome, em px, e slots de largura fixa para seta e caixa de
@@ -132,18 +162,47 @@ const FULL_ROW_MIN_WIDTH = 'min-w-[1150px]';
 const PROJECT_INDENT = 36;
 const TASK_INDENT = 60;
 const INDENT_STEP = 24;
+/**
+ * Os mesmos recuos em tela estreita. 60px de base sobre 358px de tela é um sexto
+ * da largura gasto antes da primeira letra, e cada nível comeria 24px a mais —
+ * a subtarefa de segundo nível começaria em 108px.
+ *
+ * A primeira tentativa (8/12/+10) foi rejeitada na validação: "parece que está
+ * tudo no mesmo nível, não tem profundidade". Ela estava certa, e por dois
+ * motivos somados — o degrau curto quase não se via, E as guias verticais
+ * tinham sido escondidas no celular. Recuo sozinho já é ambíguo no desktop (é o
+ * que o comentário do `LevelGuide` diz); sem guia nenhuma e com degrau de 4px de
+ * diferença, os quatro níveis viram um.
+ *
+ * Agora os degraus se distinguem a olho e as guias voltam, com posição própria.
+ */
+const PROJECT_INDENT_ESTREITO = 10;
+const TASK_INDENT_ESTREITO = 26;
+const INDENT_STEP_ESTREITO = 14;
 const TOGGLE_SLOT = 'flex h-5 w-5 shrink-0 items-center justify-center';
 const CHECK_SLOT = 'flex h-4 w-4 shrink-0 items-center justify-center';
 /** x das guias verticais: o centro da seta do nível imediatamente acima. */
 const OS_GUIDE = 24;
 const PROJECT_GUIDE = PROJECT_INDENT + 10;
+/** As mesmas guias no degrau curto: o centro da seta do nível acima. */
+const OS_GUIDE_ESTREITO = 4;
+const PROJECT_GUIDE_ESTREITO = PROJECT_INDENT_ESTREITO + 6;
 
 /**
  * Guia vertical do nível. Recuo sozinho é ambíguo — a linha indentada parece
  * filha da linha de cima; a guia mostra de qual bloco ela desce.
  */
-function LevelGuide({ left }: { left: number }) {
-  return <span aria-hidden className="pointer-events-none absolute inset-y-0 border-l border-border/60" style={{ left }} />;
+function LevelGuide({ left, leftEstreito }: { left: number; leftEstreito: number }) {
+  // Duas posições, uma por breakpoint: o `left` do desktop é medido contra o
+  // recuo largo e cairia por cima do texto no degrau curto. Esconder a guia no
+  // celular foi a primeira tentativa, e é o que tirou a profundidade da tela.
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-y-0 border-l border-border/60 left-[var(--guia)] max-md:left-[var(--guia-estreita)]"
+      style={{ '--guia': `${left}px`, '--guia-estreita': `${leftEstreito}px` } as React.CSSProperties}
+    />
+  );
 }
 
 /**
@@ -348,9 +407,30 @@ export function ProjetosTarefasList({
     const candidatos = candidatosDeResponsavel(task);
     const atrasada = !!task.due_date && parseDate(task.due_date) < new Date() && task.status !== 'done';
     return <Fragment key={task.id}>
+      {/* A tarefa fica BRANCA de propósito: é o contraste contra as duas
+          superfícies tintas acima dela que diz que ela é o nível de baixo. */}
       <div className={cn(GRID, 'group border-t border-border/60 text-sm hover:bg-muted/30', isSelected ? 'bg-primary/5' : 'bg-background')}>
-        <div className="relative flex min-w-0 items-center gap-2 px-4 py-2" style={{ paddingLeft: `${TASK_INDENT + depth * INDENT_STEP}px` }}>
-          {Array.from({ length: depth + 1 }, (_, level) => <LevelGuide key={level} left={PROJECT_GUIDE + level * INDENT_STEP} />)}
+        {/* O recuo vai por variável CSS, e não por `paddingLeft` direto: estilo
+            inline não tem breakpoint, e o número do desktop é largura demais
+            para um celular. */}
+        <div
+          className={cn(CELULA_NOME, 'relative flex min-w-0 items-center gap-2 px-4 py-2 pl-[var(--recuo)] max-md:pl-[var(--recuo-estreito)]')}
+          style={{
+            '--recuo': `${TASK_INDENT + depth * INDENT_STEP}px`,
+            '--recuo-estreito': `${TASK_INDENT_ESTREITO + depth * INDENT_STEP_ESTREITO}px`,
+          } as React.CSSProperties}
+        >
+          {/* As guias verticais são posicionadas em px contra o recuo largo, e
+              no degrau curto elas cairiam no meio do texto. A hierarquia no
+              celular fica com as linhas de OS e de projeto, que são cabeçalho
+              de bloco, mais o recuo. */}
+          {Array.from({ length: depth + 1 }, (_, level) => (
+            <LevelGuide
+              key={level}
+              left={PROJECT_GUIDE + level * INDENT_STEP}
+              leftEstreito={PROJECT_GUIDE_ESTREITO + level * INDENT_STEP_ESTREITO}
+            />
+          ))}
           <span className={TOGGLE_SLOT}>
             {children.length > 0 && (
               <button type="button" onClick={() => toggle(rowId)} className="rounded p-0.5 text-muted-foreground hover:bg-muted" aria-label={isExpanded ? 'Recolher tarefa' : 'Expandir tarefa'}>
@@ -497,7 +577,8 @@ export function ProjetosTarefasList({
     </div>
     <div className="overflow-x-auto overflow-y-hidden rounded-xl border bg-card shadow-sm">
     <BarraDeMes periodo={periodo} />
-    <div className={cn(GRID, 'border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground')}>
+    {/* Rótulo de coluna não significa nada depois do refluxo em duas colunas. */}
+    <div className={cn(GRID, 'max-md:hidden border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground')}>
       <div className="px-4 py-2.5">Nome</div><div className="px-3 py-2.5">Status</div><div className="px-3 py-2.5">Responsável</div>
       <button type="button" onClick={() => cycleSort('prazo')} className={cn('flex items-center gap-1 px-3 py-2.5 uppercase tracking-wider transition-colors hover:text-foreground', sort.column === 'prazo' ? 'text-foreground' : '')}>Prazo{sortIcon('prazo')}</button>
       <div className="px-3 py-2.5" title="Horas realizadas/estimadas. Alerta nas tarefas concluídas sem horas apontadas.">Esforço</div>
@@ -515,8 +596,11 @@ export function ProjetosTarefasList({
           <span className="text-xs text-muted-foreground">{sortedHierarchy.filter(item => item.clientKey === group.clientKey).length} OS/grupo(s)</span>
         </div>}
         <section>
-        <div className={cn(GRID, 'border-b bg-primary/[0.045]')}>
-          <div className="flex min-w-0 items-center gap-3 px-3 py-3">
+        {/* No celular a tinta sobe e ganha trilho: `primary/[0.045]` é
+            invisível num telefone, e sem separar as superfícies os quatro
+            níveis leem como um. Trilho grosso na âncora = o nível mais alto. */}
+        <div className={cn(GRID, 'border-b bg-primary/[0.045]', 'max-md:border-l-4 max-md:border-l-primary max-md:bg-primary/10')}>
+          <div className={cn(CELULA_NOME, 'flex min-w-0 items-center gap-3 px-3 py-3')}>
             <button type="button" onClick={() => toggle(groupId)} className="rounded p-1 text-muted-foreground hover:bg-primary/10" aria-label={isExpanded ? 'Recolher OS' : 'Expandir OS'}>{isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
             <div className="h-5 w-1 rounded-full bg-primary" />
             <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span title={tituloDaOs(group)} className="line-clamp-2 break-words font-semibold">{tituloDaOs(group)}</span><Badge variant="outline" className="shrink-0 font-normal">{group.projects.length} {group.projects.length === 1 ? 'projeto' : 'projetos'}</Badge></div><p title={group.os?.cliente_nome} className="truncate text-xs text-muted-foreground">{group.os ? group.os.cliente_nome : group.hasLinkedOs ? 'Carregando dados da ordem de serviço vinculada' : 'Projetos e tarefas agrupados sem ordem de serviço'}</p></div>
@@ -537,9 +621,15 @@ export function ProjetosTarefasList({
           const projectTaskIds = collectNodeTaskIds(projectNode.tasks);
           const selectedInProject = projectTaskIds.filter(id => selectedTaskIds.has(id)).length;
           return <div key={projectId}>
-            <div className={cn(GRID, 'group relative z-10 bg-muted/30 text-sm shadow-md hover:bg-muted/45')}>
-              <div className="relative flex min-w-0 items-center gap-2 px-4 py-2.5" style={{ paddingLeft: `${PROJECT_INDENT}px` }}>
-                <LevelGuide left={OS_GUIDE} />
+            <div className={cn(GRID, 'group relative z-10 bg-muted/30 text-sm shadow-md hover:bg-muted/45', 'max-md:border-l-4 max-md:border-l-primary/35 max-md:bg-muted/70')}>
+              <div
+                className={cn(CELULA_NOME, 'relative flex min-w-0 items-center gap-2 px-4 py-2.5 pl-[var(--recuo)] max-md:pl-[var(--recuo-estreito)]')}
+                style={{
+                  '--recuo': `${PROJECT_INDENT}px`,
+                  '--recuo-estreito': `${PROJECT_INDENT_ESTREITO}px`,
+                } as React.CSSProperties}
+              >
+                <LevelGuide left={OS_GUIDE} leftEstreito={OS_GUIDE_ESTREITO} />
                 <span className={TOGGLE_SLOT}>
                   <button type="button" onClick={() => toggle(projectId)} className="rounded p-0.5 text-muted-foreground hover:bg-muted" aria-label={projectExpanded ? 'Recolher projeto' : 'Expandir projeto'}>{projectExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
                 </span>
@@ -587,7 +677,7 @@ export function ProjetosTarefasList({
                 </DropdownMenuContent>
               </DropdownMenu>}</div>
             </div>
-            {projectExpanded && <>{projectNode.tasks.map(node => renderTask(node, 0))}{projectNode.project && <button type="button" onClick={() => onNewTask(projectNode.project!.id)} className={cn('flex items-center gap-2 border-t py-2 pl-[60px] pr-4 text-xs text-muted-foreground hover:bg-muted/30 hover:text-foreground', FULL_ROW_MIN_WIDTH)}><Plus className="h-3.5 w-3.5" />Adicionar tarefa</button>}</>}
+            {projectExpanded && <>{projectNode.tasks.map(node => renderTask(node, 0))}{projectNode.project && <button type="button" onClick={() => onNewTask(projectNode.project!.id)} className={cn('flex items-center gap-2 border-t py-2 pl-[60px] pr-4 text-xs text-muted-foreground hover:bg-muted/30 hover:text-foreground max-md:pl-3', FULL_ROW_MIN_WIDTH)}><Plus className="h-3.5 w-3.5" />Adicionar tarefa</button>}</>}
           </div>;
         })}
         </section>

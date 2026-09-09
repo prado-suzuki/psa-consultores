@@ -33,7 +33,7 @@ cronograma no telefone é o caso menos provável de todos.
 | 2 | ✅ **A moldura do topo** | Mata 1 dos 3 scrollbars, e vale nas 7 abas | `TaskKPICards`, `TaskFilters` | P |
 | 3 | ✅ **Tabela** | Quebra pior que todas, e é o remédio menor | `TaskTable` | P |
 | 4 | ✅ **O detalhe da tarefa** | É o fim do caminho de leitura, e quebra lá | `TaskModal` | P |
-| 5 | **Lista** | É a visão de trabalho dela no desktop | `ProjetosTarefasList` | G |
+| 5 | ✅ **Lista** | É a visão de trabalho dela no desktop | `ProjetosTarefasList` | G |
 | 6 | **Kanban** | Rende leitura, não operação — ver a ressalva | `TaskKanban` | M |
 | 7 | **Calendário** | Uso pontual no celular | `TaskCalendar` | M |
 | 8 | **Gantt** | O mais caro e o menos provável no telefone | `GanttChart` | G |
@@ -270,21 +270,59 @@ primeira — o título. Status, responsável, prazo e progresso ficam todos fora
 hierarquia OS → projeto → tarefa → subtarefa usa recuo em pixels, que come largura a cada
 nível.
 
-No celular cada tarefa vira **um cartão**: título na primeira linha; status, responsável e
-prazo na segunda, como chips. A hierarquia deixa de ser recuo e passa a ser aninhamento
-visível (o projeto como cabeçalho do grupo, a subtarefa com um traço à esquerda) — recuo em
-px não sobrevive a 358px de tela.
+No celular cada tarefa vira **um cartão** — e o cartão sai do **refluxo da grade**, não de
+JSX novo. Foi o achado que encolheu a fase de "G" para uma tarde: as sete células já são
+irmãs numa grade CSS, então basta redefinir a grade abaixo de `md` (duas colunas, nome
+ocupando a linha inteira) e o que era coluna vira linha do cartão. Nenhuma das quatro
+linhas (OS, projeto, tarefa, subtarefa) foi remontada.
 
-É a fase grande do plano: 597 linhas, e a grade é usada por quatro tipos de linha (grupo de
-OS, projeto, tarefa, subtarefa). Vale escrever teste de caracterização antes, como pede o
-AGENTS.md §"Teste de caracterização primeiro" — o comportamento no desktop **não** muda.
+    ┌─────────────────────────────────┐
+    │ ▸ ☐ ● Título da tarefa          │  ← nome, as duas colunas
+    ├────────────────┬────────────────┤
+    │ Status         │ Responsável    │
+    │ Prazo          │ Esforço        │
+    │ Progresso      │ ⋯              │
+    └────────────────┴────────────────┘
+
+**Nada é escondido:** o gestor vê os seis campos sem arrastar. Quem sai é o cabeçalho de
+coluna — rótulo de coluna não significa nada depois do refluxo, e cada célula se explica
+sozinha (status é chip colorido, prazo tem ícone de calendário, esforço traz o "h").
 
 Esta fase herdou trabalho de outra frente. O `lista-de-tarefas-texto-e-prazo.md` (feedback
 do Welber, 09/09) pôs tooltip nas quatro linhas da grade e fez o título caber em duas
 linhas no desktop. Ao virar cartão, **preserve as duas coisas**: no telefone não existe
 passar o mouse, então cartão que corta o título perde o texto sem saída nenhuma.
 
-**Validar:** dá para saber o status e o responsável de uma tarefa sem rolar de lado.
+### A profundidade foi reprovada, e consertada no mesmo dia
+
+A primeira versão passou no objetivo e falhou no que ele não dizia: *"visualmente está
+péssimo, parece que está tudo no mesmo nível, não tem profundidade, saber qual o mais acima
+e abaixo está muito difícil de bater o olho e entender"*.
+
+Ela estava certa, e a causa foi minha: eu tirei as **duas** pistas de profundidade de uma
+vez. Escondi as guias verticais no celular (`max-md:hidden` no `LevelGuide`) e encurtei o
+recuo para 8/12/+10px, degraus de 4px que ninguém distingue. Recuo sozinho já é ambíguo no
+desktop — é o que o comentário do `LevelGuide` sempre disse — e sem guia nenhuma, com
+degrau invisível e a mesma superfície branca nos quatro níveis, a árvore virou uma lista
+plana.
+
+O conserto soma três pistas, porque nenhuma delas sozinha basta em 358px:
+
+- **as guias voltam**, com x próprio por breakpoint (`left-[var(--guia)]` /
+  `max-md:left-[var(--guia-estreita)]`). É a guia que diz de qual bloco a linha desce;
+- **os degraus se distinguem**: 10 / 26 / +14px em vez de 8 / 12 / +10;
+- **cada nível ganha superfície própria**, porque `bg-primary/[0.045]` e `bg-muted/30` são
+  invisíveis num telefone: a OS sobe para `primary/10` com trilho grosso na âncora da área,
+  o projeto para `muted/70` com trilho rebaixado, e a tarefa fica **branca** de propósito —
+  é o contraste contra as duas tintas de cima que a marca como o nível de baixo.
+
+**Validar:** dá para saber o status e o responsável de uma tarefa sem rolar de lado, e dá
+para bater o olho e ver o que está dentro de quê.
+
+**✅ FEITO em 09/09/2026.** O tooltip e as duas linhas do título herdados da frente do
+Welber seguem de pé, travados em teste — no telefone não existe passar o mouse. Conferido
+no CSS do build que as doze classes novas sobreviveram, incluindo as arbitrárias com
+`var()`.
 
 ---
 

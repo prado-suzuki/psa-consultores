@@ -437,3 +437,108 @@ describe('ProjetosTarefasList — o texto inteiro da coluna Nome', () => {
     expect(screen.getByTitle('Monica Matunaga')).toBeInTheDocument();
   });
 });
+
+describe('ProjetosTarefasList — a grade reflui em cartão no celular', () => {
+  /*
+    No piso de 1.200px da grade, um celular de 358px úteis mostrava a PRIMEIRA
+    das sete colunas — o nome — e status, responsável, prazo, esforço e
+    progresso ficavam fora, alcançáveis só arrastando de lado.
+
+    O conserto não remonta JSX: as mesmas sete células se refluem em duas
+    colunas abaixo de `md`, com o nome ocupando a linha inteira. O cartão sai do
+    refluxo. Estas asserções olham classe porque jsdom não calcula layout, e
+    porque nenhuma delas dá erro de build se cair.
+  */
+  const comArvoreAberta = () => {
+    renderList({
+      projects: [projeto],
+      tasks: [tarefa('Tarefa da lista', { assigned_to_name: 'Monica Matunaga' })],
+    });
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+  };
+
+  /** A linha da grade é o ancestral que declara as sete colunas. */
+  const linhaDaGrade = (dentro: HTMLElement) =>
+    dentro.closest('[class*="grid-cols-["]');
+
+  it('a linha larga de 1.200px deixa de valer no celular, e vira duas colunas', () => {
+    comArvoreAberta();
+
+    const linha = linhaDaGrade(screen.getByRole('button', { name: 'Tarefa da lista' }));
+    expect(linha?.className).toContain('max-md:grid-cols-2');
+    // Sem soltar o piso, as duas colunas continuariam somando 1.200px e a
+    // rolagem de lado voltaria.
+    expect(linha?.className).toContain('max-md:min-w-0');
+  });
+
+  it('o nome ocupa a linha inteira do cartão, e as outras cinco se dividem em duas', () => {
+    comArvoreAberta();
+
+    const nome = screen.getByRole('button', { name: 'Tarefa da lista' }).closest('div');
+    expect(nome?.closest('[class*="col-span-2"]')).not.toBeNull();
+  });
+
+  it('o cabeçalho de coluna sai do celular, porque rótulo de coluna não sobrevive ao refluxo', () => {
+    comArvoreAberta();
+
+    const cabecalho = screen.getByText('Progresso').closest('[class*="grid-cols-["]');
+    expect(cabecalho?.className).toContain('max-md:hidden');
+  });
+
+  it('o recuo da hierarquia vai por variável, porque estilo inline não tem breakpoint', () => {
+    comArvoreAberta();
+
+    const nome = screen
+      .getByRole('button', { name: 'Tarefa da lista' })
+      .closest('[class*="pl-[var("]') as HTMLElement | null;
+
+    expect(nome?.className).toContain('pl-[var(--recuo)]');
+    expect(nome?.className).toContain('max-md:pl-[var(--recuo-estreito)]');
+    // 60px de base num telefone é um sexto da largura gasto antes da primeira
+    // letra; o degrau curto mantém a hierarquia sem cobrar isso.
+    expect(nome?.style.getPropertyValue('--recuo')).toBe('60px');
+    expect(nome?.style.getPropertyValue('--recuo-estreito')).toBe('26px');
+  });
+
+  it('a guia vertical existe no celular, com x próprio — é ela que diz de que bloco a linha desce', () => {
+    // A primeira versão escondia a guia no celular, e foi o que fez os quatro
+    // níveis lerem como um: "parece que está tudo no mesmo nível, não tem
+    // profundidade". Recuo sozinho é ambíguo — a guia mostra a descendência.
+    comArvoreAberta();
+
+    const guia = document
+      .querySelector('[class*="max-md:left-[var("]') as HTMLElement | null;
+
+    expect(guia).not.toBeNull();
+    expect(guia?.className).not.toContain('max-md:hidden');
+    expect(guia?.style.getPropertyValue('--guia-estreita')).toBeTruthy();
+  });
+
+  it('cada nível tem superfície própria em tela estreita', () => {
+    // `primary/[0.045]` e `muted/30` são invisíveis num telefone. Sem separar as
+    // superfícies, trilho e recuo não bastam.
+    comArvoreAberta();
+
+    const os = screen.getByText(/101\/2026|OS vinculada|Sem OS/).closest('[class*="grid-cols-["]');
+    expect(os?.className).toContain('max-md:bg-primary/10');
+    expect(os?.className).toContain('max-md:border-l-primary');
+
+    const tarefa = linhaDaGrade(screen.getByRole('button', { name: 'Tarefa da lista' }));
+    // A tarefa fica branca: é o contraste contra as tintas de cima que a marca
+    // como o nível de baixo.
+    expect(tarefa?.className).toContain('bg-background');
+    expect(tarefa?.className).not.toContain('max-md:bg-');
+  });
+
+  it('o tooltip e as duas linhas do título sobrevivem ao cartão', () => {
+    // Herdado da frente do Welber (`lista-de-tarefas-texto-e-prazo.md`): no
+    // telefone não existe passar o mouse, então cartão que corta o título
+    // perderia o texto sem saída nenhuma. As duas coisas continuam de pé.
+    comArvoreAberta();
+
+    const titulo = screen.getByRole('button', { name: 'Tarefa da lista' });
+    expect(titulo.className).toContain('line-clamp-2');
+    expect(titulo).toHaveAttribute('title', 'Tarefa da lista');
+  });
+});
