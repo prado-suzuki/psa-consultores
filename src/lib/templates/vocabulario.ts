@@ -687,6 +687,9 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       // sedeMunicipio/sedeUf/sedeCep, agora sob o namespace sociedade.*).
       { id: 'sede', label: 'Sede (endereço completo)', tipo: 'textarea' },
       { id: 'sedeEndereco', label: 'Sede — logradouro e número', tipo: 'texto' },
+      { id: 'sedeLogradouro', label: 'Sede — logradouro', tipo: 'texto' },
+      { id: 'sedeNumero', label: 'Sede — número', tipo: 'texto' },
+      { id: 'sedeComplemento', label: 'Sede — complemento', tipo: 'texto' },
       { id: 'sedeBairro', label: 'Sede — bairro', tipo: 'texto' },
       { id: 'sedeMunicipio', label: 'Sede — município', tipo: 'texto' },
       { id: 'sedeUf', label: 'Sede — UF', tipo: 'texto' },

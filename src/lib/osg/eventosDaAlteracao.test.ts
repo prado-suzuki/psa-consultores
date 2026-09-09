@@ -58,6 +58,68 @@ const nomes = (movs: MovimentoDoLedger[], mudancas: MudancaDeCadastro[] = []) =>
   derivarEventosDaAlteracao({ movimentos: movs, empresaPessoaId: PR, mudancas }).map((e) => e.flagNome);
 
 describe('derivarEventosDaAlteracao', () => {
+  it.each([false, true])('CPF corrigido com ids estáveis não muda sócios (pendente: %s)', (pendente) => {
+    const eventos = derivarEventosDaAlteracao({
+      movimentos: pendente ? [...constituicao, mov({ id: 'aporte' })] : constituicao,
+      empresaPessoaId: PR,
+      baseline: { ...baselineDoContratoSocial, pessoaIdsDosSocios: [ANA, BRUNO] },
+      cpfCnpjPorPessoaId: { ...CPFS, [ANA]: '99999999999' },
+    });
+    expect(eventos.map((e) => e.flagNome)).not.toContain('evento_mudanca_socios');
+  });
+
+  it('ids distinguem pessoas mesmo com CPF igual e dispensam CPF no quadro vivo', () => {
+    const eventos = derivarEventosDaAlteracao({
+      movimentos: [...constituicao, mov({ id: 'troca', tipo: 'cessao', origemPessoaId: ANA,
+        destinoPessoaId: HOLDING, quotas: 436337, valor: 436337 })],
+      empresaPessoaId: PR,
+      baseline: { ...baselineDoContratoSocial, pessoaIdsDosSocios: [ANA, BRUNO] },
+      cpfCnpjPorPessoaId: { [ANA]: CPFS[ANA], [HOLDING]: CPFS[ANA] },
+    });
+    expect(eventos.find((e) => e.flagNome === 'evento_mudanca_socios')).toEqual({
+      flagNome: 'evento_mudanca_socios',
+      evidencia: '1 ingresso(s) e 1 retirada(s) no quadro societário',
+      movimentoIds: ['troca'],
+    });
+  });
+
+  it.each(['nenhum', 'aporte', 'cessao', 'constituicao-sem-carimbo'])('legado: CPF corrigido não inventa troca (%s)', (caso) => {
+    const movimentos = caso === 'constituicao-sem-carimbo'
+      ? constituicao.map((m) => ({ ...m, documentoGeradoId: null }))
+      : [...constituicao];
+    if (caso === 'aporte') movimentos.push(mov({ id: 'aporte' }));
+    if (caso === 'cessao') movimentos.push(mov({ id: 'parcial', tipo: 'cessao',
+      origemPessoaId: ANA, destinoPessoaId: BRUNO, quotas: 100, valor: 100 }));
+    const eventos = derivarEventosDaAlteracao({ movimentos, empresaPessoaId: PR,
+      baseline: baselineDoContratoSocial, cpfCnpjPorPessoaId: { ...CPFS, [ANA]: '99999999999' } });
+    expect(eventos.map((e) => e.flagNome)).not.toContain('evento_mudanca_socios');
+    if (caso === 'cessao') expect(eventos.map((e) => e.flagNome)).toContain('evento_cessao_quotas');
+    if (caso === 'aporte') expect(eventos.map((e) => e.flagNome)).toContain('evento_integralizacao');
+  });
+
+  it('legado ambíguo por CPF duplicado não concilia pessoas distintas', () => {
+    const eventos = derivarEventosDaAlteracao({
+      movimentos: [...constituicao, mov({ id: 'entrada', destinoPessoaId: HOLDING })],
+      empresaPessoaId: PR,
+      baseline: { capitalAnterior: 872674, cpfCnpjDosSocios: ['11111111111'] },
+      cpfCnpjPorPessoaId: { ...CPFS, [BRUNO]: CPFS[ANA] },
+    });
+    expect(eventos.map((e) => e.flagNome)).toEqual(['evento_aumento_capital', 'evento_integralizacao']);
+  });
+
+  it.each([false, true])('doação real preserva entrada, saída e carimbo (ids: %s)', (comIds) => {
+    const eventos = derivarEventosDaAlteracao({
+      movimentos: [...constituicao, mov({ id: 'doacao', tipo: 'doacao', origemPessoaId: ANA,
+        destinoPessoaId: HOLDING, quotas: 436337, valor: 436337 })],
+      empresaPessoaId: PR,
+      baseline: { ...baselineDoContratoSocial, pessoaIdsDosSocios: comIds ? [ANA, BRUNO] : null },
+      cpfCnpjPorPessoaId: comIds ? {} : CPFS,
+    });
+    expect(eventos.map((e) => e.flagNome)).toEqual(['evento_cessao_quotas', 'evento_mudanca_socios']);
+    expect(eventos[1]).toEqual({ flagNome: 'evento_mudanca_socios',
+      evidencia: '1 ingresso(s) e 1 retirada(s) no quadro societário', movimentoIds: ['doacao'] });
+  });
+
   it('não deriva evento nenhum quando tudo já foi formalizado', () => {
     expect(derivarEventosDaAlteracao({ movimentos: constituicao, empresaPessoaId: PR })).toEqual([]);
   });
@@ -112,9 +174,8 @@ describe('derivarEventosDaAlteracao', () => {
     expect(nomes(movs)).toEqual(['evento_cessao_quotas']);
   });
 
-  it('endereço e administração saem do audit_logs, não do livro', () => {
+  it('administração sai do audit_logs, não do livro', () => {
     const mudancas: MudancaDeCadastro[] = [
-      { entityType: 'pessoa', entityId: PR, action: 'updated', campos: ['endereco_cep'] },
       { entityType: 'administracao', entityId: 'adm-1', action: 'created', campos: [] },
       // Ruído que não é evento nenhum: outro campo da PJ, e outra entidade.
       { entityType: 'pessoa', entityId: PR, action: 'updated', campos: ['objeto_social'] },
@@ -127,11 +188,14 @@ describe('derivarEventosDaAlteracao', () => {
         pjPessoaId: PR,
         mudancas,
       }).map((e) => e.flagNome),
-    ).toEqual(['evento_alteracao_endereco', 'evento_mudanca_administracao']);
+    ).toEqual(['evento_mudanca_administracao']);
   });
 
-  it('ignora o endereço de OUTRA pessoa que não a PJ do contrato', () => {
+  it('editar o endereço da PJ no cadastro NÃO acende a sede: A→B→A não é evento', () => {
+    // O evento de sede sai da comparação snapshot registrado x cadastro atual
+    // (alteracaoPorEventos.ts), que enxerga o valor e não a edição.
     const mudancas: MudancaDeCadastro[] = [
+      { entityType: 'pessoa', entityId: PR, action: 'updated', campos: ['endereco_cep'] },
       { entityType: 'pessoa', entityId: ANA, action: 'updated', campos: ['endereco_cep'] },
     ];
     expect(

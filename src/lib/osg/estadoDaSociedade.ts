@@ -67,6 +67,15 @@ export interface FatosDaPeca {
   /** Há respostas de evento ancoradas na peça registrada. */
   alteracaoEmCurso: boolean;
   /**
+   * A head em rascunho já foi VALIDADA (`snapshot_validado_em` preenchido). A
+   * alteração confirmada no assistente nasce como rascunho ainda não validado:
+   * ela existe no banco (a proposta está lá), mas o texto ainda não foi selado,
+   * e registrar antes disso registraria um snapshot que ninguém conferiu.
+   * Omitido (undefined) vale como validada, para quem só conhece o rascunho
+   * antigo, que nascia validado.
+   */
+  validada?: boolean;
+  /**
    * Existe uma peça REGISTRADA de onde a alteração nasce: a que está em cena, ou
    * a que a alteração em rascunho declara substituir. Sem ela não há o que
    * alterar, e é o que separa "gerar alteração" de "rever os eventos da minha".
@@ -107,6 +116,12 @@ const SEM_PECA_REGISTRADA = travar(
     'Registre o contrato social antes de alterar a sociedade.',
 );
 
+const NAO_VALIDADA = travar(
+  'Valide a versão antes de registrar',
+  'A alteração foi confirmada no assistente, mas o texto ainda não foi validado. ' +
+    'Registrar congela o que está na folha, e é o "Validar versão" que sela isso.',
+);
+
 const NAO_SOCIETARIA = travar(
   'Esta peça não é ato societário',
   'A junta comercial registra ato de sociedade. Este modelo é de escopo avulso: ' +
@@ -126,7 +141,10 @@ function estadoDaPeca(fatos: FatosDaPeca): EstadoDaSociedade {
   if (fatos.statusDaPeca === 'registrado') {
     return fatos.sucessorDaBase ? 'sucedida' : 'registrada';
   }
-  return fatos.papelDaPeca === 'alterador' ? 'alteracao-em-rascunho' : 'constitutivo-em-rascunho';
+  if (fatos.papelDaPeca === 'alterador') {
+    return fatos.validada === false ? 'alteracao-em-composicao' : 'alteracao-em-rascunho';
+  }
+  return 'constitutivo-em-rascunho';
 }
 
 /**
@@ -178,6 +196,7 @@ export function avaliarFluxoDaSociedade(fatos: FatosDaPeca): FluxoDaSociedade {
   const registrar = (): Trava => {
     if (estado === 'peca-avulsa') return NAO_SOCIETARIA;
     if (fatos.statusDaPeca !== 'rascunho') return PECA_REGISTRADA;
+    if (fatos.validada === false) return NAO_VALIDADA;
     // Rascunho de papel constitutivo com OUTRO constitutivo já na junta: é este
     // o gesto que o índice único barra.
     if (fatos.papelDaPeca === 'constitutivo' && !doConstitutivo.liberado) return jaConstituida;

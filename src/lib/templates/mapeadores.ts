@@ -149,6 +149,8 @@ export function publicarOpcionais(tipo: TipoEntidade, campos: Campos): Campos {
 
 export function mapearPessoa(row: PessoaRow): Campos {
   const { out, set } = coletor();
+  // Metadado serializável: a proveniência via Symbol não sobrevive ao JSON.
+  set('id', row.id);
   set('nome', row.denominacao);
   set('tipoPessoa', row.tipo_pessoa);
   set('cpfCnpj', row.cpf_cnpj);
@@ -285,6 +287,7 @@ export function mapearSociedade(
   instrumento?: ContextoInstrumento,
 ): Campos {
   const { out, set } = coletor();
+  set('id', row.id);
   // O NÚMERO da alteração é o que entra; o título se deriva dele no vocabulário
   // (campo derivado não é entrada de formulário — ver camposDoBinding). Assim
   // ninguém digita "PRIMEIRA ALTERAÇÃO…" e ninguém precisa reescrever o ordinal
@@ -299,6 +302,12 @@ export function mapearSociedade(
   set('objeto', row.objeto_social);
   set('sede', enderecoProsa(row));
   set('sedeEndereco', [row.endereco_logradouro, numeroProsa(row.endereco_numero)].filter(Boolean).join(', '));
+  // As três partes que `sedeEndereco` funde: é por elas que a alteração
+  // contratual compara a sede registrada com a atual campo a campo, em vez de
+  // adivinhar numa prosa o que mudou (ver alteracaoPorEventos.ts).
+  set('sedeLogradouro', row.endereco_logradouro);
+  set('sedeNumero', row.endereco_numero);
+  set('sedeComplemento', row.endereco_complemento);
   set('sedeBairro', row.endereco_bairro);
   set('sedeMunicipio', row.endereco_municipio);
   set('sedeUf', row.endereco_uf);
@@ -719,7 +728,7 @@ export interface MatriculaIntegralizacao extends MatriculaParaMapear {
 
 /** Participação derivada de uma pessoa no quadro da empresa PR (visão calculada). */
 export interface ParticipacaoPR {
-  /** null para titular legado sem pessoa vinculada (agregado pela denominação). */
+  /** null para titular legado sem pessoa vinculada: exige conciliação. */
   pessoaId: string | null;
   denominacao: string;
   tipoPessoa: string | null;
@@ -810,14 +819,15 @@ export function calcularParticipacoesPR(matriculas: MatriculaIntegralizacao[]): 
     tipoPessoa: string | null; cpfCnpj: string | null;
     cent: number;
   }
-  const porChave = new Map<string, Acumulado>();
+  const porChave = new Map<string | TitularParaMapear, Acumulado>();
 
   for (const m of matriculas) {
     const centDe = ratearMatriculaEntreTitulares(m);
     if (centDe == null) continue;
 
     for (const t of centDe.keys()) {
-      const chave = t.pessoaId ?? `nome:${t.denominacao ?? ''}`;
+      // Sem vínculo, conserva a linha separada até conciliação; nome não é id.
+      const chave = t.pessoaId || t;
       const atual = porChave.get(chave);
       if (atual) {
         atual.cent += centDe.get(t) ?? 0;
@@ -1346,6 +1356,75 @@ export function vocabularioDaRetirada(retirantes: readonly PessoaRow[]): Campos 
   };
 }
 
+/**
+ * Itens da seção {{#requalificados}}: os sócios que esta alteração requalifica.
+ *
+ * Recebe CAMPOS já compostos (o estado proposto: base + o endereço aprovado), e
+ * não linhas de `pessoa` do banco. A diferença é a regra inteira desta frente —
+ * a resolução publica o que o consultor conferiu, não o cadastro de hoje.
+ */
+export function mapearRequalificados(pessoas: readonly Campos[]): ItemLista[] {
+  return pessoas.map((campos, i) => ({
+    requalificado: derivarCampos('pessoa', campos),
+    ordem: String(i + 1),
+    ordemRomana: romano(i + 1).toLowerCase(),
+  }));
+}
+
+/** Por que a qualificação mudou, na abertura da resolução. */
+export type CausaDaRequalificacao = 'mudanca_de_domicilio' | 'atualizacao_postal';
+
+const ABERTURA_DA_CAUSA: Record<CausaDaRequalificacao, string> = {
+  // Sem prefixo: a mudança de domicílio dispensa justificar-se, e é assim que a
+  // 1ª alteração da MMS Participações abre ("Altera-se os endereços dos sócios…").
+  mudanca_de_domicilio: '',
+  // Com prefixo, porque o CEP mudou sem ninguém sair do lugar, e o instrumento
+  // que não diz isso parece afirmar mudança de domicílio. É a abertura literal
+  // da 7ª da GMS e da 2ª da ITFD Participações.
+  atualizacao_postal:
+    'Em decorrência da atualização do Código de Endereçamento Postal — CEP, ',
+};
+
+/**
+ * As palavras da resolução de qualificação que concordam com QUANTOS e QUAIS
+ * sócios mudaram de endereço, e com a causa escolhida.
+ *
+ * Mesmo contrato do `vocabularioDaRetirada`, e pela mesma razão: o bloco imprime,
+ * o código concorda. Com a lista vazia os cinco campos saem VAZIOS, e não no
+ * plural — é o que faz `motivoDeDescarte` derrubar o bloco por 'lista-vazia' em
+ * vez de publicar "altera-se a qualificação dos sócios  , para fazer constar".
+ */
+export function vocabularioDaRequalificacao(
+  pessoas: readonly Readonly<Record<string, string | null | undefined>>[],
+  causa: CausaDaRequalificacao = 'mudanca_de_domicilio',
+): Campos {
+  if (pessoas.length === 0) {
+    return { causa: '', verbo: '', aQualificacao: '', titulo: '', objeto: '' };
+  }
+  const umSo = pessoas.length === 1;
+  const todasFemininas = pessoas.every(
+    (p) => generoDeConcordancia(
+      p.genero === 'F' || p.genero === 'M' ? p.genero : null,
+      p.tipoPessoa ?? null,
+    ) === 'F',
+  );
+  const abertura = ABERTURA_DA_CAUSA[causa] ?? '';
+  const verbo = umSo ? 'altera-se' : 'alteram-se';
+  return {
+    causa: abertura,
+    // A frase começa no verbo quando não há abertura; com ela, o verbo é meio de
+    // período e vai em minúscula.
+    verbo: abertura ? verbo : verbo.charAt(0).toLocaleUpperCase('pt-BR') + verbo.slice(1),
+    aQualificacao: umSo ? 'a qualificação' : 'as qualificações',
+    titulo: umSo
+      ? (todasFemininas ? 'da sócia' : 'do sócio')
+      : (todasFemininas ? 'das sócias' : 'dos sócios'),
+    objeto: umSo
+      ? (todasFemininas ? 'o atual endereço desta' : 'o atual endereço deste')
+      : (todasFemininas ? 'os atuais endereços destas' : 'os atuais endereços destes'),
+  };
+}
+
 export function mapearCessoes(cessoes: CessaoParaMapear[]): ItemLista[] {
   return cessoes.map((c, i) => {
     const cedente = mapearPessoa(c.cedente);
@@ -1456,6 +1535,7 @@ export function mapearPartesSelecionadas(
     // origem.ts): o valor continua clicável na prévia.
     parte: {
       ...parte.campos,
+      id: parte.id,
       ordem: String(i + 1),
       ordemRomana: romano(i + 1).toLowerCase(),
     },

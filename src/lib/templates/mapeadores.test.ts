@@ -4,6 +4,8 @@ import {
   calcularParticipacoesPR,
   mapearAdministrador,
   mapearBem,
+  mapearCessoes,
+  mapearRetirantes,
   mapearIntegralizacoes,
   matriculasDescritasNasIntegralizacoes,
   mapearMatricula,
@@ -28,6 +30,32 @@ import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { Template } from './types';
 
 type Campos = Record<string, string>;
+
+describe('identidade persistida nos mapeadores', () => {
+  it('congela pessoa.id na seleção e nas listas após serialização JSON', () => {
+    const pessoa = { id: 'pessoa-ana', denominacao: 'Ana', tipo_pessoa: 'PF' } as PessoaRow;
+    const s = { pessoa, quotas: 100, vlr_total: 100, representante: null };
+    const snapshot = JSON.parse(JSON.stringify({
+      selecao: { pessoa: mapearPessoa(pessoa), sociedade: mapearSociedade(pessoa) },
+      itensPorLista: {
+        socios: mapearQuadroSocietario([s]).itens,
+        administradores: [mapearAdministrador({ pessoa, cargo: null })],
+        retirantes: mapearRetirantes([pessoa]),
+        cessoes: mapearCessoes([{ id: 'mov', cedente: pessoa, cessionario: pessoa, quotas: 1, valor: 1 }]),
+        partes: mapearPartesSelecionadas([{ id: pessoa.id, campos: { nome: 'Ana' } }]),
+        integralizacoes: mapearIntegralizacoes([s], [], [
+          { id: 'aporte', pessoaId: pessoa.id, quotas: 100, valor: 100, forma: 'moeda' },
+        ]),
+      },
+    })) as { selecao: Record<string, Campos>; itensPorLista: Record<string, ItemLista[]> };
+    expect(snapshot.selecao.pessoa.id).toBe(pessoa.id);
+    expect(snapshot.selecao.sociedade.id).toBe(pessoa.id);
+    for (const [lista, papel] of [
+      ['socios', 'socio'], ['administradores', 'administrador'], ['retirantes', 'retirante'],
+      ['cessoes', 'cedente'], ['cessoes', 'cessionario'], ['partes', 'parte'], ['integralizacoes', 'socio'],
+    ]) expect((snapshot.itensPorLista[lista][0][papel] as Campos).id).toBe(pessoa.id);
+  });
+});
 
 /** Matrícula mínima: só os titulares importam para estes testes. */
 function matriculaCom(titulares: TitularParaMapear[]): MatriculaParaMapear {
@@ -159,6 +187,12 @@ describe('mapearSociedade — PJ objeto do contrato', () => {
     expect(c.sede).toContain('n.º 119');
     expect(c.sede).toContain('no município de Cuiabá');
     expect(c.sedeEndereco).toBe('Rua das Acácias, n.º 119');
+    // As partes que `sedeEndereco` funde saem separadas: a alteração de sede
+    // compara campo a campo, e complemento ausente no cadastro é '' (conhecido
+    // e vazio), não desconhecido.
+    expect(c.sedeLogradouro).toBe('Rua das Acácias');
+    expect(c.sedeNumero).toBe('119');
+    expect(c.sedeComplemento).toBe('');
     expect(c.sedeBairro).toBe('Centro');
     expect(c.sedeMunicipio).toBe('Cuiabá');
     expect(c.sedeCep).toBe('78000-000');
@@ -1077,6 +1111,14 @@ describe('mapearIntegralizacoes — alíneas por sócio com referência cruzada 
 });
 
 describe('calcularParticipacoesPR — quadro derivado da empresa PR', () => {
+  it('homônimos legados sem ids permanecem separados até conciliação', () => {
+    const participacoes = calcularParticipacoesPR([
+      { ...matriculaCom([{ denominacao: 'Ana' }]), id: 'm1', vlr_contabil: 100 },
+      { ...matriculaCom([{ denominacao: 'Ana' }]), id: 'm2', vlr_contabil: 200 },
+    ]);
+    expect(participacoes.map((p) => [p.pessoaId, p.valor])).toEqual([[null, 200], [null, 100]]);
+  });
+
   function matPR(
     id: string,
     vlr: number | null,

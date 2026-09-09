@@ -14,12 +14,8 @@ import { numeroDeValorBR } from '@/lib/templates/historicoCapital';
 // proxy de "já foi contado". Quando os dois divergem, quem produziu efeito foi a
 // peça. (Decisão D2 de docs/planos/derivacao-de-eventos-e-carimbo.md.)
 //
-// PEDRA CONHECIDA: o snapshot não congela o `pessoa.id` — `mapearPessoa` emite
-// nome, CPF/CNPJ, quotas e o resto, nunca o id. Daí o casamento por CPF/CNPJ, que
-// serve dentro de um mesmo quadro (ninguém é sócio duas vezes da mesma empresa) e
-// não serve para linha de titular sem pessoa cadastrada, onde o CPF vem vazio.
-// Nesse caso o baseline se declara INUTILIZÁVEL (null) em vez de casar errado:
-// silêncio é recuperável pela mão do consultor, evento inventado não é.
+// Snapshots novos congelam pessoa.id. CPF/CNPJ fica apenas para conciliação dos
+// legados com o livro: corrigir documento não troca a identidade de uma pessoa.
 
 /** O recorte do `snapshot_dados` que o baseline sabe ler. */
 export interface SnapshotDaPeca {
@@ -30,6 +26,8 @@ export interface SnapshotDaPeca {
 export interface BaselineDaPeca {
   /** Capital que valeu no documento substituído, em número. */
   capitalAnterior: number | null;
+  /** Ids estáveis; opcional para baselines legados já consumidos pelo app. */
+  pessoaIdsDosSocios?: string[] | null;
   /** CPF/CNPJ (só dígitos) dos sócios daquele quadro; null = não dá para casar. */
   cpfCnpjDosSocios: string[] | null;
 }
@@ -41,13 +39,14 @@ export function digitosDe(valor: unknown): string {
 
 /**
  * O baseline de estado desta peça. Sem snapshot (documento antigo, ou peça que
- * não substitui ninguém) os dois campos vêm nulos, e quem deriva decide o que
+ * não substitui ninguém) os campos vêm nulos, e quem deriva decide o que
  * fazer com a ausência.
  */
 export function baselineDoSnapshot(snapshot: SnapshotDaPeca | null | undefined): BaselineDaPeca {
   return {
     capitalAnterior: capitalDoSnapshot(snapshot),
-    cpfCnpjDosSocios: sociosDoSnapshot(snapshot),
+    pessoaIdsDosSocios: sociosDoSnapshot(snapshot, 'id'),
+    cpfCnpjDosSocios: sociosDoSnapshot(snapshot, 'cpfCnpj'),
   };
 }
 
@@ -64,21 +63,22 @@ function capitalDoSnapshot(snapshot: SnapshotDaPeca | null | undefined): number 
 }
 
 /**
- * Os sócios do quadro que a peça publicou, por CPF/CNPJ. Devolve null quando a
+ * Os sócios do quadro que a peça publicou, por id ou CPF/CNPJ. Devolve null quando a
  * lista não existe (snapshot de modelo sem sócios, ou anterior a `itensPorLista`)
- * ou quando QUALQUER linha vem sem documento — um quadro que não se casa por
+ * ou quando QUALQUER linha vem sem a chave — um quadro que não se casa por
  * inteiro não é baseline, é meia informação.
  */
-function sociosDoSnapshot(snapshot: SnapshotDaPeca | null | undefined): string[] | null {
+function sociosDoSnapshot(snapshot: SnapshotDaPeca | null | undefined, campo: 'id' | 'cpfCnpj'): string[] | null {
   const lista = snapshot?.itensPorLista?.socios;
   if (!Array.isArray(lista) || lista.length === 0) return null;
 
   const documentos: string[] = [];
   for (const item of lista) {
     const socio = (item as { socio?: Record<string, unknown> } | null)?.socio;
-    const cpfCnpj = digitosDe(socio?.cpfCnpj);
-    if (!cpfCnpj) return null;
-    documentos.push(cpfCnpj);
+    const valor = socio?.[campo];
+    const chave = campo === 'cpfCnpj' ? digitosDe(valor) : typeof valor === 'string' ? valor.trim() : '';
+    if (!chave) return null;
+    documentos.push(chave);
   }
   return [...new Set(documentos)];
 }

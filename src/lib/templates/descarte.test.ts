@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { motivoDeDescarte } from './descarte';
 import { gerarBlocos, gerarComposicao, gerarDocumento } from './index';
-import { mapearMatricula, mapearRetirantes, mapearSociedade, vocabularioDaRetirada, type MatriculaParaMapear } from './mapeadores';
+import { mapearMatricula, mapearRequalificados, mapearRetirantes, mapearSociedade, vocabularioDaRequalificacao, vocabularioDaRetirada, type CausaDaRequalificacao, type MatriculaParaMapear } from './mapeadores';
 import { prefixosNumeracao } from './numeracao';
 import { renderBloco } from './render';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
@@ -520,5 +520,76 @@ describe('cláusula de retirada sem retirante nenhum', () => {
     const texto = renderCom([pf('Ana Lima', 'F'), pf('Marina Salgado', 'F')])
       .segmentos.map((s) => s.texto).join('');
     expect(texto).toContain('as sócias');
+  });
+});
+
+
+// A resolução de atualização do endereço na qualificação de sócio, pelo mesmo
+// contrato da cláusula de retirada: quem concorda em número e gênero é o código,
+// e a lista vazia derruba o bloco em vez de publicar uma frase sem sujeito.
+describe('resolução de qualificação sem sócio requalificado', () => {
+  // O conteúdo real do bloco (migration 20260909205536).
+  const RESOLUCAO_QUALIFICACAO =
+    '*Da atualização da qualificação de sócio.* {{ requalificacao.causa }}'
+    + '{{ requalificacao.verbo }} {{ requalificacao.aQualificacao }} {{ requalificacao.titulo }} '
+    + '{{#requalificados sep=", " fim=" e "}}*{{ requalificado.nomeMaiusculo }}*{{/requalificados}}, '
+    + 'para fazer constar {{ requalificacao.objeto }}, permanecendo inalterados os demais dados da '
+    + 'qualificação e vigorando, a partir de então, nos seguintes termos: '
+    + '{{#requalificados sep="; " fim="; e "}}{{ requalificado.qualificacao }}{{/requalificados}}.';
+
+  const socio = (nome: string, genero: 'M' | 'F' = 'M', endereco = 'Rua Nova, 99') => ({
+    id: nome, nome, tipoPessoa: 'PF', genero, nacionalidade: 'brasileira',
+    profissao: 'produtora rural', cpfCnpj: '000.000.000-00', endereco,
+  });
+
+  const renderCom = (socios: ReturnType<typeof socio>[], causa: CausaDaRequalificacao = 'mudanca_de_domicilio') =>
+    renderBloco(RESOLUCAO_QUALIFICACAO, {
+      requalificacao: vocabularioDaRequalificacao(socios, causa),
+      requalificados: mapearRequalificados(socios),
+    } as unknown as Contexto);
+
+  const textoDe = (socios: ReturnType<typeof socio>[], causa?: CausaDaRequalificacao) =>
+    renderCom(socios, causa).segmentos.map((s) => s.texto).join('');
+
+  it('some do documento: sem sócio requalificado o bloco é descartado por lista vazia', () => {
+    expect(motivoDeDescarte(renderCom([]))).toBe('lista-vazia');
+  });
+
+  it('e o que ele imprimiria não afirma alteração de qualificação nenhuma', () => {
+    const texto = textoDe([]);
+    expect(texto).not.toMatch(/altera-se|alteram-se/);
+    expect(texto).not.toMatch(/o sócio|os sócios|a sócia|as sócias/);
+  });
+
+  it('com UM sócio o bloco fica, no singular, e reproduz a qualificação dele', () => {
+    const render = renderCom([socio('Adriano Bueno Zamo')]);
+    expect(motivoDeDescarte(render)).toBeNull();
+    const texto = render.segmentos.map((s) => s.texto).join('');
+    expect(texto).toContain('Altera-se a qualificação do sócio');
+    expect(texto).toContain('ADRIANO BUENO ZAMO');
+    expect(texto).toContain('para fazer constar o atual endereço deste');
+    expect(texto).toContain('Rua Nova, 99');
+  });
+
+  it('com DOIS sócios concorda no plural', () => {
+    const texto = textoDe([socio('Jose Eduardo'), socio('Maria Auxiliadora', 'F')]);
+    expect(texto).toContain('Alteram-se as qualificações dos sócios');
+    expect(texto).toContain('os atuais endereços destes');
+  });
+
+  it('só sócias mulheres concordam no feminino', () => {
+    expect(textoDe([socio('Ieda Webler Schaedler', 'F')]))
+      .toContain('Altera-se a qualificação da sócia');
+    expect(textoDe([socio('Ana Paula', 'F'), socio('Cirlei Ana', 'F')]))
+      .toContain('Alteram-se as qualificações das sócias');
+    expect(textoDe([socio('Ana Paula', 'F'), socio('Cirlei Ana', 'F')]))
+      .toContain('os atuais endereços destas');
+  });
+
+  it('a atualização postal abre dizendo que foi o CEP, e o verbo desce para minúscula', () => {
+    const texto = textoDe([socio('Cirlei Ana', 'F')], 'atualizacao_postal');
+    expect(texto).toContain('Em decorrência da atualização do Código de Endereçamento Postal — CEP, altera-se a qualificação da sócia');
+    // Sem a causa, a frase começa no verbo: uma maiúscula, nunca duas.
+    expect(textoDe([socio('Cirlei Ana', 'F')])).toMatch(/^\*Da atualização[^*]*\* ?Altera-se/);
   });
 });
