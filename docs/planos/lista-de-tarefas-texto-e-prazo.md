@@ -87,7 +87,7 @@ Uma fase = um commit = um pedido de validação. O agente para ao fim de cada um
 |---|---|---|---|---|
 | 1 | ✅ O texto aparece inteiro | `title` nos cinco pontos sem ele; título em 2 linhas | — | P |
 | 2 | ✅ O calendário não oferece data inválida | `disabled` no calendário da linha e do modal; guard no hook | — | P |
-| 3 | 🟡 A regra vale por qualquer caminho | trigger em `org_tasks` | migration escrita, **falta aplicar** | M |
+| 3 | 🟡 A regra vale por qualquer caminho | trigger em `org_tasks` | **no sandbox**, falta produção | M |
 
 **Estado em 09/09/2026, fim do dia.** A Fase 1 saiu no commit `4fb990e3` e foi validada pela
 Patrícia na tela. A Fase 2 saiu em dois commits, e o motivo fica registrado porque
@@ -164,7 +164,23 @@ chamado inserem **só tarefa-pai** (`parent_task_id` nulo), então nem entram no
 `sprint_deliverables` é outra tabela — lá a data da mãe é derivada como o **máximo** das
 filhas, convenção oposta a esta e fora do alcance deste gatilho.
 
-**Aplicar (é passo humano, o agente não escreve schema):**
+**Aplicado no sandbox em 09/09/2026** (`bun run db:sync --apply`, lote de 4 — as outras três
+eram pendências de outras frentes, entre elas a `ambiente_por_cliente`, cuja ausência já havia
+deixado a lista de Projetos e tarefas em branco).
+
+**E foi provado no banco, não só instalado.** Como o front passou a impedir antes de a
+gravação sair, a tela não serve mais de prova do gatilho: só uma escrita direta o exercita.
+Duas transações revertidas no sandbox, sobre um par real:
+
+| tentativa | o banco respondeu |
+|---|---|
+| filha de 30/06 empurrada para 20/08, com a mãe em 08/07 | `Esta subtarefa não pode vencer depois de 08/07/2026, que é o prazo da tarefa-principal.` |
+| mãe puxada para 01/06, com 11 filhas depois disso | `11 subtarefas vencem depois desta data (a última em 09/07/2026). Ajuste o prazo delas antes.` |
+
+Nada foi gravado — as duas abortaram, e a linha conferida por SELECT depois seguia em 30/06.
+O texto que sai do banco é, caractere a caractere, o mesmo de `src/lib/orgTaskPrazo.ts`.
+
+**Comando, para quando for preciso de novo:**
 
 ```
 ! bun run db:sync --apply
