@@ -63,7 +63,14 @@ type MotivoDeFicar =
 
 const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
   'escada-de-status': {
-    'src/components/cliente/ChecklistDocumentosCliente.tsx': 8,
+    // Os três abaixo eram UM arquivo de 8 sítios até 09/09/2026, quando o
+    // checklist do cliente foi partido para caber no teto de 600 linhas. A fila
+    // não cresceu nem encolheu — 5 + 2 + 1 são os mesmos 8 —, e os três continuam
+    // na mesma escada: `Falta enviar` / `Em análise` / `Recebido`. Saem juntos
+    // quando o papel for convertido.
+    'src/components/cliente/ChecklistDocumentosCliente.tsx': 5,
+    'src/components/cliente/checklist/LinhaPendencia.tsx': 2,
+    'src/components/cliente/checklist/ResumoHero.tsx': 1,
     'src/components/equipe/HorasAcumuladas.tsx': 1,
     'src/components/equipe/audit/AuditPendenciasTable.tsx': 4,
     'src/components/equipe/audit/AuditPessoasTable.tsx': 2,
