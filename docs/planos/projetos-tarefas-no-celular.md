@@ -58,6 +58,18 @@ desapareceu sem explicação.
 **Validar:** abrir `/equipe/tax/projetos/tarefas` no celular e ver se cai numa tela que dá
 para ler de imediato, e se as duas abas boas estão à mão.
 
+**Achado na validação, consertado no mesmo dia:** o cabeçalho da "Hoje" (data por extenso
++ "N pendentes" + "N concluídas") passa de 450px e não quebrava, então "concluídas" era
+**cortado** na borda — e o `<main>` é `overflow-hidden`, então não havia nem rolagem para
+alcançá-lo. `flex-wrap` no cabeçalho e a data um degrau menor abaixo de `sm`.
+
+**Em aberto, e é decisão dela:** a "Hoje" mostra só tarefa com vencimento **no dia**. Na
+tela da Patrícia em 09/09 havia 41 em "A Fazer" e nenhuma vencendo hoje, ou seja o gestor
+cairia em "Nenhuma tarefa para hoje. Aproveite!" — o que derrota o propósito da fase. A
+"Futuras" (vencimento futuro, agrupado por semana) tende a ter conteúdo, mas também pode
+estar vazia. Alternativa de fundo: quando a Tabela ficar legível (fase 3), ela mostra o mês
+inteiro e praticamente nunca está vazia.
+
 **✅ FEITO em 09/09/2026.** `telaEstreita()` saiu de dentro do controlador da barra lateral
 e virou export de `hooks/use-mobile`, ao lado do `MOBILE_BREAKPOINT` — as duas decisões que
 dependem da largura no primeiro quadro (qual estado a barra nasce, em que visão o painel
