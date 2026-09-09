@@ -1,9 +1,9 @@
 /**
  * A régua dos modais, cobrada em cima do código fonte.
  *
- * Desde que o teto de altura passou a nascer nas primitivas (ver
- * `dialog.teto.test.tsx`), duas formas de escrever um `DialogContent` quebram em
- * silêncio — e as duas apareceram de verdade em 09/09/2026:
+ * Desde que o teto de altura passou a nascer nas três primitivas (ver
+ * `dialog.teto.test.tsx`), duas formas de escrever um modal quebram em silêncio —
+ * e as duas apareceram de verdade em 09/09/2026:
  *
  * 1. Declarar altura própria (`h-[95vh]`) e não declarar teto: o `max-h-[90vh]`
  *    da primitiva aperta a altura pedida, e o modal encolhe sem ninguém pedir.
@@ -35,10 +35,14 @@ function arquivosDeTela(dir: string): string[] {
   return saida;
 }
 
-/** O texto do `className` de cada `<DialogContent` do arquivo, em uma linha. */
+/**
+ * O texto do `className` de cada modal do arquivo, em uma linha. As três
+ * primitivas entram: `DialogContent` (de `ui/dialog` ou do `OsgDialog`) e
+ * `AlertDialogContent`, a das caixas de confirmação.
+ */
 export function classesDosModais(fonte: string): string[] {
   const achados: string[] = [];
-  const marca = /<DialogContent\b/g;
+  const marca = /<(Alert)?DialogContent\b/g;
   let encontro: RegExpExecArray | null;
 
   while ((encontro = marca.exec(fonte))) {
@@ -96,7 +100,7 @@ function quebras(): Quebra[] {
 
   for (const arquivo of arquivosDeTela(RAIZ)) {
     const fonte = readFileSync(arquivo, 'utf8');
-    if (!fonte.includes('<DialogContent')) continue;
+    if (!fonte.includes('<DialogContent') && !fonte.includes('<AlertDialogContent')) continue;
 
     const rolagemInterna = temRolagemInterna(fonte);
 
@@ -119,8 +123,8 @@ function quebras(): Quebra[] {
   return achadas;
 }
 
-describe('régua dos modais', () => {
-  it('nenhum DialogContent do repositório quebra a régua', () => {
+describe('régua dos modais, nas três primitivas', () => {
+  it('nenhum modal do repositório quebra a régua', () => {
     expect(quebras().map((q) => `${q.arquivo} — ${q.motivo}`)).toEqual([]);
   });
 

@@ -1,9 +1,10 @@
 /**
  * O teto de altura mora nas primitivas, não em cada tela, e é isso que este
- * teste trava. São duas — `ui/dialog` e a variante `OsgDialog` — e o shadcn de
- * origem não tem teto em nenhuma: como o modal é centralizado por translate,
- * conteúdo maior que a janela cresce para os dois lados e leva o título e o X
- * para fora da borda de cima, onde não há como alcançá-los nem para fechar.
+ * teste trava. São três — `ui/dialog`, a variante `OsgDialog` e o
+ * `ui/alert-dialog` das caixas de confirmação — e o shadcn de origem não tem
+ * teto em nenhuma. Como o modal é centralizado por translate, conteúdo maior que
+ * a janela cresce para os dois lados e leva o título e o X para fora da borda de
+ * cima, onde não há como alcançá-los nem para fechar.
  *
  * O terceiro caso é o que sustenta o plano inteiro: o `cn()` é `tailwind-merge`,
  * então a classe da tela apaga a da primitiva. É por isso que os modais de
@@ -13,6 +14,11 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Dialog as OsgDialog,
   DialogContent as OsgDialogContent,
@@ -45,6 +51,20 @@ describe('teto de altura das primitivas de modal', () => {
     const modal = screen.getByRole('dialog');
     expect(modal).toHaveClass('max-h-[90vh]', 'overflow-y-auto');
     expect(modal).toHaveClass('sm:[clip-path:inset(0_round_0.75rem)]');
+  });
+
+  it('as caixas de confirmação ganham o mesmo teto', () => {
+    render(
+      <AlertDialog open>
+        <AlertDialogContent>
+          <AlertDialogTitle>Concluir com subtarefas abertas?</AlertDialogTitle>
+        </AlertDialogContent>
+      </AlertDialog>,
+    );
+
+    // A lista de subtarefas abertas cresce com o dado, e o botão de confirmar
+    // vem depois dela: sem teto, é o Continuar que sai pela borda de cima.
+    expect(screen.getByRole('alertdialog')).toHaveClass('max-h-[90vh]', 'overflow-y-auto');
   });
 
   it('a classe da tela apaga a da primitiva, nas duas', () => {
