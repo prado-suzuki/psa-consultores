@@ -461,6 +461,25 @@ então um dia de fora em 80px manteria a semana inteira alta.
 **Validar:** dá para ver o mês inteiro numa olhada, e tocar num dia mostra o que vence
 nele.
 
+**Um TDZ latente veio à tona nesta fase, e não era dela.** Tocar num dia derrubava a tela
+com `Cannot access 'today' before initialization`. A causa vinha do commit `3d69a7b1`
+(tarefa sem prazo hospedada na célula de hoje): `getTasksForDate` passou a ler `today`, mas
+o `const today` estava declarado **depois** de `selectedDateTasks`, que chama a função no
+corpo do componente. Sem dia selecionado o ternário não chamava nada, então o defeito ficou
+latente até esta fase fazer do toque o caminho principal no celular.
+
+Dois detalhes que valem para a próxima vez, porque o teste de regressão levou **três**
+tentativas e as duas primeiras passaram verdes com o defeito no lugar:
+
+- o `today` só é lido no ramo do filtro que trata tarefa **sem prazo**. Fixture com prazo
+  não chega nele;
+- medir o título da tarefa era vazio. O vitest roda com `css: false`, então a tira escondida
+  do desktop (`hidden md:flex`) já renderiza o título, e a asserção passava sem o clique ter
+  efeito. O que só existe depois da seleção é o cabeçalho do painel do dia.
+
+Mesma família do TDZ que o `manualChunks` causava em produção (ver `vite.config.ts`): não dá
+erro de build, de lint nem de tipo.
+
 **✅ FEITO em 09/09/2026.**
 
 ---
