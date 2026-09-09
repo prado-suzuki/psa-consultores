@@ -1,0 +1,139 @@
+# A Lista de tarefas: o texto que não aparece e o prazo que não é cobrado
+
+**Aberto em 09/09/2026**, a partir do feedback do Welber sobre `/equipe/tax/projetos/cadastro`
+(três prints: a árvore de tarefas, o tooltip do projeto e o detalhe da tarefa). Ele levantou
+três coisas: o texto que corta, o tooltip que só funciona numa linha, e o prazo da subtarefa
+que passa do prazo da tarefa-mãe sem ninguém reclamar.
+
+As três são da **visão "Lista"** (`src/components/equipe/tarefas/ProjetosTarefasList.tsx`),
+que as quatro rotas de Tax e OSG montam pelo `PainelTarefas` — consertar aqui conserta as
+quatro.
+
+## O que foi medido, e onde
+
+Os números de produção saíram por SELECT pelo MCP do Lovable em **09/09/2026**. Eles
+envelhecem: remedir antes de citar.
+
+### 1. Só a Lista corta o texto
+
+O título da tarefa é uma linha com reticências (`truncate`, linha 360). A grade tem seis
+colunas fixas somando 804px e a de Nome é `minmax(320px,1fr)` dentro de um
+`min-w-[1200px]`. No piso de 1.200px sobram 396px para a coluna; tirando o recuo da
+hierarquia (60px na tarefa, +24px por nível) e os slots de seta, caixa de seleção e bolinha
+de status, o texto fica com **~240px na tarefa, ~216px na subtarefa e ~192px na neta** — 33,
+30 e 26 caracteres. É o que os prints mostram: a tela do Welber, com escala do Windows, está
+nesse piso.
+
+Nas 863 tarefas de produção: mediana de **37 caracteres**, p90 de **66**, maior de **112**, e
+**560 (65%) passam de 30**. No piso da tabela, a tarefa *mediana* já não cabe.
+
+A Lista é a única assim. A "Tabela" (`TaskTable.tsx:152`) e a "Hoje"
+(`TaskTodayView.tsx:118`) mostram o título inteiro, quebrando linha — na "Hoje" só a prévia
+da descrição corta, de propósito. No detalhe da tarefa o título é um `Input` de uma linha
+(`task-modal/TaskEditHeader.tsx:63`), então o título de 112 caracteres também não se lê
+inteiro lá; isso é da Fase 4 do plano do celular, não desta frente.
+
+### 2. O tooltip existe em uma linha e falta em quatro
+
+A linha de projeto tem `title={project.name}` (linha 545) — é o que o Welber viu funcionando,
+e ali o tooltip tem função extra: o texto exibido é o nome **encurtado**
+(`shortProjectName`), então o tooltip é o único lugar onde o nome completo aparece.
+
+Sem `title` nenhum: o título da tarefa e da subtarefa (360), o número/produtos da OS (513), o
+cliente da OS (513) e a célula de responsável (377 e 384). Não é regra ausente — é uma linha
+que ganhou e as outras que não.
+
+### 3. Prazo da filha depois da mãe: não há validação em lugar nenhum
+
+Nem no front, nem no banco. Não existe trigger nem constraint sobre datas em `org_tasks`, e o
+`taskSchema` (`src/lib/orgTaskForm.ts`) só cobra obrigatoriedade — a única regra de negócio
+dele é concluir sem horas apontadas.
+
+Os caminhos de escrita do prazo são dois, e nenhum olha a mãe:
+
+- o calendário da própria linha (`ProjetosTarefasList.tsx:330`);
+- o `DateChip` do modal (`task-modal/TaskPropertyBar.tsx:205`).
+
+Subtarefa criada dentro do modal nasce **sem** prazo (`buildSubtaskInput`), então o prazo dela
+sempre passa por um desses dois.
+
+Em produção, de **204** pares mãe/filha com as duas datas preenchidas, **35 estão fora da
+regra** (17%), em **16 mães**, com estouro máximo de **1.346 dias**. Um nível acima, **119 de
+738** tarefas vencem depois do fim do próprio projeto.
+
+**Esses 35 mudam o desenho do conserto.** Bloqueio no salvamento prenderia quem for editar
+qualquer campo dessas linhas. A forma certa já tem precedente no repo: o guard de horas em
+`useUpdateOrgTask` barra só a **transição** para concluído e deixa editar outro campo de
+tarefa antiga sem apontamento (`src/hooks/useOrgTasks.ts:374`). A regra de prazo copia isso:
+recusa só quando **o prazo é o campo que está mudando**.
+
+## Decisões da Patrícia, 09/09/2026
+
+1. **Texto**: título em até **2 linhas**, e o que passar disso fica no tooltip. Não é quebra
+   ilimitada — 112 caracteres viram quatro linhas e desmontam a leitura da árvore.
+2. **Prazo da mãe movido para trás de uma filha que já existe**: **bloqueia**, dizendo quantas
+   filhas estouram e qual a última data. Quem mandou é quem decide o que fazer com as filhas;
+   o sistema não mexe em tarefa que ninguém abriu (nada de puxar as filhas junto).
+3. **As 35 linhas de hoje ficam como estão.** Não há migração de dado. Elas passam a ser
+   cobradas quando alguém mexer no prazo delas.
+4. **A regra "tarefa ≤ fim do projeto" fica fora.** São outras 119 linhas e é outra conversa —
+   provavelmente de limpeza de dado, não de trava.
+
+## Fases
+
+Uma fase = um commit = um pedido de validação. O agente para ao fim de cada uma.
+
+| # | Fase | O que entra | Banco | Tamanho |
+|---|---|---|---|---|
+| 1 | O texto aparece inteiro | `title` nos cinco pontos sem ele; título em 2 linhas | — | P |
+| 2 | O calendário não oferece data inválida | `disabled` no calendário da linha e do modal; guard no hook | — | P |
+| 3 | A regra vale por qualquer caminho | trigger em `org_tasks` | migration | M |
+
+### Fase 1 — o texto aparece inteiro na Lista
+
+`title` nativo (o mesmo mecanismo que já funciona na linha de projeto) no título da tarefa, no
+título da OS, no cliente da OS e nas duas células de responsável. O título da tarefa e do
+projeto passam de `truncate` para duas linhas.
+
+A divisão é por largura de coluna, não por gosto: **a coluna de Nome quebra**, porque é onde o
+texto vive; **as colunas estreitas ganham tooltip**, porque quebrar 180px de responsável
+custaria altura de linha para quase nada.
+
+**Não mexer na grade de larguras aqui** — ver o conflito abaixo.
+
+**Validar:** abrir a Lista, expandir uma OS com nome comprido e ver o nome inteiro da tarefa
+sem passar o mouse; e passar o mouse numa tarefa, numa OS e num responsável e ver o texto.
+
+### Fase 2 — o calendário não oferece data inválida
+
+Prevenção antes de mensagem: o `Calendar` deste repo aceita `disabled` por função
+(`src/components/ui/calendar.tsx:21`), então na subtarefa os dias depois do prazo da mãe ficam
+apagados — no calendário da linha e no do modal.
+
+Atrás disso, a rede: guard em `useUpdateOrgTask` e `useCreateOrgTask`, lendo a mãe **do banco**
+e não da lista carregada. A lista está filtrada por mês e a mãe pode não estar em memória — o
+próprio hook já faz isso para descendentes (`useOrgTasks.ts:470`, "buscados no banco — e não
+na lista já carregada na tela, que pode estar filtrada"). O guard dispara só quando `due_date`
+muda, nos dois sentidos: filha depois da mãe, e mãe antes de uma filha.
+
+**A redação das duas mensagens é da Patrícia.** É regra de negócio, e regra de negócio tem
+texto curado (`geral/avisos-prazo-tarefa.md` é o precedente).
+
+**Validar:** numa subtarefa, tentar marcar data depois do prazo da mãe pelo calendário da
+linha e pelo modal.
+
+### Fase 3 — a regra vale por qualquer caminho
+
+Trigger idempotente em `org_tasks`, com a mesma regra da Fase 2. Sem ela, importação, SQL
+direto e qualquer escrita fora da tela continuam furando. Migration aplicada no sandbox pela
+Patrícia (`bun run db:sync --apply`) e em produção por passo humano no chat do Lovable.
+
+Só faz sentido depois da Fase 2 validada: se a mensagem da tela ainda não estiver acertada, o
+erro do banco chega cru na cara de quem clicou.
+
+## Conflito registrado
+
+A **Fase 5** do [`projetos-tarefas-no-celular.md`](projetos-tarefas-no-celular.md) (aberta)
+reescreve esta mesma grade da Lista para virar cartão no celular. As fases 1 e 2 daqui são
+pequenas e ficam de pé, mas quando a Fase 5 rodar ela tem de **preservar** o tooltip e as duas
+linhas do título. Anotado nos dois documentos.
