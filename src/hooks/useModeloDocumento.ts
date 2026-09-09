@@ -2,10 +2,10 @@
 //
 // ATENÇÃO AO ARMAZENAMENTO: são dois, e é fácil pegar o errado.
 //
-//   - O modelo (este arquivo) vive no SUPABASE STORAGE, balde `osg-modelos`,
+//   - O modelo (este arquivo) vive no SUPABASE STORAGE, bucket `osg-modelos`,
 //     privado, com leitura para qualquer usuário logado — inclusive o papel
 //     `client`, porque o modelo é material genérico da PSA e não tem dado de
-//     ninguém dentro. O caminho é `createSignedUrl`, o mesmo do SOPViewerModal.
+//     ninguém dentro.
 //   - O documento que o CLIENTE ENVIA vive no GCS e sai por
 //     `/api/v1/osg/documentos/sign-download`, no `psa-backend-api`, fora deste
 //     repositório. Nada aqui toca nele.
@@ -15,16 +15,25 @@ import { toast } from '@/hooks/use-toast';
 import type { ModeloDocumento } from '@/lib/solicitacao';
 
 /**
- * Validade da URL assinada.
+ * Baixa o modelo SEM sair da página.
  *
- * Sessenta segundos porque a URL é consumida no mesmo gesto que a pediu: ela
- * nasce, abre a aba e morre. Prazo longo transformaria o link num caminho de
- * acesso ao balde que sobrevive à sessão de quem clicou.
- */
-const VALIDADE_SEGUNDOS = 60;
-
-/**
- * Assina e abre o modelo em nova aba.
+ * POR QUE BAIXAR O CONTEÚDO, e não abrir uma URL assinada
+ *
+ * A primeira versão assinava e chamava `window.open`. Isso custava uma aba, e no
+ * portal do cliente a aba é pior do que parece: quem está preenchendo o checklist
+ * perde o lugar da lista, e no celular a aba nova vira uma janela separada que ele
+ * precisa fechar para voltar.
+ *
+ * A alternativa óbvia — assinar com `{ download: nome }` e navegar para a URL —
+ * funciona porque o Storage devolve `Content-Disposition: attachment`, mas o modo
+ * de falha é ruim: se esse cabeçalho não vier (policy trocada, proxy no meio), o
+ * navegador NAVEGA, e o cliente perde a página em vez de ver um erro. Como o link
+ * é de outra origem, o atributo `download` da âncora é ignorado e não protege.
+ *
+ * Baixando o conteúdo, a âncora aponta para um `blob:` da própria origem: o
+ * atributo `download` vale, o navegador nunca navega, e o nome do arquivo é o do
+ * catálogo e não o UUID do caminho. É o mesmo padrão de `EquipeBiblioteca`. Os
+ * modelos têm dezenas de KB, então segurar o conteúdo em memória não pesa.
  *
  * O erro PROPAGA e vira toast: um download que falha calado deixa o cliente
  * achando que o arquivo não existe, e é justamente ele que está travado sem o
@@ -37,14 +46,23 @@ export function useModeloDocumento() {
     mutationFn: async (modelo: ModeloDocumento): Promise<void> => {
       const { data, error } = await supabase.storage
         .from(modelo.bucket)
-        .createSignedUrl(modelo.path, VALIDADE_SEGUNDOS);
+        .download(modelo.path);
 
       if (error) throw error;
-      if (!data?.signedUrl) {
-        throw new Error('O armazenamento não devolveu um link para este modelo.');
+      if (!data) {
+        throw new Error('O armazenamento não devolveu o conteúdo deste modelo.');
       }
 
-      window.open(data.signedUrl, '_blank', 'noopener');
+      const url = URL.createObjectURL(data);
+      const ancora = document.createElement('a');
+      ancora.href = url;
+      ancora.download = modelo.nome;
+      document.body.appendChild(ancora);
+      ancora.click();
+      ancora.remove();
+      // Revogar no mesmo tick é seguro: o clique já entregou o blob ao
+      // gerenciador de downloads do navegador, que não depende mais da URL.
+      URL.revokeObjectURL(url);
     },
     onError: (erro: unknown) =>
       toast({
