@@ -32,10 +32,11 @@ cronograma no telefone é o caso menos provável de todos.
 | 1 | ✅ **A porta de entrada** | Duas visões já funcionam e ela não as vê | `PainelTarefas` | P |
 | 2 | ✅ **A moldura do topo** | Mata 1 dos 3 scrollbars, e vale nas 7 abas | `TaskKPICards`, `TaskFilters` | P |
 | 3 | **Tabela** | Quebra pior que todas, e é o remédio menor | `TaskTable` | P |
-| 4 | **Lista** | É a visão de trabalho dela no desktop | `ProjetosTarefasList` | G |
-| 5 | **Kanban** | Rende leitura, não operação — ver a ressalva | `TaskKanban` | M |
-| 6 | **Calendário** | Uso pontual no celular | `TaskCalendar` | M |
-| 7 | **Gantt** | O mais caro e o menos provável no telefone | `GanttChart` | G |
+| 4 | **O detalhe da tarefa** | É o fim do caminho de leitura, e quebra lá | `TaskModal` | P |
+| 5 | **Lista** | É a visão de trabalho dela no desktop | `ProjetosTarefasList` | G |
+| 6 | **Kanban** | Rende leitura, não operação — ver a ressalva | `TaskKanban` | M |
+| 7 | **Calendário** | Uso pontual no celular | `TaskCalendar` | M |
+| 8 | **Gantt** | O mais caro e o menos provável no telefone | `GanttChart` | G |
 
 ---
 
@@ -129,7 +130,56 @@ esmagar; se depois disso ainda não servir, isso é outra fase, com o desenho de
 
 ---
 
-## Fase 4 — Lista
+## Fase 4 — O detalhe da tarefa
+
+Não estava no plano de ontem: estava no "fora de escopo" como suspeita **não verificada**.
+Verificada em 09/09, e com mecanismo — o crédito é da sessão que mexia nos modais, que
+mediu o `tailwind-merge` do `TaskModal` e descreveu a conta. Confirmado aqui de forma
+independente, no fonte.
+
+Importa porque é o **fim do caminho de leitura**: o gestor abre a tela, encontra "Hoje" ou
+o Kanban, toca num cartão — e é aqui que ele lê o que está acontecendo, incluindo os
+comentários. As sete visões podem estar todas boas e a leitura ainda quebrar no último
+passo.
+
+**O mecanismo.** No modo de edição o `DialogContent` recebe `h-[min(94vh,54rem)]` — altura
+**fixa**, não teto — mais `overflow-hidden`, e o `lg:grid lg:grid-cols-[...]` só vale de
+`lg` para cima. Abaixo de `lg` sobra o `grid` de **uma coluna** da primitiva, com duas
+linhas: o formulário e o painel de comentários. O painel declara `min-h-[32rem]` (512px),
+com `lg:min-h-0` que existe justamente para isso não acontecer no desktop — e nenhum
+equivalente abaixo de `lg`.
+
+A conta num telefone de 640px de viewport: altura do modal = `min(601px, 864px)` = 601px,
+menos os 512px que os comentários exigem, sobram **~89px** para o formulário inteiro. O
+`min-h-0 flex-1 overflow-y-auto` de dentro dele transforma isso numa fresta de 89px que
+rola. Não corta — fica inutilizável, que é pior de diagnosticar.
+
+E não é dívida da primitiva de dialog: o `max-h-[94vh]` e o `overflow-hidden` do
+`TaskModal` vencem os da primitiva por `tailwind-merge`, então ele nunca sentiu a mudança
+dela. É dívida de tela pequena, desta frente.
+
+**O conserto:** abaixo de `lg` o modal deixa de ter altura fixa e passa a ter teto, e o
+piso de 512px dos comentários sai. As duas linhas voltam a se dimensionar pelo conteúdo,
+com **uma** região de rolagem — que é o que um telefone quer: uma coluna que rola de cima
+a baixo, form e comentários em sequência. O desktop não muda: de `lg` para cima continua o
+grid de duas colunas com altura fixa, que é o desenho certo lá.
+
+Ajuda aqui uma mudança que veio de fora desta frente (commit `106ed744`): o editor de
+descrição perdeu o `maxHeight` próprio, que desenhava uma segunda barra de rolagem encostada
+na primeira. Numa coluna única que rola inteira, descrição sem teto é exatamente o que se
+quer — então essa mudança e esta fase empurram para o mesmo lado.
+
+**Se criar modal novo nesta frente:** `max-h-none`, e um corpo que role por dentro. Há um
+teste varrendo o fonte (`src/components/ui/dialog.regua.test.ts`) que cobra isso de quem
+declara altura própria sem teto. Ele lê só o className do próprio `DialogContent` e nunca
+olha filho, então o `min-h` de um filho não é cobrado por ele — este conserto é desta frente.
+
+**Validar:** abrir uma tarefa pelo celular e conseguir ler o formulário e os comentários,
+rolando a coluna de cima a baixo, sem fresta.
+
+---
+
+## Fase 5 — Lista
 
 A grade tem sete colunas travadas em **1.200px**
 (`grid-cols-[minmax(320px,1fr)_150px_180px_130px_140px_160px_44px]`). No celular cabe a
@@ -150,7 +200,7 @@ AGENTS.md §"Teste de caracterização primeiro" — o comportamento no desktop 
 
 ---
 
-## Fase 5 — Kanban
+## Fase 6 — Kanban
 
 Sete colunas de `w-[340px]` fixos mais as folgas: **2.476px**. Na tela dela cabe uma coluna
 e uma tira da seguinte. A altura é `h-[calc(100vh-300px)]`, e num iPhone com a barra do
@@ -181,7 +231,7 @@ celular a informação ganha e o controle recua.
 
 ---
 
-## Fase 6 — Calendário
+## Fase 7 — Calendário
 
 `grid-cols-7` sem largura mínima: divide o que tem por sete, sempre. Na tela dela dá **51px
 por dia** — cabe o número, não cabe nome de tarefa nenhum. E as células têm `min-h-[80px]`,
@@ -195,7 +245,7 @@ faixa, com as tarefas dele dentro. Mês inteiro em grade de sete colunas não ex
 
 ---
 
-## Fase 7 — Gantt
+## Fase 8 — Gantt
 
 `LARGURA_DO_NOME = 300` fixo mais a linha do tempo do mês (30 × 44px = 1.320px):
 **1.620px**. A coluna do nome sozinha ocupa 84% da tela dela, então nome e barra nunca
@@ -212,14 +262,10 @@ troca de desenho, e o Gantt da sprint precisa ser conferido junto.
 
 ## Fora de escopo, de propósito
 
-- **Arrastar cartão por toque** (biblioteca de DnD). Ver a ressalva da fase 5.
+- **Arrastar cartão por toque** (biblioteca de DnD). Ver a ressalva da fase 6.
 - **A barra de visões** (`TabsList`) continua rolando de lado. Sete abas não cabem em 358px
   e rolagem de abas é o padrão certo — o problema do print era ser *a segunda de três*, e
-  as fases 2 e 5 tiram as outras duas.
-- **`TaskModal` em tela pequena.** Já é responsivo (`w-[calc(100vw-1rem)]`, `sm:grid-cols-2`,
-  `lg:grid` só no desktop). O `min-h-[32rem]` do painel de comentários dentro de um
-  `max-h-[94vh] overflow-hidden` é suspeito e **não foi verificado** — se a fase 1 puser a
-  Patrícia usando a tela no telefone, isso aparece rápido e vira fase própria.
+  as fases 2 e 6 tiram as outras duas.
 - **`useTelaDeTrabalhoLargo()`** nestas páginas. Continua declarado e está certo: no celular
   o hook não recolhe nada (a gaveta já está fora do caminho), e no desktop segue valendo.
 

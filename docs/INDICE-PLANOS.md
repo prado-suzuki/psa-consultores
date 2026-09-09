@@ -115,7 +115,7 @@ o P1 do RLS, e o `color_index`, que uma fila de agosto dava como pendente e em p
 | [`sprints/auditoria-modulo-sprint-2026-07-09.md`](sprints/auditoria-modulo-sprint-2026-07-09.md) | 📘 REF | Foto de 09/07. Números envelhecidos |
 | [`sprints/sprint-12/ANALISE_TAREFAS_A_DESTRINCHAR.md`](sprints/sprint-12/ANALISE_TAREFAS_A_DESTRINCHAR.md) | 🔵 ABERTO | **Planejamento vivo da sprint 12.** É daqui que sai trabalho novo |
 | [`sprints/sprint-12/CONTEXTO_TEMP_PLANEJAMENTO_SPRINT_12.md`](sprints/sprint-12/CONTEXTO_TEMP_PLANEJAMENTO_SPRINT_12.md) | 🔵 ABERTO | Handoff temporário do planejamento |
-| [`planos/projetos-tarefas-no-celular.md`](planos/projetos-tarefas-no-celular.md) | 🟡 PARCIAL | **Fases 1 e 2 feitas, 3 a 7 abertas.** Uma tela só (`PainelTarefas`) servindo 4 rotas de Tax e OSG. Roda uma fase por commit, com validação visual da Patrícia entre uma e outra. A ressalva do arrastar no Kanban está **decidida**: no celular a tela é só leitura, então não abrir frente de biblioteca de DnD |
+| [`planos/projetos-tarefas-no-celular.md`](planos/projetos-tarefas-no-celular.md) | 🟡 PARCIAL | **Fases 1 e 2 feitas, 3 a 8 abertas.** Uma tela só (`PainelTarefas`) servindo 4 rotas de Tax e OSG. Roda uma fase por commit, com validação visual da Patrícia entre uma e outra. A ressalva do arrastar no Kanban está **decidida**: no celular a tela é só leitura, então não abrir frente de biblioteca de DnD |
 | [`sprints/sprint-12/NOTA_DECISAO_MATRIZ_ALCADAS_AC.md`](sprints/sprint-12/NOTA_DECISAO_MATRIZ_ALCADAS_AC.md) | ⛔ MORTO *(por ora)* | **Decisão pendente, e o documento proíbe virar especificação.** Não gerar tarefa a partir dele |
 
 ---
