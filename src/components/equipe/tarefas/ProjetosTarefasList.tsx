@@ -48,6 +48,7 @@ import { parseDate } from '@/lib/dateUtils';
 import { projectStatusConfig } from '@/lib/projetoStatusColors';
 import { statusColors, statusList } from '@/lib/taskStatusColors';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+import { prazoDaFilhaEstoura } from '@/lib/orgTaskPrazo';
 import {
   buildProjetosTarefasHierarchy,
   shortProjectName,
@@ -398,7 +399,13 @@ export function ProjetosTarefasList({
     updateTask.mutate({ id: task.id, due_date: iso });
   };
 
-  const renderTask = (node: ProjetosTarefasTaskNode, depth: number): React.ReactNode => {
+  /**
+   * `prazoDaMae` desce na recursão porque a regra é local: a filha não vence
+   * depois da MÃE dela, e não depois da raiz da árvore. Na linha ele só apaga
+   * os dias no calendário — quem recusa de verdade é `useUpdateOrgTask`, que
+   * busca a mãe no banco (a lista da tela vem recortada por mês).
+   */
+  const renderTask = (node: ProjetosTarefasTaskNode, depth: number, prazoDaMae?: string | null): React.ReactNode => {
     const { task, children } = node;
     const rowId = `task:${task.id}`;
     const isExpanded = expanded.has(rowId);
@@ -481,7 +488,13 @@ export function ProjetosTarefasList({
                   </button>
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-auto p-0">
-                  <Calendar selected={task.due_date ? parseDate(task.due_date) : undefined} onSelect={date => updatePrazo(task, date)} />
+                  <Calendar
+                    selected={task.due_date ? parseDate(task.due_date) : undefined}
+                    onSelect={date => updatePrazo(task, date)}
+                    disabled={prazoDaMae
+                      ? (date: Date) => prazoDaFilhaEstoura(format(date, 'yyyy-MM-dd'), prazoDaMae)
+                      : undefined}
+                  />
                 </PopoverContent>
               </Popover>
             : <span className="flex items-center gap-1.5 whitespace-nowrap"><CalendarDays className="h-3.5 w-3.5" />{dateLabel(task.due_date)}</span>}
@@ -509,7 +522,7 @@ export function ProjetosTarefasList({
           </DropdownMenu>
         </div>
       </div>
-      {isExpanded && children.map(child => renderTask(child, depth + 1))}
+      {isExpanded && children.map(child => renderTask(child, depth + 1, task.due_date))}
     </Fragment>;
   };
 

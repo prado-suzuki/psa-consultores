@@ -86,16 +86,19 @@ Uma fase = um commit = um pedido de validação. O agente para ao fim de cada um
 | # | Fase | O que entra | Banco | Tamanho |
 |---|---|---|---|---|
 | 1 | ✅ O texto aparece inteiro | `title` nos cinco pontos sem ele; título em 2 linhas | — | P |
-| 2 | 🟡 O calendário não oferece data inválida | `disabled` no calendário da linha e do modal; guard no hook | — | P |
+| 2 | ✅ O calendário não oferece data inválida | `disabled` no calendário da linha e do modal; guard no hook | — | P |
 | 3 | A regra vale por qualquer caminho | trigger em `org_tasks` | migration | M |
 
 **Estado em 09/09/2026, fim do dia.** A Fase 1 saiu no commit `4fb990e3` e foi validada pela
-Patrícia na tela. A Fase 2 saiu inteira menos **uma** peça: o calendário da linha da Lista.
-`ProjetosTarefasList.tsx` estava sendo reescrito pela Fase 5 do plano do celular na mesma
-hora, e cinco linhas minhas por cima de uma reescrita é conflito de graça. O que já está no
-ar cobre o caso mesmo assim — a recusa mora no `useUpdateOrgTask`, que vale para os dois
-caminhos; o que falta na linha é só a **prevenção** (dia apagado em vez de recusa depois do
-clique).
+Patrícia na tela. A Fase 2 saiu em dois commits, e o motivo fica registrado porque
+vai se repetir: o `ProjetosTarefasList.tsx` estava sendo reescrito pela Fase 5 do plano do
+celular na mesma hora, então o grosso saiu primeiro (`63178eb9`) e o calendário da linha
+entrou depois que aquela fase commitou. Cinco linhas por cima de uma reescrita é conflito de
+graça, e a recusa do hook já cobria o caminho no intervalo.
+
+O calendário da linha respeita a mãe **imediata**, não a raiz da árvore: `renderTask` passa o
+`due_date` da tarefa na recursão dos filhos. É a mesma regra do banco, e vale para a neta
+(`1.4.1`) contra a mãe dela.
 
 ### Fase 1 — o texto aparece inteiro na Lista
 

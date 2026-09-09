@@ -542,3 +542,40 @@ describe('ProjetosTarefasList — a grade reflui em cartão no celular', () => {
     expect(titulo).toHaveAttribute('title', 'Tarefa da lista');
   });
 });
+
+describe('ProjetosTarefasList — o calendário da linha para no prazo da mãe', () => {
+  const doProjeto = { p1: [{ id: 'U2', name: 'Geizi Andrade' }] };
+
+  const abrirAteASubtarefa = () => {
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+    fireEvent.click(screen.getByLabelText('Expandir tarefa'));
+  };
+
+  const arvore = [
+    tarefa('Reestruturação', { due_date: '2026-08-15' }),
+    tarefa('Ata AGE', { due_date: '2026-08-10', parent_task_id: 'Reestruturação' }),
+  ];
+
+  it('os dias depois do prazo da mãe nascem apagados', async () => {
+    const user = userEvent.setup();
+    renderList({ projects: [projeto], tasks: arvore, assigneesByProject: doProjeto });
+    abrirAteASubtarefa();
+
+    await user.click(screen.getByLabelText('Prazo de Ata AGE'));
+
+    expect(screen.getByRole('button', { name: '15' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '16' })).toBeDisabled();
+  });
+
+  it('a tarefa sem mãe segue com o mês inteiro', async () => {
+    const user = userEvent.setup();
+    renderList({ projects: [projeto], tasks: arvore, assigneesByProject: doProjeto });
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+
+    await user.click(screen.getByLabelText('Prazo de Reestruturação'));
+
+    expect(screen.getByRole('button', { name: '16' })).toBeEnabled();
+  });
+});
