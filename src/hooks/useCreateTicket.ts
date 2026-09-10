@@ -171,8 +171,7 @@ export function useCreateTicketCliente() {
       const { data: repRows } = await supabase
         .from('representante' as any)
         .select('id_cliente')
-        .eq('user_id', params.userId)
-        .eq('excluido', false);
+        .eq('user_id', params.userId);
 
       const candidateIds = ((repRows || []) as any[])
         .map((r) => r.id_cliente)

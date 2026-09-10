@@ -102,7 +102,7 @@ export function useDashboardClientesOs(ambiente: Ambiente) {
         supabase
           .from('ordem_servico')
           .select('id, numero_os, id_cliente, id_servico, cluster_id, situacao, data_emissao, data_inicio, data_fim, valor_projeto')
-          .eq('excluido', false),
+,
         supabase
           .from('org_projects')
           .select('id, name, status, external_client_id, ordem_servico_id, estrutura_area_id, equipe_id, responsible_id'),
@@ -122,7 +122,7 @@ export function useDashboardClientesOs(ambiente: Ambiente) {
         supabase
           .from('distribuicao_receita')
           .select('id_ordem_servico, id_centro_custo, percentual_rateio')
-          .eq('excluido', false),
+,
         supabase.from('centros_custo').select('id, codigo, nome'),
         supabase
           .from('os_produtos_contratados')
