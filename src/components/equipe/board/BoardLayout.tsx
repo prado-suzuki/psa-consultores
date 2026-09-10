@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { usePageAccess } from '@/hooks/usePageAccess';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
+import { classeLarguraBarra } from '@/lib/sidebarMedidas';
 import { AgenteNotificacaoPopup } from '@/components/agente/AgenteNotificacaoPopup';
 import { BoardAgenteDiretoria } from '@/components/board/BoardAgenteDiretoria';
 import { BoardToolbar } from '@/components/board/BoardToolbar';
@@ -258,9 +259,19 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
       // acabaram pintando com a superfície REBAIXADA. Ver a nota lá.
       className="bd-leitura min-h-screen flex w-full"
     >
-      {/* Desktop/Tablet sidebar (md+) */}
+      {/* Desktop/Tablet sidebar (md+)
+
+          As medidas saíram de 68px recolhida e 240px aberta, escritas à mão,
+          para as compartilhadas (80px/256px, ver `sidebarMedidas.ts`) — as
+          classes antigas não aparecem aqui nem em comentário, porque o teste
+          deste arquivo lê o fonte. O Board era a única barra fora
+          da régua, e o trilho de 68px não é escolha de gosto: ele deixa 20px de
+          largura útil (16px de recuo do rodapé de cada lado, mais 8px do chip)
+          para um avatar de 32px. Enquanto o usuário morava no topbar isso não
+          aparecia; com o cartão descendo para o pé da barra, 68px CORTA — é o
+          mesmo corte que já levou o trilho de 64 para 80. */}
       <aside
-        className={`hidden md:flex flex-col flex-shrink-0 fixed top-0 left-0 h-screen z-30 transition-all duration-300 ${collapsed ? 'w-[68px]' : 'w-[240px]'}`}
+        className={`hidden md:flex flex-col flex-shrink-0 fixed top-0 left-0 h-screen z-30 transition-all duration-300 ${classeLarguraBarra(collapsed)}`}
       >
         <SidebarContent collapsed={collapsed} />
         {/* Toggle */}
@@ -287,7 +298,10 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
       </Sheet>
 
       {/* Main content */}
-      <main className={`flex-1 flex flex-col min-w-0 overflow-hidden ml-0 transition-all duration-300 ${collapsed ? 'md:ml-[68px]' : 'md:ml-[240px]'}`}>
+      {/* A barra é `fixed`, então é esta margem que reserva a coluna dela. Ela
+          acompanha `classeLarguraBarra` à mão porque é margem, não largura: as
+          duas classes ficam escritas literais para o Tailwind gerá-las. */}
+      <main className={`flex-1 flex flex-col min-w-0 overflow-hidden ml-0 transition-all duration-300 ${collapsed ? 'md:ml-20' : 'md:ml-64'}`}>
         {/* Topbar — 56px */}
         <header
           className="bd-masthead flex items-center justify-end px-4 md:px-6 gap-3 flex-shrink-0"
