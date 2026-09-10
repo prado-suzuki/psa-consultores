@@ -40,8 +40,9 @@ export const AtosSocietarios = ({ movimentos, atos }: AtosSocietariosProps) => {
           Atos societários ({atos.length})
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Cada ato agrupa os lançamentos que nasceram juntos, inclusive os da outra empresa.
-          Desfazer apaga o ato inteiro, e só é possível enquanto nenhum documento o formalizou.
+          Cada ato agrupa o que nasceu junto: os lançamentos do livro, inclusive os da outra
+          empresa, e o ônus sobre as quotas. Desfazer apaga o ato inteiro, e só é possível
+          enquanto nenhum documento o formalizou.
         </p>
       </CardHeader>
       <CardContent className="space-y-2">
@@ -60,7 +61,9 @@ export const AtosSocietarios = ({ movimentos, atos }: AtosSocietariosProps) => {
                 <p className="truncate text-sm font-medium text-foreground">{nome}</p>
                 <p className="text-xs text-muted-foreground">
                   {quando ? `${quando} · ` : ''}
-                  {doAto.length} lançamento(s) nesta empresa
+                  {doAto.length > 0
+                    ? `${doAto.length} lançamento(s) nesta empresa`
+                    : 'sem lançamento no livro: só ônus sobre quotas'}
                 </p>
               </div>
               {formalizado ? (
@@ -84,8 +87,10 @@ export const AtosSocietarios = ({ movimentos, atos }: AtosSocietariosProps) => {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Desfazer {nome}?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Os lançamentos deste ato saem do livro nas duas empresas, e os quadros
-                        voltam ao estado anterior. Não há como desfazer esta ação.
+                        {doAto.length > 0
+                          ? 'Os lançamentos deste ato saem do livro nas duas empresas, e os quadros voltam ao estado anterior.'
+                          : 'Este ato não moveu quota nenhuma: o que sai é o ônus que ele criou, e o voto volta a acompanhar a propriedade.'}
+                        {' '}Não há como desfazer esta ação.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

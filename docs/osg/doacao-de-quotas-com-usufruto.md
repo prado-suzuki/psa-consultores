@@ -275,6 +275,16 @@ quase nunca dispara, porque quem doa costuma ser justamente quem está criando o
 `useSubirQuotas` (o macro da subida) também move quota e ainda não sub-roga: o caminho dele
 tem atomicidade própria e fica para quando a frente da subida for mexida.
 
+O card de **Atos Societários** passou a listar também o ato que não produziu lançamento
+nenhum. Ele lia só `movimentacao_quotas.ato_id`, e a instituição avulsa não move quota:
+o ato ficava gravado e invisível, portanto fora do alcance do "Desfazer". Foi o QA de
+navegador que apontou. O reverter também aprendeu a tirar a empresa afetada do ônus, e não
+só dos movimentos, senão desfazer uma instituição não invalidaria cache de empresa alguma.
+
+**Movimento avulso continua sem desfazer**, e isso é anterior a esta frente: "Registrar
+movimento" grava com `ato_id` nulo, então não há ato para reverter, e a sub-rogação que ele
+provoca herda esse limite. Quem precisa desfazer registra o movimento contrário.
+
 A migration `20260910222715` traz a flag `evento_instituicao_usufruto` e o bloco
 `Resolução: instituição de usufruto sobre quotas`, que lê a coleção nova
 `usufrutosInstituidos`. A tabela de usufruto e voto da sociedade inteira **não** se repete

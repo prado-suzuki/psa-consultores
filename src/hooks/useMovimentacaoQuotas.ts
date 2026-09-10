@@ -449,6 +449,20 @@ export function useMovimentosDaEmpresa(empresaPessoaId: string | null) {
       const atos = new Map<string, AtoParaProcedencia>();
       for (const l of linhas) if (l.ato) atos.set(l.ato.id, l.ato);
 
+      // Ato que NÃO produziu lançamento nenhum também é ato: a instituição de
+      // usufruto avulsa não move quota, e se só o livro fosse consultado ela
+      // ficaria fora do card e, portanto, fora do alcance do "Desfazer" — ato
+      // gravado que ninguém consegue desfazer pela tela.
+      const { data: doOnus, error: erroOnus } = await supabase
+        .from('onus_quotas')
+        .select('ato:ato_id (id, data, descricao)')
+        .eq('empresa_pessoa_id', empresaPessoaId!)
+        .not('ato_id', 'is', null);
+      if (erroOnus) throw erroOnus;
+      for (const l of (doOnus ?? []) as unknown as Array<{ ato: AtoParaProcedencia | null }>) {
+        if (l.ato) atos.set(l.ato.id, l.ato);
+      }
+
       return {
         movimentos: linhas.map(movimentoDaLinha),
         atos: [...atos.values()],
@@ -780,6 +794,15 @@ export function useReverterAto() {
       // sobra como saber qual ônus este ato havia encerrado. Sem isto, desfazer
       // deixaria a sociedade sem um gravame que ninguém revogou — as linhas
       // novas caem pelo cascade e a antiga ficaria extinta para sempre.
+      // As empresas afetadas saem dos movimentos E do ônus: um ato de
+      // instituição não tem movimento nenhum, e sem isto desfazê-lo não
+      // invalidaria cache de empresa alguma — o card seguiria mostrando o ato
+      // que acabou de sumir do banco.
+      const { data: onusDoAto } = await supabase
+        .from('onus_quotas')
+        .select('empresa_pessoa_id')
+        .eq('ato_id', atoId);
+
       const movimentoIds = (formalizados ?? []).map((l) => l.id);
       if (movimentoIds.length > 0) {
         const { error: erroRessuscitar } = await supabase
@@ -794,7 +817,10 @@ export function useReverterAto() {
       return {
         atoId,
         descricao,
-        empresas: [...new Set((formalizados ?? []).map((l) => l.empresa_pessoa_id))],
+        empresas: [...new Set([
+          ...(formalizados ?? []).map((l) => l.empresa_pessoa_id),
+          ...(onusDoAto ?? []).map((l) => l.empresa_pessoa_id),
+        ])],
       };
     },
     onSuccess: async ({ atoId, descricao, empresas }) => {
