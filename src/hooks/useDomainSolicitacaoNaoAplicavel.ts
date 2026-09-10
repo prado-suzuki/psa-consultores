@@ -107,32 +107,37 @@ export interface ResultadoNaoAplicavel {
  * que inserir e o que apagar. Montar a frase pela intenção do clique diria
  * "marcado" no dia em que a linha já estivesse marcada e nada mudasse.
  *
+ * UMA LINHA, e o motivo é o que o aviso NÃO precisa fazer. A primeira versão
+ * explicava a semântica inteira a cada clique — que sai da conta, que sai da
+ * notificação, que as outras entidades continuam com o documento. Isso é o
+ * tooltip do botão, que aparece ANTES do clique, quando ainda serve para
+ * decidir. Depois do clique a linha já está riscada e com o selo na tela: o
+ * aviso só confirma que gravou, no mesmo formato curto dos vizinhos
+ * ("Documento aprovado", "Revisão desfeita").
+ *
  * Devolve `null` quando o conjunto já era o pedido: aviso de "nada mudou" é
  * ruído, e a ficha na tela já mostra o estado.
  */
 export function descreverNaoAplicavel(
   { marcados, desmarcados }: ResultadoNaoAplicavel,
   nomes: Record<string, string>,
-): { title: string; description: string } | null {
+): { title: string; description?: string } | null {
   const nome = (id: string) => nomes[id] ?? 'O documento';
 
   if (marcados.length === 0 && desmarcados.length === 0) return null;
 
+  // O nome do documento vai no título porque é a única coisa que a tela não
+  // repete: clicando rápido em várias linhas, é ele que diz qual foi.
   if (marcados.length === 1 && desmarcados.length === 0) {
-    return {
-      title: 'Documento marcado como não se aplica',
-      description: `"${nome(marcados[0])}" saiu da conta desta entidade e não entra mais `
-        + 'na notificação ao cliente. As outras entidades continuam com ele.',
-    };
+    return { title: `"${nome(marcados[0])}" não se aplica a esta entidade` };
   }
 
   if (desmarcados.length === 1 && marcados.length === 0) {
-    return {
-      title: 'Documento volta a ser solicitado',
-      description: `"${nome(desmarcados[0])}" voltou a contar como pendente para esta entidade.`,
-    };
+    return { title: `"${nome(desmarcados[0])}" volta a ser solicitado` };
   }
 
+  // Só o caminho de vários ganha descrição: as contagens não cabem no título, e
+  // aqui elas são a informação, já que a lista inteira mudou de uma vez.
   const partes: string[] = [];
   if (marcados.length > 0) partes.push(`${marcados.length} marcados como não se aplica`);
   if (desmarcados.length > 0) partes.push(`${desmarcados.length} de volta à solicitação`);

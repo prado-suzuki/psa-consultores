@@ -14,20 +14,21 @@ import { descreverNaoAplicavel } from '@/hooks/useDomainSolicitacaoNaoAplicavel'
 const NOMES = { 'item-cpf': 'CPF', 'item-rg': 'RG' };
 
 describe('descreverNaoAplicavel', () => {
-  it('marcar um documento nomeia o documento e diz o que sai', () => {
+  /**
+   * Uma linha, com o nome do documento. A semântica ("sai da conta", "as outras
+   * entidades continuam com ele") é o tooltip do botão, que aparece antes do
+   * clique; depois dele a linha já está riscada na tela.
+   */
+  it('marcar um documento cabe no título, sem descrição', () => {
     const aviso = descreverNaoAplicavel({ marcados: ['item-cpf'], desmarcados: [] }, NOMES);
-    expect(aviso?.title).toBe('Documento marcado como não se aplica');
-    expect(aviso?.description).toContain('"CPF"');
-    expect(aviso?.description).toContain('não entra mais na notificação ao cliente');
-    // O que NÃO muda entra na frase: é a dúvida que o analista tem depois de marcar.
-    expect(aviso?.description).toContain('As outras entidades continuam com ele');
+    expect(aviso?.title).toBe('"CPF" não se aplica a esta entidade');
+    expect(aviso?.description).toBeUndefined();
   });
 
-  it('desmarcar diz que o documento volta a ser cobrado desta entidade', () => {
+  it('desmarcar diz que o documento volta a ser solicitado', () => {
     const aviso = descreverNaoAplicavel({ marcados: [], desmarcados: ['item-rg'] }, NOMES);
-    expect(aviso?.title).toBe('Documento volta a ser solicitado');
-    expect(aviso?.description).toContain('"RG"');
-    expect(aviso?.description).toContain('voltou a contar como pendente');
+    expect(aviso?.title).toBe('"RG" volta a ser solicitado');
+    expect(aviso?.description).toBeUndefined();
   });
 
   /**
@@ -57,6 +58,6 @@ describe('descreverNaoAplicavel', () => {
 
   it('item sem nome no mapa não quebra a frase', () => {
     const aviso = descreverNaoAplicavel({ marcados: ['item-sem-nome'], desmarcados: [] }, NOMES);
-    expect(aviso?.description).toContain('"O documento"');
+    expect(aviso?.title).toBe('"O documento" não se aplica a esta entidade');
   });
 });
