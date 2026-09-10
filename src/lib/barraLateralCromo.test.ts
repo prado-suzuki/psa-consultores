@@ -31,6 +31,25 @@ describe('o item ativo é pílula cheia, não tinta de 10%', () => {
   });
 });
 
+describe('só uma pílula acende por vez', () => {
+  // Tax, OSG e Dev têm grupo com filho. Se o pai também virasse pílula cheia,
+  // duas acenderiam na mesma coluna e nenhuma diria qual página está na tela.
+  it('o pai de um filho ativo ganha peso, não preenchimento', () => {
+    const pai = classesItemDaBarra({ ativo: false, ancestral: true, trilho: false }).split(/\s+/);
+
+    expect(pai).toContain('font-semibold');
+    expect(pai).not.toContain('bg-primary');
+    expect(pai).not.toContain('text-primary-foreground');
+  });
+
+  it('o filho ativo continua sendo a pílula cheia', () => {
+    const filho = classesItemDaBarra({ ativo: true, sub: true, trilho: false }).split(/\s+/);
+
+    expect(filho).toContain('bg-primary');
+    expect(filho).toContain('text-primary-foreground');
+  });
+});
+
 describe('a cor sai do tema da rota, nunca do arquivo', () => {
   // A frente inteira existe para que a mesma caixa mude de cor sozinha ao
   // trocar de área. Uma cor literal aqui é uma barra que não acompanha.

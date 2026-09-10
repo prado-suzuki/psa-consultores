@@ -54,6 +54,15 @@ export interface OpcoesDoItemDaBarra {
   trilho: boolean;
   /** Item dentro de um grupo aberto: um degrau menor e mais discreto. */
   sub?: boolean;
+  /**
+   * Cabeçalho de grupo cujo FILHO é a rota atual — a Tax, a OSG e o Dev têm;
+   * o Board não, e por isso isto não existia na primeira versão.
+   *
+   * Ele não é `ativo`: quem está aberto é o filho, e duas pílulas cheias
+   * acesas na mesma coluna não dizem qual página está na tela. O pai só ganha
+   * peso, sem preenchimento — a pílula continua marcando UMA coisa.
+   */
+  ancestral?: boolean;
 }
 
 /**
@@ -70,7 +79,12 @@ export interface OpcoesDoItemDaBarra {
  * ocupando espaço mesmo com o texto reduzido a zero, e é o que empurra o ícone
  * para fora do centro — o mesmo erro que o cartão do usuário já teve.
  */
-export function classesItemDaBarra({ ativo, trilho, sub = false }: OpcoesDoItemDaBarra): string {
+export function classesItemDaBarra({
+  ativo,
+  trilho,
+  sub = false,
+  ancestral = false,
+}: OpcoesDoItemDaBarra): string {
   return cn(
     'flex items-center rounded-[10px] transition-colors duration-150',
     FACE_DA_BARRA,
@@ -90,12 +104,17 @@ export function classesItemDaBarra({ ativo, trilho, sub = false }: OpcoesDoItemD
       : 'w-full gap-2.5 px-2.5 py-2',
     ativo
       ? 'bg-primary text-primary-foreground font-semibold'
-      : cn(
-          'font-medium hover:bg-muted',
-          // Item de submenu entra um degrau abaixo do pai: ele já vive dentro
-          // de um grupo aberto, e repetir o peso do pai apaga a hierarquia.
-          sub ? 'text-muted-foreground hover:text-foreground' : 'text-foreground',
-        ),
+      : ancestral
+        ? // Só peso, sem preenchimento: a pílula cheia continua marcando uma
+          // coisa só, que é a página aberta.
+          'font-semibold text-foreground hover:bg-muted'
+        : cn(
+            'font-medium hover:bg-muted',
+            // Item de submenu entra um degrau abaixo do pai: ele já vive
+            // dentro de um grupo aberto, e repetir o peso do pai apaga a
+            // hierarquia.
+            sub ? 'text-muted-foreground hover:text-foreground' : 'text-foreground',
+          ),
   );
 }
 
