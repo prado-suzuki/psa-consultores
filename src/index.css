@@ -729,16 +729,43 @@ All colors MUST be HSL.
        OSG passa despercebida a 24% porque é quente, e a Tax é fria. Copiar o
        número de uma para a outra não funciona.
 
-       O `--muted` abaixo NÃO muda: os 92% dele estão alinhados entre as três
-       áreas de propósito, e mexer neles quebra o contraste que aquela nota
-       calibrou. */
+       A LUMINOSIDADE do `--muted` abaixo NÃO muda: os 92% dele estão alinhados
+       entre as três áreas de propósito, e mexer neles quebra o contraste que
+       aquela nota calibrou. A MATIZ dele mudou depois — ver a nota própria. */
     --canvas: 192 10% 96%;
-    --muted: 168 20% 92%;
+    /* ─── A superfície rebaixada foi junto, e demorou uma passada a mais ────
+       Este valor era `168 20% 92%`, ou seja, o `--muted` da CASA copiado letra
+       por letra — não havia delta nenhum aqui. Enquanto o canvas também estava
+       na matiz 170 isso passava; quando o canvas subiu para 192 (logo acima), o
+       `--muted` ficou para trás e a Tax passou a ter fundo de página numa matiz
+       e superfície rebaixada em outra, a 24° de distância.
+
+       O sintoma que a usuária viu, em /equipe/tax/projetos/cadastro: a faixa das
+       abas (Lista / Calendário / Tabela / …) lendo verde dentro de uma tela
+       cinza-fria. É o mesmo defeito que o parágrafo do canvas acima descreve —
+       "o olho lia duas cores discutindo" — só que na superfície que aquela
+       passada não olhou. Nem a base nem a OSG têm o descasamento: as duas usam
+       a mesma matiz no canvas e no muted (168/168 e 32/32). A Tax era a única
+       com 192/168.
+
+       Matiz 168 → 192: a da âncora, mesma regra do canvas.
+
+       Saturação 20% → 14%: é o canvas + 4 pontos, que é a distância que a base
+       (16 → 20) e a OSG (24 → 28) já usam entre os dois papéis. Não é número
+       novo, é a razão das outras duas aplicada aqui. */
+    --muted: 192 14% 92%;
 
     /* O secundário acompanha a temperatura da superfície: com o fundo da Tax
        frio, um neutro quente aqui repetiria — ao contrário — a dissonância que
-       o matiz 220 causava sobre os beges. Mesma luminosidade de antes. */
-    --muted-foreground: 185 8% 40.5%;
+       o matiz 220 causava sobre os beges.
+
+       Os 0,5 ponto que este valor desceu (41 → 40,5 → 40) NÃO são estética, são
+       o preço da matiz nova do `--muted`: verde é mais luminoso que azul na
+       mesma luminosidade HSL, então o par que dava 4,53:1 sobre `168 20% 92%`
+       cairia para 4,47:1 sobre `192 14% 92%` — abaixo do 4,5:1 do AA, sem erro
+       de build e sem ninguém ver. A 40% volta a 4,56:1, e sobe também sobre
+       card (5,27 → 5,37) e sobre canvas (4,87 → 4,97). */
+    --muted-foreground: 185 8% 40%;
     /* Papéis de status — os mesmos oito significados do `:root`, com a
        saturação puxada na direção do azul-petróleo da Tax. Ver o `:root`. */
     --status-neutro: 32 21% 12%;
