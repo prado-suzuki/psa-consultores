@@ -181,7 +181,7 @@ mudou**. O estado corrente é `geral/paleta-por-area.md`; os outros são histór
 | [`HANDOFF-dashboard-uso-envio.md`](HANDOFF-dashboard-uso-envio.md) | 🟡 PARCIAL | Técnico e gerencial construídos **e rodando com fixtures**. Falta a troca fixture → endpoint da §6 |
 | [`SPEC-endpoints-analytics-uso.md`](SPEC-endpoints-analytics-uso.md) | 🔵 ABERTO | **Executa fora deste repo** (engenharia de dados). É o par do handoff acima |
 | [`planos/agente-psa-assistente.md`](planos/agente-psa-assistente.md) | ✅ FEITO | ⚠️ **o cabeçalho diz "pendente de migration" e está vencido**: o PR #65, que era o que faltava, foi mergeado em 25/08. Confirmar o schema de produção pelo MCP antes de afirmar o contrário |
-| [`geral/sidebar-recolhe-em-tela-larga.md`](geral/sidebar-recolhe-em-tela-larga.md) | 📘 REF | Padrão implementado; o documento ensina como uma tela nova adere |
+| [`geral/sidebar-recolhe-em-tela-larga.md`](geral/sidebar-recolhe-em-tela-larga.md) | 📘 REF | Padrão implementado nas NOVE barras desde 10/09/2026; ensina como uma tela nova adere |
 | [`ambiente-de-desenvolvimento.md`](ambiente-de-desenvolvimento.md) | 📘 REF | **Leitura obrigatória** antes de qualquer coisa sobre banco |
 | [`rls/mapa-do-banco.md`](rls/mapa-do-banco.md) | 📘 REF | **Gerado.** É por aqui que se consulta o schema, nunca pelo `types.ts` inteiro |
 | [`AI_CONTEXT.md`](AI_CONTEXT.md) | 📘 REF | Regras do projeto. Sobreposto em parte pelo `AGENTS.md`, que é a fonte única |

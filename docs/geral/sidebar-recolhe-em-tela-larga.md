@@ -198,31 +198,42 @@ como rótulo acessível (e o chip como `title`), então nada de informação se 
 | `gestao/GestaoLayout.tsx` | 80px | sim, compartilhado | ✅ |
 | `administracao/AdminLayout.tsx` | 80px | sim, compartilhado | ✅ |
 | `equipe/fixos/FixosLayout.tsx` | 80px | sim, compartilhado | ✅ |
-| `equipe/mapa/Layout.tsx` | 80px (era 72px) | não tem | ⚠️ só a medida |
-| `equipe/board/BoardLayout.tsx` | 64px | esconde ao recolher | ❌ fora |
-| `equipe/dev/DevLayout.tsx` | `w-0` (some) | esconde ao recolher | ❌ fora |
-| `equipe/EquipeLayout.tsx` | `w-0` (some) | esconde ao recolher | ❌ fora |
+| `equipe/EquipeLayout.tsx` (Rotina) | 80px (era `w-0`) | sim, compartilhado | ✅ |
+| `equipe/dev/DevLayout.tsx` | 80px (era `w-0`) | sim, compartilhado | ✅ |
+| `equipe/board/BoardLayout.tsx` | 80px (era 68px) | sim, compartilhado | ✅ |
+| `equipe/mapa/Layout.tsx` | 80px (era 72px) | sim, compartilhado | ⚠️ CSS legado |
 
-**Mapeamento** entra só pela medida. A barra dele é CSS legado (`src/pages/equipe/mapa/mapa.css`,
-escopado em `.app-root`) e não tem cartão do usuário — o rodapé é só ações —, então nunca
-teve o corte. O trilho recolhido, porém, media 72px, um terceiro valor sem motivo: agora a
-variável `--sidebar-width-collapsed` é alimentada pelo `Layout` a partir de
-`MEDIDAS_TRILHO_SIDEBAR`, e o `.css` deixou de declarar número próprio. No estado recolhido
-aquele CSS já zera os recuos horizontais e centraliza tudo, então os 8px extras só sobram.
+**As nove entraram**, e as três últimas em 10/09/2026, a pedido da usuária: ela olhou o
+trilho do Board — ícones empilhados, item ativo em pílula cheia, botão redondo mordendo a
+borda — e pediu essa caixa em toda rota, com a cor mudando pelo tema da rota.
 
-**Board** fica de fora de propósito: ele tem linguagem visual própria (trilho de 64px,
-aberto em 232px, tipografia de 12,5px, tokens `--board-*`), já centraliza os itens ao
-recolher e, no recolhido, troca o bloco de marca + usuário pelo selo de 28px centralizado —
-não há avatar para vazar, e 28px é exatamente o que sobra dos 64px menos os 18px de recuo
-de cada lado: cabe, com a conta fechada. Alinhá-lo ao padrão seria mudar a identidade do
-módulo, não corrigir corte.
+**Board.** Recolhia para 68px e abria em 240px, um par só dele. A justificativa antiga era
+identidade visual, e valia enquanto o usuário morava no topbar: sem nada de 32px no rodapé,
+68px não cortava ninguém. Quando o cartão desceu para o pé da barra a conta virou a mesma
+das outras — 68px deixa 20px de largura útil para um avatar de 32px — e o número deixou de
+ser escolha estética.
 
-**Dev** e **Equipe** recolhem para `w-0`: a barra desaparece por inteiro e o botão de
-reabrir migra para o cabeçalho da página. Não existe trilho de ícones ali, logo não existe
-o que cortar. Transformá-las em trilho de 80px é mudança de UX (e de navegação: hoje o
-usuário recolhe justamente para não ver a barra), e por isso ficou fora desta correção.
-Se um dia se quiser padronizar, o caminho é adotar o cartão compartilhado e
-`classeLarguraBarra` — as duas peças já existem.
+**Dev** e **Rotina** recolhiam para `w-0`: a barra sumia inteira e o botão de reabrir
+migrava para o cabeçalho da página. O argumento de antes era que "não existe trilho, logo
+não existe o que cortar" — verdadeiro, e ao lado da questão. Sumir tira a âncora: o menu
+inteiro sai da tela e o único caminho de volta é o hambúrguer.
+
+A Dev deu mais trabalho que a Rotina por um motivo que só apareceu no trilho: **ela não
+desenhava ícone nenhum**. Os itens tinham `icon` no dado e o JSX ignorava, e os seis hubs
+de `DEV_HUBS` nunca tiveram ícone — lá só as opções internas têm. Num trilho de 80px o
+ícone é a única coisa que sobra, então os seis foram escolhidos no próprio layout. De
+quebra, "Consulta de XMLs" usava o mesmo `LayoutDashboard` do "Painel de aplicações": no
+trilho seriam dois botões idênticos.
+
+**Mapeamento** continua marcado à parte porque a barra dele é CSS legado
+(`src/pages/equipe/mapa/mapa.css`, escopado em `.app-root`) e fora do Tailwind. A medida
+vem de `MEDIDAS_TRILHO_SIDEBAR` — antes eram 72px, um terceiro valor sem motivo — e o
+`.css` deixou de declarar número próprio. No estado recolhido aquele CSS já zera os recuos
+horizontais e centraliza tudo, então os 8px extras só sobram.
+
+Nenhuma barra do produto zera mais a largura, e o laço `LAYOUTS_DO_PADRAO` em
+`sidebarMedidas.test.ts` lê o fonte das sete que são Tailwind: barra nova que escreva a
+largura à mão, ou remonte o cartão, não passa.
 
 ### O que trava o padrão
 
