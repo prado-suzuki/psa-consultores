@@ -112,7 +112,11 @@ export function SolicitacaoAcoes({
           size="sm"
           onClick={onEnviar}
           disabled={ocupado || itensAtivos === 0}
-          title="Libera a lista no portal do cliente e envia a notificação por e-mail e WhatsApp."
+          /* Abre o modal, não envia. E diz que é uma vez só: o botão some
+             depois, porque só existe em rascunho, e quem não sabe disso fica
+             procurando um segundo "Enviar" para cobrar o que faltou. */
+          title={'Abre a escolha de destinatários e canais. O envio acontece uma vez: '
+            + 'depois dele, cobrar o que faltar é pelo checklist.'}
         >
           <Send className="mr-2 h-4 w-4" />
           Enviar solicitação

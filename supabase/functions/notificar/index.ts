@@ -154,9 +154,11 @@ interface NotificarRequest {
    * Para QUEM enviar, por `user_id`. Ausente = todos os representantes do cliente,
    * que continua sendo o comportamento dos avisos AUTOMÁTICOS.
    *
-   * Só o aviso manual manda esse campo (10/09/2026, pedido da OSG): com dois ou
-   * três sócios no mesmo cliente, cobrar quem já entregou a parte dele gera
-   * resposta irritada, e antes o analista não tinha como dizer "esse não".
+   * Mandam esse campo os dois avisos que passam por um modal antes de sair
+   * (10/09/2026, pedido da OSG): a cobrança do checklist e o primeiro envio da
+   * solicitação. Com dois ou três sócios no mesmo cliente, mandar para quem não
+   * é do assunto gera resposta irritada, e antes o analista não tinha como dizer
+   * "esse não".
    *
    * É FILTRO, não fonte. A lista de destinatários continua saindo de
    * `destinatarios_cliente` aqui dentro — quem chama só consegue ENCOLHER o
@@ -388,12 +390,18 @@ Deno.serve(async (req) => {
     }
     const canaisDoEnvio: Canal[] = canais?.length ? CANAIS.filter((c) => canais.includes(c)) : CANAIS;
 
-    // Escolher destinatário é privilégio do aviso manual, pela mesma razão do
-    // `situacao`: os automáticos nascem de transição e não têm quem escolha.
-    // Aceitar aqui faria um aviso de sistema sair para meio cliente sem que
-    // ninguém tenha decidido isso.
-    if (destinatarios && event_type !== "situacao_documentos") {
-      return json({ error: "destinatarios só vale em situacao_documentos" }, 400);
+    /**
+     * Escolher destinatário só vale onde existe alguém escolhendo.
+     *
+     * `situacao_documentos` (a cobrança) e `solicitacao_enviada` (o primeiro
+     * envio) saem de um clique com modal na frente, e é o analista quem marca
+     * quem recebe. `documento_aprovado` fica de fora: ele nasce do encerramento
+     * e não tem tela nenhuma no meio — aceitar a lista ali faria um aviso de
+     * sistema sair para meio cliente sem ninguém ter decidido isso.
+     */
+    const EVENTOS_COM_ESCOLHA = new Set(["situacao_documentos", "solicitacao_enviada"]);
+    if (destinatarios && !EVENTOS_COM_ESCOLHA.has(event_type)) {
+      return json({ error: `destinatarios não vale em ${event_type}` }, 400);
     }
     if (destinatarios && destinatarios.length === 0) {
       return json({ error: "destinatarios nao pode ser lista vazia" }, 400);

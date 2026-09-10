@@ -8,6 +8,21 @@ import type { Database } from '@/integrations/supabase/types';
 import { avisoDeEnvioKey } from '@/hooks/useAvisoDeEnvioNaoSaiu';
 import { descreverEnvio, type RespostaNotificar } from '@/lib/avisoSituacaoDocumentos';
 import { invocarBorda } from '@/lib/bordaSupabase';
+import type { CanalAviso } from '@/lib/historicoNotificacoes';
+
+/**
+ * O que o modal de envio decidiu: para quem e por onde.
+ *
+ * Os dois são obrigatórios porque o modal sempre os preenche — o padrão dele é
+ * "todos os alcançáveis, pelos dois canais". Deixar opcional convidaria um
+ * chamador futuro a enviar sem escolha e reabrir por engano o comportamento
+ * antigo, que é justamente o que o modal existe para acabar.
+ */
+export interface EscolhaDoEnvio {
+  canais: CanalAviso[];
+  /** `user_id` de cada representante marcado. */
+  destinatarios: string[];
+}
 import { computeFieldDiff } from '@/lib/diffUtils';
 import {
   CAMPOS_AUDITADOS_ITEM,
@@ -631,7 +646,15 @@ export function useDomainSolicitacao(clienteId: string | null) {
   };
 
   const enviarSolicitacao = useMutation({
-    mutationFn: () => moverStatus(
+    /**
+     * A escolha do modal de envio (10/09/2026): para quem e por onde.
+     *
+     * Antes a chamada ia sem nada e a borda mandava para todo representante
+     * alcançável pelos dois canais. Continua sendo o padrão do modal — o erro
+     * por omissão tem de ser avisar mais gente, não menos —, mas agora quem
+     * decide é o analista, e a decisão precisa atravessar a mutação até a borda.
+     */
+    mutationFn: (_escolha: EscolhaDoEnvio) => moverStatus(
       ['rascunho'],
       'enviada',
       'enviada_em',
@@ -645,7 +668,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
      * liberou a área do cliente. Falha do aviso não desfaz o envio, e cai no
      * `onError` da própria mutação do aviso, não no deste envio.
      */
-    onSuccess: () => {
+    onSuccess: (_vazio, escolha) => {
       invalidar();
 
       const atual = solicitacaoQuery.data;
@@ -688,6 +711,8 @@ export function useDomainSolicitacao(clienteId: string | null) {
         void invocarBorda<RespostaNotificar>('notificar', {
           event_type: 'solicitacao_enviada',
           solicitacao_id: atual.id,
+          canais: escolha.canais,
+          destinatarios: escolha.destinatarios,
         })
           .then(({ data, error }) => {
             if (error) throw error;

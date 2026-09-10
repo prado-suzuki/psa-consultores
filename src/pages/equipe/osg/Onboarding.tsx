@@ -5,13 +5,14 @@ import { AvisoClienteNaoNotificado } from '@/components/equipe/osg/AvisoClienteN
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { OnboardingWorkspace } from '@/components/equipe/osg/onboarding/OnboardingWorkspace';
 import { SolicitacaoAcoes } from '@/components/equipe/osg/onboarding/SolicitacaoAcoes';
+import { ModalEnviarSolicitacao } from '@/components/equipe/osg/onboarding/ModalEnviarSolicitacao';
 import { SolicitacaoVazia } from '@/components/equipe/osg/onboarding/SolicitacaoVazia';
 import { SelecionarOsDialog } from '@/components/equipe/osg/onboarding/SelecionarOsDialog';
 import { OnboardingEmptyState } from '@/components/equipe/osg/onboarding/OnboardingEmptyState';
 import { panelContainerCls } from '@/components/equipe/osg/onboarding/onboardingKit';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useOnboarding } from '@/hooks/useOnboarding';
-import { useDomainSolicitacao } from '@/hooks/useDomainSolicitacao';
+import { useDomainSolicitacao, type EscolhaDoEnvio } from '@/hooks/useDomainSolicitacao';
 import { useDocumentosByCliente } from '@/hooks/useDocumentoArquivo';
 import { contarArquivosSemTipo } from '@/lib/checklistDerivado';
 import {
@@ -144,8 +145,15 @@ const Onboarding = () => {
   };
 
 
-  const enviar = async () => {
-    await enviarSolicitacao.mutateAsync();
+  /**
+   * O envio passa por modal desde 10/09/2026: o analista escolhe para quem e
+   * por onde. O botão só abre a caixa; quem envia é o `onConfirmar` dela.
+   */
+  const [modalDeEnvio, setModalDeEnvio] = useState(false);
+
+  const enviar = async (escolha: EscolhaDoEnvio) => {
+    await enviarSolicitacao.mutateAsync(escolha);
+    setModalDeEnvio(false);
     toast.success('Solicitação enviada — o cliente já vê a lista');
   };
 
@@ -195,7 +203,7 @@ const Onboarding = () => {
         arquivosSemTipo={contarArquivosSemTipo(documentosDoCliente)}
         ocupado={ocupado}
         onGerar={() => void gerar()}
-        onEnviar={enviar}
+        onEnviar={() => setModalDeEnvio(true)}
         onPassarParaChecklist={() => void virarChecklist()}
         onEncerrar={encerrar}
         onAbrirNova={abrirNova}
@@ -360,6 +368,19 @@ const Onboarding = () => {
         onOpenChange={setEscolhendoOs}
         onEscolher={(id) => void gerar(id)}
       />
+
+      {/* Montado só quando abre: ele consulta os destinatários do cliente, e
+          essa consulta não tem por que rodar em toda renderização da tela. */}
+      {clienteId && modalDeEnvio && (
+        <ModalEnviarSolicitacao
+          aberto={modalDeEnvio}
+          onFechar={() => setModalDeEnvio(false)}
+          clienteId={clienteId}
+          itensAtivos={ativos.length}
+          enviando={enviarSolicitacao.isPending}
+          onConfirmar={(escolha) => void enviar(escolha)}
+        />
+      )}
     </OsgLayout>
   );
 };
