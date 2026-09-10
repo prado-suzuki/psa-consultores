@@ -196,7 +196,9 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   // Itens do agrupador "Documentos do Cliente" — mesmo padrão de dropdown por hover
   const docClienteItems = [
     { path: '/equipe/osg/work/documentos', label: 'Explorador de arquivos' },
-    { path: '/equipe/osg/work/checklists', label: 'Checklists de documentos' },
+    // Singular desde 10/09/2026: eram duas abas (Pendências e Planejamento
+    // tributário) e sobrou uma. A rota segue no plural — é endereço, não rótulo.
+    { path: '/equipe/osg/work/checklists', label: 'Checklist de documentos' },
   ];
   const isDocClienteActive = docClienteItems.some((item) => item.path === location.pathname);
 
