@@ -245,7 +245,9 @@ export function DocumentEditorDialog({
           <DialogDescription>
             {mode === 'add'
               ? 'Escolha um documento do catálogo ou crie um novo. Vale apenas para esta solicitação.'
-              : 'Ajuste o pedido deste documento. Vale apenas para esta solicitação.'}
+              // "o que está sendo solicitado", e não "o pedido": último resquício
+              // do termo que a régua da Patrícia aposentou (10/09/2026).
+              : 'Ajuste o que está sendo solicitado neste documento. Vale apenas para esta solicitação.'}
           </DialogDescription>
         </DialogHeader>
 

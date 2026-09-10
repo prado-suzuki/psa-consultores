@@ -234,22 +234,21 @@ const Onboarding = () => {
     (iso ? new Date(iso).toLocaleDateString('pt-BR') : '');
 
   /**
-   * O subtítulo diz o ESTADO quando há um, e explica a tela quando não há.
+   * O subtítulo é FIXO: o texto da Patrícia (10/09/2026), e mais nada.
    *
-   * O texto de repouso é o da Patrícia (10/09/2026); os três de estado ficam,
-   * porque dizer "enviada em tal dia" vale mais que repetir a descrição da tela
-   * a cada visita.
+   * Ele variava com o estado — "Enviada ao cliente em 10/09/2026", "Em fase de
+   * checklist", "Encerrada em ..." —, e com isso o texto que a coordenação
+   * escreveu para a tela só aparecia quando não havia solicitação, que é a
+   * situação mais rara. Foi decisão minha e estava errada por dois motivos: o
+   * subtítulo descreve a TELA, não o registro aberto nela; e os três estados já
+   * têm faixa própria logo abaixo, com data e com o que muda em cada um. O
+   * subtítulo variável repetia a faixa em versão pior.
    */
-  const subtitulo = solicitacao?.status === 'enviada'
-    ? `Enviada ao cliente em ${emData(solicitacao.enviadaEm)}`
-    : emChecklist
-      ? 'Em fase de checklist: o cliente envia por documento que falta'
-      : encerrada
-        ? `Encerrada em ${emData(solicitacao?.encerradaEm ?? null)}`
-        : 'Gerencie os documentos que serão solicitados ao cliente para os produtos contratados.';
+  const SUBTITULO = 'Gerencie os documentos que serão solicitados ao cliente '
+    + 'para os produtos contratados.';
 
   return (
-    <OsgLayout title="Solicitação de documentos" subtitle={subtitulo} headerActions={acoesDoTopo}>
+    <OsgLayout title="Solicitação de documentos" subtitle={SUBTITULO} headerActions={acoesDoTopo}>
       {!clienteId ? (
         <OnboardingEmptyState icon={Rocket} title="Selecione um cliente">
           Use a barra acima para carregar a solicitação de documentos deste cliente.
@@ -312,11 +311,15 @@ const Onboarding = () => {
             <div className="flex items-start gap-3 rounded-2xl border border-osg-200/70 bg-osg-50/60 p-4 text-sm text-osg-700">
               <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss/70" />
               <p className="leading-relaxed">
+                {/* "A solicitação permanecerá aberta até ser finalizada", e não
+                    "o pedido só fecha quando você encerrar". A Patrícia mandou
+                    trocar essa frase em 10/09/2026; ela existia em DUAS faixas e
+                    a primeira passagem só corrigiu a de "aberta desde". */}
                 Esta solicitação está <strong className="font-semibold">em fase de
                 checklist</strong>: a tela do cliente mostra o que falta, de quem é cada
-                documento, e o envio dele já chega classificado. Incluir documento aqui
-                continua chegando até ele, e é o normal desta fase. O pedido só fecha
-                quando você encerrar.
+                documento, e o envio dele já chega classificado. Novos documentos
+                adicionados aqui também ficarão disponíveis no portal. A solicitação
+                permanecerá aberta até ser finalizada.
               </p>
             </div>
           )}

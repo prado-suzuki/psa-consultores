@@ -225,14 +225,25 @@ export function PainelDeHistorico({ historico, jaHoje, nomes, carregando, erro }
             {rotuloDoAviso(d.tipo)} por {rotuloDosCanais(d.canais)}
           </p>
 
+          {/* NOME E CONTATO EM LINHAS PRÓPRIAS, e não `truncate` numa só.
+              O painel tem 260px: "Alexandre Silva · automacao@psaconsultores.com.br"
+              virava "Alexandre Silva · automacao@psa…", que esconde exatamente o
+              que o painel existe para responder — PARA ONDE foi. E-mail cortado
+              não serve nem para conferir nem para copiar.
+
+              `break-words` porque endereço não tem espaço para quebrar sozinho. */}
           {d.destinos.length > 0 && (
-            <ul className="mt-1.5 space-y-0.5 border-t border-osg-100 pt-1.5">
+            <ul className="mt-1.5 space-y-1 border-t border-osg-100 pt-1.5">
               {d.destinos.map((destino) => {
                 const { nome, contatos } = descreverDestino(destino, nomes);
                 return (
-                  <li key={contatos.join('|')} className="truncate text-[11px] text-osg-500">
-                    {nome && <span className="font-medium text-osg-600">{nome} · </span>}
-                    {contatos.join(' · ')}
+                  <li key={contatos.join('|')} className="text-[11px] leading-snug text-osg-500">
+                    {nome && (
+                      <span className="block font-medium text-osg-600">{nome}</span>
+                    )}
+                    {contatos.map((contato) => (
+                      <span key={contato} className="block break-words">{contato}</span>
+                    ))}
                   </li>
                 );
               })}
