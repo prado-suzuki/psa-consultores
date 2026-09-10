@@ -37,23 +37,32 @@ describe('sub-rogação: a quota gravada muda de mão e o ônus vai junto', () =
       onusVigentes: [gravado], saldoDoCedente: 1000, nomes: NOMES,
     });
     expect(plano).toMatchObject({
-      novos: [], reduzidos: [], extintos: [], quotasOneradasQueSaem: 0, problema: null, avisos: [],
+      novos: [], extintos: [], quotasOneradasQueSaem: 0, problema: null, avisos: [],
     });
   });
 
-  it('passando das livres, o ônus encolhe e o gravame acompanha a parte que saiu', () => {
+  it('parcial: o ônus antigo morre inteiro e renasce dividido, tudo preso ao movimento', () => {
     const plano = planejarSubrogacao({
       movimento: { tipo: 'doacao', origemPessoaId: FILHA, destinoPessoaId: FILHO, quotas: 500 },
       onusVigentes: [gravado], saldoDoCedente: 1000, nomes: NOMES,
     });
     expect(plano.quotasOneradasQueSaem).toBe(100);
-    expect(plano.reduzidos).toEqual([{ onusId: 'o1', quotas: 500 }]);
-    expect(plano.extintos).toEqual([]);
-    expect(plano.novos).toEqual([{
-      deOnusId: 'o1', nuProprietarioId: FILHO, usufrutuarioIds: [PAI],
-      usufrutoOrigem: 'reserva', comVoto: true, quotas: 100,
-      gravames: ['inalienabilidade', 'impenhorabilidade'],
-    }]);
+    // Não encolhe a linha antiga: extingue e reemite as duas partes. É o que
+    // faz o desfazer ser sempre o mesmo gesto (apagar as novas, ressuscitar a
+    // antiga), sem ter um número anterior guardado em lugar nenhum.
+    expect(plano.extintos).toEqual(['o1']);
+    expect(plano.novos).toEqual([
+      {
+        deOnusId: 'o1', nuProprietarioId: FILHA, usufrutuarioIds: [PAI],
+        usufrutoOrigem: 'reserva', comVoto: true, quotas: 500,
+        gravames: ['inalienabilidade', 'impenhorabilidade'],
+      },
+      {
+        deOnusId: 'o1', nuProprietarioId: FILHO, usufrutuarioIds: [PAI],
+        usufrutoOrigem: 'reserva', comVoto: true, quotas: 100,
+        gravames: ['inalienabilidade', 'impenhorabilidade'],
+      },
+    ]);
     expect(plano.avisos.join(' ')).toContain('o gravame é da quota e acompanha Bruno');
   });
 
@@ -63,7 +72,7 @@ describe('sub-rogação: a quota gravada muda de mão e o ônus vai junto', () =
       onusVigentes: [gravado], saldoDoCedente: 1000, nomes: NOMES,
     });
     expect(plano.extintos).toEqual(['o1']);
-    expect(plano.reduzidos).toEqual([]);
+    expect(plano.novos).toHaveLength(1);
     expect(plano.novos[0]).toMatchObject({ nuProprietarioId: FILHO, quotas: 600 });
   });
 
@@ -74,9 +83,12 @@ describe('sub-rogação: a quota gravada muda de mão e o ônus vai junto', () =
       movimento: { tipo: 'doacao', origemPessoaId: FILHA, destinoPessoaId: FILHO, quotas: 300 },
       onusVigentes: [antigo, novo], saldoDoCedente: 500, nomes: NOMES,
     });
-    expect(plano.extintos).toEqual(['o1']);
-    expect(plano.reduzidos).toEqual([{ onusId: 'o2', quotas: 200 }]);
-    expect(plano.novos.map((n) => [n.deOnusId, n.quotas])).toEqual([['o1', 200], ['o2', 100]]);
+    expect(plano.extintos).toEqual(['o1', 'o2']);
+    expect(plano.novos.map((n) => [n.deOnusId, n.nuProprietarioId, n.quotas])).toEqual([
+      ['o1', FILHO, 200],   // o mais antigo saiu inteiro
+      ['o2', FILHA, 200],   // o segundo se partiu: fica com a filha
+      ['o2', FILHO, 100],   // e vai para o irmão
+    ]);
   });
 
   it('inalienabilidade barra a cessão ONEROSA e não a transmissão gratuita', () => {

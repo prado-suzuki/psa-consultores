@@ -16,6 +16,12 @@ import {
   type LinhaCrua,
   type MovimentoDoLedger,
 } from '@/lib/osg/projecaoQuadro';
+import {
+  planejarSubrogacao,
+  type MovimentoQueDesloca,
+  type OnusVigente,
+  type PlanoDaSubrogacao,
+} from '@/lib/osg/onusDaSociedade';
 import type { PlanoDaSubida } from '@/lib/osg/subidaDeQuotas';
 import { avaliarTravaDaSubida, type EmpresaDaSubida } from '@/lib/osg/travaDaSubida';
 import { avaliarTravaDoIngresso } from '@/lib/osg/travaDoIngresso';
@@ -185,6 +191,125 @@ export function useGravarAporteInicial() {
  * quadro é a soma de `vlr_capital_arredondado`, e gravar ali o preço pago numa
  * cessão acima do par corromperia o capital da sociedade.
  */
+/**
+ * A SUB-ROGAÇÃO DO ÔNUS quando as quotas mudam de mão.
+ *
+ * Fica aqui, e não dentro de cada mutação, porque toda transferência de quota
+ * precisa dela: a cessão avulsa, a doação simples e a doação com reserva
+ * passam pelas mesmas duas perguntas — o cedente tinha quota onerada? o
+ * movimento alcança alguma delas? A regra de qual quota sai é do domínio
+ * (`planejarSubrogacao`); daqui para baixo é só leitura e escrita.
+ *
+ * A ORDEM importa: o plano é calculado ANTES de o movimento existir, para um
+ * problema (inalienabilidade barrando cessão onerosa) recusar o gesto sem ter
+ * escrito nada.
+ */
+export async function planejarSubrogacaoDoMovimento(args: {
+  empresaPessoaId: string;
+  movimento: MovimentoQueDesloca;
+}): Promise<PlanoDaSubrogacao> {
+  const { empresaPessoaId, movimento } = args;
+  if (!movimento.origemPessoaId || movimento.quotas <= 0) return PLANO_SEM_SUBROGACAO;
+
+  const { data: linhas, error } = await supabase
+    .from('onus_quotas')
+    .select('id, nu_proprietario_pessoa_id, usufrutuario_pessoa_ids, usufruto_origem, usufruto_com_voto, quotas, gravames')
+    .eq('empresa_pessoa_id', empresaPessoaId)
+    .eq('nu_proprietario_pessoa_id', movimento.origemPessoaId)
+    .is('extinto_em', null)
+    .order('created_at');
+  if (error) throw error;
+  if ((linhas ?? []).length === 0) return PLANO_SEM_SUBROGACAO;
+
+  const { data: saldos, error: erroSaldo } = await supabase
+    .from('v_quadro_societario')
+    .select('pessoa_id, quotas')
+    .eq('empresa_pessoa_id', empresaPessoaId);
+  if (erroSaldo) throw erroSaldo;
+
+  const { data: pessoas } = await supabase
+    .from('pessoa')
+    .select('id, denominacao')
+    .in('id', [...new Set([
+      movimento.origemPessoaId,
+      ...(movimento.destinoPessoaId ? [movimento.destinoPessoaId] : []),
+      ...(linhas ?? []).flatMap((l) => l.usufrutuario_pessoa_ids ?? []),
+    ])]);
+
+  const onusVigentes: OnusVigente[] = (linhas ?? []).map((l) => ({
+    id: l.id,
+    nuProprietarioId: l.nu_proprietario_pessoa_id,
+    usufrutuarioIds: l.usufrutuario_pessoa_ids ?? [],
+    usufrutoOrigem: (l.usufruto_origem as OnusVigente['usufrutoOrigem']) ?? null,
+    comVoto: l.usufruto_com_voto,
+    quotas: Number(l.quotas ?? 0),
+    gravames: (l.gravames ?? []) as OnusVigente['gravames'],
+  }));
+
+  return planejarSubrogacao({
+    movimento,
+    onusVigentes,
+    saldoDoCedente: Number(
+      (saldos ?? []).find((s) => s.pessoa_id === movimento.origemPessoaId)?.quotas ?? 0,
+    ),
+    nomes: new Map((pessoas ?? []).map((p) => [p.id, p.denominacao ?? p.id])),
+  });
+}
+
+const PLANO_SEM_SUBROGACAO: PlanoDaSubrogacao = {
+  novos: [], extintos: [], quotasOneradasQueSaem: 0, problema: null, avisos: [],
+};
+
+/**
+ * Escreve o plano: extingue os ônus alcançados CARIMBANDO quem os extinguiu, e
+ * insere as linhas novas presas ao movimento. O carimbo é o que permite
+ * ressuscitá-los ao desfazer o ato (ver `useReverterAto`); sem ele a sociedade
+ * ficaria sem um gravame que ninguém revogou.
+ */
+export async function gravarSubrogacao(args: {
+  clienteId: string;
+  empresaPessoaId: string;
+  movimentoId: string;
+  plano: PlanoDaSubrogacao;
+  dataMovimento: string | null;
+}): Promise<void> {
+  const { clienteId, empresaPessoaId, movimentoId, plano, dataMovimento } = args;
+  if (plano.extintos.length === 0 && plano.novos.length === 0) return;
+
+  if (plano.extintos.length > 0) {
+    const { error } = await supabase
+      .from('onus_quotas')
+      .update({
+        extinto_em: dataMovimento ?? new Date().toISOString().slice(0, 10),
+        extinto_por_movimento_id: movimentoId,
+      })
+      .in('id', plano.extintos);
+    if (error) throw error;
+  }
+
+  if (plano.novos.length > 0) {
+    const { error } = await supabase.from('onus_quotas').insert(
+      plano.novos.map((o) => ({
+        cliente_id: clienteId,
+        empresa_pessoa_id: empresaPessoaId,
+        movimento_id: movimentoId,
+        nu_proprietario_pessoa_id: o.nuProprietarioId,
+        usufrutuario_pessoa_ids: o.usufrutuarioIds,
+        usufruto_origem: o.usufrutoOrigem,
+        usufruto_com_voto: o.comVoto,
+        quotas: o.quotas,
+        gravames: o.gravames,
+      })),
+    );
+    if (error) throw error;
+  }
+}
+
+/** Os tipos de movimento que deslocam quota já existente (aporte não desloca). */
+const DESLOCAM_QUOTA = ['cessao', 'doacao', 'reducao'] as const;
+const deslocaQuota = (tipo: string): tipo is MovimentoQueDesloca['tipo'] =>
+  (DESLOCAM_QUOTA as readonly string[]).includes(tipo);
+
 export function useRegistrarMovimento() {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
@@ -201,6 +326,21 @@ export function useRegistrarMovimento() {
       /** Nome de quem entra no log (o adquirente, ou o cedente na redução). */
       entityName: string;
     }) => {
+      // O ônus vem ANTES do insert: se a inalienabilidade barra este
+      // movimento, o gesto é recusado sem ter escrito nada no livro.
+      const plano = deslocaQuota(movimento.tipo) && movimento.origemPessoaId
+        ? await planejarSubrogacaoDoMovimento({
+            empresaPessoaId,
+            movimento: {
+              tipo: movimento.tipo,
+              origemPessoaId: movimento.origemPessoaId,
+              destinoPessoaId: movimento.destinoPessoaId,
+              quotas: movimento.quotas,
+            },
+          })
+        : PLANO_SEM_SUBROGACAO;
+      if (plano.problema) throw new Error(plano.problema);
+
       const { data, error } = await supabase
         .from('movimentacao_quotas')
         .insert({
@@ -221,13 +361,29 @@ export function useRegistrarMovimento() {
         .select('id')
         .single();
       if (error) throw error;
-      return { id: data.id, empresaPessoaId };
+
+      try {
+        await gravarSubrogacao({
+          clienteId, empresaPessoaId, movimentoId: data.id, plano,
+          dataMovimento: movimento.dataMovimento,
+        });
+      } catch (erroOnus) {
+        // Movimento sem a sub-rogação é pior do que movimento nenhum: o quadro
+        // mudaria e o gravame ficaria apontando para quem não tem mais a quota.
+        await supabase.from('movimentacao_quotas').delete().eq('id', data.id);
+        throw erroOnus;
+      }
+
+      return { id: data.id, empresaPessoaId, subrogacao: plano };
     },
-    onSuccess: async ({ id, empresaPessoaId }, { movimento, entityName }) => {
+    onSuccess: async ({ id, empresaPessoaId, subrogacao }, { movimento, entityName }) => {
       queryClient.invalidateQueries({ queryKey: ['quadro-da-empresa', empresaPessoaId] });
       // A tela Gerar lê o quadro pela mesma view, com outra key.
       queryClient.invalidateQueries({ queryKey: ['socios-geracao', empresaPessoaId] });
       queryClient.invalidateQueries({ queryKey: ['relatorio-societario'] });
+      if (subrogacao.extintos.length > 0 || subrogacao.novos.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ['onus-da-empresa', empresaPessoaId] });
+      }
 
       const forma = FORMAS_MOVIMENTO[movimento.tipo];
       await logAction({
@@ -240,7 +396,10 @@ export function useRegistrarMovimento() {
 
       toast({
         title: `${forma.label} registrada`,
-        description: `${movimento.quotas.toLocaleString('pt-BR')} quota(s) · ${entityName}`,
+        description: `${movimento.quotas.toLocaleString('pt-BR')} quota(s) · ${entityName}`
+          + (subrogacao.quotasOneradasQueSaem > 0
+            ? ` · ${subrogacao.quotasOneradasQueSaem.toLocaleString('pt-BR')} delas com ônus, que acompanhou as quotas`
+            : ''),
       });
     },
     onError: (error: Error) => {
@@ -614,6 +773,20 @@ export function useReverterAto() {
         throw new Error(
           'Este ato já foi formalizado por um documento: para desfazê-lo, é preciso desfazer a peça que o registrou.',
         );
+      }
+
+      // O ônus que a sub-rogação extinguiu volta a viger ANTES de o movimento
+      // sumir. Depois é tarde: o `ON DELETE SET NULL` apaga o carimbo, e não
+      // sobra como saber qual ônus este ato havia encerrado. Sem isto, desfazer
+      // deixaria a sociedade sem um gravame que ninguém revogou — as linhas
+      // novas caem pelo cascade e a antiga ficaria extinta para sempre.
+      const movimentoIds = (formalizados ?? []).map((l) => l.id);
+      if (movimentoIds.length > 0) {
+        const { error: erroRessuscitar } = await supabase
+          .from('onus_quotas')
+          .update({ extinto_em: null, extinto_por_movimento_id: null })
+          .in('extinto_por_movimento_id', movimentoIds);
+        if (erroRessuscitar) throw erroRessuscitar;
       }
 
       const { error } = await supabase.from('ato_societario').delete().eq('id', atoId);

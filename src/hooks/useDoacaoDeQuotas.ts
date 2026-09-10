@@ -86,6 +86,29 @@ export function useDoarQuotas() {
       if (plano.problema) throw new Error(plano.problema);
       if (plano.lancamentos.length === 0) throw new Error('Nada a gravar: o plano está vazio.');
 
+      // Doador com quota JÁ onerada é recusado, e de propósito. O gravame
+      // acompanha a quota (ver `planejarSubrogacao`), mas neste macro o saldo
+      // é consumido par a par, e sub-rogar corretamente exigiria repartir o
+      // ônus antigo ao longo dos pares. Gravar sem isso produziria um contrato
+      // dizendo que o doador tem quotas gravadas que ele já não tem: melhor
+      // recusar com o motivo escrito do que gravar errado em silêncio. O gesto
+      // que sabe sub-rogar é "Registrar movimento", um lançamento por vez.
+      const doadores = [...new Set(plano.lancamentos.map((l) => l.movimento.origemPessoaId))];
+      const { data: jaOnerados, error: erroOnerados } = await supabase
+        .from('onus_quotas')
+        .select('nu_proprietario_pessoa_id')
+        .eq('empresa_pessoa_id', empresaPessoaId)
+        .in('nu_proprietario_pessoa_id', doadores)
+        .is('extinto_em', null);
+      if (erroOnerados) throw erroOnerados;
+      if ((jaOnerados ?? []).length > 0) {
+        throw new Error(
+          'Uma das pessoas que doam já tem quotas gravadas ou sob usufruto nesta empresa. '
+          + 'O ônus acompanha a quota, e este gesto não sabe reparti-lo entre vários pares: '
+          + 'registre a transferência por "Registrar movimento", um lançamento por vez.',
+        );
+      }
+
       const { data: ato, error: erroAto } = await supabase
         .from('ato_societario')
         .insert({ cliente_id: clienteId, data: dataMovimento, descricao })
@@ -134,6 +157,7 @@ export function useDoarQuotas() {
         return [{
           cliente_id: clienteId,
           empresa_pessoa_id: empresaPessoaId,
+          ato_id: ato.id,
           movimento_id: movimentoId,
           nu_proprietario_pessoa_id: l.onus.nuProprietarioId,
           usufrutuario_pessoa_ids: l.onus.usufrutuarioIds,

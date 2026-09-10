@@ -38,7 +38,7 @@ function bancoQue(respostas: Record<string, unknown>, falharEm: string | null = 
   dbMocks.from.mockImplementation((tabela: string) => {
     const elo: Record<string, unknown> = {};
     let op = 'select';
-    for (const metodo of ['select', 'eq', 'is', 'order', 'single']) elo[metodo] = () => elo;
+    for (const metodo of ['select', 'eq', 'in', 'is', 'order', 'single']) elo[metodo] = () => elo;
     for (const metodo of ['insert', 'delete']) {
       elo[metodo] = (payload?: unknown) => {
         op = metodo;
@@ -148,6 +148,7 @@ describe('useDoarQuotas, o que grava', () => {
     expect(escritas[2].payload).toEqual([{
       cliente_id: 'cliente-1',
       empresa_pessoa_id: EMPRESA,
+      ato_id: 'ato-1',
       movimento_id: 'mov-1',
       nu_proprietario_pessoa_id: 'camila',
       usufrutuario_pessoa_ids: ['jose'],
@@ -167,6 +168,19 @@ describe('useDoarQuotas, o que grava', () => {
     const { mutationFn } = useDoarQuotas() as unknown as Mutacao;
     await expect(mutationFn(gesto)).rejects.toMatchObject({ message: 'falhou em onus_quotas' });
     expect(escritas.at(-1)).toMatchObject({ tabela: 'ato_societario', op: 'delete' });
+  });
+
+  it('recusa doador que já tem quota onerada, sem escrever nada', async () => {
+    // O gravame acompanha a quota, e este macro consome o saldo par a par: não
+    // sabe repartir um ônus antigo entre vários pares. Recusar com o motivo
+    // escrito é melhor do que gravar um contrato dizendo que o doador tem
+    // quotas gravadas que ele já não tem.
+    bancoQue({ onus_quotas: [{ nu_proprietario_pessoa_id: 'jose' }] });
+    const { mutationFn } = useDoarQuotas() as unknown as Mutacao;
+    await expect(mutationFn(gesto)).rejects.toMatchObject({
+      message: expect.stringContaining('já tem quotas gravadas ou sob usufruto'),
+    });
+    expect(escritas.filter((e) => e.op === 'insert')).toEqual([]);
   });
 
   it('recusa plano com problema antes de tocar no banco', async () => {

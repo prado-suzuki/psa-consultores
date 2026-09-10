@@ -4,7 +4,7 @@ import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeftRight, Building2, ChartPie, Gift, Landmark, PieChart, Plus, Tag, Users } from 'lucide-react';
+import { ArrowLeftRight, Building2, ChartPie, Gift, Landmark, PieChart, Plus, Tag, Users, Vote } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useCountUp } from '@/hooks/useCountUp';
 import { osgTabsListCls, osgTabTriggerCls } from '@/components/equipe/osg/formKit';
@@ -13,6 +13,7 @@ import { useMovimentosDaEmpresa, useQuadroDaEmpresa } from '@/hooks/useMovimenta
 import { procedenciaDosMovimentos } from '@/lib/osg/projecaoQuadro';
 import { AtosSocietarios } from '@/components/equipe/osg/quadro-societario/AtosSocietarios';
 import { DoarQuotasDialog } from '@/components/equipe/osg/quadro-societario/DoarQuotasDialog';
+import { InstituirUsufrutoDialog } from '@/components/equipe/osg/quadro-societario/InstituirUsufrutoDialog';
 import { MovimentoModal } from '@/components/equipe/osg/quadro-societario/MovimentoModal';
 import { UsufrutoEVotoCard } from '@/components/equipe/osg/quadro-societario/UsufrutoEVoto';
 import { QuadroEmpresaProprietaria } from '@/components/equipe/osg/quadro-societario/QuadroEmpresaProprietaria';
@@ -69,6 +70,9 @@ const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) =>
   const navigate = useNavigate();
   const [movimento, setMovimento] = useState<{ open: boolean; origem: string | null }>({
     open: false, origem: null,
+  });
+  const [instituicao, setInstituicao] = useState<{ open: boolean; concedente: string | null }>({
+    open: false, concedente: null,
   });
   const [doacao, setDoacao] = useState<{ open: boolean; doador: string | null }>({
     open: false, doador: null,
@@ -153,6 +157,16 @@ const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) =>
               </Button>
               <Button
                 size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => setInstituicao({ open: true, concedente: null })}
+                disabled={quadro.length === 0}
+                title="Instituir usufruto sobre quotas, sem que elas mudem de titular"
+              >
+                <Vote className="h-3.5 w-3.5" /> Instituir usufruto
+              </Button>
+              <Button
+                size="sm"
                 className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
                 onClick={() => setMovimento({ open: true, origem: null })}
               >
@@ -214,6 +228,14 @@ const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) =>
         pessoasCliente={pessoasCliente}
         origemInicial={movimento.origem}
         onClose={() => setMovimento({ open: false, origem: null })}
+      />
+      <InstituirUsufrutoDialog
+        open={instituicao.open}
+        empresa={empresa}
+        quadro={quadro}
+        pessoasCliente={pessoasCliente}
+        concedenteInicial={instituicao.concedente}
+        onClose={() => setInstituicao({ open: false, concedente: null })}
       />
       <DoarQuotasDialog
         open={doacao.open}

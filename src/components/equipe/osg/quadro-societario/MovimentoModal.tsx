@@ -7,10 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RequiredMark } from '@/components/ui/required-mark';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Info, Loader2 } from 'lucide-react';
 import { fieldCls, labelCls, FieldSection } from '@/components/equipe/osg/formKit';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { useRegistrarMovimento, type SocioDoQuadro } from '@/hooks/useMovimentacaoQuotas';
+import { useOnusDaEmpresa } from '@/hooks/useDoacaoDeQuotas';
+import { planejarSubrogacao } from '@/lib/osg/onusDaSociedade';
 import {
   capitalDoMovimento,
   FORMAS_MOVIMENTO,
@@ -75,6 +77,12 @@ export function MovimentoModal({
   const { requestClose, alertProps } = useDirtyClose({ isDirty, onClose });
 
   const forma = FORMAS_MOVIMENTO[draft.tipo];
+  const { data: onusVigentes = [] } = useOnusDaEmpresa(open ? empresa.id : null);
+  const nomes = useMemo(() => {
+    const m = new Map(pessoasCliente.map((p) => [p.id, p.denominacao ?? '—']));
+    for (const s of quadro) if (!m.has(s.pessoaId)) m.set(s.pessoaId, s.denominacao);
+    return m;
+  }, [pessoasCliente, quadro]);
   const saldo = useMemo(
     () => new Map(quadro.map((s) => [s.pessoaId, s.quotas])),
     [quadro],
@@ -99,8 +107,37 @@ export function MovimentoModal({
     quotas,
     dataMovimento: draft.dataMovimento || null,
   };
-  const problema = problemaDoMovimento(movimento, saldo, empresa.id);
+  const problemaDoLivro = problemaDoMovimento(movimento, saldo, empresa.id);
   const saldoDaOrigem = draft.origemPessoaId ? (saldo.get(draft.origemPessoaId) ?? 0) : null;
+
+  // O ÔNUS acompanha a quota. Se as quotas que saem estiverem gravadas ou sob
+  // usufruto, o gesto tem consequência além do quadro, e o consultor precisa
+  // ver isso ANTES de gravar — inclusive a recusa, quando a inalienabilidade
+  // barra uma cessão onerosa. A mutação recalcula o mesmo plano na hora de
+  // escrever; aqui ele só é mostrado.
+  const subrogacao = useMemo(() => {
+    if (!movimento.origemPessoaId || movimento.tipo === 'aporte') return null;
+    return planejarSubrogacao({
+      movimento: {
+        tipo: movimento.tipo,
+        origemPessoaId: movimento.origemPessoaId,
+        destinoPessoaId: movimento.destinoPessoaId,
+        quotas: movimento.quotas,
+      },
+      onusVigentes: onusVigentes.map((o) => ({
+        id: o.id,
+        nuProprietarioId: o.nuProprietarioId,
+        usufrutuarioIds: o.usufrutuarioIds,
+        usufrutoOrigem: o.usufrutoOrigem,
+        comVoto: o.comVoto,
+        quotas: o.quotas,
+        gravames: o.gravames,
+      })),
+      saldoDoCedente: saldo.get(movimento.origemPessoaId) ?? 0,
+      nomes,
+    });
+  }, [movimento.tipo, movimento.origemPessoaId, movimento.destinoPessoaId, movimento.quotas, onusVigentes, saldo, nomes]);
+  const problema = problemaDoLivro ?? subrogacao?.problema ?? null;
 
   const setCampo = <K extends keyof Draft>(campo: K, valor: Draft[K]) =>
     setDraft((prev) => ({ ...prev, [campo]: valor }));
@@ -271,6 +308,15 @@ export function MovimentoModal({
               </p>
             </FieldSection>
 
+            {isDirty && !problemaDoLivro && (subrogacao?.avisos.length ?? 0) > 0 && (
+              <div className="mt-6 space-y-1.5">
+                {subrogacao!.avisos.map((aviso) => (
+                  <p key={aviso} className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {aviso}
+                  </p>
+                ))}
+              </div>
+            )}
             {isDirty && problema && (
               <div className="mt-6 flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />

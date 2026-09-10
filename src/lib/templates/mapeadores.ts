@@ -1674,6 +1674,47 @@ export function mapearListasDaDoacao(
 }
 
 /**
+ * Itens da seção {{#usufrutosInstituidos}}: o usufruto que ALGUÉM CONCEDEU sobre
+ * quota que continua sendo dele.
+ *
+ * Coleção separada de `usufrutos` porque a direção do ato inverte, e a redação
+ * junto: na reserva quem doou guarda o voto ("reserva-se o usufruto"); aqui
+ * quem tem a quota o entrega, por ato próprio e guia própria, e nenhuma quota
+ * muda de mão. Misturar as duas faria o instrumento dizer o contrário do que
+ * aconteceu.
+ *
+ * Recebe já os ônus que ESTA peça formaliza: escolher quais é decisão de quem
+ * compõe a peça, não do mapeador.
+ */
+export function mapearUsufrutosInstituidos(
+  instituidos: readonly OnusParaMapear[],
+  pessoaPorId: (id: string) => PessoaRow | null | undefined,
+): ItemLista[] {
+  return instituidos.flatMap((onus, i) => {
+    if (onus.usufrutuarioIds.length === 0) return [];
+    const nuProprietario = pessoaPorId(onus.nuProprietarioId);
+    const usufrutuarios = onus.usufrutuarioIds.flatMap((id) => {
+      const pessoa = pessoaPorId(id);
+      return pessoa ? [pessoa] : [];
+    });
+    if (!nuProprietario || usufrutuarios.length === 0) return [];
+    return [{
+      nuProprietario: camposDaPessoaDoOnus(nuProprietario),
+      usufruto: {
+        ordem: String(i + 1),
+        ordemRomana: romano(i + 1).toLowerCase(),
+        ...quotasDoOnus(onus.quotas),
+        usufrutuarioNomes: usufrutuarios.map((p) => p.denominacao ?? '').filter(Boolean).join(' e '),
+        usufrutuarioQualificacoes: usufrutuarios
+          .map((p) => camposDaPessoaDoOnus(p).qualificacao).filter(Boolean).join('; e '),
+      },
+      comVoto: onus.comVoto,
+      semVoto: !onus.comVoto,
+    }];
+  });
+}
+
+/**
  * O ESTADO DE ÔNUS da sociedade: o quadro de usufruto e voto, e os gravames
  * vigentes. Sai de TODOS os ônus em vigor, não dos que esta peça cria, porque é
  * o contrato consolidado que os republica a cada alteração.

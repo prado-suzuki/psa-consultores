@@ -41,7 +41,7 @@ vitalício"; o que ele mostra e este documento adota está resumido abaixo.
 | **1. O evento no Quadro Societário** | Gesto "Doar quotas" na área do quadro: vários pares num ato, reserva de usufruto, gravames, origem legítima/disponível, data do instrumento. Grava o livro e o ônus. Tabela "Usufruto e voto" na página | ✅ entregue 10/09/2026 (sandbox) |
 | **2. A peça** | O assistente da AC deriva "Doação com reserva de usufruto" com evidência, e a folha compõe as cláusulas do ato (doação, extensão do usufruto, gravames, renúncia à preferência, mapa de usufruto e voto) | ✅ entregue 10/09/2026 (sandbox) · **redação pendente de aceite jurídico** |
 | **3. Os ecos na consolidação** | Os três pontos fixos do contrato consolidado passam a ler o ônus vigente, e as validações aritméticas (fração de quota, legítima ímpar, três somas independentes) | ✅ entregue 10/09/2026 (sandbox) · **redação pendente de aceite jurídico** |
-| **4. As variantes** | Cessão gratuita sem usufruto (sub-rogação do gravame preexistente) e instituição de usufruto avulsa, o ato próprio com guia própria | 🔵 aberta |
+| **4. As variantes** | Cessão gratuita sem usufruto (sub-rogação do gravame preexistente) e instituição de usufruto avulsa, o ato próprio com guia própria | 🟡 o fato entra e o consolidado o publica; falta a resolução da instituição na peça |
 
 A ordem é a de sempre nesta frente: o fato entra no livro primeiro, e a peça nasce depois
 pelo fluxo normal da tela Gerar, que já tem os porteiros dela (validar versão, snapshot
@@ -204,6 +204,83 @@ de hoje: a de haveres tem um parágrafo só. É texto legado, anterior ao mecani
 Consertar é trocar as duas citações por âncora, e é frente própria: mexer nelas aqui
 misturaria a doação com uma revisão de numeração do contrato inteiro.
 
+## Fatia 4, o que ficou no código
+
+As duas variantes que faltavam. O schema da fatia 1 já as previa (`movimento_id`
+nullable, `usufruto_origem` aceitando `instituicao`, e a constraint admitindo linha só com
+gravame), então esta fatia é sobretudo gesto, fiação e redação.
+
+### Sub-rogação: o gravame é da quota, não da pessoa
+
+Quando uma quota gravada muda de mão, o ônus não fica com quem cedeu: acompanha o bem.
+Sem isso, o contrato consolidado (que a fatia 3 alimenta do ônus vigente) diria que fulano
+tem quotas gravadas que já não tem, e que o adquirente tem quotas livres que na verdade não
+pode alienar.
+
+`planejarSubrogacao`, em `src/lib/osg/onusDaSociedade.ts`, decide o que acontece. A única
+escolha real é **qual quota sai**, e a regra é *as livres primeiro*: mover quota gravada é o
+ato excepcional, então o plano só toca nas oneradas quando o movimento passa do saldo livre
+do cedente, e avisa quando toca. Duas regras de direito entraram como código:
+
+- a **inalienabilidade barra a cessão onerosa** e não a transmissão gratuita, que é por que o
+  acervo tem cessão gratuita de quota gravada;
+- a nua propriedade indo parar em quem já usufrui **extingue o usufruto por consolidação**
+  (art. 1.410, VI, do Código Civil). O gravame, esse, continua.
+
+**A migration `20260910223319` existe por causa do desfazer.** O ônus novo aponta para o
+movimento e o `ON DELETE CASCADE` já o leva quando o ato é revertido; o ônus ANTIGO não
+tinha essa ponte, e reverter deixaria a sociedade sem gravame nenhum tendo havido gravame
+antes e depois. A coluna `extinto_por_movimento_id` torna o reverso uma linha só. E a
+sub-rogação parcial **não altera** a linha antiga: extingue-a inteira e insere duas novas,
+ambas presas ao movimento (a parte que ficou e a que foi), para que o desfazer seja sempre o
+mesmo gesto e nunca haja um número anterior a restaurar de memória.
+
+### Instituição de usufruto avulsa
+
+Ato próprio, com guia própria: quem tem a propriedade plena entrega o usufruto dela, e
+nenhuma quota muda de mão. Difere da reserva na direção (lá quem doou guarda o voto; aqui
+quem tem a quota o entrega) e no limite, que não é o saldo do quadro e sim o **saldo livre**:
+quota cujo voto já foi concedido não se concede de novo. O saldo é consumido par a par, como
+na doação.
+
+`quotasQueFaltamParaOAlvo` é o cálculo que faz a instituição existir: ela complementa a
+reserva quando esta não alcança o controle que o fundador quer manter (46,54% contra 51% no
+Agro Aliança, onde 51% de 9.557.945 menos os 4.448.500 já sob usufruto dão as 426.052 da
+guia 338021).
+
+Na tela, o gesto é o botão **"Instituir usufruto"** no Quadro Societário, ao lado de "Doar
+quotas". `useInstituirUsufruto` grava o `ato_societario` e as linhas de ônus presas a ele
+por `ato_id`, e **não escreve no livro**: nenhuma quota mudou de mão, e um lançamento ali
+seria um movimento fantasma mexendo no quadro. O teste de fiação trava exatamente isso.
+
+### Onde a fatia 4 para, e por quê
+
+O fato entra e o **contrato consolidado já o publica**, porque a fatia 3 lê o ônus vigente
+seja qual for o evento. O que falta é a **resolução da instituição na peça**: o bloco e a
+flag estão no banco, mas ninguém acende a flag, porque falta responder como a peça sabe que
+uma instituição está *pendente*. A doação responde isso pela ausência de
+`documento_gerado_id` no movimento; a instituição não tem movimento para carimbar. O caminho
+que parece certo é derivá-la por ESTADO, comparando o ônus do snapshot registrado com o de
+hoje, que é a mesma doutrina da sede e é idempotente de graça (depois de registrada, o
+snapshot já contém o ônus e o diff zera). Não foi feito porque tem alternativa real, e a
+escolha é de quem responde pelo desenho.
+
+**A doação recusa doador com quota já onerada**, também de propósito. O gravame acompanha a
+quota, mas o macro da doação consome o saldo par a par, e sub-rogar corretamente exigiria
+repartir o ônus antigo ao longo dos pares. Gravar sem isso produziria um contrato dizendo
+que o doador tem quotas gravadas que ele já não tem. A recusa vem com o motivo escrito e
+aponta o gesto que sabe sub-rogar: "Registrar movimento", um lançamento por vez. Na prática
+quase nunca dispara, porque quem doa costuma ser justamente quem está criando o gravame.
+
+`useSubirQuotas` (o macro da subida) também move quota e ainda não sub-roga: o caminho dele
+tem atomicidade própria e fica para quando a frente da subida for mexida.
+
+A migration `20260910222715` traz a flag `evento_instituicao_usufruto` e o bloco
+`Resolução: instituição de usufruto sobre quotas`, que lê a coleção nova
+`usufrutosInstituidos`. A tabela de usufruto e voto da sociedade inteira **não** se repete
+ali: ela já sai no consolidado, pela cláusula autônoma da fatia 3, que lê o ônus vigente seja
+qual for o evento. Cada resolução narra o seu ato; o contrato publica o estado.
+
 ## Decisões abertas
 
 1. **A simulação de ITCD deve virar a origem da doação?** Hoje o consultor lança a doação no
@@ -217,6 +294,13 @@ misturaria a doação com uma revisão de numeração do contrato inteiro.
 3. **Vigência do gravame.** A fórmula do acervo ("enquanto os doadores estiverem vivos")
    encerra as restrições na morte deles. Se a intenção é proteger o donatário por mais
    tempo, a redação atual não entrega isso — vale levantar com quem assina.
+4. **Como a peça sabe que uma instituição de usufruto está pendente?** Ela não tem
+   movimento no livro para carregar o `documento_gerado_id`, que é o marcador de "já
+   formalizado" de todo o resto. A proposta é derivar por estado (o ônus do snapshot
+   registrado contra o de hoje), como a sede; a alternativa é dar à `onus_quotas` o seu
+   próprio `documento_gerado_id` e ensinar o gatilho do registro atômico a carimbá-lo. A
+   primeira não mexe no caminho do registro; a segunda é mais explícita. Enquanto isso não
+   se decide, o bloco da resolução existe no banco e não compõe.
 
 Ver também `osg/arquitetura-alteracoes-contratuais-por-eventos.md` (a máquina da AC por
 eventos, que a fatia 2 consome) e `planos/ledger-societario-e-alteracao-derivada.md` (o

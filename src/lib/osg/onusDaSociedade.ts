@@ -67,11 +67,18 @@ export interface OnusSubrogado {
 }
 
 export interface PlanoDaSubrogacao {
-  /** Linhas novas, para o adquirente. Vazio na redução. */
+  /**
+   * As linhas que nascem, TODAS presas ao movimento que as criou: a parte que
+   * foi para o adquirente e, quando a sub-rogação é parcial, a parte que ficou
+   * com o cedente.
+   *
+   * Nasce tudo de novo em vez de encolher a linha antiga porque assim o
+   * desfazer é sempre o mesmo gesto: o cascade leva estas, e o ônus antigo
+   * volta a viger apagando o `extinto_em`. Encolher exigiria guardar o número
+   * anterior em algum lugar para restaurá-lo depois.
+   */
   novos: OnusSubrogado[];
-  /** Ônus do cedente que encolhem: a quantidade que SOBRA neles. */
-  reduzidos: Array<{ onusId: string; quotas: number }>;
-  /** Ônus do cedente que somem por inteiro. */
+  /** Ônus do cedente que a sub-rogação encerra. Sempre por inteiro. */
   extintos: string[];
   /** Quantas das quotas movidas estavam gravadas ou sob usufruto. */
   quotasOneradasQueSaem: number;
@@ -82,8 +89,7 @@ export interface PlanoDaSubrogacao {
 }
 
 const PLANO_VAZIO: PlanoDaSubrogacao = {
-  novos: [], reduzidos: [], extintos: [], quotasOneradasQueSaem: 0,
-  problema: null, avisos: [],
+  novos: [], extintos: [], quotasOneradasQueSaem: 0, problema: null, avisos: [],
 };
 
 /**
@@ -119,17 +125,29 @@ export function planejarSubrogacao(args: {
 
   const avisos: string[] = [];
   const novos: OnusSubrogado[] = [];
-  const reduzidos: Array<{ onusId: string; quotas: number }> = [];
   const extintos: string[] = [];
 
   let falta = precisa;
   for (const onus of doCedente) {
     if (falta <= 0) break;
     const sai = Math.min(falta, onus.quotas);
+    const fica = onus.quotas - sai;
     falta -= sai;
 
-    if (sai === onus.quotas) extintos.push(onus.id);
-    else reduzidos.push({ onusId: onus.id, quotas: onus.quotas - sai });
+    extintos.push(onus.id);
+    // Sub-rogação parcial: o que não saiu volta como linha nova do cedente,
+    // presa ao mesmo movimento. Mesmo ônus, mesma pessoa, número menor.
+    if (fica > 0) {
+      novos.push({
+        deOnusId: onus.id,
+        nuProprietarioId: onus.nuProprietarioId,
+        usufrutuarioIds: onus.usufrutuarioIds,
+        usufrutoOrigem: onus.usufrutoOrigem,
+        comVoto: onus.comVoto,
+        quotas: fica,
+        gravames: onus.gravames,
+      });
+    }
 
     if (!movimento.destinoPessoaId) continue;
 
@@ -178,7 +196,7 @@ export function planejarSubrogacao(args: {
       + 'antes, ou registre a transferência pelo título que o instrumento previu.'
     : null;
 
-  return { novos, reduzidos, extintos, quotasOneradasQueSaem: precisa, problema, avisos };
+  return { novos, extintos, quotasOneradasQueSaem: precisa, problema, avisos };
 }
 
 // ---------------------------------------------------------------------------
@@ -394,4 +412,17 @@ export function quotasQueFaltamParaOAlvo(args: {
     .reduce((s, o) => s + BigInt(o.quotas), 0n);
   const alvo = (pctAlvoEscalado * capital + 500_000n) / 1_000_000n;
   return alvo > jaVota ? alvo - jaVota : 0n;
+}
+
+/** A frase que nomeia o ato no card de Atos Societários. */
+export function descricaoDaInstituicao(
+  plano: PlanoDaInstituicao,
+  nomes: ReadonlyMap<string, string>,
+): string {
+  const concedentes = [...new Set(plano.onus.map((o) => o.nuProprietarioId))].map((id) => nomeDe(nomes, id));
+  const usufrutuarios = [...new Set(plano.onus.flatMap((o) => o.usufrutuarioIds))].map((id) => nomeDe(nomes, id));
+  const total = plano.onus.reduce((s, o) => s + o.quotas, 0);
+  const voto = plano.onus.every((o) => o.comVoto) ? ', com direito de voto' : '';
+  return `Instituição de usufruto sobre ${inteiro(total)} quotas de ${concedentes.join(' e ')}`
+    + ` em favor de ${usufrutuarios.join(' e ')}${voto}`;
 }

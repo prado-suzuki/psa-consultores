@@ -12,6 +12,7 @@ import {
   mapearIntegralizacoes,
   mapearEstadoDosOnus,
   mapearListasDaDoacao,
+  mapearUsufrutosInstituidos,
   matriculasDescritasNasIntegralizacoes,
   mapearMatricula,
   mapearPartesSelecionadas,
@@ -158,6 +159,42 @@ describe('listas da doação com reserva de usufruto', () => {
     expect(estado.problemas.join(' | ')).toContain('Alguém do quadro ficou de fora');
     // A tabela continua saindo: a pendência avisa, não trava a prévia.
     expect(estado.quadroUsufruto).toHaveLength(2);
+  });
+});
+
+describe('usufruto instituído, que não é o reservado', () => {
+  const pai = { id: 'pai', denominacao: 'João', tipo_pessoa: 'PF' } as PessoaRow;
+  const mae = { id: 'mae', denominacao: 'Maria', tipo_pessoa: 'PF' } as PessoaRow;
+  const filha = { id: 'filha', denominacao: 'Ana', tipo_pessoa: 'PF' } as PessoaRow;
+  const pessoas = new Map([[pai.id, pai], [mae.id, mae], [filha.id, filha]]);
+
+  it('nomeia quem concede, quem usufrui e se o voto acompanha', () => {
+    const itens = mapearUsufrutosInstituidos([{
+      movimentoId: null, nuProprietarioId: filha.id, usufrutuarioIds: [pai.id, mae.id],
+      usufrutoOrigem: 'instituicao', comVoto: true, quotas: 4_874_552, gravames: [],
+    }], (id) => pessoas.get(id));
+
+    expect(itens).toHaveLength(1);
+    expect(itens[0]).toMatchObject({ comVoto: true, semVoto: false });
+    expect(itens[0].nuProprietario).toMatchObject({ nome: 'Ana' });
+    expect(itens[0].usufruto).toMatchObject({
+      quotas: '4.874.552', usufrutuarioNomes: 'João e Maria', ordemRomana: 'i',
+    });
+  });
+
+  it('sem voto, a seção que o instrumento usa é a outra', () => {
+    const [item] = mapearUsufrutosInstituidos([{
+      movimentoId: null, nuProprietarioId: filha.id, usufrutuarioIds: [pai.id],
+      usufrutoOrigem: 'instituicao', comVoto: false, quotas: 100, gravames: [],
+    }], (id) => pessoas.get(id));
+    expect(item).toMatchObject({ comVoto: false, semVoto: true });
+  });
+
+  it('ônus sem usufrutuário (só gravame) não é instituição e fica de fora', () => {
+    expect(mapearUsufrutosInstituidos([{
+      movimentoId: null, nuProprietarioId: filha.id, usufrutuarioIds: [],
+      usufrutoOrigem: null, comVoto: true, quotas: 100, gravames: ['inalienabilidade'],
+    }], (id) => pessoas.get(id))).toEqual([]);
   });
 });
 

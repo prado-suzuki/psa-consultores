@@ -327,6 +327,18 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     fonte: 'quadro',
     camposExtras: [],
   },
+  // O usufruto INSTITUÍDO, que não é o reservado de `usufrutos`: a direção do
+  // ato inverte. Na reserva quem doou guarda o voto; aqui quem tem a quota o
+  // entrega, por ato próprio e guia própria, sem que a quota mude de mão.
+  usufrutosInstituidos: {
+    label: 'Usufrutos instituídos',
+    tipo: 'pessoa',
+    itemKey: 'nuProprietario',
+    itemKeysExtras: ['usufruto'],
+    secoesItem: ['comVoto', 'semVoto'],
+    fonte: 'quadro',
+    camposExtras: [],
+  },
   // Os gravames VIGENTES, que é coisa diferente de `gravamesQuotas`: aquela
   // narra o que este ato criou, esta descreve o que a sociedade carrega hoje. O
   // contrato consolidado republica a segunda a cada alteração, inclusive nas
@@ -828,6 +840,11 @@ export function listarPlaceholders(): PlaceholderSugerido[] {
     [PAPEIS_LISTA.gravamesQuotas.label, [
       ['gravame.quotas', 'Quotas gravadas'], ['gravame.quotasExtenso', 'Quotas gravadas por extenso'],
       ['gravame.nomes', 'Gravames aplicados'],
+    ]],
+    [PAPEIS_LISTA.usufrutosInstituidos.label, [
+      ['usufruto.quotas', 'Quotas instituídas'], ['usufruto.quotasExtenso', 'Quotas instituídas por extenso'],
+      ['usufruto.usufrutuarioNomes', 'Nomes das pessoas usufrutuárias'],
+      ['usufruto.usufrutuarioQualificacoes', 'Qualificações das pessoas usufrutuárias'],
     ]],
     [PAPEIS_LISTA.gravamesVigentes.label, [
       ['gravame.quotas', 'Quotas gravadas'], ['gravame.quotasExtenso', 'Quotas gravadas por extenso'],
