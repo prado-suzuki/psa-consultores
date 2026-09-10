@@ -47,6 +47,17 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Work Sans', 'sans-serif'],
+        /**
+         * A face do CROMO — barra lateral e cabeçalho de área. O conteúdo
+         * continua em Work Sans (`font-sans`, o padrão): a distinção é entre
+         * a moldura e o que está dentro dela, não entre áreas.
+         *
+         * Ela já era usada, mas como `style={{ fontFamily: "'Instrument
+         * Sans', sans-serif" }}` escrito à mão — dez lugares no Board, e o
+         * `index.html` já carregava a fonte. Nomear por PAPEL é o que permite
+         * trocar a face do cromo inteiro num lugar só.
+         */
+        barra: ['Instrument Sans', 'Work Sans', 'sans-serif'],
       },
       colors: {
         border: 'hsl(var(--border) / <alpha-value>)',

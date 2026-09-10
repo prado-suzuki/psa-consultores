@@ -20,6 +20,12 @@ import {
 import { usePageAccess } from '@/hooks/usePageAccess';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
 import { classeLarguraBarra } from '@/lib/sidebarMedidas';
+import {
+  FACE_DA_BARRA,
+  classesEyebrowDaBarra,
+  classesItemDaBarra,
+} from '@/lib/barraLateralCromo';
+import { cn } from '@/lib/utils';
 import { AgenteNotificacaoPopup } from '@/components/agente/AgenteNotificacaoPopup';
 import { BoardAgenteDiretoria } from '@/components/board/BoardAgenteDiretoria';
 import { BoardToolbar } from '@/components/board/BoardToolbar';
@@ -77,17 +83,31 @@ const buildNavItems = (acesso: BoardNavAccess): NavItem[] => [
  *   mesmo do Tax e da OSG) entravam com chrome escuro em cima de conteúdo
  *   claro, e o contraste entre os dois roubava a atenção do dado.
  *
- * Agora a barra é branca, o item ativo é uma PÍLULA cheia no teal escuro
- * (`--bd-accent-d`, 6,7:1 com o texto branco em cima — o teal cheio da marca
- * daria 4,40:1 e não serve para carregar letra), e a hierarquia do menu vem do
- * peso e do espaçamento, como na referência.
+ * Agora a barra é branca, o item ativo é uma PÍLULA cheia e a hierarquia do
+ * menu vem do peso e do espaçamento, como na referência.
+ *
+ * ── E a pílula virou o padrão das NOVE barras ─────────────────────────
+ * Desde 10/09/2026 este desenho não é mais só do Board: a usuária olhou as
+ * nove e pediu esta caixa em toda rota. Ele mora em `@/lib/barraLateralCromo`,
+ * e o que sobrou aqui é a montagem.
+ *
+ * Uma coisa mudou na mudança: a pílula lia `--bd-chrome-active`, que aponta
+ * para `--accent-d`. No piso isso é o teal escuro da marca e estava certo; na
+ * Tax e na OSG, não — as duas apontam `--accent-d` para `--status-andamento`,
+ * um token de STATUS. Agora ela lê `--primary`, a âncora da área.
+ *
+ * A nota antiga citava aqui um contraste de 4,40:1 para "o teal cheio da
+ * marca", e isso ficou confuso ao ponto de virar argumento contra `--primary`.
+ * O 4,40:1 é do `#0D877C`, o teal que este arquivo teve CRAVADO à mão até
+ * `--bd-accent` passar a ler o token. Medido de novo, com letra branca:
+ * piso 5,54:1, Tax 9,90:1, OSG 7,92:1 — os três passam AA.
  *
  * ── O usuário subiu para o topo ───────────────────────────────────────
  * Só o nome de acesso e as iniciais ficam no topbar — título e filtros
  * moram na toolbar do conteúdo, à direita do título da tela.
  */
 export const BoardLayout = ({ children, title, subtitle, headerActions, noPadding }: BoardLayoutProps) => {
-  const { user, isAdmin, isLider } = useAuth();
+  const { isAdmin, isLider } = useAuth();
   const { hasAccess: canUsoEnvio } = usePageAccess('/equipe/board/uso-envio');
   const { hasAccess: canLogsEquipe } = usePageAccess('/equipe/board/logs-equipe');
   const navigate = useNavigate();
@@ -120,18 +140,6 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
 
-  const firstName = user?.user_metadata?.first_name || user?.email?.split('@')[0] || 'Usuario';
-  const lastName = user?.user_metadata?.last_name || '';
-  const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase() || 'U';
-  const role = isAdmin ? 'Admin' : isLider ? 'Lider' : 'Membro';
-
-  /** Uma linha do menu. Ativo = pílula cheia; inativo = texto + hover suave. */
-  const navBtnStyle = (ativo: boolean, recolhido: boolean): React.CSSProperties => ({
-    backgroundColor: ativo ? 'var(--bd-chrome-active)' : 'transparent',
-    color: ativo ? '#FFFFFF' : 'var(--bd-ink2)',
-    fontWeight: ativo ? 600 : 500,
-    justifyContent: recolhido ? 'center' : undefined,
-  });
 
   const SidebarContent = ({ collapsed = false }: { collapsed?: boolean }) => (
     <div
@@ -155,14 +163,15 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
         >
           <div
             className="w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: 'var(--bd-accent-d)' }}
+            // Mesmo papel da pílula: é a âncora da área, não o acento.
+            style={{ backgroundColor: 'hsl(var(--primary))' }}
           >
             <LayoutDashboard className="h-[15px] w-[15px] text-white" />
           </div>
           {!collapsed && (
             <span
-              className="text-[15.5px] font-bold tracking-[-0.02em]"
-              style={{ fontFamily: "'Instrument Sans', sans-serif", color: 'var(--bd-ink)' }}
+              className={cn(FACE_DA_BARRA, 'text-[15.5px] font-bold tracking-[-0.02em]')}
+              style={{ color: 'var(--bd-ink)' }}
             >
               PSA Board
             </span>
@@ -174,17 +183,18 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
       <ScrollArea className="flex-1 px-3 py-4">
         {/* DIRETORIA */}
         <div className="mb-5">
-          {!collapsed && (
-            <p className="px-2.5 mb-1.5 text-[9.5px] font-bold uppercase tracking-[0.13em]" style={{ color: 'var(--bd-ink4)' }}>
-              Diretoria
-            </p>
-          )}
+          {/* Montado SEMPRE: recolhido ele fica invisível e continua ocupando a
+              altura. Desmontar colapsaria o respiro e os dois blocos do menu
+              se encostariam — ver `classesEyebrowDaBarra`. */}
+          <p className={classesEyebrowDaBarra(collapsed)}>Diretoria</p>
           {navItems.filter(i => !i.adminOnly).map((item) => (
             <button
               key={item.path}
               onClick={() => { navigate(item.path); setMobileOpen(false); }}
-              className="w-full flex items-center gap-2.5 rounded-[10px] text-[13px] transition-all duration-150 relative mb-0.5 px-2.5 py-2"
-              style={navBtnStyle(isActive(item.path), collapsed)}
+              className={cn(
+                classesItemDaBarra({ ativo: isActive(item.path), trilho: collapsed }),
+                'relative mb-0.5',
+              )}
               title={collapsed ? item.label : undefined}
             >
               <item.icon className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isActive(item.path) ? 1 : 0.7 }} />
@@ -197,17 +207,15 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
             que existe nas áreas Tax e OSG (/equipe/tax/gerencial, /equipe/osg/gerencial). */}
         {showGestaoTime && (
           <div className="mb-5">
-            {!collapsed && (
-              <p className="px-2.5 mb-1.5 text-[9.5px] font-bold uppercase tracking-[0.13em]" style={{ color: 'var(--bd-ink4)' }}>
-                Gestão de Time
-              </p>
-            )}
+            <p className={classesEyebrowDaBarra(collapsed)}>Gestão de Time</p>
             {navItems.filter(i => i.adminOnly).map((item) => (
               <button
                 key={item.path}
                 onClick={() => { navigate(item.path); setMobileOpen(false); }}
-                className="w-full flex items-center gap-2.5 rounded-[10px] text-[13px] transition-all duration-150 relative mb-0.5 px-2.5 py-2"
-                style={navBtnStyle(isActive(item.path), collapsed)}
+                className={cn(
+                  classesItemDaBarra({ ativo: isActive(item.path), trilho: collapsed }),
+                  'relative mb-0.5',
+                )}
                 title={collapsed ? item.label : undefined}
               >
                 <item.icon className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isActive(item.path) ? 1 : 0.7 }} />
@@ -291,8 +299,12 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
           duas classes ficam escritas literais para o Tailwind gerá-las. */}
       <main className={`flex-1 flex flex-col min-w-0 overflow-hidden ml-0 transition-all duration-300 ${collapsed ? 'md:ml-20' : 'md:ml-64'}`}>
         {/* Topbar — 56px */}
+        {/* Topbar — 48px, e `md:hidden` desde 10/09/2026: o unico morador dela
+            era o chip de nome + iniciais do usuario, que desceu para o cartao da
+            barra junto com as outras oito areas. No desktop sobrava uma faixa
+            vazia com borda; no celular ela continua sendo quem abre a gaveta. */}
         <header
-          className="bd-masthead flex items-center justify-end px-4 md:px-6 gap-3 flex-shrink-0"
+          className="bd-masthead md:hidden flex items-center justify-end px-4 md:px-6 gap-3 flex-shrink-0"
           style={{ backgroundColor: 'var(--bd-chrome)', borderBottom: '1px solid var(--bd-chrome-line)' }}
         >
           <Button
@@ -305,12 +317,6 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
             <Menu className="h-5 w-5" />
           </Button>
 
-          <div className="flex items-center gap-2.5 py-2">
-            <p className="text-[12.5px] font-semibold leading-none" style={{ color: 'var(--bd-ink)' }}>
-              {firstName}{lastName ? ` ${lastName}` : ''}
-            </p>
-            <div className="v4-av v4-av-sm" title={role}>{initials}</div>
-          </div>
         </header>
 
         {/* Scrollable content — o recorte de cluster mora à direita do título
