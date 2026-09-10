@@ -166,6 +166,7 @@ const ChecklistsDocumentos = lazy(() => import("./pages/equipe/osg/ChecklistsDoc
 const Relatorios = lazy(() => import("./pages/equipe/osg/Relatorios"));
 const OsgAuditoria = lazy(() => import("./pages/equipe/osg/OsgAuditoria"));
 const OrgaosGovernanca = lazy(() => import('./pages/equipe/osg/OrgaosGovernanca'));
+const MatrizDeAlcadas = lazy(() => import('./pages/equipe/osg/MatrizDeAlcadas'));
 const PapelDeTrabalho = lazy(() => import('./pages/equipe/dev/PapelDeTrabalho'));
 const GeradorDeSlides = lazy(() => import('./pages/equipe/dev/GeradorDeSlides'));
 const PlanejamentoTributarioHub = lazy(() => import('./pages/equipe/dev/PlanejamentoTributarioHub'));
@@ -368,6 +369,7 @@ const App = () => (
                 <Route path="/equipe/osg/work/checklists" element={<ProtectedRoute><ChecklistsDocumentos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/governanca/orgaos" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/orgaos"> <OrgaosGovernanca /> </PageAccessGate> } />
+                <Route path="/equipe/osg/work/governanca/matriz" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/matriz"> <MatrizDeAlcadas /> </PageAccessGate> } />
               </Route>
               {/* Gestão de Chamados dentro da Gerencial da OSG. Espelha a Tax. Hoje
                   nasce vazia: não há chamado com cluster OSG. */}

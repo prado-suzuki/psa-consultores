@@ -1,10 +1,10 @@
-import { type ReactNode, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Landmark, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
 
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { OrgaoGovernancaModal } from '@/components/equipe/osg/governanca/OrgaoGovernancaModal';
+import { ComAjuda } from '@/components/equipe/osg/ComAjuda';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -37,26 +37,6 @@ import { cn } from '@/lib/utils';
  * um seletor próprio: quem está trabalhando um cliente não deveria escolhê-lo de
  * novo a cada tela.
  */
-/**
- * Cabeçalho de coluna com explicação no hover.
- *
- * Vale só onde o rótulo é vocabulário de quem já sabe: "Hierarquia" e "Vigência"
- * não dizem o efeito que têm. Onde o próprio rótulo já explica, tooltip vira
- * ruído, e é por isso que a coluna do contrato não tem um.
- */
-function ComAjuda({ texto, children }: { texto: string; children: ReactNode }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="cursor-help border-b border-dotted border-muted-foreground/40">
-          {children}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent className="max-w-xs text-xs leading-relaxed">{texto}</TooltipContent>
-    </Tooltip>
-  );
-}
-
 const OrgaosGovernanca = () => {
   const { clienteId } = useOsgWork();
   const { data: orgaos = [], isLoading } = useOrgaosGovernanca(clienteId);
@@ -65,9 +45,6 @@ const OrgaosGovernanca = () => {
   const [modalAberto, setModalAberto] = useState(false);
   const [emEdicao, setEmEdicao] = useState<OrgaoGovernanca | null>(null);
   const [aExcluir, setAExcluir] = useState<OrgaoGovernanca | null>(null);
-
-  // Cabecalho em caixa alta e miúdo, como as outras listas do módulo.
-  const cabecalhoCls = 'h-10 text-[11px] uppercase tracking-wide';
 
   const nomes = useMemo(() => orgaos.map((o) => o.nome), [orgaos]);
   const faltamPadroes = useMemo(() => padroesFaltando(nomes), [nomes]);
@@ -187,24 +164,24 @@ const OrgaosGovernanca = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className={cn(cabecalhoCls, 'w-16')}>
+                      <TableHead className="w-16">
                         <ComAjuda texto="A lista está em ordem de autoridade, do maior para o menor. É ela que diz para onde a decisão sobe quando o valor passa da alçada.">
                           Hierarquia
                         </ComAjuda>
                       </TableHead>
-                      <TableHead className={cabecalhoCls}>Nome do órgão</TableHead>
+                      <TableHead>Nome do órgão</TableHead>
                       {/*
                         Sem tooltip de propósito: "Status" precisava de um, porque
                         prometia ativo e inativo e entregava outra coisa. Nomeando
                         o contrato, as duas células leem sozinhas.
                       */}
-                      <TableHead className={cabecalhoCls}>Contrato social</TableHead>
-                      <TableHead className={cabecalhoCls}>
+                      <TableHead>Contrato social</TableHead>
+                      <TableHead>
                         <ComAjuda texto="O período em que o órgão existiu na estrutura do cliente. Em branco quer dizer que está vigente hoje.">
                           Vigência
                         </ComAjuda>
                       </TableHead>
-                      <TableHead className={cn(cabecalhoCls, 'w-24 text-right')}>Ações</TableHead>
+                      <TableHead className="w-24 text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -252,9 +229,13 @@ const OrgaosGovernanca = () => {
                         <TableCell className="py-2.5 text-sm font-medium">{orgao.nome}</TableCell>
                         <TableCell className="py-2.5">
                           {orgao.entra_no_contrato ? (
-                            <Badge variant="secondary">Recebe competência</Badge>
+                            <Badge variant="outline" className="border-osg-200 bg-osg-50 text-osg-700">
+                              Recebe competência
+                            </Badge>
                           ) : (
-                            <span className="text-xs text-muted-foreground">Só na Matriz</span>
+                            <Badge variant="outline" className="text-muted-foreground">
+                              Só na Matriz
+                            </Badge>
                           )}
                         </TableCell>
                         <TableCell className="py-2.5 text-xs text-muted-foreground">

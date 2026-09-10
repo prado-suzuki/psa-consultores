@@ -291,12 +291,16 @@ WHERE NOT EXISTS (
 -- Os grupos sao os momentos em que um orgao age numa atividade, lidos do proprio
 -- modelo: quem decide, quem analisa e leva adiante, quem prepara, quem toca a
 -- compra, e quem executa e acompanha.
+--
+-- "NAO PARTICIPA" NAO ESTA AQUI, e e de proposito: ele e MARCA da celula
+-- (`matriz_competencia.nao_participa`) e nao papel. Um quarto das celulas reais e
+-- isto, e a pergunta "este orgao participa?" precisa ter resposta sem abrir a
+-- lista. Ele chegou a ser semeado como papel em 09/09 e saiu na migration
+-- seguinte.
 
 INSERT INTO public.papel_governanca (cliente_id, nome, grupo, ordem)
 SELECT NULL, v.nome, v.grupo, v.ordem
 FROM (VALUES
-  ('Não participa',                        'Ausência',            10),
-
   ('Delibera',                             'Decisão',             20),
   ('Aprova',                               'Decisão',             30),
   ('Autoriza',                             'Decisão',             40),
@@ -308,6 +312,7 @@ FROM (VALUES
   ('Propõe',                               'Análise',             90),
   ('Sugere',                               'Análise',            100),
   ('Indica',                               'Análise',            110),
+  ('Solicita',                             'Análise',            115),
   ('Manifesta-se',                         'Análise',            120),
 
   ('Elabora a proposta',                   'Preparação',         130),
@@ -324,7 +329,9 @@ FROM (VALUES
   ('Formaliza',                            'Negociação',         230),
 
   ('Executa',                              'Execução',           240),
+  ('Realiza',                              'Execução',           245),
   ('Implementa',                           'Execução',           250),
+  ('Implanta',                             'Execução',           255),
   ('Monitora',                             'Execução',           260),
   ('Acompanha a execução',                 'Execução',           270),
   ('Presta contas',                        'Execução',           280),
@@ -358,8 +365,8 @@ BEGIN
     v_falhas := v_falhas || format('esperava 24 atividades padrao e ha %s', v_atividades);
   END IF;
 
-  IF v_papeis < 30 THEN
-    v_falhas := v_falhas || format('esperava ao menos 30 papeis padrao e ha %s', v_papeis);
+  IF v_papeis < 32 THEN
+    v_falhas := v_falhas || format('esperava ao menos 32 papeis padrao e ha %s', v_papeis);
   END IF;
 
   -- Sem RLS, o catalogo de um cliente vazaria para outro.
