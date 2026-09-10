@@ -826,7 +826,27 @@ export const REBAIXAMENTO = {
   degrauDeLuminosidade: 4,
   /** Quanto ela ganha em saturação para compensar o degrau, em pontos. */
   compensacaoDeSaturacao: 4,
+  /**
+   * Quanto a LINHA desce abaixo da superfície rebaixada, em pontos.
+   *
+   * Entrou em 10/09/2026, com a opção D. Até ali o `--border` era o quarto valor
+   * escrito à mão da pilha e o único cuja escada divergia entre as áreas: contra
+   * o canvas ele era −2 na base, +6 na Tax e −4 na OSG. Não eram três desvios de
+   * uma regra, eram três regras.
+   *
+   * A saturação NÃO tem parâmetro próprio: a linha usa a do rebaixado. É o que
+   * mata a anomalia da Tax, onde a borda era mais saturada que a própria página.
+   * Uma família de matiz e saturação, três profundidades de luminosidade.
+   */
+  degrauDaLinha: 3,
 } as const;
+
+/**
+ * O piso da linha de controle. Separado de `FAIXA` porque mede outra coisa: a
+ * `FAIXA.contrasteMinimo` é 4,5:1, o AA de TEXTO, e este é 3:1, o de componente
+ * de interface (WCAG 1.4.11). Juntá-los faria um dos dois estar errado.
+ */
+export const LINHA_DE_CONTROLE = { contrasteMinimo: 3 } as const;
 
 /** O `--muted` que o `--canvas` de uma área obriga. */
 export function rebaixar(canvas: Hsl): Hsl {
@@ -835,6 +855,12 @@ export function rebaixar(canvas: Hsl): Hsl {
     s: canvas.s + REBAIXAMENTO.compensacaoDeSaturacao,
     l: canvas.l - REBAIXAMENTO.degrauDeLuminosidade,
   };
+}
+
+/** O `--border` que o `--canvas` de uma área obriga: o rebaixado, um degrau abaixo. */
+export function riscar(canvas: Hsl): Hsl {
+  const rebaixado = rebaixar(canvas);
+  return { ...rebaixado, l: rebaixado.l - REBAIXAMENTO.degrauDaLinha };
 }
 
 /**
@@ -852,24 +878,71 @@ export function rebaixar(canvas: Hsl): Hsl {
  */
 export function problemasDeRebaixamento(css: string, seletor: string): ProblemaDePaleta[] {
   const canvas = corDoTema(css, seletor, 'canvas');
-  const muted = corDoTema(css, seletor, 'muted');
-  if (!canvas || !muted) {
+  if (!canvas) {
+    return [{ tema: seletor, item: 'canvas', motivo: 'não resolve — var() apontando para o vazio, ou cor escrita em hex' }];
+  }
+
+  const problemas: ProblemaDePaleta[] = [];
+  const derivados = [
+    { nome: 'muted', esperado: rebaixar(canvas) },
+    { nome: 'border', esperado: riscar(canvas) },
+    { nome: 'input', esperado: riscar(canvas) },
+  ];
+
+  for (const { nome, esperado } of derivados) {
+    const declarado = corDoTema(css, seletor, nome);
+    if (!declarado) {
+      problemas.push({ tema: seletor, item: nome, motivo: `--${nome} não resolve — var() apontando para o vazio, ou cor escrita em hex` });
+      continue;
+    }
+    const desvios: string[] = [];
+    if (declarado.h !== esperado.h) desvios.push(`matiz ${declarado.h}° onde o canvas é ${canvas.h}°`);
+    if (declarado.s !== esperado.s) desvios.push(`saturação ${declarado.s}% onde a derivação dá ${esperado.s}%`);
+    if (declarado.l !== esperado.l) desvios.push(`luminosidade ${declarado.l}% onde a derivação dá ${esperado.l}%`);
+    if (desvios.length > 0) {
+      problemas.push({ tema: seletor, item: nome, motivo: `valor não derivado do canvas: ${desvios.join('; ')}` });
+    }
+  }
+
+  return problemas;
+}
+
+/**
+ * Confere se a linha de CONTROLE alcança os 3:1 da WCAG 1.4.11 contra o cartão.
+ * Lista vazia = aprovado.
+ *
+ * Este é o único contrato desta base que cobra 3:1 e não 4,5:1, e a diferença
+ * não é folga: 1.4.11 é sobre componente de interface, não sobre texto. A
+ * pergunta que ele faz é "a pessoa consegue ACHAR o campo?", não "consegue LER
+ * o que está escrito nele".
+ *
+ * O valor NÃO é derivado, e de propósito. A luminosidade que fecha 3:1 depende
+ * da matiz e da saturação de cada área — 52% na base, 56% na Tax, 55% na OSG, e
+ * 42% no escuro, onde a linha precisa CLAREAR porque o cartão é escuro. Derivar
+ * exigiria resolver a equação de contraste dentro do teste, o que trocaria um
+ * número legível por uma busca; cobrar a razão diz a mesma coisa e sobrevive a
+ * qualquer área nova, inclusive uma escura.
+ */
+export function problemasDaLinhaDeControle(css: string, seletor: string): ProblemaDePaleta[] {
+  const linha = corDoTema(css, seletor, 'border-control');
+  const card = corDoTema(css, seletor, 'card');
+  if (!linha || !card) {
     return [
       {
         tema: seletor,
-        item: 'muted / canvas',
-        motivo: `não resolve (${canvas ? '' : '--canvas '}${muted ? '' : '--muted'}) — var() apontando para o vazio, ou cor escrita em hex`,
+        item: 'border-control / card',
+        motivo: `não resolve (${linha ? '' : '--border-control '}${card ? '' : '--card'}) — var() apontando para o vazio, ou cor escrita em hex`,
       },
     ];
   }
-
-  const esperado = rebaixar(canvas);
-  const desvios: string[] = [];
-  if (muted.h !== esperado.h) desvios.push(`matiz ${muted.h}° onde o canvas é ${canvas.h}°`);
-  if (muted.s !== esperado.s) desvios.push(`saturação ${muted.s}% onde o rebaixamento dá ${esperado.s}%`);
-  if (muted.l !== esperado.l) desvios.push(`luminosidade ${muted.l}% onde o rebaixamento dá ${esperado.l}%`);
-
-  return desvios.length === 0
+  const razao = contraste(linha, card);
+  return razao >= LINHA_DE_CONTROLE.contrasteMinimo
     ? []
-    : [{ tema: seletor, item: 'muted', motivo: `valor não derivado do canvas: ${desvios.join('; ')}` }];
+    : [
+        {
+          tema: seletor,
+          item: 'border-control',
+          motivo: `--border-control sobre --card em ${razao.toFixed(2)}:1, abaixo dos ${LINHA_DE_CONTROLE.contrasteMinimo}:1 da WCAG 1.4.11`,
+        },
+      ];
 }

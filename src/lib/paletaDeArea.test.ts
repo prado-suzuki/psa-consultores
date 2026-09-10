@@ -10,6 +10,7 @@ import {
   distanciaDeMatiz,
   paletaDoTema,
   problemasDeDivergencia,
+  problemasDaLinhaDeControle,
   problemasDeRebaixamento,
   problemasDeSeparacao,
   problemasDeSuperficie,
@@ -194,7 +195,7 @@ describe('paletas de área declaradas no index.css', () => {
     ).toEqual([...DIVIDA_SEMANTICA].sort());
   });
 
-  it.each(TEMAS)('%s: a superfície rebaixada é o fundo de página dela, um degrau abaixo', tema => {
+  it.each(TEMAS)('%s: a superfície rebaixada e a linha saem do fundo de página dela', tema => {
     // Quarto andar do mesmo buraco, e o primeiro que não é sobre contraste.
     //
     // Os três anteriores perguntavam "o texto por cima fecha AA?" e por isso
@@ -210,10 +211,15 @@ describe('paletas de área declaradas no index.css', () => {
     // papéis de status. O `--muted` deixa de ser escolha escrita em três
     // blocos e passa a ser consequência do canvas de cada área.
     //
+    // O `--border` ENTROU em 10/09, com a opção D. Antes ele era o quarto valor
+    // à mão da pilha e o único cuja escada divergia entre as áreas (−2 / +6 / −4
+    // contra o canvas); D o pôs na mesma família — matiz e saturação do
+    // rebaixado, 3 pontos abaixo dele. A anomalia da Tax, com a borda mais
+    // saturada que a própria página, morreu nessa mesma linha.
+    //
     // O `--canvas` continua livre de propósito — é o par disto, uma escolha por
-    // área como a âncora. Ver a nota de `REBAIXAMENTO` para por que o
-    // `--border` NÃO entrou junto: contra o canvas ele é −2 / +6 / −4 nas três
-    // áreas, ou seja, não existe uma escada ali para derivar.
+    // área como a âncora, e a OSG prova que tem que ser livre: âncora musgo
+    // (149) com superfície areia (32).
     const problemas = problemasDeRebaixamento(css, BLOCO_DE_SUPERFICIE[tema]);
     const relatorio = problemas.map(p => `  ${p.tema} · ${p.item}: ${p.motivo}`).join('\n');
     expect(
@@ -221,6 +227,24 @@ describe('paletas de área declaradas no index.css', () => {
       `o --muted não é o rebaixamento do --canvas da área. Se a intenção era mudar\n` +
         `a superfície, mude o --canvas e deixe o --muted seguir:\n${relatorio}`,
     ).toEqual([]);
+  });
+
+  it.each(TEMAS)('%s: a linha de campo fecha os 3:1 da WCAG 1.4.11', tema => {
+    // A dívida mais velha desta frente, e a única cobrada a 3:1 em vez de 4,5:1:
+    // 1.4.11 é sobre ACHAR o componente, não sobre ler o que está escrito nele.
+    //
+    // Ela ficou aberta nos três temas porque um valor só fazia três trabalhos —
+    // contorno de cartão, linha de tabela e borda de campo — e escurecê-lo para
+    // 3:1 escureceria toda linha de tabela do produto. A opção D separou os dois
+    // trabalhos, e aí a dívida passou a ser pagável sem esse custo.
+    //
+    // Cobra a RAZÃO e não o valor porque a luminosidade que fecha 3:1 depende da
+    // matiz e da saturação de cada área — e no escuro a linha precisa CLAREAR,
+    // não escurecer. Um número fixo diria a coisa certa em uma área e a errada
+    // nas outras.
+    const problemas = problemasDaLinhaDeControle(css, BLOCO_DE_SUPERFICIE[tema]);
+    const relatorio = problemas.map(p => `  ${p.tema} · ${p.item}: ${p.motivo}`).join('\n');
+    expect(problemas, `linha de controle abaixo do exigido:\n${relatorio}`).toEqual([]);
   });
 
   it.each(TEMAS)('%s: o texto fecha AA sobre a superfície que a área entrega', tema => {

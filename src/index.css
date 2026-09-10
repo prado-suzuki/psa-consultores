@@ -377,7 +377,7 @@ All colors MUST be HSL.
     --base-700: 28 20% 24%;
 
     /* OSG accent — taupe/brown (versão mais escura) */
-    --osg-50: 32 28% 92%;
+    --osg-50: 32 28% 89%;
     --osg-100: 30 26% 84%;
     --osg-200: 30 25% 70%;
     --osg-300: 30 23% 56%;
@@ -561,8 +561,25 @@ All colors MUST be HSL.
        3:1 exige luminosidade por volta de 72% no lugar de 89%, ou seja borda
        visivelmente escura em todo input do produto. É decisão de design em
        aberto, não esquecimento. */
-    --border: 168 14% 89%;
-    --input: 168 14% 89%;
+    /* Um degrau abaixo do rebaixado (89%), na saturação dele. */
+    --border: 168 20% 86%;
+    --input: 168 20% 86%;
+    /* ─── A linha que o usuário precisa ACHAR ──────────────────────────────
+       Nasceu em 10/09/2026 e existe porque um valor fazia três trabalhos:
+       contorno de cartão, linha entre linhas de tabela e borda de campo. A
+       1,15:1 ele servia para os dois primeiros — que são divisória, e divisória
+       pode sussurrar — e reprovava no terceiro, onde a WCAG 1.4.11 pede 3:1
+       para a pessoa conseguir ACHAR o campo na tela.
+
+       A dívida estava registrada nos três temas e nunca foi paga, sempre pelo
+       mesmo motivo: pagá-la com um token só escureceria toda linha de tabela do
+       produto. Separando por TRABALHO ela se paga sem esse custo.
+
+       A luminosidade difere entre as áreas (52 / 56 / 55) e isso não é escolha:
+       é o valor em que a matiz e a saturação de cada área alcançam 3:1 contra o
+       cartão branco. Matiz mais luminosa precisa descer mais. O teste não olha
+       o número, cobra a razão. */
+    --border-control: 168 20% 52%;
 
     /* Sinais do sistema — os mesmos três papéis do `:root`, e aqui o `var()`
        faz o trabalho sozinho: como cada tema declara os próprios `--status-*`,
@@ -619,8 +636,26 @@ All colors MUST be HSL.
     --background: 168 22% 99.4%;
     --card: 0 0% 100%;
     --popover: 0 0% 100%;
-    --canvas: 168 16% 96%;
-    --muted: 168 20% 92%;
+    /* ─── A pilha ganhou altura em 10/09/2026 (opção D) ───────────────────
+       A página vinha a 96% e o cartão a 100%: 4 pontos de luminosidade para
+       toda a pilha. Nessa faixa a cor não tem onde renderizar — foi o que a
+       comparação `docs/geral/comparacoes-de-cor/linha-e-cartao.html` mostrou ao
+       pôr três opções de borda lado a lado e as três saírem iguais. Não eram
+       parecidas: não havia espaço onde pudessem ser diferentes.
+
+       96% → 93%, e o que sustenta o número: a 93% o degrau cartão↔página dá
+       1,153–1,164:1 nas três áreas, que é o que a BORDA dava contra a página
+       (1,157–1,193:1). Ou seja o contorno do cartão sempre foi redundante —
+       quem separa o cartão do fundo é o degrau, e a linha só estava lá porque
+       sempre esteve. De quebra a cor da área ganha os 3 pontos de escala que
+       lhe faltavam para existir.
+
+       O `--muted` acompanha pela REGRA, não por edição: `rebaixar(--canvas)`
+       em `paletaDeArea.ts` obriga mesma matiz, saturação +4 e luminosidade −4,
+       e a catraca reprova quem escrever outra coisa. Mexer no canvas é a única
+       maneira de mover a superfície rebaixada. */
+    --canvas: 168 16% 93%;
+    --muted: 168 20% 89%;
     --muted-foreground: 180 10% 38%;
     /* O vermelho de excluir é o `ajuste` da área, e a linha abaixo é a única
        coisa que resta de uma calibragem inteira. O valor anterior era 84% de
@@ -740,7 +775,7 @@ All colors MUST be HSL.
        A LUMINOSIDADE do `--muted` abaixo NÃO muda: os 92% dele estão alinhados
        entre as três áreas de propósito, e mexer neles quebra o contraste que
        aquela nota calibrou. A MATIZ dele mudou depois — ver a nota própria. */
-    --canvas: 192 10% 96%;
+    --canvas: 192 10% 93%;
     /* ─── A superfície rebaixada foi junto, e demorou uma passada a mais ────
        Este valor era `168 20% 92%`, ou seja, o `--muted` da CASA copiado letra
        por letra — não havia delta nenhum aqui. Enquanto o canvas também estava
@@ -760,8 +795,11 @@ All colors MUST be HSL.
 
        Saturação 20% → 14%: é o canvas + 4 pontos, que é a distância que a base
        (16 → 20) e a OSG (24 → 28) já usam entre os dois papéis. Não é número
-       novo, é a razão das outras duas aplicada aqui. */
-    --muted: 192 14% 92%;
+       novo, é a razão das outras duas aplicada aqui.
+
+       A luminosidade saiu de 92% para 89% em 10/09 e NÃO por escolha daqui:
+       o canvas desceu 3 pontos e o rebaixamento a arrastou junto. */
+    --muted: 192 14% 89%;
 
     /* O secundário acompanha a temperatura da superfície: com o fundo da Tax
        frio, um neutro quente aqui repetiria — ao contrário — a dissonância que
@@ -772,8 +810,12 @@ All colors MUST be HSL.
        mesma luminosidade HSL, então o par que dava 4,53:1 sobre `168 20% 92%`
        cairia para 4,47:1 sobre `192 14% 92%` — abaixo do 4,5:1 do AA, sem erro
        de build e sem ninguém ver. A 40% volta a 4,56:1, e sobe também sobre
-       card (5,27 → 5,37) e sobre canvas (4,87 → 4,97). */
-    --muted-foreground: 185 8% 40%;
+       card (5,27 → 5,37) e sobre canvas (4,87 → 4,97).
+
+       Desceu de novo em 10/09, de 40% para 38,5%, pelo mesmo tipo de motivo:
+       com a página a 93% o rebaixado foi para 89%, e o par cairia a 4,26:1.
+       A 38,5% volta a 4,52:1. */
+    --muted-foreground: 185 8% 38.5%;
     /* Papéis de status — os mesmos oito significados do `:root`, com a
        saturação puxada na direção do azul-petróleo da Tax. Ver o `:root`. */
     --status-neutro: 32 21% 12%;
@@ -866,8 +908,14 @@ All colors MUST be HSL.
        escada de saturação das três é divergente e arrumá-la é decisão de
        design, registrada em `docs/geral/cor-o-que-falta.md`. Esta passada
        alinhou MATIZ, que não custa pixel; mexer na saturação custa. */
-    --border: 192 16% 89%;
-    --input: 192 16% 89%;
+    /* Um degrau abaixo do rebaixado (89%), na saturação dele. A anomalia de
+       a borda ser mais saturada que a própria página morreu aqui: era 16%
+       sobre um canvas de 10%, e agora é 14%, o mesmo do rebaixado. */
+    --border: 192 14% 86%;
+    --input: 192 14% 86%;
+    /* A linha de controle da área: 3,04:1 contra o cartão. Ver a nota no
+       `.base-theme` para por que este token existe. */
+    --border-control: 192 14% 56%;
     --success: var(--status-feito);
     --warning: var(--status-alerta);
     --success-foreground: 0 0% 100%;
@@ -910,8 +958,16 @@ All colors MUST be HSL.
        na OSG do que nas outras áreas. O valor aqui fecha em 1,26, igual à casa.
        As paletas conversam no REGISTRO e mudam de família; o peso da linha é
        registro. */
-    --border: 32 20% 88%;
-    --input: 32 20% 88%;
+    /* Um degrau abaixo do rebaixado (89%), na saturação dele. */
+    --border: 32 28% 86%;
+    --input: 32 28% 86%;
+    /* A linha de controle da área: 3,01:1 contra o cartão. Ver a nota no
+       `.base-theme` para por que este token existe.
+
+       Os 54,5% saem meio ponto abaixo dos 55% que a conta contra branco puro
+       daria: o cartão da OSG não é branco, é `32 28% 98,5%`, e a 55% o par
+       ficava em 2,96:1. Quem pegou foi a catraca, antes do commit. */
+    --border-control: 32 28% 54.5%;
 
     /* Sinais na OSG — foi o bloco que mais mudou. "Ok" era o verde musgo e
        "aviso" era o dourado do marca-texto, tokens de marca da área usados
@@ -984,15 +1040,17 @@ All colors MUST be HSL.
 
     /* Canvas (fundo da página) — areia clara, mesma matiz porém um pouco mais
        escura que os cards, para eles "saltarem". Substitui o slate-50 azulado. */
-    --osg-canvas: 32 24% 96%;
+    --osg-canvas: 32 24% 93%;
     --canvas: var(--osg-canvas);
 
     /* Superfícies "muted" (barras de filtro, cabeçalho de tabela, linhas zebra):
        trocam o cinza-azulado padrão pelo bege quente osg-50 (#f0ebe5), o mesmo
        fundo da barra CLIENTE do OSG Work. */
     --muted: var(--osg-50);
-    /* Secundario da OSG: neutro quente do lado do taupe da area. */
-    --muted-foreground: 24 12% 41.5%;
+    /* Secundario da OSG: neutro quente do lado do taupe da area. Desceu de
+       41,5% para 40% em 10/09, quando a pagina foi para 93% e o rebaixado
+       para 89%: o par cairia a 4,27:1 e volta a 4,52:1. */
+    --muted-foreground: 24 12% 40%;
 
     /* Vermelho de exclusão/cancelar — o `ajuste` da OSG. Era o `--osg-red`
        (carmim/tijolo #B62F38), escolhido para conviver com a paleta quente da
@@ -1136,6 +1194,19 @@ All colors MUST be HSL.
 
     --border: 35 9% 30%;
     --input: 35 9% 30%;
+    /* A linha de controle do escuro: 3,01:1 contra o cartão (`35 10% 14%`).
+       A do claro DESCE para achar os 3:1; esta SOBE, porque aqui o cartão é
+       escuro. Mesma regra, direção oposta — é a razão que é o contrato, não
+       o número. Ver a nota no `.base-theme`.
+
+       ⚠️ Este bloco não declara `--canvas`, então herda o do `.base-theme`,
+       que é CLARO (168 16% 93%). Desde que os layouts passaram a pintar com
+       `bg-canvas`, o escuro renderizaria página clara atrás de cartão
+       escuro. NÃO foi corrigido aqui: escolher o canvas do escuro é decisão
+       de design, não sobra de refatoração. E hoje nada põe a classe `dark`
+       no app — não há toggle, e o `next-themes` só aparece no `ui/sonner.tsx`
+       que veio do shadcn. Fica escrito para quem for ligar o escuro. */
+    --border-control: 35 9% 42%;
     --ring: 172 66% 50%;
 
     --sidebar-background: 34 14% 8%;
