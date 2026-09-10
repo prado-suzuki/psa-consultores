@@ -1,6 +1,6 @@
 # Cor: o que falta, e por que cada coisa parou onde parou
 
-Estado em **10/09/2026**. O corpo do documento é a rodada de 19 commits de 01/09; em 03/09
+Estado em **10/09/2026**, com a lista de retomada remedida no fim do dia. O corpo do documento é a rodada de 19 commits de 01/09; em 03/09
 vieram cinco rodadas em cima dele — os rótulos de chamado, o estado de documento, a palavra
 única dos três pares, a âncora vermelha da OSG e a pasta `equipe/audit` —, e o §5 ganhou três
 catracas. Em 10/09 entrou a quarta e ela é de outra natureza: a primeira que não pergunta
@@ -340,12 +340,15 @@ domínios de uma vez — foi ele que ficou com o masculino.
 | tom que a escala não tem | `escala/cor-inexistente` e `escala/cor-de-estoque` |
 | cor crua **slate** | catraca `src/lib/filaDoSlate.test.ts` — nasce **vazia**, e qualquer classe slate nova derruba |
 | âncora `osg-red` pintando status | catraca `src/lib/filaDoOsgRed.test.ts` — nasce **vazia**; não é cor de estoque, é token nosso no lugar errado |
+| **cinza (`gray`)** | **parcial, e e o buraco maior** — a `cor-de-estoque` so dispara em tom que a escala do projeto NAO define, entao `bg-gray-500` passa. 580 ocorrencias medidas em 10/09 |
 | **verde, vermelho, azul, roxo, laranja** | **nenhuma** |
 | rótulo divergente de **chamado** | catraca `src/lib/chamadoStatusColors.test.ts` — nasce **vazia**, varre pelo conjunto de chaves |
 | rótulo divergente de status | catraca `src/lib/rotulosDeStatus.test.ts` — pega "Em Progresso" em JSX e trava a palavra dos três mapas |
 | **`--muted` divergindo do `--canvas` da área** | catraca `problemasDeRebaixamento` em `paletaDeArea.test.ts` — não olha o valor, **recalcula** com `rebaixar(--canvas)` e compara sem tolerância |
 
-A linha em negrito é o buraco que sobrou: cor crua nas famílias que não têm guarda nenhuma.
+As linhas em negrito são o buraco que sobrou. A do `gray` entrou em 10/09/2026 e é a maior de
+todas — ela ficou fora desta tabela por um ano porque o nome está no `tailwind.config.ts`, o
+que dá a impressão de que a `cor-de-estoque` cobre. Cobre só o tom faltante, não o uso.
 
 **Por que o slate precisou de catraca própria, e por que as outras famílias também vão
 precisar:** a regra `escala/cor-de-estoque` só dispara em nome que o projeto **também** define
@@ -438,18 +441,46 @@ O que **continua** à mão, e por quê:
 
 ## Se você for retomar por um só item
 
-Nesta ordem, do mecânico ao que exige decisão:
+**A ordem mudou em 10/09/2026, e mudou porque alguém rodou o comando.** A lista anterior
+mandava começar por `red` e `emerald`, "as maiores sem guarda", com 207 e 135 medidos em
+03/09. Remedido hoje: `red` são **176** e `emerald` **72** — e a maior de todas, que nunca
+esteve nesta lista, é o **`gray`, com 580**. A lista estava errada desde que foi escrita; o
+número que faltava não era velho, era ausente.
 
-1. **A catraca de mais uma família** (§5) — `red` e `emerald` são as maiores sem guarda, e
-   nenhuma tem concentração: em 03/09 eram 207 e 135 ocorrências espalhadas por ~100 arquivos,
-   com o maior arquivo em 9. Ou seja, **não** é conversão por mapa como as três rodadas
-   anteriores; é inventário por motivo, na forma da `filaDoAlerta`. O molde está em
-   `medirCorCrua.ts`, e a `chamadoStatusColors.test.ts` mostra a variante que varre por
-   conjunto de chaves em vez de por classe.
-2. **Os papéis que faltam** (§1) — por mapa, nunca por classe. É o que rendeu nas quatro
-   rodadas de 03/09: procurar o mapa do domínio antes de escrever classe achou, das quatro
-   vezes, reuso que não tinha acontecido — na última, um `ACTION_LABELS` de três entradas
-   com três vocabulários de cor dentro.
-3. **`projects.status`** (§3) — precisa da decisão de produto antes de tudo.
+> **Remeça antes de escolher.** Este bloco envelhece como todos os outros:
+> ```
+> # por família, nas pastas de tela, ignorando teste — o recorte é o de medirCorCrua.ts
+> PROPS='bg|text|border|divide|ring|fill|stroke|from|to|via|outline|decoration|accent|caret|placeholder|shadow'
+> grep -rhoE "([a-z-]+:)*($PROPS)-(gray|red|teal|blue|green|amber|emerald)-[0-9]{2,3}" >   src/components src/pages --include='*.tsx' --include='*.ts' >   | sed -E 's/.*-(gray|red|teal|blue|green|amber|emerald)-[0-9]+//' | sort | uniq -c | sort -rn
+> ```
+
+Medido em 10/09/2026, ordenado:
+
+| família | ocorrências | arquivos | tem guarda? |
+|---|---|---|---|
+| **`gray`** | **580** | 61 | só parcial — a `cor-de-estoque` só dispara em tom que a escala do projeto NÃO tem |
+| `red` | 176 | 58 | nenhuma |
+| `teal` | 112 | 36 | aviso de ESLint |
+| `blue` | 108 | 41 | nenhuma |
+| `green` / `amber` | 81 / 81 | 28 / 31 | `amber` tem a `filaDoAlerta` |
+| `emerald` | 72 | 29 | nenhuma |
+
+Nesta ordem, do que rende ao que exige decisão:
+
+1. **`gray`, e ele é conversão por MAPA, não inventário.** É o que o diferencia do `red` e do
+   `emerald`, que continuam espalhados fino: **12 arquivos concentram 313 das 580**, e eles se
+   agrupam por domínio — `EquipeSprints` (39), `ImpactDashboard` (39), `Auth` (38),
+   `ProjectInfoTab` (38), `DemandDialogs` (36), depois Kanban, Processos e o `Header`. Quase
+   tudo é Rotina. É exatamente a forma em que a alavanca do mapa de domínio rendeu **cinco
+   vezes em cinco** em 03/09, e a varredura por família nenhuma.
+2. **Os papéis que faltam** (§1) — por mapa, nunca por classe. Mesma alavanca do item acima.
+3. **`red` e `emerald`** (§5) — aí sim inventário por motivo, na forma da `filaDoAlerta`, porque
+   não têm concentração. O molde está em `medirCorCrua.ts`, e a `chamadoStatusColors.test.ts`
+   mostra a variante que varre por conjunto de chaves em vez de por classe.
+4. **`projects.status`** (§3) — precisa da decisão de produto antes de tudo, e é o único item
+   desta lista que o CLIENTE vê. Reconferido em produção em 10/09 pelo MCP do Lovable: a coluna
+   segue com `Melhorias` (10) e `Diagnóstico` (7), e os três mapas seguem sem casar com ela.
+   Estar em quarto é ordem de execução, não de importância — ele está parado em decisão, e os
+   três acima não.
 
 O `osg-red` saiu desta lista: fechou em 03/09 e virou catraca (§7).
