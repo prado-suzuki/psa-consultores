@@ -415,8 +415,13 @@ O que **continua** à mão, e por quê:
   `muted-foreground` e o novo é `foreground` — cor nenhuma afirmando o que o dado não diz. Se
   fosse `ajuste`, o vermelho passaria a significar duas coisas no mesmo painel, porque o
   `deleted` do mapa logo acima é `ajuste`.
-- **WCAG 1.4.11** — borda de controle a 1,26:1 contra os 3:1 exigidos, nos três temas. Chegar
-  lá escurece todo input do produto; é decisão de design, registrada no contrato.
+- **WCAG 1.4.11 — fechado em 10/09/2026.** Ficou aberto enquanto um valor só fazia três
+  trabalhos (contorno de cartão, linha de tabela, borda de campo): escurecê-lo para 3:1
+  levaria junto toda linha de tabela. Separado por trabalho, `--border-control` fecha 3,01 a
+  3,05:1 nos três temas e no `.dark` — onde ele **clareia**, porque lá o cartão é escuro. A
+  catraca cobra a razão, não o valor. Falta a fase 2 da opção D, que é fazer os controles
+  consumirem o token. Ver `paleta-por-area.md`, que também corrige um "por volta de 72%"
+  errado que ficou dez dias no contrato e chegou a induzir uma medição.
 - **`getProcessStageInfo` × `getStageBadge`** — etapa desconhecida vira "Descoberta" num e
   aparece crua no outro. As duas leituras convivem, com o conflito escrito no comentário da
   função, até alguém decidir qual é a certa.
