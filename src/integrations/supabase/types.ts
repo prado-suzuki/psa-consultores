@@ -5565,6 +5565,7 @@ export type Database = {
       }
       onus_quotas: {
         Row: {
+          ato_id: string | null
           cliente_id: string
           created_at: string
           created_by: string | null
@@ -5583,6 +5584,7 @@ export type Database = {
           usufrutuario_pessoa_ids: string[]
         }
         Insert: {
+          ato_id?: string | null
           cliente_id: string
           created_at?: string
           created_by?: string | null
@@ -5601,6 +5603,7 @@ export type Database = {
           usufrutuario_pessoa_ids?: string[]
         }
         Update: {
+          ato_id?: string | null
           cliente_id?: string
           created_at?: string
           created_by?: string | null
@@ -5619,6 +5622,13 @@ export type Database = {
           usufrutuario_pessoa_ids?: string[]
         }
         Relationships: [
+          {
+            foreignKeyName: "onus_quotas_ato_id_fkey"
+            columns: ["ato_id"]
+            isOneToOne: false
+            referencedRelation: "ato_societario"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "onus_quotas_cliente_id_fkey"
             columns: ["cliente_id"]
