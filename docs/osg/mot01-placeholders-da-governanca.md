@@ -40,7 +40,8 @@ escreve "03 (três)", com número e extenso na mesma frase.
 | `semCargos` | condicional | derivado: lista vazia | dispara "com denominação atribuída no momento da composição", a redação do Mattei |
 | `representaSozinhoAte` | moeda | `representa_sozinho_ate` | "cujo valor não exceda R$ 2.000.000,00" |
 | `representaSozinhoAteExtenso` | derivado | de `representaSozinhoAte` | "(dois milhões de reais)" |
-| `representaDoisAcima` | condicional | `representa_dois_acima_do_limite` | dispara o trecho das três alternativas de assinatura |
+| `representaAssinantesAcima` | inteiro | `representa_assinantes_acima` | "deverão ser assinados por 02 (dois) representantes". A Patricia definiu em 10/09 que o número fica aberto: o cliente decide quantos, e o campo guarda o número em vez de uma marcação de "dois" |
+| `representaAssinantesAcimaExtenso` | derivado | de `representaAssinantesAcima` | "(dois)" |
 
 `vigencia_inicio` e `vigencia_fim` **não entram**: nos sete contratos lidos a
 vigência do órgão não vira cláusula nenhuma. São histórico do sistema.
@@ -99,22 +100,33 @@ Alternativa se o filtro por órgão se mostrar caro: três listas fixas,
 `competenciasDaReuniaoDeSocios`. Rígido, mas cobre os três órgãos padrão que
 recebem cláusula, e foi o que o de-para do Mattei mostrou.
 
-## 4. A grade da matriz como tabela
+## 4. A grade da matriz como tabela, e para onde ela NÃO vai
 
-O `tabela.ts` monta a tabela a partir do texto renderizado: uma linha que começa
-e termina com `|` vira linha, e as células saem do split por `|`. As LINHAS
-saem de graça do loop de seção. As COLUNAS, não: elas estão literais no texto do
-bloco.
+**A grade não entra no contrato social.** Conferido nos arquivos: a
+consolidação do Mattei tem duas tabelas, e as duas são o quadro societário
+(SÓCIAS, QUOTAS, VALOR) e o bloco de assinaturas. O próprio
+`V1_Matriz de Alçadas_Contrato Social Mattei.docx`, cujo nome anuncia a matriz,
+tem ZERO tabelas. No contrato a matriz vira alínea, uma por atividade, dentro
+da cláusula de competência do órgão, que é o que o de-para das 23 linhas já
+tinha mostrado.
+
+O `pronto quando` do card pede que "a grade da matriz saia como tabela", e isso
+é capacidade do motor para o **documento da Matriz de Alçadas**, que hoje a OSG
+entrega como planilha. Não é o contrato.
+
+Dito isso, a limitação técnica é real e vale para qualquer tabela dinâmica. O
+`tabela.ts` monta a tabela a partir do texto renderizado: uma linha que começa e
+termina com `|` vira linha, e as células saem do split por `|`. As LINHAS saem
+de graça do loop de seção. As COLUNAS, não: estão literais no texto do bloco.
 
 A matriz tem uma coluna por órgão, e o número de órgãos muda de cliente para
 cliente. Então uma das duas:
 
-1. a seção aceitar separador vazio, de modo que `{{#celulas}}| {{ resumo }} {{/celulas}}`
-   emita as células na mesma linha;
+1. a seção aceitar separador vazio, de modo que
+   `{{#celulas}}| {{ resumo }} {{/celulas}}` emita as células na mesma linha;
 2. o modelo da matriz ser montado por cliente, com as colunas escritas.
 
-A (1) é a que mantém um modelo só. **Medir antes de escolher** é o primeiro
-passo de código desta linha.
+A (1) é a que mantém um modelo só. **Medir antes de escolher.**
 
 ## 5. Entidade `acordoQuotistas`
 
