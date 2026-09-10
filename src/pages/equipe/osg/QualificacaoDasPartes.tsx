@@ -62,6 +62,21 @@ const FiliacaoCell = ({ fundador, vinculos }: { fundador: boolean | null; vincul
   );
 };
 
+/**
+ * As duas tabelas (PJ e PF) têm as mesmas cinco colunas e ficam empilhadas na
+ * mesma página. Com o layout automático da tabela, cada uma media as colunas
+ * pelo próprio conteúdo e os cabeçalhos saíam desalinhados entre os dois cards;
+ * a largura fixa por coluna faz as duas baterem.
+ */
+const COLUNA = {
+  denominacao: 'w-[34%]',
+  documento: 'w-[15%]',
+  // "Papel" na PJ, "Filiação" na PF: mesma posição, mesma largura.
+  qualificacao: 'w-[19%]',
+  municipio: 'w-[22%]',
+  acoes: 'w-[10%]',
+} as const;
+
 const PessoasTable = ({
   titulo, icone, tipo, pessoas, buscaAtiva, documentoLabel, mostrarPapel, filiacaoPorPessoa, onNovo, onEditar, onRemover,
 }: PessoasTableProps) => (
@@ -82,15 +97,15 @@ const PessoasTable = ({
         </p>
       ) : (
         <div className="rounded-md border overflow-hidden">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead>Denominação</TableHead>
-                <TableHead>{documentoLabel}</TableHead>
-                {mostrarPapel && <TableHead>Papel</TableHead>}
-                {filiacaoPorPessoa && <TableHead>Filiação</TableHead>}
-                <TableHead>Município/UF</TableHead>
-                <TableHead className="w-24 text-right">Ações</TableHead>
+                <TableHead className={COLUNA.denominacao}>Denominação</TableHead>
+                <TableHead className={COLUNA.documento}>{documentoLabel}</TableHead>
+                {mostrarPapel && <TableHead className={COLUNA.qualificacao}>Papel</TableHead>}
+                {filiacaoPorPessoa && <TableHead className={COLUNA.qualificacao}>Filiação</TableHead>}
+                <TableHead className={COLUNA.municipio}>Município/UF</TableHead>
+                <TableHead className={`${COLUNA.acoes} text-right`}>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
