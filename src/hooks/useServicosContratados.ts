@@ -17,8 +17,7 @@ export const useServicosContratados = (clientId: string | null | undefined) => {
         .from('ordem_servico' as any) as any)
         .select('id')
         .eq('id_cliente', clientId)
-        .eq('situacao', 'em_andamento')
-        .eq('excluido', false);
+        .eq('situacao', 'em_andamento');
 
       if (!osData?.length) return [];
 

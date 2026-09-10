@@ -18,8 +18,7 @@ export function useClienteAtual() {
       const { data, error } = await supabase
         .from('representante' as any)
         .select('id_cliente')
-        .eq('user_id', user.id)
-        .eq('excluido', false);
+        .eq('user_id', user.id);
 
       if (error) throw error;
 

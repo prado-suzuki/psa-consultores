@@ -159,8 +159,7 @@ export function useOrdensDeServicoDoCliente(clienteId: string | null) {
       const { data, error } = await supabase
         .from('ordem_servico')
         .select('id, numero_os, situacao, data_inicio, data_fim')
-        .eq('id_cliente', clienteId as string)
-        .eq('excluido', false);
+        .eq('id_cliente', clienteId as string);
       if (error) throw error;
 
       const peso = (s: string | null) => (s === 'em_andamento' ? 0 : s === 'suspenso' ? 1 : 2);
