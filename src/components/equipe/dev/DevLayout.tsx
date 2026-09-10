@@ -2,34 +2,45 @@ import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 import { PendingTicketsAlert } from '@/components/notifications/PendingTicketsAlert';
 import {
   LayoutDashboard,
-  LogOut,
   ExternalLink,
   ChevronLeft,
+  ChevronRight,
   ChevronDown,
   Menu,
   Plus,
   ArrowLeft,
+  ArrowLeftRight,
   FileText,
-  User,
+  FileCode2,
+  FileSearch,
+  Percent,
+  Truck,
+  Target,
+  Database,
   Calculator,
   BookOpen,
   type LucideIcon,
 } from 'lucide-react';
 import { DEV_HUBS } from '@/constants/devHubDefinitions';
 import { DEV_NAV_LABELS } from '@/constants/devNavLabels';
+import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
 import {
   useFecharGavetaAoNavegar,
   useSidebarRecolhimentoController,
 } from '@/hooks/useSidebarRecolhimentoController';
 import { SidebarFundoGaveta } from '@/components/shared/SidebarFundoGaveta';
-import { classesGavetaBarra } from '@/lib/sidebarMedidas';
+import {
+  classeLarguraBarra,
+  classeRecuoCabecalho,
+  classesGavetaBarra,
+} from '@/lib/sidebarMedidas';
+import { cn } from '@/lib/utils';
 
 interface DevLayoutProps {
   children: React.ReactNode;
@@ -48,6 +59,13 @@ interface NavItem {
 
 interface HubSidebarSectionProps {
   label: string;
+  /**
+   * Ícone do hub. Ele NÃO vem de `DEV_HUBS`: lá só as opções internas têm
+   * ícone, o hub em si nunca teve — a barra desenhava rótulo puro. No trilho
+   * de 80px o rótulo não cabe e o ícone é a única coisa que sobra, então cada
+   * hub precisou do seu, escolhido aqui.
+   */
+  icon: LucideIcon;
   landingPath: string;
   items: NavItem[];
   open: boolean;
@@ -55,12 +73,18 @@ interface HubSidebarSectionProps {
   active: boolean;
   currentPath: string;
   navigate: (path: string) => void;
+  /** Barra recolhida: sobra o ícone, e o grupo não abre. */
+  trilho: boolean;
 }
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: DEV_NAV_LABELS.inicio, path: '/equipe/dev' },
   { icon: Plus, label: DEV_NAV_LABELS.novaFerramenta, path: '/equipe/dev/nova-ferramenta' },
-  { icon: LayoutDashboard, label: DEV_NAV_LABELS.consultaXmls, path: '/equipe/dev/consulta-xmls' },
+  // `FileCode2` e não `LayoutDashboard`: os dois itens vinham com o MESMO
+  // ícone, e enquanto a barra não tinha trilho isso não aparecia — o ícone
+  // sequer era desenhado. No trilho de 80px sobra só o ícone, e dois botões
+  // idênticos não se distinguem.
+  { icon: FileCode2, label: DEV_NAV_LABELS.consultaXmls, path: '/equipe/dev/consulta-xmls' },
 ];
 
 const spedSubItems: NavItem[] = DEV_HUBS.consultaSped.options.map((option) => ({
@@ -117,6 +141,7 @@ const navItemsAfterGroups: NavItem[] = [
 
 const HubSidebarSection = ({
   label,
+  icon: Icon,
   landingPath,
   items,
   open,
@@ -124,62 +149,76 @@ const HubSidebarSection = ({
   active,
   currentPath,
   navigate,
+  trilho,
 }: HubSidebarSectionProps) => (
   <Collapsible open={open} onOpenChange={onOpenChange}>
     <div
-      className={`flex items-center gap-1 rounded-lg px-3 py-1 text-sm font-medium transition-colors h-auto ${
-        active ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted hover:text-primary'
-      }`}
+      className={cn(
+        'flex items-center gap-1 rounded-lg py-1 text-sm font-medium transition-colors h-auto',
+        trilho ? 'px-2' : 'px-3',
+        active ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted hover:text-primary',
+      )}
     >
       <button
         type="button"
-        className="flex-1 px-0 py-1.5 text-left"
+        className={cn(
+          'flex flex-1 items-center py-1.5',
+          trilho ? 'justify-center px-0' : 'gap-3 px-0 text-left',
+        )}
         onClick={() => {
           onOpenChange(true);
           navigate(landingPath);
         }}
+        title={trilho ? label : undefined}
       >
-        {label}
+        <Icon className="h-4 w-4 flex-shrink-0" />
+        {!trilho && <span className="min-w-0 truncate">{label}</span>}
       </button>
 
-      <CollapsibleTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`h-8 w-8 flex-shrink-0 ${
-            active
-              ? 'text-primary hover:bg-primary/10 hover:text-primary'
-              : 'text-foreground hover:bg-muted hover:text-primary'
-          }`}
-        >
-          <ChevronDown
-            className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-          />
-        </Button>
-      </CollapsibleTrigger>
+      {/* No trilho o grupo não abre: os filhos não teriam onde caber, e a seta
+          ao lado de um ícone centralizado tira o ícone do centro. Clicar no
+          hub continua indo para a página dele. */}
+      {!trilho && (
+        <CollapsibleTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-8 w-8 flex-shrink-0 ${
+              active
+                ? 'text-primary hover:bg-primary/10 hover:text-primary'
+                : 'text-foreground hover:bg-muted hover:text-primary'
+            }`}
+          >
+            <ChevronDown
+              className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            />
+          </Button>
+        </CollapsibleTrigger>
+      )}
     </div>
 
-    <CollapsibleContent className="mt-0.5 space-y-0.5 pl-4">
-      {items.map((item) => (
-        <Button
-          key={item.path}
-          variant="ghost"
-          className={`w-full justify-start rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-            currentPath === item.path
-              ? 'bg-primary/10 text-primary hover:bg-primary/15'
-              : 'text-muted-foreground hover:bg-muted hover:text-primary'
-          }`}
-          onClick={() => navigate(item.path)}
-        >
-          {item.label}
-        </Button>
-      ))}
-    </CollapsibleContent>
+    {!trilho && (
+      <CollapsibleContent className="mt-0.5 space-y-0.5 pl-4">
+        {items.map((item) => (
+          <Button
+            key={item.path}
+            variant="ghost"
+            className={`w-full justify-start rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              currentPath === item.path
+                ? 'bg-primary/10 text-primary hover:bg-primary/15'
+                : 'text-muted-foreground hover:bg-muted hover:text-primary'
+            }`}
+            onClick={() => navigate(item.path)}
+          >
+            {item.label}
+          </Button>
+        ))}
+      </CollapsibleContent>
+    )}
   </Collapsible>
 );
 
 export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: DevLayoutProps) => {
-  const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   // O recolhimento automático em telas de trabalho largo mora no hook — é a
@@ -188,14 +227,12 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
   const { collapsed, setCollapsed, emGaveta } = barra;
   // No celular a barra é gaveta: cada navegação a fecha (ver o hook).
   useFecharGavetaAoNavegar(barra);
-  // A barra desta área recolhe até `w-0`, sem trilho. Na gaveta ela também
-  // não encolhe: ela desliza para fora da tela, com os rótulos montados.
+  // Recolhida, a barra vira TRILHO de 80px com os ícones — não some mais. Era
+  // a última que zerava a largura (a Rotina saiu de lá antes), e sumir deixa o
+  // usuário sem âncora: o menu inteiro desaparece e o único caminho de volta é
+  // o hambúrguer do cabeçalho. Na gaveta não existe trilho: ela é sempre de
+  // 16rem e desliza para fora da tela com os rótulos montados.
   const trilho = collapsed && !emGaveta;
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
-  };
 
   const [spedOpen, setSpedOpen] = useState(
     () =>
@@ -257,24 +294,52 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
       // acabaram pintando com a superfície REBAIXADA. Ver a nota lá.
       className="flex min-h-screen w-full"
     >
-      <aside
-        className={`${trilho ? 'w-0' : 'w-64 border-r border-border/60'} ${classesGavetaBarra(collapsed)} sticky top-0 h-screen flex-shrink-0 overflow-x-hidden overflow-y-auto bg-card transition-all duration-300 ease-in-out scrollbar-hide`}
+      {/* A barra e o botão de recolher são IRMÃOS, e não pai e filho: o botão
+          pousa meio fora da borda direita (`-right-3`) e o `overflow-y-auto` da
+          barra o recortaria pela metade. Mesmo arranjo da Tax, da OSG e da
+          Rotina. */}
+      <div
+        className={cn(
+          'sticky top-0 h-screen relative flex-shrink-0 transition-all duration-300 ease-in-out',
+          classeLarguraBarra(trilho),
+          classesGavetaBarra(collapsed),
+        )}
       >
-        {!trilho && (
-          <>
-            <div className="flex flex-shrink-0 items-center justify-between border-b border-border/60 p-6">
-              <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-foreground">{AREAS.dev.nome}</h2>
-                <p className="text-xs text-muted-foreground">{AREAS.dev.subtitulo}</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="flex-shrink-0 text-muted-foreground hover:text-foreground"
-                onClick={() => setCollapsed(true)}
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
+        {/* `max-md:hidden`: na gaveta quem abre é o hambúrguer do cabeçalho e
+            quem fecha é o fundo escuro — aqui o botão pousaria fora da tela. */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-6 -right-3 z-20 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted text-muted-foreground shadow-sm max-md:hidden"
+          onClick={() => setCollapsed(!collapsed)}
+          title={trilho ? 'Expandir menu' : 'Recolher menu'}
+        >
+          {trilho ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        </Button>
+
+        <aside className="h-full w-full border-r border-border/60 bg-card flex flex-col overflow-x-hidden overflow-y-auto scrollbar-hide">
+            {/* Cabeçalho. No trilho sobra um SELO, que esta barra não tinha: o
+                cabeçalho dela era texto puro, e texto puro não sobrevive a
+                80px. O recuo cai de `p-6` para `p-4` — com 24px de cada lado
+                sobrariam 32px de largura útil para um selo de 40px. */}
+            <div
+              className={cn(
+                'flex-shrink-0 border-b border-border/60',
+                classeRecuoCabecalho(trilho),
+              )}
+            >
+              {trilho ? (
+                <div className="flex justify-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                    <LayoutDashboard className="h-5 w-5 text-primary" />
+                  </div>
+                </div>
+              ) : (
+                <div className="min-w-0">
+                  <h2 className="text-lg font-semibold text-foreground">{AREAS.dev.nome}</h2>
+                  <p className="text-xs text-muted-foreground">{AREAS.dev.subtitulo}</p>
+                </div>
+              )}
             </div>
 
             <nav className="space-y-1 p-4">
@@ -282,58 +347,70 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                 <Button
                   key={item.path}
                   variant="ghost"
-                  className={`w-full justify-start rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  className={cn(
+                    'w-full rounded-lg py-2.5 text-sm font-medium transition-colors',
+                    trilho ? 'justify-center px-2' : 'justify-start px-3',
                     isItemActive(item)
                       ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                      : 'text-foreground hover:bg-muted hover:text-primary'
-                  }`}
+                      : 'text-foreground hover:bg-muted hover:text-primary',
+                  )}
                   onClick={() => navigate(item.path)}
+                  title={trilho ? item.label : undefined}
                 >
-                  {item.label}
+                  <item.icon className={cn('h-4 w-4 flex-shrink-0', !trilho && 'mr-3')} />
+                  {!trilho && item.label}
                 </Button>
               ))}
 
               <HubSidebarSection
                 label={DEV_HUBS.consultaSped.label}
+                icon={FileSearch}
                 landingPath={DEV_HUBS.consultaSped.landingPath}
                 items={spedSubItems}
                 open={spedOpen}
                 onOpenChange={setSpedOpen}
                 active={isSpedActive}
                 currentPath={location.pathname}
+                trilho={trilho}
                 navigate={navigate}
               />
 
               <HubSidebarSection
                 label={DEV_HUBS.levantamentoPisCofins.label}
+                icon={Percent}
                 landingPath={DEV_HUBS.levantamentoPisCofins.landingPath}
                 items={pisCofinsSubItems}
                 open={pisCofinsOpen}
                 onOpenChange={setPisCofinsOpen}
                 active={isPisCofinsActive}
                 currentPath={location.pathname}
+                trilho={trilho}
                 navigate={navigate}
               />
 
               <HubSidebarSection
                 label={DEV_HUBS.analiseIcms.label}
+                icon={Truck}
                 landingPath={DEV_HUBS.analiseIcms.landingPath}
                 items={analiseIcmsSubItems}
                 open={analiseIcmsOpen}
                 onOpenChange={setAnaliseIcmsOpen}
                 active={isAnaliseIcmsActive}
                 currentPath={location.pathname}
+                trilho={trilho}
                 navigate={navigate}
               />
 
               <HubSidebarSection
                 label={DEV_HUBS.perdcomp.label}
+                icon={ArrowLeftRight}
                 landingPath={DEV_HUBS.perdcomp.landingPath}
                 items={perdcompSubItems}
                 open={perdcompOpen}
                 onOpenChange={setPerdcompOpen}
                 active={isPerdcompActive}
                 currentPath={location.pathname}
+                trilho={trilho}
                 navigate={navigate}
               />
 
@@ -341,77 +418,70 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                 <Button
                   key={item.path}
                   variant="ghost"
-                  className={`w-full justify-start rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  className={cn(
+                    'w-full rounded-lg py-2.5 text-sm font-medium transition-colors',
+                    trilho ? 'justify-center px-2' : 'justify-start px-3',
                     isItemActive(item)
                       ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                      : 'text-foreground hover:bg-muted hover:text-primary'
-                  }`}
+                      : 'text-foreground hover:bg-muted hover:text-primary',
+                  )}
                   onClick={() => navigate(item.path)}
+                  title={trilho ? item.label : undefined}
                 >
-                  {item.label}
+                  <item.icon className={cn('h-4 w-4 flex-shrink-0', !trilho && 'mr-3')} />
+                  {!trilho && item.label}
                 </Button>
               ))}
 
               <HubSidebarSection
                 label={DEV_HUBS.planejamentoTributario.label}
+                icon={Target}
                 landingPath={DEV_HUBS.planejamentoTributario.landingPath}
                 items={planejamentoTributarioSubItems}
                 open={planejamentoTributarioOpen}
                 onOpenChange={setPlanejamentoTributarioOpen}
                 active={isPlanejamentoTributarioActive}
                 currentPath={location.pathname}
+                trilho={trilho}
                 navigate={navigate}
               />
 
               <HubSidebarSection
                 label={DEV_HUBS.gerenciarDados.label}
+                icon={Database}
                 landingPath={DEV_HUBS.gerenciarDados.landingPath}
                 items={gerenciarDadosSubItems}
                 open={gerenciarDadosOpen}
                 onOpenChange={setGerenciarDadosOpen}
                 active={isGerenciarDadosActive}
                 currentPath={location.pathname}
+                trilho={trilho}
                 navigate={navigate}
               />
             </nav>
 
             <div className="mt-auto space-y-2 border-t border-border/60 p-4">
-              <div className="mb-3 flex items-center gap-3 rounded-lg bg-muted px-3 py-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                  <User className="h-4 w-4 text-primary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {user?.email?.split('@')[0] || 'Usuario'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{AREAS.dev.nome}</p>
-                </div>
-              </div>
+              {/* Era markup copiado a mao — a setima copia deste cartao, sem o
+                  estado recolhido e mostrando o pedaco do e-mail no lugar do
+                  nome. O componente compartilhado traz os dois de graca. */}
+              <SidebarCartaoUsuario area="dev" collapsed={trilho} />
 
               <Button
                 variant="ghost"
-                className="w-full justify-start rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+                className={cn(
+                  'w-full rounded-lg py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary',
+                  trilho ? 'justify-center px-2' : 'justify-start px-3',
+                )}
                 onClick={() => navigate('/equipe/digital')}
+                title={trilho ? 'Voltar para Digital' : undefined}
               >
-                <ArrowLeft className="mr-3 h-4 w-4" />
-                Voltar para Digital
+                <ArrowLeft className={cn('h-4 w-4', !trilho && 'mr-3')} />
+                {!trilho && 'Voltar para Digital'}
               </Button>
 
-              <Button
-                variant="ghost"
-                // Mesmo par do `OsgLayout`: o botão de sair é o mesmo botão, e
-                // aqui ele estava em `red-50`/`red-600` cru. Era a segunda de
-                // três cópias — a terceira segue no `FixosLayout`.
-                className="w-full justify-start rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                onClick={handleSignOut}
-              >
-                <LogOut className="mr-3 h-4 w-4" />
-                Sair
-              </Button>
             </div>
-          </>
-        )}
-      </aside>
+        </aside>
+      </div>
 
       {/* Fundo que fecha a gaveta no toque. Só aparece abaixo de `md`. */}
       <SidebarFundoGaveta aberta={!collapsed} onFechar={() => setCollapsed(true)} />

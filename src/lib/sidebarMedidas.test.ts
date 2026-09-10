@@ -21,9 +21,11 @@ const LAYOUTS_DO_PADRAO = {
   Fixos: '../components/equipe/fixos/FixosLayout.tsx',
   OSG: '../components/equipe/osg/OsgLayout.tsx',
   Gestão: '../components/gestao/GestaoLayout.tsx',
-  // A Rotina entrou depois: ela recolhia para `w-0` — a barra sumia inteira em
-  // vez de virar trilho — e montava o cartão do usuário em markup próprio.
+  // A Rotina e o Dev entraram depois, e pelo mesmo motivo: as duas recolhiam
+  // para `w-0` — a barra sumia inteira em vez de virar trilho — e montavam o
+  // cartão do usuário em markup próprio.
   Rotina: '../components/equipe/EquipeLayout.tsx',
+  Dev: '../components/equipe/dev/DevLayout.tsx',
 } as const;
 
 describe('medidas do trilho recolhido', () => {
