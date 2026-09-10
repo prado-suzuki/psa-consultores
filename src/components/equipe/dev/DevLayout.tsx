@@ -1,3 +1,4 @@
+import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -415,10 +416,24 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
       <SidebarFundoGaveta aberta={!collapsed} onFechar={() => setCollapsed(true)} />
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        {/* `min-h` e não `h-16` fixo: alguns títulos de hub (ex. PIS/COFINS,
-            PERDCOMP) passam de 100 caracteres em CAIXA ALTA e quebram em 2-3
-            linhas. Com altura fixa + `overflow-hidden` do <main>, o título
-            simplesmente cortava no meio — a caixa agora cresce para caber. */}
+        {/* `min-h` e não `h-16` fixo, para o título poder crescer sem cortar:
+            com altura fixa mais o `overflow-hidden` do <main>, ele cortava no
+            meio. Desde 10/09/2026 os SETE cabeçalhos do produto são assim,
+            porque o título subiu para 30px e a 64px não cabe mais.
+
+            ⚠️ O que estava escrito aqui — "alguns títulos de hub (ex.
+            PIS/COFINS, PERDCOMP) passam de 100 caracteres em CAIXA ALTA" — era
+            FALSO, e atrapalhou: foi ele que fez um título maior parecer
+            arriscado. Medido em 10/09, o maior título do `/equipe/dev` tem 28
+            caracteres ("Consulta EFD Contribuições"), nenhum passa de 30, o
+            maior do catálogo dinâmico tem 43, e nenhum é em caixa alta. Os dois
+            hubs que o texto citava pelo nome são "Apuração PIS/COFINS" (19) e
+            "Controle PERDCOMP" (17). O comando:
+
+              grep -rh -A 2 '<DevLayout' src/pages/equipe/dev/*.tsx \n                | grep -oE '(^|[^a-z])title="[^"]*"'
+
+            (o `[^a-z]` é obrigatório: sem ele o grep casa o fim de
+            `subtitle=` e o número sai errado — foi o que aconteceu comigo.) */}
         <header className="flex min-h-16 flex-shrink-0 items-center justify-between gap-3 border-b border-border/60 bg-card px-4 py-2 md:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             {collapsed && (
@@ -432,28 +447,26 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
               </Button>
             )}
 
-            <div className="min-w-0">
-              <h1 className="break-words text-xl font-bold text-foreground">{title}</h1>
-              {subtitle && (
-                <p className="flex flex-wrap items-center gap-0 text-sm text-muted-foreground">
-                  {subtitle}
-                  {sopUrl && (
-                    <>
-                      <span className="mx-2">|</span>
-                      <a
-                        href={sopUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 font-medium text-primary hover:text-primary hover:underline"
-                      >
-                        Acessar SOP desta ferramenta
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    </>
-                  )}
-                </p>
-              )}
-            </div>
+            <TituloDaPagina
+              titulo={title}
+              subtitulo={subtitle}
+              apendiceDoSubtitulo={
+                sopUrl ? (
+                  <>
+                    <span className="mx-2">|</span>
+                    <a
+                      href={sopUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-medium text-primary hover:text-primary hover:underline"
+                    >
+                      Acessar SOP desta ferramenta
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </>
+                ) : null
+              }
+            />
           </div>
 
           <div className="flex items-center gap-3">

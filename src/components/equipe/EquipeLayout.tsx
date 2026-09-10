@@ -1,3 +1,4 @@
+import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -276,7 +277,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-border/60 bg-card flex items-center justify-between px-4 md:px-6 flex-shrink-0">
+        <header className="min-h-16 border-b border-border/60 bg-card flex items-center justify-between px-4 py-2 md:px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             {collapsed && (
               <Button
@@ -289,8 +290,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
               </Button>
             )}
             <div>
-              <h1 className="text-xl font-bold text-foreground">{title}</h1>
-              {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+              <TituloDaPagina titulo={title} subtitulo={subtitle} />
             </div>
           </div>
           <div className="flex items-center gap-3">
