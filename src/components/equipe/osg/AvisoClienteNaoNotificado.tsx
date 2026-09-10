@@ -38,9 +38,11 @@ export function AvisoClienteNaoNotificado({ solicitacaoId, enviadaEm }: {
     >
       <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-osg-red" />
       <p className="leading-relaxed">
-        <strong className="font-semibold">O cliente não foi avisado deste envio.</strong>{' '}
-        A lista está visível para ele no portal, mas o e-mail e o WhatsApp não saíram.
-        Avise o cliente por fora e informe a equipe da PSA Digital.
+        <strong className="font-semibold">
+          O cliente ainda não recebeu a notificação desta solicitação.
+        </strong>{' '}
+        A lista de documentos já está disponível no portal, mas as notificações por e-mail e
+        WhatsApp não foram enviadas. Entre em contato com o suporte da PSA Digital.
       </p>
     </div>
   );
