@@ -5,8 +5,6 @@
 --
 -- ############################################################################
 -- IRREVERSÍVEL, E FORA DA SPRINT POR RECOMENDAÇÃO DA PRÓPRIA TAREFA.
--- Por isso o arquivo NÃO termina em `.sql`: o `db:sync` filtra por extensão e
--- não a enxerga. Renomear é uma decisão, não um passo.
 --
 -- Pré-requisitos, nesta ordem:
 --   1. A fase 1 (20260910160000) rodando em produção, tranquila.
@@ -23,8 +21,15 @@
 -- A tarefa manda "reemitir as permissões (SELECT, UPDATE e DELETE das duas
 -- tabelas)" e "conferir as duas views". As duas afirmações estão desatualizadas:
 --
---   - O DELETE das duas JÁ NÃO cita `excluido` — a fase 1 tirou. São 5 policies
---     a reemitir, não 6: 3 de representante e 2 de rateio.
+--   - O DELETE das duas JÁ NÃO cita `excluido` — a fase 1 tirou.
+--   - São 6 policies a reemitir, e a sexta é a pegadinha: ela NÃO está em
+--     nenhuma das duas tabelas que perdem a coluna. `Clients can read their
+--     cliente_clusters`, em `cliente_clusters`, tem um subselect que lê
+--     `representante.excluido`. Procurar por policy NAS tabelas alvo não a
+--     encontra; só `pg_depend` encontra. Esta migração falhou por causa dela na
+--     primeira tentativa, em 10/09/2026 — o `DROP COLUMN` recusou.
+--     É a policy que deixa o usuário-cliente ler os próprios clusters no
+--     portal, então deixá-la cair junto com CASCADE tiraria acesso de cliente.
 --   - As views `cliente_setor_regiao_atual` e `org_comments_feed` dependem de
 --     `ordem_servico.excluido`, NÃO de representante nem de rateio. Elas não
 --     bloqueiam esta migração; bloqueiam a de OS (CAD-17/18).
@@ -147,7 +152,20 @@ $function$;
 -- chamador desde a fase 1. Ver "DESVIO DELIBERADO" no cabeçalho.
 DROP FUNCTION IF EXISTS public.soft_delete_distribuicao_receita(uuid[]);
 
--- ─── 3. As cinco policies que citam a coluna ────────────────────────────────
+-- ─── 3. As seis policies que citam a coluna ─────────────────────────────────
+-- A primeira é a de OUTRA tabela (ver o cabeçalho). O `excluido = false` do
+-- subselect era tautológico depois do passo 1, que apaga as linhas marcadas:
+-- sai o predicado, o conjunto devolvido é o mesmo.
+DROP POLICY IF EXISTS "Clients can read their cliente_clusters" ON public.cliente_clusters;
+CREATE POLICY "Clients can read their cliente_clusters" ON public.cliente_clusters
+  FOR SELECT TO authenticated
+  USING (
+    cliente_id IN (
+      SELECT r.id_cliente FROM public.representante r
+       WHERE r.user_id = auth.uid()
+    )
+  );
+
 DROP POLICY IF EXISTS "Clients can read their own representante" ON public.representante;
 CREATE POLICY "Clients can read their own representante" ON public.representante
   FOR SELECT TO authenticated
