@@ -263,33 +263,50 @@ Estas ficaram paradas de propósito. Cada uma precisa de uma escolha sua antes d
 | as 12 paletas categóricas | `pageCategoryStyles`, `roleOptions`, `AgendaTab` e outras têm 5 a 7 categorias. O contrato tem **quatro** `--tag-*`, e são quatro de propósito. Não há token para a quinta |
 | `AuditPendenciasTable`, `CORES_MOTIVO` | Os seis motivos são **gradiente de gravidade**, não estados — e o contrato diz que escala não veste papel. Ou nasce uma escala institucional para severidade, ou fica em cor crua. Foi a única coisa que ficou de pé na rodada da pasta `audit`, e o motivo está escrito no próprio arquivo |
 
-## 3. `projects.status` — não é dívida de cor, é defeito de produto
+## 3. `projects.status` — fechado em 10/09/2026, e o diagnóstico estava errado
 
-**O achado mais sério da rodada, e o único que o usuário final vê.**
+**Corrigido, e este bloco é a retificação do que estava escrito aqui.** A versão anterior
+dizia três coisas; uma estava certa, duas não.
 
-Medido em produção pelo MCP do Lovable em 01/09: a coluna `projects.status` guarda
-`"Melhorias"` (10 linhas) e `"Diagnóstico"` (7). Mais nada.
+**O que era verdade:** a coluna `projects.status` guarda `Melhorias` (10) e `Diagnóstico` (7),
+e havia mapas de código esperando outro vocabulário.
 
-E existem **três** mapas em código para essa mesma coluna, com três vocabulários, e nenhum
-deles casa com o dado:
+**O que estava errado, primeiro:** *"o cliente vê os 17 projetos como Em Planejamento, com 0%
+de progresso"*. Não vê. `client_visible_projects` está **vazia** — zero vínculos, zero
+clientes. A tela do cliente nunca chegou a listar um projeto. O defeito era real e **dormente**,
+e a diferença importa: ele estava classificado como "o único que o usuário final vê", o que o
+pôs no topo de uma fila de prioridade por um motivo que não existia.
 
-| arquivo | o que espera |
-|---|---|
-| `pages/cliente/ClienteDashboard.tsx` | `planning / active / on_hold / completed` |
-| `components/equipe/projetos/ProjectFilters.tsx` | `active / completed / blocked / archived` |
-| `lib/dashboardClientesOs/aggregations.ts` | seis chaves, outro conjunto ainda |
+**O que estava errado, segundo:** *"existem três mapas e nenhum casa"*. São **dois**. O
+terceiro, `statusProjetoLabel` em `lib/dashboardClientesOs/aggregations.ts`, recebe
+`RawOrgProject` — ele lê `org_projects`, e ali `active` / `completed` / `on_hold` / `planned`
+é o vocabulário CERTO da tabela certa. Quase virou conserto de uma coisa que não estava
+quebrada.
 
-O que isso produz hoje, na tela:
+**E o diagnóstico de fundo mudou.** A pergunta registrada aqui era "qual é o ciclo de vida
+real do projeto?". A resposta é que não é ciclo de vida nenhum. Existem duas tabelas:
 
-- o **cliente** vê os 17 projetos como "Em Planejamento", com **0% de progresso** — o mapa cai
-  no fallback e o `getProjectProgress` cai no `default: return 0`;
-- o **filtro da equipe** oferece Ativo / Concluído / Bloqueado / Arquivado, e os quatro
-  retornam **zero linhas**.
+| | `projects` | `org_projects` |
+|---|---|---|
+| linhas | 17 | 140 |
+| `status` | `Melhorias`, `Diagnóstico` — **categoria** | `active`, `completed`, `planned`, `on_hold` — **ciclo de vida** |
+| tarefas | **zero** | **954** |
+| quem lê | `/equipe/projetos` e o portal do cliente | "Projetos e tarefas" da Tax e da OSG |
 
-⚠️ **Não conserte isso mexendo em mapa.** A pergunta é qual é o ciclo de vida real do projeto:
-"Melhorias" e "Diagnóstico" são o vocabulário certo (e aí os mapas mudam de chave, e alguém
-diz que progresso cada etapa representa), ou os dados é que estão fora do padrão (e aí é
-migração)? É decisão de produto, e vem antes de qualquer linha de código.
+`/equipe/projetos` é **a carteira do Digital** — o que a área executa para as outras. O dado
+confirma: `projects.area` traz Tax (8), OSG (7), Área Digital (1) e um sem área. Os
+"Diagnóstico" são as frentes de consultoria societária, os "Melhorias" são as automações.
+Confirmado com a dona da tela em 10/09.
+
+**O que foi feito:** os quatro pontos que usavam ciclo de vida contra essa coluna passaram a
+ler `@/lib/categoriaDoProjeto`, com catraca em `categoriaDoProjeto.test.ts`. A barra de
+progresso do portal **saiu**: mesmo com a chave certa, "está ativo" não é "está pela metade",
+e progresso de verdade precisaria de tarefas que esses 17 projetos não têm.
+
+**O que fica aberto, e é decisão de produto:** hoje a categoria não carrega informação que a
+`area` já não carregue — a correlação é perfeita, `Diagnóstico` é OSG nas 7 e `Melhorias` é o
+resto nas 10. Pode ser coincidência de carteira pequena (nada impede uma frente de Diagnóstico
+na Tax amanhã) ou redundância de verdade. A dona da tela quer melhorá-la; a decisão é dela.
 
 ## 4. Outro rótulo divergente, além do `pending` que foi corrigido
 
@@ -477,10 +494,8 @@ Nesta ordem, do que rende ao que exige decisão:
 3. **`red` e `emerald`** (§5) — aí sim inventário por motivo, na forma da `filaDoAlerta`, porque
    não têm concentração. O molde está em `medirCorCrua.ts`, e a `chamadoStatusColors.test.ts`
    mostra a variante que varre por conjunto de chaves em vez de por classe.
-4. **`projects.status`** (§3) — precisa da decisão de produto antes de tudo, e é o único item
-   desta lista que o CLIENTE vê. Reconferido em produção em 10/09 pelo MCP do Lovable: a coluna
-   segue com `Melhorias` (10) e `Diagnóstico` (7), e os três mapas seguem sem casar com ela.
-   Estar em quarto é ordem de execução, não de importância — ele está parado em decisão, e os
-   três acima não.
+4. ~~**`projects.status`** (§3)~~ — **fechado em 10/09/2026.** E ele saiu desta lista com uma
+   correção junto: não era "o único item que o CLIENTE vê". A tabela de vínculo está vazia,
+   então nenhum cliente via nada. Ver o §3, que agora é a retificação do próprio §3.
 
 O `osg-red` saiu desta lista: fechou em 03/09 e virou catraca (§7).
