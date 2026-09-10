@@ -169,7 +169,7 @@ const IcmsSaidas = () => {
                     <Button
                       variant="outline"
                       className={cn(
-                        'w-full h-11 px-3 text-left font-normal justify-start bg-white',
+                        'w-full h-11 px-3 text-left font-normal justify-start bg-card',
                         !start_date && 'text-muted-foreground',
                       )}
                     >
@@ -203,7 +203,7 @@ const IcmsSaidas = () => {
                     <Button
                       variant="outline"
                       className={cn(
-                        'w-full h-11 px-3 text-left font-normal justify-start bg-white',
+                        'w-full h-11 px-3 text-left font-normal justify-start bg-card',
                         !end_date && 'text-muted-foreground',
                       )}
                     >
@@ -229,7 +229,7 @@ const IcmsSaidas = () => {
                 <Button
                   variant="ghost"
                   onClick={handleClearFilters}
-                  className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                 >
                   <Eraser className="h-4 w-4 mr-2" />
                   Limpar filtros

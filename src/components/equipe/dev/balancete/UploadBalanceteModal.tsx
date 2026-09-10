@@ -424,7 +424,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="descricao-balancete" className="text-sm font-medium text-muted-foreground">
-                  Descrição <span className="text-red-500">*</span>
+                  Descrição <span className="text-destructive">*</span>
                 </Label>
                 <span className="text-[11px] text-muted-foreground">{descricao.length}/{DESCRICAO_MAX}</span>
               </div>

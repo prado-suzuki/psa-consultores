@@ -72,8 +72,13 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     'src/components/equipe/dashboards/analise-inteligente/AnaliseInteligenteKpis.tsx': 2,
     'src/components/equipe/dev/calculadora-ibs-cbs/por-estado/PorEstadoKpis.tsx': 1,
     'src/components/equipe/dev/efd-export/EFDExportStatus.tsx': 2,
-    'src/components/equipe/dev/icms-saidas/familias/FamiliaSaidaTab.tsx': 2,
-    'src/components/equipe/dev/icms-saidas/familias/checkColor.ts': 2,
+    // O ICMS Saídas saiu deste grupo em 10/09/2026, e ele estava classificado
+    // certo: o `checkColor.ts` É uma escada, de três degraus, e converteu inteira
+    // — `feito`/`alerta`/`ajuste`. O que a classificação não podia saber é que o
+    // âmbar do `FamiliaSaidaTab` NÃO era degrau da escada: era a linha com
+    // correção aplicada, ou seja o mesmo mapa de "valor alterado" que as Correções
+    // SPED ganharam no mesmo dia. Dois arquivos, duas coisas diferentes, o mesmo
+    // tom. Ver a nota da pasta em `corCruaNaTelaDoDev.test.ts`.
     'src/components/equipe/dev/perdcomp/PerDetailModal.tsx': 10,
     'src/components/equipe/dev/processo-difal/DifalProductsCard.tsx': 4,
     'src/components/equipe/mapeamento/ScenarioComparator.tsx': 2,

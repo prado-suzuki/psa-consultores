@@ -8,6 +8,7 @@ import { Calculator } from 'lucide-react';
 import type { T01MatrizRow, T01MatrizSection } from './mocks';
 import { ICMS_T01_TOOLTIPS } from './tooltipContent';
 import { renderColumnLabel } from './renderColumnLabel';
+import { classeDeConferencia } from './familias/checkColor';
 
 interface T01ApuracaoTabProps {
   enabled: boolean;
@@ -126,7 +127,7 @@ export const T01ApuracaoTab = ({
                       <TableCell
                         className={cn(
                           'text-right font-mono text-sm',
-                          row.diferenca === 0 ? 'text-emerald-600' : 'text-red-600 font-semibold',
+                          classeDeConferencia(row.diferenca === 0), row.diferenca !== 0 && 'font-semibold',
                         )}
                       >
                         {fmtCurrency(row.diferenca)}
@@ -144,7 +145,7 @@ export const T01ApuracaoTab = ({
                     <TableCell
                       className={cn(
                         'text-right font-mono text-sm font-bold',
-                        totals.diferenca === 0 ? 'text-emerald-600' : 'text-red-600',
+                        classeDeConferencia(totals.diferenca === 0),
                       )}
                     >
                       {fmtCurrency(totals.diferenca)}
@@ -204,7 +205,7 @@ const MatrizApuracaoCard = ({ matriz }: { matriz: T01MatrizSection }) => {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border border-border bg-white overflow-x-auto">
+        <div className="rounded-md border border-border bg-card overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted hover:bg-muted">
@@ -259,7 +260,7 @@ const MatrizApuracaoCard = ({ matriz }: { matriz: T01MatrizSection }) => {
                 <TableCell
                   className={cn(
                     'text-right font-mono text-sm font-bold',
-                    totals.diferenca === 0 ? 'text-emerald-600' : 'text-red-600',
+                    classeDeConferencia(totals.diferenca === 0),
                   )}
                 >
                   {fmtCurrency(totals.diferenca)}
@@ -284,7 +285,7 @@ const MatrizRow = ({ row }: { row: T01MatrizRow }) => (
     <TableCell
       className={cn(
         'text-right font-mono text-sm',
-        row.diferenca === 0 ? 'text-emerald-600' : 'text-red-600 font-semibold',
+        classeDeConferencia(row.diferenca === 0), row.diferenca !== 0 && 'font-semibold',
       )}
     >
       {fmtCurrency(row.diferenca)}
