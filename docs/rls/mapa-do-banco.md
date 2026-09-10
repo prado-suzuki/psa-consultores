@@ -131,7 +131,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`notificacao`](#notificacao) | 16 | — | interno | profiles |
 | [`notificacao_envio`](#notificacaoenvio) | 22 | — | interno | profiles, notificacao |
 | [`novidades`](#novidades) | 17 | — | interno | — |
-| [`onus_quotas`](#onusquotas) | 15 | — | interno | cliente, pessoa, movimentacao_quotas |
+| [`onus_quotas`](#onusquotas) | 17 | — | interno | ato_societario, cliente, pessoa, movimentacao_quotas |
 | [`ordem_servico`](#ordemservico) | 23 | excluido | cluster-cliente | estrutura_clusters, contribuinte, produto_segmento, servicos_prestados, setor_cliente |
 | [`org_comment_attachments`](#orgcommentattachments) | 10 | — | interno | org_comments, org_comments_feed, profiles |
 | [`org_comment_mentions`](#orgcommentmentions) | 6 | — | interno | org_comments, org_comments_feed, profiles |
@@ -592,7 +592,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="onusquotas"></a>`onus_quotas`
 **Acesso:** interno
-`cliente_id` string · `created_at` string · `created_by` string? · `empresa_pessoa_id` string · `extinto_em` string? · `gravames` string[] · `id` string · `movimento_id` string? · `nu_proprietario_pessoa_id` string · `quotas` number · `updated_at` string · `updated_by` string? · `usufruto_com_voto` boolean · `usufruto_origem` string? · `usufrutuario_pessoa_ids` string[]  ·  **FK:** `cliente_id`→cliente.id · `empresa_pessoa_id`→pessoa.id · `movimento_id`→movimentacao_quotas.id · `nu_proprietario_pessoa_id`→pessoa.id
+`ato_id` string? · `cliente_id` string · `created_at` string · `created_by` string? · `empresa_pessoa_id` string · `extinto_em` string? · `extinto_por_movimento_id` string? · `gravames` string[] · `id` string · `movimento_id` string? · `nu_proprietario_pessoa_id` string · `quotas` number · `updated_at` string · `updated_by` string? · `usufruto_com_voto` boolean · `usufruto_origem` string? · `usufrutuario_pessoa_ids` string[]  ·  **FK:** `ato_id`→ato_societario.id · `cliente_id`→cliente.id · `empresa_pessoa_id`→pessoa.id · `extinto_por_movimento_id`→movimentacao_quotas.id · `movimento_id`→movimentacao_quotas.id · `nu_proprietario_pessoa_id`→pessoa.id
 
 ### <a id="ordemservico"></a>`ordem_servico`
 **Acesso:** cluster-cliente · **Flags:** excluido
