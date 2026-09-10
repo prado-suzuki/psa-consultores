@@ -57,6 +57,15 @@ const ARQUIVOS_DA_TELA = [
   // `--accent-soft` do tema escrito à unha, num componente cujo docstring diz que
   // ele existe justamente para dar o tom do módulo.
   'src/components/equipe/dev/DevPageHeader.tsx',
+  'src/components/equipe/dev/classesDoAviso.ts',
+
+  // A QUARTA CÓPIA da caixa de abertura, e ela entra sozinha, sem a tela dela.
+  // O `icms-saidas` não fechou — mas este arquivo tinha um comentário dizendo
+  // "igual ao DevPageHeader" e um `Alert` refeito à mão em emerald cru, e agora
+  // importa a faixa do mesmo lugar que o componente. Guardar só ele é o que
+  // impede a divergência de voltar: se a caixa é faixa em quinze telas e emerald
+  // numa, o resultado é pior que antes de mexer.
+  'src/components/equipe/dev/icms-saidas/familias/BaseLegalCard.tsx',
 
   // ─── Correções SPED, fechada em 10/09/2026 ──────────────────────────────────
   //

@@ -187,6 +187,56 @@ branco — reprovando o AA — em doze valores **em negrito**, nas seis abas. `s
 7,46:1. O selo subiu de 4,84 para 6,30. Nenhum tinha sido medido, e a razão é a de sempre:
 cor crua não entra em contrato nenhum, então não há teste que a olhe.
 
+### A caixa de abertura do Dev virou faixa escura
+
+A usuária olhou as telas depois da conversão e **recusou** duas superfícies: o fundo da página e
+o fundo da caixa "Visão Geral" — a que esta mesma rodada tinha acabado de tirar do hex e pôr no
+token. Ela pediu uma opção disruptiva, e a medição deu razão a ela de um jeito que não era
+questão de gosto.
+
+**O invariante, e é ele que decide: caixa clara não separa de página clara.** A caixa em
+`--accent-soft` (94%) foi medida contra **três** alturas de página no mesmo dia, porque a pilha
+de superfícies estava sendo mexida em paralelo pela outra sessão — 92%, 96% e 93%. Deu
+**1,06 · 1,02 · 1,04**. Ela atravessou de mais escura que a página a mais clara que a página
+**sem nunca ficar visível**. Não existe altura de página que resolva.
+
+A escada medida, com a página no `--canvas` de agora (93%):
+
+| caixa | separa da página | letra dentro |
+|---|---|---|
+| 94% `accent-soft` | **1,04** | 6,09 |
+| branca (`card` 100%) | 1,15 | 6,74 |
+| faixa da marca (`primary` 25%) | 4,82 | branco **5,56** |
+| **faixa profunda (`surface-escura-2` 14%)** | **10,86** | branco **12,52** |
+
+Decisão dela: **faixa profunda**. A faixa da marca foi recusada com o número na frente — o
+branco sobre `--primary` é a mesma falha de 5,5 que já tem três comentários no `index.css`, e o
+aviso é um parágrafo, não um rótulo. Nada foi inventado: o 14% é o `--surface-escura-2` do meio
+do gradiente dos cartões de categoria da página inicial do Dev, e o link usa `accent-soft` — o
+valor que **era o fundo** desta caixa virou a letra dela.
+
+**A quarta cópia.** O `BaseLegalCard` do ICMS Saídas tinha um comentário dizendo "igual ao
+DevPageHeader" e um `Alert` refeito à mão em emerald cru. O conteúdo não cabe no componente (ele
+recebe uma descrição e anexa a frase do manual; lá são vários parágrafos de texto legal), mas a
+superfície e o papel são os mesmos — os dois são o primeiro elemento, antes de qualquer cartão.
+Então a faixa saiu para [`classesDoAviso.ts`](../../src/components/equipe/dev/classesDoAviso.ts)
+e os dois importam de lá. Sem isso, sobraria exatamente uma mancha verde-clara na área: pior que
+não ter mudado nada.
+
+**⚠️ A armadilha do `ui/alert`, que quase foi embarcada.** A string base do componente tem
+`[&>svg]:text-foreground`, que gera seletor de especificidade **0,1,1** (classe + elemento). Uma
+classe de cor posta no próprio `<svg>` é 0,1,0 e **perde** — o ícone sairia em `--foreground`,
+escuro, sobre a faixa escura, sem erro de build e sem aviso de lint. A cor do ícone tem que ir
+como `[&>svg]:...` no `className` do próprio `Alert`, e aí o `tailwind-merge` do `cn()` descarta
+a da base. Está escrito no `classesDoAviso.ts` e conferido no bundle.
+
+**O fundo da página não foi consertado aqui.** A outra sessão atacou a mesma causa e foi mais
+longe no commit `bda64793`: tirou o fundo de página dos **oito** layouts e passou a pintar uma
+vez no `body`, com catraca em `fundoDePagina.test.ts`. Cinco dos oito pintavam com a superfície
+rebaixada justamente porque a decisão estava repetida em oito arquivos. A edição que esta rodada
+ia fazer — trocar `bg-muted` por `bg-canvas` no `DevLayout` — arrumaria a tela e deixaria o nono
+layout nascer errado igual. Foi abandonada de propósito.
+
 Uma nota de método: **a catraca do `alerta` acusou**, e estava certa. As seis abas estavam
 inventariadas em `FILA_DO_ALERTA`, no grupo `outro-papel`, com os números **exatos** que esta
 rodada mediu por conta própria — 3, 7, 1, 1, 2, 2. Duas medições independentes batendo é a

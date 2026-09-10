@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { Info, type LucideIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AVISO_FAIXA, AVISO_FAIXA_ACENTO } from "@/components/equipe/dev/classesDoAviso";
 
 interface DevPageHeaderProps {
   /** Texto descritivo principal. Suporta `**negrito**`. */
@@ -62,18 +63,17 @@ export const DevPageHeader = ({
   icon: Icone = Info,
 }: DevPageHeaderProps) => {
   return (
-    // O "verde-água do módulo" que o docstring acima descreve era um hex
-    // cravado. Ele é o `--accent-soft` do tema a dois pontos de 255 de
-    // distância — medido —, e agora sai do token, então acompanha a área em vez
-    // de ser sempre o tom da casa. O `/80` saiu junto, e pelo mesmo motivo:
-    // sobre superfície clara, 80% de uma cor quase branca dá a mesma coisa que
-    // 100% dela. Qual era o hex está no commit e em `docs/geral/cor-o-que-falta.md`.
-    <Alert className="mb-6 bg-accent-soft border-accent-soft">
-      <Icone className="h-5 w-5 text-primary" />
-      <AlertTitle className="text-sm font-semibold text-foreground">
+    // A superfície mora em `classesDoAviso.ts`, com a medição que a escolheu.
+    // Resumo: o "verde-água do módulo" que o docstring acima descreve era hex
+    // cravado, virou token, e o token não resolvia — caixa clara não separa de
+    // página clara, medido em três alturas de página no mesmo dia sem nunca ficar
+    // visível. Decisão dela: faixa profunda.
+    <Alert className={`mb-6 ${AVISO_FAIXA}`}>
+      <Icone className="h-5 w-5" />
+      <AlertTitle className="text-sm font-semibold">
         {title}
       </AlertTitle>
-      <AlertDescription className="text-sm leading-relaxed text-foreground mt-1">
+      <AlertDescription className="text-sm leading-relaxed mt-1">
         {renderBoldSegments(description)}
         {!hideManualLink && manualUrl && (
           <>
@@ -82,7 +82,7 @@ export const DevPageHeader = ({
               href={manualUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-accent-d hover:underline"
+              className={`font-semibold ${AVISO_FAIXA_ACENTO} hover:underline`}
             >
               aqui
             </a>
