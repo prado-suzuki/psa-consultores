@@ -77,6 +77,24 @@ describe('as cinco barras do padrão não têm cópia própria da medida', () =>
     });
   }
 
+  // O Board ainda não monta o `SidebarCartaoUsuario` (ele entra numa fase
+  // seguinte), então não cabe no laço acima — mas a largura dele já saiu do
+  // literal. Era a última barra fora da régua: 68px recolhida e 240px aberta.
+  // Os 68px são o número que o cartão não perdoa — ver a conta no topo deste
+  // arquivo —, então travar isso agora é o que impede o cartão de chegar numa
+  // barra que o corta.
+  it('o Board recebe a largura da constante, sem 68px nem 240px soltos', () => {
+    const fonte = ler('../components/equipe/board/BoardLayout.tsx');
+
+    expect(fonte).toContain('classeLarguraBarra(');
+    expect(fonte).not.toMatch(/w-\[68px\]|w-\[240px\]/);
+    // A margem do <main> reserva a coluna da barra `fixed`: se ela ficar para
+    // trás, o conteúdo passa por baixo da barra ou sobra uma faixa vazia.
+    expect(fonte).toMatch(/md:ml-20/);
+    expect(fonte).toMatch(/md:ml-64/);
+    expect(fonte).not.toMatch(/md:ml-\[68px\]|md:ml-\[240px\]/);
+  });
+
   it('o Mapeamento recebe a largura da constante, sem 72px solto no CSS', () => {
     expect(ler('../components/equipe/mapa/Layout.tsx')).toContain(
       'MEDIDAS_TRILHO_SIDEBAR.larguraRecolhidaPx',

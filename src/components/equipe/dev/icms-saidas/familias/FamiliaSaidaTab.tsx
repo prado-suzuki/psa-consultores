@@ -315,7 +315,7 @@ export function FamiliaSaidaTab({
                           key={`row-${page}-${idx}`}
                           className={cn(
                             'hover:bg-muted',
-                            isCorrecao && 'bg-amber-50/60 hover:bg-amber-50',
+                            isCorrecao && 'bg-status-alerta-soft/60 hover:bg-status-alerta-soft',
                           )}
                         >
                           {allowCorrecoes && (
@@ -325,7 +325,7 @@ export function FamiliaSaidaTab({
                                   <Button
                                     size="icon"
                                     variant="ghost"
-                                    className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    className="h-7 w-7 text-destructive hover:bg-destructive/10"
                                     onClick={() => handleDeleteCorrecao(correcaoId)}
                                     disabled={deleteMutation.isPending}
                                   >

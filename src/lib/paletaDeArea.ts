@@ -883,10 +883,13 @@ export function problemasDeRebaixamento(css: string, seletor: string): ProblemaD
   }
 
   const problemas: ProblemaDePaleta[] = [];
+  // O `--input` saiu daqui em 10/09: ele deixou de ser cópia do `--border` e
+  // virou a linha de CONTROLE, que é cobrada por razão em
+  // `problemasDaLinhaDeControle` e não por derivação. Divisória e contorno de
+  // campo são trabalhos diferentes e param em luminosidades diferentes.
   const derivados = [
     { nome: 'muted', esperado: rebaixar(canvas) },
     { nome: 'border', esperado: riscar(canvas) },
-    { nome: 'input', esperado: riscar(canvas) },
   ];
 
   for (const { nome, esperado } of derivados) {
@@ -916,6 +919,13 @@ export function problemasDeRebaixamento(css: string, seletor: string): ProblemaD
  * pergunta que ele faz é "a pessoa consegue ACHAR o campo?", não "consegue LER
  * o que está escrito nele".
  *
+ * NÃO existe um `--border-control`: o token do trabalho certo já existia com o
+ * nome certo. Os 21 consumidores de `border-input` do produto são todos
+ * controle — input, textarea, select, botão outline, toggle, OTP e os editores
+ * de texto rico —, então o `--input` É a linha que a 1.4.11 cobra. Criar um
+ * token novo teria deixado dois nomes para um trabalho, que é o defeito que
+ * esta frente passou o dia removendo.
+ *
  * O valor NÃO é derivado, e de propósito. A luminosidade que fecha 3:1 depende
  * da matiz e da saturação de cada área — 52% na base, 56% na Tax, 55% na OSG, e
  * 42% no escuro, onde a linha precisa CLAREAR porque o cartão é escuro. Derivar
@@ -924,14 +934,14 @@ export function problemasDeRebaixamento(css: string, seletor: string): ProblemaD
  * qualquer área nova, inclusive uma escura.
  */
 export function problemasDaLinhaDeControle(css: string, seletor: string): ProblemaDePaleta[] {
-  const linha = corDoTema(css, seletor, 'border-control');
+  const linha = corDoTema(css, seletor, 'input');
   const card = corDoTema(css, seletor, 'card');
   if (!linha || !card) {
     return [
       {
         tema: seletor,
-        item: 'border-control / card',
-        motivo: `não resolve (${linha ? '' : '--border-control '}${card ? '' : '--card'}) — var() apontando para o vazio, ou cor escrita em hex`,
+        item: 'input / card',
+        motivo: `não resolve (${linha ? '' : '--input '}${card ? '' : '--card'}) — var() apontando para o vazio, ou cor escrita em hex`,
       },
     ];
   }
@@ -941,8 +951,8 @@ export function problemasDaLinhaDeControle(css: string, seletor: string): Proble
     : [
         {
           tema: seletor,
-          item: 'border-control',
-          motivo: `--border-control sobre --card em ${razao.toFixed(2)}:1, abaixo dos ${LINHA_DE_CONTROLE.contrasteMinimo}:1 da WCAG 1.4.11`,
+          item: 'input',
+          motivo: `--input sobre --card em ${razao.toFixed(2)}:1, abaixo dos ${LINHA_DE_CONTROLE.contrasteMinimo}:1 da WCAG 1.4.11`,
         },
       ];
 }

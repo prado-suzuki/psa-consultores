@@ -15,9 +15,16 @@ All colors MUST be HSL.
        a paleta marfim/teal. */
     --foreground: 20 81% 10%;
 
-    /* Canvas = fundo da página. Praticamente branco, só um fio de marfim mais
-       escuro que os cards para eles "saltarem". Substitui o slate-50 azulado. */
-    --canvas: 42 22% 99%;
+    /* O `--canvas` e o `--muted` SAÍRAM daqui em 10/09/2026, e não é limpeza
+       de estilo: eles não alcançavam tela nenhuma. O `AreaThemeProvider` põe
+       `base-theme` no `<html>` em toda rota, os dois seletores têm a mesma
+       especificidade, e `.base-theme` vem depois no arquivo — então quem
+       pintava era sempre ela. O par daqui (`42 22% 99%` / `42 26% 92%`) era
+       resto de meio caminho: o `--muted` desceu para 92% na varredura de
+       28/08 e o canvas ficou nos 99% de antes, com 7 pontos entre os dois
+       onde a regra pede 4. Ficou dez dias assim sem ninguém ver, porque não
+       havia o que ver. Declaração que nunca pinta não é piso de segurança:
+       é um segundo valor esperando para confundir quem ler. */
 
     --card: 42 24% 99.8%;
     --card-foreground: 20 81% 10%;
@@ -60,7 +67,6 @@ All colors MUST be HSL.
        base não tem esse degrau — o `--base-50` é 98% e o `--base-100` é 94% —, e
        forçar um deles inverteria a ordem da escala ou pioraria a OSG. O literal
        é o preço de as duas escalas não estarem alinhadas. */
-    --muted: 42 26% 92%;
     /* Neutro secundario (icone de menu, rotulo inativo, legenda, subtitulo).
        Era matiz 220 — cinza-AZULADO — sobre superficies marfim/bege: a camada
        secundaria inteira do sistema destoava da temperatura das superficies.
@@ -72,8 +78,14 @@ All colors MUST be HSL.
 
        Isso também conserta o que já estava quebrado e ninguém media: na Tax o
        par dava 4,37 e na OSG 4,47, os dois reprovando ANTES desta mudança.
-       Agora as três passam, e sobre o cartão a leitura melhora junto (5,3). */
-    --muted-foreground: 28 9% 41.5%;
+       Agora as três passam, e sobre o cartão a leitura melhora junto (5,3).
+
+       O VALOR saiu daqui em 10/09/2026, junto com o `--canvas` e o `--muted`
+       de que ele é o par — os três eram cobertos pelo `.base-theme` em toda
+       rota e não pintavam nada. A prosa acima FICA porque ela é a história
+       de por que o token vale o que vale, e essa história não morreu com a
+       declaração; quem quiser mexer no `--muted-foreground` do `.base-theme`
+       precisa ler isto antes. */
 
     --accent: 175 84% 25%;
     --accent-foreground: 0 0% 100%;
@@ -412,14 +424,6 @@ All colors MUST be HSL.
     --shadow-lg: 0 10px 40px -10px hsl(var(--primary) / 0.2);
     --shadow-xl: 0 20px 60px -15px hsl(var(--primary) / 0.3);
     
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 85 85% 37%;
   }
 
   /* ─── .base-theme — o contrato completo, e o piso de todo tema ──────────
@@ -563,23 +567,36 @@ All colors MUST be HSL.
        aberto, não esquecimento. */
     /* Um degrau abaixo do rebaixado (89%), na saturação dele. */
     --border: 168 20% 86%;
-    --input: 168 20% 86%;
+    --input: 168 20% 52%;
     /* ─── A linha que o usuário precisa ACHAR ──────────────────────────────
-       Nasceu em 10/09/2026 e existe porque um valor fazia três trabalhos:
-       contorno de cartão, linha entre linhas de tabela e borda de campo. A
-       1,15:1 ele servia para os dois primeiros — que são divisória, e divisória
+       O `--input` NÃO é a linha da tabela, e o nome dele sempre disse isso — o
+       valor é que não dizia. Até 10/09/2026 ele era uma cópia do `--border`, e
+       um valor só fazia três trabalhos: contorno de cartão, divisória de tabela
+       e borda de campo. A 1,3:1 ele servia para os dois primeiros — divisória
        pode sussurrar — e reprovava no terceiro, onde a WCAG 1.4.11 pede 3:1
        para a pessoa conseguir ACHAR o campo na tela.
 
        A dívida estava registrada nos três temas e nunca foi paga, sempre pelo
        mesmo motivo: pagá-la com um token só escureceria toda linha de tabela do
-       produto. Separando por TRABALHO ela se paga sem esse custo.
+       produto. Separando por TRABALHO ela se paga sem esse custo — e sem token
+       novo, porque o token do trabalho certo já existia com o nome certo.
 
-       A luminosidade difere entre as áreas (52 / 56 / 55) e isso não é escolha:
-       é o valor em que a matiz e a saturação de cada área alcançam 3:1 contra o
-       cartão branco. Matiz mais luminosa precisa descer mais. O teste não olha
-       o número, cobra a razão. */
-    --border-control: 168 20% 52%;
+       Os 21 consumidores de `border-input` no produto são TODOS controle: input,
+       textarea, select, botão outline, toggle, OTP e os editores de texto rico.
+       Nenhum é divisória. Medido antes de mexer.
+
+       A luminosidade difere entre as áreas (52 / 56 / 54,5) e isso não é
+       escolha: é o valor em que a matiz e a saturação de cada área alcançam 3:1
+       contra o CARTÃO dela — o da OSG não é branco, é `32 28% 98,5%`, e por isso
+       ele desce meio ponto a mais. No `.dark` a linha CLAREIA para 42%, porque
+       lá o cartão é escuro. O teste cobra a razão, não o número: valor fixo
+       diria a coisa certa numa área e a errada nas outras.
+
+       ⚠️ `bg-input` NÃO existe mais como preenchimento. O `Switch` usava o
+       `--input` para pintar a trilha desligada, o que era o mesmo defeito de
+       novo — borda e preenchimento no mesmo valor — e com a linha escura a
+       trilha "desligada" passaria a parecer ligada. Ela usa `--muted` desde
+       10/09. */
 
     /* Sinais do sistema — os mesmos três papéis do `:root`, e aqui o `var()`
        faz o trabalho sozinho: como cada tema declara os próprios `--status-*`,
@@ -912,10 +929,7 @@ All colors MUST be HSL.
        a borda ser mais saturada que a própria página morreu aqui: era 16%
        sobre um canvas de 10%, e agora é 14%, o mesmo do rebaixado. */
     --border: 192 14% 86%;
-    --input: 192 14% 86%;
-    /* A linha de controle da área: 3,04:1 contra o cartão. Ver a nota no
-       `.base-theme` para por que este token existe. */
-    --border-control: 192 14% 56%;
+    --input: 192 14% 56%;
     --success: var(--status-feito);
     --warning: var(--status-alerta);
     --success-foreground: 0 0% 100%;
@@ -960,14 +974,7 @@ All colors MUST be HSL.
        registro. */
     /* Um degrau abaixo do rebaixado (89%), na saturação dele. */
     --border: 32 28% 86%;
-    --input: 32 28% 86%;
-    /* A linha de controle da área: 3,01:1 contra o cartão. Ver a nota no
-       `.base-theme` para por que este token existe.
-
-       Os 54,5% saem meio ponto abaixo dos 55% que a conta contra branco puro
-       daria: o cartão da OSG não é branco, é `32 28% 98,5%`, e a 55% o par
-       ficava em 2,96:1. Quem pegou foi a catraca, antes do commit. */
-    --border-control: 32 28% 54.5%;
+    --input: 32 28% 54.5%;
 
     /* Sinais na OSG — foi o bloco que mais mudou. "Ok" era o verde musgo e
        "aviso" era o dourado do marca-texto, tokens de marca da área usados
@@ -1193,30 +1200,9 @@ All colors MUST be HSL.
     --warning-foreground: 35 12% 9%;
 
     --border: 35 9% 30%;
-    --input: 35 9% 30%;
-    /* A linha de controle do escuro: 3,01:1 contra o cartão (`35 10% 14%`).
-       A do claro DESCE para achar os 3:1; esta SOBE, porque aqui o cartão é
-       escuro. Mesma regra, direção oposta — é a razão que é o contrato, não
-       o número. Ver a nota no `.base-theme`.
-
-       ⚠️ Este bloco não declara `--canvas`, então herda o do `.base-theme`,
-       que é CLARO (168 16% 93%). Desde que os layouts passaram a pintar com
-       `bg-canvas`, o escuro renderizaria página clara atrás de cartão
-       escuro. NÃO foi corrigido aqui: escolher o canvas do escuro é decisão
-       de design, não sobra de refatoração. E hoje nada põe a classe `dark`
-       no app — não há toggle, e o `next-themes` só aparece no `ui/sonner.tsx`
-       que veio do shadcn. Fica escrito para quem for ligar o escuro. */
-    --border-control: 35 9% 42%;
+    --input: 35 9% 42%;
     --ring: 172 66% 50%;
 
-    --sidebar-background: 34 14% 8%;
-    --sidebar-foreground: 38 12% 94%;
-    --sidebar-primary: 172 66% 50%;
-    --sidebar-primary-foreground: 35 12% 9%;
-    --sidebar-accent: 33 9% 17%;
-    --sidebar-accent-foreground: 38 12% 94%;
-    --sidebar-border: 34 9% 22%;
-    --sidebar-ring: 172 66% 50%;
 
     --edit-shadow-color: 30 89% 51%;
   }

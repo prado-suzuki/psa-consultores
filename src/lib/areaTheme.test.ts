@@ -371,21 +371,21 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
     //    `--bd-line` do Board era frio na casa e bege na Tax e na OSG — mesmo
     //    token, duas temperaturas, dependendo da rota.
     //
-    // +1 `--border-control` (10/09/2026), e este entrou por outro motivo: não
-    //    é token esquecido, é token NOVO. A linha do produto fazia três
-    //    trabalhos com um valor só — contorno de cartão, linha de tabela e
-    //    borda de campo — e a 1,15:1 servia para os dois primeiros e reprovava
-    //    no terceiro, onde a WCAG 1.4.11 pede 3:1. A dívida ficou aberta nos
-    //    três temas porque pagá-la com um token só escureceria toda linha de
-    //    tabela. Separado por trabalho, ele fecha 3,01 a 3,05:1, e a razão é
-    //    cobrada em `paletaDeArea.test.ts` — aqui só se cobra que todo tema
-    //    responda por ele, inclusive o `.dark`, onde a linha CLAREIA.
+    // O `--border-control` chegou a existir por algumas horas em 10/09/2026 e
+    //    saiu no mesmo dia, sem nunca ter tido consumidor. Ele nasceu para
+    //    pagar a WCAG 1.4.11 — a borda de campo precisa de 3:1 e valia 1,3 —
+    //    e a medição seguinte mostrou que o token do trabalho certo JÁ
+    //    existia com o nome certo: os 21 consumidores de `border-input` do
+    //    produto são todos controle, nenhum é divisória. Quem mudou foi o
+    //    VALOR do `--input`, que era cópia do `--border`. Um token novo teria
+    //    deixado dois nomes para um trabalho — o defeito que esta mesma
+    //    frente passou o dia removendo, e que ele quase reintroduziu.
     //
     // O padrão dos quatro anteriores é o mesmo, e é o que este número protege:
     // token que nenhum tema declara não quebra nada visível, só acumula
     // divergência em silêncio. Entrar no contrato é o que faz um tema novo ser
     // OBRIGADO a responder.
-    expect(contrato.size).toBe(51);
+    expect(contrato.size).toBe(50);
   });
 
   /*
