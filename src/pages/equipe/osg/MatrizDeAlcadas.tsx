@@ -250,18 +250,48 @@ const MatrizDeAlcadas = () => {
                               <span className="text-foreground">
                                 {c.papeis.map((p) => nomeDoPapel.get(p) ?? '?').join(' · ')}
                               </span>
-                              {c.sobe_para_orgao_id && (
-                                <span className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-                                  <ArrowUp className="h-3 w-3 shrink-0" aria-hidden />
-                                  {nomeDoOrgao.get(c.sobe_para_orgao_id)}
-                                </span>
-                              )}
+                              {/*
+                                A ordem das três linhas é a ordem em que a
+                                frase se lê: o que o órgão faz, até quanto, e
+                                só então para onde vai o resto. Com a seta
+                                antes do valor, o "até R$ 100.000" parecia
+                                limitar a subida em vez da decisão.
+
+                                E a seta ganha o "acima disso" quando existe
+                                alçada: sem isso, duas células com o mesmo
+                                órgão na seta não se distinguem, uma que sobe
+                                sempre e outra que só sobe passando do limite.
+                              */}
                               {c.alcada_valor !== null && (
                                 <span className="mt-0.5 block text-[11px] text-osg-700">
                                   até{' '}
                                   {c.alcada_unidade === 'percentual'
                                     ? `${Number(c.alcada_valor)}%`
                                     : `R$ ${Number(c.alcada_valor).toLocaleString('pt-BR')}`}
+                                </span>
+                              )}
+                              {c.sobe_para_orgao_id && (
+                                <span className="mt-0.5 flex items-start gap-1 text-[11px] text-muted-foreground">
+                                  <ArrowUp className="mt-px h-3 w-3 shrink-0" aria-hidden />
+                                  <span>
+                                    {c.alcada_valor !== null && 'acima disso: '}
+                                    {nomeDoOrgao.get(c.sobe_para_orgao_id)}
+                                  </span>
+                                </span>
+                              )}
+                              {c.fora_da_politica && (
+                                <span className="mt-0.5 flex items-start gap-1 text-[11px] text-muted-foreground">
+                                  {c.sobe_para_orgao_id ? (
+                                    <>
+                                      <ArrowUp className="mt-px h-3 w-3 shrink-0" aria-hidden />
+                                      <span>
+                                        fora da política:{' '}
+                                        {nomeDoOrgao.get(c.sobe_para_orgao_id)}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span>autoriza o que foge da política</span>
+                                  )}
                                 </span>
                               )}
                             </TableCell>
