@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 import { Scale } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AVISO_FAIXA } from '@/components/equipe/dev/classesDoAviso';
+import { AVISO_CAIXA, AVISO_CAIXA_TEXTO } from '@/components/equipe/dev/classesDoAviso';
 import type { FamiliaSaida } from '@/hooks/useSaidaIcms';
 
 /** Renderiza `**negrito**` sem dangerouslySetInnerHTML, igual ao DevPageHeader. */
@@ -103,12 +103,12 @@ export const BaseLegalCard = ({ familia }: BaseLegalCardProps) => {
     // exatamente onde o `DevPageHeader` fica numa página. Então os dois importam
     // a faixa do mesmo lugar. Sem isto, esta seria a única mancha verde-clara que
     // sobraria na área — pior que não ter mudado nada.
-    <Alert className={`mb-6 ${AVISO_FAIXA}`}>
+    <Alert className={`mb-6 ${AVISO_CAIXA}`}>
       <Scale className="h-5 w-5"/>
-      <AlertTitle className="text-sm font-semibold">
+      <AlertTitle className="text-[13px] font-semibold">
         Base Legal
       </AlertTitle>
-      <AlertDescription className="text-sm leading-relaxed mt-1 space-y-1">
+      <AlertDescription className={`${AVISO_CAIXA_TEXTO} mt-1 space-y-1`}>
         {lines.map((line, idx) => (
           <p key={idx}>{renderBoldSegments(line)}</p>
         ))}
