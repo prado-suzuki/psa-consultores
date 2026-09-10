@@ -5570,6 +5570,7 @@ export type Database = {
           created_by: string | null
           empresa_pessoa_id: string
           extinto_em: string | null
+          extinto_por_movimento_id: string | null
           gravames: string[]
           id: string
           movimento_id: string | null
@@ -5587,6 +5588,7 @@ export type Database = {
           created_by?: string | null
           empresa_pessoa_id: string
           extinto_em?: string | null
+          extinto_por_movimento_id?: string | null
           gravames?: string[]
           id?: string
           movimento_id?: string | null
@@ -5604,6 +5606,7 @@ export type Database = {
           created_by?: string | null
           empresa_pessoa_id?: string
           extinto_em?: string | null
+          extinto_por_movimento_id?: string | null
           gravames?: string[]
           id?: string
           movimento_id?: string | null
@@ -5628,6 +5631,13 @@ export type Database = {
             columns: ["empresa_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onus_quotas_extinto_por_movimento_id_fkey"
+            columns: ["extinto_por_movimento_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacao_quotas"
             referencedColumns: ["id"]
           },
           {
