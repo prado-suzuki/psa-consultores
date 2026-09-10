@@ -1,5 +1,5 @@
 import {
-  areaExtenso, cardinalExtenso, dataExtenso, numeralContrato, percentualExtenso, valorExtenso,
+  areaExtenso, cardinalExtenso, cardinalExtensoContado, dataExtenso, numeralContrato, percentualExtenso, valorExtenso,
   type UnidadeArea,
 } from './extenso';
 import { tituloDoInstrumento } from './instrumento';
@@ -169,7 +169,7 @@ function cardinalCampo(id: string, label: string, derivadoDe: string): CampoEnti
     derivadoDe,
     derivar: (v) => {
       const n = paraInteiro(v[derivadoDe]);
-      return Number.isFinite(n) ? cardinalExtenso(n) : '';
+      return Number.isFinite(n) ? cardinalExtensoContado(n) : '';
     },
   };
 }
@@ -679,7 +679,7 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         derivar: (v) => {
           const n = paraInteiroBR(v.totalQuotas);
           // Feminino: conta quotas ("mil quotas", "oitocentas e setenta e duas mil…").
-          return Number.isFinite(n) ? cardinalExtenso(n, true) : '';
+          return Number.isFinite(n) ? cardinalExtensoContado(n, true) : '';
         },
       },
       // Sede completa em prosa ("Rua X, nº 119, bairro Centro, no município de…")

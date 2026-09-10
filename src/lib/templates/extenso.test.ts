@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { areaExtenso, cardinalExtenso, dataExtenso, formatarArea, formatarPercentual, formatarValor, numeralContrato, ordinalExtenso, percentualExtenso, romano, valorExtenso } from './extenso';
+import { areaExtenso, cardinalExtenso, cardinalExtensoContado, dataExtenso, formatarArea, formatarPercentual, formatarValor, numeralContrato, ordinalExtenso, percentualExtenso, romano, terminaEmEscala, valorExtenso } from './extenso';
 import { formatarDataBR } from './mapeadores';
 
 describe('cardinalExtenso', () => {
@@ -218,5 +218,48 @@ describe('dataExtenso', () => {
     expect(dataExtenso('')).toBe('');
     expect(dataExtenso('a combinar')).toBe('a combinar');
     expect(dataExtenso('2022-13-01')).toBe('2022-13-01');
+  });
+});
+
+
+// Defeito medido no app em 09/09/2026, num capital de milhao redondo: a peca
+// saia "R$ 1.000.000,00 (um milhao reais)" e "1.000.000 (um milhao) quotas".
+// Milhao e bilhao sao substantivos, e o que vem contado depois deles pede "de" —
+// o proprio comentario do modulo ja dizia isso ("dois milhoes de quotas").
+// Composto nao pede, porque a escala deixa de ser a ultima palavra.
+describe('preposicao depois de milhao e bilhao', () => {
+  it('reconhece quando o extenso termina em substantivo de escala', () => {
+    expect(terminaEmEscala(1_000_000)).toBe(true);
+    expect(terminaEmEscala(2_000_000)).toBe(true);
+    expect(terminaEmEscala(1_000_000_000)).toBe(true);
+    // Composto: a escala nao e a ultima palavra.
+    expect(terminaEmEscala(3_974_751)).toBe(false);
+    expect(terminaEmEscala(1_000_500)).toBe(false);
+    // "mil" nao e substantivo: "dois mil reais".
+    expect(terminaEmEscala(2_000)).toBe(false);
+    expect(terminaEmEscala(0)).toBe(false);
+  });
+
+  it('valor por extenso: "um milhao de reais"', () => {
+    expect(valorExtenso(1_000_000)).toBe('um milhão de reais');
+    expect(valorExtenso(2_000_000)).toBe('dois milhões de reais');
+    expect(valorExtenso(1_000_000_000)).toBe('um bilhão de reais');
+  });
+
+  it('composto e milhar seguem sem "de"', () => {
+    expect(valorExtenso(3_974_751)).toBe('três milhões, novecentos e setenta e quatro mil, setecentos e cinquenta e um reais');
+    expect(valorExtenso(2_000)).toBe('dois mil reais');
+    expect(valorExtenso(700_000)).toBe('setecentos mil reais');
+  });
+
+  it('os centavos ficam depois da preposicao, nao antes', () => {
+    expect(valorExtenso(1_000_000.55)).toBe('um milhão de reais e cinquenta e cinco centavos');
+  });
+
+  it('quotas: o extenso contado carrega o "de", o cru nao', () => {
+    expect(cardinalExtensoContado(1_000_000, true)).toBe('um milhão de');
+    expect(cardinalExtensoContado(3_974_751, true)).toBe('três milhões, novecentas e setenta e quatro mil, setecentas e cinquenta e uma');
+    // `cardinalExtenso` segue puro: ha lugar que o usa sem substantivo depois.
+    expect(cardinalExtenso(1_000_000, true)).toBe('um milhão');
   });
 });

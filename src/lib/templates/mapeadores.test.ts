@@ -6,6 +6,8 @@ import {
   mapearBem,
   mapearCessoes,
   mapearRetirantes,
+  causaDaRequalificacaoVigente,
+  vocabularioDaRequalificacao,
   mapearIntegralizacoes,
   matriculasDescritasNasIntegralizacoes,
   mapearMatricula,
@@ -1430,5 +1432,49 @@ describe('mapearIntegralizacoes — o cabecalho e a soma das alineas dele', () =
         valor: null as unknown as number, quotas: null as unknown as number },
     ]);
     expect((item.socio as Record<string, string>).vlrTotal).toBe('500.000,00');
+  });
+});
+
+
+// Defeito medido no app em 09/09/2026: com a causa "Atualizacao postal" gravada
+// e o radio voltando marcado, a resolucao PERDIA a abertura "Em decorrencia da
+// atualizacao do CEP" depois de recarregar a tela, e o .docx nunca a teve. A
+// causa estava sendo lida do estado do assistente, que volta ao default a cada
+// recarga; quem manda e o que a peca gravou.
+describe('causaDaRequalificacaoVigente — quem manda e a peca, nao a tela', () => {
+  it('a causa do snapshot vence a da head e a da tela', () => {
+    expect(causaDaRequalificacaoVigente('atualizacao_postal', 'mudanca_de_domicilio', 'mudanca_de_domicilio'))
+      .toBe('atualizacao_postal');
+  });
+
+  it('sem causa no snapshot, vale a da head (peca ja confirmada, tela recarregada)', () => {
+    expect(causaDaRequalificacaoVigente(undefined, 'atualizacao_postal', 'mudanca_de_domicilio'))
+      .toBe('atualizacao_postal');
+  });
+
+  it('sem peca nenhuma, vale a da tela: e a previa de dentro do assistente', () => {
+    expect(causaDaRequalificacaoVigente(undefined, undefined, 'atualizacao_postal'))
+      .toBe('atualizacao_postal');
+    expect(causaDaRequalificacaoVigente(null, null, 'mudanca_de_domicilio'))
+      .toBe('mudanca_de_domicilio');
+  });
+
+  it('erro_material nao e geravel: cai na abertura neutra', () => {
+    expect(causaDaRequalificacaoVigente('erro_material', undefined, 'atualizacao_postal'))
+      .toBe('mudanca_de_domicilio');
+  });
+
+  it('nada informado tambem cai na neutra', () => {
+    expect(causaDaRequalificacaoVigente()).toBe('mudanca_de_domicilio');
+  });
+
+  it('a abertura do texto acompanha a causa vigente', () => {
+    const socios = [{ tipoPessoa: 'PF', nome: 'Ana', genero: 'F' }];
+    const postal = vocabularioDaRequalificacao(socios, causaDaRequalificacaoVigente('atualizacao_postal'));
+    expect(postal.causa).toContain('Código de Endereçamento Postal');
+    expect(postal.verbo).toBe('altera-se');
+    const domicilio = vocabularioDaRequalificacao(socios, causaDaRequalificacaoVigente(undefined, undefined, 'mudanca_de_domicilio'));
+    expect(domicilio.causa).toBe('');
+    expect(domicilio.verbo).toBe('Altera-se');
   });
 });

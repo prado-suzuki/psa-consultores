@@ -5,7 +5,7 @@ import { baixarDocx } from '@/lib/templates/docx';
 import { camposDaEntidade, derivarCampos, type TipoEntidade } from '@/lib/templates/vocabulario';
 import { calcularHistoricoCapital } from '@/lib/templates/historicoCapital';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
-import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearIntegralizacoes, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, tituloColetivoDosSocios, vocabularioDaRequalificacao, vocabularioDaRetirada, type CausaDaRequalificacao, type ItemLista } from '@/lib/templates/mapeadores';
+import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearIntegralizacoes, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosSocios, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
 import { quotasDoSocio } from '@/lib/templates/capital';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { montarRegistroFamilias, useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
@@ -1958,14 +1958,15 @@ export function useGerarDocumentoController() {
     const requalificadosDoCtx = (itensEfetivo.requalificados ?? [])
       .map((item) => item.requalificado)
       .filter((p): p is Record<string, string> => !!p && typeof p === 'object');
-    const causaDaPeca = (dados && folhaPelaProposta
-      ? (dados.propostaAC?.causaQualificacao ?? causaQualificacao)
-      : causaQualificacao) as CausaQualificacao;
+    // A causa sai da PEÇA, não da tela: `folhaPelaProposta` é falso depois que a
+    // alteração foi validada, e ali o estado do assistente já voltou ao default.
     ctx.requalificacao = vocabularioDaRequalificacao(
       requalificadosDoCtx,
-      // `erro_material` não é gerável (confirmarPropostaAC recusa); se aparecer
-      // aqui é peça legada, e a abertura neutra é a leitura conservadora.
-      (causaDaPeca === 'atualizacao_postal' ? 'atualizacao_postal' : 'mudanca_de_domicilio') as CausaDaRequalificacao,
+      causaDaRequalificacaoVigente(
+        dados?.propostaAC?.causaQualificacao,
+        propostaAC?.causaQualificacao,
+        causaQualificacao,
+      ),
     );
     // A administração passou a ser exercida de FORA do quadro. É a condicional
     // que faz a cláusula dizer "administradores não sócios" só quando é verdade —
@@ -2026,7 +2027,7 @@ export function useGerarDocumentoController() {
     }
     // `montarContextoDaFolha` é recriada a cada render; as deps são as fontes que ela lê.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [template, templateOriginal, familias, familiasOriginais, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, dadosDaFolha, folhaPelaProposta, bindingMatricula, georefCabecalhoCampos, retirantes, administradoresNaoSocios, reproduzindoRegistrado, snapshotRegistrado, snapshotFlags, snapshotDados]);
+  }, [template, templateOriginal, familias, familiasOriginais, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, dadosDaFolha, folhaPelaProposta, bindingMatricula, georefCabecalhoCampos, retirantes, administradoresNaoSocios, reproduzindoRegistrado, snapshotRegistrado, snapshotFlags, snapshotDados, propostaAC, causaQualificacao]);
 
   // As famílias que o texto desta peça cita, transitivamente: o snapshot é o
   // retrato deste documento, não da Biblioteca. O conjunto também interrompe

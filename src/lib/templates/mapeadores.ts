@@ -1,4 +1,4 @@
-import { cardinalExtenso, formatarArea, formatarInteiro, formatarPercentual, formatarValor, letraAlinea, romano, valorExtenso, type UnidadeArea } from './extenso';
+import { cardinalExtenso, cardinalExtensoContado, formatarArea, formatarInteiro, formatarPercentual, formatarValor, letraAlinea, romano, valorExtenso, type UnidadeArea } from './extenso';
 import { capitalDeQuotas, quotasDeValor, quotasDoSocio, VALOR_NOMINAL_QUOTA } from './capital';
 import { comarcaComplementar, CARTORIO_SEM_NOME, nomeDoCartorio } from './cartorio';
 import { marcarSintetizados } from './sintetizado';
@@ -637,7 +637,7 @@ export function mapearSocio(s: SocioParaMapear): ItemLista {
   if (quotas != null) {
     campos.quotas = formatarInteiro(quotas);
     // Feminino: o extenso conta QUOTAS ("quinhentas quotas"), como no registro.
-    campos.quotasExtenso = cardinalExtenso(quotas, true);
+    campos.quotasExtenso = cardinalExtensoContado(quotas, true);
     // O valor integralizado SEGUE as quotas: é aqui que a diferença de centavos
     // entre o valor contábil e a quota indivisível tem destino declarado.
     const valorDasQuotas = capitalDeQuotas(quotas);
@@ -1144,7 +1144,7 @@ function camposDoAporte(alinea: string, quotas: number | null, valor: number | n
   if (quotas != null) {
     out.quotas = formatarInteiro(quotas);
     // Feminino: o extenso conta QUOTAS ("quinhentas quotas"), como no registro.
-    out.quotasExtenso = cardinalExtenso(quotas, true);
+    out.quotasExtenso = cardinalExtensoContado(quotas, true);
   }
   if (valor != null) {
     out.valor = formatarValor(valor);
@@ -1433,6 +1433,26 @@ const ABERTURA_DA_CAUSA: Record<CausaDaRequalificacao, string> = {
 };
 
 /**
+ * A causa que vale para ESTA peça, na ordem de quem manda.
+ *
+ * A regra é uma só: quem manda é o que a peça GRAVOU, não o que a tela tem em
+ * mãos. O estado do assistente é rascunho de uma decisão ainda não tomada, e ele
+ * volta ao default a cada recarga da página. Ler dele fazia a resolução perder a
+ * abertura "Em decorrência da atualização do CEP" assim que alguém recarregava a
+ * tela, e o .docx sair sem ela mesmo com a causa postal gravada e o radio
+ * marcado: o texto discordava da escolha registrada na própria peça.
+ *
+ * `erro_material` não é gerável (`confirmarPropostaAC` recusa); se aparecer aqui
+ * é peça legada, e a abertura neutra é a leitura conservadora.
+ */
+export function causaDaRequalificacaoVigente(
+  ...candidatas: readonly (string | null | undefined)[]
+): CausaDaRequalificacao {
+  const escolhida = candidatas.find((c) => !!c);
+  return escolhida === 'atualizacao_postal' ? 'atualizacao_postal' : 'mudanca_de_domicilio';
+}
+
+/**
  * As palavras da resolução de qualificação que concordam com QUANTOS e QUAIS
  * sócios mudaram de endereço, e com a causa escolhida.
  *
@@ -1490,7 +1510,7 @@ export function mapearCessoes(cessoes: CessaoParaMapear[]): ItemLista[] {
         ordemRomana: romano(i + 1).toLowerCase(),
         quotas: formatarInteiro(quotas),
         // Feminino: o extenso conta QUOTAS ("quinhentas quotas"), como no registro.
-        quotasExtenso: cardinalExtenso(quotas, true),
+        quotasExtenso: cardinalExtensoContado(quotas, true),
         valor: formatarValor(c.valor),
         valorExtenso: valorExtenso(c.valor),
       },

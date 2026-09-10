@@ -95,6 +95,32 @@ export function cardinalExtenso(valor: number, feminino = false): string {
   return juntarGrupos(partes);
 }
 
+/**
+ * O extenso termina num SUBSTANTIVO de escala ("um milhão", "dois bilhões")?
+ *
+ * Importa porque, quando termina, o que vem contado depois pede a preposição:
+ * "um milhão DE reais", "dois milhões DE quotas". Composto não pede, porque a
+ * escala deixa de ser a última palavra ("três milhões, novecentos e setenta e
+ * quatro mil, setecentos e cinquenta e um reais"). "Mil" também não, porque não
+ * é substantivo: "dois mil reais".
+ */
+export function terminaEmEscala(valor: number): boolean {
+  const n = Math.floor(Math.abs(valor));
+  return n >= 1_000_000 && n % 1_000_000 === 0;
+}
+
+/**
+ * Cardinal por extenso já com a preposição que o substantivo contado exige.
+ *
+ * Ex.: 1.000.000 → "um milhão de"; 500 → "quinhentas". É a forma para os campos
+ * `…Extenso` cujo modelo escreve o substantivo logo depois — "{{ socio.quotas }}
+ * ({{ socio.quotasExtenso }}) quotas" saía "1.000.000 (um milhão) quotas".
+ */
+export function cardinalExtensoContado(valor: number, feminino = false): string {
+  const texto = cardinalExtenso(valor, feminino);
+  return terminaEmEscala(valor) ? `${texto} de` : texto;
+}
+
 function listaComE(itens: string[]): string {
   if (itens.length === 1) return itens[0];
   return `${itens.slice(0, -1).join(', ')} e ${itens[itens.length - 1]}`;
@@ -106,7 +132,8 @@ export function valorExtenso(valor: number): string {
   const reais = Math.floor(total / 100);
   const centavos = total % 100;
   const partes: string[] = [];
-  if (reais > 0) partes.push(`${cardinalExtenso(reais)} ${reais === 1 ? 'real' : 'reais'}`);
+  // "um milhão de reais", não "um milhão reais" (ver terminaEmEscala).
+  if (reais > 0) partes.push(`${cardinalExtensoContado(reais)} ${reais === 1 ? 'real' : 'reais'}`);
   if (centavos > 0) partes.push(`${cardinalExtenso(centavos)} ${centavos === 1 ? 'centavo' : 'centavos'}`);
   if (partes.length === 0) return 'zero reais';
   return partes.join(' e ');
