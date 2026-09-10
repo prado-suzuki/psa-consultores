@@ -160,8 +160,8 @@ export function derivarEventosDaAlteracao(args: ArgsDaDerivacao): EventoDerivado
     });
   }
 
-  // 4. Cessão (ou doação) de quotas.
-  const cessoes = pendentes.filter((m) => m.tipo === 'cessao' || m.tipo === 'doacao');
+  // 4. Cessão onerosa de quotas.
+  const cessoes = pendentes.filter((m) => m.tipo === 'cessao');
   if (cessoes.length > 0) {
     const quotas = cessoes.reduce((s, m) => s + m.quotas, 0);
     eventos.push({
@@ -171,7 +171,20 @@ export function derivarEventosDaAlteracao(args: ArgsDaDerivacao): EventoDerivado
     });
   }
 
-  // 5. Entrada e saída de sócio: quem nasce no quadro e quem vai a zero. Sai da
+  // 5. Doação de quotas. É evento próprio porque o título gratuito pode carregar
+  //    origem patrimonial, reserva de usufruto e gravames que a cessão não publica.
+  const doacoes = pendentes.filter((m) => m.tipo === 'doacao');
+  if (doacoes.length > 0) {
+    const quotas = doacoes.reduce((s, m) => s + m.quotas, 0);
+    const titulo = doacoes.length === 1 ? 'doação' : 'doações';
+    eventos.push({
+      flagNome: 'evento_doacao_quotas',
+      evidencia: `${doacoes.length} ${titulo} somando ${inteiro(quotas)} quotas`,
+      movimentoIds: doacoes.map((m) => m.id),
+    });
+  }
+
+  // 6. Entrada e saída de sócio: quem nasce no quadro e quem vai a zero. Sai da
   //    comparação entre o quadro que a peça anterior publicou e a projeção de
   //    hoje, e não de um tipo de movimento: retirada é efeito de uma cessão,
   //    ingresso pode vir tanto de cessão quanto de aporte.
@@ -212,7 +225,7 @@ export function derivarEventosDaAlteracao(args: ArgsDaDerivacao): EventoDerivado
     });
   }
 
-  // 6. Administração: de fora do livro, por DUAS razões independentes.
+  // 7. Administração: de fora do livro, por DUAS razões independentes.
   //
   //    (a) o cadastro de `administracao` mudou; e
   //    (b) a retirada acima deixou quem administra FORA do quadro societário.

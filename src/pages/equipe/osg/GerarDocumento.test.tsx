@@ -420,6 +420,9 @@ describe('GerarDocumento — caracterização O1', () => {
       valoresLivres: { observacao: 'Observação viva' }, empresaId: 'empresa-1',
       itensPorLista: {
         socios: [], administradores: [], integralizacoes: [], cessoes: [],
+        // Coleções da doação são congeladas mesmo vazias: assim uma versão não
+        // passa a narrar ônus criado depois de sua validação.
+        doacoes: [], usufrutos: [], gravamesQuotas: [], quadroUsufruto: [],
         // `retirantes` entrou com a cláusula de retirada da AC de concentração:
         // lista nova é lista congelada no snapshot, como as demais.
         retirantes: [],

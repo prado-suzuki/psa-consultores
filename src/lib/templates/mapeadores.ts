@@ -1,4 +1,4 @@
-import { cardinalExtenso, formatarArea, formatarInteiro, formatarPercentual, formatarValor, letraAlinea, romano, valorExtenso, type UnidadeArea } from './extenso';
+import { cardinalExtenso, dataExtenso, formatarArea, formatarInteiro, formatarPercentual, formatarValor, letraAlinea, romano, valorExtenso, type UnidadeArea } from './extenso';
 import { capitalDeQuotas, quotasDeValor, quotasDoSocio, VALOR_NOMINAL_QUOTA } from './capital';
 import { comarcaComplementar, CARTORIO_SEM_NOME, nomeDoCartorio } from './cartorio';
 import { marcarSintetizados } from './sintetizado';
@@ -10,6 +10,8 @@ import type { Contexto } from './types';
 import type { TipoEntidade } from './vocabulario';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { BemRow, CartorioRow } from '@/hooks/useDiagnosticoPatrimonial';
+import { GRAVAMES, type Gravame } from '@/lib/osg/doacaoDeQuotas';
+import { montarUsufruto } from '@/lib/osg/usufrutoDoAto';
 
 // Mapeadores puros (sem React): convertem uma linha do cadastro nos campos do
 // vocabulário da entidade correspondente, já com os derivados (extensos via
@@ -1295,9 +1297,29 @@ export interface CessaoParaMapear {
   valor: number;
   /** Doação (título gratuito) em vez de cessão onerosa. */
   doacao?: boolean;
+  quotasLegitima?: number | null;
+  quotasDisponivel?: number | null;
+  instrumentoData?: string | null;
   /** "neste ato representada por…" quando a ponta é PJ. */
   representanteCedente?: string | null;
   representanteCessionario?: string | null;
+}
+
+export interface OnusParaMapear {
+  movimentoId: string | null;
+  nuProprietarioId: string;
+  usufrutuarioIds: string[];
+  usufrutoOrigem: 'reserva' | 'instituicao' | null;
+  comVoto: boolean;
+  quotas: number;
+  gravames: Gravame[];
+}
+
+export interface ListasDaDoacao {
+  doacoes: ItemLista[];
+  usufrutos: ItemLista[];
+  gravamesQuotas: ItemLista[];
+  quadroUsufruto: ItemLista[];
 }
 
 /**
@@ -1524,6 +1546,140 @@ export function mapearCessoes(cessoes: CessaoParaMapear[]): ItemLista[] {
       cessionarioPJ: c.cessionario.tipo_pessoa === 'PJ',
     };
   });
+}
+
+/** Coleções próprias da doação e do estado de usufruto que a peça publica. */
+export function mapearListasDaDoacao(
+  doacoes: readonly CessaoParaMapear[],
+  onusAtivos: readonly OnusParaMapear[],
+  socios: readonly SocioParaMapear[],
+  pessoaPorId: (id: string) => PessoaRow | null | undefined,
+): ListasDaDoacao {
+  const onusPorMovimento = new Map(
+    onusAtivos.filter((o) => o.movimentoId).map((o) => [o.movimentoId!, o]),
+  );
+  const camposPessoa = (pessoa: PessoaRow) => derivarCampos('pessoa', mapearPessoa(pessoa));
+  const dadosQuotas = (quotas: number) => ({
+    quotas: formatarInteiro(Math.round(quotas)),
+    quotasExtenso: cardinalExtenso(Math.round(quotas), true),
+  });
+
+  const itensDoacao = doacoes.map((d, i) => {
+    const quotas = Math.round(d.quotas);
+    const legitima = d.quotasLegitima == null ? null : Math.round(d.quotasLegitima);
+    const disponivel = d.quotasDisponivel == null ? null : Math.round(d.quotasDisponivel);
+    const data = formatarDataBR(d.instrumentoData ?? null);
+    return {
+      doador: camposPessoa(d.cedente),
+      donatario: camposPessoa(d.cessionario),
+      doacao: {
+        ordem: String(i + 1),
+        ordemRomana: romano(i + 1).toLowerCase(),
+        ...dadosQuotas(quotas),
+        valor: formatarValor(d.valor),
+        valorExtenso: valorExtenso(d.valor),
+        quotasLegitima: legitima == null ? '' : formatarInteiro(legitima),
+        quotasLegitimaExtenso: legitima == null ? '' : cardinalExtenso(legitima, true),
+        quotasDisponivel: disponivel == null ? '' : formatarInteiro(disponivel),
+        quotasDisponivelExtenso: disponivel == null ? '' : cardinalExtenso(disponivel, true),
+        instrumentoData: data,
+        instrumentoDataExtenso: dataExtenso(data),
+      },
+      comOrigem: legitima != null && disponivel != null,
+      comInstrumento: !!data,
+    };
+  });
+
+  const onusDoAto = doacoes.flatMap((d) => {
+    const onus = onusPorMovimento.get(d.id);
+    return onus ? [onus] : [];
+  });
+  const usufrutos = onusDoAto.flatMap((onus, i) => {
+    if (onus.usufrutoOrigem !== 'reserva' || onus.usufrutuarioIds.length === 0) return [];
+    const nuProprietario = pessoaPorId(onus.nuProprietarioId);
+    const usufrutuarios = onus.usufrutuarioIds.flatMap((id) => {
+      const pessoa = pessoaPorId(id);
+      return pessoa ? [pessoa] : [];
+    });
+    if (!nuProprietario || usufrutuarios.length === 0) return [];
+    return [{
+      nuProprietario: camposPessoa(nuProprietario),
+      usufruto: {
+        ordem: String(i + 1),
+        ordemRomana: romano(i + 1).toLowerCase(),
+        ...dadosQuotas(onus.quotas),
+        usufrutuarioNomes: usufrutuarios.map((p) => p.denominacao ?? '').filter(Boolean).join(' e '),
+        usufrutuarioQualificacoes: usufrutuarios.map((p) => camposPessoa(p).qualificacao).filter(Boolean).join('; e '),
+      },
+      comVoto: onus.comVoto,
+      semVoto: !onus.comVoto,
+    }];
+  });
+  const gravamesQuotas = onusDoAto.flatMap((onus, i) => {
+    if (onus.gravames.length === 0) return [];
+    const nuProprietario = pessoaPorId(onus.nuProprietarioId);
+    if (!nuProprietario) return [];
+    return [{
+      nuProprietario: camposPessoa(nuProprietario),
+      gravame: {
+        ordem: String(i + 1),
+        ordemRomana: romano(i + 1).toLowerCase(),
+        ...dadosQuotas(onus.quotas),
+        nomes: onus.gravames.map((g) => GRAVAMES[g]?.label.toLocaleUpperCase('pt-BR') ?? g).join(', '),
+      },
+    }];
+  });
+
+  const concessoes = onusAtivos.flatMap((onus) => {
+    if (onus.usufrutuarioIds.length === 0) return [];
+    return [{
+      deId: onus.nuProprietarioId,
+      paraIds: onus.usufrutuarioIds,
+      quotas: BigInt(Math.round(onus.quotas)),
+      origem: onus.usufrutoOrigem === 'instituicao' ? 'instituicao' as const : 'reserva' as const,
+      comVoto: onus.comVoto,
+    }];
+  });
+  const participantes = socios.flatMap((s) => {
+    if (!s.pessoa.id) return [];
+    return [{
+      pessoaId: s.pessoa.id,
+      nome: s.pessoa.denominacao ?? s.pessoa.id,
+      quotas: BigInt(Math.round(quotasDoSocio(s.quotas, s.vlr_total) ?? 0)),
+    }];
+  });
+  const participantesIds = new Set(participantes.map((p) => p.pessoaId));
+  for (const id of onusAtivos.flatMap((o) => [o.nuProprietarioId, ...o.usufrutuarioIds])) {
+    if (participantesIds.has(id)) continue;
+    const pessoa = pessoaPorId(id);
+    if (!pessoa) continue;
+    participantes.push({ pessoaId: id, nome: pessoa.denominacao ?? id, quotas: 0n });
+    participantesIds.add(id);
+  }
+  const capital = participantes.reduce((total, p) => total + p.quotas, 0n);
+  const quadro = concessoes.length > 0
+    ? montarUsufruto({ participantes, concessoes, capital }).linhas
+    : [];
+  const quadroUsufruto = quadro.flatMap((linha, i) => {
+    const titular = pessoaPorId(linha.pessoaId);
+    if (!titular) return [];
+    return [{
+      titular: camposPessoa(titular),
+      usufruto: {
+        ordem: String(i + 1),
+        ordemRomana: romano(i + 1).toLowerCase(),
+        quotas: formatarInteiro(Number(linha.quotas)),
+        plena: formatarInteiro(Number(linha.plena)),
+        nua: formatarInteiro(Number(linha.nua)),
+        usufruto: formatarInteiro(Number(linha.usufruto)),
+        vozEVoto: formatarInteiro(Number(linha.vozEVoto)),
+        pctParticipacao: linha.pctParticipacao.replace('.', ','),
+        pctVozEVoto: linha.pctVozEVoto.replace('.', ','),
+      },
+    }];
+  });
+
+  return { doacoes: itensDoacao, usufrutos, gravamesQuotas, quadroUsufruto };
 }
 
 /** Linha de administração com a pessoa do administrador juntada. */

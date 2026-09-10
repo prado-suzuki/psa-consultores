@@ -39,7 +39,7 @@ vitalício"; o que ele mostra e este documento adota está resumido abaixo.
 | Fatia | O que entrega | Estado |
 |---|---|---|
 | **1. O evento no Quadro Societário** | Gesto "Doar quotas" na área do quadro: vários pares num ato, reserva de usufruto, gravames, origem legítima/disponível, data do instrumento. Grava o livro e o ônus. Tabela "Usufruto e voto" na página | ✅ entregue 10/09/2026 (sandbox) |
-| **2. A peça** | O assistente da AC deriva "Doação com reserva de usufruto" com evidência, e a folha compõe as cláusulas do ato (doação, extensão do usufruto, gravames, renúncia à preferência, mapa de usufruto e voto) | 🔵 aberta |
+| **2. A peça** | O assistente da AC deriva "Doação com reserva de usufruto" com evidência, e a folha compõe as cláusulas do ato (doação, extensão do usufruto, gravames, renúncia à preferência, mapa de usufruto e voto) | ✅ entregue 10/09/2026 (sandbox) · **redação pendente de aceite jurídico** |
 | **3. Os ecos na consolidação** | Os três pontos fixos do contrato consolidado passam a ler o ônus vigente, e as validações aritméticas (fração de quota, legítima ímpar, três somas independentes) | 🔵 aberta |
 | **4. As variantes** | Cessão gratuita sem usufruto (sub-rogação do gravame preexistente) e instituição de usufruto avulsa, o ato próprio com guia própria | 🔵 aberta |
 
@@ -94,18 +94,62 @@ dizer, ao escolher "Doação", que reserva de usufruto e gravames têm gesto pr�
 ## O que a fatia 1 deliberadamente não faz
 
 - **Nenhuma peça sai daqui.** Marcar o evento de doação no assistente e escrever as
-  cláusulas é a fatia 2; hoje o livro acende `evento_cessao_quotas`, porque
-  `eventosDaAlteracao.ts` trata `cessao` e `doacao` juntas, e a redação do bloco de cessão
-  tem o ramo `{{#seDoacao}}`. Isso é suficiente para não perder o evento, e insuficiente
-  para publicar usufruto e gravame — que é justamente o que a fatia 2 vai separar.
+  cláusulas era a fatia 2, entregue no mesmo dia (ver a seção abaixo). Na fatia 1 o livro
+  acendia `evento_cessao_quotas`, porque `eventosDaAlteracao.ts` tratava `cessao` e `doacao`
+  juntas: suficiente para não perder o evento, insuficiente para publicar usufruto e gravame.
 - **Doador pessoa jurídica** não é oferecido: a redação homologada nomeia sócio pessoa
   física, como no acervo.
 - **Anuência conjugal** não é gravada como papel. O cônjuge que anui à doação (art. 1.647
-  do CC) é papel do *instrumento*, distinto do de cousufrutuário, e entra com as assinaturas
-  na fatia 2. O que a fatia 1 guarda é quem **usufrui**.
+  do CC) é papel do *instrumento*, distinto do de cousufrutuário. O que a fatia 1 guarda é
+  quem **usufrui**; a fatia 2 também não o tratou, e a assinatura do cônjuge anuente segue
+  aberta.
 - **ITCMD é externo à minuta.** Nenhum precedente trata do imposto no corpo do instrumento;
   a guia é pressuposto do registro. A calculadora de ITCD segue sendo outra tela, e a
   ligação "simulação aprovada vira a origem da doação" é decisão aberta.
+
+## Fatia 2, o que ficou no código
+
+**A doação deixou de ser um caso da cessão.** `eventosDaAlteracao.ts` derivava
+`evento_cessao_quotas` para `cessao` e `doacao` juntas; agora cada tipo tem o seu evento,
+com evidência própria ("1 doação somando 200 quotas"). `estadoProposto.ts` acompanha:
+`evento_doacao_quotas` entra em `EVENTOS_DE_MOVIMENTO`, sustenta `evento_mudanca_socios`
+como causa legítima, e as coleções passaram a ser liberadas por matéria, não em bloco.
+Sem o evento de doação confirmado, `doacoes`, `usufrutos`, `gravamesQuotas` e
+`quadroUsufruto` ficam explicitamente vazias no estado proposto (e congeladas vazias no
+snapshot), para que uma versão validada não passe a narrar ônus criado depois dela.
+
+**Quatro coleções novas no vocabulário** (`binding.ts`), com os papéis que a redação nomeia:
+
+| Coleção | Papel do item | Seções condicionais | O que publica |
+|---|---|---|---|
+| `doacoes` | `doador`, `donatario`, `doacao` | `comOrigem`, `comInstrumento` | cada par do ato, com quotas, valor, legítima/disponível e a data do instrumento particular |
+| `usufrutos` | `nuProprietario`, `usufruto` | `comVoto`, `semVoto` | as reservas criadas por este ato, com os cousufrutuários num nome só |
+| `gravamesQuotas` | `nuProprietario`, `gravame` | nenhuma | os gravames efetivamente registrados sobre cada conjunto de quotas |
+| `quadroUsufruto` | `titular`, `usufruto` | nenhuma | propriedade plena, nua, usufruto e voz e voto de **toda** a sociedade |
+
+`mapearListasDaDoacao` (em `mapeadores.ts`) monta as quatro de uma vez. Duas fronteiras
+importam: as três primeiras saem só dos ônus **deste** ato (casados ao movimento por
+`movimento_id`), enquanto o `quadroUsufruto` sai de **todos** os ônus vigentes, porque é
+estado da sociedade e não efeito da peça (decisão 2 do corpus). A aritmética do quadro
+reaproveita `montarUsufruto`, a mesma de `usufrutoDoAto.ts` que a fatia 1 já usa: quem
+aparece só como usufrutuário entra com zero quotas para poder receber voto.
+
+**Migration `20260910212126_resolucao_doacao_quotas_usufruto.sql`** (aplicada no sandbox em
+10/09/2026; **produção pendente**, passo humano pelo Lovable): a flag `evento_doacao_quotas`
+no catálogo e cinco blocos `livre` logo depois da cessão (ordens 9 a 13), no mesmo molde da
+resolução de qualificação de endereço: doação, reserva de usufruto, gravames, anuência e
+renúncia à preferência, quadro de usufruto e voto. A resolução de cessão ganhou uma versão
+nova, exclusivamente **onerosa**: o ramo `{{#seDoacao}}` saiu dela, e as versões anteriores
+continuam disponíveis para os documentos já selados. A inconsistência que o corpus apontou
+foi corrigida na redação nova: ficou "Em observância aos preceitos do artigo 1.911", que é o
+dispositivo que autoriza o gravame.
+
+**A migration carrega reparo de sandbox.** A primeira execução usou UUIDs sequenciais
+(`ac000001-…-0008`, `-0009`, `-0012`) que já pertenciam a blocos criados fora do
+repositório, e sobrescreveu a redação da retirada e do desimpedimento. Os cinco blocos
+nasceram de novo com UUID v4, e o arquivo leva os `delete` e os `update` de conserto,
+guardados pelo par nome + changelog: em qualquer banco que nunca viu a versão colidente,
+inclusive produção, essas quatro instruções são no-op.
 
 ## Decisões abertas
 

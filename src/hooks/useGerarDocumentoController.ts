@@ -5,7 +5,7 @@ import { baixarDocx } from '@/lib/templates/docx';
 import { camposDaEntidade, derivarCampos, type TipoEntidade } from '@/lib/templates/vocabulario';
 import { calcularHistoricoCapital } from '@/lib/templates/historicoCapital';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
-import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearIntegralizacoes, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosSocios, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
+import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearIntegralizacoes, mapearListasDaDoacao, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosSocios, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
 import { quotasDoSocio } from '@/lib/templates/capital';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { montarRegistroFamilias, useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
@@ -1186,7 +1186,7 @@ export function useGerarDocumentoController() {
   // do quadro societário, e das integralizações apenas na PR que ainda não gravou
   // o quadro, onde os próprios sócios são derivados (daí o tipo da empresa).
   const {
-    socios, administradores, integralizacoes, aportes, cessoes, quadroGravado,
+    socios, administradores, integralizacoes, aportes, cessoes, onus = [], quadroGravado,
     isFetching: carregandoListas,
   } = useListasDaEmpresa(
     usaListas || temSociedade ? empresaId : null,
@@ -1336,6 +1336,12 @@ export function useGerarDocumentoController() {
     })),
     [registros.pessoa],
   );
+  const cessoesOnerosas = useMemo(() => cessoes.filter((c) => !c.doacao), [cessoes]);
+  const doacoes = useMemo(() => cessoes.filter((c) => c.doacao), [cessoes]);
+  const listasDaDoacao = useMemo(
+    () => mapearListasDaDoacao(doacoes, onus, socios, (id) => pessoaPorId.get(id) ?? null),
+    [doacoes, onus, socios, pessoaPorId],
+  );
   // Quotas de cada pessoa no quadro da empresa selecionada, para a ORDEM das
   // partes (ver mapearPartesSelecionadas). Sai do NÚMERO (quotasDoSocio), não do
   // `socio.quotas` do quadro mapeado, que já é texto formatado com milhar —
@@ -1400,7 +1406,8 @@ export function useGerarDocumentoController() {
       socios: quadro.itens,
       administradores: administradores.map(mapearAdministrador),
       integralizacoes: mapearIntegralizacoes(socios, integralizacoes, aportes),
-      cessoes: mapearCessoes(cessoes),
+      cessoes: mapearCessoes(cessoesOnerosas),
+      ...listasDaDoacao,
       retirantes: mapearRetirantes(retirantes),
       // Quem esta alteração requalifica é decisão do assistente, não do cadastro:
       // a lista é composta pelo estado proposto (ver estadoProposto.ts). Aqui ela
@@ -1430,7 +1437,7 @@ export function useGerarDocumentoController() {
       // escolhido, o objeto é vazio e nada é substituído.
       ...listasDoInstrumentoRural_ouVazio,
     }),
-    [quadro, socios, administradores, integralizacoes, aportes, cessoes, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista, listasDoInstrumentoRural_ouVazio],
+    [quadro, socios, administradores, integralizacoes, aportes, cessoesOnerosas, listasDaDoacao, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista, listasDoInstrumentoRural_ouVazio],
   );
 
   // --- Notificações de mudança de variável (só com versão validada) ---------

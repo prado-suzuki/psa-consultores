@@ -40,13 +40,17 @@ export const EVENTOS_DE_MOVIMENTO = [
   'evento_aumento_capital',
   'evento_integralizacao',
   'evento_cessao_quotas',
+  'evento_doacao_quotas',
   'evento_mudanca_socios',
 ] as const;
 export const EVENTO_ADMINISTRACAO = 'evento_mudanca_administracao';
 export const EVENTO_QUALIFICACAO = FLAG_QUALIFICACAO;
 
 /** Listas que descrevem o livro de movimentos e o quadro que ele produz. */
-const LISTAS_DE_MOVIMENTO = ['socios', 'integralizacoes', 'cessoes', 'retirantes'] as const;
+const LISTAS_DE_MOVIMENTO = [
+  'socios', 'integralizacoes', 'cessoes', 'doacoes', 'usufrutos', 'gravamesQuotas',
+  'quadroUsufruto', 'retirantes',
+] as const;
 const LISTAS_DE_ADMINISTRACAO = ['administradores'] as const;
 /** Os sócios que a resolução de qualificação nomeia: só existem se o evento entrar. */
 const LISTAS_DE_QUALIFICACAO = ['requalificados'] as const;
@@ -225,6 +229,8 @@ export function comporEstadoProposto(args: ArgsDoEstadoProposto): EstadoProposto
   const editados = args.camposEditados ?? new Set<string>();
   const pendencias: string[] = [];
   const movimento = EVENTOS_DE_MOVIMENTO.some((e) => eventosConfirmados.has(e));
+  const cessao = eventosConfirmados.has('evento_cessao_quotas');
+  const doacao = eventosConfirmados.has('evento_doacao_quotas');
   const administracao = eventosConfirmados.has(EVENTO_ADMINISTRACAO);
   const sedeConfirmada = eventosConfirmados.has(FLAG_SEDE);
   const qualificacaoConfirmada = eventosConfirmados.has(EVENTO_QUALIFICACAO);
@@ -281,7 +287,10 @@ export function comporEstadoProposto(args: ArgsDoEstadoProposto): EstadoProposto
   // --- Listas -----------------------------------------------------------------
   const pessoas = pessoasDaBase(base);
   const listasVivas = new Set<string>([...LISTAS_VIVAS_SEMPRE]);
-  if (movimento) LISTAS_DE_MOVIMENTO.forEach((l) => listasVivas.add(l));
+  if (movimento) ['socios', 'integralizacoes', 'retirantes'].forEach((l) => listasVivas.add(l));
+  if (cessao) listasVivas.add('cessoes');
+  if (doacao) ['doacoes', 'usufrutos', 'gravamesQuotas', 'quadroUsufruto']
+    .forEach((l) => listasVivas.add(l));
   if (administracao) LISTAS_DE_ADMINISTRACAO.forEach((l) => listasVivas.add(l));
   if (qualificacaoConfirmada) LISTAS_DE_QUALIFICACAO.forEach((l) => listasVivas.add(l));
   if (movimento || administracao) LISTAS_DE_ASSINATURA.forEach((l) => listasVivas.add(l));
@@ -299,13 +308,14 @@ export function comporEstadoProposto(args: ArgsDoEstadoProposto): EstadoProposto
       estado.itensPorLista[nome] = governada ? [] : itens;
     }
   }
-  // Sem evento de movimento, as cessões e retiradas pendentes ficam de fora
-  // MESMO que a base tenha a chave (ela não tem: quem publica cessão é a peça
-  // que a formaliza). Explicitar o vazio evita o laço órfão.
-  if (!movimento) {
-    for (const nome of ['cessoes', 'retirantes']) {
-      if (!(nome in estado.itensPorLista)) estado.itensPorLista[nome] = [];
-    }
+  // Coleções do ato só existem quando a causa correspondente foi confirmada.
+  const listasInativas = [
+    ...(!cessao ? ['cessoes'] : []),
+    ...(!doacao ? ['doacoes', 'usufrutos', 'gravamesQuotas', 'quadroUsufruto'] : []),
+    ...(!movimento ? ['retirantes'] : []),
+  ];
+  for (const nome of listasInativas) {
+    if (!(nome in estado.itensPorLista)) estado.itensPorLista[nome] = [];
   }
   // Idem para os requalificados: sem o evento, a resolução não nomeia ninguém, e
   // a lista vazia é o que faz o bloco sair da composição por 'lista-vazia'.
@@ -361,7 +371,10 @@ export function validarSelecaoDeEventos(
   const erros: string[] = [];
   if (eventosConfirmados.has('evento_mudanca_socios')) {
     const doEfeito = new Set(movimentosPorEvento.get('evento_mudanca_socios') ?? []);
-    const sustentado = ['evento_cessao_quotas', 'evento_aumento_capital', 'evento_integralizacao']
+    const sustentado = [
+      'evento_cessao_quotas', 'evento_doacao_quotas',
+      'evento_aumento_capital', 'evento_integralizacao',
+    ]
       .some((causa) => eventosConfirmados.has(causa)
         && (movimentosPorEvento.get(causa) ?? []).some((id) => doEfeito.has(id)));
     if (!sustentado) {

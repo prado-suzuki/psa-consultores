@@ -55,6 +55,10 @@ function vivo(): SnapshotDados {
     administradores: [{ administrador: { ...pessoa('p2'), cargo: 'Administrador' } }],
     integralizacoes: [{ integralizador: pessoa('p2'), imoveis: [] }],
     cessoes: [{ cedente: p1, cessionario: pessoa('p2'), cessao: { quotas: '50' } }],
+    doacoes: [{ doador: p1, donatario: pessoa('p2'), doacao: { quotas: '25' } }],
+    usufrutos: [{ nuProprietario: pessoa('p2'), usufruto: { quotas: '25' } }],
+    gravamesQuotas: [{ nuProprietario: pessoa('p2'), gravame: { quotas: '25' } }],
+    quadroUsufruto: [{ titular: p1, usufruto: { plena: '75' } }],
     retirantes: [],
     signatarios: [{ signatario: { nome: 'Pessoa p1' } }, { signatario: { nome: 'Pessoa p2' } }],
     imoveis: [{ imovel: { id: 'imovel-1', numero: '1' } }],
@@ -85,8 +89,21 @@ describe('estado proposto = base registrada + eventos confirmados', () => {
     expect(estado.total).toEqual(base().total);
     expect(estado.itensPorLista.administradores).toEqual(base().itensPorLista.administradores);
     expect(estado.itensPorLista.cessoes).toEqual([]);
+    expect(estado.itensPorLista.doacoes).toEqual([]);
     expect(estado.itensPorLista.retirantes).toEqual([]);
     expect(pendencias).toEqual([]);
+  });
+
+  it('cessão e doação só liberam as coleções da própria matéria', () => {
+    const cessao = compor(['evento_cessao_quotas']).estado.itensPorLista;
+    expect(cessao.cessoes).toHaveLength(1);
+    expect(cessao.doacoes).toEqual([]);
+    expect(cessao.usufrutos).toEqual([]);
+
+    const doacao = compor(['evento_doacao_quotas']).estado.itensPorLista;
+    expect(doacao.cessoes).toEqual([]);
+    expect(doacao.doacoes).toHaveLength(1);
+    expect(doacao.usufrutos).toHaveLength(1);
   });
 
   it('a peca nova e numerada pelo motor, e a identificacao registral vazia na base e completada', () => {
@@ -184,7 +201,8 @@ describe('estado proposto = base registrada + eventos confirmados', () => {
 describe('validarSelecaoDeEventos: dependencias entre eventos', () => {
   const movimentos = new Map<string, string[]>([
     ['evento_cessao_quotas', ['c1']],
-    ['evento_mudanca_socios', ['c1', 'a1']],
+    ['evento_doacao_quotas', ['d1']],
+    ['evento_mudanca_socios', ['c1', 'd1', 'a1']],
     ['evento_aumento_capital', ['a1']],
   ]);
   it('mudanca de socios sem a causa que a produziu e incoerente', () => {
@@ -195,6 +213,7 @@ describe('validarSelecaoDeEventos: dependencias entre eventos', () => {
   it('com a cessao (ou o aporte) marcada, fecha', () => {
     expect(validarSelecaoDeEventos(new Set(['evento_mudanca_socios', 'evento_cessao_quotas']), movimentos)).toEqual([]);
     expect(validarSelecaoDeEventos(new Set(['evento_mudanca_socios', 'evento_aumento_capital']), movimentos)).toEqual([]);
+    expect(validarSelecaoDeEventos(new Set(['evento_mudanca_socios', 'evento_doacao_quotas']), movimentos)).toEqual([]);
   });
   it('a causa sozinha e legitima: o efeito fica pendente para a proxima peca', () => {
     expect(validarSelecaoDeEventos(new Set(['evento_cessao_quotas']), movimentos)).toEqual([]);

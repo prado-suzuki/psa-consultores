@@ -115,9 +115,28 @@ describe('derivarEventosDaAlteracao', () => {
       baseline: { ...baselineDoContratoSocial, pessoaIdsDosSocios: comIds ? [ANA, BRUNO] : null },
       cpfCnpjPorPessoaId: comIds ? {} : CPFS,
     });
-    expect(eventos.map((e) => e.flagNome)).toEqual(['evento_cessao_quotas', 'evento_mudanca_socios']);
+    expect(eventos.map((e) => e.flagNome)).toEqual(['evento_doacao_quotas', 'evento_mudanca_socios']);
+    expect(eventos[0]).toEqual({ flagNome: 'evento_doacao_quotas',
+      evidencia: '1 doação somando 436.337 quotas', movimentoIds: ['doacao'] });
     expect(eventos[1]).toEqual({ flagNome: 'evento_mudanca_socios',
       evidencia: '1 ingresso(s) e 1 retirada(s) no quadro societário', movimentoIds: ['doacao'] });
+  });
+
+  it('não mistura cessão onerosa e doação na mesma evidência', () => {
+    const eventos = derivarEventosDaAlteracao({
+      movimentos: [
+        ...constituicao,
+        mov({ id: 'cessao', tipo: 'cessao', origemPessoaId: ANA,
+          destinoPessoaId: BRUNO, quotas: 100, valor: 100 }),
+        mov({ id: 'doacao', tipo: 'doacao', origemPessoaId: ANA,
+          destinoPessoaId: HOLDING, quotas: 200, valor: 200 }),
+      ],
+      empresaPessoaId: PR,
+    });
+    expect(eventos.slice(0, 2)).toEqual([
+      { flagNome: 'evento_cessao_quotas', evidencia: '1 cessão(ões) somando 100 quotas', movimentoIds: ['cessao'] },
+      { flagNome: 'evento_doacao_quotas', evidencia: '1 doação somando 200 quotas', movimentoIds: ['doacao'] },
+    ]);
   });
 
   it('não deriva evento nenhum quando tudo já foi formalizado', () => {

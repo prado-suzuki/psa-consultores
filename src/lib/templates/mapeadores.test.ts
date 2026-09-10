@@ -9,6 +9,7 @@ import {
   causaDaRequalificacaoVigente,
   vocabularioDaRequalificacao,
   mapearIntegralizacoes,
+  mapearListasDaDoacao,
   matriculasDescritasNasIntegralizacoes,
   mapearMatricula,
   mapearPartesSelecionadas,
@@ -85,6 +86,45 @@ describe('identidade persistida nos mapeadores', () => {
     expect(mapearSociedade(pessoa).id).toBeUndefined();
     expect((mapearPartesSelecionadas([{ id: pessoa.id, campos: mapearPessoa(pessoa) }])[0].parte as Campos).id)
       .toBeUndefined();
+  });
+});
+
+describe('listas da doação com reserva de usufruto', () => {
+  it('separa ato, usufruto, gravames e quadro de voto com usufrutuário retirante', () => {
+    const doador = { id: 'doador', denominacao: 'Doador', tipo_pessoa: 'PF' } as PessoaRow;
+    const donatario = { id: 'donatario', denominacao: 'Donatário', tipo_pessoa: 'PF' } as PessoaRow;
+    const pessoas = new Map([[doador.id, doador], [donatario.id, donatario]]);
+    const listas = mapearListasDaDoacao(
+      [{
+        id: 'mov-doacao', cedente: doador, cessionario: donatario,
+        quotas: 101, valor: 101, doacao: true, quotasLegitima: 51,
+        quotasDisponivel: 50, instrumentoData: '2026-09-10',
+      }],
+      [{
+        movimentoId: 'mov-doacao', nuProprietarioId: donatario.id,
+        usufrutuarioIds: [doador.id], usufrutoOrigem: 'reserva', comVoto: true,
+        quotas: 101, gravames: ['inalienabilidade', 'impenhorabilidade'],
+      }],
+      [{ pessoa: donatario, quotas: 101, vlr_total: 101, representante: null }],
+      (id) => pessoas.get(id),
+    );
+
+    expect(listas.doacoes[0].doacao).toMatchObject({
+      quotas: '101', quotasLegitima: '51', quotasDisponivel: '50',
+      instrumentoData: '10/09/2.026',
+    });
+    expect(listas.usufrutos[0]).toMatchObject({ comVoto: true, usufruto: { quotas: '101', usufrutuarioNomes: 'Doador' } });
+    expect(listas.gravamesQuotas[0].gravame).toMatchObject({
+      nomes: 'INALIENABILIDADE, IMPENHORABILIDADE',
+    });
+    expect(listas.quadroUsufruto.map((i) => ({
+      nome: (i.titular as Campos).nome,
+      nua: (i.usufruto as Campos).nua,
+      voto: (i.usufruto as Campos).vozEVoto,
+    }))).toEqual([
+      { nome: 'Donatário', nua: '101', voto: '0' },
+      { nome: 'Doador', nua: '0', voto: '101' },
+    ]);
   });
 });
 
