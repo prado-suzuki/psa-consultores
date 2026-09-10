@@ -38,10 +38,39 @@
  * mesma separação de fundo que TODO cartão desta tela, e ganha a borda que todo
  * cartão tem. Ela lê como cartão porque é construída como cartão.
  *
- * ⚠️ Não troque `border-border` por `border-card` nem por uma borda da cor do
- * fundo "para ficar limpo". É exatamente o movimento que produziu o defeito
- * original, e ele não aparece em revisão: a classe usa token, parece certa, e a
- * caixa some.
+ * ═══ E A ARESTA NEUTRA AINDA ERA CURTA PARA FORA ═══
+ *
+ * Com a borda do sistema (`border`, 86%) a caixa branca ficou correta e ainda
+ * incomodou: "as cores estão muito parecidas, esse é o padrão mesmo?". Era o
+ * padrão, e medir explicou por quê — a página está **exatamente no meio** entre o
+ * cartão e a borda dele:
+ *
+ *   cartão branco  x  página 93%   1,153
+ *   borda 86%      x  página 93%   1,153   <- o MESMO número
+ *   borda 86%      x  cartão       1,329
+ *
+ * Ou seja a aresta neutra separa o cartão para DENTRO e não para FORA: o conjunto
+ * cartão+borda lê como uma massa só contra o fundo. E mover a página não resolve,
+ * é troca — a 90% o cartão sobe para 1,228 e a borda cai para 1,082; a 86% a borda
+ * desaparece na página (1,008). Os 93% são o ótimo, não um erro. O vão inteiro,
+ * da borda ao cartão, tem 14 pontos, e dividido em dois dá 1,15 para cada lado.
+ * **Encurtar esse vão é outra frente** (a altura da pilha de superfícies), e não
+ * se conserta aqui.
+ *
+ * O que se conserta aqui é o PAPEL: a borda deixa de ser neutra e passa a ser o
+ * acento, a 25%. Isso faz duas coisas de uma vez — a aresta passa a existir para
+ * fora, e a caixa deixa de ser idêntica ao cartão de filtros logo abaixo dela.
+ * Ela volta a dizer "eu sou o aviso" sem precisar de fundo colorido:
+ *
+ *   border-accent-d/25  x cartão 1,480   x página 1,284
+ *
+ * Alfa, e não valor fixo, de propósito: se a pilha de superfícies mudar de altura,
+ * a borda acompanha sozinha.
+ *
+ * ⚠️ Nunca dê à borda o valor do FUNDO — nem `border-card`, nem a cor do
+ * preenchimento "para ficar limpo". É exatamente o movimento que produziu o
+ * defeito original, e ele não aparece em revisão: a classe usa token, parece
+ * certa, e a caixa some.
  *
  * O que sobrou do invariante das três alturas de página, e continua valendo como
  * aviso: a caixa foi medida contra 92%, 96% e 93% e deu 1,06 · 1,02 · 1,04 — ela
@@ -53,7 +82,7 @@
  */
 
 /**
- * A caixa: superfície de cartão, borda do sistema, e — atenção — a cor do ÍCONE.
+ * A caixa: superfície de cartão, borda de ACENTO, e — atenção — a cor do ÍCONE.
  *
  * O `[&>svg]:text-accent-d` não é preciosismo. O `ui/alert` traz
  * `[&>svg]:text-foreground` na string base, e aquilo gera um seletor de
@@ -70,7 +99,7 @@
  * puxa o olho, e este bloco é apoio.
  */
 export const AVISO_CAIXA =
-  'bg-card border-border text-foreground p-3 [&>svg]:text-accent-d';
+  'bg-card border-accent-d/25 text-foreground p-3 [&>svg]:text-accent-d';
 
 /** O link dentro da caixa. Letra pequena sobre superfície clara: 6,74:1. */
 export const AVISO_CAIXA_ACENTO = 'text-accent-d';
