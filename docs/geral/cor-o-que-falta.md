@@ -102,6 +102,39 @@ família no repositório inteiro. As duas formas convivem porque pegam defeitos 
 família crescendo em silêncio, contra tela zerada e repintada depois por quem só olhou aquele
 arquivo. Quando outra tela do Dev fechar, ela entra na lista daquele teste.
 
+**As seis rotas de hub fecharam no mesmo dia, e o número que importa não é de arquivos.**
+Escolhidas por medição, não pela primeira que se abriu: as páginas de hub já estavam todas em
+zero, e o que faltava era a casca. Dois componentes — `DevHubPage` e `DevPageHeader` —
+fecharam **seis rotas**, e o `DevPageHeader` está em vinte telas. É a mesma alavanca do mapa
+de domínio, um andar acima: procurar o componente COMPARTILHADO antes de abrir tela por tela.
+
+Duas coisas saíram disso, e nenhuma era o que se foi buscar:
+
+- **o hex do `DevPageHeader` era o token.** A caixa "Visão Geral" tinha `#E6F2F1` cravado, num
+  componente cujo próprio docstring diz que ele existe para dar "o verde-água do módulo".
+  Medido: aquele hex composto a 80% sobre branco dá `235,245,244`, e o `--accent-soft` da base
+  dá `234,246,244` — **delta de 1 / 1,4 / 0,2 por canal**. Era o token, escrito à unha, sem
+  acompanhar tema;
+- **o link "aqui" reprovava AA, nas vinte telas.** `text-emerald-600` sobre aquele fundo dá
+  **3,38:1**, contra os 4,5:1 que o AA pede para texto normal. Agora é `text-accent-d`, e dá
+  **6,09:1**. Ninguém tinha medido porque o par não está no contrato de
+  `paletaDeArea.test.ts` — é o mesmo padrão das três falhas de 28–29/08: token fora da lista
+  do contrato usa `var()` corretamente, passa por certo na revisão, e só aparece quando
+  alguém mede.
+
+**`accent-d` e `accent-soft` ganharam classe no `tailwind.config.ts`**, ao lado de
+`tool-icon-bg`, que já era desta forma. Eles entraram no contrato em 31/08 e até aqui não
+tinham NOME: quem precisava deles escrevia `text-[var(--bd-accent-d)]` — a forma arbitrária e
+ambígua do Tailwind 3 —, e quem não sabia disso escrevia hex. As classes leem `--accent-d` e
+`--accent-soft` direto, e não os `--bd-*` que os embrulham, porque os `--bd-*` já vêm com
+`hsl()` fechado e **não aceitam alfa**; conferido no bundle, as novas emitem com
+`--tw-*-opacity`. A forma arbitrária ainda sobra nas telas de `uso-envio`, que não fecharam.
+
+Na mesma passada, a **terceira e última cópia do botão Sair** (`FixosLayout`) foi para
+`destructive`. As três agora dizem a mesma coisa, então não sobra uma para a próxima rodada
+reencontrar como se fosse achado novo — que é exatamente o que aconteceu em 03/09, cinco vezes
+em cinco.
+
 ## 2. As escadas que exigem decisão, não conversão
 
 Estas ficaram paradas de propósito. Cada uma precisa de uma escolha sua antes de virar código.

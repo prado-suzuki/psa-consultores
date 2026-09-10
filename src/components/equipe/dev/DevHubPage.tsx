@@ -30,7 +30,7 @@ const DevHubPage = ({ hub }: DevHubPageProps) => {
           eyebrow={hub.heroEyebrow}
           title={hub.heroTitle}
           description={hub.heroDescription}
-          icon={<HeroIcon className="h-6 w-6 text-white" />}
+          icon={<HeroIcon className="h-6 w-6 text-primary-foreground" />}
         />
 
         <div className={`mx-auto grid w-full max-w-5xl grid-cols-1 gap-6 ${hub.options.length > 2 ? "xl:grid-cols-2" : "lg:grid-cols-2"}`}>
@@ -42,7 +42,7 @@ const DevHubPage = ({ hub }: DevHubPageProps) => {
                 key={option.path}
                 type="button"
                 onClick={() => navigate(option.path)}
-                className="group flex min-h-[320px] flex-col rounded-3xl border border-border bg-white p-8 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="group flex min-h-[320px] flex-col rounded-3xl border border-border bg-card p-8 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <div className="mb-6 flex items-start justify-between gap-4">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/5 text-primary transition-colors group-hover:bg-primary/15">
@@ -82,7 +82,7 @@ const DevHubPage = ({ hub }: DevHubPageProps) => {
                   ) : (
                     <span />
                   )}
-                  <span className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform group-hover:translate-x-1">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-transform group-hover:translate-x-1">
                     Abrir
                     <ArrowRight className="h-4 w-4" />
                   </span>

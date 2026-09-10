@@ -61,6 +61,26 @@ export default {
         'surface-escura-2': 'hsl(var(--surface-escura-2) / <alpha-value>)',
         'tool-icon': 'hsl(var(--tool-icon) / <alpha-value>)',
         'tool-icon-bg': 'hsl(var(--tool-icon-bg) / <alpha-value>)',
+        /* Os dois degraus do acento, que entraram no contrato em 31/08/2026 e
+           até aqui não tinham NOME em classe: `--accent-d` é o acento um degrau
+           mais escuro, o que pinta letra pequena, link e chip cheio (o cheio
+           serve para marca — anel, barra, ponto — e é fino para texto);
+           `--accent-soft` é o acento tingido de card.
+
+           Sem classe, quem precisava deles escrevia `text-[var(--bd-accent-d)]`,
+           a forma ARBITRÁRIA e ambígua do Tailwind 3 — e a alternativa que
+           aparecia na prática era pior: hex na mão. O `DevPageHeader` tinha
+           `#E6F2F1`, que é este `--accent-soft` a 2/255 de distância, escrito
+           à unha num componente cujo próprio docstring diz que existe para dar
+           o tom do módulo.
+
+           Lê `--accent-d`/`--accent-soft` direto, e não os `--bd-*` que os
+           embrulham: os `--bd-*` já vêm com `hsl()` fechado e por isso não
+           aceitam alfa. Estes aceitam. Os três temas declaram os dois como
+           tripla HSL (base literal; Tax e OSG apontando para
+           `--status-andamento`), então a classe acompanha a área sozinha. */
+        'accent-d': 'hsl(var(--accent-d) / <alpha-value>)',
+        'accent-soft': 'hsl(var(--accent-soft) / <alpha-value>)',
         primary: {
           DEFAULT: 'hsl(var(--primary) / <alpha-value>)',
           foreground: 'hsl(var(--primary-foreground) / <alpha-value>)',

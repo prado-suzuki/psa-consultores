@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { PROPRIEDADES_DE_COR, familiaCrua, medirCorCrua } from '@/lib/medirCorCrua';
 
 /**
- * Catraca da tela `/equipe/dev`. **Nasce VAZIA**, como a do slate e a do alerta.
+ * Catraca das telas do Dev que já fecharam. **Nasce VAZIA**, como a do slate e a do
+ * alerta, e a lista de arquivos abaixo é o que ela cobre — ela cresce por tela, não
+ * por arquivo solto.
  *
  * A DIFERENÇA DAS OUTRAS DUAS, e é de propósito: elas guardam uma FAMÍLIA de cor no
  * repositório inteiro; esta guarda uma TELA, com todas as famílias. As duas formas
@@ -33,6 +35,28 @@ const ARQUIVOS_DA_TELA = [
   // `task-modal` já usa sobre o mesmo dado. Guardar a tela sem guardar a casca dela
   // deixaria metade do que se vê fora do contrato.
   'src/components/notifications/NotificationPopover.tsx',
+
+  // ─── As seis rotas de hub, fechadas em 10/09/2026 ───────────────────────────
+  //
+  // Elas entram como UM lote porque são uma tela só, montada seis vezes: as seis
+  // páginas abaixo não têm marcação própria, só entregam a definição do hub para o
+  // `DevHubPage`. Medidas antes de entrar, as seis já estavam em zero — o que
+  // faltava era a casca. Por isso o alcance desta rodada não se mede em arquivos:
+  // dois componentes fecharam seis rotas.
+  'src/pages/equipe/dev/AnaliseIcmsHub.tsx',
+  'src/pages/equipe/dev/ConsultaSpedHub.tsx',
+  'src/pages/equipe/dev/GerenciarDadosHub.tsx',
+  'src/pages/equipe/dev/LevantamentoPisCofinsHub.tsx',
+  'src/pages/equipe/dev/PerdcompHub.tsx',
+  'src/pages/equipe/dev/PlanejamentoTributarioHub.tsx',
+  'src/components/equipe/dev/DevHubPage.tsx',
+
+  // O `DevPageHeader` é a caixa "Visão Geral", e está em VINTE telas do Dev — a
+  // maioria delas ainda não fechada. Ele entra aqui de qualquer forma: guardar o
+  // arquivo é guardar a caixa nas vinte, e o hex que ele tinha cravado era o
+  // `--accent-soft` do tema escrito à unha, num componente cujo docstring diz que
+  // ele existe justamente para dar o tom do módulo.
+  'src/components/equipe/dev/DevPageHeader.tsx',
 ] as const;
 
 function soDaTela(medido: Record<string, number>): Record<string, number> {

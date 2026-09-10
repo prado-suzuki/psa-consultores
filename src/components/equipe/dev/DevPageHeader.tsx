@@ -62,7 +62,13 @@ export const DevPageHeader = ({
   icon: Icone = Info,
 }: DevPageHeaderProps) => {
   return (
-    <Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1]">
+    // O "verde-água do módulo" que o docstring acima descreve era um hex
+    // cravado. Ele é o `--accent-soft` do tema a dois pontos de 255 de
+    // distância — medido —, e agora sai do token, então acompanha a área em vez
+    // de ser sempre o tom da casa. O `/80` saiu junto, e pelo mesmo motivo:
+    // sobre superfície clara, 80% de uma cor quase branca dá a mesma coisa que
+    // 100% dela. Qual era o hex está no commit e em `docs/geral/cor-o-que-falta.md`.
+    <Alert className="mb-6 bg-accent-soft border-accent-soft">
       <Icone className="h-5 w-5 text-primary" />
       <AlertTitle className="text-sm font-semibold text-foreground">
         {title}
@@ -76,7 +82,7 @@ export const DevPageHeader = ({
               href={manualUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-emerald-600 hover:underline"
+              className="font-semibold text-accent-d hover:underline"
             >
               aqui
             </a>

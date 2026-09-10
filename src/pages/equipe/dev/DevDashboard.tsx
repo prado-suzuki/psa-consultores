@@ -212,12 +212,12 @@ const DevDashboard = () => {
               </div>
               <div className="min-w-0">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  {/* A letra é `--accent-d`, e não `--primary`: o contrato do
+                  {/* A letra é `accent-d`, e não `primary`: o contrato do
                       `.base-theme` diz que o acento cheio serve para marca —
                       anel, barra, ponto — e que letra pequena é do degrau
                       escuro (6,72:1 contra 5,54:1). Os dois pontos abaixo SÃO
                       ponto, então neles o acento cheio é o certo. */}
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--bd-accent-d)]">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent-d">
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
                       <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />

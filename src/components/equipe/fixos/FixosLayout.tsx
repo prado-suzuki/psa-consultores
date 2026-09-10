@@ -111,7 +111,11 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
           </Button>
           <Button 
             variant="ghost" 
-            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors`}
+            // Terceira e última cópia deste botão: o `OsgLayout` já estava em
+            // `destructive` e o `DevLayout` foi em 10/09/2026. As três agora
+            // dizem a mesma coisa, então não sobra uma para a próxima rodada
+            // reencontrar como se fosse achado novo.
+            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors`}
             onClick={handleSignOut}
             title={trilho ? 'Sair' : undefined}
           >
