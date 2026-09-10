@@ -509,6 +509,43 @@ describe('alteracao por eventos: endereco de socio pessoa fisica', () => {
       .toBe('Rua B, 20');
   });
 
+  // Achado olhando a tela em 10/09/2026: com o cadastro INTOCADO, o assistente
+  // exibia duas linhas de "qualificacao sem id estavel; CPF/CNPJ nao concilia
+  // identidade" em toda peca. Vinham do bloco de assinaturas.
+  it('assinaturas nao entram na comparacao, e nao cobram pendencia por isso', () => {
+    const base = comSocioPF();
+    // Como `mapearSignatarios` entrega: projecao com nome, papel e CPF, sem id,
+    // sem endereco e sem tipoPessoa.
+    const assinatura = {
+      nome: 'Ana', nomeMaiusculo: 'ANA', papel: 'Socia administradora',
+      cpfCnpj: '123.456.789-00', qualificacao: '', eSocio: true,
+    };
+    base.itensPorLista.signatarios = [{ signatario: { ...assinatura } }];
+    const atual = structuredClone(base);
+    expect(analisarAlteracao(base, atual).pendencias).toEqual([]);
+
+    // E segue sem estorvar quando ha evento de verdade.
+    const comMudanca = mudaEndereco(base);
+    (comMudanca.itensPorLista.signatarios[0].signatario as Record<string, string>).papel = 'Socia';
+    const { candidatos, pendencias } = analisarAlteracao(base, comMudanca);
+    expect(pendencias).toEqual([]);
+    expect(candidatos.map((c) => c.tipo)).toEqual(['enderecoSocio']);
+  });
+
+  it('ocorrencia sem id FORA das assinaturas ainda avisa, dizendo quem e onde', () => {
+    const base = comSocioPF();
+    const semId = { ...socioDe(base) };
+    delete semId.id;
+    base.itensPorLista.administradores = [{ pessoa: semId }];
+    const atual = structuredClone(base);
+    const { pendencias } = analisarAlteracao(base, atual);
+    expect(pendencias).toHaveLength(2); // Base e Atual
+    expect(pendencias[0]).toContain('"Ana"');
+    expect(pendencias[0]).toContain('na lista "administradores"');
+    expect(pendencias[0]).toContain('sem id estavel');
+    expect(pendencias[0]).toContain('corrigir um CPF nao e troca de socio');
+  });
+
   it('candidato de endereco tem fingerprint proprio, por pessoa', () => {
     const base = comSocioPF();
     const bia = {

@@ -286,8 +286,28 @@ export function analisarAlteracao(base: SnapshotDados, atual: SnapshotDados): {
     const porId = new Map<string, { campos: CamposAC; socio: boolean }>();
     for (const o of lista) {
       if (o.sociedade || !['cpfCnpj', 'tipoPessoa', 'nome'].some((k) => typeof o.campos[k] === 'string')) continue;
+      // O bloco de ASSINATURAS é projeção, não fonte de qualificação: ele carrega
+      // nome, papel, CPF e a linha de complemento, e nada mais (ver
+      // `mapearSignatarios`). As pessoas dele já são comparadas onde a
+      // qualificação de verdade mora — quadro, administração, partes.
+      //
+      // Ficava fora da comparação de qualquer jeito, por não ter id, mas cobrava
+      // por isso uma pendência em toda peça: "qualificacao sem id estavel", duas
+      // vezes, com o cadastro intocado. Dar um id a ele seria pior: a projeção
+      // não tem endereço nem tipoPessoa, então passaria a divergir da ocorrência
+      // completa da MESMA pessoa e trocaria um aviso inútil por
+      // "qualificacao inconsistente entre papeis" para todo mundo.
+      if (o.lista === 'signatarios') continue;
       if (!o.id) {
-        pendencias.push(`${rotulo}: qualificacao sem id estavel; CPF/CNPJ nao concilia identidade.`);
+        // Nomear quem e onde: sem isso a frase não diz ao consultor o que fazer,
+        // e ele não tem como saber que parte do documento ficou de fora.
+        const quem = typeof o.campos.nome === 'string' && o.campos.nome.trim()
+          ? `"${o.campos.nome.trim()}"` : 'uma pessoa';
+        const onde = o.lista ? `na lista "${o.lista}"` : 'em um campo do documento';
+        pendencias.push(
+          `${rotulo}: ${quem} aparece ${onde} sem id estavel e fica fora da comparacao. `
+          + 'CPF nao serve de identidade aqui: corrigir um CPF nao e troca de socio.',
+        );
         continue;
       }
       const campos = camposDe(o.campos, CAMPOS_DE_QUALIFICACAO);
