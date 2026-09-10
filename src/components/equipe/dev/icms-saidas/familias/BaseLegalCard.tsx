@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 import { Scale } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AVISO_FAIXA } from '@/components/equipe/dev/classesDoAviso';
 import type { FamiliaSaida } from '@/hooks/useSaidaIcms';
 
 /** Renderiza `**negrito**` sem dangerouslySetInnerHTML, igual ao DevPageHeader. */
@@ -93,12 +94,21 @@ export const BaseLegalCard = ({ familia }: BaseLegalCardProps) => {
   if (!lines || lines.length === 0) return null;
 
   return (
-    <Alert className="mb-6 bg-emerald-50/70 border-emerald-200">
-      <Scale className="h-5 w-5 text-emerald-700"/>
-      <AlertTitle className="text-sm font-semibold text-foreground">
+    // Este era a QUARTA cópia da caixa de abertura do Dev: o comentário no topo
+    // do arquivo dizia "igual ao DevPageHeader" e o Alert era refeito à mão, em
+    // `emerald` cru. O conteúdo de fato não cabe no componente — ele recebe uma
+    // descrição e anexa a frase do manual, e aqui são vários parágrafos de texto
+    // legal com título próprio. Mas a SUPERFÍCIE é a mesma, e o papel também:
+    // este bloco é o primeiro elemento da aba, antes de qualquer cartão, que é
+    // exatamente onde o `DevPageHeader` fica numa página. Então os dois importam
+    // a faixa do mesmo lugar. Sem isto, esta seria a única mancha verde-clara que
+    // sobraria na área — pior que não ter mudado nada.
+    <Alert className={`mb-6 ${AVISO_FAIXA}`}>
+      <Scale className="h-5 w-5"/>
+      <AlertTitle className="text-sm font-semibold">
         Base Legal
       </AlertTitle>
-      <AlertDescription className="text-sm leading-relaxed text-foreground mt-1 space-y-1">
+      <AlertDescription className="text-sm leading-relaxed mt-1 space-y-1">
         {lines.map((line, idx) => (
           <p key={idx}>{renderBoldSegments(line)}</p>
         ))}

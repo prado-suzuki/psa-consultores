@@ -1,20 +1,24 @@
-// Tema do tour (React Joyride v3) para o Digital MAPA.
+// Tema do tour guiado (React Joyride v3), compartilhado pelas áreas.
 //
 // IMPORTANTE: o tooltip/overlay do Joyride é renderizado num portal em
-// `document.body`, FORA do wrapper `.app-root`. Logo, as variáveis CSS do MAPA
-// (escopadas em `.app-root`) NÃO chegam ao portal — por isso a paleta abaixo
-// usa valores LITERAIS (espelham os tokens de `mapa.css`).
+// `document.body`, FORA do wrapper `.app-root`. Variável CSS escopada naquele
+// wrapper NÃO chega ao portal — por isso os valores abaixo são literais, com uma
+// exceção proposital: `--primary` vive no elemento raiz (`:root.tax-theme`,
+// `:root.osg-theme`), então `hsl(var(--primary))` atravessa o portal e o tour
+// sai com o acento da área em que está rodando, sem tema por módulo.
 
 import type { ButtonType, Locale, Options, PartialDeep, Styles } from 'react-joyride';
 
 // `showProgress` e `buttons` vivem em Options (não no top-level) na v3.
 export const TOUR_OPTIONS: Partial<Options> = {
-  primaryColor: 'hsl(var(--primary))', // --accent-color (teal institucional)
-  backgroundColor: '#ffffff', // --surface-lowest
+  primaryColor: 'hsl(var(--primary))',
+  backgroundColor: '#ffffff',
   textColor: 'hsl(var(--slate-700))',
   arrowColor: '#ffffff',
   overlayColor: 'rgba(15,23,42,0.55)',
-  zIndex: 3000, // acima da sidebar (1100/1200), abaixo dos modais (4000)
+  // Acima da sidebar (1100/1200) e do Dialog do Radix (z-50), abaixo dos modais
+  // próprios do MAPA (4000) — é o que permite tour DENTRO do modal de cadastro.
+  zIndex: 3000,
   spotlightRadius: 10,
   showProgress: true,
   buttons: ['back', 'close', 'primary', 'skip'] as ButtonType[],

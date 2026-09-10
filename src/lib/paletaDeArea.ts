@@ -780,3 +780,169 @@ export function problemasDeDivergencia(css: string, seletor: string, ancora: Hsl
 
   return problemas;
 }
+
+/**
+ * A superfície REBAIXADA de uma área, derivada do fundo de página dela.
+ *
+ * O QUE ISTO FECHA. Os oito papéis de status já eram resultado — `harmonizar`
+ * os gera e `problemasDeDivergencia` reprova quem editar à mão. As SUPERFÍCIES
+ * não tinham nada disso: eram oito valores escritos um a um por área, e a única
+ * pergunta que alguém lhes fazia era de contraste com o texto por cima. Ninguém
+ * comparava uma superfície com a vizinha.
+ *
+ * Foi por aí que o defeito passou. O `--canvas` da Tax mudou de matiz numa
+ * passada (170 → 192, a da âncora) e o `--muted` dela ficou em 168, que era o
+ * valor da CASA copiado letra por letra. Os dois seguiam corretos isoladamente
+ * — o par `muted-foreground` / `muted` dava 4,53:1, acima do AA — e a área
+ * passou dez dias com fundo de página numa matiz e faixa de abas em outra, a
+ * 24° de distância. A usuária viu antes do teste porque o teste não olhava.
+ *
+ * POR QUE SÓ O `--muted`, E NÃO A PILHA INTEIRA. Porque é a única relação que
+ * as três áreas cumprem EXATA, e fórmula se extrai do que já é verdade — não se
+ * inventa para forçar convergência. Medido no `index.css` de hoje:
+ *
+ *     área    canvas          muted           Δmatiz  Δsaturação
+ *     base    168 16% 96%     168 20% 92%     0°      +4
+ *     tax     192 10% 96%     192 14% 92%     0°      +4
+ *     osg      32 24% 96%      32 28% 92%     0°      +4
+ *
+ * O `--border` é o contraexemplo, e por isso fica de fora: contra o canvas ele
+ * é −2 na base, +6 na Tax e −4 na OSG. Não há uma escada ali, há três, e
+ * escolher qual vale é decisão de design — está registrada em
+ * `docs/geral/cor-o-que-falta.md`, não neste arquivo.
+ *
+ * Os números não são gosto. A matiz é a mesma porque superfície de uma área é
+ * uma cor em duas profundidades, não duas cores; os 4 pontos de saturação são o
+ * que compensa o degrau de luminosidade — a mesma tinta 4% mais rasa lê como
+ * lavada; e os 92% estão travados entre as três de propósito, calibrados para a
+ * pílula de um segmented control saltar em cima (ver a nota do `:root`).
+ *
+ * O `--canvas` continua ESCRITO À MÃO, e é o par disto: uma escolha livre por
+ * área, como a âncora. Tem que continuar livre porque a OSG prova que precisa —
+ * âncora musgo (149), superfície areia (32). Superfície não se deriva de âncora.
+ */
+export const REBAIXAMENTO = {
+  /** Quanto a superfície rebaixada desce em luminosidade, em pontos. */
+  degrauDeLuminosidade: 4,
+  /** Quanto ela ganha em saturação para compensar o degrau, em pontos. */
+  compensacaoDeSaturacao: 4,
+  /**
+   * Quanto a LINHA desce abaixo da superfície rebaixada, em pontos.
+   *
+   * Entrou em 10/09/2026, com a opção D. Até ali o `--border` era o quarto valor
+   * escrito à mão da pilha e o único cuja escada divergia entre as áreas: contra
+   * o canvas ele era −2 na base, +6 na Tax e −4 na OSG. Não eram três desvios de
+   * uma regra, eram três regras.
+   *
+   * A saturação NÃO tem parâmetro próprio: a linha usa a do rebaixado. É o que
+   * mata a anomalia da Tax, onde a borda era mais saturada que a própria página.
+   * Uma família de matiz e saturação, três profundidades de luminosidade.
+   */
+  degrauDaLinha: 3,
+} as const;
+
+/**
+ * O piso da linha de controle. Separado de `FAIXA` porque mede outra coisa: a
+ * `FAIXA.contrasteMinimo` é 4,5:1, o AA de TEXTO, e este é 3:1, o de componente
+ * de interface (WCAG 1.4.11). Juntá-los faria um dos dois estar errado.
+ */
+export const LINHA_DE_CONTROLE = { contrasteMinimo: 3 } as const;
+
+/** O `--muted` que o `--canvas` de uma área obriga. */
+export function rebaixar(canvas: Hsl): Hsl {
+  return {
+    h: canvas.h,
+    s: canvas.s + REBAIXAMENTO.compensacaoDeSaturacao,
+    l: canvas.l - REBAIXAMENTO.degrauDeLuminosidade,
+  };
+}
+
+/** O `--border` que o `--canvas` de uma área obriga: o rebaixado, um degrau abaixo. */
+export function riscar(canvas: Hsl): Hsl {
+  const rebaixado = rebaixar(canvas);
+  return { ...rebaixado, l: rebaixado.l - REBAIXAMENTO.degrauDaLinha };
+}
+
+/**
+ * Confere se o `--muted` declarado é o que `rebaixar(--canvas)` gera.
+ * Lista vazia = aprovado.
+ *
+ * Usa `corDoTema` e não `paletaDoTema` porque a OSG declara os dois como
+ * `var(--osg-canvas)` / `var(--osg-50)`, e o literal em HSL mora no `:root`.
+ * Ler só o literal daria "não declarado" justamente na área que mais
+ * personalizou as superfícies — é a mesma razão que existe no `corDoTema`.
+ *
+ * Sem tolerância em canal nenhum: os três números são inteiros nas três áreas,
+ * então arredondamento não entra. Se um dia um canvas trouxer fração, ela
+ * atravessa a fórmula inteira e a igualdade continua exata.
+ */
+export function problemasDeRebaixamento(css: string, seletor: string): ProblemaDePaleta[] {
+  const canvas = corDoTema(css, seletor, 'canvas');
+  if (!canvas) {
+    return [{ tema: seletor, item: 'canvas', motivo: 'não resolve — var() apontando para o vazio, ou cor escrita em hex' }];
+  }
+
+  const problemas: ProblemaDePaleta[] = [];
+  const derivados = [
+    { nome: 'muted', esperado: rebaixar(canvas) },
+    { nome: 'border', esperado: riscar(canvas) },
+    { nome: 'input', esperado: riscar(canvas) },
+  ];
+
+  for (const { nome, esperado } of derivados) {
+    const declarado = corDoTema(css, seletor, nome);
+    if (!declarado) {
+      problemas.push({ tema: seletor, item: nome, motivo: `--${nome} não resolve — var() apontando para o vazio, ou cor escrita em hex` });
+      continue;
+    }
+    const desvios: string[] = [];
+    if (declarado.h !== esperado.h) desvios.push(`matiz ${declarado.h}° onde o canvas é ${canvas.h}°`);
+    if (declarado.s !== esperado.s) desvios.push(`saturação ${declarado.s}% onde a derivação dá ${esperado.s}%`);
+    if (declarado.l !== esperado.l) desvios.push(`luminosidade ${declarado.l}% onde a derivação dá ${esperado.l}%`);
+    if (desvios.length > 0) {
+      problemas.push({ tema: seletor, item: nome, motivo: `valor não derivado do canvas: ${desvios.join('; ')}` });
+    }
+  }
+
+  return problemas;
+}
+
+/**
+ * Confere se a linha de CONTROLE alcança os 3:1 da WCAG 1.4.11 contra o cartão.
+ * Lista vazia = aprovado.
+ *
+ * Este é o único contrato desta base que cobra 3:1 e não 4,5:1, e a diferença
+ * não é folga: 1.4.11 é sobre componente de interface, não sobre texto. A
+ * pergunta que ele faz é "a pessoa consegue ACHAR o campo?", não "consegue LER
+ * o que está escrito nele".
+ *
+ * O valor NÃO é derivado, e de propósito. A luminosidade que fecha 3:1 depende
+ * da matiz e da saturação de cada área — 52% na base, 56% na Tax, 55% na OSG, e
+ * 42% no escuro, onde a linha precisa CLAREAR porque o cartão é escuro. Derivar
+ * exigiria resolver a equação de contraste dentro do teste, o que trocaria um
+ * número legível por uma busca; cobrar a razão diz a mesma coisa e sobrevive a
+ * qualquer área nova, inclusive uma escura.
+ */
+export function problemasDaLinhaDeControle(css: string, seletor: string): ProblemaDePaleta[] {
+  const linha = corDoTema(css, seletor, 'border-control');
+  const card = corDoTema(css, seletor, 'card');
+  if (!linha || !card) {
+    return [
+      {
+        tema: seletor,
+        item: 'border-control / card',
+        motivo: `não resolve (${linha ? '' : '--border-control '}${card ? '' : '--card'}) — var() apontando para o vazio, ou cor escrita em hex`,
+      },
+    ];
+  }
+  const razao = contraste(linha, card);
+  return razao >= LINHA_DE_CONTROLE.contrasteMinimo
+    ? []
+    : [
+        {
+          tema: seletor,
+          item: 'border-control',
+          motivo: `--border-control sobre --card em ${razao.toFixed(2)}:1, abaixo dos ${LINHA_DE_CONTROLE.contrasteMinimo}:1 da WCAG 1.4.11`,
+        },
+      ];
+}

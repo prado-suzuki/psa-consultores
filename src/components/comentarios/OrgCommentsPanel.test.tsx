@@ -393,6 +393,30 @@ describe('OrgCommentsPanel', () => {
  * A thread do projeto mostra também o que foi dito nas tarefas dele. É o mesmo
  * painel: muda o recorte pedido ao hook e o cabeçalho que separa as origens.
  */
+describe('OrgCommentsPanel — o painel preenche altura, não a produz', () => {
+  /*
+    Este é o lado do painel de um contrato que se paga em outro arquivo. Ele é
+    `h-full` com a lista num `flex-1` que rola por dentro: ou seja, ele PRECISA
+    receber altura definida de quem o coloca, e colapsa a zero sem ela.
+
+    Quem paga: o `TaskModal`. Abaixo de `lg` ele empilha formulário e Atividade
+    em duas linhas de grade, e por isso reparte a altura entre elas
+    (`max-lg:grid-rows-[minmax(0,3fr)_minmax(0,2fr)]`). Antes disso havia um
+    `min-h-[32rem]` na linha, para o `h-full` daqui ter contra o que resolver —
+    e num telefone esses 512px sobre um modal de 601px estrangulavam o
+    formulário em ~89px. O piso saiu; se esta asserção mudar, aquele rateio
+    deixa de ser suficiente e o painel some.
+  */
+  it('é h-full e rola por dentro, então depende de altura de quem o coloca', () => {
+    renderPanel();
+
+    const painel = screen.getByRole('heading', { name: 'Atividade' }).closest('aside');
+    expect(painel?.className).toContain('h-full');
+    expect(painel?.className).toContain('min-h-0');
+    expect(painel?.className).toContain('flex-col');
+  });
+});
+
 describe('OrgCommentsPanel — thread consolidada do projeto', () => {
   function renderProjeto() {
     return render(

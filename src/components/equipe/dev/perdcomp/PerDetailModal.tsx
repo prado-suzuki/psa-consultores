@@ -344,7 +344,7 @@ export function PerDetailModal({ open, onOpenChange, per, contribuinteId }: PerD
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           className={cn(
-            'max-w-none w-[calc(100vw-3rem)] h-[calc(100vh-3rem)] p-0',
+            'max-w-none max-h-none w-[calc(100vw-3rem)] h-[calc(100vh-3rem)] p-0',
             'flex flex-col overflow-hidden',
             '[&>button]:hidden',
           )}

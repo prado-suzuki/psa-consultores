@@ -170,8 +170,9 @@ export default function RepresentantesTab({
   return (
     <ListaMestreDetalhe
       titulo={`Representantes (${participants.length})`}
+      dataTour="repr-lista"
       acaoCriar={mostrarCriar && editingParticipantId == null ? (
-        <Button size="sm" onClick={createParticipant} className={cn("gap-1.5 h-7 text-xs", acento.botao)}>
+        <Button size="sm" onClick={createParticipant} data-tour="repr-criar" className={cn("gap-1.5 h-7 text-xs", acento.botao)}>
           <Plus size={14} /> Adicionar representante
         </Button>
       ) : null}
@@ -343,7 +344,7 @@ export default function RepresentantesTab({
           </div>
           </SecaoFormulario>
 
-          <SecaoFormulario numero={3} titulo="Acesso e observações" pendente={secaoPendente(3)}>
+          <SecaoFormulario numero={3} titulo="Acesso e observações" pendente={secaoPendente(3)} dataTour="repr-acesso">
           <div className="flex flex-col gap-2.5">
           <div className="flex flex-row items-center gap-4">
             <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Acesso Chamados</Label>

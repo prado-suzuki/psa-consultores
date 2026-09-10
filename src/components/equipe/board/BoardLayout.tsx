@@ -252,7 +252,12 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
   );
 
   return (
-    <div className="bd-leitura min-h-screen flex w-full" style={{ backgroundColor: 'var(--bd-page)' }}>
+    <div
+      // Sem fundo de página: quem pinta é o `body`, uma vez, no `index.css`.
+      // Oito layouts decidindo isso por conta própria foi como cinco deles
+      // acabaram pintando com a superfície REBAIXADA. Ver a nota lá.
+      className="bd-leitura min-h-screen flex w-full"
+    >
       {/* Desktop/Tablet sidebar (md+) */}
       <aside
         className={`hidden md:flex flex-col flex-shrink-0 fixed top-0 left-0 h-screen z-30 transition-all duration-300 ${collapsed ? 'w-[68px]' : 'w-[240px]'}`}

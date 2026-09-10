@@ -29,7 +29,12 @@ import {
    Sparkles,
    Map
 } from 'lucide-react';
-import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
+import {
+  useFecharGavetaAoNavegar,
+  useSidebarRecolhimentoController,
+} from '@/hooks/useSidebarRecolhimentoController';
+import { SidebarFundoGaveta } from '@/components/shared/SidebarFundoGaveta';
+import { classesGavetaBarra } from '@/lib/sidebarMedidas';
 
 interface EquipeLayoutProps {
   children: React.ReactNode;
@@ -90,7 +95,13 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
   const location = useLocation();
   // O recolhimento automático em telas de trabalho largo mora no hook — é a
   // tela que pede, com `useTelaDeTrabalhoLargo()`; o layout não conhece rotas.
-  const { collapsed, setCollapsed } = useSidebarRecolhimentoController();
+  const barra = useSidebarRecolhimentoController();
+  const { collapsed, setCollapsed, emGaveta } = barra;
+  // No celular a barra é gaveta: cada navegação a fecha (ver o hook).
+  useFecharGavetaAoNavegar(barra);
+  // A barra desta área recolhe até `w-0`, sem trilho. Na gaveta ela também
+  // não encolhe: ela desliza para fora da tela, com os rótulos montados.
+  const trilho = collapsed && !emGaveta;
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     '/equipe/dashboard': true,
     '/equipe/sprints': true,
@@ -115,12 +126,17 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
   };
 
   return (
-    <div className="min-h-screen bg-muted flex w-full">
+    <div
+      // Sem fundo de página: quem pinta é o `body`, uma vez, no `index.css`.
+      // Oito layouts decidindo isso por conta própria foi como cinco deles
+      // acabaram pintando com a superfície REBAIXADA. Ver a nota lá.
+      className="min-h-screen flex w-full"
+    >
       {/* Sidebar — colapsa completamente (w-0) igual à DevLayout */}
       <aside
-        className={`${collapsed ? 'w-0' : 'w-64 border-r border-border/60'} sticky top-0 h-screen bg-white flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 overflow-y-auto overflow-x-hidden scrollbar-hide`}
+        className={`${trilho ? 'w-0' : 'w-64 border-r border-border/60'} ${classesGavetaBarra(collapsed)} sticky top-0 h-screen bg-white flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 overflow-y-auto overflow-x-hidden scrollbar-hide`}
       >
-        {!collapsed && (
+        {!trilho && (
           <>
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-border/60 flex-shrink-0">
@@ -254,10 +270,13 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
         )}
       </aside>
 
+      {/* Fundo que fecha a gaveta no toque. Só aparece abaixo de `md`. */}
+      <SidebarFundoGaveta aberta={!collapsed} onFechar={() => setCollapsed(true)} />
+
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-border/60 bg-card flex items-center justify-between px-6 flex-shrink-0">
+        <header className="h-16 border-b border-border/60 bg-card flex items-center justify-between px-4 md:px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             {collapsed && (
               <Button
@@ -298,7 +317,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
+          <div className="p-4 md:p-6">
             {children}
           </div>
         </div>

@@ -101,7 +101,7 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
   return (
     <Dialog open={!!dashboard} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-[96vw] w-[96vw] h-[93vh] p-0 gap-0 flex flex-col overflow-hidden"
+        className="max-w-[96vw] w-[96vw] h-[93vh] max-h-none p-0 gap-0 flex flex-col overflow-hidden"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         {/* ── Cabeçalho ─────────────────────────────────────────────── */}

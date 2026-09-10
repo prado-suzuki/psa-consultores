@@ -36,10 +36,27 @@ export interface ClienteTabProps {
   secoesPendentes?: Set<number>;
 }
 
-/** Linha rótulo/valor do modo Visualizar. Mesmo tamanho de fonte em tudo. */
-function ReadRow({ label, children }: { label: string; children: React.ReactNode }) {
+/**
+ * Linha rótulo/valor do modo Visualizar. Mesmo tamanho de fonte em tudo.
+ *
+ * `dataTour` repete aqui a âncora que o campo tem na edição: assim o mesmo passo
+ * do guia funciona nos dois modos, apontando o valor quando se está lendo e o
+ * campo quando se está preenchendo.
+ */
+function ReadRow({
+  label,
+  dataTour,
+  children,
+}: {
+  label: string;
+  dataTour?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex flex-col md:flex-row md:items-baseline gap-0.5 md:gap-3 py-2">
+    <div
+      data-tour={dataTour}
+      className="flex flex-col md:flex-row md:items-baseline gap-0.5 md:gap-3 py-2"
+    >
       <dt className="w-full md:w-48 shrink-0 text-sm text-muted-foreground">{label}</dt>
       <dd className="flex-1 text-sm text-foreground">{children}</dd>
     </div>
@@ -69,7 +86,7 @@ export default function ClienteTab({
           <h3 className="text-sm font-bold text-foreground">Dados do Cliente/Grupo</h3>
         </div>
         <dl className="px-4 py-2 divide-y divide-border/50">
-          <ReadRow label="Nome do Cliente / Grupo">
+          <ReadRow label="Nome do Cliente / Grupo" dataTour="cliente-nome">
             <span className="font-medium">{clientData.nome || "—"}</span>
           </ReadRow>
           <ReadRow label="Categoria">{clientData.categoria || "—"}</ReadRow>
@@ -87,7 +104,7 @@ export default function ClienteTab({
           <ReadRow label="Tipo de relacionamento">
             {TIPO_RELACIONAMENTO_LABEL[clientData.fixo] || "—"}
           </ReadRow>
-          <ReadRow label="Clusters">
+          <ReadRow label="Clusters" dataTour="cliente-clusters">
             {selectedClusters.length === 0 ? "—" : (
               <span className="flex flex-wrap gap-1">
                 {selectedClusters.map(c => <Badge key={c.id} variant="secondary" className="text-sm font-normal">{c.name}</Badge>)}
@@ -120,7 +137,7 @@ export default function ClienteTab({
         <SecaoFormulario numero={1} titulo="Identificação" pendente={secaoPendente(1)}>
         <div className="flex flex-col gap-2.5">
         {/* 1. Nome */}
-        <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
+        <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3" data-tour="cliente-nome">
           <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground md:pt-2">
             Nome do Cliente / Grupo <RequiredMark />
           </Label>
@@ -275,7 +292,7 @@ export default function ClienteTab({
         </div>
 
         {/* 4.5. Clusters */}
-        <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
+        <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3" data-tour="cliente-clusters">
           <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground md:pt-2">
             Clusters <RequiredMark />
           </Label>

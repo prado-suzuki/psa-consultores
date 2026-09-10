@@ -65,7 +65,8 @@ type AuditEntityType =
   // PT-02: a importacao de um papel de trabalho. Audita-se a IMPORTACAO, e
   // nao os milhares de valores dela: um registro por linha afogaria o log.
   | 'wp_importacao'
-  | 'wp_apresentacao';
+  | 'wp_apresentacao'
+  | 'wp_estudo';
 
 interface AuditLogEntry {
   area: AuditArea;

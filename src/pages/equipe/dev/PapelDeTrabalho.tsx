@@ -23,6 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { RequiredMark } from '@/components/ui/required-mark';
+import { FiltroDeBusca } from '@/components/equipe/FiltroDeBusca';
 import { FieldTooltip } from '@/components/equipe/dev/auditoria/tooltipHelpers';
 import {
   Select,
@@ -35,12 +36,15 @@ import { toast } from '@/hooks/use-toast';
 import { extractErrorMessage } from '@/lib/rlsMessages';
 import { useClientesList } from '@/hooks/useDevClients';
 import { useAuth } from '@/contexts/AuthContext';
+import { EscolhaDoProjeto } from '@/components/equipe/dev/planejamento-tributario/EscolhaDoProjeto';
 import {
   useDescartarRevisao,
   useEstudosDoCliente,
   useImportarPapelDeTrabalho,
   useOrdensDeServicoDoCliente,
   useRevisoesDoEstudo,
+  useVincularProjetoAoPlanejamento,
+  type ProjetoDaOrdemDeServico,
 } from '@/hooks/useDomainPapelDeTrabalho';
 import {
   usePapelDeTrabalhoController,
@@ -71,10 +75,28 @@ import type { ProblemaWp } from '@/lib/planejamento-tributario/parser';
 
 const CAIXA = 'rounded-md border px-3 py-2 text-sm';
 
-function Campo({ rotulo, valor }: { rotulo: string; valor: string | number | undefined }) {
+/**
+ * Um dado lido da planilha, com a explicacao de onde ele saiu.
+ *
+ * **O `ajuda` diz a celula, nao o obvio.** Tooltip que repete o rotulo em outras
+ * palavras nao ajuda ninguem: o que a pessoa precisa saber e em que aba e em que
+ * celula do papel de trabalho aquilo foi escrito, para poder conferir ou corrigir.
+ */
+function Campo({
+  rotulo,
+  valor,
+  ajuda,
+}: {
+  rotulo: string;
+  valor: string | number | undefined;
+  ajuda?: string;
+}) {
   return (
     <div>
-      <p className="text-sm font-medium text-muted-foreground">{rotulo}</p>
+      <p className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+        {rotulo}
+        {ajuda && <FieldTooltip text={ajuda} />}
+      </p>
       <p className="text-sm">{valor === undefined || valor === '' ? '—' : valor}</p>
     </div>
   );
@@ -117,8 +139,16 @@ function Cabecalho({ analise }: { analise: Analise }) {
       </CardHeader>
       <CardContent className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Campo rotulo="Cliente no WP" valor={cabecalho.clienteNoWp} />
-        <Campo rotulo="Período" valor={periodo} />
-        <Campo rotulo="Ano-base" valor={cabecalho.anoBase} />
+        <Campo
+          rotulo="Período"
+          valor={periodo}
+          ajuda="Os dois anos que aparecem na data-base, na célula B4 da aba Resumo. É o intervalo que o planejamento projeta."
+        />
+        <Campo
+          rotulo="Ano-base"
+          valor={cabecalho.anoBase}
+          ajuda="O exercício de onde saíram as receitas e os custos reais que servem de partida, na célula C7 da aba DRE Projetada."
+        />
         <Campo
           rotulo="Crescimento anual"
           valor={
@@ -126,10 +156,19 @@ function Cabecalho({ analise }: { analise: Analise }) {
               ? undefined
               : `${(cabecalho.crescimentoAnual * 100).toFixed(1).replace('.', ',')}%`
           }
+          ajuda="O percentual aplicado sobre o ano-base para projetar os anos seguintes, na célula C5 da aba DRE Projetada."
         />
         <Campo rotulo="Preparado por" valor={cabecalho.preparadoPor} />
-        <Campo rotulo="Revisado por" valor={cabecalho.revisadoPor} />
-        <Campo rotulo="Arquivo" valor={analise.nomeDoArquivo} />
+        <Campo
+          rotulo="Revisado por"
+          valor={cabecalho.revisadoPor}
+          ajuda="Quem conferiu o papel de trabalho, conforme a célula B8 da aba Resumo. Vem escrito à mão na planilha, não do cadastro de usuários: se estiver em branco, é porque ninguém preencheu aquela célula."
+        />
+        <Campo
+          rotulo="Arquivo"
+          valor={analise.nomeDoArquivo}
+          ajuda="O nome do arquivo que você escolheu no computador. Fica guardado junto da revisão."
+        />
       </CardContent>
     </Card>
   );
@@ -152,7 +191,7 @@ function anosPorExtenso(analise: Analise): string | undefined {
   const { anoInicial, anoFinal } = analise.leitura.cabecalho;
 
   if (anoInicial !== undefined && anoFinal !== undefined && ultimo > anoFinal) {
-    return `${anoInicial} a ${anoFinal} no estudo, e até ${ultimo} na venda de ativos`;
+    return `${anoInicial} a ${anoFinal} no planejamento, e até ${ultimo} na venda de ativos`;
   }
   return primeiro === ultimo ? String(primeiro) : `${primeiro} a ${ultimo}`;
 }
@@ -269,13 +308,27 @@ function DeOndeSaiCadaSlide({ analise }: { analise: Analise }) {
   );
 }
 
-/** Os anos e as abas, que confirmam que a leitura pegou as colunas certas. */
+/**
+ * Os anos e as abas, que confirmam que a leitura pegou as colunas certas.
+ *
+ * Os rótulos eram "Anos" e "De onde vieram os números", que o Eduardo apontou
+ * como coloquiais demais. O primeiro não dizia anos de quê, e o segundo parecia
+ * pergunta. Agora nomeiam o dado, e o tooltip explica o que fazer com ele.
+ */
 function ComoFoiLido({ analise }: { analise: Analise }) {
   return (
     <Card>
       <CardContent className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
-        <Campo rotulo="Anos" valor={anosPorExtenso(analise)} />
-        <Campo rotulo="De onde vieram os números" valor={analise.resumo.abasLidas.join(' · ')} />
+        <Campo
+          rotulo="Exercícios lidos na planilha"
+          valor={anosPorExtenso(analise)}
+          ajuda="Os anos que a leitura achou nos cabeçalhos de coluna das abas. Pode passar do período do planejamento porque a aba de Venda de Ativos acompanha o cronograma de pagamento da dívida, que costuma ir além."
+        />
+        <Campo
+          rotulo="Abas que trouxeram números"
+          valor={analise.resumo.abasLidas.join(' · ')}
+          ajuda="As abas da planilha que produziram algum valor. Aba que você preencheu e não aparece nesta lista não entrou na revisão: confira se o nome dela está igual ao do modelo."
+        />
       </CardContent>
     </Card>
   );
@@ -331,111 +384,120 @@ function Escolha({
   }, [clienteId, ordens, ordemServicoId, onOrdemServico]);
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">Escolha o cliente e a OS do estudo</CardTitle>
-      </CardHeader>
-      <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5">
-            <Label htmlFor="pt-cliente">
-              Cliente
-              <RequiredMark />
-            </Label>
-            <FieldTooltip text="O cliente para quem o estudo foi feito. É ele que define quem enxerga esta revisão depois." />
-          </div>
-          <Select
-            value={clienteId}
-            onValueChange={(v) => {
-              setMexeuNoCliente(true);
-              onCliente(v);
-              onOrdemServico('');
-            }}
-            onOpenChange={(aberto) => {
-              if (!aberto) setMexeuNoCliente(true);
-            }}
-          >
-            <SelectTrigger id="pt-cliente" aria-invalid={faltaCliente || undefined}>
-              <SelectValue placeholder="Selecione um cliente" />
-            </SelectTrigger>
-            <SelectContent>
-              {clientes.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {faltaCliente && (
-            <p className="text-sm font-medium text-destructive">Selecione um cliente</p>
-          )}
+    /*
+      A mesma caixa das outras ferramentas da equipe, e pelo mesmo componente, e
+      não por coincidência de classes: a Patricia pediu em 08/09/2026 que o filtro
+      seja reconhecível em todas as telas. Sem os botões de ação, porque aqui
+      escolher cliente e OS não é buscar, é dizer a que planejamento o arquivo vai
+      pertencer, e um "Buscar" nessa escolha confundiria.
+    */
+    <FiltroDeBusca titulo="Escolha o cliente e a OS do planejamento" colunas={2}>
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="pt-cliente">
+            Cliente
+            <RequiredMark />
+          </Label>
+          <FieldTooltip text="O cliente para quem o planejamento foi feito. É ele que define quem enxerga esta revisão depois." />
         </div>
+        <Select
+          value={clienteId}
+          onValueChange={(v) => {
+            setMexeuNoCliente(true);
+            onCliente(v);
+            onOrdemServico('');
+          }}
+          onOpenChange={(aberto) => {
+            if (!aberto) setMexeuNoCliente(true);
+          }}
+        >
+          <SelectTrigger id="pt-cliente" aria-invalid={faltaCliente || undefined}>
+            <SelectValue placeholder="Selecione um cliente" />
+          </SelectTrigger>
+          <SelectContent>
+            {clientes.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.nome}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {faltaCliente && (
+          <p className="text-sm font-medium text-destructive">Selecione um cliente</p>
+        )}
+      </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5">
-            <Label htmlFor="pt-os">
-              Ordem de serviço
-              <RequiredMark />
-            </Label>
-            <FieldTooltip text="O trabalho a que este estudo pertence. Aparecem todas as OS do cliente, com as em andamento primeiro." />
-          </div>
-          <Select
-            value={ordemServicoId}
-            onValueChange={(v) => {
-              setMexeuNaOs(true);
-              onOrdemServico(v);
-            }}
-            onOpenChange={(aberto) => {
-              if (!aberto) setMexeuNaOs(true);
-            }}
-            disabled={!clienteId}
-          >
-            <SelectTrigger id="pt-os" aria-invalid={faltaOs || undefined}>
-              <SelectValue
-                placeholder={
-                  !clienteId
-                    ? 'Selecione um cliente primeiro'
-                    : carregandoOs
-                      ? 'Carregando…'
-                      : ordens.length === 0
-                        ? 'Este cliente não tem OS'
-                        : 'Selecione uma ordem de serviço'
-                }
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {ordens.map((o) => (
-                <SelectItem key={o.id} value={o.id}>
-                  {o.numero_os ?? 'sem número'}
-                  {o.situacao && o.situacao !== 'em_andamento'
-                    ? ` · ${SITUACAO_LABEL[o.situacao] ?? o.situacao}`
-                    : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {faltaOs && (
-            <p className="text-sm font-medium text-destructive">
-              {ordens.length === 0
-                ? 'Este cliente não tem ordem de serviço. Sem ela não é possível guardar o estudo.'
-                : 'Selecione uma ordem de serviço'}
-            </p>
-          )}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="pt-os">
+            Ordem de serviço
+            <RequiredMark />
+          </Label>
+          <FieldTooltip text="O trabalho a que este planejamento pertence. Aparecem todas as OS do cliente, com as em andamento primeiro." />
         </div>
-      </CardContent>
-    </Card>
+        <Select
+          value={ordemServicoId}
+          onValueChange={(v) => {
+            setMexeuNaOs(true);
+            onOrdemServico(v);
+          }}
+          onOpenChange={(aberto) => {
+            if (!aberto) setMexeuNaOs(true);
+          }}
+          disabled={!clienteId}
+        >
+          <SelectTrigger id="pt-os" aria-invalid={faltaOs || undefined}>
+            <SelectValue
+              placeholder={
+                !clienteId
+                  ? 'Selecione um cliente primeiro'
+                  : carregandoOs
+                    ? 'Carregando…'
+                    : ordens.length === 0
+                      ? 'Este cliente não tem OS'
+                      : 'Selecione uma ordem de serviço'
+              }
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {ordens.map((o) => (
+              <SelectItem key={o.id} value={o.id}>
+                {o.numero_os ?? 'sem número'}
+                {o.situacao && o.situacao !== 'em_andamento'
+                  ? ` · ${SITUACAO_LABEL[o.situacao] ?? o.situacao}`
+                  : ''}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {faltaOs && (
+          <p className="text-sm font-medium text-destructive">
+            {ordens.length === 0
+              ? 'Este cliente não tem ordem de serviço. Sem ela não é possível guardar o planejamento.'
+              : 'Selecione uma ordem de serviço'}
+          </p>
+        )}
+      </div>
+    </FiltroDeBusca>
   );
 }
 
 /**
- * As revisões já importadas daquele estudo.
+ * As revisões já importadas daquele planejamento.
  *
- * É o histórico, e existe para duas coisas: chegar num estudo que já existe, e
+ * É o histórico, e existe para duas coisas: chegar num planejamento que já existe, e
  * saber que a próxima importação vai ser a versão 4 e não a primeira.
  */
 /* Exportado para o teste alcançar a lista sem ter de dirigir o Select do Radix,
    que precisa de eventos de ponteiro que o jsdom não tem. */
-export function Revisoes({ estudoId }: { estudoId: string | null }) {
+export function Revisoes({
+  estudoId,
+  semProjeto = false,
+}: {
+  estudoId: string | null;
+  /** Planejamento que existe e não aponta para projeto nenhum. */
+  semProjeto?: boolean;
+}) {
   const { data: revisoes = [], isLoading } = useRevisoesDoEstudo(estudoId);
   const { isAdmin } = useAuth();
   const descartar = useDescartarRevisao();
@@ -444,7 +506,7 @@ export function Revisoes({ estudoId }: { estudoId: string | null }) {
     return (
       <Card>
         <CardContent className="py-6 text-center text-sm text-muted-foreground">
-          Este cliente e OS ainda não têm estudo. A primeira importação cria um.
+          Este cliente e OS ainda não têm planejamento. A primeira importação cria um.
         </CardContent>
       </Card>
     );
@@ -461,6 +523,25 @@ export function Revisoes({ estudoId }: { estudoId: string | null }) {
               : `${revisoes.length} revisões importadas`}
         </CardTitle>
       </CardHeader>
+
+      {/*
+        **Planejamento sem projeto não avisa ninguém, e antes disso nada dizia.**
+        Os planejamentos criados antes de 08/09/2026 não têm projeto, e um deles
+        já existe com revisão importada: quem abrisse a tela não tinha como saber
+        que aquele trabalho não chega a projeto nenhum. O texto diz o efeito e o
+        conserto, que é a próxima importação.
+      */}
+      {semProjeto && revisoes.length > 0 && (
+        <div className="mx-4 mb-3 flex items-start gap-3 rounded-md border border-warning/30 bg-warning/[0.07] px-3 py-2">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
+          <p className="text-sm text-muted-foreground">
+            Este planejamento não está ligado a nenhum projeto da OS, então ninguém é avisado quando
+            entra revisão. Na próxima importação a tela pergunta qual é o projeto, e isso se
+            resolve.
+          </p>
+        </div>
+      )}
+
       <CardContent className="divide-y divide-border/60">
         {revisoes.map((r) => (
           <div key={r.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
@@ -529,6 +610,8 @@ const PapelDeTrabalho = () => {
 
   const { data: estudos = [] } = useEstudosDoCliente(clienteId || null);
   const importar = useImportarPapelDeTrabalho();
+  const vincular = useVincularProjetoAoPlanejamento();
+  const [perguntandoProjeto, setPerguntandoProjeto] = useState(false);
 
   /* O estudo daquele par. Nulo quando ainda não existe: a primeira gravação cria. */
   const estudo = useMemo(
@@ -561,7 +644,20 @@ const PapelDeTrabalho = () => {
    */
   const clienteNoWp = analise?.leitura.cabecalho.clienteNoWp;
 
-  const gravar = async () => {
+  /*
+   * Gravar acontece em duas etapas, e a ordem importa.
+   *
+   * A RPC cria o planejamento quando ele ainda não existe, então na PRIMEIRA
+   * revisão o id só existe depois dela voltar: não há como mandar o projeto junto.
+   * Da segunda em diante o planejamento já existe e o que se faz é confirmar ou
+   * trocar. As duas situações terminam num `update`, e é por isso que o vínculo
+   * é passo separado em vez de parâmetro da RPC.
+   *
+   * **Falhar no vínculo não desfaz a revisão**, e é o desenho certo: a revisão
+   * gravada é o retrato da planilha e vale por si. O que se perde é o aviso, e a
+   * tela diz isso em vez de fingir que nada aconteceu.
+   */
+  const gravar = async (projeto: ProjetoDaOrdemDeServico) => {
     if (!analise || !arquivo || !clienteId || !ordemServicoId) return;
     try {
       const revisao = await importar.mutateAsync({
@@ -570,11 +666,39 @@ const PapelDeTrabalho = () => {
         arquivo,
         analise,
       });
+
+      let avisoDoVinculo: string | null = null;
+      let avisados = 0;
+      try {
+        const vinculo = await vincular.mutateAsync({
+          estudoId: revisao.estudo_id,
+          projetoId: projeto.id,
+          importacaoId: revisao.importacao_id,
+          clienteId,
+          nomeDoProjeto: projeto.name,
+        });
+        avisados = vinculo.sinos;
+      } catch (causaDoVinculo) {
+        avisoDoVinculo = extractErrorMessage(causaDoVinculo) ?? 'não consegui identificar o motivo';
+      }
+
+      setPerguntandoProjeto(false);
       toast({
         title: `Revisão ${revisao.versao} gravada`,
-        description: Object.entries(revisao.gravados)
-          .map(([bloco, n]) => `${n} de ${bloco}`)
-          .join(', '),
+        description: avisoDoVinculo
+          ? /*
+             * A mensagem do banco já nomeia o projeto e já explica a regra, então
+             * repetir o nome aqui produzia o mesmo nome três vezes na mesma frase.
+             * O que falta a ela é o efeito: a revisão está salva e o aviso não saiu.
+             */
+            `${avisoDoVinculo} A revisão ficou salva, mas o projeto não foi avisado.`
+          : `Ligada ao projeto ${projeto.name}. ` +
+            (avisados === 0
+              ? 'Ninguém mais está nesse projeto, então não houve quem avisar.'
+              : avisados === 1
+                ? '1 pessoa avisada.'
+                : `${avisados} pessoas avisadas.`),
+        variant: avisoDoVinculo ? 'destructive' : undefined,
       });
       limpar();
       setArquivo(null);
@@ -586,6 +710,7 @@ const PapelDeTrabalho = () => {
        * O `extractErrorMessage` é o mesmo que o resto da casa usa e alcança a
        * mensagem que a RPC escreveu.
        */
+      setPerguntandoProjeto(false);
       toast({
         title: 'Não consegui gravar',
         description:
@@ -609,7 +734,12 @@ const PapelDeTrabalho = () => {
           onOrdemServico={setOrdemServicoId}
         />
 
-        {clienteId && ordemServicoId && <Revisoes estudoId={estudo?.id ?? null} />}
+        {clienteId && ordemServicoId && (
+          <Revisoes
+            estudoId={estudo?.id ?? null}
+            semProjeto={estudo !== null && estudo.projeto_id === null}
+          />
+        )}
 
         <input
           ref={entrada}
@@ -650,9 +780,9 @@ const PapelDeTrabalho = () => {
             <CardContent className="py-16 text-center">
               <FileSpreadsheet className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                Escolha o papel de trabalho do estudo: o arquivo Excel já preenchido, no modelo
-                atual. O sistema vai conferir as somas, as alíquotas e os anos, e mostrar o que
-                encontrou antes de guardar.
+                Escolha o papel de trabalho do planejamento: o arquivo Excel já preenchido, no
+                modelo atual. O sistema vai conferir as somas, as alíquotas e os anos, e mostrar o
+                que encontrou antes de guardar.
               </p>
             </CardContent>
           </Card>
@@ -727,7 +857,7 @@ const PapelDeTrabalho = () => {
             <Card>
               <CardContent className="flex flex-wrap items-center gap-3 py-4">
                 <Button
-                  onClick={() => void gravar()}
+                  onClick={() => setPerguntandoProjeto(true)}
                   disabled={falta.length > 0 || importar.isPending}
                 >
                   {importar.isPending ? 'Gravando…' : 'Confirmar e gravar a revisão'}
@@ -735,8 +865,8 @@ const PapelDeTrabalho = () => {
                 <p className="text-sm text-muted-foreground">
                   {falta.length === 0
                     ? estudo
-                      ? 'Entra como revisão nova deste estudo. Nada é sobrescrito.'
-                      : 'Cria o estudo deste cliente e OS, na revisão 1.'
+                      ? 'Entra como revisão nova deste planejamento. Nada é sobrescrito.'
+                      : 'Cria o planejamento deste cliente e OS, na revisão 1.'
                     : `Falta ${falta.join(', ')}.`}
                 </p>
               </CardContent>
@@ -744,6 +874,21 @@ const PapelDeTrabalho = () => {
           </>
         )}
       </div>
+
+      {/*
+        O modal só existe depois de a planilha ser aceita, porque escolher
+        projeto de uma revisão que não vai entrar é pergunta sem sentido.
+      */}
+      {ordemServicoId && (
+        <EscolhaDoProjeto
+          aberto={perguntandoProjeto}
+          onFechar={() => setPerguntandoProjeto(false)}
+          ordemServicoId={ordemServicoId}
+          projetoAtual={estudo?.projeto_id ?? null}
+          gravando={importar.isPending || vincular.isPending}
+          onConfirmar={(projeto) => void gravar(projeto)}
+        />
+      )}
     </DevLayout>
   );
 };

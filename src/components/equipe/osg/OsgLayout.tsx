@@ -43,9 +43,13 @@ import {
   Sprout,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
+import {
+  useFecharGavetaAoNavegar,
+  useSidebarRecolhimentoController,
+} from '@/hooks/useSidebarRecolhimentoController';
 import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
-import { classeLarguraBarra } from '@/lib/sidebarMedidas';
+import { SidebarFundoGaveta } from '@/components/shared/SidebarFundoGaveta';
+import { classeLarguraBarra, classesGavetaBarra } from '@/lib/sidebarMedidas';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
 import { linkEspelhado } from '@/lib/areaTheme';
@@ -124,18 +128,24 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   const location = useLocation();
   // Telas de trabalho largas recolhem a barra sozinhas — quem pede é a própria
   // tela, com `useTelaDeTrabalhoLargo()`; este layout não conhece rota nenhuma.
-  const { collapsed, setCollapsed } = useSidebarRecolhimentoController();
+  const barra = useSidebarRecolhimentoController();
+  const { collapsed, setCollapsed, emGaveta } = barra;
+  // No celular a barra é gaveta: cada navegação a fecha (ver o hook).
+  useFecharGavetaAoNavegar(barra);
+  // Trilho de ícones é coisa de desktop. A gaveta, quando abre, abre inteira:
+  // um trilho de 80px num celular ocupa espaço e não diz o nome de nada.
+  const trilho = collapsed && !emGaveta;
   // "Gerencial" só aparece para líder+ (isLider é estrito, não engloba admin).
   const canGerencial = isAdmin || isLider;
 
   // Os rótulos ficam SEMPRE montados e são clipados pela largura da <aside>.
-  // Desmontá-los (o `{!collapsed && ...}` de antes) fazia o texto sumir de
+  // Desmontá-los (o `{!trilho && ...}` de antes) fazia o texto sumir de
   // estalo enquanto a barra ainda encolhia — é isso que dava a sensação de
   // corte seco. Agora eles desbotam e deslizam junto com a largura: ao recolher
   // saem primeiro (sem delay), ao expandir entram depois que a barra já abriu.
   const rotuloCls = cn(
     'transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none',
-    collapsed ? 'pointer-events-none -translate-x-1 opacity-0' : 'opacity-100 delay-150',
+    trilho ? 'pointer-events-none -translate-x-1 opacity-0' : 'opacity-100 delay-150',
   );
 
   // O tema da área NÃO é aplicado aqui: quem o aplica é o `AreaThemeProvider`,
@@ -222,7 +232,12 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   );
 
   return (
-    <div className="min-h-screen bg-osg-canvas flex w-full">
+    <div
+      // Sem fundo de página: quem pinta é o `body`, uma vez, no `index.css`.
+      // Oito layouts decidindo isso por conta própria foi como cinco deles
+      // acabaram pintando com a superfície REBAIXADA. Ver a nota lá.
+      className="min-h-screen flex w-full"
+    >
       {/* Sidebar wrapper — keeps toggle button outside the scroll container */}
       <div
         className={cn(
@@ -240,17 +255,20 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           '[transition-timing-function:cubic-bezier(0.22,1,0.36,1)]',
           'motion-reduce:transition-none',
           // 5rem, e não 4rem: ver docs/geral/sidebar-recolhe-em-tela-larga.md.
-          classeLarguraBarra(collapsed),
+          classeLarguraBarra(trilho),
+          // Abaixo de `md` a barra sai do fluxo e vira gaveta: sem isto ela come
+          // 256px de um aparelho de 390px e o conteúdo quebra uma letra por linha.
+          classesGavetaBarra(collapsed),
         )}
       >
         {/* Toggle Button — sibling of <aside> so it isn't clipped by overflow */}
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-6 -right-3 z-20 h-6 w-6 rounded-full border border-border bg-background hover:bg-muted text-muted-foreground shadow-sm"
+          className="absolute top-6 -right-3 z-20 h-6 w-6 rounded-full border border-border bg-background hover:bg-muted text-muted-foreground shadow-sm max-md:hidden"
           onClick={() => setCollapsed(!collapsed)}
         >
-          {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+          {trilho ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </Button>
 
         {/* overflow-x-hidden: é este clipe que "engole" os rótulos conforme a
@@ -325,7 +343,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   <div
                     className={cn(
                       'grid transition-[grid-template-rows] duration-300 ease-out',
-                      collapsed
+                      trilho
                         ? 'grid-rows-[0fr]'
                         : isProjetosActive
                           ? 'grid-rows-[1fr]'
@@ -336,7 +354,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                       <div
                         className={cn(
                           'space-y-1 pt-1',
-                          collapsed ? '' : 'ml-2 pl-2 border-l border-osg-100',
+                          trilho ? '' : 'ml-2 pl-2 border-l border-osg-100',
                         )}
                       >
                         {projetosItems.map(({ path, label, icon: Icon }) => (
@@ -391,7 +409,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   <div
                     className={cn(
                       'grid transition-[grid-template-rows] duration-300 ease-out',
-                      collapsed
+                      trilho
                         ? 'grid-rows-[0fr]'
                         : isOnbActive
                           ? 'grid-rows-[1fr]'
@@ -402,7 +420,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                       <div
                         className={cn(
                           'space-y-1 pt-1',
-                          collapsed ? '' : 'ml-2 pl-2 border-l border-osg-100',
+                          trilho ? '' : 'ml-2 pl-2 border-l border-osg-100',
                         )}
                       >
                         {onbItems.map(({ path, label }) => (
@@ -488,7 +506,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   <div
                     className={cn(
                       'grid transition-[grid-template-rows] duration-300 ease-out',
-                      collapsed
+                      trilho
                         ? 'grid-rows-[0fr]'
                         : isDocsActive
                           ? 'grid-rows-[1fr]'
@@ -499,7 +517,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                       <div
                         className={cn(
                           'space-y-1 pt-1',
-                          collapsed ? '' : 'ml-2 pl-2 border-l border-osg-100',
+                          trilho ? '' : 'ml-2 pl-2 border-l border-osg-100',
                         )}
                       >
                         {docItems.map(({ path, label }) => (
@@ -585,7 +603,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   <div
                     className={cn(
                       'grid transition-[grid-template-rows] duration-300 ease-out',
-                      collapsed
+                      trilho
                         ? 'grid-rows-[0fr]'
                         : isGovActive
                           ? 'grid-rows-[1fr]'
@@ -596,7 +614,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                       <div
                         className={cn(
                           'space-y-1 pt-1',
-                          collapsed ? '' : 'ml-2 pl-2 border-l border-osg-100',
+                          trilho ? '' : 'ml-2 pl-2 border-l border-osg-100',
                         )}
                       >
                         {govItems.map(({ path, label }) => (
@@ -644,7 +662,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   <div
                     className={cn(
                       'grid transition-[grid-template-rows] duration-300 ease-out',
-                      collapsed
+                      trilho
                         ? 'grid-rows-[0fr]'
                         : isDocClienteActive
                           ? 'grid-rows-[1fr]'
@@ -655,7 +673,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                       <div
                         className={cn(
                           'space-y-1 pt-1',
-                          collapsed ? '' : 'ml-2 pl-2 border-l border-osg-100',
+                          trilho ? '' : 'ml-2 pl-2 border-l border-osg-100',
                         )}
                       >
                         {docClienteItems.map(({ path, label }) => (
@@ -722,7 +740,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 <div
                   className={cn(
                     'grid transition-[grid-template-rows] duration-300 ease-out',
-                    collapsed
+                    trilho
                       ? 'grid-rows-[0fr]'
                       : isGerencialActive
                         ? 'grid-rows-[1fr]'
@@ -733,7 +751,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                     <div
                       className={cn(
                         'space-y-1 pt-1',
-                        collapsed ? '' : 'ml-2 pl-2 border-l border-osg-100',
+                        trilho ? '' : 'ml-2 pl-2 border-l border-osg-100',
                       )}
                     >
                       {gerencialItems.map(({ path, label, icon: Icon }) => (
@@ -785,13 +803,13 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           {/* Footer Actions */}
           <div className="mt-auto p-4 border-t border-border/60 space-y-2">
             {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
-            <SidebarCartaoUsuario area="osg" collapsed={collapsed} />
+            <SidebarCartaoUsuario area="osg" collapsed={trilho} />
 
             <Button
               variant="ghost"
               className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-osg-600 transition-colors"
               onClick={() => navigate('/equipe/osg')}
-              title={collapsed ? 'Trocar área' : undefined}
+              title={trilho ? 'Trocar área' : undefined}
             >
               <ArrowLeft className="h-4 w-4 mr-3 flex-shrink-0" />
               <span className={cn(rotuloCls, 'whitespace-nowrap')}>Trocar área</span>
@@ -800,7 +818,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               variant="ghost"
               className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-osg-600 transition-colors"
               onClick={() => navigate('/')}
-              title={collapsed ? 'Voltar ao site' : undefined}
+              title={trilho ? 'Voltar ao site' : undefined}
             >
               <ArrowLeft className="h-4 w-4 mr-3 flex-shrink-0" />
               <span className={cn(rotuloCls, 'whitespace-nowrap')}>Voltar ao site</span>
@@ -809,7 +827,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               variant="ghost"
               className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
               onClick={handleSignOut}
-              title={collapsed ? 'Sair' : undefined}
+              title={trilho ? 'Sair' : undefined}
             >
               <LogOut className="h-4 w-4 mr-3 flex-shrink-0" />
               <span className={cn(rotuloCls, 'whitespace-nowrap')}>Sair</span>
@@ -818,10 +836,13 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
         </aside>
       </div>
 
+      {/* Fundo que fecha a gaveta no toque. Só aparece abaixo de `md`. */}
+      <SidebarFundoGaveta aberta={!collapsed} onFechar={() => setCollapsed(true)} />
+
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-border/60 bg-card flex items-center justify-between px-6 flex-shrink-0">
+        <header className="h-16 border-b border-border/60 bg-card flex items-center justify-between px-4 md:px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -851,7 +872,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-6">{children}</div>
+          <div className="p-4 md:p-6">{children}</div>
         </div>
       </main>
     </div>

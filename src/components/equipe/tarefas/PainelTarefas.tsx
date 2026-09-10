@@ -6,6 +6,7 @@ import { FECHO_SUPORTE } from '@/lib/rlsMessages';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
+import { telaEstreita } from '@/hooks/use-mobile';
 import { useTeamMembersForTasks, useTaxProjectsForFilter, useClusterIdByPageCategory } from '@/hooks/useTaxReferenceData';
 import {
   useOrgTasks,
@@ -68,7 +69,12 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   const deepLinkProjectId = searchParams.get('projectId');
   const { user, isAdmin, isLider, isSublider } = useAuth();
   const [filters, setFilters] = useState<TaskFiltersType>({});
-  const [activeView, setActiveView] = useState('list');
+  // No celular o painel abre numa visão que CABE. A "Lista" é uma grade de
+  // 1.200px: abrir nela num telefone entrega a coluna do título e esconde
+  // status, responsável, prazo e progresso. "Hoje" é lista de cartões, sem
+  // largura fixa, e mostra o dia da equipe inteira (não só as tarefas de quem
+  // olha). No desktop nada muda. Ver docs/planos/projetos-tarefas-no-celular.md.
+  const [activeView, setActiveView] = useState(() => (telaEstreita() ? 'today' : 'list'));
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<OrgTask | null>(null);
   const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
@@ -183,9 +189,15 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   // Ensina o comportamento novo no momento exato: quando um filtro de tarefa deixa algum
   // cliente/OS/projeto sem tarefas (portanto oculto), avisa uma vez por sessão de
   // filtragem. Reseta ao limpar os filtros, para reaparecer numa próxima filtragem.
+  // O recorte de tempo esconde grupo vazio pelo MESMO motivo que o filtro: em
+  // "Atrasadas", a Lista continuava mostrando todo projeto sem tarefa atrasada,
+  // e a linha do projeto (status "Ativo", "Não atribuído", prazo "—") lê como
+  // tarefa sem prazo e sem responsável que furou o filtro. Relatado em 03/09/2026.
+  const escondeGrupoVazio = hasActiveTaskFilters || periodo.escopo !== 'tudo';
+
   const hintShownRef = useRef(false);
   useEffect(() => {
-    if (activeView !== 'list' || !hasActiveTaskFilters) {
+    if (activeView !== 'list' || !escondeGrupoVazio) {
       hintShownRef.current = false;
       return;
     }
@@ -198,7 +210,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
         description: 'Clientes, OS e projetos sem tarefas correspondentes ficam ocultos.',
       });
     }
-  }, [activeView, hasActiveTaskFilters, tasks, visibleListProjects]);
+  }, [activeView, escondeGrupoVazio, tasks, visibleListProjects]);
 
   const handleEditTask = (task: OrgTask) => {
     setSelectedTask(task);
@@ -399,14 +411,18 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
         <Tabs value={activeView} onValueChange={setActiveView} className="min-w-0">
           <div className="space-y-2 rounded-xl border bg-card p-2 shadow-sm">
             <div className="overflow-x-auto">
-              <TabsList className="w-max min-w-full justify-start">
+              <TabsList data-tour="tarefas-visoes" className="w-max min-w-full justify-start">
                 <TabsTrigger value="list" className="gap-2"><ListTree className="h-4 w-4" />Lista</TabsTrigger>
                 <TabsTrigger value="calendar" className="gap-2"><CalendarDays className="h-4 w-4" />Calendário</TabsTrigger>
                 <TabsTrigger value="table" className="gap-2"><Table2 className="h-4 w-4" />Tabela</TabsTrigger>
                 <TabsTrigger value="kanban" className="gap-2"><Trello className="h-4 w-4" />Kanban</TabsTrigger>
                 <TabsTrigger value="gantt" className="gap-2"><GanttChart className="h-4 w-4" />Gantt</TabsTrigger>
-                <TabsTrigger value="today" className="gap-2"><Sun className="h-4 w-4" />Hoje</TabsTrigger>
-                <TabsTrigger value="future" className="gap-2"><CalendarRange className="h-4 w-4" />Futuras</TabsTrigger>
+                {/* `max-md:order-first` nestas duas: são as únicas que cabem
+                    num telefone hoje, e estavam na sexta e na sétima posição —
+                    fora da tela, atrás da rolagem das abas. A ordem no DOM não
+                    muda, então a navegação por teclado segue a de sempre. */}
+                <TabsTrigger value="today" className="gap-2 max-md:order-first"><Sun className="h-4 w-4" />Hoje</TabsTrigger>
+                <TabsTrigger value="future" className="gap-2 max-md:order-first"><CalendarRange className="h-4 w-4" />Futuras</TabsTrigger>
               </TabsList>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -427,12 +443,13 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                     size="sm"
                     variant="outline"
                     className="h-9 shrink-0"
+                    data-tour="tarefas-criar-projeto"
                     onClick={() => setIsCriarProjetosOsOpen(true)}
                   >
                     <FolderPlus className="mr-2 h-4 w-4" />Criar Projeto
                   </Button>
                 )}
-                <Button size="sm" className="h-9 shrink-0" onClick={() => handleNewTask()}>
+                <Button size="sm" className="h-9 shrink-0" data-tour="tarefas-nova-tarefa" onClick={() => handleNewTask()}>
                   <Plus className="mr-2 h-4 w-4" />Nova tarefa
                 </Button>
               </div>
@@ -449,7 +466,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 osRows={osRows}
                 search={filters.search || ''}
                 isLoading={isTasksLoading || projectController.isLoading || isScopeUnresolved}
-                hideEmpty={hasActiveTaskFilters}
+                hideEmpty={escondeGrupoVazio}
                 onClearFilters={() => setFilters({})}
                 onEditProject={projectController.handleOpenModal}
                 onDeleteProject={projectController.handleRequestDelete}
@@ -471,8 +488,10 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
             </TabsContent>
 
             <TabsContent value="calendar" className="m-0">
+              {/* `tarefasDoMes`, e não `tarefas`: a grade é de um mês e o escopo
+                  padrão das outras abas é "tudo" — ver `usePeriodoDeTarefas`. */}
               <TaskCalendar
-                tasks={periodo.tarefas}
+                tasks={periodo.tarefasDoMes}
                 onEdit={handleEditTask}
                 onDelete={handleDeleteTask}
                 onReassign={handleReassignTask}

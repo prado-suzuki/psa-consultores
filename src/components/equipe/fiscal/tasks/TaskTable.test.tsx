@@ -81,9 +81,12 @@ beforeEach(() => {
 /** O mês não é o assunto deste teste: um período parado basta. */
 const periodoParado = {
   mes: new Date(2026, 7, 1),
+  escopo: 'mes' as const,
   tarefas: [],
+  tarefasDoMes: [],
   onPasso: () => {},
   onHoje: () => {},
+  onEscopo: () => {},
 };
 
 describe('TaskTable — barra de período', () => {
@@ -104,6 +107,37 @@ describe('TaskTable — barra de período', () => {
 
     const container = screen.getByText('Agosto de 2026').closest('.rounded-lg');
     expect(container?.className).toContain('bg-card');
+  });
+});
+
+describe('TaskTable — a tabela rola de lado, e não comprime', () => {
+  // Era a pior das sete visões em tela pequena, e por um motivo diferente das
+  // outras: as oito colunas pedem 1.260px em `w-[...]`, mas `width` num `<th>`
+  // sem `table-layout: fixed` é sugestão, não regra. Sem largura mínima na
+  // tabela, o navegador aceitava e comprimia tudo para ~45px por coluna — o
+  // nome do cliente quebrava letra por linha e a última coluna era cortada.
+  // Nada disso dava erro de build, de lint ou de tipo.
+  it('a tabela declara a soma exata das colunas como largura mínima', () => {
+    renderTable([]);
+
+    const tabela = screen.getByRole('table');
+    expect(tabela.className).toContain('min-w-[1260px]');
+
+    const larguras = screen
+      .getAllByRole('columnheader')
+      .map((th) => Number(th.className.match(/w-\[(\d+)px\]/)?.[1] ?? 0));
+    // Se alguém mexer numa coluna e não na largura mínima, a tabela volta a
+    // comprimir em silêncio. A soma é o contrato.
+    expect(larguras.reduce((a, b) => a + b, 0)).toBe(1260);
+  });
+
+  it('o contêiner que rola é o da tabela, e a barra do mês fica fora dele', () => {
+    renderTable([]);
+
+    const rolagem = screen.getByRole('table').parentElement;
+    expect(rolagem?.className).toContain('overflow-auto');
+    // A barra do mês não pode sair da tela junto com as colunas.
+    expect(rolagem?.contains(screen.getByText('Agosto de 2026'))).toBe(false);
   });
 });
 

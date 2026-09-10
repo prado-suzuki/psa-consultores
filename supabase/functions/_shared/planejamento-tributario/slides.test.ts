@@ -12,6 +12,7 @@ import {
   formataValor,
   linhaSemValor,
   montaDeck,
+  opcaoDeApuracao,
   type Revisao,
 } from './slides.ts';
 import { ABAS_DE_CENARIO, ABA_VENDA_DE_ATIVOS } from '@/lib/planejamento-tributario/mapa';
@@ -106,6 +107,27 @@ describe('formataValor', () => {
   });
 });
 
+describe('opcaoDeApuracao, deduzida do resultado', () => {
+  /* Os números são do deck da Família Lunardi, que tem os dois casos no mesmo
+   * slide: 2026 apurado no real porque a compensação de prejuízo zerou o
+   * resultado, e 2027 no presumido. */
+  it('é Presumido quando o tributável é o próprio limite de 20%', () => {
+    expect(opcaoDeApuracao(527283.2, 527283.2)).toBe('Presumido');
+  });
+
+  it('é Real quando o tributável é outro número', () => {
+    expect(opcaoDeApuracao(169701.42, 0)).toBe('Real');
+    expect(opcaoDeApuracao(3687920, 1200000)).toBe('Real');
+  });
+
+  it('sai como traço quando não houve escolha a fazer', () => {
+    expect(opcaoDeApuracao(0, 0)).toBe('-');
+    expect(opcaoDeApuracao(null, 0)).toBe('-');
+    expect(opcaoDeApuracao(527283.2, undefined)).toBe('-');
+    expect(opcaoDeApuracao(527283.2, 'Presumido')).toBe('-');
+  });
+});
+
 describe('montaDeck, contra os gabaritos da PT-01', () => {
   it('a Transferência sai com as linhas e os valores do gabarito', () => {
     const { deck, esperado } = leFixture('transferencia-rural');
@@ -113,11 +135,10 @@ describe('montaDeck, contra os gabaritos da PT-01', () => {
       (l: { valores: unknown }) => l.valores && typeof l.valores === 'object',
     );
 
-    /* Esta linha existe no slide e a PT-01 não mapeou de onde ela vem. Fica de
-     * fora da comparação, e o caso seguinte prende o aviso. */
-    const SEM_FONTE = 'Opção pela forma de apuração do resultado tributável';
-
-    for (const linha of doGabarito.filter((l: { rotulo: string }) => l.rotulo !== SEM_FONTE)) {
+    /* A comparação inclui a "Opção pela forma de apuração", que é deduzida e não
+     * lida: no gabarito ela é "Presumido" nos sete exercícios, e é o tributável
+     * igual ao limite de 20% que faz o gerador chegar nisso. */
+    for (const linha of doGabarito) {
       const nossa = deck.transferencia.linhas.find(
         (x) => x.rotulo === (linha as { rotulo: string }).rotulo,
       );
@@ -153,11 +174,16 @@ describe('montaDeck, contra os gabaritos da PT-01', () => {
     });
   });
 
-  it('avisa da linha do slide que a PT-01 não mapeou', () => {
+  it('a opção pela forma de apuração sai preenchida, e sem aviso de origem', () => {
     const { deck } = leFixture('transferencia-rural');
-    const aviso = deck.problemas.find((p) => p.onde.includes('Opção pela forma'));
-    expect(aviso, 'o deck tem de avisar da linha sem fonte').toBeDefined();
-    expect(aviso!.detalhe).toContain('Fiscal');
+    const linha = deck.transferencia.linhas.find((l) => l.rotulo.startsWith('Opção pela forma'));
+
+    expect(linha, 'a linha da opção tem de existir no slide').toBeDefined();
+    expect(Object.values(linha!.valores).every((v) => v === 'Presumido')).toBe(true);
+
+    /* Era a única linha do slide sem origem conhecida. Agora ela é deduzida, e
+     * um aviso aqui significaria que a dedução voltou a falhar. */
+    expect(deck.problemas.find((p) => p.onde.includes('Opção pela forma'))).toBeUndefined();
   });
 
   /* Na DRE o gabarito é uma escolha do consultor, então o que se confere é o
@@ -189,7 +215,7 @@ describe('o que o deck avisa', () => {
     const cabem = deck.dre.linhas.length - deck.dre.transbordou;
     expect(cabem).toBe(20);
     if (deck.dre.transbordou > 0) {
-      expect(deck.problemas.some((p) => p.detalhe.includes('PowerPoint'))).toBe(true);
+      expect(deck.problemas.some((p) => p.detalhe.startsWith('Não cabe:'))).toBe(true);
     }
   });
 
@@ -276,8 +302,8 @@ describe('a DRE esconde conta zerada', () => {
       ]),
     );
 
-    const aviso = deck.problemas.find((p) => p.detalhe.includes('não têm valor em nenhum ano'));
-    expect(aviso?.detalhe).toContain('1 conta(s)');
+    const aviso = deck.problemas.find((p) => p.detalhe.includes('sem valor ficaram fora'));
+    expect(aviso?.detalhe).toBe('1 contas sem valor ficaram fora. Restaram 1.');
   });
 
   it('não esconde nada quando tudo tem valor', () => {
@@ -299,12 +325,10 @@ describe('o aviso de caixa cheia', () => {
 
   /* Encolher a fonte foi o que produziu a DRE de 7pt e o cartão ilegível do
    * Mattei. Agora o gerador não mexe no tamanho e diz quanto precisa sair. */
-  it('diz que não vai caber e quantas letras tirar', () => {
+  it('diz que não cabe, e só o tamanho', () => {
     const deck = montaDeck(comComentario(CABEM_NA_CAIXA + 100));
     const aviso = deck.problemas.find((p) => p.onde === 'caixa de CBS');
-    expect(aviso?.detalhe).toContain('NÃO VAI CABER');
-    expect(aviso?.detalhe).toContain('Encurte o comentário em 100 letras');
-    expect(aviso?.detalhe).not.toContain('fonte foi reduzida');
+    expect(aviso?.detalhe).toBe(`Não cabe: 520 letras para cerca de ${CABEM_NA_CAIXA}.`);
   });
 
   it('não avisa quando o texto cabe', () => {

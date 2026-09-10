@@ -25,13 +25,28 @@ vi.mock('@/hooks/useRlsPrecheck', () => rlsMocks);
 vi.mock('@/hooks/useAuditLog', () => ({ useAuditLog: () => ({ logAction: auditMocks.logAction }) }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'user-1' } }) }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
-vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: vi.fn() } }));
+vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: vi.fn(), rpc: vi.fn() } }));
+
+/**
+ * A régua de ambiente saiu do `select` em cliente e virou a RPC
+ * `ambiente_por_cliente` (SECURITY DEFINER, para a RLS por cluster não truncar a
+ * régua — ver useDomainAmbienteClientes). Ela não passa mais pelo `dbQueue`.
+ */
+function mockReguaDeAmbiente(linhas: Array<{ id: string; ambiente: string }>) {
+  vi.mocked(supabase.rpc).mockImplementation(((fn: string) => Promise.resolve(
+    fn === 'ambiente_por_cliente'
+      ? { data: linhas.map(l => ({ cliente_id: l.id, ambiente: l.ambiente })), error: null }
+      : { data: null, error: null },
+  )) as never);
+}
 
 import {
+  useCreateOrgTask,
   useDeleteOrgTask,
   useMoveOrgTaskToProject,
   useMoveOrgTasksToProject,
   useOrgTasks,
+  useUpdateOrgTask,
   type OrgTask,
 } from '@/hooks/useOrgTasks';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,7 +73,7 @@ function makeChain(table: string) {
   const record: ChainRecord = { table, calls: [] };
   chains.push(record);
   const chain: Record<string, unknown> = {};
-  for (const method of ['select', 'update', 'delete', 'eq', 'neq', 'in', 'or', 'gte', 'lte', 'not', 'order', 'single', 'maybeSingle']) {
+  for (const method of ['select', 'insert', 'update', 'delete', 'eq', 'neq', 'in', 'or', 'gte', 'lte', 'not', 'order', 'single', 'maybeSingle']) {
     chain[method] = vi.fn((...args: unknown[]) => {
       record.calls.push({ method, args });
       return chain;
@@ -370,16 +385,13 @@ describe('useOrgTasks (escopo de ambiente)', () => {
     ...patch,
   });
 
-  /** Tarefas + a régua de ambiente, na ordem em que o hook aguarda as consultas. */
+  /** Tarefas na fila do `from`; a régua de ambiente vem da RPC, fora dela. */
   function queueTasks(tarefas: unknown[]) {
     dbQueue.push({ data: tarefas, error: null });
-    dbQueue.push({
-      data: [
-        { id: 'client-dev', ambiente: currentAmbiente },
-        { id: 'client-fora', ambiente: OUTRO_AMBIENTE },
-      ],
-      error: null,
-    });
+    mockReguaDeAmbiente([
+      { id: 'client-dev', ambiente: currentAmbiente },
+      { id: 'client-fora', ambiente: OUTRO_AMBIENTE },
+    ]);
   }
 
   it('descarta a tarefa cujo cliente é de outro ambiente', async () => {
@@ -446,7 +458,7 @@ describe('useOrgTasks (filtro por responsável)', () => {
 
   function queueTasks(tarefas: unknown[]) {
     dbQueue.push({ data: tarefas, error: null });
-    dbQueue.push({ data: [], error: null });
+    mockReguaDeAmbiente([]);
   }
 
   it('traz a subtarefa da pessoa e a mãe dela, mas não a subtarefa irmã', async () => {
@@ -471,6 +483,20 @@ describe('useOrgTasks (filtro por responsável)', () => {
     const tasks = await queryFnOf({ assignedTo: 'anderson' })();
 
     expect(tasks.map(task => task.id)).toEqual(['em-revisao']);
+  });
+
+  it('"unassigned" é a fila do que ninguém pegou, e ignora revisor', async () => {
+    queueTasks([
+      tarefa({ id: 'sem-ninguem', assigned_to: null }),
+      tarefa({ id: 'de-alguem', assigned_to: 'monica' }),
+      // Revisora não vale como responsável aqui: sem responsável é sem
+      // responsável, mesmo com revisão em andamento.
+      tarefa({ id: 'sem-ninguem-em-revisao', assigned_to: null, status: 'review', reviewer_id: 'anderson' }),
+    ]);
+
+    const tasks = await queryFnOf({ assignedTo: 'unassigned' })();
+
+    expect(tasks.map(task => task.id)).toEqual(['sem-ninguem', 'sem-ninguem-em-revisao']);
   });
 
   it('resolve "mine" para o usuário logado', async () => {
@@ -535,5 +561,104 @@ describe('useDeleteOrgTask (guarda do cascade)', () => {
 
     await expect(deleteMutation().mutationFn('mae-1')).rejects.toBeTruthy();
     expect(chainOf('org_tasks', 'delete')).toHaveLength(0);
+  });
+});
+
+describe('prazo da subtarefa contra o da tarefa-mãe', () => {
+  function updateMutation() {
+    const { result } = renderHook(() => useUpdateOrgTask('tax'));
+    return result.current as unknown as {
+      mutationFn: (input: Record<string, unknown> & { id: string }) => Promise<unknown>;
+    };
+  }
+
+  function createMutation() {
+    const { result } = renderHook(() => useCreateOrgTask('tax'));
+    return result.current as unknown as {
+      mutationFn: (input: Record<string, unknown>) => Promise<unknown>;
+    };
+  }
+
+  /** Consultas de prazo — é por elas que se prova que o guard nem foi acionado. */
+  function consultasDePrazo() {
+    return chains.filter(chain =>
+      chain.calls.some(call => call.method === 'select' && call.args[0] === 'due_date'));
+  }
+
+  const subtarefa = {
+    id: 'filha-1',
+    title: 'Ata AGE 31/10/2026',
+    parent_task_id: 'mae-1',
+    project_id: 'project-1',
+    due_date: '2026-09-14',
+    status: 'todo',
+    assigned_to: 'user-9',
+  };
+
+  it('recusa o prazo que passa do da mãe, e o texto traz a data dela', async () => {
+    dbQueue.push({ data: subtarefa, error: null });
+    dbQueue.push({ data: { due_date: '2026-09-30' }, error: null });
+    dbQueue.push({ data: [], error: null });
+
+    await expect(updateMutation().mutationFn({ id: 'filha-1', due_date: '2026-10-12' })).rejects.toThrow(
+      'Esta subtarefa não pode vencer depois de 30/09/2026, que é o prazo da tarefa-principal.',
+    );
+    expect(chainOf('org_tasks', 'update')).toHaveLength(0);
+  });
+
+  it('a mãe é buscada no banco, não na lista da tela — que vem recortada por mês', async () => {
+    dbQueue.push({ data: subtarefa, error: null });
+    dbQueue.push({ data: { due_date: '2026-12-31' }, error: null });
+    dbQueue.push({ data: [], error: null });
+    dbQueue.push({ data: { id: 'filha-1' }, error: null });
+
+    await updateMutation().mutationFn({ id: 'filha-1', due_date: '2026-10-12' });
+
+    const [consultaDaMae] = consultasDePrazo();
+    expect(argsOf(consultaDaMae, 'eq')).toContainEqual(['id', 'mae-1']);
+    expect(chainOf('org_tasks', 'update')).toHaveLength(1);
+  });
+
+  it('recuar o prazo da mãe para trás de uma filha diz quantas estouram e até quando', async () => {
+    dbQueue.push({ data: { id: 'mae-1', title: 'Reestruturação societária', parent_task_id: null, due_date: '2026-12-31' }, error: null });
+    dbQueue.push({ data: [{ due_date: '2026-10-05' }, { due_date: '2026-10-12' }, { due_date: null }], error: null });
+
+    await expect(updateMutation().mutationFn({ id: 'mae-1', due_date: '2026-09-30' })).rejects.toThrow(
+      '2 subtarefas vencem depois desta data (a última em 12/10/2026). Ajuste o prazo delas antes.',
+    );
+    expect(chainOf('org_tasks', 'update')).toHaveLength(0);
+  });
+
+  // As 35 linhas que já estavam fora da regra em 09/09/2026 continuam editáveis:
+  // o guard cobra a transição do prazo, não a existência dela.
+  it('editar outro campo de uma linha já fora da regra passa, sem consultar prazo nenhum', async () => {
+    dbQueue.push({ data: { ...subtarefa, due_date: '2026-10-12' }, error: null });
+    dbQueue.push({ data: { id: 'filha-1' }, error: null });
+
+    await updateMutation().mutationFn({ id: 'filha-1', assigned_to: 'user-2' });
+
+    expect(chainOf('org_tasks', 'update')).toHaveLength(1);
+    expect(consultasDePrazo()).toHaveLength(0);
+  });
+
+  it('limpar o prazo não estoura nada e não consulta a mãe', async () => {
+    dbQueue.push({ data: subtarefa, error: null });
+    dbQueue.push({ data: { id: 'filha-1' }, error: null });
+
+    await updateMutation().mutationFn({ id: 'filha-1', due_date: null });
+
+    expect(chainOf('org_tasks', 'update')).toHaveLength(1);
+    expect(consultasDePrazo()).toHaveLength(0);
+  });
+
+  it('subtarefa também não nasce vencendo depois da mãe', async () => {
+    dbQueue.push({ data: { due_date: '2026-09-30' }, error: null });
+
+    await expect(createMutation().mutationFn({
+      title: 'Protocolo e justificativa',
+      parent_task_id: 'mae-1',
+      due_date: '2026-10-12',
+    })).rejects.toThrow('30/09/2026');
+    expect(chainOf('org_tasks', 'insert')).toHaveLength(0);
   });
 });

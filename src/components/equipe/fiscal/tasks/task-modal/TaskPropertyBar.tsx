@@ -20,6 +20,7 @@ import { temHorasApontadas } from '@/lib/orgTaskHours';
 import { CHIP_BUTTON, CHIP_LABEL, CHIP_TRIGGER } from '@/lib/modalChipStyles';
 import { taskPriorityColors, taskPriorityList } from '@/lib/taskPriorityColors';
 import type { TaskFieldOptions, TaskFormValues } from '@/lib/orgTaskForm';
+import { prazoDaFilhaEstoura } from '@/lib/orgTaskPrazo';
 import { cn } from '@/lib/utils';
 
 interface TaskPropertyBarProps {
@@ -33,6 +34,13 @@ interface TaskPropertyBarProps {
   reviewerName?: string | null;
   /** Revisor delegado só lê os campos da tarefa. */
   disabled?: boolean;
+  /**
+   * Prazo da tarefa-mãe, quando esta é subtarefa: o calendário de Vencimento
+   * para de oferecer os dias depois dele. Vem nulo quando não há mãe — ou
+   * quando a mãe não está na lista carregada, e aí quem recusa é
+   * `useUpdateOrgTask`, que a busca no banco.
+   */
+  prazoDaMae?: string | null;
 }
 
 /**
@@ -48,6 +56,7 @@ export function TaskPropertyBar({
   onAssigneeChange,
   reviewerName,
   disabled,
+  prazoDaMae,
 }: TaskPropertyBarProps) {
   const { teamMembers, statusOptions } = options;
   const status = form.watch('status');
@@ -202,7 +211,7 @@ export function TaskPropertyBar({
           )}
 
           <DateChip form={form} name="start_date" label="Início" />
-          <DateChip form={form} name="due_date" label="Vencimento" />
+          <DateChip form={form} name="due_date" label="Vencimento" prazoDaMae={prazoDaMae} />
 
           <div className="min-w-0 space-y-1.5">
             <p className={CHIP_LABEL}>Esforço</p>
@@ -247,10 +256,12 @@ function DateChip({
   form,
   name,
   label,
+  prazoDaMae,
 }: {
   form: UseFormReturn<TaskFormValues>;
   name: 'start_date' | 'due_date';
   label: string;
+  prazoDaMae?: string | null;
 }) {
   return (
     <FormField
@@ -273,7 +284,15 @@ function DateChip({
               </FormControl>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar selected={field.value} onSelect={field.onChange} />
+              {/* Dia depois do prazo da mãe nasce apagado: prevenir é melhor
+                  que recusar depois de a pessoa escolher. */}
+              <Calendar
+                selected={field.value}
+                onSelect={field.onChange}
+                disabled={prazoDaMae
+                  ? (date: Date) => prazoDaFilhaEstoura(format(date, 'yyyy-MM-dd'), prazoDaMae)
+                  : undefined}
+              />
             </PopoverContent>
           </Popover>
           <FormMessage />

@@ -37,6 +37,13 @@ export const ROTULOS_DE_EVENTO: Record<OrgCommentEventoKind, string> = {
   documentos_solicitados: 'Documentos solicitados ao cliente',
   documentos_cobrados: 'Cobrança de documentos pendentes',
   documentos_conferidos: 'Solicitação finalizada',
+  /*
+   * PT-04. **Dois rótulos, e não um**, porque a Patricia aprovou dois títulos:
+   * a primeira importação anuncia que os slides já podem sair, e as seguintes
+   * dizem que existe revisão nova sem sugerir que a anterior morreu.
+   */
+  papel_de_trabalho_importado: 'Papel de trabalho importado',
+  papel_de_trabalho_revisado: 'Nova revisão do papel de trabalho',
 };
 
 /** Evento de sistema, e não fala de gente. */

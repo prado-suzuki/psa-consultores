@@ -371,11 +371,21 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
     //    `--bd-line` do Board era frio na casa e bege na Tax e na OSG — mesmo
     //    token, duas temperaturas, dependendo da rota.
     //
-    // O padrão dos quatro últimos é o mesmo, e é o que este número protege:
+    // +1 `--border-control` (10/09/2026), e este entrou por outro motivo: não
+    //    é token esquecido, é token NOVO. A linha do produto fazia três
+    //    trabalhos com um valor só — contorno de cartão, linha de tabela e
+    //    borda de campo — e a 1,15:1 servia para os dois primeiros e reprovava
+    //    no terceiro, onde a WCAG 1.4.11 pede 3:1. A dívida ficou aberta nos
+    //    três temas porque pagá-la com um token só escureceria toda linha de
+    //    tabela. Separado por trabalho, ele fecha 3,01 a 3,05:1, e a razão é
+    //    cobrada em `paletaDeArea.test.ts` — aqui só se cobra que todo tema
+    //    responda por ele, inclusive o `.dark`, onde a linha CLAREIA.
+    //
+    // O padrão dos quatro anteriores é o mesmo, e é o que este número protege:
     // token que nenhum tema declara não quebra nada visível, só acumula
     // divergência em silêncio. Entrar no contrato é o que faz um tema novo ser
     // OBRIGADO a responder.
-    expect(contrato.size).toBe(50);
+    expect(contrato.size).toBe(51);
   });
 
   /*

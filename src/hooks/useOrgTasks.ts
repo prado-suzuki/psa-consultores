@@ -7,6 +7,12 @@
 import { AreaKey } from '@/config/areaCategories';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 import { MENSAGEM_HORAS_OBRIGATORIAS, temHorasApontadas } from '@/lib/orgTaskHours';
+import {
+  filhasQueEstouram,
+  mensagemPrazoDaFilha,
+  mensagemPrazoDaMae,
+  prazoDaFilhaEstoura,
+} from '@/lib/orgTaskPrazo';
 import { computeFieldDiff } from '@/lib/diffUtils';
 import { ambientePorClienteQuery } from '@/hooks/useDomainAmbienteClientes';
 import { isTarefaDoAmbiente } from '@/lib/ambienteScope';
@@ -64,7 +70,8 @@ export interface OrgTask {
  
 export interface TaskFilters {
   search?: string;
-  assignedTo?: string | 'mine' | 'all';
+  /** Um id de pessoa, `mine`, `unassigned` (sem responsável) ou `all`. */
+  assignedTo?: string | 'mine' | 'all' | 'unassigned';
   status?: OrgTaskStatus[];
   priority?: OrgTaskPriority[];
   projectId?: string;
@@ -174,10 +181,15 @@ export interface TaskFilters {
         // quem dividia a mesma mãe (e inflava KPIs e esforço, que leem esta
         // mesma lista).
         if (filters?.assignedTo && filters.assignedTo !== 'all') {
+          // `unassigned` é a fila do que ninguém pegou — a pergunta que a
+          // gestora faz olhando um projeto: falta responsável em quê? Ela não
+          // tem revisor a considerar: tarefa sem responsável é sem responsável.
+          const semResponsavel = filters.assignedTo === 'unassigned';
           const targetId = filters.assignedTo === 'mine' ? user?.id : filters.assignedTo;
-          if (targetId) {
-            const belongsToTarget = (task: OrgTask) =>
-              task.assigned_to === targetId ||
+          if (semResponsavel || targetId) {
+            const belongsToTarget = (task: OrgTask) => semResponsavel
+              ? !task.assigned_to
+              : task.assigned_to === targetId ||
               (task.reviewer_id === targetId && task.status === 'review');
             const matchingSubtaskParentIds = new Set(
               allTasks
@@ -262,6 +274,32 @@ export const useOrgSubtasks = (parentTaskId?: string | null) => {
   });
 };
 
+/**
+ * Prazo da subtarefa contra o da mãe, lido NO BANCO.
+ *
+ * A mãe não sai da lista já carregada de propósito: a tela recorta por mês e
+ * por cluster, então a mãe pode simplesmente não estar em memória — é o mesmo
+ * motivo pelo qual o cascade de exclusão vai buscar os descendentes no banco.
+ */
+async function recusaPeloPrazoDaMae(parentTaskId: string, novoPrazo: string) {
+  const { data: mae } = await supabase
+    .from('org_tasks')
+    .select('due_date')
+    .eq('id', parentTaskId)
+    .maybeSingle();
+  return prazoDaFilhaEstoura(novoPrazo, mae?.due_date) ? mensagemPrazoDaFilha(mae!.due_date!) : null;
+}
+
+/** O outro lado da mesma regra: a mãe recuando para trás de uma filha que já existe. */
+async function recusaPelasFilhas(taskId: string, novoPrazo: string) {
+  const { data: filhas } = await supabase
+    .from('org_tasks')
+    .select('due_date')
+    .eq('parent_task_id', taskId);
+  const estouro = filhasQueEstouram(filhas || [], novoPrazo);
+  return estouro ? mensagemPrazoDaMae(estouro) : null;
+}
+
 interface OrgTaskMutationOptions {
   showToasts?: boolean;
 }
@@ -296,6 +334,13 @@ export const useCreateOrgTask = (
        // Mesma regra da edição: nasce concluída, nasce com hora.
        if (input.status === 'done' && !temHorasApontadas(input.actual_hours)) {
          throw new Error(MENSAGEM_HORAS_OBRIGATORIAS);
+       }
+       // E nasce dentro do prazo da mãe. Subtarefa criada pela seção do modal
+       // nasce sem prazo e não passa por aqui; a criada pelo formulário inteiro
+       // tem prazo obrigatório e passa.
+       if (input.parent_task_id && input.due_date) {
+         const recusa = await recusaPeloPrazoDaMae(input.parent_task_id, input.due_date);
+         if (recusa) throw new Error(recusa);
        }
        const { data, error } = await supabase
          .from('org_tasks')
@@ -395,6 +440,20 @@ export const useUpdateOrgTask = (
            if (!revisorFinal) {
              throw new Error('Escolha o revisor antes de mandar a tarefa para revisão.');
            }
+         }
+
+         // Prazo: só quando ELE é o campo que muda. Em 09/09/2026 havia 35
+         // pares mãe/filha de produção já fora da regra — cobrar a regra em
+         // toda gravação prenderia quem fosse mexer no responsável de uma
+         // dessas linhas. Mesma forma do guard de horas, acima.
+         if ('due_date' in changedOnly && changedOnly.due_date) {
+           const novoPrazo = changedOnly.due_date as string;
+           const recusas = await Promise.all([
+             current?.parent_task_id ? recusaPeloPrazoDaMae(current.parent_task_id, novoPrazo) : null,
+             recusaPelasFilhas(id, novoPrazo),
+           ]);
+           const recusa = recusas.find(Boolean);
+           if (recusa) throw new Error(recusa);
          }
 
          const currentUserIsReviewer = current && isDelegatedOrgTaskReviewer(current, user?.id);

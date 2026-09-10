@@ -1,0 +1,547 @@
+# Projetos e tarefas no celular — plano por tela, uma validação por fase
+
+**Aberto em 09/09/2026.** Diagnóstico completo, com a régua de larguras desenhada em
+escala: <https://claude.ai/code/artifact/b75ad47b-0bfd-49af-aa0f-95c58b7f6149>
+
+Antecedente: a barra lateral virou gaveta no celular em 08/09 (commit `a58bc807`, e
+`geral/sidebar-recolhe-em-tela-larga.md` §"Em tela estreita a barra troca de papel"). Isso
+devolveu a largura da viewport ao conteúdo. Este plano é o passo seguinte: o conteúdo em si.
+
+## Uma tela, quatro rotas
+
+`/equipe/tax/projetos/cadastro`, `/equipe/tax/projetos/tarefas`,
+`/equipe/osg/projetos/cadastro` e `/equipe/osg/projetos/tarefas` montam **o mesmo**
+`src/components/equipe/tarefas/PainelTarefas.tsx`. Consertar uma conserta as quatro — e é
+por isso que este plano fala em *visão* (aba), não em rota.
+
+## Como este plano roda
+
+Uma fase = um commit = um pedido de validação. **Ao fechar cada fase o agente para e pede
+para a Patrícia olhar no celular antes de começar a próxima** — é a instrução dela, de
+09/09. Não emendar duas fases num commit: o valor de cada uma é ela poder dizer "essa ficou
+boa" ou "essa não" sobre uma coisa só.
+
+## Prioridades
+
+A ordem sai de duas perguntas: *o que ela faz no celular todo dia* e *quanto custa*. Não
+sai da gravidade do defeito — o Gantt é o mais quebrado e é o último, porque consultar
+cronograma no telefone é o caso menos provável de todos.
+
+| # | Fase | Por que aqui | Arquivo principal | Tamanho |
+|---|---|---|---|---|
+| 1 | ✅ **A porta de entrada** | Duas visões já funcionam e ela não as vê | `PainelTarefas` | P |
+| 2 | ✅ **A moldura do topo** | Mata 1 dos 3 scrollbars, e vale nas 7 abas | `TaskKPICards`, `TaskFilters` | P |
+| 3 | ✅ **Tabela** | Quebra pior que todas, e é o remédio menor | `TaskTable` | P |
+| 4 | ✅ **O detalhe da tarefa** | É o fim do caminho de leitura, e quebra lá | `TaskModal` | P |
+| 5 | ✅ **Lista** | É a visão de trabalho dela no desktop | `ProjetosTarefasList` | G |
+| 6 | ✅ **Kanban** | Rende leitura, não operação — ver a ressalva | `TaskKanban` | M |
+| 7 | ✅ **Calendário** | Uso pontual no celular | `TaskCalendar` | M |
+| 8 | ✅ **Gantt** | O mais caro e o menos provável no telefone | `GanttChart` | G |
+
+---
+
+## Fase 1 — A porta de entrada
+
+**O achado que manda nesta fase:** "Hoje" e "Futuras" são listas de cartões, sem largura
+fixa, com texto que corta em reticências. **Já funcionam no celular hoje, sem uma linha de
+código.** E são a sexta e a sétima aba, fora da tela à direita, enquanto o painel abre
+sempre na "Lista" (`useState('list')`), que é a que menos cabe.
+
+1. No celular, o painel abre em **"Hoje"**. No desktop segue abrindo na "Lista" — a
+   decisão de qual visão serve é da largura, não da preferência.
+2. No celular, "Hoje" e "Futuras" vêm **primeiro** na barra de abas, por `order` do CSS.
+   Ordem no DOM não muda, então o foco por teclado segue a ordem de sempre.
+
+Nada de esconder as outras cinco: visão que não caiu bem ainda é melhor que visão que
+desapareceu sem explicação.
+
+**Validar:** abrir `/equipe/tax/projetos/tarefas` no celular e ver se cai numa tela que dá
+para ler de imediato, e se as duas abas boas estão à mão.
+
+**Achado na validação, consertado no mesmo dia:** o cabeçalho da "Hoje" (data por extenso
++ "N pendentes" + "N concluídas") passa de 450px e não quebrava, então "concluídas" era
+**cortado** na borda — e o `<main>` é `overflow-hidden`, então não havia nem rolagem para
+alcançá-lo. `flex-wrap` no cabeçalho e a data um degrau menor abaixo de `sm`.
+
+**Decidido em 09/09: fica na "Hoje".** Foi levantado que a "Hoje" só lista tarefa com
+vencimento no dia, e que na tela dela naquele momento havia 41 em "A Fazer" e nenhuma
+vencendo — ou seja, o gestor cai em "Nenhuma tarefa para hoje. Aproveite!". As alternativas
+oferecidas foram a "Futuras" (vencimento futuro por semana) e, mais adiante, a Tabela do
+mês. A escolha dela foi manter a "Hoje" como está. Não reabrir sem pedido: dia sem
+vencimento **é** informação para quem só quer olhar.
+
+**✅ FEITO em 09/09/2026.** `telaEstreita()` saiu de dentro do controlador da barra lateral
+e virou export de `hooks/use-mobile`, ao lado do `MOBILE_BREAKPOINT` — as duas decisões que
+dependem da largura no primeiro quadro (qual estado a barra nasce, em que visão o painel
+abre) passam a ler o mesmo número. `max-md:order-first` nas duas abas; a ordem no DOM não
+mudou.
+
+---
+
+## Fase 2 — A moldura do topo
+
+Cresceu de "a régua" para "a moldura" no meio da execução: a Patrícia reduziu a janela e
+apontou a faixa de ações. São os dois blocos que ficam **acima** das abas e valem para as
+sete visões, então validam-se na mesma olhada.
+
+### A régua de status
+
+Sete status a `min-w-[120px]`: **840px** pedidos, com `overflow-x-auto` própria. É a
+primeira das três rolagens horizontais do print, e ela aparece **em todas as sete abas**.
+
+No celular a régua vira grade: duas colunas até `sm`, três de `sm` a `md`, e a linha de
+sempre a partir de `md`. A sétima célula ocupa a linha inteira — 7 não divide nem por 2 nem
+por 3, e "Concluído" sozinho num canto lê como célula faltando.
+
+A alternativa — tirá-la do celular, já que o Kanban repete a mesma contagem em cima de cada
+coluna — fica registrada e **não** é o que se fez: a régua é a única leitura de "como está o
+mês" que existe fora do Kanban.
+
+### A faixa de busca e ações
+
+Relato dela em 09/09: *"o botao de filtro buscar tarefa criar projeto e nova tarefa nao
+estao harmoniosos"*. E não estavam: em ~515px de janela a linha saía como busca +
+"Criar Projeto" + "Nova tarefa" na primeira linha, e "Filtros" **órfão** na segunda.
+
+A causa não era o container de fora, era o `flex-wrap` de **dentro** do `TaskFilters`:
+quebrando ali, o "Filtros" descia sozinho enquanto a busca continuava espremida na primeira
+linha, entre ele e os dois botões. O conserto é o `TaskFilters` tomar a linha inteira
+abaixo de `md` (`w-full`), o que empurra as ações para a linha de baixo, onde o `ml-auto`
+que já existia as alinha à direita. Resultado: busca + "Filtros" em cima, as duas ações
+embaixo.
+
+`md:w-auto md:flex-1`, e **não** `basis-full`: `flex-1` é o atalho de `flex: 1 1 0%`, que
+carrega o próprio flex-basis e venceria um `basis-full` por ordem de folha. Largura não
+entra nessa disputa.
+
+**Validar:** o scrollbar de cima do print tem de ter sumido em qualquer aba, e a linha de
+busca/ações tem de sair em dois blocos limpos, sem botão órfão.
+
+**✅ FEITO em 09/09/2026.** `TaskKPICards.test.tsx` trava as duas coisas que não dão erro de
+build: a régua não pode ter `overflow-x-auto` sem prefixo, e a última célula tem de fechar
+a linha.
+
+---
+
+## Fase 3 — Tabela
+
+Ela quebra por um motivo diferente de todas as outras, e é o que a torna a pior das sete:
+as oito colunas pedem **1.260px** em `w-[...]`, mas a `<Table>` **não tem largura mínima**.
+`width` num `<th>` sem `table-layout: fixed` é sugestão, não regra — então o navegador
+aceita e **comprime** para 45px por coluna. É a quebra letra-por-linha do Feed. Rolar de
+lado seria melhor do que o que acontece hoje.
+
+Largura mínima real na tabela, para ela **rolar** em vez de comprimir. É exatamente o que a
+tabela de Clientes já faz (`min-w-[1100px]` + o contêiner `overflow-auto` do `ui/table`).
+
+Fase pequena de propósito: **não** é aqui que a tabela vira cartão. Primeiro ela para de
+esmagar; se depois disso ainda não servir, isso é outra fase, com o desenho decidido junto.
+
+**Validar:** a tabela tem de ficar legível e arrastar de lado, sem palavra quebrada no meio.
+
+**✅ FEITO em 09/09/2026.** Uma linha: `min-w-[1260px]` (a soma exata dos oito `w-[...]`)
+mais `scrollbar-thin` no contêiner.
+
+Duas correções ao que este plano dizia:
+
+- **o `<div>` de fora podia continuar `overflow-hidden`.** O contêiner que rola é o do
+  `ui/table`, filho dele: um pai `overflow-hidden` não impede filho com `overflow-auto` de
+  rolar. Melhor assim, inclusive — é o que mantém a barra do mês fora da rolagem, parada,
+  em vez de ela sair da tela junto com as colunas;
+- **chips de leitura em vez dos dois `Select` foram tentados e desfeitos.** Os seletores de
+  status (144px) e prioridade (112px) somam 256px, mas de **1.260** — 8%, que não muda se
+  ela rola ou não. Em troca, duplicavam DOM e texto por linha, e como o vitest roda com
+  `css: false` os dois elementos "existem" em teste, o que transforma qualquer
+  `getByText` de status em "found multiple elements". Não vale.
+
+  **O que sobra do experimento, e vale como fase própria:** um dropdown de 144px numa linha
+  que se arrasta de lado é armadilha de toque — puxar para rolar abre o seletor. Vale para a
+  Tabela e para a Lista (que tem o mesmo `Select` de status, ver fase 5). Não é largura, é
+  gesto, então é outro assunto e outra fase. **Só abrir se a Patrícia apontar**, para não
+  virar refatoração especulativa em cima de uma tela que ela usa no desktop.
+
+---
+
+## Fase 4 — O detalhe da tarefa
+
+Não estava no plano de ontem: estava no "fora de escopo" como suspeita **não verificada**.
+Verificada em 09/09, e com mecanismo — o crédito é da sessão que mexia nos modais, que
+mediu o `tailwind-merge` do `TaskModal` e descreveu a conta. Confirmado aqui de forma
+independente, no fonte.
+
+Importa porque é o **fim do caminho de leitura**: o gestor abre a tela, encontra "Hoje" ou
+o Kanban, toca num cartão — e é aqui que ele lê o que está acontecendo, incluindo os
+comentários. As sete visões podem estar todas boas e a leitura ainda quebrar no último
+passo.
+
+**O mecanismo.** No modo de edição o `DialogContent` recebe `h-[min(94vh,54rem)]` — altura
+**fixa**, não teto — mais `overflow-hidden`, e o `lg:grid lg:grid-cols-[...]` só vale de
+`lg` para cima. Abaixo de `lg` sobra o `grid` de **uma coluna** da primitiva, com duas
+linhas: o formulário e o painel de comentários. O painel declara `min-h-[32rem]` (512px),
+com `lg:min-h-0` que existe justamente para isso não acontecer no desktop — e nenhum
+equivalente abaixo de `lg`.
+
+A conta num telefone de 640px de viewport: altura do modal = `min(601px, 864px)` = 601px,
+menos os 512px que os comentários exigem, sobram **~89px** para o formulário inteiro. O
+`min-h-0 flex-1 overflow-y-auto` de dentro dele transforma isso numa fresta de 89px que
+rola. Não corta — fica inutilizável, que é pior de diagnosticar.
+
+E não é dívida da primitiva de dialog: o `max-h-[94vh]` e o `overflow-hidden` do
+`TaskModal` vencem os da primitiva por `tailwind-merge`, então ele nunca sentiu a mudança
+dela. É dívida de tela pequena, desta frente.
+
+**O conserto que este plano previa estava errado, e a razão importa.** Ele dizia: tirar a
+altura fixa, tirar o piso de 512px, deixar as duas linhas crescerem e o modal rolar de cima
+a baixo. Só que o `OrgCommentsPanel` é `h-full` com a lista num `flex-1` que rola por
+dentro — ele **preenche** altura, não a produz. Sem altura definida na linha, ele colapsa a
+zero, e era exatamente para isso que o `min-h-[32rem]` existia. Tirar o piso sem mais nada
+não conserta: troca a fresta do formulário pelo desaparecimento da Atividade.
+
+**O conserto que foi feito:** manter a altura fixa e **repartir** o que ela dá.
+`max-lg:grid-rows-[minmax(0,3fr)_minmax(0,2fr)]` no `DialogContent` divide os 601px em ~360
+para o formulário e ~240 para a Atividade. As duas linhas recebem altura **definida**, que é
+o que o `h-full` das duas precisa, e cada uma rola por dentro. O piso de 512px sai porque a
+grade passou a dar a altura. O desktop não muda: de `lg` para cima continua o grid de duas
+colunas.
+
+`minmax(0, …)` nas duas linhas, e não `3fr_2fr` seco: sem o mínimo zero, linha de grade não
+encolhe abaixo do conteúdo dela e o rateio não acontece.
+
+Conferido que a classe arbitrária **sobrevive ao build** — `@media not all and
+(min-width:1024px){…grid-template-rows:minmax(0,3fr) minmax(0,2fr)}`. É a checagem que o
+`duration-[120ms]` e o `ease-[…]` ensinaram a fazer: valor arbitrário ambíguo sai do bundle
+sem erro nenhum.
+
+**O rateio 3fr/2fr foi reprovado na validação, e a aba entrou no mesmo dia.** Os ~240px de
+Atividade são comidos pelo cabeçalho dela e pelo compositor de comentário (barra de
+formatação + campo + Publicar, ~140px): sobrava uma faixa que não mostrava lista nenhuma.
+Nas palavras dela: *"atividade ficou fixo e o restante rolando"*, e depois *"eu não consigo
+ver o que tem em atividade"*.
+
+**O desenho que ficou:** abaixo de `lg`, uma metade por vez, com o modal INTEIRO — seletor
+"Tarefa" | "Atividade". Três coisas que isso obrigou:
+
+- **a caixa deixa de ser grade e vira coluna flexível** (`max-lg:flex max-lg:flex-col`).
+  Com grade seria preciso declarar de antemão qual linha estica, e isso muda a cada troca de
+  aba; em coluna, quem estica diz por si (`flex-1` na metade visível, e a escondida é
+  `display:none`, logo nem participa). O desktop segue em `lg:grid` com duas colunas;
+- **os dois lados ficam MONTADOS**, e quem sai é escondido por CSS. Desmontar o formulário
+  perderia o que estivesse digitado ao trocar de aba — travado em teste;
+- **a `ModalTopBar` saiu do corpo que rola** e subiu para dentro do `<form>`, acima do
+  seletor. Pedido dela: *"só salvar que tinha que estar pra cima, e tarefa e atividade
+  embaixo"* — a moldura do modal (Salvar, fechar) vem primeiro, a navegação do conteúdo
+  depois. Ela era `sticky top-0` **dentro** da área de rolagem, e em tela estreita sumia.
+  Ficou dentro do `<form>` de propósito: o Salvar é `type="submit"` e depende disso — foi o
+  que evitou ter de dar `id` ao formulário e `form=` ao botão.
+
+Isso tirou a prop `actions` do `TaskEditHeader`, que existia só para repassar os botões
+para a barra.
+
+**Duas regiões de rolagem seguem existindo**, uma em cada aba, e agora está certo: cada uma
+recebe o modal inteiro. Uma região só exigiria o `OrgCommentsPanel` parar de rolar por
+dentro, e ele é compartilhado.
+
+### O modal de PROJETO tinha o mesmo defeito, e era pior
+
+Achado em 09/09, depois de a fase 4 estar aprovada: o `ProjetoDialog` copia a anatomia do
+modal de tarefa — mesma altura fixa, mesmo `lg:grid`, mesmo `min-h-[32rem]` na metade da
+Atividade. Nunca tinha sido tocado por esta frente.
+
+E ali a consequência é pior do que uma fresta. O formulário é o **primeiro** filho e é quem
+carrega o Salvar e o fechar; com a Atividade exigindo 512px, em tela baixa ele era empurrado
+inteiro para fora e recortado pelo `overflow-hidden`. **Não sobrava saída do modal:**
+*"quando a tela fica muito pequena eu não consigo sair de atividade"*, *"só se eu clicar bem
+no cantinho"* — o cantinho era o overlay, fora do modal.
+
+Mesmo remédio, portado inteiro: coluna flexível abaixo de `lg`, seletor
+"Projeto" | "Atividade" com o mesmo desenho (dois modais irmãos não devem ensinar gestos
+diferentes), moldura sempre montada e fora da área que rola, piso de altura removido. A
+`ModalTopBar` saiu do `ProjetoEditHeader` junto com a prop `actions`, que só existia para
+repassar os botões até ela.
+
+**A régua que impede a terceira vez:** `src/lib/modaisDeDuasMetades.test.ts` **descobre** os
+modais pela altura fixa em vez de listar os dois que existem, então o próximo que copiar a
+anatomia nasce cobrado — sem piso de altura, com coluna flexível, com seletor de volta, e
+escondendo por CSS em vez de desmontar. Tem sentinela contra vacuidade: se a assinatura
+mudar e a busca voltar vazia, o teste falha em vez de passar sem medir nada. É o buraco que
+a régua dos modais (`ui/dialog.regua.test.ts`) não cobre — aquela lê só o className do
+próprio `DialogContent` e nunca olha filho.
+
+Ajuda aqui uma mudança que veio de fora desta frente (commit `106ed744`): o editor de
+descrição perdeu o `maxHeight` próprio, que desenhava uma segunda barra de rolagem encostada
+na primeira. Numa coluna única que rola inteira, descrição sem teto é exatamente o que se
+quer — então essa mudança e esta fase empurram para o mesmo lado.
+
+**Se criar modal novo nesta frente:** `max-h-none`, e um corpo que role por dentro. Há um
+teste varrendo o fonte (`src/components/ui/dialog.regua.test.ts`) que cobra isso de quem
+declara altura própria sem teto. Ele lê só o className do próprio `DialogContent` e nunca
+olha filho, então o `min-h` de um filho não é cobrado por ele — este conserto é desta frente.
+
+**Validar:** abrir uma tarefa pelo celular, ver o Salvar e o fechar no topo com as abas
+logo abaixo, e conseguir ler os comentários na aba Atividade.
+
+**✅ FEITO em 09/09/2026.** O contrato ficou travado nos dois lados, em arquivos diferentes:
+`TaskModal.test.tsx` cobra o rateio das linhas e a ausência do piso; a asserção nova em
+`OrgCommentsPanel.test.tsx` cobra que o painel é `h-full` e rola por dentro — que é a razão
+pela qual o rateio precisa existir. O painel é dublado no teste do modal, então a asserção
+sobre a classe dele só valeria no arquivo dele.
+
+---
+
+## Fase 5 — Lista
+
+A grade tem sete colunas travadas em **1.200px**
+(`grid-cols-[minmax(320px,1fr)_150px_180px_130px_140px_160px_44px]`). No celular cabe a
+primeira — o título. Status, responsável, prazo e progresso ficam todos fora. E a
+hierarquia OS → projeto → tarefa → subtarefa usa recuo em pixels, que come largura a cada
+nível.
+
+No celular cada tarefa vira **um cartão** — e o cartão sai do **refluxo da grade**, não de
+JSX novo. Foi o achado que encolheu a fase de "G" para uma tarde: as sete células já são
+irmãs numa grade CSS, então basta redefinir a grade abaixo de `md` (duas colunas, nome
+ocupando a linha inteira) e o que era coluna vira linha do cartão. Nenhuma das quatro
+linhas (OS, projeto, tarefa, subtarefa) foi remontada.
+
+    ┌─────────────────────────────────┐
+    │ ▸ ☐ ● Título da tarefa          │  ← nome, as duas colunas
+    ├────────────────┬────────────────┤
+    │ Status         │ Responsável    │
+    │ Prazo          │ Esforço        │
+    │ Progresso      │ ⋯              │
+    └────────────────┴────────────────┘
+
+**Nada é escondido:** o gestor vê os seis campos sem arrastar. Quem sai é o cabeçalho de
+coluna — rótulo de coluna não significa nada depois do refluxo, e cada célula se explica
+sozinha (status é chip colorido, prazo tem ícone de calendário, esforço traz o "h").
+
+Esta fase herdou trabalho de outra frente. O `lista-de-tarefas-texto-e-prazo.md` (feedback
+do Welber, 09/09) pôs tooltip nas quatro linhas da grade e fez o título caber em duas
+linhas no desktop. Ao virar cartão, **preserve as duas coisas**: no telefone não existe
+passar o mouse, então cartão que corta o título perde o texto sem saída nenhuma.
+
+### A profundidade foi reprovada, e consertada no mesmo dia
+
+A primeira versão passou no objetivo e falhou no que ele não dizia: *"visualmente está
+péssimo, parece que está tudo no mesmo nível, não tem profundidade, saber qual o mais acima
+e abaixo está muito difícil de bater o olho e entender"*.
+
+Ela estava certa, e a causa foi minha: eu tirei as **duas** pistas de profundidade de uma
+vez. Escondi as guias verticais no celular (`max-md:hidden` no `LevelGuide`) e encurtei o
+recuo para 8/12/+10px, degraus de 4px que ninguém distingue. Recuo sozinho já é ambíguo no
+desktop — é o que o comentário do `LevelGuide` sempre disse — e sem guia nenhuma, com
+degrau invisível e a mesma superfície branca nos quatro níveis, a árvore virou uma lista
+plana.
+
+O conserto soma três pistas, porque nenhuma delas sozinha basta em 358px:
+
+- **as guias voltam**, com x próprio por breakpoint (`left-[var(--guia)]` /
+  `max-md:left-[var(--guia-estreita)]`). É a guia que diz de qual bloco a linha desce;
+- **os degraus se distinguem**: 10 / 26 / +14px em vez de 8 / 12 / +10;
+- **cada nível ganha superfície própria**, porque `bg-primary/[0.045]` e `bg-muted/30` são
+  invisíveis num telefone: a OS sobe para `primary/10` com trilho grosso na âncora da área,
+  o projeto para `muted/70` com trilho rebaixado, e a tarefa fica **branca** de propósito —
+  é o contraste contra as duas tintas de cima que a marca como o nível de baixo.
+
+**Validar:** dá para saber o status e o responsável de uma tarefa sem rolar de lado, e dá
+para bater o olho e ver o que está dentro de quê.
+
+### A escadinha: a terceira e última reprovação desta fase
+
+Depois da profundidade entre OS / projeto / tarefa, sobrou a de dentro: *"eu abro a tarefa
+e as subtarefas parecem outras tarefas"*. E pareciam — a filha ficava 14px à direita da
+mãe, na mesma superfície branca, com o mesmo peso de texto. Um empurrão, não uma escada.
+
+Três pistas somadas, e a do meio é a que fecha o caso:
+
+- **degrau de 20px** em vez de 14;
+- **cotovelo** (`CotoveloDaFilha`), que sai do fio da mãe e entra na linha da filha. Fio
+  reto diz "existe um bloco aqui"; cotovelo diz "ESTA linha desce daquela". É o mesmo
+  idioma que o painel de comentários já usa para resposta dentro de comentário
+  (`data-thread-connector` em `OrgCommentsPanel`) — não foi inventado aqui;
+- **a filha pesa menos**: um degrau abaixo no tamanho e sem `font-medium`. É a única das
+  três que funciona quando a subtarefa é a primeira coisa que aparece ao rolar.
+
+A largura do cotovelo é conta, não número escolhido: `recuo da filha − fio da mãe − 4`, o
+que dá 26px em **qualquer** nível, porque os dois andam com o mesmo degrau. A primeira
+versão usava `degrau − 4` e sobrava um vão de 14px entre o fio e a linha — vão desfaz o
+"desce daqui", que é o ponto todo. A conta está travada em teste.
+
+No desktop nada disso aparece: lá há 24px de degrau e as guias inteiras, e este plano
+promete não mexer no desktop.
+
+**✅ FEITO em 09/09/2026.** O tooltip e as duas linhas do título herdados da frente do
+Welber seguem de pé, travados em teste — no telefone não existe passar o mouse. Conferido
+no CSS do build que todas as classes novas sobreviveram, incluindo as arbitrárias com
+`var()`.
+
+**Como o desenho foi escolhido, e o que isso ensinou.** Três rodadas de adivinhação
+("muito grandes", "poluição visual", "bagunçado") antes de montar uma página com os quatro
+desenhos lado a lado, no mesmo dado real da tela dela
+(<https://claude.ai/code/artifact/d7c61421-4d2a-473e-aa24-c5a42bf3156d>). Ela escolheu na
+primeira olhada. **A página tinha de ser clara à força:** a primeira versão seguia o tema
+do aparelho, e num celular em modo escuro os espécimes apareciam escuros — mas a tela real
+é clara, então a escolha estava sendo feita sobre uma cor que o sistema não tem. Espécime
+que não tem a cor da tela mente sobre o que se está escolhendo.
+
+---
+
+## Fase 6 — Kanban
+
+Sete colunas de `w-[340px]` fixos mais as folgas: **2.476px**. Na tela dela cabe uma coluna
+e uma tira da seguinte. A altura é `h-[calc(100vh-300px)]`, e num iPhone com a barra do
+navegador sobram uns dois cartões visíveis.
+
+No celular: **uma coluna por vez**, escolhida por um seletor de status acima do quadro; as
+setas de "anterior/próximo" andam entre os status. A alternativa considerada — colunas a
+`78vw`, com a próxima "espiando" — perde para essa, porque um cartão de tarefa a 78vw ainda
+é estreito e o gesto de arrastar de lado disputa com a rolagem vertical dos cartões.
+
+**Arrastar no toque: decidido em 09/09, não fazer.** O `draggable` +
+`onDragStart`/`onDrop` do HTML5 (`TaskKanbanCard.tsx`) **não dispara em toque** no iOS nem
+no Android, e o projeto não tem biblioteca de arrastar. Levada a limitação à Patrícia, a
+resposta fecha a questão: *"é só p visualizar msm, o gestor quer só olhar mas ele quer ver
+pelo celular"* — o celular desta tela é **superfície de leitura**, e é por isso que os
+ajustes existem.
+
+Então esta fase entrega um Kanban que se **lê**, e isso é o suficiente. Não abrir frente de
+biblioteca de DnD com sensor de ponteiro por conta disso. O caminho de escrita continua
+existindo para quem precisar: tocar no cartão abre a tarefa e o status se muda lá dentro.
+
+E a decisão vale para o plano inteiro, não só para esta fase: **em tela estreita, o que
+manda é ler**. Onde um controle de edição estiver disputando largura com a informação
+(o `Select` de status de 138px na Lista, a coluna de ações, o cursor de arrastar), no
+celular a informação ganha e o controle recua.
+
+**Validar:** dá para ler a coluna inteira de um status e trocar de status sem rolar de lado.
+
+**✅ FEITO em 09/09/2026.** Três decisões que valem registrar:
+
+- **começa no primeiro status, sempre** — e não no primeiro que tem cartão. O seletor mostra
+  a contagem, então coluna vazia se explica sozinha; visão que troca de identidade conforme
+  o dado é visão que ninguém prevê;
+- **o cabeçalho da coluna some abaixo de `md`**, porque o seletor já traz o rótulo e a
+  contagem na cor do status. Mostrar duas vezes gastaria 36px de um quadro que no telefone
+  já é curto;
+- **as outras seis colunas saem por CSS, não desmontadas**: rolagem e arraste de cada uma
+  sobrevivem à troca. É a mesma regra das metades do modal.
+
+As setas desabilitam nas pontas de propósito — é o que dá a sensação de onde se está nas
+sete sem um "3 de 7" escrito na tela. E o quadro perde a rolagem horizontal abaixo de `md`:
+com uma coluna por vez não há nada ao lado, e deixá-la ligada devolveria uma das três
+barrinhas que a fase 2 tirou.
+
+---
+
+## Fase 7 — Calendário
+
+`grid-cols-7` sem largura mínima: divide o que tem por sete, sempre. Na tela dela dá **51px
+por dia** — cabe o número, não cabe nome de tarefa nenhum. E as células têm `min-h-[80px]`,
+então a tela fica alta e vazia ao mesmo tempo.
+
+**O plano previa "uma semana por vez", e não foi o que se fez** — porque o calendário já
+tinha metade da solução pronta e ninguém tinha olhado: **tocar num dia já abria um painel
+com a lista inteira daquele dia**, desde antes desta frente. O que faltava não era
+navegação nova, era uma célula que caiba.
+
+E havia um agravante que decidiu o desenho: as tiras de tarefa dentro da célula dependem de
+`HoverCard` para o título inteiro se ler — e **em toque não existe hover**. No celular elas
+eram quatro letras truncadas sem saída nenhuma.
+
+Então, abaixo de `md`: célula compacta (`min-h-[3rem]`, contra os 80px que faziam a tela
+ficar alta e vazia ao mesmo tempo), as tiras saem e entra a **contagem** de tarefas do dia.
+A contagem diz que há trabalho ali; o toque diz qual. O mês inteiro passa a caber numa
+olhada, que é para isso que existe visão de mês.
+
+Uma armadilha de ordem de breakpoint no caminho: com `min-h-[3rem]` na base mais o
+`sm:min-h-[100px]` que já existia, o desktop (≥768px) ficaria em 80px e a faixa de
+640–767px em 100px — o desktop **encolheria**. O `sm:` saiu e ficou só `md:min-h-[100px]`.
+A célula de dia de fora do mês acompanhou: linha de grade tem a altura da célula mais alta,
+então um dia de fora em 80px manteria a semana inteira alta.
+
+**Validar:** dá para ver o mês inteiro numa olhada, e tocar num dia mostra o que vence
+nele.
+
+**Um TDZ latente veio à tona nesta fase, e não era dela.** Tocar num dia derrubava a tela
+com `Cannot access 'today' before initialization`. A causa vinha do commit `3d69a7b1`
+(tarefa sem prazo hospedada na célula de hoje): `getTasksForDate` passou a ler `today`, mas
+o `const today` estava declarado **depois** de `selectedDateTasks`, que chama a função no
+corpo do componente. Sem dia selecionado o ternário não chamava nada, então o defeito ficou
+latente até esta fase fazer do toque o caminho principal no celular.
+
+Dois detalhes que valem para a próxima vez, porque o teste de regressão levou **três**
+tentativas e as duas primeiras passaram verdes com o defeito no lugar:
+
+- o `today` só é lido no ramo do filtro que trata tarefa **sem prazo**. Fixture com prazo
+  não chega nele;
+- medir o título da tarefa era vazio. O vitest roda com `css: false`, então a tira escondida
+  do desktop (`hidden md:flex`) já renderiza o título, e a asserção passava sem o clique ter
+  efeito. O que só existe depois da seleção é o cabeçalho do painel do dia.
+
+Mesma família do TDZ que o `manualChunks` causava em produção (ver `vite.config.ts`): não dá
+erro de build, de lint nem de tipo.
+
+**✅ FEITO em 09/09/2026.**
+
+---
+
+## Fase 8 — Gantt
+
+`LARGURA_DO_NOME = 300` fixo mais a linha do tempo do mês (30 × 44px = 1.320px):
+**1.620px**. A coluna do nome sozinha ocupa 84% da tela dela, então nome e barra nunca
+aparecem juntos — que é a única coisa que o Gantt existe para mostrar.
+
+**O plano previa "nome como cabeçalho acima da barra", e não foi o que se fez** — porque o
+Gantt é melhor construído do que este plano supôs: a coluna de nomes **já era
+`sticky left-0`** antes desta frente, então ela não sai da tela quando a linha do tempo
+rola. Cabeçalho acima da barra custaria duas linhas por item e ainda tiraria a comparação
+entre linhas, que é o que um Gantt entrega.
+
+O que faltava era só a coluna **caber**: 300px sobre 358px úteis é 84% da tela gasta antes
+da primeira barra. A 132px sobram ~226px de linha do tempo, uns cinco dias na escala de
+mês — pouco, mas é a natureza de um Gantt num telefone, e esta é a fase que o plano já
+classificava como a menos provável de ser usada ali.
+
+Duas coisas que vieram no caminho:
+
+- **`title` no que trunca**, no grupo e no item. É a lição da Lista: texto cortado sem
+  tooltip é texto perdido, e a coluna a 132px corta mais. Em toque não há hover para
+  recuperá-lo, mas sem o `title` não se recupera em lugar nenhum;
+- **o `useIsMobile` nascia errado.** O valor inicial era `undefined`, que virava `false` no
+  primeiro render: quem decide LAYOUT por ele desenhava um quadro de desktop e corrigia
+  depois — num celular esse quadro pisca. Passou a nascer de `telaEstreita()`. E ganhou a
+  guarda de `matchMedia` que faltava: sem ela o hook **derrubava** quem o usasse em
+  ambiente sem `matchMedia` (o jsdom não implementa), o que apareceu como duas telas de
+  sprint quebradas assim que o Gantt passou a consumi-lo.
+
+O `GanttChart` é compartilhado com o Gantt da sprint (`sprint-detalhes/GanttTab.tsx`), e a
+mudança é por breakpoint: no desktop os 300px seguem intactos, travados em teste.
+
+**Validar:** dá para ver de quem é a tarefa e onde ela cai no mês na mesma olhada.
+
+**✅ FEITO em 09/09/2026.**
+
+---
+
+## Fora de escopo, de propósito
+
+- **Arrastar cartão por toque** (biblioteca de DnD). Ver a ressalva da fase 6.
+- **A barra de visões** (`TabsList`) continua rolando de lado. Sete abas não cabem em 358px
+  e rolagem de abas é o padrão certo — o problema do print era ser *a segunda de três*, e
+  as fases 2 e 6 tiram as outras duas.
+- **`useTelaDeTrabalhoLargo()`** nestas páginas. Continua declarado e está certo: no celular
+  o hook não recolhe nada (a gaveta já está fora do caminho), e no desktop segue valendo.
+
+## Números
+
+Medidas lidas do código em 09/09/2026, não estimadas. Largura útil de conteúdo num aparelho
+de 390px: **358px** (o layout dá `p-4` de cada lado).
+
+| Visão | Pede | De onde vem |
+|---|---|---|
+| Kanban | 2.476px | 7 × `w-[340px]` + 6 × `gap-4` |
+| Gantt (mês) | 1.620px | `LARGURA_DO_NOME` 300 + 30 × 44px |
+| Tabela | 1.260px | as 8 colunas somadas — pedidas, nunca respeitadas |
+| Lista | 1.200px | `min-w-[1200px]` da grade |
+| Régua de status | 840px | 7 × `min-w-[120px]` |
+| Calendário | — | `grid-cols-7` sem mínimo |
+| Hoje · Futuras | — | cartões, sem largura fixa |

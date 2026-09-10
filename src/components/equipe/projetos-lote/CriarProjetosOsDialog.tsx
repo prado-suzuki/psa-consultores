@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useTour } from '@/components/tour/useTour';
 import { useOrgProjects } from '@/hooks/useOrgProjects';
 import { useOsAbertasComProdutos } from '@/hooks/useDomainOsAbertas';
 import { useExternalClients } from '@/hooks/useTaxReferenceData';
@@ -67,6 +68,7 @@ function periodoLabel(os: LoteOsCandidata) {
 export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjetosOsDialogProps) => {
   const navigate = useNavigate();
   const routes = resolveLoteRoutes(area);
+  const { startTourOnce, disponivel: temGuia } = useTour();
   const [clientSearch, setClientSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedOsId, setSelectedOsId] = useState('');
@@ -75,6 +77,14 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
   // Só consulta quando o seletor abre: são as OS de todos os clientes.
   const { data: osAbertas = [], isLoading: loadingOs } = useOsAbertasComProdutos(open);
   const { data: allProjects = [] } = useOrgProjects();
+
+  // O guia deste diálogo abre na 1ª vez que ele é usado: as âncoras (as duas
+  // listas e o botão que conta) só existem com ele aberto.
+  useEffect(() => {
+    if (!open || !temGuia) return;
+    const timer = window.setTimeout(() => startTourOnce('criar-projeto'), 500);
+    return () => window.clearTimeout(timer);
+  }, [open, temGuia, startTourOnce]);
 
   // Cada abertura começa do zero: reaproveitar a escolha anterior levaria para a
   // OS errada num clique distraído.
@@ -146,7 +156,7 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
                 className="pl-9"
               />
             </div>
-            <div className="max-h-64 min-h-[3rem] overflow-y-auto rounded-lg border p-1">
+            <div className="max-h-64 min-h-[3rem] overflow-y-auto rounded-lg border p-1" data-tour="criar-lista-clientes">
               {loadingClients || loadingOs ? (
                 <p className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />Carregando clientes…
@@ -190,7 +200,7 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
 
             <div className="space-y-2">
               <Label className="text-sm font-medium">Ordem de serviço</Label>
-              <div className="max-h-56 min-h-[3rem] overflow-y-auto rounded-lg border p-2">
+              <div className="max-h-56 min-h-[3rem] overflow-y-auto rounded-lg border p-2" data-tour="criar-lista-os">
                 {/* Sem estado de carregamento: as OS já vieram junto com a lista
                     de clientes — é ela que depende delas para filtrar. */}
                 {osOptions.length === 0 ? (
@@ -244,7 +254,7 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
 
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button onClick={handleConfirm} disabled={!selectedOs} className="gap-2">
+              <Button onClick={handleConfirm} disabled={!selectedOs} data-tour="criar-confirmar" className="gap-2">
                 <FolderPlus className="h-4 w-4" />
                 {selectedOs
                   ? `Criar ${selectedOs.disponiveis} projeto${selectedOs.disponiveis !== 1 ? 's' : ''}`

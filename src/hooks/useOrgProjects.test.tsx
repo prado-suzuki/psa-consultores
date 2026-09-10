@@ -13,8 +13,10 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.f
 
 const OUTRO_AMBIENTE = currentAmbiente === 'prod' ? 'dev' : 'prod';
 
-// A mesma linha serve à régua de ambiente (id, ambiente) e à resolução de nome
-// (id, nome) — são duas consultas na tabela cliente dentro do mesmo queryFn.
+// A mesma linha serve às duas leituras do mesmo queryFn, que hoje saem de
+// lugares diferentes: a régua de ambiente vem da RPC `ambiente_por_cliente`
+// (SECURITY DEFINER, para a RLS por cluster não truncar a régua) e a resolução
+// de nome continua sendo `select` na tabela cliente, sob RLS.
 const CLIENTES = [
   { id: 'cli-daqui', nome: 'Fazenda Horizonte', ambiente: currentAmbiente },
   { id: 'cli-de-fora', nome: 'Fazenda Horizonte', ambiente: OUTRO_AMBIENTE },
@@ -38,15 +40,26 @@ const projeto = (patch: Record<string, unknown>) => ({
 describe('escopo de ambiente dos projetos', () => {
   const chains: Record<string, ReturnType<typeof mockSupabaseChain>> = {};
 
+  /** A régua de ambiente saiu do `select` em cliente e virou RPC — ver useDomainAmbienteClientes. */
+  function mockReguaDeAmbiente() {
+    vi.mocked(supabase.rpc).mockImplementation(((fn: string) => Promise.resolve(
+      fn === 'ambiente_por_cliente'
+        ? { data: CLIENTES.map(c => ({ cliente_id: c.id, ambiente: c.ambiente })), error: null }
+        : { data: null, error: null },
+    )) as never);
+  }
+
   function mockTables(projetos: unknown[]) {
     chains.org_projects = mockSupabaseChain({ data: projetos, error: null });
     chains.cliente = mockSupabaseChain({ data: CLIENTES, error: null });
     vi.mocked(supabase.from).mockImplementation(((table: string) =>
       chains[table] ?? mockSupabaseChain({ data: [], error: null })) as never);
+    mockReguaDeAmbiente();
   }
 
   beforeEach(() => {
     vi.mocked(supabase.from).mockReset();
+    vi.mocked(supabase.rpc).mockReset();
   });
 
   it('useOrgProjects deixa fora o projeto de cliente de outro ambiente', async () => {
@@ -91,6 +104,7 @@ describe('escopo de ambiente dos projetos', () => {
       chains.produto_segmento = mockSupabaseChain({ data: produtoSegmento, error: null });
       vi.mocked(supabase.from).mockImplementation(((table: string) =>
         chains[table] ?? mockSupabaseChain({ data: [], error: null })) as never);
+      mockReguaDeAmbiente();
     }
 
     it('mostra só o produto do projeto, não os da OS inteira', async () => {

@@ -7,7 +7,7 @@ import { mockSupabaseChain } from '@/test/supabaseMock';
 import { useOsAbertasComProdutos } from './useDomainOsAbertas';
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { from: vi.fn() },
+  supabase: { from: vi.fn(), rpc: vi.fn() },
 }));
 
 const OUTRO_AMBIENTE = currentAmbiente === 'prod' ? 'dev' : 'prod';
@@ -37,10 +37,18 @@ describe('useOsAbertasComProdutos', () => {
     chains.cliente = mockSupabaseChain({ data: clientes, error: null });
     chains.ordem_servico = mockSupabaseChain({ data: osRows, error: null });
     vi.mocked(supabase.from).mockImplementation(((table: string) => chains[table]) as never);
+    // A régua de ambiente saiu do `select` em cliente e virou RPC SECURITY
+    // DEFINER — ver useDomainAmbienteClientes.
+    vi.mocked(supabase.rpc).mockImplementation(((fn: string) => Promise.resolve(
+      fn === 'ambiente_por_cliente'
+        ? { data: clientes.map(c => ({ cliente_id: c.id, ambiente: c.ambiente })), error: null }
+        : { data: null, error: null },
+    )) as never);
   }
 
   beforeEach(() => {
     vi.mocked(supabase.from).mockReset();
+    vi.mocked(supabase.rpc).mockReset();
   });
 
   it('descarta a OS cujo cliente é de outro ambiente', async () => {

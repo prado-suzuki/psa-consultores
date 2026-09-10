@@ -16,11 +16,16 @@ import { statusColors, statusList } from '@/lib/taskStatusColors';
 import { Badge } from '@/components/ui/badge';
 
 interface TaskCalendarProps {
+  /**
+   * Sempre as tarefas do MÊS (`periodo.tarefasDoMes`), nunca as do escopo:
+   * a grade aqui é de um mês, e o escopo `tudo` das outras abas viraria
+   * descarte silencioso do que não cabe em célula nenhuma.
+   */
   tasks: OrgTask[];
   onEdit: (task: OrgTask) => void;
   onDelete: (taskId: string) => void;
   onReassign: (task: OrgTask) => void;
-  /** O mês é do painel, não desta aba: ele atravessa Lista, Tabela e aqui. */
+  /** O mês é do painel, não desta aba: ele atravessa Lista, Tabela, Kanban e aqui. */
   periodo: PeriodoDeTarefas;
 }
 
@@ -51,6 +56,22 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: T
     return Array.from({ length: CELULAS }, (_, i) => addDays(inicio, i));
   }, [currentMonth]);
 
+  /*
+    `today` fica ANTES de `getTasksForDate`, e isso não é estilo.
+
+    A função lê `today`, e `selectedDateTasks` a chama logo abaixo — no corpo do
+    componente, durante o render. Com a declaração depois disso, `const` deixa a
+    variável na zona morta e o acesso estoura: "Cannot access 'today' before
+    initialization". Só acontecia com um dia SELECIONADO, porque sem seleção o
+    ternário nem chama a função; era o caminho de tocar num dia para ver as
+    tarefas dele, que a fase 7 tornou o caminho principal no celular.
+
+    Mesma família do TDZ que o `manualChunks` causava em produção (ver o
+    histórico no `vite.config.ts`): não dá erro de build, de lint nem de tipo —
+    aparece na tela do usuário.
+  */
+  const today = getTodayBrazil();
+
   // Tarefa sem prazo cai na célula de HOJE, e não em nenhuma outra: ela fica
   // parada ali, marcada, até alguém definir a data. Ver `tarefasNoPeriodo`.
   const getTasksForDate = (date: Date) => {
@@ -64,7 +85,6 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: T
   const selectedDateTasks = selectedDate ? getTasksForDate(selectedDate) : [];
 
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  const today = getTodayBrazil();
 
   return (
     <div className="space-y-4">
@@ -72,8 +92,12 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: T
         {/* A mesma barra do Gantt, no mesmo lugar: `Hoje · ‹ › · título`, à
             esquerda. Antes o título ficava solto à esquerda e os controles na
             direita, grudados na legenda — duas telas que andam no tempo, duas
-            aparências. */}
-        <BarraDeMes periodo={periodo} />
+            aparências.
+
+            Travada no mês: nas outras abas o título abre o seletor de escopo, e
+            "tudo" não tem grade que o desenhe aqui. A seta continua andando, e
+            o mês que ela deixa é o mesmo das outras abas. */}
+        <BarraDeMes periodo={periodo} travadaNoMes />
 
         <div className="grid grid-cols-7 border-b bg-muted/40">
           {weekDays.map(day => (
@@ -99,7 +123,10 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: T
                   key={day.toISOString()}
                   data-testid="calendario-dia-de-fora"
                   className={cn(
-                    'min-h-[80px] border-b border-r bg-muted/30 p-1 sm:min-h-[100px] sm:p-2',
+                    // Acompanha a célula do mês: linha de grade tem a altura da
+                    // célula mais alta, então um dia de fora em 80px manteria a
+                    // semana inteira alta no celular.
+                    'min-h-[3rem] border-b border-r bg-muted/30 p-1 sm:p-2 md:min-h-[100px]',
                     FECHA_A_GRADE,
                   )}
                 >
@@ -119,7 +146,22 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: T
                 data-testid="calendario-dia"
                 onClick={() => dayTasks.length > 0 && setSelectedDate(day)}
                 className={cn(
-                  'flex min-h-[80px] flex-col items-start overflow-hidden border-b border-r p-1 text-left transition-colors sm:min-h-[100px] sm:p-2',
+                  /*
+                    No celular a célula é COMPACTA: `grid-cols-7` divide o que
+                    tem por sete, sempre, e em 358px úteis dá 51px por dia. Não
+                    cabe título de tarefa em 51px — as tiras de 10px truncavam
+                    em quatro letras —, e os 80px de altura mínima faziam a tela
+                    ficar alta e vazia ao mesmo tempo.
+
+                    A 3rem o mês inteiro cabe numa olhada, que é para isso que
+                    existe visão de mês. O detalhe do dia já tinha para onde ir:
+                    tocar no dia abre o painel com a lista inteira, e isso já
+                    existia antes desta frente.
+                  */
+                  // `md:min-h-[100px]` e o `sm:min-h-` FORA: com os dois, a
+                  // ordem das media queries deixava o desktop (>=768px) em 80px
+                  // e a faixa de 640-767px em 100px — o desktop encolheria.
+                  'flex min-h-[3rem] flex-col items-start overflow-hidden border-b border-r p-1 text-left transition-colors sm:p-2 md:min-h-[100px]',
                   FECHA_A_GRADE,
                   dayTasks.length > 0 ? 'cursor-pointer hover:bg-muted/50' : 'cursor-default',
                   isSelected && 'bg-muted/60 ring-2 ring-inset ring-primary',
@@ -138,8 +180,17 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: T
                 >
                   {format(day, 'd')}
                 </span>
+                {/* A contagem substitui as tiras no celular. As tiras dependem
+                    de `HoverCard` para o título inteiro se ler — e em toque não
+                    existe hover, então ali elas eram quatro letras sem saída.
+                    A contagem diz que há trabalho no dia; o toque diz qual. */}
                 {dayTasks.length > 0 && (
-                  <div className="mt-1 flex w-full flex-col gap-0.5">
+                  <span className="mt-0.5 rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground md:hidden">
+                    {dayTasks.length}
+                  </span>
+                )}
+                {dayTasks.length > 0 && (
+                  <div className="mt-1 hidden w-full flex-col gap-0.5 md:flex">
                     {dayTasks.slice(0, TAREFAS_VISIVEIS_NA_CELULA).map(task => {
                       const papel = statusColors[task.status];
                       const semPrazo = !task.due_date;

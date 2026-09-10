@@ -25,6 +25,7 @@ import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnF
 import { renderColumnLabel } from '@/components/equipe/dev/pis-cofins/renderColumnLabel';
 import { SPED_TOOLTIPS } from '@/components/equipe/dev/correcoes-sped/tooltipConstants';
 import type { A170Item, A170Snapshot, CampoAlteradoEfd } from '@/types/correcoesSped';
+import { BOTAO_CONFIRMA_COM_DISABLED } from './classesDeBotao';
 
 const A170_FILTERABLE_KEYS: { key: string; label: string }[] = [
   { key: 'NOME_0150', label: 'Prestador' },
@@ -464,7 +465,7 @@ export default function TabA170({
 
       if (field === 'CHV_NFSE') {
         return value ? (
-          <code className={`text-[10px] font-mono text-muted-foreground ${isChanged ?'text-amber-600 font-bold':''}`} title={String(value)}>
+          <code className={`text-[10px] font-mono text-muted-foreground ${isChanged ?'text-status-alerta font-bold':''}`} title={String(value)}>
             {String(value).slice(0, 12)}…
           </code>
         ) : (
@@ -475,7 +476,7 @@ export default function TabA170({
       if (field === 'DESCR_COMPL') {
         return (
           <div className="space-y-0.5" title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
-            <div className={`text-xs truncate ${isChanged ?'text-amber-600 font-bold':''}`}>{item.DESCR_COMPL || item.DESCR_ITEM_0200 ||'—'}</div>
+            <div className={`text-xs truncate ${isChanged ?'text-status-alerta font-bold':''}`}>{item.DESCR_COMPL || item.DESCR_ITEM_0200 ||'—'}</div>
             {item.DESCR_ITEM_0200 && item.DESCR_ITEM_0200 !== item.DESCR_COMPL && (
               <div className="text-[10px] text-muted-foreground truncate">0200: {item.DESCR_ITEM_0200}</div>
             )}
@@ -483,17 +484,17 @@ export default function TabA170({
         );
       }
 
-      const amberClass = isChanged ?'text-amber-600 font-bold':'';
+      const classeDeAlterado = isChanged ?'text-status-alerta font-bold':'';
 
       if (field === 'VL_ITEM' || field === 'VL_BC_PIS' || field === 'VL_PIS' || field === 'VL_BC_COFINS' || field === 'VL_COFINS') {
-        return <span className={amberClass}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
+        return <span className={classeDeAlterado}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
       }
 
       if (field === 'ALIQ_PIS' || field === 'ALIQ_COFINS') {
-        return <span className={amberClass}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
+        return <span className={classeDeAlterado}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
       }
 
-      return <span className={amberClass}>{value ?? '—'}</span>;
+      return <span className={classeDeAlterado}>{value ?? '—'}</span>;
     }
 
     return (
@@ -558,7 +559,7 @@ export default function TabA170({
                     <X className="h-3.5 w-3.5 mr-1" />Cancelar
                   </Button>
                 )}
-                <Button size="sm" variant="outline" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving} className="bg-white text-black border border-input hover:bg-emerald-600 hover:text-white hover:border-emerald-600 active:bg-emerald-700 active:text-white transition-colors duration-200 disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-black disabled:hover:border-input shrink-0">
+                <Button size="sm" variant="outline" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving} className={BOTAO_CONFIRMA_COM_DISABLED}>
                   {isSaving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}
                   {isSaving ? 'Salvando...' : isEditMode ? 'Salvar alterações' : 'Habilitar modo edição'}
                 </Button>

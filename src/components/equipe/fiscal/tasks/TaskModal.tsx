@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AnimatePresence } from 'framer-motion';
+import { CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { parseDate } from '@/lib/dateUtils';
@@ -9,6 +10,7 @@ import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
+import { ModalTopBar } from '@/components/ui/modal-top-bar';
 import { cn } from '@/lib/utils';
 import {
   OrgTask,
@@ -97,6 +99,19 @@ export const TaskModal = ({
   // Incrementa a cada "Adicionar anexo": o painel de atividade observa o número
   // e leva o foco para o compositor, que é por onde o arquivo sobe.
   const [composerFocusSignal, setComposerFocusSignal] = useState(0);
+  /**
+   * Qual das duas metades a tela estreita mostra. Abaixo de `lg` o modal não tem
+   * as duas colunas: formulário e Atividade viram irmãos empilhados, e repartir
+   * a altura entre eles não serviu — em 601px de telefone a Atividade ficava com
+   * ~240px, dos quais o cabeçalho e o compositor comem quase tudo. Sobrava uma
+   * faixa que não mostrava comentário nenhum ("eu não consigo ver o que tem em
+   * atividade", 09/09). Uma por vez, com o modal inteiro, é o que resolve.
+   *
+   * Os dois lados ficam MONTADOS e quem sai é escondido por CSS: desmontar o
+   * formulário perderia o que estivesse digitado ao trocar de aba, e é o mesmo
+   * motivo pelo qual isto não olha breakpoint em JavaScript.
+   */
+  const [abaEstreita, setAbaEstreita] = useState<'tarefa' | 'atividade'>('tarefa');
   // Escopo da busca pela primeira mensagem de erro em `handleInvalidSubmit`.
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -117,6 +132,7 @@ export const TaskModal = ({
 
   const watchedProjectId = form.watch('project_id') as string | undefined;
   const watchedClientId = form.watch('client_id') as string | undefined;
+  const watchedParentTaskId = form.watch('parent_task_id') as string | undefined;
   const watchedStatus = form.watch('status');
   const watchedAssignedTo = form.watch('assigned_to');
 
@@ -208,6 +224,12 @@ export const TaskModal = ({
   }, [task?.created_by, task?.created_at, allProfiles, teamMembers]);
 
   // Clear contribuinte and project when client changes (only on user action, not during reset)
+  // Abrir uma tarefa começa pela tarefa, sempre — não pela aba em que a última
+  // ficou. Só custa quando o modal sobrevive entre aberturas.
+  useEffect(() => {
+    if (open) setAbaEstreita('tarefa');
+  }, [open]);
+
   useEffect(() => {
     if (isResettingRef.current) return;
     const current = form.getValues('contribuinte_id');
@@ -231,6 +253,13 @@ export const TaskModal = ({
   const filteredParentTasks = watchedProjectId
     ? parentTasks.filter((t) => t.project_id === watchedProjectId)
     : parentTasks;
+
+  // Teto do calendário de Vencimento quando a tarefa é subtarefa. Sai da lista
+  // que já veio para o seletor de mãe; se a mãe não estiver nela (a lista da
+  // tela é recortada por mês), fica nulo e a recusa vem de `useUpdateOrgTask`.
+  const prazoDaMae = watchedParentTaskId
+    ? parentTasks.find((t) => t.id === watchedParentTaskId)?.due_date ?? null
+    : null;
 
   // Effect A: When project changes by user action, clear dependent fields
   useEffect(() => {
@@ -562,32 +591,123 @@ export const TaskModal = ({
             isEditing
               ? 'h-[min(94vh,54rem)] w-[calc(100vw-1rem)] max-w-[78rem] lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(22rem,0.9fr)]'
               : 'max-w-3xl',
+            // Abaixo de `lg` não há duas colunas: sobra o `grid` de uma coluna
+            // da primitiva, e formulário e Atividade viram irmãos empilhados.
+            //
+            // O caminho não foi direto, e as duas tentativas descartadas estão
+            // aqui porque o motivo de cada uma é o mesmo que travaria a próxima:
+            //
+            // 1. deixar as duas linhas em `auto` (como estava): a Atividade
+            //    levava os `min-h-[32rem]` que pedia, de um modal que mede 601px
+            //    num telefone de 640px, e sobravam ~89px para o formulário
+            //    inteiro. Fresta que rola, ou recorte seco;
+            // 2. repartir 3fr/2fr: o formulário ficou bom, mas os ~240px da
+            //    Atividade são comidos pelo cabeçalho dela e pelo compositor, e
+            //    não sobrava lista. Reprovado na validação, e nas palavras dela:
+            //    "eu não consigo ver o que tem em atividade".
+            //
+            // Não dá para simplesmente tirar a altura: o `OrgCommentsPanel` é
+            // `h-full` com a lista num `flex-1` que rola por dentro — ele
+            // PREENCHE altura, não a produz, e sem altura definida colapsa a
+            // zero (contrato travado em `OrgCommentsPanel.test.tsx`).
+            //
+            // Então: uma metade por vez, com o modal INTEIRO — e abaixo de `lg`
+            // a caixa deixa de ser GRADE e vira coluna flexível. Com grade seria
+            // preciso saber de antemão qual linha estica, e isso muda a cada
+            // troca de aba; com `flex-col`, quem estica diz por si (`flex-1` na
+            // metade visível, e a escondida é `display:none`, logo nem participa).
+            //
+            // O formulário guarda a moldura do modal (Salvar, fechar) e o
+            // seletor, então ele nunca desaparece por inteiro: o que se esconde
+            // é o corpo dele. O desktop nunca vê nada disto — lá são duas
+            // colunas, e `lg:grid` volta a mandar.
+            isEditing && 'max-lg:flex max-lg:flex-col',
           )}
         >
           <Form {...form}>
             <form
               ref={formRef}
               onSubmit={form.handleSubmit((values) => onSubmit(values), handleInvalidSubmit)}
-              className="flex min-h-0 flex-col bg-background"
+              className={cn(
+                'flex min-h-0 flex-col bg-background',
+                // O `<form>` NUNCA se esconde: ele guarda a moldura do modal
+                // (Salvar, fechar) e o seletor de aba. Esconder ele ao trocar
+                // para a Atividade tirava da tela o próprio botão de voltar —
+                // "em projeto a barra superior para alternar funciona, agora
+                // dentro da tarefa não" (09/09). Quem se esconde é só o CORPO
+                // dele, no `<div>` de baixo.
+                isEditing && task && abaEstreita === 'tarefa' && 'max-lg:flex-1',
+              )}
             >
               {isEditing && task ? (
-                <div className="min-h-0 flex-1 overflow-y-auto">
+                <>
+                  {/* A moldura do modal vem PRIMEIRO, e fora da área que rola: é
+                      onde ficam o Salvar e o fechar, e eles não podem sair da
+                      vista. Continua dentro do <form> de propósito — o Salvar é
+                      `type="submit"` e depende disso. */}
+                  <div className="px-6">
+                    <ModalTopBar
+                      icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+                      title="Editar Tarefa"
+                      description="Formulário de tarefa fiscal"
+                      actions={
+                        <TaskEditActions
+                          isSaving={isSaving}
+                          isReviewer={currentUserIsReviewer}
+                          canSendForReview={
+                            watchedStatus !== 'review' && watchedAssignedTo === user?.id
+                          }
+                          onRequestAdjustments={() => openReviewAction('adjustments')}
+                          onSendForReview={() => openReviewAction('send')}
+                          onApprove={form.handleSubmit((values) => onSubmit(values, 'approved'), handleInvalidSubmit)}
+                        />
+                      }
+                    />
+                  </div>
+
+                  {/* E a escolha da metade vem DEPOIS da moldura: ela navega o
+                      conteúdo, não o modal. Pedido dela em 09/09 — "só salvar
+                      que tinha que estar pra cima, e tarefa e atividade
+                      embaixo". */}
+                  <div
+                    role="group"
+                    aria-label="O que mostrar da tarefa"
+                    className="flex gap-1 border-b bg-muted/40 p-1 lg:hidden"
+                  >
+                    {(
+                      [
+                        ['tarefa', 'Tarefa'],
+                        ['atividade', 'Atividade'],
+                      ] as const
+                    ).map(([chave, rotulo]) => (
+                      <button
+                        key={chave}
+                        type="button"
+                        aria-pressed={abaEstreita === chave}
+                        onClick={() => setAbaEstreita(chave)}
+                        className={cn(
+                          'flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                          abaEstreita === chave
+                            ? 'bg-card text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground',
+                        )}
+                      >
+                        {rotulo}
+                      </button>
+                    ))}
+                  </div>
+
+                <div
+                  className={cn(
+                    'min-h-0 flex-1 overflow-y-auto',
+                    abaEstreita !== 'tarefa' && 'max-lg:hidden',
+                  )}
+                >
                   <TaskEditHeader
                     form={form}
                     options={fieldOptions}
                     disabled={currentUserIsReviewer}
-                    actions={
-                      <TaskEditActions
-                        isSaving={isSaving}
-                        isReviewer={currentUserIsReviewer}
-                        canSendForReview={
-                          watchedStatus !== 'review' && watchedAssignedTo === user?.id
-                        }
-                        onRequestAdjustments={() => openReviewAction('adjustments')}
-                        onSendForReview={() => openReviewAction('send')}
-                        onApprove={form.handleSubmit((values) => onSubmit(values, 'approved'), handleInvalidSubmit)}
-                      />
-                    }
                   />
                   <TaskPropertyBar
                     form={form}
@@ -595,6 +715,7 @@ export const TaskModal = ({
                     onAssigneeChange={handleAssigneeChange}
                     reviewerName={activeReviewerName}
                     disabled={currentUserIsReviewer}
+                    prazoDaMae={prazoDaMae}
                   />
                   <TaskEditBody
                     form={form}
@@ -608,11 +729,13 @@ export const TaskModal = ({
                     onAddAttachment={() => setComposerFocusSignal((signal) => signal + 1)}
                   />
                 </div>
+                </>
               ) : (
                 <TaskCreateFields
                   form={form}
                   options={fieldOptions}
                   onAssigneeChange={handleAssigneeChange}
+                  prazoDaMae={prazoDaMae}
                   showDraftNotice={showDraftNotice}
                   isSaving={isSaving}
                   onCancel={() => handleOpenChange(false)}
@@ -621,8 +744,17 @@ export const TaskModal = ({
             </form>
           </Form>
 
+          {/* O piso de `32rem` saiu do <div> abaixo: com as linhas repartidas
+              no DialogContent, esta recebe altura definida e o `h-full` do
+              painel resolve sozinho. O piso era o que estrangulava o
+              formulário abaixo de `lg`. */}
           {isEditing && task && (
-            <div className="min-h-[32rem] border-t lg:min-h-0 lg:border-l lg:border-t-0">
+            <div
+              className={cn(
+                'min-h-0 border-t lg:border-l lg:border-t-0',
+                abaEstreita === 'atividade' ? 'max-lg:flex-1' : 'max-lg:hidden',
+              )}
+            >
               <OrgCommentsPanel
                 entityId={task.id}
                 projectId={task.project_id}

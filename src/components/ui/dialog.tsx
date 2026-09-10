@@ -44,8 +44,18 @@ const DialogContent = React.forwardRef<
           e.preventDefault();
         }
       }}
+      // `max-h-[90vh] overflow-y-auto` não vem do shadcn: o padrão de lá não tem
+      // teto, e o modal é centralizado por translate. Conteúdo maior que a janela
+      // cresce para os dois lados, então o título e o X saem pela borda de cima —
+      // fora de alcance até para fechar. Com o teto, o que passa rola.
+      //
+      // O `90vh` é o que a maioria dos modais que já declaravam teto usava, e o
+      // `cn()` é `tailwind-merge`: quem declara `max-h` ou `overflow` próprio
+      // continua mandando, e a classe daqui é descartada para ele. Por isso os
+      // modais de altura própria (TaskModal em `94vh`) e os que precisam de
+      // popover escapando (`overflow-visible` na OSG) seguem intactos.
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+        "fixed left-[50%] top-[50%] z-50 grid max-h-[90vh] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
         className,
       )}
       {...props}

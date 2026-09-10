@@ -1,7 +1,8 @@
 # Comparações de cor — as que decidiram, renderizadas
 
 Decisões de cor tomadas **olhando**, não por número. Estes são os arquivos que foram olhados —
-as duas primeiras de 20–21/08/2026 e a do branco em 26/08; a do escuro segue em aberto.
+as duas primeiras de 20–21/08/2026, a do branco em 26/08 e a da linha e do cartão em 10/09;
+a do escuro segue em aberto.
 Abra no navegador (são autocontidos, sem dependência externa além da fonte do Google).
 
 | arquivo | a pergunta | o que foi decidido |
@@ -13,6 +14,7 @@ Abra no navegador (são autocontidos, sem dependência externa além da fonte do
 | `porta-de-entrada.html` | as 7 telas de entrada na escala B: liso ou gradiente, e qual acento? | **em aberto.** Mostra que o teal da marca reprova como acento no escuro (4,03:1) já hoje, e que `--teal-400` resolve em 8,28:1. Recomendada: fundo liso. |
 | `superficie-de-estado.html` | os 22 avisos que sobraram: token de estado por área, ou neutro com o significado no ícone? | **em aberto.** Mostra que os 22 não são um caso só, e sim sete — só 2 deles são estado de tarefa. O `.dark` não declara nenhum `--status-*`, então o token de estado ainda não existe no escuro. Recomendada: token semântico com alfa (`/12` no painel, `/40` na borda, texto em `foreground`). |
 | `texto-do-meio-da-escala.html` | os 191 `text-slate-700` que sobraram: `foreground` ou `muted-foreground`? | **`text-foreground`**, decidido olhando a página. A mecânica já eliminava o `muted-foreground`: 8 dos 191 são o *hover* de um `muted-foreground` e morreriam nessa direção, e não há nenhum caso do inverso. O olho confirmou que o quase-preto não pesa demais no parágrafo. |
+| `linha-e-cartao.html` | as duas superfícies que sobraram à mão: quanta cor a LINHA carrega, e quanto o CARTÃO levanta da página | **opção D**, decidida em 10/09/2026. As três primeiras discutiam 2 pontos de saturação dentro de uma faixa de 4 pontos de luminosidade — por isso nenhuma mudava nada. D **abre a faixa**: a página desce para 93%, e aí o degrau cartão↔página (1,153–1,164:1) faz sozinho o que a linha de hoje faz (1,157–1,193:1). A linha se separa por TRABALHO — `--border` para tabela, `--border-control` a 3:1 para campo —, o que paga a dívida da WCAG 1.4.11 sem escurecer toda linha do produto. |
 
 ## Por que estão no repositório
 

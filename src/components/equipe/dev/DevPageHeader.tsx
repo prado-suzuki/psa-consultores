@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { Info, type LucideIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AVISO_FAIXA, AVISO_FAIXA_ACENTO } from "@/components/equipe/dev/classesDoAviso";
 
 interface DevPageHeaderProps {
   /** Texto descritivo principal. Suporta `**negrito**`. */
@@ -62,12 +63,17 @@ export const DevPageHeader = ({
   icon: Icone = Info,
 }: DevPageHeaderProps) => {
   return (
-    <Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1]">
-      <Icone className="h-5 w-5 text-primary" />
-      <AlertTitle className="text-sm font-semibold text-foreground">
+    // A superfície mora em `classesDoAviso.ts`, com a medição que a escolheu.
+    // Resumo: o "verde-água do módulo" que o docstring acima descreve era hex
+    // cravado, virou token, e o token não resolvia — caixa clara não separa de
+    // página clara, medido em três alturas de página no mesmo dia sem nunca ficar
+    // visível. Decisão dela: faixa profunda.
+    <Alert className={`mb-6 ${AVISO_FAIXA}`}>
+      <Icone className="h-5 w-5" />
+      <AlertTitle className="text-sm font-semibold">
         {title}
       </AlertTitle>
-      <AlertDescription className="text-sm leading-relaxed text-foreground mt-1">
+      <AlertDescription className="text-sm leading-relaxed mt-1">
         {renderBoldSegments(description)}
         {!hideManualLink && manualUrl && (
           <>
@@ -76,7 +82,7 @@ export const DevPageHeader = ({
               href={manualUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-emerald-600 hover:underline"
+              className={`font-semibold ${AVISO_FAIXA_ACENTO} hover:underline`}
             >
               aqui
             </a>

@@ -10308,6 +10308,7 @@ export type Database = {
           excluido: boolean
           id: string
           ordem_servico_id: string
+          projeto_id: string | null
           updated_at: string
         }
         Insert: {
@@ -10318,6 +10319,7 @@ export type Database = {
           excluido?: boolean
           id?: string
           ordem_servico_id: string
+          projeto_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -10328,6 +10330,7 @@ export type Database = {
           excluido?: boolean
           id?: string
           ordem_servico_id?: string
+          projeto_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -10350,6 +10353,13 @@ export type Database = {
             columns: ["ordem_servico_id"]
             isOneToOne: false
             referencedRelation: "ordem_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_estudo_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "org_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -11336,6 +11346,14 @@ export type Database = {
         Returns: string[]
       }
       ve_todas_as_sprints: { Args: never; Returns: boolean }
+      vincular_planejamento_ao_projeto: {
+        Args: {
+          _estudo_id: string
+          _importacao_id: string
+          _projeto_id: string
+        }
+        Returns: Json
+      }
       visible_org_project_ids: { Args: { _uid: string }; Returns: string[] }
       wp_estudo_visivel: { Args: { _estudo_id: string }; Returns: boolean }
       wp_importacao_visivel: {
@@ -11395,6 +11413,7 @@ export type Database = {
         | "solicitacao_vencida"
         | "tarefa_prazo_proximo"
         | "tarefa_atrasada"
+        | "papel_de_trabalho_importado"
       org_comment_entity: "org_task" | "org_project"
       org_comment_kind:
         | "comment"
@@ -11406,6 +11425,8 @@ export type Database = {
         | "documentos_solicitados"
         | "documentos_cobrados"
         | "documentos_conferidos"
+        | "papel_de_trabalho_importado"
+        | "papel_de_trabalho_revisado"
       osg_checklist_origem: "padrao" | "manual"
       osg_checklist_status:
         | "pendente"
@@ -11683,6 +11704,7 @@ export const Constants = {
         "solicitacao_vencida",
         "tarefa_prazo_proximo",
         "tarefa_atrasada",
+        "papel_de_trabalho_importado",
       ],
       org_comment_entity: ["org_task", "org_project"],
       org_comment_kind: [
@@ -11695,6 +11717,8 @@ export const Constants = {
         "documentos_solicitados",
         "documentos_cobrados",
         "documentos_conferidos",
+        "papel_de_trabalho_importado",
+        "papel_de_trabalho_revisado",
       ],
       osg_checklist_origem: ["padrao", "manual"],
       osg_checklist_status: [

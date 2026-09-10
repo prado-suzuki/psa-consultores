@@ -46,6 +46,66 @@ comportamento é idêntico ao de antes.
 Layout que lembra a barra entre sessões passa a chave de armazenamento em vez de gravar à
 mão: `useSidebarRecolhimentoController({ persistKey: 'board-sidebar-collapsed' })`.
 
+## Em tela estreita a barra troca de papel: vira gaveta
+
+Abaixo de 768px (`MOBILE_BREAKPOINT`, de `use-mobile`) a barra deixa de ser uma coluna e
+passa a ser uma **gaveta**, que flutua por cima do conteúdo. É a mesma peça de estado — o
+que muda é o que `collapsed` significa e onde a barra é desenhada:
+
+| | desktop | celular |
+| --- | --- | --- |
+| `collapsed: false` | barra aberta, 16rem, na coluna | gaveta aberta por cima do conteúdo |
+| `collapsed: true` | trilho de 5rem, só ícones | gaveta fora da tela |
+
+Um layout adere em quatro linhas:
+
+```tsx
+const barra = useSidebarRecolhimentoController();
+const { collapsed, setCollapsed, emGaveta } = barra;
+useFecharGavetaAoNavegar(barra);
+const trilho = collapsed && !emGaveta;
+```
+
+E, na barra: `classeLarguraBarra(trilho)` (não `collapsed`) mais
+`classesGavetaBarra(collapsed)`, o `<SidebarFundoGaveta aberta={!collapsed} …/>` ao lado
+dela, e `max-md:hidden` no botão redondo de recolher. Todo uso INTERNO de `collapsed` —
+rótulo que some, ícone centralizado, `title`, o cartão do usuário — passa a ler `trilho`;
+o que continua lendo `collapsed` é a geometria da gaveta e os botões que a abrem e fecham
+(o hambúrguer do header, o fundo escuro).
+
+`src/lib/sidebarMedidas.test.ts` lê o fonte das barras e cobra as duas linhas: uma área
+nova que esqueça a gaveta reprova.
+
+**Por que o trilho não vale na gaveta.** Um trilho de ícones num celular é o pior dos dois
+mundos: ocupa 80px de uma tela de 390px e não diz o nome de nada. A gaveta abre inteira,
+com os rótulos — daí `trilho = collapsed && !emGaveta`.
+
+**Por que sair do fluxo é o ponto.** Enquanto a barra é irmã do `<main>` num `flex`,
+qualquer largura dela é largura que o conteúdo perde. Num aparelho de 390px a barra aberta
+deixava ~130px de conteúdo (texto quebrando uma letra por linha) e o trilho deixava 310px
+— e como o `<main>` tem `overflow-hidden`, o que não cabia era **cortado**, não rolava.
+`max-md:fixed` resolve os dois de uma vez.
+
+**Por que a barra nasce fechada no celular.** Nascia aberta. Como na maior parte do
+sistema é a **página** que monta o layout, cada navegação remontava o layout e devolvia a
+coluna de 256px por cima da tela recém-aberta: da tela parecia que o menu não fechava, mas
+ele fechava e voltava a abrir. O `useFecharGavetaAoNavegar` cobre os dois casos em que a
+remontagem não acontece — o Mapeamento, cujo layout sobrevive à troca de rota porque a
+página entra por `<Outlet />`, e o toque num item que aponta para a rota atual.
+
+**A preferência gravada não vota no celular.** Ela foi dada no desktop, sobre um trilho
+que ali não existe; e abrir a gaveta não grava nada, senão a barra do desktop apareceria
+recolhida na sessão seguinte só porque alguém usou o menu no telefone.
+
+**O Board é a exceção que já estava certa.** Ele não usa nada disso: a barra dele é
+`hidden md:flex` e o menu do celular é um `<Sheet>` do shadcn, que já fecha no clique do
+item. Foi de lá que o desenho da gaveta saiu.
+
+**O Mapeamento também já tinha gaveta**, no CSS legado (`.sidebar.open`, `.sidebar-overlay`).
+O que faltava lá era imunidade ao trilho: `.sidebar.collapsed` tem duas classes de
+especificidade e vence o `width: 260px` que a media query de 768px dá à gaveta, então ela
+abriria como um trilho de 80px sem rótulo nenhum. Por isso o `trilho` entra também lá.
+
 ## Por que a barra entra ABERTA e só depois recolhe
 
 Esta é a parte que parece um detalhe e não é. A barra **nasce aberta** e recolhe 450ms

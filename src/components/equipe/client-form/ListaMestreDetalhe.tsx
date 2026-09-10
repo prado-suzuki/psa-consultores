@@ -49,6 +49,14 @@ export interface LinhaLista<Id extends string | number = number> {
 }
 
 export interface ListaMestreDetalheProps<Id extends string | number = number> {
+  /**
+   * Âncora do guia (`data-tour`) na casca.
+   *
+   * Fica aqui, e não nos botões de cada aba, porque a casca existe nos DOIS
+   * modos: em leitura não há "Adicionar contribuinte" para apontar, e o guia
+   * precisava de um alvo que sobrevivesse aos dois.
+   */
+  dataTour?: string;
   /** Cabeçalho da seção, com a contagem. Ex.: "OS - Ordem de Serviço (3)". */
   titulo: string;
   /** Botão de criar, quando o escopo permite. */
@@ -128,6 +136,7 @@ export interface ListaMestreDetalheProps<Id extends string | number = number> {
 
 export default function ListaMestreDetalhe<Id extends string | number = number>({
   titulo,
+  dataTour,
   acaoCriar,
   linhas,
   selecionadoId,
@@ -145,6 +154,7 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
   const acento = useAcentoArea();
   return (
     <section
+      data-tour={dataTour}
       className={cn(
         'bg-card rounded-xl border shadow-sm overflow-hidden',
         // Em pagina a casca precisa VIRAR item flex do pai e distribuir a altura

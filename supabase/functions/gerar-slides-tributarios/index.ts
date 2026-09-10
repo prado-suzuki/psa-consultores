@@ -599,7 +599,11 @@ serve(async (req) => {
 
     const problemas = [
       ...deck.problemas,
-      ...avisos.map((a) => ({ tipo: 'tipo_inesperado', onde: 'geração', detalhe: a })),
+            /*
+       * Os avisos da montagem são sobre o molde e sobre o que veio do WP, nunca
+       * sobre espaço, então entram como `origem`.
+       */
+      ...avisos.map((a) => ({ tipo: 'origem' as const, onde: 'geração', detalhe: a })),
     ];
 
     const { data: gravada, error: erroGravar } = await comoUsuario

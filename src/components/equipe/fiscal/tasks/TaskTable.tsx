@@ -38,6 +38,7 @@ import { TaskStatusTransitionDialog } from '@/components/equipe/fiscal/tasks/Tas
  import { useTaskStatusTransition } from '@/hooks/useTaskStatusTransition';
 import { toast } from 'sonner';
 import { BarraDeMes } from '@/components/shared/BarraDeMes';
+import { mensagemDoVazio } from '@/lib/periodoDeTarefas';
 import type { PeriodoDeTarefas } from '@/hooks/usePeriodoDeTarefas';
 
 interface TaskTableProps {
@@ -273,6 +274,10 @@ const statusLabels = Object.fromEntries(
      );
    };
  
+   // Diz a CAUSA quando ela é o recorte: "nenhuma tarefa encontrada" num mês
+   // vazio soa como projeto sem tarefa. `null` = não há recorte a culpar.
+   const vazioDoRecorte = mensagemDoVazio(periodo);
+
    // `bg-card` explicito: o container da tabela sempre foi transparente, e isso
    // nao aparecia porque as linhas da Table carregam fundo proprio. Com a barra
    // do mes em cima, a faixa dela ficava no fundo da PAGINA — a tabela era a
@@ -280,7 +285,18 @@ const statusLabels = Object.fromEntries(
    return (
      <div className="border rounded-lg overflow-hidden bg-card">
        <BarraDeMes periodo={periodo} />
-       <Table>
+       {/* `min-w-[1260px]`: é a soma exata dos oito `w-[...]` do cabeçalho.
+           Sem ela a tabela era `w-full` e nada mais — e `width` num `<th>` sem
+           `table-layout: fixed` é SUGESTÃO, não regra, então num celular o
+           navegador aceitava e comprimia tudo para ~45px por coluna. O texto
+           quebrava letra por linha ("[TESTE] Dragão de Chinelo Calçados
+           Flamejantes Ltda" empilhado na vertical) e o "Prioridade" terminava
+           cortado, porque a tabela nunca passava da largura do contêiner e o
+           `overflow-auto` dele nunca tinha o que rolar.
+           Com a largura mínima, cada coluna recebe o que pediu e a rolagem de
+           lado existe — que era o remédio desde o começo. A barra do mês fica
+           fora do contêiner que rola, então ela não sai da tela junto. */}
+       <Table className="min-w-[1260px]" containerClassName="scrollbar-thin">
          <TableHeader>
            <TableRow>
              <TableHead className="w-[180px]">Cliente</TableHead>
@@ -297,7 +313,9 @@ const statusLabels = Object.fromEntries(
            {parentTasks.length === 0 ? (
              <TableRow>
                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                 Nenhuma tarefa encontrada
+                 {vazioDoRecorte
+                   ? `${vazioDoRecorte}. Use "Ver tudo" na barra acima.`
+                   : 'Nenhuma tarefa encontrada'}
                </TableCell>
              </TableRow>
            ) : (

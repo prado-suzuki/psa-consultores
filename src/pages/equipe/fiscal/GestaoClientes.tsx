@@ -369,14 +369,19 @@ const GestaoClientes = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedResults.map((row) => {
+              {paginatedResults.map((row, indice) => {
                 const isExpanded = expandedClienteId === row.id;
                 const totalCols = canEdit ? 9 : 8;
+                // As âncoras do tour guiado moram só na PRIMEIRA linha: o passo
+                // aponta um lugar, e dez linhas com a mesma âncora deixariam o
+                // Joyride escolhendo qual iluminar.
+                const ancoraDoTour = indice === 0;
                 return (
                   <Fragment key={row.id}>
                     <TableRow
                       className="group cursor-pointer border-border/50 transition-colors hover:bg-primary/[0.045]"
                       onClick={() => handleClienteClick({ id: row.id })}
+                      data-tour={ancoraDoTour ? 'clientes-linha' : undefined}
                     >
                       <TableCell className="w-10 px-2 py-3">
                         <button
@@ -384,6 +389,7 @@ const GestaoClientes = ({
                           aria-label={
                             isExpanded ? 'Recolher contribuintes' : 'Exibir contribuintes'
                           }
+                          data-tour={ancoraDoTour ? 'clientes-seta' : undefined}
                           className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                           onClick={(e) => {
                             e.stopPropagation();

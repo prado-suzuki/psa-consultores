@@ -28,6 +28,7 @@ import { SPED_TOOLTIPS } from '@/components/equipe/dev/correcoes-sped/tooltipCon
 import { useRegrasNCM } from '@/hooks/useRegrasNCM';
 import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
 import CorrecoesActionButtons, { type CorrecoesActionsProps } from './CorrecoesActionButtons';
+import { BOTAO_CONFIRMA_COM_DISABLED } from './classesDeBotao';
 
 type NcmFilter = 'all' | 'with' | 'without';
 
@@ -474,23 +475,23 @@ export default function TabC170({
 
       if (field === 'DESCR_COMPL') {
         return (
-          <span className={`text-xs truncate block ${isChanged ?'text-amber-600 font-bold':''}`} title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
+          <span className={`text-xs truncate block ${isChanged ?'text-status-alerta font-bold':''}`} title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
             {item.DESCR_COMPL || item.DESCR_ITEM_0200 || '\u2014'}
           </span>
         );
       }
 
-      const amberClass = isChanged ?'text-amber-600 font-bold':'';
+      const classeDeAlterado = isChanged ?'text-status-alerta font-bold':'';
 
       if (field === 'VL_ITEM' || field === 'VL_PIS' || field === 'VL_COFINS') {
-        return <span className={amberClass}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
+        return <span className={classeDeAlterado}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
       }
 
       if (field === 'ALIQ_PIS' || field === 'ALIQ_COFINS') {
-        return <span className={amberClass}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
+        return <span className={classeDeAlterado}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
       }
 
-      return <span className={amberClass}>{value ?? '\u2014'}</span>;
+      return <span className={classeDeAlterado}>{value ?? '\u2014'}</span>;
     }
 
     const input = (
@@ -575,7 +576,7 @@ export default function TabC170({
                     <X className="h-3.5 w-3.5 mr-1" />Cancelar
                   </Button>
                 )}
-                <Button size="sm" variant="outline" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving} className="bg-white text-black border border-input hover:bg-emerald-600 hover:text-white hover:border-emerald-600 active:bg-emerald-700 active:text-white transition-colors duration-200 disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-black disabled:hover:border-input shrink-0">
+                <Button size="sm" variant="outline" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving} className={BOTAO_CONFIRMA_COM_DISABLED}>
                   {isSaving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}
                   {isSaving ? 'Salvando...' : isEditMode ? 'Salvar alterações' : 'Habilitar modo edição'}
                 </Button>
@@ -668,7 +669,7 @@ export default function TabC170({
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-muted/60"><span className="flex items-center justify-end gap-1">{renderColumnLabel('% COF', SPED_TOOLTIPS.pctCof)}<ColumnFilterDropdown columnKey="ALIQ_COFINS"uniqueValues={cascadingUniqueValues['ALIQ_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-muted/60">{renderColumnLabel('VL COF', SPED_TOOLTIPS.vlCof)}</TableHead>
                     <TableHead className="text-[11px] min-w-[150px] max-w-[150px] bg-muted/60"><span className="flex items-center gap-1">Conta<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70"/></TooltipTrigger><TooltipContent side="top"className="max-w-xs text-xs">Código da conta analítica contábil (Registro 0500) representativa da operação.</TooltipContent></Tooltip><ColumnFilterDropdown columnKey="COD_CTA"uniqueValues={cascadingUniqueValues['COD_CTA'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['COD_CTA'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
-                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-border shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">Status</TableHead>
+                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-border shadow-[-4px_0_10px_hsl(0_0%_0%_/_0.02)]">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -711,7 +712,7 @@ export default function TabC170({
                           {xml ? (
                             <Badge
                               variant="outline"
-                              className="cursor-pointer gap-1 text-[11px] max-w-[190px] hover:bg-success/10 border-success/40"
+                              className="cursor-pointer gap-1 text-[11px] max-w-[190px] hover:bg-tag-a/15 border-tag-a/40"
                               onClick={() => onSelectItem(item)}
                             >
                               <FileSearch className="h-3 w-3 shrink-0" />
@@ -719,7 +720,7 @@ export default function TabC170({
                             </Badge>
                           ) : item.tipo_relacao === 'CONSOLIDADO' ? (
                             <Badge
-                              className="cursor-pointer gap-1 text-[10px] bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                              className="cursor-pointer gap-1 text-[10px] bg-tag-b/15 text-tag-b border-tag-b/40 hover:bg-tag-b/25"
                               onClick={() => onSelectItem(item)}
                             >
                               <Network className="h-3 w-3 shrink-0" />
@@ -741,7 +742,7 @@ export default function TabC170({
                             )
                           ) : <span className="text-xs text-muted-foreground/50 italic text-center block">&mdash;</span>}
                         </TableCell>
-                        <TableCell className={`text-xs text-right py-1.5 font-mono tabular-nums bg-success/5 ${valueDivergent ?'text-amber-600 font-semibold':''}`}>
+                        <TableCell className={`text-xs text-right py-1.5 font-mono tabular-nums bg-success/5 ${valueDivergent ?'text-status-alerta font-semibold':''}`}>
                           {xml ? formatCurrency(xml.vProd) : <span className="text-xs text-muted-foreground/50 italic text-center block">&mdash;</span>}
                         </TableCell>
                         {/* Tax zone */}
@@ -767,7 +768,7 @@ export default function TabC170({
                           {renderEditableCell(item, 'COD_CTA', 'h-8 text-xs font-mono')}
                         </TableCell>
                         {/* Actions — sticky right */}
-                        <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px] border-l border-border shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
+                        <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px] border-l border-border shadow-[-4px_0_10px_hsl(0_0%_0%_/_0.02)]">
                           <div className="flex flex-col items-center justify-center gap-1">
                             {linhaCorrigida && (
                               <Badge variant="outline" className="text-[10px]">Corrigido</Badge>

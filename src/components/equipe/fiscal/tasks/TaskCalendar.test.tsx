@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CELULAS, FECHA_A_GRADE, TaskCalendar } from '@/components/equipe/fiscal/tasks/TaskCalendar';
@@ -48,10 +48,13 @@ const semAcoes = { onEdit: vi.fn(), onDelete: vi.fn(), onReassign: vi.fn() };
  * O mês do calendário vem do painel, e o recorte por mês vem do mesmo hook. O
  * teste monta os dois juntos de propósito: separar o mês do filtro faria a seta
  * andar sem o conteúdo acompanhar, e é justamente isso que se quer travar.
+ *
+ * `tarefasDoMes`, e não `tarefas`: é o que o painel entrega aqui, porque o
+ * escopo "tudo" das outras abas não tem grade que o desenhe.
  */
 function CalendarioComPeriodo({ tasks = [] as OrgTask[] }) {
   const periodo = usePeriodoDeTarefas(tasks);
-  return <TaskCalendar tasks={periodo.tarefas} {...semAcoes} periodo={periodo} />;
+  return <TaskCalendar tasks={periodo.tarefasDoMes} {...semAcoes} periodo={periodo} />;
 }
 
 describe('TaskCalendar', () => {
@@ -151,5 +154,101 @@ describe('TaskCalendar', () => {
     const chip = screen.getByText('Apurar ICMS de julho');
     expect(chip.className).toContain(statusColors.in_progress.combined.split(' ')[0]);
     expect(chip.className).not.toMatch(/bg-(blue|green|purple|orange|pink|red|gray|slate)-/);
+  });
+});
+
+describe('TaskCalendar — a célula do dia cabe no celular', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(DENTRO_DE_AGOSTO_DE_2026);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const montarCalendario = () =>
+    render(<CalendarioComPeriodo tasks={[tarefa({ due_date: '2026-08-10' })]} />);
+
+  /*
+    `grid-cols-7` divide o que tem por sete, sempre: em 358px úteis dá 51px por
+    dia. Não cabe título de tarefa em 51px — as tiras de 10px truncavam em
+    quatro letras — e os 80px de altura mínima faziam a tela ficar alta e vazia
+    ao mesmo tempo.
+
+    O agravante que decidiu o desenho: as tiras dependem de `HoverCard` para o
+    título inteiro se ler, e em toque não existe hover. No celular elas eram
+    quatro letras sem saída nenhuma.
+  */
+  it('no celular a célula é compacta, e o desktop não encolhe', () => {
+    montarCalendario();
+
+    const dia = screen.getAllByTestId('calendario-dia')[0];
+    // 3rem: o mês inteiro cabe numa olhada, que é para isso que existe visão de
+    // mês.
+    expect(dia.className).toContain('min-h-[3rem]');
+    expect(dia.className).toContain('md:min-h-[100px]');
+    // O `sm:min-h-` do original tinha de sair: com ele a ordem das media
+    // queries deixava o desktop em 80px e a faixa de 640-767px em 100px.
+    expect(dia.className).not.toMatch(/sm:min-h-/);
+  });
+
+  it('o dia de fora do mês acompanha a altura, senão a semana fica alta', () => {
+    montarCalendario();
+
+    const deFora = screen.getAllByTestId('calendario-dia-de-fora')[0];
+    // Linha de grade tem a altura da célula mais alta.
+    expect(deFora.className).toContain('min-h-[3rem]');
+    expect(deFora.className).not.toMatch(/sm:min-h-/);
+  });
+
+  it('tocar num dia abre a lista dele, sem estourar a zona morta do `today`', () => {
+    /*
+      Regressão real, achada por ela em 09/09: tocar num dia derrubava a tela
+      com "Cannot access 'today' before initialization".
+
+      A causa vinha de 3d69a7b1: `getTasksForDate` passou a ler `today` para
+      hospedar tarefa sem prazo na célula de hoje, mas `const today` estava
+      declarada DEPOIS de `selectedDateTasks`, que chama a função no corpo do
+      componente. Sem dia selecionado o ternário não chamava nada e o defeito
+      ficava latente; a fase 7 fez do toque o caminho principal no celular e ele
+      apareceu na primeira tentativa.
+
+      Nenhum teste selecionava um dia — é por isso que passou verde. Este
+      seleciona.
+    */
+    /*
+      A tarefa é SEM PRAZO de propósito, e é o detalhe que faz o teste medir
+      algo. `today` só é lido no ramo do filtro que hospeda tarefa sem prazo na
+      célula de hoje:
+
+          task.due_date ? isSameDay(parseDate(task.due_date), date)
+                        : isSameDay(date, today)
+
+      Com prazo, o ternário nem chega no `today` e a zona morta não estoura —
+      foi assim que a primeira versão deste teste passou verde com o defeito de
+      volta. Conferido: devolvendo `const today` para depois do uso, ESTE teste
+      falha com "Cannot access 'today' before initialization".
+    */
+    render(<CalendarioComPeriodo tasks={[tarefa({ id: 'T9', due_date: null, title: 'Definir escopo' })]} />);
+
+    const celulaDeHoje = screen.getByTestId('calendario-hoje').closest('button');
+    fireEvent.click(celulaDeHoje as HTMLElement);
+
+    // O cabeçalho do painel só existe depois da seleção. Medir o título da
+    // tarefa seria vazio: o vitest roda com `css: false`, então a tira
+    // escondida do desktop (`hidden md:flex`) já renderiza o título.
+    expect(screen.getByText('12 de agosto, 2026')).toBeInTheDocument();
+  });
+
+  it('as tiras de tarefa saem do celular e entra a contagem', () => {
+    const comTarefa = montarCalendario();
+
+    // A contagem diz que há trabalho no dia; o toque diz qual — e tocar no dia
+    // já abria o painel com a lista inteira antes desta frente.
+    const tiras = comTarefa.container.querySelector('[class*="md:flex"][class*="hidden"]');
+    expect(tiras).not.toBeNull();
+    expect(comTarefa.container.querySelector('[class*="md:hidden"][class*="tabular-nums"]'))
+      .not.toBeNull();
   });
 });

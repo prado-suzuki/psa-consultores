@@ -1,12 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
-import { CheckCircle2, ChevronDown, Receipt, Settings2 } from 'lucide-react';
+import { ChevronDown, Receipt, Settings2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { ModalTopBar } from '@/components/ui/modal-top-bar';
 import { TaskContextSelect } from '@/components/equipe/fiscal/tasks/task-modal/TaskContextSelect';
 import type { TaskFieldOptions, TaskFormValues } from '@/lib/orgTaskForm';
 import { cn } from '@/lib/utils';
@@ -14,8 +13,6 @@ import { cn } from '@/lib/utils';
 interface TaskEditHeaderProps {
   form: UseFormReturn<TaskFormValues>;
   options: TaskFieldOptions;
-  /** Botões de ação (salvar / revisão), renderizados na barra do topo. */
-  actions: ReactNode;
   /** Revisor delegado só lê os campos da tarefa. */
   disabled?: boolean;
 }
@@ -29,7 +26,7 @@ interface TaskEditHeaderProps {
  * reprova na validação, senão a mensagem de erro ficaria escondida.
  * O contribuinte é opcional e pertence à tarefa, então permanece sempre editável.
  */
-export function TaskEditHeader({ form, options, actions, disabled }: TaskEditHeaderProps) {
+export function TaskEditHeader({ form, options, disabled }: TaskEditHeaderProps) {
   const { clients, projects, contribuintes, parentTasks } = options;
   const [contextOpen, setContextOpen] = useState(false);
 
@@ -43,15 +40,15 @@ export function TaskEditHeader({ form, options, actions, disabled }: TaskEditHea
     if (hasContextError) setContextOpen(true);
   }, [hasContextError]);
 
+  /*
+    A `ModalTopBar` saiu daqui em 09/09. Ela era `sticky top-0` DENTRO da área
+    que rola, e isso a fazia sumir em tela estreita; e a Patrícia pediu o Salvar
+    acima do seletor de aba, que é irmão desta área e não filho dela. Agora quem
+    a renderiza é o `TaskModal`, ainda dentro do `<form>` — o que preserva o
+    `type="submit"` do Salvar, que é a razão de ela não ter ido para fora dele.
+  */
   return (
     <div className="px-6">
-      <ModalTopBar
-        icon={<CheckCircle2 className="h-3.5 w-3.5" />}
-        title="Editar Tarefa"
-        description="Formulário de tarefa fiscal"
-        actions={actions}
-      />
-
       <fieldset disabled={disabled} className="contents">
         <FormField
           control={form.control}

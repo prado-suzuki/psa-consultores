@@ -375,20 +375,50 @@ system do Board era **frio** na casa (cravado) e **bege** na Tax e na OSG (onde 
 Agora cada tema declara a linha da família da superfície dele, e o peso é o mesmo nos três
 — que é a regra deste documento aplicada a linha em vez de a papel de status:
 
+Os valores abaixo são de **10/09/2026**, quando o `--border` deixou de ser escrito à mão e
+passou a sair de `riscar(--canvas)` — matiz e saturação da superfície rebaixada, 3 pontos
+abaixo dela. Antes disso eram três escadas diferentes: contra o canvas, −2 na base, +6 na Tax
+e −4 na OSG.
+
 | tema | `--border` | contraste no card |
 |---|---|---|
-| `.base-theme` | `168 14% 89%` | 1,26:1 (era 1,21) |
-| `.tax-theme` | `170 16% 89%` | 1,24:1 (era 1,20) |
-| `.osg-theme` | `32 20% 88%` | 1,26:1 (era 1,18) |
+| `.base-theme` | `168 20% 86%` | 1,33:1 |
+| `.tax-theme` | `192 14% 86%` | 1,35:1 |
+| `.osg-theme` | `32 28% 86%` | 1,31:1 |
 
 A OSG **não** usa `var(--osg-100)`, e isso foi medido: daria 1,38:1, ou seja a mesma borda
 leria mais pesada na OSG do que nas outras áreas. As paletas conversam no **registro** e
 mudam de **família**; o peso da linha é registro.
 
-⚠️ **Dívida aberta, com número:** nenhuma das três passa em **WCAG 1.4.11**, que pede 3:1
-para borda de controle. 1,26 está longe. Chegar a 3:1 exige luminosidade por volta de 72% no
-lugar de 89% — borda visivelmente escura em todo input do produto. É decisão de design em
-aberto, e a mudança de 31/08 não a resolve; só tira a divergência de temperatura.
+✅ **A dívida da WCAG 1.4.11 foi paga em 10/09/2026**, e este parágrafo é a correção de um
+que ficou dez dias dizendo o contrário.
+
+O que estava escrito aqui: *"chegar a 3:1 exige luminosidade por volta de 72% no lugar de
+89%"*. **O número estava errado.** A 72% o par dá 1,82:1 na base, 1,91:1 na Tax e 1,85:1 na
+OSG — nem perto dos 3:1. Para 3:1 contra branco é preciso descer a **~58%** de luminosidade,
+e menos ainda com saturação. O erro não era inofensivo: em 10/09 uma sessão paralela leu esta
+linha, tomou o 72% por medida e ia dimensionar uma borda por ele.
+
+O que resolveu não foi achar o número certo para um token só, e sim ver que **um valor fazia
+três trabalhos**: contorno de cartão, linha entre linhas de tabela e borda de campo. A 1,3:1
+ele serve para os dois primeiros — divisória pode sussurrar — e reprova no terceiro, onde
+1.4.11 pergunta se a pessoa consegue **achar** o campo. Era por isso que a dívida parecia
+impagável: escurecer o token único levaria junto toda linha de tabela do produto.
+
+Separada por trabalho, ela se paga:
+
+| tema | `--border-control` | contraste no card |
+|---|---|---|
+| `.base-theme` | `168 20% 52%` | **3,05:1** |
+| `.tax-theme` | `192 14% 56%` | **3,02:1** |
+| `.osg-theme` | `32 28% 54.5%` | **3,01:1** |
+| `.dark` | `35 9% 42%` | **3,01:1** — aqui a linha **clareia**, porque o cartão é escuro |
+
+A luminosidade difere entre as áreas e isso não é escolha: é onde a matiz e a saturação de
+cada uma alcançam 3:1. Por isso o teste (`paletaDeArea.test.ts`) cobra a **razão** e não o
+valor — número fixo diria a coisa certa numa área e a errada nas outras, e no escuro diria o
+contrário. É o mesmo motivo pelo qual o 72% pôde ficar dez dias aqui sem ninguém tropeçar:
+não havia teste, só prosa.
 
 Restam **três** valores cravados no bloco `--bd-*`, e os três estão comentados um a um no
 `index.css`: `--bd-surface2` (zebra, `168 20% 98%`), `--bd-line2` (divisória, `168 16% 94%`) e

@@ -1,9 +1,10 @@
 # Cor: o que falta, e por que cada coisa parou onde parou
 
-Estado em **03/09/2026**. O corpo do documento é a rodada de 19 commits de 01/09; em 03/09
+Estado em **10/09/2026**. O corpo do documento é a rodada de 19 commits de 01/09; em 03/09
 vieram cinco rodadas em cima dele — os rótulos de chamado, o estado de documento, a palavra
 única dos três pares, a âncora vermelha da OSG e a pasta `equipe/audit` —, e o §5 ganhou três
-catracas.
+catracas. Em 10/09 entrou a quarta e ela é de outra natureza: a primeira que não pergunta
+contraste, e sim se uma superfície bate com a vizinha (§5 e §6).
 
 > **A alavanca que funciona, medida cinco vezes seguidas:** procurar o **mapa de domínio**
 > antes de escrever classe. Das cinco rodadas, cinco acharam reuso que não tinha acontecido —
@@ -73,6 +74,183 @@ O que a rodada decidiu, e vale como precedente:
 - **ausência de dado não é falha.** `sem_registro` foi para `neutro`, não `ajuste`: o texto de
   ajuda da própria coluna diz que aquilo é sobre registro no sistema, não sobre o trabalho da
   pessoa.
+
+**A tela `/equipe/dev` fechou em 10/09/2026**, e ela mudou uma coisa no método: a unidade
+passou a ser a **TELA**, não a família nem o mapa. A conferência foi por rota — "esta página
+tem todas as cores vindas do tema?" — e achou 28 classes cruas mais duas sombras em
+`rgba(5,150,105,…)` numa página que o `bunx eslint` dava por limpa. As três frentes, e o que
+cada uma ensina:
+
+- **o cartão do Drive era emerald puro** — verde no meio de uma tela teal, sem seguir tema
+  nenhum. Virou âncora (`primary`), e âmbar (`alerta`) foi considerado e **recusado**: o
+  cartão está sempre lá, e cor é sinal de ESTADO. Alerta permanente esvazia o alerta;
+- **a letra de 10px foi para `--bd-accent-d`, não `--primary`**, e aqui o contrato pagou por
+  si: medido no fundo real da pílula, `accent-d` dá **5,13:1** e `primary` daria **4,24:1**,
+  que reprova em AA. Era o cartão inteiro dependendo de a regra "acento cheio não pinta letra
+  pequena" ser obedecida ao pé da letra;
+- **`bg-white` × `bg-card` não move um pixel nesta tela**, e é justamente por isso que os 17
+  atravessaram: no `.base-theme` o `--card` é `0 0% 100%`. A divergência só aparece na OSG
+  (`170 18% 99.6%`), ou seja, no dia em que o componente for reusado.
+
+Mais duas cópias, achadas pela mesma alavanca de sempre: o botão **Sair** do `DevLayout`
+estava em `red-50`/`red-600` enquanto o do `OsgLayout` já estava em `destructive` — a
+terceira cópia segue no `FixosLayout`; e o **"Revisão pendente"** do sino estava em roxo cru,
+sobre o mesmo dado que seis arquivos do `task-modal` já pintam com o papel `revisao`.
+
+A guarda é [`corCruaNaTelaDoDev.test.ts`](../../src/lib/corCruaNaTelaDoDev.test.ts), e ela
+tem forma nova: guarda uma **tela** (lista de arquivos, todas as famílias) em vez de uma
+família no repositório inteiro. As duas formas convivem porque pegam defeitos diferentes —
+família crescendo em silêncio, contra tela zerada e repintada depois por quem só olhou aquele
+arquivo. Quando outra tela do Dev fechar, ela entra na lista daquele teste.
+
+**As seis rotas de hub fecharam no mesmo dia, e o número que importa não é de arquivos.**
+Escolhidas por medição, não pela primeira que se abriu: as páginas de hub já estavam todas em
+zero, e o que faltava era a casca. Dois componentes — `DevHubPage` e `DevPageHeader` —
+fecharam **seis rotas**, e o `DevPageHeader` é montado por 14 páginas. É a mesma alavanca do mapa
+de domínio, um andar acima: procurar o componente COMPARTILHADO antes de abrir tela por tela.
+
+Duas coisas saíram disso, e nenhuma era o que se foi buscar:
+
+- **o hex do `DevPageHeader` era o token.** A caixa "Visão Geral" tinha `#E6F2F1` cravado, num
+  componente cujo próprio docstring diz que ele existe para dar "o verde-água do módulo".
+  Medido: aquele hex composto a 80% sobre branco dá `235,245,244`, e o `--accent-soft` da base
+  dá `234,246,244` — **delta de 1 / 1,4 / 0,2 por canal**. Era o token, escrito à unha, sem
+  acompanhar tema;
+- **o link "aqui" reprovava AA, nas 14 páginas que montam a caixa.** `text-emerald-600` sobre aquele fundo dá
+  **3,38:1**, contra os 4,5:1 que o AA pede para texto normal. Agora é `text-accent-d`, e dá
+  **6,09:1**. Ninguém tinha medido porque o par não está no contrato de
+  `paletaDeArea.test.ts` — é o mesmo padrão das três falhas de 28–29/08: token fora da lista
+  do contrato usa `var()` corretamente, passa por certo na revisão, e só aparece quando
+  alguém mede.
+
+**`accent-d` e `accent-soft` ganharam classe no `tailwind.config.ts`**, ao lado de
+`tool-icon-bg`, que já era desta forma. Eles entraram no contrato em 31/08 e até aqui não
+tinham NOME: quem precisava deles escrevia `text-[var(--bd-accent-d)]` — a forma arbitrária e
+ambígua do Tailwind 3 —, e quem não sabia disso escrevia hex. As classes leem `--accent-d` e
+`--accent-soft` direto, e não os `--bd-*` que os embrulham, porque os `--bd-*` já vêm com
+`hsl()` fechado e **não aceitam alfa**; conferido no bundle, as novas emitem com
+`--tw-*-opacity`. A forma arbitrária ainda sobra nas telas de `uso-envio`, que não fecharam.
+
+Na mesma passada, a **terceira e última cópia do botão Sair** (`FixosLayout`) foi para
+`destructive`. As três agora dizem a mesma coisa, então não sobra uma para a próxima rodada
+reencontrar como se fosse achado novo — que é exatamente o que aconteceu em 03/09, cinco vezes
+em cinco.
+
+### Correções SPED: fechada em parte, e a parte que falta é sua
+
+Escolhida por medição entre as candidatas (101 ocorrências, a de maior volume com menor
+risco). A distribuição já dizia o que era: **21 emerald, 16 âmbar, 3 red** espalhados por seis
+abas não é decoração, é um mapa copiado. Confirmado com `uniq -c`: a receita
+"botão de contorno que se enche de cor no hover" existia **sete vezes** — uma em cada aba,
+byte a byte idêntica, mais uma `const` privada dentro do `CorrecoesActionButtons`. Sete cópias
+não são sete decisões; são uma decisão e seis lugares onde ela envelhece separado. É por isso
+que a cor delas atravessou as rodadas anteriores: quem procurou por família achou
+`emerald-600` em seis arquivos e leu como seis casos.
+
+Virou [`classesDeBotao.ts`](../../src/components/equipe/dev/correcoes-sped/classesDeBotao.ts),
+com as duas receitas. Confirmar veste a **âncora** (`primary`, e `accent-d` no `active:`, que é
+o degrau escuro do contrato); destruir veste `destructive`. O `active:` do destrutivo usa alfa
+`/90` em vez de um degrau mais escuro porque o contrato **não tem** um `destructive-d`, e a
+regra é consertar com valor que existe — é a mesma forma que o `task-modal` já usa.
+
+A sombra da coluna fixa (`rgba(0,0,0,0.02)`, seis cópias) passou a `hsl(0 0% 0% / 0.02)`.
+Preto não tem matiz, então nunca troca identidade — é o mesmo argumento escrito no véu do
+`HeroBanner` —, e o que muda é só a notação sair da forma que nenhuma regra enxerga. Conferido
+no bundle: `-4px 0 10px hsl(0 0% 0% / .02)`, mesmo pixel.
+
+**O âmbar ficou, e está em fila com o motivo escrito** (`FILA_A_DECIDIR`, no teste). São dois
+sinais diferentes, e é por serem diferentes que nenhum dos dois converte por varredura:
+
+| sinal | onde | por que parou |
+|---|---|---|
+| "este valor foi alterado" | `isChanged` / `valueDivergent` / `amberClass`, nas 6 abas | não é nenhum dos oito papéis de forma óbvia. Não é `espera` (nada está parado) nem `alerta` (nada é urgente), e `ajuste` pintaria de VERMELHO o que hoje é âmbar — afirmando problema sobre uma edição normal, o mesmo erro que a rodada da pasta `audit` desfez na coluna "Exclusões" |
+| selo "Consolidado" | `tipo_relacao === 'CONSOLIDADO'` | não é status, é CATEGORIA — e o irmão dele no mesmo ternário usa `success`, que é semântico. Ou os dois viram `--tag-*`, ou os dois ficam. Converter um só muda a inconsistência de lugar |
+
+A catraca entrou **parcial**, e isso é a forma nova desta rodada: o que fechou (`white`,
+`black`, hex, emerald, red = zero) ganha guarda hoje, e o que falta fica escrito com o motivo
+em vez de virar dívida invisível. A asserção compara contra a fila, então ela cai **nos dois
+sentidos** — se alguém repintar, e também quando a decisão sair e os números descerem, com a
+mensagem dizendo o que fazer.
+
+**A decisão saiu no mesmo dia, e a tela fechou inteira.** As duas escolhas dela:
+
+- **valor alterado → `alerta`.** Escolhido com a medição na frente: `espera` tem a matiz mais
+  parecida com o âmbar (12° de um lado contra 12° do outro), mas significa "parado por alguém
+  de fora", e uma célula editada não está parada. `alerta` significa "olhe isto". O
+  `classeDeAlterado` também deixou de se chamar `amberClass` — a casa nomeia papel, não matiz,
+  e uma variável com nome de cor volta a mentir na primeira conversão;
+- **o par de selos → `tag-a`/`tag-b`.** "Consolidado" e "XML vinculado" são categoria de
+  `tipo_relacao`, não estado. O irmão usava `success`, um semântico fazendo papel de categoria.
+
+**O terceiro achado de contraste da sessão, e o pior:** `text-amber-600` dá **3,19:1** no
+branco — reprovando o AA — em doze valores **em negrito**, nas seis abas. `status-alerta` dá
+7,46:1. O selo subiu de 4,84 para 6,30. Nenhum tinha sido medido, e a razão é a de sempre:
+cor crua não entra em contrato nenhum, então não há teste que a olhe.
+
+### A caixa de abertura do Dev virou faixa escura
+
+A usuária olhou as telas depois da conversão e **recusou** duas superfícies: o fundo da página e
+o fundo da caixa "Visão Geral" — a que esta mesma rodada tinha acabado de tirar do hex e pôr no
+token. Ela pediu uma opção disruptiva, e a medição deu razão a ela de um jeito que não era
+questão de gosto.
+
+**O invariante, e é ele que decide: caixa clara não separa de página clara.** A caixa em
+`--accent-soft` (94%) foi medida contra **três** alturas de página no mesmo dia, porque a pilha
+de superfícies estava sendo mexida em paralelo pela outra sessão — 92%, 96% e 93%. Deu
+**1,06 · 1,02 · 1,04**. Ela atravessou de mais escura que a página a mais clara que a página
+**sem nunca ficar visível**. Não existe altura de página que resolva.
+
+A escada medida, com a página no `--canvas` de agora (93%):
+
+| caixa | separa da página | letra dentro |
+|---|---|---|
+| 94% `accent-soft` | **1,04** | 6,09 |
+| branca (`card` 100%) | 1,15 | 6,74 |
+| faixa da marca (`primary` 25%) | 4,82 | branco **5,56** |
+| **faixa profunda (`surface-escura-2` 14%)** | **10,86** | branco **12,52** |
+
+Decisão dela: **faixa profunda**. A faixa da marca foi recusada com o número na frente — o
+branco sobre `--primary` é a mesma falha de 5,5 que já tem três comentários no `index.css`, e o
+aviso é um parágrafo, não um rótulo. Nada foi inventado: o 14% é o `--surface-escura-2` do meio
+do gradiente dos cartões de categoria da página inicial do Dev, e o link usa `accent-soft` — o
+valor que **era o fundo** desta caixa virou a letra dela.
+
+**A quarta cópia.** O `BaseLegalCard` do ICMS Saídas tinha um comentário dizendo "igual ao
+DevPageHeader" e um `Alert` refeito à mão em emerald cru. O conteúdo não cabe no componente (ele
+recebe uma descrição e anexa a frase do manual; lá são vários parágrafos de texto legal), mas a
+superfície e o papel são os mesmos — os dois são o primeiro elemento, antes de qualquer cartão.
+Então a faixa saiu para [`classesDoAviso.ts`](../../src/components/equipe/dev/classesDoAviso.ts)
+e os dois importam de lá. Sem isso, sobraria exatamente uma mancha verde-clara na área: pior que
+não ter mudado nada.
+
+**Uma contagem errada que atravessou a tarde, e vale como aviso.** Durante toda esta frente
+falou-se em "vinte telas" montando a caixa "Visão Geral" — em conversa, em dois commits e neste
+documento. **São 14 páginas.** O 20 saiu de `grep -rl DevPageHeader`, que conta o próprio
+componente, quatro arquivos de teste e um comentário do `BaseLegalCard` que só cita o nome. O
+comando certo é `grep -rl '<DevPageHeader'`, com o `<`, e sem os testes. É a regra do topo deste
+documento cobrando o preço dela: o número foi escrito sem o comando ao lado, e por isso ninguém
+o conferiu. Está anotado dentro da catraca, com o comando, para não voltar.
+
+**⚠️ A armadilha do `ui/alert`, que quase foi embarcada.** A string base do componente tem
+`[&>svg]:text-foreground`, que gera seletor de especificidade **0,1,1** (classe + elemento). Uma
+classe de cor posta no próprio `<svg>` é 0,1,0 e **perde** — o ícone sairia em `--foreground`,
+escuro, sobre a faixa escura, sem erro de build e sem aviso de lint. A cor do ícone tem que ir
+como `[&>svg]:...` no `className` do próprio `Alert`, e aí o `tailwind-merge` do `cn()` descarta
+a da base. Está escrito no `classesDoAviso.ts` e conferido no bundle.
+
+**O fundo da página não foi consertado aqui.** A outra sessão atacou a mesma causa e foi mais
+longe no commit `bda64793`: tirou o fundo de página dos **oito** layouts e passou a pintar uma
+vez no `body`, com catraca em `fundoDePagina.test.ts`. Cinco dos oito pintavam com a superfície
+rebaixada justamente porque a decisão estava repetida em oito arquivos. A edição que esta rodada
+ia fazer — trocar `bg-muted` por `bg-canvas` no `DevLayout` — arrumaria a tela e deixaria o nono
+layout nascer errado igual. Foi abandonada de propósito.
+
+Uma nota de método: **a catraca do `alerta` acusou**, e estava certa. As seis abas estavam
+inventariadas em `FILA_DO_ALERTA`, no grupo `outro-papel`, com os números **exatos** que esta
+rodada mediu por conta própria — 3, 7, 1, 1, 2, 2. Duas medições independentes batendo é a
+melhor evidência que este trabalho produziu de que o inventário serve. A conversão zerou o
+grupo, e o teste falhou até o inventário ser atualizado — que é o comportamento correto, e é
+por isso que se atualiza a fila em vez de silenciar a asserção.
 
 ## 2. As escadas que exigem decisão, não conversão
 
@@ -165,6 +343,7 @@ domínios de uma vez — foi ele que ficou com o masculino.
 | **verde, vermelho, azul, roxo, laranja** | **nenhuma** |
 | rótulo divergente de **chamado** | catraca `src/lib/chamadoStatusColors.test.ts` — nasce **vazia**, varre pelo conjunto de chaves |
 | rótulo divergente de status | catraca `src/lib/rotulosDeStatus.test.ts` — pega "Em Progresso" em JSX e trava a palavra dos três mapas |
+| **`--muted` divergindo do `--canvas` da área** | catraca `problemasDeRebaixamento` em `paletaDeArea.test.ts` — não olha o valor, **recalcula** com `rebaixar(--canvas)` e compara sem tolerância |
 
 A linha em negrito é o buraco que sobrou: cor crua nas famílias que não têm guarda nenhuma.
 
@@ -200,9 +379,28 @@ Nenhuma das duas é nova, e as duas estão paradas na mesma pergunta:
   `hsl(var(--slate-N))`, que é a escala institucional e não cor crua. Não confunda os dois ao
   auditar.
 
-Também seguem abertas as três decisões registradas em
-[`comparacoes-de-cor/LEIA.md`](comparacoes-de-cor/LEIA.md): porta de entrada, superfície de
-estado, e o resto dos tokens escritos à mão.
+Também seguem abertas as decisões registradas em
+[`comparacoes-de-cor/LEIA.md`](comparacoes-de-cor/LEIA.md): porta de entrada e superfície de
+estado.
+
+**"O resto dos tokens escritos à mão" encolheu em 10/09/2026, e o que sobrou tem nome.** O
+`--muted` das três áreas deixou de ser valor escolhido: `rebaixar(--canvas)` o gera — mesma
+matiz, saturação +4, luminosidade −4 — e a catraca do §5 reprova quem escrever à mão. A
+fórmula não foi inventada; é a única relação que as três já cumpriam exata.
+
+O que **continua** à mão, e por quê:
+
+| token | por quê |
+|---|---|
+| `--canvas` | é o par do `--muted`: uma escolha livre por área, como a âncora. **Tem que continuar livre** — a OSG é âncora musgo (149) com superfície areia (32), o que prova que superfície não se deriva de âncora |
+| `--background` / `--card` / `--popover` | a 99% de luminosidade a matiz não renderiza, então não há relação a extrair — a base põe `card` em branco puro e as duas áreas põem um fio de cast; as duas leituras são defensáveis |
+| `--border` / `--input` | **precisa de decisão sua.** Contra o canvas da própria área a saturação é −2 na base, +6 na Tax e −4 na OSG: não existe uma escada ali, existem três. Alinhar custa pixel, ao contrário da matiz |
+
+> **A matiz da pilha da Tax fechou junto**, em 10/09: `background`/`card`/`popover` e
+> `border`/`input` estavam em 170 enquanto `canvas` e `muted` já tinham ido para 192. Custou
+> zero pixel (a 99,6% dá `(254,254,254)` dos dois lados; a border troca um canal), e valeu
+> porque o arquivo ensinava duas matizes para a mesma área — foi assim que o `--muted` dela
+> passou dez dias verde.
 
 ## 7. Dívidas menores, com endereço
 
@@ -225,8 +423,13 @@ estado, e o resto dos tokens escritos à mão.
   `muted-foreground` e o novo é `foreground` — cor nenhuma afirmando o que o dado não diz. Se
   fosse `ajuste`, o vermelho passaria a significar duas coisas no mesmo painel, porque o
   `deleted` do mapa logo acima é `ajuste`.
-- **WCAG 1.4.11** — borda de controle a 1,26:1 contra os 3:1 exigidos, nos três temas. Chegar
-  lá escurece todo input do produto; é decisão de design, registrada no contrato.
+- **WCAG 1.4.11 — fechado em 10/09/2026.** Ficou aberto enquanto um valor só fazia três
+  trabalhos (contorno de cartão, linha de tabela, borda de campo): escurecê-lo para 3:1
+  levaria junto toda linha de tabela. Separado por trabalho, `--border-control` fecha 3,01 a
+  3,05:1 nos três temas e no `.dark` — onde ele **clareia**, porque lá o cartão é escuro. A
+  catraca cobra a razão, não o valor. Falta a fase 2 da opção D, que é fazer os controles
+  consumirem o token. Ver `paleta-por-area.md`, que também corrige um "por volta de 72%"
+  errado que ficou dez dias no contrato e chegou a induzir uma medição.
 - **`getProcessStageInfo` × `getStageBadge`** — etapa desconhecida vira "Descoberta" num e
   aparece crua no outro. As duas leituras convivem, com o conflito escrito no comentário da
   função, até alguém decidir qual é a certa.

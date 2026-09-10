@@ -171,11 +171,11 @@ const ClientesFilterBar = ({
     !!value.search || !!value.status || !!value.tipo || !!value.categoria;
 
   return (
-    <section className="bg-card p-6 rounded-xl shadow-sm border border-border">
-      <div className="flex flex-col gap-6">
+    <section className="bg-card p-4 md:p-6 rounded-xl shadow-sm border border-border">
+      <div className="flex flex-col gap-4 md:gap-6">
         {/* Linha de topo: busca + contador + limpar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1 md:max-w-md" data-tour="clientes-busca">
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
               <Search className="h-5 w-5" />
             </span>
@@ -191,7 +191,11 @@ const ClientesFilterBar = ({
               )}
             />
           </div>
-          <div className="flex items-center gap-4">
+          {/* `flex-wrap`: sem ele, "81 clientes encontrados" + "Novo cliente"
+              formavam uma linha mais larga que um celular, e o `<main>` do
+              layout tem `overflow-hidden` — o botão era CORTADO, não empurrado
+              para baixo nem alcançável por rolagem. */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
               <span className="text-foreground">{resultCount}</span>{" "}
               cliente{resultCount !== 1 ? "s" : ""} encontrado
@@ -207,7 +211,7 @@ const ClientesFilterBar = ({
               </button>
             )}
             {canCreate && onNewCliente && (
-              <Button size="sm" onClick={onNewCliente}>
+              <Button size="sm" onClick={onNewCliente} data-tour="clientes-novo">
                 <Plus className="h-4 w-4 mr-1.5" />
                 Novo cliente
               </Button>
@@ -216,7 +220,10 @@ const ClientesFilterBar = ({
         </div>
 
         {/* Grupos de filtro */}
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
+        <div
+          className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-6"
+          data-tour="clientes-filtros"
+        >
           <div>
             <GroupLabel>Status</GroupLabel>
             <Segment

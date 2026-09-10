@@ -59,7 +59,12 @@ const OsgDialogContent = React.forwardRef<
         }
       }}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] " +
+        // Mesmo teto do `ui/dialog`, e pela mesma razão: sem ele o modal cresce
+        // para os dois lados do centro e o título e o X saem pela borda de cima.
+        // Os modais da OSG que precisam de popover escapando declaram
+        // `overflow-visible`, e o twMerge descarta o `overflow-y-auto` daqui para
+        // eles — o `clip-path` acima é que cuida do scrollbar sobre o raio.
+        "fixed left-[50%] top-[50%] z-50 grid max-h-[90vh] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] overflow-y-auto " +
           // bg-background herda o tom levemente amarronzado de .osg-theme (no <html>).
           // SEM `will-change`, e isso e correcao de 01/09/2026: ele promovia o
           // modal a uma camada propria E A MANTINHA LA depois da animacao. Junto

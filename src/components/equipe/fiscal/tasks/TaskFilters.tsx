@@ -79,7 +79,17 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
   };
 
   return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+    // `w-full` abaixo de `md`: a busca e o "Filtros" ficam com a linha toda, e
+    // as ações do painel ("Criar Projeto", "Nova tarefa") caem para a linha de
+    // baixo. Sem isto, quem quebrava era o `flex-wrap` DESTE bloco: o "Filtros"
+    // descia sozinho para uma segunda linha enquanto a busca continuava
+    // espremida na primeira, entre ele e os dois botões — três controles numa
+    // linha e um órfão embaixo.
+    //
+    // `md:w-auto md:flex-1` e não `basis-full`: `flex-1` é o atalho de
+    // `flex: 1 1 0%`, que carrega o próprio flex-basis e venceria um
+    // `basis-full` por ordem de folha. Largura não entra nessa disputa.
+    <div className="flex w-full min-w-0 flex-wrap items-center gap-2 md:w-auto md:flex-1">
       <div className="relative min-w-52 flex-1 sm:max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -114,7 +124,10 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
                   <Label htmlFor="task-filter-assignee">Responsável</Label>
                   <Select value={draftFilters.assignedTo || 'all'} onValueChange={value => setDraftFilters({ ...draftFilters, assignedTo: value === 'all' ? undefined : value })}>
                     <SelectTrigger id="task-filter-assignee" className="w-full"><User className="mr-2 h-4 w-4 shrink-0" /><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="all">Todas as pessoas</SelectItem><SelectItem value="mine">Minhas tarefas</SelectItem>{teamMembers.map(member => <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>)}</SelectContent>
+                    {/* "Sem responsável" é a fila do que ninguém pegou. Fica
+                        aqui, junto das pessoas, e não no menu de prazo do
+                        título: quem responde é uma pessoa, não uma data. */}
+                    <SelectContent><SelectItem value="all">Todas as pessoas</SelectItem><SelectItem value="mine">Minhas tarefas</SelectItem><SelectItem value="unassigned">Sem responsável</SelectItem>{teamMembers.map(member => <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">

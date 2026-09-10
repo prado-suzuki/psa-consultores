@@ -39,4 +39,5 @@ export const DEV_NAV_LABELS = {
   // Planejamento Tributário group
   planejamentoTributario: 'Planejamento Tributário',
   papelDeTrabalho: 'Papel de Trabalho',
+  geradorDeSlides: 'Gerador de Slides',
 } as const;

@@ -77,7 +77,17 @@ export interface Revisao {
 
 /** Um problema para registrar em `wp_apresentacao.problemas`. */
 export interface ProblemaDoDeck {
-  tipo: string;
+  /**
+   * `formatacao` quando é sobre o espaço do slide, `origem` quando é sobre de
+   * onde o dado vem.
+   *
+   * **A separação existe porque o molde é provisório.** Enquanto o modelo
+   * consolidado não chega, célula não mapeada e linha que não veio na leitura
+   * dizem mais sobre o molde de teste do que sobre o estudo, e a tela mostra só
+   * `formatacao`. Os dois tipos continuam gravados em `wp_apresentacao.problemas`,
+   * então nada se perde: o que muda é o que aparece.
+   */
+  tipo: 'formatacao' | 'origem';
   onde: string;
   detalhe: string;
 }
@@ -96,15 +106,13 @@ const CABEM = {
   resumo: 18,
 } as const;
 
-/**
- * **A fonte é sempre a do molde.** O gerador já encolheu tabela e caixa para
- * fazer caber, e em 08/09/2026 o resultado foi a DRE do Grupo Mattei inteira a
- * 7pt, ilegível, com o cartão do CBS transbordando assim mesmo. Não vale a
- * troca: um slide que ninguém lê e parece pronto é pior que um slide que passa
- * do fim e está avisado.
- *
- * Então o que não couber vira aviso, e a poda acontece no PowerPoint, onde as
- * tabelas são nativas. Os números acima são a capacidade no tamanho do molde.
+/*
+ * **E a fonte é sempre a do molde**, então estes números valem sempre. O gerador
+ * já encolheu tabela e caixa para fazer caber, e em 08/09/2026 o resultado foi a
+ * DRE do Grupo Mattei inteira a 7pt, ilegível, com o cartão do CBS transbordando
+ * assim mesmo. Um slide que ninguém lê e parece pronto é pior que um slide que
+ * passa do fim e está avisado, então o que não couber vira aviso e a poda
+ * acontece no PowerPoint.
  */
 
 export type ValorDoSlide = string;
@@ -374,13 +382,25 @@ function montaDre(valores: ValorDaRevisao[]): {
   const cenarios = [...new Set(daDre.map((v) => v.cenario))];
   const base = ABAS_DE_CENARIO.find((n) => cenarios.includes(n)) ?? cenarios[0];
 
+  /*
+   * **A DRE das Premissas é a do Cenário Atual, e isso está medido.** No deck da
+   * Família Lunardi o lucro do exercício das Premissas é 1.417.964 na pessoa
+   * física e 9.863.001 na jurídica em 2026, que é célula por célula a aba
+   * `Cenário Atual`; a mesma linha no `Cenário Avaliado 01` dá 1.971.812 e não
+   * aparece em slide nenhum. Faz sentido: a premissa descreve o resultado
+   * projetado como ele é hoje, e os cenários é que mexem na estrutura.
+   *
+   * Por isso o aviso só sai quando o Cenário Atual NÃO veio na leitura e a DRE
+   * teve de sair de outra aba, que é o caso em que alguém precisa conferir.
+   */
   const problemas: ProblemaDoDeck[] = [];
-  if (cenarios.length > 1) {
+  if (base !== ABAS_DE_CENARIO[0]) {
     problemas.push({
-      tipo: 'tipo_inesperado',
+      tipo: 'origem',
       onde: '3.1 Premissas, a DRE',
       detalhe:
-        `A DRE veio de ${cenarios.length} cenários e o slide mostra um. ` + `Saiu o de "${base}".`,
+        `O WP não trouxe DRE do "${ABAS_DE_CENARIO[0]}", que é a aba das Premissas. ` +
+        `Saiu a do "${base}".`,
     });
   }
 
@@ -399,11 +419,10 @@ function montaDre(valores: ValorDaRevisao[]): {
    */
   if (tabela.escondidas > 0) {
     problemas.push({
-      tipo: 'tipo_inesperado',
+      tipo: 'formatacao',
       onde: '3.1 Premissas, a DRE',
       detalhe:
-        `${tabela.escondidas} conta(s) não têm valor em nenhum ano e ficaram fora do slide. ` +
-        `Restaram ${tabela.linhas.length}. Os subtotais continuam fechando.`,
+        `${tabela.escondidas} contas sem valor ficaram fora. Restaram ${tabela.linhas.length}.`,
     });
   }
 
@@ -443,7 +462,7 @@ function montaResumo(valores: ValorDaRevisao[]): {
   const problemas: ProblemaDoDeck[] = [];
   if (cenarios.length > CENARIOS_NO_MOLDE) {
     problemas.push({
-      tipo: 'tipo_inesperado',
+      tipo: 'origem',
       onde: '3.5 Resumo da Tributação',
       detalhe:
         `O estudo tem ${cenarios.length} cenários e o slide tem ${CENARIOS_NO_MOLDE} colunas. ` +
@@ -474,8 +493,40 @@ interface LinhaDeclarada {
   daPlanilha?: string;
   /** Linha que é só título de seção, sem número. */
   titulo?: boolean;
-  /** Linha do slide que a PT-01 não mapeou e que ninguém sabe de onde vem. */
-  semFonte?: boolean;
+  /** Linha que não se lê da planilha: sai de comparar duas outras linhas. */
+  deduzida?: 'opcao_de_apuracao';
+}
+
+/** Os dois rótulos da planilha de que a opção pela forma de apuração depende. */
+const PRESUNCAO_DE_20 = 'Presunção de 20%';
+const RESULTADO_TRIBUTAVEL = 'Resultado tributável';
+
+/**
+ * "Real" ou "Presumido", **deduzido e não lido**.
+ *
+ * O WP não tem célula para isto: a opção se enxerga no resultado. Na apuração do
+ * IRPF rural o contribuinte escolhe entre o resultado efetivo, apurado no livro
+ * caixa, e o presumido de 20% da receita bruta, e o `Resultado tributável` da
+ * planilha guarda o que foi escolhido. Se ele é o presumido, a opção foi
+ * Presumido; se é outro número, foi Real.
+ *
+ * **Medido em dois decks antes de virar regra.** No gabarito da PT-01 o
+ * tributável é igual ao limite de 20% nos sete exercícios e o deck diz
+ * "Presumido" nos sete. No deck da Família Lunardi, 2026 tem tributável zerado
+ * pela compensação de prejuízo contra um limite de 169.701, e o deck diz "Real"
+ * só naquele ano, "Presumido" nos cinco seguintes. A regra acerta os treze
+ * casos, e faz sentido na lei: a opção pelo presumido não admite compensar
+ * prejuízo, então ano com compensação nunca é presumido.
+ *
+ * Ano sem presunção nenhuma sai como traço, porque ali não houve escolha a fazer.
+ */
+export function opcaoDeApuracao(
+  presuncao: number | string | undefined | null,
+  tributavel: number | string | undefined | null,
+): ValorDoSlide {
+  if (typeof presuncao !== 'number' || Math.round(presuncao) === 0) return '-';
+  if (typeof tributavel !== 'number') return '-';
+  return Math.round(presuncao) === Math.round(tributavel) ? 'Presumido' : 'Real';
 }
 
 const LINHAS_DA_TRANSFERENCIA: LinhaDeclarada[] = [
@@ -495,15 +546,16 @@ const LINHAS_DA_TRANSFERENCIA: LinhaDeclarada[] = [
    * par Bahia Potrich. */
   { slide: 'Despesas de custeio e investimento total' },
   { slide: 'Resultado da Atividade Rural', daPlanilha: 'Lucro/Prejuízo fiscal do exercício' },
-  { slide: 'Limite de 20% sobre a receita bruta total', daPlanilha: 'Presunção de 20%' },
-  /* No deck de origem sai "Presumido" em todos os anos, mas a PT-01 não mapeou a
-   * célula de onde isso vem. Enquanto não mapear, sai traço e o deck avisa. */
-  { slide: 'Opção pela forma de apuração do resultado tributável', semFonte: true },
+  { slide: 'Limite de 20% sobre a receita bruta total', daPlanilha: PRESUNCAO_DE_20 },
+  {
+    slide: 'Opção pela forma de apuração do resultado tributável',
+    deduzida: 'opcao_de_apuracao',
+  },
   {
     slide: 'Compensação de prejuízo(s) de exercício(s) anteriores',
     daPlanilha: 'Compensação de prejuízo',
   },
-  { slide: 'Resultado Tributável', daPlanilha: 'Resultado tributável' },
+  { slide: 'Resultado Tributável', daPlanilha: RESULTADO_TRIBUTAVEL },
   { slide: 'Imposto a pagar', daPlanilha: 'Total a recolher' },
   {
     slide: 'Saldo de prejuízo a compensar nos exercícios seguintes',
@@ -532,7 +584,7 @@ function montaTransferencia(valores: ValorDaRevisao[]): {
       const daPlanilha = d.daPlanilha ? porRotulo.get(d.daPlanilha) : undefined;
       if (d.daPlanilha && !daPlanilha) {
         problemas.push({
-          tipo: 'tipo_inesperado',
+          tipo: 'origem',
           onde: ABA_VENDA_DE_ATIVOS,
           detalhe: `A linha "${d.daPlanilha}" não veio na leitura, então "${d.slide}" sai vazia no slide.`,
         });
@@ -542,14 +594,15 @@ function montaTransferencia(valores: ValorDaRevisao[]): {
         valoresDaLinha[ano] = formataValor(celula?.valor, celula?.unidade);
       }
     }
-    if (d.semFonte) {
-      problemas.push({
-        tipo: 'tipo_inesperado',
-        onde: `slide, "${d.slide}"`,
-        detalhe:
-          'Esta linha existe no slide e a PT-01 não mapeou a célula de origem, ' +
-          'então ela sai como traço. Precisa ser levantada com o Fiscal.',
-      });
+    if (d.deduzida === 'opcao_de_apuracao') {
+      const presuncao = porRotulo.get(PRESUNCAO_DE_20);
+      const tributavel = porRotulo.get(RESULTADO_TRIBUTAVEL);
+      for (const ano of anos) {
+        valoresDaLinha[ano] = opcaoDeApuracao(
+          presuncao?.get(ano)?.valor,
+          tributavel?.get(ano)?.valor,
+        );
+      }
     }
     return { rotulo: d.slide, nivel: d.titulo ? 0 : 1, valores: valoresDaLinha };
   });
@@ -679,7 +732,7 @@ function montaComentarios(comentarios: ComentarioDaRevisao[]): {
 
     if (!doMolde.has(normaliza(tributo))) {
       problemas.push({
-        tipo: 'tipo_inesperado',
+        tipo: 'origem',
         onde: `comentário de ${tributo}`,
         detalhe: `O molde não tem caixa para "${tributo}", então esse comentário não sai no slide.`,
       });
@@ -689,16 +742,14 @@ function montaComentarios(comentarios: ComentarioDaRevisao[]): {
     const letras = linhas.join(' ').length;
     if (letras > CABEM_NA_CAIXA) {
       /*
-       * Quem corta texto é quem escreveu, não o gerador. Por isso o aviso diz
-       * quanto sobra, em letras, em vez de encolher a fonte e entregar calado.
+       * O aviso dá o tamanho e para por aí. Quem escreveu decide o que cortar
+       * olhando o texto, e dizer "encurte em 1.650 letras" só faz o aviso ficar
+       * comprido justamente onde a queixa é excesso de texto.
        */
       problemas.push({
-        tipo: 'tipo_inesperado',
+        tipo: 'formatacao',
         onde: `caixa de ${tributo}`,
-        detalhe:
-          `A caixa de ${tributo} saiu com ${letras} letras e NÃO VAI CABER: ela comporta cerca ` +
-          `de ${CABEM_NA_CAIXA}. Encurte o comentário em ${letras - CABEM_NA_CAIXA} letras no ` +
-          `papel de trabalho.`,
+        detalhe: `Não cabe: ${letras} letras para cerca de ${CABEM_NA_CAIXA}.`,
       });
     }
     caixas.push({ tributo, texto: linhas.join('\n') });
@@ -728,11 +779,11 @@ export function montaDeck(leitura: Revisao): Deck {
   ] as const) {
     if (t.transbordou > 0) {
       problemas.push({
-        tipo: 'tipo_inesperado',
+        tipo: 'formatacao',
         onde: t.titulo,
         detalhe:
-          `${nome} saiu com ${t.linhas.length} linhas e NÃO VAI CABER: o slide comporta ` +
-          `${t.linhas.length - t.transbordou}. Tire ${t.transbordou} linha(s) no PowerPoint.`,
+          `Não cabe: ${t.linhas.length} linhas para ${t.linhas.length - t.transbordou} ` +
+          `de espaço.`,
       });
     }
   }

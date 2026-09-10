@@ -722,6 +722,153 @@ describe('TaskModal — edição', () => {
   });
 });
 
+describe('TaskModal — a edição cabe em tela estreita', () => {
+  /*
+    Abaixo de `lg` não existem as duas colunas: sobra o `grid` de uma coluna da
+    primitiva de dialog, com o formulário e a Atividade como duas LINHAS.
+
+    O modal tem altura FIXA (`h-[min(94vh,54rem)]`) e a Atividade pedia
+    `min-h-[32rem]`. Num telefone de 640px de viewport o modal mede 601px, a
+    Atividade levava 512, e sobravam ~89px para o formulário inteiro — fresta
+    que rola, ou recorte seco, dependendo do conteúdo. Nenhuma das duas dá erro
+    de build, de lint ou de tipo, e é por isso que o contrato vive aqui.
+  */
+  const dialogo = () => document.querySelector('[role="dialog"]');
+
+  it('em tela estreita a caixa é coluna flexível, não grade', () => {
+    renderModal({ task: baseTask });
+
+    // Com grade seria preciso declarar de antemão qual LINHA estica, e isso muda
+    // a cada troca de aba. Em coluna, quem estica diz por si.
+    expect(dialogo()?.className).toContain('max-lg:flex');
+    expect(dialogo()?.className).toContain('max-lg:flex-col');
+  });
+
+  it('o Salvar e o fechar vêm ANTES do seletor de aba, e fora do que rola', () => {
+    renderModal({ task: baseTask });
+
+    const salvar = screen.getByRole('button', { name: 'Salvar' });
+    const seletor = screen.getByRole('group', { name: 'O que mostrar da tarefa' });
+
+    // Pedido dela em 09/09: a moldura do modal primeiro, a navegação do conteúdo
+    // depois. `DOCUMENT_POSITION_FOLLOWING` = o seletor vem depois do Salvar.
+    expect(salvar.compareDocumentPosition(seletor) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
+
+    // E a barra saiu da área que rola: antes ela era `sticky` dentro dela e
+    // sumia em tela estreita.
+    const areaQueRola = seletor.parentElement?.querySelector('.overflow-y-auto');
+    expect(areaQueRola?.contains(salvar)).toBe(false);
+  });
+
+  /**
+   * `max-lg:hidden` em QUALQUER ancestral esconde o elemento em tela estreita.
+   * Medir só o elemento (como a primeira versão deste teste fazia) deixa passar
+   * o defeito que importa: o seletor sumir junto com a metade que se esconde.
+   */
+  const escondidoEmTelaEstreita = (alvo: Element | null): boolean => {
+    for (let no = alvo; no; no = no.parentElement) {
+      if (String(no.className ?? '').includes('max-lg:hidden')) return true;
+    }
+    return false;
+  };
+
+  it('o seletor mostra uma metade por vez, e começa na Tarefa', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: baseTask });
+
+    const tarefa = screen.getByRole('button', { name: 'Tarefa' });
+    const atividade = screen.getByRole('button', { name: 'Atividade' });
+    expect(tarefa).toHaveAttribute('aria-pressed', 'true');
+    expect(atividade).toHaveAttribute('aria-pressed', 'false');
+
+    // Repartir a altura entre as duas foi tentado e reprovado: em 601px de
+    // telefone a Atividade ficava com ~240px, e o cabeçalho mais o compositor
+    // comiam quase tudo. Uma por vez recebe o modal inteiro.
+    const painel = () => screen.getByTestId('activity-panel');
+    const corpoDoForm = () => screen.getByLabelText(/^Título/).closest('.overflow-y-auto');
+
+    expect(escondidoEmTelaEstreita(painel())).toBe(true);
+    expect(escondidoEmTelaEstreita(corpoDoForm())).toBe(false);
+
+    await user.click(atividade);
+
+    expect(atividade).toHaveAttribute('aria-pressed', 'true');
+    expect(escondidoEmTelaEstreita(painel())).toBe(false);
+    expect(escondidoEmTelaEstreita(corpoDoForm())).toBe(true);
+  });
+
+  it('o seletor NUNCA se esconde — nem quando a metade dele sai da tela', async () => {
+    /*
+      O defeito que este teste existe para pegar, e que a primeira versão do
+      teste acima ANCORAVA em vez de pegar: o seletor vive dentro do `<form>`,
+      junto da moldura do modal, e o `<form>` recebia `max-lg:hidden` ao trocar
+      para a Atividade. Resultado: entrava-se na Atividade e o botão de voltar
+      ia embora com o formulário — "em projeto a barra superior para alternar
+      funciona, agora dentro da tarefa não" (09/09).
+
+      Medir o className do próprio seletor não pega isso; o que pega é subir a
+      árvore. Vale para o Salvar e o fechar pelo mesmo motivo: eles são vizinhos
+      do seletor.
+    */
+    const user = userEvent.setup();
+    renderModal({ task: baseTask });
+
+    const seletor = () => screen.getByRole('group', { name: 'O que mostrar da tarefa' });
+    const salvar = () => screen.getByRole('button', { name: 'Salvar' });
+    const fechar = () => screen.getByRole('button', { name: 'Fechar' });
+
+    for (const aba of ['Atividade', 'Tarefa', 'Atividade'] as const) {
+      await user.click(screen.getByRole('button', { name: aba }));
+
+      expect(escondidoEmTelaEstreita(seletor())).toBe(false);
+      expect(escondidoEmTelaEstreita(salvar())).toBe(false);
+      expect(escondidoEmTelaEstreita(fechar())).toBe(false);
+    }
+  });
+
+  it('trocar de aba esconde por CSS e não desmonta, para não perder o que foi digitado', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: baseTask });
+
+    await user.clear(screen.getByLabelText(/^Título/));
+    await user.type(screen.getByLabelText(/^Título/), 'Rascunho não salvo');
+
+    await user.click(screen.getByRole('button', { name: 'Atividade' }));
+    await user.click(screen.getByRole('button', { name: 'Tarefa' }));
+
+    expect(screen.getByLabelText(/^Título/)).toHaveValue('Rascunho não salvo');
+  });
+
+  it('o seletor não existe na criação, que não tem Atividade', () => {
+    renderModal();
+
+    expect(screen.queryByRole('group', { name: 'O que mostrar da tarefa' })).toBeNull();
+  });
+
+  it('a linha da Atividade não tem mais piso de altura próprio', () => {
+    renderModal({ task: baseTask });
+
+    // O painel é dublado neste arquivo, então quem se mede aqui é a LINHA que o
+    // envolve. O piso de 512px vivia nela e era o que estrangulava o
+    // formulário; quem dá altura ao painel agora é a grade. O outro lado do
+    // contrato — o painel ser `h-full` e rolar por dentro — está travado em
+    // `OrgCommentsPanel.test.tsx`.
+    const linha = screen.getByTestId('activity-panel').parentElement;
+
+    expect(linha?.className).not.toContain('min-h-[32rem]');
+    expect(linha?.className).toContain('min-h-0');
+  });
+
+  it('a altura fixa continua tendo teto, que é o que a régua dos modais cobra', () => {
+    renderModal({ task: baseTask });
+
+    const classes = dialogo()?.className ?? '';
+    expect(classes).toContain('h-[min(94vh,54rem)]');
+    expect(classes).toContain('max-h-[94vh]');
+  });
+});
+
 describe('TaskModal — cabeçalho da edição', () => {
   it('mostra o contexto da tarefa como texto e o título como campo', () => {
     renderModal({ task: baseTask, parentTasks: [{ ...baseTask, id: 'P1', title: 'Pai do Alfa' }] });
@@ -1154,5 +1301,40 @@ describe('TaskModal — subtarefas', () => {
       within(secao).queryByRole('button', { name: /Adicionar subtarefa/ }),
     ).not.toBeInTheDocument();
     expect(within(secao).queryByRole('button', { name: 'Adicionar' })).not.toBeInTheDocument();
+  });
+});
+
+describe('TaskModal — o prazo da subtarefa para no prazo da mãe', () => {
+  const mae: OrgTask = { ...baseTask, id: 'MAE', title: 'Reestruturação societária', due_date: '2026-04-15' };
+  const subtarefa: OrgTask = { ...baseTask, id: 'T2', title: 'Ata AGE', parent_task_id: 'MAE', due_date: '2026-04-10' };
+
+  it('o calendário de Vencimento apaga os dias depois do prazo da mãe', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: subtarefa, parentTasks: [mae] });
+
+    await user.click(screen.getByLabelText(/^Vencimento/));
+
+    expect(await screen.findByRole('button', { name: '15' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '16' })).toBeDisabled();
+  });
+
+  it('tarefa sem mãe segue com o calendário inteiro', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: baseTask, parentTasks: [mae] });
+
+    await user.click(screen.getByLabelText(/^Vencimento/));
+
+    expect(await screen.findByRole('button', { name: '30' })).toBeEnabled();
+  });
+
+  // A lista da tela é recortada por mês: a mãe pode não estar nela. Aqui o teto
+  // some, e quem recusa é o guard de `useUpdateOrgTask`, que busca no banco.
+  it('mãe fora da lista carregada não trava o calendário', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: subtarefa, parentTasks: [] });
+
+    await user.click(screen.getByLabelText(/^Vencimento/));
+
+    expect(await screen.findByRole('button', { name: '16' })).toBeEnabled();
   });
 });

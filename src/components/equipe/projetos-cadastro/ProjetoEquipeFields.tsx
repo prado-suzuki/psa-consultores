@@ -56,6 +56,7 @@ export function ProjetoEquipeFields({
     availableMembers, availableMembersByArea, memberSearch, setMemberSearch,
     collapsedAreaGroups, toggleAreaGroup, handleMemberToggle,
     semExecutorFixo, toggleSemExecutorFixo,
+    clustersExtras, quadrosDoProjeto,
   } = useProjetosCadastro();
   const selectMembers = (ids: string[]) => setFormData(previous => {
     const allSelected = ids.every(id => previous.member_ids.includes(id));
@@ -65,6 +66,21 @@ export function ProjetoEquipeFields({
     }
     return { ...previous, member_ids: [...new Set([...previous.member_ids, ...ids])] };
   });
+  // Item de pessoa da caixa de Membros. Existe uma vez porque a mesma linha é
+  // renderizada em três varreduras (área sem subdivisão, por equipe, e a lista
+  // plana), e o aviso de cluster extra tem de aparecer nas três: é ele que
+  // impede escolher sem saber que o projeto vai parar no quadro de outra área.
+  const memberItem = (member: { id: string; first_name: string; last_name: string }, chave: string, busca: string) => {
+    const extras = clustersExtras[member.id];
+    return <CommandItem key={chave} value={busca} onSelect={() => handleMemberToggle(member.id)} className="pl-6">
+      <Check className={`mr-2 h-4 w-4 shrink-0 ${formData.member_ids.includes(member.id) ? 'opacity-100' : 'opacity-0'}`} />
+      <span className="flex-1 truncate">{member.first_name} {member.last_name}</span>
+      {extras?.length > 0 && <Badge variant="outline" className="ml-2 shrink-0 text-[10px] font-normal text-muted-foreground">
+        também {extras.join(', ')}
+      </Badge>}
+    </CommandItem>;
+  };
+
   // "Sem executor fixo" mora na própria lista de executores: escolher a opção
   // liga a exceção e zera o responsável; escolher uma pessoa desliga.
   const handleExecutorChange = (value: string) => {
@@ -112,6 +128,13 @@ export function ProjetoEquipeFields({
       <Switch checked={formData.is_multidisciplinar} onCheckedChange={checked => setFormData(previous => ({ ...previous, is_multidisciplinar: checked }))} />
     </div>;
 
+  // A caixa agrupa por área sempre que houver área a oferecer: no
+  // multidisciplinar são todas, e com equipe escolhida são as do cluster do
+  // projeto — é isso que põe as outras equipes da casa na lista sem precisar
+  // ligar o multidisciplinar. Sem grupo resolvido, cai na lista plana de antes.
+  const agrupadoPorArea = availableMembersByArea.length > 0;
+  const temNadaAOferecer = !agrupadoPorArea && availableMembers.length === 0 && formData.member_ids.length === 0;
+
   const membrosField = <div>
       <div className="flex flex-wrap items-center justify-between gap-x-2">
         <Label>Membros do Projeto <span className="text-destructive">*</span></Label>
@@ -121,10 +144,10 @@ export function ProjetoEquipeFields({
           setFormData(previous => ({ ...previous, member_ids: [...new Set([...previous.member_ids, ...eligible])] }));
         }}><UsersRound className="h-3.5 w-3.5" />Incluir todos da equipe</Button>}
       </div>
-      {!formData.is_multidisciplinar && !equipeId && formData.member_ids.length === 0
-        ? <p className="text-xs text-muted-foreground mt-1">Selecione uma equipe para ver os membros disponíveis.</p>
-        : !formData.is_multidisciplinar && equipeId && equipeMemberIds.length === 0 && formData.member_ids.length === 0
-          ? <p className="text-xs text-muted-foreground mt-1">Nenhum membro encontrado nesta equipe.</p>
+      {temNadaAOferecer
+        ? <p className="text-xs text-muted-foreground mt-1">{equipeId
+            ? 'Nenhum membro encontrado nesta equipe.'
+            : 'Selecione uma equipe para ver os membros disponíveis.'}</p>
           : <Popover><PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-9 mt-1 hover:bg-background hover:text-foreground">
             {formData.member_ids.length > 0 ? <div className="flex flex-wrap gap-1">{formData.member_ids.map(id => {
               const member = teamMembers.find(item => item.id === id);
@@ -134,9 +157,13 @@ export function ProjetoEquipeFields({
           </Button></PopoverTrigger><PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start"><Command>
             <CommandInput placeholder="Buscar membro..." value={memberSearch} onValueChange={setMemberSearch} />
             <CommandList><CommandEmpty>Nenhum membro encontrado.</CommandEmpty>
-              {formData.is_multidisciplinar ? availableMembersByArea.map(group => {
+              {agrupadoPorArea ? availableMembersByArea.map(group => {
                 const hasSearch = memberSearch.trim().length > 0;
-                const collapsed = collapsedAreaGroups.has(group.area_id) && !hasSearch;
+                // Recolher só faz sentido no multidisciplinar, onde a lista é a
+                // casa inteira. No recorte por cluster são poucas equipes, e o
+                // padrão de recolhimento (tudo fora da SUA área) deixaria a
+                // caixa abrindo aparentemente vazia.
+                const collapsed = formData.is_multidisciplinar && collapsedAreaGroups.has(group.area_id) && !hasSearch;
                 const allSelected = group.members.length > 0 && group.members.every(member => formData.member_ids.includes(member.id));
                 return <CommandGroup key={group.area_id}>
                   <CommandItem value={`__area_header_${group.area_id}__ ${group.area_name} ${group.cluster_name}`} onSelect={() => toggleAreaGroup(group.area_id)} className="bg-muted/40 data-[selected=true]:bg-muted data-[selected=true]:text-foreground font-semibold">
@@ -145,20 +172,27 @@ export function ProjetoEquipeFields({
                   </CommandItem>
                   {!collapsed && <>
                     <CommandItem value={`__select_all_area_${group.area_id}__`} onSelect={() => selectMembers(group.members.map(member => member.id))} className="pl-6"><Check className={`mr-2 h-4 w-4 ${allSelected ? 'opacity-100' : 'opacity-0'}`} /><span className="font-medium">Selecionar todos da área</span></CommandItem>
-                    {hasSearch || group.equipes.length <= 1 ? group.members.map(member => <CommandItem key={`${group.area_id}-${member.id}`} value={`${member.first_name} ${member.last_name} ${group.area_name}`} onSelect={() => handleMemberToggle(member.id)} className="pl-6"><Check className={`mr-2 h-4 w-4 ${formData.member_ids.includes(member.id) ? 'opacity-100' : 'opacity-0'}`} />{member.first_name} {member.last_name}</CommandItem>)
+                    {hasSearch || group.equipes.length <= 1
+                      ? group.members.map(member => memberItem(member, `${group.area_id}-${member.id}`, `${member.first_name} ${member.last_name} ${group.area_name}`))
                       : group.equipes.map((team, index) => <Fragment key={team.equipe_id}>
                         <div className={`px-2 ${index === 0 ? 'pt-1' : 'pt-2'} pb-0.5 text-[10px] font-medium uppercase tracking-wide text-foreground/70 border-t border-border/40 ${index === 0 ? 'border-t-0' : ''}`}>{team.equipe_name}</div>
-                        {team.members.map(member => <CommandItem key={`${group.area_id}-${team.equipe_id}-${member.id}`} value={`${member.first_name} ${member.last_name} ${group.area_name} ${team.equipe_name}`} onSelect={() => handleMemberToggle(member.id)} className="pl-6"><Check className={`mr-2 h-4 w-4 ${formData.member_ids.includes(member.id) ? 'opacity-100' : 'opacity-0'}`} />{member.first_name} {member.last_name}</CommandItem>)}
+                        {team.members.map(member => memberItem(member, `${group.area_id}-${team.equipe_id}-${member.id}`, `${member.first_name} ${member.last_name} ${group.area_name} ${team.equipe_name}`))}
                       </Fragment>)}
                   </>}
                 </CommandGroup>;
               }) : <CommandGroup>
                 <CommandItem value="__select_all__" onSelect={() => selectMembers(availableMembers.map(member => member.id))}><Check className={`mr-2 h-4 w-4 ${availableMembers.length > 0 && availableMembers.every(member => formData.member_ids.includes(member.id)) ? 'opacity-100' : 'opacity-0'}`} /><span className="font-medium">Selecionar todos</span></CommandItem>
-                {availableMembers.map(member => <CommandItem key={member.id} value={`${member.first_name} ${member.last_name}`} onSelect={() => handleMemberToggle(member.id)}><Check className={`mr-2 h-4 w-4 ${formData.member_ids.includes(member.id) ? 'opacity-100' : 'opacity-0'}`} />{member.first_name} {member.last_name}</CommandItem>)}
+                {availableMembers.map(member => memberItem(member, member.id, `${member.first_name} ${member.last_name}`))}
               </CommandGroup>}
             </CommandList>
           </Command></PopoverContent></Popover>}
       {formData.member_ids.length > 0 && <p className="text-xs text-muted-foreground mt-1">{formData.member_ids.length} membro{formData.member_ids.length !== 1 ? 's' : ''} selecionado{formData.member_ids.length !== 1 ? 's' : ''}</p>}
+      {/* Em que quadros o projeto vai aparecer. Só quando for mais de um: com um
+          só a frase seria ruído, e é justamente o segundo que costuma ser
+          surpresa — quem entrou pela equipe daqui mas também é de outro cluster. */}
+      {quadrosDoProjeto.length > 1 && <p className="text-xs text-muted-foreground mt-1">
+        Este projeto vai aparecer nos quadros de <span className="font-medium text-foreground">{quadrosDoProjeto.join(', ')}</span>, pelas equipes de quem está no time.
+      </p>}
     </div>;
 
   // Na edição, líder e membros dividem a linha: são dois seletores curtos e a

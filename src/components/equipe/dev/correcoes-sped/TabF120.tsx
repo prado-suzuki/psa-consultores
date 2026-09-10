@@ -34,6 +34,7 @@ import {
 import type { F120Item, F120Reg, CampoAlteradoEfd } from '@/types/correcoesSped';
 import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
 import { cn } from '@/lib/utils';
+import { BOTAO_CONFIRMA_COM_DISABLED } from './classesDeBotao';
 
 const F120_FILTERABLE_KEYS: { key: string; label: string }[] = [
   { key: 'DESC_IDENT_BEM_IMOB', label: 'Bem Imobilizado' },
@@ -387,10 +388,10 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
     const isChanged = !Object.is(displayedF120[field], origCode);
     const selectedOption = options.find((o) => o.code === currentCode);
     const displayDescription = selectedOption?.description ?? descFallback;
-    const amberClass = isChanged ?'text-amber-600 font-bold':'';
+    const classeDeAlterado = isChanged ?'text-status-alerta font-bold':'';
 
     if (!isEditMode || !draft) {
-      return <span className={`text-xs ${amberClass}`}>{displayDescription || '—'}</span>;
+      return <span className={`text-xs ${classeDeAlterado}`}>{displayDescription || '—'}</span>;
     }
 
     return (
@@ -400,7 +401,7 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
             type="button"
             className={cn(
               'flex w-full items-center justify-between gap-1 rounded border border-input bg-background px-2 py-1 text-left text-xs hover:bg-muted',
-              amberClass,
+              classeDeAlterado,
             )}
           >
             <span className="truncate">
@@ -458,11 +459,11 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
       const value = displayedF120[field as keyof F120Reg];
       const origValue = (originalSnapshot as unknown as Record<string, unknown>)[field];
       const isChanged = !Object.is(value, origValue);
-      const amberClass = isChanged ?'text-amber-600 font-bold':'';
+      const classeDeAlterado = isChanged ?'text-status-alerta font-bold':'';
 
-      if (field === 'VL_OPER_DEP' || field === 'VL_PIS' || field === 'VL_COFINS') return <span className={amberClass}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
-      if (field === 'ALIQ_PIS' || field === 'ALIQ_COFINS') return <span className={amberClass}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
-      return <span className={amberClass}>{value ?? '—'}</span>;
+      if (field === 'VL_OPER_DEP' || field === 'VL_PIS' || field === 'VL_COFINS') return <span className={classeDeAlterado}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
+      if (field === 'ALIQ_PIS' || field === 'ALIQ_COFINS') return <span className={classeDeAlterado}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
+      return <span className={classeDeAlterado}>{value ?? '—'}</span>;
     }
 
     const input = (
@@ -507,7 +508,7 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
                     <X className="h-3.5 w-3.5 mr-1" />Cancelar
                   </Button>
                 )}
-                <Button size="sm" variant="outline" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving} className="bg-white text-black border border-input hover:bg-emerald-600 hover:text-white hover:border-emerald-600 active:bg-emerald-700 active:text-white transition-colors duration-200 disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-black disabled:hover:border-input shrink-0">
+                <Button size="sm" variant="outline" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving} className={BOTAO_CONFIRMA_COM_DISABLED}>
                   {isSaving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}
                   {isSaving ? 'Salvando...' : isEditMode ? 'Salvar alterações' : 'Habilitar modo edição'}
                 </Button>
@@ -544,7 +545,7 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-muted/60"><span className="flex items-center justify-end gap-1">{renderColumnLabel('% COF', SPED_TOOLTIPS.pctCof)}<ColumnFilterDropdown columnKey="ALIQ_COFINS"uniqueValues={cascadingUniqueValues['ALIQ_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-muted/60">{renderColumnLabel('VL COF', SPED_TOOLTIPS.vlCof)}</TableHead>
                     <TableHead className="text-[11px] min-w-[120px] bg-muted/60"><span className="flex items-center gap-1">{renderColumnLabel('Conta', SPED_TOOLTIPS.conta)}<ColumnFilterDropdown columnKey="COD_CTA"uniqueValues={cascadingUniqueValues['COD_CTA'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['COD_CTA'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
-                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-border shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">{renderColumnLabel('Status', SPED_TOOLTIPS.status)}</TableHead>
+                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-border shadow-[-4px_0_10px_hsl(0_0%_0%_/_0.02)]">{renderColumnLabel('Status', SPED_TOOLTIPS.status)}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -569,7 +570,7 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-muted/30">{renderEditableCell(item,'ALIQ_COFINS','h-8 text-xs text-right font-mono', { isPercentage: true })}</TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-muted/30">{renderEditableCell(item,'VL_COFINS','h-8 text-xs text-right font-mono', { isCurrency: true })}</TableCell>
                         <TableCell className="text-xs py-1.5 font-mono bg-muted/30">{renderEditableCell(item,'COD_CTA','h-8 text-xs font-mono')}</TableCell>
-                        <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px] border-l border-border shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
+                        <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px] border-l border-border shadow-[-4px_0_10px_hsl(0_0%_0%_/_0.02)]">
                           <div className="flex flex-col items-center justify-center gap-1">
                             {linhaCorrigida && <Badge variant="outline" className="text-[10px]">Corrigido</Badge>}
                             {isEditMode && <span className="text-[10px] text-primary">Editável</span>}
