@@ -112,9 +112,17 @@ export function terminaEmEscala(valor: number): boolean {
 /**
  * Cardinal por extenso já com a preposição que o substantivo contado exige.
  *
- * Ex.: 1.000.000 → "um milhão de"; 500 → "quinhentas". É a forma para os campos
- * `…Extenso` cujo modelo escreve o substantivo logo depois — "{{ socio.quotas }}
- * ({{ socio.quotasExtenso }}) quotas" saía "1.000.000 (um milhão) quotas".
+ * Ex.: 1.000.000 → "um milhão de"; 500 → "quinhentas".
+ *
+ * Hoje só `valorExtenso` a usa, e por um motivo de PARÊNTESES: em
+ * "R$ 1.000.000,00 (um milhão de reais)" o substantivo está dentro da glosa, e a
+ * preposição acompanha. Nas QUOTAS o substantivo está fora
+ * ("1.000.000 ({{ quotasExtenso }}) quotas"), e pôr o "de" aqui produzia
+ * "1.000.000 (um milhão de) quotas", que fecha a glosa numa preposição solta —
+ * pior que o defeito original. A forma correta é "1.000.000 (um milhão) de
+ * quotas", com o "de" fora do parêntese, e quem escreve fora do parêntese é o
+ * MODELO: nove blocos do catálogo e dois trechos de `binding.ts`. Fica anotado
+ * como pendência de redação, e não resolvido aqui no símbolo errado.
  */
 export function cardinalExtensoContado(valor: number, feminino = false): string {
   const texto = cardinalExtenso(valor, feminino);

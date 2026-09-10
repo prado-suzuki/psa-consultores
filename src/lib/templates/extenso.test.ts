@@ -256,10 +256,21 @@ describe('preposicao depois de milhao e bilhao', () => {
     expect(valorExtenso(1_000_000.55)).toBe('um milhão de reais e cinquenta e cinco centavos');
   });
 
-  it('quotas: o extenso contado carrega o "de", o cru nao', () => {
+  it('o contado carrega o "de"; o cru segue puro', () => {
     expect(cardinalExtensoContado(1_000_000, true)).toBe('um milhão de');
     expect(cardinalExtensoContado(3_974_751, true)).toBe('três milhões, novecentas e setenta e quatro mil, setecentas e cinquenta e uma');
-    // `cardinalExtenso` segue puro: ha lugar que o usa sem substantivo depois.
     expect(cardinalExtenso(1_000_000, true)).toBe('um milhão');
+  });
+
+  // As QUOTAS ficam de fora de proposito, e a medicao no app em 09/09/2026 e a
+  // razao: o substantivo esta FORA da glosa ("1.000.000 ({{ quotasExtenso }})
+  // quotas"), entao a preposicao dentro dela produzia "1.000.000 (um milhao de)
+  // quotas", fechando o parentese numa preposicao solta. A forma certa e
+  // "1.000.000 (um milhao) de quotas", e quem escreve fora do parentese e o
+  // modelo. Este teste trava o estado atual para que a correcao no lugar certo
+  // seja uma decisao, e nao um efeito colateral.
+  it('quotasExtenso NAO carrega o "de": quem o escreve e o modelo', () => {
+    expect(cardinalExtenso(1_000_000, true)).toBe('um milhão');
+    expect(cardinalExtenso(500_000, true)).toBe('quinhentas mil');
   });
 });

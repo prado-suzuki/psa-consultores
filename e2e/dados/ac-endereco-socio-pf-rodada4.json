@@ -1,0 +1,135 @@
+{
+ "rodada": "4 - 2026-09-09, confirmacao dos dois fixes de 63b24d29 (causa postal e milhao redondo) e nao-regressao",
+ "branch": "develop",
+ "head": "63b24d29 fix(osg): a causa da requalificacao sai da peca, e milhao redondo pede \"de\"",
+ "banco": "SANDBOX vgzomuwnsdgrxbkyoavq",
+ "prova_do_banco": "todo request do browser saiu para vgzomuwnsdgrxbkyoavq.supabase.co (campo supabaseHosts do driver, em todas as 15 chamadas desta rodada). .env.sandbox:23 VITE_SUPABASE_URL=https://vgzomuwnsdgrxbkyoavq.supabase.co. Nenhum request para zwoainzzqhudmmknuycq (producao).",
+ "ferramenta": "Playwright MCP indisponivel pela quarta rodada. Driver .playwright-mcp/drv.mjs + snippets em .playwright-mcp/r4/",
+ "desvio_de_roteiro": {
+  "o_que": "o roteiro mandava reproduzir a causa postal na [TESTE] Tartaruga Veloz. Nao deu: a subida das quotas registrada na rodada 3 tirou Otavio e Rita do quadro da Tartaruga, e o interruptor 'Houve mudanca de endereco de socio pessoa fisica' passou a dizer 'nada no cadastro registra este evento' — sem candidato, o grupo de radio da causa nem aparece.",
+  "o_que_fiz": "levei o teste para a Jatoba Sementes S.A. (que tem 5 socios PF e contrato registrado) e criei a divergencia de endereco em Lucas Nogueira, socio dela desde a constituicao. Alteracao revertida no fim (ver alteracoes_de_dado).",
+  "o_que_nao_fiz": "nao desfiz o ato 'Subida das quotas da [TESTE] Tartaruga...' (o botao Desfazer estava disponivel): apagar o ato inteiro destruiria a prova viva dos itens P3b e P3c da rodada 3."
+ },
+ "itens": [
+  {
+   "id": "D1-causa-postal-depois-do-reload",
+   "pergunta": "A causa 'Atualizacao postal' sobrevive ao reload e chega ao .docx?",
+   "status": "CORRIGIDO",
+   "reproducao": "Jatoba Sementes S.A. / modelo 'Contrato Social - (Participacoes)' -> 'Rever os eventos' -> ligar 'Houve mudanca de endereco de socio pessoa fisica' (evidencia: 'Endereco de Lucas Nogueira: Rua Elisa Freitas, n.o 303...') -> radio 'Atualizacao postal (CEP, nomenclatura, numeracao)' -> Continuar -> Confirmar alteracao contratual -> page.reload() + reabrir a peca -> ler a previa -> Baixar .docx",
+   "prova_logo_apos_confirmar": "DAS ALTERACOES CONTRATUAIS / Da atualizacao da qualificacao de socio. Em decorrencia da atualizacao do Codigo de Enderecamento Postal — CEP, altera-se a qualificacao do socio LUCAS NOGUEIRA, para fazer constar o atual endereco deste, permanecendo inalterados os demais dados da qualificacao...",
+   "prova_apos_reload_na_tela": "identica, palavra por palavra. 'Enderecamento Postal' na tela apos o reload: 1x (na rodada 3 era 0x depois do reload).",
+   "prova_no_docx": ".playwright-mcp/r4-p1-postal-apos-reload.docx: 'Enderecamento Postal' 1x. Trecho literal: 'DAS ALTERACOES CONTRATUAIS Da atualizacao da qualificacao de socio. Em decorrencia da atualizacao do Codigo de Enderecamento Postal — CEP, altera-se a qualificacao do socio LUCAS NOGUEIRA , para fazer constar o atual endereco deste...'",
+   "linha_de_base": "rodada 3: 'Enderecamento Postal' 0x em TODOS os .docx (r3-p1, r3-p2, r3-p3, r2-p5) e sumia da tela depois do reload."
+  },
+  {
+   "id": "D1-contraste-mudanca-de-domicilio",
+   "pergunta": "Com causa 'Mudanca de domicilio' a peca sai SEM preambulo e com o verbo em maiuscula?",
+   "status": "CONFIRMADO",
+   "reproducao": "mesma peca, radio trocado para 'Mudanca de domicilio' -> Continuar -> Confirmar -> reload -> Baixar .docx (.playwright-mcp/r4-p2-domicilio-apos-reload.docx)",
+   "prova": "'DAS ALTERACOES CONTRATUAIS Da atualizacao da qualificacao de socio. Altera-se a qualificacao do socio LUCAS NOGUEIRA , para fazer constar o atual endereco deste...'. 'Enderecamento Postal' 0x no arquivo; 'Altera-se' com A maiusculo.",
+   "prova_mais_forte": "diff palavra a palavra r4-p1.txt x r4-p2.txt no documento INTEIRO devolve UMA hunk so: '< Em decorrencia da atualizacao do Codigo de Enderecamento Postal — CEP, altera-se' contra '> Altera-se'. Nada mais muda nos dois documentos. As duas causas NAO saem iguais."
+  },
+  {
+   "id": "D1-versao-validada-contextoRender-congelado",
+   "pergunta": "O outro caminho de render (versao validada) tambem leva a causa postal?",
+   "status": "CORRIGIDO",
+   "reproducao": "voltei o radio para 'Atualizacao postal', Confirmei, cliquei 'Validar versao' -> 'Validar versao' no dialogo (PATCH 200) -> page.reload() + reabrir -> Baixar .docx (.playwright-mcp/r4-p3-postal-versao-validada.docx). Depois de validar a botoeira muda para 'Rever os eventos / Registrar na junta / Baixar .docx'.",
+   "prova": "'Enderecamento Postal' 1x no docx da versao validada. Diff palavra a palavra r4-p1.txt (rascunho postal) x r4-p3.txt (validada postal): VAZIO — os dois documentos sao identicos palavra por palavra.",
+   "observacao": "este e exatamente o caminho que o commit descreve como o quebrado (folhaPelaProposta falso depois de validar)."
+  },
+  {
+   "id": "D2a-milhao-redondo-em-reais",
+   "pergunta": "'R$ 1.000.000,00 (um milhao reais)' virou 'um milhao de reais'?",
+   "status": "CORRIGIDO",
+   "reproducao": "[TESTE] Tartaruga Veloz Sementes Ltda / 'Contrato Social - (Participacoes)' -> reload -> Baixar .docx (.playwright-mcp/r4-p4-tartaruga-milhao-apos-reload.docx)",
+   "contagem": "'um milhao de reais' 7x; 'um milhao reais' 0x. Na rodada 3 (r3-p4) era o contrario: 9x 'um milhao reais' e 0x 'um milhao de reais'.",
+   "prova": "'Aumenta-se o capital social em R$ 500.000,00 (quinhentos mil reais), de modo que o capital social anterior de R$ 500.000,00 (quinhentos mil reais) passara a ser de R$ 1.000.000,00 (um milhao de reais)'"
+  },
+  {
+   "id": "D2b-milhao-redondo-em-quotas",
+   "pergunta": "'1.000.000 (um milhao) quotas' ficou correto?",
+   "status": "CORRIGIDO COM RESSALVA — o sintoma mudou de lugar, nao morreu",
+   "prova": "r4-p4: '(um milhao de) quotas' 7x, '(um milhao) quotas' 0x. Literal: 'O capital social e de R$ 1.000.000,00 (um milhao de reais), dividido em 1.000.000 (um milhao de) quotas, no valor nominal de R$ 1,00 (um real) cada uma'; 'titular de 1.000.000 (um milhao de) quotas, representativas de 100,000% do capital social'.",
+   "veredito_de_leitura": "NAO le bem. O parenteses e a glosa do NUMERAL, e a preposicao ficou dentro dele, terminando a glosa numa preposicao solta: '1.000.000 (um milhao de) quotas'. A forma usual do instrumento e '1.000.000 (um milhao) de quotas', com o 'de' FORA do parenteses, porque o substantivo tambem esta fora. Em 'R$ 1.000.000,00 (um milhao de reais)' o 'de' esta certo dentro, porque 'reais' esta dentro junto.",
+   "onde_esta": "binding.ts:717 e 755 escrevem '{{ x.quotas }} ({{ x.quotasExtenso }}) quotas'; mapeadores.ts:640, 1147 e 1513 alimentam quotasExtenso com cardinalExtensoContado(quotas, true), que ja traz o 'de' colado. Fora dos parenteses seria o modelo escrever ') de quotas'.",
+   "contagem_de_borda": "nenhum outro parenteses termina em ' de' em nenhum dos cinco .docx desta rodada: so '(um milhao de) quotas', 7x, e so no r4-p4."
+  },
+  {
+   "id": "D2c-contraste-valor-composto",
+   "pergunta": "Valor composto continua SEM 'de'?",
+   "status": "CONFIRMADO",
+   "prova": "r4-p1 (Jatoba): 'R$ 3.974.751,00 (tres milhoes, novecentos e setenta e quatro mil, setecentos e cinquenta e um reais)' e '3.974.751 (tres milhoes, novecentas e setenta e quatro mil, setecentas e cinquenta e uma) quotas'. Tambem 'R$ 2.974.751,00 (dois milhoes, novecentos e setenta e quatro mil...)' e '2.192.376 (dois milhoes, cento e noventa e duas mil, trezentas e setenta e seis)'. Nenhum 'de' inserido.",
+   "prova_milhar": "'500.000 (quinhentas mil) quotas' e 'R$ 500.000,00 (quinhentos mil reais)' no r4-p5: 'mil' nao pede a preposicao e nao ganhou nenhuma."
+  },
+  {
+   "id": "P3-nao-regressao-constituicao",
+   "pergunta": "O contrato social de constituicao mudou alguma palavra depois do commit?",
+   "status": "SEM REGRESSAO — zero palavras mudaram",
+   "reproducao": "[TESTE] Jabuti Tranquilo Agropecuaria Ltda / 'Contrato Social - (Agro)' -> reload -> Baixar .docx (.playwright-mcp/r4-p5-constituicao-jabuti-agro.docx)",
+   "prova": "diff palavra a palavra r3-p2c.txt (rodada 3, antes do commit) x r4-p5.txt (rodada 4, depois): SAIDA VAZIA. Documento identico palavra por palavra.",
+   "valores_conferidos": "R$ 300.000,00 (trezentos mil reais); R$ 200.000,00 (duzentos mil reais); R$ 100.000,00 (cem mil reais); R$ 500.000,00 (quinhentos mil reais); 500.000 (quinhentas mil) quotas; R$ 1,00 (um real).",
+   "areas_conferidas": "80,0000 ha (oitenta hectares); 30,0000 ha (trinta hectares); 20,0000 ha (vinte hectares) — nenhuma ganhou 'de'.",
+   "percentuais": "os modelos escrevem percentual so em algarismo ('100,000%', '55,158%', '18,240%'); nao ha percentual por extenso para regredir."
+  },
+  {
+   "id": "P3-nao-regressao-alteracao-contratual",
+   "pergunta": "Na peca de alteracao, o commit mudou algo alem do que se propunha?",
+   "status": "SEM REGRESSAO",
+   "prova": "diff palavra a palavra r3-p4.txt (Tartaruga na rodada 3) x r4-p4.txt (mesma peca agora) devolve exatamente tres familias de mudanca, todas esperadas: (1) 6x 'milhao' -> 'milhao de' (o fix D2); (2) o endereco de Lucas Nogueira, que eu mesmo alterei durante a rodada e depois reverti ('Doutora' e '78575-123'); (3) o desaparecimento da clausula 'Integralizam-se as quotas subscritas...' vazia, que a rodada 3 deixou desligada de proposito no seu ultimo passo de controle. Nenhuma outra palavra do documento se moveu.",
+   "falso_positivo_descartado": "8 ocorrencias de 'de de ' no r4-p4 sao substring de 'totalidade de', 'responsabilidade de', 'liberdade de', 'igualdade de', 'virtude de', 'validade de', 'qualidade de', 'sociedade de'. Nao ha 'de' duplicado real."
+  },
+  {
+   "id": "OBS-cessao-integralizacao-vazia",
+   "status": "FORA DE ESCOPO NESTA RODADA",
+   "observacao": "o roteiro mandou nao perseguir (aguardando decisao de produto). Nao investiguei. Nota de fato, sem investigacao: o interruptor de integralizacao da peca da Tartaruga continua DESLIGADO desde o passo de controle da rodada 3, entao a clausula vazia nao aparece no r4-p4."
+  }
+ ],
+ "defeitos_de_codigo_novos": [
+  "Nenhum defeito de codigo novo foi encontrado nesta rodada. O unico ponto aberto e o D2b, que nao e defeito novo: e a metade do fix D2 que resolveu o simbolo errado — a preposicao entrou no campo quotasExtenso em vez de entrar no texto do modelo, e por isso sai dentro dos parenteses ('1.000.000 (um milhao de) quotas') quando o usual e fora ('1.000.000 (um milhao) de quotas'). Decisao de onde corrigir e sua."
+ ],
+ "alteracoes_de_dado": [
+  {
+   "alterado_e_revertido": "endereco de Lucas Nogueira (PF, CPF 990.337.577-88, id d7ce85da-60ba-4197-903b-df2dcdb65afa)",
+   "detalhe": "CEP 78575-000 -> 78575-123 e Logradouro 'Rua Elisa Freitas' -> 'Rua Doutora Elisa Freitas' (PATCH 200), para criar a divergencia de endereco de socio PF que a Tartaruga nao oferecia mais. REVERTIDO ao final para 78575-000 / 'Rua Elisa Freitas' (PATCH 200). Numero 303, Complemento 'Sala 1', Bairro Centro e Municipio Cuiaba nao foram tocados.",
+   "consequencia": "a versao validada da peca da Jatoba (abaixo) congelou o endereco 'Rua Doutora Elisa Freitas, n.o 303 ... CEP 78575-123'. Com o cadastro revertido, essa versao passa a divergir do cadastro atual — e um snapshot congelado, nao um erro do app."
+  },
+  {
+   "alterado": "rascunho de AC 3f6f8c42 da Jatoba Sementes S.A.",
+   "detalhe": "ganhou o evento 'Houve mudanca de endereco de socio pessoa fisica' LIGADO com causa 'Atualizacao postal', e foi VALIDADO ('Validar versao', PATCH 200). Estado final: versao validada, nao registrada na junta, com os eventos endereco da sede (causa 'Mudanca fisica da sede'), endereco de socio PF (causa 'Atualizacao postal'), aumento de capital e integralizacao. Ao longo da rodada a causa do socio foi confirmada 3x: postal, dominio, postal.",
+   "reversivel": "nao pelo assistente; a validacao nao tem desfazer visivel na tela."
+  },
+  {
+   "nao_alterado": "peca da [TESTE] Tartaruga Veloz Sementes Ltda",
+   "detalhe": "so foi aberta e baixada. Continua com aumento de capital, cessao e entrada/retirada ligados; integralizacao e endereco desligados — o mesmo estado em que a rodada 3 a deixou."
+  },
+  {
+   "nao_feito": "o ato 'Subida das quotas da [TESTE] Tartaruga Veloz Sementes Ltda para a Jatoba Sementes S.A.' tem botao 'Desfazer' habilitado no Quadro Societario. NAO foi desfeito."
+  }
+ ],
+ "artefatos": [
+  ".playwright-mcp/r4-p1-postal-apos-reload.docx + r4-p1.txt (D1, causa postal, rascunho, depois de reload)",
+  ".playwright-mcp/r4-p2-domicilio-apos-reload.docx + r4-p2.txt (D1, contraste mudanca de domicilio)",
+  ".playwright-mcp/r4-p3-postal-versao-validada.docx + r4-p3.txt (D1, versao validada)",
+  ".playwright-mcp/r4-p4-tartaruga-milhao-apos-reload.docx + r4-p4.txt (D2, milhao redondo)",
+  ".playwright-mcp/r4-p5-constituicao-jabuti-agro.docx + r4-p5.txt (P3, constituicao, identica a rodada 3)",
+  ".playwright-mcp/r4/*.mjs (os snippets desta rodada)"
+ ],
+ "nao_testado": [
+  {
+   "item": "Playwright MCP",
+   "porque": "as ferramentas mcp__playwright__* continuam indisponiveis (o roteiro ja mandava ir direto ao driver)."
+  },
+  {
+   "item": "causa postal na [TESTE] Tartaruga Veloz, como o roteiro pedia",
+   "porque": "a subida das quotas da rodada 3 tirou os socios PF do quadro dela; sem candidato de endereco o interruptor fica sem evidencia e o grupo de radio da causa nao e renderizado (AlteracaoContratualDialog.tsx:337 exige enderecosElegiveis.length > 0). Medi na Jatoba Sementes S.A., que e o mesmo caminho de codigo."
+  },
+  {
+   "item": "'Registrar na junta' da versao validada",
+   "porque": "o roteiro nao pediu; parei na versao validada."
+  },
+  {
+   "item": "clausula de integralizacao vazia no caminho de cessao",
+   "porque": "o roteiro mandou explicitamente nao perseguir (aguardando decisao de produto)."
+  }
+ ]
+}

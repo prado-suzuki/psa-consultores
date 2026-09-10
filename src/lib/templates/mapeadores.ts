@@ -1,4 +1,4 @@
-import { cardinalExtenso, cardinalExtensoContado, formatarArea, formatarInteiro, formatarPercentual, formatarValor, letraAlinea, romano, valorExtenso, type UnidadeArea } from './extenso';
+import { cardinalExtenso, formatarArea, formatarInteiro, formatarPercentual, formatarValor, letraAlinea, romano, valorExtenso, type UnidadeArea } from './extenso';
 import { capitalDeQuotas, quotasDeValor, quotasDoSocio, VALOR_NOMINAL_QUOTA } from './capital';
 import { comarcaComplementar, CARTORIO_SEM_NOME, nomeDoCartorio } from './cartorio';
 import { marcarSintetizados } from './sintetizado';
@@ -637,7 +637,7 @@ export function mapearSocio(s: SocioParaMapear): ItemLista {
   if (quotas != null) {
     campos.quotas = formatarInteiro(quotas);
     // Feminino: o extenso conta QUOTAS ("quinhentas quotas"), como no registro.
-    campos.quotasExtenso = cardinalExtensoContado(quotas, true);
+    campos.quotasExtenso = cardinalExtenso(quotas, true);
     // O valor integralizado SEGUE as quotas: é aqui que a diferença de centavos
     // entre o valor contábil e a quota indivisível tem destino declarado.
     const valorDasQuotas = capitalDeQuotas(quotas);
@@ -1144,7 +1144,7 @@ function camposDoAporte(alinea: string, quotas: number | null, valor: number | n
   if (quotas != null) {
     out.quotas = formatarInteiro(quotas);
     // Feminino: o extenso conta QUOTAS ("quinhentas quotas"), como no registro.
-    out.quotasExtenso = cardinalExtensoContado(quotas, true);
+    out.quotasExtenso = cardinalExtenso(quotas, true);
   }
   if (valor != null) {
     out.valor = formatarValor(valor);
@@ -1510,7 +1510,7 @@ export function mapearCessoes(cessoes: CessaoParaMapear[]): ItemLista[] {
         ordemRomana: romano(i + 1).toLowerCase(),
         quotas: formatarInteiro(quotas),
         // Feminino: o extenso conta QUOTAS ("quinhentas quotas"), como no registro.
-        quotasExtenso: cardinalExtensoContado(quotas, true),
+        quotasExtenso: cardinalExtenso(quotas, true),
         valor: formatarValor(c.valor),
         valorExtenso: valorExtenso(c.valor),
       },
