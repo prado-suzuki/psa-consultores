@@ -1,0 +1,14 @@
+# O fim de linha dos .sql e LF em qualquer maquina.
+#
+# Os arquivos de supabase/migrations ja estao como LF no blob, e em Linux/macOS nada
+# muda aqui. O que isto conserta e o checkout no Windows: com `core.autocrlf=true`
+# (default do instalador do Git de la) o disco recebe CRLF, e o `git status` nao
+# acusa nada porque o git normaliza antes de comparar. Quem le o byte cru do disco
+# via, sim: foi o que fez o `bun run db:sync` acusar 212 de 221 migrations como
+# "alteradas" numa maquina da equipe em 08/09/2026.
+#
+# O `db-sync.ts` ja tolera os dois fins de linha no hash (ver `shaConteudo`). Isto
+# aqui e a outra ponta: em vez de tolerar, o disco nasce LF. Numa copia que ja tem
+# CRLF gravado, aplicar isto pede uma renormalizacao:
+#   git add --renormalize . && git status
+*.sql text eol=lf

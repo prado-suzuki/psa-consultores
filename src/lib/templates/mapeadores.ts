@@ -172,7 +172,10 @@ export function mapearPessoa(row: PessoaRow): Campos {
   set('endereco', enderecoProsa(row));
 
   // A origem sobrevive aos spreads a jusante (derivarCampos, mapearSocio,
-  // edição manual na Gerar) — é o que liga o valor na prévia ao cadastro.
+  // edição manual na Gerar) e ao JSON do snapshot — é o que liga o valor na
+  // prévia ao cadastro e o que dá identidade estável à pessoa dentro da peça.
+  // NÃO existe `set('id', row.id)` aqui: identidade se grava num lugar só
+  // (`comOrigem`, em origem.ts), senão o oitavo mapeador esquece.
   return comOrigem(derivarCampos('pessoa', publicarOpcionais('pessoa', out)), { tipo: 'pessoa', id: row.id });
 }
 
@@ -299,6 +302,12 @@ export function mapearSociedade(
   set('objeto', row.objeto_social);
   set('sede', enderecoProsa(row));
   set('sedeEndereco', [row.endereco_logradouro, numeroProsa(row.endereco_numero)].filter(Boolean).join(', '));
+  // As três partes que `sedeEndereco` funde: é por elas que a alteração
+  // contratual compara a sede registrada com a atual campo a campo, em vez de
+  // adivinhar numa prosa o que mudou (ver alteracaoPorEventos.ts).
+  set('sedeLogradouro', row.endereco_logradouro);
+  set('sedeNumero', row.endereco_numero);
+  set('sedeComplemento', row.endereco_complemento);
   set('sedeBairro', row.endereco_bairro);
   set('sedeMunicipio', row.endereco_municipio);
   set('sedeUf', row.endereco_uf);
@@ -570,7 +579,7 @@ export function mapearCartorio(row: CartorioRow): Campos {
   set('nome', row.nome_completo);
   set('comarca', row.comarca);
   set('uf', ufPorExtenso(row.uf));
-  return derivarCampos('cartorio', out);
+  return comOrigem(derivarCampos('cartorio', out), { tipo: 'cartorio', id: row.id });
 }
 
 // --- Itens de lista (seções {{#socios}} / {{#administradores}}) ---------------
@@ -719,7 +728,7 @@ export interface MatriculaIntegralizacao extends MatriculaParaMapear {
 
 /** Participação derivada de uma pessoa no quadro da empresa PR (visão calculada). */
 export interface ParticipacaoPR {
-  /** null para titular legado sem pessoa vinculada (agregado pela denominação). */
+  /** null para titular legado sem pessoa vinculada: exige conciliação. */
   pessoaId: string | null;
   denominacao: string;
   tipoPessoa: string | null;
@@ -810,14 +819,15 @@ export function calcularParticipacoesPR(matriculas: MatriculaIntegralizacao[]): 
     tipoPessoa: string | null; cpfCnpj: string | null;
     cent: number;
   }
-  const porChave = new Map<string, Acumulado>();
+  const porChave = new Map<string | TitularParaMapear, Acumulado>();
 
   for (const m of matriculas) {
     const centDe = ratearMatriculaEntreTitulares(m);
     if (centDe == null) continue;
 
     for (const t of centDe.keys()) {
-      const chave = t.pessoaId ?? `nome:${t.denominacao ?? ''}`;
+      // Sem vínculo, conserva a linha separada até conciliação; nome não é id.
+      const chave = t.pessoaId || t;
       const atual = porChave.get(chave);
       if (atual) {
         atual.cent += centDe.get(t) ?? 0;
@@ -1045,12 +1055,26 @@ export function mapearIntegralizacoes(
     for (const id of ['quotas', 'quotasExtenso', 'vlrTotal', 'vlrTotalExtenso']) {
       socioCampos[id] = socioCampos[id] ?? '';
     }
+    const aportesDoAto = montarAportesDoSocio(aportesDoSocio, doSocio, imoveis);
+    // O cabeçalho anuncia o total DESTE ato, que é a soma das alíneas logo
+    // abaixo dele — e não o `vlrTotal` que `mapearSocio` trouxe do quadro.
+    //
+    // Na constituição os dois coincidem, e foi por isso que a diferença passou
+    // despercebida. Num aumento posterior não coincidem: medido no app em
+    // 09/09/2026, a peça saía "pelo sócio OTÁVIO PANTANAL, no valor total de
+    // R$ 500.000,00" (o total dele DEPOIS do aumento) sobre uma única alínea de
+    // R$ 200.000,00 (o aporte do ato). O documento se contradizia sozinho.
+    const totalDoAto = somaDasAlineas(aportesDoAto);
+    if (totalDoAto != null) {
+      socioCampos.vlrTotal = formatarValor(totalDoAto);
+      socioCampos.vlrTotalExtenso = valorExtenso(totalDoAto);
+    }
     itens.push({
       socio: socioCampos,
       sePF: base.sePF,
       sePJ: base.sePJ,
       imoveis,
-      aportes: montarAportesDoSocio(aportesDoSocio, doSocio, imoveis),
+      aportes: aportesDoAto,
     });
   }
 
@@ -1082,6 +1106,39 @@ export function matriculasDescritasNasIntegralizacoes(
 }
 
 /** Os campos comuns a toda alínea de aporte, seja qual for a forma. */
+/**
+ * O número por trás de um valor que ESTE módulo formatou ("1.234,56" → 1234.56).
+ *
+ * Só serve para reler a própria saída, e é por isso que pode ser simples: o
+ * formato é o de `formatarValor`, não entrada de usuário.
+ */
+function numeroDeValorBR(valor: unknown): number | null {
+  if (typeof valor !== 'string' || !valor.trim()) return null;
+  const n = Number(valor.replace(/\./g, '').replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * A soma das alíneas de um sócio, quando alguma delas tem valor.
+ *
+ * É o número que o CABEÇALHO da integralização tem de anunciar: a cláusula diz
+ * "integralizam-se as quotas subscritas, nos termos e pelos valores abaixo" e
+ * abre com "no valor total de R$ X:", seguido das alíneas. X é a soma delas, por
+ * definição. Devolve null quando nenhuma alínea tem valor, e aí o cabeçalho fica
+ * com o que tinha.
+ */
+function somaDasAlineas(aportes: readonly ItemLista[]): number | null {
+  let total = 0;
+  let achou = false;
+  for (const item of aportes) {
+    const n = numeroDeValorBR((item.aporte as Campos | undefined)?.valor);
+    if (n == null) continue;
+    total += n;
+    achou = true;
+  }
+  return achou ? total : null;
+}
+
 function camposDoAporte(alinea: string, quotas: number | null, valor: number | null): Campos {
   const out: Campos = { alinea };
   if (quotas != null) {
@@ -1346,6 +1403,95 @@ export function vocabularioDaRetirada(retirantes: readonly PessoaRow[]): Campos 
   };
 }
 
+/**
+ * Itens da seção {{#requalificados}}: os sócios que esta alteração requalifica.
+ *
+ * Recebe CAMPOS já compostos (o estado proposto: base + o endereço aprovado), e
+ * não linhas de `pessoa` do banco. A diferença é a regra inteira desta frente —
+ * a resolução publica o que o consultor conferiu, não o cadastro de hoje.
+ */
+export function mapearRequalificados(pessoas: readonly Campos[]): ItemLista[] {
+  return pessoas.map((campos, i) => ({
+    requalificado: derivarCampos('pessoa', campos),
+    ordem: String(i + 1),
+    ordemRomana: romano(i + 1).toLowerCase(),
+  }));
+}
+
+/** Por que a qualificação mudou, na abertura da resolução. */
+export type CausaDaRequalificacao = 'mudanca_de_domicilio' | 'atualizacao_postal';
+
+const ABERTURA_DA_CAUSA: Record<CausaDaRequalificacao, string> = {
+  // Sem prefixo: a mudança de domicílio dispensa justificar-se, e é assim que a
+  // 1ª alteração da MMS Participações abre ("Altera-se os endereços dos sócios…").
+  mudanca_de_domicilio: '',
+  // Com prefixo, porque o CEP mudou sem ninguém sair do lugar, e o instrumento
+  // que não diz isso parece afirmar mudança de domicílio. É a abertura literal
+  // da 7ª da GMS e da 2ª da ITFD Participações.
+  atualizacao_postal:
+    'Em decorrência da atualização do Código de Endereçamento Postal — CEP, ',
+};
+
+/**
+ * A causa que vale para ESTA peça, na ordem de quem manda.
+ *
+ * A regra é uma só: quem manda é o que a peça GRAVOU, não o que a tela tem em
+ * mãos. O estado do assistente é rascunho de uma decisão ainda não tomada, e ele
+ * volta ao default a cada recarga da página. Ler dele fazia a resolução perder a
+ * abertura "Em decorrência da atualização do CEP" assim que alguém recarregava a
+ * tela, e o .docx sair sem ela mesmo com a causa postal gravada e o radio
+ * marcado: o texto discordava da escolha registrada na própria peça.
+ *
+ * `erro_material` não é gerável (`confirmarPropostaAC` recusa); se aparecer aqui
+ * é peça legada, e a abertura neutra é a leitura conservadora.
+ */
+export function causaDaRequalificacaoVigente(
+  ...candidatas: readonly (string | null | undefined)[]
+): CausaDaRequalificacao {
+  const escolhida = candidatas.find((c) => !!c);
+  return escolhida === 'atualizacao_postal' ? 'atualizacao_postal' : 'mudanca_de_domicilio';
+}
+
+/**
+ * As palavras da resolução de qualificação que concordam com QUANTOS e QUAIS
+ * sócios mudaram de endereço, e com a causa escolhida.
+ *
+ * Mesmo contrato do `vocabularioDaRetirada`, e pela mesma razão: o bloco imprime,
+ * o código concorda. Com a lista vazia os cinco campos saem VAZIOS, e não no
+ * plural — é o que faz `motivoDeDescarte` derrubar o bloco por 'lista-vazia' em
+ * vez de publicar "altera-se a qualificação dos sócios  , para fazer constar".
+ */
+export function vocabularioDaRequalificacao(
+  pessoas: readonly Readonly<Record<string, string | null | undefined>>[],
+  causa: CausaDaRequalificacao = 'mudanca_de_domicilio',
+): Campos {
+  if (pessoas.length === 0) {
+    return { causa: '', verbo: '', aQualificacao: '', titulo: '', objeto: '' };
+  }
+  const umSo = pessoas.length === 1;
+  const todasFemininas = pessoas.every(
+    (p) => generoDeConcordancia(
+      p.genero === 'F' || p.genero === 'M' ? p.genero : null,
+      p.tipoPessoa ?? null,
+    ) === 'F',
+  );
+  const abertura = ABERTURA_DA_CAUSA[causa] ?? '';
+  const verbo = umSo ? 'altera-se' : 'alteram-se';
+  return {
+    causa: abertura,
+    // A frase começa no verbo quando não há abertura; com ela, o verbo é meio de
+    // período e vai em minúscula.
+    verbo: abertura ? verbo : verbo.charAt(0).toLocaleUpperCase('pt-BR') + verbo.slice(1),
+    aQualificacao: umSo ? 'a qualificação' : 'as qualificações',
+    titulo: umSo
+      ? (todasFemininas ? 'da sócia' : 'do sócio')
+      : (todasFemininas ? 'das sócias' : 'dos sócios'),
+    objeto: umSo
+      ? (todasFemininas ? 'o atual endereço desta' : 'o atual endereço deste')
+      : (todasFemininas ? 'os atuais endereços destas' : 'os atuais endereços destes'),
+  };
+}
+
 export function mapearCessoes(cessoes: CessaoParaMapear[]): ItemLista[] {
   return cessoes.map((c, i) => {
     const cedente = mapearPessoa(c.cedente);
@@ -1405,7 +1551,11 @@ export function mapearAdministrador(a: AdministradorParaMapear): ItemLista {
 
 /** Pessoa que o consultor escolheu a dedo para a seção {{#partes}}, já mapeada. */
 export interface ParteSelecionada {
-  /** Id da pessoa no cadastro — a chave do mapa de quotas. */
+  /**
+   * Id da pessoa no cadastro. Serve à ORDENAÇÃO (chave do mapa de quotas e
+   * desempate de homônimos), não à identidade do item: quem carrega a identidade
+   * é `campos`, que sai de `mapearPessoa` já com a origem (ver origem.ts).
+   */
   id: string;
   /** Campos do vocabulário `pessoa` (de `mapearRegistro('pessoa', row)`). */
   campos: Campos;
@@ -1452,8 +1602,9 @@ export function mapearPartesSelecionadas(
   });
 
   return ordenadas.map((parte, i) => ({
-    // O spread preserva a proveniência da pessoa (viaja como Symbol — ver
-    // origem.ts): o valor continua clicável na prévia.
+    // O spread preserva a proveniência da pessoa (chaves reservadas — ver
+    // origem.ts): o valor continua clicável na prévia e a identidade viaja para
+    // o snapshot sem esta função repetir o `id` por conta própria.
     parte: {
       ...parte.campos,
       ordem: String(i + 1),
@@ -1529,8 +1680,17 @@ function numeroBRDeTexto(bruto: string | null): string {
   return Number.isFinite(n) ? n.toLocaleString('pt-BR', { maximumFractionDigits: 4 }) : bruto;
 }
 
-/** Um vértice → item da seção {{#vertices}} ({ vertice: { codVertice, longitude, … } }). */
-export function mapearVertice(v: GeorefVerticeRow): ItemLista {
+/**
+ * Um vértice → item da seção {{#vertices}} ({ vertice: { codVertice, longitude, … } }).
+ *
+ * `idGeoref` (o `id_georef` do cabeçalho que trouxe estes vértices) existe para
+ * a identidade: o vértice é a única entidade do documento que NÃO tem linha de
+ * cadastro — vem do SIGEF pelo BigQuery —, e sozinho ele não sabe de qual
+ * memorial saiu. A chave é `<id_georef>:<código do vértice>`, que é o par que
+ * identifica a linha em `psa_osg.georef_detalhe`; sem cabeçalho (chamada que só
+ * tem a lista) o item entra sem origem, como qualquer dado sem procedência.
+ */
+export function mapearVertice(v: GeorefVerticeRow, idGeoref?: string | null): ItemLista {
   const { out, set } = coletor();
   // Coordenadas/azimute/altitude/distância ficam FIÉIS ao PDF (GMS, vírgula decimal).
   set('codVertice', v.cod_vertice);
@@ -1545,7 +1705,8 @@ export function mapearVertice(v: GeorefVerticeRow): ItemLista {
   // condicional/célula não derrubar a prévia.
   const vertice = derivarCampos('vertice', out);
   for (const c of camposDaEntidade('vertice')) vertice[c.id] = vertice[c.id] ?? '';
-  return { vertice };
+  const chave = v.cod_vertice || String(v.sequencia);
+  return { vertice: idGeoref && chave ? comOrigem(vertice, { tipo: 'vertice', id: `${idGeoref}:${chave}` }) : vertice };
 }
 
 /**

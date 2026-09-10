@@ -95,6 +95,40 @@ export function cardinalExtenso(valor: number, feminino = false): string {
   return juntarGrupos(partes);
 }
 
+/**
+ * O extenso termina num SUBSTANTIVO de escala ("um milhão", "dois bilhões")?
+ *
+ * Importa porque, quando termina, o que vem contado depois pede a preposição:
+ * "um milhão DE reais", "dois milhões DE quotas". Composto não pede, porque a
+ * escala deixa de ser a última palavra ("três milhões, novecentos e setenta e
+ * quatro mil, setecentos e cinquenta e um reais"). "Mil" também não, porque não
+ * é substantivo: "dois mil reais".
+ */
+export function terminaEmEscala(valor: number): boolean {
+  const n = Math.floor(Math.abs(valor));
+  return n >= 1_000_000 && n % 1_000_000 === 0;
+}
+
+/**
+ * Cardinal por extenso já com a preposição que o substantivo contado exige.
+ *
+ * Ex.: 1.000.000 → "um milhão de"; 500 → "quinhentas".
+ *
+ * Hoje só `valorExtenso` a usa, e por um motivo de PARÊNTESES: em
+ * "R$ 1.000.000,00 (um milhão de reais)" o substantivo está dentro da glosa, e a
+ * preposição acompanha. Nas QUOTAS o substantivo está fora
+ * ("1.000.000 ({{ quotasExtenso }}) quotas"), e pôr o "de" aqui produzia
+ * "1.000.000 (um milhão de) quotas", que fecha a glosa numa preposição solta —
+ * pior que o defeito original. A forma correta é "1.000.000 (um milhão) de
+ * quotas", com o "de" fora do parêntese, e quem escreve fora do parêntese é o
+ * MODELO: nove blocos do catálogo e dois trechos de `binding.ts`. Fica anotado
+ * como pendência de redação, e não resolvido aqui no símbolo errado.
+ */
+export function cardinalExtensoContado(valor: number, feminino = false): string {
+  const texto = cardinalExtenso(valor, feminino);
+  return terminaEmEscala(valor) ? `${texto} de` : texto;
+}
+
 function listaComE(itens: string[]): string {
   if (itens.length === 1) return itens[0];
   return `${itens.slice(0, -1).join(', ')} e ${itens[itens.length - 1]}`;
@@ -106,7 +140,8 @@ export function valorExtenso(valor: number): string {
   const reais = Math.floor(total / 100);
   const centavos = total % 100;
   const partes: string[] = [];
-  if (reais > 0) partes.push(`${cardinalExtenso(reais)} ${reais === 1 ? 'real' : 'reais'}`);
+  // "um milhão de reais", não "um milhão reais" (ver terminaEmEscala).
+  if (reais > 0) partes.push(`${cardinalExtensoContado(reais)} ${reais === 1 ? 'real' : 'reais'}`);
   if (centavos > 0) partes.push(`${cardinalExtenso(centavos)} ${centavos === 1 ? 'centavo' : 'centavos'}`);
   if (partes.length === 0) return 'zero reais';
   return partes.join(' e ');

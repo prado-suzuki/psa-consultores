@@ -14,7 +14,7 @@ describe('ORGAOS_GOVERNANCA_PADRAO', () => {
     expect(ORGAOS_GOVERNANCA_PADRAO.map((o) => o.nome)).toEqual([
       'Reunião de Sócios',
       'Conselho de Administração',
-      'Diretor Executivo',
+      'Diretoria Executiva',
     ]);
     expect(ORGAOS_GOVERNANCA_PADRAO.every((o) => o.entraNoContrato)).toBe(true);
   });
@@ -26,7 +26,7 @@ describe('mesmaChaveDeOrgao', () => {
   });
 
   it('não confunde órgãos diferentes', () => {
-    expect(mesmaChaveDeOrgao('Diretor Executivo', 'Diretoria')).toBe(false);
+    expect(mesmaChaveDeOrgao('Diretoria Executiva', 'Diretoria')).toBe(false);
   });
 });
 
@@ -37,7 +37,7 @@ describe('padroesFaltando', () => {
 
   it('acrescenta só o que falta, e não o pacote inteiro', () => {
     const faltam = padroesFaltando(['Reunião de Sócios', 'Gerentes corporativos']);
-    expect(faltam.map((o) => o.nome)).toEqual(['Conselho de Administração', 'Diretor Executivo']);
+    expect(faltam.map((o) => o.nome)).toEqual(['Conselho de Administração', 'Diretoria Executiva']);
   });
 
   it('clicar de novo com tudo cadastrado não devolve nada', () => {
@@ -48,12 +48,12 @@ describe('padroesFaltando', () => {
   it('o cliente que apagou o Conselho de propósito recebe só ele de volta se pedir', () => {
     // Nem todo cliente tem Conselho: a consultoria avisou que alguns só têm
     // Diretoria. O botão não força, apenas oferece o que falta.
-    const faltam = padroesFaltando(['Reunião de Sócios', 'Diretor Executivo']);
+    const faltam = padroesFaltando(['Reunião de Sócios', 'Diretoria Executiva']);
     expect(faltam.map((o) => o.nome)).toEqual(['Conselho de Administração']);
   });
 
   it('reconhece o padrão já cadastrado com caixa diferente', () => {
-    expect(padroesFaltando(['reunião de sócios', 'CONSELHO DE ADMINISTRAÇÃO', 'Diretor Executivo']))
+    expect(padroesFaltando(['reunião de sócios', 'CONSELHO DE ADMINISTRAÇÃO', 'Diretoria Executiva']))
       .toEqual([]);
   });
 });
@@ -97,7 +97,7 @@ describe('ehOrgaoPadrao', () => {
 describe('hierarquiaArrumada', () => {
   it('padrões no topo na ordem oficial, cliente depois', () => {
     expect(hierarquiaArrumada([
-      'Reunião de Sócios', 'Conselho de Administração', 'Diretor Executivo', 'Gerentes corporativos',
+      'Reunião de Sócios', 'Conselho de Administração', 'Diretoria Executiva', 'Gerentes corporativos',
     ])).toBe(true);
   });
 
@@ -111,13 +111,13 @@ describe('hierarquiaArrumada', () => {
 
   it('dois padrões trocados entre si está errado', () => {
     expect(hierarquiaArrumada([
-      'Conselho de Administração', 'Reunião de Sócios', 'Diretor Executivo',
+      'Conselho de Administração', 'Reunião de Sócios', 'Diretoria Executiva',
     ])).toBe(false);
   });
 
   it('só parte dos padrões cadastrada, e no topo, está certo', () => {
     // Nem todo cliente tem Conselho: a lista de dois é válida.
-    expect(hierarquiaArrumada(['Reunião de Sócios', 'Diretor Executivo', 'Gerente de Unidade'])).toBe(true);
+    expect(hierarquiaArrumada(['Reunião de Sócios', 'Diretoria Executiva', 'Gerente de Unidade'])).toBe(true);
   });
 
   it('lista sem nenhum padrão não está errada', () => {

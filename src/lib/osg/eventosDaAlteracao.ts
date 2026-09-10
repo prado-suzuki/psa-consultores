@@ -1,5 +1,5 @@
-import { digitosDe, type BaselineDaPeca } from './baselineDaPeca';
-import { quadroEm, type MovimentoDoLedger } from './projecaoQuadro';
+import { digitosDe, type BaselineDaPeca } from '@/lib/osg/baselineDaPeca';
+import { quadroEm, type MovimentoDoLedger } from '@/lib/osg/projecaoQuadro';
 
 // Os eventos da alteração contratual, DERIVADOS em vez de perguntados.
 //
@@ -69,9 +69,7 @@ export interface ArgsDaDerivacao {
    */
   baseline?: BaselineDaPeca | null;
   /**
-   * CPF/CNPJ de cada pessoa do quadro vivo. O snapshot não congela o `pessoa.id`,
-   * então o diff de quadro casa por documento, e é aqui que o lado vivo ganha a
-   * mesma chave.
+   * CPF/CNPJ do cadastro, apenas para conciliar snapshots legados sem pessoa.id.
    */
   cpfCnpjPorPessoaId?: Readonly<Record<string, string>>;
   /**
@@ -119,20 +117,14 @@ export function derivarEventosDaAlteracao(args: ArgsDaDerivacao): EventoDerivado
 
   const eventos: EventoDerivado[] = [];
 
-  // 1. Endereço da sede: não sai do livro, sai do cadastro da PJ.
-  const doEndereco = mudancas.filter(
-    (m) =>
-      m.entityType === 'pessoa' &&
-      (!pjPessoaId || m.entityId === pjPessoaId) &&
-      m.campos.some((c) => c.startsWith('endereco_')),
-  );
-  if (doEndereco.length > 0) {
-    eventos.push({
-      flagNome: 'evento_alteracao_endereco',
-      evidencia: 'o endereço da sede mudou no cadastro depois do documento registrado',
-      movimentoIds: [],
-    });
-  }
+  // 1. Endereço da sede: NÃO sai daqui. A janela de audit_logs só diz que
+  //    alguém editou `endereco_*` depois do registro, e editar A para B e voltar
+  //    a A continuava acendendo o evento. Quem responde é a comparação do
+  //    snapshot registrado com o cadastro de hoje, campo a campo
+  //    (`analisarAlteracao`, em alteracaoPorEventos.ts), que traz antes/depois e
+  //    sabe dizer quando a base não basta. `pjPessoaId` segue no contrato porque
+  //    o hook o envia; aqui ele não decide mais nada.
+  void pjPessoaId;
 
   // 2. Aumento de capital: do capital que a peça anterior PUBLICOU para o de
   //    hoje. Sem baseline (peça que não substitui ninguém, ou snapshot antigo sem
@@ -184,16 +176,27 @@ export function derivarEventosDaAlteracao(args: ArgsDaDerivacao): EventoDerivado
   //    hoje, e não de um tipo de movimento: retirada é efeito de uma cessão,
   //    ingresso pode vir tanto de cessão quanto de aporte.
   //
-  //    O casamento é por CPF/CNPJ, porque o snapshot não congela o `pessoa.id`.
-  //    Baseline inutilizável, ou pessoa do quadro vivo sem documento, NÃO deriva
-  //    o evento: o consultor liga na mão. Inventar ingresso é pior que calar.
-  const antes = baseline?.cpfCnpjDosSocios ? new Set(baseline.cpfCnpjDosSocios) : null;
-  const doQuadroVivo = quadroEm(daEmpresa, empresaPessoaId)
-    .map((l) => digitosDe(cpfCnpjPorPessoaId[l.pessoaId]));
-  const depois = new Set(doQuadroVivo);
-  const comparavel = antes != null && doQuadroVivo.every((cpfCnpj) => !!cpfCnpj) ? antes : null;
-  const entraram = comparavel ? [...depois].filter((d) => !comparavel.has(d)) : [];
-  const sairam = comparavel ? [...comparavel].filter((d) => !depois.has(d)) : [];
+  //    Id é identidade; CPF corrigido não é entrada/saída. No legado, só se
+  //    concilia o quadro anterior com os formalizados se houver correspondência
+  //    completa e unívoca. O diff então usa os IDs do livro, nunca nomes ou uma
+  //    diferença de CPF. Sem conciliação, o consultor precisa resolver o legado.
+  const quadroVivo = quadroEm(daEmpresa, empresaPessoaId);
+  const depois = new Set(quadroVivo.map((l) => l.pessoaId));
+  let antes = baseline?.pessoaIdsDosSocios ? new Set(baseline.pessoaIdsDosSocios) : null;
+  if (!antes && baseline?.cpfCnpjDosSocios && pendentes.length > 0) {
+    const formalizados = quadroEm(daEmpresa.filter((m) => m.documentoGeradoId), empresaPessoaId);
+    const documentosAntes = formalizados.map((l) => digitosDe(cpfCnpjPorPessoaId[l.pessoaId]));
+    const documentosDepois = quadroVivo.map((l) => digitosDe(cpfCnpjPorPessoaId[l.pessoaId]));
+    const publicados = new Set(baseline.cpfCnpjDosSocios);
+    const conciliado = documentosAntes.length === publicados.size
+      && new Set(documentosAntes).size === documentosAntes.length
+      && documentosAntes.every((cpf) => !!cpf && publicados.has(cpf))
+      && documentosDepois.every(Boolean)
+      && new Set(documentosDepois).size === documentosDepois.length;
+    if (conciliado) antes = new Set(formalizados.map((l) => l.pessoaId));
+  }
+  const entraram = antes ? [...depois].filter((id) => !antes.has(id)) : [];
+  const sairam = antes ? [...antes].filter((id) => !depois.has(id)) : [];
   if (entraram.length > 0 || sairam.length > 0) {
     const partes = [
       entraram.length > 0 ? `${entraram.length} ingresso(s)` : '',

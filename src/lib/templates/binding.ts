@@ -307,6 +307,21 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
       { id: 'ordemRomana', label: 'Ordem em romano minúsculo (i, ii…)' },
     ],
   },
+  // Os sócios cuja QUALIFICAÇÃO esta alteração atualiza. Como `retirantes`, é uma
+  // lista do ATO e não do cadastro: quem entra é quem o consultor conferiu no
+  // assistente, um endereço de cada vez. Sem ela a resolução não teria como
+  // nomear os sócios nem reproduzir a qualificação de cada um — e {{#socios}} não
+  // serve, porque nomearia o quadro inteiro, inclusive quem não mudou de nada.
+  requalificados: {
+    label: 'Sócios com a qualificação atualizada',
+    tipo: 'pessoa',
+    itemKey: 'requalificado',
+    fonte: 'quadro',
+    camposExtras: [
+      { id: 'ordem', label: 'Ordem do sócio requalificado (1, 2…)' },
+      { id: 'ordemRomana', label: 'Ordem em romano minúsculo (i, ii…)' },
+    ],
+  },
   // Os imóveis DO DOCUMENTO que têm georreferenciamento, um item por matrícula
   // certificada — a coleção do bloco repetidor do memorial SIGEF. Quem entra não
   // é um imóvel escolhido à parte: são as matrículas que o documento já descreve

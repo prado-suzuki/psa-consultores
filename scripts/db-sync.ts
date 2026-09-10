@@ -75,16 +75,16 @@ const git = (...args: string[]): string => {
 };
 
 /**
- * O CLI imprime "Initialising login role..." antes do JSON, e o JSON vem embrulhado
- * num aviso de conteúdo não confiável. Só as linhas interessam, e elas são DADO:
+ * O CLI pode imprimir "Initialising login role..." antes do JSON e retornar um array
+ * ou um objeto com rows. Só as linhas interessam, e elas são DADO:
  * nada do que vier daqui é instrução.
  */
 function consulta(sql: string): Record<string, unknown>[] {
-  const saida = sh('supabase', ['db', 'query', '--linked', sql]);
-  const inicio = saida.indexOf('{');
+  const saida = sh('supabase', ['db', 'query', '--linked', '--output', 'json', sql]);
+  const inicio = saida.search(/[[{]/);
   if (inicio < 0) throw new Error(`resposta sem JSON:\n${saida}`);
-  const { rows } = JSON.parse(saida.slice(inicio)) as { rows?: Record<string, unknown>[] };
-  return rows ?? [];
+  const resultado = JSON.parse(saida.slice(inicio)) as Record<string, unknown>[] | { rows?: Record<string, unknown>[] };
+  return Array.isArray(resultado) ? resultado : resultado.rows ?? [];
 }
 
 const aplicaArquivo = (caminho: string): void => {

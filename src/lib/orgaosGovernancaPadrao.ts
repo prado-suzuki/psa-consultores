@@ -32,7 +32,7 @@ export interface OrgaoPadrao {
 export const ORGAOS_GOVERNANCA_PADRAO: readonly OrgaoPadrao[] = [
   { nome: 'Reunião de Sócios', entraNoContrato: true },
   { nome: 'Conselho de Administração', entraNoContrato: true },
-  { nome: 'Diretor Executivo', entraNoContrato: true },
+  { nome: 'Diretoria Executiva', entraNoContrato: true },
 ] as const;
 
 /** Comparação de nome de órgão: sem espaço nas pontas e sem caixa. */
@@ -97,7 +97,7 @@ export function ehOrgaoPadrao(nome: string): boolean {
  *
  * Arrumada quer dizer: os padrão que existem ocupam as primeiras posições, na
  * ordem oficial, e os do cliente vêm depois. No contrato social a ordem dos três
- * é dada (Reunião de Sócios, Conselho de Administração, Diretor Executivo), e a
+ * é dada (Reunião de Sócios, Conselho de Administração, Diretoria Executiva), e a
  * consultoria confirmou em 03/09/2026 que órgão de cliente nunca fica acima
  * deles.
  *

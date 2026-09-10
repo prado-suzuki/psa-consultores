@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { OverrideBlocoDialog } from '@/components/equipe/osg/OverrideBlocoDialog';
 import { AlteracaoContratualDialog } from '@/components/equipe/osg/gerar/AlteracaoContratualDialog';
+import { RegistrarNaJuntaDialog } from '@/components/equipe/osg/gerar/RegistrarNaJuntaDialog';
 import { PessoaModal } from '@/components/equipe/osg/qualificacao-das-partes/PessoaModal';
 import { BemModal } from '@/components/equipe/osg/diagnostico-patrimonial/BemModal';
 import { MatriculaModal } from '@/components/equipe/osg/diagnostico-patrimonial/MatriculaModal';
@@ -30,7 +31,10 @@ export function GerarDocumentoDialogs({ controller }: { controller: GerarDocumen
   pendenciasDocumento, empresas, bindingsNaoSociedade, modeloPronto, passo1Estado, passo2Estado,
   alteracaoDialogOpen, setAlteracaoDialogOpen, respostasAlteracao, alternarRespostaAlteracao,
   confirmarAlteracao, salvandoAlteracao, flagsManuaisDoModelo, evidenciaPorFlagNome,
+  candidatoSede, pendenciasDaAlteracao, causaSede, setCausaSede,
+  candidatosEndereco, causaQualificacao, setCausaQualificacao,
   registrarConfirmOpen, setRegistrarConfirmOpen, confirmarRegistro, registrandoDocumento,
+  arquivoRegistradoId, modoRegistro, tituloDoRegistro, registroAlvoAtual,
   modoDocumento, empresaLabel, labelsRegistros, resumoPasso2, mensagemPendente,
   blocosFolha, versaoView, modoVisualizacao, blocosFolhaVersao, baixandoVersao,
   baixarVersao, folhaEstado, infoFolha, temPainel, mostraSocios, mostraAdministradores,
@@ -46,6 +50,13 @@ export function GerarDocumentoDialogs({ controller }: { controller: GerarDocumen
         empresaLabel={empresaLabel}
         flags={flagsManuaisDoModelo}
         evidenciaPorFlagNome={evidenciaPorFlagNome}
+        candidatoSede={candidatoSede}
+        candidatosEndereco={candidatosEndereco}
+        pendencias={pendenciasDaAlteracao}
+        causaSede={causaSede}
+        onCausaSede={setCausaSede}
+        causaQualificacao={causaQualificacao}
+        onCausaQualificacao={setCausaQualificacao}
         respostas={respostasAlteracao}
         onAlternar={alternarRespostaAlteracao}
         onConfirmar={() => void confirmarAlteracao()}
@@ -53,39 +64,22 @@ export function GerarDocumentoDialogs({ controller }: { controller: GerarDocumen
       />
 
       {/* Registro na junta: irreversível pela tela (só admin apaga linha), e é
-          o que separa "documento em edição" de "peça que valeu". */}
-      <AlertDialog open={registrarConfirmOpen} onOpenChange={setRegistrarConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Registrar este documento na junta?</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-2">
-                <p>
-                  Marca que <span className="font-medium">{nomeModelo}</span> foi registrado e trava
-                  a peça: ela deixa de aceitar edição de bloco, nova versão e re-sincronia do
-                  cadastro.
-                </p>
-                <p>
-                  A partir daí, a forma de mudar a sociedade é gerar uma alteração contratual a
-                  partir dela — outro documento, que a substitui.
-                </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                void confirmarRegistro();
-              }}
-            >
-              {registrandoDocumento && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-              Registrar na junta
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          o que separa "documento em edição" de "peça que valeu". Leva o marco
+          do registro (protocolo, arquivamento, datas, junta) e o PDF chancelado,
+          nenhum deles obrigatório: a junta devolve cada coisa num dia, e o que
+          falta é completado depois, pelo MESMO diálogo em modo `completar`,
+          sobre qualquer peça já registrada da sociedade. */}
+      <RegistrarNaJuntaDialog
+        open={registrarConfirmOpen}
+        onOpenChange={setRegistrarConfirmOpen}
+        nomeModelo={modoRegistro === 'completar' ? tituloDoRegistro : nomeModelo}
+        modo={modoRegistro}
+        registroAtual={registroAlvoAtual}
+        juntaUfPadrao={(empresas.find((r) => r.id === empresaId)?.row as { junta_comercial_uf?: string | null } | undefined)?.junta_comercial_uf}
+        arquivoJaEnviado={arquivoRegistradoId != null}
+        salvando={registrandoDocumento}
+        onConfirmar={(dados) => void confirmarRegistro(dados)}
+      />
 
       <AlertDialog open={baixarIncompletoOpen} onOpenChange={setBaixarIncompletoOpen}>
         <AlertDialogContent>

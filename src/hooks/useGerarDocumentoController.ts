@@ -1,20 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { avaliarFlags, comFlagDaPecaRetroativa, comporBlocos, copiarOrigemProfunda, flagDaPeca, gerarBlocos, gerarComposicao, inclusoesDe, mapearSignatarios, marcarRealceDiff, pendenciasDoDocumento, removerMarcas, unirBlocos, type Bloco, type BlocoDescartado, type BlocoGerado, type FlagDeclarativa, type OrigemValor, type RegistroFamilias, type Template } from '@/lib/templates';
+import { avaliarFlags, comFlagDaPecaRetroativa, comporBlocos, copiarOrigemProfunda, flagDaPeca, idDoRegistro, gerarBlocos, gerarComposicao, inclusoesDe, mapearSignatarios, marcarRealceDiff, pendenciasDoDocumento, removerMarcas, unirBlocos, type Bloco, type BlocoDescartado, type BlocoGerado, type FlagDeclarativa, type OrigemValor, type RegistroFamilias, type Template } from '@/lib/templates';
 import { baixarDocx } from '@/lib/templates/docx';
 import { camposDaEntidade, derivarCampos, type TipoEntidade } from '@/lib/templates/vocabulario';
 import { calcularHistoricoCapital } from '@/lib/templates/historicoCapital';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
-import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearIntegralizacoes, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, tituloColetivoDosSocios, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
+import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearIntegralizacoes, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosSocios, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
 import { quotasDoSocio } from '@/lib/templates/capital';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { montarRegistroFamilias, useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
 import { listasDoInstrumentoRural, mapearInstrumentoRural, type EntradaInstrumentoRural } from '@/lib/templates/contextoRural';
-import { useConstitutivosRegistrados, useDocumentoGeradoHead, useDocumentoGeradoPorId, useDocumentoOverrides, useDocumentoSucessor, useDocumentoVersoes, useOrdemNaSucessao, useRegistrarDocumento, useSalvarDocumentoGerado, type DocumentoGeradoRow, type OverrideAplicavel, type SnapshotDados } from '@/hooks/useDocumentoGerado';
+import { useCompletarRegistroContratual, useConfirmarPropostaAC, useConstitutivosRegistrados, useDocumentoGeradoHead, useDocumentoGeradoPorId, useDocumentoOverrides, useDocumentoSucessor, useDocumentoVersoes, useEnviarArquivoRegistrado, useOrdemNaSucessao, useRegistradosDaSociedade, useRegistrarDocumento, useSalvarDocumentoGerado, type DocumentoGeradoRow, type OverrideAplicavel, type RegistroContratual, type SnapshotDados } from '@/hooks/useDocumentoGerado';
 import { escopoDaFlag, nomesDasFlagsManuaisLigadas, useFlagsManuaisProjeto, useResponderEventosDaAlteracao } from '@/hooks/useDomainFlagsManuais';
-import { useEventosDerivados, useFormalizarMovimentos } from '@/hooks/useEventosDaAlteracao';
+import { useEventosDerivados } from '@/hooks/useEventosDaAlteracao';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import type { SnapshotDaPeca } from '@/lib/osg/baselineDaPeca';
 import { avaliarFluxoDaSociedade, declararPeca } from '@/lib/osg/estadoDaSociedade';
+import { analisarAlteracao, confirmarPropostaAC, propostaPrecisaRevisao, FLAG_QUALIFICACAO, FLAG_SEDE, type CandidatoAC, type CausaQualificacao, type CausaSede, type PropostaAC } from '@/lib/osg/alteracaoPorEventos';
+import { comporEstadoProposto, validarSelecaoDeEventos } from '@/lib/osg/estadoProposto';
 import { toast } from '@/hooks/use-toast';
 import type { Json } from '@/integrations/supabase/types';
 import { useAllMatriculas, type BemRow, type MatriculaEnriched } from '@/hooks/useDiagnosticoPatrimonial';
@@ -31,8 +34,52 @@ import { prepararDownloadDocumento } from '@/components/equipe/osg/gerar/downloa
 import { completarListasDoSnapshot, contextoComGeoref, selecaoComOrigemDoSnapshot } from '@/components/equipe/osg/gerar/contextoDoDocumento';
 import { blocosForaDaFolha, resumoDaFolha } from '@/components/equipe/osg/gerar/resumoDaComposicao';
 import { camposEditaveisPorBinding } from '@/components/equipe/osg/gerar/camposDoBinding';
+import { lerSnapshotVersoes } from '@/components/equipe/osg/gerar/renderizarVersao';
+import { linhasRegistradas, marcoPreenchido } from '@/lib/osg/registrosDaSociedade';
+import type { Contexto } from '@/lib/templates';
 
 const fmtDataNotificacao = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+
+/**
+ * O que o diálogo de registro coleta: o marco da junta e o PDF registrado.
+ * Protocolo e data do registro são o mínimo exigido; o resto pode ficar em
+ * branco e ser completado depois.
+ */
+export interface DadosDoRegistro {
+  protocolo: string;
+  /** ISO `AAAA-MM-DD`, como o `<input type="date">` devolve. */
+  dataRegistro: string;
+  numeroArquivamento: string;
+  juntaUf: string;
+  junta: string;
+  /** Ausente no retry quando o upload anterior já deu certo. */
+  arquivo: File | null;
+}
+
+/**
+ * O marco que o formulário grava. Campo em branco vira chave AUSENTE, e não
+ * string vazia: ausente é "a junta ainda não devolveu", vazio seria "não tem".
+ * O banco recusa a segunda leitura, e é essa a fronteira que esta função guarda.
+ */
+function marcoDoFormulario(dados: DadosDoRegistro, arquivoId: string | null) {
+  return marcoPreenchido({
+    protocolo: dados.protocolo,
+    dataRegistro: dados.dataRegistro,
+    numeroArquivamento: dados.numeroArquivamento,
+    juntaUf: dados.juntaUf,
+    junta: dados.junta,
+    arquivoId: arquivoId ?? undefined,
+  });
+}
+
+/** Há administrador fora do quadro no ESTADO dado (não no cadastro vivo). */
+function administradoresForaDoQuadro(dados: SnapshotDados): boolean {
+  const idDe = (item: Record<string, unknown>, chave: string) => idDoRegistro(item[chave]);
+  const socios = new Set((dados.itensPorLista?.socios ?? []).map((i) => idDe(i, 'socio')).filter(Boolean));
+  return (dados.itensPorLista?.administradores ?? [])
+    .map((i) => idDe(i, 'administrador'))
+    .some((id) => id !== null && !socios.has(id));
+}
 export interface LinhaNotificacao {
   key: string;
   action: 'created' | 'deleted' | 'updated' | 'field';
@@ -78,7 +125,21 @@ export function useGerarDocumentoController() {
   // Rascunho local das respostas enquanto o modal está aberto; só vai ao banco
   // no "Gerar alteração contratual" do último passo.
   const [respostasAlteracao, setRespostasAlteracao] = useState<Record<string, boolean>>({});
+  // A causa da mudança de sede, perguntada só quando a sede está marcada. Só a
+  // mudança física está homologada; as outras duas ficam bloqueadas com o motivo.
+  const [causaSede, setCausaSede] = useState<CausaSede>('mudanca_fisica');
+  const [causaQualificacao, setCausaQualificacao] = useState<CausaQualificacao>('mudanca_de_domicilio');
   const [registrarConfirmOpen, setRegistrarConfirmOpen] = useState(false);
+  // O marco do registro. `confirmacaoId` nasce ao abrir o diálogo e não muda até
+  // fechar: um retry manda a MESMA confirmação, e o banco responde a mesma coisa.
+  // `arquivoRegistradoId` guarda o upload que já deu certo, para a segunda
+  // tentativa não subir o PDF de novo e não deixar arquivo órfão.
+  const registroConfirmacaoIdRef = useRef<string | null>(null);
+  const [arquivoRegistradoId, setArquivoRegistradoId] = useState<string | null>(null);
+  // Qual peça REGISTRADA o diálogo está completando. Null é o gesto de
+  // registrar, que ainda não tem peça registrada nenhuma. É o que faz o mesmo
+  // formulário servir para a constituição de dois atos atrás.
+  const [registroAlvoId, setRegistroAlvoId] = useState<string | null>(null);
   const [valoresLivres, setValoresLivres] = useState<Record<string, string>>({});
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const camposEditadosRef = useRef(new Set<string>());
@@ -90,7 +151,7 @@ export function useGerarDocumentoController() {
   // Seletor expandido no rail ao lado da folha (um por vez, estilo acordeão).
   // `lista:<nome>` é a seleção múltipla de uma lista do modelo ({{#imoveis}}).
   const [railAberto, setRailAberto] = useState<
-    'modelo' | 'empresa' | 'registros' | 'versoes' | `lista:${string}` | null
+    'modelo' | 'empresa' | 'registros' | 'registros-junta' | 'versoes' | `lista:${string}` | null
   >(null);
   // Versão selada sob visualização (somente leitura na folha central); null = a
   // head viva e editável. Trocar de modelo/empresa zera (effect mais abaixo).
@@ -178,8 +239,10 @@ export function useGerarDocumentoController() {
   // botão desaparecia do rail — não havia como reabrir o assistente pela tela.
   // Vale para qualquer folha que tenha respostas ancoradas numa peça base e ainda
   // não esteja registrada (registrada, acabou a edição).
+  // A proposta confirmada também conta: ela É a alteração em cena, com ou sem
+  // linha em projeto_flag_valor (a fonte da seleção passou a ser o snapshot).
   const podeReverEventos =
-    respostasDaAlteracao.length > 0 &&
+    (respostasDaAlteracao.length > 0 || (documentoHead?.status === 'rascunho' && documentoHead.papel === 'alterador')) &&
     documentoBaseId != null &&
     documentoHead?.status !== 'registrado';
 
@@ -207,6 +270,24 @@ export function useGerarDocumentoController() {
   const congelado = documentoGerado != null;
   const snapshotDados = (documentoGerado?.snapshot_dados as unknown as SnapshotDados | null | undefined) ?? null;
   const snapshotFlags = (documentoGerado?.snapshot_flags as string[] | null | undefined) ?? null;
+  // --- A alteração contratual como PROPOSTA -----------------------------------
+  // Confirmar o assistente passou a gravar a proposta como a head em rascunho da
+  // alteração, ainda NÃO validada (`snapshot_validado_em` nulo). Três situações
+  // se distinguem a partir daqui:
+  //   - `propostaConfirmada`: a head é a alteração, confirmada e por validar. A
+  //     folha compõe `base + eventos confirmados` recalculado do cadastro de hoje;
+  //   - `validado`: a head já foi selada. A folha lê o snapshot dela, como sempre;
+  //   - `alteracaoEmCurso` (legado): só as respostas em projeto_flag_valor
+  //     existem, sem proposta gravada. Compõe como a primeira, e a validação
+  //     grava a proposta que falta.
+  const validado = documentoGerado != null && documentoGerado.snapshot_validado_em != null;
+  const headAlteradora = documentoHead?.status === 'rascunho' && documentoHead.papel === 'alterador';
+  const propostaConfirmada = headAlteradora && !validado;
+  const propostaAC = headAlteradora ? (snapshotDados?.propostaAC ?? null) : null;
+  // A folha é a de uma alteração: o estado que ela mostra e sela é base + eventos.
+  const compondoAlteracao = alteracaoEmCurso || headAlteradora;
+  // A folha é recalculada do cadastro (e não lida do snapshot selado).
+  const folhaPelaProposta = alteracaoEmCurso || propostaConfirmada;
 
   // --- Os fatos da ordem do fluxo -------------------------------------------
   // Só os FATOS moram aqui em cima; quem decide é `avaliarFluxoDaSociedade`,
@@ -244,15 +325,27 @@ export function useGerarDocumentoController() {
   // override do documento vale para a VARIANTE (que é um bloco de verdade), então
   // entra no conteúdo antes de o registro chegar ao motor; `familiasOriginais` é o
   // espelho sem override, que alimenta o realce do diff.
+  const snapshotRegistrado = documentoGerado?.status === 'registrado'
+    ? documentoGerado.snapshot_versoes_blocos as unknown as SnapshotVersoes | null
+    : null;
+  const reproduzindoRegistrado = documentoGerado?.status === 'registrado';
   const familias = useMemo(
     () =>
-      montarRegistroFamilias(
+      reproduzindoRegistrado ? lerSnapshotVersoes(snapshotRegistrado).familias : montarRegistroFamilias(
         catalogoBlocos,
         (v) => porBlocoAlvo.get(v.id)?.conteudoSubstituto ?? v.versao_atual?.conteudo ?? null,
       ),
-    [catalogoBlocos, porBlocoAlvo],
+    [catalogoBlocos, porBlocoAlvo, reproduzindoRegistrado, snapshotRegistrado],
   );
-  const familiasOriginais = useMemo(() => montarRegistroFamilias(catalogoBlocos), [catalogoBlocos]);
+  const familiasOriginais = useMemo(
+    () => reproduzindoRegistrado ? familias : montarRegistroFamilias(catalogoBlocos),
+    [catalogoBlocos, reproduzindoRegistrado, familias],
+  );
+  /** As famílias da Biblioteca de hoje, para ler o MODELO mesmo sobre a peça registrada. */
+  const familiasDoModelo = useMemo(
+    () => (reproduzindoRegistrado ? montarRegistroFamilias(catalogoBlocos) : familias),
+    [catalogoBlocos, reproduzindoRegistrado, familias],
+  );
 
   // Variantes por id (achatadas do catálogo): o render marca os segmentos com o id
   // da variante, e tanto o rótulo na prévia quanto o override precisam do bloco.
@@ -302,7 +395,7 @@ export function useGerarDocumentoController() {
   // Para um bloco sobrescrito, mantemos posição/flags/tipo e só trocamos o
   // `conteudo` pelo texto do substituto — numeração/repetidores/placeholders
   // seguem inalterados (o override é aplicado fora do motor).
-  const template = useMemo<Template>(() => {
+  const templateDoModelo = useMemo<Template>(() => {
     const blocos = docBlocos
       .filter((b) => b.bloco?.conteudo)
       .map((b) => {
@@ -322,12 +415,22 @@ export function useGerarDocumentoController() {
       });
     return { id: modeloId ?? 'novo', nome: 'documento', blocos };
   }, [docBlocos, modeloId, porBlocoAlvo, modeloSocietario, reiniciaNumeracaoPorBlocoId]);
+  // A peça REGISTRADA renderiza os blocos congelados no snapshot dela, nunca a
+  // Biblioteca de hoje. O que o MODELO declara (flags de evento, por exemplo)
+  // continua vindo de `templateDoModelo`: o assistente da alteração pergunta ao
+  // modelo, não ao retrato da peça anterior.
+  const template = useMemo<Template>(
+    () => (reproduzindoRegistrado
+      ? { id: 'registrado', nome: 'documento', blocos: lerSnapshotVersoes(snapshotRegistrado).blocos }
+      : templateDoModelo),
+    [reproduzindoRegistrado, snapshotRegistrado, templateDoModelo],
+  );
 
   // Espelho do template SEM os overrides: usado só para diferenciar, por palavra,
   // o que cada bloco sobrescrito mudou em relação ao original (realce na prévia).
   // Sem nenhum override, reaproveita o próprio `template` (não renderiza de novo).
   const templateOriginal = useMemo<Template>(() => {
-    if (posicoesSobrescritas.size === 0) return template;
+    if (reproduzindoRegistrado || posicoesSobrescritas.size === 0) return template;
     const blocos = docBlocos
       .filter((b) => b.bloco?.conteudo)
       .map((b) => ({
@@ -343,7 +446,7 @@ export function useGerarDocumentoController() {
         ancora: b.bloco!.ancora ?? undefined,
       }));
     return { id: modeloId ?? 'novo', nome: 'documento', blocos };
-  }, [docBlocos, modeloId, posicoesSobrescritas, template, modeloSocietario, reiniciaNumeracaoPorBlocoId]);
+  }, [docBlocos, modeloId, posicoesSobrescritas, template, modeloSocietario, reiniciaNumeracaoPorBlocoId, reproduzindoRegistrado]);
 
   const nomePorBlocoId = useMemo(
     () => new Map(docBlocos.map((b) => [b.id, b.bloco?.nome ?? b.id])),
@@ -369,21 +472,75 @@ export function useGerarDocumentoController() {
   // Marca que o usuário editou explicitamente enquanto congelado => re-congelar.
   const [recongelarPendente, setRecongelarPendente] = useState(false);
 
+  /**
+   * O snapshot de dados que ESTA peça sela. Duas fontes, uma regra:
+   *  - alteração (proposta confirmada, legada ou já validada): `base registrada
+   *    + eventos confirmados`, recalculado agora, com a proposta e o escopo de
+   *    movimentos congelados dentro;
+   *  - qualquer outra peça: os cadastros como estão na folha.
+   * Lança com a frase do toast quando a alteração não pode ser selada: base
+   * insuficiente, ou cadastro mudado depois da conferência (nova conferência é
+   * o caminho, não adoção silenciosa).
+   */
+  const snapshotParaSelar = (): SnapshotDados => {
+    if (compondoAlteracao) {
+      if (!baseSnap || !estadoProposto || !documentoBaseId) {
+        throw new Error('A peça registrada que esta alteração substitui não tem snapshot suficiente para servir de base.');
+      }
+      const movimentos = [...new Set(movimentosDaPeca(true))].sort();
+      let proposta = propostaAC;
+      if (proposta) {
+        if (propostaPrecisaRevisao(proposta, vivoSnap, movimentos)) {
+          throw new Error('O cadastro mudou depois da conferência: reabra "Rever os eventos" e confirme a seleção de novo antes de validar.');
+        }
+      } else {
+        // Legado: respostas gravadas sem proposta. A sede exige a conferência do
+        // assistente (antes/depois e causa); os demais eventos fecham aqui.
+        if (eventosConfirmados.has(FLAG_SEDE)) {
+          throw new Error('A mudança de sede precisa ser conferida no assistente ("Rever os eventos") antes de validar.');
+        }
+        if (eventosConfirmados.has(FLAG_QUALIFICACAO)) {
+          throw new Error('A atualização da qualificação de sócio precisa ser conferida no assistente ("Rever os eventos") antes de validar.');
+        }
+        proposta = confirmarPropostaAC({
+          baseDocumentoId: documentoBaseId, base: baseSnap, atual: vivoSnap, selecionados: [],
+          causaSede: 'mudanca_fisica', confirmadoEm: new Date().toISOString(),
+          eventosConfirmados: [...eventosConfirmados], movimentosConfirmados: movimentos,
+        });
+      }
+      return { ...estadoProposto.estado, propostaAC: proposta, movimentosFormalizados: movimentos };
+    }
+    return {
+      selecao,
+      registroPorBinding,
+      registrosPorLista,
+      valoresLivres,
+      empresaId,
+      itensPorLista,
+      total: usaTotalSocios
+        ? {
+            quotas: quadro.total.quotas ?? '',
+            vlrTotal: quadro.total.vlrTotal ?? '',
+            percentual: quadro.total.percentual ?? '',
+          }
+        : null,
+      // O contrato social formaliza todos os pendentes (D3); peça avulsa, nenhum.
+      // Congelado AQUI, na validação: o registro usa este conjunto, e um
+      // movimento lançado depois não entra nesta peça.
+      movimentosFormalizados: modeloSocietario ? [...new Set(movimentosDaPeca(false))].sort() : [],
+    };
+  };
+
+  /** Blocos + famílias citadas (transitivamente) + o contexto que renderizou `dados`. */
+  const snapshotVersoesDe = (dados: SnapshotDados): SnapshotVersoes => ({
+    blocos: template.blocos,
+    familias: familiasUsadas,
+    contextoRender: montarContextoDaFolha(dados),
+  });
+
   // Persiste o snapshot. novaVersao=true (commit deliberado "Atualizar versão")
   // sela a versão atual e cria uma nova; false (1ª validação / re-congelar ao
   // editar) cria a raiz ou atualiza a head no lugar.
-  // Congelamento do texto da versão: os blocos do modelo (com override aplicado)
-  // MAIS as famílias que eles citam, com o texto de cada variante como está agora.
-  // Só as citadas: o snapshot é o retrato deste documento, não da Biblioteca.
-  const snapshotVersoes = useMemo<SnapshotVersoes>(() => {
-    const citadas = new Set(template.blocos.flatMap((b) => inclusoesDe(b.conteudo)));
-    const usadas: RegistroFamilias = {};
-    for (const nome of citadas) {
-      if (familias[nome]) usadas[nome] = familias[nome];
-    }
-    return { blocos: template.blocos, familias: usadas };
-  }, [template, familias]);
-
   const validarVersao = async (novaVersao = false): Promise<DocumentoGeradoRow | null> => {
     if (!clienteId || !modeloId) return null;
     // PORTEIRO: a mesma trava que desabilita o botão, relida no instante do
@@ -400,35 +557,36 @@ export function useGerarDocumentoController() {
       });
       return null;
     }
-    const snap: SnapshotDados = {
-      selecao,
-      registroPorBinding,
-      registrosPorLista,
-      valoresLivres,
-      empresaId,
-      itensPorLista,
-      total: usaTotalSocios
-        ? {
-            quotas: quadro.total.quotas ?? '',
-            vlrTotal: quadro.total.vlrTotal ?? '',
-            percentual: quadro.total.percentual ?? '',
-          }
-        : null,
-    };
+    let snap: SnapshotDados;
+    let versoesBlocos: SnapshotVersoes;
+    try {
+      snap = snapshotParaSelar();
+      // O contexto congelado é o do snapshot que está sendo gravado, e não o da
+      // prévia de um instante atrás: é o que faz a versão selada reproduzir
+      // exatamente o que foi validado.
+      versoesBlocos = snapshotVersoesDe(snap);
+    } catch (e) {
+      toast({
+        title: 'A versão não pode ser validada',
+        description: e instanceof Error ? e.message : String(e),
+        variant: 'destructive',
+      });
+      return null;
+    }
     const doc = await salvarDocumento.mutateAsync({
       clienteId,
       pjPessoaId: empresaId,
       modeloId,
       nomeModelo,
-      snapshotFlags: flagsAtivas,
+      snapshotFlags: compondoAlteracao ? flagsProjetadas : flagsAtivas,
       snapshotDados: snap as unknown as Json,
       // Texto dos blocos já resolvido (com overrides) + variantes das famílias
-      // citadas — congela o render da versão.
-      snapshotVersoesBlocos: snapshotVersoes as unknown as Json,
+      // citadas + o contexto efetivo — congela o render da versão.
+      snapshotVersoesBlocos: versoesBlocos as unknown as Json,
       novaVersao,
       // Só tem efeito quando não existe head e a raiz vai ser criada — que é
-      // exatamente o caso da alteração contratual sendo validada pela primeira
-      // vez. Nos forks o valor é copiado da head, não daqui.
+      // exatamente o caso da alteração contratual LEGADA sendo validada pela
+      // primeira vez (a proposta confirmada já nasce com a sucessão gravada).
       substituiDocumentoId: alteracaoEmCurso ? documentoBaseId : null,
     });
     setDocumentoHead(doc);
@@ -453,17 +611,19 @@ export function useGerarDocumentoController() {
       });
       return;
     }
+    // Na alteração, "atualizar do cadastro" é recompor base + eventos confirmados
+    // com o cadastro de hoje, e o porteiro da conferência mora em
+    // `snapshotParaSelar`: valor confirmado que mudou pede nova conferência, não
+    // adoção silenciosa.
+    if (compondoAlteracao) {
+      await validarVersao();
+      return;
+    }
 
     const selecaoFresh: Record<string, Record<string, string>> = { ...selecao };
     for (const b of bindings) {
       if (b.tipo === 'sociedade') {
-        selecaoFresh[b.nome] = empresaRow
-          ? mapearSociedade(
-              empresaRow,
-              { capitalValor, totalQuotas },
-              { numeroAlteracao, ...historicoCapital, tituloColetivoSocios: tituloColetivoDosSocios(socios) },
-            )
-          : {};
+        selecaoFresh[b.nome] = sociedadeViva;
         continue;
       }
       const id = registroPorBinding[b.nome];
@@ -481,21 +641,18 @@ export function useGerarDocumentoController() {
 
     // Se os flags mudarem a estrutura, repuxa os bindings da estrutura congelada;
     // trocar modelo/empresa ainda força uma remontagem estrutural completa.
-    const snap: SnapshotDados = {
-      selecao: selecaoFresh,
-      registroPorBinding,
-      registrosPorLista,
-      valoresLivres,
-      empresaId,
-      itensPorLista,
-      total: usaTotalSocios
-        ? {
-            quotas: quadro.total.quotas ?? '',
-            vlrTotal: quadro.total.vlrTotal ?? '',
-            percentual: quadro.total.percentual ?? '',
-          }
-        : null,
-    };
+    const snap: SnapshotDados = { ...snapshotParaSelar(), selecao: selecaoFresh };
+    let versoesBlocos: SnapshotVersoes;
+    try {
+      versoesBlocos = snapshotVersoesDe(snap);
+    } catch (e) {
+      toast({
+        title: 'A versão não pode ser atualizada',
+        description: e instanceof Error ? e.message : String(e),
+        variant: 'destructive',
+      });
+      return;
+    }
     const doc = await salvarDocumento.mutateAsync({
       clienteId,
       pjPessoaId: empresaId,
@@ -503,7 +660,7 @@ export function useGerarDocumentoController() {
       nomeModelo,
       snapshotFlags: flagsAtivasLive,
       snapshotDados: snap as unknown as Json,
-      snapshotVersoesBlocos: snapshotVersoes as unknown as Json,
+      snapshotVersoesBlocos: versoesBlocos as unknown as Json,
       // Re-sync de dados na mesma versão — não ramifica.
       novaVersao: false,
     });
@@ -581,7 +738,7 @@ export function useGerarDocumentoController() {
 
   // Flags derivadas declarativas avaliadas sobre a empresa selecionada.
   const { data: catalogoFlags = [] } = useFlags();
-  const temBlocosComFlags = template.blocos.some((b) => (b.flagsRequeridas ?? []).length > 0);
+  const temBlocosComFlags = templateDoModelo.blocos.some((b) => (b.flagsRequeridas ?? []).length > 0);
 
   // --- Flags MANUAIS -------------------------------------------------------
   // O interruptor que o consultor liga na mão, para o que não se deriva do
@@ -589,8 +746,8 @@ export function useGerarDocumentoController() {
   // de quotas"). Só interessam as que ESTE modelo referencia — o catálogo é
   // global e um modelo de constituição não deve pedir nada disso.
   const nomesDeFlagDoModelo = useMemo(
-    () => new Set(template.blocos.flatMap((b) => b.flagsRequeridas ?? [])),
-    [template],
+    () => new Set(templateDoModelo.blocos.flatMap((b) => b.flagsRequeridas ?? [])),
+    [templateDoModelo],
   );
   const flagsManuaisDoModelo = useMemo(
     () => catalogoFlags.filter((f) => f.tipo === 'manual' && nomesDeFlagDoModelo.has(f.nome)),
@@ -608,26 +765,56 @@ export function useGerarDocumentoController() {
     () => nomesDasFlagsManuaisLigadas(valoresFlagsManuais, nomePorFlagId),
     [valoresFlagsManuais, nomePorFlagId],
   );
+  const flagsManuaisForaDaAlteracao = useMemo(
+    () => nomesDasFlagsManuaisLigadas(valoresFlagsManuais.filter((v) => v.documento_base_id == null), nomePorFlagId),
+    [valoresFlagsManuais, nomePorFlagId],
+  );
+  /**
+   * Os eventos que o consultor CONFIRMOU para esta alteração, por nome de flag.
+   * A proposta gravada é a fonte; sem ela (respostas legadas), as linhas de
+   * projeto_flag_valor ancoradas na peça base. Pré-marcação e rascunho local do
+   * modal não contam: confirmar é o que aprova.
+   */
+  const eventosConfirmados = useMemo<ReadonlySet<string>>(
+    () => new Set(
+      propostaAC
+        ? propostaAC.eventosConfirmados
+        : nomesDasFlagsManuaisLigadas(respostasDaAlteracao, nomePorFlagId),
+    ),
+    [propostaAC, respostasDaAlteracao, nomePorFlagId],
+  );
 
   // --- Assistente de alteração contratual (modal) --------------------------
   const responderEventos = useResponderEventosDaAlteracao();
-  const formalizarMovimentos = useFormalizarMovimentos();
 
 
   /**
-   * Abre o assistente a partir da folha de um documento travado.
+   * Abre o assistente a partir da folha de um documento travado (ou reabre o da
+   * alteração em cena).
    *
-   * O interruptor nasce ligado quando o cadastro sustenta o evento, e a resposta
-   * JÁ GRAVADA vence a derivação: reabrir é edição, não recomeço, e desmarcar um
-   * evento derivado tem de continuar desmarcado na segunda visita.
+   * O interruptor nasce ligado quando o evento é detectado, suportado e com base
+   * suficiente — pré-marcação não é aprovação. A seleção JÁ CONFIRMADA vence a
+   * derivação: reabrir é edição, não recomeço, e desmarcar um evento derivado
+   * tem de continuar desmarcado na segunda visita.
    */
   const abrirAlteracao = () => {
     const semente: Record<string, boolean> = {};
     for (const f of flagsManuaisDoModelo) {
       const gravada = valorPorFlagId.get(f.id);
-      semente[f.id] = gravada !== undefined ? gravada === true : eventoPorFlagNome.has(f.nome);
+      if (propostaAC) semente[f.id] = propostaAC.eventosConfirmados.includes(f.nome);
+      else if (gravada !== undefined) semente[f.id] = gravada === true;
+      // A sede só nasce marcada ELEGÍVEL: detectada, homologada e com base
+      // suficiente. Divergência ambígua fica visível e desligada.
+      else if (f.nome === FLAG_SEDE) semente[f.id] = candidatoSede?.elegivel === true;
+      // Mesma regra da sede: nasce marcada quando HÁ endereço gerável. Detectada
+      // com pendência (endereço vazio no cadastro, pessoa fora do quadro) fica
+      // visível e desligada.
+      else if (f.nome === FLAG_QUALIFICACAO) semente[f.id] = enderecosElegiveis.length > 0;
+      else semente[f.id] = eventoPorFlagNome.has(f.nome);
     }
     setRespostasAlteracao(semente);
+    setCausaSede(propostaAC?.causaSede ?? 'mudanca_fisica');
+    setCausaQualificacao(propostaAC?.causaQualificacao ?? 'mudanca_de_domicilio');
     setAlteracaoDialogOpen(true);
   };
 
@@ -636,16 +823,18 @@ export function useGerarDocumentoController() {
   };
 
   /**
-   * Fecha o assistente gravando as respostas ancoradas no documento registrado.
-   * A partir daqui a folha passa a compor a alteração ao vivo; o documento novo
-   * em si só nasce no "Validar versão" seguinte.
+   * Fecha o assistente CONFIRMANDO a seleção: valida a sede e as dependências,
+   * compõe `base + eventos confirmados`, grava as respostas ancoradas na peça
+   * registrada (a projeção booleana que o motor lê) e a proposta como head em
+   * rascunho da alteração, ainda por validar. A partir daqui a folha compõe a
+   * alteração a partir desse estado; "Validar versão" sela o texto.
    */
   const confirmarAlteracao = async () => {
     // `documentoBaseId`, e não o registrado da tela: depois que a alteração foi
     // validada, a head é ela (em rascunho) e o registrado só existe como
     // `substitui_documento_id`. Exigir o registrado em cena impedia rever os
     // eventos justamente quando a peça já estava composta.
-    if (!clienteId || !documentoBaseId) return;
+    if (!clienteId || !modeloId || !documentoBaseId) return;
     // PORTEIRO DA ORDEM: esta peça já foi sucedida. Responder o assistente aqui
     // ancoraria um segundo conjunto de eventos na MESMA peça base, e a validação
     // seguinte abriria uma segunda alteração sobre ela.
@@ -657,6 +846,64 @@ export function useGerarDocumentoController() {
       });
       return;
     }
+    const eventos = flagsManuaisDoModelo
+      .filter((f) => respostasAlteracao[f.id] === true)
+      .map((f) => f.nome);
+    const eventosSet = new Set(eventos);
+    const movimentosPorEvento = new Map(
+      eventos.map((nome) => [nome, eventoPorFlagNome.get(nome)?.movimentoIds ?? []] as const),
+    );
+    const movimentos = [...new Set([...movimentosPorEvento.values()].flat())].sort();
+    let proposta: PropostaAC;
+    try {
+      if (!baseSnap) {
+        throw new Error('A peça registrada não tem snapshot de dados: não há base para comparar.');
+      }
+      const incoerencias = validarSelecaoDeEventos(eventosSet, movimentosPorEvento);
+      if (incoerencias.length > 0) throw new Error(incoerencias.join(' '));
+      if (eventosSet.has(FLAG_SEDE) && !candidatoSede) {
+        throw new Error('Nada no cadastro registra mudança de sede: desmarque a sede, ou atualize o endereço da sociedade antes.');
+      }
+      if (eventosSet.has(FLAG_QUALIFICACAO) && enderecosElegiveis.length === 0) {
+        throw new Error(candidatosEndereco.length > 0
+          ? `Nenhum endereço de sócio pode ser gerado: ${candidatosEndereco.flatMap((c) => c.pendencias).join(' ')}`
+          : 'Nada no cadastro registra mudança de endereço de sócio: desmarque a qualificação, ou atualize o endereço do sócio antes.');
+      }
+      proposta = confirmarPropostaAC({
+        baseDocumentoId: documentoBaseId,
+        base: baseSnap,
+        atual: vivoSnap,
+        selecionados: [
+          ...(eventosSet.has(FLAG_SEDE) && candidatoSede ? [candidatoSede.id] : []),
+          ...(eventosSet.has(FLAG_QUALIFICACAO) ? enderecosElegiveis.map((c) => c.id) : []),
+        ],
+        causaSede,
+        causaQualificacao,
+        confirmadoEm: new Date().toISOString(),
+        eventosConfirmados: eventos,
+        movimentosConfirmados: movimentos,
+      });
+    } catch (e) {
+      toast({
+        title: 'A seleção não pode ser confirmada',
+        description: e instanceof Error ? e.message : String(e),
+        variant: 'destructive',
+      });
+      return;
+    }
+    const { estado } = comporEstadoProposto({
+      base: baseSnap!,
+      vivo: vivoSnap,
+      eventosConfirmados: eventosSet,
+      bindingsSociedade,
+      sede: eventosSet.has(FLAG_SEDE) ? candidatoSede : null,
+      enderecosDeSocios: eventosSet.has(FLAG_QUALIFICACAO) ? enderecosElegiveis : [],
+      camposEditados: camposEditadosRef.current,
+    });
+    // A peça que nasce daqui é a alteração seguinte à registrada em cena, ou a
+    // própria alteração já em cena: o número muda com quem está na folha.
+    const numeroDaPeca = documentoRegistrado ? elosDaSucessao + 1 : numeroAlteracao;
+    const flags = [...new Set([...flagsDerivadas, ...flagsManuaisForaDaAlteracao, ...eventos, flagDaPeca(numeroDaPeca)])];
     await responderEventos.mutateAsync({
       clienteId,
       pjPessoaId: empresaId,
@@ -667,17 +914,69 @@ export function useGerarDocumentoController() {
         valor: respostasAlteracao[f.id] === true,
       })),
     });
+    const doc = await confirmarProposta.mutateAsync({
+      clienteId,
+      pjPessoaId: empresaId,
+      modeloId,
+      nomeModelo,
+      documentoBaseId,
+      snapshotFlags: flags,
+      snapshotDados: { ...estado, propostaAC: proposta } as unknown as Json,
+    });
+    setDocumentoHead(doc);
     setAlteracaoDialogOpen(false);
   };
 
   // --- Registro na junta ---------------------------------------------------
   const registrarDocumento = useRegistrarDocumento();
-  const confirmarRegistro = async () => {
-    if (!documentoGeradoId) return;
+  const completarRegistro = useCompletarRegistroContratual();
+  const enviarArquivoRegistrado = useEnviarArquivoRegistrado();
+  const { fetchWithAuth } = useApiAuth();
+  // Todas as peças desta sociedade que já foram à junta, com o estado do marco
+  // de cada uma. A tela mostra UMA peça (a head); sem esta lista, a peça
+  // registrada há dois atos não teria por onde ser completada.
+  const { data: pecasRegistradas = [] } = useRegistradosDaSociedade(clienteId || null, empresaId);
+  const registrosNaJunta = useMemo(() => linhasRegistradas(pecasRegistradas), [pecasRegistradas]);
+  const registroAlvo = useMemo(
+    () => registrosNaJunta.find((l) => l.documentoId === registroAlvoId) ?? null,
+    [registrosNaJunta, registroAlvoId],
+  );
+  /** Abre o diálogo do registro com uma confirmação nova; reabrir sem fechar mantém a mesma. */
+  const abrirRegistro = () => {
+    registroConfirmacaoIdRef.current = crypto.randomUUID();
+    setArquivoRegistradoId(null);
+    setRegistroAlvoId(null);
+    setRegistrarConfirmOpen(true);
+  };
+  /**
+   * Abre o MESMO diálogo sobre uma peça já registrada, para completar o marco
+   * que a junta devolveu depois. Não há confirmação nova aqui: o ato registrado
+   * continua sendo aquele, e é o `confirmacaoId` dele que a peça carrega (quem
+   * garante isso é a trigger, não esta tela).
+   */
+  const abrirDadosDoRegistro = (documentoId: string) => {
+    registroConfirmacaoIdRef.current = null;
+    setArquivoRegistradoId(null);
+    setRegistroAlvoId(documentoId);
+    setRegistrarConfirmOpen(true);
+  };
+  /**
+   * Registrar na junta, com o marco do registro. A ordem é a que a transação do
+   * banco exige: o PDF registrado sobe ANTES (não cabe na transação), a linha de
+   * `documento_arquivo` fica gravada e aprovada, e só então a peça vira
+   * `registrado` com `registroContratual` no snapshot, num UPDATE só. Se o
+   * UPDATE falhar, o arquivo fica; o retry manda a mesma confirmação e o mesmo
+   * arquivo, e o banco responde a mesma coisa.
+   */
+  const confirmarRegistro = async (dados: DadosDoRegistro) => {
+    // Completar o marco de uma peça já registrada não é registrar: não há
+    // status a virar, ledger a carimbar nem trava de ordem a consultar, e o alvo
+    // pode ser uma peça anterior à que está na tela.
+    if (registroAlvoId) return completarDadosDoRegistro(dados);
+    if (!documentoGeradoId || !clienteId || !empresaId) return;
     // O mesmo porteiro, no gesto irreversível: registrar carimba o ledger e vira
-    // o status do bem. Aqui a trava cobre a folha em erro e o segundo
-    // constitutivo da mesma sociedade — que era o que o índice único barrava, com
-    // a mensagem crua do Postgres.
+    // o status do bem. Aqui a trava cobre a folha em erro, o segundo constitutivo
+    // da mesma sociedade e a alteração confirmada mas ainda não validada.
     if (!travas.registrar.liberado) {
       toast({
         title: travas.registrar.titulo!,
@@ -686,45 +985,89 @@ export function useGerarDocumentoController() {
       });
       return;
     }
-    const doc = await registrarDocumento.mutateAsync({ documentoGeradoId, nomeModelo });
+    const confirmacaoId = registroConfirmacaoIdRef.current ?? crypto.randomUUID();
+    registroConfirmacaoIdRef.current = confirmacaoId;
+    let arquivoId = arquivoRegistradoId;
+    // O PDF chancelado é OPCIONAL no gesto: a junta costuma devolvê-lo depois do
+    // deferimento, e travar o marco do ato nisso atrasava o registro. Sem
+    // arquivo, o registro vale sem arquivo, e ele é eleito quando chegar.
+    if (!arquivoId && dados.arquivo) {
+      arquivoId = await enviarArquivoRegistrado.mutateAsync({
+        clienteId,
+        pjPessoaId: empresaId,
+        documentoGeradoId,
+        file: dados.arquivo,
+        fetchWithAuth,
+      });
+      setArquivoRegistradoId(arquivoId);
+    }
+    const registro: RegistroContratual = {
+      versao: 1,
+      confirmacaoId,
+      ...marcoDoFormulario(dados, arquivoId),
+    };
+    const doc = await registrarDocumento.mutateAsync({ documentoGeradoId, registro });
     setDocumentoHead(doc);
     setRegistrarConfirmOpen(false);
-    // O ato produziu efeito: é AQUI que o ledger é carimbado e que os bens desses
-    // movimentos passam a 'Integralizado' (D4/D5/D6). Falha não derruba o registro
-    // (ver useFormalizarMovimentos): o pior caso é o evento voltar na próxima peça.
-    //
-    // Quais movimentos a peça contou depende de qual peça ela é:
-    //  - ALTERAÇÃO: os eventos que o consultor confirmou no assistente. O que ele
-    //    desmarcou não entrou na peça e continua pendente, para a próxima.
-    //  - CONTRATO SOCIAL: todos os pendentes. Ele não passa pelo assistente, e a
-    //    cláusula de capital dele conta os aportes de constituição inteiros — é
-    //    esta extensão (D3) que impede a primeira alteração de recontá-los.
-    //
-    // A peça responde o que ela é, pelo papel carimbado quando nasceu. Antes a
-    // pergunta era feita ao tamanho de `respostasDaAlteracao`: dá a mesma resposta
-    // hoje (o assistente grava TODAS as flags, inclusive as desmarcadas, então
-    // desmarcar tudo não faz a alteração se passar por contrato social), mas é uma
-    // dedução a partir de um efeito, e não a leitura do que a peça é.
-    const aFormalizar = movimentosDaPeca(documentoHead?.papel === 'alterador');
-    if (aFormalizar.length > 0) {
-      await formalizarMovimentos.mutateAsync({
-        movimentoIds: aFormalizar,
-        documentoGeradoId,
-        empresaPessoaId: empresaId,
-      });
-    }
+    // O ato produziu efeito, e quem o produz é o banco: a trigger
+    // `trg_documento_registro_atomico` carimba o ledger e passa os bens desses
+    // movimentos a 'Integralizado' (D4/D5/D6) na mesma transação do UPDATE. O
+    // CONJUNTO é o congelado na validação (`snapshot_dados.movimentosFormalizados`),
+    // nunca a lista viva: movimento lançado depois de validar não entra nesta
+    // peça. Carimbar daqui, por fora, é exatamente o que a constraint adiada
+    // `trg_movimento_registro_confere` passou a recusar.
   };
 
-  const flagsAtivasLive = useMemo(() => {
+  /**
+   * Completa (ou corrige) o marco de uma peça registrada, inclusive uma anterior
+   * à da tela. Quem garante que só o marco muda é a trigger do banco; aqui o
+   * cuidado é o do upload: o PDF sobe vinculado à peça ALVO, e só quando ela
+   * ainda não elegeu nenhum (eleito, não troca mais).
+   */
+  const completarDadosDoRegistro = async (dados: DadosDoRegistro) => {
+    if (!registroAlvoId || !clienteId || !empresaId) return;
+    let arquivoId = arquivoRegistradoId;
+    if (!registroAlvo?.registro?.arquivoId && !arquivoId && dados.arquivo) {
+      arquivoId = await enviarArquivoRegistrado.mutateAsync({
+        clienteId,
+        pjPessoaId: empresaId,
+        documentoGeradoId: registroAlvoId,
+        file: dados.arquivo,
+        fetchWithAuth,
+      });
+      setArquivoRegistradoId(arquivoId);
+    }
+    const doc = await completarRegistro.mutateAsync({
+      documentoGeradoId: registroAlvoId,
+      registro: marcoDoFormulario(dados, arquivoId),
+    });
+    // A peça completada pode ser a da tela ou uma de dois atos atrás; só no
+    // primeiro caso a folha em cena mudou.
+    if (doc.id === documentoHead?.id) setDocumentoHead(doc);
+    setRegistrarConfirmOpen(false);
+    setRegistroAlvoId(null);
+  };
+
+  const flagsDerivadas = useMemo(() => {
     const declarativas: FlagDeclarativa[] = catalogoFlags
       .filter((f) => f.entidade && f.campo && f.valor)
       .map((f) => ({ nome: f.nome, entidade: f.entidade!, campo: f.campo!, valor: f.valor! }));
-    const derivadas = avaliarFlags(declarativas, { empresa: empresaRow });
+    return avaliarFlags(declarativas, { empresa: empresaRow });
+  }, [catalogoFlags, empresaRow]);
+  const flagsAtivasLive = useMemo(
     // Para o motor os dois tipos são o mesmo interruptor: ele recebe uma lista
     // de nomes ativos e não pergunta de onde cada nome veio. As manuais entram
     // aqui, nas VIVAS, e por isso são congeladas no snapshot como as demais.
-    return [...new Set([...derivadas, ...flagsManuaisLigadas, flagDaPeca(numeroAlteracao)])];
-  }, [catalogoFlags, empresaRow, flagsManuaisLigadas, numeroAlteracao]);
+    () => [...new Set([...flagsDerivadas, ...flagsManuaisLigadas, flagDaPeca(numeroAlteracao)])],
+    [flagsDerivadas, flagsManuaisLigadas, numeroAlteracao],
+  );
+  // As flags que a ALTERAÇÃO sela: as derivadas do perfil, as manuais que não
+  // são desta alteração (escopo cliente/empresa), os eventos CONFIRMADOS e a da
+  // peça. É a projeção dos eventos aceitos, e não a leitura crua das respostas.
+  const flagsProjetadas = useMemo(
+    () => [...new Set([...flagsDerivadas, ...flagsManuaisForaDaAlteracao, ...eventosConfirmados, flagDaPeca(numeroAlteracao)])],
+    [flagsDerivadas, flagsManuaisForaDaAlteracao, eventosConfirmados, numeroAlteracao],
+  );
   // Quando congelado, a estrutura segue os flags gravados; senão, os vivos.
   const flagsAtivas = useMemo(
     () => (congelado && snapshotFlags
@@ -798,7 +1141,7 @@ export function useGerarDocumentoController() {
   const { data: georef } = useGeorefByMatricula(matriculaGeorefId);
   const georefCabecalhoCampos = useMemo(() => mapearGeorefCabecalho(georef?.cabecalho), [georef]);
   const verticesItens = useMemo<ItemLista[]>(
-    () => (georef?.vertices ?? []).map(mapearVertice),
+    () => (georef?.vertices ?? []).map((v) => mapearVertice(v, georef?.cabecalho?.id_georef)),
     [georef],
   );
 
@@ -895,9 +1238,7 @@ export function useGerarDocumentoController() {
    */
   const movimentosDaPeca = (ehAlteracao: boolean): string[] =>
     ehAlteracao
-      ? flagsManuaisDoModelo
-          .filter((f) => respostasAlteracao[f.id] === true || valorPorFlagId.get(f.id) === true)
-          .flatMap((f) => eventoPorFlagNome.get(f.nome)?.movimentoIds ?? [])
+      ? [...eventosConfirmados].flatMap((nome) => eventoPorFlagNome.get(nome)?.movimentoIds ?? [])
       : movimentosPendentes;
   const ehEmpresaPR = empresaRow?.tipo_empresa === 'PR';
   // Sócios derivados de titular sem pessoa cadastrada: qualificação sai incompleta.
@@ -960,7 +1301,7 @@ export function useGerarDocumentoController() {
           ...mapearRegistro('matricula', registro.row),
           ...mapearGeorefCabecalho(georefDoImovel?.cabecalho),
         },
-        vertices: (georefDoImovel?.vertices ?? []).map(mapearVertice),
+        vertices: (georefDoImovel?.vertices ?? []).map((v) => mapearVertice(v, georefDoImovel?.cabecalho?.id_georef)),
       }];
     }),
     [idsImoveisSelecionados, registros.matricula, georefsPorMatricula],
@@ -983,7 +1324,7 @@ export function useGerarDocumentoController() {
       // (ver mapearIntegralizacoes): campo do catálogo ausente vira '' para o
       // condicional pular o trecho em vez de derrubar a prévia inteira.
       for (const c of camposDaEntidade('matricula')) imovel[c.id] = imovel[c.id] ?? '';
-      return [{ imovel, vertices: georef.vertices.map(mapearVertice) }];
+      return [{ imovel, vertices: georef.vertices.map((v) => mapearVertice(v, georef.cabecalho.id_georef)) }];
     }),
     [idsMatriculasDoDocumento, georefsPorMatricula, registros.matricula, integralizacoes],
   );
@@ -1061,6 +1402,12 @@ export function useGerarDocumentoController() {
       integralizacoes: mapearIntegralizacoes(socios, integralizacoes, aportes),
       cessoes: mapearCessoes(cessoes),
       retirantes: mapearRetirantes(retirantes),
+      // Quem esta alteração requalifica é decisão do assistente, não do cadastro:
+      // a lista é composta pelo estado proposto (ver estadoProposto.ts). Aqui ela
+      // nasce vazia só para a chave existir — modelo que cite {{#requalificados}}
+      // fora de uma alteração renderiza a lista vazia e o bloco cai, em vez de
+      // quebrar a validação por "Lista ausente".
+      requalificados: [],
       imoveis: imoveisSelecionados,
       signatarios: mapearSignatarios({
         socios,
@@ -1088,10 +1435,12 @@ export function useGerarDocumentoController() {
 
   // --- Notificações de mudança de variável (só com versão validada) ---------
 
-  // Conjunto de cadastros que hidratam ESTE documento. Usa o lado VIVO (não o
-  // snapshot — a proveniência viaja como Symbol e some no JSON, perdendo os ids):
-  // a janela compara `audit_logs.entity_id` contra este conjunto. Tier 1 (ids
-  // diretos) + Tier 2 (linhas relacionais quadro/administração/titularidade).
+  // Conjunto de cadastros que hidratam ESTE documento. Usa o lado VIVO, e não o
+  // snapshot: a janela pergunta "o CADASTRO mudou depois da validação?", então a
+  // fonte é o cadastro de hoje, não o retrato congelado — mesmo agora que o
+  // snapshot também guarda os ids (ver origem.ts). A comparação é de
+  // `audit_logs.entity_id` contra este conjunto. Tier 1 (ids diretos) + Tier 2
+  // (linhas relacionais quadro/administração/titularidade).
   const entidadeIds = useMemo(() => {
     const ids = new Set<string>();
     if (empresaId) ids.add(empresaId); // sociedade / empresa (pessoa PJ)
@@ -1215,6 +1564,116 @@ export function useGerarDocumentoController() {
     [capitalValor, documentoBase?.snapshot_dados],
   );
   const tituloColetivoSocios = useMemo(() => tituloColetivoDosSocios(socios), [socios]);
+  // Os campos `sociedade.*` como o cadastro de HOJE os produz. É a única fonte
+  // viva da sociedade: alimenta o efeito abaixo, o re-sync e a comparação da
+  // alteração contratual.
+  const sociedadeViva = useMemo(
+    () => (empresaRow
+      ? mapearSociedade(
+          empresaRow,
+          { capitalValor, totalQuotas },
+          { numeroAlteracao, ...historicoCapital, tituloColetivoSocios },
+        )
+      : {}),
+    [empresaRow, capitalValor, totalQuotas, numeroAlteracao, historicoCapital, tituloColetivoSocios],
+  );
+  // Os bindings de sociedade do MODELO (não da peça registrada em cena, cujo
+  // snapshot pode nem ter blocos): a alteração é composta com o modelo, e é
+  // nele que a sede aparece.
+  const bindingsSociedade = useMemo(
+    () => detectarBindingsDeConteudo(
+      templateDoModelo.blocos.map((b) => conteudoParaDeteccao(b, familiasDoModelo)).join(' '),
+    ).bindings.filter((b) => b.tipo === 'sociedade').map((b) => b.nome),
+    [templateDoModelo, familiasDoModelo],
+  );
+
+  // --- A alteração contratual: base registrada x cadastro de hoje ------------
+  // `baseSnap` é o que a peça anterior publicou; `vivoSnap` é a composição de
+  // hoje no MESMO contrato (a sociedade viva, as listas vivas, o que o consultor
+  // digitou nesta folha). A comparação e a composição são funções puras
+  // (alteracaoPorEventos.ts, estadoProposto.ts); aqui só se juntam as fontes.
+  const baseSnap = (documentoBase?.snapshot_dados as unknown as SnapshotDados | null | undefined) ?? null;
+  const vivoSnap = useMemo<SnapshotDados>(() => {
+    const sel: Record<string, Record<string, string>> = { ...selecao };
+    for (const nome of bindingsSociedade) {
+      // Campo editado à mão nesta folha prevalece sobre o cadastro (o compositor
+      // lê a lista de editados; aqui o valor tem de estar no vivo).
+      const editados = Object.fromEntries(
+        Object.entries(selecao[nome] ?? {}).filter(([k]) => camposEditadosRef.current.has(`${nome}.${k}`)),
+      );
+      sel[nome] = { ...sociedadeViva, ...editados };
+    }
+    return {
+      selecao: sel,
+      registroPorBinding,
+      registrosPorLista,
+      valoresLivres,
+      empresaId,
+      itensPorLista,
+      total: usaTotalSocios
+        ? {
+            quotas: quadro.total.quotas ?? '',
+            vlrTotal: quadro.total.vlrTotal ?? '',
+            percentual: quadro.total.percentual ?? '',
+          }
+        : null,
+    };
+  }, [selecao, bindingsSociedade, sociedadeViva, registroPorBinding, registrosPorLista, valoresLivres, empresaId, itensPorLista, usaTotalSocios, quadro]);
+  // A comparação roda sempre que há uma base registrada em jogo: na peça
+  // registrada em cena (é dela que o assistente nasce) e na alteração que a
+  // sucede (proposta, legada ou validada, para a conferência de revisão).
+  const analise = useMemo(
+    () => (modeloSocietario && baseSnap && (compondoAlteracao || documentoRegistrado != null)
+      ? analisarAlteracao(baseSnap, vivoSnap)
+      : { candidatos: [] as CandidatoAC[], pendencias: [] as string[] }),
+    [modeloSocietario, compondoAlteracao, documentoRegistrado, baseSnap, vivoSnap],
+  );
+  const candidatoSede = useMemo(
+    () => analise.candidatos.find((c) => c.tipo === 'sede') ?? null,
+    [analise],
+  );
+  // Os endereços de sócio detectados, e os que podem ser gerados. O interruptor é
+  // UM (a flag do evento) e vale para todos os elegíveis de uma vez: é assim que
+  // os instrumentos reais fazem — a 7ª da GMS requalifica quatro sócios numa
+  // cláusula só. O que não é elegível fica visível na tabela, com o motivo, e
+  // NÃO entra na seleção: `confirmarPropostaAC` recusaria a peça inteira.
+  const candidatosEndereco = useMemo(
+    () => analise.candidatos.filter((c) => c.tipo === 'enderecoSocio'),
+    [analise],
+  );
+  const enderecosElegiveis = useMemo(
+    () => candidatosEndereco.filter((c) => c.elegivel),
+    [candidatosEndereco],
+  );
+  // O estado proposto: base + eventos confirmados. Quando a sede foi confirmada,
+  // os valores são os CONFERIDOS na proposta (o cadastro pode ter mudado de novo,
+  // e isso pede nova conferência, não adoção).
+  const estadoProposto = useMemo(() => {
+    if (!compondoAlteracao || !baseSnap) return null;
+    const sedeConferida = propostaAC?.candidatos.find((c) => c.tipo === 'sede') ?? candidatoSede;
+    // Os valores CONFERIDOS na proposta, quando ela existe: o cadastro pode ter
+    // mudado de novo depois, e isso pede nova conferência, não adoção.
+    const enderecosConferidos = propostaAC
+      ? propostaAC.candidatos.filter((c) => c.tipo === 'enderecoSocio'
+          && propostaAC.selecionados.includes(c.id))
+      : enderecosElegiveis;
+    return comporEstadoProposto({
+      base: baseSnap,
+      vivo: vivoSnap,
+      eventosConfirmados,
+      bindingsSociedade,
+      sede: eventosConfirmados.has(FLAG_SEDE) ? sedeConferida : null,
+      enderecosDeSocios: enderecosConferidos,
+      camposEditados: camposEditadosRef.current,
+    });
+  }, [compondoAlteracao, baseSnap, vivoSnap, eventosConfirmados, bindingsSociedade, propostaAC, candidatoSede, enderecosElegiveis]);
+  // As pendências que o assistente mostra: divergências detectadas e não
+  // geráveis, base insuficiente, identificação divergente.
+  const pendenciasDaAlteracao = useMemo(
+    () => [...new Set([...analise.pendencias, ...(estadoProposto?.pendencias ?? [])])],
+    [analise, estadoProposto],
+  );
+  const confirmarProposta = useConfirmarPropostaAC();
 
   // A Sociedade (objeto do contrato) espelha a Empresa selecionada: escolher/trocar
   // a empresa (ou carregar o capital calculado) repreenche os campos sociedade.* do
@@ -1233,13 +1692,7 @@ export function useGerarDocumentoController() {
       }
     }
     if (sociedadeBindings.length === 0) return;
-    const campos = empresaRow
-      ? mapearSociedade(
-          empresaRow,
-          { capitalValor, totalQuotas },
-          { numeroAlteracao, ...historicoCapital, tituloColetivoSocios },
-        )
-      : {};
+    const campos = sociedadeViva;
 
     // CONGELADO: a sociedade vem do snapshot, e nenhum valor dele se reescreve —
     // é o que faz a peça validada continuar a peça que valeu. Mas a head (mesmo
@@ -1278,7 +1731,7 @@ export function useGerarDocumentoController() {
       }
       return next;
     });
-  }, [empresaId, empresaRow, bindings, capitalValor, totalQuotas, congelado, numeroAlteracao, historicoCapital, tituloColetivoSocios]);
+  }, [empresaId, bindings, congelado, sociedadeViva]);
 
   // O cabeçalho do georref (área/perímetro/sistema/certificação) espelha a matrícula
   // selecionada nos campos georef* do binding de matrícula — como a sociedade espelha
@@ -1358,7 +1811,14 @@ export function useGerarDocumentoController() {
 
   // Pessoa e sociedade são linhas do mesmo cadastro (PessoaRow); sócio derivado
   // de titular sem cadastro (id "legado:…") não está em registros.pessoa e fica
-  // sem clique. Cartório ainda não carrega origem.
+  // sem clique.
+  //
+  // CARREGAR ORIGEM E SER CLICÁVEL SÃO COISAS DIFERENTES. Desde que a identidade
+  // passou a ser um mecanismo único (ver origem.ts), cartório, vértice,
+  // instrumento agrário e origem da posse também a carregam — é o que faz o
+  // snapshot saber de qual registro cada valor veio. Abrir o cadastro deles a
+  // partir da folha é outra decisão, de produto, e não há modal para isso: o
+  // `default` abaixo é essa decisão escrita, não um esquecimento.
   const origemClicavel = (o: OrigemValor) => {
     switch (o.tipo) {
       case 'pessoa':
@@ -1431,61 +1891,125 @@ export function useGerarDocumentoController() {
     if (!carregandoRegistros) setOrigemPendenteRemap(null);
   }, [origemPendenteRemap, registros, carregandoRegistros, bindings, registroPorBinding, congelado]);
 
+  // Os dados que a FOLHA mostra, e de onde:
+  //   - alteração em proposta (ou legada): `base + eventos confirmados`, recalculado;
+  //   - versão validada: o snapshot selado dela;
+  //   - o resto: os cadastros vivos (null = vivo).
+  const dadosDaFolha: SnapshotDados | null = folhaPelaProposta
+    ? (estadoProposto?.estado ?? null)
+    : congelado
+      ? snapshotDados
+      : null;
+  const folhaCongelada = dadosDaFolha != null;
+
+  /**
+   * O contexto de render da folha a partir de `dados` (null = os cadastros
+   * vivos). É UMA função porque a prévia e a selagem precisam do MESMO contexto:
+   * o snapshot congelado guarda exatamente o que renderizou.
+   */
+  const montarContextoDaFolha = (dados: SnapshotDados | null): Contexto => {
+    // Texto livre: todo placeholder sem binding resolve em branco quando vazio,
+    // para a prévia não travar antes de preencher (diferente dos bindings, que
+    // exigem seleção de registro).
+    const livresFonte = dados?.valoresLivres ?? valoresLivres;
+    const livres = Object.fromEntries(desconhecidosVisiveis.map((ph) => [ph, livresFonte[ph] ?? '']));
+    // Seções desconhecidas resolvem como '' (falsy): o trecho sai da prévia sem travar.
+    for (const nome of secoesDesconhecidas) livres[nome] = livres[nome] ?? '';
+    // Snapshot antigo sem itensPorLista/total cai para a fonte viva até revalidar.
+    // O snapshot vem do jsonb (round-trip): reidratar religa as referências
+    // cruzadas de integralizacoes ({{ refItem.ref }}) perdidas na serialização.
+    // Listas que o snapshot selado pode não ter (georref, signatários): sem esta
+    // ponte, a chave ausente vira laço vazio e o motor descarta o bloco inteiro —
+    // é o que apagava a folha de assinaturas de todo documento validado antes de
+    // `signatarios` existir. A regra de cada lista está em contextoDoDocumento.ts.
+    const itensEfetivo = completarListasDoSnapshot(
+      reidratarItensPorLista(dados ? (dados.itensPorLista ?? itensPorLista) : itensPorLista),
+      itensPorLista,
+    );
+    const totalEfetivo = dados ? (dados.total ?? quadro.total) : quadro.total;
+
+    // A proveniência hoje SOBREVIVE ao jsonb (ver origem.ts), então o snapshot
+    // novo já chega clicável. As duas religações abaixo continuam pelo ACERVO:
+    // peça selada antes desta migração não guarda origem nenhuma, e sem elas os
+    // valores da prévia dela deixam de ser clicáveis. Bindings unitários pela id
+    // de `registroPorBinding`; listas casando por id contra os itens vivos. No
+    // caminho vivo (não congelado) a origem já está lá — nada a fazer.
+    let selecaoEfetiva = selecao;
+    if (dados) {
+      // Na alteração em proposta a seleção é a do estado composto (base +
+      // eventos); na versão validada, a seleção da tela (semeada do snapshot e
+      // completada do cadastro no que o modelo passou a citar).
+      const fonte = folhaPelaProposta && dados === dadosDaFolha ? dados.selecao : selecao;
+      selecaoEfetiva = selecaoComOrigemDoSnapshot(fonte, bindings, registroPorBinding, empresaId);
+      // itensEfetivo === itensPorLista quando o snapshot não tinha listas (fonte
+      // viva, já com origem) — só copia quando são estruturas distintas.
+      if (itensEfetivo !== itensPorLista) copiarOrigemProfunda(itensEfetivo, itensPorLista);
+    }
+    const ctx = montarContexto(bindings, selecaoEfetiva, livres, itensEfetivo, listas);
+    contextoComGeoref(ctx, bindingMatricula, georefCabecalhoCampos);
+    // Total dos sócios: campos em branco mantêm a prévia viva antes de a empresa
+    // ser escolhida; preenchem quando as quotas carregam.
+    if (usaTotalSocios) ctx.total = { quotas: '', vlrTotal: '', percentual: '', ...totalEfetivo };
+    // As palavras que concordam com quem sai ("o sócio … retira-se" x "os sócios
+    // … retiram-se"): flexão de verbo não sai de `sep`/`fim` de seção. Na
+    // alteração, quem sai é quem o ESTADO diz que sai (sem evento de cessão
+    // confirmado, ninguém).
+    const retirantesEfetivos = dados && folhaPelaProposta
+      ? (((dados.itensPorLista?.retirantes ?? []).length > 0) ? retirantes : [])
+      : retirantes;
+    ctx.retirada = vocabularioDaRetirada(retirantesEfetivos);
+    // Idem para a resolução de qualificação, com uma diferença: quem responde é
+    // sempre a LISTA do contexto, porque ela já é a do ato (o estado proposto a
+    // compôs dos candidatos confirmados) tanto na folha viva quanto na versão
+    // congelada. A causa é a que a proposta gravou; sem proposta, a da tela.
+    const requalificadosDoCtx = (itensEfetivo.requalificados ?? [])
+      .map((item) => item.requalificado)
+      .filter((p): p is Record<string, string> => !!p && typeof p === 'object');
+    // A causa sai da PEÇA, não da tela: `folhaPelaProposta` é falso depois que a
+    // alteração foi validada, e ali o estado do assistente já voltou ao default.
+    ctx.requalificacao = vocabularioDaRequalificacao(
+      requalificadosDoCtx,
+      causaDaRequalificacaoVigente(
+        dados?.propostaAC?.causaQualificacao,
+        propostaAC?.causaQualificacao,
+        causaQualificacao,
+      ),
+    );
+    // A administração passou a ser exercida de FORA do quadro. É a condicional
+    // que faz a cláusula dizer "administradores não sócios" só quando é verdade —
+    // sem ela o consolidado afirmava "administrada isoladamente por X e Y" logo
+    // abaixo de uma Cláusula Quinta que dá 100% do capital a outra pessoa. Na
+    // alteração a pergunta é feita ao estado composto, não ao cadastro.
+    if (ctx.sociedade && typeof ctx.sociedade === 'object') {
+      const soc = ctx.sociedade as Record<string, string>;
+      const naoSocios = dados && folhaPelaProposta
+        ? administradoresForaDoQuadro(dados)
+        : administradoresNaoSocios.length > 0;
+      soc.temAdministradorNaoSocio = naoSocios ? 'sim' : '';
+      soc.semAdministradorNaoSocio = naoSocios ? '' : 'sim';
+    }
+    return ctx;
+  };
+
   const resultado = useMemo<
     | { blocos: BlocoGerado[]; texto: string; descartados: BlocoDescartado[]; erro: null }
     | { blocos: null; texto: null; descartados: BlocoDescartado[]; erro: string }
   >(() => {
+    if (reproduzindoRegistrado) {
+      const versao = renderizarVersao(snapshotRegistrado, snapshotFlags, snapshotDados);
+      return versao.erro
+        ? { blocos: null, texto: null, descartados: [], erro: versao.erro }
+        : { ...versao, descartados: [], erro: null };
+    }
     if (template.blocos.length === 0) return { blocos: [], texto: '', descartados: [], erro: null };
+    if (folhaPelaProposta && !dadosDaFolha) {
+      return {
+        blocos: null, texto: null, descartados: [],
+        erro: 'A peça registrada que esta alteração substitui não tem snapshot de dados: não há base para compor a alteração.',
+      };
+    }
     try {
-      // Texto livre: todo placeholder sem binding resolve em branco quando vazio,
-      // para a prévia não travar antes de preencher (diferente dos bindings, que
-      // exigem seleção de registro).
-      const livres = Object.fromEntries(desconhecidosVisiveis.map((ph) => [ph, valoresLivres[ph] ?? '']));
-      // Seções desconhecidas resolvem como '' (falsy): o trecho sai da prévia sem travar.
-      for (const nome of secoesDesconhecidas) livres[nome] = livres[nome] ?? '';
-      // Snapshot antigo sem itensPorLista/total cai para a fonte viva até revalidar.
-      // O snapshot vem do jsonb (round-trip): reidratar religa as referências
-      // cruzadas de integralizacoes ({{ refItem.ref }}) perdidas na serialização.
-      // Listas que o snapshot selado pode não ter (georref, signatários): sem esta
-      // ponte, a chave ausente vira laço vazio e o motor descarta o bloco inteiro —
-      // é o que apagava a folha de assinaturas de todo documento validado antes de
-      // `signatarios` existir. A regra de cada lista está em contextoDoDocumento.ts.
-      const itensEfetivo = completarListasDoSnapshot(
-        reidratarItensPorLista(congelado ? (snapshotDados?.itensPorLista ?? itensPorLista) : itensPorLista),
-        itensPorLista,
-      );
-      const totalEfetivo = congelado ? (snapshotDados?.total ?? quadro.total) : quadro.total;
-
-      // A serialização do snapshot também PERDE a proveniência (a origem viaja
-      // como Symbol — ver origem.ts), e sem ela os valores da prévia deixam de
-      // ser clicáveis. Religamos: bindings unitários/sociedade pela id guardada
-      // no próprio snapshot; as listas copiando a origem dos itens vivos (mesma
-      // ordem). No caminho vivo (não congelado) a origem já está lá — nada a fazer.
-      let selecaoEfetiva = selecao;
-      if (congelado) {
-        selecaoEfetiva = selecaoComOrigemDoSnapshot(selecao, bindings, registroPorBinding, empresaId);
-        // itensEfetivo === itensPorLista quando o snapshot não tinha listas (fonte
-        // viva, já com origem) — só copia quando são estruturas distintas.
-        if (itensEfetivo !== itensPorLista) copiarOrigemProfunda(itensEfetivo, itensPorLista);
-      }
-      const ctx = montarContexto(bindings, selecaoEfetiva, livres, itensEfetivo, listas);
-      contextoComGeoref(ctx, bindingMatricula, georefCabecalhoCampos);
-      // Total dos sócios: campos em branco mantêm a prévia viva antes de a empresa
-      // ser escolhida; preenchem quando as quotas carregam.
-      if (usaTotalSocios) ctx.total = { quotas: '', vlrTotal: '', percentual: '', ...totalEfetivo };
-      // As palavras que concordam com quem sai ("o sócio … retira-se" x "os sócios
-      // … retiram-se"): flexão de verbo não sai de `sep`/`fim` de seção.
-      ctx.retirada = vocabularioDaRetirada(retirantes);
-      // A administração passou a ser exercida de FORA do quadro. É a condicional
-      // que faz a cláusula dizer "administradores não sócios" só quando é verdade —
-      // sem ela o consolidado afirmava "administrada isoladamente por X e Y" logo
-      // abaixo de uma Cláusula Quinta que dá 100% do capital a outra pessoa.
-      if (ctx.sociedade && typeof ctx.sociedade === 'object') {
-        const soc = ctx.sociedade as Record<string, string>;
-        const naoSocios = administradoresNaoSocios.length > 0;
-        soc.temAdministradorNaoSocio = naoSocios ? 'sim' : '';
-        soc.semAdministradorNaoSocio = naoSocios ? '' : 'sim';
-      }
+      const ctx = montarContextoDaFolha(dadosDaFolha);
       // gerarComposicao, e não gerarBlocos: o descarte de bloco sem dado se ANUNCIA
       // (emenda 9.2), e é o que a folha conta e o painel de conferência mostra.
       const { blocos, descartados } = gerarComposicao(template, ctx, flagsAtivas, familias);
@@ -1508,7 +2032,25 @@ export function useGerarDocumentoController() {
     } catch (e) {
       return { blocos: null, texto: null, descartados: [], erro: e instanceof Error ? e.message : String(e) };
     }
-  }, [template, templateOriginal, familias, familiasOriginais, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, congelado, snapshotDados, bindingMatricula, georefCabecalhoCampos, retirantes, administradoresNaoSocios]);
+    // `montarContextoDaFolha` é recriada a cada render; as deps são as fontes que ela lê.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template, templateOriginal, familias, familiasOriginais, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, dadosDaFolha, folhaPelaProposta, bindingMatricula, georefCabecalhoCampos, retirantes, administradoresNaoSocios, reproduzindoRegistrado, snapshotRegistrado, snapshotFlags, snapshotDados, propostaAC, causaQualificacao]);
+
+  // As famílias que o texto desta peça cita, transitivamente: o snapshot é o
+  // retrato deste documento, não da Biblioteca. O conjunto também interrompe
+  // ciclos de inclusão.
+  const familiasUsadas = useMemo<RegistroFamilias>(() => {
+    const citadas = new Set(template.blocos.flatMap((b) => inclusoesDe(b.conteudo)));
+    const usadas: RegistroFamilias = {};
+    for (const nome of citadas) {
+      if (!familias[nome]) continue;
+      usadas[nome] = familias[nome];
+      for (const variante of familias[nome]) {
+        for (const incluida of inclusoesDe(variante.conteudo)) citadas.add(incluida);
+      }
+    }
+    return usadas;
+  }, [template, familias]);
 
   const copiar = async () => {
     if (!resultado.texto) return;
@@ -1545,6 +2087,8 @@ export function useGerarDocumentoController() {
         constitutivosRegistrados: constitutivosRegistrados ?? new Set<string>(),
         sucessorDaBase: sucessorAlheio,
         alteracaoEmCurso,
+        // Só a head em rascunho responde; nas demais o fato não se aplica.
+        validada: documentoHead?.status === 'rascunho' ? documentoHead.snapshot_validado_em != null : undefined,
         temBaseRegistrada: documentoBaseId != null,
         erroDeComposicao: resultado.erro ?? null,
       }),
@@ -1560,7 +2104,13 @@ export function useGerarDocumentoController() {
   // estava concatenando alterações.
   const declaracaoDaPeca = declararPeca(fluxo.estado, {
     numeroAlteracao,
-    atosAFormalizar: new Set(movimentosDaPeca(numeroAlteracao >= 1)).size,
+    // Validada, a peça declara o conjunto que congelou; antes disso, o que
+    // congelaria agora.
+    atosAFormalizar: new Set(
+      validado && snapshotDados?.movimentosFormalizados
+        ? snapshotDados.movimentosFormalizados
+        : movimentosDaPeca(numeroAlteracao >= 1),
+    ).size,
   });
   const [baixando, setBaixando] = useState(false);
   const [baixarIncompletoOpen, setBaixarIncompletoOpen] = useState(false);
@@ -1619,7 +2169,9 @@ export function useGerarDocumentoController() {
   const bindingsNaoSociedade = bindings.filter((b) => b.tipo !== 'sociedade');
   const precisaSelecoes = precisaEmpresa || bindingsNaoSociedade.length > 0 || listasDeSelecao.length > 0;
   const selecoesCompletas = !listasPendentes && bindingsPendentes.length === 0;
-  const modeloPronto = !!modeloId && !carregandoBlocos && template.blocos.length > 0;
+  // A peça REGISTRADA reproduz do snapshot dela: sem blocos congelados a folha
+  // mostra o erro explicativo, e não a etapa de escolhas de um modelo "sem blocos".
+  const modeloPronto = !!modeloId && !carregandoBlocos && (reproduzindoRegistrado || template.blocos.length > 0);
 
   // As condições manuais NÃO são passo do fluxo de geração. Elas são as
   // perguntas do assistente de alteração contratual, que só faz sentido diante
@@ -1676,6 +2228,9 @@ export function useGerarDocumentoController() {
   const blocosFolha = useMemo<BlocoFolha[]>(
     () =>
       (resultado.blocos ?? []).map((b) => {
+        if (reproduzindoRegistrado) {
+          return { id: b.id, blocoId: null, nome: '', tipo: b.tipo, conteudo: b.conteudo, segmentos: b.segmentos, sobrescrito: false };
+        }
         const posicaoId = b.instanciaDe ?? b.id;
         // Variantes que escreveram trecho DESTA instância (o render marca cada
         // segmento com o bloco de origem): a prévia oferece editar a redação que
@@ -1696,7 +2251,7 @@ export function useGerarDocumentoController() {
           variantes,
         };
       }),
-    [resultado.blocos, nomePorBlocoId, nomePorVarianteId, bibliotecaIdPorBlocoId, posicoesSobrescritas],
+    [resultado.blocos, nomePorBlocoId, nomePorVarianteId, bibliotecaIdPorBlocoId, posicoesSobrescritas, reproduzindoRegistrado],
   );
 
   // --- Visualização de versão anterior (somente leitura) --------------------
@@ -1713,14 +2268,12 @@ export function useGerarDocumentoController() {
       alvo.snapshot_versoes_blocos as unknown as SnapshotVersoes | null,
       alvo.snapshot_flags as string[] | null,
       alvo.snapshot_dados as unknown as SnapshotDados | null,
-      modeloSocietario,
     );
     const base = anterior
       ? renderizarVersao(
           anterior.snapshot_versoes_blocos as unknown as SnapshotVersoes | null,
           anterior.snapshot_flags as string[] | null,
           anterior.snapshot_dados as unknown as SnapshotDados | null,
-          modeloSocietario,
         )
       : null;
     return {
@@ -1729,25 +2282,24 @@ export function useGerarDocumentoController() {
       erro: atual.erro,
       blocos: realcarMudancas(atual.blocos, base?.blocos ?? null),
     };
-  }, [versaoVisualizadaId, versoes, modeloSocietario]);
+  }, [versaoVisualizadaId, versoes]);
 
   const modoVisualizacao = versaoView != null;
 
   const blocosFolhaVersao = useMemo<BlocoFolha[]>(
     () =>
       (versaoView?.blocos ?? []).map((b) => {
-        const posicaoId = b.instanciaDe ?? b.id;
         return {
           id: b.id,
           blocoId: null, // somente leitura: sem atalho de edição
-          nome: nomePorBlocoId.get(posicaoId) ?? '',
+          nome: '',
           tipo: b.tipo,
           conteudo: b.conteudo,
           segmentos: b.segmentos,
           sobrescrito: false,
         };
       }),
-    [versaoView, nomePorBlocoId],
+    [versaoView],
   );
 
   const [baixandoVersao, setBaixandoVersao] = useState(false);
@@ -1841,15 +2393,33 @@ export function useGerarDocumentoController() {
     travas, estadoDaSociedade: fluxo.estado, declaracaoDaPeca,
     flagsManuaisDoModelo, valorPorFlagId, resumoDaAlteracao, rotulosEventosDaAlteracao,
     // A evidência de cada evento derivado, por nome de flag: é ela que o
-    // assistente mostra no lugar da pergunta.
-    evidenciaPorFlagNome: new Map(
-      [...eventoPorFlagNome].map(([nome, evento]) => [nome, evento.evidencia]),
-    ),
+    // assistente mostra no lugar da pergunta. A da sede vem da comparação
+    // snapshot x cadastro (antes → depois), não da janela de audit_logs.
+    evidenciaPorFlagNome: new Map([
+      ...[...eventoPorFlagNome].map(([nome, evento]) => [nome, evento.evidencia] as const),
+      ...(candidatoSede ? [[FLAG_SEDE, candidatoSede.evidencia] as const] : []),
+      ...(candidatosEndereco.length > 0
+        ? [[FLAG_QUALIFICACAO, candidatosEndereco.map((c) => c.evidencia).join('; ')] as const]
+        : []),
+    ]),
+    // A proposta: o candidato de sede (antes/depois, elegibilidade), as
+    // pendências e a causa. É o que o assistente mostra além do interruptor.
+    candidatoSede, pendenciasDaAlteracao, causaSede, setCausaSede,
+    candidatosEndereco, causaQualificacao, setCausaQualificacao,
+    propostaConfirmada, validado, propostaAC,
     alteracaoDialogOpen, setAlteracaoDialogOpen, respostasAlteracao,
     abrirAlteracao, alternarRespostaAlteracao, confirmarAlteracao,
-    salvandoAlteracao: responderEventos.isPending,
-    registrarConfirmOpen, setRegistrarConfirmOpen, confirmarRegistro,
-    registrandoDocumento: registrarDocumento.isPending,
+    salvandoAlteracao: responderEventos.isPending || confirmarProposta.isPending,
+    registrarConfirmOpen, setRegistrarConfirmOpen, abrirRegistro, confirmarRegistro,
+    registrandoDocumento:
+      registrarDocumento.isPending || completarRegistro.isPending || enviarArquivoRegistrado.isPending,
+    // O diálogo do registro serve dois gestos: registrar a peça da tela, ou
+    // completar o marco de qualquer peça já registrada desta sociedade.
+    registrosNaJunta, abrirDadosDoRegistro,
+    modoRegistro: registroAlvoId ? ('completar' as const) : ('registrar' as const),
+    tituloDoRegistro: registroAlvo?.titulo ?? nomeModelo,
+    registroAlvoAtual: registroAlvo?.registro ?? null,
+    arquivoRegistradoId: arquivoRegistradoId ?? registroAlvo?.registro?.arquivoId ?? null,
     modoDocumento,
     empresaLabel, labelsRegistros, resumoPasso2, mensagemPendente, blocosFolha,
     versaoView, modoVisualizacao, blocosFolhaVersao, baixandoVersao, baixarVersao,

@@ -115,6 +115,7 @@ export function matriculaParaMapear(m: MatriculaCrua): MatriculaParaMapear {
 
 /** A linha de `exploracao_rural` com as três filhas, na forma que a conversão lê. */
 export interface ExploracaoCrua {
+  id: string;
   tipo_exploracao: string;
   data_assinatura: string | null;
   data_encerramento: string | null;
@@ -223,6 +224,7 @@ export function entradaDoInstrumento(
 
   return {
     instrumento: {
+      id: exploracao.id,
       tipoExploracao: exploracao.tipo_exploracao,
       dataAssinatura: exploracao.data_assinatura,
       dataEncerramento: exploracao.data_encerramento,

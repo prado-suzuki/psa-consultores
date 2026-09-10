@@ -1,0 +1,354 @@
+{
+  "cenario": "Montagem de cenario para exercitar a resolucao de endereco de socio (assistente de alteracao contratual) no cliente [TESTE] Furao Notario Cartorio Subterraneo S.A.",
+  "data": "2026-09-10",
+  "branch": "develop",
+  "head": "3fd453b0",
+  "banco": "SANDBOX vgzomuwnsdgrxbkyoavq",
+  "prova_do_banco": "supabaseHosts do driver devolveu ['vgzomuwnsdgrxbkyoavq.supabase.co'] e SO ele nas 53 chamadas desta sessao. .env.sandbox:23 VITE_SUPABASE_URL=https://vgzomuwnsdgrxbkyoavq.supabase.co. Nenhum request para zwoainzzqhudmmknuycq (producao).",
+  "ferramenta": "Playwright MCP indisponivel; driver .playwright-mcp/drv.mjs + snippets em .playwright-mcp/f1/s01..s53.mjs",
+  "estado_inicial_do_cliente": "Conferido antes de mexer: Pessoas Juridicas (0), Pessoas Fisicas (0), Bens (0), 'Este cliente nao possui empresas Proprietaria (PR) ou Controladora (CN) cadastradas.' Nada preexistente foi tocado nem removido.",
+
+  "AVISO_PRINCIPAL": {
+    "o_que": "Uma alteracao contratual CONFIRMADA nao pode ser apagada pela tela, e ela consome o botao 'Gerar alteracao contratual' da peca registrada de onde nasceu.",
+    "prova_no_produto": "Depois de confirmar a AC de ensaio na [TESTE] Toca Notarial, a botoeira daquela peca passou de 'Gerar alteracao contratual / Validar versao / Baixar .docx' para 'Rever os eventos / Validar versao / Baixar .docx', e assim permanece. Nao ha botao de excluir/desfazer/descartar em nenhum lugar da tela Gerar (varri os 35 botoes de main/aside/header por texto, title, aria-label e classe do lucide: so 'arrow-left' de navegacao, nenhum 'trash'/'undo').",
+    "prova_no_codigo": "grep de \"from('documento_gerado')\" em src/ so acha .insert() e .update() — nao existe .delete() de documento_gerado em lugar nenhum do front. E src/lib/osg/travaDaSucessao.ts:32-49 bloqueia nascer uma segunda AC da mesma peca ('Esta peca ja tem uma alteracao contratual gerada a partir dela, ainda em aberto.').",
+    "consequencia_para_o_roteiro": "A sociedade onde eu fiz o ensaio ficou com a AC em cima e NAO serve mais para o passo 'clique em Gerar alteracao contratual'. Por isso montei uma SEGUNDA sociedade, gemea e intocada, que e a que o roteiro deve usar."
+  },
+
+  "qual_sociedade_usar": {
+    "para_o_roteiro": "[TESTE] Cofre Subterraneo Guarda de Acervos Ltda — contrato social validado e REGISTRADO na junta, nenhuma AC em cima, botao 'Gerar alteracao contratual' disponivel.",
+    "so_como_prova_do_ensaio": "[TESTE] Toca Notarial Registros Subterraneos Ltda — mesma montagem, mas ficou com a AC de ensaio (rascunho, 1a alteracao) permanentemente em cima."
+  },
+
+  "sociedades": [
+    {
+      "papel": "PRISTINA - e esta que o roteiro deve usar",
+      "razao_social": "[TESTE] Cofre Subterraneo Guarda de Acervos Ltda",
+      "cnpj": "66.331.122/0001-79",
+      "nire": "51900000789",
+      "uf_junta": "MT",
+      "status": "Ativa",
+      "tipo_empresa": "Proprietaria",
+      "data_constituicao": "15/03/2021",
+      "objeto": "Guarda, digitalizacao e custodia de acervos documentais em galerias subterraneas.",
+      "sede": {
+        "logradouro": "Avenida Historiador Rubens de Mendonca",
+        "numero": "2200",
+        "complemento": "Sala 802",
+        "bairro": "Bosque da Saude",
+        "municipio": "Cuiaba",
+        "uf": "MT",
+        "cep": "78050-000"
+      },
+      "capital": "R$ 1.000.000,00 dividido em 1.000.000 quotas de R$ 1,00",
+      "estado_da_peca": "Contrato Social - (Participacoes) · registrada na junta · sem AC nenhuma em cima",
+      "prova": "cabecalho da previa: 'Contrato Social - (Participacoes) / Contrato social · registrada na junta'; botoes: 'Gerar alteracao contratual', 'Validar versao', 'Baixar .docx'"
+    },
+    {
+      "papel": "GEMEA JA CONSUMIDA PELO ENSAIO - nao usar no roteiro",
+      "razao_social": "[TESTE] Toca Notarial Registros Subterraneos Ltda",
+      "cnpj": "44.255.677/0001-46",
+      "nire": "51900000123",
+      "uf_junta": "MT",
+      "status": "Ativa",
+      "tipo_empresa": "Proprietaria",
+      "data_constituicao": "15/03/2021",
+      "objeto": "Servicos de digitalizacao, guarda e gestao de acervos documentais e apoio a serventias extrajudiciais.",
+      "sede": {
+        "logradouro": "Avenida Historiador Rubens de Mendonca",
+        "numero": "2200",
+        "complemento": "Sala 801",
+        "bairro": "Bosque da Saude",
+        "municipio": "Cuiaba",
+        "uf": "MT",
+        "cep": "78050-000"
+      },
+      "capital": "R$ 1.000.000,00 dividido em 1.000.000 quotas de R$ 1,00",
+      "estado_da_peca": "1a alteracao · em composicao, ainda nao validada (a AC do ensaio). A peca registrada por baixo continua registrada.",
+      "prova": "cabecalho da previa: '1a alteracao · em composicao, ainda nao validada / PRIMEIRA ALTERACAO E CONSOLIDACAO DO CONTRATO SOCIAL'; botoes: 'Rever os eventos', 'Validar versao', 'Baixar .docx'"
+    }
+  ],
+
+  "socios": {
+    "observacao": "Os TRES socios sao os mesmos nas duas sociedades, com as mesmas 500.000/300.000/200.000 quotas. Mexer no endereco de um deles produz evidencia nas duas pecas.",
+    "lista": [
+      {
+        "papel": "socio PF homem E administrador — e o alvo do teste (singular masculino + clausula de administracao)",
+        "nome": "Nivaldo Tabosa Furtado",
+        "cpf": "307.448.200-14",
+        "quotas": "500.000 (50,00%)",
+        "administrador": "sim, cargo 'Administrador', 'Assina em conjunto', nas DUAS sociedades",
+        "endereco_atual_no_cadastro": {
+          "logradouro": "Rua Barao de Melgaco",
+          "numero": "1200",
+          "complemento": "Sala 3",
+          "bairro": "Centro Sul",
+          "municipio": "Cuiaba",
+          "uf": "MT",
+          "cep": "78020-800"
+        },
+        "qualificacao": {
+          "nacionalidade": "Brasileiro",
+          "naturalidade": "Rondonopolis / MT",
+          "data_nascimento": "12/04/1972",
+          "profissao": "Tabeliao",
+          "genero": "Masculino",
+          "estado_civil": "Casado(a)",
+          "regime_de_bens": "Comunhao Parcial",
+          "conjuge": "nao preenchido (deixado em branco de proposito)",
+          "pai": "Joaquim Tabosa Furtado",
+          "mae": "Odete Marques Tabosa",
+          "documento": "RG 1543287, orgao emissor SSP, UF MT"
+        },
+        "como_sai_no_instrumento": "NIVALDO TABOSA FURTADO, brasileiro, casado em regime de comunhao parcial de bens, Tabeliao, portador do RG n.o 1543287 SSP/MT, inscrito no CPF/MF sob o n.o 307.448.200-14, residente e domiciliado na Rua Barao de Melgaco, n.o 1200, Sala 3, Bairro Centro Sul, no municipio de Cuiaba, Estado de Mato Grosso, CEP 78020-800"
+      },
+      {
+        "papel": "socia PF mulher E administradora — singular feminino, e o par para o plural",
+        "nome": "Marlene Furtado Cavalcanti",
+        "cpf": "518.629.371-76",
+        "quotas": "300.000 (30,00%)",
+        "administrador": "sim, cargo 'Administrador', 'Assina em conjunto', nas DUAS sociedades",
+        "endereco_atual_no_cadastro": {
+          "logradouro": "Rua Joaquim Murtinho",
+          "numero": "450",
+          "complemento": "Apto 702",
+          "bairro": "Centro Norte",
+          "municipio": "Cuiaba",
+          "uf": "MT",
+          "cep": "78010-100"
+        },
+        "qualificacao": {
+          "nacionalidade": "Brasileira",
+          "naturalidade": "Varzea Grande / MT",
+          "data_nascimento": "28/09/1978",
+          "profissao": "Escrevente",
+          "genero": "Feminino",
+          "estado_civil": "Casado(a)",
+          "regime_de_bens": "Comunhao Parcial",
+          "conjuge": "nao preenchido",
+          "pai": "Sebastiao Cavalcanti Neto",
+          "mae": "Terezinha Furtado Cavalcanti",
+          "documento": "RG 2287604, orgao emissor SSP, UF MT"
+        },
+        "como_sai_no_instrumento": "MARLENE FURTADO CAVALCANTI, brasileira, casada em regime de comunhao parcial de bens, Escrevente, portadora do RG n.o 2287604 SSP/MT, inscrita no CPF/MF sob o n.o 518.629.371-76, residente e domiciliada na Rua Joaquim Murtinho, n.o 450, Apto 702, Bairro Centro Norte, no municipio de Cuiaba, Estado de Mato Grosso, CEP 78010-100"
+      },
+      {
+        "papel": "socia PJ — o caso que NAO homologa: mudar o endereco dela vira pendencia, nao evento",
+        "razao_social": "[TESTE] Galeria Profunda Participacoes Ltda",
+        "cnpj": "55.887.799/0001-71",
+        "nire": "51900000456",
+        "tipo_empresa": "Socia",
+        "quotas": "200.000 (20,00%)",
+        "data_constituicao": "10/06/2018",
+        "objeto": "Participacao no capital de outras sociedades, na qualidade de socia ou acionista.",
+        "endereco_atual_no_cadastro": {
+          "logradouro": "Avenida Fernando Correa da Costa",
+          "numero": "3000",
+          "complemento": "Sala 12",
+          "bairro": "Coxipo",
+          "municipio": "Cuiaba",
+          "uf": "MT",
+          "cep": "78090-000"
+        }
+      }
+    ]
+  },
+
+  "bens_que_sustentam_o_capital": [
+    {
+      "ref": "IB-01",
+      "denominacao": "Edificio Toca Notarial - Sala-Cofre e Galerias",
+      "tipo": "Imovel Urbano",
+      "pj_destino": "[TESTE] Toca Notarial Registros Subterraneos Ltda",
+      "status": "Integralizado (virou Integralizado sozinho depois de gravar o quadro)",
+      "matricula": "78200, livro 2-A, folha 145, data 20/03/2021, Cartorio de Registro de Imoveis / Sinop-MT, municipio Sinop/MT, area 1.200 m2, Vlr. contabil R$ 1.000.000,00, Vlr. mercado R$ 1.000.000,00",
+      "titularidade_DT": "Nivaldo 50% / Marlene 30% / Galeria Profunda 20%"
+    },
+    {
+      "ref": "IB-02",
+      "denominacao": "Galeria Blindada do Cofre Subterraneo",
+      "tipo": "Imovel Urbano",
+      "pj_destino": "[TESTE] Cofre Subterraneo Guarda de Acervos Ltda",
+      "status": "Aprovado / Integralizado apos gravar o quadro",
+      "matricula": "78201, livro 2-A, folha 146, data 20/03/2021, Cartorio de Registro de Imoveis / Sinop-MT, municipio Sinop/MT, area 1.500 m2, Vlr. contabil R$ 1.000.000,00, Vlr. mercado R$ 1.000.000,00",
+      "titularidade_DT": "Nivaldo 50% / Marlene 30% / Galeria Profunda 20%"
+    }
+  ],
+
+  "dados_inventados_no_registro_na_junta": [
+    {
+      "sociedade": "[TESTE] Toca Notarial Registros Subterraneos Ltda",
+      "protocolo_na_junta": "21/300145-8",
+      "data_do_registro": "25/03/2021",
+      "numero_do_arquivamento": "20210325001",
+      "uf": "MT (default da tela)",
+      "junta_comercial": "JUCEMT (default da tela)",
+      "pdf_registrado": "nao anexado"
+    },
+    {
+      "sociedade": "[TESTE] Cofre Subterraneo Guarda de Acervos Ltda",
+      "protocolo_na_junta": "21/300146-1",
+      "data_do_registro": "25/03/2021",
+      "numero_do_arquivamento": "20210325002",
+      "uf": "MT (default da tela)",
+      "junta_comercial": "JUCEMT (default da tela)",
+      "pdf_registrado": "nao anexado"
+    },
+    {
+      "campos_preenchidos_a_mao_na_peca_do_Cofre": {
+        "dataAssinatura": "20/03/2021",
+        "testemunha1Nome": "Elza Ramires Baldoino",
+        "testemunha1Rg": "3345612 SSP/MT",
+        "testemunha1Cpf": "642.907.135-99",
+        "testemunha2Nome": "Higino Pereira da Mata",
+        "testemunha2Rg": "4456789 SSP/MT",
+        "testemunha2Cpf": "873.105.624-53"
+      },
+      "observacao": "So a peca do Cofre tem esses campos gravados. A peca da Toca Notarial NAO tem (ver 'travas_e_passos_nao_obvios'), e por isso o .docx dela sai marcado como rascunho."
+    }
+  ],
+
+  "caminho_de_cliques_ate_o_assistente": [
+    "1. Menu lateral > 'Gerar Documento' (rota /equipe/osg/work/gerar-documento).",
+    "2. Combobox CLIENTE no topo > opcao '[TESTE] Furao Notario Cartorio Subterraneo S.A.'. (O cliente NAO persiste entre navegacoes: toda rota nova pede para reselecionar.)",
+    "3. Passo '1 Escolha o modelo' > cartao 'Contrato Social - (Participacoes)'. Clique no CARTAO, nao no texto.",
+    "4. Passo '2 Escolha a empresa do contrato' > cartao '[TESTE] Cofre Subterraneo Guarda de Acervos Ltda / 66.331.122/0001-79 / Proprietaria'. Cuidado: os tres cartoes aparecem juntos, inclusive '[TESTE] Toca Notarial Registros Subterraneos Ltda' (a gemea consumida) e '[TESTE] Galeria Profunda Participacoes Ltda' (Socia).",
+    "5. Aba 'Conferencia' (se a tela nao abrir nela sozinha) e espere a 'PREVIA DO DOCUMENTO' aparecer.",
+    "6. Botao 'Gerar alteracao contratual' (fica na botoeira da direita, junto de 'Validar versao' e 'Baixar .docx').",
+    "7. No dialogo: conferir o interruptor 'Houve mudanca de endereco de socio pessoa fisica', escolher o radio em 'Por que o endereco mudou?', 'Continuar', e entao 'Confirmar alteracao contratual'.",
+    "8. Depois de confirmar, a botoeira vira 'Rever os eventos / Validar versao / Baixar .docx' — 'Rever os eventos' reabre o mesmo dialogo."
+  ],
+
+  "onde_se_muda_o_endereco_de_um_socio": {
+    "tela": "Menu lateral > 'Qualificacao das Partes' (/equipe/osg/work/qualificacao-das-partes), com o cliente selecionado no combobox do topo.",
+    "acao": "Tabela 'Pessoas Fisicas' (ou 'Pessoas Juridicas' para a PJ socia) > botao de lapis na coluna Acoes da linha da pessoa (o primeiro dos dois botoes sem texto; o segundo e a lixeira).",
+    "campos": "No dialogo 'Editar pessoa', bloco de endereco: CEP, Logradouro, Numero, Complemento, Bairro, Municipio e o combobox UF. Salvar com 'Salvar alteracoes' (PATCH 200).",
+    "atencao": "Preencher o CEP dispara busca automatica e sobrescreve Logradouro/Bairro/Municipio depois de ~2s. Preencha o CEP PRIMEIRO, espere, e so entao os outros campos."
+  },
+
+  "ensaio_completo_feito_na_gemea_Toca_Notarial": [
+    {
+      "passo": "1. Mudar o endereco do socio homem",
+      "o_que_fiz": "Nivaldo: CEP 78020-800 / Rua Barao de Melgaco / 1200 / Sala 3 / Centro Sul -> CEP 78050-970 / Avenida Historiador Rubens de Mendonca / 3900 / Sala 1502 / Jardim Aclimacao (Cuiaba/MT nos dois).",
+      "resultado": "PATCH 200"
+    },
+    {
+      "passo": "2. 'Gerar alteracao contratual' — o evento nasce ligado?",
+      "status": "CONFIRMADO",
+      "prova": "aria-checked do interruptor 'Houve mudanca de endereco de socio pessoa fisica' = true na PRIMEIRA leitura, com a evidencia literal: 'Endereco de Nivaldo Tabosa Furtado: Rua Barao de Melgaco, n.o 1200, Sala 3, Bairro Centro Sul, no municipio de Cuiaba, Estado de Mato Grosso, CEP 78020-800 -> Avenida Historiador Rubens de Mendonca, n.o 3900, Sala 1502, Bairro Jardim Aclimacao, no municipio de Cuiaba, Estado de Mato Grosso, CEP 78050-970'. Os outros SEIS interruptores nasceram false, todos com 'nada no cadastro registra este evento'.",
+      "novidade_em_relacao_a_rodada_2": "a CAUSA agora nasce escolhida: o radio 'Mudanca de domicilio' vem com aria-checked=true. Na rodada 2 os tres radios vinham vazios e 'Continuar' exigia a escolha."
+    },
+    {
+      "passo": "3. Continuar > Confirmar alteracao contratual",
+      "resultado": "POST 201. O passo 2 do dialogo resume: '1 evento nesta alteracao'. A previa vira 'PRIMEIRA ALTERACAO E CONSOLIDACAO DO CONTRATO SOCIAL'."
+    },
+    {
+      "passo": "4. Baixar .docx e conferir a resolucao",
+      "status": "CORRETO",
+      "arquivo": ".playwright-mcp/f1-p1-ac-endereco-nivaldo.docx (+ f1-p1.txt)",
+      "prova_resolucao": "DAS ALTERACOES CONTRATUAIS Da atualizacao da qualificacao de socio. Altera-se a qualificacao do socio NIVALDO TABOSA FURTADO , para fazer constar o atual endereco deste, permanecendo inalterados os demais dados da qualificacao e vigorando, a partir de entao, nos seguintes termos: NIVALDO TABOSA FURTADO , brasileiro, casado em regime de comunhao parcial de bens, Tabeliao, portador do RG n.o 1543287 SSP/MT, inscrito no CPF/MF sob o n.o 307.448.200-14, residente e domiciliado na Avenida Historiador Rubens de Mendonca, n.o 3900, Sala 1502, Bairro Jardim Aclimacao, no municipio de Cuiaba, Estado de Mato Grosso, CEP 78050-970.",
+      "singular_masculino": "'do socio ... o atual endereco deste' — concordancia correta."
+    },
+    {
+      "passo": "5. O endereco novo chega na clausula de administracao?",
+      "status": "CHEGA",
+      "prova": "'administrada isoladamente por Nivaldo Tabosa Furtado, brasileiro, Casado, Tabeliao, portador da Cedula de Identidade RG n 1543287 - SSP/MT, inscrito no CPF/MF sob o n 307.448.200-14, residente e domiciliado no endereco Avenida Historiador Rubens de Mendonca, n.o 3900, Sala 1502, Bairro Jardim Aclimacao, no municipio de Cuiaba, Estado de Mato Grosso, CEP 78050-970; e Marlene Furtado Cavalcanti, ... Rua Joaquim Murtinho, n.o 450, Apto 702, Bairro Centro Norte, ... CEP 78010-100'",
+      "contagem_no_docx": "'Rubens de Mendonca' (endereco novo) 7x e '78050-970' 4x; 'Barao de Melgaco' (endereco antigo) 0x e '78020-800' 0x no documento inteiro.",
+      "diff_contra_a_linha_de_base": "diff palavra a palavra de f1-p0.txt (contrato registrado) contra f1-p1.txt (AC) so acusa: o titulo ('INSTRUMENTO PARTICULAR DE CONSTITUICAO' -> 'PRIMEIRA ALTERACAO E CONSOLIDACAO'), o endereco de Nivaldo em cada ocorrencia, e o preambulo de alteracao ('Unicos socios da ...'). Nada mais se moveu."
+    },
+    {
+      "passo": "6. Numeros do capital no .docx",
+      "prova": "'O capital social da empresa sera de R$ 1.000.000,00 (um milhao de reais), dividido em 1.000.000 (um milhao) quotas, no valor nominal de R$ 1,00 (um real) cada uma'. 'um milhao de reais' 1x, 'um milhao reais' 0x; e o parenteses das quotas sai '(um milhao) quotas', sem o 'de' preso dentro que a rodada 4 registrou como D2b."
+    },
+    {
+      "passo": "7. Desfazer",
+      "feito": "endereco de Nivaldo revertido no cadastro para Rua Barao de Melgaco / 1200 / Sala 3 / Centro Sul / 78020-800 (PATCH 200). Conferido depois na tela: os sete campos batem.",
+      "nao_feito": "a AC confirmada NAO pode ser apagada pela tela (ver AVISO_PRINCIPAL). Ela ficou na [TESTE] Toca Notarial como '1a alteracao · em composicao, ainda nao validada'.",
+      "efeito_colateral_esperado": "a AC congelou o endereco aprovado: a previa dela continua mostrando 'Avenida Historiador Rubens de Mendonca, n.o 3900 ... CEP 78050-970' (4x) e 'Barao de Melgaco' 0x, mesmo com o cadastro revertido. E snapshot congelado, nao erro do app."
+    }
+  ],
+
+  "verificacao_nao_destrutiva_feita_na_sociedade_pristina_Cofre": {
+    "por_que": "para entregar a sociedade do roteiro PROVADA sem consumir o botao 'Gerar alteracao contratual' dela. Abrir o dialogo e cancelar nao grava nada; so 'Confirmar alteracao contratual' faz POST.",
+    "endereco_de_socio_PF": {
+      "status": "CONFIRMADO",
+      "como": "mudei o endereco de Nivaldo para o mesmo destino do ensaio, abri 'Gerar alteracao contratual', li o estado, cliquei 'Cancelar' e reverti o cadastro.",
+      "prova": "unico interruptor com aria-checked=true: 'Houve mudanca de endereco de socio pessoa fisica', evidencia 'Endereco de Nivaldo Tabosa Furtado: Rua Barao de Melgaco, n.o 1200, Sa...'; radio 'Mudanca de domicilio' ja marcado.",
+      "prova_de_que_nada_ficou": "reabrindo a peca depois do Cancelar: 'Contrato social · registrada na junta' e botoes 'Gerar alteracao contratual / Validar versao / Baixar .docx' — intacta."
+    },
+    "endereco_da_socia_PJ": {
+      "status": "CONFIRMADO — nao vira evento, vira pendencia",
+      "como": "mudei o endereco da [TESTE] Galeria Profunda Participacoes Ltda para Avenida Miguel Sutil / 8000 / Sala 1201 / Santa Rosa / 78048-250, abri o dialogo, li, cancelei e reverti.",
+      "prova": "os SETE interruptores ficaram false ('nada no cadastro registra este evento', inclusive o de socio PF). Em 'Divergencias que nao viram evento nesta peca' apareceu a linha literal: 'Endereco de [TESTE] Galeria Profunda Participacoes Ltda: so o endereco de socio pessoa fisica esta homologado.' e 'Qualificacao detectada, sem autorizacao juridica o...'"
+    },
+    "socia_PF_mulher_no_singular_feminino": {
+      "status": "NAO VERIFICADO NO DOCUMENTO",
+      "porque": "so daria para ler a concordancia feminina depois de CONFIRMAR uma AC, e confirmar consumiria a sociedade pristina. O caminho ate o evento e o mesmo do masculino; a frase feminina fica para quem rodar o roteiro."
+    }
+  },
+
+  "divergencia_de_origem_que_aparece_sempre": {
+    "texto_literal": "Atual: qualificacao sem id estavel; CPF/CNPJ nao concilia identidade. / Base: qualificacao sem id estavel; CPF/CNPJ nao concilia identidade.",
+    "onde": "bloco 'Divergencias que nao viram evento nesta peca' do dialogo, nas DUAS sociedades, mesmo com o cadastro intocado.",
+    "leitura": "e ruido de base, nao consequencia da montagem: aparece antes de qualquer alteracao de endereco. Nao investiguei a fundo — fora do escopo desta tarefa. O roteiro deve avisar que essas duas linhas sao esperadas."
+  },
+
+  "travas_e_passos_nao_obvios": [
+    {
+      "item": "O capital NAO se digita: ele e calculado do Diagnostico Patrimonial",
+      "detalhe": "A tela Quadro Societario diz 'Proposta calculada dos bens aprovados no Diagnostico Patrimonial, rateada pelas fracoes de titularidade'. Para ter R$ 1.000.000,00 com 50/30/20 foi preciso criar um bem com uma matricula de R$ 1.000.000,00 e titularidade DT 50/30/20, e so entao 'Gravar quadro societario'."
+    },
+    {
+      "item": "O campo de valor que vira capital e 'Vlr. contabil' da MATRICULA",
+      "detalhe": "Na primeira tentativa preenchi 'Vlr. contabil ajustado' e a tela continuou dizendo 'Nenhum bem aprovado para integralizacao com destino a esta empresa' e capital R$ 0,00. src/lib/templates/mapeadores.ts:270 valorParaCapital le m.vlr_contabil ?? m.bem?.vlr_contabil — o 'ajustado' nao conta."
+    },
+    {
+      "item": "Um bem so entra no calculo com Status integralizacao 'Aprovado' (ou 'Aprovado para 2a Instancia'), 'Participa da estruturacao' ligado e 'PJ de destino' apontando para a sociedade",
+      "detalhe": "src/hooks/useGeracaoDocumento.ts:296-302 filtra por empresa_destino_pessoa_id, participa_estruturacao=true e status elegivel."
+    },
+    {
+      "item": "PJ pode ser titular de matricula e por isso pode virar socia",
+      "detalhe": "o combo 'Titular*' da aba Titularidade lista PF e PJ: '[TESTE] Galeria Profunda Participacoes Ltda (PJ)'. Foi assim que a socia PJ entrou no quadro."
+    },
+    {
+      "item": "Estado civil 'Casado(a)' revela dois combos novos (Regime de bens e Conjuge) e desloca os indices de 'Tipo de documento' e 'UF do documento'",
+      "detalhe": "escolha o estado civil ANTES dos outros selects do formulario de PF. Deixei o Conjuge em branco de proposito e o cadastro aceitou (POST 201)."
+    },
+    {
+      "item": "Os campos 'Preencher a mao' (dataAssinatura, testemunhas) so gravam quando a versao e VALIDADA",
+      "detalhe": "digitados e recarregada a tela, voltam vazios — tanto no rascunho quanto na peca ja registrada. Na peca do Cofre eu preenchi e cliquei 'Validar versao' na MESMA sessao, e ai ficaram (o fecho saiu 'Cuiaba/MT, 20/03/2021.' e as testemunhas aparecem na previa). Na peca da Toca Notarial eu validei antes de preencher, e agora ela nao aceita mais: o .docx dela sai como 'Contrato_Social_-_Participacoes_rascunho.docx' com o alerta 'Estes campos obrigatorios ainda nao foram resolvidos: Data da assinatura'. Nao existe botao de salvar esses campos numa peca ja registrada."
+    },
+    {
+      "item": "'Registrar na junta' exige Protocolo e Data; UF e Junta ja vem preenchidos (MT / JUCEMT) e o PDF e opcional",
+      "detalhe": "frase da tela: 'O protocolo e a data do registro identificam o ato na junta: sem os dois a peca nao diz qual registro a tornou oponivel.'"
+    },
+    {
+      "item": "Depois de registrar, o Quadro Societario libera 'Transferir quotas para a controladora'",
+      "detalhe": "antes do registro ele avisa 'As quotas so sobem depois que as duas sociedades existem na junta.' Nao usei esse caminho; deixei as duas sociedades sem subida de quotas."
+    }
+  ],
+
+  "estado_final_dos_dados": {
+    "cliente": "[TESTE] Furao Notario Cartorio Subterraneo S.A.",
+    "pessoas_juridicas": "3 — [TESTE] Cofre Subterraneo Guarda de Acervos Ltda (Proprietaria), [TESTE] Galeria Profunda Participacoes Ltda (Socia), [TESTE] Toca Notarial Registros Subterraneos Ltda (Proprietaria)",
+    "pessoas_fisicas": "2 — Marlene Furtado Cavalcanti, Nivaldo Tabosa Furtado",
+    "bens": "2 — IB-01 e IB-02, ambos com o capital ja integralizado",
+    "enderecos": "TODOS de volta ao valor original: Nivaldo em Rua Barao de Melgaco 1200 / 78020-800; Marlene nunca foi alterada; Galeria Profunda de volta em Avenida Fernando Correa da Costa 3000 / 78090-000. Conferido campo a campo na tela depois de reverter.",
+    "pecas": "Cofre Subterraneo: contrato social REGISTRADO, sem AC. Toca Notarial: contrato social registrado + 1a alteracao em rascunho (residuo do ensaio, nao removivel).",
+    "nenhum_outro_cliente_tocado": "so o [TESTE] Furao Notario foi aberto para escrita. Dinossauro Aposentado, Cenario Completo, Banana Quantica e Abacaxi Eletrico nao foram abertos em nenhum momento."
+  },
+
+  "artefatos": [
+    ".playwright-mcp/f1-p0-contrato-registrado.docx + f1-p0.txt — contrato social registrado da Toca Notarial (linha de base do ensaio; sai como rascunho por falta da data de assinatura)",
+    ".playwright-mcp/f1-p1-ac-endereco-nivaldo.docx + f1-p1.txt — a AC do ensaio, com a resolucao e a clausula de administracao corretas",
+    ".playwright-mcp/f1-p2-cofre-contrato-registrado.docx — contrato social registrado da sociedade pristina (nome do arquivo SEM sufixo _rascunho: peca completa)",
+    ".playwright-mcp/f1/s01..s53.mjs — os snippets desta sessao"
+  ],
+
+  "nao_testado": [
+    { "item": "Playwright MCP", "porque": "as ferramentas mcp__playwright__* continuam indisponiveis; o pedido ja mandava usar o driver." },
+    { "item": "causa 'Atualizacao postal' e 'Correcao de erro do instrumento anterior'", "porque": "o ensaio usou 'Mudanca de domicilio' (a causa que ja vem marcada). As outras duas ficam para o roteiro; a rodada 4 ja as cobriu na Jatoba." },
+    { "item": "plural (dois socios com endereco novo ao mesmo tempo)", "porque": "consumiria a sociedade pristina. O quadro suporta: basta mudar o endereco de Nivaldo E de Marlene antes de abrir o assistente." },
+    { "item": "'Validar versao' e 'Registrar na junta' da AC", "porque": "nao pedido; o ensaio parou no rascunho confirmado com .docx baixado." }
+  ]
+}

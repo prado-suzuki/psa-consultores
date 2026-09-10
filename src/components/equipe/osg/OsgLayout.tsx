@@ -218,7 +218,10 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   // parte de tela. Criar o agrupador agora evita que o segundo entre solto e o
   // terceiro obrigue a renomear endereço já com permissão concedida, o que exige
   // migration com UPDATE porque o sincronizador de páginas casa por CAMINHO.
-  const govItems = [{ path: '/equipe/osg/work/governanca/orgaos', label: 'Órgãos de Governança' }];
+  const govItems = [
+    { path: '/equipe/osg/work/governanca/orgaos', label: 'Órgãos de Governança' },
+    { path: '/equipe/osg/work/governanca/matriz', label: 'Matriz de Alçadas' },
+  ];
   const isGovActive = govItems.some((item) => item.path === location.pathname);
 
   const areaLabel = isWork ? 'OSG Work' : isProjects ? 'OSG Projects' : 'OSG';

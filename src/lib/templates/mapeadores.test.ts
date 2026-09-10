@@ -4,12 +4,17 @@ import {
   calcularParticipacoesPR,
   mapearAdministrador,
   mapearBem,
+  mapearCessoes,
+  mapearRetirantes,
+  causaDaRequalificacaoVigente,
+  vocabularioDaRequalificacao,
   mapearIntegralizacoes,
   matriculasDescritasNasIntegralizacoes,
   mapearMatricula,
   mapearPartesSelecionadas,
   mapearPessoa,
   mapearQuadroSocietario,
+  mapearRequalificados,
   mapearSociedade,
   mapearSocio,
   reidratarItensPorLista,
@@ -23,11 +28,65 @@ import {
 import { tituloDoInstrumento, TITULO_CONSTITUICAO } from './instrumento';
 import { gerarDocumento } from './index';
 import { origemDe } from './origem';
+import { mapearSignatarios } from './signatarios';
 import { derivarCampos } from './vocabulario';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { Template } from './types';
 
 type Campos = Record<string, string>;
+
+// A cobertura por TIPO DE ENTIDADE (nenhuma fica de fora) mora em
+// `identidade.test.ts`, que varre a lista do vocabulário. Aqui fica a outra
+// metade: cada PAPEL de lista continua carregando a identidade da pessoa depois
+// do round-trip do jsonb, que é onde o Symbol a perdia.
+describe('identidade persistida nos mapeadores', () => {
+  it('a pessoa continua identificada em todos os papéis, após serialização JSON', () => {
+    const pessoa = { id: 'pessoa-ana', denominacao: 'Ana', tipo_pessoa: 'PF' } as PessoaRow;
+    const s = { pessoa, quotas: 100, vlr_total: 100, representante: null };
+    const snapshot = JSON.parse(JSON.stringify({
+      selecao: { pessoa: mapearPessoa(pessoa), sociedade: mapearSociedade(pessoa) },
+      itensPorLista: {
+        socios: mapearQuadroSocietario([s]).itens,
+        administradores: [mapearAdministrador({ pessoa, cargo: null })],
+        retirantes: mapearRetirantes([pessoa]),
+        cessoes: mapearCessoes([{ id: 'mov', cedente: pessoa, cessionario: pessoa, quotas: 1, valor: 1 }]),
+        partes: mapearPartesSelecionadas([{ id: pessoa.id, campos: mapearPessoa(pessoa) }]),
+        requalificados: mapearRequalificados([mapearPessoa(pessoa)]),
+        signatarios: mapearSignatarios({ socios: [s] }),
+        integralizacoes: mapearIntegralizacoes([s], [], [
+          { id: 'aporte', pessoaId: pessoa.id, quotas: 100, valor: 100, forma: 'moeda' },
+        ]),
+      },
+    })) as { selecao: Record<string, Campos>; itensPorLista: Record<string, ItemLista[]> };
+    expect(origemDe(snapshot.selecao.pessoa)).toEqual({ tipo: 'pessoa', id: pessoa.id });
+    expect(origemDe(snapshot.selecao.sociedade)).toEqual({ tipo: 'sociedade', id: pessoa.id });
+    for (const [lista, papel] of [
+      ['socios', 'socio'], ['administradores', 'administrador'], ['retirantes', 'retirante'],
+      ['cessoes', 'cedente'], ['cessoes', 'cessionario'], ['partes', 'parte'],
+      ['requalificados', 'requalificado'],
+      // O signatário é PROJEÇÃO (nome, papel, CPF), e por isso ficava sem
+      // identidade — o que o punha fora da comparação e cobrava uma pendência
+      // por peça. Ele passa a carregá-la como os demais; quem o mantém fora da
+      // comparação de qualificação é a decisão de PAPEL, em alteracaoPorEventos.
+      ['signatarios', 'signatario'],
+      ['integralizacoes', 'socio'],
+    ]) {
+      expect(origemDe(snapshot.itensPorLista[lista][0][papel]))
+        .toEqual({ tipo: 'pessoa', id: pessoa.id });
+    }
+  });
+
+  // Identidade se grava num lugar só. Um `set('id', row.id)` avulso reaparecendo
+  // num mapeador é o remendo que esta frente removeu — e ele não falha em lugar
+  // nenhum, só volta a fazer a identidade depender de quem lembrou de escrevê-la.
+  it('nenhum mapeador publica um campo `id` avulso por conta própria', () => {
+    const pessoa = { id: 'pessoa-ana', denominacao: 'Ana', tipo_pessoa: 'PF' } as PessoaRow;
+    expect(mapearPessoa(pessoa).id).toBeUndefined();
+    expect(mapearSociedade(pessoa).id).toBeUndefined();
+    expect((mapearPartesSelecionadas([{ id: pessoa.id, campos: mapearPessoa(pessoa) }])[0].parte as Campos).id)
+      .toBeUndefined();
+  });
+});
 
 /** Matrícula mínima: só os titulares importam para estes testes. */
 function matriculaCom(titulares: TitularParaMapear[]): MatriculaParaMapear {
@@ -159,6 +218,12 @@ describe('mapearSociedade — PJ objeto do contrato', () => {
     expect(c.sede).toContain('n.º 119');
     expect(c.sede).toContain('no município de Cuiabá');
     expect(c.sedeEndereco).toBe('Rua das Acácias, n.º 119');
+    // As partes que `sedeEndereco` funde saem separadas: a alteração de sede
+    // compara campo a campo, e complemento ausente no cadastro é '' (conhecido
+    // e vazio), não desconhecido.
+    expect(c.sedeLogradouro).toBe('Rua das Acácias');
+    expect(c.sedeNumero).toBe('119');
+    expect(c.sedeComplemento).toBe('');
     expect(c.sedeBairro).toBe('Centro');
     expect(c.sedeMunicipio).toBe('Cuiabá');
     expect(c.sedeCep).toBe('78000-000');
@@ -1077,6 +1142,14 @@ describe('mapearIntegralizacoes — alíneas por sócio com referência cruzada 
 });
 
 describe('calcularParticipacoesPR — quadro derivado da empresa PR', () => {
+  it('homônimos legados sem ids permanecem separados até conciliação', () => {
+    const participacoes = calcularParticipacoesPR([
+      { ...matriculaCom([{ denominacao: 'Ana' }]), id: 'm1', vlr_contabil: 100 },
+      { ...matriculaCom([{ denominacao: 'Ana' }]), id: 'm2', vlr_contabil: 200 },
+    ]);
+    expect(participacoes.map((p) => [p.pessoaId, p.valor])).toEqual([[null, 200], [null, 100]]);
+  });
+
   function matPR(
     id: string,
     vlr: number | null,
@@ -1338,5 +1411,99 @@ describe('proveniência (origem) anexada pelos mapeadores', () => {
 
     const sem = mapearMatricula(matriculaCom([]));
     expect(origemDe(sem)).toBeUndefined();
+  });
+});
+
+
+// Defeito medido no app em 09/09/2026, num AUMENTO de capital: a peca saia
+// "pelo socio OTAVIO PANTANAL, no valor total de R$ 500.000,00" (o total do
+// socio DEPOIS do aumento) sobre uma unica alinea de R$ 200.000,00 (o aporte do
+// ato). O cabecalho vinha do `vlrTotal` do quadro, via `mapearSocio`.
+//
+// Na constituicao os dois numeros coincidem, e foi por isso que passou: quem
+// integraliza tudo de uma vez tem total do quadro igual a soma das alineas.
+describe('mapearIntegralizacoes — o cabecalho e a soma das alineas dele', () => {
+  const socio = (vlrTotalNoQuadro: number): SocioParaMapear => ({
+    pessoa: { id: 'p1', denominacao: 'Otavio Pantanal', tipo_pessoa: 'PF', genero: 'M' } as unknown as PessoaRow,
+    quotas: vlrTotalNoQuadro,
+    vlr_total: vlrTotalNoQuadro,
+    representante: null,
+  });
+  const aporteEmMoeda = (valor: number) => ({
+    id: `a-${valor}`, pessoaId: 'p1', forma: 'moeda' as const, valor, quotas: valor,
+  });
+
+  it('aumento: anuncia o aporte DESTE ato, nao o total do socio no quadro', () => {
+    // Quadro depois do aumento: 500.000. Aporte deste ato: 200.000.
+    const [item] = mapearIntegralizacoes([socio(500000)], [], [aporteEmMoeda(200000)]);
+    const cabecalho = item.socio as Record<string, string>;
+    expect(cabecalho.vlrTotal).toBe('200.000,00');
+    expect(cabecalho.vlrTotalExtenso).toBe('duzentos mil reais');
+    const alineas = item.aportes as Array<Record<string, Record<string, string>>>;
+    expect(alineas.map((a) => a.aporte.valor)).toEqual(['200.000,00']);
+  });
+
+  it('duas alineas: o cabecalho soma as duas', () => {
+    const [item] = mapearIntegralizacoes(
+      [socio(500000)], [], [aporteEmMoeda(200000), aporteEmMoeda(45000)],
+    );
+    expect((item.socio as Record<string, string>).vlrTotal).toBe('245.000,00');
+  });
+
+  it('constituicao: quando coincidem, nada muda', () => {
+    const [item] = mapearIntegralizacoes([socio(200000)], [], [aporteEmMoeda(200000)]);
+    expect((item.socio as Record<string, string>).vlrTotal).toBe('200.000,00');
+  });
+
+  it('sem alinea com valor, o cabecalho fica com o do quadro', () => {
+    const [item] = mapearIntegralizacoes([socio(500000)], [], [
+      { id: 'a-sem', pessoaId: 'p1', forma: 'moeda' as const,
+        valor: null as unknown as number, quotas: null as unknown as number },
+    ]);
+    expect((item.socio as Record<string, string>).vlrTotal).toBe('500.000,00');
+  });
+});
+
+
+// Defeito medido no app em 09/09/2026: com a causa "Atualizacao postal" gravada
+// e o radio voltando marcado, a resolucao PERDIA a abertura "Em decorrencia da
+// atualizacao do CEP" depois de recarregar a tela, e o .docx nunca a teve. A
+// causa estava sendo lida do estado do assistente, que volta ao default a cada
+// recarga; quem manda e o que a peca gravou.
+describe('causaDaRequalificacaoVigente — quem manda e a peca, nao a tela', () => {
+  it('a causa do snapshot vence a da head e a da tela', () => {
+    expect(causaDaRequalificacaoVigente('atualizacao_postal', 'mudanca_de_domicilio', 'mudanca_de_domicilio'))
+      .toBe('atualizacao_postal');
+  });
+
+  it('sem causa no snapshot, vale a da head (peca ja confirmada, tela recarregada)', () => {
+    expect(causaDaRequalificacaoVigente(undefined, 'atualizacao_postal', 'mudanca_de_domicilio'))
+      .toBe('atualizacao_postal');
+  });
+
+  it('sem peca nenhuma, vale a da tela: e a previa de dentro do assistente', () => {
+    expect(causaDaRequalificacaoVigente(undefined, undefined, 'atualizacao_postal'))
+      .toBe('atualizacao_postal');
+    expect(causaDaRequalificacaoVigente(null, null, 'mudanca_de_domicilio'))
+      .toBe('mudanca_de_domicilio');
+  });
+
+  it('erro_material nao e geravel: cai na abertura neutra', () => {
+    expect(causaDaRequalificacaoVigente('erro_material', undefined, 'atualizacao_postal'))
+      .toBe('mudanca_de_domicilio');
+  });
+
+  it('nada informado tambem cai na neutra', () => {
+    expect(causaDaRequalificacaoVigente()).toBe('mudanca_de_domicilio');
+  });
+
+  it('a abertura do texto acompanha a causa vigente', () => {
+    const socios = [{ tipoPessoa: 'PF', nome: 'Ana', genero: 'F' }];
+    const postal = vocabularioDaRequalificacao(socios, causaDaRequalificacaoVigente('atualizacao_postal'));
+    expect(postal.causa).toContain('Código de Endereçamento Postal');
+    expect(postal.verbo).toBe('altera-se');
+    const domicilio = vocabularioDaRequalificacao(socios, causaDaRequalificacaoVigente(undefined, undefined, 'mudanca_de_domicilio'));
+    expect(domicilio.causa).toBe('');
+    expect(domicilio.verbo).toBe('Altera-se');
   });
 });

@@ -53,6 +53,13 @@ const SEM_DOM = [
    * sem DOM e sem API de Deno, então roda aqui como qualquer outro.
    */
   'supabase/functions/_shared/**/*.{test,spec}.{ts,tsx}',
+  /*
+   * `scripts/` entra pelo mesmo motivo: o teste do `db:sync` confere o hash que
+   * decide se uma migration ja rodou, e sem esta linha ele existia sem nunca ter
+   * rodado na CI (o `bun run test` e vitest, e `scripts/` nao estava em nenhum
+   * include). E TypeScript puro, sem DOM.
+   */
+  'scripts/**/*.{test,spec}.{ts,tsx}',
 ];
 
 /*
