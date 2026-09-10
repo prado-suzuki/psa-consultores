@@ -251,7 +251,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
   return (
     <div className="flex min-h-screen w-full bg-muted">
       <aside
-        className={`${trilho ? 'w-0' : 'w-64 border-r border-border/60'} ${classesGavetaBarra(collapsed)} sticky top-0 h-screen flex-shrink-0 overflow-x-hidden overflow-y-auto bg-white transition-all duration-300 ease-in-out scrollbar-hide`}
+        className={`${trilho ? 'w-0' : 'w-64 border-r border-border/60'} ${classesGavetaBarra(collapsed)} sticky top-0 h-screen flex-shrink-0 overflow-x-hidden overflow-y-auto bg-card transition-all duration-300 ease-in-out scrollbar-hide`}
       >
         {!trilho && (
           <>
@@ -392,7 +392,10 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
 
               <Button
                 variant="ghost"
-                className="w-full justify-start rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+                // Mesmo par do `OsgLayout`: o botão de sair é o mesmo botão, e
+                // aqui ele estava em `red-50`/`red-600` cru. Era a segunda de
+                // três cópias — a terceira segue no `FixosLayout`.
+                className="w-full justify-start rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                 onClick={handleSignOut}
               >
                 <LogOut className="mr-3 h-4 w-4" />

@@ -194,29 +194,40 @@ const DevDashboard = () => {
           href="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/estrutura-pastas-drive/"
           target="_blank"
           rel="noopener noreferrer"
-          className="group relative block overflow-hidden rounded-2xl border-2 border-emerald-300/70 bg-gradient-to-r from-emerald-50 via-white to-primary/5 p-6 shadow-[0_4px_24px_-8px_rgba(5,150,105,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-[0_12px_32px_-8px_rgba(5,150,105,0.35)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+          // Cartão de destaque, e a cor dele é ÂNCORA, não papel de status. Era
+          // emerald cravado — verde no meio de uma tela teal, que não seguia
+          // tema nenhum. Alerta (âmbar) foi considerado e recusado: este cartão
+          // está sempre aqui, e cor é sinal de ESTADO. Alerta permanente esvazia
+          // o alerta. A sombra tingida virou a da escala: era o emerald-600
+          // escrito em `rgba(5,150,105,…)`, que nenhuma regra de hex enxergava.
+          className="group relative block overflow-hidden rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary/10 via-card to-primary/5 p-6 shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-emerald-200/40 blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/15 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
 
           <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div className="flex items-start gap-5">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md">
                 <FolderTree className="h-7 w-7" />
               </div>
               <div className="min-w-0">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                  {/* A letra é `--accent-d`, e não `--primary`: o contrato do
+                      `.base-theme` diz que o acento cheio serve para marca —
+                      anel, barra, ponto — e que letra pequena é do degrau
+                      escuro (6,72:1 contra 5,54:1). Os dois pontos abaixo SÃO
+                      ponto, então neles o acento cheio é o certo. */}
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--bd-accent-d)]">
                     <span className="relative flex h-1.5 w-1.5">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
                     </span>
                     Fonte dos dados
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     <ShieldAlert className="h-3 w-3" /> Leitura obrigatória
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-card px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
                     SOP oficial
                   </span>
                 </div>
@@ -243,7 +254,7 @@ const DevDashboard = () => {
           </div>
         </a>
 
-        <div className="rounded-2xl border border-border/70 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-foreground">Catálogo de Ferramentas</h2>
@@ -320,13 +331,13 @@ const DevDashboard = () => {
                           navigate(group.landingPath!);
                         }
                       }}
-                      className="group flex h-full w-full cursor-pointer flex-col rounded-2xl border border-primary/30 bg-gradient-to-br from-surface-escura via-surface-escura-2 to-primary p-5 text-left text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="group flex h-full w-full cursor-pointer flex-col rounded-2xl border border-primary/30 bg-gradient-to-br from-surface-escura via-surface-escura-2 to-primary p-5 text-left text-primary-foreground shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     >
                       <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-foreground/10 text-primary-foreground/80">
                         <LandingIcon className="h-5 w-5" />
                       </div>
                       <h4 className="text-lg font-semibold tracking-tight">{group.label}</h4>
-                      <p className="mt-1.5 text-xs leading-relaxed text-white/75">{group.landingDescription}</p>
+                      <p className="mt-1.5 text-xs leading-relaxed text-primary-foreground/75">{group.landingDescription}</p>
                       {!isSingleton && (
                         <div className="mt-4 flex flex-wrap gap-2">
                           {group.tools.map((tool) => (
@@ -338,7 +349,7 @@ const DevDashboard = () => {
                                 navigate(tool.path);
                               }}
                               title={`Abrir ${tool.name}`}
-                              className="rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white/90 transition-colors hover:border-primary-foreground/40 hover:bg-white/15 hover:text-white"
+                              className="rounded-full border border-primary-foreground/15 bg-primary-foreground/10 px-3.5 py-1.5 text-xs font-medium text-primary-foreground/90 transition-colors hover:border-primary-foreground/40 hover:bg-primary-foreground/15 hover:text-primary-foreground"
                             >
                               {tool.name}
                             </button>
@@ -347,7 +358,7 @@ const DevDashboard = () => {
                       )}
 
                       <div className="mt-auto flex items-center justify-end pt-4">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-transform group-hover:translate-x-1">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-transform group-hover:translate-x-1">
                           {isSingleton ? "Abrir" : "Abrir central"}
                           <ArrowRight className="h-3.5 w-3.5" />
                         </span>
@@ -363,7 +374,7 @@ const DevDashboard = () => {
                         return (
                           <article
                             key={tool.path}
-                            className="group relative flex flex-col rounded-xl border border-border/70 bg-muted/60 p-4 transition-all duration-200 hover:border-primary/40 hover:bg-white hover:shadow-md"
+                            className="group relative flex flex-col rounded-xl border border-border/70 bg-muted/60 p-4 transition-all duration-200 hover:border-primary/40 hover:bg-card hover:shadow-md"
                           >
                             <button
                               onClick={() => navigate(tool.path)}
@@ -401,7 +412,7 @@ const DevDashboard = () => {
 
                               <button
                                 onClick={() => navigate(tool.path)}
-                                className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-all hover:bg-primary/90"
+                                className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
                               >
                                 Abrir
                                 <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
@@ -448,7 +459,7 @@ const DevDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:col-span-2">
+          <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:col-span-2">
             <div>
               <p className="text-sm font-semibold text-foreground">Não achou a ferramenta que precisa?</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
@@ -465,7 +476,7 @@ const DevDashboard = () => {
             </Button>
           </div>
 
-          <div className="rounded-2xl border border-border/70 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
             <h3 className="mb-3 text-sm font-semibold text-foreground">Categorias</h3>
             <div className="flex flex-wrap gap-2">
               {toolGroups.map((group) => (

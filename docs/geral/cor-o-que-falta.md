@@ -74,6 +74,34 @@ O que a rodada decidiu, e vale como precedente:
   ajuda da própria coluna diz que aquilo é sobre registro no sistema, não sobre o trabalho da
   pessoa.
 
+**A tela `/equipe/dev` fechou em 10/09/2026**, e ela mudou uma coisa no método: a unidade
+passou a ser a **TELA**, não a família nem o mapa. A conferência foi por rota — "esta página
+tem todas as cores vindas do tema?" — e achou 28 classes cruas mais duas sombras em
+`rgba(5,150,105,…)` numa página que o `bunx eslint` dava por limpa. As três frentes, e o que
+cada uma ensina:
+
+- **o cartão do Drive era emerald puro** — verde no meio de uma tela teal, sem seguir tema
+  nenhum. Virou âncora (`primary`), e âmbar (`alerta`) foi considerado e **recusado**: o
+  cartão está sempre lá, e cor é sinal de ESTADO. Alerta permanente esvazia o alerta;
+- **a letra de 10px foi para `--bd-accent-d`, não `--primary`**, e aqui o contrato pagou por
+  si: medido no fundo real da pílula, `accent-d` dá **5,13:1** e `primary` daria **4,24:1**,
+  que reprova em AA. Era o cartão inteiro dependendo de a regra "acento cheio não pinta letra
+  pequena" ser obedecida ao pé da letra;
+- **`bg-white` × `bg-card` não move um pixel nesta tela**, e é justamente por isso que os 17
+  atravessaram: no `.base-theme` o `--card` é `0 0% 100%`. A divergência só aparece na OSG
+  (`170 18% 99.6%`), ou seja, no dia em que o componente for reusado.
+
+Mais duas cópias, achadas pela mesma alavanca de sempre: o botão **Sair** do `DevLayout`
+estava em `red-50`/`red-600` enquanto o do `OsgLayout` já estava em `destructive` — a
+terceira cópia segue no `FixosLayout`; e o **"Revisão pendente"** do sino estava em roxo cru,
+sobre o mesmo dado que seis arquivos do `task-modal` já pintam com o papel `revisao`.
+
+A guarda é [`corCruaNaTelaDoDev.test.ts`](../../src/lib/corCruaNaTelaDoDev.test.ts), e ela
+tem forma nova: guarda uma **tela** (lista de arquivos, todas as famílias) em vez de uma
+família no repositório inteiro. As duas formas convivem porque pegam defeitos diferentes —
+família crescendo em silêncio, contra tela zerada e repintada depois por quem só olhou aquele
+arquivo. Quando outra tela do Dev fechar, ela entra na lista daquele teste.
+
 ## 2. As escadas que exigem decisão, não conversão
 
 Estas ficaram paradas de propósito. Cada uma precisa de uma escolha sua antes de virar código.

@@ -201,7 +201,10 @@ function ReviewNotificationItem({
       className="w-full p-3 text-left hover:bg-muted/50 transition-colors border-b border-border last:border-b-0 group"
     >
       <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-purple-100 text-purple-700">
+        {/* O papel `revisao` já tem par de token, e o `task-modal` o usa sobre
+            ESTE mesmo dado (tarefa enviada para revisão). Aqui era roxo cru:
+            não era conversão pendente, era o mapa que não foi reusado. */}
+        <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-status-revisao-soft text-status-revisao">
           <ClipboardCheck className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
@@ -212,7 +215,7 @@ function ReviewNotificationItem({
             Enviada por {notification.assignedToName}
           </p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="text-xs font-medium text-purple-600">Revisão pendente</span>
+            <span className="text-xs font-medium text-status-revisao">Revisão pendente</span>
             {notification.projectName && (
               <>
                 <span className="text-xs text-muted-foreground">•</span>
