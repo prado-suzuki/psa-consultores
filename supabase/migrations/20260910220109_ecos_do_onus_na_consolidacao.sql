@@ -76,25 +76,40 @@ WHERE NOT EXISTS (
 );
 
 -- POSIÇÃO. O parágrafo dos gravames e a cláusula de usufruto entram no FIM do
--- capítulo do capital, depois do último parágrafo dele; a ressalva da alienação,
--- no fim da corrida de parágrafos da cláusula de preferência. Entrar no fim de
--- cada corrida é deliberado: inserir no meio renumeraria parágrafos que o texto
--- de outras cláusulas cita pelo número.
+-- capítulo do capital; a ressalva da alienação, no fim da corrida de parágrafos
+-- da cláusula de preferência. Entrar no fim de cada corrida é deliberado:
+-- inserir no meio renumeraria parágrafos que o texto de outras cláusulas cita
+-- pelo número.
+--
+-- A âncora do capital é CALCULADA, e não um bloco fixo: a primeira versão desta
+-- migration ancorou no "Parágrafo — Integralização de imóveis", que existe no
+-- modelo Agro e NÃO existe no de Participações. Lá o `ordem_ancora` voltava
+-- nulo, o laço pulava, e os dois blocos simplesmente não entravam no modelo que
+-- a holding usa — sem erro nenhum, que é o pior jeito de falhar. Ancorar no
+-- "logo antes do próximo capítulo" vale nos dois, porque todo capítulo termina.
 DO $$
 DECLARE
   documento record;
   passo record;
   ordem_ancora integer;
+  ordem_capitulo integer;
 BEGIN
   FOR documento IN
     SELECT id FROM public.tmpl_documento WHERE tipo = 'societario'
   LOOP
+    -- Fim do capítulo do capital = a posição do próximo capítulo, menos um.
+    SELECT vinculo.ordem INTO ordem_capitulo
+    FROM public.tmpl_documento_bloco vinculo
+    WHERE vinculo.documento_id = documento.id
+      AND vinculo.bloco_id = 'b6f6754b-877e-415b-a25b-5843c965550b'::uuid;
+
     FOR passo IN
       SELECT * FROM (VALUES
-        ('92e8c1b0-0c1c-434d-9a79-7ae27ba30f22'::uuid, '85ea3059-4820-4bec-98be-263bbee5cbcf'::uuid),
-        ('85ea3059-4820-4bec-98be-263bbee5cbcf'::uuid, '0e90d56d-6bf2-4951-a020-3e8bae66bcc5'::uuid),
-        ('ed997350-8ad6-49b2-bd2d-8037c9c994d2'::uuid, '8b74aaa2-8646-44b7-9d35-c4d53b2e01e7'::uuid)
-      ) AS p(ancora, bloco)
+        (1, null::uuid, '85ea3059-4820-4bec-98be-263bbee5cbcf'::uuid),
+        (2, '85ea3059-4820-4bec-98be-263bbee5cbcf'::uuid, '0e90d56d-6bf2-4951-a020-3e8bae66bcc5'::uuid),
+        (3, 'ed997350-8ad6-49b2-bd2d-8037c9c994d2'::uuid, '8b74aaa2-8646-44b7-9d35-c4d53b2e01e7'::uuid)
+      ) AS p(ordem_do_passo, ancora, bloco)
+      ORDER BY p.ordem_do_passo
     LOOP
       IF EXISTS (
         SELECT 1 FROM public.tmpl_documento_bloco vinculo
@@ -103,9 +118,22 @@ BEGIN
         CONTINUE;
       END IF;
 
-      SELECT vinculo.ordem INTO ordem_ancora
-      FROM public.tmpl_documento_bloco vinculo
-      WHERE vinculo.documento_id = documento.id AND vinculo.bloco_id = passo.ancora;
+      IF passo.ancora IS NULL THEN
+        -- Sem âncora declarada: o último bloco antes do próximo capítulo.
+        IF ordem_capitulo IS NULL THEN
+          CONTINUE;
+        END IF;
+        SELECT min(vinculo.ordem) - 1 INTO ordem_ancora
+        FROM public.tmpl_documento_bloco vinculo
+        JOIN public.tmpl_bloco b ON b.id = vinculo.bloco_id
+        WHERE vinculo.documento_id = documento.id
+          AND b.tipo = 'capitulo'
+          AND vinculo.ordem > ordem_capitulo;
+      ELSE
+        SELECT vinculo.ordem INTO ordem_ancora
+        FROM public.tmpl_documento_bloco vinculo
+        WHERE vinculo.documento_id = documento.id AND vinculo.bloco_id = passo.ancora;
+      END IF;
 
       IF ordem_ancora IS NULL THEN
         CONTINUE;
