@@ -18,6 +18,19 @@
  * que a página a mais clara que a página sem nunca ficar visível. Não existe
  * altura de página que resolva; o problema é a categoria da escolha.
  *
+ * E o invariante **não é do piso**: vale nas três áreas, o que foi testado
+ * esperando que quebrasse. Na Tax e na OSG o `--accent-soft` é oito pontos mais
+ * ESCURO que o da base (86% contra 94%), o que deveria dar separação de sobra
+ * contra uma página de 93%. Medido no `index.css`:
+ *
+ *   .base-theme  soft 172 40% 94%  ×  canvas 168 16% 93%   1,040
+ *   .tax-theme   soft 186 64% 86%  ×  canvas 192 10% 93%   1,073
+ *   .osg-theme   soft 186 62% 86%  ×  canvas  32 24% 93%   1,079
+ *
+ * Nenhuma separa. A saturação come o que a luminosidade daria — é por isso que
+ * oito pontos de diferença rendem três centésimos de contraste. Se este aviso
+ * um dia for para outra área, a caixa clara vai falhar lá igual.
+ *
  * A faixa em `surface-escura-2` (14%) ganha nos dois eixos, e ganha com folga o
  * bastante para sobreviver à pilha se mexendo de novo:
  *
