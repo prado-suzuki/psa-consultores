@@ -335,9 +335,17 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   </div>
                 </div>
               ) : (
-                <div className="min-w-0">
-                  <h2 className="text-lg font-semibold text-foreground">{AREAS.dev.nome}</h2>
-                  <p className="text-xs text-muted-foreground">{AREAS.dev.subtitulo}</p>
+                // O selo entra também aberta. Sem ele o cabeçalho era só texto
+                // e fechava 92px contra os 88 das outras oito — 4px que faziam
+                // a linha divisória pular ao trocar de área.
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                    <LayoutDashboard className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-semibold text-foreground">{AREAS.dev.nome}</h2>
+                    <p className="text-xs text-muted-foreground">{AREAS.dev.subtitulo}</p>
+                  </div>
                 </div>
               )}
             </div>

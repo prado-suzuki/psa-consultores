@@ -100,6 +100,25 @@ describe('as barras do padrão não têm cópia própria da medida', () => {
     expect(fonte).not.toMatch(/md:ml-\[68px\]|md:ml-\[240px\]/);
   });
 
+  // A usuária viu isto navegando entre áreas: a linha divisória sob o cabeçalho
+  // "pulava" de lugar. Cada barra tinha a sua própria altura de cabeçalho —
+  // Board fechava 68px (recuo próprio mais selo de 32), a OSG 88px mesmo
+  // recolhida (`py-6` fixo) e o Dev 92px aberta (cabeçalho só de texto, sem
+  // selo), contra os 88/72 das outras cinco. Como todas as telas de uma área
+  // compartilham o layout, o desalinhamento só aparece na TROCA de área.
+  it('as oito barras Tailwind tiram o recuo do cabeçalho da mesma função', () => {
+    const BARRAS = {
+      ...LAYOUTS_DO_PADRAO,
+      Board: '../components/equipe/board/BoardLayout.tsx',
+    };
+
+    for (const [area, caminho] of Object.entries(BARRAS)) {
+      expect(ler(caminho), `${area} escreve o recuo do cabeçalho à mão`).toContain(
+        'classeRecuoCabecalho(',
+      );
+    }
+  });
+
   it('o Mapeamento recebe a largura da constante, sem 72px solto no CSS', () => {
     expect(ler('../components/equipe/mapa/Layout.tsx')).toContain(
       'MEDIDAS_TRILHO_SIDEBAR.larguraRecolhidaPx',

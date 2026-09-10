@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { usePageAccess } from '@/hooks/usePageAccess';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
-import { classeLarguraBarra } from '@/lib/sidebarMedidas';
+import { classeLarguraBarra, classeRecuoCabecalho } from '@/lib/sidebarMedidas';
 import {
   FACE_DA_BARRA,
   classesEyebrowDaBarra,
@@ -154,15 +154,18 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
         style={{ background: 'radial-gradient(circle, hsl(175 82% 29% / .07) 0%, transparent 70%)' }}
       />
 
-      {/* Marca */}
-      <div className="px-4 pt-5 pb-4" style={{ borderBottom: '1px solid var(--bd-chrome-line)' }}>
+      {/* Marca. O recuo vem de `classeRecuoCabecalho` e o selo mede 40px como
+          nas outras oito: com `px-4 pt-5 pb-4` e um selo de 32 este cabeçalho
+          fechava 68px de altura contra os 88/72 do resto, e a linha divisória
+          PULAVA ao trocar de área. */}
+      <div className={classeRecuoCabecalho(collapsed)} style={{ borderBottom: '1px solid var(--bd-chrome-line)' }}>
         <button
           onClick={() => { navigate('/equipe/board/dashboard'); setMobileOpen(false); }}
           className={`flex items-center gap-2.5 w-full ${collapsed ? 'justify-center' : ''}`}
           title="Estratégico"
         >
           <div
-            className="w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0"
+            className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0"
             // Mesmo papel da pílula: é a âncora da área, não o acento.
             style={{ backgroundColor: 'hsl(var(--primary))' }}
           >

@@ -50,7 +50,11 @@ import {
 } from '@/hooks/useSidebarRecolhimentoController';
 import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
 import { SidebarFundoGaveta } from '@/components/shared/SidebarFundoGaveta';
-import { classeLarguraBarra, classesGavetaBarra } from '@/lib/sidebarMedidas';
+import {
+  classeLarguraBarra,
+  classeRecuoCabecalho,
+  classesGavetaBarra,
+} from '@/lib/sidebarMedidas';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
 import { linkEspelhado } from '@/lib/areaTheme';
@@ -276,8 +280,10 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
         {/* overflow-x-hidden: é este clipe que "engole" os rótulos conforme a
             largura diminui, em vez de eles sumirem de uma vez. */}
         <aside className="h-full w-full bg-background border-r border-border/60 flex flex-col overflow-y-auto overflow-x-hidden">
-          {/* Header */}
-          <div className="px-4 py-6 border-b border-border/60">
+          {/* Header. `classeRecuoCabecalho` e não `px-4 py-6`: com o recuo
+              fixo, a barra recolhida mantinha 88px de cabeçalho contra os 72
+              das outras, e a linha divisória pulava ao trocar de área. */}
+          <div className={cn(classeRecuoCabecalho(trilho), 'border-b border-border/60')}>
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 flex items-center justify-center flex-shrink-0">
                 {AreaIcon}
