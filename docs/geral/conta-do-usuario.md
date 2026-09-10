@@ -48,10 +48,24 @@ do Dev e 13 do Mapeamento. Dois achados no caminho:
 - o **Mapeamento não tinha saída nenhuma** — nem "Sair" no rodapé, nem cartão. Quem entrava só
   saía por "Trocar área". Agora tem.
 
-O Board ficou com o usuário em **dois lugares**: o cartão novo no rodapé e o chip de nome +
-iniciais que já existia no topbar, que ainda lê `user_metadata` (fonte diferente de `profiles`,
-podem divergir). Tirar o do topo deixa a faixa superior vazia no desktop — é decisão de
-desenho, não limpeza, e está esperando ela.
+**O Board e o Acessos entraram na régua depois, no mesmo dia**, a pedido dela:
+
+- o chip de nome + iniciais do **topbar do Board** saiu. Ele lia `user_metadata` — fonte
+  diferente do cartão, que lê `profiles`, e as duas podem divergir. Sem ele a faixa de 48px
+  ficaria vazia no desktop, então ela virou `md:hidden`: no celular continua sendo quem abre a
+  gaveta, no desktop não existe mais;
+- **`/equipe/acessos` deixou de ter casca própria** e passou a montar dentro do `EquipeLayout`,
+  como qualquer outra tela. Perdeu o cabeçalho com `ShieldCheck`, "Trocar área" e "Sair"
+  escritos à mão, e o `ScrollArea` de `h-[calc(100vh-64px)]` — a rolagem e o recuo são do
+  layout. O título virou `title`/`subtitle`, que é como as outras telas o declaram.
+
+**Achado ao fazer isso: a área "Administração" não existe no app.** O `AdminLayout`, as três
+páginas de `src/pages/administracao/` e a rota `/administracao/*` **não estão registradas em
+lugar nenhum** — nem no `App.tsx`, nem no `MapaRoutes.tsx`, os dois únicos arquivos que
+declaram rota. É código morto, e por isso `/equipe/acessos` (448 linhas, com abas de páginas,
+usuários, dashboards, agente, estrutura e centro de custo) é a **única** tela de acessos
+alcançável — o `/administracao/acessos` que existe no repositório tem 15 linhas e chama outra
+coisa. Não mexi nisso: ressuscitar ou apagar a área é decisão dela, não limpeza.
 
 **Fica de fora, e é gap conhecido:** `/equipe/acessos` (`EquipeControleAcessos.tsx`) **não tem
 barra lateral** — tem cabeçalho próprio, com "Trocar área" e "Sair" soltos nele. Logo não tem

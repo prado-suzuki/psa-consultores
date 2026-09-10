@@ -1,11 +1,9 @@
 import { useState } from 'react';
+import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import EstruturaManager from '@/components/equipe/estrutura/EstruturaManager';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,14 +17,11 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import {
-  ShieldCheck,
   Users,
   FileText,
   Plus,
   Trash2,
   ArrowLeft,
-  LogOut,
-  Repeat,
   Pencil,
   Building2,
   FolderKanban,
@@ -69,8 +64,6 @@ const getErrorMessage = (error: unknown) => {
 };
 
 const EquipeControleAcessos = () => {
-  const { signOut } = useAuth();
-  const navigate = useNavigate();
   const { refetch: refetchCadastros } = useControleAcessosCadastros();
   const {
     createCatalogClient,
@@ -104,11 +97,6 @@ const EquipeControleAcessos = () => {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success('Copiado para área de transferência');
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
   };
 
   // Cadastros functions
@@ -195,48 +183,11 @@ const EquipeControleAcessos = () => {
   };
 
   return (
-    <div className="min-h-screen bg-muted">
-      {/* Header */}
-      <header className="sticky top-0 z-50 h-16 border-b border-border/60 bg-card">
-        <div className="container mx-auto px-4 h-full">
-          <div className="flex items-center justify-between h-full">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <ShieldCheck className="h-5 w-5 text-primary" />
-              </div>
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-semibold text-foreground">Controle de Acessos</h1>
-                <p className="text-xs text-muted-foreground">Gestão de usuários e liberação de acessos</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/equipe/digital')}
-                className="text-muted-foreground hover:text-primary hover:bg-muted"
-              >
-                <Repeat className="h-4 w-4 mr-2" />
-                Trocar área
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSignOut}
-                className="text-muted-foreground hover:text-primary hover:bg-muted"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sair
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <EquipeLayout
+      title="Controle de Acessos"
+      subtitle="Gestão de usuários e liberação de acessos"
+    >
 
-      {/* Main Content */}
-      <ScrollArea className="h-[calc(100vh-64px)]">
-        <main className="container mx-auto px-4 py-6">
           <div className="space-y-6">
             {/* Stats Cards (extraído em componente) */}
             <AccessStatsCards />
@@ -438,10 +389,7 @@ const EquipeControleAcessos = () => {
         </DialogContent>
       </Dialog>
           </div>
-        </main>
-      </ScrollArea>
-
-    </div>
+    </EquipeLayout>
   );
 };
 
