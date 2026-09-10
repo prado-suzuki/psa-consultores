@@ -228,7 +228,11 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
       </ScrollArea>
 
       {/* Rodapé */}
-      <div className="px-3 pb-3.5 pt-3.5 space-y-1" style={{ borderTop: '1px solid var(--bd-chrome-line)' }}>
+      {/* `p-4`, e não o `px-3 pt-3.5 pb-3.5` de antes: a aritmética do trilho
+          em `sidebarMedidas.ts` parte de 16px de recuo de cada lado. Com 12px
+          o chip do usuário saía com 56px de largura no trilho, mais largo que
+          o selo e que a pílula, e a coluna lia torta. */}
+      <div className="p-4 space-y-1" style={{ borderTop: '1px solid var(--bd-chrome-line)' }}>
         {/* O "Sair" que ficava aqui embaixo esta dentro do menu deste cartao
             desde 10/09/2026, como nas outras barras. */}
         <SidebarCartaoUsuario area="board" collapsed={collapsed} />

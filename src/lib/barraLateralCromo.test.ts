@@ -64,6 +64,25 @@ describe('recolhido, o ícone fica no centro', () => {
     expect(classesItemDaBarra({ ativo: false, trilho: false })).toMatch(/\bgap-/);
   });
 
+  // A usuária viu isto no Board antes de qualquer outra barra adotar o módulo,
+  // e só a pílula CHEIA denuncia: com tinta de 10% uma faixa larga não
+  // incomoda, cheia ela vira a peça mais pesada do trilho.
+  it('no trilho a pílula é QUADRADA, não uma barra deitada', () => {
+    const classes = classesItemDaBarra({ ativo: true, trilho: true }).split(/\s+/);
+
+    // 40px = `seloCabecalhoPx`, a mesma medida do selo da área nas outras
+    // barras: o trilho tem que ser uma coluna de peças do mesmo tamanho.
+    expect(classes).toContain('h-10');
+    expect(classes).toContain('w-10');
+    // `w-full` aqui dá 56px (80 menos o recuo do container) — mais largo que o
+    // selo de 40 e que os ícones soltos de 15, e é o que lia torto.
+    expect(classes).not.toContain('w-full');
+  });
+
+  it('aberta a linha ocupa a largura toda — lá o rótulo vem junto', () => {
+    expect(classesItemDaBarra({ ativo: true, trilho: false }).split(/\s+/)).toContain('w-full');
+  });
+
   it('o eyebrow some da vista mas não colapsa o respiro entre blocos', () => {
     const recolhido = classesEyebrowDaBarra(true);
 

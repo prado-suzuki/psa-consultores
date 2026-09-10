@@ -72,11 +72,22 @@ export interface OpcoesDoItemDaBarra {
  */
 export function classesItemDaBarra({ ativo, trilho, sub = false }: OpcoesDoItemDaBarra): string {
   return cn(
-    'w-full flex items-center rounded-[10px] transition-colors duration-150',
+    'flex items-center rounded-[10px] transition-colors duration-150',
     FACE_DA_BARRA,
     sub ? 'text-[12.5px]' : 'text-[13px]',
-    // Sem `gap` no trilho: com o rótulo fora, ele vira recuo morto de 10px.
-    trilho ? 'justify-center px-2.5 py-2' : 'gap-2.5 px-2.5 py-2',
+    trilho
+      ? // QUADRADO, e não `w-full`. Aberta, a linha ocupa a largura toda e
+        // isso é o certo — o rótulo vem junto. Recolhida, `w-full` faz a
+        // pílula virar uma barra DEITADA de 56px ao lado de ícones soltos de
+        // 15px: o item ativo passa a ser a peça mais larga do trilho, e a
+        // coluna lê torta. Aqui ela vira um quadrado de 40px centralizado —
+        // o mesmo `seloCabecalhoPx` que as outras barras usam no selo da
+        // área, para o trilho ser uma coluna de peças do mesmo tamanho.
+        //
+        // Sem `gap` também: com o rótulo fora ele vira recuo morto de 10px e
+        // empurra o ícone para fora do centro (o erro que o cartão já teve).
+        'h-10 w-10 mx-auto justify-center p-0'
+      : 'w-full gap-2.5 px-2.5 py-2',
     ativo
       ? 'bg-primary text-primary-foreground font-semibold'
       : cn(
