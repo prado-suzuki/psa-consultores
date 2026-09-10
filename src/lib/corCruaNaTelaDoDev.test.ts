@@ -51,11 +51,20 @@ const ARQUIVOS_DA_TELA = [
   'src/pages/equipe/dev/PlanejamentoTributarioHub.tsx',
   'src/components/equipe/dev/DevHubPage.tsx',
 
-  // O `DevPageHeader` é a caixa "Visão Geral", e está em VINTE telas do Dev — a
-  // maioria delas ainda não fechada. Ele entra aqui de qualquer forma: guardar o
-  // arquivo é guardar a caixa nas vinte, e o hex que ele tinha cravado era o
-  // `--accent-soft` do tema escrito à unha, num componente cujo docstring diz que
-  // ele existe justamente para dar o tom do módulo.
+  // O `DevPageHeader` é a caixa "Visão Geral", e ele é montado por muito mais
+  // telas do que fecharam — a maioria delas ainda tem cor crua própria. Ele entra
+  // aqui de qualquer forma: guardar o arquivo é guardar a caixa em todas elas, e o
+  // hex que ele tinha cravado era o `--accent-soft` do tema escrito à unha, num
+  // componente cujo docstring diz que existe justamente para dar o tom do módulo.
+  //
+  // Quantas são, agora:
+  //   grep -rl '<DevPageHeader' src/pages src/components --include=*.tsx | grep -v test
+  //
+  // ⚠️ Não escreva o número aqui. Ele já esteve errado: `grep -rl DevPageHeader`
+  // devolve 20, e isso conta o próprio componente, quatro arquivos de teste e um
+  // comentário do `BaseLegalCard` que só CITA o nome. Quem monta de fato são 14
+  // páginas — e "vinte telas" atravessou uma tarde inteira de conversa e dois
+  // commits antes de alguém contar direito.
   'src/components/equipe/dev/DevPageHeader.tsx',
   'src/components/equipe/dev/classesDoAviso.ts',
 

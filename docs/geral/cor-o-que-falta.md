@@ -106,7 +106,7 @@ arquivo. Quando outra tela do Dev fechar, ela entra na lista daquele teste.
 **As seis rotas de hub fecharam no mesmo dia, e o número que importa não é de arquivos.**
 Escolhidas por medição, não pela primeira que se abriu: as páginas de hub já estavam todas em
 zero, e o que faltava era a casca. Dois componentes — `DevHubPage` e `DevPageHeader` —
-fecharam **seis rotas**, e o `DevPageHeader` está em vinte telas. É a mesma alavanca do mapa
+fecharam **seis rotas**, e o `DevPageHeader` é montado por 14 páginas. É a mesma alavanca do mapa
 de domínio, um andar acima: procurar o componente COMPARTILHADO antes de abrir tela por tela.
 
 Duas coisas saíram disso, e nenhuma era o que se foi buscar:
@@ -116,7 +116,7 @@ Duas coisas saíram disso, e nenhuma era o que se foi buscar:
   Medido: aquele hex composto a 80% sobre branco dá `235,245,244`, e o `--accent-soft` da base
   dá `234,246,244` — **delta de 1 / 1,4 / 0,2 por canal**. Era o token, escrito à unha, sem
   acompanhar tema;
-- **o link "aqui" reprovava AA, nas vinte telas.** `text-emerald-600` sobre aquele fundo dá
+- **o link "aqui" reprovava AA, nas 14 páginas que montam a caixa.** `text-emerald-600` sobre aquele fundo dá
   **3,38:1**, contra os 4,5:1 que o AA pede para texto normal. Agora é `text-accent-d`, e dá
   **6,09:1**. Ninguém tinha medido porque o par não está no contrato de
   `paletaDeArea.test.ts` — é o mesmo padrão das três falhas de 28–29/08: token fora da lista
@@ -222,6 +222,14 @@ superfície e o papel são os mesmos — os dois são o primeiro elemento, antes
 Então a faixa saiu para [`classesDoAviso.ts`](../../src/components/equipe/dev/classesDoAviso.ts)
 e os dois importam de lá. Sem isso, sobraria exatamente uma mancha verde-clara na área: pior que
 não ter mudado nada.
+
+**Uma contagem errada que atravessou a tarde, e vale como aviso.** Durante toda esta frente
+falou-se em "vinte telas" montando a caixa "Visão Geral" — em conversa, em dois commits e neste
+documento. **São 14 páginas.** O 20 saiu de `grep -rl DevPageHeader`, que conta o próprio
+componente, quatro arquivos de teste e um comentário do `BaseLegalCard` que só cita o nome. O
+comando certo é `grep -rl '<DevPageHeader'`, com o `<`, e sem os testes. É a regra do topo deste
+documento cobrando o preço dela: o número foi escrito sem o comando ao lado, e por isso ninguém
+o conferiu. Está anotado dentro da catraca, com o comando, para não voltar.
 
 **⚠️ A armadilha do `ui/alert`, que quase foi embarcada.** A string base do componente tem
 `[&>svg]:text-foreground`, que gera seletor de especificidade **0,1,1** (classe + elemento). Uma
