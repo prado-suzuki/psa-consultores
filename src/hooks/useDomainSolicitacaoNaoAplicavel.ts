@@ -186,7 +186,19 @@ export function useSincronizarSolicitacaoNaoAplicavel(clienteId: string) {
         await logAction({
           area: 'osg', entity_type: 'solicitacao_item_nao_aplicavel', entity_id: row.id,
           entity_name: nomes[row.solicitacao_item_id] ?? 'Documento não aplicável', action: 'deleted',
-          changed_fields: computeFieldDiff({ ...row }, null, ['solicitacao_item_id', 'cliente_id', 'pessoa_id', 'bem_id', 'matricula_id']),
+          /**
+           * `{}` e não `null` no lado NOVO, e a diferença derrubava a operação.
+           *
+           * `computeFieldDiff` aceita `null` só no lado ANTIGO (criação); no novo
+           * ele faz `newObj[field]` e estoura em `null`. O `strictNullChecks:
+           * false` do tsconfig deixou passar, e o estouro acontecia montando o
+           * argumento do `logAction` — ou seja, FORA do try/catch que existe lá
+           * dentro para o log nunca derrubar quem chamou. Resultado: a linha era
+           * apagada, a mutação rejeitava, e até 10/09/2026 isso era invisível
+           * porque não havia `onError`. Com `{}`, o diff sai como
+           * `{ old: valor, new: null }`, que é o espelho exato da criação.
+           */
+          changed_fields: computeFieldDiff({ ...row }, {}, ['solicitacao_item_id', 'cliente_id', 'pessoa_id', 'bem_id', 'matricula_id']),
         });
       }
 
