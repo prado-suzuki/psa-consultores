@@ -101,51 +101,6 @@ describe('SidebarCartaoUsuario', () => {
       expect(screen.getByRole('menuitem', { name: /Sair/ })).toBeInTheDocument();
     });
 
-    it('leva o "Trocar área" para o destino DAQUELA área', async () => {
-      // Os cinco layouts tinham destinos diferentes neste botão, e é a única
-      // coisa que a consolidação poderia ter uniformizado sem ninguém notar.
-      render(<SidebarCartaoUsuario area="fixos" collapsed={false} />);
-      const { user } = await abrirMenu();
-
-      await user.click(screen.getByRole('menuitem', { name: /Trocar área/ }));
-
-      expect(mocks.navigate).toHaveBeenCalledWith('/equipe/projetos');
-    });
-
-    it('a OSG volta para o seletor dela, não para o de /equipe', async () => {
-      render(<SidebarCartaoUsuario area="osg" collapsed={false} />);
-      const { user } = await abrirMenu();
-
-      await user.click(screen.getByRole('menuitem', { name: /Trocar área/ }));
-
-      expect(mocks.navigate).toHaveBeenCalledWith('/equipe/osg');
-    });
-
-    it('a Rotina volta para o seletor do Digital', async () => {
-      // Sexta área do registro, e a única cujo "Trocar área" não aponta para
-      // `/equipe` nem para a raiz da própria área.
-      render(<SidebarCartaoUsuario area="rotina" collapsed={false} />);
-      const { user } = await abrirMenu();
-
-      await user.click(screen.getByRole('menuitem', { name: /Trocar área/ }));
-
-      expect(mocks.navigate).toHaveBeenCalledWith('/equipe/digital');
-    });
-
-    it('"Voltar ao site" aparece só nas áreas que o ofereciam', async () => {
-      render(<SidebarCartaoUsuario area="osg" collapsed={false} />);
-      await abrirMenu();
-
-      expect(screen.getByRole('menuitem', { name: /Voltar ao site/ })).toBeInTheDocument();
-    });
-
-    it('…e não aparece nas que não ofereciam', async () => {
-      render(<SidebarCartaoUsuario area="tax" collapsed={false} />);
-      await abrirMenu();
-
-      expect(screen.queryByRole('menuitem', { name: /Voltar ao site/ })).not.toBeInTheDocument();
-    });
-
     it('o "Sair" encerra a sessão e sai da rota protegida', async () => {
       render(<SidebarCartaoUsuario area="gestao" collapsed={false} />);
       const { user } = await abrirMenu();
@@ -153,9 +108,21 @@ describe('SidebarCartaoUsuario', () => {
       await user.click(screen.getByRole('menuitem', { name: /Sair/ }));
 
       expect(mocks.signOut).toHaveBeenCalled();
-      // O `navigate('/')` é o segundo passo que os cinco layouts faziam. Sem
+      // O `navigate('/')` é o segundo passo que os seis layouts faziam. Sem
       // ele a árvore fica montada numa rota protegida sem sessão.
       expect(mocks.navigate).toHaveBeenCalledWith('/');
+    });
+
+    it('NÃO engole a navegação da barra: só o "Sair" mora aqui', async () => {
+      // Decisão da Patricia em 10/09/2026, depois de ver a primeira versão com
+      // os três itens dentro: "Trocar área" e "Voltar ao site" são destinos e
+      // ficam visíveis na barra; atrás de um clique no nome, a equipe procura.
+      // Este teste é o que impede a próxima "limpeza de rodapé" de refazê-lo.
+      render(<SidebarCartaoUsuario area="osg" collapsed={false} />);
+      await abrirMenu();
+
+      expect(screen.queryByRole('menuitem', { name: /Trocar área/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: /Voltar ao site/ })).not.toBeInTheDocument();
     });
 
     it('recolhido, o menu continua alcançável', async () => {

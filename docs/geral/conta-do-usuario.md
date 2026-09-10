@@ -6,13 +6,23 @@ Ela escolheu a **porta A** (menu curto no cartão, conta em página própria) e 
 
 ## Fase 1 — o cartão vira porta ✅ (10/09/2026)
 
-`SidebarCartaoUsuario` era um `<div>` que não clicava. Virou gatilho de menu, e o menu
-absorveu os botões que ficavam soltos logo abaixo dele.
+`SidebarCartaoUsuario` era um `<div>` que não clicava. Virou gatilho de menu, e **só o "Sair"
+entrou nele**.
 
-**O que estava espalhado.** "Trocar área", "Voltar ao site" e "Sair" eram cópias em **seis**
-layouts, com destino diferente por área e três classes de hover distintas para a mesma ação:
+**A correção do mesmo dia, e a regra que sai dela.** A primeira versão levou os três botões do
+rodapé para dentro do menu — "Trocar área" e "Voltar ao site" junto. A Patricia mandou os dois
+de volta para fora poucas horas depois, olhando `/equipe/dashboard`: **são navegação**, ficam
+na barra ao lado dos outros destinos, e atrás de um clique no nome de quem está logado a equipe
+procura. "Sair" é o único que não é destino — é o fim da sessão, e é o que pertence à conta.
 
-| área | trocar área | voltar ao site | onde estava |
+A regra, para a próxima vez que der vontade de limpar o rodapé: **destino fica visível na
+barra; o que é da sessão e da identidade fica no cartão.** `SidebarCartaoUsuario.test.tsx` tem
+um teste que falha se "Trocar área" ou "Voltar ao site" voltarem para dentro do menu.
+
+Os seis rodapés ficaram assim — o card, os botões de navegação que cada área já tinha (e que
+seguem sendo do layout, com os destinos que sempre tiveram), e nenhum "Sair":
+
+| área | trocar área | voltar ao site | layout |
 |---|---|---|---|
 | Tax | `/equipe` | — | `FiscalSidebar` |
 | OSG | `/equipe/osg` | `/` | `OsgLayout` |
@@ -21,17 +31,17 @@ layouts, com destino diferente por área e três classes de hover distintas para
 | Administração | `/equipe` | — | `AdminLayout` |
 | Fixos | `/equipe/projetos` | `/` | `FixosLayout` |
 
-Os destinos agora são linhas do registro `AREAS`, dentro do próprio cartão — o mesmo lugar
-onde o rótulo e o acento já moravam. Área nova entra por uma linha, não por uma sétima cópia.
-`SidebarCartaoUsuario.test.tsx` trava destino por destino, porque uniformizar esses seis
-caminhos sem ninguém perceber era o único estrago que a consolidação podia causar calada.
-
 **O nome do usuário.** O cartão mostrava `email.split('@')[0]` — "joana.silva". O nome de
 verdade sempre esteve em `profiles`, e agora vem de lá pelo `useDomainMeuPerfil`. A ordem de
 queda (`perfil → pedaço do e-mail → "Usuário"`) é função pura em `src/lib/nomeDoUsuario.ts`.
 
 **Efeito colateral em teste:** o cartão passou a fazer query, então todo teste que monta uma
 barra lateral precisa de `QueryClientProvider`. Só `FiscalSidebar.test.tsx` montava sem.
+
+**Fica de fora, e é gap conhecido:** `/equipe/acessos` (`EquipeControleAcessos.tsx`) **não tem
+barra lateral** — tem cabeçalho próprio, com "Trocar área" e "Sair" soltos nele. Logo não tem
+cartão, não mostra nome nem e-mail, e o "Sair" de lá é o único do sistema fora do cartão. Dar
+cartão àquela tela não é acrescentar um componente: é decidir se ela ganha barra lateral.
 
 ## Fase 2 — a página `/conta` 🔵 ABERTA
 

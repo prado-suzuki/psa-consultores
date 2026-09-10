@@ -12,6 +12,7 @@ import {
   FolderKanban,
   MessageSquare,
   MessagesSquare,
+  ArrowLeft,
   Shield,
   Home,
   LineChart,
@@ -356,11 +357,21 @@ export const FiscalSidebar = ({ isCollapsed, emGaveta = false, onToggle }: Fisca
 
         {/* Footer com o cartão do usuário e as ações da área */}
         <div className="mt-auto p-4 border-t border-border space-y-2">
-          {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido.
-              O "Trocar área" e o "Sair" que ficavam soltos aqui embaixo estão
-              dentro do menu dele desde 10/09/2026. */}
+          {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
           <SidebarCartaoUsuario area="tax" collapsed={trilho} />
 
+          <Button
+            variant="ghost"
+            className={cn(
+              'w-full py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-success hover:bg-success/5 transition-colors',
+              trilho ? 'justify-center px-2' : 'justify-start px-3'
+            )}
+            onClick={() => navigate('/equipe')}
+            title={trilho ? 'Trocar área' : undefined}
+          >
+            <ArrowLeft className={cn('h-4 w-4', !trilho && 'mr-3')} />
+            {!trilho && 'Trocar área'}
+          </Button>
           {!trilho && (
             <div className="pt-2 border-t border-border">
               <img src={logoPsa} alt="PSA" className="h-5 opacity-50" />

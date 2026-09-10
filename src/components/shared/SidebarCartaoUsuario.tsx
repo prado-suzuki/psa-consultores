@@ -1,4 +1,4 @@
-import { ArrowLeft, Globe, LogOut, User } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -24,11 +24,15 @@ import { cn } from '@/lib/utils';
  * está embutido aqui, então não há como uma tela nova herdá-lo errado.
  *
  * Desde 10/09/2026 ele também é a PORTA da conta: clicar abre o menu com quem
- * você é e as saídas da área. O "Trocar área", o "Voltar ao site" e o "Sair"
- * eram três botões soltos logo abaixo do cartão, recopiados nos mesmos cinco
- * layouts — treze cópias ao todo, com destino diferente por área e duas classes
- * de hover que ninguém conseguia manter iguais. Eles moram aqui agora, e o
- * destino de cada um é uma linha do registro `AREAS`.
+ * você é, e é dali que se sai do sistema.
+ *
+ * SÓ O "SAIR" ENTROU. A primeira versão levou os três botões do rodapé para
+ * dentro do menu — "Trocar área" e "Voltar ao site" junto — e a Patricia
+ * mandou os dois de volta para fora no mesmo dia: eles são NAVEGAÇÃO, ficam na
+ * barra ao lado dos outros destinos, e escondê-los atrás de um clique no nome
+ * de quem está logado faz a equipe procurar. Sair é o único que não é destino:
+ * é o fim da sessão, e é ele que pertence à conta. Se um dia bater a vontade de
+ * "limpar o rodapé" de novo, a resposta já foi dada uma vez.
  *
  * A aritmética (por que `px-2` e por que sem `gap` ao recolher) está em
  * `src/lib/sidebarMedidas.ts` e travada em `sidebarMedidas.test.ts`.
@@ -64,19 +68,6 @@ interface DefinicaoDeArea {
   /** Cor do círculo e do ícone do avatar. */
   acento: string;
   tom: keyof typeof TONS;
-  /**
-   * Para onde vai o "Trocar área". Não é o mesmo destino nas cinco: a Tax, a
-   * Gestão e a Administração voltam ao seletor de `/equipe`; a OSG volta ao
-   * seletor DELA, e a Fixos cai na lista de projetos.
-   */
-  trocarArea: string;
-  /**
-   * A área oferece "Voltar ao site" (a home pública). Só OSG e Fixos ofereciam,
-   * e a diferença não era decisão registrada em lugar nenhum — era o que cada
-   * cópia tinha quando parou de ser mexida. Fica preservada aqui, visível, em
-   * vez de sumir numa uniformização de bandeja.
-   */
-  voltarAoSite?: true;
 }
 
 /**
@@ -98,20 +89,16 @@ const AREAS = {
     rotulo: 'Tax',
     acento: 'bg-primary/10 text-primary',
     tom: 'tokens',
-    trocarArea: '/equipe',
   },
   osg: {
     rotulo: 'OSG',
     acento: 'bg-primary/10 text-primary',
     tom: 'tokens',
-    trocarArea: '/equipe/osg',
-    voltarAoSite: true,
   },
   gestao: {
     rotulo: 'Gestão',
     acento: 'bg-primary/10 text-primary',
     tom: 'tokens',
-    trocarArea: '/equipe',
   },
   // A Rotina entrou quando o `EquipeLayout` deixou de recolher para `w-0` e
   // passou a ter trilho: o cartão dele era o markup copiado à mão, e copiado
@@ -123,21 +110,16 @@ const AREAS = {
     rotulo: 'Digital Rotina',
     acento: 'bg-primary/10 text-primary',
     tom: 'tokens',
-    trocarArea: '/equipe/digital',
-    voltarAoSite: true,
   },
   administracao: {
     rotulo: 'Administrador',
     acento: 'bg-teal-500/10 text-teal-600',
     tom: 'slate',
-    trocarArea: '/equipe',
   },
   fixos: {
     rotulo: 'Fixos',
     acento: 'bg-blue-500/10 text-blue-600',
     tom: 'slate',
-    trocarArea: '/equipe/projetos',
-    voltarAoSite: true,
   },
 } satisfies Record<string, DefinicaoDeArea>;
 
@@ -162,16 +144,12 @@ export const SidebarCartaoUsuario = ({ area, collapsed }: SidebarCartaoUsuarioPr
   const { user, signOut } = useAuth();
   const { data: perfil } = useMeuPerfil();
   const navigate = useNavigate();
-  // Anotado como `DefinicaoDeArea` de propósito: com o tipo literal que o
-  // `satisfies` preserva, as áreas sem "Voltar ao site" não têm a propriedade,
-  // e ler `voltarAoSite` da união não compila.
-  const definicao: DefinicaoDeArea = AREAS[area];
-  const { rotulo, acento, tom, trocarArea, voltarAoSite } = definicao;
+  const { rotulo, acento, tom } = AREAS[area];
   const cores = TONS[tom];
   const nome = nomeDeExibicao(perfil, user?.email);
 
   const sair = async () => {
-    // Os cinco layouts faziam exatamente estes dois passos, e o `navigate('/')`
+    // Os seis layouts faziam exatamente estes dois passos, e o `navigate('/')`
     // não é decoração: sem ele a árvore fica montada numa rota protegida sem
     // sessão, e quem decide o que fazer com isso passa a ser o gate de acesso.
     await signOut();
@@ -250,20 +228,8 @@ export const SidebarCartaoUsuario = ({ area, collapsed }: SidebarCartaoUsuarioPr
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem onSelect={() => navigate(trocarArea)}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Trocar área
-        </DropdownMenuItem>
-
-        {voltarAoSite && (
-          <DropdownMenuItem onSelect={() => navigate('/')}>
-            <Globe className="mr-2 h-4 w-4" />
-            Voltar ao site
-          </DropdownMenuItem>
-        )}
-
-        <DropdownMenuSeparator />
-
+        {/* "Trocar área" e "Voltar ao site" NÃO entram aqui: são navegação e
+            ficam na barra (ver a nota no topo do arquivo). */}
         <DropdownMenuItem
           // `void`: o `onSelect` do Radix ignora a promessa, e sem isto o
           // lint aponta a flutuante.

@@ -2,6 +2,7 @@ import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
@@ -19,6 +20,7 @@ import {
   ClipboardList,
   Workflow,
   Library,
+  ArrowLeft,
   Layers,
   Settings,
    BarChart3,
@@ -94,6 +96,7 @@ const navItems: NavItem[] = [
 ];
 
 export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWidth = false }: EquipeLayoutProps) => {
+  const { isAdmin, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   // O recolhimento automático em telas de trabalho largo mora no hook — é a
@@ -264,10 +267,33 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
             <div className="mt-auto p-4 border-t border-border/60 space-y-2">
               {/* Cartão do usuário: padrão compartilhado, com o recolhido
                   embutido. Era markup copiado à mão aqui, e copiado SEM o
-                  estado recolhido — no trilho de 80px ele cortaria o avatar.
-                  O "Trocar área", o "Voltar ao site" e o "Sair" moraram aqui
-                  embaixo até 10/09/2026; agora estão no menu dele. */}
+                  estado recolhido — no trilho de 80px ele cortaria o avatar. */}
               <SidebarCartaoUsuario area="rotina" collapsed={trilho} />
+
+              <Button
+                variant="ghost"
+                className={cn(
+                  'w-full py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-primary transition-colors',
+                  trilho ? 'justify-center px-2' : 'justify-start px-3',
+                )}
+                onClick={() => navigate('/equipe/digital')}
+                title={trilho ? 'Trocar área' : undefined}
+              >
+                <ArrowLeft className={cn('h-4 w-4', !trilho && 'mr-3')} />
+                {!trilho && 'Trocar área'}
+              </Button>
+              <Button
+                variant="ghost"
+                className={cn(
+                  'w-full py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-primary transition-colors',
+                  trilho ? 'justify-center px-2' : 'justify-start px-3',
+                )}
+                onClick={() => navigate('/')}
+                title={trilho ? 'Voltar ao site' : undefined}
+              >
+                <ArrowLeft className={cn('h-4 w-4', !trilho && 'mr-3')} />
+                {!trilho && 'Voltar ao site'}
+              </Button>
             </div>
         </aside>
       </div>

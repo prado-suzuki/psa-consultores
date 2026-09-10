@@ -21,6 +21,7 @@ import {
   ChevronRight,
   ChevronDown,
   Menu,
+  ArrowLeft,
   Shield,
   Users,
   Landmark,
@@ -803,10 +804,27 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
 
           {/* Footer Actions */}
           <div className="mt-auto p-4 border-t border-border/60 space-y-2">
-            {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido.
-                O "Trocar área", o "Voltar ao site" e o "Sair" moraram aqui
-                embaixo até 10/09/2026; agora estão no menu dele. */}
+            {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
             <SidebarCartaoUsuario area="osg" collapsed={trilho} />
+
+            <Button
+              variant="ghost"
+              className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-osg-600 transition-colors"
+              onClick={() => navigate('/equipe/osg')}
+              title={trilho ? 'Trocar área' : undefined}
+            >
+              <ArrowLeft className="h-4 w-4 mr-3 flex-shrink-0" />
+              <span className={cn(rotuloCls, 'whitespace-nowrap')}>Trocar área</span>
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-osg-600 transition-colors"
+              onClick={() => navigate('/')}
+              title={trilho ? 'Voltar ao site' : undefined}
+            >
+              <ArrowLeft className="h-4 w-4 mr-3 flex-shrink-0" />
+              <span className={cn(rotuloCls, 'whitespace-nowrap')}>Voltar ao site</span>
+            </Button>
           </div>
         </aside>
       </div>
