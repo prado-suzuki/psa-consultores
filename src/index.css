@@ -2487,8 +2487,25 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  /* ─── O fundo de página se pinta AQUI, e em nenhum outro lugar ─────────
+     `bg-canvas` e não `bg-background`: o `--background` é uma SUPERFÍCIE —
+     99,4% a 99,6%, praticamente o `--card` — e é o que `bg-background`
+     pinta em popover, sheet e dropdown, 178 vezes no produto. O `--canvas`
+     é o token que existe para ser fundo de página. O `body` usar o outro
+     era herança do shadcn que ninguém tinha revisitado.
+
+     Por que aqui e não em cada layout: até 10/09/2026 cada layout pintava a
+     própria página, e o resultado foi previsível — o `FiscalLayout` usava
+     `bg-muted` até 03/09, e quando ele foi corrigido OUTROS QUATRO ficaram
+     para trás (`EquipeLayout`, `DevLayout`, `AdminLayout`, `FixosLayout`,
+     58 páginas). Não era descuido de quem escreveu: era uma decisão que se
+     repetia em oito arquivos, e decisão repetida diverge.
+
+     Consequência prática: layout NÃO declara fundo de página. Um layout
+     novo nasce certo por não fazer nada, que é o único jeito de nascer
+     certo de forma confiável. A catraca está em `fundoDePagina.test.ts`. */
   body {
-    @apply bg-background text-foreground;
+    @apply bg-canvas text-foreground;
     font-family: 'Work Sans', sans-serif;
   }
   

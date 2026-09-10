@@ -44,7 +44,12 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
     // header precisa do contexto. A árvore abaixo fica sem reindentar de
     // propósito, para o diff mostrar o que mudou e não o arquivo inteiro.
     <TourProvider registro={REGISTRO_TAX}>
-    <div className="min-h-screen bg-canvas flex w-full">
+    <div
+      // Sem fundo de página: quem pinta é o `body`, uma vez, no `index.css`.
+      // Oito layouts decidindo isso por conta própria foi como cinco deles
+      // acabaram pintando com a superfície REBAIXADA. Ver a nota lá.
+      className="min-h-screen flex w-full"
+    >
       {/* Sidebar */}
       <FiscalSidebar
         isCollapsed={isCollapsed}

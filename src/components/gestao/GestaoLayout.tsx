@@ -65,7 +65,12 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
   };
 
   return (
-    <div className="min-h-screen bg-canvas flex w-full relative">
+    <div
+      // Sem fundo de página: quem pinta é o `body`, uma vez, no `index.css`.
+      // Oito layouts decidindo isso por conta própria foi como cinco deles
+      // acabaram pintando com a superfície REBAIXADA. Ver a nota lá.
+      className="min-h-screen flex w-full relative"
+    >
       {/* Toggle Button — fora do <aside> para não ser clipado pelo overflow da sidebar */}
       <Button
         variant="ghost"

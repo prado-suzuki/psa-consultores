@@ -249,7 +249,12 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
     gerenciarDadosSubItems.some((item) => location.pathname === item.path);
 
   return (
-    <div className="flex min-h-screen w-full bg-muted">
+    <div
+      // Sem fundo de página: quem pinta é o `body`, uma vez, no `index.css`.
+      // Oito layouts decidindo isso por conta própria foi como cinco deles
+      // acabaram pintando com a superfície REBAIXADA. Ver a nota lá.
+      className="flex min-h-screen w-full"
+    >
       <aside
         className={`${trilho ? 'w-0' : 'w-64 border-r border-border/60'} ${classesGavetaBarra(collapsed)} sticky top-0 h-screen flex-shrink-0 overflow-x-hidden overflow-y-auto bg-card transition-all duration-300 ease-in-out scrollbar-hide`}
       >

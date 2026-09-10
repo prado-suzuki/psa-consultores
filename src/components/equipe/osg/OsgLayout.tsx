@@ -232,7 +232,12 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   );
 
   return (
-    <div className="min-h-screen bg-osg-canvas flex w-full">
+    <div
+      // Sem fundo de página: quem pinta é o `body`, uma vez, no `index.css`.
+      // Oito layouts decidindo isso por conta própria foi como cinco deles
+      // acabaram pintando com a superfície REBAIXADA. Ver a nota lá.
+      className="min-h-screen flex w-full"
+    >
       {/* Sidebar wrapper — keeps toggle button outside the scroll container */}
       <div
         className={cn(

@@ -66,7 +66,12 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
   };
 
   return (
-    <div className="min-h-screen bg-muted flex w-full">
+    <div
+      // Sem fundo de página: quem pinta é o `body`, uma vez, no `index.css`.
+      // Oito layouts decidindo isso por conta própria foi como cinco deles
+      // acabaram pintando com a superfície REBAIXADA. Ver a nota lá.
+      className="min-h-screen flex w-full"
+    >
       {/* Sidebar */}
       <aside
         className={`${classeLarguraBarra(trilho)} ${classesGavetaBarra(collapsed)} bg-white border-r border-border/60 flex flex-col transition-all duration-300 flex-shrink-0 sticky top-0 h-screen overflow-y-auto`}
