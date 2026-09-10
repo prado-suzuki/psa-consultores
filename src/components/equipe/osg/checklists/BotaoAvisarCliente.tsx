@@ -9,8 +9,15 @@
 // fecha um lote. O clique fecha.
 //
 // Aqui só vive o botão e o estado de abertura. A conferência do que vai ser enviado,
-// a escolha de canal e o histórico moram em `ModalAvisarCliente` — arquivo separado
-// pelo teto de 600 linhas do AGENTS.md e para poder ser testado sem montar a tela.
+// a escolha de destinatário e canal e o histórico moram em `ModalAvisarCliente` —
+// arquivo separado pelo teto de 600 linhas do AGENTS.md e para poder ser testado sem
+// montar a tela.
+//
+// O RÓTULO ACOMPANHA O MODAL (10/09/2026). Dizia "Avisar o cliente" enquanto o modal
+// dizia "Enviar notificação de documentos pendentes", e a régua de nomenclatura da
+// Patrícia é explícita: o mesmo ato não muda de nome entre uma tela e a seguinte. O
+// nome do arquivo e do componente segue `Avisar` porque é interno e renomear custaria
+// churn sem mudar nada para quem usa.
 import { useMemo, useState } from 'react';
 import { Send } from 'lucide-react';
 
@@ -53,11 +60,11 @@ export function BotaoAvisarCliente({ clienteId, linhas, solicitacao }: BotaoAvis
         onClick={() => setAberto(true)}
         disabled={!temAlgo}
         title={temAlgo
-          ? undefined
-          : 'Não há documento pendente nem a reenviar: nada a comunicar ao cliente.'}
+          ? 'Envia ao cliente a lista dos documentos que ainda faltam, por e-mail e WhatsApp.'
+          : 'Não há documento pendente nem recusado: nada a notificar ao cliente.'}
       >
         <Send className="mr-2 h-4 w-4" />
-        Avisar o cliente ({total})
+        Enviar notificação ({total})
       </Button>
 
       {/* Montado só quando abre: as duas consultas do modal (destinatários e

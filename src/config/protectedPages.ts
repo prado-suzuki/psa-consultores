@@ -629,8 +629,11 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/osg/work/onboarding',
-    page_name: 'Onboarding OSG',
-    page_description: 'Preparação da solicitação inicial de documentos por produto contratado',
+    // O `page_path` continua `onboarding`: ele é a chave de `page_permissions`
+    // em produção, e renomear exigiria migration em tabela de acesso. O nome que
+    // a tela de Controle de Acessos mostra é este, e acompanha o menu.
+    page_name: 'Solicitação de documentos',
+    page_description: 'Monta e envia ao cliente a lista de documentos dos produtos contratados',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,

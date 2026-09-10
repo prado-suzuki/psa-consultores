@@ -70,3 +70,24 @@ export const estadoDaLinha = (linha: LinhaChecklist): EstadoDocumento | null => 
   if (linha.status === 'dispensado' || linha.status === 'nao_aplicavel') return null;
   return estadoDoDocumento(linha.status === 'recebido', linha.arquivos);
 };
+
+/**
+ * A caixa marcável do modal de aviso: canal e destinatário usam a MESMA.
+ *
+ * Existe como função compartilhada e não como classe copiada porque as duas
+ * listas ficam empilhadas na mesma coluna. Qualquer divergência de borda ou de
+ * fundo entre elas leria como diferença de significado — e não há: nas duas, o
+ * analista está marcando o que entra no envio.
+ *
+ * Apagado, não verde, para o que não pode ir. Verde é a cor do MARCADO, e uma
+ * linha morta com cara de linha ativa convida ao clique que não responde.
+ */
+export const caixaDeEscolhaCls = (
+  { bloqueado, marcado }: { bloqueado: boolean; marcado: boolean },
+): string => [
+  'rounded-xl border px-3 py-3 transition-colors',
+  bloqueado ? 'cursor-not-allowed' : 'cursor-pointer',
+  bloqueado ? 'border-osg-100 bg-osg-50/50'
+    : marcado ? 'border-osg-moss/50 bg-osg-moss/10'
+      : 'border-osg-200 bg-background hover:bg-osg-50/60',
+].join(' ');

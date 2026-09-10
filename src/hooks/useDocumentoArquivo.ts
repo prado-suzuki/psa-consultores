@@ -453,11 +453,31 @@ export function useRevisarDocumento() {
             : 'Revisão desfeita',
       });
     },
-    onError: (erro: unknown) => toast({
-      title: 'Não foi possível revisar',
-      description: (erro as Error).message,
-      variant: 'destructive',
-    }),
+    /**
+     * O erro CRU vai para o console, nunca para a tela.
+     *
+     * As duas recusas possíveis da RPC — papel abaixo de `team_member` e arquivo
+     * que não veio do cliente — a tela já impede antes do clique, então o que
+     * sobra aqui é defeito. Texto de PostgREST não diz nada ao consultor e nem
+     * sempre é seguro de exibir; sem o `console.error`, em compensação, o chamado
+     * chegaria sem nada para investigar. Mesmo desenho do commit `1ec00175`.
+     *
+     * Vale só para o checklist do OSG: `useRevisarDocumento` não tem outro
+     * consumidor. O resto deste arquivo ficou como estava.
+     */
+    onError: (erro: unknown, vars) => {
+      console.error('[revisar-documento] falha ao gravar veredito', {
+        documentoId: vars.documentoId, veredito: vars.veredito,
+      }, erro);
+      toast({
+        title: 'Não foi possível salvar a revisão',
+        // Frase à mão e não `FECHO_SUPORTE`: o fecho compartilhado diz só "o
+        // suporte", e trocá-lo mexeria no cadastro de cliente e no PERDCOMP.
+        description: 'O documento continua como estava para o cliente. Tente novamente. '
+          + 'Se o problema continuar, entre em contato com o suporte da PSA Digital.',
+        variant: 'destructive',
+      });
+    },
   });
 }
 

@@ -150,6 +150,20 @@ interface NotificarRequest {
    * erro por omissao tem de ser mandar mais e nao menos.
    */
   canais?: Canal[];
+  /**
+   * Para QUEM enviar, por `user_id`. Ausente = todos os representantes do cliente,
+   * que continua sendo o comportamento dos avisos AUTOMÁTICOS.
+   *
+   * Só o aviso manual manda esse campo (10/09/2026, pedido da OSG): com dois ou
+   * três sócios no mesmo cliente, cobrar quem já entregou a parte dele gera
+   * resposta irritada, e antes o analista não tinha como dizer "esse não".
+   *
+   * É FILTRO, não fonte. A lista de destinatários continua saindo de
+   * `destinatarios_cliente` aqui dentro — quem chama só consegue ENCOLHER o
+   * conjunto, nunca acrescentar um contato. Sem isso, um analista poderia mandar
+   * a situação do cliente para um endereço qualquer.
+   */
+  destinatarios?: string[];
   /** Só em `situacao_documentos`: o que a tela derivou no momento do clique. */
   situacao?: {
     pendentes: ItemAviso[];
@@ -338,7 +352,8 @@ Deno.serve(async (req) => {
       return json({ error: "Não autorizado" }, 401);
     }
 
-    const { event_type, solicitacao_id, situacao, canais } = (await req.json()) as NotificarRequest;
+    const { event_type, solicitacao_id, situacao, canais, destinatarios } =
+      (await req.json()) as NotificarRequest;
     if (!event_type || !solicitacao_id) {
       return json({ error: "event_type and solicitacao_id are required" }, 400);
     }
@@ -372,6 +387,17 @@ Deno.serve(async (req) => {
       if (canais.length === 0) return json({ error: "canais nao pode ser lista vazia" }, 400);
     }
     const canaisDoEnvio: Canal[] = canais?.length ? CANAIS.filter((c) => canais.includes(c)) : CANAIS;
+
+    // Escolher destinatário é privilégio do aviso manual, pela mesma razão do
+    // `situacao`: os automáticos nascem de transição e não têm quem escolha.
+    // Aceitar aqui faria um aviso de sistema sair para meio cliente sem que
+    // ninguém tenha decidido isso.
+    if (destinatarios && event_type !== "situacao_documentos") {
+      return json({ error: "destinatarios só vale em situacao_documentos" }, 400);
+    }
+    if (destinatarios && destinatarios.length === 0) {
+      return json({ error: "destinatarios nao pode ser lista vazia" }, 400);
+    }
 
     const tipoNoBanco = TIPO_NO_BANCO[event_type] ?? event_type;
 
@@ -542,8 +568,25 @@ Deno.serve(async (req) => {
       return json({ error: "Falha ao resolver destinatários" }, 500);
     }
 
+    // Filtro de escolha do analista. Id que não está entre os representantes do
+    // cliente é RECUSADO em vez de ignorado, pela mesma razão do canal
+    // desconhecido: ignorar faria a tela achar que mandou para alguém que a borda
+    // nunca percorreu. Contra `brutos`, e não contra `alcancaveis`, para o erro
+    // distinguir "esse não é representante deste cliente" de "esse não tem
+    // contato" — o segundo é caminho normal e já é tratado adiante.
+    const escolhidos = destinatarios ? new Set(destinatarios) : null;
+    if (escolhidos) {
+      const conhecidos = new Set((brutos ?? []).map((d) => d.user_id));
+      const intruso = [...escolhidos].find((id) => !conhecidos.has(id));
+      if (intruso) {
+        console.error(`[notificar] destinatário ${intruso} não representa o cliente ${solicitacao.cliente_id}`);
+        return json({ error: "destinatário não é representante deste cliente" }, 400);
+      }
+    }
+
     const alcancaveis: Alcancavel[] = [];
     for (const d of brutos ?? []) {
+      if (escolhidos && !escolhidos.has(d.user_id)) continue;
       // Fallback pelo perfil quando o representante não tem e-mail próprio.
       const email = d.email?.trim() || (d.user_id ? await getEmailForUser(supabase, d.user_id) : null);
       const telefone = d.telefone?.trim() || null;

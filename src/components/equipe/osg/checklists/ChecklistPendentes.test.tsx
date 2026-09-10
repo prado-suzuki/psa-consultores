@@ -211,7 +211,7 @@ describe('ChecklistPendentes — revisão do arquivo', () => {
     render(<ChecklistPendentes clienteId="cliente-1" />);
 
     const ficha = await abrirFicha(user);
-    await user.click(ficha.getByRole('button', { name: /Voltar a pedir — CPF/ }));
+    await user.click(ficha.getByRole('button', { name: /Voltar a solicitar — CPF/ }));
 
     expect(mocks.sincronizarNaoAplicavel).toHaveBeenCalledWith(
       expect.objectContaining({ itemIds: [] }),

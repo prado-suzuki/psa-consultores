@@ -161,7 +161,7 @@ export function descreverEnvio(resposta: RespostaNotificar): { texto: string; ok
       sem_os: 'A solicitação não tem produtos na OS, e sem isso o texto do aviso sai quebrado.',
       no_recipient: 'Este cliente não tem representante com acesso ao portal.',
     };
-    return { texto: MOTIVO[resposta.reason ?? ''] ?? 'Aviso não enviado.', ok: false };
+    return { texto: MOTIVO[resposta.reason ?? ''] ?? 'Notificação não enviada.', ok: false };
   }
 
   const canais = resposta.canais ?? {};
@@ -174,7 +174,10 @@ export function descreverEnvio(resposta: RespostaNotificar): { texto: string; ok
   const nadaSaiu = !email.success && !whatsapp.success;
   if (jaHoje && nadaSaiu) {
     return {
-      texto: 'Este cliente já foi avisado hoje. Tente amanhã.',
+      // "os destinatários escolhidos" e não "este cliente": desde 10/09/2026 o
+      // analista escolhe quem recebe, e a janela de um por dia é por PESSOA. Dizer
+      // "o cliente" mandaria esperar até amanhã quem só precisava marcar o outro sócio.
+      texto: 'Os destinatários escolhidos já receberam esta notificação hoje. Tente amanhã.',
       ok: false,
     };
   }
@@ -185,14 +188,14 @@ export function descreverEnvio(resposta: RespostaNotificar): { texto: string; ok
 
   if (partes.length === 0) {
     const porque = email.erro ?? whatsapp.erro ?? 'nenhum canal aceitou o envio';
-    return { texto: `Aviso não enviado: ${porque}.`, ok: false };
+    return { texto: `Notificação não enviada: ${porque}.`, ok: false };
   }
 
-  let texto = `Aviso enviado por ${partes.join(' e ')}.`;
+  let texto = `Notificação enviada por ${partes.join(' e ')}.`;
 
   // O caso mais comum, e o que mais engana se ficar calado.
   if (!whatsapp.success && whatsapp.reason === 'no_recipient') {
-    texto += ' O WhatsApp não saiu: nenhum representante tem telefone cadastrado.';
+    texto += ' O WhatsApp não saiu: nenhum dos destinatários escolhidos tem telefone cadastrado.';
   } else if (!whatsapp.success && whatsapp.reason === 'webhook_nao_configurado') {
     texto += ' O WhatsApp não saiu: o canal não está configurado.';
   }

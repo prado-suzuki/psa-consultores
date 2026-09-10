@@ -108,6 +108,19 @@ export function DocumentosClienteChecklist({ clienteId }: { clienteId: string })
     });
   const clienteNome = clientes.find((cliente) => cliente.id === clienteId)?.nome;
   const podeCriarProjeto = isAdmin || progresso === 100;
+
+  /**
+   * Por que o botão de criar projeto está apagado, em uma frase.
+   *
+   * A ordem vai do que o usuário resolve agora (falta cliente selecionado) para
+   * o que ele não resolve sozinho (falta documento, e ele não é administrador).
+   */
+  const motivoDoProjeto = !clienteNome
+    ? 'Selecione um cliente na barra acima para criar o projeto.'
+    : podeCriarProjeto
+      ? 'Abre o cadastro de projeto já preenchido com o planejamento tributário deste cliente.'
+      : `Libera quando todos os ${checklistItems.length} requisitos tiverem documentos `
+        + `encontrados — faltam ${faltantes}. Antes disso, só o administrador pode criar.`;
   const baixarTodos = () => docs
     .filter((doc) => doc.gcs_uri)
     .forEach((doc, index) => window.setTimeout(() => baixar.mutate(doc), index * 500));
@@ -166,10 +179,25 @@ export function DocumentosClienteChecklist({ clienteId }: { clienteId: string })
             <Metric label="A solicitar" value={faltantes} tone="warning" />
             <Metric label="Encontrados" value={encontrados} tone="success" />
             <div className="col-span-2 grid gap-2">
-              <Button size="sm" className="w-full" onClick={criarProjeto} disabled={!podeCriarProjeto || !clienteNome}>
-                <FolderPlus className="mr-2 h-4 w-4" /> Criar projeto
-              </Button>
-              <Button variant="outline" size="sm" className="w-full border-osg-200 bg-white" onClick={baixarTodos} disabled={!docs.length || baixar.isPending}>
+              {/* O BOTÃO DESABILITADO PRECISA DO `span`.
+                  `buttonVariants` traz `disabled:pointer-events-none`: sem
+                  ponteiro o navegador não mostra `title` nenhum, e o botão ficava
+                  apagado sem dizer por quê — que é justamente o caso mais comum
+                  aqui, porque ele só libera com 100% dos requisitos atendidos. */}
+              <span className={cn('block', !podeCriarProjeto && 'cursor-not-allowed')} title={motivoDoProjeto}>
+                <Button size="sm" className="w-full" onClick={criarProjeto} disabled={!podeCriarProjeto || !clienteNome}>
+                  <FolderPlus className="mr-2 h-4 w-4" /> Criar projeto
+                </Button>
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full border-osg-200 bg-white"
+                onClick={baixarTodos}
+                disabled={!docs.length || baixar.isPending}
+                title={'Baixa todos os arquivos deste cliente, um a um. O navegador pode '
+                  + 'pedir permissão para downloads múltiplos.'}
+              >
                 <Download className="mr-2 h-4 w-4" /> Baixar todos os arquivos
               </Button>
             </div>
@@ -229,7 +257,9 @@ export function DocumentosClienteChecklist({ clienteId }: { clienteId: string })
         ) : (
           <div className="flex flex-col items-center gap-2 px-6 py-14 text-center text-osg-500">
             <FileSearch className="h-8 w-8 text-osg-300" />
-            <p className="text-sm font-semibold text-osg-700">Nenhum requisito encontrado</p>
+            {/* "Nenhum requisito encontrado" colidia com o estado "Encontrados",
+                que aqui significa o oposto: requisito COM documento. */}
+            <p className="text-sm font-semibold text-osg-700">Nenhum resultado para os filtros selecionados</p>
             <p className="text-xs">Ajuste a busca ou selecione outro filtro.</p>
           </div>
         )}
@@ -331,7 +361,18 @@ function PendingUploadButton({ req, uploading, disabled, onUpload }: {
         aria-label={`Selecionar arquivo para ${req.assunto}`}
         onChange={onChange}
       />
-      <Button type="button" variant="outline" size="sm" className="h-8 border-warning/40 bg-white text-xs text-warning hover:bg-warning/10" onClick={() => inputRef.current?.click()} disabled={disabled}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-8 border-warning/40 bg-white text-xs text-warning hover:bg-warning/10"
+        onClick={() => inputRef.current?.click()}
+        disabled={disabled}
+        /* Diz de quem fica o arquivo: o envio é da equipe, em nome do cliente, e
+           o nome do requisito entra no nome do arquivo. Sem isso o analista não
+           sabe se está subindo para si ou para o cliente. */
+        title={`Envia um arquivo para "${req.assunto}" em nome do cliente. Limite de 50 MB.`}
+      >
         {uploading ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-2 h-3.5 w-3.5" />}
         {uploading ? 'Enviando...' : 'Anexar documento'}
       </Button>

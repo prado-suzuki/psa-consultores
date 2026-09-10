@@ -91,23 +91,42 @@ export function SolicitacaoAcoes({
           variant={listaVazia ? 'default' : 'outline'}
           onClick={() => (comOCliente ? setConfirmarAtualizacao(true) : onGerar())}
           disabled={ocupado}
+          /* A primeira frase é a da Patrícia (10/09/2026). A segunda diz o que a
+             ação NÃO faz, e é a parte que evita chamado: quem dispensou um
+             documento e clica aqui esperando recuperá-lo não recupera — a RPC é
+             idempotente e nunca desfaz dispensa. */
+          title={listaVazia
+            ? 'Cria a lista de documentos a partir dos produtos contratados na OS.'
+            : 'Verifica se novos produtos foram incluídos na OS e adiciona os documentos '
+              + 'necessários à solicitação. Não remove nada, e documento dispensado não volta.'}
         >
           {ocupado
             ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             : <FileStack className="mr-2 h-4 w-4" />}
-          {listaVazia ? 'Gerar lista a partir da OS' : 'Atualizar a partir da OS'}
+          {listaVazia ? 'Gerar lista a partir da OS' : 'Atualizar documentos da OS'}
         </Button>
       )}
 
       {status === 'rascunho' && (
-        <Button size="sm" onClick={onEnviar} disabled={ocupado || itensAtivos === 0}>
+        <Button
+          size="sm"
+          onClick={onEnviar}
+          disabled={ocupado || itensAtivos === 0}
+          title="Libera a lista no portal do cliente e envia a notificação por e-mail e WhatsApp."
+        >
           <Send className="mr-2 h-4 w-4" />
           Enviar solicitação
         </Button>
       )}
 
       {enviada && (
-        <Button size="sm" onClick={() => setConfirmarChecklist(true)} disabled={ocupado}>
+        <Button
+          size="sm"
+          onClick={() => setConfirmarChecklist(true)}
+          disabled={ocupado}
+          title={'Muda a tela do cliente para checklist: cada documento aparece ligado à '
+            + 'pessoa ou ao imóvel a que pertence. Não há como voltar.'}
+        >
           <ListChecks className="mr-2 h-4 w-4" />
           Passar para o checklist
         </Button>
@@ -119,6 +138,8 @@ export function SolicitacaoAcoes({
           variant="outline"
           onClick={() => setConfirmarEncerramento(true)}
           disabled={ocupado}
+          title={'Encerra esta solicitação e impede novos envios de documentos pelo '
+            + 'cliente. É definitivo: não há como reabrir.'}
         >
           <Lock className="mr-2 h-4 w-4" />
           Finalizar solicitação

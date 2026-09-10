@@ -48,6 +48,19 @@ export type EnvioParaHistorico = Pick<
 export interface DestinoDoDisparo {
   email: string | null;
   telefone: string | null;
+  /**
+   * Quando cada canal saiu para ESTE destino.
+   *
+   * O `porCanal` do disparo inteiro não serve para decidir bloqueio desde que o
+   * analista escolhe destinatário (10/09/2026): "e-mail já saiu hoje" pode ser
+   * verdade para a Ana e falso para o Bruno, e travar o canal inteiro por causa
+   * dela impediria justamente o envio que a escolha existe para permitir.
+   *
+   * A granularidade aqui é a MESMA da chave de idempotência da borda
+   * (`tipo:solicitacao:id:canal:destino:dia`), de propósito: o que a tela mostra
+   * como bloqueado é exatamente o que o banco vai recusar.
+   */
+  porCanal: Partial<Record<Canal, string>>;
 }
 
 /** Identidade de um destino, para não repetir a mesma pessoa por causa do canal. */
@@ -166,23 +179,34 @@ export function montarHistorico(
   linhas: readonly EnvioParaHistorico[],
 ): DisparoHistorico[] {
   const grupos = new Map<string, DisparoHistorico>();
-  // Chaves de destino já vistas, por grupo. Fora do `DisparoHistorico` porque é
-  // andaime da montagem, não coisa que o painel precise ler.
-  const vistos = new Map<string, Set<string>>();
+  // Destinos já vistos, por grupo. Fora do `DisparoHistorico` porque é andaime da
+  // montagem, não coisa que o painel precise ler.
+  const vistos = new Map<string, Map<string, DestinoDoDisparo>>();
 
-  const acumularDestino = (chave: string, linha: EnvioParaHistorico) => {
+  const acumularDestino = (chave: string, linha: EnvioParaHistorico, quando: string) => {
     const destino: DestinoDoDisparo = {
       email: linha.destinatario_email?.trim() || null,
       telefone: linha.destinatario_telefone?.trim() || null,
+      porCanal: { [linha.canal]: quando },
     };
     // Linha sem contato nenhum não é destino: seria uma entrada em branco na lista.
     if (!destino.email && !destino.telefone) return;
 
-    const jaVistos = vistos.get(chave) ?? new Set<string>();
+    const jaVistos = vistos.get(chave) ?? new Map<string, DestinoDoDisparo>();
     vistos.set(chave, jaVistos);
     const id = chaveDoDestino(destino);
-    if (jaVistos.has(id)) return;
-    jaVistos.add(id);
+
+    // Repetido é o MESMO destino por outro canal, e a segunda linha não se
+    // descarta: é ela que carrega o horário daquele canal. Antes bastava ignorar,
+    // porque só interessava listar a pessoa uma vez.
+    const anterior = jaVistos.get(id);
+    if (anterior) {
+      const jaTinha = anterior.porCanal[linha.canal];
+      if (!jaTinha || quando < jaTinha) anterior.porCanal[linha.canal] = quando;
+      return;
+    }
+
+    jaVistos.set(id, destino);
     grupos.get(chave)?.destinos.push(destino);
   };
 
@@ -201,12 +225,12 @@ export function montarHistorico(
         canais: [linha.canal], porCanal: { [linha.canal]: quando },
         destinos: [], linhas: 1,
       });
-      acumularDestino(chave, linha);
+      acumularDestino(chave, linha, quando);
       continue;
     }
 
     grupo.linhas += 1;
-    acumularDestino(chave, linha);
+    acumularDestino(chave, linha, quando);
     const anterior = grupo.porCanal[linha.canal];
     if (!anterior || quando < anterior) grupo.porCanal[linha.canal] = quando;
     // O instante do disparo é o do PRIMEIRO envio do grupo: os outros saíram em
@@ -251,6 +275,35 @@ export function canaisEnviadosHoje(
   agora: Date | string = new Date(),
 ): Partial<Record<Canal, string>> {
   return disparoDeHoje(historico, tipo, agora)?.porCanal ?? {};
+}
+
+/**
+ * Os dois canais que alcançam o cliente. `sino` é interno e não entra em aviso.
+ *
+ * Mora aqui, e não na tela, porque é o histórico que sabe o que é canal de
+ * cliente — a tela só desenha o que esta camada admite.
+ */
+export type CanalAviso = 'email' | 'whatsapp';
+
+/**
+ * Quando ESTE contato recebeu ESTE aviso hoje por ESTE canal. `undefined` = não recebeu.
+ *
+ * Casa com a chave de idempotência da borda, que é por destino e por canal: quem
+ * já recebeu está travado, quem não recebeu continua livre no mesmo dia. Antes de
+ * o analista poder escolher destinatário, a pergunta só existia por canal.
+ *
+ * O casamento é pelo CONTATO e não pelo `user_id`, porque contato é o que fica
+ * gravado em `notificacao_envio` e é o que a chave usa. Dois representantes com o
+ * mesmo e-mail travam juntos — e travam mesmo, porque a borda recusaria o segundo.
+ */
+export function envioDeHojePara(
+  jaHoje: DisparoHistorico | null,
+  canal: CanalAviso,
+  contato: string | null,
+): string | undefined {
+  if (!jaHoje || !contato) return undefined;
+  const campo = canal === 'email' ? 'email' : 'telefone';
+  return jaHoje.destinos.find((d) => d[campo] === contato)?.porCanal[canal];
 }
 
 /** Rótulo do aviso para o painel. Os nomes de enum não servem para leitura. */
@@ -301,6 +354,11 @@ export function diaSeguinte(dia: string): string {
   if (Number.isNaN(d.getTime())) return '';
   d.setUTCDate(d.getUTCDate() + 1);
   return d.toISOString().slice(0, 10);
+}
+
+/** Só o `14:32` de `17/08/2026 às 14:32`. Para onde o dia já está dito ao lado. */
+export function soAHora(iso: string): string {
+  return formatarQuando(iso).split(' às ')[1] ?? '';
 }
 
 /** `17/08/2026 às 14:32`, no fuso da casa. */

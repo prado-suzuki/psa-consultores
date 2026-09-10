@@ -20,7 +20,7 @@ describe('descreverEnvio', () => {
       },
     });
     expect(r.ok).toBe(true);
-    expect(r.texto).toBe('Aviso enviado por e-mail para 2 destinatário(s) e WhatsApp para 1.');
+    expect(r.texto).toBe('Notificação enviada por e-mail para 2 destinatário(s) e WhatsApp para 1.');
   });
 
   it('só e-mail, WhatsApp sem telefone: DIZ que o WhatsApp não saiu', () => {
@@ -33,7 +33,7 @@ describe('descreverEnvio', () => {
     });
     expect(r.ok).toBe(true);
     expect(r.texto).toContain('e-mail para 2');
-    expect(r.texto).toContain('nenhum representante tem telefone cadastrado');
+    expect(r.texto).toContain('nenhum dos destinatários escolhidos tem telefone cadastrado');
   });
 
   it('canal de WhatsApp não configurado também é dito, não engolido', () => {
@@ -46,7 +46,7 @@ describe('descreverEnvio', () => {
     expect(r.texto).toContain('o canal não está configurado');
   });
 
-  it('já avisado hoje: manda tentar amanhã e explica o porquê', () => {
+  it('já notificado hoje: manda tentar amanhã e explica o porquê', () => {
     const r = descreverEnvio({
       success: false,
       canais: {
@@ -55,7 +55,9 @@ describe('descreverEnvio', () => {
       },
     });
     expect(r.ok).toBe(false);
-    expect(r.texto).toContain('já foi avisado hoje');
+    // "os destinatários escolhidos", não "o cliente": a janela é por pessoa desde
+    // que o analista escolhe quem recebe.
+    expect(r.texto).toContain('Os destinatários escolhidos já receberam esta notificação hoje');
     expect(r.texto).toContain('Tente amanhã');
     // A explicação sobre reputação do número saiu: é contexto nosso, não do
     // analista, e alongava a mensagem sem mudar o que ele faz a respeito.

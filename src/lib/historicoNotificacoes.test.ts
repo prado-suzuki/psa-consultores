@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   chegouAoCliente, diaLocal, disparoDeHoje, formatarDia, formatarQuando, diaSeguinte,
   montarHistorico, nomePorContato, rotuloDoAviso, rotuloDosCanais, canaisEnviadosHoje,
+  envioDeHojePara,
   type EnvioParaHistorico,
 } from '@/lib/historicoNotificacoes';
 
@@ -97,7 +98,15 @@ describe('montarHistorico', () => {
     ]);
     expect(h[0].linhas).toBe(2);
     expect(h[0].destinos).toEqual([
-      { email: 'ana@fazenda.com', telefone: '65999990000' },
+      {
+        email: 'ana@fazenda.com',
+        telefone: '65999990000',
+        // A segunda linha não se descarta: é ela que traz o horário do WhatsApp.
+        porCanal: {
+          email: '2026-08-17T17:32:00.000Z',
+          whatsapp: '2026-08-17T17:32:04.000Z',
+        },
+      },
     ]);
   });
 
@@ -195,6 +204,60 @@ describe('montarHistorico', () => {
  * idempotência. Em UTC os dois discordariam entre 20h e 00h locais: a tela liberaria
  * o botão e o banco recusaria.
  */
+/**
+ * A pergunta que a escolha de destinatário criou (10/09/2026): não basta saber
+ * que o e-mail saiu hoje, é preciso saber PARA QUEM. Travar o canal inteiro
+ * porque a Ana já recebeu impediria justamente o envio ao Bruno.
+ */
+describe('envioDeHojePara', () => {
+  const doisSocios = montarHistorico([
+    linha({
+      destinatario_email: 'ana@fazenda.com', destinatario_telefone: '65999990000',
+      canal: 'email',
+    }),
+    linha({
+      destinatario_email: 'ana@fazenda.com', destinatario_telefone: '65999990000',
+      canal: 'whatsapp', enviado_em: '2026-08-17T17:32:03.000Z',
+    }),
+    linha({
+      destinatario_email: 'bruno@fazenda.com', destinatario_telefone: null,
+      canal: 'email', enviado_em: '2026-08-17T17:32:05.000Z',
+    }),
+  ]);
+  const hoje = doisSocios[0];
+
+  it('quem recebeu por um canal aparece com o horário daquele canal', () => {
+    expect(envioDeHojePara(hoje, 'email', 'ana@fazenda.com'))
+      .toBe('2026-08-17T17:32:00.000Z');
+    expect(envioDeHojePara(hoje, 'whatsapp', '65999990000'))
+      .toBe('2026-08-17T17:32:03.000Z');
+  });
+
+  it('o mesmo destino travado num canal continua livre no outro', () => {
+    // O Bruno recebeu por e-mail; ele não tem telefone, então nada travou lá.
+    expect(envioDeHojePara(hoje, 'email', 'bruno@fazenda.com')).toBeTruthy();
+    expect(envioDeHojePara(hoje, 'whatsapp', 'bruno@fazenda.com')).toBeUndefined();
+  });
+
+  it('contato que não recebeu hoje volta undefined, e não o do vizinho', () => {
+    expect(envioDeHojePara(hoje, 'email', 'carla@fazenda.com')).toBeUndefined();
+  });
+
+  it('sem disparo hoje, ou sem contato, ninguém está travado', () => {
+    expect(envioDeHojePara(null, 'email', 'ana@fazenda.com')).toBeUndefined();
+    expect(envioDeHojePara(hoje, 'email', null)).toBeUndefined();
+  });
+
+  /**
+   * O e-mail do canal não pode casar com o telefone e vice-versa: os dois campos
+   * estão preenchidos na MESMA linha gravada, e cruzá-los travaria o WhatsApp de
+   * quem só recebeu e-mail.
+   */
+  it('não cruza os campos: telefone não casa com o canal de e-mail', () => {
+    expect(envioDeHojePara(hoje, 'email', '65999990000')).toBeUndefined();
+  });
+});
+
 describe('diaLocal — o fuso da casa', () => {
   it('23h59 UTC de 17/08 ainda é dia 17 em Cuiabá', () => {
     expect(diaLocal('2026-08-17T23:59:00.000Z')).toBe('2026-08-17');

@@ -697,8 +697,13 @@ export function useDomainSolicitacao(clienteId: string | null) {
           .catch((erro: unknown) => {
             console.error('[solicitacao_enviada] aviso ao cliente falhou', erro);
             toast.error(
-              'A solicitação foi enviada, mas o aviso ao cliente não saiu. '
-              + 'Avise o cliente por fora e reporte ao time.',
+              // A instrução é acionar a PSA Digital, e não sair avisando o cliente
+              // por fora: falha de envio é do Digital, o consultor não tem como
+              // consertar, e a faixa permanente na tela diz exatamente isto
+              // (texto da Patrícia, 10/09/2026). Duas saídas diferentes para o
+              // mesmo problema fariam metade do time contornar e metade reportar.
+              'A solicitação foi enviada, mas a notificação ao cliente não saiu. '
+              + 'Entre em contato com o suporte da PSA Digital.',
               { description: (erro as Error).message },
             );
           })
@@ -795,8 +800,8 @@ export function useDomainSolicitacao(clienteId: string | null) {
           .catch((erro: unknown) => {
             console.error('[documento_aprovado] aviso ao cliente falhou', erro);
             toast.error(
-              'A solicitação foi finalizada, mas o aviso de conferência não saiu. '
-              + 'Avise o cliente por fora e reporte ao time.',
+              'A solicitação foi finalizada, mas a notificação de conferência não saiu. '
+              + 'Entre em contato com o suporte da PSA Digital.',
               { description: (erro as Error).message },
             );
           });

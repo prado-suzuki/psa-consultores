@@ -97,8 +97,8 @@ export function DocumentosDialog({ clienteId, grupo, filtro, onLimparFiltro, onO
           <DialogTitle className="text-xl text-osg-700">{grupo?.instancia.label}</DialogTitle>
           <DialogDescription>
             {grupo?.instancia.detalhe
-              ? `${grupo.instancia.detalhe}. O que falta é derivado do que foi pedido menos o que chegou.`
-              : 'O que falta é derivado do que foi pedido menos o que chegou.'}
+              ? `${grupo.instancia.detalhe}. O que falta é o que foi solicitado menos o que já chegou.`
+              : 'O que falta é o que foi solicitado menos o que já chegou.'}
           </DialogDescription>
           {filtro && (
             <div className="flex items-center gap-2 pt-1">
@@ -114,7 +114,7 @@ export function DocumentosDialog({ clienteId, grupo, filtro, onLimparFiltro, onO
                 onClick={onLimparFiltro}
                 className="rounded-md text-[11px] font-semibold text-osg-500 underline-offset-2 hover:text-osg-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40"
               >
-                ver todos os {grupo?.linhas.length}
+                ver todos os {grupo?.linhas.length} documentos
               </button>
             </div>
           )}
@@ -161,7 +161,10 @@ function DocumentRow({ linha, podeMarcar, marcando, onAlternarNaoAplicavel, ...a
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h4 className={cn('text-sm font-semibold text-osg-700', naoAplicavel && 'text-osg-500 line-through')}>{linha.documento}</h4>
-            {!linha.doCatalogo && <Badge>Pedido à mão</Badge>}
+            {/* "Pedido à mão" trazia de volta o "pedido" que a solicitação
+                aposentou, e a outra tela já chama isto de "adicionados
+                manualmente" (ProdutoRail). Um nome só para a mesma coisa. */}
+            {!linha.doCatalogo && <Badge>Adicionado manualmente</Badge>}
             {linha.confidencial && <Badge tone="danger"><ShieldAlert className="h-3 w-3" />Confidencial</Badge>}
             {/* Item manual sem tipo avulso nunca casa com arquivo: a pendência é
                 estrutural, e dizer isso é melhor que deixá-la inexplicada. */}
@@ -215,10 +218,14 @@ function BotaoNaoAplica({ marcado, ocupado, documento, onClick }: {
       /* O nome vem daqui, e não de um `sr-only` ao lado do rótulo: a ficha repete
          o mesmo par de botões em toda linha, e sem o documento no nome não há
          como distinguir um do outro nem em leitor de tela nem em teste. */
-      aria-label={`${marcado ? 'Voltar a pedir' : 'Não se aplica'} — ${documento}`}
+      aria-label={`${marcado ? 'Voltar a solicitar' : 'Não se aplica'} — ${documento}`}
+      /* Terceira pessoa e o efeito inteiro: o que sai da conta, de onde sai, e o
+         que NÃO muda. "As outras continuam devendo" era coloquial e ainda
+         deixava dúvida sobre o que continuava valendo. */
       title={marcado
-        ? 'Voltar a cobrar este documento desta entidade'
-        : 'Some da conta desta entidade e sai da cobrança; as outras continuam devendo'}
+        ? 'Volta a solicitar este documento desta entidade e o traz de volta para a conta.'
+        : 'Tira este documento da conta desta entidade e da notificação ao cliente. '
+          + 'As outras entidades continuam com ele.'}
       className={cn(
         'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
         marcado
@@ -229,7 +236,7 @@ function BotaoNaoAplica({ marcado, ocupado, documento, onClick }: {
       {ocupado
         ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
         : marcado ? <Undo2 className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
-      {marcado ? 'Voltar a pedir' : 'Não se aplica'}
+      {marcado ? 'Voltar a solicitar' : 'Não se aplica'}
     </button>
   );
 }
@@ -323,6 +330,19 @@ function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'ne
   );
 }
 
+/**
+ * O rótulo diz a ação; o tooltip diz a CONSEQUÊNCIA, que é o que não cabe nele.
+ *
+ * "Aprovar" não deixa claro que o veredito fecha a pendência, e "Recusar" não
+ * diz que o arquivo volta para o cliente com o motivo. São as duas perguntas que
+ * o analista tem no dedo antes de clicar.
+ */
+const DICA_VEREDITO: Record<'aprovar' | 'recusar' | 'desfazer', string> = {
+  aprovar: 'Aceita este arquivo e fecha a pendência do documento.',
+  recusar: 'Devolve este arquivo ao cliente com um motivo e reabre a pendência.',
+  desfazer: 'Desfaz o veredito e devolve o arquivo para "A revisar".',
+};
+
 function BotaoVeredito({ tom, onClick, children }: {
   tom: 'aprovar' | 'recusar' | 'desfazer';
   onClick: () => void;
@@ -332,7 +352,7 @@ function BotaoVeredito({ tom, onClick, children }: {
     <button
       type="button"
       onClick={onClick}
-      title={tom === 'desfazer' ? 'Desfazer revisão' : undefined}
+      title={DICA_VEREDITO[tom]}
       className={cn(
         'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
         tom === 'aprovar' && 'border-osg-moss/30 text-osg-moss hover:bg-osg-moss/10',
@@ -365,8 +385,8 @@ export function RecusaDialog({ arquivo, motivo, onMotivo, onOpenChange, onConfir
         <DialogHeader>
           <DialogTitle className="text-osg-700">Recusar este documento?</DialogTitle>
           <DialogDescription>
-            "{arquivo?.nome}" volta a contar como pendente para o cliente, que vê a tag de recusado
-            e o botão de enviar de novo.
+            "{arquivo?.nome}" volta a contar como pendente para o cliente, que passa a ver o
+            documento marcado como recusado, o motivo abaixo e o botão para enviar outro arquivo.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">

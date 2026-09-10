@@ -233,16 +233,23 @@ const Onboarding = () => {
   const emData = (iso: string | null) =>
     (iso ? new Date(iso).toLocaleDateString('pt-BR') : '');
 
+  /**
+   * O subtítulo diz o ESTADO quando há um, e explica a tela quando não há.
+   *
+   * O texto de repouso é o da Patrícia (10/09/2026); os três de estado ficam,
+   * porque dizer "enviada em tal dia" vale mais que repetir a descrição da tela
+   * a cada visita.
+   */
   const subtitulo = solicitacao?.status === 'enviada'
     ? `Enviada ao cliente em ${emData(solicitacao.enviadaEm)}`
     : emChecklist
       ? 'Em fase de checklist: o cliente envia por documento que falta'
       : encerrada
         ? `Encerrada em ${emData(solicitacao?.encerradaEm ?? null)}`
-        : 'Solicitação inicial de documentos ao cliente';
+        : 'Gerencie os documentos que serão solicitados ao cliente para os produtos contratados.';
 
   return (
-    <OsgLayout title="Solicitação Inicial" subtitle={subtitulo} headerActions={acoesDoTopo}>
+    <OsgLayout title="Solicitação de documentos" subtitle={subtitulo} headerActions={acoesDoTopo}>
       {!clienteId ? (
         <OnboardingEmptyState icon={Rocket} title="Selecione um cliente">
           Use a barra acima para carregar a solicitação de documentos deste cliente.
@@ -293,9 +300,10 @@ const Onboarding = () => {
               <Send className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss/70" />
               <p className="leading-relaxed">
                 Solicitação <strong className="font-semibold">aberta desde{' '}
-                {emData(solicitacao.enviadaEm)}</strong> — o cliente vê a lista e pode
-                enviar os arquivos. Incluir documentos agora também chega até ele; o
-                pedido só fecha quando você encerrar.
+                {emData(solicitacao.enviadaEm)}</strong>. O cliente já pode visualizar a
+                lista e enviar os documentos. Novos documentos adicionados à solicitação
+                também ficarão disponíveis no portal. A solicitação permanecerá aberta até
+                ser finalizada.
               </p>
             </div>
           )}

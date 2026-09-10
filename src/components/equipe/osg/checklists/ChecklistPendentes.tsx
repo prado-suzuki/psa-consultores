@@ -59,11 +59,20 @@ const CATEGORIAS_FILTRO: Array<{ value: CategoryFilter; label: string; Icon: Luc
 ];
 
 type StatusFilter = 'todos' | 'abertos' | 'recebidos' | 'encerrados';
+
+/**
+ * O terceiro filtro reúne `nao_aplicavel` e `dispensado`, e o rótulo diz o que
+ * eles são: documentos que NÃO serão pedidos ao cliente.
+ *
+ * Dizia "Encerrados", que não informava nada e ainda encostava em "solicitação
+ * finalizada" — a mesma tela usava a ideia de encerramento para duas coisas
+ * diferentes. O valor interno segue `encerrados`; é chave de filtro, ninguém vê.
+ */
 const STATUS_FILTRO: { value: StatusFilter; label: string; dot?: string }[] = [
   { value: 'todos', label: 'Todos' },
   { value: 'abertos', label: 'Em aberto', dot: 'bg-status-alerta' },
   { value: 'recebidos', label: 'Recebidos', dot: 'bg-osg-moss' },
-  { value: 'encerrados', label: 'Encerrados', dot: 'bg-status-neutro' },
+  { value: 'encerrados', label: 'Fora da solicitação', dot: 'bg-status-neutro' },
 ];
 
 const casaComStatus = (linha: LinhaChecklist, filtro: StatusFilter) => filtro === 'todos'
@@ -141,8 +150,8 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
     return (
       <EstadoVazio
         titulo={`Nenhuma solicitação de documentos para ${clienteNome || 'este cliente'}.`}
-        descricao="O checklist é a subtração do que foi pedido menos o que chegou, e o pedido nasce dos produtos da OS. Gere a lista no onboarding para o checklist existir."
-        acao={{ para: '/equipe/osg/work/onboarding', rotulo: 'Ir para o onboarding' }}
+        descricao="O checklist mostra o que foi solicitado menos o que já chegou, e a solicitação nasce dos produtos contratados na OS. Monte a lista em Solicitação de documentos para o checklist existir."
+        acao={{ para: '/equipe/osg/work/onboarding', rotulo: 'Ir para Solicitação de documentos' }}
       />
     );
   }
@@ -152,9 +161,9 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
       <EstadoVazio
         titulo="A solicitação deste cliente não gera nenhuma linha de checklist."
         descricao={solicitacao.status === 'rascunho'
-          ? 'A lista está em rascunho: o consultor ainda monta os itens e o cliente não recebeu o pedido.'
-          : 'Ou o pedido não tem itens ativos, ou o cliente não tem pessoas, bens e matrículas cadastrados nos grãos pedidos.'}
-        acao={{ para: '/equipe/osg/work/onboarding', rotulo: 'Ver a solicitação' }}
+          ? 'A lista está em rascunho: o consultor ainda monta os itens e o cliente ainda não recebeu a solicitação.'
+          : 'Ou a solicitação não tem itens ativos, ou o cliente não tem as pessoas, os bens e as matrículas a que os documentos solicitados se referem.'}
+        acao={{ para: '/equipe/osg/work/onboarding', rotulo: 'Ir para Solicitação de documentos' }}
       />
     );
   }
@@ -185,23 +194,23 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
           repeti-la aqui dobrava o alarme sem dobrar a informação. */}
       {solicitacao.status === 'rascunho' && (
         <Aviso>
-          Esta solicitação está em <strong>rascunho</strong>: o cliente ainda não recebeu o pedido,
-          então o que aparece como pendente nunca foi cobrado dele.
+          Esta solicitação está em <strong>rascunho</strong>: o cliente ainda não a recebeu,
+          então o que aparece como pendente nunca foi solicitado a ele.
         </Aviso>
       )}
       {solicitacao.status === 'enviada' && (
         <Aviso>
-          A solicitação inicial ainda está <strong>na fase de gaveta</strong>: o cliente
-          envia os arquivos em lote e alguém classifica depois, então a conta abaixo tende a
-          mostrar pendência de documento já entregue. Passe para o checklist na tela de
-          Solicitação Inicial para o envio dele nascer classificado.
+          A solicitação ainda está <strong>na fase de gaveta</strong>: o cliente envia os
+          arquivos em lote e alguém classifica depois, então a conta abaixo tende a mostrar
+          pendência de documento já entregue. Passe para o checklist na tela de Solicitação
+          de documentos para o envio dele nascer classificado.
         </Aviso>
       )}
       {solicitacao.status === 'encerrada' && (
         <Aviso tom="neutro">
           Solicitação <strong>finalizada</strong>
           {solicitacao.encerradaEm ? ` em ${new Date(solicitacao.encerradaEm).toLocaleDateString('pt-BR')}` : ''}.
-          O checklist continua legível como retrato do que foi pedido.
+          O checklist continua legível como retrato do que foi solicitado.
         </Aviso>
       )}
       {arquivosSemTipo > 0 && (
@@ -410,7 +419,7 @@ function ResumoHero({ clienteNome, pct, base, recebidos, pendentes, encerrados }
       <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-osg-moss/5 blur-3xl" />
       <div className="relative grid gap-7 lg:grid-cols-[1fr_280px] lg:items-center">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-osg-500">Resumo da coleta</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-osg-500">Resumo da solicitação</span>
           <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-osg-700">Documentos de {clienteNome}</h2>
           <div className="mt-1 h-[3px] w-8 rounded-full bg-osg-moss" />
           <div className="mt-6 flex flex-wrap items-end gap-x-4 gap-y-1">
@@ -424,7 +433,9 @@ function ResumoHero({ clienteNome, pct, base, recebidos, pendentes, encerrados }
         <div className="grid grid-cols-3 gap-3 border-osg-100 lg:border-l lg:pl-7">
           <Metric label="Pendentes" value={pendentes} tone="warning" />
           <Metric label="Recebidos" value={recebidos} tone="neutral" />
-          <Metric label="Encerrados" value={encerrados} tone="neutral" />
+          {/* Mesmo rótulo do filtro logo abaixo: são o mesmo conjunto, e dois
+              nomes fariam o analista procurar dois números diferentes. */}
+          <Metric label="Fora da solicitação" value={encerrados} tone="neutral" />
         </div>
       </div>
     </section>
@@ -478,7 +489,11 @@ function EntityCard({ grupo, onOpen }: {
             : cardStatus === 'pendente' ? 'bg-osg-highlighter/25 text-osg-700'
               : 'bg-osg-100 text-osg-500',
         )}>
-          {cardStatus === 'recebido' ? 'Completo' : cardStatus === 'pendente' ? 'Pendente' : 'Tratado'}
+          {/* "Tratado" não dizia nada. Este selo aparece quando a entidade não tem
+              pendência NEM documento recebido, ou seja, quando todas as linhas
+              dela saíram da solicitação — mesmo conjunto do filtro e da métrica. */}
+          {cardStatus === 'recebido' ? 'Completo'
+            : cardStatus === 'pendente' ? 'Pendente' : 'Fora da solicitação'}
         </span>
       </div>
       <h4 className="pointer-events-none relative z-10 mt-5 font-semibold leading-snug text-osg-700">{grupo.instancia.label}</h4>
@@ -517,6 +532,9 @@ function ChipsDeEstado({ contagem, onEscolher }: {
           key={estado}
           type="button"
           onClick={() => onEscolher(estado)}
+          /* O chip não é só um contador: ele ABRE a ficha, já recortada. Nada na
+             tela diz isso, e sem o tooltip o analista lê como enfeite. */
+          title={`Abre a ficha desta entidade mostrando só os documentos em "${ESTADO_LABEL[estado]}".`}
           className={cn(
             'pointer-events-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
             ESTADO_CHIP[estado],

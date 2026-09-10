@@ -7,9 +7,14 @@ import { ChecklistPendentes } from '@/components/equipe/osg/checklists/Checklist
 import { DocumentosClienteChecklist } from '@/components/equipe/osg/checklists/DocumentosClienteChecklist';
 import { cn } from '@/lib/utils';
 
+/**
+ * As duas abas. O `label` é o que a aba MOSTRA — antes havia um rótulo aqui e
+ * outro, diferente, escrito à mão no botão; o daqui nunca chegava à tela e os
+ * dois iam divergir na primeira alteração.
+ */
 const CHECKLISTS = [
-  { value: 'pendentes', label: 'Checklist de Documentos Pendentes' },
-  { value: 'planejamento-tributario', label: 'Documentos do Cliente — Planejamento Tributário' },
+  { value: 'pendentes', label: 'Pendências' },
+  { value: 'planejamento-tributario', label: 'Planejamento tributário' },
 ];
 
 const ChecklistsDocumentos = () => {
@@ -18,11 +23,18 @@ const ChecklistsDocumentos = () => {
 
   return (
     <OsgLayout
-      title="Checklists de Documentos"
-      subtitle="Acompanhe os documentos obrigatórios e pendentes de cada cliente"
+      /* Caixa baixa como no menu lateral, que dizia "Checklists de documentos"
+         enquanto o cabeçalho dizia "de Documentos". */
+      title="Checklists de documentos"
+      subtitle="Acompanhe o que foi solicitado a cada cliente, o que já chegou e o que falta"
       headerActions={
         clienteId ? (
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.print()}
+            title="Abre a janela de impressão do navegador com o checklist desta tela."
+          >
             <Printer className="mr-2 h-4 w-4" /> Imprimir
           </Button>
         ) : undefined
@@ -40,7 +52,7 @@ const ChecklistsDocumentos = () => {
                 checklist === item.value ? 'bg-osg-100 text-osg-700 shadow-sm' : 'text-osg-500 hover:bg-osg-50 hover:text-osg-700',
               )}
             >
-              {item.value === 'pendentes' ? 'Pendências' : 'Planejamento tributário'}
+              {item.label}
             </button>
           ))}
         </div>
