@@ -25,6 +25,7 @@ import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnF
 import { renderColumnLabel } from '@/components/equipe/dev/pis-cofins/renderColumnLabel';
 import { SPED_TOOLTIPS } from '@/components/equipe/dev/correcoes-sped/tooltipConstants';
 import type { A170Item, A170Snapshot, CampoAlteradoEfd } from '@/types/correcoesSped';
+import { BOTAO_CONFIRMA_COM_DISABLED } from './classesDeBotao';
 
 const A170_FILTERABLE_KEYS: { key: string; label: string }[] = [
   { key: 'NOME_0150', label: 'Prestador' },
@@ -558,7 +559,7 @@ export default function TabA170({
                     <X className="h-3.5 w-3.5 mr-1" />Cancelar
                   </Button>
                 )}
-                <Button size="sm" variant="outline" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving} className="bg-white text-black border border-input hover:bg-emerald-600 hover:text-white hover:border-emerald-600 active:bg-emerald-700 active:text-white transition-colors duration-200 disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-black disabled:hover:border-input shrink-0">
+                <Button size="sm" variant="outline" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving} className={BOTAO_CONFIRMA_COM_DISABLED}>
                   {isSaving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}
                   {isSaving ? 'Salvando...' : isEditMode ? 'Salvar alterações' : 'Habilitar modo edição'}
                 </Button>

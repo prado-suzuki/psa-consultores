@@ -28,6 +28,7 @@ import { SPED_TOOLTIPS } from '@/components/equipe/dev/correcoes-sped/tooltipCon
 import { useRegrasNCM } from '@/hooks/useRegrasNCM';
 import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
 import CorrecoesActionButtons, { type CorrecoesActionsProps } from './CorrecoesActionButtons';
+import { BOTAO_CONFIRMA_COM_DISABLED } from './classesDeBotao';
 
 type NcmFilter = 'all' | 'with' | 'without';
 
@@ -575,7 +576,7 @@ export default function TabC170({
                     <X className="h-3.5 w-3.5 mr-1" />Cancelar
                   </Button>
                 )}
-                <Button size="sm" variant="outline" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving} className="bg-white text-black border border-input hover:bg-emerald-600 hover:text-white hover:border-emerald-600 active:bg-emerald-700 active:text-white transition-colors duration-200 disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-black disabled:hover:border-input shrink-0">
+                <Button size="sm" variant="outline" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving} className={BOTAO_CONFIRMA_COM_DISABLED}>
                   {isSaving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}
                   {isSaving ? 'Salvando...' : isEditMode ? 'Salvar alterações' : 'Habilitar modo edição'}
                 </Button>
@@ -668,7 +669,7 @@ export default function TabC170({
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-muted/60"><span className="flex items-center justify-end gap-1">{renderColumnLabel('% COF', SPED_TOOLTIPS.pctCof)}<ColumnFilterDropdown columnKey="ALIQ_COFINS"uniqueValues={cascadingUniqueValues['ALIQ_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-muted/60">{renderColumnLabel('VL COF', SPED_TOOLTIPS.vlCof)}</TableHead>
                     <TableHead className="text-[11px] min-w-[150px] max-w-[150px] bg-muted/60"><span className="flex items-center gap-1">Conta<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70"/></TooltipTrigger><TooltipContent side="top"className="max-w-xs text-xs">Código da conta analítica contábil (Registro 0500) representativa da operação.</TooltipContent></Tooltip><ColumnFilterDropdown columnKey="COD_CTA"uniqueValues={cascadingUniqueValues['COD_CTA'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['COD_CTA'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
-                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-border shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">Status</TableHead>
+                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-border shadow-[-4px_0_10px_hsl(0_0%_0%_/_0.02)]">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -767,7 +768,7 @@ export default function TabC170({
                           {renderEditableCell(item, 'COD_CTA', 'h-8 text-xs font-mono')}
                         </TableCell>
                         {/* Actions — sticky right */}
-                        <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px] border-l border-border shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
+                        <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px] border-l border-border shadow-[-4px_0_10px_hsl(0_0%_0%_/_0.02)]">
                           <div className="flex flex-col items-center justify-center gap-1">
                             {linhaCorrigida && (
                               <Badge variant="outline" className="text-[10px]">Corrigido</Badge>

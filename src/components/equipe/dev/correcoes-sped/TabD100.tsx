@@ -27,6 +27,7 @@ import { renderColumnLabel } from '@/components/equipe/dev/pis-cofins/renderColu
 import { SPED_TOOLTIPS } from '@/components/equipe/dev/correcoes-sped/tooltipConstants';
 import type { D100Item, CampoAlteradoEfd } from '@/types/correcoesSped';
 import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
+import { BOTAO_CONFIRMA_COM_DISABLED } from './classesDeBotao';
 
 const D100_FILTERABLE_KEYS: { key: string; label: string }[] = [
   { key: 'DT_DOC', label: 'Data' },
@@ -422,7 +423,7 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
                     <X className="h-3.5 w-3.5 mr-1" />Cancelar
                   </Button>
                 )}
-                <Button size="sm" variant="outline" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving} className="bg-white text-black border border-input hover:bg-emerald-600 hover:text-white hover:border-emerald-600 active:bg-emerald-700 active:text-white transition-colors duration-200 disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-black disabled:hover:border-input shrink-0">
+                <Button size="sm" variant="outline" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving} className={BOTAO_CONFIRMA_COM_DISABLED}>
                   {isSaving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}
                   {isSaving ? 'Salvando...' : isEditMode ? 'Salvar alterações' : 'Habilitar modo edição'}
                 </Button>
@@ -464,7 +465,7 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-muted/60"><span className="flex items-center justify-end gap-1">{renderColumnLabel('% COF', SPED_TOOLTIPS.pctCof)}<ColumnFilterDropdown columnKey="ALIQ_COFINS"uniqueValues={cascadingUniqueValues['ALIQ_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-muted/60">{renderColumnLabel('VL COF', SPED_TOOLTIPS.vlCof)}</TableHead>
                     <TableHead className="text-[11px] min-w-[120px] bg-muted/60"><span className="flex items-center gap-1">{renderColumnLabel('Conta', SPED_TOOLTIPS.conta)}<ColumnFilterDropdown columnKey="COD_CTA"uniqueValues={cascadingUniqueValues['COD_CTA'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['COD_CTA'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
-                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-border shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">{renderColumnLabel('Status', SPED_TOOLTIPS.status)}</TableHead>
+                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-border shadow-[-4px_0_10px_hsl(0_0%_0%_/_0.02)]">{renderColumnLabel('Status', SPED_TOOLTIPS.status)}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -489,7 +490,7 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-muted/30">{renderEditableCell(item,'ALIQ_COFINS','h-8 text-xs text-right font-mono', { isPercentage: true })}</TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-muted/30">{renderEditableCell(item,'VL_COFINS','h-8 text-xs text-right font-mono', { isCurrency: true })}</TableCell>
                         <TableCell className="text-xs py-1.5 font-mono bg-muted/30">{renderEditableCell(item,'COD_CTA','h-8 text-xs font-mono')}</TableCell>
-                        <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px] border-l border-border shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
+                        <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px] border-l border-border shadow-[-4px_0_10px_hsl(0_0%_0%_/_0.02)]">
                           <div className="flex flex-col items-center justify-center gap-1">
                             {linhaCorrigida && <Badge variant="outline" className="text-[10px]">Corrigido</Badge>}
                             {isEditMode && <span className="text-[10px] text-primary">Editável</span>}

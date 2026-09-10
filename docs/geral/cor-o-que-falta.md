@@ -136,6 +136,42 @@ Na mesma passada, a **terceira e última cópia do botão Sair** (`FixosLayout`)
 reencontrar como se fosse achado novo — que é exatamente o que aconteceu em 03/09, cinco vezes
 em cinco.
 
+### Correções SPED: fechada em parte, e a parte que falta é sua
+
+Escolhida por medição entre as candidatas (101 ocorrências, a de maior volume com menor
+risco). A distribuição já dizia o que era: **21 emerald, 16 âmbar, 3 red** espalhados por seis
+abas não é decoração, é um mapa copiado. Confirmado com `uniq -c`: a receita
+"botão de contorno que se enche de cor no hover" existia **sete vezes** — uma em cada aba,
+byte a byte idêntica, mais uma `const` privada dentro do `CorrecoesActionButtons`. Sete cópias
+não são sete decisões; são uma decisão e seis lugares onde ela envelhece separado. É por isso
+que a cor delas atravessou as rodadas anteriores: quem procurou por família achou
+`emerald-600` em seis arquivos e leu como seis casos.
+
+Virou [`classesDeBotao.ts`](../../src/components/equipe/dev/correcoes-sped/classesDeBotao.ts),
+com as duas receitas. Confirmar veste a **âncora** (`primary`, e `accent-d` no `active:`, que é
+o degrau escuro do contrato); destruir veste `destructive`. O `active:` do destrutivo usa alfa
+`/90` em vez de um degrau mais escuro porque o contrato **não tem** um `destructive-d`, e a
+regra é consertar com valor que existe — é a mesma forma que o `task-modal` já usa.
+
+A sombra da coluna fixa (`rgba(0,0,0,0.02)`, seis cópias) passou a `hsl(0 0% 0% / 0.02)`.
+Preto não tem matiz, então nunca troca identidade — é o mesmo argumento escrito no véu do
+`HeroBanner` —, e o que muda é só a notação sair da forma que nenhuma regra enxerga. Conferido
+no bundle: `-4px 0 10px hsl(0 0% 0% / .02)`, mesmo pixel.
+
+**O âmbar ficou, e está em fila com o motivo escrito** (`FILA_A_DECIDIR`, no teste). São dois
+sinais diferentes, e é por serem diferentes que nenhum dos dois converte por varredura:
+
+| sinal | onde | por que parou |
+|---|---|---|
+| "este valor foi alterado" | `isChanged` / `valueDivergent` / `amberClass`, nas 6 abas | não é nenhum dos oito papéis de forma óbvia. Não é `espera` (nada está parado) nem `alerta` (nada é urgente), e `ajuste` pintaria de VERMELHO o que hoje é âmbar — afirmando problema sobre uma edição normal, o mesmo erro que a rodada da pasta `audit` desfez na coluna "Exclusões" |
+| selo "Consolidado" | `tipo_relacao === 'CONSOLIDADO'` | não é status, é CATEGORIA — e o irmão dele no mesmo ternário usa `success`, que é semântico. Ou os dois viram `--tag-*`, ou os dois ficam. Converter um só muda a inconsistência de lugar |
+
+A catraca entrou **parcial**, e isso é a forma nova desta rodada: o que fechou (`white`,
+`black`, hex, emerald, red = zero) ganha guarda hoje, e o que falta fica escrito com o motivo
+em vez de virar dívida invisível. A asserção compara contra a fila, então ela cai **nos dois
+sentidos** — se alguém repintar, e também quando a decisão sair e os números descerem, com a
+mensagem dizendo o que fazer.
+
 ## 2. As escadas que exigem decisão, não conversão
 
 Estas ficaram paradas de propósito. Cada uma precisa de uma escolha sua antes de virar código.
