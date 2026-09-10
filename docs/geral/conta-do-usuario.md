@@ -38,6 +38,21 @@ queda (`perfil → pedaço do e-mail → "Usuário"`) é função pura em `src/l
 **Efeito colateral em teste:** o cartão passou a fazer query, então todo teste que monta uma
 barra lateral precisa de `QueryClientProvider`. Só `FiscalSidebar.test.tsx` montava sem.
 
+**As nove áreas (10/09/2026).** O cartão começou em seis barras e passou a nove no mesmo dia,
+quando ela pediu o padrão em toda tela com barra — eram **56 telas sem ele**: 20 do Board, 23
+do Dev e 13 do Mapeamento. Dois achados no caminho:
+
+- o **Dev já tinha cartão**, feito à mão: avatar, `email.split('@')[0]` e o nome da área, sem o
+  estado recolhido e sem o nome de `profiles`. Era a sétima cópia do markup que este componente
+  existe para acabar;
+- o **Mapeamento não tinha saída nenhuma** — nem "Sair" no rodapé, nem cartão. Quem entrava só
+  saía por "Trocar área". Agora tem.
+
+O Board ficou com o usuário em **dois lugares**: o cartão novo no rodapé e o chip de nome +
+iniciais que já existia no topbar, que ainda lê `user_metadata` (fonte diferente de `profiles`,
+podem divergir). Tirar o do topo deixa a faixa superior vazia no desktop — é decisão de
+desenho, não limpeza, e está esperando ela.
+
 **Fica de fora, e é gap conhecido:** `/equipe/acessos` (`EquipeControleAcessos.tsx`) **não tem
 barra lateral** — tem cabeçalho próprio, com "Trocar área" e "Sair" soltos nele. Logo não tem
 cartão, não mostra nome nem e-mail, e o "Sair" de lá é o único do sistema fora do cartão. Dar

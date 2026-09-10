@@ -11,11 +11,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMeuPerfil } from '@/hooks/useDomainMeuPerfil';
+import { AREAS as NOMES_DE_AREA } from '@/lib/nomeDaArea';
 import { nomeDeExibicao } from '@/lib/nomeDoUsuario';
 import { cn } from '@/lib/utils';
 
 /**
- * O cartão do usuário no pé da barra lateral — um só, para as cinco áreas.
+ * O cartão do usuário no pé da barra lateral — um só, para as NOVE áreas.
  *
  * Ele existe porque o markup deste cartão estava copiado em cinco layouts, com
  * diferença só de cor de acento e rótulo, e foi essa cópia que deixou o bug de
@@ -71,9 +72,8 @@ interface DefinicaoDeArea {
 }
 
 /**
- * As cinco áreas com barra lateral de trilho recolhido. É um registro fechado de
- * propósito: área nova entra por uma linha aqui, e não por uma sexta cópia do
- * cartão. As cores literais ficam concentradas neste mapa — se um dia a
+ * As áreas com barra lateral. É um registro fechado de propósito: área nova
+ * entra por uma linha aqui, e não por mais uma cópia do cartão. As cores literais ficam concentradas neste mapa — se um dia a
  * Administração e a Fixos passarem a declarar tema no `<html>`, é só este
  * arquivo que muda.
  */
@@ -121,9 +121,43 @@ const AREAS = {
     acento: 'bg-blue-500/10 text-blue-600',
     tom: 'slate',
   },
+  // As tres ultimas entraram em 10/09/2026, quando a Patricia pediu o cartao em
+  // TODA tela com barra. Eram 56 telas sem ele: 20 do Board, 23 do Dev e 13 do
+  // Mapeamento. Nas tres o acento e o `--primary`, porque as tres vestem a cor
+  // da casa: nenhuma declara tema proprio no `<html>` (ver `TEMA_DA_AREA`).
+  board: {
+    rotulo: 'Board',
+    // `slate` e nao `tokens`: a barra do Board e pintada pelo design system
+    // dele, com `--bd-chrome` — que hoje vale `#FFFFFF` literal, nao token.
+    acento: 'bg-primary/10 text-primary',
+    tom: 'slate',
+  },
+  // O Dev ja tinha cartao: uma COPIA A MAO do markup, com o avatar, o
+  // `email.split('@')[0]` e o nome da area — sem o estado recolhido e sem o
+  // nome vindo de `profiles`. Era a setima copia, e a razao de este componente
+  // existir. O rotulo sai de `nomeDaArea`, que ja era a fonte dele.
+  dev: {
+    rotulo: NOMES_DE_AREA.dev.nome,
+    acento: 'bg-primary/10 text-primary',
+    tom: 'tokens',
+  },
+  mapa: {
+    rotulo: 'Mapeamento',
+    // A barra do Mapeamento e CSS legado (`mapa.css`), fora do Tailwind: o
+    // chip entra como ilha de token dentro dela, como o `slate` das outras.
+    acento: 'bg-primary/10 text-primary',
+    tom: 'slate',
+  },
 } satisfies Record<string, DefinicaoDeArea>;
 
 export type AreaDoCartaoDeUsuario = keyof typeof AREAS;
+
+/**
+ * As chaves do registro, em lista. Existe para o teste percorrer TODAS as areas
+ * sem repetir a lista num literal que envelhece — area nova entra aqui sozinha,
+ * e se ela quebrar o cartao o teste cai no mesmo commit que a criou.
+ */
+export const AREAS_DO_CARTAO = Object.keys(AREAS) as AreaDoCartaoDeUsuario[];
 
 export interface SidebarCartaoUsuarioProps {
   /** Qual barra está montando o cartão: define o rótulo e a cor do avatar. */

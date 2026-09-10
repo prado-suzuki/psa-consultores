@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
 import {
   LayoutDashboard,
   ArrowLeft,
@@ -14,7 +15,6 @@ import {
   ChevronLeft,
   MapPin,
   Shield,
-  LogOut,
   type LucideIcon,
 } from 'lucide-react';
 import { usePageAccess } from '@/hooks/usePageAccess';
@@ -87,16 +87,11 @@ const buildNavItems = (acesso: BoardNavAccess): NavItem[] => [
  * moram na toolbar do conteúdo, à direita do título da tela.
  */
 export const BoardLayout = ({ children, title, subtitle, headerActions, noPadding }: BoardLayoutProps) => {
-  const { user, isAdmin, isLider, signOut } = useAuth();
+  const { user, isAdmin, isLider } = useAuth();
   const { hasAccess: canUsoEnvio } = usePageAccess('/equipe/board/uso-envio');
   const { hasAccess: canLogsEquipe } = usePageAccess('/equipe/board/logs-equipe');
   const navigate = useNavigate();
   const location = useLocation();
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
-  };
 
   // `title` nomeia a aba do navegador — as 13 telas do Board já passavam este
   // texto, que antes era ignorado (prop declarada e nunca usada).
@@ -226,6 +221,9 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
 
       {/* Rodapé */}
       <div className="px-3 pb-3.5 pt-3.5 space-y-1" style={{ borderTop: '1px solid var(--bd-chrome-line)' }}>
+        {/* O "Sair" que ficava aqui embaixo esta dentro do menu deste cartao
+            desde 10/09/2026, como nas outras barras. */}
+        <SidebarCartaoUsuario area="board" collapsed={collapsed} />
         <button
           onClick={() => navigate('/equipe/')}
           className="w-full flex items-center gap-2 rounded-[10px] text-[12.5px] transition-colors duration-150 px-2.5 py-2"
@@ -237,17 +235,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
           <ArrowLeft className="h-[14px] w-[14px] flex-shrink-0" />
           {!collapsed && <span>Voltar ao Portal</span>}
         </button>
-        <button
-          onClick={handleSignOut}
-          className="w-full flex items-center gap-2 rounded-[10px] text-[12.5px] transition-colors duration-150 px-2.5 py-2"
-          style={{ color: 'var(--bd-ink3)' }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--bd-risk-t)'; (e.currentTarget as HTMLElement).style.color = 'var(--bd-risk-d)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--bd-ink3)'; }}
-          title={collapsed ? 'Sair' : undefined}
-        >
-          <LogOut className="h-[14px] w-[14px] flex-shrink-0" />
-          {!collapsed && <span>Sair</span>}
-        </button>
+
       </div>
     </div>
   );

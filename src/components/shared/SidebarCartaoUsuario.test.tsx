@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { SidebarCartaoUsuario } from './SidebarCartaoUsuario';
+import { AREAS_DO_CARTAO, SidebarCartaoUsuario } from './SidebarCartaoUsuario';
 
 const mocks = vi.hoisted(() => ({
   user: { email: 'joana.silva@psaconsultores.com.br' } as { email?: string } | null,
@@ -88,6 +88,20 @@ describe('SidebarCartaoUsuario', () => {
 
     expect(screen.getByText('Usuário')).toBeInTheDocument();
     expect(screen.getByText('Fixos')).toBeInTheDocument();
+  });
+
+  // O cartao passou de 6 para 9 areas em 10/09/2026, quando ele virou padrao
+  // tambem no Board, no Dev e no Mapeamento — 56 telas que nao o tinham. Este
+  // teste percorre o registro inteiro em vez de listar area por area: quem
+  // acrescentar a decima e esquecer de conferir descobre aqui.
+  it.each(AREAS_DO_CARTAO)('a area "%s" monta e abre o menu', async (area) => {
+    render(<SidebarCartaoUsuario area={area} collapsed={false} />);
+
+    expect(screen.getByRole('button')).toBeVisible();
+
+    await abrirMenu();
+
+    expect(screen.getByRole('menuitem', { name: /Sair/ })).toBeInTheDocument();
   });
 
   describe('o menu', () => {

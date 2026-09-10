@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
+import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
 import { MEDIDAS_TRILHO_SIDEBAR } from '@/lib/sidebarMedidas';
 import { MapaClusterProvider } from '@/contexts/MapaClusterContext';
 import ClusterBar from './ClusterBar';
@@ -194,6 +195,9 @@ export default function Layout() {
           ))}
         </ul>
         <div className="sidebar-footer">
+          {/* O Mapeamento era a unica area sem NENHUMA saida: nao tinha "Sair"
+              no rodape nem cartao. Quem entrava so saia por "Trocar area". */}
+          <SidebarCartaoUsuario area="mapa" collapsed={trilho} />
           <button
             type="button"
             className="sidebar-action-btn"
