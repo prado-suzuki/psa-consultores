@@ -106,9 +106,24 @@ export function classesItemDaBarra({ ativo, trilho, sub = false }: OpcoesDoItemD
 export function classesEyebrowDaBarra(trilho: boolean): string {
   return cn(
     FACE_DA_BARRA,
-    'px-2.5 mb-1.5 text-[9.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground',
-    // Recolhido o rótulo não cabe, mas sumir com ele colapsaria o respiro
-    // entre os blocos: ele fica invisível e continua ocupando a altura.
-    trilho && 'invisible h-2 mb-1.5 overflow-hidden',
+    'mb-1.5 text-[9.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground',
+    trilho
+      ? // Recolhido ele fica invisível e continua ocupando a ALTURA — sumir
+        // colapsaria o respiro entre os blocos do menu.
+        //
+        // O `w-0 px-0` não é enfeite, é o que impede um bug medido: com a
+        // largura livre, "DIRETORIA" em caixa alta com `tracking` não quebra
+        // linha e mede 83px. O `ScrollArea` do Radix embrulha os filhos num
+        // `display: table`, que ESTICA até o filho mais largo — a caixa do
+        // menu passava de 56px para 83px, tudo que era centralizado por
+        // `mx-auto` centrava na caixa inflada e o `overflow: hidden` cortava o
+        // excesso. Na prática, a pílula de 40px aparecia com 34px de largura,
+        // 33,6px afastada da esquerda, cortada na direita.
+        //
+        // Zerando a largura o rótulo continua no fluxo (a altura fica) e para
+        // de votar no tamanho da tabela. Medido: caixa volta a 56px e a pílula
+        // a 20px da esquerda, 40px cheios.
+        'invisible h-2 w-0 px-0 overflow-hidden'
+      : 'px-2.5',
   );
 }

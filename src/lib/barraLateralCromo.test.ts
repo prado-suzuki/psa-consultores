@@ -83,6 +83,29 @@ describe('recolhido, o ícone fica no centro', () => {
     expect(classesItemDaBarra({ ativo: true, trilho: false }).split(/\s+/)).toContain('w-full');
   });
 
+  // Este é o teste do bug que a usuária viu: a pílula aparecia com 34px de
+  // largura em vez de 40, encostada na direita e cortada. A culpa não era da
+  // pílula — era do eyebrow ao lado dela.
+  //
+  // "DIRETORIA" em caixa alta com `tracking` não quebra linha e mede 83px. O
+  // `ScrollArea` do Radix embrulha os filhos num `display: table`, que estica
+  // até o filho mais largo, então a caixa do menu ia de 56px para 83px; o
+  // `mx-auto` centrava nela e o `overflow: hidden` cortava o resto. Medido no
+  // navegador: item a 33,6px da esquerda, 5,6px cortados — os mesmos 33,6 que
+  // a captura de tela dela mostrava.
+  it('recolhido, o eyebrow não vota na largura da caixa do menu', () => {
+    const classes = classesEyebrowDaBarra(true).split(/\s+/);
+
+    expect(classes).toContain('w-0');
+    // O recuo horizontal soma 20px à largura e reproduz o mesmo estouro.
+    expect(classes).toContain('px-0');
+    expect(classes).not.toContain('px-2.5');
+  });
+
+  it('aberto o eyebrow tem o recuo normal', () => {
+    expect(classesEyebrowDaBarra(false).split(/\s+/)).toContain('px-2.5');
+  });
+
   it('o eyebrow some da vista mas não colapsa o respiro entre blocos', () => {
     const recolhido = classesEyebrowDaBarra(true);
 
