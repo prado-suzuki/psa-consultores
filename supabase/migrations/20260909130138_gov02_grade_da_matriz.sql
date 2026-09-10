@@ -297,7 +297,11 @@ COMMENT ON FUNCTION public.matriz_competencia_orgao_do_cliente() IS
 
 DROP TRIGGER IF EXISTS trg_matriz_competencia_orgao_do_cliente ON public.matriz_competencia;
 CREATE TRIGGER trg_matriz_competencia_orgao_do_cliente
-  BEFORE INSERT OR UPDATE OF orgao_id, sobe_para_orgao_id, excecao_orgao_id, matriz_atividade_id
+  -- Sem `excecao_orgao_id` na lista: a migration 20260910155024 remove essa
+  -- coluna, e CREATE TRIGGER valida os nomes do `UPDATE OF` na hora. Com ela
+  -- aqui, reaplicar este arquivo depois daquela quebra com 42703, e o
+  -- `db:sync` reaplica tudo que nao esta no ledger dele.
+  BEFORE INSERT OR UPDATE OF orgao_id, sobe_para_orgao_id, matriz_atividade_id
   ON public.matriz_competencia
   FOR EACH ROW EXECUTE FUNCTION public.matriz_competencia_orgao_do_cliente();
 

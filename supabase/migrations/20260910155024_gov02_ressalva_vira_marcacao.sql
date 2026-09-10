@@ -59,24 +59,42 @@ COMMENT ON COLUMN public.matriz_competencia.fora_da_politica IS
   'estiver fora da politica"; sem ele, escreve "e autorizar os atos nao '
   'previstos nestas politicas", que e a redacao do lado de quem recebe.';
 
--- Quem tinha excecao passa a ter a marcacao.
-UPDATE public.matriz_competencia
-   SET fora_da_politica = true
- WHERE excecao_motivo IS NOT NULL
-    OR excecao_orgao_id IS NOT NULL;
+-- Os dois UPDATE citam colunas que este mesmo arquivo remove logo abaixo, entao
+-- so podem rodar na primeira vez. O `db:sync` reaplica arquivo que nao esta no
+-- ledger dele e cobra idempotencia: sem esta guarda, a segunda passada morre
+-- com 42703.
+DO $migra$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'matriz_competencia'
+       AND column_name = 'excecao_motivo'
+  ) THEN
+    -- Quem tinha excecao passa a ter a marcacao.
+    EXECUTE $sql$
+      UPDATE public.matriz_competencia
+         SET fora_da_politica = true
+       WHERE excecao_motivo IS NOT NULL
+          OR excecao_orgao_id IS NOT NULL
+    $sql$;
 
--- E o destino nao pode sumir. Nas 48 celulas dos documentos reais ele e sempre
--- igual ao `sobe_para_orgao_id`, mas no primeiro preenchimento de verdade
--- apareceu uma celula com excecao e SEM escalonamento normal: o Conselho, em
--- "Eleger Administradores", subia a Reuniao de Socios so no caso de excecao.
--- A forma cabe no modelo novo (destino no `sobe_para` mais a bandeira, que le
--- "e submete a X o que estiver fora da politica"), entao aqui eu promovo o
--- destino da excecao a escalonamento em vez de descarta-lo.
-UPDATE public.matriz_competencia
-   SET sobe_para_orgao_id = excecao_orgao_id
- WHERE sobe_para_orgao_id IS NULL
-   AND excecao_orgao_id IS NOT NULL
-   AND excecao_orgao_id IS DISTINCT FROM orgao_id;
+    -- E o destino nao pode sumir. Nas 48 celulas dos documentos reais ele e
+    -- sempre igual ao `sobe_para_orgao_id`, mas no primeiro preenchimento de
+    -- verdade apareceu uma celula com excecao e SEM escalonamento normal: o
+    -- Conselho, em "Eleger Administradores", subia a Reuniao de Socios so no
+    -- caso de excecao. A forma cabe no modelo novo (destino no `sobe_para`
+    -- mais a bandeira, que le "e submete a X o que estiver fora da politica"),
+    -- entao aqui eu promovo o destino da excecao a escalonamento.
+    EXECUTE $sql$
+      UPDATE public.matriz_competencia
+         SET sobe_para_orgao_id = excecao_orgao_id
+       WHERE sobe_para_orgao_id IS NULL
+         AND excecao_orgao_id IS NOT NULL
+         AND excecao_orgao_id IS DISTINCT FROM orgao_id
+    $sql$;
+  END IF;
+END;
+$migra$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Sai o par de colunas
