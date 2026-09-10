@@ -34,6 +34,7 @@ vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: dbMocks.fro
 import {
   useGravarAporteInicial,
   useGravarAumentoDeCapital,
+  useReverterAto,
   useSubirQuotas,
 } from '@/hooks/useMovimentacaoQuotas';
 
@@ -123,6 +124,23 @@ describe('useGravarAumentoDeCapital', () => {
         action: 'created',
       }),
     );
+  });
+});
+
+describe('useReverterAto', () => {
+  it('invalida o ônus levado pelo cascade junto com o ato', async () => {
+    const mutacao = useReverterAto() as unknown as {
+      onSuccess: (dados: unknown) => Promise<void>;
+    };
+
+    await mutacao.onSuccess({
+      atoId: 'ato-1',
+      descricao: 'Doação com reserva de usufruto',
+      empresas: [EMPRESA],
+    });
+
+    expect(chavesInvalidadas()).toContain(`onus-da-empresa|${EMPRESA}`);
+    expect(chavesInvalidadas()).toContain(`cessoes-do-livro|${EMPRESA}`);
   });
 });
 

@@ -166,6 +166,14 @@ export function MovimentoModal({
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">{forma.descricao}</p>
+                {draft.tipo === 'doacao' && (
+                  // A doação avulsa é a simples (cessão gratuita). Reserva de
+                  // usufruto, gravames e origem legítima/disponível têm gesto
+                  // próprio, porque são vários pares e um ônus por par.
+                  <p className="text-xs text-osg-700">
+                    Doação com reserva de usufruto ou gravames: use “Doar quotas”, na lista de sócios.
+                  </p>
+                )}
               </div>
             </FieldSection>
 

@@ -4,7 +4,7 @@ import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeftRight, Building2, ChartPie, Landmark, PieChart, Plus, Tag, Users } from 'lucide-react';
+import { ArrowLeftRight, Building2, ChartPie, Gift, Landmark, PieChart, Plus, Tag, Users } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useCountUp } from '@/hooks/useCountUp';
 import { osgTabsListCls, osgTabTriggerCls } from '@/components/equipe/osg/formKit';
@@ -12,7 +12,9 @@ import { usePessoasByCliente, type PessoaRow } from '@/hooks/useQualificacaoDasP
 import { useMovimentosDaEmpresa, useQuadroDaEmpresa } from '@/hooks/useMovimentacaoQuotas';
 import { procedenciaDosMovimentos } from '@/lib/osg/projecaoQuadro';
 import { AtosSocietarios } from '@/components/equipe/osg/quadro-societario/AtosSocietarios';
+import { DoarQuotasDialog } from '@/components/equipe/osg/quadro-societario/DoarQuotasDialog';
 import { MovimentoModal } from '@/components/equipe/osg/quadro-societario/MovimentoModal';
+import { UsufrutoEVotoCard } from '@/components/equipe/osg/quadro-societario/UsufrutoEVoto';
 import { QuadroEmpresaProprietaria } from '@/components/equipe/osg/quadro-societario/QuadroEmpresaProprietaria';
 import { TabelaSocios, type LinhaSocio } from '@/components/equipe/osg/quadro-societario/TabelaSocios';
 import { fmtBRL, fmtInt } from '@/components/equipe/osg/quadro-societario/quadroFmt';
@@ -57,11 +59,19 @@ const QuadroEmpresa = ({ empresa, pessoasCliente }: QuadroEmpresaProps) => {
  * (constituição, ou o ato que a produziu). Abrir o histórico completo dos
  * movimentos como painel próprio segue sendo decisão aberta do Bernardo, e a
  * tela não a antecipa.
+ *
+ * "Doar quotas" é o macro da doação com reserva de usufruto (o casal fundador
+ * passa as quotas aos filhos e guarda o voto): vários pares num ato, mais o
+ * ônus sobre as quotas doadas. O card "Usufruto e voto" só aparece quando esse
+ * ônus existe, porque só então o quadro deixa de responder quem vota.
  */
 const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) => {
   const navigate = useNavigate();
   const [movimento, setMovimento] = useState<{ open: boolean; origem: string | null }>({
     open: false, origem: null,
+  });
+  const [doacao, setDoacao] = useState<{ open: boolean; doador: string | null }>({
+    open: false, doador: null,
   });
 
   const { data: quadro = [], isLoading } = useQuadroDaEmpresa(empresa.id);
@@ -130,13 +140,25 @@ const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) =>
               <Users className="h-4 w-4 text-muted-foreground" />
               Lista de Sócios ({quadro.length})
             </CardTitle>
-            <Button
-              size="sm"
-              className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
-              onClick={() => setMovimento({ open: true, origem: null })}
-            >
-              <Plus className="h-3.5 w-3.5" /> Registrar movimento
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => setDoacao({ open: true, doador: null })}
+                disabled={quadro.length === 0}
+                title="Doação de quotas com reserva de usufruto e gravames, em um ato"
+              >
+                <Gift className="h-3.5 w-3.5" /> Doar quotas
+              </Button>
+              <Button
+                size="sm"
+                className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
+                onClick={() => setMovimento({ open: true, origem: null })}
+              >
+                <Plus className="h-3.5 w-3.5" /> Registrar movimento
+              </Button>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground">
             O quadro é o acumulado dos movimentos de quota desta empresa: aporte, cessão, doação e
@@ -181,6 +203,8 @@ const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) =>
         </CardContent>
       </Card>
 
+      <UsufrutoEVotoCard empresa={empresa} quadro={quadro} pessoasCliente={pessoasCliente} />
+
       <AtosSocietarios movimentos={livro?.movimentos ?? []} atos={livro?.atos ?? []} />
 
       <MovimentoModal
@@ -190,6 +214,14 @@ const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) =>
         pessoasCliente={pessoasCliente}
         origemInicial={movimento.origem}
         onClose={() => setMovimento({ open: false, origem: null })}
+      />
+      <DoarQuotasDialog
+        open={doacao.open}
+        empresa={empresa}
+        quadro={quadro}
+        pessoasCliente={pessoasCliente}
+        doadorInicial={doacao.doador}
+        onClose={() => setDoacao({ open: false, doador: null })}
       />
     </div>
   );

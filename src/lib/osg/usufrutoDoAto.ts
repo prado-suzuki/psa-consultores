@@ -66,6 +66,8 @@ export interface ConcessaoDeUsufruto {
   quotas: bigint;
   /** `reserva` vem da doação e é automática; `instituicao` é declarada. */
   origem: 'reserva' | 'instituicao';
+  /** Ausente preserva o comportamento histórico: o usufruto alcança o voto. */
+  comVoto?: boolean;
 }
 
 export interface ParticipanteDoUsufruto {
@@ -154,13 +156,16 @@ export function montarUsufruto(entrada: EntradaDoUsufruto): {
 
   const linhas = participantes.map<LinhaDoUsufruto>((p) => {
     const dela = validas.filter((c) => c.deId === p.pessoaId);
-    const paraEla = validas.filter((c) => c.paraIds.includes(p.pessoaId));
+    const paraElaComVoto = validas.filter(
+      (c) => c.comVoto !== false && c.paraIds.includes(p.pessoaId),
+    );
     const somar = (cs: ConcessaoDeUsufruto[]) => cs.reduce((a, c) => a + c.quotas, 0n);
 
     const nua = somar(dela);
-    const usufruto = somar(paraEla);
+    const nuaComVotoDoTitular = somar(dela.filter((c) => c.comVoto === false));
+    const usufruto = somar(paraElaComVoto);
     const plena = naoNegativo(p.quotas - nua);
-    const vozEVoto = plena + usufruto;
+    const vozEVoto = plena + nuaComVotoDoTitular + usufruto;
 
     return {
       ...p,
@@ -179,17 +184,22 @@ export function montarUsufruto(entrada: EntradaDoUsufruto): {
 
   // O bloco concedido entra UMA vez, mesmo com dois usufrutuários: o direito é
   // conjunto, e somar por cabeça daria 151% num casal.
-  const concedido = validas.reduce((a, c) => a + c.quotas, 0n);
+  const concedidoComVoto = validas
+    .filter((c) => c.comVoto !== false)
+    .reduce((a, c) => a + c.quotas, 0n);
+  const nuaSemTransferenciaDeVoto = validas
+    .filter((c) => c.comVoto === false)
+    .reduce((a, c) => a + c.quotas, 0n);
   const plenaTotal = linhas.reduce((a, l) => a + l.plena, 0n);
 
   const totais: TotaisDoUsufruto = {
     quotas: linhas.reduce((a, l) => a + l.quotas, 0n),
     plena: plenaTotal,
     nua: linhas.reduce((a, l) => a + l.nua, 0n),
-    usufruto: concedido,
-    vozEVoto: plenaTotal + concedido,
+    usufruto: concedidoComVoto,
+    vozEVoto: plenaTotal + nuaSemTransferenciaDeVoto + concedidoComVoto,
     pctParticipacao: pct(linhas.reduce((a, l) => a + l.quotas, 0n), capital),
-    pctVozEVoto: pct(plenaTotal + concedido, capital),
+    pctVozEVoto: pct(plenaTotal + nuaSemTransferenciaDeVoto + concedidoComVoto, capital),
   };
 
   const problemas: ProblemaDoUsufruto[] = [];

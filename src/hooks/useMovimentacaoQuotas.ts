@@ -629,6 +629,8 @@ export function useReverterAto() {
         queryClient.invalidateQueries({ queryKey: ['quadro-da-empresa', empresaPessoaId] });
         queryClient.invalidateQueries({ queryKey: ['socios-geracao', empresaPessoaId] });
         queryClient.invalidateQueries({ queryKey: ['movimentos-da-empresa', empresaPessoaId] });
+        queryClient.invalidateQueries({ queryKey: ['onus-da-empresa', empresaPessoaId] });
+        queryClient.invalidateQueries({ queryKey: ['cessoes-do-livro', empresaPessoaId] });
       }
       queryClient.invalidateQueries({ queryKey: ['relatorio-societario'] });
 
