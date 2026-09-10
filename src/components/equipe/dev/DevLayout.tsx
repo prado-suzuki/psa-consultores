@@ -421,18 +421,34 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
             meio. Desde 10/09/2026 os SETE cabeçalhos do produto são assim,
             porque o título subiu para 30px e a 64px não cabe mais.
 
-            ⚠️ O que estava escrito aqui — "alguns títulos de hub (ex.
-            PIS/COFINS, PERDCOMP) passam de 100 caracteres em CAIXA ALTA" — era
-            FALSO, e atrapalhou: foi ele que fez um título maior parecer
-            arriscado. Medido em 10/09, o maior título do `/equipe/dev` tem 28
-            caracteres ("Consulta EFD Contribuições"), nenhum passa de 30, o
-            maior do catálogo dinâmico tem 43, e nenhum é em caixa alta. Os dois
-            hubs que o texto citava pelo nome são "Apuração PIS/COFINS" (19) e
-            "Controle PERDCOMP" (17). O comando:
+            ⚠️ ESTA NOTA JÁ ESTEVE ERRADA, e a correção é sobre o método de
+            medir. O texto original dizia que "alguns títulos de hub (ex.
+            PIS/COFINS, PERDCOMP) passam de 100 caracteres em CAIXA ALTA". Em
+            10/09/2026 eu declarei isso FALSO e escrevi a refutação aqui —
+            errado. O texto original estava CERTO.
 
-              grep -rh -A 2 '<DevLayout' src/pages/equipe/dev/*.tsx \n                | grep -oE '(^|[^a-z])title="[^"]*"'
+            O que eu medi foi `title="..."` literal nas páginas, e achei 28
+            caracteres no máximo. O que eu não medi foi o título que chega por
+            VARIÁVEL: o `DevHubPage.tsx:19` passa `title={hub.title}`, e os
+            hubs vivem em `constants/devHubDefinitions.ts`. Lá estava o de 112
+            caracteres, em caixa alta:
 
-            (o `[^a-z]` é obrigatório: sem ele o grep casa o fim de
+              LEVANTAMENTO PIS/COFINS — PROGRAMA DE INTEGRAÇÃO SOCIAL E
+              CONTRIBUIÇÃO PARA O FINANCIAMENTO DA SEGURIDADE SOCIAL
+
+            e mais um de 99 (PERDCOMP) — os DOIS hubs que a nota citava pelo
+            nome. Ela era precisa; meu comando é que era estreito.
+
+            A caixa alta saiu em 10/09 (catraca em `tituloEmCaixaAlta.test.ts`),
+            o comprimento não: o maior segue com 112 caracteres, agora em caixa
+            baixa. É por isso que `min-h` continua obrigatório aqui.
+
+            O comando que enxerga os dois caminhos:
+
+              grep -rhoE "(^|[^a-z])title:\s*'[^']+'" src/constants/devHubDefinitions.ts
+              grep -rh -A 2 '<DevLayout' src/pages/equipe/dev/*.tsx | grep -oE '(^|[^a-z])title="[^"]*"'
+
+            (o `[^a-z]` é obrigatório nos dois: sem ele o grep casa o fim de
             `subtitle=` e o número sai errado — foi o que aconteceu comigo.) */}
         <header className="flex min-h-16 flex-shrink-0 items-center justify-between gap-3 border-b border-border/60 bg-card px-4 py-2 md:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-3">
