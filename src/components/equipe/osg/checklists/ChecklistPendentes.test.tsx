@@ -16,8 +16,6 @@ const mocks = vi.hoisted(() => ({
   revisar: vi.fn(),
   sincronizarNaoAplicavel: vi.fn(),
   linhas: [] as LinhaChecklist[],
-  /** `undefined` = carregando ou falha de leitura; a faixa fica calada nos dois. */
-  avisoNaoSaiu: undefined as boolean | undefined,
 }));
 
 vi.mock('@/hooks/useGestaoClientes', () => ({
@@ -35,11 +33,6 @@ vi.mock('@/hooks/useDocumentoArquivo', () => ({
 // QueryClient, que a tela não monta.
 vi.mock('@/hooks/useDomainSolicitacaoNaoAplicavel', () => ({
   useSincronizarSolicitacaoNaoAplicavel: () => ({ mutate: mocks.sincronizarNaoAplicavel }),
-}));
-
-// Mesmo motivo: a faixa de "cliente não avisado" consulta o banco.
-vi.mock('@/hooks/useAvisoDeEnvioNaoSaiu', () => ({
-  useAvisoDeEnvioNaoSaiu: () => ({ data: mocks.avisoNaoSaiu }),
 }));
 
 vi.mock('@/hooks/useChecklistDerivado', () => ({
@@ -96,7 +89,6 @@ describe('ChecklistPendentes — revisão do arquivo', () => {
   beforeEach(() => {
     mocks.revisar.mockReset();
     mocks.sincronizarNaoAplicavel.mockReset();
-    mocks.avisoNaoSaiu = undefined;
     mocks.linhas = [linha()];
   });
 
@@ -236,30 +228,12 @@ describe('ChecklistPendentes — revisão do arquivo', () => {
   });
 
   /**
-   * O pior modo de falha do fluxo: a solicitação saiu, a lista está no portal, e
-   * nenhum aviso chegou. Sem a faixa, a tela fica idêntica à de um envio normal.
+   * A faixa de "o cliente não foi avisado" mora só na Solicitação Inicial desde
+   * 10/09/2026: é lá que o envio acontece e é de lá que se age.
    */
-  it('avisa, sem botão, quando o cliente não foi notificado do envio', () => {
-    mocks.avisoNaoSaiu = true;
+  it('não repete aqui a faixa de cliente não avisado', () => {
     render(<ChecklistPendentes clienteId="cliente-1" />);
-
-    const faixa = screen.getByRole('status');
-    expect(faixa).toHaveTextContent('O cliente não foi avisado deste envio');
-    expect(faixa).toHaveTextContent('informe a equipe da PSA Digital');
-    expect(within(faixa).queryByRole('button')).not.toBeInTheDocument();
-  });
-
-  it('fica calada no envio normal e enquanto a leitura não resolve', () => {
-    mocks.avisoNaoSaiu = false;
-    const { unmount } = render(<ChecklistPendentes clienteId="cliente-1" />);
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    unmount();
-
-    // `undefined` cobre carregando E erro: acusar falso mandaria o analista
-    // incomodar o cliente à toa.
-    mocks.avisoNaoSaiu = undefined;
-    render(<ChecklistPendentes clienteId="cliente-1" />);
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByText(/não foi avisado deste envio/)).not.toBeInTheDocument();
   });
 
   it('arquivo produzido pela PSA não é revisável', async () => {

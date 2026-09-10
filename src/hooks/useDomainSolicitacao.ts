@@ -5,6 +5,7 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { useAvisoProjetosDaOS } from '@/hooks/useAvisoProjetosDaOS';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { avisoDeEnvioKey } from '@/hooks/useAvisoDeEnvioNaoSaiu';
 import { descreverEnvio, type RespostaNotificar } from '@/lib/avisoSituacaoDocumentos';
 import { invocarBorda } from '@/lib/bordaSupabase';
 import { computeFieldDiff } from '@/lib/diffUtils';
@@ -700,6 +701,18 @@ export function useDomainSolicitacao(clienteId: string | null) {
               + 'Avise o cliente por fora e reporte ao time.',
               { description: (erro as Error).message },
             );
+          })
+          /**
+           * A faixa de "o cliente não foi avisado" lê `notificacao_envio`, e a
+           * borda só grava a linha DEPOIS desta chamada. Sem invalidar aqui, a
+           * resposta que a faixa guardou é a de antes do aviso existir — foi o
+           * que acendeu a faixa em três envios bem-sucedidos em 10/09/2026.
+           *
+           * No `finally` porque vale nos dois desfechos: se saiu, a faixa some;
+           * se não saiu, ela passa a ter fundamento em vez de palpite.
+           */
+          .finally(() => {
+            queryClient.invalidateQueries({ queryKey: avisoDeEnvioKey(atual.id) });
           });
       }
     },

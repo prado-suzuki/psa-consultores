@@ -37,13 +37,34 @@ import { supabase } from '@/integrations/supabase/client';
 export const avisoDeEnvioKey = (solicitacaoId: string | null) =>
   ['aviso-de-envio-nao-saiu', solicitacaoId] as const;
 
+/**
+ * Quanto tempo depois do envio a resposta passa a valer.
+ *
+ * O aviso é assíncrono: a transição grava `enviada_em` e a borda é chamada em
+ * seguida, sem `await`. Entre uma coisa e outra existe uma janela de segundos em
+ * que a linha de `notificacao_envio` ainda não existe — e perguntar ali devolve
+ * "não saiu" para um aviso que está no ar.
+ *
+ * Foi o que aconteceu em 10/09/2026, no primeiro uso da faixa: três envios
+ * seguidos, os três com e-mail e WhatsApp entregues, e a faixa acesa nos três.
+ *
+ * Quem conserta de verdade é a invalidação no fim da chamada da borda, em
+ * `useDomainSolicitacao`. Esta janela existe para o caso que a invalidação não
+ * cobre: a página aberta do zero enquanto um envio feito em outra aba está em
+ * voo. Trinta segundos é folgado para uma chamada que leva dois.
+ */
+const JANELA_DE_ESPERA_MS = 30_000;
+
 export function useAvisoDeEnvioNaoSaiu(
   solicitacaoId: string | null,
   enviadaEm: string | null | undefined,
 ) {
   // Sem `enviada_em` não há o que perguntar: rascunho nunca foi ao cliente, e
   // "não avisamos" seria verdade sem ser problema.
-  const ativo = Boolean(solicitacaoId && enviadaEm);
+  const enviadaHaPoucoTempo = Boolean(
+    enviadaEm && Date.now() - new Date(enviadaEm).getTime() < JANELA_DE_ESPERA_MS,
+  );
+  const ativo = Boolean(solicitacaoId && enviadaEm) && !enviadaHaPoucoTempo;
 
   return useQuery({
     queryKey: avisoDeEnvioKey(ativo ? solicitacaoId : null),

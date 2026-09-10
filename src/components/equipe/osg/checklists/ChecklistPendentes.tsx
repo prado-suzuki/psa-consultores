@@ -11,7 +11,6 @@ import { cn } from '@/lib/utils';
 import { useClientesLista } from '@/hooks/useGestaoClientes';
 import { useChecklistDerivado } from '@/hooks/useChecklistDerivado';
 import { useRevisarDocumento } from '@/hooks/useDocumentoArquivo';
-import { AvisoClienteNaoNotificado } from '@/components/equipe/osg/AvisoClienteNaoNotificado';
 import { BotaoAvisarCliente } from './BotaoAvisarCliente';
 import { BotaoComprovante } from './BotaoComprovante';
 import { DocumentosDialog, RecusaDialog } from './DocumentosDialog';
@@ -181,14 +180,9 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
         />
       </div>
 
-      {/* Antes dos avisos de estado: os outros descrevem em que fase o pedido
-          está, e este desmente a premissa de todos eles — que o cliente sabe do
-          pedido. Ele some sozinho quando um aviso bem-sucedido for registrado. */}
-      <AvisoClienteNaoNotificado
-        solicitacaoId={solicitacao.id}
-        enviadaEm={solicitacao.enviadaEm}
-      />
-
+      {/* A faixa de "o cliente não foi avisado" mora SÓ na Solicitação Inicial
+          (decisão de 10/09/2026). É lá que o envio acontece e é de lá que se age;
+          repeti-la aqui dobrava o alarme sem dobrar a informação. */}
       {solicitacao.status === 'rascunho' && (
         <Aviso>
           Esta solicitação está em <strong>rascunho</strong>: o cliente ainda não recebeu o pedido,
