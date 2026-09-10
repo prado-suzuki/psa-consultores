@@ -357,11 +357,11 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
       const value = displayedF100[field as keyof RegF100];
       const origValue = (originalSnapshot as unknown as Record<string, unknown>)[field];
       const isChanged = !Object.is(value, origValue);
-      const amberClass = isChanged ?'text-amber-600 font-bold':'';
+      const classeDeAlterado = isChanged ?'text-status-alerta font-bold':'';
 
-      if (field === 'VL_OPER' || field === 'VL_PIS' || field === 'VL_COFINS') return <span className={amberClass}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
-      if (field === 'ALIQ_PIS' || field === 'ALIQ_COFINS') return <span className={amberClass}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
-      return <span className={amberClass}>{value ?? '—'}</span>;
+      if (field === 'VL_OPER' || field === 'VL_PIS' || field === 'VL_COFINS') return <span className={classeDeAlterado}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
+      if (field === 'ALIQ_PIS' || field === 'ALIQ_COFINS') return <span className={classeDeAlterado}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
+      return <span className={classeDeAlterado}>{value ?? '—'}</span>;
     }
 
     const input = (

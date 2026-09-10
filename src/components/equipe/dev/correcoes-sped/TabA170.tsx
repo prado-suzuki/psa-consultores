@@ -465,7 +465,7 @@ export default function TabA170({
 
       if (field === 'CHV_NFSE') {
         return value ? (
-          <code className={`text-[10px] font-mono text-muted-foreground ${isChanged ?'text-amber-600 font-bold':''}`} title={String(value)}>
+          <code className={`text-[10px] font-mono text-muted-foreground ${isChanged ?'text-status-alerta font-bold':''}`} title={String(value)}>
             {String(value).slice(0, 12)}…
           </code>
         ) : (
@@ -476,7 +476,7 @@ export default function TabA170({
       if (field === 'DESCR_COMPL') {
         return (
           <div className="space-y-0.5" title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
-            <div className={`text-xs truncate ${isChanged ?'text-amber-600 font-bold':''}`}>{item.DESCR_COMPL || item.DESCR_ITEM_0200 ||'—'}</div>
+            <div className={`text-xs truncate ${isChanged ?'text-status-alerta font-bold':''}`}>{item.DESCR_COMPL || item.DESCR_ITEM_0200 ||'—'}</div>
             {item.DESCR_ITEM_0200 && item.DESCR_ITEM_0200 !== item.DESCR_COMPL && (
               <div className="text-[10px] text-muted-foreground truncate">0200: {item.DESCR_ITEM_0200}</div>
             )}
@@ -484,17 +484,17 @@ export default function TabA170({
         );
       }
 
-      const amberClass = isChanged ?'text-amber-600 font-bold':'';
+      const classeDeAlterado = isChanged ?'text-status-alerta font-bold':'';
 
       if (field === 'VL_ITEM' || field === 'VL_BC_PIS' || field === 'VL_PIS' || field === 'VL_BC_COFINS' || field === 'VL_COFINS') {
-        return <span className={amberClass}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
+        return <span className={classeDeAlterado}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
       }
 
       if (field === 'ALIQ_PIS' || field === 'ALIQ_COFINS') {
-        return <span className={amberClass}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
+        return <span className={classeDeAlterado}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
       }
 
-      return <span className={amberClass}>{value ?? '—'}</span>;
+      return <span className={classeDeAlterado}>{value ?? '—'}</span>;
     }
 
     return (

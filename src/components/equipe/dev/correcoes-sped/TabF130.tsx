@@ -389,10 +389,10 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
     const isChanged = !Object.is(displayedF130[field], origCode);
     const selectedOption = options.find((o) => o.code === currentCode);
     const displayDescription = selectedOption?.description ?? descFallback;
-    const amberClass = isChanged ?'text-amber-600 font-bold':'';
+    const classeDeAlterado = isChanged ?'text-status-alerta font-bold':'';
 
     if (!isEditMode || !draft) {
-      return <span className={`text-xs ${amberClass}`}>{displayDescription || '—'}</span>;
+      return <span className={`text-xs ${classeDeAlterado}`}>{displayDescription || '—'}</span>;
     }
 
     return (
@@ -402,7 +402,7 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
             type="button"
             className={cn(
               'flex w-full items-center justify-between gap-1 rounded border border-input bg-background px-2 py-1 text-left text-xs hover:bg-muted',
-              amberClass,
+              classeDeAlterado,
             )}
           >
             <span className="truncate">
@@ -460,11 +460,11 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
       const value = displayedF130[field as keyof F130Reg];
       const origValue = (originalSnapshot as unknown as Record<string, unknown>)[field];
       const isChanged = !Object.is(value, origValue);
-      const amberClass = isChanged ?'text-amber-600 font-bold':'';
+      const classeDeAlterado = isChanged ?'text-status-alerta font-bold':'';
 
-      if (field === 'VL_OPER_AQUIS' || field === 'VL_PIS' || field === 'VL_COFINS') return <span className={amberClass}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
-      if (field === 'ALIQ_PIS' || field === 'ALIQ_COFINS') return <span className={amberClass}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
-      return <span className={amberClass}>{value ?? '—'}</span>;
+      if (field === 'VL_OPER_AQUIS' || field === 'VL_PIS' || field === 'VL_COFINS') return <span className={classeDeAlterado}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
+      if (field === 'ALIQ_PIS' || field === 'ALIQ_COFINS') return <span className={classeDeAlterado}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
+      return <span className={classeDeAlterado}>{value ?? '—'}</span>;
     }
 
     const input = (

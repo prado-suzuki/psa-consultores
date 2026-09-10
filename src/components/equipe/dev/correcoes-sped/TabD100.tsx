@@ -357,11 +357,11 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
     if (!isEditMode || !draft) {
       const value = item[field];
       const isChanged = item._originalSnapshot && !Object.is(item[field], (item._originalSnapshot as unknown as Record<string, unknown>)[field]);
-      const amberClass = isChanged ?'text-amber-600 font-bold':'';
+      const classeDeAlterado = isChanged ?'text-status-alerta font-bold':'';
 
-      if (field === 'VL_PIS' || field === 'VL_COFINS') return <span className={amberClass}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
-      if (field === 'ALIQ_PIS' || field === 'ALIQ_COFINS') return <span className={amberClass}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
-      return <span className={amberClass}>{value ?? '—'}</span>;
+      if (field === 'VL_PIS' || field === 'VL_COFINS') return <span className={classeDeAlterado}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
+      if (field === 'ALIQ_PIS' || field === 'ALIQ_COFINS') return <span className={classeDeAlterado}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
+      return <span className={classeDeAlterado}>{value ?? '—'}</span>;
     }
 
     const input = (

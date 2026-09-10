@@ -172,6 +172,28 @@ em vez de virar dívida invisível. A asserção compara contra a fila, então e
 sentidos** — se alguém repintar, e também quando a decisão sair e os números descerem, com a
 mensagem dizendo o que fazer.
 
+**A decisão saiu no mesmo dia, e a tela fechou inteira.** As duas escolhas dela:
+
+- **valor alterado → `alerta`.** Escolhido com a medição na frente: `espera` tem a matiz mais
+  parecida com o âmbar (12° de um lado contra 12° do outro), mas significa "parado por alguém
+  de fora", e uma célula editada não está parada. `alerta` significa "olhe isto". O
+  `classeDeAlterado` também deixou de se chamar `amberClass` — a casa nomeia papel, não matiz,
+  e uma variável com nome de cor volta a mentir na primeira conversão;
+- **o par de selos → `tag-a`/`tag-b`.** "Consolidado" e "XML vinculado" são categoria de
+  `tipo_relacao`, não estado. O irmão usava `success`, um semântico fazendo papel de categoria.
+
+**O terceiro achado de contraste da sessão, e o pior:** `text-amber-600` dá **3,19:1** no
+branco — reprovando o AA — em doze valores **em negrito**, nas seis abas. `status-alerta` dá
+7,46:1. O selo subiu de 4,84 para 6,30. Nenhum tinha sido medido, e a razão é a de sempre:
+cor crua não entra em contrato nenhum, então não há teste que a olhe.
+
+Uma nota de método: **a catraca do `alerta` acusou**, e estava certa. As seis abas estavam
+inventariadas em `FILA_DO_ALERTA`, no grupo `outro-papel`, com os números **exatos** que esta
+rodada mediu por conta própria — 3, 7, 1, 1, 2, 2. Duas medições independentes batendo é a
+melhor evidência que este trabalho produziu de que o inventário serve. A conversão zerou o
+grupo, e o teste falhou até o inventário ser atualizado — que é o comportamento correto, e é
+por isso que se atualiza a fila em vez de silenciar a asserção.
+
 ## 2. As escadas que exigem decisão, não conversão
 
 Estas ficaram paradas de propósito. Cada uma precisa de uma escolha sua antes de virar código.

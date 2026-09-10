@@ -58,12 +58,14 @@ const ARQUIVOS_DA_TELA = [
   // ele existe justamente para dar o tom do módulo.
   'src/components/equipe/dev/DevPageHeader.tsx',
 
-  // ─── Correções SPED, fechada PARCIALMENTE em 10/09/2026 ─────────────────────
+  // ─── Correções SPED, fechada em 10/09/2026 ──────────────────────────────────
   //
-  // Ela entra com `white`, `black`, hex, emerald e red em zero, e com o âmbar em
-  // fila (ver `FILA_A_DECIDIR`). Entrar parcial é melhor que esperar: o que já
-  // fechou passa a ter guarda hoje, e o que falta fica escrito com o motivo em
-  // vez de virar dívida invisível.
+  // Ela entrou PARCIAL primeiro, com o âmbar numa fila declarada, porque o âmbar
+  // dependia de uma decisão de papel que não é do código. Entrar parcial foi
+  // melhor que esperar: o que já tinha fechado ganhou guarda no mesmo dia, e o
+  // que faltava ficou escrito com o motivo em vez de virar dívida invisível. A
+  // decisão saiu no mesmo dia e a fila foi a zero — ver a nota logo abaixo, que é
+  // o que sobrou dela.
   'src/pages/equipe/dev/CorrecoesSped.tsx',
   'src/components/equipe/dev/correcoes-sped/TabA170.tsx',
   'src/components/equipe/dev/correcoes-sped/TabC170.tsx',
@@ -76,35 +78,28 @@ const ARQUIVOS_DA_TELA = [
 ] as const;
 
 /**
- * O âmbar das Correções SPED, que ficou **de propósito** e espera uma decisão dela.
+ * A fila do âmbar das Correções SPED **fechou em 10/09/2026**, no mesmo dia em que
+ * nasceu, e o registro de que ela existiu fica aqui porque explica as duas escolhas.
  *
- * Agrupado pelo MOTIVO, como o `FILA_DO_ALERTA` faz, porque é o motivo que faz a
- * lista servir para a conversão seguinte em vez de só contar. São dois sinais
- * diferentes, ambos âmbar hoje, e é justamente por serem diferentes que nenhum dos
- * dois pode ser convertido por varredura:
+ * Eram dois sinais diferentes, ambos âmbar, e é por serem diferentes que nenhum dos
+ * dois podia ser convertido por varredura — foi por isso que a fila existiu:
  *
- * · **"este valor foi alterado"** (`isChanged`, `valueDivergent`, `amberClass`) — o
- *   marcador de célula editada, nas seis abas. Não é nenhum dos oito papéis de forma
- *   óbvia: não é `espera` (nada está parado), não é `alerta` (nada é urgente) e
- *   `ajuste` pintaria de VERMELHO o que hoje é âmbar, afirmando problema sobre uma
- *   edição normal — o mesmo erro que a rodada da pasta `audit` desfez na coluna
- *   "Exclusões";
- * · **o selo "Consolidado"** (`tipo_relacao === 'CONSOLIDADO'`) — este não é status
- *   nenhum, é CATEGORIA, e o irmão dele no mesmo `ternário` usa `success`, que é
- *   semântico. Ou os dois viram `--tag-*` (a fatia categórica do contrato, e são
- *   quatro de propósito), ou os dois ficam. Converter um só troca a inconsistência
- *   de lugar.
+ * · **"este valor foi alterado"** (`isChanged`, `valueDivergent`, `classeDeAlterado`),
+ *   nas seis abas, foi para `status-alerta`. Decisão dela, com a medição na frente:
+ *   `espera` tem a matiz mais parecida (12° de um lado contra 12° do outro), mas quer
+ *   dizer "parado por alguém de fora", e uma célula editada não está parada. `alerta`
+ *   quer dizer "olhe isto", que é o que um valor divergente a ser enviado pede.
+ *   `ajuste` foi recusado por pintar de VERMELHO uma edição normal — o mesmo erro que
+ *   a rodada da pasta `audit` desfez na coluna "Exclusões";
+ * · **o par de selos de `tipo_relacao`** foi para `tag-a`/`tag-b`. "Consolidado" e
+ *   "XML vinculado" são CATEGORIA, não estado, e a fatia categórica do contrato é
+ *   `--tag-*`. O irmão usava `success`, um semântico fazendo papel de categoria;
+ *   converter só o âmbar mudaria a inconsistência de lugar em vez de resolvê-la.
  *
- * Quando a decisão vier, estes números vão a zero e esta constante sai.
+ * O `text-amber-600` dava **3,19:1** no branco — reprovando o AA, em doze valores em
+ * negrito — e `status-alerta` dá **7,46:1**. Ninguém tinha medido porque cor crua não
+ * entra em contrato nenhum: é o mesmo silêncio dos outros dois achados desta sessão.
  */
-const FILA_A_DECIDIR: Record<string, number> = {
-  'src/components/equipe/dev/correcoes-sped/TabA170.tsx': 3,
-  'src/components/equipe/dev/correcoes-sped/TabC170.tsx': 7,
-  'src/components/equipe/dev/correcoes-sped/TabD100.tsx': 1,
-  'src/components/equipe/dev/correcoes-sped/TabF100.tsx': 1,
-  'src/components/equipe/dev/correcoes-sped/TabF120.tsx': 2,
-  'src/components/equipe/dev/correcoes-sped/TabF130.tsx': 2,
-};
 
 function soDaTela(medido: Record<string, number>): Record<string, number> {
   return Object.fromEntries(
@@ -144,23 +139,22 @@ const BRANCO_E_PRETO = new RegExp(
 const VALOR_NA_MAO = /rgba?\([\d,.\s]+\)|#[0-9a-fA-F]{3,8}\b/g;
 
 describe('cor crua na tela do Dev', () => {
-  it('só tem a cor crua de família que espera decisão', () => {
+  it('não tem classe de família do estoque do Tailwind', () => {
     expect(
       soDaTela(medirCorCrua(FAMILIAS_DO_ESTOQUE)),
-      'Mudou a cor crua de família nas telas do Dev.\n'
-        + 'Se SUBIU: voltou classe crua. A rota é área `sistema` no areaTheme.ts e aponta\n'
-        + 'para `null`, ou seja veste o PISO, o teal da casa — classe crua aqui não\n'
-        + 'acompanha tema nenhum, e o lint não a vê. Os destinos já usados nesta tela:\n'
+      'Voltou cor crua de família às telas do Dev.\n'
+        + 'Estas rotas são área `sistema` no areaTheme.ts, que aponta para `null`: elas\n'
+        + 'vestem o PISO, o teal da casa. Classe crua aqui não acompanha tema nenhum, e\n'
+        + 'o lint não a vê. Os destinos já usados nestas telas:\n'
         + '  decoração grande (cartão, azulejo, círculo) -> primary, que é a ÂNCORA\n'
         + '  letra pequena, link, chip cheio             -> accent-d (primary é fino)\n'
         + '  ponto, anel, barra                         -> primary / ring\n'
-        + '  papel de status (revisão, ajuste…)         -> status-<papel> e -soft\n'
+        + '  estado do registro                         -> status-<papel> e -soft\n'
+        + '  CATEGORIA (não é estado)                   -> tag-a..d, em /15 no fundo\n'
         + '  ação primária / destrutiva em botão        -> ver classesDeBotao.ts\n'
-        + 'Âncora nunca pinta papel de status, e papel de status nunca pinta decoração.\n'
-        + 'Se DESCEU: a decisão do âmbar saiu. Baixe o número em FILA_A_DECIDIR, e quando\n'
-        + 'chegar a zero apague a constante e volte a asserção para {}.\n'
-        + 'O contrato está em docs/geral/paleta-por-area.md.',
-    ).toEqual(FILA_A_DECIDIR);
+        + 'Âncora nunca pinta papel de status, e papel de status nunca pinta decoração\n'
+        + 'nem categoria. O contrato está em docs/geral/paleta-por-area.md.',
+    ).toEqual({});
   });
 
   it('não tem `white` nem `black`', () => {

@@ -92,12 +92,14 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
   'outro-papel': {
     'src/components/equipe/StageEditCard.tsx': 3,
     'src/components/equipe/dashboards/analise-inteligente/AnaliseInteligenteAnalysis.tsx': 4,
-    'src/components/equipe/dev/correcoes-sped/TabA170.tsx': 3,
-    'src/components/equipe/dev/correcoes-sped/TabC170.tsx': 7,
-    'src/components/equipe/dev/correcoes-sped/TabD100.tsx': 1,
-    'src/components/equipe/dev/correcoes-sped/TabF100.tsx': 1,
-    'src/components/equipe/dev/correcoes-sped/TabF120.tsx': 2,
-    'src/components/equipe/dev/correcoes-sped/TabF130.tsx': 2,
+    // As seis abas de `correcoes-sped` saíram daqui em 10/09/2026, e o grupo estava
+    // certo em tê-las: o âmbar delas era DUAS outras coisas, não uma. O marcador de
+    // célula alterada (`isChanged`/`valueDivergent`, doze ocorrências) virou `alerta`
+    // por decisão dela — `espera` tem a matiz mais parecida mas quer dizer "parado
+    // por alguém", e uma célula editada não está parada. O par de selos de
+    // `tipo_relacao` era categoria e foi para `tag-a`/`tag-b`, junto com o irmão
+    // dele, que usava `success` fazendo papel de categoria. Os contrastes subiram:
+    // 3,19 -> 7,46 no valor, 4,84 -> 6,30 no selo.
     'src/components/equipe/dev/efd-export/EFDExportProfiles.tsx': 4,
     'src/components/equipe/dev/export-dialog/ColumnSelector.tsx': 4,
     'src/components/equipe/osg/relatorios/DiagnosticoPatrimonialReport.tsx': 3,
