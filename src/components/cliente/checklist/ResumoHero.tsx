@@ -14,11 +14,16 @@ export function ResumoHero({ pct, total, recebidos, faltando }: {
       <div aria-hidden className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
       <div className="relative grid gap-7 lg:grid-cols-[1fr_240px] lg:items-center">
         <div>
+          {/* O título dizia "Documentos que faltam" com a etiqueta "Documentos
+              solicitados" logo acima — dois nomes empilhados para a mesma coisa,
+              e o de baixo prometia um recorte que a lista não faz: ela mostra o
+              que falta E o que já chegou. Agora a etiqueta nomeia a fase, como
+              na tela do consultor, e o título nomeia a lista. */}
           <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
-            Documentos solicitados
+            Resumo da solicitação
           </span>
           <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-foreground">
-            Documentos que faltam
+            Documentos solicitados
           </h2>
           <div className="mt-1 h-[3px] w-8 rounded-full bg-primary" />
           <p className="mt-3 max-w-2xl text-sm text-muted-foreground">

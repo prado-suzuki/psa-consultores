@@ -102,7 +102,11 @@ export function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo,
 
       {!pendencia.recebido && !somenteLeitura && (
         semTipo ? (
-          <span className="shrink-0 text-xs text-muted-foreground">Fale com a PSA para enviar este</span>
+          /* A frase estava cortada: "para enviar este" — este o quê? E dizia "a
+             PSA", que o cliente não sabe onde procurar. */
+          <span className="shrink-0 text-xs text-muted-foreground">
+            Fale com o suporte da PSA Digital para enviar este documento
+          </span>
         ) : (
           <label
             className={cn(

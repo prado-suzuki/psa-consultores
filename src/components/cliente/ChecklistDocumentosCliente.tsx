@@ -13,7 +13,16 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
-import { MAX_BYTES, extensaoValida } from '@/components/equipe/osg/documentos/docMeta';
+import { MAX_BYTES, extensaoValida, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
+
+/**
+ * Os formatos em português, para a recusa dizer o que fazer.
+ *
+ * Escrito por extenso e não a partir do `ACCEPT`: ".pdf,.jpg,.jpeg,.png,.doc,
+ * .docx,.xls,.xlsx" é lista de extensão para o seletor de arquivo do navegador,
+ * não frase para o cliente ler.
+ */
+const FORMATOS_ACEITOS = 'PDF, imagem (JPG ou PNG), Word e Excel';
 import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
 import {
   montarGavetasChecklist, resumirPendencias,
@@ -165,12 +174,28 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
   }, [gavetas, entidadeAtiva]);
 
   const enviar = async (gaveta: GavetaChecklist, pendencia: PendenciaCliente, arquivo: File) => {
+    /**
+     * As duas recusas dizem o LIMITE, e não só que passou dele.
+     *
+     * "Não é um formato que recebemos" e "passa do limite por arquivo" deixavam
+     * o cliente adivinhar o que fazer. A tela da gaveta, no MESMO portal, já
+     * dizia `formatBytes(MAX_BYTES)` — eram duas respostas para a mesma recusa.
+     * O número sai da constante para a frase não envelhecer se o teto mudar.
+     */
     if (!extensaoValida(arquivo.name)) {
-      toast({ title: 'Formato não aceito', description: `"${arquivo.name}" não é um formato que recebemos.`, variant: 'destructive' });
+      toast({
+        title: 'Formato não aceito',
+        description: `"${arquivo.name}" não pode ser enviado. Aceitamos ${FORMATOS_ACEITOS}.`,
+        variant: 'destructive',
+      });
       return;
     }
     if (arquivo.size > MAX_BYTES) {
-      toast({ title: 'Arquivo muito grande', description: `"${arquivo.name}" passa do limite por arquivo.`, variant: 'destructive' });
+      toast({
+        title: 'Arquivo muito grande',
+        description: `"${arquivo.name}" passa de ${formatBytes(MAX_BYTES)}, o limite por arquivo.`,
+        variant: 'destructive',
+      });
       return;
     }
     const chave = `${pendencia.solicitacao_item_id}|${pendencia.alvo.id ?? 'cliente'}`;
@@ -441,7 +466,9 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
         </p>
       )}
       <p className="pointer-events-none relative z-10 mt-1 line-clamp-2 min-h-10 text-sm leading-relaxed text-muted-foreground">
-        {previa || 'Você já enviou tudo desta ficha.'}
+        {/* "ficha" é o nome interno do modal na tela do consultor; o cliente vê
+            um cartão por pessoa, imóvel ou empresa e nunca leu essa palavra. */}
+        {previa || 'Você já enviou tudo o que foi pedido aqui.'}
       </p>
 
       <ChipsDeEstado contagem={contagem} onEscolher={onAbrir} />

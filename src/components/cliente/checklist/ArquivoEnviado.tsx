@@ -1,7 +1,7 @@
 import { FileText, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ArquivoDaPendencia } from '@/hooks/useDomainPendenciasCliente';
-import { FOCO } from './checklistKit';
+import { ESTADO_LABEL, FOCO } from './checklistKit';
 
 /**
  * Um arquivo que o cliente já mandou, com o que aconteceu com ele.
@@ -37,13 +37,19 @@ export function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
           recusado ? 'bg-rose-100 text-rose-700'
             : aprovado ? 'bg-accent/10 text-primary' : 'bg-muted/70 text-muted-foreground',
         )}>
-          {recusado ? 'Recusado' : aprovado ? 'Aprovado' : 'Em análise'}
+          {/* Do `ESTADO_LABEL` do kit, e não escrito aqui. O kit existe com essa
+              finalidade declarada — "o rótulo de estado duplicado é como duas
+              partes da mesma tela passam a chamar o mesmo estado por nomes
+              diferentes" —, e esta era a única peça do checklist do cliente que
+              o ignorava. Os três textos batiam por sorte. */}
+          {recusado ? ESTADO_LABEL.recusado
+            : aprovado ? ESTADO_LABEL.aprovado : ESTADO_LABEL.em_analise}
         </span>
         {!aprovado && !somenteLeitura && (
           <button
             type="button"
             onClick={() => onRemover(arquivo)}
-            title="Remover este arquivo"
+            title="Remove este arquivo do envio. Você pode mandar outro no lugar."
             className={cn(
               'shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600',
               FOCO,
