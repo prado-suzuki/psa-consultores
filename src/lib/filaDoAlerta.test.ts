@@ -43,8 +43,21 @@ type MotivoDeFicar =
       mesma coluna — troca escada crua por escada meio crua, que é pior. */
   | 'escada-de-status'
   /** Âmbar que significa OUTRA coisa: "Oportunidades" com lâmpada é ideia; o lápis e o
-      `--edit-shadow-color` são modo de edição; `amberClass = isChanged ? …` é realce de
-      diff, que é `info`; "Hoje"/"Amanhã" é proximidade; a estrela é favorito. */
+      `--edit-shadow-color` são modo de edição; "Hoje"/"Amanhã" é proximidade.
+
+      ⚠️ Dois exemplos desta lista JÁ FORAM DECIDIDOS em 10/09/2026, e o palpite que
+      estava escrito aqui não se confirmou nos dois casos:
+
+      · o realce de diff (`isChanged`) — o texto dizia "que é `info`", e ela escolheu
+        `alerta`, com a medição na frente: `espera` tem a matiz mais parecida mas quer
+        dizer "parado por alguém", e célula editada não está parada;
+      · a estrela de favorito — o texto dizia só "é favorito", e o papel dela é
+        marcador de ATIVO, que veste a ÂNCORA, não papel de status nenhum.
+
+      Os dois viraram mapa: `classeDeAlterado` nas Correções SPED e
+      `classesDoPerfil.ts` nos dois diálogos de exportação. Quem classificar o
+      próximo âmbar aqui: o grupo acerta o "não é alerta"; qual papel É fica para a
+      medição e para ela. */
   | 'outro-papel'
   /** Cor que separa categorias, não estados: `Original`/`Retificadora`, a cor por
       categoria de página, o tipo de cenário. Aqui o âmbar é um tom de uma paleta
@@ -71,7 +84,11 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     'src/components/equipe/audit/AuditPendenciasTable.tsx': 4,
     'src/components/equipe/dashboards/analise-inteligente/AnaliseInteligenteKpis.tsx': 2,
     'src/components/equipe/dev/calculadora-ibs-cbs/por-estado/PorEstadoKpis.tsx': 1,
-    'src/components/equipe/dev/efd-export/EFDExportStatus.tsx': 2,
+    // O `EFDExportStatus` saiu em 10/09/2026, e a classificação estava certa: é
+    // escada de status de verdade — `processing`/`starting`, `completed`, `idle` —,
+    // e converteu inteira. O âmbar dele era `andamento` e não `alerta`: nada está
+    // em atenção, o trabalho está andando. O disco dava 2,86 de contraste, abaixo
+    // até do 3:1 de objeto gráfico; agora dá 5,39.
     // O ICMS Saídas saiu deste grupo em 10/09/2026, e ele estava classificado
     // certo: o `checkColor.ts` É uma escada, de três degraus, e converteu inteira
     // — `feito`/`alerta`/`ajuste`. O que a classificação não podia saber é que o
@@ -105,8 +122,12 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     // `tipo_relacao` era categoria e foi para `tag-a`/`tag-b`, junto com o irmão
     // dele, que usava `success` fazendo papel de categoria. Os contrastes subiram:
     // 3,19 -> 7,46 no valor, 4,84 -> 6,30 no selo.
-    'src/components/equipe/dev/efd-export/EFDExportProfiles.tsx': 4,
-    'src/components/equipe/dev/export-dialog/ColumnSelector.tsx': 4,
+    // Os dois diálogos de exportação saíram juntos em 10/09/2026, e tinham de estar
+    // neste grupo: o amarelo deles era a estrela de "perfil padrão", que não é
+    // status nenhum — é marcador de ATIVO, e marcador de ativo veste a âncora, pela
+    // mesma regra do item de menu. Eram QUATRO cópias da mesma classe, duas em cada
+    // diálogo, e o tom foi para `classesDoPerfil.ts`. Era o pior contraste da
+    // varredura do dia: 1,92 sobre o cartão branco, contra 6,72 agora.
     'src/components/equipe/osg/relatorios/DiagnosticoPatrimonialReport.tsx': 3,
     'src/components/equipe/sprint-detalhes/SprintHeaderFilters.tsx': 6,
   },
