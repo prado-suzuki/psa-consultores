@@ -1,3 +1,4 @@
+import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -180,8 +181,8 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                     <LayoutDashboard className="h-5 w-5 text-primary" />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="font-semibold text-foreground text-lg">Digital Rotina</h2>
-                    <p className="text-xs text-muted-foreground">Gestão de Projetos</p>
+                    <h2 className="font-semibold text-foreground text-lg">{AREAS.rotina.nome}</h2>
+                    <p className="text-xs text-muted-foreground">{AREAS.rotina.subtitulo}</p>
                   </div>
                 </div>
               )}
@@ -334,7 +335,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
               </Button>
             )}
             <div>
-              <TituloDaPagina titulo={title} subtitulo={subtitle} />
+              <TituloDaPagina titulo={title} subtitulo={subtitle} sobretitulo={AREAS.rotina.nome} />
             </div>
           </div>
           <div className="flex items-center gap-3">

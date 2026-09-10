@@ -1,3 +1,4 @@
+import { AREAS } from '@/lib/nomeDaArea';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -342,8 +343,8 @@ export const FiscalSidebar = ({ isCollapsed, emGaveta = false, onToggle }: Fisca
                 <TaxIcon size={40} className="h-full w-full block" />
               </div>
               <div>
-                <h1 className="font-semibold text-foreground text-lg">Tax</h1>
-                <p className="text-xs text-muted-foreground">Gestão de Projetos</p>
+                <h1 className="font-semibold text-foreground text-lg">{AREAS.tax.nome}</h1>
+                <p className="text-xs text-muted-foreground">{AREAS.tax.subtitulo}</p>
               </div>
             </div>
           )}

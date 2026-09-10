@@ -1,3 +1,4 @@
+import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { Menu } from 'lucide-react';
 import { FiscalSidebar } from './FiscalSidebar';
@@ -77,7 +78,7 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <TituloDaPagina titulo={title} subtitulo={subtitle} />
+              <TituloDaPagina titulo={title} subtitulo={subtitle} sobretitulo={AREAS.tax.nome} />
             </div>
           </div>
 

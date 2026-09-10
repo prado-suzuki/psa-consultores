@@ -1,3 +1,4 @@
+import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -68,8 +69,8 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
                 <Building className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <h2 className="font-semibold text-foreground text-lg">Fixos</h2>
-                <p className="text-xs text-muted-foreground">Área Fixos</p>
+                <h2 className="font-semibold text-foreground text-lg">{AREAS.fixos.nome}</h2>
+                <p className="text-xs text-muted-foreground">{AREAS.fixos.subtitulo}</p>
               </div>
             </div>
           )}
@@ -148,7 +149,7 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <TituloDaPagina titulo={title} subtitulo={subtitle} />
+              <TituloDaPagina titulo={title} subtitulo={subtitle} sobretitulo={AREAS.fixos.nome} />
             </div>
           </div>
           <div className="flex items-center gap-3">

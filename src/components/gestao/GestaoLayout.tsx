@@ -1,3 +1,4 @@
+import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -101,8 +102,8 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
                 <LayoutDashboard className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold text-foreground text-lg">Gestão</h2>
-                <p className="text-xs text-muted-foreground">Painel de Controle</p>
+                <h2 className="font-semibold text-foreground text-lg">{AREAS.gestao.nome}</h2>
+                <p className="text-xs text-muted-foreground">{AREAS.gestao.subtitulo}</p>
               </div>
             </div>
           )}
@@ -171,7 +172,7 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <TituloDaPagina titulo={title} subtitulo={subtitle} />
+              <TituloDaPagina titulo={title} subtitulo={subtitle} sobretitulo={AREAS.gestao.nome} />
             </div>
           </div>
           {/* O atalho de chamados e a faixa de pendentes saíram junto com a tela:

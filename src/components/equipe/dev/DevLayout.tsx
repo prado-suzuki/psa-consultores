@@ -1,3 +1,4 @@
+import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -263,8 +264,8 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
           <>
             <div className="flex flex-shrink-0 items-center justify-between border-b border-border/60 p-6">
               <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-foreground">Digital Dev</h2>
-                <p className="text-xs text-muted-foreground">Ambiente de desenvolvimento</p>
+                <h2 className="text-lg font-semibold text-foreground">{AREAS.dev.nome}</h2>
+                <p className="text-xs text-muted-foreground">{AREAS.dev.subtitulo}</p>
               </div>
               <Button
                 variant="ghost"
@@ -383,7 +384,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   <p className="truncate text-sm font-medium text-foreground">
                     {user?.email?.split('@')[0] || 'Usuario'}
                   </p>
-                  <p className="text-xs text-muted-foreground">Digital Dev</p>
+                  <p className="text-xs text-muted-foreground">{AREAS.dev.nome}</p>
                 </div>
               </div>
 
@@ -466,6 +467,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
             <TituloDaPagina
               titulo={title}
               subtitulo={subtitle}
+              sobretitulo={AREAS.dev.nome}
               apendiceDoSubtitulo={
                 sopUrl ? (
                   <>

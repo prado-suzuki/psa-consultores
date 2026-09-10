@@ -1,3 +1,4 @@
+import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -91,8 +92,8 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
                 <Settings className="h-5 w-5 text-teal-600" />
               </div>
               <div>
-                <h2 className="font-semibold text-foreground text-lg">Administração</h2>
-                <p className="text-xs text-muted-foreground">Gestão Geral</p>
+                <h2 className="font-semibold text-foreground text-lg">{AREAS.admin.nome}</h2>
+                <p className="text-xs text-muted-foreground">{AREAS.admin.subtitulo}</p>
               </div>
             </div>
           )}
@@ -172,7 +173,7 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <TituloDaPagina titulo={title} subtitulo={subtitle} />
+              <TituloDaPagina titulo={title} subtitulo={subtitle} sobretitulo={AREAS.admin.nome} />
             </div>
           </div>
           <div className="flex items-center gap-3">

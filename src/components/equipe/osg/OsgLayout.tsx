@@ -1,3 +1,4 @@
+import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -225,8 +226,11 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   ];
   const isGovActive = govItems.some((item) => item.path === location.pathname);
 
-  const areaLabel = isWork ? 'OSG Work' : isProjects ? 'OSG Projects' : 'OSG';
-  const areaSubtitle = isWork ? 'Ferramentas OSG' : isProjects ? 'Projetos OSG' : 'Área OSG';
+  // Os NOMES moram em `@/lib/nomeDaArea`; a decisão de qual rota é qual fica
+  // aqui, onde os predicados já existem para o menu.
+  const area = isWork ? AREAS.osgWork : isProjects ? AREAS.osgProjects : AREAS.osg;
+  const areaLabel = area.nome;
+  const areaSubtitle = area.subtitulo;
   const AreaIcon = isWork ? (
     <OsgWorkIcon size={40} className="h-full w-full block" />
   ) : isProjects ? (
@@ -857,7 +861,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <TituloDaPagina titulo={title} subtitulo={subtitle} />
+              <TituloDaPagina titulo={title} subtitulo={subtitle} sobretitulo={areaLabel} />
             </div>
           </div>
           <div className="flex items-center gap-3">
