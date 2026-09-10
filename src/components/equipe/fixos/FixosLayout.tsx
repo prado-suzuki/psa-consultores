@@ -1,15 +1,11 @@
 import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { 
   Building,
-  LogOut,
   ChevronLeft,
   ChevronRight,
   Menu,
-  ArrowLeft
 } from 'lucide-react';
 import {
   useFecharGavetaAoNavegar,
@@ -27,8 +23,6 @@ interface FixosLayoutProps {
 }
 
 export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosLayoutProps) => {
-  const { signOut } = useAuth();
-  const navigate = useNavigate();
   // O recolhimento automático em telas de trabalho largo mora no hook — é a
   // tela que pede, com `useTelaDeTrabalhoLargo()`; o layout não conhece rotas.
   const barra = useSidebarRecolhimentoController();
@@ -38,11 +32,6 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
   // Trilho de ícones é coisa de desktop. A gaveta, quando abre, abre inteira:
   // um trilho de 80px num celular ocupa espaço e não diz o nome de nada.
   const trilho = collapsed && !emGaveta;
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
-  };
 
   return (
     <div
@@ -95,40 +84,11 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
         {/* Footer Actions */}
         <div className="mt-auto p-4 border-t border-border/60 space-y-2">
           {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
+          {/* O "Trocar área", o "Voltar ao site" e o "Sair" moraram aqui embaixo
+              até 10/09/2026; agora estão no menu do cartão. O comentário que
+              ficava no "Sair" registrava a terceira cópia dele — a contagem
+              acabou junto com as cópias. */}
           <SidebarCartaoUsuario area="fixos" collapsed={trilho} />
-
-          
-          <Button 
-            variant="ghost" 
-            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-blue-600 transition-colors`}
-            onClick={() => navigate('/equipe/projetos')}
-            title={trilho ? 'Trocar área' : undefined}
-          >
-            <ArrowLeft className={`h-4 w-4 ${trilho ? '' : 'mr-3'}`} />
-            {!trilho && 'Trocar área'}
-          </Button>
-          <Button 
-            variant="ghost" 
-            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-blue-600 transition-colors`}
-            onClick={() => navigate('/')}
-            title={trilho ? 'Voltar ao site' : undefined}
-          >
-            <ArrowLeft className={`h-4 w-4 ${trilho ? '' : 'mr-3'}`} />
-            {!trilho && 'Voltar ao site'}
-          </Button>
-          <Button 
-            variant="ghost" 
-            // Terceira e última cópia deste botão: o `OsgLayout` já estava em
-            // `destructive` e o `DevLayout` foi em 10/09/2026. As três agora
-            // dizem a mesma coisa, então não sobra uma para a próxima rodada
-            // reencontrar como se fosse achado novo.
-            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors`}
-            onClick={handleSignOut}
-            title={trilho ? 'Sair' : undefined}
-          >
-            <LogOut className={`h-4 w-4 ${trilho ? '' : 'mr-3'}`} />
-            {!trilho && 'Sair'}
-          </Button>
         </div>
       </aside>
 

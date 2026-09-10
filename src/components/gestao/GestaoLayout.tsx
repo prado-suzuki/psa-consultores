@@ -1,15 +1,12 @@
 import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 import {
-  LogOut,
   ChevronLeft,
   ChevronRight,
   Menu,
-  ArrowLeft,
   LayoutDashboard,
   Newspaper,
   Users,
@@ -36,7 +33,6 @@ interface NavItem {
 }
 
 export const GestaoLayout = ({ children, title, subtitle, headerActions }: GestaoLayoutProps) => {
-  const { signOut, isAdmin, isLider } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   // O recolhimento automático em telas de trabalho largo mora no hook — é a
@@ -56,11 +52,6 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
     { icon: Newspaper, label: 'Novidades', path: '/gestao' },
     { icon: Users, label: 'Contatos', path: '/gestao/contatos' },
   ];
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
-  };
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -132,26 +123,9 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
         {/* Footer Actions */}
         <div className="mt-auto p-4 border-t border-border/60 space-y-2">
           {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
+          {/* O "Trocar área" e o "Sair" moraram aqui embaixo até 10/09/2026;
+              agora estão no menu do cartão. */}
           <SidebarCartaoUsuario area="gestao" collapsed={trilho} />
-
-          <Button
-            variant="ghost"
-            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-primary transition-colors`}
-            onClick={() => navigate('/equipe')}
-            title={trilho ? 'Trocar área' : undefined}
-          >
-            <ArrowLeft className={`h-4 w-4 ${trilho ? '' : 'mr-3'}`} />
-            {!trilho && 'Trocar área'}
-          </Button>
-          <Button
-            variant="ghost"
-            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors`}
-            onClick={handleSignOut}
-            title={trilho ? 'Sair' : undefined}
-          >
-            <LogOut className={`h-4 w-4 ${trilho ? '' : 'mr-3'}`} />
-            {!trilho && 'Sair'}
-          </Button>
         </div>
       </aside>
 

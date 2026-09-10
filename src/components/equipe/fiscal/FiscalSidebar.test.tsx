@@ -1,7 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
+
+import { createTestQueryClient } from '@/test/queryWrapper';
 
 import FiscalSidebar from './FiscalSidebar';
 
@@ -18,14 +21,19 @@ vi.mock('@/contexts/AuthContext', () => ({
 
 const Local = () => <span data-testid="rota">{useLocation().pathname}</span>;
 
+// O `QueryClientProvider` entrou em 10/09/2026: o cartão do usuário do rodapé
+// passou a buscar o nome em `profiles`, e sem cliente o React Query derruba a
+// barra inteira no render.
 const montar = () =>
   render(
-    <MemoryRouter initialEntries={['/equipe/tax']}>
-      <FiscalSidebar isCollapsed={false} onToggle={vi.fn()} />
-      <Routes>
-        <Route path="*" element={<Local />} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={createTestQueryClient()}>
+      <MemoryRouter initialEntries={['/equipe/tax']}>
+        <FiscalSidebar isCollapsed={false} onToggle={vi.fn()} />
+        <Routes>
+          <Route path="*" element={<Local />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 
 describe('FiscalSidebar', () => {
