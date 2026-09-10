@@ -1,3 +1,4 @@
+import { sprintStatus } from '@/lib/sprintStatusColors';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -92,8 +93,8 @@ const EquipeSprints = () => {
       });
 
       toast({
-        title: "Sprint criada!",
-        description: "A nova sprint foi criada com sucesso.",
+        title:"Sprint criada!",
+        description:"A nova sprint foi criada com sucesso.",
       });
 
       setIsDialogOpen(false);
@@ -101,9 +102,9 @@ const EquipeSprints = () => {
     } catch (error) {
       console.error('Error creating sprint:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível criar a sprint.",
-        variant: "destructive"
+        title:"Erro",
+        description:"Não foi possível criar a sprint.",
+        variant:"destructive"
       });
     } finally {
       setSubmitting(false);
@@ -126,8 +127,8 @@ const EquipeSprints = () => {
       });
 
       toast({
-        title: "Sprint atualizada!",
-        description: "As alterações foram salvas com sucesso.",
+        title:"Sprint atualizada!",
+        description:"As alterações foram salvas com sucesso.",
       });
 
       setSelectedSprint(null);
@@ -135,9 +136,9 @@ const EquipeSprints = () => {
     } catch (error) {
       console.error('Error updating sprint:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível atualizar a sprint.",
-        variant: "destructive"
+        title:"Erro",
+        description:"Não foi possível atualizar a sprint.",
+        variant:"destructive"
       });
     } finally {
       setSubmitting(false);
@@ -151,17 +152,17 @@ const EquipeSprints = () => {
       await deleteSprint.mutateAsync(selectedSprint.id);
 
       toast({
-        title: "Sprint excluída!",
-        description: "A sprint foi removida com sucesso.",
+        title:"Sprint excluída!",
+        description:"A sprint foi removida com sucesso.",
       });
 
       setSelectedSprint(null);
     } catch (error) {
       console.error('Error deleting sprint:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível excluir a sprint.",
-        variant: "destructive"
+        title:"Erro",
+        description:"Não foi possível excluir a sprint.",
+        variant:"destructive"
       });
     }
   };
@@ -170,7 +171,7 @@ const EquipeSprints = () => {
     try {
       await updateSprintStatusMutation.mutateAsync({ sprintId, status });
       toast({
-        title: "Sprint atualizada!",
+        title:"Sprint atualizada!",
         description: `Status alterado para ${status === 'active' ? 'ativa' : 'concluída'}.`,
       });
     } catch (error) {
@@ -182,16 +183,9 @@ const EquipeSprints = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-         return <Badge className="bg-green-100 text-green-700 border-0 text-xs font-medium">Ativa</Badge>;
-      case 'completed':
-         return <Badge className="bg-blue-100 text-blue-700 border-0 text-xs font-medium">Concluída</Badge>;
-      case 'planned':
-         return <Badge className="bg-muted text-gray-700 border-0 text-xs font-medium">Planejada</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+    const config = sprintStatus(status);
+    if (!config) return <Badge variant="outline">{status}</Badge>;
+    return <Badge className={`${config.badge} text-xs font-medium`}>{config.label}</Badge>;
   };
 
   const getProjectName = (projectId: string | null) => {
@@ -256,7 +250,7 @@ const EquipeSprints = () => {
   return (
     <EquipeLayout 
       title="Gestão de Sprints" 
-      subtitle={projectFilter ? `Sprints do projeto: ${getProjectName(projectFilter) || 'Carregando...'}` : "Sprints semanais do time"}
+      subtitle={projectFilter ? `Sprints do projeto: ${getProjectName(projectFilter) || 'Carregando...'}` :"Sprints semanais do time"}
       headerActions={
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -267,11 +261,11 @@ const EquipeSprints = () => {
           </DialogTrigger>
           <DialogContent className="border-border">
             <DialogHeader>
-              <DialogTitle className="text-gray-900">Criar Nova Sprint</DialogTitle>
+              <DialogTitle>Criar Nova Sprint</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateSprint} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="cluster" className="text-gray-700">Cluster</Label>
+                <Label htmlFor="cluster">Cluster</Label>
                 <Select
                   value={newSprint.cluster_id || 'none'}
                   onValueChange={(value) => setNewSprint({
@@ -280,7 +274,7 @@ const EquipeSprints = () => {
                     project_id: '',
                   })}
                 >
-                  <SelectTrigger className="text-gray-900">
+                  <SelectTrigger>
                     <SelectValue placeholder="Selecione um cluster (opcional)" />
                   </SelectTrigger>
                   <SelectContent className="border-border">
@@ -292,12 +286,12 @@ const EquipeSprints = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="project" className="text-gray-700">Projeto</Label>
+                <Label htmlFor="project">Projeto</Label>
                 <Select 
                   value={newSprint.project_id} 
                   onValueChange={(value) => setNewSprint({ ...newSprint, project_id: value })}
                 >
-                  <SelectTrigger className="text-gray-900">
+                  <SelectTrigger>
                     <SelectValue placeholder="Selecione um projeto (opcional)" />
                   </SelectTrigger>
                   <SelectContent className="border-border">
@@ -310,46 +304,42 @@ const EquipeSprints = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-gray-700">Nome da Sprint <RequiredMark /></Label>
+                <Label htmlFor="name">Nome da Sprint <RequiredMark /></Label>
                 <Input
                   id="name"
                   value={newSprint.name}
                   onChange={(e) => setNewSprint({ ...newSprint, name: e.target.value })}
-                  className="text-gray-900"
                   placeholder="Sprint 1 - Dezembro"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="goal" className="text-gray-700">Objetivo (opcional)</Label>
+                <Label htmlFor="goal">Objetivo (opcional)</Label>
                 <Textarea
                   id="goal"
                   value={newSprint.goal}
                   onChange={(e) => setNewSprint({ ...newSprint, goal: e.target.value })}
-                  className="text-gray-900"
                   placeholder="Descreva o objetivo principal desta sprint"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="start_date" className="text-gray-700">Data Início <RequiredMark /></Label>
+                  <Label htmlFor="start_date">Data Início <RequiredMark /></Label>
                   <Input
                     id="start_date"
                     type="date"
                     value={newSprint.start_date}
                     onChange={(e) => setNewSprint({ ...newSprint, start_date: e.target.value })}
-                    className="text-gray-900"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="end_date" className="text-gray-700">Data Fim <RequiredMark /></Label>
+                  <Label htmlFor="end_date">Data Fim <RequiredMark /></Label>
                   <Input
                     id="end_date"
                     type="date"
                     value={newSprint.end_date}
                     onChange={(e) => setNewSprint({ ...newSprint, end_date: e.target.value })}
-                    className="text-gray-900"
                     required
                   />
                 </div>
@@ -372,8 +362,8 @@ const EquipeSprints = () => {
           {groupedSprints.map(([clusterName, clusterSprints]) => (
           <div key={clusterName} className="space-y-3">
             <div className="flex items-center gap-2 pt-2">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">{clusterName}</h2>
-              <span className="text-xs text-gray-400">· {clusterSprints.length}</span>
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{clusterName}</h2>
+              <span className="text-xs text-muted-foreground">· {clusterSprints.length}</span>
               <div className="flex-1 border-t border-border" />
             </div>
           {clusterSprints.map((sprint) => {
@@ -385,23 +375,23 @@ const EquipeSprints = () => {
                  <CardContent className="p-5">
                    <div className="flex items-center justify-between mb-3">
                      <div className="flex items-center gap-3 min-w-0">
-                       <h3 className="font-semibold text-gray-900 text-base truncate">{sprint.name}</h3>
+                       <h3 className="font-semibold text-base truncate">{sprint.name}</h3>
                       {getStatusBadge(sprint.status)}
                       {sprint.project_id && (
                          <Badge variant="secondary" className="text-xs font-normal">{getProjectName(sprint.project_id)}</Badge>
                       )}
                     </div>
                      <div className="flex items-center gap-1">
-                       <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500" onClick={() => { setSelectedSprint(sprint); setIsEditMode(true); }}>
+                       <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => { setSelectedSprint(sprint); setIsEditMode(true); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                        <Button variant="outline" size="sm" onClick={() => navigate(`/equipe/sprints/${sprint.id}`)}>Ver Detalhes</Button>
                     </div>
                   </div>
-                   {sprint.goal && <p className="text-sm text-gray-600 mb-3 line-clamp-2">{sprint.goal}</p>}
-                   <div className="flex items-center gap-4 text-sm text-gray-500">
+                   {sprint.goal && <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{sprint.goal}</p>}
+                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                      <span>{parseDate(sprint.start_date).toLocaleDateString('pt-BR')} - {parseDate(sprint.end_date).toLocaleDateString('pt-BR')}</span>
-                     {totalHours > 0 && <><span className="text-gray-400">•</span><span>{totalHours.toFixed(0)}h alocadas</span></>}
+                     {totalHours > 0 && <><span className="text-muted-foreground">•</span><span>{totalHours.toFixed(0)}h alocadas</span></>}
                   </div>
                   {sprintImpact && sprintImpact.custoEconomizadoMensal > 0 && (
                      <div className="mt-3 pt-3 border-t border-border flex items-center gap-4 text-sm">
@@ -419,9 +409,9 @@ const EquipeSprints = () => {
       ) : (
         <Card className="border-border">
           <CardContent className="py-16 text-center">
-            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhuma sprint criada</h3>
-            <p className="text-gray-500 mb-4">Crie sua primeira sprint para começar a organizar o trabalho</p>
+            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Nenhuma sprint criada</h3>
+            <p className="text-muted-foreground mb-4">Crie sua primeira sprint para começar a organizar o trabalho</p>
             <Button 
               className="bg-primary hover:bg-primary/90"
               onClick={() => setIsDialogOpen(true)}
@@ -439,13 +429,13 @@ const EquipeSprints = () => {
           {selectedSprint && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-gray-900 flex items-center gap-2">
+                <DialogTitle className="flex items-center gap-2">
                   Editar Sprint
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Cluster</Label>
+                  <Label>Cluster</Label>
                   <Select
                     value={editSprint.cluster_id || 'none'}
                     onValueChange={(value) =>
@@ -456,7 +446,7 @@ const EquipeSprints = () => {
                       })
                     }
                   >
-                    <SelectTrigger className="text-gray-900">
+                    <SelectTrigger>
                       <SelectValue placeholder="Selecione um cluster" />
                     </SelectTrigger>
                     <SelectContent className="border-border">
@@ -468,12 +458,12 @@ const EquipeSprints = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Projeto</Label>
+                  <Label>Projeto</Label>
                   <Select
                     value={editSprint.project_id}
                     onValueChange={(value) => setEditSprint({ ...editSprint, project_id: value })}
                   >
-                    <SelectTrigger className="text-gray-900">
+                    <SelectTrigger>
                       <SelectValue placeholder="Selecione um projeto (opcional)" />
                     </SelectTrigger>
                     <SelectContent className="border-border">
@@ -486,46 +476,42 @@ const EquipeSprints = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Nome da Sprint *</Label>
+                  <Label>Nome da Sprint *</Label>
                   <Input
                     value={editSprint.name}
                     onChange={(e) => setEditSprint({ ...editSprint, name: e.target.value })}
-                    className="text-gray-900"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Objetivo</Label>
+                  <Label>Objetivo</Label>
                   <Textarea
                     value={editSprint.goal}
                     onChange={(e) => setEditSprint({ ...editSprint, goal: e.target.value })}
-                    className="text-gray-900"
                     rows={3}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-gray-700">Data Início *</Label>
+                    <Label>Data Início *</Label>
                     <Input
                       type="date"
                       value={editSprint.start_date}
                       onChange={(e) => setEditSprint({ ...editSprint, start_date: e.target.value })}
-                      className="text-gray-900"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-gray-700">Data Fim *</Label>
+                    <Label>Data Fim *</Label>
                     <Input
                       type="date"
                       value={editSprint.end_date}
                       onChange={(e) => setEditSprint({ ...editSprint, end_date: e.target.value })}
-                      className="text-gray-900"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Status</Label>
+                  <Label>Status</Label>
                   <Select value={editSprint.status} onValueChange={(value) => setEditSprint({ ...editSprint, status: value })}>
-                    <SelectTrigger className="text-gray-900">
+                    <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="border-border">
@@ -548,7 +534,7 @@ const EquipeSprints = () => {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Excluir sprint?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Esta ação não pode ser desfeita. A sprint "{selectedSprint.name}" será permanentemente removida.
+                          Esta ação não pode ser desfeita. A sprint"{selectedSprint.name}" será permanentemente removida.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

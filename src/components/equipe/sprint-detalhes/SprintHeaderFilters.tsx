@@ -1,3 +1,4 @@
+import { sprintStatus } from '@/lib/sprintStatusColors';
 import { AlertTriangle, ArrowLeft, CalendarClock, Clock, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -61,22 +62,11 @@ export function SprintHeaderFilters({
             <AlertTriangle className="h-3 w-3 mr-1" />
             Atrasados ({c.sprintRisks.overdue.length})
           </Button>
-          <Badge
-            className={
-              c.sprint.status === 'active'
-                ? 'bg-primary/10 text-primary border-primary/20'
-                : c.sprint.status === 'completed'
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-muted text-gray-700'
-            }
-          >
-            {c.sprint.status === 'active'
-              ? 'Ativa'
-              : c.sprint.status === 'completed'
-                ? 'Concluída'
-                : c.sprint.status === 'planned'
-                  ? 'Planejada'
-                  : c.sprint.status}
+          {/* Mesma pílula da lista de sprints, do mesmo mapa: as duas cópias
+              que existiam aqui e no `EquipeSprints` tinham divergido, e o verde
+              dizia "ativa" numa tela e "concluída" na outra. */}
+          <Badge className={sprintStatus(c.sprint.status)?.badge}>
+            {sprintStatus(c.sprint.status)?.label ?? c.sprint.status}
           </Badge>
         </div>
       </div>
