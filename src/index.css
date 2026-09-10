@@ -698,10 +698,18 @@ All colors MUST be HSL.
        Saturação baixíssima de propósito: é neutro com cast, não superfície
        colorida — se o fundo tem cor, o acento para de saltar. As luminosidades
        são as mesmas de antes (só `--muted` desce 1 ponto, para o card se
-       destacar do corpo), então nenhum contraste do sistema muda. */
-    --background: 170 18% 99.6%;
-    --card: 170 18% 99.6%;
-    --popover: 170 18% 99.6%;
+       destacar do corpo), então nenhum contraste do sistema muda.
+
+       A matiz destes três era 170 e foi para 192, a da âncora, junto com o
+       resto da pilha. NÃO muda pixel — a 99,6% de luminosidade a matiz não tem
+       onde renderizar: `(254,254,254)` antes e depois, e o contraste com o
+       `--foreground` anda 0,01 (17,23 → 17,22). É escrituração, e é por isso
+       que vale: enquanto estes três diziam 170 e o canvas dizia 192, o arquivo
+       ensinava duas matizes para a mesma área, e a próxima superfície nasceria
+       na errada — foi assim que o `--muted` ficou verde por dez dias. */
+    --background: 192 18% 99.6%;
+    --card: 192 18% 99.6%;
+    --popover: 192 18% 99.6%;
     /* ─── O fundo de página da área, e ele mudou de valor E de consumidor ───
        Até aqui o `FiscalLayout` pintava a tela com `bg-muted`, e este `--canvas`
        não tinha consumidor nenhum. São trabalhos diferentes: o `--muted` é a
@@ -843,11 +851,23 @@ All colors MUST be HSL.
        exatamente o que o bloco `:root.tax-theme` já produzia. */
     --accent-d: var(--status-andamento);
     --accent-soft: var(--status-andamento-soft);
-    /* Linha na matiz da superfície da Tax (background 170 18% 99.6%, canvas
-       170 16% 98.8%), um degrau abaixo do `--muted` dela (92%). Era o bege
-       `40 12% 91%` do `:root`, que nenhum tema declarava. 1,24:1 no card. */
-    --border: 170 16% 89%;
-    --input: 170 16% 89%;
+    /* Linha na matiz da superfície da Tax — hoje 192, a da âncora, como o
+       resto da pilha —, um degrau abaixo do `--muted` dela (92%). Era o bege
+       `40 12% 91%` do `:root`, que nenhum tema declarava. 1,24:1 no card.
+
+       A matiz veio de 170 e o efeito é de um canal: `(222,231,230)` para
+       `(222,230,231)`. Contra o canvas o contraste sobe de 1,151:1 para
+       1,164:1 — nem de perto os 3:1 que a WCAG 1.4.11 pede de borda de
+       controle, que é dívida registrada dos três temas e não se resolve aqui.
+
+       A SATURAÇÃO fica em 16% e isso é uma escolha de NÃO mexer, não um
+       esquecimento: 16 sobre um canvas de 10 faz a borda mais saturada que a
+       página, ao contrário da base (14 sobre 16) e da OSG (20 sobre 24). A
+       escada de saturação das três é divergente e arrumá-la é decisão de
+       design, registrada em `docs/geral/cor-o-que-falta.md`. Esta passada
+       alinhou MATIZ, que não custa pixel; mexer na saturação custa. */
+    --border: 192 16% 89%;
+    --input: 192 16% 89%;
     --success: var(--status-feito);
     --warning: var(--status-alerta);
     --success-foreground: 0 0% 100%;

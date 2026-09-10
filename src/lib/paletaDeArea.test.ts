@@ -10,6 +10,7 @@ import {
   distanciaDeMatiz,
   paletaDoTema,
   problemasDeDivergencia,
+  problemasDeRebaixamento,
   problemasDeSeparacao,
   problemasDeSuperficie,
   problemasDoTema,
@@ -58,6 +59,31 @@ const ANCORA_DO_TEMA: Record<(typeof TEMAS)[number], Hsl> = {
  * não existe e sobra o primeiro — que é o que se quer guardar.
  */
 const DIVIDA_SEMANTICA: string[] = [];
+
+/**
+ * Onde MEDIR a superfície de cada tema — que nem sempre é o bloco homônimo.
+ *
+ * Mora aqui pela mesma razão que `ANCORA_DO_TEMA`: amarrar bloco de CSS a tela
+ * que existe é trabalho deste arquivo, não do `paletaDeArea.ts`.
+ *
+ * Para as duas áreas é o próprio bloco. Para a casa NÃO é o `:root`: o
+ * `AreaThemeProvider` põe `base-theme` no `<html>` em TODA rota (`CLASSE_BASE`
+ * em `areaTheme.ts`), os dois seletores têm a mesma especificidade, e quem vem
+ * depois no arquivo vence — `.base-theme` vem depois. Então o que a casa pinta
+ * é `168 16% 96%` / `168 20% 92%`, que cumpre o rebaixamento.
+ *
+ * O `:root` declara outro par, `--canvas: 42 22% 99%` e `--muted: 42 26% 92%`,
+ * e ele NÃO cumpre — por 3 pontos de luminosidade, e só por eles: a matiz bate
+ * e a saturação é +4, certinha. É resíduo de meio caminho, o `--muted` desceu
+ * para 92% na varredura de 28/08 e o canvas ficou nos 99% de antes. Como não
+ * alcança tela nenhuma, corrigi-lo seria inventar um valor para agradar um
+ * teste; fica registrado aqui, que é o lugar de quem for mexer no piso.
+ */
+const BLOCO_DE_SUPERFICIE: Record<(typeof TEMAS)[number], string> = {
+  ':root': '.base-theme',
+  '.tax-theme': '.tax-theme',
+  '.osg-theme': '.osg-theme',
+};
 
 /**
  * Guarda das paletas de área. Vale para o `index.css` de verdade: área nova que
@@ -166,6 +192,35 @@ describe('paletas de área declaradas no index.css', () => {
         `Se um item da lista foi CORRIGIDO, tire-o de DIVIDA_SEMANTICA (neste arquivo).\n` +
         `Medido agora:\n${relatorio}`,
     ).toEqual([...DIVIDA_SEMANTICA].sort());
+  });
+
+  it.each(TEMAS)('%s: a superfície rebaixada é o fundo de página dela, um degrau abaixo', tema => {
+    // Quarto andar do mesmo buraco, e o primeiro que não é sobre contraste.
+    //
+    // Os três anteriores perguntavam "o texto por cima fecha AA?" e por isso
+    // deixaram passar um defeito que não é de texto: o `--canvas` da Tax mudou
+    // de matiz (170 → 192, a da âncora) e o `--muted` dela ficou em 168 — o
+    // valor da CASA, copiado letra por letra. Os dois estavam certos
+    // isoladamente, o par com `muted-foreground` dava 4,53:1, e a área passou
+    // dez dias com fundo de página numa matiz e faixa de abas em outra. Quem
+    // viu foi a usuária, olhando /equipe/tax/projetos/cadastro.
+    //
+    // A asserção não olha o valor: recalcula com `rebaixar(--canvas)` e compara
+    // sem tolerância, do mesmo jeito que `problemasDeDivergencia` faz com os
+    // papéis de status. O `--muted` deixa de ser escolha escrita em três
+    // blocos e passa a ser consequência do canvas de cada área.
+    //
+    // O `--canvas` continua livre de propósito — é o par disto, uma escolha por
+    // área como a âncora. Ver a nota de `REBAIXAMENTO` para por que o
+    // `--border` NÃO entrou junto: contra o canvas ele é −2 / +6 / −4 nas três
+    // áreas, ou seja, não existe uma escada ali para derivar.
+    const problemas = problemasDeRebaixamento(css, BLOCO_DE_SUPERFICIE[tema]);
+    const relatorio = problemas.map(p => `  ${p.tema} · ${p.item}: ${p.motivo}`).join('\n');
+    expect(
+      problemas,
+      `o --muted não é o rebaixamento do --canvas da área. Se a intenção era mudar\n` +
+        `a superfície, mude o --canvas e deixe o --muted seguir:\n${relatorio}`,
+    ).toEqual([]);
   });
 
   it.each(TEMAS)('%s: o texto fecha AA sobre a superfície que a área entrega', tema => {

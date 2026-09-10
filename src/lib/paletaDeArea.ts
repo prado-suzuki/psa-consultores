@@ -780,3 +780,96 @@ export function problemasDeDivergencia(css: string, seletor: string, ancora: Hsl
 
   return problemas;
 }
+
+/**
+ * A superfície REBAIXADA de uma área, derivada do fundo de página dela.
+ *
+ * O QUE ISTO FECHA. Os oito papéis de status já eram resultado — `harmonizar`
+ * os gera e `problemasDeDivergencia` reprova quem editar à mão. As SUPERFÍCIES
+ * não tinham nada disso: eram oito valores escritos um a um por área, e a única
+ * pergunta que alguém lhes fazia era de contraste com o texto por cima. Ninguém
+ * comparava uma superfície com a vizinha.
+ *
+ * Foi por aí que o defeito passou. O `--canvas` da Tax mudou de matiz numa
+ * passada (170 → 192, a da âncora) e o `--muted` dela ficou em 168, que era o
+ * valor da CASA copiado letra por letra. Os dois seguiam corretos isoladamente
+ * — o par `muted-foreground` / `muted` dava 4,53:1, acima do AA — e a área
+ * passou dez dias com fundo de página numa matiz e faixa de abas em outra, a
+ * 24° de distância. A usuária viu antes do teste porque o teste não olhava.
+ *
+ * POR QUE SÓ O `--muted`, E NÃO A PILHA INTEIRA. Porque é a única relação que
+ * as três áreas cumprem EXATA, e fórmula se extrai do que já é verdade — não se
+ * inventa para forçar convergência. Medido no `index.css` de hoje:
+ *
+ *     área    canvas          muted           Δmatiz  Δsaturação
+ *     base    168 16% 96%     168 20% 92%     0°      +4
+ *     tax     192 10% 96%     192 14% 92%     0°      +4
+ *     osg      32 24% 96%      32 28% 92%     0°      +4
+ *
+ * O `--border` é o contraexemplo, e por isso fica de fora: contra o canvas ele
+ * é −2 na base, +6 na Tax e −4 na OSG. Não há uma escada ali, há três, e
+ * escolher qual vale é decisão de design — está registrada em
+ * `docs/geral/cor-o-que-falta.md`, não neste arquivo.
+ *
+ * Os números não são gosto. A matiz é a mesma porque superfície de uma área é
+ * uma cor em duas profundidades, não duas cores; os 4 pontos de saturação são o
+ * que compensa o degrau de luminosidade — a mesma tinta 4% mais rasa lê como
+ * lavada; e os 92% estão travados entre as três de propósito, calibrados para a
+ * pílula de um segmented control saltar em cima (ver a nota do `:root`).
+ *
+ * O `--canvas` continua ESCRITO À MÃO, e é o par disto: uma escolha livre por
+ * área, como a âncora. Tem que continuar livre porque a OSG prova que precisa —
+ * âncora musgo (149), superfície areia (32). Superfície não se deriva de âncora.
+ */
+export const REBAIXAMENTO = {
+  /** Quanto a superfície rebaixada desce em luminosidade, em pontos. */
+  degrauDeLuminosidade: 4,
+  /** Quanto ela ganha em saturação para compensar o degrau, em pontos. */
+  compensacaoDeSaturacao: 4,
+} as const;
+
+/** O `--muted` que o `--canvas` de uma área obriga. */
+export function rebaixar(canvas: Hsl): Hsl {
+  return {
+    h: canvas.h,
+    s: canvas.s + REBAIXAMENTO.compensacaoDeSaturacao,
+    l: canvas.l - REBAIXAMENTO.degrauDeLuminosidade,
+  };
+}
+
+/**
+ * Confere se o `--muted` declarado é o que `rebaixar(--canvas)` gera.
+ * Lista vazia = aprovado.
+ *
+ * Usa `corDoTema` e não `paletaDoTema` porque a OSG declara os dois como
+ * `var(--osg-canvas)` / `var(--osg-50)`, e o literal em HSL mora no `:root`.
+ * Ler só o literal daria "não declarado" justamente na área que mais
+ * personalizou as superfícies — é a mesma razão que existe no `corDoTema`.
+ *
+ * Sem tolerância em canal nenhum: os três números são inteiros nas três áreas,
+ * então arredondamento não entra. Se um dia um canvas trouxer fração, ela
+ * atravessa a fórmula inteira e a igualdade continua exata.
+ */
+export function problemasDeRebaixamento(css: string, seletor: string): ProblemaDePaleta[] {
+  const canvas = corDoTema(css, seletor, 'canvas');
+  const muted = corDoTema(css, seletor, 'muted');
+  if (!canvas || !muted) {
+    return [
+      {
+        tema: seletor,
+        item: 'muted / canvas',
+        motivo: `não resolve (${canvas ? '' : '--canvas '}${muted ? '' : '--muted'}) — var() apontando para o vazio, ou cor escrita em hex`,
+      },
+    ];
+  }
+
+  const esperado = rebaixar(canvas);
+  const desvios: string[] = [];
+  if (muted.h !== esperado.h) desvios.push(`matiz ${muted.h}° onde o canvas é ${canvas.h}°`);
+  if (muted.s !== esperado.s) desvios.push(`saturação ${muted.s}% onde o rebaixamento dá ${esperado.s}%`);
+  if (muted.l !== esperado.l) desvios.push(`luminosidade ${muted.l}% onde o rebaixamento dá ${esperado.l}%`);
+
+  return desvios.length === 0
+    ? []
+    : [{ tema: seletor, item: 'muted', motivo: `valor não derivado do canvas: ${desvios.join('; ')}` }];
+}
