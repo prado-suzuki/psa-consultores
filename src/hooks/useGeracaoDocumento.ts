@@ -25,6 +25,7 @@ import type { EntradaInstrumentoRural } from '@/lib/templates/contextoRural';
 // comparação com o contrato assinado usa a mesma: duas cópias já divergiram uma
 // vez, e o teste passou a validar outra coisa. Ver src/lib/osg/entradaRural.ts.
 import { entradaDoInstrumento, matriculaParaMapear } from '@/lib/osg/entradaRural';
+import { useOrgaosGovernanca } from '@/hooks/useDomainOrgaoGovernanca';
 
 // Glue entre o cadastro OSG (pessoa/bem/matrícula/cartório) e o binding por entidade
 // do gerador. Para cada tipo de entidade, devolve os registros do cliente como
@@ -199,6 +200,7 @@ export function useRegistrosPorTipo(clienteId: string | null) {
   const cartoriosQ = useCartorios();
   const exploracoesQ = useExploracaoRural(clienteId);
   const administradoresQ = useAdministradoresDasOutorgantes(exploracoesQ.data);
+  const orgaosQ = useOrgaosGovernanca(clienteId);
 
   const registros = useMemo<Record<TipoEntidade, Registro[]>>(() => {
     const pessoa: Registro[] = (pessoasQ.data ?? []).map((p) => ({
@@ -267,8 +269,29 @@ export function useRegistrosPorTipo(clienteId: string | null) {
     // `vertice` e `origemPosse` nunca têm registro/seletor (são só itens de lista,
     // do georref e do Considerando V); entram vazios para satisfazer o
     // Record<TipoEntidade, …>.
-    return { pessoa, sociedade, bem, matricula, cartorio, vertice: [], instrumento, origemPosse: [] };
-  }, [pessoasQ.data, bensQ.data, matriculasQ.data, cartoriosQ.data, exploracoesQ.data, administradoresQ.data, clienteId]);
+    /*
+     * Os órgãos de governança do cliente, para o consultor ligar o papel
+     * `conselhoAdministracao` ao registro certo na tela Gerar. Só os que
+     * recebem cláusula: órgão marcado como interno existe na Matriz e não no
+     * contrato, e oferecê-lo aqui só criaria documento com capítulo que a
+     * Junta não deveria ver.
+     */
+    const orgaoGovernanca: Registro[] = (orgaosQ.data ?? [])
+      .filter((o) => o.entra_no_contrato)
+      .map((o) => ({ id: o.id, label: o.nome, row: o }));
+
+    /*
+     * Vazios de propósito, e cada um por um motivo diferente. A competência da
+     * Matriz não é registro que o consultor escolhe: ela chega em LISTA, pelo
+     * órgão já vinculado no bloco (ver PAPEIS_LISTA). E o acordo de quotistas
+     * ainda não tem cadastro — é a GOV-03 —, então o vocabulário existe para o
+     * modelo ser escrito, e a fonte entra quando a tabela nascer.
+     */
+    return {
+      pessoa, sociedade, bem, matricula, cartorio, vertice: [], instrumento, origemPosse: [],
+      orgaoGovernanca, competenciaMatriz: [], acordoQuotistas: [],
+    };
+  }, [pessoasQ.data, bensQ.data, matriculasQ.data, cartoriosQ.data, exploracoesQ.data, administradoresQ.data, orgaosQ.data, clienteId]);
 
   return {
     registros,

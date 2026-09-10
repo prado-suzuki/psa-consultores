@@ -21,7 +21,12 @@ export type TipoEntidade =
   // instrumento e a origem da posse de cada imóvel. Pessoa e matrícula NÃO
   // ganham entidade nova — o contrato rural qualifica as mesmas pessoas e
   // descreve os mesmos imóveis que o Contrato Social.
-  | 'instrumento' | 'origemPosse';
+  | 'instrumento' | 'origemPosse'
+  // Governança (GOV-01/GOV-02 e o levantamento do acordo). Mesmo movimento do
+  // rural: pessoa e sociedade NÃO ganham entidade nova, porque a alteração
+  // contratual de governança qualifica os mesmos sócios e a mesma holding. O
+  // que falta é o órgão, a célula da matriz e os parâmetros do acordo.
+  | 'orgaoGovernanca' | 'competenciaMatriz' | 'acordoQuotistas';
 
 export interface CampoEntidade {
   /** Id do campo dentro da entidade (parte após o ponto no placeholder). */
@@ -1201,6 +1206,166 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
           return Number.isFinite(n) ? valorExtenso(n) : '';
         },
       },
+    ],
+  },
+
+  /**
+   * Um órgão de governança do cliente: Conselho de Administração, Diretoria,
+   * Reunião de Sócios, ou a instância que o cliente inventou.
+   *
+   * Os campos de composição vêm de `orgao_governanca` (GOV-01) mais a
+   * parametrização. NÃO entram aqui `vigencia_inicio` e `vigencia_fim`: nos
+   * sete contratos lidos a vigência do órgão não vira cláusula nenhuma, é
+   * histórico do sistema. Nem `entra_no_contrato`, que é filtro de composição
+   * do modelo e não texto.
+   *
+   * Numeral E extenso lado a lado, como no livro e folha da matrícula, porque
+   * o contrato escreve "no mínimo 03 (três) e no máximo 06 (seis) membros".
+   */
+  orgaoGovernanca: {
+    tipo: 'orgaoGovernanca',
+    label: 'Órgão de governança',
+    campos: [
+      { id: 'nome', label: 'Nome do órgão', tipo: 'texto', obrigatorio: true },
+
+      { id: 'membrosMinimo', label: 'Mínimo de membros', tipo: 'inteiro' },
+      numeralCampo('membrosMinimoNumeral', 'Mínimo de membros (numeral)', 'membrosMinimo'),
+      cardinalCampo('membrosMinimoExtenso', 'Mínimo de membros (por extenso)', 'membrosMinimo'),
+
+      { id: 'membrosMaximo', label: 'Máximo de membros', tipo: 'inteiro' },
+      numeralCampo('membrosMaximoNumeral', 'Máximo de membros (numeral)', 'membrosMaximo'),
+      cardinalCampo('membrosMaximoExtenso', 'Máximo de membros (por extenso)', 'membrosMaximo'),
+
+      /*
+       * Horita e Bela Vista escrevem "composto por 03 (três) membros", sem
+       * faixa. Não é campo novo: é mínimo igual a máximo, e o bloco troca de
+       * redação sozinho. Publicar os dois lados porque o engine não tem else.
+       */
+      condicionalCampo(
+        'membrosFixo',
+        'Número fixo de membros? (condicional)',
+        ['membrosMinimo', 'membrosMaximo'],
+        (v) => !!v.membrosMinimo && v.membrosMinimo === v.membrosMaximo,
+      ),
+      condicionalCampo(
+        'membrosEmFaixa',
+        'Membros em faixa mínimo/máximo? (condicional)',
+        ['membrosMinimo', 'membrosMaximo'],
+        (v) => !!v.membrosMinimo && !!v.membrosMaximo && v.membrosMinimo !== v.membrosMaximo,
+      ),
+
+      { id: 'mandatoAnos', label: 'Mandato, em anos', tipo: 'inteiro' },
+      numeralCampo('mandatoAnosNumeral', 'Mandato (numeral)', 'mandatoAnos'),
+      cardinalCampo('mandatoAnosExtenso', 'Mandato (por extenso)', 'mandatoAnos'),
+
+      /*
+       * Os cargos chegam já concatenados pelo mapeador ("Diretor de Mercado e
+       * Finanças, Diretor Operações e Diretor de Sistema de Irrigação", que é o
+       * Bela Vista literal). Vazio, o Mattei mostra a saída: "com denominação
+       * atribuída no momento da composição".
+       */
+      { id: 'cargos', label: 'Cargos deste órgão', tipo: 'texto' },
+      condicionalCampo('temCargos', 'Tem cargos nomeados? (condicional)', 'cargos', (v) => !!v.cargos),
+      condicionalCampo('semCargos', 'Sem cargos nomeados? (condicional)', 'cargos', (v) => !v.cargos),
+
+      /*
+       * Representação: quanto um representante assina sozinho, e quantos
+       * assinam acima disso. O número de assinantes é aberto por decisão da
+       * consultoria em 10/09 — os contratos lidos usam dois, mas o cliente
+       * decide.
+       */
+      { id: 'representaSozinhoAte', label: 'Assina sozinho até (R$)', tipo: 'valor' },
+      {
+        id: 'representaSozinhoAteExtenso',
+        label: 'Assina sozinho até (por extenso)',
+        tipo: 'texto',
+        derivadoDe: 'representaSozinhoAte',
+        derivar: (v) => {
+          const x = paraNumeroBR(v.representaSozinhoAte);
+          return Number.isFinite(x) ? valorExtenso(x) : '';
+        },
+      },
+      { id: 'representaAssinantesAcima', label: 'Acima disso, quantos assinam', tipo: 'inteiro' },
+      numeralCampo(
+        'representaAssinantesAcimaNumeral',
+        'Quantos assinam acima do limite (numeral)',
+        'representaAssinantesAcima',
+      ),
+      cardinalCampo(
+        'representaAssinantesAcimaExtenso',
+        'Quantos assinam acima do limite (por extenso)',
+        'representaAssinantesAcima',
+      ),
+      condicionalCampo(
+        'exigeAssinaturaConjunta',
+        'Exige assinatura conjunta acima do limite? (condicional)',
+        'representaAssinantesAcima',
+        (v) => paraInteiro(v.representaAssinantesAcima) > 1,
+      ),
+    ],
+  },
+
+  /**
+   * Uma célula da Matriz de Alçadas: o que UM órgão faz em UMA atividade.
+   *
+   * É o item da lista que vira alínea da cláusula de competência, e a mesma
+   * célula serve à grade do documento da Matriz. Os campos chegam prontos do
+   * mapeador porque a leitura deles já existe em `lib/matrizAlcadas.ts`: papéis
+   * concatenados, alçada com unidade e base já resolvidas.
+   */
+  competenciaMatriz: {
+    tipo: 'competenciaMatriz',
+    label: 'Competência da Matriz de Alçadas',
+    campos: [
+      { id: 'atividade', label: 'Atividade', tipo: 'texto', obrigatorio: true },
+      { id: 'detalhamento', label: 'O que a atividade abrange neste cliente', tipo: 'texto' },
+      { id: 'papeis', label: 'Papéis na decisão', tipo: 'texto' },
+      { id: 'alcada', label: 'Alçada (valor ou percentual, já formatada)', tipo: 'texto' },
+      { id: 'sobePara', label: 'Sobe para', tipo: 'texto' },
+      { id: 'foraDaPolitica', label: 'Trata do que foge da política? (condicional)', tipo: 'texto' },
+      { id: 'resumo', label: 'A célula inteira em uma linha (para a grade)', tipo: 'texto' },
+      condicionalCampo('temDetalhamento', 'Tem detalhamento? (condicional)', 'detalhamento', (v) => !!v.detalhamento),
+      condicionalCampo('temAlcada', 'Tem alçada? (condicional)', 'alcada', (v) => !!v.alcada),
+      condicionalCampo('sobe', 'Escala para outro órgão? (condicional)', 'sobePara', (v) => !!v.sobePara),
+    ],
+  },
+
+  /**
+   * Os parâmetros do Acordo de Quotistas que a alteração contratual consome.
+   *
+   * Vinculados contra o LEVANTAMENTO, não contra tabela: o cadastro do acordo é
+   * a GOV-03 e vem depois. Aqui entram os seis medidos descendo ao contrato
+   * social (cláusula de preferência e de apuração de haveres) mais os que a
+   * cláusula do capítulo do Acordo precisa. Os outros 27 parâmetros medidos
+   * chegam com a GOV-03.
+   */
+  acordoQuotistas: {
+    tipo: 'acordoQuotistas',
+    label: 'Acordo de Quotistas (parâmetros)',
+    campos: [
+      // O capítulo "Do Acordo de Quotistas" tem duas redações, e é a existência
+      // do acordo que escolhe: sem ele "os sócios poderão firmar", com ele
+      // "os sócios firmaram em tal data". Está literal no modelo da casa.
+      { id: 'assinadoEm', label: 'Data de assinatura do acordo', tipo: 'data' },
+      dataExtensoCampo('assinadoEmExtenso', 'Data de assinatura (por extenso)', 'assinadoEm'),
+      condicionalCampo('jaAssinado', 'Acordo já assinado? (condicional)', 'assinadoEm', (v) => !!v.assinadoEm),
+      condicionalCampo('aindaNaoAssinado', 'Acordo ainda não firmado? (condicional)', 'assinadoEm', (v) => !v.assinadoEm),
+
+      { id: 'vigenciaAnos', label: 'Vigência do acordo, em anos', tipo: 'inteiro' },
+      numeralCampo('vigenciaAnosNumeral', 'Vigência do acordo (numeral)', 'vigenciaAnos'),
+      cardinalCampo('vigenciaAnosExtenso', 'Vigência do acordo (por extenso)', 'vigenciaAnos'),
+
+      // Os seis que descem ao contrato social, medidos no Perci e no Via Fértil.
+      { id: 'ordemPreferencia', label: 'Ordem do direito de preferência', tipo: 'texto' },
+      { id: 'metodosAvaliacao', label: 'Métodos de avaliação da quota', tipo: 'texto' },
+      { id: 'regraCombinacaoMetodos', label: 'Regra de combinação dos métodos', tipo: 'texto' },
+      { id: 'prazoBalancoDias', label: 'Prazo máximo do balanço, em dias', tipo: 'inteiro' },
+      numeralCampo('prazoBalancoDiasNumeral', 'Prazo do balanço (numeral)', 'prazoBalancoDias'),
+      cardinalCampo('prazoBalancoDiasExtenso', 'Prazo do balanço (por extenso)', 'prazoBalancoDias'),
+      { id: 'horizonteFluxoAnos', label: 'Horizonte do fluxo de caixa, em anos', tipo: 'inteiro' },
+      numeralCampo('horizonteFluxoAnosNumeral', 'Horizonte do fluxo (numeral)', 'horizonteFluxoAnos'),
+      cardinalCampo('horizonteFluxoAnosExtenso', 'Horizonte do fluxo (por extenso)', 'horizonteFluxoAnos'),
+      { id: 'taxaMinimaCrescimento', label: 'Taxa mínima de crescimento do fluxo', tipo: 'texto' },
     ],
   },
 };

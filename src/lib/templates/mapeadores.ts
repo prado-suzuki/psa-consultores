@@ -708,6 +708,133 @@ export function mapearCartorio(row: CartorioRow): Campos {
   return comOrigem(derivarCampos('cartorio', out), { tipo: 'cartorio', id: row.id });
 }
 
+// --- Governança (GOV-01, GOV-02 e o levantamento do acordo) -------------------
+
+/** A linha de `orgao_governanca` que o mapeador precisa. */
+export interface OrgaoParaMapear {
+  id: string;
+  nome: string;
+  /*
+   * A parametrização (mínimo, máximo, mandato, cargos e representação) ainda
+   * NÃO existe como coluna: está em `docs/osg/mot01-placeholders-da-governanca.md`
+   * esperando a validação da Patricia. Opcionais aqui para o mapeador já saber
+   * ler quando a migration entrar, sem obrigar o chamador de hoje.
+   */
+  membros_minimo?: number | null;
+  membros_maximo?: number | null;
+  mandato_anos?: number | null;
+  cargos_do_orgao?: string[] | null;
+  representa_sozinho_ate?: number | string | null;
+  representa_assinantes_acima?: number | null;
+}
+
+/**
+ * Um órgão de governança.
+ *
+ * Os campos derivados (numeral, extenso e as condicionais) saem do
+ * `derivarCampos`, que é onde "3" vira "03" e "três", e onde mínimo igual a
+ * máximo acende `membrosFixo`. O mapeador só entrega o dado cru.
+ *
+ * Os cargos chegam concatenados em prosa porque é assim que a cláusula os
+ * escreve: "sendo Diretor de Mercado e Finanças, Diretor Operações e Diretor de
+ * Sistema de Irrigação" (Bela Vista, cláusula 13ª).
+ */
+export function mapearOrgaoGovernanca(row: OrgaoParaMapear): Campos {
+  const { out, set } = coletor();
+  set('nome', row.nome);
+  set('membrosMinimo', row.membros_minimo);
+  set('membrosMaximo', row.membros_maximo);
+  set('mandatoAnos', row.mandato_anos);
+  set('cargos', prosaDeLista(row.cargos_do_orgao));
+  set('representaSozinhoAte', row.representa_sozinho_ate);
+  set('representaAssinantesAcima', row.representa_assinantes_acima);
+  return comOrigem(derivarCampos('orgaoGovernanca', out), { tipo: 'orgaoGovernanca', id: row.id });
+}
+
+/** "A", "A e B", "A, B e C" — a juntura que a cláusula usa. */
+function prosaDeLista(itens: string[] | null | undefined): string {
+  const limpos = (itens ?? []).map((i) => i.trim()).filter(Boolean);
+  if (limpos.length === 0) return '';
+  if (limpos.length === 1) return limpos[0];
+  return `${limpos.slice(0, -1).join(', ')} e ${limpos[limpos.length - 1]}`;
+}
+
+/** Uma célula da Matriz, já com papéis e alçada resolvidos por quem chamou. */
+export interface CompetenciaParaMapear {
+  id: string;
+  atividade: string;
+  detalhamento?: string | null;
+  papeis: string[];
+  alcada?: string | null;
+  sobePara?: string | null;
+  foraDaPolitica?: boolean;
+  /** A célula inteira em uma linha, para a grade. Ver `lib/matrizAlcadas.ts`. */
+  resumo?: string | null;
+}
+
+/**
+ * Uma competência da Matriz de Alçadas.
+ *
+ * Ela vira DUAS coisas e por isso carrega os campos soltos e o `resumo` junto:
+ * na alteração contratual é alínea da cláusula do órgão, montada a partir dos
+ * campos; no documento da Matriz é célula de uma grade, e ali o que se quer é a
+ * linha pronta. Medido: no contrato do Mattei a matriz aparece como alínea, e
+ * tabela nenhuma — as duas tabelas daquele arquivo são o quadro societário e o
+ * bloco de assinaturas.
+ */
+export function mapearCompetenciaMatriz(row: CompetenciaParaMapear): Campos {
+  const { out, set } = coletor();
+  set('atividade', row.atividade);
+  set('detalhamento', row.detalhamento);
+  set('papeis', prosaDeLista(row.papeis));
+  set('alcada', row.alcada);
+  set('sobePara', row.sobePara);
+  set('foraDaPolitica', row.foraDaPolitica ? 'sim' : '');
+  set('resumo', row.resumo);
+  return comOrigem(derivarCampos('competenciaMatriz', out), {
+    tipo: 'competenciaMatriz',
+    id: row.id,
+  });
+}
+
+/** Os parâmetros do acordo. Sem tabela ainda: o cadastro é a GOV-03. */
+export interface AcordoParaMapear {
+  /** Um acordo por cliente, então a identidade é o cliente. */
+  clienteId: string;
+  assinadoEm?: string | null;
+  vigenciaAnos?: number | null;
+  ordemPreferencia?: string | null;
+  metodosAvaliacao?: string[] | null;
+  regraCombinacaoMetodos?: string | null;
+  prazoBalancoDias?: number | null;
+  horizonteFluxoAnos?: number | null;
+  taxaMinimaCrescimento?: string | null;
+}
+
+/**
+ * Os parâmetros do Acordo de Quotistas que a alteração contratual consome.
+ *
+ * `assinadoEm` é o campo que decide a redação do capítulo "Do Acordo de
+ * Quotistas", e isso está literal no modelo da casa: sem acordo, "os sócios
+ * poderão firmar"; com acordo, "os sócios [nomes] firmaram em tal data, acordo
+ * de quotistas com vigência pelo período de 20 (vinte) anos".
+ */
+export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
+  const { out, set } = coletor();
+  set('assinadoEm', entrada.assinadoEm);
+  set('vigenciaAnos', entrada.vigenciaAnos);
+  set('ordemPreferencia', entrada.ordemPreferencia);
+  set('metodosAvaliacao', prosaDeLista(entrada.metodosAvaliacao));
+  set('regraCombinacaoMetodos', entrada.regraCombinacaoMetodos);
+  set('prazoBalancoDias', entrada.prazoBalancoDias);
+  set('horizonteFluxoAnos', entrada.horizonteFluxoAnos);
+  set('taxaMinimaCrescimento', entrada.taxaMinimaCrescimento);
+  return comOrigem(derivarCampos('acordoQuotistas', out), {
+    tipo: 'acordoQuotistas',
+    id: entrada.clienteId,
+  });
+}
+
 // --- Itens de lista (seções {{#socios}} / {{#administradores}}) ---------------
 
 /**
