@@ -1,9 +1,10 @@
 # Cor: o que falta, e por que cada coisa parou onde parou
 
-Estado em **03/09/2026**. O corpo do documento é a rodada de 19 commits de 01/09; em 03/09
+Estado em **10/09/2026**. O corpo do documento é a rodada de 19 commits de 01/09; em 03/09
 vieram cinco rodadas em cima dele — os rótulos de chamado, o estado de documento, a palavra
 única dos três pares, a âncora vermelha da OSG e a pasta `equipe/audit` —, e o §5 ganhou três
-catracas.
+catracas. Em 10/09 entrou a quarta e ela é de outra natureza: a primeira que não pergunta
+contraste, e sim se uma superfície bate com a vizinha (§5 e §6).
 
 > **A alavanca que funciona, medida cinco vezes seguidas:** procurar o **mapa de domínio**
 > antes de escrever classe. Das cinco rodadas, cinco acharam reuso que não tinha acontecido —
@@ -226,6 +227,7 @@ domínios de uma vez — foi ele que ficou com o masculino.
 | **verde, vermelho, azul, roxo, laranja** | **nenhuma** |
 | rótulo divergente de **chamado** | catraca `src/lib/chamadoStatusColors.test.ts` — nasce **vazia**, varre pelo conjunto de chaves |
 | rótulo divergente de status | catraca `src/lib/rotulosDeStatus.test.ts` — pega "Em Progresso" em JSX e trava a palavra dos três mapas |
+| **`--muted` divergindo do `--canvas` da área** | catraca `problemasDeRebaixamento` em `paletaDeArea.test.ts` — não olha o valor, **recalcula** com `rebaixar(--canvas)` e compara sem tolerância |
 
 A linha em negrito é o buraco que sobrou: cor crua nas famílias que não têm guarda nenhuma.
 
@@ -261,9 +263,28 @@ Nenhuma das duas é nova, e as duas estão paradas na mesma pergunta:
   `hsl(var(--slate-N))`, que é a escala institucional e não cor crua. Não confunda os dois ao
   auditar.
 
-Também seguem abertas as três decisões registradas em
-[`comparacoes-de-cor/LEIA.md`](comparacoes-de-cor/LEIA.md): porta de entrada, superfície de
-estado, e o resto dos tokens escritos à mão.
+Também seguem abertas as decisões registradas em
+[`comparacoes-de-cor/LEIA.md`](comparacoes-de-cor/LEIA.md): porta de entrada e superfície de
+estado.
+
+**"O resto dos tokens escritos à mão" encolheu em 10/09/2026, e o que sobrou tem nome.** O
+`--muted` das três áreas deixou de ser valor escolhido: `rebaixar(--canvas)` o gera — mesma
+matiz, saturação +4, luminosidade −4 — e a catraca do §5 reprova quem escrever à mão. A
+fórmula não foi inventada; é a única relação que as três já cumpriam exata.
+
+O que **continua** à mão, e por quê:
+
+| token | por quê |
+|---|---|
+| `--canvas` | é o par do `--muted`: uma escolha livre por área, como a âncora. **Tem que continuar livre** — a OSG é âncora musgo (149) com superfície areia (32), o que prova que superfície não se deriva de âncora |
+| `--background` / `--card` / `--popover` | a 99% de luminosidade a matiz não renderiza, então não há relação a extrair — a base põe `card` em branco puro e as duas áreas põem um fio de cast; as duas leituras são defensáveis |
+| `--border` / `--input` | **precisa de decisão sua.** Contra o canvas da própria área a saturação é −2 na base, +6 na Tax e −4 na OSG: não existe uma escada ali, existem três. Alinhar custa pixel, ao contrário da matiz |
+
+> **A matiz da pilha da Tax fechou junto**, em 10/09: `background`/`card`/`popover` e
+> `border`/`input` estavam em 170 enquanto `canvas` e `muted` já tinham ido para 192. Custou
+> zero pixel (a 99,6% dá `(254,254,254)` dos dois lados; a border troca um canal), e valeu
+> porque o arquivo ensinava duas matizes para a mesma área — foi assim que o `--muted` dela
+> passou dez dias verde.
 
 ## 7. Dívidas menores, com endereço
 
