@@ -136,9 +136,29 @@ const hashDoSql = (texto: string): string =>
   );
 
 // ── de onde estamos falando ──────────────────────────────────────────────────
-const refLinkada = existsSync('supabase/.temp/project-ref')
-  ? readFileSync('supabase/.temp/project-ref', 'utf8').trim()
-  : '';
+/**
+ * O CLI mudou onde grava o vínculo: até certa versão era o arquivo solto
+ * `project-ref`, e as novas gravam `linked-project.json` com o ref dentro. Ler só
+ * o antigo fazia o script abortar com "Projeto linkado é (nenhum)" numa máquina
+ * perfeitamente linkada, e o caminho de escape era aplicar por fora, que foi
+ * exatamente o que desencontrou os dois ledgers em 10/09.
+ */
+function refDoCli(): string {
+  if (existsSync('supabase/.temp/project-ref')) {
+    return readFileSync('supabase/.temp/project-ref', 'utf8').trim();
+  }
+  if (existsSync('supabase/.temp/linked-project.json')) {
+    try {
+      const j = JSON.parse(readFileSync('supabase/.temp/linked-project.json', 'utf8'));
+      return typeof j?.ref === 'string' ? j.ref.trim() : '';
+    } catch {
+      return '';
+    }
+  }
+  return '';
+}
+
+const refLinkada = refDoCli();
 
 if (refLinkada !== REF_SANDBOX) {
   console.error(`Projeto linkado é "${refLinkada || '(nenhum)'}", e este script só fala com o sandbox`);
