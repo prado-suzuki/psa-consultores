@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { avaliarFlags, comFlagDaPecaRetroativa, comporBlocos, copiarOrigemProfunda, flagDaPeca, gerarBlocos, gerarComposicao, inclusoesDe, mapearSignatarios, marcarRealceDiff, pendenciasDoDocumento, removerMarcas, unirBlocos, type Bloco, type BlocoDescartado, type BlocoGerado, type FlagDeclarativa, type OrigemValor, type RegistroFamilias, type Template } from '@/lib/templates';
+import { avaliarFlags, comFlagDaPecaRetroativa, comporBlocos, copiarOrigemProfunda, flagDaPeca, idDoRegistro, gerarBlocos, gerarComposicao, inclusoesDe, mapearSignatarios, marcarRealceDiff, pendenciasDoDocumento, removerMarcas, unirBlocos, type Bloco, type BlocoDescartado, type BlocoGerado, type FlagDeclarativa, type OrigemValor, type RegistroFamilias, type Template } from '@/lib/templates';
 import { baixarDocx } from '@/lib/templates/docx';
 import { camposDaEntidade, derivarCampos, type TipoEntidade } from '@/lib/templates/vocabulario';
 import { calcularHistoricoCapital } from '@/lib/templates/historicoCapital';
@@ -74,14 +74,11 @@ function marcoDoFormulario(dados: DadosDoRegistro, arquivoId: string | null) {
 
 /** Há administrador fora do quadro no ESTADO dado (não no cadastro vivo). */
 function administradoresForaDoQuadro(dados: SnapshotDados): boolean {
-  const idDe = (item: Record<string, unknown>, chave: string) => {
-    const obj = item[chave];
-    return obj && typeof obj === 'object' ? (obj as Record<string, unknown>).id : undefined;
-  };
+  const idDe = (item: Record<string, unknown>, chave: string) => idDoRegistro(item[chave]);
   const socios = new Set((dados.itensPorLista?.socios ?? []).map((i) => idDe(i, 'socio')).filter(Boolean));
   return (dados.itensPorLista?.administradores ?? [])
     .map((i) => idDe(i, 'administrador'))
-    .some((id) => typeof id === 'string' && !socios.has(id));
+    .some((id) => id !== null && !socios.has(id));
 }
 export interface LinhaNotificacao {
   key: string;
@@ -1144,7 +1141,7 @@ export function useGerarDocumentoController() {
   const { data: georef } = useGeorefByMatricula(matriculaGeorefId);
   const georefCabecalhoCampos = useMemo(() => mapearGeorefCabecalho(georef?.cabecalho), [georef]);
   const verticesItens = useMemo<ItemLista[]>(
-    () => (georef?.vertices ?? []).map(mapearVertice),
+    () => (georef?.vertices ?? []).map((v) => mapearVertice(v, georef?.cabecalho?.id_georef)),
     [georef],
   );
 
@@ -1304,7 +1301,7 @@ export function useGerarDocumentoController() {
           ...mapearRegistro('matricula', registro.row),
           ...mapearGeorefCabecalho(georefDoImovel?.cabecalho),
         },
-        vertices: (georefDoImovel?.vertices ?? []).map(mapearVertice),
+        vertices: (georefDoImovel?.vertices ?? []).map((v) => mapearVertice(v, georefDoImovel?.cabecalho?.id_georef)),
       }];
     }),
     [idsImoveisSelecionados, registros.matricula, georefsPorMatricula],
@@ -1327,7 +1324,7 @@ export function useGerarDocumentoController() {
       // (ver mapearIntegralizacoes): campo do catálogo ausente vira '' para o
       // condicional pular o trecho em vez de derrubar a prévia inteira.
       for (const c of camposDaEntidade('matricula')) imovel[c.id] = imovel[c.id] ?? '';
-      return [{ imovel, vertices: georef.vertices.map(mapearVertice) }];
+      return [{ imovel, vertices: georef.vertices.map((v) => mapearVertice(v, georef.cabecalho.id_georef)) }];
     }),
     [idsMatriculasDoDocumento, georefsPorMatricula, registros.matricula, integralizacoes],
   );
@@ -1438,10 +1435,12 @@ export function useGerarDocumentoController() {
 
   // --- Notificações de mudança de variável (só com versão validada) ---------
 
-  // Conjunto de cadastros que hidratam ESTE documento. Usa o lado VIVO (não o
-  // snapshot — a proveniência viaja como Symbol e some no JSON, perdendo os ids):
-  // a janela compara `audit_logs.entity_id` contra este conjunto. Tier 1 (ids
-  // diretos) + Tier 2 (linhas relacionais quadro/administração/titularidade).
+  // Conjunto de cadastros que hidratam ESTE documento. Usa o lado VIVO, e não o
+  // snapshot: a janela pergunta "o CADASTRO mudou depois da validação?", então a
+  // fonte é o cadastro de hoje, não o retrato congelado — mesmo agora que o
+  // snapshot também guarda os ids (ver origem.ts). A comparação é de
+  // `audit_logs.entity_id` contra este conjunto. Tier 1 (ids diretos) + Tier 2
+  // (linhas relacionais quadro/administração/titularidade).
   const entidadeIds = useMemo(() => {
     const ids = new Set<string>();
     if (empresaId) ids.add(empresaId); // sociedade / empresa (pessoa PJ)
@@ -1812,7 +1811,14 @@ export function useGerarDocumentoController() {
 
   // Pessoa e sociedade são linhas do mesmo cadastro (PessoaRow); sócio derivado
   // de titular sem cadastro (id "legado:…") não está em registros.pessoa e fica
-  // sem clique. Cartório ainda não carrega origem.
+  // sem clique.
+  //
+  // CARREGAR ORIGEM E SER CLICÁVEL SÃO COISAS DIFERENTES. Desde que a identidade
+  // passou a ser um mecanismo único (ver origem.ts), cartório, vértice,
+  // instrumento agrário e origem da posse também a carregam — é o que faz o
+  // snapshot saber de qual registro cada valor veio. Abrir o cadastro deles a
+  // partir da folha é outra decisão, de produto, e não há modal para isso: o
+  // `default` abaixo é essa decisão escrita, não um esquecimento.
   const origemClicavel = (o: OrigemValor) => {
     switch (o.tipo) {
       case 'pessoa':
@@ -1922,11 +1928,12 @@ export function useGerarDocumentoController() {
     );
     const totalEfetivo = dados ? (dados.total ?? quadro.total) : quadro.total;
 
-    // A serialização do snapshot também PERDE a proveniência (a origem viaja
-    // como Symbol — ver origem.ts), e sem ela os valores da prévia deixam de
-    // ser clicáveis. Religamos: bindings unitários/sociedade pela id guardada
-    // no próprio snapshot; as listas copiando a origem dos itens vivos (mesma
-    // ordem). No caminho vivo (não congelado) a origem já está lá — nada a fazer.
+    // A proveniência hoje SOBREVIVE ao jsonb (ver origem.ts), então o snapshot
+    // novo já chega clicável. As duas religações abaixo continuam pelo ACERVO:
+    // peça selada antes desta migração não guarda origem nenhuma, e sem elas os
+    // valores da prévia dela deixam de ser clicáveis. Bindings unitários pela id
+    // de `registroPorBinding`; listas casando por id contra os itens vivos. No
+    // caminho vivo (não congelado) a origem já está lá — nada a fazer.
     let selecaoEfetiva = selecao;
     if (dados) {
       // Na alteração em proposta a seleção é a do estado composto (base +

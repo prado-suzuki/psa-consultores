@@ -149,8 +149,6 @@ export function publicarOpcionais(tipo: TipoEntidade, campos: Campos): Campos {
 
 export function mapearPessoa(row: PessoaRow): Campos {
   const { out, set } = coletor();
-  // Metadado serializável: a proveniência via Symbol não sobrevive ao JSON.
-  set('id', row.id);
   set('nome', row.denominacao);
   set('tipoPessoa', row.tipo_pessoa);
   set('cpfCnpj', row.cpf_cnpj);
@@ -174,7 +172,10 @@ export function mapearPessoa(row: PessoaRow): Campos {
   set('endereco', enderecoProsa(row));
 
   // A origem sobrevive aos spreads a jusante (derivarCampos, mapearSocio,
-  // edição manual na Gerar) — é o que liga o valor na prévia ao cadastro.
+  // edição manual na Gerar) e ao JSON do snapshot — é o que liga o valor na
+  // prévia ao cadastro e o que dá identidade estável à pessoa dentro da peça.
+  // NÃO existe `set('id', row.id)` aqui: identidade se grava num lugar só
+  // (`comOrigem`, em origem.ts), senão o oitavo mapeador esquece.
   return comOrigem(derivarCampos('pessoa', publicarOpcionais('pessoa', out)), { tipo: 'pessoa', id: row.id });
 }
 
@@ -287,7 +288,6 @@ export function mapearSociedade(
   instrumento?: ContextoInstrumento,
 ): Campos {
   const { out, set } = coletor();
-  set('id', row.id);
   // O NÚMERO da alteração é o que entra; o título se deriva dele no vocabulário
   // (campo derivado não é entrada de formulário — ver camposDoBinding). Assim
   // ninguém digita "PRIMEIRA ALTERAÇÃO…" e ninguém precisa reescrever o ordinal
@@ -579,7 +579,7 @@ export function mapearCartorio(row: CartorioRow): Campos {
   set('nome', row.nome_completo);
   set('comarca', row.comarca);
   set('uf', ufPorExtenso(row.uf));
-  return derivarCampos('cartorio', out);
+  return comOrigem(derivarCampos('cartorio', out), { tipo: 'cartorio', id: row.id });
 }
 
 // --- Itens de lista (seções {{#socios}} / {{#administradores}}) ---------------
@@ -1551,7 +1551,11 @@ export function mapearAdministrador(a: AdministradorParaMapear): ItemLista {
 
 /** Pessoa que o consultor escolheu a dedo para a seção {{#partes}}, já mapeada. */
 export interface ParteSelecionada {
-  /** Id da pessoa no cadastro — a chave do mapa de quotas. */
+  /**
+   * Id da pessoa no cadastro. Serve à ORDENAÇÃO (chave do mapa de quotas e
+   * desempate de homônimos), não à identidade do item: quem carrega a identidade
+   * é `campos`, que sai de `mapearPessoa` já com a origem (ver origem.ts).
+   */
   id: string;
   /** Campos do vocabulário `pessoa` (de `mapearRegistro('pessoa', row)`). */
   campos: Campos;
@@ -1598,11 +1602,11 @@ export function mapearPartesSelecionadas(
   });
 
   return ordenadas.map((parte, i) => ({
-    // O spread preserva a proveniência da pessoa (viaja como Symbol — ver
-    // origem.ts): o valor continua clicável na prévia.
+    // O spread preserva a proveniência da pessoa (chaves reservadas — ver
+    // origem.ts): o valor continua clicável na prévia e a identidade viaja para
+    // o snapshot sem esta função repetir o `id` por conta própria.
     parte: {
       ...parte.campos,
-      id: parte.id,
       ordem: String(i + 1),
       ordemRomana: romano(i + 1).toLowerCase(),
     },
@@ -1676,8 +1680,17 @@ function numeroBRDeTexto(bruto: string | null): string {
   return Number.isFinite(n) ? n.toLocaleString('pt-BR', { maximumFractionDigits: 4 }) : bruto;
 }
 
-/** Um vértice → item da seção {{#vertices}} ({ vertice: { codVertice, longitude, … } }). */
-export function mapearVertice(v: GeorefVerticeRow): ItemLista {
+/**
+ * Um vértice → item da seção {{#vertices}} ({ vertice: { codVertice, longitude, … } }).
+ *
+ * `idGeoref` (o `id_georef` do cabeçalho que trouxe estes vértices) existe para
+ * a identidade: o vértice é a única entidade do documento que NÃO tem linha de
+ * cadastro — vem do SIGEF pelo BigQuery —, e sozinho ele não sabe de qual
+ * memorial saiu. A chave é `<id_georef>:<código do vértice>`, que é o par que
+ * identifica a linha em `psa_osg.georef_detalhe`; sem cabeçalho (chamada que só
+ * tem a lista) o item entra sem origem, como qualquer dado sem procedência.
+ */
+export function mapearVertice(v: GeorefVerticeRow, idGeoref?: string | null): ItemLista {
   const { out, set } = coletor();
   // Coordenadas/azimute/altitude/distância ficam FIÉIS ao PDF (GMS, vírgula decimal).
   set('codVertice', v.cod_vertice);
@@ -1692,7 +1705,8 @@ export function mapearVertice(v: GeorefVerticeRow): ItemLista {
   // condicional/célula não derrubar a prévia.
   const vertice = derivarCampos('vertice', out);
   for (const c of camposDaEntidade('vertice')) vertice[c.id] = vertice[c.id] ?? '';
-  return { vertice };
+  const chave = v.cod_vertice || String(v.sequencia);
+  return { vertice: idGeoref && chave ? comOrigem(vertice, { tipo: 'vertice', id: `${idGeoref}:${chave}` }) : vertice };
 }
 
 /**

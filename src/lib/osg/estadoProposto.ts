@@ -1,6 +1,7 @@
 import type { SnapshotDados } from '@/hooks/useDocumentoGerado';
 import { mapearRequalificados, type ItemLista } from '@/lib/templates/mapeadores';
 import { camposDaEntidade } from '@/lib/templates/vocabulario';
+import { idDoRegistro } from '@/lib/templates/origem';
 import { aplicarEnderecosDeSocios, FLAG_QUALIFICACAO, FLAG_SEDE, SEDE, type CandidatoAC } from '@/lib/osg/alteracaoPorEventos';
 
 // O ESTADO PROPOSTO da alteração contratual: `base registrada + eventos
@@ -114,9 +115,17 @@ export interface EstadoProposto {
   pendencias: string[];
 }
 
-function ehPessoa(obj: unknown): obj is Campos {
-  return !!obj && typeof obj === 'object' && !Array.isArray(obj)
-    && typeof (obj as Campos).id === 'string' && 'tipoPessoa' in (obj as Campos);
+/**
+ * O id da pessoa por trás de um objeto de campos, ou null se não for uma.
+ *
+ * A identidade sai de `idDoRegistro` (chave reservada da proveniência, com a
+ * queda para o `id` avulso dos snapshots antigos — ver origem.ts); `tipoPessoa`
+ * é o que distingue pessoa de qualquer outra entidade que carregue identidade.
+ */
+function idDaPessoa(obj: unknown): string | null {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
+  if (!('tipoPessoa' in (obj as Campos))) return null;
+  return idDoRegistro(obj);
 }
 
 /** As pessoas que a base conhece, por id, com os campos publicados nela. */
@@ -128,13 +137,15 @@ function pessoasDaBase(base: SnapshotDados): Map<string, Campos> {
       valor.forEach(visitar);
       return;
     }
-    if (ehPessoa(valor) && !SEDE.some((k) => k in valor) && !out.has(valor.id)) out.set(valor.id, valor);
+    const id = idDaPessoa(valor);
+    if (id && !SEDE.some((k) => k in (valor as Campos)) && !out.has(id)) out.set(id, valor as Campos);
     Object.values(valor as Record<string, unknown>).forEach(visitar);
   };
   visitar(base.itensPorLista);
   Object.entries(base.selecao).forEach(([binding, campos]) => {
-    if (!base.registroPorBinding[binding] || campos.id === base.empresaId) return;
-    if (ehPessoa(campos)) out.set(campos.id, campos);
+    if (!base.registroPorBinding[binding] || idDoRegistro(campos) === base.empresaId) return;
+    const id = idDaPessoa(campos);
+    if (id) out.set(id, campos);
   });
   return out;
 }
@@ -152,8 +163,9 @@ function comQualificacaoDaBase(itens: ItemLista[], pessoas: Map<string, Campos>)
     if (!valor || typeof valor !== 'object') return valor;
     if (Array.isArray(valor)) return valor.map(visitar);
     const obj = valor as Record<string, unknown>;
-    if (ehPessoa(obj) && pessoas.has(obj.id)) {
-      const anterior = pessoas.get(obj.id)!;
+    const id = idDaPessoa(obj);
+    if (id && pessoas.has(id)) {
+      const anterior = pessoas.get(id)!;
       const out: Record<string, unknown> = { ...obj };
       for (const campo of CAMPOS_PESSOA) {
         if (campo in anterior) out[campo] = anterior[campo];
@@ -186,8 +198,9 @@ function requalificados(estado: SnapshotDados, candidatos: readonly CandidatoAC[
   const visitar = (valor: unknown) => {
     if (!valor || typeof valor !== 'object') return;
     if (Array.isArray(valor)) { valor.forEach(visitar); return; }
-    if (ehPessoa(valor) && !SEDE.some((k) => k in valor) && !porId.has(valor.id)) {
-      porId.set(valor.id, valor);
+    const id = idDaPessoa(valor);
+    if (id && !SEDE.some((k) => k in (valor as Campos)) && !porId.has(id)) {
+      porId.set(id, valor as Campos);
     }
     Object.values(valor as Record<string, unknown>).forEach(visitar);
   };

@@ -436,7 +436,7 @@ describe('GerarDocumento — caracterização O1', () => {
     expect(payload.snapshotVersoesBlocos.familias).toEqual({});
   });
 
-  it('hidrata SnapshotDados antigo, mantém o documento congelado e religa a proveniência Symbol', async () => {
+  it('hidrata SnapshotDados antigo, mantém o documento congelado e religa a proveniência do acervo', async () => {
     await abrirDocumentoCongelado();
 
     expect(screen.getByText(/Acme congelada/)).toBeInTheDocument();

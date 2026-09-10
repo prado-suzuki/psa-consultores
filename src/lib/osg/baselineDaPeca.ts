@@ -1,4 +1,5 @@
 import { numeroDeValorBR } from '@/lib/templates/historicoCapital';
+import { idDoRegistro } from '@/lib/templates/origem';
 
 // O ESTADO da sociedade antes desta peça, lido do snapshot do documento que ela
 // substitui.
@@ -14,8 +15,11 @@ import { numeroDeValorBR } from '@/lib/templates/historicoCapital';
 // proxy de "já foi contado". Quando os dois divergem, quem produziu efeito foi a
 // peça. (Decisão D2 de docs/planos/derivacao-de-eventos-e-carimbo.md.)
 //
-// Snapshots novos congelam pessoa.id. CPF/CNPJ fica apenas para conciliação dos
-// legados com o livro: corrigir documento não troca a identidade de uma pessoa.
+// Snapshots novos congelam a identidade da pessoa na chave reservada da
+// proveniência (ver origem.ts), e os anteriores no campo `id` avulso — as duas
+// leituras estão em `idDoRegistro`. CPF/CNPJ fica apenas para conciliação dos
+// legados que não têm nenhuma das duas: corrigir documento não troca a
+// identidade de uma pessoa.
 
 /** O recorte do `snapshot_dados` que o baseline sabe ler. */
 export interface SnapshotDaPeca {
@@ -75,8 +79,7 @@ function sociosDoSnapshot(snapshot: SnapshotDaPeca | null | undefined, campo: 'i
   const documentos: string[] = [];
   for (const item of lista) {
     const socio = (item as { socio?: Record<string, unknown> } | null)?.socio;
-    const valor = socio?.[campo];
-    const chave = campo === 'cpfCnpj' ? digitosDe(valor) : typeof valor === 'string' ? valor.trim() : '';
+    const chave = campo === 'cpfCnpj' ? digitosDe(socio?.cpfCnpj) : (idDoRegistro(socio) ?? '');
     if (!chave) return null;
     documentos.push(chave);
   }

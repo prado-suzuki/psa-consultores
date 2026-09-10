@@ -226,7 +226,7 @@ export { mapearSignatarios } from './signatarios';
 export type { EntradaSignatarios, SignatarioAvulso } from './signatarios';
 export { PALAVRA_INCLUSAO, resolverVariante } from './familia';
 export type { RegistroFamilias, VarianteFamilia } from './familia';
-export { ORIGEM, comOrigem, origemDe, copiarOrigemProfunda } from './origem';
+export { CHAVE_ORIGEM_ID, CHAVE_ORIGEM_TIPO, comOrigem, copiarOrigemProfunda, idDoRegistro, origemDe } from './origem';
 export type { OrigemValor } from './origem';
 export { extrairRunsLinha, removerMarcas, runsPosicionados, MARCA } from './marcas';
 export type { Marcas, RunMarcado, RunPosicionado } from './marcas';

@@ -42,6 +42,7 @@ import {
   areaExtenso, formatarArea, formatarValor, letraAlinea, numeralContrato, percentualExtenso,
   romano, valorExtenso,
 } from './extenso';
+import { comOrigem } from './origem';
 import {
   coletor,
   formatarDataBR,
@@ -130,6 +131,12 @@ export interface OrigemPosseRural {
 
 /** A linha de `exploracao_rural`, na forma que o mapeador consome. */
 export interface InstrumentoRural {
+  /**
+   * Id da linha de `exploracao_rural`. É a identidade do instrumento no
+   * snapshot, gravada por `comOrigem` como em qualquer outra entidade.
+   * Opcional porque as fixtures e o modelo sem instrumento não a têm.
+   */
+  id?: string | null;
   tipoExploracao: string;
   dataAssinatura: string | null;
   dataEncerramento: string | null;
@@ -490,7 +497,11 @@ export function mapearInstrumentoRural(entrada: EntradaInstrumentoRural): Campos
   out.foroUf = manuais.foroUf ?? '';
   set('numeroVias', numeralContrato(manuais.numeroVias));
 
-  return derivarCampos('instrumento', publicarOpcionais('instrumento', out));
+  const campos = derivarCampos('instrumento', publicarOpcionais('instrumento', out));
+  // Identidade pelo mesmo mecanismo das demais entidades (ver origem.ts): o
+  // instrumento agrário é binding UNITÁRIO, e sem isto o snapshot não guardava
+  // de qual exploração rural o contrato falava.
+  return inst.id ? comOrigem(campos, { tipo: 'instrumento', id: inst.id }) : campos;
 }
 
 /** Item de lista de pessoa, com as condicionais PF/PJ que o vocabulário espera. */
@@ -664,7 +675,7 @@ export function listasDoInstrumentoRural(
         // Os *Elementos do Perímetro* da alínea. Mesma coleção do memorial SIGEF,
         // mesmo mapeador de vértice: o Anexo do Bela Vista a imprime em tabela e o
         // do MMS em prosa, e a diferença é do bloco, não do dado.
-        vertices: (georef?.vertices ?? []).map(mapearVertice),
+        vertices: (georef?.vertices ?? []).map((v) => mapearVertice(v, georef?.cabecalho?.id_georef)),
       };
     }),
 
@@ -692,7 +703,14 @@ export function listasDoInstrumentoRural(
         ?.tipo_pessoa;
 
       return {
-        origemPosse: derivarCampos('origemPosse', publicarOpcionais('origemPosse', out)),
+        // A `chave` da origem É o id da linha (`exploracao_rural_origem.id` na
+        // externa, `interna:<id do instrumento>` na interna — ver entradaRural):
+        // é ela que agrupa as alíneas e é ela que identifica a origem no
+        // snapshot, pelo mesmo mecanismo das outras entidades.
+        origemPosse: comOrigem(
+          derivarCampos('origemPosse', publicarOpcionais('origemPosse', out)),
+          { tipo: 'origemPosse', id: chave },
+        ),
         // A qualificação do outorgante da ORIGEM é montada pela MESMA função que
         // monta a do outorgante deste instrumento — com capital social e com os
         // administradores qualificados por inteiro.

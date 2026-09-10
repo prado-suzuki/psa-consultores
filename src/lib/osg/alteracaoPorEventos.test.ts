@@ -269,7 +269,7 @@ describe('alteracao por eventos: recorte de sede', () => {
     expect(proposta.estadoProposto.itensPorLista.movimentos).toEqual([]);
   });
 
-  it('preserva historico, nao compartilha referencias e aceita Symbols de proveniencia', () => {
+  it('preserva historico, nao compartilha referencias e aceita chaves reservadas de proveniencia', () => {
     const base = snapshot();
     const atual = mudanca(base);
     Object.defineProperty(base.selecao.sociedade, Symbol('origem'), { value: { id: 'empresa-1' }, enumerable: true });

@@ -27,8 +27,11 @@ Isso NÃO limita o teste, desde que se saiba a ordem:
 
 | | Para quê |
 | --- | --- |
-| **`[TESTE] Cofre Subterrâneo Guarda de Acervos Ltda`** | **A sua.** Contrato social registrado, nenhuma AC em cima. |
+| **`[TESTE] Cofre Subterrâneo Guarda de Acervos Ltda`** | Contrato social registrado. **A AC em cima dele já foi consumida e VALIDADA em 10/09/2026**, na medição da frente da proveniência serializada: o passo 6 do roteiro não se repete aqui, só "Rever os eventos". |
 | `[TESTE] Toca Notarial Registros Subterrâneos Ltda` | Gêmea, já consumida pelo ensaio de montagem. Não usar. |
+| `[TESTE] Galeria Profunda Participações Ltda` | Também consumida: ganhou uma peça de constituição validada em 10/09/2026, na mesma medição. |
+
+Para a experiência de *primeira* AC continuam servindo os 53 clientes `dev` vazios.
 
 `Cofre Subterrâneo`: CNPJ 66.331.122/0001-79, NIRE 51900000789, capital
 **R$ 1.000.000,00** em 1.000.000 de quotas de R$ 1,00. Registro: protocolo
@@ -45,11 +48,16 @@ já sai com "um milhão de reais" em vez de "um milhão reais".
 | **Marlene Furtado Cavalcanti** · CPF 518.629.371-76 | 300.000 | sócia **e administradora** | singular feminino, e o plural junto com o Nivaldo |
 | **[TESTE] Galeria Profunda Participações Ltda** · CNPJ 55.887.799/0001-71 | 200.000 | sócia PJ | o caso que **não** homologa: tem de virar pendência, não evento |
 
-Endereços **como estão agora** no cadastro (é o que a peça registrada publicou):
+Endereços que **a peça registrada publicou** (é o "antes" de toda comparação):
 
 - **Nivaldo** — Rua Barão de Melgaço, n.º 1200, Sala 3, Centro Sul, Cuiabá/MT, CEP 78020-800
 - **Marlene** — Rua Joaquim Murtinho, n.º 450, Apto 702, Centro Norte, Cuiabá/MT, CEP 78010-100
 - **Galeria Profunda** — Avenida Fernando Corrêa da Costa, n.º 3000, Sala 12, Coxipó, Cuiabá/MT, CEP 78090-000
+
+⚠️ O CADASTRO DE HOJE JÁ NÃO É ESSE. Nivaldo e Marlene foram movidos (para a
+Avenida Historiador Rubens de Mendonça, n.º 1894, e para a Rua Engenheiro Edgard
+Prado Arze, n.º 1777) por quem percorreu o roteiro em 10/09/2026, e a AC validada
+publica os novos. Confira o cadastro antes de supor o "depois".
 
 ## Os caminhos
 
@@ -126,10 +134,16 @@ MARLENE FURTADO CAVALCANTI … o atual endereço desta`.
 
 ## Ruído esperado, que não é defeito
 
-- O diálogo mostra sempre, mesmo com cadastro intocado, linhas do tipo
-  *"Atual/Base: qualificacao sem id estavel; CPF/CNPJ nao concilia identidade"*.
-  Vem de ocorrências do snapshot que não carregam id (administrador, signatário);
-  é ruído conhecido, não impede nada.
+- ~~O diálogo mostra sempre, mesmo com cadastro intocado, linhas do tipo *"Atual/Base:
+  qualificacao sem id estavel; CPF/CNPJ nao concilia identidade"*.~~ **VENCIDO.**
+  Medido no app em 10/09/2026 com o cadastro intocado: o diálogo tem 2.097
+  caracteres e nenhuma dessas linhas. O ruído já tinha sido eliminado por
+  `d6e55f66` (o id do administrador) e `3c2e6b10` (as assinaturas fora da
+  comparação); a frente da proveniência serializada
+  (`osg/proveniencia-serializada-no-snapshot.md`) tirou a CAUSA, que era a
+  identidade depender de quem lembrasse de escrevê-la em cada mapeador.
+  Se a linha reaparecer, agora ela é verdade e vale investigar — a prova está em
+  `e2e/dados/qa-identidade-no-snapshot.json`, item B1.
 - Os campos de "Preencher à mão" (data de assinatura, testemunhas) **só gravam
   se a versão for validada na mesma sessão**. Sem isso o `.docx` sai marcado
   como rascunho.

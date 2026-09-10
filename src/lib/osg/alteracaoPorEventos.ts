@@ -1,5 +1,6 @@
 import type { SnapshotDados } from '@/hooks/useDocumentoGerado';
 import { derivarCampos } from '@/lib/templates/vocabulario';
+import { idDoRegistro, origemDe } from '@/lib/templates/origem';
 import { digitosDe } from '@/lib/osg/baselineDaPeca';
 
 // A alteração contratual por EVENTOS: o que mudou entre o instrumento registrado
@@ -109,7 +110,8 @@ export const CAMPOS_DE_ENDERECO_PESSOA = ['endereco'] as const;
 export const FLAG_SEDE = 'evento_alteracao_endereco';
 export const FLAG_QUALIFICACAO = 'evento_alteracao_qualificacao';
 
-// O snapshot e JSON persistido; Symbols de proveniencia nao pertencem ao contrato.
+// O snapshot e JSON persistido, e a proveniencia agora viaja em chaves de string
+// (ver origem.ts): o round-trip preserva a identidade em vez de descarta-la.
 function clone<T>(valor: T): T {
   return JSON.parse(JSON.stringify(valor)) as T;
 }
@@ -136,6 +138,12 @@ const preenchido = (v: string | null | undefined) => conhecido(v) && v!.trim() !
 interface Ocorrencia {
   campos: Record<string, unknown>;
   id: string | null;
+  /**
+   * Tipo da entidade de origem ('pessoa', 'sociedade', 'cartorio'…), quando o
+   * snapshot o declara. Null nos snapshots anteriores à proveniência serializada
+   * — e é por isso que quem depende dele sempre tem um ramo para a ausência.
+   */
+  tipo: string | null;
   sociedade: boolean;
   caminho: string;
   /** Nome da lista de `itensPorLista` que contém esta ocorrência, quando é uma. */
@@ -165,11 +173,14 @@ function ocorrencias(snapshot: SnapshotDados): Ocorrencia[] {
     }
     const campos = valor as Record<string, unknown>;
     const vinculo = binding ? snapshot.registroPorBinding[binding] : undefined;
-    const id = typeof campos.id === 'string' && campos.id.trim() ? campos.id : vinculo || null;
+    // A identidade sai de `idDoRegistro`, que lê a chave reservada da
+    // proveniência e cai no `id` avulso dos snapshots antigos (ver origem.ts).
+    const id = idDoRegistro(campos) ?? vinculo ?? null;
     const sociedade = binding === 'sociedade' || SEDE.some((k) => k in campos);
     out.push({
       campos, sociedade, caminho,
       id: id ?? (binding === 'sociedade' ? snapshot.empresaId : null),
+      tipo: origemDe(campos)?.tipo ?? null,
       lista: listaDoCaminho(caminho),
     });
     Object.entries(campos).forEach(([k, item]) => visitar(item, `${caminho}.${k}`));
@@ -222,7 +233,8 @@ export function analisarAlteracao(base: SnapshotDados, atual: SnapshotDados): {
     }
     for (const [binding, campos] of Object.entries(snapshot.selecao)) {
       const vinculo = snapshot.registroPorBinding[binding];
-      if (campos.id && vinculo && campos.id !== vinculo) {
+      const proprio = idDoRegistro(campos);
+      if (proprio && vinculo && proprio !== vinculo) {
         problemasSede.push(`${rotulo}: identidade do binding ${binding} inconsistente.`);
       }
     }
@@ -275,7 +287,7 @@ export function analisarAlteracao(base: SnapshotDados, atual: SnapshotDados): {
     const candidato = criarCandidato(`sede:${base.empresaId ?? 'desconhecida'}`, 'sede', antes, depois,
       problemasSede, `Sede: ${antes.sede ?? '(desconhecida)'} -> ${depois.sede ?? '(desconhecida)'}`);
     const bindings = Object.entries(atual.selecao).filter(([nome, c]) =>
-      c.id === base.empresaId || atual.registroPorBinding[nome] === base.empresaId || nome === 'sociedade')
+      idDoRegistro(c) === base.empresaId || atual.registroPorBinding[nome] === base.empresaId || nome === 'sociedade')
       .map(([nome]) => nome).sort();
     candidato.fingerprint += JSON.stringify([bindings, b.map((o) => o.caminho).sort()]);
     candidatos.push(candidato);
@@ -285,6 +297,19 @@ export function analisarAlteracao(base: SnapshotDados, atual: SnapshotDados): {
   const pessoas = (lista: Ocorrencia[], rotulo: string) => {
     const porId = new Map<string, { campos: CamposAC; socio: boolean }>();
     for (const o of lista) {
+      // O FILTRO É A DECISÃO DE PAPEL, e agora ele pode ser exato.
+      //
+      // A heurística de baixo ("tem cpfCnpj, tipoPessoa ou nome") era o que
+      // havia antes de o snapshot guardar o tipo da entidade, e ela pega demais:
+      // `mapearCartorio` publica `nome`, então TODO documento com binding de
+      // cartório punha a serventia na comparação de qualificação de pessoa. Sem
+      // id isso só cobrava a pendência "sem id estavel"; COM id (que é o que
+      // esta frente entrega) o cartório passaria a virar candidato de
+      // qualificação — uma serventia que "trocou de profissão".
+      //
+      // Com o tipo declarado, quem não é pessoa sai por declaração. Sem ele
+      // (snapshot do acervo), a heurística continua respondendo, como sempre.
+      if (o.tipo && o.tipo !== 'pessoa') continue;
       if (o.sociedade || !['cpfCnpj', 'tipoPessoa', 'nome'].some((k) => typeof o.campos[k] === 'string')) continue;
       // O bloco de ASSINATURAS é projeção, não fonte de qualificação: ele carrega
       // nome, papel, CPF e a linha de complemento, e nada mais (ver
@@ -430,11 +455,22 @@ export function pessoaDoCandidatoDeEndereco(id: string): string | null {
  *
  * POR QUE O CPF ENTRA AQUI, se o resto do módulo diz que identidade é o id.
  * ------------------------------------------------------------------
- * Porque nem toda ocorrência tem id. No snapshot real, `socios[].socio` carrega
- * `id` e `administradores[].administrador` NÃO (conferido no sandbox, inclusive
- * em peça registrada no mesmo dia). Exigir id aqui fazia a peça sair com o
- * endereço novo no preâmbulo e na cláusula de capital, e o ANTIGO na cláusula de
- * administração: exatamente o defeito que o parágrafo acima diz evitar.
+ * Porque nem toda ocorrência tem id — e a que não tem é sempre a mesma: a do
+ * ACERVO. O estado sobre o qual esta função escreve nasce da BASE, que é o
+ * snapshot da peça registrada; peça registrada antes de a proveniência passar a
+ * sobreviver ao JSON (ver origem.ts) não guardou identidade em `administradores`
+ * nem em `signatarios`, e nunca vai guardar — reescrever esse jsonb é alterar o
+ * que o documento diz que disse.
+ *
+ * Foi medido: exigir id aqui fazia a peça sair com o endereço novo no preâmbulo
+ * e na cláusula de capital, e o ANTIGO na cláusula de administração — exatamente
+ * o defeito que o parágrafo acima diz evitar. Tirar o casamento por CPF hoje
+ * REGRIDE, e a prova é o teste "aplica tambem na ocorrencia SEM id, reconhecida
+ * pelo CPF do mesmo estado" (alteracaoPorEventos.test.ts), que falha sem ele.
+ *
+ * Em peça NOVA ele já não é acionado: toda ocorrência de pessoa carrega
+ * identidade, e o casamento se resolve pelo id. O fallback fica pelo acervo, e é
+ * por ele que ele sai um dia — quando não houver mais base sem identidade.
  *
  * O CPF não decide identidade; ele apenas RECONHECE, dentro do mesmo estado, uma
  * segunda ocorrência de quem já foi identificado por id na lista de sócios. É
@@ -483,7 +519,7 @@ export function aplicarEnderecosDeSocios(
   }
   // Valores livres pontilhados sobrescrevem o binding no montarContexto.
   for (const [binding, campos] of Object.entries(estado.selecao)) {
-    const id = campos.id || estado.registroPorBinding[binding];
+    const id = idDoRegistro(campos) ?? estado.registroPorBinding[binding];
     const depois = id ? aprovados.get(id) : undefined;
     if (!depois) continue;
     for (const [k, v] of Object.entries(depois)) {
@@ -544,8 +580,8 @@ export function confirmarPropostaAC(args: ArgsDaConfirmacao): PropostaAC {
     }
     // Valores livres pontilhados podem sobrescrever o binding no montarContexto.
     for (const [binding, campos] of Object.entries(estadoProposto.selecao)) {
-      const id = campos.id || estadoProposto.registroPorBinding[binding]
-        || (binding === 'sociedade' ? estadoProposto.empresaId : null);
+      const id = idDoRegistro(campos) ?? estadoProposto.registroPorBinding[binding]
+        ?? (binding === 'sociedade' ? estadoProposto.empresaId : null);
       if (id !== estadoProposto.empresaId) continue;
       for (const [k, v] of Object.entries(sede.depois)) {
         const caminho = `${binding}.${k}`;

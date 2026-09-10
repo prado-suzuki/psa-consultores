@@ -14,6 +14,7 @@ import {
   mapearPartesSelecionadas,
   mapearPessoa,
   mapearQuadroSocietario,
+  mapearRequalificados,
   mapearSociedade,
   mapearSocio,
   reidratarItensPorLista,
@@ -27,14 +28,19 @@ import {
 import { tituloDoInstrumento, TITULO_CONSTITUICAO } from './instrumento';
 import { gerarDocumento } from './index';
 import { origemDe } from './origem';
+import { mapearSignatarios } from './signatarios';
 import { derivarCampos } from './vocabulario';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { Template } from './types';
 
 type Campos = Record<string, string>;
 
+// A cobertura por TIPO DE ENTIDADE (nenhuma fica de fora) mora em
+// `identidade.test.ts`, que varre a lista do vocabulário. Aqui fica a outra
+// metade: cada PAPEL de lista continua carregando a identidade da pessoa depois
+// do round-trip do jsonb, que é onde o Symbol a perdia.
 describe('identidade persistida nos mapeadores', () => {
-  it('congela pessoa.id na seleção e nas listas após serialização JSON', () => {
+  it('a pessoa continua identificada em todos os papéis, após serialização JSON', () => {
     const pessoa = { id: 'pessoa-ana', denominacao: 'Ana', tipo_pessoa: 'PF' } as PessoaRow;
     const s = { pessoa, quotas: 100, vlr_total: 100, representante: null };
     const snapshot = JSON.parse(JSON.stringify({
@@ -44,18 +50,41 @@ describe('identidade persistida nos mapeadores', () => {
         administradores: [mapearAdministrador({ pessoa, cargo: null })],
         retirantes: mapearRetirantes([pessoa]),
         cessoes: mapearCessoes([{ id: 'mov', cedente: pessoa, cessionario: pessoa, quotas: 1, valor: 1 }]),
-        partes: mapearPartesSelecionadas([{ id: pessoa.id, campos: { nome: 'Ana' } }]),
+        partes: mapearPartesSelecionadas([{ id: pessoa.id, campos: mapearPessoa(pessoa) }]),
+        requalificados: mapearRequalificados([mapearPessoa(pessoa)]),
+        signatarios: mapearSignatarios({ socios: [s] }),
         integralizacoes: mapearIntegralizacoes([s], [], [
           { id: 'aporte', pessoaId: pessoa.id, quotas: 100, valor: 100, forma: 'moeda' },
         ]),
       },
     })) as { selecao: Record<string, Campos>; itensPorLista: Record<string, ItemLista[]> };
-    expect(snapshot.selecao.pessoa.id).toBe(pessoa.id);
-    expect(snapshot.selecao.sociedade.id).toBe(pessoa.id);
+    expect(origemDe(snapshot.selecao.pessoa)).toEqual({ tipo: 'pessoa', id: pessoa.id });
+    expect(origemDe(snapshot.selecao.sociedade)).toEqual({ tipo: 'sociedade', id: pessoa.id });
     for (const [lista, papel] of [
       ['socios', 'socio'], ['administradores', 'administrador'], ['retirantes', 'retirante'],
-      ['cessoes', 'cedente'], ['cessoes', 'cessionario'], ['partes', 'parte'], ['integralizacoes', 'socio'],
-    ]) expect((snapshot.itensPorLista[lista][0][papel] as Campos).id).toBe(pessoa.id);
+      ['cessoes', 'cedente'], ['cessoes', 'cessionario'], ['partes', 'parte'],
+      ['requalificados', 'requalificado'],
+      // O signatário é PROJEÇÃO (nome, papel, CPF), e por isso ficava sem
+      // identidade — o que o punha fora da comparação e cobrava uma pendência
+      // por peça. Ele passa a carregá-la como os demais; quem o mantém fora da
+      // comparação de qualificação é a decisão de PAPEL, em alteracaoPorEventos.
+      ['signatarios', 'signatario'],
+      ['integralizacoes', 'socio'],
+    ]) {
+      expect(origemDe(snapshot.itensPorLista[lista][0][papel]))
+        .toEqual({ tipo: 'pessoa', id: pessoa.id });
+    }
+  });
+
+  // Identidade se grava num lugar só. Um `set('id', row.id)` avulso reaparecendo
+  // num mapeador é o remendo que esta frente removeu — e ele não falha em lugar
+  // nenhum, só volta a fazer a identidade depender de quem lembrou de escrevê-la.
+  it('nenhum mapeador publica um campo `id` avulso por conta própria', () => {
+    const pessoa = { id: 'pessoa-ana', denominacao: 'Ana', tipo_pessoa: 'PF' } as PessoaRow;
+    expect(mapearPessoa(pessoa).id).toBeUndefined();
+    expect(mapearSociedade(pessoa).id).toBeUndefined();
+    expect((mapearPartesSelecionadas([{ id: pessoa.id, campos: mapearPessoa(pessoa) }])[0].parte as Campos).id)
+      .toBeUndefined();
   });
 });
 
