@@ -59,6 +59,7 @@ function vivo(): SnapshotDados {
     usufrutos: [{ nuProprietario: pessoa('p2'), usufruto: { quotas: '25' } }],
     gravamesQuotas: [{ nuProprietario: pessoa('p2'), gravame: { quotas: '25' } }],
     quadroUsufruto: [{ titular: p1, usufruto: { plena: '75' } }],
+    gravamesVigentes: [{ nuProprietario: pessoa('p2'), gravame: { quotas: '25' } }],
     retirantes: [],
     signatarios: [{ signatario: { nome: 'Pessoa p1' } }, { signatario: { nome: 'Pessoa p2' } }],
     imoveis: [{ imovel: { id: 'imovel-1', numero: '1' } }],
@@ -104,6 +105,31 @@ describe('estado proposto = base registrada + eventos confirmados', () => {
     expect(doacao.cessoes).toEqual([]);
     expect(doacao.doacoes).toHaveLength(1);
     expect(doacao.usufrutos).toHaveLength(1);
+  });
+
+  it('o ônus vigente atravessa a peça que não é de doação', () => {
+    // A regra do módulo é `base + eventos confirmados`, e esta é a exceção
+    // declarada: gravame e usufruto são fato da sociedade, não deliberação
+    // desta peça. Governá-los por evento faria a AC de sede seguinte publicar
+    // um consolidado SEM a tabela de voto e SEM a nota de gravame, apagando do
+    // contrato vigente um ônus que ninguém revogou.
+    const sede = compor(['evento_alteracao_endereco']).estado.itensPorLista;
+    expect(sede.gravamesQuotas).toEqual([]);
+    expect(sede.usufrutos).toEqual([]);
+    // Os números são os do vivo; a QUALIFICAÇÃO de quem aparece na tabela
+    // continua sendo a que o instrumento registrado publicou, como em toda
+    // lista viva (comQualificacaoDaBase).
+    expect(sede.quadroUsufruto).toEqual([
+      { titular: expect.objectContaining({ id: 'p1', profissao: 'Medica' }), usufruto: { plena: '75' } },
+    ]);
+    expect(sede.gravamesVigentes).toEqual([
+      { nuProprietario: expect.objectContaining({ id: 'p2' }), gravame: { quotas: '25' } },
+    ]);
+
+    // E também a peça sem evento nenhum.
+    const nenhum = compor([]).estado.itensPorLista;
+    expect(nenhum.quadroUsufruto).toHaveLength(1);
+    expect(nenhum.gravamesVigentes).toHaveLength(1);
   });
 
   it('a peca nova e numerada pelo motor, e a identificacao registral vazia na base e completada', () => {

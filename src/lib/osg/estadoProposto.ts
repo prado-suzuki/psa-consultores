@@ -22,6 +22,8 @@ import { aplicarEnderecosDeSocios, FLAG_QUALIFICACAO, FLAG_SEDE, SEDE, type Cand
 //                               qualificação inteira do cadastro)
 //   quadro, capital, aportes,
 //   cessões, retirantes       → vivos se algum evento de MOVIMENTO confirmado
+//   ônus (usufruto, gravame)  → SEMPRE vivo: é fato da sociedade, não deliberação
+//                               desta peça (ver LISTAS_VIVAS_SEMPRE)
 //   administração             → viva se `evento_mudanca_administracao` confirmado
 //   assinaturas               → vivas se movimento OU administração confirmados
 //   identificação da PJ       → base; vazio na base é completado do cadastro
@@ -49,14 +51,30 @@ export const EVENTO_QUALIFICACAO = FLAG_QUALIFICACAO;
 /** Listas que descrevem o livro de movimentos e o quadro que ele produz. */
 const LISTAS_DE_MOVIMENTO = [
   'socios', 'integralizacoes', 'cessoes', 'doacoes', 'usufrutos', 'gravamesQuotas',
-  'quadroUsufruto', 'retirantes',
+  'retirantes',
 ] as const;
+/** As coleções do ato de doação: existem só quando `evento_doacao_quotas` entra. */
+const LISTAS_DA_DOACAO = ['doacoes', 'usufrutos', 'gravamesQuotas'] as const;
 const LISTAS_DE_ADMINISTRACAO = ['administradores'] as const;
 /** Os sócios que a resolução de qualificação nomeia: só existem se o evento entrar. */
 const LISTAS_DE_QUALIFICACAO = ['requalificados'] as const;
 const LISTAS_DE_ASSINATURA = ['signatarios'] as const;
-/** Georref não é dado congelável: vem do BigQuery a cada abertura (ver contextoDoDocumento). */
-const LISTAS_VIVAS_SEMPRE = ['vertices', 'memoriais'] as const;
+/**
+ * Listas sempre lidas do vivo.
+ *
+ * Georref não é dado congelável: vem do BigQuery a cada abertura (ver
+ * contextoDoDocumento).
+ *
+ * O ÔNUS entra aqui por outro motivo, e é uma exceção deliberada à regra `base
+ * registrada + eventos confirmados`: gravame e usufruto não são deliberação
+ * desta peça, são fato da sociedade, e o contrato consolidado os republica a
+ * cada alteração. Governá-los por evento faria a primeira AC de sede depois de
+ * uma doação sair com a tabela de voto e a nota de gravame APAGADAS do contrato
+ * vigente, que é exatamente o defeito que o corpus de 105 instrumentos
+ * documentou. Não há risco de reescrever peça pronta: versão validada renderiza
+ * do snapshot selado, e esta composição só roda na proposta.
+ */
+const LISTAS_VIVAS_SEMPRE = ['vertices', 'memoriais', 'quadroUsufruto', 'gravamesVigentes'] as const;
 
 /** Campos da sociedade que o MOTOR sintetiza para esta peça, não o cadastro. */
 const SINTETIZADOS_DA_PECA = ['numeroAlteracao', 'tituloInstrumento'] as const;
@@ -289,8 +307,7 @@ export function comporEstadoProposto(args: ArgsDoEstadoProposto): EstadoProposto
   const listasVivas = new Set<string>([...LISTAS_VIVAS_SEMPRE]);
   if (movimento) ['socios', 'integralizacoes', 'retirantes'].forEach((l) => listasVivas.add(l));
   if (cessao) listasVivas.add('cessoes');
-  if (doacao) ['doacoes', 'usufrutos', 'gravamesQuotas', 'quadroUsufruto']
-    .forEach((l) => listasVivas.add(l));
+  if (doacao) LISTAS_DA_DOACAO.forEach((l) => listasVivas.add(l));
   if (administracao) LISTAS_DE_ADMINISTRACAO.forEach((l) => listasVivas.add(l));
   if (qualificacaoConfirmada) LISTAS_DE_QUALIFICACAO.forEach((l) => listasVivas.add(l));
   if (movimento || administracao) LISTAS_DE_ASSINATURA.forEach((l) => listasVivas.add(l));
@@ -311,7 +328,7 @@ export function comporEstadoProposto(args: ArgsDoEstadoProposto): EstadoProposto
   // Coleções do ato só existem quando a causa correspondente foi confirmada.
   const listasInativas = [
     ...(!cessao ? ['cessoes'] : []),
-    ...(!doacao ? ['doacoes', 'usufrutos', 'gravamesQuotas', 'quadroUsufruto'] : []),
+    ...(!doacao ? [...LISTAS_DA_DOACAO] : []),
     ...(!movimento ? ['retirantes'] : []),
   ];
   for (const nome of listasInativas) {

@@ -40,7 +40,7 @@ vitalício"; o que ele mostra e este documento adota está resumido abaixo.
 |---|---|---|
 | **1. O evento no Quadro Societário** | Gesto "Doar quotas" na área do quadro: vários pares num ato, reserva de usufruto, gravames, origem legítima/disponível, data do instrumento. Grava o livro e o ônus. Tabela "Usufruto e voto" na página | ✅ entregue 10/09/2026 (sandbox) |
 | **2. A peça** | O assistente da AC deriva "Doação com reserva de usufruto" com evidência, e a folha compõe as cláusulas do ato (doação, extensão do usufruto, gravames, renúncia à preferência, mapa de usufruto e voto) | ✅ entregue 10/09/2026 (sandbox) · **redação pendente de aceite jurídico** |
-| **3. Os ecos na consolidação** | Os três pontos fixos do contrato consolidado passam a ler o ônus vigente, e as validações aritméticas (fração de quota, legítima ímpar, três somas independentes) | 🔵 aberta |
+| **3. Os ecos na consolidação** | Os três pontos fixos do contrato consolidado passam a ler o ônus vigente, e as validações aritméticas (fração de quota, legítima ímpar, três somas independentes) | ✅ entregue 10/09/2026 (sandbox) · **redação pendente de aceite jurídico** |
 | **4. As variantes** | Cessão gratuita sem usufruto (sub-rogação do gravame preexistente) e instituição de usufruto avulsa, o ato próprio com guia própria | 🔵 aberta |
 
 A ordem é a de sempre nesta frente: o fato entra no livro primeiro, e a peça nasce depois
@@ -150,6 +150,59 @@ repositório, e sobrescreveu a redação da retirada e do desimpedimento. Os cin
 nasceram de novo com UUID v4, e o arquivo leva os `delete` e os `update` de conserto,
 guardados pelo par nome + changelog: em qualquer banco que nunca viu a versão colidente,
 inclusive produção, essas quatro instruções são no-op.
+
+## Fatia 3, o que ficou no código
+
+**A separação entre ATO e ESTADO virou código.** `mapearListasDaDoacao` publicava as
+quatro coleções juntas; agora publica só as três do ato (`doacoes`, `usufrutos`,
+`gravamesQuotas`), e o novo `mapearEstadoDosOnus` publica as duas de estado
+(`quadroUsufruto` e a nova `gravamesVigentes`). No estado proposto a diferença tem
+consequência: as do ato continuam presas ao `evento_doacao_quotas`; as de estado entraram em
+`LISTAS_VIVAS_SEMPRE`.
+
+Essa é uma **exceção deliberada** à regra `base registrada + eventos confirmados` que rege o
+módulo, e o motivo é a decisão 2 do corpus. Governar o ônus por evento faria a primeira AC
+de sede depois de uma doação sair com a tabela de voto e a nota de gravame apagadas do
+contrato vigente, que é exatamente o defeito documentado nos 105 instrumentos. Não há risco
+de reescrever peça pronta: versão validada renderiza do snapshot selado, e a composição só
+roda na proposta.
+
+**Migration `20260910220109_ecos_do_onus_na_consolidacao.sql`** (aplicada no sandbox em
+10/09/2026; **produção pendente**), três blocos **sem flag**, porque o consolidado não é
+deliberação:
+
+| Bloco | Onde entra | Lê |
+|---|---|---|
+| `Parágrafo — Quotas gravadas` | fim da corrida de parágrafos da cláusula de capital | `gravamesVigentes` |
+| `Cláusula — Usufruto e direito de voto` | logo depois, como cláusula autônoma | `quadroUsufruto` |
+| `Parágrafo — Alienação de quotas gravadas` | fim dos parágrafos da cláusula de preferência | `gravamesVigentes` |
+
+Os três entram no **fim** de cada corrida de parágrafos, não no meio: inserir no meio
+renumeraria parágrafos que outras cláusulas citam pelo número. Sociedade sem ônus não
+publica nenhum deles (o descarte por `lista-vazia` os derruba) e a numeração sai sem buraco,
+o que o teste `consolidacaoDoOnus.test.ts` trava com a redação literal da migration.
+
+**`obrigatorio` num bloco sem flag não é preferência.** `comporBlocos` só admite bloco com
+todas as flags ativas OU marcado obrigatório; num bloco sem flag, `obrigatorio = false` é
+bloco morto, não bloco opcional. A primeira versão da migration gravou `false` e os três
+nunca compunham. Quem decide se eles entram é o descarte, não essa coluna.
+
+**As três somas independentes** (`conferirSomasDoUsufruto`, em `usufrutoDoAto.ts`) conferem
+a tabela depois de montada e antes de o contrato publicá-la, e cada uma pega um defeito
+diferente: Σ quotas = capital (alguém do quadro ficou de fora); plena + nua = quotas, por
+linha e no total (a concessão passou do que a pessoa tem, e `montarUsufruto` apara a plena em
+zero, sumindo com a diferença); Σ voz e voto = capital (o mesmo bloco contado duas vezes, que
+é o erro do casal usufrutuário e daria 151%). Conferir só a soma dos percentuais não
+substitui isso: os quatro decimais arredondam, e 100,0000% sai de números que não fecham. O
+resultado entra nas **pendências** da folha, que avisam sem travar a prévia.
+
+**Achado, não corrigido:** dois blocos do consolidado citam "Cláusula Oitava" e "Cláusula
+Oitava, Parágrafo Terceiro" em texto fixo (a ressalva de haveres na alienação e a cláusula
+de penhora), e esses números não correspondem à posição real de nenhuma cláusula do modelo
+de hoje: a de haveres tem um parágrafo só. É texto legado, anterior ao mecanismo de âncora
+(`{{ refs.<ancora> }}`), e a cláusula nova de usufruto o desloca mais um quando compõe.
+Consertar é trocar as duas citações por âncora, e é frente própria: mexer nelas aqui
+misturaria a doação com uma revisão de numeração do contrato inteiro.
 
 ## Decisões abertas
 

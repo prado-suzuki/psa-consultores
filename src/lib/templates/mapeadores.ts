@@ -11,7 +11,7 @@ import type { TipoEntidade } from './vocabulario';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { BemRow, CartorioRow } from '@/hooks/useDiagnosticoPatrimonial';
 import { GRAVAMES, type Gravame } from '@/lib/osg/doacaoDeQuotas';
-import { montarUsufruto } from '@/lib/osg/usufrutoDoAto';
+import { conferirSomasDoUsufruto, montarUsufruto } from '@/lib/osg/usufrutoDoAto';
 
 // Mapeadores puros (sem React): convertem uma linha do cadastro nos campos do
 // vocabulário da entidade correspondente, já com os derivados (extensos via
@@ -1315,11 +1315,28 @@ export interface OnusParaMapear {
   gravames: Gravame[];
 }
 
+/** As coleções que o ATO publica: só o que esta peça formaliza. */
 export interface ListasDaDoacao {
   doacoes: ItemLista[];
   usufrutos: ItemLista[];
   gravamesQuotas: ItemLista[];
+}
+
+/**
+ * As coleções de ESTADO: o ônus que a sociedade carrega hoje, tenha ou não sido
+ * criado por esta peça.
+ *
+ * A separação não é organização de código, é a decisão 2 do corpus: o gravame e
+ * o usufruto reaparecem em três pontos fixos de TODA consolidação seguinte,
+ * inclusive nas alterações que nada têm a ver com doação. Se saíssem das
+ * coleções do ato, a peça seguinte apagaria do contrato vigente um ônus que
+ * ninguém revogou.
+ */
+export interface EstadoDosOnus {
   quadroUsufruto: ItemLista[];
+  gravamesVigentes: ItemLista[];
+  /** As três somas de `conferirSomasDoUsufruto`, já em frases para a folha. */
+  problemas: string[];
 }
 
 /**
@@ -1548,21 +1565,57 @@ export function mapearCessoes(cessoes: CessaoParaMapear[]): ItemLista[] {
   });
 }
 
-/** Coleções próprias da doação e do estado de usufruto que a peça publica. */
+/**
+ * Helpers comuns às coleções de ônus: a pessoa qualificada e o par
+ * quotas/extenso. A doação e o estado publicam os MESMOS números com nomes
+ * diferentes, e é a única forma de os dois nunca divergirem.
+ */
+function camposDaPessoaDoOnus(pessoa: PessoaRow): Campos {
+  return derivarCampos('pessoa', mapearPessoa(pessoa));
+}
+
+function quotasDoOnus(quotas: number) {
+  const inteiras = Math.round(quotas);
+  return {
+    quotas: formatarInteiro(inteiras),
+    quotasExtenso: cardinalExtenso(inteiras, true),
+  };
+}
+
+/** Item de gravame: o mesmo formato no ato ({{#gravamesQuotas}}) e no estado. */
+function itemDeGravame(
+  onus: OnusParaMapear,
+  posicao: number,
+  pessoaPorId: (id: string) => PessoaRow | null | undefined,
+): ItemLista[] {
+  if (onus.gravames.length === 0) return [];
+  const nuProprietario = pessoaPorId(onus.nuProprietarioId);
+  if (!nuProprietario) return [];
+  return [{
+    nuProprietario: camposDaPessoaDoOnus(nuProprietario),
+    gravame: {
+      ordem: String(posicao),
+      ordemRomana: romano(posicao).toLowerCase(),
+      ...quotasDoOnus(onus.quotas),
+      nomes: onus.gravames
+        .map((g) => GRAVAMES[g]?.label.toLocaleUpperCase('pt-BR') ?? g)
+        .join(', '),
+    },
+  }];
+}
+
+/**
+ * Coleções do ATO de doação: os pares, as reservas de usufruto e os gravames
+ * que ESTA peça cria. O estado da sociedade sai de `mapearEstadoDosOnus`.
+ */
 export function mapearListasDaDoacao(
   doacoes: readonly CessaoParaMapear[],
   onusAtivos: readonly OnusParaMapear[],
-  socios: readonly SocioParaMapear[],
   pessoaPorId: (id: string) => PessoaRow | null | undefined,
 ): ListasDaDoacao {
   const onusPorMovimento = new Map(
     onusAtivos.filter((o) => o.movimentoId).map((o) => [o.movimentoId!, o]),
   );
-  const camposPessoa = (pessoa: PessoaRow) => derivarCampos('pessoa', mapearPessoa(pessoa));
-  const dadosQuotas = (quotas: number) => ({
-    quotas: formatarInteiro(Math.round(quotas)),
-    quotasExtenso: cardinalExtenso(Math.round(quotas), true),
-  });
 
   const itensDoacao = doacoes.map((d, i) => {
     const quotas = Math.round(d.quotas);
@@ -1570,12 +1623,12 @@ export function mapearListasDaDoacao(
     const disponivel = d.quotasDisponivel == null ? null : Math.round(d.quotasDisponivel);
     const data = formatarDataBR(d.instrumentoData ?? null);
     return {
-      doador: camposPessoa(d.cedente),
-      donatario: camposPessoa(d.cessionario),
+      doador: camposDaPessoaDoOnus(d.cedente),
+      donatario: camposDaPessoaDoOnus(d.cessionario),
       doacao: {
         ordem: String(i + 1),
         ordemRomana: romano(i + 1).toLowerCase(),
-        ...dadosQuotas(quotas),
+        ...quotasDoOnus(quotas),
         valor: formatarValor(d.valor),
         valorExtenso: valorExtenso(d.valor),
         quotasLegitima: legitima == null ? '' : formatarInteiro(legitima),
@@ -1603,34 +1656,42 @@ export function mapearListasDaDoacao(
     });
     if (!nuProprietario || usufrutuarios.length === 0) return [];
     return [{
-      nuProprietario: camposPessoa(nuProprietario),
+      nuProprietario: camposDaPessoaDoOnus(nuProprietario),
       usufruto: {
         ordem: String(i + 1),
         ordemRomana: romano(i + 1).toLowerCase(),
-        ...dadosQuotas(onus.quotas),
+        ...quotasDoOnus(onus.quotas),
         usufrutuarioNomes: usufrutuarios.map((p) => p.denominacao ?? '').filter(Boolean).join(' e '),
-        usufrutuarioQualificacoes: usufrutuarios.map((p) => camposPessoa(p).qualificacao).filter(Boolean).join('; e '),
+        usufrutuarioQualificacoes: usufrutuarios.map((p) => camposDaPessoaDoOnus(p).qualificacao).filter(Boolean).join('; e '),
       },
       comVoto: onus.comVoto,
       semVoto: !onus.comVoto,
     }];
   });
-  const gravamesQuotas = onusDoAto.flatMap((onus, i) => {
-    if (onus.gravames.length === 0) return [];
-    const nuProprietario = pessoaPorId(onus.nuProprietarioId);
-    if (!nuProprietario) return [];
-    return [{
-      nuProprietario: camposPessoa(nuProprietario),
-      gravame: {
-        ordem: String(i + 1),
-        ordemRomana: romano(i + 1).toLowerCase(),
-        ...dadosQuotas(onus.quotas),
-        nomes: onus.gravames.map((g) => GRAVAMES[g]?.label.toLocaleUpperCase('pt-BR') ?? g).join(', '),
-      },
-    }];
-  });
+  const gravamesQuotas = onusDoAto.flatMap((onus, i) => itemDeGravame(onus, i + 1, pessoaPorId));
 
-  const concessoes = onusAtivos.flatMap((onus) => {
+  return { doacoes: itensDoacao, usufrutos, gravamesQuotas };
+}
+
+/**
+ * O ESTADO DE ÔNUS da sociedade: o quadro de usufruto e voto, e os gravames
+ * vigentes. Sai de TODOS os ônus em vigor, não dos que esta peça cria, porque é
+ * o contrato consolidado que os republica a cada alteração.
+ *
+ * `capitalDeclarado` é o total de quotas que a sociedade declara (o mesmo que a
+ * cláusula de capital publica). Entra separado do somatório do quadro de
+ * propósito: é o único jeito de a primeira das três somas dizer alguma coisa.
+ * Passar `null` a desliga, para quem ainda não tem capital calculado.
+ */
+export function mapearEstadoDosOnus(
+  onusVigentes: readonly OnusParaMapear[],
+  socios: readonly SocioParaMapear[],
+  pessoaPorId: (id: string) => PessoaRow | null | undefined,
+  capitalDeclarado: number | null,
+): EstadoDosOnus {
+  const gravamesVigentes = onusVigentes.flatMap((onus, i) => itemDeGravame(onus, i + 1, pessoaPorId));
+
+  const concessoes = onusVigentes.flatMap((onus) => {
     if (onus.usufrutuarioIds.length === 0) return [];
     return [{
       deId: onus.nuProprietarioId,
@@ -1640,6 +1701,8 @@ export function mapearListasDaDoacao(
       comVoto: onus.comVoto,
     }];
   });
+  if (concessoes.length === 0) return { quadroUsufruto: [], gravamesVigentes, problemas: [] };
+
   const participantes = socios.flatMap((s) => {
     if (!s.pessoa.id) return [];
     return [{
@@ -1648,23 +1711,28 @@ export function mapearListasDaDoacao(
       quotas: BigInt(Math.round(quotasDoSocio(s.quotas, s.vlr_total) ?? 0)),
     }];
   });
+  // Quem só usufrui não está no quadro (o doador que zerou e se retirou), e
+  // precisa de linha para o voto dele aparecer. Entra com zero quotas: recebe
+  // voz e voto sem ter participação.
   const participantesIds = new Set(participantes.map((p) => p.pessoaId));
-  for (const id of onusAtivos.flatMap((o) => [o.nuProprietarioId, ...o.usufrutuarioIds])) {
+  for (const id of onusVigentes.flatMap((o) => [o.nuProprietarioId, ...o.usufrutuarioIds])) {
     if (participantesIds.has(id)) continue;
     const pessoa = pessoaPorId(id);
     if (!pessoa) continue;
     participantes.push({ pessoaId: id, nome: pessoa.denominacao ?? id, quotas: 0n });
     participantesIds.add(id);
   }
-  const capital = participantes.reduce((total, p) => total + p.quotas, 0n);
-  const quadro = concessoes.length > 0
-    ? montarUsufruto({ participantes, concessoes, capital }).linhas
-    : [];
-  const quadroUsufruto = quadro.flatMap((linha, i) => {
+
+  const somaDoQuadro = participantes.reduce((total, p) => total + p.quotas, 0n);
+  const capital = capitalDeclarado == null ? somaDoQuadro : BigInt(Math.round(capitalDeclarado));
+  const { linhas, totais } = montarUsufruto({ participantes, concessoes, capital });
+  const problemas = conferirSomasDoUsufruto(linhas, totais, capital).map((p) => p.mensagem);
+
+  const quadroUsufruto = linhas.flatMap((linha, i) => {
     const titular = pessoaPorId(linha.pessoaId);
     if (!titular) return [];
     return [{
-      titular: camposPessoa(titular),
+      titular: camposDaPessoaDoOnus(titular),
       usufruto: {
         ordem: String(i + 1),
         ordemRomana: romano(i + 1).toLowerCase(),
@@ -1679,7 +1747,7 @@ export function mapearListasDaDoacao(
     }];
   });
 
-  return { doacoes: itensDoacao, usufrutos, gravamesQuotas, quadroUsufruto };
+  return { quadroUsufruto, gravamesVigentes, problemas };
 }
 
 /** Linha de administração com a pessoa do administrador juntada. */

@@ -327,6 +327,18 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     fonte: 'quadro',
     camposExtras: [],
   },
+  // Os gravames VIGENTES, que é coisa diferente de `gravamesQuotas`: aquela
+  // narra o que este ato criou, esta descreve o que a sociedade carrega hoje. O
+  // contrato consolidado republica a segunda a cada alteração, inclusive nas
+  // que nada têm a ver com doação (ver doacao-de-quotas-com-usufruto.md).
+  gravamesVigentes: {
+    label: 'Gravames vigentes sobre quotas',
+    tipo: 'pessoa',
+    itemKey: 'nuProprietario',
+    itemKeysExtras: ['gravame'],
+    fonte: 'quadro',
+    camposExtras: [],
+  },
   // Os sócios que SAEM nesta alteração. Deriva do mesmo par que as cessões (o
   // livro + o quadro resultante), então a fonte é 'quadro': quem cedeu a
   // totalidade das quotas não sobra em {{#socios}}, e sem uma lista própria a
@@ -814,6 +826,10 @@ export function listarPlaceholders(): PlaceholderSugerido[] {
       ['usufruto.usufrutuarioQualificacoes', 'Qualificações dos usufrutuários'],
     ]],
     [PAPEIS_LISTA.gravamesQuotas.label, [
+      ['gravame.quotas', 'Quotas gravadas'], ['gravame.quotasExtenso', 'Quotas gravadas por extenso'],
+      ['gravame.nomes', 'Gravames aplicados'],
+    ]],
+    [PAPEIS_LISTA.gravamesVigentes.label, [
       ['gravame.quotas', 'Quotas gravadas'], ['gravame.quotasExtenso', 'Quotas gravadas por extenso'],
       ['gravame.nomes', 'Gravames aplicados'],
     ]],
