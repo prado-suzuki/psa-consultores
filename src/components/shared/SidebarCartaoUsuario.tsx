@@ -66,6 +66,13 @@ const AREAS = {
   tax: { rotulo: 'Tax', acento: 'bg-primary/10 text-primary', tom: 'tokens' },
   osg: { rotulo: 'OSG', acento: 'bg-primary/10 text-primary', tom: 'tokens' },
   gestao: { rotulo: 'Gestão', acento: 'bg-primary/10 text-primary', tom: 'tokens' },
+  // A Rotina entrou quando o `EquipeLayout` deixou de recolher para `w-0` e
+  // passou a ter trilho: o cartão dele era o markup copiado à mão, e copiado
+  // sem o estado recolhido — no trilho de 80px ele cortaria o avatar. A chave é
+  // `rotina` e não `equipe` para casar com o nome que a rota já tem em
+  // `MAPA_DE_ROTAS` (`/equipe/dashboard`, `/equipe/sprints` e as outras doze
+  // resolvem para a área `rotina`).
+  rotina: { rotulo: 'Digital Rotina', acento: 'bg-primary/10 text-primary', tom: 'tokens' },
   administracao: {
     rotulo: 'Administrador',
     acento: 'bg-teal-500/10 text-teal-600',

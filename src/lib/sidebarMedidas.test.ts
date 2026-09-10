@@ -14,13 +14,16 @@ import {
 const ler = (caminhoRelativo: string) =>
   readFileSync(fileURLToPath(new URL(caminhoRelativo, import.meta.url)), 'utf8');
 
-/** As cinco barras laterais que seguem o padrão de trilho de 80px. */
+/** As barras laterais que seguem o padrão de trilho de 80px. */
 const LAYOUTS_DO_PADRAO = {
   Administração: '../components/administracao/AdminLayout.tsx',
   Tax: '../components/equipe/fiscal/FiscalSidebar.tsx',
   Fixos: '../components/equipe/fixos/FixosLayout.tsx',
   OSG: '../components/equipe/osg/OsgLayout.tsx',
   Gestão: '../components/gestao/GestaoLayout.tsx',
+  // A Rotina entrou depois: ela recolhia para `w-0` — a barra sumia inteira em
+  // vez de virar trilho — e montava o cartão do usuário em markup próprio.
+  Rotina: '../components/equipe/EquipeLayout.tsx',
 } as const;
 
 describe('medidas do trilho recolhido', () => {
@@ -63,7 +66,7 @@ describe('medidas do trilho recolhido', () => {
 // arquivos. Estes testes leem o fonte: é a única forma de travar "não volte por
 // cópia" sem montar as cinco telas inteiras (cada uma com contexto, rotas e
 // dados próprios).
-describe('as cinco barras do padrão não têm cópia própria da medida', () => {
+describe('as barras do padrão não têm cópia própria da medida', () => {
   for (const [area, caminho] of Object.entries(LAYOUTS_DO_PADRAO)) {
     it(`${area}: largura vem de classeLarguraBarra e o cartão é o compartilhado`, () => {
       const fonte = ler(caminho);
