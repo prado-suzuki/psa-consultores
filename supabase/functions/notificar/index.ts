@@ -678,8 +678,6 @@ Deno.serve(async (req) => {
 
     // Total e quebra por tema. `grupo` é o enum osg_doc_grupo: pf | pj |
     // bens_imoveis | outros — a mesma ordem dos marcadores {{4}}..{{7}} do aviso 1.
-    // No aviso 3 o total é a contagem de aceitos: no encerramento, o pedido
-    // inteiro está conferido.
     const { data: itens } = await supabase
       .from("solicitacao_item")
       .select("grupo")
@@ -692,12 +690,51 @@ Deno.serve(async (req) => {
       if (g in porGrupo) porGrupo[g] += 1;
     }
 
+    // ── Cada aviso conta uma coisa diferente, e é de propósito (11/09/2026) ──
+    //
+    //   aviso 1  tipos de documento pedidos       `solicitacao_item` ativo
+    //   aviso 2  documento × entidade pendente    derivado na tela, chega em `situacao`
+    //   aviso 3  arquivos APROVADOS no fim        a consulta abaixo
+    //
+    // Os três números divergem entre si e isso não é defeito: na fase de gaveta o
+    // cliente manda um arquivo por tipo, e no checklist um por par documento-
+    // entidade. O que ERA defeito é o aviso 3 mandar o primeiro número.
+    //
+    // O texto dele afirma "A documentação está completa e conferida. São {{4}}
+    // documentos, sem pendências" — e `avisos-cliente.md` define {{4}} como
+    // "documentos aceitos no pedido, acumulado". Mandávamos o tamanho do pedido,
+    // e o comentário aqui chegava a afirmar que fazia a conta certa. Medido em
+    // produção em 11/09: uma solicitação encerrada com ZERO arquivos recebidos
+    // avisou o cliente de "43 documentos, sem pendências".
+    //
+    // Encerrar com o pedido incompleto é rotina, não exceção — o analista fecha
+    // sem o cliente ter mandado tudo, e sem marcar "não se aplica" em cada
+    // pendência que sobrou. É justamente por isso que o total tem de sair do que
+    // foi APROVADO, e não do que foi pedido.
+    let totalDocumentos = itens?.length ?? 0;
+    if (event_type === "documento_aprovado") {
+      const { count, error: erroAprovados } = await supabase
+        .from("documento_arquivo")
+        .select("id", { count: "exact", head: true })
+        .eq("solicitacao_id", solicitacao.id)
+        .eq("excluido", false)
+        .eq("revisao", "aprovado");
+
+      // Contagem que falhou é "não sei", e cair para o número antigo devolveria
+      // a mensagem falsa que esta mudança existe para eliminar. Falha alto.
+      if (erroAprovados) {
+        console.error("[notificar] Falha ao contar documentos aprovados:", erroAprovados);
+        return json({ error: "não foi possível contar os documentos aprovados" }, 500);
+      }
+      totalDocumentos = count ?? 0;
+    }
+
     const solicitacaoData = {
       id: solicitacao.id,
       cliente_id: solicitacao.cliente_id,
       cliente_nome: cliente?.nome ?? "",
       objeto,
-      total_documentos: itens?.length ?? 0,
+      total_documentos: totalDocumentos,
       por_grupo: porGrupo,
       enviada_em: solicitacao.enviada_em,
       encerrada_em: solicitacao.encerrada_em,

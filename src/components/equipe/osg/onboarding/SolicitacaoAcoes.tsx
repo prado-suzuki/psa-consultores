@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import type { SolicitacaoStatus } from '@/lib/solicitacao';
+import { DialogoPassarParaChecklist } from './DialogoPassarParaChecklist';
 
 /**
  * As ações do topo da Solicitação Inicial, que dependem do status.
@@ -175,38 +176,16 @@ export function SolicitacaoAcoes({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={confirmarChecklist} onOpenChange={setConfirmarChecklist}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Passar esta solicitação para o checklist?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {/* Sem "gaveta": a coordenação tirou o termo da tela do checklist
-                  em 11/09/2026 e ele vivia em mais três textos, estes. É nome
-                  interno da fase — quem lê fora do time não sabe o que é. */}
-              A partir daqui, cada documento que o cliente enviar já chega classificado:
-              a tela dele passa a mostrar o que falta, de quem é cada documento, e o
-              envio acontece na própria linha. Não há como voltar atrás.
-              {arquivosSemTipo > 0 && (
-                <>
-                  {' '}
-                  <strong className="font-semibold">
-                    Atenção: {arquivosSemTipo} arquivo(s) dele ainda estão sem tipo de
-                    documento.
-                  </strong>{' '}
-                  Enquanto não forem classificados no Cadastro por Documento, o checklist
-                  vai cobrar coisa que já foi entregue.
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={onPassarParaChecklist}>
-              Passar para o checklist
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* O texto mora em `DialogoPassarParaChecklist` desde 11/09/2026, quando a
+          tela do checklist ganhou a segunda porta para o mesmo ato. Duas cópias
+          divergiriam no primeiro ajuste. */}
+      <DialogoPassarParaChecklist
+        aberto={confirmarChecklist}
+        onOpenChange={setConfirmarChecklist}
+        arquivosSemTipo={arquivosSemTipo}
+        verbo="Passar"
+        onConfirmar={onPassarParaChecklist}
+      />
 
     </div>
   );

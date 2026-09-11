@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { useClientesLista } from '@/hooks/useGestaoClientes';
 import { useChecklistDerivado } from '@/hooks/useChecklistDerivado';
 import { useRevisarDocumento } from '@/hooks/useDocumentoArquivo';
+import { AvisosDaFase } from './AvisosDaFase';
 import { BotaoAvisarCliente } from './BotaoAvisarCliente';
 import { BotaoComprovante } from './BotaoComprovante';
 import { DocumentosDialog, RecusaDialog } from './DocumentosDialog';
@@ -216,44 +217,12 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
         />
       </div>
 
-      {/* A faixa de "o cliente não foi avisado" mora SÓ na Solicitação Inicial
-          (decisão de 10/09/2026). É lá que o envio acontece e é de lá que se age;
-          repeti-la aqui dobrava o alarme sem dobrar a informação. */}
-      {solicitacao.status === 'rascunho' && (
-        <Aviso>
-          Esta solicitação está em <strong>rascunho</strong>: o cliente ainda não a recebeu,
-          então o que aparece como pendente nunca foi solicitado a ele.
-        </Aviso>
-      )}
-      {solicitacao.status === 'enviada' && (
-        <Aviso>
-          {/* Texto da Patrícia (11/09/2026), aplicado como veio. O anterior era
-              interno de cabo a rabo — "fase de gaveta", "a conta abaixo tende a
-              mostrar pendência", "para o envio dele nascer classificado" — e
-              nenhuma dessas expressões existe fora do time que escreveu o
-              código. Este diz o mesmo fato e nomeia o botão que resolve. */}
-          Os documentos enviados pelo cliente ainda não estão sendo classificados
-          automaticamente. Por isso, alguns documentos já recebidos podem aparecer como
-          pendentes. Para iniciar a classificação dos próximos envios, acesse{' '}
-          <strong>Solicitação de documentos</strong> e selecione{' '}
-          <strong>Passar para o checklist</strong>.
-        </Aviso>
-      )}
-      {solicitacao.status === 'encerrada' && (
-        <Aviso tom="neutro">
-          Solicitação <strong>finalizada</strong>
-          {solicitacao.encerradaEm ? ` em ${new Date(solicitacao.encerradaEm).toLocaleDateString('pt-BR')}` : ''}.
-          O checklist continua legível como retrato do que foi solicitado.
-        </Aviso>
-      )}
-      {arquivosSemTipo > 0 && (
-        <Aviso>
-          {arquivosSemTipo} arquivo{arquivosSemTipo === 1 ? '' : 's'} do cliente ainda
-          {arquivosSemTipo === 1 ? ' está' : ' estão'} sem tipo de documento e por isso não
-          fecha{arquivosSemTipo === 1 ? '' : 'm'} pendência aqui. Classifique
-          {arquivosSemTipo === 1 ? '-o' : '-os'} no Cadastro por Documento.
-        </Aviso>
-      )}
+      <AvisosDaFase
+        clienteId={clienteId}
+        status={solicitacao.status}
+        encerradaEm={solicitacao.encerradaEm}
+        arquivosSemTipo={arquivosSemTipo}
+      />
 
       <div className="space-y-3 rounded-2xl border border-osg-200/70 bg-white/70 p-3 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)]">
         <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-osg-100 bg-osg-50 p-1">
@@ -430,20 +399,6 @@ function EstadoVazio({ titulo, descricao, acao }: {
         <p className="mt-1 max-w-xl text-sm text-osg-500">{descricao}</p>
       </div>
       <Button asChild variant="outline"><Link to={acao.para}>{acao.rotulo}</Link></Button>
-    </div>
-  );
-}
-
-function Aviso({ children, tom = 'atencao' }: { children: ReactNode; tom?: 'atencao' | 'neutro' }) {
-  return (
-    <div className={cn(
-      'flex items-start gap-3 rounded-xl border px-4 py-3 text-sm',
-      tom === 'atencao'
-        ? 'border-osg-highlighter/50 bg-osg-highlighter/10 text-osg-700'
-        : 'border-osg-200/70 bg-osg-50/60 text-osg-600',
-    )}>
-      <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss" />
-      <p className="leading-relaxed">{children}</p>
     </div>
   );
 }
