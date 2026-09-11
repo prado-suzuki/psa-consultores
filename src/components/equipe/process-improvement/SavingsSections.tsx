@@ -44,10 +44,28 @@ function SavingsSection({
   return (
     <Collapsible open={open} onOpenChange={onOpenChange}>
       <CollapsibleTrigger asChild>
-        <div className="flex items-center justify-between p-3 hover:bg-blue-100/50 rounded cursor-pointer border border-blue-200/50">
+        {/*
+          O cabeçalho é CONTROLE — abre e fecha —, então ele veste a âncora da
+          área em vez de perder a cor, e só quando ABERTO. Fechado fica sóbrio, e
+          a cor passa a informar o estado em vez de emoldurar uma seção. O azul
+          de fábrica aqui não dizia nada: era decoração de bloco de formulário —
+          o caso que a página `superficie-de-estado.html` já tinha lido em 27/08
+          e respondido com uma palavra, *nada*.
+        */}
+        <div
+          className={cn(
+            'flex items-center justify-between p-3 rounded cursor-pointer border transition-colors hover:bg-primary/10',
+            open ? 'border-primary/25 bg-primary/5' : 'border-border',
+          )}
+        >
           <div className="flex items-center gap-2">
-            <ChevronRight className={cn('h-4 w-4 transition-transform text-blue-600', open && 'rotate-90')} />
-            <Icon className="h-4 w-4 text-blue-600" />
+            <ChevronRight
+              className={cn(
+                'h-4 w-4 transition-transform',
+                open ? 'rotate-90 text-primary' : 'text-muted-foreground',
+              )}
+            />
+            <Icon className={cn('h-4 w-4', open ? 'text-primary' : 'text-muted-foreground')} />
             <span className="font-medium text-sm">{title}</span>
             <span className="text-xs text-muted-foreground">{hint}</span>
           </div>
@@ -59,7 +77,8 @@ function SavingsSection({
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="pl-6 pr-2 pb-3 pt-2 space-y-2 border-l-2 border-blue-200 ml-2">
+        {/* A guia que liga o conteúdo ao cabeçalho: mesma âncora, mesmo estado. */}
+        <div className="pl-6 pr-2 pb-3 pt-2 space-y-2 border-l-2 border-primary/25 ml-2">
           {items.length > 0 && (
             <div className={`grid ${grid} gap-2 text-xs font-medium text-muted-foreground px-2`}>
               <span>{isOther ? 'Descrição' : type === 'system' ? 'Sistema/Ferramenta' : 'Item/Solução'}</span>

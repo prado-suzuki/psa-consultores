@@ -8,6 +8,8 @@
  import { History, TrendingUp, Clock, DollarSign, Users, Calendar, Loader2, Monitor, ShoppingCart, Sparkles, ChevronDown } from 'lucide-react';
  import { format } from 'date-fns';
  import { ptBR } from 'date-fns/locale';
+ import { cn } from '@/lib/utils';
+ import { tipoDeEconomia } from '@/lib/tipoDeEconomia';
  
  interface ImprovementHistoryModalProps {
    open: boolean;
@@ -43,23 +45,17 @@
      return `${value.toFixed(1)}%`;
    };
  
+   // Os dois `switch` que moravam aqui eram a segunda cópia do mesmo trio — os
+   // MESMOS três ícones que o `SavingsSections` já listava, com azul, roxo e
+   // âmbar de fábrica. Agora saem do mapa; ver `@/lib/tipoDeEconomia`.
    const getSavingsTypeIcon = (type: string) => {
-     switch (type) {
-       case 'system': return <Monitor className="h-3 w-3 text-blue-600" />;
-       case 'build_vs_buy': return <ShoppingCart className="h-3 w-3 text-purple-600" />;
-       case 'other': return <Sparkles className="h-3 w-3 text-amber-600" />;
-       default: return null;
-     }
+     const config = tipoDeEconomia(type);
+     if (!config) return null;
+     const Icone = config.icon;
+     return <Icone className={cn('h-3 w-3', config.tom)} />;
    };
  
-   const getSavingsTypeLabel = (type: string) => {
-     switch (type) {
-       case 'system': return 'Sistemas';
-       case 'build_vs_buy': return 'Build vs Buy';
-       case 'other': return 'Outras';
-       default: return type;
-     }
-   };
+   const getSavingsTypeLabel = (type: string) => tipoDeEconomia(type)?.rotuloCurto ?? type;
  
    const hasAdditionalSavings = (improvement: ProcessImprovement) => {
      return (improvement.system_savings_monthly || 0) > 0 || 
@@ -169,9 +165,26 @@
                          open={expandedSavings[improvement.id]} 
                          onOpenChange={(open) => setExpandedSavings({...expandedSavings, [improvement.id]: open})}
                        >
+                         {/*
+                           O cabeçalho é CONTROLE — abre e fecha —, então ele
+                           veste a âncora da área em vez de perder a cor. Mas só
+                           quando ABERTO: fechado fica sóbrio, e a cor passa a
+                           informar o estado em vez de decorar uma seção. O azul
+                           de fábrica não dizia nada e não acompanhava tema.
+                         */}
                          <CollapsibleTrigger asChild>
-                           <div className="flex items-center justify-between p-2 mt-3 bg-blue-50 rounded cursor-pointer hover:bg-blue-100 transition-colors">
-                             <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
+                           <div
+                             className={cn(
+                               'flex items-center justify-between p-2 mt-3 rounded cursor-pointer transition-colors hover:bg-primary/10',
+                               expandedSavings[improvement.id] ? 'bg-primary/10' : 'bg-muted',
+                             )}
+                           >
+                             <div
+                               className={cn(
+                                 'flex items-center gap-2 text-sm font-medium',
+                                 expandedSavings[improvement.id] ? 'text-primary' : 'text-foreground',
+                               )}
+                             >
                                <ChevronDown className={`h-4 w-4 transition-transform ${expandedSavings[improvement.id] ? 'rotate-180' : ''}`} />
                                Economias Adicionais
                              </div>
