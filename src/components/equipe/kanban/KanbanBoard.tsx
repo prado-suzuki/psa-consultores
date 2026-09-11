@@ -178,7 +178,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
                         key={subtask.id}
                         style={{ marginLeft: subtask.depth * 14 }}
                         className={cn(
-                          'flex items-center gap-2 p-2 rounded-md bg-white border border-border text-sm cursor-pointer hover:bg-gray-50',
+                          'flex items-center gap-2 p-2 rounded-md bg-white border border-border text-sm cursor-pointer hover:bg-muted',
                           subtask.status === 'completed' && 'opacity-60',
                         )}
                         onClick={() => props.onOpenDeliverable(subtask)}
@@ -192,7 +192,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
                         <div className="flex-1 min-w-0">
                           <span
                             className={cn(
-                              'text-gray-700',
+                              'text-foreground',
                               subtask.status === 'completed' && 'line-through',
                             )}
                           >

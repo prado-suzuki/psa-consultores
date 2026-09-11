@@ -411,7 +411,7 @@ export function ImpactDashboard() {
                         </div>
                         <div className="relative h-2 bg-muted rounded-full overflow-hidden">
                           <div 
-                            className="absolute h-full bg-gray-400 rounded-full transition-all"
+                            className="absolute h-full bg-status-neutro rounded-full transition-all"
                             style={{ width: `${barWidthBefore}%` }}
                           />
                           <div 

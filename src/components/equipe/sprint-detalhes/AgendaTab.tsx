@@ -32,7 +32,7 @@ const eventLabels: Record<string, string> = {
   retrospective: 'Retro',
 };
 const eventBadge = (type: string) => (
-  <Badge className={eventStyles[type] || 'bg-muted text-gray-800'}>
+  <Badge className={eventStyles[type] || 'bg-status-neutro-soft text-status-neutro'}>
     {eventLabels[type] || type}
   </Badge>
 );

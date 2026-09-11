@@ -140,7 +140,7 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                             </span>
                           )}
                           <span
-                            className={`font-medium ${task.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}
+                            className={`font-medium ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'}`}
                           >
                             {task.title}
                           </span>
@@ -225,8 +225,8 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                                 <span
                                   className={
                                     subtask.status === 'completed'
-                                      ? 'line-through text-gray-400'
-                                      : 'text-gray-700'
+                                      ? 'line-through text-muted-foreground'
+                                      : 'text-foreground'
                                   }
                                 >
                                   {subtask.title}

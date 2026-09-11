@@ -147,10 +147,10 @@ export function MonthYearPicker({
                     size="sm"
                     className={cn(
                       "h-9 text-xs font-medium",
-                      isSelected && "bg-gray-900 text-gray-50 hover:bg-gray-800",
+                      isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
                       isCurrentMonth &&
                         !isSelected &&
-                        "bg-muted text-gray-900 font-semibold"
+                        "bg-muted font-semibold"
                     )}
                     onClick={() => handleMonthSelect(index)}
                   >
@@ -176,10 +176,10 @@ export function MonthYearPicker({
                       className={cn(
                         "h-9 text-xs font-medium",
                         isSelected &&
-                          "bg-gray-900 text-gray-50 hover:bg-gray-800",
+                          "bg-primary text-primary-foreground hover:bg-primary/90",
                         isCurrentYear &&
                           !isSelected &&
-                          "bg-muted text-gray-900 font-semibold"
+                          "bg-muted font-semibold"
                       )}
                       onClick={() => {
                         setViewYear(y);

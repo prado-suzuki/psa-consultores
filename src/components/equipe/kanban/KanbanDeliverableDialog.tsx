@@ -211,7 +211,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                   <div
                     key={subtask.id}
                     className={cn(
-                      'flex items-center gap-3 p-2 rounded-md bg-gray-50 border border-border',
+                      'flex items-center gap-3 p-2 rounded-md bg-muted border border-border',
                       subtask.status === 'completed' && 'opacity-60',
                     )}
                   >
@@ -227,7 +227,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                     >
                       <span
                         className={cn(
-                          'text-sm text-gray-700',
+                          'text-sm',
                           subtask.status === 'completed' && 'line-through',
                         )}
                       >

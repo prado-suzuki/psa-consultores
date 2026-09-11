@@ -946,9 +946,12 @@ describe('EquipeSprintDetalhes: UI pública', () => {
     expect(screen.getByText('Qualidade fiscal')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /1 responsáveis • 1 entregáveis/ }));
     const relatedTitle = screen.getByText('Subtarefa Dez');
-    expect(relatedTitle).toHaveClass('text-gray-700');
+    // Par do riscado logo abaixo: o entregável NÃO concluído é `text-foreground`,
+    // e o concluído é `text-muted-foreground line-through`. Antes eram
+    // `gray-700` e `gray-400`, dois cinzas de fábrica que não seguiam o tema.
+    expect(relatedTitle).toHaveClass('text-foreground');
     expect(relatedTitle.parentElement?.parentElement).toHaveClass('max-h-40', 'overflow-y-auto');
-    expect(screen.getByText('○')).toHaveClass('bg-gray-50', 'text-gray-500');
+    expect(screen.getByText('○')).toHaveClass('bg-muted', 'text-muted-foreground');
     await user.click(screen.getByRole('button', { name: '+1' }));
     expect(mutations.updateMetric.mutateAsync).toHaveBeenCalledWith({
       metricId: 'metric-1',
@@ -1004,7 +1007,15 @@ describe('EquipeSprintDetalhes: UI pública', () => {
     renderPage();
     await user.click(screen.getByRole('tab', { name: 'Métricas' }));
     await user.click(screen.getByRole('button', { name: /1 responsáveis • 1 entregáveis/ }));
-    expect(screen.getByText('Subtarefa Dois')).toHaveClass('line-through', 'text-gray-400');
+    // `text-muted-foreground` e não `text-gray-400` desde 10/09/2026: o cinza de
+    // fábrica do Tailwind não segue o tema — ficava igual na Tax, na OSG e na
+    // casa — e ainda dava 2,54:1 sobre o cartão, abaixo dos 4,5 do WCAG AA. O
+    // papel dá 5,64:1 e acompanha a área. O que o teste guarda continua sendo o
+    // mesmo: concluído aparece riscado E recuado.
+    expect(screen.getByText('Subtarefa Dois')).toHaveClass('line-through', 'text-muted-foreground');
+    // ⚠️ `bg-green-50 text-green-600` ainda é cor CRUA, de outra família. Fica
+    // para a passada do verde: ali o verde significa "concluído", então o alvo é
+    // o papel `feito` e não um cinza.
     expect(screen.getByText('✓')).toHaveClass('bg-green-50', 'text-green-600');
   });
 

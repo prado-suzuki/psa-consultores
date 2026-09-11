@@ -359,7 +359,7 @@ export default function EquipeBacklog() {
           <Card>
             <CardContent className="py-12 text-center">
               <Layers className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Backlog vazio</h3>
+              <h3 className="text-lg font-medium mb-2">Backlog vazio</h3>
               <p className="text-muted-foreground mb-4">
                 Adicione atividades aqui para planejar e distribuir nas sprints.
               </p>
@@ -380,18 +380,18 @@ export default function EquipeBacklog() {
                         className={
                           item.priority === 'high' ? 'bg-red-50 text-red-700 border-red-200' :
                           item.priority === 'medium' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                          'bg-gray-50 text-gray-600 border-border'
+                          'bg-muted text-muted-foreground border-border'
                         }
                       >
                         {item.priority === 'high' ? 'Alta' : 
                          item.priority === 'medium' ? 'Média' : 'Baixa'}
                       </Badge>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900">{item.title}</h4>
+                        <h4 className="font-medium">{item.title}</h4>
                         {item.description && (
-                          <p className="text-sm text-gray-500 mt-1 line-clamp-2">{item.description}</p>
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
                         )}
-                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                           {item.estimated_hours && (
                             <span className="bg-muted px-2 py-0.5 rounded">
                               {item.estimated_hours}h estimadas
@@ -424,7 +424,7 @@ export default function EquipeBacklog() {
                         size="sm" 
                         variant="ghost" 
                         onClick={() => openFormModal(item)}
-                        className="text-gray-400 hover:text-gray-600"
+                        className="text-muted-foreground hover:text-muted-foreground"
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -433,7 +433,7 @@ export default function EquipeBacklog() {
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="text-gray-400 hover:text-red-500"
+                            className="text-muted-foreground hover:text-red-500"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -588,10 +588,10 @@ export default function EquipeBacklog() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             {movingItem && (
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="font-medium text-gray-900">{movingItem.title}</p>
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="font-medium">{movingItem.title}</p>
                 {movingItem.estimated_hours && (
-                  <p className="text-sm text-gray-500">{movingItem.estimated_hours}h estimadas</p>
+                  <p className="text-sm text-muted-foreground">{movingItem.estimated_hours}h estimadas</p>
                 )}
               </div>
             )}
@@ -661,7 +661,7 @@ export default function EquipeBacklog() {
                 <Input
                   value={movingItem?.estimated_hours ? `${movingItem.estimated_hours}h` : '—'}
                   disabled
-                  className="bg-muted text-gray-500"
+                  className="bg-muted text-muted-foreground"
                 />
               </div>
             </div>

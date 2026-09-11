@@ -99,8 +99,8 @@ export function MetricsTab({ controller: c }: { controller: EquipeSprintDetalhes
                               <span
                                 className={
                                   item.status === 'completed'
-                                    ? 'line-through text-gray-400'
-                                    : 'text-gray-700'
+                                    ? 'line-through text-muted-foreground'
+                                    : 'text-foreground'
                                 }
                               >
                                 {item.title}
@@ -112,7 +112,7 @@ export function MetricsTab({ controller: c }: { controller: EquipeSprintDetalhes
                                     ? 'bg-green-50 text-green-600'
                                     : item.status === 'in_progress'
                                       ? 'bg-yellow-50 text-yellow-600'
-                                      : 'bg-gray-50 text-gray-500'
+                                      : 'bg-muted text-muted-foreground'
                                 }`}
                               >
                                 {item.status === 'completed'

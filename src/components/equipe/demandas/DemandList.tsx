@@ -119,7 +119,7 @@ export const DemandList = ({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className={`mt-1 ${demand.status === 'done' ? 'text-green-600' : 'text-gray-400'}`}
+                      className={`mt-1 ${demand.status === 'done' ? 'text-green-600' : 'text-muted-foreground'}`}
                       onClick={() => onToggleStatus(demand.id, demand.status)}
                     >
                       {demand.status === 'done' ? (
@@ -130,16 +130,16 @@ export const DemandList = ({
                     </Button>
                     <div className="flex-1">
                       <h3
-                        className={`font-medium ${demand.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-900'}`}
+                        className={`font-medium ${demand.status === 'done' ? 'text-muted-foreground line-through' : 'text-foreground'}`}
                       >
                         {demand.title}
                       </h3>
                       {demand.description && (
-                        <p className="text-sm text-gray-500 mt-1">{demand.description}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{demand.description}</p>
                       )}
                       <div className="flex flex-wrap items-center gap-2 mt-2">
                         {demand.assigned_to && (
-                          <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <User className="h-3 w-3" />
                             {getMemberName(demand.assigned_to)}
                           </div>
@@ -147,7 +147,7 @@ export const DemandList = ({
                         {demand.estimated_hours && (
                           <Badge
                             variant="outline"
-                            className="border-border text-gray-600 text-xs"
+                            className="border-border text-muted-foreground text-xs"
                           >
                             <Clock className="h-3 w-3 mr-1" />
                             {demand.estimated_hours}h
@@ -156,7 +156,7 @@ export const DemandList = ({
                         {demand.is_recurring ? (
                           <>
                             {getFrequencyBadge(demand.frequency)}
-                            <Repeat className="h-4 w-4 text-gray-400" />
+                            <Repeat className="h-4 w-4 text-muted-foreground" />
                           </>
                         ) : (
                           demand.due_date && (
@@ -186,7 +186,7 @@ export const DemandList = ({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 px-2 text-xs text-gray-500 hover:text-gray-700"
+                              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                             >
                               <ChevronDown
                                 className={`h-3 w-3 mr-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
@@ -203,7 +203,7 @@ export const DemandList = ({
                                   className="h-4 w-4"
                                 />
                                 <span
-                                  className={`flex-1 text-sm ${item.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-700'}`}
+                                  className={`flex-1 text-sm ${item.status === 'done' ? 'text-muted-foreground line-through' : 'text-foreground'}`}
                                 >
                                   {item.title}
                                 </span>
@@ -211,14 +211,14 @@ export const DemandList = ({
                                   até {format(new Date(item.due_date), 'dd/MM')}
                                 </Badge>
                                 {item.assigned_to && (
-                                  <span className="text-xs text-gray-500">
+                                  <span className="text-xs text-muted-foreground">
                                     {getMemberName(item.assigned_to)}
                                   </span>
                                 )}
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-6 w-6 text-gray-400 hover:text-red-500"
+                                  className="h-6 w-6 text-muted-foreground hover:text-red-500"
                                   onClick={() => onDeleteSubdemand(item.id)}
                                 >
                                   <Trash2 className="h-3 w-3" />
@@ -226,7 +226,7 @@ export const DemandList = ({
                               </div>
                             ))}
                             {addingSubdemandTo === demand.id ? (
-                              <div className="p-3 bg-gray-50 rounded-lg space-y-3 mt-2">
+                              <div className="p-3 bg-muted rounded-lg space-y-3 mt-2">
                                 <Input
                                   placeholder="Título da subdemanda"
                                   value={subdemandDraft.title}
@@ -292,7 +292,7 @@ export const DemandList = ({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 text-xs text-gray-500 hover:text-primary"
+                                className="h-7 text-xs text-muted-foreground hover:text-primary"
                                 onClick={() => setAddingSubdemandTo(demand.id)}
                               >
                                 <Plus className="h-3 w-3 mr-1" />
@@ -307,7 +307,7 @@ export const DemandList = ({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-gray-500 hover:text-gray-700"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
                     onClick={() => onEditDemand(demand)}
                   >
                     <Pencil className="h-4 w-4" />
@@ -320,9 +320,9 @@ export const DemandList = ({
       ) : (
         <Card className="border-border">
           <CardContent className="py-16 text-center">
-            <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhuma demanda criada</h3>
-            <p className="text-gray-500 mb-4">Crie demandas para organizar o trabalho da equipe</p>
+            <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Nenhuma demanda criada</h3>
+            <p className="text-muted-foreground mb-4">Crie demandas para organizar o trabalho da equipe</p>
             <Button className="bg-primary hover:bg-primary/90" onClick={onCreateDemand}>
               <Plus className="h-4 w-4 mr-2" />
               Criar Demanda

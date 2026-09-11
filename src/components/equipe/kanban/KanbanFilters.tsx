@@ -127,7 +127,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
               size="sm"
               className={cn(
                 'h-9 px-3 border-border bg-white',
-                props.filterStartDate && 'text-gray-900',
+                props.filterStartDate && 'text-foreground',
               )}
             >
               <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -148,7 +148,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
               size="sm"
               className={cn(
                 'h-9 px-3 border-border bg-white',
-                props.filterEndDate && 'text-gray-900',
+                props.filterEndDate && 'text-foreground',
               )}
             >
               <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
