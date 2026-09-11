@@ -218,7 +218,7 @@ export const DemandList = ({
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-6 w-6 text-muted-foreground hover:text-red-500"
+                                  className="h-6 w-6 text-muted-foreground hover:text-destructive"
                                   onClick={() => onDeleteSubdemand(item.id)}
                                 >
                                   <Trash2 className="h-3 w-3" />

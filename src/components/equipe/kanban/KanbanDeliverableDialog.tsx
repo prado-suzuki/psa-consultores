@@ -255,7 +255,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
         <DialogFooter className="flex justify-between">
           <AlertDialog open={props.deleteDialogOpen} onOpenChange={props.onDeleteDialogOpenChange}>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
+              <Button variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10">
                 <Trash2 className="h-4 w-4 mr-2" />
                 Excluir
               </Button>
@@ -274,7 +274,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                 <AlertDialogAction
                   onClick={props.onDeleteDeliverable}
                   disabled={props.deleting}
-                  className="bg-red-600 hover:bg-red-700"
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   {props.deleting ? 'Excluindo...' : 'Excluir'}
                 </AlertDialogAction>

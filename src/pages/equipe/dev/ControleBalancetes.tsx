@@ -523,14 +523,14 @@ const ControleBalancetes = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 rounded-lg hover:bg-red-50"
+                                  className="h-8 w-8 rounded-lg hover:bg-destructive/10"
                                   disabled={downloading[b.id] === 'delete'}
                                   onClick={() => setConfirmDelete(b.id)}
                                 >
                                   {downloading[b.id] === 'delete' ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
-                                    <Trash2 className="h-4 w-4 text-red-600" />
+                                    <Trash2 className="h-4 w-4 text-destructive" />
                                   )}
                                 </Button>
                               </TooltipTrigger>
@@ -607,7 +607,7 @@ const ControleBalancetes = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => { if (confirmDelete) handleDelete(confirmDelete); setConfirmDelete(null); }}>Deletar</AlertDialogAction>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { if (confirmDelete) handleDelete(confirmDelete); setConfirmDelete(null); }}>Deletar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

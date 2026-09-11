@@ -50,7 +50,7 @@ export function ProcessDetailsDialog(props: ProcessDetailsDialogProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="text-destructive hover:bg-destructive/10"
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
                     Excluir
@@ -69,7 +69,7 @@ export function ProcessDetailsDialog(props: ProcessDetailsDialogProps) {
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={props.onDelete}
-                      className="bg-red-600 hover:bg-red-700"
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
                       Excluir
                     </AlertDialogAction>

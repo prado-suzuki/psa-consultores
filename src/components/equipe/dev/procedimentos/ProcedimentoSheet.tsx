@@ -222,7 +222,7 @@ export function ProcedimentoSheet({
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-red-500 hover:text-red-700 ml-auto"
+                className="text-destructive hover:bg-destructive/10 ml-auto"
                 onClick={() => setConfirmDelete(true)}
               >
                 <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Excluir
@@ -244,7 +244,7 @@ export function ProcedimentoSheet({
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => { onExcluir(p); onOpenChange(false); }}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 Excluir
               </AlertDialogAction>

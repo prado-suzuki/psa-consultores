@@ -320,7 +320,7 @@ export const EditDemandDialog = ({
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
+                  <Button variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </AlertDialogTrigger>
@@ -333,7 +333,7 @@ export const EditDemandDialog = ({
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={onDelete} className="bg-red-600 hover:bg-red-700">
+                    <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                       Excluir
                     </AlertDialogAction>
                   </AlertDialogFooter>

@@ -433,7 +433,7 @@ export default function EquipeBacklog() {
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="text-muted-foreground hover:text-red-500"
+                            className="text-muted-foreground hover:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -449,7 +449,7 @@ export default function EquipeBacklog() {
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction 
                               onClick={() => deleteItem(item.id)}
-                              className="bg-red-500 hover:bg-red-600"
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
                               Excluir
                             </AlertDialogAction>

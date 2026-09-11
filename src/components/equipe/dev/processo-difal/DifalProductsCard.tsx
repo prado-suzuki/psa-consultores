@@ -54,7 +54,7 @@ export function DifalProductsCard({
             <Skeleton className="h-10 w-full" />
           </div>
         ) : itemsError ? (
-          <div className="p-6 text-center text-red-600">
+          <div className="p-6 text-center text-destructive">
             <AlertCircle className="h-8 w-8 mx-auto mb-2" />
             <p>Erro ao carregar produtos</p>
           </div>

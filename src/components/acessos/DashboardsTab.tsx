@@ -281,7 +281,7 @@ export default function DashboardsTab() {
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           <div className="flex gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
             <IconAction label="Editar dashboard e acessos" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/5" onClick={() => openEdit(d)}><Pencil className="h-4 w-4" /></IconAction>
-            <IconAction label="Excluir dashboard" className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(d)}><Trash2 className="h-4 w-4" /></IconAction>
+            <IconAction label="Excluir dashboard" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(d)}><Trash2 className="h-4 w-4" /></IconAction>
           </div>
           <IconTooltip label={d.is_active ? 'Ativo — clique para desativar' : 'Inativo — clique para ativar'}>
             <span className="inline-flex"><Switch checked={d.is_active} onCheckedChange={() => toggle.mutate(d)} aria-label="Ativar/desativar dashboard" /></span>
@@ -421,7 +421,7 @@ export default function DashboardsTab() {
                         placeholder="ds0.cluster_id_param"
                         className="font-mono text-xs"
                       />
-                      <IconAction label="Remover esta chave" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-red-600"
+                      <IconAction label="Remover esta chave" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
                         onClick={() => setParamNames((prev) => (prev.length === 1 ? [''] : prev.filter((_, idx) => idx !== i)))}>
                         <Trash2 className="h-4 w-4" />
                       </IconAction>

@@ -336,7 +336,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 gap-1"
+                    className="text-xs text-destructive hover:bg-destructive/10 gap-1"
                     onClick={(e) => { e.stopPropagation(); setFile(null); }}
                   >
                     <X className="h-3 w-3" />

@@ -400,8 +400,8 @@ const MapaNCMPisCofins = () => {
                           </Button>
                         </ButtonTooltip>
                         <ButtonTooltip text={TOOLTIPS.excluir}>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); setDeleteId(regra.id); }}>
-                            <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                          <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); setDeleteId(regra.id); }}>
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
                           </Button>
                         </ButtonTooltip>
                       </div>
@@ -441,7 +441,7 @@ const MapaNCMPisCofins = () => {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Excluir</AlertDialogAction>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
