@@ -51,7 +51,9 @@ console.log(`token    ${restam > 0 ? `valido por ${restam}s` : `expirado ha ${-r
 
 // A chave anon sai do .env que corresponde ao ref, para nao chutar ambiente.
 let apikey = null;
-for (const arquivo of ['.env.development.local', '.env.development', '.env']) {
+// `.env.sandbox` entra na lista porque e o nome que o sandbox tem NESTE repo — sem
+// ele o script dizia "nao sei qual chave anon usar" com a chave ali do lado.
+for (const arquivo of ['.env.development.local', '.env.development', '.env.sandbox', '.env']) {
   const env = lerEnv(arquivo);
   if (!(env.VITE_SUPABASE_URL ?? '').includes(ref)) continue;
   apikey = env.VITE_SUPABASE_PUBLISHABLE_KEY ?? env.SUPABASE_PUBLISHABLE_KEY ?? null;
