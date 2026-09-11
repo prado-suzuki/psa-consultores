@@ -377,33 +377,37 @@
   </div>
 
   <h2>7 · Booleano “Sim” — 9 ocorrências, 3 arquivos</h2>
-  <p>O selo do NCM monofásico, no Mapa NCM e nas duas telas de regra PIS/COFINS. Verde para “Sim” e
-     nada para “Não”. Não é estado de nada — é o valor de um campo.</p>
+  <p>O selo do NCM monofásico, no Mapa NCM e nas duas telas de regra PIS/COFINS. <b>Não são dois “Sim”
+     diferentes</b> — é o mesmo selo, e a pergunta é o que a <i>cor</i> dele está afirmando. Por isso
+     ele aparece abaixo dentro da linha da tabela, que é onde você o vê.</p>
   <div class="par">
-    <div class="col hoje"><div class="hd">emerald-100</div><div class="card">
-      <div class="linha">
-        <span style="font-size:13px;color:hsl(var(--muted-foreground))">Monofásico</span>
-        <span class="pill" style="background:var(--emerald-100);color:var(--emerald-700)">Sim</span>
-        <span style="font-size:13px;color:hsl(var(--muted-foreground));margin-left:14px">Crédito presumido</span>
-        <span class="pill" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground))">Não</span>
-      </div>
+    <div class="col hoje"><div class="hd">hoje · verde de estoque</div><div class="card" style="padding:8px 12px">
+      <table style="margin:0">
+        <tr><th>NCM</th><th>produto</th><th>monofásico</th></tr>
+        <tr><td class="num">2203.00.00</td><td>Cerveja de malte</td><td><span class="pill" style="background:var(--emerald-100);color:var(--emerald-700)">Sim</span></td></tr>
+        <tr><td class="num">1006.30.21</td><td>Arroz polido</td><td><span style="color:hsl(var(--muted-foreground));font-size:12px">—</span></td></tr>
+        <tr><td class="num">3303.00.10</td><td>Perfume</td><td><span class="pill" style="background:var(--emerald-100);color:var(--emerald-700)">Sim</span></td></tr>
+      </table>
+      <p class="meta">O verde aqui é o mesmo verde de “Concluído” e “Aprovado” do resto do produto.</p>
     </div></div>
-    <div class="col papel"><div class="hd">duas leituras</div><div class="card">
-      <div class="linha">
-        <span style="font-size:12px;color:hsl(var(--muted-foreground));width:64px">como feito</span>
-        <span class="pill" style="background:hsl(var(--status-feito-soft));color:hsl(var(--status-feito))">Sim</span>
-      </div>
-      <div class="linha">
-        <span style="font-size:12px;color:hsl(var(--muted-foreground));width:64px">como tag</span>
-        <span class="pill" style="background:hsl(var(--tag-a)/.12);color:hsl(var(--tag-a))">Sim</span>
-      </div>
-      <p class="meta">A primeira diz “deu certo”, a segunda diz “é deste tipo”.</p>
+    <div class="col papel"><div class="hd">se for categoria · <code>--tag-a</code></div><div class="card" style="padding:8px 12px">
+      <table style="margin:0">
+        <tr><th>NCM</th><th>produto</th><th>monofásico</th></tr>
+        <tr><td class="num">2203.00.00</td><td>Cerveja de malte</td><td><span class="pill" style="background:hsl(var(--tag-a)/.12);color:hsl(var(--tag-a))">Sim</span></td></tr>
+        <tr><td class="num">1006.30.21</td><td>Arroz polido</td><td><span style="color:hsl(var(--muted-foreground));font-size:12px">—</span></td></tr>
+        <tr><td class="num">3303.00.10</td><td>Perfume</td><td><span class="pill" style="background:hsl(var(--tag-a)/.12);color:hsl(var(--tag-a))">Sim</span></td></tr>
+      </table>
+      <p class="meta"><span class="cr" data-fg="hsl(var(--tag-a))" data-bg="hsl(var(--tag-a)/.12)"></span> ·
+         o tom é de tabela de tipo, não de estado — e é o mesmo que o par de selos das Correções SPED
+         já usa desde 10/09.</p>
     </div></div>
   </div>
-  <div class="decide"><b>Decisão 4 — “Sim” é feito ou é categoria?</b>
-     Um NCM monofásico não está concluído nem aprovado; ele <i>é</i> monofásico. Eu leria como
-     categoria (<code>--tag-a</code>), mas o verde de hoje ensinou a equipe a ler como “ok”, e isso
-     pesa mais que a taxonomia.
+  <div class="decide"><b>Decisão 4 — o que o verde do “Sim” está afirmando</b>
+    Um NCM monofásico não foi concluído nem aprovado: ele <b>é</b> monofásico, e continua sendo amanhã.
+    Pela taxonomia isso é categoria. O contra é que o verde de hoje já ensinou a equipe a ler aquilo
+    como “ok”, e trocar o tom muda uma leitura que funciona. <b>Se você não quiser decidir agora</b>,
+    este grupo fica na fila com o motivo escrito e não atrapalha nada — ele não está em escada com
+    ninguém.
   </div>
 
   <h2>8 · Os que ficam na fila — 32 ocorrências</h2>
@@ -425,13 +429,37 @@
       mesma coisa noutro lugar; entra junto, sem pergunta.</li>
   </ul>
 
+  <h2>As escadas que não fecham — o que sobrou da decisão 3</h2>
+  <p>“A mesma escada, por papel” converteu tudo que <b>fecha inteiro</b>. Cinco lugares não fecham, e
+     cada um trava por um motivo diferente — nenhum deles é “faltou tempo”:</p>
+  <ul>
+    <li><b>a prioridade tem verde valendo “Alta”.</b> No <code>StageEditCard</code> a escala é
+      Baixa=amarelo, Média=azul, <b>Alta=verde</b>, Crítica=vermelho; no
+      <code>projectPresentation</code> existem <b>dois rótulos “Alta”</b> com cores diferentes. Pôr
+      papel numa escada que está errada só deixa o erro mais bonito. Precisa primeiro decidir a
+      escala: quatro degraus em <code>neutro</code> → <code>espera</code> → <code>alerta</code> →
+      <code>ajuste</code> é a que os tokens de hoje dão.</li>
+    <li><b>o mapa do PER/DCOMP fala nove línguas</b> (<code>PerDetailModal</code>): verde, azul,
+      laranja, âmbar, índigo, amarelo, esmeralda, vermelho e <code>status-neutro</code>, este último
+      já convertido. São situações de processo, não estados de tarefa — e “Contribuinte intimado” não
+      tem papel óbvio.</li>
+    <li><b>o Audit é gradiente, e o contrato proíbe.</b> O <code>CORES_MOTIVO</code> do
+      <code>AuditPendenciasTable</code> é escala de severidade, e a regra escrita diz que gradiente não
+      veste papel. Ele já estava na <code>filaDoAlerta</code> por isso; continua.</li>
+    <li><b>duas linhas têm degrau sem papel:</b> o roxo de “Métricas em Risco” (<code>RisksTab</code>)
+      e o azul de “Scope creep” (<code>AnaliseInteligenteKpis</code>). Nos dois, converter só o
+      vermelho deixa a linha com token de um lado e estoque do outro.</li>
+    <li><b>o <code>ScenarioList</code> tem <code>promoted</code> em violeta</b>, sem papel
+      correspondente.</li>
+  </ul>
+
   <h2>O que acontece depois que você olhar</h2>
   <p>Nada aqui foi convertido. Com as quatro decisões, a execução é:</p>
   <table>
     <tr><th>passo</th><th>o que entra</th><th>como paro</th></tr>
     <tr><td>1</td><td><s>destrutiva + erro</s> — <b>feito em 11/09</b>, 78 em 21 arquivos (o <code>GerenciarDados</code> saiu: escada de três com âmbar dentro)</td><td>commit <code>1d25b036</code>; olhe uma tela de cada tipo</td></tr>
-    <tr><td>2</td><td>feito + marcador + diff (31)</td><td>commit</td></tr>
-    <tr><td>3</td><td>o que a decisão 2 e a 4 liberarem (36)</td><td>commit</td></tr>
+    <tr><td>2</td><td><s>feito + marcador + diff</s> e as escadas que fecham — <b>feito em 11/09</b>, commit <code>fd566894</code>: 134 ocorrências saíram e quatro entradas deixaram a <code>filaDoAlerta</code></td><td>commit</td></tr>
+    <tr><td>3</td><td>o que a decisão 2 (Limpar e X, 27) e a 4 (“Sim”, 9) liberarem, mais a escala de prioridade</td><td>commit</td></tr>
     <tr><td>4</td><td>a catraca <code>filaDoRedEmerald.test.ts</code>, com o que sobrou por motivo</td><td>o teste trava o crescimento nos dois sentidos</td></tr>
   </table>
 
