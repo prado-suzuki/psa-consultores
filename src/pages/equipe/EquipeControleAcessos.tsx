@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { EquipeLayout } from '@/components/equipe/EquipeLayout';
+import { AcessosLayout } from '@/components/acessos/AcessosLayout';
+import { SECAO_INICIAL, type IdDeSecaoDeAcessos } from '@/lib/secoesDeAcessos';
 import EstruturaManager from '@/components/equipe/estrutura/EstruturaManager';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -73,6 +74,10 @@ const EquipeControleAcessos = () => {
   } = useControleAcessosCatalogMutations();
 
   // Cadastros states
+  // A secao aberta e estado, nao rota: sao sete secoes de uma tela so, e cada
+  // uma como rota custaria uma linha em `protectedPages.ts` e um recorte de
+  // permissao que ninguem pediu. A barra (`AcessosLayout`) le e escreve daqui.
+  const [secao, setSecao] = useState<IdDeSecaoDeAcessos>(SECAO_INICIAL);
   const [cadastroAreas, setCadastroAreas] = useState<ControleAcessosAreaInterna[]>([]);
   const [cadastroStats, setCadastroStats] = useState<ControleAcessosCadastroStats>({ clients: 0, projects: 0, processes: 0 });
   const [cadastroLoading, setCadastroLoading] = useState(false);
@@ -112,6 +117,18 @@ const EquipeControleAcessos = () => {
     } finally {
       setCadastroLoading(false);
     }
+  };
+
+  /**
+   * Troca a secao aberta.
+   *
+   * O `if` era o `onClick` da aba "Cadastros Estrutura": ela carrega sob
+   * demanda, na primeira visita. Com a fila de abas fora, o efeito colateral
+   * viria junto se ninguem o trouxesse — e a secao abriria vazia.
+   */
+  const abrirSecao = (proxima: IdDeSecaoDeAcessos) => {
+    if (proxima === 'cadastros' && cadastroAreas.length === 0) fetchCadastros();
+    setSecao(proxima);
   };
 
   const openCadastroCreate = () => {
@@ -182,70 +199,18 @@ const EquipeControleAcessos = () => {
     }
   };
 
+  // A barra desta tela são as sete seções que eram abas: ver `AcessosLayout`.
+  // O título da página passa a ser o da seção aberta.
   return (
-    <EquipeLayout
-      title="Controle de Acessos"
-      subtitle="Gestão de usuários e liberação de acessos"
-    >
+    <AcessosLayout secao={secao} onSecaoChange={abrirSecao}>
 
           <div className="space-y-6">
             {/* Stats Cards (extraído em componente) */}
             <AccessStatsCards />
 
             {/* Tabs */}
-            <Tabs defaultValue="pages" className="space-y-4">
-              <TabsList className="bg-muted border border-border">
-                <TabsTrigger 
-                  value="pages" 
-                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Páginas
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="cadastros"
-                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                  onClick={() => { if (cadastroAreas.length === 0) fetchCadastros(); }}
-                >
-                  <Building2 className="h-4 w-4 mr-2" />
-                  Cadastros Estrutura
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="users" 
-                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  Usuários Estrutura
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="cadastros_clientes" 
-                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  Cadastros Clientes
-                </TabsTrigger>
-                <TabsTrigger
-                  value="cadastro_categorias"
-                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                >
-                  <FolderKanban className="h-4 w-4 mr-2" />
-                  Produtos & Serviços
-                </TabsTrigger>
-                <TabsTrigger
-                  value="dashboards"
-                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                >
-                  <LayoutDashboard className="h-4 w-4 mr-2" />
-                  Dashboards
-                </TabsTrigger>
-                <TabsTrigger
-                  value="agente"
-                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                >
-                  <Bot className="h-4 w-4 mr-2" />
-                  Agente
-                </TabsTrigger>
-              </TabsList>
+            {/* Sem `TabsList`: quem troca de secao e a barra. */}
+            <Tabs value={secao} onValueChange={(v) => abrirSecao(v as IdDeSecaoDeAcessos)} className="space-y-4">
 
               {/* Pages Tab (extraído em componente) */}
               <TabsContent value="pages" className="space-y-4">
@@ -389,7 +354,7 @@ const EquipeControleAcessos = () => {
         </DialogContent>
       </Dialog>
           </div>
-    </EquipeLayout>
+    </AcessosLayout>
   );
 };
 

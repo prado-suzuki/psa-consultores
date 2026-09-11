@@ -43,6 +43,10 @@ export const AREAS = {
   gestao: { nome: 'Gestão', subtitulo: 'Painel de Controle' },
   admin: { nome: 'Administração', subtitulo: 'Gestão Geral' },
   fixos: { nome: 'Fixos', subtitulo: 'Área Fixos' },
+  // O Controle de Acessos ganhou barra propria em 10/09/2026: ate ali era a
+  // unica tela de dentro do sistema sem barra nenhuma, e por isso a unica sem
+  // o cartao do usuario. O menu dela sao as sete secoes que eram abas.
+  acessos: { nome: 'Acessos', subtitulo: 'Controle de acessos' },
 
   // ── OSG: três apresentações da mesma área ──────────────────────────────
   osg: { nome: 'OSG', subtitulo: 'Área OSG' },

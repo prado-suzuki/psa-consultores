@@ -141,6 +141,14 @@ const AREAS = {
     acento: 'bg-primary/10 text-primary',
     tom: 'tokens',
   },
+  // O Controle de Acessos era a UNICA tela de dentro do sistema sem barra
+  // lateral, e por isso a unica sem este cartao. Ganhou barra propria em
+  // 10/09/2026, com as sete abas dela viradas menu.
+  acessos: {
+    rotulo: NOMES_DE_AREA.acessos.nome,
+    acento: 'bg-primary/10 text-primary',
+    tom: 'tokens',
+  },
   mapa: {
     rotulo: 'Mapeamento',
     // A barra do Mapeamento e CSS legado (`mapa.css`), fora do Tailwind: o
