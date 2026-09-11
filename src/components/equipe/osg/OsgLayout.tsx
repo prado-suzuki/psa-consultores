@@ -55,6 +55,7 @@ import {
   classeRecuoCabecalho,
   classesGavetaBarra,
 } from '@/lib/sidebarMedidas';
+import { FACE_DA_BARRA, classesItemDaBarra } from '@/lib/barraLateralCromo';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
 import { linkEspelhado } from '@/lib/areaTheme';
@@ -289,7 +290,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 {AreaIcon}
               </div>
               <div className={cn(rotuloCls, 'min-w-0 whitespace-nowrap')}>
-                <h2 className="font-semibold text-foreground text-lg">{areaLabel}</h2>
+                <h2 className={cn(FACE_DA_BARRA, 'font-semibold text-foreground text-lg')}>{areaLabel}</h2>
                 <p className="text-xs text-muted-foreground">{areaSubtitle}</p>
               </div>
             </div>
@@ -304,10 +305,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 <button
                   onClick={() => navigate('/equipe/osg/inicio')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/inicio'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/inicio', trilho }),
                   )}
                 >
                   <Home className="h-4 w-4 flex-shrink-0" />
@@ -316,10 +314,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 <button
                   onClick={() => navigate('/equipe/osg/dashboard')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/dashboard'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/dashboard', trilho }),
                   )}
                 >
                   <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
@@ -331,10 +326,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   <button
                     type="button"
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                      isProjetosActive
-                        ? 'bg-osg-50 text-primary'
-                        : 'text-muted-foreground [&>svg]:opacity-75 group-hover/proj:bg-osg-50 group-hover/proj:text-primary',
+                                            // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
+                      classesItemDaBarra({ ativo: false, ancestral: isProjetosActive, trilho }),
                     )}
                   >
                     <FolderKanban className="h-4 w-4 flex-shrink-0" />
@@ -370,10 +363,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                             key={path}
                             onClick={() => navigate(path)}
                             className={cn(
-                              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                              location.pathname === path
-                                ? 'bg-osg-100 text-primary'
-                                : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                                            classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                             )}
                           >
                             <Icon className="h-4 w-4 flex-shrink-0" />
@@ -395,10 +385,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   <button
                     type="button"
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                      isOnbActive
-                        ? 'bg-osg-50 text-primary'
-                        : 'text-muted-foreground group-hover/onb:bg-osg-50 group-hover/onb:text-primary',
+                                            // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
+                      classesItemDaBarra({ ativo: false, ancestral: isOnbActive, trilho }),
                     )}
                   >
                     <Rocket className="h-4 w-4 flex-shrink-0" />
@@ -436,10 +424,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                             key={path}
                             onClick={() => navigate(path)}
                             className={cn(
-                              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                              location.pathname === path
-                                ? 'bg-osg-100 text-primary'
-                                : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                                            classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                             )}
                           >
                             <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
@@ -452,10 +437,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 <button
                   onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/work/qualificacao-das-partes'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/qualificacao-das-partes', trilho }),
                   )}
                 >
                   <Users className="h-4 w-4 flex-shrink-0" />
@@ -466,10 +448,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 <button
                   onClick={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/work/diagnostico-patrimonial'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/diagnostico-patrimonial', trilho }),
                   )}
                 >
                   <Landmark className="h-4 w-4 flex-shrink-0" />
@@ -480,10 +459,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 <button
                   onClick={() => navigate('/equipe/osg/work/controle-matriculas')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/work/controle-matriculas'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/controle-matriculas', trilho }),
                   )}
                 >
                   <FileText className="h-4 w-4 flex-shrink-0" />
@@ -494,10 +470,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   <button
                     type="button"
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                      isDocsActive
-                        ? 'bg-osg-50 text-primary'
-                        : 'text-muted-foreground group-hover/docs:bg-osg-50 group-hover/docs:text-primary',
+                                            // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
+                      classesItemDaBarra({ ativo: false, ancestral: isDocsActive, trilho }),
                     )}
                   >
                     <FileSignature className="h-4 w-4 flex-shrink-0" />
@@ -533,10 +507,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                             key={path}
                             onClick={() => navigate(path)}
                             className={cn(
-                              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                              location.pathname === path
-                                ? 'bg-osg-100 text-primary'
-                                : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                                            classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                             )}
                           >
                             <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
@@ -549,10 +520,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 <button
                   onClick={() => navigate('/equipe/osg/work/quadro-societario')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/work/quadro-societario'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/quadro-societario', trilho }),
                   )}
                 >
                   <PieChart className="h-4 w-4 flex-shrink-0" />
@@ -563,10 +531,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 <button
                   onClick={() => navigate('/equipe/osg/work/exploracao-rural')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/work/exploracao-rural'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/exploracao-rural', trilho }),
                   )}
                 >
                   <Sprout className="h-4 w-4 flex-shrink-0" />
@@ -575,10 +540,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 <button
                   onClick={() => navigate('/equipe/osg/work/calculadora-itcmd')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/work/calculadora-itcmd'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/calculadora-itcmd', trilho }),
                   )}
                 >
                   <Calculator className="h-4 w-4 flex-shrink-0" />
@@ -589,10 +551,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   <button
                     type="button"
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                      isGovActive
-                        ? 'bg-osg-50 text-primary'
-                        : 'text-muted-foreground group-hover/gov:bg-osg-50 group-hover/gov:text-primary',
+                                            // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
+                      classesItemDaBarra({ ativo: false, ancestral: isGovActive, trilho }),
                     )}
                   >
                     <Scale className="h-4 w-4 flex-shrink-0" />
@@ -630,10 +590,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                             key={path}
                             onClick={() => navigate(path)}
                             className={cn(
-                              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                              location.pathname === path
-                                ? 'bg-osg-100 text-primary'
-                                : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                                            classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                             )}
                           >
                             <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
@@ -648,10 +605,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   <button
                     type="button"
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                      isDocClienteActive
-                        ? 'bg-osg-50 text-primary'
-                        : 'text-muted-foreground group-hover/docsCli:bg-osg-50 group-hover/docsCli:text-primary',
+                                            // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
+                      classesItemDaBarra({ ativo: false, ancestral: isDocClienteActive, trilho }),
                     )}
                   >
                     <FolderArchive className="h-4 w-4 flex-shrink-0" />
@@ -689,10 +644,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                             key={path}
                             onClick={() => navigate(path)}
                             className={cn(
-                              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                              location.pathname === path
-                                ? 'bg-osg-100 text-primary'
-                                : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                                            classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                             )}
                           >
                             <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
@@ -705,10 +657,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 <button
                   onClick={() => navigate('/equipe/osg/work/relatorios')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/work/relatorios'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/relatorios', trilho }),
                   )}
                 >
                   <FileBarChart2 className="h-4 w-4 flex-shrink-0" />
@@ -728,10 +677,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   type="button"
                   onClick={() => navigate('/equipe/osg/gerencial')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                    isGerencialActive
-                      ? 'bg-osg-50 text-primary'
-                      : 'text-muted-foreground group-hover/ger:bg-osg-50 group-hover/ger:text-primary',
+                                        // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
+                    classesItemDaBarra({ ativo: false, ancestral: isGerencialActive, trilho }),
                   )}
                 >
                   <LineChart className="h-4 w-4 flex-shrink-0" />
@@ -770,10 +717,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                           // reticências em vez de vazar, e o título traz o inteiro.
                           title={label}
                           className={cn(
-                            'w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium min-w-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                            location.pathname === path
-                              ? 'bg-osg-100 text-primary'
-                              : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                                        classesItemDaBarra({ ativo: location.pathname === path, trilho, sub: true }),
                           )}
                         >
                           <Icon className="h-4 w-4 flex-shrink-0" />
@@ -796,10 +740,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               <button
                 onClick={() => navigate(linkEspelhado('/equipe/chamados', 'osg'))}
                 className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                  location.pathname.startsWith('/equipe/chamados')
-                    ? 'bg-osg-100 text-primary'
-                    : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                    classesItemDaBarra({ ativo: location.pathname.startsWith('/equipe/chamados'), trilho }),
                 )}
               >
                 <MessageSquare className="h-4 w-4 flex-shrink-0" />
