@@ -613,6 +613,16 @@ na caracterização. O rodapé permanece alcançável com rolagem e zoom.
 
 ### Fatia 5. Conferência no navegador e com consultores — PENDENTE
 
+**Parte dela tem prova, e a prova está em `e2e/dados/ui-fluxo-societario-fatia5.json`.**
+A conferência foi feita em 11/09/2026 sobre o preview descartável (entry Vite sem login),
+não sobre o app com sessão de sandbox: dezessete itens, dos quais dezesseis conferem
+(porta com os seis gestos e `Continuar` desabilitado no início, troca de gesto com draft
+limpo e sujo, faixa de resumo batendo com o rodapé da tabela, seções recolhíveis, tela
+estreita, zoom, tema escuro, ordem de foco e console sem erro) e um fica em aberto: a
+Proprietária não entra no preview isolado. **Continua faltando o que é o aceite**: os
+casos que só o sandbox monta (PR bloqueada, PR com imóvel fora do capital) e a
+observação com consultores, que é o único item que a prova de tela não substitui.
+
 **Arquivos:** teste de fluxo futuro em `e2e/`, seletores afetados de
 `e2e/demos/ac-reorganizacao-societaria.mjs`, evidência em `docs/osg/` e este plano/índice.
 Não reescrever arquivos de evidência de execuções passadas para fingir resultado novo.

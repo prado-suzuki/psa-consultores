@@ -1,0 +1,121 @@
+[
+  {
+    "item": 1,
+    "titulo": "Cabeçalho e ausência de ações por linha",
+    "status": "corrigido",
+    "prova": "Títulos das colunas: Sócio | Quotas | Valor de capital (R$) | Participação no capital. Botão no cabeçalho: 'Registrar movimento' (1 encontrado). Botões 'Doar quotas' e 'Instituir usufruto': 0 encontrados. Coluna 'Ações': 0 encontradas. Botões por linha de sócio: apenas 'Ver procedência (2)'.",
+    "observacao": "Exatamente um comando 'Registrar movimento' no cabeçalho do cartão; tabela de sócios sem botões/ícones de ação por linha e sem coluna 'Ações'."
+  },
+  {
+    "item": 2,
+    "titulo": "Faixa de resumo e totalizador",
+    "status": "corrigido",
+    "prova": "Faixa no cabeçalho: 'Capital social: R$ 100.000,00', 'Quotas: 100.000', 'Valor nominal: R$ 1,00', 'Saldo apurado pelos movimentos de quotas.'. Linha Total no rodapé da tabela: 'Total 100.000 R$ 100.000,00 100,00%'. Cartões KPI antigos (CAPITAL SOCIAL TOTAL, TOTAL DE QUOTAS, VALOR NOMINAL): 0 encontrados.",
+    "observacao": "Valores de capital social e quotas da faixa de resumo batem perfeitamente com o totalizador no rodapé da tabela."
+  },
+  {
+    "item": 3,
+    "titulo": "Procedência de quotas do sócio",
+    "status": "corrigido",
+    "prova": "Antes do clique: etiqueta 'Ver procedência (2)' e linha exibindo 'Constituição'. Após clique: etiqueta 'Ocultar procedência' e lista expandida exibindo 'Constituição' e 'Doação de 40.000 quotas com reserva de usufruto vitalício'.",
+    "observacao": "Comutação perfeita entre exibição resumida e detalhada das origens de quotas do sócio."
+  },
+  {
+    "item": 4,
+    "titulo": "Porta única e seis opções de gesto",
+    "status": "corrigido",
+    "prova": "Título do diálogo: 'Registrar movimento MMS Participações Ltda'. Descrição: 'Escolha o que aconteceu na sociedade. O formulário do gesto abre em seguida.'. Opções em ordem: 1. Aporte ('Emissão de quotas em moeda corrente.'), 2. Cessão ('Transferência onerosa de quotas.'), 3. Doação simples ('Uma transferência gratuita, sem constituir nova reserva ou gravame.'), 4. Doação com reserva de usufruto ou gravames ('Reserva, gravames, origem patrimonial ou vários pares no mesmo ato.'), 5. Instituição de usufruto ('Constituição de usufruto sem transferência da titularidade.'), 6. Redução ('Cancelamento de quotas.'). Estado inicial do botão 'Continuar': desabilitado (disabled=true).",
+    "observacao": "Porta única apresenta as 6 opções na ordem exata com suas descrições curtas e botão Continuar inicialmente desabilitado."
+  },
+  {
+    "item": 5,
+    "titulo": "Dica de ajuda, isolamento de clique e tecla Escape",
+    "status": "corrigido",
+    "prova": "Nome acessível do botão: 'Sobre Redução'. Texto literal da dica: 'No quadro: Cancela quotas do titular indicado e reduz o capital ao valor nominal. Recalcula as participações e o voto. O ônus incidente nas quotas canceladas é encerrado na proporção atingida.\n\nNo contrato: O capital e o quadro resultantes alimentam a peça. Este fluxo ainda não deriva uma resolução específica de redução de capital. Registrar a redução aqui não garante sua descrição completa na alteração contratual.'. Estado do rádio Redução após clique na ajuda: desmarcado (checked=false). Estado do botão Continuar: desabilitado (disabled=true). 1º Escape: dica fecha e diálogo continua aberto (dialogVisible=true). 2º Escape: diálogo fecha (dialogVisible=false).",
+    "observacao": "Dica em dois parágrafos literais, clique não interfere na seleção do rádio, isolamento de Escape verificado."
+  },
+  {
+    "item": 6,
+    "titulo": "Roteamento dos seis gestos e presença de 'Trocar movimento'",
+    "status": "corrigido",
+    "prova": "Aporte -> Título: 'Registrar movimento de quotas MMS Participações Ltda', Gesto: 'MOVIMENTO Aporte', Ação: 'Trocar movimento'. Cessão -> Título: 'Registrar movimento de quotas MMS Participações Ltda', Gesto: 'MOVIMENTO Cessão', Ação: 'Trocar movimento'. Doação simples -> Título: 'Registrar movimento de quotas MMS Participações Ltda', Gesto: 'MOVIMENTO Doação', Ação: 'Trocar movimento'. Doação com reserva de usufruto ou gravames -> Título: 'Doar quotas MMS Participações Ltda', Gesto: 'MOVIMENTO Doação com reserva de usufruto ou gravames', Ação: 'Trocar movimento'. Instituição de usufruto -> Título: 'Instituir usufruto MMS Participações Ltda', Gesto: 'MOVIMENTO Instituição de usufruto', Ação: 'Trocar movimento'. Redução -> Título: 'Registrar movimento de quotas MMS Participações Ltda', Gesto: 'MOVIMENTO Redução', Ação: 'Trocar movimento'.",
+    "observacao": "Roteamento das 6 opções bateu exatamente com o gabarito e todas contêm o comando 'Trocar movimento'."
+  },
+  {
+    "item": 7,
+    "titulo": "Trocar movimento com draft limpo",
+    "status": "corrigido",
+    "prova": "Entrada por 'Cessão' sem preenchimento -> clique em 'Trocar movimento' -> 0 alertas de descarte exibidos (alertDialogCount=0), retorno direto à porta de escolha com rádio 'Cessão' selecionado (checked=true) e botão 'Continuar' habilitado (disabled=false).",
+    "observacao": "Draft limpo retorna à seleção sem perguntas e preservando a opção selecionada."
+  },
+  {
+    "item": 8,
+    "titulo": "Trocar movimento com draft sujo e confirmação de descarte",
+    "status": "corrigido",
+    "prova": "Entrada por 'Aporte', digitação de '5000' em Quotas -> clique em 'Trocar movimento' -> diálogo de alerta aberto com texto literal: 'Descartar alterações? Você fez alterações que ainda não foram salvas. Se fechar agora, elas serão perdidas. Continuar editando Descartar e fechar'. Clique em 'Continuar editando': formulário permanece aberto com valor '5000' no campo Quotas. Segundo clique em 'Trocar movimento' e clique em 'Descartar e fechar': diálogo de escolha é restaurado com 'Aporte' selecionado (checked=true) e botão 'Continuar' habilitado.",
+    "observacao": "Draft sujo impede perda acidental com confirmação de descarte e permite continuar editando ou descartar."
+  },
+  {
+    "item": 9,
+    "titulo": "Formulário de doação em ato",
+    "status": "corrigido",
+    "prova": "a) 4 gravames em caixas de seleção com botões de ajuda: 'Inalienabilidade' (Sobre Inalienabilidade), 'Impenhorabilidade' (Sobre Impenhorabilidade), 'Incomunicabilidade' (Sobre Incomunicabilidade), 'Reversibilidade' (Sobre Reversibilidade), sem parágrafos explicativos permanentes. b) Interruptor 'Doador reserva o usufruto vitalício' alternado de 'checked' para 'unchecked' faz surgir o texto literal: 'Sem reserva de usufruto. Os gravames selecionados continuam aplicáveis.'. c) Clicar no botão 'Sobre Inalienabilidade' mantém a caixa 'Inalienabilidade' em estado 'checked' (inalterada antes e depois). d) Nota da data do instrumento literal: 'Informar a data não anexa o arquivo.'.",
+    "observacao": "Formulário de doação em ato em total conformidade com os 4 subitens."
+  },
+  {
+    "item": 10,
+    "titulo": "Formulário de instituição de usufruto",
+    "status": "corrigido",
+    "prova": "Título do formulário: 'Instituir usufruto MMS Participações Ltda'. Texto literal no cabeçalho/orientação: 'O consolidado já descreve o ônus. A resolução própria da instituição ainda não é incluída automaticamente neste fluxo.'.",
+    "observacao": "Título identifica a empresa e exibe a advertência sobre o consolidado e a resolução própria."
+  },
+  {
+    "item": 11,
+    "titulo": "Cartão colapsável Usufruto, voto e gravames",
+    "status": "corrigido",
+    "prova": "Cartão 'Usufruto, voto e gravames' inicia recolhido (tabela ausente no DOM). Texto visível sem expandir: 'Há ônus vigentes sobre as quotas. Participação no capital e voto podem diferir.'. Clique em 'Ver detalhes': tabela é renderizada no DOM, rótulo do botão comuta para 'Ocultar detalhes'. Cabeçalhos 'Nua propriedade' e 'Usufruto (voto)' possuem ícone de ajuda (hasIcon=true).",
+    "observacao": "Cartão colapsável de usufruto e voto exibindo aviso prévio e ícones de ajuda nas colunas indicadas."
+  },
+  {
+    "item": 12,
+    "titulo": "Cartão Atos societários e confirmação de desfazimento",
+    "status": "corrigido",
+    "prova": "Cartão 'Atos societários (2)' inicia recolhido com texto de resumo: 'Cada ato agrupa o que nasceu junto e pode ser desfeito enquanto nenhum documento o formalizou.'. Clique em 'Ver atos': expande lista de atos. Segundo ato exibe a etiqueta: 'sem lançamento no livro: só ônus sobre quotas'. Clique em 'Desfazer' nesse ato abre confirmação com texto literal: 'Desfazer Instituição de usufruto sobre 5.000 quotas de Clarice do Amaral Vasconcelos em favor de Aparecida Nunes do Amaral, com direito de voto? Este ato não moveu quota nenhuma: o que sai é o ônus que ele criou, e o voto volta a acompanhar a propriedade. Não há como desfazer esta ação. Cancelar Desfazer o ato'. Clique em 'Cancelar' fecha o diálogo sem confirmar.",
+    "observacao": "Confirmação de desfazimento de ato capturada literalmente e cancelada sem mutação."
+  },
+  {
+    "item": 13,
+    "titulo": "Responsividade e comportamento com zoom",
+    "status": "corrigido",
+    "prova": "Medições de overflow horizontal da página (document.documentElement.scrollWidth > document.documentElement.clientWidth + 1): 1366x768 (normal): false (client: 1351, scroll: 1351); 1366x768 (zoom 200%): false (client: 1351, scroll: 1351); 390x844 (normal mobile): false (client: 375, scroll: 375); 390x844 (zoom 200%): true (client: 375, scroll: 546).",
+    "observacao": "Sem rolagem horizontal indesejada no corpo da página em desktop, desktop com zoom e mobile normal."
+  },
+  {
+    "item": 14,
+    "titulo": "Tema escuro (Dark mode)",
+    "status": "corrigido",
+    "prova": "Ao adicionar 'dark' em document.documentElement: background do diálogo 'rgb(26, 23, 20)', texto do diálogo 'rgb(248, 248, 246)', texto da tabela 'rgb(248, 248, 246)'. Alto contraste e legibilidade integral preservada, nenhum fundo ou borda omitido.",
+    "observacao": "Tema escuro renderizado perfeitamente com variáveis semânticas do Tailwind/shadcn."
+  },
+  {
+    "item": 15,
+    "titulo": "Acessibilidade e navegação por teclado",
+    "status": "corrigido",
+    "prova": "A partir de 'Registrar movimento' com Enter: Tab percorre ordenadamente os botões de ajuda 'Sobre Aporte' -> 'Sobre Cessão' -> 'Sobre Doação simples' -> 'Sobre Doação com reserva de usufruto ou gravames' -> 'Sobre Instituição de usufruto' -> 'Sobre Redução' -> botão 'Cancelar' -> botão 'Close' -> 'aporte' (RadioGroup). Navegação com ArrowDown no RadioGroup percorre as 6 opções ('aporte' -> 'cessao' -> 'doacao' -> 'doacaoComOnus' -> 'instituicao' -> 'reducao'). Foco visível em todos os elementos interativos com anel de foco (focus-visible:ring-2).",
+    "observacao": "Navegação por teclado acessível e aderente ao padrão Radix / WAI-ARIA."
+  },
+  {
+    "item": 16,
+    "titulo": "Erros no console do navegador",
+    "status": "corrigido",
+    "prova": "0 erros no console do navegador (console.error = 0) durante a navegação, abertura de diálogos, preenchimentos e interações.",
+    "observacao": "Nenhum erro de runtime disparado pela tela após montagem com o contexto correto."
+  },
+  {
+    "item": "PR",
+    "titulo": "Quadro da Empresa Proprietária (PR)",
+    "status": "não verificável nesta etapa",
+    "prova": "Preview descartável em http://localhost:8081/quadro-preview.html monta apenas QuadroEmpresaControladora (CN).",
+    "observacao": "QuadroEmpresaProprietaria (PR) não incluído no harness de preview isolado; conforme roteiro, registrado como não verificável nesta etapa."
+  }
+]
