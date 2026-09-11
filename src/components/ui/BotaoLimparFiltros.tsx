@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
  *
  * O DEFEITO QUE ISTO DESFAZ. A receita existia **nove vezes**, uma por tela de
  * consulta, e em sete recortes diferentes de classe — todas pintando o vermelho de
- * estoque (`text-red-600`, `hover:bg-red-50`). Nove cópias não são nove decisões:
+ * estoque (o `red-600` no texto, o `red-50` no hover). Nove cópias não são nove decisões:
  * são uma decisão e nove lugares onde ela envelhece separado.
  *
  * O QUE A COR QUER DIZER, e por que a âncora: limpar filtro **não destrói dado**.
