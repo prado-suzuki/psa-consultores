@@ -357,7 +357,7 @@ domínios de uma vez — foi ele que ficou com o masculino.
 | tom que a escala não tem | `escala/cor-inexistente` e `escala/cor-de-estoque` |
 | cor crua **slate** | catraca `src/lib/filaDoSlate.test.ts` — nasce **vazia**, e qualquer classe slate nova derruba |
 | âncora `osg-red` pintando status | catraca `src/lib/filaDoOsgRed.test.ts` — nasce **vazia**; não é cor de estoque, é token nosso no lugar errado |
-| **cinza (`gray`)** | **parcial, e e o buraco maior** — a `cor-de-estoque` so dispara em tom que a escala do projeto NAO define, entao `bg-gray-500` passa. 580 ocorrencias medidas em 10/09 |
+| cinza (`gray`) | catraca `src/lib/filaDoGray.test.ts` desde 10/09/2026 — inventário por motivo, e o recorte interno tem asserção própria. Era o buraco maior (580) porque o nome está no `tailwind.config.ts` e a `cor-de-estoque` só dispara em tom que a escala não define |
 | **verde, vermelho, azul, roxo, laranja** | **nenhuma** |
 | rótulo divergente de **chamado** | catraca `src/lib/chamadoStatusColors.test.ts` — nasce **vazia**, varre pelo conjunto de chaves |
 | rótulo divergente de status | catraca `src/lib/rotulosDeStatus.test.ts` — pega "Em Progresso" em JSX e trava a palavra dos três mapas |
@@ -484,12 +484,25 @@ Medido em 10/09/2026, ordenado:
 
 Nesta ordem, do que rende ao que exige decisão:
 
-1. **`gray`, e ele é conversão por MAPA, não inventário.** É o que o diferencia do `red` e do
-   `emerald`, que continuam espalhados fino: **12 arquivos concentram 313 das 580**, e eles se
-   agrupam por domínio — `EquipeSprints` (39), `ImpactDashboard` (39), `Auth` (38),
-   `ProjectInfoTab` (38), `DemandDialogs` (36), depois Kanban, Processos e o `Header`. Quase
-   tudo é Rotina. É exatamente a forma em que a alavanca do mapa de domínio rendeu **cinco
-   vezes em cinco** em 03/09, e a varredura por família nenhuma.
+1. ~~**`gray`**~~ — **fechado em 10/09/2026.** Eram 580; sobram 149, e nenhuma em tela
+   interna fora do bloco de código. A conversão confirmou a aposta: era por MAPA e não por
+   inventário — 12 arquivos concentravam 313, e o maior achado veio de procurar o mapa do
+   domínio, não de varrer classe. A pílula de status da sprint estava escrita à mão em dois
+   lugares e **as duas cópias já tinham divergido**: o verde queria dizer "ativa" numa tela e
+   "concluída" na outra.
+
+   Três coisas que a passada ensinou, e que valem para a próxima família:
+
+   · **texto primário se TIRA, não se troca.** Dos 509 `<Label>` do produto, 400 já não tinham
+     cor nenhuma e herdavam. Os 66 `gray-700` estavam sozinhos contra a maioria;
+   · **o cinza escondia decisões já tomadas.** Quatro mapas tinham uma entrada de "nenhum" em
+     cinza cru, e a resposta estava em `comparacoes-de-cor/cinza-de-desligado.html` desde
+     20/08 — "acompanha o tema, com `--status-neutro`". A conversão não decidiu nada ali,
+     só entregou;
+   · **o site público é outro produto.** Decisão dela: a landing pinta a própria paleta, com
+     seções escuras de propósito, e ali o `gray-400` claro sobre escuro está CERTO. As 149 que
+     sobram são quase todas dela, mais quatro componentes órfãos que ninguém importa.
+
 2. **Os papéis que faltam** (§1) — por mapa, nunca por classe. Mesma alavanca do item acima.
 3. **`red` e `emerald`** (§5) — aí sim inventário por motivo, na forma da `filaDoAlerta`, porque
    não têm concentração. O molde está em `medirCorCrua.ts`, e a `chamadoStatusColors.test.ts`
