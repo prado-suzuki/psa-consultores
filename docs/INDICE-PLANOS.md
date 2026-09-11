@@ -43,6 +43,7 @@ o P1 do RLS, e o `color_index`, que uma fila de agosto dava como pendente e em p
 
 | Documento | Status | Observação |
 |---|---|---|
+| [`planos/ui-ux-fluxo-societario-osg-work.md`](planos/ui-ux-fluxo-societario-osg-work.md) | 🔵 ABERTO | Plano de UI/UX de 11/09/2026, lido na `feat/doacao-quotas-com-usufruto`. Porta única, lista de gestos, tooltips de quadro e contrato e limpeza da página em cinco fatias. Preserva doação avulsa, macro e instituição com suas gravações atuais. Nenhuma implementação iniciada. Sessão logada não obtida na análise, validação visual pendente. |
 | [`planos/override-blocos.md`](planos/override-blocos.md) | ✅ FEITO | Entregue em 16/06/2026 junto com os três abaixo, no mesmo commit |
 | [`planos/render-from-snapshot.md`](planos/render-from-snapshot.md) | ✅ FEITO | `gerar/renderizarVersao.ts` |
 | [`planos/notificacoes-mudanca-variavel.md`](planos/notificacoes-mudanca-variavel.md) | ✅ FEITO | — |
