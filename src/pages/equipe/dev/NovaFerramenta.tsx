@@ -113,7 +113,7 @@ const NovaFerramenta = () => {
                   placeholder="Ex: Automação de Relatórios"
                   required
                 />
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Um nome curto que identifique a ferramenta no catálogo
                 </p>
               </div>
@@ -127,32 +127,32 @@ const NovaFerramenta = () => {
                   placeholder="Ex: Automatiza o cruzamento entre XML e SPED para conferência de créditos..."
                   rows={4}
                 />
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Explique o problema que essa ferramenta resolve e o resultado esperado — isso ajuda o time a priorizar
                 </p>
               </div>
 
               <div className="space-y-3">
                 <Label>Áreas que vão usar essa ferramenta</Label>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Assim que a ferramenta estiver pronta, essas áreas ganham acesso automaticamente
                 </p>
                 {isLoadingAreas ? (
-                  <p className="text-sm text-gray-400">Carregando áreas...</p>
+                  <p className="text-sm text-muted-foreground">Carregando áreas...</p>
                 ) : areasByCluster.length === 0 ? (
-                  <p className="text-sm text-gray-400">Nenhuma área cadastrada no momento.</p>
+                  <p className="text-sm text-muted-foreground">Nenhuma área cadastrada no momento.</p>
                 ) : (
                   <div className="space-y-4">
                     {areasByCluster.map(([clusterName, clusterAreas]) => (
                       <div key={clusterName} className="space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           {clusterName}
                         </p>
                         <div className="grid grid-cols-2 gap-3">
                           {clusterAreas.map((area) => (
                             <div
                               key={area.id}
-                              className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                              className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted cursor-pointer"
                               onClick={() => toggleArea(area.id)}
                             >
                               <Checkbox

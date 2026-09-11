@@ -46,32 +46,30 @@ const ProcessFormFields = ({
 }: ProcessFormFieldsProps) => (
   <>
     <div className="space-y-2">
-      <Label className="text-gray-700">Nome do Processo *</Label>
+      <Label>Nome do Processo *</Label>
       <Input
         value={process.name}
         onChange={(event) => onChange({ ...process, name: event.target.value })}
-        className="text-gray-900"
         placeholder={creating ? 'Ex: Emissão de Notas Fiscais' : undefined}
         required={creating}
       />
     </div>
     <div className="space-y-2">
-      <Label className="text-gray-700">Descrição</Label>
+      <Label>Descrição</Label>
       <Textarea
         value={process.description}
         onChange={(event) => onChange({ ...process, description: event.target.value })}
-        className="text-gray-900"
         placeholder={creating ? 'Descreva o processo...' : undefined}
       />
     </div>
     <div className="grid grid-cols-2 gap-4">
       <div className="space-y-2">
-        <Label className="text-gray-700">Equipe responsável</Label>
+        <Label>Equipe responsável</Label>
         <Select
           value={process.equipe_id || ''}
           onValueChange={(value) => onChange({ ...process, equipe_id: value })}
         >
-          <SelectTrigger className="text-gray-900">
+          <SelectTrigger>
             <SelectValue placeholder="Selecione a equipe" />
           </SelectTrigger>
           <SelectContent className="border-border">
@@ -91,12 +89,12 @@ const ProcessFormFields = ({
         </Select>
       </div>
       <div className="space-y-2">
-        <Label className="text-gray-700">Estágio</Label>
+        <Label>Estágio</Label>
         <Select
           value={process.stage}
           onValueChange={(value) => onChange({ ...process, stage: value })}
         >
-          <SelectTrigger className="text-gray-900">
+          <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="border-border">
@@ -111,12 +109,12 @@ const ProcessFormFields = ({
     </div>
     <div className="grid grid-cols-2 gap-4">
       <div className="space-y-2">
-        <Label className="text-gray-700">Prioridade</Label>
+        <Label>Prioridade</Label>
         <Select
           value={process.priority}
           onValueChange={(value) => onChange({ ...process, priority: value })}
         >
-          <SelectTrigger className="text-gray-900">
+          <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="border-border">
@@ -127,32 +125,29 @@ const ProcessFormFields = ({
         </Select>
       </div>
       <div className="space-y-2">
-        <Label className="text-gray-700">Frequência</Label>
+        <Label>Frequência</Label>
         <Input
           value={process.frequency}
           onChange={(event) => onChange({ ...process, frequency: event.target.value })}
-          className="text-gray-900"
           placeholder={creating ? 'Ex: Diária' : undefined}
         />
       </div>
     </div>
     <div className="grid grid-cols-2 gap-4">
       <div className="space-y-2">
-        <Label className="text-gray-700">Volume/Mês</Label>
+        <Label>Volume/Mês</Label>
         <Input
           type="number"
           value={process.volume_month}
           onChange={(event) => onChange({ ...process, volume_month: event.target.value })}
-          className="text-gray-900"
           placeholder={creating ? 'Ex: 500' : undefined}
         />
       </div>
       <div className="space-y-2">
-        <Label className="text-gray-700">Impacto Financeiro</Label>
+        <Label>Impacto Financeiro</Label>
         <Input
           value={process.financial_impact}
           onChange={(event) => onChange({ ...process, financial_impact: event.target.value })}
-          className="text-gray-900"
           placeholder={creating ? 'Ex: Alto' : undefined}
         />
       </div>
@@ -189,12 +184,12 @@ export const ProcessCreateDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="border-border">
         <DialogHeader>
-          <DialogTitle className="text-gray-900">Novo Processo</DialogTitle>
+          <DialogTitle>Novo Processo</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {project && (
-            <div className="rounded-md border border-border bg-gray-50 px-3 py-2 text-sm text-gray-600">
-              Projeto: <strong className="text-gray-900">{project.name}</strong>
+            <div className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
+              Projeto: <strong>{project.name}</strong>
               {' · '}herda o cluster do projeto.
               {!project.cluster_id && (
                 <span className="mt-1 block text-warning">
@@ -257,7 +252,7 @@ export const ProcessEditDialog = ({
         {process && (
           <>
             <DialogHeader>
-              <DialogTitle className="text-gray-900">Editar Processo</DialogTitle>
+              <DialogTitle>Editar Processo</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <ProcessFormFields

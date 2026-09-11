@@ -135,12 +135,12 @@ export function SprintHeaderFilters({
           </SelectContent>
         </Select>
         {c.hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={c.clearFilters} className="text-gray-500">
+          <Button variant="ghost" size="sm" onClick={c.clearFilters} className="text-muted-foreground">
             <X className="h-4 w-4 mr-1" /> Limpar
           </Button>
         )}
         {c.hasActiveFilters && (
-          <span className="text-sm text-gray-500 ml-auto">
+          <span className="text-sm text-muted-foreground ml-auto">
             {c.filteredDeliverables.length} de {c.deliverables.length} entregáveis
           </span>
         )}

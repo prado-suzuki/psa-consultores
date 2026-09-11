@@ -48,14 +48,14 @@ export function KanbanFilters(props: KanbanFiltersProps) {
   return (
     <div className="bg-white border border-border rounded-lg p-4 mb-4">
       <div className="flex items-center gap-2 mb-3">
-        <Filter className="h-4 w-4 text-gray-500" />
-        <span className="text-sm font-medium text-gray-700">Filtros</span>
+        <Filter className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-medium">Filtros</span>
         {props.hasActiveFilters && (
           <Button
             variant="ghost"
             size="sm"
             onClick={props.onClear}
-            className="ml-auto text-gray-500 hover:text-gray-700 h-7"
+            className="ml-auto text-muted-foreground h-7"
           >
             <X className="h-3 w-3 mr-1" />
             Limpar
@@ -65,7 +65,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
 
       <div className="flex flex-wrap items-center gap-3">
         <Select value={props.filterSprint} onValueChange={props.onSprintChange}>
-          <SelectTrigger className="w-40 text-gray-900 h-9">
+          <SelectTrigger className="w-40 h-9">
             <SelectValue placeholder="Sprint" />
           </SelectTrigger>
           <SelectContent className="border-border">
@@ -79,7 +79,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
         </Select>
 
         <Select value={props.filterResponsible} onValueChange={props.onResponsibleChange}>
-          <SelectTrigger className="w-44 text-gray-900 h-9">
+          <SelectTrigger className="w-44 h-9">
             <SelectValue placeholder="Responsável" />
           </SelectTrigger>
           <SelectContent className="border-border">
@@ -93,7 +93,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
         </Select>
 
         <Select value={props.filterProject} onValueChange={props.onProjectChange}>
-          <SelectTrigger className="w-44 text-gray-900 h-9">
+          <SelectTrigger className="w-44 h-9">
             <SelectValue placeholder="Projeto" />
           </SelectTrigger>
           <SelectContent className="border-border">
@@ -107,7 +107,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
         </Select>
 
         <Select value={props.filterProcess} onValueChange={props.onProcessChange}>
-          <SelectTrigger className="w-44 text-gray-900 h-9">
+          <SelectTrigger className="w-44 h-9">
             <SelectValue placeholder="Processo" />
           </SelectTrigger>
           <SelectContent className="border-border">
@@ -130,7 +130,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
                 props.filterStartDate && 'text-gray-900',
               )}
             >
-              <CalendarIcon className="h-4 w-4 mr-2 text-gray-500" />
+              <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
               {props.filterStartDate
                 ? format(props.filterStartDate, 'dd/MM/yyyy', { locale: ptBR })
                 : 'Data Início'}
@@ -151,7 +151,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
                 props.filterEndDate && 'text-gray-900',
               )}
             >
-              <CalendarIcon className="h-4 w-4 mr-2 text-gray-500" />
+              <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
               {props.filterEndDate
                 ? format(props.filterEndDate, 'dd/MM/yyyy', { locale: ptBR })
                 : 'Data Fim'}
@@ -163,7 +163,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
         </Popover>
       </div>
 
-      <div className="mt-3 text-xs text-gray-500">
+      <div className="mt-3 text-xs text-muted-foreground">
         {props.mainTaskCount} tarefas principais ({props.totalTaskCount} total incluindo subtarefas)
         {props.hiddenCount > 0 && (
           <span className="ml-2 font-medium text-warning">

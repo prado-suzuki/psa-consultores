@@ -66,39 +66,37 @@ export const CreateDemandDialog = ({
     </DialogTrigger>
     <DialogContent className="border-border max-w-lg">
       <DialogHeader>
-        <DialogTitle className="text-gray-900">Criar Nova Demanda</DialogTitle>
+        <DialogTitle>Criar Nova Demanda</DialogTitle>
       </DialogHeader>
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="title" className="text-gray-700">
+          <Label htmlFor="title">
             Título *
           </Label>
           <Input
             id="title"
             value={draft.title}
             onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-            className="text-gray-900"
             placeholder="Ex: Relatório Trimestral"
             required
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="description" className="text-gray-700">
+          <Label htmlFor="description">
             Descrição
           </Label>
           <Textarea
             id="description"
             value={draft.description}
             onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-            className="text-gray-900"
             placeholder="Descreva a demanda..."
           />
         </div>
 
-        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
           <div className="flex items-center gap-2">
-            <Repeat className="h-4 w-4 text-gray-500" />
-            <Label className="text-gray-700 font-normal">Demanda Recorrente</Label>
+            <Repeat className="h-4 w-4 text-muted-foreground" />
+            <Label className="font-normal">Demanda Recorrente</Label>
           </div>
           <Switch
             checked={draft.is_recurring}
@@ -108,12 +106,12 @@ export const CreateDemandDialog = ({
 
         {draft.is_recurring ? (
           <div className="space-y-2">
-            <Label className="text-gray-700">Frequência *</Label>
+            <Label>Frequência *</Label>
             <Select
               value={draft.frequency}
               onValueChange={(value) => setDraft({ ...draft, frequency: value })}
             >
-              <SelectTrigger className="text-gray-900">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-border">
@@ -126,21 +124,19 @@ export const CreateDemandDialog = ({
         ) : (
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-gray-700">Data Início</Label>
+              <Label>Data Início</Label>
               <Input
                 type="date"
                 value={draft.start_date}
                 onChange={(e) => setDraft({ ...draft, start_date: e.target.value })}
-                className="text-gray-900"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-gray-700">Data Fim *</Label>
+              <Label>Data Fim *</Label>
               <Input
                 type="date"
                 value={draft.due_date}
                 onChange={(e) => setDraft({ ...draft, due_date: e.target.value })}
-                className="text-gray-900"
                 required={!draft.is_recurring}
               />
             </div>
@@ -149,12 +145,12 @@ export const CreateDemandDialog = ({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-gray-700">Responsável</Label>
+            <Label>Responsável</Label>
             <Select
               value={draft.assigned_to}
               onValueChange={(value) => setDraft({ ...draft, assigned_to: value })}
             >
-              <SelectTrigger className="text-gray-900">
+              <SelectTrigger>
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent className="border-border">
@@ -167,7 +163,7 @@ export const CreateDemandDialog = ({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="estimated_hours" className="text-gray-700">
+            <Label htmlFor="estimated_hours">
               Horas Estimadas
             </Label>
             <Input
@@ -177,7 +173,6 @@ export const CreateDemandDialog = ({
               min="0"
               value={draft.estimated_hours}
               onChange={(e) => setDraft({ ...draft, estimated_hours: e.target.value })}
-              className="text-gray-900"
               placeholder="Ex: 8"
             />
           </div>
@@ -221,30 +216,28 @@ export const EditDemandDialog = ({
       {selectedDemand && (
         <>
           <DialogHeader>
-            <DialogTitle className="text-gray-900">Editar Demanda</DialogTitle>
+            <DialogTitle>Editar Demanda</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-gray-700">Título *</Label>
+              <Label>Título *</Label>
               <Input
                 value={draft.title}
                 onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                className="text-gray-900"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-gray-700">Descrição</Label>
+              <Label>Descrição</Label>
               <Textarea
                 value={draft.description}
                 onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                className="text-gray-900"
               />
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
               <div className="flex items-center gap-2">
-                <Repeat className="h-4 w-4 text-gray-500" />
-                <Label className="text-gray-700 font-normal">Demanda Recorrente</Label>
+                <Repeat className="h-4 w-4 text-muted-foreground" />
+                <Label className="font-normal">Demanda Recorrente</Label>
               </div>
               <Switch
                 checked={draft.is_recurring}
@@ -254,12 +247,12 @@ export const EditDemandDialog = ({
 
             {draft.is_recurring ? (
               <div className="space-y-2">
-                <Label className="text-gray-700">Frequência</Label>
+                <Label>Frequência</Label>
                 <Select
                   value={draft.frequency}
                   onValueChange={(value) => setDraft({ ...draft, frequency: value })}
                 >
-                  <SelectTrigger className="text-gray-900">
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="border-border">
@@ -272,21 +265,19 @@ export const EditDemandDialog = ({
             ) : (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Data Início</Label>
+                  <Label>Data Início</Label>
                   <Input
                     type="date"
                     value={draft.start_date}
                     onChange={(e) => setDraft({ ...draft, start_date: e.target.value })}
-                    className="text-gray-900"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Data Fim</Label>
+                  <Label>Data Fim</Label>
                   <Input
                     type="date"
                     value={draft.due_date}
                     onChange={(e) => setDraft({ ...draft, due_date: e.target.value })}
-                    className="text-gray-900"
                   />
                 </div>
               </div>
@@ -294,12 +285,12 @@ export const EditDemandDialog = ({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-gray-700">Responsável</Label>
+                <Label>Responsável</Label>
                 <Select
                   value={draft.assigned_to}
                   onValueChange={(value) => setDraft({ ...draft, assigned_to: value })}
                 >
-                  <SelectTrigger className="text-gray-900">
+                  <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent className="border-border">
@@ -312,14 +303,13 @@ export const EditDemandDialog = ({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-gray-700">Horas Estimadas</Label>
+                <Label>Horas Estimadas</Label>
                 <Input
                   type="number"
                   step="0.5"
                   min="0"
                   value={draft.estimated_hours}
                   onChange={(e) => setDraft({ ...draft, estimated_hours: e.target.value })}
-                  className="text-gray-900"
                 />
               </div>
             </div>

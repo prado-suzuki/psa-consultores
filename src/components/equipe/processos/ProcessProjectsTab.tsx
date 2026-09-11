@@ -106,9 +106,9 @@ export function ProcessProjectsTab(props: ProcessProjectsTabProps) {
         </Popover>
       </div>
       {props.loading ? (
-        <div className="text-center py-8 text-gray-500">Carregando projetos...</div>
+        <div className="text-center py-8 text-muted-foreground">Carregando projetos...</div>
       ) : props.projectProcesses.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-muted-foreground">
           Nenhum projeto vinculado. Clique em "Adicionar Projeto" para vincular.
         </div>
       ) : (

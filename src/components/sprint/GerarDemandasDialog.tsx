@@ -232,10 +232,10 @@ export function GerarDemandasDialog({
                           className="font-medium"
                         />
                         {item.description && (
-                          <p className="text-sm text-gray-500">{item.description}</p>
+                          <p className="text-sm text-muted-foreground">{item.description}</p>
                         )}
                         {item.justificativa && (
-                          <p className="text-xs text-gray-400 italic">💡 {item.justificativa}</p>
+                          <p className="text-xs text-muted-foreground italic">💡 {item.justificativa}</p>
                         )}
                         {item.suggested_assignee_name && (
                           <Badge variant="outline" className="text-xs">
@@ -244,7 +244,7 @@ export function GerarDemandasDialog({
                         )}
                         <div className="flex items-center gap-3 pt-1">
                           <div className="flex items-center gap-1.5">
-                            <Label className="text-xs text-gray-400">Horas</Label>
+                            <Label className="text-xs text-muted-foreground">Horas</Label>
                             <Input
                               type="number"
                               min="0"

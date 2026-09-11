@@ -115,7 +115,7 @@ export function MonthRangePicker({
             className
           )}
         >
-          <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
+          <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
           {formatDisplay() || <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
@@ -188,7 +188,7 @@ export function MonthRangePicker({
 
           {/* Hint */}
           {mode === "months" && (
-            <p className="text-[10px] text-center text-gray-500 mb-2">
+            <p className="text-[10px] text-center text-muted-foreground mb-2">
               {pendingStart
                 ? `Início: ${MONTHS[pendingStart.month]}/${pendingStart.year} — selecione o fim`
                 : "Selecione o mês de início"}

@@ -485,7 +485,7 @@ export default function NewClientModal({
               <div className={cn("p-2 rounded-lg", acento.positivoFundo)}>
                 {isReadOnly ? <Building2 className={acento.texto} size={22} /> : isEditing ? <Pencil className={acento.texto} size={22} /> : <Plus className={acento.texto} size={22} />}
               </div>
-              <h2 className="text-xl font-bold text-gray-900">{isReadOnly ? "Visualizar Cliente" : isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</h2>
+              <h2 className="text-xl font-bold">{isReadOnly ? "Visualizar Cliente" : isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</h2>
             </div>
             <div className="flex items-center gap-1">
               {temGuia && (
@@ -495,10 +495,10 @@ export default function NewClientModal({
                   tourId={activeTab === "contratos" && !isReadOnly ? "modal-os" : "modal-cliente"}
                   dataTour="modal-help"
                   label="Ver o guia deste cadastro"
-                  className="p-2 text-gray-400 hover:text-gray-700 hover:bg-muted rounded-full transition-colors"
+                  className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
                 />
               )}
-              <button onClick={handleAttemptClose} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-muted rounded-full transition-colors"><X size={20} /></button>
+              <button onClick={handleAttemptClose} className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"><X size={20} /></button>
             </div>
           </div>
 
@@ -512,7 +512,7 @@ export default function NewClientModal({
                 <div className="px-6 py-3 bg-black/[0.02] border-b border-border shrink-0">
                   <TabsList data-tour="modal-abas" className={cn("w-full grid bg-black/[0.04] p-1 rounded-lg h-auto", tabsGridClass)}>
                     {visibleTabs.map((tab) => (
-                      <TabsTrigger key={tab} value={tab} data-tour={ANCORA_DA_ABA[tab]} className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1.5">
+                      <TabsTrigger key={tab} value={tab} data-tour={ANCORA_DA_ABA[tab]} className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-muted-foreground rounded-md py-2 text-xs font-medium transition-all gap-1.5">
                         {tab === "cliente"
                           ? "Dados do Cliente/Grupo"
                           : tab === "contribuintes"
@@ -534,12 +534,12 @@ export default function NewClientModal({
                       </TabsTrigger>
                     ))}
                     {podeVerProposta && (
-                      <TabsTrigger value="proposta" data-tour="modal-aba-proposta" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
+                      <TabsTrigger value="proposta" data-tour="modal-aba-proposta" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-muted-foreground rounded-md py-2 text-xs font-medium transition-all gap-1">
                         <FileSignature size={14} /> Proposta
                       </TabsTrigger>
                     )}
                     {editingClienteId && (
-                      <TabsTrigger value="historico" data-tour="modal-aba-historico" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
+                      <TabsTrigger value="historico" data-tour="modal-aba-historico" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-muted-foreground rounded-md py-2 text-xs font-medium transition-all gap-1">
                         <History size={14} /> Histórico
                       </TabsTrigger>
                     )}
@@ -639,7 +639,7 @@ export default function NewClientModal({
               <div className="px-6 py-4 border-t border-border flex justify-between items-center shrink-0">
               {isReadOnly ? (
                   <>
-                    <Button variant="outline" onClick={handleAttemptClose} className="border-border text-gray-600">Fechar</Button>
+                    <Button variant="outline" onClick={handleAttemptClose} className="border-border text-muted-foreground">Fechar</Button>
                     {canEdit && (
                       <Button
                         onClick={() => { setIsReadOnly(false); setEscopoEdicao('cliente'); }}
@@ -652,7 +652,7 @@ export default function NewClientModal({
                   </>
                 ) : (
                   <>
-                    <Button variant="outline" onClick={handleCancelarEdicao} className="border-border text-gray-600">Cancelar</Button>
+                    <Button variant="outline" onClick={handleCancelarEdicao} className="border-border text-muted-foreground">Cancelar</Button>
                     <div className="flex items-center gap-3">
                       {/*
                         O aviso é clicável de propósito: dizer "faltam 3 campos"

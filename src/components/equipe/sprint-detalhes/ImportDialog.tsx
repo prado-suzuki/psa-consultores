@@ -31,13 +31,13 @@ export function ImportDialog({ controller: c }: { controller: EquipeSprintDetalh
         <div className="space-y-4 py-4">
           {!c.importPreview ? (
             <div className="flex flex-col items-center py-8 border-2 border-dashed rounded-lg">
-              <FileSpreadsheet className="h-12 w-12 text-gray-400 mb-4" />
+              <FileSpreadsheet className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="mb-4">Selecione um arquivo Excel (.xlsx)</p>
               <Button onClick={() => c.fileInputRef.current?.click()}>
                 <Upload className="h-4 w-4 mr-2" />
                 Selecionar Arquivo
               </Button>
-              <p className="text-xs text-gray-400 mt-4">
+              <p className="text-xs text-muted-foreground mt-4">
                 O arquivo deve conter colunas: Sprint, ID, Título, Subtarefa, Responsável,
                 Descrição, Estimativa (h), Data de Entrega
               </p>

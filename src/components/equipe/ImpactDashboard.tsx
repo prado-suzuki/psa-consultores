@@ -103,13 +103,13 @@ export function ImpactDashboard() {
       <Card className="border-border">
         <CardContent className="pt-4 pb-4">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-700">Filtros</h3>
+            <h3 className="text-sm font-medium">Filtros</h3>
             {hasActiveFilters && (
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={clearFilters}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-muted-foreground"
               >
                 <X className="h-4 w-4 mr-1" />
                 Limpar
@@ -175,11 +175,11 @@ export function ImpactDashboard() {
         <Card className="border-border">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
-              <Target className="h-4 w-4 text-gray-500" />
-              <p className="text-xs text-gray-500">Processos</p>
+              <Target className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">Processos</p>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{metrics.totalProcesses}</p>
-            <p className="text-xs text-gray-500">mapeados</p>
+            <p className="text-2xl font-bold">{metrics.totalProcesses}</p>
+            <p className="text-xs text-muted-foreground">mapeados</p>
           </CardContent>
         </Card>
 
@@ -187,10 +187,10 @@ export function ImpactDashboard() {
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <Zap className="h-4 w-4 text-green-500" />
-              <p className="text-xs text-gray-500">Melhorados</p>
+              <p className="text-xs text-muted-foreground">Melhorados</p>
             </div>
             <p className="text-2xl font-bold text-green-600">{hasActiveFilters ? filteredMetrics.improvedProcesses : metrics.improvedProcesses}</p>
-            <p className="text-xs text-gray-500">processos</p>
+            <p className="text-xs text-muted-foreground">processos</p>
           </CardContent>
         </Card>
 
@@ -198,10 +198,10 @@ export function ImpactDashboard() {
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <Clock className="h-4 w-4 text-blue-500" />
-              <p className="text-xs text-gray-500">Tempo</p>
+              <p className="text-xs text-muted-foreground">Tempo</p>
             </div>
             <p className="text-2xl font-bold text-blue-600">{(hasActiveFilters ? filteredMetrics.totalTimeSaved : metrics.totalTimeSaved).toFixed(0)}h</p>
-            <p className="text-xs text-gray-500">economizadas/mês</p>
+            <p className="text-xs text-muted-foreground">economizadas/mês</p>
           </CardContent>
         </Card>
 
@@ -209,12 +209,12 @@ export function ImpactDashboard() {
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <DollarSign className="h-4 w-4 text-green-500" />
-              <p className="text-xs text-gray-500">Economia</p>
+              <p className="text-xs text-muted-foreground">Economia</p>
             </div>
             <p className="text-2xl font-bold text-green-600">
               R$ {(hasActiveFilters ? filteredMetrics.totalCostSaved : metrics.totalCostSaved).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </p>
-            <p className="text-xs text-gray-500">/mês</p>
+            <p className="text-xs text-muted-foreground">/mês</p>
           </CardContent>
         </Card>
 
@@ -222,10 +222,10 @@ export function ImpactDashboard() {
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp className="h-4 w-4 text-primary" />
-              <p className="text-xs text-gray-500">ROI Médio</p>
+              <p className="text-xs text-muted-foreground">ROI Médio</p>
             </div>
             <p className="text-2xl font-bold text-primary">{(hasActiveFilters ? filteredMetrics.avgRoi : metrics.avgRoi).toFixed(0)}%</p>
-            <p className="text-xs text-gray-500">anual</p>
+            <p className="text-xs text-muted-foreground">anual</p>
           </CardContent>
         </Card>
 
@@ -233,10 +233,10 @@ export function ImpactDashboard() {
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <Users className="h-4 w-4 text-purple-500" />
-              <p className="text-xs text-gray-500">FTE</p>
+              <p className="text-xs text-muted-foreground">FTE</p>
             </div>
             <p className="text-2xl font-bold text-purple-600">{(hasActiveFilters ? filteredMetrics.fteSaved : metrics.fteSaved).toFixed(1)}</p>
-            <p className="text-xs text-gray-500">liberados</p>
+            <p className="text-xs text-muted-foreground">liberados</p>
           </CardContent>
         </Card>
       </div>
@@ -246,7 +246,7 @@ export function ImpactDashboard() {
         {/* Economia Acumulada */}
         <Card className="border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-gray-900 text-base font-medium">
+            <CardTitle className="text-base font-medium">
               Economia Acumulada
             </CardTitle>
           </CardHeader>
@@ -278,7 +278,7 @@ export function ImpactDashboard() {
         {/* FTE por Área */}
         <Card className="border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-gray-900 text-base font-medium">
+            <CardTitle className="text-base font-medium">
               FTE Liberados por Área
             </CardTitle>
           </CardHeader>
@@ -316,7 +316,7 @@ export function ImpactDashboard() {
       {/* ROI por Projeto */}
       <Card className="border-border">
         <CardHeader className="pb-2">
-          <CardTitle className="text-gray-900 text-base font-medium">
+          <CardTitle className="text-base font-medium">
             ROI por Projeto
           </CardTitle>
         </CardHeader>
@@ -344,7 +344,7 @@ export function ImpactDashboard() {
       {/* Comparativo de Horas */}
       <Card className="border-border">
         <CardHeader className="pb-2">
-          <CardTitle className="text-gray-900 text-base font-medium">
+          <CardTitle className="text-base font-medium">
             Comparativo de Horas
           </CardTitle>
         </CardHeader>
@@ -354,11 +354,11 @@ export function ImpactDashboard() {
               {/* Summary Bar */}
               <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
                 <div className="text-center">
-                  <p className="text-xs text-gray-500 mb-1">Antes</p>
-                  <p className="text-2xl font-bold text-gray-700">
+                  <p className="text-xs text-muted-foreground mb-1">Antes</p>
+                  <p className="text-2xl font-bold">
                     {filteredMetrics.totalBaselineHours.toFixed(0)}h
                   </p>
-                  <p className="text-xs text-gray-500">/mês</p>
+                  <p className="text-xs text-muted-foreground">/mês</p>
                 </div>
                 <div className="text-center flex flex-col items-center justify-center">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mb-1">
@@ -371,11 +371,11 @@ export function ImpactDashboard() {
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-500 mb-1">Depois</p>
+                  <p className="text-xs text-muted-foreground mb-1">Depois</p>
                   <p className="text-2xl font-bold text-primary">
                     {filteredMetrics.totalImprovedHours.toFixed(0)}h
                   </p>
-                  <p className="text-xs text-gray-500">/mês</p>
+                  <p className="text-xs text-muted-foreground">/mês</p>
                 </div>
               </div>
 
@@ -397,12 +397,12 @@ export function ImpactDashboard() {
                     return (
                       <div key={imp.id} className="group">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-gray-700 font-medium truncate max-w-[200px]">
+                          <span className="text-sm font-medium truncate max-w-[200px]">
                             {imp.process_name}
                           </span>
                           <div className="flex items-center gap-3 text-xs">
-                            <span className="text-gray-500">{imp.baseline_time_hours.toFixed(0)}h</span>
-                            <span className="text-gray-400">→</span>
+                            <span className="text-muted-foreground">{imp.baseline_time_hours.toFixed(0)}h</span>
+                            <span className="text-muted-foreground">→</span>
                             <span className="text-primary font-medium">{imp.improved_time_hours.toFixed(0)}h</span>
                             <Badge variant="outline" className="border-primary/30 text-primary text-[10px]">
                               -{reduction.toFixed(0)}%
@@ -425,13 +425,13 @@ export function ImpactDashboard() {
               </div>
 
               {filteredImprovements.filter(i => i.baseline_time_hours > 0).length > 8 && (
-                <p className="text-center text-xs text-gray-500">
+                <p className="text-center text-xs text-muted-foreground">
                   +{filteredImprovements.filter(i => i.baseline_time_hours > 0).length - 8} processos com dados de horas
                 </p>
               )}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-6 text-sm">
+            <p className="text-muted-foreground text-center py-6 text-sm">
               Nenhuma melhoria com dados de horas registrados.
             </p>
           )}
@@ -442,7 +442,7 @@ export function ImpactDashboard() {
       <Card className="border-border">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-gray-900 text-base font-medium">
+            <CardTitle className="text-base font-medium">
               Melhorias Implementadas ({filteredImprovements.length})
             </CardTitle>
             <div className="flex items-center gap-2">
@@ -499,10 +499,10 @@ export function ImpactDashboard() {
                         <TableCell className="text-right">
                           {imp.time_saved_hours?.toFixed(0)}h
                         </TableCell>
-                        <TableCell className="text-sm text-gray-600">
+                        <TableCell className="text-sm text-muted-foreground">
                           {imp.evaluated_by_name || '-'}
                         </TableCell>
-                        <TableCell className="text-sm text-gray-500">
+                        <TableCell className="text-sm text-muted-foreground">
                           {new Date(imp.created_at).toLocaleDateString('pt-BR')}
                         </TableCell>
                       </TableRow>
@@ -518,14 +518,14 @@ export function ImpactDashboard() {
                   .map((improvement, index) => (
                     <div 
                       key={improvement.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-muted rounded-lg"
                     >
                       <div className="flex items-center gap-3">
                         <Badge className="bg-accent/10 text-teal-700 border-0 w-6 h-6 flex items-center justify-center">
                           {index + 1}
                         </Badge>
                         <div>
-                          <span className="text-gray-900 font-medium">{improvement.process_name}</span>
+                          <span className="font-medium">{improvement.process_name}</span>
                           {improvement.area && (
                             <Badge variant="outline" className="ml-2 text-xs">
                               {improvement.area}
@@ -547,14 +547,14 @@ export function ImpactDashboard() {
                     </div>
                   ))}
                 {filteredImprovements.length > 10 && (
-                  <p className="text-center text-sm text-gray-500 pt-2">
+                  <p className="text-center text-sm text-muted-foreground pt-2">
                     +{filteredImprovements.length - 10} melhorias. Use a visão de tabela para ver todas.
                   </p>
                 )}
               </div>
             )
           ) : (
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-muted-foreground text-center py-8">
               Nenhuma melhoria avaliada ainda. Complete avaliações de processos para ver o impacto aqui.
             </p>
           )}

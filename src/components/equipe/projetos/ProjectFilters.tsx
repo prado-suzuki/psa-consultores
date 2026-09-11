@@ -28,8 +28,8 @@ export const ProjectFilters = ({
 }: ProjectFiltersProps) => (
   <div className="flex items-center gap-4 mb-6">
     <div className="flex items-center gap-2">
-      <Filter className="h-4 w-4 text-gray-500" />
-      <span className="text-sm text-gray-600">Filtros:</span>
+      <Filter className="h-4 w-4 text-muted-foreground" />
+      <span className="text-sm text-muted-foreground">Filtros:</span>
     </div>
     <Select
       value={clusterFilter === '' ? '__todos__' : clusterFilter}
@@ -76,7 +76,7 @@ export const ProjectFilters = ({
           onStatusFilterChange('all');
           onClusterFilterChange('');
         }}
-        className="text-gray-500"
+        className="text-muted-foreground"
       >
         Limpar filtros
       </Button>

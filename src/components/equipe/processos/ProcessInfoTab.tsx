@@ -40,33 +40,33 @@ export function ProcessInfoTab(props: ProcessInfoTabProps) {
         <>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-500">Área</label>
-              <p className="text-gray-900">{props.process.area || '-'}</p>
+              <label className="text-sm font-medium text-muted-foreground">Área</label>
+              <p>{props.process.area || '-'}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-500">Fase</label>
+              <label className="text-sm font-medium text-muted-foreground">Fase</label>
               <Badge className={getProcessStageInfo(props.process.stage).color}>
                 {getProcessStageInfo(props.process.stage).label}
               </Badge>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-500">Prioridade</label>
-              <p className="text-gray-900">{props.process.priority || '-'}</p>
+              <label className="text-sm font-medium text-muted-foreground">Prioridade</label>
+              <p>{props.process.priority || '-'}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-500">Frequência</label>
-              <p className="text-gray-900">{props.process.frequency || '-'}</p>
+              <label className="text-sm font-medium text-muted-foreground">Frequência</label>
+              <p>{props.process.frequency || '-'}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-500">Volume Mensal</label>
-              <p className="text-gray-900">{props.process.volume_month || '-'}</p>
+              <label className="text-sm font-medium text-muted-foreground">Volume Mensal</label>
+              <p>{props.process.volume_month || '-'}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-500">Impacto Financeiro</label>
-              <p className="text-gray-900">{props.process.financial_impact || '-'}</p>
+              <label className="text-sm font-medium text-muted-foreground">Impacto Financeiro</label>
+              <p>{props.process.financial_impact || '-'}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-500">Tarefas Vinculadas</label>
+              <label className="text-sm font-medium text-muted-foreground">Tarefas Vinculadas</label>
               <div className="mt-1">
                 <Badge variant={props.taskCount > 0 ? 'default' : 'secondary'}>
                   {props.taskCount} tarefa{props.taskCount !== 1 ? 's' : ''}
@@ -76,8 +76,8 @@ export function ProcessInfoTab(props: ProcessInfoTabProps) {
           </div>
           {props.process.description && (
             <div>
-              <label className="text-sm font-medium text-gray-500">Descrição</label>
-              <p className="text-gray-900 mt-1">{props.process.description}</p>
+              <label className="text-sm font-medium text-muted-foreground">Descrição</label>
+              <p className="mt-1">{props.process.description}</p>
             </div>
           )}
           <div className="pt-3 border-t flex flex-wrap gap-2">

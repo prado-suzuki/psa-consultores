@@ -95,7 +95,7 @@ export function MetricsTab({ controller: c }: { controller: EquipeSprintDetalhes
                         <div className="space-y-2 max-h-40 overflow-y-auto">
                           {related.map((item) => (
                             <div key={item.id} className="flex items-center gap-2 text-sm">
-                              <Package className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                              <Package className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                               <span
                                 className={
                                   item.status === 'completed'

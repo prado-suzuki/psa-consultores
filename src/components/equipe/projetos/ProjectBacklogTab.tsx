@@ -14,7 +14,7 @@ interface ProjectBacklogTabProps {
 export const ProjectBacklogTab = ({ tasks, loading, onCreateItem }: ProjectBacklogTabProps) => (
   <div className="space-y-4">
     <div className="flex items-center justify-between">
-      <p className="text-sm text-gray-500">Itens do backlog vinculados a este projeto</p>
+      <p className="text-sm text-muted-foreground">Itens do backlog vinculados a este projeto</p>
       <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={onCreateItem}>
         <Plus className="h-4 w-4 mr-1" />
         Novo Item
@@ -32,9 +32,9 @@ export const ProjectBacklogTab = ({ tasks, loading, onCreateItem }: ProjectBackl
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-gray-900 truncate">{task.title}</h4>
+                  <h4 className="font-medium truncate">{task.title}</h4>
                   {task.description && (
-                    <p className="text-sm text-gray-500 truncate">{task.description}</p>
+                    <p className="text-sm text-muted-foreground truncate">{task.description}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2 ml-4">
@@ -53,9 +53,9 @@ export const ProjectBacklogTab = ({ tasks, loading, onCreateItem }: ProjectBackl
       </div>
     ) : (
       <div className="text-center py-8">
-        <ListTodo className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-        <h4 className="text-gray-900 font-medium mb-1">Backlog vazio</h4>
-        <p className="text-sm text-gray-500">Nenhum item de backlog vinculado a este projeto</p>
+        <ListTodo className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+        <h4 className="font-medium mb-1">Backlog vazio</h4>
+        <p className="text-sm text-muted-foreground">Nenhum item de backlog vinculado a este projeto</p>
       </div>
     )}
   </div>
