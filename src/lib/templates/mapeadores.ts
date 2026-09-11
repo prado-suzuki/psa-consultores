@@ -720,6 +720,8 @@ export interface OrgaoParaMapear {
    * esperando a validação da Patricia. Opcionais aqui para o mapeador já saber
    * ler quando a migration entrar, sem obrigar o chamador de hoje.
    */
+  genero?: 'M' | 'F' | null;
+  padrao_chave?: string | null;
   membros_minimo?: number | null;
   membros_maximo?: number | null;
   mandato_anos?: number | null;
@@ -742,6 +744,7 @@ export interface OrgaoParaMapear {
 export function mapearOrgaoGovernanca(row: OrgaoParaMapear): Campos {
   const { out, set } = coletor();
   set('nome', row.nome);
+  set('genero', row.genero);
   set('membrosMinimo', row.membros_minimo);
   set('membrosMaximo', row.membros_maximo);
   set('mandatoAnos', row.mandato_anos);

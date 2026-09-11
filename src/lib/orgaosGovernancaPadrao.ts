@@ -27,12 +27,24 @@ export interface OrgaoPadrao {
   nome: string;
   /** Todos os três recebem cláusula no contrato social. */
   entraNoContrato: boolean;
+  /**
+   * Gênero gramatical do nome, para a cláusula concordar: "o Conselho será
+   * compostO" contra "a Diretoria será compostA". Não se deduz do nome, porque
+   * "Conselho de Administração" termina em palavra feminina.
+   */
+  genero: 'M' | 'F';
+  /**
+   * A identidade do padrão, que sobrevive a um rename. Hoje `ehOrgaoPadrao`
+   * compara o NOME, então renomear solta a trava de ordem e faz o botão de
+   * padrões oferecer criar outro órgão igual.
+   */
+  chave: 'reuniao_socios' | 'conselho_administracao' | 'diretoria_executiva';
 }
 
 export const ORGAOS_GOVERNANCA_PADRAO: readonly OrgaoPadrao[] = [
-  { nome: 'Reunião de Sócios', entraNoContrato: true },
-  { nome: 'Conselho de Administração', entraNoContrato: true },
-  { nome: 'Diretoria Executiva', entraNoContrato: true },
+  { nome: 'Reunião de Sócios', entraNoContrato: true, genero: 'F', chave: 'reuniao_socios' },
+  { nome: 'Conselho de Administração', entraNoContrato: true, genero: 'M', chave: 'conselho_administracao' },
+  { nome: 'Diretoria Executiva', entraNoContrato: true, genero: 'F', chave: 'diretoria_executiva' },
 ] as const;
 
 /** Comparação de nome de órgão: sem espaço nas pontas e sem caixa. */

@@ -61,6 +61,53 @@
 -- Composicao
 -- ─────────────────────────────────────────────────────────────────────────────
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Identidade
+-- ─────────────────────────────────────────────────────────────────────────────
+
+/*
+ * O GENERO DO ORGAO, porque a clausula concorda com ele.
+ *
+ * "O Conselho de Administracao sera compost O" e "A Diretoria sera compost A",
+ * e a competencia e "Compete A O Conselho" contra "Compete A' Diretoria". O
+ * motor ja sabe concordar (concordancia.ts), mas precisa saber o genero, e ele
+ * NAO se deduz do nome com seguranca: "Conselho de Administracao" termina em
+ * palavra feminina, e "Gestao" termina em "ao" como "orgao", que e masculino.
+ *
+ * `padrao_chave` resolve outro problema, apontado pelo usuario em 11/09: hoje o
+ * sistema reconhece orgao padrao COMPARANDO O NOME (ehOrgaoPadrao). Renomear
+ * "Conselho de Administracao" solta a trava de ordem e faz o botao de padroes
+ * oferecer criar outro. Com a chave, o vinculo sobrevive ao rename.
+ */
+ALTER TABLE public.orgao_governanca
+  ADD COLUMN IF NOT EXISTS genero       text,
+  ADD COLUMN IF NOT EXISTS padrao_chave text;
+
+ALTER TABLE public.orgao_governanca
+  DROP CONSTRAINT IF EXISTS orgao_governanca_genero_ck;
+
+ALTER TABLE public.orgao_governanca
+  ADD CONSTRAINT orgao_governanca_genero_ck CHECK (genero IS NULL OR genero IN ('M', 'F'));
+
+COMMENT ON COLUMN public.orgao_governanca.genero IS
+  'Genero gramatical do nome do orgao, para a clausula concordar: M em "o '
+  'Conselho sera composto", F em "a Diretoria sera composta". Nao se deduz do '
+  'nome: "Conselho de Administracao" termina em palavra feminina.';
+
+COMMENT ON COLUMN public.orgao_governanca.padrao_chave IS
+  'Qual dos orgaos padrao este e (reuniao_socios, conselho_administracao, '
+  'diretoria_executiva). Nulo em orgao criado pelo cliente. Existe para o '
+  'vinculo com o padrao sobreviver a um rename, que hoje quebra porque o '
+  'reconhecimento e por comparacao de nome.';
+
+CREATE UNIQUE INDEX IF NOT EXISTS orgao_governanca_padrao_por_cliente_uk
+  ON public.orgao_governanca (cliente_id, padrao_chave)
+  WHERE padrao_chave IS NOT NULL AND excluido = false;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Composicao
+-- ─────────────────────────────────────────────────────────────────────────────
+
 ALTER TABLE public.orgao_governanca
   ADD COLUMN IF NOT EXISTS membros_minimo  integer,
   ADD COLUMN IF NOT EXISTS membros_maximo  integer,
@@ -136,9 +183,9 @@ BEGIN
   WHERE table_schema = 'public' AND table_name = 'orgao_governanca'
     AND column_name IN ('membros_minimo', 'membros_maximo', 'mandato_anos',
                         'cargos_do_orgao', 'representa_sozinho_ate',
-                        'representa_assinantes_acima');
-  IF v_cols <> 6 THEN
-    RAISE EXCEPTION 'GATE: esperava 6 colunas novas, achei %', v_cols;
+                        'representa_assinantes_acima', 'genero', 'padrao_chave');
+  IF v_cols <> 8 THEN
+    RAISE EXCEPTION 'GATE: esperava 8 colunas novas, achei %', v_cols;
   END IF;
 
   SELECT count(*) INTO v_ck

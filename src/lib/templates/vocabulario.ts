@@ -1228,6 +1228,41 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
     campos: [
       { id: 'nome', label: 'Nome do órgão', tipo: 'texto', obrigatorio: true },
 
+      /*
+       * A CLÁUSULA CONCORDA COM O ÓRGÃO, e por isso o gênero é campo.
+       *
+       * "O Conselho de Administração será compostO por" contra "A Diretoria
+       * será compostA por"; "Compete AO Conselho" contra "Compete À Diretoria".
+       * O card manda usar `derivadoDe`/`derivar` para concordância em vez de uma
+       * segunda função, e é o que estes três fazem, chamando o `concordar` que
+       * já qualifica pessoa.
+       *
+       * O gênero NÃO se deduz do nome: "Conselho de Administração" termina em
+       * palavra feminina, e "Gestão" termina como "órgão", que é masculino.
+       */
+      { id: 'genero', label: 'Gênero do nome (M/F)', tipo: 'texto' },
+      {
+        id: 'artigo',
+        label: 'Artigo do órgão (o/a)',
+        tipo: 'texto',
+        derivadoDe: 'genero',
+        derivar: (v) => PARES.artigo(v.genero === 'F' ? 'F' : 'M'),
+      },
+      {
+        id: 'ao',
+        label: 'Preposição com artigo (ao/à)',
+        tipo: 'texto',
+        derivadoDe: 'genero',
+        derivar: (v) => concordar(v.genero === 'F' ? 'F' : 'M', 'ao', 'à'),
+      },
+      {
+        id: 'composto',
+        label: 'Composto/composta, concordado',
+        tipo: 'texto',
+        derivadoDe: 'genero',
+        derivar: (v) => concordar(v.genero === 'F' ? 'F' : 'M', 'composto', 'composta'),
+      },
+
       { id: 'membrosMinimo', label: 'Mínimo de membros', tipo: 'inteiro' },
       numeralCampo('membrosMinimoNumeral', 'Mínimo de membros (numeral)', 'membrosMinimo'),
       cardinalCampo('membrosMinimoExtenso', 'Mínimo de membros (por extenso)', 'membrosMinimo'),

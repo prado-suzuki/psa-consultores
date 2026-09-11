@@ -82,6 +82,18 @@ describe('MOT-01 · os mapeadores entregam a frase que o contrato escreve', () =
     expect(campos.membrosFixo).toBe('');
   });
 
+  it('a cláusula concorda com o gênero do órgão', () => {
+    const conselho = mapearOrgaoGovernanca({ id: 'm', nome: 'Conselho de Administração', genero: 'M' });
+    expect(conselho.artigo).toBe('o');
+    expect(conselho.ao).toBe('ao');
+    expect(conselho.composto).toBe('composto');
+
+    const diretoria = mapearOrgaoGovernanca({ id: 'f', nome: 'Diretoria Executiva', genero: 'F' });
+    expect(diretoria.artigo).toBe('a');
+    expect(diretoria.ao).toBe('à');
+    expect(diretoria.composto).toBe('composta');
+  });
+
   it('mínimo igual ao máximo acende a frase curta do Horita', () => {
     const campos = mapearOrgaoGovernanca({
       id: 'og2', nome: 'Conselho de Administração',
