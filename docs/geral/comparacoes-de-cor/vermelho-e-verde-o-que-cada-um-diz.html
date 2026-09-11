@@ -51,7 +51,8 @@
   h3{font-size:14px;margin:22px 0 6px}
   p{max-width:80ch}
   .par{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
-  @media (max-width:900px){.par{grid-template-columns:1fr}}
+  .tri{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:10px}
+  @media (max-width:900px){.par,.tri{grid-template-columns:1fr}}
   .col > .hd{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:0 0 7px;color:hsl(var(--muted-foreground))}
   .col.hoje > .hd::after{content:" · como está";font-weight:400;text-transform:none;letter-spacing:0}
   .col.papel > .hd::after{content:" · com o papel";font-weight:400;text-transform:none;letter-spacing:0}
@@ -105,7 +106,9 @@
     Como não há concentração, o lote foi classificado <b>pelo motivo</b>, no molde da
     <code>filaDoAlerta</code> — as 248 ocorrências, uma a uma, sem sobra. Esta página existe para a
     escolha ser feita <b>olhando</b>: cada grupo aparece como está hoje e como fica com o papel, com o
-    contraste medido dos dois lados. <b>Nada foi convertido ainda.</b>
+    contraste medido dos dois lados.
+    <b>Em 11/09 saíram os dois grupos sem pergunta</b> — ação destrutiva e erro, 78 ocorrências em 21
+    arquivos, commit <code>1d25b036</code>. O resto continua parado nesta página.
   </p>
 
   <h2>Os 14 motivos</h2>
@@ -113,17 +116,17 @@
      as que não têm precedente e param aqui até você decidir.</p>
   <table>
     <tr><th>motivo</th><th class="n">verm.</th><th class="n">verde</th><th class="n">arq.</th><th>destino que proponho</th></tr>
-    <tr><td><b>ação destrutiva</b> — excluir, remover</td><td class="n">59</td><td class="n">—</td><td class="n">16</td><td><code>destructive</code> <span class="tag ok">precedente</span></td></tr>
+    <tr><td><b>ação destrutiva</b> — excluir, remover</td><td class="n">59</td><td class="n">—</td><td class="n">16</td><td><code>destructive</code> <span class="tag ok">feito 11/09</span></td></tr>
     <tr><td><b>severidade</b> — prioridade, risco, atraso</td><td class="n">45</td><td class="n">5</td><td class="n">15</td><td>escada inteira, por mapa <span class="tag q">pergunta</span></td></tr>
-    <tr><td><b>erro</b> — falha, bloqueio, acesso negado</td><td class="n">22</td><td class="n">—</td><td class="n">7</td><td><code>destructive</code> <span class="tag ok">precedente</span></td></tr>
-    <tr><td><b>limpar filtro</b> — o botão “Limpar”</td><td class="n">19</td><td class="n">—</td><td class="n">9</td><td>tirar o vermelho <span class="tag q">pergunta</span></td></tr>
+    <tr><td><b>erro</b> — falha, bloqueio, acesso negado</td><td class="n">22</td><td class="n">—</td><td class="n">7</td><td><code>destructive</code> <span class="tag ok">feito 11/09</span></td></tr>
+    <tr><td><b>limpar filtro</b> — o botão “Limpar”</td><td class="n">19</td><td class="n">—</td><td class="n">9</td><td>hover na âncora <span class="tag q">pergunta</span></td></tr>
     <tr><td><b>feito</b> — concluído, aprovado, homologado</td><td class="n">2</td><td class="n">13</td><td class="n">6</td><td><code>status-feito</code> <span class="tag ok">precedente</span></td></tr>
     <tr><td><b>marcador</b> — filtro ativo, hoje, melhor</td><td class="n">1</td><td class="n">13</td><td class="n">5</td><td>a âncora da área <span class="tag ok">precedente</span></td></tr>
     <tr><td><b>delta favorável</b> — carga caiu</td><td class="n">—</td><td class="n">14</td><td class="n">5</td><td>fica: o par é <code>rose</code> <span class="tag fica">fila</span></td></tr>
     <tr><td><b>rótulo não-status</b> — “Admin”</td><td class="n">12</td><td class="n">—</td><td class="n">4</td><td>fica <span class="tag fica">fila</span></td></tr>
     <tr><td><b>site público</b> — landing</td><td class="n">—</td><td class="n">10</td><td class="n">4</td><td>fica: outro produto <span class="tag fica">fila</span></td></tr>
     <tr><td><b>booleano “Sim”</b> — NCM monofásico</td><td class="n">—</td><td class="n">9</td><td class="n">3</td><td>categoria ou feito? <span class="tag q">pergunta</span></td></tr>
-    <tr><td><b>fechar</b> — o X do modal</td><td class="n">8</td><td class="n">—</td><td class="n">4</td><td>tirar o vermelho <span class="tag q">pergunta</span></td></tr>
+    <tr><td><b>fechar</b> — o X do modal</td><td class="n">8</td><td class="n">—</td><td class="n">4</td><td>hover na âncora <span class="tag q">pergunta</span></td></tr>
     <tr><td><b>paleta categórica</b> — ícone de PDF, cor de área</td><td class="n">2</td><td class="n">6</td><td class="n">5</td><td>fica: destino são os <code>--tag-*</code> <span class="tag fica">fila</span></td></tr>
     <tr><td><b>sinal de valor</b> — saldo negativo</td><td class="n">5</td><td class="n">1</td><td class="n">4</td><td>fica: o par é <code>green</code> <span class="tag fica">fila</span></td></tr>
     <tr><td><b>diff</b> — valor antigo → novo</td><td class="n">1</td><td class="n">1</td><td class="n">1</td><td>sem cor <span class="tag ok">já decidido</span></td></tr>
@@ -164,7 +167,7 @@
      com o motivo escrito?
   </div>
 
-  <h2>1 · Ação destrutiva — 59 ocorrências, 16 arquivos</h2>
+  <h2>1 · Ação destrutiva — 59 ocorrências, 16 arquivos · feito em 11/09</h2>
   <p>O <code>AlertDialogAction</code> de confirmar exclusão, o botão “Excluir” e a lixeira de linha de
      tabela. <b>Precedente de 03/09:</b> no <code>osg-red</code>, erro e ação destrutiva foram para
      <code>destructive</code>. Aqui muda pouco no olho e muda tudo no tema: o <code>--destructive</code>
@@ -202,7 +205,7 @@
      Procedimentos, do Controle de Balancetes, do Mapa NCM, do Centro de Custo, do Backlog, dos
      Usuários e dos Dashboards.</p>
 
-  <h2>2 · Erro — 22 ocorrências, 7 arquivos</h2>
+  <h2>2 · Erro — 22 ocorrências, 7 arquivos · feito em 11/09</h2>
   <p>Cartão de falha, tela de acesso negado, mensagem de “não foi possível ler o documento”. Mesmo
      destino do grupo acima, e pelo mesmo precedente.</p>
   <div class="par">
@@ -239,35 +242,48 @@
      <b>quatro cópias byte a byte do mesmo bloco</b> (<code>hover:text-red-500 hover:bg-red-50</code>,
      nos três modais de auditoria e no cabeçalho do PER), e nas quatro o vermelho só aparece no hover.
      Foi assim que ninguém viu.</p>
-  <div class="par">
-    <div class="col hoje"><div class="hd">como está</div><div class="card">
+  <p><b>Tirar a cor não serve</b> — some o retorno do hover, e o botão fica morto. As duas saídas que
+     sobram devolvem retorno visível; a diferença é <i>de onde</i> a cor vem. <b>Passe o mouse nos três
+     abaixo.</b></p>
+  <div class="tri">
+    <div class="col hoje"><div class="hd">vermelho de estoque</div><div class="card">
       <div class="linha">
-        <span class="btn ghost" style="color:var(--red-600);border:1px solid var(--red-300)">⌫ Limpar filtros</span>
+        <span class="btn ghost lim-hoje" style="color:var(--red-600);border:1px solid var(--red-300)">⌫ Limpar filtros</span>
       </div>
-      <div class="linha">
-        <span style="font-size:13px;color:hsl(var(--muted-foreground))">passe o mouse →</span>
-        <span class="icone redondo x-hoje" style="color:hsl(var(--muted-foreground))">✕</span>
-      </div>
-      <p class="meta">O hover leva a <code>text-red-500</code> sobre <code>bg-red-50</code>.
-         Fechar um modal fica com a mesma cor de excluir um registro.</p>
+      <div class="linha"><span class="icone redondo x-hoje" style="color:hsl(var(--muted-foreground))">✕</span>
+        <span style="font-size:12px;color:hsl(var(--muted-foreground))">fechar</span></div>
+      <p class="meta">O mesmo tom de excluir um registro, e <b>igual nas três áreas</b> — o
+         <code>red-500</code> não sabe em que tela está.</p>
     </div></div>
-    <div class="col papel"><div class="hd">sem vermelho</div><div class="card">
+    <div class="col papel"><div class="hd">a âncora da área</div><div class="card">
       <div class="linha">
-        <span class="btn ghost" style="color:hsl(var(--muted-foreground));border:1px solid hsl(var(--border))">⌫ Limpar filtros</span>
+        <span class="btn ghost lim-anc" style="color:hsl(var(--primary));border:1px solid hsl(var(--primary)/.3)">⌫ Limpar filtros</span>
       </div>
+      <div class="linha"><span class="icone redondo x-anc" style="color:hsl(var(--muted-foreground))">✕</span>
+        <span style="font-size:12px;color:hsl(var(--muted-foreground))">fechar</span></div>
+      <p class="meta"><span class="cr" data-fg="hsl(var(--primary))" data-bg="hsl(var(--primary)/.1)"></span> ·
+         teal na base e na Tax, <b>musgo na OSG</b>, sem uma linha a mais: o
+         <code>--primary</code> é declarado por área.</p>
+    </div></div>
+    <div class="col papel"><div class="hd">neutro forte</div><div class="card">
       <div class="linha">
-        <span style="font-size:13px;color:hsl(var(--muted-foreground))">passe o mouse →</span>
-        <span class="icone redondo x-papel" style="color:hsl(var(--muted-foreground))">✕</span>
+        <span class="btn ghost lim-neu" style="color:hsl(var(--muted-foreground));border:1px solid hsl(var(--border))">⌫ Limpar filtros</span>
       </div>
-      <p class="meta">Hover em <code>foreground</code> sobre <code>muted</code>: o botão responde,
-         sem prometer destruição.</p>
+      <div class="linha"><span class="icone redondo x-neu" style="color:hsl(var(--muted-foreground))">✕</span>
+        <span style="font-size:12px;color:hsl(var(--muted-foreground))">fechar</span></div>
+      <p class="meta"><span class="cr" data-fg="hsl(var(--foreground))" data-bg="hsl(var(--muted))"></span> ·
+         também acompanha a área (<code>muted</code> e <code>foreground</code> são por tema), mas o
+         salto é de <b>luminosidade</b>, não de cor — é o que você viu e achou pouco.</p>
     </div></div>
   </div>
-  <div class="decide"><b>Decisão 2 — o Limpar e o X</b>
-     Três saídas: <b>(a)</b> os dois ficam neutros, como acima; <b>(b)</b> o X fica neutro e o “Limpar”
-     vai para <code>destructive</code>, porque o filtro é trabalho que se perde; <b>(c)</b> os dois vão
-     para <code>destructive</code> e o vermelho passa a significar “ação que desfaz”, não “ação que
-     apaga”. Eu faria <b>(a)</b>.
+  <div class="decide"><b>Decisão 2 — de onde vem a cor do “Limpar” e do X</b>
+    A casa já tem a regra escrita, no <code>classesDeBotao.ts</code> das Correções SPED:
+    <i>ação primária veste a âncora da área; destruir veste <code>destructive</code></i>. Limpar um
+    filtro e fechar um modal são ação, não destruição — então a âncora é a resposta que o contrato já
+    dava, e é a única das três em que a cor <b>muda de área para área</b>. Eu faria a do meio nos dois
+    casos. Se você achar que perder filtro preenchido merece aviso, o “Limpar” pode ficar em
+    <code>destructive</code> sozinho e o X vai para a âncora — o que não pode é os dois continuarem
+    dizendo “isto apaga”.
   </div>
 
   <h2>4 · Severidade — 50 ocorrências, 15 arquivos</h2>
@@ -413,7 +429,7 @@
   <p>Nada aqui foi convertido. Com as quatro decisões, a execução é:</p>
   <table>
     <tr><th>passo</th><th>o que entra</th><th>como paro</th></tr>
-    <tr><td>1</td><td>destrutiva + erro (81) — o grupo sem pergunta</td><td>commit, e você olha uma tela de cada tipo</td></tr>
+    <tr><td>1</td><td><s>destrutiva + erro</s> — <b>feito em 11/09</b>, 78 em 21 arquivos (o <code>GerenciarDados</code> saiu: escada de três com âmbar dentro)</td><td>commit <code>1d25b036</code>; olhe uma tela de cada tipo</td></tr>
     <tr><td>2</td><td>feito + marcador + diff (31)</td><td>commit</td></tr>
     <tr><td>3</td><td>o que a decisão 2 e a 4 liberarem (36)</td><td>commit</td></tr>
     <tr><td>4</td><td>a catraca <code>filaDoRedEmerald.test.ts</code>, com o que sobrou por motivo</td><td>o teste trava o crescimento nos dois sentidos</td></tr>
@@ -430,8 +446,13 @@
 </div>
 
 <style>
+  .btn.ghost,.icone{transition:color .15s,background-color .15s,border-color .15s}
   .x-hoje:hover{color:var(--red-500)!important;background:var(--red-50)}
-  .x-papel:hover{color:hsl(var(--foreground))!important;background:hsl(var(--muted))}
+  .x-anc:hover{color:hsl(var(--primary))!important;background:hsl(var(--primary)/.1)}
+  .x-neu:hover{color:hsl(var(--foreground))!important;background:hsl(var(--muted))}
+  .lim-hoje:hover{background:var(--red-50)}
+  .lim-anc:hover{background:hsl(var(--primary)/.1);border-color:hsl(var(--primary)/.55)!important}
+  .lim-neu:hover{background:hsl(var(--muted));color:hsl(var(--foreground))!important}
 </style>
 <script>
   // Contraste medido sobre a cor que está de fato renderizada ao lado.
