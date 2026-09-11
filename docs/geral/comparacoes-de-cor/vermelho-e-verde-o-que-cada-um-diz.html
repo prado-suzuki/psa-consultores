@@ -56,6 +56,11 @@
   .col > .hd{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:0 0 7px;color:hsl(var(--muted-foreground))}
   .col.hoje > .hd::after{content:" · como está";font-weight:400;text-transform:none;letter-spacing:0}
   .col.papel > .hd::after{content:" · com o papel";font-weight:400;text-transform:none;letter-spacing:0}
+  .col.era > .hd::after{content:" · como ERA, até 11/09";font-weight:400;text-transform:none;letter-spacing:0}
+  .col.agora > .hd::after{content:" · como está AGORA na tela";font-weight:400;text-transform:none;letter-spacing:0;color:hsl(var(--status-feito))}
+  .col.era .card{opacity:.72}
+  .olhar{font-size:12.5px;color:hsl(var(--muted-foreground));margin:10px 0 0;padding:9px 12px;border:1px dashed hsl(var(--border));border-radius:8px;background:hsl(var(--muted)/.35)}
+  .olhar b{color:hsl(var(--foreground))}
   .card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:10px;padding:16px;height:100%}
   .card.canvas{background:hsl(var(--muted)/.5)}
   .linha{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -107,21 +112,33 @@
     <code>filaDoAlerta</code> — as 248 ocorrências, uma a uma, sem sobra. Esta página existe para a
     escolha ser feita <b>olhando</b>: cada grupo aparece como está hoje e como fica com o papel, com o
     contraste medido dos dois lados.
-    <b>Em 11/09 saíram os dois grupos sem pergunta</b> — ação destrutiva e erro, 78 ocorrências em 21
-    arquivos, commit <code>1d25b036</code>. O resto continua parado nesta página.
+    <b>Em 11/09 saíram 134 das 248</b>: ação destrutiva e erro (<code>1d25b036</code>), e depois
+    feito, marcador e as escadas que fecham (<code>fd566894</code>). Sobram <b>114</b>, e elas estão
+    paradas nesta página esperando as duas decisões que faltam.
   </p>
 
+  <div class="decide" style="margin:22px 0 0">
+    <b>Para validar no app rodando</b>
+    Das 248, <b>134 já estão na tela</b> (commits <code>1d25b036</code> e <code>fd566894</code>); sobram
+    114. As seções marcadas <span class="tag ok">feito</span> abaixo têm a coluna da esquerda como
+    <b>como ERA</b> e a da direita como <b>como está agora</b> — e cada uma termina dizendo
+    <b>em que tela abrir</b>. As seções com <span class="tag q">pergunta</span> continuam sendo as duas
+    hipóteses, porque nada mudou nelas.
+  </div>
+
   <h2>Os 14 motivos</h2>
-  <p>A coluna da direita é o que eu faria. As linhas marcadas <span class="tag q">pergunta</span> são
-     as que não têm precedente e param aqui até você decidir.</p>
+  <p>Os números são os do <b>inventário de 11/09</b>, antes de qualquer conversão — é o retrato do
+     lote, e ele não muda. O que muda é a marca da direita: <span class="tag ok">feito</span> já está
+     na tela, <span class="tag q">pergunta</span> parou em decisão sua, <span class="tag fica">fila</span>
+     fica com o motivo escrito na catraca.</p>
   <table>
     <tr><th>motivo</th><th class="n">verm.</th><th class="n">verde</th><th class="n">arq.</th><th>destino que proponho</th></tr>
     <tr><td><b>ação destrutiva</b> — excluir, remover</td><td class="n">59</td><td class="n">—</td><td class="n">16</td><td><code>destructive</code> <span class="tag ok">feito 11/09</span></td></tr>
-    <tr><td><b>severidade</b> — prioridade, risco, atraso</td><td class="n">45</td><td class="n">5</td><td class="n">15</td><td>escada inteira, por mapa <span class="tag q">pergunta</span></td></tr>
+    <tr><td><b>severidade</b> — prioridade, risco, atraso</td><td class="n">45</td><td class="n">5</td><td class="n">15</td><td>escada inteira <span class="tag ok">parcial 11/09</span></td></tr>
     <tr><td><b>erro</b> — falha, bloqueio, acesso negado</td><td class="n">22</td><td class="n">—</td><td class="n">7</td><td><code>destructive</code> <span class="tag ok">feito 11/09</span></td></tr>
     <tr><td><b>limpar filtro</b> — o botão “Limpar”</td><td class="n">19</td><td class="n">—</td><td class="n">9</td><td>hover na âncora <span class="tag q">pergunta</span></td></tr>
-    <tr><td><b>feito</b> — concluído, aprovado, homologado</td><td class="n">2</td><td class="n">13</td><td class="n">6</td><td><code>status-feito</code> <span class="tag ok">precedente</span></td></tr>
-    <tr><td><b>marcador</b> — filtro ativo, hoje, melhor</td><td class="n">1</td><td class="n">13</td><td class="n">5</td><td>a âncora da área <span class="tag ok">precedente</span></td></tr>
+    <tr><td><b>feito</b> — concluído, aprovado, homologado</td><td class="n">2</td><td class="n">13</td><td class="n">6</td><td><code>status-feito</code> <span class="tag ok">feito 11/09</span></td></tr>
+    <tr><td><b>marcador</b> — filtro ativo, hoje, melhor</td><td class="n">1</td><td class="n">13</td><td class="n">5</td><td>a âncora da área <span class="tag ok">feito 11/09</span></td></tr>
     <tr><td><b>delta favorável</b> — carga caiu</td><td class="n">—</td><td class="n">14</td><td class="n">5</td><td>fica: o par é <code>rose</code> <span class="tag fica">fila</span></td></tr>
     <tr><td><b>rótulo não-status</b> — “Admin”</td><td class="n">12</td><td class="n">—</td><td class="n">4</td><td>fica <span class="tag fica">fila</span></td></tr>
     <tr><td><b>site público</b> — landing</td><td class="n">—</td><td class="n">10</td><td class="n">4</td><td>fica: outro produto <span class="tag fica">fila</span></td></tr>
@@ -129,7 +146,7 @@
     <tr><td><b>fechar</b> — o X do modal</td><td class="n">8</td><td class="n">—</td><td class="n">4</td><td>hover na âncora <span class="tag q">pergunta</span></td></tr>
     <tr><td><b>paleta categórica</b> — ícone de PDF, cor de área</td><td class="n">2</td><td class="n">6</td><td class="n">5</td><td>fica: destino são os <code>--tag-*</code> <span class="tag fica">fila</span></td></tr>
     <tr><td><b>sinal de valor</b> — saldo negativo</td><td class="n">5</td><td class="n">1</td><td class="n">4</td><td>fica: o par é <code>green</code> <span class="tag fica">fila</span></td></tr>
-    <tr><td><b>diff</b> — valor antigo → novo</td><td class="n">1</td><td class="n">1</td><td class="n">1</td><td>sem cor <span class="tag ok">já decidido</span></td></tr>
+    <tr><td><b>diff</b> — valor antigo → novo</td><td class="n">1</td><td class="n">1</td><td class="n">1</td><td>sem cor <span class="tag ok">feito 11/09</span></td></tr>
     <tr><td colspan="5" style="color:hsl(var(--muted-foreground))"><b>176 + 72 = 248</b>, e a conta fecha com a medição.</td></tr>
   </table>
 
@@ -173,7 +190,7 @@
      <code>destructive</code>. Aqui muda pouco no olho e muda tudo no tema: o <code>--destructive</code>
      da OSG e o da Tax não são o mesmo vermelho.</p>
   <div class="par">
-    <div class="col hoje"><div class="hd">red-600 / red-500</div><div class="card">
+    <div class="col era"><div class="hd">red-600 / red-500</div><div class="card">
       <div class="linha">
         <span class="btn" style="background:var(--red-600);color:#fff">Excluir</span>
         <span class="cr" data-fg="#ffffff" data-bg="var(--red-600)"></span>
@@ -187,7 +204,7 @@
         <code>bg-red-600</code> em dez lugares e <code>bg-red-500</code> num — o Backlog, que já
         divergiu sem ninguém ver.</p>
     </div></div>
-    <div class="col papel"><div class="hd">destructive</div><div class="card">
+    <div class="col agora"><div class="hd">destructive</div><div class="card">
       <div class="linha">
         <span class="btn" style="background:hsl(var(--destructive));color:hsl(var(--destructive-foreground))">Excluir</span>
         <span class="cr" data-fg="hsl(var(--destructive-foreground))" data-bg="hsl(var(--destructive))"></span>
@@ -201,15 +218,18 @@
         <code>hover:bg-destructive/10</code>. O <code>variant="destructive"</code> do botão já existe.</p>
     </div></div>
   </div>
-  <p class="onde"><b>Onde:</b> a confirmação de excluir do Kanban, das Demandas, dos Processos, dos
-     Procedimentos, do Controle de Balancetes, do Mapa NCM, do Centro de Custo, do Backlog, dos
-     Usuários e dos Dashboards.</p>
+  <p class="olhar"><b>Onde abrir para conferir:</b> <code>/equipe/dev/procedimentos</code> (o card tem
+     os dois — “Excluir” e a confirmação), <code>/equipe/dev/controle-balancetes</code> (a lixeira da
+     linha), <code>/equipe/dev/mapa-ncm-pis-cofins</code>, <code>/equipe/backlog</code> e
+     <code>/equipe/kanban</code>. <b>O que olhar:</b> o vermelho ficou mais fechado e mais escuro
+     (8,05:1 contra 4,83:1 no botão sólido) — é o mesmo tom do <code>status-ajuste</code> que as
+     tarefas já usam, e ele muda de área para área.</p>
 
   <h2>2 · Erro — 22 ocorrências, 7 arquivos · feito em 11/09</h2>
   <p>Cartão de falha, tela de acesso negado, mensagem de “não foi possível ler o documento”. Mesmo
      destino do grupo acima, e pelo mesmo precedente.</p>
   <div class="par">
-    <div class="col hoje"><div class="hd">red-50 / red-200 / red-700</div><div class="card">
+    <div class="col era"><div class="hd">red-50 / red-200 / red-700</div><div class="card">
       <div class="painel" style="background:var(--red-50);border:1px solid var(--red-200)">
         <div style="font-size:22px">⚠</div>
         <div style="color:var(--red-700);font-weight:600;font-size:13.5px;margin-top:4px">Não foi possível ler o documento.</div>
@@ -219,7 +239,7 @@
          <span class="cr" data-fg="var(--red-500)" data-bg="var(--red-50)"></span> na mensagem —
          <b>a linha do erro reprova AA</b>, e é a linha que diz o que houve.</p>
     </div></div>
-    <div class="col papel"><div class="hd">destructive com alfa</div><div class="card">
+    <div class="col agora"><div class="hd">destructive com alfa</div><div class="card">
       <div class="painel" style="background:hsl(var(--destructive)/.08);border:1px solid hsl(var(--destructive)/.3)">
         <div style="font-size:22px;color:hsl(var(--destructive))">⚠</div>
         <div style="color:hsl(var(--destructive));font-weight:600;font-size:13.5px;margin-top:4px">Não foi possível ler o documento.</div>
@@ -235,6 +255,10 @@
     acompanha o tema da área e o X dele não — em OSG e Tax o vermelho do fundo muda e esse
     <code>red-300</code> fica igual. O certo é <code>destructive-foreground</code> com alfa.
   </div>
+  <p class="olhar"><b>Onde abrir para conferir:</b> <code>/equipe/dev/procedimentos</code> com um
+     procedimento que falhou ao ler (o card em vermelho), e qualquer erro de carregamento em
+     <code>/equipe/dashboards</code>. <b>O que olhar:</b> o detalhe técnico embaixo saiu do vermelho
+     claro e foi para <code>muted-foreground</code> — era ele que reprovava AA a 3,44:1.</p>
 
   <h2>3 · O vermelho que não destrói nada — 27 ocorrências</h2>
   <p>Dois grupos que andam juntos: o botão <b>“Limpar filtros”</b> (19, em 9 telas) e o <b>X de fechar
@@ -292,7 +316,7 @@
      degrau de cima está no lote, o do meio é âmbar (já inventariado na <code>filaDoAlerta</code>) e o
      de baixo é <code>green</code> cru, fora do lote.</p>
   <div class="par">
-    <div class="col hoje"><div class="hd">a escada de prioridade, hoje</div><div class="card">
+    <div class="col hoje"><div class="hd">a escada de prioridade</div><div class="card">
       <div class="linha">
         <span class="pill" style="background:var(--red-100);color:var(--red-700)">Alta</span>
         <span class="pill" style="background:var(--amber-100);color:var(--amber-700)">Média</span>
@@ -319,21 +343,25 @@
          uma escala só, e ela acompanha a área.</p>
     </div></div>
   </div>
-  <div class="decide"><b>Decisão 3 — prioridade é status?</b>
-     A escada acima usa <code>ajuste</code>/<code>alerta</code>/<code>feito</code>, que são papéis de
-     <i>estado de tarefa</i>. Prioridade não é estado: uma tarefa “Alta” pode estar concluída. Se a
-     resposta for que prioridade é <b>escala própria</b>, ela pede tokens próprios
-     (<code>--sev-*</code>) e vira frente separada — e aí este grupo inteiro fica na fila com o motivo
-     escrito, como o <code>CORES_MOTIVO</code> do Audit já ficou na <code>filaDoAlerta</code>.
-     Eu faria: <b>atraso e risco viram papel agora</b> (são estado), <b>prioridade fica</b>.
+  <div class="decide"><b>Decisão 3 — respondida em 11/09: “a mesma escada, por papel”</b>
+    A pergunta era se prioridade é estado — uma tarefa “Alta” pode estar concluída, então pela
+    taxonomia não é. Você respondeu pela coluna da direita, e ela vale: quem lê a tela lê uma escala só,
+    e não três famílias de estoque na mesma linha. O que a resposta <b>não</b> resolve é a escada que
+    está errada antes da cor — ver “As escadas que não fecham”, logo abaixo da seção 7.
   </div>
+  <p class="olhar"><b>Você respondeu “a mesma escada, por papel”, e foi o que saiu em 11/09 — onde a
+     escada fecha.</b> Já está na tela: o selo <i>Bloqueada</i> do Kanban e da tabela, o filtro
+     <i>Atrasadas</i> da sprint, o trio do score e o do risco na
+     <code>/equipe/dashboards/analise-inteligente</code>, o painel de <i>Riscos</i>, a barra de horas
+     acima de 100% e o aviso de capacidade excedida. <b>Ficou de fora</b> a escala de prioridade e mais
+     quatro casos — a seção “As escadas que não fecham”, lá embaixo, diz o porquê de cada um.</p>
 
   <h2>5 · Feito — 15 ocorrências, 6 arquivos</h2>
   <p>Concluído, Aprovado, Homologado, Criação, “copiado!”, soma confere. Destino óbvio, e um dos
      arquivos já está meio convertido: o <code>DcompDistributionSection</code> usa
      <code>text-emerald-600</code> de um lado e <code>text-destructive</code> do outro.</p>
   <div class="par">
-    <div class="col hoje"><div class="hd">emerald-100 / emerald-700</div><div class="card">
+    <div class="col era"><div class="hd">emerald-100 / emerald-700</div><div class="card">
       <div class="linha">
         <span class="pill" style="background:var(--emerald-100);color:var(--emerald-700)">Aprovado</span>
         <span class="pill" style="background:var(--emerald-100);color:var(--emerald-800)">Homologado</span>
@@ -342,7 +370,7 @@
       <p class="meta"><span class="cr" data-fg="var(--emerald-700)" data-bg="var(--emerald-100)"></span> ·
          três recortes do mesmo verde em três telas.</p>
     </div></div>
-    <div class="col papel"><div class="hd">status-feito</div><div class="card">
+    <div class="col agora"><div class="hd">status-feito</div><div class="card">
       <div class="linha">
         <span class="pill" style="background:hsl(var(--status-feito-soft));color:hsl(var(--status-feito))">Aprovado</span>
         <span class="pill" style="background:hsl(var(--status-feito-soft));color:hsl(var(--status-feito))">Homologado</span>
@@ -352,6 +380,11 @@
          e o <code>--success</code> aponta para o mesmo valor.</p>
     </div></div>
   </div>
+  <p class="olhar"><b>Onde abrir para conferir:</b> <code>/equipe/dev/gestao-clientes</code> (a pílula
+     de situação: <i>Em andamento</i>, <i>Concluído</i>, <i>Suspenso</i>), a aba <b>Histórico</b> de um
+     cliente no cadastro, e <code>/equipe/dev/gerenciar-dados</code> (o painel de resultado do teste).
+     <b>O que olhar:</b> o verde ficou mais escuro e menos elétrico, e o <i>Suspenso</i> deixou de ser
+     âmbar para virar <code>espera</code> — que é o papel de “parado por alguém”.</p>
 
   <h2>6 · Marcador — 14 ocorrências, 5 arquivos</h2>
   <p>“Tem filtro aplicado”, “é hoje”, “é o melhor cenário”. <b>Precedente de 10/09:</b> a estrela de
@@ -359,14 +392,14 @@
      papel de status. Aqui é o mesmo caso — e tem consequência: em tela da OSG esse verde vira musgo, e
      em tela da Tax vira teal.</p>
   <div class="par">
-    <div class="col hoje"><div class="hd">emerald fixo</div><div class="card canvas">
+    <div class="col era"><div class="hd">emerald fixo</div><div class="card canvas">
       <div class="linha">
         <span class="selo" style="background:var(--emerald-50);color:var(--emerald-700);border-color:var(--emerald-200)">Cliente: 3 filtros</span>
         <span class="icone" style="border:1px solid var(--emerald-500);background:var(--emerald-50);color:var(--emerald-700);font-size:12px;font-weight:700">11</span>
       </div>
       <p class="meta">O verde é o mesmo nas três áreas. Numa tela da OSG ele briga com o musgo da casa.</p>
     </div></div>
-    <div class="col papel"><div class="hd">a âncora da área</div><div class="card canvas">
+    <div class="col agora"><div class="hd">a âncora da área</div><div class="card canvas">
       <div class="linha">
         <span class="selo" style="background:hsl(var(--primary)/.08);color:hsl(var(--primary));border-color:hsl(var(--primary)/.3)">Cliente: 3 filtros</span>
         <span class="icone" style="border:1px solid hsl(var(--primary));background:hsl(var(--primary)/.08);color:hsl(var(--primary));font-size:12px;font-weight:700">11</span>
@@ -375,6 +408,10 @@
          acompanha a área sozinho.</p>
     </div></div>
   </div>
+  <p class="olhar"><b>Onde abrir para conferir:</b> <code>/equipe/sprints/:id</code> (o dia de <b>hoje</b>
+     no calendário da sprint), <code>/equipe/dashboards</code> (o selo de filtro ativo) e
+     <code>/equipe/mapeamento</code> (o cenário marcado como melhor). <b>O que olhar:</b> onde antes era
+     verde agora é a cor da área — teal aqui, e <b>musgo</b> se você abrir a mesma coisa pela OSG.</p>
 
   <h2>7 · Booleano “Sim” — 9 ocorrências, 3 arquivos</h2>
   <p>O selo do NCM monofásico, no Mapa NCM e nas duas telas de regra PIS/COFINS. <b>Não são dois “Sim”
@@ -410,7 +447,7 @@
     ninguém.
   </div>
 
-  <h2>8 · Os que ficam na fila — 32 ocorrências</h2>
+  <h2>8 · Os que ficam na fila — 30 ocorrências</h2>
   <p>Não entram na conversão, e o motivo de cada um fica escrito na catraca:</p>
   <ul>
     <li><b>rótulo não-status</b> (12) — o selo “Admin” em quatro telas de acesso. Mesmo motivo pelo
@@ -422,11 +459,11 @@
       outra frente.</li>
     <li><b>sinal de valor</b> (6) e <b>delta favorável</b> (14) — já mostrados lá em cima: o par está
       fora do lote.</li>
-    <li><b>diff</b> (2) — o <code>HistoricoTab</code> do cadastro de cliente pinta o valor antigo de
-      vermelho e o novo de verde. <b>Já foi decidido em 03/09</b> no histórico da OSG: valor antigo não
-      “deu problema” e valor novo não está “feito” — antigo recua em <code>muted-foreground</code>,
-      novo é <code>foreground</code>, cor nenhuma afirmando o que o dado não diz. Este arquivo é a
-      mesma coisa noutro lugar; entra junto, sem pergunta.</li>
+    <li><s><b>diff</b> (2)</s> — <b>saiu em 11/09, sem pergunta.</b> O <code>HistoricoTab</code> do
+      cadastro pintava o valor antigo de vermelho e o novo de verde; a decisão de 03/09 no histórico da
+      OSG já dizia que valor antigo não “deu problema” e valor novo não está “feito”. Antigo recua em
+      <code>muted-foreground</code>, novo é <code>foreground</code>. Confira na aba <b>Histórico</b> de
+      um cliente, num registro com campo alterado.</li>
   </ul>
 
   <h2>As escadas que não fecham — o que sobrou da decisão 3</h2>
