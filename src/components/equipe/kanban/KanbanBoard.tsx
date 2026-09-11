@@ -129,7 +129,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
                         {props.getBlocker(deliverable) && (
                           <div
                             title={formatBlockerTooltip(props.getBlocker(deliverable)!)}
-                            className="mb-2 inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-700"
+                            className="mb-2 inline-flex items-center gap-1 rounded border border-status-ajuste/40 bg-status-ajuste/10 px-1.5 py-0.5 text-xs font-medium text-status-ajuste"
                           >
                             🚩 Bloqueada
                           </div>

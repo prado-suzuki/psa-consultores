@@ -483,7 +483,7 @@ function DebugApiCard() {
             {testLoading ? 'Testando...' : 'Testar API JWT'}
           </Button>
           <Button variant="outline" onClick={copyJwt} className="gap-2">
-            {copied ? <CheckCircle className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+            {copied ? <CheckCircle className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
             {copied ? 'Copiado!' : 'Copiar JWT'}
           </Button>
         </div>
@@ -491,10 +491,10 @@ function DebugApiCard() {
         {testResult && (
           <div className={`p-4 rounded-lg font-mono text-sm ${
             testResult.error
-              ? 'bg-red-50 border border-red-200 text-red-800'
+              ? 'bg-destructive/10 border border-destructive/40 text-destructive'
               : testResult.ok
-                ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-                : 'bg-amber-50 border border-amber-200 text-amber-800'
+                ? 'bg-success/10 border border-success/40 text-success'
+                : 'bg-warning/10 border border-warning/40 text-warning'
           }`}>
             <pre className="whitespace-pre-wrap overflow-auto">
               {JSON.stringify(testResult, null, 2)}

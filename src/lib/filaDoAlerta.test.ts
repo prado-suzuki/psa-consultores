@@ -76,7 +76,20 @@ type MotivoDeFicar =
 
 const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
   'escada-de-status': {
-    'src/components/equipe/HorasAcumuladas.tsx': 1,
+    // Quatro entradas saíram daqui em 11/09/2026, e as quatro saíram pelo mesmo
+    // motivo: a escada delas FECHOU inteira, que é a condição que este grupo
+    // sempre pediu. Elas eram `HorasAcumuladas` (o âmbar de 80% ao lado do
+    // vermelho de 100%: `alerta` e `ajuste`), `AnaliseInteligente` (o trio do
+    // score e o trio do risco, `feito`/`alerta`/`ajuste` nos dois),
+    // `GerenciarDados` (erro/ok/nem-um-nem-outro, que virou
+    // `destructive`/`success`/`warning`) e `GestaoClientes` (o mapa de situação,
+    // com `suspenso` em `espera` — parado por alguém é exatamente o que o papel
+    // diz). Decisão dela em 11/09, olhando a página
+    // `comparacoes-de-cor/vermelho-e-verde-o-que-cada-um-diz.html`.
+    //
+    // O `scoreBg` da Análise Inteligente NÃO foi junto, e não é esquecimento: ele
+    // vai para o exportador de PDF, onde `hsl(var(--status-feito))` não resolve.
+    // É fase 3b, e continua em hex de propósito.
     // O `AuditPendenciasTable` fica, e o motivo é mais forte que "ainda não
     // converteram": o `CORES_MOTIVO` é ESCALA de severidade, não escada de status, e
     // o contrato diz que gradiente não veste papel. O `AuditPessoasTable` saiu em
@@ -107,9 +120,6 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     'src/components/sprint/GroupedTasks.tsx': 1,
     'src/pages/equipe/EquipeBacklog.tsx': 3,
     'src/pages/equipe/EquipeKanban.tsx': 2,
-    'src/pages/equipe/dashboards/AnaliseInteligente.tsx': 3,
-    'src/pages/equipe/dev/GerenciarDados.tsx': 3,
-    'src/pages/equipe/fiscal/GestaoClientes.tsx': 2,
   },
   'outro-papel': {
     'src/components/equipe/StageEditCard.tsx': 3,

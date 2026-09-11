@@ -30,7 +30,7 @@ const MIN_ROLE_LABEL: Record<MinRole, string> = {
 };
 const tipoLabel = (ft: DashboardFilterType) => (ft === 'nenhum' ? 'Interno' : 'Externo');
 const tipoBadgeClass = (ft: DashboardFilterType) =>
-  ft === 'nenhum' ? 'border-border bg-muted text-muted-foreground' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  ft === 'nenhum' ? 'border-border bg-muted text-muted-foreground' : 'border-primary/30 bg-primary/10 text-primary';
 
 /** Rótulo de seção do painel lateral. */
 const SectionLabel = ({ icon: Icon, children }: { icon: typeof Shield; children: React.ReactNode }) => (

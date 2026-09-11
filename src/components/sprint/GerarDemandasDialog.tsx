@@ -205,7 +205,7 @@ export function GerarDemandasDialog({
               <span className="text-muted-foreground">
                 {selecionados.length} de {itens.length} selecionadas
               </span>
-              <span className={excedeCapacidade ? 'text-red-600 font-medium flex items-center gap-1' : 'text-muted-foreground'}>
+              <span className={excedeCapacidade ? 'text-status-ajuste font-medium flex items-center gap-1' : 'text-muted-foreground'}>
                 {excedeCapacidade && <AlertTriangle className="h-4 w-4" />}
                 Total: {totalHoras.toFixed(1)}h
                 {capacidadeNum != null && ` / ${capacidadeNum}h de capacidade`}

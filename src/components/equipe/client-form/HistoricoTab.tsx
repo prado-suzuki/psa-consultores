@@ -22,9 +22,9 @@ interface HistoricoTabProps {
 }
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
-  created: { label: 'Criação', color: 'bg-emerald-100 text-emerald-700' },
-  updated: { label: 'Edição', color: 'bg-blue-100 text-blue-700' },
-  deleted: { label: 'Exclusão', color: 'bg-red-100 text-red-700' },
+  created: { label: 'Criação', color: 'bg-status-feito-soft text-status-feito' },
+  updated: { label: 'Edição', color: 'bg-status-andamento-soft text-status-andamento' },
+  deleted: { label: 'Exclusão', color: 'bg-status-ajuste-soft text-status-ajuste' },
 };
 
 const ENTITY_LABELS: Record<string, string> = {
@@ -119,9 +119,9 @@ export default function HistoricoTab({ clienteId, entities, participants, contra
                                 {formattedChanges.map((change, idx) => (
                                   <div key={idx} className="flex gap-2 items-baseline">
                                     <span className="font-medium text-muted-foreground min-w-[140px]">{change.label}:</span>
-                                    <span className="text-red-600 line-through">{change.oldValue}</span>
+                                    <span className="text-muted-foreground line-through">{change.oldValue}</span>
                                     <span className="text-muted-foreground">→</span>
-                                    <span className="text-emerald-600">{change.newValue}</span>
+                                    <span className="text-foreground">{change.newValue}</span>
                                   </div>
                                 ))}
                               </>

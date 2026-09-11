@@ -56,7 +56,7 @@ export function SprintHeaderFilters({
             variant={c.filterDate === 'overdue' ? 'default' : 'outline'}
             onClick={() => c.setFilterDate(c.filterDate === 'overdue' ? 'all' : 'overdue')}
             className={
-              c.filterDate === 'overdue' ? '' : 'border-red-300 text-red-700 hover:bg-red-50'
+              c.filterDate === 'overdue' ? '' : 'border-status-ajuste/40 text-status-ajuste hover:bg-status-ajuste/10'
             }
           >
             <AlertTriangle className="h-3 w-3 mr-1" />

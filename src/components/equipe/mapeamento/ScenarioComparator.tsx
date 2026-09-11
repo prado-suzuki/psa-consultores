@@ -147,7 +147,7 @@ export function ScenarioComparator({ open, onClose, scenarios }: ScenarioCompara
                     <td className="p-3 text-xs text-muted-foreground flex items-center gap-1">
                       {metric.label}
                       {metric.higherIsBetter ? (
-                        <TrendingUp className="h-3 w-3 text-emerald-600" />
+                        <TrendingUp className="h-3 w-3 text-primary" />
                       ) : (
                         <TrendingDown className="h-3 w-3 text-blue-600" />
                       )}
@@ -159,7 +159,7 @@ export function ScenarioComparator({ open, onClose, scenarios }: ScenarioCompara
                         <td
                           key={s.id}
                           className={`text-right p-3 font-medium ${
-                            isBest ? 'bg-emerald-50 text-emerald-700' : 'text-foreground'
+                            isBest ? 'bg-primary/10 text-primary' : 'text-foreground'
                           }`}
                         >
                           {v === null ? '—' : metric.format(v)}

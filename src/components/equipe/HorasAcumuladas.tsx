@@ -23,8 +23,8 @@ export const HorasAcumuladas = ({
 
   const getProgressColor = (total: number) => {
     const percentage = (total / maxHoursPerWeek) * 100;
-    if (percentage > 100) return 'bg-red-500';
-    if (percentage > 80) return 'bg-yellow-500';
+    if (percentage > 100) return 'bg-status-ajuste';
+    if (percentage > 80) return 'bg-status-alerta';
     return 'bg-primary';
   };
 

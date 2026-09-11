@@ -40,7 +40,7 @@ const FILTER_RANK: Record<DashboardFilterType, number> = { nenhum: 0, cluster: 1
 //"Tipo" é derivado do filtro: nenhum = interno (sem RLS); cluster/cliente = externo.
 const tipoLabel = (ft: DashboardFilterType) => (ft === 'nenhum' ? 'Interno' : 'Externo');
 const tipoBadgeClass = (ft: DashboardFilterType) =>
-  ft === 'nenhum' ? 'border-border bg-foreground/[0.05] text-muted-foreground' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  ft === 'nenhum' ? 'border-border bg-foreground/[0.05] text-muted-foreground' : 'border-primary/30 bg-primary/10 text-primary';
 const FILTER_HELP: Record<DashboardFilterType, string> = {
   cluster: 'Valor resolvido do cluster do usuário que abre (ou do cliente).',
   cliente: 'Valor resolvido do id_cliente do viewer. Use p/ relatórios externos (ex.: PERDCOMP).',

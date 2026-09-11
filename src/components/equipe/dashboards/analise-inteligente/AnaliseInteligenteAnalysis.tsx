@@ -102,7 +102,7 @@ export function AnaliseInteligenteAnalysis({
           </div>
           <div className="bg-white/70 p-3 rounded-md border border-border">
             <h4 className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
-              <DollarSign className="h-3 w-3 text-red-600" /> Gastos Extras
+              <DollarSign className="h-3 w-3 text-status-ajuste" /> Gastos Extras
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed">{analise.gastos_extras}</p>
           </div>
@@ -111,11 +111,11 @@ export function AnaliseInteligenteAnalysis({
         <Separator className="my-2" />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="bg-red-50/70 p-3 rounded-md border border-red-100">
-            <h4 className="text-xs font-semibold text-red-700 mb-2 flex items-center gap-1">
+          <div className="bg-status-ajuste/5 p-3 rounded-md border border-status-ajuste/20">
+            <h4 className="text-xs font-semibold text-status-ajuste mb-2 flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" /> Riscos
             </h4>
-            <ul className="space-y-1 text-xs text-red-800">
+            <ul className="space-y-1 text-xs text-status-ajuste">
               {analise.riscos.map((r, i) => (
                 <li key={i} className="flex gap-1">
                   <span>•</span>

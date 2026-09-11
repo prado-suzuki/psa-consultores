@@ -108,7 +108,7 @@ export function KanbanTable(props: KanbanTableProps) {
                       {props.getBlocker(deliverable) && (
                         <span
                           title={formatBlockerTooltip(props.getBlocker(deliverable)!)}
-                          className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-700"
+                          className="inline-flex items-center gap-1 rounded border border-status-ajuste/40 bg-status-ajuste/10 px-1.5 py-0.5 text-xs font-medium text-status-ajuste"
                         >
                           🚩 Bloqueada
                         </span>
