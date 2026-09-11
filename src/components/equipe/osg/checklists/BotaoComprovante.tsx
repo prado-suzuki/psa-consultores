@@ -44,9 +44,12 @@ export function BotaoComprovante({ clienteId, clienteNome, solicitacao }: BotaoC
 
   const [emitindo, setEmitindo] = useState(false);
 
-  // Rascunho não emite: o cliente ainda não recebeu o pedido, então não há
-  // recebimento para comprovar.
-  if (solicitacao.status === 'rascunho') return null;
+  // Antes de `em_checklist` há apenas uma solicitação sendo preparada ou uma
+  // lista enviada para coleta em lote. O comprovante pertence à etapa de
+  // conferência, depois que cada novo envio passa a ser classificado.
+  // A fachada já evita montar o componente nesses estados; esta guarda mantém
+  // o contrato caso ele seja reutilizado em outro lugar.
+  if (solicitacao.status === 'rascunho' || solicitacao.status === 'enviada') return null;
 
   const emitir = async () => {
     setEmitindo(true);

@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ArquivoDaLinha, LinhaChecklist } from '@/lib/checklistDerivado';
+import type { SolicitacaoStatus } from '@/lib/solicitacao';
 import { ChecklistPendentes } from './ChecklistPendentes';
 
 /**
@@ -15,7 +16,9 @@ import { ChecklistPendentes } from './ChecklistPendentes';
 const mocks = vi.hoisted(() => ({
   revisar: vi.fn(),
   sincronizarNaoAplicavel: vi.fn(),
+  passarParaChecklist: vi.fn(),
   linhas: [] as LinhaChecklist[],
+  status: 'em_checklist' as SolicitacaoStatus,
 }));
 
 vi.mock('@/hooks/useGestaoClientes', () => ({
@@ -35,10 +38,16 @@ vi.mock('@/hooks/useDomainSolicitacaoNaoAplicavel', () => ({
   useSincronizarSolicitacaoNaoAplicavel: () => ({ mutate: mocks.sincronizarNaoAplicavel }),
 }));
 
+vi.mock('@/hooks/useDomainSolicitacao', () => ({
+  useDomainSolicitacao: () => ({
+    passarParaChecklist: { mutateAsync: mocks.passarParaChecklist, isPending: false },
+  }),
+}));
+
 vi.mock('@/hooks/useChecklistDerivado', () => ({
   useChecklistDerivado: () => ({
     linhas: mocks.linhas,
-    solicitacao: { id: 'sol-1', status: 'em_checklist', enviadaEm: null, encerradaEm: null },
+    solicitacao: { id: 'sol-1', status: mocks.status, enviadaEm: null, encerradaEm: null },
     arquivosSemTipo: 0,
     isLoading: false,
   }),
@@ -89,7 +98,29 @@ describe('ChecklistPendentes — revisão do arquivo', () => {
   beforeEach(() => {
     mocks.revisar.mockReset();
     mocks.sincronizarNaoAplicavel.mockReset();
+    mocks.passarParaChecklist.mockReset();
     mocks.linhas = [linha()];
+    mocks.status = 'em_checklist';
+  });
+
+  it('antes da passagem mostra só a porta de entrada e libera o conteúdo depois', () => {
+    mocks.status = 'enviada';
+    const { rerender } = render(<ChecklistPendentes clienteId="cliente-1" />);
+
+    expect(screen.getByRole('button', { name: 'Trazer para o checklist' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Comprovante de recebimento/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Notificar pendências/ })).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/Buscar pessoa, imóvel ou documento/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Ver os documentos de João/ })).not.toBeInTheDocument();
+
+    mocks.status = 'em_checklist';
+    rerender(<ChecklistPendentes clienteId="cliente-1" />);
+
+    expect(screen.queryByRole('button', { name: 'Trazer para o checklist' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Comprovante de recebimento/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Notificar pendências/ })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Buscar pessoa, imóvel ou documento/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ver os documentos de João/ })).toBeInTheDocument();
   });
 
   it('aprova o arquivo ainda não revisado', async () => {

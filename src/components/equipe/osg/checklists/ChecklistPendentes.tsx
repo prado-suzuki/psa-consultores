@@ -197,27 +197,45 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
     );
   }
 
+  // Antes desta transição há uma solicitação enviada, mas ainda não existe um
+  // checklist operacional. Deixar filtros, entidades, comprovante e cobrança
+  // visíveis aqui fazia a tela prometer ações sobre uma etapa que não começou.
+  // O resumo permanece para dar contexto; a única ação possível é abrir a fase.
+  const checklistLiberado = solicitacao.status === 'em_checklist'
+    || solicitacao.status === 'encerrada';
+
+  if (!checklistLiberado) {
+    return (
+      <div className="space-y-8">
+        <ResumoHero clienteNome={clienteNome} {...resumo} />
+
+        {solicitacao.status === 'enviada' && (
+          <div className="flex flex-wrap items-center gap-3">
+            <BotaoTrazerParaChecklist
+              clienteId={clienteId}
+              status={solicitacao.status}
+              arquivosSemTipo={arquivosSemTipo}
+            />
+          </div>
+        )}
+
+        <AvisosDaFase
+          status={solicitacao.status}
+          encerradaEm={solicitacao.encerradaEm}
+          arquivosSemTipo={arquivosSemTipo}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <ResumoHero clienteNome={clienteNome} {...resumo} />
 
       <div className="flex flex-wrap items-center gap-3">
-        {/* Primeiro da fila, e o único preenchido entre os três: em `enviada`
-            ele é a ação que muda a fase, e as outras duas operam sobre o que já
-            está aqui.
-
-            A condição fica AQUI, e não só dentro dele: o componente consulta a
-            solicitação para ter a mutação, e hook roda antes de qualquer early
-            return. Montá-lo nos outros estados dispararia uma consulta para um
-            botão que nunca aparece. */}
-        {solicitacao.status === 'enviada' && (
-          <BotaoTrazerParaChecklist
-            clienteId={clienteId}
-            status={solicitacao.status}
-            arquivosSemTipo={arquivosSemTipo}
-          />
-        )}
-
+        {/* Estas ações só montam depois da passagem ao checklist. Além de
+            esconder os botões, isso evita as consultas do comprovante antes de
+            existir uma etapa de conferência. */}
         <BotaoComprovante
           clienteId={clienteId}
           clienteNome={clienteNome}
