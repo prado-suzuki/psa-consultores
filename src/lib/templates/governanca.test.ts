@@ -122,21 +122,6 @@ describe('MOT-01 · os mapeadores entregam a frase que o contrato escreve', () =
     expect(comCargos.temCargos).toBe('sim');
   });
 
-  it('a assinatura conjunta só acende acima de um assinante', () => {
-    const um = mapearOrgaoGovernanca({
-      id: 'og5', nome: 'Diretoria',
-      representa_sozinho_ate: 2000000, representa_assinantes_acima: 1,
-    });
-    expect(um.exigeAssinaturaConjunta).toBe('');
-
-    const dois = mapearOrgaoGovernanca({
-      id: 'og6', nome: 'Diretoria',
-      representa_sozinho_ate: 2000000, representa_assinantes_acima: 2,
-    });
-    expect(dois.exigeAssinaturaConjunta).toBe('sim');
-    expect(dois.representaAssinantesAcimaExtenso).toBe('dois');
-  });
-
   it('a data do acordo escolhe entre as duas redações do capítulo X', () => {
     const assinado = mapearAcordoQuotistas({ clienteId: 'c1', assinadoEm: '2025-09-29' });
     expect(assinado.jaAssinado).toBe('sim');

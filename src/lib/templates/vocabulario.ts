@@ -1304,39 +1304,18 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       condicionalCampo('semCargos', 'Sem cargos nomeados? (condicional)', 'cargos', (v) => !v.cargos),
 
       /*
-       * Representação: quanto um representante assina sozinho, e quantos
-       * assinam acima disso. O número de assinantes é aberto por decisão da
-       * consultoria em 10/09 — os contratos lidos usam dois, mas o cliente
-       * decide.
+       * NÃO HÁ CAMPO DE REPRESENTAÇÃO AQUI, e a ausência é medida.
+       *
+       * O limite de valor para representar a sociedade aparece em UM dos sete
+       * contratos, o Perci ("cujo valor não exceda R$ 2.000.000,00"). Mattei,
+       * Bela Vista, Horita, Zamo, Agro Ferragens e o modelo da casa não têm nem
+       * "exceda" nem "dois diretores em conjunto".
+       *
+       * Nas matrizes a frequência é outra, três em cinco, o que diz que a
+       * consultoria propõe a regra e ela raramente chega ao contrato. Uma
+       * ocorrência em sete não paga campo; ele volta se a consultoria disser
+       * que a regra é padrão.
        */
-      { id: 'representaSozinhoAte', label: 'Assina sozinho até (R$)', tipo: 'valor' },
-      {
-        id: 'representaSozinhoAteExtenso',
-        label: 'Assina sozinho até (por extenso)',
-        tipo: 'texto',
-        derivadoDe: 'representaSozinhoAte',
-        derivar: (v) => {
-          const x = paraNumeroBR(v.representaSozinhoAte);
-          return Number.isFinite(x) ? valorExtenso(x) : '';
-        },
-      },
-      { id: 'representaAssinantesAcima', label: 'Acima disso, quantos assinam', tipo: 'inteiro' },
-      numeralCampo(
-        'representaAssinantesAcimaNumeral',
-        'Quantos assinam acima do limite (numeral)',
-        'representaAssinantesAcima',
-      ),
-      cardinalCampo(
-        'representaAssinantesAcimaExtenso',
-        'Quantos assinam acima do limite (por extenso)',
-        'representaAssinantesAcima',
-      ),
-      condicionalCampo(
-        'exigeAssinaturaConjunta',
-        'Exige assinatura conjunta acima do limite? (condicional)',
-        'representaAssinantesAcima',
-        (v) => paraInteiro(v.representaAssinantesAcima) > 1,
-      ),
     ],
   },
 

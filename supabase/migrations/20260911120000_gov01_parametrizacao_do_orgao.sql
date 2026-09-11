@@ -40,12 +40,6 @@
 -- nao cabe o terceiro caso. Vazio, o Mattei mostra a saida: "com denominacao
 -- atribuida no momento da composicao".
 --
--- POR QUE `representa_assinantes_acima` E INTEIRO, E NAO UMA MARCACAO. Os
--- contratos lidos exigem dois assinantes acima do limite, e a primeira proposta
--- era um booleano. A consultoria definiu em 10/09/2026 que o numero fica ABERTO:
--- o cliente decide quantos. Guardar o numero custa o mesmo e nao trava o caso
--- que ainda nao apareceu.
---
 -- POR QUE NAO ENTRA `entra_no_contrato` NOVO NEM VIGENCIA AQUI. Ja existem. E a
 -- vigencia segue sem virar clausula: nos sete contratos ela nunca descreve o
 -- periodo em que o orgao existiu.
@@ -54,8 +48,7 @@
 --
 -- Reversao: `ALTER TABLE public.orgao_governanca DROP COLUMN membros_minimo,
 -- DROP COLUMN membros_maximo, DROP COLUMN mandato_anos, DROP COLUMN
--- cargos_do_orgao, DROP COLUMN representa_sozinho_ate, DROP COLUMN
--- representa_assinantes_acima;`
+-- cargos_do_orgao, DROP COLUMN genero, DROP COLUMN padrao_chave;`
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Composicao
@@ -132,27 +125,29 @@ COMMENT ON COLUMN public.orgao_governanca.cargos_do_orgao IS
   'atribuida no momento da composicao", que e a redacao do Mattei.';
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- Representacao da sociedade
+-- Representacao da sociedade: FORA, por enquanto
 -- ─────────────────────────────────────────────────────────────────────────────
-
-ALTER TABLE public.orgao_governanca
-  ADD COLUMN IF NOT EXISTS representa_sozinho_ate      numeric(18,2),
-  ADD COLUMN IF NOT EXISTS representa_assinantes_acima integer;
-
-COMMENT ON COLUMN public.orgao_governanca.representa_sozinho_ate IS
-  'Valor ate o qual UM representante assina sozinho pela sociedade. Nao e a '
-  'alcada da Matriz: aquela e por atividade e responde quem DECIDE; esta vale '
-  'para qualquer ato e responde quem ASSINA.';
-
-COMMENT ON COLUMN public.orgao_governanca.representa_assinantes_acima IS
-  'Quantos representantes assinam acima do limite. Inteiro, e nao marcacao de '
-  '"dois", por definicao da consultoria em 10/09/2026: o numero fica aberto.';
+--
+-- A primeira versao desta migration criava `representa_sozinho_ate` e
+-- `representa_assinantes_acima`. Medido nos sete contratos, o limite de valor
+-- para representar a sociedade aparece em UM: o Perci, com "cujo valor nao
+-- exceda R$ 2.000.000,00". Mattei, Bela Vista, Horita, Zamo, Agro Ferragens e o
+-- modelo da casa nao tem nada disso, nem "exceda" nem "dois diretores em
+-- conjunto".
+--
+-- Nas MATRIZES a historia e outra: tres das cinco tem a linha de Representacao
+-- Legal com corte em valor (VF R$ 2mm, Produtecnica R$ 5mi, EDP sem valor mas
+-- com dois diretores). Ou seja, a consultoria PROPOE a regra com frequencia e
+-- ela chega ao contrato raramente.
+--
+-- Uma ocorrencia em sete nao paga duas colunas. Elas voltam quando a
+-- consultoria disser que a regra e padrao, e ate la o caso do Perci se escreve
+-- a mao no documento, que e o que se faz hoje.
 
 -- Numeros de gente nao sao negativos, e faixa invertida e erro de digitacao que
 -- so aparece no documento gerado, tarde demais.
 ALTER TABLE public.orgao_governanca
-  DROP CONSTRAINT IF EXISTS orgao_governanca_composicao_ck,
-  DROP CONSTRAINT IF EXISTS orgao_governanca_representacao_ck;
+  DROP CONSTRAINT IF EXISTS orgao_governanca_composicao_ck;
 
 ALTER TABLE public.orgao_governanca
   ADD CONSTRAINT orgao_governanca_composicao_ck CHECK (
@@ -160,12 +155,6 @@ ALTER TABLE public.orgao_governanca
     AND (membros_maximo IS NULL OR membros_maximo > 0)
     AND (mandato_anos IS NULL OR mandato_anos > 0)
     AND (membros_minimo IS NULL OR membros_maximo IS NULL OR membros_maximo >= membros_minimo)
-  ),
-  ADD CONSTRAINT orgao_governanca_representacao_ck CHECK (
-    (representa_sozinho_ate IS NULL OR representa_sozinho_ate > 0)
-    AND (representa_assinantes_acima IS NULL OR representa_assinantes_acima > 0)
-    -- Quantos assinam acima do limite so faz sentido havendo limite.
-    AND (representa_assinantes_acima IS NULL OR representa_sozinho_ate IS NOT NULL)
   );
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -182,16 +171,15 @@ BEGIN
   FROM information_schema.columns
   WHERE table_schema = 'public' AND table_name = 'orgao_governanca'
     AND column_name IN ('membros_minimo', 'membros_maximo', 'mandato_anos',
-                        'cargos_do_orgao', 'representa_sozinho_ate',
-                        'representa_assinantes_acima', 'genero', 'padrao_chave');
-  IF v_cols <> 8 THEN
-    RAISE EXCEPTION 'GATE: esperava 8 colunas novas, achei %', v_cols;
+                        'cargos_do_orgao', 'genero', 'padrao_chave');
+  IF v_cols <> 6 THEN
+    RAISE EXCEPTION 'GATE: esperava 6 colunas novas, achei %', v_cols;
   END IF;
 
   SELECT count(*) INTO v_ck
   FROM pg_constraint
   WHERE conrelid = 'public.orgao_governanca'::regclass
-    AND conname IN ('orgao_governanca_composicao_ck', 'orgao_governanca_representacao_ck');
+    AND conname IN ('orgao_governanca_composicao_ck', 'orgao_governanca_genero_ck');
   IF v_ck <> 2 THEN
     RAISE EXCEPTION 'GATE: esperava os 2 CHECK, achei %', v_ck;
   END IF;

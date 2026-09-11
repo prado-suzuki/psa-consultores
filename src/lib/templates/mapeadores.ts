@@ -726,8 +726,6 @@ export interface OrgaoParaMapear {
   membros_maximo?: number | null;
   mandato_anos?: number | null;
   cargos_do_orgao?: string[] | null;
-  representa_sozinho_ate?: number | string | null;
-  representa_assinantes_acima?: number | null;
 }
 
 /**
@@ -749,8 +747,6 @@ export function mapearOrgaoGovernanca(row: OrgaoParaMapear): Campos {
   set('membrosMaximo', row.membros_maximo);
   set('mandatoAnos', row.mandato_anos);
   set('cargos', prosaDeLista(row.cargos_do_orgao));
-  set('representaSozinhoAte', row.representa_sozinho_ate);
-  set('representaAssinantesAcima', row.representa_assinantes_acima);
   return comOrigem(derivarCampos('orgaoGovernanca', out), { tipo: 'orgaoGovernanca', id: row.id });
 }
 
