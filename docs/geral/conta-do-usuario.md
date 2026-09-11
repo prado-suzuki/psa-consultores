@@ -54,10 +54,33 @@ do Dev e 13 do Mapeamento. Dois achados no caminho:
   diferente do cartão, que lê `profiles`, e as duas podem divergir. Sem ele a faixa de 48px
   ficaria vazia no desktop, então ela virou `md:hidden`: no celular continua sendo quem abre a
   gaveta, no desktop não existe mais;
-- **`/equipe/acessos` deixou de ter casca própria** e passou a montar dentro do `EquipeLayout`,
-  como qualquer outra tela. Perdeu o cabeçalho com `ShieldCheck`, "Trocar área" e "Sair"
-  escritos à mão, e o `ScrollArea` de `h-[calc(100vh-64px)]` — a rolagem e o recuo são do
-  layout. O título virou `title`/`subtitle`, que é como as outras telas o declaram.
+- **`/equipe/acessos` deixou de ter casca própria.** Perdeu o cabeçalho com `ShieldCheck`,
+  "Trocar área" e "Sair" escritos à mão, e o `ScrollArea` de `h-[calc(100vh-64px)]`.
+
+**E aí veio a correção da correção, no mesmo dia.** A primeira tentativa foi montá-la dentro do
+`EquipeLayout`: ela ganhou o cartão, e junto veio o menu do Digital Rotina — Sprints, Kanban,
+Daily — ao lado de uma tela de administração. Ela olhou e disse: *"tem barra lateral mas não
+condiz com as informações da página"*.
+
+**A regra que sai disso: barra que fala de outra coisa é pior que barra nenhuma**, porque mente
+sobre onde você está. Emprestar o layout de outra área resolve o cartão e estraga a orientação.
+
+Então o Acessos ganhou barra **própria** (`src/components/acessos/AcessosLayout.tsx`), e o menu
+dela são as **sete seções que eram abas**: Páginas, Cadastros Estrutura, Usuários Estrutura,
+Cadastros Clientes, Produtos & Serviços, Dashboards e Agente. Sete abas numa fila já estouravam
+a largura em tela média; na coluna cabem com folga.
+
+Três decisões que ficam registradas:
+
+- **a seção é estado, não rota.** Sete rotas custariam sete linhas em `protectedPages.ts` (regra
+  inegociável do AGENTS.md) e um recorte de permissão por seção que ninguém pediu. O `Tabs` do
+  Radix continua no lugar, dirigido pela barra;
+- **o cromo é o compartilhado** (`classesItemDaBarra`, de `barraLateralCromo`). Sem ele a barra
+  nasceria com a tinta de 10% que as outras oito já deixaram para trás;
+- **o acoplamento tem teste.** Cada `id` da lista é o `value` de um `<TabsContent>` na página, e
+  nenhum tipo liga os dois — o `value` do Radix é `string`. Renomear um lado sem o outro passa
+  no build e no typecheck, e a seção abre **vazia** com o item da barra aceso.
+  `secoesDeAcessos.test.ts` lê o fonte da página e confere os sete pares.
 
 **Achado ao fazer isso: a área "Administração" não existe no app.** O `AdminLayout`, as três
 páginas de `src/pages/administracao/` e a rota `/administracao/*` **não estão registradas em
@@ -67,10 +90,10 @@ usuários, dashboards, agente, estrutura e centro de custo) é a **única** tela
 alcançável — o `/administracao/acessos` que existe no repositório tem 15 linhas e chama outra
 coisa. Não mexi nisso: ressuscitar ou apagar a área é decisão dela, não limpeza.
 
-**Fica de fora, e é gap conhecido:** `/equipe/acessos` (`EquipeControleAcessos.tsx`) **não tem
-barra lateral** — tem cabeçalho próprio, com "Trocar área" e "Sair" soltos nele. Logo não tem
-cartão, não mostra nome nem e-mail, e o "Sair" de lá é o único do sistema fora do cartão. Dar
-cartão àquela tela não é acrescentar um componente: é decidir se ela ganha barra lateral.
+Com o Acessos, o registro do cartão chega a **dez áreas** e **nenhuma tela de dentro do sistema
+fica sem ele**. As que continuam fora são as que não devem tê-lo: login, primeiro acesso,
+redefinir senha, o site público e os dois seletores de área — que são o destino do
+"Trocar área".
 
 ## Fase 2 — a página `/conta` 🔵 ABERTA
 
