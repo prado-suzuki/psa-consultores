@@ -395,7 +395,8 @@ domínios de uma vez — foi ele que ficou com o masculino.
 | cor crua **slate** | catraca `src/lib/filaDoSlate.test.ts` — nasce **vazia**, e qualquer classe slate nova derruba |
 | âncora `osg-red` pintando status | catraca `src/lib/filaDoOsgRed.test.ts` — nasce **vazia**; não é cor de estoque, é token nosso no lugar errado |
 | cinza (`gray`) | catraca `src/lib/filaDoGray.test.ts` desde 10/09/2026 — inventário por motivo, e o recorte interno tem asserção própria. Era o buraco maior (580) porque o nome está no `tailwind.config.ts` e a `cor-de-estoque` só dispara em tom que a escala não define |
-| **verde, vermelho, azul, roxo, laranja** | **nenhuma** |
+| cor crua **`red` e `emerald`** | catraca `src/lib/filaDoRedEmerald.test.ts` desde 11/09/2026 — inventário por motivo, mais uma asserção própria: **nenhuma tela interna** pode ter vermelho ou verde cru fora do inventário |
+| **roxo, laranja, violeta, índigo** | **nenhuma** |
 | rótulo divergente de **chamado** | catraca `src/lib/chamadoStatusColors.test.ts` — nasce **vazia**, varre pelo conjunto de chaves |
 | rótulo divergente de status | catraca `src/lib/rotulosDeStatus.test.ts` — pega "Em Progresso" em JSX e trava a palavra dos três mapas |
 | **`--muted` divergindo do `--canvas` da área** | catraca `problemasDeRebaixamento` em `paletaDeArea.test.ts` — não olha o valor, **recalcula** com `rebaixar(--canvas)` e compara sem tolerância |
@@ -541,23 +542,32 @@ Nesta ordem, do que rende ao que exige decisão:
      sobram são quase todas dela, mais quatro componentes órfãos que ninguém importa.
 
 2. **Os papéis que faltam** (§1) — por mapa, nunca por classe. Mesma alavanca do item acima.
-3. **`red` e `emerald`** (§5) — aí sim inventário por motivo, na forma da `filaDoAlerta`, porque
-   não têm concentração. O molde está em `medirCorCrua.ts`, e a `chamadoStatusColors.test.ts`
-   mostra a variante que varre por conjunto de chaves em vez de por classe.
+3. ~~**`red` e `emerald`**~~ — **fechado em 11/09/2026.** Eram **248** ocorrências em 78 arquivos;
+   sobram **25**, e nenhuma é estado. A aposta de que seria inventário, e não mapa, estava certa pela
+   metade: o inventário serviu para AGRUPAR (14 motivos, sem sobra), mas quem converteu foram os
+   MAPAS que o agrupamento revelou — `ACTION_LABELS` em três cópias, o mapa de situação do cliente,
+   a fileira de KPI, as nove situações do PER.
 
-   **O inventário foi feito em 11/09/2026 e está renderizado**, não convertido:
-   [`comparacoes-de-cor/vermelho-e-verde-o-que-cada-um-diz.html`](comparacoes-de-cor/vermelho-e-verde-o-que-cada-um-diz.html).
-   As 248 ocorrências caíram em **14 motivos**, sem sobra. Dois deles (ação destrutiva e erro, **81
-   ocorrências**) já têm precedente — é o mesmo `destructive` do `osg-red` — e quatro param em
-   decisão dela. Dois achados que a varredura por família não daria:
+   Cinco coisas que esta passada ensinou, e que valem para a próxima família:
 
-   · **o lote está mal recortado.** 16 dos 78 arquivos carregam `green` (77) ou `rose` (22) cru na
-     MESMA escada. Converter só `red`/`emerald` troca escada crua por escada com token de um lado e
-     cor de estoque do outro — o defeito que o motivo `escada-de-status` existe para evitar;
-   · **27 das 176 vermelhas não destroem nada**: 19 são o botão "Limpar filtros" e 8 são o X de
-     fechar modal — quatro cópias byte a byte de `hover:text-red-500 hover:bg-red-50`, e como o
-     vermelho só aparece no hover, ninguém viu. No cartão de erro, `text-red-500` sobre `red-50` dá
-     **3,44:1** e reprova AA justamente na linha que diz o que houve.
+   · **a pergunta quase nunca era o tom.** "Scope creep é azul" não se responde com uma cor: se
+     responde dizendo se aquele número acusa alguém. Enquanto a pergunta foi "qual tom", ela não
+     tinha o que responder — e disse isso, com todas as letras;
+   · **recortar por FAMÍLIA é cômodo para quem varre e errado para quem lê a tela.** 16 dos 78
+     arquivos tinham o par fora do lote (`green` no saldo, `rose` no delta). A saída não foi abrir as
+     duas famílias (119 ocorrências) nem parar: foi fechar os NOVE arquivos onde o par mora, levando
+     só os 20 pares que vivem neles — 40 ocorrências, mesmo resultado na tela;
+   · **proposta que só TIRA cor é recusada.** O "Limpar filtros" em vermelho virou um botão que
+     carrega a CONTAGEM de filtros ativos, na âncora da área, e deixou de sumir quando não há filtro:
+     o par de estados é o que faz o aviso existir. Nove cópias viraram um `BotaoLimparFiltros`;
+   · **comparação precisa do contexto real.** Mostrar o mesmo selo em dois tons, solto, não decide
+     nada — ela leu como "por que tem dois 'Sim'?". Dentro da linha da tabela, decidiu na hora;
+   · **a catraca cobra conversão FEITA, não só cor nova.** Foi assim que apareceu que duas conversões
+     da frente do azul tinham deixado a `filaDoAlerta` vermelha.
+
+   As 25 que ficam são o site público (10, que é outro produto), paleta categórica (8, cujo destino
+   são os `--tag-*`) e o rótulo de cargo (7, que não é estado).
+
 4. ~~**`projects.status`** (§3)~~ — **fechado em 10/09/2026.** E ele saiu desta lista com uma
    correção junto: não era "o único item que o CLIENTE vê". A tabela de vínculo está vazia,
    então nenhum cliente via nada. Ver o §3, que agora é a retificação do próprio §3.
