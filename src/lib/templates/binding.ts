@@ -513,14 +513,30 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
   },
 
   /*
-   * As alíneas de competência de UM órgão. No contrato do Mattei a cláusula do
-   * Conselho tem 19 alíneas enumeradas, uma por atividade da Matriz, e é esta
-   * lista que faz a Matriz virar cláusula.
+   * A CLÁUSULA DE COMPETÊNCIA, UMA POR ÓRGÃO.
    *
-   * A mesma lista serve à grade do documento da Matriz, com `competencia.resumo`
-   * na célula. A grade não vai ao contrato: medido, a consolidação do Mattei tem
-   * duas tabelas e as duas são o quadro societário e o bloco de assinaturas.
+   * Esta é a coleção que o bloco repete (`repete_colecao`), no mesmo caminho de
+   * `integralizacoes` e `memoriais`. Cada item é um órgão, e DENTRO dele vem a
+   * lista das alíneas daquele órgão: no Mattei o Conselho tem 19 alíneas
+   * enumeradas e a Diretoria tem cláusula própria, então a lista não pode ser
+   * de topo, senão as duas receberiam as mesmas.
+   *
+   * `secoesItem: ['competencias']` é o que declara a lista aninhada. Sem isto o
+   * `detectarBindings` chama `{{#competencias}}` de seção desconhecida e o
+   * trecho SOME do documento; e `orgao.nome`, que é chave do item, seria lido
+   * como binding de topo e a tela pediria ao consultor que escolhesse um órgão
+   * que a repetição já dá.
    */
+  orgaosComCompetencia: {
+    label: 'Órgãos com as suas competências (cláusula por órgão)',
+    tipo: 'orgaoGovernanca',
+    itemKey: 'orgao',
+    secoesItem: ['competencias'],
+    fonte: 'matriz_alcadas',
+    camposExtras: [],
+  },
+
+  /* As alíneas de UM órgão, aninhadas na coleção acima. */
   competencias: {
     label: 'Competências da Matriz (alíneas do órgão)',
     tipo: 'competenciaMatriz',
@@ -531,6 +547,40 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
       { id: 'alinea', label: 'Letra da alínea (a, b, c…)' },
       { id: 'ordem', label: 'Ordem da atividade na matriz (1, 2…)' },
     ],
+  },
+
+  /*
+   * A GRADE DO DOCUMENTO DA MATRIZ, que são duas listas e não uma: a de órgãos
+   * dá as COLUNAS (cabeçalho e separadora) e a de linhas dá as LINHAS, com as
+   * células aninhadas. É assim porque o `tabela.ts` tira o número de colunas do
+   * texto renderizado, então as colunas precisam ser emitidas por um laço
+   * próprio antes do corpo começar.
+   */
+  matrizOrgaos: {
+    label: 'Matriz: os órgãos (colunas da grade)',
+    tipo: 'orgaoGovernanca',
+    itemKey: 'orgaoDaGrade',
+    fonte: 'matriz_alcadas',
+    camposExtras: [{ id: 'nome', label: 'Nome do órgão na coluna' }],
+  },
+
+  matrizLinhas: {
+    label: 'Matriz: as linhas (atividades da grade)',
+    tipo: 'competenciaMatriz',
+    itemKey: 'linhaDaGrade',
+    secoesItem: ['celulas'],
+    fonte: 'matriz_alcadas',
+    campoResumo: 'atividade',
+    camposExtras: [{ id: 'atividade', label: 'Atividade da linha' }],
+  },
+
+  celulas: {
+    label: 'Matriz: as células de uma linha',
+    tipo: 'competenciaMatriz',
+    itemKey: 'celula',
+    fonte: 'matriz_alcadas',
+    campoResumo: 'resumo',
+    camposExtras: [{ id: 'resumo', label: 'A célula em uma linha' }],
   },
 
   /*

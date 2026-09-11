@@ -108,15 +108,26 @@ export function gradeDaMatriz(entrada: EntradaGovernanca): Record<string, ItemLi
    * coisa colidiria em silêncio, e o erro apareceria como tabela com o conteúdo
    * errado.
    */
-  const matrizOrgaos: ItemLista[] = entrada.orgaos.map((o) => ({ nome: o.nome }));
+  /*
+   * O item vai com a CHAVE do papel por fora (`{ orgaoDaGrade: {...} }`), e não
+   * com o campo solto. É a forma que o resto do motor usa, e sem ela o
+   * `detectarBindings` lê `nome`, `atividade` e `resumo` como campo de topo e a
+   * tela Gerar pede que o consultor os digite à mão, um por um. Foi o que
+   * apareceu na primeira geração de verdade.
+   */
+  const matrizOrgaos: ItemLista[] = entrada.orgaos.map((o) => ({
+    orgaoDaGrade: { nome: o.nome },
+  }));
 
   const matrizLinhas: ItemLista[] = [...entrada.linhas]
     .sort((a, b) => a.ordem - b.ordem)
     .map((linha) => ({
-      atividade: linha.atividade,
+      linhaDaGrade: { atividade: linha.atividade },
       celulas: entrada.orgaos.map((orgao) => {
         const celula = linha.celulas.find((c) => c.orgaoId === orgao.id);
-        return { resumo: celula?.naoParticipa ? 'Não participa' : (celula?.resumo ?? '') };
+        return {
+          celula: { resumo: celula?.naoParticipa ? 'Não participa' : (celula?.resumo ?? '') },
+        };
       }),
     }));
 

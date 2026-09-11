@@ -1189,8 +1189,11 @@ export function useGerarDocumentoController() {
   // Vértices (fonte 'georef') vêm da matrícula e as listas do instrumento agrário
   // (fonte 'exploracao_rural') vêm da linha de exploração rural — nenhuma das duas
   // depende da empresa, então não fazem o passo de Empresa aparecer.
+  // `matriz_alcadas` entra na lista de exceções pelo mesmo motivo das outras
+  // três: a governança sai do cliente, não da empresa escolhida. Sem isto, um
+  // modelo só de governança pediria uma Empresa que ele não usa para nada.
   const usaListas = listas.some(
-    (l) => !['georef', 'selecao', 'exploracao_rural'].includes(l.papel.fonte),
+    (l) => !['georef', 'selecao', 'exploracao_rural', 'matriz_alcadas'].includes(l.papel.fonte),
   );
   // A "Sociedade" (objeto do contrato) é dirigida pela mesma Empresa que alimenta
   // listas e flags — não tem seletor próprio. Detectar aqui faz o passo de Empresa

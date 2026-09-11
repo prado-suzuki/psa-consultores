@@ -105,9 +105,9 @@ describe('MOT-01 · a grade do documento da Matriz', () => {
        * escrito uma vez e seguido de N-1 vazias atravessa as N colunas de órgão.
        */
       '| | Estrutura Organizacional {{#matrizOrgaos sep=""}}| {{/matrizOrgaos}}',
-      '| Decisão | {{#matrizOrgaos sep=""}}{{ nome }} | {{/matrizOrgaos}}',
+      '| Decisão | {{#matrizOrgaos sep=""}}{{ orgaoDaGrade.nome }} | {{/matrizOrgaos}}',
       '| --- {{#matrizOrgaos sep=""}}| --- {{/matrizOrgaos}}|',
-      '{{#matrizLinhas sep="\\n"}}| {{ atividade }} | {{#celulas sep=""}}{{ resumo }} | {{/celulas}}{{/matrizLinhas}}',
+      '{{#matrizLinhas sep="\\n"}}| {{ linhaDaGrade.atividade }} | {{#celulas sep=""}}{{ celula.resumo }} | {{/celulas}}{{/matrizLinhas}}',
     ].join('\n');
 
     const segmentos = segmentar(renderConteudo(grade, gradeDaMatriz(ENTRADA) as never).split('\n'));

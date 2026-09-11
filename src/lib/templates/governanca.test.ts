@@ -11,7 +11,7 @@
  * apareceria num Word já entregue, com uma frase faltando.
  */
 import { describe, expect, it } from 'vitest';
-import { detectarBindingsDeConteudo } from './binding';
+import { conteudoParaDeteccao, detectarBindingsDeConteudo, PAPEIS_LISTA } from './binding';
 import {
   mapearAcordoQuotistas, mapearCompetenciaMatriz, mapearOrgaoGovernanca,
 } from './mapeadores';
@@ -64,6 +64,77 @@ describe('MOT-01 · placeholders de governança não caem em desconhecidos', () 
     const nomes = listas.map((l) => l.nome);
     expect(nomes).toContain('competencias');
     expect(nomes).toContain('quotistasSignatarios');
+  });
+});
+
+/*
+ * OS BLOCOS DE VERDADE, copiados do modelo de teste que gerou o primeiro
+ * documento. O teste acima usava um modelo escrito à mão para o próprio teste,
+ * e passou enquanto a geração real falhava com "Coleção do bloco repetidor não
+ * resolvida". A diferença é que aqui entram as três seções que o modelo real
+ * usa e que ninguém tinha declarado em PAPEIS_LISTA.
+ */
+const BLOCO_COMPOSICAO =
+  'CLÁUSULA SÉTIMA: {{ conselhoAdministracao.artigo }} {{ conselhoAdministracao.nome }} será '
+  + '{{ conselhoAdministracao.composto }} por no mínimo '
+  + '{{ conselhoAdministracao.membrosMinimoNumeral }} ({{ conselhoAdministracao.membrosMinimoExtenso }}) '
+  + 'e no máximo {{ conselhoAdministracao.membrosMaximoNumeral }} '
+  + '({{ conselhoAdministracao.membrosMaximoExtenso }}) membros.';
+
+const BLOCO_COMPETENCIA = [
+  'Compete {{ orgao.ao }} {{ orgao.nome }}:',
+  '{{#competencias}}{{ competencia.alinea }}) {{ competencia.papeis }} {{ competencia.atividade }}'
+  + '{{#competencia.temAlcada}}, {{ competencia.alcada }}{{/competencia.temAlcada}}'
+  + '{{#competencia.sobe}}, encaminhando a {{ competencia.sobePara }} o que exceder{{/competencia.sobe}};'
+  + '{{/competencias}}',
+].join('\n');
+
+const BLOCO_GRADE = [
+  '| | Estrutura Organizacional {{#matrizOrgaos sep=""}}| {{/matrizOrgaos}}',
+  '| Decisão | {{#matrizOrgaos sep=""}}{{ orgaoDaGrade.nome }} | {{/matrizOrgaos}}',
+  '| --- {{#matrizOrgaos sep=""}}| --- {{/matrizOrgaos}}|',
+  '{{#matrizLinhas sep="\n"}}| {{ linhaDaGrade.atividade }} | '
+  + '{{#celulas sep=""}}{{ celula.resumo }} | {{/celulas}}{{/matrizLinhas}}',
+].join('\n');
+
+describe('MOT-01 · os blocos do modelo de verdade', () => {
+  /*
+   * `conteudoParaDeteccao` e não `detectarBindingsDeConteudo` direto: é ele que
+   * embrulha o bloco na coleção que ele repete, e é o caminho que a tela usa.
+   * Analisar o bloco cru dá outro resultado, e foi assim que a primeira versão
+   * deste arquivo passou enquanto a geração real falhava.
+   */
+  const detectar = (conteudo: string, repeteColecao?: string) =>
+    detectarBindingsDeConteudo(conteudoParaDeteccao({ conteudo, repeteColecao }));
+
+  it('nenhuma seção dos três blocos é desconhecida', () => {
+    for (const [nome, bloco, colecao] of [
+      ['composicao', BLOCO_COMPOSICAO, undefined],
+      ['competencia', BLOCO_COMPETENCIA, 'orgaosComCompetencia'],
+      ['grade', BLOCO_GRADE, undefined],
+    ] as const) {
+      const d = detectar(bloco, colecao);
+      expect(d.desconhecidos, `bloco ${nome}: seção some do Word sem avisar`).toEqual([]);
+    }
+  });
+
+  it('a coleção que o bloco repete é papel de lista conhecido', () => {
+    // `repete_colecao` do bloco aponta para um nome de PAPEIS_LISTA. Sem o
+    // registro, a geração morre com "Coleção do bloco repetidor não resolvida".
+    expect(Object.keys(PAPEIS_LISTA)).toContain('orgaosComCompetencia');
+    expect(Object.keys(PAPEIS_LISTA)).toContain('matrizOrgaos');
+    expect(Object.keys(PAPEIS_LISTA)).toContain('matrizLinhas');
+  });
+
+  it('as chaves de item não viram campo de digitar à mão', () => {
+    // `orgao.nome` dentro da repetição é escopo do item, não pergunta ao
+    // consultor. Vazando, a tela pede que ele digite o que a Matriz já tem.
+    const { campos } = detectar(BLOCO_COMPETENCIA, 'orgaosComCompetencia');
+    expect(campos.filter((c) => c.startsWith('orgao.'))).toEqual([]);
+    expect(campos.filter((c) => c.startsWith('competencia.'))).toEqual([]);
+
+    const grade = detectar(BLOCO_GRADE);
+    expect(grade.campos.filter((c) => c.includes('DaGrade') || c.startsWith('celula.'))).toEqual([]);
   });
 });
 
@@ -136,16 +207,24 @@ describe('MOT-01 · os mapeadores entregam a frase que o contrato escreve', () =
 describe('MOT-01 · a grade da Matriz sai como tabela com as colunas do cliente', () => {
   it('uma coluna por órgão, sem modelo por cliente', () => {
     const grade = [
-      '| Decisão | {{#matrizOrgaos sep=""}}{{ nome }} | {{/matrizOrgaos}}',
+      '| Decisão | {{#matrizOrgaos sep=""}}{{ orgaoDaGrade.nome }} | {{/matrizOrgaos}}',
       '| --- {{#matrizOrgaos sep=""}}| --- {{/matrizOrgaos}}|',
-      '{{#matrizLinhas sep="\\n"}}| {{ atividade }} | {{#celulas sep=""}}{{ resumo }} | {{/celulas}}{{/matrizLinhas}}',
+      '{{#matrizLinhas sep="\\n"}}| {{ linhaDaGrade.atividade }} | {{#celulas sep=""}}{{ celula.resumo }} | {{/celulas}}{{/matrizLinhas}}',
     ].join('\n');
 
     const contexto = {
-      matrizOrgaos: [{ nome: 'Reunião de Sócios' }, { nome: 'Conselho' }, { nome: 'Diretoria' }],
+      matrizOrgaos: [
+        { orgaoDaGrade: { nome: 'Reunião de Sócios' } },
+        { orgaoDaGrade: { nome: 'Conselho' } },
+        { orgaoDaGrade: { nome: 'Diretoria' } },
+      ],
       matrizLinhas: [{
-        atividade: 'Distribuição de Lucros',
-        celulas: [{ resumo: 'Delibera' }, { resumo: 'Valida' }, { resumo: 'Analisa' }],
+        linhaDaGrade: { atividade: 'Distribuição de Lucros' },
+        celulas: [
+          { celula: { resumo: 'Delibera' } },
+          { celula: { resumo: 'Valida' } },
+          { celula: { resumo: 'Analisa' } },
+        ],
       }],
     };
 
