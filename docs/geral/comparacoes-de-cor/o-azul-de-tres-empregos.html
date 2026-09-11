@@ -1,0 +1,611 @@
+<title>O azul de três empregos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+  :root{ --ground:#FBFAF7; --ink:#2E1305; --ink-2:#7D7268; --rule:#E7E2DA;
+         --good:#3B6B34; --warn:#8A6410; --bad:#A03024; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:'Work Sans',system-ui,sans-serif;font-size:15px;line-height:1.55;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:56px 28px 110px}
+  h1{font-size:31px;font-weight:700;letter-spacing:-.02em;margin:0 0 10px;text-wrap:balance}
+  .sub{color:var(--ink-2);max-width:70ch;margin:0 0 8px}
+  .lede{max-width:70ch;margin:0 0 40px}
+  h2{font-size:13px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+     color:var(--ink-2);margin:56px 0 18px;padding-bottom:9px;border-bottom:1px solid var(--rule)}
+  h3{font-size:17px;font-weight:600;letter-spacing:-.01em;margin:34px 0 4px;text-wrap:balance}
+  p{max-width:76ch}
+  .mono{font-family:'DM Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  code{font-family:'DM Mono',ui-monospace,monospace;font-size:.88em;background:#F2EFE8;
+       padding:1px 5px;border-radius:4px}
+  .good{color:var(--good);font-weight:600}
+  .warn{color:var(--warn);font-weight:600}
+  .bad{color:var(--bad);font-weight:600}
+  .n{font-family:'DM Mono',monospace;font-variant-numeric:tabular-nums;font-weight:500}
+
+  table{border-collapse:collapse;width:100%;margin:18px 0 8px;font-size:13.5px}
+  th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+     color:var(--ink-2);font-weight:700;padding:0 12px 8px 0;border-bottom:1px solid var(--rule)}
+  td{padding:9px 12px 9px 0;border-bottom:1px solid #F0ECE4;vertical-align:top}
+  td.mono{font-size:12px;color:var(--ink-2)}
+  tr.tot td{border-bottom:none;font-weight:600;border-top:1px solid var(--rule)}
+
+  .palco{border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:#fff}
+  .palco > .head{padding:9px 14px;font-size:11px;font-weight:700;letter-spacing:.06em;
+     text-transform:uppercase;border-bottom:1px solid var(--rule);background:#F3F1EC;color:#5D573C}
+  .palco.hoje > .head{background:#F4EEEA;color:#8A5A46}
+  .palco.rec  > .head{background:#E9EFE6;color:#3B6B34}
+  .palco .corpo{padding:18px 16px;background:#FEFDFB}
+
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0 6px;align-items:start}
+  .trio{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:16px 0 6px;align-items:start}
+  @media (max-width:900px){.duo,.trio{grid-template-columns:1fr}}
+
+  .pil{display:inline-flex;align-items:center;gap:6px;border-radius:999px;
+       padding:3px 11px;font-size:12.5px;font-weight:600;line-height:1.4;
+       border:1px solid transparent;margin:3px 5px 3px 0}
+  .pil.quad{border-radius:6px}
+  .pil.mini{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px}
+  .fileira{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
+  .rot{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);
+       font-weight:700;margin:14px 0 6px}
+  .rot:first-child{margin-top:0}
+
+  .medida{border-top:1px solid var(--rule);padding:10px 14px 12px;font-size:11.5px;background:#FCFBF8}
+  .m-l{display:flex;justify-content:space-between;gap:10px;padding:2.5px 0}
+  .m-l span:first-child{color:var(--ink-2)}
+
+  .nota{border-left:3px solid #D9D2C6;padding:2px 0 2px 16px;margin:22px 0;color:var(--ink-2);
+        max-width:74ch;font-size:14px}
+  .nota strong{color:var(--ink)}
+  .nota.q{border-left-color:#B98A3A;background:#FDF9F1;padding:12px 0 12px 16px;border-radius:0 8px 8px 0}
+  .veredito{background:#F5F2EB;border:1px solid var(--rule);border-radius:12px;
+     padding:20px 22px;margin:26px 0}
+  .veredito h3{margin-top:0}
+  ul{max-width:76ch;padding-left:20px} li{margin:6px 0}
+  ol.perg{max-width:76ch;padding-left:22px} ol.perg > li{margin:14px 0}
+  .tabela-mini td{font-size:12.5px;padding:6px 12px 6px 0}
+</style>
+<div class="wrap">
+
+<h1>O azul de três empregos</h1>
+<p class="sub mono">11/09/2026 · a 3ª família da fila · <span class="n">100</span> ocorrências em <span class="n">39</span> arquivos</p>
+
+<p class="lede">O <code>gray</code> fechou, o <code>red</code> e o <code>teal</code> estão medidos.
+O azul vem depois deles em volume — e antes de todos em risco, porque é o único da lista que
+<strong>não aparece em lista nenhuma</strong>: não tem catraca, não tem aviso de ESLint, não tem
+linha no contrato. Cresceu 100 vezes sem que nada no repositório tivesse o que dizer.</p>
+
+<div class="nota"><strong>O número, e por que ele tem duas versões.</strong> No recorte das catracas
+(<code>src/components</code> + <code>src/pages</code>, sem teste) são <span class="n">100</span> em
+<span class="n">39</span>. Os outros três que aparecem numa varredura mais larga são
+<em>prosa e teste</em>, não tinta: <code>src/lib/sprintStatusColors.ts:12</code> (1 — o docstring que
+conta a divergência histórica) e <code>EquipeSprintDetalhes.test.tsx:939</code> (2 — a asserção que
+segue a tela). Pelo precedente do <code>filaDoOsgRed</code>, comentário que explica a saída de uma
+cor é para ficar.</div>
+
+<h2>Por que o azul cresceu calado</h2>
+
+<p>Não é descuido: é que o azul é a <strong>única família com três casas legítimas no contrato</strong>,
+e nenhuma das três é óbvia olhando a classe.</p>
+
+<div class="trio">
+  <div class="palco"><div class="head">papel de status</div><div class="corpo">
+    <div class="fileira">
+      <span class="pil" style="background:#C6DAF0;color:#265892;border-color:#26589226">A Fazer</span>
+    </div>
+    <p style="font-size:12.5px;margin:10px 0 0;color:#6C6862;max-width:none">
+      <code>--status-fila</code> já <strong>é azul</strong> — <span class="mono">212 59% 36%</span> na base.
+      Acompanha a área.</p>
+  </div></div>
+  <div class="palco"><div class="head">tom categórico</div><div class="corpo">
+    <div class="fileira">
+      <span class="pil" style="background:#DEE5ED;color:#225287">Fiscal</span>
+    </div>
+    <p style="font-size:12.5px;margin:10px 0 0;color:#6C6862;max-width:none">
+      <code>--tag-b</code> é o <strong>frio da área</strong> — ardósia 211 na base, azul 223 na Tax,
+      azul 218 na OSG. Acompanha a área.</p>
+  </div></div>
+  <div class="palco"><div class="head">semântico pontual</div><div class="corpo">
+    <div class="fileira">
+      <span class="pil" style="background:#E9EFFD;color:#2463EB;border-color:#2463EB33">Média</span>
+    </div>
+    <p style="font-size:12.5px;margin:10px 0 0;color:#6C6862;max-width:none">
+      <code>--info</code> — <span class="mono">221 83% 53%</span>. <strong>Não</strong> acompanha a
+      área: nenhuma declara, todas herdam. É o mesmo azul na Tax, na OSG e na casa.</p>
+  </div></div>
+</div>
+
+<div class="nota"><strong>É por isso que varrer por família seria errado aqui, e mais errado do
+que foi no cinza.</strong> "Converter o azul" não é uma decisão: são seis, e duas delas mudam o
+significado da cor em telas que hoje não têm nada a ver uma com a outra. O <code>gray</code> tinha
+uma resposta quase sempre igual — tirar. O azul tem três respostas certas e um jeito fácil de
+escolher a errada.</div>
+
+<h2>Os 100, lidos um a um</h2>
+
+<table>
+<thead><tr><th style="width:23%">grupo</th><th style="width:6%">n</th><th style="width:34%">onde</th><th>o que a cor está dizendo</th></tr></thead>
+<tbody>
+<tr><td><strong>A. Mapa que já tem dono</strong></td><td class="n">9</td>
+  <td class="mono">auditLabels · HistoricoTab<br>projectPresentation · EquipeKanban</td>
+  <td>a resposta já está escrita em outro arquivo deste repositório. Conversão é <strong>entrega</strong>, não decisão.</td></tr>
+<tr><td><strong>B. Bloco copiado</strong></td><td class="n">22</td>
+  <td class="mono">ConsultaECD · ConsultaECF · ConsultaEFD<br>EfdResultsTable · os 3 de mapeamento</td>
+  <td>o mesmo selo escrito 4 vezes e o mesmo trio escrito 3 vezes. Consolidar primeiro; vestir depois.</td></tr>
+<tr><td><strong>C. Categoria de azul</strong></td><td class="n">29</td>
+  <td class="mono">15 arquivos — área, papel de usuário,<br>frequência, tipo de evento, cluster…</td>
+  <td>não é estado: é <em>que coisa</em> é. Catorze categorias diferentes usando <strong>o mesmo</strong> azul.</td></tr>
+<tr><td><strong>D. Número em azul</strong></td><td class="n">19</td>
+  <td class="mono">ImpactDashboard · AnaliseInteligente<br>BalanceteTreeTable · PerDetail…</td>
+  <td>contagem e valor. O precedente da pasta <code>audit</code> já respondeu isto uma vez.</td></tr>
+<tr><td><strong>E. Superfície e botão</strong></td><td class="n">17</td>
+  <td class="mono">ControleBalancetes · SavingsSections<br>ImprovementHistoryModal · EFDFiscalTable</td>
+  <td>fundo de <em>hover</em>, moldura de bloco e um botão de ação. Quase nada aqui significa.</td></tr>
+<tr><td><strong>F. Fila</strong></td><td class="n">4</td>
+  <td class="mono">PerDetailModal (SITUACAO_COLORS)</td>
+  <td>mapa de 16 estados em 9 famílias. Converter só o azul deixa escada meio crua.</td></tr>
+<tr class="tot"><td>total</td><td class="n">100</td><td class="mono">39 arquivos</td><td></td></tr>
+</tbody>
+</table>
+
+<h2>A. O que já está decidido (9)</h2>
+
+<p>Três casos, e nos três a alavanca foi a mesma das cinco rodadas anteriores: procurar o
+<strong>mapa do domínio</strong> antes de escrever classe.</p>
+
+<h3>1. <code>ACTION_LABELS</code> — a terceira e a quarta cópia (4)</h3>
+<p>O mesmo mapa sobre <code>audit_logs.action</code> vive em <strong>três</strong> arquivos. Um deles
+— <code>osg/HistoricoFlutuante.tsx</code> — foi convertido em 03/09 e o docstring de lá explica
+por quê. Os outros dois continuam byte a byte idênticos ao que ele era antes:</p>
+
+<div class="duo">
+  <div class="palco hoje"><div class="head">hoje · auditLabels.ts e HistoricoTab.tsx</div><div class="corpo">
+    <div class="fileira">
+      <span class="pil" style="background:#D1FAE5;color:#047857">Criação</span>
+      <span class="pil" style="background:#DBEAFE;color:#1D4ED8">Edição</span>
+      <span class="pil" style="background:#FEE2E2;color:#B91C1C">Exclusão</span>
+    </div>
+  </div><div class="medida">
+    <div class="m-l"><span>Edição · <span class="mono">blue-700</span> sobre <span class="mono">blue-100</span></span><span class="n">5,49:1</span></div>
+    <div class="m-l"><span>segue o tema da área?</span><span class="bad">não</span></div>
+  </div></div>
+  <div class="palco rec"><div class="head">já em uso · osg/HistoricoFlutuante.tsx</div><div class="corpo">
+    <div class="fileira">
+      <span class="pil" style="background:#C5F2CB;color:#14571D">Criação</span>
+      <span class="pil" style="background:#C4EEF3;color:#17656E">Edição</span>
+      <span class="pil" style="background:#F4C3C6;color:#961D25">Exclusão</span>
+    </div>
+  </div><div class="medida">
+    <div class="m-l"><span>papéis</span><span class="mono">feito · andamento · ajuste</span></div>
+    <div class="m-l"><span>segue o tema da área?</span><span class="good">sim</span></div>
+  </div></div>
+</div>
+
+<h3>2. "Concluído" é azul numa tela e verde nas outras (3)</h3>
+<p>O <code>projectPresentation.getStatusBadge</code> é uma cópia à mão do
+<code>projectStatusColors</code>, com vocabulário próprio (<code>blocked</code>/<code>archived</code>
+contra <code>on_hold</code>/<code>cancelled</code>) — e com <strong>"Concluído" em azul</strong>.
+O docstring do <code>sprintStatusColors</code> já denuncia exatamente essa divergência desde 10/09;
+este arquivo é a <strong>última cópia viva</strong> dela.</p>
+
+<div class="duo">
+  <div class="palco hoje"><div class="head">hoje · projectPresentation.tsx</div><div class="corpo">
+    <div class="fileira">
+      <span class="pil" style="background:#DCFCE7;color:#15803D">Ativo</span>
+      <span class="pil" style="background:#DBEAFE;color:#1D4ED8">Concluído</span>
+      <span class="pil" style="background:#FEE2E2;color:#B91C1C">Bloqueado</span>
+      <span class="pil" style="background:#E3DCD4;color:#251F18">Arquivado</span>
+    </div>
+    <p style="font-size:12px;margin:10px 0 0;color:#8A5A46;max-width:none">
+      "Arquivado" já foi convertido na rodada do cinza. Os três vizinhos ficaram crus — é a
+      escada meio crua que o contrato manda evitar.</p>
+  </div></div>
+  <div class="palco rec"><div class="head">o mapa · projectStatusColors.ts</div><div class="corpo">
+    <div class="fileira">
+      <span class="pil" style="background:#C4EEF3;color:#17656E">Ativo</span>
+      <span class="pil" style="background:#C5F2CB;color:#14571D">Concluído</span>
+      <span class="pil" style="background:#F4C3C6;color:#961D25">Cancelado</span>
+      <span class="pil" style="background:#E3DCD4;color:#251F18">Planejado</span>
+    </div>
+    <p style="font-size:12px;margin:10px 0 0;color:#3B6B34;max-width:none">
+      <code>andamento · feito · ajuste · neutro</code> — o mesmo que a sprint e a tarefa já usam.</p>
+  </div></div>
+</div>
+
+<h3>3. O Kanban pegou o rótulo do mapa e esqueceu a cor (2)</h3>
+<p><code>EquipeKanban.tsx</code> importa <code>entregavelStatusLabel</code> — ou seja,
+<strong>já usa o mapa</strong> — e logo abaixo escreve um <code>switch</code> de cor à mão, com
+<code>bg-blue-100</code> no <code>default</code>. É o defeito que o contrato descreve ao pé da
+letra: enquanto rótulo e cor moram em lugares diferentes, uma tela pega um e esquece o outro.</p>
+
+<div class="duo">
+  <div class="palco hoje"><div class="head">hoje · switch à mão</div><div class="corpo"><div class="fileira">
+    <span class="pil" style="background:#DBEAFE;color:#1D4ED8">A Fazer</span>
+    <span class="pil" style="background:#FEF9C3;color:#A16207">Em Andamento</span>
+    <span class="pil" style="background:#DCFCE7;color:#15803D">Concluído</span>
+  </div></div></div>
+  <div class="palco rec"><div class="head">entregavelStatusColors.ts</div><div class="corpo"><div class="fileira">
+    <span class="pil" style="background:#C6DAF0;color:#265892">A Fazer</span>
+    <span class="pil" style="background:#C4EEF3;color:#17656E">Em Andamento</span>
+    <span class="pil" style="background:#C5F2CB;color:#14571D">Concluído</span>
+  </div></div></div>
+</div>
+
+<div class="nota"><strong>Aqui o azul não some — ele fica, e vira o azul certo.</strong>
+"A Fazer" é o papel <code>fila</code>, que já é azul no contrato. O que muda é o tom
+(<span class="mono">#DBEAFE/#1D4ED8</span> → <span class="mono">#C6DAF0/#265892</span>) e o fato de
+ele passar a acompanhar a área.</div>
+
+<h2>B. O mesmo bloco, escrito quatro vezes (22)</h2>
+
+<h3>O selo Original / Retificadora — 4 cópias byte a byte (12)</h3>
+<p><code>ConsultaECD</code>, <code>ConsultaECF</code>, <code>ConsultaEFD</code> e
+<code>EfdResultsTable</code> têm a <strong>mesma</strong> linha, caractere por caractere. É a receita
+do "botão de contorno" das Correções SPED de novo: quatro cópias não são quatro decisões; são uma
+decisão e três lugares onde ela envelhece separado.</p>
+
+<div class="palco hoje"><div class="head">hoje · nas quatro telas</div><div class="corpo">
+  <div class="fileira">
+    <span class="pil quad mini" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE">Original</span>
+    <span class="pil quad mini" style="background:#FFFBEB;color:#B45309;border-color:#FDE68A">Retificadora</span>
+  </div>
+</div></div>
+
+<div class="nota q"><strong>Isto é categoria, não estado.</strong> <code>TIPO_ESCRIT</code> é o tipo
+da escrituração — um arquivo não "está" original, ele <em>é</em>. O precedente mais próximo é o par
+"Consolidado / XML vinculado" das Correções SPED, que virou <code>tag-a</code>/<code>tag-b</code>
+justamente porque um semântico (<code>success</code>) estava fazendo papel de categoria.
+Se valer o mesmo aqui, o par fica assim — e passa a mudar com a área:</div>
+
+<div class="trio">
+  <div class="palco rec"><div class="head">base</div><div class="corpo"><div class="fileira">
+    <span class="pil quad mini" style="background:#DEE5ED;color:#225287;border-color:#22528733">Original</span>
+    <span class="pil quad mini" style="background:#DEE8DC;color:#206416;border-color:#20641633">Retificadora</span>
+  </div></div></div>
+  <div class="palco rec"><div class="head">Tax</div><div class="corpo"><div class="fileira">
+    <span class="pil quad mini" style="background:#DCE3F4;color:#1644B6;border-color:#1644B633">Original</span>
+    <span class="pil quad mini" style="background:#DBEAE9;color:#0F7169;border-color:#0F716933">Retificadora</span>
+  </div></div></div>
+  <div class="palco rec"><div class="head">OSG</div><div class="corpo"><div class="fileira">
+    <span class="pil quad mini" style="background:#DDE4F1;color:#194CA4;border-color:#194CA433">Original</span>
+    <span class="pil quad mini" style="background:#DDE9E3;color:#1B6A41;border-color:#1B6A4133">Retificadora</span>
+  </div></div></div>
+</div>
+
+<div class="nota"><strong>A alternativa, e é o que eu perguntaria antes de escrever.</strong>
+"Retificadora" carrega um aviso que "Original" não carrega — é o arquivo que substituiu outro.
+Se para você isso é <em>sinal</em> e não <em>tipo</em>, então o par não é <code>tag</code>: é
+<code>neutro</code> + <code>alerta</code>, e o âmbar de hoje já estava perto disso. As duas leituras
+são defensáveis; o que não é defensável é continuar com as quatro cópias.</div>
+
+<h3>O trio do cenário — 3 cópias, três línguas dentro (10)</h3>
+<p><code>ScenarioList</code>, <code>ScenarioComparator</code> e <code>ScenarioCreateModal</code>
+repetem o mesmo <code>KIND_COLOR</code>. E cada cópia já tem <strong>três línguas na mesma
+chave</strong>: dois tons crus do Tailwind ao lado de um token de acento.</p>
+
+<div class="duo">
+  <div class="palco hoje"><div class="head">hoje · nas três cópias</div><div class="corpo">
+    <div class="fileira">
+      <span class="pil" style="background:#DBEAFE;color:#1D4ED8">Escala</span>
+      <span class="pil" style="background:#FEF3C7;color:#B45309">Eficiência</span>
+      <span class="pil" style="background:#0A756C1A;color:#0F766E">Investimento</span>
+    </div>
+    <p style="font-size:12px;margin:10px 0 0;color:#8A5A46;max-width:none">
+      <code>blue-100</code> · <code>amber-100</code> · <code>bg-accent/10 text-teal-700</code> —
+      o terceiro mistura token de acento com tom cru no mesmo par.</p>
+  </div></div>
+  <div class="palco rec"><div class="head">um mapa só · tag-a/b/c</div><div class="corpo">
+    <div class="fileira">
+      <span class="pil" style="background:#DEE5ED;color:#225287">Escala</span>
+      <span class="pil" style="background:#DEE8DC;color:#206416">Eficiência</span>
+      <span class="pil" style="background:#F0DCF4;color:#9816B6">Investimento</span>
+    </div>
+    <p style="font-size:12px;margin:10px 0 0;color:#3B6B34;max-width:none">
+      Três categorias, três tons categóricos. O acento do módulo para de fazer papel de tipo.</p>
+  </div></div>
+</div>
+
+<p>Junto vem o <code>STATUS_COLOR</code> do mesmo arquivo (2 no azul): <code>analyzing</code> =
+"Em análise" é <strong>estado</strong>, e cai em <code>andamento</code> sem discussão. Os vizinhos
+<code>approved</code> (esmeralda) e <code>promoted</code> (violeta) andam junto — <code>feito</code>
+para aprovado, e <code>promoted</code> é a única pergunta: "Promovido a projeto" acabou, ou saiu?</p>
+
+<h2>C. Catorze categorias, um azul só (29)</h2>
+
+<p>Este é o grupo maior, e o mais desconfortável de olhar. São catorze coisas diferentes — cada
+uma numa tela diferente — vestindo <strong>exatamente</strong> o mesmo
+<span class="mono">bg-blue-100 text-blue-700</span>:</p>
+
+<div class="palco hoje"><div class="head">hoje · as catorze, lado a lado</div><div class="corpo">
+  <div class="fileira">
+    <span class="pil" style="background:#DBEAFE;color:#1D4ED8">Projetos</span>
+    <span class="pil" style="background:#DBEAFE;color:#1D4ED8">Fiscal</span>
+    <span class="pil" style="background:#DBEAFE;color:#1D4ED8">Membro</span>
+    <span class="pil" style="background:#DBEAFE;color:#1D4ED8">Equipe</span>
+    <span class="pil" style="background:#DBEAFE;color:#1D4ED8">Diária</span>
+    <span class="pil" style="background:#DBEAFE;color:#1E40AF">Daily</span>
+    <span class="pil" style="background:#DBEAFE;color:#1D4ED8">Mapeamento</span>
+    <span class="pil" style="background:#DBEAFE;color:#1D4ED8">Média</span>
+    <span class="pil quad" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE">Cluster Norte</span>
+    <span class="pil quad" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE">3 projetos</span>
+    <span class="pil quad" style="background:#DBEAFE;color:#2563EB">Sprints</span>
+  </div>
+  <p style="font-size:12px;margin:12px 0 0;color:#8A5A46;max-width:none">
+    Mais três em ícone: o documento Word na OSG, a imagem na Biblioteca e o gradiente
+    <span class="mono">from-blue-500</span> do seletor de área.</p>
+</div></div>
+
+<div class="nota q"><strong>A pergunta, e ela é sua.</strong> O contrato tem <strong>quatro</strong>
+tons categóricos, e um só frio (<code>tag-b</code>). Catorze categorias não cabem em quatro slots —
+e nem precisam caber, porque elas nunca aparecem na mesma tela. As duas saídas:
+<br><br>
+<strong>(i) cada domínio escolhe seu tom</strong> — a categoria de página fica
+<code>tag-b</code>, a frequência da demanda fica <code>tag-b</code>, o papel do usuário fica
+<code>tag-b</code>… cada uma dentro do <em>seu</em> mapa, sem nunca se comparar com as outras.
+É o que o contrato já manda fazer, e o resultado visual é quase o de hoje.
+<br><br>
+<strong>(ii) a categoria perde a cor onde ela não separa nada.</strong> "3 projetos" e
+"Cluster Norte" não são um valor entre outros — são um chip único numa linha. Ali o azul não
+distingue de nada, só decora. Esses viram <code>muted</code>, como os vizinhos
+"120h estimadas" já são.</div>
+
+<div class="duo">
+  <div class="palco rec"><div class="head">(i) cada domínio, seu tom — aqui na base</div><div class="corpo">
+    <div class="rot">categoria de página · /equipe/acessos</div>
+    <div class="fileira">
+      <span class="pil" style="background:#DEE5ED;color:#225287">Projetos</span>
+      <span class="pil" style="background:#DEE8DC;color:#206416">Tax</span>
+      <span class="pil" style="background:#F5D3C2;color:#8C3E17">Fiscal</span>
+      <span class="pil" style="background:#F0DCF4;color:#9816B6">OSG</span>
+    </div>
+    <div class="rot">papel do usuário</div>
+    <div class="fileira">
+      <span class="pil" style="background:#F4C3C6;color:#961D25">Admin</span>
+      <span class="pil" style="background:#DEE5ED;color:#225287">Membro</span>
+      <span class="pil" style="background:#F5D3C2;color:#8C3E17">Líder Geral</span>
+    </div>
+    <div class="rot">tipo de evento · agenda da sprint</div>
+    <div class="fileira">
+      <span class="pil" style="background:#DEE5ED;color:#225287">Daily</span>
+      <span class="pil" style="background:#F0DCF4;color:#9816B6">Reunião</span>
+      <span class="pil" style="background:#DEE8DC;color:#206416">Sessão</span>
+    </div>
+  </div></div>
+  <div class="palco rec"><div class="head">(ii) onde o chip é único, a cor sai</div><div class="corpo">
+    <div class="rot">backlog · linha de item</div>
+    <div class="fileira">
+      <span class="pil quad" style="background:#EDEAE4;color:#6C6862">120h estimadas</span>
+      <span class="pil quad" style="background:#EDEAE4;color:#6C6862">Cluster Norte</span>
+      <span class="pil quad" style="background:#0A756C1A;color:#0A756C">Projeto X</span>
+    </div>
+    <p style="font-size:12px;margin:10px 0 0;color:#6C6862;max-width:none">
+      O vizinho da esquerda já é <code>bg-muted</code> e o da direita já é <code>primary/10</code>.
+      Só o do meio era azul — e não separava de nada.</p>
+    <div class="rot">lista de processos</div>
+    <div class="fileira">
+      <span class="pil quad" style="background:#FEFDFB;color:#6C6862;border-color:#E7E2DA">140/mês</span>
+      <span class="pil quad" style="background:#FEFDFB;color:#6C6862;border-color:#E7E2DA">3 projetos</span>
+    </div>
+    <p style="font-size:12px;margin:10px 0 0;color:#6C6862;max-width:none">
+      O chip "N/mês" ao lado já é <code>variant="outline"</code> sem cor. O de projetos era o
+      único pintado.</p>
+  </div></div>
+</div>
+
+<div class="nota"><strong>Dois casos deste grupo não são categoria, e eu os tiraria daqui:</strong>
+o nível de automação <strong>"Média"</strong> do <code>StageEditCard</code> está no meio de uma
+rampa <span class="mono">amarelo → azul → verde</span> que não é rampa de nada; e a etapa
+<strong>"Mapeamento"</strong> do <code>PROCESS_STAGES</code> é um degrau de ciclo de vida cujo
+primeiro e último degrau (<code>discovery</code> e <code>completed</code>) já pedem
+<code>neutro</code> e <code>feito</code>. Os dois são mapas de <em>ordem</em>, e mapa de ordem
+pintado com cores sem ordem é o defeito, não o azul.</div>
+
+<h2>D. Número em azul (19)</h2>
+
+<p>A pasta <code>audit</code> já respondeu esta pergunta em 03/09, e a frase ficou:
+<strong>selo veste papel; contagem não.</strong> Lá, "Exclusões" em vermelho afirmava problema sobre
+atividade normal, e as colunas vizinhas da mesma tabela nunca tiveram tom nenhum.</p>
+
+<div class="duo">
+  <div class="palco hoje"><div class="head">hoje · ImpactDashboard, os quatro cartões</div><div class="corpo">
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+      <div style="border:1px solid #E7E2DA;border-radius:10px;padding:11px 13px;background:#fff">
+        <div style="font-size:11px;color:#7D7268">Melhorados</div>
+        <div style="font-size:23px;font-weight:700;color:#16A34A;line-height:1.2">12</div></div>
+      <div style="border:1px solid #E7E2DA;border-radius:10px;padding:11px 13px;background:#fff">
+        <div style="font-size:11px;color:#7D7268">Tempo</div>
+        <div style="font-size:23px;font-weight:700;color:#2563EB;line-height:1.2">148h</div></div>
+      <div style="border:1px solid #E7E2DA;border-radius:10px;padding:11px 13px;background:#fff">
+        <div style="font-size:11px;color:#7D7268">Economia</div>
+        <div style="font-size:23px;font-weight:700;color:#16A34A;line-height:1.2">R$ 32.400</div></div>
+      <div style="border:1px solid #E7E2DA;border-radius:10px;padding:11px 13px;background:#fff">
+        <div style="font-size:11px;color:#7D7268">FTEs</div>
+        <div style="font-size:23px;font-weight:700;color:#0F766E;line-height:1.2">0,9</div></div>
+    </div>
+    <p style="font-size:12px;margin:11px 0 0;color:#8A5A46;max-width:none">
+      Quatro cartões, quatro cores, nenhuma condicional. O azul do "Tempo" não diz nada que o
+      rótulo "Tempo" já não diga.</p>
+  </div></div>
+  <div class="palco rec"><div class="head">a mesma tela, com a regra do audit</div><div class="corpo">
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+      <div style="border:1px solid #E7E2DA;border-radius:10px;padding:11px 13px;background:#fff">
+        <div style="font-size:11px;color:#7D7268">Melhorados</div>
+        <div style="font-size:23px;font-weight:700;color:#2E1305;line-height:1.2">12</div></div>
+      <div style="border:1px solid #E7E2DA;border-radius:10px;padding:11px 13px;background:#fff">
+        <div style="font-size:11px;color:#7D7268">Tempo</div>
+        <div style="font-size:23px;font-weight:700;color:#2E1305;line-height:1.2">148h</div></div>
+      <div style="border:1px solid #E7E2DA;border-radius:10px;padding:11px 13px;background:#fff">
+        <div style="font-size:11px;color:#7D7268">Economia</div>
+        <div style="font-size:23px;font-weight:700;color:#2E1305;line-height:1.2">R$ 32.400</div></div>
+      <div style="border:1px solid #E7E2DA;border-radius:10px;padding:11px 13px;background:#fff">
+        <div style="font-size:11px;color:#7D7268">FTEs</div>
+        <div style="font-size:23px;font-weight:700;color:#2E1305;line-height:1.2">0,9</div></div>
+    </div>
+    <p style="font-size:12px;margin:11px 0 0;color:#3B6B34;max-width:none">
+      O ícone de cada cartão pode manter o acento; o <strong>número</strong> fica
+      <code>foreground</code>. A cor volta a estar disponível para quando um deles
+      <em>precisar</em> gritar.</p>
+  </div></div>
+</div>
+
+<div class="nota"><strong>Um deste grupo reprova AA, e é o quarto achado de contraste desta
+série.</strong> O selo do <code>BalanceteTreeTable</code> — <span class="mono">text-blue-600</span>
+sobre <span class="mono">bg-blue-500/15</span>, em <span class="mono">text-[10px] font-bold</span> —
+dá <span class="bad">4,35:1</span>, contra os 4,5:1 que o AA pede. Ninguém mediu porque cor crua não
+entra em contrato nenhum.
+<br><br>
+E tem um <strong>segundo</strong>, que é pior de engolir porque está no token: o
+<code>taskPriorityColors.medium</code> usa <span class="mono">bg-info/10 text-info</span>, e isso dá
+<span class="bad">4,49:1</span>. Passa por certo em qualquer revisão — é token, usa
+<code>var()</code> — e reprova por um centésimo. É o mesmo padrão das falhas de 28–29/08: token fora
+da lista do contrato.</div>
+
+<h2>E. Superfície, moldura e um botão (17)</h2>
+
+<div class="duo">
+  <div class="palco hoje"><div class="head">hoje · ControleBalancetes, a barra de ações</div><div class="corpo">
+    <div class="fileira" style="gap:8px">
+      <span class="pil quad" style="background:#FEFDFB;color:#2E1305;border-color:#E7E2DA;padding:6px 13px">Baixar original</span>
+      <span class="pil quad" style="background:#FEFDFB;color:#1D4ED8;border-color:#BFDBFE;padding:6px 13px">Exportar Excel</span>
+      <span class="pil quad" style="background:#2563EB;color:#fff;border-color:#2563EB;padding:6px 13px">Exportar</span>
+    </div>
+    <p style="font-size:12px;margin:12px 0 0;color:#8A5A46;max-width:none">
+      Sete das 100 estão nesta tela, e todas dizem "Excel". O azul aqui é o <em>segundo</em>
+      botão — não é estado, não é categoria: é hierarquia de ação escrita com cor de estoque.
+      A tela inteira não tem outro azul.</p>
+  </div></div>
+  <div class="palco rec"><div class="head">com a âncora do módulo</div><div class="corpo">
+    <div class="fileira" style="gap:8px">
+      <span class="pil quad" style="background:#FEFDFB;color:#2E1305;border-color:#E7E2DA;padding:6px 13px">Baixar original</span>
+      <span class="pil quad" style="background:#FEFDFB;color:#0A756C;border-color:#0A756C40;padding:6px 13px">Exportar Excel</span>
+      <span class="pil quad" style="background:#0A756C;color:#fff;border-color:#0A756C;padding:6px 13px">Exportar</span>
+    </div>
+    <p style="font-size:12px;margin:12px 0 0;color:#3B6B34;max-width:none">
+      <code>primary</code> e o contorno dele. É a receita que as Correções SPED já consolidaram
+      em <code>classesDeBotao.ts</code> — "confirmar veste a âncora" — e ela existe pronta.
+      <br>Branco sobre <code>primary</code>: <span class="n">5,56:1</span> (contra 5,17 do
+      <span class="mono">blue-600</span> de hoje).</p>
+  </div></div>
+</div>
+
+<div class="nota"><strong>As outras dez são fundo de <em>hover</em> e moldura de bloco, e nenhuma
+significa.</strong> A linha da <code>EFDFiscalTable</code> faz <code>hover:bg-blue-50</code> numa
+tabela cujo zebrado já é <code>bg-muted</code> — o azul aparece por meio segundo e some. O
+<code>SavingsSections</code> e o <code>ImprovementHistoryModal</code> usam azul para <em>emoldurar
+um bloco de formulário</em>: é o mesmo caso que a página "A superfície de estado" já leu em 27/08 e
+respondeu com uma palavra — <em>nada</em>. "Economias Adicionais" não é azul; é uma seção.</div>
+
+<h2>F. O que fica, com o motivo escrito (4)</h2>
+
+<p>O <code>SITUACAO_COLORS</code> do <code>PerDetailModal</code> tem <strong>16 entradas em 9
+famílias</strong> do Tailwind, e o azul são duas delas ("Análise preliminar disponibilizada" e
+"Analisado"). Duas das 16 já foram convertidas na rodada do cinza, e é justamente isso que mostra
+o problema:</p>
+
+<div class="palco hoje"><div class="head">hoje · SITUACAO_COLORS, as 16</div><div class="corpo">
+  <div class="fileira">
+    <span class="pil mini" style="background:#DCFCE7;color:#166534">Análise concluída</span>
+    <span class="pil mini" style="background:#DBEAFE;color:#1E40AF">Análise preliminar</span>
+    <span class="pil mini" style="background:#FEE2E2;color:#991B1B">Cancelado</span>
+    <span class="pil mini" style="background:#FFEDD5;color:#9A3412">Contribuinte intimado</span>
+    <span class="pil mini" style="background:#F3E8FF;color:#6B21A8">Despacho decisório</span>
+    <span class="pil mini" style="background:#FEF9C3;color:#854D0E">Em análise</span>
+    <span class="pil mini" style="background:#FEF3C7;color:#92400E">CARF</span>
+    <span class="pil mini" style="background:#D1FAE5;color:#065F46">Homologado</span>
+    <span class="pil mini" style="background:#E3DCD4;color:#251F18">Não admitido</span>
+    <span class="pil mini" style="background:#DCFCE7;color:#166534">PER deferido</span>
+    <span class="pil mini" style="background:#E0E7FF;color:#3730A3">Retificado</span>
+    <span class="pil mini" style="background:#DBEAFE;color:#1E40AF">Analisado</span>
+  </div>
+  <p style="font-size:12px;margin:12px 0 0;color:#8A5A46;max-width:none">
+    Verde, esmeralda e verde de novo dizendo três coisas diferentes; âmbar e amarelo
+    convivendo; "Não admitido" já em <code>status-neutro</code> no meio de tudo isso.
+    <strong>Converter as duas azuis daqui não melhora nada</strong> — troca escada crua por
+    escada meio crua, que o contrato diz ser pior.</p>
+</div></div>
+
+<p>Ele entra na catraca como <strong>fila</strong>, agrupado pelo motivo, na forma que o
+<code>FILA_DO_ALERTA</code> usa: o vocabulário de situação do PERDCOMP não foi decidido, e decidi-lo
+é uma rodada inteira — 16 valores, com pelo menos três pares que hoje são a mesma cor sem serem a
+mesma coisa.</p>
+
+<h2>A medição</h2>
+
+<table class="tabela-mini">
+<thead><tr><th style="width:46%">par</th><th style="width:14%">hoje</th><th style="width:14%">depois</th><th>quem usa</th></tr></thead>
+<tbody>
+<tr><td><code>blue-700</code> sobre <code>blue-100</code> → <code>fila</code> sobre <code>fila-soft</code></td>
+  <td class="n">5,49</td><td class="n good">5,08</td><td class="mono">pílula de status</td></tr>
+<tr><td><code>blue-700</code> sobre <code>blue-50</code> → <code>tag-b</code> sobre <code>tag-b/15</code></td>
+  <td class="n">6,16</td><td class="n good">6,30</td><td class="mono">chip de categoria</td></tr>
+<tr><td><code>blue-600</code> sobre <code>blue-500/15</code> <span class="bad">reprova AA</span></td>
+  <td class="n bad">4,35</td><td class="n good">5,76</td><td class="mono">BalanceteTreeTable</td></tr>
+<tr><td><code>info</code> sobre <code>info/10</code> <span class="bad">reprova AA por 0,01</span></td>
+  <td class="n bad">4,49</td><td class="n">—</td><td class="mono">taskPriorityColors.medium</td></tr>
+<tr><td>branco sobre <code>blue-600</code> → branco sobre <code>primary</code></td>
+  <td class="n">5,17</td><td class="n good">5,56</td><td class="mono">botão Exportar</td></tr>
+<tr><td><code>blue-500</code> sobre branco (ícone, piso 3:1)</td>
+  <td class="n">3,68</td><td class="n">—</td><td class="mono">ícones de tipo de arquivo</td></tr>
+<tr><td>borda <code>blue-200</code> sobre <code>blue-50</code> (piso 3:1 do 1.4.11)</td>
+  <td class="n bad">1,31</td><td class="n">—</td><td class="mono">chips de contorno</td></tr>
+</tbody>
+</table>
+
+<p style="font-size:13px;color:var(--ink-2)">A queda de 5,49 para 5,08 na primeira linha é
+deliberada e já está no contrato: os pares <code>-soft</code> são calibrados para 5:1 com folga
+igual nas três áreas (5,08 · 5,10 · 5,12), em vez de um valor que só existe na cor de fábrica.
+As bordas de 1,31 e 1,26 não passam no 1.4.11 <em>nem hoje nem depois</em> — borda decorativa de
+chip não é controle de interface, e essa é a leitura que o <code>--border-control</code> fixou em
+10/09.</p>
+
+<h2>O que eu faria, e o que preciso de você</h2>
+
+<div class="veredito">
+<h3>A ordem</h3>
+<ol>
+<li><strong>A (9)</strong> — não tem decisão dentro. Três mapas com dono, e um deles é a última
+cópia viva de uma divergência que já está escrita em docstring. Commit sozinho.</li>
+<li><strong>E, a parte de superfície (10)</strong> — <em>hover</em> e moldura de bloco, onde a
+página de 27/08 já respondeu "nada". Baixo risco, some da tela.</li>
+<li><strong>B (22)</strong> — consolidar as 4 + 3 cópias em dois mapas. O ganho é maior que o da
+cor: sete lugares onde a decisão envelhecia separado viram dois.</li>
+<li><strong>D (19)</strong> e <strong>C (29)</strong> — só depois das suas respostas abaixo.</li>
+<li><strong>F (4)</strong> — catraca, com o motivo escrito.</li>
+</ol>
+</div>
+
+<div class="nota q"><strong>As quatro perguntas. Nenhuma tem resposta certa no código — todas
+mudam o que aparece na tela.</strong></div>
+
+<ol class="perg">
+<li><strong>Original / Retificadora é tipo ou é aviso?</strong> Se é tipo, vira
+<code>tag-a</code>/<code>tag-b</code> e acompanha a área (é o precedente das Correções SPED). Se
+"Retificadora" tem que chamar atenção, vira <code>neutro</code>/<code>alerta</code> e o âmbar de
+hoje estava quase certo.</li>
+
+<li><strong>Os números dos dashboards perdem a cor?</strong> São 19 ocorrências em 11 telas, e a
+regra do <code>audit</code> diz que sim — número só ganha cor quando a condição é verdadeira. Mas
+ali eram colunas de tabela; aqui são cartões de KPI, onde a cor é o que separa um cartão do outro
+de longe. Se você quiser manter cor nos cartões, ela vira <code>tag-*</code> e não papel de status —
+e o selo de 4,35:1 do <code>BalanceteTreeTable</code> se conserta de qualquer jeito.</li>
+
+<li><strong>Chip único perde o azul?</strong> "Cluster Norte" e "3 projetos" são o único chip
+colorido de uma linha cujos vizinhos já são <code>muted</code>. Eu tiraria a cor. Você já decidiu o
+contrário uma vez (o cartão do Drive virou âncora em vez de perder a cor), então pergunto.</li>
+
+<li><strong>O botão Exportar Excel vira a âncora do módulo?</strong> Sete das 100 estão nessa
+tela. Virando <code>primary</code>, ele fica da cor do "Analisar" e do "Salvar" — ganha coerência e
+perde a distinção de "esta é a ação secundária". A receita pronta do
+<code>classesDeBotao.ts</code> resolve os dois níveis, mas quem decide se Excel merece um nível
+próprio é você.</li>
+</ol>
+
+<div class="nota"><strong>E uma coisa que eu faria sem perguntar, se você deixar:</strong> a catraca
+<code>filaDoBlue</code>, na forma parcial que a rodada das Correções SPED inventou — o que fechar
+ganha guarda no mesmo commit, e o que ficar entra na fila <em>com o motivo</em>, com a asserção
+caindo nos dois sentidos. É o que faz o azul parar de ser a família que ninguém vê crescer.</div>
+
+</div>
