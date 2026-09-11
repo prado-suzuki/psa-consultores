@@ -506,10 +506,21 @@ export default function NewClientModal({
               <Tabs value={activeTab} onValueChange={(v) => handleTabClick(v as typeof activeTab)} className="flex-1 flex flex-col overflow-hidden">
                 {/* Escurecimento neutro em vez de cinza fixo: funciona igual
                     sobre o branco da Tax e sobre a folha quente da OSG. */}
-                <div className="px-6 py-3 bg-black/[0.02] border-b border-border shrink-0">
-                  <TabsList data-tour="modal-abas" className={cn("w-full grid bg-black/[0.04] p-1 rounded-lg h-auto", tabsGridClass)}>
+                {/* Faixa e trilho em `--muted`, e não em preto com alfa, desde
+                    11/09/2026. Preto cru sobre superfície clara DESSATURA, e o
+                    resultado fica mais neutro quanto mais claro o fundo: sobre a
+                    areia da OSG, `bg-black/[0.04]` dava #E8E4E0, que ainda era
+                    bege; quando o modal saiu do `osg-canvas` para o `bg-card`,
+                    o mesmo preto passou a dar #F2F1F0 — cinza sem matiz nenhuma
+                    dentro de uma tela quente. A cor não mudou, o disfarce saiu.
+                    Com o token a faixa puxa a matiz da área, e os dois degraus
+                    (/25 na faixa, /50 no trilho) mantêm a aba ativa parecendo
+                    levantada sem o trilho encostar no #EBE3DB da seleção da
+                    lista, que é outra coisa e não pode ter a mesma tinta. */}
+                <div className="px-6 py-3 bg-muted/25 border-b border-border shrink-0">
+                  <TabsList data-tour="modal-abas" className={cn("w-full grid bg-muted/50 p-1 rounded-lg h-auto", tabsGridClass)}>
                     {visibleTabs.map((tab) => (
-                      <TabsTrigger key={tab} value={tab} data-tour={ANCORA_DA_ABA[tab]} className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-muted-foreground rounded-md py-2 text-xs font-medium transition-all gap-1.5">
+                      <TabsTrigger key={tab} value={tab} data-tour={ANCORA_DA_ABA[tab]} className="data-[state=active]:bg-card data-[state=active]:shadow-sm text-muted-foreground rounded-md py-2 text-xs font-medium transition-all gap-1.5">
                         {tab === "cliente"
                           ? "Dados do Cliente/Grupo"
                           : tab === "contribuintes"
@@ -531,12 +542,12 @@ export default function NewClientModal({
                       </TabsTrigger>
                     ))}
                     {podeVerProposta && (
-                      <TabsTrigger value="proposta" data-tour="modal-aba-proposta" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-muted-foreground rounded-md py-2 text-xs font-medium transition-all gap-1">
+                      <TabsTrigger value="proposta" data-tour="modal-aba-proposta" className="data-[state=active]:bg-card data-[state=active]:shadow-sm text-muted-foreground rounded-md py-2 text-xs font-medium transition-all gap-1">
                         <FileSignature size={14} /> Proposta
                       </TabsTrigger>
                     )}
                     {editingClienteId && (
-                      <TabsTrigger value="historico" data-tour="modal-aba-historico" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-muted-foreground rounded-md py-2 text-xs font-medium transition-all gap-1">
+                      <TabsTrigger value="historico" data-tour="modal-aba-historico" className="data-[state=active]:bg-card data-[state=active]:shadow-sm text-muted-foreground rounded-md py-2 text-xs font-medium transition-all gap-1">
                         <History size={14} /> Histórico
                       </TabsTrigger>
                     )}
