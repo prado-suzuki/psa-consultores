@@ -98,7 +98,12 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     // gravidade seguindo em `muted`. O porquê está no comentário do próprio arquivo.
     // O `AuditPessoasTable` já tinha saído em 03/09 — o `parou` dele era estado de
     // verdade, e virou `alerta`.
-    'src/components/equipe/dashboards/analise-inteligente/AnaliseInteligenteKpis.tsx': 2,
+    // A fileira de KPI da Análise Inteligente saiu em 11/09/2026, e ela foi
+    // convertida INTEIRA porque a decisão dela foi sobre o significado, não sobre
+    // o tom: "Scope creep é coisa ruim como os outros três". Os quatro viraram
+    // `ajuste`/`alerta`/`alerta`/`ajuste` — o azul do scope creep junto, o que tira
+    // duas da `filaDoBlue` também. Ela decidiu olhando a tela rodando, com os dois
+    // candidatos aplicados ao vivo sobre o dado real (31, 33, 691 e R$ 18,6k).
     'src/components/equipe/dev/calculadora-ibs-cbs/por-estado/PorEstadoKpis.tsx': 1,
     // O `EFDExportStatus` saiu em 10/09/2026, e a classificação estava certa: é
     // escada de status de verdade — `processing`/`starting`, `completed`, `idle` —,
@@ -116,10 +121,14 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     'src/components/equipe/dev/processo-difal/DifalProductsCard.tsx': 4,
     'src/components/equipe/mapeamento/ScenarioComparator.tsx': 2,
     'src/components/equipe/mapeamento/ScenarioList.tsx': 3,
-    'src/components/equipe/projetos/projectPresentation.tsx': 3,
     'src/components/equipe/sprint-detalhes/AgendaTab.tsx': 2,
     'src/components/equipe/sprint-detalhes/MetricsTab.tsx': 2,
-    'src/components/equipe/sprint-detalhes/RisksTab.tsx': 4,
+    // O `RisksTab` e o `projectPresentation` saíram em 11/09/2026 pela FRENTE DO
+    // AZUL, que roda em paralelo (`32e04e6b` e `bd08822f`), e as duas conversões
+    // deixaram esta catraca vermelha: quem converteu âmbar não atualizou o
+    // inventário do alerta. Ficou registrado aqui porque é o modo de falha que a
+    // catraca existe para expor — ela reprova por conversão feita, não só por cor
+    // nova, e a fila só pode encolher com a lista na mão.
     'src/components/sprint/GroupedTasks.tsx': 1,
     // O `EquipeBacklog` saiu em 11/09/2026: a escada de prioridade dele — alta,
     // média, e o resto em `muted` — converteu inteira para `alerta`/`espera`/neutro,

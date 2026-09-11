@@ -84,7 +84,10 @@ const FILA_DO_BLUE = {
     'src/pages/equipe/dev/ConsultaECF.tsx': 3,
     'src/pages/equipe/dev/ConsultaEFD.tsx': 3,
     'src/pages/equipe/EquipeBacklog.tsx': 3,
-    'src/components/equipe/dashboards/analise-inteligente/AnaliseInteligenteKpis.tsx': 2,
+    // Saiu em 11/09/2026 pela frente do VERMELHO E VERDE: a fileira de KPI tem as
+    // duas famílias na mesma linha (atraso em vermelho, scope creep em azul), e ela
+    // decidiu que scope creep é problema como os outros. Converter metade da
+    // fileira era o defeito; foi inteira, e o azul veio junto.
     'src/components/equipe/dev/perdcomp/controle/ControlePerdcompResults.tsx': 2,
     'src/components/equipe/dashboards/analise-inteligente/AnaliseInteligenteAnalysis.tsx': 1,
     'src/components/equipe/dev/perdcomp/dcomp/DcompFields.tsx': 1,
