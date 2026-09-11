@@ -315,6 +315,21 @@ function chaveIdempotencia(tipo: string, entidadeId: string, canal: Canal, desti
   return `${tipo}:${ENTIDADE_TIPO}:${entidadeId}:${canal}:${destino}:${diaLocal()}`;
 }
 
+/**
+ * Linha de `destinatarios_cliente(uuid)`, que é `RETURNS TABLE(user_id uuid,
+ * nome text, email text, telefone text)`. O cliente Deno não carrega os tipos
+ * gerados do banco, então `rpc` devolve `any` e um `.map()` sobre o resultado
+ * fica com parâmetro implicitamente `any` — o `deno check` do deploy recusa.
+ * Nomear a linha aqui devolve tipo ao filtro de destinatários e ao laço que
+ * monta `alcancaveis` logo abaixo.
+ */
+interface DestinatarioBruto {
+  user_id: string | null;
+  nome: string | null;
+  email: string | null;
+  telefone: string | null;
+}
+
 interface Alcancavel {
   email: string | null;
   telefone: string | null;

@@ -97,7 +97,7 @@ function modelosDeCapa(): string[] {
 type Capa = { status: "ok"; modelo: string } | { status: "falhou"; motivo: string };
 
 async function gerarCapa(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Cliente,
   lovableApiKey: string,
   id: string,
   parsed: { titulo?: string; processos?: string[] },
@@ -190,7 +190,7 @@ serve(async (req) => {
     });
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const supabase = criarCliente(supabaseUrl, serviceRoleKey);
 
   // Auth guard: validate JWT and require team_member or higher
   const authHeader = req.headers.get("Authorization");
