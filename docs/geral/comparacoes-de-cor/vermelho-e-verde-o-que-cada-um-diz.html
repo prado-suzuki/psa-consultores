@@ -73,6 +73,12 @@
   .selo{display:inline-flex;align-items:center;gap:5px;border-radius:6px;padding:2px 7px;font-size:11.5px;font-weight:600;border:1px solid transparent}
   .painel{border-radius:10px;padding:16px;text-align:center}
   .barra{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .alvo{scroll-margin-top:14px;padding:6px 10px;margin-left:-10px;border-radius:8px;background:hsl(var(--primary)/.07);color:hsl(var(--primary))}
+  .tri .card{min-height:196px}
+  .tri .barra .btn{font-size:14px;padding:9px 16px}
+  .tri .barra .campo{height:36px;font-size:13px}
+  .escolha{display:inline-block;font:700 11px/1 ui-monospace,Consolas,monospace;letter-spacing:.08em;
+           padding:4px 8px;border-radius:6px;background:hsl(var(--foreground));color:hsl(var(--background));margin-right:7px}
   .campo{display:inline-flex;align-items:center;height:34px;padding:0 11px;border:1px solid hsl(var(--border));border-radius:8px;background:hsl(var(--card));font-size:12.5px;color:hsl(var(--foreground));white-space:nowrap}
   .campo.vazio{color:hsl(var(--muted-foreground))}
   .contador{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:hsl(var(--primary));color:hsl(var(--primary-foreground));font-size:11px;font-weight:700;margin-left:2px}
@@ -121,7 +127,13 @@
     paradas nesta página esperando as duas decisões que faltam.
   </p>
 
-  <div class="decide" style="margin:22px 0 0">
+  <div class="decide" style="margin:22px 0 0;border-left-color:hsl(var(--status-espera))">
+    <b>Falta você escolher uma coisa: <a href="#limpar" style="color:hsl(var(--primary))">as três opções do “Limpar filtros” →</a></b>
+    São os 27 sítios do botão de limpar e do X de fechar, na seção 3. As três aparecem com filtro e
+    sem filtro, lado a lado, e o hover é vivo — passe o mouse.
+  </div>
+
+  <div class="decide" style="margin:14px 0 0">
     <b>Para validar no app rodando</b>
     Das 248, <b>134 já estão na tela</b> (commits <code>1d25b036</code> e <code>fd566894</code>); sobram
     114. As seções marcadas <span class="tag ok">feito</span> abaixo têm a coluna da esquerda como
@@ -264,7 +276,7 @@
      <code>/equipe/dashboards</code>. <b>O que olhar:</b> o detalhe técnico embaixo saiu do vermelho
      claro e foi para <code>muted-foreground</code> — era ele que reprovava AA a 3,44:1.</p>
 
-  <h2>3 · O “Limpar filtros” e o X de fechar — 27 ocorrências</h2>
+  <h2 id="limpar" class="alvo">3 · O “Limpar filtros” e o X de fechar — 27 ocorrências</h2>
   <p>A pergunta mudou de lugar depois da sua leitura: <b>não é de que cor pintar, é como a tela avisa
      que existe filtro aplicado e onde se desfaz isso.</b> O vermelho de hoje resolve mal as duas
      coisas — é um link apagado numa barra cheia de campo, e não diz <i>quanto</i> está filtrado.</p>
@@ -275,7 +287,7 @@
 
   <h3>Com filtro aplicado — é este o estado que precisa saltar</h3>
   <div class="tri">
-    <div class="col"><div class="hd">A · o vermelho de hoje</div><div class="card canvas">
+    <div class="col"><div class="hd"><span class="escolha">A</span>o vermelho de hoje</div><div class="card canvas">
       <div class="barra">
         <span class="campo">Cliente: Aurora Ltda</span><span class="campo">Período: 03/2026</span>
         <span class="btn ghost lim-hoje" style="color:var(--red-600);border:1px solid var(--red-300)">⌫ Limpar filtros</span>
@@ -283,7 +295,7 @@
       <p class="meta">Some no meio dos campos: mesma altura, mesmo peso, sem número. E o tom é o de
          excluir registro.</p>
     </div></div>
-    <div class="col"><div class="hd">B · botão que carrega a contagem</div><div class="card canvas">
+    <div class="col"><div class="hd"><span class="escolha">B</span>botão que carrega a contagem</div><div class="card canvas">
       <div class="barra">
         <span class="campo">Cliente: Aurora Ltda</span><span class="campo">Período: 03/2026</span>
         <span class="btn lim-anc" style="background:hsl(var(--primary)/.12);color:hsl(var(--primary));border:1px solid hsl(var(--primary)/.45);font-weight:600">
@@ -293,7 +305,7 @@
          um elemento só, preenchido, com o número dentro. Diz <b>que</b> tem filtro, <b>quantos</b> e
          <b>onde</b> desfaz — e a cor é a da área.</p>
     </div></div>
-    <div class="col"><div class="hd">C · selo de estado + ação neutra</div><div class="card canvas">
+    <div class="col"><div class="hd"><span class="escolha">C</span>selo de estado + ação neutra</div><div class="card canvas">
       <div class="barra">
         <span class="campo">Cliente: Aurora Ltda</span><span class="campo">Período: 03/2026</span>
         <span class="selo" style="background:hsl(var(--primary)/.12);color:hsl(var(--primary));border-color:hsl(var(--primary)/.35)">3 filtros ativos</span>
@@ -306,18 +318,18 @@
 
   <h3>Sem filtro nenhum — o contraste que faz o estado ser lido</h3>
   <div class="tri">
-    <div class="col"><div class="hd">A</div><div class="card canvas">
+    <div class="col"><div class="hd"><span class="escolha">A</span>sem filtro</div><div class="card canvas">
       <div class="barra"><span class="campo vazio">Cliente</span><span class="campo vazio">Período</span></div>
       <p class="meta">Em 5 telas o botão some (é o que já acontece); nas outras 4 ele fica lá, vermelho,
          sem ter o que limpar.</p>
     </div></div>
-    <div class="col"><div class="hd">B</div><div class="card canvas">
+    <div class="col"><div class="hd"><span class="escolha">B</span>sem filtro</div><div class="card canvas">
       <div class="barra"><span class="campo vazio">Cliente</span><span class="campo vazio">Período</span>
         <span class="btn" style="background:transparent;color:hsl(var(--muted-foreground));border:1px solid hsl(var(--border));opacity:.55">⌫ Limpar filtros</span></div>
       <p class="meta">Apagado e sem número. O salto entre este e o de cima é o aviso — não precisa de
          texto dizendo “você tem filtros”.</p>
     </div></div>
-    <div class="col"><div class="hd">C</div><div class="card canvas">
+    <div class="col"><div class="hd"><span class="escolha">C</span>sem filtro</div><div class="card canvas">
       <div class="barra"><span class="campo vazio">Cliente</span><span class="campo vazio">Período</span>
         <span class="btn ghost" style="color:hsl(var(--muted-foreground));border:1px solid hsl(var(--border));opacity:.55">⌫ Limpar</span></div>
       <p class="meta">O selo some junto, então o contraste também existe.</p>
