@@ -20,6 +20,8 @@ import {
 import { SidebarFundoGaveta } from '@/components/shared/SidebarFundoGaveta';
 import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
 import { classeLarguraBarra, classeRecuoCabecalho, classesGavetaBarra, larguraBarraCss } from '@/lib/sidebarMedidas';
+import { FACE_DA_BARRA, classesItemDaBarra } from '@/lib/barraLateralCromo';
+import { cn } from '@/lib/utils';
 
 interface GestaoLayoutProps {
   children: React.ReactNode;
@@ -96,7 +98,7 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
                 <LayoutDashboard className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold text-foreground text-lg">{AREAS.gestao.nome}</h2>
+                <h2 className={cn(FACE_DA_BARRA, 'font-semibold text-foreground text-lg')}>{AREAS.gestao.nome}</h2>
                 <p className="text-xs text-muted-foreground">{AREAS.gestao.subtitulo}</p>
               </div>
             </div>
@@ -109,11 +111,7 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
             <Button
               key={item.path}
               variant="ghost"
-              className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive(item.path)
-                  ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                  : 'text-foreground hover:bg-muted hover:text-primary'
-              }`}
+              className={classesItemDaBarra({ ativo: isActive(item.path), trilho })}
               onClick={() => navigate(item.path)}
               title={trilho ? item.label : undefined}
             >

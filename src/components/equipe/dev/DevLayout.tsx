@@ -40,6 +40,7 @@ import {
   classeRecuoCabecalho,
   classesGavetaBarra,
 } from '@/lib/sidebarMedidas';
+import { classesItemDaBarra } from '@/lib/barraLateralCromo';
 import { cn } from '@/lib/utils';
 
 interface DevLayoutProps {
@@ -154,9 +155,9 @@ const HubSidebarSection = ({
   <Collapsible open={open} onOpenChange={onOpenChange}>
     <div
       className={cn(
-        'flex items-center gap-1 rounded-lg py-1 text-sm font-medium transition-colors h-auto',
-        trilho ? 'px-2' : 'px-3',
-        active ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted hover:text-primary',
+        // O hub é PAI: quem acende cheio é a página aberta. Ver `ancestral`.
+        classesItemDaBarra({ ativo: false, ancestral: active, trilho }),
+        !trilho && 'h-auto gap-1 py-1',
       )}
     >
       <button
@@ -203,11 +204,7 @@ const HubSidebarSection = ({
           <Button
             key={item.path}
             variant="ghost"
-            className={`w-full justify-start rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              currentPath === item.path
-                ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                : 'text-muted-foreground hover:bg-muted hover:text-primary'
-            }`}
+            className={classesItemDaBarra({ ativo: currentPath === item.path, trilho, sub: true })}
             onClick={() => navigate(item.path)}
           >
             {item.label}
@@ -355,13 +352,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                 <Button
                   key={item.path}
                   variant="ghost"
-                  className={cn(
-                    'w-full rounded-lg py-2.5 text-sm font-medium transition-colors',
-                    trilho ? 'justify-center px-2' : 'justify-start px-3',
-                    isItemActive(item)
-                      ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                      : 'text-foreground hover:bg-muted hover:text-primary',
-                  )}
+                  className={classesItemDaBarra({ ativo: isItemActive(item), trilho })}
                   onClick={() => navigate(item.path)}
                   title={trilho ? item.label : undefined}
                 >
@@ -426,13 +417,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                 <Button
                   key={item.path}
                   variant="ghost"
-                  className={cn(
-                    'w-full rounded-lg py-2.5 text-sm font-medium transition-colors',
-                    trilho ? 'justify-center px-2' : 'justify-start px-3',
-                    isItemActive(item)
-                      ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                      : 'text-foreground hover:bg-muted hover:text-primary',
-                  )}
+                  className={classesItemDaBarra({ ativo: isItemActive(item), trilho })}
                   onClick={() => navigate(item.path)}
                   title={trilho ? item.label : undefined}
                 >

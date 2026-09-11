@@ -40,6 +40,7 @@ import {
   classeRecuoCabecalho,
   classesGavetaBarra,
 } from '@/lib/sidebarMedidas';
+import { classesItemDaBarra } from '@/lib/barraLateralCromo';
 import { cn } from '@/lib/utils';
 
 interface EquipeLayoutProps {
@@ -195,11 +196,15 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                       <Button
                         variant="ghost"
                         className={cn(
-                          'flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                          trilho ? 'justify-center px-2' : 'justify-start px-3',
-                          isActive(item.path) || isChildActive(item.children)
-                            ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                            : 'text-foreground hover:bg-muted hover:text-primary',
+                          // O pai só ganha PESO quando o filho é a rota atual:
+                          // duas pílulas cheias na mesma coluna não dizem qual
+                          // página está na tela. Ver `ancestral`.
+                          classesItemDaBarra({
+                            ativo: isActive(item.path),
+                            ancestral: isChildActive(item.children),
+                            trilho,
+                          }),
+                          !trilho && 'flex-1',
                         )}
                         onClick={() => navigate(item.path)}
                         title={trilho ? item.label : undefined}
@@ -228,11 +233,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                           <Button
                             key={child.path}
                             variant="ghost"
-                            className={`w-full justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              isActive(child.path)
-                                ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                                : 'text-muted-foreground hover:bg-muted hover:text-primary'
-                            }`}
+                            className={classesItemDaBarra({ ativo: isActive(child.path), trilho, sub: true })}
                             onClick={() => navigate(child.path)}
                           >
                             <child.icon className="h-4 w-4 mr-3" />
@@ -246,13 +247,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                   <Button
                     key={item.path}
                     variant="ghost"
-                    className={cn(
-                      'w-full py-2.5 rounded-lg text-sm font-medium transition-colors',
-                      trilho ? 'justify-center px-2' : 'justify-start px-3',
-                      isActive(item.path)
-                        ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                        : 'text-foreground hover:bg-muted hover:text-primary',
-                    )}
+                    className={classesItemDaBarra({ ativo: isActive(item.path), trilho })}
                     onClick={() => navigate(item.path)}
                     title={trilho ? item.label : undefined}
                   >
