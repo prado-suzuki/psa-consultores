@@ -9110,6 +9110,21 @@ export type Database = {
           },
         ]
       }
+      tmp_diag_role: {
+        Row: {
+          quando: string | null
+          quem: string | null
+        }
+        Insert: {
+          quando?: string | null
+          quem?: string | null
+        }
+        Update: {
+          quando?: string | null
+          quem?: string | null
+        }
+        Relationships: []
+      }
       tmpl_bloco: {
         Row: {
           ancora: string | null
