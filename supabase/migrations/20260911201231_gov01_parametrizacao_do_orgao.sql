@@ -1,4 +1,4 @@
--- 20260911120000_gov01_parametrizacao_do_orgao.sql
+-- 20260911201231_gov01_parametrizacao_do_orgao.sql
 -- Os parametros do orgao que viram clausula no capitulo da Administracao.
 --
 -- POR QUE ELAS EXISTEM. A Matriz de Alcadas diz o que cada orgao DECIDE. Ela
