@@ -322,9 +322,14 @@ function chaveIdempotencia(tipo: string, entidadeId: string, canal: Canal, desti
  * fica com parâmetro implicitamente `any` — o `deno check` do deploy recusa.
  * Nomear a linha aqui devolve tipo ao filtro de destinatários e ao laço que
  * monta `alcancaveis` logo abaixo.
+ *
+ * `user_id` é `string`, não `string | null`, porque a RPC já devolve só
+ * representante COM acesso ao portal — o `user_id` não nulo é a definição de
+ * "tem acesso". Os demais campos são nulláveis de verdade: telefone ausente em
+ * 30 de 38 destinatários.
  */
 interface DestinatarioBruto {
-  user_id: string | null;
+  user_id: string;
   nome: string | null;
   email: string | null;
   telefone: string | null;

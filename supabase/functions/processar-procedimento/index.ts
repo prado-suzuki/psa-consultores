@@ -10,6 +10,24 @@ import {
   pareceMuroDeLogin,
 } from "../_shared/extrairTextoDocumento.ts";
 // corsHeaders agora vem de ../_shared/cors.ts via buildCorsHeaders(req).
+
+/**
+ * O cliente desta função, com o tipo travado em um só lugar.
+ *
+ * `ReturnType<typeof createClient>` direto não resolve: `createClient` tem
+ * overloads e `ReturnType` pega o último, cujo `Database` é `unknown` e cuja
+ * lista de tabelas é `never`. Consequência medida: dentro de `gerarCapa`,
+ * `.update({ ai_cover_url })` não aceita objeto nenhum (`never`), e o cliente
+ * real — inferido pelo overload de dois argumentos, `Database = any` — nem
+ * sequer é atribuível ao parâmetro. Uma função própria de criação faz os dois
+ * lados (parâmetro e chamada) derivarem do MESMO tipo.
+ */
+function criarCliente(url: string, key: string) {
+  return createClient(url, key);
+}
+
+type Cliente = ReturnType<typeof criarCliente>;
+
 const SYSTEM_PROMPT = `Você é um assistente especializado em documentação técnica tributária e fiscal brasileira.
 Analise o documento fornecido e extraia as informações estruturadas solicitadas.`;
 
