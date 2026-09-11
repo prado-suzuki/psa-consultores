@@ -149,3 +149,38 @@ describe('a face do cromo tem nome de papel', () => {
     expect(ler('../../tailwind.config.ts')).toMatch(/barra:\s*\[\s*'Instrument Sans'/);
   });
 });
+
+/**
+ * A OSG é a única barra que NÃO desmonta o rótulo no trilho: ela o mantém
+ * montado e desbota, para não dar corte seco. Isso a obriga a neutralizar a
+ * largura por conta própria — e essa neutralização quebrou DUAS vezes, sempre
+ * pelo mesmo mecanismo: uma classe escrita depois de `rotuloCls` no `cn()`,
+ * que o `tailwind-merge` deixa vencer.
+ *
+ * 1ª: `w-4` na seta do grupo, depois do `w-0` — a seta voltou a medir 16px e o
+ *     `ml-auto` empurrou o ícone. Medido: 12,5px fora do centro.
+ * 2ª: `flex-1` em três rótulos de cabeçalho — `flex-grow: 1` estica um
+ *     elemento de largura zero. Mesmos 12,5px, nos mesmos três itens.
+ *
+ * Por isso a regra é de ORDEM, e não de conteúdo: `rotuloCls` por último.
+ */
+describe('na OSG o rótulo montado não pode voltar a ocupar largura', () => {
+  const fonte = ler('../components/equipe/osg/OsgLayout.tsx');
+
+  it('o trilho zera largura E crescimento do rótulo', () => {
+    const trecho = fonte.slice(fonte.indexOf('const rotuloCls'), fonte.indexOf('const rotuloCls') + 1400);
+
+    expect(trecho).toContain('w-0');
+    // Sem `flex-none`, um `flex-1` no ponto de uso estica o que tem largura 0.
+    expect(trecho).toContain('flex-none');
+    expect(trecho).toContain('overflow-hidden');
+  });
+
+  it('`rotuloCls` vem por último em todo `cn()` — senão o twMerge o derruba', () => {
+    const antes = [...fonte.matchAll(/cn\(\s*rotuloCls\s*,/g)];
+
+    expect(
+      antes.map((m) => fonte.slice(Math.max(0, m.index - 60), m.index + 40)),
+    ).toEqual([]);
+  });
+});

@@ -161,7 +161,14 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
         // com o chamador omitindo o rótulo (`{!trilho && …}`); aqui ele não é
         // omitido de propósito, para desbotar em vez de sumir de estalo, então
         // quem tira o espaço é esta linha.
-        'pointer-events-none w-0 overflow-hidden -translate-x-1 opacity-0'
+        //
+        // `flex-none` junto do `w-0`: três rótulos de cabeçalho de grupo
+        // (Onboarding, Governança, Documentos) traziam `flex-1`, que liga
+        // `flex-grow: 1` — o rótulo de largura ZERO voltava a esticar e
+        // empurrava o ícone. Medido: 12,5px fora do centro, só nesses três.
+        // Por isso os pontos de uso passam `rotuloCls` por ÚLTIMO no `cn()`:
+        // `w-0` e `flex-none` só vencem se vierem depois.
+        'pointer-events-none w-0 flex-none overflow-hidden -translate-x-1 opacity-0'
       : 'opacity-100 delay-150',
   );
 
@@ -306,7 +313,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               <div className="h-10 w-10 flex items-center justify-center flex-shrink-0">
                 {AreaIcon}
               </div>
-              <div className={cn(rotuloCls, 'min-w-0 whitespace-nowrap')}>
+              <div className={cn('min-w-0 whitespace-nowrap', rotuloCls)}>
                 <h2 className={cn(FACE_DA_BARRA, 'font-semibold text-foreground text-lg')}>{areaLabel}</h2>
                 <p className="text-xs text-muted-foreground">{areaSubtitle}</p>
               </div>
@@ -326,7 +333,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   )}
                 >
                   <Home className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Início</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Início</span>
                 </button>
                 <button
                   onClick={() => navigate('/equipe/osg/dashboard')}
@@ -335,7 +342,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   )}
                 >
                   <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Dashboard</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Dashboard</span>
                 </button>
 
                 {/* Agrupador "Projetos" — expande no hover (e fica aberto na rota ativa) */}
@@ -348,12 +355,19 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                     )}
                   >
                     <FolderKanban className="h-4 w-4 flex-shrink-0" />
-                    <span className={cn(rotuloCls, 'whitespace-nowrap')}>Projetos</span>
+                    <span className={cn('whitespace-nowrap', rotuloCls)}>Projetos</span>
                     <ChevronDown
                       className={cn(
-                        rotuloCls,
-                        'h-4 w-4 ml-auto flex-shrink-0 duration-300',
+                        // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
+                        // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
+                        // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
+                        // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
+                        // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
+                        // cabeçalhos de grupo, que são os únicos itens com três filhos.
+                        'h-4 w-4 flex-shrink-0 duration-300',
+                        !trilho && 'ml-auto',
                         isProjetosActive ? 'rotate-180' : 'group-hover/proj:rotate-180',
+                        rotuloCls,
                       )}
                     />
                   </button>
@@ -384,7 +398,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                             )}
                           >
                             <Icon className="h-4 w-4 flex-shrink-0" />
-                            <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
+                            <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
                           </button>
                         ))}
                       </div>
@@ -407,14 +421,20 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                     )}
                   >
                     <Rocket className="h-4 w-4 flex-shrink-0" />
-                    <span className={cn(rotuloCls, 'flex-1 min-w-0 truncate text-left')}>
+                    <span className={cn('flex-1 min-w-0 truncate text-left', rotuloCls)}>
                       Onboarding
                     </span>
                     <ChevronDown
                       className={cn(
-                        rotuloCls,
+                        // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
+                        // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
+                        // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
+                        // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
+                        // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
+                        // cabeçalhos de grupo, que são os únicos itens com três filhos.
                         'h-4 w-4 flex-shrink-0 duration-300',
                         isOnbActive ? 'rotate-180' : 'group-hover/onb:rotate-180',
+                        rotuloCls,
                       )}
                     />
                   </button>
@@ -444,7 +464,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                                                             classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                             )}
                           >
-                            <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
+                            <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
                           </button>
                         ))}
                       </div>
@@ -458,7 +478,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   )}
                 >
                   <Users className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>
                     Qualificação das Partes
                   </span>
                 </button>
@@ -469,7 +489,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   )}
                 >
                   <Landmark className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>
                     Diagnóstico Patrimonial
                   </span>
                 </button>
@@ -480,7 +500,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   )}
                 >
                   <FileText className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Controle de Matrículas</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Controle de Matrículas</span>
                 </button>
                 {/* Agrupador "Oficina de Contratos" — expande no hover com animação suave */}
                 <div className="group/docs">
@@ -492,12 +512,19 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                     )}
                   >
                     <FileSignature className="h-4 w-4 flex-shrink-0" />
-                    <span className={cn(rotuloCls, 'whitespace-nowrap')}>Oficina de Contratos</span>
+                    <span className={cn('whitespace-nowrap', rotuloCls)}>Oficina de Contratos</span>
                     <ChevronDown
                       className={cn(
-                        rotuloCls,
-                        'h-4 w-4 ml-auto flex-shrink-0 duration-300',
+                        // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
+                        // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
+                        // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
+                        // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
+                        // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
+                        // cabeçalhos de grupo, que são os únicos itens com três filhos.
+                        'h-4 w-4 flex-shrink-0 duration-300',
+                        !trilho && 'ml-auto',
                         isDocsActive ? 'rotate-180' : 'group-hover/docs:rotate-180',
+                        rotuloCls,
                       )}
                     />
                   </button>
@@ -527,7 +554,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                                                             classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                             )}
                           >
-                            <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
+                            <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
                           </button>
                         ))}
                       </div>
@@ -541,7 +568,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   )}
                 >
                   <PieChart className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Quadro Societário</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Quadro Societário</span>
                 </button>
                 {/* Ao lado do Quadro Societário porque é o irmão conceitual: cadastro
               relacional (instrumento + partes), não cadastro atômico. */}
@@ -552,7 +579,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   )}
                 >
                   <Sprout className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Exploração Rural</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Exploração Rural</span>
                 </button>
                 <button
                   onClick={() => navigate('/equipe/osg/work/calculadora-itcmd')}
@@ -561,7 +588,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   )}
                 >
                   <Calculator className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Calculadora de ITCD</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Calculadora de ITCD</span>
                 </button>
                 {/* Agrupador "Governança" — mesmo padrão de dropdown por hover */}
                 <div className="group/gov">
@@ -573,14 +600,20 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                     )}
                   >
                     <Scale className="h-4 w-4 flex-shrink-0" />
-                    <span className={cn(rotuloCls, 'flex-1 min-w-0 truncate text-left')}>
+                    <span className={cn('flex-1 min-w-0 truncate text-left', rotuloCls)}>
                       Governança
                     </span>
                     <ChevronDown
                       className={cn(
-                        rotuloCls,
+                        // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
+                        // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
+                        // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
+                        // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
+                        // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
+                        // cabeçalhos de grupo, que são os únicos itens com três filhos.
                         'h-4 w-4 flex-shrink-0 duration-300',
                         isGovActive ? 'rotate-180' : 'group-hover/gov:rotate-180',
+                        rotuloCls,
                       )}
                     />
                   </button>
@@ -610,7 +643,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                                                             classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                             )}
                           >
-                            <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
+                            <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
                           </button>
                         ))}
                       </div>
@@ -627,14 +660,20 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                     )}
                   >
                     <FolderArchive className="h-4 w-4 flex-shrink-0" />
-                    <span className={cn(rotuloCls, 'flex-1 min-w-0 truncate text-left')}>
+                    <span className={cn('flex-1 min-w-0 truncate text-left', rotuloCls)}>
                       Documentos
                     </span>
                     <ChevronDown
                       className={cn(
-                        rotuloCls,
+                        // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
+                        // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
+                        // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
+                        // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
+                        // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
+                        // cabeçalhos de grupo, que são os únicos itens com três filhos.
                         'h-4 w-4 flex-shrink-0 duration-300',
                         isDocClienteActive ? 'rotate-180' : 'group-hover/docsCli:rotate-180',
+                        rotuloCls,
                       )}
                     />
                   </button>
@@ -664,7 +703,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                                                             classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                             )}
                           >
-                            <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
+                            <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
                           </button>
                         ))}
                       </div>
@@ -678,7 +717,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   )}
                 >
                   <FileBarChart2 className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Relatórios</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Relatórios</span>
                 </button>
               </>
             )}
@@ -699,12 +738,19 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   )}
                 >
                   <LineChart className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Gerencial</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Gerencial</span>
                   <ChevronDown
                     className={cn(
-                      rotuloCls,
-                      'h-4 w-4 ml-auto flex-shrink-0 duration-300',
+                      // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
+                      // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
+                      // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
+                      // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
+                      // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
+                      // cabeçalhos de grupo, que são os únicos itens com três filhos.
+                      'h-4 w-4 flex-shrink-0 duration-300',
+                      !trilho && 'ml-auto',
                       isGerencialActive ? 'rotate-180' : 'group-hover/ger:rotate-180',
+                      rotuloCls,
                     )}
                   />
                 </button>
@@ -738,7 +784,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                           )}
                         >
                           <Icon className="h-4 w-4 flex-shrink-0" />
-                          <span className={cn(rotuloCls, 'min-w-0 truncate')}>{label}</span>
+                          <span className={cn('min-w-0 truncate', rotuloCls)}>{label}</span>
                         </button>
                       ))}
                     </div>
@@ -761,7 +807,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 )}
               >
                 <MessageSquare className="h-4 w-4 flex-shrink-0" />
-                <span className={cn(rotuloCls, 'whitespace-nowrap')}>Chamados</span>
+                <span className={cn('whitespace-nowrap', rotuloCls)}>Chamados</span>
               </button>
             )}
           </nav>
@@ -778,7 +824,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               title={trilho ? 'Trocar área' : undefined}
             >
               <ArrowLeft className="h-4 w-4 mr-3 flex-shrink-0" />
-              <span className={cn(rotuloCls, 'whitespace-nowrap')}>Trocar área</span>
+              <span className={cn('whitespace-nowrap', rotuloCls)}>Trocar área</span>
             </Button>
             <Button
               variant="ghost"
@@ -787,7 +833,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               title={trilho ? 'Voltar ao site' : undefined}
             >
               <ArrowLeft className="h-4 w-4 mr-3 flex-shrink-0" />
-              <span className={cn(rotuloCls, 'whitespace-nowrap')}>Voltar ao site</span>
+              <span className={cn('whitespace-nowrap', rotuloCls)}>Voltar ao site</span>
             </Button>
           </div>
         </aside>
