@@ -80,14 +80,28 @@ export function SingleSelectCombobox({
                   key={opt.value}
                   value={opt.value}
                   keywords={palavrasDaOpcao(opt)}
+                  className="group"
                   onSelect={() => {
                     onChange(opt.value === value ? null : opt.value);
                     setOpen(false);
                   }}
                 >
                   <Check className={cn('mr-2 h-4 w-4 shrink-0', value === opt.value ? 'opacity-100' : 'opacity-0')} />
-                  <span className="truncate text-sm">{opt.label}</span>
-                  {opt.hint && <span className="ml-auto pl-2 shrink-0 text-xs text-muted-foreground">{opt.hint}</span>}
+                  {/* O `hint` desce para a linha de baixo em vez de disputar a
+                      largura com o rótulo: à direita, ele truncava o nome
+                      (“Tapajós Participaçõ…”) justamente quando o nome é o que
+                      distingue um item do outro. E ele TROCA de cor quando o
+                      item está sob o cursor: `muted-foreground` é token de
+                      superfície clara, e a linha ativa vira tom cheio — ali o
+                      CNPJ ficava ilegível. */}
+                  <div className="flex min-w-0 flex-col">
+                    <span className="truncate text-sm">{opt.label}</span>
+                    {opt.hint && (
+                      <span className="truncate text-xs text-muted-foreground group-data-[selected=true]:text-accent-foreground/80">
+                        {opt.hint}
+                      </span>
+                    )}
+                  </div>
                 </CommandItem>
               ))}
             </CommandGroup>

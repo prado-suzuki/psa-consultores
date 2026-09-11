@@ -67,10 +67,15 @@ describe('SingleSelectCombobox', () => {
     expect(screen.getByText('Cliente PSA')).toBeInTheDocument();
   });
 
-  it('mostra o texto secundário da opção ao lado do rótulo', () => {
+  it('mostra o texto secundário da opção, e ele troca de cor na linha ativa', () => {
     abrir();
-    expect(screen.getByText('12.345.678/0001-99')).toBeInTheDocument();
     expect(screen.getByText('2 CNPJs')).toBeInTheDocument();
+
+    // A linha ativa do cmdk vira tom cheio, e `muted-foreground` é token de
+    // superfície clara: sem a troca, o CNPJ fica ilegível em cima do acento.
+    const hint = screen.getByText('12.345.678/0001-99');
+    expect(hint).toHaveClass('text-muted-foreground');
+    expect(hint).toHaveClass('group-data-[selected=true]:text-accent-foreground/80');
   });
 
   it('sem resultado, mostra o texto de lista vazia', () => {
