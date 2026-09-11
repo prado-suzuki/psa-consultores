@@ -352,6 +352,15 @@ export function MatrizLinhaModal({
                       </div>
                       )}
 
+                      {/*
+                        O órgão do topo também não tem teto. Medido nas duas
+                        matrizes que o separam: na coluna da Assembleia de
+                        Sócios da V1 e da EDP não há um único valor em R$. Ela
+                        delibera, decide, elege e autoriza, e nenhum desses
+                        verbos tem limite. Perguntar "decide sozinho até" a
+                        quem é soberano é convidar a inventar um número.
+                      */}
+                      {!ehOTopo && (
                       <div className="space-y-1.5">
                         <Label className="flex items-center gap-1.5">
                           Decide sozinho até
@@ -408,6 +417,7 @@ export function MatrizLinhaModal({
                           </Select>
                         )}
                       </div>
+                      )}
                     </div>
 
                     {/*
