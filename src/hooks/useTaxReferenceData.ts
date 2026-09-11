@@ -48,7 +48,8 @@ export interface OrdemServico {
   id_servico: string | null;
   /** @deprecated Legado — usar produtos_contratados */
   id_produto_segmento: string | null;
-  excluido: boolean;
+  /** @deprecated Coluna removida da ordem_servico em 10/09/2026 (exclusão passou a ser definitiva) */
+  excluido?: boolean;
   created_at: string;
   produtos_contratados?: Array<{ id: string; produto_segmento_id: string }>;
   [key: string]: unknown;
