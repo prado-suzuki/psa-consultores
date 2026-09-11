@@ -452,7 +452,8 @@ O que **continua** à mão, e por quê:
 |---|---|
 | `--canvas` | é o par do `--muted`: uma escolha livre por área, como a âncora. **Tem que continuar livre** — a OSG é âncora musgo (149) com superfície areia (32), o que prova que superfície não se deriva de âncora |
 | `--background` / `--card` / `--popover` | a 99% de luminosidade a matiz não renderiza, então não há relação a extrair — a base põe `card` em branco puro e as duas áreas põem um fio de cast; as duas leituras são defensáveis |
-| `--border` / `--input` | **precisa de decisão sua.** Contra o canvas da própria área a saturação é −2 na base, +6 na Tax e −4 na OSG: não existe uma escada ali, existem três. Alinhar custa pixel, ao contrário da matiz |
+| ~~`--border`~~ | **fechou em 10/09/2026, e esta linha mentiu por um dia.** Ela ainda dizia "−2 na base, +6 na Tax e −4 na OSG, não existe uma escada, existem três" — números de antes da opção D. Hoje `riscar(--canvas)` o gera nas três (matiz e saturação do rebaixado, três pontos abaixo dele), com a catraca `problemasDeRebaixamento` cobrando igualdade exata. Remedido em 11/09 por quem foi montar a comparação: **S +4 e L −7 nas três, sem exceção** — a conferência só confirmou a fórmula |
+| `--input` | **este sim continua à mão, e é o que sobrou.** Saiu da derivação de propósito em 10/09: deixou de ser cópia do `--border` e virou a linha de CONTROLE, cobrada por RAZÃO (3:1, WCAG 1.4.11) em `problemasDaLinhaDeControle`, não por fórmula. Hoje vale 52% na base, 56% na Tax e 54,5% na OSG. Divisória e contorno de campo são trabalhos diferentes e param em luminosidades diferentes; alinhar os três custa pixel |
 
 > **A matiz da pilha da Tax fechou junto**, em 10/09: `background`/`card`/`popover` e
 > `border`/`input` estavam em 170 enquanto `canvas` e `muted` já tinham ido para 192. Custou
