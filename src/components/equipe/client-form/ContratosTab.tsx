@@ -25,7 +25,6 @@ import ProdutosPickerDialog from "./ProdutosPickerDialog";
 import CentrosCustoPickerDialog from "./CentrosCustoPickerDialog";
 import ResumoSelecao from "./ResumoSelecao";
 import RateioLista from "./RateioLista";
-import { useAcentoArea } from "./acentoArea";
 import MarcaPendencia, { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from "./MarcaPendencia";
 import { getContribuinteLabel, getEmpresaLabel, getProductLabel, ordenarPorRotulo } from "./contratosLabels";
 import OsPeriodoFields from "./OsPeriodoFields";
@@ -179,7 +178,6 @@ export default function ContratosTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foco]);
 
-  const acento = useAcentoArea();
 
   const empresasOrdenadas = useMemo(
     () => allClusters.slice().sort((a, b) => getEmpresaLabel(a).localeCompare(getEmpresaLabel(b))),
@@ -288,7 +286,7 @@ export default function ContratosTab({
       titulo={`OS - Ordem de Serviço (${contracts.length})`}
       dataTour="os-lista"
       acaoCriar={mostrarCriarOs && editingContractId == null ? (
-        <Button size="sm" onClick={createOs} disabled={isCreatingOs} data-tour="os-criar" className={cn('gap-1.5 h-7 text-xs', acento.botao)}>
+        <Button size="sm" onClick={createOs} disabled={isCreatingOs} data-tour="os-criar" className={cn('gap-1.5 h-7 text-xs')}>
           <Plus size={14} /> {isCreatingOs ? "Criando..." : "Criar nova OS"}
         </Button>
       ) : null}
@@ -334,7 +332,7 @@ export default function ContratosTab({
             </AlertDialog>
           )}
           {isEditingThis ? (
-            <Button size="sm" variant="outline" className={cn('gap-1.5 text-xs', acento.botaoSuave)} onClick={() => setEditingContractId(null)}>
+            <Button size="sm" variant="outline" className={cn('gap-1.5 text-xs', 'border-primary/40 bg-accent/5 text-primary hover:border-primary hover:bg-accent/10')} onClick={() => setEditingContractId(null)}>
               <Check size={12} /> Pronto
             </Button>
           ) : (
@@ -439,7 +437,7 @@ export default function ContratosTab({
                       pendente={secaoPendente(3)}
                       dataTour="os-produtos"
                       acao={(
-                        <Button type="button" size="sm" variant="outline" className={cn('gap-1.5 text-xs', acento.botaoSuave)} onClick={() => setPickerAberto(true)}>
+                        <Button type="button" size="sm" variant="outline" className={cn('gap-1.5 text-xs', 'border-primary/40 bg-accent/5 text-primary hover:border-primary hover:bg-accent/10')} onClick={() => setPickerAberto(true)}>
                           <Plus size={14} /> Produtos
                         </Button>
                       )}
@@ -492,7 +490,7 @@ export default function ContratosTab({
                       pendente={secaoPendente(5)}
                       dataTour="os-rateio"
                       acao={(
-                        <Button type="button" size="sm" variant="outline" className={cn('gap-1.5 text-xs', acento.botaoSuave)} onClick={() => setCentrosAberto(true)}>
+                        <Button type="button" size="sm" variant="outline" className={cn('gap-1.5 text-xs', 'border-primary/40 bg-accent/5 text-primary hover:border-primary hover:bg-accent/10')} onClick={() => setCentrosAberto(true)}>
                           <Plus size={14} /> Centros de custo
                         </Button>
                       )}

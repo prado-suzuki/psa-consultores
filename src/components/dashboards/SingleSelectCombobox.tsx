@@ -61,7 +61,21 @@ export function SingleSelectCombobox({
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[320px] p-0" align="start">
+      {/* A largura SEGUE o gatilho, e o piso tem teto dentro dele.
+          Os 320px cravados de antes não acompanhavam nada: num campo de 410px
+          a lista ficava estreita e truncava nome que caberia inteiro, e com a
+          fonte do navegador aumentada o texto crescia e a caixa não. O
+          `--radix-popover-trigger-width` é medido pelo Radix no gatilho, então
+          a lista passa a ter a largura do campo em qualquer breakpoint.
+
+          O piso de `20rem` é o mesmo 320px de antes na fonte padrão (nenhuma
+          tela que já usava o componente fica com a lista MAIS estreita do que
+          estava) e escala junto com a fonte. O teto mora DENTRO do `min()` e
+          não num `max-w` separado porque, no CSS, `min-width` vence
+          `max-width`: medido em 11/09/2026, `min-w-[20rem]` com fonte de 20px
+          dava lista de 400px numa viewport de 390px, com `max-w` declarado e
+          ignorado. */}
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[min(20rem,calc(100vw-2rem))] p-0" align="start">
         {/* A UNIÃO dos dois filtros, e a ordem importa só para o curto-circuito:
             trecho contínuo sem acento OU a pontuação por proximidade do cmdk.
             Sozinho, o do cmdk não acha "São" por "sao"; sozinho, o daqui perde
@@ -95,7 +109,7 @@ export function SingleSelectCombobox({
                       superfície clara, e a linha ativa vira tom cheio — ali o
                       CNPJ ficava ilegível. */}
                   <div className="flex min-w-0 flex-col">
-                    <span className="truncate text-sm">{opt.label}</span>
+                    <span className="break-words text-sm">{opt.label}</span>
                     {opt.hint && (
                       <span className="truncate text-xs text-muted-foreground group-data-[selected=true]:text-accent-foreground/80">
                         {opt.hint}

@@ -9,7 +9,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAcentoArea } from "./acentoArea";
 import MarcaPendencia, { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from "./MarcaPendencia";
 import SecaoFormulario from "./SecaoFormulario";
 import { UF_STATES, type defaultClientData } from "./constants";
@@ -72,7 +71,6 @@ const TIPO_RELACIONAMENTO_LABEL: Record<string, string> = {
 export default function ClienteTab({
   clientData, setClientData, isReadOnly, allClusters = [], camposPendentes, secoesPendentes,
 }: ClienteTabProps) {
-  const acento = useAcentoArea();
   const selectedClusters = allClusters.filter(c => clientData.cluster_ids.includes(c.id));
   const falta = (campo: string) => camposPendentes?.get(campo);
   const secaoPendente = (numero: number) => secoesPendentes?.has(numero) ?? false;
@@ -97,7 +95,7 @@ export default function ClienteTab({
           </ReadRow>
           <ReadRow label="Status">
             <span className="inline-flex items-center gap-2">
-              <span className={cn("h-2 w-2 rounded-full", clientData.ativo ? acento.positivoBarra : "bg-muted-foreground/50")} />
+              <span className={cn("h-2 w-2 rounded-full", clientData.ativo ? 'bg-primary' : "bg-muted-foreground/50")} />
               {clientData.ativo ? "Ativo" : "Inativo"}
             </span>
           </ReadRow>

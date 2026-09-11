@@ -22,7 +22,6 @@
 // dessa lógica que fez o mesmo defeito de navegação existir nas três.
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { useAcentoArea } from './acentoArea';
 
 /**
  * `Id` é genérico com padrão `number` porque as abas de cliente identificam a
@@ -151,7 +150,6 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
   chaveDetalhe,
   children,
 }: ListaMestreDetalheProps<Id>) {
-  const acento = useAcentoArea();
   return (
     <section
       data-tour={dataTour}
@@ -217,7 +215,7 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
                         'w-full px-3 py-2.5 text-left transition-colors',
                         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                         'border-l-2',
-                        selecionada ? acento.selecionado : 'border-l-transparent hover:bg-muted/60',
+                        selecionada ? 'bg-accent/5 border-l-primary' : 'border-l-transparent hover:bg-muted/60',
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">

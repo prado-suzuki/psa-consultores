@@ -23,7 +23,6 @@ import { cn } from "@/lib/utils";
 import { textoDeRecusa } from "@/lib/rlsMessages";
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
 import { defaultClientData } from "./client-form/constants";
-import { AcentoAreaProvider, acentoDaArea } from "./client-form/acentoArea";
 import {
   frasePendencia,
   mapearPendencias,
@@ -70,7 +69,6 @@ export default function NewClientModal({
 }: NewClientModalProps) {
   const { user, isAdmin, isLider } = useAuth();
   // O modal e quem monta o provedor, entao nao pode consumir o contexto dele.
-  const acento = acentoDaArea(area);
 
   // Duplicate confirm state (replaces window.confirm)
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
@@ -463,7 +461,7 @@ export default function NewClientModal({
         */}
         <DialogContent
           ref={conteudoRef}
-          className={cn("max-w-7xl h-[95vh] max-h-none p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden", acento.fundoModal)}
+          className={cn("max-w-7xl h-[95vh] max-h-none p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden", 'bg-card')}
           onInteractOutside={(e) => {
             e.preventDefault();
             // Com o guia rodando, o clique veio do tooltip dele, que mora num
@@ -473,7 +471,6 @@ export default function NewClientModal({
             handleAttemptClose();
           }}
         >
-          <AcentoAreaProvider area={area}>
           <DialogTitle className="sr-only">{isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</DialogTitle>
           <DialogDescription className="sr-only">Formulário de cadastro de cliente com contribuintes, representantes e contratos</DialogDescription>
 
@@ -482,8 +479,8 @@ export default function NewClientModal({
               branca no topo. */}
           <div className="px-6 py-4 border-b border-border flex justify-between items-center shrink-0">
             <div className="flex items-center gap-3">
-              <div className={cn("p-2 rounded-lg", acento.positivoFundo)}>
-                {isReadOnly ? <Building2 className={acento.texto} size={22} /> : isEditing ? <Pencil className={acento.texto} size={22} /> : <Plus className={acento.texto} size={22} />}
+              <div className={cn("p-2 rounded-lg", 'bg-accent/5')}>
+                {isReadOnly ? <Building2 className={'text-primary'} size={22} /> : isEditing ? <Pencil className={'text-primary'} size={22} /> : <Plus className={'text-primary'} size={22} />}
               </div>
               <h2 className="text-xl font-bold">{isReadOnly ? "Visualizar Cliente" : isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</h2>
             </div>
@@ -503,7 +500,7 @@ export default function NewClientModal({
           </div>
 
           {loadingEdit ? (
-            <div className={cn("flex-1 flex items-center justify-center", acento.texto)}><AreaLoader area={area} size={64} /></div>
+            <div className={cn("flex-1 flex items-center justify-center", 'text-primary')}><AreaLoader area={area} size={64} /></div>
           ) : (
             <>
               <Tabs value={activeTab} onValueChange={(v) => handleTabClick(v as typeof activeTab)} className="flex-1 flex flex-col overflow-hidden">
@@ -644,7 +641,7 @@ export default function NewClientModal({
                       <Button
                         onClick={() => { setIsReadOnly(false); setEscopoEdicao('cliente'); }}
                         data-tour="modal-editar"
-                        className={cn("gap-2 shadow-lg", acento.botao)}
+                        className={cn("gap-2 shadow-lg")}
                       >
                         <Pencil size={16} /> Editar
                       </Button>
@@ -681,7 +678,7 @@ export default function NewClientModal({
                       <Button
                         onClick={handleSave} disabled={saving}
                         data-tour="modal-salvar"
-                        className={cn("gap-2 shadow-lg", acento.botao)}
+                        className={cn("gap-2 shadow-lg")}
                       >
                         {saving ? <AreaLoader area={area} size={20} /> : <CheckCircle2 size={20} />}
                         {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
@@ -692,7 +689,6 @@ export default function NewClientModal({
               </div>
             </>
           )}
-          </AcentoAreaProvider>
         </DialogContent>
       </Dialog>
 
