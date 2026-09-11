@@ -280,7 +280,7 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
                   <span className="text-xs font-medium text-muted-foreground">Permite Crédito</span>
                   <div className="mt-1">
                     {regra.permite_credito === 'S' ? (
-                      <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-xs">Sim</Badge>
+                      <Badge className="bg-tag-a/15 text-tag-a hover:bg-tag-a/15 border-0 text-xs">Sim</Badge>
                     ) : (
                       <Badge variant="outline" className="text-muted-foreground text-xs">Não</Badge>
                     )}

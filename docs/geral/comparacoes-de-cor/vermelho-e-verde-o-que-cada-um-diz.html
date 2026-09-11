@@ -72,6 +72,10 @@
   .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 11px;font-size:12px;font-weight:600;border:1px solid transparent}
   .selo{display:inline-flex;align-items:center;gap:5px;border-radius:6px;padding:2px 7px;font-size:11.5px;font-weight:600;border:1px solid transparent}
   .painel{border-radius:10px;padding:16px;text-align:center}
+  .barra{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .campo{display:inline-flex;align-items:center;height:34px;padding:0 11px;border:1px solid hsl(var(--border));border-radius:8px;background:hsl(var(--card));font-size:12.5px;color:hsl(var(--foreground));white-space:nowrap}
+  .campo.vazio{color:hsl(var(--muted-foreground))}
+  .contador{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:hsl(var(--primary));color:hsl(var(--primary-foreground));font-size:11px;font-weight:700;margin-left:2px}
   .num{font-variant-numeric:tabular-nums}
   table{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:12px}
   th,td{text-align:left;padding:7px 10px;border-bottom:1px solid hsl(var(--border));vertical-align:top}
@@ -136,13 +140,13 @@
     <tr><td><b>ação destrutiva</b> — excluir, remover</td><td class="n">59</td><td class="n">—</td><td class="n">16</td><td><code>destructive</code> <span class="tag ok">feito 11/09</span></td></tr>
     <tr><td><b>severidade</b> — prioridade, risco, atraso</td><td class="n">45</td><td class="n">5</td><td class="n">15</td><td>escada inteira <span class="tag ok">parcial 11/09</span></td></tr>
     <tr><td><b>erro</b> — falha, bloqueio, acesso negado</td><td class="n">22</td><td class="n">—</td><td class="n">7</td><td><code>destructive</code> <span class="tag ok">feito 11/09</span></td></tr>
-    <tr><td><b>limpar filtro</b> — o botão “Limpar”</td><td class="n">19</td><td class="n">—</td><td class="n">9</td><td>hover na âncora <span class="tag q">pergunta</span></td></tr>
+    <tr><td><b>limpar filtro</b> — o botão “Limpar”</td><td class="n">19</td><td class="n">—</td><td class="n">9</td><td>contagem na âncora <span class="tag q">pergunta</span></td></tr>
     <tr><td><b>feito</b> — concluído, aprovado, homologado</td><td class="n">2</td><td class="n">13</td><td class="n">6</td><td><code>status-feito</code> <span class="tag ok">feito 11/09</span></td></tr>
     <tr><td><b>marcador</b> — filtro ativo, hoje, melhor</td><td class="n">1</td><td class="n">13</td><td class="n">5</td><td>a âncora da área <span class="tag ok">feito 11/09</span></td></tr>
     <tr><td><b>delta favorável</b> — carga caiu</td><td class="n">—</td><td class="n">14</td><td class="n">5</td><td>fica: o par é <code>rose</code> <span class="tag fica">fila</span></td></tr>
     <tr><td><b>rótulo não-status</b> — “Admin”</td><td class="n">12</td><td class="n">—</td><td class="n">4</td><td>fica <span class="tag fica">fila</span></td></tr>
     <tr><td><b>site público</b> — landing</td><td class="n">—</td><td class="n">10</td><td class="n">4</td><td>fica: outro produto <span class="tag fica">fila</span></td></tr>
-    <tr><td><b>booleano “Sim”</b> — NCM monofásico</td><td class="n">—</td><td class="n">9</td><td class="n">3</td><td>categoria ou feito? <span class="tag q">pergunta</span></td></tr>
+    <tr><td><b>booleano “Sim”</b> — NCM monofásico</td><td class="n">—</td><td class="n">9</td><td class="n">3</td><td><code>--tag-a</code> <span class="tag ok">feito 11/09</span></td></tr>
     <tr><td><b>fechar</b> — o X do modal</td><td class="n">8</td><td class="n">—</td><td class="n">4</td><td>hover na âncora <span class="tag q">pergunta</span></td></tr>
     <tr><td><b>paleta categórica</b> — ícone de PDF, cor de área</td><td class="n">2</td><td class="n">6</td><td class="n">5</td><td>fica: destino são os <code>--tag-*</code> <span class="tag fica">fila</span></td></tr>
     <tr><td><b>sinal de valor</b> — saldo negativo</td><td class="n">5</td><td class="n">1</td><td class="n">4</td><td>fica: o par é <code>green</code> <span class="tag fica">fila</span></td></tr>
@@ -260,54 +264,87 @@
      <code>/equipe/dashboards</code>. <b>O que olhar:</b> o detalhe técnico embaixo saiu do vermelho
      claro e foi para <code>muted-foreground</code> — era ele que reprovava AA a 3,44:1.</p>
 
-  <h2>3 · O vermelho que não destrói nada — 27 ocorrências</h2>
-  <p>Dois grupos que andam juntos: o botão <b>“Limpar filtros”</b> (19, em 9 telas) e o <b>X de fechar
-     modal</b> (8, em 4 telas). Nenhum dos dois apaga dado. O X é o caso mais claro — são
-     <b>quatro cópias byte a byte do mesmo bloco</b> (<code>hover:text-red-500 hover:bg-red-50</code>,
-     nos três modais de auditoria e no cabeçalho do PER), e nas quatro o vermelho só aparece no hover.
-     Foi assim que ninguém viu.</p>
-  <p><b>Tirar a cor não serve</b> — some o retorno do hover, e o botão fica morto. As duas saídas que
-     sobram devolvem retorno visível; a diferença é <i>de onde</i> a cor vem. <b>Passe o mouse nos três
-     abaixo.</b></p>
+  <h2>3 · O “Limpar filtros” e o X de fechar — 27 ocorrências</h2>
+  <p>A pergunta mudou de lugar depois da sua leitura: <b>não é de que cor pintar, é como a tela avisa
+     que existe filtro aplicado e onde se desfaz isso.</b> O vermelho de hoje resolve mal as duas
+     coisas — é um link apagado numa barra cheia de campo, e não diz <i>quanto</i> está filtrado.</p>
+  <p><b>O que o código já tem:</b> em 5 das 9 telas o botão só existe quando há filtro
+     (<code>hasFilters &amp;&amp; …</code>), e nas 9 a flag é um OU dos campos preenchidos — virar
+     <b>contagem</b> é uma linha (<code>[cliente, contribuinte, período].filter(Boolean).length</code>).
+     Então dá para o botão dizer o número sem estrutura nova.</p>
+
+  <h3>Com filtro aplicado — é este o estado que precisa saltar</h3>
   <div class="tri">
-    <div class="col hoje"><div class="hd">vermelho de estoque</div><div class="card">
-      <div class="linha">
+    <div class="col"><div class="hd">A · o vermelho de hoje</div><div class="card canvas">
+      <div class="barra">
+        <span class="campo">Cliente: Aurora Ltda</span><span class="campo">Período: 03/2026</span>
         <span class="btn ghost lim-hoje" style="color:var(--red-600);border:1px solid var(--red-300)">⌫ Limpar filtros</span>
       </div>
-      <div class="linha"><span class="icone redondo x-hoje" style="color:hsl(var(--muted-foreground))">✕</span>
-        <span style="font-size:12px;color:hsl(var(--muted-foreground))">fechar</span></div>
-      <p class="meta">O mesmo tom de excluir um registro, e <b>igual nas três áreas</b> — o
-         <code>red-500</code> não sabe em que tela está.</p>
+      <p class="meta">Some no meio dos campos: mesma altura, mesmo peso, sem número. E o tom é o de
+         excluir registro.</p>
     </div></div>
-    <div class="col papel"><div class="hd">a âncora da área</div><div class="card">
-      <div class="linha">
-        <span class="btn ghost lim-anc" style="color:hsl(var(--primary));border:1px solid hsl(var(--primary)/.3)">⌫ Limpar filtros</span>
+    <div class="col"><div class="hd">B · botão que carrega a contagem</div><div class="card canvas">
+      <div class="barra">
+        <span class="campo">Cliente: Aurora Ltda</span><span class="campo">Período: 03/2026</span>
+        <span class="btn lim-anc" style="background:hsl(var(--primary)/.12);color:hsl(var(--primary));border:1px solid hsl(var(--primary)/.45);font-weight:600">
+          ⌫ Limpar filtros <span class="contador">3</span></span>
       </div>
-      <div class="linha"><span class="icone redondo x-anc" style="color:hsl(var(--muted-foreground))">✕</span>
-        <span style="font-size:12px;color:hsl(var(--muted-foreground))">fechar</span></div>
-      <p class="meta"><span class="cr" data-fg="hsl(var(--primary))" data-bg="hsl(var(--primary)/.1)"></span> ·
-         teal na base e na Tax, <b>musgo na OSG</b>, sem uma linha a mais: o
-         <code>--primary</code> é declarado por área.</p>
+      <p class="meta"><span class="cr" data-fg="hsl(var(--primary))" data-bg="hsl(var(--primary)/.12)"></span> ·
+         um elemento só, preenchido, com o número dentro. Diz <b>que</b> tem filtro, <b>quantos</b> e
+         <b>onde</b> desfaz — e a cor é a da área.</p>
     </div></div>
-    <div class="col papel"><div class="hd">neutro forte</div><div class="card">
-      <div class="linha">
-        <span class="btn ghost lim-neu" style="color:hsl(var(--muted-foreground));border:1px solid hsl(var(--border))">⌫ Limpar filtros</span>
+    <div class="col"><div class="hd">C · selo de estado + ação neutra</div><div class="card canvas">
+      <div class="barra">
+        <span class="campo">Cliente: Aurora Ltda</span><span class="campo">Período: 03/2026</span>
+        <span class="selo" style="background:hsl(var(--primary)/.12);color:hsl(var(--primary));border-color:hsl(var(--primary)/.35)">3 filtros ativos</span>
+        <span class="btn ghost lim-neu" style="color:hsl(var(--muted-foreground));border:1px solid hsl(var(--border))">⌫ Limpar</span>
       </div>
-      <div class="linha"><span class="icone redondo x-neu" style="color:hsl(var(--muted-foreground))">✕</span>
-        <span style="font-size:12px;color:hsl(var(--muted-foreground))">fechar</span></div>
-      <p class="meta"><span class="cr" data-fg="hsl(var(--foreground))" data-bg="hsl(var(--muted))"></span> ·
-         também acompanha a área (<code>muted</code> e <code>foreground</code> são por tema), mas o
-         salto é de <b>luminosidade</b>, não de cor — é o que você viu e achou pouco.</p>
+      <p class="meta">Separa quem <i>informa</i> de quem <i>age</i>. Mais claro na leitura, dois
+         elementos a mais na barra — e as barras do dev já são apertadas.</p>
     </div></div>
   </div>
-  <div class="decide"><b>Decisão 2 — de onde vem a cor do “Limpar” e do X</b>
-    A casa já tem a regra escrita, no <code>classesDeBotao.ts</code> das Correções SPED:
-    <i>ação primária veste a âncora da área; destruir veste <code>destructive</code></i>. Limpar um
-    filtro e fechar um modal são ação, não destruição — então a âncora é a resposta que o contrato já
-    dava, e é a única das três em que a cor <b>muda de área para área</b>. Eu faria a do meio nos dois
-    casos. Se você achar que perder filtro preenchido merece aviso, o “Limpar” pode ficar em
-    <code>destructive</code> sozinho e o X vai para a âncora — o que não pode é os dois continuarem
-    dizendo “isto apaga”.
+
+  <h3>Sem filtro nenhum — o contraste que faz o estado ser lido</h3>
+  <div class="tri">
+    <div class="col"><div class="hd">A</div><div class="card canvas">
+      <div class="barra"><span class="campo vazio">Cliente</span><span class="campo vazio">Período</span></div>
+      <p class="meta">Em 5 telas o botão some (é o que já acontece); nas outras 4 ele fica lá, vermelho,
+         sem ter o que limpar.</p>
+    </div></div>
+    <div class="col"><div class="hd">B</div><div class="card canvas">
+      <div class="barra"><span class="campo vazio">Cliente</span><span class="campo vazio">Período</span>
+        <span class="btn" style="background:transparent;color:hsl(var(--muted-foreground));border:1px solid hsl(var(--border));opacity:.55">⌫ Limpar filtros</span></div>
+      <p class="meta">Apagado e sem número. O salto entre este e o de cima é o aviso — não precisa de
+         texto dizendo “você tem filtros”.</p>
+    </div></div>
+    <div class="col"><div class="hd">C</div><div class="card canvas">
+      <div class="barra"><span class="campo vazio">Cliente</span><span class="campo vazio">Período</span>
+        <span class="btn ghost" style="color:hsl(var(--muted-foreground));border:1px solid hsl(var(--border));opacity:.55">⌫ Limpar</span></div>
+      <p class="meta">O selo some junto, então o contraste também existe.</p>
+    </div></div>
+  </div>
+
+  <div class="decide"><b>Decisão 2 — eu faria a B</b>
+    Ela responde as suas duas exigências com um elemento só: <b>ver fácil onde limpar</b> (preenchido,
+    não mais um link apagado) e <b>saber que tem filtro</b> (a contagem, e o estado apagado quando não
+    há nenhum). A cor é a âncora da área — teal aqui, musgo na OSG —, que é o que o
+    <code>classesDeBotao.ts</code> já manda para ação, deixando <code>destructive</code> só para o que
+    destrói. A C é mais explícita e custa dois elementos na barra; a A é o que temos e falha nas duas.
+  </div>
+
+  <h3>O X de fechar — 8 ocorrências, e este é separado</h3>
+  <p>Quatro cópias byte a byte de <code>hover:text-red-500 hover:bg-red-50</code>, nos três modais de
+     auditoria e no cabeçalho do PER. Fechar não apaga nada e não tem estado para informar — então
+     aqui é só tirar o vermelho, com o hover na âncora, como você pediu. <b>Passe o mouse:</b></p>
+  <div class="par">
+    <div class="col hoje"><div class="hd">hover vermelho</div><div class="card">
+      <div class="linha"><span class="icone redondo x-hoje" style="color:hsl(var(--muted-foreground))">✕</span>
+        <span style="font-size:12.5px;color:hsl(var(--muted-foreground))">o mesmo tom da lixeira ao lado</span></div>
+    </div></div>
+    <div class="col papel"><div class="hd">hover na âncora</div><div class="card">
+      <div class="linha"><span class="icone redondo x-anc" style="color:hsl(var(--muted-foreground))">✕</span>
+        <span style="font-size:12.5px;color:hsl(var(--muted-foreground))">acompanha a área: teal aqui, musgo na OSG</span></div>
+    </div></div>
   </div>
 
   <h2>4 · Severidade — 50 ocorrências, 15 arquivos</h2>
@@ -413,58 +450,37 @@
      <code>/equipe/mapeamento</code> (o cenário marcado como melhor). <b>O que olhar:</b> onde antes era
      verde agora é a cor da área — teal aqui, e <b>musgo</b> se você abrir a mesma coisa pela OSG.</p>
 
-  <h2>7 · Booleano “Sim” — 9 ocorrências, 3 arquivos</h2>
-  <p>O selo do NCM monofásico, no Mapa NCM e nas duas telas de regra PIS/COFINS. <b>Não são dois “Sim”
-     diferentes</b> — é o mesmo selo, e a pergunta é o que a <i>cor</i> dele está afirmando. Por isso
-     ele aparece abaixo dentro da linha da tabela, que é onde você o vê.</p>
+  <h2>7 · O selo do monofásico — 9 ocorrências, 3 arquivos · feito em 11/09</h2>
+  <p><b>Você respondeu: “o Sim é para indicar se é monofásico”.</b> Isso fecha a pergunta — o selo
+     afirma um <i>fato do NCM</i>, não que algo deu certo. Um NCM monofásico continua monofásico
+     amanhã; “Concluído” e “Aprovado” mudam. Então ele saiu do verde de estado e foi para a paleta
+     categórica, no <code>--tag-a</code> a 15% de fundo, que é a receita que o contrato já dava para
+     categoria e que o par de selos das Correções SPED usa desde 10/09.</p>
   <div class="par">
-    <div class="col hoje"><div class="hd">hoje · verde de estoque</div><div class="card" style="padding:8px 12px">
+    <div class="col era"><div class="hd">emerald-100 · verde de estado</div><div class="card" style="padding:8px 12px">
       <table style="margin:0">
         <tr><th>NCM</th><th>produto</th><th>monofásico</th></tr>
         <tr><td class="num">2203.00.00</td><td>Cerveja de malte</td><td><span class="pill" style="background:var(--emerald-100);color:var(--emerald-700)">Sim</span></td></tr>
         <tr><td class="num">1006.30.21</td><td>Arroz polido</td><td><span style="color:hsl(var(--muted-foreground));font-size:12px">—</span></td></tr>
         <tr><td class="num">3303.00.10</td><td>Perfume</td><td><span class="pill" style="background:var(--emerald-100);color:var(--emerald-700)">Sim</span></td></tr>
       </table>
-      <p class="meta">O verde aqui é o mesmo verde de “Concluído” e “Aprovado” do resto do produto.</p>
+      <p class="meta">O mesmo verde de “Concluído” dizendo uma coisa que não é estado.</p>
     </div></div>
-    <div class="col papel"><div class="hd">se for categoria · <code>--tag-a</code></div><div class="card" style="padding:8px 12px">
+    <div class="col agora"><div class="hd">tag-a · paleta categórica</div><div class="card" style="padding:8px 12px">
       <table style="margin:0">
         <tr><th>NCM</th><th>produto</th><th>monofásico</th></tr>
-        <tr><td class="num">2203.00.00</td><td>Cerveja de malte</td><td><span class="pill" style="background:hsl(var(--tag-a)/.12);color:hsl(var(--tag-a))">Sim</span></td></tr>
+        <tr><td class="num">2203.00.00</td><td>Cerveja de malte</td><td><span class="pill" style="background:hsl(var(--tag-a)/.15);color:hsl(var(--tag-a))">Sim</span></td></tr>
         <tr><td class="num">1006.30.21</td><td>Arroz polido</td><td><span style="color:hsl(var(--muted-foreground));font-size:12px">—</span></td></tr>
-        <tr><td class="num">3303.00.10</td><td>Perfume</td><td><span class="pill" style="background:hsl(var(--tag-a)/.12);color:hsl(var(--tag-a))">Sim</span></td></tr>
+        <tr><td class="num">3303.00.10</td><td>Perfume</td><td><span class="pill" style="background:hsl(var(--tag-a)/.15);color:hsl(var(--tag-a))">Sim</span></td></tr>
       </table>
-      <p class="meta"><span class="cr" data-fg="hsl(var(--tag-a))" data-bg="hsl(var(--tag-a)/.12)"></span> ·
-         o tom é de tabela de tipo, não de estado — e é o mesmo que o par de selos das Correções SPED
-         já usa desde 10/09.</p>
+      <p class="meta"><span class="cr" data-fg="hsl(var(--tag-a))" data-bg="hsl(var(--tag-a)/.15)"></span> ·
+         contra 4,84:1 do verde de antes.</p>
     </div></div>
   </div>
-  <div class="decide"><b>Decisão 4 — o que o verde do “Sim” está afirmando</b>
-    Um NCM monofásico não foi concluído nem aprovado: ele <b>é</b> monofásico, e continua sendo amanhã.
-    Pela taxonomia isso é categoria. O contra é que o verde de hoje já ensinou a equipe a ler aquilo
-    como “ok”, e trocar o tom muda uma leitura que funciona. <b>Se você não quiser decidir agora</b>,
-    este grupo fica na fila com o motivo escrito e não atrapalha nada — ele não está em escada com
-    ninguém.
-  </div>
-
-  <h2>8 · Os que ficam na fila — 30 ocorrências</h2>
-  <p>Não entram na conversão, e o motivo de cada um fica escrito na catraca:</p>
-  <ul>
-    <li><b>rótulo não-status</b> (12) — o selo “Admin” em quatro telas de acesso. Mesmo motivo pelo
-      qual “Líder” ficou na <code>filaDoAlerta</code>: cargo não é estado.</li>
-    <li><b>site público</b> (10) — <code>Footer</code>, depoimentos, escritórios, resultados. Decisão
-      sua na passada do <code>gray</code>: a landing pinta a própria paleta.</li>
-    <li><b>paleta categórica</b> (8) — o ícone vermelho de PDF e o verde de planilha, a cor da
-      categoria “tax”, o gradiente do seletor de área. Destino são os <code>--tag-*</code>, e isso é
-      outra frente.</li>
-    <li><b>sinal de valor</b> (6) e <b>delta favorável</b> (14) — já mostrados lá em cima: o par está
-      fora do lote.</li>
-    <li><s><b>diff</b> (2)</s> — <b>saiu em 11/09, sem pergunta.</b> O <code>HistoricoTab</code> do
-      cadastro pintava o valor antigo de vermelho e o novo de verde; a decisão de 03/09 no histórico da
-      OSG já dizia que valor antigo não “deu problema” e valor novo não está “feito”. Antigo recua em
-      <code>muted-foreground</code>, novo é <code>foreground</code>. Confira na aba <b>Histórico</b> de
-      um cliente, num registro com campo alterado.</li>
-  </ul>
+  <p class="olhar"><b>Onde abrir para conferir:</b> <code>/equipe/dev/mapa-ncm-pis-cofins</code> (a
+     coluna <i>Monofásico</i> da tabela) e o modal de regras NCM, na mesma tela. <b>O que olhar:</b> o
+     selo ficou num verde mais fechado e sem brilho de “ok” — ele lê como etiqueta de tipo, que é o que
+     ele é.</p>
 
   <h2>As escadas que não fecham — o que sobrou da decisão 3</h2>
   <p>“A mesma escada, por papel” converteu tudo que <b>fecha inteiro</b>. Cinco lugares não fecham, e
