@@ -151,22 +151,26 @@
 
   <div class="dec-linha"><div class="i">1</div>
     <div class="t">Consulta ECD · ECF · EFD — o selo <em>Original / Retificadora</em>
-      <em>"Retificadora" é só o tipo do arquivo, ou é um aviso?</em></div>
+      <em>a retificadora é a versão que vale — como a tela diz isso, e diz QUAL delas?</em></div>
     <div class="q">12 ocorr.<br>4 telas</div></div>
 
-  <div class="dec-linha"><div class="i">2</div>
+  <div class="dec-linha" style="opacity:.62"><div class="i" style="color:#3B6B34">✓</div>
     <div class="t">Impacto Digital e Análise Inteligente — os números dos cartões
-      <em>cada cartão mantém a sua cor, ou a cor sobe para o ícone?</em></div>
+      <em><span class="good">Decidido em 11/09: opção A</span> — cada cartão mantém o seu tom,
+      em <code>tag-a … tag-d</code>. A conferência que você pediu está no fim da seção.</em></div>
     <div class="q">19 ocorr.<br>11 telas</div></div>
 
   <div class="dec-linha"><div class="i">3</div>
     <div class="t">Backlog e Lista de Processos — o chip que está sozinho na linha
-      <em>chip cheio, ou chip de contorno como o vizinho?</em></div>
+      <em><span class="bad">As duas primeiras opções foram recusadas.</span> A proposta agora é
+      outra e mexe na forma da lista, não no tom do chip.</em></div>
     <div class="q">6 ocorr.<br>2 telas</div></div>
 
-  <div class="dec-linha"><div class="i">4</div>
+  <div class="dec-linha" style="opacity:.62"><div class="i" style="color:#3B6B34">✓</div>
     <div class="t">Controle de Balancetes — a barra de ações
-      <em>"Exportar Excel" vira a cor do módulo, ou continua sendo uma ação à parte?</em></div>
+      <em><span class="good">Decidido em 11/09: opção A</span> — o vocabulário do
+      <code>ui/button</code>, sem classe de cor. Comparada com as telas vizinhas e com mais duas
+      variantes, na seção.</em></div>
     <div class="q">7 ocorr.<br>1 tela</div></div>
 
   <p class="semdec"><strong>Não precisam da sua aprovação (57):</strong> quatro mapas que já têm
@@ -186,65 +190,99 @@ Por isso não dá para varrer: "converter o azul" são seis decisões, não uma.
 <h3><span class="num">1</span>O selo Original / Retificadora</h3>
 <p class="onde">12 ocorrências · ConsultaECD.tsx · ConsultaECF.tsx · ConsultaEFD.tsx · EfdResultsTable.tsx</p>
 
-<p>A mesma linha está escrita nas quatro telas, caractere por caractere. Seja qual for a sua
-escolha, ela vira <strong>um</strong> componente — o que muda é o que o selo diz.</p>
+<div class="nota" style="border-left-color:#B98A3A;background:#FDF9F1;padding:12px 0 12px 16px;border-radius:0 8px 8px 0">
+<strong>Você corrigiu a leitura, e ela derruba as duas opções que eu tinha montado.</strong>
+A retificadora não é "outro tipo de arquivo" nem um aviso: é a <strong>versão que vale</strong> —
+a que eles mexeram e onde estão as revisões de crédito. Original é a versão que foi
+substituída. Com isso, <strong>A</strong> cai (tratava as duas como iguais) e <strong>B</strong>
+cai junto, e por um motivo que já tem precedente aqui: pintar de âmbar a única linha que está
+correta é o mesmo erro que a rodada da pasta <code>audit</code> desfez ao tirar o vermelho da
+coluna "Exclusões" — cor de alerta afirmando problema sobre o dado certo.</div>
+
+<p>E conferindo o dado para redesenhar, apareceu uma segunda coisa, que não é de cor:
+<code>src/types/efd.ts</code> diz <span class="mono">TIPO_ESCRIT: number; // 0 = Original, 1+ =
+Retificadora</span>. <strong>O campo conta a retificação</strong> — 1, 2, 3 — e as quatro telas
+jogam o número fora, escrevendo só a palavra. Duas retificadoras da mesma competência saem com
+o selo <em>idêntico</em>, e a lista não é ordenada no cliente: sai na ordem da API.</p>
 
 <div class="palco hoje" style="margin-top:14px"><div class="head"><span>Hoje · a tabela de arquivos</span></div><div class="corpo">
 <table class="tab">
-<thead><tr><th style="width:32%">Arquivo</th><th style="width:20%">Período</th><th style="width:20%">Tipo</th><th class="dir">ICMS a recolher</th></tr></thead>
+<thead><tr><th style="width:30%">Arquivo</th><th style="width:18%">Período</th><th style="width:22%">Tipo</th><th class="dir">ICMS a recolher</th></tr></thead>
 <tbody>
-<tr><td class="arq">EFD_2024_01.txt<small>ID: 88412</small></td><td>jan/2024</td>
+<tr><td class="arq">EFD_2024_01.txt<small>ID: 88412 · TIPO_ESCRIT 0</small></td><td>jan/2024</td>
   <td><span class="selo" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE">Original</span></td>
   <td class="dir">R$ 42.180,55</td></tr>
-<tr><td class="arq">EFD_2024_02.txt<small>ID: 88490</small></td><td>fev/2024</td>
+<tr><td class="arq">EFD_2024_02.txt<small>ID: 88490 · TIPO_ESCRIT 0</small></td><td>fev/2024</td>
   <td><span class="selo" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE">Original</span></td>
   <td class="dir">R$ 39.902,10</td></tr>
-<tr><td class="arq">EFD_2024_02R.txt<small>ID: 88913</small></td><td>fev/2024</td>
+<tr><td class="arq">EFD_2024_02R2.txt<small>ID: 89104 · TIPO_ESCRIT 2</small></td><td>fev/2024</td>
+  <td><span class="selo" style="background:#FFFBEB;color:#B45309;border-color:#FDE68A">Retificadora</span></td>
+  <td class="dir">R$ 40.550,10</td></tr>
+<tr><td class="arq">EFD_2024_02R.txt<small>ID: 88913 · TIPO_ESCRIT 1</small></td><td>fev/2024</td>
   <td><span class="selo" style="background:#FFFBEB;color:#B45309;border-color:#FDE68A">Retificadora</span></td>
   <td class="dir">R$ 41.007,80</td></tr>
 </tbody></table>
-</div><div class="pe">O azul e o âmbar são de fábrica do Tailwind: ficam <strong>iguais</strong> na
-Tax, na OSG e na casa, enquanto a pílula de status ao lado muda com a área.</div></div>
+</div><div class="pe"><strong>Três coisas erradas nesta tabela, e só uma é de cor.</strong>
+(1) O âmbar chama de problema as duas linhas que valem. (2) As duas retificadoras de fev/2024
+têm o <em>mesmo</em> selo, e a de baixo — que é a 1ª — está embaixo da 2ª: nada na tela diz qual
+é a atual. (3) O azul e o âmbar são de fábrica, então ficam iguais na Tax, na OSG e na casa,
+enquanto a pílula ao lado muda com a área.</div></div>
+
+<p style="margin-top:26px">As duas saídas abaixo partem da sua leitura: quem tem peso é a
+versão que vale, e quem recua é a que foi substituída. <strong>O peso vem do preenchimento, não
+de outra cor</strong> — o mesmo tom frio da área nos dois, cheio na atual e de contorno na
+substituída. Assim nada fica cinza apagado e nada grita.</p>
 
 <div class="duo">
-  <div class="palco a"><div class="head"><span>A · é tipo de arquivo</span><span class="sel">tag-a / tag-b</span></div><div class="corpo">
+  <div class="palco a"><div class="head"><span>C · a que vale tem peso</span><span class="sel">tag-b cheio / contorno</span></div><div class="corpo">
   <table class="tab">
-  <thead><tr><th style="width:40%">Arquivo</th><th style="width:24%">Período</th><th>Tipo</th></tr></thead>
+  <thead><tr><th style="width:34%">Arquivo</th><th style="width:20%">Período</th><th>Tipo</th></tr></thead>
   <tbody>
   <tr><td class="arq">EFD_2024_01.txt</td><td>jan/2024</td>
     <td><span class="selo" style="background:#DEE5ED;color:#225287;border-color:#22528733">Original</span></td></tr>
   <tr><td class="arq">EFD_2024_02.txt</td><td>fev/2024</td>
-    <td><span class="selo" style="background:#DEE5ED;color:#225287;border-color:#22528733">Original</span></td></tr>
+    <td><span class="selo" style="background:transparent;color:#225287;border-color:#A7BACF">Original</span></td></tr>
+  <tr><td class="arq">EFD_2024_02R2.txt</td><td>fev/2024</td>
+    <td><span class="selo" style="background:#DEE5ED;color:#225287;border-color:#22528733">Retificadora</span></td></tr>
   <tr><td class="arq">EFD_2024_02R.txt</td><td>fev/2024</td>
-    <td><span class="selo" style="background:#DEE8DC;color:#206416;border-color:#20641633">Retificadora</span></td></tr>
+    <td><span class="selo" style="background:transparent;color:#225287;border-color:#A7BACF">Retificadora</span></td></tr>
   </tbody></table>
-  </div><div class="pe"><strong>Diz:</strong> são dois tipos de escrituração, lado a lado, sem
-  hierarquia. Nenhum dos dois chama mais atenção que o outro.<br>
-  <strong>Acompanha a área:</strong> sim — na Tax vira azul 223 + teal, na OSG azul 218 + musgo.</div></div>
+  </div><div class="pe"><strong>Diz:</strong> cheio = é esta que vale hoje; contorno = foi
+  substituída. Um original sem retificadora continua cheio — não vira a linha morta da lista.<br>
+  <strong>Mede:</strong> cheio <span class="n">6,30:1</span>, contorno <span class="n">8,00:1</span>
+  (Tax 6,44 / 8,28 · OSG 6,30 / 8,04).<br>
+  <strong>Falta:</strong> ainda não diz qual das <em>duas</em> retificadoras é a 2ª.</div></div>
 
-  <div class="palco b"><div class="head"><span>B · a retificadora avisa</span><span class="sel">neutro / alerta</span></div><div class="corpo">
+  <div class="palco rec"><div class="head"><span>D · C, e a tela para de jogar o número fora</span><span class="sel">+ TIPO_ESCRIT</span></div><div class="corpo">
   <table class="tab">
-  <thead><tr><th style="width:40%">Arquivo</th><th style="width:24%">Período</th><th>Tipo</th></tr></thead>
+  <thead><tr><th style="width:34%">Arquivo</th><th style="width:20%">Período</th><th>Tipo</th></tr></thead>
   <tbody>
   <tr><td class="arq">EFD_2024_01.txt</td><td>jan/2024</td>
-    <td><span class="selo" style="background:#E3DCD4;color:#251F18;border-color:#251F1820">Original</span></td></tr>
+    <td><span class="selo" style="background:#DEE5ED;color:#225287;border-color:#22528733">Original</span></td></tr>
   <tr><td class="arq">EFD_2024_02.txt</td><td>fev/2024</td>
-    <td><span class="selo" style="background:#E3DCD4;color:#251F18;border-color:#251F1820">Original</span></td></tr>
+    <td><span class="selo" style="background:transparent;color:#225287;border-color:#A7BACF">Original</span></td></tr>
+  <tr><td class="arq">EFD_2024_02R2.txt</td><td>fev/2024</td>
+    <td><span class="selo" style="background:#DEE5ED;color:#225287;border-color:#22528733">Retificadora 2</span></td></tr>
   <tr><td class="arq">EFD_2024_02R.txt</td><td>fev/2024</td>
-    <td><span class="selo" style="background:#F5D3C2;color:#8C3E17;border-color:#8C3E1733">Retificadora</span></td></tr>
+    <td><span class="selo" style="background:transparent;color:#225287;border-color:#A7BACF">Retificadora 1</span></td></tr>
   </tbody></table>
-  </div><div class="pe"><strong>Diz:</strong> o normal é ser original; a retificadora é a linha que
-  merece o olho. É mais perto do que a tela faz hoje (azul calmo, âmbar quente).<br>
-  <strong>Custo:</strong> gasta o único papel de "olhe isto" num atributo que aparece em
-  <em>toda</em> linha retificadora, e não numa exceção.</div></div>
+  </div><div class="pe"><strong>Diz:</strong> a mesma coisa que C, e mais a resposta que a tela
+  não dava — <em>qual</em> é a atual. O número já está no dado
+  (<code>TIPO_ESCRIT</code>); ninguém precisa consultar nada.<br>
+  <strong>É mudança de produto</strong>, não só de cor: a tela passa a mostrar um campo que hoje
+  ela descarta. Por isso está separado, e não embutido.</div></div>
 </div>
 
 <div class="escolha"><b>Escolha</b>
-<strong>A</strong> se "Retificadora" é uma informação como qualquer outra da linha —
-o valor ao lado já diz se mudou. <strong>B</strong> se a pessoa precisa achar a retificadora
-correndo o olho pela coluna. <span class="good">Eu recomendo A</span>, porque numa competência
-retificada as duas linhas aparecem juntas e o par de tons já as separa; mas quem vê essa tela
-todo dia é você.</div>
+<span class="good">Eu recomendo D.</span> C sozinho conserta a cor e deixa o defeito real de pé —
+duas retificadoras idênticas na tela, e a mais recente podendo aparecer embaixo da antiga. Se
+você preferir separar as coisas, <strong>C entra nesta rodada e D vira uma linha na sua fila</strong>;
+mas aí vale ordenar a tabela por <code>TIPO_ESCRIT</code> junto, senão o "cheio" pode ficar
+embaixo do "contorno" na mesma competência.
+<br><br>
+<strong>Uma pergunta que eu não sei responder sozinha:</strong> quando a competência tem
+retificadora, você quer a original ainda na lista (recuada, como acima) ou fora dela por padrão,
+com um "mostrar versões anteriores"? Isso muda a quantidade de linha na tela, não a cor.</div>
 
 <!-- ══════════════════════════════════════════════════════════════ -->
 <h2>Decisão 2 · Impacto Digital e Análise Inteligente</h2>
@@ -300,25 +338,100 @@ Nenhuma é condicional: o azul do "Tempo" está lá esteja o número em 148h ou 
   <strong>Custo:</strong> de longe, a fila de cartões fica mais parecida entre si.</div></div>
 </div>
 
-<div class="escolha"><b>Escolha</b>
-A regra que a pasta <code>audit</code> deixou em 03/09 foi "selo veste papel; contagem não" — e
-ela apontaria para <strong>B</strong>. Mas lá eram colunas de tabela, lidas de perto e uma a uma;
-aqui é uma fila de cartões que a pessoa varre de longe, e a cor é justamente o que separa um do
-outro. <span class="good">Eu recomendo A</span>: mantém o retorno visual e ainda conserta o que
-está errado — os dois verdes repetidos e o fato de nenhuma dessas cores acompanhar a área.</div>
+<div class="escolha" style="background:#ECF3E9;border-color:#C3D6BC"><b style="color:#3B6B34">Decidido em 11/09 · opção A</b>
+Cada cartão mantém o seu tom, vindo de <code>tag-a … tag-d</code>. Abaixo está a conferência que
+você pediu — se cada variável tem cor mesmo, e se ela não conflita ou muda de identidade em
+outro tema.</div>
 
-<div class="nota"><strong>Independente da sua escolha, um selo desta frente se conserta:</strong>
+<h3 style="font-size:16px;margin-top:30px">A conferência: cada tom tem cor própria?</h3>
+
+<p>Rodei o validador da skill <code>dataviz</code> — o mesmo que o contrato nomeia como quem mede
+a paleta categórica — nos quatro tons de cada tema, contra a superfície real de cada um, com
+<strong>todos</strong> os pares (não só os vizinhos).</p>
+
+<table class="med">
+<thead><tr><th style="width:16%">tema</th><th style="width:11%">faixa de luz</th><th style="width:11%">croma</th>
+<th style="width:24%">pior par (protan/deutan)</th><th style="width:18%">pior par (visão normal)</th><th>contraste</th></tr></thead>
+<tbody>
+<tr><td><strong>base</strong> · card #FFFFFE</td><td class="good">passa</td><td class="good">passa</td>
+  <td>uva ↔ frio · <span class="n">ΔE 8,4</span></td><td>vinho ↔ uva · <span class="n">19,0</span></td><td class="good">4/4 ≥ 3:1</td></tr>
+<tr><td><strong>Tax</strong> · card #FEFEFE</td><td class="good">passa</td><td class="bad">teal 0,083</td>
+  <td>uva ↔ azul · <span class="n">9,2</span></td><td>tijolo ↔ uva · <span class="n">19,4</span></td><td class="good">4/4 ≥ 3:1</td></tr>
+<tr><td><strong>OSG</strong> · card #FCFBFA</td><td class="good">passa</td><td class="good">passa</td>
+  <td class="warn">carmim ↔ musgo · <span class="n">7,1</span></td><td>uva ↔ azul · <span class="n">17,6</span></td><td class="good">4/4 ≥ 3:1</td></tr>
+</tbody>
+</table>
+
+<p><strong>Dentro do conjunto, passa nos três.</strong> As duas marcas acima não são surpresa e
+já estão escritas no contrato: o croma do teal da Tax (0,083 contra o piso de 0,10) é
+<em>a</em> exceção registrada — "a identidade da área não se troca por 0,017 de croma, e nos
+gráficos ele sempre vem com rótulo direto ao lado". No cartão de KPI o rótulo está do lado, que
+é justamente a condição. O ΔE 7,1 da OSG cai na faixa 6–8, legal pela mesma razão.</p>
+
+<div class="nota"><strong>Agora a parte que você desconfiou, e ela é real: os tons NÃO são
+exclusivos.</strong> Medido par a par contra os oito papéis de status e a âncora, no mesmo tema:
+<br><br>
+<span class="mono">tag-b × papel <code>fila</code> — ΔE 2,4 (base) · 8,8 (Tax) · 5,7 (OSG)</span><br>
+<span class="mono">tag-a × papel <code>feito</code> — ΔE 4,6 (base) · 12,0 (Tax) · 7,3 (OSG)</span><br>
+<span class="mono">tag-d × papel <code>ajuste</code> — ΔE 9,3 (base) · 6,2 (Tax) · 8,4 (OSG)</span><br>
+<span class="mono">tag-a × âncora da área — ΔE 11,0 (base) · 12,7 (Tax) · <strong>4,2 (OSG)</strong></span>
+<br><br>
+Isso é <strong>de propósito</strong>, e o contrato diz por quê: os tons categóricos saem da
+mesma paleta da área, e "as âncoras da área vêm primeiro" — na OSG o <code>tag-a</code> é a
+matiz do próprio musgo. O conjunto funciona <em>enquanto</em> tag e papel não aparecem na mesma
+tela dizendo coisas diferentes.</div>
+
+<div class="nota"><strong>E na tela do Impacto Digital isso encosta.</strong> Rolando abaixo dos
+cartões, a mesma página tem duas colunas de valor em <span class="mono">text-green-600</span> e
+badges em <code>text-primary</code>. Se o cartão "Melhorados" ficar em <code>tag-a</code>
+(o verde da área), fica verde de KPI perto de verde de valor. <strong>A regra que eu aplico na
+execução</strong>, e que registro aqui para você poder me corrigir: <em>numa tela que também
+mostra pílula de papel, o cartão não repete o tom daquele papel</em> — conferido tela a tela,
+nas onze.</div>
+
+<div class="nota"><strong>Escuro: os quatro reprovam, e não é regressão.</strong> O bloco
+<code>.dark</code> não declara <code>--tag-*</code> nenhum, então herda os da base — tons de 24 a
+40% de luz sobre cartão <span class="mono">#1A1714</span>: <span class="bad">2,23 a 2,82:1</span>,
+todos abaixo do piso de 3:1. Hoje a tela usa <span class="mono">green-600</span> /
+<span class="mono">blue-600</span> / <span class="mono">purple-600</span>, que também não
+acompanham o escuro — então a opção A não piora nada, mas <strong>assume</strong> essa dívida.
+É a mesma que a página "A superfície de estado" já registrou para os <code>--status-*</code>.</div>
+
+<div class="nota"><strong>Um selo desta frente se conserta de qualquer jeito:</strong>
 o do <code>BalanceteTreeTable</code> — <span class="mono">text-blue-600</span> sobre
 <span class="mono">bg-blue-500/15</span>, em 10px negrito — mede <span class="bad">4,35:1</span> e
-reprova o AA. Em A ou em B ele vai para um par medido.</div>
+reprova o AA. Vai para um par medido.</div>
 
 <!-- ══════════════════════════════════════════════════════════════ -->
 <h2>Decisão 3 · Backlog e Lista de Processos</h2>
 <h3><span class="num">3</span>O chip que está sozinho na linha</h3>
 <p class="onde">6 ocorrências · EquipeBacklog.tsx · ProcessList.tsx</p>
 
-<p>Nas duas telas o chip azul convive com vizinhos que já têm outra linguagem. O que se decide é
-se ele fala como os vizinhos ou continua falando sozinho.</p>
+<div class="nota" style="border-left-color:#B98A3A;background:#FDF9F1;padding:12px 0 12px 16px;border-radius:0 8px 8px 0">
+<strong>Você recusou as duas, e tinha razão: eram a mesma proposta duas vezes.</strong> "Chip
+cheio" e "chip de contorno" discutem o <em>tom</em> de uma peça sem perguntar se a peça devia
+estar ali. Fui olhar o código das duas telas e as duas têm um defeito de forma que a cor só
+estava maquiando. A proposta abaixo mexe na forma.</div>
+
+<div class="duo" style="margin:20px 0 6px">
+  <div class="palco" style="background:#FDFCFA"><div class="head" style="background:#F4EEEA;color:#8A5A46"><span>O que o código diz · Backlog</span></div><div class="corpo" style="background:#FDFCFA">
+  <p style="margin:0;font-size:13.5px;max-width:none">O Backlog <strong>já tem um filtro de
+  cluster</strong> — <code>filterCluster</code>, gravado na chave global
+  <span class="mono">rotina.cluster</span>, com o comentário no próprio arquivo dizendo que "o
+  cluster escolhido <strong>segue nas outras telas</strong>".<br><br>
+  Ou seja: na maior parte do tempo o cluster já está escolhido, e o chip repete em
+  <em>toda</em> linha a mesma palavra que o filtro mostra uma vez. Ele só carrega informação
+  quando o filtro está em "todos".</p>
+  </div></div>
+  <div class="palco" style="background:#FDFCFA"><div class="head" style="background:#F4EEEA;color:#8A5A46"><span>O que o código diz · Lista de Processos</span></div><div class="corpo" style="background:#FDFCFA">
+  <p style="margin:0;font-size:13.5px;max-width:none">O cartão do processo tem <strong>seis
+  badges na mesma linha</strong>: cliente, etapa, prioridade, frequência, volume/mês e projetos
+  vinculados.<br><br>
+  Seis peças do mesmo formato, com o mesmo peso, dizendo coisas de naturezas diferentes —
+  duas são categoria, três são medida e uma é vínculo. O azul não é o problema: ele é só o
+  sexto chip de uma parede de chips.</p>
+  </div></div>
+</div>
 
 <div class="palco hoje" style="margin-top:14px"><div class="head"><span>Hoje · a linha do backlog e a do processo</span></div><div class="corpo">
   <div class="linhabk">
@@ -340,55 +453,103 @@ se ele fala como os vizinhos ou continua falando sozinho.</p>
 sistema, azul de fábrica e âncora do módulo. Na segunda, o chip de contorno ao lado de um chip
 cheio, dizendo coisas do mesmo peso.</div></div>
 
-<div class="duo">
-  <div class="palco a"><div class="head"><span>A · chip cheio, no tom frio da área</span><span class="sel">tag-b</span></div><div class="corpo">
-    <div class="linhabk">
-      <div class="tit">Automatizar conferência de notas de entrada</div>
-      <div class="chips">
-        <span class="chip" style="background:#EDEAE4;color:#7D7268">120h estimadas</span>
-        <span class="chip" style="background:#DEE5ED;color:#225287;border-color:#22528733">Cluster Norte</span>
-        <span class="chip" style="background:#0A756C1A;color:#0A756C">Projeto Aurora</span>
-      </div>
-    </div>
-    <div class="linhabk" style="margin-top:9px">
-      <div class="tit">Apuração de ICMS — filial Sinop</div>
-      <div class="chips">
-        <span class="chip" style="background:transparent;color:#7D7268;border-color:#E7E2DA">140/mês</span>
-        <span class="chip" style="background:#DEE5ED;color:#225287;border-color:#22528733">3 projetos</span>
-      </div>
-    </div>
-  </div><div class="pe"><strong>Diz:</strong> cluster e projeto vinculado são categorias, e
-  categoria tem tom próprio. O chip continua saltando na linha.<br>
-  <strong>Ganha:</strong> passa a acompanhar a área, e o contraste sobe de 6,16 para
-  <span class="n">6,30:1</span>.</div></div>
+<h3 style="font-size:16px;margin-top:30px">A proposta: <em>chip é para categoria; medida vira número; o que o filtro já diz sai da linha</em></h3>
 
-  <div class="palco b"><div class="head"><span>B · contorno, como o vizinho já é</span><span class="sel">border + foreground</span></div><div class="corpo">
-    <div class="linhabk">
-      <div class="tit">Automatizar conferência de notas de entrada</div>
-      <div class="chips">
-        <span class="chip" style="background:#EDEAE4;color:#7D7268">120h estimadas</span>
-        <span class="chip" style="background:transparent;color:#2E1305;border-color:#22528766">Cluster Norte</span>
-        <span class="chip" style="background:#0A756C1A;color:#0A756C">Projeto Aurora</span>
-      </div>
-    </div>
-    <div class="linhabk" style="margin-top:9px">
-      <div class="tit">Apuração de ICMS — filial Sinop</div>
-      <div class="chips">
-        <span class="chip" style="background:transparent;color:#7D7268;border-color:#E7E2DA">140/mês</span>
-        <span class="chip" style="background:transparent;color:#2E1305;border-color:#22528766">3 projetos</span>
-      </div>
-    </div>
-  </div><div class="pe"><strong>Diz:</strong> é um dado da linha, não uma etiqueta. Fica no mesmo
-  registro do "140/mês" e do "120h estimadas", e o chip cheio sobra só para o que é vínculo forte
-  (o projeto).<br>
-  <strong>Custo:</strong> "3 projetos" perde presença numa lista longa.</div></div>
-</div>
+<p>Uma regra só, aplicada nas duas telas. Ela não tira cor de lugar nenhum — ela <strong>tira
+peças</strong>, e o que sobra ganha o espaço.</p>
 
-<div class="escolha"><b>Escolha</b>
-As duas mantêm o chip visível — a diferença é o peso que ele tem na linha.
-<span class="good">Eu recomendo A</span> no Backlog (cluster é a categoria pela qual você filtra)
-e <strong>B</strong> na Lista de Processos (ali "3 projetos" é uma contagem ao lado de outra
-contagem). Se preferir a mesma resposta nas duas, é só dizer qual.</div>
+<div class="palco rec" style="margin-top:14px"><div class="head"><span>Backlog · o cluster sobe para a moldura da lista</span><span class="sel">disruptiva</span></div><div class="corpo">
+  <div class="estado">com um cluster escolhido no filtro — o caso normal</div>
+  <div style="background:var(--p-card);border:1px solid var(--p-border);border-radius:10px;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;
+                padding:10px 14px;border-bottom:1px solid var(--p-border);
+                border-left:3px solid #225287;background:#22528708">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font-weight:700;font-size:14px;color:#225287">Cluster Norte</span>
+        <span style="font-size:11.5px;color:var(--p-fg2)">12 itens no backlog · 340h estimadas</span>
+      </div>
+      <span class="chip" style="background:transparent;color:#7D7268;border-color:#E7E2DA;font-size:10.5px">trocar cluster</span>
+    </div>
+    <div style="padding:11px 14px;border-bottom:1px solid #F2EFEA">
+      <div class="tit" style="font-weight:600;font-size:13.5px">Automatizar conferência de notas de entrada</div>
+      <div class="chips" style="margin-top:6px">
+        <span style="font-size:11.5px;color:var(--p-fg2)"><strong style="color:var(--p-fg);font-family:'DM Mono',monospace">120h</strong> estimadas</span>
+        <span class="chip" style="background:#0A756C1A;color:#0A756C">Projeto Aurora</span>
+        <span style="font-size:11.5px;color:var(--p-fg2)">Criado em 02/09/2026</span>
+      </div>
+    </div>
+    <div style="padding:11px 14px">
+      <div class="tit" style="font-weight:600;font-size:13.5px">Padronizar fechamento mensal</div>
+      <div class="chips" style="margin-top:6px">
+        <span style="font-size:11.5px;color:var(--p-fg2)"><strong style="color:var(--p-fg);font-family:'DM Mono',monospace">40h</strong> estimadas</span>
+        <span style="font-size:11.5px;color:var(--p-fg2)">Criado em 05/09/2026</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="estado">com o filtro em "todos os clusters"</div>
+  <div style="background:var(--p-card);border:1px solid var(--p-border);border-radius:10px;overflow:hidden">
+    <div style="padding:8px 14px;border-bottom:1px solid var(--p-border);border-left:3px solid #225287;background:#22528708">
+      <span style="font-weight:700;font-size:13px;color:#225287">Cluster Norte</span>
+      <span style="font-size:11px;color:var(--p-fg2);margin-left:8px">2 itens</span></div>
+    <div style="padding:10px 14px;border-bottom:1px solid #F2EFEA;font-size:13px">Automatizar conferência de notas de entrada</div>
+    <div style="padding:10px 14px;border-bottom:1px solid var(--p-border);font-size:13px">Padronizar fechamento mensal</div>
+    <div style="padding:8px 14px;border-bottom:1px solid var(--p-border);border-left:3px solid #206416;background:#20641608">
+      <span style="font-weight:700;font-size:13px;color:#206416">PSA Sinop</span>
+      <span style="font-size:11px;color:var(--p-fg2);margin-left:8px">1 item</span></div>
+    <div style="padding:10px 14px;font-size:13px">Migrar rotina de conciliação</div>
+  </div>
+</div><div class="pe"><strong>O cluster não perde cor: ganha um título.</strong> Em vez de N chips
+iguais espalhados pelas linhas, uma faixa que separa os blocos e conta quantos itens tem cada um
+— informação que a tela não dá hoje. A linha fica só com o que <em>varia</em> entre um item e
+outro: horas, projeto e data. E as horas deixam de ser um chip cinza para virar número com
+unidade, que é o que elas são.</div></div>
+
+<div class="palco rec" style="margin-top:14px"><div class="head"><span>Lista de Processos · a parede de seis badges vira duas linguagens</span><span class="sel">disruptiva</span></div><div class="corpo">
+  <div class="estado">hoje</div>
+  <div class="linhabk">
+    <div class="tit">Apuração de ICMS — filial Sinop</div>
+    <div class="chips">
+      <span class="chip" style="background:#EDEAE4;color:#7D7268">Cliente Alfa</span>
+      <span class="chip" style="background:#DBEAFE;color:#1D4ED8">Mapeamento</span>
+      <span class="chip" style="background:#EDEAE4;color:#2E1305">Média</span>
+      <span class="chip" style="background:transparent;color:#7D7268;border-color:#E7E2DA">🕐 Mensal</span>
+      <span class="chip" style="background:transparent;color:#7D7268;border-color:#E7E2DA">140/mês</span>
+      <span class="chip" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE">🗂 3 projetos</span>
+    </div>
+  </div>
+  <div class="estado">proposta</div>
+  <div class="linhabk">
+    <div class="tit">Apuração de ICMS — filial Sinop</div>
+    <div class="chips" style="margin-top:7px">
+      <span class="chip" style="background:#EDEAE4;color:#7D7268">Cliente Alfa</span>
+      <span class="chip" style="background:#C4EEF3;color:#17656E">Mapeamento</span>
+      <span class="pil" style="background:#DEE5ED;color:#225287;font-size:11px">Média</span>
+    </div>
+    <div style="display:flex;gap:22px;margin-top:10px;padding-top:9px;border-top:1px solid #F2EFEA">
+      <div><div style="font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--p-fg2);font-weight:700">Frequência</div>
+        <div style="font-size:13px;font-weight:600">Mensal</div></div>
+      <div><div style="font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--p-fg2);font-weight:700">Volume</div>
+        <div style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace">140<span style="font-weight:400;color:var(--p-fg2)">/mês</span></div></div>
+      <div><div style="font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--p-fg2);font-weight:700">Projetos</div>
+        <div style="font-size:13px;font-weight:600;color:#225287;font-family:'DM Mono',monospace">3</div></div>
+    </div>
+  </div>
+</div><div class="pe"><strong>"3 projetos" não perde presença — ganha.</strong> Sai de sexto chip
+numa fila de seis e vira um número rotulado, do mesmo tamanho dos outros dois. As três medidas
+viram uma faixa que se lê de uma vez, e o vocabulário de chip fica só para o que é categoria:
+cliente, etapa e prioridade — os três que já têm mapa no repositório
+(<code>categoriaClienteColors</code>, <code>PROCESS_STAGES</code>, <code>taskPriorityColors</code>).</div></div>
+
+<div class="escolha"><b>O que isso custa, para você decidir sabendo</b>
+Isto não é conversão de cor: é mexer no <em>layout</em> de duas listas. O Backlog ganha
+agrupamento e um cabeçalho com contagem; a Lista de Processos ganha uma faixa de métricas.
+São duas telas para você olhar rodando antes de fechar — e é por isso que elas iriam
+<strong>por último</strong>, cada uma no seu commit, depois das outras três decisões.
+<br><br>
+Se for demais para esta rodada, tem um meio-termo honesto: <strong>só o Backlog</strong>, que é
+onde o argumento é mais forte (o chip repete o filtro). A Lista de Processos fica com o azul e
+entra na fila, com o motivo escrito.</div>
 
 <!-- ══════════════════════════════════════════════════════════════ -->
 <h2>Decisão 4 · Controle de Balancetes</h2>
@@ -422,8 +583,58 @@ contagem). Se preferir a mesma resposta nas duas, é só dizer qual.</div>
 escrita com cor de estoque. A primeira linha da tabela está com o <em>hover</em> ligado, para
 mostrar o <span class="mono">hover:bg-blue-50</span>.</div></div>
 
+<div class="escolha" style="background:#ECF3E9;border-color:#C3D6BC"><b style="color:#3B6B34">Decidido em 11/09 · opção A, com a comparação que você pediu</b>
+Antes das opções, o vocabulário que o sistema <strong>já tem</strong> — vem de
+<code>src/components/ui/button.variants.ts</code>, e não é opinião minha: é o que qualquer
+<code>&lt;Button&gt;</code> do produto sabe fazer sem receber uma classe de cor.</div>
+
+<div class="palco" style="margin-top:14px"><div class="head"><span>O vocabulário de botão do sistema · as seis variantes, no tema base</span></div><div class="corpo">
+  <div class="estado">em repouso</div>
+  <div class="barra">
+    <span class="btn" style="background:#0A756C;border-color:#0A756C;color:#fff">default</span>
+    <span class="btn">outline</span>
+    <span class="btn" style="background:#EDEAE4;border-color:#EDEAE4">secondary</span>
+    <span class="btn" style="border-color:transparent;background:transparent">ghost</span>
+    <span class="btn" style="background:#961D25;border-color:#961D25;color:#fff">destructive</span>
+    <span class="btn" style="border-color:transparent;background:transparent;color:#0A756C;text-decoration:underline">link</span>
+  </div>
+  <div class="estado">sob o cursor</div>
+  <div class="barra">
+    <span class="btn" style="background:#0A756CE6;border-color:#0A756CE6;color:#fff">default</span>
+    <span class="btn" style="background:#0A756C;border-color:#0A756C;color:#fff">outline</span>
+    <span class="btn" style="background:#EDEAE4CC;border-color:#EDEAE4CC">secondary</span>
+    <span class="btn" style="border-color:transparent;background:#0A756C;color:#fff">ghost</span>
+    <span class="btn" style="background:#961D25E6;border-color:#961D25E6;color:#fff">destructive</span>
+    <span class="btn" style="border-color:transparent;background:transparent;color:#0A756C;text-decoration:underline">link</span>
+  </div>
+</div><div class="pe"><strong>O achado que muda a conversa:</strong> a variante
+<code>outline</code> já é <span class="mono">hover:bg-accent hover:text-accent-foreground</span> —
+ou seja, <strong>ela já se enche da âncora da área no hover</strong>. É exatamente a receita
+"botão de contorno que se enche de cor" que as Correções SPED consolidaram em
+<code>classesDeBotao.ts</code> depois de achá-la copiada sete vezes. O sistema tem
+<strong>dois</strong> níveis prontos: cheio (<code>default</code>) e contorno-que-enche
+(<code>outline</code>). O Balancetes inventou um terceiro, em azul, que o vocabulário não tem.</div></div>
+
+<div class="palco" style="margin-top:14px"><div class="head"><span>Como as telas vizinhas resolvem a mesma barra</span></div><div class="corpo">
+  <div class="estado">EFD ICMS · EfdResultsTable — ações da linha</div>
+  <div class="barra">
+    <span class="btn ico">⬇</span>
+    <span class="btn">Exportar</span>
+    <span class="btn" style="background:#0A756C;border-color:#0A756C;color:#fff">📊 Analisar</span>
+  </div>
+  <div class="estado">Correções SPED · CorrecoesActionButtons</div>
+  <div class="barra">
+    <span class="btn">Confirmar correções</span>
+    <span class="btn">Limpar tabela</span>
+    <span style="font-size:11.5px;color:var(--ink-2)">— as duas em contorno; a 1ª enche de âncora no hover, a 2ª de <code>destructive</code></span>
+  </div>
+</div><div class="pe">Duas telas do mesmo módulo, e nenhuma delas usa cor de estoque: a ação
+principal é cheia na âncora, as demais em contorno. O "Analisar" do EFD está escrito à mão como
+<span class="mono">bg-primary hover:bg-primary/90</span> — que é, letra por letra, a variante
+<code>default</code>.</div></div>
+
 <div class="duo">
-  <div class="palco a"><div class="head"><span>A · Excel veste a âncora do módulo</span><span class="sel">primary</span></div><div class="corpo">
+  <div class="palco rec"><div class="head"><span>A · o vocabulário, sem classe de cor nenhuma</span><span class="sel">outline + default</span></div><div class="corpo">
     <div class="barra">
       <span class="btn">⬇ Baixar original <span class="chip" style="background:#EDEAE4;color:#7D7268;font-size:10px">3</span></span>
       <span class="btn" style="color:#0A756C;border-color:#0A756C55">⬇ Exportar Excel</span>
@@ -444,14 +655,66 @@ mostrar o <span class="mono">hover:bg-blue-50</span>.</div></div>
         <span class="btn" style="background:#0A756C;border-color:#0A756C;color:#fff">Exportar</span>
       </div>
     </div>
-  </div><div class="pe"><strong>Diz:</strong> exportar é a ação do módulo, como "Analisar" e
-  "Salvar". É a receita que as Correções SPED já consolidaram em
-  <code>classesDeBotao.ts</code> — "confirmar veste a âncora".<br>
+  </div><div class="pe"><strong>Diz:</strong> as duas ações de arquivo são irmãs
+  (<code>outline</code>, enchem de âncora no hover) e só a confirmação do diálogo é cheia
+  (<code>default</code>). Nenhuma classe de cor na tela — o botão vira
+  <span class="mono">&lt;Button variant="outline"&gt;</span> e pronto.<br>
   <strong>Ganha:</strong> branco sobre a âncora dá <span class="n">5,56:1</span>, contra 5,17 do
-  azul de hoje.<br>
+  azul de hoje. E a tela passa a ler igual às duas vizinhas do mesmo módulo.<br>
   <strong>Custo:</strong> "Baixar original" e "Exportar Excel" ficam no mesmo nível visual.</div></div>
 
-  <div class="palco b"><div class="head"><span>B · Excel continua sendo outra coisa</span><span class="sel">tag-b</span></div><div class="corpo">
+  <div class="palco a"><div class="head"><span>E · o Excel é a ação mais comum, então é ele o cheio</span><span class="sel">default + outline</span></div><div class="corpo">
+    <div class="barra">
+      <span class="btn">⬇ Baixar original <span class="chip" style="background:#EDEAE4;color:#7D7268;font-size:10px">3</span></span>
+      <span class="btn" style="background:#0A756C;border-color:#0A756C;color:#fff">⬇ Exportar Excel</span>
+    </div>
+    <table class="tab" style="margin-top:10px">
+    <thead><tr><th style="width:44%">Balancete</th><th>Competência</th><th style="width:88px">Ações</th></tr></thead>
+    <tbody>
+    <tr><td class="arq">Balancete_03_2024</td><td>mar/2024</td>
+      <td><span class="btn ico" style="border-color:transparent;background:#EDEAE4;color:#0A756C">⬇</span></td></tr>
+    <tr><td class="arq">Balancete_04_2024</td><td>abr/2024</td>
+      <td><span class="btn ico" style="border-color:transparent;color:#0A756C">⬇</span></td></tr>
+    </tbody></table>
+    <div style="margin-top:10px;background:var(--p-card);border:1px solid var(--p-border);border-radius:10px;padding:12px 14px;max-width:420px">
+      <div style="font-weight:600;font-size:13px">Exportar movimentos</div>
+      <div style="font-size:12px;color:var(--p-fg2);margin:4px 0 11px">Deseja exportar os movimentos deste balancete em Excel?</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <span class="btn">Cancelar</span>
+        <span class="btn" style="background:#0A756C;border-color:#0A756C;color:#fff">Exportar</span>
+      </div>
+    </div>
+  </div><div class="pe"><strong>Diz:</strong> a hierarquia volta, mas por <em>forma</em> e não por
+  matiz — cheio é o que a pessoa faz mais, contorno é o caminho alternativo. Resolve a queixa da
+  opção A ("os dois no mesmo nível") sem inventar cor.<br>
+  <strong>Depende de um fato que eu não tenho:</strong> exportar Excel é mesmo mais frequente que
+  baixar o arquivo original? Se for o contrário, é só trocar qual dos dois é o cheio.</div></div>
+
+  <div class="palco a"><div class="head"><span>F · a barra some, as ações vivem na linha</span><span class="sel">ghost + default</span></div><div class="corpo">
+    <table class="tab">
+    <thead><tr><th style="width:40%">Balancete</th><th>Competência</th><th style="width:120px">Ações</th></tr></thead>
+    <tbody>
+    <tr><td class="arq">Balancete_03_2024</td><td>mar/2024</td>
+      <td><span class="btn ico" style="border-color:transparent;background:#0A756C;color:#fff">⬇</span>
+          <span class="btn ico" style="border-color:transparent;color:#0A756C">📊</span></td></tr>
+    <tr><td class="arq">Balancete_04_2024</td><td>abr/2024</td>
+      <td><span class="btn ico" style="border-color:transparent;color:#2E1305">⬇</span>
+          <span class="btn ico" style="border-color:transparent;color:#2E1305">📊</span></td></tr>
+    </tbody></table>
+    <div style="margin-top:10px;background:var(--p-card);border:1px solid var(--p-border);border-radius:10px;padding:11px 13px">
+      <div style="font-size:12px;color:var(--p-fg2)">Com 3 selecionados, a barra aparece:</div>
+      <div class="barra" style="margin-top:8px;border:none;padding:0">
+        <span class="btn" style="background:#0A756C;border-color:#0A756C;color:#fff">⬇ Exportar 3 em Excel</span>
+        <span class="btn">⬇ Baixar 3 originais</span>
+      </div>
+    </div>
+  </div><div class="pe"><strong>Diz:</strong> ação de um arquivo mora na linha dele (ícone
+  <code>ghost</code>, que já enche de âncora no hover); a barra do topo só existe quando há
+  seleção, e aí ela diz <em>quantos</em>.<br>
+  <strong>É a mais disruptiva das três</strong>, e a que mais mexe em código — muda quando a
+  barra aparece, não só a cor dela.</div></div>
+
+  <div class="palco b"><div class="head"><span>B · Excel continua sendo outra coisa</span><span class="sel">tag-b · fora do vocabulário</span></div><div class="corpo">
     <div class="barra">
       <span class="btn">⬇ Baixar original <span class="chip" style="background:#EDEAE4;color:#7D7268;font-size:10px">3</span></span>
       <span class="btn" style="color:#225287;border-color:#22528755">⬇ Exportar Excel</span>
@@ -476,15 +739,24 @@ mostrar o <span class="mono">hover:bg-blue-50</span>.</div></div>
   o arquivo, e continua se distinguindo dele. O tom passa a ser o frio <strong>da área</strong>,
   em vez do azul de fábrica.<br>
   <strong>Custo:</strong> um tom categórico fazendo trabalho de ação — é o desvio que o contrato
-  evita, e que a rodada do <code>osg-red</code> desfez em outro lugar.</div></div>
+  evita, e que a rodada do <code>osg-red</code> desfez em outro lugar. Fica aqui só como
+  comparação: é a única das quatro que sai do vocabulário.</div></div>
 </div>
 
-<div class="escolha"><b>Escolha</b>
-<span class="good">Eu recomendo A.</span> A regra do contrato é que ação veste âncora, e essa tela
-é o último lugar do produto onde um botão principal não é da cor do módulo. Mas se para você
-"Exportar Excel" precisa continuar sendo lido como <em>outra coisa</em> que baixar o arquivo, B
-faz isso sem cor de estoque. <strong>Nos dois casos o <em>hover</em> da linha vira
-<code>bg-muted</code></strong>, que é o que as tabelas vizinhas já fazem.</div>
+<div class="escolha"><b>Você aprovou A. As outras duas são refinamentos dela, não alternativas</b>
+A, E e F usam <strong>o mesmo</strong> vocabulário — mudam só quanto peso o Excel recebe:
+<br><br>
+<strong>A</strong> — os dois em contorno. É o mais próximo do que as telas vizinhas já fazem, e
+o menor diff: troca classe por <code>variant</code>.<br>
+<strong>E</strong> — o Excel vira o cheio. Devolve a hierarquia que o azul dava, sem cor inventada.
+Só precisa de uma resposta sua: <em>qual das duas ações a equipe usa mais?</em><br>
+<strong>F</strong> — a barra só aparece com seleção, e a ação de um arquivo mora na linha dele.
+É a que mais mexe em código.
+<br><br>
+<span class="good">Se você não disser nada, eu faço A</span> — que é o que você aprovou. Se
+responder qual ação é a mais usada, eu faço <strong>E</strong>, que é estritamente melhor que A
+nessa tela. <strong>Nos três casos o <em>hover</em> da linha vira <code>bg-muted</code></strong>,
+como as tabelas vizinhas já fazem.</div>
 
 <!-- ══════════════════════════════════════════════════════════════ -->
 <h2>O que eu faço sem perguntar (57)</h2>
@@ -693,9 +965,29 @@ aqui.</div>
 Os pares <code>-soft</code> são calibrados para 5:1 com a mesma folga nas três áreas
 (5,08 · 5,10 · 5,12), em vez de um valor que só existe na cor de fábrica e só na casa.</div>
 
-<div class="escolha" style="margin-top:30px"><b>Como responder</b>
-Basta dizer o número e a letra — <span class="mono">1A · 2A · 3 A no backlog e B nos processos ·
-4A</span>, por exemplo. O que estiver sem resposta eu não toco. Assim que as quatro saírem, os 57
-sem decisão vão junto, em commits separados por tela.</div>
+<div class="escolha" style="margin-top:30px"><b>Onde estamos · 11/09/2026</b>
+<table class="med" style="margin:8px 0 0">
+<tbody>
+<tr><td style="width:34%"><strong>2 · números dos cartões</strong></td>
+  <td style="width:16%"><span class="good">A, aprovada</span></td>
+  <td>conferida nos três temas. Passa dentro do conjunto; os tons <em>não</em> são exclusivos em
+  relação aos papéis, e por isso vale a regra "o cartão não repete o tom de papel que a mesma
+  tela mostra". No escuro os quatro reprovam — dívida assumida, e já existente.</td></tr>
+<tr><td><strong>4 · barra de ações</strong></td>
+  <td><span class="good">A, aprovada</span></td>
+  <td>comparada com o vocabulário do <code>ui/button</code> e com as duas telas vizinhas. Faço A;
+  se você disser qual ação a equipe usa mais, faço <strong>E</strong>, que é melhor.</td></tr>
+<tr><td><strong>1 · Original / Retificadora</strong></td>
+  <td><span class="warn">aguarda</span></td>
+  <td>sua leitura derrubou A e B. Agora é <strong>C</strong> (peso pelo preenchimento) ou
+  <strong>D</strong> (C + o número da retificação, que a tela hoje joga fora). Recomendo D.</td></tr>
+<tr><td><strong>3 · o chip sozinho</strong></td>
+  <td><span class="warn">aguarda</span></td>
+  <td>proposta nova, disruptiva: o cluster sobe para a moldura da lista e as medidas viram
+  números. Mexe em layout — vale olhar rodando. Tem meio-termo: só o Backlog.</td></tr>
+</tbody></table>
+<br>
+As <strong>57 sem decisão</strong> não dependem de nada disso e podem sair já, em commits
+separados por tela. É por onde eu começo se você não disser o contrário.</div>
 
 </div>
