@@ -8,9 +8,10 @@
 // Componentes só: as funções puras que estas peças usam moram em
 // `checklistKit.ts` (classes) e em `@/lib/historicoNotificacoes` (formatação),
 // para o arquivo não misturar exportação de componente com exportação de função.
-import { CheckCircle2, Mail } from 'lucide-react';
+import { CheckCircle2, Mail, MessageCircle } from 'lucide-react';
 
 import { Checkbox } from '@/components/ui/checkbox';
+import type { EscolhaDeEnvio } from '@/hooks/useEscolhaDeEnvio';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { soAHora, type CanalAviso } from '@/lib/historicoNotificacoes';
@@ -187,5 +188,52 @@ export function LinhaCanal({
         </span>
       </label>
     </ComTooltip>
+  );
+}
+
+/**
+ * As duas linhas de canal, para os avisos que acontecem UMA VEZ.
+ *
+ * Serve o primeiro envio da solicitação e a finalização: nenhum dos dois repete,
+ * então ninguém "já recebeu hoje" e as três props de janela diária
+ * (`jaReceberam`, `enviadoEm`, `proximoEm`) são sempre vazias. É por isso que a
+ * cobrança do checklist NÃO usa este bloco — lá esses três valores são o ponto,
+ * e montá-los aqui só para o outro caso ignorar seria esconder a diferença.
+ */
+export function BlocoDeCanais(
+  { escolha, enviando }: { escolha: EscolhaDeEnvio; enviando: boolean },
+) {
+  const comum = {
+    carregando: escolha.carregando,
+    semSelecao: escolha.escolhidos.length === 0,
+    jaReceberam: 0,
+    proximoEm: '',
+    enviando,
+  };
+  return (
+    <div className="mt-3 space-y-2">
+      <LinhaCanal
+        canal="email"
+        rotulo="E-mail"
+        nomeNoTexto="e-mail"
+        contato="e-mail"
+        Icone={Mail}
+        marcado={escolha.canais.includes('email')}
+        onAlternar={() => escolha.alternarCanal('email')}
+        aReceber={escolha.alcance.email}
+        {...comum}
+      />
+      <LinhaCanal
+        canal="whatsapp"
+        rotulo="WhatsApp"
+        nomeNoTexto="WhatsApp"
+        contato="telefone"
+        Icone={MessageCircle}
+        marcado={escolha.canais.includes('whatsapp')}
+        onAlternar={() => escolha.alternarCanal('whatsapp')}
+        aReceber={escolha.alcance.whatsapp}
+        {...comum}
+      />
+    </div>
   );
 }

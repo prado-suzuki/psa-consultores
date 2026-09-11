@@ -413,13 +413,23 @@ Deno.serve(async (req) => {
     /**
      * Escolher destinatário só vale onde existe alguém escolhendo.
      *
-     * `situacao_documentos` (a cobrança) e `solicitacao_enviada` (o primeiro
-     * envio) saem de um clique com modal na frente, e é o analista quem marca
-     * quem recebe. `documento_aprovado` fica de fora: ele nasce do encerramento
-     * e não tem tela nenhuma no meio — aceitar a lista ali faria um aviso de
-     * sistema sair para meio cliente sem ninguém ter decidido isso.
+     * Os TRÊS avisos ao cliente passaram a ter modal na frente, um de cada vez:
+     * `situacao_documentos` (a cobrança do checklist) e `solicitacao_enviada` (o
+     * primeiro envio) em 10/09/2026, e `documento_aprovado` (a finalização) em
+     * 11/09. Até então este último era o único que saía sozinho — medido no teste
+     * em produção de 11/09: o envio com destinatário escolhido gravou 2 linhas, e
+     * a finalização do mesmo fluxo gravou 4, para todo representante nos dois
+     * canais, sem ninguém ter decidido isso.
+     *
+     * `solicitacao_vencida` continua de fora, e agora é o único: ele nasce de um
+     * relógio (pg_cron), não há tela nem analista no caminho, e aceitar lista ali
+     * faria um aviso automático sair para meio cliente sem decisão humana.
      */
-    const EVENTOS_COM_ESCOLHA = new Set(["situacao_documentos", "solicitacao_enviada"]);
+    const EVENTOS_COM_ESCOLHA = new Set([
+      "situacao_documentos",
+      "solicitacao_enviada",
+      "documento_aprovado",
+    ]);
     if (destinatarios && !EVENTOS_COM_ESCOLHA.has(event_type)) {
       return json({ error: `destinatarios não vale em ${event_type}` }, 400);
     }

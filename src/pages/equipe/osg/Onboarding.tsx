@@ -6,6 +6,7 @@ import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { OnboardingWorkspace } from '@/components/equipe/osg/onboarding/OnboardingWorkspace';
 import { SolicitacaoAcoes } from '@/components/equipe/osg/onboarding/SolicitacaoAcoes';
 import { ModalEnviarSolicitacao } from '@/components/equipe/osg/onboarding/ModalEnviarSolicitacao';
+import { ModalFinalizarSolicitacao } from '@/components/equipe/osg/onboarding/ModalFinalizarSolicitacao';
 import { SolicitacaoVazia } from '@/components/equipe/osg/onboarding/SolicitacaoVazia';
 import { SelecionarOsDialog } from '@/components/equipe/osg/onboarding/SelecionarOsDialog';
 import { OnboardingEmptyState } from '@/components/equipe/osg/onboarding/OnboardingEmptyState';
@@ -162,9 +163,17 @@ const Onboarding = () => {
     toast.success('Agora o cliente vê o checklist, com upload por documento');
   };
 
-  const encerrar = async () => {
-    await encerrarSolicitacao.mutateAsync();
-    toast.success('Solicitação encerrada');
+  /**
+   * A finalização passou a ter modal em 11/09/2026, pelo mesmo motivo do envio:
+   * o aviso "recebemos e conferimos" saía para todo mundo sem ninguém escolher.
+   * `null` só aparece em rascunho, que nunca chegou ao cliente.
+   */
+  const [modalDeFinalizacao, setModalDeFinalizacao] = useState(false);
+
+  const encerrar = async (escolha: EscolhaDoEnvio | null) => {
+    await encerrarSolicitacao.mutateAsync(escolha);
+    setModalDeFinalizacao(false);
+    toast.success('Solicitação finalizada');
   };
 
   /**
@@ -205,7 +214,7 @@ const Onboarding = () => {
         onGerar={() => void gerar()}
         onEnviar={() => setModalDeEnvio(true)}
         onPassarParaChecklist={() => void virarChecklist()}
-        onEncerrar={encerrar}
+        onEncerrar={() => setModalDeFinalizacao(true)}
         onAbrirNova={abrirNova}
       />
     )
@@ -379,6 +388,20 @@ const Onboarding = () => {
           itensAtivos={ativos.length}
           enviando={enviarSolicitacao.isPending}
           onConfirmar={(escolha) => void enviar(escolha)}
+        />
+      )}
+
+      {clienteId && modalDeFinalizacao && (
+        <ModalFinalizarSolicitacao
+          aberto={modalDeFinalizacao}
+          onFechar={() => setModalDeFinalizacao(false)}
+          clienteId={clienteId}
+          itensAtivos={ativos.length}
+          /* A mesma condição que a mutação e a borda usam: sem `enviada_em` o
+             pedido nunca chegou ao cliente, e não há o que avisar. */
+          jaEnviada={Boolean(solicitacao?.enviadaEm)}
+          encerrando={encerrarSolicitacao.isPending}
+          onConfirmar={(escolha) => void encerrar(escolha)}
         />
       )}
     </OsgLayout>

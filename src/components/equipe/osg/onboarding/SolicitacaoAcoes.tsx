@@ -29,6 +29,11 @@ import type { SolicitacaoStatus } from '@/lib/solicitacao';
  * encerrada por cliente, ela não retorna para rascunho, e encerrar é definitivo.
  * Por isso as três pedem confirmação, e a atualização também pede quando a lista
  * já está com o cliente, porque ali o documento novo aparece para ele na hora.
+ *
+ * DUAS das confirmações são `AlertDialog` daqui; as outras duas ações — enviar e
+ * finalizar — abrem modal próprio na página, porque além de confirmar elas
+ * escolhem quem recebe a notificação. Este componente só avisa que o botão foi
+ * clicado (`onEnviar`, `onEncerrar`).
  */
 interface SolicitacaoAcoesProps {
   status: SolicitacaoStatus | null;
@@ -67,7 +72,6 @@ export function SolicitacaoAcoes({
 }: SolicitacaoAcoesProps) {
   const [confirmarAtualizacao, setConfirmarAtualizacao] = useState(false);
   const [confirmarChecklist, setConfirmarChecklist] = useState(false);
-  const [confirmarEncerramento, setConfirmarEncerramento] = useState(false);
 
   if (status === 'encerrada') {
     return (
@@ -141,10 +145,13 @@ export function SolicitacaoAcoes({
         <Button
           size="sm"
           variant="outline"
-          onClick={() => setConfirmarEncerramento(true)}
+          onClick={onEncerrar}
           disabled={ocupado}
-          title={'Encerra esta solicitação e impede novos envios de documentos pelo '
-            + 'cliente. É definitivo: não há como reabrir.'}
+          /* Abre o modal, não finaliza. Desde 11/09/2026 a confirmação deixou de
+             ser um `AlertDialog` daqui e virou `ModalFinalizarSolicitacao`, que
+             além de confirmar escolhe quem recebe o aviso de conferência. */
+          title={'Abre a confirmação de encerramento e a escolha de quem é avisado. '
+            + 'Finalizar é definitivo: não há como reabrir.'}
         >
           <Lock className="mr-2 h-4 w-4" />
           Finalizar solicitação
@@ -201,23 +208,6 @@ export function SolicitacaoAcoes({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={confirmarEncerramento} onOpenChange={setConfirmarEncerramento}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Finalizar esta solicitação?</AlertDialogTitle>
-            <AlertDialogDescription>
-              A finalização é definitiva, não há como reabrir. A lista fica só para
-              consulta, e a tela do cliente passa a modo leitura: os arquivos continuam
-              visíveis, mas ele não envia mais nenhum documento.
-              {itensAtivos > 0 && ` São ${itensAtivos} documento(s) ainda ativos.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={onEncerrar}>Finalizar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

@@ -1,11 +1,12 @@
 import { FileStack } from 'lucide-react';
+// `OsgDialog`, pela regra de estilo da area (docs/planos/override-blocos.md §8).
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/components/equipe/osg/OsgDialog';
 import type { OnboardingOrdemServico } from '@/hooks/useOnboarding';
 import { railItemCls } from './onboardingKit';
 

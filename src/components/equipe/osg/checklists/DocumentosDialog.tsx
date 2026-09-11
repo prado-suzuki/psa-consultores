@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import { Ban, Check, FileText, Hourglass, Loader2, ShieldAlert, TriangleAlert, Undo2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+// `OsgDialog`, pela regra de estilo da area (docs/planos/override-blocos.md §8).
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/components/equipe/osg/OsgDialog';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useSincronizarSolicitacaoNaoAplicavel } from '@/hooks/useDomainSolicitacaoNaoAplicavel';

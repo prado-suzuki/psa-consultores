@@ -28,20 +28,31 @@
 // `avisoKit.tsx` quando a escolha de destinatário empurrou este arquivo contra o
 // mesmo teto.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Loader2, Mail, MessageCircle, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+// `OsgDialog` e NUNCA `@/components/ui/dialog`: e a regra de estilo da area
+// (docs/planos/override-blocos.md §8), e os outros 20 modais da OSG ja a seguem.
+// Ele reexporta as mesmas pecas com os mesmos nomes e troca so o `DialogContent`
+// — entrada `animate-osg-modal-in` e overlay com blur —, entao o JSX abaixo nao
+// muda. Este modal e o de enviar a solicitacao nasceram fora do padrao e voltaram
+// para ele em 11/09/2026.
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/components/equipe/osg/OsgDialog';
 import { cn } from '@/lib/utils';
 import { invocarBorda } from '@/lib/bordaSupabase';
 import { useAvisoProjetosDaOS } from '@/hooks/useAvisoProjetosDaOS';
 import {
   alcanceDosCanais, contatoNoCanal, podeReceberAgora, useDestinatariosCliente,
 } from '@/hooks/useDestinatariosCliente';
-import { useHistoricoNotificacoes } from '@/hooks/useHistoricoNotificacoes';
+import { historicoNotificacoesKey, useHistoricoNotificacoes } from '@/hooks/useHistoricoNotificacoes';
+// As frases de bloqueio moram com a escolha de envio, para as três telas dizerem
+// a mesma coisa. Este modal não usa o hook — tem estado próprio pela janela
+// diária —, mas usa as mesmas palavras.
+import { motivoDaEscolha } from '@/hooks/useEscolhaDeEnvio';
 import {
   descreverEnvio, montarSituacaoDocumentos, temAlgoParaAvisar,
   type RespostaNotificar,
@@ -103,7 +114,10 @@ export function ModalAvisarCliente({
   );
   const {
     data: historico = [], isLoading: carregandoHist, isError: erroHist,
-  } = useHistoricoNotificacoes(aberto ? solicitacaoId : null);
+    // `aoVivo` porque o painel está na tela: a confirmação do n8n chega alguns
+    // segundos depois do envio, e sem repetir a busca ela só apareceria na
+    // próxima abertura. Ver a nota do hook.
+  } = useHistoricoNotificacoes(aberto ? solicitacaoId : null, { aoVivo: aberto });
 
   const jaHoje = useMemo(() => disparoDeHoje(historico, TIPO_NO_BANCO), [historico]);
   // Contato → nome, para o histórico anotar quem era. Sai do cadastro de AGORA e
@@ -113,6 +127,7 @@ export function ModalAvisarCliente({
   const [canais, setCanais] = useState<CanalAviso[]>(['email', 'whatsapp']);
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [enviando, setEnviando] = useState(false);
+  const queryClient = useQueryClient();
   const avisoNosProjetos = useAvisoProjetosDaOS();
 
   const carregando = carregandoDest || carregandoHist;
@@ -200,8 +215,16 @@ export function ModalAvisarCliente({
     atual.includes(userId) ? atual.filter((id) => id !== userId) : [...atual, userId]
   ));
 
-  const podeEnviar = temAlgoParaAvisar(dados) && escolhidos.length > 0
-    && canaisEfetivos.length > 0 && !enviando;
+  /**
+   * A TRAVA DO PAR, igual nos três modais de aviso (11/09/2026): um destinatário
+   * marcado E um canal que o alcance. Não existe disparar evento sem avisar
+   * ninguém — vale para enviar, cobrar e finalizar.
+   *
+   * Aqui ela soma a pré-condição própria desta tela: sem pendência nem devolução
+   * não há o que informar, e a mensagem sairia dizendo "faltam 0 documentos".
+   */
+  const temOParMinimo = escolhidos.length > 0 && canaisEfetivos.length > 0;
+  const podeEnviar = temAlgoParaAvisar(dados) && temOParMinimo && !enviando;
 
   /**
    * As datas saem do DIA DO DISPARO, não de `new Date()`.
@@ -232,16 +255,19 @@ export function ModalAvisarCliente({
   const motivoDoBloqueio = enviando ? undefined
     : !temAlgoParaAvisar(dados)
       ? 'Não há documento pendente nem devolução para informar ao cliente.'
-      : escolhidos.length === 0
-        ? 'Marque pelo menos um destinatário para enviar a notificação.'
-        : canais.length === 0
-          ? 'Escolha pelo menos um canal para enviar a notificação.'
-          : canaisEfetivos.length === 0 && jaHoje
-            ? `Os destinatários marcados já receberam esta notificação hoje, `
-              + `${dataDoAviso}. Uma nova poderá ser enviada a partir de ${proximoEm}.`
-            : canaisEfetivos.length === 0
-              ? 'Os canais marcados não alcançam nenhum dos destinatários escolhidos.'
-              : undefined;
+      /* A janela diária entra ANTES do motivo compartilhado, e só ela: é o único
+         caso desta tela que os outros dois modais não têm, porque só a cobrança
+         se repete. O resto das frases vem de `motivoDaEscolha`, para as três
+         telas dizerem a mesma coisa com as mesmas palavras. */
+      : canaisEfetivos.length === 0 && escolhidos.length > 0 && canais.length > 0 && jaHoje
+        ? `Os destinatários marcados já receberam esta notificação hoje, `
+          + `${dataDoAviso}. Uma nova poderá ser enviada a partir de ${proximoEm}.`
+        : motivoDaEscolha({
+          destinatarios: destinatarios.length,
+          escolhidos: escolhidos.length,
+          canais: canais.length,
+          canaisEfetivos: canaisEfetivos.length,
+        }, 'para enviar a notificação');
 
   const enviar = async () => {
     setEnviando(true);
@@ -267,6 +293,16 @@ export function ModalAvisarCliente({
       const { texto, ok } = descreverEnvio((data ?? {}) as RespostaNotificar);
       if (ok) toast.success(texto);
       else toast.warning(texto, { duration: 8000 });
+
+      /**
+       * O painel de histórico tem linha nova para mostrar. Invalidar aqui não
+       * basta sozinho — a linha ainda está `pendente` neste instante e o painel
+       * só mostra confirmada —, mas derruba o cache para que a próxima abertura
+       * do modal vá ao banco em vez de servir a lista de antes do envio.
+       */
+      void queryClient.invalidateQueries({
+        queryKey: historicoNotificacoesKey(solicitacaoId),
+      });
 
       /**
        * Aviso 2, lado interno (GES-03). Um evento na thread de todos os projetos da

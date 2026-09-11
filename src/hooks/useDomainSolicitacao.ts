@@ -227,6 +227,11 @@ export function useDomainSolicitacao(clienteId: string | null) {
     // A leitura do portal do cliente (EDU-24/EDU-27) tem cache proprio: sem
     // isto, enviar ou encerrar so apareceria para o cliente no proximo refetch.
     queryClient.invalidateQueries({ queryKey: ['solicitacao-ativa-cliente'] });
+    // O painel de historico do modal de cobranca mostra os TRES avisos, entao
+    // enviar e encerrar mexem nele tambem — e sem isto o envio so aparecia la
+    // depois de um F5 (11/09/2026). A lista fica sob o prefixo da chave, o que
+    // cobre a solicitacao corrente sem precisar do id aqui.
+    queryClient.invalidateQueries({ queryKey: ['historico-notificacoes'] });
   };
 
   /**
@@ -778,13 +783,21 @@ export function useDomainSolicitacao(clienteId: string | null) {
   });
 
   const encerrarSolicitacao = useMutation({
-    mutationFn: () => moverStatus(
+    /**
+     * A escolha do modal de finalização (11/09/2026): para quem e por onde.
+     *
+     * `null` significa "não há a quem avisar", e acontece num caso só: rascunho
+     * encerrado, que nunca chegou ao cliente. NÃO existe finalizar sem avisar por
+     * escolha — a caixa foi proposta e recusada no mesmo dia: fechar o pedido é
+     * fato que o cliente tem de saber.
+     */
+    mutationFn: (_escolha: EscolhaDoEnvio | null) => moverStatus(
       ['rascunho', 'enviada', 'em_checklist'],
       'encerrada',
       'encerrada_em',
       'Esta solicitação já estava encerrada. Recarregue a página.',
     ),
-    onSuccess: () => {
+    onSuccess: (_resultado, escolha) => {
       invalidar();
 
       const atual = solicitacaoQuery.data;
@@ -813,28 +826,39 @@ export function useDomainSolicitacao(clienteId: string | null) {
        * fluxo: se o "recebemos e conferimos" não sai, ninguém volta para conferir.
        */
       if (atual?.enviadaEm) {
-        void invocarBorda<RespostaNotificar>('notificar', {
-          event_type: 'documento_aprovado',
-          solicitacao_id: atual.id,
-        })
-          .then(({ data, error }) => {
-            if (error) throw error;
-            const { texto, ok } = descreverEnvio(data ?? {});
-            if (!ok) throw new Error(texto);
+        // Cinto e suspensório: com `enviadaEm` gravado o modal SEMPRE manda uma
+        // escolha, então o ramo falso não tem caminho por esta tela. A guarda
+        // existe porque a mutação é exportada e pode ser chamada de outro lugar,
+        // e chamar a borda com lista vazia volta 400.
+        if (escolha) {
+          void invocarBorda<RespostaNotificar>('notificar', {
+            event_type: 'documento_aprovado',
+            solicitacao_id: atual.id,
+            canais: escolha.canais,
+            destinatarios: escolha.destinatarios,
           })
-          .catch((erro: unknown) => {
-            console.error('[documento_aprovado] aviso ao cliente falhou', erro);
-            toast.error(
-              'A solicitação foi finalizada, mas a notificação de conferência não saiu. '
-              + 'Entre em contato com o suporte da PSA Digital.',
-              { description: (erro as Error).message },
-            );
-          });
+            .then(({ data, error }) => {
+              if (error) throw error;
+              const { texto, ok } = descreverEnvio(data ?? {});
+              if (!ok) throw new Error(texto);
+            })
+            .catch((erro: unknown) => {
+              console.error('[documento_aprovado] aviso ao cliente falhou', erro);
+              toast.error(
+                'A solicitação foi finalizada, mas a notificação de conferência não saiu. '
+                + 'Entre em contato com o suporte da PSA Digital.',
+                { description: (erro as Error).message },
+              );
+            });
+        }
 
         /**
          * Aviso 3, lado interno (GES-03). Mesma guarda de `enviadaEm` do aviso ao
          * cliente, e pelo mesmo motivo: rascunho encerrado nunca chegou ao cliente,
          * então "documentação conferida" seria falso também na thread da equipe.
+         *
+         * FORA do `if (escolha)`: não avisar o cliente é decisão sobre a mensagem
+         * que sai para fora, não sobre o registro interno do que aconteceu.
          */
         avisoNosProjetos.mutate({
           solicitacaoId: atual.id,

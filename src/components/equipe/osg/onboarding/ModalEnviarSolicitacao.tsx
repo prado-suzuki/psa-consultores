@@ -17,24 +17,23 @@
 // em `rascunho`, e o envio muda o status para `enviada`. A tela diz isso em
 // palavras porque a consequência não é óbvia — depois deste envio, cobrar passa
 // a ser no checklist, e o analista precisa saber disso ANTES de clicar.
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, Mail, MessageCircle, Send } from 'lucide-react';
+import { Loader2, Send } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+// Ver a nota em `ModalAvisarCliente.tsx`: modal da OSG usa `OsgDialog`, nunca o
+// `@/components/ui/dialog` cru.
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/components/equipe/osg/OsgDialog';
 import { cn } from '@/lib/utils';
 import {
-  alcanceDosCanais, contatoNoCanal, podeReceberAgora, useDestinatariosCliente,
-} from '@/hooks/useDestinatariosCliente';
-import { rotuloDosCanais, type CanalAviso } from '@/lib/historicoNotificacoes';
+  motivoDeBloqueio, temParaEnviar, useEscolhaDeEnvio,
+} from '@/hooks/useEscolhaDeEnvio';
+import { rotuloDosCanais } from '@/lib/historicoNotificacoes';
 import type { EscolhaDoEnvio } from '@/hooks/useDomainSolicitacao';
 // Do modal de cobrança, de propósito: é a mesma escolha, com o mesmo desenho.
-import { ComTooltip, LinhaCanal, Rotulo } from '../checklists/avisoKit';
+import { BlocoDeCanais, ComTooltip, Rotulo } from '../checklists/avisoKit';
 import { ListaDeDestinatarios } from '../checklists/AvisoDestinatarios';
-
-const CANAIS: CanalAviso[] = ['email', 'whatsapp'];
 
 export interface ModalEnviarSolicitacaoProps {
   aberto: boolean;
@@ -49,83 +48,21 @@ export interface ModalEnviarSolicitacaoProps {
 export function ModalEnviarSolicitacao({
   aberto, onFechar, clienteId, itensAtivos, enviando, onConfirmar,
 }: ModalEnviarSolicitacaoProps) {
-  const { data: destinatarios = [], isLoading: carregando } = useDestinatariosCliente(
-    aberto ? clienteId : null,
-  );
+  /** `jaHoje` nulo: a solicitação ainda não foi enviada, ninguém está travado. */
+  const escolha = useEscolhaDeEnvio({ clienteId, aberto });
+  const { destinatarios, carregando, escolhidos, canaisEfetivos } = escolha;
 
-  const [canais, setCanais] = useState<CanalAviso[]>(['email', 'whatsapp']);
-  const [selecionados, setSelecionados] = useState<string[]>([]);
-
-  /**
-   * Nasce com todo mundo que tem contato, e é semeado uma vez por abertura.
-   *
-   * Mesma decisão do modal de cobrança: esquecer alguém é o cliente não avisado,
-   * e o erro por omissão tem de ser mandar mais e não menos. A trava de uma vez
-   * existe porque `useQuery` refaz a consulta ao voltar o foco da janela — sem
-   * ela, quem desmarcasse um sócio e trocasse de aba veria a marca voltar.
-   *
-   * Aqui `jaHoje` é sempre `null`: a solicitação ainda não foi enviada, então
-   * não há disparo anterior que possa travar ninguém.
-   */
-  const semeado = useRef(false);
-  useEffect(() => {
-    if (!aberto) { semeado.current = false; return; }
-    if (semeado.current || carregando) return;
-    semeado.current = true;
-    setSelecionados(
-      destinatarios.filter((d) => podeReceberAgora(d, null)).map((d) => d.user_id),
-    );
-  }, [aberto, carregando, destinatarios]);
-
-  const escolhidos = useMemo(
-    () => destinatarios.filter((d) => selecionados.includes(d.user_id)),
-    [destinatarios, selecionados],
-  );
-
-  /** Quantos dos marcados cada canal alcança. Sem histórico, ninguém "já recebeu". */
-  const alcance = useMemo(() => ({
-    email: escolhidos.filter((d) => contatoNoCanal(d, 'email')).length,
-    whatsapp: escolhidos.filter((d) => contatoNoCanal(d, 'whatsapp')).length,
-  }), [escolhidos]);
-
-  const canaisEfetivos = useMemo(
-    () => CANAIS.filter((c) => canais.includes(c) && alcance[c] > 0),
-    [canais, alcance],
-  );
-
-  /** Canal que NENHUM representante alcança sai desmarcado — propriedade do cadastro. */
-  const alcanceTotal = useMemo(() => alcanceDosCanais(destinatarios), [destinatarios]);
-  useEffect(() => {
-    if (carregando) return;
-    setCanais((atual) => atual.filter((c) => alcanceTotal[c] > 0));
-  }, [carregando, alcanceTotal]);
-
-  const alternarCanal = (canal: CanalAviso) => setCanais((atual) => (
-    atual.includes(canal) ? atual.filter((c) => c !== canal) : [...atual, canal]
-  ));
-  const alternarDestinatario = (userId: string) => setSelecionados((atual) => (
-    atual.includes(userId) ? atual.filter((id) => id !== userId) : [...atual, userId]
-  ));
-
-  const podeEnviar = itensAtivos > 0 && escolhidos.length > 0
-    && canaisEfetivos.length > 0 && !enviando;
+  const podeEnviar = itensAtivos > 0 && temParaEnviar(escolha) && !enviando;
 
   /**
-   * Por que o botão está apagado, em uma frase — do que se resolve agora para o
-   * que não se resolve aqui.
+   * A lista vazia vem ANTES do motivo compartilhado: é a única condição deste
+   * modal que não é sobre destinatário, e sem ela a tela mandaria marcar gente
+   * para enviar um pedido sem nenhum documento.
    */
   const motivoDoBloqueio = enviando ? undefined
     : itensAtivos === 0
       ? 'A lista está vazia. Gere os documentos a partir da OS antes de enviar.'
-      : destinatarios.length === 0
-        ? 'Este cliente não tem representante com acesso ao portal. Cadastre um antes de enviar.'
-        : escolhidos.length === 0
-          ? 'Marque pelo menos um destinatário para enviar a solicitação.'
-          : canais.length === 0
-            ? 'Escolha pelo menos um canal para enviar a solicitação.'
-            : canaisEfetivos.length === 0
-              ? 'Os canais marcados não alcançam nenhum dos destinatários escolhidos.'
-              : undefined;
+      : motivoDeBloqueio(escolha, 'para enviar a solicitação');
 
   return (
     <Dialog open={aberto} onOpenChange={(v) => !enviando && !v && onFechar()}>
@@ -161,8 +98,8 @@ export function ModalEnviarSolicitacao({
             <ListaDeDestinatarios
               destinatarios={destinatarios}
               carregando={carregando}
-              selecionados={new Set(selecionados)}
-              onAlternar={alternarDestinatario}
+              selecionados={new Set(escolha.selecionados)}
+              onAlternar={escolha.alternarDestinatario}
               /* Sem disparo anterior: nada a travar, nada a datar. */
               jaHoje={null}
               proximoEm=""
@@ -172,38 +109,7 @@ export function ModalEnviarSolicitacao({
 
           <section>
             <Rotulo>Canais de envio</Rotulo>
-            <div className="mt-3 space-y-2">
-              <LinhaCanal
-                canal="email"
-                rotulo="E-mail"
-                nomeNoTexto="e-mail"
-                contato="e-mail"
-                Icone={Mail}
-                marcado={canais.includes('email')}
-                onAlternar={() => alternarCanal('email')}
-                carregando={carregando}
-                semSelecao={escolhidos.length === 0}
-                aReceber={alcance.email}
-                jaReceberam={0}
-                proximoEm=""
-                enviando={enviando}
-              />
-              <LinhaCanal
-                canal="whatsapp"
-                rotulo="WhatsApp"
-                nomeNoTexto="WhatsApp"
-                contato="telefone"
-                Icone={MessageCircle}
-                marcado={canais.includes('whatsapp')}
-                onAlternar={() => alternarCanal('whatsapp')}
-                carregando={carregando}
-                semSelecao={escolhidos.length === 0}
-                aReceber={alcance.whatsapp}
-                jaReceberam={0}
-                proximoEm=""
-                enviando={enviando}
-              />
-            </div>
+            <BlocoDeCanais escolha={escolha} enviando={enviando} />
           </section>
         </div>
 
