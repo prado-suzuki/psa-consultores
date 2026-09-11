@@ -119,6 +119,9 @@
   .colap .cab .esq{display:flex;align-items:center;gap:8px}
   .colap .mio{border-top:1px solid #F2EFEA;padding:10px 12px 12px;font-size:12px;color:var(--p-fg2)}
   .chev{font-size:11px;line-height:1}
+  .ic{width:15px;height:15px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;
+      stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px}
+  .ic.g{width:26px;height:26px;stroke-width:1.8}
 
   .estado{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);
           font-weight:700;margin:0 0 7px}
@@ -170,9 +173,9 @@
 
   <div class="dec-linha" style="opacity:.62"><div class="i" style="color:#3B6B34">✓</div>
     <div class="t">Controle de Balancetes — a barra de ações
-      <em><span class="good">Decidido em 11/09: opção A</span> — o vocabulário do
-      <code>ui/button</code>, sem classe de cor. Comparada com as telas vizinhas e com mais duas
-      variantes, na seção.</em></div>
+      <em><span class="good">Decidido em 11/09: opção F</span> — a ação mora na linha do arquivo,
+      a barra só aparece com seleção. Mais a troca do <code>FileDown</code> por
+      <code>FileSpreadsheet</code>, porque os dois ícones de hoje são gêmeos.</em></div>
     <div class="q">7 ocorr.<br>1 tela</div></div>
 
   <p class="semdec"><strong>Não precisam da sua aprovação (57):</strong> quatro mapas que já têm
@@ -181,7 +184,74 @@
   Estão no fim da página, com o antes e o depois, só para você conferir.</p>
 </div>
 
-<p class="lede">Uma coisa antes, porque ela explica por que são quatro perguntas e não uma: o azul
+<h2>Na prática: quais rotas</h2>
+
+<div class="nota" style="border-left-color:#B98A3A;background:#FDF9F1;padding:12px 0 12px 16px;border-radius:0 8px 8px 0">
+<strong>Remedido hoje às 14h30: são 94 em 36, não 100 em 39.</strong> Seis saíram sozinhas
+enquanto esta página era escrita — a sessão paralela, na frente do <code>red</code>/<code>emerald</code>,
+levou junto o <code>ACTION_LABELS</code> das duas cópias (para <code>feito/andamento/ajuste</code>,
+exatamente o que estava proposto aqui) e a escada do <code>StageEditCard</code>. Não é
+coincidência: são mapas, e mapa anda inteiro.</div>
+
+<p>O mapa abaixo sai de percorrer os <code>import</code> de cada arquivo até as páginas montadas
+no <code>App.tsx</code> — não é a pasta, é a <strong>rota que a pessoa abre</strong>.
+São <strong>24 rotas</strong>, e três telas que não têm rota nenhuma.</p>
+
+<table class="med">
+<thead><tr><th style="width:30%">rota</th><th style="width:7%">ocorr.</th><th style="width:14%">decisão</th><th>o que muda ali</th></tr></thead>
+<tbody>
+<tr><td class="mono">/equipe/processos</td><td class="n">14</td><td><span class="good">3 ✓</span> + sem decisão</td>
+  <td>o cartão do processo vira duas linguagens (3); e o azul de moldura do <code>SavingsSections</code> e do <code>ImprovementHistoryModal</code> (9) sai sem perguntar</td></tr>
+<tr><td class="mono">/equipe/mapeamento</td><td class="n">11</td><td>sem decisão</td>
+  <td>o trio do cenário, hoje copiado em três arquivos, vira um mapa só</td></tr>
+<tr><td class="mono">/equipe/dev/controle-perdcomp</td><td class="n">8</td><td><span class="good">2 ✓</span> + fila</td>
+  <td>quatro números vestem tom categórico; as 4 do <code>SITUACAO_COLORS</code> <strong>ficam</strong>, com o motivo escrito</td></tr>
+<tr><td class="mono">/equipe/dev/controle-balancetes</td><td class="n">7</td><td><span class="good">4 ✓</span></td>
+  <td>a barra inteira. É a rota com mais azul concentrado, e a única que a decisão 4 toca</td></tr>
+<tr><td class="mono">/equipe/projetos</td><td class="n">7</td><td>sem decisão</td>
+  <td>o "Concluído" azul volta a ser verde, e o selo de área vira tom categórico</td></tr>
+<tr><td class="mono">/equipe/dev/consulta-ecd<br>/equipe/dev/consulta-ecf<br>/equipe/dev/consulta-efd<br>/equipe/dev/consulta-efd-icms</td>
+  <td class="n">4<br>cada</td><td><span class="warn">1</span> + sem decisão</td>
+  <td>as quatro telas do selo — cada uma tem 3 do selo e 1 do <em>hover</em> da <code>EFDFiscalTable</code>, que é o mesmo componente nas quatro</td></tr>
+<tr><td class="mono">/equipe/acessos</td><td class="n">4</td><td>sem decisão</td>
+  <td>a categoria de página; e o ícone de documento Word, que vem do <code>docMeta</code></td></tr>
+<tr><td class="mono">/gestao/acessos</td><td class="n">4</td><td><span class="good">2 ✓</span> + sem decisão</td>
+  <td>o selo do papel do usuário, e o cartão de contagem "Membros"</td></tr>
+<tr><td class="mono">/equipe/dashboard</td><td class="n">4</td><td><span class="good">2 ✓</span></td>
+  <td>os quatro cartões do Impacto Digital — é a tela da decisão 2</td></tr>
+<tr><td class="mono">/equipe/dev/apuracao-pis-cofins<br>/equipe/dev/cruzamento-dados</td><td class="n">3<br>cada</td><td><span class="good">2 ✓</span></td>
+  <td>o mesmo <code>BalanceteTreeTable</code> nas duas — é o selo que mede <span class="bad">4,35:1</span></td></tr>
+<tr><td class="mono">/equipe/backlog</td><td class="n">3</td><td><span class="warn">3, metade</span></td>
+  <td>o chip do cluster. É a metade da decisão 3 que ainda não saiu</td></tr>
+<tr><td class="mono">/equipe/dashboards/analise-inteligente</td><td class="n">3</td><td><span class="good">2 ✓</span></td>
+  <td>o KPI "Scope Creep" e o ícone da aderência ao escopo</td></tr>
+<tr><td class="mono">/equipe/kanban</td><td class="n">2</td><td>sem decisão</td>
+  <td>o <code>switch</code> de cor à mão passa a ler o <code>entregavelStatusColors</code></td></tr>
+<tr><td class="mono">/equipe/sprints/:id</td><td class="n">2</td><td>sem decisão</td>
+  <td>o tipo de evento da agenda</td></tr>
+<tr><td class="mono">/equipe/relatorios</td><td class="n">2</td><td>sem decisão</td>
+  <td>o cartão "Sprints"</td></tr>
+<tr><td class="mono">/equipe/dev/consulta-xmls<br>/equipe/digital<br>/equipe/biblioteca<br>/equipe/sprints</td><td class="n">1<br>cada</td><td>sem decisão</td>
+  <td>ícone de Saída, gradiente do seletor de área, ícone de imagem, e "h liberadas"</td></tr>
+<tr class="tot"><td colspan="4" style="padding-top:14px"><strong>Duas coisas fora da tabela, e as duas importam para o plano</strong></td></tr>
+<tr><td class="mono">+12 rotas</td><td class="n">1</td><td>sem decisão</td>
+  <td><strong>uma ocorrência só, a mais espalhada de todas:</strong> o <code>text-blue-500</code> do ícone de documento Word, no <code>docMeta.ts</code>. Ele chega a 12 rotas — nove da OSG, mais <span class="mono">/cliente</span>, <span class="mono">/equipe/acessos</span> e <span class="mono">/equipe/tax/projetos/clientes</span>. Uma linha, doze telas</td></tr>
+<tr><td class="mono">(nenhuma rota)</td><td class="n">5</td><td>—</td>
+  <td><strong>código que ninguém consegue abrir:</strong> <code>AdminUsuarios</code>, <code>AdminPerformance</code> e o <code>DemandList</code> (via <code>EquipeDemandas</code>) não são montados por rota nenhuma no <code>App.tsx</code>. Converter ali não muda um pixel para ninguém — é a mesma situação dos "componentes órfãos" que sobraram na rodada do cinza</td></tr>
+</tbody>
+</table>
+
+<div class="nota"><strong>O que isso muda no plano de execução.</strong> As rotas dizem o tamanho
+real de cada commit, e três coisas ficam óbvias olhando a coluna:
+<br>· a decisão <strong>4</strong> é uma rota só — é o commit mais barato de validar;
+<br>· a decisão <strong>1</strong> é a mais cara, porque são quatro rotas irmãs e a forma nova
+(linha = competência) tem que sair igual nas quatro, senão sobra a divergência que a conversão
+existe para matar;
+<br>· <span class="mono">/equipe/processos</span> concentra 14 e mistura decisão com não-decisão —
+então vai em <strong>dois</strong> commits: primeiro a moldura azul do formulário, que não tem
+pergunta; depois o cartão.</div>
+
+<p class="lede" style="margin-top:40px">Uma coisa antes, porque ela explica por que são quatro perguntas e não uma: o azul
 é a <strong>única família com três casas legítimas</strong> no contrato. O papel
 <code>fila</code> já é azul. O tom categórico <code>tag-b</code> é o frio da área. E
 <code>info</code> é azul e <strong>não</strong> acompanha a área — todas herdam o mesmo.
@@ -786,29 +856,36 @@ principal é cheia na âncora, as demais em contorno. O "Analisar" do EFD está 
   <strong>Depende de um fato que eu não tenho:</strong> exportar Excel é mesmo mais frequente que
   baixar o arquivo original? Se for o contrário, é só trocar qual dos dois é o cheio.</div></div>
 
-  <div class="palco a"><div class="head"><span>F · a barra some, as ações vivem na linha</span><span class="sel">ghost + default</span></div><div class="corpo">
+  <div class="palco rec"><div class="head"><span>F · a barra some, as ações vivem na linha</span><span class="sel">aprovada · ghost + default</span></div><div class="corpo">
     <table class="tab">
     <thead><tr><th style="width:40%">Balancete</th><th>Competência</th><th style="width:120px">Ações</th></tr></thead>
     <tbody>
     <tr><td class="arq">Balancete_03_2024</td><td>mar/2024</td>
-      <td><span class="btn ico" style="border-color:transparent;background:#0A756C;color:#fff">⬇</span>
-          <span class="btn ico" style="border-color:transparent;color:#0A756C">📊</span></td></tr>
+      <td><span class="btn ico" style="border-color:transparent;background:#0A756C;color:#fff" title="Baixar original">
+            <svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>
+          <span class="btn ico" style="border-color:transparent;color:#0A756C" title="Exportar movimentos (Excel)">
+            <svg class="ic" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/></svg></span></td></tr>
     <tr><td class="arq">Balancete_04_2024</td><td>abr/2024</td>
-      <td><span class="btn ico" style="border-color:transparent;color:#2E1305">⬇</span>
-          <span class="btn ico" style="border-color:transparent;color:#2E1305">📊</span></td></tr>
+      <td><span class="btn ico" style="border-color:transparent;color:#2E1305">
+            <svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>
+          <span class="btn ico" style="border-color:transparent;color:#2E1305">
+            <svg class="ic" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/></svg></span></td></tr>
     </tbody></table>
     <div style="margin-top:10px;background:var(--p-card);border:1px solid var(--p-border);border-radius:10px;padding:11px 13px">
       <div style="font-size:12px;color:var(--p-fg2)">Com 3 selecionados, a barra aparece:</div>
       <div class="barra" style="margin-top:8px;border:none;padding:0">
-        <span class="btn" style="background:#0A756C;border-color:#0A756C;color:#fff">⬇ Exportar 3 em Excel</span>
-        <span class="btn">⬇ Baixar 3 originais</span>
+        <span class="btn" style="background:#0A756C;border-color:#0A756C;color:#fff">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/></svg>
+          Exportar 3 em Excel</span>
+        <span class="btn">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          Baixar 3 originais</span>
       </div>
     </div>
   </div><div class="pe"><strong>Diz:</strong> ação de um arquivo mora na linha dele (ícone
   <code>ghost</code>, que já enche de âncora no hover); a barra do topo só existe quando há
   seleção, e aí ela diz <em>quantos</em>.<br>
-  <strong>É a mais disruptiva das três</strong>, e a que mais mexe em código — muda quando a
-  barra aparece, não só a cor dela.</div></div>
+  <strong>É a que mais mexe em código</strong> — muda quando a barra aparece, não só a cor dela.</div></div>
 
   <div class="palco b"><div class="head"><span>B · Excel continua sendo outra coisa</span><span class="sel">tag-b · fora do vocabulário</span></div><div class="corpo">
     <div class="barra">
@@ -839,20 +916,69 @@ principal é cheia na âncora, as demais em contorno. O "Analisar" do EFD está 
   comparação: é a única das quatro que sai do vocabulário.</div></div>
 </div>
 
-<div class="escolha"><b>Você aprovou A. As outras duas são refinamentos dela, não alternativas</b>
-A, E e F usam <strong>o mesmo</strong> vocabulário — mudam só quanto peso o Excel recebe:
-<br><br>
-<strong>A</strong> — os dois em contorno. É o mais próximo do que as telas vizinhas já fazem, e
-o menor diff: troca classe por <code>variant</code>.<br>
-<strong>E</strong> — o Excel vira o cheio. Devolve a hierarquia que o azul dava, sem cor inventada.
-Só precisa de uma resposta sua: <em>qual das duas ações a equipe usa mais?</em><br>
-<strong>F</strong> — a barra só aparece com seleção, e a ação de um arquivo mora na linha dele.
-É a que mais mexe em código.
-<br><br>
-<span class="good">Se você não disser nada, eu faço A</span> — que é o que você aprovou. Se
-responder qual ação é a mais usada, eu faço <strong>E</strong>, que é estritamente melhor que A
-nessa tela. <strong>Nos três casos o <em>hover</em> da linha vira <code>bg-muted</code></strong>,
+<div class="escolha" style="background:#ECF3E9;border-color:#C3D6BC"><b style="color:#3B6B34">Decidido em 11/09 · opção F</b>
+A ação de um arquivo mora na linha dele; a barra do topo só aparece quando há seleção, e diz
+quantos. <strong>Nos três casos o <em>hover</em> da linha vira <code>bg-muted</code></strong>,
 como as tabelas vizinhas já fazem.</div>
+
+<h3 style="font-size:16px;margin-top:30px">Os dois ícones: o problema é que eles são gêmeos</h3>
+
+<p>Você apontou e o código confirma. A tela importa <code>Download</code>, <code>FileDown</code>
+<em>e</em> <code>FileSpreadsheet</code> — e usa os <strong>dois primeiros</strong>, que são a mesma
+ideia desenhada duas vezes: seta para baixo. Nenhum dos dois diz <em>o que</em> sai.</p>
+
+<div class="duo">
+  <div class="palco hoje"><div class="head"><span>Hoje · Download e FileDown</span></div><div class="corpo">
+    <div style="display:flex;gap:34px;align-items:flex-start;padding:6px 2px">
+      <div style="text-align:center">
+        <svg class="ic g" viewBox="0 0 24 24" style="color:#2E1305"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        <div style="font-size:11px;margin-top:6px;font-weight:600">Baixar original</div>
+        <div class="mono" style="font-size:10px;color:var(--ink-2)">Download</div></div>
+      <div style="text-align:center">
+        <svg class="ic g" viewBox="0 0 24 24" style="color:#2563EB"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>
+        <div style="font-size:11px;margin-top:6px;font-weight:600">Exportar Excel</div>
+        <div class="mono" style="font-size:10px;color:var(--ink-2)">FileDown</div></div>
+    </div>
+    <div class="estado">no tamanho real da linha (15px)</div>
+    <div class="barra">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+      <svg class="ic" viewBox="0 0 24 24" style="color:#2563EB"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>
+      <span style="font-size:11.5px;color:var(--ink-2)">— duas setas para baixo, lado a lado</span>
+    </div>
+  </div><div class="pe">Os dois dizem "isto baixa". A diferença entre eles fica só na cor — que é
+  justamente a cor que vai sair. <strong>Tirar o azul sem trocar o ícone deixaria os dois
+  idênticos</strong>, e aí a conversão pioraria a tela.</div></div>
+
+  <div class="palco rec"><div class="head"><span>Proposta · Download e FileSpreadsheet</span></div><div class="corpo">
+    <div style="display:flex;gap:34px;align-items:flex-start;padding:6px 2px">
+      <div style="text-align:center">
+        <svg class="ic g" viewBox="0 0 24 24" style="color:#2E1305"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        <div style="font-size:11px;margin-top:6px;font-weight:600">Baixar original</div>
+        <div class="mono" style="font-size:10px;color:var(--ink-2)">Download</div></div>
+      <div style="text-align:center">
+        <svg class="ic g" viewBox="0 0 24 24" style="color:#0A756C"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/></svg>
+        <div style="font-size:11px;margin-top:6px;font-weight:600">Exportar Excel</div>
+        <div class="mono" style="font-size:10px;color:var(--ink-2)">FileSpreadsheet</div></div>
+    </div>
+    <div class="estado">no tamanho real da linha (15px)</div>
+    <div class="barra">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+      <svg class="ic" viewBox="0 0 24 24" style="color:#0A756C"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/></svg>
+      <span style="font-size:11.5px;color:var(--ink-2)">— a seta e a grade: separam sem depender de cor</span>
+    </div>
+  </div><div class="pe"><strong>Um diz <em>que baixa</em>; o outro diz <em>o que sai</em>.</strong>
+  A grade da planilha separa mesmo em 15px e mesmo em cinza — que é o teste que importa, porque
+  na linha não-ativa os dois ficam no <code>foreground</code>.
+  <br><br>
+  <strong>E não é ícone novo:</strong> o <code>FileSpreadsheet</code> <em>já está importado</em>
+  nesta tela, e é o que as telas irmãs do módulo usam para planilha (4 usos entre
+  <code>EfdResultsTable</code>, <code>EFDExportDialog</code> e as Consultas). O
+  <code>FileDown</code> é que sai.</div></div>
+</div>
+
+<div class="nota"><strong>Uma terceira ação aparece em F, e ela também merece ícone próprio:</strong>
+hoje o "Analisar" das telas irmãs usa <code>BarChart3</code>. Se o Balancetes ganhar a mesma ação
+na linha, é esse o ícone — a casa já tem a palavra.</div>
 
 <!-- ══════════════════════════════════════════════════════════════ -->
 <h2>O que eu faço sem perguntar (57)</h2>
@@ -1070,9 +1196,10 @@ Os pares <code>-soft</code> são calibrados para 5:1 com a mesma folga nas três
   relação aos papéis, e por isso vale a regra "o cartão não repete o tom de papel que a mesma
   tela mostra". No escuro os quatro reprovam — dívida assumida, e já existente.</td></tr>
 <tr><td><strong>4 · barra de ações</strong></td>
-  <td><span class="good">A, aprovada</span></td>
-  <td>comparada com o vocabulário do <code>ui/button</code> e com as duas telas vizinhas. Faço A;
-  se você disser qual ação a equipe usa mais, faço <strong>E</strong>, que é melhor.</td></tr>
+  <td><span class="good">F, aprovada</span></td>
+  <td>a ação mora na linha; a barra do topo só aparece com seleção, dizendo quantos. Junto vai a
+  troca de ícone: <code>Download</code> + <code>FileSpreadsheet</code> no lugar dos dois gêmeos
+  de seta. É a decisão que mais mexe em código, e é uma rota só.</td></tr>
 <tr><td><strong>1 · Original / Retificadora</strong></td>
   <td><span class="good">E, sua</span> <span class="warn">· 3 dúvidas</span></td>
   <td>a linha vira a <strong>competência</strong> e as versões ficam dentro dela — a retificação é
