@@ -17,10 +17,16 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Filter, Search, Plus, FileSpreadsheet, Download, FileDown, Loader2, Info, Trash2 } from 'lucide-react';
+// `FileDown` saiu em 11/09/2026 e o `FileSpreadsheet` ocupou o lugar dele. Os dois
+// que a tela usava — `Download` e `FileDown` — são a MESMA ideia desenhada duas
+// vezes, uma seta para baixo, e só se distinguiam pela cor: azul de estoque num,
+// âncora no outro. Tirar a cor sem trocar o ícone deixaria os dois idênticos.
+// Agora um diz QUE BAIXA (a seta) e o outro diz O QUE SAI (a grade da planilha),
+// e a grade separa em 15px mesmo os dois em `foreground`. O `FileSpreadsheet` já
+// estava importado aqui, e é o que as telas irmãs do módulo usam para planilha.
+import { Filter, Search, Plus, FileSpreadsheet, Download, Loader2, Info, Trash2 } from 'lucide-react';
 import { UploadBalanceteModal } from '@/components/equipe/dev/balancete/UploadBalanceteModal';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { BotaoLimparFiltros } from '@/components/ui/BotaoLimparFiltros';
 
@@ -400,30 +406,50 @@ const ControleBalancetes = () => {
       <Card className="rounded-2xl border-border shadow-sm">
         <CardHeader className="p-6 md:px-8 flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-semibold text-foreground">Balancetes</CardTitle>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 text-primary border-primary/20 hover:bg-primary/5"
-              disabled={selectedIds.size === 0 || downloading['__bulk__'] === 'download'}
-              onClick={() => handleBulkAction('batch-download', 'download')}
-            >
-              {downloading['__bulk__'] === 'download' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              Baixar original
-              {selectedIds.size > 0 && <Badge variant="secondary" className="ml-1 text-xs">{selectedIds.size}</Badge>}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 text-blue-700 border-blue-200 hover:bg-blue-50"
-              disabled={selectedIds.size === 0 || downloading['__bulk__'] === 'export'}
-              onClick={() => handleBulkAction('batch-export-excel', 'export')}
-            >
-              {downloading['__bulk__'] === 'export' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-              Exportar movimentos
-              {selectedIds.size > 0 && <Badge variant="secondary" className="ml-1 text-xs">{selectedIds.size}</Badge>}
-            </Button>
-          </div>
+          {/*
+            A barra de lote só existe quando há seleção, e aí ela diz QUANTOS.
+
+            Antes as duas ações moravam aqui o tempo todo, desabilitadas — dois
+            botões apagados ocupando o cabeçalho em 100% das visitas para servir
+            à minoria delas. E a contagem vinha numa pílula colada ao lado do
+            rótulo, que só aparecia depois de selecionar: quem lia "Baixar
+            original" não sabia se ia baixar um ou trinta até olhar a pílula.
+            Agora o número está na frase, e a pílula deixou de existir — foi o
+            último consumidor de `ui/badge` nesta tela.
+
+            Ação de UM balancete mora na linha dele (os ícones `ghost` da coluna
+            Ações), que é onde a pessoa já está olhando quando decide.
+
+            Nenhuma classe de cor: `variant="outline"` já se enche da âncora da
+            área no hover (`hover:bg-accent`) — é a mesma receita que as Correções
+            SPED consolidaram em `classesDeBotao.ts` depois de achá-la copiada
+            sete vezes. O "Exportar" estava em azul de estoque, inventando um
+            terceiro nível que o vocabulário do `ui/button` não tem.
+          */}
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                disabled={downloading['__bulk__'] === 'download'}
+                onClick={() => handleBulkAction('batch-download', 'download')}
+              >
+                {downloading['__bulk__'] === 'download' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                Baixar {selectedIds.size} {selectedIds.size === 1 ? 'original' : 'originais'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                disabled={downloading['__bulk__'] === 'export'}
+                onClick={() => handleBulkAction('batch-export-excel', 'export')}
+              >
+                {downloading['__bulk__'] === 'export' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+                Exportar {selectedIds.size} em Excel
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="p-6 pt-0 md:px-8 md:pb-8">
           <div className="overflow-x-auto w-full">
@@ -499,14 +525,14 @@ const ControleBalancetes = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 rounded-lg hover:bg-blue-50"
+                                  className="h-8 w-8 rounded-lg hover:bg-primary/5"
                                   disabled={downloading[b.id] === 'export'}
                                   onClick={() => setConfirmExport(b.id)}
                                 >
                                   {downloading[b.id] === 'export' ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
-                                    <FileDown className="h-4 w-4 text-blue-600" />
+                                    <FileSpreadsheet className="h-4 w-4 text-primary" />
                                   )}
                                 </Button>
                               </TooltipTrigger>
@@ -587,7 +613,7 @@ const ControleBalancetes = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction className="bg-blue-600 hover:bg-blue-700" onClick={() => { if (confirmExport) handleBlobDownload(confirmExport, 'export-excel', 'export'); setConfirmExport(null); }}>Exportar</AlertDialogAction>
+            <AlertDialogAction className="bg-primary hover:bg-primary/90" onClick={() => { if (confirmExport) handleBlobDownload(confirmExport, 'export-excel', 'export'); setConfirmExport(null); }}>Exportar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

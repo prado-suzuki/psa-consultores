@@ -70,7 +70,12 @@ const FILA_DO_BLUE = {
    *   dois ícones de hoje são a mesma seta desenhada duas vezes.
    */
   decididoAguardandoExecucao: {
-    'src/pages/equipe/dev/ControleBalancetes.tsx': 7,
+    // O `ControleBalancetes` saiu em 11/09/2026, e era a maior concentração numa
+    // tela só: 7 das 100, todas dizendo "Excel". Decisão dela, opção F — a ação
+    // de um balancete mora na LINHA dele, e a barra de lote só aparece quando há
+    // seleção, dizendo quantos. O azul não era estado nem categoria: era
+    // hierarquia de ação escrita com cor de estoque, inventando um terceiro
+    // nível que o vocabulário do `ui/button` não tem.
     'src/components/equipe/ImpactDashboard.tsx': 4,
     'src/components/equipe/dev/consulta-efd-icms/EfdResultsTable.tsx': 3,
     'src/components/equipe/dev/pis-cofins/BalanceteTreeTable.tsx': 3,
