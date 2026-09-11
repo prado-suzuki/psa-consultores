@@ -98,6 +98,13 @@ describe('MOT-01 · cada órgão leva só as suas alíneas', () => {
 describe('MOT-01 · a grade do documento da Matriz', () => {
   it('mantém a coluna do órgão que não participa, para o quadro não desalinhar', () => {
     const grade = [
+      /*
+       * A primeira linha é o super-cabeçalho, a faixa "Estrutura Organizacional"
+       * que as matrizes reais têm por cima dos nomes dos órgãos. O `tabela.ts` a
+       * monta sozinho: célula vazia estende o span da anterior, então o rótulo
+       * escrito uma vez e seguido de N-1 vazias atravessa as N colunas de órgão.
+       */
+      '| | Estrutura Organizacional {{#orgaos sep=""}}| {{/orgaos}}',
       '| Decisão | {{#orgaos sep=""}}{{ nome }} | {{/orgaos}}',
       '| --- {{#orgaos sep=""}}| --- {{/orgaos}}|',
       '{{#linhas sep="\\n"}}| {{ atividade }} | {{#celulas sep=""}}{{ resumo }} | {{/celulas}}{{/linhas}}',
@@ -108,6 +115,11 @@ describe('MOT-01 · a grade do documento da Matriz', () => {
     expect(tabela).toBeDefined();
     if (tabela?.tipo !== 'tabela') return;
 
+    // A faixa atravessa as três colunas de órgão, e deixa a primeira de fora.
+    expect(tabela.grupos).toEqual([
+      { texto: '', span: 1 },
+      { texto: 'Estrutura Organizacional', span: 3 },
+    ]);
     expect(tabela.cabecalho).toEqual([
       'Decisão', 'Reunião de Sócios', 'Conselho de Administração', 'Diretoria Executiva',
     ]);
