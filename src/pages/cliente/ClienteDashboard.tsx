@@ -191,14 +191,14 @@ export default function ClienteDashboard() {
             >
               <TabsTrigger
                 value="chamados"
-                className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
+                className="data-[state=active]:bg-background data-[state=active]:text-primary"
               >
                 <FileText className="mr-2 h-4 w-4" />
                 Chamados
               </TabsTrigger>
               <TabsTrigger
                 value="projects"
-                className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
+                className="data-[state=active]:bg-background data-[state=active]:text-primary"
               >
                 <FolderKanban className="mr-2 h-4 w-4" />
                 Projetos
@@ -206,7 +206,7 @@ export default function ClienteDashboard() {
               {comDocumentos && (
                 <TabsTrigger
                   value="documents"
-                  className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
+                  className="data-[state=active]:bg-background data-[state=active]:text-primary"
                 >
                   <FileUp className="mr-2 h-4 w-4" />
                   Documentos
@@ -225,7 +225,6 @@ export default function ClienteDashboard() {
                 <Button
                   size="sm"
                   onClick={() => navigate("/cliente/novo-chamado")}
-                  className="bg-teal-600 hover:bg-teal-700 text-white"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Abrir Chamado

@@ -162,7 +162,7 @@ const AnaliseInteligente = () => {
           <Button
             variant="outline"
             onClick={exportarPDF}
-            className="border-teal-600 text-teal-600 hover:bg-accent/5"
+            className="border-primary text-primary hover:bg-accent/5"
           >
             <FileDown className="h-4 w-4 mr-2" />
             Exportar PDF
@@ -194,7 +194,7 @@ const AnaliseInteligente = () => {
 
         {isFetching ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin h-10 w-10 rounded-full border-b-2 border-teal-600" />
+            <div className="animate-spin h-10 w-10 rounded-full border-b-2 border-primary" />
           </div>
         ) : (
           <>

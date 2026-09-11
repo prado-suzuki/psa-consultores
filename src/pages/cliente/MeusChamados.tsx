@@ -256,7 +256,7 @@ export default function MeusChamados() {
                           {chamadoPrioridadeConfig(ticket.priority).label}
                         </Badge>
                         {ticket.department && (
-                          <Badge variant="outline" className="bg-accent/10 text-teal-700">
+                          <Badge variant="outline" className="bg-accent/10 text-primary">
                             {departmentLabels[ticket.department] || ticket.department}
                           </Badge>
                         )}
@@ -264,9 +264,9 @@ export default function MeusChamados() {
                       <div className="flex items-center gap-2 mb-3">
                         {ticket.assigned_agent ? (
                           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                            <User className="h-4 w-4 text-teal-600" />
+                            <User className="h-4 w-4 text-primary" />
                             <span className="font-medium">Analista responsável:</span>
-                            <span className="text-teal-700 font-semibold">
+                            <span className="text-primary font-semibold">
                               {ticket.assigned_agent.first_name} {ticket.assigned_agent.last_name}
                             </span>
                           </div>

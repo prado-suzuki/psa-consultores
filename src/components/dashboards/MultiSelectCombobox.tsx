@@ -78,7 +78,7 @@ export function MultiSelectCombobox({
                     </span>
                   </Badge>
                 ))}
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-teal-600">
+                <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-primary">
                   <Plus className="h-3 w-3" />{addLabel}
                 </span>
               </div>

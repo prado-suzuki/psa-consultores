@@ -51,7 +51,7 @@ import { OPCOES_PERIODO, resolverIntervaloPeriodo } from '@/lib/analytics-uso/pe
 
 const ABA_CLASSES =
   'rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors ' +
-  'data-[state=active]:bg-white data-[state=active]:text-teal-700 data-[state=active]:shadow-sm';
+  'data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm';
 
 const TODOS = '__todos__';
 const ABAS = ['saude', 'uso', 'arquivos'] as const;

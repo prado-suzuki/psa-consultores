@@ -62,7 +62,7 @@ const KIND_INFO: Record<ScenarioKind, {
     variedField: 'savings',
     variedLabel: 'Economia recorrente (R$/mês)',
     lockedDefault: ['volume', 'team_members', 'time_total'],
-    color: 'text-teal-600 bg-accent/5 border-primary/15',
+    color: 'text-primary bg-accent/5 border-primary/15',
   },
 };
 
@@ -375,8 +375,8 @@ export function ScenarioCreateModal({ open, onClose, processes, initialProcessId
               <Card className="bg-gradient-to-br from-accent/5 to-emerald-50 border-primary/15">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-medium text-teal-700 uppercase">Resultado projetado</p>
-                    {computing && <Loader2 className="h-4 w-4 animate-spin text-teal-600" />}
+                    <p className="text-xs font-medium text-primary uppercase">Resultado projetado</p>
+                    {computing && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
                   </div>
                   {preview ? (
                     <div className="space-y-3">
@@ -482,7 +482,7 @@ function Metric({ label, value, accent }: MetricProps) {
   return (
     <div className="flex items-center justify-between">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={`text-sm font-semibold ${accent ? 'text-teal-700 text-lg' : 'text-foreground'}`}>
+      <span className={`text-sm font-semibold ${accent ? 'text-primary text-lg' : 'text-foreground'}`}>
         {value}
       </span>
     </div>

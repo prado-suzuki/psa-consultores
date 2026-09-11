@@ -19,7 +19,7 @@ export function AnaliseInteligenteKpis({
       <Card className="border-border shadow-sm">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <Gauge className="h-4 w-4 text-teal-600" />
+            <Gauge className="h-4 w-4 text-primary" />
             <span className="text-xs text-muted-foreground">Saúde</span>
           </div>
           <div className={`text-2xl font-bold ${scoreColor}`}>
@@ -32,10 +32,10 @@ export function AnaliseInteligenteKpis({
       <Card className="border-border shadow-sm">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <Target className="h-4 w-4 text-teal-600" />
+            <Target className="h-4 w-4 text-primary" />
             <span className="text-xs text-muted-foreground">Taxa Entrega</span>
           </div>
-          <div className="text-2xl font-bold text-teal-700">{kpis.rate}%</div>
+          <div className="text-2xl font-bold text-primary">{kpis.rate}%</div>
           <p className="text-xs text-muted-foreground mt-1">
             {kpis.completed}/{kpis.totalDel}
           </p>

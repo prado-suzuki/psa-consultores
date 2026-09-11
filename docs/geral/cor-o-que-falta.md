@@ -353,7 +353,7 @@ domínios de uma vez — foi ele que ficou com o masculino.
 | classe de defeito | proteção hoje |
 |---|---|
 | cor crua âmbar/amarela | catraca `src/lib/filaDoAlerta.test.ts` — igualdade exata, por arquivo, com o motivo |
-| `teal-500/600/700` | aviso de ESLint (`no-restricted-syntax`) |
+| `teal-500/600/700` | catraca `src/lib/filaDoTeal.test.ts` desde 11/09/2026 — nasce **vazia**; e a regra de ESLint (`no-restricted-syntax`) subiu de `warn` para `error` no mesmo dia, porque a fila zerou. Escapava pelo contrário do slate: o nome ESTÁ no `tailwind.config.ts`, remapeado para `hsl(var(--teal-N))`, então não era cor crua — era token de camada errada, que mora no `:root` e nenhum tema sobrescreve |
 | tom que a escala não tem | `escala/cor-inexistente` e `escala/cor-de-estoque` |
 | cor crua **slate** | catraca `src/lib/filaDoSlate.test.ts` — nasce **vazia**, e qualquer classe slate nova derruba |
 | âncora `osg-red` pintando status | catraca `src/lib/filaDoOsgRed.test.ts` — nasce **vazia**; não é cor de estoque, é token nosso no lugar errado |
@@ -477,7 +477,7 @@ Medido em 10/09/2026, ordenado:
 |---|---|---|---|
 | **`gray`** | **580** | 61 | só parcial — a `cor-de-estoque` só dispara em tom que a escala do projeto NÃO tem |
 | `red` | 176 | 58 | nenhuma |
-| `teal` | 112 | 36 | aviso de ESLint |
+| ~~`teal`~~ | **0** | 0 | **FECHADA em 11/09/2026** — catraca `filaDoTeal.test.ts` e ESLint em `error`. A família INTEIRA zerou nas pastas de tela, não só os três degraus do aviso |
 | `blue` | 108 | 41 | nenhuma |
 | `green` / `amber` | 81 / 81 | 28 / 31 | `amber` tem a `filaDoAlerta` |
 | `emerald` | 72 | 29 | nenhuma |

@@ -43,14 +43,14 @@ export interface AcentoArea {
 }
 
 const TEAL: AcentoArea = {
-  texto: 'text-teal-600',
-  barra: 'border-l-teal-600/70',
-  botao: 'bg-teal-600 hover:bg-teal-700 text-white',
-  botaoSuave: 'border-teal-600/40 bg-accent/5 text-teal-700 hover:border-teal-600 hover:bg-accent/10 hover:text-primary',
-  selecionado: 'bg-accent/5 border-l-teal-600',
+  texto: 'text-primary',
+  barra: 'border-l-primary/70',
+  botao: 'bg-primary hover:bg-primary/90 text-primary-foreground',
+  botaoSuave: 'border-primary/40 bg-accent/5 text-primary hover:border-primary hover:bg-accent/10 hover:text-primary',
+  selecionado: 'bg-accent/5 border-l-primary',
   positivoFundo: 'bg-accent/5',
-  positivoTexto: 'text-teal-700',
-  positivoBarra: 'bg-teal-600',
+  positivoTexto: 'text-primary',
+  positivoBarra: 'bg-primary',
   fundoModal: 'bg-white',
 };
 

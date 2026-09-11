@@ -359,7 +359,7 @@ export function TarefaRichTextEditor({
                 }
               }}
               placeholder="Buscar por código ou título..."
-              className="h-9 focus-visible:ring-teal-500"
+              className="h-9 focus-visible:ring-primary"
             />
           </div>
           <div role="listbox" aria-label="Tarefas encontradas" className="max-h-64 overflow-y-auto p-1">
@@ -400,7 +400,7 @@ export function TarefaRichTextEditor({
                   }}
                   className="flex w-full items-start gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-muted focus:bg-accent/5 focus:text-primary focus:outline-none"
                 >
-                  <span className="shrink-0 font-semibold text-teal-700">
+                  <span className="shrink-0 font-semibold text-primary">
                     [{task.task_code || task.title}]
                   </span>
                   {task.task_code && <span className="line-clamp-2 text-foreground">{task.title}</span>}

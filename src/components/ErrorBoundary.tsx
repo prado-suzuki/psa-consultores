@@ -73,7 +73,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           </div>
           <Button
             onClick={this.handleReload}
-            className="bg-teal-600 hover:bg-teal-700 text-white"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Recarregar página

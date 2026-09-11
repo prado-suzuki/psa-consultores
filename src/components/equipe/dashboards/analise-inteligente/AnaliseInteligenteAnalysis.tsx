@@ -43,7 +43,6 @@ export function AnaliseInteligenteAnalysis({
           <Button
             onClick={onAnalyze}
             disabled={analyzing}
-            className="bg-teal-600 hover:bg-teal-700"
           >
             {analyzing ? (
               <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -62,33 +61,33 @@ export function AnaliseInteligenteAnalysis({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base text-primary flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-teal-600" />
+            <Sparkles className="h-5 w-5 text-primary" />
             Análise Estratégica (Claude AI)
           </CardTitle>
           <Badge className={`${riskBadgeClassName} border-0`}>{riskBadgeLabel}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="p-3 bg-white/80 rounded-md border-l-4 border-teal-500">
+        <div className="p-3 bg-white/80 rounded-md border-l-4 border-primary">
           <p className="text-sm text-primary font-medium">{analise.sintese_executiva}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="bg-white/70 p-3 rounded-md border border-border">
             <h4 className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
-              <TrendingUp className="h-3 w-3 text-teal-600" /> Evolução das Entregas
+              <TrendingUp className="h-3 w-3 text-primary" /> Evolução das Entregas
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed">{analise.evolucao_entregas}</p>
           </div>
           <div className="bg-white/70 p-3 rounded-md border border-border">
             <h4 className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
-              <Clock className="h-3 w-3 text-teal-600" /> Tempo vs Resultado
+              <Clock className="h-3 w-3 text-primary" /> Tempo vs Resultado
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed">{analise.tempo_vs_resultado}</p>
           </div>
           <div className="bg-white/70 p-3 rounded-md border border-border">
             <h4 className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3 text-teal-600" /> Saudabilidade
+              <CheckCircle2 className="h-3 w-3 text-primary" /> Saudabilidade
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed">{analise.saudabilidade_sprint}</p>
           </div>
@@ -139,7 +138,7 @@ export function AnaliseInteligenteAnalysis({
             </ul>
           </div>
           <div className="bg-accent/5/70 p-3 rounded-md border border-primary/10">
-            <h4 className="text-xs font-semibold text-teal-700 mb-2 flex items-center gap-1">
+            <h4 className="text-xs font-semibold text-primary mb-2 flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3" /> Recomendações
             </h4>
             <ul className="space-y-1 text-xs text-primary">
