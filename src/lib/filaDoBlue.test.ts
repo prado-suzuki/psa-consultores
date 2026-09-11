@@ -76,7 +76,12 @@ const FILA_DO_BLUE = {
     // seleção, dizendo quantos. O azul não era estado nem categoria: era
     // hierarquia de ação escrita com cor de estoque, inventando um terceiro
     // nível que o vocabulário do `ui/button` não tem.
-    'src/components/equipe/ImpactDashboard.tsx': 4,
+    // O `ImpactDashboard` saiu em 11/09/2026, com a fila de cartões inteira: a
+    // decisão foi manter cor no KPI (ele é varrido de longe, e a cor é o que
+    // separa um cartão do outro) mas trocar tinta de fábrica por tom
+    // categórico. O achado não foi o azul — eram os DOIS VERDES iguais em
+    // "Melhorados" e "Economia", duas medidas sem relação pintadas igual numa
+    // fila onde a cor é justamente o que distingue.
     'src/components/equipe/dev/consulta-efd-icms/EfdResultsTable.tsx': 3,
     'src/components/equipe/dev/pis-cofins/BalanceteTreeTable.tsx': 3,
     'src/components/equipe/processos/ProcessList.tsx': 3,
