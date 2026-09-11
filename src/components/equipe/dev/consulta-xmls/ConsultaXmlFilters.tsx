@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ArrowDownLeft, ArrowUpRight, CalendarIcon, Eraser, Filter, FolderDown, Info, Loader2, Search } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, CalendarIcon, Filter, FolderDown, Info, Loader2, Search } from "lucide-react";
 import { format, parse } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { grafiasDeDocumento, resumoDeDocumentos } from "@/lib/buscaEmCombobox";
 import { XML_TOOLTIPS } from "@/lib/consultaXmlsTooltips";
 import type { CTeRecord, NFeRecord, TipoDocumentoXml, TipoMovimentoXml } from "@/types/consultaXmls";
 import { ButtonTooltip, FieldTooltip } from "@/components/equipe/dev/consulta-xmls/tooltips";
+import { BotaoLimparFiltros } from '@/components/ui/BotaoLimparFiltros';
 
 interface DomainItem { id: string; nome?: string; nome_razao_social?: string; cpf_cnpj?: string | null }
 export interface ConsultaXmlFiltersProps {
@@ -27,7 +28,7 @@ export interface ConsultaXmlFiltersProps {
   /** CNPJs dos contribuintes de cada cliente, para o campo de cliente achar por CNPJ. */
   cnpjsPorCliente?: Record<string, string[]>;
   nfeRecords: NFeRecord[]; cteRecords: CTeRecord[]; totalRecords: number; isLoading: boolean; downloadingBatch: boolean;
-  hasActiveFilters: boolean; onClear(): void; onSearch(): void; onDownloadBatch(): void;
+  filtrosAtivos: number; onClear(): void; onSearch(): void; onDownloadBatch(): void;
 }
 
 export function ConsultaXmlFilters(props: ConsultaXmlFiltersProps) {
@@ -54,7 +55,7 @@ export function ConsultaXmlFilters(props: ConsultaXmlFiltersProps) {
         <div className="md:col-span-4"><Label text="Chave de Acesso" tooltip={XML_TOOLTIPS.chaveAcesso} /><Input placeholder="Digite a chave de acesso (44 dígitos)" value={values.chave} onChange={(event) => set.chave(event.target.value)} className="h-11 font-mono text-sm" maxLength={50} /></div>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-border">
-        {props.hasActiveFilters && <ButtonTooltip text={XML_TOOLTIPS.limpar}><Button variant="ghost"onClick={props.onClear} disabled={props.isLoading} className="text-muted-foreground hover:text-red-600 hover:bg-red-50"><Eraser className="h-4 w-4 mr-2"/>Limpar filtros</Button></ButtonTooltip>}
+        <ButtonTooltip text={XML_TOOLTIPS.limpar}><BotaoLimparFiltros quantidade={props.filtrosAtivos} onClick={props.onClear} /></ButtonTooltip>
         <ButtonTooltip text={XML_TOOLTIPS.baixarXmls}><Button variant="outline" onClick={props.onDownloadBatch} disabled={props.downloadingBatch || props.isLoading || !required || !hasRecords}>{props.downloadingBatch ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FolderDown className="h-4 w-4 mr-2" />}Baixar XMLs</Button></ButtonTooltip>
         <ButtonTooltip text={XML_TOOLTIPS.exportarExcel}><ExportDialog data={values.tipoDocumento === "nfe" ? props.nfeRecords : []} cteData={values.tipoDocumento === "cte" ? props.cteRecords : []} tipoDocumento={values.tipoDocumento || "nfe"} totalRecords={props.totalRecords} start_date={values.startDate} end_date={values.endDate} contribuinteId={values.contribuinte} tipoMov={values.tipoMov} emitente={values.emitente} destinatario={values.destinatario} disabled={props.isLoading || !required || !hasRecords} /></ButtonTooltip>
         <ButtonTooltip text={XML_TOOLTIPS.buscar}><Button variant="outline" onClick={props.onSearch} disabled={!required || props.isLoading} className="hover:bg-primary hover:text-primary-foreground shadow-sm transition-colors">{props.isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}Buscar</Button></ButtonTooltip>

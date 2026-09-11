@@ -1,5 +1,5 @@
 import { format, parse } from 'date-fns';
-import { CalendarIcon, Eraser, Filter, Search } from 'lucide-react';
+import { CalendarIcon, Filter, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,7 @@ import type {
 } from '@/hooks/useDomainProcessoDifalQueries';
 import { cn } from '@/lib/utils';
 import { FieldTooltip } from '@/components/equipe/dev/processo-difal/DifalTooltips';
+import { BotaoLimparFiltros } from '@/components/ui/BotaoLimparFiltros';
 
 interface DifalFiltersCardProps {
   selectedCliente: string;
@@ -34,6 +35,8 @@ interface DifalFiltersCardProps {
   onStartDateChange: (value: string) => void;
   onEndDateChange: (value: string) => void;
   onClear: () => void;
+  /** Quantos filtros o usuario mexeu — as duas datas ja nascem preenchidas. */
+  filtrosAtivos: number;
   onSearch: () => void;
 }
 
@@ -52,6 +55,7 @@ export function DifalFiltersCard({
   onStartDateChange,
   onEndDateChange,
   onClear,
+  filtrosAtivos,
   onSearch,
 }: DifalFiltersCardProps) {
   return (
@@ -168,14 +172,7 @@ export function DifalFiltersCard({
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-3 pt-4 border-t border-border">
-          <Button
-            variant="ghost"
-            onClick={onClear}
-            className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
-          >
-            <Eraser className="h-4 w-4 mr-2" />
-            Limpar filtros
-          </Button>
+          <BotaoLimparFiltros quantidade={filtrosAtivos} onClick={onClear} />
           <Button
             onClick={onSearch}
             disabled={!selectedContribuinte || isLoading}

@@ -17,11 +17,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Filter, Search, Eraser, Plus, FileSpreadsheet, Download, FileDown, Loader2, Info, Trash2 } from 'lucide-react';
+import { Filter, Search, Plus, FileSpreadsheet, Download, FileDown, Loader2, Info, Trash2 } from 'lucide-react';
 import { UploadBalanceteModal } from '@/components/equipe/dev/balancete/UploadBalanceteModal';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { RequiredMark } from '@/components/ui/required-mark';
+import { BotaoLimparFiltros } from '@/components/ui/BotaoLimparFiltros';
 
 // --- Tooltip helpers ---
 const FieldTooltip = ({ text }: { text: string }) => (
@@ -323,7 +324,7 @@ const ControleBalancetes = () => {
     }
   };
 
-  const hasFilters = clienteId || contribuinteId || periodo;
+  const filtrosAtivos = [clienteId, contribuinteId, periodo].filter(Boolean).length;
 
   return (
     <DevLayout title="Controle de Balancetes" subtitle="Upload e consulta de balancetes contábeis">
@@ -385,12 +386,7 @@ const ControleBalancetes = () => {
               Novo Balancete
             </Button>
             <div className="flex items-center gap-3">
-              {hasFilters && (
-                <Button variant="outline" onClick={handleClear} className="gap-2 text-red-600 border-red-200 hover:bg-red-50 rounded-lg">
-                  <Eraser className="h-4 w-4" />
-                  Limpar filtros
-                </Button>
-              )}
+              <BotaoLimparFiltros quantidade={filtrosAtivos} onClick={handleClear} className="rounded-lg" />
               <Button onClick={() => handleSearch()} disabled={loading} className="gap-2 bg-primary hover:bg-primary/90 text-white rounded-lg py-2.5 px-5">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 Buscar

@@ -16,23 +16,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { MonthYearPicker } from '@/components/ui/month-year-picker';
 import { monthYearToDateString } from '@/components/ui/month-year-picker.utils';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  FileText,
-  Search,
-  FileSpreadsheet,
-  Building2,
-  RefreshCw,
-  Loader2,
-  Filter,
-  Eraser,
-  BarChart3,
-  Download,
-  Info,
-} from 'lucide-react';
+import { FileText, Search, FileSpreadsheet, Building2, RefreshCw, Loader2, Filter, BarChart3, Download, Info } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { EFDArquivo } from '@/types/efd';
 import { RequiredMark } from '@/components/ui/required-mark';
+import { BotaoLimparFiltros } from '@/components/ui/BotaoLimparFiltros';
 
 // --- Tooltip helpers ---
 const FieldTooltip = ({ text }: { text: string }) => (
@@ -290,6 +279,8 @@ const ConsultaECD = () => {
     setSearchTriggered(true);
   };
 
+  const filtrosAtivos = [selectedCliente, selectedContribuinte, mesInicio, mesFim].filter(Boolean).length;
+
   const handleClearFilters = () => {
     setSelectedCliente("");
     setSelectedContribuinte("");
@@ -408,9 +399,7 @@ const ConsultaECD = () => {
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
-            <Button variant="ghost"onClick={handleClearFilters} className="text-muted-foreground hover:text-red-600 hover:bg-red-50">
-              <Eraser className="h-4 w-4 mr-2" />Limpar filtros
-            </Button>
+            <BotaoLimparFiltros quantidade={filtrosAtivos} onClick={handleClearFilters} />
             <Button onClick={handleSearch} disabled={!selectedContribuinte} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0">
               {loadingOverview && searchTriggered ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
               Buscar arquivos

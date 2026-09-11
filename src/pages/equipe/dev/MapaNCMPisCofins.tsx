@@ -12,13 +12,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Search, Plus, FileSpreadsheet, Eye, Trash2, Loader2, Filter, Eraser, Info } from 'lucide-react';
+import { Search, Plus, FileSpreadsheet, Eye, Trash2, Loader2, Filter, Info } from 'lucide-react';
 import TablePagination from '@/components/equipe/dev/TablePagination';
 import { PAGE_SIZE } from '@/components/equipe/dev/TablePagination.constants';
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
+import { BotaoLimparFiltros } from '@/components/ui/BotaoLimparFiltros';
 
 // --- Tooltip helpers ---
 const FieldTooltip = ({ text }: { text: string }) => (
@@ -115,7 +116,7 @@ const MapaNCMPisCofins = () => {
 
   const colKeys: ColKey[] = ['ncm', 'setor', 'cst', 'desc_cst', 'base_legal', 'credito'];
 
-  const hasActiveFilters = search.trim() !== '' || setorFilter !== 'all' || creditFilter !== 'all';
+  const filtrosAtivos = [search.trim() !== '', setorFilter !== 'all', creditFilter !== 'all'].filter(Boolean).length;
 
   const handleClearFilters = () => {
     setSearch('');
@@ -309,13 +310,9 @@ const MapaNCMPisCofins = () => {
             <Separator />
 
             <div className="flex items-center justify-end gap-2">
-              {hasActiveFilters && (
-                <ButtonTooltip text={TOOLTIPS.limpar}>
-                  <Button variant="ghost" onClick={handleClearFilters} className="text-muted-foreground">
-                    <Eraser className="h-4 w-4 mr-2" /> Limpar Filtros
-                  </Button>
-                </ButtonTooltip>
-              )}
+              <ButtonTooltip text={TOOLTIPS.limpar}>
+                <BotaoLimparFiltros quantidade={filtrosAtivos} onClick={handleClearFilters} />
+              </ButtonTooltip>
               <ButtonTooltip text={TOOLTIPS.novaRegra}>
                 <Button className="bg-primary hover:bg-primary/90 text-white" onClick={() => { setSelectedRegra(null); setModalMode('create'); }}>
                   <Plus className="h-4 w-4 mr-2" /> Nova Regra

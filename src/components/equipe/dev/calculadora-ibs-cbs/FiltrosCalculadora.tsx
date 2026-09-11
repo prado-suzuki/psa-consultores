@@ -107,7 +107,7 @@ function MultiSelect({ label, options, selected, onChange, placeholder = "Todos"
             <button
               type="button"
               onClick={() => onChange([])}
-              className="text-xs text-muted-foreground hover:text-red-600"
+              className="text-xs text-muted-foreground hover:text-primary"
             >
               Limpar seleção
             </button>
@@ -203,7 +203,7 @@ export function FiltrosCalculadora({
               variant="ghost"
               onClick={handleReset}
               disabled={disabled}
-              className="h-11 w-full text-muted-foreground hover:text-red-600"
+              className="h-11 w-full text-muted-foreground hover:text-primary"
               title="Restaurar filtros padrão"
             >
               <Eraser className="h-4 w-4" />
