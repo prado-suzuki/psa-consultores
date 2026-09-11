@@ -12,6 +12,7 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { formatChangedFields, type LookupMaps } from '../audit/auditFieldFormatter';
+import { ACTION_LABELS } from '../audit/auditLabels';
 import type { DraftEntity, DraftParticipant, DraftContract } from '@/types/clientForm';
 
 interface HistoricoTabProps {
@@ -20,12 +21,6 @@ interface HistoricoTabProps {
   participants: DraftParticipant[];
   contracts: DraftContract[];
 }
-
-const ACTION_LABELS: Record<string, { label: string; color: string }> = {
-  created: { label: 'Criação', color: 'bg-status-feito-soft text-status-feito' },
-  updated: { label: 'Edição', color: 'bg-status-andamento-soft text-status-andamento' },
-  deleted: { label: 'Exclusão', color: 'bg-status-ajuste-soft text-status-ajuste' },
-};
 
 const ENTITY_LABELS: Record<string, string> = {
   cliente: 'Cliente',

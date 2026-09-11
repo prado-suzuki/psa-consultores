@@ -15,22 +15,14 @@ import type { Dashboard, DashboardFilterType, MinRole } from '@/hooks/useDashboa
 import { DicaIcon } from '@/components/equipe/mapa/Tooltip';
 import { SingleSelectCombobox } from '@/components/ui/SingleSelectCombobox';
 import { DashboardIframe } from './DashboardIframe';
+import {
+  dashboardFilterColors, dashboardFilterConfig, tipoDoFiltro, tipoDoFiltroBadge,
+} from './dashboardFilterColors';
 
-const FILTER_LABEL: Record<DashboardFilterType, string> = {
-  cluster: 'Por cluster', cliente: 'Por cliente', nenhum: 'Sem filtro',
-};
-const FILTER_BADGE_CLASS: Record<DashboardFilterType, string> = {
-  cluster: 'border-primary/15 bg-accent/5 text-primary',
-  cliente: 'border-indigo-200 bg-indigo-50 text-indigo-700',
-  nenhum: 'border-border bg-muted text-muted-foreground',
-};
 const MIN_ROLE_LABEL: Record<MinRole, string> = {
   team_member: 'Membro ou superior', sublider: 'Sublíder ou superior',
   lider: 'Líder ou superior', admin: 'Admin',
 };
-const tipoLabel = (ft: DashboardFilterType) => (ft === 'nenhum' ? 'Interno' : 'Externo');
-const tipoBadgeClass = (ft: DashboardFilterType) =>
-  ft === 'nenhum' ? 'border-border bg-muted text-muted-foreground' : 'border-primary/30 bg-primary/10 text-primary';
 
 /** Rótulo de seção do painel lateral. */
 const SectionLabel = ({ icon: Icon, children }: { icon: typeof Shield; children: React.ReactNode }) => (
@@ -116,8 +108,8 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
               <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                 {dashboard && (
                   <>
-                    <Badge variant="outline" className={`${tipoBadgeClass(dashboard.filter_type)} text-[11px]`}>{tipoLabel(dashboard.filter_type)}</Badge>
-                    <Badge variant="outline" className={`${FILTER_BADGE_CLASS[dashboard.filter_type]} text-[11px]`}>{FILTER_LABEL[dashboard.filter_type]}</Badge>
+                    <Badge variant="outline" className={`${tipoDoFiltroBadge(dashboard.filter_type)} text-[11px]`}>{tipoDoFiltro(dashboard.filter_type)}</Badge>
+                    <Badge variant="outline" className={`${dashboardFilterConfig(dashboard.filter_type).badge} text-[11px]`}>{dashboardFilterConfig(dashboard.filter_type).label}</Badge>
                     {dashboard.grupo && <span className="text-xs text-muted-foreground truncate">· {dashboard.grupo}</span>}
                     {!dashboard.is_active && <Badge className="bg-status-neutro-soft text-status-neutro text-[11px]">Inativo</Badge>}
                   </>
@@ -168,7 +160,7 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
                       ) : (
                         <div className="flex flex-wrap gap-1">
                           {clienteIds.map((id) => (
-                            <Badge key={id} variant="outline" className="text-[11px] border-indigo-200 bg-indigo-50 text-indigo-700">
+                            <Badge key={id} variant="outline" className={`text-[11px] ${dashboardFilterColors.cliente.badge}`}>
                               {clienteName.get(id) ?? id}
                             </Badge>
                           ))}
