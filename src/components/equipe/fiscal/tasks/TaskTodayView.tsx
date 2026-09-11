@@ -60,11 +60,16 @@ import { parseDate } from '@/lib/dateUtils';
  
    return (
      <div className="space-y-6">
-       <div className="flex items-center justify-between">
-         <h2 className="text-xl font-semibold">
+       {/* `flex-wrap`: a data por extenso mais os dois contadores passam de 450px,
+           e sem quebra o "concluídas" era CORTADO na borda — o `<main>` do layout
+           é `overflow-hidden`, então não havia nem rolagem para alcançá-lo.
+           Apareceu na validação da fase 1, que é justamente a tela em que o
+           celular passou a abrir. */}
+       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+         <h2 className="text-lg font-semibold sm:text-xl">
            {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
          </h2>
-         <div className="flex gap-4 text-sm">
+         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
            <span className="text-muted-foreground">
              <AlertCircle className="h-4 w-4 inline mr-1 text-warning" />
              {pendingTasks.length} pendentes

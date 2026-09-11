@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Clock, TrendingUp, User, AlertCircle } from "lucide-react";
 import { format, getISOWeek, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { entregavelStatusColors } from "@/lib/entregavelStatusColors";
 
 interface Deliverable {
   id: string;
@@ -21,11 +22,12 @@ interface Deliverable {
   sprint_id?: string | null;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "A Fazer",
-  in_progress: "Em Progresso",
-  completed: "Concluído",
-};
+// Rótulo de entregável vem do mapa do domínio (`entregavelStatusColors`), nunca de
+// cópia local — a cópia daqui dizia "A Fazer"/"Em Progresso" enquanto o mapa dizia
+// "A Fazer"/"Em Andamento", para a mesma chave.
+const STATUS_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(entregavelStatusColors).map(([chave, config]) => [chave, config.label]),
+);
 
 interface Profile {
   id: string;

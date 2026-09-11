@@ -87,14 +87,14 @@ const AnaliseInteligente = () => {
   const dailysPorSemana = useMemo(() => buildDailysPorSemana(filtered.dailysF), [filtered.dailysF]);
 
   const scoreColor =
-    kpis.score >= 75 ? 'text-emerald-600' : kpis.score >= 50 ? 'text-amber-500' : 'text-red-500';
+    kpis.score >= 75 ? 'text-status-feito' : kpis.score >= 50 ? 'text-status-alerta' : 'text-status-ajuste';
   const scoreBg = kpis.score >= 75 ? '#10b981' : kpis.score >= 50 ? '#f59e0b' : '#ef4444';
   const extraCostLabel = `R$ ${(kpis.extraCost / 1000).toFixed(1)}k`;
   const riskBadge = analise
     ? {
-        baixo: { className: 'bg-emerald-100 text-emerald-700', label: 'Risco Baixo' },
-        medio: { className: 'bg-amber-100 text-amber-700', label: 'Risco Médio' },
-        alto: { className: 'bg-red-100 text-red-700', label: 'Risco Alto' },
+        baixo: { className: 'bg-status-feito-soft text-status-feito', label: 'Risco Baixo' },
+        medio: { className: 'bg-status-alerta-soft text-status-alerta', label: 'Risco Médio' },
+        alto: { className: 'bg-status-ajuste-soft text-status-ajuste', label: 'Risco Alto' },
       }[analise.nivel_risco]
     : { className: '', label: '' };
 
@@ -162,7 +162,7 @@ const AnaliseInteligente = () => {
           <Button
             variant="outline"
             onClick={exportarPDF}
-            className="border-teal-600 text-teal-600 hover:bg-accent/5"
+            className="border-primary text-primary hover:bg-accent/5"
           >
             <FileDown className="h-4 w-4 mr-2" />
             Exportar PDF
@@ -194,7 +194,7 @@ const AnaliseInteligente = () => {
 
         {isFetching ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin h-10 w-10 rounded-full border-b-2 border-teal-600" />
+            <div className="animate-spin h-10 w-10 rounded-full border-b-2 border-primary" />
           </div>
         ) : (
           <>

@@ -60,8 +60,8 @@ export interface ApresentacaoDoAviso {
 }
 
 const PRIMARIO = 'bg-primary/10 text-primary';
-const ROXO ='bg-purple-100 text-purple-700';
-const VERDE ='bg-emerald-100 text-emerald-700';
+const ROXO = 'bg-purple-100 text-purple-700';
+const VERDE = 'bg-emerald-100 text-emerald-700';
 const VERMELHO = 'bg-destructive text-destructive-foreground';
 const AMBAR = 'bg-amber-500 text-white';
 
@@ -113,6 +113,13 @@ const APRESENTACAO: Record<NotificacaoTipo, ApresentacaoDoAviso> = {
   // 02/09/2026, em docs/geral/avisos-prazo-tarefa.md.
   tarefa_prazo_proximo: { rotulo: 'Prazo de tarefa', tom: AMBAR },
   tarefa_atrasada: { rotulo: 'Tarefa atrasada', tom: VERMELHO },
+  /*
+   * PT-04. Um tipo só no sino, porque o título vem como parâmetro na
+   * `criar_notificacao` e muda entre primeira importação e revisão seguinte. O
+   * rótulo aqui é o do grupo, que é o que aparece quando o sino agrupa avisos do
+   * mesmo projeto.
+   */
+  papel_de_trabalho_importado: { rotulo: 'Papel de trabalho', tom: PRIMARIO },
 };
 
 const PADRAO: ApresentacaoDoAviso = { rotulo: 'Aviso', tom: PRIMARIO };
@@ -174,6 +181,24 @@ function ambienteDoAviso(metadata: unknown): Ambiente | null {
   if (!metadata || typeof metadata !== 'object') return null;
   const valor = (metadata as Record<string, unknown>).ambiente;
   return valor === 'prod' || valor === 'dev' ? valor : null;
+}
+
+/**
+ * De onde o aviso fala, quando o evento gravou isso nos metadados.
+ *
+ * **Existe para o texto do aviso não precisar carregar o contexto.** Os textos
+ * são aprovados pela Patricia e dizem "este planejamento", que se entende na
+ * conversa do projeto e não se entende no sino, onde a linha aparece solta. Em
+ * vez de reescrever a frase dela, o evento grava o nome do projeto e a tela
+ * desenha em linha separada.
+ *
+ * O nome vem copiado no evento, não buscado agora: o sino é retrato de um
+ * momento e a tela dele não faz join.
+ */
+export function ondeDoAviso(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== 'object') return null;
+  const valor = (metadata as Record<string, unknown>).projeto;
+  return typeof valor === 'string' && valor.trim() !== '' ? valor : null;
 }
 
 /**

@@ -13,14 +13,14 @@ import { usePreviewDashboardEmbedUrl } from '@/hooks/usePreviewDashboardEmbedUrl
 import { DASHBOARD_PAGE_PATH } from '@/config/dashboardPages';
 import type { Dashboard, DashboardFilterType, MinRole } from '@/hooks/useDashboards';
 import { DicaIcon } from '@/components/equipe/mapa/Tooltip';
-import { SingleSelectCombobox } from './SingleSelectCombobox';
+import { SingleSelectCombobox } from '@/components/ui/SingleSelectCombobox';
 import { DashboardIframe } from './DashboardIframe';
 
 const FILTER_LABEL: Record<DashboardFilterType, string> = {
   cluster: 'Por cluster', cliente: 'Por cliente', nenhum: 'Sem filtro',
 };
 const FILTER_BADGE_CLASS: Record<DashboardFilterType, string> = {
-  cluster: 'border-primary/15 bg-accent/5 text-teal-700',
+  cluster: 'border-primary/15 bg-accent/5 text-primary',
   cliente: 'border-indigo-200 bg-indigo-50 text-indigo-700',
   nenhum: 'border-border bg-muted text-muted-foreground',
 };
@@ -30,7 +30,7 @@ const MIN_ROLE_LABEL: Record<MinRole, string> = {
 };
 const tipoLabel = (ft: DashboardFilterType) => (ft === 'nenhum' ? 'Interno' : 'Externo');
 const tipoBadgeClass = (ft: DashboardFilterType) =>
-  ft === 'nenhum' ? 'border-border bg-muted text-muted-foreground' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  ft === 'nenhum' ? 'border-border bg-muted text-muted-foreground' : 'border-primary/30 bg-primary/10 text-primary';
 
 /** Rótulo de seção do painel lateral. */
 const SectionLabel = ({ icon: Icon, children }: { icon: typeof Shield; children: React.ReactNode }) => (
@@ -101,14 +101,14 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
   return (
     <Dialog open={!!dashboard} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-[96vw] w-[96vw] h-[93vh] p-0 gap-0 flex flex-col overflow-hidden"
+        className="max-w-[96vw] w-[96vw] h-[93vh] max-h-none p-0 gap-0 flex flex-col overflow-hidden"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         {/* ── Cabeçalho ─────────────────────────────────────────────── */}
         <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3 pr-12 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-9 w-9 rounded-lg bg-teal-500/10 flex items-center justify-center shrink-0">
-              <LayoutDashboard className="h-5 w-5 text-teal-600" />
+            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <LayoutDashboard className="h-5 w-5 text-primary" />
             </div>
             <div className="min-w-0">
               <DialogTitle className="text-base truncate">{dashboard?.name}</DialogTitle>
@@ -186,13 +186,13 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
                           <Users className="h-3.5 w-3.5" /> Clusters
                         </p>
                         {dashboard.all_clusters ? (
-                          <Badge variant="outline" className="text-[11px] border-primary/15 bg-accent/5 text-teal-700">Todos os clusters</Badge>
+                          <Badge variant="outline" className="text-[11px] border-primary/15 bg-accent/5 text-primary">Todos os clusters</Badge>
                         ) : clusterIds.length === 0 ? (
                           <p className="text-xs text-muted-foreground">Só Admin (nenhum cluster marcado).</p>
                         ) : (
                           <div className="flex flex-wrap gap-1">
                             {clusterIds.map((id) => (
-                              <Badge key={id} variant="outline" className="text-[11px] border-primary/15 bg-accent/5 text-teal-700">
+                              <Badge key={id} variant="outline" className="text-[11px] border-primary/15 bg-accent/5 text-primary">
                                 {clusterName.get(id) ?? id}
                               </Badge>
                             ))}
@@ -210,7 +210,7 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
                   <div className="rounded-md border border-border bg-card p-2">
                     <div className="flex items-start gap-1">
                       <p className="flex-1 font-mono text-[11px] leading-relaxed break-all text-muted-foreground">{dashboard.embed_url}</p>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-teal-600" onClick={copyUrl} aria-label="Copiar URL">
+                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-primary" onClick={copyUrl} aria-label="Copiar URL">
                         <Copy className="h-3.5 w-3.5" />
                       </Button>
                     </div>

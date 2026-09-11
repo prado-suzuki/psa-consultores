@@ -85,7 +85,11 @@ export function TaskEditBody({
                     disabled={isReviewer}
                     withCode={false}
                     minHeight="min-h-[132px]"
-                    maxHeight="max-h-[360px]"
+                    // Sem teto de propósito: a coluna da esquerda do modal já
+                    // rola, e a descrição é o último campo dela. Um teto aqui só
+                    // desenhava uma segunda barra grudada na primeira, dentro do
+                    // campo, sem deixar nada mais perto do alcance.
+
                     // opacity-100 mantém o campo legível para o revisor, que o vê
                     // desabilitado: era o que o `disabled:opacity-100` do textarea fazia.
                     className="rounded-xl bg-muted/20 opacity-100"

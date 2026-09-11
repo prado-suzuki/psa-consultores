@@ -54,7 +54,7 @@ const RegraCard = ({
                 {regra.desc_cst || '—'}
               </span>
               {regra.permite_credito === 'S' ? (
-                <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0 text-[11px] shrink-0">
+                <Badge className="bg-tag-a/15 text-tag-a hover:bg-tag-a/15 border-0 text-[11px] shrink-0">
                   Crédito
                 </Badge>
               ) : (

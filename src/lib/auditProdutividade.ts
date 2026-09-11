@@ -295,7 +295,7 @@ function diaDoRegistro(performedAt: string): string {
 /**
  * Valores de status que significam "concluído" no sistema. `done` é o enum
  * `fiscal_task_status` (tarefas e subtarefas); `completed` aparece nos demais
- * status traduzidos como "Concluída". Se um enum novo de conclusão entrar no
+ * status traduzidos como "Concluído". Se um enum novo de conclusão entrar no
  * banco, some aqui — é o único ponto a mexer.
  */
 const STATUS_CONCLUIDO = new Set(['done', 'completed']);

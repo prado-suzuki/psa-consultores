@@ -36,11 +36,11 @@ function DueCard({
         {items.map((item) => (
           <div
             key={item.id}
-            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+            className="flex items-center justify-between p-3 bg-muted rounded-lg"
           >
             <div>
               <p className="font-medium">{item.title}</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 {c.getProfileName(item.assigned_to)} •{' '}
                 {item.estimated_hours ? `${item.estimated_hours}h estimadas` : 'Sem estimativa'}
               </p>

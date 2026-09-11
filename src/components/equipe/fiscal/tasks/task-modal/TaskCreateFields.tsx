@@ -16,6 +16,8 @@ interface TaskCreateFieldsProps {
   form: UseFormReturn<TaskFormValues>;
   options: TaskFieldOptions;
   onAssigneeChange: (userId: string) => void;
+  /** Prazo da tarefa-mãe: teto do calendário de Vencimento (ver `TaskPropertyBar`). */
+  prazoDaMae?: string | null;
   showDraftNotice: boolean;
   isSaving: boolean;
   onCancel: () => void;
@@ -34,6 +36,7 @@ export function TaskCreateFields({
   form,
   options,
   onAssigneeChange,
+  prazoDaMae,
   showDraftNotice,
   isSaving,
   onCancel,
@@ -147,7 +150,7 @@ export function TaskCreateFields({
       </div>
 
       <div className="mt-4">
-        <TaskPropertyBar form={form} options={options} onAssigneeChange={onAssigneeChange} />
+        <TaskPropertyBar form={form} options={options} onAssigneeChange={onAssigneeChange} prazoDaMae={prazoDaMae} />
       </div>
 
       <section className="px-6 pb-5 pt-4">
@@ -173,7 +176,9 @@ export function TaskCreateFields({
                   withCode={false}
                   placeholder="Descreva a tarefa..."
                   minHeight="min-h-[104px]"
-                  maxHeight="max-h-[280px]"
+                  // Sem teto, como na edição: o corpo do modal já rola e a
+                  // descrição é o último campo. Ver TaskEditBody.
+
                   className="rounded-xl bg-muted/20"
                 />
               </FormControl>

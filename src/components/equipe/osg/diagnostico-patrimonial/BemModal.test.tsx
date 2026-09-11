@@ -136,7 +136,7 @@ describe('BemModal', () => {
     const [payload, options] = mocks.upsert.mock.calls[0];
     expect(payload).toMatchObject({
       original: null,
-      titular: { titular_pessoa_id: 'P1', tipo: 'DIREITO', fracao: 60 },
+      titulares: [{ titular_pessoa_id: 'P1', tipo: 'DIREITO', fracao: 60 }],
       values: {
         cliente_id: 'C1', referencia_dp: 'PS-01', tipo_bem: 'PS', denominacao: 'Quotas Alfa',
         // CurrencyInput interpreta a sequência digitada como centavos (12,50).
@@ -160,7 +160,7 @@ describe('BemModal', () => {
 
     // B16: o aviso diz o que falta E onde, a aba abre e o foco para no campo.
     expect(mocks.toast.error).toHaveBeenCalledWith(
-      'Selecione o titular inicial do bem, na aba Titularidade.',
+      'Selecione ao menos um titular do bem, na aba Titularidade.',
     );
     expect(screen.getByRole('tab', { name: /Titularidade/ })).toHaveAttribute('data-state', 'active');
     await waitFor(() =>
@@ -180,7 +180,7 @@ describe('BemModal', () => {
     expect(mocks.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         original: bemEdit,
-        titular: undefined,
+        titulares: undefined,
         values: expect.objectContaining({
           tipo_bem: 'PS', vlr_contabil: 90, vlr_contabil_ajustado: 20,
           vlr_benfeitorias: 30, vlr_mercado: 40, vlr_imposto_anual: 50,

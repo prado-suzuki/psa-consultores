@@ -1,4 +1,4 @@
-import { ChevronDown, Eraser, Filter, Info, Loader2, Search } from 'lucide-react';
+import { ChevronDown, Filter, Info, Loader2, Search } from 'lucide-react';
 
 import type {
   ClienteControlePerdcomp,
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { BotaoLimparFiltros } from '@/components/ui/BotaoLimparFiltros';
 
 const FieldTooltip = ({ text }: { text: string }) => (
   <Tooltip>
@@ -80,7 +81,7 @@ export function ControlePerdcompFilters({
   onSearch,
   onClear,
 }: ControlePerdcompFiltersProps) {
-  const hasFilters = clienteId || contribuinteId || exercicio || processo || situacoes.length > 0;
+  const filtrosAtivos = [clienteId, contribuinteId, exercicio, processo, situacoes.length > 0].filter(Boolean).length;
 
   return (
     <Card className="mb-6">
@@ -238,16 +239,7 @@ export function ControlePerdcompFilters({
         </div>
 
         <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t">
-          {hasFilters && (
-            <Button
-              variant="outline"
-              onClick={onClear}
-              className="gap-2 text-red-600 border-red-300 hover:bg-red-50"
-            >
-              <Eraser className="h-4 w-4" />
-              Limpar filtros
-            </Button>
-          )}
+          <BotaoLimparFiltros quantidade={filtrosAtivos} onClick={onClear} />
           <Button
             onClick={onSearch}
             disabled={isSearching}

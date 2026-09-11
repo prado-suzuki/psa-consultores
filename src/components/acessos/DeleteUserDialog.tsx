@@ -61,7 +61,7 @@ export const DeleteUserDialog = ({
             <Button
               onClick={handleDelete}
               disabled={deleteUser.isPending}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteUser.isPending ? (
                 <>

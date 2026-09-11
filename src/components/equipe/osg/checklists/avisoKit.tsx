@@ -61,8 +61,11 @@ export function ComTooltip({ texto, children }: {
  * ficava um amarelo lavado que não conversava com nada em volta — o dourado da
  * casa é MARCA-TEXTO (`TextoFormatado.tsx`), não fundo de cartão. O tratamento
  * certo é o do `Metric` do cabeçalho: tijolo bege `bg-osg-50`, número em
- * `osg-700`, rótulo minúsculo em caixa alta. O único desvio é o carmim no número
- * de recusados, porque ali a cor carrega significado — documento devolvido.
+ * `osg-700`, rótulo minúsculo em caixa alta. O único desvio é o número de
+ * recusados, porque ali a cor carrega significado — documento devolvido —, e por
+ * isso ele veste o papel `ajuste`, o mesmo que o `recusado` de
+ * `estadoDocumentoColors`. Era `osg-red`, a âncora da área, que não pinta papel
+ * de status.
  */
 export function Numero({ valor, rotulo, tom }: {
   valor: number;
@@ -74,7 +77,7 @@ export function Numero({ valor, rotulo, tom }: {
     <div className="rounded-xl bg-osg-50 px-4 py-3">
       <div className={cn(
         'text-3xl font-extrabold leading-none tabular-nums',
-        vazio ? 'text-osg-300' : tom === 'pendente' ? 'text-osg-700' : 'text-osg-red',
+        vazio ? 'text-osg-300' : tom === 'pendente' ? 'text-osg-700' : 'text-status-ajuste',
       )}>
         {valor}
       </div>

@@ -232,7 +232,7 @@ const CorrecoesSped = () => {
                 </label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline"className={cn("h-11 w-full justify-start text-left font-normal bg-white", !dtIni &&"text-muted-foreground")}>
+                    <Button variant="outline"className={cn("h-11 w-full justify-start text-left font-normal bg-card", !dtIni &&"text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {dtIni ? format(new Date(dtIni + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
                     </Button>
@@ -249,7 +249,7 @@ const CorrecoesSped = () => {
                 </label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline"className={cn("h-11 w-full justify-start text-left font-normal bg-white", !dtFin &&"text-muted-foreground")}>
+                    <Button variant="outline"className={cn("h-11 w-full justify-start text-left font-normal bg-card", !dtFin &&"text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {dtFin ? format(new Date(dtFin + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
                     </Button>
@@ -285,7 +285,7 @@ const CorrecoesSped = () => {
                   </label>
                   <Popover open={natBcCredOpen} onOpenChange={setNatBcCredOpen}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline"role="combobox"aria-expanded={natBcCredOpen} className="h-11 w-full justify-between text-sm font-normal bg-white">
+                      <Button variant="outline"role="combobox"aria-expanded={natBcCredOpen} className="h-11 w-full justify-between text-sm font-normal bg-card">
                         {natBcCreds.length === 0 && <span className="text-muted-foreground">Selecione ou digite...</span>}
                         {natBcCreds.length === 1 && (
                           <span className="truncate">

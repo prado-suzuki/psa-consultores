@@ -406,9 +406,309 @@ describe('ProjetosTarefasList — troca de status pelo seletor', () => {
     expandirAteTarefa('Coleta');
 
     await user.click(screen.getAllByRole('combobox')[0]);
-    await user.click(screen.getByRole('option', { name: 'Em Progresso' }));
+    await user.click(screen.getByRole('option', { name: 'Em Andamento' }));
 
     expect(mocks.updateTask).toHaveBeenCalledWith({ id: 'Coleta', status: 'in_progress' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
+describe('ProjetosTarefasList — o texto inteiro da coluna Nome', () => {
+  const tituloLongo = '1.4.1 Elaborar Protocolo e Justificativa da Reestruturação Societária';
+  const projetoComOs = { ...projeto, ordem_servico_id: 'os1' } as unknown as OrgProject;
+  const osRows = [{
+    os_id: 'os1',
+    numero_os: '035/2026',
+    cliente_id: 'c1',
+    cliente_nome: 'Cliente Um',
+    servico_nome: null,
+    data_fim: null,
+    produtos: 'CC — Consultoria contábil, CHA — Canal de chamados',
+  }];
+
+  const renderComTarefaLonga = () => renderList({
+    projects: [projetoComOs],
+    tasks: [tarefa(tituloLongo, { assigned_to_name: 'Monica Matunaga' })],
+    osRows,
+  });
+
+  it('o título da tarefa quebra em duas linhas em vez de sumir em reticências', () => {
+    renderComTarefaLonga();
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+
+    const titulo = screen.getByRole('button', { name: tituloLongo });
+    expect(titulo.className).toContain('line-clamp-2');
+    // Uma linha só era o defeito: no piso de 1.200px da grade sobram ~30
+    // caracteres na subtarefa, e a tarefa mediana tem mais que isso.
+    expect(titulo.className).not.toContain('truncate');
+  });
+
+  it('o mouse revela o texto na tarefa, na OS e no responsável — não só na linha do projeto', () => {
+    renderComTarefaLonga();
+
+    // A OS aparece fechada; as outras duas linhas pedem a árvore aberta.
+    expect(screen.getByTitle('035/2026 - CC — Consultoria contábil, CHA — Canal de chamados')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    // O tooltip do projeto já existia, e é o único que mostra coisa diferente
+    // do texto da linha: ali se lê o nome inteiro, não o encurtado.
+    expect(screen.getByTitle('Projeto Alfa')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+    expect(screen.getByTitle(tituloLongo)).toBeInTheDocument();
+    expect(screen.getByTitle('Monica Matunaga')).toBeInTheDocument();
+  });
+});
+
+describe('ProjetosTarefasList — a grade reflui em cartão no celular', () => {
+  /*
+    No piso de 1.200px da grade, um celular de 358px úteis mostrava a PRIMEIRA
+    das sete colunas — o nome — e status, responsável, prazo, esforço e
+    progresso ficavam fora, alcançáveis só arrastando de lado.
+
+    O conserto não remonta JSX: as mesmas sete células se refluem em duas
+    colunas abaixo de `md`, com o nome ocupando a linha inteira. O cartão sai do
+    refluxo. Estas asserções olham classe porque jsdom não calcula layout, e
+    porque nenhuma delas dá erro de build se cair.
+  */
+  const comArvoreAberta = () => {
+    renderList({
+      projects: [projeto],
+      tasks: [tarefa('Tarefa da lista', { assigned_to: 'U2', assigned_to_name: 'Geizi Andrade' })],
+      // Sem gente no projeto a linha não vira seletor de responsável, e é ele o
+      // segundo dos dois chevrons que saem do celular.
+      assigneesByProject: { p1: [{ id: 'U2', name: 'Geizi Andrade' }] },
+    });
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+  };
+
+  /** A linha da grade é o ancestral que declara as sete colunas. */
+  const linhaDaGrade = (dentro: HTMLElement) =>
+    dentro.closest('[class*="grid-cols-["]');
+
+  it('a linha larga de 1.200px deixa de valer no celular, e vira faixa de chips', () => {
+    comArvoreAberta();
+
+    const linha = linhaDaGrade(screen.getByRole('button', { name: 'Tarefa da lista' }));
+    // Grade de duas colunas foi a primeira tentativa e foi reprovada: cada
+    // célula ficava com metade da largura e o conteúdo encostado à esquerda,
+    // então sobrava um vão morto no meio e a tarefa gastava ~140px de altura.
+    expect(linha?.className).toContain('max-md:flex');
+    expect(linha?.className).toContain('max-md:flex-wrap');
+    expect(linha?.className).not.toContain('max-md:grid-cols-2');
+    // Sem soltar o piso, a faixa continuaria com 1.200px e a rolagem de lado
+    // voltaria.
+    expect(linha?.className).toContain('max-md:min-w-0');
+    // O recuo das células é apertado de uma vez, e não célula por célula.
+    expect(linha?.className).toContain('max-md:[&>*]:py-0.5');
+  });
+
+  it('o nome ocupa a largura inteira, e as outras seis encolhem para o conteúdo', () => {
+    comArvoreAberta();
+
+    const nome = screen
+      .getByRole('button', { name: 'Tarefa da lista' })
+      .closest('[class*="max-md:w-full"]');
+    expect(nome).not.toBeNull();
+  });
+
+  it('o seletor de status encolhe no celular, em vez de plantar o chevron a 90px do chip', () => {
+    comArvoreAberta();
+
+    // Era este `w-[138px]` fixo que criava o vão morto no meio da linha. O
+    // primeiro combobox da linha é o de status; o segundo, o de responsável.
+    const gatilho = screen.getAllByRole('combobox')[0];
+    expect(gatilho.className).toContain('w-[138px]');
+    expect(gatilho.className).toContain('max-md:w-auto');
+  });
+
+  it('o cabeçalho de coluna sai do celular, porque rótulo de coluna não sobrevive ao refluxo', () => {
+    comArvoreAberta();
+
+    const cabecalho = screen.getByText('Progresso').closest('[class*="grid-cols-["]');
+    expect(cabecalho?.className).toContain('max-md:hidden');
+  });
+
+  it('o recuo da hierarquia vai por variável, porque estilo inline não tem breakpoint', () => {
+    comArvoreAberta();
+
+    const nome = screen
+      .getByRole('button', { name: 'Tarefa da lista' })
+      .closest('[class*="pl-[var("]') as HTMLElement | null;
+
+    expect(nome?.className).toContain('pl-[var(--recuo)]');
+    expect(nome?.className).toContain('max-md:pl-[var(--recuo-estreito)]');
+    // 60px de base num telefone é um sexto da largura gasto antes da primeira
+    // letra; o degrau curto mantém a hierarquia sem cobrar isso.
+    expect(nome?.style.getPropertyValue('--recuo')).toBe('60px');
+    expect(nome?.style.getPropertyValue('--recuo-estreito')).toBe('26px');
+  });
+
+  it('a guia vertical existe no celular, com x próprio — é ela que diz de que bloco a linha desce', () => {
+    // A primeira versão escondia a guia no celular, e foi o que fez os quatro
+    // níveis lerem como um: "parece que está tudo no mesmo nível, não tem
+    // profundidade". Recuo sozinho é ambíguo — a guia mostra a descendência.
+    comArvoreAberta();
+
+    const guia = document
+      .querySelector('[class*="max-md:left-[var("]') as HTMLElement | null;
+
+    expect(guia).not.toBeNull();
+    expect(guia?.className).not.toContain('max-md:hidden');
+    expect(guia?.style.getPropertyValue('--guia-estreita')).toBeTruthy();
+  });
+
+  it('cada nível tem superfície própria em tela estreita', () => {
+    // `primary/[0.045]` e `muted/30` são invisíveis num telefone. Sem separar as
+    // superfícies, trilho e recuo não bastam.
+    comArvoreAberta();
+
+    const os = screen.getByText(/101\/2026|OS vinculada|Sem OS/).closest('[class*="grid-cols-["]');
+    expect(os?.className).toContain('max-md:bg-primary/10');
+    expect(os?.className).toContain('max-md:border-l-primary');
+
+    const tarefa = linhaDaGrade(screen.getByRole('button', { name: 'Tarefa da lista' }));
+    // A tarefa fica branca: é o contraste contra as tintas de cima que a marca
+    // como o nível de baixo.
+    expect(tarefa?.className).toContain('bg-background');
+    expect(tarefa?.className).not.toContain('max-md:bg-');
+  });
+
+  it('o cromo de edição sai do celular: dois chevrons por linha e a seleção em massa', () => {
+    // "isso aqui está uma poluição visual" (09/09). O que poluía era sobretudo
+    // cromo de EDIÇÃO, que no celular não serve: a tela é de leitura.
+    comArvoreAberta();
+
+    const [status, responsavel] = screen.getAllByRole('combobox');
+    // O chevron sai, o seletor FICA: o chip continua abrindo no toque. Esconder
+    // o seletor duplicaria DOM, e com `css: false` no vitest os dois elementos
+    // passariam a existir — foi o que fez desistir da mesma ideia na Tabela.
+    expect(status.className).toContain('max-md:[&>svg]:hidden');
+    expect(responsavel.className).toContain('max-md:[&>svg]:hidden');
+
+    const caixa = screen.getAllByRole('checkbox')[0];
+    expect(caixa.closest('[class*="max-md:hidden"]')).not.toBeNull();
+  });
+
+  it('o ponto de status sai do celular, porque o chip já nomeia o estado', () => {
+    // Ponto colorido MAIS chip colorido é a mesma informação duas vezes. No
+    // desktop o ponto vale: lá o chip fica na coluna de status, a 320px do
+    // título.
+    comArvoreAberta();
+
+    const titulo = screen.getByRole('button', { name: 'Tarefa da lista' });
+    const ponto = titulo.parentElement?.querySelector('[class*="max-md:hidden"][class*="rounded-full"]');
+    expect(ponto).not.toBeNull();
+  });
+
+  it('a subtarefa desce da mãe por um cotovelo, e não parece tarefa irmã', () => {
+    // "eu abro a tarefa e as subtarefas parecem outras tarefas" (09/09). Com
+    // recuo curto e a mesma superfície branca, filha lia como irmã. Fio reto
+    // diz "existe um bloco"; cotovelo diz "ESTA linha desce daquela".
+    renderList({
+      projects: [projeto],
+      tasks: [
+        tarefa('Fechamento contábil', { id: 'T1' }),
+        tarefa('Validar números', { id: 'T2', parent_task_id: 'T1' }),
+      ],
+      assigneesByProject: { p1: [{ id: 'U2', name: 'Geizi Andrade' }] },
+    });
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+    fireEvent.click(screen.getByLabelText('Expandir tarefa'));
+
+    const filha = screen
+      .getByRole('button', { name: 'Validar números' })
+      .closest('[class*="max-md:pl-[var("]') as HTMLElement;
+
+    const cotovelo = filha.querySelector('[class*="rounded-bl-md"]') as HTMLElement | null;
+    expect(cotovelo).not.toBeNull();
+    // Só no celular: no desktop há 24px de degrau e as guias inteiras.
+    expect(cotovelo?.className).toContain('max-md:block');
+    expect(cotovelo?.className).toContain('hidden');
+
+    // O cotovelo sai do fio da MÃE e para 4px antes do conteúdo da filha. Vão
+    // entre os dois desfaz o "desce daqui", que é o ponto todo.
+    const fioDaMae = 16;
+    const conteudoDaFilha = 26 + 20;
+    expect(cotovelo?.style.getPropertyValue('--cotovelo')).toBe(`${fioDaMae}px`);
+    expect(cotovelo?.style.getPropertyValue('--cotovelo-largura'))
+      .toBe(`${conteudoDaFilha - fioDaMae - 4}px`);
+
+    // A mãe não recebe cotovelo: ela não desce de tarefa nenhuma.
+    const mae = screen
+      .getByRole('button', { name: 'Fechamento contábil' })
+      .closest('[class*="max-md:pl-[var("]') as HTMLElement;
+    expect(mae.querySelector('[class*="rounded-bl-md"]')).toBeNull();
+  });
+
+  it('a filha pesa menos que a mãe no celular, e igual no desktop', () => {
+    renderList({
+      projects: [projeto],
+      tasks: [
+        tarefa('Fechamento contábil', { id: 'T1' }),
+        tarefa('Validar números', { id: 'T2', parent_task_id: 'T1' }),
+      ],
+    });
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+    fireEvent.click(screen.getByLabelText('Expandir tarefa'));
+
+    const filha = screen.getByRole('button', { name: 'Validar números' });
+    expect(filha.className).toContain('max-md:text-[0.8125rem]');
+    expect(filha.className).toContain('max-md:font-normal');
+
+    // No desktop as duas são iguais, que é como sempre foi.
+    const mae = screen.getByRole('button', { name: 'Fechamento contábil' });
+    expect(mae.className).toContain('font-medium');
+    expect(mae.className).not.toContain('max-md:font-normal');
+  });
+
+  it('o tooltip e as duas linhas do título sobrevivem ao cartão', () => {
+    // Herdado da frente do Welber (`lista-de-tarefas-texto-e-prazo.md`): no
+    // telefone não existe passar o mouse, então cartão que corta o título
+    // perderia o texto sem saída nenhuma. As duas coisas continuam de pé.
+    comArvoreAberta();
+
+    const titulo = screen.getByRole('button', { name: 'Tarefa da lista' });
+    expect(titulo.className).toContain('line-clamp-2');
+    expect(titulo).toHaveAttribute('title', 'Tarefa da lista');
+  });
+});
+
+describe('ProjetosTarefasList — o calendário da linha para no prazo da mãe', () => {
+  const doProjeto = { p1: [{ id: 'U2', name: 'Geizi Andrade' }] };
+
+  const abrirAteASubtarefa = () => {
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+    fireEvent.click(screen.getByLabelText('Expandir tarefa'));
+  };
+
+  const arvore = [
+    tarefa('Reestruturação', { due_date: '2026-08-15' }),
+    tarefa('Ata AGE', { due_date: '2026-08-10', parent_task_id: 'Reestruturação' }),
+  ];
+
+  it('os dias depois do prazo da mãe nascem apagados', async () => {
+    const user = userEvent.setup();
+    renderList({ projects: [projeto], tasks: arvore, assigneesByProject: doProjeto });
+    abrirAteASubtarefa();
+
+    await user.click(screen.getByLabelText('Prazo de Ata AGE'));
+
+    expect(screen.getByRole('button', { name: '15' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '16' })).toBeDisabled();
+  });
+
+  it('a tarefa sem mãe segue com o mês inteiro', async () => {
+    const user = userEvent.setup();
+    renderList({ projects: [projeto], tasks: arvore, assigneesByProject: doProjeto });
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+
+    await user.click(screen.getByLabelText('Prazo de Reestruturação'));
+
+    expect(screen.getByRole('button', { name: '16' })).toBeEnabled();
   });
 });

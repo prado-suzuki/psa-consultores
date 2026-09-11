@@ -191,11 +191,15 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
                                           <span className="font-medium text-muted-foreground min-w-[140px]">
                                             {change.label}:
                                           </span>
-                                          <span className="text-red-600 line-through">
+                                          {/* Sem papel de status, pela mesma razão do
+                                              HistoricoFlutuante: o valor antigo não "deu
+                                              problema" e o novo não está "feito". O antigo
+                                              recua, o novo é o texto normal. */}
+                                          <span className="text-muted-foreground line-through">
                                             {change.oldValue}
                                           </span>
                                           <span className="text-muted-foreground">→</span>
-                                          <span className="text-emerald-600">
+                                          <span className="font-medium text-foreground">
                                             {change.newValue}
                                           </span>
                                         </div>

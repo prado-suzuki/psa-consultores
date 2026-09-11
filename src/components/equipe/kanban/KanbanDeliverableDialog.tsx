@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils';
 import { AnexosEntregavel } from '@/components/equipe/AnexosEntregavel';
 import { AvisoHorasDigitadas } from '@/components/equipe/AvisoHorasDigitadas';
 import { TarefaRichTextEditor } from '@/components/equipe/TarefaRichTextEditor';
+import { ENTREGAVEL_STATUS_OPCOES } from '@/lib/entregavelStatusColors';
 import type {
   EquipeKanbanDeliverable,
   EquipeKanbanEditForm,
@@ -61,33 +62,35 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
 
   return (
     <Dialog open={!!selectedDeliverable} onOpenChange={(open) => !open && props.onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      {/* Cabeçalho e rodapé parados, só o corpo rolando: é o outro modal do
+          sistema onde se digita descrição em texto rico, e rolar tudo junto
+          levava o título e os botões de salvar para fora da vista. */}
+      <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="text-gray-900">
+          <DialogTitle>
             {selectedDeliverable?.parent_id ? 'Detalhes da Subtarefa' : 'Detalhes do Entregável'}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
           {selectedDeliverable?.task_code && (
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-muted-foreground">
               Código: <span className="font-mono">{selectedDeliverable.task_code}</span>
             </div>
           )}
 
           <div className="space-y-2">
-            <Label className="text-gray-700">Título</Label>
+            <Label>Título</Label>
             <Input
               value={editForm.title}
               onChange={(event) => setEditForm({ ...editForm, title: event.target.value })}
-              className="text-gray-900"
             />
           </div>
 
           <div className="space-y-2">
             {/* Mesma coluna editada no modal da sprint: precisa do mesmo editor rico,
                 senão abrir aqui um texto formatado mostraria o JSON cru. */}
-            <Label className="text-gray-700">Descrição</Label>
+            <Label>Descrição</Label>
             <TarefaRichTextEditor
               value={editForm.description}
               onChange={(next) => setEditForm({ ...editForm, description: next })}
@@ -99,14 +102,14 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-gray-700">Responsável</Label>
+              <Label>Responsável</Label>
               <Select
                 value={editForm.assigned_to || 'unassigned'}
                 onValueChange={(value) =>
                   setEditForm({ ...editForm, assigned_to: value === 'unassigned' ? '' : value })
                 }
               >
-                <SelectTrigger className="text-gray-900">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecionar" />
                 </SelectTrigger>
                 <SelectContent>
@@ -121,18 +124,18 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-700">Status</Label>
+              <Label>Status</Label>
               <Select
                 value={editForm.status}
                 onValueChange={(value) => setEditForm({ ...editForm, status: value })}
               >
-                <SelectTrigger className="text-gray-900">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">A Fazer</SelectItem>
-                  <SelectItem value="in_progress">Em Progresso</SelectItem>
-                  <SelectItem value="completed">Concluído</SelectItem>
+                  {ENTREGAVEL_STATUS_OPCOES.map((s) => (
+                    <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -140,25 +143,23 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label className="text-gray-700">Data Início</Label>
+              <Label>Data Início</Label>
               <Input
                 type="date"
                 value={editForm.start_date}
                 onChange={(event) => setEditForm({ ...editForm, start_date: event.target.value })}
-                className="text-gray-900"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-gray-700">Data Limite</Label>
+              <Label>Data Limite</Label>
               <Input
                 type="date"
                 value={editForm.due_date}
                 onChange={(event) => setEditForm({ ...editForm, due_date: event.target.value })}
-                className="text-gray-900"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-gray-700">Horas Estimadas</Label>
+              <Label>Horas Estimadas</Label>
               <Input
                 type="number"
                 step="0.5"
@@ -166,7 +167,6 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                 onChange={(event) =>
                   setEditForm({ ...editForm, estimated_hours: event.target.value })
                 }
-                className="text-gray-900"
                 placeholder="0"
               />
             </div>
@@ -201,7 +201,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
 
           {selectedDeliverable && !selectedDeliverable.parent_id && props.subtasks.length > 0 && (
             <div className="space-y-3 border-t border-border pt-4">
-              <Label className="text-gray-700 flex items-center gap-2">
+              <Label className="flex items-center gap-2">
                 Subtarefas (
                 {props.subtasks.filter((subtask) => subtask.status === 'completed').length}/
                 {props.subtasks.length})
@@ -211,7 +211,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                   <div
                     key={subtask.id}
                     className={cn(
-                      'flex items-center gap-3 p-2 rounded-md bg-gray-50 border border-border',
+                      'flex items-center gap-3 p-2 rounded-md bg-muted border border-border',
                       subtask.status === 'completed' && 'opacity-60',
                     )}
                   >
@@ -227,18 +227,18 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                     >
                       <span
                         className={cn(
-                          'text-sm text-gray-700',
+                          'text-sm',
                           subtask.status === 'completed' && 'line-through',
                         )}
                       >
                         {subtask.task_code && (
-                          <span className="text-gray-400 mr-1">{subtask.task_code}</span>
+                          <span className="text-muted-foreground mr-1">{subtask.task_code}</span>
                         )}
                         {subtask.title}
                       </span>
                     </button>
                     {subtask.estimated_hours && (
-                      <span className="text-xs text-gray-400">{subtask.estimated_hours}h</span>
+                      <span className="text-xs text-muted-foreground">{subtask.estimated_hours}h</span>
                     )}
                   </div>
                 ))}
@@ -255,26 +255,26 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
         <DialogFooter className="flex justify-between">
           <AlertDialog open={props.deleteDialogOpen} onOpenChange={props.onDeleteDialogOpenChange}>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
+              <Button variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10">
                 <Trash2 className="h-4 w-4 mr-2" />
                 Excluir
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-gray-900">Confirmar exclusão</AlertDialogTitle>
+                <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
                 <AlertDialogDescription>
                   Tem certeza que deseja excluir este entregável? Esta ação não pode ser desfeita.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel className="bg-white border-border text-gray-700">
+                <AlertDialogCancel className="bg-white border-border">
                   Cancelar
                 </AlertDialogCancel>
                 <AlertDialogAction
                   onClick={props.onDeleteDeliverable}
                   disabled={props.deleting}
-                  className="bg-red-600 hover:bg-red-700"
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   {props.deleting ? 'Excluindo...' : 'Excluir'}
                 </AlertDialogAction>

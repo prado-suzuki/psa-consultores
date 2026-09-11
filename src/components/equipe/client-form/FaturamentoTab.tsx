@@ -40,7 +40,6 @@ import { getEmpresaLabel } from "./contratosLabels";
 import FieldPair from "./FieldPair";
 import OsValoresLeitura from "./OsValoresLeitura";
 import SecaoFormulario from "./SecaoFormulario";
-import { useAcentoArea } from "./acentoArea";
 
 export interface FaturamentoTabProps {
   entities: DraftEntity[];
@@ -94,7 +93,6 @@ const BarraOs = ({
   onSelecionar: (id: string) => void;
   contribuinteDaOs: (contrato: DraftOrdemServico) => DraftEntity | undefined;
 }) => {
-  const acento = useAcentoArea();
   return (
     <Tabs value={selecionadaId} onValueChange={onSelecionar}>
       {/* `h-auto` e `flex-wrap`: número de OS é comprido e o cliente pode ter
@@ -102,9 +100,12 @@ const BarraOs = ({
           dizer que existem. */}
       <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0">
         {contratos.map((c) => {
-          // O acento vem de um token de classe montado em tempo de execução, e
-          // variante do Tailwind (`data-[state=active]:`) não interpola string.
-          // Como a seleção já é conhecida aqui, a comparação é em JavaScript.
+          // A seleção é decidida em JavaScript e não por `data-[state=active]:`.
+          // O motivo original caducou em 11/09/2026: o acento vinha de um token
+          // montado em tempo de execução (`acentoArea`), e variante do Tailwind
+          // não interpola string. Hoje a classe é literal, então a variante
+          // funcionaria — isto fica porque já está correto e a troca seria mexer
+          // em pixel sem motivo, não porque ainda seja a única saída.
           const ativa = String(c._id) === selecionadaId;
           const contribuinte = contribuinteDaOs(c);
           return (
@@ -117,7 +118,7 @@ const BarraOs = ({
               className={cn(
                 "h-auto flex-col items-start gap-0.5 rounded-md border px-2.5 py-1.5 text-xs",
                 ativa
-                  ? cn(acento.botaoSuave, "shadow-none")
+                  ? cn('border-primary/40 bg-accent/5 text-primary hover:border-primary hover:bg-accent/10', "shadow-none")
                   : "border-transparent text-muted-foreground hover:bg-muted/60",
               )}
             >

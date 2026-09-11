@@ -1,6 +1,28 @@
-// Detecta colunas de "Check/Diferença" e retorna classe de cor tricolor.
-// Para checks derivados (em BRL), calcula a divergência relativa contra
-// o campo base, comparada aos thresholds verde/amarelo/vermelho.
+// Detecta colunas de "Check/Diferença" e devolve a classe do papel de status.
+// Para checks derivados (em BRL), calcula a divergência relativa contra o campo
+// base, comparada aos thresholds de conferência.
+//
+// A COR SAI DAQUI, E DAQUI SÓ. Esta é a escada de conferência do ICMS Saídas, e
+// ela era `emerald`/`amber`/`red` cru até 10/09/2026. Duas coisas a moveram:
+//
+// · a escada tem TRÊS degraus com significado, não é gradiente de gravidade: o
+//   valor confere, o valor merece atenção, o valor divergiu. Três estados
+//   nomeados vestem papel; rampa contínua não veste, e é por isso que o
+//   `CORES_MOTIVO` do `AuditPendenciasTable` (seis níveis) segue de fora. A
+//   distinção está no `docs/geral/cor-o-que-falta.md`, §2;
+// · e a escada estava DUPLICADA em forma binária: o `T01ApuracaoTab` decidia
+//   `diferenca === 0 ? verde : vermelho` em QUATRO lugares, à mão, sobre o mesmo
+//   conceito de divergência. Virou `classeDeConferencia`, aqui embaixo.
+//
+// Medido na conversão, sobre cartão branco com o fundo a 60%:
+//
+//   antes  emerald-700/emerald-50  5,31   amber-700/amber-50  4,91   red-700/red-50  6,13
+//   depois feito/feito-soft        7,62   alerta/alerta-soft  6,09   ajuste/ajuste-soft  6,49
+//
+// E o binário do T01 estava REPROVANDO: o emerald-600 do estoque sobre branco dá 3,77,
+// abaixo do 4,5 do AA, em quatro células de valor. `status-feito` dá 8,68.
+// Os fundos antigos também não separavam do cartão (1,02 a 1,06); os novos vão a
+// 1,14–1,30, porque o `-soft` do contrato mora em 86% e não em 95%.
 
 const CHECK_KEY_RE = /(_CHECK$|^CHECK_?$|^DIF$|EFD.*CHECK|E116.*CHECK|_DIF$)/i;
 
@@ -76,7 +98,22 @@ export function checkColorClass(
     }
   }
 
-  if (relativeAbs < VERDE) return 'text-emerald-700 bg-emerald-50/60';
-  if (relativeAbs < AMARELO) return 'text-amber-700 bg-amber-50/60';
-  return 'text-red-700 bg-red-50/60 font-semibold';
+  if (relativeAbs < VERDE) return 'text-status-feito bg-status-feito-soft/60';
+  if (relativeAbs < AMARELO) return 'text-status-alerta bg-status-alerta-soft/60';
+  return 'text-status-ajuste bg-status-ajuste-soft/60 font-semibold';
+}
+
+/**
+ * A forma BINÁRIA da mesma escada: o valor confere, ou divergiu.
+ *
+ * Existe porque o `T01ApuracaoTab` não tem threshold — ele compara `diferenca`
+ * com zero — e decidia a cor à mão em quatro lugares. É o mesmo conceito de
+ * divergência do `checkColorClass`, então usa os mesmos dois extremos da escada
+ * e mora no mesmo arquivo. Sem `-soft`: ali a cor pinta LETRA, não célula.
+ *
+ * Devolve só a cor. O `font-semibold` que algumas chamadas acrescentam é
+ * tipografia da linha contra o total, não parte do mapa, e fica no local.
+ */
+export function classeDeConferencia(confere: boolean): string {
+  return confere ? 'text-status-feito' : 'text-status-ajuste';
 }

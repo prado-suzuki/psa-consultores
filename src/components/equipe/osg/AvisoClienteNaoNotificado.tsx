@@ -31,12 +31,14 @@ export function AvisoClienteNaoNotificado({ solicitacaoId, enviadaEm }: {
   // ficar calado: acusar falso manda o analista incomodar o cliente à toa.
   if (!naoSaiu) return null;
 
+  // O problema veste `destructive`, e não `osg-red`: vermelho aqui é papel
+  // de estado (ajuste), não a âncora da área.
   return (
     <div
       role="status"
-      className="flex items-start gap-3 rounded-2xl border border-osg-red/30 bg-osg-red/[0.04] p-4 text-sm text-osg-700"
+      className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/[0.04] p-4 text-sm text-osg-700"
     >
-      <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-osg-red" />
+      <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
       <p className="leading-relaxed">
         <strong className="font-semibold">
           O cliente ainda não recebeu a notificação desta solicitação.

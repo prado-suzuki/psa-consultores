@@ -86,7 +86,10 @@ export function ModalFinalizarSolicitacao({
 
   return (
     <Dialog open={aberto} onOpenChange={(v) => !encerrando && !v && onFechar()}>
-      <DialogContent className="max-w-lg gap-0 overflow-hidden p-0">
+      {/* `overflow-hidden` descarta a rolagem que a primitiva dá, então o corpo
+          precisa rolar por conta: o teto de 90vh vem de lá, e sem isto o
+          conteúdo mais comprido ficaria cortado sem barra. */}
+      <DialogContent className="flex max-w-lg flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="px-6 pt-6">
           <DialogTitle className="text-lg font-extrabold tracking-tight text-osg-700">
             Finalizar esta solicitação?
@@ -98,7 +101,7 @@ export function ModalFinalizarSolicitacao({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 px-6 py-5">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
           {/* O texto da confirmação anterior, palavra por palavra: ele já dizia o
               que precisa ser dito, e mudá-lo de passagem seria reescrever sem
               motivo o que a coordenação leu e aprovou. */}

@@ -4,18 +4,24 @@ import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { DiagnosticoPatrimonialReport } from '@/components/equipe/osg/relatorios/DiagnosticoPatrimonialReport';
 import { SocietarioReport } from '@/components/equipe/osg/relatorios/SocietarioReport';
 import { FiscalReport } from '@/components/equipe/osg/relatorios/FiscalReport';
 import { GerarApresentacaoMenu } from '@/components/equipe/osg/relatorios/GerarApresentacao';
+import { PapeisDeTrabalhoReport } from '@/components/equipe/osg/relatorios/PapeisDeTrabalhoReport';
 
 const RELATORIOS = [
   { value: 'dp', label: 'Diagnóstico Patrimonial' },
   { value: 'societario', label: 'Quadro Societário / Organograma' },
   { value: 'fiscal', label: 'Abertura de Demanda — Planejamento Tributário' },
+  { value: 'papeis', label: 'Papéis de Trabalho - Planejamento Tributário' },
 ];
 
 const Relatorios = () => {
@@ -41,9 +47,15 @@ const Relatorios = () => {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Label className="text-sm font-semibold text-muted-foreground sm:w-24">Relatório</Label>
           <Select value={relatorio} onValueChange={setRelatorio}>
-            <SelectTrigger className="w-full sm:max-w-sm"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:max-w-sm">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
-              {RELATORIOS.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+              {RELATORIOS.map((r) => (
+                <SelectItem key={r.value} value={r.value}>
+                  {r.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -59,6 +71,8 @@ const Relatorios = () => {
           <SocietarioReport clienteId={clienteId} />
         ) : relatorio === 'fiscal' ? (
           <FiscalReport clienteId={clienteId} />
+        ) : relatorio === 'papeis' ? (
+          <PapeisDeTrabalhoReport clienteId={clienteId} />
         ) : null}
       </div>
     </OsgLayout>

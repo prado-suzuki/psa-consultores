@@ -105,7 +105,7 @@ export const ProjectDetailsDialog = ({
         {project && (
           <>
             <DialogHeader>
-              <DialogTitle className="text-gray-900 flex items-center gap-2">
+              <DialogTitle className="flex items-center gap-2">
                 <FolderKanban className="h-5 w-5 text-primary" />
                 {editMode ? 'Editar Projeto' : project.name}
               </DialogTitle>

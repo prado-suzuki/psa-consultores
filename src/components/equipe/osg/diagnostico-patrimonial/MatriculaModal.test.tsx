@@ -46,6 +46,10 @@ vi.mock('@/components/equipe/osg/HistoricoFlutuante', () => ({ HistoricoFlutuant
 import { MatriculaModal } from './MatriculaModal';
 
 const pessoa = { id: 'P1', denominacao: 'Titular Um', tipo_pessoa: 'PF' };
+const outraPessoa = { id: 'P2', denominacao: 'Titular Dois', tipo_pessoa: 'PF' };
+// Mesmo atalho do `renderModal`: o teste só usa três campos da pessoa, e
+// escrever as 40 colunas da linha real não diria nada a mais.
+const duasPessoas = [pessoa, outraPessoa] as React.ComponentProps<typeof MatriculaModal>['pessoasCliente'];
 const matriculaEdit = {
   id: 'M1', bem_id: 'B1', numero: '100', tipo_bem: 'IR', matricula_anterior_id: null,
   matricula_anterior_texto: null, livro: '2', folha: '3', data_matricula: null,
@@ -112,7 +116,7 @@ describe('MatriculaModal', () => {
     const [payload, options] = mocks.upsert.mock.calls[0];
     expect(payload).toMatchObject({
       original: null,
-      titular: { titular_pessoa_id: 'P1', tipo: 'DIREITO', fracao: 40 },
+      titulares: [{ titular_pessoa_id: 'P1', tipo: 'DIREITO', fracao: 40 }],
       values: {
         bem_id: 'B1', numero: '456', tipo_bem: 'IR', cartorio_id: 'CART1',
         municipio_imovel: 'Anápolis', uf_imovel: 'GO', area_documento: 1_230_000,
@@ -156,6 +160,79 @@ describe('MatriculaModal', () => {
     );
   });
 
+  it('grava a composse inteira no cadastro, com as duas espécies de titularidade', async () => {
+    const user = userEvent.setup();
+    renderModal({ pessoasCliente: duasPessoas });
+    await user.type(inputAfter('Nº da matrícula'), '456');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Cartório' }), 'CART1');
+    await user.type(inputAfter('Município'), 'Anápolis');
+    await choose(2, 'GO');
+    await user.type(inputAfter('Área documento'), '10');
+
+    await user.click(screen.getByRole('tab', { name: /Titularidade/ }));
+    // A lista abre com uma linha de DT; a segunda pessoa e a FT entram aqui, sem
+    // passar por salvar-e-editar (era o defeito: só um titular, e só de DT).
+    const linhasDt = () => screen.getAllByRole('button', { name: 'Remover titular de DT' });
+    await choose(0, 'Titular Um');
+    await user.type(screen.getAllByLabelText('Fração (%)')[0], '60');
+    await user.click(screen.getByRole('button', { name: /Adicionar titular de DT/ }));
+    await choose(1, 'Titular Dois');
+    await user.type(screen.getAllByLabelText('Fração (%)')[1], '40');
+    expect(linhasDt()).toHaveLength(2);
+    await user.click(screen.getByRole('button', { name: /Adicionar titular de FT/ }));
+    await choose(0, 'Titular Dois');
+
+    await user.click(screen.getByRole('button', { name: 'Cadastrar matrícula' }));
+    const [payload] = mocks.upsert.mock.calls[0];
+    // DT primeiro: o primeiro da lista é o que a RPC usa para achar o cliente.
+    expect(payload.titulares).toEqual([
+      { titular_pessoa_id: 'P1', tipo: 'DIREITO', fracao: 60 },
+      { titular_pessoa_id: 'P2', tipo: 'DIREITO', fracao: 40 },
+      { titular_pessoa_id: 'P2', tipo: 'FATO', fracao: null },
+    ]);
+  });
+
+  it('remove um titular da lista antes de salvar', async () => {
+    const user = userEvent.setup();
+    renderModal({ pessoasCliente: duasPessoas });
+    await user.type(inputAfter('Nº da matrícula'), '456');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Cartório' }), 'CART1');
+    await user.type(inputAfter('Município'), 'Anápolis');
+    await choose(2, 'GO');
+    await user.type(inputAfter('Área documento'), '10');
+    await user.click(screen.getByRole('tab', { name: /Titularidade/ }));
+    await choose(0, 'Titular Um');
+    await user.click(screen.getByRole('button', { name: /Adicionar titular de DT/ }));
+    await choose(1, 'Titular Dois');
+    await user.click(screen.getAllByRole('button', { name: 'Remover titular de DT' })[0]);
+    await user.click(screen.getByRole('button', { name: 'Cadastrar matrícula' }));
+
+    const [payload] = mocks.upsert.mock.calls[0];
+    expect(payload.titulares).toEqual([
+      { titular_pessoa_id: 'P2', tipo: 'DIREITO', fracao: null },
+    ]);
+  });
+
+  it('recusa a mesma pessoa duas vezes na mesma espécie', async () => {
+    const user = userEvent.setup();
+    renderModal({ pessoasCliente: duasPessoas });
+    await user.type(inputAfter('Nº da matrícula'), '456');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Cartório' }), 'CART1');
+    await user.type(inputAfter('Município'), 'Anápolis');
+    await choose(2, 'GO');
+    await user.type(inputAfter('Área documento'), '10');
+    await user.click(screen.getByRole('tab', { name: /Titularidade/ }));
+    await choose(0, 'Titular Um');
+    await user.click(screen.getByRole('button', { name: /Adicionar titular de DT/ }));
+    await choose(1, 'Titular Um');
+    await user.click(screen.getByRole('button', { name: 'Cadastrar matrícula' }));
+
+    expect(mocks.toast.error).toHaveBeenCalledWith(
+      'A mesma pessoa aparece duas vezes na mesma espécie de titularidade.',
+    );
+    expect(mocks.upsert).not.toHaveBeenCalled();
+  });
+
   it('valida titular e fração antes de chamar a RPC atômica', async () => {
     const user = userEvent.setup();
     renderModal();
@@ -167,7 +244,7 @@ describe('MatriculaModal', () => {
     await user.click(screen.getByRole('button', { name: 'Cadastrar matrícula' }));
     // B16: o aviso diz o que falta E onde, a aba abre e o foco para no campo.
     expect(mocks.toast.error).toHaveBeenCalledWith(
-      'Selecione o titular inicial da matrícula, na aba Titularidade.',
+      'Selecione ao menos um titular da matrícula, na aba Titularidade.',
     );
     expect(screen.getByRole('tab', { name: /Titularidade/ })).toHaveAttribute('data-state', 'active');
     await waitFor(() =>
@@ -187,7 +264,7 @@ describe('MatriculaModal', () => {
     expect(mocks.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         original: matriculaEdit,
-        titular: undefined,
+        titulares: undefined,
         values: expect.objectContaining({
           tipo_bem: 'IB', area_documento: 123, area_real: 120, area_explorada: null,
           georreferenciado: null, georref_prejudica_transferencia: null,

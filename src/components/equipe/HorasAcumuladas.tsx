@@ -23,8 +23,8 @@ export const HorasAcumuladas = ({
 
   const getProgressColor = (total: number) => {
     const percentage = (total / maxHoursPerWeek) * 100;
-    if (percentage > 100) return 'bg-red-500';
-    if (percentage > 80) return 'bg-yellow-500';
+    if (percentage > 100) return 'bg-status-ajuste';
+    if (percentage > 80) return 'bg-status-alerta';
     return 'bg-primary';
   };
 
@@ -42,13 +42,13 @@ export const HorasAcumuladas = ({
     return (
       <Card className="border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-gray-900 text-lg flex items-center gap-2">
+          <CardTitle className="text-lg flex items-center gap-2">
             <Clock className="h-5 w-5 text-primary" />
             {title}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500 text-sm text-center py-4">
+          <p className="text-muted-foreground text-sm text-center py-4">
             Nenhuma hora alocada ainda
           </p>
         </CardContent>
@@ -61,7 +61,7 @@ export const HorasAcumuladas = ({
   return (
     <Card className="border-border">
       <CardHeader className="pb-3">
-        <CardTitle className="text-gray-900 text-lg flex items-center gap-2">
+        <CardTitle className="text-lg flex items-center gap-2">
           <Clock className="h-5 w-5 text-primary" />
           {title}
         </CardTitle>
@@ -71,17 +71,17 @@ export const HorasAcumuladas = ({
           <div key={data.userId} className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-400" />
-                <span className="text-gray-700 font-medium">{data.name}</span>
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{data.name}</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-500">
+              <div className="flex items-center gap-3 text-muted-foreground">
                 {showRoutines && (
                   <>
                     <span className="text-xs">Sprint: {data.sprintHours.toFixed(1)}h</span>
                     <span className="text-xs">Rotina: {data.routineHours.toFixed(1)}h</span>
                   </>
                 )}
-                <span className="font-semibold text-gray-700">{data.total.toFixed(1)}h</span>
+                <span className="font-semibold">{data.total.toFixed(1)}h</span>
               </div>
             </div>
             <Progress 
@@ -93,7 +93,7 @@ export const HorasAcumuladas = ({
         
         <div className="pt-3 border-t border-border">
           <div className="flex items-center justify-between text-sm font-semibold">
-            <span className="text-gray-700">Total Alocado</span>
+            <span>Total Alocado</span>
             <span className="text-primary">{totalHours.toFixed(1)}h</span>
           </div>
         </div>

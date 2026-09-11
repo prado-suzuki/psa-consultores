@@ -20,8 +20,7 @@ export function useOrgProjectOrders(osIds: string[]) {
       const { data, error } = await supabase
         .from('ordem_servico')
         .select('id, numero_os, id_cliente, situacao, data_inicio, data_fim')
-        .in('id', uniqueIds)
-        .eq('excluido', false);
+        .in('id', uniqueIds);
       if (error) throw error;
       return data as OrgProjectOrder[];
     },

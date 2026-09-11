@@ -1,0 +1,805 @@
+/**
+ * Transforma uma revisão do papel de trabalho no conteúdo dos slides.
+ *
+ * **Mora aqui, e não em `src/`, porque quem usa é a Edge Function.** Neste
+ * repositório os dois mundos não se importam: função é Deno com caminho
+ * relativo, front é Vite com o atalho `@/`. E a fronteira certa é esta mesmo: a
+ * função não lê arquivo, lê o banco, então a entrada é o formato das tabelas e
+ * não o do parser.
+ *
+ * É puro: não fala com Supabase, não abre pptx, não sabe o que é um token. Quem
+ * encaixa isto no molde é a função; quem confere que os números batem é o teste
+ * ao lado, contra os gabaritos das fixtures da PT-01.
+ *
+ * ## O sistema não escolhe as contas
+ *
+ * **A Mônica e o Bernardo decidiram em 31/08/2026 que quem escolhe o que aparece
+ * no slide é o consultor**, não o sistema. Está escrito no `README.md` da fixture
+ * da DRE: a seção `slide` de lá é a escolha feita naquele estudo, um exemplo, não
+ * uma regra. Por isso aqui **entra tudo o que foi preenchido**, e a poda acontece
+ * no PowerPoint, onde as tabelas são nativas e editáveis.
+ *
+ * A consequência é que a tabela pode passar do espaço, e passar caladamente seria
+ * o pior dos mundos. Daí o `transbordou`: o deck avisa quantas linhas saíram e
+ * quantas cabem, e quem for montar já abre sabendo o que ajustar.
+ */
+
+/**
+ * Os nomes de aba de que este arquivo precisa.
+ *
+ * **São cópia do `mapa.ts`, e é de propósito**, porque o Deno não alcança
+ * `src/`. O que impede a cópia de envelhecer é o teste ao lado, que compara
+ * estas quatro strings com as do mapa e quebra se divergirem.
+ */
+export const ABA_VENDA_DE_ATIVOS = 'Cenário 02 (Venda de Ativos)';
+export const ABAS_DE_CENARIO = ['Cenário Atual (PF)', 'Cenário 01 (PFxPJ)', 'Cenário 02 (PJxPJ)'];
+
+/** Uma unidade de valor, igual à do mapa. */
+export type UnidadeWp = 'moeda' | 'percentual' | 'texto' | 'data' | 'inteiro';
+
+/** Um valor gravado, no formato de `wp_valor`. */
+export interface ValorDaRevisao {
+  bloco: 'resumo' | 'dre' | 'apuracao';
+  rotulo: string;
+  nivel?: number;
+  cenario: string;
+  contribuinte?: string;
+  ano: number;
+  valor: number | string;
+  unidade: UnidadeWp;
+  /** `Resumo!D16`. É daqui que sai a ordem das linhas no slide. */
+  origemCelula?: string;
+}
+
+/** Uma célula do Farol, no formato de `wp_farol`. */
+export interface FarolDaRevisao {
+  rotulo: string;
+  regime: 'presumido' | 'real';
+  pessoa: 'pf' | 'pj';
+  valor: number | string;
+}
+
+/** Uma linha de comentário, no formato de `wp_comentario`. */
+export interface ComentarioDaRevisao {
+  cenario: string | null;
+  tributo: string;
+  ordem: number;
+  texto: string;
+}
+
+/** O que a função lê do banco para montar o deck. */
+export interface Revisao {
+  clienteNoWp?: string;
+  valores: ValorDaRevisao[];
+  farol: FarolDaRevisao[];
+  comentarios: ComentarioDaRevisao[];
+}
+
+/** Um problema para registrar em `wp_apresentacao.problemas`. */
+export interface ProblemaDoDeck {
+  /**
+   * `formatacao` quando é sobre o espaço do slide, `origem` quando é sobre de
+   * onde o dado vem.
+   *
+   * **A separação existe porque o molde é provisório.** Enquanto o modelo
+   * consolidado não chega, célula não mapeada e linha que não veio na leitura
+   * dizem mais sobre o molde de teste do que sobre o estudo, e a tela mostra só
+   * `formatacao`. Os dois tipos continuam gravados em `wp_apresentacao.problemas`,
+   * então nada se perde: o que muda é o que aparece.
+   */
+  tipo: 'formatacao' | 'origem';
+  onde: string;
+  detalhe: string;
+}
+
+/** Quantas linhas de dado cabem em cada tabela do molde, sem transbordar. */
+const CABEM = {
+  /*
+   * Números empíricos, tirados do deck de origem, que comprovadamente cabe.
+   * **Não dá para calcular pelo XML:** `<a:tr h="...">` é altura MÍNIMA, e a
+   * linha cresce quando o texto não cabe, então dividir a moldura pela altura
+   * declarada dá 141 onde cabem 20. Para remedir, é preencher o molde, converter
+   * para PDF pelo LibreOffice e olhar onde corta.
+   */
+  dre: 20,
+  transferencia: 16,
+  resumo: 18,
+} as const;
+
+/*
+ * **E a fonte é sempre a do molde**, então estes números valem sempre. O gerador
+ * já encolheu tabela e caixa para fazer caber, e em 08/09/2026 o resultado foi a
+ * DRE do Grupo Mattei inteira a 7pt, ilegível, com o cartão do CBS transbordando
+ * assim mesmo. Um slide que ninguém lê e parece pronto é pior que um slide que
+ * passa do fim e está avisado, então o que não couber vira aviso e a poda
+ * acontece no PowerPoint.
+ */
+
+export type ValorDoSlide = string;
+
+export interface LinhaDaTabela {
+  rotulo: string;
+  /** 0 total de bloco, 1 grupo, 2 detalhe. Escolhe a linha-modelo no molde. */
+  nivel: number;
+  /** Vazio numa linha que é só título de seção. */
+  valores: Record<string, ValorDoSlide>;
+}
+
+export interface TabelaDoSlide {
+  titulo: string;
+  /** As colunas, na ordem, para o molde saber o que preencher. */
+  colunas: string[];
+  /**
+   * As duas dimensões da coluna, separadas.
+   *
+   * **O molde tem um número FIXO de espaços por ano** e o estudo nem sempre
+   * preenche todos: o `Cenário Atual (PF)` tem um contribuinte só, e a DRE do
+   * molde tem dois espaços por ano. Casar a lista achatada com os espaços por
+   * posição jogava 2027 no lugar do segundo contribuinte de 2026, com números
+   * certos debaixo do cabeçalho errado. Com as dimensões separadas, o gerador
+   * monta a chave de cada espaço e deixa vazio o que não existe.
+   */
+  anos: string[];
+  /** Contribuintes na DRE, cenários no Resumo, vazio quando a coluna é só o ano. */
+  subs: string[];
+  linhas: LinhaDaTabela[];
+  /** Quantas linhas saíram além do que cabe. Zero é o normal. */
+  transbordou: number;
+  /** Quantas linhas foram omitidas por não ter valor em coluna nenhuma. */
+  escondidas: number;
+}
+
+export interface CelulaDoFarol {
+  rotulo: string;
+  regime: FarolDaRevisao['regime'];
+  pessoa: FarolDaRevisao['pessoa'];
+  /** Percentual já formatado, ou o marcador. */
+  valor: string;
+  /** `true` quando é ✓ ou ✗ e precisa sair em Wingdings 2. */
+  eMarcador: boolean;
+}
+
+export interface Deck {
+  cliente: string | undefined;
+  anos: number[];
+  /** Os cenários do Resumo, na ordem das colunas do slide. */
+  cenarios: string[];
+  dre: TabelaDoSlide;
+  transferencia: TabelaDoSlide;
+  resumo: TabelaDoSlide;
+  farol: CelulaDoFarol[];
+  comentarios: { tributo: string; texto: string }[];
+  notas: string[];
+  problemas: ProblemaDoDeck[];
+}
+
+/**
+ * O formato de número da apresentação, tirado dos gabaritos das fixtures.
+ *
+ * Três regras, e as três são visíveis nos decks reais: milhar com ponto e sem
+ * centavo, negativo entre parênteses em vez de sinal, e **zero vira traço**. O
+ * traço é o que faz a tabela dizer "não se aplica" em vez de "custou zero reais",
+ * e é a diferença entre um slide certo e um que engana.
+ */
+export function formataValor(
+  valor: number | string | undefined | null,
+  unidade: UnidadeWp = 'moeda',
+): ValorDoSlide {
+  if (valor === undefined || valor === null || valor === '') return '-';
+  if (typeof valor === 'string') return valor;
+  if (unidade === 'texto') return String(valor);
+
+  /*
+   * O percentual sai sem casa decimal no Resumo (`(24%)`, `54%`), e com duas no
+   * Farol (`5,50%`). Não é descuido do deck: no Resumo o número é comparação
+   * grosseira entre cenários, e no Farol é alíquota, onde meio ponto importa.
+   * Por isso o Farol formata por conta própria, em `montaFarol`.
+   */
+  if (unidade === 'percentual') {
+    const pct = Math.round(valor * 100);
+    if (pct === 0) return '-';
+    return pct < 0 ? `(${Math.abs(pct)}%)` : `${pct}%`;
+  }
+
+  const arredondado = Math.round(valor);
+  if (arredondado === 0) return '-';
+  const absoluto = Math.abs(arredondado).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+  return arredondado < 0 ? `(${absoluto})` : absoluto;
+}
+
+/** `Cenário 01 (PFxPJ)` e `Cenário 01` são o mesmo cenário com nomes diferentes. */
+function raizDoCenario(cenario: string): string {
+  return cenario.replace(/\s*\(.*\)\s*$/, '').trim();
+}
+
+/**
+ * O nome que a linha tem no slide, quando ele difere do da planilha.
+ *
+ * **É de-para de verdade, não capricho de redação.** A PT-01 registrou que a
+ * apresentação renomeia linhas do WP, e comparar contra os gabaritos confirmou
+ * quais. Sem isto a tabela sai com o vocabulário interno da planilha na frente
+ * do cliente.
+ */
+const RENOMEIA: Record<string, string> = {
+  Redução: 'Aumento/Redução em relação ao cenário atual',
+};
+
+function rotuloDoSlide(rotulo: string): string {
+  return RENOMEIA[rotulo] ?? rotulo;
+}
+
+/**
+ * Junta valores numa tabela: uma linha por rótulo, uma coluna por chave.
+ *
+ * A ordem das linhas é a de aparição, que é a da planilha, e é ela que o slide
+ * usa. **Ordenar por rótulo quebraria a Transferência**, onde a compensação de
+ * prejuízo vem antes da presunção na planilha e o slide depende dessa sequência.
+ *
+ * **O rótulo se repete, e agrupar por ele perde linha.** No Resumo, `IRPF`,
+ * `CBS` e `INSS` aparecem três vezes cada, sob Pessoa Física, sob Lucro
+ * Presumido e sob Lucro Real. Agrupando pelo nome as três viravam uma e a última
+ * sobrescrevia as outras, com o slide saindo com 10 linhas em vez de 16. Por
+ * isso a chave conta a ocorrência dentro de cada coluna.
+ */
+/**
+ * A ordem da planilha, tirada do endereço da célula.
+ *
+ * **O banco não guarda ordem.** O PostgREST devolve as linhas como quiser, e sem
+ * isto o Resumo saía com Lucro Real antes de Lucro Presumido, e os valores
+ * pulavam de coluna entre uma geração e outra: números certos, tabela errada, e
+ * nada acusando.
+ *
+ * `Resumo!D16` diz linha 16, coluna D. Ordenar por linha e depois por coluna
+ * reconstrói a varredura da planilha, que é a ordem que o slide espera, tanto
+ * para as linhas quanto para a sequência dos anos e cenários.
+ */
+function enderecoDaCelula(v: ValorDaRevisao): [number, number] {
+  const m = /![ ]*([A-Z]+)([0-9]+)/.exec(v.origemCelula ?? '');
+  if (!m) return [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER];
+  let coluna = 0;
+  for (const c of m[1]) coluna = coluna * 26 + (c.charCodeAt(0) - 64);
+  return [Number(m[2]), coluna];
+}
+
+function naOrdemDaPlanilha(a: ValorDaRevisao, b: ValorDaRevisao): number {
+  const [la, ca] = enderecoDaCelula(a);
+  const [lb, cb] = enderecoDaCelula(b);
+  return la - lb || ca - cb;
+}
+
+/**
+ * A linha não tem valor em coluna nenhuma.
+ *
+ * **Traço conta como ausência**, porque é assim que uma coluna sem dado é
+ * escrita logo acima. Zero escrito de verdade não conta: `0` é uma informação,
+ * traço é a falta dela.
+ *
+ * **Linha sem nenhuma coluna fica de fora da regra.** É o título de seção da
+ * Transferência, que existe para separar blocos e não tem valor por desenho.
+ */
+export function linhaSemValor(linha: LinhaDaTabela): boolean {
+  const valores = Object.values(linha.valores);
+  if (valores.length === 0) return false;
+  return valores.every((v) => v.trim() === '' || /^[-–—]$/.test(v.trim()));
+}
+
+function montaTabela(
+  titulo: string,
+  valoresFora: ValorDaRevisao[],
+  coluna: (v: ValorDaRevisao) => string,
+  cabem: number,
+  escondeZeradas = false,
+): TabelaDoSlide {
+  const linhas: LinhaDaTabela[] = [];
+  const porChave = new Map<string, LinhaDaTabela>();
+  const colunas: string[] = [];
+  const ocorrencias = new Map<string, Map<string, number>>();
+
+  const valores = [...valoresFora].sort(naOrdemDaPlanilha);
+
+  for (const v of valores) {
+    const c = coluna(v);
+    if (!colunas.includes(c)) colunas.push(c);
+
+    const daColuna = ocorrencias.get(c) ?? new Map<string, number>();
+    const n = (daColuna.get(v.rotulo) ?? 0) + 1;
+    daColuna.set(v.rotulo, n);
+    ocorrencias.set(c, daColuna);
+
+    const chave = `${v.rotulo}#${n}`;
+    let linha = porChave.get(chave);
+    if (!linha) {
+      linha = { rotulo: rotuloDoSlide(v.rotulo), nivel: v.nivel ?? 1, valores: {} };
+      porChave.set(chave, linha);
+      linhas.push(linha);
+    }
+    linha.valores[c] = formataValor(v.valor, v.unidade);
+  }
+
+  /* Coluna que existe na tabela mas não naquela linha sai como traço, senão a
+   * célula fica vazia no slide e parece erro de leitura. */
+  for (const linha of linhas) {
+    for (const c of colunas) if (!(c in linha.valores)) linha.valores[c] = '-';
+  }
+
+  const anos: string[] = [];
+  const subs: string[] = [];
+  for (const c of colunas) {
+    const [ano, sub] = c.split('|');
+    if (!anos.includes(ano)) anos.push(ano);
+    if (sub && !subs.includes(sub)) subs.push(sub);
+  }
+
+  /*
+   * **Linha sem valor nenhum não vai para o slide.**
+   *
+   * Isto não contraria a decisão de 31/08 do topo do arquivo, que é sobre o
+   * sistema não escolher QUAIS contas interessam. Aqui não há escolha: a conta
+   * não foi preenchida em ano nenhum, e o que apareceria é uma fileira de
+   * traços. No Grupo Mattei eram 55 das 84 linhas da DRE, e é o que fazia a
+   * tabela precisar de 14 polegadas num slide de 5.
+   *
+   * **Os subtotais continuam fechando**, porque uma parcela que vale nada não
+   * muda soma nenhuma; e um grupo cujos filhos são todos vazios tem o próprio
+   * cabeçalho vazio, então some inteiro em vez de virar título órfão.
+   */
+  const visiveis = escondeZeradas ? linhas.filter((l) => !linhaSemValor(l)) : linhas;
+
+  return {
+    titulo,
+    colunas,
+    anos,
+    subs,
+    linhas: visiveis,
+    transbordou: Math.max(0, visiveis.length - cabem),
+    escondidas: linhas.length - visiveis.length,
+  };
+}
+
+/**
+ * A DRE do slide de Premissas, uma coluna por ano e contribuinte.
+ *
+ * **Vem de UMA aba de cenário, não das três.** O WP tem DRE em `Cenário Atual
+ * (PF)`, `Cenário 01 (PFxPJ)` e `Cenário 02 (PJxPJ)`, com 73 contas cada.
+ * Juntando as três a tabela saía com 247 linhas, num slide desenhado para 20, e
+ * o erro não aparecia nas fixtures porque cada uma é o recorte de uma aba só.
+ *
+ * **Fica com a primeira aba de cenário, a do cenário atual**, que é a projeção
+ * base e é de onde o único gabarito de DRE que existe foi recortado. **Vale
+ * confirmar com o Fiscal:** no deck do Lunardi aquele slide traz duas colunas de
+ * contribuinte, PF e PJ, e no WP quem tem dois contribuintes é o `Cenário 01
+ * (PFxPJ)`. Pode ser que a premissa mostrada mude de estudo para estudo.
+ *
+ * Entra tudo o que foi preenchido naquela aba, pelo motivo explicado no topo do
+ * arquivo. O `nivel` acompanha cada linha porque o molde tem três linhas-modelo,
+ * uma por nível, e é ele que decide se a conta sai em negrito, normal ou recuada.
+ */
+function montaDre(valores: ValorDaRevisao[]): {
+  tabela: TabelaDoSlide;
+  problemas: ProblemaDoDeck[];
+} {
+  const daDre = valores.filter((v) => v.bloco === 'dre');
+  const cenarios = [...new Set(daDre.map((v) => v.cenario))];
+  const base = ABAS_DE_CENARIO.find((n) => cenarios.includes(n)) ?? cenarios[0];
+
+  /*
+   * **A DRE das Premissas é a do Cenário Atual, e isso está medido.** No deck da
+   * Família Lunardi o lucro do exercício das Premissas é 1.417.964 na pessoa
+   * física e 9.863.001 na jurídica em 2026, que é célula por célula a aba
+   * `Cenário Atual`; a mesma linha no `Cenário Avaliado 01` dá 1.971.812 e não
+   * aparece em slide nenhum. Faz sentido: a premissa descreve o resultado
+   * projetado como ele é hoje, e os cenários é que mexem na estrutura.
+   *
+   * Por isso o aviso só sai quando o Cenário Atual NÃO veio na leitura e a DRE
+   * teve de sair de outra aba, que é o caso em que alguém precisa conferir.
+   */
+  const problemas: ProblemaDoDeck[] = [];
+  if (base !== ABAS_DE_CENARIO[0]) {
+    problemas.push({
+      tipo: 'origem',
+      onde: '3.1 Premissas, a DRE',
+      detalhe:
+        `O WP não trouxe DRE do "${ABAS_DE_CENARIO[0]}", que é a aba das Premissas. ` +
+        `Saiu a do "${base}".`,
+    });
+  }
+
+  const tabela = montaTabela(
+    '3.1 Premissas, a DRE',
+    daDre.filter((v) => v.cenario === base),
+    (v) => (v.contribuinte ? `${v.ano}|${v.contribuinte}` : String(v.ano)),
+    CABEM.dre,
+    true,
+  );
+
+  /*
+   * O corte é dito, e não feito calado: quem monta o slide precisa saber que a
+   * lista de contas está menor do que a do papel de trabalho, para não procurar
+   * uma linha que ele sabe que preencheu com zero.
+   */
+  if (tabela.escondidas > 0) {
+    problemas.push({
+      tipo: 'formatacao',
+      onde: '3.1 Premissas, a DRE',
+      detalhe:
+        `${tabela.escondidas} contas sem valor ficaram fora. Restaram ${tabela.linhas.length}.`,
+    });
+  }
+
+  return { tabela, problemas };
+}
+
+/**
+ * O Resumo, uma coluna por ano e cenário.
+ *
+ * **O molde tem três colunas por ano**, e é o gerador que escreve o nome de cada
+ * cenário no cabeçalho: assim o slide mostra os cenários que aquele estudo tem,
+ * em vez de rótulo fixo que pode não corresponder. Se vierem mais de três, o
+ * excedente não cabe e o deck avisa.
+ */
+const CENARIOS_NO_MOLDE = 3;
+
+function montaResumo(valores: ValorDaRevisao[]): {
+  tabela: TabelaDoSlide;
+  cenarios: string[];
+  problemas: ProblemaDoDeck[];
+} {
+  const doResumo = valores.filter((v) => v.bloco === 'resumo');
+  const tabela = montaTabela(
+    '3.5 Resumo da Tributação',
+    doResumo,
+    (v) => `${v.ano}|${raizDoCenario(v.cenario)}`,
+    CABEM.resumo,
+  );
+
+  /* Na ordem em que aparecem na planilha, que é a ordem das colunas do slide. */
+  const cenarios: string[] = [];
+  for (const c of tabela.colunas) {
+    const nome = c.split('|')[1];
+    if (nome && !cenarios.includes(nome)) cenarios.push(nome);
+  }
+
+  const problemas: ProblemaDoDeck[] = [];
+  if (cenarios.length > CENARIOS_NO_MOLDE) {
+    problemas.push({
+      tipo: 'origem',
+      onde: '3.5 Resumo da Tributação',
+      detalhe:
+        `O estudo tem ${cenarios.length} cenários e o slide tem ${CENARIOS_NO_MOLDE} colunas. ` +
+        `Ficaram de fora: ${cenarios.slice(CENARIOS_NO_MOLDE).join(', ')}.`,
+    });
+  }
+
+  return { tabela, cenarios, problemas };
+}
+
+/**
+ * A Transferência não é projeção da planilha: é uma tabela com desenho próprio.
+ *
+ * **Três coisas mudam entre a aba e o slide**, e todas estão documentadas na
+ * PT-01. A ordem muda: na planilha a compensação de prejuízo vem antes da
+ * presunção, e no slide o limite de 20% vem primeiro. O nome muda: `Resultado do
+ * exercício` vira `Receita com a venda dos bens da atividade rural`, e
+ * `Presunção de 20%` vira `Limite de 20% sobre a receita bruta total`. E o slide
+ * tem linhas que a planilha não produz.
+ *
+ * Por isso a tabela é declarada, e não derivada. Projetar a aba na ordem dela
+ * produziria um slide errado que ninguém perceberia, porque os números estariam
+ * todos certos.
+ */
+interface LinhaDeclarada {
+  slide: string;
+  /** O rótulo correspondente na planilha. Ausente quando o slide inventa a linha. */
+  daPlanilha?: string;
+  /** Linha que é só título de seção, sem número. */
+  titulo?: boolean;
+  /** Linha que não se lê da planilha: sai de comparar duas outras linhas. */
+  deduzida?: 'opcao_de_apuracao';
+}
+
+/** Os dois rótulos da planilha de que a opção pela forma de apuração depende. */
+const PRESUNCAO_DE_20 = 'Presunção de 20%';
+const RESULTADO_TRIBUTAVEL = 'Resultado tributável';
+
+/**
+ * "Real" ou "Presumido", **deduzido e não lido**.
+ *
+ * O WP não tem célula para isto: a opção se enxerga no resultado. Na apuração do
+ * IRPF rural o contribuinte escolhe entre o resultado efetivo, apurado no livro
+ * caixa, e o presumido de 20% da receita bruta, e o `Resultado tributável` da
+ * planilha guarda o que foi escolhido. Se ele é o presumido, a opção foi
+ * Presumido; se é outro número, foi Real.
+ *
+ * **Medido em dois decks antes de virar regra.** No gabarito da PT-01 o
+ * tributável é igual ao limite de 20% nos sete exercícios e o deck diz
+ * "Presumido" nos sete. No deck da Família Lunardi, 2026 tem tributável zerado
+ * pela compensação de prejuízo contra um limite de 169.701, e o deck diz "Real"
+ * só naquele ano, "Presumido" nos cinco seguintes. A regra acerta os treze
+ * casos, e faz sentido na lei: a opção pelo presumido não admite compensar
+ * prejuízo, então ano com compensação nunca é presumido.
+ *
+ * Ano sem presunção nenhuma sai como traço, porque ali não houve escolha a fazer.
+ */
+export function opcaoDeApuracao(
+  presuncao: number | string | undefined | null,
+  tributavel: number | string | undefined | null,
+): ValorDoSlide {
+  if (typeof presuncao !== 'number' || Math.round(presuncao) === 0) return '-';
+  if (typeof tributavel !== 'number') return '-';
+  return Math.round(presuncao) === Math.round(tributavel) ? 'Presumido' : 'Real';
+}
+
+const LINHAS_DA_TRANSFERENCIA: LinhaDeclarada[] = [
+  { slide: 'Bens da atividade rural', daPlanilha: 'Bens da atividade rural' },
+  { slide: 'Dívidas da atividade rural', daPlanilha: 'Dívidas da atividade rural' },
+  { slide: 'Informação do exercício anterior', titulo: true },
+  {
+    slide: 'Saldo de prejuízo(s) a compensar de exercício(s) anterior(es)',
+    daPlanilha: 'Saldo de prejuízo a compensar de exercício(s) anterior(es)',
+  },
+  { slide: 'Apuração do resultado tributável', titulo: true },
+  {
+    slide: 'Receita com a venda dos bens da atividade rural',
+    daPlanilha: 'Resultado do exercício',
+  },
+  /* Sai sempre como traço. Omitir quebraria o alinhamento da tabela, provado no
+   * par Bahia Potrich. */
+  { slide: 'Despesas de custeio e investimento total' },
+  { slide: 'Resultado da Atividade Rural', daPlanilha: 'Lucro/Prejuízo fiscal do exercício' },
+  { slide: 'Limite de 20% sobre a receita bruta total', daPlanilha: PRESUNCAO_DE_20 },
+  {
+    slide: 'Opção pela forma de apuração do resultado tributável',
+    deduzida: 'opcao_de_apuracao',
+  },
+  {
+    slide: 'Compensação de prejuízo(s) de exercício(s) anteriores',
+    daPlanilha: 'Compensação de prejuízo',
+  },
+  { slide: 'Resultado Tributável', daPlanilha: RESULTADO_TRIBUTAVEL },
+  { slide: 'Imposto a pagar', daPlanilha: 'Total a recolher' },
+  {
+    slide: 'Saldo de prejuízo a compensar nos exercícios seguintes',
+    daPlanilha: 'Saldo de prejuízo a compensar',
+  },
+];
+
+function montaTransferencia(valores: ValorDaRevisao[]): {
+  tabela: TabelaDoSlide;
+  problemas: ProblemaDoDeck[];
+} {
+  const daVenda = valores.filter((v) => v.cenario === ABA_VENDA_DE_ATIVOS);
+  const anos = [...new Set(daVenda.map((v) => v.ano))].sort((a, b) => a - b).map(String);
+
+  const porRotulo = new Map<string, Map<string, ValorDaRevisao>>();
+  for (const v of daVenda) {
+    const linha = porRotulo.get(v.rotulo) ?? new Map<string, ValorDaRevisao>();
+    linha.set(String(v.ano), v);
+    porRotulo.set(v.rotulo, linha);
+  }
+
+  const problemas: ProblemaDoDeck[] = [];
+  const linhas: LinhaDaTabela[] = LINHAS_DA_TRANSFERENCIA.map((d) => {
+    const valoresDaLinha: Record<string, ValorDoSlide> = {};
+    if (!d.titulo) {
+      const daPlanilha = d.daPlanilha ? porRotulo.get(d.daPlanilha) : undefined;
+      if (d.daPlanilha && !daPlanilha) {
+        problemas.push({
+          tipo: 'origem',
+          onde: ABA_VENDA_DE_ATIVOS,
+          detalhe: `A linha "${d.daPlanilha}" não veio na leitura, então "${d.slide}" sai vazia no slide.`,
+        });
+      }
+      for (const ano of anos) {
+        const celula = daPlanilha?.get(ano);
+        valoresDaLinha[ano] = formataValor(celula?.valor, celula?.unidade);
+      }
+    }
+    if (d.deduzida === 'opcao_de_apuracao') {
+      const presuncao = porRotulo.get(PRESUNCAO_DE_20);
+      const tributavel = porRotulo.get(RESULTADO_TRIBUTAVEL);
+      for (const ano of anos) {
+        valoresDaLinha[ano] = opcaoDeApuracao(
+          presuncao?.get(ano)?.valor,
+          tributavel?.get(ano)?.valor,
+        );
+      }
+    }
+    return { rotulo: d.slide, nivel: d.titulo ? 0 : 1, valores: valoresDaLinha };
+  });
+
+  return {
+    tabela: {
+      titulo: '3.4 Transferência da Atividade Rural',
+      colunas: anos,
+      anos,
+      subs: [],
+      linhas,
+      transbordou: Math.max(0, linhas.length - CABEM.transferencia),
+      /*
+       * **A Transferência não esconde linha vazia, de propósito.** As linhas dela
+       * são fixas, vêm de `LINHAS_DA_TRANSFERENCIA`, e uma que saiu como traço é
+       * dado que faltou na leitura, não conta zerada. Some-la esconderia a falha
+       * que os avisos acima acabaram de apontar.
+       */
+      escondidas: 0,
+    },
+    problemas,
+  };
+}
+
+/**
+ * O marcador do Farol, em Wingdings 2.
+ *
+ * `P` é o certo e `O` é o errado, medido no deck do Lunardi cruzando o XML com o
+ * slide renderizado. **O gerador precisa escrever a fonte junto com o valor:** a
+ * célula do molde guarda a fonte que tinha, e um percentual caindo numa célula de
+ * símbolo sai como rabisco, sem erro nenhum.
+ */
+const CERTO = 'P';
+const ERRADO = 'O';
+
+function montaFarol(farol: FarolDaRevisao[]): CelulaDoFarol[] {
+  return farol.map((f) => {
+    const base = { rotulo: f.rotulo, regime: f.regime, pessoa: f.pessoa };
+    const texto = typeof f.valor === 'string' ? f.valor.trim() : null;
+
+    if (texto === CERTO || texto === ERRADO) {
+      return { ...base, valor: texto, eMarcador: true };
+    }
+
+    /*
+     * O percentual vem de dois jeitos no WP e os dois são legítimos: número puro
+     * (`0.0163`) quando a célula é conta, e texto já formatado (`23,20%³`)
+     * quando o consultor pendurou a chamada de nota de rodapé nele. Reformatar o
+     * segundo perderia o expoente, então ele passa como está.
+     */
+    if (typeof f.valor === 'number') {
+      const pct = (f.valor * 100).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      return { ...base, valor: `${pct}%`, eMarcador: false };
+    }
+
+    return { ...base, valor: texto === null || texto === '' ? '-' : texto, eMarcador: false };
+  });
+}
+
+/**
+ * As caixas de texto do Resumo, uma por tributo.
+ *
+ * **O tributo é texto livre da planilha**, lido da coluna do marcador: não existe
+ * lista fechada. O molde tem quatro caixas, e um tributo sem caixa vira problema
+ * registrado em vez de sumir calado.
+ */
+const CAIXAS_DO_MOLDE = ['IRPF', 'CBS', 'IRPJ/CSLL', 'PIS/Cofins'];
+
+function normaliza(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+/**
+ * Quantas LETRAS cabem numa caixa de comentário, no tamanho de fonte do molde.
+ *
+ * **Contar linha não serve.** O que estoura é caractere depois de quebrar: a
+ * caixa de IRPF tinha cinco linhas e 806 letras, e transbordava, enquanto a de
+ * PIS/Cofins tinha seis linhas e 508 letras e cabia.
+ *
+ * **420 e não 500, de propósito.** O PIS/Cofins com 508 letras cabia *no limite*,
+ * então calibrar por ele deixava tudo na borda. Com margem, o encolhimento
+ * acontece um pouco antes e o texto sobra dentro da caixa.
+ */
+export const CABEM_NA_CAIXA = 420;
+
+function montaComentarios(comentarios: ComentarioDaRevisao[]): {
+  caixas: { tributo: string; texto: string }[];
+  problemas: ProblemaDoDeck[];
+} {
+  /* Agrupa por tributo e, dentro dele, por cenário, na ordem de leitura. */
+  const porTributo = new Map<string, Map<string, string[]>>();
+  for (const c of comentarios) {
+    if (c.cenario === null) continue;
+    const doTributo = porTributo.get(c.tributo) ?? new Map<string, string[]>();
+    const doCenario = doTributo.get(c.cenario) ?? [];
+    /* Linha repetida dentro do MESMO cenário não acrescenta nada. */
+    if (!doCenario.includes(c.texto)) doCenario.push(c.texto);
+    doTributo.set(c.cenario, doCenario);
+    porTributo.set(c.tributo, doTributo);
+  }
+
+  const caixas: { tributo: string; texto: string }[] = [];
+  const problemas: ProblemaDoDeck[] = [];
+  const doMolde = new Set(CAIXAS_DO_MOLDE.map(normaliza));
+
+  for (const [tributo, porCenario] of porTributo) {
+    /*
+     * **Com mais de um cenário, cada linha diz de qual ela é.**
+     * O mesmo comentário costuma aparecer sob dois cenários com uma palavra de
+     * diferença ("regime de lucro real" contra "regime do lucro real"), e sem o
+     * prefixo a caixa parece ter duplicata. O deck de origem prefixa assim.
+     */
+    const varios = porCenario.size > 1;
+    const linhas: string[] = [];
+    for (const [cenario, doCenario] of porCenario) {
+      for (const linha of doCenario) {
+        linhas.push(varios ? `${raizDoCenario(cenario)} · ${linha}` : linha);
+      }
+    }
+
+    if (!doMolde.has(normaliza(tributo))) {
+      problemas.push({
+        tipo: 'origem',
+        onde: `comentário de ${tributo}`,
+        detalhe: `O molde não tem caixa para "${tributo}", então esse comentário não sai no slide.`,
+      });
+      continue;
+    }
+
+    const letras = linhas.join(' ').length;
+    if (letras > CABEM_NA_CAIXA) {
+      /*
+       * O aviso dá o tamanho e para por aí. Quem escreveu decide o que cortar
+       * olhando o texto, e dizer "encurte em 1.650 letras" só faz o aviso ficar
+       * comprido justamente onde a queixa é excesso de texto.
+       */
+      problemas.push({
+        tipo: 'formatacao',
+        onde: `caixa de ${tributo}`,
+        detalhe: `Não cabe: ${letras} letras para cerca de ${CABEM_NA_CAIXA}.`,
+      });
+    }
+    caixas.push({ tributo, texto: linhas.join('\n') });
+  }
+  return { caixas, problemas };
+}
+
+export function montaDeck(leitura: Revisao): Deck {
+  const daDre = montaDre(leitura.valores);
+  const dre = daDre.tabela;
+  const daTransferencia = montaTransferencia(leitura.valores);
+  const transferencia = daTransferencia.tabela;
+  const doResumo = montaResumo(leitura.valores);
+  const resumo = doResumo.tabela;
+  const { caixas, problemas: dosComentarios } = montaComentarios(leitura.comentarios);
+
+  const problemas: ProblemaDoDeck[] = [
+    ...daDre.problemas,
+    ...doResumo.problemas,
+    ...dosComentarios,
+    ...daTransferencia.problemas,
+  ];
+  for (const [nome, t] of [
+    ['a DRE', dre],
+    ['a Transferência', transferencia],
+    ['o Resumo', resumo],
+  ] as const) {
+    if (t.transbordou > 0) {
+      problemas.push({
+        tipo: 'formatacao',
+        onde: t.titulo,
+        detalhe:
+          `Não cabe: ${t.linhas.length} linhas para ${t.linhas.length - t.transbordou} ` +
+          `de espaço.`,
+      });
+    }
+  }
+
+  const anos = [...new Set(leitura.valores.map((v) => v.ano))].sort((a, b) => a - b);
+
+  return {
+    cliente: leitura.clienteNoWp,
+    anos,
+    cenarios: doResumo.cenarios,
+    dre,
+    transferencia,
+    resumo,
+    farol: montaFarol(leitura.farol),
+    comentarios: caixas,
+    notas: leitura.comentarios.filter((c) => c.cenario === null).map((c) => c.texto),
+    problemas,
+  };
+}

@@ -100,6 +100,38 @@ describe('render da inclusão', () => {
     );
   });
 
+  // A forma que a lista de imóveis dos instrumentos agrários usa desde a
+  // migration 20260902213602, e a razão de ela existir: o ";" é JUNTURA da
+  // seção, não parte do item, e o "." fica FORA. Por construção o último item
+  // não recebe juntura — e é assim que a última alínea passa a terminar em "."
+  // como no instrumento assinado, sem nenhum campo dizendo "sou o último".
+  //
+  // O teste vale pelo ÚLTIMO item: se um dia a juntura passar a ser aplicada
+  // depois de todos, a lista volta a fechar com ";" e o contrato volta a
+  // divergir do assinado num ponto que ninguém relê.
+  it('a juntura da seção é o terminador: o último item não a recebe', () => {
+    const contexto = { imoveis: [{ imovel: rural.imovel }, { imovel: urbano.imovel }] };
+    expect(
+      renderConteudo(
+        '{{#imoveis sep=";\\n\\n"}}{{familia nome="Descrição de imóvel"}}{{/imoveis}}.',
+        contexto,
+        { familias: FAMILIAS },
+      ),
+    ).toBe(
+      'Um imóvel rural denominado Fazenda São Bento;\n\nUm imóvel urbano na Avenida das Itaúbas.',
+    );
+  });
+
+  it('com UM item só, a lista fecha direto no ponto (sem juntura órfã)', () => {
+    expect(
+      renderConteudo(
+        '{{#imoveis sep=";\\n\\n"}}{{familia nome="Descrição de imóvel"}}{{/imoveis}}.',
+        { imoveis: [{ imovel: rural.imovel }] },
+        { familias: FAMILIAS },
+      ),
+    ).toBe('Um imóvel rural denominado Fazenda São Bento.');
+  });
+
   it('marca os segmentos com o id da variante (a prévia precisa saber de quem é o trecho)', () => {
     const segs = renderSegmentos('Alínea: {{familia nome="Descrição de imóvel"}}', rural, [], {
       familias: FAMILIAS,

@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Filter, Flag, ListChecks, Search, SlidersHorizontal, User, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { SingleSelectCombobox } from '@/components/dashboards/SingleSelectCombobox';
+import { SingleSelectCombobox } from '@/components/ui/SingleSelectCombobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { FilterMultiSelectField } from './FilterMultiSelectField';
+import { statusList } from '@/lib/taskStatusColors';
 import { type OrgTaskPriority, type OrgTaskStatus, type TaskFilters as TaskFiltersType } from '@/hooks/useOrgTasks';
 import { useExternalClients } from '@/hooks/useTaxReferenceData';
 
@@ -18,15 +19,13 @@ interface TaskFiltersProps {
   projects?: { id: string; name: string }[];
 }
 
-const statusOptions: { value: OrgTaskStatus; label: string }[] = [
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'waiting_client', label: 'Pendente Cliente' },
-  { value: 'todo', label: 'A Fazer' },
-  { value: 'in_progress', label: 'Em Progresso' },
-  { value: 'review', label: 'Revisão' },
-  { value: 'em_ajuste', label: 'Em Ajuste' },
-  { value: 'done', label: 'Concluído' },
-];
+// As sete opções e a ORDEM delas saem do `statusList` de `taskStatusColors`, que é
+// o mapa do domínio da tarefa. A lista escrita aqui repetia os mesmos sete rótulos
+// e foi por essa cópia que `in_progress` ficou "Em Progresso" enquanto o mapa e o
+// resto do sistema diziam "Em Andamento".
+const statusOptions: { value: OrgTaskStatus; label: string }[] = statusList.map(
+  ({ key, label }) => ({ value: key, label }),
+);
 
 const priorityOptions: { value: OrgTaskPriority; label: string }[] = [
   { value: 'urgent', label: 'Urgente' },
@@ -80,7 +79,17 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
   };
 
   return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+    // `w-full` abaixo de `md`: a busca e o "Filtros" ficam com a linha toda, e
+    // as ações do painel ("Criar Projeto", "Nova tarefa") caem para a linha de
+    // baixo. Sem isto, quem quebrava era o `flex-wrap` DESTE bloco: o "Filtros"
+    // descia sozinho para uma segunda linha enquanto a busca continuava
+    // espremida na primeira, entre ele e os dois botões — três controles numa
+    // linha e um órfão embaixo.
+    //
+    // `md:w-auto md:flex-1` e não `basis-full`: `flex-1` é o atalho de
+    // `flex: 1 1 0%`, que carrega o próprio flex-basis e venceria um
+    // `basis-full` por ordem de folha. Largura não entra nessa disputa.
+    <div className="flex w-full min-w-0 flex-wrap items-center gap-2 md:w-auto md:flex-1">
       <div className="relative min-w-52 flex-1 sm:max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input

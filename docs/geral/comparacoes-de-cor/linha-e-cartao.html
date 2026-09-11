@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A linha e o cartão — as duas que sobraram da pilha de superfícies</title>
+<style>
+  :root{
+    /* Valores lidos do src/index.css em 10/09/2026, depois de o --muted virar
+       derivado do --canvas. Cada área entra como bloco .area-* mais abaixo. */
+    --pg: 168 16% 96%;
+    --fg: 178 30% 9%;
+    --mf: 180 10% 38%;
+    --ln: 168 14% 89%;
+    --cd: 0 0% 100%;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;padding:34px 24px 72px;
+    background:hsl(var(--pg));color:hsl(var(--fg));
+    font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .wrap{max-width:1240px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:-.01em}
+  .sub{color:hsl(var(--mf));margin:0 0 10px;max-width:76ch}
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:.06em;margin:48px 0 4px;color:hsl(var(--mf))}
+  h2 + p{margin:0 0 6px;max-width:82ch;font-size:14.5px}
+  h3{font-size:13px;text-transform:uppercase;letter-spacing:.05em;margin:28px 0 10px;color:hsl(var(--mf));font-weight:700}
+  p.nota{color:hsl(var(--mf));font-size:13.5px;max-width:82ch;margin:6px 0 0}
+  code{font:12.5px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:hsl(var(--pg));padding:1px 5px;border-radius:4px;border:1px solid hsl(var(--ln))}
+
+  .alerta{
+    border:1px solid hsl(var(--ln));border-left:3px solid hsl(var(--fg));
+    background:hsl(var(--cd));border-radius:9px;padding:14px 17px;margin:22px 0 0;max-width:90ch;
+  }
+  .alerta b{display:block;margin-bottom:5px}
+
+  /* ─── as três áreas, como cenário ─── */
+  .area-base{--cv:168 16% 96%;--mt:168 20% 92%;--fg:178 30% 9%;--mf:180 10% 38%;--sf:186 66% 86%;--sd:186 66% 26%}
+  .area-tax {--cv:192 10% 96%;--mt:192 14% 92%;--fg:20 81% 10%;--mf:185 8% 40%;--sf:186 64% 86%;--sd:186 64% 26%}
+  .area-osg {--cv:32 24% 96%;--mt:32 28% 92%;--fg:220 26% 12%;--mf:24 12% 41.5%;--sf:186 62% 86%;--sd:186 62% 26%}
+
+  .linha-de-areas{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:10px}
+  @media (max-width:1000px){.linha-de-areas{grid-template-columns:1fr}}
+  .palco{
+    background:hsl(var(--cv));border-radius:12px;padding:14px;
+    border:1px solid hsl(168 14% 89%);
+  }
+  .palco > .nome{
+    font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+    color:hsl(var(--mf));margin:0 0 10px;
+  }
+  /* o cartão de mentira, com o conteúdo que a tela real tem */
+  .cartao{background:hsl(var(--cd));border:1px solid hsl(var(--ln));border-radius:10px;overflow:hidden}
+  .cartao .topo{padding:11px 13px;font-size:13.5px;font-weight:600;color:hsl(var(--fg))}
+  .abas{display:flex;gap:2px;background:hsl(var(--mt));border-radius:8px;padding:3px;margin:0 13px 11px}
+  .abas span{font-size:12px;padding:5px 9px;border-radius:6px;color:hsl(var(--mf))}
+  .abas span.on{background:hsl(var(--cd));color:hsl(var(--fg));font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .campo{margin:0 13px 12px;height:32px;border:1px solid hsl(var(--ln));border-radius:7px;background:hsl(var(--cd));
+         font-size:12.5px;color:hsl(var(--mf));display:flex;align-items:center;padding:0 10px}
+  /* o campo com borda de CONTROLE — só a opção D o distingue do campo comum */
+  .campo.ctl{border-color:hsl(var(--lnc, var(--ln)))}
+  .cartao table{border-collapse:collapse;width:100%;font-size:12.5px}
+  .cartao th{text-align:left;padding:7px 13px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;
+     color:hsl(var(--mf));font-weight:700;background:hsl(var(--mt));border-top:1px solid hsl(var(--ln));border-bottom:1px solid hsl(var(--ln))}
+  .cartao td{padding:8px 13px;border-bottom:1px solid hsl(var(--ln));color:hsl(var(--fg))}
+  .cartao tr:last-child td{border-bottom:0}
+  .pill{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;
+        background:hsl(var(--sf));color:hsl(var(--sd))}
+
+  /* ─── a lupa: a mesma linha a 8x, para a diferença ser inspecionável ─── */
+  .lupa{display:flex;gap:6px;margin-top:8px}
+  .lupa .faixa{flex:1;height:52px;display:flex;flex-direction:column;border-radius:5px;overflow:hidden}
+  .lupa .faixa .cima{flex:1;background:hsl(var(--cv))}
+  .lupa .faixa .risco{height:8px}
+  .lupa .faixa .baixo{flex:1;background:hsl(var(--cd))}
+  .rotulo-lupa{display:flex;gap:6px;margin-top:5px;font-size:10.5px;color:hsl(var(--mf));text-align:center}
+  .rotulo-lupa div{flex:1}
+
+  table.num{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:14px;background:hsl(var(--cd));
+            border:1px solid hsl(var(--ln));border-radius:9px;overflow:hidden}
+  table.num th,table.num td{text-align:left;padding:8px 12px;border-bottom:1px solid hsl(var(--ln))}
+  table.num th{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:hsl(var(--mf));background:hsl(var(--pg))}
+  table.num td.n{text-align:right;font-variant-numeric:tabular-nums;font-family:ui-monospace,Consolas,monospace;font-size:12px}
+  table.num tr:last-child td{border-bottom:0}
+  .rec{background:hsl(var(--cd));border:1px solid hsl(var(--ln));border-left:3px solid hsl(175 84% 25%);
+       border-radius:9px;padding:13px 16px;margin-top:16px;max-width:90ch}
+  .rec b{display:block;margin-bottom:4px}
+  .rodape{margin-top:54px;padding-top:18px;border-top:1px solid hsl(var(--ln));font-size:13px;color:hsl(var(--mf));max-width:84ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>A linha e o cartão</h1>
+<p class="sub">As duas peças da pilha de superfícies que ainda são escolhidas à mão, depois de a
+matiz e o <code>--muted</code> virarem derivados em 10/09/2026. Cada seção mostra a mesma tela
+nas três áreas, opção por opção. <b>Olhe a tela, não a tabela</b> — os números estão embaixo só
+para conferir depois de decidir.</p>
+<p class="sub">São <b>quatro</b> opções, e a quarta é de outra natureza: A, B e C escolhem um
+número dentro do sistema de hoje; <b>D muda o sistema</b> e responde às duas decisões de uma vez.
+Ela está na seção 3, e é onde há mais o que ver.</p>
+
+<div class="alerta">
+  <b>Antes de olhar: muda menos do que parece, e isso é a informação.</b>
+  Nas duas decisões os valores vivem em luminosidade alta (88% a 100%), e ali a cor quase não
+  tem faixa para renderizar. Foi por isso que o defeito que você pegou era no
+  <code>--muted</code>, que fica a 92% com saturação alta — o único degrau da pilha onde a matiz
+  aparece de verdade. Se ao olhar as opções elas parecerem iguais, <b>é porque quase são</b>, e
+  aí a resposta certa passa a ser a que deixa a regra mais simples.
+</div>
+
+<h2>1 · A linha</h2>
+<p>A borda do cartão, a linha entre as linhas da tabela e o contorno do campo de busca saem
+todas do mesmo valor. A luminosidade já está alinhada (89%, 88% na OSG). O que diverge é
+<b>quanta cor da área a linha carrega</b>: hoje a base tira 2 pontos de saturação do fundo de
+página, a Tax <i>põe</i> 6, e a OSG tira 4.</p>
+
+<h3>Opção A — como está hoje (três escadas)</h3>
+<div class="linha-de-areas">
+  <div class="palco area-base" style="--ln:168 14% 89%;--cd:0 0% 100%"><p class="nome">Base · linha 14% (página −2)</p>
+    <div class="cartao"><div class="topo">Projetos e tarefas</div>
+      <div class="abas"><span class="on">Lista</span><span>Calendário</span><span>Tabela</span></div>
+      <div class="campo">Buscar tarefas…</div>
+      <table><tr><th>Tarefa</th><th>Situação</th></tr>
+      <tr><td>Apuração de ICMS</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Conferência de notas</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-tax" style="--ln:192 16% 89%;--cd:192 18% 99.6%"><p class="nome">Tax · linha 16% (página +6)</p>
+    <div class="cartao"><div class="topo">Projetos e tarefas</div>
+      <div class="abas"><span class="on">Lista</span><span>Calendário</span><span>Tabela</span></div>
+      <div class="campo">Buscar tarefas…</div>
+      <table><tr><th>Tarefa</th><th>Situação</th></tr>
+      <tr><td>Apuração de ICMS</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Conferência de notas</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-osg" style="--ln:32 20% 88%;--cd:32 28% 98.5%"><p class="nome">OSG · linha 20% (página −4)</p>
+    <div class="cartao"><div class="topo">Projetos e tarefas</div>
+      <div class="abas"><span class="on">Lista</span><span>Calendário</span><span>Tabela</span></div>
+      <div class="campo">Buscar tarefas…</div>
+      <table><tr><th>Tarefa</th><th>Situação</th></tr>
+      <tr><td>Apuração de ICMS</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Conferência de notas</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+</div>
+
+<h3>Opção B — a linha tem a saturação do fundo de página</h3>
+<div class="linha-de-areas">
+  <div class="palco area-base" style="--ln:168 16% 89%;--cd:0 0% 100%"><p class="nome">Base · linha 16%</p>
+    <div class="cartao"><div class="topo">Projetos e tarefas</div>
+      <div class="abas"><span class="on">Lista</span><span>Calendário</span><span>Tabela</span></div>
+      <div class="campo">Buscar tarefas…</div>
+      <table><tr><th>Tarefa</th><th>Situação</th></tr>
+      <tr><td>Apuração de ICMS</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Conferência de notas</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-tax" style="--ln:192 10% 89%;--cd:192 18% 99.6%"><p class="nome">Tax · linha 10%</p>
+    <div class="cartao"><div class="topo">Projetos e tarefas</div>
+      <div class="abas"><span class="on">Lista</span><span>Calendário</span><span>Tabela</span></div>
+      <div class="campo">Buscar tarefas…</div>
+      <table><tr><th>Tarefa</th><th>Situação</th></tr>
+      <tr><td>Apuração de ICMS</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Conferência de notas</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-osg" style="--ln:32 24% 89%;--cd:32 28% 98.5%"><p class="nome">OSG · linha 24%</p>
+    <div class="cartao"><div class="topo">Projetos e tarefas</div>
+      <div class="abas"><span class="on">Lista</span><span>Calendário</span><span>Tabela</span></div>
+      <div class="campo">Buscar tarefas…</div>
+      <table><tr><th>Tarefa</th><th>Situação</th></tr>
+      <tr><td>Apuração de ICMS</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Conferência de notas</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+</div>
+
+<h3>Opção C — a linha recua 2 pontos da página (a escada que a base já tem)</h3>
+<div class="linha-de-areas">
+  <div class="palco area-base" style="--ln:168 14% 89%;--cd:0 0% 100%"><p class="nome">Base · linha 14% · não muda</p>
+    <div class="cartao"><div class="topo">Projetos e tarefas</div>
+      <div class="abas"><span class="on">Lista</span><span>Calendário</span><span>Tabela</span></div>
+      <div class="campo">Buscar tarefas…</div>
+      <table><tr><th>Tarefa</th><th>Situação</th></tr>
+      <tr><td>Apuração de ICMS</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Conferência de notas</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-tax" style="--ln:192 8% 89%;--cd:192 18% 99.6%"><p class="nome">Tax · linha 8%</p>
+    <div class="cartao"><div class="topo">Projetos e tarefas</div>
+      <div class="abas"><span class="on">Lista</span><span>Calendário</span><span>Tabela</span></div>
+      <div class="campo">Buscar tarefas…</div>
+      <table><tr><th>Tarefa</th><th>Situação</th></tr>
+      <tr><td>Apuração de ICMS</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Conferência de notas</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-osg" style="--ln:32 22% 89%;--cd:32 28% 98.5%"><p class="nome">OSG · linha 22%</p>
+    <div class="cartao"><div class="topo">Projetos e tarefas</div>
+      <div class="abas"><span class="on">Lista</span><span>Calendário</span><span>Tabela</span></div>
+      <div class="campo">Buscar tarefas…</div>
+      <table><tr><th>Tarefa</th><th>Situação</th></tr>
+      <tr><td>Apuração de ICMS</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Conferência de notas</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+</div>
+
+<h3>A mesma linha a 8× de espessura, para a diferença ser inspecionável</h3>
+<p class="nota">Fundo de página em cima, cartão embaixo, a linha no meio, na ordem A · B · C.
+A 1px nada disso se vê — e essa é a informação que a lupa entrega.</p>
+<div class="linha-de-areas">
+  <div class="palco area-base" style="--cd:0 0% 100%"><p class="nome">Base</p>
+    <div class="lupa">
+      <div class="faixa"><div class="cima"></div><div class="risco" style="background:hsl(168 14% 89%)"></div><div class="baixo"></div></div>
+      <div class="faixa"><div class="cima"></div><div class="risco" style="background:hsl(168 16% 89%)"></div><div class="baixo"></div></div>
+      <div class="faixa"><div class="cima"></div><div class="risco" style="background:hsl(168 14% 89%)"></div><div class="baixo"></div></div>
+    </div>
+    <div class="rotulo-lupa"><div>A · 14%</div><div>B · 16%</div><div>C · 14%</div></div>
+  </div>
+  <div class="palco area-tax" style="--cd:192 18% 99.6%"><p class="nome">Tax</p>
+    <div class="lupa">
+      <div class="faixa"><div class="cima"></div><div class="risco" style="background:hsl(192 16% 89%)"></div><div class="baixo"></div></div>
+      <div class="faixa"><div class="cima"></div><div class="risco" style="background:hsl(192 10% 89%)"></div><div class="baixo"></div></div>
+      <div class="faixa"><div class="cima"></div><div class="risco" style="background:hsl(192 8% 89%)"></div><div class="baixo"></div></div>
+    </div>
+    <div class="rotulo-lupa"><div>A · 16%</div><div>B · 10%</div><div>C · 8%</div></div>
+  </div>
+  <div class="palco area-osg" style="--cd:32 28% 98.5%"><p class="nome">OSG</p>
+    <div class="lupa">
+      <div class="faixa"><div class="cima"></div><div class="risco" style="background:hsl(32 20% 88%)"></div><div class="baixo"></div></div>
+      <div class="faixa"><div class="cima"></div><div class="risco" style="background:hsl(32 24% 89%)"></div><div class="baixo"></div></div>
+      <div class="faixa"><div class="cima"></div><div class="risco" style="background:hsl(32 22% 89%)"></div><div class="baixo"></div></div>
+    </div>
+    <div class="rotulo-lupa"><div>A · 20%</div><div>B · 24%</div><div>C · 22%</div></div>
+  </div>
+</div>
+
+<table class="num">
+  <tr><th>opção</th><th>base</th><th>tax</th><th>osg</th><th>maior salto</th></tr>
+  <tr><td>A · como está</td><td class="n">168 14% 89%</td><td class="n">192 16% 89%</td><td class="n">32 20% 88%</td><td class="n">—</td></tr>
+  <tr><td>B · saturação da página</td><td class="n">168 16% 89%</td><td class="n">192 10% 89%</td><td class="n">32 24% 89%</td><td class="n">3 / 255</td></tr>
+  <tr><td>C · página −2</td><td class="n">168 14% 89%</td><td class="n">192 8% 89%</td><td class="n">32 22% 89%</td><td class="n">3 / 255</td></tr>
+</table>
+<p class="nota">Contraste contra o fundo de página fica entre 1,157:1 e 1,193:1 nas três opções.
+Nenhuma chega perto dos 3:1 que a WCAG 1.4.11 pede de borda de controle — <b>essa dívida é
+anterior e não se resolve aqui</b>: fechá-la escurece todo input do produto, e está registrada
+no contrato como decisão separada.</p>
+
+<div class="rec">
+  <b>Recomendada: B.</b> É a única que dispensa um número solto. A linha passa a ser "a página na
+  luminosidade da linha", do mesmo jeito que o <code>--muted</code> virou "a página um degrau
+  abaixo" — vira fórmula de uma linha, e a Tax deixa de ser a única com a borda mais colorida que
+  a própria página. Custa 3/255 no pior caso.
+</div>
+
+<h2>2 · O cartão</h2>
+<p>Quanto o cartão levanta da página. <b>Aqui há diferença de verdade:</b> na base o cartão sobe
+4 pontos de luminosidade e é branco puro; na OSG sobe 2,5 e é areia. Mesmo componente, dois
+pesos — repare em quanto o cartão da OSG afunda no fundo comparado ao da base.</p>
+
+<h3>Opção A — como está hoje</h3>
+<div class="linha-de-areas">
+  <div class="palco area-base" style="--ln:168 14% 89%;--cd:0 0% 100%"><p class="nome">Base · sobe 4,0 · branco puro</p>
+    <div class="cartao"><div class="topo">Ordens de serviço</div>
+      <div class="campo">Buscar…</div>
+      <table><tr><th>Cliente</th><th>Situação</th></tr>
+      <tr><td>Pantanal Sementes</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Zebra de Óculos</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-tax" style="--ln:192 16% 89%;--cd:192 18% 99.6%"><p class="nome">Tax · sobe 3,6</p>
+    <div class="cartao"><div class="topo">Ordens de serviço</div>
+      <div class="campo">Buscar…</div>
+      <table><tr><th>Cliente</th><th>Situação</th></tr>
+      <tr><td>Pantanal Sementes</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Zebra de Óculos</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-osg" style="--ln:32 20% 88%;--cd:32 28% 98.5%"><p class="nome">OSG · sobe 2,5</p>
+    <div class="cartao"><div class="topo">Ordens de serviço</div>
+      <div class="campo">Buscar…</div>
+      <table><tr><th>Cliente</th><th>Situação</th></tr>
+      <tr><td>Pantanal Sementes</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Zebra de Óculos</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+</div>
+
+<h3>Opção B — o cartão é branco puro nas três (sobe 4,0)</h3>
+<div class="linha-de-areas">
+  <div class="palco area-base" style="--ln:168 14% 89%;--cd:0 0% 100%"><p class="nome">Base · não muda</p>
+    <div class="cartao"><div class="topo">Ordens de serviço</div>
+      <div class="campo">Buscar…</div>
+      <table><tr><th>Cliente</th><th>Situação</th></tr>
+      <tr><td>Pantanal Sementes</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Zebra de Óculos</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-tax" style="--ln:192 16% 89%;--cd:0 0% 100%"><p class="nome">Tax · branco</p>
+    <div class="cartao"><div class="topo">Ordens de serviço</div>
+      <div class="campo">Buscar…</div>
+      <table><tr><th>Cliente</th><th>Situação</th></tr>
+      <tr><td>Pantanal Sementes</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Zebra de Óculos</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-osg" style="--ln:32 20% 88%;--cd:0 0% 100%"><p class="nome">OSG · branco</p>
+    <div class="cartao"><div class="topo">Ordens de serviço</div>
+      <div class="campo">Buscar…</div>
+      <table><tr><th>Cliente</th><th>Situação</th></tr>
+      <tr><td>Pantanal Sementes</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Zebra de Óculos</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+</div>
+
+<h3>Opção C — o cartão sobe 3,6 nas três, carregando o cast da área</h3>
+<div class="linha-de-areas">
+  <div class="palco area-base" style="--ln:168 14% 89%;--cd:168 24% 99.6%"><p class="nome">Base · sobe 3,6</p>
+    <div class="cartao"><div class="topo">Ordens de serviço</div>
+      <div class="campo">Buscar…</div>
+      <table><tr><th>Cliente</th><th>Situação</th></tr>
+      <tr><td>Pantanal Sementes</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Zebra de Óculos</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-tax" style="--ln:192 16% 89%;--cd:192 18% 99.6%"><p class="nome">Tax · não muda</p>
+    <div class="cartao"><div class="topo">Ordens de serviço</div>
+      <div class="campo">Buscar…</div>
+      <table><tr><th>Cliente</th><th>Situação</th></tr>
+      <tr><td>Pantanal Sementes</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Zebra de Óculos</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-osg" style="--ln:32 20% 88%;--cd:32 32% 99.6%"><p class="nome">OSG · sobe 3,6</p>
+    <div class="cartao"><div class="topo">Ordens de serviço</div>
+      <div class="campo">Buscar…</div>
+      <table><tr><th>Cliente</th><th>Situação</th></tr>
+      <tr><td>Pantanal Sementes</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Zebra de Óculos</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+</div>
+
+<table class="num">
+  <tr><th>opção</th><th>base</th><th>tax</th><th>osg</th><th>degrau acima da página</th></tr>
+  <tr><td>A · como está</td><td class="n">0 0% 100% → (255,255,255)</td><td class="n">192 18% 99.6% → (254,254,254)</td><td class="n">32 28% 98.5% → (252,251,250)</td><td class="n">4,0 / 3,6 / 2,5</td></tr>
+  <tr><td>B · branco puro</td><td class="n">0 0% 100% → (255,255,255)</td><td class="n">0 0% 100% → (255,255,255)</td><td class="n">0 0% 100% → (255,255,255)</td><td class="n">4,0 nas três</td></tr>
+  <tr><td>C · cast, 99,6%</td><td class="n">168 24% 99.6% → (254,254,254)</td><td class="n">192 18% 99.6% → (254,254,254)</td><td class="n">32 32% 99.6% → (254,254,254)</td><td class="n">3,6 nas três</td></tr>
+</table>
+
+<div class="alerta">
+  <b>O "cast da área" no cartão é uma escolha que não existe.</b>
+  Repare na linha C da tabela: três matizes diferentes, com saturações diferentes, dão o
+  <b>mesmo pixel</b> — <code>(254,254,254)</code>. A 99,6% de luminosidade não sobra faixa para a
+  cor aparecer. Ou seja, a única variável real desta decisão é <b>o quanto o cartão levanta</b>;
+  a matiz dele é escrituração. A OSG só se distingue hoje porque está a 98,5%, não porque é areia.
+</div>
+
+<div class="rec">
+  <b>Recomendada: B.</b> Se a matiz do cartão não renderiza, carregá-la é manter três valores
+  para produzir um pixel só. Branco puro nas três diz a verdade: a área vive na PÁGINA, que é
+  onde a cor tem lugar para aparecer, e o cartão é o papel em cima dela. De quebra é o valor que
+  a base já tem — consertar com valor que já existe, não com valor inventado. O custo é a OSG
+  ganhar 1,5 ponto de degrau: os cartões dela passam a saltar como os das outras, e é a única
+  mudança visível desta página inteira.
+</div>
+
+<h2>3 · Opção D — a que não é sobre a linha nem sobre o cartão</h2>
+<p>As três acima discutem 2 pontos de saturação dentro de uma faixa de luminosidade de
+<b>4 pontos</b> — a página a 96% e o cartão a 100%. É por isso que nenhuma delas muda nada:
+não é que as opções sejam parecidas, <b>é que não há espaço onde elas possam ser diferentes</b>.
+A pilha inteira está espremida no topo da escala, e a cor da área não tem onde renderizar.</p>
+<p>D não escolhe um número melhor. <b>Ela dá altura à pilha:</b> a página desce de 96% para 93%,
+o cartão fica branco, e o degrau entre os dois passa a fazer o trabalho que a linha finge fazer
+hoje.</p>
+
+<div class="alerta">
+  <b>O número que sustenta isso.</b> A 93%, o degrau cartão↔página dá <b>1,153 a 1,164:1</b> nas
+  três áreas. A borda de hoje, contra a página, dá <b>1,157 a 1,193:1</b>. São a mesma coisa —
+  ou seja, <b>o contorno do cartão já é redundante</b>: quem separa o cartão do fundo é o degrau,
+  e a linha só está lá porque sempre esteve. E de quebra a cor da área ganha 3 pontos de escala
+  para existir, que é exatamente a faixa onde você enxergou o verde da faixa de abas.
+</div>
+
+<h3>Hoje × D, nas três áreas</h3>
+<p class="nota">Repare em duas coisas: quanto o cartão se destaca sem precisar de contorno, e o
+campo de busca — em D ele tem uma borda de verdade, que é a dívida da WCAG 1.4.11 sendo paga.</p>
+
+<div class="linha-de-areas">
+  <div class="palco area-base" style="--ln:168 14% 89%;--cd:0 0% 100%"><p class="nome">Base · hoje</p>
+    <div class="cartao"><div class="topo">Ordens de serviço</div>
+      <div class="abas"><span class="on">Lista</span><span>Calendário</span><span>Tabela</span></div>
+      <div class="campo ctl">Buscar…</div>
+      <table><tr><th>Cliente</th><th>Situação</th></tr>
+      <tr><td>Pantanal Sementes</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Zebra de Óculos</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-tax" style="--ln:192 16% 89%;--cd:192 18% 99.6%"><p class="nome">Tax · hoje</p>
+    <div class="cartao"><div class="topo">Ordens de serviço</div>
+      <div class="abas"><span class="on">Lista</span><span>Calendário</span><span>Tabela</span></div>
+      <div class="campo ctl">Buscar…</div>
+      <table><tr><th>Cliente</th><th>Situação</th></tr>
+      <tr><td>Pantanal Sementes</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Zebra de Óculos</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-osg" style="--ln:32 20% 88%;--cd:32 28% 98.5%"><p class="nome">OSG · hoje</p>
+    <div class="cartao"><div class="topo">Ordens de serviço</div>
+      <div class="abas"><span class="on">Lista</span><span>Calendário</span><span>Tabela</span></div>
+      <div class="campo ctl">Buscar…</div>
+      <table><tr><th>Cliente</th><th>Situação</th></tr>
+      <tr><td>Pantanal Sementes</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Zebra de Óculos</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+</div>
+
+<div class="linha-de-areas" style="margin-top:14px">
+  <div class="palco area-base" style="--cv:168 16% 93%;--mt:168 20% 89%;--ln:168 20% 86%;--lnc:168 20% 52%;--cd:0 0% 100%;--mf:180 10% 38%">
+    <p class="nome">Base · D · página 93%</p>
+    <div class="cartao" style="border:0;box-shadow:0 1px 2px rgba(0,0,0,.05)"><div class="topo">Ordens de serviço</div>
+      <div class="abas"><span class="on">Lista</span><span>Calendário</span><span>Tabela</span></div>
+      <div class="campo ctl">Buscar…</div>
+      <table><tr><th>Cliente</th><th>Situação</th></tr>
+      <tr><td>Pantanal Sementes</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Zebra de Óculos</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-tax" style="--cv:192 10% 93%;--mt:192 14% 89%;--ln:192 14% 86%;--lnc:192 14% 56%;--cd:0 0% 100%;--mf:185 8% 38.5%">
+    <p class="nome">Tax · D · página 93%</p>
+    <div class="cartao" style="border:0;box-shadow:0 1px 2px rgba(0,0,0,.05)"><div class="topo">Ordens de serviço</div>
+      <div class="abas"><span class="on">Lista</span><span>Calendário</span><span>Tabela</span></div>
+      <div class="campo ctl">Buscar…</div>
+      <table><tr><th>Cliente</th><th>Situação</th></tr>
+      <tr><td>Pantanal Sementes</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Zebra de Óculos</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+  <div class="palco area-osg" style="--cv:32 24% 93%;--mt:32 28% 89%;--ln:32 28% 86%;--lnc:32 28% 55%;--cd:0 0% 100%;--mf:24 12% 40%">
+    <p class="nome">OSG · D · página 93%</p>
+    <div class="cartao" style="border:0;box-shadow:0 1px 2px rgba(0,0,0,.05)"><div class="topo">Ordens de serviço</div>
+      <div class="abas"><span class="on">Lista</span><span>Calendário</span><span>Tabela</span></div>
+      <div class="campo ctl">Buscar…</div>
+      <table><tr><th>Cliente</th><th>Situação</th></tr>
+      <tr><td>Pantanal Sementes</td><td><span class="pill">Em progresso</span></td></tr>
+      <tr><td>Zebra de Óculos</td><td><span class="pill">Em progresso</span></td></tr></table>
+    </div></div>
+</div>
+
+<h3>A segunda metade de D: a linha deixa de ser um token e passa a ser dois</h3>
+<p>Hoje um valor só faz três trabalhos diferentes — contorno de cartão, linha entre linhas de
+tabela e borda de campo. Ele está em 1,15:1, que é <b>decoração</b>: serve para as duas primeiras
+e reprova na terceira, onde a WCAG 1.4.11 pede 3:1 para o usuário conseguir <i>achar</i> o campo.
+Essa dívida está registrada nos três temas e nunca foi paga, porque pagá-la com um token só
+escureceria toda linha de tabela do produto.</p>
+<p>Com D ela se paga sem esse custo, porque os dois trabalhos se separam:</p>
+
+<table class="num">
+  <tr><th>token</th><th>trabalho</th><th>base</th><th>tax</th><th>osg</th><th>contra o cartão</th></tr>
+  <tr><td><code>--border</code></td><td>linha de tabela, divisória</td><td class="n">168 20% 86%</td><td class="n">192 14% 86%</td><td class="n">32 28% 86%</td><td class="n">1,33 · 1,36 · 1,36</td></tr>
+  <tr><td><code>--border-control</code></td><td>campo, seletor, caixa</td><td class="n">168 20% 52%</td><td class="n">192 14% 56%</td><td class="n">32 28% 55%</td><td class="n"><b>3,05 · 3,04 · 3,06</b></td></tr>
+</table>
+<p class="nota">O contorno do cartão sai — vira o degrau mais uma sombra de 1px, que é o que a
+coluna de baixo mostra.</p>
+
+<h3>O que D custa, medido</h3>
+<table class="num">
+  <tr><th>efeito</th><th>base</th><th>tax</th><th>osg</th></tr>
+  <tr><td>página 96% → 93%</td><td class="n">(243,246,246) → (234,240,239)</td><td class="n">(244,245,246) → (235,238,239)</td><td class="n">(247,245,242) → (241,237,233)</td></tr>
+  <tr><td><code>--muted</code> acompanha (regra intacta)</td><td class="n">92% → 89%</td><td class="n">92% → 89%</td><td class="n">92% → 89%</td></tr>
+  <tr><td><code>--muted-foreground</code> desce</td><td class="n">38% · não muda</td><td class="n">40% → 38,5%</td><td class="n">41,5% → 40%</td></tr>
+  <tr><td>texto secundário sobre o rebaixado</td><td class="n">4,55:1</td><td class="n">4,52:1</td><td class="n">4,52:1</td></tr>
+  <tr><td>pílula da aba sobre a faixa</td><td class="n">1,17 → 1,25</td><td class="n">1,19 → 1,27</td><td class="n">1,19 → 1,27</td></tr>
+  <tr><td>texto comum sobre a página</td><td class="n">15,83 → 14,88</td><td class="n">15,94 → 14,92</td><td class="n">15,70 → 14,71</td></tr>
+</table>
+
+<div class="rec">
+  <b>O que D é, em uma frase:</b> parar de escolher a cor da área numa faixa onde cor não
+  aparece, e abrir a faixa. As três decisões que sobravam — linha, cartão e a dívida da WCAG —
+  deixam de existir como decisões separadas: a linha do cartão some, o cartão é branco em todas
+  (porque a área agora vive na página, onde tem lugar), e a borda de campo finalmente fecha 3:1
+  porque virou outro token.
+  <br><br>
+  <b>O que ela custa, e é honesto dizer:</b> é a única opção desta página que mexe em toda tela
+  do produto, não só nas três áreas. Toca <code>--canvas</code>, <code>--muted</code>,
+  <code>--muted-foreground</code>, <code>--border</code>, cria <code>--border-control</code> e
+  tira o contorno do cartão de um componente compartilhado. As três primeiras opções custam
+  3/255; esta custa uma passada com você olhando tela por tela — que é como as fases anteriores
+  desta frente foram feitas.
+</div>
+
+<div class="rodape">
+  Valores lidos do <code>src/index.css</code> em <b>10/09/2026</b>, depois de o
+  <code>--muted</code> passar a ser derivado do <code>--canvas</code>. Como os outros arquivos
+  desta pasta, <b>este não se atualiza sozinho</b>: se as superfícies mudarem, ele passa a mostrar
+  o estado antigo — útil como registro do que foi comparado, enganoso como referência do que é
+  hoje. A fonte corrente é sempre o <code>index.css</code>.
+</div>
+
+</div>
+</body>
+</html>

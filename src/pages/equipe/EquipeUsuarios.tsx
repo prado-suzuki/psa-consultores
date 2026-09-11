@@ -156,7 +156,7 @@ export default function EquipeUsuarios() {
     }
     if (badges.length === 0 || (badges.length === 1 && roles.includes('client'))) {
       badges.push(
-        <Badge key="none" variant="outline" className="text-gray-500">
+        <Badge key="none" variant="outline" className="text-muted-foreground">
           Sem acesso
         </Badge>
       );
@@ -186,17 +186,17 @@ export default function EquipeUsuarios() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                  <div className="bg-muted p-4 rounded-lg space-y-3">
                     <div>
-                      <Label className="text-xs text-gray-500">Email</Label>
+                      <Label className="text-xs text-muted-foreground">Email</Label>
                       <p className="font-mono text-sm">{createdCredentials.email}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-500">Senha Temporária</Label>
+                      <Label className="text-xs text-muted-foreground">Senha Temporária</Label>
                       <p className="font-mono text-sm">{createdCredentials.password}</p>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground">
                     O usuário deve alterar a senha no primeiro acesso.
                   </p>
                 </div>
@@ -264,7 +264,7 @@ export default function EquipeUsuarios() {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
-                    <p className="text-xs text-gray-500">Compartilhe esta senha com o usuário</p>
+                    <p className="text-xs text-muted-foreground">Compartilhe esta senha com o usuário</p>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -294,7 +294,7 @@ export default function EquipeUsuarios() {
       {/* Search and Filters */}
       <div className="mb-6 space-y-4">
         <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por nome ou email..."
             value={searchTerm}
@@ -353,7 +353,7 @@ export default function EquipeUsuarios() {
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                     Nenhum usuário encontrado
                   </TableCell>
                 </TableRow>
@@ -435,7 +435,7 @@ export default function EquipeUsuarios() {
       )}
 
       {/* Legend */}
-      <div className="mt-4 flex gap-4 text-sm text-gray-500">
+      <div className="mt-4 flex gap-4 text-sm text-muted-foreground">
         <span className="flex items-center gap-1">
           <Badge className="bg-amber-500/20 text-amber-700 border-amber-300 text-xs">Admin</Badge>
           Acesso total

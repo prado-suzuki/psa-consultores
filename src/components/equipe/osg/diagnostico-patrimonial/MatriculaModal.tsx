@@ -17,8 +17,8 @@ import { useClienteTemDocumentoGerado } from '@/hooks/useDocumentoGerado';
 import { TitularidadesPanel } from '@/components/equipe/osg/diagnostico-patrimonial/TitularidadesPanel';
 import { ImpedimentosPanel } from '@/components/equipe/osg/diagnostico-patrimonial/impedimentos/ImpedimentosPanel';
 import { MatriculaDadosTab } from '@/components/equipe/osg/diagnostico-patrimonial/matricula/MatriculaDadosTab';
-import { TitularInicialSection } from '@/components/equipe/osg/diagnostico-patrimonial/titularidade/TitularInicialSection';
-import { emptyMatriculaDraft, emptyTitularInicial, matriculaDraftToValues, matriculaToDraft, parseTitularInicial, type DraftMatricula, type TitularInicialDraft } from '@/lib/diagnosticoPatrimonialModalModels';
+import { TitularesIniciaisSection } from '@/components/equipe/osg/diagnostico-patrimonial/titularidade/TitularesIniciaisSection';
+import { conferirTitularesIniciais, emptyMatriculaDraft, emptyTitularesIniciais, matriculaDraftToValues, matriculaToDraft, parseTitularesIniciais, type DraftMatricula, type TitularesIniciaisDraft } from '@/lib/diagnosticoPatrimonialModalModels';
 
 /**
  * Rascunho emprestado — ver `PessoaRascunhoExterno` em PessoaModal para o porquê:
@@ -28,11 +28,11 @@ import { emptyMatriculaDraft, emptyTitularInicial, matriculaDraftToValues, matri
  */
 export interface MatriculaRascunhoExterno {
   draft: DraftMatricula;
-  titular: TitularInicialDraft;
+  titulares: TitularesIniciaisDraft;
   /** Substitui o upsert interno: recebe o payload já validado por estas mesmas regras. */
-  onSalvar: (values: MatriculaInsert, titular?: TitularInicial) => void;
+  onSalvar: (values: MatriculaInsert, titulares?: TitularInicial[]) => void;
   /** Devolve o que foi digitado aqui dentro — fechar não pode perder uma letra. */
-  onDevolver: (draft: DraftMatricula, titular: TitularInicialDraft) => void;
+  onDevolver: (draft: DraftMatricula, titulares: TitularesIniciaisDraft) => void;
   /** Rótulo do botão de gravar: quem abriu diz o que o clique vai fazer de verdade. */
   rotuloSalvar: string;
 }
@@ -50,7 +50,7 @@ interface MatriculaModalProps {
 
 export function MatriculaModal({ open, bemId, bemTipo, matricula, pessoasCliente, matriculasDoBem, onClose, rascunhoExterno }: MatriculaModalProps) {
   const [draft, setDraft] = useState<DraftMatricula>(emptyMatriculaDraft);
-  const [titularInicial, setTitularInicial] = useState(emptyTitularInicial);
+  const [titularesIniciais, setTitularesIniciais] = useState(emptyTitularesIniciais);
   const [activeTab, setActiveTab] = useState('dados');
   const upsert = useUpsertMatricula();
   const isEdit = !!matricula?.id;
@@ -73,15 +73,15 @@ export function MatriculaModal({ open, bemId, bemTipo, matricula, pessoasCliente
     // Emprestar rascunho só faz sentido em cadastro novo — editar carrega da linha.
     const emprestado = matricula ? undefined : externoRef.current;
     const nextDraft = matricula ? matriculaToDraft(matricula) : emprestado?.draft ?? emptyMatriculaDraft(defaultTipo);
-    const nextTitular = emprestado?.titular ?? emptyTitularInicial();
-    setDraft(nextDraft); setTitularInicial(nextTitular); setActiveTab('dados');
+    const nextTitulares = emprestado?.titulares ?? emptyTitularesIniciais();
+    setDraft(nextDraft); setTitularesIniciais(nextTitulares); setActiveTab('dados');
     initialDraftRef.current = JSON.stringify(nextDraft);
-    initialTitularRef.current = JSON.stringify(nextTitular);
+    initialTitularRef.current = JSON.stringify(nextTitulares);
   }, [open, matricula, bemTipo]);
 
-  const isDirty = JSON.stringify(draft) !== initialDraftRef.current || (!isEdit && JSON.stringify(titularInicial) !== initialTitularRef.current);
+  const isDirty = JSON.stringify(draft) !== initialDraftRef.current || (!isEdit && JSON.stringify(titularesIniciais) !== initialTitularRef.current);
   const fechar = () => {
-    rascunhoExterno?.onDevolver(draft, titularInicial);
+    rascunhoExterno?.onDevolver(draft, titularesIniciais);
     onClose();
   };
   // Com rascunho emprestado nada se perde ao fechar (volta para quem abriu), então
@@ -89,7 +89,7 @@ export function MatriculaModal({ open, bemId, bemTipo, matricula, pessoasCliente
   const { requestClose, alertProps } = useDirtyClose({ isDirty: rascunhoExterno ? false : isDirty, onClose: fechar });
 
   const handleSave = () => {
-    const titularEscolhido = isEdit ? null : parseTitularInicial(titularInicial);
+    const falhaTitulares = isEdit ? null : conferirTitularesIniciais(titularesIniciais);
     // Uma trilha só de falha: a regra diz o que falta, o utilitário avisa, abre a
     // aba onde o campo mora e leva o foco até ele (ver @/lib/osg/validacaoFormulario).
     const ok = validarFormulario([
@@ -98,18 +98,19 @@ export function MatriculaModal({ open, bemId, bemTipo, matricula, pessoasCliente
       { invalido: !draft.municipio_imovel.trim(), mensagem: 'Informe o município do imóvel.', aba: 'dados', campo: 'municipio_imovel' },
       { invalido: !draft.uf_imovel, mensagem: 'Selecione a UF do imóvel.', aba: 'dados', campo: 'uf_imovel' },
       { invalido: !draft.area_documento.trim() || Number.isNaN(Number(draft.area_documento)), mensagem: 'Informe a área do documento.', aba: 'dados', campo: 'area_documento' },
-      { invalido: !isEdit && !titularInicial.titular_pessoa_id, mensagem: 'Selecione o titular inicial da matrícula, na aba Titularidade.', aba: 'titulares', campo: 'titular_pessoa_id' },
-      { invalido: !isEdit && !!titularInicial.titular_pessoa_id && !titularEscolhido, mensagem: 'A fração do titular deve estar entre 0 e 100.', aba: 'titulares', campo: 'titular_fracao' },
+      { invalido: falhaTitulares === 'sem_titular', mensagem: 'Selecione ao menos um titular da matrícula, na aba Titularidade.', aba: 'titulares', campo: 'titular_pessoa_id' },
+      { invalido: falhaTitulares === 'fracao_invalida', mensagem: 'A fração de cada titular deve estar entre 0 e 100.', aba: 'titulares', campo: 'titular_fracao' },
+      { invalido: falhaTitulares === 'duplicado', mensagem: 'A mesma pessoa aparece duas vezes na mesma espécie de titularidade.', aba: 'titulares', campo: 'titular_pessoa_id' },
     ], { abrirAba: setActiveTab });
     if (!ok) return;
-    const titular = titularEscolhido ?? undefined;
+    const titulares = isEdit ? undefined : parseTitularesIniciais(titularesIniciais);
     if (rascunhoExterno) {
       // Quem abriu grava: criar a matrícula é só metade do que o clique promete.
-      rascunhoExterno.onSalvar(matriculaDraftToValues(draft, bemId, matricula, bemTipo), titular);
+      rascunhoExterno.onSalvar(matriculaDraftToValues(draft, bemId, matricula, bemTipo), titulares);
       fechar();
       return;
     }
-    upsert.mutate({ values: matriculaDraftToValues(draft, bemId, matricula, bemTipo), original: matricula, titular }, { onSuccess: onClose });
+    upsert.mutate({ values: matriculaDraftToValues(draft, bemId, matricula, bemTipo), original: matricula, titulares }, { onSuccess: onClose });
   };
 
   return <>
@@ -123,7 +124,7 @@ export function MatriculaModal({ open, bemId, bemTipo, matricula, pessoasCliente
             </DialogTitle></DialogHeader>
             <TabsList className={osgTabsListCls}>
               <TabsTrigger value="dados" className={osgTabTriggerCls}>Dados</TabsTrigger>
-              <TabsTrigger value="titulares" className={osgTabTriggerCls}>Titularidade{!isEdit && !titularInicial.titular_pessoa_id && <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5" aria-hidden><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-osg-moss opacity-75" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-osg-moss" /></span>}</TabsTrigger>
+              <TabsTrigger value="titulares" className={osgTabTriggerCls}>Titularidade{!isEdit && !titularesIniciais.some((linha) => linha.titular_pessoa_id) && <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5" aria-hidden><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-osg-moss opacity-75" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-osg-moss" /></span>}</TabsTrigger>
               <TabsTrigger value="impedimentos" disabled={!isEdit} className={osgTabTriggerCls}>Impedimentos</TabsTrigger>
               <TabsTrigger value="documentos" disabled={!isEdit} className={osgTabTriggerCls}>Documentos</TabsTrigger>
             </TabsList>
@@ -132,7 +133,7 @@ export function MatriculaModal({ open, bemId, bemTipo, matricula, pessoasCliente
                 não a janela — ver formKit. Mantém o modal largo como era. */}
             <div className={`min-h-0 flex-1 overflow-y-auto px-6 py-5 ${formScopeCls}`}>
             <TabsContent value="dados" className="mt-0 focus-visible:ring-0"><MatriculaDadosTab draft={draft} onChange={setDraft} bemTipo={bemTipo} matricula={matricula} matriculasDoBem={matriculasDoBem} /></TabsContent>
-            <TabsContent value="titulares" className="mt-0 focus-visible:ring-0">{isEdit && matricula ? <TitularidadesPanel anchor={{ kind: 'matricula', id: matricula.id }} pessoasCliente={pessoasCliente} requireAtLeastOne /> : <TitularInicialSection entity="matrícula" pessoas={pessoasCliente} value={titularInicial} onChange={setTitularInicial} />}</TabsContent>
+            <TabsContent value="titulares" className="mt-0 focus-visible:ring-0">{isEdit && matricula ? <TitularidadesPanel anchor={{ kind: 'matricula', id: matricula.id }} pessoasCliente={pessoasCliente} requireAtLeastOne /> : <TitularesIniciaisSection entity="matrícula" pessoas={pessoasCliente} value={titularesIniciais} onChange={setTitularesIniciais} />}</TabsContent>
             <TabsContent value="impedimentos" className="mt-0 focus-visible:ring-0">{isEdit && matricula && <ImpedimentosPanel matriculaId={matricula.id} areaUnidade={matricula.area_unidade} pessoasCliente={pessoasCliente} />}</TabsContent>
             <TabsContent value="documentos" className="mt-0 focus-visible:ring-0">{isEdit && matricula && <DocumentosTab clienteId={clienteId} vinculo={{ matriculaId: matricula.id, bemId: bemId ?? null }} categoriaPadrao="agrarios" nrMatricula={matricula.numero} />}</TabsContent>
           </div>

@@ -43,13 +43,13 @@ export default function AbasDeGrupo({
             className={cn(
               'shrink-0 whitespace-nowrap border-b-2 px-2.5 pb-1.5 text-sm transition-colors',
               ativa
-                ? 'border-teal-500 font-medium text-teal-700'
+                ? 'border-primary font-medium text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground',
               grupo.atenuado && !ativa && 'text-muted-foreground/70',
             )}
           >
             {grupo.label}
-            <span className={cn('ml-1 text-xs', ativa ? 'text-teal-600/70' : 'text-muted-foreground')}>
+            <span className={cn('ml-1 text-xs', ativa ? 'text-primary/70' : 'text-muted-foreground')}>
               {grupo.total}
             </span>
           </button>

@@ -26,6 +26,7 @@ import { Label } from '@/components/ui/label';
 import type { DailySprintTask, DailyTaskStatus } from '@/hooks/useDailySprintTasks';
 import { filterDailyTasksBySearch, parseDailyActualHours } from '@/lib/equipeDaily';
 import { avaliarHorasApontadas } from '@/lib/horasApontamento';
+import { ENTREGAVEL_STATUS_OPCOES } from '@/lib/entregavelStatusColors';
 import { cn } from '@/lib/utils';
 
 interface DailyQuickStatusDialogProps {
@@ -97,11 +98,16 @@ export function DailyQuickStatusDialog({
     () => filterDailyTasksBySearch(tasks, search),
     [tasks, search],
   );
-  const taskGroups = useMemo(() => [
-    { status: 'pending' as const, label: 'A fazer', icon: Circle, tasks: visibleTasks.filter((task) => task.status === 'pending') },
-    { status: 'in_progress' as const, label: 'Em progresso', icon: Clock3, tasks: visibleTasks.filter((task) => task.status === 'in_progress') },
-    { status: 'completed' as const, label: 'Concluídas', icon: CheckCircle2, tasks: visibleTasks.filter((task) => task.status === 'completed') },
-  ].filter((group) => group.tasks.length > 0), [visibleTasks]);
+  // Os três grupos, na ordem do ciclo de vida e com o rótulo do mapa. A cópia que
+  // estava aqui escrevia "A fazer"/"Em progresso"/"Concluídas" — caixa e gênero
+  // próprios para as mesmas três chaves do entregável.
+  const ICONE_POR_STATUS = { pending: Circle, in_progress: Clock3, completed: CheckCircle2 } as const;
+  const taskGroups = useMemo(() => ENTREGAVEL_STATUS_OPCOES.map((s) => ({
+    status: s.key as DailyTaskStatus,
+    label: s.label,
+    icon: ICONE_POR_STATUS[s.key as DailyTaskStatus],
+    tasks: visibleTasks.filter((task) => task.status === s.key),
+  })).filter((group) => group.tasks.length > 0), [visibleTasks]);
   const completedCount = tasks.filter((task) => task.status === 'completed').length;
 
   const selectStatus = async (task: DailySprintTask, status: DailyTaskStatus) => {

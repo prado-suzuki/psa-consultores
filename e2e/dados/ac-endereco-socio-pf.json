@@ -1,0 +1,199 @@
+{
+ "rodada": "2026-09-09 endereco de socio PF como evento da alteracao contratual (commit d6e55f66)",
+ "app": "http://localhost:8080 (pid 4712, subido 09/09 07:59)",
+ "branch": "develop",
+ "banco": "SANDBOX vgzomuwnsdgrxbkyoavq.supabase.co",
+ "prova_do_banco": [
+  "curl http://localhost:8080/src/integrations/supabase/client.ts -> import.meta.env = {... VITE_SUPABASE_URL: https://vgzomuwnsdgrxbkyoavq.supabase.co}",
+  "no browser, todo request a supabase saiu para host vgzomuwnsdgrxbkyoavq.supabase.co"
+ ],
+ "ferramenta": "Playwright MCP NAO estava disponivel nesta sessao (mcp__playwright__* nao expostas ao subagente, ToolSearch nao encontra). Dirigi o Playwright do node_modules por script proprio (.playwright-mcp/drv.mjs), com a mesma API `page`.",
+ "cliente": "[TESTE] Alteracao Contratual Cenario Completo (ace00000-0000-4000-8000-000000000001)",
+ "empresa": "Ipe Amarelo Participacoes Ltda (ace00000-0000-4000-8000-000000000010) - 2 pecas registradas na junta",
+ "socios_baseline_cadastro": [
+  {
+   "id": "ace00000-0000-4000-8000-000000000011",
+   "nome": "Aparecida Nunes do Amaral",
+   "profissao": "Empresária",
+   "endereco": "Rua Mateus Leme, 2380, Bom Retiro, Curitiba/PR, CEP 80520-174"
+  },
+  {
+   "id": "ace00000-0000-4000-8000-000000000012",
+   "nome": "Bruno do Amaral Vasconcelos",
+   "profissao": "Administrador",
+   "endereco": "Avenida Sete de Setembro, 4410, Batel, Curitiba/PR, CEP 80250-210"
+  },
+  {
+   "id": "ace00000-0000-4000-8000-000000000013",
+   "nome": "Clarice do Amaral Vasconcelos",
+   "profissao": "Advogada",
+   "endereco": "Rua Padre Anchieta, 1650, Champagnat, Curitiba/PR, CEP 80730-000"
+  },
+  {
+   "id": "ace00000-0000-4000-8000-000000000014",
+   "nome": "Danilo do Amaral Vasconcelos",
+   "profissao": "Engenheiro agrônomo",
+   "endereco": "Rua Itupava, 980, Alto da Rua XV, Curitiba/PR, CEP 80040-000"
+  }
+ ],
+ "itens": [
+  {
+   "id": "0-baseline-assistente",
+   "pergunta": "Antes de mexer no cadastro, o que o assistente lista?",
+   "status": "confirmado",
+   "prova": "Flag nova presente na lista: 'Houve mudança de endereço de sócio pessoa física' / 'nada no cadastro registra este evento'. Ja havia, de base, 'Houve mudança do endereço da sede' com divergencia so de redacao ('Estado de Paraná, CEP: 80420-090' -> 'Estado do Paraná, CEP 80420-090') e 'Houve integralização de capital' com '4 aporte(s) integralizado(s) com moeda corrente'.",
+   "observacao": "Ruido de base no bloco 'Divergencias que nao viram evento nesta peca': 'qualificacao sem id estavel; CPF/CNPJ nao concilia identidade' e 'Qualificacao ace...0011..0014 ausente em um dos estados'. Pode atrapalhar o casamento socio-a-socio."
+  },
+  {
+   "id": "A-bloqueio-cenario-completo",
+   "pergunta": "Da para exercitar a frente na peca do cliente 'Cenario Completo'?",
+   "status": "nao verificavel nesta peca",
+   "prova": "Assistente da peca ad7f6693 (Ipe Amarelo): 'Houve mudança de endereço de sócio pessoa física / nada no cadastro registra este evento' MESMO depois de eu trocar o endereco de Clarice do Amaral Vasconcelos no cadastro (PATCH 200). Pendencias: 'Base: qualificacao sem id estavel; CPF/CNPJ nao concilia identidade.' e 'Qualificacao ace...0011..0014 ausente em um dos estados'.",
+   "causa": "DIVERGENCIA DE ORIGEM, nao defeito do commit: o snapshot de ad7f6693 tem itensPorLista.socios[].socio SEM campo `id`. `ocorrencias()` (alteracaoPorEventos.ts:157) so casa socio a socio por `campos.id`. TODAS as pecas registradas do sandbox anteriores a 09/09 estao assim; so 6ab58b24 (registrada 09/09 16:48) tem id."
+  },
+  {
+   "id": "1-deteccao",
+   "pergunta": "Mudou o endereco de um socio PF: o evento aparece com a evidencia no formato pedido?",
+   "status": "confirmado",
+   "prova": "Endereço de Marina Salgado: Rua Karina Teixeira, n.º 1063, Sala 1, Bairro Centro, no município de Cuiabá, Estado de Mato Grosso, CEP 57730-000 -> Avenida Miguel Sutil, n.º 8000, Apto 1204, Bairro Santa Rosa, no município de Cuiabá, Estado de Mato Grosso, CEP 78048-250"
+  },
+  {
+   "id": "2a-premarcado",
+   "pergunta": "O evento nasce pre-marcado?",
+   "status": "nao verificavel nesta rodada",
+   "prova": "Ao reabrir por 'Rever os eventos' o interruptor veio unchecked. Mas a peca ja tinha propostaAC gravada (rascunho 3f6f8c42) e o controller documenta: 'A seleção JÁ CONFIRMADA vence a derivação' (useGerarDocumentoController.ts:799-807). Nao houve nesta sessao uma abertura LIMPA (sem propostaAC) sobre uma base com id estavel, entao a pre-marcacao nao foi medida."
+  },
+  {
+   "id": "2b-tabela",
+   "pergunta": "A tabela 'Ver antes e depois, socio a socio' mostra registrado x cadastro atual?",
+   "status": "confirmado",
+   "prova": "Ver antes e depois, sócio a sócio / Campo | Registrado | Cadastro atual / Marina Salgado | Rua Karina Teixeira, n.º 1063, Sala 1, Bairro Centro, no município de Cuiabá, Estado de Mato Grosso, CEP 57730-000 | Avenida Miguel Sutil, n.º 8000, Apto 1204, Bairro Santa Rosa, no município de Cuiabá, Estado de Mato Grosso, CEP 78048-250",
+   "observacao": "A tabela traz uma linha por socio REQUALIFICADO, nao por socio do quadro."
+  },
+  {
+   "id": "2c-causas",
+   "pergunta": "As tres causas aparecem e 'Correcao de erro' bloqueia?",
+   "status": "confirmado",
+   "prova": "Causas: 'Mudança de domicílio / O sócio passou a residir em outro endereço.'; 'Atualização postal (CEP, nomenclatura, numeração)'; 'Correção de erro do instrumento anterior'. Com erro_material o botao 'Confirmar alteração contratual' fica DISABLED e a frase e: 'Correção de erro do instrumento anterior: caso não homologado para a qualificação.'. Com atualizacao_postal e mudanca_de_domicilio o botao fica habilitado."
+  },
+  {
+   "id": "3a-resolucao-primeira",
+   "pergunta": "A resolucao aparece e e a PRIMEIRA delas?",
+   "status": "confirmado",
+   "prova": "docx r1-marina-domicilio.docx: 'DAS ALTERAÇÕES CONTRATUAIS Da atualização da qualificação de sócio. Altera-se a qualificação da sócia MARINA SALGADO , para fazer constar o atual endereço desta, ... CLÁUSULA PRIMEIRA: Altera-se o endereço da sede da sociedade' — a de qualificacao vem ANTES da de sede."
+  },
+  {
+   "id": "3b-singular",
+   "pergunta": "Flexao no singular e no feminino?",
+   "status": "confirmado",
+   "prova": "'Altera-se a qualificação da sócia MARINA SALGADO , para fazer constar o atual endereço desta'"
+  },
+  {
+   "id": "3c-qualificacao-reproduzida",
+   "pergunta": "A qualificacao reproduzida traz o endereco NOVO?",
+   "status": "confirmado",
+   "prova": "'MARINA SALGADO , brasileira, casada em regime de comunhão parcial de bens, Agricultora, portadora do RG n.º 73417630 SJ/MT, inscrita no CPF/MF sob o n.º 420.384.121-62, residente e domiciliada na Avenida Miguel Sutil, n.º 8000, Apto 1204, Bairro Santa Rosa, no município de Cuiabá, Estado de Mato Grosso, CEP 78048-250.'"
+  },
+  {
+   "id": "3d-consolidado-preambulo",
+   "pergunta": "O consolidado traz o endereco novo no preambulo?",
+   "status": "confirmado",
+   "prova": "No preambulo do consolidado (depois de 'resolvem consolidar o contrato social, que passa a vigorar com a seguinte redação:'): 'MARINA SALGADO, ... residente e domiciliada na Avenida Miguel Sutil, n.º 8000, Apto 1204, Bairro Santa Rosa, no município de Cuiabá, Estado de Mato Grosso, CEP 78048-250; e'. A prosa derivada FOI recalculada."
+  },
+  {
+   "id": "3e-consolidado-capital",
+   "pergunta": "E na clausula de capital?",
+   "status": "nao aplicavel",
+   "prova": "CLÁUSULA QUINTA (Capital Social) e uma TABELA de quotas sem endereco: 'SÓCIOS | QUOTAS | VALOR R$ | % / Lucas Nogueira 2.192.376 ... / Marina Salgado 367.166 ...'. Nao ha endereco para conferir ali neste modelo (Participacoes)."
+  },
+  {
+   "id": "3f-DEFEITO-administracao",
+   "pergunta": "Todas as ocorrencias da socia trazem o endereco novo?",
+   "status": "NAO - defeito do software",
+   "prova": "docx r1-marina-domicilio.docx, CLÁUSULA SEXTA (Administracao): 'Marina Salgado, brasileira, Casada, Agricultora, portadora da Cédula de Identidade RG nº 73417630 - SJ/MT, inscrita no CPF/MF sob o nº 420.384.121-62, residente e domiciliada no endereço Rua Karina Teixeira, nº 1063, Sala 1, bairro Centro, no município de Cuiabá, Estado de Mato Grosso, CEP: 57730-000'. Contagem no arquivo: 'Karina Teixeira' (antigo) 1x, 'Miguel Sutil' (novo) 3x.",
+   "por_que_e_defeito": "O proprio comentario de aplicarEnderecosDeSocios (src/lib/osg/alteracaoPorEventos.ts:395-407) diz o contrario: 'Escreve, NO LUGAR, o endereco aprovado em todas as ocorrencias das pessoas confirmadas - quadro societario, ADMINISTRACAO, assinaturas, bindings unitarios' e 'publicar o domicilio novo na clausula de capital e o antigo na de administracao seria o mesmo defeito'.",
+   "causa_raiz": "aplicarEnderecosDeSocios so escreve onde `o.id` existe (`const depois = o.sociedade || !o.id ? undefined : aprovados.get(o.id)`). No snapshot, itensPorLista.socios[].socio TEM `id`, mas itensPorLista.administradores[].administrador e itensPorLista.signatarios[].signatario NAO TEM. Prova: leitura do snapshot_dados de 6ab58b24 - socios -> id d7ce85da/ac4de794/ce46f6b2; administradores -> {chavesItem:[sePF,sePJ,administrador], id: undefined}. E a mesma falta de id que produz a pendencia 'Atual: qualificacao sem id estavel; CPF/CNPJ nao concilia identidade.' que o assistente exibe.",
+   "reproducao_minima": "1) cliente [TESTE] Dinossauro Aposentado / Jatoba Sementes S.A. / modelo Contrato Social - (Participacoes); 2) trocar no cadastro o endereco de Marina Salgado (que e socia E administradora); 3) 'Rever os eventos' -> ligar 'Houve mudanca de endereco de socio pessoa fisica' -> causa 'Mudanca de domicilio' -> Confirmar; 4) na peca, preambulo e resolucao saem com o endereco novo e a CLAUSULA SEXTA sai com o antigo."
+  },
+  {
+   "id": "4-separacao-por-materia",
+   "pergunta": "Mudando endereco E profissao e confirmando so o endereco, a peca sai com profissao ANTIGA?",
+   "status": "confirmado",
+   "prova": "Cadastro: Marina Salgado profissao Agricultora -> Veterinária (PATCH 200) alem do endereco. Assistente: o evento de endereco continua com evidencia SO de endereco, e a profissao aparece apenas em 'Divergências que não viram evento nesta peça' -> 'Qualificacao detectada, sem autorizacao juridica ou modelo homologado.' (sem interruptor). Documento r2-endereco-novo-profissao-antiga.docx: 'Veterinária' 0 ocorrencias, 'Agricultora' 4, 'Miguel Sutil' (endereco novo) 3. A resolucao sai: 'MARINA SALGADO , brasileira, casada em regime de comunhão parcial de bens, Agricultora, ... residente e domiciliada na Avenida Miguel Sutil, n.º 8000, Apto 1204, Bairro Santa Rosa, no município de Cuiabá, Estado de Mato Grosso, CEP 78048-250.'",
+   "observacao": "O cadastro NAO vazou para a peca."
+  },
+  {
+   "id": "5-causa-postal",
+   "pergunta": "Com 'Atualizacao postal' a resolucao abre com a formula do CEP?",
+   "status": "confirmado",
+   "prova": "'Da atualização da qualificação de sócio. Em decorrência da atualização do Código de Endereçamento Postal — CEP, altera-se a qualificação da sócia MARINA SALGADO, para fazer constar o atual endereço desta, ...' — verbo 'altera-se' em minuscula depois da abertura."
+  },
+  {
+   "id": "6-plural",
+   "pergunta": "Com dois socios, a flexao vai para o plural?",
+   "status": "confirmado",
+   "prova": "docx r3-plural-dois-socios.docx: 'Alteram-se as qualificações dos sócios LUCAS NOGUEIRA e MARINA SALGADO, para fazer constar os atuais endereços destes, permanecendo inalterados os demais dados da qualificação e vigorando, a partir de então, nos seguintes termos: LUCAS NOGUEIRA, ... Rua Barão de Melgaço, n.º 3721, Casa 2, Bairro Jardim Aclimação, no município de Várzea Grande, Estado de Mato Grosso, CEP 78110-400; e MARINA SALGADO, ... Avenida Miguel Sutil, n.º 8000, ...'. Tabela do assistente com DUAS linhas (Marina Salgado e Lucas Nogueira).",
+   "observacao": "O defeito da administracao se repete para OS DOIS: CLÁUSULA SEXTA traz 'Rua Elisa Freitas, nº 303' e 'Rua Karina Teixeira, nº 1063' (os dois enderecos antigos)."
+  },
+  {
+   "id": "7a-sede",
+   "pergunta": "A resolucao de sede continua funcionando?",
+   "status": "confirmado",
+   "prova": "Em todas as rodadas: 'CLÁUSULA PRIMEIRA: Altera-se o endereço da sede da sociedade, modificando-se, consequentemente, as disposições contidas na Cláusula Segunda do contrato social, que passa a vigorar com a seguinte redação: “A sociedade tem sede estabelecida na Rua Nuno Cardoso 2, n.º 947, no município de Cuiabá, no Estado de MT, CEP 26196-111.”' — e ela vem DEPOIS da resolucao de qualificacao."
+  },
+  {
+   "id": "7b-quotas",
+   "pergunta": "Eventos de quota continuam funcionando?",
+   "status": "confirmado parcialmente",
+   "prova": "Os cinco interruptores de quota/administracao/socios seguem na lista e detectam: no cliente [TESTE] Alteracao Contratual Cenario Completo o assistente mostrou 'Houve integralização de capital (em imóveis, quotas ou dinheiro) / 4 aporte(s) integralizado(s) com moeda corrente' JA PRE-MARCADO.",
+   "nao_testado": "Nao gerei documento a partir de um evento de quota nesta rodada; so verifiquei deteccao e pre-marcacao."
+  },
+  {
+   "id": "7c-cpf-profissao-sozinhos",
+   "pergunta": "CPF ou profissao SOZINHA continua pendencia sem interruptor?",
+   "status": "confirmado",
+   "prova": "Com os enderecos revertidos e SO a profissao mudada (Veterinária): 7 interruptores na lista, nenhum de profissao/CPF; o de endereco volta a 'nada no cadastro registra este evento'; a divergencia sai como 'Qualificacao detectada, sem autorizacao juridica ou modelo homologado.'. Repeti trocando SO o CPF (420.384.121-62 -> 111.444.777-35): resultado identico, mesma pendencia, nenhum interruptor novo."
+  }
+ ],
+ "alvo_real": {
+  "cliente": "[TESTE] Dinossauro Aposentado Previdência e Fósseis Ltda (8f9c2796-b9f3-4349-923b-b04e86bc6012)",
+  "empresa": "Jatobá Sementes S.A. (11c1394b-5bc7-4b93-a6f1-98a7fa64088b)",
+  "peca_base": "6ab58b24-ba85-4d8e-88da-5461ff4ecf32 (registrado, alterador, snapshot COM id estavel de socio)",
+  "rascunho_de_AC_preexistente": "3f6f8c42-7bc1-41e8-93c0-817d3e7dc416 (criado 2026-09-09T17:00, antes desta sessao)",
+  "motivo": "unica peca registrada do sandbox cujo snapshot tem id estavel nos socios"
+ },
+ "alteracoes_de_dado_feitas_e_revertidas": [
+  {
+   "pessoa": "Clarice do Amaral Vasconcelos (ace00000-...-0013)",
+   "o_que": "endereco Rua Padre Anchieta 1650 / Champagnat / 80730-000 -> Rua Bispo Dom José 2145 / Seminário / 80440-080",
+   "revertido": "sim (PATCH 200)",
+   "ressalva": "endereco_complemento era NULL e voltou como string vazia ''"
+  },
+  {
+   "pessoa": "Marina Salgado (ac4de794-...)",
+   "o_que": "endereco Rua Karina Teixeira 1063 -> Avenida Miguel Sutil 8000 Apto 1204 / Santa Rosa / 78048-250; profissao Agricultora -> Veterinária; CPF 420.384.121-62 -> 111.444.777-35",
+   "revertido": "sim, os tres (PATCH 200 em cada volta; releitura confere)"
+  },
+  {
+   "pessoa": "Lucas Nogueira (d7ce85da-...)",
+   "o_que": "endereco Rua Elisa Freitas 303 -> Rua Barão de Melgaço 3721 Casa 2 / Jardim Aclimação / Várzea Grande / 78110-400",
+   "revertido": "sim (PATCH 200)"
+  },
+  {
+   "documento": "rascunho de AC 3f6f8c42-7bc1-41e8-93c0-817d3e7dc416 (pre-existente, criado 17:00 antes desta sessao)",
+   "o_que": "reabri e reconfirmei a proposta 5x durante os testes",
+   "estado_final": "restaurado ao original: so 'Houve mudança do endereço da sede' marcado, causa 'Mudança física da sede', qualificacao DESMARCADA; a previa nao contem mais 'Da atualização da qualificação de sócio'"
+  },
+  {
+   "infra": "servidor de dev pid 4712",
+   "o_que": "reiniciei (kill + rm -rf node_modules/.vite + bun run dev) porque o chunk do gerador de .docx passou a responder 504 'Outdated Optimize Dep' e o download nao acontecia",
+   "branch": "develop antes e depois; alvo continua o sandbox"
+  }
+ ],
+ "artefatos": [
+  ".playwright-mcp/r1-marina-domicilio.docx (1 socia, causa mudanca de domicilio)",
+  ".playwright-mcp/r2-endereco-novo-profissao-antiga.docx (separacao por materia)",
+  ".playwright-mcp/r3-plural-dois-socios.docx (plural)",
+  ".playwright-mcp/r1.txt, r2.txt, r3.txt (texto extraido)"
+ ]
+}

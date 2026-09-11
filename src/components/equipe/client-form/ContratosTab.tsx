@@ -25,7 +25,6 @@ import ProdutosPickerDialog from "./ProdutosPickerDialog";
 import CentrosCustoPickerDialog from "./CentrosCustoPickerDialog";
 import ResumoSelecao from "./ResumoSelecao";
 import RateioLista from "./RateioLista";
-import { useAcentoArea } from "./acentoArea";
 import MarcaPendencia, { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from "./MarcaPendencia";
 import { getContribuinteLabel, getEmpresaLabel, getProductLabel, ordenarPorRotulo } from "./contratosLabels";
 import OsPeriodoFields from "./OsPeriodoFields";
@@ -179,7 +178,6 @@ export default function ContratosTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foco]);
 
-  const acento = useAcentoArea();
 
   const empresasOrdenadas = useMemo(
     () => allClusters.slice().sort((a, b) => getEmpresaLabel(a).localeCompare(getEmpresaLabel(b))),
@@ -286,8 +284,9 @@ export default function ContratosTab({
   return (
     <ListaMestreDetalhe
       titulo={`OS - Ordem de Serviço (${contracts.length})`}
+      dataTour="os-lista"
       acaoCriar={mostrarCriarOs && editingContractId == null ? (
-        <Button size="sm" onClick={createOs} disabled={isCreatingOs} className={cn('gap-1.5 h-7 text-xs', acento.botao)}>
+        <Button size="sm" onClick={createOs} disabled={isCreatingOs} data-tour="os-criar" className={cn('gap-1.5 h-7 text-xs')}>
           <Plus size={14} /> {isCreatingOs ? "Criando..." : "Criar nova OS"}
         </Button>
       ) : null}
@@ -333,7 +332,7 @@ export default function ContratosTab({
             </AlertDialog>
           )}
           {isEditingThis ? (
-            <Button size="sm" variant="outline" className={cn('gap-1.5 text-xs', acento.botaoSuave)} onClick={() => setEditingContractId(null)}>
+            <Button size="sm" variant="outline" className={cn('gap-1.5 text-xs', 'border-primary/40 bg-accent/5 text-primary hover:border-primary hover:bg-accent/10')} onClick={() => setEditingContractId(null)}>
               <Check size={12} /> Pronto
             </Button>
           ) : (
@@ -369,7 +368,7 @@ export default function ContratosTab({
                 {/* Edição — cada campo grava direto na OS */}
                 {linhaEditavel && (
                   <div className="space-y-6">
-                    <SecaoFormulario numero={1} titulo="Período">
+                    <SecaoFormulario numero={1} titulo="Período" dataTour="os-periodo">
                       <OsPeriodoFields
                         contrato={cont}
                         onChange={(patch) => updateContract(cont._id, patch)}
@@ -378,7 +377,7 @@ export default function ContratosTab({
                       />
                     </SecaoFormulario>
 
-                    <SecaoFormulario numero={2} titulo="Classificação" pendente={secaoPendente(2)}>
+                    <SecaoFormulario numero={2} titulo="Classificação" pendente={secaoPendente(2)} dataTour="os-classificacao">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 [&>*]:min-w-0">
                       <div>
                         <Label className="text-xs font-semibold uppercase text-muted-foreground">Área do Negócio<RequiredMark /></Label>
@@ -436,8 +435,9 @@ export default function ContratosTab({
                       numero={3}
                       titulo="Produtos contratados"
                       pendente={secaoPendente(3)}
+                      dataTour="os-produtos"
                       acao={(
-                        <Button type="button" size="sm" variant="outline" className={cn('gap-1.5 text-xs', acento.botaoSuave)} onClick={() => setPickerAberto(true)}>
+                        <Button type="button" size="sm" variant="outline" className={cn('gap-1.5 text-xs', 'border-primary/40 bg-accent/5 text-primary hover:border-primary hover:bg-accent/10')} onClick={() => setPickerAberto(true)}>
                           <Plus size={14} /> Produtos
                         </Button>
                       )}
@@ -480,7 +480,7 @@ export default function ContratosTab({
                       }}
                     />
 
-                    <SecaoFormulario numero={4} titulo="Valores">
+                    <SecaoFormulario numero={4} titulo="Valores" dataTour="os-valores">
                       <OsValoresEdicao contrato={cont} onChange={(patch) => updateContract(cont._id, patch)} />
                     </SecaoFormulario>
 
@@ -488,8 +488,9 @@ export default function ContratosTab({
                       numero={5}
                       titulo="Distribuição de receita (centros de custo)"
                       pendente={secaoPendente(5)}
+                      dataTour="os-rateio"
                       acao={(
-                        <Button type="button" size="sm" variant="outline" className={cn('gap-1.5 text-xs', acento.botaoSuave)} onClick={() => setCentrosAberto(true)}>
+                        <Button type="button" size="sm" variant="outline" className={cn('gap-1.5 text-xs', 'border-primary/40 bg-accent/5 text-primary hover:border-primary hover:bg-accent/10')} onClick={() => setCentrosAberto(true)}>
                           <Plus size={14} /> Centros de custo
                         </Button>
                       )}

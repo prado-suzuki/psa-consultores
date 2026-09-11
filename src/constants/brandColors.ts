@@ -43,7 +43,7 @@ export const CHART_COLORS = [
 // Cores para gráficos de status (barras de volume, etc)
 export const STATUS_CHART_COLORS = {
   pending: '#6b7280',      // Gray Medium - A Fazer
-  in_progress: '#5eead4',  // Teal Light - Em Progresso
+  in_progress: '#5eead4',  // Teal Light - Em Andamento
   completed: '#0d9488',    // Teal Primary - Concluído
 };
 

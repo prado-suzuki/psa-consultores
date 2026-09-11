@@ -88,7 +88,7 @@ export default function EquipeSprintDetalhes() {
               Riscos
               {(controller.sprintRisks.overdue.length > 0 ||
                 controller.sprintRisks.metricsAtRisk.length > 0) && (
-                <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full animate-pulse" />
               )}
             </TabsTrigger>
           </TabsList>

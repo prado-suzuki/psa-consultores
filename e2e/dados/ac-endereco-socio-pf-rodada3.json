@@ -1,0 +1,162 @@
+{
+ "rodada": "3 - 2026-09-09, confirmacao dos dois fixes de fd20f1ac e nao-regressao",
+ "branch": "develop",
+ "head": "fd20f1ac fix(osg): capital por extenso e cabecalho da integralizacao no aumento",
+ "banco": "SANDBOX vgzomuwnsdgrxbkyoavq",
+ "prova_do_banco": "todo request do browser saiu para vgzomuwnsdgrxbkyoavq.supabase.co (campo supabaseHosts do driver, em todas as chamadas)",
+ "ferramenta": "Playwright MCP indisponivel pela terceira rodada (ToolSearch nao acha mcp__playwright__*). Driver .playwright-mcp/drv.mjs + snippets em .playwright-mcp/r3/",
+ "itens": [
+  {
+   "id": "P1a-extenso-do-capital",
+   "pergunta": "O extenso do capital bate com o algarismo nas duas ocorrencias?",
+   "status": "CORRIGIDO",
+   "reproducao": "[TESTE] Tartaruga Veloz Sementes Ltda / modelo 'Contrato Social - (Participacoes)' / Rever os eventos -> ligar 'Houve aumento do capital social' + 'Houve integralizacao de capital' -> Continuar -> Confirmar alteracao contratual -> Baixar .docx",
+   "contagem": ".playwright-mcp/r3-p1-aumento-capital-1alinea.docx: '700.000,00 (setecentos mil reais)' 4x; '700.000,00 (quinhentos mil reais)' (o erro da rodada 2) 0x. Nenhuma ocorrencia de 700.000,00 sai com extenso diferente de 'setecentos mil reais'.",
+   "prova": "CLAUSULA PRIMEIRA: Aumenta-se o capital social em R$ 200.000,00 (duzentos mil reais), de modo que o capital social anterior de R$ 500.000,00 (quinhentos mil reais) passara a ser de R$ 700.000,00 (setecentos mil reais) ... 'O capital social e de R$ 700.000,00 (setecentos mil reais), dividido em 700.000 (setecentas mil) quotas'",
+   "linha_de_base": "rodada 2 (.playwright-mcp/r2-p4-quota-aumento-capital.docx) tinha 2x '700.000,00 (quinhentos mil reais)' e 0x 'setecentos mil reais'."
+  },
+  {
+   "id": "P1b-cabecalho-da-integralizacao",
+   "pergunta": "'no valor total de R$ X:' e a soma exata das alineas abaixo?",
+   "status": "CORRIGIDO",
+   "prova_1_alinea": "r3-p1: 'i) pelo socio OTAVIO PANTANAL , no valor total de R$ 200.000,00 (duzentos mil reais): a) ... Sitio Casco Rapido ... no valor de R$ 200.000,00 (duzentos mil reais)'. Conta: 200.000 = 200.000. Na rodada 2 o cabecalho anunciava R$ 500.000,00 (o vlrTotal do quadro) sobre a mesma alinea de 200.000.",
+   "prova_4_alineas": "r3-p2-aumento-4alineas.docx: 'i) pelo socio OTAVIO PANTANAL , no valor total de R$ 425.000,00 (quatrocentos e vinte e cinco mil reais): a) Sitio Casco Rapido ... R$ 200.000,00; b) Chacara Casco Duro ... R$ 150.000,00; c) Gleba Tartaruga Dois ... R$ 50.000,00; d) em moeda corrente nacional, no valor de R$ 25.000,00. ii) pela socia RITA BANDEIRA , no valor total de R$ 75.000,00 (setenta e cinco mil reais): a) em moeda corrente nacional, no valor de R$ 75.000,00'. Conta: 200.000+150.000+50.000+25.000 = 425.000 (bate); 75.000 = 75.000 (bate). E o cabecalho NAO usa o vlrTotal do quadro, que para Otavio e 725.000,00 na mesma peca ('725.000 quotas, no valor total de R$ 725.000,00, pertencentes a OTAVIO PANTANAL')."
+  },
+  {
+   "id": "P2a-constituicao-nao-regressao",
+   "pergunta": "O cabecalho e as alineas da CONSTITUICAO continuam corretos depois do commit?",
+   "status": "SEM REGRESSAO",
+   "reproducao": "criei [TESTE] Jabuti Tranquilo Agropecuaria Ltda + 3 bens aprovados (BS 94 Otavio 200.000, BS 95 Otavio 100.000, BS 96 Rita 200.000) -> modelo 'Contrato Social - (Agro)' -> Baixar .docx (.playwright-mcp/r3-p2-constituicao-jabuti-agro.docx)",
+   "prova": "'Paragrafo Segundo: O socio Otavio Pantanal subscreve e integraliza neste ato ... o montante de R$ 300.000,00 (trezentos mil reais), atraves dos bens imoveis abaixo descritos, sendo: a) ... Fazenda Jabuti Um ... no valor de R$ 200.000,00 (duzentos mil reais). b) ... Sitio Jabuti Dois ... no valor de R$ 100.000,00 (cem mil reais).' Conta: 200.000+100.000 = 300.000. 'Paragrafo Terceiro: O socio Rita Bandeira ... o montante de R$ 200.000,00 ... a) ... Chacara Jabuti Tres ... no valor de R$ 200.000,00.' Conta: bate.",
+   "observacao": "o modelo 'Contrato Social - (Participacoes)' NAO renderiza a lista {{#integralizacoes}} na constituicao: a Clausula Quinta dele diz 'integralizadas neste ato pelo socio OTAVIO PANTANAL em moeda corrente nacional' mesmo com tres imoveis, e nenhum nome de imovel aparece. Por isso o teste de constituicao foi feito no modelo Agro, que e o que exercita mapearIntegralizacoes."
+  },
+  {
+   "id": "D1-NOVO-causa-postal-nao-sobrevive-ao-reload",
+   "pergunta": "A causa 'Atualizacao postal' escolhida no assistente chega ao documento?",
+   "status": "DEFEITO NOVO",
+   "reproducao_minima": "[TESTE] Tartaruga Veloz / 'Contrato Social - (Participacoes)' -> Rever os eventos -> endereco de socio PF ligado, causa 'Atualizacao postal' -> Continuar -> Confirmar alteracao contratual -> ler a previa -> recarregar a tela (sair e voltar em /equipe/osg/work/gerar-documento e reabrir a mesma peca) -> ler a previa de novo.",
+   "prova_logo_apos_confirmar": "'DAS ALTERACOES CONTRATUAIS Da atualizacao da qualificacao de socio. Em decorrencia da atualizacao do Codigo de Enderecamento Postal - CEP, alteram-se as qualificacoes dos socios OTAVIO PANTANAL e RITA BANDEIRA, para fazer constar...'",
+   "prova_apos_reload": "'DAS ALTERACOES CONTRATUAIS Da atualizacao da qualificacao de socio. Alteram-se as qualificacoes dos socios OTAVIO PANTANAL e RITA BANDEIRA, para fazer constar...' — o preambulo do CEP sumiu.",
+   "prova_no_docx": "'Enderecamento Postal' aparece 0x em TODOS os .docx baixados: r3-p1, r3-p2, r3-p3 (rodada 3) e r2-p5 (rodada 2, a peca em que a rodada 2 deu P4b como confirmado).",
+   "a_escolha_persiste": "sim: reabrindo o assistente depois do reload, o radio 'Atualizacao postal' volta com aria-checked=true. O que nao sobrevive e a aplicacao dela ao texto renderizado.",
+   "pista": "o painel 'Preencher a mao' da peca lista requalificacao.causa, requalificacao.verbo, requalificacao.aQualificacao, requalificacao.titulo e requalificacao.objeto como campos que 'nao vem do cadastro'. Verbo, aQualificacao e objeto saem certos no docx ('Alteram-se as qualificacoes ... os atuais enderecos destes'); so a causa se perde.",
+   "impacto": "a rodada 2 deu o item P4b (causa postal) como CONFIRMADO com prova de tela tirada logo apos o Confirmar. Medido agora no arquivo, o docx nunca teve o preambulo — nem na rodada 2."
+  },
+  {
+   "id": "P2b-endereco-de-socio-amostragem",
+   "pergunta": "A resolucao de endereco de socio aparece, e a primeira, flexiona no plural, e o endereco novo vale na clausula de administracao?",
+   "status": "CONFIRMADO (sem regressao)",
+   "prova_ordem_e_plural": "r3-p2-aumento-4alineas.docx: 'DAS ALTERACOES CONTRATUAIS Da atualizacao da qualificacao de socio. Alteram-se as qualificacoes dos socios OTAVIO PANTANAL e RITA BANDEIRA , para fazer constar os atuais enderecos destes, permanecendo inalterados...' — vem antes da CLAUSULA PRIMEIRA (aumento de capital).",
+   "contagem": "enderecos ANTIGOS no docx: 'Presidente Marques' 0x, 'Comandante Costa' 0x, '78043-000' 0x, '78020-400' 0x. Enderecos NOVOS: 'Ricardo Franco' 4x, 'Getulio Vargas' 4x, '78065-000' 4x, '78050-970' 4x.",
+   "prova_administracao": "'administrada isoladamente por Otavio Pantanal, ... residente e domiciliado no endereco Rua Engenheiro Ricardo Franco, n.o 2200, Casa 3, Bairro Duque de Caxias, ... CEP 78065-000; e Rita Bandeira, ... Avenida Getulio Vargas, n.o 1500, Apto 902, Bairro Goiabeiras, ... CEP 78050-970' — o fix da rodada 1 continua de pe."
+  },
+  {
+   "id": "P3a-cpf-sozinho",
+   "pergunta": "CPF sozinho continua pendencia sem interruptor?",
+   "status": "CONFIRMADO - continua pendencia",
+   "reproducao": "Marina Salgado (Jatoba Sementes S.A.): CPF 420.384.121-62 -> 153.509.460-56 (PATCH 200), so o CPF. Abri 'Rever os eventos' da peca da Jatoba.",
+   "prova": "os 7 interruptores continuam sendo os mesmos (sede, endereco de socio PF, aumento de capital, cessao, integralizacao, administracao, entrada/retirada) — nenhum de CPF. A mudanca cai em 'Divergencias que nao viram evento nesta peca' como 'Qualificacao detectada, sem autorizacao juridica ou modelo homologado.'",
+   "controle": "revertido o CPF (PATCH 200), a linha 'Qualificacao detectada...' desaparece da mesma lista, o que prova que era ela a divergencia detectada.",
+   "estado_do_dado": "revertido para 420.384.121-62."
+  },
+  {
+   "id": "P3b-cessao-e-retirada",
+   "pergunta": "O caminho de cessao / retirada de socio sai coerente?",
+   "status": "PARCIAL - coerente, com uma clausula vazia",
+   "reproducao": "Quadro Societario da Tartaruga -> 'Transferir quotas para a controladora' -> controladora Jatoba Sementes S.A. -> Transferir quotas (HTTP 201; grava 2 cessoes de 1.000.000 quotas na Tartaruga e 2 aportes em quotas na Jatoba). Depois, na peca da Tartaruga: 'Rever os eventos' -> ligar cessao (3) e entrada/retirada (6), desligar endereco (1), manter aumento (2) e integralizacao (4) -> Confirmar -> Baixar .docx (.playwright-mcp/r3-p4-cessao-retirada.docx).",
+   "o_que_saiu_certo": "'CLAUSULA SEGUNDA: Formaliza-se a cessao e transferencia de quotas ... i) OTAVIO PANTANAL, inscrito no CPF/CNPJ sob o no 111.444.777-35, cede e transfere 725.000 (setecentas e vinte e cinco mil) quotas, no valor total de R$ 725.000,00 ..., a JATOBA SEMENTES S.A. ...; ii) RITA BANDEIRA ... 275.000 ... R$ 275.000,00'. 'CLAUSULA TERCEIRA: Em virtude das cessoes e transferencias descritas nas clausulas anteriores, por terem cedido a totalidade de suas quotas, os socios OTAVIO PANTANAL e RITA BANDEIRA retiram-se da sociedade.' 'CLAUSULA QUARTA: Os demais socios ... renunciam expressamente ao direito de preferencia'. O consolidado fica com um socio so (Jatoba, 100%), e a administracao sai como 'administrada isoladamente pelos administradores nao socios Otavio Pantanal ... e Rita Bandeira', que e a leitura correta de quem administra sem estar no quadro.",
+   "defeito": "'CLAUSULA QUINTA: Integralizam-se as quotas subscritas, nos termos e pelos valores abaixo:' e logo em seguida 'Em consequencia, modificam-se as disposicoes...' — ZERO alineas. O interruptor da integralizacao estava ligado e a evidencia dele dizia '5 aporte(s) integralizado(s) com bens, moeda corrente'. Como os dois aportantes sairam do quadro pela cessao, a lista nasce vazia e a clausula sai so com o cabecalho.",
+   "controle": "desligando SO o interruptor de integralizacao e reconfirmando, 'Integralizam-se as quotas subscritas' desaparece do documento (temClausulaVazia=false). Isso isola o defeito no par (integralizacao marcada + aportantes fora do quadro).",
+   "e_regressao_deste_commit": "nao aparenta ser: o diff de fd20f1ac em mapearIntegralizacoes so sobrescreve vlrTotal/vlrTotalExtenso quando somaDasAlineas != null; nao mexe em quais socios entram na lista. Nao tenho artefato anterior com esse cenario, entao registro como primeira medicao, nao como regressao comprovada."
+  },
+  {
+   "id": "P3c-aporte-em-quotas-seQuotas",
+   "pergunta": "O aporte em quotas de outra sociedade passa pelo cabecalho novo sem quebrar?",
+   "status": "CONFIRMADO",
+   "reproducao": "depois da subida das quotas, peca da Jatoba Sementes S.A. -> 'Rever os eventos' -> ligar aumento de capital e integralizacao -> Confirmar -> Baixar .docx (.playwright-mcp/r3-p5-jatoba-aporte-em-quotas.docx)",
+   "prova": "'CLAUSULA TERCEIRA: Integralizam-se as quotas subscritas, nos termos e pelos valores abaixo: i) pelo socio OTAVIO PANTANAL , no valor total de R$ 725.000,00 (setecentos e vinte e cinco mil reais): a) mediante a transferencia das 725.000 (setecentas e vinte e cinco mil) quotas que possuia na sociedade [TESTE] Tartaruga Veloz Sementes Ltda, inscrita no CNPJ sob o no 11.222.333/0001-81, ... cuja alteracao contratual tramita em conjunto com o presente instrumento, no valor total de R$ 725.000,00. ii) pela socia RITA BANDEIRA , no valor total de R$ 275.000,00 ...: a) ... 275.000 quotas ... no valor total de R$ 275.000,00.'",
+   "conta": "725.000 = 725.000 e 275.000 = 275.000: cabecalho igual a soma da alinea unica em cada socio."
+  },
+  {
+   "id": "D2-NOVO-extenso-de-milhao-sem-o-de",
+   "pergunta": "O extenso de valor redondo em milhao sai gramaticalmente correto?",
+   "status": "DEFEITO NOVO (redacional)",
+   "prova": "'R$ 1.000.000,00 (um milhao reais)' e '1.000.000 (um milhao) quotas'. O portugues pede 'um milhao DE reais' e 'um milhao DE quotas'.",
+   "contagem": "r3-p2: 'um milhao reais' 4x, 'um milhao) quotas' 3x; r3-p4: 9x e 9x; r3-p5: 1x e 0x. 'um milhao de reais' 0x em todos.",
+   "quando_aparece": "so em valor multiplo exato de milhao. Composto sai certo: 'R$ 3.974.751,00 (tres milhoes, novecentos e setenta e quatro mil, setecentos e cinquenta e um reais)'.",
+   "pista": "src/lib/templates/extenso.ts:66-67 tem o comentario 'milhao e bilhao sao substantivos masculinos e nao flexionam (\"dois milhoes de quotas\")' — o proprio comentario escreve o 'de' que a saida nao tem; quem concatena o substantivo nao insere a preposicao.",
+   "nao_e_regressao_de_fd20f1ac": "o commit nao toca extenso.ts nem vocabulario.ts; o caso so apareceu agora porque nenhuma rodada anterior chegou a um capital de milhao redondo."
+  },
+  {
+   "id": "OBS-texto-duplicado-na-alinea-de-imovel",
+   "pergunta": "A alinea de imovel ainda duplica o valor?",
+   "status": "CONTINUA (ja observado na rodada 2, nao classificado como defeito do motor)",
+   "prova": "'... no valor de R$ 200.000,00 (duzentos mil reais) ., pelo valor de R$ 200.000,00 (duzentos mil reais).' — a familia 'Descricao de imovel' fecha com valor e ponto, e o modelo concatena ', pelo valor de ...'. Na constituicao pelo modelo Agro isso NAO acontece: la a alinea termina em 'no valor de R$ 200.000,00 (duzentos mil reais).' e ponto."
+  }
+ ],
+ "cenarios": {
+  "reaproveitado": "[TESTE] Tartaruga Veloz Sementes Ltda (criada na rodada 2, contrato social registrado na junta) e Jatoba Sementes S.A. (rascunho de AC pre-existente 3f6f8c42)",
+  "novo": "[TESTE] Jabuti Tranquilo Agropecuaria Ltda (CNPJ 22.333.444/0001-81, NIRE 51900000003), criada nesta rodada dentro do cliente [TESTE] Dinossauro Aposentado, para o teste de constituicao. Socios/administradores Otavio Pantanal e Rita Bandeira. Nao foi validada nem registrada."
+ },
+ "alteracoes_de_dado": [
+  {
+   "criado": "bens BS 92 (Chacara Casco Duro, matricula 92001, R$ 150.000,00) e BS 93 (Gleba Tartaruga Dois, matricula 93001, R$ 50.000,00)",
+   "detalhe": "Diagnostico Patrimonial do cliente [TESTE] Dinossauro, aprovados com destino a Tartaruga, titular Otavio Pantanal 100%. FICAM."
+  },
+  {
+   "criado": "ato societario 'Aumento de capital com dois imoveis e moeda' na Tartaruga",
+   "detalhe": "2 imoveis (BS 92 e BS 93) + moeda corrente R$ 25.000,00 de Otavio e R$ 75.000,00 de Rita. Capital da Tartaruga foi de R$ 700.000,00 para R$ 1.000.000,00. HTTP 201. FICA."
+  },
+  {
+   "criado": "PJ [TESTE] Jabuti Tranquilo Agropecuaria Ltda",
+   "detalhe": "CNPJ 22.333.444/0001-81, NIRE 51900000003, sede Avenida Historiador Rubens de Mendonca 2000, Sala 20, Bosque da Saude, Cuiaba/MT, 78048-250, com Otavio e Rita como administradores. FICA (ambiente dev)."
+  },
+  {
+   "criado": "bens BS 94 (Fazenda Jabuti Um, 94001, R$ 200.000,00, Otavio), BS 95 (Sitio Jabuti Dois, 95001, R$ 100.000,00, Otavio) e BS 96 (Chacara Jabuti Tres, 96001, R$ 200.000,00, Rita)",
+   "detalhe": "aprovados com destino a Jabuti; sao o capital de constituicao dela (R$ 500.000,00). FICAM."
+  },
+  {
+   "criado": "ato 'Subida das quotas da [TESTE] Tartaruga Veloz Sementes Ltda para a Jatoba Sementes S.A.'",
+   "detalhe": "2 cessoes de 1.000.000 quotas na Tartaruga (Otavio e Rita saem, Jatoba entra com 100%) e 2 aportes em quotas na Jatoba (capital de R$ 2.974.751,00 para R$ 3.974.751,00). HTTP 201. FICA — e a prova viva do teste de cessao/retirada e de seQuotas."
+  },
+  {
+   "alterado": "rascunho de AC da Tartaruga",
+   "detalhe": "reconfirmado varias vezes. Estado final: eventos marcados = aumento de capital, cessao, entrada/retirada; integralizacao e endereco de socio DESMARCADOS (ultimo passo foi o controle do defeito da clausula vazia)."
+  },
+  {
+   "alterado": "rascunho de AC 3f6f8c42 da Jatoba (pre-existente)",
+   "detalhe": "NAO restaurado ao estado da rodada 2. Ficou com tres eventos marcados: endereco da sede (que ja estava), aumento de capital e integralizacao — necessarios para medir o aporte em quotas. Reverter nao devolveria o estado anterior de qualquer forma, porque o ato de subida das quotas nao e desfeito pelo assistente."
+  },
+  {
+   "revertido": "CPF de Marina Salgado",
+   "detalhe": "420.384.121-62 -> 153.509.460-56 -> 420.384.121-62, os dois PATCH 200."
+  }
+ ],
+ "artefatos": [
+  ".playwright-mcp/r3-p1-aumento-capital-1alinea.docx + r3-p1.txt (P1, uma alinea)",
+  ".playwright-mcp/r3-p2-aumento-4alineas.docx + r3-p2.txt (P1, quatro alineas para Otavio + uma para Rita)",
+  ".playwright-mcp/r3-p2-constituicao-jabuti-agro.docx + r3-p2c.txt (P2, constituicao pelo modelo Agro)",
+  ".playwright-mcp/r3-p3-causa-postal-tela-vs-docx.docx + r3-p3.txt (D1, causa postal perdida)",
+  ".playwright-mcp/r3-p4-cessao-retirada.docx + r3-p4.txt (P3b, cessao/retirada, clausula vazia)",
+  ".playwright-mcp/r3-p5-jatoba-aporte-em-quotas.docx + r3-p5.txt (P3c, seQuotas)",
+  ".playwright-mcp/r3/*.mjs (os snippets desta rodada)"
+ ],
+ "nao_testado": [
+  {
+   "item": "Playwright MCP",
+   "porque": "as ferramentas mcp__playwright__* continuam indisponiveis (ToolSearch nao as encontra). Usei o driver local, como nas rodadas 1 e 2."
+  },
+  {
+   "item": "integralizacao em moeda na CONSTITUICAO",
+   "porque": "a tela de constituicao nao tem onde lancar parcela em moeda: o quadro sai dos bens aprovados. So o dialogo 'Registrar aumento de capital' oferece 'parcela em moeda corrente, por socio'. Testei moeda no aumento (r3-p2), nao na constituicao."
+  },
+  {
+   "item": "contador 'Preencher a mao' (pendencia da rodada 2)",
+   "porque": "fora do escopo deste roteiro; nao refiz."
+  },
+  {
+   "item": "validar/registrar as pecas novas na junta",
+   "porque": "o roteiro nao pediu; as pecas ficaram como rascunho."
+  }
+ ]
+}

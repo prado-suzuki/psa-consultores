@@ -13,6 +13,7 @@ describe('baselineDoSnapshot — o estado que a peça registrada publicou', () =
   it('lê o capital em pt-BR e os sócios por CPF/CNPJ, só dígitos', () => {
     expect(baselineDoSnapshot(snapshot())).toEqual({
       capitalAnterior: 872674,
+      pessoaIdsDosSocios: null,
       cpfCnpjDosSocios: ['11111111111', '22222222222'],
     });
   });
@@ -26,8 +27,8 @@ describe('baselineDoSnapshot — o estado que a peça registrada publicou', () =
     expect(baselineDoSnapshot(outroNome).capitalAnterior).toBe(1171800);
   });
 
-  it('sem snapshot, sem baseline: os dois campos vêm nulos', () => {
-    expect(baselineDoSnapshot(null)).toEqual({ capitalAnterior: null, cpfCnpjDosSocios: null });
+  it('sem snapshot, sem baseline: os campos vêm nulos', () => {
+    expect(baselineDoSnapshot(null)).toEqual({ capitalAnterior: null, pessoaIdsDosSocios: null, cpfCnpjDosSocios: null });
   });
 
   it('sócio sem CPF/CNPJ torna o quadro INTEIRO inutilizável, não parcial', () => {
@@ -39,6 +40,7 @@ describe('baselineDoSnapshot — o estado que a peça registrada publicou', () =
     });
     expect(baselineDoSnapshot(comLegado)).toEqual({
       capitalAnterior: 872674,
+      pessoaIdsDosSocios: null,
       cpfCnpjDosSocios: null,
     });
   });
@@ -47,6 +49,7 @@ describe('baselineDoSnapshot — o estado que a peça registrada publicou', () =
     const antigo = snapshot({ itensPorLista: {} });
     expect(baselineDoSnapshot(antigo)).toEqual({
       capitalAnterior: 872674,
+      pessoaIdsDosSocios: null,
       cpfCnpjDosSocios: null,
     });
   });
@@ -60,6 +63,20 @@ describe('baselineDoSnapshot — o estado que a peça registrada publicou', () =
     // "não sei", e a derivação cai no caminho de compatibilidade.
     const ilegivel = snapshot({ selecao: { sociedade: { capitalValor: '—' } } });
     expect(baselineDoSnapshot(ilegivel).capitalAnterior).toBeNull();
+  });
+
+  it('lê ids estáveis mesmo sem CPF e deduplica a mesma pessoa', () => {
+    expect(baselineDoSnapshot(snapshot({ itensPorLista: { socios: [
+      { socio: { id: 'ana', cpfCnpj: '' } },
+      { socio: { id: 'bruno' } },
+      { socio: { id: 'ana' } },
+    ] } })).pessoaIdsDosSocios).toEqual(['ana', 'bruno']);
+  });
+
+  it.each([undefined, null, '', '   ', 123])('id inválido %s impede baseline parcial', (id) => {
+    expect(baselineDoSnapshot(snapshot({ itensPorLista: { socios: [
+      { socio: { id: 'ana' } }, { socio: { id, nome: 'Ana' } },
+    ] } })).pessoaIdsDosSocios).toBeNull();
   });
 
   it('digitosDe descarta formatação e o que não é texto', () => {

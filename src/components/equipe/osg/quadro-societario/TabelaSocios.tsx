@@ -4,11 +4,18 @@ import {
   Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { Search } from 'lucide-react';
-import { fmtBRL, fmtInt, fmtPct, iniciais } from './quadroFmt';
+import { fmtBRL, fmtInt, fmtPct } from './quadroFmt';
 
 // Tabela de sócios do Quadro Societário, com busca e linha de total. Serve a
 // proposta ainda não gravada e o quadro já gravado: as duas são a mesma lista,
 // e a diferença entre elas é o cabeçalho do cartão, não o corpo.
+//
+// Saíram daqui, na reorganização da interface: o avatar de iniciais, a barra de
+// participação, o selo colorido do percentual e a coluna de Ações. Os três
+// primeiros eram decoração repetida linha a linha sobre dados que já estavam
+// escritos ao lado; o quarto abria o movimento avulso já em Cessão, o que fazia
+// um clique na linha significar um gesto que ninguém escolheu. O que a tabela
+// mostra é o SALDO e de onde ele veio.
 
 export interface LinhaSocio {
   pessoaId: string | null;
@@ -31,15 +38,42 @@ interface TabelaSociosProps {
   totalQuotas: number;
   capital: number;
   vazio: React.ReactNode;
-  /**
-   * Ação por sócio (movimentar as quotas dele). Quando ausente, a tabela é só
-   * leitura e a coluna de ação não existe. É o estado da proposta da PR, que
-   * ainda não tem sócio no banco para movimentar.
-   */
-  acaoDoSocio?: (linha: LinhaSocio) => React.ReactNode;
 }
 
-export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio, acaoDoSocio }: TabelaSociosProps) => {
+/**
+ * A procedência do saldo: a primeira origem sempre à vista, as demais atrás de
+ * um comando textual. Um sócio com muitos atos rendia uma pilha de selos mais
+ * alta que a própria linha, e o vínculo com o ledger não pode sumir por isso.
+ * Não é o histórico completo dos movimentos: é de que atos este SALDO veio.
+ */
+const Procedencia = ({ origens }: { origens: string[] }) => {
+  const [tudo, setTudo] = useState(false);
+  const visiveis = tudo ? origens : origens.slice(0, 1);
+
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1">
+      {visiveis.map((origem) => (
+        <span
+          key={origem}
+          className="rounded bg-osg-50 px-1.5 py-0.5 text-[10px] font-medium text-osg-700"
+        >
+          {origem}
+        </span>
+      ))}
+      {origens.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setTudo((v) => !v)}
+          className="text-[10px] font-medium text-osg-700 underline-offset-2 hover:underline"
+        >
+          {tudo ? 'Ocultar procedência' : `Ver procedência (${origens.length})`}
+        </button>
+      )}
+    </div>
+  );
+};
+
+export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio }: TabelaSociosProps) => {
   const [busca, setBusca] = useState('');
   const buscaAtiva = busca.trim().length > 0;
 
@@ -70,15 +104,18 @@ export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio, acaoDoSocio 
       {filtradas.length === 0 ? (
         <p className="text-sm text-muted-foreground py-6 text-center">Nenhum sócio encontrado.</p>
       ) : (
-        <div className="rounded-md border overflow-hidden">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Sócio</TableHead>
                 <TableHead className="text-right">Quotas</TableHead>
-                <TableHead className="text-right">Valor (R$)</TableHead>
-                <TableHead className="w-44">Participação</TableHead>
-                {acaoDoSocio && <TableHead className="w-24 text-right">Ações</TableHead>}
+                {/* Os títulos dizem de QUE valor e de QUE participação se trata:
+                    a coluna é capital ao nominal, não preço, e o percentual é
+                    do capital, não do voto — que pode divergir e tem tabela
+                    própria. */}
+                <TableHead className="text-right">Valor de capital (R$)</TableHead>
+                <TableHead className="text-right">Participação no capital</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -92,31 +129,11 @@ export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio, acaoDoSocio 
                     style={{ animationDelay: `${delay}ms` }}
                   >
                     <TableCell>
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-md bg-osg-100 flex items-center justify-center shrink-0 text-[11px] font-bold text-osg-700">
-                          {iniciais(l.denominacao)}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{l.denominacao}</p>
-                          <p className="text-xs text-muted-foreground font-mono">
-                            {l.tipoPessoa ?? '—'}{l.cpfCnpj ? ` · ${l.cpfCnpj}` : ''}
-                          </p>
-                          {/* A procedência tira do saldo o ar de número sem
-                              história: cada linha diz de que atos ela veio. */}
-                          {(l.procedencia?.length ?? 0) > 0 && (
-                            <div className="mt-1 flex flex-wrap gap-1">
-                              {l.procedencia!.map((origem) => (
-                                <span
-                                  key={origem}
-                                  className="rounded bg-osg-50 px-1.5 py-0.5 text-[10px] font-medium text-osg-700"
-                                >
-                                  {origem}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      <p className="text-sm font-medium">{l.denominacao}</p>
+                      <p className="font-mono text-xs text-muted-foreground">
+                        {l.tipoPessoa ?? '—'}{l.cpfCnpj ? ` · ${l.cpfCnpj}` : ''}
+                      </p>
+                      {(l.procedencia?.length ?? 0) > 0 && <Procedencia origens={l.procedencia!} />}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {fmtInt.format(l.quotas)}
@@ -124,32 +141,15 @@ export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio, acaoDoSocio 
                     <TableCell className="text-right tabular-nums">
                       {fmtBRL.format(l.valor)}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-16 rounded-full bg-osg-100 overflow-hidden shrink-0">
-                          <div
-                            className="h-full rounded-full bg-osg-moss origin-left animate-osg-bar-grow motion-reduce:animate-none"
-                            style={{
-                              width: `${Math.min(l.percentual, 100)}%`,
-                              // Barra cresce logo depois da linha assentar.
-                              animationDelay: `${delay + 120}ms`,
-                            }}
-                          />
-                        </div>
-                        <span className="rounded-md bg-osg-50 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-osg-700">
-                          {fmtPct(l.percentual)}
-                        </span>
-                      </div>
+                    <TableCell className="text-right font-medium tabular-nums">
+                      {fmtPct(l.percentual)}
                     </TableCell>
-                    {acaoDoSocio && (
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">{acaoDoSocio(l)}</div>
-                      </TableCell>
-                    )}
                   </TableRow>
                 );
               })}
             </TableBody>
+            {/* O total some com qualquer busca ativa: somar um subconjunto
+                filtrado e chamá-lo de Total seria mentir sobre o capital. */}
             {!buscaAtiva && (
               <TableFooter>
                 <TableRow>
@@ -160,8 +160,7 @@ export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio, acaoDoSocio 
                   <TableCell className="text-right font-semibold tabular-nums">
                     {fmtBRL.format(capital)}
                   </TableCell>
-                  <TableCell className="font-semibold tabular-nums">{fmtPct(100)}</TableCell>
-                  {acaoDoSocio && <TableCell />}
+                  <TableCell className="text-right font-semibold tabular-nums">{fmtPct(100)}</TableCell>
                 </TableRow>
               </TableFooter>
             )}

@@ -202,6 +202,12 @@ function Harness({
     collapsedAreaGroups: new Set<string>(),
     toggleAreaGroup: vi.fn(),
     handleMemberToggle: vi.fn(),
+    // Marcador de cluster extra e rodapé de quadros. Vazios aqui: este arquivo
+    // cobre a anatomia do modal, e o comportamento deles é testado nas funções
+    // puras (src/lib/projetoEquipe.test.ts).
+    clustersExtras: {},
+    quadrosDoProjeto: [],
+    clusterNameDoProjeto: null,
     // O controller real expõe muito mais (filtros, agrupamento, exclusão), nada
     // disso é lido pelo modal.
   } as unknown as ProjetosCadastroController;

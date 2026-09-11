@@ -46,6 +46,66 @@ comportamento é idêntico ao de antes.
 Layout que lembra a barra entre sessões passa a chave de armazenamento em vez de gravar à
 mão: `useSidebarRecolhimentoController({ persistKey: 'board-sidebar-collapsed' })`.
 
+## Em tela estreita a barra troca de papel: vira gaveta
+
+Abaixo de 768px (`MOBILE_BREAKPOINT`, de `use-mobile`) a barra deixa de ser uma coluna e
+passa a ser uma **gaveta**, que flutua por cima do conteúdo. É a mesma peça de estado — o
+que muda é o que `collapsed` significa e onde a barra é desenhada:
+
+| | desktop | celular |
+| --- | --- | --- |
+| `collapsed: false` | barra aberta, 16rem, na coluna | gaveta aberta por cima do conteúdo |
+| `collapsed: true` | trilho de 5rem, só ícones | gaveta fora da tela |
+
+Um layout adere em quatro linhas:
+
+```tsx
+const barra = useSidebarRecolhimentoController();
+const { collapsed, setCollapsed, emGaveta } = barra;
+useFecharGavetaAoNavegar(barra);
+const trilho = collapsed && !emGaveta;
+```
+
+E, na barra: `classeLarguraBarra(trilho)` (não `collapsed`) mais
+`classesGavetaBarra(collapsed)`, o `<SidebarFundoGaveta aberta={!collapsed} …/>` ao lado
+dela, e `max-md:hidden` no botão redondo de recolher. Todo uso INTERNO de `collapsed` —
+rótulo que some, ícone centralizado, `title`, o cartão do usuário — passa a ler `trilho`;
+o que continua lendo `collapsed` é a geometria da gaveta e os botões que a abrem e fecham
+(o hambúrguer do header, o fundo escuro).
+
+`src/lib/sidebarMedidas.test.ts` lê o fonte das barras e cobra as duas linhas: uma área
+nova que esqueça a gaveta reprova.
+
+**Por que o trilho não vale na gaveta.** Um trilho de ícones num celular é o pior dos dois
+mundos: ocupa 80px de uma tela de 390px e não diz o nome de nada. A gaveta abre inteira,
+com os rótulos — daí `trilho = collapsed && !emGaveta`.
+
+**Por que sair do fluxo é o ponto.** Enquanto a barra é irmã do `<main>` num `flex`,
+qualquer largura dela é largura que o conteúdo perde. Num aparelho de 390px a barra aberta
+deixava ~130px de conteúdo (texto quebrando uma letra por linha) e o trilho deixava 310px
+— e como o `<main>` tem `overflow-hidden`, o que não cabia era **cortado**, não rolava.
+`max-md:fixed` resolve os dois de uma vez.
+
+**Por que a barra nasce fechada no celular.** Nascia aberta. Como na maior parte do
+sistema é a **página** que monta o layout, cada navegação remontava o layout e devolvia a
+coluna de 256px por cima da tela recém-aberta: da tela parecia que o menu não fechava, mas
+ele fechava e voltava a abrir. O `useFecharGavetaAoNavegar` cobre os dois casos em que a
+remontagem não acontece — o Mapeamento, cujo layout sobrevive à troca de rota porque a
+página entra por `<Outlet />`, e o toque num item que aponta para a rota atual.
+
+**A preferência gravada não vota no celular.** Ela foi dada no desktop, sobre um trilho
+que ali não existe; e abrir a gaveta não grava nada, senão a barra do desktop apareceria
+recolhida na sessão seguinte só porque alguém usou o menu no telefone.
+
+**O Board é a exceção que já estava certa.** Ele não usa nada disso: a barra dele é
+`hidden md:flex` e o menu do celular é um `<Sheet>` do shadcn, que já fecha no clique do
+item. Foi de lá que o desenho da gaveta saiu.
+
+**O Mapeamento também já tinha gaveta**, no CSS legado (`.sidebar.open`, `.sidebar-overlay`).
+O que faltava lá era imunidade ao trilho: `.sidebar.collapsed` tem duas classes de
+especificidade e vence o `width: 260px` que a media query de 768px dá à gaveta, então ela
+abriria como um trilho de 80px sem rótulo nenhum. Por isso o `trilho` entra também lá.
+
 ## Por que a barra entra ABERTA e só depois recolhe
 
 Esta é a parte que parece um detalhe e não é. A barra **nasce aberta** e recolhe 450ms
@@ -138,31 +198,42 @@ como rótulo acessível (e o chip como `title`), então nada de informação se 
 | `gestao/GestaoLayout.tsx` | 80px | sim, compartilhado | ✅ |
 | `administracao/AdminLayout.tsx` | 80px | sim, compartilhado | ✅ |
 | `equipe/fixos/FixosLayout.tsx` | 80px | sim, compartilhado | ✅ |
-| `equipe/mapa/Layout.tsx` | 80px (era 72px) | não tem | ⚠️ só a medida |
-| `equipe/board/BoardLayout.tsx` | 64px | esconde ao recolher | ❌ fora |
-| `equipe/dev/DevLayout.tsx` | `w-0` (some) | esconde ao recolher | ❌ fora |
-| `equipe/EquipeLayout.tsx` | `w-0` (some) | esconde ao recolher | ❌ fora |
+| `equipe/EquipeLayout.tsx` (Rotina) | 80px (era `w-0`) | sim, compartilhado | ✅ |
+| `equipe/dev/DevLayout.tsx` | 80px (era `w-0`) | sim, compartilhado | ✅ |
+| `equipe/board/BoardLayout.tsx` | 80px (era 68px) | sim, compartilhado | ✅ |
+| `equipe/mapa/Layout.tsx` | 80px (era 72px) | sim, compartilhado | ⚠️ CSS legado |
 
-**Mapeamento** entra só pela medida. A barra dele é CSS legado (`src/pages/equipe/mapa/mapa.css`,
-escopado em `.app-root`) e não tem cartão do usuário — o rodapé é só ações —, então nunca
-teve o corte. O trilho recolhido, porém, media 72px, um terceiro valor sem motivo: agora a
-variável `--sidebar-width-collapsed` é alimentada pelo `Layout` a partir de
-`MEDIDAS_TRILHO_SIDEBAR`, e o `.css` deixou de declarar número próprio. No estado recolhido
-aquele CSS já zera os recuos horizontais e centraliza tudo, então os 8px extras só sobram.
+**As nove entraram**, e as três últimas em 10/09/2026, a pedido da usuária: ela olhou o
+trilho do Board — ícones empilhados, item ativo em pílula cheia, botão redondo mordendo a
+borda — e pediu essa caixa em toda rota, com a cor mudando pelo tema da rota.
 
-**Board** fica de fora de propósito: ele tem linguagem visual própria (trilho de 64px,
-aberto em 232px, tipografia de 12,5px, tokens `--board-*`), já centraliza os itens ao
-recolher e, no recolhido, troca o bloco de marca + usuário pelo selo de 28px centralizado —
-não há avatar para vazar, e 28px é exatamente o que sobra dos 64px menos os 18px de recuo
-de cada lado: cabe, com a conta fechada. Alinhá-lo ao padrão seria mudar a identidade do
-módulo, não corrigir corte.
+**Board.** Recolhia para 68px e abria em 240px, um par só dele. A justificativa antiga era
+identidade visual, e valia enquanto o usuário morava no topbar: sem nada de 32px no rodapé,
+68px não cortava ninguém. Quando o cartão desceu para o pé da barra a conta virou a mesma
+das outras — 68px deixa 20px de largura útil para um avatar de 32px — e o número deixou de
+ser escolha estética.
 
-**Dev** e **Equipe** recolhem para `w-0`: a barra desaparece por inteiro e o botão de
-reabrir migra para o cabeçalho da página. Não existe trilho de ícones ali, logo não existe
-o que cortar. Transformá-las em trilho de 80px é mudança de UX (e de navegação: hoje o
-usuário recolhe justamente para não ver a barra), e por isso ficou fora desta correção.
-Se um dia se quiser padronizar, o caminho é adotar o cartão compartilhado e
-`classeLarguraBarra` — as duas peças já existem.
+**Dev** e **Rotina** recolhiam para `w-0`: a barra sumia inteira e o botão de reabrir
+migrava para o cabeçalho da página. O argumento de antes era que "não existe trilho, logo
+não existe o que cortar" — verdadeiro, e ao lado da questão. Sumir tira a âncora: o menu
+inteiro sai da tela e o único caminho de volta é o hambúrguer.
+
+A Dev deu mais trabalho que a Rotina por um motivo que só apareceu no trilho: **ela não
+desenhava ícone nenhum**. Os itens tinham `icon` no dado e o JSX ignorava, e os seis hubs
+de `DEV_HUBS` nunca tiveram ícone — lá só as opções internas têm. Num trilho de 80px o
+ícone é a única coisa que sobra, então os seis foram escolhidos no próprio layout. De
+quebra, "Consulta de XMLs" usava o mesmo `LayoutDashboard` do "Painel de aplicações": no
+trilho seriam dois botões idênticos.
+
+**Mapeamento** continua marcado à parte porque a barra dele é CSS legado
+(`src/pages/equipe/mapa/mapa.css`, escopado em `.app-root`) e fora do Tailwind. A medida
+vem de `MEDIDAS_TRILHO_SIDEBAR` — antes eram 72px, um terceiro valor sem motivo — e o
+`.css` deixou de declarar número próprio. No estado recolhido aquele CSS já zera os recuos
+horizontais e centraliza tudo, então os 8px extras só sobram.
+
+Nenhuma barra do produto zera mais a largura, e o laço `LAYOUTS_DO_PADRAO` em
+`sidebarMedidas.test.ts` lê o fonte das sete que são Tailwind: barra nova que escreva a
+largura à mão, ou remonte o cartão, não passa.
 
 ### O que trava o padrão
 

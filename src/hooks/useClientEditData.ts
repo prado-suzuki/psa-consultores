@@ -173,8 +173,7 @@ export const useClientEditData = (
         // representante table — PK is id_representante
         const { data: parts } = await (supabase.from(representanteTable) as any)
           .select("*")
-          .eq("id_cliente", editingClienteId)
-          .eq("excluido", false);
+          .eq("id_cliente", editingClienteId);
         // Mesma regra dos contribuintes: nulo é lista vazia.
         const mappedParts: DraftRepresentante[] = (parts ?? []).map((p: any) => ({
           _id: stableIdFromUuid(p.id_representante || p.id),
@@ -194,16 +193,14 @@ export const useClientEditData = (
         let snapContracts: DraftOrdemServico[] = [];
         const { data: existingOS } = await (supabase.from("ordem_servico" as any) as any)
           .select("*")
-          .eq("id_cliente", editingClienteId)
-          .eq("excluido", false);
+          .eq("id_cliente", editingClienteId);
         if (existingOS && existingOS.length > 0) {
           const osIds = existingOS.map((os: any) => os.id);
 
           // Carregar distribuicao_receita
           const { data: distData } = await (supabase.from("distribuicao_receita" as any) as any)
             .select("*")
-            .in("id_ordem_servico", osIds)
-            .eq("excluido", false);
+            .in("id_ordem_servico", osIds);
           const distMap: Record<string, Array<{ id_centro_custo: string; percentual_rateio: number; _dbId: string }>> = {};
           (distData || []).forEach((d: any) => {
             if (!distMap[d.id_ordem_servico]) distMap[d.id_ordem_servico] = [];

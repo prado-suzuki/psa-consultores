@@ -34,6 +34,7 @@ vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: dbMocks.fro
 import {
   useGravarAporteInicial,
   useGravarAumentoDeCapital,
+  useReverterAto,
   useSubirQuotas,
 } from '@/hooks/useMovimentacaoQuotas';
 
@@ -123,6 +124,60 @@ describe('useGravarAumentoDeCapital', () => {
         action: 'created',
       }),
     );
+  });
+});
+
+describe('useReverterAto', () => {
+  it('invalida o ônus levado pelo cascade junto com o ato', async () => {
+    const mutacao = useReverterAto() as unknown as {
+      onSuccess: (dados: unknown) => Promise<void>;
+    };
+
+    await mutacao.onSuccess({
+      atoId: 'ato-1',
+      descricao: 'Doação com reserva de usufruto',
+      empresas: [EMPRESA],
+    });
+
+    expect(chavesInvalidadas()).toContain(`onus-da-empresa|${EMPRESA}`);
+    expect(chavesInvalidadas()).toContain(`cessoes-do-livro|${EMPRESA}`);
+  });
+
+  it('ressuscita o ônus sub-rogado ANTES de apagar o ato, e conta a empresa que só tem ônus', async () => {
+    // Depois do delete é tarde: o `ON DELETE SET NULL` apaga o carimbo, e não
+    // sobra como saber qual ônus este ato havia encerrado. Sem esta ordem,
+    // desfazer deixaria a sociedade sem um gravame que ninguém revogou.
+    const chamadas: Array<{ tabela: string; op: string; payload?: unknown }> = [];
+    dbMocks.from.mockImplementation((tabela: string) => {
+      const elo: Record<string, unknown> = {};
+      let op = 'select';
+      for (const metodo of ['select', 'eq', 'in', 'is', 'not', 'order', 'single']) elo[metodo] = () => elo;
+      for (const metodo of ['update', 'delete']) {
+        elo[metodo] = (payload?: unknown) => { op = metodo; chamadas.push({ tabela, op, payload }); return elo; };
+      }
+      elo.then = (aceitar: (r: unknown) => unknown) => {
+        const data = tabela === 'movimentacao_quotas'
+          ? [{ id: 'mov-1', empresa_pessoa_id: EMPRESA, documento_gerado_id: null }]
+          : tabela === 'onus_quotas' ? [{ empresa_pessoa_id: 'empresa-so-com-onus' }] : null;
+        if (op === 'select') chamadas.push({ tabela, op });
+        return Promise.resolve({ data, error: null }).then(aceitar);
+      };
+      return elo;
+    });
+
+    const { mutationFn } = useReverterAto() as unknown as {
+      mutationFn: (a: { atoId: string; descricao: string }) => Promise<{ empresas: string[] }>;
+    };
+    const r = await mutationFn({ atoId: 'ato-1', descricao: 'Ato' });
+
+    const escritas = chamadas.filter((c) => c.op !== 'select').map((c) => `${c.tabela}:${c.op}`);
+    expect(escritas).toEqual(['onus_quotas:update', 'ato_societario:delete']);
+    expect(chamadas.find((c) => c.op === 'update')?.payload).toEqual({
+      extinto_em: null, extinto_por_movimento_id: null,
+    });
+    // A instituição avulsa não tem movimento: a empresa dela vem do ônus, e
+    // sem isso desfazê-la não invalidaria cache de empresa nenhuma.
+    expect(r.empresas).toContain('empresa-so-com-onus');
   });
 });
 

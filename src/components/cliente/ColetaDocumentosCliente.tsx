@@ -174,11 +174,11 @@ export function ColetaDocumentosCliente() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.24em] text-teal-700">
+        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.24em] text-primary">
           Documentos solicitados
         </p>
         <h2 className="text-2xl font-bold text-foreground">A PSA solicitou estes documentos</h2>
-        <div className="mt-3 h-[3px] w-6 rounded-full bg-teal-600" />
+        <div className="mt-3 h-[3px] w-6 rounded-full bg-primary" />
       </div>
 
       {/*
@@ -189,7 +189,7 @@ export function ColetaDocumentosCliente() {
       */}
       {pedido?.solicitacao?.enviada_em && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Send className="h-4 w-4 shrink-0 text-teal-700" />
+          <Send className="h-4 w-4 shrink-0 text-primary" />
           <span>
             Pedido enviado em{' '}
             <span className="font-medium text-foreground">
@@ -201,8 +201,8 @@ export function ColetaDocumentosCliente() {
         </div>
       )}
 
-      <Card className="flex gap-4 border-l-4 border-l-teal-600 p-6">
-        <Hand className="h-7 w-7 shrink-0 text-teal-700" />
+      <Card className="flex gap-4 border-l-4 border-l-primary p-6">
+        <Hand className="h-7 w-7 shrink-0 text-primary" />
         <p className="text-sm leading-relaxed text-muted-foreground">
           {aviso}
         </p>

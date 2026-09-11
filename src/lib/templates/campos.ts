@@ -1,5 +1,5 @@
 import { labelDoBinding, resolverTipoDoBinding } from './binding';
-import { campoDaEntidade, campoManual, type CampoEntidade, type TipoCampo } from './vocabulario';
+import { campoDaEntidade, campoManual, type CampoEntidade, type TipoCampo, type TipoEntidade } from './vocabulario';
 import type { MarcacaoCampo } from './render';
 
 // A ponte entre um CAMINHO de placeholder ("imovel.numero", "dataAssinatura") e
@@ -43,20 +43,40 @@ export function classificarCaminho(caminho: string): CampoDoCaminho | undefined 
   const papel = caminho.slice(0, ponto);
   const tipo = resolverTipoDoBinding(papel);
   if (!tipo) return undefined;
-  return doCampo(caminho, campoDaEntidade(tipo, caminho.slice(ponto + 1)), papel);
+  return doCampo(caminho, campoDaEntidade(tipo, caminho.slice(ponto + 1)), papel, tipo);
+}
+
+/**
+ * Campo DERIVADO de um manual herda o `manual` da base.
+ *
+ * `instrumento.foroUfExtenso` deriva de `foroUf`, que o consultor digita na tela
+ * Gerar. Sem herdar, o derivado resolvia '' e a cláusula saía "Estado de ," — com
+ * a vírgula pendurada. Herdando, ele vira a mesma lacuna assinalável da base, e a
+ * frase fica legível para quem vai preencher à mão.
+ *
+ * Só o `manual` sobe. `obrigatorio` NÃO: o que torna o documento incompleto é a
+ * base faltar, e contar as duas faria a tela Gerar acusar a mesma pendência duas
+ * vezes com nomes diferentes.
+ */
+function herdaManualDaBase(tipo: TipoEntidade | null, campo: CampoEntidade): boolean {
+  if (campo.manual) return true;
+  if (!tipo || !campo.derivadoDe) return false;
+  const bases = Array.isArray(campo.derivadoDe) ? campo.derivadoDe : [campo.derivadoDe];
+  return bases.some((baseId) => campoDaEntidade(tipo, baseId)?.manual);
 }
 
 function doCampo(
   caminho: string,
   campo: CampoEntidade | undefined,
   papel: string | null,
+  tipo: TipoEntidade | null = null,
 ): CampoDoCaminho | undefined {
   if (!campo) return undefined;
   return {
     caminho,
     label: papel ? `${labelDoBinding(papel)} — ${campo.label}` : campo.label,
     tipo: campo.tipo,
-    manual: !!campo.manual,
+    manual: herdaManualDaBase(tipo, campo),
     obrigatorio: !!campo.obrigatorio,
   };
 }

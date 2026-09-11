@@ -18,7 +18,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TIPO_REPRESENTANTE_OPTIONS, formatPhone } from "./constants";
 import type { DraftRepresentante } from "@/types/clientForm";
 import FieldPair from "./FieldPair";
-import { useAcentoArea } from "./acentoArea";
 import ListaMestreDetalhe from "./ListaMestreDetalhe";
 import SecaoFormulario from "./SecaoFormulario";
 import MarcaPendencia, { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from "./MarcaPendencia";
@@ -53,7 +52,6 @@ export default function RepresentantesTab({
   foco,
 }: RepresentantesTabProps) {
   const { isAdmin } = useAuth();
-  const acento = useAcentoArea();
   const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
   const [editingParticipantId, setEditingParticipantId] = useState<number | null>(null);
 
@@ -170,8 +168,9 @@ export default function RepresentantesTab({
   return (
     <ListaMestreDetalhe
       titulo={`Representantes (${participants.length})`}
+      dataTour="repr-lista"
       acaoCriar={mostrarCriar && editingParticipantId == null ? (
-        <Button size="sm" onClick={createParticipant} className={cn("gap-1.5 h-7 text-xs", acento.botao)}>
+        <Button size="sm" onClick={createParticipant} data-tour="repr-criar" className={cn("gap-1.5 h-7 text-xs")}>
           <Plus size={14} /> Adicionar representante
         </Button>
       ) : null}
@@ -225,7 +224,7 @@ export default function RepresentantesTab({
             </AlertDialog>
           )}
           {isEditingThis ? (
-            <Button size="sm" variant="outline" className={cn('gap-1.5 text-xs', acento.botaoSuave)} onClick={() => setEditingParticipantId(null)}>
+            <Button size="sm" variant="outline" className={cn('gap-1.5 text-xs', 'border-primary/40 bg-accent/5 text-primary hover:border-primary hover:bg-accent/10')} onClick={() => setEditingParticipantId(null)}>
               <Check size={12} /> Pronto
             </Button>
           ) : (
@@ -343,7 +342,7 @@ export default function RepresentantesTab({
           </div>
           </SecaoFormulario>
 
-          <SecaoFormulario numero={3} titulo="Acesso e observações" pendente={secaoPendente(3)}>
+          <SecaoFormulario numero={3} titulo="Acesso e observações" pendente={secaoPendente(3)} dataTour="repr-acesso">
           <div className="flex flex-col gap-2.5">
           <div className="flex flex-row items-center gap-4">
             <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Acesso Chamados</Label>
@@ -391,7 +390,7 @@ export default function RepresentantesTab({
               não há o que concluir, e o botão viraria enfeite que não faz nada. */}
           {isEditingThis && (
             <div className="flex justify-end border-t pt-2">
-              <Button size="sm" variant="outline" className={cn('gap-1.5', acento.botaoSuave)} onClick={() => setEditingParticipantId(null)}>
+              <Button size="sm" variant="outline" className={cn('gap-1.5', 'border-primary/40 bg-accent/5 text-primary hover:border-primary hover:bg-accent/10')} onClick={() => setEditingParticipantId(null)}>
                 <Check size={14} /> Pronto
               </Button>
             </div>

@@ -127,7 +127,9 @@ export function DocumentoVisualizador({ doc, url, carregando, erro, onRecarregar
 
       {/* OsgDialog (e não ui/dialog) por causa da animação de entrada da área. */}
       <Dialog open={expandido} onOpenChange={setExpandido}>
-        <DialogContent className="flex h-[92vh] w-[94vw] max-w-[1400px] flex-col gap-0 p-0">
+        {/* `max-h-[92vh]` explícito: o teto de 90vh do OsgDialog apertaria a altura
+            fixa deste visualizador, que é o único modal de altura própria. */}
+        <DialogContent className="flex h-[92vh] max-h-[92vh] w-[94vw] max-w-[1400px] flex-col gap-0 p-0">
           <div className="flex shrink-0 items-center gap-2 border-b border-osg-100 px-5 py-3">
             <FileText className="h-4 w-4 shrink-0 text-osg-600" aria-hidden />
             <DialogHeader className="min-w-0 flex-1 space-y-0 text-left">

@@ -194,7 +194,7 @@ export function PainelDeHistorico({ historico, jaHoje, nomes, carregando, erro }
   // avisamos" e ele mandaria um aviso repetido.
   if (erro) {
     return (
-      <p className="mt-3 text-sm text-osg-red">
+      <p className="mt-3 text-sm text-destructive">
         Não foi possível carregar o histórico. Recarregue antes de enviar.
       </p>
     );

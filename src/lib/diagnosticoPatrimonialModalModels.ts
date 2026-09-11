@@ -5,27 +5,91 @@ import type {
   TitularInicial,
 } from '@/hooks/useDiagnosticoPatrimonial';
 
+/**
+ * Titularidade no cadastro NOVO: uma lista, com as duas espécies.
+ *
+ * Era um titular só, sempre DT. Quem tinha composse cadastrava com um titular e
+ * ia editar em seguida para pôr o resto, e a Propriedade de Fato nem aparecia
+ * antes de salvar — a matrícula nascia errada por construção. A lista aqui é o
+ * mesmo par de baldes (FT e DT) que a aba de titularidade da edição mostra, só
+ * que em estado local: nada existe no banco antes do clique em cadastrar.
+ */
+export type TipoTitularidadeInicial = 'FATO' | 'DIREITO';
+
 export type TitularInicialDraft = {
+  /**
+   * Chave da LINHA na lista do formulário, não do banco. Sem ela, remover a
+   * primeira linha faria as demais herdarem o estado (foco, select aberto) de
+   * quem ocupava o índice antes.
+   */
+  key: string;
   titular_pessoa_id: string;
-  tipo: string;
+  tipo: TipoTitularidadeInicial;
   fracao: string;
 };
 
-export const emptyTitularInicial = (): TitularInicialDraft => ({
+export type TitularesIniciaisDraft = TitularInicialDraft[];
+
+export const novaLinhaTitular = (tipo: TipoTitularidadeInicial): TitularInicialDraft => ({
+  key: crypto.randomUUID(),
   titular_pessoa_id: '',
-  tipo: 'DIREITO',
+  tipo,
   fracao: '',
 });
 
-export function parseTitularInicial(draft: TitularInicialDraft): TitularInicial | null {
-  if (!draft.titular_pessoa_id) return null;
-  let fracao: number | null = null;
-  if (draft.fracao.trim()) {
-    const parsed = Number(draft.fracao);
-    if (Number.isNaN(parsed) || parsed <= 0 || parsed > 100) return null;
-    fracao = parsed;
+/** Abre com uma linha de DT: é a espécie que define o cliente da matrícula. */
+export const emptyTitularesIniciais = (): TitularesIniciaisDraft => [novaLinhaTitular('DIREITO')];
+
+/** O que impede a lista de titulares de ser gravada. Ordem = ordem do aviso. */
+export type FalhaTitularesIniciais = 'sem_titular' | 'fracao_invalida' | 'duplicado';
+
+const fracaoDaLinha = (linha: TitularInicialDraft): number | null => {
+  const digitado = linha.fracao.trim();
+  if (!digitado) return null;
+  return Number(digitado);
+};
+
+const linhaPreenchida = (linha: TitularInicialDraft) => !!linha.titular_pessoa_id;
+
+export function conferirTitularesIniciais(
+  linhas: TitularesIniciaisDraft,
+): FalhaTitularesIniciais | null {
+  const preenchidas = linhas.filter(linhaPreenchida);
+  if (preenchidas.length === 0) return 'sem_titular';
+  for (const linha of preenchidas) {
+    const fracao = fracaoDaLinha(linha);
+    if (fracao != null && (Number.isNaN(fracao) || fracao <= 0 || fracao > 100)) {
+      return 'fracao_invalida';
+    }
   }
-  return { titular_pessoa_id: draft.titular_pessoa_id, tipo: draft.tipo, fracao };
+  // Espelha o índice único `titularidade_unq` (matricula_id, titular_pessoa_id,
+  // tipo): sem esta checagem o insert do segundo titular repetido volta erro cru.
+  const vistos = new Set<string>();
+  for (const linha of preenchidas) {
+    const chave = `${linha.tipo}:${linha.titular_pessoa_id}`;
+    if (vistos.has(chave)) return 'duplicado';
+    vistos.add(chave);
+  }
+  return null;
+}
+
+/**
+ * As linhas preenchidas, prontas para o banco, com as de DT na frente: a
+ * primeira é a que a RPC de criação usa para descobrir o cliente.
+ */
+export function parseTitularesIniciais(linhas: TitularesIniciaisDraft): TitularInicial[] {
+  const ordenadas = [
+    ...linhas.filter((l) => linhaPreenchida(l) && l.tipo === 'DIREITO'),
+    ...linhas.filter((l) => linhaPreenchida(l) && l.tipo !== 'DIREITO'),
+  ];
+  return ordenadas.map((linha) => {
+    const fracao = fracaoDaLinha(linha);
+    return {
+      titular_pessoa_id: linha.titular_pessoa_id,
+      tipo: linha.tipo,
+      fracao: fracao == null || Number.isNaN(fracao) ? null : fracao,
+    };
+  });
 }
 
 export type DraftBem = {

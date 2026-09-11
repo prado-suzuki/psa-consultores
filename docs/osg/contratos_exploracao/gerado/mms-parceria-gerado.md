@@ -1,0 +1,180 @@
+*INSTRUMENTO PARTICULAR DE PARCERIA*
+*PARA FINS DE EXPLORAÇÃO AGROPECUÁRIA*
+
+*~PARCEIRA OUTORGANTE~*: *MMS AGRO LTDA*, pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o n.º 48.030.499/0001-06, registrada na Junta Comercial do Estado de Mato Grosso sob o NIRE n.º 51202129910, com capital social totalmente subscrito e integralizado no valor de R$ 872.674,00 (oitocentos e setenta e dois mil, seiscentos e setenta e quatro reais), com sede estabelecida na Rodovia MT 338, km 06, Fazenda Capuaba, s/n.º, Bairro Zona Rural, no município de Lucas do Rio Verde, Estado de Mato Grosso, CEP 78.455-000, neste ato representada por seus administradores *José Eduardo de Macedo Soares Júnior*, brasileiro, nascido em 23/05/1.957, filho de José Eduardo de Macedo Soares Sobrinho e Teresa Maria Alcantara Machado de Macedo Soares, casado sob o regime de comunhão parcial de bens, agricultor, portador do RG n.º 5934032 SSP/SP, inscrito no CPF/MF sob o n.º 035.573.648-95, residente e domiciliado na Rua José Haddad, n.º 60, Apto. 1.901, Edifício Riviera, Bairro Duque de Caxias, no município de Cuiabá, Estado de Mato Grosso, CEP 78.043-298; e *Maria Auxiliadora Malheiros*, brasileira, nascida em 19/05/1.960, filha de Licio Malheiros e Ana Maria Pereira Malheiros, casada sob o regime de comunhão parcial de bens, agricultora, portadora do RG n.º 01737244 SJ/MT, inscrita no CPF/MF sob o n.º 161.944.461-53, residente e domiciliada na Rua José Haddad, n.º 60, Apto. 1.901, Edifício Riviera, Bairro Duque de Caxias, no município de Cuiabá, Estado de Mato Grosso, CEP 78.043-298.
+
+*~PARCEIROS OUTORGADOS~*: *JOSÉ EDUARDO DE MACEDO SOARES JÚNIOR*, brasileiro, natural de São Paulo/SP, nascido em 23/05/1.957, casado sob o regime de comunhão parcial de bens, agricultor, portador do RG n.º 5934032 SSP/SP, inscrito no CPF/MF sob o n.º 035.573.648-95, residente e domiciliado na Rua José Haddad, n.º 60, Apto. 1.901, Edifício Riviera, Bairro Duque de Caxias, no município de Cuiabá, Estado de Mato Grosso, CEP 78.043-298 e *MARIA AUXILIADORA MALHEIROS*, brasileira, natural de Cuiabá/MT, nascida em 19/05/1.960, casada sob o regime de comunhão parcial de bens, agricultora, portadora do RG n.º 01737244 SJ/MT, inscrita no CPF/MF sob o n.º 161.944.461-53, residente e domiciliada na Rua José Haddad, n.º 60, Apto. 1.901, Edifício Riviera, Bairro Duque de Caxias, no município de Cuiabá, Estado de Mato Grosso, CEP 78.043-298.
+
+As partes acima identificadas têm, entre si, justas e contratadas, o presente *Instrumento Particular de Parceria para Fins de Exploração Agropecuária*, que se regerá pelas cláusulas e condições descritas no presente.
+
+*CAPÍTULO I*
+Das Áreas Cedidas em Parceria
+
+*CLÁUSULA PRIMEIRA:* As partes, por este instrumento contratual, constituem parceria rural para exploração agropecuária em áreas de terras rurais, nos termos do art. 96 da Lei 4.504/64, cedendo a *PARCEIRA OUTORGANTE* em favor dos *PARCEIROS OUTORGADOS* os imóveis de sua posse e/ou propriedade, descritos nas alíneas “a” à “f” a seguir descritas, com os seus limites e confrontações dispostos no *ANEXO ÚNICO* deste instrumento:
+
+*a)* *200,6846 ha (duzentos hectares, sessenta e oito ares e quarenta e seis centiares)* de um imóvel rural com área de 200,6846 ha (duzentos hectares, sessenta e oito ares e quarenta e seis centiares), denominado *Lote n.º 05 do Setor 10*, *de propriedade de* MMS AGRO LTDA, *situado no* município de Lucas do Rio Verde, Estado de Mato Grosso, *com registro na matrícula de* n.º *2.424*, no Livro 02 (dois), folhas/ficha 01 (um) do Cartório de 1º Ofício de Imóveis da comarca de Lucas do Rio Verde, Estado de Mato Grosso, *inscrito no cadastro de imóvel rural sob o n.º 901.407.004.529-3*;
+
+*b)* *234,0000 ha (duzentos e trinta e quatro hectares)* de um imóvel rural com área de 284,9610 ha (duzentos e oitenta e quatro hectares, noventa e seis ares e dez centiares), denominado *Fazenda Capuaba*, *de propriedade de* MMS AGRO LTDA, *situado no* município de Lucas do Rio Verde, Estado de Mato Grosso, *com registro na matrícula de* n.º *2.623*, no Livro 02 (dois), folhas/ficha 01 (um) do Cartório de 1º Ofício de Imóveis da comarca de Lucas do Rio Verde, Estado de Mato Grosso, *inscrito no cadastro de imóvel rural sob o n.º 901.016.074.624-4*;
+
+*c)* *171,2000 ha (cento e setenta e um hectares e vinte ares)* de um imóvel rural com área de 200,3965 ha (duzentos hectares, trinta e nove ares e sessenta e cinco centiares), denominado *Lote n.º 04 do Setor 10*, *de propriedade de* MMS AGRO LTDA, *situado no* município de Lucas do Rio Verde, Estado de Mato Grosso, *com registro na matrícula de* n.º *2.624*, no Livro 02 (dois), folhas/ficha 01 (um) do Cartório de 1º Ofício de Imóveis da comarca de Lucas do Rio Verde, Estado de Mato Grosso, *inscrito no cadastro de imóvel rural sob o n.º 901.032.174.165-5*;
+
+*d)* *157,4000 ha (cento e cinquenta e sete hectares e quarenta ares)* de um imóvel rural com área de 200,6331 ha (duzentos hectares, sessenta e três ares e trinta e um centiares), denominado *Lote n.º 06 do Setor 10*, *de propriedade de* MMS AGRO LTDA, *situado no* município de Lucas do Rio Verde, Estado de Mato Grosso, *com registro na matrícula de* n.º *2.626*, no Livro 02 (dois), folhas/ficha 01 (um) do Cartório de 1º Ofício de Imóveis da comarca de Lucas do Rio Verde, Estado de Mato Grosso, *inscrito no cadastro de imóvel rural sob o n.º 901.040.092.207-0*;
+
+*e)* *225,5480 ha (duzentos e vinte e cinco hectares, cinquenta e quatro ares e oitenta centiares)* de um imóvel rural com área de 225,5480 ha (duzentos e vinte e cinco hectares, cinquenta e quatro ares e oitenta centiares), denominado *Fazenda Cristalina*, *de propriedade de* MMS AGRO LTDA, *situado no* município de Lucas do Rio Verde, Estado de Mato Grosso, *com registro na matrícula de* n.º *2.628*, no Livro 02 (dois), folhas/ficha 01 (um) do Cartório de 1º Ofício de Imóveis da comarca de Lucas do Rio Verde, Estado de Mato Grosso, *inscrito no cadastro de imóvel rural sob o n.º 901.407.103.560-7*;
+
+*f)* *217,8000 ha (duzentos e dezessete hectares e oitenta ares)* de um imóvel rural com área de 220,0660 ha (duzentos e vinte hectares, seis ares e sessenta centiares), denominado *Fazenda Tarumã*, *de propriedade de* MMS AGRO LTDA, *situado no* município de Lucas do Rio Verde, Estado de Mato Grosso, *com registro na matrícula de* n.º *9.617*, no Livro 02 (dois), folhas/ficha 01 (um) do Cartório de 1º Ofício de Imóveis da comarca de Lucas do Rio Verde, Estado de Mato Grosso, *inscrito no cadastro de imóvel rural sob o n.º 901.032.174.190-6*.
+
+*CAPÍTULO II*
+Da Vigência
+
+*CLÁUSULA SEGUNDA:* A presente parceria rural para fins de exploração agropecuária tem vigência a contar da data da assinatura deste instrumento e findará em *10 de outubro de 2.025*.
+
+*Parágrafo Primeiro:* Não havendo renovação da presente parceria nos termos da Cláusula Nona, ao término da vigência deste instrumento, os *PARCEIROS OUTORGADOS* deverão devolver à *PARCEIRA OUTORGANTE*, independentemente de notificação ou interpelação judicial ou extrajudicial, os imóveis rurais objetos desta parceria.
+
+*Parágrafo Segundo:* Ultrapassando o contrato a data prevista no _caput_ desta cláusula, o contrato passará a ser por tempo indeterminado, podendo a *PARCEIRA OUTORGANTE* rescindi-lo a qualquer tempo. Neste caso, deverá notificar por escrito os *PARCEIROS OUTORGADOS*, os quais deverão sair dos imóveis objetos desta parceria dentro do prazo de 30 (trinta) dias a contar do recebimento da referida notificação se inexistir produto pendente de colheita; ou, se pendente a colheita, 30 (trinta) dias após a sua realização.
+
+*CAPÍTULO III*
+Das Atividades Agropecuárias
+
+*CLÁUSULA TERCEIRA:* Os *PARCEIROS OUTORGADOS* poderão explorar nas áreas objeto deste instrumento de parceria lavouras de soja, milho, algodão, sorgo, milheto, feijão, arroz, girassol, crotalária, braquiária ou outra cultura legalmente permitida que pretender explorar, ficando esclarecido que o mesmo poderá fazer uso da terra quantas vezes desejar, inclusive para exploração agrícola de safrinha, sem qualquer custo ou despesa adicional. Em se tratando da exploração pecuária ou de animais, poderão fazer uso das terras para cria, recria e engorda de bovinos, suínos, ovinos, equinos e aves; ou outros animais, da maneira que lhes convier, obedecendo os limites deste contrato.
+
+*CAPÍTULO IV*
+Das Despesas
+
+*CLÁUSULA QUARTA:* Competirão aos *PARCEIROS OUTORGADOS* suportarem todas as despesas de preparo, plantio, cultivo, colheita e extração, limpeza e beneficiamento dos produtos produzidos nas áreas objetos da presente parceria, incluindo, mas não se limitando, aos gastos com mão de obra, insumos, defensivos, adubos, corretivos de solo, máquinas, equipamentos, combustíveis, bem como, as despesas de aquisição de gado, vermífugos, ração, vacina, sais minerais e tudo mais que se fizer necessário para a subsistência, manutenção e desenvolvimento dos animais; ressalvadas as despesas expressamente assumidas pela *PARCEIRA OUTORGANTE* neste instrumento, incluindo o disposto na Cláusula Sétima, bem como as despesas que não estejam relacionadas à atividade rural e sim ao imóvel, a exemplo do pagamento de ITR, CAR, Georreferenciamento, CCIR, entre outros.
+
+*CAPÍTULO V*
+Da Participação de Cada Parceiro nos Frutos da Parceria
+
+*CLÁUSULA QUINTA:* Resta desde já acordado entre as partes que caberá à *PARCEIRA OUTORGANTE* *30% (trinta inteiros por cento)* de todos os frutos que forem produzidos nas áreas objeto da presente parceria e aos *PARCEIROS OUTORGADOS* os outros *70% (setenta inteiros por cento)*, em conformidade com a previsão do artigo 96, VI, a, da Lei 4.504/64. Ademais, obrigam-se os *PARCEIROS OUTORGADOS* a armazenarem os frutos em depósito a ser indicado previamente pela *PARCEIRA OUTORGANTE*, suportando os custos decorrentes do transporte até o efetivo depósito.
+
+*Parágrafo Primeiro:* Considerar-se-á como “frutos” da pecuária, no caso de recria e engorda, o ganho de peso (kg) dos animais adquiridos pelos *PARCEIROS OUTORGADOS* para exploração de “pecuária de engorda” nas áreas objeto desta parceria. O ganho de peso descrito anteriormente será auferido pela diferença entre o peso inicial de aquisição de cada animal e o peso identificado na alienação do mesmo, sendo que eventuais animais já existentes nas áreas que são objeto desta parceria deverão ser pesados em até 30 (trinta) dias contados da assinatura deste instrumento, o qual será igualmente reconhecido como “peso inicial”. Identificado o ganho de peso, será assegurada à *PARCEIRA OUTORGANTE* a parcela de frutos descrita no _caput_, a qual lhe será entregue através da cessão de animais dos *PARCEIROS OUTORGADOS* com peso proporcional aos frutos.
+
+*Parágrafo Segundo:* Considerar-se-á como “frutos” da pecuária, no caso de cria, os bezerros nascidos do rebanho de fêmea de todos os animais decorrentes da presente parceria, sendo que à *PARCEIRA OUTORGANTE* será assegurada a parcela dos frutos descrita no _caput_, a qual lhe será entregue através da cessão de animais dos *PARCEIROS OUTORGADOS* em quantidade proporcional aos frutos.
+
+*Parágrafo Terceiro:* Considerar-se-á como “frutos” da pecuária, no caso do ciclo completo, o peso (kg) adquiridos pelos animais nos imóveis objeto desta parceria a cada 12 (doze) meses contados a partir da assinatura deste contrato, utilizando-se como parâmetro as notas fiscais de venda e/ou eventuais controles internos dos *PARCEIROS OUTORGADOS*.
+
+*Parágrafo Quarto:* Os frutos da pecuária poderão ser calculados e distribuídos por exercício fiscal ou por período inferior a este, desde que as partes assim decidam em conjunto.
+
+*Parágrafo Quinto:* Os *PARCEIROS OUTORGADOS* se responsabilizam pela limpeza, beneficiamento e demais operações necessárias a padronização dos frutos a serem pagos à *PARCEIRA OUTORGANTE*, como também os custos relacionados ao transporte destes produtos até o depósito, armazém, cerealista ou compradora indicada pela *PARCEIRA OUTORGANTE*. Ademais, não sendo possível o rateio dos frutos, eventual diferença será compensada à *PARCEIRA OUTORGANTE* em uma das próximas safras, e, se apurada essa diferença na última safra, a diferença será paga em pecúnia pelos *PARCEIROS OUTORGADOS* à *PARCEIRA OUTORGANTE* ou compensada em outros frutos, a critério da *PARCEIRA OUTORGANTE*.
+
+*Parágrafo Sexto:* Havendo inadimplemento quanto à entrega dos frutos da parceria à *PARCEIRA OUTORGANTE*, independentemente de qualquer notificação judicial ou extrajudicial, estarão os *PARCEIROS OUTORGADOS* constituídos em mora, incidindo sobre o valor vencido a atualização monetária pelo INPC, além de multa moratória de 10% (dez por cento) e juros moratórios de 1% (um por cento) ao mês, sendo considerados como “valor”, para fins da parceria agrícola e pecuária, os preços apurados pelo IMEA – Instituto Mato-Grossense de Economia e Agropecuária na praça do foro deste contrato.
+
+*CLÁUSULA SEXTA:* Os parceiros poderão dispor dos frutos ou produtos havidos antes de efetuada a partilha, podendo cada um deles realizar as respectivas comercializações independente de prévia ou posterior comunicação à outra parte, observado que cada um se responsabilizará por si só em eventuais negócios realizados perante terceiros se os frutos pactuados forem superiores ao resultado da parceria que lhe couber.
+
+*CLÁUSULA SÉTIMA:* Havendo caso fortuito ou força maior que venha a destruir parcialmente a produção, os frutos colhidos ou aqueles pendentes, a perda será suportada pelas partes ora contratantes, consoante dispõe o artigo 96, §1°, inciso I da Lei 4.504/64.
+
+*CLÁUSULA OITAVA:* As responsabilidades decorrentes da contratação de trabalhadores rurais ou diaristas utilizados nas propriedades rurais objeto deste pacto, assim como quaisquer outras obrigações trabalhistas sociais, os passivos tributários, fiscais, ambientais, previdenciários e outros, serão suportados exclusivamente pelos *PARCEIROS OUTORGADOS*.
+
+*CAPÍTULO VI*
+Do Direito de Preferência nos Casos de Alienação e/ou Renovação da Parceria
+
+*CLÁUSULA NONA:* Nos termos do inciso IV do artigo 95 c/c o inciso VII do artigo 96, ambos da Lei 4.504/64, em igualdade de condições com terceiros, os *PARCEIROS OUTORGADOS* terão preferência à renovação da parceria rural, devendo a *PARCEIRA OUTORGANTE* até 06 (seis) meses antes do vencimento do prazo contratual ora estabelecido notificá-los dando-lhes conhecimento das eventuais propostas recebidas, inclusive instruindo a respectiva notificação com cópia autêntica da proposta.
+
+*Parágrafo Primeiro:* Conforme previsto no artigo 95, inciso V, da Lei 4.504/1.964 c/c art. 96, VII, da mesma legislação, os direitos assegurados neste artigo não prevalecerão se, até o prazo de 06 (seis) meses antes do vencimento do contrato, a *PARCEIRA OUTORGANTE* declarar através de notificação escrita aos *PARCEIROS OUTORGADOS* que desejam retomar os imóveis para explorá-los diretamente.
+
+*Parágrafo Segundo:* No caso de pretensão de alienação das áreas ou parte das áreas objeto deste instrumento, a *PARCEIRA OUTORGANTE* se obriga a dar conhecimento da venda aos *PARCEIROS OUTORGADOS* a fim de que estes possam, no prazo de 30 (trinta) dias, exercerem o direito de preferência.
+
+*Parágrafo Terceiro:* A alienação ou ainda a imposição de ônus reais sobre os imóveis objetos de exploração da presente parceria não interromperá a vigência deste instrumento.
+
+*CAPÍTULO VII*
+Da Função Social e da Devolução dos Bens Cedidos em Parceria
+
+*CLÁUSULA DÉCIMA:* Os bens objeto da presente parceria serão devolvidos conforme entregues aos *PARCEIROS OUTORGADOS*, sem quaisquer modificações, salvo as deteriorações decorrentes do seu uso normal.
+
+*Parágrafo Primeiro:* Competirão aos *PARCEIROS OUTORGADOS* suportar as despesas decorrentes da manutenção das benfeitorias existentes nesta data edificadas sobre os imóveis até a efetiva devolução dos imóveis à *PARCEIRA OUTORGANTE*.
+
+*Parágrafo Segundo:* Todas as benfeitorias realizadas pelos *PARCEIROS OUTORGADOS*, sejam elas úteis ou voluptuárias, serão incorporadas aos imóveis, *~não~* incidindo sobre elas qualquer tipo de indenização.
+
+*Parágrafo Terceiro:* Os *PARCEIROS OUTORGADOS* se obrigam a cumprir, na posse da terra a sua função social e o bem-estar coletivo de acordo com os direitos e deveres estabelecidos em lei e nos limites estabelecidos no presente instrumento.
+
+*CAPÍTULO VIII*
+Do Uso do Solo e Mão de Obra
+
+*CLÁUSULA DÉCIMA PRIMEIRA:* Os *PARCEIROS OUTORGADOS* se comprometem a conduzir e fazer o manejo do solo e conservação dentro das recomendações agronômicas, bem como, explorar as atividades pecuárias dentro das recomendações veterinárias e zootécnicas, atendendo as leis ambientais e proibindo o uso de defensivos não autorizados pelo Ministério da Agricultura. Comprometem-se também a respeitar, fiscalizar e atender as leis, normas e diretrizes estabelecidas no país, para a preservação de reservas florestais, mananciais, animais, meio ambiente, trabalho escravo, utilização/produção de trabalho ilegal, invasões de terra, incêndios por queimada, dentre outros.
+
+*Parágrafo Único:* Qualquer penalidade ou ação civil, criminal, trabalhista, tributária e/ou qualquer tipo de indenização pleiteada, seja por ente público ou particular, direcionada aos *PARCEIROS OUTORGADOS*, por motivo exclusivo de erro, falta, desobediência, negligência ou imprudência deste, serão de sua inteira responsabilidade; devendo aqueles ressarcirem à *PARCEIRA OUTORGANTE* os eventuais prejuízos que ela for obrigada a suportar por força de atos culposos ou dolosos realizados pelos *PARCEIROS OUTORGADOS*.
+
+*CAPÍTULO IX*
+Da Extinção do Contrato
+
+*CLÁUSULA DÉCIMA SEGUNDA:* Havendo inadimplemento de quaisquer cláusulas deste contrato, gerará à parte contrária a faculdade de rescindi-lo mediante simples notificação à outra parte, assegurando, em todos os casos, que o produto ainda não colhido seja cultivado até o fim da respectiva safra, quando então os bens imóveis objetos da parceria deverão ser devolvidos à *PARCEIRA OUTORGANTE* e os frutos da respectiva safra serão partilhados.
+
+*CLÁUSULA DÉCIMA TERCEIRA:* O presente instrumento poderá ser rescindido, a qualquer tempo, por mútuo acordo entre as partes, desde que respeitado o término da safra em curso.
+
+*CAPÍTULO X*
+Da Anuência
+
+*CLÁUSULA DÉCIMA QUARTA:* A *PARCEIRA OUTORGANTE* neste ato autoriza expressamente os *PARCEIROS OUTORGADOS* a oferecerem em garantia de financiamentos a eles concedidos por instituições bancárias e financeiras, durante todo o lapso temporal da vigência deste instrumento contratual, bem como pela safra imediatamente seguinte, a totalidade da produção a ser auferida por conta de eventuais empreendimentos financiados nos imóveis objeto de parceria, bem como os materiais agrários, benfeitorias e semoventes de sua propriedade ali localizados.
+
+*Parágrafo Primeiro:* A *PARCEIRA OUTORGANTE* declara ainda ciência que o penhor dos produtos dados em garantia em cada safra, valerá por todo o período de vigência desta parceria, de conformidade com o artigo 1.439 do Código Civil (Lei 10.406/2.002).
+
+*Parágrafo Segundo:* A *PARCEIRA OUTORGANTE* autoriza ainda os *PARCEIROS OUTORGADOS* a destinar, prioritariamente, sob renúncia plena de todos os direitos, os frutos oriundos da exploração desta parceria, para liquidação dos débitos contraídos pelos *PARCEIROS OUTORGADOS* e que tenham relação direta com os imóveis, as culturas e/ou os animais explorados nas áreas cedidas em parceria.
+
+*Parágrafo Terceiro:* A *PARCEIRA OUTORGANTE* declara ciente do direito que assiste as instituições privadas, incluindo bancárias, comerciais, industriais e financeiras, de fiscalizar os imóveis ora cedidos em parceria em decorrência de financiamentos concedidos aos *PARCEIROS OUTORGADOS* para exploração e/ou edificação de benfeitorias realizadas nestes bens, e, por conseguinte, os bens vinculados localizados nas propriedades; concordando que ditos bens ali permaneçam até o final da liquidação das dívidas pertinentes, mantendo-se essa condição mesmo no caso de alienação do imóvel.
+
+*CAPÍTULO XI*
+Disposições Gerais
+
+*CLÁUSULA DÉCIMA QUINTA:* Este instrumento constitui acordo irrevogável e irretratável entre as partes, obrigando seus respectivos sucessores, em todos os seus termos, sendo que nenhuma alteração terá qualquer efeito, a menos que feita por escrito e assinada por cada um dos parceiros.
+
+*CLÁUSULA DÉCIMA SEXTA:* Resta, desde já, vedada aos *PARCEIROS OUTORGADOS* a cessão do presente contrato e modificação da destinação, salvo mediante prévio e expresso consentimento da outra parte.
+
+*CLÁUSULA DÉCIMA SÉTIMA:* Os *PARCEIROS OUTORGADOS* se eximem, desde já, de quaisquer ônus que venham a recair sobre os imóveis e bens objetos do presente contrato de parceria e ora cedidos pela *PARCEIRA OUTORGANTE*, por força de dívidas assumidas exclusivamente por ela e/ou que não decorram da exploração das atividades rurais objeto da presente parceria, salvo as obrigações contraídas pelos próprios *PARCEIROS OUTORGADOS*, aquelas diretas ou indiretamente assumidas por força deste instrumento ou em decorrência dele.
+
+*CLÁUSULA DÉCIMA OITAVA:* A relação estabelecida pelo presente contrato em hipótese alguma se regerá pelas normas insculpidas na Consolidação das Leis do Trabalho, mas sim pelas constantes no Estatuto da Terra (Lei n.º 4.504/1.964) e no Decreto 59.566/1.966, uma vez que os *PARCEIROS OUTORGADOS* não se acham sob o vínculo de subordinação em relação à *PARCEIRA OUTORGANTE*, podendo estipular seus próprios horários de trabalho, assim como dos seus empregados e prepostos.
+
+*CLÁUSULA DÉCIMA NONA:* A relação estabelecida pelo presente contrato autoriza a abertura das respectivas inscrições estaduais pelas partes.
+
+*CAPÍTULO XII*
+Do Foro
+
+*CLÁUSULA VIGÉSIMA:* Para dirimir quaisquer controvérsias oriundas deste instrumento, as partes elegem o foro da comarca de Lucas do Rio Verde, Estado de Mato Grosso, renunciando expressamente a qualquer outro, por mais privilegiado que seja.
+
+Por estarem, assim justos e contratados, firmam o presente instrumento, em 04 (quatro) vias de igual teor e forma, juntamente com 02 (duas) testemunhas.
+
+Lucas do Rio Verde/MT, 10 de outubro de 2.022.
+
+_________________________________
+*MMS AGRO LTDA*
+Parceira Outorgante representada por seu Administrador José Eduardo de Macedo Soares Júnior
+
+_________________________________
+*MMS AGRO LTDA*
+Parceira Outorgante representada por sua Administradora Maria Auxiliadora Malheiros
+
+_________________________________
+*JOSÉ EDUARDO DE MACEDO SOARES JÚNIOR*
+Parceiro Outorgado
+
+_________________________________
+*MARIA AUXILIADORA MALHEIROS*
+Parceira Outorgada
+
+*Testemunhas:*
+
+_________________________________
+*Nome:*
+*RG:*
+*CPF/MF:*
+
+_________________________________
+*Nome:*
+*RG:*
+*CPF/MF:*
+
+*~ANEXO ÚNICO~*
+
+Descrição das áreas objeto do *INSTRUMENTO PARTICULAR DE PARCERIA PARA FINS DE EXPLORAÇÃO AGROPECUÁRIA*, pactuado entre *MMS AGRO LTDA* e *José Eduardo de Macedo Soares Júnior* e *Maria Auxiliadora Malheiros* em 10 de outubro de 2.022, sendo:
+
+*a)* *200,6846 ha (duzentos hectares, sessenta e oito ares e quarenta e seis centiares)* de um imóvel rural com área de 200,6846 ha (duzentos hectares, sessenta e oito ares e quarenta e seis centiares), denominado *Lote n.º 05 do Setor 10*, *de propriedade de* MMS AGRO LTDA, *situado no* município de Lucas do Rio Verde, Estado de Mato Grosso, *com registro na matrícula de* n.º *2.424*, no Livro 02 (dois), folhas/ficha 01 (um) do Cartório de 1º Ofício de Imóveis da comarca de Lucas do Rio Verde, Estado de Mato Grosso, *inscrito no cadastro de imóvel rural sob o n.º 901.407.004.529-3*, com os seguintes limites e confrontações: norte: Ribeirão do Cedro; Sul: Estrada Porto dos Gaúchos: este: lote 04; oeste: lote 06, MT-338. Elementos do Perímetro: M6-M1, 685,00 metros 322°08'27" Estrada Porto dos Gaúchos; M1-M2-R. 3.138,34 metros 37°09'01", M2R-M3R, 292,82 metros, 147°05’37’’ Ribeirão do Cedro, M3R-M4R, 262,78 metros, 176°59'31" Ribeirão do Cedro; M4R-M5R, 211,77 metros 136°13'28’’ Ribeirão do Cedro, M5R-M6, 2.981,41 metros, 216°59'59" constante na clausula primeira;
+
+*b)* *234,0000 ha (duzentos e trinta e quatro hectares)* de um imóvel rural com área de 284,9610 ha (duzentos e oitenta e quatro hectares, noventa e seis ares e dez centiares), denominado *Fazenda Capuaba*, *de propriedade de* MMS AGRO LTDA, *situado no* município de Lucas do Rio Verde, Estado de Mato Grosso, *com registro na matrícula de* n.º *2.623*, no Livro 02 (dois), folhas/ficha 01 (um) do Cartório de 1º Ofício de Imóveis da comarca de Lucas do Rio Verde, Estado de Mato Grosso, *inscrito no cadastro de imóvel rural sob o n.º 901.016.074.624-4*, com os seguintes limites e confrontações: 01-02, com 1.630,00 metros, rumo 77°56'28"NE, com Estrada e Agrop. Modena; 02-03 com 745,00 metros, rumo 50°26’17"SE, com a Rodovia MT 338; 03-04 com 2.980,00 metros, rumo 45°18’00''SW, linha seca e lote II; 04-05 rumos diversos, com 324,00 metros, Córrego e Lote DD; 05-06 com 537,00 metros, rumos diversos com o Córrego e Lote EE; 06-01 com 1.690,00 metros, rumo 03°36’34"NW, com linha seca e Lote EE;
+
+*c)* *171,2000 ha (cento e setenta e um hectares e vinte ares)* de um imóvel rural com área de 200,3965 ha (duzentos hectares, trinta e nove ares e sessenta e cinco centiares), denominado *Lote n.º 04 do Setor 10*, *de propriedade de* MMS AGRO LTDA, *situado no* município de Lucas do Rio Verde, Estado de Mato Grosso, *com registro na matrícula de* n.º *2.624*, no Livro 02 (dois), folhas/ficha 01 (um) do Cartório de 1º Ofício de Imóveis da comarca de Lucas do Rio Verde, Estado de Mato Grosso, *inscrito no cadastro de imóvel rural sob o n.º 901.032.174.165-5*, com os seguintes limites e confrontações: norte: Ribeirão do Cedro; este: lote 03; sul: Estrada Porto dos Gaúchos ou MT — 338; oeste: lote 05. Elementos do Perímetro: M4-M1 — 640,01 metros, rumos 322°08’26’’, Estrada Porto dos Gaúchos — MT — 338; M1-M2, 2.981,41 metros, 36°59'59", M2-R14, 231,52 metros, 100°13'58’’, Ribeirão do Cedro; M14-M13, 547,39 metros, 155°51'46", Ribeirão do Cedro, M3-M4, 2.989,40 metros, 218°18'33'';
+
+*d)* *157,4000 ha (cento e cinquenta e sete hectares e quarenta ares)* de um imóvel rural com área de 200,6331 ha (duzentos hectares, sessenta e três ares e trinta e um centiares), denominado *Lote n.º 06 do Setor 10*, *de propriedade de* MMS AGRO LTDA, *situado no* município de Lucas do Rio Verde, Estado de Mato Grosso, *com registro na matrícula de* n.º *2.626*, no Livro 02 (dois), folhas/ficha 01 (um) do Cartório de 1º Ofício de Imóveis da comarca de Lucas do Rio Verde, Estado de Mato Grosso, *inscrito no cadastro de imóvel rural sob o n.º 901.040.092.207-0*, com os seguintes limites e confrontações: norte: Ribeirão do Cedro; sul; Estrada Porto dos Gaúchos – MT 338; leste: lote 05 e oeste lote 07. Elementos do perímetro: M4-M1 com 725,99 metros rumo de 322°08’27’’ – Estrada Porto dos Gaúchos – MT 338; M1-M2 com 2.898,66 metros, rumo 38°14’42’’; M2-R11 com 343,83 metros rumo 133°10’49’’ – Ribeirão do Cedro; R-11-M3 com 313,18 metros rumo 109°12’10’’ – Ribeirão do Cedro: M3-M4 com 3.146,31 metros rumo 217°02’05’’;
+
+*e)* *225,5480 ha (duzentos e vinte e cinco hectares, cinquenta e quatro ares e oitenta centiares)* de um imóvel rural com área de 225,5480 ha (duzentos e vinte e cinco hectares, cinquenta e quatro ares e oitenta centiares), denominado *Fazenda Cristalina*, *de propriedade de* MMS AGRO LTDA, *situado no* município de Lucas do Rio Verde, Estado de Mato Grosso, *com registro na matrícula de* n.º *2.628*, no Livro 02 (dois), folhas/ficha 01 (um) do Cartório de 1º Ofício de Imóveis da comarca de Lucas do Rio Verde, Estado de Mato Grosso, *inscrito no cadastro de imóvel rural sob o n.º 901.407.103.560-7*, com os seguintes limites e confrontações: 01-02, com 860,00 metros, rumo de 50°26’17’’SE, com Rodovia MT-338; 02-03, com 3.300,00 metros, rumo de 50°16’14’’SW com linha seca e lote JJ; 03-04, com 615,00 metros em diversos rumos, Córrego e lote DD; 04-01, com 2.980,00 metros, rumo 45°18’00’’NE, confrontando com linha seca e lote HH;
+
+*f)* *217,8000 ha (duzentos e dezessete hectares e oitenta ares)* de um imóvel rural com área de 220,0660 ha (duzentos e vinte hectares, seis ares e sessenta centiares), denominado *Fazenda Tarumã*, *de propriedade de* MMS AGRO LTDA, *situado no* município de Lucas do Rio Verde, Estado de Mato Grosso, *com registro na matrícula de* n.º *9.617*, no Livro 02 (dois), folhas/ficha 01 (um) do Cartório de 1º Ofício de Imóveis da comarca de Lucas do Rio Verde, Estado de Mato Grosso, *inscrito no cadastro de imóvel rural sob o n.º 901.032.174.190-6*, com os seguintes limites e confrontações: 01-02 com 758,00 metros, rumo 50°26’17”SE. Rodovia MT 338; 02-03 com 2.996,00 metros. Diversos rumos. Estrada e Lotes LL e KK; 03-04 com 248,00 metros, rumo 43°57’30” NW. Linha seca e Cascalheira; 04-05 com 468,00 metros, rumo 48°38’28” SW. Linha seca e Cascalheira; 05-06 com 344,00 metros, diversos rumos. Córrego e Lotes GG e DD; 06-01 com 3.300,00 metros, rumo de 50°16’14”NE. Linha seca e Lote II.

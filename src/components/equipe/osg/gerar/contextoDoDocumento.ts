@@ -56,10 +56,14 @@ export function completarListasDoSnapshot(
 }
 
 /**
- * Religa a proveniência dos bindings unitários de um snapshot. A origem viaja
- * como Symbol (ver origem.ts) e some no round-trip do jsonb, e sem ela os
- * valores da prévia deixam de ser clicáveis. A id de cada registro está no
- * próprio snapshot — é dela que a origem é reconstruída.
+ * Religa a proveniência dos bindings unitários de um snapshot.
+ *
+ * Desde que a origem passou a viajar em chave de string (ver origem.ts) ela
+ * sobrevive ao jsonb, e num snapshot novo esta função apenas reescreve o que já
+ * está lá. Ela permanece pelo ACERVO: peça selada antes da migração não guarda
+ * origem, e a única identidade que ela tem é a de `registroPorBinding` — que
+ * está fora dos campos e por isso nunca se perdeu. É dela que a origem é
+ * reconstruída, devolvendo o valor clicável na prévia da peça antiga.
  */
 export function selecaoComOrigemDoSnapshot(
   selecao: Record<string, Campos>,

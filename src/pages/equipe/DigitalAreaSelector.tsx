@@ -49,7 +49,7 @@ const DigitalAreaSelector = () => {
       description: 'Mapeamento de processos OSG, cascata de impactos e dashboard de ROI',
       icon: Map,
       path: '/equipe/digital/mapa',
-      color: 'from-teal-500 to-emerald-500',
+      color: 'from-primary to-emerald-500',
       category: 'mapa',
     },
     {

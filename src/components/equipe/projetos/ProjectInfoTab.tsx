@@ -95,21 +95,20 @@ export const ProjectInfoTab = ({
     return (
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label className="text-gray-700">Nome do Projeto *</Label>
+          <Label>Nome do Projeto *</Label>
           <Input
             value={editProject.name}
             onChange={(event) => onEditProjectChange({ ...editProject, name: event.target.value })}
-            className="text-gray-900"
           />
         </div>
 
         <div className="space-y-2">
-          <Label className="text-gray-700">Cluster *</Label>
+          <Label>Cluster *</Label>
           <Select
             value={editProject.cluster_id || ''}
             onValueChange={(value) => onEditProjectChange({ ...editProject, cluster_id: value })}
           >
-            <SelectTrigger className="text-gray-900">
+            <SelectTrigger>
               <SelectValue placeholder="Selecione o cluster" />
             </SelectTrigger>
             <SelectContent className="border-border">
@@ -131,7 +130,7 @@ export const ProjectInfoTab = ({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-gray-700">Cliente PSA</Label>
+            <Label>Cliente PSA</Label>
             <Select
               value={editProject.external_client_id || ''}
               onValueChange={(value) => {
@@ -143,7 +142,7 @@ export const ProjectInfoTab = ({
                 });
               }}
             >
-              <SelectTrigger className="text-gray-900">
+              <SelectTrigger>
                 <SelectValue placeholder="Selecione o cliente" />
               </SelectTrigger>
               <SelectContent className="border-border">
@@ -156,12 +155,12 @@ export const ProjectInfoTab = ({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-gray-700">Líder Interno</Label>
+            <Label>Líder Interno</Label>
             <Select
               value={editProject.leader_id || ''}
               onValueChange={(value) => onEditProjectChange({ ...editProject, leader_id: value })}
             >
-              <SelectTrigger className="text-gray-900">
+              <SelectTrigger>
                 <SelectValue placeholder="Selecione o líder" />
               </SelectTrigger>
               <SelectContent className="border-border">
@@ -177,12 +176,12 @@ export const ProjectInfoTab = ({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-gray-700">Equipe responsável</Label>
+            <Label>Equipe responsável</Label>
             <Select
               value={editProject.equipe_id || ''}
               onValueChange={(value) => onEditProjectChange({ ...editProject, equipe_id: value })}
             >
-              <SelectTrigger className="text-gray-900">
+              <SelectTrigger>
                 <SelectValue placeholder="Selecione a equipe" />
               </SelectTrigger>
               <SelectContent className="border-border">
@@ -202,25 +201,24 @@ export const ProjectInfoTab = ({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-gray-700">Produto/Serviço</Label>
+            <Label>Produto/Serviço</Label>
             <Input
               value={editProject.product_service || ''}
               onChange={(event) =>
                 onEditProjectChange({ ...editProject, product_service: event.target.value })
               }
               placeholder="Ex: Auditoria Fiscal, BI"
-              className="text-gray-900"
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label className="text-gray-700">Frente do Projeto</Label>
+          <Label>Frente do Projeto</Label>
           <Select
             value={editProject.project_front || ''}
             onValueChange={(value) => onEditProjectChange({ ...editProject, project_front: value })}
           >
-            <SelectTrigger className="text-gray-900">
+            <SelectTrigger>
               <SelectValue placeholder="Selecione a frente" />
             </SelectTrigger>
             <SelectContent className="border-border">
@@ -234,7 +232,7 @@ export const ProjectInfoTab = ({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-gray-700">Justificativa do Projeto</Label>
+          <Label>Justificativa do Projeto</Label>
           <div className="grid grid-cols-2 gap-2">
             {JUSTIFICATION_TYPES.map((justification) => (
               <div
@@ -257,7 +255,7 @@ export const ProjectInfoTab = ({
 
         {editProject.justification_type && (
           <div className="space-y-2">
-            <Label className="text-gray-700">Detalhamento da Justificativa</Label>
+            <Label>Detalhamento da Justificativa</Label>
             <Textarea
               value={editProject.justification_detail || ''}
               onChange={(event) =>
@@ -265,19 +263,17 @@ export const ProjectInfoTab = ({
               }
               placeholder="Descreva o impacto esperado, métricas, economia estimada..."
               rows={3}
-              className="text-gray-900"
             />
           </div>
         )}
 
         <div className="space-y-2">
-          <Label className="text-gray-700">Descrição</Label>
+          <Label>Descrição</Label>
           <Textarea
             value={editProject.description}
             onChange={(event) =>
               onEditProjectChange({ ...editProject, description: event.target.value })
             }
-            className="text-gray-900"
             rows={3}
           />
         </div>
@@ -288,34 +284,34 @@ export const ProjectInfoTab = ({
             originou — duas datas para o mesmo período, e nenhuma vencendo. */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-gray-700">Data Início</Label>
+            <Label>Data Início</Label>
             <Input
               value={editProject.start_date ? dataBR(editProject.start_date) : '—'}
               readOnly
               disabled
-              className="cursor-not-allowed bg-muted text-gray-900"
+              className="cursor-not-allowed bg-muted"
               title="Herdada da Ordem de Serviço vinculada. Para alterar, edite a OS."
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-gray-700">Data Fim</Label>
+            <Label>Data Fim</Label>
             <Input
               value={editProject.end_date ? dataBR(editProject.end_date) : '—'}
               readOnly
               disabled
-              className="cursor-not-allowed bg-muted text-gray-900"
+              className="cursor-not-allowed bg-muted"
               title="Herdada da Ordem de Serviço vinculada. Para alterar, edite a OS."
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label className="text-gray-700">Status</Label>
+          <Label>Status</Label>
           <Select
             value={editProject.status}
             onValueChange={(value) => onEditProjectChange({ ...editProject, status: value })}
           >
-            <SelectTrigger className="text-gray-900">
+            <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="border-border">
@@ -381,8 +377,8 @@ export const ProjectInfoTab = ({
 
       {project.description && (
         <div className="space-y-2">
-          <Label className="text-gray-600 text-sm">Informações</Label>
-          <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700">
+          <Label className="text-muted-foreground text-sm">Informações</Label>
+          <div className="bg-muted rounded-lg p-4 text-sm">
             {project.description.split('|').map((part, index) => (
               <div key={index} className="py-1">
                 {part.trim()}
@@ -393,14 +389,14 @@ export const ProjectInfoTab = ({
       )}
 
       {project.client_name && (
-        <div className="flex items-center gap-2 text-gray-600">
+        <div className="flex items-center gap-2 text-muted-foreground">
           <Building2 className="h-4 w-4" />
           <span>Cliente: {project.client_name}</span>
         </div>
       )}
 
       {(project.start_date || project.end_date) && (
-        <div className="flex items-center gap-2 text-gray-600">
+        <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar className="h-4 w-4" />
           <span>
             {project.start_date && `Início: ${dataBR(project.start_date)}`}
@@ -425,7 +421,7 @@ export const ProjectInfoTab = ({
             <Button
               variant="outline"
               size="sm"
-              className="border-border text-gray-600 hover:bg-gray-50"
+              className="border-border text-muted-foreground hover:bg-muted"
               onClick={() => {
                 onUpdateStatus(project.id, 'completed');
                 onCloseProject();
@@ -437,7 +433,7 @@ export const ProjectInfoTab = ({
             <Button
               variant="outline"
               size="sm"
-              className="border-border text-gray-600 hover:bg-gray-50"
+              className="border-border text-muted-foreground hover:bg-muted"
               onClick={() => {
                 onUpdateStatus(project.id, 'blocked');
                 onCloseProject();
@@ -449,7 +445,7 @@ export const ProjectInfoTab = ({
             <Button
               variant="outline"
               size="sm"
-              className="border-border text-gray-600 hover:bg-gray-50"
+              className="border-border text-muted-foreground hover:bg-muted"
               onClick={() => {
                 onUpdateStatus(project.id, 'archived');
                 onCloseProject();
@@ -466,7 +462,7 @@ export const ProjectInfoTab = ({
           <Button
             variant="outline"
             size="sm"
-            className="border-border text-gray-600 hover:bg-gray-50"
+            className="border-border text-muted-foreground hover:bg-muted"
             onClick={() => {
               onUpdateStatus(project.id, 'active');
               onCloseProject();

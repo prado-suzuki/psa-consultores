@@ -52,7 +52,7 @@ function papel(key: EntregavelStatus, label: string, nome: string): EntregavelSt
 
 export const entregavelStatusColors: Record<EntregavelStatus, EntregavelStatusConfig> = {
   pending: papel('pending', 'A Fazer', 'fila'),
-  in_progress: papel('in_progress', 'Em Progresso', 'andamento'),
+  in_progress: papel('in_progress', 'Em Andamento', 'andamento'),
   completed: papel('completed', 'Concluído', 'feito'),
 };
 
@@ -63,3 +63,30 @@ export function entregavelStatusConfig(status: string | null | undefined): Entre
   }
   return entregavelStatusColors.pending;
 }
+
+/**
+ * O rótulo do status, com o valor CRU de volta quando a chave é desconhecida.
+ *
+ * É diferente de `entregavelStatusConfig(...).label` de propósito: a config cai em
+ * `pending` para nunca deixar o render sem classe, e isso é certo para a cor.
+ * Para o TEXTO seria errado — status estranho apareceria como "A Fazer", e o
+ * defeito de dado ficaria invisível. Era assim que os `getStatusLabel` das telas
+ * já se comportavam (`labels[status] || status`), e é isso que se preserva aqui.
+ */
+export function entregavelStatusLabel(status: string | null | undefined): string {
+  if (status && status in entregavelStatusColors) {
+    return entregavelStatusColors[status as EntregavelStatus].label;
+  }
+  return status || '';
+}
+
+/**
+ * As três opções na ordem do ciclo de vida, para `Select` e filtro.
+ *
+ * Existe pelo mesmo motivo do `CHAMADO_STATUS_OPCOES`: quatro telas escreviam os
+ * três `<SelectItem>` à mão, e duas delas já liam o `pending` do mapa mas seguiam
+ * com "Em Progresso" e "Concluído" na mão do lado — meia conversão é o estado em
+ * que o rótulo volta a divergir.
+ */
+export const ENTREGAVEL_STATUS_OPCOES: EntregavelStatusConfig[] =
+  ['pending', 'in_progress', 'completed'].map((k) => entregavelStatusColors[k as EntregavelStatus]);

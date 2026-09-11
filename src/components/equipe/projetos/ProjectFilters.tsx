@@ -1,3 +1,4 @@
+import { CATEGORIAS_DE_PROJETO, CATEGORIAS_EM_ORDEM } from '@/lib/categoriaDoProjeto';
 import { Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,8 +28,8 @@ export const ProjectFilters = ({
 }: ProjectFiltersProps) => (
   <div className="flex items-center gap-4 mb-6">
     <div className="flex items-center gap-2">
-      <Filter className="h-4 w-4 text-gray-500" />
-      <span className="text-sm text-gray-600">Filtros:</span>
+      <Filter className="h-4 w-4 text-muted-foreground" />
+      <span className="text-sm text-muted-foreground">Filtros:</span>
     </div>
     <Select
       value={clusterFilter === '' ? '__todos__' : clusterFilter}
@@ -51,14 +52,20 @@ export const ProjectFilters = ({
     </Select>
     <Select value={statusFilter} onValueChange={onStatusFilterChange}>
       <SelectTrigger className="w-40">
-        <SelectValue placeholder="Todos status" />
+        <SelectValue placeholder="Todas as categorias" />
       </SelectTrigger>
       <SelectContent className="border-border">
-        <SelectItem value="all">Todos status</SelectItem>
-        <SelectItem value="active">Ativo</SelectItem>
-        <SelectItem value="completed">Concluído</SelectItem>
-        <SelectItem value="blocked">Bloqueado</SelectItem>
-        <SelectItem value="archived">Arquivado</SelectItem>
+        {/* As quatro opções que estavam aqui — Ativo / Concluído / Bloqueado /
+            Arquivado — eram vocabulário de CICLO DE VIDA apontado para uma coluna
+            que guarda CATEGORIA. O filtro compara `project.status === statusFilter`
+            direto, então as quatro devolviam zero linhas desde sempre. Ver
+            `@/lib/categoriaDoProjeto` para o que a coluna guarda de verdade. */}
+        <SelectItem value="all">Todas as categorias</SelectItem>
+        {CATEGORIAS_EM_ORDEM.map(chave => (
+          <SelectItem key={chave} value={chave}>
+            {CATEGORIAS_DE_PROJETO[chave].rotulo}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
     {(statusFilter !== 'all' || clusterFilter !== '') && (
@@ -69,7 +76,7 @@ export const ProjectFilters = ({
           onStatusFilterChange('all');
           onClusterFilterChange('');
         }}
-        className="text-gray-500"
+        className="text-muted-foreground"
       >
         Limpar filtros
       </Button>

@@ -20,8 +20,7 @@ export function useOsVolumePorCliente() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ordem_servico')
-        .select('id_cliente, valor_projeto')
-        .eq('excluido', false);
+        .select('id_cliente, valor_projeto');
       if (error) throw error;
 
       const mapa = new Map<string, VolumeCliente>();

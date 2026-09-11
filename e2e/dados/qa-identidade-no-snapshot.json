@@ -1,0 +1,87 @@
+{
+  "_sobre": "Medição no app rodando (localhost:8080, banco SANDBOX vgzomuwnsdgrxbkyoavq, branch develop) da frente 'proveniência serializada no snapshot'. Cada item traz prova literal. Rodado em 10/09/2026 por Playwright dirigindo o app, com A/B contra o código de HEAD 3c2e6b10 (git stash) sempre que a pergunta era 'isto mudou?'.",
+  "_ressalva": "O subagente `cleberson-oliveira` NÃO estava registrado nesta sessão (ela foi aberta fora do repositório, e o servidor MCP do Playwright é configurado por projeto). A medição foi feita pelo mesmo instrumento e pelo mesmo playbook, mas não pelo agente nomeado.",
+
+  "estado-antes": {
+    "status": "medido",
+    "prova": "SELECT no sandbox nos 4 documentos do cliente [TESTE] Furão Notário: sociedade/socios/administradores com 'id', signatarios SEM 'id', nenhum com '__motorOrigemId'.",
+    "observacao": "Confere com o enunciado da frente."
+  },
+
+  "A1-previa-sem-erro": {
+    "status": "sem defeito",
+    "prova": "4 documentos renderizados (AC do Cofre Subterrâneo, constituição da Galeria Profunda, Parceria Rural e Composse Rural do [TESTE] MMS): 0 ocorrências de 'Placeholder não resolvido', 'Lista ausente', 'Não é possível reproduzir esta versão', 'Seção ausente', 'Valor ausente', 'Família ausente/não encontrada'.",
+    "observacao": "Parceria e Composse são os que exercitam cartório, vértice, instrumento agrário e origem da posse — as quatro entidades que passaram a chamar comOrigem."
+  },
+  "A2-valores-clicaveis": {
+    "status": "sem defeito",
+    "prova": "Contagem de [title=\"Abrir o cadastro deste dado\"]: AC 88, Galeria 14, Parceria 216, Composse 122 — idênticas às de HEAD. Clique no 1º valor da AC abre 'Editar pessoa / Pessoa Jurídica' com o cadastro da sociedade.",
+    "observacao": "Medido DEPOIS de F5 e de reselecionar o cliente."
+  },
+  "A3-sem-vazamento-de-chave-interna": {
+    "status": "sem defeito",
+    "prova": "0 ocorrências de '__motorOrigem', '__motor' ou '[object Object]' no innerText dos 4 documentos e no texto extraído do .docx (28.957 caracteres).",
+    "observacao": "As chaves reservadas ficam no jsonb e nunca no texto."
+  },
+  "A4-texto-identico-a-HEAD": {
+    "status": "sem defeito",
+    "prova": "Dump do texto renderizado nas duas versões de código (git stash) e diff palavra a palavra: Galeria, Parceria e Composse IDÊNTICOS. A AC também, com md5 3deac450aba6c0c4e1a8e37b11e075dc em 2 rodadas de HEAD e 2 do código novo.",
+    "observacao": "A 1ª rodada de HEAD divergiu (29.464 chars, título de constituição). Repetida 2 vezes, converge para o mesmo md5 do código novo: era medição antes de `useOrdemNaSucessao` resolver, não diferença de código. Artefato do medidor, registrado por honestidade."
+  },
+
+  "B1-assistente-com-cadastro-intocado": {
+    "status": "sem defeito",
+    "prova": "Diálogo 'Gerar alteração contratual' (2.097 caracteres, texto inteiro lido): 0 ocorrências de 'sem id estavel', 'nao concilia' e 'Divergências'. Os 6 eventos não aplicáveis dizem 'nada no cadastro registra este evento'.",
+    "observacao": "A/B contra HEAD: o diálogo tem os MESMOS 2.097 caracteres. Ou seja, para esta forma de peça o ruído já tinha sido eliminado por d6e55f66 + 3c2e6b10; esta frente não o removeu, ela remove a causa estrutural. A seção 'Ruído esperado' do cenário está vencida."
+  },
+  "B2-cartorio-fora-da-qualificacao": {
+    "status": "corrigido",
+    "prova": "Teste comportamental (identidadeNoSnapshotReal.test.ts): com snapshot montado pelos mapeadores reais, renomear o cartório produz 0 candidatos. Revertendo o filtro por tipo, produz 1 candidato de qualificação — 'expected [ {…(9)} ] to deeply equal []'.",
+    "observacao": "Defeito latente em HEAD: sem o id não dava candidato, mas com o id (que esta frente entrega) daria. Corrigido junto."
+  },
+
+  "C-deteccao-do-endereco": {
+    "status": "sem defeito",
+    "prova": "Evidência literal do assistente: 'Endereço de Nivaldo Tabosa Furtado: Rua Barão de Melgaço, n.º 1200, Sala 3, Bairro Centro Sul, no município de Cuiabá, Estado de Mato Grosso, CEP 78020-800 -> Avenida Historiador Rubens de Mendonça, n.º 1894, Apto 1502, Bairro Bosque da Saúde, no município de Cuiabá, Estado de Mato Grosso, CEP 78050-000; Endereço de Marlene Furtado Cavalcanti: Rua Joaquim Murtinho, n.º 450, Apto 702 ... -> Rua Engenheiro Edgard Prado Arze, n.º 1777, Sala 205 ...'",
+    "observacao": "Os endereços já estavam trocados no cadastro por quem montou o cenário; não alterei cadastro nenhum."
+  },
+
+  "D-docx-lido-como-arquivo": {
+    "status": "sem defeito",
+    "prova": "'.playwright-mcp/qa-ac-endereco-pos-reload.docx', baixado DEPOIS de F5. Endereço novo do Nivaldo ('Rubens de Mendonça, n.º 1894'): 4 ocorrências. Endereço antigo ('Barão de Melgaço'): 0. Antigo da Marlene ('Joaquim Murtinho'): 0. Resolução: 'Alteram-se as qualificações dos sócios NIVALDO TABOSA FURTADO e MARLENE FURTADO CAVALCANTI, para fazer constar os atuais endereços destes'.",
+    "observacao": "A 4ª ocorrência é a cláusula de administração: 'administrada isoladamente por Nivaldo Tabosa Furtado, ... residente e domiciliado no endereço Avenida Historiador Rubens de Mendonça, n.º 1894 ...'. É o defeito da 1ª rodada de QA desta frente, e ele não voltou."
+  },
+
+  "E1-snapshot-novo-guarda-identidade": {
+    "status": "corrigido",
+    "prova": "Versão validada no app (documento 887e14c0, snapshot_validado_em 2026-09-10 16:31:10). SELECT: selecao.sociedade.__motorOrigemTipo='sociedade'; socios[0].socio.__motorOrigemId=53e0c8e7-c1de-4434-92de-8e6502d13743; administradores[0].administrador.__motorOrigemId=o mesmo; requalificados[0].requalificado.__motorOrigemId=o mesmo.",
+    "observacao": "Antes desta frente nenhum objeto do jsonb tinha __motorOrigemId."
+  },
+  "E2-mapeador-nao-publica-mais-id-avulso": {
+    "status": "corrigido",
+    "prova": "Peça NOVA de constituição (documento 6ed8fd66, Galeria Profunda, validada 16:32:42): selecao.sociedade tem __motorOrigemTipo='sociedade' e NÃO tem mais a chave 'id' (soc_id_avulso=false).",
+    "observacao": "É o efeito de tirar os set('id', row.id) avulsos: identidade num mecanismo só."
+  },
+  "E3-acervo-intocado": {
+    "status": "não-objetivo, confirmado",
+    "prova": "propostaAC.base (o snapshot da peça REGISTRADA que a AC substitui) segue com 'id' e SEM '__motorOrigemId' (base_socio_id=true, base_socio_origem=false). signatarios do estado composto continuam sem identidade (vêm da base).",
+    "observacao": "Nada reescreveu o jsonb da peça registrada, que é o que a regra exige."
+  },
+  "E4-reproducao-de-versao-selada": {
+    "status": "sem defeito",
+    "prova": "renderizarVersao rodado contra os DOIS snapshots reais puxados do sandbox (o registrado, forma antiga; e o validado agora, forma nova): erro null nos dois, texto > 3.000 caracteres, sem '__motor' e sem '[object Object]'.",
+    "observacao": "Cobre a advertência 'renderizarVersao rejeita snapshot com lista ausente'. Rodado também com o código de HEAD: passa igual, então um rollback do código não quebra os snapshots já gravados."
+  },
+
+  "F-achado-pre-existente": {
+    "status": "fora de escopo, pré-existente",
+    "prova": "Toast 'A versão não pode ser validada — O cadastro mudou depois da conferência: reabra \"Rever os eventos\" e confirme a seleção de novo antes de validar.' ao tentar validar a AC que estava confirmada desde 15:18.",
+    "observacao": "A/B contra HEAD: o mesmo toast, com o mesmo texto. Não é regressão desta frente; era o cadastro (endereço da Marlene) alterado depois da confirmação. O caminho indicado pela própria tela ('Rever os eventos' e reconfirmar) resolveu."
+  },
+
+  "dados-de-teste": {
+    "status": "informativo",
+    "prova": "Nenhum cadastro foi alterado. Duas escritas de documento no sandbox, ambas pelo fluxo normal da tela: (1) a AC 887e14c0 do [TESTE] Cofre Subterrâneo foi reconfirmada em 'Rever os eventos' e validada; (2) foi criada e validada uma peça de constituição para [TESTE] Galeria Profunda Participações Ltda (documento 6ed8fd66), que não existia.",
+    "observacao": "Nenhuma peça registrada foi tocada. Cliente [TESTE] Furão Notário e [TESTE] MMS, ambos ambiente 'dev', invisíveis para produção."
+  }
+}

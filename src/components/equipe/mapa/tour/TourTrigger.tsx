@@ -1,8 +1,8 @@
-// Botão reutilizável para (re)abrir um tour. Sem `tourId`, abre o tour da rota
-// atual (uso no header — o "?"). Com `tourId`, abre o mini-tour da página.
+// Botão "?" do MAPA. O componente é o compartilhado
+// (`@/components/tour/TourTrigger`); aqui ficam os padrões daqui: a classe do
+// CSS do módulo e o rótulo, além do tipo estreito do id.
 
-import { HelpCircle } from 'lucide-react';
-import { useMapaTour } from './useMapaTour';
+import TourTriggerBase from '@/components/tour/TourTrigger';
 import type { TourId } from './tours';
 
 interface Props {
@@ -20,23 +20,7 @@ export default function TourTrigger({
   label = 'Ver tour da página',
   dataTour,
 }: Props) {
-  const { startTour, startForRoute } = useMapaTour();
-
-  const handleClick = () => {
-    if (tourId) startTour(tourId);
-    else startForRoute(window.location.pathname);
-  };
-
   return (
-    <button
-      type="button"
-      className={className}
-      onClick={handleClick}
-      aria-label={label}
-      title={label}
-      data-tour={dataTour}
-    >
-      <HelpCircle size={18} strokeWidth={2} />
-    </button>
+    <TourTriggerBase tourId={tourId} className={className} label={label} dataTour={dataTour} />
   );
 }

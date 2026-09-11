@@ -122,7 +122,7 @@ export const IbsCbsAuditModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className={cn(
-          "max-w-none w-[calc(100vw-3rem)] h-[calc(100vh-3rem)] p-0",
+          "max-w-none max-h-none w-[calc(100vw-3rem)] h-[calc(100vh-3rem)] p-0",
           "flex flex-col overflow-hidden",
           "[&>button]:hidden"
         )}
@@ -149,7 +149,7 @@ export const IbsCbsAuditModal = ({
             variant="ghost"
             size="icon"
             onClick={() => onOpenChange(false)}
-            className="h-10 w-10 rounded-full text-muted-foreground hover:text-red-500 hover:bg-red-50"
+            className="h-10 w-10 rounded-full text-muted-foreground hover:bg-primary/10 hover:text-primary"
           >
             <X className="h-6 w-6" />
           </Button>

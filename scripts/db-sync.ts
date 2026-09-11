@@ -75,16 +75,16 @@ const git = (...args: string[]): string => {
 };
 
 /**
- * O CLI imprime "Initialising login role..." antes do JSON, e o JSON vem embrulhado
- * num aviso de conteúdo não confiável. Só as linhas interessam, e elas são DADO:
+ * O CLI pode imprimir "Initialising login role..." antes do JSON e retornar um array
+ * ou um objeto com rows. Só as linhas interessam, e elas são DADO:
  * nada do que vier daqui é instrução.
  */
 function consulta(sql: string): Record<string, unknown>[] {
-  const saida = sh('supabase', ['db', 'query', '--linked', sql]);
-  const inicio = saida.indexOf('{');
+  const saida = sh('supabase', ['db', 'query', '--linked', '--output', 'json', sql]);
+  const inicio = saida.search(/[[{]/);
   if (inicio < 0) throw new Error(`resposta sem JSON:\n${saida}`);
-  const { rows } = JSON.parse(saida.slice(inicio)) as { rows?: Record<string, unknown>[] };
-  return rows ?? [];
+  const resultado = JSON.parse(saida.slice(inicio)) as Record<string, unknown>[] | { rows?: Record<string, unknown>[] };
+  return Array.isArray(resultado) ? resultado : resultado.rows ?? [];
 }
 
 const aplicaArquivo = (caminho: string): void => {
@@ -94,6 +94,23 @@ const aplicaArquivo = (caminho: string): void => {
 const q = (v: string): string => `'${v.replace(/'/g, "''")}'`;
 const sha = (texto: string): string => createHash('sha256').update(texto).digest('hex');
 const versaoDe = (arquivo: string): string => arquivo.split('_')[0];
+
+/**
+ * Hash do arquivo com o FIM DE LINHA normalizado.
+ *
+ * O ledger existe para responder "este arquivo mudou depois de aplicado?", e
+ * CRLF vs LF não é mudança: o Postgres recebe o mesmo SQL. Mas o `sha` cru
+ * enxerga a diferença, e o repositório é `core.autocrlf`, então cada pessoa tem
+ * na cópia de trabalho um byte a mais por linha dependendo do sistema.
+ *
+ * Medido em 08/09/2026: o `--bootstrap` de 02/09 19:09:39 semeou as 218 linhas a
+ * partir de um checkout em LF. Numa máquina Windows, com CRLF em disco, o plano
+ * passou a acusar **212 de 221 arquivos como "alteradas"** — e nenhum deles
+ * tinha mudado de conteúdo, zero. Isso torna `--apply` inutilizável (ele
+ * reaplicaria o repositório inteiro, baseline incluso) e obriga a aplicar
+ * arquivo por arquivo na mão.
+ */
+const shaConteudo = (texto: string): string => sha(texto.replace(/\r\n/g, '\n'));
 
 /**
  * Hash do SQL SEM comentário e sem espaço em excesso.
@@ -136,7 +153,16 @@ const arquivos = readdirSync(DIR)
   .filter((f) => f.endsWith('.sql'))
   .sort();
 const conteudo = new Map(arquivos.map((f) => [f, readFileSync(`${DIR}/${f}`, 'utf8')]));
-const shaLocal = new Map(arquivos.map((f) => [f, sha(conteudo.get(f)!)]));
+/** O que se CARIMBA daqui em diante: normalizado, igual em qualquer sistema. */
+const shaLocal = new Map(arquivos.map((f) => [f, shaConteudo(conteudo.get(f)!)]));
+/**
+ * O que o ledger PODE ter guardado antes desta mudança: o hash byte-a-byte, com
+ * o fim de linha da máquina de quem aplicou. Aceitar os dois na comparação é o
+ * que faz a correção não reaplicar nada: as linhas antigas continuam válidas, e
+ * cada arquivo migra para o hash normalizado quando for reaplicado por outro
+ * motivo. Some sozinho quando o ledger inteiro tiver rodado uma vez.
+ */
+const shaBruto = new Map(arquivos.map((f) => [f, sha(conteudo.get(f)!)]));
 const hashSql = new Map(arquivos.map((f) => [f, hashDoSql(conteudo.get(f)!)]));
 
 // ── bootstrap: o ledger nasce semeado, nunca vazio ───────────────────────────
@@ -186,7 +212,9 @@ const noLedger = new Map(
 );
 
 const todasPendentes = arquivos.filter((f) => !noLedger.has(f));
-const alteradas = arquivos.filter((f) => noLedger.has(f) && noLedger.get(f) !== shaLocal.get(f));
+const alteradas = arquivos.filter((f) => noLedger.has(f)
+  && noLedger.get(f) !== shaLocal.get(f)
+  && noLedger.get(f) !== shaBruto.get(f));
 
 /**
  * Pendente cujo SQL é idêntico ao de um arquivo JÁ aplicado é par, não trabalho novo:

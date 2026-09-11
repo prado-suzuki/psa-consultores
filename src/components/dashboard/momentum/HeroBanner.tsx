@@ -99,7 +99,7 @@ export function HeroBanner({
           // neutro — `gray-900`, não o tom de nenhuma área.
           <Button
             onClick={onCta}
-            className="mt-5 font-semibold bg-white text-gray-900 hover:bg-white/90"
+            className="mt-5 font-semibold bg-white hover:bg-white/90"
           >
             {ctaLabel}
             <ArrowRight className="ml-2 h-4 w-4" />

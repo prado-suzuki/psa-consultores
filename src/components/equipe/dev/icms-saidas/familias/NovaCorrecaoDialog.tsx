@@ -187,7 +187,7 @@ export function NovaCorrecaoDialog({
                   <span className="inline-flex items-center gap-1.5">
                     <span>
                       {f.label}
-                      {f.required && <span className="text-red-500 ml-0.5">*</span>}
+                      {f.required && <span className="text-destructive ml-0.5">*</span>}
                     </span>
                     <FieldTooltip text={ICMS_CORRECAO_FIELD_TOOLTIPS[f.key] ?? `Explica o campo ${f.label}.`} />
                   </span>

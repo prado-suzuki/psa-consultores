@@ -35,7 +35,7 @@ export function AnaliseInteligenteCharts({
       <Card className="border-border shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-foreground flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-teal-600" />
+            <TrendingUp className="h-4 w-4 text-primary" />
             Evolução de Entregas (Semanal)
           </CardTitle>
         </CardHeader>
@@ -69,7 +69,7 @@ export function AnaliseInteligenteCharts({
       <Card className="border-border shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-foreground flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-teal-600" />
+            <Calendar className="h-4 w-4 text-primary" />
             Status dos Entregáveis
           </CardTitle>
         </CardHeader>
@@ -99,7 +99,7 @@ export function AnaliseInteligenteCharts({
       <Card className="border-border shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-foreground flex items-center gap-2">
-            <Clock className="h-4 w-4 text-teal-600" />
+            <Clock className="h-4 w-4 text-primary" />
             Horas Estimadas por Sprint
           </CardTitle>
         </CardHeader>

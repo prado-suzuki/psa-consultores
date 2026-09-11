@@ -15,9 +15,16 @@ All colors MUST be HSL.
        a paleta marfim/teal. */
     --foreground: 20 81% 10%;
 
-    /* Canvas = fundo da página. Praticamente branco, só um fio de marfim mais
-       escuro que os cards para eles "saltarem". Substitui o slate-50 azulado. */
-    --canvas: 42 22% 99%;
+    /* O `--canvas` e o `--muted` SAÍRAM daqui em 10/09/2026, e não é limpeza
+       de estilo: eles não alcançavam tela nenhuma. O `AreaThemeProvider` põe
+       `base-theme` no `<html>` em toda rota, os dois seletores têm a mesma
+       especificidade, e `.base-theme` vem depois no arquivo — então quem
+       pintava era sempre ela. O par daqui (`42 22% 99%` / `42 26% 92%`) era
+       resto de meio caminho: o `--muted` desceu para 92% na varredura de
+       28/08 e o canvas ficou nos 99% de antes, com 7 pontos entre os dois
+       onde a regra pede 4. Ficou dez dias assim sem ninguém ver, porque não
+       havia o que ver. Declaração que nunca pinta não é piso de segurança:
+       é um segundo valor esperando para confundir quem ler. */
 
     --card: 42 24% 99.8%;
     --card-foreground: 20 81% 10%;
@@ -60,7 +67,6 @@ All colors MUST be HSL.
        base não tem esse degrau — o `--base-50` é 98% e o `--base-100` é 94% —, e
        forçar um deles inverteria a ordem da escala ou pioraria a OSG. O literal
        é o preço de as duas escalas não estarem alinhadas. */
-    --muted: 42 26% 92%;
     /* Neutro secundario (icone de menu, rotulo inativo, legenda, subtitulo).
        Era matiz 220 — cinza-AZULADO — sobre superficies marfim/bege: a camada
        secundaria inteira do sistema destoava da temperatura das superficies.
@@ -72,8 +78,14 @@ All colors MUST be HSL.
 
        Isso também conserta o que já estava quebrado e ninguém media: na Tax o
        par dava 4,37 e na OSG 4,47, os dois reprovando ANTES desta mudança.
-       Agora as três passam, e sobre o cartão a leitura melhora junto (5,3). */
-    --muted-foreground: 28 9% 41.5%;
+       Agora as três passam, e sobre o cartão a leitura melhora junto (5,3).
+
+       O VALOR saiu daqui em 10/09/2026, junto com o `--canvas` e o `--muted`
+       de que ele é o par — os três eram cobertos pelo `.base-theme` em toda
+       rota e não pintavam nada. A prosa acima FICA porque ela é a história
+       de por que o token vale o que vale, e essa história não morreu com a
+       declaração; quem quiser mexer no `--muted-foreground` do `.base-theme`
+       precisa ler isto antes. */
 
     --accent: 175 84% 25%;
     --accent-foreground: 0 0% 100%;
@@ -377,7 +389,7 @@ All colors MUST be HSL.
     --base-700: 28 20% 24%;
 
     /* OSG accent — taupe/brown (versão mais escura) */
-    --osg-50: 32 28% 92%;
+    --osg-50: 32 28% 89%;
     --osg-100: 30 26% 84%;
     --osg-200: 30 25% 70%;
     --osg-300: 30 23% 56%;
@@ -412,14 +424,6 @@ All colors MUST be HSL.
     --shadow-lg: 0 10px 40px -10px hsl(var(--primary) / 0.2);
     --shadow-xl: 0 20px 60px -15px hsl(var(--primary) / 0.3);
     
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 85 85% 37%;
   }
 
   /* ─── .base-theme — o contrato completo, e o piso de todo tema ──────────
@@ -561,8 +565,38 @@ All colors MUST be HSL.
        3:1 exige luminosidade por volta de 72% no lugar de 89%, ou seja borda
        visivelmente escura em todo input do produto. É decisão de design em
        aberto, não esquecimento. */
-    --border: 168 14% 89%;
-    --input: 168 14% 89%;
+    /* Um degrau abaixo do rebaixado (89%), na saturação dele. */
+    --border: 168 20% 86%;
+    --input: 168 20% 52%;
+    /* ─── A linha que o usuário precisa ACHAR ──────────────────────────────
+       O `--input` NÃO é a linha da tabela, e o nome dele sempre disse isso — o
+       valor é que não dizia. Até 10/09/2026 ele era uma cópia do `--border`, e
+       um valor só fazia três trabalhos: contorno de cartão, divisória de tabela
+       e borda de campo. A 1,3:1 ele servia para os dois primeiros — divisória
+       pode sussurrar — e reprovava no terceiro, onde a WCAG 1.4.11 pede 3:1
+       para a pessoa conseguir ACHAR o campo na tela.
+
+       A dívida estava registrada nos três temas e nunca foi paga, sempre pelo
+       mesmo motivo: pagá-la com um token só escureceria toda linha de tabela do
+       produto. Separando por TRABALHO ela se paga sem esse custo — e sem token
+       novo, porque o token do trabalho certo já existia com o nome certo.
+
+       Os 21 consumidores de `border-input` no produto são TODOS controle: input,
+       textarea, select, botão outline, toggle, OTP e os editores de texto rico.
+       Nenhum é divisória. Medido antes de mexer.
+
+       A luminosidade difere entre as áreas (52 / 56 / 54,5) e isso não é
+       escolha: é o valor em que a matiz e a saturação de cada área alcançam 3:1
+       contra o CARTÃO dela — o da OSG não é branco, é `32 28% 98,5%`, e por isso
+       ele desce meio ponto a mais. No `.dark` a linha CLAREIA para 42%, porque
+       lá o cartão é escuro. O teste cobra a razão, não o número: valor fixo
+       diria a coisa certa numa área e a errada nas outras.
+
+       ⚠️ `bg-input` NÃO existe mais como preenchimento. O `Switch` usava o
+       `--input` para pintar a trilha desligada, o que era o mesmo defeito de
+       novo — borda e preenchimento no mesmo valor — e com a linha escura a
+       trilha "desligada" passaria a parecer ligada. Ela usa `--muted` desde
+       10/09. */
 
     /* Sinais do sistema — os mesmos três papéis do `:root`, e aqui o `var()`
        faz o trabalho sozinho: como cada tema declara os próprios `--status-*`,
@@ -619,8 +653,26 @@ All colors MUST be HSL.
     --background: 168 22% 99.4%;
     --card: 0 0% 100%;
     --popover: 0 0% 100%;
-    --canvas: 168 16% 96%;
-    --muted: 168 20% 92%;
+    /* ─── A pilha ganhou altura em 10/09/2026 (opção D) ───────────────────
+       A página vinha a 96% e o cartão a 100%: 4 pontos de luminosidade para
+       toda a pilha. Nessa faixa a cor não tem onde renderizar — foi o que a
+       comparação `docs/geral/comparacoes-de-cor/linha-e-cartao.html` mostrou ao
+       pôr três opções de borda lado a lado e as três saírem iguais. Não eram
+       parecidas: não havia espaço onde pudessem ser diferentes.
+
+       96% → 93%, e o que sustenta o número: a 93% o degrau cartão↔página dá
+       1,153–1,164:1 nas três áreas, que é o que a BORDA dava contra a página
+       (1,157–1,193:1). Ou seja o contorno do cartão sempre foi redundante —
+       quem separa o cartão do fundo é o degrau, e a linha só estava lá porque
+       sempre esteve. De quebra a cor da área ganha os 3 pontos de escala que
+       lhe faltavam para existir.
+
+       O `--muted` acompanha pela REGRA, não por edição: `rebaixar(--canvas)`
+       em `paletaDeArea.ts` obriga mesma matiz, saturação +4 e luminosidade −4,
+       e a catraca reprova quem escrever outra coisa. Mexer no canvas é a única
+       maneira de mover a superfície rebaixada. */
+    --canvas: 168 16% 93%;
+    --muted: 168 20% 89%;
     --muted-foreground: 180 10% 38%;
     /* O vermelho de excluir é o `ajuste` da área, e a linha abaixo é a única
        coisa que resta de uma calibragem inteira. O valor anterior era 84% de
@@ -698,10 +750,18 @@ All colors MUST be HSL.
        Saturação baixíssima de propósito: é neutro com cast, não superfície
        colorida — se o fundo tem cor, o acento para de saltar. As luminosidades
        são as mesmas de antes (só `--muted` desce 1 ponto, para o card se
-       destacar do corpo), então nenhum contraste do sistema muda. */
-    --background: 170 18% 99.6%;
-    --card: 170 18% 99.6%;
-    --popover: 170 18% 99.6%;
+       destacar do corpo), então nenhum contraste do sistema muda.
+
+       A matiz destes três era 170 e foi para 192, a da âncora, junto com o
+       resto da pilha. NÃO muda pixel — a 99,6% de luminosidade a matiz não tem
+       onde renderizar: `(254,254,254)` antes e depois, e o contraste com o
+       `--foreground` anda 0,01 (17,23 → 17,22). É escrituração, e é por isso
+       que vale: enquanto estes três diziam 170 e o canvas dizia 192, o arquivo
+       ensinava duas matizes para a mesma área, e a próxima superfície nasceria
+       na errada — foi assim que o `--muted` ficou verde por dez dias. */
+    --background: 192 18% 99.6%;
+    --card: 192 18% 99.6%;
+    --popover: 192 18% 99.6%;
     /* ─── O fundo de página da área, e ele mudou de valor E de consumidor ───
        Até aqui o `FiscalLayout` pintava a tela com `bg-muted`, e este `--canvas`
        não tinha consumidor nenhum. São trabalhos diferentes: o `--muted` é a
@@ -729,16 +789,50 @@ All colors MUST be HSL.
        OSG passa despercebida a 24% porque é quente, e a Tax é fria. Copiar o
        número de uma para a outra não funciona.
 
-       O `--muted` abaixo NÃO muda: os 92% dele estão alinhados entre as três
-       áreas de propósito, e mexer neles quebra o contraste que aquela nota
-       calibrou. */
-    --canvas: 192 10% 96%;
-    --muted: 168 20% 92%;
+       A LUMINOSIDADE do `--muted` abaixo NÃO muda: os 92% dele estão alinhados
+       entre as três áreas de propósito, e mexer neles quebra o contraste que
+       aquela nota calibrou. A MATIZ dele mudou depois — ver a nota própria. */
+    --canvas: 192 10% 93%;
+    /* ─── A superfície rebaixada foi junto, e demorou uma passada a mais ────
+       Este valor era `168 20% 92%`, ou seja, o `--muted` da CASA copiado letra
+       por letra — não havia delta nenhum aqui. Enquanto o canvas também estava
+       na matiz 170 isso passava; quando o canvas subiu para 192 (logo acima), o
+       `--muted` ficou para trás e a Tax passou a ter fundo de página numa matiz
+       e superfície rebaixada em outra, a 24° de distância.
+
+       O sintoma que a usuária viu, em /equipe/tax/projetos/cadastro: a faixa das
+       abas (Lista / Calendário / Tabela / …) lendo verde dentro de uma tela
+       cinza-fria. É o mesmo defeito que o parágrafo do canvas acima descreve —
+       "o olho lia duas cores discutindo" — só que na superfície que aquela
+       passada não olhou. Nem a base nem a OSG têm o descasamento: as duas usam
+       a mesma matiz no canvas e no muted (168/168 e 32/32). A Tax era a única
+       com 192/168.
+
+       Matiz 168 → 192: a da âncora, mesma regra do canvas.
+
+       Saturação 20% → 14%: é o canvas + 4 pontos, que é a distância que a base
+       (16 → 20) e a OSG (24 → 28) já usam entre os dois papéis. Não é número
+       novo, é a razão das outras duas aplicada aqui.
+
+       A luminosidade saiu de 92% para 89% em 10/09 e NÃO por escolha daqui:
+       o canvas desceu 3 pontos e o rebaixamento a arrastou junto. */
+    --muted: 192 14% 89%;
 
     /* O secundário acompanha a temperatura da superfície: com o fundo da Tax
        frio, um neutro quente aqui repetiria — ao contrário — a dissonância que
-       o matiz 220 causava sobre os beges. Mesma luminosidade de antes. */
-    --muted-foreground: 185 8% 40.5%;
+       o matiz 220 causava sobre os beges.
+
+       Os 0,5 ponto que este valor desceu (41 → 40,5 → 40) NÃO são estética, são
+       o preço da matiz nova do `--muted`: verde é mais luminoso que azul na
+       mesma luminosidade HSL, então o par que dava 4,53:1 sobre `168 20% 92%`
+       cairia para 4,47:1 sobre `192 14% 92%` — abaixo do 4,5:1 do AA, sem erro
+       de build e sem ninguém ver. A 40% volta a 4,56:1, e sobe também sobre
+       card (5,27 → 5,37) e sobre canvas (4,87 → 4,97).
+
+       Desceu de novo em 10/09, de 40% para 38,5%, pelo mesmo tipo de motivo:
+       com a página a 93% o rebaixado foi para 89%, e o par cairia a 4,26:1.
+       A 38,5% volta a 4,52:1. */
+    --muted-foreground: 185 8% 38.5%;
     /* Papéis de status — os mesmos oito significados do `:root`, com a
        saturação puxada na direção do azul-petróleo da Tax. Ver o `:root`. */
     --status-neutro: 32 21% 12%;
@@ -816,11 +910,26 @@ All colors MUST be HSL.
        exatamente o que o bloco `:root.tax-theme` já produzia. */
     --accent-d: var(--status-andamento);
     --accent-soft: var(--status-andamento-soft);
-    /* Linha na matiz da superfície da Tax (background 170 18% 99.6%, canvas
-       170 16% 98.8%), um degrau abaixo do `--muted` dela (92%). Era o bege
-       `40 12% 91%` do `:root`, que nenhum tema declarava. 1,24:1 no card. */
-    --border: 170 16% 89%;
-    --input: 170 16% 89%;
+    /* Linha na matiz da superfície da Tax — hoje 192, a da âncora, como o
+       resto da pilha —, um degrau abaixo do `--muted` dela (92%). Era o bege
+       `40 12% 91%` do `:root`, que nenhum tema declarava. 1,24:1 no card.
+
+       A matiz veio de 170 e o efeito é de um canal: `(222,231,230)` para
+       `(222,230,231)`. Contra o canvas o contraste sobe de 1,151:1 para
+       1,164:1 — nem de perto os 3:1 que a WCAG 1.4.11 pede de borda de
+       controle, que é dívida registrada dos três temas e não se resolve aqui.
+
+       A SATURAÇÃO fica em 16% e isso é uma escolha de NÃO mexer, não um
+       esquecimento: 16 sobre um canvas de 10 faz a borda mais saturada que a
+       página, ao contrário da base (14 sobre 16) e da OSG (20 sobre 24). A
+       escada de saturação das três é divergente e arrumá-la é decisão de
+       design, registrada em `docs/geral/cor-o-que-falta.md`. Esta passada
+       alinhou MATIZ, que não custa pixel; mexer na saturação custa. */
+    /* Um degrau abaixo do rebaixado (89%), na saturação dele. A anomalia de
+       a borda ser mais saturada que a própria página morreu aqui: era 16%
+       sobre um canvas de 10%, e agora é 14%, o mesmo do rebaixado. */
+    --border: 192 14% 86%;
+    --input: 192 14% 56%;
     --success: var(--status-feito);
     --warning: var(--status-alerta);
     --success-foreground: 0 0% 100%;
@@ -863,8 +972,9 @@ All colors MUST be HSL.
        na OSG do que nas outras áreas. O valor aqui fecha em 1,26, igual à casa.
        As paletas conversam no REGISTRO e mudam de família; o peso da linha é
        registro. */
-    --border: 32 20% 88%;
-    --input: 32 20% 88%;
+    /* Um degrau abaixo do rebaixado (89%), na saturação dele. */
+    --border: 32 28% 86%;
+    --input: 32 28% 54.5%;
 
     /* Sinais na OSG — foi o bloco que mais mudou. "Ok" era o verde musgo e
        "aviso" era o dourado do marca-texto, tokens de marca da área usados
@@ -937,15 +1047,17 @@ All colors MUST be HSL.
 
     /* Canvas (fundo da página) — areia clara, mesma matiz porém um pouco mais
        escura que os cards, para eles "saltarem". Substitui o slate-50 azulado. */
-    --osg-canvas: 32 24% 96%;
+    --osg-canvas: 32 24% 93%;
     --canvas: var(--osg-canvas);
 
     /* Superfícies "muted" (barras de filtro, cabeçalho de tabela, linhas zebra):
        trocam o cinza-azulado padrão pelo bege quente osg-50 (#f0ebe5), o mesmo
        fundo da barra CLIENTE do OSG Work. */
     --muted: var(--osg-50);
-    /* Secundario da OSG: neutro quente do lado do taupe da area. */
-    --muted-foreground: 24 12% 41.5%;
+    /* Secundario da OSG: neutro quente do lado do taupe da area. Desceu de
+       41,5% para 40% em 10/09, quando a pagina foi para 93% e o rebaixado
+       para 89%: o par cairia a 4,27:1 e volta a 4,52:1. */
+    --muted-foreground: 24 12% 40%;
 
     /* Vermelho de exclusão/cancelar — o `ajuste` da OSG. Era o `--osg-red`
        (carmim/tijolo #B62F38), escolhido para conviver com a paleta quente da
@@ -1088,17 +1200,9 @@ All colors MUST be HSL.
     --warning-foreground: 35 12% 9%;
 
     --border: 35 9% 30%;
-    --input: 35 9% 30%;
+    --input: 35 9% 42%;
     --ring: 172 66% 50%;
 
-    --sidebar-background: 34 14% 8%;
-    --sidebar-foreground: 38 12% 94%;
-    --sidebar-primary: 172 66% 50%;
-    --sidebar-primary-foreground: 35 12% 9%;
-    --sidebar-accent: 33 9% 17%;
-    --sidebar-accent-foreground: 38 12% 94%;
-    --sidebar-border: 34 9% 22%;
-    --sidebar-ring: 172 66% 50%;
 
     --edit-shadow-color: 30 89% 51%;
   }
@@ -2369,8 +2473,25 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  /* ─── O fundo de página se pinta AQUI, e em nenhum outro lugar ─────────
+     `bg-canvas` e não `bg-background`: o `--background` é uma SUPERFÍCIE —
+     99,4% a 99,6%, praticamente o `--card` — e é o que `bg-background`
+     pinta em popover, sheet e dropdown, 178 vezes no produto. O `--canvas`
+     é o token que existe para ser fundo de página. O `body` usar o outro
+     era herança do shadcn que ninguém tinha revisitado.
+
+     Por que aqui e não em cada layout: até 10/09/2026 cada layout pintava a
+     própria página, e o resultado foi previsível — o `FiscalLayout` usava
+     `bg-muted` até 03/09, e quando ele foi corrigido OUTROS QUATRO ficaram
+     para trás (`EquipeLayout`, `DevLayout`, `AdminLayout`, `FixosLayout`,
+     58 páginas). Não era descuido de quem escreveu: era uma decisão que se
+     repetia em oito arquivos, e decisão repetida diverge.
+
+     Consequência prática: layout NÃO declara fundo de página. Um layout
+     novo nasce certo por não fazer nada, que é o único jeito de nascer
+     certo de forma confiável. A catraca está em `fundoDePagina.test.ts`. */
   body {
-    @apply bg-background text-foreground;
+    @apply bg-canvas text-foreground;
     font-family: 'Work Sans', sans-serif;
   }
   
@@ -3067,4 +3188,20 @@ All colors MUST be HSL.
 @keyframes agente-pulso {
   0%, 100% { opacity: .25; transform: translateY(0); }
   50% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* ─── Guia autoguiado dentro de modal ───────────────────────────────────────
+   O `Dialog` do Radix, enquanto está aberto, põe `pointer-events: none` no
+   `body` para travar o resto da página. O tooltip do guia (React Joyride) vive
+   num portal FORA do conteúdo do dialog, então herdava esse `none` e nenhum
+   botão dele clicava: foi exatamente o "o botão Voltar não está funcionando",
+   medido com `getComputedStyle` no app rodando.
+
+   Devolvemos o ponteiro só ao tooltip. O overlay segue inerte de propósito:
+   com ponteiro, ele viraria uma área de clique cobrindo a tela inteira, e um
+   clique distraído fora do balão fecharia o guia. */
+.react-joyride__floater,
+.react-joyride__tooltip {
+  pointer-events: auto !important;
+  z-index: 3001;
 }

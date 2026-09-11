@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { Info, type LucideIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AVISO_CAIXA, AVISO_CAIXA_ACENTO, AVISO_CAIXA_TEXTO } from "@/components/equipe/dev/classesDoAviso";
 
 interface DevPageHeaderProps {
   /** Texto descritivo principal. Suporta `**negrito**`. */
@@ -62,12 +63,19 @@ export const DevPageHeader = ({
   icon: Icone = Info,
 }: DevPageHeaderProps) => {
   return (
-    <Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1]">
-      <Icone className="h-5 w-5 text-primary" />
-      <AlertTitle className="text-sm font-semibold text-foreground">
+    // A superfície mora em `classesDoAviso.ts`, com as três formas que ela teve
+    // em 10/09/2026 e a medição de cada uma. Resumo: o "verde-água do módulo" que
+    // o docstring acima descreve era hex cravado; virou token e continuou
+    // invisível; virou faixa escura e passou a ganhar do título da tela; e agora é
+    // caixa branca e leve, que é apoio e se comporta como apoio. A causa do
+    // primeiro defeito não era a cor clara, era a caixa não ter ARESTA — a borda
+    // tinha o valor do próprio fundo. Está tudo escrito lá, com os números.
+    <Alert className={`mb-6 ${AVISO_CAIXA}`}>
+      <Icone className="h-5 w-5" />
+      <AlertTitle className="text-[13px] font-semibold">
         {title}
       </AlertTitle>
-      <AlertDescription className="text-sm leading-relaxed text-foreground mt-1">
+      <AlertDescription className={`${AVISO_CAIXA_TEXTO} mt-1`}>
         {renderBoldSegments(description)}
         {!hideManualLink && manualUrl && (
           <>
@@ -76,7 +84,7 @@ export const DevPageHeader = ({
               href={manualUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-emerald-600 hover:underline"
+              className={`font-semibold ${AVISO_CAIXA_ACENTO} hover:underline`}
             >
               aqui
             </a>

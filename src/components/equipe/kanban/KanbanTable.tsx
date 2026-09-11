@@ -51,7 +51,7 @@ export function KanbanTable(props: KanbanTableProps) {
         <TableBody>
           {props.deliverables.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                 Nenhum entregável encontrado
               </TableCell>
             </TableRow>
@@ -59,7 +59,7 @@ export function KanbanTable(props: KanbanTableProps) {
             props.deliverables.map((deliverable) => (
               <Fragment key={deliverable.id}>
                 <TableRow
-                  className="cursor-pointer hover:bg-gray-50"
+                  className="cursor-pointer hover:bg-muted"
                   onClick={() => props.onOpenDeliverable(deliverable)}
                 >
                   <TableCell className="w-8">
@@ -69,25 +69,25 @@ export function KanbanTable(props: KanbanTableProps) {
                         className="p-0.5 hover:bg-muted rounded"
                       >
                         {props.expandedTasks.has(deliverable.id) ? (
-                          <ChevronDown className="h-4 w-4 text-gray-500" />
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
                         ) : (
-                          <ChevronRight className="h-4 w-4 text-gray-500" />
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         )}
                       </button>
                     )}
                   </TableCell>
-                  <TableCell className="text-gray-900 font-medium">
+                  <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       {props.getGroupLabel(deliverable) && (
                         <span
-                          className="max-w-[16rem] truncate text-xs font-normal text-gray-400"
+                          className="max-w-[16rem] truncate text-xs font-normal text-muted-foreground"
                           title={props.getGroupLabel(deliverable) ?? undefined}
                         >
                           {props.getGroupLabel(deliverable)} ·
                         </span>
                       )}
                       {deliverable.task_code && (
-                        <span className="text-gray-500 font-normal">{deliverable.task_code}</span>
+                        <span className="text-muted-foreground font-normal">{deliverable.task_code}</span>
                       )}
                       {deliverable.title}
                       {deliverable.subtaskCount > 0 && (
@@ -108,7 +108,7 @@ export function KanbanTable(props: KanbanTableProps) {
                       {props.getBlocker(deliverable) && (
                         <span
                           title={formatBlockerTooltip(props.getBlocker(deliverable)!)}
-                          className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-700"
+                          className="inline-flex items-center gap-1 rounded border border-status-ajuste/40 bg-status-ajuste/10 px-1.5 py-0.5 text-xs font-medium text-status-ajuste"
                         >
                           🚩 Bloqueada
                         </span>
@@ -120,13 +120,13 @@ export function KanbanTable(props: KanbanTableProps) {
                       {props.getStatusLabel(deliverable.status)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-gray-600">
+                  <TableCell className="text-muted-foreground">
                     {props.getProfileName(deliverable.assigned_to)}
                   </TableCell>
-                  <TableCell className="text-gray-600">
+                  <TableCell className="text-muted-foreground">
                     {formatEquipeKanbanDueDate(deliverable.due_date)}
                   </TableCell>
-                  <TableCell className="text-gray-600 text-right">
+                  <TableCell className="text-muted-foreground text-right">
                     {deliverable.subtaskCount > 0
                       ? deliverable.subtaskHoursTotal > 0
                         ? deliverable.subtaskHoursTotal
@@ -140,7 +140,7 @@ export function KanbanTable(props: KanbanTableProps) {
                     <TableRow
                       key={subtask.id}
                       className={cn(
-                        'cursor-pointer hover:bg-gray-50 bg-gray-50/50',
+                        'cursor-pointer hover:bg-muted bg-muted/50',
                         subtask.status === 'completed' && 'opacity-60',
                       )}
                       onClick={() => props.onOpenDeliverable(subtask)}
@@ -155,13 +155,13 @@ export function KanbanTable(props: KanbanTableProps) {
                       <TableCell
                         style={{ paddingLeft: 32 + subtask.depth * 18 }}
                         className={cn(
-                          'text-gray-700',
+                          'text-foreground',
                           subtask.status === 'completed' && 'line-through',
                         )}
                       >
                         <div className="flex items-center gap-2">
                           {subtask.task_code && (
-                            <span className="text-gray-400">{subtask.task_code}</span>
+                            <span className="text-muted-foreground">{subtask.task_code}</span>
                           )}
                           {subtask.title}
                           {props.getBlocker(subtask) && (
@@ -174,13 +174,13 @@ export function KanbanTable(props: KanbanTableProps) {
                           {props.getStatusLabel(subtask.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-gray-500 text-sm">
+                      <TableCell className="text-muted-foreground text-sm">
                         {props.getProfileName(subtask.assigned_to)}
                       </TableCell>
-                      <TableCell className="text-gray-500 text-sm">
+                      <TableCell className="text-muted-foreground text-sm">
                         {formatEquipeKanbanDueDate(subtask.due_date)}
                       </TableCell>
-                      <TableCell className="text-gray-500 text-sm text-right">
+                      <TableCell className="text-muted-foreground text-sm text-right">
                         {subtask.hoursDisplay || '-'}
                       </TableCell>
                     </TableRow>

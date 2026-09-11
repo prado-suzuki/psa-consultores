@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Building2, ClipboardCheck, FolderKanban, Landmark, User } from 'lucide-react';
 import type { ClusterChecklist, LinhaChecklist, StatusChecklist } from '@/lib/checklistDerivado';
 import { estadoDoDocumento, type EstadoDocumento } from '@/lib/estadoDocumento';
+import { estadoDocumentoColors } from '@/lib/estadoDocumentoColors';
 
 /**
  * O vocabulário que a página do checklist e a ficha da entidade compartilham.
@@ -49,11 +50,16 @@ export const ESTADO_LABEL: Record<EstadoDocumento, string> = {
   aprovado: 'Aprovado',
 };
 
+/**
+ * A COR é a mesma em toda tela, e mora em `@/lib/estadoDocumentoColors`, em
+ * papéis de status — dentro do `.osg-theme` eles já resolvem no tom da OSG. Só o
+ * rótulo acima é por público.
+ */
 export const ESTADO_CHIP: Record<EstadoDocumento, string> = {
-  pendente: 'border-osg-highlighter/50 bg-osg-highlighter/20 text-osg-700 hover:border-osg-highlighter',
-  em_analise: 'border-osg-200 bg-osg-100/60 text-osg-600 hover:border-osg-300',
-  recusado: 'border-osg-red/30 bg-osg-red/10 text-osg-red hover:border-osg-red/60',
-  aprovado: 'border-osg-moss/30 bg-osg-moss/10 text-osg-moss hover:border-osg-moss/60',
+  pendente: estadoDocumentoColors.pendente.chip,
+  em_analise: estadoDocumentoColors.em_analise.chip,
+  recusado: estadoDocumentoColors.recusado.chip,
+  aprovado: estadoDocumentoColors.aprovado.chip,
 };
 
 /** O que fica no topo da ficha: primeiro o que pede ação, depois o resto. */

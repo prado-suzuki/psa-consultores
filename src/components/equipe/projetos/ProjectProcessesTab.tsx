@@ -23,18 +23,18 @@ export const ProjectProcessesTab = ({
 }: ProjectProcessesTabProps) => (
   <div className="space-y-4">
     <div className="flex items-center justify-between">
-      <p className="text-sm text-gray-500">Processos da empresa vinculados a este projeto</p>
+      <p className="text-sm text-muted-foreground">Processos da empresa vinculados a este projeto</p>
       <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={onCreateProcess}>
         <Plus className="h-4 w-4 mr-1" />
         Novo Processo
       </Button>
     </div>
 
-    <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg">
+    <div className="flex flex-wrap gap-2 p-3 bg-muted rounded-lg">
       {PROCESS_STAGES.map((stage, index) => (
         <div key={stage.value} className="flex items-center gap-1">
           <Badge className={stage.color}>{stage.label}</Badge>
-          {index < PROCESS_STAGES.length - 1 && <ArrowRight className="h-3 w-3 text-gray-400" />}
+          {index < PROCESS_STAGES.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground" />}
         </div>
       ))}
     </div>
@@ -51,13 +51,13 @@ export const ProjectProcessesTab = ({
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h4 className="font-medium text-gray-900">{process.name}</h4>
+                    <h4 className="font-medium">{process.name}</h4>
                     {getStageBadge(process.stage)}
                   </div>
                   {process.description && (
-                    <p className="text-sm text-gray-500 truncate mt-1">{process.description}</p>
+                    <p className="text-sm text-muted-foreground truncate mt-1">{process.description}</p>
                   )}
-                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                     {process.area && <span>Área: {process.area}</span>}
                     {process.frequency && <span>Freq: {process.frequency}</span>}
                     {process.volume_month && <span>Vol: {process.volume_month}/mês</span>}
@@ -79,7 +79,7 @@ export const ProjectProcessesTab = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-gray-500"
+                    className="text-muted-foreground"
                     onClick={() => onEditProcess(process)}
                   >
                     <Pencil className="h-4 w-4" />
@@ -92,9 +92,9 @@ export const ProjectProcessesTab = ({
       </div>
     ) : (
       <div className="text-center py-8">
-        <Workflow className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-        <h4 className="text-gray-900 font-medium mb-1">Nenhum processo</h4>
-        <p className="text-sm text-gray-500">
+        <Workflow className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+        <h4 className="font-medium mb-1">Nenhum processo</h4>
+        <p className="text-sm text-muted-foreground">
           Adicione processos da empresa para acompanhar os estágios
         </p>
       </div>

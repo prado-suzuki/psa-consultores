@@ -1,3 +1,4 @@
+import { AREAS } from '@/lib/nomeDaArea';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,7 +13,6 @@ import {
   MessageSquare,
   MessagesSquare,
   ArrowLeft,
-  LogOut,
   Shield,
   Home,
   LineChart,
@@ -20,7 +20,12 @@ import {
 import logoPsa from '@/assets/logo-psa.png';
 import TaxIcon from '@/components/equipe/fiscal/TaxIcon';
 import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
-import { classeLarguraBarra, classeRecuoCabecalho } from '@/lib/sidebarMedidas';
+import { FACE_DA_BARRA, classesItemDaBarra } from '@/lib/barraLateralCromo';
+import {
+  classeLarguraBarra,
+  classeRecuoCabecalho,
+  classesGavetaBarra,
+} from '@/lib/sidebarMedidas';
 import { linkEspelhado } from '@/lib/areaTheme';
 
 export interface MenuItem {
@@ -146,19 +151,21 @@ const menuItems: MenuItem[] = [
   }
 ];
 
-// Hover espelhado da OSG: leve elevação + sombra suave ao passar o mouse.
-const ITEM_BASE =
-  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-primary/10';
-
 interface FiscalSidebarProps {
+  /** No desktop: barra virou trilho. No celular: gaveta fechada. */
   isCollapsed: boolean;
+  /** A barra está no papel de gaveta (tela estreita). Vem do controller. */
+  emGaveta?: boolean;
   onToggle: () => void;
 }
 
-export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => {
+export const FiscalSidebar = ({ isCollapsed, emGaveta = false, onToggle }: FiscalSidebarProps) => {
+  // Trilho de ícones é coisa de desktop. A gaveta, quando abre, abre inteira:
+  // um trilho de 80px num celular ocupa espaço e não diz o nome de nada.
+  const trilho = isCollapsed && !emGaveta;
   const navigate = useNavigate();
   const location = useLocation();
-  const { signOut, isAdmin, isLider } = useAuth();
+  const { isAdmin, isLider } = useAuth();
   // "Gerencial" só aparece para líder+ (isLider é estrito, não engloba admin).
   const canGerencial = isAdmin || isLider;
 
@@ -168,11 +175,6 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
     (!!item.basePath && location.pathname.startsWith(item.basePath)) ||
     location.pathname === item.path ||
     (!!item.children && item.children.some(child => location.pathname === child.path));
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
-  };
 
   const goTo = (path: string) =>
     navigate(
@@ -200,15 +202,16 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
             // O grupo com destino é clicável; sem destino, segue só abrindo a
             // lista no hover, como era antes.
             onClick={() => item.path && goTo(item.path)}
-            className={cn(
-              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-              parentActive
-                ? 'bg-primary/5 text-primary'
-                : 'text-muted-foreground group-hover/sub:bg-primary/5 group-hover/sub:text-primary'
-            )}
+            className={classesItemDaBarra({
+              // O pai nunca é a pílula: quem está aberto é o filho. Ver
+              // `ancestral` em `barraLateralCromo`.
+              ativo: false,
+              ancestral: parentActive,
+              trilho,
+            })}
           >
             <Icon className="h-4 w-4 flex-shrink-0" />
-            {!isCollapsed && (
+            {!trilho && (
               <>
                 <span className="flex-1 text-left">{item.label}</span>
                 <ChevronDown
@@ -233,7 +236,7 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
               <div
                 className={cn(
                   'space-y-1 pt-1',
-                  isCollapsed ? '' : 'ml-2 pl-2 border-l border-border'
+                  trilho ? '' : 'ml-2 pl-2 border-l border-border'
                 )}
               >
                 {item.children?.map(child => {
@@ -249,18 +252,15 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
                       // inteira fica ao alcance do mouse.
                       title={child.label}
                       className={cn(
-                        ITEM_BASE,
+                        classesItemDaBarra({ ativo: childActive, trilho, sub: true }),
                         // Item de submenu ganha um respiro: o recuo da barra à
                         // esquerda já come largura, e "Dashboard de Chamados"
                         // estourava por poucos pixels.
-                        'min-w-0 gap-2 px-2',
-                        childActive
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:bg-primary/5 hover:text-primary'
+                        !trilho && 'min-w-0 gap-2',
                       )}
                     >
                       <ChildIcon className="h-4 w-4 flex-shrink-0" />
-                      {!isCollapsed && <span className="min-w-0 truncate">{child.label}</span>}
+                      {!trilho && <span className="min-w-0 truncate">{child.label}</span>}
                     </button>
                   );
                 })}
@@ -276,16 +276,11 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
       <button
         key={item.id}
         onClick={() => item.path && goTo(item.path)}
-        title={isCollapsed ? item.label : undefined}
-        className={cn(
-          ITEM_BASE,
-          active
-            ? 'bg-primary/10 text-primary'
-            : 'text-muted-foreground hover:bg-primary/5 hover:text-primary'
-        )}
+        title={trilho ? item.label : undefined}
+        className={classesItemDaBarra({ ativo: active, trilho })}
       >
         <Icon className="h-4 w-4 flex-shrink-0" />
-        {!isCollapsed && <span>{item.label}</span>}
+        {!trilho && <span>{item.label}</span>}
       </button>
     );
   };
@@ -298,7 +293,10 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
       className={cn(
         'transition-all duration-300 flex-shrink-0 sticky top-0 h-screen relative',
         // 5rem, e não 4rem: ver docs/geral/sidebar-recolhe-em-tela-larga.md.
-        classeLarguraBarra(isCollapsed)
+        classeLarguraBarra(trilho),
+        // Abaixo de `md` a barra sai do fluxo e vira gaveta: sem isto ela come
+        // 256px de um aparelho de 390px e o conteúdo quebra uma letra por linha.
+        classesGavetaBarra(isCollapsed)
       )}
     >
       {/* Botão de colapso flutuante na borda direita da barra */}
@@ -306,15 +304,18 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
         variant="ghost"
         size="icon"
         onClick={onToggle}
-        className="absolute top-6 -right-3 z-20 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted text-muted-foreground shadow-sm"
+        // `max-md:hidden`: na gaveta quem abre é o hambúrguer do header e quem
+        // fecha é o fundo escuro. Este botão pousaria fora da tela, na borda
+        // direita de uma gaveta que está deslizada para fora.
+        className="absolute top-6 -right-3 z-20 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted text-muted-foreground shadow-sm max-md:hidden"
       >
-        {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        {trilho ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
       </Button>
 
       <aside className="h-full w-full bg-card border-r border-border flex flex-col overflow-y-auto">
         {/* Header — no trilho colapsado sobra só o ícone da área, centralizado */}
-        <div className={cn('border-b border-border', classeRecuoCabecalho(isCollapsed))}>
-          {isCollapsed ? (
+        <div className={cn('border-b border-border', classeRecuoCabecalho(trilho))}>
+          {trilho ? (
             <div className="flex justify-center">
               <div className="h-10 w-10 flex items-center justify-center">
                 <TaxIcon size={40} className="h-full w-full block" />
@@ -326,8 +327,10 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
                 <TaxIcon size={40} className="h-full w-full block" />
               </div>
               <div>
-                <h1 className="font-semibold text-foreground text-lg">Tax</h1>
-                <p className="text-xs text-muted-foreground">Gestão de Projetos</p>
+                <h1 className={cn(FACE_DA_BARRA, 'font-semibold text-foreground text-lg')}>
+                  {AREAS.tax.nome}
+                </h1>
+                <p className="text-xs text-muted-foreground">{AREAS.tax.subtitulo}</p>
               </div>
             </div>
           )}
@@ -347,33 +350,21 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
         {/* Footer com o cartão do usuário e as ações da área */}
         <div className="mt-auto p-4 border-t border-border space-y-2">
           {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
-          <SidebarCartaoUsuario area="tax" collapsed={isCollapsed} />
+          <SidebarCartaoUsuario area="tax" collapsed={trilho} />
 
           <Button
             variant="ghost"
             className={cn(
               'w-full py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-success hover:bg-success/5 transition-colors',
-              isCollapsed ? 'justify-center px-2' : 'justify-start px-3'
+              trilho ? 'justify-center px-2' : 'justify-start px-3'
             )}
             onClick={() => navigate('/equipe')}
-            title={isCollapsed ? 'Trocar área' : undefined}
+            title={trilho ? 'Trocar área' : undefined}
           >
-            <ArrowLeft className={cn('h-4 w-4', !isCollapsed && 'mr-3')} />
-            {!isCollapsed && 'Trocar área'}
+            <ArrowLeft className={cn('h-4 w-4', !trilho && 'mr-3')} />
+            {!trilho && 'Trocar área'}
           </Button>
-          <Button
-            variant="ghost"
-            className={cn(
-              'w-full py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors',
-              isCollapsed ? 'justify-center px-2' : 'justify-start px-3'
-            )}
-            onClick={handleSignOut}
-            title={isCollapsed ? 'Sair' : undefined}
-          >
-            <LogOut className={cn('h-4 w-4', !isCollapsed && 'mr-3')} />
-            {!isCollapsed && 'Sair'}
-          </Button>
-          {!isCollapsed && (
+          {!trilho && (
             <div className="pt-2 border-t border-border">
               <img src={logoPsa} alt="PSA" className="h-5 opacity-50" />
             </div>

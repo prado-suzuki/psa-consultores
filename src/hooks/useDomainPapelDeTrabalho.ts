@@ -1,0 +1,609 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { useApiAuth } from '@/hooks/useApiAuth';
+import { useAuditLog } from '@/hooks/useAuditLog';
+import { useAuth } from '@/contexts/AuthContext';
+import { subirArquivoGcs } from '@/hooks/useDocumentoArquivo';
+import { supabase } from '@/integrations/supabase/client';
+import { crc32cBase64 } from '@/lib/planejamento-tributario/crc32c';
+import type { Json } from '@/integrations/supabase/types';
+import type { Analise } from '@/hooks/usePapelDeTrabalhoController';
+
+/**
+ * A gravação da importação do papel de trabalho.
+ *
+ * É o único lugar que conhece a ORDEM das etapas: sobe o arquivo para o GCS, monta
+ * o conteúdo, chama a RPC que grava tudo numa transação, e registra na auditoria.
+ * A leitura e a decisão acontecem antes, no `usePapelDeTrabalhoController`, que é
+ * puro e roda no navegador.
+ *
+ * **A recusa nunca chega aqui.** A tela só habilita o botão quando a decisão
+ * aceita, e este hook confere de novo: um arquivo recusado não deve ocupar o
+ * bucket nem virar linha no banco.
+ *
+ * ## O que a RPC faz e este hook não precisa fazer
+ *
+ * `importar_wp` é transacional: acha ou cria o estudo, calcula a próxima versão
+ * sob `lock`, grava os sete blocos e devolve o que gravou. Se qualquer parte
+ * falhar, nada entra. O número da versão sai de lá, e não daqui, porque duas abas
+ * abertas leriam o mesmo `max(versao)` e empatariam.
+ *
+ * **Nada é sobrescrito, nunca.** Cada importação é uma versão nova, e não existe
+ * policy de UPDATE de conteúdo em `wp_importacao` nem em `wp_valor`. É o que
+ * atende o "não sobrescrever revisão já usada em apresentação" do enunciado, sem
+ * depender da PT-03 existir para saber se foi usada.
+ */
+
+/** O que a RPC devolve, e a tela mostra depois de gravar. */
+export interface RevisaoGravada {
+  estudo_id: string;
+  importacao_id: string;
+  versao: number;
+  gravados: Record<string, number>;
+}
+
+export interface EstudoDoCliente {
+  id: string;
+  cliente_id: string;
+  ordem_servico_id: string | null;
+  /** O projeto da OS a que este planejamento pertence. Nulo nos antigos. */
+  projeto_id: string | null;
+  descricao: string | null;
+  created_at: string;
+}
+
+export interface RevisaoDoEstudo {
+  id: string;
+  versao: number;
+  nome_original: string | null;
+  cliente_no_wp: string | null;
+  ano_inicial: number | null;
+  ano_final: number | null;
+  versao_do_mapa: string;
+  /** Quantos problemas a leitura anotou. Zero é revisão limpa. */
+  problemas: number;
+  created_at: string;
+}
+
+/**
+ * O conteúdo que a RPC recebe, um bloco por tabela.
+ *
+ * Sai da leitura sem transformação: os nomes de campo aqui são os que a função
+ * lê do jsonb, e é por isso que este objeto é montado num lugar só. O `cast` para
+ * `Json` no fim é o mesmo que o resto da casa faz com argumento jsonb, e não é
+ * contorno de tipo: `Json` é o tipo do parâmetro.
+ */
+function montaConteudo(analise: Analise) {
+  const { leitura } = analise;
+  return {
+    cabecalho: leitura.cabecalho,
+    valores: leitura.valores,
+    farol: leitura.farol,
+    comentarios: leitura.comentarios,
+    bens: leitura.bens,
+    dividas: leitura.dividas,
+    problemas: [...analise.decisao.impedimentos, ...analise.decisao.avisos],
+  };
+}
+
+export function useEstudosDoCliente(clienteId: string | null) {
+  return useQuery({
+    queryKey: ['wp_estudo', clienteId],
+    enabled: !!clienteId,
+    queryFn: async (): Promise<EstudoDoCliente[]> => {
+      const { data, error } = await supabase
+        .from('wp_estudo')
+        .select('id, cliente_id, ordem_servico_id, projeto_id, descricao, created_at')
+        .eq('cliente_id', clienteId as string)
+        .eq('excluido', false)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/**
+ * As revisões de um estudo, da mais nova para a mais velha.
+ *
+ * É o histórico que a tela mostra: quais WPs já foram importados, em que versão e
+ * com que régua. `problemas` vem contado aqui e não na tela, porque a coluna é
+ * `jsonb` e contar no cliente obrigaria a trazer o conteúdo inteiro de cada uma.
+ */
+export function useRevisoesDoEstudo(estudoId: string | null) {
+  return useQuery({
+    queryKey: ['wp_importacao', estudoId],
+    enabled: !!estudoId,
+    queryFn: async (): Promise<RevisaoDoEstudo[]> => {
+      const { data, error } = await supabase
+        .from('wp_importacao')
+        .select(
+          'id, versao, nome_original, cliente_no_wp, ano_inicial, ano_final, versao_do_mapa, problemas, created_at',
+        )
+        .eq('estudo_id', estudoId as string)
+        .eq('excluido', false)
+        .order('versao', { ascending: false });
+      if (error) throw error;
+
+      return (data ?? []).map((linha) => ({
+        ...linha,
+        problemas: Array.isArray(linha.problemas) ? linha.problemas.length : 0,
+      }));
+    },
+  });
+}
+
+/** Uma OS do cliente, para o seletor. */
+export interface OrdemDeServicoDoCliente {
+  id: string;
+  numero_os: string | null;
+  situacao: string | null;
+  data_inicio: string | null;
+  data_fim: string | null;
+}
+
+/**
+ * As OS de um cliente, as em andamento primeiro.
+ *
+ * **Traz todas, inclusive suspensa e concluída.** Filtrar só as ativas deixaria
+ * sem porta de entrada o estudo cuja OS já encerrou: ele continua no banco, com
+ * as revisões, e a tela não teria como chegar nele. Hoje são 15 OS fora de
+ * andamento em 153, então a lista não cresce a ponto de atrapalhar, e a situação
+ * aparece escrita ao lado para o engano ficar visível.
+ */
+export function useOrdensDeServicoDoCliente(clienteId: string | null) {
+  return useQuery({
+    queryKey: ['ordem_servico_do_cliente', clienteId],
+    enabled: !!clienteId,
+    queryFn: async (): Promise<OrdemDeServicoDoCliente[]> => {
+      const { data, error } = await supabase
+        .from('ordem_servico')
+        .select('id, numero_os, situacao, data_inicio, data_fim')
+        .eq('id_cliente', clienteId as string);
+      if (error) throw error;
+
+      const peso = (s: string | null) => (s === 'em_andamento' ? 0 : s === 'suspenso' ? 1 : 2);
+      return (data ?? []).sort(
+        (a, b) =>
+          peso(a.situacao) - peso(b.situacao) ||
+          (b.numero_os ?? '').localeCompare(a.numero_os ?? ''),
+      );
+    },
+  });
+}
+
+/**
+ * Marca uma revisão como descartada. Só admin, e nunca apaga.
+ *
+ * **É marca e não exclusão**, e a policy do banco só permite isso: importação é
+ * retrato, e o retrato de que alguém subiu o arquivo errado é justamente o que a
+ * auditoria existe para guardar. A revisão sai da lista e continua consultável
+ * por quem for investigar.
+ *
+ * **Duas coisas que o descarte NÃO desfaz**, e é bom saber antes de usar. O
+ * arquivo continua no bucket, porque apagar binário é irreversível e ninguém
+ * pediu isso. E o checksum continua ocupado pelo índice único de
+ * `(estudo_id, checksum)`, então subir o MESMO arquivo de novo é recusado: para
+ * reimportar, o arquivo precisa ter mudado, o que é a regra de versionamento
+ * funcionando e não um efeito colateral.
+ */
+export function useDescartarRevisao() {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async (args: { importacaoId: string; estudoId: string; versao: number }) => {
+      const { error } = await supabase
+        .from('wp_importacao')
+        .update({ excluido: true })
+        .eq('id', args.importacaoId);
+      if (error) throw error;
+      return args;
+    },
+
+    onSuccess: async (args) => {
+      await logAction({
+        area: 'dev',
+        entity_type: 'wp_importacao',
+        entity_id: args.importacaoId,
+        entity_name: `revisão ${args.versao}`,
+        action: 'deleted',
+        details: 'Revisão descartada. O conteúdo continua no banco, fora da lista.',
+      });
+      await queryClient.invalidateQueries({ queryKey: ['wp_importacao', args.estudoId] });
+    },
+  });
+}
+
+/**
+ * O texto que a pessoa lê quando o arquivo já entrou neste estudo.
+ *
+ * São dois casos, e a diferença muda o que ela faz a seguir. Se a revisão está na
+ * lista, é só olhar para lá. Se foi descartada, ela não está vendo nada e
+ * precisa saber por que o sistema recusa um arquivo que "não existe mais".
+ */
+export function mensagemDeRepetido(versao: number, descartada: boolean): string {
+  if (!descartada) {
+    return (
+      `Este arquivo já foi importado neste estudo, na revisão ${versao}. ` +
+      'Para gerar uma revisão nova, altere a planilha e suba de novo.'
+    );
+  }
+  return (
+    `Este arquivo já foi importado neste estudo, na revisão ${versao}, que depois foi ` +
+    'descartada. Descartar tira a revisão da lista, mas não libera o arquivo: para ' +
+    'importar de novo, altere a planilha e suba a versão nova.'
+  );
+}
+
+/**
+ * Rede de segurança para a recusa que vem do banco.
+ *
+ * A conferência acima pega o caso normal, mas ela depende de **enxergar** a
+ * revisão repetida, e a policy de `select` esconde a descartada de quem não é
+ * admin. Nesse caminho quem recusa é a `unique (estudo_id, checksum)`, e sem esta
+ * tradução o toast mostrava `duplicate key value violates unique constraint
+ * "wp_importacao_checksum_unico"`, que não diz à pessoa nem o que houve nem o que
+ * fazer.
+ */
+export function explicaRecusaDoBanco(error: { code?: string; message?: string }): string {
+  const texto = error.message ?? '';
+  if (error.code === '23505' || texto.includes('wp_importacao_checksum_unico')) {
+    return (
+      'Este arquivo já foi importado neste estudo, em uma revisão que você não está ' +
+      'vendo, provavelmente porque ela foi descartada. Descartar não libera o arquivo: ' +
+      'para importar de novo, altere a planilha e suba a versão nova.'
+    );
+  }
+  return texto || 'Não consegui gravar a importação. Tente de novo.';
+}
+
+export interface ArgsDaImportacao {
+  clienteId: string;
+  ordemServicoId: string;
+  arquivo: File;
+  analise: Analise;
+  descricao?: string;
+}
+
+export function useImportarPapelDeTrabalho() {
+  const queryClient = useQueryClient();
+  const { fetchWithAuth } = useApiAuth();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async (args: ArgsDaImportacao): Promise<RevisaoGravada> => {
+      const { clienteId, ordemServicoId, arquivo, analise, descricao } = args;
+
+      if (analise.decisao.veredito === 'recusa') {
+        throw new Error(
+          'Este arquivo tem impedimento e não pode ser gravado. Corrija a planilha e escolha de novo.',
+        );
+      }
+
+      /*
+       * A conferência do arquivo repetido acontece ANTES de subir.
+       *
+       * A RPC também recusa, e é ela que garante a regra sob concorrência. Mas
+       * quando a recusa vem de lá o binário já está no bucket, e vira lixo que
+       * ninguém apaga: o endpoint de exclusão do backend apaga por
+       * `documento_id`, e o WP não cria linha em `documento_arquivo`. O enunciado
+       * pede justamente para evitar arquivo órfão quando o banco recusa.
+       *
+       * O checksum é o `crc32c` que o GCS calcula, e `crc32cBase64` reproduz o
+       * mesmo número aqui. Se um dia divergir, esta conferência deixa de achar o
+       * repetido e a importação segue para a RPC, que recusa igual: perde-se o
+       * ganho, não a proteção.
+       */
+      const checksumLocal = crc32cBase64(new Uint8Array(await arquivo.arrayBuffer()));
+      const { data: estudoExistente } = await supabase
+        .from('wp_estudo')
+        .select('id')
+        .eq('cliente_id', clienteId)
+        .eq('ordem_servico_id', ordemServicoId)
+        .eq('excluido', false)
+        .maybeSingle();
+
+      if (estudoExistente) {
+        /*
+         * **A revisão descartada conta como repetida**, e a conferência não pode
+         * filtrar `excluido`. Quem impede de verdade é a `unique (estudo_id,
+         * checksum)`, e ela não sabe o que é descarte: enquanto esta consulta
+         * escondia a descartada, o arquivo subia, a RPC deixava passar e quem
+         * recusava era a constraint, devolvendo o texto cru do Postgres num toast
+         * vermelho e deixando o binário órfão no bucket.
+         */
+        const { data: repetida } = await supabase
+          .from('wp_importacao')
+          .select('versao, excluido')
+          .eq('estudo_id', estudoExistente.id)
+          .eq('checksum', checksumLocal)
+          .maybeSingle();
+
+        if (repetida) {
+          throw new Error(mensagemDeRepetido(repetida.versao, repetida.excluido));
+        }
+      }
+
+      /*
+       * O binário vai para o bucket da OSG, mas NÃO vira linha em
+       * `documento_arquivo`: aquela tabela é listada sem filtro de área nas telas
+       * de documento do cliente, e o WP apareceria no explorador junto com RG e
+       * matrícula. O que se reusa é o mecanismo, e o `finalize` devolve o
+       * checksum que impede subir o mesmo arquivo duas vezes.
+       */
+      const gcs = await subirArquivoGcs(fetchWithAuth, {
+        clienteId,
+        file: arquivo,
+        categoria: 'outros',
+      });
+
+      const { data, error } = await supabase.rpc('importar_wp', {
+        _cliente_id: clienteId,
+        _ordem_servico_id: ordemServicoId,
+        _gcs_uri: gcs.gcs_uri,
+        _nome_original: arquivo.name,
+        _mime: gcs.mime ?? arquivo.type,
+        _tamanho: gcs.tamanho,
+        _checksum: gcs.checksum,
+        _versao_do_mapa: analise.versaoDoMapa,
+        _conteudo: montaConteudo(analise) as unknown as Json,
+        ...(descricao ? { _descricao: descricao } : {}),
+      });
+      if (error) throw new Error(explicaRecusaDoBanco(error));
+
+      return data as unknown as RevisaoGravada;
+    },
+
+    onSuccess: async (revisao, args) => {
+      /*
+       * A auditoria registra a IMPORTAÇÃO, e não os milhares de valores: um
+       * registro por linha afogaria o log e ninguém leria nenhum. O que interessa
+       * rastrear é quem trouxe qual arquivo, em que versão e com que régua.
+       */
+      await logAction({
+        area: 'dev',
+        entity_type: 'wp_importacao',
+        entity_id: revisao.importacao_id,
+        entity_name: `${args.arquivo.name} (versão ${revisao.versao})`,
+        action: 'created',
+        details:
+          `Papel de trabalho importado com o mapa ${args.analise.versaoDoMapa}. ` +
+          `Gravados: ${Object.entries(revisao.gravados)
+            .map(([bloco, n]) => `${n} de ${bloco}`)
+            .join(', ')}.` +
+          (args.analise.decisao.avisos.length
+            ? ` Entrou com ${args.analise.decisao.avisos.length} aviso(s).`
+            : ''),
+      });
+
+      await queryClient.invalidateQueries({ queryKey: ['wp_estudo', args.clienteId] });
+      await queryClient.invalidateQueries({ queryKey: ['wp_importacao', revisao.estudo_id] });
+    },
+  });
+}
+
+/** Uma apresentação já gerada, para a lista de histórico. */
+export interface ApresentacaoGerada {
+  id: string;
+  versao: number;
+  nome_arquivo: string;
+  storage_path: string;
+  tamanho: number | null;
+  template_nome: string;
+  /** Quantos avisos a geração registrou. Zero é geração limpa. */
+  problemas: number;
+  created_at: string;
+}
+
+/**
+ * As apresentações geradas a partir de uma revisão, da mais nova para a mais velha.
+ *
+ * `problemas` vem contado aqui porque a coluna é `jsonb`: contar na tela obrigaria
+ * a trazer o conteúdo inteiro de cada uma só para saber se está vazio.
+ */
+export function useApresentacoesDaRevisao(importacaoId: string | null) {
+  return useQuery({
+    queryKey: ['wp_apresentacao', importacaoId],
+    enabled: !!importacaoId,
+    queryFn: async (): Promise<ApresentacaoGerada[]> => {
+      const { data, error } = await supabase
+        .from('wp_apresentacao')
+        .select(
+          'id, versao, nome_arquivo, storage_path, tamanho, template_nome, problemas, created_at',
+        )
+        .eq('importacao_id', importacaoId as string)
+        .eq('excluido', false)
+        .order('versao', { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map((linha) => ({
+        ...linha,
+        problemas: Array.isArray(linha.problemas) ? linha.problemas.length : 0,
+      }));
+    },
+  });
+}
+
+/** O que a geração devolve, incluindo o que ficou por ajustar. */
+export interface ResultadoDaGeracao {
+  apresentacaoId: string;
+  versao: number;
+  nomeArquivo: string;
+  url: string | null;
+  problemas: { tipo: 'formatacao' | 'origem'; onde: string; detalhe: string }[];
+}
+
+/**
+ * Manda gerar os slides de uma revisão.
+ *
+ * **Só o id da revisão vai daqui.** Os números são lidos pela função direto do
+ * banco, e é isso que garante que o slide mostra o mesmo que a conferência
+ * aprovou: se a tela pudesse mandar valor, um número errado passaria sem deixar
+ * rastro.
+ */
+export function useGerarApresentacaoTributaria() {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async (importacaoId: string): Promise<ResultadoDaGeracao> => {
+      const { data, error } = await supabase.functions.invoke<ResultadoDaGeracao>(
+        'gerar-slides-tributarios',
+        { body: { importacaoId } },
+      );
+      if (error) throw error;
+      if (!data) throw new Error('A geração não devolveu resposta.');
+      return data;
+    },
+
+    onSuccess: async (resultado, importacaoId) => {
+      await logAction({
+        area: 'osg',
+        entity_type: 'wp_apresentacao',
+        entity_id: resultado.apresentacaoId,
+        entity_name: resultado.nomeArquivo,
+        action: 'created',
+        details:
+          `Apresentação tributária gerada (versão ${resultado.versao}).` +
+          (resultado.problemas.length ? ` ${resultado.problemas.length} ponto(s) a ajustar.` : ''),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['wp_apresentacao', importacaoId] });
+    },
+  });
+}
+
+/** Abre o arquivo já gerado, gerando um link novo porque o anterior expira. */
+export function useBaixarApresentacao() {
+  return useMutation({
+    mutationFn: async (storagePath: string): Promise<string> => {
+      const { data, error } = await supabase.storage
+        .from('wp-apresentacoes')
+        .createSignedUrl(storagePath, 60 * 5);
+      if (error) throw error;
+      if (!data?.signedUrl) throw new Error('Não consegui gerar o link do arquivo.');
+      return data.signedUrl;
+    },
+  });
+}
+
+/** Um projeto da OS, para o analista dizer a qual deles o papel de trabalho é. */
+export interface ProjetoDaOrdemDeServico {
+  id: string;
+  name: string;
+  status: string | null;
+  /**
+   * Se quem está usando a tela pode ligar o papel de trabalho a este projeto.
+   *
+   * **Sem isto o modal oferece projeto que a função vai recusar**, e o preço é
+   * uma revisão gravada sem vínculo. A regra é a mesma da função: ser líder,
+   * responsável ou membro. O projeto continua aparecendo na lista, marcado, em
+   * vez de desaparecer: esconder faria a pessoa achar que a OS tem menos
+   * projetos do que tem.
+   */
+  podeVincular: boolean;
+}
+
+/**
+ * Os projetos de uma ordem de serviço.
+ *
+ * **Uma OS tem vários projetos**, e é justamente isso que a PT-04 conserta: o
+ * Agro Amazônia tem Planejamento Tributário, Recuperação de Créditos e
+ * Levantamento de Créditos na mesma OS, e ninguém sabia a qual deles o papel de
+ * trabalho pertencia. Sem esta lista o aviso teria de ir para todos.
+ */
+export function useProjetosDaOrdemDeServico(ordemServicoId: string | null) {
+  const { user } = useAuth();
+  const meuId = user?.id ?? null;
+
+  return useQuery({
+    queryKey: ['org_projects_da_os', ordemServicoId, meuId],
+    enabled: !!ordemServicoId,
+    queryFn: async (): Promise<ProjetoDaOrdemDeServico[]> => {
+      const { data, error } = await supabase
+        .from('org_projects')
+        .select('id, name, status, leader_id, responsible_id, org_project_members(user_id)')
+        .eq('ordem_servico_id', ordemServicoId as string)
+        .order('name');
+      if (error) throw error;
+
+      return (data ?? []).map((p) => {
+        const membros = (p.org_project_members ?? []) as { user_id: string | null }[];
+        return {
+          id: p.id,
+          name: p.name,
+          status: p.status,
+          podeVincular:
+            meuId !== null &&
+            (p.leader_id === meuId ||
+              p.responsible_id === meuId ||
+              membros.some((m) => m.user_id === meuId)),
+        };
+      });
+    },
+  });
+}
+
+/** O que a função devolve: o vínculo feito e quanta gente foi avisada. */
+export interface VinculoDoProjeto {
+  projeto_id: string;
+  projeto: string;
+  versao: number;
+  eventos: number;
+  sinos: number;
+}
+
+/**
+ * Liga o planejamento a um projeto da OS, e avisa aquele projeto.
+ *
+ * **Passa por função, e não por `update` direto, por causa da regra de escrita.**
+ * A coluna `projeto_id` fica sob a policy herdada da PT-02, que é `team_member+`
+ * com cliente visível: qualquer pessoa do cluster mexia no planejamento de um
+ * projeto que não é dela. Testando com a identidade da `bi@` isso ficou claro. A
+ * regra combinada é estar LIGADO AO PROJETO, como líder, responsável ou membro,
+ * e ela vive dentro da função.
+ *
+ * **O aviso sai de lá também.** Um evento na thread do projeto, que o Feed
+ * mostra por ser a vista da mesma tabela, e um sino por pessoa ligada ao
+ * projeto, tirando quem subiu. Idempotente por revisão: retry não duplica.
+ *
+ * **Escrever é passo separado da importação, e não é descuido.** A RPC de
+ * importar cria o planejamento quando ele não existe, então na primeira revisão
+ * o id só existe depois dela voltar. E na segunda o vínculo já existe e o que se
+ * faz é confirmar ou trocar, que é escrita de qualquer jeito.
+ */
+export function useVincularProjetoAoPlanejamento() {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async (args: {
+      estudoId: string;
+      projetoId: string;
+      importacaoId: string;
+      clienteId: string;
+      nomeDoProjeto: string;
+    }): Promise<VinculoDoProjeto> => {
+      const { data, error } = await supabase.rpc('vincular_planejamento_ao_projeto', {
+        _estudo_id: args.estudoId,
+        _projeto_id: args.projetoId,
+        _importacao_id: args.importacaoId,
+      });
+      if (error) throw error;
+      return data as unknown as VinculoDoProjeto;
+    },
+
+    onSuccess: async (vinculo, args) => {
+      await logAction({
+        area: 'dev',
+        entity_type: 'wp_estudo',
+        entity_id: args.estudoId,
+        entity_name: vinculo.projeto,
+        action: 'updated',
+        details:
+          `Planejamento vinculado ao projeto "${vinculo.projeto}". ` +
+          `Avisos: ${vinculo.eventos} na conversa do projeto, ${vinculo.sinos} pessoa(s) notificada(s).`,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['wp_estudo', args.clienteId] });
+    },
+  });
+}

@@ -1,0 +1,28 @@
+{
+  "caso": "comentarios",
+  "cliente": "Grupo Aurora Agro",
+  "fatorDeAnonimizacao": 0.7134,
+  "comentarios": [
+    {
+      "cenario": "Cenário 01 (PFxPJ)",
+      "tributo": "IRPF",
+      "ordem": 1,
+      "texto": "Foi utilizado o saldo de prejuízo fiscal acumulado com base na declaração do exercício anterior.",
+      "origemCelula": "Cenário 01 (PFxPJ)!B13"
+    },
+    {
+      "cenario": "Cenário 01 (PFxPJ)",
+      "tributo": "IRPF",
+      "ordem": 2,
+      "texto": "A forma de tributação que se mostrou mais vantajosa foi o regime do lucro presumido.",
+      "origemCelula": "Cenário 01 (PFxPJ)!B14"
+    },
+    {
+      "cenario": "Cenário 01 (PFxPJ)",
+      "tributo": "PIS/Cofins",
+      "ordem": 1,
+      "texto": "Venda de soja no mercado interno - suspensão.",
+      "origemCelula": "Cenário 01 (PFxPJ)!B17"
+    }
+  ]
+}

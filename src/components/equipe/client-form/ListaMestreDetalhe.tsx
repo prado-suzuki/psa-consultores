@@ -22,7 +22,6 @@
 // dessa lógica que fez o mesmo defeito de navegação existir nas três.
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { useAcentoArea } from './acentoArea';
 
 /**
  * `Id` é genérico com padrão `number` porque as abas de cliente identificam a
@@ -49,6 +48,14 @@ export interface LinhaLista<Id extends string | number = number> {
 }
 
 export interface ListaMestreDetalheProps<Id extends string | number = number> {
+  /**
+   * Âncora do guia (`data-tour`) na casca.
+   *
+   * Fica aqui, e não nos botões de cada aba, porque a casca existe nos DOIS
+   * modos: em leitura não há "Adicionar contribuinte" para apontar, e o guia
+   * precisava de um alvo que sobrevivesse aos dois.
+   */
+  dataTour?: string;
   /** Cabeçalho da seção, com a contagem. Ex.: "OS - Ordem de Serviço (3)". */
   titulo: string;
   /** Botão de criar, quando o escopo permite. */
@@ -128,6 +135,7 @@ export interface ListaMestreDetalheProps<Id extends string | number = number> {
 
 export default function ListaMestreDetalhe<Id extends string | number = number>({
   titulo,
+  dataTour,
   acaoCriar,
   linhas,
   selecionadoId,
@@ -142,9 +150,9 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
   chaveDetalhe,
   children,
 }: ListaMestreDetalheProps<Id>) {
-  const acento = useAcentoArea();
   return (
     <section
+      data-tour={dataTour}
       className={cn(
         'bg-card rounded-xl border shadow-sm overflow-hidden',
         // Em pagina a casca precisa VIRAR item flex do pai e distribuir a altura
@@ -207,7 +215,7 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
                         'w-full px-3 py-2.5 text-left transition-colors',
                         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                         'border-l-2',
-                        selecionada ? acento.selecionado : 'border-l-transparent hover:bg-muted/60',
+                        selecionada ? 'bg-accent/5 border-l-primary' : 'border-l-transparent hover:bg-muted/60',
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">

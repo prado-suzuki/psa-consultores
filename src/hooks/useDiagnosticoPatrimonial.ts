@@ -165,13 +165,14 @@ export function useUpsertBem() {
     mutationFn: async ({
       values,
       original,
-      titular,
+      titulares,
     }: {
       values: BemInsert | BemUpdate;
       original?: BemRow | null;
       // Obrigatório ao criar bem não-imóvel (PS/AP/OU); ignorado no update e nos
-      // imóveis (cujos titulares vivem na matrícula).
-      titular?: TitularInicial;
+      // imóveis (cujos titulares vivem na matrícula). O primeiro entra junto do
+      // bem, na RPC atômica; os demais no insert em lote logo depois.
+      titulares?: TitularInicial[];
     }) => {
       if (original?.id) {
         const { data, error } = await supabase
@@ -183,18 +184,21 @@ export function useUpsertBem() {
         if (error) throw error;
         return { row: data as BemRow, original };
       }
-      if (titular?.titular_pessoa_id) {
+      const [primeiro, ...demais] = titulares ?? [];
+      if (primeiro?.titular_pessoa_id) {
         // Inserção atômica bem + titularidade (rollback se o titular falhar).
         const { data, error } = await supabase.rpc('criar_bem_com_titular', {
           bem_data: values as unknown as Json,
           titular_data: {
-            titular_pessoa_id: titular.titular_pessoa_id,
-            tipo: titular.tipo,
-            fracao: titular.fracao,
+            titular_pessoa_id: primeiro.titular_pessoa_id,
+            tipo: primeiro.tipo,
+            fracao: primeiro.fracao,
           } as unknown as Json,
         });
         if (error) throw error;
-        return { row: data as BemRow, original: null };
+        const row = data as BemRow;
+        await inserirTitularesRestantes({ bem_id: row.id }, demais);
+        return { row, original: null };
       }
       const { data, error } = await supabase
         .from('bem')
@@ -396,6 +400,33 @@ export interface TitularInicial {
   fracao: number | null;
 }
 
+/**
+ * Os titulares além do primeiro, num insert só.
+ *
+ * O primeiro entra pela RPC, junto da linha do bem/matrícula, porque é ele que
+ * define o cliente e não pode existir entidade sem titular nem por um instante.
+ * Os demais são um `insert` em lote — uma instrução, portanto tudo ou nada entre
+ * eles. Se ESTE falhar, a entidade já está criada com um titular: o erro sobe,
+ * o cadastro fica na tela de edição e a aba de titularidade recebe o resto. É a
+ * troca aceita para não mexer na assinatura da RPC, que vive fora do repositório
+ * (produção só recebe DDL por passo humano).
+ */
+async function inserirTitularesRestantes(
+  ancora: { matricula_id: string } | { bem_id: string },
+  titulares: TitularInicial[],
+): Promise<void> {
+  if (titulares.length === 0) return;
+  const { error } = await supabase.from('titularidade').insert(
+    titulares.map((titular) => ({
+      ...ancora,
+      titular_pessoa_id: titular.titular_pessoa_id,
+      tipo: titular.tipo,
+      fracao: titular.fracao,
+    })) as RawTitularidadeInsert[],
+  );
+  if (error) throw error;
+}
+
 export function useUpsertMatricula() {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
@@ -404,12 +435,14 @@ export function useUpsertMatricula() {
     mutationFn: async ({
       values,
       original,
-      titular,
+      titulares,
     }: {
       values: MatriculaInsert | MatriculaUpdate;
       original?: MatriculaRow | null;
-      // Obrigatório no create; ignorado no update (titulares editados pela aba própria).
-      titular?: TitularInicial;
+      // Obrigatório no create; ignorado no update (titulares editados pela aba
+      // própria). O primeiro da lista é o que define o cliente da matrícula e
+      // entra junto dela, na RPC atômica.
+      titulares?: TitularInicial[];
     }) => {
       if (original?.id) {
         const { data, error } = await supabase
@@ -421,20 +454,23 @@ export function useUpsertMatricula() {
         if (error) throw error;
         return { row: data as MatriculaRow, original };
       }
-      if (!titular?.titular_pessoa_id) {
+      const [primeiro, ...demais] = titulares ?? [];
+      if (!primeiro?.titular_pessoa_id) {
         throw new Error('Titular é obrigatório para cadastrar uma matrícula');
       }
       // Inserção atômica matrícula + titularidade (rollback se o titular falhar).
       const { data, error } = await supabase.rpc('criar_matricula_com_titular', {
         matricula_data: values as unknown as Json,
         titular_data: {
-          titular_pessoa_id: titular.titular_pessoa_id,
-          tipo: titular.tipo,
-          fracao: titular.fracao,
+          titular_pessoa_id: primeiro.titular_pessoa_id,
+          tipo: primeiro.tipo,
+          fracao: primeiro.fracao,
         } as unknown as Json,
       });
       if (error) throw error;
-      return { row: data as MatriculaRow, original: null };
+      const row = data as MatriculaRow;
+      await inserirTitularesRestantes({ matricula_id: row.id }, demais);
+      return { row, original: null };
     },
     onSuccess: async ({ row, original }) => {
       queryClient.invalidateQueries({ queryKey: ['matriculas-by-bem', row.bem_id] });
@@ -754,8 +790,23 @@ export function useDeleteTitularidade() {
 
   return useMutation({
     mutationFn: async (titularidade: TitularidadeRow) => {
-      const { error } = await supabase.from('titularidade').delete().eq('id', titularidade.id);
+      // `.select()` no delete não é enfeite: quando a RLS recusa a exclusão, o
+      // Postgres não devolve erro — devolve ZERO linhas. Sem conferir isso, o
+      // sucesso era anunciado, a lista era invalidada e o titular reaparecia,
+      // que é exatamente o "não consigo deletar" relatado. A política hoje pede
+      // team_member (ver migration `titularidade_delete_team_member`); a recusa
+      // que sobra é de cluster, e a frase é a mesma para as duas.
+      const { data, error } = await supabase
+        .from('titularidade')
+        .delete()
+        .eq('id', titularidade.id)
+        .select('id');
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error(
+          'A exclusão foi recusada pelo banco. Você não tem permissão para remover a titularidade deste cliente.',
+        );
+      }
       return titularidade;
     },
     onSuccess: async (titularidade) => {

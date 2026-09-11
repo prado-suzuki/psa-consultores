@@ -10,6 +10,14 @@ export interface AreaEquipeGroup {
 export interface AreaGroup {
   area_id: string;
   area_name: string;
+  /**
+   * Cluster da área. É por ele que a caixa de Membros recorta a lista quando o
+   * projeto tem equipe e o multidisciplinar está desligado: cluster é o que
+   * decide em que quadro o projeto aparece (ver `org_project_cluster_ids`), então
+   * é a fronteira que deixa escolher as outras equipes da casa sem republicar o
+   * projeto no quadro de outra área. Nulo só no grupo sintético "Outros".
+   */
+  cluster_id: string | null;
   cluster_name: string;
   members: Array<{ id: string; first_name: string; last_name: string }>;
   equipes: AreaEquipeGroup[];
@@ -76,17 +84,19 @@ export const useTeamMembersByArea = () => {
       type AreaScratch = {
         area_id: string;
         area_name: string;
+        cluster_id: string | null;
         cluster_name: string;
         membersById: Map<string, Profile>;
         equipesById: Map<string, { equipe_id: string; equipe_name: string; membersById: Map<string, Profile> }>;
       };
 
       const areaScratch = new Map<string, AreaScratch>();
-      const ensureArea = (areaId: string, areaName: string, clusterName: string): AreaScratch => {
+      const ensureArea = (areaId: string, areaName: string, clusterId: string | null, clusterName: string): AreaScratch => {
         if (!areaScratch.has(areaId)) {
           areaScratch.set(areaId, {
             area_id: areaId,
             area_name: areaName,
+            cluster_id: clusterId,
             cluster_name: clusterName,
             membersById: new Map(),
             equipesById: new Map(),
@@ -106,7 +116,7 @@ export const useTeamMembersByArea = () => {
         if (!profile) continue;
         const areasOfUser = userAreaEquipes.get(userId);
         if (!areasOfUser || areasOfUser.size === 0) {
-          const outros = ensureArea('__none__', 'Outros', '');
+          const outros = ensureArea('__none__', 'Outros', null, '');
           outros.membersById.set(userId, profile);
           continue;
         }
@@ -114,7 +124,7 @@ export const useTeamMembersByArea = () => {
           const area = areaById.get(areaId);
           if (!area) continue;
           const clusterName = clusterById.get(area.cluster_id) || '';
-          const a = ensureArea(areaId, area.name || 'Área sem nome', clusterName);
+          const a = ensureArea(areaId, area.name || 'Área sem nome', area.cluster_id ?? null, clusterName);
           a.membersById.set(userId, profile);
           for (const equipeId of equipeIds) {
             const equipe = equipeById.get(equipeId);
@@ -131,6 +141,7 @@ export const useTeamMembersByArea = () => {
       const groups: AreaGroup[] = Array.from(areaScratch.values()).map((a) => ({
         area_id: a.area_id,
         area_name: a.area_name,
+        cluster_id: a.cluster_id,
         cluster_name: a.cluster_name,
         members: Array.from(a.membersById.values()).sort(byName),
         equipes: Array.from(a.equipesById.values())

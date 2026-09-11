@@ -304,6 +304,7 @@ const ProcessoDifal = () => {
           onStartDateChange={handleStartDateChange}
           onEndDateChange={handleEndDateChange}
           onClear={handleClearFilters}
+          filtrosAtivos={[selectedCliente, selectedContribuinte, start_date !== defaultDates.inicio, end_date !== defaultDates.fim].filter(Boolean).length}
           onSearch={handleSearch}
         />
         <DifalSummaryActions

@@ -57,8 +57,11 @@ export function extractErrorMessage(error: unknown): string | null {
 
 const TASK_SAVE_FALLBACK = 'Não foi possível salvar a tarefa. Tente novamente.';
 
+// A lista tem de espelhar a whitelist do trigger `org_tasks_team_member_status_only`.
+// Contribuinte entrou nela em 26/08/2026 e o texto aqui tinha ficado atrás, dizendo
+// ao usuário que ele não podia mexer num campo que já salvava.
 const TEAM_MEMBER_STATUS_ONLY_MESSAGE =
-  'Esta tarefa foi criada por outra pessoa. Você pode alterar status, horas e revisor. ' +
+  'Esta tarefa foi criada por outra pessoa. Você pode alterar status, horas, revisor e contribuinte. ' +
   'Título, descrição e os demais campos só quem criou a tarefa pode mudar.';
 
 function normalizeForMatch(value: string): string {
@@ -143,8 +146,9 @@ export interface CadastroOperacao {
  * Fecho padrão de toda falha técnica que a pessoa não consegue corrigir sozinha.
  *
  * Exportado porque a mesma frase é o que substitui a mensagem crua do banco nos
- * guardas de exclusão fora do cadastro de cliente (o primeiro é o do PERDCOMP):
- * duas cópias do mesmo texto é o começo de duas redações do mesmo texto.
+ * guardas de exclusão fora do cadastro de cliente (o primeiro é o do PERDCOMP;
+ * depois vieram o painel de tarefas e o cadastro de projetos): duas cópias do
+ * mesmo texto é o começo de duas redações do mesmo texto.
  */
 export const FECHO_SUPORTE = 'Tente novamente. Se o problema continuar, entre em contato com o suporte.';
 const FECHO_ZERO_LINHAS = 'Os dados podem ter sido modificados. Atualize a página e tente novamente.';
@@ -344,10 +348,46 @@ const REGRAS_DE_NEGOCIO: Array<{
       detalhe: 'Remova o item duplicado e salve novamente.',
     },
   },
+  // As duas travas da exclusão de OS (tarefa 5 da sprint 13). Elas marcam que o
+  // trabalho aconteceu: enquanto existirem, apagar a OS deixa de ser desfazer um
+  // cadastro errado e passa a ser apagar serviço prestado.
+  //
+  // Os TÍTULOS são os fechados pela Patricia. Os DETALHES divergem do que ela
+  // sugeriu, e o motivo está medido: os dois diziam "Desvincule o projeto/a
+  // solicitação antes de excluir", e o sistema não oferece desvincular em
+  // nenhum dos dois casos.
+  //   - projeto: a OS do projeto é uma lista de clique-para-selecionar
+  //     (`ProjetoOsProdutoFields.tsx`), sem opção de limpar. Dá para apontar
+  //     para OUTRA OS do mesmo cliente, ou excluir o projeto.
+  //   - solicitação: o vínculo é gravado uma única vez, com
+  //     `.is('ordem_servico_id', null)` (`useDomainSolicitacao.ts`), e nenhum
+  //     caminho do código o devolve para nulo. Não há ação do consultor aqui,
+  //     então a saída é o suporte.
+  {
+    constraints: ['org_projects_ordem_servico_id_fkey'],
+    texto: {
+      titulo: 'Esta OS tem projeto vinculado.',
+      detalhe: 'Aponte o projeto para outra ordem de serviço, ou exclua o projeto, antes de excluir esta OS.',
+    },
+  },
+  {
+    constraints: ['solicitacao_ordem_servico_id_fkey'],
+    texto: {
+      titulo: 'Esta OS tem solicitação de documentos vinculada.',
+      detalhe: 'A solicitação não pode ser desvinculada da OS. Entre em contato com o suporte da PSA Digital.',
+    },
+  },
 ];
 
-/** Códigos em que vale procurar regra: check, unicidade e `RAISE EXCEPTION` nosso. */
-const CODIGOS_DE_REGRA = ['23514', '23505', 'P0001'];
+/**
+ * Códigos em que vale procurar regra: check, unicidade, `RAISE EXCEPTION` nosso
+ * e violação de chave estrangeira.
+ *
+ * `23503` entrou com as travas da exclusão de OS: sem ele a recusa do projeto
+ * vinculado cairia em Falha genérica, escondendo o motivo que a pessoa
+ * consegue resolver.
+ */
+const CODIGOS_DE_REGRA = ['23514', '23505', 'P0001', '23503'];
 
 /**
  * Recusas de permissão em que o motivo **é** o cargo, com certeza.

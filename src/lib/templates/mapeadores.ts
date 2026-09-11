@@ -1,8 +1,8 @@
-import { cardinalExtenso, formatarArea, formatarInteiro, formatarPercentual, formatarValor, letraAlinea, romano, valorExtenso, type UnidadeArea } from './extenso';
+import { cardinalExtenso, dataExtenso, formatarArea, formatarInteiro, formatarPercentual, formatarValor, letraAlinea, romano, valorExtenso, type UnidadeArea } from './extenso';
 import { capitalDeQuotas, quotasDeValor, quotasDoSocio, VALOR_NOMINAL_QUOTA } from './capital';
 import { comarcaComplementar, CARTORIO_SEM_NOME, nomeDoCartorio } from './cartorio';
 import { marcarSintetizados } from './sintetizado';
-import { generoDeConcordancia, ufPorExtenso } from './concordancia';
+import { generoDeConcordancia, ufComPreposicao, ufPorExtenso } from './concordancia';
 import { comOrigem } from './origem';
 import { camposDaEntidade, derivarCampos, numeroProsa } from './vocabulario';
 import type { Binding, BindingLista } from './binding';
@@ -10,15 +10,24 @@ import type { Contexto } from './types';
 import type { TipoEntidade } from './vocabulario';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { BemRow, CartorioRow } from '@/hooks/useDiagnosticoPatrimonial';
+import { GRAVAMES, type Gravame } from '@/lib/osg/doacaoDeQuotas';
+import { conferirSomasDoUsufruto, montarUsufruto } from '@/lib/osg/usufrutoDoAto';
 
 // Mapeadores puros (sem React): convertem uma linha do cadastro nos campos do
 // vocabulário da entidade correspondente, já com os derivados (extensos via
 // extenso.ts e concordância via concordancia.ts, ambos aplicados por derivarCampos).
 
-type Campos = Record<string, string>;
+export type Campos = Record<string, string>;
 
 /** Acumula só valores presentes — campo ausente deixa o placeholder "não resolvido" (falha cedo). */
-function coletor() {
+/**
+ * Coletor de campos que IGNORA nulo/vazio: campo ausente não vira a string
+ * "null", e o que sobra é preenchido depois por `publicarOpcionais`. Exportado
+ * para os mapeadores de domínio que moram em arquivos irmãos (contrato rural)
+ * publicarem com a mesma disciplina — duas regras de publicação fariam o mesmo
+ * campo ausente sumir num documento e virar "undefined" no outro.
+ */
+export function coletor() {
   const out: Campos = {};
   const set = (chave: string, valor: unknown) => {
     if (valor !== null && valor !== undefined && valor !== '') out[chave] = String(valor);
@@ -31,10 +40,22 @@ const TIPO_BEM_LABEL: Record<string, string> = {
   PS: 'Participação Societária', OU: 'Outros',
 };
 
-/** 'AAAA-MM-DD' (ISO do banco) → 'DD/MM/AAAA', sem passar por Date (evita fuso). */
-function formatarDataBR(iso: string | null): string {
+/**
+ * 'AAAA-MM-DD' (ISO do banco) → 'DD/MM/A.AAA', sem passar por Date (evita fuso).
+ *
+ * Exportada em 01/09/2026 para o `contextoRural.ts` usar a MESMA função em vez de
+ * escrever a sua: data formatada de dois jeitos diferentes no mesmo documento é o
+ * tipo de divergência que ninguém encontra lendo código.
+ *
+ * O ANO SAI COM O PONTO DE MILHAR ("23/05/1.957"), que é como a casa escreve.
+ * Contado em 02/09/2026 sobre os assinados — os dois instrumentos agrários do MMS,
+ * os dois Contratos Sociais e o Condomínio: 24 datas com o ponto contra 3 sem, e
+ * as três sem estão todas no mesmo arquivo. Não é enfeite: sem o ponto a data
+ * gerada destoa da data escrita à mão na mesma página.
+ */
+export function formatarDataBR(iso: string | null): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso ?? '');
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso ?? '');
+  return m ? `${m[3]}/${m[2]}/${m[1].slice(0, 1)}.${m[1].slice(1)}` : (iso ?? '');
 }
 
 /**
@@ -49,10 +70,23 @@ function semPontoFinal(texto: string | null): string | null {
   return podado === '' ? texto : podado;
 }
 
-/** Prefixa "bairro" salvo quando o valor já é zona/distrito ("zona rural" fica como está). */
+/**
+ * Prefixa "Bairro" — com maiúscula, e inclusive na zona rural.
+ *
+ * Os dois assinados escrevem "Bairro" 10 vezes e "bairro" nenhuma, e o mesmo vale
+ * nos Contratos Sociais (20 contra 2). A zona rural também leva o prefixo: a sede
+ * da MMS Agro sai como "Fazenda Capuaba, s/n.º, *Bairro* Zona Rural" no preâmbulo
+ * assinado — a guarda anterior, que deixava "zona" passar sem prefixo, comia a
+ * palavra.
+ *
+ * "Distrito" continua sem prefixo: não há caso no corpus, e "Bairro Distrito
+ * Industrial" seria uma afirmação que nenhum documento assinado sustenta.
+ */
 function bairroProsa(bairro: string | null): string {
   if (!bairro) return '';
-  return /^(zona|distrito|bairro)\b/i.test(bairro.trim()) ? bairro : `bairro ${bairro}`;
+  const limpo = bairro.trim();
+  if (/^bairro\b/i.test(limpo)) return `Bairro${limpo.slice('bairro'.length)}`;
+  return /^distrito\b/i.test(limpo) ? limpo : `Bairro ${limpo}`;
 }
 
 /**
@@ -71,8 +105,11 @@ interface PartesEndereco {
 }
 
 /**
- * Endereço no formato de prosa dos contratos: "Rua X, nº 119, bairro Centro,
- * no município de Cuiabá, Estado de Mato Grosso, CEP: 78000-000".
+ * Endereço no formato de prosa dos contratos: "Rua X, n.º 119, Bairro Centro,
+ * no município de Cuiabá, Estado de Mato Grosso, CEP 78000-000".
+ *
+ * O CEP vem SEM dois-pontos: nenhum dos cinco assinados usa "CEP:" (34 ocorrências
+ * de "CEP 78…" contra zero).
  */
 function enderecoProsa(row: PartesEndereco): string {
   return [
@@ -81,8 +118,12 @@ function enderecoProsa(row: PartesEndereco): string {
     row.endereco_complemento,
     bairroProsa(row.endereco_bairro),
     row.endereco_municipio ? `no município de ${row.endereco_municipio}` : '',
-    row.endereco_uf ? `Estado de ${ufPorExtenso(row.endereco_uf)}` : '',
-    row.endereco_cep ? `CEP: ${row.endereco_cep}` : '',
+    // "Estado da Bahia", não "Estado de Bahia": a regência é do nome do estado, e
+    // dezesseis das vinte e sete unidades da federação não aceitam o "de" seco.
+    // Aqui isso pesa mais que em outros pontos, porque o endereço aparece na
+    // qualificação de CADA parte — um contrato com cinco pessoas erra cinco vezes.
+    row.endereco_uf ? `Estado ${ufComPreposicao(row.endereco_uf)}` : '',
+    row.endereco_cep ? `CEP ${row.endereco_cep}` : '',
   ].filter(Boolean).join(', ');
 }
 
@@ -101,7 +142,7 @@ function enderecoProsa(row: PartesEndereco): string {
  * cadastro não o tem, e o placeholder falha cedo em vez de deixar o documento
  * sair mudo no dado que o identifica.
  */
-function publicarOpcionais(tipo: TipoEntidade, campos: Campos): Campos {
+export function publicarOpcionais(tipo: TipoEntidade, campos: Campos): Campos {
   for (const campo of camposDaEntidade(tipo)) {
     if (!campo.obrigatorio) campos[campo.id] = campos[campo.id] ?? '';
   }
@@ -123,11 +164,20 @@ export function mapearPessoa(row: PessoaRow): Campos {
   set('rg', row.documento_identidade_numero);
   set('orgaoExpedidor', [row.documento_identidade_orgao, row.documento_identidade_uf].filter(Boolean).join('/'));
   set('genero', row.genero);
+  // Estavam no cadastro e não chegavam ao documento: é o que faltava para o
+  // preâmbulo dizer "natural de São Paulo/SP" e "filho de X e Y".
+  set('naturalidadeMunicipio', row.naturalidade_municipio);
+  set('naturalidadeUf', row.naturalidade_uf);
+  set('filiacaoPai', row.filiacao_pai);
+  set('filiacaoMae', row.filiacao_mae);
 
   set('endereco', enderecoProsa(row));
 
   // A origem sobrevive aos spreads a jusante (derivarCampos, mapearSocio,
-  // edição manual na Gerar) — é o que liga o valor na prévia ao cadastro.
+  // edição manual na Gerar) e ao JSON do snapshot — é o que liga o valor na
+  // prévia ao cadastro e o que dá identidade estável à pessoa dentro da peça.
+  // NÃO existe `set('id', row.id)` aqui: identidade se grava num lugar só
+  // (`comOrigem`, em origem.ts), senão o oitavo mapeador esquece.
   return comOrigem(derivarCampos('pessoa', publicarOpcionais('pessoa', out)), { tipo: 'pessoa', id: row.id });
 }
 
@@ -254,6 +304,12 @@ export function mapearSociedade(
   set('objeto', row.objeto_social);
   set('sede', enderecoProsa(row));
   set('sedeEndereco', [row.endereco_logradouro, numeroProsa(row.endereco_numero)].filter(Boolean).join(', '));
+  // As três partes que `sedeEndereco` funde: é por elas que a alteração
+  // contratual compara a sede registrada com a atual campo a campo, em vez de
+  // adivinhar numa prosa o que mudou (ver alteracaoPorEventos.ts).
+  set('sedeLogradouro', row.endereco_logradouro);
+  set('sedeNumero', row.endereco_numero);
+  set('sedeComplemento', row.endereco_complemento);
   set('sedeBairro', row.endereco_bairro);
   set('sedeMunicipio', row.endereco_municipio);
   set('sedeUf', row.endereco_uf);
@@ -525,7 +581,7 @@ export function mapearCartorio(row: CartorioRow): Campos {
   set('nome', row.nome_completo);
   set('comarca', row.comarca);
   set('uf', ufPorExtenso(row.uf));
-  return derivarCampos('cartorio', out);
+  return comOrigem(derivarCampos('cartorio', out), { tipo: 'cartorio', id: row.id });
 }
 
 // --- Itens de lista (seções {{#socios}} / {{#administradores}}) ---------------
@@ -674,7 +730,7 @@ export interface MatriculaIntegralizacao extends MatriculaParaMapear {
 
 /** Participação derivada de uma pessoa no quadro da empresa PR (visão calculada). */
 export interface ParticipacaoPR {
-  /** null para titular legado sem pessoa vinculada (agregado pela denominação). */
+  /** null para titular legado sem pessoa vinculada: exige conciliação. */
   pessoaId: string | null;
   denominacao: string;
   tipoPessoa: string | null;
@@ -765,14 +821,15 @@ export function calcularParticipacoesPR(matriculas: MatriculaIntegralizacao[]): 
     tipoPessoa: string | null; cpfCnpj: string | null;
     cent: number;
   }
-  const porChave = new Map<string, Acumulado>();
+  const porChave = new Map<string | TitularParaMapear, Acumulado>();
 
   for (const m of matriculas) {
     const centDe = ratearMatriculaEntreTitulares(m);
     if (centDe == null) continue;
 
     for (const t of centDe.keys()) {
-      const chave = t.pessoaId ?? `nome:${t.denominacao ?? ''}`;
+      // Sem vínculo, conserva a linha separada até conciliação; nome não é id.
+      const chave = t.pessoaId || t;
       const atual = porChave.get(chave);
       if (atual) {
         atual.cent += centDe.get(t) ?? 0;
@@ -1000,12 +1057,26 @@ export function mapearIntegralizacoes(
     for (const id of ['quotas', 'quotasExtenso', 'vlrTotal', 'vlrTotalExtenso']) {
       socioCampos[id] = socioCampos[id] ?? '';
     }
+    const aportesDoAto = montarAportesDoSocio(aportesDoSocio, doSocio, imoveis);
+    // O cabeçalho anuncia o total DESTE ato, que é a soma das alíneas logo
+    // abaixo dele — e não o `vlrTotal` que `mapearSocio` trouxe do quadro.
+    //
+    // Na constituição os dois coincidem, e foi por isso que a diferença passou
+    // despercebida. Num aumento posterior não coincidem: medido no app em
+    // 09/09/2026, a peça saía "pelo sócio OTÁVIO PANTANAL, no valor total de
+    // R$ 500.000,00" (o total dele DEPOIS do aumento) sobre uma única alínea de
+    // R$ 200.000,00 (o aporte do ato). O documento se contradizia sozinho.
+    const totalDoAto = somaDasAlineas(aportesDoAto);
+    if (totalDoAto != null) {
+      socioCampos.vlrTotal = formatarValor(totalDoAto);
+      socioCampos.vlrTotalExtenso = valorExtenso(totalDoAto);
+    }
     itens.push({
       socio: socioCampos,
       sePF: base.sePF,
       sePJ: base.sePJ,
       imoveis,
-      aportes: montarAportesDoSocio(aportesDoSocio, doSocio, imoveis),
+      aportes: aportesDoAto,
     });
   }
 
@@ -1037,6 +1108,39 @@ export function matriculasDescritasNasIntegralizacoes(
 }
 
 /** Os campos comuns a toda alínea de aporte, seja qual for a forma. */
+/**
+ * O número por trás de um valor que ESTE módulo formatou ("1.234,56" → 1234.56).
+ *
+ * Só serve para reler a própria saída, e é por isso que pode ser simples: o
+ * formato é o de `formatarValor`, não entrada de usuário.
+ */
+function numeroDeValorBR(valor: unknown): number | null {
+  if (typeof valor !== 'string' || !valor.trim()) return null;
+  const n = Number(valor.replace(/\./g, '').replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * A soma das alíneas de um sócio, quando alguma delas tem valor.
+ *
+ * É o número que o CABEÇALHO da integralização tem de anunciar: a cláusula diz
+ * "integralizam-se as quotas subscritas, nos termos e pelos valores abaixo" e
+ * abre com "no valor total de R$ X:", seguido das alíneas. X é a soma delas, por
+ * definição. Devolve null quando nenhuma alínea tem valor, e aí o cabeçalho fica
+ * com o que tinha.
+ */
+function somaDasAlineas(aportes: readonly ItemLista[]): number | null {
+  let total = 0;
+  let achou = false;
+  for (const item of aportes) {
+    const n = numeroDeValorBR((item.aporte as Campos | undefined)?.valor);
+    if (n == null) continue;
+    total += n;
+    achou = true;
+  }
+  return achou ? total : null;
+}
+
 function camposDoAporte(alinea: string, quotas: number | null, valor: number | null): Campos {
   const out: Campos = { alinea };
   if (quotas != null) {
@@ -1193,9 +1297,46 @@ export interface CessaoParaMapear {
   valor: number;
   /** Doação (título gratuito) em vez de cessão onerosa. */
   doacao?: boolean;
+  quotasLegitima?: number | null;
+  quotasDisponivel?: number | null;
+  instrumentoData?: string | null;
   /** "neste ato representada por…" quando a ponta é PJ. */
   representanteCedente?: string | null;
   representanteCessionario?: string | null;
+}
+
+export interface OnusParaMapear {
+  movimentoId: string | null;
+  nuProprietarioId: string;
+  usufrutuarioIds: string[];
+  usufrutoOrigem: 'reserva' | 'instituicao' | null;
+  comVoto: boolean;
+  quotas: number;
+  gravames: Gravame[];
+}
+
+/** As coleções que o ATO publica: só o que esta peça formaliza. */
+export interface ListasDaDoacao {
+  doacoes: ItemLista[];
+  usufrutos: ItemLista[];
+  gravamesQuotas: ItemLista[];
+}
+
+/**
+ * As coleções de ESTADO: o ônus que a sociedade carrega hoje, tenha ou não sido
+ * criado por esta peça.
+ *
+ * A separação não é organização de código, é a decisão 2 do corpus: o gravame e
+ * o usufruto reaparecem em três pontos fixos de TODA consolidação seguinte,
+ * inclusive nas alterações que nada têm a ver com doação. Se saíssem das
+ * coleções do ato, a peça seguinte apagaria do contrato vigente um ônus que
+ * ninguém revogou.
+ */
+export interface EstadoDosOnus {
+  quadroUsufruto: ItemLista[];
+  gravamesVigentes: ItemLista[];
+  /** As três somas de `conferirSomasDoUsufruto`, já em frases para a folha. */
+  problemas: string[];
 }
 
 /**
@@ -1301,6 +1442,95 @@ export function vocabularioDaRetirada(retirantes: readonly PessoaRow[]): Campos 
   };
 }
 
+/**
+ * Itens da seção {{#requalificados}}: os sócios que esta alteração requalifica.
+ *
+ * Recebe CAMPOS já compostos (o estado proposto: base + o endereço aprovado), e
+ * não linhas de `pessoa` do banco. A diferença é a regra inteira desta frente —
+ * a resolução publica o que o consultor conferiu, não o cadastro de hoje.
+ */
+export function mapearRequalificados(pessoas: readonly Campos[]): ItemLista[] {
+  return pessoas.map((campos, i) => ({
+    requalificado: derivarCampos('pessoa', campos),
+    ordem: String(i + 1),
+    ordemRomana: romano(i + 1).toLowerCase(),
+  }));
+}
+
+/** Por que a qualificação mudou, na abertura da resolução. */
+export type CausaDaRequalificacao = 'mudanca_de_domicilio' | 'atualizacao_postal';
+
+const ABERTURA_DA_CAUSA: Record<CausaDaRequalificacao, string> = {
+  // Sem prefixo: a mudança de domicílio dispensa justificar-se, e é assim que a
+  // 1ª alteração da MMS Participações abre ("Altera-se os endereços dos sócios…").
+  mudanca_de_domicilio: '',
+  // Com prefixo, porque o CEP mudou sem ninguém sair do lugar, e o instrumento
+  // que não diz isso parece afirmar mudança de domicílio. É a abertura literal
+  // da 7ª da GMS e da 2ª da ITFD Participações.
+  atualizacao_postal:
+    'Em decorrência da atualização do Código de Endereçamento Postal — CEP, ',
+};
+
+/**
+ * A causa que vale para ESTA peça, na ordem de quem manda.
+ *
+ * A regra é uma só: quem manda é o que a peça GRAVOU, não o que a tela tem em
+ * mãos. O estado do assistente é rascunho de uma decisão ainda não tomada, e ele
+ * volta ao default a cada recarga da página. Ler dele fazia a resolução perder a
+ * abertura "Em decorrência da atualização do CEP" assim que alguém recarregava a
+ * tela, e o .docx sair sem ela mesmo com a causa postal gravada e o radio
+ * marcado: o texto discordava da escolha registrada na própria peça.
+ *
+ * `erro_material` não é gerável (`confirmarPropostaAC` recusa); se aparecer aqui
+ * é peça legada, e a abertura neutra é a leitura conservadora.
+ */
+export function causaDaRequalificacaoVigente(
+  ...candidatas: readonly (string | null | undefined)[]
+): CausaDaRequalificacao {
+  const escolhida = candidatas.find((c) => !!c);
+  return escolhida === 'atualizacao_postal' ? 'atualizacao_postal' : 'mudanca_de_domicilio';
+}
+
+/**
+ * As palavras da resolução de qualificação que concordam com QUANTOS e QUAIS
+ * sócios mudaram de endereço, e com a causa escolhida.
+ *
+ * Mesmo contrato do `vocabularioDaRetirada`, e pela mesma razão: o bloco imprime,
+ * o código concorda. Com a lista vazia os cinco campos saem VAZIOS, e não no
+ * plural — é o que faz `motivoDeDescarte` derrubar o bloco por 'lista-vazia' em
+ * vez de publicar "altera-se a qualificação dos sócios  , para fazer constar".
+ */
+export function vocabularioDaRequalificacao(
+  pessoas: readonly Readonly<Record<string, string | null | undefined>>[],
+  causa: CausaDaRequalificacao = 'mudanca_de_domicilio',
+): Campos {
+  if (pessoas.length === 0) {
+    return { causa: '', verbo: '', aQualificacao: '', titulo: '', objeto: '' };
+  }
+  const umSo = pessoas.length === 1;
+  const todasFemininas = pessoas.every(
+    (p) => generoDeConcordancia(
+      p.genero === 'F' || p.genero === 'M' ? p.genero : null,
+      p.tipoPessoa ?? null,
+    ) === 'F',
+  );
+  const abertura = ABERTURA_DA_CAUSA[causa] ?? '';
+  const verbo = umSo ? 'altera-se' : 'alteram-se';
+  return {
+    causa: abertura,
+    // A frase começa no verbo quando não há abertura; com ela, o verbo é meio de
+    // período e vai em minúscula.
+    verbo: abertura ? verbo : verbo.charAt(0).toLocaleUpperCase('pt-BR') + verbo.slice(1),
+    aQualificacao: umSo ? 'a qualificação' : 'as qualificações',
+    titulo: umSo
+      ? (todasFemininas ? 'da sócia' : 'do sócio')
+      : (todasFemininas ? 'das sócias' : 'dos sócios'),
+    objeto: umSo
+      ? (todasFemininas ? 'o atual endereço desta' : 'o atual endereço deste')
+      : (todasFemininas ? 'os atuais endereços destas' : 'os atuais endereços destes'),
+  };
+}
+
 export function mapearCessoes(cessoes: CessaoParaMapear[]): ItemLista[] {
   return cessoes.map((c, i) => {
     const cedente = mapearPessoa(c.cedente);
@@ -1335,6 +1565,232 @@ export function mapearCessoes(cessoes: CessaoParaMapear[]): ItemLista[] {
   });
 }
 
+/**
+ * Helpers comuns às coleções de ônus: a pessoa qualificada e o par
+ * quotas/extenso. A doação e o estado publicam os MESMOS números com nomes
+ * diferentes, e é a única forma de os dois nunca divergirem.
+ */
+function camposDaPessoaDoOnus(pessoa: PessoaRow): Campos {
+  return derivarCampos('pessoa', mapearPessoa(pessoa));
+}
+
+function quotasDoOnus(quotas: number) {
+  const inteiras = Math.round(quotas);
+  return {
+    quotas: formatarInteiro(inteiras),
+    quotasExtenso: cardinalExtenso(inteiras, true),
+  };
+}
+
+/** Item de gravame: o mesmo formato no ato ({{#gravamesQuotas}}) e no estado. */
+function itemDeGravame(
+  onus: OnusParaMapear,
+  posicao: number,
+  pessoaPorId: (id: string) => PessoaRow | null | undefined,
+): ItemLista[] {
+  if (onus.gravames.length === 0) return [];
+  const nuProprietario = pessoaPorId(onus.nuProprietarioId);
+  if (!nuProprietario) return [];
+  return [{
+    nuProprietario: camposDaPessoaDoOnus(nuProprietario),
+    gravame: {
+      ordem: String(posicao),
+      ordemRomana: romano(posicao).toLowerCase(),
+      ...quotasDoOnus(onus.quotas),
+      nomes: onus.gravames
+        .map((g) => GRAVAMES[g]?.label.toLocaleUpperCase('pt-BR') ?? g)
+        .join(', '),
+    },
+  }];
+}
+
+/**
+ * Coleções do ATO de doação: os pares, as reservas de usufruto e os gravames
+ * que ESTA peça cria. O estado da sociedade sai de `mapearEstadoDosOnus`.
+ */
+export function mapearListasDaDoacao(
+  doacoes: readonly CessaoParaMapear[],
+  onusAtivos: readonly OnusParaMapear[],
+  pessoaPorId: (id: string) => PessoaRow | null | undefined,
+): ListasDaDoacao {
+  const onusPorMovimento = new Map(
+    onusAtivos.filter((o) => o.movimentoId).map((o) => [o.movimentoId!, o]),
+  );
+
+  const itensDoacao = doacoes.map((d, i) => {
+    const quotas = Math.round(d.quotas);
+    const legitima = d.quotasLegitima == null ? null : Math.round(d.quotasLegitima);
+    const disponivel = d.quotasDisponivel == null ? null : Math.round(d.quotasDisponivel);
+    const data = formatarDataBR(d.instrumentoData ?? null);
+    return {
+      doador: camposDaPessoaDoOnus(d.cedente),
+      donatario: camposDaPessoaDoOnus(d.cessionario),
+      doacao: {
+        ordem: String(i + 1),
+        ordemRomana: romano(i + 1).toLowerCase(),
+        ...quotasDoOnus(quotas),
+        valor: formatarValor(d.valor),
+        valorExtenso: valorExtenso(d.valor),
+        quotasLegitima: legitima == null ? '' : formatarInteiro(legitima),
+        quotasLegitimaExtenso: legitima == null ? '' : cardinalExtenso(legitima, true),
+        quotasDisponivel: disponivel == null ? '' : formatarInteiro(disponivel),
+        quotasDisponivelExtenso: disponivel == null ? '' : cardinalExtenso(disponivel, true),
+        instrumentoData: data,
+        instrumentoDataExtenso: dataExtenso(data),
+      },
+      comOrigem: legitima != null && disponivel != null,
+      comInstrumento: !!data,
+    };
+  });
+
+  const onusDoAto = doacoes.flatMap((d) => {
+    const onus = onusPorMovimento.get(d.id);
+    return onus ? [onus] : [];
+  });
+  const usufrutos = onusDoAto.flatMap((onus, i) => {
+    if (onus.usufrutoOrigem !== 'reserva' || onus.usufrutuarioIds.length === 0) return [];
+    const nuProprietario = pessoaPorId(onus.nuProprietarioId);
+    const usufrutuarios = onus.usufrutuarioIds.flatMap((id) => {
+      const pessoa = pessoaPorId(id);
+      return pessoa ? [pessoa] : [];
+    });
+    if (!nuProprietario || usufrutuarios.length === 0) return [];
+    return [{
+      nuProprietario: camposDaPessoaDoOnus(nuProprietario),
+      usufruto: {
+        ordem: String(i + 1),
+        ordemRomana: romano(i + 1).toLowerCase(),
+        ...quotasDoOnus(onus.quotas),
+        usufrutuarioNomes: usufrutuarios.map((p) => p.denominacao ?? '').filter(Boolean).join(' e '),
+        usufrutuarioQualificacoes: usufrutuarios.map((p) => camposDaPessoaDoOnus(p).qualificacao).filter(Boolean).join('; e '),
+      },
+      comVoto: onus.comVoto,
+      semVoto: !onus.comVoto,
+    }];
+  });
+  const gravamesQuotas = onusDoAto.flatMap((onus, i) => itemDeGravame(onus, i + 1, pessoaPorId));
+
+  return { doacoes: itensDoacao, usufrutos, gravamesQuotas };
+}
+
+/**
+ * Itens da seção {{#usufrutosInstituidos}}: o usufruto que ALGUÉM CONCEDEU sobre
+ * quota que continua sendo dele.
+ *
+ * Coleção separada de `usufrutos` porque a direção do ato inverte, e a redação
+ * junto: na reserva quem doou guarda o voto ("reserva-se o usufruto"); aqui
+ * quem tem a quota o entrega, por ato próprio e guia própria, e nenhuma quota
+ * muda de mão. Misturar as duas faria o instrumento dizer o contrário do que
+ * aconteceu.
+ *
+ * Recebe já os ônus que ESTA peça formaliza: escolher quais é decisão de quem
+ * compõe a peça, não do mapeador.
+ */
+export function mapearUsufrutosInstituidos(
+  instituidos: readonly OnusParaMapear[],
+  pessoaPorId: (id: string) => PessoaRow | null | undefined,
+): ItemLista[] {
+  return instituidos.flatMap((onus, i) => {
+    if (onus.usufrutuarioIds.length === 0) return [];
+    const nuProprietario = pessoaPorId(onus.nuProprietarioId);
+    const usufrutuarios = onus.usufrutuarioIds.flatMap((id) => {
+      const pessoa = pessoaPorId(id);
+      return pessoa ? [pessoa] : [];
+    });
+    if (!nuProprietario || usufrutuarios.length === 0) return [];
+    return [{
+      nuProprietario: camposDaPessoaDoOnus(nuProprietario),
+      usufruto: {
+        ordem: String(i + 1),
+        ordemRomana: romano(i + 1).toLowerCase(),
+        ...quotasDoOnus(onus.quotas),
+        usufrutuarioNomes: usufrutuarios.map((p) => p.denominacao ?? '').filter(Boolean).join(' e '),
+        usufrutuarioQualificacoes: usufrutuarios
+          .map((p) => camposDaPessoaDoOnus(p).qualificacao).filter(Boolean).join('; e '),
+      },
+      comVoto: onus.comVoto,
+      semVoto: !onus.comVoto,
+    }];
+  });
+}
+
+/**
+ * O ESTADO DE ÔNUS da sociedade: o quadro de usufruto e voto, e os gravames
+ * vigentes. Sai de TODOS os ônus em vigor, não dos que esta peça cria, porque é
+ * o contrato consolidado que os republica a cada alteração.
+ *
+ * `capitalDeclarado` é o total de quotas que a sociedade declara (o mesmo que a
+ * cláusula de capital publica). Entra separado do somatório do quadro de
+ * propósito: é o único jeito de a primeira das três somas dizer alguma coisa.
+ * Passar `null` a desliga, para quem ainda não tem capital calculado.
+ */
+export function mapearEstadoDosOnus(
+  onusVigentes: readonly OnusParaMapear[],
+  socios: readonly SocioParaMapear[],
+  pessoaPorId: (id: string) => PessoaRow | null | undefined,
+  capitalDeclarado: number | null,
+): EstadoDosOnus {
+  const gravamesVigentes = onusVigentes.flatMap((onus, i) => itemDeGravame(onus, i + 1, pessoaPorId));
+
+  const concessoes = onusVigentes.flatMap((onus) => {
+    if (onus.usufrutuarioIds.length === 0) return [];
+    return [{
+      deId: onus.nuProprietarioId,
+      paraIds: onus.usufrutuarioIds,
+      quotas: BigInt(Math.round(onus.quotas)),
+      origem: onus.usufrutoOrigem === 'instituicao' ? 'instituicao' as const : 'reserva' as const,
+      comVoto: onus.comVoto,
+    }];
+  });
+  if (concessoes.length === 0) return { quadroUsufruto: [], gravamesVigentes, problemas: [] };
+
+  const participantes = socios.flatMap((s) => {
+    if (!s.pessoa.id) return [];
+    return [{
+      pessoaId: s.pessoa.id,
+      nome: s.pessoa.denominacao ?? s.pessoa.id,
+      quotas: BigInt(Math.round(quotasDoSocio(s.quotas, s.vlr_total) ?? 0)),
+    }];
+  });
+  // Quem só usufrui não está no quadro (o doador que zerou e se retirou), e
+  // precisa de linha para o voto dele aparecer. Entra com zero quotas: recebe
+  // voz e voto sem ter participação.
+  const participantesIds = new Set(participantes.map((p) => p.pessoaId));
+  for (const id of onusVigentes.flatMap((o) => [o.nuProprietarioId, ...o.usufrutuarioIds])) {
+    if (participantesIds.has(id)) continue;
+    const pessoa = pessoaPorId(id);
+    if (!pessoa) continue;
+    participantes.push({ pessoaId: id, nome: pessoa.denominacao ?? id, quotas: 0n });
+    participantesIds.add(id);
+  }
+
+  const somaDoQuadro = participantes.reduce((total, p) => total + p.quotas, 0n);
+  const capital = capitalDeclarado == null ? somaDoQuadro : BigInt(Math.round(capitalDeclarado));
+  const { linhas, totais } = montarUsufruto({ participantes, concessoes, capital });
+  const problemas = conferirSomasDoUsufruto(linhas, totais, capital).map((p) => p.mensagem);
+
+  const quadroUsufruto = linhas.flatMap((linha, i) => {
+    const titular = pessoaPorId(linha.pessoaId);
+    if (!titular) return [];
+    return [{
+      titular: camposDaPessoaDoOnus(titular),
+      usufruto: {
+        ordem: String(i + 1),
+        ordemRomana: romano(i + 1).toLowerCase(),
+        quotas: formatarInteiro(Number(linha.quotas)),
+        plena: formatarInteiro(Number(linha.plena)),
+        nua: formatarInteiro(Number(linha.nua)),
+        usufruto: formatarInteiro(Number(linha.usufruto)),
+        vozEVoto: formatarInteiro(Number(linha.vozEVoto)),
+        pctParticipacao: linha.pctParticipacao.replace('.', ','),
+        pctVozEVoto: linha.pctVozEVoto.replace('.', ','),
+      },
+    }];
+  });
+
+  return { quadroUsufruto, gravamesVigentes, problemas };
+}
+
 /** Linha de administração com a pessoa do administrador juntada. */
 export interface AdministradorParaMapear {
   pessoa: PessoaRow;
@@ -1360,7 +1816,11 @@ export function mapearAdministrador(a: AdministradorParaMapear): ItemLista {
 
 /** Pessoa que o consultor escolheu a dedo para a seção {{#partes}}, já mapeada. */
 export interface ParteSelecionada {
-  /** Id da pessoa no cadastro — a chave do mapa de quotas. */
+  /**
+   * Id da pessoa no cadastro. Serve à ORDENAÇÃO (chave do mapa de quotas e
+   * desempate de homônimos), não à identidade do item: quem carrega a identidade
+   * é `campos`, que sai de `mapearPessoa` já com a origem (ver origem.ts).
+   */
   id: string;
   /** Campos do vocabulário `pessoa` (de `mapearRegistro('pessoa', row)`). */
   campos: Campos;
@@ -1407,8 +1867,9 @@ export function mapearPartesSelecionadas(
   });
 
   return ordenadas.map((parte, i) => ({
-    // O spread preserva a proveniência da pessoa (viaja como Symbol — ver
-    // origem.ts): o valor continua clicável na prévia.
+    // O spread preserva a proveniência da pessoa (chaves reservadas — ver
+    // origem.ts): o valor continua clicável na prévia e a identidade viaja para
+    // o snapshot sem esta função repetir o `id` por conta própria.
     parte: {
       ...parte.campos,
       ordem: String(i + 1),
@@ -1433,9 +1894,19 @@ export function mapearRegistro(tipo: TipoEntidade, row: unknown): Campos {
       return mapearMatricula(row as MatriculaParaMapear);
     case 'cartorio':
       return mapearCartorio(row as CartorioRow);
+    case 'instrumento':
+      // Instrumento agrário: quem mapeia é `mapearInstrumentoRural`
+      // (contextoRural.ts), e ele importa ESTE arquivo (pessoa e matrícula). Pôr a
+      // seta de volta aqui criaria ciclo de import — e ciclo de inicialização já
+      // derrubou esta aplicação em produção uma vez (ver vite.config.ts). Quem
+      // despacha é `camposDoRegistro`, na tela Gerar, junto das listas do mesmo
+      // cadastro.
+      return {};
     case 'vertice':
-      // Vértice é sempre item de lista ({{#vertices}}), nunca binding unitário —
-      // não tem registro/seletor próprio. Ver mapearVertice.
+    case 'origemPosse':
+      // Sempre itens de lista ({{#vertices}}, {{#origensDaPosse}}), nunca binding
+      // unitário — não têm registro/seletor próprio. Ver mapearVertice e
+      // listasDoInstrumentoRural.
       return {};
   }
 }
@@ -1474,8 +1945,17 @@ function numeroBRDeTexto(bruto: string | null): string {
   return Number.isFinite(n) ? n.toLocaleString('pt-BR', { maximumFractionDigits: 4 }) : bruto;
 }
 
-/** Um vértice → item da seção {{#vertices}} ({ vertice: { codVertice, longitude, … } }). */
-export function mapearVertice(v: GeorefVerticeRow): ItemLista {
+/**
+ * Um vértice → item da seção {{#vertices}} ({ vertice: { codVertice, longitude, … } }).
+ *
+ * `idGeoref` (o `id_georef` do cabeçalho que trouxe estes vértices) existe para
+ * a identidade: o vértice é a única entidade do documento que NÃO tem linha de
+ * cadastro — vem do SIGEF pelo BigQuery —, e sozinho ele não sabe de qual
+ * memorial saiu. A chave é `<id_georef>:<código do vértice>`, que é o par que
+ * identifica a linha em `psa_osg.georef_detalhe`; sem cabeçalho (chamada que só
+ * tem a lista) o item entra sem origem, como qualquer dado sem procedência.
+ */
+export function mapearVertice(v: GeorefVerticeRow, idGeoref?: string | null): ItemLista {
   const { out, set } = coletor();
   // Coordenadas/azimute/altitude/distância ficam FIÉIS ao PDF (GMS, vírgula decimal).
   set('codVertice', v.cod_vertice);
@@ -1490,7 +1970,8 @@ export function mapearVertice(v: GeorefVerticeRow): ItemLista {
   // condicional/célula não derrubar a prévia.
   const vertice = derivarCampos('vertice', out);
   for (const c of camposDaEntidade('vertice')) vertice[c.id] = vertice[c.id] ?? '';
-  return { vertice };
+  const chave = v.cod_vertice || String(v.sequencia);
+  return { vertice: idGeoref && chave ? comOrigem(vertice, { tipo: 'vertice', id: `${idGeoref}:${chave}` }) : vertice };
 }
 
 /**

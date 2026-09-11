@@ -1,3 +1,4 @@
+import { sprintStatus } from '@/lib/sprintStatusColors';
 import { AlertTriangle, ArrowLeft, CalendarClock, Clock, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { EquipeSprintDetalhesController } from '@/hooks/useEquipeSprintDetalhesController';
-import { entregavelStatusColors } from '@/lib/entregavelStatusColors';
+import { ENTREGAVEL_STATUS_OPCOES } from '@/lib/entregavelStatusColors';
 
 const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -55,28 +56,17 @@ export function SprintHeaderFilters({
             variant={c.filterDate === 'overdue' ? 'default' : 'outline'}
             onClick={() => c.setFilterDate(c.filterDate === 'overdue' ? 'all' : 'overdue')}
             className={
-              c.filterDate === 'overdue' ? '' : 'border-red-300 text-red-700 hover:bg-red-50'
+              c.filterDate === 'overdue' ? '' : 'border-status-ajuste/40 text-status-ajuste hover:bg-status-ajuste/10'
             }
           >
             <AlertTriangle className="h-3 w-3 mr-1" />
             Atrasados ({c.sprintRisks.overdue.length})
           </Button>
-          <Badge
-            className={
-              c.sprint.status === 'active'
-                ? 'bg-primary/10 text-primary border-primary/20'
-                : c.sprint.status === 'completed'
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-muted text-gray-700'
-            }
-          >
-            {c.sprint.status === 'active'
-              ? 'Ativa'
-              : c.sprint.status === 'completed'
-                ? 'Concluída'
-                : c.sprint.status === 'planned'
-                  ? 'Planejada'
-                  : c.sprint.status}
+          {/* Mesma pílula da lista de sprints, do mesmo mapa: as duas cópias
+              que existiam aqui e no `EquipeSprints` tinham divergido, e o verde
+              dizia "ativa" numa tela e "concluída" na outra. */}
+          <Badge className={sprintStatus(c.sprint.status)?.badge}>
+            {sprintStatus(c.sprint.status)?.label ?? c.sprint.status}
           </Badge>
         </div>
       </div>
@@ -100,9 +90,9 @@ export function SprintHeaderFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos status</SelectItem>
-            <SelectItem value="pending">{entregavelStatusColors.pending.label}</SelectItem>
-            <SelectItem value="in_progress">Em Progresso</SelectItem>
-            <SelectItem value="completed">Concluído</SelectItem>
+            {ENTREGAVEL_STATUS_OPCOES.map((s) => (
+              <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={c.filterYear} onValueChange={c.changeYear}>
@@ -145,12 +135,12 @@ export function SprintHeaderFilters({
           </SelectContent>
         </Select>
         {c.hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={c.clearFilters} className="text-gray-500">
+          <Button variant="ghost" size="sm" onClick={c.clearFilters} className="text-muted-foreground">
             <X className="h-4 w-4 mr-1" /> Limpar
           </Button>
         )}
         {c.hasActiveFilters && (
-          <span className="text-sm text-gray-500 ml-auto">
+          <span className="text-sm text-muted-foreground ml-auto">
             {c.filteredDeliverables.length} de {c.deliverables.length} entregáveis
           </span>
         )}

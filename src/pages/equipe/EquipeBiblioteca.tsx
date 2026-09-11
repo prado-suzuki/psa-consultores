@@ -41,7 +41,7 @@ const getFileIcon = (fileType: string | null) => {
   if (fileType.includes('pdf')) return <FileText className="h-5 w-5 text-red-500" />;
   if (fileType.includes('sheet') || fileType.includes('excel')) return <FileSpreadsheet className="h-5 w-5 text-green-500" />;
   if (fileType.includes('image')) return <FileImage className="h-5 w-5 text-blue-500" />;
-  if (fileType.includes('markdown') || fileType.includes('text')) return <FileText className="h-5 w-5 text-gray-500" />;
+  if (fileType.includes('markdown') || fileType.includes('text')) return <FileText className="h-5 w-5 text-muted-foreground" />;
   return <File className="h-5 w-5" />;
 };
 

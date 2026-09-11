@@ -18,13 +18,6 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { chamadoStatusConfig } from '@/lib/chamadoStatusColors';
 
-const statusLabels: Record<string, string> = {
-  aberto: 'Aberto',
-  em_andamento: 'Em Andamento',
-  resolvido: 'Resolvido',
-  fechado: 'Fechado',
-};
-
 const ALLOWED_FILE_TYPES = [
   'application/pdf',
   'application/msword',
@@ -181,7 +174,7 @@ export default function DetalhesChamado() {
               <div className="flex items-start justify-between">
                 <h1 className="text-2xl font-bold text-foreground break-all">{ticket.title}</h1>
                 <Badge className={chamadoStatusConfig(ticket.status).solid}>
-                  {statusLabels[ticket.status]}
+                  {chamadoStatusConfig(ticket.status).label}
                 </Badge>
               </div>
               <TicketRichTextView value={ticket.description} className="text-muted-foreground" />

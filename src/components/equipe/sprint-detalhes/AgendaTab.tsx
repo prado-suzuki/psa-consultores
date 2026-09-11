@@ -32,7 +32,7 @@ const eventLabels: Record<string, string> = {
   retrospective: 'Retro',
 };
 const eventBadge = (type: string) => (
-  <Badge className={eventStyles[type] || 'bg-muted text-gray-800'}>
+  <Badge className={eventStyles[type] || 'bg-status-neutro-soft text-status-neutro'}>
     {eventLabels[type] || type}
   </Badge>
 );
@@ -72,7 +72,7 @@ export function AgendaTab({ controller: c }: { controller: EquipeSprintDetalhesC
                       <div>
                         <div>
                           {event.start_time && (
-                            <span className="text-sm font-mono text-gray-500 mr-2">
+                            <span className="text-sm font-mono text-muted-foreground mr-2">
                               {event.start_time.slice(0, 5)}
                               {event.end_time && ` - ${event.end_time.slice(0, 5)}`}
                             </span>
@@ -80,10 +80,10 @@ export function AgendaTab({ controller: c }: { controller: EquipeSprintDetalhesC
                           <span className="font-medium">{event.title}</span>
                         </div>
                         {event.description && (
-                          <p className="text-sm text-gray-500">{event.description}</p>
+                          <p className="text-sm text-muted-foreground">{event.description}</p>
                         )}
                         {event.participants?.length > 0 && (
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             {event.participants.map(c.getProfileName).join(', ')}
                           </p>
                         )}

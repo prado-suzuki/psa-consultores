@@ -3,6 +3,7 @@ import { Loader2, Send, Download, Trash2 } from 'lucide-react';
 import { useLimparCorrecoesSped } from '@/hooks/useCorrecoesSped';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { BOTAO_CONFIRMA_COM_DISABLED, BOTAO_DESTRUTIVO } from './classesDeBotao';
 
 export interface CorrecoesActionsProps {
   contribuinteId: string;
@@ -18,12 +19,6 @@ interface CorrecoesActionButtonsProps extends Omit<CorrecoesActionsProps, 'idArq
   registroTipo: string;
   canExport: boolean;
 }
-
-const greenIdle =
-  'bg-white text-black border border-input hover:bg-emerald-600 hover:text-white hover:border-emerald-600 active:bg-emerald-700 active:text-white transition-colors duration-200';
-
-const redIdle =
-  'bg-white text-black border border-input hover:bg-red-600 hover:text-white hover:border-red-600 active:bg-red-700 active:text-white transition-colors duration-200';
 
 export default function CorrecoesActionButtons({
   registroTipo,
@@ -61,7 +56,7 @@ export default function CorrecoesActionButtons({
         onClick={onEnviar}
         disabled={isSending || noPending}
         title={noPending ? 'Nenhuma correção pendente' : undefined}
-        className={`${greenIdle} disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-black disabled:hover:border-input shrink-0`}
+        className={BOTAO_CONFIRMA_COM_DISABLED}
       >
         {isSending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
         {isSending ? 'Enviando...' : `Enviar Correções ${registroTipo}`}
@@ -71,7 +66,7 @@ export default function CorrecoesActionButtons({
         variant="outline"
         onClick={onExportar}
         disabled={isExporting || !canExport}
-        className={`${greenIdle} disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-black disabled:hover:border-input shrink-0`}
+        className={BOTAO_CONFIRMA_COM_DISABLED}
       >
         {isExporting ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-1" />}
         {isExporting ? 'Exportando...' : 'Exportar correções'}
@@ -81,7 +76,7 @@ export default function CorrecoesActionButtons({
         size="sm"
         variant="outline"
         onClick={handleLimpar}
-        className={`${redIdle} shrink-0`}
+        className={`${BOTAO_DESTRUTIVO} shrink-0`}
       >
         <Trash2 className="h-3.5 w-3.5 mr-1" />
         Limpar efd_correcoes

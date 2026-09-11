@@ -9,6 +9,7 @@ import { PainelAcoes } from '@/components/equipe/osg/gerar/PainelAcoes';
 import { BannerVersaoAnterior, HistoricoVersoes } from '@/components/equipe/osg/gerar/HistoricoVersoes';
 import { SeletorRail, OpcaoRail } from '@/components/equipe/osg/gerar/gerarKit';
 import { SelecaoRegistrosLista } from '@/components/equipe/osg/gerar/SelecaoRegistrosLista';
+import { RegistrosNaJunta } from '@/components/equipe/osg/gerar/RegistrosNaJunta';
 import { fieldCls, labelCls } from '@/components/equipe/osg/formKit';
 import { labelDoBinding } from '@/lib/templates/binding';
 
@@ -32,9 +33,9 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
   camposPorBinding, escolherRegistro, editarCampo, editarBlocoNaPrevia, matriculasDoCliente, origemClicavel,
   abrirCadastroOrigem, fecharCadastroOrigem, resultado, copiar, nomeModelo, baixando,
   baixar, empresas, bindingsNaoSociedade, modeloPronto, passo1Estado, passo2Estado,
-  documentoRegistrado, alteracaoEmCurso, podeReverEventos, podeGerarAlteracao,
+  documentoRegistrado, alteracaoEmCurso, propostaConfirmada, validado, podeReverEventos, podeGerarAlteracao,
   podeRegistrarNaJunta, resumoDaAlteracao, travas, declaracaoDaPeca,
-  abrirAlteracao, setRegistrarConfirmOpen, registrandoDocumento,
+  abrirAlteracao, abrirRegistro, registrandoDocumento, registrosNaJunta, abrirDadosDoRegistro,
   modoDocumento, empresaLabel, labelsRegistros, resumoPasso2, mensagemPendente,
   blocosFolha, versaoView, modoVisualizacao, blocosFolhaVersao, baixandoVersao,
   baixarVersao, folhaEstado, infoFolha, temPainel, mostraSocios, mostraAdministradores,
@@ -179,15 +180,16 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                       Atualizar versão
                     </Button>
                   </div>
-                ) : alteracaoEmCurso ? (
+                ) : alteracaoEmCurso || propostaConfirmada ? (
                   <div className="space-y-2">
-                    {/* A folha aqui já é o documento NOVO, composto ao vivo:
-                        resoluções pelos eventos marcados e consolidado do
-                        cadastro atualizado. Validar é que o faz existir. */}
+                    {/* A folha aqui já é o documento NOVO: base registrada mais os
+                        eventos confirmados no assistente, recomposta do cadastro
+                        de hoje. A proposta confirmada já existe como rascunho;
+                        validar é que sela o texto. */}
                     <div className="space-y-1 rounded-md border border-osg-moss/30 bg-osg-moss/[0.06] px-3 py-2">
                       <div className="flex items-center gap-1.5 text-xs font-semibold text-osg-700">
                         <FileStack className="h-3.5 w-3.5 text-osg-moss" />
-                        Alteração contratual
+                        {propostaConfirmada ? 'Alteração contratual · confirmada, por validar' : 'Alteração contratual'}
                       </div>
                       <p className="text-[11px] leading-relaxed text-osg-700/80">{resumoDaAlteracao}</p>
                     </div>
@@ -211,11 +213,11 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs text-xs leading-relaxed">
                         {travas.validar.motivo ??
-                          'Cria a alteração contratual como documento próprio, apontando para a peça registrada que ela substitui, e congela os valores atuais nela.'}
+                          'Sela o texto da alteração: congela base registrada + eventos confirmados, do jeito que a folha mostra. Só depois disso ela pode ir à junta.'}
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                ) : documentoGeradoId ? (
+                ) : documentoGeradoId && validado ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-center gap-1.5 rounded-md border border-osg-moss/30 bg-osg-moss/[0.06] px-3 py-2 text-xs font-semibold text-osg-700">
                       <CheckCircle2 className="h-3.5 w-3.5 text-osg-moss" />
@@ -285,7 +287,7 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                           variant="ghost"
                           size="sm"
                           className="w-full text-xs text-muted-foreground hover:text-foreground"
-                          onClick={() => setRegistrarConfirmOpen(true)}
+                          onClick={abrirRegistro}
                           disabled={
                             registrandoDocumento ||
                             salvarDocumento.isPending ||
@@ -343,6 +345,17 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                   copiado={copiado}
                   onBaixar={baixar}
                   baixando={baixando}
+                />
+
+                {/* As peças desta sociedade que já foram à junta, e o que ainda
+                    falta no marco de cada uma. Fica fora do bloco de ações de
+                    propósito: o alvo aqui pode ser a constituição de dois atos
+                    atrás, que a folha em cena não mostra mais. */}
+                <RegistrosNaJunta
+                  linhas={registrosNaJunta}
+                  aberto={railAberto === 'registros-junta'}
+                  onAbertoChange={(aberto) => setRailAberto(aberto ? 'registros-junta' : null)}
+                  onAbrir={abrirDadosDoRegistro}
                 />
 
                 {/* As escolhas dos passos, agora compactas: trocar o modelo

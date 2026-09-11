@@ -1,7 +1,7 @@
 import type { BemInsert, MatriculaInsert, TitularInicial } from '@/hooks/useDiagnosticoPatrimonial';
 import type { AtualizarDocumentoPatch, DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
 import type { PessoaInsert } from '@/hooks/useQualificacaoDasPartes';
-import type { DraftBem, DraftMatricula, TitularInicialDraft } from '@/lib/diagnosticoPatrimonialModalModels';
+import { conferirTitularesIniciais, type DraftBem, type DraftMatricula, type TitularesIniciaisDraft } from '@/lib/diagnosticoPatrimonialModalModels';
 import type { PessoaDraft } from '@/lib/pessoaModalModel';
 
 /**
@@ -106,8 +106,8 @@ export interface ParentescoNovo {
 /** O que a coluna entrega quando o consultor manda cadastrar a partir do arquivo. */
 export type NovoCadastro =
   | { tipo: 'pessoa'; values: PessoaInsert; parentesco: ParentescoNovo }
-  | { tipo: 'bem'; values: BemInsert; titular?: TitularInicial }
-  | { tipo: 'matricula'; values: MatriculaInsert; titular?: TitularInicial };
+  | { tipo: 'bem'; values: BemInsert; titulares?: TitularInicial[] }
+  | { tipo: 'matricula'; values: MatriculaInsert; titulares?: TitularInicial[] };
 
 /* ------------------------------------------------------------------ validação */
 
@@ -127,7 +127,7 @@ export function validarPessoa(draft: PessoaDraft): string | null {
 
 export const bemEhImovel = (draft: DraftBem): boolean => draft.tipo_bem === 'IR' || draft.tipo_bem === 'IB';
 
-export function validarBem(draft: DraftBem, titular: TitularInicialDraft): string | null {
+export function validarBem(draft: DraftBem, titulares: TitularesIniciaisDraft): string | null {
   if (!draft.referencia_dp.trim()) return 'Referência DP é obrigatória';
   if (!draft.denominacao.trim()) return 'Denominação é obrigatória';
   if (draft.tipo_bem === 'OU' && !draft.descricao_outros.trim()) return 'Especifique o tipo de bem';
@@ -135,13 +135,13 @@ export function validarBem(draft: DraftBem, titular: TitularInicialDraft): strin
     return 'Valor contábil é obrigatório';
   }
   // Bem sem matrícula precisa de titular inicial; imóvel tem os titulares na matrícula.
-  if (!bemEhImovel(draft)) return validarTitular(titular, 'bem');
+  if (!bemEhImovel(draft)) return validarTitulares(titulares, 'bem');
   return null;
 }
 
 export function validarMatricula(
   draft: DraftMatricula,
-  titular: TitularInicialDraft,
+  titulares: TitularesIniciaisDraft,
   bemId: string,
 ): string | null {
   if (!bemId) return 'Selecione o imóvel (bem) a que esta matrícula pertence';
@@ -152,18 +152,25 @@ export function validarMatricula(
   if (!draft.area_documento.trim() || Number.isNaN(Number(draft.area_documento))) {
     return 'Área do documento é obrigatória';
   }
-  return validarTitular(titular, 'matrícula');
+  return validarTitulares(titulares, 'matrícula');
 }
 
-function validarTitular(titular: TitularInicialDraft, entidade: 'bem' | 'matrícula'): string | null {
-  if (!titular.titular_pessoa_id) {
-    return entidade === 'bem' ? 'Selecione o titular inicial do bem' : 'Selecione o titular inicial da matrícula';
+function validarTitulares(
+  titulares: TitularesIniciaisDraft,
+  entidade: 'bem' | 'matrícula',
+): string | null {
+  switch (conferirTitularesIniciais(titulares)) {
+    case 'sem_titular':
+      return entidade === 'bem'
+        ? 'Selecione ao menos um titular do bem'
+        : 'Selecione ao menos um titular da matrícula';
+    case 'fracao_invalida':
+      return 'Fração de cada titular deve estar entre 0 e 100';
+    case 'duplicado':
+      return 'A mesma pessoa aparece duas vezes na mesma espécie de titularidade';
+    default:
+      return null;
   }
-  if (titular.fracao.trim()) {
-    const fracao = Number(titular.fracao);
-    if (Number.isNaN(fracao) || fracao <= 0 || fracao > 100) return 'Fração do titular deve estar entre 0 e 100';
-  }
-  return null;
 }
 
 /* ---------------------------------------------------------------- procedência */

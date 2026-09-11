@@ -63,7 +63,7 @@ export function ProcedimentoCard({
               <RefreshCw className="h-3 w-3 mr-1" /> Tentar novamente
             </Button>
             {podeCurar && (
-              <Button size="sm" variant="outline" className="text-red-500" onClick={() => setConfirmDelete(true)}>
+              <Button size="sm" variant="outline" className="text-destructive" onClick={() => setConfirmDelete(true)}>
                 <Trash2 className="h-3 w-3 mr-1" /> Excluir
               </Button>
             )}
@@ -90,11 +90,11 @@ export function ProcedimentoCard({
   // Error state
   if (p.status_geracao === 'erro') {
     return (
-      <div className="bg-red-50 rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-red-200 flex flex-col items-center justify-center min-h-[280px] gap-3">
-        <AlertTriangle className="h-8 w-8 text-red-500" />
-        <p className="text-sm text-red-700 font-medium text-center">Não foi possível ler o documento.</p>
+      <div className="bg-destructive/10 rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-destructive/40 flex flex-col items-center justify-center min-h-[280px] gap-3">
+        <AlertTriangle className="h-8 w-8 text-destructive" />
+        <p className="text-sm text-destructive font-medium text-center">Não foi possível ler o documento.</p>
         {p.erro_mensagem && (
-          <p className="text-xs text-red-500 text-center line-clamp-3">{p.erro_mensagem}</p>
+          <p className="text-xs text-muted-foreground text-center line-clamp-3">{p.erro_mensagem}</p>
         )}
         <div className="flex gap-2 mt-2">
           <Button size="sm" variant="outline" onClick={() => onRetry(p.id)}>
@@ -107,7 +107,7 @@ export function ProcedimentoCard({
           )}
         </div>
         {podeCurar && (
-          <Button size="sm" variant="ghost" className="text-red-500 mt-1" onClick={() => setConfirmDelete(true)}>
+          <Button size="sm" variant="ghost" className="text-destructive mt-1" onClick={() => setConfirmDelete(true)}>
             <Trash2 className="h-3 w-3 mr-1" /> Excluir
           </Button>
         )}
@@ -253,7 +253,7 @@ function DeleteConfirmDialog({ open, onOpenChange, onConfirm }: { open: boolean;
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-red-600 hover:bg-red-700">
+          <AlertDialogAction onClick={onConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
             Excluir
           </AlertDialogAction>
         </AlertDialogFooter>

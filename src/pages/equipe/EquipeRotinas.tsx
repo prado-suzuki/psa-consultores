@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, ChevronDown, ListChecks, AlarmClock, AlertTriangle, CalendarDays } from 'lucide-react';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { useCreateRoutine, useDomainRotinas } from '@/hooks/useDomainRotinas';
+import { entregavelStatusLabel } from '@/lib/entregavelStatusColors';
 
 const FREQUENCY_ORDER = ['daily', 'weekly', 'monthly'] as const;
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -95,10 +96,7 @@ const EquipeRotinas = () => {
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = { pending: 'A Fazer', in_progress: 'Em Progresso', completed: 'Concluído' };
-    return labels[status] || status;
-  };
+  const getStatusLabel = (status: string) => entregavelStatusLabel(status);
 
   const totalRotinas = myRoutines.length;
   const today = startOfToday();

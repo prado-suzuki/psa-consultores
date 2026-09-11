@@ -56,8 +56,7 @@ async function buscarClientes(projectIds: string[]): Promise<ClientePorProjeto> 
     const { data: ordens, error: erroOrdens } = await supabase
       .from('ordem_servico')
       .select('id, id_cliente')
-      .in('id', [...projetosPorOs.keys()])
-      .eq('excluido', false);
+      .in('id', [...projetosPorOs.keys()]);
     if (erroOrdens) throw erroOrdens;
 
     for (const ordem of ordens ?? []) {

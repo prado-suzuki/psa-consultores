@@ -63,10 +63,10 @@ export function DashboardEmbedView({
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-8 text-center">
-        <p className="text-sm font-medium text-red-700">Erro ao carregar dashboards</p>
-        <p className="mt-1 text-xs text-red-600 break-all">{(error as Error).message}</p>
-        <p className="mt-2 text-xs text-red-500">
+      <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-8 text-center">
+        <p className="text-sm font-medium text-destructive">Erro ao carregar dashboards</p>
+        <p className="mt-1 text-xs text-destructive break-all">{(error as Error).message}</p>
+        <p className="mt-2 text-xs text-muted-foreground">
           Se a mensagem cita uma função inexistente (ex.: get_accessible_dashboards),
           rode a migration <code>20260623130000_dashboards_rpcs.sql</code> no Lovable.
         </p>

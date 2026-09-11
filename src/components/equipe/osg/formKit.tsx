@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 // Kit de estilo dos formulários OSG. Nasceu na aba "Dados" do modal de matrícula
 // e é reaproveitado nos demais modais (bem, pessoa) para manter o mesmo visual:
@@ -44,7 +45,7 @@ export const labelCls = 'text-xs font-medium text-muted-foreground';
  * Use sempre dentro de uma linha `items-end`: aí os controles alinham pela base,
  * tenham rótulo ou não.
  */
-export function Campo({ rotulo, htmlFor, className, children }: {
+export function Campo({ rotulo, htmlFor, required, campo, className, children }: {
   /**
    * Texto, ou um nó: quem precisa de dica no rótulo passa o rótulo já envolvido no
    * gatilho dela. O kit compartilhado não conhece o tooltip de nenhuma tela, e é assim
@@ -58,14 +59,28 @@ export function Campo({ rotulo, htmlFor, className, children }: {
    * envolver botão em `<label>` dispara o clique duas vezes.
    */
   htmlFor?: string;
+  /**
+   * Marca de campo obrigatório depois do rótulo. Fica no kit porque a marca é uma
+   * só (`RequiredMark`) e estava sendo repetida `{label}{required && <RequiredMark/>}`
+   * em cada tela — bastava uma esquecer para o formulário ter dois idiomas de
+   * obrigatoriedade na mesma janela.
+   */
+  required?: boolean;
+  /**
+   * Valor do `data-campo`, lido por `@/lib/osg/validacaoFormulario` para rolar até
+   * o campo e focá-lo. Pelo mesmo motivo do `required`: é atributo de formulário,
+   * não decoração de tela.
+   */
+  campo?: string;
   className?: string;
   children: ReactNode;
 }) {
+  const texto = <>{rotulo}{required && <RequiredMark />}</>;
   return (
-    <div className={`space-y-1 ${className ?? ''}`}>
+    <div className={`space-y-1 ${className ?? ''}`} data-campo={campo}>
       {htmlFor
-        ? <label htmlFor={htmlFor} className={`block ${labelCls}`}>{rotulo}</label>
-        : <span className={`block ${labelCls}`}>{rotulo}</span>}
+        ? <label htmlFor={htmlFor} className={`block ${labelCls}`}>{texto}</label>
+        : <span className={`block ${labelCls}`}>{texto}</span>}
       {children}
     </div>
   );

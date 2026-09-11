@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, CalendarDays, FolderPlus, Table2, Trello, Sun, CalendarRange, GanttChart, ListTree } from 'lucide-react';
 import { toast } from 'sonner';
+import { FECHO_SUPORTE } from '@/lib/rlsMessages';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
+import { telaEstreita } from '@/hooks/use-mobile';
 import { useTeamMembersForTasks, useTaxProjectsForFilter, useClusterIdByPageCategory } from '@/hooks/useTaxReferenceData';
 import {
   useOrgTasks,
@@ -67,7 +69,12 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   const deepLinkProjectId = searchParams.get('projectId');
   const { user, isAdmin, isLider, isSublider } = useAuth();
   const [filters, setFilters] = useState<TaskFiltersType>({});
-  const [activeView, setActiveView] = useState('list');
+  // No celular o painel abre numa visão que CABE. A "Lista" é uma grade de
+  // 1.200px: abrir nela num telefone entrega a coluna do título e esconde
+  // status, responsável, prazo e progresso. "Hoje" é lista de cartões, sem
+  // largura fixa, e mostra o dia da equipe inteira (não só as tarefas de quem
+  // olha). No desktop nada muda. Ver docs/planos/projetos-tarefas-no-celular.md.
+  const [activeView, setActiveView] = useState(() => (telaEstreita() ? 'today' : 'list'));
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<OrgTask | null>(null);
   const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
@@ -284,8 +291,9 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     } catch (error) {
       // Sem saber quantas filhas existem, não se abre um diálogo que pode
       // apagá-las em cascata.
+      console.error('[tarefas] contagem de subtarefas bloqueantes falhou:', error, 'tarefa:', taskId);
       toast.error('Não foi possível verificar as subtarefas desta tarefa.', {
-        description: error instanceof Error ? error.message : 'Tente novamente.',
+        description: FECHO_SUPORTE,
       });
       return;
     }
@@ -404,17 +412,21 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
             separado", e gastar as três em tudo achata a hierarquia em vez de
             criá-la. A barra de ferramentas é UM objeto com três faixas. */}
         <Tabs value={activeView} onValueChange={setActiveView} className="min-w-0">
-          <div className="rounded-xl border bg-card">
+<div className="rounded-xl border bg-card">
             <TaskKPICards tasks={tasks} />
             <div className="overflow-x-auto border-t p-2 pb-0">
-              <TabsList className="w-max min-w-full justify-start">
+              <TabsList data-tour="tarefas-visoes" className="w-max min-w-full justify-start">
                 <TabsTrigger value="list" className="gap-2"><ListTree className="h-4 w-4" />Lista</TabsTrigger>
                 <TabsTrigger value="calendar" className="gap-2"><CalendarDays className="h-4 w-4" />Calendário</TabsTrigger>
                 <TabsTrigger value="table" className="gap-2"><Table2 className="h-4 w-4" />Tabela</TabsTrigger>
                 <TabsTrigger value="kanban" className="gap-2"><Trello className="h-4 w-4" />Kanban</TabsTrigger>
                 <TabsTrigger value="gantt" className="gap-2"><GanttChart className="h-4 w-4" />Gantt</TabsTrigger>
-                <TabsTrigger value="today" className="gap-2"><Sun className="h-4 w-4" />Hoje</TabsTrigger>
-                <TabsTrigger value="future" className="gap-2"><CalendarRange className="h-4 w-4" />Futuras</TabsTrigger>
+                {/* `max-md:order-first` nestas duas: são as únicas que cabem
+                    num telefone hoje, e estavam na sexta e na sétima posição —
+                    fora da tela, atrás da rolagem das abas. A ordem no DOM não
+                    muda, então a navegação por teclado segue a de sempre. */}
+                <TabsTrigger value="today" className="gap-2 max-md:order-first"><Sun className="h-4 w-4" />Hoje</TabsTrigger>
+                <TabsTrigger value="future" className="gap-2 max-md:order-first"><CalendarRange className="h-4 w-4" />Futuras</TabsTrigger>
               </TabsList>
             </div>
             <div className="flex flex-wrap items-center gap-2 p-2">
@@ -435,12 +447,13 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                     size="sm"
                     variant="outline"
                     className="h-9 shrink-0"
+                    data-tour="tarefas-criar-projeto"
                     onClick={() => setIsCriarProjetosOsOpen(true)}
                   >
                     <FolderPlus className="mr-2 h-4 w-4" />Criar Projeto
                   </Button>
                 )}
-                <Button size="sm" className="h-9 shrink-0" onClick={() => handleNewTask()}>
+                <Button size="sm" className="h-9 shrink-0" data-tour="tarefas-nova-tarefa" onClick={() => handleNewTask()}>
                   <Plus className="mr-2 h-4 w-4" />Nova tarefa
                 </Button>
               </div>

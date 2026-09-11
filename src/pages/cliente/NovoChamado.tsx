@@ -20,6 +20,7 @@ import { RequiredMark } from '@/components/ui/required-mark';
 import { TicketRichTextEditor } from '@/components/chamados/TicketRichTextEditor';
 import { ticketRichTextToPlain } from '@/components/chamados/ticketRichTextFormat';
 import { DEPARTAMENTO_VALUES, DEPARTAMENTOS_CHAMADO } from '@/lib/chamadosDepartamentos';
+import { CHAMADO_PRIORIDADE_OPCOES } from '@/lib/chamadoStatusColors';
 
 const ticketSchema = z.object({
   title: z
@@ -247,10 +248,9 @@ export default function NovoChamado() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="baixa">Baixa</SelectItem>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="alta">Alta</SelectItem>
-                  <SelectItem value="urgente">Urgente</SelectItem>
+                  {CHAMADO_PRIORIDADE_OPCOES.map((p) => (
+                    <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

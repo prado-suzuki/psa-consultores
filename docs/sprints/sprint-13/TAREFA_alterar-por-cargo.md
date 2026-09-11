@@ -1,4 +1,4 @@
-# TAREFA 1 — Alterar no cadastro de cliente passa a ser por cargo
+# TAREFA 1: alterar no cadastro de cliente passa a ser por cargo
 
 > **Primeira das cinco tarefas** que aplicam a regra decidida em 02/09/2026 no módulo de
 > cadastro de cliente. As outras: [apagar cliente e contribuinte](TAREFA_excluir-por-cargo.md) ·
@@ -9,20 +9,20 @@
 > [mensagens](../sprint-12/TAREFA_mensagens-de-recusa.md) saíram na sprint 12.
 >
 > **Atenção:** a [tarefa 3](TAREFA_soft-delete-cliente-e-contribuinte.md) **depende desta**. Ver
-> "Esta tarefa também destrava a exclusão lógica", abaixo.
+> "Esta tarefa também autoriza a exclusão lógica", abaixo.
 
 ## A regra
 
 > **Gravar** (registrar, alterar, excluir) exige apenas papel `sublider` ou acima.
 > **Ler** continua recortado por cluster do cliente.
 
-## Esta tarefa também destrava a exclusão lógica
+## Esta tarefa também autoriza a exclusão lógica
 
-Cinco tabelas do módulo excluem **logicamente** — marcam `excluido = true`. Isso é um
+Cinco tabelas do módulo excluem **logicamente**: marcam `excluido = true`. Isso é um
 `UPDATE`. Logo, **quem autoriza a exclusão lógica é a policy de UPDATE, não a de DELETE**:
 
 Pela decisão de 02/09/2026, **só `cliente` e `contribuinte` continuam guardando linha
-excluída**. Exclusão lógica é um `UPDATE` — logo, quem autoriza é a permissão de UPDATE, que
+excluída**. Exclusão lógica é um `UPDATE`, logo quem autoriza é a permissão de UPDATE, que
 sai desta tarefa:
 
 | Tabela | Exclui como | Autorizada por |
@@ -39,11 +39,11 @@ As conversões para exclusão física estão em
 [representante e rateio](TAREFA_representante-e-rateio-hard-delete.md) e
 [ordem de serviço](TAREFA_os-hard-delete.md), e não dependem desta.
 
-## T1 — ⚠️ MIGRAÇÃO · As quatro policies de UPDATE
+## T1 · ⚠️ MIGRAÇÃO · As quatro policies de UPDATE
 
 O guarda `excluido = false` no `USING` **fica**: ele impede reeditar linha já excluída, e não
-tem nada a ver com cluster. Sai só o `cliente_visivel_para` — e, na OS, também a cláusula do
-cluster da própria OS.
+tem nada a ver com cluster. Sai só o `cliente_visivel_para` (e, na OS, também a cláusula do
+cluster da própria OS).
 
 > **SQL sem comentários de propósito** (o editor do Lovable corta em `;` e `--`).
 
@@ -73,31 +73,33 @@ CREATE POLICY rls_ordem_servico_update ON public.ordem_servico
   WITH CHECK (public.has_role_or_higher(auth.uid(), 'sublider'::public.app_role));
 ```
 
-As outras quatro tabelas do módulo — `cliente_clusters`, `inscricao_contribuinte`,
-`distribuicao_receita`, `os_produtos_contratados` — já alteram só por cargo. Não se mexe.
+As outras quatro tabelas do módulo (`cliente_clusters`, `inscricao_contribuinte`,
+`distribuicao_receita`, `os_produtos_contratados`) já alteram só por cargo. Não se mexe.
 
 ## Alterar continua limitado pela leitura, e isso é de propósito
 
 Liberar a escrita por cargo **não** dá a ninguém o poder de alterar o que não enxerga. Um
-`UPDATE` tem `WHERE`, logo precisa ler a linha antes de mudá-la — e a policy de SELECT
-continua recortando por cluster. Medido em dev e registrado no corpo de
+`UPDATE` tem `WHERE`, logo precisa ler a linha antes de mudá-la, e a policy de SELECT
+continua recortando por cluster. Está medido e registrado no corpo de
 `soft_delete_distribuicao_receita`:
 
-> *"o UPDATE só alcança linha que o SELECT deixa ver — medido em dev: um líder sem o cluster
-> do cliente afeta 0 linhas, sem erro."*
+> *o UPDATE só alcança linha que o SELECT deixa ver. Medido em dev: um líder sem o cluster do
+> cliente afeta 0 linhas, sem erro.*
 
-**O problema não é o limite, é o silêncio:** dá zero linhas e a tela anuncia
-"Cliente atualizado com sucesso!". Isso é da
-[tarefa das mensagens](../sprint-12/TAREFA_mensagens-de-recusa.md).
+O silêncio que acompanhava esse limite já saiu, na [tarefa das mensagens](../sprint-12/TAREFA_mensagens-de-recusa.md): zero linhas deixou de passar por
+sucesso. O `cliente/update` grava com `.select().single()`, e os updates de contribuinte,
+representante e OS levantam recusa da categoria `zero_linhas`, cujo fecho na tela é "Os dados
+podem ter sido modificados. Atualize a página e tente novamente." Falta a conferência na tela,
+que é o T6 de lá.
 
-## T2 — Conferência
+## T2 · Conferência
 
 Como um `lider` ou `sublider`, num cliente **do seu cluster**:
 
 | | Esperado |
 |---|---|
 | Alterar dados do cliente, do contribuinte, do representante e da OS | grava, sem 42501 |
-| Excluir um contribuinte | exclui — é o UPDATE desta tarefa, mas ainda depende da tarefa de excluir para não bater no 42501 da linha que some da vista |
+| Excluir um contribuinte | exclui, é o UPDATE desta tarefa, mas ainda depende da tarefa de excluir para não bater no 42501 da linha que some da vista |
 
 Conferir o texto das policies:
 
@@ -114,4 +116,4 @@ Nenhuma linha do resultado deve conter `cliente_visivel_para` nem `resolve_user_
 ## Referências
 
 - Auditoria das 24 operações (artefato, 02/09/2026).
-- `src/hooks/useSaveClientTransaction.ts` — os passos de alteração e o `catch`.
+- `src/hooks/useSaveClientTransaction.ts`: os passos de alteração e o `catch`.

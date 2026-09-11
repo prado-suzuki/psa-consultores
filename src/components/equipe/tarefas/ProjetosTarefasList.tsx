@@ -48,6 +48,7 @@ import { parseDate } from '@/lib/dateUtils';
 import { projectStatusConfig } from '@/lib/projetoStatusColors';
 import { statusColors, statusList } from '@/lib/taskStatusColors';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+import { prazoDaFilhaEstoura } from '@/lib/orgTaskPrazo';
 import {
   buildProjetosTarefasHierarchy,
   shortProjectName,
@@ -118,11 +119,50 @@ interface ProjetosTarefasListProps {
   canEditTaskFields?: (task: OrgTask) => boolean;
 }
 
-const GRID = 'grid grid-cols-[minmax(320px,1fr)_150px_180px_130px_140px_160px_44px] min-w-[1200px]';
+/**
+ * A grade das quatro linhas (OS, projeto, tarefa, subtarefa).
+ *
+ * No desktop são sete colunas somando 1.200px de piso. Num celular de 358px
+ * úteis cabia a PRIMEIRA — o nome — e status, responsável, prazo, esforço e
+ * progresso ficavam todos fora, alcançáveis só arrastando de lado.
+ *
+ * Abaixo de `md` a linha deixa de ser grade e vira **faixa de chips**: o nome
+ * ocupa a largura inteira e as outras seis células fluem em `flex-wrap`, cada
+ * uma do tamanho do seu conteúdo. O cartão sai do refluxo, sem remontar JSX
+ * nenhum — e a borda que já separava as linhas passa a separar os cartões.
+ *
+ *   ▸ ☐ ● Título da tarefa
+ *   [A FAZER]  usuario teste  📅 18 set  1h est.  ⋯
+ *
+ * Duas colunas foi a primeira tentativa, e foi reprovada: cada célula ocupava
+ * metade da largura e o conteúdo dela ficava na borda esquerda, então sobrava um
+ * vão morto no meio de cada linha — o `⌄` do seletor de status pousava a 90px do
+ * chip. Somando os três pares, a tarefa gastava ~140px de altura para mostrar
+ * seis campos curtos. Nas palavras dela: "as tarefas estão muito grandes, sem
+ * definir bem a formatação, o contorno".
+ *
+ * Nada é escondido: o gestor vê os seis campos sem arrastar. O cabeçalho de
+ * coluna é que sai (`max-md:hidden` na linha dele) — rótulo de coluna não
+ * significa nada depois do refluxo, e cada célula se explica: o status é chip
+ * colorido, o prazo tem ícone de calendário, o esforço traz o "h".
+ */
+const GRID =
+  'grid grid-cols-[minmax(320px,1fr)_150px_180px_130px_140px_160px_44px] min-w-[1200px]' +
+  ' max-md:flex max-md:min-w-0 max-md:flex-wrap max-md:items-center' +
+  // `gap-y` também, e não só `gap-x`: quando os chips não cabem numa linha eles
+  // quebram, e sem folga vertical as duas linhas se encostam. É a diferença que
+  // faltava para a tela bater com o espécime A escolhido em 09/09.
+  ' max-md:gap-x-1.5 max-md:gap-y-1 max-md:py-1' +
+  // Aperta o recuo de TODAS as células de uma vez, em vez de caçar cada uma:
+  // `px-3 py-1.5` por célula é o que engordava o cartão.
+  ' max-md:[&>*]:px-2 max-md:[&>*]:py-0.5';
+
+/** A célula do nome ocupa a largura inteira; as outras encolhem para o conteúdo. */
+const CELULA_NOME = 'max-md:w-full';
 /** Radix Select não aceita valor vazio: o "não atribuído" precisa de sentinela. */
 const SEM_RESPONSAVEL = '_none';
 /** Faixas que atravessam a tabela inteira (divisor de cliente, "adicionar tarefa"). */
-const FULL_ROW_MIN_WIDTH = 'min-w-[1150px]';
+const FULL_ROW_MIN_WIDTH = 'min-w-[1150px] max-md:min-w-0';
 
 /**
  * Recuos da coluna Nome, em px, e slots de largura fixa para seta e caixa de
@@ -133,18 +173,111 @@ const FULL_ROW_MIN_WIDTH = 'min-w-[1150px]';
 const PROJECT_INDENT = 36;
 const TASK_INDENT = 60;
 const INDENT_STEP = 24;
+/**
+ * Os mesmos recuos em tela estreita. 60px de base sobre 358px de tela é um sexto
+ * da largura gasto antes da primeira letra, e cada nível comeria 24px a mais —
+ * a subtarefa de segundo nível começaria em 108px.
+ *
+ * A primeira tentativa (8/12/+10) foi rejeitada na validação: "parece que está
+ * tudo no mesmo nível, não tem profundidade". Ela estava certa, e por dois
+ * motivos somados — o degrau curto quase não se via, E as guias verticais
+ * tinham sido escondidas no celular. Recuo sozinho já é ambíguo no desktop (é o
+ * que o comentário do `LevelGuide` diz); sem guia nenhuma e com degrau de 4px de
+ * diferença, os quatro níveis viram um.
+ *
+ * Agora os degraus se distinguem a olho e as guias voltam, com posição própria.
+ */
+const PROJECT_INDENT_ESTREITO = 10;
+const TASK_INDENT_ESTREITO = 26;
+/**
+ * 20px, e não 14: com 14 a subtarefa ficava a um empurrão da mãe e lia como
+ * tarefa irmã — "eu abro a tarefa e as subtarefas parecem outras tarefas"
+ * (09/09). Degrau sozinho não resolve, mas degrau pequeno garante que nada
+ * resolva; o que fecha o caso é o `CotoveloDaFilha`, abaixo.
+ */
+const INDENT_STEP_ESTREITO = 20;
 const TOGGLE_SLOT = 'flex h-5 w-5 shrink-0 items-center justify-center';
-const CHECK_SLOT = 'flex h-4 w-4 shrink-0 items-center justify-center';
+/**
+ * A caixa de seleção em massa (mover várias tarefas de uma vez) é cromo de
+ * EDIÇÃO, e no celular esta tela é superfície de leitura — decisão de 09/09.
+ * `max-md:hidden`: ela ocupava um glifo à esquerda de cada título, somava com a
+ * seta e com o ponto de status, e não serve para quem só olha.
+ */
+const CHECK_SLOT = 'flex h-4 w-4 shrink-0 items-center justify-center max-md:hidden';
 /** x das guias verticais: o centro da seta do nível imediatamente acima. */
 const OS_GUIDE = 24;
 const PROJECT_GUIDE = PROJECT_INDENT + 10;
+/** As mesmas guias no degrau curto: o centro da seta do nível acima. */
+const OS_GUIDE_ESTREITO = 4;
+const PROJECT_GUIDE_ESTREITO = PROJECT_INDENT_ESTREITO + 6;
 
 /**
  * Guia vertical do nível. Recuo sozinho é ambíguo — a linha indentada parece
  * filha da linha de cima; a guia mostra de qual bloco ela desce.
  */
-function LevelGuide({ left }: { left: number }) {
-  return <span aria-hidden className="pointer-events-none absolute inset-y-0 border-l border-border/60" style={{ left }} />;
+function LevelGuide({ left, leftEstreito }: { left: number; leftEstreito: number }) {
+  // Duas posições, uma por breakpoint: o `left` do desktop é medido contra o
+  // recuo largo e cairia por cima do texto no degrau curto. Esconder a guia no
+  // celular foi a primeira tentativa, e é o que tirou a profundidade da tela.
+  return (
+    <span
+      aria-hidden
+      // No celular o fio também sobe de tinta: `border/60` dava 1,14:1, que não
+      // é linha, é nada. `/35` dá 1,62:1 — perceptível, e um degrau bem abaixo
+      // do 4,29:1 do cotovelo, de propósito: o fio é contexto, o cotovelo é a
+      // informação.
+      className="pointer-events-none absolute inset-y-0 border-l border-border/60 max-md:border-muted-foreground/35 left-[var(--guia)] max-md:left-[var(--guia-estreita)]"
+      style={{ '--guia': `${left}px`, '--guia-estreita': `${leftEstreito}px` } as React.CSSProperties}
+    />
+  );
+}
+
+/**
+ * O cotovelo que entra na linha da subtarefa, saindo do fio da mãe.
+ *
+ * Fio reto diz "existe um bloco aqui"; cotovelo diz "ESTA linha desce
+ * daquela". É a diferença que faltava no celular: com recuo curto e a mesma
+ * superfície branca, subtarefa lia como tarefa irmã. Mesmo idioma do painel de
+ * comentários, que resolve o mesmo problema para resposta dentro de comentário
+ * (ver `data-thread-connector` em `OrgCommentsPanel`).
+ *
+ * Só abaixo de `md`. No desktop há 24px de degrau e as guias inteiras, e a
+ * hierarquia já se lê — e este plano promete não mexer no desktop.
+ */
+function CotoveloDaFilha({ nivel }: { nivel: number }) {
+  return (
+    <span
+      aria-hidden
+      /*
+        A cor saiu de `border` e a opacidade é MEDIDA, não escolhida.
+
+        Na Tax o `--border` é `170 16% 89%`, quase branco: o cotovelo original
+        dava **1,25:1** de contraste sobre a superfície branca da tarefa, o que
+        é invisível de fato — "esse cantinho tá muito claro, não consigo
+        enxergar" (09/09). O `--muted-foreground` da área é `185 8% 40.5%`,
+        tinta de texto.
+
+        `/90` porque o piso da WCAG para elemento gráfico que CARREGA
+        informação é 3:1, e o cotovelo carrega — ele é quem diz de que linha
+        esta desce. A 70% dá 2,90:1 e não passa (foi a primeira tentativa deste
+        conserto); a 90% dá **4,29:1**. Os números estão no teste, que é o único
+        jeito de isto não voltar a apagar em silêncio.
+
+        Este elemento só existe abaixo de `md` (`hidden max-md:block`), então a
+        cor não precisa de prefixo: ela nunca alcança o desktop.
+      */
+      className="pointer-events-none absolute top-0 hidden h-[13px] rounded-bl-md border-b-2 border-l-2 border-muted-foreground/90 max-md:block left-[var(--cotovelo)] w-[var(--cotovelo-largura)]"
+      style={{
+        // Sai do fio da MÃE, um nível acima.
+        '--cotovelo': `${PROJECT_GUIDE_ESTREITO + (nivel - 1) * INDENT_STEP_ESTREITO}px`,
+        // E entra até 4px antes de onde o conteúdo da filha começa. A conta é
+        // `recuo da filha − fio da mãe`, e dá o mesmo em qualquer nível porque
+        // os dois andam com o mesmo degrau: cotovelo curto sobrava um vão de
+        // 14px entre o fio e a linha, e o vão desfaz o "desce daqui".
+        '--cotovelo-largura': `${TASK_INDENT_ESTREITO + INDENT_STEP_ESTREITO - PROJECT_GUIDE_ESTREITO - 4}px`,
+      } as React.CSSProperties}
+    />
+  );
 }
 
 /**
@@ -163,6 +296,15 @@ function ContadorTarefas({ total, concluidas }: { total: number; concluidas: num
 /** Ids de uma subárvore de tarefas — a marcação de um projeto pega tudo dentro dele. */
 function collectNodeTaskIds(nodes: ProjetosTarefasTaskNode[]): string[] {
   return nodes.flatMap(node => [node.task.id, ...collectNodeTaskIds(node.children)]);
+}
+
+/**
+ * Texto da linha de OS: número mais produtos. Sai daqui e não do JSX porque o
+ * mesmo texto vai no tooltip — a linha corta em duas e o resto se lê no hover.
+ */
+function tituloDaOs(group: { os: ProjetosTarefasOs | null; hasLinkedOs: boolean }) {
+  if (group.os?.numero_os) return `${group.os.numero_os}${group.os.produtos ? ` - ${group.os.produtos}` : ''}`;
+  return group.hasLinkedOs ? 'OS vinculada' : 'Sem OS';
 }
 
 function initials(name: string | null) {
@@ -331,7 +473,13 @@ export function ProjetosTarefasList({
     updateTask.mutate({ id: task.id, due_date: iso });
   };
 
-  const renderTask = (node: ProjetosTarefasTaskNode, depth: number): React.ReactNode => {
+  /**
+   * `prazoDaMae` desce na recursão porque a regra é local: a filha não vence
+   * depois da MÃE dela, e não depois da raiz da árvore. Na linha ele só apaga
+   * os dias no calendário — quem recusa de verdade é `useUpdateOrgTask`, que
+   * busca a mãe no banco (a lista da tela vem recortada por mês).
+   */
+  const renderTask = (node: ProjetosTarefasTaskNode, depth: number, prazoDaMae?: string | null): React.ReactNode => {
     const { task, children } = node;
     const rowId = `task:${task.id}`;
     const isExpanded = expanded.has(rowId);
@@ -340,9 +488,31 @@ export function ProjetosTarefasList({
     const candidatos = candidatosDeResponsavel(task);
     const atrasada = !!task.due_date && parseDate(task.due_date) < new Date() && task.status !== 'done';
     return <Fragment key={task.id}>
+      {/* A tarefa fica BRANCA de propósito: é o contraste contra as duas
+          superfícies tintas acima dela que diz que ela é o nível de baixo. */}
       <div className={cn(GRID, 'group border-t border-border/60 text-sm hover:bg-muted/30', isSelected ? 'bg-primary/5' : 'bg-background')}>
-        <div className="relative flex min-w-0 items-center gap-2 px-4 py-2" style={{ paddingLeft: `${TASK_INDENT + depth * INDENT_STEP}px` }}>
-          {Array.from({ length: depth + 1 }, (_, level) => <LevelGuide key={level} left={PROJECT_GUIDE + level * INDENT_STEP} />)}
+        {/* O recuo vai por variável CSS, e não por `paddingLeft` direto: estilo
+            inline não tem breakpoint, e o número do desktop é largura demais
+            para um celular. */}
+        <div
+          className={cn(CELULA_NOME, 'relative flex min-w-0 items-center gap-2 px-4 py-2 pl-[var(--recuo)] max-md:pl-[var(--recuo-estreito)]')}
+          style={{
+            '--recuo': `${TASK_INDENT + depth * INDENT_STEP}px`,
+            '--recuo-estreito': `${TASK_INDENT_ESTREITO + depth * INDENT_STEP_ESTREITO}px`,
+          } as React.CSSProperties}
+        >
+          {/* As guias verticais são posicionadas em px contra o recuo largo, e
+              no degrau curto elas cairiam no meio do texto. A hierarquia no
+              celular fica com as linhas de OS e de projeto, que são cabeçalho
+              de bloco, mais o recuo. */}
+          {Array.from({ length: depth + 1 }, (_, level) => (
+            <LevelGuide
+              key={level}
+              left={PROJECT_GUIDE + level * INDENT_STEP}
+              leftEstreito={PROJECT_GUIDE_ESTREITO + level * INDENT_STEP_ESTREITO}
+            />
+          ))}
+          {depth > 0 && <CotoveloDaFilha nivel={depth} />}
           <span className={TOGGLE_SLOT}>
             {children.length > 0 && (
               <button type="button" onClick={() => toggle(rowId)} className="rounded p-0.5 text-muted-foreground hover:bg-muted" aria-label={isExpanded ? 'Recolher tarefa' : 'Expandir tarefa'}>
@@ -357,15 +527,39 @@ export function ProjetosTarefasList({
               aria-label={`Selecionar tarefa ${task.title}`}
             />
           </span>
-          <TaskStatusDot status={task.status} />
-          <button type="button" className="truncate text-left font-medium text-foreground hover:underline" onClick={() => onEditTask(task)}>
+          {/* `max-md:hidden`: o chip de status na faixa de chips já nomeia o
+              estado. Ponto colorido MAIS chip colorido é a mesma informação
+              duas vezes, e num telefone dois sinais de cor por linha viram
+              poluição. No desktop o ponto vale: lá o chip está longe, na coluna
+              de status, a 320px de distância do título. */}
+          <TaskStatusDot status={task.status} className="max-md:hidden" />
+          {/* A filha pesa menos que a mãe: no celular ela vem um degrau abaixo
+              no tamanho e sem o `font-medium`. É a terceira pista da escadinha,
+              junto do recuo e do cotovelo — e a única que funciona mesmo quando
+              a subtarefa é a primeira coisa que se vê ao rolar. O desktop
+              mantém as duas iguais, que é como sempre foi. */}
+          <button
+            type="button"
+            title={task.title}
+            className={cn(
+              'line-clamp-2 break-words text-left text-foreground hover:underline',
+              depth > 0 ? 'font-medium max-md:text-[0.8125rem] max-md:font-normal' : 'font-medium',
+            )}
+            onClick={() => onEditTask(task)}
+          >
             {task.title}
           </button>
           <ContadorTarefas total={children.length} concluidas={children.filter(child => child.task.status === 'done').length} />
         </div>
         <div className="flex items-center px-3 py-1.5">
           <Select value={task.status} onValueChange={value => updateStatus(task, value as OrgTaskStatus)}>
-            <SelectTrigger className="h-6 w-[138px] border-0 bg-transparent px-1 shadow-none focus:ring-0 [&>span]:!line-clamp-none [&>span]:whitespace-nowrap [&>span]:overflow-visible">
+            {/* `max-md:w-auto`: os 138px fixos punham o `⌄` na borda oposta do
+                chip, com um vão morto no meio. Na faixa de chips o seletor
+                encolhe para o próprio conteúdo. */}
+            {/* `max-md:[&>svg]:hidden` esconde o chevron, não o seletor: o chip
+                continua abrindo no toque, e o que sai é o glifo. Dois chevrons
+                por linha, vezes as tarefas da tela, era metade da poluição. */}
+            <SelectTrigger className="h-6 w-[138px] max-md:w-auto max-md:[&>svg]:hidden border-0 bg-transparent px-1 shadow-none focus:ring-0 [&>span]:!line-clamp-none [&>span]:whitespace-nowrap [&>span]:overflow-visible">
               <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-normal', statusColors[task.status].combined)}>{statusColors[task.status].label}</span>
             </SelectTrigger>
             <SelectContent>{statusList.map(status => <SelectItem key={status.key} value={status.key}>{status.label}</SelectItem>)}</SelectContent>
@@ -374,15 +568,15 @@ export function ProjetosTarefasList({
         <div className="flex min-w-0 items-center px-3 py-1.5">
           {podeEditar && candidatos.length > 0
             ? <Select value={task.assigned_to ?? SEM_RESPONSAVEL} onValueChange={value => updateResponsavel(task, value, candidatos)}>
-                <SelectTrigger aria-label={`Responsável por ${task.title}`} className="h-6 border-0 bg-transparent px-1 text-xs shadow-none focus:ring-0">
-                  <span className={cn('truncate', !task.assigned_to && 'text-muted-foreground')}>{task.assigned_to_name || 'Não atribuído'}</span>
+                <SelectTrigger aria-label={`Responsável por ${task.title}`} className="h-6 max-md:[&>svg]:hidden border-0 bg-transparent px-1 text-xs shadow-none focus:ring-0">
+                  <span title={task.assigned_to_name || 'Não atribuído'} className={cn('truncate', !task.assigned_to && 'text-muted-foreground')}>{task.assigned_to_name || 'Não atribuído'}</span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={SEM_RESPONSAVEL}>Não atribuído</SelectItem>
                   {candidatos.map(member => <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-            : <span className="truncate text-xs text-muted-foreground">{task.assigned_to_name || 'Não atribuído'}</span>}
+            : <span title={task.assigned_to_name || 'Não atribuído'} className="truncate text-xs text-muted-foreground">{task.assigned_to_name || 'Não atribuído'}</span>}
         </div>
         <div className={cn('flex items-center px-3 py-1.5 text-xs', atrasada ? 'font-medium text-destructive' : 'text-muted-foreground')}>
           {podeEditar
@@ -393,7 +587,13 @@ export function ProjetosTarefasList({
                   </button>
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-auto p-0">
-                  <Calendar selected={task.due_date ? parseDate(task.due_date) : undefined} onSelect={date => updatePrazo(task, date)} />
+                  <Calendar
+                    selected={task.due_date ? parseDate(task.due_date) : undefined}
+                    onSelect={date => updatePrazo(task, date)}
+                    disabled={prazoDaMae
+                      ? (date: Date) => prazoDaFilhaEstoura(format(date, 'yyyy-MM-dd'), prazoDaMae)
+                      : undefined}
+                  />
                 </PopoverContent>
               </Popover>
             : <span className="flex items-center gap-1.5 whitespace-nowrap"><CalendarDays className="h-3.5 w-3.5" />{dateLabel(task.due_date)}</span>}
@@ -421,7 +621,7 @@ export function ProjetosTarefasList({
           </DropdownMenu>
         </div>
       </div>
-      {isExpanded && children.map(child => renderTask(child, depth + 1))}
+      {isExpanded && children.map(child => renderTask(child, depth + 1, task.due_date))}
     </Fragment>;
   };
 
@@ -502,7 +702,8 @@ export function ProjetosTarefasList({
     </div>
     <div className="overflow-x-auto overflow-y-hidden rounded-xl border bg-card">
     <BarraDeMes periodo={periodo} />
-    <div className={cn(GRID, 'border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground')}>
+    {/* Rótulo de coluna não significa nada depois do refluxo em duas colunas. */}
+    <div className={cn(GRID, 'max-md:hidden border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground')}>
       <div className="px-4 py-2.5">Nome</div><div className="px-3 py-2.5">Status</div><div className="px-3 py-2.5">Responsável</div>
       <button type="button" onClick={() => cycleSort('prazo')} className={cn('flex items-center gap-1 px-3 py-2.5 uppercase tracking-wider transition-colors hover:text-foreground', sort.column === 'prazo' ? 'text-foreground' : '')}>Prazo{sortIcon('prazo')}</button>
       <div className="px-3 py-2.5" title="Horas realizadas/estimadas. Alerta nas tarefas concluídas sem horas apontadas.">Esforço</div>
@@ -526,11 +727,14 @@ export function ProjetosTarefasList({
           <span className="text-xs text-muted-foreground">{sortedHierarchy.filter(item => item.clientKey === group.clientKey).length} OS/grupo(s)</span>
         </div>}
         <section>
-        <div className={cn(GRID, 'border-b')}>
-          <div className="flex min-w-0 items-center gap-3 px-3 py-3">
+{/* No celular a tinta sobe e ganha trilho: `primary/[0.045]` é
+            invisível num telefone, e sem separar as superfícies os quatro
+            níveis leem como um. Trilho grosso na âncora = o nível mais alto. */}
+        <div className={cn(GRID, 'border-b bg-primary/[0.045]', 'max-md:border-l-4 max-md:border-l-primary max-md:bg-primary/10')}>
+          <div className={cn(CELULA_NOME, 'flex min-w-0 items-center gap-3 px-3 py-3')}>
             <button type="button" onClick={() => toggle(groupId)} className="rounded p-1 text-muted-foreground hover:bg-primary/10" aria-label={isExpanded ? 'Recolher OS' : 'Expandir OS'}>{isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
             <div className="h-5 w-1 rounded-full bg-primary" />
-            <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="truncate font-semibold">{group.os?.numero_os ? `${group.os.numero_os}${group.os.produtos ? ` - ${group.os.produtos}` : ''}` : (group.hasLinkedOs ? 'OS vinculada' : 'Sem OS')}</span><Badge variant="outline" className="shrink-0 font-normal">{group.projects.length} {group.projects.length === 1 ? 'projeto' : 'projetos'}</Badge></div><p className="truncate text-xs text-muted-foreground">{group.os ? group.os.cliente_nome : group.hasLinkedOs ? 'Carregando dados da ordem de serviço vinculada' : 'Projetos e tarefas agrupados sem ordem de serviço'}</p></div>
+            <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span title={tituloDaOs(group)} className="line-clamp-2 break-words font-semibold">{tituloDaOs(group)}</span><Badge variant="outline" className="shrink-0 font-normal">{group.projects.length} {group.projects.length === 1 ? 'projeto' : 'projetos'}</Badge></div><p title={group.os?.cliente_nome} className="truncate text-xs text-muted-foreground">{group.os ? group.os.cliente_nome : group.hasLinkedOs ? 'Carregando dados da ordem de serviço vinculada' : 'Projetos e tarefas agrupados sem ordem de serviço'}</p></div>
           </div>
           <div />
           <div />
@@ -548,20 +752,27 @@ export function ProjetosTarefasList({
           const projectTaskIds = collectNodeTaskIds(projectNode.tasks);
           const selectedInProject = projectTaskIds.filter(id => selectedTaskIds.has(id)).length;
           return <div key={projectId}>
-            {/* O fundo sai do neutro e vai para a âncora, na mesma família da
+{/* O fundo sai do neutro e vai para a âncora, na mesma família da
                 faixa do cliente. Na OSG a superfície é bege (matiz 32) e a
                 âncora é musgo (149): com a faixa verde logo acima, o neutro
                 quente encostado nela era lido como ROSA — contraste simultâneo,
                 o mesmo efeito do `--muted-foreground` matiz 220 sobre marfim.
                 `bg-primary/5` é o degrau que a linha de tarefa selecionada já
-                usa. */}
+                usa. No celular a tinta sobe e ganha trilho mais discreto que o
+                da OS. */}
             {/* A sombra saiu junto com o `z-10`, que só existia para levantá-la
                 acima dos vizinhos: quem separa a linha agora é o preenchimento,
                 e a sombra virava reforço de uma coisa já dita — sombra preta
                 neutra sobre superfície quente ainda por cima acinzenta. */}
-            <div className={cn(GRID, 'group bg-primary/5 text-sm hover:bg-primary/10')}>
-              <div className="relative flex min-w-0 items-center gap-2 px-4 py-2.5" style={{ paddingLeft: `${PROJECT_INDENT}px` }}>
-                <LevelGuide left={OS_GUIDE} />
+            <div className={cn(GRID, 'group bg-primary/5 text-sm hover:bg-primary/10', 'max-md:border-l-4 max-md:border-l-primary/35 max-md:bg-muted/70')}>
+              <div
+                className={cn(CELULA_NOME, 'relative flex min-w-0 items-center gap-2 px-4 py-2.5 pl-[var(--recuo)] max-md:pl-[var(--recuo-estreito)]')}
+                style={{
+                  '--recuo': `${PROJECT_INDENT}px`,
+                  '--recuo-estreito': `${PROJECT_INDENT_ESTREITO}px`,
+                } as React.CSSProperties}
+              >
+                <LevelGuide left={OS_GUIDE} leftEstreito={OS_GUIDE_ESTREITO} />
                 <span className={TOGGLE_SLOT}>
                   <button type="button" onClick={() => toggle(projectId)} className="rounded p-0.5 text-muted-foreground hover:bg-muted" aria-label={projectExpanded ? 'Recolher projeto' : 'Expandir projeto'}>{projectExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
                 </span>
@@ -573,7 +784,7 @@ export function ProjetosTarefasList({
                   />}
                 </span>
                 <FolderKanban className="h-4 w-4 shrink-0 text-primary" />
-                <button type="button" disabled={!projectNode.project} onClick={() => projectNode.project && onEditProject(projectNode.project)} title={projectNode.project?.name} className="truncate text-left font-semibold hover:underline disabled:no-underline">{projectNode.project ? shortProjectName(projectNode.project.name, group.clientName, group.os?.numero_os) : 'Sem projeto'}</button>
+                <button type="button" disabled={!projectNode.project} onClick={() => projectNode.project && onEditProject(projectNode.project)} title={projectNode.project?.name} className="line-clamp-2 break-words text-left font-semibold hover:underline disabled:no-underline">{projectNode.project ? shortProjectName(projectNode.project.name, group.clientName, group.os?.numero_os) : 'Sem projeto'}</button>
                 <ContadorTarefas total={projectNode.taskCount} concluidas={projectNode.completedTaskCount} />
               </div>
               {/* Pílula de status do projeto: a mesma fonte do modal de projeto
@@ -609,7 +820,7 @@ export function ProjetosTarefasList({
                 </DropdownMenuContent>
               </DropdownMenu>}</div>
             </div>
-            {projectExpanded && <>{projectNode.tasks.map(node => renderTask(node, 0))}{projectNode.project && <button type="button" onClick={() => onNewTask(projectNode.project!.id)} className={cn('flex items-center gap-2 border-t py-2 pl-[60px] pr-4 text-xs text-muted-foreground hover:bg-muted/30 hover:text-foreground', FULL_ROW_MIN_WIDTH)}><Plus className="h-3.5 w-3.5" />Adicionar tarefa</button>}</>}
+            {projectExpanded && <>{projectNode.tasks.map(node => renderTask(node, 0))}{projectNode.project && <button type="button" onClick={() => onNewTask(projectNode.project!.id)} className={cn('flex items-center gap-2 border-t py-2 pl-[60px] pr-4 text-xs text-muted-foreground hover:bg-muted/30 hover:text-foreground max-md:pl-3', FULL_ROW_MIN_WIDTH)}><Plus className="h-3.5 w-3.5" />Adicionar tarefa</button>}</>}
           </div>;
         })}
         </section>

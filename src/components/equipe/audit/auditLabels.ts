@@ -5,9 +5,9 @@
 // agora são `periodosAuditoria` / `janelaDoPeriodo`, em `@/lib/auditPeriodos`.
 
 export const ACTION_LABELS: Record<string, { label: string; color: string }> = {
-  created: { label: 'Criação', color: 'bg-emerald-100 text-emerald-700' },
-  updated: { label: 'Edição', color: 'bg-blue-100 text-blue-700' },
-  deleted: { label: 'Exclusão', color: 'bg-red-100 text-red-700' },
+  created: { label: 'Criação', color: 'bg-status-feito-soft text-status-feito' },
+  updated: { label: 'Edição', color: 'bg-status-andamento-soft text-status-andamento' },
+  deleted: { label: 'Exclusão', color: 'bg-status-ajuste-soft text-status-ajuste' },
 };
 
 export const ENTITY_LABELS: Record<string, string> = {

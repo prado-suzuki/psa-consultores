@@ -31,7 +31,7 @@ const GRUPO_ICON: Record<GrupoDocumentoKey, LucideIcon> = {
 };
 
 /** Anel de foco dos botões nativos, no padrão das outras telas do cliente. */
-const FOCO = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40';
+const FOCO = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40';
 
 /**
  * Quantos documentos a gaveta mostra antes de oferecer a lista completa.
@@ -127,7 +127,7 @@ export function CardGrupoColeta({
           <span
             className={cn(
               'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
-              discreto ? 'bg-muted text-muted-foreground' : 'bg-accent/5 text-teal-700',
+              discreto ? 'bg-muted text-muted-foreground' : 'bg-accent/5 text-primary',
             )}
           >
             <Icon className="h-5 w-5" />
@@ -143,7 +143,7 @@ export function CardGrupoColeta({
           className={cn(
             'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold',
             grupo.arquivos.length > 0
-              ? 'bg-teal-600 text-white'
+              ? 'bg-primary text-white'
               : 'bg-muted text-muted-foreground',
           )}
         >
@@ -165,7 +165,7 @@ export function CardGrupoColeta({
           'mb-4 flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-7 text-center transition-colors',
           FOCO,
           arrastando
-            ? 'border-teal-500 bg-accent/5'
+            ? 'border-primary bg-accent/5'
             : 'border-border bg-muted/60 hover:border-primary/40 hover:bg-accent/5/40',
           enviando && 'cursor-wait opacity-70',
           somenteLeitura && 'cursor-not-allowed opacity-60 hover:border-border hover:bg-muted/60',
@@ -174,9 +174,9 @@ export function CardGrupoColeta({
         {somenteLeitura ? (
           <Lock className="h-7 w-7 text-muted-foreground" />
         ) : enviando ? (
-          <Loader2 className="h-7 w-7 animate-spin text-teal-700" />
+          <Loader2 className="h-7 w-7 animate-spin text-primary" />
         ) : (
-          <UploadCloud className="h-7 w-7 text-teal-700/70" />
+          <UploadCloud className="h-7 w-7 text-primary/70" />
         )}
         <span
           className={cn('text-sm font-medium', somenteLeitura ? 'text-muted-foreground' : 'text-primary')}
@@ -244,7 +244,7 @@ export function CardGrupoColeta({
           type="button"
           onClick={() => setArquivosCompletos(true)}
           className={cn(
-            'mb-4 inline-flex items-center gap-1 rounded text-xs font-bold text-teal-700 hover:underline',
+            'mb-4 inline-flex items-center gap-1 rounded text-xs font-bold text-primary hover:underline',
             FOCO,
           )}
         >
@@ -299,7 +299,7 @@ export function CardGrupoColeta({
             aria-expanded={listaAberta}
             aria-controls={listaId}
             className={cn(
-              'inline-flex items-center gap-1 rounded text-xs font-bold text-teal-700 hover:underline',
+              'inline-flex items-center gap-1 rounded text-xs font-bold text-primary hover:underline',
               FOCO,
             )}
           >
@@ -323,7 +323,7 @@ export function CardGrupoColeta({
                   type="button"
                   onClick={() => setListaCompleta(true)}
                   className={cn(
-                    'mt-2 inline-flex items-center gap-1 rounded text-xs font-bold text-teal-700 hover:underline',
+                    'mt-2 inline-flex items-center gap-1 rounded text-xs font-bold text-primary hover:underline',
                     FOCO,
                   )}
                 >

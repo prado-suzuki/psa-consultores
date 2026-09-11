@@ -10,8 +10,8 @@ export function DashboardLoadingOverlay({ label = 'Carregando relatório…' }: 
     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-white">
       <div className="relative h-14 w-14">
         <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
-        <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-teal-500 animate-spin" />
-        <Loader2 className="absolute inset-0 m-auto h-5 w-5 text-teal-500 opacity-0" />
+        <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary animate-spin" />
+        <Loader2 className="absolute inset-0 m-auto h-5 w-5 text-primary opacity-0" />
       </div>
       <div className="text-center">
         <p className="text-sm font-medium text-foreground">{label}</p>

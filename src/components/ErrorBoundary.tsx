@@ -54,8 +54,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted p-4">
         <div className="max-w-md w-full bg-white rounded-xl border border-border shadow-sm p-8 text-center space-y-6">
-          <div className="mx-auto w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-            <AlertTriangle className="h-8 w-8 text-red-600" />
+          <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+            <AlertTriangle className="h-8 w-8 text-destructive" />
           </div>
           <div className="space-y-2">
             <h1 className="text-xl font-semibold text-foreground">
@@ -73,7 +73,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           </div>
           <Button
             onClick={this.handleReload}
-            className="bg-teal-600 hover:bg-teal-700 text-white"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Recarregar página

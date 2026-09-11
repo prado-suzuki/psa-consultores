@@ -1,15 +1,24 @@
 import { describe, it, expect } from 'vitest';
+import { conferirSomasDoUsufruto, type LinhaDoUsufruto, type TotaisDoUsufruto } from '@/lib/osg/usufrutoDoAto';
 import {
   calcularCapitalSociedade,
   calcularParticipacoesPR,
   mapearAdministrador,
   mapearBem,
+  mapearCessoes,
+  mapearRetirantes,
+  causaDaRequalificacaoVigente,
+  vocabularioDaRequalificacao,
   mapearIntegralizacoes,
+  mapearEstadoDosOnus,
+  mapearListasDaDoacao,
+  mapearUsufrutosInstituidos,
   matriculasDescritasNasIntegralizacoes,
   mapearMatricula,
   mapearPartesSelecionadas,
   mapearPessoa,
   mapearQuadroSocietario,
+  mapearRequalificados,
   mapearSociedade,
   mapearSocio,
   reidratarItensPorLista,
@@ -23,11 +32,223 @@ import {
 import { tituloDoInstrumento, TITULO_CONSTITUICAO } from './instrumento';
 import { gerarDocumento } from './index';
 import { origemDe } from './origem';
+import { mapearSignatarios } from './signatarios';
 import { derivarCampos } from './vocabulario';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { Template } from './types';
 
 type Campos = Record<string, string>;
+
+// A cobertura por TIPO DE ENTIDADE (nenhuma fica de fora) mora em
+// `identidade.test.ts`, que varre a lista do vocabulário. Aqui fica a outra
+// metade: cada PAPEL de lista continua carregando a identidade da pessoa depois
+// do round-trip do jsonb, que é onde o Symbol a perdia.
+describe('identidade persistida nos mapeadores', () => {
+  it('a pessoa continua identificada em todos os papéis, após serialização JSON', () => {
+    const pessoa = { id: 'pessoa-ana', denominacao: 'Ana', tipo_pessoa: 'PF' } as PessoaRow;
+    const s = { pessoa, quotas: 100, vlr_total: 100, representante: null };
+    const snapshot = JSON.parse(JSON.stringify({
+      selecao: { pessoa: mapearPessoa(pessoa), sociedade: mapearSociedade(pessoa) },
+      itensPorLista: {
+        socios: mapearQuadroSocietario([s]).itens,
+        administradores: [mapearAdministrador({ pessoa, cargo: null })],
+        retirantes: mapearRetirantes([pessoa]),
+        cessoes: mapearCessoes([{ id: 'mov', cedente: pessoa, cessionario: pessoa, quotas: 1, valor: 1 }]),
+        partes: mapearPartesSelecionadas([{ id: pessoa.id, campos: mapearPessoa(pessoa) }]),
+        requalificados: mapearRequalificados([mapearPessoa(pessoa)]),
+        signatarios: mapearSignatarios({ socios: [s] }),
+        integralizacoes: mapearIntegralizacoes([s], [], [
+          { id: 'aporte', pessoaId: pessoa.id, quotas: 100, valor: 100, forma: 'moeda' },
+        ]),
+      },
+    })) as { selecao: Record<string, Campos>; itensPorLista: Record<string, ItemLista[]> };
+    expect(origemDe(snapshot.selecao.pessoa)).toEqual({ tipo: 'pessoa', id: pessoa.id });
+    expect(origemDe(snapshot.selecao.sociedade)).toEqual({ tipo: 'sociedade', id: pessoa.id });
+    for (const [lista, papel] of [
+      ['socios', 'socio'], ['administradores', 'administrador'], ['retirantes', 'retirante'],
+      ['cessoes', 'cedente'], ['cessoes', 'cessionario'], ['partes', 'parte'],
+      ['requalificados', 'requalificado'],
+      // O signatário é PROJEÇÃO (nome, papel, CPF), e por isso ficava sem
+      // identidade — o que o punha fora da comparação e cobrava uma pendência
+      // por peça. Ele passa a carregá-la como os demais; quem o mantém fora da
+      // comparação de qualificação é a decisão de PAPEL, em alteracaoPorEventos.
+      ['signatarios', 'signatario'],
+      ['integralizacoes', 'socio'],
+    ]) {
+      expect(origemDe(snapshot.itensPorLista[lista][0][papel]))
+        .toEqual({ tipo: 'pessoa', id: pessoa.id });
+    }
+  });
+
+  // Identidade se grava num lugar só. Um `set('id', row.id)` avulso reaparecendo
+  // num mapeador é o remendo que esta frente removeu — e ele não falha em lugar
+  // nenhum, só volta a fazer a identidade depender de quem lembrou de escrevê-la.
+  it('nenhum mapeador publica um campo `id` avulso por conta própria', () => {
+    const pessoa = { id: 'pessoa-ana', denominacao: 'Ana', tipo_pessoa: 'PF' } as PessoaRow;
+    expect(mapearPessoa(pessoa).id).toBeUndefined();
+    expect(mapearSociedade(pessoa).id).toBeUndefined();
+    expect((mapearPartesSelecionadas([{ id: pessoa.id, campos: mapearPessoa(pessoa) }])[0].parte as Campos).id)
+      .toBeUndefined();
+  });
+});
+
+describe('listas da doação com reserva de usufruto', () => {
+  const doador = { id: 'doador', denominacao: 'Doador', tipo_pessoa: 'PF' } as PessoaRow;
+  const donatario = { id: 'donatario', denominacao: 'Donatário', tipo_pessoa: 'PF' } as PessoaRow;
+  const pessoas = new Map([[doador.id, doador], [donatario.id, donatario]]);
+  const pessoaPorId = (id: string) => pessoas.get(id);
+  const doacao = {
+    id: 'mov-doacao', cedente: doador, cessionario: donatario,
+    quotas: 101, valor: 101, doacao: true, quotasLegitima: 51,
+    quotasDisponivel: 50, instrumentoData: '2026-09-10',
+  };
+  const onus = {
+    movimentoId: 'mov-doacao', nuProprietarioId: donatario.id,
+    usufrutuarioIds: [doador.id], usufrutoOrigem: 'reserva' as const, comVoto: true,
+    quotas: 101, gravames: ['inalienabilidade' as const, 'impenhorabilidade' as const],
+  };
+  const quadro = [{ pessoa: donatario, quotas: 101, vlr_total: 101, representante: null }];
+
+  it('o ato publica os pares, a reserva e os gravames que ele cria', () => {
+    const listas = mapearListasDaDoacao([doacao], [onus], pessoaPorId);
+
+    expect(listas.doacoes[0].doacao).toMatchObject({
+      quotas: '101', quotasLegitima: '51', quotasDisponivel: '50',
+      instrumentoData: '10/09/2.026',
+    });
+    expect(listas.usufrutos[0]).toMatchObject({ comVoto: true, usufruto: { quotas: '101', usufrutuarioNomes: 'Doador' } });
+    expect(listas.gravamesQuotas[0].gravame).toMatchObject({
+      nomes: 'INALIENABILIDADE, IMPENHORABILIDADE',
+    });
+  });
+
+  it('o estado publica o quadro de voto com o usufrutuário que se retirou', () => {
+    const estado = mapearEstadoDosOnus([onus], quadro, pessoaPorId, 101);
+
+    expect(estado.quadroUsufruto.map((i) => ({
+      nome: (i.titular as Campos).nome,
+      nua: (i.usufruto as Campos).nua,
+      voto: (i.usufruto as Campos).vozEVoto,
+    }))).toEqual([
+      { nome: 'Donatário', nua: '101', voto: '0' },
+      { nome: 'Doador', nua: '0', voto: '101' },
+    ]);
+    expect(estado.gravamesVigentes[0].gravame).toMatchObject({
+      quotas: '101', nomes: 'INALIENABILIDADE, IMPENHORABILIDADE',
+    });
+    expect(estado.problemas).toEqual([]);
+  });
+
+  it('gravame de ato anterior continua vigente mesmo sem doação nesta peça', () => {
+    const semAto = mapearListasDaDoacao([], [onus], pessoaPorId);
+    expect(semAto.doacoes).toEqual([]);
+    expect(semAto.gravamesQuotas).toEqual([]);
+
+    const estado = mapearEstadoDosOnus([onus], quadro, pessoaPorId, 101);
+    expect(estado.gravamesVigentes).toHaveLength(1);
+    expect(estado.quadroUsufruto).toHaveLength(2);
+  });
+
+  it('sem ônus não há tabela de voto nem nota de gravame, e o bloco cai por lista vazia', () => {
+    const estado = mapearEstadoDosOnus([], quadro, pessoaPorId, 101);
+    expect(estado).toEqual({ quadroUsufruto: [], gravamesVigentes: [], problemas: [] });
+  });
+
+  it('capital declarado maior que o quadro acusa quem ficou de fora da tabela', () => {
+    const estado = mapearEstadoDosOnus([onus], quadro, pessoaPorId, 200);
+    expect(estado.problemas.join(' | ')).toContain('Alguém do quadro ficou de fora');
+    // A tabela continua saindo: a pendência avisa, não trava a prévia.
+    expect(estado.quadroUsufruto).toHaveLength(2);
+  });
+});
+
+describe('usufruto instituído, que não é o reservado', () => {
+  const pai = { id: 'pai', denominacao: 'João', tipo_pessoa: 'PF' } as PessoaRow;
+  const mae = { id: 'mae', denominacao: 'Maria', tipo_pessoa: 'PF' } as PessoaRow;
+  const filha = { id: 'filha', denominacao: 'Ana', tipo_pessoa: 'PF' } as PessoaRow;
+  const pessoas = new Map([[pai.id, pai], [mae.id, mae], [filha.id, filha]]);
+
+  it('nomeia quem concede, quem usufrui e se o voto acompanha', () => {
+    const itens = mapearUsufrutosInstituidos([{
+      movimentoId: null, nuProprietarioId: filha.id, usufrutuarioIds: [pai.id, mae.id],
+      usufrutoOrigem: 'instituicao', comVoto: true, quotas: 4_874_552, gravames: [],
+    }], (id) => pessoas.get(id));
+
+    expect(itens).toHaveLength(1);
+    expect(itens[0]).toMatchObject({ comVoto: true, semVoto: false });
+    expect(itens[0].nuProprietario).toMatchObject({ nome: 'Ana' });
+    expect(itens[0].usufruto).toMatchObject({
+      quotas: '4.874.552', usufrutuarioNomes: 'João e Maria', ordemRomana: 'i',
+    });
+  });
+
+  it('sem voto, a seção que o instrumento usa é a outra', () => {
+    const [item] = mapearUsufrutosInstituidos([{
+      movimentoId: null, nuProprietarioId: filha.id, usufrutuarioIds: [pai.id],
+      usufrutoOrigem: 'instituicao', comVoto: false, quotas: 100, gravames: [],
+    }], (id) => pessoas.get(id));
+    expect(item).toMatchObject({ comVoto: false, semVoto: true });
+  });
+
+  it('ônus sem usufrutuário (só gravame) não é instituição e fica de fora', () => {
+    expect(mapearUsufrutosInstituidos([{
+      movimentoId: null, nuProprietarioId: filha.id, usufrutuarioIds: [],
+      usufrutoOrigem: null, comVoto: true, quotas: 100, gravames: ['inalienabilidade'],
+    }], (id) => pessoas.get(id))).toEqual([]);
+  });
+});
+
+describe('conferirSomasDoUsufruto', () => {
+  const linha = (over: Partial<LinhaDoUsufruto>): LinhaDoUsufruto => ({
+    pessoaId: 'p', nome: 'Pessoa', quotas: 100n, plena: 100n, nua: 0n, usufruto: 0n,
+    nuaDeReserva: 0n, nuaDeInstituicao: 0n, vozEVoto: 100n,
+    pctParticipacao: '100.0000', pctVozEVoto: '100.0000', concedePara: [],
+    ...over,
+  });
+  const totais = (over: Partial<TotaisDoUsufruto>): TotaisDoUsufruto => ({
+    quotas: 100n, plena: 100n, nua: 0n, usufruto: 0n, vozEVoto: 100n,
+    pctParticipacao: '100.0000', pctVozEVoto: '100.0000',
+    ...over,
+  });
+
+  it('tabela que fecha nas três somas não acusa nada', () => {
+    expect(conferirSomasDoUsufruto([linha({})], totais({}), 100n)).toEqual([]);
+  });
+
+  it('lista vazia não é erro: é sociedade sem usufruto', () => {
+    expect(conferirSomasDoUsufruto([], totais({ quotas: 0n, plena: 0n, vozEVoto: 0n }), 100n)).toEqual([]);
+  });
+
+  it('quadro que não cobre o capital', () => {
+    const codigos = conferirSomasDoUsufruto(
+      [linha({ quotas: 60n, plena: 60n, vozEVoto: 60n })],
+      totais({ quotas: 60n, plena: 60n, vozEVoto: 60n }),
+      100n,
+    ).map((p) => p.codigo);
+    expect(codigos).toContain('quadro-nao-cobre-o-capital');
+    expect(codigos).toContain('voto-nao-fecha-o-capital');
+  });
+
+  it('plena mais nua diferente das quotas da linha', () => {
+    // Concedeu 120 tendo 100: montarUsufruto apara a plena em zero e a
+    // diferença sumiria sem esta soma.
+    const problemas = conferirSomasDoUsufruto(
+      [linha({ nua: 120n, plena: 0n, vozEVoto: 0n })],
+      totais({ nua: 120n, plena: 0n, vozEVoto: 0n }),
+      100n,
+    );
+    expect(problemas.map((p) => p.codigo)).toContain('plena-mais-nua-nao-fecha');
+    expect(problemas[0].mensagem).toContain('Pessoa');
+  });
+
+  it('voto contado duas vezes no casal usufrutuário', () => {
+    expect(conferirSomasDoUsufruto(
+      [linha({})],
+      totais({ vozEVoto: 151n }),
+      100n,
+    ).map((p) => p.codigo)).toEqual(['voto-nao-fecha-o-capital']);
+  });
+});
 
 /** Matrícula mínima: só os titulares importam para estes testes. */
 function matriculaCom(titulares: TitularParaMapear[]): MatriculaParaMapear {
@@ -149,15 +370,22 @@ describe('mapearSociedade — PJ objeto do contrato', () => {
     const c = mapearSociedade(pj);
     expect(c.juntaUfExtenso).toBe('Mato Grosso');
     expect(c.sedeUfExtenso).toBe('Mato Grosso');
-    expect(c.dataConstituicao).toBe('01/03/2024');
+    // Ano com o ponto de milhar, como a casa escreve — ver `formatarDataBR`.
+    expect(c.dataConstituicao).toBe('01/03/2.024');
   });
 
   it('monta a sede em prosa e nas partes atômicas', () => {
     const c = mapearSociedade(pj);
     expect(c.sede).toContain('Rua das Acácias');
-    expect(c.sede).toContain('nº 119');
+    expect(c.sede).toContain('n.º 119');
     expect(c.sede).toContain('no município de Cuiabá');
-    expect(c.sedeEndereco).toBe('Rua das Acácias, nº 119');
+    expect(c.sedeEndereco).toBe('Rua das Acácias, n.º 119');
+    // As partes que `sedeEndereco` funde saem separadas: a alteração de sede
+    // compara campo a campo, e complemento ausente no cadastro é '' (conhecido
+    // e vazio), não desconhecido.
+    expect(c.sedeLogradouro).toBe('Rua das Acácias');
+    expect(c.sedeNumero).toBe('119');
+    expect(c.sedeComplemento).toBe('');
     expect(c.sedeBairro).toBe('Centro');
     expect(c.sedeMunicipio).toBe('Cuiabá');
     expect(c.sedeCep).toBe('78000-000');
@@ -625,29 +853,31 @@ describe('mapearMatricula — endereço do imóvel (identificação do urbano)',
 
   it('a prosa junta as partes com município e UF da MATRÍCULA (fonte única)', () => {
     expect(mapearMatricula(URBANO).endereco).toBe(
-      'Rua das Acácias, nº 119, apartamento 302, bairro Centro, ' +
-        'no município de Cuiabá, Estado de Mato Grosso, CEP: 78000-000',
+      'Rua das Acácias, n.º 119, apartamento 302, Bairro Centro, ' +
+        'no município de Cuiabá, Estado de Mato Grosso, CEP 78000-000',
     );
   });
 
-  it('o número em prosa evita o "nº s/n" do modelo', () => {
-    expect(mapearMatricula(URBANO).enderecoNumeroProsa).toBe('nº 119');
+  it('o número em prosa evita o "n.º s/n" do modelo', () => {
+    expect(mapearMatricula(URBANO).enderecoNumeroProsa).toBe('n.º 119');
     const semNumero = mapearMatricula({
       ...URBANO,
       bem: { ...URBANO.bem!, endereco_numero: 's/n' },
     });
     // O cru continua cru (quem já usa {{ enderecoNumero }} não muda de comportamento).
     expect(semNumero.enderecoNumero).toBe('s/n');
-    expect(semNumero.enderecoNumeroProsa).toBe('s/nº');
+    expect(semNumero.enderecoNumeroProsa).toBe('s/n.º');
   });
 
-  it('reaproveita as regras de prosa da pessoa (s/nº e bairro já prefixado)', () => {
+  it('reaproveita as regras de prosa da pessoa (s/n.º e "Bairro" na zona rural)', () => {
     const c = mapearMatricula({
       ...URBANO,
       bem: { ...URBANO.bem!, endereco_numero: 's/n', endereco_complemento: null, endereco_bairro: 'zona rural' },
     });
+    // A zona rural TAMBÉM leva o prefixo: o preâmbulo assinado do MMS diz
+    // "Fazenda Capuaba, s/n.º, Bairro Zona Rural".
     expect(c.endereco).toBe(
-      'Rua das Acácias, s/nº, zona rural, no município de Cuiabá, Estado de Mato Grosso, CEP: 78000-000',
+      'Rua das Acácias, s/n.º, Bairro zona rural, no município de Cuiabá, Estado de Mato Grosso, CEP 78000-000',
     );
   });
 
@@ -1074,6 +1304,14 @@ describe('mapearIntegralizacoes — alíneas por sócio com referência cruzada 
 });
 
 describe('calcularParticipacoesPR — quadro derivado da empresa PR', () => {
+  it('homônimos legados sem ids permanecem separados até conciliação', () => {
+    const participacoes = calcularParticipacoesPR([
+      { ...matriculaCom([{ denominacao: 'Ana' }]), id: 'm1', vlr_contabil: 100 },
+      { ...matriculaCom([{ denominacao: 'Ana' }]), id: 'm2', vlr_contabil: 200 },
+    ]);
+    expect(participacoes.map((p) => [p.pessoaId, p.valor])).toEqual([[null, 200], [null, 100]]);
+  });
+
   function matPR(
     id: string,
     vlr: number | null,
@@ -1335,5 +1573,99 @@ describe('proveniência (origem) anexada pelos mapeadores', () => {
 
     const sem = mapearMatricula(matriculaCom([]));
     expect(origemDe(sem)).toBeUndefined();
+  });
+});
+
+
+// Defeito medido no app em 09/09/2026, num AUMENTO de capital: a peca saia
+// "pelo socio OTAVIO PANTANAL, no valor total de R$ 500.000,00" (o total do
+// socio DEPOIS do aumento) sobre uma unica alinea de R$ 200.000,00 (o aporte do
+// ato). O cabecalho vinha do `vlrTotal` do quadro, via `mapearSocio`.
+//
+// Na constituicao os dois numeros coincidem, e foi por isso que passou: quem
+// integraliza tudo de uma vez tem total do quadro igual a soma das alineas.
+describe('mapearIntegralizacoes — o cabecalho e a soma das alineas dele', () => {
+  const socio = (vlrTotalNoQuadro: number): SocioParaMapear => ({
+    pessoa: { id: 'p1', denominacao: 'Otavio Pantanal', tipo_pessoa: 'PF', genero: 'M' } as unknown as PessoaRow,
+    quotas: vlrTotalNoQuadro,
+    vlr_total: vlrTotalNoQuadro,
+    representante: null,
+  });
+  const aporteEmMoeda = (valor: number) => ({
+    id: `a-${valor}`, pessoaId: 'p1', forma: 'moeda' as const, valor, quotas: valor,
+  });
+
+  it('aumento: anuncia o aporte DESTE ato, nao o total do socio no quadro', () => {
+    // Quadro depois do aumento: 500.000. Aporte deste ato: 200.000.
+    const [item] = mapearIntegralizacoes([socio(500000)], [], [aporteEmMoeda(200000)]);
+    const cabecalho = item.socio as Record<string, string>;
+    expect(cabecalho.vlrTotal).toBe('200.000,00');
+    expect(cabecalho.vlrTotalExtenso).toBe('duzentos mil reais');
+    const alineas = item.aportes as Array<Record<string, Record<string, string>>>;
+    expect(alineas.map((a) => a.aporte.valor)).toEqual(['200.000,00']);
+  });
+
+  it('duas alineas: o cabecalho soma as duas', () => {
+    const [item] = mapearIntegralizacoes(
+      [socio(500000)], [], [aporteEmMoeda(200000), aporteEmMoeda(45000)],
+    );
+    expect((item.socio as Record<string, string>).vlrTotal).toBe('245.000,00');
+  });
+
+  it('constituicao: quando coincidem, nada muda', () => {
+    const [item] = mapearIntegralizacoes([socio(200000)], [], [aporteEmMoeda(200000)]);
+    expect((item.socio as Record<string, string>).vlrTotal).toBe('200.000,00');
+  });
+
+  it('sem alinea com valor, o cabecalho fica com o do quadro', () => {
+    const [item] = mapearIntegralizacoes([socio(500000)], [], [
+      { id: 'a-sem', pessoaId: 'p1', forma: 'moeda' as const,
+        valor: null as unknown as number, quotas: null as unknown as number },
+    ]);
+    expect((item.socio as Record<string, string>).vlrTotal).toBe('500.000,00');
+  });
+});
+
+
+// Defeito medido no app em 09/09/2026: com a causa "Atualizacao postal" gravada
+// e o radio voltando marcado, a resolucao PERDIA a abertura "Em decorrencia da
+// atualizacao do CEP" depois de recarregar a tela, e o .docx nunca a teve. A
+// causa estava sendo lida do estado do assistente, que volta ao default a cada
+// recarga; quem manda e o que a peca gravou.
+describe('causaDaRequalificacaoVigente — quem manda e a peca, nao a tela', () => {
+  it('a causa do snapshot vence a da head e a da tela', () => {
+    expect(causaDaRequalificacaoVigente('atualizacao_postal', 'mudanca_de_domicilio', 'mudanca_de_domicilio'))
+      .toBe('atualizacao_postal');
+  });
+
+  it('sem causa no snapshot, vale a da head (peca ja confirmada, tela recarregada)', () => {
+    expect(causaDaRequalificacaoVigente(undefined, 'atualizacao_postal', 'mudanca_de_domicilio'))
+      .toBe('atualizacao_postal');
+  });
+
+  it('sem peca nenhuma, vale a da tela: e a previa de dentro do assistente', () => {
+    expect(causaDaRequalificacaoVigente(undefined, undefined, 'atualizacao_postal'))
+      .toBe('atualizacao_postal');
+    expect(causaDaRequalificacaoVigente(null, null, 'mudanca_de_domicilio'))
+      .toBe('mudanca_de_domicilio');
+  });
+
+  it('erro_material nao e geravel: cai na abertura neutra', () => {
+    expect(causaDaRequalificacaoVigente('erro_material', undefined, 'atualizacao_postal'))
+      .toBe('mudanca_de_domicilio');
+  });
+
+  it('nada informado tambem cai na neutra', () => {
+    expect(causaDaRequalificacaoVigente()).toBe('mudanca_de_domicilio');
+  });
+
+  it('a abertura do texto acompanha a causa vigente', () => {
+    const socios = [{ tipoPessoa: 'PF', nome: 'Ana', genero: 'F' }];
+    const postal = vocabularioDaRequalificacao(socios, causaDaRequalificacaoVigente('atualizacao_postal'));
+    expect(postal.causa).toContain('Código de Endereçamento Postal');
+    expect(postal.verbo).toBe('altera-se');
+    const domicilio = vocabularioDaRequalificacao(socios, causaDaRequalificacaoVigente(undefined, undefined, 'mudanca_de_domicilio'));
+    expect(domicilio.causa).toBe('');
+    expect(domicilio.verbo).toBe('Altera-se');
   });
 });

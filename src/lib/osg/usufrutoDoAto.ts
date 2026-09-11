@@ -66,6 +66,8 @@ export interface ConcessaoDeUsufruto {
   quotas: bigint;
   /** `reserva` vem da doação e é automática; `instituicao` é declarada. */
   origem: 'reserva' | 'instituicao';
+  /** Ausente preserva o comportamento histórico: o usufruto alcança o voto. */
+  comVoto?: boolean;
 }
 
 export interface ParticipanteDoUsufruto {
@@ -111,7 +113,13 @@ export interface TotaisDoUsufruto {
 }
 
 export interface ProblemaDoUsufruto {
-  codigo: 'concede-mais-do-que-tem' | 'concessao-sem-destino';
+  codigo:
+    | 'concede-mais-do-que-tem'
+    | 'concessao-sem-destino'
+    /** As três somas de `conferirSomasDoUsufruto`, abaixo. */
+    | 'quadro-nao-cobre-o-capital'
+    | 'plena-mais-nua-nao-fecha'
+    | 'voto-nao-fecha-o-capital';
   mensagem: string;
 }
 
@@ -154,13 +162,16 @@ export function montarUsufruto(entrada: EntradaDoUsufruto): {
 
   const linhas = participantes.map<LinhaDoUsufruto>((p) => {
     const dela = validas.filter((c) => c.deId === p.pessoaId);
-    const paraEla = validas.filter((c) => c.paraIds.includes(p.pessoaId));
+    const paraElaComVoto = validas.filter(
+      (c) => c.comVoto !== false && c.paraIds.includes(p.pessoaId),
+    );
     const somar = (cs: ConcessaoDeUsufruto[]) => cs.reduce((a, c) => a + c.quotas, 0n);
 
     const nua = somar(dela);
-    const usufruto = somar(paraEla);
+    const nuaComVotoDoTitular = somar(dela.filter((c) => c.comVoto === false));
+    const usufruto = somar(paraElaComVoto);
     const plena = naoNegativo(p.quotas - nua);
-    const vozEVoto = plena + usufruto;
+    const vozEVoto = plena + nuaComVotoDoTitular + usufruto;
 
     return {
       ...p,
@@ -179,17 +190,22 @@ export function montarUsufruto(entrada: EntradaDoUsufruto): {
 
   // O bloco concedido entra UMA vez, mesmo com dois usufrutuários: o direito é
   // conjunto, e somar por cabeça daria 151% num casal.
-  const concedido = validas.reduce((a, c) => a + c.quotas, 0n);
+  const concedidoComVoto = validas
+    .filter((c) => c.comVoto !== false)
+    .reduce((a, c) => a + c.quotas, 0n);
+  const nuaSemTransferenciaDeVoto = validas
+    .filter((c) => c.comVoto === false)
+    .reduce((a, c) => a + c.quotas, 0n);
   const plenaTotal = linhas.reduce((a, l) => a + l.plena, 0n);
 
   const totais: TotaisDoUsufruto = {
     quotas: linhas.reduce((a, l) => a + l.quotas, 0n),
     plena: plenaTotal,
     nua: linhas.reduce((a, l) => a + l.nua, 0n),
-    usufruto: concedido,
-    vozEVoto: plenaTotal + concedido,
+    usufruto: concedidoComVoto,
+    vozEVoto: plenaTotal + nuaSemTransferenciaDeVoto + concedidoComVoto,
     pctParticipacao: pct(linhas.reduce((a, l) => a + l.quotas, 0n), capital),
-    pctVozEVoto: pct(plenaTotal + concedido, capital),
+    pctVozEVoto: pct(plenaTotal + nuaSemTransferenciaDeVoto + concedidoComVoto, capital),
   };
 
   const problemas: ProblemaDoUsufruto[] = [];
@@ -216,6 +232,72 @@ export function montarUsufruto(entrada: EntradaDoUsufruto): {
   }
 
   return { linhas, totais, problemas };
+}
+
+/**
+ * AS TRÊS SOMAS INDEPENDENTES da tabela de nua-propriedade, conferidas depois de
+ * montada e antes de o contrato publicá-la.
+ *
+ * Existe porque a tabela é a única do instrumento em que o mesmo número aparece
+ * repartido de duas maneiras ao mesmo tempo (por titularidade e por voto), e um
+ * erro nela não se denuncia sozinho: o texto sai bem formado e errado. As três
+ * são independentes, e cada uma pega um defeito diferente:
+ *
+ *   1. Σ quotas = capital        — a tabela cobre a sociedade inteira. Falha quando
+ *                                  alguém do quadro ficou de fora da lista.
+ *   2. plena + nua = quotas      — por linha e no total. Falha quando a concessão
+ *                                  de alguém passa do que ele tem (a plena é
+ *                                  aparada em zero e a diferença some).
+ *   3. Σ voz e voto = capital    — cada quota vota uma vez, pela plena de quem a
+ *                                  tem ou pelo usufruto de quem a usufrui. Falha
+ *                                  quando o mesmo bloco é contado duas vezes, que
+ *                                  é o erro do casal usufrutuário (daria 151%).
+ *
+ * Conferir apenas a soma dos percentuais NÃO substitui isto: os quatro decimais
+ * arredondam, e 100,0000% sai de números que não fecham.
+ */
+export function conferirSomasDoUsufruto(
+  linhas: readonly LinhaDoUsufruto[],
+  totais: TotaisDoUsufruto,
+  capital: bigint,
+): ProblemaDoUsufruto[] {
+  const problemas: ProblemaDoUsufruto[] = [];
+  if (linhas.length === 0) return problemas;
+
+  if (capital > 0n && totais.quotas !== capital) {
+    problemas.push({
+      codigo: 'quadro-nao-cobre-o-capital',
+      mensagem: `A tabela de usufruto soma ${br(totais.quotas)} quotas e o capital é de `
+        + `${br(capital)}. Alguém do quadro ficou de fora.`,
+    });
+  }
+
+  const desequilibrada = linhas.find((l) => l.plena + l.nua !== l.quotas);
+  if (desequilibrada) {
+    problemas.push({
+      codigo: 'plena-mais-nua-nao-fecha',
+      mensagem: `${desequilibrada.nome} tem ${br(desequilibrada.quotas)} quotas, mas a `
+        + `tabela publica ${br(desequilibrada.plena)} em propriedade plena e `
+        + `${br(desequilibrada.nua)} em nua propriedade.`,
+    });
+  } else if (totais.plena + totais.nua !== totais.quotas) {
+    problemas.push({
+      codigo: 'plena-mais-nua-nao-fecha',
+      mensagem: `Os totais da tabela não fecham: ${br(totais.plena)} em propriedade plena `
+        + `mais ${br(totais.nua)} em nua propriedade não dão as ${br(totais.quotas)} quotas `
+        + 'do quadro.',
+    });
+  }
+
+  if (capital > 0n && totais.vozEVoto !== capital) {
+    problemas.push({
+      codigo: 'voto-nao-fecha-o-capital',
+      mensagem: `A tabela distribui voz e voto de ${br(totais.vozEVoto)} quotas e o capital `
+        + `é de ${br(capital)}. Cada quota vota uma vez, e só uma.`,
+    });
+  }
+
+  return problemas;
 }
 
 /**

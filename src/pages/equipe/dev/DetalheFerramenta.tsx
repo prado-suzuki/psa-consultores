@@ -126,7 +126,7 @@ const DetalheFerramenta = () => {
     return (
       <DevLayout title="Ferramenta não encontrada" subtitle="">
         <div className="text-center py-12">
-          <p className="text-gray-500">Esta ferramenta não existe ou foi removida.</p>
+          <p className="text-muted-foreground">Esta ferramenta não existe ou foi removida.</p>
           <Button className="mt-4" onClick={() => navigate('/equipe/dev')}>
             Voltar ao dashboard
           </Button>
@@ -238,14 +238,14 @@ const DetalheFerramenta = () => {
                   <div className="space-y-4">
                     {areasByCluster.map(([clusterName, clusterAreas]) => (
                       <div key={clusterName} className="space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           {clusterName}
                         </p>
                         <div className="grid grid-cols-2 gap-3">
                           {clusterAreas.map((area) => (
                             <div
                               key={area.id}
-                              className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                              className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted cursor-pointer"
                               onClick={() => toggleArea(area.id)}
                             >
                               <Checkbox
@@ -277,12 +277,12 @@ const DetalheFerramenta = () => {
             ) : (
               <div className="space-y-6">
                 <div>
-                  <Label className="text-gray-500">Descrição</Label>
+                  <Label className="text-muted-foreground">Descrição</Label>
                   <p className="mt-1">{tool.description || 'Sem descrição'}</p>
                 </div>
 
                 <div>
-                  <Label className="text-gray-500">Áreas que usam essa ferramenta</Label>
+                  <Label className="text-muted-foreground">Áreas que usam essa ferramenta</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {toolAccess && toolAccess.length > 0 ? (
                       toolAccess.map((ta) => (
@@ -291,18 +291,18 @@ const DetalheFerramenta = () => {
                         </Badge>
                       ))
                     ) : (
-                      <span className="text-gray-400 text-sm">Nenhuma área configurada</span>
+                      <span className="text-muted-foreground text-sm">Nenhuma área configurada</span>
                     )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                   <div>
-                    <Label className="text-gray-500">Criado em</Label>
+                    <Label className="text-muted-foreground">Criado em</Label>
                     <p className="mt-1">{new Date(tool.created_at).toLocaleDateString('pt-BR')}</p>
                   </div>
                   <div>
-                    <Label className="text-gray-500">Atualizado em</Label>
+                    <Label className="text-muted-foreground">Atualizado em</Label>
                     <p className="mt-1">{new Date(tool.updated_at).toLocaleDateString('pt-BR')}</p>
                   </div>
                 </div>

@@ -38,8 +38,8 @@ interface DeliverableFormFieldsProps {
 // formulário sem mexer no fundo dos cartões.
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">
-      <span className="h-[3px] w-5 shrink-0 rounded-full bg-teal-600" aria-hidden />
+    <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+      <span className="h-[3px] w-5 shrink-0 rounded-full bg-primary" aria-hidden />
       {children}
     </h3>
   );
@@ -52,8 +52,8 @@ const tabTriggerClass =
 /** Status com cor semântica: leitura rápida de andamento dentro do formulário. */
 const statusOptions = [
   { value: 'pending', label: entregavelStatusColors.pending.label, dot: entregavelStatusColors.pending.dot },
-  { value: 'in_progress', label: 'Em Progresso', dot: entregavelStatusColors.in_progress.dot },
-  { value: 'completed', label: 'Concluído', dot: entregavelStatusColors.completed.dot },
+  { value: 'in_progress', label: entregavelStatusColors.in_progress.label, dot: entregavelStatusColors.in_progress.dot },
+  { value: 'completed', label: entregavelStatusColors.completed.label, dot: entregavelStatusColors.completed.dot },
 ];
 
 function StatusOption({ label, dot }: { label: string; dot: string }) {
@@ -67,8 +67,8 @@ function StatusOption({ label, dot }: { label: string; dot: string }) {
 
 function PropertySection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="border-t border-teal-600/35 pt-4 first:border-t-0 first:pt-0">
-      <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-700/70">
+    <section className="border-t border-primary/35 pt-4 first:border-t-0 first:pt-0">
+      <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary/70">
         {title}
       </h3>
       {children}
@@ -112,7 +112,7 @@ export function DeliverableFormFields({
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7 gap-1.5 px-2 text-xs font-normal text-muted-foreground hover:text-teal-700"
+          className="h-7 gap-1.5 px-2 text-xs font-normal text-muted-foreground hover:text-primary"
           onClick={onToggleDescription}
         >
           {descriptionExpanded ? (
@@ -133,7 +133,7 @@ export function DeliverableFormFields({
         onChange={(next) => update('description', next)}
         ariaLabel="Descrição"
         // Sombra suave e tonal: destaca o campo de descrição dentro do cartão.
-        className="shadow-md shadow-teal-700/15"
+        className="shadow-md shadow-primary/15"
         fillHeight={descriptionExpanded}
         minHeight={descriptionExpanded ? 'min-h-[360px]' : 'min-h-[280px]'}
         maxHeight={descriptionExpanded ? undefined : 'max-h-[420px]'}
@@ -157,20 +157,20 @@ export function DeliverableFormFields({
 
   return (
     <div className="grid shrink-0 gap-5 lg:grid-cols-[minmax(0,13fr)_minmax(0,7fr)]">
-      <section className="rounded-3xl border border-teal-600/20 bg-card p-4 shadow-sm sm:p-5">
+      <section className="rounded-3xl border border-primary/20 bg-card p-4 shadow-sm sm:p-5">
         <div className="mb-5 space-y-2">
           <div className="flex items-center justify-between gap-3">
             <SectionLabel>
               {prefix === 'create' ? 'Nova tarefa' : 'Conteúdo da tarefa'}
             </SectionLabel>
             {prefix === 'create' && (
-              <span className="rounded-full bg-teal-500/10 px-3 py-1 text-xs font-medium text-teal-700">
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                 Título obrigatório
               </span>
             )}
           </div>
           <div className="flex min-w-0 items-baseline gap-2 text-[1.15rem] font-semibold tracking-tight">
-            {form.task_code && <span className="shrink-0 text-teal-700">[{form.task_code}]</span>}
+            {form.task_code && <span className="shrink-0 text-primary">[{form.task_code}]</span>}
             <Input
               id={`${prefix}-title`}
               value={form.title}

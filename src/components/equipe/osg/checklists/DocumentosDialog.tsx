@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useSincronizarSolicitacaoNaoAplicavel } from '@/hooks/useDomainSolicitacaoNaoAplicavel';
 import type { ArquivoDaLinha, GrupoChecklist, LinhaChecklist } from '@/lib/checklistDerivado';
 import type { EstadoDocumento } from '@/lib/estadoDocumento';
+import { revisaoArquivoColors } from '@/lib/estadoDocumentoColors';
 import {
   CLUSTER_LABEL, ESTADO_CHIP, ESTADO_LABEL, estadoDaLinha, PESO_STATUS, STATUS_LINHA,
 } from './checklistKit';
@@ -257,17 +258,20 @@ function ArquivoRevisavel({ arquivo, emRevisao, onAprovar, onRecusar, onDesfazer
   const doCliente = arquivo.fonte === 'cliente';
   const recusado = arquivo.revisao === 'recusado';
   const aprovado = arquivo.revisao === 'aprovado';
+  const cor = revisaoArquivoColors[arquivo.revisao];
 
   return (
     <li className={cn(
       'rounded-lg border px-3 py-2',
-      recusado ? 'border-osg-red/30 bg-osg-red/5' : 'border-osg-100 bg-osg-50/50',
+      // Só a linha recusada se colore: é a única que pede ação. As outras ficam
+      // no neutro da OSG para a pilha de arquivos não competir com a lista.
+      recusado ? cor.linha : 'border-osg-100 bg-osg-50/50',
     )}>
       <div className="flex flex-wrap items-center gap-2">
-        <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? 'text-osg-red' : 'text-osg-moss')} />
+        <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? cor.texto : 'text-osg-moss')} />
         <span className={cn(
           'min-w-0 flex-1 truncate text-xs font-medium',
-          recusado ? 'text-osg-red line-through' : 'text-osg-600',
+          recusado ? cn(cor.texto, 'line-through') : 'text-osg-600',
         )}>
           {arquivo.nome}
         </span>
@@ -278,21 +282,14 @@ function ArquivoRevisavel({ arquivo, emRevisao, onAprovar, onRecusar, onDesfazer
           <Loader2 className="h-4 w-4 animate-spin text-osg-500" />
         ) : (
           <div className="flex shrink-0 items-center gap-1">
-            {aprovado && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-osg-moss/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-osg-moss">
-                <Check className="h-3 w-3" />Aprovado
-              </span>
-            )}
-            {recusado && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-osg-red/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-osg-red">
-                <TriangleAlert className="h-3 w-3" />Recusado
-              </span>
-            )}
-            {!aprovado && !recusado && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-osg-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-osg-500">
-                <Hourglass className="h-3 w-3" />A revisar
-              </span>
-            )}
+            <span className={cn(
+              'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]',
+              cor.pilula,
+            )}>
+              {aprovado ? <Check className="h-3 w-3" />
+                : recusado ? <TriangleAlert className="h-3 w-3" /> : <Hourglass className="h-3 w-3" />}
+              {ESTADO_LABEL[aprovado ? 'aprovado' : recusado ? 'recusado' : 'em_analise']}
+            </span>
 
             {!aprovado && (
               <BotaoVeredito tom="aprovar" onClick={() => onAprovar(arquivo)}>
@@ -314,7 +311,7 @@ function ArquivoRevisavel({ arquivo, emRevisao, onAprovar, onRecusar, onDesfazer
         )}
       </div>
       {recusado && arquivo.motivo && (
-        <p className="mt-1 pl-5 text-xs leading-relaxed text-osg-red">{arquivo.motivo}</p>
+        <p className={cn('mt-1 pl-5 text-xs leading-relaxed', cor.texto)}>{arquivo.motivo}</p>
       )}
     </li>
   );
@@ -324,7 +321,7 @@ function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'ne
   return (
     <span className={cn(
       'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold',
-      tone === 'danger' ? 'bg-osg-red/10 text-osg-red' : 'bg-osg-100/70 text-osg-600',
+      tone === 'danger' ? 'bg-destructive/10 text-destructive' : 'bg-osg-100/70 text-osg-600',
     )}>
       {children}
     </span>
@@ -357,7 +354,7 @@ function BotaoVeredito({ tom, onClick, children }: {
       className={cn(
         'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
         tom === 'aprovar' && 'border-osg-moss/30 text-osg-moss hover:bg-osg-moss/10',
-        tom === 'recusar' && 'border-osg-red/30 text-osg-red hover:bg-osg-red/10',
+        tom === 'recusar' && 'border-destructive/30 text-destructive hover:bg-destructive/10',
         tom === 'desfazer' && 'border-osg-200 text-osg-500 hover:bg-osg-100/70 hover:text-osg-700',
       )}
     >

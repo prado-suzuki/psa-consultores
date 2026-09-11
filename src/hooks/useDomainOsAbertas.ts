@@ -46,7 +46,6 @@ export function useOsAbertasComProdutos(enabled = true) {
       // volta a ser declarada em OsRow logo acima — daí os `any` justificados.
       const { data: osRows, error } = await (supabase.from('ordem_servico') as any)
         .select('id, numero_os, id_cliente, situacao, data_inicio, data_fim, observacoes, os_produtos_contratados(produto_segmento_id, produto_segmento(codigo, nome))')
-        .eq('excluido', false)
         .in('situacao', OS_SITUACOES_ABERTAS)
         .order('numero_os');
       if (error) throw error;

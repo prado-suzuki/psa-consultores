@@ -159,11 +159,17 @@ const BibliotecaModelos = lazy(() => import("./pages/equipe/osg/BibliotecaModelo
 const MontagemDocumentos = lazy(() => import("./pages/equipe/osg/MontagemDocumentos"));
 const GerarDocumento = lazy(() => import("./pages/equipe/osg/GerarDocumento"));
 const QuadroSocietario = lazy(() => import("./pages/equipe/osg/QuadroSocietario"));
+const ExploracaoRural = lazy(() => import("./pages/equipe/osg/ExploracaoRural"));
 const CalculadoraItcmd = lazy(() => import("./pages/equipe/osg/CalculadoraItcmd"));
 const DocumentosCliente = lazy(() => import("./pages/equipe/osg/DocumentosCliente"));
 const ChecklistsDocumentos = lazy(() => import("./pages/equipe/osg/ChecklistsDocumentos"));
 const Relatorios = lazy(() => import("./pages/equipe/osg/Relatorios"));
 const OsgAuditoria = lazy(() => import("./pages/equipe/osg/OsgAuditoria"));
+const OrgaosGovernanca = lazy(() => import('./pages/equipe/osg/OrgaosGovernanca'));
+const MatrizDeAlcadas = lazy(() => import('./pages/equipe/osg/MatrizDeAlcadas'));
+const PapelDeTrabalho = lazy(() => import('./pages/equipe/dev/PapelDeTrabalho'));
+const GeradorDeSlides = lazy(() => import('./pages/equipe/dev/GeradorDeSlides'));
+const PlanejamentoTributarioHub = lazy(() => import('./pages/equipe/dev/PlanejamentoTributarioHub'));
 import { BoardClusterProvider } from "./contexts/BoardClusterContext";
 const BoardDashboard = lazy(() => import("./pages/equipe/board/BoardDashboard"));
 const BoardRelatorios = lazy(() => import("./pages/equipe/board/BoardRelatorios"));
@@ -290,6 +296,9 @@ const App = () => (
               <Route path="/equipe/dev/correcoes-sped" element={<PageAccessGate pagePath="/equipe/dev/correcoes-sped"><CorrecoesSped /></PageAccessGate>} />
               <Route path="/equipe/dev/procedimentos" element={<PageAccessGate pagePath="/equipe/dev/procedimentos"><ProcedimentosDev /></PageAccessGate>} />
               <Route path="/equipe/dev/apuracao-difal/icms-saidas" element={<PageAccessGate pagePath="/equipe/dev/apuracao-difal/icms-saidas"><IcmsSaidas /></PageAccessGate>} />
+                    <Route path="/equipe/dev/planejamento-tributario" element={ <PageAccessGate pagePath="/equipe/dev/planejamento-tributario"> <PlanejamentoTributarioHub /> </PageAccessGate> } />
+                    <Route path="/equipe/dev/planejamento-tributario/papel-de-trabalho" element={ <PageAccessGate pagePath="/equipe/dev/planejamento-tributario/papel-de-trabalho"> <PapelDeTrabalho /> </PageAccessGate> } />
+                    <Route path="/equipe/dev/planejamento-tributario/gerador-de-slides" element={ <PageAccessGate pagePath="/equipe/dev/planejamento-tributario/gerador-de-slides"> <GeradorDeSlides /> </PageAccessGate> } />
               <Route path="/equipe/acessos" element={<AdminRoute><EquipeControleAcessos /></AdminRoute>} />
 
               {/* Gestão Routes - Protected by access gate (admin or with explicit permission) */}
@@ -354,10 +363,13 @@ const App = () => (
                 <Route path="/equipe/osg/work/biblioteca-modelos" element={<ProtectedRoute><BibliotecaModelos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/montagem-documentos" element={<ProtectedRoute><MontagemDocumentos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/quadro-societario" element={<PageAccessGate pagePath="/equipe/osg/work/quadro-societario"><QuadroSocietario /></PageAccessGate>} />
+                <Route path="/equipe/osg/work/exploracao-rural" element={<PageAccessGate pagePath="/equipe/osg/work/exploracao-rural"><ExploracaoRural /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/calculadora-itcmd" element={<PageAccessGate pagePath="/equipe/osg/work/calculadora-itcmd"><CalculadoraItcmd /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/documentos" element={<ProtectedRoute><DocumentosCliente /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/checklists" element={<ProtectedRoute><ChecklistsDocumentos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
+                <Route path="/equipe/osg/work/governanca/orgaos" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/orgaos"> <OrgaosGovernanca /> </PageAccessGate> } />
+                <Route path="/equipe/osg/work/governanca/matriz" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/matriz"> <MatrizDeAlcadas /> </PageAccessGate> } />
               </Route>
               {/* Gestão de Chamados dentro da Gerencial da OSG. Espelha a Tax. Hoje
                   nasce vazia: não há chamado com cluster OSG. */}

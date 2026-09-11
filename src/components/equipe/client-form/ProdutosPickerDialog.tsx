@@ -18,7 +18,6 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAcentoArea } from './acentoArea';
 
 export interface ProdutoEscolhivel {
   id: string;
@@ -53,7 +52,6 @@ export default function ProdutosPickerDialog({
   selecionados,
   onConfirmar,
 }: ProdutosPickerDialogProps) {
-  const acento = useAcentoArea();
   const [marcados, setMarcados] = useState<ProdutoMarcado[]>(selecionados);
   const [busca, setBusca] = useState('');
 
@@ -131,7 +129,7 @@ export default function ProdutosPickerDialog({
           ) : (
             grupos.map((grupo) => (
               <div key={grupo.area} className="mb-4 last:mb-0">
-                <p className={cn('mb-1.5 text-[11px] font-bold uppercase tracking-wide', acento.positivoTexto)}>
+                <p className={cn('mb-1.5 text-[11px] font-bold uppercase tracking-wide', 'text-primary')}>
                   {grupo.area}
                 </p>
                 <ul className="space-y-1">
@@ -142,7 +140,7 @@ export default function ProdutosPickerDialog({
                         <label
                           className={cn(
                             'flex cursor-pointer items-start gap-2.5 rounded-md border px-3 py-2 transition-colors',
-                            marcado ? cn('border-current', acento.positivoFundo, acento.texto) : 'hover:bg-muted/60',
+                            marcado ? cn('border-current', 'bg-accent/5', 'text-primary') : 'hover:bg-muted/60',
                           )}
                         >
                           <Checkbox
@@ -186,7 +184,6 @@ export default function ProdutosPickerDialog({
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button
-              className={acento.botao}
               onClick={() => { onConfirmar(marcados); onOpenChange(false); }}
             >
               Confirmar

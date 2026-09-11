@@ -24,8 +24,8 @@ const PAPEL_POR_STATUS: Record<string, GanttPapel> = {
 
 const LEGENDA: ReadonlyArray<{ papel: GanttPapel; rotulo: string; ponto: string }> = [
   { papel: 'fila', rotulo: entregavelStatusColors.pending.label, ponto: 'bg-status-fila' },
-  { papel: 'andamento', rotulo: 'Em Progresso', ponto: 'bg-status-andamento' },
-  { papel: 'feito', rotulo: 'Concluído', ponto: 'bg-status-feito' },
+  { papel: 'andamento', rotulo: entregavelStatusColors.in_progress.label, ponto: 'bg-status-andamento' },
+  { papel: 'feito', rotulo: entregavelStatusColors.completed.label, ponto: 'bg-status-feito' },
 ];
 
 export function GanttTab({ controller: c }: { controller: EquipeSprintDetalhesController }) {

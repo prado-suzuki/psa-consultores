@@ -41,3 +41,4 @@ banco igual.
 | Arquivo | Monta |
 |---|---|
 | `cenario4_solicitacao_vencida.sql` | Cenário 4 (VENCER) da GES-04: solicitação vencida há 10 dias, sem nenhum documento, com o contato do Alexandre. Os cenários 1 a 3 (ENVIAR, AVISAR, ENCERRAR) são anteriores e não têm arquivo. |
+| `cenario-ac-todos-os-movimentos.sql` | Um movimento de cada gesto do quadro societário (aporte, cessão, doação simples, doação com reserva de usufruto e gravames, instituição de usufruto e redução) pendente numa empresa de Participações, para que "Gerar alteração contratual" produza a peça com as resoluções de todos. Cliente `[TESTE] Alteração Contratual Cenário Completo`. **Reaplicar é o botão de reset do cenário.** |

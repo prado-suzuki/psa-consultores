@@ -65,6 +65,9 @@ export function ProjetoLoteRow({
   }, [equipeId, equipeLiderIds, row.leaderIds.length, index, updateRow]);
 
   const disabled = !row.include;
+  // Âncoras do tour guiado só no primeiro cartão: o passo aponta um lugar, e
+  // uma OS de oito produtos repetiria a mesma âncora oito vezes.
+  const ancoraDoTour = index === 0;
 
   const handleEquipeChange = (value: string) => {
     const team = equipesOptions.find(option => option.id === value);
@@ -124,7 +127,7 @@ export function ProjetoLoteRow({
           <Label className="text-xs font-semibold uppercase text-muted-foreground">Nome do Projeto *</Label>
           <Input className="mt-1" value={row.name} onChange={event => updateRow(index, { name: event.target.value })} placeholder="Nome do projeto" />
         </div>
-        <div>
+        <div data-tour={ancoraDoTour ? 'lote-equipe' : undefined}>
           <Label className="text-xs font-semibold uppercase text-muted-foreground">Equipe *</Label>
           <Select value={row.equipeId} onValueChange={handleEquipeChange}>
             <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione a equipe" /></SelectTrigger>
@@ -133,7 +136,7 @@ export function ProjetoLoteRow({
             ))}</SelectContent>
           </Select>
         </div>
-        <div>
+        <div data-tour={ancoraDoTour ? 'lote-lider' : undefined}>
           <Label className="text-xs font-semibold uppercase text-muted-foreground">Líder Geral *</Label>
           <div className="mt-1">
             <PeopleMultiSelect
@@ -158,7 +161,7 @@ export function ProjetoLoteRow({
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label className="text-xs font-semibold uppercase text-muted-foreground">
+            <Label className="text-xs font-semibold uppercase text-muted-foreground" data-tour={ancoraDoTour ? 'lote-executor' : undefined}>
               Responsável Executor{row.semExecutorFixo ? '' : ' *'}
             </Label>
             <Select value={row.semExecutorFixo ? SEM_EXECUTOR_FIXO_OPTION : (row.responsibleId || '_none')} onValueChange={handleExecutorChange}>
@@ -173,7 +176,7 @@ export function ProjetoLoteRow({
             {row.semExecutorFixo && <p className="text-xs text-muted-foreground mt-1">As tarefas são delegadas a qualquer membro do projeto.</p>}
           </div>
           <div>
-            <Label className="text-xs font-semibold uppercase text-muted-foreground">Membros do Projeto *</Label>
+            <Label className="text-xs font-semibold uppercase text-muted-foreground" data-tour={ancoraDoTour ? 'lote-membros' : undefined}>Membros do Projeto *</Label>
             <div className="mt-1">
               <PeopleMultiSelect
                 options={availableMembers}

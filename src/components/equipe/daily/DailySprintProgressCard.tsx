@@ -15,10 +15,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { entregavelStatusColors } from '@/lib/entregavelStatusColors';
 import type {
   DailySprintProgress,
   SprintProgressPerson,
-  SprintProgressTaskStatus,
 } from '@/lib/dailySprintProgress';
 
 interface DailySprintProgressCardProps {
@@ -51,14 +51,11 @@ const PERSON_MUTED_COLORS = [
   '#eea1a1',
 ];
 
-const STATUS_PRESENTATION: Record<SprintProgressTaskStatus, {
-  label: string;
-  className: string;
-}> = {
-  pending: { label: 'A fazer', className: 'border-border bg-muted text-muted-foreground' },
-  in_progress: { label: 'Em progresso', className: 'border-status-alerta/20 bg-status-alerta-soft/60 text-status-alerta' },
-  completed: { label: 'Concluída', className: 'border-primary/25 bg-primary/5 text-primary' },
-};
+// A tarefa do daily tem as MESMAS três chaves do entregável de sprint, então
+// rótulo e cor saem do mapa do domínio. A cópia que estava aqui divergia nas duas
+// pontas: escrevia "Em progresso"/"Concluída" com caixa e gênero próprios, e
+// pintava `in_progress` com o papel `alerta` (âmbar de urgência) em vez de
+// `andamento`, o que fazia a mesma tarefa mudar de cor entre esta tela e o Gantt.
 
 export function DailySprintProgressCard({
   sprintName,
@@ -226,14 +223,14 @@ function PersonTasksDialog({
         </DialogHeader>
         <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
           {person?.tasks.map((task) => {
-            const status = STATUS_PRESENTATION[task.status];
+            const status = entregavelStatusColors[task.status];
             return (
               <div key={task.id} className="flex items-start justify-between gap-3 rounded-lg border bg-card p-3">
                 <div className="min-w-0">
                   {task.task_code && <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{task.task_code}</p>}
                   <p className="text-sm font-medium text-foreground">{task.title}</p>
                 </div>
-                <Badge variant="outline" className={`shrink-0 ${status.className}`}>
+                <Badge variant="outline" className={`shrink-0 ${status.badge}`}>
                   {status.label}
                 </Badge>
               </div>

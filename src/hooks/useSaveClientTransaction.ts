@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -50,19 +50,32 @@ const syncCadastrosToDW = (payload: any) => {
 };
 
 /**
- * Soft-delete que confirma o resultado antes de seguir.
+ * Apaga de vez e confirma quantas linhas saíram.
  *
- * `update({ excluido: true })` sem checagem falha em silêncio de dois jeitos: o
- * PostgREST devolve erro e ninguém lê, ou a policy de UPDATE não casa nenhuma
- * linha (0 rows, sem erro). Nos dois casos o save continua como se tivesse
- * excluído — e aí o registro "volta" no próximo reload e o insert seguinte
- * duplica a linha. A verificação relê os ids filtrando `excluido = false`:
- * se a linha ainda aparece assim, a exclusão não gravou.
+ * Vale para as tabelas que passaram a excluir fisicamente (representante,
+ * rateio e OS, sprint 13). O `.select()` é o que faz a recusa aparecer: sem ele
+ * uma policy que não casa nenhuma linha devolve 0 rows sem erro, o salvamento
+ * segue e a tela anuncia sucesso — foi assim que sobrou cliente pela metade em
+ * produção.
  *
- * Restou só para `contribuinte` e `representante`. OS e rateio passaram para
- * `softDeleteViaRpc` — e estas duas tabelas têm o MESMO defeito de RLS descrito
- * lá, ainda sem correção (fora do escopo da tarefa que consertou as outras).
+ * Falhar em zero é de propósito: o chamador só apaga id que acabou de ler do
+ * banco, então "nenhuma linha" aqui significa recusa, não corrida.
  */
+const apagaVerificado = async (
+  table: string,
+  idField: string,
+  ids: string[],
+  operacao: CadastroOperacao,
+): Promise<void> => {
+  // Tabelas de OS/rateio não estão no schema tipado — cast justificado
+  const { data: apagadas, error } = await (supabase.from(table as any) as any)
+    .delete().in(idField, ids).select(idField);
+  if (error) throw recusaDeOperacao(operacao, error);
+  if ((apagadas || []).length < ids.length) {
+    throw recusaDeOperacao(operacao, null, { zeroLinhas: true });
+  }
+};
+
 /**
  * Precheck traduzido para o item da tela.
  *
@@ -84,51 +97,35 @@ const precheck = async (
   }
 };
 
-const softDeleteVerificado = async (
-  table: string,
-  idField: string,
-  ids: string[],
-  operacao: CadastroOperacao,
-): Promise<void> => {
-  // Tabelas de OS/rateio não estão no schema tipado — cast justificado
-  const { error } = await (supabase.from(table as any) as any).update({ excluido: true }).in(idField, ids);
-  if (error) throw recusaDeOperacao(operacao, error);
-  const { data: restantes, error: reReadError } = await (supabase.from(table as any) as any)
-    .select(idField)
-    .in(idField, ids)
-    .eq("excluido", false);
-  if (reReadError) throw recusaDeOperacao(operacao, reReadError);
-  if (restantes && restantes.length > 0) {
-    // A linha continuar visível com `excluido = false` é a recusa silenciosa:
-    // nenhuma linha foi marcada e o banco não devolveu erro.
-    throw recusaDeOperacao(operacao, null, { zeroLinhas: true });
-  }
-};
-
 /**
- * Soft-delete de OS e de rateio pelas funções `soft_delete_*` do banco.
+ * Exclusão lógica pelas funções `soft_delete_*` do banco.
  *
- * Estas duas tabelas não aceitam `update({ excluido: true })` de quem não é
- * admin. A policy de SELECT delas exige `excluido = false`, e o UPDATE tem
- * WHERE — logo exige SELECT sobre a tabela —, então o Postgres aplica as
- * policies de leitura também à LINHA NOVA. Com `excluido = true` a linha some
- * da vista de quem gravou e o comando inteiro é recusado com 42501. Não é o
- * retorno que dispara: medido, falha igual sem `RETURNING`, então tirar o
- * `.select()` não resolveria.
+ * `contribuinte` não aceita `update({ excluido: true })` de quem não é admin. A
+ * policy de SELECT dela exige `excluido = false`, e o UPDATE tem WHERE — logo
+ * exige SELECT sobre a tabela —, então o Postgres aplica as policies de leitura
+ * também à LINHA NOVA. Com `excluido = true` a linha some da vista de quem
+ * gravou e o comando inteiro é recusado com 42501. Não é o retorno que dispara:
+ * medido, falha igual sem `RETURNING`, então tirar o `.select()` não resolveria.
  *
- * As funções são SECURITY DEFINER: gravam fora da policy e conferem a permissão
- * por dentro, espelhando a mesma regra que autoriza editar a linha. Nenhuma
- * policy foi afrouxada. Ver
- * `supabase/migrations/20260820140000_soft_delete_os_e_rateio_security_definer.sql`.
+ * Medido de novo em 10/09/2026, no sandbox, em transação revertida, com um
+ * líder: `update contribuinte set telefone = telefone` afeta 1 linha e
+ * `set excluido = true` levanta 42501. O mesmo vale para `cliente`.
+ *
+ * A função é SECURITY DEFINER: grava fora da policy e confere a permissão por
+ * dentro. Ver `supabase/migrations/20260910155500_soft_delete_cliente_e_contribuinte.sql`.
  *
  * Não há `assertCanPerform` antes: o `can_perform` ensaia `UPDATE ... SET
  * id = id`, que mantém `excluido = false` e por isso sempre aprovava justamente
- * esta operação. A validação agora é a da própria função, que é tudo-ou-nada e
- * devolve quantas linhas marcou — dispensando também a releitura de conferência
- * do `softDeleteVerificado`.
+ * esta operação. A validação é a da própria função, que é tudo-ou-nada e
+ * devolve quantas linhas marcou.
+ *
+ * `soft_delete_cliente` existe no banco pelo mesmo motivo e ainda não tem
+ * chamador: o único ponto que exclui cliente logicamente é o botão da lista
+ * (`useDeleteCliente`), hoje restrito a admin, que escapa da policy. Ele passa
+ * a precisar dela quando o botão for liberado para sublíder.
  */
 const softDeleteViaRpc = async (
-  rpc: "soft_delete_ordem_servico" | "soft_delete_distribuicao_receita",
+  rpc: "soft_delete_contribuinte",
   ids: string[],
   operacao: CadastroOperacao,
 ): Promise<number> => {
@@ -211,7 +208,13 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
 
-  const executeSave = useCallback(async () => {
+  /**
+   * O salvamento em si. Quem chama é o `executeSave` abaixo, que segura a porta.
+   *
+   * `saving` não é ligado aqui dentro: ele precisa valer desde o primeiro clique,
+   * antes da verificação de nome duplicado e do diálogo que ela abre.
+   */
+  const executarSalvamento = useCallback(async () => {
     const clienteObs = (clientData.observacoes || "").trim();
 
     // ─── Validação: barra só o que o usuário mexeu ──────────────────────────
@@ -300,10 +303,27 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
     if (!isEditing) {
       const nomeDigitado = clientData.nome.trim();
       const chaveDigitada = chaveDeNomeCliente(nomeDigitado);
-      const { data: candidatos } = await supabase
+      // O recorte é o mesmo do cadastro que está prestes a nascer: o insert
+      // carimba `ambiente: currentAmbiente`, então homônimo do outro ambiente
+      // não é duplicata nenhuma. Sem este filtro, quem cadastra em prod é
+      // avisado por causa de um cliente que só existe em dev (e vice-versa) —
+      // um registro que ele não consegue abrir em tela nenhuma para conferir se
+      // é mesmo o mesmo, porque as listas também recortam por `ambiente`.
+      const { data: candidatos, error: erroCandidatos } = await supabase
         .from(clienteTable)
         .select("id, nome")
-        .eq("excluido", false);
+        .eq("excluido", false)
+        .eq("ambiente", currentAmbiente);
+      // Consulta falhou: `candidatos` vem nulo e a lista vazia responderia "não
+      // há homônimo" com a mesma cara de quem conferiu de verdade. O salvamento
+      // para aqui, porque seguir calado é criar a duplicata que esta verificação
+      // existe para evitar, sem que ninguém saiba que o exame nem aconteceu.
+      if (erroCandidatos) {
+        console.error("[cadastro cliente] verificação de nome duplicado falhou:", erroCandidatos);
+        const texto = textoDeRecusa({ item: 'cliente', acao: 'cadastrar' }, 'falha');
+        toast.error(texto.titulo, { description: texto.detalhe });
+        return;
+      }
       const existe = (candidatos || []).some(c => chaveDeNomeCliente(c.nome) === chaveDigitada);
       if (existe) {
         const confirmed = await onDuplicateFound(nomeDigitado);
@@ -311,7 +331,6 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       }
     }
 
-    setSaving(true);
     let createdClienteId: string | null = null;
     // Passo corrente atualizado antes de cada write; usado no toast de RLS
     // pra dizer QUAL tabela/op recusou, em vez de um genérico "sem permissão".
@@ -427,43 +446,42 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const removedContribIds = (dbContribs || []).map(c => c.id).filter(id => !currentContribDbIds.includes(id));
         if (removedContribIds.length > 0) {
           currentStep = "contribuinte/soft-delete";
-          await softDeleteVerificado(contribuinteTable, "id", removedContribIds, { item: 'contribuinte', acao: 'excluir' });
+          await softDeleteViaRpc("soft_delete_contribuinte", removedContribIds, { item: 'contribuinte', acao: 'excluir' });
         }
 
         // --- Representantes: update existentes, insert novos, soft-delete removidos ---
         const partIdField = "id_representante";
         const currentPartDbIds = participants.filter(p => p._dbId).map(p => p._dbId!);
-        const { data: dbParts } = await (supabase.from(representanteTable) as any).select(partIdField).eq("id_cliente", clienteId).eq("excluido", false);
+        const { data: dbParts } = await (supabase.from(representanteTable) as any).select(partIdField).eq("id_cliente", clienteId);
         const removedPartIds = (dbParts || []).map((p: any) => p[partIdField]).filter((id: string) => !currentPartDbIds.includes(id));
         if (removedPartIds.length > 0) {
-          currentStep = "representante/soft-delete";
-          await softDeleteVerificado(representanteTable, partIdField, removedPartIds, { item: 'representante', acao: 'excluir' });
+          // Passou a apagar de vez (sprint 13, tarefa 4): representante não tem
+          // nenhuma FK apontando para ela, então a linha sai sem derrubar nada.
+          currentStep = "representante/delete";
+          await apagaVerificado(representanteTable, partIdField, removedPartIds, { item: 'representante', acao: 'excluir' });
         }
 
         // --- Ordens de Serviço: update existentes, insert novos, soft-delete removidos ---
         const currentOsDbIds = contracts.filter(c => c._dbId).map(c => c._dbId!);
         // ordem_servico is not in generated types — cast justified
-        const { data: dbOS } = await (supabase.from("ordem_servico" as any) as any).select("id").eq("id_cliente", clienteId).eq("excluido", false);
+        const { data: dbOS } = await (supabase.from("ordem_servico" as any) as any).select("id").eq("id_cliente", clienteId);
         const removedOsIds = (dbOS || []).map((o: any) => o.id).filter((id: string) => !currentOsDbIds.includes(id));
         if (removedOsIds.length > 0) {
           // A OS removida já saiu do rascunho: quem ainda sabe o número dela é o
           // snapshot do load. Sem isto a mensagem sairia com "(sem número)".
           const numeroOsRemovida = snapOsPorId.get(removedOsIds[0])?.ordem_servico || null;
-          currentStep = "ordem_servico/soft-delete";
-          await softDeleteViaRpc("soft_delete_ordem_servico", removedOsIds, { item: 'os', acao: 'excluir', numeroOs: numeroOsRemovida });
-
-          // O rateio acompanha a OS: sem isso sobra linha de distribuicao_receita
-          // ativa apontando pra OS excluída (receita fantasma nos relatórios).
-          const { data: distDeOsRemovida, error: distOrfaError } = await (supabase.from("distribuicao_receita" as any) as any)
-            .select("id")
-            .in("id_ordem_servico", removedOsIds)
-            .eq("excluido", false);
-          if (distOrfaError) throw recusaDeOperacao({ item: 'rateio', acao: 'excluir', numeroOs: numeroOsRemovida }, distOrfaError);
-          const distOrfaIds = ((distDeOsRemovida || []) as Array<{ id: string }>).map(r => r.id);
-          if (distOrfaIds.length > 0) {
-            currentStep = "distribuicao_receita/soft-delete-orfas";
-            await softDeleteViaRpc("soft_delete_distribuicao_receita", distOrfaIds, { item: 'rateio', acao: 'excluir', numeroOs: numeroOsRemovida });
-          }
+          // Passou a apagar de vez (sprint 13, tarefa 5). Rateio e produtos
+          // contratados saem junto pela cascata das chaves estrangeiras, que já
+          // estão como ON DELETE CASCADE no banco — por isso o bloco que
+          // excluía o rateio à mão saiu daqui. Era ele que produzia as 26 linhas
+          // fantasma: uma regra em dois lugares, e o front só valia quando a
+          // exclusão passava por esta tela.
+          //
+          // Projeto vinculado e solicitação de documentos BLOQUEIAM, cada um com
+          // sua frase, pelo catálogo de `rlsMessages` — a recusa chega como
+          // violação de chave estrangeira (23503) citando o nome da constraint.
+          currentStep = "ordem_servico/delete";
+          await apagaVerificado("ordem_servico", "id", removedOsIds, { item: 'os', acao: 'excluir', numeroOs: numeroOsRemovida });
         }
       } else {
         currentStep = "cliente/insert (RPC criar_cliente_com_clusters)";
@@ -808,8 +826,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           const draftDist = (c.distribuicao_receita || []).filter(d => d.id_centro_custo);
           const { data: dbDist, error: dbDistError } = await (supabase.from("distribuicao_receita" as any) as any)
             .select("id")
-            .eq("id_ordem_servico", osId)
-            .eq("excluido", false);
+            .eq("id_ordem_servico", osId);
           if (dbDistError) throw recusaDeOperacao({ item: 'rateio', acao: 'atualizar', numeroOs: c.ordem_servico }, dbDistError);
 
           const rotuloOs = c.ordem_servico || "(sem número)";
@@ -822,13 +839,14 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             // Sem este rótulo o passo continuava valendo "ordem_servico/update"
             // e o toast culpava a OS por um erro que aconteceu no rateio.
             //
-            // RPC, não softDeleteVerificado + assertCanPerform: distribuicao_receita
-            // tem o MESMO defeito de RLS de ordem_servico (ver softDeleteViaRpc acima)
-            // — update direto de quem não é admin falha com 42501, e assertCanPerform
-            // não pega porque o precheck dele não reproduz esse caso. A função
-            // dispensa o precheck de propósito (ela é a própria validação).
-            currentStep = "distribuicao_receita/soft-delete";
-            await softDeleteViaRpc("soft_delete_distribuicao_receita", distRemovidos, { item: 'rateio', acao: 'excluir', numeroOs: c.ordem_servico });
+            // Passou a apagar de vez (sprint 13, tarefa 4). O defeito de RLS que
+            // obrigava a usar função SECURITY DEFINER aqui era do UPDATE que
+            // marcava `excluido = true`; um DELETE não tem esse problema, porque
+            // não existe linha nova para a policy de leitura recusar.
+            // `soft_delete_distribuicao_receita` fica sem chamador e é derrubada
+            // no último passo da tarefa 5.
+            currentStep = "distribuicao_receita/delete";
+            await apagaVerificado("distribuicao_receita", "id", distRemovidos, { item: 'rateio', acao: 'excluir', numeroOs: c.ordem_servico });
             filhosDeOsAlterados = true;
             logAction({
               area: 'dev',
@@ -1227,10 +1245,34 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const desfazer = textoDeRecusa({ item: 'cliente', acao: 'excluir' }, 'falha');
         toast.error(desfazer.titulo, { description: desfazer.detalhe, duration: 10000 });
       }
-    } finally {
-      setSaving(false);
     }
   }, [clientData, entities, participants, contracts, inscricoesMap, clusterIds, isEditing, editingClienteId, setoresCliente, centrosCusto, onDuplicateFound, onSuccess, logAction, queryClient, originalSnapshot, authUser]);
+
+  /**
+   * Um salvamento por vez, do primeiro clique até o fim.
+   *
+   * `disabled={saving}` no botão não bastava: `saving` só virava `true` depois da
+   * verificação de nome duplicado e do diálogo de confirmação que ela abre, então
+   * dois cliques seguidos disparavam duas verificações e dois cadastros do mesmo
+   * cliente. Agora a bandeira sobe antes de qualquer `await`.
+   *
+   * A trava é a `ref`, não o estado: `setSaving` só chega ao botão no render
+   * seguinte, e dois cliques no mesmo quadro passariam os dois. A `ref` muda no
+   * ato. O estado continua existindo para a tela (botão desabilitado e spinner),
+   * agora pelo tempo inteiro da operação, inclusive enquanto o diálogo está aberto.
+   */
+  const salvamentoEmCurso = useRef(false);
+  const executeSave = useCallback(async () => {
+    if (salvamentoEmCurso.current) return;
+    salvamentoEmCurso.current = true;
+    setSaving(true);
+    try {
+      await executarSalvamento();
+    } finally {
+      salvamentoEmCurso.current = false;
+      setSaving(false);
+    }
+  }, [executarSalvamento]);
 
   // Mantido para as telas que ainda barram o save quando há rascunho de aba
   // aberto; devolve as abas pendentes em vez de salvar.

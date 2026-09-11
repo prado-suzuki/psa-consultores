@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { areaExtenso, cardinalExtenso, formatarArea, formatarPercentual, formatarValor, ordinalExtenso, percentualExtenso, romano, valorExtenso } from './extenso';
+import { areaExtenso, cardinalExtenso, cardinalExtensoContado, dataExtenso, formatarArea, formatarPercentual, formatarValor, numeralContrato, ordinalExtenso, percentualExtenso, romano, terminaEmEscala, valorExtenso } from './extenso';
+import { formatarDataBR } from './mapeadores';
 
 describe('cardinalExtenso', () => {
   it.each([
@@ -164,5 +165,112 @@ describe('cardinalExtenso — feminino (conta quotas)', () => {
   it('sem o sinalizador, segue masculino', () => {
     expect(cardinalExtenso(500)).toBe('quinhentos');
     expect(cardinalExtenso(2)).toBe('dois');
+  });
+});
+
+// A data na redação dos instrumentos. Duas coisas se defendem aqui: o PONTO no
+// ano ("10 de outubro de 2.025", como os assinados escrevem) e a INDEPENDÊNCIA
+// DE FUSO — `new Date('2022-10-10')` é lida como UTC e, em fuso negativo, volta o
+// dia 9. Um contrato com a data errada por um dia é o tipo de defeito que ninguém
+// revisa.
+describe('dataExtenso', () => {
+  it.each([
+    ['2025-10-10', '10 de outubro de 2.025'],
+    ['2022-10-11', '11 de outubro de 2.022'],
+    ['2024-08-28', '28 de agosto de 2.024'],
+    ['1957-05-23', '23 de maio de 1.957'],
+    ['2026-01-01', '1 de janeiro de 2.026'],
+  ])('ISO %s → "%s"', (iso, esperado) => {
+    expect(dataExtenso(iso)).toBe(esperado);
+  });
+
+  // A forma que um campo DERIVADO recebe: a base foi publicada por
+  // `formatarDataBR` e é essa que o consultor edita no "Ajustar dados
+  // manualmente". Sem aceitar as duas, o derivado devolvia a própria data crua.
+  it.each([
+    ['10/10/2025', '10 de outubro de 2.025'],
+    ['1/1/2026', '1 de janeiro de 2.026'],
+    // COM o ponto de milhar no ano, que é a forma que `formatarDataBR` publica
+    // desde 02/09/2026. Sem isto o derivado devolvia "10/10/2.025" intacto, e a
+    // vigência da parceria saía em dd/mm/aaaa no lugar do extenso.
+    ['10/10/2.025', '10 de outubro de 2.025'],
+    ['23/05/1.957', '23 de maio de 1.957'],
+    ['1/1/2.026', '1 de janeiro de 2.026'],
+  ])('dd/mm/aaaa %s → "%s"', (br, esperado) => {
+    expect(dataExtenso(br)).toBe(esperado);
+  });
+
+  // Guarda de ida e volta: o que `formatarDataBR` escreve, `dataExtenso` tem de
+  // ler. As duas funções vivem em arquivos diferentes e mudaram no mesmo dia por
+  // motivos diferentes — foi assim que uma quebrou a outra em silêncio.
+  it('lê de volta tudo o que formatarDataBR escreve', () => {
+    for (const iso of ['2025-10-10', '2022-10-11', '1957-05-23', '2026-01-01']) {
+      expect(dataExtenso(formatarDataBR(iso))).toBe(dataExtenso(iso));
+    }
+  });
+
+  it('não passa por Date: o primeiro dia do mês em ISO não retrocede um dia', () => {
+    expect(dataExtenso('2022-10-01')).toBe('1 de outubro de 2.022');
+  });
+
+  it('o que não é data volta como veio, sem inventar', () => {
+    expect(dataExtenso(null)).toBe('');
+    expect(dataExtenso('')).toBe('');
+    expect(dataExtenso('a combinar')).toBe('a combinar');
+    expect(dataExtenso('2022-13-01')).toBe('2022-13-01');
+  });
+});
+
+
+// Defeito medido no app em 09/09/2026, num capital de milhao redondo: a peca
+// saia "R$ 1.000.000,00 (um milhao reais)" e "1.000.000 (um milhao) quotas".
+// Milhao e bilhao sao substantivos, e o que vem contado depois deles pede "de" —
+// o proprio comentario do modulo ja dizia isso ("dois milhoes de quotas").
+// Composto nao pede, porque a escala deixa de ser a ultima palavra.
+describe('preposicao depois de milhao e bilhao', () => {
+  it('reconhece quando o extenso termina em substantivo de escala', () => {
+    expect(terminaEmEscala(1_000_000)).toBe(true);
+    expect(terminaEmEscala(2_000_000)).toBe(true);
+    expect(terminaEmEscala(1_000_000_000)).toBe(true);
+    // Composto: a escala nao e a ultima palavra.
+    expect(terminaEmEscala(3_974_751)).toBe(false);
+    expect(terminaEmEscala(1_000_500)).toBe(false);
+    // "mil" nao e substantivo: "dois mil reais".
+    expect(terminaEmEscala(2_000)).toBe(false);
+    expect(terminaEmEscala(0)).toBe(false);
+  });
+
+  it('valor por extenso: "um milhao de reais"', () => {
+    expect(valorExtenso(1_000_000)).toBe('um milhão de reais');
+    expect(valorExtenso(2_000_000)).toBe('dois milhões de reais');
+    expect(valorExtenso(1_000_000_000)).toBe('um bilhão de reais');
+  });
+
+  it('composto e milhar seguem sem "de"', () => {
+    expect(valorExtenso(3_974_751)).toBe('três milhões, novecentos e setenta e quatro mil, setecentos e cinquenta e um reais');
+    expect(valorExtenso(2_000)).toBe('dois mil reais');
+    expect(valorExtenso(700_000)).toBe('setecentos mil reais');
+  });
+
+  it('os centavos ficam depois da preposicao, nao antes', () => {
+    expect(valorExtenso(1_000_000.55)).toBe('um milhão de reais e cinquenta e cinco centavos');
+  });
+
+  it('o contado carrega o "de"; o cru segue puro', () => {
+    expect(cardinalExtensoContado(1_000_000, true)).toBe('um milhão de');
+    expect(cardinalExtensoContado(3_974_751, true)).toBe('três milhões, novecentas e setenta e quatro mil, setecentas e cinquenta e uma');
+    expect(cardinalExtenso(1_000_000, true)).toBe('um milhão');
+  });
+
+  // As QUOTAS ficam de fora de proposito, e a medicao no app em 09/09/2026 e a
+  // razao: o substantivo esta FORA da glosa ("1.000.000 ({{ quotasExtenso }})
+  // quotas"), entao a preposicao dentro dela produzia "1.000.000 (um milhao de)
+  // quotas", fechando o parentese numa preposicao solta. A forma certa e
+  // "1.000.000 (um milhao) de quotas", e quem escreve fora do parentese e o
+  // modelo. Este teste trava o estado atual para que a correcao no lugar certo
+  // seja uma decisao, e nao um efeito colateral.
+  it('quotasExtenso NAO carrega o "de": quem o escreve e o modelo', () => {
+    expect(cardinalExtenso(1_000_000, true)).toBe('um milhão');
+    expect(cardinalExtenso(500_000, true)).toBe('quinhentas mil');
   });
 });

@@ -1,8 +1,11 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import type { SnapshotDados } from '@/hooks/useDocumentoGerado';
+import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
+import { mapearSociedade } from '@/lib/templates/mapeadores';
+import { confirmarPropostaAC } from '@/lib/osg/alteracaoPorEventos';
 import GerarDocumento from './GerarDocumento';
 
 const mocks = vi.hoisted(() => ({
@@ -14,10 +17,23 @@ const mocks = vi.hoisted(() => ({
   toast: vi.fn(),
   definirFlagManual: vi.fn(),
   responderEventos: vi.fn(async () => []),
+  /** A proposta confirmada vira a head da alteração, em rascunho e por validar. */
+  confirmarProposta: vi.fn(async (input: Record<string, unknown>) => ({
+    id: 'doc-proposta', documento_raiz_id: 'doc-proposta', status: 'rascunho', papel: 'alterador',
+    substitui_documento_id: input.documentoBaseId, snapshot_dados: input.snapshotDados,
+    snapshot_flags: input.snapshotFlags, snapshot_versoes_blocos: null, snapshot_validado_em: null,
+  })),
+  enviarArquivoRegistrado: vi.fn(async () => 'arquivo-registrado-1'),
   registrarDocumento: vi.fn(async () => ({
     id: 'doc-head', documento_raiz_id: 'doc-raiz', status: 'registrado',
     snapshot_dados: null, snapshot_flags: [], substitui_documento_id: null,
   })),
+  completarRegistro: vi.fn(async (input: Record<string, unknown>) => ({
+    id: input.documentoGeradoId, documento_raiz_id: 'doc-raiz', status: 'registrado',
+    snapshot_dados: null, snapshot_flags: [], substitui_documento_id: null,
+  })),
+  /** As peças desta sociedade que já foram à junta (useRegistradosDaSociedade). */
+  pecasRegistradas: [] as unknown[],
   vazia: [] as unknown[],
   /** Catálogo de tmpl_flag (useFlags): derivadas declarativas e manuais. */
   flags: [] as unknown[],
@@ -59,6 +75,8 @@ const mocks = vi.hoisted(() => ({
   /** O livro de movimentos da empresa (useMovimentosDaEmpresa). */
   movimentos: [] as unknown[],
   rascunho: null as Record<string, unknown> | null,
+  /** O documento REGISTRADO que uma alteração validada declara substituir (useDocumentoGeradoPorId). */
+  base: null as Record<string, unknown> | null,
   /** pj_pessoa_id com constitutivo REGISTRADO (useConstitutivosRegistrados). */
   constitutivosRegistrados: new Set<string>(),
   /** documento_gerado que substitui a peça base (useDocumentoSucessor). */
@@ -98,6 +116,8 @@ vi.mock('@/components/equipe/osg/OsgLayout', () => ({
 
 vi.mock('@/contexts/OsgWorkContext', () => ({ useOsgWork: () => ({ clienteId: 'cliente-1' }) }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'user-1' } }) }));
+// O upload do PDF registrado passa pelo broker autenticado; aqui só a assinatura.
+vi.mock('@/hooks/useApiAuth', () => ({ useApiAuth: () => ({ fetchWithAuth: vi.fn() }) }));
 
 vi.mock('@/hooks/useModelosDocumento', () => ({
   useModelos: () => ({
@@ -126,14 +146,21 @@ vi.mock('@/hooks/useDocumentoGerado', () => ({
   // As sociedades que já existem na junta: é o fato que a trava do constitutivo
   // lê para saber se validar criaria um SEGUNDO contrato social da mesma PJ.
   useConstitutivosRegistrados: () => ({ data: mocks.constitutivosRegistrados }),
-  useDocumentoGeradoPorId: () => ({ data: null }),
+  useDocumentoGeradoPorId: (id: string | null) => ({ data: id && mocks.base?.id === id ? mocks.base : null }),
   useRegistrarDocumento: () => ({ mutateAsync: mocks.registrarDocumento, isPending: false }),
+  // O marco da junta pode chegar depois do registro: esta é a única escrita que
+  // a peça registrada aceita, e vale para qualquer peça registrada da sociedade.
+  useCompletarRegistroContratual: () => ({ mutateAsync: mocks.completarRegistro, isPending: false }),
+  useRegistradosDaSociedade: () => ({ data: mocks.pecasRegistradas }),
+  useConfirmarPropostaAC: () => ({ mutateAsync: mocks.confirmarProposta, isPending: false }),
+  useEnviarArquivoRegistrado: () => ({ mutateAsync: mocks.enviarArquivoRegistrado, isPending: false }),
   // A peça que já sucede a base, se existir: é ela que impede "Gerar alteração
   // contratual" de abrir uma SEGUNDA alteração sobre o mesmo antecessor.
   useDocumentoSucessor: () => ({ data: mocks.sucessor }),
   // Elos até a base da sucessão: com o registrado servindo de base, a peça em
-  // composição é a primeira alteração (0 + 1).
-  useOrdemNaSucessao: () => ({ data: 0 }),
+  // composição é a primeira alteração (0 + 1). A proposta confirmada já sucede a
+  // registrada no banco, e a conta dela dá 1.
+  useOrdemNaSucessao: (_clienteId: string | null, id: string | null) => ({ data: id === 'doc-proposta' ? 1 : 0 }),
   useDocumentoOverrides: (id: string | null) => {
     mocks.hookCalls.overrides.push(id);
     return { data: { porBlocoAlvo: mocks.overrides } };
@@ -292,6 +319,22 @@ const MATRICULA_URBANA = {
   titulares: [{ denominacao: 'Avelino Neri Bocolli', pessoaId: 'socio-1', fracao: 100, integralizador: true }],
 };
 
+/** O marco do registro, preenchido como o consultor faria; devolve o diálogo. */
+async function preencherRegistro(opcoes: { arquivo?: boolean } = {}) {
+  const dialogo = await screen.findByRole('dialog', { name: /Registrar na junta/ });
+  await userEvent.type(within(dialogo).getByLabelText(/Protocolo na junta/), 'MTP2600012345');
+  fireEvent.change(within(dialogo).getByLabelText(/Data do registro/), { target: { value: '2026-08-10' } });
+  await userEvent.type(within(dialogo).getByLabelText(/Número do arquivamento/), '51200123456');
+  const uf = within(dialogo).getByLabelText(/^UF/);
+  await userEvent.clear(uf);
+  await userEvent.type(uf, 'MT');
+  if (opcoes.arquivo !== false) {
+    const arquivo = new File(['%PDF-1.4'], 'registrado.pdf', { type: 'application/pdf' });
+    await userEvent.upload(within(dialogo).getByLabelText(/PDF registrado/), arquivo);
+  }
+  return dialogo;
+}
+
 async function escolherModelo() {
   await userEvent.click(screen.getByRole('button', { name: /Contrato Social/i }));
   await screen.findByText('Escolha a empresa do contrato');
@@ -324,7 +367,9 @@ beforeAll(() => {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.rascunho = null;
+  mocks.base = null;
   mocks.constitutivosRegistrados = new Set();
+  mocks.pecasRegistradas = [];
   mocks.sucessor = null;
   mocks.overrides = new Map();
   mocks.versoes = [];
@@ -369,12 +414,25 @@ describe('GerarDocumento — caracterização O1', () => {
     expect(payload.snapshotDados).toEqual({
       selecao: expect.objectContaining({ sociedade: expect.objectContaining({ razaoSocial: empresa.denominacao }) }),
       registroPorBinding: {}, registrosPorLista: {},
+      // O contrato social formaliza todos os pendentes; aqui não há nenhum, e o
+      // vazio é declarado (é o que o registro lê, não a lista viva).
+      movimentosFormalizados: [],
       valoresLivres: { observacao: 'Observação viva' }, empresaId: 'empresa-1',
       itensPorLista: {
         socios: [], administradores: [], integralizacoes: [], cessoes: [],
+        // Coleções do ATO de doação são congeladas mesmo vazias: assim uma
+        // versão não passa a narrar ônus criado depois de sua validação.
+        doacoes: [], usufrutos: [], gravamesQuotas: [],
+        // As de ESTADO (o ônus vigente da sociedade) entram sempre, porque o
+        // consolidado as republica a cada peça. Vazias aqui: sem ônus no caso.
+        quadroUsufruto: [], gravamesVigentes: [],
         // `retirantes` entrou com a cláusula de retirada da AC de concentração:
         // lista nova é lista congelada no snapshot, como as demais.
         retirantes: [],
+        // `requalificados` entrou com a resolução de endereço de sócio. Vazia
+        // fora de uma alteração: quem a compõe é o estado proposto, dos
+        // candidatos confirmados no assistente.
+        requalificados: [],
         imoveis: [], signatarios: [], vertices: [], memoriais: [],
       },
       total: null,
@@ -384,7 +442,7 @@ describe('GerarDocumento — caracterização O1', () => {
     expect(payload.snapshotVersoesBlocos.familias).toEqual({});
   });
 
-  it('hidrata SnapshotDados antigo, mantém o documento congelado e religa a proveniência Symbol', async () => {
+  it('hidrata SnapshotDados antigo, mantém o documento congelado e religa a proveniência do acervo', async () => {
     await abrirDocumentoCongelado();
 
     expect(screen.getByText(/Acme congelada/)).toBeInTheDocument();
@@ -504,7 +562,7 @@ describe('GerarDocumento — caracterização O1', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Baixar .docx' }));
     await waitFor(() => expect(mocks.baixarDocx).toHaveBeenCalledWith(
-      'Contrato Social (versão 1)', expect.arrayContaining([expect.objectContaining({ id: 'posicao-1' })]),
+      'Contrato Social (versão 1)', expect.arrayContaining([expect.objectContaining({ id: 'posicao-1' })]), true,
     ));
     await userEvent.click(screen.getByRole('button', { name: 'Voltar à versão atual' }));
     expect(screen.getByRole('button', { name: 'Atualizar versão' })).toBeInTheDocument();
@@ -526,7 +584,10 @@ describe('GerarDocumento — caracterização O1', () => {
     await abrirDocumentoVivo();
 
     expect(
-      await screen.findByText(/Um imóvel urbano na Avenida das Itaúbas, nº 3255/),
+      // "n.º", com ponto: é a abreviação da casa, contada no corpus dos
+      // assinados em 02/09/2026 — 68 contra 8 nos instrumentos agrários e 71
+      // contra 2 nos Contratos Sociais. Ver `numeroProsa` em vocabulario.ts.
+      await screen.findByText(/Um imóvel urbano na Avenida das Itaúbas, n\.º 3255/),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Um imóvel rural/)).not.toBeInTheDocument();
 
@@ -559,7 +620,7 @@ describe('GerarDocumento — caracterização O1', () => {
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining(empresa.denominacao));
     await userEvent.click(screen.getByRole('button', { name: 'Baixar .docx' }));
     await waitFor(() => expect(mocks.baixarDocx).toHaveBeenCalledWith(
-      'Contrato Social', expect.arrayContaining([expect.objectContaining({ id: 'posicao-1' })]),
+      'Contrato Social', expect.arrayContaining([expect.objectContaining({ id: 'posicao-1' })]), true,
     ));
   });
 });
@@ -720,7 +781,7 @@ describe('GerarDocumento — B2 · baixar com pendência avisa e marca o arquivo
 
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     await waitFor(() => expect(mocks.baixarDocx).toHaveBeenCalledWith(
-      'Modelo alternativo', expect.arrayContaining([expect.objectContaining({ id: 'posicao-1' })]),
+      'Modelo alternativo', expect.arrayContaining([expect.objectContaining({ id: 'posicao-1' })]), true,
     ));
   });
 });
@@ -863,16 +924,136 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
     await screen.findByText('Versão validada · rascunho');
 
     await userEvent.click(screen.getByRole('button', { name: 'Registrar na junta' }));
-    const confirmacao = await screen.findByRole('alertdialog');
+    const confirmacao = await screen.findByRole('dialog', { name: /Registrar na junta/ });
     expect(within(confirmacao).getByText(/deixa de aceitar edição de bloco/i)).toBeInTheDocument();
+    // O mínimo que identifica o ato na junta: sem protocolo e data do registro o
+    // gesto não sai, e o diálogo diz por quê.
+    expect(within(confirmacao).getByRole('button', { name: 'Registrar na junta' })).toBeDisabled();
+    expect(within(confirmacao).getByText(/protocolo e a data do registro identificam o ato/)).toBeInTheDocument();
 
+    await preencherRegistro();
     await userEvent.click(within(confirmacao).getByRole('button', { name: 'Registrar na junta' }));
-    await waitFor(() =>
-      expect(mocks.registrarDocumento).toHaveBeenCalledWith({
-        documentoGeradoId: 'doc-head',
-        nomeModelo: expect.any(String),
-      }),
-    );
+    // O PDF sobe ANTES (não cabe na transação), vinculado à peça e à PJ…
+    await waitFor(() => expect(mocks.enviarArquivoRegistrado).toHaveBeenCalledTimes(1));
+    expect((mocks.enviarArquivoRegistrado.mock.calls as unknown as Array<[Record<string, unknown>]>)[0][0]).toMatchObject({
+      clienteId: 'cliente-1', pjPessoaId: 'empresa-1', documentoGeradoId: 'doc-head',
+    });
+    // …e o registro leva o marco inteiro, com o arquivo e uma confirmação estável.
+    await waitFor(() => expect(mocks.registrarDocumento).toHaveBeenCalledTimes(1));
+    expect((mocks.registrarDocumento.mock.calls as unknown as Array<[Record<string, unknown>]>)[0][0]).toMatchObject({
+      documentoGeradoId: 'doc-head',
+      registro: {
+        versao: 1, arquivoId: 'arquivo-registrado-1', protocolo: 'MTP2600012345',
+        numeroArquivamento: '51200123456', dataRegistro: '2026-08-10',
+        juntaUf: 'MT', junta: 'JUCEMT', confirmacaoId: expect.any(String),
+      },
+    });
+  });
+
+  it('registrar com o mínimo leva só o mínimo, e nem cobra o PDF', async () => {
+    // O calendário da junta: o registro sai hoje, o número do arquivamento e o
+    // PDF chancelado saem em outro dia. Exigi-los aqui obrigava a inventar valor
+    // ou a atrasar o marco do ato.
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    mocks.rascunho = documento();
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Versão validada · rascunho');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar na junta' }));
+    const confirmacao = await screen.findByRole('dialog', { name: /Registrar na junta/ });
+    await userEvent.type(within(confirmacao).getByLabelText(/Protocolo na junta/), 'MTP2600012345');
+    fireEvent.change(within(confirmacao).getByLabelText(/Data do registro/), { target: { value: '2026-08-10' } });
+    expect(within(confirmacao).getByText(/Fica sem número do arquivamento, UF, junta comercial, PDF/)).toBeInTheDocument();
+    await userEvent.click(within(confirmacao).getByRole('button', { name: 'Registrar na junta' }));
+
+    await waitFor(() => expect(mocks.registrarDocumento).toHaveBeenCalledTimes(1));
+    expect(mocks.enviarArquivoRegistrado).not.toHaveBeenCalled();
+    // Campo em branco é chave AUSENTE, e não string vazia: o banco recusa a
+    // segunda, e ausente é o que diz "a junta ainda não devolveu".
+    expect((mocks.registrarDocumento.mock.calls as unknown as Array<[Record<string, unknown>]>)[0][0].registro)
+      .toEqual({ versao: 1, confirmacaoId: expect.any(String), protocolo: 'MTP2600012345', dataRegistro: '2026-08-10' });
+  });
+
+  it('o marco que faltou é completado depois, em qualquer peça já registrada', async () => {
+    // A tela mostra UMA peça (a head); a constituição de dois atos atrás só é
+    // alcançável por esta lista, e é nela que o dado costuma faltar.
+    mocks.pecasRegistradas = [
+      {
+        id: 'doc-constituicao', papel: 'constitutivo', createdAt: '2026-08-10T12:00:00Z',
+        substituiDocumentoId: null,
+        registro: { versao: 1, confirmacaoId: 'conf-1', protocolo: 'MTP2600012345', dataRegistro: '2026-08-10' },
+      },
+      {
+        // Registrada antes de o marco existir: aparece na cadeia, mas não há
+        // gesto que a complete (inventar a confirmação de um ato que não teve
+        // nenhuma é o que o banco recusa).
+        id: 'doc-legado', papel: 'alterador', createdAt: '2026-08-15T12:00:00Z',
+        substituiDocumentoId: 'doc-constituicao', registro: null,
+      },
+      {
+        id: 'doc-head', papel: 'alterador', createdAt: '2026-09-01T12:00:00Z',
+        substituiDocumentoId: 'doc-legado',
+        registro: {
+          versao: 1, confirmacaoId: 'conf-2', arquivoId: 'arquivo-1', protocolo: 'MTP2600099999',
+          numeroArquivamento: '51200199999', dataRegistro: '2026-08-25', juntaUf: 'MT', junta: 'JUCEMT',
+        },
+      },
+    ];
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    mocks.rascunho = documento();
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Versão validada · rascunho');
+
+    // O rail diz quantas peças estão com o marco incompleto, sem abrir nada.
+    await userEvent.click(await screen.findByRole('button', { name: /Registros na junta/ }));
+    expect(screen.getByText(/1 de 3 sem dados completos/)).toBeInTheDocument();
+    expect(screen.getByText(/Falta: Número do arquivamento/)).toBeInTheDocument();
+    expect(screen.getByText('Marco do registro completo')).toBeInTheDocument();
+    expect(screen.getByText(/Registrada antes do marco do registro/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /1ª alteração/ })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /Constituição/ }));
+    const dialogo = await screen.findByRole('dialog', { name: /Dados do registro na junta/ });
+    // Abre com o que já está gravado, e diz que o resto do documento segue travado.
+    expect(within(dialogo).getByLabelText(/Protocolo na junta/)).toHaveValue('MTP2600012345');
+    expect(within(dialogo).getByText(/único dado que a peça registrada ainda aceita/)).toBeInTheDocument();
+    await userEvent.type(within(dialogo).getByLabelText(/Número do arquivamento/), '51200123456');
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar dados do registro' }));
+
+    await waitFor(() => expect(mocks.completarRegistro).toHaveBeenCalledTimes(1));
+    // Vai o marco, e só ele: a confirmação do ato e o arquivo eleito são da
+    // peça, e quem os preserva é o banco (a trigger recusa trocar os dois).
+    expect((mocks.completarRegistro.mock.calls as unknown as Array<[Record<string, unknown>]>)[0][0]).toEqual({
+      documentoGeradoId: 'doc-constituicao',
+      registro: { protocolo: 'MTP2600012345', dataRegistro: '2026-08-10', numeroArquivamento: '51200123456' },
+    });
+    // Completar uma peça anterior não registra nada de novo nem toca na head.
+    expect(mocks.registrarDocumento).not.toHaveBeenCalled();
+    expect(mocks.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('o registro recusa data no futuro e UF inexistente antes de ir ao banco', async () => {
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    mocks.rascunho = documento();
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Versão validada · rascunho');
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar na junta' }));
+    const confirmacao = await preencherRegistro();
+
+    fireEvent.change(within(confirmacao).getByLabelText(/Data do registro/), { target: { value: '2999-01-01' } });
+    expect(within(confirmacao).getByText(/não pode estar no futuro/)).toBeInTheDocument();
+    expect(within(confirmacao).getByRole('button', { name: 'Registrar na junta' })).toBeDisabled();
+
+    fireEvent.change(within(confirmacao).getByLabelText(/Data do registro/), { target: { value: '2026-08-10' } });
+    const uf = within(confirmacao).getByLabelText(/^UF/);
+    await userEvent.clear(uf);
+    await userEvent.type(uf, 'XX');
+    expect(within(confirmacao).getByText(/Essa UF não existe/)).toBeInTheDocument();
+    expect(within(confirmacao).getByRole('button', { name: 'Registrar na junta' })).toBeDisabled();
+    expect(mocks.registrarDocumento).not.toHaveBeenCalled();
   });
 
   it('registrado, a peça trava e o caminho adiante é gerar OUTRO documento', async () => {
@@ -915,10 +1096,10 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
     await userEvent.click(within(modal).getByRole('switch', { name: 'Houve aumento de capital' }));
     await userEvent.click(within(modal).getByRole('button', { name: 'Continuar' }));
 
-    // O segundo passo não é decorativo: avisa que o consolidado sai do cadastro.
-    expect(within(modal).getByText(/cadastro precisa estar atualizado/i)).toBeInTheDocument();
+    // O segundo passo não é decorativo: diz a regra da composição antes do gesto.
+    expect(within(modal).getByText(/instrumento registrado mais os eventos marcados/i)).toBeInTheDocument();
 
-    await userEvent.click(within(modal).getByRole('button', { name: 'Gerar alteração contratual' }));
+    await userEvent.click(within(modal).getByRole('button', { name: 'Confirmar alteração contratual' }));
     await waitFor(() =>
       expect(mocks.responderEventos).toHaveBeenCalledWith({
         clienteId: 'cliente-1',
@@ -927,6 +1108,20 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
         respostas: [{ flagId: 'flag-manual-1', flagNome: 'evento_aumento_capital', valor: true }],
       }),
     );
+    // E a PROPOSTA nasce no banco: a head da alteração, por validar, com a base,
+    // a seleção e o estado proposto dentro do snapshot.
+    await waitFor(() => expect(mocks.confirmarProposta).toHaveBeenCalledTimes(1));
+    const proposta = mocks.confirmarProposta.mock.calls[0][0] as Record<string, unknown>;
+    expect(proposta).toMatchObject({
+      clienteId: 'cliente-1', pjPessoaId: 'empresa-1', modeloId: 'modelo-1', documentoBaseId: 'doc-head',
+      snapshotFlags: ['evento_aumento_capital', 'e_alteracao'],
+    });
+    const dados = proposta.snapshotDados as SnapshotDados;
+    expect(dados.propostaAC).toMatchObject({
+      versao: 1, baseDocumentoId: 'doc-head', selecionados: [], eventosConfirmados: ['evento_aumento_capital'],
+    });
+    // O estado proposto é a BASE registrada (o snapshot da peça travada), não o cadastro.
+    expect(dados.selecao.sociedade.razaoSocial).toBe('Acme congelada');
   });
 
   it('com a alteração em curso, a folha compõe AO VIVO e a validação registra a sucessão', async () => {
@@ -960,10 +1155,11 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
 
   // --- As duas marcas do registro (D4/D5/D6) -------------------------------
   //
-  // Antes, "Validar versão" carimbava o ledger. Selar um rascunho passou a não
-  // marcar nada: quem carimba é "Registrar na junta", que é quando o ato produz
-  // efeito, e é o mesmo gesto que vira o status do bem — as duas não podem
-  // divergir.
+  // Antes, "Validar versão" carimbava o ledger. Hoje validar só DECIDE o conjunto
+  // (`movimentosFormalizados`, congelado no snapshot) e não marca nada; quem
+  // carimba e vira o status do bem é o banco, na transação de "Registrar na
+  // junta" (trigger `trg_documento_registro_atomico`), que é quando o ato produz
+  // efeito — as duas marcas não podem divergir, e por isso nenhuma sai do app.
 
   /** Um lançamento do livro, no formato em que a projeção o consome. */
   const movimento = (id: string, extra: Record<string, unknown> = {}) => ({
@@ -1020,41 +1216,54 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
     ).toBeInTheDocument();
   });
 
-  it('registrar o CONTRATO SOCIAL carimba todos os pendentes (é ele que os conta)', async () => {
+  it('validar o CONTRATO SOCIAL congela todos os pendentes em movimentosFormalizados (é ele que os conta)', async () => {
     // A extensão da D3: sem isto, os aportes de constituição seguiam sem
     // documento e a primeira alteração os recontava ("6 aporte(s)" onde a peça
-    // lançou dois).
+    // lançou dois). O conjunto é decidido AQUI, na validação, e vai congelado no
+    // snapshot: é ele que a trigger de registro carimba, na transação do banco.
     mocks.movimentos = [
       movimento('mov-1'),
       movimento('mov-2'),
       movimento('mov-ja-formalizado', { documentoGeradoId: 'doc-antigo' }),
       movimento('mov-de-outra', { empresaPessoaId: 'empresa-2' }),
     ];
+    await abrirDocumentoVivo();
+
+    const entrada = await validar();
+    expect(entrada.snapshotDados.movimentosFormalizados).toEqual(['mov-1', 'mov-2']);
+    expect(chamadaDoCarimbo()).toBeUndefined();
+  });
+
+  it('registrar NÃO carimba por fora: o conjunto congelado já está no snapshot, e quem carimba é o banco', async () => {
+    // A trigger `trg_documento_registro_atomico` carimba os movimentos de
+    // `movimentosFormalizados` e integraliza os bens deles dentro do mesmo UPDATE
+    // que vira o status. Carimbar daqui, depois, é o que a constraint adiada
+    // recusa — e um movimento lançado depois de validar (mov-novo) não entra,
+    // porque o escopo é o congelado, não a lista viva.
+    mocks.movimentos = [movimento('mov-1'), movimento('mov-novo')];
     const view = render(<GerarDocumento />);
     await escolherModelo();
-    mocks.rascunho = documento();
+    mocks.rascunho = documento({ ...snapshot(), movimentosFormalizados: ['mov-1'] });
     view.rerender(<GerarDocumento />);
     await screen.findByText('Versão validada · rascunho');
 
     await userEvent.click(screen.getByRole('button', { name: 'Registrar na junta' }));
-    const confirmacao = await screen.findByRole('alertdialog');
+    const confirmacao = await preencherRegistro();
     await userEvent.click(within(confirmacao).getByRole('button', { name: 'Registrar na junta' }));
 
-    await waitFor(() => expect(chamadaDoCarimbo()).toBeDefined());
-    expect(chamadaDoCarimbo()).toEqual({
-      movimentoIds: ['mov-1', 'mov-2'],
-      documentoGeradoId: 'doc-head',
-      empresaPessoaId: 'empresa-1',
-    });
+    await waitFor(() => expect(mocks.registrarDocumento).toHaveBeenCalledTimes(1));
+    expect(chamadaDoCarimbo()).toBeUndefined();
+    expect(mocks.mutateAsync).not.toHaveBeenCalled();
   });
 
-  it('registrar a ALTERAÇÃO carimba só os movimentos dos eventos confirmados', async () => {
-    // A alteração já validada: a head é o rascunho que declara substituir a peça
-    // registrada, e as respostas do assistente seguem ancoradas nela.
+  it('validar a ALTERAÇÃO congela só os movimentos dos eventos confirmados', async () => {
+    // Só o aumento de capital foi confirmado: a cessão continua pendente, para a
+    // peça seguinte. O que o consultor desmarcou não entra no conjunto que o
+    // registro vai carimbar.
     mocks.valoresFlagsManuais = [
       {
         id: 'pfv-1', cliente_id: 'cliente-1', pj_pessoa_id: 'empresa-1',
-        documento_base_id: 'doc-base', flag_id: 'flag-manual-1', valor: true,
+        documento_base_id: 'doc-head', flag_id: 'flag-manual-1', valor: true,
       },
     ];
     mocks.movimentos = [movimento('mov-aporte'), movimento('mov-cessao', {
@@ -1062,22 +1271,13 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
     })];
     const view = render(<GerarDocumento />);
     await escolherModelo();
-    mocks.rascunho = alteracaoValidada();
+    mocks.rascunho = registrado();
     view.rerender(<GerarDocumento />);
-    await screen.findByText('Versão validada · rascunho');
+    await screen.findByText('Alteração contratual');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Registrar na junta' }));
-    const confirmacao = await screen.findByRole('alertdialog');
-    await userEvent.click(within(confirmacao).getByRole('button', { name: 'Registrar na junta' }));
-
-    // Só o aumento de capital foi confirmado: a cessão continua pendente, para a
-    // peça seguinte. O que o consultor desmarcou não entrou nesta.
-    await waitFor(() => expect(chamadaDoCarimbo()).toBeDefined());
-    expect(chamadaDoCarimbo()).toEqual({
-      movimentoIds: ['mov-aporte'],
-      documentoGeradoId: 'doc-head',
-      empresaPessoaId: 'empresa-1',
-    });
+    const entrada = await validar();
+    expect(entrada.snapshotDados.movimentosFormalizados).toEqual(['mov-aporte']);
+    expect(chamadaDoCarimbo()).toBeUndefined();
   });
 
   it('validada a alteração, "Rever os eventos" continua no rail e reabre com o gravado', async () => {
@@ -1094,6 +1294,9 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
     // trava da sucessão não pode fechar sobre ela: reabrir o assistente da
     // própria alteração é o caminho normal, não uma segunda alteração.
     mocks.sucessor = { id: 'doc-raiz', status: 'rascunho' };
+    // A peça registrada que a alteração substitui: é a BASE da comparação e da
+    // composição, e sem ela confirmar não tem o que comparar.
+    mocks.base = { ...registrado(), id: 'doc-base' };
     const view = render(<GerarDocumento />);
     await escolherModelo();
     mocks.rascunho = alteracaoValidada();
@@ -1108,7 +1311,7 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
     // E gravar de novo continua ancorando na peça que a alteração substitui.
     await userEvent.click(within(modal).getByRole('switch', { name: 'Houve aumento de capital' }));
     await userEvent.click(within(modal).getByRole('button', { name: 'Continuar' }));
-    await userEvent.click(within(modal).getByRole('button', { name: 'Gerar alteração contratual' }));
+    await userEvent.click(within(modal).getByRole('button', { name: 'Confirmar alteração contratual' }));
     await waitFor(() =>
       expect(mocks.responderEventos).toHaveBeenCalledWith({
         clienteId: 'cliente-1',
@@ -1140,5 +1343,264 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
     expect(
       screen.getByRole('button', { name: 'Gerar alteração contratual' }),
     ).toBeInTheDocument();
+  });
+});
+
+// --- A alteração por EVENTOS: base registrada + eventos confirmados -----------
+//
+// O exemplo obrigatório da frente: sede e profissão mudaram no cadastro depois
+// do registro; o consultor deixa só a sede marcada. A resolução e o consolidado
+// adotam o endereço novo, e NÃO adotam a profissão nova. O cadastro fornece
+// candidatos; ele não alimenta o consolidado irrestritamente.
+
+const FLAG_SEDE_MANUAL = {
+  id: 'flag-sede', nome: 'evento_alteracao_endereco', tipo: 'manual', escopo: 'documento',
+  descricao: 'Mudança de sede', ativo: true, entidade: null, campo: null, valor: null,
+};
+
+/** A PJ como estava quando o contrato social foi registrado. */
+const ENDERECO_REGISTRADO = {
+  endereco_logradouro: 'Avenida Amazonas', endereco_numero: '1000', endereco_complemento: null,
+  endereco_bairro: 'Centro', endereco_municipio: 'Lucas do Rio Verde', endereco_uf: 'MT', endereco_cep: '78455-000',
+};
+/** A PJ hoje: mudou de endereço no mesmo município e UF (o caso homologado). */
+const ENDERECO_ATUAL = {
+  endereco_logradouro: 'Avenida da Produção', endereco_numero: '2500', endereco_complemento: 'Conj. A',
+  endereco_bairro: 'Parque das Emas', endereco_municipio: 'Lucas do Rio Verde', endereco_uf: 'MT', endereco_cep: '78455-100',
+};
+
+const socioBase = () => ({
+  id: 'socio-1', tipoPessoa: 'PF', nome: 'Ana Souza', cpfCnpj: '111.111.111-11', profissao: 'Médica',
+  qualificacao: 'ANA SOUZA, brasileira, médica', quotas: '100', vlrTotal: '100,00', percentual: '100,000%',
+});
+
+/** O snapshot que a peça REGISTRADA publicou: sede antiga, sócia médica. */
+function baseRegistrada(): SnapshotDados {
+  const sociedade = mapearSociedade({ ...empresa, ...ENDERECO_REGISTRADO } as unknown as PessoaRow);
+  return {
+    selecao: { sociedade: { ...sociedade } },
+    registroPorBinding: {}, registrosPorLista: {}, valoresLivres: { observacao: 'Texto selado' },
+    empresaId: 'empresa-1',
+    itensPorLista: { socios: [{ socio: socioBase(), sePF: true, sePJ: false }], administradores: [], integralizacoes: [], cessoes: [], retirantes: [], signatarios: [] },
+    total: { quotas: '100', vlrTotal: '100,00', percentual: '100,000%' },
+  };
+}
+
+describe('GerarDocumento — alteração por eventos: base registrada + eventos confirmados', () => {
+  const enderecoOriginal = { ...empresa };
+  beforeEach(() => {
+    mocks.flags = [FLAG_MANUAL, FLAG_SEDE_MANUAL];
+    mocks.modelos[0].escopo = 'sociedade';
+    // O modelo: consolidado com a sede e o quadro, e a resolução de sede
+    // pendurada na flag de evento.
+    mocks.docBlocos[0].bloco.conteudo = 'Empresa {{ sociedade.razaoSocial }}, com sede em {{ sociedade.sede }}. {{ observacao }}';
+    mocks.docBlocos[1].bloco.conteudo = 'Quadro: {{#socios}}{{ socio.nome }}, {{ socio.profissao }}{{/socios}}.';
+    mocks.docBlocos.push({
+      id: 'posicao-sede', obrigatorio: false,
+      bloco: { id: 'biblioteca-sede', nome: 'Resolução de sede', tipo: 'clausula', conteudo: 'RESOLVEM alterar a sede para {{ sociedade.sede }}.', flags: ['evento_alteracao_endereco'], repete_colecao: null, ancora: null },
+    });
+    // O cadastro de HOJE: endereço novo e a sócia agora engenheira.
+    Object.assign(empresa, ENDERECO_ATUAL);
+    mocks.socios = [{
+      pessoa: { id: 'socio-1', denominacao: 'Ana Souza', tipo_pessoa: 'PF', cpf_cnpj: '111.111.111-11', profissao: 'Engenheira', nacionalidade: 'brasileira', genero: 'F' },
+      quotas: 100, vlr_total: 100, representante: null,
+    }];
+  });
+  afterEach(() => {
+    mocks.docBlocos.splice(2);
+    Object.assign(empresa, enderecoOriginal);
+  });
+
+  /** Abre a peça registrada (a base) e o assistente. */
+  async function abrirAssistente() {
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    mocks.rascunho = registrado(baseRegistrada());
+    mocks.base = mocks.rascunho;
+    mocks.constitutivosRegistrados = new Set(['empresa-1']);
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Registrado na junta');
+    await userEvent.click(screen.getByRole('button', { name: 'Gerar alteração contratual' }));
+    const modal = await screen.findByRole('dialog');
+    return { view, modal };
+  }
+
+  /** A linha que `useConfirmarPropostaAC` devolveu: a head da alteração, por validar. */
+  const propostaGravada = () =>
+    (mocks.confirmarProposta.mock.results as unknown as Array<{ value: Promise<Record<string, unknown>> }>)[0].value;
+  /** O texto corrido da folha central (os valores vêm segmentados pela proveniência). */
+  const textoDaFolha = () => document.body.textContent ?? '';
+
+  async function confirmar(modal: HTMLElement) {
+    await userEvent.click(within(modal).getByRole('button', { name: 'Continuar' }));
+    await userEvent.click(within(modal).getByRole('button', { name: 'Confirmar alteração contratual' }));
+    await waitFor(() => expect(mocks.confirmarProposta).toHaveBeenCalledTimes(1));
+    return mocks.confirmarProposta.mock.calls[0][0] as { snapshotDados: SnapshotDados; snapshotFlags: string[] };
+  }
+
+  it('a sede detectada, homologada e com base suficiente vem PRÉ-MARCADA, com antes e depois; a profissão vira pendência', async () => {
+    const { modal } = await abrirAssistente();
+    const sede = within(modal).getByRole('switch', { name: 'Mudança de sede' });
+    expect(sede).toBeChecked();
+    // Evidência é o antes → depois, não "alguém editou o endereço".
+    expect(within(modal).getByText(/Sede: Avenida Amazonas.*-> Avenida da Produção/)).toBeInTheDocument();
+    // Qualificação detectada (profissão) NÃO é evento: é pendência, sem interruptor.
+    expect(within(modal).getByText(/Divergências que não viram evento/)).toBeInTheDocument();
+    expect(within(modal).getByText(/Qualificacao detectada, sem autorizacao juridica/)).toBeInTheDocument();
+    // Detalhe recolhido: campo a campo.
+    await userEvent.click(within(modal).getByRole('button', { name: /Ver antes e depois/ }));
+    expect(within(modal).getByText('Avenida Amazonas')).toBeInTheDocument();
+    expect(within(modal).getByText('Avenida da Produção')).toBeInTheDocument();
+  });
+
+  it('confirmar só a sede: o estado proposto adota o endereço novo e mantém a profissão registrada', async () => {
+    const { modal } = await abrirAssistente();
+    const { snapshotDados, snapshotFlags } = await confirmar(modal);
+    expect(snapshotFlags).toEqual(['evento_alteracao_endereco', 'e_alteracao']);
+    const soc = snapshotDados.selecao.sociedade;
+    expect(soc.sedeLogradouro).toBe('Avenida da Produção');
+    expect(soc.sedeNumero).toBe('2500');
+    expect(soc.sedeComplemento).toBe('Conj. A');
+    expect(soc.sede).toContain('Avenida da Produção');
+    // A sócia continua médica: a profissão nova não foi aprovada.
+    expect((snapshotDados.itensPorLista.socios[0].socio as Record<string, string>).profissao).toBe('Médica');
+    expect(snapshotDados.propostaAC).toMatchObject({
+      versao: 1, baseDocumentoId: 'doc-head', selecionados: ['sede:empresa-1'], causaSede: 'mudanca_fisica',
+      eventosConfirmados: ['evento_alteracao_endereco'], movimentosConfirmados: [],
+    });
+    // Movimentos pendentes não entram: nenhum evento de quota foi marcado.
+    expect(snapshotDados.total).toEqual(baseRegistrada().total);
+    // A base segue intacta dentro da proposta.
+    expect(snapshotDados.propostaAC!.base.selecao.sociedade.sedeLogradouro).toBe('Avenida Amazonas');
+  });
+
+  it('com a proposta confirmada, a folha compõe base + sede e ainda não pode ir à junta', async () => {
+    const { view, modal } = await abrirAssistente();
+    await confirmar(modal);
+    // A proposta virou a head: rascunho alterador, por validar.
+    mocks.rascunho = await propostaGravada();
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Alteração contratual · confirmada, por validar');
+    // Resolução E consolidado com o endereço novo… (a folha marca cada valor com
+    // a proveniência, então o texto se lê pelo conteúdo, não por um nó só)
+    await waitFor(() => expect(textoDaFolha()).toMatch(/RESOLVEM alterar a sede para Avenida da Produção, n\.º 2500, Conj\. A/));
+    expect(textoDaFolha()).toMatch(/com sede em Avenida da Produção, n\.º 2500/);
+    // …e o quadro com a qualificação REGISTRADA, não a do cadastro.
+    expect(textoDaFolha()).toMatch(/Ana Souza, Médica/);
+    expect(textoDaFolha()).not.toMatch(/Engenheira/);
+    // Registrar espera a validação; validar está aberto.
+    expect(screen.queryByRole('button', { name: 'Registrar na junta' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Validar versão/ })).toBeEnabled();
+    expect(screen.getByText(/1ª alteração · em composição, ainda não validada/)).toBeInTheDocument();
+  });
+
+  it('validar sela base + eventos, com a proposta e o escopo de movimentos congelados', async () => {
+    const { view, modal } = await abrirAssistente();
+    await confirmar(modal);
+    mocks.rascunho = await propostaGravada();
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Alteração contratual · confirmada, por validar');
+    await userEvent.click(screen.getByRole('button', { name: /Validar versão/ }));
+    const confirmacao = await screen.findByRole('alertdialog');
+    await userEvent.click(within(confirmacao).getByRole('button', { name: 'Validar versão' }));
+    await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalledTimes(1));
+    const entrada = mocks.mutateAsync.mock.calls[0][0];
+    expect(entrada.snapshotDados.propostaAC.selecionados).toEqual(['sede:empresa-1']);
+    expect(entrada.snapshotDados.movimentosFormalizados).toEqual([]);
+    expect(entrada.snapshotDados.selecao.sociedade.sedeNumero).toBe('2500');
+    expect(entrada.snapshotDados.itensPorLista.socios[0].socio.profissao).toBe('Médica');
+    // O contexto efetivamente renderizado vai junto, para a versão reproduzir sozinha.
+    expect(entrada.snapshotVersoesBlocos.contextoRender.sociedade.sede).toContain('Avenida da Produção');
+    // A proposta já gravou a sucessão: validar não a regrava.
+    expect(entrada.substituiDocumentoId).toBeNull();
+  });
+
+  it('desmarcar a sede significa só "não entra nesta AC": o estado fica como registrado', async () => {
+    const { modal } = await abrirAssistente();
+    await userEvent.click(within(modal).getByRole('switch', { name: 'Mudança de sede' }));
+    const { snapshotDados, snapshotFlags } = await confirmar(modal);
+    expect(snapshotFlags).toEqual(['e_alteracao']);
+    expect(snapshotDados.selecao.sociedade.sedeLogradouro).toBe('Avenida Amazonas');
+    expect(snapshotDados.propostaAC!.selecionados).toEqual([]);
+    // A divergência continua registrada na proposta, como candidato: volta a
+    // ser sugerida numa próxima conferência.
+    expect(snapshotDados.propostaAC!.candidatos.find((c) => c.tipo === 'sede')).toBeDefined();
+  });
+
+  it('cancelar o modal não aplica as edições locais, e reabrir volta ao que está gravado', async () => {
+    const { modal } = await abrirAssistente();
+    await userEvent.click(within(modal).getByRole('switch', { name: 'Mudança de sede' }));
+    expect(within(modal).getByRole('switch', { name: 'Mudança de sede' })).not.toBeChecked();
+    await userEvent.click(within(modal).getByRole('button', { name: 'Cancelar' }));
+    expect(mocks.confirmarProposta).not.toHaveBeenCalled();
+    expect(mocks.responderEventos).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Gerar alteração contratual' }));
+    const reaberto = await screen.findByRole('dialog');
+    // Nada foi gravado: a semente volta a ser a derivação (sede elegível, marcada).
+    expect(within(reaberto).getByRole('switch', { name: 'Mudança de sede' })).toBeChecked();
+  });
+
+  it('reabrir a proposta confirmada restaura a seleção gravada, inclusive o que foi desmarcado', async () => {
+    const { view, modal } = await abrirAssistente();
+    await userEvent.click(within(modal).getByRole('switch', { name: 'Mudança de sede' }));
+    await confirmar(modal);
+    mocks.rascunho = await propostaGravada();
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Alteração contratual · confirmada, por validar');
+    await userEvent.click(screen.getByRole('button', { name: 'Rever os eventos' }));
+    const reaberto = await screen.findByRole('dialog');
+    // A proposta gravada vence a derivação: a sede continua desmarcada, mesmo elegível.
+    expect(within(reaberto).getByRole('switch', { name: 'Mudança de sede' })).not.toBeChecked();
+  });
+
+  it('causa não homologada (atualização postal) bloqueia a confirmação, com o motivo', async () => {
+    const { modal } = await abrirAssistente();
+    await userEvent.click(within(modal).getByRole('radio', { name: /Atualização postal/ }));
+    await userEvent.click(within(modal).getByRole('button', { name: 'Continuar' }));
+    expect(within(modal).getByText(/caso não homologado/)).toBeInTheDocument();
+    expect(within(modal).getByRole('button', { name: 'Confirmar alteração contratual' })).toBeDisabled();
+  });
+
+  it('o cadastro mudou depois da conferência: validar exige nova conferência, sem adotar o valor novo', async () => {
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    const base = registrado(baseRegistrada());
+    mocks.base = base;
+    // A proposta foi confirmada quando a sede era o n.º 2000; hoje o cadastro diz 2500.
+    const conferido = mapearSociedade({ ...empresa, ...ENDERECO_ATUAL, endereco_numero: '2000' } as unknown as PessoaRow);
+    const atualNaConferencia: SnapshotDados = { ...baseRegistrada(), selecao: { sociedade: { ...conferido } } };
+    const propostaAC = confirmarPropostaAC({
+      baseDocumentoId: 'doc-head', base: baseRegistrada(), atual: atualNaConferencia, selecionados: ['sede:empresa-1'],
+      causaSede: 'mudanca_fisica', confirmadoEm: '2026-09-01T12:00:00.000Z', eventosConfirmados: ['evento_alteracao_endereco'],
+    });
+    mocks.rascunho = {
+      ...documento({ ...propostaAC.estadoProposto, propostaAC }), id: 'doc-proposta', documento_raiz_id: 'doc-proposta',
+      papel: 'alterador', substitui_documento_id: 'doc-head', snapshot_validado_em: null,
+      snapshot_flags: ['evento_alteracao_endereco', 'e_alteracao'],
+    };
+    mocks.constitutivosRegistrados = new Set(['empresa-1']);
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Alteração contratual · confirmada, por validar');
+    // A folha mostra o valor CONFERIDO, não o de hoje: adoção só por nova conferência.
+    await waitFor(() => expect(textoDaFolha()).toMatch(/RESOLVEM alterar a sede para Avenida da Produção, n\.º 2000/));
+    await userEvent.click(screen.getByRole('button', { name: /Validar versão/ }));
+    const confirmacao = await screen.findByRole('alertdialog');
+    await userEvent.click(within(confirmacao).getByRole('button', { name: 'Validar versão' }));
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'A versão não pode ser validada',
+      description: expect.stringContaining('Rever os eventos'),
+    })));
+    expect(mocks.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('a peça registrada sem snapshot de blocos mostra o erro explicativo, não a etapa de escolhas', async () => {
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    mocks.rascunho = registrado(baseRegistrada());
+    mocks.constitutivosRegistrados = new Set(['empresa-1']);
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Registrado na junta');
+    expect(screen.getByText(/Não é possível reproduzir esta versão com o snapshot disponível/)).toBeInTheDocument();
+    expect(screen.queryByText('Escolha a empresa do contrato')).not.toBeInTheDocument();
   });
 });

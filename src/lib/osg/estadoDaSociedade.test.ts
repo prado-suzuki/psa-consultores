@@ -53,6 +53,16 @@ describe('avaliarFluxoDaSociedade: o estado da peça da vez', () => {
   it('modelo de escopo avulso não tem vida societária', () => {
     expect(fluxo({ ehSocietario: false }).estado).toBe('peca-avulsa');
   });
+
+  it('a alteração confirmada mas ainda não validada está em composição, não em rascunho', () => {
+    expect(
+      fluxo({ statusDaPeca: 'rascunho', papelDaPeca: 'alterador', validada: false }).estado,
+    ).toBe('alteracao-em-composicao');
+    // O constitutivo nasce validado: o fato não muda nada nele.
+    expect(
+      fluxo({ statusDaPeca: 'rascunho', papelDaPeca: 'constitutivo', validada: false }).estado,
+    ).toBe('constitutivo-em-rascunho');
+  });
 });
 
 describe('avaliarFluxoDaSociedade: validar', () => {
@@ -143,6 +153,17 @@ describe('avaliarFluxoDaSociedade: registrar', () => {
         constitutivosRegistrados: new Set(['empresa-cn']),
       }).travas.registrar.liberado,
     ).toBe(true);
+  });
+
+  it('trava a alteração confirmada e ainda não validada: registrar sela o que ninguém conferiu', () => {
+    const trava = fluxo({
+      statusDaPeca: 'rascunho', papelDaPeca: 'alterador', validada: false,
+      constitutivosRegistrados: new Set([JATOBA.pessoaId!]),
+    }).travas;
+    expect(trava.registrar.liberado).toBe(false);
+    expect(trava.registrar.motivo).toContain('Validar versão');
+    // Validar, sim: é o gesto que falta.
+    expect(trava.validar.liberado).toBe(true);
   });
 
   it('trava o que não está em rascunho: registrar duas vezes não é gesto', () => {

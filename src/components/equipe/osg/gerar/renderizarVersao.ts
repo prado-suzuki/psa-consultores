@@ -1,5 +1,4 @@
 import {
-  comFlagDaPecaRetroativa,
   comporBlocos,
   gerarBlocos,
   marcarRealceDiff,
@@ -7,8 +6,11 @@ import {
   type Bloco,
   type BlocoGerado,
   type RegistroFamilias,
+  type Contexto,
 } from '@/lib/templates';
-import { conteudoParaDeteccao, detectarBindingsDeConteudo, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
+import { compilar, type No } from '@/lib/templates/render';
+import { resolverVariante } from '@/lib/templates/familia';
+import { conteudoParaDeteccao, detectarBindingsDeConteudo } from '@/lib/templates/binding';
 import { montarContexto, reidratarItensPorLista } from '@/lib/templates/mapeadores';
 import type { SnapshotDados } from '@/hooks/useDocumentoGerado';
 
@@ -25,9 +27,14 @@ export interface VersaoRenderizada {
  * array de blocos. Formato novo: blocos + as famílias que participaram, com o
  * texto de cada variante congelado — sem isso, editar uma variante na Biblioteca
  * mudaria a redação de uma versão já selada, que é exatamente o que o snapshot
- * existe para impedir. As duas formas seguem legíveis para sempre.
+ * existe para impedir. Legados só são reproduzidos quando têm dados suficientes.
  */
-export type SnapshotVersoes = Bloco[] | { blocos: Bloco[]; familias?: RegistroFamilias };
+export type SnapshotVersoes = Bloco[] | {
+  blocos: Bloco[];
+  familias?: RegistroFamilias;
+  /** Contexto efetivamente usado na prévia, inclusive campos derivados e georef. */
+  contextoRender?: Contexto;
+};
 
 export interface SnapshotVersoesLido {
   blocos: Bloco[];
@@ -41,43 +48,64 @@ export function lerSnapshotVersoes(bruto: SnapshotVersoes | null | undefined): S
   return { blocos: bruto.blocos ?? [], familias: bruto.familias ?? {} };
 }
 
-const VAZIO: VersaoRenderizada = { blocos: [], texto: '', erro: null };
+// O motor trata seção ausente como falsa. Na reprodução isso esconderia perda
+// de dados. Verificamos apenas os ramos visitados, sem exigir campos de ramos falsos.
+function conferirSecoes(nos: No[], escopos: Contexto[], familias: RegistroFamilias, pilha: string[] = []): void {
+  const ler = (caminho: string): unknown => {
+    for (const escopo of escopos) {
+      let valor: unknown = escopo;
+      for (const parte of caminho.split('.')) {
+        valor = valor != null && typeof valor === 'object' ? (valor as Contexto)[parte] : undefined;
+      }
+      if (valor !== undefined) return valor;
+    }
+    return undefined;
+  };
+  for (const no of nos) {
+    if (no.tipo === 'inclusao') {
+      if (pilha.includes(no.familia)) throw new Error(`Família circular: ${no.familia}.`);
+      const variantes = familias[no.familia];
+      if (!variantes?.length) throw new Error(`Família ausente: ${no.familia}.`);
+      for (const variante of variantes) {
+        for (const campo of Object.keys(variante.seletor)) {
+          if (ler(campo) === undefined) throw new Error(`Seletor ausente: ${campo}.`);
+        }
+      }
+      const variante = resolverVariante(variantes, ler, no.familia);
+      conferirSecoes(compilar(variante.conteudo), escopos, familias, [...pilha, no.familia]);
+    } else if (no.tipo === 'secao') {
+      const valor = ler(no.nome);
+      if (valor === undefined) throw new Error(`Seção ausente: ${no.nome}.`);
+      if (Array.isArray(valor)) {
+        for (const item of valor) conferirSecoes(no.filhos, [item, ...escopos], familias, pilha);
+      } else if (valor && valor !== 'false') {
+        conferirSecoes(no.filhos, escopos, familias, pilha);
+      }
+    }
+  }
+}
 
 /**
  * Renderiza uma versão SELADA puramente a partir do seu snapshot — sem tocar nos
  * cadastros vivos. Espelha o memo `resultado` da tela Gerar, mas lê tudo de
  * snapshot_versoes_blocos (blocos já resolvidos, com overrides aplicados ao
  * conteúdo) + snapshot_dados (seleção/valores livres/listas/total) +
- * snapshot_flags. É o que torna uma versão antiga reproduzível para sempre,
- * mesmo depois que a Biblioteca, os overrides ou os cadastros mudarem.
+ * snapshot_flags. Contexto completo, quando presente, prevalece sobre os dados
+ * legados. Não reconstrói lacunas a partir do estado atual do sistema.
  */
 export function renderizarVersao(
   snapshot: SnapshotVersoes | null | undefined,
   flags: string[] | null | undefined,
   dados: SnapshotDados | null | undefined,
-  normalizarSocietario = false,
 ): VersaoRenderizada {
-  const { blocos: blocosSnapshot, familias } = lerSnapshotVersoes(snapshot);
-  if (blocosSnapshot.length === 0) return VAZIO;
   try {
-    const blocosEfetivos = normalizarSocietario
-      ? blocosSnapshot.map((bloco) => ({
-          ...bloco,
-          conteudo: normalizarReferenciasLegadas(bloco.conteudo),
-        }))
-      : blocosSnapshot;
-    const dadosEfetivos = normalizarSocietario && dados
-      ? {
-          ...dados,
-          selecao: normalizarSelecaoLegada(dados.selecao ?? {}, dados.valoresLivres ?? {}),
-        }
-      : dados;
-    const template = { id: 'versao', nome: 'documento', blocos: blocosEfetivos };
-    // Mesma compatibilidade da tela viva: snapshot selado antes de as flags de
-    // peça existirem é contrato social e não sabe dizê-lo (ver
-    // comFlagDaPecaRetroativa). Sem isto, a versão antiga reabre sem a cláusula
-    // de capital, de sede e de objeto.
-    const flagsAtivas = comFlagDaPecaRetroativa(flags ?? []);
+    const { blocos: blocosSnapshot, familias } = lerSnapshotVersoes(snapshot);
+    if (blocosSnapshot.length === 0) throw new Error('Blocos ausentes no snapshot.');
+    if (!Array.isArray(flags)) throw new Error('Flags ausentes no snapshot.');
+    const contextoSalvo = snapshot && !Array.isArray(snapshot) ? snapshot.contextoRender : undefined;
+    const dadosEfetivos = dados;
+    const template = { id: 'versao', nome: 'documento', blocos: blocosSnapshot };
+    const flagsAtivas = flags;
     // Detecção de bindings roda sobre os COMPOSTOS (bloco excluído não pede valor),
     // como na tela viva.
     const compostos = comporBlocos(template, flagsAtivas);
@@ -85,16 +113,34 @@ export function renderizarVersao(
       compostos.map((b) => conteudoParaDeteccao(b, familias)).join(' '),
     );
 
-    const livres: Record<string, string> = {};
-    for (const ph of desconhecidos) livres[ph] = dadosEfetivos?.valoresLivres?.[ph] ?? '';
-    for (const nome of secoesDesconhecidas) livres[nome] = dadosEfetivos?.valoresLivres?.[nome] ?? '';
+    let ctx: Contexto;
+    if (contextoSalvo) {
+      ctx = structuredClone(contextoSalvo);
+      const colecoes = Object.fromEntries(Object.entries(ctx).filter(([, v]) => Array.isArray(v))) as Parameters<typeof reidratarItensPorLista>[0];
+      reidratarItensPorLista(colecoes);
+    } else {
+      if (!dadosEfetivos) throw new Error('Dados ausentes no snapshot.');
+      for (const lista of listas) {
+        if (!Array.isArray(dadosEfetivos.itensPorLista?.[lista.nome])) throw new Error(`Lista ausente: ${lista.nome}.`);
+      }
+      const livres: Record<string, string> = {};
+      for (const ph of [...desconhecidos, ...secoesDesconhecidas]) {
+        if (ph.startsWith('total.') && dadosEfetivos.total) continue;
+        const valor = dadosEfetivos.valoresLivres?.[ph];
+        if (valor === undefined) throw new Error(`Valor ausente: ${ph}.`);
+        livres[ph] = valor;
+      }
 
-    // O snapshot vem do jsonb (round-trip): reidratar religa as referências
-    // cruzadas de integralizacoes ({{ refItem.ref }}) perdidas na serialização.
-    const itens = reidratarItensPorLista(dadosEfetivos?.itensPorLista ?? {});
-    const ctx = montarContexto(bindings, dadosEfetivos?.selecao ?? {}, livres, itens, listas);
-    if (listas.some((l) => l.nome === 'socios')) {
-      ctx.total = { quotas: '', vlrTotal: '', percentual: '', ...(dadosEfetivos?.total ?? {}) };
+      // O snapshot vem do jsonb: reidratar religa as referências cruzadas perdidas.
+      const itens = reidratarItensPorLista(structuredClone(dadosEfetivos.itensPorLista ?? {}));
+      ctx = montarContexto(bindings, structuredClone(dadosEfetivos.selecao ?? {}), livres, itens, listas);
+      if (dadosEfetivos.total) ctx.total = { ...dadosEfetivos.total };
+    }
+    for (const bloco of compostos) {
+      const conteudo = bloco.repeteColecao
+        ? `{{#${bloco.repeteColecao}}}${bloco.conteudo}{{/${bloco.repeteColecao}}}`
+        : bloco.conteudo;
+      conferirSecoes(compilar(conteudo), [ctx], familias);
     }
 
     // As famílias vêm do próprio snapshot: a versão selada renderiza com o texto
@@ -102,7 +148,7 @@ export function renderizarVersao(
     const blocos = gerarBlocos(template, ctx, flagsAtivas, familias);
     return { blocos, texto: unirBlocos(blocos), erro: null };
   } catch (e) {
-    return { blocos: [], texto: '', erro: e instanceof Error ? e.message : String(e) };
+    return { blocos: [], texto: '', erro: `Não é possível reproduzir esta versão com o snapshot disponível. ${e instanceof Error ? e.message : String(e)} Nenhum dado da Biblioteca ou do cadastro atual foi usado.` };
   }
 }
 

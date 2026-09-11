@@ -15,18 +15,23 @@ import {
   Send,
   UserPlus,
   type LucideIcon,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTicketNotifications, TicketNotification } from '@/hooks/useTicketNotifications';
-import { useReviewTaskNotifications, ReviewTaskNotification } from '@/hooks/useReviewTaskNotifications';
+import {
+  useReviewTaskNotifications,
+  ReviewTaskNotification,
+} from '@/hooks/useReviewTaskNotifications';
 import { useNotificacoesMencao, type MencaoNotificacao } from '@/hooks/useNotificacoesMencao';
 import { useNotificacoesInternas, type NotificacaoInterna } from '@/hooks/useNotificacoesInternas';
 import { hrefDeOrigem, origemDoComentario, type AreaDeProjetos } from '@/lib/feedComentarios';
 import {
   apresentacaoDoAviso,
   destinoDoAviso,
+  ondeDoAviso,
   textoDaRepeticao,
   type NotificacaoTipo,
 } from '@/lib/notificacoesInternas';
@@ -67,11 +72,11 @@ interface NotificationPopoverProps {
 }
 
 const departmentLabels: Record<string, string> = {
-  'icms_ipi': 'ICMS/IPI',
-  'pis_cofins': 'PIS/COFINS',
-  'irpj_csll': 'IRPJ/CSLL',
-  'contabil': 'Contábil',
-  'geral': 'Geral',
+  icms_ipi: 'ICMS/IPI',
+  pis_cofins: 'PIS/COFINS',
+  irpj_csll: 'IRPJ/CSLL',
+  contabil: 'Contábil',
+  geral: 'Geral',
 };
 
 /**
@@ -105,6 +110,8 @@ const ICONES_INTERNAS: Record<NotificacaoTipo, LucideIcon> = {
   // para o prazo que se aproxima, calendário riscado para o que já passou.
   tarefa_prazo_proximo: Clock,
   tarefa_atrasada: CalendarX,
+  // PT-04: papel de trabalho importado ou revisado, no projeto escolhido.
+  papel_de_trabalho_importado: FileSpreadsheet,
 };
 
 type UnifiedNotification =
@@ -140,34 +147,34 @@ function TicketNotificationItem({
       className="w-full p-3 text-left hover:bg-muted/50 transition-colors border-b border-border last:border-b-0 group"
     >
       <div className="flex items-start gap-3">
-        <div className={cn(
-          "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
-          statusColors[notification.prazoInfo.status]
-        )}>
+        <div
+          className={cn(
+            'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center',
+            statusColors[notification.prazoInfo.status],
+          )}
+        >
           <StatusIcon className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">
             {notification.title}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5 truncate">
-            {notification.clientName}
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">{notification.clientName}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="text-xs text-muted-foreground">
-              Chamado
-            </span>
+            <span className="text-xs text-muted-foreground">Chamado</span>
             <span className="text-xs text-muted-foreground">•</span>
             <span className="text-xs text-muted-foreground">
               {departmentLabels[notification.department] || notification.department}
             </span>
             <span className="text-xs text-muted-foreground">•</span>
-            <span className={cn(
-              "text-xs font-medium",
-              notification.prazoInfo.status === 'atrasado' && 'text-destructive',
-              notification.prazoInfo.status === 'urgente' && 'text-warning',
-              notification.prazoInfo.status === 'normal' && 'text-muted-foreground'
-            )}>
+            <span
+              className={cn(
+                'text-xs font-medium',
+                notification.prazoInfo.status === 'atrasado' && 'text-destructive',
+                notification.prazoInfo.status === 'urgente' && 'text-warning',
+                notification.prazoInfo.status === 'normal' && 'text-muted-foreground',
+              )}
+            >
               {notification.prazoInfo.label}
             </span>
           </div>
@@ -194,7 +201,10 @@ function ReviewNotificationItem({
       className="w-full p-3 text-left hover:bg-muted/50 transition-colors border-b border-border last:border-b-0 group"
     >
       <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-purple-100 text-purple-700">
+        {/* O papel `revisao` já tem par de token, e o `task-modal` o usa sobre
+            ESTE mesmo dado (tarefa enviada para revisão). Aqui era roxo cru:
+            não era conversão pendente, era o mapa que não foi reusado. */}
+        <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-status-revisao-soft text-status-revisao">
           <ClipboardCheck className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
@@ -205,9 +215,7 @@ function ReviewNotificationItem({
             Enviada por {notification.assignedToName}
           </p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="text-xs font-medium text-purple-600">
-              Revisão pendente
-            </span>
+            <span className="text-xs font-medium text-status-revisao">Revisão pendente</span>
             {notification.projectName && (
               <>
                 <span className="text-xs text-muted-foreground">•</span>
@@ -263,9 +271,7 @@ function MencaoNotificationItem({
           <p className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">
             {notification.authorName} {ehResposta ? 'respondeu você' : 'mencionou você'}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-            {notification.trecho}
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notification.trecho}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="text-xs font-medium text-primary">
               {ehResposta ? 'Resposta' : 'Menção'}
@@ -305,6 +311,7 @@ function InternaNotificationItem({
   const { rotulo, tom } = apresentacaoDoAviso(notification.tipo);
   const Icone = ICONES_INTERNAS[notification.tipo] ?? Bell;
   const repeticao = textoDaRepeticao(notification.quantidade);
+  const onde = ondeDoAviso(notification.metadata);
 
   return (
     <button
@@ -312,31 +319,38 @@ function InternaNotificationItem({
       className="w-full p-3 text-left hover:bg-muted/50 transition-colors border-b border-border last:border-b-0 group"
     >
       <div className="flex items-start gap-3">
-        <div className={cn(
-          "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
-          tom
-        )}>
+        <div
+          className={cn('flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center', tom)}
+        >
           <Icone className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">
             {notification.titulo}
           </p>
+          {/* De que projeto o aviso fala. O texto dele diz "este planejamento",
+              que se entende na conversa do projeto e não aqui. */}
+          {onde && <p className="text-xs text-muted-foreground mt-0.5 truncate">{onde}</p>}
+
+          {/*
+            **Sem corte, e respeitando a quebra de linha do texto.** Havia um
+            `line-clamp-2` aqui, e ele cortava o aviso no meio de uma palavra
+            ("Os slides j…"), engolindo a linha do Responsável. Os textos são
+            aprovados pela Patricia, então quem cede é a tela, não a frase: o
+            corpo mais comprido que existe hoje tem 118 caracteres e ocupa quatro
+            linhas, o que não faz parede de texto nenhuma.
+          */}
           {notification.corpo && (
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+            <p className="text-xs text-muted-foreground mt-0.5 whitespace-pre-line">
               {notification.corpo}
             </p>
           )}
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="text-xs font-medium text-primary">
-              {rotulo}
-            </span>
+            <span className="text-xs font-medium text-primary">{rotulo}</span>
             {repeticao && (
               <>
                 <span className="text-xs text-muted-foreground">•</span>
-                <span className="text-xs text-muted-foreground">
-                  {repeticao}
-                </span>
+                <span className="text-xs text-muted-foreground">{repeticao}</span>
               </>
             )}
           </div>
@@ -363,10 +377,8 @@ export function NotificationPopover({
     urgentCount,
     isLoading: ticketsLoading,
   } = useTicketNotifications();
-  const {
-    notifications: reviewNotifications,
-    isLoading: reviewsLoading,
-  } = useReviewTaskNotifications();
+  const { notifications: reviewNotifications, isLoading: reviewsLoading } =
+    useReviewTaskNotifications();
   const {
     notifications: mencaoNotifications,
     isLoading: mencoesLoading,
@@ -447,22 +459,20 @@ export function NotificationPopover({
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className={cn(
-              "absolute -top-1 -right-1 h-5 w-5 rounded-full text-xs font-medium flex items-center justify-center",
-              urgentCount > 0
-                ? "bg-destructive text-destructive-foreground animate-pulse"
-                : "bg-primary text-primary-foreground"
-            )}>
+            <span
+              className={cn(
+                'absolute -top-1 -right-1 h-5 w-5 rounded-full text-xs font-medium flex items-center justify-center',
+                urgentCount > 0
+                  ? 'bg-destructive text-destructive-foreground animate-pulse'
+                  : 'bg-primary text-primary-foreground',
+              )}
+            >
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        className="w-80 p-0"
-        align="end"
-        sideOffset={8}
-      >
+      <PopoverContent className="w-80 p-0" align="end" sideOffset={8}>
         {/* Header */}
         <div className="px-4 py-3 border-b border-border">
           <div className="flex items-center justify-between">
@@ -484,9 +494,7 @@ export function NotificationPopover({
         ) : items.length === 0 ? (
           <div className="p-6 text-center">
             <Bell className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              Nenhuma notificação
-            </p>
+            <p className="text-sm text-muted-foreground">Nenhuma notificação</p>
           </div>
         ) : (
           <>

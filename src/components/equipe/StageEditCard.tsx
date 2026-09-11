@@ -40,11 +40,11 @@
  }
  
  const AUTOMATION_LEVELS = [
-   { value: 'none', label: 'Nenhuma', color: 'bg-muted text-gray-600' },
-   { value: 'low', label: 'Baixa', color: 'bg-yellow-100 text-yellow-700' },
-   { value: 'medium', label: 'Média', color: 'bg-blue-100 text-blue-700' },
-   { value: 'high', label: 'Alta', color: 'bg-green-100 text-green-700' },
-   { value: 'critical', label: 'Crítica', color: 'bg-red-100 text-red-700' }
+   { value: 'none', label: 'Nenhuma', color: 'bg-muted text-muted-foreground' },
+   { value: 'low', label: 'Baixa', color: 'bg-status-neutro-soft text-status-neutro' },
+   { value: 'medium', label: 'Média', color: 'bg-status-espera-soft text-status-espera' },
+   { value: 'high', label: 'Alta', color: 'bg-status-alerta-soft text-status-alerta' },
+   { value: 'critical', label: 'Crítica', color: 'bg-status-ajuste-soft text-status-ajuste' }
  ];
  
  export function StageEditCard({ stage, index, totalStages, onUpdate, onDelete }: StageEditCardProps) {
@@ -300,7 +300,7 @@
                </Button>
                <AlertDialog>
                  <AlertDialogTrigger asChild>
-                   <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50">
+                   <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10">
                      <Trash2 className="h-4 w-4" />
                    </Button>
                  </AlertDialogTrigger>
@@ -313,7 +313,7 @@
                    </AlertDialogHeader>
                    <AlertDialogFooter>
                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                     <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                     <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                        {deleting ? 'Excluindo...' : 'Excluir'}
                      </AlertDialogAction>
                    </AlertDialogFooter>

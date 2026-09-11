@@ -94,10 +94,11 @@ describe('DailyQuickStatusDialog', () => {
     );
 
     expect(screen.getAllByText('A fazer').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Em progresso').length).toBeGreaterThan(0);
-    expect(screen.getByText('Concluídas')).toBeInTheDocument();
-    expect(screen.getByText('Tarefa já encerrada')).toBeInTheDocument();
+    expect(screen.getAllByText('Em Andamento').length).toBeGreaterThan(0);
+    // O rótulo do grupo passou a sair do mapa do entregável (03/09/2026), então ele
+    // é o MESMO texto do botão de status de cada tarefa — daí `getAllByText`.
     expect(screen.getAllByText('Concluído').length).toBeGreaterThan(0);
+    expect(screen.getByText('Tarefa já encerrada')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Alterar Tarefa já encerrada/ })).not.toBeInTheDocument();
   });
 });

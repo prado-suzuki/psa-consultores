@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { format } from 'date-fns';
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { getTodayBrazil } from '@/lib/dateUtils';
 import {
@@ -27,6 +28,18 @@ import type { GanttGrupo, GanttItem, GanttPapel } from './tiposDeGantt';
  */
 
 const LARGURA_DO_NOME = 300;
+/**
+ * A mesma coluna em tela estreita.
+ *
+ * 300px sobre os 358px úteis de um celular é 84% da tela gasta antes da
+ * primeira barra: nome e barra nunca apareciam juntos, que é a única coisa que
+ * um Gantt existe para mostrar. A 132px sobram ~226px de linha do tempo, uns
+ * cinco dias na escala de mês.
+ *
+ * A coluna já era `sticky left-0` antes desta frente, então ela não sai da tela
+ * quando a linha do tempo rola — o que faltava era só ela caber.
+ */
+const LARGURA_DO_NOME_ESTREITA = 132;
 
 /** Papel de status → tom cheio. Classe literal porque o Tailwind lê o código. */
 const BARRA_POR_PAPEL: Record<GanttPapel, string> = {
@@ -56,6 +69,10 @@ export function GanttChart({
   legenda,
   vazio,
 }: GanttChartProps) {
+  // A largura da coluna de nomes é layout, e layout tem de reagir ao resize —
+  // daí o hook e não a leitura síncrona. Ele nasce com o valor certo desde
+  // 09/09, então não há o quadro de desktop piscando antes de corrigir.
+  const larguraDoNome = useIsMobile() ? LARGURA_DO_NOME_ESTREITA : LARGURA_DO_NOME;
   const [escala, setEscala] = useState<GanttEscala>('mes');
   /** `null` enquanto a janela ainda acompanha os dados; a navegação a fixa. */
   const [ancoraManual, setAncoraManual] = useState<Date | null>(null);
@@ -114,10 +131,10 @@ export function GanttChart({
         />
 
         <div ref={rolagem} className="max-h-[70vh] overflow-auto">
-          <div style={{ width: LARGURA_DO_NOME + eixo.largura }}>
+          <div style={{ width: larguraDoNome + eixo.largura }}>
             <GanttCabecalhoDoEixo
               eixo={eixo}
-              larguraDoNome={LARGURA_DO_NOME}
+              larguraDoNome={larguraDoNome}
               rotuloDaColuna={rotuloDaColuna}
             />
 
@@ -136,8 +153,13 @@ export function GanttChart({
                         type="button"
                         onClick={() => alternarGrupo(grupo.id)}
                         aria-expanded={aberto}
+                        // `title` porque a coluna trunca, e a 132px ela trunca
+                        // MAIS. Mesma lição da Lista: texto cortado sem tooltip
+                        // é texto perdido, e em toque não há hover para
+                        // recuperá-lo — ao menos no desktop o mouse resolve.
+                        title={`${grupo.nome} — ${grupo.resumo}`}
                         className="sticky left-0 z-10 flex flex-shrink-0 items-center gap-2 border-r border-border bg-muted/20 px-4 py-3 text-left"
-                        style={{ width: LARGURA_DO_NOME }}
+                        style={{ width: larguraDoNome }}
                       >
                         <ChevronDown
                           className={cn(
@@ -176,8 +198,9 @@ export function GanttChart({
                               <button
                                 type="button"
                                 onClick={() => onSelecionarItem?.(item)}
+                                title={item.titulo}
                                 className="sticky left-0 z-10 flex-shrink-0 border-r border-border bg-card px-4 py-2 pl-10 text-left hover:text-primary"
-                                style={{ width: LARGURA_DO_NOME }}
+                                style={{ width: larguraDoNome }}
                               >
                                 <div
                                   className={cn(

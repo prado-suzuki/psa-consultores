@@ -16,11 +16,13 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, X, CheckCircle2, Pencil, Building2, FileSignature, History, AlertCircle } from "lucide-react";
+import TourTrigger from "@/components/tour/TourTrigger";
+import { useTour } from "@/components/tour/useTour";
 import { AreaLoader } from "@/components/equipe/AreaLoader";
 import { cn } from "@/lib/utils";
+import { textoDeRecusa } from "@/lib/rlsMessages";
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
 import { defaultClientData } from "./client-form/constants";
-import { AcentoAreaProvider, acentoDaArea } from "./client-form/acentoArea";
 import {
   frasePendencia,
   mapearPendencias,
@@ -44,12 +46,29 @@ import FaturamentoTab from "./client-form/FaturamentoTab";
 import PropostaTab from "./client-form/PropostaTab";
 import HistoricoTab from "./client-form/HistoricoTab";
 
+/**
+ * Âncora do guia em cada aba, com o nome ESCRITO por extenso.
+ *
+ * Poderia ser `data-tour={`modal-aba-${tab}`}`, e era assim antes: o teste que
+ * confere as âncoras varre o código procurando o literal, e uma âncora montada
+ * por interpolação passa despercebida por ele. Escrever o nome aqui é o que faz
+ * o teste conseguir provar que o passo do guia aponta para algo que existe.
+ */
+const ANCORA_DA_ABA: Record<string, string> = {
+  cliente: 'modal-aba-cliente',
+  contribuintes: 'modal-aba-contribuintes',
+  representantes: 'modal-aba-representantes',
+  contratos: 'modal-aba-contratos',
+  faturamento: 'modal-aba-faturamento',
+  proposta: 'modal-aba-proposta',
+  historico: 'modal-aba-historico',
+};
+
 export default function NewClientModal({
   open, onOpenChange, editingClienteId, readOnly = false, canEdit = true, area,
 }: NewClientModalProps) {
   const { user, isAdmin, isLider } = useAuth();
   // O modal e quem monta o provedor, entao nao pode consumir o contexto dele.
-  const acento = acentoDaArea(area);
 
   // Duplicate confirm state (replaces window.confirm)
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
@@ -65,6 +84,9 @@ export default function NewClientModal({
   }, []);
 
   const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "representantes" | "contratos" | "faturamento" | "proposta" | "historico">("cliente");
+  // Guia autoguiado da tela. `disponivel` é falso onde a área ainda não tem
+  // tours (hoje a OSG): sem provider acima, o "?" não é oferecido.
+  const { startTourOnce, disponivel: temGuia, emAndamento: guiaEmAndamento } = useTour();
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   /** O que confirmar o descarte deve fazer: fechar o modal ou só sair da edição. */
@@ -100,6 +122,33 @@ export default function NewClientModal({
       setEscopoEdicao(readOnly ? null : 'cliente');
     }
   }, [open, readOnly]);
+
+  /**
+   * O guia do cadastro abre junto com o modal, e o da OS na 1ª vez que a aba
+   * dela é aberta. As âncoras dos dois só existem com o modal aberto, então o
+   * auto-open por rota do provider não alcança nenhum deles.
+   *
+   * O guia do cadastro serve os DOIS modos: as âncoras dele estão na fita de
+   * abas e nas cascas de lista, que existem tanto em leitura quanto em edição.
+   * Foi o contrário disto que ela reclamou: com um guia só para o estado da
+   * tela, as sete abas mostravam sempre os mesmos três passos e ninguém
+   * aprendia o cadastro. O da OS continua exigindo edição, porque as seções
+   * dele não existem em leitura.
+   *
+   * O atraso cobre a animação de entrada do Dialog: sem ele o Joyride mede a
+   * âncora no meio do fade e o tooltip nasce fora de lugar.
+   */
+  useEffect(() => {
+    if (!open || !temGuia) return;
+    const timer = window.setTimeout(() => startTourOnce('modal-cliente'), 650);
+    return () => window.clearTimeout(timer);
+  }, [open, temGuia, startTourOnce]);
+
+  useEffect(() => {
+    if (!open || !temGuia || isReadOnly || activeTab !== 'contratos') return;
+    const timer = window.setTimeout(() => startTourOnce('modal-os'), 450);
+    return () => window.clearTimeout(timer);
+  }, [open, temGuia, isReadOnly, activeTab, startTourOnce]);
 
 
   const isEditing = !!editingClienteId;
@@ -266,7 +315,21 @@ export default function NewClientModal({
       return;
     }
 
-    executeSave();
+    // `executeSave` devolve promessa. A parte dele que roda ANTES do try interno
+    // — validação, verificação de nome duplicado, o diálogo que ela abre — pode
+    // rejeitar, e a rejeição não tinha ninguém para pegá-la: o `finally` soltava
+    // a trava e o `saving`, o botão voltava ao normal e a pessoa ficava achando
+    // que nada tinha acontecido, sem erro nenhum na tela. O `catch` aqui é o
+    // último anteparo: o que chega nele é falha inesperada, então vale o mesmo
+    // texto de recusa genérico, e o diagnóstico cru vai para o console.
+    void executeSave().catch((erro) => {
+      console.error("[cadastro cliente] salvamento interrompido:", erro);
+      const texto = textoDeRecusa(
+        { item: 'cliente', acao: isEditing ? 'atualizar' : 'cadastrar' },
+        'falha',
+      );
+      toast.error(texto.titulo, { description: texto.detalhe });
+    });
   };
 
   /**
@@ -398,10 +461,16 @@ export default function NewClientModal({
         */}
         <DialogContent
           ref={conteudoRef}
-          className={cn("max-w-7xl h-[95vh] p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden", acento.fundoModal)}
-          onInteractOutside={(e) => { e.preventDefault(); handleAttemptClose(); }}
+          className={cn("max-w-7xl h-[95vh] max-h-none p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden", 'bg-card')}
+          onInteractOutside={(e) => {
+            e.preventDefault();
+            // Com o guia rodando, o clique veio do tooltip dele, que mora num
+            // portal fora deste conteúdo. Fechar o cadastro aí seria perder o
+            // preenchimento no primeiro "Próximo".
+            if (guiaEmAndamento) return;
+            handleAttemptClose();
+          }}
         >
-          <AcentoAreaProvider area={area}>
           <DialogTitle className="sr-only">{isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</DialogTitle>
           <DialogDescription className="sr-only">Formulário de cadastro de cliente com contribuintes, representantes e contratos</DialogDescription>
 
@@ -410,25 +479,48 @@ export default function NewClientModal({
               branca no topo. */}
           <div className="px-6 py-4 border-b border-border flex justify-between items-center shrink-0">
             <div className="flex items-center gap-3">
-              <div className={cn("p-2 rounded-lg", acento.positivoFundo)}>
-                {isReadOnly ? <Building2 className={acento.texto} size={22} /> : isEditing ? <Pencil className={acento.texto} size={22} /> : <Plus className={acento.texto} size={22} />}
+              <div className={cn("p-2 rounded-lg", 'bg-accent/5')}>
+                {isReadOnly ? <Building2 className={'text-primary'} size={22} /> : isEditing ? <Pencil className={'text-primary'} size={22} /> : <Plus className={'text-primary'} size={22} />}
               </div>
-              <h2 className="text-xl font-bold text-gray-900">{isReadOnly ? "Visualizar Cliente" : isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</h2>
+              <h2 className="text-xl font-bold">{isReadOnly ? "Visualizar Cliente" : isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</h2>
             </div>
-              <button onClick={handleAttemptClose} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-muted rounded-full transition-colors"><X size={20} /></button>
+            <div className="flex items-center gap-1">
+              {temGuia && (
+                <TourTrigger
+                  // O guia da OS só tem o que mostrar com o cadastro em
+                  // edição; no resto, o guia do cadastro, que serve os dois modos.
+                  tourId={activeTab === "contratos" && !isReadOnly ? "modal-os" : "modal-cliente"}
+                  dataTour="modal-help"
+                  label="Ver o guia deste cadastro"
+                  className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
+                />
+              )}
+              <button onClick={handleAttemptClose} className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"><X size={20} /></button>
+            </div>
           </div>
 
           {loadingEdit ? (
-            <div className={cn("flex-1 flex items-center justify-center", acento.texto)}><AreaLoader area={area} size={64} /></div>
+            <div className={cn("flex-1 flex items-center justify-center", 'text-primary')}><AreaLoader area={area} size={64} /></div>
           ) : (
             <>
               <Tabs value={activeTab} onValueChange={(v) => handleTabClick(v as typeof activeTab)} className="flex-1 flex flex-col overflow-hidden">
                 {/* Escurecimento neutro em vez de cinza fixo: funciona igual
                     sobre o branco da Tax e sobre a folha quente da OSG. */}
-                <div className="px-6 py-3 bg-black/[0.02] border-b border-border shrink-0">
-                  <TabsList className={cn("w-full grid bg-black/[0.04] p-1 rounded-lg h-auto", tabsGridClass)}>
+                {/* Faixa e trilho em `--muted`, e não em preto com alfa, desde
+                    11/09/2026. Preto cru sobre superfície clara DESSATURA, e o
+                    resultado fica mais neutro quanto mais claro o fundo: sobre a
+                    areia da OSG, `bg-black/[0.04]` dava #E8E4E0, que ainda era
+                    bege; quando o modal saiu do `osg-canvas` para o `bg-card`,
+                    o mesmo preto passou a dar #F2F1F0 — cinza sem matiz nenhuma
+                    dentro de uma tela quente. A cor não mudou, o disfarce saiu.
+                    Com o token a faixa puxa a matiz da área, e os dois degraus
+                    (/25 na faixa, /50 no trilho) mantêm a aba ativa parecendo
+                    levantada sem o trilho encostar no #EBE3DB da seleção da
+                    lista, que é outra coisa e não pode ter a mesma tinta. */}
+                <div className="px-6 py-3 bg-muted/25 border-b border-border shrink-0">
+                  <TabsList data-tour="modal-abas" className={cn("w-full grid bg-muted/50 p-1 rounded-lg h-auto", tabsGridClass)}>
                     {visibleTabs.map((tab) => (
-                      <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1.5">
+                      <TabsTrigger key={tab} value={tab} data-tour={ANCORA_DA_ABA[tab]} className="data-[state=active]:bg-card data-[state=active]:shadow-sm text-muted-foreground rounded-md py-2 text-xs font-medium transition-all gap-1.5">
                         {tab === "cliente"
                           ? "Dados do Cliente/Grupo"
                           : tab === "contribuintes"
@@ -450,12 +542,12 @@ export default function NewClientModal({
                       </TabsTrigger>
                     ))}
                     {podeVerProposta && (
-                      <TabsTrigger value="proposta" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
+                      <TabsTrigger value="proposta" data-tour="modal-aba-proposta" className="data-[state=active]:bg-card data-[state=active]:shadow-sm text-muted-foreground rounded-md py-2 text-xs font-medium transition-all gap-1">
                         <FileSignature size={14} /> Proposta
                       </TabsTrigger>
                     )}
                     {editingClienteId && (
-                      <TabsTrigger value="historico" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
+                      <TabsTrigger value="historico" data-tour="modal-aba-historico" className="data-[state=active]:bg-card data-[state=active]:shadow-sm text-muted-foreground rounded-md py-2 text-xs font-medium transition-all gap-1">
                         <History size={14} /> Histórico
                       </TabsTrigger>
                     )}
@@ -555,11 +647,12 @@ export default function NewClientModal({
               <div className="px-6 py-4 border-t border-border flex justify-between items-center shrink-0">
               {isReadOnly ? (
                   <>
-                    <Button variant="outline" onClick={handleAttemptClose} className="border-border text-gray-600">Fechar</Button>
+                    <Button variant="outline" onClick={handleAttemptClose} className="border-border text-muted-foreground">Fechar</Button>
                     {canEdit && (
                       <Button
                         onClick={() => { setIsReadOnly(false); setEscopoEdicao('cliente'); }}
-                        className={cn("gap-2 shadow-lg", acento.botao)}
+                        data-tour="modal-editar"
+                        className={cn("gap-2 shadow-lg")}
                       >
                         <Pencil size={16} /> Editar
                       </Button>
@@ -567,7 +660,7 @@ export default function NewClientModal({
                   </>
                 ) : (
                   <>
-                    <Button variant="outline" onClick={handleCancelarEdicao} className="border-border text-gray-600">Cancelar</Button>
+                    <Button variant="outline" onClick={handleCancelarEdicao} className="border-border text-muted-foreground">Cancelar</Button>
                     <div className="flex items-center gap-3">
                       {/*
                         O aviso é clicável de propósito: dizer "faltam 3 campos"
@@ -595,7 +688,8 @@ export default function NewClientModal({
                       )}
                       <Button
                         onClick={handleSave} disabled={saving}
-                        className={cn("gap-2 shadow-lg", acento.botao)}
+                        data-tour="modal-salvar"
+                        className={cn("gap-2 shadow-lg")}
                       >
                         {saving ? <AreaLoader area={area} size={20} /> : <CheckCircle2 size={20} />}
                         {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
@@ -606,7 +700,6 @@ export default function NewClientModal({
               </div>
             </>
           )}
-          </AcentoAreaProvider>
         </DialogContent>
       </Dialog>
 

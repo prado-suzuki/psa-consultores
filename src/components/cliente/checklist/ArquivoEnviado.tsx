@@ -1,6 +1,7 @@
 import { FileText, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ArquivoDaPendencia } from '@/hooks/useDomainPendenciasCliente';
+import { revisaoArquivoColors } from '@/lib/estadoDocumentoColors';
 import { ESTADO_LABEL, FOCO } from './checklistKit';
 
 /**
@@ -18,24 +19,26 @@ export function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
 }) {
   const recusado = arquivo.revisao === 'recusado';
   const aprovado = arquivo.revisao === 'aprovado';
+  const cor = revisaoArquivoColors[arquivo.revisao];
 
   return (
     <li className={cn(
       'rounded-xl border px-3 py-2',
-      recusado ? 'border-rose-200/80 bg-rose-50/50' : 'border-border/80 bg-muted/60',
+      // Só a linha recusada se colore: ela é a única que pede ação do cliente.
+      // Arquivo em análise ou aprovado fica neutro para a lista não gritar.
+      recusado ? cor.linha : 'border-border/80 bg-muted/60',
     )}>
       <div className="flex items-center gap-2">
-        <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? 'text-rose-600' : 'text-muted-foreground')} />
+        <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? cor.texto : 'text-muted-foreground')} />
         <span className={cn(
           'min-w-0 flex-1 truncate text-xs font-medium',
-          recusado ? 'text-rose-700 line-through' : 'text-muted-foreground',
+          recusado ? cn(cor.texto, 'line-through') : 'text-muted-foreground',
         )}>
           {arquivo.nome}
         </span>
         <span className={cn(
           'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]',
-          recusado ? 'bg-rose-100 text-rose-700'
-            : aprovado ? 'bg-accent/10 text-primary' : 'bg-muted/70 text-muted-foreground',
+          cor.pilula,
         )}>
           {/* Do `ESTADO_LABEL` do kit, e não escrito aqui. O kit existe com essa
               finalidade declarada — "o rótulo de estado duplicado é como duas
@@ -51,7 +54,7 @@ export function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
             onClick={() => onRemover(arquivo)}
             title="Remove este arquivo do envio. Você pode mandar outro no lugar."
             className={cn(
-              'shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600',
+              'shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive',
               FOCO,
             )}
           >
@@ -61,7 +64,7 @@ export function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
         )}
       </div>
       {recusado && arquivo.motivo && (
-        <p className="mt-1 pl-5 text-xs leading-relaxed text-rose-700">{arquivo.motivo}</p>
+        <p className={cn('mt-1 pl-5 text-xs leading-relaxed', cor.texto)}>{arquivo.motivo}</p>
       )}
     </li>
   );

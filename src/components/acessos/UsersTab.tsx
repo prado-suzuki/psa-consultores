@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { AppRole, UserWithRoles } from '@/hooks/useUsersWithRoles';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { PapelBadge } from '@/components/ui/PapelBadge';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -27,7 +27,7 @@ import { CreateUserDialog } from './CreateUserDialog';
 import { EditUserDialog } from './EditUserDialog';
 import { DeleteUserDialog } from './DeleteUserDialog';
 import { PermissionsTree } from './PermissionsTree';
-import { ROLE_BADGE_CLASSES, ROLE_SHORT_LABELS } from './roleOptions';
+import { ROLE_SHORT_LABELS } from './roleOptions';
 import { PontoDaArea } from './PontoDaArea';
 
 /** Hierarquia de papéis: ordena a lista e define o papel principal de cada um. */
@@ -239,15 +239,7 @@ export const UsersTab = () => {
                       <p className="text-xs text-muted-foreground">{u.email}</p>
                       <div className="flex gap-1 mt-1 flex-wrap">
                         {u.roles.map((role) => (
-                          <Badge
-                            key={role}
-                            variant="outline"
-                            className={`text-xs ${
-                              ROLE_BADGE_CLASSES[role] ?? 'border-border text-muted-foreground bg-muted'
-                            }`}
-                          >
-                            {ROLE_SHORT_LABELS[role] ?? role}
-                          </Badge>
+                          <PapelBadge key={role} papel={role} />
                         ))}
                       </div>
                     </button>
@@ -288,7 +280,7 @@ export const UsersTab = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => setIsDeleteOpen(true)}
-                      className="border-red-200 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="border-destructive/40 text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
                       Excluir

@@ -43,7 +43,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 import { isTodayBrazil, isTomorrowBrazil, isPastBrazil, parseDate } from '@/lib/dateUtils';
 import * as XLSX from 'xlsx';
-import { chamadoStatusConfig } from '@/lib/chamadoStatusColors';
+import { CHAMADO_STATUS_OPCOES, chamadoStatusConfig } from '@/lib/chamadoStatusColors';
 import { departmentLabels } from '@/lib/chamadosDepartamentos';
 
 const deadlineOptions: Record<string, string> = {
@@ -58,13 +58,6 @@ const deadlineOptions: Record<string, string> = {
 
 type SortDirection = 'asc' | 'desc' | null;
 type SortColumn = 'status' | 'title' | 'department' | 'created_by' | 'updated_at' | 'activity_status' | null;
-
-const statusLabels: Record<string, string> = {
-  aberto: 'Aberto',
-  em_andamento: 'Em Andamento',
-  resolvido: 'Resolvido',
-  fechado: 'Fechado',
-};
 
 
 /**
@@ -353,7 +346,7 @@ export function ChamadosGestaoContent({
     const exportData = filteredAndSortedTickets.map(ticket => ({
       'ID': ticket.id.slice(0, 8),
       'Título': ticket.title,
-      'Status': statusLabels[ticket.status] || ticket.status,
+      'Status': chamadoStatusConfig(ticket.status).label,
       'Departamento': departmentLabels[ticket.department] || ticket.department,
       'Representante': `${ticket.profiles?.first_name || ''} ${ticket.profiles?.last_name || ''}`.trim(),
       'Cliente': ticket.cliente_nome || '—',
@@ -542,10 +535,9 @@ export function ChamadosGestaoContent({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="aberto">Aberto</SelectItem>
-                  <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                  <SelectItem value="resolvido">Resolvido</SelectItem>
-                  <SelectItem value="fechado">Fechado</SelectItem>
+                  {CHAMADO_STATUS_OPCOES.map((s) => (
+                    <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -758,7 +750,7 @@ export function ChamadosGestaoContent({
                     </TableCell>
                     <TableCell>
                       <Badge className={chamadoStatusConfig(ticket.status).solid}>
-                        {statusLabels[ticket.status]}
+                        {chamadoStatusConfig(ticket.status).label}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-medium max-w-[200px] truncate">

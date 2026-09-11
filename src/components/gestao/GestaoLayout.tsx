@@ -1,9 +1,10 @@
+import { AREAS } from '@/lib/nomeDaArea';
+import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 import {
-  LogOut,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -12,13 +13,15 @@ import {
   Newspaper,
   Users,
 } from 'lucide-react';
-import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
-import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
 import {
-  classeLarguraBarra,
-  classeRecuoCabecalho,
-  larguraBarraCss,
-} from '@/lib/sidebarMedidas';
+  useFecharGavetaAoNavegar,
+  useSidebarRecolhimentoController,
+} from '@/hooks/useSidebarRecolhimentoController';
+import { SidebarFundoGaveta } from '@/components/shared/SidebarFundoGaveta';
+import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
+import { classeLarguraBarra, classeRecuoCabecalho, classesGavetaBarra, larguraBarraCss } from '@/lib/sidebarMedidas';
+import { FACE_DA_BARRA, classesItemDaBarra } from '@/lib/barraLateralCromo';
+import { cn } from '@/lib/utils';
 
 interface GestaoLayoutProps {
   children: React.ReactNode;
@@ -34,12 +37,18 @@ interface NavItem {
 }
 
 export const GestaoLayout = ({ children, title, subtitle, headerActions }: GestaoLayoutProps) => {
-  const { signOut, isAdmin, isLider } = useAuth();
+  const { isAdmin, isLider } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   // O recolhimento automático em telas de trabalho largo mora no hook — é a
   // tela que pede, com `useTelaDeTrabalhoLargo()`; o layout não conhece rotas.
-  const { collapsed, setCollapsed } = useSidebarRecolhimentoController();
+  const barra = useSidebarRecolhimentoController();
+  const { collapsed, setCollapsed, emGaveta } = barra;
+  // No celular a barra é gaveta: cada navegação a fecha (ver o hook).
+  useFecharGavetaAoNavegar(barra);
+  // Trilho de ícones é coisa de desktop. A gaveta, quando abre, abre inteira:
+  // um trilho de 80px num celular ocupa espaço e não diz o nome de nada.
+  const trilho = collapsed && !emGaveta;
 
   // Chamados e o dashboard dele saíram daqui: passaram para o dropdown Gerencial
   // da Tax e da OSG, restritos a líder+. A área de Marketing fica com Novidades
@@ -49,35 +58,35 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
     { icon: Users, label: 'Contatos', path: '/gestao/contatos' },
   ];
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
-  };
-
   const isActive = (path: string) => {
     return location.pathname === path;
   };
 
   return (
-    <div className="min-h-screen bg-canvas flex w-full relative">
+    <div
+      // Sem fundo de página: quem pinta é o `body`, uma vez, no `index.css`.
+      // Oito layouts decidindo isso por conta própria foi como cinco deles
+      // acabaram pintando com a superfície REBAIXADA. Ver a nota lá.
+      className="min-h-screen flex w-full relative"
+    >
       {/* Toggle Button — fora do <aside> para não ser clipado pelo overflow da sidebar */}
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-6 left-[calc(var(--sidebar-width)-12px)] z-30 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted text-muted-foreground shadow-sm"
-        style={{ '--sidebar-width': larguraBarraCss(collapsed) } as React.CSSProperties}
+        className="absolute top-6 left-[calc(var(--sidebar-width)-12px)] z-30 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted text-muted-foreground shadow-sm max-md:hidden"
+        style={{ '--sidebar-width': larguraBarraCss(trilho) } as React.CSSProperties}
         onClick={() => setCollapsed(!collapsed)}
       >
-        {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        {trilho ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
       </Button>
 
       {/* Sidebar */}
       <aside
-        className={`${classeLarguraBarra(collapsed)} bg-card border-r border-border/60 flex flex-col transition-all duration-300 flex-shrink-0 sticky top-0 h-screen overflow-y-auto`}
+        className={`${classeLarguraBarra(trilho)} ${classesGavetaBarra(collapsed)} bg-card border-r border-border/60 flex flex-col transition-all duration-300 flex-shrink-0 sticky top-0 h-screen overflow-y-auto`}
       >
         {/* Header */}
-        <div className={`${classeRecuoCabecalho(collapsed)} border-b border-border/60`}>
-          {collapsed ? (
+        <div className={`${classeRecuoCabecalho(trilho)} border-b border-border/60`}>
+          {trilho ? (
             <div className="flex justify-center">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <LayoutDashboard className="h-5 w-5 text-primary" />
@@ -89,8 +98,8 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
                 <LayoutDashboard className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold text-foreground text-lg">Gestão</h2>
-                <p className="text-xs text-muted-foreground">Painel de Controle</p>
+                <h2 className={cn(FACE_DA_BARRA, 'font-semibold text-foreground text-lg')}>{AREAS.gestao.nome}</h2>
+                <p className="text-xs text-muted-foreground">{AREAS.gestao.subtitulo}</p>
               </div>
             </div>
           )}
@@ -102,16 +111,12 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
             <Button
               key={item.path}
               variant="ghost"
-              className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive(item.path)
-                  ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                  : 'text-foreground hover:bg-muted hover:text-primary'
-              }`}
+              className={classesItemDaBarra({ ativo: isActive(item.path), trilho })}
               onClick={() => navigate(item.path)}
-              title={collapsed ? item.label : undefined}
+              title={trilho ? item.label : undefined}
             >
-              <item.icon className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
-              {!collapsed && item.label}
+              <item.icon className={`h-4 w-4 ${trilho ? '' : 'mr-3'}`} />
+              {!trilho && item.label}
             </Button>
           ))}
         </nav>
@@ -119,33 +124,27 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
         {/* Footer Actions */}
         <div className="mt-auto p-4 border-t border-border/60 space-y-2">
           {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
-          <SidebarCartaoUsuario area="gestao" collapsed={collapsed} />
+          <SidebarCartaoUsuario area="gestao" collapsed={trilho} />
 
           <Button
             variant="ghost"
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-primary transition-colors`}
+            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-primary transition-colors`}
             onClick={() => navigate('/equipe')}
-            title={collapsed ? 'Trocar área' : undefined}
+            title={trilho ? 'Trocar área' : undefined}
           >
-            <ArrowLeft className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
-            {!collapsed && 'Trocar área'}
-          </Button>
-          <Button
-            variant="ghost"
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors`}
-            onClick={handleSignOut}
-            title={collapsed ? 'Sair' : undefined}
-          >
-            <LogOut className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
-            {!collapsed && 'Sair'}
+            <ArrowLeft className={`h-4 w-4 ${trilho ? '' : 'mr-3'}`} />
+            {!trilho && 'Trocar área'}
           </Button>
         </div>
       </aside>
 
+      {/* Fundo que fecha a gaveta no toque. Só aparece abaixo de `md`. */}
+      <SidebarFundoGaveta aberta={!collapsed} onFechar={() => setCollapsed(true)} />
+
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-border/60 bg-card flex items-center justify-between px-6 flex-shrink-0">
+        <header className="min-h-16 border-b border-border/60 bg-card flex items-center justify-between px-4 py-2 md:px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -156,8 +155,7 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-foreground">{title}</h1>
-              {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+              <TituloDaPagina titulo={title} subtitulo={subtitle} sobretitulo={AREAS.gestao.nome} />
             </div>
           </div>
           {/* O atalho de chamados e a faixa de pendentes saíram junto com a tela:
@@ -171,7 +169,7 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
+          <div className="p-4 md:p-6">
             {children}
           </div>
         </div>

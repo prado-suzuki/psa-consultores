@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useDomainAdminPerformance } from '@/hooks/useDomainAdminPerformance';
 import { Users, FolderKanban, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { ENTREGAVEL_STATUS_OPCOES } from '@/lib/entregavelStatusColors';
 
 const AdminPerformance = () => {
   const {
@@ -28,7 +29,7 @@ const AdminPerformance = () => {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardDescription>Total de Usuários</CardDescription>
-              <Users className="h-4 w-4 text-gray-400" />
+              <Users className="h-4 w-4 text-muted-foreground" />
             </div>
             <CardTitle className="text-3xl">{usersData || 0}</CardTitle>
           </CardHeader>
@@ -38,7 +39,7 @@ const AdminPerformance = () => {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardDescription>Projetos</CardDescription>
-              <FolderKanban className="h-4 w-4 text-gray-400" />
+              <FolderKanban className="h-4 w-4 text-muted-foreground" />
             </div>
             <CardTitle className="text-3xl">{projectsData?.total || 0}</CardTitle>
             <p className="text-sm text-green-600">{projectsData?.active || 0} ativos</p>
@@ -49,7 +50,7 @@ const AdminPerformance = () => {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardDescription>Sprints</CardDescription>
-              <Clock className="h-4 w-4 text-gray-400" />
+              <Clock className="h-4 w-4 text-muted-foreground" />
             </div>
             <CardTitle className="text-3xl">{sprintsData?.total || 0}</CardTitle>
             <p className="text-sm text-blue-600">{sprintsData?.active || 0} em andamento</p>
@@ -60,7 +61,7 @@ const AdminPerformance = () => {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardDescription>Chamados</CardDescription>
-              <AlertCircle className="h-4 w-4 text-gray-400" />
+              <AlertCircle className="h-4 w-4 text-muted-foreground" />
             </div>
             <CardTitle className="text-3xl">{ticketsData?.total || 0}</CardTitle>
             <p className="text-sm text-orange-600">{ticketsData?.open || 0} em aberto</p>
@@ -81,7 +82,7 @@ const AdminPerformance = () => {
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Total de Entregáveis</span>
+                <span className="text-sm text-muted-foreground">Total de Entregáveis</span>
                 <span className="font-semibold">{deliverablesData?.total || 0}</span>
               </div>
 
@@ -92,19 +93,20 @@ const AdminPerformance = () => {
                 />
               </div>
 
+              {/* Rótulo e cor dos três saem do mapa do entregável. Estavam em
+                  amarelo, azul e verde do estoque do Tailwind — nenhuma das três
+                  acompanha tema de área — e o do meio dizia "Em Progresso". */}
               <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="p-3 bg-yellow-50 rounded-lg">
-                  <p className="text-2xl font-bold text-yellow-600">{deliverablesData?.pending || 0}</p>
-                  <p className="text-xs text-yellow-600">Pendentes</p>
-                </div>
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600">{deliverablesData?.inProgress || 0}</p>
-                  <p className="text-xs text-blue-600">Em Progresso</p>
-                </div>
-                <div className="p-3 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">{deliverablesData?.completed || 0}</p>
-                  <p className="text-xs text-green-600">Concluídos</p>
-                </div>
+                {ENTREGAVEL_STATUS_OPCOES.map((s) => (
+                  <div key={s.key} className={`rounded-lg p-3 ${s.badge}`}>
+                    <p className="text-2xl font-bold">
+                      {(s.key === 'in_progress'
+                        ? deliverablesData?.inProgress
+                        : deliverablesData?.[s.key]) || 0}
+                    </p>
+                    <p className="text-xs">{s.label}</p>
+                  </div>
+                ))}
               </div>
 
               <div className="flex items-center justify-center gap-2 pt-2">
@@ -125,9 +127,9 @@ const AdminPerformance = () => {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {['Digital', 'Financeiro', 'Operacional', 'Comercial', 'Chamados'].map((area) => (
-              <div key={area} className="p-4 border rounded-lg text-center hover:bg-gray-50 transition-colors">
+              <div key={area} className="p-4 border rounded-lg text-center hover:bg-muted transition-colors">
                 <Badge variant="outline" className="mb-2">{area}</Badge>
-                <p className="text-xs text-gray-500">Área ativa</p>
+                <p className="text-xs text-muted-foreground">Área ativa</p>
               </div>
             ))}
           </div>

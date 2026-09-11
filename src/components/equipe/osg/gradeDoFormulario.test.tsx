@@ -20,7 +20,7 @@ const FORMULARIOS = [
   'src/components/equipe/osg/qualificacao-das-partes/pessoa/PessoaDadosTab.tsx',
   'src/components/equipe/osg/diagnostico-patrimonial/bem/BemDadosTab.tsx',
   'src/components/equipe/osg/diagnostico-patrimonial/matricula/MatriculaDadosTab.tsx',
-  'src/components/equipe/osg/diagnostico-patrimonial/titularidade/TitularInicialSection.tsx',
+  'src/components/equipe/osg/diagnostico-patrimonial/titularidade/TitularesIniciaisSection.tsx',
 ];
 
 const HOSPEDEIROS = [

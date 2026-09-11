@@ -151,7 +151,6 @@ export function useOnboarding(clienteId: string | null) {
         .from('ordem_servico')
         .select('id, numero_os')
         .eq('id_cliente', clienteId)
-        .eq('excluido', false)
         .order('numero_os');
       if (orderError) throw orderError;
 

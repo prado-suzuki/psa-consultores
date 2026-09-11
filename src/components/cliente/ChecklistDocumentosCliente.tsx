@@ -31,6 +31,7 @@ import {
 import {
   contarEstados, ESTADOS_DOCUMENTO, type EstadoDocumento,
 } from '@/lib/estadoDocumento';
+import { estadoDocumentoColors } from '@/lib/estadoDocumentoColors';
 import {
   usePendenciasCliente, useAnexarPendencia, useRemoverDocumentoPendencia,
   type ArquivoDaPendencia, type PendenciaCliente,
@@ -83,15 +84,17 @@ const FILTROS_GRUPO: Array<{ value: FiltroGrupo; label: string; Icon: LucideIcon
 
 const FILTROS_STATUS: Array<{ value: FiltroStatus; label: string; dot?: string }> = [
   { value: 'todos', label: 'Todos' },
-  { value: 'faltando', label: 'Falta enviar', dot: 'bg-warning' },
+  { value: 'faltando', label: 'Falta enviar', dot: 'bg-status-espera' },
   { value: 'recebidos', label: 'Recebidos', dot: 'bg-primary' },
 ];
 
+// A COR dos quatro é compartilhada com o checklist do consultor, em papéis de
+// status: `@/lib/estadoDocumentoColors`. Só o rótulo acima é por público.
 const ESTADO_CHIP: Record<EstadoDocumento, string> = {
-  pendente: 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-400',
-  em_analise: 'border-border bg-muted text-muted-foreground hover:border-muted-foreground/50',
-  recusado: 'border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400',
-  aprovado: 'border-primary/15 bg-accent/5 text-primary hover:border-primary/40',
+  pendente: estadoDocumentoColors.pendente.chip,
+  em_analise: estadoDocumentoColors.em_analise.chip,
+  recusado: estadoDocumentoColors.recusado.chip,
+  aprovado: estadoDocumentoColors.aprovado.chip,
 };
 
 const casaComStatus = (pendencia: PendenciaCliente, filtro: FiltroStatus) => filtro === 'todos'
@@ -450,7 +453,7 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
         </span>
         <span className={cn(
           'rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]',
-          entidade.faltando > 0 ? 'bg-warning/10 text-warning' : 'bg-accent/5 text-primary',
+          entidade.faltando > 0 ? estadoDocumentoColors.pendente.pilula : 'bg-accent/5 text-primary',
         )}>
           {entidade.faltando > 0
             ? `${entidade.faltando} pendente${entidade.faltando === 1 ? '' : 's'}`
@@ -476,7 +479,7 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
       <div className="pointer-events-none relative z-10 mt-auto flex items-center gap-3 pt-5">
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
           <div
-            className={cn('h-full rounded-full', entidade.faltando > 0 ? 'bg-amber-400' : 'bg-primary')}
+            className={cn('h-full rounded-full', entidade.faltando > 0 ? 'bg-status-espera' : 'bg-primary')}
             style={{ width: `${pct}%` }}
           />
         </div>

@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { ACCEPT } from '@/components/equipe/osg/documentos/docMeta';
 import { BotaoModelo } from '@/components/shared/BotaoModelo';
 import type { ArquivoDaPendencia, PendenciaCliente } from '@/hooks/useDomainPendenciasCliente';
+import { estadoDocumentoColors } from '@/lib/estadoDocumentoColors';
 import { ArquivoEnviado } from './ArquivoEnviado';
 import { ESTADO_LABEL, estadoDaPendencia, FOCO } from './checklistKit';
 
@@ -43,8 +44,7 @@ export function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo,
     <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start">
       <span className={cn(
         'mt-0.5 hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg sm:flex',
-        pendencia.recebido ? 'bg-accent/5 text-primary'
-          : recusado ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700',
+        estadoDocumentoColors[estado].pilula,
       )}>
         {pendencia.recebido ? <Check className="h-4 w-4" />
           : recusado ? <TriangleAlert className="h-4 w-4" /> : <UploadCloud className="h-4 w-4" />}
@@ -58,9 +58,7 @@ export function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo,
           {selo && (
             <span className={cn(
               'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
-              recusado ? 'bg-rose-50 text-rose-700'
-                : estado === 'em_analise' ? 'bg-muted text-muted-foreground'
-                  : 'bg-accent/5 text-primary',
+              estadoDocumentoColors[estado].pilula,
             )}>
               {recusado ? <TriangleAlert className="h-3 w-3" />
                 : estado === 'em_analise' ? <Hourglass className="h-3 w-3" />

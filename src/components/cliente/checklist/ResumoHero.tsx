@@ -55,7 +55,7 @@ function Metrica({ label, value, tom }: { label: string; value: number; tom: 'at
     <div className="flex flex-col items-center rounded-xl bg-muted/80 px-2 py-3 text-center">
       <div className={cn(
         'text-xl font-bold leading-none tabular-nums',
-        tom === 'atencao' ? 'text-amber-600' : 'text-primary',
+        tom === 'atencao' ? 'text-status-espera' : 'text-primary',
       )}>
         {value}
       </div>

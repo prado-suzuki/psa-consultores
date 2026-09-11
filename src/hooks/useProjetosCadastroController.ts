@@ -39,7 +39,17 @@ import {
   type SortDirection,
   type ProjectPrefillLocationState,
 } from '@/lib/projetosCadastro';
-import { computeAvailableMembers, computeExecutores, computeLideres, splitProjectMembers } from '@/lib/projetoEquipe';
+import {
+  clusterIdDaArea,
+  computeAvailableMembers,
+  computeClustersExtras,
+  computeExecutores,
+  computeLideres,
+  computeOfferedAreaGroups,
+  computeQuadrosDoProjeto,
+  splitProjectMembers,
+} from '@/lib/projetoEquipe';
+import { FECHO_SUPORTE } from '@/lib/rlsMessages';
 
 export function useProjetosCadastroController(area: AreaKey) {
   const location = useLocation();
@@ -283,18 +293,29 @@ export function useProjetosCadastroController(area: AreaKey) {
     formData.leader_ids, formData.member_ids, formData.is_multidisciplinar, allAreaGroups),
     [teamMembers, formData.leader_ids, formData.member_ids, formData.is_multidisciplinar, equipeId, equipeMemberIds, allAreaGroups]);
 
-  const availableMembersByArea = useMemo(() => {
-    if (!formData.is_multidisciplinar) return [];
-    const excluded = new Set(formData.leader_ids);
-    return allAreaGroups.map(group => ({
-      ...group,
-      members: group.members.filter(member => !excluded.has(member.id)),
-      equipes: group.equipes.map(team => ({
-        ...team,
-        members: team.members.filter(member => !excluded.has(member.id)),
-      })).filter(team => team.members.length > 0),
-    })).filter(group => group.members.length > 0);
-  }, [formData.is_multidisciplinar, formData.leader_ids, allAreaGroups]);
+  // Cluster do projeto: sai da área gravada, e é o que recorta a caixa de
+  // Membros quando o multidisciplinar está desligado (ver computeOfferedAreaGroups).
+  const clusterIdDoProjeto = useMemo(
+    () => clusterIdDaArea(allAreaGroups, formData.estrutura_area_id || null),
+    [allAreaGroups, formData.estrutura_area_id]);
+  const clusterNameDoProjeto = useMemo(
+    () => allAreaGroups.find(group => group.cluster_id === clusterIdDoProjeto)?.cluster_name || null,
+    [allAreaGroups, clusterIdDoProjeto]);
+
+  const availableMembersByArea = useMemo(
+    () => computeOfferedAreaGroups(allAreaGroups, formData.is_multidisciplinar, clusterIdDoProjeto, formData.leader_ids),
+    [allAreaGroups, formData.is_multidisciplinar, clusterIdDoProjeto, formData.leader_ids]);
+
+  // Quem carrega cluster além do do projeto, e em que quadros o projeto vai
+  // aparecer com a seleção atual. As duas coisas existem para a escolha ser
+  // consciente: o corte por cluster não impede escolher alguém que está em
+  // equipes dos dois lados.
+  const clustersExtras = useMemo(
+    () => computeClustersExtras(allAreaGroups, clusterIdDoProjeto),
+    [allAreaGroups, clusterIdDoProjeto]);
+  const quadrosDoProjeto = useMemo(
+    () => computeQuadrosDoProjeto(allAreaGroups, formData.member_ids, clusterNameDoProjeto),
+    [allAreaGroups, formData.member_ids, clusterNameDoProjeto]);
 
   const handleSort = (column: ProjectSortColumn) => {
     if (sortColumn === column) setSortDirection(previous => previous === 'asc' ? 'desc' : 'asc');
@@ -440,8 +461,9 @@ export function useProjetosCadastroController(area: AreaKey) {
     try {
       resumo = await resumoExclusaoProjeto(projectId);
     } catch (error) {
+      console.error('[projetos] resumo de exclusão do projeto falhou:', error, 'projeto:', projectId);
       toast.error('Não foi possível verificar as tarefas deste projeto.', {
-        description: error instanceof Error ? error.message : 'Tente novamente.',
+        description: FECHO_SUPORTE,
       });
       return;
     }
@@ -476,6 +498,7 @@ export function useProjetosCadastroController(area: AreaKey) {
     semExecutorFixo, toggleSemExecutorFixo,
     availableMembers, availableMembersByArea, memberSearch, setMemberSearch,
     collapsedAreaGroups, toggleAreaGroup, handleMemberToggle,
+    clustersExtras, quadrosDoProjeto, clusterNameDoProjeto,
   };
 }
 
