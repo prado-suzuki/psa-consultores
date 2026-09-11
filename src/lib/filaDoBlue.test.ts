@@ -139,8 +139,11 @@ const FILA_DO_BLUE = {
     'src/components/equipe/projetos/constants.ts': 2,
     'src/components/equipe/sprint-detalhes/AgendaTab.tsx': 2,
     'src/pages/equipe/EquipeRelatorios.tsx': 2,
-    'src/components/equipe/dev/consulta-xmls/ConsultaXmlFilters.tsx': 1,
-    'src/components/equipe/dev/EFDFiscalTable.tsx': 1,
+    // As duas saíram em 11/09/2026. O par Entrada/Saída do filtro de XML é
+    // CATEGORIA (direção do movimento), e andou inteiro — o verde foi junto,
+    // senão sobraria meia escada. E o hover da `EFDFiscalTable` foi para a
+    // âncora com alfa, não para `muted`: o zebrado da tabela JÁ é `muted`, e o
+    // hover igual ao zebrado não mudaria nada na linha ímpar.
     'src/pages/equipe/DigitalAreaSelector.tsx': 1,
     'src/pages/equipe/EquipeBiblioteca.tsx': 1,
   },
