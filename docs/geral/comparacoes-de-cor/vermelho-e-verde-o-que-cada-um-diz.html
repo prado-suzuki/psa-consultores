@@ -85,12 +85,13 @@
   <h1>O vermelho e o verde — o que falta decidir</h1>
   <p class="sub">
     O lote eram <b>248</b> ocorrências cruas de <code>red</code> e <code>emerald</code>, medidas em
-    11/09/2026. Suas decisões do mesmo dia levaram <b>170</b> embora. <b>Sobram 78</b>, e esta página
+    11/09/2026. Suas decisões do mesmo dia levaram <b>179</b> embora. <b>Sobram 69</b>, e esta página
     passa a ter só elas — o que já foi decidido saiu daqui e virou uma linha no rodapé, com o commit.
   </p>
   <p class="sub">
-    Das 78, <b>48 esperam quatro respostas suas</b> e <b>30 não têm pergunta</b>: ficam, com o motivo
-    escrito na catraca. As quatro estão abaixo, na ordem do que destrava mais coisa.
+    Das 69, <b>39 esperam resposta sua</b> e <b>30 não têm pergunta</b>: ficam, com o motivo escrito na
+    catraca. Sobraram <b>três</b> perguntas — a escada de prioridade fechou e o gradiente do Audit
+    virou papel, os dois na sua última rodada.
   </p>
 
   <h2><span class="n">1</span>As escadas meio cruas — 20 sítios com o par fora do lote</h2>
@@ -157,88 +158,138 @@
     aí sim olhando as telas delas, não estas.
   </div>
 
-  <h2><span class="n">2</span>A escala de prioridade está errada antes da cor</h2>
-  <p><b>11 ocorrências em 3 telas.</b> Não converteram junto com o resto da severidade porque pôr papel
-     numa escada torta só deixa o erro mais bonito. O que está no ar hoje:</p>
+  <h2><span class="n">2</span>Sobrou um “Alta” duplicado — 6 ocorrências, 1 arquivo</h2>
+  <p><b>A escada que você aprovou já está na tela</b> (commit <code>fff931b3</code>): a etapa do
+     projeto e o backlog agora sobem <code>neutro</code> → <code>espera</code> → <code>alerta</code> →
+     <code>ajuste</code>, e o verde parou de querer dizer “Alta”. Ficou <b>um</b> arquivo de fora, e
+     não por causa de cor.</p>
   <div class="par">
-    <div class="col"><div class="hd">hoje · etapa do projeto (StageEditCard)</div><div class="card">
-      <div class="linha">
-        <span class="pill" style="background:var(--yellow-100);color:var(--yellow-700)">Baixa</span>
-        <span class="pill" style="background:var(--blue-100);color:var(--blue-700)">Média</span>
-        <span class="pill" style="background:var(--green-100);color:var(--green-700)">Alta</span>
-        <span class="pill" style="background:var(--red-100);color:var(--red-700)">Crítica</span>
-      </div>
-      <p class="meta"><b>“Alta” é verde</b> — o mesmo verde que em toda outra tela quer dizer
-         “concluído”. Quatro degraus, quatro famílias, nenhuma ordem.</p>
-    </div></div>
-    <div class="col"><div class="hd">hoje · prioridade do projeto (projectPresentation)</div><div class="card">
+    <div class="col"><div class="hd">o defeito · projectPresentation</div><div class="card">
       <div class="linha">
         <span class="pill" style="background:var(--red-100);color:var(--red-700)">Alta</span>
         <span class="pill" style="background:var(--orange-100);color:var(--orange-700)">Alta</span>
-        <span class="pill" style="background:var(--yellow-100);color:var(--yellow-700)">Média</span>
       </div>
-      <p class="meta"><b>Dois rótulos “Alta” com cores diferentes</b>, no mesmo arquivo: um para
-         <code>crítica/urgent/high</code>, outro para <code>alta</code>. Isso é defeito de dado, não de
-         cor.</p>
+      <p class="meta">Dois caminhos do mesmo <code>switch</code> devolvem o rótulo <b>“Alta”</b>: um
+         para <code>crítica</code>, <code>urgent</code> e <code>high</code>; outro para
+         <code>alta</code>. Na tela, dois projetos com prioridades diferentes mostram a mesma palavra
+         em cores diferentes.</p>
     </div></div>
-  </div>
-  <h3>A escada que os tokens de hoje já dão</h3>
-  <div class="par">
-    <div class="col"><div class="hd">proposta · quatro degraus</div><div class="card">
+    <div class="col"><div class="hd">as duas saídas</div><div class="card">
       <div class="linha">
-        <span class="pill" style="background:hsl(var(--status-neutro-soft));color:hsl(var(--status-neutro))">Baixa</span>
-        <span class="pill" style="background:hsl(var(--status-espera-soft));color:hsl(var(--status-espera))">Média</span>
-        <span class="pill" style="background:hsl(var(--status-alerta-soft));color:hsl(var(--status-alerta))">Alta</span>
-        <span class="pill" style="background:hsl(var(--status-ajuste-soft));color:hsl(var(--status-ajuste))">Crítica</span>
-      </div>
-      <p class="meta">Sobe de tom junto com a urgência e usa só o que o contrato tem:
-         <code>neutro</code> → <code>espera</code> → <code>alerta</code> → <code>ajuste</code>.
-         <span class="cr" data-fg="hsl(var(--status-alerta))" data-bg="hsl(var(--status-alerta-soft))"></span> no terceiro degrau.</p>
-    </div></div>
-    <div class="col"><div class="hd">e o “Alta” duplicado</div><div class="card">
-      <div class="linha">
+        <span style="font-size:12px;color:hsl(var(--muted-foreground));width:26px">(a)</span>
         <span class="pill" style="background:hsl(var(--status-ajuste-soft));color:hsl(var(--status-ajuste))">Crítica</span>
         <span class="pill" style="background:hsl(var(--status-alerta-soft));color:hsl(var(--status-alerta))">Alta</span>
       </div>
-      <p class="meta">Ou <code>crítica</code> e <code>urgent</code> viram <b>Crítica</b>, degrau
-         próprio, ou os quatro viram “Alta” só. <b>É escolha de negócio, não de cor</b> — e sem ela a
-         tela continua com dois “Alta”.</p>
+      <div class="linha">
+        <span style="font-size:12px;color:hsl(var(--muted-foreground));width:26px">(b)</span>
+        <span class="pill" style="background:hsl(var(--status-alerta-soft));color:hsl(var(--status-alerta))">Alta</span>
+        <span class="pill" style="background:hsl(var(--status-alerta-soft));color:hsl(var(--status-alerta))">Alta</span>
+      </div>
+      <p class="meta"><b>(a)</b> <code>crítica</code> e <code>urgent</code> passam a mostrar
+         <b>“Crítica”</b>, e só <code>high</code>/<code>alta</code> ficam como “Alta” — a tela passa a
+         ter quatro níveis de verdade. <b>(b)</b> os dois caminhos viram a mesma coisa: uma cor, um
+         rótulo, e a diferença some de vez.</p>
     </div></div>
   </div>
-  <div class="decide"><b>O que preciso de você</b>
-    Duas respostas curtas: <b>(a)</b> a escada de quatro degraus acima serve? <b>(b)</b> no projeto,
-    “crítica/urgent” viram <b>Crítica</b>, ou continuam “Alta” junto com <code>high</code>? Com as
-    duas, as 11 saem.
+  <div class="decide"><b>Precisa de você: (a) ou (b)</b>
+    Eu faria a <b>(a)</b> — os dados já distinguem <code>crítica</code> de <code>alta</code>, e a tela é
+    que está apagando a diferença. Mas é chamada sua: <b>(b)</b> é honesta se “crítica” e “alta” na
+    prática forem tratadas igual pela equipe.
   </div>
 
-  <h2><span class="n">3</span>Quatro linhas têm um degrau sem papel</h2>
-  <p><b>13 ocorrências.</b> Aqui o vermelho ou o verde estão numa fileira onde <i>outro</i> degrau é de
-     uma família que o contrato não cobre. Converter só o que está no lote deixaria a fileira metade
-     token, metade estoque.</p>
+  <h2><span class="n">3</span>Quatro perguntas de significado — o que essa cor quer dizer ali?</h2>
+  <p>São <b>13 ocorrências</b>, e nenhuma é sobre qual tom usar. Em cada uma, o vermelho ou o verde
+     está ao lado de uma cor que <b>ninguém sabe explicar</b> — e eu não posso escolher o tom sem saber
+     o que aquilo significa. <b>Cada bloco abaixo é uma pergunta de uma linha, com as duas respostas
+     desenhadas.</b> Responda “a” ou “b”.</p>
+
+  <h3>3.1 · Sprint, aba Riscos · “Métrica em risco” está em roxo</h3>
+  <p style="font-size:14px;color:hsl(var(--muted-foreground))">Os três primeiros números dizem prazo:
+     já venceu, vence hoje, vence amanhã. O quarto está em roxo, sozinho.
+     <b>Pergunta: “Métrica em risco” é um problema na mesma fila dos atrasos, ou é outro assunto que só
+     está junto na tela?</b></p>
   <div class="par">
-    <div class="col"><div class="hd">RisksTab · o quarto KPI é roxo — 3</div><div class="card">
+    <div class="col"><div class="hd">(a) é problema — entra na mesma escala</div><div class="card">
       <div class="linha">
-        <span style="color:var(--red-600);font-weight:700">3 Atrasados</span>
-        <span style="color:var(--amber-600);font-weight:700">2 Hoje</span>
-        <span style="color:var(--yellow-600);font-weight:700">5 Amanhã</span>
-        <span style="color:var(--purple-600);font-weight:700">1 Métrica em risco</span>
+        <span style="color:hsl(var(--status-ajuste));font-weight:700">3 Atrasados</span>
+        <span style="color:hsl(var(--status-alerta));font-weight:700">2 Hoje</span>
+        <span style="color:hsl(var(--status-espera));font-weight:700">5 Amanhã</span>
+        <span style="color:hsl(var(--status-ajuste));font-weight:700">1 Métrica em risco</span>
       </div>
-      <p class="meta">Os três primeiros são <b>proximidade</b> (já venceu, vence hoje, vence amanhã); o
-         quarto é outra coisa, e está em roxo.</p>
+      <p class="meta">Vermelho junto com “Atrasados”: a fileira inteira vira uma escala de urgência, e
+         quem olha entende que os quatro pedem ação.</p>
     </div></div>
-    <div class="col"><div class="hd">AnaliseInteligenteKpis · o terceiro é azul — 4</div><div class="card">
+    <div class="col"><div class="hd">(b) é outro assunto — fica de outra cor</div><div class="card">
       <div class="linha">
-        <span style="color:var(--red-600);font-weight:700">Atrasados</span>
-        <span style="color:var(--amber-600);font-weight:700">Bloqueios</span>
-        <span style="color:var(--blue-600);font-weight:700">Scope creep</span>
-        <span style="color:var(--red-600);font-weight:700">Gasto extra</span>
+        <span style="color:hsl(var(--status-ajuste));font-weight:700">3 Atrasados</span>
+        <span style="color:hsl(var(--status-alerta));font-weight:700">2 Hoje</span>
+        <span style="color:hsl(var(--status-espera));font-weight:700">5 Amanhã</span>
+        <span style="color:hsl(var(--tag-c));font-weight:700">1 Métrica em risco</span>
       </div>
-      <p class="meta">Quatro medidas independentes, não uma escada. “Scope creep” em azul não tem papel
-         óbvio — não é fila nem andamento.</p>
+      <p class="meta">Uva de etiqueta (<code>--tag-c</code>), que não promete estado nenhum: prazo é uma
+         coisa, meta é outra.</p>
     </div></div>
   </div>
+
+  <h3>3.2 · Análise Inteligente · “Scope creep” está em azul</h3>
+  <p style="font-size:14px;color:hsl(var(--muted-foreground))">Na mesma fileira estão Atrasados,
+     Bloqueios e Gasto extra — os três são coisa ruim. <b>Pergunta: escopo crescendo também é coisa
+     ruim, ou é só um número informativo?</b></p>
   <div class="par">
-    <div class="col"><div class="hd">PerDetailModal · o mapa fala nove línguas — 4</div><div class="card">
+    <div class="col"><div class="hd">(a) é coisa ruim, como os outros três</div><div class="card">
+      <div class="linha">
+        <span style="color:hsl(var(--status-ajuste));font-weight:700">Atrasados</span>
+        <span style="color:hsl(var(--status-alerta));font-weight:700">Bloqueios</span>
+        <span style="color:hsl(var(--status-alerta));font-weight:700">Scope creep</span>
+        <span style="color:hsl(var(--status-ajuste));font-weight:700">Gasto extra</span>
+      </div>
+      <p class="meta">A fileira toda passa a ler como “o que está fora do plano”.</p>
+    </div></div>
+    <div class="col"><div class="hd">(b) é só informação</div><div class="card">
+      <div class="linha">
+        <span style="color:hsl(var(--status-ajuste));font-weight:700">Atrasados</span>
+        <span style="color:hsl(var(--status-alerta));font-weight:700">Bloqueios</span>
+        <span style="color:hsl(var(--foreground));font-weight:700">Scope creep</span>
+        <span style="color:hsl(var(--status-ajuste));font-weight:700">Gasto extra</span>
+      </div>
+      <p class="meta">Preto do texto da casa: o número aparece, mas não acusa ninguém.</p>
+    </div></div>
+  </div>
+
+  <h3>3.3 · Mapeamento, Cenários · o que é um cenário “Promovido”?</h3>
+  <p style="font-size:14px;color:hsl(var(--muted-foreground))">Rascunho, Analisando e Aprovado já têm
+     destino claro. <b>Pergunta: “Promovido” quer dizer que o cenário virou plano de verdade e saiu da
+     mesa, ou que ele está sendo executado agora?</b></p>
+  <div class="par">
+    <div class="col"><div class="hd">(a) virou plano e saiu da mesa</div><div class="card">
+      <div class="linha">
+        <span class="pill" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground))">Rascunho</span>
+        <span class="pill" style="background:hsl(var(--status-andamento-soft));color:hsl(var(--status-andamento))">Analisando</span>
+        <span class="pill" style="background:hsl(var(--status-feito-soft));color:hsl(var(--status-feito))">Aprovado</span>
+        <span class="pill" style="background:hsl(var(--status-revisao-soft));color:hsl(var(--status-revisao))">Promovido</span>
+      </div>
+      <p class="meta">Verde-escuro de <code>revisao</code>: passou do aprovado, é o último degrau.</p>
+    </div></div>
+    <div class="col"><div class="hd">(b) está em execução</div><div class="card">
+      <div class="linha">
+        <span class="pill" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground))">Rascunho</span>
+        <span class="pill" style="background:hsl(var(--status-andamento-soft));color:hsl(var(--status-andamento))">Analisando</span>
+        <span class="pill" style="background:hsl(var(--status-feito-soft));color:hsl(var(--status-feito))">Aprovado</span>
+        <span class="pill" style="background:hsl(var(--tag-b)/.15);color:hsl(var(--tag-b))">Promovido</span>
+      </div>
+      <p class="meta">Etiqueta azul: não é degrau da mesma escada, é um destino.</p>
+    </div></div>
+  </div>
+
+  <h3>3.4 · PER/DCOMP · as nove situações da Receita</h3>
+  <p style="font-size:14px;color:hsl(var(--muted-foreground))">Este é o único dos quatro que eu
+     <b>não</b> recomendo decidir agora, e é bom saber por quê: são situações do processo na Receita
+     Federal — “Despacho decisório emitido”, “Contribuinte intimado”, “Em discussão administrativa” —,
+     e encaixar isso em papel de tarefa (<i>feito</i>, <i>em ajuste</i>, <i>em espera</i>) é decisão de
+     negócio, não de cor. <b>Pergunta, se quiser mesmo assim: alguma dessas nove quer dizer “acabou
+     bem” ou “acabou mal” para o cliente?</b> Só essas duas eu converteria; o resto viraria etiqueta.</p>
+  <div class="par">
+    <div class="col"><div class="hd">hoje · nove cores, sete famílias</div><div class="card">
       <div class="linha">
         <span class="pill" style="background:var(--green-100);color:var(--green-800)">Análise concluída</span>
         <span class="pill" style="background:var(--blue-100);color:var(--blue-700)">Preliminar</span>
@@ -250,61 +301,31 @@
         <span class="pill" style="background:var(--red-100);color:var(--red-800)">Cancelado</span>
         <span class="pill" style="background:var(--emerald-100);color:var(--emerald-800)">Homologado</span>
       </div>
-      <p class="meta">São <b>situações de processo na Receita</b>, não estados de tarefa — e
-         “Contribuinte intimado” não tem papel. Duas entradas do mapa já são
-         <code>status-neutro</code>.</p>
+      <p class="meta">Duas entradas do mapa já são <code>status-neutro</code>; as outras nunca foram
+         decididas, só foram aparecendo.</p>
     </div></div>
-    <div class="col"><div class="hd">ScenarioList · <code>promovido</code> é violeta — 2</div><div class="card">
+    <div class="col"><div class="hd">o mínimo que eu faria</div><div class="card">
       <div class="linha">
-        <span class="pill" style="background:hsl(var(--muted));color:hsl(var(--foreground))">Rascunho</span>
-        <span class="pill" style="background:var(--blue-100);color:var(--blue-700)">Analisando</span>
-        <span class="pill" style="background:var(--emerald-100);color:var(--emerald-700)">Aprovado</span>
-        <span class="pill" style="background:var(--violet-100);color:var(--violet-700)">Promovido</span>
+        <span class="pill" style="background:hsl(var(--status-feito-soft));color:hsl(var(--status-feito))">Homologado</span>
+        <span class="pill" style="background:hsl(var(--status-ajuste-soft));color:hsl(var(--status-ajuste))">Cancelado</span>
       </div>
-      <p class="meta">Esta é a mais perto de fechar: <code>analisando</code> é <code>andamento</code> e
-         <code>aprovado</code> é <code>feito</code>. Falta dizer o que é <b>promovido</b>.</p>
+      <div class="linha" style="margin-top:12px">
+        <span class="pill" style="background:hsl(var(--tag-b)/.15);color:hsl(var(--tag-b))">Preliminar</span>
+        <span class="pill" style="background:hsl(var(--tag-d)/.15);color:hsl(var(--tag-d))">Intimado</span>
+        <span class="pill" style="background:hsl(var(--tag-c)/.15);color:hsl(var(--tag-c))">Despacho</span>
+      </div>
+      <p class="meta">Só as duas pontas viram papel — <b>Homologado</b> acabou bem, <b>Cancelado</b>
+         acabou mal. O meio do caminho vira etiqueta, porque é fase de processo, não estado de
+         trabalho.</p>
     </div></div>
-  </div>
-  <div class="decide"><b>O que eu faria</b>
-    Fechar o <code>ScenarioList</code> agora, se você disser o papel de <b>promovido</b> — eu leria
-    como <code>revisao</code> (saiu de cenário e virou plano). Os outros três ficam na catraca com o
-    motivo: o PER precisa de um mapa das situações da Receita, que é assunto de negócio, e as duas
-    fileiras de KPI precisam que <b>roxo</b> e <b>azul</b> ganhem papel — ou que se aceite que KPI não
-    veste papel de status, e aí eles viram paleta categórica (<code>--tag-*</code>).
   </div>
 
-  <h2><span class="n">4</span>O gradiente do Audit — confirma que fica?</h2>
-  <p><b>4 ocorrências</b>, e é a única aqui que se responde com um “sim”. O <code>CORES_MOTIVO</code>
-     do <code>AuditPendenciasTable</code> é uma <b>escala de severidade</b> — dois motivos em vermelho,
-     dois em âmbar, um neutro — e o contrato diz que gradiente não veste papel de status. Ele já estava
-     parado na <code>filaDoAlerta</code> por isso.</p>
-  <div class="par">
-    <div class="col"><div class="hd">hoje</div><div class="card">
-      <div class="linha">
-        <span class="pill" style="background:var(--red-100);color:var(--red-700)">sem projeto</span>
-        <span class="pill" style="background:var(--red-100);color:var(--red-700)">sem cliente</span>
-        <span class="pill" style="background:var(--amber-100);color:var(--amber-700)">sem OS</span>
-        <span class="pill" style="background:var(--amber-100);color:var(--amber-700)">OS sem produto</span>
-        <span class="pill" style="background:hsl(var(--muted));color:hsl(var(--foreground))">sem serviço</span>
-      </div>
-      <p class="meta">Não são estados: são <b>graus de quão incompleto</b> está o cadastro.</p>
-    </div></div>
-    <div class="col"><div class="hd">se virasse papel</div><div class="card">
-      <div class="linha">
-        <span class="pill" style="background:hsl(var(--status-ajuste-soft));color:hsl(var(--status-ajuste))">sem projeto</span>
-        <span class="pill" style="background:hsl(var(--status-ajuste-soft));color:hsl(var(--status-ajuste))">sem cliente</span>
-        <span class="pill" style="background:hsl(var(--status-alerta-soft));color:hsl(var(--status-alerta))">sem OS</span>
-        <span class="pill" style="background:hsl(var(--status-alerta-soft));color:hsl(var(--status-alerta))">OS sem produto</span>
-        <span class="pill" style="background:hsl(var(--status-neutro-soft));color:hsl(var(--status-neutro))">sem serviço</span>
-      </div>
-      <p class="meta">Funciona no olho, e é justamente o risco: <code>ajuste</code> passaria a
-         significar “pendência de cadastro” aqui e “tarefa devolvida” no resto do produto.</p>
-    </div></div>
-  </div>
-  <div class="decide"><b>O que eu faria</b>
-    Deixar como está, com o motivo escrito. Mas a decisão é sua, e existe um meio-termo: se quiser
-    tirar o estoque sem mexer no significado, essa escala vira <code>--tag-*</code> — paleta
-    categórica, que não promete estado nenhum.
+  <div class="decide"><b>Em uma linha cada</b>
+    <b>3.1</b> “Métrica em risco”: (a) problema, ou (b) outro assunto? ·
+    <b>3.2</b> “Scope creep”: (a) coisa ruim, ou (b) só informação? ·
+    <b>3.3</b> “Promovido”: (a) virou plano, ou (b) está em execução? ·
+    <b>3.4</b> PER: topa converter só <b>Homologado</b> e <b>Cancelado</b>, deixando o resto como
+    etiqueta — ou prefere não mexer?
   </div>
 
   <div class="fecha">
@@ -322,13 +343,17 @@
   </div>
 
   <div class="rodape">
-    <b>O que já saiu em 11/09/2026 — 170 das 248.</b>
+    <b>O que já saiu em 11/09/2026 — 179 das 248.</b>
     <code>1d25b036</code> ação destrutiva e erro (78, em <code>destructive</code>) ·
     <code>fd566894</code> feito, marcador, diff e as escadas que fecham (56, e quatro entradas saíram
     da <code>filaDoAlerta</code>) ·
     <code>62d76108</code> o selo do monofásico (9, em <code>--tag-a</code>) ·
     <code>477afeef</code> o “Limpar filtros” e o X de fechar (27, no <code>BotaoLimparFiltros</code> e
-    na âncora da área).
+    na âncora da área) ·
+    <code>fff931b3</code> a escada de prioridade, com o verde deixando de valer “Alta” (5, e duas
+    entradas saindo da <code>filaDoAlerta</code>) ·
+    o gradiente do Audit virando papel por decisão sua — o comentário do arquivo, que dizia o
+    contrário, foi reescrito com o argumento que caiu.
     <br><br>
     O raciocínio de cada uma está na mensagem do commit, e as telas que você olhou para decidir estão
     no histórico deste arquivo — <code>git log -p</code> nele devolve o desenho como estava.

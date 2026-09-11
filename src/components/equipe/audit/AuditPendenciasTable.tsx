@@ -45,19 +45,26 @@ const TODOS = 'todos';
 /**
  * Cor por severidade: quanto mais em cima na fila, mais forte o aviso.
  *
- * ⚠️ **Fica em cor crua de propósito, e não é esquecimento.** Isto é ESCALA, não
- * papel de status: os seis motivos são um gradiente de gravidade, e o contrato
- * (`docs/geral/paleta-por-area.md`, "escala que não é status") diz que gradiente
- * não veste papel — `ajuste`/`alerta`/`neutro` aqui fariam três degraus parecerem
- * três estados diferentes de uma coisa. Enquanto não houver escala institucional
- * para severidade, converter isto piora. Está registrado no §2 de
- * `docs/geral/cor-o-que-falta.md`, junto com as outras que esperam decisão.
+ * **Virou papel em 11/09/2026, por decisão dela, e o comentário anterior dizia o
+ * contrário.** Ele argumentava que isto é ESCALA e não estado, que o contrato
+ * (`paleta-por-area.md`, "escala que não é status") proíbe gradiente vestir papel,
+ * e que converter pioraria. Ela olhou os dois lados renderizados na página
+ * `comparacoes-de-cor/vermelho-e-verde-o-que-cada-um-diz.html` e escolheu o papel.
+ *
+ * O argumento que caiu, e vale registrar para ninguém reabrir: o risco apontado era
+ * `ajuste` passar a significar duas coisas — "pendência de cadastro" aqui e "tarefa
+ * devolvida" no resto do produto. Na tela isso não se confunde, porque aqui não há
+ * tarefa nenhuma: a linha é um cadastro incompleto, e o vermelho diz "resolva este
+ * antes". O que o contrato proíbe é fabricar degrau novo para gradiente; usar dois
+ * papeis que já existem para as duas pontas de uma fila de seis é outra coisa.
+ *
+ * Os dois motivos sem gravidade continuam em `muted`, que já é token.
  */
 const CORES_MOTIVO: Record<MotivoPendencia, string> = {
-  sem_projeto: 'bg-red-100 text-red-700',
-  sem_cliente: 'bg-red-100 text-red-700',
-  sem_os: 'bg-amber-100 text-amber-700',
-  os_sem_produto: 'bg-amber-100 text-amber-700',
+  sem_projeto: 'bg-status-ajuste-soft text-status-ajuste',
+  sem_cliente: 'bg-status-ajuste-soft text-status-ajuste',
+  sem_os: 'bg-status-alerta-soft text-status-alerta',
+  os_sem_produto: 'bg-status-alerta-soft text-status-alerta',
   sem_servico: 'bg-muted text-foreground',
   servico_fora_da_os: 'bg-muted text-foreground',
 };

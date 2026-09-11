@@ -90,11 +90,14 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     // O `scoreBg` da Análise Inteligente NÃO foi junto, e não é esquecimento: ele
     // vai para o exportador de PDF, onde `hsl(var(--status-feito))` não resolve.
     // É fase 3b, e continua em hex de propósito.
-    // O `AuditPendenciasTable` fica, e o motivo é mais forte que "ainda não
-    // converteram": o `CORES_MOTIVO` é ESCALA de severidade, não escada de status, e
-    // o contrato diz que gradiente não veste papel. O `AuditPessoasTable` saiu em
-    // 03/09 — o `parou` dele era estado de verdade, e virou `alerta`.
-    'src/components/equipe/audit/AuditPendenciasTable.tsx': 4,
+    // O `AuditPendenciasTable` SAIU em 11/09/2026, e o comentário que estava aqui
+    // dizia que ele ficaria: o `CORES_MOTIVO` é escala de severidade, e o contrato
+    // diz que gradiente não veste papel. Ela olhou os dois lados renderizados e
+    // decidiu pelo papel — as duas pontas da fila (`sem_projeto`/`sem_cliente` em
+    // `ajuste`, `sem_os`/`os_sem_produto` em `alerta`), com os dois motivos sem
+    // gravidade seguindo em `muted`. O porquê está no comentário do próprio arquivo.
+    // O `AuditPessoasTable` já tinha saído em 03/09 — o `parou` dele era estado de
+    // verdade, e virou `alerta`.
     'src/components/equipe/dashboards/analise-inteligente/AnaliseInteligenteKpis.tsx': 2,
     'src/components/equipe/dev/calculadora-ibs-cbs/por-estado/PorEstadoKpis.tsx': 1,
     // O `EFDExportStatus` saiu em 10/09/2026, e a classificação estava certa: é
