@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { PROCESS_STAGES } from '@/components/equipe/projetos/constants';
 import { projectStatusColors } from '@/lib/projetoStatusColors';
+import { prioridadeDoProjeto } from '@/lib/prioridadeDoProjeto';
 
 export const extractPriority = (description: string | null): string => {
   if (!description) return '-';
@@ -51,23 +52,20 @@ export const getStatusBadge = (status: string) => {
   }
 };
 
+/**
+ * A pílula de prioridade do projeto.
+ *
+ * O `switch` que morava aqui tinha DOIS caminhos devolvendo "Alta" — um para
+ * `crítica`/`urgent`/`high`, outro para `alta` —, então dois projetos de
+ * prioridade diferente mostravam a mesma palavra em cores diferentes. Decisão
+ * dela em 11/09/2026: crítica e urgent passam a dizer "Crítica", e a tela ganha
+ * os quatro níveis que o dado sempre teve. A escada e os sinônimos vivem em
+ * `@/lib/prioridadeDoProjeto`, com o backlog lendo do mesmo lugar.
+ */
 export const getPriorityBadge = (priority: string) => {
-  switch (priority?.toLowerCase()) {
-    case 'crítica':
-    case 'urgent':
-    case 'high':
-      return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Alta</Badge>;
-    case 'alta':
-      return <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">Alta</Badge>;
-    case 'média':
-    case 'medium':
-      return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Média</Badge>;
-    case 'baixa':
-    case 'low':
-      return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Baixa</Badge>;
-    default:
-      return <Badge variant="outline">{priority}</Badge>;
-  }
+  const config = prioridadeDoProjeto(priority);
+  if (!config) return <Badge variant="outline">{priority}</Badge>;
+  return <Badge variant="outline" className={config.badge}>{config.label}</Badge>;
 };
 
 /**
