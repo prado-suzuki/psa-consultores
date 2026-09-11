@@ -474,30 +474,59 @@
   degraus ao lado, e eu não insisto.</p>
 </div>
 
-<h2><span class="n">A3</span>Os três mecânicos — sem pergunta de cor dentro</h2>
+<h2><span class="n">A3</span>Os três mecânicos — dois fecharam, e o terceiro não era mecânico</h2>
 <p>
-  Estes não precisam de decisão de cor: precisam de um arquivo. Ficam listados para não virem como
-  achado novo numa quarta rodada.
+  Estes não precisavam de decisão de cor: precisavam de um arquivo. <b>Dois fecharam em
+  <code>95ebb364</code>.</b> O terceiro parou, e o motivo é uma colisão que esta página não tinha
+  visto — está abaixo da tabela.
 </p>
 <table>
-  <tr><th>mapa</th><th>o que fazer</th><th class="num">cruas</th></tr>
+  <tr><th>mapa</th><th>o que aconteceu</th><th class="num">cruas</th></tr>
   <tr><td><code>ACTION_LABELS</code> &times;3</td>
-      <td>as três cópias já são <b>idênticas</b>. As de <code>HistoricoTab</code> e
-        <code>HistoricoFlutuante</code> passam a importar de <code>audit/auditLabels.ts</code>, que já
-        existe e já é a fonte da aba de Auditoria. <b>Zero pixel muda.</b></td>
+      <td><b>FEITO.</b> As de <code>HistoricoTab</code> e <code>HistoricoFlutuante</code> passaram a
+        importar de <code>audit/auditLabels.ts</code>. As três eram byte a byte iguais, e é essa a
+        parte que importa: a rodada de 03/09 converteu as três e <b>não extraiu nenhuma</b>, então a
+        próxima rodada as reencontraria como achado novo. <b>Zero pixel mudou.</b></td>
       <td class="num">0</td></tr>
-  <tr><td><code>KIND_COLOR</code> &times;2</td>
-      <td>um mapa em <code>mapeamento/</code>, com <code>border</code> no <code>Record</code> e o
-        comparador passando a usá-lo. <code>scale</code> &rarr; <code>tag-b</code> (6,85:1),
-        <code>efficiency</code> &rarr; <code>alerta</code> (5,32:1), <code>investment</code> segue em
-        <code>primary</code>, que já era token.</td>
-      <td class="num">20</td></tr>
   <tr><td><code>VARIANT_STYLE</code> / <code>FILTER_BADGE_CLASS</code></td>
-      <td>um mapa, e o <b>indigo</b> do "por cliente" vira <code>tag-c</code> (5,69:1) — que é o frio
-        roxo da casa e é o único degrau ali que não é <code>primary</code> nem <code>muted</code>.
-        <b>Atenção:</b> os dois arquivos estão alterados no working tree agora.</td>
+      <td><b>FEITO.</b> Nasceu <code>dashboards/dashboardFilterColors.ts</code>, e o indigo foi para
+        <code>tag-c</code> (5,69:1) — <code>--tag-*</code> e não papel de status, porque
+        <code>filter_type</code> não é estado: é categoria de acesso, sem transição e sem ação.
+        <b>E a consolidação achou mais três divergências</b> que esta página não listava, porque eu
+        tinha olhado só o badge: a superfície do <code>cliente</code>
+        (<code>indigo-500/10</code> &times; <code>indigo-50</code>), a letra dele
+        (<code>-600</code> &times; <code>-700</code>) e o <code>nenhum</code> do selo de <b>tipo</b>
+        (<code>foreground/[0.05]</code> &times; <code>muted</code>). O último tinha resposta pronta:
+        fica <code>bg-muted</code>, porque preto com alfa dessatura. Saíram junto o
+        <code>FILTER_LABEL</code> (idêntico nos dois) e o par
+        <code>tipoLabel</code>/<code>tipoBadgeClass</code>.</td>
       <td class="num">11</td></tr>
+  <tr><td><code>KIND_COLOR</code> &times;2</td>
+      <td><b>PAROU, e não é conversão.</b> Ver abaixo.</td>
+      <td class="num">20</td></tr>
 </table>
+<div class="decide">
+  <b>O <code>KIND_COLOR</code> não era mecânico: a pílula de tipo e a de status são a mesma cor</b>
+  Esta página dizia "um mapa, <code>scale</code> &rarr; <code>tag-b</code>". Abrindo o
+  <code>ScenarioList</code> para converter, o cartão mostra as duas pílulas <b>lado a lado no mesmo
+  flex</b> (linhas 201–205) — e elas são idênticas:
+  <pre>KIND_COLOR.scale       = 'bg-blue-100 text-blue-700'
+STATUS_COLOR.analyzing = 'bg-blue-100 text-blue-700'</pre>
+  Um cenário <b>"Escala" + "Em análise"</b> mostra hoje duas pílulas da mesma cor dizendo duas coisas
+  diferentes. Então <code>scale</code> não pode ir para <code>tag-b</code>: <b>azul é onde a colisão
+  está.</b><br><br>
+  E a regra que a frente do azul fixou ontem — <i>numa tela que também mostra pílula de papel, o
+  cartão não repete o tom daquele papel</i> — recorta o que sobra. O <code>STATUS_COLOR</code> usa
+  <code>muted</code>, azul, esmeralda e violeta; então para o KIND sobram o âmbar (que nenhum status
+  usa) e a âncora. Ou seja: <code>efficiency</code> &rarr; <code>alerta</code> está certo,
+  <code>investment</code> fica na âncora, e <b><code>scale</code> fica sem degrau</b> — a menos de
+  (a) pegar <code>tag-d</code>, que é quente e vai ler como risco numa tela de cenário, ou
+  (b) <b>separar as duas pílulas por FORMA em vez de matiz</b>: uma vazada, outra cheia.<br><br>
+  <b>Eu proporia a (b)</b>, e é decisão de desenho, não conversão. Ela vai junto com o que já estava
+  aberto no mesmo arquivo: o <code>STATUS_COLOR</code> do <code>ScenarioList</code> é uma das quatro
+  perguntas em aberto da página do vermelho e do verde ("o que é <code>promovido</code>"), e eu não
+  converto metade dele enquanto a outra metade espera você.
+</div>
 </div>
 
 <!-- =========================== PARTE B =========================== -->
@@ -934,9 +963,12 @@
         execução. <b>Sobra uma sub-pergunta:</b> a superfície é <code>-soft</code> (luminosidade fixa)
         ou <code>/10</code> (alfa)? As quatro cópias usam as duas. Eu fixaria <code>-soft</code>.</td></tr>
   <tr><td><b>A3</b> · os três mecânicos</td>
-      <td><b>EM ABERTO, e sem pergunta de cor dentro.</b> <code>ACTION_LABELS</code> não muda um pixel.
-        <code>KIND_COLOR</code> e o filtro do dashboard trocam azul e indigo crus por
-        <code>tag-b</code> e <code>tag-c</code>. Posso ir?</td></tr>
+      <td><b>DOIS FEITOS</b> em <code>95ebb364</code>: o <code>ACTION_LABELS</code> (zero pixel) e o
+        filtro do dashboard (indigo &rarr; <code>tag-c</code>, mais três divergências que só
+        apareceram ao consolidar). O <b><code>KIND_COLOR</code> parou</b>: a pílula de tipo e a de
+        status do <code>ScenarioList</code> são <b>a mesma cor</b>, lado a lado no mesmo cartão, e
+        resolver isso é desenho — provavelmente separar por forma, não por matiz. Entra na próxima
+        rodada, junto com o <code>STATUS_COLOR</code> do mesmo arquivo, que já esperava você.</td></tr>
   <tr><td><b>B1</b> · as 13 da calculadora</td>
       <td><b>RODADA 2, esperando você.</b> As duas primeiras erravam pelo mesmo motivo — uma mantinha a
         falha, a outra trocava a sua paleta. As três novas: <b>G</b> (mesma matiz, dois degraus de
