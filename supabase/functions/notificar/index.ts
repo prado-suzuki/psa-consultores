@@ -587,10 +587,10 @@ Deno.serve(async (req) => {
     // `destinatarios_cliente` devolve uma linha por representante COM acesso ao
     // portal (`user_id` não nulo). O buraco não é contato ausente — é cliente sem
     // representante com acesso, que existe.
-    const { data: brutos, error: destinatariosError } = await supabase.rpc(
+    const { data: brutos, error: destinatariosError } = (await supabase.rpc(
       "destinatarios_cliente",
       { _cliente_id: solicitacao.cliente_id }
-    );
+    )) as { data: DestinatarioBruto[] | null; error: { message: string } | null };
     if (destinatariosError) {
       console.error("[notificar] destinatarios_cliente failed:", destinatariosError);
       return json({ error: "Falha ao resolver destinatários" }, 500);
