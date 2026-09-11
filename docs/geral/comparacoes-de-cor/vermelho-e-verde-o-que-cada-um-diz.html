@@ -85,14 +85,26 @@
   <h1>O vermelho e o verde — o que falta decidir</h1>
   <p class="sub">
     O lote eram <b>248</b> ocorrências cruas de <code>red</code> e <code>emerald</code>, medidas em
-    11/09/2026. Suas decisões do mesmo dia levaram <b>179</b> embora. <b>Sobram 69</b>, e esta página
+    11/09/2026. Suas decisões do mesmo dia levaram <b>179</b> embora, e a frente do <b>azul</b> — que roda
+    em paralelo — levou mais 8. <b>Sobram 61</b>, e esta página
     passa a ter só elas — o que já foi decidido saiu daqui e virou uma linha no rodapé, com o commit.
   </p>
   <p class="sub">
-    Das 69, <b>39 esperam resposta sua</b> e <b>30 não têm pergunta</b>: ficam, com o motivo escrito na
-    catraca. Sobraram <b>três</b> perguntas — a escada de prioridade fechou e o gradiente do Audit
-    virou papel, os dois na sua última rodada.
+    Das 61, <b>36 esperam resposta sua</b> e <b>25 não têm pergunta</b>: ficam, com o motivo escrito na
+    catraca. A escada de prioridade fechou e o gradiente do Audit virou papel na sua última rodada.
   </p>
+  <div class="decide" style="border-left-color:hsl(var(--status-espera))">
+    <b>Três destas perguntas são as mesmas que a página do azul está fazendo</b>
+    A frente do <code>blue</code> roda em paralelo, tem catraca própria
+    (<code>filaDoBlue.test.ts</code>) e <b>já inventariou três dos arquivos abaixo</b>: o
+    <code>AnaliseInteligenteKpis</code>, o <code>ScenarioList</code> e o <code>PerDetailModal</code>.
+    Não é conflito — é a mesma fileira vista de duas cores. <b>Responda uma vez só</b>: a resposta vale
+    para as duas frentes, porque a fileira se decide inteira ou não se decide.
+    <br><br>
+    Ela também já executou parte do que esta página dava como “fica”: o <b>papel do usuário</b> saiu de
+    sete cores em <code>f0538b86</code>, e com isso o grupo “rótulo não-status” caiu de 12 para 7 sem
+    passar por aqui.
+  </div>
 
   <h2><span class="n">1</span>As escadas meio cruas — 20 sítios com o par fora do lote</h2>
   <p>Em 16 arquivos o vermelho ou o verde tem um <b>par</b> que ficou fora do lote: o saldo do
@@ -231,7 +243,7 @@
     </div></div>
   </div>
 
-  <h3>3.2 · Análise Inteligente · “Scope creep” está em azul</h3>
+  <h3>3.2 · Análise Inteligente · “Scope creep” está em azul <span style="font-weight:400;text-transform:none;letter-spacing:0">— também na fila do azul</span></h3>
   <p style="font-size:14px;color:hsl(var(--muted-foreground))">Na mesma fileira estão Atrasados,
      Bloqueios e Gasto extra — os três são coisa ruim. <b>Pergunta: escopo crescendo também é coisa
      ruim, ou é só um número informativo?</b></p>
@@ -256,7 +268,7 @@
     </div></div>
   </div>
 
-  <h3>3.3 · Mapeamento, Cenários · o que é um cenário “Promovido”?</h3>
+  <h3>3.3 · Mapeamento, Cenários · o que é um cenário “Promovido”? <span style="font-weight:400;text-transform:none;letter-spacing:0">— também na fila do azul</span></h3>
   <p style="font-size:14px;color:hsl(var(--muted-foreground))">Rascunho, Analisando e Aprovado já têm
      destino claro. <b>Pergunta: “Promovido” quer dizer que o cenário virou plano de verdade e saiu da
      mesa, ou que ele está sendo executado agora?</b></p>
@@ -281,7 +293,7 @@
     </div></div>
   </div>
 
-  <h3>3.4 · PER/DCOMP · as nove situações da Receita</h3>
+  <h3>3.4 · PER/DCOMP · as nove situações da Receita <span style="font-weight:400;text-transform:none;letter-spacing:0">— também na fila do azul</span></h3>
   <p style="font-size:14px;color:hsl(var(--muted-foreground))">Este é o único dos quatro que eu
      <b>não</b> recomendo decidir agora, e é bom saber por quê: são situações do processo na Receita
      Federal — “Despacho decisório emitido”, “Contribuinte intimado”, “Em discussão administrativa” —,
@@ -329,14 +341,14 @@
   </div>
 
   <div class="fecha">
-    <h2 style="font-size:15px;margin-bottom:2px">As 30 que ficam, e não precisam de você</h2>
+    <h2 style="font-size:15px;margin-bottom:2px">As 25 que ficam, e não precisam de você</h2>
     <p style="margin-top:6px;color:hsl(var(--muted-foreground));font-size:14px">Entram na catraca
        <code>filaDoRedEmerald.test.ts</code> com o motivo, como a <code>filaDoAlerta</code> faz. Ela
        trava nos dois sentidos: cor nova derruba o teste, e conversão feita também — pedindo que a
        lista encolha.</p>
     <table>
       <tr><th>motivo</th><th class="num">ocorr.</th><th>por que fica</th></tr>
-      <tr><td><b>rótulo não-status</b></td><td class="num">12</td><td>o selo “Admin” em 4 telas de acesso. Cargo não é estado — mesmo motivo de “Líder” na fila do alerta</td></tr>
+      <tr><td><b>rótulo não-status</b></td><td class="num">7</td><td>o selo “Admin” em 3 telas de acesso. Cargo não é estado — mesmo motivo de “Líder” na fila do alerta. Eram 12: o <code>roleOptions.ts</code> saiu inteiro pela frente do azul, em <code>f0538b86</code></td></tr>
       <tr><td><b>site público</b></td><td class="num">10</td><td><code>Footer</code>, depoimentos, escritórios, resultados. Decisão sua na passada do <code>gray</code>: a landing pinta a própria paleta</td></tr>
       <tr><td><b>paleta categórica</b></td><td class="num">8</td><td>ícone de PDF, cor da categoria “tax”, gradiente do seletor de área. O destino são os <code>--tag-*</code>, e isso é outra frente</td></tr>
     </table>
