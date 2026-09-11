@@ -163,8 +163,9 @@
 
   <div class="dec-linha"><div class="i">3</div>
     <div class="t">Backlog e Lista de Processos — o chip que está sozinho na linha
-      <em><span class="bad">As duas primeiras opções foram recusadas.</span> A proposta agora é
-      outra e mexe na forma da lista, não no tom do chip.</em></div>
+      <em><span class="good">Lista de Processos: aprovada em 11/09</span> — a parede de seis
+      badges vira duas linguagens. <strong>Falta o Backlog</strong>, que é a outra metade e mexe
+      em agrupamento; a pergunta está no fim da seção.</em></div>
     <div class="q">6 ocorr.<br>2 telas</div></div>
 
   <div class="dec-linha" style="opacity:.62"><div class="i" style="color:#3B6B34">✓</div>
@@ -611,15 +612,40 @@ viram uma faixa que se lê de uma vez, e o vocabulário de chip fica só para o 
 cliente, etapa e prioridade — os três que já têm mapa no repositório
 (<code>categoriaClienteColors</code>, <code>PROCESS_STAGES</code>, <code>taskPriorityColors</code>).</div></div>
 
-<div class="escolha"><b>O que isso custa, para você decidir sabendo</b>
-Isto não é conversão de cor: é mexer no <em>layout</em> de duas listas. O Backlog ganha
-agrupamento e um cabeçalho com contagem; a Lista de Processos ganha uma faixa de métricas.
-São duas telas para você olhar rodando antes de fechar — e é por isso que elas iriam
-<strong>por último</strong>, cada uma no seu commit, depois das outras três decisões.
+<div class="escolha" style="background:#ECF3E9;border-color:#C3D6BC"><b style="color:#3B6B34">Decidido em 11/09 · a Lista de Processos vai nesta forma</b>
+Conferindo o que ela puxa junto, porque é mais do que o azul — e é a alavanca do mapa de domínio
+de novo:
 <br><br>
-Se for demais para esta rodada, tem um meio-termo honesto: <strong>só o Backlog</strong>, que é
-onde o argumento é mais forte (o chip repete o filtro). A Lista de Processos fica com o azul e
-entra na fila, com o motivo escrito.</div>
+· <strong>a etapa</strong> vem de <code>getProcessStageInfo</code>, que lê o
+<code>PROCESS_STAGES</code> — o mesmo mapa com "Mapeamento" em azul, e ele é lido também pelo
+<code>ProcessInfoTab</code> e pelo <code>getStageBadge</code> dos projetos. Converter aqui
+conserta <strong>três telas</strong>;<br>
+· <strong>a prioridade</strong> está escrita à mão no <code>ProcessList</code>, num ternário de
+três braços, enquanto o <code>taskPriorityColors</code> já existe com os quatro;<br>
+· <strong>o cliente</strong> já sai de mapa e não muda.
+<br><br>
+<strong>O que eu não resolvo junto, e fica escrito:</strong> o <code>PROCESS_STAGES</code> tem o
+conflito de <em>fallback</em> que o <code>cor-o-que-falta.md</code> já registra — etapa
+desconhecida vira "Descoberta" num lugar e aparece crua no outro. Isso é decisão de produto, não
+de cor; continua no comentário da função, como está hoje.</div>
+
+<div class="escolha"><b>Falta o Backlog — e é a metade que eu não sei se você aprovou</b>
+Você disse "gostei dessa" sobre a <strong>Lista de Processos</strong>. O Backlog é a outra
+metade da mesma regra, mas é uma mudança de natureza diferente, então pergunto em separado em
+vez de assumir:
+<br><br>
+<strong>O cluster sai da linha e vira a moldura da lista</strong> — faixa com o nome, a contagem
+de itens e o total de horas; e com o filtro em "todos", a lista se agrupa por cluster. O
+argumento a favor é forte (o chip repete em toda linha o que o filtro global já diz uma vez), mas
+ele mexe em <em>agrupamento</em>, não só no arranjo de um cartão. É mais para olhar rodando.
+<br><br>
+As três saídas: <strong>vai junto</strong> · <strong>fica para depois</strong> (o chip do cluster
+entra na fila com o motivo escrito) · ou <strong>meio-termo</strong>: só o cabeçalho com a
+contagem quando há cluster escolhido, sem o agrupamento do "todos" — que é 80% do ganho com 20%
+do código.
+<br><br>
+Nos dois casos estas telas vão <strong>por último</strong>, cada uma no seu commit: são as únicas
+da rodada que mexem em layout.</div>
 
 <!-- ══════════════════════════════════════════════════════════════ -->
 <h2>Decisão 4 · Controle de Balancetes</h2>
@@ -1054,9 +1080,10 @@ Os pares <code>-soft</code> são calibrados para 5:1 com a mesma folga nas três
   (valor da linha fechada, competência sem retificação, e sobre qual versão agem o download e o
   "Analisar").</td></tr>
 <tr><td><strong>3 · o chip sozinho</strong></td>
-  <td><span class="warn">aguarda</span></td>
-  <td>proposta nova, disruptiva: o cluster sobe para a moldura da lista e as medidas viram
-  números. Mexe em layout — vale olhar rodando. Tem meio-termo: só o Backlog.</td></tr>
+  <td><span class="good">Processos: ok</span><br><span class="warn">Backlog: aguarda</span></td>
+  <td>a Lista de Processos vai na forma nova, e ela puxa junto o <code>PROCESS_STAGES</code>
+  (que conserta três telas) e a prioridade escrita à mão. Falta dizer se o Backlog vai junto,
+  fica para depois, ou entra no meio-termo (cabeçalho com contagem, sem o agrupamento).</td></tr>
 </tbody></table>
 <br>
 As <strong>57 sem decisão</strong> não dependem de nada disso e podem sair já, em commits
