@@ -507,6 +507,20 @@ Nesta ordem, do que rende ao que exige decisão:
 3. **`red` e `emerald`** (§5) — aí sim inventário por motivo, na forma da `filaDoAlerta`, porque
    não têm concentração. O molde está em `medirCorCrua.ts`, e a `chamadoStatusColors.test.ts`
    mostra a variante que varre por conjunto de chaves em vez de por classe.
+
+   **O inventário foi feito em 11/09/2026 e está renderizado**, não convertido:
+   [`comparacoes-de-cor/vermelho-e-verde-o-que-cada-um-diz.html`](comparacoes-de-cor/vermelho-e-verde-o-que-cada-um-diz.html).
+   As 248 ocorrências caíram em **14 motivos**, sem sobra. Dois deles (ação destrutiva e erro, **81
+   ocorrências**) já têm precedente — é o mesmo `destructive` do `osg-red` — e quatro param em
+   decisão dela. Dois achados que a varredura por família não daria:
+
+   · **o lote está mal recortado.** 16 dos 78 arquivos carregam `green` (77) ou `rose` (22) cru na
+     MESMA escada. Converter só `red`/`emerald` troca escada crua por escada com token de um lado e
+     cor de estoque do outro — o defeito que o motivo `escada-de-status` existe para evitar;
+   · **27 das 176 vermelhas não destroem nada**: 19 são o botão "Limpar filtros" e 8 são o X de
+     fechar modal — quatro cópias byte a byte de `hover:text-red-500 hover:bg-red-50`, e como o
+     vermelho só aparece no hover, ninguém viu. No cartão de erro, `text-red-500` sobre `red-50` dá
+     **3,44:1** e reprova AA justamente na linha que diz o que houve.
 4. ~~**`projects.status`** (§3)~~ — **fechado em 10/09/2026.** E ele saiu desta lista com uma
    correção junto: não era "o único item que o CLIENTE vê". A tabela de vínculo está vazia,
    então nenhum cliente via nada. Ver o §3, que agora é a retificação do próprio §3.

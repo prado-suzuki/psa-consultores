@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O vermelho e o verde — o que cada um está dizendo</title>
+<style>
+  :root{
+    /* Valores lidos do src/index.css, bloco .base-theme, em 11/09/2026. */
+    --background: 168 22% 99.4%;
+    --card: 0 0% 100%;
+    --foreground: 178 30% 9%;
+    --muted-foreground: 180 10% 38%;
+    --border: 168 14% 89%;
+    --muted: 168 20% 92%;
+    --card-hex:#ffffff;                /* o --card da base, em hex, para a medição */
+    --primary: 175 84% 25%;            /* a âncora da base */
+    --primary-foreground: 0 0% 100%;
+
+    --status-ajuste: 356 68% 35%;      --status-ajuste-soft: 356 68% 86%;
+    --status-feito: 128 63% 21%;       --status-feito-soft: 128 63% 86%;
+    --status-alerta: 20 72% 32%;       --status-alerta-soft: 20 72% 86%;
+    --status-espera: 44 68% 27%;       --status-espera-soft: 44 68% 86%;
+    --status-neutro: 32 21% 12%;       --status-neutro-soft: 32 21% 86%;
+    --status-andamento: 186 66% 26%;   --status-andamento-soft: 186 66% 86%;
+    --destructive: var(--status-ajuste);
+    --destructive-foreground: 0 0% 98%;
+    --tag-a: 112 64% 24%; --tag-b: 211 60% 33%; --tag-c: 289 78% 40%; --tag-d: 339 84% 40%;
+
+    /* Tailwind de estoque, como está hoje na tela. */
+    --red-50:#fef2f2; --red-100:#fee2e2; --red-200:#fecaca; --red-300:#fca5a5;
+    --red-400:#f87171; --red-500:#ef4444; --red-600:#dc2626; --red-700:#b91c1c; --red-800:#991b1b;
+    --emerald-50:#ecfdf5; --emerald-100:#d1fae5; --emerald-200:#a7f3d0; --emerald-500:#10b981;
+    --emerald-600:#059669; --emerald-700:#047857; --emerald-800:#065f46; --emerald-900:#064e3b;
+    --green-600:#16a34a; --rose-50:#fff1f2; --rose-600:#e11d48; --rose-700:#be123c;
+    --amber-100:#fef3c7; --amber-500:#f59e0b; --amber-700:#b45309;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:32px 24px 72px;
+    background:hsl(var(--background)); color:hsl(var(--foreground));
+    font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:27px;margin:0 0 6px;letter-spacing:-.015em}
+  .sub{color:hsl(var(--muted-foreground));margin:0 0 6px;max-width:76ch}
+  .sub b{color:hsl(var(--foreground))}
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:.06em;margin:42px 0 4px;color:hsl(var(--muted-foreground))}
+  h2 + p{margin:0 0 14px;color:hsl(var(--muted-foreground));max-width:80ch;font-size:14px}
+  h2 + p b{color:hsl(var(--foreground))}
+  h3{font-size:14px;margin:22px 0 6px}
+  p{max-width:80ch}
+  .par{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+  @media (max-width:900px){.par{grid-template-columns:1fr}}
+  .col > .hd{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:0 0 7px;color:hsl(var(--muted-foreground))}
+  .col.hoje > .hd::after{content:" · como está";font-weight:400;text-transform:none;letter-spacing:0}
+  .col.papel > .hd::after{content:" · com o papel";font-weight:400;text-transform:none;letter-spacing:0}
+  .card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:10px;padding:16px;height:100%}
+  .card.canvas{background:hsl(var(--muted)/.5)}
+  .linha{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .linha + .linha{margin-top:12px}
+  .btn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:8px 15px;font-size:13.5px;font-weight:500;border:1px solid transparent;cursor:default;line-height:1}
+  .btn.ghost{background:transparent}
+  .icone{width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;cursor:default}
+  .redondo{border-radius:999px;width:36px;height:36px}
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 11px;font-size:12px;font-weight:600;border:1px solid transparent}
+  .selo{display:inline-flex;align-items:center;gap:5px;border-radius:6px;padding:2px 7px;font-size:11.5px;font-weight:600;border:1px solid transparent}
+  .painel{border-radius:10px;padding:16px;text-align:center}
+  .num{font-variant-numeric:tabular-nums}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:12px}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid hsl(var(--border));vertical-align:top}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:hsl(var(--muted-foreground));font-weight:700}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+  code{font:12.5px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:hsl(var(--muted)/.6);padding:1px 5px;border-radius:4px}
+  .swatch{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:6px;border:1px solid rgba(0,0,0,.12)}
+  .cr{font:12px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:hsl(var(--muted-foreground));white-space:nowrap}
+  .cr b{font-weight:700;color:hsl(var(--foreground))}
+  .cr .ok{color:hsl(var(--status-feito))} .cr .no{color:hsl(var(--status-ajuste))}
+  .meta{font-size:12px;color:hsl(var(--muted-foreground));margin-top:9px}
+  .meta code{background:none;padding:0}
+  .onde{font-size:12.5px;color:hsl(var(--muted-foreground));margin:6px 0 0}
+  .aviso{border:1px solid hsl(var(--border));border-left:3px solid hsl(var(--foreground));background:hsl(var(--muted)/.45);border-radius:8px;padding:13px 15px;margin:18px 0}
+  .aviso > b:first-child,.decide > b:first-child{display:block;margin-bottom:4px}
+  .decide{border:1px solid hsl(var(--border));border-left:3px solid hsl(var(--primary));background:hsl(var(--card));border-radius:8px;padding:13px 15px;margin:16px 0 0}
+  .tag{display:inline-block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:5px;vertical-align:2px;margin-left:8px}
+  .tag.ok{background:hsl(var(--status-feito-soft));color:hsl(var(--status-feito))}
+  .tag.q{background:hsl(var(--status-espera-soft));color:hsl(var(--status-espera))}
+  .tag.fica{background:hsl(var(--status-neutro-soft));color:hsl(var(--status-neutro))}
+  .rodape{margin-top:52px;padding-top:18px;border-top:1px solid hsl(var(--border));font-size:13.5px;color:hsl(var(--muted-foreground));max-width:84ch}
+  .rodape b{color:hsl(var(--foreground))}
+  ul{max-width:80ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>O vermelho e o verde — o que cada um está dizendo</h1>
+  <p class="sub">
+    Medido em <b>11/09/2026</b> com o recorte do <code>medirCorCrua.ts</code> (pastas de tela, teste fora):
+    <b>176</b> <code>red</code> em 58 arquivos e <b>72</b> <code>emerald</code> em 29 — 78 arquivos ao todo,
+    9 deles com as duas. Nenhuma das duas famílias tem guarda; é a mesma situação em que o
+    <code>slate</code> chegou a 1529 sem ninguém ver.
+  </p>
+  <p class="sub">
+    Como não há concentração, o lote foi classificado <b>pelo motivo</b>, no molde da
+    <code>filaDoAlerta</code> — as 248 ocorrências, uma a uma, sem sobra. Esta página existe para a
+    escolha ser feita <b>olhando</b>: cada grupo aparece como está hoje e como fica com o papel, com o
+    contraste medido dos dois lados. <b>Nada foi convertido ainda.</b>
+  </p>
+
+  <h2>Os 14 motivos</h2>
+  <p>A coluna da direita é o que eu faria. As linhas marcadas <span class="tag q">pergunta</span> são
+     as que não têm precedente e param aqui até você decidir.</p>
+  <table>
+    <tr><th>motivo</th><th class="n">verm.</th><th class="n">verde</th><th class="n">arq.</th><th>destino que proponho</th></tr>
+    <tr><td><b>ação destrutiva</b> — excluir, remover</td><td class="n">59</td><td class="n">—</td><td class="n">16</td><td><code>destructive</code> <span class="tag ok">precedente</span></td></tr>
+    <tr><td><b>severidade</b> — prioridade, risco, atraso</td><td class="n">45</td><td class="n">5</td><td class="n">15</td><td>escada inteira, por mapa <span class="tag q">pergunta</span></td></tr>
+    <tr><td><b>erro</b> — falha, bloqueio, acesso negado</td><td class="n">22</td><td class="n">—</td><td class="n">7</td><td><code>destructive</code> <span class="tag ok">precedente</span></td></tr>
+    <tr><td><b>limpar filtro</b> — o botão “Limpar”</td><td class="n">19</td><td class="n">—</td><td class="n">9</td><td>tirar o vermelho <span class="tag q">pergunta</span></td></tr>
+    <tr><td><b>feito</b> — concluído, aprovado, homologado</td><td class="n">2</td><td class="n">13</td><td class="n">6</td><td><code>status-feito</code> <span class="tag ok">precedente</span></td></tr>
+    <tr><td><b>marcador</b> — filtro ativo, hoje, melhor</td><td class="n">1</td><td class="n">13</td><td class="n">5</td><td>a âncora da área <span class="tag ok">precedente</span></td></tr>
+    <tr><td><b>delta favorável</b> — carga caiu</td><td class="n">—</td><td class="n">14</td><td class="n">5</td><td>fica: o par é <code>rose</code> <span class="tag fica">fila</span></td></tr>
+    <tr><td><b>rótulo não-status</b> — “Admin”</td><td class="n">12</td><td class="n">—</td><td class="n">4</td><td>fica <span class="tag fica">fila</span></td></tr>
+    <tr><td><b>site público</b> — landing</td><td class="n">—</td><td class="n">10</td><td class="n">4</td><td>fica: outro produto <span class="tag fica">fila</span></td></tr>
+    <tr><td><b>booleano “Sim”</b> — NCM monofásico</td><td class="n">—</td><td class="n">9</td><td class="n">3</td><td>categoria ou feito? <span class="tag q">pergunta</span></td></tr>
+    <tr><td><b>fechar</b> — o X do modal</td><td class="n">8</td><td class="n">—</td><td class="n">4</td><td>tirar o vermelho <span class="tag q">pergunta</span></td></tr>
+    <tr><td><b>paleta categórica</b> — ícone de PDF, cor de área</td><td class="n">2</td><td class="n">6</td><td class="n">5</td><td>fica: destino são os <code>--tag-*</code> <span class="tag fica">fila</span></td></tr>
+    <tr><td><b>sinal de valor</b> — saldo negativo</td><td class="n">5</td><td class="n">1</td><td class="n">4</td><td>fica: o par é <code>green</code> <span class="tag fica">fila</span></td></tr>
+    <tr><td><b>diff</b> — valor antigo → novo</td><td class="n">1</td><td class="n">1</td><td class="n">1</td><td>sem cor <span class="tag ok">já decidido</span></td></tr>
+    <tr><td colspan="5" style="color:hsl(var(--muted-foreground))"><b>176 + 72 = 248</b>, e a conta fecha com a medição.</td></tr>
+  </table>
+
+  <h2>O achado que muda o tamanho da frente</h2>
+  <p><b>16 dos 78 arquivos carregam <code>green</code> ou <code>rose</code> cru na MESMA escada.</b>
+     Converter só o vermelho e só o esmeralda deixa a escada meio crua — que é exatamente o motivo
+     <code>escada-de-status</code> pelo qual a <code>filaDoAlerta</code> deixou âmbar para trás. Pior:
+     troca escada crua por escada com token de um lado e cor de estoque do outro.</p>
+  <div class="par">
+    <div class="col hoje"><div class="hd">a escada do saldo — PerDetailHeader</div><div class="card">
+      <div class="linha"><span style="color:hsl(var(--muted-foreground));font-size:12.5px">Saldo restante</span></div>
+      <div class="linha" style="margin-top:4px;gap:18px">
+        <span class="num" style="color:var(--green-600);font-weight:700;font-size:17px;font-family:ui-monospace,Consolas,monospace">R$ 12.400,00</span>
+        <span class="num" style="color:var(--red-600);font-weight:700;font-size:17px;font-family:ui-monospace,Consolas,monospace">−R$ 3.180,00</span>
+      </div>
+      <p class="meta">Um lado está no lote (<code>text-red-600</code>), o outro não
+         (<code>text-green-600</code>). São 3 arquivos do PER/DCOMP assim.</p>
+    </div></div>
+    <div class="col hoje"><div class="hd">a escada do delta — calculadora IBS/CBS</div><div class="card">
+      <div class="linha" style="gap:18px">
+        <span class="num" style="color:var(--emerald-700);font-weight:600">−2,14 p.p.</span>
+        <span class="num" style="color:var(--rose-700);font-weight:600">+1,08 p.p.</span>
+      </div>
+      <p class="meta">5 arquivos, 14 esmeraldas, todas pareadas com <code>rose</code> — que tem 22
+         ocorrências e nunca entrou em lista nenhuma.</p>
+    </div></div>
+  </div>
+  <p class="onde" style="margin-top:12px">Remedido hoje, no mesmo recorte:
+     <code>green</code> <b>77</b> em 27 arquivos (o plano dizia 81), <code>rose</code> <b>22</b> em 9.
+     Levar os pares junto soma <b>99</b> ocorrências à frente — e fecha 16 arquivos em vez de deixá-los
+     pela metade.</p>
+  <div class="decide"><b>Decisão 1 — o tamanho do lote</b>
+     Levo <code>green</code> e <code>rose</code> junto (248 + 99 = 347 ocorrências, 4 famílias), ou
+     executo só <code>red</code>/<code>emerald</code> e deixo os 16 arquivos de escada mista na fila,
+     com o motivo escrito?
+  </div>
+
+  <h2>1 · Ação destrutiva — 59 ocorrências, 16 arquivos</h2>
+  <p>O <code>AlertDialogAction</code> de confirmar exclusão, o botão “Excluir” e a lixeira de linha de
+     tabela. <b>Precedente de 03/09:</b> no <code>osg-red</code>, erro e ação destrutiva foram para
+     <code>destructive</code>. Aqui muda pouco no olho e muda tudo no tema: o <code>--destructive</code>
+     da OSG e o da Tax não são o mesmo vermelho.</p>
+  <div class="par">
+    <div class="col hoje"><div class="hd">red-600 / red-500</div><div class="card">
+      <div class="linha">
+        <span class="btn" style="background:var(--red-600);color:#fff">Excluir</span>
+        <span class="cr" data-fg="#ffffff" data-bg="var(--red-600)"></span>
+      </div>
+      <div class="linha">
+        <span class="btn ghost" style="color:var(--red-600);border-color:var(--red-200)">Cancelar demanda</span>
+        <span class="icone" style="color:var(--red-500);background:var(--red-50)">🗑</span>
+        <span class="cr" data-fg="var(--red-600)" data-bg="var(--card-hex)"></span>
+      </div>
+      <p class="meta"><b>Treze recortes diferentes</b> para o mesmo botão. O sólido de confirmar é
+        <code>bg-red-600</code> em dez lugares e <code>bg-red-500</code> num — o Backlog, que já
+        divergiu sem ninguém ver.</p>
+    </div></div>
+    <div class="col papel"><div class="hd">destructive</div><div class="card">
+      <div class="linha">
+        <span class="btn" style="background:hsl(var(--destructive));color:hsl(var(--destructive-foreground))">Excluir</span>
+        <span class="cr" data-fg="hsl(var(--destructive-foreground))" data-bg="hsl(var(--destructive))"></span>
+      </div>
+      <div class="linha">
+        <span class="btn ghost" style="color:hsl(var(--destructive));border-color:hsl(var(--destructive)/.35)">Cancelar demanda</span>
+        <span class="icone" style="color:hsl(var(--destructive));background:hsl(var(--destructive)/.1)">🗑</span>
+        <span class="cr" data-fg="hsl(var(--destructive))" data-bg="var(--card-hex)"></span>
+      </div>
+      <p class="meta">Um recorte só: <code>bg-destructive</code>, <code>text-destructive</code>,
+        <code>hover:bg-destructive/10</code>. O <code>variant="destructive"</code> do botão já existe.</p>
+    </div></div>
+  </div>
+  <p class="onde"><b>Onde:</b> a confirmação de excluir do Kanban, das Demandas, dos Processos, dos
+     Procedimentos, do Controle de Balancetes, do Mapa NCM, do Centro de Custo, do Backlog, dos
+     Usuários e dos Dashboards.</p>
+
+  <h2>2 · Erro — 22 ocorrências, 7 arquivos</h2>
+  <p>Cartão de falha, tela de acesso negado, mensagem de “não foi possível ler o documento”. Mesmo
+     destino do grupo acima, e pelo mesmo precedente.</p>
+  <div class="par">
+    <div class="col hoje"><div class="hd">red-50 / red-200 / red-700</div><div class="card">
+      <div class="painel" style="background:var(--red-50);border:1px solid var(--red-200)">
+        <div style="font-size:22px">⚠</div>
+        <div style="color:var(--red-700);font-weight:600;font-size:13.5px;margin-top:4px">Não foi possível ler o documento.</div>
+        <div style="color:var(--red-500);font-size:12px;margin-top:4px">timeout ao converter o PDF</div>
+      </div>
+      <p class="meta"><span class="cr" data-fg="var(--red-700)" data-bg="var(--red-50)"></span> no título ·
+         <span class="cr" data-fg="var(--red-500)" data-bg="var(--red-50)"></span> na mensagem —
+         <b>a linha do erro reprova AA</b>, e é a linha que diz o que houve.</p>
+    </div></div>
+    <div class="col papel"><div class="hd">destructive com alfa</div><div class="card">
+      <div class="painel" style="background:hsl(var(--destructive)/.08);border:1px solid hsl(var(--destructive)/.3)">
+        <div style="font-size:22px;color:hsl(var(--destructive))">⚠</div>
+        <div style="color:hsl(var(--destructive));font-weight:600;font-size:13.5px;margin-top:4px">Não foi possível ler o documento.</div>
+        <div style="color:hsl(var(--muted-foreground));font-size:12px;margin-top:4px">timeout ao converter o PDF</div>
+      </div>
+      <p class="meta"><span class="cr" data-fg="hsl(var(--destructive))" data-bg="hsl(var(--destructive)/.08)"></span> no título ·
+         detalhe técnico recua para <code>muted-foreground</code>, que é o que ele é.</p>
+    </div></div>
+  </div>
+  <div class="aviso"><b>Um defeito achado no caminho: <code>src/components/ui/toast.tsx</code></b>
+    O botão de fechar do toast tem <code>group-[.destructive]:text-red-300</code> e
+    <code>focus:ring-red-400</code> <i>dentro</i> da variante destructive. Ou seja: o fundo do toast
+    acompanha o tema da área e o X dele não — em OSG e Tax o vermelho do fundo muda e esse
+    <code>red-300</code> fica igual. O certo é <code>destructive-foreground</code> com alfa.
+  </div>
+
+  <h2>3 · O vermelho que não destrói nada — 27 ocorrências</h2>
+  <p>Dois grupos que andam juntos: o botão <b>“Limpar filtros”</b> (19, em 9 telas) e o <b>X de fechar
+     modal</b> (8, em 4 telas). Nenhum dos dois apaga dado. O X é o caso mais claro — são
+     <b>quatro cópias byte a byte do mesmo bloco</b> (<code>hover:text-red-500 hover:bg-red-50</code>,
+     nos três modais de auditoria e no cabeçalho do PER), e nas quatro o vermelho só aparece no hover.
+     Foi assim que ninguém viu.</p>
+  <div class="par">
+    <div class="col hoje"><div class="hd">como está</div><div class="card">
+      <div class="linha">
+        <span class="btn ghost" style="color:var(--red-600);border:1px solid var(--red-300)">⌫ Limpar filtros</span>
+      </div>
+      <div class="linha">
+        <span style="font-size:13px;color:hsl(var(--muted-foreground))">passe o mouse →</span>
+        <span class="icone redondo x-hoje" style="color:hsl(var(--muted-foreground))">✕</span>
+      </div>
+      <p class="meta">O hover leva a <code>text-red-500</code> sobre <code>bg-red-50</code>.
+         Fechar um modal fica com a mesma cor de excluir um registro.</p>
+    </div></div>
+    <div class="col papel"><div class="hd">sem vermelho</div><div class="card">
+      <div class="linha">
+        <span class="btn ghost" style="color:hsl(var(--muted-foreground));border:1px solid hsl(var(--border))">⌫ Limpar filtros</span>
+      </div>
+      <div class="linha">
+        <span style="font-size:13px;color:hsl(var(--muted-foreground))">passe o mouse →</span>
+        <span class="icone redondo x-papel" style="color:hsl(var(--muted-foreground))">✕</span>
+      </div>
+      <p class="meta">Hover em <code>foreground</code> sobre <code>muted</code>: o botão responde,
+         sem prometer destruição.</p>
+    </div></div>
+  </div>
+  <div class="decide"><b>Decisão 2 — o Limpar e o X</b>
+     Três saídas: <b>(a)</b> os dois ficam neutros, como acima; <b>(b)</b> o X fica neutro e o “Limpar”
+     vai para <code>destructive</code>, porque o filtro é trabalho que se perde; <b>(c)</b> os dois vão
+     para <code>destructive</code> e o vermelho passa a significar “ação que desfaz”, não “ação que
+     apaga”. Eu faria <b>(a)</b>.
+  </div>
+
+  <h2>4 · Severidade — 50 ocorrências, 15 arquivos</h2>
+  <p>Prioridade Alta/Crítica, Risco Alto, atrasados, “sem projeto”, horas acima de 100%. É o grupo
+     maior depois do destrutivo, e é o único em que o vermelho está <b>dentro de uma escada</b>: o
+     degrau de cima está no lote, o do meio é âmbar (já inventariado na <code>filaDoAlerta</code>) e o
+     de baixo é <code>green</code> cru, fora do lote.</p>
+  <div class="par">
+    <div class="col hoje"><div class="hd">a escada de prioridade, hoje</div><div class="card">
+      <div class="linha">
+        <span class="pill" style="background:var(--red-100);color:var(--red-700)">Alta</span>
+        <span class="pill" style="background:var(--amber-100);color:var(--amber-700)">Média</span>
+        <span class="pill" style="background:#dcfce7;color:#15803d">Baixa</span>
+      </div>
+      <div class="linha">
+        <span class="selo" style="background:var(--red-50);color:var(--red-700);border-color:var(--red-200)">⏱ 3 atrasadas</span>
+        <span class="pill" style="background:var(--red-100);color:var(--red-700)">Risco Alto</span>
+      </div>
+      <p class="meta"><span class="cr" data-fg="var(--red-700)" data-bg="var(--red-100)"></span> na pílula ·
+         três famílias de estoque numa escada só.</p>
+    </div></div>
+    <div class="col papel"><div class="hd">a mesma escada, por papel</div><div class="card">
+      <div class="linha">
+        <span class="pill" style="background:hsl(var(--status-ajuste-soft));color:hsl(var(--status-ajuste))">Alta</span>
+        <span class="pill" style="background:hsl(var(--status-alerta-soft));color:hsl(var(--status-alerta))">Média</span>
+        <span class="pill" style="background:hsl(var(--status-feito-soft));color:hsl(var(--status-feito))">Baixa</span>
+      </div>
+      <div class="linha">
+        <span class="selo" style="background:hsl(var(--status-ajuste)/.1);color:hsl(var(--status-ajuste));border-color:hsl(var(--status-ajuste)/.35)">⏱ 3 atrasadas</span>
+        <span class="pill" style="background:hsl(var(--status-ajuste-soft));color:hsl(var(--status-ajuste))">Risco Alto</span>
+      </div>
+      <p class="meta"><span class="cr" data-fg="hsl(var(--status-ajuste))" data-bg="hsl(var(--status-ajuste-soft))"></span> na pílula ·
+         uma escala só, e ela acompanha a área.</p>
+    </div></div>
+  </div>
+  <div class="decide"><b>Decisão 3 — prioridade é status?</b>
+     A escada acima usa <code>ajuste</code>/<code>alerta</code>/<code>feito</code>, que são papéis de
+     <i>estado de tarefa</i>. Prioridade não é estado: uma tarefa “Alta” pode estar concluída. Se a
+     resposta for que prioridade é <b>escala própria</b>, ela pede tokens próprios
+     (<code>--sev-*</code>) e vira frente separada — e aí este grupo inteiro fica na fila com o motivo
+     escrito, como o <code>CORES_MOTIVO</code> do Audit já ficou na <code>filaDoAlerta</code>.
+     Eu faria: <b>atraso e risco viram papel agora</b> (são estado), <b>prioridade fica</b>.
+  </div>
+
+  <h2>5 · Feito — 15 ocorrências, 6 arquivos</h2>
+  <p>Concluído, Aprovado, Homologado, Criação, “copiado!”, soma confere. Destino óbvio, e um dos
+     arquivos já está meio convertido: o <code>DcompDistributionSection</code> usa
+     <code>text-emerald-600</code> de um lado e <code>text-destructive</code> do outro.</p>
+  <div class="par">
+    <div class="col hoje"><div class="hd">emerald-100 / emerald-700</div><div class="card">
+      <div class="linha">
+        <span class="pill" style="background:var(--emerald-100);color:var(--emerald-700)">Aprovado</span>
+        <span class="pill" style="background:var(--emerald-100);color:var(--emerald-800)">Homologado</span>
+        <span class="pill" style="background:rgba(16,185,129,.1);color:var(--emerald-700)">Concluído</span>
+      </div>
+      <p class="meta"><span class="cr" data-fg="var(--emerald-700)" data-bg="var(--emerald-100)"></span> ·
+         três recortes do mesmo verde em três telas.</p>
+    </div></div>
+    <div class="col papel"><div class="hd">status-feito</div><div class="card">
+      <div class="linha">
+        <span class="pill" style="background:hsl(var(--status-feito-soft));color:hsl(var(--status-feito))">Aprovado</span>
+        <span class="pill" style="background:hsl(var(--status-feito-soft));color:hsl(var(--status-feito))">Homologado</span>
+        <span class="pill" style="background:hsl(var(--status-feito-soft));color:hsl(var(--status-feito))">Concluído</span>
+      </div>
+      <p class="meta"><span class="cr" data-fg="hsl(var(--status-feito))" data-bg="hsl(var(--status-feito-soft))"></span> ·
+         e o <code>--success</code> aponta para o mesmo valor.</p>
+    </div></div>
+  </div>
+
+  <h2>6 · Marcador — 14 ocorrências, 5 arquivos</h2>
+  <p>“Tem filtro aplicado”, “é hoje”, “é o melhor cenário”. <b>Precedente de 10/09:</b> a estrela de
+     perfil padrão era marcador de <i>ativo</i>, e marcador de ativo veste a <b>âncora da área</b>, não
+     papel de status. Aqui é o mesmo caso — e tem consequência: em tela da OSG esse verde vira musgo, e
+     em tela da Tax vira teal.</p>
+  <div class="par">
+    <div class="col hoje"><div class="hd">emerald fixo</div><div class="card canvas">
+      <div class="linha">
+        <span class="selo" style="background:var(--emerald-50);color:var(--emerald-700);border-color:var(--emerald-200)">Cliente: 3 filtros</span>
+        <span class="icone" style="border:1px solid var(--emerald-500);background:var(--emerald-50);color:var(--emerald-700);font-size:12px;font-weight:700">11</span>
+      </div>
+      <p class="meta">O verde é o mesmo nas três áreas. Numa tela da OSG ele briga com o musgo da casa.</p>
+    </div></div>
+    <div class="col papel"><div class="hd">a âncora da área</div><div class="card canvas">
+      <div class="linha">
+        <span class="selo" style="background:hsl(var(--primary)/.08);color:hsl(var(--primary));border-color:hsl(var(--primary)/.3)">Cliente: 3 filtros</span>
+        <span class="icone" style="border:1px solid hsl(var(--primary));background:hsl(var(--primary)/.08);color:hsl(var(--primary));font-size:12px;font-weight:700">11</span>
+      </div>
+      <p class="meta"><span class="cr" data-fg="hsl(var(--primary))" data-bg="hsl(var(--primary)/.08)"></span> ·
+         acompanha a área sozinho.</p>
+    </div></div>
+  </div>
+
+  <h2>7 · Booleano “Sim” — 9 ocorrências, 3 arquivos</h2>
+  <p>O selo do NCM monofásico, no Mapa NCM e nas duas telas de regra PIS/COFINS. Verde para “Sim” e
+     nada para “Não”. Não é estado de nada — é o valor de um campo.</p>
+  <div class="par">
+    <div class="col hoje"><div class="hd">emerald-100</div><div class="card">
+      <div class="linha">
+        <span style="font-size:13px;color:hsl(var(--muted-foreground))">Monofásico</span>
+        <span class="pill" style="background:var(--emerald-100);color:var(--emerald-700)">Sim</span>
+        <span style="font-size:13px;color:hsl(var(--muted-foreground));margin-left:14px">Crédito presumido</span>
+        <span class="pill" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground))">Não</span>
+      </div>
+    </div></div>
+    <div class="col papel"><div class="hd">duas leituras</div><div class="card">
+      <div class="linha">
+        <span style="font-size:12px;color:hsl(var(--muted-foreground));width:64px">como feito</span>
+        <span class="pill" style="background:hsl(var(--status-feito-soft));color:hsl(var(--status-feito))">Sim</span>
+      </div>
+      <div class="linha">
+        <span style="font-size:12px;color:hsl(var(--muted-foreground));width:64px">como tag</span>
+        <span class="pill" style="background:hsl(var(--tag-a)/.12);color:hsl(var(--tag-a))">Sim</span>
+      </div>
+      <p class="meta">A primeira diz “deu certo”, a segunda diz “é deste tipo”.</p>
+    </div></div>
+  </div>
+  <div class="decide"><b>Decisão 4 — “Sim” é feito ou é categoria?</b>
+     Um NCM monofásico não está concluído nem aprovado; ele <i>é</i> monofásico. Eu leria como
+     categoria (<code>--tag-a</code>), mas o verde de hoje ensinou a equipe a ler como “ok”, e isso
+     pesa mais que a taxonomia.
+  </div>
+
+  <h2>8 · Os que ficam na fila — 32 ocorrências</h2>
+  <p>Não entram na conversão, e o motivo de cada um fica escrito na catraca:</p>
+  <ul>
+    <li><b>rótulo não-status</b> (12) — o selo “Admin” em quatro telas de acesso. Mesmo motivo pelo
+      qual “Líder” ficou na <code>filaDoAlerta</code>: cargo não é estado.</li>
+    <li><b>site público</b> (10) — <code>Footer</code>, depoimentos, escritórios, resultados. Decisão
+      sua na passada do <code>gray</code>: a landing pinta a própria paleta.</li>
+    <li><b>paleta categórica</b> (8) — o ícone vermelho de PDF e o verde de planilha, a cor da
+      categoria “tax”, o gradiente do seletor de área. Destino são os <code>--tag-*</code>, e isso é
+      outra frente.</li>
+    <li><b>sinal de valor</b> (6) e <b>delta favorável</b> (14) — já mostrados lá em cima: o par está
+      fora do lote.</li>
+    <li><b>diff</b> (2) — o <code>HistoricoTab</code> do cadastro de cliente pinta o valor antigo de
+      vermelho e o novo de verde. <b>Já foi decidido em 03/09</b> no histórico da OSG: valor antigo não
+      “deu problema” e valor novo não está “feito” — antigo recua em <code>muted-foreground</code>,
+      novo é <code>foreground</code>, cor nenhuma afirmando o que o dado não diz. Este arquivo é a
+      mesma coisa noutro lugar; entra junto, sem pergunta.</li>
+  </ul>
+
+  <h2>O que acontece depois que você olhar</h2>
+  <p>Nada aqui foi convertido. Com as quatro decisões, a execução é:</p>
+  <table>
+    <tr><th>passo</th><th>o que entra</th><th>como paro</th></tr>
+    <tr><td>1</td><td>destrutiva + erro (81) — o grupo sem pergunta</td><td>commit, e você olha uma tela de cada tipo</td></tr>
+    <tr><td>2</td><td>feito + marcador + diff (31)</td><td>commit</td></tr>
+    <tr><td>3</td><td>o que a decisão 2 e a 4 liberarem (36)</td><td>commit</td></tr>
+    <tr><td>4</td><td>a catraca <code>filaDoRedEmerald.test.ts</code>, com o que sobrou por motivo</td><td>o teste trava o crescimento nos dois sentidos</td></tr>
+  </table>
+
+  <div class="rodape">
+    <b>Os valores desta página são de 11/09/2026 e não se atualizam.</b> Vieram do bloco
+    <code>.base-theme</code> do <code>src/index.css</code>; a Tax e a OSG mudam a saturação dos
+    <code>--status-*</code> em 2 e 5 pontos, com a mesma matiz e a mesma luminosidade, então o que se vê
+    aqui vale para as três áreas. Os contrastes são calculados na hora, pela fórmula da WCAG, sobre as
+    cores que estão renderizadas ao lado — se você mexer no CSS desta página, os números acompanham.
+    A fonte corrente é sempre o <code>index.css</code>.
+  </div>
+</div>
+
+<style>
+  .x-hoje:hover{color:var(--red-500)!important;background:var(--red-50)}
+  .x-papel:hover{color:hsl(var(--foreground))!important;background:hsl(var(--muted))}
+</style>
+<script>
+  // Contraste medido sobre a cor que está de fato renderizada ao lado.
+  const sonda = document.createElement('span');
+  sonda.style.display = 'none';
+  document.body.appendChild(sonda);
+  // Devolve RGB já COMPOSTO sobre o fundo de baixo — sem isso, todo painel com alfa
+  // (`bg-destructive/.08`) seria medido como se fosse opaco, e o número sairia errado.
+  function rgb(expr, base) {
+    sonda.style.color = '';
+    sonda.style.color = expr;
+    const v = getComputedStyle(sonda).color.match(/[\d.]+/g).map(Number);
+    const a = v.length > 3 ? v[3] : 1;
+    if (a === 1) return [v[0], v[1], v[2]];
+    const b = base || [255, 255, 255];
+    return [0, 1, 2].map(i => v[i] * a + b[i] * (1 - a));
+  }
+  const canal = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const lum = ([r, g, b]) => 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
+  function razao(fg, bg, base) {
+    const fundo = rgb(bg, base);
+    const [x, y] = [lum(rgb(fg, fundo)), lum(fundo)].sort((p, q) => q - p);
+    return (x + 0.05) / (y + 0.05);
+  }
+  for (const el of document.querySelectorAll('.cr')) {
+    const r = razao(el.dataset.fg, el.dataset.bg, el.dataset.base ? rgb(el.dataset.base) : null);
+    const passa = r >= 4.5;
+    el.innerHTML = '<b>' + r.toFixed(2).replace('.', ',') + ':1</b> '
+      + '<span class="' + (passa ? 'ok' : 'no') + '">' + (passa ? 'AA' : r >= 3 ? 'só 3:1' : 'reprova') + '</span>';
+  }
+</script>
+</body>
+</html>

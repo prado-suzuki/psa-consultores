@@ -2,7 +2,7 @@
 
 Decisões de cor tomadas **olhando**, não por número. Estes são os arquivos que foram olhados —
 as duas primeiras de 20–21/08/2026, a do branco em 26/08 e a da linha e do cartão em 10/09;
-a do escuro segue em aberto.
+a do escuro e a do vermelho e do verde (11/09) seguem em aberto.
 Abra no navegador (são autocontidos, sem dependência externa além da fonte do Google).
 
 | arquivo | a pergunta | o que foi decidido |
@@ -15,6 +15,7 @@ Abra no navegador (são autocontidos, sem dependência externa além da fonte do
 | `superficie-de-estado.html` | os 22 avisos que sobraram: token de estado por área, ou neutro com o significado no ícone? | **em aberto.** Mostra que os 22 não são um caso só, e sim sete — só 2 deles são estado de tarefa. O `.dark` não declara nenhum `--status-*`, então o token de estado ainda não existe no escuro. Recomendada: token semântico com alfa (`/12` no painel, `/40` na borda, texto em `foreground`). |
 | `texto-do-meio-da-escala.html` | os 191 `text-slate-700` que sobraram: `foreground` ou `muted-foreground`? | **`text-foreground`**, decidido olhando a página. A mecânica já eliminava o `muted-foreground`: 8 dos 191 são o *hover* de um `muted-foreground` e morreriam nessa direção, e não há nenhum caso do inverso. O olho confirmou que o quase-preto não pesa demais no parágrafo. |
 | `linha-e-cartao.html` | as duas superfícies que sobraram à mão: quanta cor a LINHA carrega, e quanto o CARTÃO levanta da página | **opção D**, decidida em 10/09/2026. As três primeiras discutiam 2 pontos de saturação dentro de uma faixa de 4 pontos de luminosidade — por isso nenhuma mudava nada. D **abre a faixa**: a página desce para 93%, e aí o degrau cartão↔página (1,153–1,164:1) faz sozinho o que a linha de hoje faz (1,157–1,193:1). A linha se separa por TRABALHO — `--border` para tabela, `--border-control` a 3:1 para campo —, o que paga a dívida da WCAG 1.4.11 sem escurecer toda linha do produto. |
+| `vermelho-e-verde-o-que-cada-um-diz.html` | as 248 cruas de `red` e `emerald`: qual delas é papel, e qual não é status nenhum | **em aberto.** Classifica o lote inteiro por MOTIVO, em 14 grupos, sem sobra — e mostra que 81 ocorrências (destrutiva e erro) já têm precedente, enquanto quatro grupos param em decisão sua. O achado que muda o tamanho da frente: **16 dos 78 arquivos carregam `green`/`rose` cru na mesma escada**, então converter só as duas famílias deixa escada com token de um lado e estoque do outro. Mede também `text-red-500` sobre `red-50` no cartão de erro: **3,44:1, reprova AA**, e é a linha que diz o que houve. |
 
 ## Por que estão no repositório
 
