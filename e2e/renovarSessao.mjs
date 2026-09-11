@@ -50,8 +50,14 @@ console.log(`usuario  ${sessao.user?.email ?? '(sem email)'}`);
 console.log(`token    ${restam > 0 ? `valido por ${restam}s` : `expirado ha ${-restam}s`}`);
 
 // A chave anon sai do .env que corresponde ao ref, para nao chutar ambiente.
+//
+// `.env.sandbox` esta na lista porque e o arquivo que o AGENTS.md documenta para
+// o banco de desenvolvimento, e e o unico que aponta para `vgzomuwnsdgrxbkyoavq`.
+// Sem ele, renovar uma sessao de sandbox parava em "nenhum .env aponta para
+// <ref>" mesmo com o arquivo certo no repositorio, e a conferencia no navegador
+// travava antes de comecar.
 let apikey = null;
-for (const arquivo of ['.env.development.local', '.env.development', '.env']) {
+for (const arquivo of ['.env.development.local', '.env.development', '.env.sandbox', '.env']) {
   const env = lerEnv(arquivo);
   if (!(env.VITE_SUPABASE_URL ?? '').includes(ref)) continue;
   apikey = env.VITE_SUPABASE_PUBLISHABLE_KEY ?? env.SUPABASE_PUBLISHABLE_KEY ?? null;
