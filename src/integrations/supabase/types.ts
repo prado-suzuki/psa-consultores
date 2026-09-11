@@ -10444,6 +10444,7 @@ export type Database = {
           tipo: Database["public"]["Enums"]["notificacao_tipo"]
         }[]
       }
+      tmp_aplicar_migration: { Args: { p_sql: string }; Returns: undefined }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
       user_estrutura_equipe_ids: {
         Args: { _user_id: string }
