@@ -106,7 +106,11 @@ const FILA_DO_BLUE = {
     'src/components/acessos/pageCategoryStyles.ts': 3,
     'src/components/equipe/mapeamento/ScenarioComparator.tsx': 3,
     'src/components/equipe/mapeamento/ScenarioCreateModal.tsx': 3,
-    'src/components/acessos/UsersRolesView.tsx': 4,
+    // Caiu de 4 para 2 em 11/09/2026, pela frente do `red`/`emerald` (commit
+    // `f0538b86`): o selo `team_member` foi junto quando os sete papéis viraram
+    // o `ui/PapelBadge`. As 2 que sobram são o cartão de contagem "Membros" —
+    // ícone e fundo —, que é KPI e não papel, e entra com a decisão 2.
+    'src/components/acessos/UsersRolesView.tsx': 2,
     'src/components/equipe/projetos/constants.ts': 2,
     'src/components/equipe/sprint-detalhes/AgendaTab.tsx': 2,
     'src/pages/equipe/EquipeRelatorios.tsx': 2,

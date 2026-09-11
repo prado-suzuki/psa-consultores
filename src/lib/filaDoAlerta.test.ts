@@ -124,7 +124,12 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     // O `EquipeBacklog` saiu em 11/09/2026: a escada de prioridade dele — alta,
     // média, e o resto em `muted` — converteu inteira para `alerta`/`espera`/neutro,
     // pela escada de quatro degraus que ela aprovou olhando a página de comparação.
-    'src/pages/equipe/EquipeKanban.tsx': 2,
+    //
+    // O `EquipeKanban` saiu no mesmo dia, e saiu de CARONA: a frente do `blue`
+    // (commit `07f4d74b`) trocou o `switch` de cor escrito à mão pelo
+    // `entregavelStatusColors`, e as duas ocorrências âmbar foram junto — elas
+    // eram o "Em Andamento" da mesma escada. É o caso que a mensagem desta
+    // catraca descreve: contagem que CAIU porque a conversão andou.
   },
   'outro-papel': {
     // O `StageEditCard` caiu de 3 para 1 em 11/09/2026, e o que sobrou é o mais
@@ -161,8 +166,10 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     'src/pages/equipe/dev/ConsultaEFD.tsx': 3,
   },
   'rotulo-nao-status': {
-    'src/components/acessos/UsersRolesView.tsx': 2,
-    'src/components/acessos/roleOptions.ts': 3,
+    // O `UsersRolesView` e o `roleOptions` saíram em 11/09/2026 (commit
+    // `f0538b86`): os sete papéis viraram o `ui/PapelBadge`, e a cor deixou de
+    // desenhar hierarquia para marcar só o eixo "de fora da PSA". O âmbar do
+    // "Líder Geral" saiu junto porque o mapa inteiro andou.
     'src/pages/administracao/AdminUsuarios.tsx': 2,
     'src/pages/equipe/EquipeUsuarios.tsx': 6,
   },
