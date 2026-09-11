@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useReunioes, useCreateReuniao, useAllOpenItensAcao, useUpdateItemAcao, useItensAcao, type Reuniao1a1 } from '@/hooks/useReunioes1a1';
 import { useMemo } from 'react';
@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, Trash2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { comAlfa } from '@/lib/corComAlfa';
 
 const sentimentLabels = ['Muito ruim', 'Ruim', 'Neutro', 'Bom', 'Muito bom'];
 const sentimentColors = ['var(--bd-risk)', 'var(--bd-warn)', 'var(--board-t4)', 'var(--bd-go)', 'var(--bd-go-d)'];
@@ -179,7 +180,7 @@ const DesempenhoReunioes1a1 = () => {
                         <div className="flex items-center gap-3 mb-2">
                           <span className="text-sm font-medium" style={{ color: 'var(--board-t1)' }}>{r.data_reuniao}</span>
                           {r.sentimento && (
-                            <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: `${sentimentColors[r.sentimento - 1]}20`, color: sentimentColors[r.sentimento - 1] }}>
+                            <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: comAlfa(sentimentColors[r.sentimento - 1], 12.5), color: sentimentColors[r.sentimento - 1] }}>
                               {sentimentLabels[r.sentimento - 1]}
                             </span>
                           )}
@@ -224,7 +225,8 @@ const DesempenhoReunioes1a1 = () => {
             <div><Label>Sentimento geral</Label>
               <div className="flex gap-2 mt-1">{sentimentLabels.map((label, i) => (
                 <button key={i} type="button" className={`text-xs px-3 py-1.5 rounded-lg transition-colors font-medium ${form.sentimento === i + 1 ? 'ring-2 ring-offset-1' : ''}`}
-                  style={{ backgroundColor: `${sentimentColors[i]}15`, color: sentimentColors[i], ...(form.sentimento === i + 1 ? { ringColor: sentimentColors[i] } : {}) }}
+                  style={{ backgroundColor: comAlfa(sentimentColors[i], 8.2), color: sentimentColors[i],
+                    ...(form.sentimento === i + 1 ? { '--tw-ring-color': sentimentColors[i] } as CSSProperties : {}) }}
                   onClick={() => setForm({ ...form, sentimento: i + 1 })}>{label}</button>
               ))}</div>
             </div>

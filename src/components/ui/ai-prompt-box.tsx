@@ -22,6 +22,7 @@
  */
 import * as React from 'react';
 import { ArrowUp, Square, type LucideIcon } from 'lucide-react';
+import { comAlfa } from '@/lib/corComAlfa';
 
 export interface ModoPrompt {
   value: string;
@@ -115,7 +116,7 @@ export const PromptInputBox = React.forwardRef<HTMLTextAreaElement, PromptInputB
                   onClick={() => onModoChange?.(m.value)}
                   className="agente-modo"
                   style={ativo
-                    ? { background: `${m.cor}26`, borderColor: m.cor, color: m.cor }
+                    ? { background: comAlfa(m.cor, 15), borderColor: m.cor, color: m.cor }
                     : undefined}
                 >
                   <Icone style={{ width: 13, height: 13 }} />
