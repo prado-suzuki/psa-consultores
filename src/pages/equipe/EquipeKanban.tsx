@@ -31,7 +31,7 @@ import {
   type EquipeKanbanProject as Project,
   type EquipeKanbanSprint as Sprint,
 } from '@/lib/equipeKanban';
-import { entregavelStatusLabel } from '@/lib/entregavelStatusColors';
+import { entregavelStatusConfig, entregavelStatusLabel } from '@/lib/entregavelStatusColors';
 
 const EquipeKanban = () => {
   // Quadro de três colunas ocupando a largura toda: a barra recolhe sozinha.
@@ -298,16 +298,20 @@ const EquipeKanban = () => {
     return profile ? `${profile.first_name} ${profile.last_name}` : 'Desconhecido';
   };
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-700';
-      case 'in_progress':
-        return 'bg-yellow-100 text-yellow-700';
-      default:
-        return 'bg-blue-100 text-blue-700';
-    }
-  };
+  /**
+   * A cor da pílula sai do MESMO mapa que o rótulo, e isso é o conserto.
+   *
+   * Até 11/09/2026 esta função era um `switch` escrito à mão — verde, amarelo e
+   * azul de fábrica do Tailwind — logo abaixo de um `getStatusLabel` que já lia o
+   * `entregavelStatusColors`. A tela pegava o rótulo do mapa e escrevia a cor
+   * sozinha, que é ao pé da letra o defeito descrito no contrato: "enquanto rótulo
+   * e cor moram em lugares diferentes, uma tela pode pegar um e esquecer o outro".
+   *
+   * Além de divergir, as três cores não acompanhavam tema nenhum: ficavam iguais na
+   * Tax, na OSG e na casa, ao lado de pílulas que mudam com a área.
+   */
+  const getStatusBadgeColor = (status: string) =>
+    entregavelStatusConfig(normalizeEquipeKanbanStatus(status)).badge;
 
   const getStatusLabel = (status: string) =>
     entregavelStatusLabel(normalizeEquipeKanbanStatus(status));
