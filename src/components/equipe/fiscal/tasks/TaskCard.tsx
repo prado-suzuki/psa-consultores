@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { OrgTask } from '@/hooks/useOrgTasks';
 import { statusColors } from '@/lib/taskStatusColors';
 import { tarefaRichTextToPlain } from '@/lib/tarefaRichText';
+import { taskPriorityConfig } from '@/lib/taskPriorityColors';
 
 interface TaskCardProps {
   task: OrgTask;
@@ -44,23 +45,6 @@ interface TaskCardProps {
   allTasks?: OrgTask[];
   compact?: boolean;
 }
-
-// Prioridade nos mesmos papéis de status da área (ver index.css). Antes `medium`
-// usava --info, que é azul e não pertence à paleta de nenhuma área — era o último
-// azul solto da tela.
-const priorityColors = {
-  urgent: 'bg-status-ajuste-soft text-status-ajuste border-status-ajuste/20',
-  high: 'bg-status-alerta-soft text-status-alerta border-status-alerta/20',
-  medium: 'bg-status-fila-soft text-status-fila border-status-fila/20',
-  low: 'bg-status-neutro-soft text-status-neutro border-status-neutro/15',
-};
-
-const priorityLabels = {
-  urgent: 'Urgente',
-  high: 'Alta',
-  medium: 'Média',
-  low: 'Baixa',
-};
 
 const statusIcons: Record<OrgTask['status'], LucideIcon> = {
   backlog: Circle,
@@ -193,8 +177,8 @@ export const TaskCard = ({
 
         {/* Priority badge below parent badge */}
         <div className="mt-2">
-          <Badge className={cn("text-xs", priorityColors[task.priority])}>
-            {priorityLabels[task.priority]}
+          <Badge className={cn("text-xs", taskPriorityConfig(task.priority).badge)}>
+            {taskPriorityConfig(task.priority).label}
           </Badge>
         </div>
 
@@ -237,8 +221,8 @@ export const TaskCard = ({
             )}
 
             <div className="flex items-center flex-wrap gap-2">
-              <Badge className={cn(priorityColors[task.priority])}>
-                {priorityLabels[task.priority]}
+              <Badge className={cn(taskPriorityConfig(task.priority).badge)}>
+                {taskPriorityConfig(task.priority).label}
               </Badge>
               
               {isFixedEvent && (

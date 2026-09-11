@@ -30,6 +30,7 @@ import { parseDate } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 import { OrgTask, OrgTaskStatus, OrgTaskPriority, useUpdateOrgTask } from '@/hooks/useOrgTasks';
 import { statusColors } from '@/lib/taskStatusColors';
+import { taskPriorityList } from '@/lib/taskPriorityColors';
 import { AreaKey } from '@/config/areaCategories';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 import { TaskCompletionHoursDialog } from '@/components/equipe/fiscal/tasks/TaskCompletionHoursDialog';
@@ -54,20 +55,11 @@ interface TaskTableProps {
   periodo: PeriodoDeTarefas;
 }
  
- const priorityColors = {
-   urgent: 'bg-destructive/10 text-destructive',
-   high: 'bg-warning/10 text-warning',
-   medium: 'bg-info/10 text-info',
-   low: 'bg-muted text-foreground',
- };
- 
- const priorityLabels = {
-   urgent: 'Urgente',
-   high: 'Alta',
-   medium: 'Média',
-   low: 'Baixa',
- };
- 
+ /* Os dois mapas locais de prioridade sairam daqui em 11/09/2026. O de COR
+    estava morto — declarado e nao usado, porque esta tela edita a prioridade
+    num Select e nunca pintou pilula. O de ROTULO virou as opcoes do proprio
+    Select, que agora saem de `taskPriorityList` na ordem da escada. */
+
 const statusLabels = Object.fromEntries(
   Object.entries(statusColors).map(([k, v]) => [k, v.label])
 ) as Record<OrgTaskStatus, string>;
@@ -194,8 +186,8 @@ const statusLabels = Object.fromEntries(
                  <SelectValue />
                </SelectTrigger>
                <SelectContent>
-                 {Object.entries(priorityLabels).map(([value, label]) => (
-                   <SelectItem key={value} value={value}>{label}</SelectItem>
+                 {taskPriorityList.map((prioridade) => (
+                   <SelectItem key={prioridade.key} value={prioridade.key}>{prioridade.label}</SelectItem>
                  ))}
                </SelectContent>
              </Select>
