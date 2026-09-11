@@ -82,8 +82,13 @@ export function BotaoComprovante({ clienteId, clienteNome, solicitacao }: BotaoC
         variant="outline"
         onClick={emitir}
         disabled={emitindo}
-        title={'Gera um PDF com a relação dos arquivos recebidos nesta solicitação, '
-          + 'com data e quem enviou cada um. Não envia nada ao cliente.'}
+        /* SINGULAR, e o tooltip diz por quê: é um documento só, consolidado, e o
+           número ao lado conta os ARQUIVOS que entram nele — não comprovantes.
+           A dúvida é da Patrícia (11/09/2026) e se resolve aqui, sem pluralizar
+           um botão que gera um PDF. */
+        title={`Gera um único PDF com a relação dos ${documentos.length} arquivos `
+          + 'recebidos nesta solicitação, com data e quem enviou cada um. '
+          + 'Não envia nada ao cliente.'}
       >
         {emitindo
           ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />

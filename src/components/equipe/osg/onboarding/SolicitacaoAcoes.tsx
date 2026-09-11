@@ -128,8 +128,9 @@ export function SolicitacaoAcoes({
           size="sm"
           onClick={() => setConfirmarChecklist(true)}
           disabled={ocupado}
-          title={'Muda a tela do cliente para checklist: cada documento aparece ligado à '
-            + 'pessoa ou ao imóvel a que pertence. Não há como voltar.'}
+          title={'Passa a classificar automaticamente o que o cliente enviar: cada '
+            + 'documento aparece ligado à pessoa ou ao imóvel a que pertence. Não há '
+            + 'como voltar.'}
         >
           <ListChecks className="mr-2 h-4 w-4" />
           Passar para o checklist
@@ -172,9 +173,12 @@ export function SolicitacaoAcoes({
           <AlertDialogHeader>
             <AlertDialogTitle>Passar esta solicitação para o checklist?</AlertDialogTitle>
             <AlertDialogDescription>
-              A tela do cliente deixa de ser a gaveta de envio e passa a ser o checklist:
-              ele vê o que falta, de quem é cada documento, e envia na própria linha, já
-              classificado. Não há como voltar para a fase de gaveta.
+              {/* Sem "gaveta": a coordenação tirou o termo da tela do checklist
+                  em 11/09/2026 e ele vivia em mais três textos, estes. É nome
+                  interno da fase — quem lê fora do time não sabe o que é. */}
+              A partir daqui, cada documento que o cliente enviar já chega classificado:
+              a tela dele passa a mostrar o que falta, de quem é cada documento, e o
+              envio acontece na própria linha. Não há como voltar atrás.
               {arquivosSemTipo > 0 && (
                 <>
                   {' '}
@@ -204,7 +208,7 @@ export function SolicitacaoAcoes({
             <AlertDialogDescription>
               A finalização é definitiva, não há como reabrir. A lista fica só para
               consulta, e a tela do cliente passa a modo leitura: os arquivos continuam
-              visíveis, mas ele não envia mais nada, nem pela gaveta nem pelo checklist.
+              visíveis, mas ele não envia mais nenhum documento.
               {itensAtivos > 0 && ` São ${itensAtivos} documento(s) ainda ativos.`}
             </AlertDialogDescription>
           </AlertDialogHeader>

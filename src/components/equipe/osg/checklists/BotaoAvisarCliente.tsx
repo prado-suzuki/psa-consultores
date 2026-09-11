@@ -64,7 +64,11 @@ export function BotaoAvisarCliente({ clienteId, linhas, solicitacao }: BotaoAvis
           : 'Não há documento pendente nem recusado: nada a notificar ao cliente.'}
       >
         <Send className="mr-2 h-4 w-4" />
-        Enviar notificação ({total})
+        {/* "Notificar pendências" e não "Enviar notificação" (Patrícia,
+            11/09/2026): aqui não sai solicitação nova — a solicitação já foi
+            enviada na tela anterior —, sai a cobrança do que continua pendente.
+            O número é pendentes + recusados, que é o que vai na mensagem. */}
+        Notificar pendências ({total})
       </Button>
 
       {/* Montado só quando abre: as duas consultas do modal (destinatários e

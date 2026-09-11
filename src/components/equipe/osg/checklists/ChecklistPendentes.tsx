@@ -48,31 +48,58 @@ import { contarEstados, ESTADOS_DOCUMENTO, type EstadoDocumento } from '@/lib/es
  */
 
 type CategoryFilter = 'todos' | ClusterChecklist;
-const CATEGORIAS_FILTRO: Array<{ value: CategoryFilter; label: string; Icon: LucideIcon }> = [
-  { value: 'todos', label: 'Tudo', Icon: ClipboardCheck },
-  { value: 'pessoa_pf', label: 'Pessoas físicas', Icon: User },
-  { value: 'pessoa_pj', label: 'Pessoas jurídicas', Icon: Building2 },
-  { value: 'imovel_rural', label: 'Imóveis rurais', Icon: Landmark },
-  { value: 'imovel_urbano', label: 'Imóveis urbanos', Icon: Landmark },
-  { value: 'bem', label: 'Bens', Icon: FolderKanban },
-  { value: 'cliente', label: 'Do cliente', Icon: ClipboardCheck },
+
+/**
+ * O número da aba conta ENTIDADES, não documentos — e é por isso que cada uma
+ * tem `substantivo`.
+ *
+ * A tela mostra três contagens de naturezas diferentes ao mesmo tempo: 123
+ * documentos pendentes no topo, 9 entidades na aba "Tudo", e 0/64 documentos
+ * dentro do cartão de uma pessoa. Dá para deduzir, mas ninguém deduz de
+ * relance, e o "4" da aba de Pessoas Físicas lia como quatro documentos
+ * (observação da Patrícia, 11/09/2026). O tooltip nomeia o que está sendo
+ * contado; o substantivo existe para a frase sair em português em cada aba, em
+ * vez de "4 pessoas físicas" virar "4 tudo" na primeira.
+ */
+const CATEGORIAS_FILTRO: Array<{
+  value: CategoryFilter; label: string; substantivo: string; Icon: LucideIcon;
+}> = [
+  { value: 'todos', label: 'Tudo', substantivo: 'entidades', Icon: ClipboardCheck },
+  { value: 'pessoa_pf', label: 'Pessoas físicas', substantivo: 'pessoas físicas', Icon: User },
+  { value: 'pessoa_pj', label: 'Pessoas jurídicas', substantivo: 'pessoas jurídicas', Icon: Building2 },
+  { value: 'imovel_rural', label: 'Imóveis rurais', substantivo: 'imóveis rurais', Icon: Landmark },
+  { value: 'imovel_urbano', label: 'Imóveis urbanos', substantivo: 'imóveis urbanos', Icon: Landmark },
+  { value: 'bem', label: 'Bens', substantivo: 'bens', Icon: FolderKanban },
+  { value: 'cliente', label: 'Do cliente', substantivo: 'documentos do próprio cliente', Icon: ClipboardCheck },
 ];
 
 type StatusFilter = 'todos' | 'abertos' | 'recebidos' | 'encerrados';
 
 /**
- * O terceiro filtro reúne `nao_aplicavel` e `dispensado`, e o rótulo diz o que
- * eles são: documentos que NÃO serão pedidos ao cliente.
+ * O terceiro grupo reúne `nao_aplicavel` e `dispensado`: documentos que NÃO
+ * serão pedidos ao cliente.
  *
- * Dizia "Encerrados", que não informava nada e ainda encostava em "solicitação
- * finalizada" — a mesma tela usava a ideia de encerramento para duas coisas
- * diferentes. O valor interno segue `encerrados`; é chave de filtro, ninguém vê.
+ * O rótulo já foi "Encerrados", que não informava nada e encostava em
+ * "solicitação finalizada". Virou "Fora da solicitação" — e essa também falhou:
+ * a coordenação leu como "documentos recebidos que não faziam parte da
+ * solicitação" (11/09/2026), exatamente o contrário. "Fora" sugere algo que veio
+ * de fora e entrou; estes são itens que estavam dentro e saíram, e que o cliente
+ * nunca verá. "Não solicitados" diz o fato sem margem, e o tooltip nomeia as
+ * duas origens. O valor interno segue `encerrados`: é chave de filtro, ninguém vê.
  */
-const STATUS_FILTRO: { value: StatusFilter; label: string; dot?: string }[] = [
+const NAO_SOLICITADOS_DICA = 'Documentos marcados como "Não se aplica" ou dispensados '
+  + 'da solicitação. Não serão pedidos ao cliente.';
+
+const STATUS_FILTRO: { value: StatusFilter; label: string; dica?: string; dot?: string }[] = [
   { value: 'todos', label: 'Todos' },
-  { value: 'abertos', label: 'Em aberto', dot: 'bg-status-alerta' },
+  // "Pendentes" e não "Em aberto": é o mesmo status do número do topo, e a tela
+  // usava dois nomes para ele (Patrícia, 11/09/2026).
+  { value: 'abertos', label: 'Pendentes', dot: 'bg-status-alerta' },
   { value: 'recebidos', label: 'Recebidos', dot: 'bg-osg-moss' },
-  { value: 'encerrados', label: 'Fora da solicitação', dot: 'bg-status-neutro' },
+  {
+    value: 'encerrados', label: 'Não solicitados',
+    dica: NAO_SOLICITADOS_DICA, dot: 'bg-status-neutro',
+  },
 ];
 
 const casaComStatus = (linha: LinhaChecklist, filtro: StatusFilter) => filtro === 'todos'
@@ -200,10 +227,16 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
       )}
       {solicitacao.status === 'enviada' && (
         <Aviso>
-          A solicitação ainda está <strong>na fase de gaveta</strong>: o cliente envia os
-          arquivos em lote e alguém classifica depois, então a conta abaixo tende a mostrar
-          pendência de documento já entregue. Passe para o checklist na tela de Solicitação
-          de documentos para o envio dele nascer classificado.
+          {/* Texto da Patrícia (11/09/2026), aplicado como veio. O anterior era
+              interno de cabo a rabo — "fase de gaveta", "a conta abaixo tende a
+              mostrar pendência", "para o envio dele nascer classificado" — e
+              nenhuma dessas expressões existe fora do time que escreveu o
+              código. Este diz o mesmo fato e nomeia o botão que resolve. */}
+          Os documentos enviados pelo cliente ainda não estão sendo classificados
+          automaticamente. Por isso, alguns documentos já recebidos podem aparecer como
+          pendentes. Para iniciar a classificação dos próximos envios, acesse{' '}
+          <strong>Solicitação de documentos</strong> e selecione{' '}
+          <strong>Passar para o checklist</strong>.
         </Aviso>
       )}
       {solicitacao.status === 'encerrada' && (
@@ -224,7 +257,7 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
 
       <div className="space-y-3 rounded-2xl border border-osg-200/70 bg-white/70 p-3 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)]">
         <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-osg-100 bg-osg-50 p-1">
-          {CATEGORIAS_FILTRO.map(({ value, label, Icon }) => {
+          {CATEGORIAS_FILTRO.map(({ value, label, substantivo, Icon }) => {
             const ativo = filtroCategoria === value;
             const total = value === 'todos' ? gruposFiltrados.length : contagemPorCategoria.get(value) ?? 0;
             return (
@@ -235,6 +268,9 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
                   setFiltroCategoria(value);
                   setCategoriaExpandida(value === 'todos' ? null : value);
                 }}
+                /* O número conta ENTIDADES, e nada na aba dizia isso: ao lado de
+                   "123 pendentes" no topo, o "4" daqui lia como documentos. */
+                title={`${total} ${substantivo} com documentos nesta solicitação.`}
                 className={cn(
                   'relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
                   ativo ? 'bg-white text-osg-700 shadow-sm' : 'text-osg-500 hover:bg-osg-100/60 hover:text-osg-700',
@@ -250,13 +286,14 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap items-center gap-1.5">
-            {STATUS_FILTRO.map(({ value, label, dot }) => {
+            {STATUS_FILTRO.map(({ value, label, dica, dot }) => {
               const ativo = filtroStatus === value;
               return (
                 <button
                   key={value}
                   type="button"
                   onClick={() => setFiltroStatus(value)}
+                  title={dica}
                   className={cn(
                     'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
                     ativo
@@ -433,18 +470,30 @@ function ResumoHero({ clienteNome, pct, base, recebidos, pendentes, encerrados }
         <div className="grid grid-cols-3 gap-3 border-osg-100 lg:border-l lg:pl-7">
           <Metric label="Pendentes" value={pendentes} tone="warning" />
           <Metric label="Recebidos" value={recebidos} tone="neutral" />
-          {/* Mesmo rótulo do filtro logo abaixo: são o mesmo conjunto, e dois
-              nomes fariam o analista procurar dois números diferentes. */}
-          <Metric label="Fora da solicitação" value={encerrados} tone="neutral" />
+          {/* Mesmo rótulo e mesma explicação do filtro logo abaixo: são o mesmo
+              conjunto, e dois nomes fariam o analista procurar dois números
+              diferentes. */}
+          <Metric
+            label="Não solicitados"
+            value={encerrados}
+            tone="neutral"
+            dica={NAO_SOLICITADOS_DICA}
+          />
         </div>
       </div>
     </section>
   );
 }
 
-function Metric({ label, value, tone }: { label: string; value: number; tone: 'warning' | 'neutral' }) {
+function Metric({ label, value, tone, dica }: {
+  label: string;
+  value: number;
+  tone: 'warning' | 'neutral';
+  /** Só onde o rótulo sozinho não basta. Pendentes e Recebidos se explicam. */
+  dica?: string;
+}) {
   return (
-    <div className="flex flex-col items-center rounded-xl bg-osg-50/70 px-2 py-3 text-center">
+    <div className="flex flex-col items-center rounded-xl bg-osg-50/70 px-2 py-3 text-center" title={dica}>
       <div className={cn('text-xl font-bold leading-none tabular-nums', tone === 'warning' ? 'text-osg-700' : 'text-osg-moss')}>{value}</div>
       <div className="mt-1 text-[10px] font-semibold uppercase leading-tight text-osg-500">{label}</div>
     </div>
@@ -489,11 +538,13 @@ function EntityCard({ grupo, onOpen }: {
             : cardStatus === 'pendente' ? 'bg-osg-highlighter/25 text-osg-700'
               : 'bg-osg-100 text-osg-500',
         )}>
-          {/* "Tratado" não dizia nada. Este selo aparece quando a entidade não tem
-              pendência NEM documento recebido, ou seja, quando todas as linhas
-              dela saíram da solicitação — mesmo conjunto do filtro e da métrica. */}
+          {/* "Tratado" não dizia nada. Este selo aparece quando a entidade não
+              tem pendência NEM documento recebido: tudo o que era dela saiu da
+              solicitação. Em voz de entidade, e não de documento — a métrica do
+              topo conta documentos "Não solicitados", aqui é a entidade que não
+              tem o que solicitar. */}
           {cardStatus === 'recebido' ? 'Completo'
-            : cardStatus === 'pendente' ? 'Pendente' : 'Fora da solicitação'}
+            : cardStatus === 'pendente' ? 'Pendente' : 'Nada a solicitar'}
         </span>
       </div>
       <h4 className="pointer-events-none relative z-10 mt-5 font-semibold leading-snug text-osg-700">{grupo.instancia.label}</h4>

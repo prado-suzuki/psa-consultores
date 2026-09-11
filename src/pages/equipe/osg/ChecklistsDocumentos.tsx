@@ -34,7 +34,9 @@ const ChecklistsDocumentos = () => {
     <OsgLayout
       /* Singular desde que a aba saiu, e caixa baixa como no menu lateral. */
       title="Checklist de documentos"
-      subtitle="Acompanhe o que foi solicitado a cada cliente, o que já chegou e o que falta"
+      /* Texto da Patrícia (11/09/2026): usa os mesmos termos dos status logo
+         abaixo — solicitados, recebidos, pendentes. */
+      subtitle="Acompanhe os documentos solicitados, recebidos e ainda pendentes de cada cliente."
       headerActions={
         clienteId ? (
           <Button
