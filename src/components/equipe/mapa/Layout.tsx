@@ -122,6 +122,9 @@ export default function Layout() {
       style={
         {
           '--sidebar-width-collapsed': `${MEDIDAS_TRILHO_SIDEBAR.larguraRecolhidaPx}px`,
+          // A largura ABERTA também: o `.css` declarava 260px, um quarto valor
+          // solto ao lado dos 256 das outras oito.
+          '--sidebar-width': `${MEDIDAS_TRILHO_SIDEBAR.larguraAbertaPx}px`,
         } as React.CSSProperties
       }
     >

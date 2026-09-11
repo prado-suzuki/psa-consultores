@@ -26,6 +26,9 @@ const LAYOUTS_DO_PADRAO = {
   // cartão do usuário em markup próprio.
   Rotina: '../components/equipe/EquipeLayout.tsx',
   Dev: '../components/equipe/dev/DevLayout.tsx',
+  // O Acessos nasceu já no padrão, em 10/09/2026, e entra aqui para não sair
+  // dele: barra nova é onde a divergência recomeça.
+  Acessos: '../components/acessos/AcessosLayout.tsx',
 } as const;
 
 describe('medidas do trilho recolhido', () => {
@@ -119,13 +122,33 @@ describe('as barras do padrão não têm cópia própria da medida', () => {
     }
   });
 
-  it('o Mapeamento recebe a largura da constante, sem 72px solto no CSS', () => {
-    expect(ler('../components/equipe/mapa/Layout.tsx')).toContain(
-      'MEDIDAS_TRILHO_SIDEBAR.larguraRecolhidaPx',
-    );
-    expect(ler('../pages/equipe/mapa/mapa.css')).not.toMatch(
-      /--sidebar-width-collapsed:\s*\d/,
-    );
+  it('o Mapeamento recebe as DUAS larguras da constante, sem número solto no CSS', () => {
+    const layout = ler('../components/equipe/mapa/Layout.tsx');
+    const css = ler('../pages/equipe/mapa/mapa.css');
+
+    expect(layout).toContain('MEDIDAS_TRILHO_SIDEBAR.larguraRecolhidaPx');
+    // A aberta também: o `.css` declarava 260px, um quarto valor ao lado dos
+    // 256 das outras oito.
+    expect(layout).toContain('MEDIDAS_TRILHO_SIDEBAR.larguraAbertaPx');
+    expect(css).not.toMatch(/--sidebar-width-collapsed:\s*\d/);
+    expect(css).not.toMatch(/--sidebar-width:\s*\d/);
+  });
+
+  // O Mapeamento não passa pelo Tailwind, então o cromo dele é CSS escrito à
+  // mão e nada o obriga a acompanhar `barraLateralCromo`. Estas asserções são
+  // o que impede a barra dele de divergir de novo — ela era a última
+  // superfície escura de barra do produto.
+  it('o cromo do Mapeamento fala por token, e o item aberto é pílula cheia', () => {
+    const css = ler('../pages/equipe/mapa/mapa.css');
+    const barra = css.slice(css.indexOf('.sidebar{'), css.indexOf('/* Main Content */'));
+
+    // O gradiente escuro que fazia o Mapeamento parecer outro produto.
+    expect(barra).not.toContain('--roi-teal-deep');
+    expect(barra).not.toMatch(/color:\s*hsl\(var\(--slate-400\)\)/);
+    // Pílula cheia na âncora da área, como nas outras oito.
+    expect(barra).toMatch(/\.sidebar-menu a\.active\{[^}]*background-color:\s*hsl\(var\(--primary\)\)/);
+    expect(barra).toMatch(/\.sidebar-menu a\.active\{[^}]*color:\s*hsl\(var\(--primary-foreground\)\)/);
+    expect(barra).toContain("'Instrument Sans'");
   });
 });
 
@@ -168,6 +191,7 @@ describe('todas as barras laterais viram gaveta no celular', () => {
     Gestão: '../components/gestao/GestaoLayout.tsx',
     'Digital Rotina': '../components/equipe/EquipeLayout.tsx',
     'Digital Dev': '../components/equipe/dev/DevLayout.tsx',
+    Acessos: '../components/acessos/AcessosLayout.tsx',
   } as const;
 
   for (const [area, caminho] of Object.entries(BARRAS)) {
