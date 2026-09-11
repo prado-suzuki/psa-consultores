@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cor que viaja como dado — o mapa copiado e o alfa colado</title>
+<style>
+  :root{
+    /* Valores lidos do src/index.css, bloco .base-theme, em 11/09/2026. */
+    --background: 42 24% 99.8%;
+    --card: 42 24% 99.8%;
+    --foreground: 20 81% 10%;
+    --muted: 168 20% 92%;
+    --muted-foreground: 180 10% 38%;
+    --border: 40 12% 91%;
+    --primary: 175 84% 25%;
+    --primary-foreground: 0 0% 100%;
+    --info: 221 83% 53%;
+    --status-neutro: 32 21% 12%;       --status-neutro-soft: 32 21% 86%;
+    --status-fila: 212 59% 36%;        --status-fila-soft: 212 59% 86%;
+    --status-andamento: 186 66% 26%;   --status-andamento-soft: 186 66% 86%;
+    --status-revisao: 160 60% 22%;     --status-revisao-soft: 160 60% 86%;
+    --status-espera: 44 68% 27%;       --status-espera-soft: 44 68% 86%;
+    --status-ajuste: 356 68% 35%;      --status-ajuste-soft: 356 68% 86%;
+    --status-feito: 128 63% 21%;       --status-feito-soft: 128 63% 86%;
+    --status-alerta: 20 72% 32%;       --status-alerta-soft: 20 72% 86%;
+    --tag-a: 112 64% 24%; --tag-b: 211 60% 33%; --tag-c: 289 78% 40%; --tag-d: 339 84% 40%;
+    --surface-escura-2: 175 62% 14%;
+    --agente-ink: #F2F5FB; --agente-ink2: #C2CCDE; --agente-ink3: #AAB4C7;
+    --agente-accent: #9EB2FF; --agente-go: #5FD6A4; --agente-warn: #F3C167;
+    --bd-go-d: #14615A; --bd-go-t: hsl(175 84% 25% / .10);
+    --bd-warn-d: #9C6007; --bd-warn-t: hsl(36 91% 43% / .10);
+    --bd-risk-d: hsl(353 60% 38%); --bd-risk-t: hsl(353 63% 51% / .10);
+    --bd-blue: hsl(var(--tag-b));
+    /* Tailwind de estoque, como ainda esta nestas telas. */
+    --red-50:#fef2f2; --red-100:#fee2e2; --red-200:#fecaca; --red-600:#dc2626; --red-700:#b91c1c;
+    --amber-50:#fffbeb; --amber-100:#fef3c7; --amber-200:#fde68a; --amber-600:#d97706; --amber-700:#b45309;
+    --orange-50:#fff7ed; --orange-100:#ffedd5; --orange-200:#fed7aa; --orange-600:#ea580c; --orange-700:#c2410c;
+    --cyan-50:#ecfeff; --cyan-100:#cffafe; --cyan-200:#a5f3fc; --cyan-600:#0891b2; --cyan-700:#0e7490;
+    --violet-50:#f5f3ff; --violet-100:#ede9fe; --violet-200:#ddd6fe; --violet-600:#7c3aed; --violet-700:#6d28d9;
+    --blue-100:#dbeafe; --blue-200:#bfdbfe; --blue-700:#1d4ed8;
+    --indigo-50:#eef2ff; --indigo-200:#c7d2fe; --indigo-500:#6366f1; --indigo-600:#4f46e5; --indigo-700:#4338ca;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 24px 72px;background:hsl(var(--background));color:hsl(var(--foreground));
+       font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:27px;margin:0 0 6px;letter-spacing:-.015em}
+  .sub{color:hsl(var(--muted-foreground));margin:0 0 6px;max-width:80ch}
+  .sub b{color:hsl(var(--foreground))}
+  h2{font-size:16px;margin:46px 0 4px;letter-spacing:-.01em}
+  h2 .n{display:inline-block;font:700 12px/1 ui-monospace,Consolas,monospace;background:hsl(var(--foreground));
+        color:hsl(var(--background));padding:5px 8px;border-radius:6px;margin-right:9px;vertical-align:2px}
+  h2 + p{margin:0 0 12px;color:hsl(var(--muted-foreground));max-width:84ch;font-size:14px}
+  h2 + p b{color:hsl(var(--foreground))}
+  h3{font-size:13px;margin:22px 0 6px;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.06em}
+  .parte{margin-top:54px;padding-top:10px;border-top:2px solid hsl(var(--foreground)/.12)}
+  .parte h2:first-of-type{margin-top:18px}
+  .rot{font:700 11px/1 ui-monospace,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;
+       color:hsl(var(--primary))}
+  p{max-width:84ch}
+  .par{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+  .par3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:10px}
+  @media (max-width:900px){
+    .par,.par3{grid-template-columns:1fr}
+    /* as tabelas de inventario tem 4-5 colunas e nao encolhem: rolam dentro da
+       propria caixa em vez de empurrar a pagina. */
+    table{display:block;overflow-x:auto}
+  }
+  .col > .hd{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:0 0 7px;
+             color:hsl(var(--muted-foreground))}
+  .col > .hd.no{color:hsl(var(--status-ajuste))}
+  .col > .hd.ok{color:hsl(var(--status-feito))}
+  .card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:10px;padding:16px;height:100%}
+  .linha{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .linha + .linha{margin-top:10px}
+  .pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 11px;font-size:12px;font-weight:600}
+  .chip{display:inline-flex;align-items:center;gap:5px;border-radius:6px;padding:3px 9px;font-size:11.5px;font-weight:600}
+  .meta{font-size:12px;color:hsl(var(--muted-foreground));margin-top:10px;max-width:none}
+  .meta b{color:hsl(var(--foreground))}
+  .cr{font:12px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:hsl(var(--muted-foreground));white-space:nowrap}
+  .cr b{font-weight:700;color:hsl(var(--foreground))}
+  .cr .ok{color:hsl(var(--status-feito));font-weight:700} .cr .no{color:hsl(var(--status-ajuste));font-weight:700}
+  .cr.ok{color:hsl(var(--status-feito));font-weight:700} .cr.no{color:hsl(var(--status-ajuste));font-weight:700}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:10px}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid hsl(var(--border));vertical-align:top}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:hsl(var(--muted-foreground));font-weight:700}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  code{font:12.5px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:hsl(var(--muted)/.6);
+       padding:1px 5px;border-radius:4px}
+  pre{font:12px/1.5 ui-monospace,Consolas,monospace;background:hsl(var(--muted)/.5);border:1px solid hsl(var(--border));
+      border-radius:8px;padding:11px 13px;overflow-x:auto}
+  .decide{border:1px solid hsl(var(--border));border-left:3px solid hsl(var(--primary));background:hsl(var(--card));
+          border-radius:8px;padding:13px 15px;margin:16px 0 0}
+  .decide > b:first-child{display:block;margin-bottom:4px}
+  .disrupt{border-left-color:hsl(var(--tag-c))}
+  .fecha{margin-top:48px;padding:16px 18px;border:1px solid hsl(var(--border));border-radius:10px;background:hsl(var(--muted)/.4)}
+  .fecha h2{margin-top:0}
+  .rodape{margin-top:44px;padding-top:18px;border-top:1px solid hsl(var(--border));font-size:13px;
+          color:hsl(var(--muted-foreground));max-width:86ch}
+  .rodape b{color:hsl(var(--foreground))}
+  ol.q{max-width:84ch;padding-left:22px}
+  ol.q li{margin:9px 0}
+  /* superficie escura do compositor do agente, para os modos */
+  .escuro{background:hsl(var(--surface-escura-2));border-radius:10px;padding:14px 16px;border:1px solid hsl(var(--border))}
+  .escuro .meta{color:var(--agente-ink3)}
+  .escuro .meta b{color:var(--agente-ink)}
+  .escuro code{background:rgba(255,255,255,.10);color:var(--agente-ink2,#C2CCDE)}
+  .modo{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;
+        border:1px solid transparent;background:transparent;color:var(--agente-ink3);font-size:12px;font-weight:600}
+  .rank{display:inline-flex;gap:2px;align-items:center}
+  .rank i{width:4px;height:4px;border-radius:50%;background:currentColor;display:block}
+  .trilha{width:96px;height:6px;border-radius:999px;overflow:hidden;flex:0 0 auto}
+</style></head>
+<body><div class="wrap">
+
+<h1>Cor que viaja como dado</h1>
+<p class="sub">
+  Duas frentes do <code>cor-o-que-falta.md</code> — o <b>§1 por mapa de domínio</b> e o
+  <b><code>${cor}NN</code> do §5</b> — medidas em <b>11/09/2026</b>. Elas estão na mesma página porque
+  a medição mostrou que são <b>o mesmo defeito em dois tempos</b>: a cor está guardada como
+  <b>dado que viaja</b>. No §1 ela viaja <b>de arquivo em arquivo</b>, copiada; no §5 ela viaja
+  <b>dentro de uma string em JavaScript</b>, colada com dois dígitos no fim. Nos dois casos o
+  compilador não tem o que dizer, o lint não tem o que dizer, e o defeito só aparece quando alguém mede.
+</p>
+<p class="sub">
+  Cada candidato abaixo aparece <b>dentro da linha, da pílula ou do cartão de verdade</b>, e o que é
+  estado aparece <b>nos dois estados</b>. Todos os contrastes são calculados sobre o fundo real
+  composto, não sobre branco.
+</p>
+
+<div class="decide">
+  <b>O que a medição mudou de lugar, antes de qualquer proposta</b>
+  Três achados que nenhuma das duas frentes previa, e que mudam o tamanho delas:
+  <ul style="margin:8px 0 0;padding-left:20px">
+    <li><b>Três das 14 ocorrências de <code>${cor}NN</code> já estão quebradas no ar.</b> Não são
+      "bloqueio de conversão futura": o valor que chega nelas <b>já</b> é <code>var(--x)</code>, então o CSS
+      <b>já</b> é inválido e a declaração <b>já</b> caiu. Está renderizado na parte B, com o CSS literal dos
+      arquivos e com o valor computado medido no DOM — que em duas delas é fundo <b>ausente</b> e na
+      terceira é borda <b>opaca demais</b>.</li>
+    <li><b>A calculadora IBS/CBS não depende da decisão 4.</b> O <code>cor-o-que-falta.md</code> arquiva
+      a calculadora junto com o gráfico, "3b ou fase 4". Medido: <code>html-to-image</code> é importado em
+      <b>um</b> arquivo do produto (<code>src/lib/roiVisualExport.ts</code>), usado por
+      <b>um</b> consumidor (<code>DashboardRoiPage</code>). A calculadora exporta <b>CSV</b>. As 9 ocorrências
+      dela nunca estiveram atrás daquela decisão.</li>
+    <li><b>A cópia do mapa de papel que FALHA em AA é a que está na lista</b> — a tela que se lê mais.
+      Quatro dos sete papéis reprovam. A outra cópia, a da legenda, passa nos sete. Duas cópias do mesmo
+      mapa, e a pior é a que ficou à vista.</li>
+  </ul>
+</div>
+
+<!-- =========================== PARTE A =========================== -->
+<div class="parte">
+<p class="rot">Parte A · §1 — os papéis que faltam, por mapa de domínio</p>
+
+<h2><span class="n">A</span>A caça achou cinco mapas copiados, e quatro já divergiram</h2>
+<p>
+  Não foi varredura por família: foi busca por <b>assinatura de chaves</b> — todo objeto literal em
+  <code>src/</code> cujo valor contém classe de cor, agrupado pelo conjunto de chaves. Onde a mesma
+  assinatura aparece duas vezes, é o mesmo domínio escrito duas vezes. Cinco assinaturas repetiram.
+</p>
+<table>
+  <tr><th>mapa</th><th>domínio</th><th class="num">cópias</th><th class="num">cruas</th><th>divergiu?</th></tr>
+  <tr>
+    <td><code>priorityColors</code></td>
+    <td>prioridade da tarefa (<code>org_tasks.priority</code>)</td>
+    <td class="num">4</td><td class="num">0</td>
+    <td><b>sim, em três degraus</b> — "Média" troca de cor (<code>fila</code> &times;
+      <code>info</code>), "Baixa" troca de papel, e a superfície troca de mecânica</td>
+  </tr>
+  <tr>
+    <td><code>ROLE_BADGE_CLASSES</code> / <code>ROLE_VISUALS</code></td>
+    <td>papel do usuário (<code>app_role</code>)</td>
+    <td class="num">2</td><td class="num">31</td>
+    <td><b>sim, nos sete</b> — e uma das duas reprova AA em quatro</td>
+  </tr>
+  <tr>
+    <td><code>KIND_COLOR</code></td>
+    <td>tipo de cenário (<code>scale</code>/<code>efficiency</code>/<code>investment</code>)</td>
+    <td class="num">2</td><td class="num">20</td>
+    <td>só a borda</td>
+  </tr>
+  <tr>
+    <td><code>VARIANT_STYLE</code> / <code>FILTER_BADGE_CLASS</code></td>
+    <td>filtro do dashboard (<code>cluster</code>/<code>cliente</code>/<code>nenhum</code>)</td>
+    <td class="num">2</td><td class="num">11</td>
+    <td>sim — <code>indigo-500/10</code> contra <code>indigo-50</code></td>
+  </tr>
+  <tr>
+    <td><code>ACTION_LABELS</code></td>
+    <td>ação do audit (<code>audit_logs.action</code>)</td>
+    <td class="num">3</td><td class="num">0</td>
+    <td><b>não, hoje</b> — as três estão byte a byte iguais, por sorte da rodada de 03/09</td>
+  </tr>
+</table>
+<p class="meta">
+  <b>62 ocorrências cruas em 6 arquivos</b>, mais <b>13 cópias de mapa</b> para consolidar. O comando que
+  produziu a tabela está no rodapé. O <code>ACTION_LABELS</code> é o aviso mais barato da lista: a rodada de
+  03/09 <b>converteu as três cópias para os mesmos tokens e não extraiu nenhuma</b> — é exatamente o botão
+  "Sair" de novo, que foi reencontrado como achado novo três vezes.
+</p>
+
+<h2><span class="n">A1</span>O badge de papel — duas cópias, e a que se lê mais é a que reprova</h2>
+<p>
+  Mesmos sete papéis do <code>app_role</code>, dois arquivos da mesma pasta <code>acessos/</code>, duas
+  paletas. A lista de usuários usa a família <code>-600 sobre -50</code>; a legenda logo abaixo, na mesma
+  página, usa <code>-700 sobre -100</code>. Nenhuma das duas é token.
+</p>
+<div class="par">
+  <div class="col"><div class="hd no">hoje · a lista (<code>roleOptions.ts</code>) — 4 de 7 reprovam</div>
+    <div class="card">
+      <div class="linha">
+        <span class="pill" style="border:1px solid var(--red-200);color:var(--red-600);background:var(--red-50)">Admin</span>
+        <span class="cr no">4,41:1</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="border:1px solid var(--amber-200);color:var(--amber-600);background:var(--amber-50)">Líder Geral</span>
+        <span class="cr no">3,07:1</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="border:1px solid var(--orange-200);color:var(--orange-600);background:var(--orange-50)">Sublíder</span>
+        <span class="cr no">3,35:1</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="border:1px solid var(--cyan-200);color:var(--cyan-600);background:var(--cyan-50)">Time Cliente</span>
+        <span class="cr no">3,54:1</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="border:1px solid var(--violet-200);color:var(--violet-600);background:var(--violet-50)">Marketing</span>
+        <span class="cr ok">5,20:1</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="border:1px solid hsl(var(--primary)/.2);color:hsl(var(--primary));background:hsl(var(--primary)/.05)">Membro</span>
+        <span class="cr">token</span>
+      </div>
+      <p class="meta">Quatro reprovam em AA para texto normal (4,5:1). O pior é o do <b>Líder Geral</b>,
+        a 3,07:1 — e é o papel que mais aparece.</p>
+    </div>
+  </div>
+  <div class="col"><div class="hd">hoje · a legenda (<code>UsersRolesView.tsx</code>) — passa nos 7</div>
+    <div class="card">
+      <div class="linha">
+        <span class="pill" style="color:var(--red-700);background:var(--red-100)">Admin</span>
+        <span class="cr ok">5,30:1</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="color:var(--amber-700);background:var(--amber-100)">Líder Geral</span>
+        <span class="cr ok">4,51:1</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="color:var(--orange-700);background:var(--orange-100)">Sublíder</span>
+        <span class="cr ok">4,52:1</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="color:var(--cyan-700);background:var(--cyan-100)">Time Cliente</span>
+        <span class="cr ok">4,79:1</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="color:var(--violet-700);background:var(--violet-100)">Marketing</span>
+        <span class="cr ok">5,98:1</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="color:var(--blue-700);background:var(--blue-100)">Membro</span>
+        <span class="cr ok">5,49:1</span>
+      </div>
+      <p class="meta">Mesmo papel, <b>outra cor</b>: "Membro" é <b>teal da marca</b> na lista e
+        <b>azul</b> aqui. E 4,51 / 4,52 passam por <b>um centésimo</b> — não é margem, é sorte.</p>
+    </div>
+  </div>
+</div>
+
+<h3>As três saídas</h3>
+<div class="par3">
+  <div class="col"><div class="hd">A · uma cópia só, a que passa</div>
+    <div class="card">
+      <div class="linha">
+        <span class="pill" style="color:var(--red-700);background:var(--red-100)">Admin</span>
+        <span class="pill" style="color:var(--amber-700);background:var(--amber-100)">Líder</span>
+        <span class="pill" style="color:var(--orange-700);background:var(--orange-100)">Sublíder</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="color:var(--blue-700);background:var(--blue-100)">Membro</span>
+        <span class="pill" style="color:var(--cyan-700);background:var(--cyan-100)">Time Cliente</span>
+        <span class="pill" style="color:var(--violet-700);background:var(--violet-100)">Marketing</span>
+      </div>
+      <p class="meta">Apaga a cópia ruim e vira um mapa. <b>Custo baixo, dívida inteira de pé:</b>
+        continuam 31 classes cruas, seis famílias que não acompanham tema nenhum, e dois pares
+        a um centésimo do limite.</p>
+    </div>
+  </div>
+  <div class="col"><div class="hd">B · papel vira token</div>
+    <div class="card">
+      <div class="linha">
+        <span class="pill" style="color:hsl(var(--status-ajuste));background:hsl(var(--status-ajuste-soft))">Admin</span>
+        <span class="cr ok">5,39</span>
+        <span class="pill" style="color:hsl(var(--status-alerta));background:hsl(var(--status-alerta-soft))">Líder</span>
+        <span class="cr ok">5,32</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="color:hsl(var(--status-espera));background:hsl(var(--status-espera-soft))">Sublíder</span>
+        <span class="cr ok">5,25</span>
+        <span class="pill" style="color:hsl(var(--primary));background:hsl(var(--primary)/.08)">Membro</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="color:hsl(var(--tag-b));background:hsl(var(--tag-b)/.10)">Time Cliente</span>
+        <span class="cr ok">6,85</span>
+        <span class="pill" style="color:hsl(var(--tag-c));background:hsl(var(--tag-c)/.10)">Marketing</span>
+        <span class="cr ok">5,69</span>
+      </div>
+      <p class="meta">Todos acima de 5,2:1, e todos acompanham o tema da área. <b>O problema:</b>
+        gasta <code>ajuste</code>, <code>alerta</code> e <code>espera</code> — que são
+        <b>papéis de status</b> — em coisa que não é status. "Admin" pintado de
+        <code>ajuste</code> diz que tem algo errado com o admin.</p>
+    </div>
+  </div>
+  <div class="col"><div class="hd" style="color:hsl(var(--tag-c))">C · a cor sai da hierarquia</div>
+    <div class="card">
+      <div class="linha">
+        <span class="pill" style="color:hsl(var(--status-neutro));background:hsl(var(--status-neutro-soft))">
+          <span class="rank"><i></i><i></i><i></i></span> Admin</span>
+        <span class="cr ok">12,0:1</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="color:hsl(var(--status-neutro));background:hsl(var(--status-neutro-soft))">
+          <span class="rank"><i></i><i></i></span> Líder Geral</span>
+        <span class="pill" style="color:hsl(var(--status-neutro));background:hsl(var(--status-neutro-soft))">
+          <span class="rank"><i></i></span> Sublíder</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="color:hsl(var(--muted-foreground));background:hsl(var(--muted))">Membro</span>
+        <span class="pill" style="color:hsl(var(--muted-foreground));background:hsl(var(--muted))">Marketing</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="color:hsl(var(--tag-d));background:hsl(var(--tag-d)/.12);border:1px solid hsl(var(--tag-d)/.35)">
+          &#11044; Cliente</span>
+        <span class="cr ok">5,32</span>
+        <span class="pill" style="color:hsl(var(--tag-d));background:hsl(var(--tag-d)/.12);border:1px solid hsl(var(--tag-d)/.35)">
+          &#11044; Time Cliente</span>
+      </div>
+      <p class="meta"><b>Sete papéis não são sete categorias.</b> São uma <b>escada de poder</b> de cinco
+        degraus mais um <b>eixo de fora</b> de dois. Cor marca só o eixo que tem consequência —
+        <b>alguém de fora da PSA está olhando</b>. A escada marca por <b>peso</b>: três pontos, dois, um,
+        nenhum.</p>
+    </div>
+  </div>
+</div>
+<div class="decide disrupt">
+  <b>Por que eu proporia a C, e o que ela custa</b>
+  A cor de papel existe hoje para responder "quem é este usuário". Mas a pergunta que a tela de Acessos
+  responde de verdade, e a única com risco atrás, é <b>"este usuário é de dentro ou de fora?"</b> — é a
+  que decide se um chamado, um dashboard ou um cluster fica visível para quem não é da casa. Sete cores
+  em fileira <b>empatam</b> essa pergunta com "é líder ou sublíder", que é uma diferença de grau e
+  sempre teve o rótulo escrito do lado.<br><br>
+  A C também é a única das três que <b>não gasta papel de status</b> e <b>não inventa token</b>: usa
+  <code>--status-neutro</code> (12,0:1, o mais alto do contrato) para a escada e <b>um</b>
+  <code>--tag-*</code> para o eixo de fora — desenhado acima em <code>tag-d</code> (5,32:1), que é o
+  quente; se ele ler como erro, <code>tag-c</code> (5,69:1) faz o mesmo trabalho em roxo, e é uma
+  troca de uma linha. E é a única que resolve a vizinhança:
+  <code>ROLE_BADGE_CLASSES</code> e <code>ROLE_VISUALS</code> viram <b>um componente</b>
+  (<code>ui/PapelBadge</code>), não um mapa — que é o que impede a terceira cópia.<br><br>
+  <b>O custo é real e é seu de decidir:</b> quem varre a lista procurando o âmbar do líder perde essa
+  pista. A C aposta que a pista nunca foi a cor, foi a coluna.
+</div>
+
+<h2><span class="n">A2</span>A prioridade da tarefa mora em quatro arquivos, e três degraus não combinam</h2>
+<p>
+  Quatro cópias do mesmo mapa sobre a mesma coluna: <code>lib/taskPriorityColors.ts</code> — que existe,
+  está pronto e é usado por <b>um</b> consumidor — e três cópias locais em
+  <code>TaskCard</code>, <code>TaskTable</code> e <code>TaskTodayView</code>. Nenhuma tem cor crua: o
+  defeito aqui é <b>incoerência</b>, que é o que o mapa de domínio existe para matar. O docstring do
+  próprio <code>lib</code> registra a dívida e chama de "limpeza separada".
+</p>
+<p>
+  <b>E o rótulo está pior que a cor: são cinco cópias.</b> Os três arquivos têm um
+  <code>priorityLabels</code> próprio, o <code>lib</code> traz o <code>label</code> dentro da config,
+  e existe um quinto — <code>subtaskPriorityLabels</code>, em <code>lib/orgSubtasks.ts</code>, com as
+  mesmas quatro palavras. O contrato tem uma seção só sobre isto ("O rótulo sai da mesma config que a
+  cor"), escrita depois que uma cópia do <code>statusLabels</code> do chamado ficou <b>sem a chave
+  <code>media</code></b> e a pílula de prioridade saiu <b>vazia</b> no portal do cliente.
+</p>
+<div class="par">
+  <div class="col"><div class="hd no">hoje · a mesma tarefa, em duas telas</div>
+    <div class="card">
+      <p class="meta" style="margin:0 0 8px"><b>No cartão do kanban</b> (<code>TaskCard</code>)</p>
+      <div class="linha">
+        <span class="pill" style="color:hsl(var(--status-ajuste));background:hsl(var(--status-ajuste-soft));border:1px solid hsl(var(--status-ajuste)/.2)">Urgente</span>
+        <span class="pill" style="color:hsl(var(--status-alerta));background:hsl(var(--status-alerta-soft));border:1px solid hsl(var(--status-alerta)/.2)">Alta</span>
+        <span class="pill" style="color:hsl(var(--status-fila));background:hsl(var(--status-fila-soft));border:1px solid hsl(var(--status-fila)/.2)">Média</span>
+        <span class="pill" style="color:hsl(var(--status-neutro));background:hsl(var(--status-neutro-soft))">Baixa</span>
+      </div>
+      <p class="meta" style="margin:14px 0 8px"><b>Na tabela</b> (<code>TaskTable</code>)</p>
+      <div class="linha">
+        <span class="pill" style="color:hsl(var(--status-ajuste));background:hsl(var(--status-ajuste)/.10)">Urgente</span>
+        <span class="pill" style="color:hsl(var(--status-alerta));background:hsl(var(--status-alerta)/.10)">Alta</span>
+        <span class="pill" style="color:hsl(var(--info));background:hsl(var(--info)/.10)">Média</span>
+        <span class="cr no">4,49:1</span>
+        <span class="pill" style="color:hsl(var(--foreground));background:hsl(var(--muted))">Baixa</span>
+      </div>
+      <p class="meta"><b>Três divergências medidas, e nenhuma é onde se esperaria.</b><br>
+        &middot; <b>"Média" é a única que troca de cor de verdade:</b> <code>status-fila</code>
+        (212 59% 36%) no cartão contra <code>info</code> (221 83% 53%) na tabela e no
+        <code>lib</code>. E <code>info</code> sobre <code>info/10</code> dá <b>4,49:1</b> —
+        reprova, e passa por certo na revisão porque é token;<br>
+        &middot; <b>a superfície troca de mecânica:</b> <code>-soft</code> (luminosidade fixa em 86%)
+        no cartão contra <code>/10</code> (alfa sobre o cartão) na tabela. Dá 5,39:1 de um lado e
+        7,04:1 do outro no mesmo degrau — não está errado, são duas escadas;<br>
+        &middot; <b>"Baixa" troca de papel de texto:</b> <code>muted-foreground</code> (4,83:1) em
+        três lugares contra <code>foreground</code> (14,83:1) na tabela.</p>
+    </div>
+  </div>
+  <div class="col"><div class="hd ok">proposta · um mapa, e a escada sobe</div>
+    <div class="card">
+      <p class="meta" style="margin:0 0 8px"><b>Um <code>taskPriorityColors</code>, quatro consumidores</b></p>
+      <div class="linha">
+        <span class="pill" style="color:hsl(var(--status-neutro));background:hsl(var(--status-neutro-soft))">Baixa</span>
+        <span class="cr ok">12,0</span>
+        <span class="pill" style="color:hsl(var(--status-fila));background:hsl(var(--status-fila-soft))">Média</span>
+        <span class="cr ok">5,08</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="color:hsl(var(--status-alerta));background:hsl(var(--status-alerta-soft))">Alta</span>
+        <span class="cr ok">5,32</span>
+        <span class="pill" style="color:hsl(var(--status-ajuste));background:hsl(var(--status-ajuste-soft))">Urgente</span>
+        <span class="cr ok">5,39</span>
+      </div>
+      <p class="meta" style="margin-top:14px">É a <b>mesma escada de quatro degraus</b> que a página do
+        vermelho e do verde já te propôs para a prioridade do projeto — <code>neutro &rarr; fila &rarr; alerta
+        &rarr; ajuste</code>, subindo de tom junto com a urgência. Fechar as duas com a mesma escada é o que
+        torna as 11 ocorrências de lá e estas 4 cópias <b>uma decisão só</b>.</p>
+      <p class="meta"><b>E tira <code>info</code> do caminho:</b> o único degrau que reprovava era o que
+        vinha de <code>info</code>, que é semântico e <b>não</b> acompanha a área.</p>
+      <p class="meta"><b>Uma coisa o mapa precisa fixar, e está desenhada acima em <code>-soft</code>:</b>
+        a superfície. <code>-soft</code> tem luminosidade fixa (86%) e não muda com o fundo;
+        <code>/10</code> é alfa e escurece junto com o cartão. Os dois passam com folga
+        (5,08–12,0 contra 6,22–13,4) — mas o produto tem que escolher <b>um</b>, porque é a escolha
+        que decide se a pílula muda de tom ao entrar no escuro.</p>
+    </div>
+  </div>
+</div>
+<div class="decide">
+  <b>"Urgente" e "Alta" parecem concordar, e é por acidente — a divergência delas está no escuro</b>
+  O cartão escreve <code>status-ajuste</code> e a tabela escreve <code>destructive</code>. No claro
+  isso é a <b>mesma cor com dois nomes</b>: o <code>index.css</code> declara
+  <code>--destructive: var(--status-ajuste)</code> nos três temas claros, e
+  <code>--warning: var(--status-alerta)</code> junto. Então as duas cópias <b>parecem</b> de acordo
+  hoje, e uma revisão lado a lado não acha nada.<br><br>
+  <b>No <code>.dark</code> elas não concordam.</b> Lá o <code>--destructive</code> tem valor próprio
+  (<code>6 74% 64%</code>, clareado de propósito para sobreviver sobre cartão a 14% de luminosidade) e
+  o <code>--warning</code> também (<code>40 88% 64%</code>) — enquanto o <code>.dark</code>
+  <b>não declara nenhum <code>--status-*</code></b>, que portanto cai no valor do tema claro. No dia
+  em que o escuro entrar nessas telas, o cartão e a tabela mostram prioridades de cores diferentes,
+  e a diferença vai estar em quatro arquivos.<br><br>
+  É a mesma armadilha que o Dev já pagou com <code>bg-white</code> &times; <code>bg-card</code>:
+  <b>idênticas hoje, divergentes no dia em que o tema mudar</b>. E é o argumento mais forte para
+  consolidar mesmo sem nenhuma cor mudar na tela agora.
+</div>
+<div class="decide disrupt">
+  <b>A alternativa disruptiva, se você quiser menos cor e não mais</b>
+  Prioridade <b>não é estado</b>: ela não muda sozinha, não tem transição e não pede ação — ela só
+  <b>ordena</b>. Quatro pílulas coloridas gastam quatro papéis de status para dizer o que uma
+  <b>ordenação</b> já diz de graça. A versão enxuta: a lista ordena por prioridade, o rótulo fica
+  neutro, e <b>só "Urgente" é colorido</b> — em <code>ajuste</code>, porque é o único degrau que pede
+  que alguém pare o que está fazendo.
+  <div class="linha" style="margin-top:10px">
+    <span class="pill" style="color:hsl(var(--status-ajuste));background:hsl(var(--status-ajuste-soft));border:1px solid hsl(var(--status-ajuste)/.25)">Urgente</span>
+    <span class="pill" style="color:hsl(var(--muted-foreground));background:hsl(var(--muted))">Alta</span>
+    <span class="pill" style="color:hsl(var(--muted-foreground));background:hsl(var(--muted))">Média</span>
+    <span class="pill" style="color:hsl(var(--muted-foreground));background:hsl(var(--muted))">Baixa</span>
+  </div>
+  <p class="meta" style="margin-top:10px">Isto <b>contraria</b> uma coisa que você já decidiu — que
+  tirar a cor de um controle não é opção, porque ele tem que informar o estado. A diferença que eu
+  alegaria: a pílula de prioridade <b>não é controle</b>, é etiqueta em linha que já tem o texto
+  escrito do lado. Se você ler isto como o mesmo caso de antes, a resposta é a escada de quatro
+  degraus ao lado, e eu não insisto.</p>
+</div>
+
+<h2><span class="n">A3</span>Os três mecânicos — sem pergunta de cor dentro</h2>
+<p>
+  Estes não precisam de decisão de cor: precisam de um arquivo. Ficam listados para não virem como
+  achado novo numa quarta rodada.
+</p>
+<table>
+  <tr><th>mapa</th><th>o que fazer</th><th class="num">cruas</th></tr>
+  <tr><td><code>ACTION_LABELS</code> &times;3</td>
+      <td>as três cópias já são <b>idênticas</b>. As de <code>HistoricoTab</code> e
+        <code>HistoricoFlutuante</code> passam a importar de <code>audit/auditLabels.ts</code>, que já
+        existe e já é a fonte da aba de Auditoria. <b>Zero pixel muda.</b></td>
+      <td class="num">0</td></tr>
+  <tr><td><code>KIND_COLOR</code> &times;2</td>
+      <td>um mapa em <code>mapeamento/</code>, com <code>border</code> no <code>Record</code> e o
+        comparador passando a usá-lo. <code>scale</code> &rarr; <code>tag-b</code> (6,85:1),
+        <code>efficiency</code> &rarr; <code>alerta</code> (5,32:1), <code>investment</code> segue em
+        <code>primary</code>, que já era token.</td>
+      <td class="num">20</td></tr>
+  <tr><td><code>VARIANT_STYLE</code> / <code>FILTER_BADGE_CLASS</code></td>
+      <td>um mapa, e o <b>indigo</b> do "por cliente" vira <code>tag-c</code> (5,69:1) — que é o frio
+        roxo da casa e é o único degrau ali que não é <code>primary</code> nem <code>muted</code>.
+        <b>Atenção:</b> os dois arquivos estão alterados no working tree agora.</td>
+      <td class="num">11</td></tr>
+</table>
+</div>
+
+<!-- =========================== PARTE B =========================== -->
+<div class="parte">
+<p class="rot">Parte B · §5 — o <code>${cor}NN</code>, o alfa colado no fim do hex</p>
+
+<h2><span class="n">B</span>São 14 em 10 arquivos, e três já estão quebradas no ar</h2>
+<p>
+  O padrão é <code>style={{ background: `${cor}20` }}</code>: dois dígitos de alfa concatenados no fim de
+  um hex. Funciona <b>enquanto</b> <code>cor</code> for hex. O <code>fase-3a-cor-crua-na-mao.md</code>
+  registra isso como <b>bloqueio de conversão</b> — o script de conversão em massa se recusa a tocar
+  arquivo com alfa concatenado, e é por isso que estes 10 continuam crus.
+</p>
+<p>
+  <b>Só que em três deles o valor que chega já não é hex.</b> Já é <code>var(--token)</code>. O
+  navegador recebe <code>var(--agente-go)26</code>, não entende, e <b>derruba a declaração inteira, em
+  silêncio</b>. Isto não é hipótese: os cartões "hoje" abaixo têm o CSS <b>literal</b> das duas telas,
+  sem tradução — o que você vê à esquerda é o navegador derrubando a declaração, ao vivo, nesta
+  página, e os valores computados estão medidos logo abaixo dos cartões.
+</p>
+
+<h3>1 &middot; o modo ativo do compositor do agente (<code>ui/ai-prompt-box.tsx:118</code>)</h3>
+<div class="par">
+  <div class="col"><div class="hd no">hoje — o fundo do ativo não existe</div>
+    <div class="escuro">
+      <div class="linha">
+        <span class="modo" style="background:var(--agente-go)26;border-color:var(--agente-go);color:var(--agente-go)">Dados</span>
+        <span class="modo">Estratégia</span>
+        <span class="modo" style="background:rgba(255,255,255,.08);color:var(--agente-ink)">Corrigir <span style="font-size:10px;opacity:.7">(com o mouse em cima)</span></span>
+      </div>
+      <p class="meta" style="color:var(--agente-ink3)">"Dados" é o modo <b>ativo</b>. A borda e a letra
+        vieram — são <code>var()</code> puro e válidos. O <b>fundo</b> era
+        <code>var(--agente-go)26</code> e foi descartado. Resultado: o modo <b>ativo</b> tem menos
+        preenchimento que um modo <b>inativo sob o mouse</b>, que ganha
+        <code>rgba(255,255,255,.08)</code> pela folha de estilo.</p>
+    </div>
+  </div>
+  <div class="col"><div class="hd ok">com o alfa resolvido</div>
+    <div class="escuro">
+      <div class="linha">
+        <span class="modo" style="background:color-mix(in srgb, var(--agente-go) 15%, transparent);border-color:var(--agente-go);color:var(--agente-go)">Dados</span>
+        <span class="modo">Estratégia</span>
+        <span class="modo" style="background:rgba(255,255,255,.08);color:var(--agente-ink)">Corrigir <span style="font-size:10px;opacity:.7">(com o mouse em cima)</span></span>
+      </div>
+      <p class="meta" style="color:var(--agente-ink3)">Mesmo token, mesmos 15%, mas por
+        <code>color-mix</code>. O ativo volta a ser o mais cheio da fileira — que é a única coisa que a
+        linha precisava dizer.</p>
+    </div>
+  </div>
+</div>
+
+<h3>2 &middot; a régua do PPR, em Metas (<code>gerencial/desempenho/DesempenhoMetas.tsx:237</code> e <code>:241</code>)</h3>
+<div class="par">
+  <div class="col"><div class="hd no">hoje — a barra perdeu a escala</div>
+    <div class="card" style="padding:10px 12px">
+      <div class="linha" style="gap:14px">
+        <span style="font:700 18px/1 sans-serif;min-width:78px;color:var(--bd-go-d)">120%+</span>
+        <span style="width:1px;height:24px;background:var(--bd-go-d);opacity:.2"></span>
+        <span style="font-size:14px;font-weight:600;flex:1;color:var(--bd-go-d)">Supera</span>
+        <span class="trilha" style="background:var(--bd-go-d)15">
+          <span style="display:block;height:100%;width:100%;background:var(--bd-go-d);border-radius:999px"></span></span>
+        <span style="font:600 13px ui-monospace,monospace;color:var(--bd-go-d)">1.3x</span>
+      </div>
+      <div class="linha" style="gap:14px;background:var(--bd-warn-t);border-radius:8px;padding:6px 8px">
+        <span style="font:700 18px/1 sans-serif;min-width:78px;color:var(--bd-warn-d)">80–99%</span>
+        <span style="width:1px;height:24px;background:var(--bd-warn-d);opacity:.2"></span>
+        <span style="font-size:14px;font-weight:600;flex:1;color:var(--bd-warn-d)">Atende parcialmente</span>
+        <span class="trilha" style="background:var(--bd-warn-d)15">
+          <span style="display:block;height:100%;width:67%;background:var(--bd-warn-d);border-radius:999px"></span></span>
+        <span style="font:600 13px ui-monospace,monospace;color:var(--bd-warn-d)">0.8x</span>
+      </div>
+      <div class="linha" style="gap:14px;background:var(--bd-risk-t);border-radius:8px;padding:6px 8px">
+        <span style="font:700 18px/1 sans-serif;min-width:78px;color:var(--bd-risk-d)">0–79%</span>
+        <span style="width:1px;height:24px;background:var(--bd-risk-d);opacity:.2"></span>
+        <span style="font-size:14px;font-weight:600;flex:1;color:var(--bd-risk-d)">Abaixo</span>
+        <span class="trilha" style="background:var(--bd-risk-d)15">
+          <span style="display:block;height:100%;width:20%;background:var(--bd-risk-d);border-radius:999px"></span></span>
+        <span style="font:600 13px ui-monospace,monospace;color:var(--bd-risk-d)">0.5x</span>
+        <span class="pill" style="border:1px solid hsl(var(--border));border-color:var(--bd-risk-d)30;color:var(--bd-risk-d);font-size:10px">Abaixo</span>
+      </div>
+      <p class="meta"><b>A trilha da barra é transparente.</b> Era
+        <code>var(--bd-risk-d)15</code>, foi descartada — então em "Abaixo" você vê 20% de barra e
+        <b>nada</b> marcando os 80% que faltam. A barra que existe para mostrar <b>proporção</b> perdeu
+        a referência. E a etiqueta ao lado cai pelo mesmo motivo, mas <b>para o outro lado</b>: medido
+        no DOM, a borda dela não fica cinza — fica no tom da faixa a <b>100%</b> em vez dos 30% que o
+        arquivo pede.</p>
+    </div>
+  </div>
+  <div class="col"><div class="hd ok">com o alfa resolvido</div>
+    <div class="card" style="padding:10px 12px">
+      <div class="linha" style="gap:14px">
+        <span style="font:700 18px/1 sans-serif;min-width:78px;color:var(--bd-go-d)">120%+</span>
+        <span style="width:1px;height:24px;background:var(--bd-go-d);opacity:.2"></span>
+        <span style="font-size:14px;font-weight:600;flex:1;color:var(--bd-go-d)">Supera</span>
+        <span class="trilha" style="background:color-mix(in srgb, var(--bd-go-d) 15%, transparent)">
+          <span style="display:block;height:100%;width:100%;background:var(--bd-go-d);border-radius:999px"></span></span>
+        <span style="font:600 13px ui-monospace,monospace;color:var(--bd-go-d)">1.3x</span>
+      </div>
+      <div class="linha" style="gap:14px;background:var(--bd-warn-t);border-radius:8px;padding:6px 8px">
+        <span style="font:700 18px/1 sans-serif;min-width:78px;color:var(--bd-warn-d)">80–99%</span>
+        <span style="width:1px;height:24px;background:var(--bd-warn-d);opacity:.2"></span>
+        <span style="font-size:14px;font-weight:600;flex:1;color:var(--bd-warn-d)">Atende parcialmente</span>
+        <span class="trilha" style="background:color-mix(in srgb, var(--bd-warn-d) 15%, transparent)">
+          <span style="display:block;height:100%;width:67%;background:var(--bd-warn-d);border-radius:999px"></span></span>
+        <span style="font:600 13px ui-monospace,monospace;color:var(--bd-warn-d)">0.8x</span>
+      </div>
+      <div class="linha" style="gap:14px;background:var(--bd-risk-t);border-radius:8px;padding:6px 8px">
+        <span style="font:700 18px/1 sans-serif;min-width:78px;color:var(--bd-risk-d)">0–79%</span>
+        <span style="width:1px;height:24px;background:var(--bd-risk-d);opacity:.2"></span>
+        <span style="font-size:14px;font-weight:600;flex:1;color:var(--bd-risk-d)">Abaixo</span>
+        <span class="trilha" style="background:color-mix(in srgb, var(--bd-risk-d) 15%, transparent)">
+          <span style="display:block;height:100%;width:20%;background:var(--bd-risk-d);border-radius:999px"></span></span>
+        <span style="font:600 13px ui-monospace,monospace;color:var(--bd-risk-d)">0.5x</span>
+        <span class="pill" style="border:1px solid color-mix(in srgb, var(--bd-risk-d) 30%, transparent);color:var(--bd-risk-d);font-size:10px">Abaixo</span>
+      </div>
+      <p class="meta">A trilha volta, e com ela a proporção: agora <b>20% de barra dentro de uma régua
+        inteira</b> se lê como 20%. Nenhuma cor foi escolhida aqui — é o mesmo token, no mesmo alfa que
+        o arquivo já pedia.</p>
+    </div>
+  </div>
+</div>
+<div class="decide">
+  <b>O mecanismo, medido no DOM — e ele não descarta para o mesmo lado sempre</b>
+  Declaração que contém <code>var()</code> e fica inválida depois da substituição <b>não é
+  simplesmente ignorada</b>: ela vira <code>unset</code>. E <code>unset</code> dá coisas diferentes
+  conforme a propriedade. Medido com o navegador nesta página, nos elementos acima:
+  <table style="margin-top:8px">
+    <tr><th>declaração no arquivo</th><th>o que o navegador computa</th><th>efeito na tela</th></tr>
+    <tr><td><code>background: var(--agente-go)26</code></td>
+        <td><code>rgba(0, 0, 0, 0)</code></td>
+        <td>fundo <b>desaparece</b> — <code>unset</code> de <code>background</code> é transparente</td></tr>
+    <tr><td><code>background: var(--bd-risk-d)15</code></td>
+        <td><code>rgba(0, 0, 0, 0)</code></td>
+        <td>trilha <b>desaparece</b></td></tr>
+    <tr><td><code>border-color: var(--bd-risk-d)30</code></td>
+        <td><code>rgb(155, 39, 52)</code></td>
+        <td>borda fica <b>100% opaca</b> — <code>unset</code> de <code>border-color</code> é
+          <code>currentColor</code>, e o <code>color</code> daquele elemento é o mesmo tom</td></tr>
+  </table>
+  <p class="meta" style="margin-top:9px">Isto importa para a busca: <b>"o fundo some" não é a assinatura
+  do defeito.</b> Em <code>border-color</code>, <code>fill</code>, <code>stroke</code> e
+  <code>outline-color</code> ele aparece como cor <b>reforçada</b>, não ausente — e aí não há nada
+  visivelmente errado para alguém notar. Foi a medição no DOM que mostrou isso; eu tinha escrito
+  "fica cinza" antes de medir, e estava errado.</p>
+</div>
+
+<h2><span class="n">B1</span>As outras 11, e uma medição que muda a pergunta</h2>
+<p>
+  As 11 restantes têm hex de verdade do outro lado, então <b>pintam</b>. Nove são da calculadora
+  IBS/CBS, uma é o chip da Biblioteca de Procedimentos e uma é o badge de cliente em
+  <code>ProcessList</code>. Só que o padrão delas é sempre o mesmo — <b>letra na cor X sobre a cor X a
+  15%, 20% ou 25%</b> —, e esse padrão <b>não tem como passar em AA</b>. Medido no branco:
+</p>
+<table>
+  <tr><th>onde</th><th>hex</th><th class="num">a 15%</th><th class="num">a 20%</th></tr>
+  <tr><td>Anexo XV &middot; interestadual</td><td><code>#F2810A</code></td><td class="num"><span class="cr no">2,30</span></td><td class="num"><span class="cr no">2,19</span></td></tr>
+  <tr><td>Sem anexo</td><td><code>#94A3B8</code></td><td class="num"><span class="cr no">2,27</span></td><td class="num"><span class="cr no">2,18</span></td></tr>
+  <tr><td>Anexo IX</td><td><code>#65A30D</code></td><td class="num"><span class="cr no">2,65</span></td><td class="num"><span class="cr no">2,53</span></td></tr>
+  <tr><td>Anexo I &middot; interno (MT)</td><td><code>#0D9488</code></td><td class="num"><span class="cr no">3,13</span></td><td class="num"><span class="cr no">2,96</span></td></tr>
+  <tr><td>Exportação</td><td><code>#3478F5</code></td><td class="num"><span class="cr no">3,40</span></td><td class="num"><span class="cr no">3,18</span></td></tr>
+  <tr><td>Risco</td><td><code>#E11D48</code></td><td class="num"><span class="cr no">3,71</span></td><td class="num"><span class="cr no">3,41</span></td></tr>
+  <tr><td>Monofásico</td><td><code>#6B46E8</code></td><td class="num"><span class="cr ok">4,60</span></td><td class="num"><span class="cr no">4,26</span></td></tr>
+</table>
+<p class="meta">
+  <b>Um de sete passa, e por 0,10.</b> A razão é aritmética e não tem exceção: quando o fundo é a
+  <b>própria cor</b> diluída no branco, subir o alfa escurece o fundo e <b>não muda a letra</b> — a
+  distância entre os dois só encolhe. A escada só existe se os dois lados vierem de <b>degraus
+  diferentes</b>, que é exatamente o que um par <code>--x</code> / <code>--x-soft</code> é.
+</p>
+<div class="par">
+  <div class="col"><div class="hd no">hoje &middot; os chips da calculadora</div>
+    <div class="card">
+      <div class="linha">
+        <span class="chip" style="background:#0D948826;color:#0D9488">Anexo I</span>
+        <span class="chip" style="background:#65A30D26;color:#65A30D">Anexo IX</span>
+        <span class="chip" style="background:#F2810A26;color:#F2810A">Anexo XV</span>
+        <span class="chip" style="background:#94A3B826;color:#94A3B8">Sem anexo</span>
+      </div>
+      <div class="linha">
+        <span class="chip" style="background:#0D948840;color:#0D9488;border-radius:999px;font-size:10px;text-transform:uppercase;letter-spacing:.06em">MT</span>
+        <span class="chip" style="background:#F2810A40;color:#F2810A;border-radius:999px;font-size:10px;text-transform:uppercase;letter-spacing:.06em">Inter.</span>
+        <span class="chip" style="background:#3478F540;color:#3478F5;border-radius:999px;font-size:10px;text-transform:uppercase;letter-spacing:.06em">Exp.</span>
+      </div>
+      <p class="meta">2,18 a 3,40:1. A fileira de baixo é a do cartão de UF, a 25% — e ali a letra tem
+        <b>10px</b>, que é onde o contrato pede <b>mais</b> contraste, não menos.</p>
+    </div>
+  </div>
+  <div class="col"><div class="hd ok">com par de degraus (<code>--tag-*</code>)</div>
+    <div class="card">
+      <div class="linha">
+        <span class="chip" style="background:hsl(var(--tag-a)/.12);color:hsl(var(--tag-a))">Anexo I</span>
+        <span class="chip" style="background:hsl(var(--tag-b)/.12);color:hsl(var(--tag-b))">Anexo IX</span>
+        <span class="chip" style="background:hsl(var(--tag-c)/.12);color:hsl(var(--tag-c))">Anexo XV</span>
+        <span class="chip" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground))">Sem anexo</span>
+      </div>
+      <div class="linha">
+        <span class="chip" style="background:hsl(var(--tag-a)/.12);color:hsl(var(--tag-a));border-radius:999px;font-size:10px;text-transform:uppercase;letter-spacing:.06em">MT</span>
+        <span class="chip" style="background:hsl(var(--tag-c)/.12);color:hsl(var(--tag-c));border-radius:999px;font-size:10px;text-transform:uppercase;letter-spacing:.06em">Inter.</span>
+        <span class="chip" style="background:hsl(var(--tag-b)/.12);color:hsl(var(--tag-b));border-radius:999px;font-size:10px;text-transform:uppercase;letter-spacing:.06em">Exp.</span>
+      </div>
+      <p class="meta">6,24 &middot; 6,85 &middot; 5,69:1, e o "sem anexo" vai para <code>muted</code> —
+        porque <b>ausência de dado não é categoria</b>, que é o que a rodada do Audit já decidiu para
+        <code>sem_registro</code>.</p>
+    </div>
+  </div>
+</div>
+
+<h2><span class="n">B2</span>As três saídas para o <code>${cor}NN</code></h2>
+<div class="par3">
+  <div class="col"><div class="hd">A &middot; <code>color-mix</code>, no lugar</div>
+    <div class="card">
+      <pre>background: color-mix(
+  in srgb, var(--x) 15%, transparent
+)</pre>
+      <p class="meta">É o que os dois casos do Mapa já usaram (<code>ProcessoDetalheModal</code>,
+        <code>ProjetoDetalhe</code>), e <code>color-mix</code> já está no <code>index.css</code> e no
+        <code>BoardStatStrip</code>. Funciona com hex <b>e</b> com <code>var()</code>.<br><br>
+        <b>Fecha:</b> as 3 quebradas, hoje, sem decisão de cor nenhuma.<br>
+        <b>Não fecha:</b> os contrastes de 2,18:1 — o chip continua sendo cor sobre ela mesma. E não
+        impede a 15ª ocorrência.</p>
+    </div>
+  </div>
+  <div class="col"><div class="hd">B &middot; A + catraca</div>
+    <div class="card">
+      <pre>// src/lib/filaDoAlfaColado.test.ts
+const FILA: Record&lt;string, number&gt; = {};</pre>
+      <p class="meta">A catraca nasce <b>vazia</b>, na forma da <code>filaDoSlate</code>: o
+        <code>grep</code> do alfa colado vira asserção de igualdade exata, e qualquer ocorrência nova
+        derruba o teste dizendo o arquivo.<br><br>
+        <b>Por que é necessária e não zelo:</b> este padrão escapou de <b>quatro</b> lotes de conversão
+        porque nenhuma regra de <code>eslint</code> tem o que dizer sobre uma template string. É o mesmo
+        mecanismo do slate — forma válida, nenhuma regra aplicável — e o slate chegou a 1529
+        assim.<br><br>
+        <b>Vinte linhas</b>, e é a única das três que não envelhece.</p>
+    </div>
+  </div>
+  <div class="col"><div class="hd" style="color:hsl(var(--tag-c))">C &middot; a cor para de viajar</div>
+    <div class="card">
+      <pre>&lt;KpiCard tom="exportacao" … /&gt;
+
+.chip[data-tom="exportacao"]{
+  color: hsl(var(--tag-b));
+  background: hsl(var(--tag-b)/.12);
+}</pre>
+      <p class="meta">O componente deixa de <b>receber uma cor</b> e passa a receber a
+        <b>categoria</b>. Nenhum valor de cor atravessa JavaScript — então o alfa colado deixa de ser
+        possível <b>por construção</b>, não por vigilância.<br><br>
+        <b>Fecha junto:</b> as 3 quebradas, os 11 contrastes reprovados, e os
+        <code>accent="#3478F5"</code> passados como prop em 13 chamadas da calculadora.<br><br>
+        <b>Custo:</b> é a maior das três, e toca 9 arquivos da calculadora.</p>
+    </div>
+  </div>
+</div>
+<div class="decide disrupt">
+  <b>Por que eu faria a C na calculadora, e a B no resto — e o que destrava isso</b>
+  A C só é viável se a calculadora <b>não</b> estiver atrás da decisão 4, e é aqui que a medição mudou
+  o mapa. O <code>fase-3a-cor-crua-na-mao.md</code> arquiva a calculadora junto com o gráfico:
+  <i>"o <code>#0d9488</code> residual está concentrado em duas famílias, e as duas são 3b ou fase 4"</i>.
+  Medido hoje: <code>html-to-image</code> aparece em <b>um</b> arquivo de produto
+  (<code>lib/roiVisualExport.ts</code>), com <b>um</b> consumidor (<code>DashboardRoiPage</code>). A
+  calculadora exporta <b>CSV</b>. <b>As 9 ocorrências dela nunca estiveram atrás daquela decisão</b> —
+  ficaram esperando uma resposta que não era sobre elas.<br><br>
+  <b>O recorte honesto, e ele importa:</b> os <b>chips, badges e quadradinhos de ícone</b> convertem
+  hoje — são CSS, e <code>var()</code> resolve. As <b>séries do Recharts</b> não entram: elas recebem a
+  cor em <b>atributo</b> (<code>&lt;Cell fill={…}&gt;</code>), e <code>var()</code> não resolve em
+  atributo de apresentação. Isso é <b>mecanismo</b>, não decisão 4 — e é uma frente própria, medível,
+  para outro dia. <b>Nenhuma das 14 ocorrências desta página é série de gráfico.</b>
+</div>
+</div>
+
+<!-- =========================== FECHA =========================== -->
+<div class="fecha">
+<h2>O que eu preciso de você</h2>
+<ol class="q">
+  <li><b>As três quebradas (B): conserto agora, em commit próprio?</b> É <code>color-mix</code> em três
+    linhas, sem decisão de cor dentro — o modo ativo do agente volta a ter fundo e a régua do PPR volta
+    a ter trilha. <b>Eu faria isto primeiro</b>, antes de tudo nesta página.</li>
+  <li><b>O badge de papel (A1): A, B ou C?</b> Se for a C, a pergunta de dentro é uma só — a cor marca
+    <b>só</b> o eixo "de fora da PSA" (cliente e time cliente), e a hierarquia vira peso? <b>Eu faria a
+    C.</b></li>
+  <li><b>A prioridade da tarefa (A2): a escada de quatro degraus, ou só "Urgente" colorido?</b> A
+    escada de quatro é a <b>mesma</b> que a página do vermelho e do verde propôs para a prioridade do
+    projeto — responder uma vez fecha as duas. <b>Eu faria a escada de quatro</b>, porque a
+    alternativa enxuta encosta numa decisão sua já tomada em outro contexto.<br>
+    E <b>uma sub-pergunta que o mapa não consegue evitar: a superfície é <code>-soft</code> ou
+    <code>/10</code>?</b> As quatro cópias usam as duas, e é essa escolha que decide se a pílula
+    acompanha o fundo no escuro. Eu fixaria <code>-soft</code>, para a pílula de prioridade ler igual
+    em qualquer área.</li>
+  <li><b>Os três mecânicos (A3): posso ir sem mais pergunta?</b> <code>ACTION_LABELS</code> não muda um
+    pixel. <code>KIND_COLOR</code> e o filtro do dashboard trocam azul e indigo crus por
+    <code>tag-b</code> e <code>tag-c</code>.</li>
+  <li><b>A calculadora (B1/B2): C, com o recorte de chip?</b> Os chips e os quadradinhos de ícone vão
+    para <code>--tag-*</code>; as séries do Recharts <b>ficam</b>, com o motivo medido escrito na
+    catraca. Se preferir o caminho curto, é a A — resolve as 3 quebradas e deixa os 11 contrastes
+    de pé.</li>
+  <li><b>A catraca do alfa colado: entra junto?</b> Nasce vazia. Sem ela, a 15ª ocorrência entra sem
+    ninguém ver, como as 14 entraram.</li>
+</ol>
+</div>
+
+<div class="rodape">
+<b>Os números envelhecem; os comandos não.</b> Medidos em <b>11/09/2026</b>, na
+<code>develop</code>. Rode antes de confiar.
+<pre># as 14 ocorrencias de alfa colado, com o arquivo e o valor do alfa
+grep -rnE '\$\{[A-Za-z_.()]+\}[0-9a-fA-F]{2}' src --include=*.tsx --include=*.ts
+
+# os mapas copiados: assinatura de chaves repetida entre objetos com classe de cor
+#   (o script completo esta na mensagem do commit desta pagina)
+grep -rnE '^\s*(export )?const [A-Za-z_0-9]*(Colors|COLORS|STYLE|VISUALS|LABELS|COLOR)' \
+  src/components src/pages --include=*.tsx --include=*.ts
+
+# quem realmente exporta para PNG — e portanto quem depende da decisao 4
+grep -rln 'html-to-image\|toPng' src</pre>
+<b>Os valores de token desta página são do <code>src/index.css</code> em 11/09/2026 e não se
+atualizam.</b> A fonte corrente é sempre o <code>index.css</code>; o contrato é
+<code>docs/geral/paleta-por-area.md</code>. Os contrastes foram calculados em sRGB pela fórmula da
+WCAG 2.1, sempre sobre o fundo <b>composto</b> — alfa resolvido contra <code>--card</code> ou contra
+branco, conforme a tela.
+</div>
+
+</div></body></html>

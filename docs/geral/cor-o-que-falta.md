@@ -38,6 +38,20 @@ mapas de status.
 
 ## 1. Os papéis que faltam
 
+> **A caça de 11/09/2026 está renderizada**, não convertida:
+> [`comparacoes-de-cor/cor-que-viaja-como-dado.html`](comparacoes-de-cor/cor-que-viaja-como-dado.html), parte A.
+> Ela não varreu família: buscou **assinatura de chaves** — todo objeto literal cujo valor tem classe de cor,
+> agrupado pelo conjunto de chaves. **Cinco mapas de domínio apareceram escritos duas ou mais vezes**, e quatro
+> já divergiram: `priorityColors` (4 cópias), `ROLE_BADGE_CLASSES`/`ROLE_VISUALS`, `KIND_COLOR`,
+> `VARIANT_STYLE`/`FILTER_BADGE_CLASS` e `ACTION_LABELS` (3 cópias idênticas, que a rodada de 03/09 converteu
+> sem extrair — o botão "Sair" de novo). São **62 cruas em 6 arquivos** mais 13 cópias de mapa. E a medição achou
+> o que a leitura não acharia: **a cópia do badge de papel que reprova AA é a que está na lista de usuários**,
+> em 4 dos 7 papéis, o pior a 3,07:1 — a outra cópia, a da legenda logo abaixo, passa nos sete.
+> Em prioridade de tarefa, "Urgente" e "Alta" **parecem** concordar porque `--destructive` é literalmente
+> `var(--status-ajuste)` no claro; no `.dark` os dois têm valor próprio e nenhum `--status-*` é declarado,
+> então a divergência é **latente** — a armadilha do `bg-white` × `bg-card`, de novo.
+
+
 `feito`, `ajuste` e `espera` andaram, mas não fecharam. O que sobra vive quase todo em
 **escada de status** — o âmbar, o verde e o vermelho são degraus do mesmo mapa, e converter um
 degrau só troca escada crua por escada meio crua, que é pior.
@@ -349,6 +363,20 @@ O motivo original do par segue valendo como registro: "Concluída" concorda com 
 domínios de uma vez — foi ele que ficou com o masculino.
 
 ## 5. Onde a dívida pode crescer sem ninguém ver
+
+> **O `${cor}NN` saiu de "bloqueio de conversão" para defeito no ar, em 11/09/2026.** Medido:
+> **14 ocorrências em 10 arquivos**, e **três delas já estão quebradas** — o valor que chega já é
+> `var(--token)`, então o CSS já é inválido. Renderizado, com o CSS literal dos arquivos e o valor
+> computado lido no DOM, em
+> [`comparacoes-de-cor/cor-que-viaja-como-dado.html`](comparacoes-de-cor/cor-que-viaja-como-dado.html), parte B.
+>
+> **Duas coisas para quem for caçar isto:** declaração com `var()` que fica inválida **não é ignorada, vira
+> `unset`** — e `unset` dá coisas diferentes por propriedade. Em `background` é transparente (o fundo some,
+> que é a assinatura conhecida); em `border-color` é `currentColor`, então a borda fica **100% opaca** em vez
+> dos 30% pedidos e **nada parece errado**. Procurar "fundo que sumiu" perde metade dos casos.
+> E o padrão dos 11 restantes — letra na cor X sobre a cor X a 15–25% — dá **2,18 a 3,40:1** e não tem como
+> passar em AA: a escada só existe com dois degraus, que é o que um par `--x`/`--x-soft` é.
+
 
 | classe de defeito | proteção hoje |
 |---|---|

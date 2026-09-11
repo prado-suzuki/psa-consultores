@@ -84,6 +84,17 @@ concatenado no fim do hex.** É por isso que os arquivos abaixo continuam crus.
 **Medido em 01/09/2026: sobram 13 ocorrências, em 10 arquivos** — todas fora do Mapa, e cada
 uma trava a conversão do arquivo dela. Para a fila de hoje, meça em vez de confiar nesta linha:
 
+> **Remedido em 11/09/2026: são 14, nos mesmos 10 arquivos — e três já não travam nada, porque
+> já quebraram.** Em `ui/ai-prompt-box.tsx:118` e em `DesempenhoMetas.tsx:237` e `:241` o valor que
+> chega **já é `var(--token)`**, não hex, então o CSS já é inválido hoje. Lido no DOM: o fundo do modo
+> ativo do compositor do agente **não existe** (fica com menos preenchimento que um modo inativo sob o
+> mouse) e a trilha das barras da régua do PPR **não existe** (a barra perdeu a referência de
+> proporção). E uma correção de método: declaração com `var()` inválida **não é ignorada, vira
+> `unset`** — em `background` isso é transparente, mas em `border-color` é `currentColor`, e aí a borda
+> fica **100% opaca** em vez dos 30% pedidos. Quem procurar só "fundo que sumiu" perde esses casos.
+> As duas telas estão renderizadas lado a lado em
+> [`comparacoes-de-cor/cor-que-viaja-como-dado.html`](comparacoes-de-cor/cor-que-viaja-como-dado.html).
+
 ```bash
 grep -rnE '\$\{[A-Za-z_.]+\}[0-9a-fA-F]{2}' src --include=*.tsx --include=*.ts
 ```
@@ -119,7 +130,18 @@ grep -rnoE 'teal-(500|600|700)' src/components src/pages | wc -l
 
 O `#0d9488` residual está concentrado em **duas famílias**, e as duas são 3b ou fase 4, não 3a:
 a calculadora IBS/CBS (que é onde vive quase todo o alfa concatenado) e o Mapa/ROI (que é
-gráfico). Fora delas sobram casos avulsos — `OsgWorkIcon`, `OsgProjectsIcon`,
+gráfico).
+
+> **Esta linha estava errada sobre a calculadora, e foi medida em 11/09/2026.** A 3b é sobre cor que
+> **sai para PNG** pelo `html-to-image` — e `html-to-image` é importado em **um** arquivo do produto,
+> `src/lib/roiVisualExport.ts`, com **um** consumidor, `DashboardRoiPage`. A calculadora IBS/CBS não
+> passa por ali: ela exporta **CSV**. As 9 ocorrências de alfa concatenado dela **nunca dependeram da
+> decisão 4** — ficaram paradas atrás de uma pergunta que não era sobre elas.
+>
+> O recorte que **sobra** de verdade, e ele é mecânica e não decisão: os **chips, badges e quadrados de
+> ícone** da calculadora convertem hoje, porque são CSS e `var()` resolve; as **séries do Recharts**
+> não, porque recebem a cor em **atributo** (`<Cell fill={…}>`), onde `var()` não resolve. Isso é frente
+> própria, medível, e não espera a decisão 4. Fora delas sobram casos avulsos — `OsgWorkIcon`, `OsgProjectsIcon`,
 `DailySprintProgressCard`, `constants/brandColors.ts`, `utils/pdf/theme.ts`.
 
 ## O que a fase 3a NÃO resolve, e por que a fase seguinte é por papel
