@@ -131,11 +131,13 @@
   <b>O que a medição mudou de lugar, antes de qualquer proposta</b>
   Três achados que nenhuma das duas frentes previa, e que mudam o tamanho delas:
   <ul style="margin:8px 0 0;padding-left:20px">
-    <li><b>Três das 14 ocorrências de <code>${cor}NN</code> já estão quebradas no ar.</b> Não são
-      "bloqueio de conversão futura": o valor que chega nelas <b>já</b> é <code>var(--x)</code>, então o CSS
-      <b>já</b> é inválido e a declaração <b>já</b> caiu. Está renderizado na parte B, com o CSS literal dos
-      arquivos e com o valor computado medido no DOM — que em duas delas é fundo <b>ausente</b> e na
-      terceira é borda <b>opaca demais</b>.</li>
+    <li><b>Cinco das 18 ocorrências de <code>${cor}NN</code> estavam quebradas no ar</b> — e as
+      cinco já foram consertadas (commit <code>232b9864</code>). Não eram "bloqueio de conversão
+      futura": o valor que chega nelas <b>já</b> era <code>var(--x)</code>, então o CSS <b>já</b> era
+      inválido. Eram 18 e não 14 porque o recorte da busca saiu estreito <b>duas vezes</b>, e as duas
+      que o recorte escondia eram justamente as duas últimas quebradas. Está tudo renderizado na
+      parte B, com o CSS literal dos arquivos e o valor computado lido no DOM — que em quatro delas é
+      fundo <b>ausente</b> e na quinta é borda <b>opaca demais</b>.</li>
     <li><b>A calculadora IBS/CBS não depende da decisão 4.</b> O <code>cor-o-que-falta.md</code> arquiva
       a calculadora junto com o gráfico, "3b ou fase 4". Medido: <code>html-to-image</code> é importado em
       <b>um</b> arquivo do produto (<code>src/lib/roiVisualExport.ts</code>), usado por
@@ -502,24 +504,62 @@
 <div class="parte">
 <p class="rot">Parte B · §5 — o <code>${cor}NN</code>, o alfa colado no fim do hex</p>
 
-<h2><span class="n">B</span>São 14 em 10 arquivos, e três já estão quebradas no ar</h2>
+<h2><span class="n">B</span>Eram 18 em 11 arquivos, e <b>cinco</b> estavam quebradas — as cinco já foram</h2>
 <p>
-  O padrão é <code>style={{ background: `${cor}20` }}</code>: dois dígitos de alfa concatenados no fim de
-  um hex. Funciona <b>enquanto</b> <code>cor</code> for hex. O <code>fase-3a-cor-crua-na-mao.md</code>
-  registra isso como <b>bloqueio de conversão</b> — o script de conversão em massa se recusa a tocar
-  arquivo com alfa concatenado, e é por isso que estes 10 continuam crus.
+  O padrão é <code>style={{ background: `${cor}20` }}</code>: dois dígitos de alfa concatenados no fim
+  de um hex. Funciona <b>enquanto</b> <code>cor</code> for hex. Quando ela já é
+  <code>var(--token)</code>, o navegador recebe <code>var(--agente-go)26</code> e <b>derruba a
+  declaração</b>, em silêncio.
 </p>
+<div class="decide">
+  <b>Esta seção mudou duas vezes enquanto era medida, e as duas correções são minhas</b>
+  <b>1 · Eram 18, não 14.</b> A primeira busca listava os caracteres aceitos dentro das chaves
+  (<code>[A-Za-z_.()]</code>) e deu 14. Faltava <code>[</code> e <code>]</code>, e com eles vieram
+  mais duas em <code>UfDrillDown</code> (<code>${CORES_NATUREZA[dados.natureza]}15</code>). Ainda
+  faltava <b>espaço e sinal</b>, e com eles vieram as duas de <code>DesempenhoReunioes1a1</code>
+  (<code>${sentimentColors[r.sentimento - 1]}20</code>) — que eram justamente as <b>duas últimas
+  quebradas</b>, escondidas pelo recorte estreito. A forma final é <b>qualquer coisa dentro das
+  chaves</b>, com os dois dígitos hex encostados na <b>crase</b> de fechamento: é a crase que separa
+  alfa colado de interpolação legítima que só por acaso termina em dois dígitos
+  (<code>${pct}10%</code> não casa, porque tem <code>%</code> antes). Mesma lição que o
+  <code>medirCorCrua.ts</code> já carrega sobre <code>PROPRIEDADES_DE_COR</code>.<br><br>
+  <b>2 · O sufixo é HEX, e eu havia lido como porcentagem.</b> <code>26</code> é
+  <code>0x26 = 38</code>, ou seja 15% — mas <code>15</code> é <b>8,2%</b> e <code>30</code> é
+  <b>18,8%</b>. A versão anterior desta página mostrou a trilha do PPR a 15%. O commit usou o valor
+  <b>fiel</b>, porque a promessa do conserto era "sem decisão de cor dentro". A tabela inteira ficou
+  no docstring de <code>corComAlfa.ts</code>.
+</div>
+
+<h3>O mecanismo, medido no DOM — e ele não derruba para o mesmo lado sempre</h3>
 <p>
-  <b>Só que em três deles o valor que chega já não é hex.</b> Já é <code>var(--token)</code>. O
-  navegador recebe <code>var(--agente-go)26</code>, não entende, e <b>derruba a declaração inteira, em
-  silêncio</b>. Isto não é hipótese: os cartões "hoje" abaixo têm o CSS <b>literal</b> das duas telas,
-  sem tradução — o que você vê à esquerda é o navegador derrubando a declaração, ao vivo, nesta
-  página, e os valores computados estão medidos logo abaixo dos cartões.
+  Declaração que contém <code>var()</code> e fica inválida depois da substituição <b>não é
+  simplesmente ignorada</b>: ela vira <code>unset</code>. E <code>unset</code> dá coisas diferentes
+  conforme a propriedade. Medido com o navegador, nos elementos desta página:
+</p>
+<table>
+  <tr><th>declaração no arquivo</th><th>o que o navegador computa</th><th>efeito na tela</th></tr>
+  <tr><td><code>background: var(--agente-go)26</code></td>
+      <td><code>rgba(0, 0, 0, 0)</code></td>
+      <td>fundo <b>desaparece</b> — <code>unset</code> de <code>background</code> é transparente</td></tr>
+  <tr><td><code>background: var(--bd-risk-d)15</code></td>
+      <td><code>rgba(0, 0, 0, 0)</code></td>
+      <td>trilha <b>desaparece</b></td></tr>
+  <tr><td><code>border-color: var(--bd-risk-d)30</code></td>
+      <td><code>rgb(155, 39, 52)</code></td>
+      <td>borda fica <b>100% opaca</b> — <code>unset</code> de <code>border-color</code> é
+        <code>currentColor</code>, e o <code>color</code> daquele elemento é o mesmo tom</td></tr>
+</table>
+<p class="meta">
+  <b>Isto importa para a busca: "o fundo some" não é a assinatura do defeito.</b> Em
+  <code>border-color</code>, <code>fill</code>, <code>stroke</code> e <code>outline-color</code> ele
+  aparece como cor <b>reforçada</b>, não ausente — e aí não há nada visivelmente errado para alguém
+  notar. Foi a medição no DOM que mostrou isso; eu tinha escrito "fica cinza" antes de medir, e
+  estava errado.
 </p>
 
 <h3>1 &middot; o modo ativo do compositor do agente (<code>ui/ai-prompt-box.tsx:118</code>)</h3>
 <div class="par">
-  <div class="col"><div class="hd no">hoje — o fundo do ativo não existe</div>
+  <div class="col"><div class="hd no">estava assim — o fundo do ativo não existia</div>
     <div class="escuro">
       <div class="linha">
         <span class="modo" style="background:var(--agente-go)26;border-color:var(--agente-go);color:var(--agente-go)">Dados</span>
@@ -527,29 +567,29 @@
         <span class="modo" style="background:rgba(255,255,255,.08);color:var(--agente-ink)">Corrigir <span style="font-size:10px;opacity:.7">(com o mouse em cima)</span></span>
       </div>
       <p class="meta" style="color:var(--agente-ink3)">"Dados" é o modo <b>ativo</b>. A borda e a letra
-        vieram — são <code>var()</code> puro e válidos. O <b>fundo</b> era
-        <code>var(--agente-go)26</code> e foi descartado. Resultado: o modo <b>ativo</b> tem menos
+        vinham — são <code>var()</code> puro e válidos. O <b>fundo</b> era
+        <code>var(--agente-go)26</code> e era descartado. O modo <b>ativo</b> ficava com menos
         preenchimento que um modo <b>inativo sob o mouse</b>, que ganha
         <code>rgba(255,255,255,.08)</code> pela folha de estilo.</p>
     </div>
   </div>
-  <div class="col"><div class="hd ok">com o alfa resolvido</div>
+  <div class="col"><div class="hd ok">está assim — <code>comAlfa(m.cor, 15)</code></div>
     <div class="escuro">
       <div class="linha">
         <span class="modo" style="background:color-mix(in srgb, var(--agente-go) 15%, transparent);border-color:var(--agente-go);color:var(--agente-go)">Dados</span>
         <span class="modo">Estratégia</span>
         <span class="modo" style="background:rgba(255,255,255,.08);color:var(--agente-ink)">Corrigir <span style="font-size:10px;opacity:.7">(com o mouse em cima)</span></span>
       </div>
-      <p class="meta" style="color:var(--agente-ink3)">Mesmo token, mesmos 15%, mas por
-        <code>color-mix</code>. O ativo volta a ser o mais cheio da fileira — que é a única coisa que a
-        linha precisava dizer.</p>
+      <p class="meta" style="color:var(--agente-ink3)">Mesmo token, mesmos 15% — aqui o sufixo
+        <code>26</code> de fato valia 15%. O ativo volta a ser o mais cheio da fileira, que é a única
+        coisa que a linha precisava dizer.</p>
     </div>
   </div>
 </div>
 
-<h3>2 &middot; a régua do PPR, em Metas (<code>gerencial/desempenho/DesempenhoMetas.tsx:237</code> e <code>:241</code>)</h3>
+<h3>2 &middot; a régua do PPR, em Metas (<code>DesempenhoMetas.tsx:237</code> e <code>:241</code>)</h3>
 <div class="par">
-  <div class="col"><div class="hd no">hoje — a barra perdeu a escala</div>
+  <div class="col"><div class="hd no">estava assim — a barra sem escala</div>
     <div class="card" style="padding:10px 12px">
       <div class="linha" style="gap:14px">
         <span style="font:700 18px/1 sans-serif;min-width:78px;color:var(--bd-go-d)">120%+</span>
@@ -576,21 +616,19 @@
         <span style="font:600 13px ui-monospace,monospace;color:var(--bd-risk-d)">0.5x</span>
         <span class="pill" style="border:1px solid hsl(var(--border));border-color:var(--bd-risk-d)30;color:var(--bd-risk-d);font-size:10px">Abaixo</span>
       </div>
-      <p class="meta"><b>A trilha da barra é transparente.</b> Era
-        <code>var(--bd-risk-d)15</code>, foi descartada — então em "Abaixo" você vê 20% de barra e
-        <b>nada</b> marcando os 80% que faltam. A barra que existe para mostrar <b>proporção</b> perdeu
-        a referência. E a etiqueta ao lado cai pelo mesmo motivo, mas <b>para o outro lado</b>: medido
-        no DOM, a borda dela não fica cinza — fica no tom da faixa a <b>100%</b> em vez dos 30% que o
-        arquivo pede.</p>
+      <p class="meta"><b>A trilha era transparente.</b> Em "Abaixo" via-se 20% de barra e <b>nada</b>
+        marcando os 80% que faltavam — a barra que existe para mostrar <b>proporção</b> perdia a
+        referência. A etiqueta ao lado caía pelo mesmo motivo, mas <b>para o outro lado</b>: a borda
+        ficava no tom da faixa a <b>100%</b> em vez dos 18,8% pedidos.</p>
     </div>
   </div>
-  <div class="col"><div class="hd ok">com o alfa resolvido</div>
+  <div class="col"><div class="hd ok">está assim — <code>comAlfa(c.text, 8.2)</code></div>
     <div class="card" style="padding:10px 12px">
       <div class="linha" style="gap:14px">
         <span style="font:700 18px/1 sans-serif;min-width:78px;color:var(--bd-go-d)">120%+</span>
         <span style="width:1px;height:24px;background:var(--bd-go-d);opacity:.2"></span>
         <span style="font-size:14px;font-weight:600;flex:1;color:var(--bd-go-d)">Supera</span>
-        <span class="trilha" style="background:color-mix(in srgb, var(--bd-go-d) 15%, transparent)">
+        <span class="trilha" style="background:color-mix(in srgb, var(--bd-go-d) 8.2%, transparent)">
           <span style="display:block;height:100%;width:100%;background:var(--bd-go-d);border-radius:999px"></span></span>
         <span style="font:600 13px ui-monospace,monospace;color:var(--bd-go-d)">1.3x</span>
       </div>
@@ -598,7 +636,7 @@
         <span style="font:700 18px/1 sans-serif;min-width:78px;color:var(--bd-warn-d)">80–99%</span>
         <span style="width:1px;height:24px;background:var(--bd-warn-d);opacity:.2"></span>
         <span style="font-size:14px;font-weight:600;flex:1;color:var(--bd-warn-d)">Atende parcialmente</span>
-        <span class="trilha" style="background:color-mix(in srgb, var(--bd-warn-d) 15%, transparent)">
+        <span class="trilha" style="background:color-mix(in srgb, var(--bd-warn-d) 8.2%, transparent)">
           <span style="display:block;height:100%;width:67%;background:var(--bd-warn-d);border-radius:999px"></span></span>
         <span style="font:600 13px ui-monospace,monospace;color:var(--bd-warn-d)">0.8x</span>
       </div>
@@ -606,67 +644,116 @@
         <span style="font:700 18px/1 sans-serif;min-width:78px;color:var(--bd-risk-d)">0–79%</span>
         <span style="width:1px;height:24px;background:var(--bd-risk-d);opacity:.2"></span>
         <span style="font-size:14px;font-weight:600;flex:1;color:var(--bd-risk-d)">Abaixo</span>
-        <span class="trilha" style="background:color-mix(in srgb, var(--bd-risk-d) 15%, transparent)">
+        <span class="trilha" style="background:color-mix(in srgb, var(--bd-risk-d) 8.2%, transparent)">
           <span style="display:block;height:100%;width:20%;background:var(--bd-risk-d);border-radius:999px"></span></span>
         <span style="font:600 13px ui-monospace,monospace;color:var(--bd-risk-d)">0.5x</span>
-        <span class="pill" style="border:1px solid color-mix(in srgb, var(--bd-risk-d) 30%, transparent);color:var(--bd-risk-d);font-size:10px">Abaixo</span>
+        <span class="pill" style="border:1px solid color-mix(in srgb, var(--bd-risk-d) 18.8%, transparent);color:var(--bd-risk-d);font-size:10px">Abaixo</span>
       </div>
-      <p class="meta">A trilha volta, e com ela a proporção: agora <b>20% de barra dentro de uma régua
-        inteira</b> se lê como 20%. Nenhuma cor foi escolhida aqui — é o mesmo token, no mesmo alfa que
-        o arquivo já pedia.</p>
+      <p class="meta">A trilha voltou, e com ela a proporção. <b>Nenhuma cor foi escolhida:</b> é o
+        mesmo token, no alfa que o arquivo já pedia — 8,2%, não os 15% que a versão anterior desta
+        página mostrou.</p>
     </div>
   </div>
 </div>
 <div class="decide">
-  <b>O mecanismo, medido no DOM — e ele não descarta para o mesmo lado sempre</b>
-  Declaração que contém <code>var()</code> e fica inválida depois da substituição <b>não é
-  simplesmente ignorada</b>: ela vira <code>unset</code>. E <code>unset</code> dá coisas diferentes
-  conforme a propriedade. Medido com o navegador nesta página, nos elementos acima:
-  <table style="margin-top:8px">
-    <tr><th>declaração no arquivo</th><th>o que o navegador computa</th><th>efeito na tela</th></tr>
-    <tr><td><code>background: var(--agente-go)26</code></td>
-        <td><code>rgba(0, 0, 0, 0)</code></td>
-        <td>fundo <b>desaparece</b> — <code>unset</code> de <code>background</code> é transparente</td></tr>
-    <tr><td><code>background: var(--bd-risk-d)15</code></td>
-        <td><code>rgba(0, 0, 0, 0)</code></td>
-        <td>trilha <b>desaparece</b></td></tr>
-    <tr><td><code>border-color: var(--bd-risk-d)30</code></td>
-        <td><code>rgb(155, 39, 52)</code></td>
-        <td>borda fica <b>100% opaca</b> — <code>unset</code> de <code>border-color</code> é
-          <code>currentColor</code>, e o <code>color</code> daquele elemento é o mesmo tom</td></tr>
-  </table>
-  <p class="meta" style="margin-top:9px">Isto importa para a busca: <b>"o fundo some" não é a assinatura
-  do defeito.</b> Em <code>border-color</code>, <code>fill</code>, <code>stroke</code> e
-  <code>outline-color</code> ele aparece como cor <b>reforçada</b>, não ausente — e aí não há nada
-  visivelmente errado para alguém notar. Foi a medição no DOM que mostrou isso; eu tinha escrito
-  "fica cinza" antes de medir, e estava errado.</p>
+  <b>Uma coisa que a trilha a 8,2% te devolve para decidir, e é pequena</b>
+  Medido: a trilha a <b>8,2%</b> separa <b>1,138:1</b> da faixa colorida da linha; a 15% separa
+  <b>1,278:1</b>. O degrau cartão↔página que você decidiu em 10/09 foi escolhido na faixa de
+  <b>1,153–1,164:1</b> — então 8,2% fica <b>abaixo</b> do piso que a casa já julgou como o mínimo que
+  faz o trabalho. A barra cheia contra a trilha dá 5,87:1 a 8,2% e 5,22:1 a 15%, ou seja a proporção
+  se lê nas duas. <b>Ficou o valor fiel</b>, porque o conserto prometia não decidir cor. Se a trilha
+  ficar fraca demais quando você abrir a tela, 15% é trocar um número — e aí é decisão sua.
 </div>
 
-<h2><span class="n">B1</span>As outras 11, e uma medição que muda a pergunta</h2>
+<h3>3 &middot; o sentimento na reunião 1a1 (<code>DesempenhoReunioes1a1.tsx:182</code> e <code>:227</code>) — esta você não viu</h3>
 <p>
-  As 11 restantes têm hex de verdade do outro lado, então <b>pintam</b>. Nove são da calculadora
-  IBS/CBS, uma é o chip da Biblioteca de Procedimentos e uma é o badge de cliente em
-  <code>ProcessList</code>. Só que o padrão delas é sempre o mesmo — <b>letra na cor X sobre a cor X a
-  15%, 20% ou 25%</b> —, e esse padrão <b>não tem como passar em AA</b>. Medido no branco:
-</p>
-<table>
-  <tr><th>onde</th><th>hex</th><th class="num">a 15%</th><th class="num">a 20%</th></tr>
-  <tr><td>Anexo XV &middot; interestadual</td><td><code>#F2810A</code></td><td class="num"><span class="cr no">2,30</span></td><td class="num"><span class="cr no">2,19</span></td></tr>
-  <tr><td>Sem anexo</td><td><code>#94A3B8</code></td><td class="num"><span class="cr no">2,27</span></td><td class="num"><span class="cr no">2,18</span></td></tr>
-  <tr><td>Anexo IX</td><td><code>#65A30D</code></td><td class="num"><span class="cr no">2,65</span></td><td class="num"><span class="cr no">2,53</span></td></tr>
-  <tr><td>Anexo I &middot; interno (MT)</td><td><code>#0D9488</code></td><td class="num"><span class="cr no">3,13</span></td><td class="num"><span class="cr no">2,96</span></td></tr>
-  <tr><td>Exportação</td><td><code>#3478F5</code></td><td class="num"><span class="cr no">3,40</span></td><td class="num"><span class="cr no">3,18</span></td></tr>
-  <tr><td>Risco</td><td><code>#E11D48</code></td><td class="num"><span class="cr no">3,71</span></td><td class="num"><span class="cr no">3,41</span></td></tr>
-  <tr><td>Monofásico</td><td><code>#6B46E8</code></td><td class="num"><span class="cr ok">4,60</span></td><td class="num"><span class="cr no">4,26</span></td></tr>
-</table>
-<p class="meta">
-  <b>Um de sete passa, e por 0,10.</b> A razão é aritmética e não tem exceção: quando o fundo é a
-  <b>própria cor</b> diluída no branco, subir o alfa escurece o fundo e <b>não muda a letra</b> — a
-  distância entre os dois só encolhe. A escada só existe se os dois lados vierem de <b>degraus
-  diferentes</b>, que é exatamente o que um par <code>--x</code> / <code>--x-soft</code> é.
+  As duas últimas quebradas, e as que o recorte estreito escondia. A de baixo é a <b>pior das
+  cinco</b>, porque é <b>controle</b>: o seletor de sentimento do formulário tinha o fundo de todos os
+  cinco botões descartado, e o único sinal de seleção que sobrava era o anel.
 </p>
 <div class="par">
-  <div class="col"><div class="hd no">hoje &middot; os chips da calculadora</div>
+  <div class="col"><div class="hd no">estava assim — nenhum dos cinco tinha fundo</div>
+    <div class="card">
+      <p class="meta" style="margin:0 0 7px"><b>Na lista</b>, a pílula do sentimento</p>
+      <div class="linha">
+        <span class="pill" style="background:var(--bd-go-d)20;color:var(--bd-go-d);font-size:11px">Muito bom</span>
+        <span class="cr">sem fundo</span>
+      </div>
+      <p class="meta" style="margin:14px 0 7px"><b>No formulário</b>, o seletor — "Bom" está selecionado</p>
+      <div class="linha" style="gap:6px">
+        <span class="chip" style="background:var(--bd-risk-d)15;color:var(--bd-risk-d);border-radius:8px;padding:5px 10px">Muito ruim</span>
+        <span class="chip" style="background:var(--bd-warn-d)15;color:var(--bd-warn-d);border-radius:8px;padding:5px 10px">Ruim</span>
+        <span class="chip" style="background:hsl(var(--muted-foreground))15;color:hsl(var(--muted-foreground));border-radius:8px;padding:5px 10px">Neutro</span>
+        <span class="chip" style="background:var(--bd-go-d)15;color:var(--bd-go-d);border-radius:8px;padding:5px 10px;outline:2px solid hsl(var(--primary));outline-offset:1px">Bom</span>
+        <span class="chip" style="background:var(--bd-go-d)15;color:var(--bd-go-d);border-radius:8px;padding:5px 10px">Muito bom</span>
+      </div>
+      <p class="meta"><b>E o anel também não funcionava</b>, na mesma linha. Estava escrito
+        <code>ringColor: sentimentColors[i]</code>, e <code>ringColor</code> <b>não é propriedade
+        CSS</b> — o anel do Tailwind lê <code>--tw-ring-color</code>. Então a seleção vinha no anel do
+        <b>tema</b> (o teal acima), não no tom do sentimento. Dois defeitos na mesma declaração, e
+        nenhum dos dois levantava erro.</p>
+    </div>
+  </div>
+  <div class="col"><div class="hd ok">está assim — fundo e anel no tom do sentimento</div>
+    <div class="card">
+      <p class="meta" style="margin:0 0 7px"><b>Na lista</b>, a pílula do sentimento</p>
+      <div class="linha">
+        <span class="pill" style="background:color-mix(in srgb, var(--bd-go-d) 12.5%, transparent);color:var(--bd-go-d);font-size:11px">Muito bom</span>
+        <span class="cr ok">12,5%</span>
+      </div>
+      <p class="meta" style="margin:14px 0 7px"><b>No formulário</b>, o seletor — "Bom" está selecionado</p>
+      <div class="linha" style="gap:6px">
+        <span class="chip" style="background:color-mix(in srgb, var(--bd-risk-d) 8.2%, transparent);color:var(--bd-risk-d);border-radius:8px;padding:5px 10px">Muito ruim</span>
+        <span class="chip" style="background:color-mix(in srgb, var(--bd-warn-d) 8.2%, transparent);color:var(--bd-warn-d);border-radius:8px;padding:5px 10px">Ruim</span>
+        <span class="chip" style="background:color-mix(in srgb, hsl(var(--muted-foreground)) 8.2%, transparent);color:hsl(var(--muted-foreground));border-radius:8px;padding:5px 10px">Neutro</span>
+        <span class="chip" style="background:color-mix(in srgb, var(--bd-go-d) 8.2%, transparent);color:var(--bd-go-d);border-radius:8px;padding:5px 10px;outline:2px solid var(--bd-go-d);outline-offset:1px">Bom</span>
+        <span class="chip" style="background:color-mix(in srgb, var(--bd-go-d) 8.2%, transparent);color:var(--bd-go-d);border-radius:8px;padding:5px 10px">Muito bom</span>
+      </div>
+      <p class="meta">O fundo voltou nos cinco, e o anel do selecionado passou a ser o tom do próprio
+        sentimento — <code>--tw-ring-color</code>, que é o que o Tailwind lê.
+        <b>Sobra uma coisa para você decidir depois, e não é de cor:</b> "Bom" e "Muito bom" usam o
+        <b>mesmo</b> tom (<code>--bd-go</code> e <code>--bd-go-d</code> são o mesmo token no claro),
+        então os dois degraus altos da escada de cinco são indistinguíveis sem ler o rótulo.</p>
+    </div>
+  </div>
+</div>
+<div class="decide">
+  <b>Feito e commitado</b>
+  As cinco foram para <code>comAlfa()</code> em <code>src/lib/corComAlfa.ts</code>, que é
+  <code>color-mix</code> e aceita hex, <code>hsl()</code> e <code>var()</code>. Entrou também a
+  catraca <code>src/lib/filaDoAlfaColado.test.ts</code>, nascendo com o inventário das 13 que ficam
+  <b>agrupado pelo motivo</b> — e provada nos dois sentidos: com
+  <code>background: ${m.cor}26</code> de volta no <code>ai-prompt-box</code>, ela derruba e diz o
+  arquivo. <b>Se você não quiser a catraca, é um arquivo para apagar.</b>
+</div>
+
+<h2><span class="n">B1</span>As 13 que ficam — rodada 2, porque as duas primeiras não serviram</h2>
+<p>
+  Você recusou as duas opções da rodada 1. Relendo com a medição na mão, elas erravam pelo mesmo
+  motivo, e é um motivo que se escreve em uma linha: <b>uma mantinha a falha e a outra trocava a sua
+  paleta</b>. Nenhuma das duas atacava o que de fato está errado.
+</p>
+<table>
+  <tr><th>rodada 1</th><th>por que não serve</th></tr>
+  <tr><td><b>manter o chip como está</b></td>
+      <td>letra na cor X sobre a cor X a 12,5–25%: <b>2,18 a 3,40:1</b>. Não é descuido, é aritmética
+        — quando o fundo é a <b>própria cor</b> diluída, subir o alfa escurece o fundo e <b>não muda
+        a letra</b>. A distância entre os dois só encolhe. Escada precisa de <b>dois degraus</b>.</td></tr>
+  <tr><td><b>levar para <code>--tag-*</code></b></td>
+      <td>passa em AA, mas <b>joga fora a identidade</b>: hoje o teal é "dentro do estado", o laranja é
+        "fora do estado" e o azul é "fora do país" — a matiz <b>carrega o significado</b>. A proposta
+        punha MT em verde e interestadual em roxo. Trocar a paleta para consertar contraste é pagar
+        com a coisa errada.</td></tr>
+</table>
+<p>
+  As três abaixo não fazem nem um nem outro. A <b>G</b> mantém a matiz e a saturação <b>exatas</b> de
+  hoje; a <b>F</b> mantém o hex <b>literal</b> de hoje; a <b>D</b> só serve para um dos dois domínios,
+  e está aqui porque a medição a matou pela metade e isso vale registrado.
+</p>
+
+<h3>G · mesma matiz, mas com dois degraus de verdade</h3>
+<div class="par">
+  <div class="col"><div class="hd no">hoje — cor sobre ela mesma</div>
     <div class="card">
       <div class="linha">
         <span class="chip" style="background:#0D948826;color:#0D9488">Anexo I</span>
@@ -683,117 +770,186 @@
         <b>10px</b>, que é onde o contrato pede <b>mais</b> contraste, não menos.</p>
     </div>
   </div>
-  <div class="col"><div class="hd ok">com par de degraus (<code>--tag-*</code>)</div>
+  <div class="col"><div class="hd ok">G — a matiz é a mesma; muda a luminosidade dos dois lados</div>
     <div class="card">
       <div class="linha">
-        <span class="chip" style="background:hsl(var(--tag-a)/.12);color:hsl(var(--tag-a))">Anexo I</span>
-        <span class="chip" style="background:hsl(var(--tag-b)/.12);color:hsl(var(--tag-b))">Anexo IX</span>
-        <span class="chip" style="background:hsl(var(--tag-c)/.12);color:hsl(var(--tag-c))">Anexo XV</span>
-        <span class="chip" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground))">Sem anexo</span>
+        <span class="chip" style="background:#D9FCF9;color:#0A7167">Anexo I</span>
+        <span class="cr ok">5,39</span>
+        <span class="chip" style="background:#EEFCD9;color:#467109">Anexo IX</span>
+        <span class="cr ok">5,39</span>
       </div>
       <div class="linha">
-        <span class="chip" style="background:hsl(var(--tag-a)/.12);color:hsl(var(--tag-a));border-radius:999px;font-size:10px;text-transform:uppercase;letter-spacing:.06em">MT</span>
-        <span class="chip" style="background:hsl(var(--tag-c)/.12);color:hsl(var(--tag-c));border-radius:999px;font-size:10px;text-transform:uppercase;letter-spacing:.06em">Inter.</span>
-        <span class="chip" style="background:hsl(var(--tag-b)/.12);color:hsl(var(--tag-b));border-radius:999px;font-size:10px;text-transform:uppercase;letter-spacing:.06em">Exp.</span>
+        <span class="chip" style="background:#FDEBD8;color:#763F05">Anexo XV</span>
+        <span class="cr ok">7,27</span>
+        <span class="chip" style="background:#E6EAEF;color:#313B4A">Sem anexo</span>
+        <span class="cr ok">9,37</span>
       </div>
-      <p class="meta">6,24 &middot; 6,85 &middot; 5,69:1, e o "sem anexo" vai para <code>muted</code> —
-        porque <b>ausência de dado não é categoria</b>, que é o que a rodada do Audit já decidiu para
-        <code>sem_registro</code>.</p>
-    </div>
-  </div>
-</div>
-
-<h2><span class="n">B2</span>As três saídas para o <code>${cor}NN</code></h2>
-<div class="par3">
-  <div class="col"><div class="hd">A &middot; <code>color-mix</code>, no lugar</div>
-    <div class="card">
-      <pre>background: color-mix(
-  in srgb, var(--x) 15%, transparent
-)</pre>
-      <p class="meta">É o que os dois casos do Mapa já usaram (<code>ProcessoDetalheModal</code>,
-        <code>ProjetoDetalhe</code>), e <code>color-mix</code> já está no <code>index.css</code> e no
-        <code>BoardStatStrip</code>. Funciona com hex <b>e</b> com <code>var()</code>.<br><br>
-        <b>Fecha:</b> as 3 quebradas, hoje, sem decisão de cor nenhuma.<br>
-        <b>Não fecha:</b> os contrastes de 2,18:1 — o chip continua sendo cor sobre ela mesma. E não
-        impede a 15ª ocorrência.</p>
-    </div>
-  </div>
-  <div class="col"><div class="hd">B &middot; A + catraca</div>
-    <div class="card">
-      <pre>// src/lib/filaDoAlfaColado.test.ts
-const FILA: Record&lt;string, number&gt; = {};</pre>
-      <p class="meta">A catraca nasce <b>vazia</b>, na forma da <code>filaDoSlate</code>: o
-        <code>grep</code> do alfa colado vira asserção de igualdade exata, e qualquer ocorrência nova
-        derruba o teste dizendo o arquivo.<br><br>
-        <b>Por que é necessária e não zelo:</b> este padrão escapou de <b>quatro</b> lotes de conversão
-        porque nenhuma regra de <code>eslint</code> tem o que dizer sobre uma template string. É o mesmo
-        mecanismo do slate — forma válida, nenhuma regra aplicável — e o slate chegou a 1529
-        assim.<br><br>
-        <b>Vinte linhas</b>, e é a única das três que não envelhece.</p>
-    </div>
-  </div>
-  <div class="col"><div class="hd" style="color:hsl(var(--tag-c))">C &middot; a cor para de viajar</div>
-    <div class="card">
-      <pre>&lt;KpiCard tom="exportacao" … /&gt;
-
-.chip[data-tom="exportacao"]{
-  color: hsl(var(--tag-b));
-  background: hsl(var(--tag-b)/.12);
-}</pre>
-      <p class="meta">O componente deixa de <b>receber uma cor</b> e passa a receber a
-        <b>categoria</b>. Nenhum valor de cor atravessa JavaScript — então o alfa colado deixa de ser
-        possível <b>por construção</b>, não por vigilância.<br><br>
-        <b>Fecha junto:</b> as 3 quebradas, os 11 contrastes reprovados, e os
-        <code>accent="#3478F5"</code> passados como prop em 13 chamadas da calculadora.<br><br>
-        <b>Custo:</b> é a maior das três, e toca 9 arquivos da calculadora.</p>
+      <div class="linha">
+        <span class="chip" style="background:#D9FCF9;color:#0A7167;border-radius:999px;font-size:10px;text-transform:uppercase;letter-spacing:.06em">MT</span>
+        <span class="chip" style="background:#FDEBD8;color:#763F05;border-radius:999px;font-size:10px;text-transform:uppercase;letter-spacing:.06em">Inter.</span>
+        <span class="chip" style="background:#D8E5FD;color:#062D75;border-radius:999px;font-size:10px;text-transform:uppercase;letter-spacing:.06em">Exp.</span>
+        <span class="cr ok">10,09</span>
+      </div>
+      <p class="meta"><b>Teal continua sendo MT, laranja continua sendo interestadual, azul continua
+        sendo exportação.</b> A matiz e a saturação são idênticas às de hoje — o que muda é só a
+        luminosidade: <b>texto a 24%, fundo a 92%</b>. Os sete passam, o pior par a <b>5,39:1</b>.</p>
     </div>
   </div>
 </div>
 <div class="decide disrupt">
-  <b>Por que eu faria a C na calculadora, e a B no resto — e o que destrava isso</b>
-  A C só é viável se a calculadora <b>não</b> estiver atrás da decisão 4, e é aqui que a medição mudou
-  o mapa. O <code>fase-3a-cor-crua-na-mao.md</code> arquiva a calculadora junto com o gráfico:
-  <i>"o <code>#0d9488</code> residual está concentrado em duas famílias, e as duas são 3b ou fase 4"</i>.
-  Medido hoje: <code>html-to-image</code> aparece em <b>um</b> arquivo de produto
-  (<code>lib/roiVisualExport.ts</code>), com <b>um</b> consumidor (<code>DashboardRoiPage</code>). A
-  calculadora exporta <b>CSV</b>. <b>As 9 ocorrências dela nunca estiveram atrás daquela decisão</b> —
-  ficaram esperando uma resposta que não era sobre elas.<br><br>
-  <b>O recorte honesto, e ele importa:</b> os <b>chips, badges e quadradinhos de ícone</b> convertem
-  hoje — são CSS, e <code>var()</code> resolve. As <b>séries do Recharts</b> não entram: elas recebem a
-  cor em <b>atributo</b> (<code>&lt;Cell fill={…}&gt;</code>), e <code>var()</code> não resolve em
-  atributo de apresentação. Isso é <b>mecanismo</b>, não decisão 4 — e é uma frente própria, medível,
-  para outro dia. <b>Nenhuma das 14 ocorrências desta página é série de gráfico.</b>
+  <b>Por que eu faria a G, e a única coisa que ela te custa</b>
+  Ela é a resposta exata ao que estava errado: o defeito nunca foi a matiz, foi a <b>ausência de
+  escada</b>. Cor sobre ela mesma não tem dois degraus; derivar os dois degraus da <b>mesma</b> matiz
+  cria a escada sem mexer em nada que signifique algo. É também a única das três que atende os
+  <b>dois</b> domínios (anexo e natureza) e os seis tons de cartão da tela, com uma regra só.<br><br>
+  Medido, o que ela te custa: <b>os sete fundos claros ficam a 1,015:1 entre si no pior par</b>
+  (Exportação × Risco). Eles separam por <b>matiz</b>, não por luminosidade — então quem não
+  distingue matiz vê sete chips do mesmo tom. A defesa é que o <b>rótulo está escrito dentro do
+  chip</b> em todos os casos, e a cor ali nunca foi a única pista; mas isso é uma afirmação sobre a
+  tela, e você conhece a tela melhor do que eu.<br><br>
+  Onde isso mora: os seis tons viram token — um <code>--anexo-*</code> / <code>--natureza-*</code> por
+  degrau, ou um par por chave no mapa de domínio da calculadora, que é onde o contrato manda status
+  morar. A conversão é mecânica depois da sua escolha.
+</div>
+
+<h3>F · a cor sai de trás da letra e vira marcador</h3>
+<div class="par">
+  <div class="col"><div class="hd ok">F — o hex de hoje, intacto, mas como gráfico</div>
+    <div class="card">
+      <div class="linha">
+        <span class="chip" style="background:hsl(var(--muted));color:hsl(var(--foreground));padding-left:0;overflow:hidden">
+          <span style="display:inline-block;width:4px;height:20px;background:#0D9488"></span>
+          <span style="padding:0 6px 0 4px">Anexo I</span></span>
+        <span class="chip" style="background:hsl(var(--muted));color:hsl(var(--foreground));padding-left:0;overflow:hidden">
+          <span style="display:inline-block;width:4px;height:20px;background:#65A30D"></span>
+          <span style="padding:0 6px 0 4px">Anexo IX</span></span>
+        <span class="chip" style="background:hsl(var(--muted));color:hsl(var(--foreground));padding-left:0;overflow:hidden">
+          <span style="display:inline-block;width:4px;height:20px;background:#F2810A"></span>
+          <span style="padding:0 6px 0 4px">Anexo XV</span></span>
+      </div>
+      <div class="linha">
+        <span class="chip" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground));padding-left:0;overflow:hidden">
+          <span style="display:inline-block;width:4px;height:20px;background:#94A3B8"></span>
+          <span style="padding:0 6px 0 4px">Sem anexo</span></span>
+        <span class="chip" style="background:hsl(var(--muted));color:hsl(var(--foreground));padding-left:0;overflow:hidden">
+          <span style="display:inline-block;width:4px;height:20px;background:#3478F5"></span>
+          <span style="padding:0 6px 0 4px">Exportação</span></span>
+      </div>
+      <p class="meta">A letra vai para <code>foreground</code> (<b>17,32:1</b>) ou
+        <code>muted-foreground</code> (<b>5,64:1</b>) sobre <code>muted</code>, e o hex de hoje fica
+        <b>cheio</b>, como faixa. É o mesmo recurso que o <code>KpiCard</code> da própria calculadora
+        já usa no topo do cartão — <code>h-[3px]</code> com o acento cheio.</p>
+    </div>
+  </div>
+  <div class="col"><div class="hd">o que a F custa, medido</div>
+    <div class="card">
+      <table style="margin-top:0">
+        <tr><th>marcador</th><th class="num">contra o cartão</th><th>3:1?</th></tr>
+        <tr><td>Monofásico <code>#6B46E8</code></td><td class="num">5,72</td><td><span class="cr ok">ok</span></td></tr>
+        <tr><td>Risco <code>#E11D48</code></td><td class="num">4,69</td><td><span class="cr ok">ok</span></td></tr>
+        <tr><td>Exportação <code>#3478F5</code></td><td class="num">4,07</td><td><span class="cr ok">ok</span></td></tr>
+        <tr><td>Anexo I <code>#0D9488</code></td><td class="num">3,74</td><td><span class="cr ok">ok</span></td></tr>
+        <tr><td>Anexo IX <code>#65A30D</code></td><td class="num">3,09</td><td><span class="cr ok">ok</span></td></tr>
+        <tr><td>Anexo XV <code>#F2810A</code></td><td class="num">2,65</td><td><span class="cr no">não</span></td></tr>
+        <tr><td>Sem anexo <code>#94A3B8</code></td><td class="num">2,56</td><td><span class="cr no">não</span></td></tr>
+      </table>
+      <p class="meta">Marcador gráfico pede <b>3:1</b> (WCAG 1.4.11), não 4,5:1 — então cinco dos sete
+        <b>já passam com o hex intacto</b>. Os dois que faltam precisam descer pouco: o laranja de
+        <code>L=49%</code> para <code>46%</code> (<code>#E17809</code>) e o cinza de
+        <code>65%</code> para <code>60%</code> (<code>#8496AE</code>).</p>
+      <p class="meta"><b>O risco da F é outro, e é seu:</b> ela <b>tira a cor de dentro do chip</b>. Você
+        já recusou isso uma vez — "controle tem que ficar visível e informar o estado". Estes chips não
+        são controle, mas em <code>PorEstadoUfs</code> eles moram dentro de uma <b>linha clicável</b>,
+        e aí a fronteira é discutível.</p>
+    </div>
+  </div>
+</div>
+
+<h3>D · a escada de um matiz — e por que ela morreu pela metade</h3>
+<div class="par">
+  <div class="col"><div class="hd no">D como chip claro: <b>não funciona</b></div>
+    <div class="card">
+      <div class="linha">
+        <span class="chip" style="background:#D9FCF9;color:#075F58">MT</span>
+        <span class="chip" style="background:#D9FCF9;color:#0A756C">Inter.</span>
+        <span class="chip" style="background:#D9FCF9;color:#0D877C">Exp.</span>
+      </div>
+      <p class="meta">A ideia era boa: natureza <b>não é categoria, é distância</b> — dentro do estado,
+        fora do estado, fora do país é uma <b>sequência</b>, e sequência pede rampa de um matiz, não
+        paleta categórica. Só que os três degraus claros do teal institucional ficam a
+        <b>1,000:1 e 1,006:1</b> entre si. <b>São o mesmo fundo.</b> A escada só existe na ponta
+        escura.</p>
+    </div>
+  </div>
+  <div class="col"><div class="hd">D como preenchimento cheio: funciona, e só para natureza</div>
+    <div class="card">
+      <div class="linha">
+        <span class="chip" style="background:#0D877C;color:#fff">MT</span>
+        <span class="cr">4,40</span>
+        <span class="chip" style="background:#0A756C;color:#fff">Inter.</span>
+        <span class="cr ok">5,56</span>
+        <span class="chip" style="background:#075F58;color:#fff">Exp.</span>
+        <span class="cr ok">7,54</span>
+      </div>
+      <p class="meta">Como fileira cheia a escada aparece: os degraus vizinhos separam <b>1,265:1</b> e
+        <b>1,354:1</b>, e branco sobre eles dá 4,40 / 5,56 / 7,54 — o primeiro degrau fica
+        <b>abaixo de 4,5:1</b> e precisaria descer um pouco.</p>
+      <p class="meta"><b>Por que ela não resolve a tela:</b> serve para <b>natureza</b>, que é ordenada,
+        e <b>não serve para anexo</b>, que não é — Anexo I, IX e XV não são "mais" nem "menos" um do
+        outro. Ficariam duas gramáticas na mesma tela. Está aqui porque a medição a matou pela metade,
+        e isso é registro: <b>rampa de um matiz não sobrevive na faixa clara</b>.</p>
+    </div>
+  </div>
+</div>
+<div class="decide">
+  <b>E o que eu já sei sem você responder: a calculadora não espera a decisão 4</b>
+  O <code>fase-3a-cor-crua-na-mao.md</code> arquivava a calculadora junto com o gráfico. Medido:
+  <code>html-to-image</code> aparece em <b>um</b> arquivo de produto
+  (<code>lib/roiVisualExport.ts</code>), com <b>um</b> consumidor (<code>DashboardRoiPage</code>); a
+  calculadora exporta <b>CSV</b>. <b>As ocorrências dela nunca estiveram atrás daquela
+  decisão.</b><br><br>
+  O recorte honesto: <b>chip, badge e quadrado de ícone</b> convertem hoje, porque são CSS e
+  <code>var()</code> resolve. As <b>séries do Recharts</b> não entram — elas recebem a cor em
+  <b>atributo</b> (<code>&lt;Cell fill={…}&gt;</code>), onde <code>var()</code> não resolve. Isso é
+  <b>mecanismo</b>, não decisão 4, e é frente própria. Nenhuma das 13 da fila é série de gráfico.
 </div>
 </div>
 
 <!-- =========================== FECHA =========================== -->
 <div class="fecha">
-<h2>O que eu preciso de você</h2>
-<ol class="q">
-  <li><b>As três quebradas (B): conserto agora, em commit próprio?</b> É <code>color-mix</code> em três
-    linhas, sem decisão de cor dentro — o modo ativo do agente volta a ter fundo e a régua do PPR volta
-    a ter trilha. <b>Eu faria isto primeiro</b>, antes de tudo nesta página.</li>
-  <li><b>O badge de papel (A1): A, B ou C?</b> Se for a C, a pergunta de dentro é uma só — a cor marca
-    <b>só</b> o eixo "de fora da PSA" (cliente e time cliente), e a hierarquia vira peso? <b>Eu faria a
-    C.</b></li>
-  <li><b>A prioridade da tarefa (A2): a escada de quatro degraus, ou só "Urgente" colorido?</b> A
-    escada de quatro é a <b>mesma</b> que a página do vermelho e do verde propôs para a prioridade do
-    projeto — responder uma vez fecha as duas. <b>Eu faria a escada de quatro</b>, porque a
-    alternativa enxuta encosta numa decisão sua já tomada em outro contexto.<br>
-    E <b>uma sub-pergunta que o mapa não consegue evitar: a superfície é <code>-soft</code> ou
-    <code>/10</code>?</b> As quatro cópias usam as duas, e é essa escolha que decide se a pílula
-    acompanha o fundo no escuro. Eu fixaria <code>-soft</code>, para a pílula de prioridade ler igual
-    em qualquer área.</li>
-  <li><b>Os três mecânicos (A3): posso ir sem mais pergunta?</b> <code>ACTION_LABELS</code> não muda um
-    pixel. <code>KIND_COLOR</code> e o filtro do dashboard trocam azul e indigo crus por
-    <code>tag-b</code> e <code>tag-c</code>.</li>
-  <li><b>A calculadora (B1/B2): C, com o recorte de chip?</b> Os chips e os quadradinhos de ícone vão
-    para <code>--tag-*</code>; as séries do Recharts <b>ficam</b>, com o motivo medido escrito na
-    catraca. Se preferir o caminho curto, é a A — resolve as 3 quebradas e deixa os 11 contrastes
-    de pé.</li>
-  <li><b>A catraca do alfa colado: entra junto?</b> Nasce vazia. Sem ela, a 15ª ocorrência entra sem
-    ninguém ver, como as 14 entraram.</li>
-</ol>
+<h2>Onde cada uma está</h2>
+<table>
+  <tr><th>frente</th><th>estado</th></tr>
+  <tr><td><b>B</b> · as quebradas no ar</td>
+      <td><b>FEITO</b> em <code>232b9864</code>. Eram <b>cinco</b>, não três. Entrou
+        <code>lib/corComAlfa.ts</code> e a catraca <code>filaDoAlfaColado.test.ts</code>, provada nos
+        dois sentidos. <b>Falta você abrir as três telas</b> — e ver se a trilha do PPR a 8,2% está
+        firme o suficiente (é o único número desta frente que ficou em aberto).</td></tr>
+  <tr><td><b>A1</b> · o badge de papel</td>
+      <td><b>DECIDIDO: opção C.</b> A cor sai da hierarquia e marca só o eixo "de fora da PSA". Em
+        execução — vira <code>ui/PapelBadge</code>, e <code>ROLE_BADGE_CLASSES</code> e
+        <code>ROLE_VISUALS</code> deixam de existir.</td></tr>
+  <tr><td><b>A2</b> · a prioridade da tarefa</td>
+      <td><b>DECIDIDO: um mapa, e a escada sobe</b> (<code>neutro → fila → alerta → ajuste</code>). Em
+        execução. <b>Sobra uma sub-pergunta:</b> a superfície é <code>-soft</code> (luminosidade fixa)
+        ou <code>/10</code> (alfa)? As quatro cópias usam as duas. Eu fixaria <code>-soft</code>.</td></tr>
+  <tr><td><b>A3</b> · os três mecânicos</td>
+      <td><b>EM ABERTO, e sem pergunta de cor dentro.</b> <code>ACTION_LABELS</code> não muda um pixel.
+        <code>KIND_COLOR</code> e o filtro do dashboard trocam azul e indigo crus por
+        <code>tag-b</code> e <code>tag-c</code>. Posso ir?</td></tr>
+  <tr><td><b>B1</b> · as 13 da calculadora</td>
+      <td><b>RODADA 2, esperando você.</b> As duas primeiras erravam pelo mesmo motivo — uma mantinha a
+        falha, a outra trocava a sua paleta. As três novas: <b>G</b> (mesma matiz, dois degraus de
+        verdade), <b>F</b> (o hex de hoje intacto, como marcador) e <b>D</b> (morta pela metade, e o
+        porquê está medido). <b>Eu faria a G.</b></td></tr>
+</table>
+<p class="meta" style="margin-top:14px">
+  <b>E uma que não é minha:</b> a catraca <code>filaDoAlerta</code> está <b>vermelha</b> em
+  <code>develop</code>, desde antes deste trabalho — conferido com <code>stash</code>. O commit
+  <code>07f4d74b</code> tirou as 2 ocorrências âmbar de <code>EquipeKanban.tsx</code> e não encolheu a
+  fila, que é o caso que a mensagem da própria catraca descreve ("Contagem que CAIU… a conversão
+  andou"). O conserto é apagar aquela entrada do <code>FILA_DO_ALERTA</code>.
+</p>
 </div>
 
 <div class="rodape">

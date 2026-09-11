@@ -84,19 +84,40 @@ concatenado no fim do hex.** É por isso que os arquivos abaixo continuam crus.
 **Medido em 01/09/2026: sobram 13 ocorrências, em 10 arquivos** — todas fora do Mapa, e cada
 uma trava a conversão do arquivo dela. Para a fila de hoje, meça em vez de confiar nesta linha:
 
-> **Remedido em 11/09/2026: são 14, nos mesmos 10 arquivos — e três já não travam nada, porque
-> já quebraram.** Em `ui/ai-prompt-box.tsx:118` e em `DesempenhoMetas.tsx:237` e `:241` o valor que
-> chega **já é `var(--token)`**, não hex, então o CSS já é inválido hoje. Lido no DOM: o fundo do modo
-> ativo do compositor do agente **não existe** (fica com menos preenchimento que um modo inativo sob o
-> mouse) e a trilha das barras da régua do PPR **não existe** (a barra perdeu a referência de
-> proporção). E uma correção de método: declaração com `var()` inválida **não é ignorada, vira
-> `unset`** — em `background` isso é transparente, mas em `border-color` é `currentColor`, e aí a borda
-> fica **100% opaca** em vez dos 30% pedidos. Quem procurar só "fundo que sumiu" perde esses casos.
-> As duas telas estão renderizadas lado a lado em
+> **Remedido em 11/09/2026: eram 18, em 11 arquivos — e CINCO não travavam nada, porque já
+> tinham quebrado. As cinco foram consertadas** em `232b9864`, com `comAlfa()` em
+> `src/lib/corComAlfa.ts` e catraca própria (`filaDoAlfaColado.test.ts`), e sobram **13** na fila,
+> inventariadas por motivo.
+>
+> **A linha acima dizia 13, a primeira remedição disse 14, e as duas contaram menos** — porque o
+> recorte da busca listava os caracteres aceitos dentro das chaves. Faltava `[`/`]` (mais duas em
+> `UfDrillDown`) e depois faltava **espaço e sinal**, e foi aí que apareceram as duas de
+> `DesempenhoReunioes1a1` (`${sentimentColors[r.sentimento - 1]}20`) — justamente as duas últimas
+> quebradas. O comando abaixo é a forma que vale: **qualquer coisa dentro das chaves**, com os dois
+> dígitos hex encostados na **crase**, que é o que separa alfa colado de interpolação legítima
+> terminando em dois dígitos.
+>
+> Em `ui/ai-prompt-box.tsx:118`, `DesempenhoMetas.tsx:237` e `:241`, e
+> `DesempenhoReunioes1a1.tsx:182` e `:227` o valor que chegava **já era `var(--token)`**, não hex.
+> Lido no DOM: o fundo do modo ativo do compositor do agente **não existia** (ficava com menos
+> preenchimento que um modo inativo sob o mouse), a trilha das barras da régua do PPR **não existia**
+> (a barra perdia a referência de proporção) e os cinco botões do seletor de sentimento da reunião
+> 1a1 ficavam sem fundo — este último é **controle**, e o único sinal de seleção que sobrava era o
+> anel, que também não funcionava (estava escrito `ringColor`, que não é propriedade CSS; o anel do
+> Tailwind lê `--tw-ring-color`).
+>
+> **Duas correções de método.** O **sufixo é HEX, não porcentagem**: `26` é 15%, mas `15` é **8,2%** e
+> `30` é **18,8%** — a tabela inteira está no docstring de `corComAlfa.ts`. E declaração com `var()`
+> inválida **não é ignorada, vira `unset`** — em `background` isso é transparente, mas em
+> `border-color` é `currentColor`, e aí a borda fica **100% opaca** em vez dos 18,8% pedidos. Quem
+> procurar só "fundo que sumiu" perde metade dos casos.
+>
+> As três telas estão renderizadas, antes e depois, em
 > [`comparacoes-de-cor/cor-que-viaja-como-dado.html`](comparacoes-de-cor/cor-que-viaja-como-dado.html).
 
 ```bash
-grep -rnE '\$\{[A-Za-z_.]+\}[0-9a-fA-F]{2}' src --include=*.tsx --include=*.ts
+# qualquer coisa dentro das chaves, hex encostado na crase
+grep -rnoE '\$\{[^}]*\}[0-9a-fA-F]{2}`' src --include=*.tsx --include=*.ts
 ```
 
 ## O que ficou de fora, e não é esquecimento

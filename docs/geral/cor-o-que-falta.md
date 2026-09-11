@@ -364,17 +364,26 @@ domínios de uma vez — foi ele que ficou com o masculino.
 
 ## 5. Onde a dívida pode crescer sem ninguém ver
 
-> **O `${cor}NN` saiu de "bloqueio de conversão" para defeito no ar, em 11/09/2026.** Medido:
-> **14 ocorrências em 10 arquivos**, e **três delas já estão quebradas** — o valor que chega já é
-> `var(--token)`, então o CSS já é inválido. Renderizado, com o CSS literal dos arquivos e o valor
+> **O `${cor}NN` saiu de "bloqueio de conversão" para defeito no ar, e FECHOU em parte em
+> 11/09/2026** (commit `232b9864`). Medido: eram **18 ocorrências em 11 arquivos** — não 14 em 10,
+> como a primeira contagem dizia —, e **cinco estavam quebradas**: o valor que chegava já era
+> `var(--token)`, então o CSS já era inválido. As cinco foram para `comAlfa()`
+> (`src/lib/corComAlfa.ts`), com catraca `filaDoAlfaColado.test.ts` e as **13** restantes
+> inventariadas por motivo. Renderizado, com o CSS literal dos arquivos e o valor
 > computado lido no DOM, em
 > [`comparacoes-de-cor/cor-que-viaja-como-dado.html`](comparacoes-de-cor/cor-que-viaja-como-dado.html), parte B.
 >
-> **Duas coisas para quem for caçar isto:** declaração com `var()` que fica inválida **não é ignorada, vira
+> **Três coisas para quem for caçar isto.** Primeira, o **recorte da busca saiu estreito duas
+> vezes**: listar os caracteres aceitos dentro das chaves perdeu `[`/`]` (mais duas em
+> `UfDrillDown`) e depois perdeu **espaço e sinal** (mais duas em `DesempenhoReunioes1a1` — que
+> eram justamente as duas últimas QUEBRADAS). A forma que vale é qualquer coisa dentro das chaves,
+> com os dois dígitos hex encostados na **crase**. Segunda, o **sufixo é HEX**: `26` é 15%, mas
+> `15` é **8,2%** e `30` é **18,8%** — ler como porcentagem quase dobra o alfa. Terceira, e é a
+> que engana mais: declaração com `var()` que fica inválida **não é ignorada, vira
 > `unset`** — e `unset` dá coisas diferentes por propriedade. Em `background` é transparente (o fundo some,
 > que é a assinatura conhecida); em `border-color` é `currentColor`, então a borda fica **100% opaca** em vez
-> dos 30% pedidos e **nada parece errado**. Procurar "fundo que sumiu" perde metade dos casos.
-> E o padrão dos 11 restantes — letra na cor X sobre a cor X a 15–25% — dá **2,18 a 3,40:1** e não tem como
+> dos 18,8% pedidos e **nada parece errado**. Procurar "fundo que sumiu" perde metade dos casos.
+> E o padrão das 13 restantes — letra na cor X sobre a cor X a 15–25% — dá **2,18 a 3,40:1** e não tem como
 > passar em AA: a escada só existe com dois degraus, que é o que um par `--x`/`--x-soft` é.
 
 
