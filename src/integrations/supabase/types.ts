@@ -3243,94 +3243,108 @@ export type Database = {
       }
       exploracao_rural: {
         Row: {
-          area_explorada: number | null
-          area_total: number | null
-          area_unidade: string
-          bem_id: string | null
           cliente_id: string
           created_at: string
           created_by: string | null
+          culturas: string | null
           data_assinatura: string | null
           data_encerramento: string | null
+          data_inicio_vigencia: string | null
           declarado_irpf: boolean
-          explorador_nome: string | null
-          explorador_pessoa_id: string | null
+          documento_comprobatorio_id: string | null
+          estudo_fiscal_documento_id: string | null
           id: string
-          imovel_descricao: string | null
-          matricula_texto: string | null
-          municipio: string | null
-          outorgante_nome: string | null
+          inclui_pecuaria: boolean
+          indivisao_aviso_quantidade: number | null
+          indivisao_aviso_unidade: string | null
+          indivisao_prorrogavel: boolean | null
+          liquidacao_numero_parcelas: number | null
+          liquidacao_periodicidade: string | null
+          outorgante_capital_social_na_assinatura: number | null
           outorgante_pessoa_id: string | null
+          pecuaria_modalidades: string[]
+          percentual_explorador: number | null
+          percentual_outorgante: number | null
+          permite_penhor: boolean
+          prazo_indivisao_quantidade: number | null
+          prazo_indivisao_unidade: string | null
           referencia: string | null
+          regra_administracao: string | null
           sacas_por_hectare: number | null
           tipo_exploracao: Database["public"]["Enums"]["osg_tipo_exploracao"]
-          uf: string | null
           updated_at: string
           updated_by: string | null
-          vigencia: string | null
+          vigencia_prorrogavel: boolean
         }
         Insert: {
-          area_explorada?: number | null
-          area_total?: number | null
-          area_unidade?: string
-          bem_id?: string | null
           cliente_id: string
           created_at?: string
           created_by?: string | null
+          culturas?: string | null
           data_assinatura?: string | null
           data_encerramento?: string | null
+          data_inicio_vigencia?: string | null
           declarado_irpf?: boolean
-          explorador_nome?: string | null
-          explorador_pessoa_id?: string | null
+          documento_comprobatorio_id?: string | null
+          estudo_fiscal_documento_id?: string | null
           id?: string
-          imovel_descricao?: string | null
-          matricula_texto?: string | null
-          municipio?: string | null
-          outorgante_nome?: string | null
+          inclui_pecuaria?: boolean
+          indivisao_aviso_quantidade?: number | null
+          indivisao_aviso_unidade?: string | null
+          indivisao_prorrogavel?: boolean | null
+          liquidacao_numero_parcelas?: number | null
+          liquidacao_periodicidade?: string | null
+          outorgante_capital_social_na_assinatura?: number | null
           outorgante_pessoa_id?: string | null
+          pecuaria_modalidades?: string[]
+          percentual_explorador?: number | null
+          percentual_outorgante?: number | null
+          permite_penhor?: boolean
+          prazo_indivisao_quantidade?: number | null
+          prazo_indivisao_unidade?: string | null
           referencia?: string | null
+          regra_administracao?: string | null
           sacas_por_hectare?: number | null
           tipo_exploracao: Database["public"]["Enums"]["osg_tipo_exploracao"]
-          uf?: string | null
           updated_at?: string
           updated_by?: string | null
-          vigencia?: string | null
+          vigencia_prorrogavel?: boolean
         }
         Update: {
-          area_explorada?: number | null
-          area_total?: number | null
-          area_unidade?: string
-          bem_id?: string | null
           cliente_id?: string
           created_at?: string
           created_by?: string | null
+          culturas?: string | null
           data_assinatura?: string | null
           data_encerramento?: string | null
+          data_inicio_vigencia?: string | null
           declarado_irpf?: boolean
-          explorador_nome?: string | null
-          explorador_pessoa_id?: string | null
+          documento_comprobatorio_id?: string | null
+          estudo_fiscal_documento_id?: string | null
           id?: string
-          imovel_descricao?: string | null
-          matricula_texto?: string | null
-          municipio?: string | null
-          outorgante_nome?: string | null
+          inclui_pecuaria?: boolean
+          indivisao_aviso_quantidade?: number | null
+          indivisao_aviso_unidade?: string | null
+          indivisao_prorrogavel?: boolean | null
+          liquidacao_numero_parcelas?: number | null
+          liquidacao_periodicidade?: string | null
+          outorgante_capital_social_na_assinatura?: number | null
           outorgante_pessoa_id?: string | null
+          pecuaria_modalidades?: string[]
+          percentual_explorador?: number | null
+          percentual_outorgante?: number | null
+          permite_penhor?: boolean
+          prazo_indivisao_quantidade?: number | null
+          prazo_indivisao_unidade?: string | null
           referencia?: string | null
+          regra_administracao?: string | null
           sacas_por_hectare?: number | null
           tipo_exploracao?: Database["public"]["Enums"]["osg_tipo_exploracao"]
-          uf?: string | null
           updated_at?: string
           updated_by?: string | null
-          vigencia?: string | null
+          vigencia_prorrogavel?: boolean
         }
         Relationships: [
-          {
-            foreignKeyName: "exploracao_rural_bem_id_fkey"
-            columns: ["bem_id"]
-            isOneToOne: false
-            referencedRelation: "bem"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "exploracao_rural_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -3339,15 +3353,220 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "exploracao_rural_explorador_pessoa_id_fkey"
-            columns: ["explorador_pessoa_id"]
+            foreignKeyName: "exploracao_rural_documento_comprobatorio_id_fkey"
+            columns: ["documento_comprobatorio_id"]
             isOneToOne: false
-            referencedRelation: "pessoa"
+            referencedRelation: "documento_arquivo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exploracao_rural_estudo_fiscal_documento_id_fkey"
+            columns: ["estudo_fiscal_documento_id"]
+            isOneToOne: false
+            referencedRelation: "documento_arquivo"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "exploracao_rural_outorgante_pessoa_id_fkey"
             columns: ["outorgante_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exploracao_rural_imovel: {
+        Row: {
+          area_explorada: number | null
+          area_unidade: string
+          created_at: string
+          created_by: string | null
+          exploracao_rural_id: string
+          id: string
+          matricula_id: string
+          ordem: number
+          origem_contraparte_pessoa_id: string | null
+          origem_exploracao_rural_id: string | null
+          origem_externa_id: string | null
+          origem_tipo: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          area_explorada?: number | null
+          area_unidade?: string
+          created_at?: string
+          created_by?: string | null
+          exploracao_rural_id: string
+          id?: string
+          matricula_id: string
+          ordem?: number
+          origem_contraparte_pessoa_id?: string | null
+          origem_exploracao_rural_id?: string | null
+          origem_externa_id?: string | null
+          origem_tipo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          area_explorada?: number | null
+          area_unidade?: string
+          created_at?: string
+          created_by?: string | null
+          exploracao_rural_id?: string
+          id?: string
+          matricula_id?: string
+          ordem?: number
+          origem_contraparte_pessoa_id?: string | null
+          origem_exploracao_rural_id?: string | null
+          origem_externa_id?: string | null
+          origem_tipo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exploracao_rural_imovel_exploracao_rural_id_fkey"
+            columns: ["exploracao_rural_id"]
+            isOneToOne: false
+            referencedRelation: "exploracao_rural"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exploracao_rural_imovel_matricula_id_fkey"
+            columns: ["matricula_id"]
+            isOneToOne: false
+            referencedRelation: "matricula"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exploracao_rural_imovel_origem_contraparte_pessoa_id_fkey"
+            columns: ["origem_contraparte_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exploracao_rural_imovel_origem_exploracao_rural_id_fkey"
+            columns: ["origem_exploracao_rural_id"]
+            isOneToOne: false
+            referencedRelation: "exploracao_rural"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exploracao_rural_imovel_origem_externa_id_fkey"
+            columns: ["origem_externa_id"]
+            isOneToOne: false
+            referencedRelation: "exploracao_rural_origem_externa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exploracao_rural_origem_externa: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_assinatura: string | null
+          exploracao_rural_id: string
+          id: string
+          outorgante_capital_social_na_assinatura: number | null
+          outorgante_pessoa_id: string | null
+          outorgante_representante: string | null
+          titulo_instrumento: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_assinatura?: string | null
+          exploracao_rural_id: string
+          id?: string
+          outorgante_capital_social_na_assinatura?: number | null
+          outorgante_pessoa_id?: string | null
+          outorgante_representante?: string | null
+          titulo_instrumento?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_assinatura?: string | null
+          exploracao_rural_id?: string
+          id?: string
+          outorgante_capital_social_na_assinatura?: number | null
+          outorgante_pessoa_id?: string | null
+          outorgante_representante?: string | null
+          titulo_instrumento?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exploracao_rural_origem_externa_exploracao_rural_id_fkey"
+            columns: ["exploracao_rural_id"]
+            isOneToOne: false
+            referencedRelation: "exploracao_rural"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exploracao_rural_origem_externa_outorgante_pessoa_id_fkey"
+            columns: ["outorgante_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exploracao_rural_parte: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          exploracao_rural_id: string
+          fracao: number | null
+          id: string
+          ordem: number
+          papel: string
+          pessoa_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          exploracao_rural_id: string
+          fracao?: number | null
+          id?: string
+          ordem?: number
+          papel: string
+          pessoa_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          exploracao_rural_id?: string
+          fracao?: number | null
+          id?: string
+          ordem?: number
+          papel?: string
+          pessoa_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exploracao_rural_parte_exploracao_rural_id_fkey"
+            columns: ["exploracao_rural_id"]
+            isOneToOne: false
+            referencedRelation: "exploracao_rural"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exploracao_rural_parte_pessoa_id_fkey"
+            columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
@@ -5918,6 +6137,59 @@ export type Database = {
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orgao_governanca: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          entra_no_contrato: boolean
+          excluido: boolean
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          updated_by: string | null
+          vigencia_fim: string | null
+          vigencia_inicio: string | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          entra_no_contrato?: boolean
+          excluido?: boolean
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          entra_no_contrato?: boolean
+          excluido?: boolean
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orgao_governanca_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
             referencedColumns: ["id"]
           },
         ]
@@ -9673,6 +9945,437 @@ export type Database = {
         }
         Relationships: []
       }
+      wp_apresentacao: {
+        Row: {
+          checksum: string | null
+          created_at: string
+          excluido: boolean
+          gerado_por: string | null
+          id: string
+          importacao_id: string
+          nome_arquivo: string
+          problemas: Json
+          storage_path: string
+          tamanho: number | null
+          template_checksum: string | null
+          template_nome: string
+          versao: number
+          versao_do_gerador: string
+        }
+        Insert: {
+          checksum?: string | null
+          created_at?: string
+          excluido?: boolean
+          gerado_por?: string | null
+          id?: string
+          importacao_id: string
+          nome_arquivo: string
+          problemas?: Json
+          storage_path: string
+          tamanho?: number | null
+          template_checksum?: string | null
+          template_nome: string
+          versao: number
+          versao_do_gerador: string
+        }
+        Update: {
+          checksum?: string | null
+          created_at?: string
+          excluido?: boolean
+          gerado_por?: string | null
+          id?: string
+          importacao_id?: string
+          nome_arquivo?: string
+          problemas?: Json
+          storage_path?: string
+          tamanho?: number | null
+          template_checksum?: string | null
+          template_nome?: string
+          versao?: number
+          versao_do_gerador?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_apresentacao_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "wp_importacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_bem: {
+        Row: {
+          categoria: string
+          contribuinte: string | null
+          descricao: string | null
+          id: string
+          importacao_id: string
+          ordem: number
+          origem_linha: string
+          valor: number | null
+        }
+        Insert: {
+          categoria: string
+          contribuinte?: string | null
+          descricao?: string | null
+          id?: string
+          importacao_id: string
+          ordem: number
+          origem_linha: string
+          valor?: number | null
+        }
+        Update: {
+          categoria?: string
+          contribuinte?: string | null
+          descricao?: string | null
+          id?: string
+          importacao_id?: string
+          ordem?: number
+          origem_linha?: string
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_bem_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "wp_importacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_comentario: {
+        Row: {
+          cenario: string | null
+          id: string
+          importacao_id: string
+          ordem: number
+          origem_celula: string
+          texto: string
+          tributo: string
+        }
+        Insert: {
+          cenario?: string | null
+          id?: string
+          importacao_id: string
+          ordem: number
+          origem_celula: string
+          texto: string
+          tributo: string
+        }
+        Update: {
+          cenario?: string | null
+          id?: string
+          importacao_id?: string
+          ordem?: number
+          origem_celula?: string
+          texto?: string
+          tributo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_comentario_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "wp_importacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_divida: {
+        Row: {
+          id: string
+          importacao_id: string
+          instituicao: string | null
+          ordem: number
+          origem_linha: string
+          por_ano: Json
+          saldo_devedor: number | null
+          titularidade: string
+          vencimento_final: string | null
+        }
+        Insert: {
+          id?: string
+          importacao_id: string
+          instituicao?: string | null
+          ordem: number
+          origem_linha: string
+          por_ano?: Json
+          saldo_devedor?: number | null
+          titularidade: string
+          vencimento_final?: string | null
+        }
+        Update: {
+          id?: string
+          importacao_id?: string
+          instituicao?: string | null
+          ordem?: number
+          origem_linha?: string
+          por_ano?: Json
+          saldo_devedor?: number | null
+          titularidade?: string
+          vencimento_final?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_divida_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "wp_importacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_estudo: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          excluido: boolean
+          id: string
+          ordem_servico_id: string
+          projeto_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          excluido?: boolean
+          id?: string
+          ordem_servico_id: string
+          projeto_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          excluido?: boolean
+          id?: string
+          ordem_servico_id?: string
+          projeto_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_estudo_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_estudo_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_estudo_ordem_servico_id_fkey"
+            columns: ["ordem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "ordem_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_estudo_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "org_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_farol: {
+        Row: {
+          bloco: string
+          id: string
+          importacao_id: string
+          origem_celula: string
+          pessoa: Database["public"]["Enums"]["wp_pessoa"]
+          regime: Database["public"]["Enums"]["wp_regime"]
+          rotulo: string
+          unidade: Database["public"]["Enums"]["wp_unidade"]
+          valor_numerico: number | null
+          valor_texto: string | null
+        }
+        Insert: {
+          bloco: string
+          id?: string
+          importacao_id: string
+          origem_celula: string
+          pessoa: Database["public"]["Enums"]["wp_pessoa"]
+          regime: Database["public"]["Enums"]["wp_regime"]
+          rotulo: string
+          unidade: Database["public"]["Enums"]["wp_unidade"]
+          valor_numerico?: number | null
+          valor_texto?: string | null
+        }
+        Update: {
+          bloco?: string
+          id?: string
+          importacao_id?: string
+          origem_celula?: string
+          pessoa?: Database["public"]["Enums"]["wp_pessoa"]
+          regime?: Database["public"]["Enums"]["wp_regime"]
+          rotulo?: string
+          unidade?: Database["public"]["Enums"]["wp_unidade"]
+          valor_numerico?: number | null
+          valor_texto?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_farol_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "wp_importacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_importacao: {
+        Row: {
+          ano_base: number | null
+          ano_final: number | null
+          ano_inicial: number | null
+          checksum: string
+          cliente_no_wp: string | null
+          created_at: string
+          crescimento_anual: number | null
+          estudo_id: string
+          excluido: boolean
+          gcs_uri: string | null
+          id: string
+          importado_por: string | null
+          mime: string | null
+          nome_original: string | null
+          preparado_por_wp: string | null
+          problemas: Json
+          revisado_por_wp: string | null
+          tamanho: number | null
+          versao: number
+          versao_do_mapa: string
+        }
+        Insert: {
+          ano_base?: number | null
+          ano_final?: number | null
+          ano_inicial?: number | null
+          checksum: string
+          cliente_no_wp?: string | null
+          created_at?: string
+          crescimento_anual?: number | null
+          estudo_id: string
+          excluido?: boolean
+          gcs_uri?: string | null
+          id?: string
+          importado_por?: string | null
+          mime?: string | null
+          nome_original?: string | null
+          preparado_por_wp?: string | null
+          problemas?: Json
+          revisado_por_wp?: string | null
+          tamanho?: number | null
+          versao: number
+          versao_do_mapa: string
+        }
+        Update: {
+          ano_base?: number | null
+          ano_final?: number | null
+          ano_inicial?: number | null
+          checksum?: string
+          cliente_no_wp?: string | null
+          created_at?: string
+          crescimento_anual?: number | null
+          estudo_id?: string
+          excluido?: boolean
+          gcs_uri?: string | null
+          id?: string
+          importado_por?: string | null
+          mime?: string | null
+          nome_original?: string | null
+          preparado_por_wp?: string | null
+          problemas?: Json
+          revisado_por_wp?: string | null
+          tamanho?: number | null
+          versao?: number
+          versao_do_mapa?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_importacao_estudo_id_fkey"
+            columns: ["estudo_id"]
+            isOneToOne: false
+            referencedRelation: "wp_estudo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_importacao_importado_por_fkey"
+            columns: ["importado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_valor: {
+        Row: {
+          ano: number
+          bloco: Database["public"]["Enums"]["wp_bloco"]
+          cenario: string
+          contribuinte: string | null
+          id: string
+          importacao_id: string
+          nivel: number | null
+          origem_celula: string
+          rotulo: string
+          unidade: Database["public"]["Enums"]["wp_unidade"]
+          valor_numerico: number | null
+          valor_texto: string | null
+        }
+        Insert: {
+          ano: number
+          bloco: Database["public"]["Enums"]["wp_bloco"]
+          cenario: string
+          contribuinte?: string | null
+          id?: string
+          importacao_id: string
+          nivel?: number | null
+          origem_celula: string
+          rotulo: string
+          unidade: Database["public"]["Enums"]["wp_unidade"]
+          valor_numerico?: number | null
+          valor_texto?: string | null
+        }
+        Update: {
+          ano?: number
+          bloco?: Database["public"]["Enums"]["wp_bloco"]
+          cenario?: string
+          contribuinte?: string | null
+          id?: string
+          importacao_id?: string
+          nivel?: number | null
+          origem_celula?: string
+          rotulo?: string
+          unidade?: Database["public"]["Enums"]["wp_unidade"]
+          valor_numerico?: number | null
+          valor_texto?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_valor_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "wp_importacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       cliente_setor_regiao_atual: {
@@ -9853,6 +10556,13 @@ export type Database = {
           reservas_negadas: number
         }[]
       }
+      ambiente_por_cliente: {
+        Args: never
+        Returns: {
+          ambiente: string
+          cliente_id: string
+        }[]
+      }
       anexar_documento_pendencia: {
         Args: {
           _alvo_id: string
@@ -9894,6 +10604,10 @@ export type Database = {
       }
       can_view_ticket: { Args: { _ticket_id: string }; Returns: boolean }
       cliente_id_de_bem: { Args: { _bem_id: string }; Returns: string }
+      cliente_id_de_exploracao_rural: {
+        Args: { _exploracao_rural_id: string }
+        Returns: string
+      }
       cliente_id_de_itcd_simulacao: {
         Args: { _simulacao_id: string }
         Returns: string
@@ -10228,6 +10942,21 @@ export type Database = {
         }
         Returns: boolean
       }
+      importar_wp: {
+        Args: {
+          _checksum: string
+          _cliente_id: string
+          _conteudo: Json
+          _descricao?: string
+          _gcs_uri: string
+          _mime: string
+          _nome_original: string
+          _ordem_servico_id: string
+          _tamanho: number
+          _versao_do_mapa: string
+        }
+        Returns: Json
+      }
       is_area_member: {
         Args: { _estrutura_area_id: string; _user_id: string }
         Returns: boolean
@@ -10301,6 +11030,7 @@ export type Database = {
         Returns: string[]
       }
       org_task_visivel: { Args: { p_task_id: string }; Returns: boolean }
+      osg_fator_area_m2: { Args: { _unidade: string }; Returns: number }
       own_org_task_ids: { Args: { _uid: string }; Returns: string[] }
       pode_gerenciar_novidades: { Args: { _user_id: string }; Returns: boolean }
       precheck_allowed_ops: { Args: { p_table: string }; Returns: string[] }
@@ -10362,6 +11092,7 @@ export type Database = {
         Args: { _documento_id: string; _motivo?: string; _veredito: string }
         Returns: undefined
       }
+      salvar_exploracao_rural: { Args: { p: Json }; Returns: string }
       selar_e_forkar_documento: {
         Args: {
           _head_id: string
@@ -10451,7 +11182,20 @@ export type Database = {
         Returns: string[]
       }
       ve_todas_as_sprints: { Args: never; Returns: boolean }
+      vincular_planejamento_ao_projeto: {
+        Args: {
+          _estudo_id: string
+          _importacao_id: string
+          _projeto_id: string
+        }
+        Returns: Json
+      }
       visible_org_project_ids: { Args: { _uid: string }; Returns: string[] }
+      wp_estudo_visivel: { Args: { _estudo_id: string }; Returns: boolean }
+      wp_importacao_visivel: {
+        Args: { _importacao_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
@@ -10505,6 +11249,7 @@ export type Database = {
         | "solicitacao_vencida"
         | "tarefa_prazo_proximo"
         | "tarefa_atrasada"
+        | "papel_de_trabalho_importado"
       org_comment_entity: "org_task" | "org_project"
       org_comment_kind:
         | "comment"
@@ -10516,6 +11261,8 @@ export type Database = {
         | "documentos_solicitados"
         | "documentos_cobrados"
         | "documentos_conferidos"
+        | "papel_de_trabalho_importado"
+        | "papel_de_trabalho_revisado"
       osg_checklist_origem: "padrao" | "manual"
       osg_checklist_status:
         | "pendente"
@@ -10597,6 +11344,17 @@ export type Database = {
         | "concluido"
         | "rejeitado"
       work_package_type: "fase" | "tarefa" | "epico"
+      wp_bloco:
+        | "resumo"
+        | "dre"
+        | "apuracao"
+        | "farol"
+        | "imoveis"
+        | "bens"
+        | "dividas"
+      wp_pessoa: "pf" | "pj"
+      wp_regime: "presumido" | "real"
+      wp_unidade: "moeda" | "percentual" | "texto" | "marcador"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -10779,6 +11537,7 @@ export const Constants = {
         "solicitacao_vencida",
         "tarefa_prazo_proximo",
         "tarefa_atrasada",
+        "papel_de_trabalho_importado",
       ],
       org_comment_entity: ["org_task", "org_project"],
       org_comment_kind: [
@@ -10791,6 +11550,8 @@ export const Constants = {
         "documentos_solicitados",
         "documentos_cobrados",
         "documentos_conferidos",
+        "papel_de_trabalho_importado",
+        "papel_de_trabalho_revisado",
       ],
       osg_checklist_origem: ["padrao", "manual"],
       osg_checklist_status: [
@@ -10882,6 +11643,18 @@ export const Constants = {
         "rejeitado",
       ],
       work_package_type: ["fase", "tarefa", "epico"],
+      wp_bloco: [
+        "resumo",
+        "dre",
+        "apuracao",
+        "farol",
+        "imoveis",
+        "bens",
+        "dividas",
+      ],
+      wp_pessoa: ["pf", "pj"],
+      wp_regime: ["presumido", "real"],
+      wp_unidade: ["moeda", "percentual", "texto", "marcador"],
     },
   },
 } as const
