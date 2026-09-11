@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { AlertTriangle, ArrowUpFromLine, Calculator, ChartPie, Landmark, Loader2, Tag, TrendingUp, Users } from 'lucide-react';
-import { useCountUp } from '@/hooks/useCountUp';
+import { AlertTriangle, Calculator, Landmark, Loader2, Plus, TrendingUp, Users } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useIntegralizacoesAprovadas } from '@/hooks/useGeracaoDocumento';
 import { useConstitutivosRegistrados } from '@/hooks/useDocumentoGerado';
 import {
@@ -21,11 +21,14 @@ import { avaliarTravaDoIngresso } from '@/lib/osg/travaDoIngresso';
 import { procedenciaDosMovimentos } from '@/lib/osg/projecaoQuadro';
 import { capitalDeQuotas } from '@/lib/templates/capital';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
+import { AjudaSocietaria } from './AjudaSocietaria';
 import { AtosSocietarios } from './AtosSocietarios';
 import { AumentoDeCapitalDialog } from './AumentoDeCapitalDialog';
+import { EscolherMovimentoDialog } from './EscolherMovimentoDialog';
+import { GESTOS_DA_PROPRIETARIA, type GestoDaProprietaria } from './gestosSocietarios';
 import { SubirQuotasDialog } from './SubirQuotasDialog';
 import { fmtBRL, fmtInt } from './quadroFmt';
-import { KpiCard } from './quadroKit';
+import { CabecalhoDoCard, cardDoQuadroCls, FaixaDeResumo } from './quadroKit';
 import { TabelaSocios, type LinhaSocio } from './TabelaSocios';
 
 interface QuadroEmpresaProprietariaProps {
@@ -56,6 +59,7 @@ interface QuadroEmpresaProprietariaProps {
  */
 export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmpresaProprietariaProps) => {
   const navigate = useNavigate();
+  const [porta, setPorta] = useState(false);
   const [subirAberto, setSubirAberto] = useState(false);
   const [aumentoAberto, setAumentoAberto] = useState(false);
 
@@ -141,11 +145,6 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
   const totalQuotas = linhas.reduce((s, l) => s + l.quotas, 0);
   const capital = gravado ? linhas.reduce((s, l) => s + l.valor, 0) : capitalDeQuotas(totalQuotas);
 
-  // Count-up dos KPIs: conta de 0 ao valor na montagem (e a troca de empresa
-  // remonta o componente via key, reiniciando a contagem).
-  const capitalAnimado = useCountUp(capital);
-  const quotasAnimadas = useCountUp(totalQuotas);
-
   const carregando = carregandoQuadro || carregandoBens;
   const travadoPorLegado = proposta.titularesLegados.length > 0;
 
@@ -178,32 +177,23 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
   // A ordem das duas é a ordem do fluxo: sem sociedade na junta não há o que
   // perguntar sobre o quadro dela.
   const motivoDaSubida = travaDaSubida.motivo ?? travaDoIngresso.motivo;
-  const subidaLiberada = !carregandoRegistros && !carregandoLivro && !motivoDaSubida;
+
+  // As travas que a PR já tinha, agora ditas por extenso na porta em vez de
+  // escondidas num `title` de botão desabilitado. Carregando não vira "não
+  // pode": vira "ainda não sei".
+  const indisponibilidadeDaPR: Partial<Record<GestoDaProprietaria, string | null>> = {
+    aumento: carregandoBens || carregandoLivro
+      ? 'Lendo os bens aprovados desta empresa.'
+      : imoveisForaDoCapital.length === 0
+        ? 'Nenhum imóvel aprovado fora do capital. O aumento em moeda corrente não passa por aqui.'
+        : null,
+    subida: carregandoRegistros || carregandoLivro
+      ? 'Lendo o registro dos atos constitutivos.'
+      : motivoDaSubida,
+  };
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KpiCard
-          destaque
-          icone={<Landmark className="h-4 w-4" />}
-          titulo="Capital Social Total"
-          valor={fmtBRL.format(capitalAnimado)}
-        />
-        <KpiCard
-          delay={60}
-          icone={<ChartPie className="h-4 w-4" />}
-          titulo="Total de Quotas"
-          valor={fmtInt.format(Math.round(quotasAnimadas))}
-        />
-        {/* Quota a R$ 1,00 por definição na PR — não é capital ÷ quotas. */}
-        <KpiCard
-          delay={120}
-          icone={<Tag className="h-4 w-4" />}
-          titulo="Valor Nominal"
-          valor={fmtBRL.format(1)}
-        />
-      </div>
-
       {!gravado && travadoPorLegado && (
         <div
           className="rounded-lg border border-warning/40 bg-warning/10 p-3 animate-osg-rise motion-reduce:animate-none"
@@ -269,61 +259,51 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
               <p className="text-sm font-semibold text-osg-700">
                 {contarImoveis(imoveisForaDoCapital)} imóvel(is) aprovado(s) fora do capital
               </p>
+              {/* O aviso informa; o gesto mora na porta única, junto do outro
+                  que a PR tem. Um botão primário aqui e outro no cabeçalho
+                  dariam dois comandos de registro na mesma tela. */}
               <p className="mt-0.5">
                 Aprovados no Diagnóstico Patrimonial depois da constituição, eles ainda não
-                entraram no capital desta empresa. Registre o aumento para que a próxima alteração
-                contratual o publique.
+                entraram no capital desta empresa. O aumento está em Registrar movimento, para que
+                a próxima alteração contratual o publique.
               </p>
             </div>
           </div>
-          <Button
-            size="sm"
-            className="h-9 shrink-0 gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
-            onClick={() => setAumentoAberto(true)}
-          >
-            <TrendingUp className="h-3.5 w-3.5" />
-            Registrar aumento de capital
-          </Button>
         </div>
       )}
 
       <Card
-        className="animate-osg-rise motion-reduce:animate-none"
+        className={cn(cardDoQuadroCls, 'animate-osg-rise motion-reduce:animate-none')}
         style={{ animationDelay: '180ms' }}
       >
-        <CardHeader className="pb-3 space-y-2">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              {gravado ? 'Lista de Sócios' : 'Quadro proposto'} ({linhas.length})
-            </CardTitle>
-            {gravado ? (
+        <CabecalhoDoCard
+          icone={<Users className="h-4 w-4 text-muted-foreground" />}
+          titulo={`${gravado ? 'Lista de Sócios' : 'Quadro proposto'} (${linhas.length})`}
+          acoes={
+            gravado ? (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-md bg-osg-50 px-2 py-1.5 text-[11px] font-semibold text-osg-700">
                   <Landmark className="h-3.5 w-3.5" />
-                  Quadro registrado, apurado da movimentação de quotas
+                  Quadro registrado
                 </span>
-                {/* O macro da subida: um gesto, o par espelhado nas duas
-                    empresas. Só faz sentido com quadro gravado, porque é o
-                    quadro que diz quem sobe e com quanto, e só depois que a
-                    sociedade existe na junta, porque é o registro que a faz
-                    existir perante terceiros (ver travaDaSubida). */}
+                {/* UM comando, com o catálogo da PR: o aumento por
+                    integralização e a subida das quotas, cada um com a trava
+                    que já tinha. Os seis gestos da Controladora NÃO aparecem
+                    aqui: a PR nunca os ofereceu, e reunir as entradas não é
+                    criar capacidade nova. */}
                 <Button
                   size="sm"
                   className="h-9 gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
-                  onClick={() => setSubirAberto(true)}
-                  disabled={!subidaLiberada}
-                  title={motivoDaSubida ?? undefined}
+                  onClick={() => setPorta(true)}
                 >
-                  <ArrowUpFromLine className="h-3.5 w-3.5" />
-                  Transferir quotas para a controladora
+                  <Plus className="h-3.5 w-3.5" /> Registrar movimento
                 </Button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-md bg-warning/10 px-2 py-1.5 text-[11px] font-semibold text-warning">
                   <Calculator className="h-3.5 w-3.5" />
-                  Ainda não gravado
+                  Proposta não gravada
                 </span>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -366,14 +346,28 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
                   </AlertDialogContent>
                 </AlertDialog>
               </div>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {gravado
-              ? 'O quadro é o acumulado dos movimentos de quota desta empresa: aporte, cessão, doação e redução. Para alterá-lo, registre o movimento que aconteceu.'
-              : 'Proposta calculada dos bens aprovados no Diagnóstico Patrimonial, rateada pelas frações de titularidade. Confira e grave: nada existe no cadastro até então.'}
-          </p>
-        </CardHeader>
+            )
+          }
+          apoio={
+            <FaixaDeResumo
+              itens={[
+                { rotulo: 'Capital social', valor: fmtBRL.format(capital) },
+                { rotulo: 'Quotas', valor: fmtInt.format(totalQuotas) },
+                // Quota a R$ 1,00 por definição na PR — não é capital ÷ quotas.
+                {
+                  rotulo: 'Valor nominal',
+                  valor: fmtBRL.format(1),
+                  ajuda: <AjudaSocietaria chave="valorNominal" rotulo="valor nominal" />,
+                },
+              ]}
+              nota={
+                gravado
+                  ? 'Saldo apurado da movimentação de quotas.'
+                  : 'Proposta calculada dos bens aprovados no Diagnóstico Patrimonial, rateada pelas frações de titularidade. Confira e grave: nada existe no cadastro até então.'
+              }
+            />
+          }
+        />
         <CardContent>
           {carregando ? (
             <p className="text-sm text-muted-foreground py-6 text-center">Carregando...</p>
@@ -403,6 +397,19 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
       </Card>
 
       <AtosSocietarios movimentos={livro?.movimentos ?? []} atos={livro?.atos ?? []} />
+
+      <EscolherMovimentoDialog
+        open={porta}
+        empresa={empresa}
+        opcoes={GESTOS_DA_PROPRIETARIA}
+        indisponibilidade={indisponibilidadeDaPR}
+        onEscolher={(escolhido: GestoDaProprietaria) => {
+          setPorta(false);
+          if (escolhido === 'aumento') setAumentoAberto(true);
+          else setSubirAberto(true);
+        }}
+        onClose={() => setPorta(false)}
+      />
 
       <AumentoDeCapitalDialog
         open={aumentoAberto}

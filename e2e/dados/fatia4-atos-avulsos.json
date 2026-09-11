@@ -1,0 +1,22 @@
+{
+  "s1": {
+    "status": "corrigido",
+    "observacao": "A instituição avulsa de usufruto (3.000 quotas de Bruno do Amaral Vasconcelos concedidas a Aparecida Nunes do Amaral com direito de voto) gravou com sucesso (HTTP 201) e o ato passou a ser exibido imediatamente no card 'Atos societários', contendo a descrição completa do ato e a discriminação literal 'sem lançamento no livro: só ônus sobre quotas'. O card 'Usufruto e voto' refletiu o reflexo imediato do voto (Bruno com 15.000 plenas/15% voto e Aparecida com 23.000 usufruto com voto/78% voto).",
+    "prova_card_atos_literal": "Instituição de usufruto sobre 3.000 quotas de Bruno do Amaral Vasconcelos em favor de Aparecida Nunes do Amaral, com direito de voto\n\n10/09/2026 · sem lançamento no livro: só ônus sobre quotas\n\nDesfazer",
+    "prova_card_usufruto_literal": "Aparecida Nunes do Amaral\n\n\t55.000\t55.000\t—\t23.000\t78,00%\n\n\nBruno do Amaral Vasconcelos\n\nusufruto em favor de Aparecida Nunes do Amaral\n\ninalienabilidade\nimpenhorabilidade\nincomunicabilidade\n\t25.000\t15.000\t10.000\t—\t15,00%"
+  },
+  "s2": {
+    "status": "corrigido",
+    "observacao": "Ao acionar o botão 'Desfazer' do ato avulso de instituição de usufruto: 1) o diálogo de confirmação exibiu o texto específico informando que o ato não moveu quota nenhuma e que o ônus é removido; 2) ao confirmar o desfazimento (HTTP 204), o ato foi removido do card 'Atos societários' e o card 'Usufruto e voto' retornou imediatamente ao estado anterior sem necessidade de recarregar a página.",
+    "prova_dialogo_confirmacao_literal": "Desfazer Instituição de usufruto sobre 3.000 quotas de Bruno do Amaral Vasconcelos em favor de Aparecida Nunes do Amaral, com direito de voto?\n\nEste ato não moveu quota nenhuma: o que sai é o ônus que ele criou, e o voto volta a acompanhar a propriedade. Não há como desfazer esta ação.\n\nCancelar\nDesfazer o ato",
+    "prova_card_usufruto_restaurado_literal": "Aparecida Nunes do Amaral\n\n\t55.000\t55.000\t—\t20.000\t75,00%\n\n\nBruno do Amaral Vasconcelos\n\nusufruto em favor de Aparecida Nunes do Amaral\n\ninalienabilidade\nimpenhorabilidade\nincomunicabilidade\n\t25.000\t18.000\t7.000\t—\t18,00%",
+    "prova_card_atos_apos_desfazer_literal": "Atos societários (1)\n\nCada ato agrupa o que nasceu junto: os lançamentos do livro, inclusive os da outra empresa, e o ônus sobre as quotas. Desfazer apaga o ato inteiro, e só é possível enquanto nenhum documento o formalizou.\n\nInstituição de usufruto sobre 5.000 quotas de Clarice do Amaral Vasconcelos em favor de Aparecida Nunes do Amaral, com direito de voto\n\n10/09/2026 · sem lançamento no livro: só ônus sobre quotas\n\nDesfazer"
+  },
+  "s3": {
+    "status": "corrigido",
+    "observacao": "Teste de regressão da doação com reserva de usufruto (2.000 quotas de Aparecida Nunes do Amaral para Clarice do Amaral Vasconcelos com reserva de usufruto vitalício, voto e gravames): o ato foi gravado (HTTP 201) e exibido no card 'Atos societários' indicando lançamento no livro ('1 lançamento(s) nesta empresa'). O diálogo de desfazimento exibiu a mensagem de reversão dos lançamentos no livro e, após confirmação (HTTP 204), os quadros e o card 'Usufruto e voto' retornaram perfeitamente ao estado anterior, confirmando que a exibição e desfazimento de atos com movimentação de quotas continuam operando perfeitamente sem quebras.",
+    "prova_card_atos_doacao_literal": "Doação de 2.000 quotas de Aparecida Nunes do Amaral para Clarice do Amaral Vasconcelos, com reserva de usufruto\n\n10/09/2026 · 1 lançamento(s) nesta empresa\n\nDesfazer",
+    "prova_dialogo_desfazer_doacao_literal": "Desfazer Doação de 2.000 quotas de Aparecida Nunes do Amaral para Clarice do Amaral Vasconcelos, com reserva de usufruto?\n\nOs lançamentos deste ato saem do livro nas duas empresas, e os quadros voltam ao estado anterior. Não há como desfazer esta ação.\n\nCancelar\nDesfazer o ato",
+    "prova_restauracao_pos_desfazer_literal": "AN\n\nAparecida Nunes do Amaral\n\nPF · 284.913.560-77\n\nConstituição\n\t55.000\tR$ 55.000,00\t\n55,00%"
+  }
+}

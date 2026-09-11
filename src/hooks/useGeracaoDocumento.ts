@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { usePessoasByCliente, type PessoaRow } from '@/hooks/useQualificacaoDasPartes';
+import { useOnusDaEmpresa } from '@/hooks/useDoacaoDeQuotas';
 import { useBensByCliente, useCartorios } from '@/hooks/useDiagnosticoPatrimonial';
 import { useExploracaoRural, type ExploracaoRuralEnriched } from '@/hooks/useExploracaoRural';
 import { STATUS_ELEGIVEIS_PARA_INTEGRALIZACAO } from '@/lib/osg/statusIntegralizacao';
@@ -531,7 +532,7 @@ export function useCessoesDoLivro(empresaId: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('movimentacao_quotas')
-        .select('id, tipo, origem_pessoa_id, destino_pessoa_id, quotas, vlr_capital_arredondado, created_at, sequencia')
+        .select('id, tipo, origem_pessoa_id, destino_pessoa_id, quotas, vlr_capital_arredondado, created_at, sequencia, quotas_legitima, quotas_disponivel, instrumento_data')
         .eq('empresa_pessoa_id', empresaId!)
         .in('tipo', ['cessao', 'doacao'])
         .is('documento_gerado_id', null)
@@ -560,6 +561,9 @@ export function useCessoesDoLivro(empresaId: string | null) {
           quotas: Number(l.quotas ?? 0),
           valor: Number(l.vlr_capital_arredondado ?? 0),
           doacao: l.tipo === 'doacao',
+          quotasLegitima: l.quotas_legitima == null ? null : Number(l.quotas_legitima),
+          quotasDisponivel: l.quotas_disponivel == null ? null : Number(l.quotas_disponivel),
+          instrumentoData: l.instrumento_data,
           representanteCedente: representantes[cedente.id] ?? null,
           representanteCessionario: representantes[cessionario.id] ?? null,
         }];
@@ -674,6 +678,7 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
   // As CESSÕES pendentes: a resolução de cessão nomeia as duas pontas e a
   // quantidade, e não só o quadro que sobra depois.
   const cessoesQ = useCessoesDoLivro(empresaId);
+  const onusQ = useOnusDaEmpresa(empresaId);
 
   // --- PR sem movimentação: sócios derivados das integralizações -------------
 
@@ -748,6 +753,7 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
     integralizacoes,
     aportes: aportesQ.data ?? [],
     cessoes: cessoesQ.data ?? [],
+    onus: onusQ.data ?? [],
     /**
      * O capital da PR sai das integralizações enquanto o quadro é derivado, e do
      * próprio quadro depois de gravado. Senão a identidade Σ quotas dos sócios
@@ -763,6 +769,7 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
       administradoresQ.isFetching ||
       integralizacoesQ.isFetching ||
       aportesQ.isFetching ||
-      cessoesQ.isFetching,
+      cessoesQ.isFetching ||
+      onusQ.isFetching,
   };
 }

@@ -420,6 +420,12 @@ describe('GerarDocumento — caracterização O1', () => {
       valoresLivres: { observacao: 'Observação viva' }, empresaId: 'empresa-1',
       itensPorLista: {
         socios: [], administradores: [], integralizacoes: [], cessoes: [],
+        // Coleções do ATO de doação são congeladas mesmo vazias: assim uma
+        // versão não passa a narrar ônus criado depois de sua validação.
+        doacoes: [], usufrutos: [], gravamesQuotas: [],
+        // As de ESTADO (o ônus vigente da sociedade) entram sempre, porque o
+        // consolidado as republica a cada peça. Vazias aqui: sem ônus no caso.
+        quadroUsufruto: [], gravamesVigentes: [],
         // `retirantes` entrou com a cláusula de retirada da AC de concentração:
         // lista nova é lista congelada no snapshot, como as demais.
         retirantes: [],

@@ -5,7 +5,7 @@ import { baixarDocx } from '@/lib/templates/docx';
 import { camposDaEntidade, derivarCampos, type TipoEntidade } from '@/lib/templates/vocabulario';
 import { calcularHistoricoCapital } from '@/lib/templates/historicoCapital';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
-import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearIntegralizacoes, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosSocios, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
+import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearEstadoDosOnus, mapearIntegralizacoes, mapearListasDaDoacao, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosSocios, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
 import { quotasDoSocio } from '@/lib/templates/capital';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { montarRegistroFamilias, useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
@@ -1186,7 +1186,7 @@ export function useGerarDocumentoController() {
   // do quadro societário, e das integralizações apenas na PR que ainda não gravou
   // o quadro, onde os próprios sócios são derivados (daí o tipo da empresa).
   const {
-    socios, administradores, integralizacoes, aportes, cessoes, quadroGravado,
+    socios, administradores, integralizacoes, aportes, cessoes, onus = [], quadroGravado,
     isFetching: carregandoListas,
   } = useListasDaEmpresa(
     usaListas || temSociedade ? empresaId : null,
@@ -1336,6 +1336,26 @@ export function useGerarDocumentoController() {
     })),
     [registros.pessoa],
   );
+  // Capital social + total de quotas da sociedade: a PR ainda sem quadro gravado
+  // soma as integralizações aprovadas (quota = R$ 1,00); as demais (e a PR
+  // depois de gravar) somam o quadro societário.
+  const { capitalValor, totalQuotas } = useMemo(
+    () => calcularCapitalSociedade(empresaRow, socios, integralizacoes, quadroGravado),
+    [empresaRow, socios, integralizacoes, quadroGravado],
+  );
+  const cessoesOnerosas = useMemo(() => cessoes.filter((c) => !c.doacao), [cessoes]);
+  const doacoes = useMemo(() => cessoes.filter((c) => c.doacao), [cessoes]);
+  // O ATO (o que esta peça formaliza) e o ESTADO (o ônus que a sociedade
+  // carrega) saem de mapeadores distintos de propósito: o consolidado republica
+  // o segundo a cada alteração, mesmo nas que não tocam em doação.
+  const listasDaDoacao = useMemo(
+    () => mapearListasDaDoacao(doacoes, onus, (id) => pessoaPorId.get(id) ?? null),
+    [doacoes, onus, pessoaPorId],
+  );
+  const estadoDosOnus = useMemo(
+    () => mapearEstadoDosOnus(onus, socios, (id) => pessoaPorId.get(id) ?? null, totalQuotas),
+    [onus, socios, pessoaPorId, totalQuotas],
+  );
   // Quotas de cada pessoa no quadro da empresa selecionada, para a ORDEM das
   // partes (ver mapearPartesSelecionadas). Sai do NÚMERO (quotasDoSocio), não do
   // `socio.quotas` do quadro mapeado, que já é texto formatado com milhar —
@@ -1400,7 +1420,10 @@ export function useGerarDocumentoController() {
       socios: quadro.itens,
       administradores: administradores.map(mapearAdministrador),
       integralizacoes: mapearIntegralizacoes(socios, integralizacoes, aportes),
-      cessoes: mapearCessoes(cessoes),
+      cessoes: mapearCessoes(cessoesOnerosas),
+      ...listasDaDoacao,
+      quadroUsufruto: estadoDosOnus.quadroUsufruto,
+      gravamesVigentes: estadoDosOnus.gravamesVigentes,
       retirantes: mapearRetirantes(retirantes),
       // Quem esta alteração requalifica é decisão do assistente, não do cadastro:
       // a lista é composta pelo estado proposto (ver estadoProposto.ts). Aqui ela
@@ -1430,7 +1453,7 @@ export function useGerarDocumentoController() {
       // escolhido, o objeto é vazio e nada é substituído.
       ...listasDoInstrumentoRural_ouVazio,
     }),
-    [quadro, socios, administradores, integralizacoes, aportes, cessoes, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista, listasDoInstrumentoRural_ouVazio],
+    [quadro, socios, administradores, integralizacoes, aportes, cessoesOnerosas, listasDaDoacao, estadoDosOnus, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista, listasDoInstrumentoRural_ouVazio],
   );
 
   // --- Notificações de mudança de variável (só com versão validada) ---------
@@ -1549,13 +1572,6 @@ export function useGerarDocumentoController() {
     setRecongelarPendente(false);
   }, [modeloId, clienteId]);
 
-  // Capital social + total de quotas da sociedade: a PR ainda sem quadro gravado
-  // soma as integralizações aprovadas (quota = R$ 1,00); as demais (e a PR
-  // depois de gravar) somam o quadro societário.
-  const { capitalValor, totalQuotas } = useMemo(
-    () => calcularCapitalSociedade(empresaRow, socios, integralizacoes, quadroGravado),
-    [empresaRow, socios, integralizacoes, quadroGravado],
-  );
   const historicoCapital = useMemo(
     () => calcularHistoricoCapital(
       capitalValor,
@@ -1670,8 +1686,15 @@ export function useGerarDocumentoController() {
   // As pendências que o assistente mostra: divergências detectadas e não
   // geráveis, base insuficiente, identificação divergente.
   const pendenciasDaAlteracao = useMemo(
-    () => [...new Set([...analise.pendencias, ...(estadoProposto?.pendencias ?? [])])],
-    [analise, estadoProposto],
+    () => [...new Set([
+      ...analise.pendencias,
+      ...(estadoProposto?.pendencias ?? []),
+      // As três somas da tabela de nua-propriedade. Ficam aqui, e não no estado
+      // proposto, porque só aqui existem os NÚMEROS: o estado proposto já
+      // trabalha com os itens formatados.
+      ...estadoDosOnus.problemas,
+    ])],
+    [analise, estadoProposto, estadoDosOnus],
   );
   const confirmarProposta = useConfirmarPropostaAC();
 

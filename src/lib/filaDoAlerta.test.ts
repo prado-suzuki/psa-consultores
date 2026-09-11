@@ -124,7 +124,9 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     // O `EquipeBacklog` saiu em 11/09/2026: a escada de prioridade dele — alta,
     // média, e o resto em `muted` — converteu inteira para `alerta`/`espera`/neutro,
     // pela escada de quatro degraus que ela aprovou olhando a página de comparação.
-    'src/pages/equipe/EquipeKanban.tsx': 2,
+    // O `EquipeKanban` saiu no mesmo dia, pelo commit da própria frente do Kanban:
+    // o amarelo era degrau do `getStatusBadgeColor` escrito à mão, que morreu para
+    // ler a cor do `entregavelStatusColors` — a escada dele fechou inteira.
   },
   'outro-papel': {
     // O `StageEditCard` caiu de 3 para 1 em 11/09/2026, e o que sobrou é o mais
@@ -161,8 +163,11 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     'src/pages/equipe/dev/ConsultaEFD.tsx': 3,
   },
   'rotulo-nao-status': {
-    'src/components/acessos/UsersRolesView.tsx': 2,
-    'src/components/acessos/roleOptions.ts': 3,
+    // Os dois da pasta acessos saíram em 11/09/2026: o âmbar do líder vivia nos
+    // mapas de papel (`ROLE_VISUALS` no UsersRolesView, `ROLE_BADGE_CLASSES` no
+    // roleOptions), e os dois mapas morreram no `PapelBadge` — fim do âmbar, não
+    // mudança de motivo. O rótulo de acesso sem status continua existindo, agora
+    // pela escada de peso e pelo eixo de fora que o PapelBadge desenha.
     'src/pages/administracao/AdminUsuarios.tsx': 2,
     'src/pages/equipe/EquipeUsuarios.tsx': 6,
   },
