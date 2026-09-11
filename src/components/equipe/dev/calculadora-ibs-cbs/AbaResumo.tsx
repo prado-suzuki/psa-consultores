@@ -67,7 +67,7 @@ function KpiCard({ label, value, sub, accent, trend, tooltip }: KpiCardProps) {
         {trend && (
           <div
             className={`mt-2 inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
-              trend.dir === 'down' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+              trend.dir === 'down' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
             }`}
           >
             {trend.dir === 'down' ? (

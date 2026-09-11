@@ -113,9 +113,17 @@ const FILA_DO_BLUE = {
    * fecha), ele veste a âncora e passa a informar o estado aberto.
    */
   semDecisao: {
-    'src/components/equipe/mapeamento/ScenarioList.tsx': 5,
-    'src/components/equipe/process-improvement/SavingsSections.tsx': 5,
-    'src/components/equipe/ImprovementHistoryModal.tsx': 4,
+    // Caiu de 5 para 3 em 11/09/2026: o `analyzing` do STATUS_COLOR virou
+    // `status-andamento` quando a escada do cenário fechou (decisão dela: `promoted`
+    // é DESTINO, vira `--tag-b`, e os outros degraus foram junto). O que sobra são
+    // as três classes do `KIND_COLOR`, que é outra coisa — tipo de cenário, não
+    // estado — e continua esperando a decisão desta fila.
+    'src/components/equipe/mapeamento/ScenarioList.tsx': 3,
+    // As duas saíram em 11/09/2026, e a resposta veio de 27/08: o azul emoldurava
+    // um bloco de formulário e não dizia nada. Mas os cabeçalhos são CONTROLE —
+    // abrem e fecham —, então em vez de perderem a cor eles vestem a âncora da
+    // área, e só quando ABERTOS: a cor passou a informar o estado. Junto saiu a
+    // segunda cópia do trio de tipo de economia, que virou `@/lib/tipoDeEconomia`.
     'src/components/acessos/pageCategoryStyles.ts': 3,
     'src/components/equipe/mapeamento/ScenarioComparator.tsx': 3,
     'src/components/equipe/mapeamento/ScenarioCreateModal.tsx': 3,
@@ -148,7 +156,9 @@ const FILA_DO_BLUE = {
    * decisão de produto, não de cor.
    */
   vocabularioDeDominioNaoDecidido: {
-    'src/components/equipe/dev/perdcomp/PerDetailModal.tsx': 4,
+    // Saiu em 11/09/2026 pela frente do vermelho e verde: o mapa inteiro das
+    // situações do PER virou etiqueta de fase, e o azul de "análise preliminar" e
+    // "analisado" foi junto — `--tag-b`. Meia tabela em token era o defeito.
   },
 
   /**

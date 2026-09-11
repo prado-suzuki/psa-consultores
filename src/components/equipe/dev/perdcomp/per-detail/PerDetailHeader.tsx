@@ -90,9 +90,9 @@ export function PerDetailHeader({
               className={cn(
                 'text-lg font-mono font-bold',
                 saldoRestante > 0
-                  ?'text-green-600'
+                  ?'text-success'
                   : saldoRestante < 0
-                    ?'text-red-600'
+                    ?'text-destructive'
                     :'text-foreground',
               )}
             >

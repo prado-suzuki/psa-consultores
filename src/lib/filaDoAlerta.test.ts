@@ -104,7 +104,10 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     // `ajuste`/`alerta`/`alerta`/`ajuste` — o azul do scope creep junto, o que tira
     // duas da `filaDoBlue` também. Ela decidiu olhando a tela rodando, com os dois
     // candidatos aplicados ao vivo sobre o dado real (31, 33, 691 e R$ 18,6k).
-    'src/components/equipe/dev/calculadora-ibs-cbs/por-estado/PorEstadoKpis.tsx': 1,
+    // O `PorEstadoKpis` saiu em 11/09/2026 junto com o lote das escadas: o âmbar
+    // dele era o degrau do meio de "concentração geográfica" (alta / moderada /
+    // baixa), e os outros dois degraus eram `rose` e `emerald`. Escada de três,
+    // convertida inteira.
     // O `EFDExportStatus` saiu em 10/09/2026, e a classificação estava certa: é
     // escada de status de verdade — `processing`/`starting`, `completed`, `idle` —,
     // e converteu inteira. O âmbar dele era `andamento` e não `alerta`: nada está
@@ -117,7 +120,12 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     // correção aplicada, ou seja o mesmo mapa de "valor alterado" que as Correções
     // SPED ganharam no mesmo dia. Dois arquivos, duas coisas diferentes, o mesmo
     // tom. Ver a nota da pasta em `corCruaNaTelaDoDev.test.ts`.
-    'src/components/equipe/dev/perdcomp/PerDetailModal.tsx': 10,
+    // O `PerDetailModal` saiu em 11/09/2026, e não por virar papel: as nove
+    // situações da Receita viraram ETIQUETA de fase (`--tag-*`), que é o destino de
+    // quem não é estado de trabalho. Só as duas pontas ganharam papel —
+    // `Homologado` em `feito`, `Cancelado` em `ajuste` —, por decisão dela: são as
+    // duas que o cliente lê como resultado. O âmbar daqui eram as três instâncias
+    // de "em discussão administrativa", que agora são `--tag-c`.
     'src/components/equipe/dev/processo-difal/DifalProductsCard.tsx': 4,
     'src/components/equipe/mapeamento/ScenarioComparator.tsx': 2,
     'src/components/equipe/mapeamento/ScenarioList.tsx': 3,
@@ -166,7 +174,10 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
   },
   'paleta-categorica': {
     'src/pages/equipe/DigitalAreaSelector.tsx': 1,
-    'src/components/equipe/ImprovementHistoryModal.tsx': 1,
+    // Saiu em 11/09/2026, de carona com a frente do `blue`: o âmbar era o ícone
+    // de "Outras economias", uma das três entradas de um trio que estava copiado
+    // em dois arquivos. Converter só a azul deixaria escada meio crua, então o
+    // mapa andou inteiro e virou `@/lib/tipoDeEconomia`, em tons categóricos.
     'src/components/acessos/pageCategoryStyles.ts': 3,
     'src/components/equipe/dev/consulta-efd-icms/EfdResultsTable.tsx': 3,
     'src/components/equipe/mapeamento/ScenarioCreateModal.tsx': 3,

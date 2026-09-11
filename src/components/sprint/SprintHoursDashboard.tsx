@@ -295,8 +295,8 @@ export function SprintHoursDashboard({ deliverables, profiles }: SprintHoursDash
                         className={`text-right ${
                           p.actual > 0
                             ? diff > 0
-                              ? "text-red-600"
-                              : "text-emerald-600"
+                              ? "text-destructive"
+                              : "text-success"
                             : "text-muted-foreground"
                         }`}
                       >

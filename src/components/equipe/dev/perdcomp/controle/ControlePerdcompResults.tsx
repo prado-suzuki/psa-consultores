@@ -309,9 +309,9 @@ export function ControlePerdcompResults({
                           className={cn(
                             'font-medium',
                             saldo > 0
-                              ?'text-green-600'
+                              ?'text-success'
                               : saldo < 0
-                                ?'text-red-600'
+                                ?'text-destructive'
                                 : '',
                           )}
                         >
@@ -420,9 +420,9 @@ export function ControlePerdcompResults({
                     <span
                       className={cn(
                         totals.saldo > 0
-                          ?'text-green-600'
+                          ?'text-success'
                           : totals.saldo < 0
-                            ?'text-red-600'
+                            ?'text-destructive'
                             : '',
                       )}
                     >

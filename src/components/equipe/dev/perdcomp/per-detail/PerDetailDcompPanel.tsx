@@ -106,7 +106,7 @@ export function PerDetailDcompPanel({
             Exportar Planilha
           </Button>
           {perPago && (
-            <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">
+            <Badge className="bg-success/10 text-success text-sm px-3 py-1">
               <CheckCircle2 className="h-4 w-4 mr-1" />
               Ressarcido
             </Badge>
@@ -222,7 +222,7 @@ export function PerDetailDcompPanel({
           <p
             className={cn(
               'font-mono font-bold',
-              saldoRestante > 0 ? 'text-green-600' : saldoRestante < 0 ? 'text-red-600' : '',
+              saldoRestante > 0 ? 'text-success' : saldoRestante < 0 ? 'text-destructive' : '',
             )}
           >
             {formatCurrency(saldoRestante)}
