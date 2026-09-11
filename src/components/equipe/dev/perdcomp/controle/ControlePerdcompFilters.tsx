@@ -18,6 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
+import { SelecaoDeContribuinte } from '@/components/equipe/selecao/SelecaoDeContribuinte';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { BotaoLimparFiltros } from '@/components/ui/BotaoLimparFiltros';
@@ -99,46 +101,31 @@ export function ControlePerdcompFilters({
             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
               Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} />
             </label>
-            <Select value={clienteId} onValueChange={onClienteChange}>
-              <SelectTrigger className="h-11">
-                <SelectValue placeholder={clientes.length === 0 ? 'Nenhum cliente com PER' : 'Selecione o cliente'} />
-              </SelectTrigger>
-              <SelectContent className="z-50">
-                {clientes.map((cliente) => (
-                  <SelectItem key={cliente.id} value={cliente.id}>
-                    {cliente.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SelecaoDeCliente
+              clientes={clientes}
+              value={clienteId}
+              onChange={onClienteChange}
+              placeholder={clientes.length === 0 ? 'Nenhum cliente com PER' : 'Selecione o cliente'}
+              className="w-full min-w-0 h-11"
+            />
           </div>
 
           <div className="col-span-12 md:col-span-3">
             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
               Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} />
             </label>
-            <Select
+            <SelecaoDeContribuinte
+              contribuintes={contribuintes}
               value={contribuinteId}
-              onValueChange={onContribuinteChange}
+              onChange={onContribuinteChange}
               disabled={!clienteId}
-            >
-              <SelectTrigger className="h-11">
-                <SelectValue
-                  placeholder={
-                    clienteId && contribuintes.length === 0
-                      ? 'Nenhum contribuinte com PER'
-                      : 'Selecione o contribuinte'
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent className="z-50">
-                {contribuintes.map((contribuinte) => (
-                  <SelectItem key={contribuinte.id} value={contribuinte.id}>
-                    {contribuinte.nome_razao_social}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder={
+                clienteId && contribuintes.length === 0
+                  ? 'Nenhum contribuinte com PER'
+                  : 'Selecione o contribuinte'
+              }
+              className="w-full min-w-0 h-11"
+            />
           </div>
 
           <div className="col-span-6 md:col-span-2">

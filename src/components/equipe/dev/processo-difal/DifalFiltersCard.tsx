@@ -5,13 +5,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RequiredMark } from '@/components/ui/required-mark';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
+import { SelecaoDeContribuinte } from '@/components/equipe/selecao/SelecaoDeContribuinte';
 import type {
   ProcessoDifalCliente,
   ProcessoDifalContribuinte,
@@ -74,44 +69,29 @@ export function DifalFiltersCard({
             <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
               Cliente <RequiredMark /> <FieldTooltip name="cliente" />
             </label>
-            <Select
+            <SelecaoDeCliente
+              clientes={clientes}
               value={selectedCliente}
-              disabled={isLoadingClientes}
-              onValueChange={onClienteChange}
-            >
-              <SelectTrigger className="h-11">
-                <SelectValue placeholder="Selecione o cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {clientes?.map((cliente) => (
-                  <SelectItem key={cliente.id} value={cliente.id}>
-                    {cliente.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={onClienteChange}
+              loading={isLoadingClientes}
+              placeholder="Selecione o cliente"
+              className="w-full min-w-0 h-11"
+            />
           </div>
 
           <div className="md:col-span-5">
             <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
               Contribuinte <RequiredMark /> <FieldTooltip name="contribuinte" />
             </label>
-            <Select
+            <SelecaoDeContribuinte
+              contribuintes={contribuintes}
               value={selectedContribuinte}
-              disabled={!selectedCliente || isLoadingContribuintes}
-              onValueChange={onContribuinteChange}
-            >
-              <SelectTrigger className="h-11">
-                <SelectValue placeholder="Selecione o contribuinte" />
-              </SelectTrigger>
-              <SelectContent>
-                {contribuintes?.map((contribuinte) => (
-                  <SelectItem key={contribuinte.id} value={contribuinte.id}>
-                    {contribuinte.nome_razao_social}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={onContribuinteChange}
+              loading={isLoadingContribuintes}
+              disabled={!selectedCliente}
+              placeholder="Selecione o contribuinte"
+              className="w-full min-w-0 h-11"
+            />
           </div>
 
           <div className="md:col-span-2">

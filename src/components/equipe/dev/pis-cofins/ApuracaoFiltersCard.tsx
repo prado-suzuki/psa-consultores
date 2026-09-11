@@ -5,8 +5,9 @@ import { Label } from "@/components/ui/label";
 import { MonthYearPicker } from "@/components/ui/month-year-picker";
 import { RequiredMark } from "@/components/ui/required-mark";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SelecaoDeCliente } from "@/components/equipe/selecao/SelecaoDeCliente";
+import { SelecaoDeContribuinte } from "@/components/equipe/selecao/SelecaoDeContribuinte";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ApuracaoPisCofinsController, TipoApuracao } from "@/hooks/useApuracaoPisCofinsController";
@@ -35,11 +36,11 @@ export function ApuracaoFiltersCard({ controller }: { controller: ApuracaoPisCof
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 md:col-span-4">
             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">Cliente <RequiredMark /><FieldTooltip>Cliente/grupo cujo contribuinte será apurado.</FieldTooltip></label>
-            {controller.clientesQuery.isLoading ? <Skeleton className="h-11 w-full"/> : <Select value={controller.selectedCliente} onValueChange={controller.setSelectedCliente}><SelectTrigger className="h-11"><SelectValue placeholder="Selecione o cliente"/></SelectTrigger><SelectContent>{clientes?.map((cliente) => <SelectItem key={cliente.id} value={cliente.id}>{cliente.nome}</SelectItem>)}</SelectContent></Select>}
+            <SelecaoDeCliente clientes={clientes} value={controller.selectedCliente} onChange={controller.setSelectedCliente} loading={controller.clientesQuery.isLoading} placeholder="Selecione o cliente" className="w-full min-w-0 h-11" />
           </div>
           <div className="col-span-12 md:col-span-4">
             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">Contribuinte <RequiredMark /><FieldTooltip>CNPJ vinculado ao cliente. Define os dados consultados no EFD ou Balancete.</FieldTooltip></label>
-            {controller.contribuintesQuery.isLoading && controller.selectedCliente ? <Skeleton className="h-11 w-full"/> : <Select value={controller.selectedContribuinte} onValueChange={(value) => { controller.setSelectedContribuinte(value); controller.setSearchTriggered(false); }} disabled={!controller.selectedCliente}><SelectTrigger className="h-11"><SelectValue placeholder="Selecione o contribuinte"/></SelectTrigger><SelectContent>{contribuintes?.map((contribuinte) => <SelectItem key={contribuinte.id} value={contribuinte.id}>{contribuinte.nome_razao_social}{contribuinte.cpf_cnpj && <span className="ml-2 text-muted-foreground text-xs">{contribuinte.cpf_cnpj}</span>}</SelectItem>)}</SelectContent></Select>}
+            <SelecaoDeContribuinte contribuintes={contribuintes} value={controller.selectedContribuinte} onChange={(value) => { controller.setSelectedContribuinte(value); controller.setSearchTriggered(false); }} loading={controller.contribuintesQuery.isLoading && !!controller.selectedCliente} disabled={!controller.selectedCliente} placeholder="Selecione o contribuinte" className="w-full min-w-0 h-11" />
           </div>
           <div className="col-span-12 md:col-span-4">
             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">Tipo de análise<FieldTooltip>Cliente utiliza EFD Contribuições; Prado utiliza o balancete importado.</FieldTooltip></label>
