@@ -135,10 +135,22 @@ GOV-03 e vem depois. Os 33 parâmetros medidos nos três acordos reais estão em
 `src/previews/cadastroGovernancaDados.ts` (branch `mockup/cadastro-governanca`),
 com a cláusula de cada um copiada do documento.
 
-Os que já se sabe que descem ao contrato social, e portanto a GOV-C vai
-consumir, são seis: ordem do direito de preferência, métodos de avaliação da
-quota, regra de combinação dos métodos, prazo máximo do balanço, horizonte do
-fluxo de caixa e taxa mínima de crescimento.
+Os que descem ao contrato social, e portanto a GOV-C vai consumir, eu tinha
+contado como seis. Medindo nos sete contratos, **quatro deles não variam** e
+portanto são texto fixo do modelo, não campo:
+
+| Candidato | Medição | Veredito |
+|---|---|---|
+| Ordem do direito de preferência | duas ordens medidas: o Via Fértil dá à holding primeiro, o modelo dá aos descendentes dos signatários | campo |
+| Métodos de avaliação | Bela Vista, Horita e Agro Ferragens usam patrimônio líquido mais fluxo; Perci, Mattei e Zamo só patrimônio líquido | vira UMA condição |
+| Regra de combinação | "maior valor" nos 2 que têm | texto fixo |
+| Prazo máximo do balanço | "60 (sessenta) dias" em 6 de 6 | texto fixo |
+| Horizonte do fluxo | "05 (cinco) anos" em 3 de 3 | texto fixo |
+| Taxa mínima de crescimento | IPCA nos 2 que têm | texto fixo |
+
+Os três parâmetros do fluxo não são campos independentes: são um bloco que
+entra ou não, comandado por `usaFluxoDeCaixa`. Dentro do bloco os números não
+variam.
 
 Duas listas do acordo pedem `repetidor.ts`:
 

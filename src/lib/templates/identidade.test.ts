@@ -121,11 +121,7 @@ const IDENTIDADE_POR_ENTIDADE: Record<TipoEntidade, { id: string; montar: () => 
       assinadoEm: '2025-09-29',
       vigenciaAnos: 20,
       ordemPreferencia: '1º a holding, 2º os demais quotistas',
-      metodosAvaliacao: ['Patrimônio líquido em balanço (IFRS)', 'Fluxo de caixa descontado'],
-      regraCombinacaoMetodos: 'O maior valor entre os métodos',
-      prazoBalancoDias: 60,
-      horizonteFluxoAnos: 5,
-      taxaMinimaCrescimento: 'IPCA projetado',
+      usaFluxoDeCaixa: true,
     }),
   },
 };

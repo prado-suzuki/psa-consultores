@@ -1355,17 +1355,33 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       numeralCampo('vigenciaAnosNumeral', 'Vigência do acordo (numeral)', 'vigenciaAnos'),
       cardinalCampo('vigenciaAnosExtenso', 'Vigência do acordo (por extenso)', 'vigenciaAnos'),
 
-      // Os seis que descem ao contrato social, medidos no Perci e no Via Fértil.
+      /*
+       * A APURAÇÃO DE HAVERES TEM UM CAMPO SÓ, E NÃO SEIS.
+       *
+       * A primeira versão publicava prazo do balanço, horizonte do fluxo, taxa
+       * mínima e regra de combinação como campos. Medido nos sete contratos,
+       * nenhum deles varia: "60 (sessenta) dias" em 6 de 6, "05 (cinco) anos"
+       * em 3 de 3, IPCA nos 2 que têm, e "maior valor" nos 2 que têm. Campo que
+       * não varia é texto fixo do modelo, e publicá-lo convida alguém a montar
+       * formulário para uma pergunta que não existe.
+       *
+       * O que VARIA é se a apuração usa o fluxo de caixa descontado além do
+       * patrimônio líquido: Bela Vista, Horita e Agro Ferragens usam os dois;
+       * Perci, Mattei e Zamo usam só o patrimônio líquido. Então é UMA condição
+       * que acende o bloco inteiro do fluxo, com os números dentro dele fixos.
+       */
       { id: 'ordemPreferencia', label: 'Ordem do direito de preferência', tipo: 'texto' },
-      { id: 'metodosAvaliacao', label: 'Métodos de avaliação da quota', tipo: 'texto' },
-      { id: 'regraCombinacaoMetodos', label: 'Regra de combinação dos métodos', tipo: 'texto' },
-      { id: 'prazoBalancoDias', label: 'Prazo máximo do balanço, em dias', tipo: 'inteiro' },
-      numeralCampo('prazoBalancoDiasNumeral', 'Prazo do balanço (numeral)', 'prazoBalancoDias'),
-      cardinalCampo('prazoBalancoDiasExtenso', 'Prazo do balanço (por extenso)', 'prazoBalancoDias'),
-      { id: 'horizonteFluxoAnos', label: 'Horizonte do fluxo de caixa, em anos', tipo: 'inteiro' },
-      numeralCampo('horizonteFluxoAnosNumeral', 'Horizonte do fluxo (numeral)', 'horizonteFluxoAnos'),
-      cardinalCampo('horizonteFluxoAnosExtenso', 'Horizonte do fluxo (por extenso)', 'horizonteFluxoAnos'),
-      { id: 'taxaMinimaCrescimento', label: 'Taxa mínima de crescimento do fluxo', tipo: 'texto' },
+      {
+        id: 'usaFluxoDeCaixa',
+        label: 'A apuração inclui fluxo de caixa descontado? (condicional)',
+        tipo: 'texto',
+      },
+      condicionalCampo(
+        'somentePatrimonioLiquido',
+        'Apuração só por patrimônio líquido? (condicional)',
+        'usaFluxoDeCaixa',
+        (v) => !v.usaFluxoDeCaixa,
+      ),
     ],
   },
 };

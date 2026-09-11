@@ -804,11 +804,8 @@ export interface AcordoParaMapear {
   assinadoEm?: string | null;
   vigenciaAnos?: number | null;
   ordemPreferencia?: string | null;
-  metodosAvaliacao?: string[] | null;
-  regraCombinacaoMetodos?: string | null;
-  prazoBalancoDias?: number | null;
-  horizonteFluxoAnos?: number | null;
-  taxaMinimaCrescimento?: string | null;
+  /** A apuração usa fluxo de caixa descontado, além do patrimônio líquido? */
+  usaFluxoDeCaixa?: boolean;
 }
 
 /**
@@ -824,11 +821,7 @@ export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
   set('assinadoEm', entrada.assinadoEm);
   set('vigenciaAnos', entrada.vigenciaAnos);
   set('ordemPreferencia', entrada.ordemPreferencia);
-  set('metodosAvaliacao', prosaDeLista(entrada.metodosAvaliacao));
-  set('regraCombinacaoMetodos', entrada.regraCombinacaoMetodos);
-  set('prazoBalancoDias', entrada.prazoBalancoDias);
-  set('horizonteFluxoAnos', entrada.horizonteFluxoAnos);
-  set('taxaMinimaCrescimento', entrada.taxaMinimaCrescimento);
+  set('usaFluxoDeCaixa', entrada.usaFluxoDeCaixa ? 'sim' : '');
   return comOrigem(derivarCampos('acordoQuotistas', out), {
     tipo: 'acordoQuotistas',
     id: entrada.clienteId,
