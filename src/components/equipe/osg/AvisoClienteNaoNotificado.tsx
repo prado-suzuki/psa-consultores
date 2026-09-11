@@ -31,10 +31,9 @@ export function AvisoClienteNaoNotificado({ solicitacaoId, enviadaEm }: {
   // ficar calado: acusar falso manda o analista incomodar o cliente à toa.
   if (!naoSaiu) return null;
 
+  // O problema veste `destructive`, e não `osg-red`: vermelho aqui é papel
+  // de estado (ajuste), não a âncora da área.
   return (
-    {/* O problema veste `destructive`, e não `osg-red`: vermelho aqui é papel
-      de estado (ajuste), não a âncora da área — o contrato é o de
-      `estadoDocumentoColors` (recusado = ajuste). */}
     <div
       role="status"
       className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/[0.04] p-4 text-sm text-osg-700"
