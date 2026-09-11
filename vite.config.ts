@@ -43,6 +43,21 @@ const MODE_SANDBOX = "sandbox";
 // classificava como "checkout de trabalho" e apontava o preview para o Supabase
 // de desenvolvimento da PSA. O container do Lovable se identifica por variáveis
 // próprias; usá-las é sinal de fato, não palpite.
+//
+// ESTA FUNÇÃO FICOU TRÊS SEMANAS SEM SER CHAMADA. Ela nasceu em 20/08/2026
+// (commit 18430906, do bot do Lovable), sete minutos depois da regra de branch,
+// e o bot fez UMA edição: inseriu a função. Nunca houve a segunda, a que a
+// plugava no `usarSandbox`. `git log --all -S` confirma: nenhum commit, em
+// nenhuma branch, chegou a chamá-la.
+//
+// Passou despercebido porque o defeito é intermitente por natureza — enquanto o
+// HEAD do container estava em `main`, a regra de branch acertava por acaso e o
+// preview falava com produção. Em 11/09 o Lovable trabalhou no projeto, o HEAD
+// saiu de `main`, e o watcher de branch abaixo reavaliou o alvo ao vivo: o
+// preview passou a falar com o sandbox no meio de um teste.
+//
+// E não houve lint para pegar: `vite.config.ts` está fora do escopo do ESLint, e
+// `@typescript-eslint/no-unused-vars` está `"off"` na config.
 function rodandoNoLovable(): boolean {
   return (
     process.env.LOVABLE_SANDBOX === "1" ||
@@ -140,7 +155,13 @@ export default defineConfig(({ mode }) => {
   // Branch de trabalho é a única porta para o sandbox. Sem git a `branchAtual()`
   // devolve string vazia, e aí não há prova de nada: fica produção.
   const ehBranchDeTrabalho = branch !== "" && !BRANCHES_DE_PRODUCAO.includes(branch);
-  const usarSandbox = mode === "development" && ehBranchDeTrabalho && !temOverridePessoal;
+  // O container do Lovable é checkout de trabalho pela regra de branch e NÃO é um:
+  // ele precisa do Lovable Cloud. Sem este termo, cada edição que o Lovable faz
+  // tira o HEAD de `main` e vira o preview para o sandbox — foi o que aconteceu
+  // em 11/09/2026, no meio de um teste. Ver a nota em `rodandoNoLovable`.
+  const noLovable = rodandoNoLovable();
+  const usarSandbox = mode === "development" && ehBranchDeTrabalho
+    && !temOverridePessoal && !noLovable;
 
   // Em dev o alvo é sempre explícito, para nenhum arquivo de env decidir no lugar
   // da regra. Vai tudo que for VITE_, não só as três do Supabase, senão uma
@@ -152,13 +173,19 @@ export default defineConfig(({ mode }) => {
 
   if (mode === "development") {
     const url = alvo?.VITE_SUPABASE_URL ?? env.VITE_SUPABASE_URL ?? "(indefinido)";
+    // Diz QUAL sinal decidiu, não só o arquivo. O caso do Lovable ganhou linha
+    // própria porque sem ela o log sairia `.env (branch edit/edt-…)` — que se lê
+    // como "a regra de branch escolheu produção", o contrário do que aconteceu.
+    // Quando o alvo estiver errado, é esta linha que diz onde olhar.
     const origem = temOverridePessoal
       ? ".env.development.local"
       : usarSandbox
         ? `.env.sandbox (branch ${branch})`
-        : branch === ""
-          ? ".env (sem git: nada prova que este é um checkout de trabalho)"
-          : `.env (branch ${branch})`;
+        : noLovable
+          ? `.env (container do Lovable, ignorando a branch ${branch || "?"})`
+          : branch === ""
+            ? ".env (sem git: nada prova que este é um checkout de trabalho)"
+            : `.env (branch ${branch})`;
     console.log(`  ➜  Supabase:   ${url}  (${origem})`);
 
     // Sobra de checkout antigo. Não decide mais nada (o define acima vence), mas
