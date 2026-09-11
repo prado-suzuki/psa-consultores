@@ -106,7 +106,11 @@ const FILA_DO_BLUE = {
     'src/components/acessos/pageCategoryStyles.ts': 3,
     'src/components/equipe/mapeamento/ScenarioComparator.tsx': 3,
     'src/components/equipe/mapeamento/ScenarioCreateModal.tsx': 3,
-    'src/components/acessos/UsersRolesView.tsx': 4,
+    // O UsersRolesView caiu de 4 para 2 em 11/09/2026: o par azul do papel
+    // `team_member` saiu junto com o mapa `ROLE_VISUALS`, que virou `PapelBadge`.
+    // O que sobrou é o ícone do cartão de usuários ativos (`text-blue-600` sobre
+    // `bg-blue-100`) — decoração de métrica, mesma leitura daqui.
+    'src/components/acessos/UsersRolesView.tsx': 2,
     'src/components/equipe/projetos/constants.ts': 2,
     'src/components/equipe/sprint-detalhes/AgendaTab.tsx': 2,
     'src/pages/equipe/EquipeRelatorios.tsx': 2,
