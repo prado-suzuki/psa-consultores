@@ -66,8 +66,12 @@ export function PapelBadge({ papel, className }: PapelBadgeProps) {
       variant="outline"
       className={cn(
         'gap-1.5 text-xs font-medium',
+        // `/15` e `/35` são passos da escala de opacidade do Tailwind. Fora dela
+        // — `/12`, por exemplo — a classe é descartada na build, sem erro, e a
+        // pílula sai sem fundo. A página de comparação desenhou em `.12`; aqui
+        // o valor tem que existir.
         deFora
-          ? 'border-tag-d/35 bg-tag-d/12 text-tag-d'
+          ? 'border-tag-d/35 bg-tag-d/15 text-tag-d'
           : pontos > 0
             ? 'border-transparent bg-status-neutro-soft text-status-neutro'
             : 'border-transparent bg-muted text-muted-foreground',
