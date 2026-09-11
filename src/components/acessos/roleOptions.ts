@@ -35,13 +35,7 @@ export const ROLE_SHORT_LABELS: Record<string, string> = {
   marketing: 'Marketing',
 };
 
-/** Classes de Tailwind por role para os badges na lista de usuários. */
-export const ROLE_BADGE_CLASSES: Record<string, string> = {
-  admin:       'border-red-200 text-red-600 bg-red-50',
-  lider:       'border-amber-200 text-amber-600 bg-amber-50',
-  sublider:    'border-orange-200 text-orange-600 bg-orange-50',
-  team_member: 'border-primary/20 text-primary bg-primary/5',
-  timecliente: 'border-cyan-200 text-cyan-600 bg-cyan-50',
-  client:      'border-border text-muted-foreground bg-muted',
-  marketing:   'border-violet-200 text-violet-600 bg-violet-50',
-};
+/* A classe de cor por papel saiu daqui em 11/09/2026.
+   Quem pinta papel é `@/components/ui/PapelBadge`, que é COMPONENTE e não mapa
+   — mapa de cor por papel já tinha virado duas cópias divergentes, uma delas
+   reprovando AA. O porquê da cor está no docstring de lá. */
