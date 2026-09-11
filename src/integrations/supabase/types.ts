@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       access_change_log: {
@@ -605,50 +580,6 @@ export type Database = {
           },
         ]
       }
-      atividade_governanca: {
-        Row: {
-          cliente_id: string | null
-          created_at: string
-          created_by: string | null
-          excluido: boolean
-          id: string
-          nome: string
-          ordem: number
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          cliente_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          excluido?: boolean
-          id?: string
-          nome: string
-          ordem?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          cliente_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          excluido?: boolean
-          id?: string
-          nome?: string
-          ordem?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "atividade_governanca_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "cliente"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ato_societario: {
         Row: {
           cliente_id: string
@@ -888,106 +819,6 @@ export type Database = {
           },
           {
             foreignKeyName: "bem_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      capital_integralizacao: {
-        Row: {
-          bem_id: string
-          cliente_id: string
-          created_at: string
-          created_by: string | null
-          empresa_destino_pessoa_id: string
-          id: string
-          pct_capital: number | null
-          pct_vlr_contabil: number | null
-          pct_vlr_mercado: number | null
-          reserva_capital: number | null
-          socio_pessoa_id: string
-          updated_at: string
-          updated_by: string | null
-          vlr_capital_arredondado: number | null
-          vlr_contabil: number | null
-          vlr_mercado: number | null
-        }
-        Insert: {
-          bem_id: string
-          cliente_id: string
-          created_at?: string
-          created_by?: string | null
-          empresa_destino_pessoa_id: string
-          id?: string
-          pct_capital?: number | null
-          pct_vlr_contabil?: number | null
-          pct_vlr_mercado?: number | null
-          reserva_capital?: number | null
-          socio_pessoa_id: string
-          updated_at?: string
-          updated_by?: string | null
-          vlr_capital_arredondado?: number | null
-          vlr_contabil?: number | null
-          vlr_mercado?: number | null
-        }
-        Update: {
-          bem_id?: string
-          cliente_id?: string
-          created_at?: string
-          created_by?: string | null
-          empresa_destino_pessoa_id?: string
-          id?: string
-          pct_capital?: number | null
-          pct_vlr_contabil?: number | null
-          pct_vlr_mercado?: number | null
-          reserva_capital?: number | null
-          socio_pessoa_id?: string
-          updated_at?: string
-          updated_by?: string | null
-          vlr_capital_arredondado?: number | null
-          vlr_contabil?: number | null
-          vlr_mercado?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "capital_integralizacao_bem_id_fkey"
-            columns: ["bem_id"]
-            isOneToOne: false
-            referencedRelation: "bem"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "cliente"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_empresa_destino_pessoa_id_fkey"
-            columns: ["empresa_destino_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_socio_pessoa_id_fkey"
-            columns: ["socio_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -4995,210 +4826,6 @@ export type Database = {
           },
         ]
       }
-      matriz_alcadas: {
-        Row: {
-          cliente_id: string
-          created_at: string
-          created_by: string | null
-          data_referencia: string | null
-          excluido: boolean
-          id: string
-          updated_at: string
-          updated_by: string | null
-          versao: number
-        }
-        Insert: {
-          cliente_id: string
-          created_at?: string
-          created_by?: string | null
-          data_referencia?: string | null
-          excluido?: boolean
-          id?: string
-          updated_at?: string
-          updated_by?: string | null
-          versao?: number
-        }
-        Update: {
-          cliente_id?: string
-          created_at?: string
-          created_by?: string | null
-          data_referencia?: string | null
-          excluido?: boolean
-          id?: string
-          updated_at?: string
-          updated_by?: string | null
-          versao?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "matriz_alcadas_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "cliente"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      matriz_atividade: {
-        Row: {
-          atividade_id: string
-          created_at: string
-          created_by: string | null
-          detalhamento: string | null
-          id: string
-          matriz_id: string
-          ordem: number
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          atividade_id: string
-          created_at?: string
-          created_by?: string | null
-          detalhamento?: string | null
-          id?: string
-          matriz_id: string
-          ordem?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          atividade_id?: string
-          created_at?: string
-          created_by?: string | null
-          detalhamento?: string | null
-          id?: string
-          matriz_id?: string
-          ordem?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "matriz_atividade_atividade_id_fkey"
-            columns: ["atividade_id"]
-            isOneToOne: false
-            referencedRelation: "atividade_governanca"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "matriz_atividade_matriz_id_fkey"
-            columns: ["matriz_id"]
-            isOneToOne: false
-            referencedRelation: "matriz_alcadas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      matriz_competencia: {
-        Row: {
-          alcada_base: string | null
-          alcada_unidade: string | null
-          alcada_valor: number | null
-          created_at: string
-          created_by: string | null
-          fora_da_politica: boolean
-          id: string
-          matriz_atividade_id: string
-          nao_participa: boolean
-          orgao_id: string
-          sobe_para_orgao_id: string | null
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          alcada_base?: string | null
-          alcada_unidade?: string | null
-          alcada_valor?: number | null
-          created_at?: string
-          created_by?: string | null
-          fora_da_politica?: boolean
-          id?: string
-          matriz_atividade_id: string
-          nao_participa?: boolean
-          orgao_id: string
-          sobe_para_orgao_id?: string | null
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          alcada_base?: string | null
-          alcada_unidade?: string | null
-          alcada_valor?: number | null
-          created_at?: string
-          created_by?: string | null
-          fora_da_politica?: boolean
-          id?: string
-          matriz_atividade_id?: string
-          nao_participa?: boolean
-          orgao_id?: string
-          sobe_para_orgao_id?: string | null
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "matriz_competencia_matriz_atividade_id_fkey"
-            columns: ["matriz_atividade_id"]
-            isOneToOne: false
-            referencedRelation: "matriz_atividade"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "matriz_competencia_orgao_id_fkey"
-            columns: ["orgao_id"]
-            isOneToOne: false
-            referencedRelation: "orgao_governanca"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "matriz_competencia_sobe_para_orgao_id_fkey"
-            columns: ["sobe_para_orgao_id"]
-            isOneToOne: false
-            referencedRelation: "orgao_governanca"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      matriz_competencia_papel: {
-        Row: {
-          competencia_id: string
-          created_at: string
-          created_by: string | null
-          ordem: number
-          papel_id: string
-        }
-        Insert: {
-          competencia_id: string
-          created_at?: string
-          created_by?: string | null
-          ordem?: number
-          papel_id: string
-        }
-        Update: {
-          competencia_id?: string
-          created_at?: string
-          created_by?: string | null
-          ordem?: number
-          papel_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "matriz_competencia_papel_competencia_id_fkey"
-            columns: ["competencia_id"]
-            isOneToOne: false
-            referencedRelation: "matriz_competencia"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "matriz_competencia_papel_papel_id_fkey"
-            columns: ["papel_id"]
-            isOneToOne: false
-            referencedRelation: "papel_governanca"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       melhoria_acoes_td: {
         Row: {
           acao_td: string
@@ -5450,7 +5077,6 @@ export type Database = {
           documento_gerado_id: string | null
           empresa_pessoa_id: string
           id: string
-          instrumento_data: string | null
           origem_pessoa_id: string | null
           pago_com_empresa_pessoa_id: string | null
           pago_com_quotas: number | null
@@ -5459,8 +5085,6 @@ export type Database = {
           pct_vlr_contabil: number | null
           pct_vlr_mercado: number | null
           quotas: number
-          quotas_disponivel: number | null
-          quotas_legitima: number | null
           reserva_capital: number | null
           sequencia: number | null
           tipo: string
@@ -5481,7 +5105,6 @@ export type Database = {
           documento_gerado_id?: string | null
           empresa_pessoa_id: string
           id?: string
-          instrumento_data?: string | null
           origem_pessoa_id?: string | null
           pago_com_empresa_pessoa_id?: string | null
           pago_com_quotas?: number | null
@@ -5490,8 +5113,6 @@ export type Database = {
           pct_vlr_contabil?: number | null
           pct_vlr_mercado?: number | null
           quotas: number
-          quotas_disponivel?: number | null
-          quotas_legitima?: number | null
           reserva_capital?: number | null
           sequencia?: number | null
           tipo: string
@@ -5512,7 +5133,6 @@ export type Database = {
           documento_gerado_id?: string | null
           empresa_pessoa_id?: string
           id?: string
-          instrumento_data?: string | null
           origem_pessoa_id?: string | null
           pago_com_empresa_pessoa_id?: string | null
           pago_com_quotas?: number | null
@@ -5521,8 +5141,6 @@ export type Database = {
           pct_vlr_contabil?: number | null
           pct_vlr_mercado?: number | null
           quotas?: number
-          quotas_disponivel?: number | null
-          quotas_legitima?: number | null
           reserva_capital?: number | null
           sequencia?: number | null
           tipo?: string
@@ -5819,109 +5437,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
-      }
-      onus_quotas: {
-        Row: {
-          ato_id: string | null
-          cliente_id: string
-          created_at: string
-          created_by: string | null
-          empresa_pessoa_id: string
-          extinto_em: string | null
-          extinto_por_movimento_id: string | null
-          gravames: string[]
-          id: string
-          movimento_id: string | null
-          nu_proprietario_pessoa_id: string
-          quotas: number
-          updated_at: string
-          updated_by: string | null
-          usufruto_com_voto: boolean
-          usufruto_origem: string | null
-          usufrutuario_pessoa_ids: string[]
-        }
-        Insert: {
-          ato_id?: string | null
-          cliente_id: string
-          created_at?: string
-          created_by?: string | null
-          empresa_pessoa_id: string
-          extinto_em?: string | null
-          extinto_por_movimento_id?: string | null
-          gravames?: string[]
-          id?: string
-          movimento_id?: string | null
-          nu_proprietario_pessoa_id: string
-          quotas: number
-          updated_at?: string
-          updated_by?: string | null
-          usufruto_com_voto?: boolean
-          usufruto_origem?: string | null
-          usufrutuario_pessoa_ids?: string[]
-        }
-        Update: {
-          ato_id?: string | null
-          cliente_id?: string
-          created_at?: string
-          created_by?: string | null
-          empresa_pessoa_id?: string
-          extinto_em?: string | null
-          extinto_por_movimento_id?: string | null
-          gravames?: string[]
-          id?: string
-          movimento_id?: string | null
-          nu_proprietario_pessoa_id?: string
-          quotas?: number
-          updated_at?: string
-          updated_by?: string | null
-          usufruto_com_voto?: boolean
-          usufruto_origem?: string | null
-          usufrutuario_pessoa_ids?: string[]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "onus_quotas_ato_id_fkey"
-            columns: ["ato_id"]
-            isOneToOne: false
-            referencedRelation: "ato_societario"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "onus_quotas_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "cliente"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "onus_quotas_empresa_pessoa_id_fkey"
-            columns: ["empresa_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "onus_quotas_extinto_por_movimento_id_fkey"
-            columns: ["extinto_por_movimento_id"]
-            isOneToOne: false
-            referencedRelation: "movimentacao_quotas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "onus_quotas_movimento_id_fkey"
-            columns: ["movimento_id"]
-            isOneToOne: false
-            referencedRelation: "movimentacao_quotas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "onus_quotas_nu_proprietario_pessoa_id_fkey"
-            columns: ["nu_proprietario_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       ordem_servico: {
         Row: {
@@ -6756,53 +6271,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
-      }
-      papel_governanca: {
-        Row: {
-          cliente_id: string | null
-          created_at: string
-          created_by: string | null
-          excluido: boolean
-          grupo: string | null
-          id: string
-          nome: string
-          ordem: number
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          cliente_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          excluido?: boolean
-          grupo?: string | null
-          id?: string
-          nome: string
-          ordem?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          cliente_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          excluido?: boolean
-          grupo?: string | null
-          id?: string
-          nome?: string
-          ordem?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "papel_governanca_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "cliente"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       parentesco: {
         Row: {
@@ -8593,77 +8061,6 @@ export type Database = {
         }
         Relationships: []
       }
-      quadro_societario: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          data_referencia: string | null
-          empresa_pessoa_id: string
-          id: string
-          percentual: number | null
-          quotas: number | null
-          socio_pessoa_id: string
-          updated_at: string
-          updated_by: string | null
-          vlr_total: number | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          data_referencia?: string | null
-          empresa_pessoa_id: string
-          id?: string
-          percentual?: number | null
-          quotas?: number | null
-          socio_pessoa_id: string
-          updated_at?: string
-          updated_by?: string | null
-          vlr_total?: number | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          data_referencia?: string | null
-          empresa_pessoa_id?: string
-          id?: string
-          percentual?: number | null
-          quotas?: number | null
-          socio_pessoa_id?: string
-          updated_at?: string
-          updated_by?: string | null
-          vlr_total?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "quadro_societario_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quadro_societario_empresa_pessoa_id_fkey"
-            columns: ["empresa_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quadro_societario_socio_pessoa_id_fkey"
-            columns: ["socio_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quadro_societario_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       relatorios_gerados: {
         Row: {
           ciclo_id: string | null
@@ -9984,6 +9381,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tmp_diag_role: {
+        Row: {
+          quando: string | null
+          quem: string | null
+        }
+        Insert: {
+          quando?: string | null
+          quem?: string | null
+        }
+        Update: {
+          quando?: string | null
+          quem?: string | null
+        }
+        Relationships: []
       }
       tmpl_bloco: {
         Row: {
@@ -11580,11 +10992,6 @@ export type Database = {
         Args: { timeout_minutes?: number }
         Returns: number
       }
-      matriz_atividade_visivel_para: {
-        Args: { _matriz_atividade_id: string }
-        Returns: boolean
-      }
-      matriz_visivel_para: { Args: { _matriz_id: string }; Returns: boolean }
       melhoria_cluster_visivel: {
         Args: { _melhoria_id: string }
         Returns: boolean
@@ -11768,6 +11175,7 @@ export type Database = {
           tipo: Database["public"]["Enums"]["notificacao_tipo"]
         }[]
       }
+      tmp_aplicar_migration: { Args: { p_sql: string }; Returns: undefined }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
       user_estrutura_equipe_ids: {
         Args: { _user_id: string }
@@ -12072,9 +11480,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: [
