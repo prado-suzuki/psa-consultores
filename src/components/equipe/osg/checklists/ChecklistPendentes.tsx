@@ -14,6 +14,7 @@ import { useRevisarDocumento } from '@/hooks/useDocumentoArquivo';
 import { AvisosDaFase } from './AvisosDaFase';
 import { BotaoAvisarCliente } from './BotaoAvisarCliente';
 import { BotaoComprovante } from './BotaoComprovante';
+import { BotaoTrazerParaChecklist } from './BotaoTrazerParaChecklist';
 import { DocumentosDialog, RecusaDialog } from './DocumentosDialog';
 import {
   CLUSTER_ICON, CLUSTER_LABEL, ESTADO_CHIP, ESTADO_LABEL, estadoDaLinha,
@@ -201,6 +202,22 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
       <ResumoHero clienteNome={clienteNome} {...resumo} />
 
       <div className="flex flex-wrap items-center gap-3">
+        {/* Primeiro da fila, e o único preenchido entre os três: em `enviada`
+            ele é a ação que muda a fase, e as outras duas operam sobre o que já
+            está aqui.
+
+            A condição fica AQUI, e não só dentro dele: o componente consulta a
+            solicitação para ter a mutação, e hook roda antes de qualquer early
+            return. Montá-lo nos outros estados dispararia uma consulta para um
+            botão que nunca aparece. */}
+        {solicitacao.status === 'enviada' && (
+          <BotaoTrazerParaChecklist
+            clienteId={clienteId}
+            status={solicitacao.status}
+            arquivosSemTipo={arquivosSemTipo}
+          />
+        )}
+
         <BotaoComprovante
           clienteId={clienteId}
           clienteNome={clienteNome}
@@ -218,7 +235,6 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
       </div>
 
       <AvisosDaFase
-        clienteId={clienteId}
         status={solicitacao.status}
         encerradaEm={solicitacao.encerradaEm}
         arquivosSemTipo={arquivosSemTipo}

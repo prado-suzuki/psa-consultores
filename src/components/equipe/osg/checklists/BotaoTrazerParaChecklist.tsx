@@ -39,6 +39,10 @@ export function BotaoTrazerParaChecklist({
 
   // Só em `enviada`: é o único estado de onde a transição sai. Em rascunho o
   // cliente ainda não viu nada, e em `em_checklist` já aconteceu.
+  //
+  // Segunda linha de defesa, não a primeira: quem chama já condiciona a
+  // montagem, porque o `useDomainSolicitacao` acima roda ANTES deste return e
+  // consultaria a solicitação para desenhar um botão invisível.
   if (status !== 'enviada') return null;
 
   const trazer = async () => {
