@@ -83,7 +83,11 @@ const FILA_DO_BLUE = {
     // "Melhorados" e "Economia", duas medidas sem relação pintadas igual numa
     // fila onde a cor é justamente o que distingue.
     'src/components/equipe/dev/consulta-efd-icms/EfdResultsTable.tsx': 3,
-    'src/components/equipe/dev/pis-cofins/BalanceteTreeTable.tsx': 3,
+    // Saiu em 11/09/2026, e com uma CORREÇÃO: eu tinha registrado este selo como
+    // reprovando o AA (4,35:1 "em 10px negrito"). O conteúdo dele é um ÍCONE, não
+    // texto — o `text-[10px] font-bold` é herança da forma do selo irmão e não
+    // pinta nada. O piso que vale é o 3:1 da WCAG 1.4.11, e 4,35 passava. Foi
+    // convertido por ser cor de fábrica, não por contraste; agora dá 6,30:1.
     'src/components/equipe/processos/ProcessList.tsx': 3,
     'src/pages/equipe/dev/ConsultaECD.tsx': 3,
     'src/pages/equipe/dev/ConsultaECF.tsx': 3,

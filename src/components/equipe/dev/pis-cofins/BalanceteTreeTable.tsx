@@ -401,9 +401,22 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
             >
               <div className="flex items-center gap-1.5">
                 <span className="block truncate flex-1">{node.descricao_conta}</span>
+                {/*
+                  Marcador de PRESENÇA: esta conta foi encontrada na EFD. É irmão
+                  dos marcadores D/C logo abaixo — três etiquetas no mesmo canto
+                  da linha —, então veste tom CATEGÓRICO e não papel de status:
+                  estar na EFD não é um estágio do trabalho, é um fato sobre a
+                  conta. Ficou no frio (`tag-b`), a mesma matiz que já tinha, e
+                  agora acompanha a área.
+
+                  CONTRASTE: o conteúdo é um ícone, não texto — o `text-[10px]
+                  font-bold` aqui não pinta nada, é herança da forma do irmão. O
+                  piso que vale é o 3:1 da WCAG 1.4.11, e não os 4,5:1 de texto.
+                  O par de fábrica dava 4,35:1 e já passava; o novo dá 6,30:1.
+                */}
                 {!isParent && isInEfd && !extraTipo && (
                   <Badge
-                    className="shrink-0 text-[10px] px-1.5 py-0 h-5 font-bold bg-blue-500/15 text-blue-600 border-blue-500/30"
+                    className="shrink-0 text-[10px] px-1.5 py-0 h-5 font-bold bg-tag-b/15 text-tag-b border-tag-b/30"
                     variant="outline"
                     title="Conta presente na EFD"
                   >
