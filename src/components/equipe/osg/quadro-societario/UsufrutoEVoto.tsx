@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -10,6 +9,8 @@ import type { SocioDoQuadro } from '@/hooks/useMovimentacaoQuotas';
 import { useOnusDaEmpresa } from '@/hooks/useDoacaoDeQuotas';
 import { GRAVAMES, montarQuadroDeVoto, type Gravame } from '@/lib/osg/doacaoDeQuotas';
 import type { ConcessaoDeUsufruto, LinhaDoUsufruto, TotaisDoUsufruto } from '@/lib/osg/usufrutoDoAto';
+import { AjudaSocietaria } from './AjudaSocietaria';
+import { SecaoRecolhivel } from './SecaoRecolhivel';
 
 // A tabela de USUFRUTO E VOTO: quem tem a quota e quem vota por ela.
 //
@@ -41,8 +42,18 @@ export const TabelaUsufrutoEVoto = ({ linhas, totais, gravamesPorPessoa, compact
           <TableHead>Sócio / usufrutuário</TableHead>
           <TableHead className="text-right">Quotas</TableHead>
           <TableHead className="text-right">Propriedade plena</TableHead>
-          <TableHead className="text-right">Nua propriedade</TableHead>
-          <TableHead className="text-right">Usufruto (voto)</TableHead>
+          <TableHead className="text-right">
+            <span className="inline-flex items-center gap-1">
+              Nua propriedade
+              <AjudaSocietaria chave="nuaPropriedade" rotulo="nua propriedade" />
+            </span>
+          </TableHead>
+          <TableHead className="text-right">
+            <span className="inline-flex items-center gap-1">
+              Usufruto (voto)
+              <AjudaSocietaria chave="usufrutoComVoto" rotulo="usufruto estendido ao voto" />
+            </span>
+          </TableHead>
           <TableHead className="text-right">Voz e voto</TableHead>
         </TableRow>
       </TableHeader>
@@ -135,26 +146,26 @@ export const UsufrutoEVotoCard = ({ empresa, quadro, pessoasCliente }: UsufrutoE
 
   if (!tabela) return null;
 
+  // O card aparece com QUALQUER ônus vigente, inclusive só gravames e usufruto
+  // sem voto. A frase antiga afirmava que uso, gozo e voto seguem com o
+  // usufrutuário — descrição do caso padrão, não do que está gravado: com
+  // `comVoto` falso o voto fica com o titular, e um ônus só de gravame não
+  // desloca voto nenhum. A frase resumida diz o que sempre vale; a divisão
+  // exata está na tabela.
   return (
-    <Card className="animate-osg-rise motion-reduce:animate-none" style={{ animationDelay: '210ms' }}>
-      <CardHeader className="pb-3 space-y-2">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Vote className="h-4 w-4 text-muted-foreground" />
-          Usufruto e voto
-        </CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Quem tem a quota não é necessariamente quem vota por ela. As quotas doadas com reserva de
-          usufruto ficam em nua propriedade com o donatário; uso, gozo e voto seguem com o
-          usufrutuário. O percentual é do voto, não do capital.
-        </p>
-      </CardHeader>
-      <CardContent>
-        <TabelaUsufrutoEVoto
-          linhas={tabela.linhas}
-          totais={tabela.totais}
-          gravamesPorPessoa={tabela.gravamesPorPessoa}
-        />
-      </CardContent>
-    </Card>
+    <SecaoRecolhivel
+      icone={<Vote className="h-4 w-4 text-muted-foreground" />}
+      titulo="Usufruto, voto e gravames"
+      resumo="Há ônus vigentes sobre as quotas. Participação no capital e voto podem diferir."
+      rotuloAbrir="Ver detalhes"
+      rotuloFechar="Ocultar detalhes"
+      delay={210}
+    >
+      <TabelaUsufrutoEVoto
+        linhas={tabela.linhas}
+        totais={tabela.totais}
+        gravamesPorPessoa={tabela.gravamesPorPessoa}
+      />
+    </SecaoRecolhivel>
   );
 };

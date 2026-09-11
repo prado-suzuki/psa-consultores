@@ -21,14 +21,17 @@ import {
   TODOS_OS_GRAVAMES,
   type Gravame,
 } from '@/lib/osg/doacaoDeQuotas';
+import { AjudaSocietaria } from './AjudaSocietaria';
 import { novoPar, type ParDraft } from './doacaoDraft';
+import { GestoEscolhido } from './GestoEscolhido';
 import { ParesDaDoacao } from './ParesDaDoacao';
 import { TabelaUsufrutoEVoto } from './UsufrutoEVoto';
 import { fmtInt } from './quadroFmt';
 
-// Caixa de interruptor com duas linhas de texto: a `switchBoxCls` do kit tem
-// altura fixa de um campo e não cabe a explicação.
-const interruptorCls = 'flex cursor-pointer items-center justify-between gap-3 rounded-md border border-osg-200/80 bg-background p-3';
+// Caixa de interruptor: rótulo à esquerda, ajuda ao lado dele, controle à
+// direita. NÃO é um `<label>` inteiro, porque o ícone de ajuda é irmão do rótulo
+// e clicar nele dentro de um label alternaria o interruptor.
+const interruptorCls = 'flex items-center justify-between gap-3 rounded-md border border-osg-200/80 bg-background p-3';
 
 // O MACRO da doação de quotas com reserva de usufruto: os sócios fundadores
 // passam as quotas da holding aos filhos e guardam uso, gozo e voto.
@@ -49,8 +52,8 @@ interface DoarQuotasDialogProps {
   /** Quadro atual (saldo): de onde saem os doadores e os limites. */
   quadro: SocioDoQuadro[];
   pessoasCliente: PessoaRow[];
-  /** Doador já escolhido, quando o gesto partiu da linha de um sócio. */
-  doadorInicial?: string | null;
+  /** Volta ao seletor de gesto. Ausente quando não há porta para voltar. */
+  onTrocar?: () => void;
 }
 
 interface Draft {
@@ -65,8 +68,8 @@ interface Draft {
   dataAto: string;
 }
 
-const draftInicial = (doadorInicial?: string | null): Draft => ({
-  pares: [novoPar(doadorInicial ?? '')],
+const draftInicial = (): Draft => ({
+  pares: [novoPar('')],
   reserva: true,
   comVoto: true,
   conjugeUsufrui: {},
@@ -77,21 +80,34 @@ const draftInicial = (doadorInicial?: string | null): Draft => ({
 });
 
 export function DoarQuotasDialog({
-  open, onClose, empresa, quadro, pessoasCliente, doadorInicial,
+  open, onClose, empresa, quadro, pessoasCliente, onTrocar,
 }: DoarQuotasDialogProps) {
-  const [draft, setDraft] = useState<Draft>(() => draftInicial(doadorInicial));
+  const [draft, setDraft] = useState<Draft>(() => draftInicial());
   const doar = useDoarQuotas();
   const initialDraftRef = useRef<string>('');
 
   useEffect(() => {
     if (!open) return;
-    const inicial = draftInicial(doadorInicial);
+    const inicial = draftInicial();
     setDraft(inicial);
     initialDraftRef.current = JSON.stringify(inicial);
-  }, [open, doadorInicial]);
+  }, [open]);
 
   const isDirty = JSON.stringify(draft) !== initialDraftRef.current;
-  const { requestClose, alertProps } = useDirtyClose({ isDirty, onClose });
+  // Mesmo guard, dois destinos: fechar ou voltar ao seletor (ver MovimentoModal).
+  const destinoDaSaida = useRef<'fechar' | 'trocar'>('fechar');
+  const { requestClose, alertProps } = useDirtyClose({
+    isDirty,
+    onClose: () => (destinoDaSaida.current === 'trocar' && onTrocar ? onTrocar() : onClose()),
+  });
+  const pedirFechamento = () => {
+    destinoDaSaida.current = 'fechar';
+    requestClose();
+  };
+  const pedirTroca = () => {
+    destinoDaSaida.current = 'trocar';
+    requestClose();
+  };
   const set = <K extends keyof Draft>(campo: K, valor: Draft[K]) =>
     setDraft((prev) => ({ ...prev, [campo]: valor }));
 
@@ -194,11 +210,11 @@ export function DoarQuotasDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
+      <Dialog open={open} onOpenChange={(o) => !o && pedirFechamento()}>
         <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-visible p-0 sm:[clip-path:none]">
           <div className="shrink-0 rounded-t-lg bg-background px-6 pt-5">
             <DialogHeader className="space-y-1 text-left">
-              <DialogTitle className="flex items-center gap-2.5 text-base font-semibold">
+              <DialogTitle className="flex flex-wrap items-center gap-2.5 text-base font-semibold">
                 <Gift className="h-4 w-4 text-osg-moss" />
                 Doar quotas
                 <span className="rounded-md bg-osg-50 px-2 py-0.5 text-xs font-semibold text-osg-700">
@@ -206,13 +222,22 @@ export function DoarQuotasDialog({
                 </span>
               </DialogTitle>
               <DialogDescription>
-                Os sócios doam quotas a título gratuito. Com a reserva, quem doa fica com uso, gozo e
-                voto; quem recebe fica com a nua propriedade. Tudo entra no livro num ato só.
+                Registre os pares de doação e confira a reserva de usufruto, o voto e os gravames
+                aplicáveis.
               </DialogDescription>
             </DialogHeader>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+            <div className="mb-5">
+              <GestoEscolhido
+                rotulo="Doação com reserva de usufruto ou gravames"
+                ajuda="doacaoComOnus"
+                onTrocar={onTrocar ? pedirTroca : undefined}
+                disabled={doar.isPending}
+              />
+            </div>
+
             <FieldSection number="01" title="Quem doa, para quem, quanto">
               <ParesDaDoacao
                 pares={draft.pares}
@@ -223,32 +248,55 @@ export function DoarQuotasDialog({
                 declararOrigem={draft.declararOrigem}
                 disabled={doar.isPending}
               />
+              {/* O hook recusa doador que já tenha ônus vigente, e a recusa
+                  precisa apontar para uma entrada que EXISTE. Depois da porta
+                  única, ela é "Registrar movimento → Doação simples". */}
+              <p className="mt-2 text-xs text-muted-foreground">
+                Para transferir quotas já oneradas, use Registrar movimento e escolha Doação simples.
+                Este formulário não reparte ônus preexistente entre pares.
+              </p>
             </FieldSection>
 
             <FieldSection number="02" title="Reserva de usufruto">
               <div className="space-y-3">
-                <label className={interruptorCls}>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Doador reserva o usufruto vitalício</p>
-                    <p className="text-xs text-muted-foreground">
-                      Quem doa continua com uso e gozo (os lucros) das quotas doadas. Sem a reserva é uma
-                      doação simples.
-                    </p>
-                  </div>
-                  <Switch checked={draft.reserva} onCheckedChange={(v) => set('reserva', v)} disabled={doar.isPending} />
-                </label>
+                <div className={interruptorCls}>
+                  <span className="flex items-center gap-1.5">
+                    <label htmlFor="doacao-reserva" className="cursor-pointer text-sm font-medium text-foreground">
+                      Doador reserva o usufruto vitalício
+                    </label>
+                    <AjudaSocietaria chave="doacaoComOnus" rotulo="reserva de usufruto" />
+                  </span>
+                  <Switch
+                    id="doacao-reserva"
+                    checked={draft.reserva}
+                    onCheckedChange={(v) => set('reserva', v)}
+                    disabled={doar.isPending}
+                  />
+                </div>
+                {/* Desligar a reserva NÃO desliga os gravames, e a frase antiga
+                    ("sem a reserva é uma doação simples") escondia isso: o ônus
+                    continua nascendo pelos gravames marcados na seção 03. */}
+                {!draft.reserva && (
+                  <p className="text-xs text-muted-foreground">
+                    Sem reserva de usufruto. Os gravames selecionados continuam aplicáveis.
+                  </p>
+                )}
                 {draft.reserva && (
                   <>
-                    <label className={interruptorCls}>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Usufruto estendido ao voto</p>
-                        <p className="text-xs text-muted-foreground">
-                          O usufrutuário vota pelas quotas (art. 114 da Lei 6.404/76 via art. 1.053 do CC).
-                          É o padrão da casa.
-                        </p>
-                      </div>
-                      <Switch checked={draft.comVoto} onCheckedChange={(v) => set('comVoto', v)} disabled={doar.isPending} />
-                    </label>
+                    <div className={interruptorCls}>
+                      <span className="flex items-center gap-1.5">
+                        <label htmlFor="doacao-voto" className="cursor-pointer text-sm font-medium text-foreground">
+                          Usufruto estendido ao voto
+                        </label>
+                        <AjudaSocietaria chave="usufrutoComVoto" rotulo="usufruto estendido ao voto" />
+                      </span>
+                      <Switch
+                        id="doacao-voto"
+                        checked={draft.comVoto}
+                        onCheckedChange={(v) => set('comVoto', v)}
+                        disabled={doar.isPending}
+                      />
+                    </div>
                     {doadoresEscolhidos.map((id) => {
                       const conjuge = conjugePorDoador.get(id) ?? null;
                       return (
@@ -281,20 +329,26 @@ export function DoarQuotasDialog({
             </FieldSection>
 
             <FieldSection number="03" title="Gravames sobre as quotas doadas">
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              {/* Quatro LINHAS, não quatro cartões: a explicação permanente de
+                  cada gravame ocupava mais altura que os pares da doação, e ela
+                  agora é ajuda pedida no ícone. */}
+              <div className="divide-y divide-osg-100 rounded-md border border-osg-200/80">
                 {TODOS_OS_GRAVAMES.map((g) => (
-                  <label key={g} className="flex cursor-pointer items-start gap-2.5 rounded-md border border-osg-200/80 p-3">
+                  <div key={g} className="flex items-center gap-2.5 px-3 py-2.5">
                     <Checkbox
+                      id={`gravame-${g}`}
                       checked={draft.gravames.includes(g)}
                       onCheckedChange={(v) => alternarGravame(g, v === true)}
                       disabled={doar.isPending}
-                      className="mt-0.5"
                     />
-                    <span>
-                      <span className="block text-sm font-medium text-foreground">{GRAVAMES[g].label}</span>
-                      <span className="block text-xs text-muted-foreground">{GRAVAMES[g].descricao}</span>
-                    </span>
-                  </label>
+                    <label
+                      htmlFor={`gravame-${g}`}
+                      className="cursor-pointer text-sm font-medium text-foreground"
+                    >
+                      {GRAVAMES[g].label}
+                    </label>
+                    <AjudaSocietaria chave={g} rotulo={GRAVAMES[g].label} />
+                  </div>
                 ))}
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
@@ -304,20 +358,30 @@ export function DoarQuotasDialog({
 
             <FieldSection number="04" title="Origem e datas">
               <div className="space-y-3">
-                <label className={interruptorCls}>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Declarar a origem no patrimônio do doador</p>
-                    <p className="text-xs text-muted-foreground">
-                      Metade da parte legítima, metade da disponível; a quota que sobra fica na legítima.
-                    </p>
-                  </div>
-                  <Switch checked={draft.declararOrigem} onCheckedChange={(v) => set('declararOrigem', v)} disabled={doar.isPending} />
-                </label>
+                <div className={interruptorCls}>
+                  <span className="flex items-center gap-1.5">
+                    <label htmlFor="doacao-origem" className="cursor-pointer text-sm font-medium text-foreground">
+                      Declarar a origem no patrimônio do doador
+                    </label>
+                    <AjudaSocietaria chave="origemDaDoacao" rotulo="origem legítima e disponível" />
+                  </span>
+                  <Switch
+                    id="doacao-origem"
+                    checked={draft.declararOrigem}
+                    onCheckedChange={(v) => set('declararOrigem', v)}
+                    disabled={doar.isPending}
+                  />
+                </div>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label className={labelCls}>Data do instrumento de doação</Label>
                     <Input type="date" value={draft.dataInstrumento} onChange={(e) => set('dataInstrumento', e.target.value)} className={fieldCls} disabled={doar.isPending} />
-                    <p className="text-[11px] text-muted-foreground">O instrumento particular que a alteração anexa.</p>
+                    {/* A tela coleta a DATA. Ela não anexa arquivo nenhum, e a
+                        frase antiga ("que a alteração anexa") prometia isso. */}
+                    <p className="text-[11px] text-muted-foreground">
+                      Data do instrumento particular citado na alteração contratual. Informar a data
+                      não anexa o arquivo.
+                    </p>
                   </div>
                   <div className="space-y-1.5">
                     <Label className={labelCls}>Data do ato</Label>
@@ -369,7 +433,7 @@ export function DoarQuotasDialog({
           </div>
 
           <DialogFooter className="shrink-0 rounded-b-lg border-t border-osg-100 bg-background px-6 py-3.5">
-            <Button variant="outline" onClick={requestClose} disabled={doar.isPending}>
+            <Button variant="outline" onClick={pedirFechamento} disabled={doar.isPending}>
               Cancelar
             </Button>
             <Button

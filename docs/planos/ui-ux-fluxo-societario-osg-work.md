@@ -1,9 +1,30 @@
 # Uma entrada para os movimentos do quadro societário
 
-**Aberto em 11/09/2026. Status: plano, implementação não iniciada.**
-Leitura feita na branch `feat/doacao-quotas-com-usufruto`, base `1ac4d430`.
-Escopo: UI/UX do Quadro Societário e dos formulários que ele abre. Nenhuma migration,
-mudança de RLS, RPC, schema, gravação ou geração contratual faz parte desta entrega.
+**Aberto em 11/09/2026. Status: fatias 1 a 4 entregues em 11/09/2026; fatia 5 pendente.**
+Leitura feita na branch `feat/doacao-quotas-com-usufruto`, base `1ac4d430`; execução na
+mesma branch. Escopo: UI/UX do Quadro Societário e dos formulários que ele abre. Nenhuma
+migration, mudança de RLS, RPC, schema, gravação ou geração contratual faz parte desta
+entrega, e nenhuma foi feita.
+
+**O que está no código (11/09/2026).** `ajudaSocietaria.ts` e `AjudaSocietaria.tsx` (a ajuda
+de quadro e contrato da seção 5, num ícone próprio); `gestosSocietarios.ts` (os catálogos da
+CN e da PR); `EscolherMovimentoDialog.tsx` (a porta única) e `GestoEscolhido.tsx` (o gesto
+nomeado dentro do formulário, com "Trocar movimento"); `QuadroEmpresaControladora.tsx`,
+extraído da página, que passou a 133 linhas; `SecaoRecolhivel.tsx` e o `quadroKit` com
+`CabecalhoDoCard` e `FaixaDeResumo` no lugar do `KpiCard`. Saíram o `KpiCard`, o
+`useCountUp` (sem consumidor), a coluna de Ações, o `acaoDoSocio`, o avatar de iniciais e a
+barra de participação. `MovimentoModal` recebe o tipo pronto e perdeu o select e o aviso que
+mandava procurar outro botão. Testes novos: `formulariosDoQuadro.test.tsx` (caracterização
+dos três formulários) e `QuadroEmpresaControladora.test.tsx` (roteamento da porta). A suíte
+inteira (5410 testes), o typecheck e o build passam.
+
+**Uma coisa que o plano não previu.** O ícone de ajuda dentro de um `OsgDialog` não abria no
+clique: o gatilho do Radix fecha a dica no `pointerdown` **e** no `click`, e o `Slot` roda o
+handler dele depois do nosso sem olhar `defaultPrevented`. Um único estado controlado é
+desfeito no mesmo evento. `AjudaSocietaria` guarda dois estados — a abertura por ponteiro,
+que é do Radix, e a fixada pelo clique, que sobrevive aos fechamentos dele.
+
+**A fatia 5 continua aberta**, e com ela o aceite: nada aqui foi visto rodando no navegador.
 
 ## 1. Decisões de interação
 
@@ -517,11 +538,10 @@ para ocultar avisos do formulário. O tooltip deve explicar corretamente a opç�
 
 ## 7. Execução em fatias
 
-Cada fatia é um commit de implementação futuro, verificável sem entregar banco novo.
-Este documento não executa nenhuma delas. Atualizar seu status e a linha do índice
-conforme cada fatia entrar, sem marcar a frente inteira como concluída antes do aceite.
+Cada fatia é verificável sem entregar banco novo. As quatro primeiras foram executadas em
+11/09/2026; a quinta, que é o aceite, não. A frente **não** está concluída.
 
-### Fatia 1. Caracterização e ajuda contextual
+### Fatia 1. Caracterização e ajuda contextual — ENTREGUE 11/09/2026
 
 **Arquivos:** novos testes de apresentação em `quadro-societario/`,
 `AjudaSocietaria.tsx` e `ajudaSocietaria.ts` locais, `MovimentoModal.tsx`,
@@ -540,7 +560,7 @@ entrega intermediária.
 não alterna um campo. Textos explicativos não substituem avisos de validação. Os
 payloads e padrões caracterizados permanecem iguais.
 
-### Fatia 2. Porta única da CN
+### Fatia 2. Porta única da CN — ENTREGUE 11/09/2026
 
 **Arquivos:** `QS`, novo `EscolherMovimentoDialog.tsx`, `MovimentoModal.tsx`,
 `DoarQuotasDialog.tsx`, `InstituirUsufrutoDialog.tsx` e testes correspondentes.
@@ -555,7 +575,7 @@ Nenhum caminho doação vira outro hook por inferência. Cancelar/trocar/reabrir
 vaza draft entre gestos ou empresas. O erro do macro sobre quotas já oneradas ainda
 aponta para uma entrada que existe, e a orientação leva à Doação simples.
 
-### Fatia 3. Hierarquia da página, incluindo PR
+### Fatia 3. Hierarquia da página, incluindo PR — ENTREGUE 11/09/2026
 
 **Arquivos:** `QS`, `QuadroEmpresaProprietaria.tsx`, `quadroKit.tsx`,
 `TabelaSocios.tsx`, `UsufrutoEVoto.tsx`, `AtosSocietarios.tsx`,
@@ -574,7 +594,7 @@ da proposta ou escolha de suas duas operações, conforme estado. Nenhuma trava 
 lista. Busca preserva filtros e regra de ocultar Total. As duas tabelas mantêm as
 somas, pessoas e percentuais de antes.
 
-### Fatia 4. Densidade dos formulários e revisão
+### Fatia 4. Densidade dos formulários e revisão — ENTREGUE 11/09/2026
 
 **Arquivos:** `DoarQuotasDialog.tsx`, `ParesDaDoacao.tsx`,
 `InstituirUsufrutoDialog.tsx`, `MovimentoModal.tsx`, `AtosSocietarios.tsx` e testes.
@@ -591,7 +611,7 @@ descrito como transferido nos novos textos. Cônjuge selecionado está visível.
 Quantidade restante, origem ímpar, ordem dos pares e envio pendente se comportam como
 na caracterização. O rodapé permanece alcançável com rolagem e zoom.
 
-### Fatia 5. Conferência no navegador e com consultores
+### Fatia 5. Conferência no navegador e com consultores — PENDENTE
 
 **Arquivos:** teste de fluxo futuro em `e2e/`, seletores afetados de
 `e2e/demos/ac-reorganizacao-societaria.mjs`, evidência em `docs/osg/` e este plano/índice.

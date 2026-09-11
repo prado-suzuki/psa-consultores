@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -7,6 +6,7 @@ import {
 import { FileCheck2, History, Loader2, Undo2 } from 'lucide-react';
 import { useReverterAto } from '@/hooks/useMovimentacaoQuotas';
 import type { AtoParaProcedencia, MovimentoDoLedger } from '@/lib/osg/projecaoQuadro';
+import { SecaoRecolhivel } from './SecaoRecolhivel';
 
 // Os atos societários que tocaram esta empresa, e o gesto de desfazê-los.
 //
@@ -32,20 +32,24 @@ export const AtosSocietarios = ({ movimentos, atos }: AtosSocietariosProps) => {
 
   if (atos.length === 0) return null;
 
+  // Não é "histórico de movimentos" e não é a lista de alterações pendentes: o
+  // movimento avulso não tem ato e por isso não aparece aqui, e a instituição
+  // não tem lançamento para receber o carimbo de formalização. O que a lista
+  // reúne é o que foi gravado JUNTO e pode ser desfeito junto.
   return (
-    <Card className="animate-osg-rise motion-reduce:animate-none" style={{ animationDelay: '240ms' }}>
-      <CardHeader className="pb-3 space-y-2">
-        <CardTitle className="text-base flex items-center gap-2">
-          <History className="h-4 w-4 text-muted-foreground" />
-          Atos societários ({atos.length})
-        </CardTitle>
+    <SecaoRecolhivel
+      icone={<History className="h-4 w-4 text-muted-foreground" />}
+      titulo={`Atos societários (${atos.length})`}
+      resumo="Cada ato agrupa o que nasceu junto e pode ser desfeito enquanto nenhum documento o formalizou."
+      rotuloAbrir="Ver atos"
+      rotuloFechar="Ocultar atos"
+      delay={240}
+    >
+      <div className="space-y-2">
         <p className="text-xs text-muted-foreground">
-          Cada ato agrupa o que nasceu junto: os lançamentos do livro, inclusive os da outra
-          empresa, e o ônus sobre as quotas. Desfazer apaga o ato inteiro, e só é possível
-          enquanto nenhum documento o formalizou.
+          Esta lista reúne atos agrupados, inclusive os que criaram apenas ônus. Movimentos avulsos
+          não aparecem aqui.
         </p>
-      </CardHeader>
-      <CardContent className="space-y-2">
         {atos.map((ato) => {
           const doAto = movimentos.filter((m) => m.atoId === ato.id);
           const formalizado = doAto.some((m) => m.documentoGeradoId);
@@ -88,7 +92,10 @@ export const AtosSocietarios = ({ movimentos, atos }: AtosSocietariosProps) => {
                       <AlertDialogTitle>Desfazer {nome}?</AlertDialogTitle>
                       <AlertDialogDescription>
                         {doAto.length > 0
-                          ? 'Os lançamentos deste ato saem do livro nas duas empresas, e os quadros voltam ao estado anterior.'
+                          // "nas duas empresas" só descrevia a subida de quotas:
+                          // a doação toca uma empresa só, e a frase antiga
+                          // prometia um efeito que ela não tem.
+                          ? 'Os lançamentos e os ônus criados por este ato serão removidos das empresas envolvidas. Os ônus que ele extinguiu serão restaurados.'
                           : 'Este ato não moveu quota nenhuma: o que sai é o ônus que ele criou, e o voto volta a acompanhar a propriedade.'}
                         {' '}Não há como desfazer esta ação.
                       </AlertDialogDescription>
@@ -107,7 +114,7 @@ export const AtosSocietarios = ({ movimentos, atos }: AtosSocietariosProps) => {
             </div>
           );
         })}
-      </CardContent>
-    </Card>
+      </div>
+    </SecaoRecolhivel>
   );
 };

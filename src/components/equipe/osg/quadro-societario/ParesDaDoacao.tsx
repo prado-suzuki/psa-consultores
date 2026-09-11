@@ -100,6 +100,10 @@ export const ParesDaDoacao = ({
                 size="icon"
                 variant="ghost"
                 className="mb-0.5 h-9 w-9 shrink-0"
+                // O nome diz QUAL par: com quatro linhas iguais na tela, quatro
+                // botões chamados "Remover este par" não distinguem nada para
+                // quem navega por teclado ou leitor de tela.
+                aria-label={`Remover o par ${i + 1}`}
                 title="Remover este par"
                 onClick={() => onChange(pares.filter((p) => p.chave !== par.chave))}
                 disabled={disabled || pares.length === 1}

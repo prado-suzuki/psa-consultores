@@ -15,6 +15,8 @@ import type { SocioDoQuadro } from '@/hooks/useMovimentacaoQuotas';
 import { useOnusDaEmpresa } from '@/hooks/useDoacaoDeQuotas';
 import { useInstituirUsufruto } from '@/hooks/useInstituicaoDeUsufruto';
 import { descricaoDaInstituicao, planejarInstituicaoDeUsufruto } from '@/lib/osg/onusDaSociedade';
+import { AjudaSocietaria } from './AjudaSocietaria';
+import { GestoEscolhido } from './GestoEscolhido';
 import { TabelaUsufrutoEVoto } from './UsufrutoEVoto';
 import { fmtInt } from './quadroFmt';
 
@@ -27,7 +29,9 @@ import { fmtInt } from './quadroFmt';
 // é o que complementa a reserva quando ela não alcança o controle desejado (no
 // Agro Aliança, 46,54% de participação contra 51% de voto pretendido).
 
-const interruptorCls = 'flex cursor-pointer items-center justify-between gap-3 rounded-md border border-osg-200/80 bg-background p-3';
+// Rótulo à esquerda com a ajuda ao lado, controle à direita. Não é um `<label>`
+// inteiro: o ícone de ajuda dentro dele alternaria o interruptor.
+const interruptorCls = 'flex items-center justify-between gap-3 rounded-md border border-osg-200/80 bg-background p-3';
 
 interface LinhaDraft {
   /** Identidade da LINHA, não do par: é a `key` do React. */
@@ -51,8 +55,8 @@ interface Draft {
   dataAto: string;
 }
 
-const draftInicial = (concedenteInicial?: string | null): Draft => ({
-  linhas: [novaLinha(concedenteInicial ?? '')],
+const draftInicial = (): Draft => ({
+  linhas: [novaLinha('')],
   comVoto: true,
   dataAto: '',
 });
@@ -63,27 +67,40 @@ interface InstituirUsufrutoDialogProps {
   empresa: PessoaRow;
   quadro: SocioDoQuadro[];
   pessoasCliente: PessoaRow[];
-  /** Concedente já escolhido, quando o gesto partiu da linha de um sócio. */
-  concedenteInicial?: string | null;
+  /** Volta ao seletor de gesto. Ausente quando não há porta para voltar. */
+  onTrocar?: () => void;
 }
 
 export function InstituirUsufrutoDialog({
-  open, onClose, empresa, quadro, pessoasCliente, concedenteInicial,
+  open, onClose, empresa, quadro, pessoasCliente, onTrocar,
 }: InstituirUsufrutoDialogProps) {
-  const [draft, setDraft] = useState<Draft>(() => draftInicial(concedenteInicial));
+  const [draft, setDraft] = useState<Draft>(() => draftInicial());
   const instituir = useInstituirUsufruto();
   const { data: onusVigentes = [] } = useOnusDaEmpresa(open ? empresa.id : null);
   const initialDraftRef = useRef<string>('');
 
   useEffect(() => {
     if (!open) return;
-    const inicial = draftInicial(concedenteInicial);
+    const inicial = draftInicial();
     setDraft(inicial);
     initialDraftRef.current = JSON.stringify(inicial);
-  }, [open, concedenteInicial]);
+  }, [open]);
 
   const isDirty = JSON.stringify(draft) !== initialDraftRef.current;
-  const { requestClose, alertProps } = useDirtyClose({ isDirty, onClose });
+  // Mesmo guard, dois destinos: fechar ou voltar ao seletor (ver MovimentoModal).
+  const destinoDaSaida = useRef<'fechar' | 'trocar'>('fechar');
+  const { requestClose, alertProps } = useDirtyClose({
+    isDirty,
+    onClose: () => (destinoDaSaida.current === 'trocar' && onTrocar ? onTrocar() : onClose()),
+  });
+  const pedirFechamento = () => {
+    destinoDaSaida.current = 'fechar';
+    requestClose();
+  };
+  const pedirTroca = () => {
+    destinoDaSaida.current = 'trocar';
+    requestClose();
+  };
 
   const nomes = useMemo(() => {
     const m = new Map(pessoasCliente.map((p) => [p.id, p.denominacao ?? '—']));
@@ -160,21 +177,35 @@ export function InstituirUsufrutoDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
+      <Dialog open={open} onOpenChange={(o) => !o && pedirFechamento()}>
         <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-visible p-0 sm:[clip-path:none]">
           <div className="shrink-0 rounded-t-lg bg-background px-6 pt-5">
             <DialogHeader className="space-y-1 text-left">
-              <DialogTitle className="flex items-center gap-2">
-                <Vote className="h-4 w-4 text-osg-moss" /> Instituir usufruto
+              <DialogTitle className="flex flex-wrap items-center gap-2.5 text-base font-semibold">
+                <Vote className="h-4 w-4 text-osg-moss" />
+                Instituir usufruto
+                <span className="rounded-md bg-osg-50 px-2 py-0.5 text-xs font-semibold text-osg-700">
+                  {empresa.denominacao}
+                </span>
               </DialogTitle>
+              {/* A frase antiga terminava em "só o voto se desloca", o que é
+                  falso com o voto desligado: o usufruto muda uso e gozo de
+                  qualquer forma. */}
               <DialogDescription>
-                Quem tem a quota entrega o uso, o gozo e (se marcado) o voto dela a outra pessoa.
-                A titularidade não muda: o quadro societário fica igual, e só o voto se desloca.
+                Institua usufruto sem mudar a titularidade das quotas. Confira quem recebe o uso, o
+                gozo e, se marcado, o voto.
               </DialogDescription>
             </DialogHeader>
           </div>
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
+            <GestoEscolhido
+              rotulo="Instituição de usufruto"
+              ajuda="instituicao"
+              onTrocar={onTrocar ? pedirTroca : undefined}
+              disabled={instituir.isPending}
+            />
+
             <FieldSection number="01" title="Quem concede e quem usufrui">
               <div className="space-y-3">
                 {draft.linhas.map((linha) => {
@@ -226,7 +257,8 @@ export function InstituirUsufrutoDialog({
                           size="icon"
                           variant="ghost"
                           className="h-9 w-9"
-                          title="Remover esta linha"
+                          aria-label={`Remover a concessão ${draft.linhas.indexOf(linha) + 1}`}
+                          title="Remover esta concessão"
                           disabled={draft.linhas.length === 1 || instituir.isPending}
                           onClick={() => setDraft((p) => ({
                             ...p, linhas: p.linhas.filter((l) => l.chave !== linha.chave),
@@ -286,20 +318,20 @@ export function InstituirUsufrutoDialog({
 
             <FieldSection number="02" title="Condições do ato">
               <div className="space-y-3">
-                <label className={interruptorCls}>
-                  <span className="space-y-0.5">
-                    <span className="block text-sm font-medium">O usufruto alcança o direito de voto</span>
-                    <span className="block text-xs text-muted-foreground">
-                      Art. 114 da Lei nº 6.404/76, aplicado por força do art. 1.053, parágrafo único,
-                      do Código Civil. Sem isto, quem usufrui recebe os frutos e não vota.
-                    </span>
+                <div className={interruptorCls}>
+                  <span className="flex items-center gap-1.5">
+                    <label htmlFor="instituicao-voto" className="cursor-pointer text-sm font-medium">
+                      O usufruto alcança o direito de voto
+                    </label>
+                    <AjudaSocietaria chave="usufrutoComVoto" rotulo="usufruto estendido ao voto" />
                   </span>
                   <Switch
+                    id="instituicao-voto"
                     checked={draft.comVoto}
                     disabled={instituir.isPending}
                     onCheckedChange={(v) => setDraft((p) => ({ ...p, comVoto: v }))}
                   />
-                </label>
+                </div>
                 <div className="space-y-1.5 md:w-56">
                   <Label className={labelCls}>Data do ato</Label>
                   <Input
@@ -323,6 +355,14 @@ export function InstituirUsufrutoDialog({
               </FieldSection>
             )}
 
+            {/* O limite é do FLUXO, não do preenchimento, e por isso fica à
+                vista em vez de dentro da ajuda: `eventosDaAlteracao.ts` não tem
+                ramo de instituição, então a peça descreve o ônus pelo
+                consolidado e não por uma resolução própria. */}
+            <p className="text-xs text-muted-foreground">
+              O consolidado já descreve o ônus. A resolução própria da instituição ainda não é
+              incluída automaticamente neste fluxo.
+            </p>
             {plano.avisos.map((aviso) => (
               <p key={aviso} className="flex items-start gap-2 text-xs text-muted-foreground">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {aviso}
@@ -336,7 +376,7 @@ export function InstituirUsufrutoDialog({
           </div>
 
           <DialogFooter className="shrink-0 gap-2 border-t px-6 py-4">
-            <Button variant="outline" onClick={requestClose} disabled={instituir.isPending}>
+            <Button variant="outline" onClick={pedirFechamento} disabled={instituir.isPending}>
               Cancelar
             </Button>
             <Button

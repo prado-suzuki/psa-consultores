@@ -2,24 +2,14 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeftRight, Building2, ChartPie, Gift, Landmark, PieChart, Plus, Tag, Users, Vote } from 'lucide-react';
+import { Building2, PieChart } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
-import { useCountUp } from '@/hooks/useCountUp';
 import { osgTabsListCls, osgTabTriggerCls } from '@/components/equipe/osg/formKit';
 import { usePessoasByCliente, type PessoaRow } from '@/hooks/useQualificacaoDasPartes';
-import { useMovimentosDaEmpresa, useQuadroDaEmpresa } from '@/hooks/useMovimentacaoQuotas';
-import { procedenciaDosMovimentos } from '@/lib/osg/projecaoQuadro';
-import { AtosSocietarios } from '@/components/equipe/osg/quadro-societario/AtosSocietarios';
-import { DoarQuotasDialog } from '@/components/equipe/osg/quadro-societario/DoarQuotasDialog';
-import { InstituirUsufrutoDialog } from '@/components/equipe/osg/quadro-societario/InstituirUsufrutoDialog';
-import { MovimentoModal } from '@/components/equipe/osg/quadro-societario/MovimentoModal';
-import { UsufrutoEVotoCard } from '@/components/equipe/osg/quadro-societario/UsufrutoEVoto';
+import { QuadroEmpresaControladora } from '@/components/equipe/osg/quadro-societario/QuadroEmpresaControladora';
 import { QuadroEmpresaProprietaria } from '@/components/equipe/osg/quadro-societario/QuadroEmpresaProprietaria';
-import { TabelaSocios, type LinhaSocio } from '@/components/equipe/osg/quadro-societario/TabelaSocios';
-import { fmtBRL, fmtInt } from '@/components/equipe/osg/quadro-societario/quadroFmt';
-import { KpiCard } from '@/components/equipe/osg/quadro-societario/quadroKit';
 
 // Só PJs Proprietária (PR) e Controladora (CN) têm quadro societário nesta tela.
 const TIPOS_EMPRESA_ELEGIVEIS = ['PR', 'CN'] as const;
@@ -28,225 +18,21 @@ const TIPO_EMPRESA_LABELS: Record<string, string> = {
   CN: 'Controladora',
 };
 
-interface QuadroEmpresaProps {
-  empresa: PessoaRow;
-  pessoasCliente: PessoaRow[];
-}
-
 // Quadro societário de uma empresa. Nos dois casos ele é o mesmo objeto, o
 // acumulado dos movimentos de quota (`v_quadro_societario`), e o que muda é o
 // que a tela oferece: a Proprietária (PR) ainda sem movimentação PROPÕE o quadro
 // de constituição, calculado dos bens; as demais registram movimento.
-const QuadroEmpresa = ({ empresa, pessoasCliente }: QuadroEmpresaProps) => {
+//
+// As duas NÃO têm o mesmo catálogo de gestos: a PR nunca montou os três botões
+// da CN, e igualá-las aqui criaria capacidade nova por acidente.
+const QuadroEmpresa = ({ empresa, pessoasCliente }: {
+  empresa: PessoaRow;
+  pessoasCliente: PessoaRow[];
+}) => {
   if (empresa.tipo_empresa === 'PR') {
     return <QuadroEmpresaProprietaria empresa={empresa} pessoasCliente={pessoasCliente} />;
   }
-  return <QuadroEmpresaManual empresa={empresa} pessoasCliente={pessoasCliente} />;
-};
-
-/**
- * Quadro societário da Controladora (CN) e demais: o saldo, e o gesto de
- * registrar o movimento que o muda.
- *
- * Antes daqui a tela era um CRUD da tabela `quadro_societario`: "vincular sócio"
- * inseria uma linha, o lápis editava quotas e valor, e a lixeira fazia DELETE
- * físico. O quadro só sabia o estado de hoje, e o de ontem era apagado: a
- * cessão de quotas, que é o fato que a alteração contratual descreve, não tinha
- * como ser expressa. Agora cada gesto é um movimento no livro (aporte, cessão,
- * doação, redução) e o saldo é consequência: não há o que editar numa soma, e
- * remover sócio é registrar para quem as quotas foram.
- *
- * O corpo da tabela é o SALDO, com a procedência de cada linha ao lado do nome
- * (constituição, ou o ato que a produziu). Abrir o histórico completo dos
- * movimentos como painel próprio segue sendo decisão aberta do Bernardo, e a
- * tela não a antecipa.
- *
- * "Doar quotas" é o macro da doação com reserva de usufruto (o casal fundador
- * passa as quotas aos filhos e guarda o voto): vários pares num ato, mais o
- * ônus sobre as quotas doadas. O card "Usufruto e voto" só aparece quando esse
- * ônus existe, porque só então o quadro deixa de responder quem vota.
- */
-const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) => {
-  const navigate = useNavigate();
-  const [movimento, setMovimento] = useState<{ open: boolean; origem: string | null }>({
-    open: false, origem: null,
-  });
-  const [instituicao, setInstituicao] = useState<{ open: boolean; concedente: string | null }>({
-    open: false, concedente: null,
-  });
-  const [doacao, setDoacao] = useState<{ open: boolean; doador: string | null }>({
-    open: false, doador: null,
-  });
-
-  const { data: quadro = [], isLoading } = useQuadroDaEmpresa(empresa.id);
-  const { data: livro } = useMovimentosDaEmpresa(empresa.id);
-
-  const totalQuotas = quadro.reduce((acc, s) => acc + s.quotas, 0);
-  const capitalTotal = quadro.reduce((acc, s) => acc + s.vlrTotal, 0);
-  const valorNominal = totalQuotas > 0 ? capitalTotal / totalQuotas : null;
-
-  // Count-up dos KPIs: conta de 0 ao valor na montagem (e a troca de empresa
-  // remonta o componente via key, reiniciando a contagem).
-  const capitalAnimado = useCountUp(capitalTotal);
-  const quotasAnimadas = useCountUp(totalQuotas);
-  const nominalAnimado = useCountUp(valorNominal ?? 0);
-
-  // De onde vem o saldo de cada sócio: "Constituição", ou o ato que o produziu.
-  const procedencia = useMemo(
-    () => procedenciaDosMovimentos(livro?.movimentos ?? [], empresa.id, livro?.atos ?? []),
-    [livro, empresa.id],
-  );
-
-  const linhas = useMemo<LinhaSocio[]>(
-    () => quadro.map((s) => ({
-      pessoaId: s.pessoaId,
-      denominacao: s.denominacao,
-      tipoPessoa: s.tipoPessoa,
-      cpfCnpj: s.cpfCnpj,
-      quotas: s.quotas,
-      valor: s.vlrTotal,
-      percentual: totalQuotas > 0 ? (s.quotas / totalQuotas) * 100 : 0,
-      procedencia: [...new Set(s.movimentoIds.map((id) => procedencia.get(id)).filter(Boolean))] as string[],
-    })),
-    [quadro, totalQuotas, procedencia],
-  );
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KpiCard
-          destaque
-          icone={<Landmark className="h-4 w-4" />}
-          titulo="Capital Social Total"
-          valor={fmtBRL.format(capitalAnimado)}
-        />
-        <KpiCard
-          delay={60}
-          icone={<ChartPie className="h-4 w-4" />}
-          titulo="Total de Quotas"
-          valor={fmtInt.format(Math.round(quotasAnimadas))}
-        />
-        <KpiCard
-          delay={120}
-          icone={<Tag className="h-4 w-4" />}
-          titulo="Valor Nominal"
-          valor={valorNominal != null ? fmtBRL.format(nominalAnimado) : '—'}
-        />
-      </div>
-
-      <Card
-        className="animate-osg-rise motion-reduce:animate-none"
-        style={{ animationDelay: '180ms' }}
-      >
-        <CardHeader className="pb-3 space-y-2">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              Lista de Sócios ({quadro.length})
-            </CardTitle>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5"
-                onClick={() => setDoacao({ open: true, doador: null })}
-                disabled={quadro.length === 0}
-                title="Doação de quotas com reserva de usufruto e gravames, em um ato"
-              >
-                <Gift className="h-3.5 w-3.5" /> Doar quotas
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5"
-                onClick={() => setInstituicao({ open: true, concedente: null })}
-                disabled={quadro.length === 0}
-                title="Instituir usufruto sobre quotas, sem que elas mudem de titular"
-              >
-                <Vote className="h-3.5 w-3.5" /> Instituir usufruto
-              </Button>
-              <Button
-                size="sm"
-                className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
-                onClick={() => setMovimento({ open: true, origem: null })}
-              >
-                <Plus className="h-3.5 w-3.5" /> Registrar movimento
-              </Button>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            O quadro é o acumulado dos movimentos de quota desta empresa: aporte, cessão, doação e
-            redução. Para alterá-lo, registre o movimento que aconteceu.
-          </p>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">Carregando...</p>
-          ) : (
-            <TabelaSocios
-              linhas={linhas}
-              totalQuotas={totalQuotas}
-              capital={capitalTotal}
-              acaoDoSocio={(l) => (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-7 w-7"
-                  title="Movimentar as quotas deste sócio"
-                  onClick={() => setMovimento({ open: true, origem: l.pessoaId })}
-                >
-                  <ArrowLeftRight className="h-3.5 w-3.5" />
-                </Button>
-              )}
-              vazio={
-                <div className="py-8 text-center text-muted-foreground">
-                  <p className="text-sm mb-4">
-                    Nenhum sócio nesta empresa. O quadro começa com o aporte de constituição:
-                    registre quem entrou e com quantas quotas.
-                  </p>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
-                  >
-                    Ir para Qualificação das Partes
-                  </Button>
-                </div>
-              }
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      <UsufrutoEVotoCard empresa={empresa} quadro={quadro} pessoasCliente={pessoasCliente} />
-
-      <AtosSocietarios movimentos={livro?.movimentos ?? []} atos={livro?.atos ?? []} />
-
-      <MovimentoModal
-        open={movimento.open}
-        empresa={empresa}
-        quadro={quadro}
-        pessoasCliente={pessoasCliente}
-        origemInicial={movimento.origem}
-        onClose={() => setMovimento({ open: false, origem: null })}
-      />
-      <InstituirUsufrutoDialog
-        open={instituicao.open}
-        empresa={empresa}
-        quadro={quadro}
-        pessoasCliente={pessoasCliente}
-        concedenteInicial={instituicao.concedente}
-        onClose={() => setInstituicao({ open: false, concedente: null })}
-      />
-      <DoarQuotasDialog
-        open={doacao.open}
-        empresa={empresa}
-        quadro={quadro}
-        pessoasCliente={pessoasCliente}
-        doadorInicial={doacao.doador}
-        onClose={() => setDoacao({ open: false, doador: null })}
-      />
-    </div>
-  );
+  return <QuadroEmpresaControladora empresa={empresa} pessoasCliente={pessoasCliente} />;
 };
 
 const QuadroSocietario = () => {
