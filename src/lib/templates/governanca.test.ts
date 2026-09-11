@@ -151,14 +151,14 @@ describe('MOT-01 · os mapeadores entregam a frase que o contrato escreve', () =
 describe('MOT-01 · a grade da Matriz sai como tabela com as colunas do cliente', () => {
   it('uma coluna por órgão, sem modelo por cliente', () => {
     const grade = [
-      '| Decisão | {{#orgaos sep=""}}{{ nome }} | {{/orgaos}}',
-      '| --- {{#orgaos sep=""}}| --- {{/orgaos}}|',
-      '{{#linhas sep="\\n"}}| {{ atividade }} | {{#celulas sep=""}}{{ resumo }} | {{/celulas}}{{/linhas}}',
+      '| Decisão | {{#matrizOrgaos sep=""}}{{ nome }} | {{/matrizOrgaos}}',
+      '| --- {{#matrizOrgaos sep=""}}| --- {{/matrizOrgaos}}|',
+      '{{#matrizLinhas sep="\\n"}}| {{ atividade }} | {{#celulas sep=""}}{{ resumo }} | {{/celulas}}{{/matrizLinhas}}',
     ].join('\n');
 
     const contexto = {
-      orgaos: [{ nome: 'Reunião de Sócios' }, { nome: 'Conselho' }, { nome: 'Diretoria' }],
-      linhas: [{
+      matrizOrgaos: [{ nome: 'Reunião de Sócios' }, { nome: 'Conselho' }, { nome: 'Diretoria' }],
+      matrizLinhas: [{
         atividade: 'Distribuição de Lucros',
         celulas: [{ resumo: 'Delibera' }, { resumo: 'Valida' }, { resumo: 'Analisa' }],
       }],

@@ -104,10 +104,10 @@ describe('MOT-01 · a grade do documento da Matriz', () => {
        * monta sozinho: célula vazia estende o span da anterior, então o rótulo
        * escrito uma vez e seguido de N-1 vazias atravessa as N colunas de órgão.
        */
-      '| | Estrutura Organizacional {{#orgaos sep=""}}| {{/orgaos}}',
-      '| Decisão | {{#orgaos sep=""}}{{ nome }} | {{/orgaos}}',
-      '| --- {{#orgaos sep=""}}| --- {{/orgaos}}|',
-      '{{#linhas sep="\\n"}}| {{ atividade }} | {{#celulas sep=""}}{{ resumo }} | {{/celulas}}{{/linhas}}',
+      '| | Estrutura Organizacional {{#matrizOrgaos sep=""}}| {{/matrizOrgaos}}',
+      '| Decisão | {{#matrizOrgaos sep=""}}{{ nome }} | {{/matrizOrgaos}}',
+      '| --- {{#matrizOrgaos sep=""}}| --- {{/matrizOrgaos}}|',
+      '{{#matrizLinhas sep="\\n"}}| {{ atividade }} | {{#celulas sep=""}}{{ resumo }} | {{/celulas}}{{/matrizLinhas}}',
     ].join('\n');
 
     const segmentos = segmentar(renderConteudo(grade, gradeDaMatriz(ENTRADA) as never).split('\n'));

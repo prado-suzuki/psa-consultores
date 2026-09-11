@@ -36,6 +36,12 @@ import { blocosForaDaFolha, resumoDaFolha } from '@/components/equipe/osg/gerar/
 import { camposEditaveisPorBinding } from '@/components/equipe/osg/gerar/camposDoBinding';
 import { lerSnapshotVersoes } from '@/components/equipe/osg/gerar/renderizarVersao';
 import { linhasRegistradas, marcoPreenchido } from '@/lib/osg/registrosDaSociedade';
+import { entradaDaGovernanca } from '@/lib/osg/entradaGovernanca';
+import { gradeDaMatriz, listasDaGovernanca } from '@/lib/templates/contextoGovernanca';
+import {
+  useCatalogoDeAtividades, useCatalogoDePapeis, useMatrizDoCliente,
+} from '@/hooks/useDomainMatrizAlcadas';
+import { useOrgaosGovernanca } from '@/hooks/useDomainOrgaoGovernanca';
 import type { Contexto } from '@/lib/templates';
 
 const fmtDataNotificacao = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -108,6 +114,25 @@ export function useGerarDocumentoController() {
   // Cliente vem da barra global da área OSG (igual aos cadastros).
   const { clienteId } = useOsgWork();
   const { registros, isFetching: carregandoRegistros } = useRegistrosPorTipo(clienteId);
+
+  /*
+   * A governança do cliente. Quatro consultas porque a cláusula precisa das
+   * quatro coisas: os órgãos (a coluna), a matriz (a grade), e os dois
+   * catálogos, sem os quais a alínea sairia com uuid no lugar do assunto e do
+   * verbo. Nenhuma delas depende da empresa escolhida, então não entram na
+   * conta do passo de Empresa.
+   */
+  const orgaosGovQ = useOrgaosGovernanca(clienteId);
+  const matrizQ = useMatrizDoCliente(clienteId);
+  const atividadesQ = useCatalogoDeAtividades(clienteId);
+  const papeisQ = useCatalogoDePapeis(clienteId);
+
+  const entradaGov = useMemo(
+    () => entradaDaGovernanca(
+      matrizQ.data, orgaosGovQ.data ?? [], atividadesQ.data ?? [], papeisQ.data ?? [],
+    ),
+    [matrizQ.data, orgaosGovQ.data, atividadesQ.data, papeisQ.data],
+  );
 
   // selecao[binding][campoId] = valor; selecaoRegistroId[binding] = id do registro escolhido.
   const [selecao, setSelecao] = useState<Record<string, Record<string, string>>>({});
@@ -1452,8 +1477,17 @@ export function useGerarDocumentoController() {
       // `signatarios` daqui substitui a do quadro societário acima. Sem instrumento
       // escolhido, o objeto é vazio e nada é substituído.
       ...listasDoInstrumentoRural_ouVazio,
+      /*
+       * Governança. `orgaosComCompetencia` é a coleção que o bloco da cláusula
+       * repete, uma vez por órgão, cada um já com as SUAS alíneas; `orgaos` e
+       * `linhas` são a grade do documento da Matriz. Vêm por último como as
+       * rurais, e por não conflitarem com nenhuma chave acima não substituem
+       * nada.
+       */
+      ...listasDaGovernanca(entradaGov),
+      ...gradeDaMatriz(entradaGov),
     }),
-    [quadro, socios, administradores, integralizacoes, aportes, cessoesOnerosas, listasDaDoacao, estadoDosOnus, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista, listasDoInstrumentoRural_ouVazio],
+    [quadro, socios, administradores, integralizacoes, aportes, cessoesOnerosas, listasDaDoacao, estadoDosOnus, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista, listasDoInstrumentoRural_ouVazio, entradaGov],
   );
 
   // --- Notificações de mudança de variável (só com versão validada) ---------

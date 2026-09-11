@@ -101,9 +101,16 @@ export function listasDaGovernanca(entrada: EntradaGovernanca): Record<string, I
  * simplesmente não vira alínea.
  */
 export function gradeDaMatriz(entrada: EntradaGovernanca): Record<string, ItemLista[]> {
-  const orgaos: ItemLista[] = entrada.orgaos.map((o) => ({ nome: o.nome }));
+  /*
+   * `matrizOrgaos` e `matrizLinhas`, e não `orgaos` e `linhas`. O nome da lista
+   * vive num espaço compartilhado com todas as outras do documento, e "linhas"
+   * é genérico demais: qualquer modelo futuro que precise de linhas de outra
+   * coisa colidiria em silêncio, e o erro apareceria como tabela com o conteúdo
+   * errado.
+   */
+  const matrizOrgaos: ItemLista[] = entrada.orgaos.map((o) => ({ nome: o.nome }));
 
-  const linhas: ItemLista[] = [...entrada.linhas]
+  const matrizLinhas: ItemLista[] = [...entrada.linhas]
     .sort((a, b) => a.ordem - b.ordem)
     .map((linha) => ({
       atividade: linha.atividade,
@@ -113,5 +120,5 @@ export function gradeDaMatriz(entrada: EntradaGovernanca): Record<string, ItemLi
       }),
     }));
 
-  return { orgaos, linhas };
+  return { matrizOrgaos, matrizLinhas };
 }
