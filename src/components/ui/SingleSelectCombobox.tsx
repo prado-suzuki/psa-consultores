@@ -53,7 +53,22 @@ export function SingleSelectCombobox({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className={cn('min-w-[260px] justify-between h-9 font-normal', className)}
+          // `hover:` neutralizado, e não é preferência: a variante `outline` traz
+          // `hover:bg-accent hover:text-accent-foreground`, e `--accent` aqui é
+          // TOM CHEIO — na OSG o campo inteiro virava bloco verde escuro ao passar
+          // o mouse. Pior: o `text-muted-foreground` do texto de espera vence o
+          // `hover:text-*` do botão (está no span, não no botão), então o rótulo
+          // ficava escuro sobre escuro. `muted` é superfície rebaixada em toda
+          // área. O realce por `bg-muted` foi MEDIDO e descartado: na OSG ele
+          // deixa o texto de espera a 4,49:1, um centésimo abaixo do AA, e o
+          // texto é `text-xs` (não vale a régua de texto grande). Fundo
+          // inalterado mantém a razão do repouso — 5,5:1 nas três áreas. O
+          // `MultiSelectCombobox` já fazia assim; este ficou sem.
+          className={cn(
+            'min-w-[260px] justify-between h-9 font-normal',
+            'hover:bg-background hover:text-foreground',
+            className,
+          )}
         >
           <span className={cn('truncate', !selected && 'text-muted-foreground text-xs')}>
             {selected?.label ?? placeholder}

@@ -90,6 +90,16 @@ describe('SingleSelectCombobox', () => {
     expect(screen.queryByText('Outra Empresa')).not.toBeInTheDocument();
   });
 
+  it('o gatilho não vira tom cheio sob o mouse — a variante `outline` trazia isso', () => {
+    abrir();
+    const gatilho = screen.getAllByRole('combobox')[0];
+    // Medido no navegador em 11/09/2026: sem estas duas, na OSG o campo virava
+    // bloco verde escuro e o texto de espera ficava escuro sobre escuro. Com
+    // elas, o contraste no hover é IGUAL ao do repouso (5,5:1 a 17,2:1).
+    expect(gatilho).toHaveClass('hover:bg-background');
+    expect(gatilho).toHaveClass('hover:text-foreground');
+  });
+
   it('escolher devolve o value da opção', () => {
     const { onChange } = abrir();
     fireEvent.click(screen.getByText('Outra Empresa'));
