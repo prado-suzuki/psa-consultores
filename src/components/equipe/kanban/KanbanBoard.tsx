@@ -44,11 +44,11 @@ export function KanbanBoard(props: KanbanBoardProps) {
   return (
     <div className="grid grid-cols-3 gap-4 w-full">
       {columns.map((column) => (
-        <div key={column.id} className="bg-gray-50 rounded-lg p-3">
+        <div key={column.id} className="bg-muted rounded-lg p-3">
           <div className="flex items-center gap-2 mb-4">
             <div className={`w-3 h-3 rounded-full ${column.color}`} />
-            <h3 className="text-gray-900 font-semibold text-sm">{column.title}</h3>
-            <Badge variant="outline" className="border-border text-gray-600">
+            <h3 className="font-semibold text-sm">{column.title}</h3>
+            <Badge variant="outline" className="border-border text-muted-foreground">
               {props.getColumnDeliverables(column.id).length}
             </Badge>
             <Button
@@ -69,7 +69,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
               ) : props.sortByDueDate === 'desc' ? (
                 <ArrowDown className="h-3.5 w-3.5" />
               ) : (
-                <ArrowUpDown className="h-3.5 w-3.5 text-gray-400" />
+                <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
               )}
             </Button>
           </div>
@@ -103,24 +103,24 @@ export function KanbanBoard(props: KanbanBoardProps) {
                           className="mt-0.5 p-0.5 hover:bg-muted rounded"
                         >
                           {props.expandedTasks.has(deliverable.id) ? (
-                            <ChevronDown className="h-4 w-4 text-gray-500" />
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
                           ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-500" />
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           )}
                         </button>
                       )}
                       <div className="flex-1 min-w-0">
                         {props.getGroupLabel(deliverable) && (
                           <div
-                            className="mb-1 truncate text-xs text-gray-400"
+                            className="mb-1 truncate text-xs text-muted-foreground"
                             title={props.getGroupLabel(deliverable) ?? undefined}
                           >
                             {props.getGroupLabel(deliverable)}
                           </div>
                         )}
-                        <h4 className="text-gray-900 text-sm font-medium mb-2 line-clamp-2">
+                        <h4 className="text-sm font-medium mb-2 line-clamp-2">
                           {deliverable.task_code && (
-                            <span className="text-gray-500 font-normal mr-1">
+                            <span className="text-muted-foreground font-normal mr-1">
                               {deliverable.task_code}
                             </span>
                           )}
@@ -129,17 +129,17 @@ export function KanbanBoard(props: KanbanBoardProps) {
                         {props.getBlocker(deliverable) && (
                           <div
                             title={formatBlockerTooltip(props.getBlocker(deliverable)!)}
-                            className="mb-2 inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-700"
+                            className="mb-2 inline-flex items-center gap-1 rounded border border-status-ajuste/40 bg-status-ajuste/10 px-1.5 py-0.5 text-xs font-medium text-status-ajuste"
                           >
                             🚩 Bloqueada
                           </div>
                         )}
-                        <div className="flex items-center justify-between text-xs text-gray-500">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span>{props.getProfileName(deliverable.assigned_to)}</span>
                           <span>{formatEquipeKanbanDueDate(deliverable.due_date)}</span>
                         </div>
                         <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-muted-foreground">
                             {deliverable.subtaskCount > 0
                               ? deliverable.subtaskHoursTotal > 0
                                 ? `${deliverable.subtaskHoursTotal}h estimadas`
@@ -178,7 +178,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
                         key={subtask.id}
                         style={{ marginLeft: subtask.depth * 14 }}
                         className={cn(
-                          'flex items-center gap-2 p-2 rounded-md bg-white border border-border text-sm cursor-pointer hover:bg-gray-50',
+                          'flex items-center gap-2 p-2 rounded-md bg-white border border-border text-sm cursor-pointer hover:bg-muted',
                           subtask.status === 'completed' && 'opacity-60',
                         )}
                         onClick={() => props.onOpenDeliverable(subtask)}
@@ -192,12 +192,12 @@ export function KanbanBoard(props: KanbanBoardProps) {
                         <div className="flex-1 min-w-0">
                           <span
                             className={cn(
-                              'text-gray-700',
+                              'text-foreground',
                               subtask.status === 'completed' && 'line-through',
                             )}
                           >
                             {subtask.task_code && (
-                              <span className="text-gray-400 mr-1">{subtask.task_code}</span>
+                              <span className="text-muted-foreground mr-1">{subtask.task_code}</span>
                             )}
                             {subtask.title}
                           </span>
@@ -208,7 +208,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
                           )}
                         </div>
                         {subtask.hoursDisplay ? (
-                          <span className="text-xs text-gray-400 flex-shrink-0">
+                          <span className="text-xs text-muted-foreground flex-shrink-0">
                             {subtask.hoursDisplay}h
                           </span>
                         ) : null}

@@ -117,7 +117,6 @@ export function useOnboarding(clienteId: string | null) {
         .select('id, numero_os')
         .eq('id_cliente', clienteId)
         .eq('cluster_id', clusterOsg)
-        .eq('excluido', false)
         .order('numero_os');
       if (orderError) throw orderError;
 

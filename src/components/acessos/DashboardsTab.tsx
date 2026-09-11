@@ -26,7 +26,7 @@ import {
 import { useDashboardAccessMaps, useSetDashboardAccess } from '@/hooks/useDashboardAccess';
 import { useClientesList } from '@/hooks/useClientesList';
 import { useClusters } from '@/hooks/useClusters';
-import { MultiSelectCombobox } from '@/components/dashboards/MultiSelectCombobox';
+import { MultiSelectCombobox } from '@/components/ui/MultiSelectCombobox';
 import { DashboardOverviewDialog } from '@/components/dashboards/DashboardOverviewDialog';
 import { DASHBOARD_PAGES, DASHBOARD_PAGE_PATH } from '@/config/dashboardPages';
 
@@ -40,7 +40,7 @@ const FILTER_RANK: Record<DashboardFilterType, number> = { nenhum: 0, cluster: 1
 //"Tipo" é derivado do filtro: nenhum = interno (sem RLS); cluster/cliente = externo.
 const tipoLabel = (ft: DashboardFilterType) => (ft === 'nenhum' ? 'Interno' : 'Externo');
 const tipoBadgeClass = (ft: DashboardFilterType) =>
-  ft === 'nenhum' ? 'border-border bg-foreground/[0.05] text-muted-foreground' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  ft === 'nenhum' ? 'border-border bg-foreground/[0.05] text-muted-foreground' : 'border-primary/30 bg-primary/10 text-primary';
 const FILTER_HELP: Record<DashboardFilterType, string> = {
   cluster: 'Valor resolvido do cluster do usuário que abre (ou do cliente).',
   cliente: 'Valor resolvido do id_cliente do viewer. Use p/ relatórios externos (ex.: PERDCOMP).',
@@ -281,7 +281,7 @@ export default function DashboardsTab() {
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           <div className="flex gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
             <IconAction label="Editar dashboard e acessos" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/5" onClick={() => openEdit(d)}><Pencil className="h-4 w-4" /></IconAction>
-            <IconAction label="Excluir dashboard" className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(d)}><Trash2 className="h-4 w-4" /></IconAction>
+            <IconAction label="Excluir dashboard" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(d)}><Trash2 className="h-4 w-4" /></IconAction>
           </div>
           <IconTooltip label={d.is_active ? 'Ativo — clique para desativar' : 'Inativo — clique para ativar'}>
             <span className="inline-flex"><Switch checked={d.is_active} onCheckedChange={() => toggle.mutate(d)} aria-label="Ativar/desativar dashboard" /></span>
@@ -421,7 +421,7 @@ export default function DashboardsTab() {
                         placeholder="ds0.cluster_id_param"
                         className="font-mono text-xs"
                       />
-                      <IconAction label="Remover esta chave" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-red-600"
+                      <IconAction label="Remover esta chave" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
                         onClick={() => setParamNames((prev) => (prev.length === 1 ? [''] : prev.filter((_, idx) => idx !== i)))}>
                         <Trash2 className="h-4 w-4" />
                       </IconAction>

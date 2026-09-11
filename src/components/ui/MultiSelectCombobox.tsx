@@ -9,6 +9,10 @@ import { cn } from '@/lib/utils';
 export interface ComboOption {
   value: string;
   label: string;
+  /** Texto secundário à direita do rótulo (ex.: o CNPJ). Só o `SingleSelectCombobox` desenha. */
+  hint?: string;
+  /** Texto extra que a busca enxerga mas a lista não mostra (ex.: CNPJ sem pontuação). */
+  keywords?: string[];
 }
 
 /**
@@ -78,7 +82,7 @@ export function MultiSelectCombobox({
                     </span>
                   </Badge>
                 ))}
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-teal-600">
+                <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-primary">
                   <Plus className="h-3 w-3" />{addLabel}
                 </span>
               </div>

@@ -336,7 +336,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 gap-1"
+                    className="text-xs text-destructive hover:bg-destructive/10 gap-1"
                     onClick={(e) => { e.stopPropagation(); setFile(null); }}
                   >
                     <X className="h-3 w-3" />
@@ -424,7 +424,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="descricao-balancete" className="text-sm font-medium text-muted-foreground">
-                  Descrição <span className="text-red-500">*</span>
+                  Descrição <span className="text-destructive">*</span>
                 </Label>
                 <span className="text-[11px] text-muted-foreground">{descricao.length}/{DESCRICAO_MAX}</span>
               </div>

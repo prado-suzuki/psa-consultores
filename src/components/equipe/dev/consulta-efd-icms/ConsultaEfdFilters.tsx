@@ -7,7 +7,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { ClienteConsultaEFDICMS, ContribuinteConsultaEFDICMS } from '@/hooks/useDomainConsultaEFDICMS';
 import type { MonthYear } from '@/lib/consultaEfdIcms';
 import { formatCnpj } from '@/lib/consultaEfdIcms';
-import { Eraser, Filter, Info, Loader2, Search } from 'lucide-react';
+import { Filter, Info, Loader2, Search } from 'lucide-react';
+import { BotaoLimparFiltros } from '@/components/ui/BotaoLimparFiltros';
 
 interface Props {
   clientes?: ClienteConsultaEFDICMS[];
@@ -24,6 +25,8 @@ interface Props {
   onInicio: (value: MonthYear | null) => void;
   onFim: (value: MonthYear | null) => void;
   onClear: () => void;
+  /** Quantos filtros o usuario mexeu — o periodo ja nasce preenchido. */
+  filtrosAtivos: number;
   onSearch: () => void;
 }
 
@@ -37,6 +40,6 @@ export function ConsultaEfdFilters(props: Props) {
       <div className="md:col-span-2"><FieldLabel tip="Define o período inicial da busca.">Data de Início</FieldLabel><MonthYearPicker value={props.inicio} onChange={props.onInicio} placeholder="Selecione"className="bg-white"/></div>
       <div className="md:col-span-2"><FieldLabel tip="Define o período final da busca.">Data Fim</FieldLabel><MonthYearPicker value={props.fim} onChange={props.onFim} placeholder="Selecione"className="bg-white"/></div>
     </div>
-    <div className="flex justify-end gap-3 pt-4 border-t border-border"><Button variant="ghost"onClick={props.onClear} className="text-muted-foreground hover:text-red-600"><Eraser className="h-4 w-4 mr-2"/>Limpar filtros</Button><Button onClick={props.onSearch} disabled={!props.contribuinte} className="bg-primary hover:bg-primary/90">{props.searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin"/> : <Search className="h-4 w-4 mr-2"/>}Buscar arquivos</Button></div>
+    <div className="flex justify-end gap-3 pt-4 border-t border-border"><BotaoLimparFiltros quantidade={props.filtrosAtivos} onClick={props.onClear} /><Button onClick={props.onSearch} disabled={!props.contribuinte} className="bg-primary hover:bg-primary/90">{props.searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin"/> : <Search className="h-4 w-4 mr-2"/>}Buscar arquivos</Button></div>
   </CardContent></Card>;
 }

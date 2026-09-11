@@ -605,6 +605,50 @@ export type Database = {
           },
         ]
       }
+      atividade_governanca: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          excluido: boolean
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividade_governanca_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ato_societario: {
         Row: {
           cliente_id: string
@@ -4942,6 +4986,210 @@ export type Database = {
           },
         ]
       }
+      matriz_alcadas: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          data_referencia: string | null
+          excluido: boolean
+          id: string
+          updated_at: string
+          updated_by: string | null
+          versao: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          data_referencia?: string | null
+          excluido?: boolean
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_referencia?: string | null
+          excluido?: boolean
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matriz_alcadas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matriz_atividade: {
+        Row: {
+          atividade_id: string
+          created_at: string
+          created_by: string | null
+          detalhamento: string | null
+          id: string
+          matriz_id: string
+          ordem: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          atividade_id: string
+          created_at?: string
+          created_by?: string | null
+          detalhamento?: string | null
+          id?: string
+          matriz_id: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          atividade_id?: string
+          created_at?: string
+          created_by?: string | null
+          detalhamento?: string | null
+          id?: string
+          matriz_id?: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matriz_atividade_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "atividade_governanca"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matriz_atividade_matriz_id_fkey"
+            columns: ["matriz_id"]
+            isOneToOne: false
+            referencedRelation: "matriz_alcadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matriz_competencia: {
+        Row: {
+          alcada_base: string | null
+          alcada_unidade: string | null
+          alcada_valor: number | null
+          created_at: string
+          created_by: string | null
+          fora_da_politica: boolean
+          id: string
+          matriz_atividade_id: string
+          nao_participa: boolean
+          orgao_id: string
+          sobe_para_orgao_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          alcada_base?: string | null
+          alcada_unidade?: string | null
+          alcada_valor?: number | null
+          created_at?: string
+          created_by?: string | null
+          fora_da_politica?: boolean
+          id?: string
+          matriz_atividade_id: string
+          nao_participa?: boolean
+          orgao_id: string
+          sobe_para_orgao_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          alcada_base?: string | null
+          alcada_unidade?: string | null
+          alcada_valor?: number | null
+          created_at?: string
+          created_by?: string | null
+          fora_da_politica?: boolean
+          id?: string
+          matriz_atividade_id?: string
+          nao_participa?: boolean
+          orgao_id?: string
+          sobe_para_orgao_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matriz_competencia_matriz_atividade_id_fkey"
+            columns: ["matriz_atividade_id"]
+            isOneToOne: false
+            referencedRelation: "matriz_atividade"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matriz_competencia_orgao_id_fkey"
+            columns: ["orgao_id"]
+            isOneToOne: false
+            referencedRelation: "orgao_governanca"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matriz_competencia_sobe_para_orgao_id_fkey"
+            columns: ["sobe_para_orgao_id"]
+            isOneToOne: false
+            referencedRelation: "orgao_governanca"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matriz_competencia_papel: {
+        Row: {
+          competencia_id: string
+          created_at: string
+          created_by: string | null
+          ordem: number
+          papel_id: string
+        }
+        Insert: {
+          competencia_id: string
+          created_at?: string
+          created_by?: string | null
+          ordem?: number
+          papel_id: string
+        }
+        Update: {
+          competencia_id?: string
+          created_at?: string
+          created_by?: string | null
+          ordem?: number
+          papel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matriz_competencia_papel_competencia_id_fkey"
+            columns: ["competencia_id"]
+            isOneToOne: false
+            referencedRelation: "matriz_competencia"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matriz_competencia_papel_papel_id_fkey"
+            columns: ["papel_id"]
+            isOneToOne: false
+            referencedRelation: "papel_governanca"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       melhoria_acoes_td: {
         Row: {
           acao_td: string
@@ -6499,6 +6747,53 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      papel_governanca: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          excluido: boolean
+          grupo: string | null
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          grupo?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          grupo?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "papel_governanca_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       parentesco: {
         Row: {
@@ -10840,6 +11135,13 @@ export type Database = {
           reservas_negadas: number
         }[]
       }
+      ambiente_por_cliente: {
+        Args: never
+        Returns: {
+          ambiente: string
+          cliente_id: string
+        }[]
+      }
       anexar_documento_pendencia: {
         Args: {
           _alvo_id: string
@@ -11269,6 +11571,11 @@ export type Database = {
         Args: { timeout_minutes?: number }
         Returns: number
       }
+      matriz_atividade_visivel_para: {
+        Args: { _matriz_atividade_id: string }
+        Returns: boolean
+      }
+      matriz_visivel_para: { Args: { _matriz_id: string }; Returns: boolean }
       melhoria_cluster_visivel: {
         Args: { _melhoria_id: string }
         Returns: boolean

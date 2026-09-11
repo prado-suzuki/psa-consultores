@@ -10,7 +10,6 @@
 // aparecer ou sumir uma delas.
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { useAcentoArea } from './acentoArea';
 
 export interface SecaoFormularioProps {
   /** Ordem da etapa, exibida com dois dígitos. */
@@ -39,18 +38,17 @@ export default function SecaoFormulario({
   dataTour,
   children,
 }: SecaoFormularioProps) {
-  const acento = useAcentoArea();
   return (
     // `min-w-0` não é enfeite: sem ele um conteúdo comprido dentro da seção
     // alarga o painel de detalhe inteiro e empurra os botões do cabeçalho para
     // fora da tela.
     <section
       data-tour={dataTour}
-      className={cn('min-w-0 border-l-2 pl-4', pendente ? 'border-l-destructive' : acento.barra, className)}
+      className={cn('min-w-0 border-l-2 pl-4', pendente ? 'border-l-destructive' : 'border-l-primary/70', className)}
     >
       <div className="mb-3 flex items-center justify-between gap-3">
         <h5 className="flex min-w-0 items-baseline gap-2">
-          <span className={cn('shrink-0 text-xs font-bold tabular-nums', pendente ? 'text-destructive' : acento.texto)}>
+          <span className={cn('shrink-0 text-xs font-bold tabular-nums', pendente ? 'text-destructive' : 'text-primary')}>
             {String(numero).padStart(2, '0')}
           </span>
           <span className="truncate text-xs font-semibold uppercase tracking-wide text-foreground">

@@ -14,13 +14,21 @@ import {
 const ler = (caminhoRelativo: string) =>
   readFileSync(fileURLToPath(new URL(caminhoRelativo, import.meta.url)), 'utf8');
 
-/** As cinco barras laterais que seguem o padrão de trilho de 80px. */
+/** As barras laterais que seguem o padrão de trilho de 80px. */
 const LAYOUTS_DO_PADRAO = {
   Administração: '../components/administracao/AdminLayout.tsx',
   Tax: '../components/equipe/fiscal/FiscalSidebar.tsx',
   Fixos: '../components/equipe/fixos/FixosLayout.tsx',
   OSG: '../components/equipe/osg/OsgLayout.tsx',
   Gestão: '../components/gestao/GestaoLayout.tsx',
+  // A Rotina e o Dev entraram depois, e pelo mesmo motivo: as duas recolhiam
+  // para `w-0` — a barra sumia inteira em vez de virar trilho — e montavam o
+  // cartão do usuário em markup próprio.
+  Rotina: '../components/equipe/EquipeLayout.tsx',
+  Dev: '../components/equipe/dev/DevLayout.tsx',
+  // O Acessos nasceu já no padrão, em 10/09/2026, e entra aqui para não sair
+  // dele: barra nova é onde a divergência recomeça.
+  Acessos: '../components/acessos/AcessosLayout.tsx',
 } as const;
 
 describe('medidas do trilho recolhido', () => {
@@ -63,7 +71,7 @@ describe('medidas do trilho recolhido', () => {
 // arquivos. Estes testes leem o fonte: é a única forma de travar "não volte por
 // cópia" sem montar as cinco telas inteiras (cada uma com contexto, rotas e
 // dados próprios).
-describe('as cinco barras do padrão não têm cópia própria da medida', () => {
+describe('as barras do padrão não têm cópia própria da medida', () => {
   for (const [area, caminho] of Object.entries(LAYOUTS_DO_PADRAO)) {
     it(`${area}: largura vem de classeLarguraBarra e o cartão é o compartilhado`, () => {
       const fonte = ler(caminho);
@@ -77,13 +85,70 @@ describe('as cinco barras do padrão não têm cópia própria da medida', () =>
     });
   }
 
-  it('o Mapeamento recebe a largura da constante, sem 72px solto no CSS', () => {
-    expect(ler('../components/equipe/mapa/Layout.tsx')).toContain(
-      'MEDIDAS_TRILHO_SIDEBAR.larguraRecolhidaPx',
-    );
-    expect(ler('../pages/equipe/mapa/mapa.css')).not.toMatch(
-      /--sidebar-width-collapsed:\s*\d/,
-    );
+  // O Board ainda não monta o `SidebarCartaoUsuario` (ele entra numa fase
+  // seguinte), então não cabe no laço acima — mas a largura dele já saiu do
+  // literal. Era a última barra fora da régua: 68px recolhida e 240px aberta.
+  // Os 68px são o número que o cartão não perdoa — ver a conta no topo deste
+  // arquivo —, então travar isso agora é o que impede o cartão de chegar numa
+  // barra que o corta.
+  it('o Board recebe a largura da constante, sem 68px nem 240px soltos', () => {
+    const fonte = ler('../components/equipe/board/BoardLayout.tsx');
+
+    expect(fonte).toContain('classeLarguraBarra(');
+    expect(fonte).not.toMatch(/w-\[68px\]|w-\[240px\]/);
+    // A margem do <main> reserva a coluna da barra `fixed`: se ela ficar para
+    // trás, o conteúdo passa por baixo da barra ou sobra uma faixa vazia.
+    expect(fonte).toMatch(/md:ml-20/);
+    expect(fonte).toMatch(/md:ml-64/);
+    expect(fonte).not.toMatch(/md:ml-\[68px\]|md:ml-\[240px\]/);
+  });
+
+  // A usuária viu isto navegando entre áreas: a linha divisória sob o cabeçalho
+  // "pulava" de lugar. Cada barra tinha a sua própria altura de cabeçalho —
+  // Board fechava 68px (recuo próprio mais selo de 32), a OSG 88px mesmo
+  // recolhida (`py-6` fixo) e o Dev 92px aberta (cabeçalho só de texto, sem
+  // selo), contra os 88/72 das outras cinco. Como todas as telas de uma área
+  // compartilham o layout, o desalinhamento só aparece na TROCA de área.
+  it('as oito barras Tailwind tiram o recuo do cabeçalho da mesma função', () => {
+    const BARRAS = {
+      ...LAYOUTS_DO_PADRAO,
+      Board: '../components/equipe/board/BoardLayout.tsx',
+    };
+
+    for (const [area, caminho] of Object.entries(BARRAS)) {
+      expect(ler(caminho), `${area} escreve o recuo do cabeçalho à mão`).toContain(
+        'classeRecuoCabecalho(',
+      );
+    }
+  });
+
+  it('o Mapeamento recebe as DUAS larguras da constante, sem número solto no CSS', () => {
+    const layout = ler('../components/equipe/mapa/Layout.tsx');
+    const css = ler('../pages/equipe/mapa/mapa.css');
+
+    expect(layout).toContain('MEDIDAS_TRILHO_SIDEBAR.larguraRecolhidaPx');
+    // A aberta também: o `.css` declarava 260px, um quarto valor ao lado dos
+    // 256 das outras oito.
+    expect(layout).toContain('MEDIDAS_TRILHO_SIDEBAR.larguraAbertaPx');
+    expect(css).not.toMatch(/--sidebar-width-collapsed:\s*\d/);
+    expect(css).not.toMatch(/--sidebar-width:\s*\d/);
+  });
+
+  // O Mapeamento não passa pelo Tailwind, então o cromo dele é CSS escrito à
+  // mão e nada o obriga a acompanhar `barraLateralCromo`. Estas asserções são
+  // o que impede a barra dele de divergir de novo — ela era a última
+  // superfície escura de barra do produto.
+  it('o cromo do Mapeamento fala por token, e o item aberto é pílula cheia', () => {
+    const css = ler('../pages/equipe/mapa/mapa.css');
+    const barra = css.slice(css.indexOf('.sidebar{'), css.indexOf('/* Main Content */'));
+
+    // O gradiente escuro que fazia o Mapeamento parecer outro produto.
+    expect(barra).not.toContain('--roi-teal-deep');
+    expect(barra).not.toMatch(/color:\s*hsl\(var\(--slate-400\)\)/);
+    // Pílula cheia na âncora da área, como nas outras oito.
+    expect(barra).toMatch(/\.sidebar-menu a\.active\{[^}]*background-color:\s*hsl\(var\(--primary\)\)/);
+    expect(barra).toMatch(/\.sidebar-menu a\.active\{[^}]*color:\s*hsl\(var\(--primary-foreground\)\)/);
+    expect(barra).toContain("'Instrument Sans'");
   });
 });
 
@@ -126,6 +191,7 @@ describe('todas as barras laterais viram gaveta no celular', () => {
     Gestão: '../components/gestao/GestaoLayout.tsx',
     'Digital Rotina': '../components/equipe/EquipeLayout.tsx',
     'Digital Dev': '../components/equipe/dev/DevLayout.tsx',
+    Acessos: '../components/acessos/AcessosLayout.tsx',
   } as const;
 
   for (const [area, caminho] of Object.entries(BARRAS)) {

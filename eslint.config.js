@@ -120,23 +120,28 @@ export default tseslint.config(
     // Componente usa `bg-primary`, `text-primary`, `border-primary` — ou, em
     // botão primário, nenhuma classe de cor: a variante `default` já faz.
     //
-    // Fica em `warn`, e de propósito: são centenas de ocorrências espalhadas, e
-    // transformar isso em erro de build seria apagão, não migração. O aviso
-    // trava o crescimento; o número só cai.
+    // Ficou em `warn` enquanto havia fila, de propósito: eram centenas de
+    // ocorrências espalhadas, e virar erro de build seria apagão, não migração.
+    // Em 11/09/2026 a fila zerou e a regra subiu para `error`.
     //
-    // O número exato NÃO fica escrito aqui — comentário com contagem é
-    // verdadeiro no instante em que se escreve e falso na mudança seguinte.
-    // Para medir agora:
+    // A contagem NÃO fica escrita aqui — comentário com número é verdadeiro no
+    // instante em que se escreve e falso na mudança seguinte. Quem conta agora é
+    // `src/lib/filaDoTeal.test.ts`, que nasce vazio e nomeia o arquivo que
+    // reintroduzir a classe. Esta regra e aquela catraca pegam o mesmo defeito
+    // por caminhos diferentes, e isso é de propósito: a regra casa o nó da AST
+    // (`Literal`/`TemplateElement`) e cobre `src/components` e `src/pages`; a
+    // catraca lê o arquivo e exige prefixo de propriedade, então tolera prosa de
+    // comentário que a regra acusaria.
     //
-    //   grep -rnoE 'teal-(500|600|700)' src/components src/pages | wc -l
-    //
-    // O total de AVISOS é menor que o de ocorrências, e isso é esperado: a regra
-    // casa o nó (`Literal`/`TemplateElement`), então várias ocorrências dentro
-    // da mesma string contam como um aviso só.
+    // ⚠️ Antes de converter um par, olhe se ele COLAPSA. Dois degraus na mesma
+    // string viram a mesma cor: `bg-teal-600 hover:bg-teal-700` vira hover morto
+    // e `from-teal-600 to-teal-700` vira gradiente liso. Em botão primário o
+    // conserto não é converter, é apagar a classe de cor e deixar a variante
+    // `default` do ui/button, que já traz `hover:bg-primary/90`.
     files: ["src/components/**/*.{ts,tsx}", "src/pages/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-syntax": [
-        "warn",
+        "error",
         {
           selector: "Literal[value=/\\bteal-(500|600|700)\\b/]",
           message:

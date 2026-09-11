@@ -51,11 +51,11 @@ export const ProjectList = ({
     return (
       <Card className="border-border">
         <CardContent className="py-16 text-center">
-          <FolderKanban className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+          <FolderKanban className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-xl font-semibold mb-2">
             {projects.length === 0 ? 'Nenhum projeto criado' : 'Nenhum projeto encontrado'}
           </h3>
-          <p className="text-gray-500 mb-4">
+          <p className="text-muted-foreground mb-4">
             {projects.length === 0
               ? 'Crie seu primeiro projeto para começar a organizar o trabalho'
               : 'Tente ajustar os filtros para ver mais resultados'}
@@ -90,16 +90,16 @@ export const ProjectList = ({
               {filteredProjects.map((project) => (
                 <TableRow
                   key={project.id}
-                  className="border-border hover:bg-gray-50 cursor-pointer"
+                  className="border-border hover:bg-muted cursor-pointer"
                   onClick={() => onSelectProject(project, false)}
                 >
-                  <TableCell className="font-medium text-gray-900">{project.name}</TableCell>
+                  <TableCell className="font-medium">{project.name}</TableCell>
                   <TableCell>{getStatusBadge(project.status)}</TableCell>
                   <TableCell>{getPriorityBadge(extractPriority(project.description))}</TableCell>
-                  <TableCell className="text-gray-600 text-sm">
+                  <TableCell className="text-muted-foreground text-sm">
                     {extractPhase(project.description)}
                   </TableCell>
-                  <TableCell className="text-gray-600">{getClusterName(project)}</TableCell>
+                  <TableCell className="text-muted-foreground">{getClusterName(project)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Button
@@ -143,7 +143,7 @@ export const ProjectList = ({
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
                     <FolderKanban className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-gray-900 text-lg line-clamp-1">
+                    <CardTitle className="text-lg line-clamp-1">
                       {project.name}
                     </CardTitle>
                   </div>
@@ -156,14 +156,14 @@ export const ProjectList = ({
                 </div>
 
                 {project.client_name && (
-                  <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                     <Building2 className="h-4 w-4" />
                     <span>{project.client_name}</span>
                   </div>
                 )}
 
                 {(project.start_date || project.end_date) && (
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
                     <span>
                       {project.start_date &&
@@ -178,7 +178,7 @@ export const ProjectList = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-gray-500"
+                    className="text-muted-foreground"
                     onClick={(event) => {
                       event.stopPropagation();
                       onSelectProject(project, true);

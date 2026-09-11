@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { formatCpfCnpj, formatCep, formatPhone } from "./constants";
 import type { DraftEntity, InscricaoIE } from "@/types/clientForm";
-import { useAcentoArea } from "./acentoArea";
 import { RequiredMark } from "@/components/ui/required-mark";
 import { useAuth } from "@/contexts/AuthContext";
 import { useContribuinteDuplicateCheck, type DuplicateContribuinte } from "@/hooks/useContribuinteDuplicateCheck";
@@ -82,7 +81,6 @@ export default function ContribuintesTab({
    * dos ids vindos do banco — nada a autorizar nesse caso.
    */
   const podeExcluirSalvo = isAdmin || isLider || isSublider;
-  const acento = useAcentoArea();
   const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
   const [editingEntityId, setEditingEntityId] = useState<number | null>(null);
 
@@ -340,7 +338,7 @@ export default function ContribuintesTab({
       titulo={"Contribuintes (" + entities.length + ")"}
       dataTour="contrib-lista"
       acaoCriar={mostrarCriar && editingEntityId == null ? (
-        <Button size="sm" onClick={createEntity} data-tour="contrib-criar" className={cn("gap-1.5 h-7 text-xs", acento.botao)}>
+        <Button size="sm" onClick={createEntity} data-tour="contrib-criar" className={cn("gap-1.5 h-7 text-xs")}>
           <Plus size={14} /> Adicionar contribuinte
         </Button>
       ) : null}
@@ -429,7 +427,7 @@ export default function ContribuintesTab({
             )
           )}
           {isEditingThis ? (
-            <Button size="sm" variant="outline" className={cn('gap-1.5 text-xs', acento.botaoSuave)} onClick={() => setEditingEntityId(null)}>
+            <Button size="sm" variant="outline" className={cn('gap-1.5 text-xs', 'border-primary/40 bg-accent/5 text-primary hover:border-primary hover:bg-accent/10')} onClick={() => setEditingEntityId(null)}>
               <Check size={12} /> Pronto
             </Button>
           ) : (
@@ -642,7 +640,7 @@ export default function ContribuintesTab({
                         inteiro não há o que concluir. */}
                     {isEditingThis && (
                       <div className="flex justify-end border-t pt-2">
-                        <Button size="sm" variant="outline" className={cn('gap-1.5', acento.botaoSuave)} onClick={() => setEditingEntityId(null)}><Check size={14} /> Pronto</Button>
+                        <Button size="sm" variant="outline" className={cn('gap-1.5', 'border-primary/40 bg-accent/5 text-primary hover:border-primary hover:bg-accent/10')} onClick={() => setEditingEntityId(null)}><Check size={14} /> Pronto</Button>
                       </div>
                     )}
                     </div>

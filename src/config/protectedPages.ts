@@ -689,6 +689,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/osg/work/governanca/matriz',
+    page_name: 'Matriz de Alçadas',
+    page_description: 'Quem decide o quê na empresa do cliente, e até que valor cada instância decide sozinha',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/osg/work/controle-matriculas',
     page_name: 'Controle de Matrículas',
     page_description: 'Registro de todas as matrículas (vinculadas ou órfãs), com vínculo a bens',

@@ -62,6 +62,11 @@ type AuditEntityType =
   | 'itcd_simulacao'
   // GOV-01: orgao de governanca por cliente.
   | 'orgao_governanca'
+  // GOV-02: a Matriz de Alçadas. Audita-se a matriz e a LINHA dela, e nao cada
+  // celula: uma linha e o que a pessoa abre, preenche e salva de uma vez, entao
+  // e o recorte que o log precisa ter para alguem reconstituir o que mudou.
+  | 'matriz_alcadas'
+  | 'matriz_atividade'
   // PT-02: a importacao de um papel de trabalho. Audita-se a IMPORTACAO, e
   // nao os milhares de valores dela: um registro por linha afogaria o log.
   | 'wp_importacao'

@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O vermelho e o verde — o que falta decidir</title>
+<style>
+  :root{
+    /* Valores lidos do src/index.css, bloco .base-theme, em 11/09/2026. */
+    --background: 168 22% 99.4%;
+    --card: 0 0% 100%;
+    --foreground: 178 30% 9%;
+    --muted-foreground: 180 10% 38%;
+    --border: 168 14% 89%;
+    --muted: 168 20% 92%;
+    --primary: 175 84% 25%;
+    --primary-foreground: 0 0% 100%;
+
+    --status-neutro: 32 21% 12%;       --status-neutro-soft: 32 21% 86%;
+    --status-fila: 212 59% 36%;        --status-fila-soft: 212 59% 86%;
+    --status-andamento: 186 66% 26%;   --status-andamento-soft: 186 66% 86%;
+    --status-revisao: 160 60% 22%;     --status-revisao-soft: 160 60% 86%;
+    --status-espera: 44 68% 27%;       --status-espera-soft: 44 68% 86%;
+    --status-ajuste: 356 68% 35%;      --status-ajuste-soft: 356 68% 86%;
+    --status-feito: 128 63% 21%;       --status-feito-soft: 128 63% 86%;
+    --status-alerta: 20 72% 32%;       --status-alerta-soft: 20 72% 86%;
+    --tag-a: 112 64% 24%; --tag-b: 211 60% 33%; --tag-c: 289 78% 40%; --tag-d: 339 84% 40%;
+
+    /* Tailwind de estoque, como ainda está nestas telas. */
+    --red-100:#fee2e2; --red-600:#dc2626; --red-700:#b91c1c; --red-800:#991b1b;
+    --emerald-100:#d1fae5; --emerald-700:#047857; --emerald-800:#065f46;
+    --green-100:#dcfce7; --green-600:#16a34a; --green-700:#15803d; --green-800:#166534;
+    --rose-700:#be123c;
+    --amber-100:#fef3c7; --amber-600:#d97706; --amber-700:#b45309;
+    --yellow-100:#fef9c3; --yellow-600:#ca8a04; --yellow-700:#a16207;
+    --blue-100:#dbeafe; --blue-600:#2563eb; --blue-700:#1d4ed8;
+    --orange-100:#ffedd5; --orange-700:#c2410c;
+    --purple-600:#9333ea; --violet-100:#ede9fe; --violet-700:#6d28d9;
+    --indigo-100:#e0e7ff; --indigo-800:#3730a3;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:32px 24px 72px;
+    background:hsl(var(--background)); color:hsl(var(--foreground));
+    font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:27px;margin:0 0 6px;letter-spacing:-.015em}
+  .sub{color:hsl(var(--muted-foreground));margin:0 0 6px;max-width:78ch}
+  .sub b{color:hsl(var(--foreground))}
+  h2{font-size:16px;margin:44px 0 4px;letter-spacing:-.01em}
+  h2 .n{display:inline-block;font:700 12px/1 ui-monospace,Consolas,monospace;background:hsl(var(--foreground));
+        color:hsl(var(--background));padding:5px 8px;border-radius:6px;margin-right:9px;vertical-align:2px}
+  h2 + p{margin:0 0 12px;color:hsl(var(--muted-foreground));max-width:82ch;font-size:14px}
+  h2 + p b{color:hsl(var(--foreground))}
+  h3{font-size:13px;margin:20px 0 6px;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.06em}
+  p{max-width:82ch}
+  .par{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+  @media (max-width:900px){.par{grid-template-columns:1fr}}
+  .col > .hd{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:0 0 7px;color:hsl(var(--muted-foreground))}
+  .card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:10px;padding:16px;height:100%}
+  .linha{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .linha + .linha{margin-top:10px}
+  .pill{display:inline-flex;align-items:center;border-radius:999px;padding:3px 11px;font-size:12px;font-weight:600}
+  .meta{font-size:12px;color:hsl(var(--muted-foreground));margin-top:10px;max-width:none}
+  .cr{font:12px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:hsl(var(--muted-foreground));white-space:nowrap}
+  .cr b{font-weight:700;color:hsl(var(--foreground))}
+  .cr .ok{color:hsl(var(--status-feito))} .cr .no{color:hsl(var(--status-ajuste))}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:10px}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid hsl(var(--border));vertical-align:top}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:hsl(var(--muted-foreground));font-weight:700}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  code{font:12.5px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:hsl(var(--muted)/.6);padding:1px 5px;border-radius:4px}
+  .decide{border:1px solid hsl(var(--border));border-left:3px solid hsl(var(--primary));background:hsl(var(--card));border-radius:8px;padding:13px 15px;margin:16px 0 0}
+  .decide > b:first-child{display:block;margin-bottom:4px}
+  .fecha{margin-top:44px;padding:16px 18px;border:1px solid hsl(var(--border));border-radius:10px;background:hsl(var(--muted)/.4)}
+  .fecha h2{margin-top:0}
+  .rodape{margin-top:44px;padding-top:18px;border-top:1px solid hsl(var(--border));font-size:13px;color:hsl(var(--muted-foreground));max-width:84ch}
+  .rodape b{color:hsl(var(--foreground))}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>O vermelho e o verde — o que falta decidir</h1>
+  <p class="sub">
+    O lote eram <b>248</b> ocorrências cruas de <code>red</code> e <code>emerald</code>, medidas em
+    11/09/2026. Suas decisões do mesmo dia levaram <b>179</b> embora. <b>Sobram 69</b>, e esta página
+    passa a ter só elas — o que já foi decidido saiu daqui e virou uma linha no rodapé, com o commit.
+  </p>
+  <p class="sub">
+    Das 69, <b>39 esperam resposta sua</b> e <b>30 não têm pergunta</b>: ficam, com o motivo escrito na
+    catraca. Sobraram <b>três</b> perguntas — a escada de prioridade fechou e o gradiente do Audit
+    virou papel, os dois na sua última rodada.
+  </p>
+
+  <h2><span class="n">1</span>As escadas meio cruas — 20 sítios com o par fora do lote</h2>
+  <p>Em 16 arquivos o vermelho ou o verde tem um <b>par</b> que ficou fora do lote: o saldo do
+     PER/DCOMP usa <code>green</code> do lado bom, e a calculadora IBS/CBS usa <code>rose</code> do lado
+     ruim. Converter só o que é <code>red</code>/<code>emerald</code> deixa token de um lado e cor de
+     estoque do outro — o defeito que o motivo <code>escada-de-status</code> existe para evitar.</p>
+  <div class="par">
+    <div class="col"><div class="hd">hoje · o saldo do PER — 6 no lote, 6 fora</div><div class="card">
+      <div class="linha" style="gap:18px">
+        <span style="color:var(--green-600);font-weight:700;font-size:17px;font-family:ui-monospace,Consolas,monospace">R$ 12.400,00</span>
+        <span style="color:var(--red-600);font-weight:700;font-size:17px;font-family:ui-monospace,Consolas,monospace">−R$ 3.180,00</span>
+      </div>
+      <p class="meta">O vermelho está no lote; o verde é <code>green-600</code>, que não está.</p>
+    </div></div>
+    <div class="col"><div class="hd">hoje · o delta da calculadora — 14 no lote, 14 fora</div><div class="card">
+      <div class="linha" style="gap:18px">
+        <span style="color:var(--emerald-700);font-weight:600">−2,14 p.p.</span>
+        <span style="color:var(--rose-700);font-weight:600">+1,08 p.p.</span>
+      </div>
+      <p class="meta">O esmeralda está no lote; o <code>rose</code> não. Sempre aos pares.</p>
+    </div></div>
+  </div>
+
+  <h3>Terceira proposta — fechar a escada sem abrir a família</h3>
+  <p style="color:hsl(var(--muted-foreground));font-size:14px">As duas primeiras eram grandes demais ou
+     paradas demais. Esta é a do meio, e ela existe porque <b>o problema não é a família, são os 9
+     arquivos</b>: dá para levar o par <i>só onde ele está na mesma escada</i>, e deixar o resto do
+     <code>green</code> e do <code>rose</code> onde está, medido e com motivo.</p>
+  <div class="par">
+    <div class="col"><div class="hd">depois · o par inteiro, nos dois</div><div class="card">
+      <div class="linha" style="gap:18px">
+        <span style="color:hsl(var(--status-feito));font-weight:700;font-size:17px;font-family:ui-monospace,Consolas,monospace">R$ 12.400,00</span>
+        <span style="color:hsl(var(--status-ajuste));font-weight:700;font-size:17px;font-family:ui-monospace,Consolas,monospace">−R$ 3.180,00</span>
+      </div>
+      <div class="linha" style="gap:18px;margin-top:14px">
+        <span style="color:hsl(var(--status-feito));font-weight:600">−2,14 p.p.</span>
+        <span style="color:hsl(var(--status-ajuste));font-weight:600">+1,08 p.p.</span>
+      </div>
+      <p class="meta"><span class="cr" data-fg="hsl(var(--status-feito))" data-bg="hsl(var(--card))"></span> no bom ·
+         <span class="cr" data-fg="hsl(var(--status-ajuste))" data-bg="hsl(var(--card))"></span> no ruim —
+         contra 3,26 e 4,83 de hoje. São <code>success</code> e <code>destructive</code>, que é o par
+         que o <b>próprio PER/DCOMP já usa</b> no <code>DcompDistributionSection</code> desde hoje de
+         manhã.</p>
+    </div></div>
+    <div class="col"><div class="hd">o tamanho de cada caminho</div><div class="card">
+      <table style="margin:0">
+        <tr><th>caminho</th><th class="num">ocorr.</th><th class="num">arq.</th></tr>
+        <tr><td><b>A</b> · as famílias inteiras</td><td class="num">20 + 99</td><td class="num">+34</td></tr>
+        <tr><td><b>B</b> · deixar na catraca</td><td class="num">0</td><td class="num">0</td></tr>
+        <tr style="background:hsl(var(--primary)/.06)"><td><b>C</b> · só as escadas</td><td class="num"><b>40</b></td><td class="num"><b>9</b></td></tr>
+      </table>
+      <p class="meta">Em C entram as 20 do lote mais <b>os 20 pares que moram nos mesmos 9 arquivos</b>
+         — 6 <code>green</code> e 14 <code>rose</code>, contados um a um. Fora ficam 71
+         <code>green</code> e 8 <code>rose</code>, que <b>não estão em escada com ninguém do lote</b> e
+         entram na catraca medidos.</p>
+    </div></div>
+  </div>
+  <div class="decide"><b>Por que eu faria a C</b>
+    O defeito que você viu não é “existe <code>green</code> no produto” — é <b>meia escada</b>. A C
+    conserta exatamente isso: nenhum dos 9 arquivos fica com token de um lado e estoque do outro, e
+    nenhuma frente nova de 99 ocorrências é aberta hoje. O que sobra de <code>green</code> e
+    <code>rose</code> fica medido, com o motivo escrito, e vira uma frente própria quando você quiser —
+    aí sim olhando as telas delas, não estas.
+  </div>
+
+  <h2><span class="n">2</span>Sobrou um “Alta” duplicado — 6 ocorrências, 1 arquivo</h2>
+  <p><b>A escada que você aprovou já está na tela</b> (commit <code>fff931b3</code>): a etapa do
+     projeto e o backlog agora sobem <code>neutro</code> → <code>espera</code> → <code>alerta</code> →
+     <code>ajuste</code>, e o verde parou de querer dizer “Alta”. Ficou <b>um</b> arquivo de fora, e
+     não por causa de cor.</p>
+  <div class="par">
+    <div class="col"><div class="hd">o defeito · projectPresentation</div><div class="card">
+      <div class="linha">
+        <span class="pill" style="background:var(--red-100);color:var(--red-700)">Alta</span>
+        <span class="pill" style="background:var(--orange-100);color:var(--orange-700)">Alta</span>
+      </div>
+      <p class="meta">Dois caminhos do mesmo <code>switch</code> devolvem o rótulo <b>“Alta”</b>: um
+         para <code>crítica</code>, <code>urgent</code> e <code>high</code>; outro para
+         <code>alta</code>. Na tela, dois projetos com prioridades diferentes mostram a mesma palavra
+         em cores diferentes.</p>
+    </div></div>
+    <div class="col"><div class="hd">as duas saídas</div><div class="card">
+      <div class="linha">
+        <span style="font-size:12px;color:hsl(var(--muted-foreground));width:26px">(a)</span>
+        <span class="pill" style="background:hsl(var(--status-ajuste-soft));color:hsl(var(--status-ajuste))">Crítica</span>
+        <span class="pill" style="background:hsl(var(--status-alerta-soft));color:hsl(var(--status-alerta))">Alta</span>
+      </div>
+      <div class="linha">
+        <span style="font-size:12px;color:hsl(var(--muted-foreground));width:26px">(b)</span>
+        <span class="pill" style="background:hsl(var(--status-alerta-soft));color:hsl(var(--status-alerta))">Alta</span>
+        <span class="pill" style="background:hsl(var(--status-alerta-soft));color:hsl(var(--status-alerta))">Alta</span>
+      </div>
+      <p class="meta"><b>(a)</b> <code>crítica</code> e <code>urgent</code> passam a mostrar
+         <b>“Crítica”</b>, e só <code>high</code>/<code>alta</code> ficam como “Alta” — a tela passa a
+         ter quatro níveis de verdade. <b>(b)</b> os dois caminhos viram a mesma coisa: uma cor, um
+         rótulo, e a diferença some de vez.</p>
+    </div></div>
+  </div>
+  <div class="decide"><b>Precisa de você: (a) ou (b)</b>
+    Eu faria a <b>(a)</b> — os dados já distinguem <code>crítica</code> de <code>alta</code>, e a tela é
+    que está apagando a diferença. Mas é chamada sua: <b>(b)</b> é honesta se “crítica” e “alta” na
+    prática forem tratadas igual pela equipe.
+  </div>
+
+  <h2><span class="n">3</span>Quatro perguntas de significado — o que essa cor quer dizer ali?</h2>
+  <p>São <b>13 ocorrências</b>, e nenhuma é sobre qual tom usar. Em cada uma, o vermelho ou o verde
+     está ao lado de uma cor que <b>ninguém sabe explicar</b> — e eu não posso escolher o tom sem saber
+     o que aquilo significa. <b>Cada bloco abaixo é uma pergunta de uma linha, com as duas respostas
+     desenhadas.</b> Responda “a” ou “b”.</p>
+
+  <h3>3.1 · Sprint, aba Riscos · “Métrica em risco” está em roxo</h3>
+  <p style="font-size:14px;color:hsl(var(--muted-foreground))">Os três primeiros números dizem prazo:
+     já venceu, vence hoje, vence amanhã. O quarto está em roxo, sozinho.
+     <b>Pergunta: “Métrica em risco” é um problema na mesma fila dos atrasos, ou é outro assunto que só
+     está junto na tela?</b></p>
+  <div class="par">
+    <div class="col"><div class="hd">(a) é problema — entra na mesma escala</div><div class="card">
+      <div class="linha">
+        <span style="color:hsl(var(--status-ajuste));font-weight:700">3 Atrasados</span>
+        <span style="color:hsl(var(--status-alerta));font-weight:700">2 Hoje</span>
+        <span style="color:hsl(var(--status-espera));font-weight:700">5 Amanhã</span>
+        <span style="color:hsl(var(--status-ajuste));font-weight:700">1 Métrica em risco</span>
+      </div>
+      <p class="meta">Vermelho junto com “Atrasados”: a fileira inteira vira uma escala de urgência, e
+         quem olha entende que os quatro pedem ação.</p>
+    </div></div>
+    <div class="col"><div class="hd">(b) é outro assunto — fica de outra cor</div><div class="card">
+      <div class="linha">
+        <span style="color:hsl(var(--status-ajuste));font-weight:700">3 Atrasados</span>
+        <span style="color:hsl(var(--status-alerta));font-weight:700">2 Hoje</span>
+        <span style="color:hsl(var(--status-espera));font-weight:700">5 Amanhã</span>
+        <span style="color:hsl(var(--tag-c));font-weight:700">1 Métrica em risco</span>
+      </div>
+      <p class="meta">Uva de etiqueta (<code>--tag-c</code>), que não promete estado nenhum: prazo é uma
+         coisa, meta é outra.</p>
+    </div></div>
+  </div>
+
+  <h3>3.2 · Análise Inteligente · “Scope creep” está em azul</h3>
+  <p style="font-size:14px;color:hsl(var(--muted-foreground))">Na mesma fileira estão Atrasados,
+     Bloqueios e Gasto extra — os três são coisa ruim. <b>Pergunta: escopo crescendo também é coisa
+     ruim, ou é só um número informativo?</b></p>
+  <div class="par">
+    <div class="col"><div class="hd">(a) é coisa ruim, como os outros três</div><div class="card">
+      <div class="linha">
+        <span style="color:hsl(var(--status-ajuste));font-weight:700">Atrasados</span>
+        <span style="color:hsl(var(--status-alerta));font-weight:700">Bloqueios</span>
+        <span style="color:hsl(var(--status-alerta));font-weight:700">Scope creep</span>
+        <span style="color:hsl(var(--status-ajuste));font-weight:700">Gasto extra</span>
+      </div>
+      <p class="meta">A fileira toda passa a ler como “o que está fora do plano”.</p>
+    </div></div>
+    <div class="col"><div class="hd">(b) é só informação</div><div class="card">
+      <div class="linha">
+        <span style="color:hsl(var(--status-ajuste));font-weight:700">Atrasados</span>
+        <span style="color:hsl(var(--status-alerta));font-weight:700">Bloqueios</span>
+        <span style="color:hsl(var(--foreground));font-weight:700">Scope creep</span>
+        <span style="color:hsl(var(--status-ajuste));font-weight:700">Gasto extra</span>
+      </div>
+      <p class="meta">Preto do texto da casa: o número aparece, mas não acusa ninguém.</p>
+    </div></div>
+  </div>
+
+  <h3>3.3 · Mapeamento, Cenários · o que é um cenário “Promovido”?</h3>
+  <p style="font-size:14px;color:hsl(var(--muted-foreground))">Rascunho, Analisando e Aprovado já têm
+     destino claro. <b>Pergunta: “Promovido” quer dizer que o cenário virou plano de verdade e saiu da
+     mesa, ou que ele está sendo executado agora?</b></p>
+  <div class="par">
+    <div class="col"><div class="hd">(a) virou plano e saiu da mesa</div><div class="card">
+      <div class="linha">
+        <span class="pill" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground))">Rascunho</span>
+        <span class="pill" style="background:hsl(var(--status-andamento-soft));color:hsl(var(--status-andamento))">Analisando</span>
+        <span class="pill" style="background:hsl(var(--status-feito-soft));color:hsl(var(--status-feito))">Aprovado</span>
+        <span class="pill" style="background:hsl(var(--status-revisao-soft));color:hsl(var(--status-revisao))">Promovido</span>
+      </div>
+      <p class="meta">Verde-escuro de <code>revisao</code>: passou do aprovado, é o último degrau.</p>
+    </div></div>
+    <div class="col"><div class="hd">(b) está em execução</div><div class="card">
+      <div class="linha">
+        <span class="pill" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground))">Rascunho</span>
+        <span class="pill" style="background:hsl(var(--status-andamento-soft));color:hsl(var(--status-andamento))">Analisando</span>
+        <span class="pill" style="background:hsl(var(--status-feito-soft));color:hsl(var(--status-feito))">Aprovado</span>
+        <span class="pill" style="background:hsl(var(--tag-b)/.15);color:hsl(var(--tag-b))">Promovido</span>
+      </div>
+      <p class="meta">Etiqueta azul: não é degrau da mesma escada, é um destino.</p>
+    </div></div>
+  </div>
+
+  <h3>3.4 · PER/DCOMP · as nove situações da Receita</h3>
+  <p style="font-size:14px;color:hsl(var(--muted-foreground))">Este é o único dos quatro que eu
+     <b>não</b> recomendo decidir agora, e é bom saber por quê: são situações do processo na Receita
+     Federal — “Despacho decisório emitido”, “Contribuinte intimado”, “Em discussão administrativa” —,
+     e encaixar isso em papel de tarefa (<i>feito</i>, <i>em ajuste</i>, <i>em espera</i>) é decisão de
+     negócio, não de cor. <b>Pergunta, se quiser mesmo assim: alguma dessas nove quer dizer “acabou
+     bem” ou “acabou mal” para o cliente?</b> Só essas duas eu converteria; o resto viraria etiqueta.</p>
+  <div class="par">
+    <div class="col"><div class="hd">hoje · nove cores, sete famílias</div><div class="card">
+      <div class="linha">
+        <span class="pill" style="background:var(--green-100);color:var(--green-800)">Análise concluída</span>
+        <span class="pill" style="background:var(--blue-100);color:var(--blue-700)">Preliminar</span>
+        <span class="pill" style="background:var(--orange-100);color:var(--orange-700)">Intimado</span>
+      </div>
+      <div class="linha">
+        <span class="pill" style="background:var(--amber-100);color:var(--amber-700)">Em discussão</span>
+        <span class="pill" style="background:var(--indigo-100);color:var(--indigo-800)">Despacho</span>
+        <span class="pill" style="background:var(--red-100);color:var(--red-800)">Cancelado</span>
+        <span class="pill" style="background:var(--emerald-100);color:var(--emerald-800)">Homologado</span>
+      </div>
+      <p class="meta">Duas entradas do mapa já são <code>status-neutro</code>; as outras nunca foram
+         decididas, só foram aparecendo.</p>
+    </div></div>
+    <div class="col"><div class="hd">o mínimo que eu faria</div><div class="card">
+      <div class="linha">
+        <span class="pill" style="background:hsl(var(--status-feito-soft));color:hsl(var(--status-feito))">Homologado</span>
+        <span class="pill" style="background:hsl(var(--status-ajuste-soft));color:hsl(var(--status-ajuste))">Cancelado</span>
+      </div>
+      <div class="linha" style="margin-top:12px">
+        <span class="pill" style="background:hsl(var(--tag-b)/.15);color:hsl(var(--tag-b))">Preliminar</span>
+        <span class="pill" style="background:hsl(var(--tag-d)/.15);color:hsl(var(--tag-d))">Intimado</span>
+        <span class="pill" style="background:hsl(var(--tag-c)/.15);color:hsl(var(--tag-c))">Despacho</span>
+      </div>
+      <p class="meta">Só as duas pontas viram papel — <b>Homologado</b> acabou bem, <b>Cancelado</b>
+         acabou mal. O meio do caminho vira etiqueta, porque é fase de processo, não estado de
+         trabalho.</p>
+    </div></div>
+  </div>
+
+  <div class="decide"><b>Em uma linha cada</b>
+    <b>3.1</b> “Métrica em risco”: (a) problema, ou (b) outro assunto? ·
+    <b>3.2</b> “Scope creep”: (a) coisa ruim, ou (b) só informação? ·
+    <b>3.3</b> “Promovido”: (a) virou plano, ou (b) está em execução? ·
+    <b>3.4</b> PER: topa converter só <b>Homologado</b> e <b>Cancelado</b>, deixando o resto como
+    etiqueta — ou prefere não mexer?
+  </div>
+
+  <div class="fecha">
+    <h2 style="font-size:15px;margin-bottom:2px">As 30 que ficam, e não precisam de você</h2>
+    <p style="margin-top:6px;color:hsl(var(--muted-foreground));font-size:14px">Entram na catraca
+       <code>filaDoRedEmerald.test.ts</code> com o motivo, como a <code>filaDoAlerta</code> faz. Ela
+       trava nos dois sentidos: cor nova derruba o teste, e conversão feita também — pedindo que a
+       lista encolha.</p>
+    <table>
+      <tr><th>motivo</th><th class="num">ocorr.</th><th>por que fica</th></tr>
+      <tr><td><b>rótulo não-status</b></td><td class="num">12</td><td>o selo “Admin” em 4 telas de acesso. Cargo não é estado — mesmo motivo de “Líder” na fila do alerta</td></tr>
+      <tr><td><b>site público</b></td><td class="num">10</td><td><code>Footer</code>, depoimentos, escritórios, resultados. Decisão sua na passada do <code>gray</code>: a landing pinta a própria paleta</td></tr>
+      <tr><td><b>paleta categórica</b></td><td class="num">8</td><td>ícone de PDF, cor da categoria “tax”, gradiente do seletor de área. O destino são os <code>--tag-*</code>, e isso é outra frente</td></tr>
+    </table>
+  </div>
+
+  <div class="rodape">
+    <b>O que já saiu em 11/09/2026 — 179 das 248.</b>
+    <code>1d25b036</code> ação destrutiva e erro (78, em <code>destructive</code>) ·
+    <code>fd566894</code> feito, marcador, diff e as escadas que fecham (56, e quatro entradas saíram
+    da <code>filaDoAlerta</code>) ·
+    <code>62d76108</code> o selo do monofásico (9, em <code>--tag-a</code>) ·
+    <code>477afeef</code> o “Limpar filtros” e o X de fechar (27, no <code>BotaoLimparFiltros</code> e
+    na âncora da área) ·
+    <code>fff931b3</code> a escada de prioridade, com o verde deixando de valer “Alta” (5, e duas
+    entradas saindo da <code>filaDoAlerta</code>) ·
+    o gradiente do Audit virando papel por decisão sua — o comentário do arquivo, que dizia o
+    contrário, foi reescrito com o argumento que caiu.
+    <br><br>
+    O raciocínio de cada uma está na mensagem do commit, e as telas que você olhou para decidir estão
+    no histórico deste arquivo — <code>git log -p</code> nele devolve o desenho como estava.
+    <b>Os valores desta página são do <code>.base-theme</code> em 11/09/2026 e não se atualizam;</b> a
+    fonte corrente é sempre o <code>index.css</code>. Os contrastes são calculados na hora, sobre as
+    cores renderizadas ao lado.
+  </div>
+</div>
+
+<script>
+  const sonda = document.createElement('span');
+  sonda.style.display = 'none';
+  document.body.appendChild(sonda);
+  function rgb(expr, base) {
+    sonda.style.color = '';
+    sonda.style.color = expr;
+    const v = getComputedStyle(sonda).color.match(/[\d.]+/g).map(Number);
+    const a = v.length > 3 ? v[3] : 1;
+    if (a === 1) return [v[0], v[1], v[2]];
+    const b = base || [255, 255, 255];
+    return [0, 1, 2].map(i => v[i] * a + b[i] * (1 - a));
+  }
+  const canal = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const lum = ([r, g, b]) => 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
+  function razao(fg, bg) {
+    const fundo = rgb(bg);
+    const [x, y] = [lum(rgb(fg, fundo)), lum(fundo)].sort((p, q) => q - p);
+    return (x + 0.05) / (y + 0.05);
+  }
+  for (const el of document.querySelectorAll('.cr')) {
+    const r = razao(el.dataset.fg, el.dataset.bg);
+    const passa = r >= 4.5;
+    el.innerHTML = '<b>' + r.toFixed(2).replace('.', ',') + ':1</b> '
+      + '<span class="' + (passa ? 'ok' : 'no') + '">' + (passa ? 'AA' : r >= 3 ? 'só 3:1' : 'reprova') + '</span>';
+  }
+</script>
+</body>
+</html>

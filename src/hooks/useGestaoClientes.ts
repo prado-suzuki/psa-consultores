@@ -195,8 +195,7 @@ export function useClientesFiltrados(
         const { data: osRows } = await supabase
           .from('ordem_servico')
           .select('id_cliente')
-          .in('id_cliente', clienteIds)
-          .eq('excluido', false);
+          .in('id_cliente', clienteIds);
         for (const row of osRows ?? []) {
           const cid = row.id_cliente as string;
           osCountMap[cid] = (osCountMap[cid] ?? 0) + 1;
@@ -231,7 +230,6 @@ export function useOsExpand(clienteId: string) {
         .from('ordem_servico')
         .select('id, numero_os, situacao, data_inicio, data_fim, valor_projeto, setor_cliente')
         .eq('id_cliente', clienteId)
-        .eq('excluido', false)
         .order('numero_os');
       if (error) throw error;
 

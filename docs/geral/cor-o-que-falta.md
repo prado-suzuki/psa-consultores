@@ -1,6 +1,6 @@
 # Cor: o que falta, e por que cada coisa parou onde parou
 
-Estado em **10/09/2026**. O corpo do documento é a rodada de 19 commits de 01/09; em 03/09
+Estado em **10/09/2026**, com a lista de retomada remedida no fim do dia. O corpo do documento é a rodada de 19 commits de 01/09; em 03/09
 vieram cinco rodadas em cima dele — os rótulos de chamado, o estado de documento, a palavra
 única dos três pares, a âncora vermelha da OSG e a pasta `equipe/audit` —, e o §5 ganhou três
 catracas. Em 10/09 entrou a quarta e ela é de outra natureza: a primeira que não pergunta
@@ -37,6 +37,20 @@ mapas de status.
 ---
 
 ## 1. Os papéis que faltam
+
+> **A caça de 11/09/2026 está renderizada**, não convertida:
+> [`comparacoes-de-cor/cor-que-viaja-como-dado.html`](comparacoes-de-cor/cor-que-viaja-como-dado.html), parte A.
+> Ela não varreu família: buscou **assinatura de chaves** — todo objeto literal cujo valor tem classe de cor,
+> agrupado pelo conjunto de chaves. **Cinco mapas de domínio apareceram escritos duas ou mais vezes**, e quatro
+> já divergiram: `priorityColors` (4 cópias), `ROLE_BADGE_CLASSES`/`ROLE_VISUALS`, `KIND_COLOR`,
+> `VARIANT_STYLE`/`FILTER_BADGE_CLASS` e `ACTION_LABELS` (3 cópias idênticas, que a rodada de 03/09 converteu
+> sem extrair — o botão "Sair" de novo). São **62 cruas em 6 arquivos** mais 13 cópias de mapa. E a medição achou
+> o que a leitura não acharia: **a cópia do badge de papel que reprova AA é a que está na lista de usuários**,
+> em 4 dos 7 papéis, o pior a 3,07:1 — a outra cópia, a da legenda logo abaixo, passa nos sete.
+> Em prioridade de tarefa, "Urgente" e "Alta" **parecem** concordar porque `--destructive` é literalmente
+> `var(--status-ajuste)` no claro; no `.dark` os dois têm valor próprio e nenhum `--status-*` é declarado,
+> então a divergência é **latente** — a armadilha do `bg-white` × `bg-card`, de novo.
+
 
 `feito`, `ajuste` e `espera` andaram, mas não fecharam. O que sobra vive quase todo em
 **escada de status** — o âmbar, o verde e o vermelho são degraus do mesmo mapa, e converter um
@@ -263,33 +277,50 @@ Estas ficaram paradas de propósito. Cada uma precisa de uma escolha sua antes d
 | as 12 paletas categóricas | `pageCategoryStyles`, `roleOptions`, `AgendaTab` e outras têm 5 a 7 categorias. O contrato tem **quatro** `--tag-*`, e são quatro de propósito. Não há token para a quinta |
 | `AuditPendenciasTable`, `CORES_MOTIVO` | Os seis motivos são **gradiente de gravidade**, não estados — e o contrato diz que escala não veste papel. Ou nasce uma escala institucional para severidade, ou fica em cor crua. Foi a única coisa que ficou de pé na rodada da pasta `audit`, e o motivo está escrito no próprio arquivo |
 
-## 3. `projects.status` — não é dívida de cor, é defeito de produto
+## 3. `projects.status` — fechado em 10/09/2026, e o diagnóstico estava errado
 
-**O achado mais sério da rodada, e o único que o usuário final vê.**
+**Corrigido, e este bloco é a retificação do que estava escrito aqui.** A versão anterior
+dizia três coisas; uma estava certa, duas não.
 
-Medido em produção pelo MCP do Lovable em 01/09: a coluna `projects.status` guarda
-`"Melhorias"` (10 linhas) e `"Diagnóstico"` (7). Mais nada.
+**O que era verdade:** a coluna `projects.status` guarda `Melhorias` (10) e `Diagnóstico` (7),
+e havia mapas de código esperando outro vocabulário.
 
-E existem **três** mapas em código para essa mesma coluna, com três vocabulários, e nenhum
-deles casa com o dado:
+**O que estava errado, primeiro:** *"o cliente vê os 17 projetos como Em Planejamento, com 0%
+de progresso"*. Não vê. `client_visible_projects` está **vazia** — zero vínculos, zero
+clientes. A tela do cliente nunca chegou a listar um projeto. O defeito era real e **dormente**,
+e a diferença importa: ele estava classificado como "o único que o usuário final vê", o que o
+pôs no topo de uma fila de prioridade por um motivo que não existia.
 
-| arquivo | o que espera |
-|---|---|
-| `pages/cliente/ClienteDashboard.tsx` | `planning / active / on_hold / completed` |
-| `components/equipe/projetos/ProjectFilters.tsx` | `active / completed / blocked / archived` |
-| `lib/dashboardClientesOs/aggregations.ts` | seis chaves, outro conjunto ainda |
+**O que estava errado, segundo:** *"existem três mapas e nenhum casa"*. São **dois**. O
+terceiro, `statusProjetoLabel` em `lib/dashboardClientesOs/aggregations.ts`, recebe
+`RawOrgProject` — ele lê `org_projects`, e ali `active` / `completed` / `on_hold` / `planned`
+é o vocabulário CERTO da tabela certa. Quase virou conserto de uma coisa que não estava
+quebrada.
 
-O que isso produz hoje, na tela:
+**E o diagnóstico de fundo mudou.** A pergunta registrada aqui era "qual é o ciclo de vida
+real do projeto?". A resposta é que não é ciclo de vida nenhum. Existem duas tabelas:
 
-- o **cliente** vê os 17 projetos como "Em Planejamento", com **0% de progresso** — o mapa cai
-  no fallback e o `getProjectProgress` cai no `default: return 0`;
-- o **filtro da equipe** oferece Ativo / Concluído / Bloqueado / Arquivado, e os quatro
-  retornam **zero linhas**.
+| | `projects` | `org_projects` |
+|---|---|---|
+| linhas | 17 | 140 |
+| `status` | `Melhorias`, `Diagnóstico` — **categoria** | `active`, `completed`, `planned`, `on_hold` — **ciclo de vida** |
+| tarefas | **zero** | **954** |
+| quem lê | `/equipe/projetos` e o portal do cliente | "Projetos e tarefas" da Tax e da OSG |
 
-⚠️ **Não conserte isso mexendo em mapa.** A pergunta é qual é o ciclo de vida real do projeto:
-"Melhorias" e "Diagnóstico" são o vocabulário certo (e aí os mapas mudam de chave, e alguém
-diz que progresso cada etapa representa), ou os dados é que estão fora do padrão (e aí é
-migração)? É decisão de produto, e vem antes de qualquer linha de código.
+`/equipe/projetos` é **a carteira do Digital** — o que a área executa para as outras. O dado
+confirma: `projects.area` traz Tax (8), OSG (7), Área Digital (1) e um sem área. Os
+"Diagnóstico" são as frentes de consultoria societária, os "Melhorias" são as automações.
+Confirmado com a dona da tela em 10/09.
+
+**O que foi feito:** os quatro pontos que usavam ciclo de vida contra essa coluna passaram a
+ler `@/lib/categoriaDoProjeto`, com catraca em `categoriaDoProjeto.test.ts`. A barra de
+progresso do portal **saiu**: mesmo com a chave certa, "está ativo" não é "está pela metade",
+e progresso de verdade precisaria de tarefas que esses 17 projetos não têm.
+
+**O que fica aberto, e é decisão de produto:** hoje a categoria não carrega informação que a
+`area` já não carregue — a correlação é perfeita, `Diagnóstico` é OSG nas 7 e `Melhorias` é o
+resto nas 10. Pode ser coincidência de carteira pequena (nada impede uma frente de Diagnóstico
+na Tax amanhã) ou redundância de verdade. A dona da tela quer melhorá-la; a decisão é dela.
 
 ## 4. Outro rótulo divergente, além do `pending` que foi corrigido
 
@@ -333,19 +364,45 @@ domínios de uma vez — foi ele que ficou com o masculino.
 
 ## 5. Onde a dívida pode crescer sem ninguém ver
 
+> **O `${cor}NN` saiu de "bloqueio de conversão" para defeito no ar, e FECHOU em parte em
+> 11/09/2026** (commit `232b9864`). Medido: eram **18 ocorrências em 11 arquivos** — não 14 em 10,
+> como a primeira contagem dizia —, e **cinco estavam quebradas**: o valor que chegava já era
+> `var(--token)`, então o CSS já era inválido. As cinco foram para `comAlfa()`
+> (`src/lib/corComAlfa.ts`), com catraca `filaDoAlfaColado.test.ts` e as **13** restantes
+> inventariadas por motivo. Renderizado, com o CSS literal dos arquivos e o valor
+> computado lido no DOM, em
+> [`comparacoes-de-cor/cor-que-viaja-como-dado.html`](comparacoes-de-cor/cor-que-viaja-como-dado.html), parte B.
+>
+> **Três coisas para quem for caçar isto.** Primeira, o **recorte da busca saiu estreito duas
+> vezes**: listar os caracteres aceitos dentro das chaves perdeu `[`/`]` (mais duas em
+> `UfDrillDown`) e depois perdeu **espaço e sinal** (mais duas em `DesempenhoReunioes1a1` — que
+> eram justamente as duas últimas QUEBRADAS). A forma que vale é qualquer coisa dentro das chaves,
+> com os dois dígitos hex encostados na **crase**. Segunda, o **sufixo é HEX**: `26` é 15%, mas
+> `15` é **8,2%** e `30` é **18,8%** — ler como porcentagem quase dobra o alfa. Terceira, e é a
+> que engana mais: declaração com `var()` que fica inválida **não é ignorada, vira
+> `unset`** — e `unset` dá coisas diferentes por propriedade. Em `background` é transparente (o fundo some,
+> que é a assinatura conhecida); em `border-color` é `currentColor`, então a borda fica **100% opaca** em vez
+> dos 18,8% pedidos e **nada parece errado**. Procurar "fundo que sumiu" perde metade dos casos.
+> E o padrão das 13 restantes — letra na cor X sobre a cor X a 15–25% — dá **2,18 a 3,40:1** e não tem como
+> passar em AA: a escada só existe com dois degraus, que é o que um par `--x`/`--x-soft` é.
+
+
 | classe de defeito | proteção hoje |
 |---|---|
 | cor crua âmbar/amarela | catraca `src/lib/filaDoAlerta.test.ts` — igualdade exata, por arquivo, com o motivo |
-| `teal-500/600/700` | aviso de ESLint (`no-restricted-syntax`) |
+| `teal-500/600/700` | catraca `src/lib/filaDoTeal.test.ts` desde 11/09/2026 — nasce **vazia**; e a regra de ESLint (`no-restricted-syntax`) subiu de `warn` para `error` no mesmo dia, porque a fila zerou. Escapava pelo contrário do slate: o nome ESTÁ no `tailwind.config.ts`, remapeado para `hsl(var(--teal-N))`, então não era cor crua — era token de camada errada, que mora no `:root` e nenhum tema sobrescreve |
 | tom que a escala não tem | `escala/cor-inexistente` e `escala/cor-de-estoque` |
 | cor crua **slate** | catraca `src/lib/filaDoSlate.test.ts` — nasce **vazia**, e qualquer classe slate nova derruba |
 | âncora `osg-red` pintando status | catraca `src/lib/filaDoOsgRed.test.ts` — nasce **vazia**; não é cor de estoque, é token nosso no lugar errado |
+| cinza (`gray`) | catraca `src/lib/filaDoGray.test.ts` desde 10/09/2026 — inventário por motivo, e o recorte interno tem asserção própria. Era o buraco maior (580) porque o nome está no `tailwind.config.ts` e a `cor-de-estoque` só dispara em tom que a escala não define |
 | **verde, vermelho, azul, roxo, laranja** | **nenhuma** |
 | rótulo divergente de **chamado** | catraca `src/lib/chamadoStatusColors.test.ts` — nasce **vazia**, varre pelo conjunto de chaves |
 | rótulo divergente de status | catraca `src/lib/rotulosDeStatus.test.ts` — pega "Em Progresso" em JSX e trava a palavra dos três mapas |
 | **`--muted` divergindo do `--canvas` da área** | catraca `problemasDeRebaixamento` em `paletaDeArea.test.ts` — não olha o valor, **recalcula** com `rebaixar(--canvas)` e compara sem tolerância |
 
-A linha em negrito é o buraco que sobrou: cor crua nas famílias que não têm guarda nenhuma.
+As linhas em negrito são o buraco que sobrou. A do `gray` entrou em 10/09/2026 e é a maior de
+todas — ela ficou fora desta tabela por um ano porque o nome está no `tailwind.config.ts`, o
+que dá a impressão de que a `cor-de-estoque` cobre. Cobre só o tom faltante, não o uso.
 
 **Por que o slate precisou de catraca própria, e por que as outras famílias também vão
 precisar:** a regra `escala/cor-de-estoque` só dispara em nome que o projeto **também** define
@@ -438,18 +495,71 @@ O que **continua** à mão, e por quê:
 
 ## Se você for retomar por um só item
 
-Nesta ordem, do mecânico ao que exige decisão:
+**A ordem mudou em 10/09/2026, e mudou porque alguém rodou o comando.** A lista anterior
+mandava começar por `red` e `emerald`, "as maiores sem guarda", com 207 e 135 medidos em
+03/09. Remedido hoje: `red` são **176** e `emerald` **72** — e a maior de todas, que nunca
+esteve nesta lista, é o **`gray`, com 580**. A lista estava errada desde que foi escrita; o
+número que faltava não era velho, era ausente.
 
-1. **A catraca de mais uma família** (§5) — `red` e `emerald` são as maiores sem guarda, e
-   nenhuma tem concentração: em 03/09 eram 207 e 135 ocorrências espalhadas por ~100 arquivos,
-   com o maior arquivo em 9. Ou seja, **não** é conversão por mapa como as três rodadas
-   anteriores; é inventário por motivo, na forma da `filaDoAlerta`. O molde está em
-   `medirCorCrua.ts`, e a `chamadoStatusColors.test.ts` mostra a variante que varre por
-   conjunto de chaves em vez de por classe.
-2. **Os papéis que faltam** (§1) — por mapa, nunca por classe. É o que rendeu nas quatro
-   rodadas de 03/09: procurar o mapa do domínio antes de escrever classe achou, das quatro
-   vezes, reuso que não tinha acontecido — na última, um `ACTION_LABELS` de três entradas
-   com três vocabulários de cor dentro.
-3. **`projects.status`** (§3) — precisa da decisão de produto antes de tudo.
+> **Remeça antes de escolher.** Este bloco envelhece como todos os outros:
+> ```
+> # por família, nas pastas de tela, ignorando teste — o recorte é o de medirCorCrua.ts
+> PROPS='bg|text|border|divide|ring|fill|stroke|from|to|via|outline|decoration|accent|caret|placeholder|shadow'
+> grep -rhoE "([a-z-]+:)*($PROPS)-(gray|red|teal|blue|green|amber|emerald)-[0-9]{2,3}" >   src/components src/pages --include='*.tsx' --include='*.ts' >   | sed -E 's/.*-(gray|red|teal|blue|green|amber|emerald)-[0-9]+//' | sort | uniq -c | sort -rn
+> ```
+
+Medido em 10/09/2026, ordenado:
+
+| família | ocorrências | arquivos | tem guarda? |
+|---|---|---|---|
+| **`gray`** | **580** | 61 | só parcial — a `cor-de-estoque` só dispara em tom que a escala do projeto NÃO tem |
+| `red` | 176 | 58 | nenhuma |
+| ~~`teal`~~ | **0** | 0 | **FECHADA em 11/09/2026** — catraca `filaDoTeal.test.ts` e ESLint em `error`. A família INTEIRA zerou nas pastas de tela, não só os três degraus do aviso |
+| `blue` | 108 | 41 | nenhuma |
+| `green` / `amber` | 81 / 81 | 28 / 31 | `amber` tem a `filaDoAlerta` |
+| `emerald` | 72 | 29 | nenhuma |
+
+Nesta ordem, do que rende ao que exige decisão:
+
+1. ~~**`gray`**~~ — **fechado em 10/09/2026.** Eram 580; sobram 149, e nenhuma em tela
+   interna fora do bloco de código. A conversão confirmou a aposta: era por MAPA e não por
+   inventário — 12 arquivos concentravam 313, e o maior achado veio de procurar o mapa do
+   domínio, não de varrer classe. A pílula de status da sprint estava escrita à mão em dois
+   lugares e **as duas cópias já tinham divergido**: o verde queria dizer "ativa" numa tela e
+   "concluída" na outra.
+
+   Três coisas que a passada ensinou, e que valem para a próxima família:
+
+   · **texto primário se TIRA, não se troca.** Dos 509 `<Label>` do produto, 400 já não tinham
+     cor nenhuma e herdavam. Os 66 `gray-700` estavam sozinhos contra a maioria;
+   · **o cinza escondia decisões já tomadas.** Quatro mapas tinham uma entrada de "nenhum" em
+     cinza cru, e a resposta estava em `comparacoes-de-cor/cinza-de-desligado.html` desde
+     20/08 — "acompanha o tema, com `--status-neutro`". A conversão não decidiu nada ali,
+     só entregou;
+   · **o site público é outro produto.** Decisão dela: a landing pinta a própria paleta, com
+     seções escuras de propósito, e ali o `gray-400` claro sobre escuro está CERTO. As 149 que
+     sobram são quase todas dela, mais quatro componentes órfãos que ninguém importa.
+
+2. **Os papéis que faltam** (§1) — por mapa, nunca por classe. Mesma alavanca do item acima.
+3. **`red` e `emerald`** (§5) — aí sim inventário por motivo, na forma da `filaDoAlerta`, porque
+   não têm concentração. O molde está em `medirCorCrua.ts`, e a `chamadoStatusColors.test.ts`
+   mostra a variante que varre por conjunto de chaves em vez de por classe.
+
+   **O inventário foi feito em 11/09/2026 e está renderizado**, não convertido:
+   [`comparacoes-de-cor/vermelho-e-verde-o-que-cada-um-diz.html`](comparacoes-de-cor/vermelho-e-verde-o-que-cada-um-diz.html).
+   As 248 ocorrências caíram em **14 motivos**, sem sobra. Dois deles (ação destrutiva e erro, **81
+   ocorrências**) já têm precedente — é o mesmo `destructive` do `osg-red` — e quatro param em
+   decisão dela. Dois achados que a varredura por família não daria:
+
+   · **o lote está mal recortado.** 16 dos 78 arquivos carregam `green` (77) ou `rose` (22) cru na
+     MESMA escada. Converter só `red`/`emerald` troca escada crua por escada com token de um lado e
+     cor de estoque do outro — o defeito que o motivo `escada-de-status` existe para evitar;
+   · **27 das 176 vermelhas não destroem nada**: 19 são o botão "Limpar filtros" e 8 são o X de
+     fechar modal — quatro cópias byte a byte de `hover:text-red-500 hover:bg-red-50`, e como o
+     vermelho só aparece no hover, ninguém viu. No cartão de erro, `text-red-500` sobre `red-50` dá
+     **3,44:1** e reprova AA justamente na linha que diz o que houve.
+4. ~~**`projects.status`** (§3)~~ — **fechado em 10/09/2026.** E ele saiu desta lista com uma
+   correção junto: não era "o único item que o CLIENTE vê". A tabela de vínculo está vazia,
+   então nenhum cliente via nada. Ver o §3, que agora é a retificação do próprio §3.
 
 O `osg-red` saiu desta lista: fechou em 03/09 e virou catraca (§7).

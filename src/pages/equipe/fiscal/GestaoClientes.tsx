@@ -68,9 +68,9 @@ const SubSectionPlaceholder = ({
 );
 
 const SITUACAO_PILL: Record<string, string> = {
-  em_andamento:'bg-sky-500/10 text-sky-700',
-  concluido:'bg-emerald-500/10 text-emerald-700',
-  suspenso:'bg-amber-500/10 text-amber-700',
+  em_andamento:'bg-status-andamento-soft text-status-andamento',
+  concluido:'bg-status-feito-soft text-status-feito',
+  suspenso:'bg-status-espera-soft text-status-espera',
   cancelado: 'bg-destructive/10 text-destructive',
 };
 

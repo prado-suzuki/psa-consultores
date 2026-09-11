@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Filter, Flag, ListChecks, Search, SlidersHorizontal, User, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { SingleSelectCombobox } from '@/components/dashboards/SingleSelectCombobox';
+import { SingleSelectCombobox } from '@/components/ui/SingleSelectCombobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

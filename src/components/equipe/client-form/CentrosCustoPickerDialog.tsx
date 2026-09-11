@@ -18,7 +18,6 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAcentoArea } from './acentoArea';
 
 export interface CentroCustoOpcao {
   id: string;
@@ -52,7 +51,6 @@ export default function CentrosCustoPickerDialog({
   selecionados,
   onConfirmar,
 }: CentrosCustoPickerDialogProps) {
-  const acento = useAcentoArea();
   const [escolhidos, setEscolhidos] = useState<RateioEscolhido[]>(selecionados);
   const [busca, setBusca] = useState('');
 
@@ -112,7 +110,7 @@ export default function CentrosCustoPickerDialog({
         {/* Andar de cima: o que já foi escolhido, com os percentuais. */}
         <div className="rounded-lg border bg-muted/30 p-3">
           <div className="mb-2 flex items-center justify-between gap-3">
-            <p className={cn('text-xs font-bold uppercase tracking-wide', acento.positivoTexto)}>
+            <p className={cn('text-xs font-bold uppercase tracking-wide', 'text-primary')}>
               Escolhidos ({escolhidos.length})
             </p>
             {escolhidos.length > 1 && (
@@ -157,7 +155,7 @@ export default function CentrosCustoPickerDialog({
               </ul>
               <p className={cn(
                 'mt-2 text-xs font-medium',
-                fecha ? acento.positivoTexto : total > 100 ? 'text-destructive' : 'text-warning',
+                fecha ? 'text-primary' : total > 100 ? 'text-destructive' : 'text-warning',
               )}>
                 Total: {total.toFixed(2).replace(/\.00$/, '')}%
                 {!fecha && total < 100 && ` — faltam ${(100 - total).toFixed(2).replace(/\.00$/, '')}%`}
@@ -194,7 +192,7 @@ export default function CentrosCustoPickerDialog({
                     <label
                       className={cn(
                         'flex cursor-pointer items-start gap-2.5 rounded-md border px-3 py-2 transition-colors',
-                        marcado ? cn('border-current', acento.positivoFundo, acento.texto) : 'hover:bg-muted/60',
+                        marcado ? cn('border-current', 'bg-accent/5', 'text-primary') : 'hover:bg-muted/60',
                       )}
                     >
                       <Checkbox checked={marcado} onCheckedChange={() => alternar(o.id)} className="mt-0.5" />
@@ -214,7 +212,6 @@ export default function CentrosCustoPickerDialog({
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button
-              className={acento.botao}
               onClick={() => { onConfirmar(escolhidos); onOpenChange(false); }}
             >
               Confirmar

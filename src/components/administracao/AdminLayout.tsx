@@ -1,3 +1,5 @@
+import { AREAS } from '@/lib/nomeDaArea';
+import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -5,7 +7,6 @@ import { NotificationPopover } from '@/components/notifications/NotificationPopo
 import { PendingTicketsAlert } from '@/components/notifications/PendingTicketsAlert';
 import { 
   LayoutDashboard, 
-  LogOut,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -22,6 +23,8 @@ import {
 import { SidebarFundoGaveta } from '@/components/shared/SidebarFundoGaveta';
 import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
 import { classeLarguraBarra, classeRecuoCabecalho, classesGavetaBarra, larguraBarraCss } from '@/lib/sidebarMedidas';
+import { FACE_DA_BARRA, classesItemDaBarra } from '@/lib/barraLateralCromo';
+import { cn } from '@/lib/utils';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -43,7 +46,6 @@ const navItems: NavItem[] = [
 ];
 
 export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminLayoutProps) => {
-  const { signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   // O recolhimento automático em telas de trabalho largo mora no hook — é a
@@ -55,11 +57,6 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
   // Trilho de ícones é coisa de desktop. A gaveta, quando abre, abre inteira:
   // um trilho de 80px num celular ocupa espaço e não diz o nome de nada.
   const trilho = collapsed && !emGaveta;
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
-  };
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -80,18 +77,18 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
         <div className={`${classeRecuoCabecalho(trilho)} border-b border-border/60`}>
           {trilho ? (
             <div className="flex justify-center">
-              <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center">
-                <Settings className="h-5 w-5 text-teal-600" />
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Settings className="h-5 w-5 text-primary" />
               </div>
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center flex-shrink-0">
-                <Settings className="h-5 w-5 text-teal-600" />
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Settings className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold text-foreground text-lg">Administração</h2>
-                <p className="text-xs text-muted-foreground">Gestão Geral</p>
+                <h2 className={cn(FACE_DA_BARRA, 'font-semibold text-foreground text-lg')}>{AREAS.admin.nome}</h2>
+                <p className="text-xs text-muted-foreground">{AREAS.admin.subtitulo}</p>
               </div>
             </div>
           )}
@@ -114,11 +111,7 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
             <Button
               key={item.path}
               variant="ghost"
-              className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive(item.path) 
-                  ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15' 
-                  : 'text-foreground hover:bg-muted hover:text-teal-600'
-              }`}
+              className={classesItemDaBarra({ ativo: isActive(item.path), trilho })}
               onClick={() => navigate(item.path)}
               title={trilho ? item.label : undefined}
             >
@@ -135,21 +128,12 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
 
           <Button 
             variant="ghost" 
-            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-teal-600 transition-colors`}
+            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-primary transition-colors`}
             onClick={() => navigate('/equipe')}
             title={trilho ? 'Trocar área' : undefined}
           >
             <ArrowLeft className={`h-4 w-4 ${trilho ? '' : 'mr-3'}`} />
             {!trilho && 'Trocar área'}
-          </Button>
-          <Button 
-            variant="ghost" 
-            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors`}
-            onClick={handleSignOut}
-            title={trilho ? 'Sair' : undefined}
-          >
-            <LogOut className={`h-4 w-4 ${trilho ? '' : 'mr-3'}`} />
-            {!trilho && 'Sair'}
           </Button>
         </div>
       </aside>
@@ -160,7 +144,7 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-border/60 bg-white flex items-center justify-between px-4 md:px-6 flex-shrink-0">
+        <header className="min-h-16 border-b border-border/60 bg-white flex items-center justify-between px-4 py-2 md:px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -171,8 +155,7 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-foreground">{title}</h1>
-              {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+              <TituloDaPagina titulo={title} subtitulo={subtitle} sobretitulo={AREAS.admin.nome} />
             </div>
           </div>
           <div className="flex items-center gap-3">

@@ -63,8 +63,7 @@ export function useDomainPreenchimentoSistema(): DomainPreenchimentoSistema {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ordem_servico')
-        .select('id, numero_os, data_inicio')
-        .eq('excluido', false);
+        .select('id, numero_os, data_inicio');
       if (error) throw error;
       return (data ?? []) as OsPreenchimento[];
     },

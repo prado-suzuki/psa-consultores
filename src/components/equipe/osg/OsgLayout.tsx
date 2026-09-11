@@ -1,21 +1,16 @@
+import { AREAS } from '@/lib/nomeDaArea';
+import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useClientesLista } from '@/hooks/useGestaoClientes';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 import {
   Briefcase,
   Calculator,
-  LogOut,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -49,7 +44,12 @@ import {
 } from '@/hooks/useSidebarRecolhimentoController';
 import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
 import { SidebarFundoGaveta } from '@/components/shared/SidebarFundoGaveta';
-import { classeLarguraBarra, classesGavetaBarra } from '@/lib/sidebarMedidas';
+import {
+  classeLarguraBarra,
+  classeRecuoCabecalho,
+  classesGavetaBarra,
+} from '@/lib/sidebarMedidas';
+import { FACE_DA_BARRA, classesItemDaBarra } from '@/lib/barraLateralCromo';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
 import { linkEspelhado } from '@/lib/areaTheme';
@@ -80,25 +80,19 @@ const OsgWorkClienteBar = () => {
           <Label className="text-sm font-bold text-osg-700 uppercase tracking-wide">Cliente</Label>
         </div>
         <div className="flex-1 max-w-md">
-          <Select value={clienteId || undefined} onValueChange={setClienteId} disabled={isLoading}>
-            <SelectTrigger
-              className={cn(
-                'h-10 font-medium',
-                semCliente
-                  ? 'border-2 border-osg-300 ring-2 ring-osg-100 bg-background'
-                  : 'border-osg-200 bg-background',
-              )}
-            >
-              <SelectValue placeholder={isLoading ? 'Carregando...' : 'Selecione um cliente...'} />
-            </SelectTrigger>
-            <SelectContent>
-              {clientes.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SelecaoDeCliente
+            clientes={clientes}
+            value={clienteId}
+            onChange={setClienteId}
+            loading={isLoading}
+            placeholder="Selecione um cliente..."
+            className={cn(
+              'w-full min-w-0 h-10 font-medium',
+              semCliente
+                ? 'border-2 border-osg-300 ring-2 ring-osg-100 bg-background'
+                : 'border-osg-200 bg-background',
+            )}
+          />
         </div>
         {semCliente ? (
           <div className="flex items-center gap-1.5 text-xs font-medium text-osg-700">
@@ -123,7 +117,7 @@ interface OsgLayoutProps {
 }
 
 export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayoutProps) => {
-  const { signOut, isAdmin, isLider } = useAuth();
+  const { isAdmin, isLider } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   // Telas de trabalho largas recolhem a barra sozinhas — quem pede é a própria
@@ -145,16 +139,29 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   // saem primeiro (sem delay), ao expandir entram depois que a barra já abriu.
   const rotuloCls = cn(
     'transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none',
-    trilho ? 'pointer-events-none -translate-x-1 opacity-0' : 'opacity-100 delay-150',
+    trilho
+      ? // `w-0 overflow-hidden` além do `opacity-0`: invisível não é o mesmo que
+        // sem espaço. O item recolhido é uma caixa de 40px com `justify-center`
+        // (ver `classesItemDaBarra`), e um rótulo transparente que continua
+        // ocupando a largura dele faz o flex centralizar ÍCONE + RÓTULO — o
+        // ícone sai do centro, e cada um sai um tanto diferente, porque o
+        // deslocamento depende do tamanho do rótulo. O módulo do cromo conta
+        // com o chamador omitindo o rótulo (`{!trilho && …}`); aqui ele não é
+        // omitido de propósito, para desbotar em vez de sumir de estalo, então
+        // quem tira o espaço é esta linha.
+        //
+        // `flex-none` junto do `w-0`: três rótulos de cabeçalho de grupo
+        // (Onboarding, Governança, Documentos) traziam `flex-1`, que liga
+        // `flex-grow: 1` — o rótulo de largura ZERO voltava a esticar e
+        // empurrava o ícone. Medido: 12,5px fora do centro, só nesses três.
+        // Por isso os pontos de uso passam `rotuloCls` por ÚLTIMO no `cn()`:
+        // `w-0` e `flex-none` só vencem se vierem depois.
+        'pointer-events-none w-0 flex-none overflow-hidden -translate-x-1 opacity-0'
+      : 'opacity-100 delay-150',
   );
 
   // O tema da área NÃO é aplicado aqui: quem o aplica é o `AreaThemeProvider`,
   // a partir da rota, acima dos gates de acesso (ver `src/lib/areaTheme.ts`).
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
-  };
 
   const isWork = location.pathname.startsWith('/equipe/osg/work');
   const isProjects =
@@ -218,11 +225,17 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   // parte de tela. Criar o agrupador agora evita que o segundo entre solto e o
   // terceiro obrigue a renomear endereço já com permissão concedida, o que exige
   // migration com UPDATE porque o sincronizador de páginas casa por CAMINHO.
-  const govItems = [{ path: '/equipe/osg/work/governanca/orgaos', label: 'Órgãos de Governança' }];
+  const govItems = [
+    { path: '/equipe/osg/work/governanca/orgaos', label: 'Órgãos de Governança' },
+    { path: '/equipe/osg/work/governanca/matriz', label: 'Matriz de Alçadas' },
+  ];
   const isGovActive = govItems.some((item) => item.path === location.pathname);
 
-  const areaLabel = isWork ? 'OSG Work' : isProjects ? 'OSG Projects' : 'OSG';
-  const areaSubtitle = isWork ? 'Ferramentas OSG' : isProjects ? 'Projetos OSG' : 'Área OSG';
+  // Os NOMES moram em `@/lib/nomeDaArea`; a decisão de qual rota é qual fica
+  // aqui, onde os predicados já existem para o menu.
+  const area = isWork ? AREAS.osgWork : isProjects ? AREAS.osgProjects : AREAS.osg;
+  const areaLabel = area.nome;
+  const areaSubtitle = area.subtitulo;
   const AreaIcon = isWork ? (
     <OsgWorkIcon size={40} className="h-full w-full block" />
   ) : isProjects ? (
@@ -274,14 +287,22 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
         {/* overflow-x-hidden: é este clipe que "engole" os rótulos conforme a
             largura diminui, em vez de eles sumirem de uma vez. */}
         <aside className="h-full w-full bg-background border-r border-border/60 flex flex-col overflow-y-auto overflow-x-hidden">
-          {/* Header */}
-          <div className="px-4 py-6 border-b border-border/60">
-            <div className="flex items-center gap-3">
+          {/* Header. `classeRecuoCabecalho` e não `px-4 py-6`: com o recuo
+              fixo, a barra recolhida mantinha 88px de cabeçalho contra os 72
+              das outras, e a linha divisória pulava ao trocar de área. */}
+          <div className={cn(classeRecuoCabecalho(trilho), 'border-b border-border/60')}>
+            {/* No trilho o `gap-3` sai. Ele parece inofensivo com o rótulo
+                reduzido a zero, mas continua ocupando 12px: com 48px úteis
+                (`p-4` em 80px), o selo de 40 mais o gap davam 52 e o
+                `overflow-x-hidden` da barra comia a borda direita da logo —
+                que foi como ela "sumiu". As outras cinco barras já trocam de
+                arranjo aqui; esta era a que faltava. */}
+            <div className={cn('flex items-center', trilho ? 'justify-center' : 'gap-3')}>
               <div className="h-10 w-10 flex items-center justify-center flex-shrink-0">
                 {AreaIcon}
               </div>
-              <div className={cn(rotuloCls, 'min-w-0 whitespace-nowrap')}>
-                <h2 className="font-semibold text-foreground text-lg">{areaLabel}</h2>
+              <div className={cn('min-w-0 whitespace-nowrap', rotuloCls)}>
+                <h2 className={cn(FACE_DA_BARRA, 'font-semibold text-foreground text-lg')}>{areaLabel}</h2>
                 <p className="text-xs text-muted-foreground">{areaSubtitle}</p>
               </div>
             </div>
@@ -296,26 +317,20 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 <button
                   onClick={() => navigate('/equipe/osg/inicio')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/inicio'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/inicio', trilho }),
                   )}
                 >
                   <Home className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Início</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Início</span>
                 </button>
                 <button
                   onClick={() => navigate('/equipe/osg/dashboard')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/dashboard'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/dashboard', trilho }),
                   )}
                 >
                   <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Dashboard</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Dashboard</span>
                 </button>
 
                 {/* Agrupador "Projetos" — expande no hover (e fica aberto na rota ativa) */}
@@ -323,19 +338,24 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   <button
                     type="button"
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                      isProjetosActive
-                        ? 'bg-osg-50 text-primary'
-                        : 'text-muted-foreground [&>svg]:opacity-75 group-hover/proj:bg-osg-50 group-hover/proj:text-primary',
+                                            // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
+                      classesItemDaBarra({ ativo: false, ancestral: isProjetosActive, trilho }),
                     )}
                   >
                     <FolderKanban className="h-4 w-4 flex-shrink-0" />
-                    <span className={cn(rotuloCls, 'whitespace-nowrap')}>Projetos</span>
+                    <span className={cn('whitespace-nowrap', rotuloCls)}>Projetos</span>
                     <ChevronDown
                       className={cn(
-                        rotuloCls,
-                        'h-4 w-4 ml-auto flex-shrink-0 duration-300',
+                        // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
+                        // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
+                        // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
+                        // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
+                        // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
+                        // cabeçalhos de grupo, que são os únicos itens com três filhos.
+                        'h-4 w-4 flex-shrink-0 duration-300',
+                        !trilho && 'ml-auto',
                         isProjetosActive ? 'rotate-180' : 'group-hover/proj:rotate-180',
+                        rotuloCls,
                       )}
                     />
                   </button>
@@ -362,14 +382,11 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                             key={path}
                             onClick={() => navigate(path)}
                             className={cn(
-                              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                              location.pathname === path
-                                ? 'bg-osg-100 text-primary'
-                                : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                                            classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                             )}
                           >
                             <Icon className="h-4 w-4 flex-shrink-0" />
-                            <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
+                            <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
                           </button>
                         ))}
                       </div>
@@ -387,21 +404,25 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   <button
                     type="button"
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                      isOnbActive
-                        ? 'bg-osg-50 text-primary'
-                        : 'text-muted-foreground group-hover/onb:bg-osg-50 group-hover/onb:text-primary',
+                                            // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
+                      classesItemDaBarra({ ativo: false, ancestral: isOnbActive, trilho }),
                     )}
                   >
                     <Rocket className="h-4 w-4 flex-shrink-0" />
-                    <span className={cn(rotuloCls, 'flex-1 min-w-0 truncate text-left')}>
+                    <span className={cn('flex-1 min-w-0 truncate text-left', rotuloCls)}>
                       Onboarding
                     </span>
                     <ChevronDown
                       className={cn(
-                        rotuloCls,
+                        // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
+                        // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
+                        // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
+                        // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
+                        // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
+                        // cabeçalhos de grupo, que são os únicos itens com três filhos.
                         'h-4 w-4 flex-shrink-0 duration-300',
                         isOnbActive ? 'rotate-180' : 'group-hover/onb:rotate-180',
+                        rotuloCls,
                       )}
                     />
                   </button>
@@ -428,13 +449,10 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                             key={path}
                             onClick={() => navigate(path)}
                             className={cn(
-                              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                              location.pathname === path
-                                ? 'bg-osg-100 text-primary'
-                                : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                                            classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                             )}
                           >
-                            <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
+                            <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
                           </button>
                         ))}
                       </div>
@@ -444,61 +462,57 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 <button
                   onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/work/qualificacao-das-partes'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/qualificacao-das-partes', trilho }),
                   )}
                 >
                   <Users className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>
                     Qualificação das Partes
                   </span>
                 </button>
                 <button
                   onClick={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/work/diagnostico-patrimonial'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/diagnostico-patrimonial', trilho }),
                   )}
                 >
                   <Landmark className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>
                     Diagnóstico Patrimonial
                   </span>
                 </button>
                 <button
                   onClick={() => navigate('/equipe/osg/work/controle-matriculas')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/work/controle-matriculas'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/controle-matriculas', trilho }),
                   )}
                 >
                   <FileText className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Controle de Matrículas</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Controle de Matrículas</span>
                 </button>
                 {/* Agrupador "Oficina de Contratos" — expande no hover com animação suave */}
                 <div className="group/docs">
                   <button
                     type="button"
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                      isDocsActive
-                        ? 'bg-osg-50 text-primary'
-                        : 'text-muted-foreground group-hover/docs:bg-osg-50 group-hover/docs:text-primary',
+                                            // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
+                      classesItemDaBarra({ ativo: false, ancestral: isDocsActive, trilho }),
                     )}
                   >
                     <FileSignature className="h-4 w-4 flex-shrink-0" />
-                    <span className={cn(rotuloCls, 'whitespace-nowrap')}>Oficina de Contratos</span>
+                    <span className={cn('whitespace-nowrap', rotuloCls)}>Oficina de Contratos</span>
                     <ChevronDown
                       className={cn(
-                        rotuloCls,
-                        'h-4 w-4 ml-auto flex-shrink-0 duration-300',
+                        // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
+                        // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
+                        // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
+                        // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
+                        // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
+                        // cabeçalhos de grupo, que são os únicos itens com três filhos.
+                        'h-4 w-4 flex-shrink-0 duration-300',
+                        !trilho && 'ml-auto',
                         isDocsActive ? 'rotate-180' : 'group-hover/docs:rotate-180',
+                        rotuloCls,
                       )}
                     />
                   </button>
@@ -525,13 +539,10 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                             key={path}
                             onClick={() => navigate(path)}
                             className={cn(
-                              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                              location.pathname === path
-                                ? 'bg-osg-100 text-primary'
-                                : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                                            classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                             )}
                           >
-                            <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
+                            <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
                           </button>
                         ))}
                       </div>
@@ -541,61 +552,56 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 <button
                   onClick={() => navigate('/equipe/osg/work/quadro-societario')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/work/quadro-societario'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/quadro-societario', trilho }),
                   )}
                 >
                   <PieChart className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Quadro Societário</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Quadro Societário</span>
                 </button>
                 {/* Ao lado do Quadro Societário porque é o irmão conceitual: cadastro
               relacional (instrumento + partes), não cadastro atômico. */}
                 <button
                   onClick={() => navigate('/equipe/osg/work/exploracao-rural')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/work/exploracao-rural'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/exploracao-rural', trilho }),
                   )}
                 >
                   <Sprout className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Exploração Rural</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Exploração Rural</span>
                 </button>
                 <button
                   onClick={() => navigate('/equipe/osg/work/calculadora-itcmd')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/work/calculadora-itcmd'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/calculadora-itcmd', trilho }),
                   )}
                 >
                   <Calculator className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Calculadora de ITCD</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Calculadora de ITCD</span>
                 </button>
                 {/* Agrupador "Governança" — mesmo padrão de dropdown por hover */}
                 <div className="group/gov">
                   <button
                     type="button"
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                      isGovActive
-                        ? 'bg-osg-50 text-primary'
-                        : 'text-muted-foreground group-hover/gov:bg-osg-50 group-hover/gov:text-primary',
+                                            // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
+                      classesItemDaBarra({ ativo: false, ancestral: isGovActive, trilho }),
                     )}
                   >
                     <Scale className="h-4 w-4 flex-shrink-0" />
-                    <span className={cn(rotuloCls, 'flex-1 min-w-0 truncate text-left')}>
+                    <span className={cn('flex-1 min-w-0 truncate text-left', rotuloCls)}>
                       Governança
                     </span>
                     <ChevronDown
                       className={cn(
-                        rotuloCls,
+                        // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
+                        // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
+                        // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
+                        // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
+                        // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
+                        // cabeçalhos de grupo, que são os únicos itens com três filhos.
                         'h-4 w-4 flex-shrink-0 duration-300',
                         isGovActive ? 'rotate-180' : 'group-hover/gov:rotate-180',
+                        rotuloCls,
                       )}
                     />
                   </button>
@@ -622,13 +628,10 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                             key={path}
                             onClick={() => navigate(path)}
                             className={cn(
-                              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                              location.pathname === path
-                                ? 'bg-osg-100 text-primary'
-                                : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                                            classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                             )}
                           >
-                            <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
+                            <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
                           </button>
                         ))}
                       </div>
@@ -640,21 +643,25 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   <button
                     type="button"
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                      isDocClienteActive
-                        ? 'bg-osg-50 text-primary'
-                        : 'text-muted-foreground group-hover/docsCli:bg-osg-50 group-hover/docsCli:text-primary',
+                                            // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
+                      classesItemDaBarra({ ativo: false, ancestral: isDocClienteActive, trilho }),
                     )}
                   >
                     <FolderArchive className="h-4 w-4 flex-shrink-0" />
-                    <span className={cn(rotuloCls, 'flex-1 min-w-0 truncate text-left')}>
+                    <span className={cn('flex-1 min-w-0 truncate text-left', rotuloCls)}>
                       Documentos
                     </span>
                     <ChevronDown
                       className={cn(
-                        rotuloCls,
+                        // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
+                        // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
+                        // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
+                        // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
+                        // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
+                        // cabeçalhos de grupo, que são os únicos itens com três filhos.
                         'h-4 w-4 flex-shrink-0 duration-300',
                         isDocClienteActive ? 'rotate-180' : 'group-hover/docsCli:rotate-180',
+                        rotuloCls,
                       )}
                     />
                   </button>
@@ -681,13 +688,10 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                             key={path}
                             onClick={() => navigate(path)}
                             className={cn(
-                              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                              location.pathname === path
-                                ? 'bg-osg-100 text-primary'
-                                : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                                            classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                             )}
                           >
-                            <span className={cn(rotuloCls, 'whitespace-nowrap')}>{label}</span>
+                            <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
                           </button>
                         ))}
                       </div>
@@ -697,14 +701,11 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 <button
                   onClick={() => navigate('/equipe/osg/work/relatorios')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    location.pathname === '/equipe/osg/work/relatorios'
-                      ? 'bg-osg-100 text-primary'
-                      : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/relatorios', trilho }),
                   )}
                 >
                   <FileBarChart2 className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Relatórios</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Relatórios</span>
                 </button>
               </>
             )}
@@ -720,19 +721,24 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   type="button"
                   onClick={() => navigate('/equipe/osg/gerencial')}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                    isGerencialActive
-                      ? 'bg-osg-50 text-primary'
-                      : 'text-muted-foreground group-hover/ger:bg-osg-50 group-hover/ger:text-primary',
+                                        // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
+                    classesItemDaBarra({ ativo: false, ancestral: isGerencialActive, trilho }),
                   )}
                 >
                   <LineChart className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn(rotuloCls, 'whitespace-nowrap')}>Gerencial</span>
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Gerencial</span>
                   <ChevronDown
                     className={cn(
-                      rotuloCls,
-                      'h-4 w-4 ml-auto flex-shrink-0 duration-300',
+                      // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
+                      // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
+                      // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
+                      // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
+                      // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
+                      // cabeçalhos de grupo, que são os únicos itens com três filhos.
+                      'h-4 w-4 flex-shrink-0 duration-300',
+                      !trilho && 'ml-auto',
                       isGerencialActive ? 'rotate-180' : 'group-hover/ger:rotate-180',
+                      rotuloCls,
                     )}
                   />
                 </button>
@@ -762,14 +768,11 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                           // reticências em vez de vazar, e o título traz o inteiro.
                           title={label}
                           className={cn(
-                            'w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium min-w-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                            location.pathname === path
-                              ? 'bg-osg-100 text-primary'
-                              : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                                        classesItemDaBarra({ ativo: location.pathname === path, trilho, sub: true }),
                           )}
                         >
                           <Icon className="h-4 w-4 flex-shrink-0" />
-                          <span className={cn(rotuloCls, 'min-w-0 truncate')}>{label}</span>
+                          <span className={cn('min-w-0 truncate', rotuloCls)}>{label}</span>
                         </button>
                       ))}
                     </div>
@@ -788,14 +791,11 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               <button
                 onClick={() => navigate(linkEspelhado('/equipe/chamados', 'osg'))}
                 className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                  location.pathname.startsWith('/equipe/chamados')
-                    ? 'bg-osg-100 text-primary'
-                    : 'text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary',
+                                    classesItemDaBarra({ ativo: location.pathname.startsWith('/equipe/chamados'), trilho }),
                 )}
               >
                 <MessageSquare className="h-4 w-4 flex-shrink-0" />
-                <span className={cn(rotuloCls, 'whitespace-nowrap')}>Chamados</span>
+                <span className={cn('whitespace-nowrap', rotuloCls)}>Chamados</span>
               </button>
             )}
           </nav>
@@ -812,7 +812,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               title={trilho ? 'Trocar área' : undefined}
             >
               <ArrowLeft className="h-4 w-4 mr-3 flex-shrink-0" />
-              <span className={cn(rotuloCls, 'whitespace-nowrap')}>Trocar área</span>
+              <span className={cn('whitespace-nowrap', rotuloCls)}>Trocar área</span>
             </Button>
             <Button
               variant="ghost"
@@ -821,16 +821,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               title={trilho ? 'Voltar ao site' : undefined}
             >
               <ArrowLeft className="h-4 w-4 mr-3 flex-shrink-0" />
-              <span className={cn(rotuloCls, 'whitespace-nowrap')}>Voltar ao site</span>
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-              onClick={handleSignOut}
-              title={trilho ? 'Sair' : undefined}
-            >
-              <LogOut className="h-4 w-4 mr-3 flex-shrink-0" />
-              <span className={cn(rotuloCls, 'whitespace-nowrap')}>Sair</span>
+              <span className={cn('whitespace-nowrap', rotuloCls)}>Voltar ao site</span>
             </Button>
           </div>
         </aside>
@@ -842,7 +833,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-border/60 bg-card flex items-center justify-between px-4 md:px-6 flex-shrink-0">
+        <header className="min-h-16 border-b border-border/60 bg-card flex items-center justify-between px-4 py-2 md:px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -853,8 +844,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-foreground">{title}</h1>
-              {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+              <TituloDaPagina titulo={title} subtitulo={subtitle} sobretitulo={areaLabel} />
             </div>
           </div>
           <div className="flex items-center gap-3">

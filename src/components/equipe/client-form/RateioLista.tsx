@@ -12,7 +12,6 @@ import { Input } from '@/components/ui/input';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatarPercentual, resumoRateio } from '@/lib/rateioReceita';
-import { useAcentoArea } from './acentoArea';
 
 export interface RateioLinha {
   id_centro_custo: string;
@@ -28,7 +27,6 @@ export interface RateioListaProps {
 }
 
 export default function RateioLista({ rateios, opcoes, onPercentual, onRemover }: RateioListaProps) {
-  const acento = useAcentoArea();
   if (rateios.length === 0) {
     return (
       <p className="text-xs italic text-muted-foreground">
@@ -64,7 +62,7 @@ export default function RateioLista({ rateios, opcoes, onPercentual, onRemover }
                   precisar somar os números de cabeça. */}
               <span className="hidden h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-muted sm:block">
                 <span
-                  className={cn('block h-full rounded-full', fecha ? acento.positivoBarra : 'bg-warning')}
+                  className={cn('block h-full rounded-full', fecha ? 'bg-primary' : 'bg-warning')}
                   style={{ width: `${Math.min(100, pct)}%` }}
                 />
               </span>
@@ -92,7 +90,7 @@ export default function RateioLista({ rateios, opcoes, onPercentual, onRemover }
       </ul>
       <div className={cn(
         'flex items-center justify-between gap-3 border-t px-3 py-2 text-xs font-medium',
-        fecha ? cn(acento.positivoFundo, acento.positivoTexto)
+        fecha ? cn('bg-accent/5', 'text-primary')
           : total > 100 ? 'bg-destructive/10 text-destructive'
             : 'bg-warning/10 text-warning',
       )}>

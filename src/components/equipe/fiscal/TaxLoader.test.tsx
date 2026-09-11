@@ -39,11 +39,11 @@ describe('TaxLoader', () => {
   });
 
   it('aceita tamanho e classe de cor customizados', () => {
-    render(<TaxLoader size={32} className="text-teal-700" label="Apurando" />);
+    render(<TaxLoader size={32} className="text-primary" label="Apurando" />);
 
     const svg = screen.getByRole('status', { name: 'Apurando' });
     expect(svg.getAttribute('width')).toBe('32');
-    expect(svg.getAttribute('class')).toContain('text-teal-700');
+    expect(svg.getAttribute('class')).toContain('text-primary');
   });
 });
 

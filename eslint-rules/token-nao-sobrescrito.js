@@ -86,8 +86,6 @@ export const TOKEN_DO_COMPONENTE = {
   SheetDescription: { text: 'text-muted-foreground' },
   SheetOverlay: { bg: 'bg-background' },
   SheetTitle: { text: 'text-foreground' },
-  SidebarInput: { bg: 'bg-background' },
-  SidebarInset: { bg: 'bg-background' },
   Skeleton: { bg: 'bg-muted' },
   Switch: { bg: 'bg-background' },
   TableCaption: { text: 'text-muted-foreground' },

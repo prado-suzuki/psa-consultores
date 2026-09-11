@@ -1,3 +1,4 @@
+import { AREAS } from '@/lib/nomeDaArea';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,7 +13,6 @@ import {
   MessageSquare,
   MessagesSquare,
   ArrowLeft,
-  LogOut,
   Shield,
   Home,
   LineChart,
@@ -20,6 +20,7 @@ import {
 import logoPsa from '@/assets/logo-psa.png';
 import TaxIcon from '@/components/equipe/fiscal/TaxIcon';
 import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
+import { FACE_DA_BARRA, classesItemDaBarra } from '@/lib/barraLateralCromo';
 import {
   classeLarguraBarra,
   classeRecuoCabecalho,
@@ -150,10 +151,6 @@ const menuItems: MenuItem[] = [
   }
 ];
 
-// Hover espelhado da OSG: leve elevação + sombra suave ao passar o mouse.
-const ITEM_BASE =
-  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-primary/10';
-
 interface FiscalSidebarProps {
   /** No desktop: barra virou trilho. No celular: gaveta fechada. */
   isCollapsed: boolean;
@@ -168,7 +165,7 @@ export const FiscalSidebar = ({ isCollapsed, emGaveta = false, onToggle }: Fisca
   const trilho = isCollapsed && !emGaveta;
   const navigate = useNavigate();
   const location = useLocation();
-  const { signOut, isAdmin, isLider } = useAuth();
+  const { isAdmin, isLider } = useAuth();
   // "Gerencial" só aparece para líder+ (isLider é estrito, não engloba admin).
   const canGerencial = isAdmin || isLider;
 
@@ -178,11 +175,6 @@ export const FiscalSidebar = ({ isCollapsed, emGaveta = false, onToggle }: Fisca
     (!!item.basePath && location.pathname.startsWith(item.basePath)) ||
     location.pathname === item.path ||
     (!!item.children && item.children.some(child => location.pathname === child.path));
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
-  };
 
   const goTo = (path: string) =>
     navigate(
@@ -210,12 +202,13 @@ export const FiscalSidebar = ({ isCollapsed, emGaveta = false, onToggle }: Fisca
             // O grupo com destino é clicável; sem destino, segue só abrindo a
             // lista no hover, como era antes.
             onClick={() => item.path && goTo(item.path)}
-            className={cn(
-              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-              parentActive
-                ? 'bg-primary/5 text-primary'
-                : 'text-muted-foreground group-hover/sub:bg-primary/5 group-hover/sub:text-primary'
-            )}
+            className={classesItemDaBarra({
+              // O pai nunca é a pílula: quem está aberto é o filho. Ver
+              // `ancestral` em `barraLateralCromo`.
+              ativo: false,
+              ancestral: parentActive,
+              trilho,
+            })}
           >
             <Icon className="h-4 w-4 flex-shrink-0" />
             {!trilho && (
@@ -259,14 +252,11 @@ export const FiscalSidebar = ({ isCollapsed, emGaveta = false, onToggle }: Fisca
                       // inteira fica ao alcance do mouse.
                       title={child.label}
                       className={cn(
-                        ITEM_BASE,
+                        classesItemDaBarra({ ativo: childActive, trilho, sub: true }),
                         // Item de submenu ganha um respiro: o recuo da barra à
                         // esquerda já come largura, e "Dashboard de Chamados"
                         // estourava por poucos pixels.
-                        'min-w-0 gap-2 px-2',
-                        childActive
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:bg-primary/5 hover:text-primary'
+                        !trilho && 'min-w-0 gap-2',
                       )}
                     >
                       <ChildIcon className="h-4 w-4 flex-shrink-0" />
@@ -287,12 +277,7 @@ export const FiscalSidebar = ({ isCollapsed, emGaveta = false, onToggle }: Fisca
         key={item.id}
         onClick={() => item.path && goTo(item.path)}
         title={trilho ? item.label : undefined}
-        className={cn(
-          ITEM_BASE,
-          active
-            ? 'bg-primary/10 text-primary'
-            : 'text-muted-foreground hover:bg-primary/5 hover:text-primary'
-        )}
+        className={classesItemDaBarra({ ativo: active, trilho })}
       >
         <Icon className="h-4 w-4 flex-shrink-0" />
         {!trilho && <span>{item.label}</span>}
@@ -342,8 +327,10 @@ export const FiscalSidebar = ({ isCollapsed, emGaveta = false, onToggle }: Fisca
                 <TaxIcon size={40} className="h-full w-full block" />
               </div>
               <div>
-                <h1 className="font-semibold text-foreground text-lg">Tax</h1>
-                <p className="text-xs text-muted-foreground">Gestão de Projetos</p>
+                <h1 className={cn(FACE_DA_BARRA, 'font-semibold text-foreground text-lg')}>
+                  {AREAS.tax.nome}
+                </h1>
+                <p className="text-xs text-muted-foreground">{AREAS.tax.subtitulo}</p>
               </div>
             </div>
           )}
@@ -376,18 +363,6 @@ export const FiscalSidebar = ({ isCollapsed, emGaveta = false, onToggle }: Fisca
           >
             <ArrowLeft className={cn('h-4 w-4', !trilho && 'mr-3')} />
             {!trilho && 'Trocar área'}
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn(
-              'w-full py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors',
-              trilho ? 'justify-center px-2' : 'justify-start px-3'
-            )}
-            onClick={handleSignOut}
-            title={trilho ? 'Sair' : undefined}
-          >
-            <LogOut className={cn('h-4 w-4', !trilho && 'mr-3')} />
-            {!trilho && 'Sair'}
           </Button>
           {!trilho && (
             <div className="pt-2 border-t border-border">

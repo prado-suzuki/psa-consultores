@@ -59,7 +59,7 @@ const Dashboards = () => {
             onFocus={() => void item.precarregar()}
           >
             <span className="flex items-center gap-2">
-              <item.icone className="h-4 w-4 text-teal-600" aria-hidden="true" />
+              <item.icone className="h-4 w-4 text-primary" aria-hidden="true" />
               {item.nome}
             </span>
           </SelectItem>

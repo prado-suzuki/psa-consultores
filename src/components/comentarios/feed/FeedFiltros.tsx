@@ -1,8 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { AtSign, Building2, CalendarClock, FolderKanban, ListFilter, MessagesSquare, User, X } from 'lucide-react';
 
-import { SingleSelectCombobox } from '@/components/dashboards/SingleSelectCombobox';
-import type { ComboOption } from '@/components/dashboards/MultiSelectCombobox';
+import { SingleSelectCombobox } from '@/components/ui/SingleSelectCombobox';
+import type { ComboOption } from '@/components/ui/MultiSelectCombobox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';

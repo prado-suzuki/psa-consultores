@@ -14,25 +14,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { MonthYearPicker } from '@/components/ui/month-year-picker';
 import { monthYearToDateString } from '@/components/ui/month-year-picker.utils';
-import {
-  FileText,
-  Search,
-  FileSpreadsheet,
-  Building2,
-  RefreshCw,
-  Loader2,
-  Filter,
-  Eraser,
-  BarChart3,
-  Download,
-  Info,
-} from 'lucide-react';
+import { FileText, Search, FileSpreadsheet, Building2, RefreshCw, Loader2, Filter, BarChart3, Download, Info } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import type { EFDArquivo } from '@/types/efd';
 import { RequiredMark } from '@/components/ui/required-mark';
+import { BotaoLimparFiltros } from '@/components/ui/BotaoLimparFiltros';
 
 // --- Tooltip helpers ---
 const FieldTooltip = ({ text }: { text: string }) => (
@@ -272,6 +261,8 @@ const ConsultaEFD = () => {
   };
 
   // Handler para limpar filtros
+  const filtrosAtivos = [selectedCliente, selectedContribuinte, mesInicio, mesFim].filter(Boolean).length;
+
   const handleClearFilters = () => {
     setSelectedCliente("");
     setSelectedContribuinte("");
@@ -507,14 +498,7 @@ const ConsultaEFD = () => {
 
           {/* Barra de Ações */}
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
-            <Button 
-              variant="ghost" 
-              onClick={handleClearFilters}
-              className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
-            >
-              <Eraser className="h-4 w-4 mr-2" />
-              Limpar filtros
-            </Button>
+            <BotaoLimparFiltros quantidade={filtrosAtivos} onClick={handleClearFilters} />
             <Button 
               onClick={handleSearch} 
               disabled={!selectedContribuinte}

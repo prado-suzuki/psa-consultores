@@ -214,7 +214,7 @@ export function DcompDistributionSection({
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
           <span className="text-muted-foreground">
             Soma Valor Utilizado:{' '}
-            <strong className={cn(somaIgual ? 'text-emerald-600' : 'text-destructive')}>
+            <strong className={cn(somaIgual ? 'text-success' : 'text-destructive')}>
               {formatCurrencyDisplay(totalRateado)}
             </strong>
             {' / '}Valor Compensado: <strong>{formatCurrencyDisplay(vlrCompensado)}</strong>

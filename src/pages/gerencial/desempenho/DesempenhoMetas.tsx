@@ -23,6 +23,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Plus, Building2, Users, User, TrendingUp, MoreHorizontal, Pencil, Archive, Award, ChevronDown, Trash2 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { comAlfa } from '@/lib/corComAlfa';
 
 const dimensaoColors: Record<string, { bg: string; text: string; label: string }> = {
   entrega: { bg: 'bg-[var(--bd-blue-t)]', text: 'text-[var(--bd-blue)]', label: 'Entrega' },
@@ -234,11 +235,11 @@ const DesempenhoMetas = () => {
                   <span className="rule-faixa" style={{ color: c.text }}>{r.faixa_minima}%{r.faixa_maxima ? `–${r.faixa_maxima}%` : '+'}</span>
                   <div className="w-px h-6 flex-shrink-0" style={{ backgroundColor: c.text, opacity: 0.2 }} />
                   <span className="text-sm font-semibold flex-1" style={{ color: c.text }}>{classifLabels[r.classificacao]}</span>
-                  <div className="w-24 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: `${c.text}15` }}>
+                  <div className="w-24 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: comAlfa(c.text, 8.2) }}>
                     <div className="h-full rounded-full" style={{ width: `${barWidth}%`, backgroundColor: c.text }} />
                   </div>
                   <span className="rule-mult" style={{ color: c.text }}>{r.multiplicador_bonus}x</span>
-                  <Badge variant="outline" className="text-[10px] font-semibold rounded-full" style={{ color: c.text, borderColor: `${c.text}30` }}>{classifLabels[r.classificacao]}</Badge>
+                  <Badge variant="outline" className="text-[10px] font-semibold rounded-full" style={{ color: c.text, borderColor: comAlfa(c.text, 18.8) }}>{classifLabels[r.classificacao]}</Badge>
                 </div>
               );
             })}

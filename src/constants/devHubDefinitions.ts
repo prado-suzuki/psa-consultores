@@ -37,10 +37,10 @@ export const DEV_HUBS: Record<
       'Área para localizar arquivos do Sistema Público de Escrituração Digital, filtrar por contribuinte e período, baixar os arquivos originais e abrir a leitura detalhada de cada entrega.',
     landingIcon: Receipt,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
-    title: 'CONSULTA DOS ARQUIVOS SPEDs DO CLIENTE',
+    title: 'Consulta dos arquivos SPEDs do cliente',
     subtitle: 'Ferramentas para consulta, download e análise dos SPEDs fiscais.',
     heroEyebrow: '',
-    heroTitle: 'CONSULTA DOS ARQUIVOS SPEDs DO CLIENTE',
+    heroTitle: 'Consulta dos arquivos SPEDs do cliente',
     heroDescription:
       'Use esta área para consultar arquivos da Escrituração Fiscal Digital das Contribuições (EFD Contribuições), da Escrituração Fiscal Digital do Imposto sobre Circulação de Mercadorias e Serviços (ICMS) e do Imposto sobre Produtos Industrializados (IPI) (EFD ICMS/IPI), da Escrituração Contábil Digital (ECD) e da Escrituração Contábil Fiscal (ECF) no Sistema Público de Escrituração Digital (SPED).',
     heroIcon: LayoutGrid,
@@ -112,7 +112,7 @@ export const DEV_HUBS: Record<
     landingIcon: Calculator,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
     title:
-      'LEVANTAMENTO PIS/COFINS — PROGRAMA DE INTEGRAÇÃO SOCIAL E CONTRIBUIÇÃO PARA O FINANCIAMENTO DA SEGURIDADE SOCIAL',
+      'Levantamento PIS/COFINS — Programa de Integração Social e Contribuição para o Financiamento da Seguridade Social',
     subtitle:
       'Escolha a ferramenta de cadastro de regras, apuração, análise cruzada e revisão de registros.',
     heroEyebrow: '',
@@ -190,7 +190,7 @@ export const DEV_HUBS: Record<
       'Área para apurar saídas, revisar CFOP e substituição tributária e auditar a classificação de produtos usada no processo de diferencial de alíquota.',
     landingIcon: Truck,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
-    title: 'ANÁLISE DO IMPOSTO SOBRE CIRCULAÇÃO DE MERCADORIAS E SERVIÇOS (ICMS)',
+    title: 'Análise do Imposto sobre Circulação de Mercadorias e Serviços (ICMS)',
     subtitle:
       'Ferramentas para análise do ICMS das saídas e para análise do diferencial de alíquota (DIFAL).',
     heroEyebrow: '',
@@ -238,7 +238,7 @@ export const DEV_HUBS: Record<
     landingIcon: BarChart3,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
     title:
-      'PEDIDO ELETRÔNICO DE RESTITUIÇÃO, RESSARCIMENTO OU REEMBOLSO E DECLARAÇÃO DE COMPENSAÇÃO (PERDCOMP)',
+      'Pedido Eletrônico de Restituição, Ressarcimento ou Reembolso e Declaração de Compensação (PERDCOMP)',
     subtitle: 'Ferramentas para análise e controle do PERDCOMP.',
     heroEyebrow: '',
     heroTitle: 'PERDCOMP',
@@ -284,7 +284,7 @@ export const DEV_HUBS: Record<
     landingDescription:
       'Área para importar, limpar e gerenciar dados das tabelas de cliente e contribuinte e para acompanhar dashboards ligados a essas rotinas.',
     landingIcon: Database,
-    title: 'GERENCIAR DADOS',
+    title: 'Gerenciar dados',
     subtitle: 'Ferramentas para carga de dados e análise por dashboards.',
     heroEyebrow: '',
     heroTitle: 'Gerenciar dados',
@@ -326,7 +326,7 @@ export const DEV_HUBS: Record<
     landingDescription:
       'Área do Planejamento Tributário rural: importar o papel de trabalho preenchido, conferir o que o sistema leu dele, acompanhar as revisões e gerar os slides.',
     landingIcon: Sprout,
-    title: 'PLANEJAMENTO TRIBUTÁRIO',
+    title: 'Planejamento Tributário',
     subtitle: 'Ferramentas do Planejamento Tributário rural.',
     heroEyebrow: '',
     heroTitle: 'Planejamento Tributário',

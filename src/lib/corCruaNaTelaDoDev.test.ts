@@ -76,6 +76,48 @@ const ARQUIVOS_DA_TELA = [
   // numa, o resultado é pior que antes de mexer.
   'src/components/equipe/dev/icms-saidas/familias/BaseLegalCard.tsx',
 
+  // ─── O diálogo de exportar para Excel, fechado em 10/09/2026 ────────────────
+  //
+  // Não é uma tela, é um DIÁLOGO — e por isso entra: ele é montado por cinco
+  // lugares (as quatro Consultas mais a tabela de resultados do EFD ICMS), então
+  // guardar quatro arquivos guarda a exportação em toda parte. As páginas que o
+  // montam NÃO entram: elas têm cor crua própria e não fecharam.
+  //
+  // Ele tinha QUATRO reprovações de contraste, e é o recorde do dia — o disco de
+  // "processando" a 2,86, o de "concluído" a 3,32, a estrela de perfil padrão a
+  // 1,92 e a letra do botão Exportar a 3,77. Nenhuma havia sido medida, porque
+  // cor crua não entra em contrato nenhum.
+  'src/components/equipe/dev/EFDExportDialog.tsx',
+  'src/components/equipe/dev/efd-export/EFDExportStatus.tsx',
+  'src/components/equipe/dev/efd-export/EFDExportProfiles.tsx',
+  'src/components/equipe/dev/efd-export/EFDRecordSelector.tsx',
+
+  // E o SEGUNDO diálogo de exportação entrou junto, porque a estrela de "perfil
+  // padrão" estava nos dois — duas cópias em cada, quatro no total, a mesma
+  // classe à mão. O tom saiu para `classesDoPerfil.ts`; o tamanho ficou em cada
+  // lugar, porque são três tamanhos diferentes e isso é layout, não mapa.
+  'src/components/equipe/dev/ExportDialog.tsx',
+  'src/components/equipe/dev/export-dialog/ColumnSelector.tsx',
+  'src/components/equipe/dev/classesDoPerfil.ts',
+
+  // ─── ICMS Saídas, fechada em 10/09/2026 ─────────────────────────────────────
+  //
+  // A pasta inteira entra, porque a tela inteira fechou. O que ela ensinou: o que
+  // parecia UMA escada de três degraus eram QUATRO coisas — a escada de
+  // conferência (`checkColor.ts`), a versão binária dela repetida quatro vezes no
+  // `T01ApuracaoTab`, a linha com correção aplicada (mesmo mapa de "valor
+  // alterado" que as Correções SPED ganharam hoje) e dois botões de excluir. A
+  // varredura por família via "12 red, 6 emerald, 4 amber" e chamaria de escada.
+  //
+  // O `UploadBalanceteModal` NÃO entra, de propósito: o asterisco de campo
+  // obrigatório dele foi convertido junto — era a segunda das duas sobras cruas
+  // daquele mapa no produto —, mas a tela dele (`controle-balancetes`) não fechou.
+  'src/pages/equipe/dev/IcmsSaidas.tsx',
+  'src/components/equipe/dev/icms-saidas/T01ApuracaoTab.tsx',
+  'src/components/equipe/dev/icms-saidas/familias/checkColor.ts',
+  'src/components/equipe/dev/icms-saidas/familias/FamiliaSaidaTab.tsx',
+  'src/components/equipe/dev/icms-saidas/familias/NovaCorrecaoDialog.tsx',
+
   // ─── Correções SPED, fechada em 10/09/2026 ──────────────────────────────────
   //
   // Ela entrou PARCIAL primeiro, com o âmbar numa fila declarada, porque o âmbar

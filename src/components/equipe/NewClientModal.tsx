@@ -23,7 +23,6 @@ import { cn } from "@/lib/utils";
 import { textoDeRecusa } from "@/lib/rlsMessages";
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
 import { defaultClientData } from "./client-form/constants";
-import { AcentoAreaProvider, acentoDaArea } from "./client-form/acentoArea";
 import {
   frasePendencia,
   mapearPendencias,
@@ -70,7 +69,6 @@ export default function NewClientModal({
 }: NewClientModalProps) {
   const { user, isAdmin, isLider } = useAuth();
   // O modal e quem monta o provedor, entao nao pode consumir o contexto dele.
-  const acento = acentoDaArea(area);
 
   // Duplicate confirm state (replaces window.confirm)
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
@@ -463,7 +461,7 @@ export default function NewClientModal({
         */}
         <DialogContent
           ref={conteudoRef}
-          className={cn("max-w-7xl h-[95vh] max-h-none p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden", acento.fundoModal)}
+          className={cn("max-w-7xl h-[95vh] max-h-none p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden", 'bg-card')}
           onInteractOutside={(e) => {
             e.preventDefault();
             // Com o guia rodando, o clique veio do tooltip dele, que mora num
@@ -473,7 +471,6 @@ export default function NewClientModal({
             handleAttemptClose();
           }}
         >
-          <AcentoAreaProvider area={area}>
           <DialogTitle className="sr-only">{isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</DialogTitle>
           <DialogDescription className="sr-only">Formulário de cadastro de cliente com contribuintes, representantes e contratos</DialogDescription>
 
@@ -482,10 +479,10 @@ export default function NewClientModal({
               branca no topo. */}
           <div className="px-6 py-4 border-b border-border flex justify-between items-center shrink-0">
             <div className="flex items-center gap-3">
-              <div className={cn("p-2 rounded-lg", acento.positivoFundo)}>
-                {isReadOnly ? <Building2 className={acento.texto} size={22} /> : isEditing ? <Pencil className={acento.texto} size={22} /> : <Plus className={acento.texto} size={22} />}
+              <div className={cn("p-2 rounded-lg", 'bg-accent/5')}>
+                {isReadOnly ? <Building2 className={'text-primary'} size={22} /> : isEditing ? <Pencil className={'text-primary'} size={22} /> : <Plus className={'text-primary'} size={22} />}
               </div>
-              <h2 className="text-xl font-bold text-gray-900">{isReadOnly ? "Visualizar Cliente" : isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</h2>
+              <h2 className="text-xl font-bold">{isReadOnly ? "Visualizar Cliente" : isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</h2>
             </div>
             <div className="flex items-center gap-1">
               {temGuia && (
@@ -495,24 +492,35 @@ export default function NewClientModal({
                   tourId={activeTab === "contratos" && !isReadOnly ? "modal-os" : "modal-cliente"}
                   dataTour="modal-help"
                   label="Ver o guia deste cadastro"
-                  className="p-2 text-gray-400 hover:text-gray-700 hover:bg-muted rounded-full transition-colors"
+                  className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
                 />
               )}
-              <button onClick={handleAttemptClose} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-muted rounded-full transition-colors"><X size={20} /></button>
+              <button onClick={handleAttemptClose} className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"><X size={20} /></button>
             </div>
           </div>
 
           {loadingEdit ? (
-            <div className={cn("flex-1 flex items-center justify-center", acento.texto)}><AreaLoader area={area} size={64} /></div>
+            <div className={cn("flex-1 flex items-center justify-center", 'text-primary')}><AreaLoader area={area} size={64} /></div>
           ) : (
             <>
               <Tabs value={activeTab} onValueChange={(v) => handleTabClick(v as typeof activeTab)} className="flex-1 flex flex-col overflow-hidden">
                 {/* Escurecimento neutro em vez de cinza fixo: funciona igual
                     sobre o branco da Tax e sobre a folha quente da OSG. */}
-                <div className="px-6 py-3 bg-black/[0.02] border-b border-border shrink-0">
-                  <TabsList data-tour="modal-abas" className={cn("w-full grid bg-black/[0.04] p-1 rounded-lg h-auto", tabsGridClass)}>
+                {/* Faixa e trilho em `--muted`, e não em preto com alfa, desde
+                    11/09/2026. Preto cru sobre superfície clara DESSATURA, e o
+                    resultado fica mais neutro quanto mais claro o fundo: sobre a
+                    areia da OSG, `bg-black/[0.04]` dava #E8E4E0, que ainda era
+                    bege; quando o modal saiu do `osg-canvas` para o `bg-card`,
+                    o mesmo preto passou a dar #F2F1F0 — cinza sem matiz nenhuma
+                    dentro de uma tela quente. A cor não mudou, o disfarce saiu.
+                    Com o token a faixa puxa a matiz da área, e os dois degraus
+                    (/25 na faixa, /50 no trilho) mantêm a aba ativa parecendo
+                    levantada sem o trilho encostar no #EBE3DB da seleção da
+                    lista, que é outra coisa e não pode ter a mesma tinta. */}
+                <div className="px-6 py-3 bg-muted/25 border-b border-border shrink-0">
+                  <TabsList data-tour="modal-abas" className={cn("w-full grid bg-muted/50 p-1 rounded-lg h-auto", tabsGridClass)}>
                     {visibleTabs.map((tab) => (
-                      <TabsTrigger key={tab} value={tab} data-tour={ANCORA_DA_ABA[tab]} className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1.5">
+                      <TabsTrigger key={tab} value={tab} data-tour={ANCORA_DA_ABA[tab]} className="data-[state=active]:bg-card data-[state=active]:shadow-sm text-muted-foreground rounded-md py-2 text-xs font-medium transition-all gap-1.5">
                         {tab === "cliente"
                           ? "Dados do Cliente/Grupo"
                           : tab === "contribuintes"
@@ -534,12 +542,12 @@ export default function NewClientModal({
                       </TabsTrigger>
                     ))}
                     {podeVerProposta && (
-                      <TabsTrigger value="proposta" data-tour="modal-aba-proposta" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
+                      <TabsTrigger value="proposta" data-tour="modal-aba-proposta" className="data-[state=active]:bg-card data-[state=active]:shadow-sm text-muted-foreground rounded-md py-2 text-xs font-medium transition-all gap-1">
                         <FileSignature size={14} /> Proposta
                       </TabsTrigger>
                     )}
                     {editingClienteId && (
-                      <TabsTrigger value="historico" data-tour="modal-aba-historico" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
+                      <TabsTrigger value="historico" data-tour="modal-aba-historico" className="data-[state=active]:bg-card data-[state=active]:shadow-sm text-muted-foreground rounded-md py-2 text-xs font-medium transition-all gap-1">
                         <History size={14} /> Histórico
                       </TabsTrigger>
                     )}
@@ -639,12 +647,12 @@ export default function NewClientModal({
               <div className="px-6 py-4 border-t border-border flex justify-between items-center shrink-0">
               {isReadOnly ? (
                   <>
-                    <Button variant="outline" onClick={handleAttemptClose} className="border-border text-gray-600">Fechar</Button>
+                    <Button variant="outline" onClick={handleAttemptClose} className="border-border text-muted-foreground">Fechar</Button>
                     {canEdit && (
                       <Button
                         onClick={() => { setIsReadOnly(false); setEscopoEdicao('cliente'); }}
                         data-tour="modal-editar"
-                        className={cn("gap-2 shadow-lg", acento.botao)}
+                        className={cn("gap-2 shadow-lg")}
                       >
                         <Pencil size={16} /> Editar
                       </Button>
@@ -652,7 +660,7 @@ export default function NewClientModal({
                   </>
                 ) : (
                   <>
-                    <Button variant="outline" onClick={handleCancelarEdicao} className="border-border text-gray-600">Cancelar</Button>
+                    <Button variant="outline" onClick={handleCancelarEdicao} className="border-border text-muted-foreground">Cancelar</Button>
                     <div className="flex items-center gap-3">
                       {/*
                         O aviso é clicável de propósito: dizer "faltam 3 campos"
@@ -681,7 +689,7 @@ export default function NewClientModal({
                       <Button
                         onClick={handleSave} disabled={saving}
                         data-tour="modal-salvar"
-                        className={cn("gap-2 shadow-lg", acento.botao)}
+                        className={cn("gap-2 shadow-lg")}
                       >
                         {saving ? <AreaLoader area={area} size={20} /> : <CheckCircle2 size={20} />}
                         {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
@@ -692,7 +700,6 @@ export default function NewClientModal({
               </div>
             </>
           )}
-          </AcentoAreaProvider>
         </DialogContent>
       </Dialog>
 

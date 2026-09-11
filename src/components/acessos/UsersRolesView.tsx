@@ -1,21 +1,16 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { PapelBadge } from '@/components/ui/PapelBadge';
+import { ROLE_SHORT_LABELS } from './roleOptions';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Shield, Users, CheckCircle, XCircle, UserCheck } from 'lucide-react';
 import { MetricCard } from '@/components/ui/metric-card';
 import { useUsersWithRoles, type AppRole } from '@/hooks/useUsersWithRoles';
 
-type RoleVisual = { key: AppRole; label: string; className: string };
-
-const ROLE_VISUALS: Record<AppRole, RoleVisual> = {
-  admin:       { key: 'admin',       label: 'Admin',        className: 'bg-red-100 text-red-700 border-0' },
-  team_member: { key: 'team_member', label: 'Membro',       className: 'bg-blue-100 text-blue-700 border-0' },
-  lider:       { key: 'lider',       label: 'Líder Geral',  className: 'bg-amber-100 text-amber-700 border-0' },
-  sublider:    { key: 'sublider',    label: 'Sublíder',     className: 'bg-orange-100 text-orange-700 border-0' },
-  client:      { key: 'client',      label: 'Cliente',      className: 'bg-foreground/[0.05] text-muted-foreground border-0' },
-  timecliente: { key: 'timecliente', label: 'Time Cliente', className: 'bg-cyan-100 text-cyan-700 border-0' },
-  marketing:   { key: 'marketing',   label: 'Marketing',    className: 'bg-violet-100 text-violet-700 border-0' },
-};
+/* A segunda cópia do mapa de papel morreu aqui em 11/09/2026. Esta era a que
+   passava em AA nos sete — a da lista de usuários reprovava em quatro —, e duas
+   cópias que divergem em cor e concordam no rótulo é como o defeito se esconde.
+   Papel agora é `PapelBadge`, e o rótulo vem do mesmo `ROLE_SHORT_LABELS` que a
+   lista já usava. */
 
 const LEGEND_DESCRIPTIONS: Record<AppRole, string> = {
   admin:       'Acesso total ao sistema, incluindo gestão de usuários, configurações e todas as áreas.',
@@ -71,15 +66,9 @@ export const UsersRolesView = ({
     clients: usersWithRoles?.filter((u) => u.roles.includes('client')).length || 0,
   };
 
-  const getRoleBadge = (role: string) => {
-    const visual = ROLE_VISUALS[role as AppRole];
-    if (!visual) return <Badge variant="outline">{role}</Badge>;
-    return <Badge className={visual.className}>{visual.label}</Badge>;
-  };
-
   const columnHeader = (role: AppRole): string => {
     if (role === 'team_member' && teamMemberColumnLabel) return teamMemberColumnLabel;
-    return ROLE_VISUALS[role].label;
+    return ROLE_SHORT_LABELS[role] ?? role;
   };
 
   return (
@@ -149,7 +138,7 @@ export const UsersRolesView = ({
                     <TableCell>
                       <div className="flex gap-1 flex-wrap">
                         {user.roles.map((role) => (
-                          <span key={role}>{getRoleBadge(role)}</span>
+                          <PapelBadge key={role} papel={role} />
                         ))}
                         {user.roles.length === 0 && (
                           <span className="text-muted-foreground text-sm">Sem permissões</span>
@@ -189,7 +178,7 @@ export const UsersRolesView = ({
                 key={role}
                 className="p-4 border border-border rounded-lg bg-muted"
               >
-                <div className="flex items-center gap-2 mb-2">{getRoleBadge(role)}</div>
+                <div className="flex items-center gap-2 mb-2"><PapelBadge papel={role} /></div>
                 <p className="text-sm text-muted-foreground">{LEGEND_DESCRIPTIONS[role]}</p>
               </div>
             ))}

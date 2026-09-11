@@ -117,9 +117,9 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                           className="p-1 hover:bg-muted rounded"
                         >
                           {expanded ? (
-                            <ChevronDown className="h-4 w-4 text-gray-500" />
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
                           ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-500" />
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           )}
                         </button>
                       ) : (
@@ -135,12 +135,12 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           {task.task_code && (
-                            <span className="text-xs font-mono text-gray-400">
+                            <span className="text-xs font-mono text-muted-foreground">
                               {task.task_code}
                             </span>
                           )}
                           <span
-                            className={`font-medium ${task.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}
+                            className={`font-medium ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'}`}
                           >
                             {task.title}
                           </span>
@@ -152,7 +152,7 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                           <DateBadge date={task.due_date} />
                           {task.tem_retrospectiva && <RetrospectivaBadge />}
                         </div>
-                        <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                        <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
                           <span>{c.getProfileName(task.assigned_to)}</span>
                           <span>{format(parseDate(task.due_date), 'dd/MM')}</span>
                           {task.totalHours > 0 && <span>{task.totalHours}h</span>}
@@ -218,22 +218,22 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                             <div className="flex-1">
                               <div className="flex flex-wrap items-center gap-2">
                                 {subtask.task_code && (
-                                  <span className="text-xs font-mono text-gray-400">
+                                  <span className="text-xs font-mono text-muted-foreground">
                                     {subtask.task_code}
                                   </span>
                                 )}
                                 <span
                                   className={
                                     subtask.status === 'completed'
-                                      ? 'line-through text-gray-400'
-                                      : 'text-gray-700'
+                                      ? 'line-through text-muted-foreground'
+                                      : 'text-foreground'
                                   }
                                 >
                                   {subtask.title}
                                 </span>
                                 {subtask.tem_retrospectiva && <RetrospectivaBadge />}
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-muted-foreground">
                                 {c.getProfileName(subtask.assigned_to)} ·{' '}
                                 {format(parseDate(subtask.due_date), 'dd/MM')}
                                 {subtask.estimated_hours ? ` · ${subtask.estimated_hours}h` : ''}

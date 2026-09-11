@@ -59,7 +59,6 @@ export const useRepresentantesSemUsuario = (
         .select(
           'id_representante, nome, email, id_cliente, cliente!inner(id, nome, ativo, ambiente, excluido, fixo)',
         )
-        .eq('excluido', false)
         .is('user_id', null)
         .not('email', 'is', null)
         .neq('email', '')

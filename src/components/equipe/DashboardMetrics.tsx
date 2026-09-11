@@ -201,7 +201,7 @@ export function DashboardMetrics() {
         </Select>
 
         {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="text-gray-500">
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
             <X className="h-4 w-4 mr-1" /> Limpar
           </Button>
         )}

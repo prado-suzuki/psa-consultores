@@ -106,9 +106,9 @@ export function ProcessProjectsTab(props: ProcessProjectsTabProps) {
         </Popover>
       </div>
       {props.loading ? (
-        <div className="text-center py-8 text-gray-500">Carregando projetos...</div>
+        <div className="text-center py-8 text-muted-foreground">Carregando projetos...</div>
       ) : props.projectProcesses.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-muted-foreground">
           Nenhum projeto vinculado. Clique em "Adicionar Projeto" para vincular.
         </div>
       ) : (
@@ -139,7 +139,7 @@ export function ProcessProjectsTab(props: ProcessProjectsTabProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      className="text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -156,7 +156,7 @@ export function ProcessProjectsTab(props: ProcessProjectsTabProps) {
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={() => props.onRemoveProject(link.id)}
-                        className="bg-red-600 hover:bg-red-700"
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
                         Remover
                       </AlertDialogAction>

@@ -63,7 +63,7 @@ export function AnaliseInteligenteFilters({
     <Card className="border-border shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <Filter className="h-4 w-4 text-teal-600" />
+          <Filter className="h-4 w-4 text-primary" />
           Filtros
         </CardTitle>
       </CardHeader>

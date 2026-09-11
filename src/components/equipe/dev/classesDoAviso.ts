@@ -2,76 +2,107 @@
  * A superfície do aviso de abertura das telas do Dev, em um lugar só.
  *
  * O QUE ELA É. O bloco que abre uma tela do Dev dizendo o que aquela ferramenta
- * faz: a caixa "Visão Geral" do `DevPageHeader`, em quinze rotas, e o "Base Legal"
- * do `BaseLegalCard`, no ICMS Saídas. Os dois ficam na MESMA posição — primeiro
- * elemento, antes de qualquer cartão —, então têm o mesmo papel e vestem a mesma
- * superfície.
+ * faz: a caixa "Visão Geral" do `DevPageHeader`, montada por 14 páginas, e o
+ * "Base Legal" do `BaseLegalCard`, no ICMS Saídas. Os dois ficam na MESMA posição
+ * — primeiro elemento, antes de qualquer cartão —, então têm o mesmo papel e
+ * vestem a mesma superfície.
  *
- * POR QUE ELA VIROU FAIXA ESCURA, em 10/09/2026. A usuária recusou o fundo da
- * caixa, e a medição deu razão a ela — mas o argumento aqui **não** é um número
- * contra uma altura de página, e essa distinção custou uma correção no mesmo dia.
+ * ═══ O DEFEITO ERA A ARESTA, NÃO O PREENCHIMENTO ═══
  *
- * O invariante é este: **uma caixa clara não separa de uma página clara.** Foi
- * medido em TRÊS alturas de página diferentes no dia, porque a pilha de
- * superfícies estava sendo mexida em paralelo — 92%, 96% e 93% —, e a caixa em
- * `--accent-soft` (94%) deu **1,06 · 1,02 · 1,04**. Ela atravessou de mais escura
- * que a página a mais clara que a página sem nunca ficar visível. Não existe
- * altura de página que resolva; o problema é a categoria da escolha.
+ * Isto passou por três formas em 10/09/2026, e a terceira só existe porque a
+ * segunda expôs a causa real. Vale escrever a sequência, porque o erro do meio é
+ * fácil de repetir:
  *
- * E o invariante **não é do piso**: vale nas três áreas, o que foi testado
- * esperando que quebrasse. Na Tax e na OSG o `--accent-soft` é oito pontos mais
- * ESCURO que o da base (86% contra 94%), o que deveria dar separação de sobra
- * contra uma página de 93%. Medido no `index.css`:
+ * 1. **hex cravado**, num componente cujo docstring diz que existe
+ *    para dar "o verde-água do módulo". Virou token: era o `--accent-soft` a dois
+ *    pontos de 255 de distância;
+ * 2. **faixa escura** (`--surface-escura-2`). A usuária recusou a caixa clara e a
+ *    medição deu razão a ela — o aviso não separava da página. A faixa separava a
+ *    10,86, e criou o defeito seguinte: **ela passou a ganhar do título da tela**.
+ *    Peso de elemento principal, posto de texto de apoio;
+ * 3. **caixa branca e leve**, que é o que está aqui. Decisão dela, e ela inverteu
+ *    o conserto pelo lado certo: em vez de tirar peso do nível de baixo, o peso
+ *    vai para o nível de cima — o cabeçalho.
  *
- *   .base-theme  soft 172 40% 94%  ×  canvas 168 16% 93%   1,040
- *   .tax-theme   soft 186 64% 86%  ×  canvas 192 10% 93%   1,073
- *   .osg-theme   soft 186 62% 86%  ×  canvas  32 24% 93%   1,079
+ * **A causa que só apareceu na terceira volta.** A caixa clara não era invisível
+ * por ser clara. Ela era invisível porque **não tinha borda**: a classe era
+ * `bg-accent-soft border-accent-soft`, ou seja a borda tinha o valor do próprio
+ * fundo. Medido, borda contra fundo: **1,00**. Não havia aresta nenhuma.
  *
- * Nenhuma separa. A saturação come o que a luminosidade daria — é por isso que
- * oito pontos de diferença rendem três centésimos de contraste. Se este aviso
- * um dia for para outra área, a caixa clara vai falhar lá igual.
+ *   caixa antiga   fundo x pagina 1,04   borda x fundo 1,00   <- sem aresta
+ *   caixa branca   fundo x pagina 1,15   borda x fundo 1,33   <- com aresta
  *
- * A faixa em `surface-escura-2` (14%) ganha nos dois eixos, e ganha com folga o
- * bastante para sobreviver à pilha se mexendo de novo:
+ * Então o enunciado certo NÃO é "caixa clara não separa de página clara" — é
+ * **preenchimento sozinho não separa duas superfícies claras; a aresta separa**.
+ * É por isso que 1,15 basta aqui e 1,04 não bastava lá: a caixa branca tem a
+ * mesma separação de fundo que TODO cartão desta tela, e ganha a borda que todo
+ * cartão tem. Ela lê como cartão porque é construída como cartão.
  *
- *   caixa 94 (accent-soft)      1,04 separa ·  6,09 lê   ← o que estava no ar
- *   caixa branca (card 100)     1,15 separa ·  6,74 lê
- *   faixa da marca (primary 25) 4,82 separa ·  5,56 lê   ← recusada: o branco sobre
- *                                                          `--primary` é a falha de
- *                                                          5,5 já documentada
- *   faixa profunda (esc-2 14)  10,86 separa · 12,52 lê   ← esta
+ * ═══ E A ARESTA NEUTRA AINDA ERA CURTA PARA FORA ═══
  *
- * A coluna "separa" é contra o `--canvas` de 10/09 (93%) e envelhece junto com
- * ele; a coluna "lê" é interna à faixa e não depende da página. Se for reconferir,
- * a medição está em `docs/geral/cor-o-que-falta.md`, com o comando.
+ * Com a borda do sistema (`border`, 86%) a caixa branca ficou correta e ainda
+ * incomodou: "as cores estão muito parecidas, esse é o padrão mesmo?". Era o
+ * padrão, e medir explicou por quê — a página está **exatamente no meio** entre o
+ * cartão e a borda dele:
  *
- * NADA INVENTADO: o 14% é o mesmo `--surface-escura-2` do meio do gradiente dos
- * cartões de categoria da página inicial do Dev, e o link usa `accent-soft` — o
- * valor que ANTES era o fundo desta caixa passou a ser a letra dela.
+ *   cartão branco  x  página 93%   1,153
+ *   borda 86%      x  página 93%   1,153   <- o MESMO número
+ *   borda 86%      x  cartão       1,329
  *
- * ⚠️ Isto assume tema BASE, e hoje isso é verdade porque as rotas do Dev são área
- * `sistema`, que aponta para `null` no `areaTheme.ts`. Se algum dia este aviso for
- * montado dentro da Tax ou da OSG, atenção: lá o `--surface-escura-2` é MARINHO
- * (222 47% 11%), não teal — o par continua legível, mas a faixa troca de matiz.
+ * Ou seja a aresta neutra separa o cartão para DENTRO e não para FORA: o conjunto
+ * cartão+borda lê como uma massa só contra o fundo. E mover a página não resolve,
+ * é troca — a 90% o cartão sobe para 1,228 e a borda cai para 1,082; a 86% a borda
+ * desaparece na página (1,008). Os 93% são o ótimo, não um erro. O vão inteiro,
+ * da borda ao cartão, tem 14 pontos, e dividido em dois dá 1,15 para cada lado.
+ * **Encurtar esse vão é outra frente** (a altura da pilha de superfícies), e não
+ * se conserta aqui.
+ *
+ * O que se conserta aqui é o PAPEL: a borda deixa de ser neutra e passa a ser o
+ * acento, a 25%. Isso faz duas coisas de uma vez — a aresta passa a existir para
+ * fora, e a caixa deixa de ser idêntica ao cartão de filtros logo abaixo dela.
+ * Ela volta a dizer "eu sou o aviso" sem precisar de fundo colorido:
+ *
+ *   border-accent-d/25  x cartão 1,480   x página 1,284
+ *
+ * Alfa, e não valor fixo, de propósito: se a pilha de superfícies mudar de altura,
+ * a borda acompanha sozinha.
+ *
+ * ⚠️ Nunca dê à borda o valor do FUNDO — nem `border-card`, nem a cor do
+ * preenchimento "para ficar limpo". É exatamente o movimento que produziu o
+ * defeito original, e ele não aparece em revisão: a classe usa token, parece
+ * certa, e a caixa some.
+ *
+ * O que sobrou do invariante das três alturas de página, e continua valendo como
+ * aviso: a caixa foi medida contra 92%, 96% e 93% e deu 1,06 · 1,02 · 1,04 — ela
+ * atravessou de mais escura que a página a mais clara que a página sem nunca
+ * ficar visível. Um preenchimento claro sem aresta não se salva mexendo na página.
+ *
+ * ⚠️ Isto assume tema BASE, e hoje é verdade porque as rotas do Dev são área
+ * `sistema`, que aponta para `null` no `areaTheme.ts`.
  */
 
 /**
- * A faixa: superfície, borda, cor do texto e — atenção — a cor do ÍCONE.
+ * A caixa: superfície de cartão, borda de ACENTO, e — atenção — a cor do ÍCONE.
  *
- * O `[&>svg]:text-accent-soft` não é preciosismo. O `ui/alert` traz
+ * O `[&>svg]:text-accent-d` não é preciosismo. O `ui/alert` traz
  * `[&>svg]:text-foreground` na string base, e aquilo gera um seletor de
- * especificidade 0,1,1 (classe + elemento). Uma classe `text-accent-soft` posta
- * no próprio `<svg>` é 0,1,0 e **PERDE** — o ícone continuaria saindo em
- * `--foreground`, escuro, sobre uma faixa escura. Sem erro de build, sem aviso
- * de lint: só um ícone invisível.
+ * especificidade 0,1,1 (classe + elemento). Uma classe posta no próprio `<svg>` é
+ * 0,1,0 e **PERDE**. Vindo daqui, o `tailwind-merge` do `cn()` reconhece o mesmo
+ * grupo e descarta o da base. Conferido no bundle.
  *
- * Vindo daqui, o `tailwind-merge` do `cn()` reconhece o mesmo grupo (mesma
- * variante, mesma utilitária) e descarta o `text-foreground` da base. É a forma
- * que funciona, e foi conferida no bundle.
+ * O ícone usa `accent-d` e não `primary` porque é elemento pequeno sobre
+ * superfície clara, e o contrato do `.base-theme` reserva o acento cheio para
+ * marca — anel, barra, ponto. `accent-d` sobre branco dá 6,74:1.
+ *
+ * O `p-3` é a parte "leve" do pedido dela: aperta o respiro que o `ui/alert` traz
+ * de fábrica (`p-4`). Sem sombra, de propósito — elevação é o atributo que mais
+ * puxa o olho, e este bloco é apoio.
  */
-export const AVISO_FAIXA =
-  'bg-surface-escura-2 border-surface-escura-2 text-primary-foreground shadow-lg '
-  + '[&>svg]:text-accent-soft';
+export const AVISO_CAIXA =
+  'bg-card border-accent-d/25 text-foreground p-3 [&>svg]:text-accent-d';
 
-/** O link dentro da faixa. O `accent-soft` é o fundo antigo virado letra. */
-export const AVISO_FAIXA_ACENTO = 'text-accent-soft';
+/** O link dentro da caixa. Letra pequena sobre superfície clara: 6,74:1. */
+export const AVISO_CAIXA_ACENTO = 'text-accent-d';
+
+/** O corpo e o título da caixa, um degrau abaixo do `text-sm` de fábrica. */
+export const AVISO_CAIXA_TEXTO = 'text-[13px] leading-relaxed';

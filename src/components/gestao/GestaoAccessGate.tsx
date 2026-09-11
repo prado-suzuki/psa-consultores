@@ -118,7 +118,7 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
                 </div>
 
                 {loginError && (
-                  <p className="text-sm text-red-400 flex items-center gap-2">
+                  <p className="text-sm text-destructive flex items-center gap-2">
                     <ShieldX className="h-4 w-4" />
                     {loginError}
                   </p>
@@ -168,8 +168,8 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
           <Card className="backdrop-blur-lg">
             <CardContent className="pt-8 pb-8">
               <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto">
-                  <ShieldX className="h-8 w-8 text-red-500" />
+                <div className="w-16 h-16 bg-destructive/20 rounded-full flex items-center justify-center mx-auto">
+                  <ShieldX className="h-8 w-8 text-destructive" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold mb-2">Acesso Negado</h2>

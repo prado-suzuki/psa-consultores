@@ -1,3 +1,9 @@
+import {
+  CATEGORIAS_DE_PROJETO,
+  CATEGORIAS_EM_ORDEM,
+  classesDaCategoria,
+  rotuloDaCategoria,
+} from '@/lib/categoriaDoProjeto';
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,12 +39,21 @@ import { chamadoStatusConfig } from "@/lib/chamadoStatusColors";
  * então nada além do código impede os dois vocabulários de existirem. Unificar é
  * migração de dado, e não cabe numa troca de cor.
  */
-const statusConfig = {
-  planning: { label: "Planejamento", className: "bg-status-neutro-soft text-status-neutro hover:bg-status-neutro-soft" },
-  active: { label: "Em Andamento", className: "bg-status-andamento-soft text-status-andamento hover:bg-status-andamento-soft" },
-  on_hold: { label: "Em Pausa", className: "bg-status-espera-soft text-status-espera hover:bg-status-espera-soft" },
-  completed: { label: "Concluído", className: "bg-status-feito-soft text-status-feito hover:bg-status-feito-soft" },
-} as const;
+/**
+ * ⚠️ ESTE MAPA ESTAVA APONTADO PARA A COLUNA ERRADA, e o comentário acima é a
+ * história de como isso passou despercebido: ele explica por que os
+ * vocabulários de `projects` e `org_projects` divergem, e nenhum dos dois é o
+ * que a coluna guarda. Medido em produção em 10/09/2026, `projects.status` tem
+ * `Melhorias` (10) e `Diagnóstico` (7) — categoria, não ciclo de vida. As
+ * quatro chaves de antes (`planning`, `active`, `on_hold`, `completed`) não
+ * casavam com uma linha sequer, então todo projeto caía no fallback.
+ *
+ * Hoje isso é dormente: `client_visible_projects` está VAZIA, então nenhum
+ * cliente vê projeto nenhum. Consertar mesmo assim é o que impede o defeito de
+ * nascer pronto no dia em que o primeiro vínculo for criado.
+ */
+const rotuloDeStatus = rotuloDaCategoria;
+const classesDeStatus = classesDaCategoria;
 
 const ticketStatusOptions = [
   { value: "aberto", label: "Aberto" },
@@ -47,12 +62,16 @@ const ticketStatusOptions = [
   { value: "fechado", label: "Fechado" },
 ];
 
-const projectStatusOptions = [
-  { value: "planning", label: "Planejamento" },
-  { value: "active", label: "Em Andamento" },
-  { value: "on_hold", label: "Em Pausa" },
-  { value: "completed", label: "Concluído" },
-];
+/**
+ * O filtro de projeto do portal, e ele tinha o MESMO defeito do da equipe: as
+ * quatro opções de ciclo de vida contra uma coluna que guarda categoria. Aqui
+ * ninguém reclamou porque `client_visible_projects` está vazia — a tela nunca
+ * chegou a listar um projeto.
+ */
+const projectStatusOptions = CATEGORIAS_EM_ORDEM.map(chave => ({
+  value: chave,
+  label: CATEGORIAS_DE_PROJETO[chave].rotulo,
+}));
 
 export default function ClienteDashboard() {
   const navigate = useNavigate();
@@ -93,20 +112,23 @@ export default function ClienteDashboard() {
   };
 
   // Calculate progress based on project status
-  const getProjectProgress = (status: string | null) => {
-    switch (status) {
-      case "planning":
-        return 10;
-      case "active":
-        return 50;
-      case "on_hold":
-        return 30;
-      case "completed":
-        return 100;
-      default:
-        return 0;
-    }
-  };
+  /**
+   * O progresso de um projeto — e hoje ele NÃO EXISTE, o que é uma resposta.
+   *
+   * Esta função derivava um número do `status`: 10% para `planning`, 50% para
+   * `active`, 100% para `completed`. Duas coisas erradas de uma vez. A primeira
+   * é que `projects.status` guarda CATEGORIA (`Melhorias`, `Diagnóstico`) e não
+   * ciclo de vida, então nenhuma das chaves casava e todo projeto caía no
+   * `default: return 0` — barra zerada para todos, sempre. A segunda é mais
+   * funda: mesmo com o vocabulário certo, "está ativo" não é "está pela metade".
+   * Aquilo era um número inventado com cara de medida.
+   *
+   * Devolver `null` faz a barra sumir em vez de mentir. Progresso de verdade
+   * precisaria de tarefas, e os 17 projetos desta tabela têm ZERO — as 954
+   * tarefas do produto penduram em `org_projects`, que é outra tabela. Ligar as
+   * duas é decisão de produto, não conserto de tela.
+   */
+  const getProjectProgress = (_status: string | null): number | null => null;
 
   // Filter tickets
   const filteredTickets = useMemo(() => {
@@ -169,14 +191,14 @@ export default function ClienteDashboard() {
             >
               <TabsTrigger
                 value="chamados"
-                className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
+                className="data-[state=active]:bg-background data-[state=active]:text-primary"
               >
                 <FileText className="mr-2 h-4 w-4" />
                 Chamados
               </TabsTrigger>
               <TabsTrigger
                 value="projects"
-                className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
+                className="data-[state=active]:bg-background data-[state=active]:text-primary"
               >
                 <FolderKanban className="mr-2 h-4 w-4" />
                 Projetos
@@ -184,7 +206,7 @@ export default function ClienteDashboard() {
               {comDocumentos && (
                 <TabsTrigger
                   value="documents"
-                  className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
+                  className="data-[state=active]:bg-background data-[state=active]:text-primary"
                 >
                   <FileUp className="mr-2 h-4 w-4" />
                   Documentos
@@ -203,7 +225,6 @@ export default function ClienteDashboard() {
                 <Button
                   size="sm"
                   onClick={() => navigate("/cliente/novo-chamado")}
-                  className="bg-teal-600 hover:bg-teal-700 text-white"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Abrir Chamado
@@ -326,16 +347,15 @@ export default function ClienteDashboard() {
                     const project = item.projects;
                     if (!project) return null;
 
-                    const status = (project.status as keyof typeof statusConfig) || "planning";
-                    const progress = getProjectProgress(project.status);
+                    const progresso = getProjectProgress(project.status);
 
                     return (
                       <Card key={item.id} className="overflow-hidden">
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
                             <CardTitle className="text-lg">{project.name}</CardTitle>
-                            <Badge className={statusConfig[status]?.className || statusConfig.planning.className}>
-                              {statusConfig[status]?.label || "Em Planejamento"}
+                            <Badge className={classesDeStatus(project.status ?? '')}>
+                              {rotuloDeStatus(project.status)}
                             </Badge>
                           </div>
                           <CardDescription className="mt-2">
@@ -343,13 +363,20 @@ export default function ClienteDashboard() {
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">Progresso</span>
-                              <span className="font-medium text-teal-700">{progress}%</span>
+                          {/* A barra só aparece quando existe progresso para
+                              mostrar. Antes ela vinha de `getProjectProgress(status)`,
+                              e o status é CATEGORIA — então ela dizia 0% para todo
+                              projeto, sempre. Número inventado sobre a tela do
+                              cliente é pior que campo ausente. */}
+                          {progresso !== null && (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Progresso</span>
+                                <span className="font-medium text-accent-d">{progresso}%</span>
+                              </div>
+                              <Progress value={progresso} className="h-2" />
                             </div>
-                            <Progress value={progress} className="h-2 [&>div]:bg-teal-600" />
-                          </div>
+                          )}
                         </CardContent>
                       </Card>
                     );

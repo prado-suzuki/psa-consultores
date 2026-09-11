@@ -39,7 +39,7 @@ const KIND_LABEL: Record<ScenarioKind, string> = {
 const KIND_COLOR: Record<ScenarioKind, string> = {
   scale: 'bg-blue-100 text-blue-700 border-blue-200',
   efficiency: 'bg-amber-100 text-amber-700 border-amber-200',
-  investment: 'bg-accent/10 text-teal-700 border-primary/15',
+  investment: 'bg-accent/10 text-primary border-primary/15',
 };
 
 const STATUS_LABEL: Record<ScenarioStatus, string> = {
@@ -174,7 +174,7 @@ export function ScenarioList({ processes, onCreateClick }: ScenarioListProps) {
             return (
               <Card
                 key={s.id}
-                className={`transition-all cursor-pointer ${isSelected ? 'ring-2 ring-teal-500' : 'hover:border-border'}`}
+                className={`transition-all cursor-pointer ${isSelected ? 'ring-2 ring-primary' : 'hover:border-border'}`}
                 onClick={() => toggleCompare(s.id)}
               >
                 <CardContent className="p-4 space-y-3">
@@ -212,7 +212,7 @@ export function ScenarioList({ processes, onCreateClick }: ScenarioListProps) {
                   <div className="grid grid-cols-2 gap-2 text-sm pt-2 border-t">
                     <div>
                       <p className="text-[10px] text-muted-foreground uppercase">ROI</p>
-                      <p className="font-semibold text-teal-700">
+                      <p className="font-semibold text-primary">
                         {roi !== null ? `${roi.toFixed(0)}%` : '—'}
                       </p>
                     </div>

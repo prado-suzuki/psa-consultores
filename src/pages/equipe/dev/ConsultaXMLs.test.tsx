@@ -41,7 +41,10 @@ vi.mock('@tanstack/react-query', () => ({
     const kind = String(options.queryKey[0]);
     mocks.options.set(kind, options);
     return {
-      data: kind === 'nfe-docs' ? mocks.nfeData : mocks.cteData,
+      // Por CHAVE, e não "nfe-docs senão cte-docs": o campo de cliente passou a
+      // pedir o índice de CNPJ (`clientes-cnpjs`), e o ramo `senão` entregava a
+      // ele o objeto paginado de CTe, que não é lista.
+      data: kind === 'nfe-docs' ? mocks.nfeData : kind === 'cte-docs' ? mocks.cteData : undefined,
       isLoading: mocks.loading,
       error: null,
       refetch: vi.fn(() => options.queryFn()),
@@ -100,6 +103,19 @@ vi.mock('@/components/ui/select', async () => {
     SelectItem: ({ value, children }: { value: string; children: ReactNode }) => <option value={value}>{children}</option>,
   };
 });
+// Cliente e contribuinte deixaram de ser `Select` e viraram combobox com busca.
+// O dublê é um `<select>` nativo pelo mesmo motivo do mock acima: este arquivo
+// existe para congelar query keys e payloads, não para exercitar o cmdk — e
+// mantê-lo como `<select>` preserva a ordem dos `getAllByRole('combobox')` de
+// que as asserções dependem. Quem prova a BUSCA é SingleSelectCombobox.test.tsx.
+vi.mock('@/components/ui/SingleSelectCombobox', () => ({
+  SingleSelectCombobox: ({ options, value, onChange }: { options: { value: string; label: string }[]; value: string | null; onChange: (value: string | null) => void }) => (
+    <select value={value ?? ''} onChange={(event) => onChange(event.target.value || null)}>
+      <option value="" />
+      {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+    </select>
+  ),
+}));
 
 import ConsultaXMLs from '@/pages/equipe/dev/ConsultaXMLs';
 

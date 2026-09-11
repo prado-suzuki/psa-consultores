@@ -92,7 +92,7 @@ const AdminUsuarios = () => {
       case 'lider':
         return <Badge className="bg-amber-100 text-amber-700">Líder</Badge>;
       case 'client':
-        return <Badge className="bg-muted text-gray-700">Cliente</Badge>;
+        return <Badge className="bg-muted">Cliente</Badge>;
       default:
         return <Badge variant="outline">{role}</Badge>;
     }
@@ -182,7 +182,7 @@ const AdminUsuarios = () => {
                   ].map((role) => (
                     <div
                       key={role.id}
-                      className="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                      className="flex items-center space-x-2 p-2 border rounded-lg hover:bg-muted cursor-pointer"
                       onClick={() => toggleNewUserRole(role.id)}
                     >
                       <Checkbox
@@ -190,7 +190,7 @@ const AdminUsuarios = () => {
                         checked={newUser.roles.includes(role.id)}
                         onCheckedChange={() => toggleNewUserRole(role.id)}
                       />
-                      <role.icon className="h-4 w-4 text-gray-400" />
+                      <role.icon className="h-4 w-4 text-muted-foreground" />
                       <Label htmlFor={`new-${role.id}`} className="cursor-pointer flex-1">
                         {role.label}
                       </Label>
@@ -216,7 +216,7 @@ const AdminUsuarios = () => {
       <Card className="mb-6">
         <CardContent className="pt-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por nome ou email..."
               value={searchTerm}
@@ -256,7 +256,7 @@ const AdminUsuarios = () => {
                     <TableCell className="font-medium">
                       {u.first_name} {u.last_name}
                     </TableCell>
-                    <TableCell className="text-gray-500">
+                    <TableCell className="text-muted-foreground">
                       {u.email}
                     </TableCell>
                     <TableCell>
@@ -265,7 +265,7 @@ const AdminUsuarios = () => {
                           <span key={role}>{getRoleBadge(role)}</span>
                         ))}
                         {u.roles.length === 0 && (
-                          <span className="text-gray-400 text-sm">Sem permissões</span>
+                          <span className="text-muted-foreground text-sm">Sem permissões</span>
                         )}
                       </div>
                     </TableCell>
