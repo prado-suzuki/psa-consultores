@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { prioridadeDoProjeto, prioridadeDoProjetoLista } from '@/lib/prioridadeDoProjeto';
+import type { OrgTaskPriority } from '@/hooks/useOrgTasks';
 import { medirCorCrua } from '@/lib/medirCorCrua';
+import {
+  prioridadeDoProjeto,
+  prioridadeDoProjetoLista,
+  type PrioridadeDoProjetoConfig,
+} from '@/lib/prioridadeDoProjeto';
+import { taskPriorityColors } from '@/lib/taskPriorityColors';
 
 /**
  * Catraca da prioridade do projeto. **Ela nasce VAZIA**, e é esse o ponto.
@@ -44,6 +50,27 @@ describe('prioridade do projeto', () => {
     expect(prioridadeDoProjeto('-')).toBeNull();
     expect(prioridadeDoProjeto('')).toBeNull();
     expect(prioridadeDoProjeto(null)).toBeNull();
+  });
+
+  it('a escada da TAREFA é a mesma, degrau por degrau', () => {
+    // Por algumas horas do dia 11/09 esta usou `espera` no "Média" e a da tarefa
+    // usou `fila`: iguais em três degraus, diferentes no segundo. Uma revisão
+    // lado a lado não acha isso — as duas telas nunca aparecem juntas. Por isso
+    // a asserção compara o PAPEL de cada degrau, e não a classe inteira (a borda
+    // tem alfa diferente nas duas, e isso é desenho de pílula, não significado).
+    const papel = (badge: string) => badge.match(/bg-(status-[a-z]+)-soft/)?.[1] ?? badge;
+    const pares: [PrioridadeDoProjetoConfig['key'], OrgTaskPriority][] = [
+      ['baixa', 'low'],
+      ['media', 'medium'],
+      ['alta', 'high'],
+      ['critica', 'urgent'],
+    ];
+    for (const [projeto, tarefa] of pares) {
+      expect(
+        papel(prioridadeDoProjeto(projeto)!.badge),
+        `degrau ${projeto} × ${tarefa}`,
+      ).toBe(papel(taskPriorityColors[tarefa].badge));
+    }
   });
 
   it('a escada sobe, e todo degrau veste papel do contrato', () => {

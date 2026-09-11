@@ -28,10 +28,21 @@ import type { OrgTaskPriority } from '@/hooks/useOrgTasks';
  *
  * ## A escada (decisão dela, 11/09/2026)
  *
- * `neutro → fila → alerta → ajuste`, subindo de tom junto com a urgência. É a
- * mesma escada decidida para a prioridade do PROJETO, e fechar as duas com ela
- * é o que faz disto uma decisão só. `info` saiu do caminho: era o único degrau
- * que reprovava, é semântico e não acompanha a área.
+ * `neutro → espera → alerta → ajuste`, subindo de tom junto com a urgência.
+ * `info` saiu do caminho: era o único degrau que reprovava, é semântico e não
+ * acompanha a área.
+ *
+ * **O segundo degrau foi `fila` por algumas horas, e ela desfez.** A tarefa
+ * tinha ficado em `fila` e o projeto em `espera` — as duas escadas iguais nos
+ * degraus 1, 3 e 4 e diferentes só no "Média", que é exatamente o defeito que
+ * esta frente existe para matar. Decisão dela: **`espera` nas duas**, e a
+ * prioridade do projeto (`prioridadeDoProjeto.ts`) é a mesma escada, degrau por
+ * degrau.
+ *
+ * Medido sobre a própria superfície, a escada também fica monotônica: neutro
+ * 12,00 → espera 5,25 → alerta 5,32 → ajuste 5,39. O contraste cai conforme a
+ * urgência sobe, que é o comportamento certo — o degrau calmo é o mais legível,
+ * e o urgente é o que puxa a vista pela cor, não pelo contraste.
  *
  * **A superfície é `-soft`, e isso foi escolhido, não herdado.** `-soft` tem
  * luminosidade fixa e não muda com o fundo; `/10` é alfa e escurece junto com o
@@ -67,9 +78,9 @@ export const taskPriorityColors: Record<OrgTaskPriority, TaskPriorityConfig> = {
   medium: {
     key: 'medium',
     label: 'Média',
-    badge: 'bg-status-fila-soft text-status-fila border-status-fila/20',
-    texto: 'text-status-fila',
-    dot: 'bg-status-fila',
+    badge: 'bg-status-espera-soft text-status-espera border-status-espera/20',
+    texto: 'text-status-espera',
+    dot: 'bg-status-espera',
   },
   low: {
     key: 'low',

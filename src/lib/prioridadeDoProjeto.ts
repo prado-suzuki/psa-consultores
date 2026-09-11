@@ -24,10 +24,14 @@
  * ## A escada
  *
  * `neutro → espera → alerta → ajuste`, subindo com a urgência — a mesma que a
- * etapa do projeto e o backlog já vestiam desde `fff931b3`, e é por isso que
- * ela está aqui e não a das TAREFAS, que usa `fila` no segundo degrau. As duas
- * famílias divergem nesse degrau; unificar é decisão dela, e está registrada
- * como pendente em vez de escolhida por mim.
+ * etapa do projeto e o backlog já vestiam desde `fff931b3`.
+ *
+ * **E agora é a mesma da TAREFA, degrau por degrau.** Por algumas horas do dia
+ * 11/09 a tarefa ficou com `fila` no "Média" e o projeto com `espera`: duas
+ * escadas iguais em três degraus e diferentes no segundo, que é o defeito que
+ * esta frente existe para matar. Decisão dela, no fim do dia: `espera` nas
+ * duas. Quem mexer numa tem que mexer na outra —
+ * [`taskPriorityColors.ts`](./taskPriorityColors.ts) é a irmã desta.
  */
 export interface PrioridadeDoProjetoConfig {
   /** Chave normalizada, já em português. */
