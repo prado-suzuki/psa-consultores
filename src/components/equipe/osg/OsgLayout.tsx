@@ -151,7 +151,18 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   // saem primeiro (sem delay), ao expandir entram depois que a barra já abriu.
   const rotuloCls = cn(
     'transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none',
-    trilho ? 'pointer-events-none -translate-x-1 opacity-0' : 'opacity-100 delay-150',
+    trilho
+      ? // `w-0 overflow-hidden` além do `opacity-0`: invisível não é o mesmo que
+        // sem espaço. O item recolhido é uma caixa de 40px com `justify-center`
+        // (ver `classesItemDaBarra`), e um rótulo transparente que continua
+        // ocupando a largura dele faz o flex centralizar ÍCONE + RÓTULO — o
+        // ícone sai do centro, e cada um sai um tanto diferente, porque o
+        // deslocamento depende do tamanho do rótulo. O módulo do cromo conta
+        // com o chamador omitindo o rótulo (`{!trilho && …}`); aqui ele não é
+        // omitido de propósito, para desbotar em vez de sumir de estalo, então
+        // quem tira o espaço é esta linha.
+        'pointer-events-none w-0 overflow-hidden -translate-x-1 opacity-0'
+      : 'opacity-100 delay-150',
   );
 
   // O tema da área NÃO é aplicado aqui: quem o aplica é o `AreaThemeProvider`,
@@ -285,7 +296,13 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               fixo, a barra recolhida mantinha 88px de cabeçalho contra os 72
               das outras, e a linha divisória pulava ao trocar de área. */}
           <div className={cn(classeRecuoCabecalho(trilho), 'border-b border-border/60')}>
-            <div className="flex items-center gap-3">
+            {/* No trilho o `gap-3` sai. Ele parece inofensivo com o rótulo
+                reduzido a zero, mas continua ocupando 12px: com 48px úteis
+                (`p-4` em 80px), o selo de 40 mais o gap davam 52 e o
+                `overflow-x-hidden` da barra comia a borda direita da logo —
+                que foi como ela "sumiu". As outras cinco barras já trocam de
+                arranjo aqui; esta era a que faltava. */}
+            <div className={cn('flex items-center', trilho ? 'justify-center' : 'gap-3')}>
               <div className="h-10 w-10 flex items-center justify-center flex-shrink-0">
                 {AreaIcon}
               </div>
