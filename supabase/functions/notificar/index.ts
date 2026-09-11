@@ -315,6 +315,26 @@ function chaveIdempotencia(tipo: string, entidadeId: string, canal: Canal, desti
   return `${tipo}:${ENTIDADE_TIPO}:${entidadeId}:${canal}:${destino}:${diaLocal()}`;
 }
 
+/**
+ * Linha de `destinatarios_cliente(uuid)`, que é `RETURNS TABLE(user_id uuid,
+ * nome text, email text, telefone text)`. O cliente Deno não carrega os tipos
+ * gerados do banco, então `rpc` devolve `any` e um `.map()` sobre o resultado
+ * fica com parâmetro implicitamente `any` — o `deno check` do deploy recusa.
+ * Nomear a linha aqui devolve tipo ao filtro de destinatários e ao laço que
+ * monta `alcancaveis` logo abaixo.
+ *
+ * `user_id` é `string`, não `string | null`, porque a RPC já devolve só
+ * representante COM acesso ao portal — o `user_id` não nulo é a definição de
+ * "tem acesso". Os demais campos são nulláveis de verdade: telefone ausente em
+ * 30 de 38 destinatários.
+ */
+interface DestinatarioBruto {
+  user_id: string;
+  nome: string | null;
+  email: string | null;
+  telefone: string | null;
+}
+
 interface Alcancavel {
   email: string | null;
   telefone: string | null;
@@ -567,10 +587,10 @@ Deno.serve(async (req) => {
     // `destinatarios_cliente` devolve uma linha por representante COM acesso ao
     // portal (`user_id` não nulo). O buraco não é contato ausente — é cliente sem
     // representante com acesso, que existe.
-    const { data: brutos, error: destinatariosError } = await supabase.rpc(
+    const { data: brutos, error: destinatariosError } = (await supabase.rpc(
       "destinatarios_cliente",
       { _cliente_id: solicitacao.cliente_id }
-    );
+    )) as { data: DestinatarioBruto[] | null; error: { message: string } | null };
     if (destinatariosError) {
       console.error("[notificar] destinatarios_cliente failed:", destinatariosError);
       return json({ error: "Falha ao resolver destinatários" }, 500);
