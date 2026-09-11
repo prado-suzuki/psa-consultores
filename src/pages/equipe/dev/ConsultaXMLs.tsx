@@ -25,7 +25,7 @@ const ConsultaXMLs = () => {
   const [committedChave, setCommittedChave] = useState("");
   const [searchTriggered, setSearchTriggered] = useState(false);
 
-  const { clientesQuery, contribuintesQuery } = useDomainConsultaXMLs(selectedCliente);
+  const { clientesQuery, contribuintesQuery, cnpjsPorCliente } = useDomainConsultaXMLs(selectedCliente);
   const { nfeQuery, cteQuery } = useConsultaXmls({
     contribuinteId: selectedContribuinte, startDate, endDate, currentPage, tipoMov,
     emitente, destinatario, chaveAcesso, committedChave, tipoDocumento, searchTriggered,
@@ -78,7 +78,7 @@ const ConsultaXMLs = () => {
   const values = { cliente: selectedCliente, contribuinte: selectedContribuinte, startDate, endDate, tipoDocumento, tipoMov, emitente, destinatario, chave: chaveAcesso };
   return <DevLayout title="Consulta de XMLs" subtitle="Busque e visualize documentos fiscais"><TooltipProvider delayDuration={300}><div className="w-full min-w-0 max-w-full overflow-hidden space-y-6">
     <DevPageHeader description="A Consulta de XMLs centraliza a busca e o download de documentos fiscais (NFe e CTe) da base de dados. Utilize os filtros abaixo para consultar notas fiscais específicas ou analisar períodos inteiros, permitindo a visualização rápida dos dados em tela, o download dos arquivos originais em lote (.zip) ou a exportação em formato Excel (.xlsx)." manualUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/consulta-xmls/" />
-    <ConsultaXmlFilters values={values} set={setters} clientes={clientesQuery.data} contribuintes={contribuintesQuery.data} loadingClientes={clientesQuery.isLoading} loadingContribuintes={contribuintesQuery.isLoading} errorContribuintes={contribuintesQuery.error as Error | null} nfeRecords={nfeRecords} cteRecords={cteRecords} totalRecords={totalRecords} isLoading={activeQuery.isLoading} downloadingBatch={downloads.downloadingBatch} hasActiveFilters={hasActiveFilters} onClear={clearFilters} onSearch={search} onDownloadBatch={() => downloads.downloadBatch({ contribuinteId: selectedContribuinte, startDate, endDate, tipoDocumento: tipoDocumento === "cte" ? "cte" : "nfe", tipoMov, emitente, destinatario })} />
+    <ConsultaXmlFilters values={values} set={setters} clientes={clientesQuery.data} contribuintes={contribuintesQuery.data} cnpjsPorCliente={cnpjsPorCliente} loadingClientes={clientesQuery.isLoading} loadingContribuintes={contribuintesQuery.isLoading} errorContribuintes={contribuintesQuery.error as Error | null} nfeRecords={nfeRecords} cteRecords={cteRecords} totalRecords={totalRecords} isLoading={activeQuery.isLoading} downloadingBatch={downloads.downloadingBatch} hasActiveFilters={hasActiveFilters} onClear={clearFilters} onSearch={search} onDownloadBatch={() => downloads.downloadBatch({ contribuinteId: selectedContribuinte, startDate, endDate, tipoDocumento: tipoDocumento === "cte" ? "cte" : "nfe", tipoMov, emitente, destinatario })} />
     <ConsultaXmlResults searchTriggered={searchTriggered} contribuinteId={selectedContribuinte} tipoDocumento={tipoDocumento} nfeRecords={nfeRecords} cteRecords={cteRecords} totalRecords={totalRecords} totalPages={totalPages} currentPage={currentPage} isLoading={activeQuery.isLoading} error={activeQuery.error as Error | null} downloadingKey={downloads.downloadingKey} onRetry={() => activeQuery.refetch()} onPage={setCurrentPage} onDownload={downloads.downloadSingle} />
   </div></TooltipProvider></DevLayout>;
 };

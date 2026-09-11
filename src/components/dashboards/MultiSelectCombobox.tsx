@@ -9,6 +9,10 @@ import { cn } from '@/lib/utils';
 export interface ComboOption {
   value: string;
   label: string;
+  /** Texto secundário à direita do rótulo (ex.: o CNPJ). Só o `SingleSelectCombobox` desenha. */
+  hint?: string;
+  /** Texto extra que a busca enxerga mas a lista não mostra (ex.: CNPJ sem pontuação). */
+  keywords?: string[];
 }
 
 /**

@@ -57,6 +57,7 @@ vi.mock('@/hooks/useDomainConsultaXMLs', () => ({
       isLoading: false,
       error: null,
     },
+    cnpjsPorCliente: { 'cliente-1': ['12345678000199'] },
   }),
 }));
 vi.mock('@/hooks/use-toast', () => ({ toast: mocks.toast }));
@@ -100,6 +101,19 @@ vi.mock('@/components/ui/select', async () => {
     SelectItem: ({ value, children }: { value: string; children: ReactNode }) => <option value={value}>{children}</option>,
   };
 });
+// Cliente e contribuinte deixaram de ser `Select` e viraram combobox com busca.
+// O dublê é um `<select>` nativo pelo mesmo motivo do mock acima: este arquivo
+// existe para congelar query keys e payloads, não para exercitar o cmdk — e
+// mantê-lo como `<select>` preserva a ordem dos `getAllByRole('combobox')` de
+// que as asserções dependem. Quem prova a BUSCA é SingleSelectCombobox.test.tsx.
+vi.mock('@/components/dashboards/SingleSelectCombobox', () => ({
+  SingleSelectCombobox: ({ options, value, onChange }: { options: { value: string; label: string }[]; value: string | null; onChange: (value: string | null) => void }) => (
+    <select value={value ?? ''} onChange={(event) => onChange(event.target.value || null)}>
+      <option value="" />
+      {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+    </select>
+  ),
+}));
 
 import ConsultaXMLs from '@/pages/equipe/dev/ConsultaXMLs';
 
