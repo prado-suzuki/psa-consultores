@@ -41,7 +41,10 @@ vi.mock('@tanstack/react-query', () => ({
     const kind = String(options.queryKey[0]);
     mocks.options.set(kind, options);
     return {
-      data: kind === 'nfe-docs' ? mocks.nfeData : mocks.cteData,
+      // Por CHAVE, e não "nfe-docs senão cte-docs": o campo de cliente passou a
+      // pedir o índice de CNPJ (`clientes-cnpjs`), e o ramo `senão` entregava a
+      // ele o objeto paginado de CTe, que não é lista.
+      data: kind === 'nfe-docs' ? mocks.nfeData : kind === 'cte-docs' ? mocks.cteData : undefined,
       isLoading: mocks.loading,
       error: null,
       refetch: vi.fn(() => options.queryFn()),
@@ -57,7 +60,6 @@ vi.mock('@/hooks/useDomainConsultaXMLs', () => ({
       isLoading: false,
       error: null,
     },
-    cnpjsPorCliente: { 'cliente-1': ['12345678000199'] },
   }),
 }));
 vi.mock('@/hooks/use-toast', () => ({ toast: mocks.toast }));
@@ -106,7 +108,7 @@ vi.mock('@/components/ui/select', async () => {
 // existe para congelar query keys e payloads, não para exercitar o cmdk — e
 // mantê-lo como `<select>` preserva a ordem dos `getAllByRole('combobox')` de
 // que as asserções dependem. Quem prova a BUSCA é SingleSelectCombobox.test.tsx.
-vi.mock('@/components/dashboards/SingleSelectCombobox', () => ({
+vi.mock('@/components/ui/SingleSelectCombobox', () => ({
   SingleSelectCombobox: ({ options, value, onChange }: { options: { value: string; label: string }[]; value: string | null; onChange: (value: string | null) => void }) => (
     <select value={value ?? ''} onChange={(event) => onChange(event.target.value || null)}>
       <option value="" />

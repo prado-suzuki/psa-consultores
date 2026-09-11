@@ -13,7 +13,7 @@ import { usePreviewDashboardEmbedUrl } from '@/hooks/usePreviewDashboardEmbedUrl
 import { DASHBOARD_PAGE_PATH } from '@/config/dashboardPages';
 import type { Dashboard, DashboardFilterType, MinRole } from '@/hooks/useDashboards';
 import { DicaIcon } from '@/components/equipe/mapa/Tooltip';
-import { SingleSelectCombobox } from './SingleSelectCombobox';
+import { SingleSelectCombobox } from '@/components/ui/SingleSelectCombobox';
 import { DashboardIframe } from './DashboardIframe';
 
 const FILTER_LABEL: Record<DashboardFilterType, string> = {

@@ -26,7 +26,7 @@ import {
 import { useDashboardAccessMaps, useSetDashboardAccess } from '@/hooks/useDashboardAccess';
 import { useClientesList } from '@/hooks/useClientesList';
 import { useClusters } from '@/hooks/useClusters';
-import { MultiSelectCombobox } from '@/components/dashboards/MultiSelectCombobox';
+import { MultiSelectCombobox } from '@/components/ui/MultiSelectCombobox';
 import { DashboardOverviewDialog } from '@/components/dashboards/DashboardOverviewDialog';
 import { DASHBOARD_PAGES, DASHBOARD_PAGE_PATH } from '@/config/dashboardPages';
 

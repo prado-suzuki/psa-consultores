@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { currentAmbiente } from "@/config/api";
@@ -7,11 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 interface ConsultaXMLsCliente {
   id: string;
   nome: string;
-}
-
-interface CnpjDeCliente {
-  cliente_id: string;
-  cpf_cnpj: string | null;
 }
 
 interface ConsultaXMLsContribuinte {
@@ -90,42 +84,5 @@ export function useDomainConsultaXMLs(selectedCliente: string) {
     },
   });
 
-  /**
-   * Os CNPJs de cada cliente, para o campo de cliente se deixar buscar por CNPJ.
-   *
-   * Consulta SEPARADA, e não uma coluna a mais no `clientesQuery`, por dois
-   * motivos: `cliente` não TEM CNPJ (a coluna vive em `contribuinte`, e um
-   * cliente tem vários), e mexer no `select` do `clientesQuery` mudaria a forma
-   * do que já está em cache sob `clientes-list`. Aqui o recorte por
-   * `selectedCliente` não entra de propósito — o índice precisa cobrir a lista
-   * inteira, senão só se acha por CNPJ o cliente que já está selecionado.
-   */
-  const cnpjsQuery = useQuery({
-    queryKey: ["clientes-cnpjs"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contribuinte")
-        .select("cliente_id, cpf_cnpj")
-        .eq("excluido", false)
-        .eq("ambiente", currentAmbiente);
-
-      if (error) {
-        console.error("Erro ao buscar CNPJs dos clientes:", error);
-        throw new Error(`Erro ao carregar CNPJs dos clientes: ${error.message}`);
-      }
-
-      return data as CnpjDeCliente[];
-    },
-  });
-
-  const cnpjsPorCliente = useMemo(() => {
-    const mapa: Record<string, string[]> = {};
-    for (const linha of cnpjsQuery.data ?? []) {
-      if (!linha.cliente_id || !linha.cpf_cnpj) continue;
-      (mapa[linha.cliente_id] ??= []).push(linha.cpf_cnpj);
-    }
-    return mapa;
-  }, [cnpjsQuery.data]);
-
-  return { clientesQuery, contribuintesQuery, cnpjsPorCliente };
+  return { clientesQuery, contribuintesQuery };
 }

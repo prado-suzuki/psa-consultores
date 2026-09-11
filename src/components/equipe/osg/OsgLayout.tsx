@@ -6,13 +6,7 @@ import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useClientesLista } from '@/hooks/useGestaoClientes';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 import {
   Briefcase,
@@ -86,25 +80,19 @@ const OsgWorkClienteBar = () => {
           <Label className="text-sm font-bold text-osg-700 uppercase tracking-wide">Cliente</Label>
         </div>
         <div className="flex-1 max-w-md">
-          <Select value={clienteId || undefined} onValueChange={setClienteId} disabled={isLoading}>
-            <SelectTrigger
-              className={cn(
-                'h-10 font-medium',
-                semCliente
-                  ? 'border-2 border-osg-300 ring-2 ring-osg-100 bg-background'
-                  : 'border-osg-200 bg-background',
-              )}
-            >
-              <SelectValue placeholder={isLoading ? 'Carregando...' : 'Selecione um cliente...'} />
-            </SelectTrigger>
-            <SelectContent>
-              {clientes.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SelecaoDeCliente
+            clientes={clientes}
+            value={clienteId}
+            onChange={setClienteId}
+            loading={isLoading}
+            placeholder="Selecione um cliente..."
+            className={cn(
+              'w-full min-w-0 h-10 font-medium',
+              semCliente
+                ? 'border-2 border-osg-300 ring-2 ring-osg-100 bg-background'
+                : 'border-osg-200 bg-background',
+            )}
+          />
         </div>
         {semCliente ? (
           <div className="flex items-center gap-1.5 text-xs font-medium text-osg-700">
