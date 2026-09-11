@@ -150,6 +150,22 @@ interface NotificarRequest {
    * erro por omissao tem de ser mandar mais e nao menos.
    */
   canais?: Canal[];
+  /**
+   * Para QUEM enviar, por `user_id`. Ausente = todos os representantes do cliente,
+   * que continua sendo o comportamento dos avisos AUTOMÁTICOS.
+   *
+   * Mandam esse campo os dois avisos que passam por um modal antes de sair
+   * (10/09/2026, pedido da OSG): a cobrança do checklist e o primeiro envio da
+   * solicitação. Com dois ou três sócios no mesmo cliente, mandar para quem não
+   * é do assunto gera resposta irritada, e antes o analista não tinha como dizer
+   * "esse não".
+   *
+   * É FILTRO, não fonte. A lista de destinatários continua saindo de
+   * `destinatarios_cliente` aqui dentro — quem chama só consegue ENCOLHER o
+   * conjunto, nunca acrescentar um contato. Sem isso, um analista poderia mandar
+   * a situação do cliente para um endereço qualquer.
+   */
+  destinatarios?: string[];
   /** Só em `situacao_documentos`: o que a tela derivou no momento do clique. */
   situacao?: {
     pendentes: ItemAviso[];
@@ -204,8 +220,22 @@ async function validateCaller(req: Request): Promise<Caller> {
     { global: { headers: { Authorization: authHeader } } }
   );
 
+  /**
+   * As duas saídas ficam SEPARADAS de propósito (09/09/2026).
+   *
+   * Elas caíam na mesma mensagem, "Invalid token", e isso custou meia hora de
+   * investigação no go-live: um aviso não saiu, o log dizia "Invalid token", e
+   * não havia como saber se o token do usuário tinha vencido ou se o `getClaims`
+   * não conseguira falar com o Auth. As saídas são opostas — no primeiro caso
+   * quem chamou renova e repete; no segundo, repetir é o certo mas o problema é
+   * nosso, não da credencial de quem clicou.
+   */
   const { data, error } = await supabase.auth.getClaims(token);
-  if (error || !data?.claims) return { authorized: false, error: "Invalid token" };
+  if (error) {
+    console.error("[notificar] getClaims falhou:", error.message);
+    return { authorized: false, error: "Auth service unavailable" };
+  }
+  if (!data?.claims) return { authorized: false, error: "Invalid token" };
   if (data.claims.role === "service_role") return { authorized: true, equipe: true };
 
   const userId = data.claims.sub as string | undefined;
@@ -285,6 +315,26 @@ function chaveIdempotencia(tipo: string, entidadeId: string, canal: Canal, desti
   return `${tipo}:${ENTIDADE_TIPO}:${entidadeId}:${canal}:${destino}:${diaLocal()}`;
 }
 
+/**
+ * Linha de `destinatarios_cliente(uuid)`, que é `RETURNS TABLE(user_id uuid,
+ * nome text, email text, telefone text)`. O cliente Deno não carrega os tipos
+ * gerados do banco, então `rpc` devolve `any` e um `.map()` sobre o resultado
+ * fica com parâmetro implicitamente `any` — o `deno check` do deploy recusa.
+ * Nomear a linha aqui devolve tipo ao filtro de destinatários e ao laço que
+ * monta `alcancaveis` logo abaixo.
+ *
+ * `user_id` é `string`, não `string | null`, porque a RPC já devolve só
+ * representante COM acesso ao portal — o `user_id` não nulo é a definição de
+ * "tem acesso". Os demais campos são nulláveis de verdade: telefone ausente em
+ * 30 de 38 destinatários.
+ */
+interface DestinatarioBruto {
+  user_id: string;
+  nome: string | null;
+  email: string | null;
+  telefone: string | null;
+}
+
 interface Alcancavel {
   email: string | null;
   telefone: string | null;
@@ -324,7 +374,8 @@ Deno.serve(async (req) => {
       return json({ error: "Não autorizado" }, 401);
     }
 
-    const { event_type, solicitacao_id, situacao, canais } = (await req.json()) as NotificarRequest;
+    const { event_type, solicitacao_id, situacao, canais, destinatarios } =
+      (await req.json()) as NotificarRequest;
     if (!event_type || !solicitacao_id) {
       return json({ error: "event_type and solicitacao_id are required" }, 400);
     }
@@ -358,6 +409,33 @@ Deno.serve(async (req) => {
       if (canais.length === 0) return json({ error: "canais nao pode ser lista vazia" }, 400);
     }
     const canaisDoEnvio: Canal[] = canais?.length ? CANAIS.filter((c) => canais.includes(c)) : CANAIS;
+
+    /**
+     * Escolher destinatário só vale onde existe alguém escolhendo.
+     *
+     * Os TRÊS avisos ao cliente passaram a ter modal na frente, um de cada vez:
+     * `situacao_documentos` (a cobrança do checklist) e `solicitacao_enviada` (o
+     * primeiro envio) em 10/09/2026, e `documento_aprovado` (a finalização) em
+     * 11/09. Até então este último era o único que saía sozinho — medido no teste
+     * em produção de 11/09: o envio com destinatário escolhido gravou 2 linhas, e
+     * a finalização do mesmo fluxo gravou 4, para todo representante nos dois
+     * canais, sem ninguém ter decidido isso.
+     *
+     * `solicitacao_vencida` continua de fora, e agora é o único: ele nasce de um
+     * relógio (pg_cron), não há tela nem analista no caminho, e aceitar lista ali
+     * faria um aviso automático sair para meio cliente sem decisão humana.
+     */
+    const EVENTOS_COM_ESCOLHA = new Set([
+      "situacao_documentos",
+      "solicitacao_enviada",
+      "documento_aprovado",
+    ]);
+    if (destinatarios && !EVENTOS_COM_ESCOLHA.has(event_type)) {
+      return json({ error: `destinatarios não vale em ${event_type}` }, 400);
+    }
+    if (destinatarios && destinatarios.length === 0) {
+      return json({ error: "destinatarios nao pode ser lista vazia" }, 400);
+    }
 
     const tipoNoBanco = TIPO_NO_BANCO[event_type] ?? event_type;
 
@@ -519,17 +597,34 @@ Deno.serve(async (req) => {
     // `destinatarios_cliente` devolve uma linha por representante COM acesso ao
     // portal (`user_id` não nulo). O buraco não é contato ausente — é cliente sem
     // representante com acesso, que existe.
-    const { data: brutos, error: destinatariosError } = await supabase.rpc(
+    const { data: brutos, error: destinatariosError } = (await supabase.rpc(
       "destinatarios_cliente",
       { _cliente_id: solicitacao.cliente_id }
-    );
+    )) as { data: DestinatarioBruto[] | null; error: { message: string } | null };
     if (destinatariosError) {
       console.error("[notificar] destinatarios_cliente failed:", destinatariosError);
       return json({ error: "Falha ao resolver destinatários" }, 500);
     }
 
+    // Filtro de escolha do analista. Id que não está entre os representantes do
+    // cliente é RECUSADO em vez de ignorado, pela mesma razão do canal
+    // desconhecido: ignorar faria a tela achar que mandou para alguém que a borda
+    // nunca percorreu. Contra `brutos`, e não contra `alcancaveis`, para o erro
+    // distinguir "esse não é representante deste cliente" de "esse não tem
+    // contato" — o segundo é caminho normal e já é tratado adiante.
+    const escolhidos = destinatarios ? new Set(destinatarios) : null;
+    if (escolhidos) {
+      const conhecidos = new Set((brutos ?? []).map((d) => d.user_id));
+      const intruso = [...escolhidos].find((id) => !conhecidos.has(id));
+      if (intruso) {
+        console.error(`[notificar] destinatário ${intruso} não representa o cliente ${solicitacao.cliente_id}`);
+        return json({ error: "destinatário não é representante deste cliente" }, 400);
+      }
+    }
+
     const alcancaveis: Alcancavel[] = [];
     for (const d of brutos ?? []) {
+      if (escolhidos && !escolhidos.has(d.user_id)) continue;
       // Fallback pelo perfil quando o representante não tem e-mail próprio.
       const email = d.email?.trim() || (d.user_id ? await getEmailForUser(supabase, d.user_id) : null);
       const telefone = d.telefone?.trim() || null;
@@ -583,8 +678,6 @@ Deno.serve(async (req) => {
 
     // Total e quebra por tema. `grupo` é o enum osg_doc_grupo: pf | pj |
     // bens_imoveis | outros — a mesma ordem dos marcadores {{4}}..{{7}} do aviso 1.
-    // No aviso 3 o total é a contagem de aceitos: no encerramento, o pedido
-    // inteiro está conferido.
     const { data: itens } = await supabase
       .from("solicitacao_item")
       .select("grupo")
@@ -597,12 +690,51 @@ Deno.serve(async (req) => {
       if (g in porGrupo) porGrupo[g] += 1;
     }
 
+    // ── Cada aviso conta uma coisa diferente, e é de propósito (11/09/2026) ──
+    //
+    //   aviso 1  tipos de documento pedidos       `solicitacao_item` ativo
+    //   aviso 2  documento × entidade pendente    derivado na tela, chega em `situacao`
+    //   aviso 3  arquivos APROVADOS no fim        a consulta abaixo
+    //
+    // Os três números divergem entre si e isso não é defeito: na fase de gaveta o
+    // cliente manda um arquivo por tipo, e no checklist um por par documento-
+    // entidade. O que ERA defeito é o aviso 3 mandar o primeiro número.
+    //
+    // O texto dele afirma "A documentação está completa e conferida. São {{4}}
+    // documentos, sem pendências" — e `avisos-cliente.md` define {{4}} como
+    // "documentos aceitos no pedido, acumulado". Mandávamos o tamanho do pedido,
+    // e o comentário aqui chegava a afirmar que fazia a conta certa. Medido em
+    // produção em 11/09: uma solicitação encerrada com ZERO arquivos recebidos
+    // avisou o cliente de "43 documentos, sem pendências".
+    //
+    // Encerrar com o pedido incompleto é rotina, não exceção — o analista fecha
+    // sem o cliente ter mandado tudo, e sem marcar "não se aplica" em cada
+    // pendência que sobrou. É justamente por isso que o total tem de sair do que
+    // foi APROVADO, e não do que foi pedido.
+    let totalDocumentos = itens?.length ?? 0;
+    if (event_type === "documento_aprovado") {
+      const { count, error: erroAprovados } = await supabase
+        .from("documento_arquivo")
+        .select("id", { count: "exact", head: true })
+        .eq("solicitacao_id", solicitacao.id)
+        .eq("excluido", false)
+        .eq("revisao", "aprovado");
+
+      // Contagem que falhou é "não sei", e cair para o número antigo devolveria
+      // a mensagem falsa que esta mudança existe para eliminar. Falha alto.
+      if (erroAprovados) {
+        console.error("[notificar] Falha ao contar documentos aprovados:", erroAprovados);
+        return json({ error: "não foi possível contar os documentos aprovados" }, 500);
+      }
+      totalDocumentos = count ?? 0;
+    }
+
     const solicitacaoData = {
       id: solicitacao.id,
       cliente_id: solicitacao.cliente_id,
       cliente_nome: cliente?.nome ?? "",
       objeto,
-      total_documentos: itens?.length ?? 0,
+      total_documentos: totalDocumentos,
       por_grupo: porGrupo,
       enviada_em: solicitacao.enviada_em,
       encerrada_em: solicitacao.encerrada_em,

@@ -8,40 +8,62 @@
 //
 // O QUE A TELA MOSTRA, E O QUE ELA NÃO MOSTRA:
 //
-//   mostra   o que vai na mensagem, os canais, e QUANDO o cliente foi avisado antes
+//   mostra   o que vai na mensagem, para quem, os canais, e QUANDO o cliente foi
+//            avisado antes
 //   não      falha, tentativa, erro, status técnico
 //
 // A ausência é decisão de produto, não esquecimento. Falha de envio é problema do
 // Digital, que é alertado pelo Agente Debug V2 — o consultor não tem como consertar
 // e não deve ser estressado com isso. O painel conta o que o cliente recebeu.
 //
+// ESCOLHER DESTINATÁRIO (10/09/2026): a lista de representantes virou marcável, no
+// mesmo desenho dos canais. O que muda aqui é que TODA conta de canal passou a ser
+// sobre os SELECIONADOS — quantos alcança, quantos já receberam hoje, se sobra
+// alguém. Contar sobre o cliente inteiro faria a tela liberar um canal que não
+// alcança ninguém deste envio.
+//
 // Vive em arquivo próprio pelas mesmas duas razões do BotaoComprovante: o teto de
 // 600 linhas do AGENTS.md (o ChecklistPendentes já passava dele) e poder ser testado
-// sem montar a tela inteira do checklist.
-import { useEffect, useMemo, useState } from 'react';
+// sem montar a tela inteira do checklist. As peças de desenho saíram para
+// `avisoKit.tsx` quando a escolha de destinatário empurrou este arquivo contra o
+// mesmo teto.
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Loader2, Mail, MessageCircle, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+// `OsgDialog` e NUNCA `@/components/ui/dialog`: e a regra de estilo da area
+// (docs/planos/override-blocos.md §8), e os outros 20 modais da OSG ja a seguem.
+// Ele reexporta as mesmas pecas com os mesmos nomes e troca so o `DialogContent`
+// — entrada `animate-osg-modal-in` e overlay com blur —, entao o JSX abaixo nao
+// muda. Este modal e o de enviar a solicitacao nasceram fora do padrao e voltaram
+// para ele em 11/09/2026.
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+} from '@/components/equipe/osg/OsgDialog';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
+import { invocarBorda } from '@/lib/bordaSupabase';
 import { useAvisoProjetosDaOS } from '@/hooks/useAvisoProjetosDaOS';
-import { alcanceDosCanais, useDestinatariosCliente } from '@/hooks/useDestinatariosCliente';
-import { useHistoricoNotificacoes } from '@/hooks/useHistoricoNotificacoes';
+import {
+  alcanceDosCanais, contatoNoCanal, podeReceberAgora, useDestinatariosCliente,
+} from '@/hooks/useDestinatariosCliente';
+import { historicoNotificacoesKey, useHistoricoNotificacoes } from '@/hooks/useHistoricoNotificacoes';
+// As frases de bloqueio moram com a escolha de envio, para as três telas dizerem
+// a mesma coisa. Este modal não usa o hook — tem estado próprio pela janela
+// diária —, mas usa as mesmas palavras.
+import { motivoDaEscolha } from '@/hooks/useEscolhaDeEnvio';
 import {
   descreverEnvio, montarSituacaoDocumentos, temAlgoParaAvisar,
   type RespostaNotificar,
 } from '@/lib/avisoSituacaoDocumentos';
 import type { LinhaChecklist } from '@/lib/checklistDerivado';
 import {
-  canaisEnviadosHoje, diaSeguinte, disparoDeHoje, formatarDia, formatarQuando,
-  rotuloDoAviso, rotuloDosCanais,
+  diaSeguinte, disparoDeHoje, envioDeHojePara, formatarDia, nomePorContato,
+  rotuloDosCanais, type CanalAviso,
 } from '@/lib/historicoNotificacoes';
+import { ComTooltip, LinhaCanal, Numero, Rotulo } from './avisoKit';
+import { ListaDeDestinatarios, PainelDeHistorico } from './AvisoDestinatarios';
 
 /**
  * O aviso 2 grava com o valor de enum `cobranca_pendencia`, e não com o nome da API.
@@ -52,84 +74,9 @@ import {
  */
 const TIPO_NO_BANCO = 'cobranca_pendencia';
 
-import type { Database } from '@/integrations/supabase/types';
+const CANAIS: CanalAviso[] = ['email', 'whatsapp'];
 
-type Canal = Database['public']['Enums']['notificacao_canal'];
-
-export type CanalAviso = 'email' | 'whatsapp';
-
-/** Rótulo de seção, no mesmo tratamento dos da tela do checklist. */
-function Rotulo({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-osg-500">
-      {children}
-    </span>
-  );
-}
-
-/**
- * Um número grande com rótulo, no molde do `Metric` do cabeçalho da tela.
- *
- * Os dois números são a informação central do modal — é o que vai ser cobrado do
- * cliente. Antes eram duas frases soltas no meio de outras, e o analista tinha de
- * LER para saber o que ia sair. Zero fica esmaecido em vez de escondido: "0 a
- * reenviar" é informação, e omitir a caixa faria o layout dançar entre clientes.
- *
- * A COR SAIU DO DOURADO. Eu tinha pintado o fundo de `osg-highlighter/15`, e
- * ficava um amarelo lavado que não conversava com nada em volta — o dourado da
- * casa é MARCA-TEXTO (`TextoFormatado.tsx`), não fundo de cartão. O tratamento
- * certo é o do `Metric` do cabeçalho: tijolo bege `bg-osg-50`, número em
- * `osg-700`, rótulo minúsculo em caixa alta. O único desvio é o número de
- * recusados, porque ali a cor carrega significado — documento devolvido —, e por
- * isso ele veste o papel `ajuste`, o mesmo que o `recusado` de
- * `estadoDocumentoColors`. Era `osg-red`, a âncora da área, que não pinta papel
- * de status.
- */
-function Numero({ valor, rotulo, tom }: {
-  valor: number;
-  rotulo: string;
-  tom: 'pendente' | 'reenviar';
-}) {
-  const vazio = valor === 0;
-  return (
-    <div className="rounded-xl bg-osg-50 px-4 py-3">
-      <div className={cn(
-        'text-3xl font-extrabold leading-none tabular-nums',
-        vazio ? 'text-osg-300' : tom === 'pendente' ? 'text-osg-700' : 'text-status-ajuste',
-      )}>
-        {valor}
-      </div>
-      <div className={cn(
-        'mt-1.5 text-[10px] font-bold uppercase leading-tight tracking-wide',
-        vazio ? 'text-osg-300' : 'text-osg-500',
-      )}>
-        {rotulo}
-      </div>
-    </div>
-  );
-}
-
-/**
- * Envolve num tooltip só quando existe motivo para explicar.
- *
- * Sem motivo, devolve o filho intocado: tooltip que repete o que já está escrito na
- * tela é ruído, e todo elemento envolvido ganha um `TooltipTrigger` que interfere
- * em foco e teclado sem entregar nada.
- */
-function ComTooltip({ texto, children }: {
-  texto?: string;
-  children: React.ReactNode;
-}) {
-  if (!texto) return <>{children}</>;
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent className="max-w-xs text-xs leading-relaxed">
-        {texto}
-      </TooltipContent>
-    </Tooltip>
-  );
-}
+export type { CanalAviso };
 
 /**
  * O rótulo do botão diz o CANAL, não uma contagem nem um status.
@@ -146,113 +93,7 @@ function ComTooltip({ texto, children }: {
  */
 function rotuloDoBotao(canais: readonly CanalAviso[]): string {
   if (canais.length === 0) return 'Enviar notificação';
-  return `Enviar por ${rotuloDosCanais(canais as Canal[])}`;
-}
-
-/** O horário de `17/08/2026 às 09:15`. O painel ao lado já diz o dia. */
-function soAHora(iso: string): string {
-  return formatarQuando(iso).split(' às ')[1] ?? '';
-}
-
-/**
- * Uma caixa de canal, desenhada como ESCOLHA e não como status.
- *
- * O desenho anterior era uma linha de texto com um marcador verde ao lado, e lia
- * como indicador de estado — o analista não percebia que dava para desmarcar.
- * Agora é um cartão com borda, que muda de cor quando selecionado.
- *
- * QUEM JÁ SAIU NÃO MOSTRA CHECKBOX, mostra um ✓ — e em cinza, não em verde. Um
- * checkbox desabilitado convida ao clique justamente onde não há nada para clicar; um
- * ✓ verde resolvia isso mas criava outro problema, porque verde é a cor do canal
- * SELECIONADO e a linha morta acabava com a cara da linha ativa.
- *
- * O motivo de estar desabilitada aparece em três lugares, cada um para um jeito de
- * olhar: a nota embaixo do nome para quem lê, o cursor de proibido para quem passa o
- * mouse, e o tooltip para quem quer a frase inteira com data. "WhatsApp desabilitado"
- * sozinho faria o analista achar que é defeito da tela.
- */
-function LinhaCanal({
-  rotulo, nomeNoTexto, contato, Icone, marcado, onAlternar, carregando, alcance,
-  enviadoEm, proximoEm, enviando,
-}: {
-  canal: CanalAviso;
-  /** O nome do canal como título: "E-mail", "WhatsApp". */
-  rotulo: string;
-  /** O nome dentro de uma frase: "por e-mail", "por WhatsApp". */
-  nomeNoTexto: string;
-  /** O que falta no cadastro quando não há alcance: "e-mail", "telefone". */
-  contato: string;
-  Icone: typeof Mail;
-  marcado: boolean;
-  onAlternar: () => void;
-  carregando: boolean;
-  alcance: number;
-  enviadoEm?: string;
-  /** `18/08/2026` — a partir de quando libera. */
-  proximoEm: string;
-  enviando: boolean;
-}) {
-  const jaSaiu = Boolean(enviadoEm);
-  const semDestinatario = alcance === 0;
-  const bloqueado = carregando || jaSaiu || semDestinatario || enviando;
-
-  const nota = carregando ? 'carregando...'
-    : semDestinatario ? `ninguém com ${contato} cadastrado`
-      : jaSaiu ? `notificação enviada hoje às ${soAHora(enviadoEm as string)}`
-        : `${alcance} ${alcance === 1 ? 'destinatário' : 'destinatários'}`;
-
-  // O tooltip só existe onde a tela não cabe a frase inteira: o motivo do bloqueio.
-  // Onde o canal está livre, a nota já diz tudo, e um tooltip repetiria.
-  const motivo = jaSaiu
-    ? `A notificação por ${nomeNoTexto} já foi enviada hoje às `
-      + `${soAHora(enviadoEm as string)}. Uma nova poderá ser enviada a partir de `
-      + `${proximoEm}.`
-    : semDestinatario
-      ? `Nenhum representante com acesso ao portal tem ${contato} cadastrado. `
-        + 'Complete o cadastro do cliente para liberar este canal.'
-      : undefined;
-
-  return (
-    <ComTooltip texto={motivo}>
-      <label className={cn(
-        'flex items-center gap-3 rounded-xl border px-3 py-3 transition-colors',
-        // `not-allowed` é o cursor que o navegador desenha como proibido. Sem ele o
-        // ponteiro continua de mão aberta sobre uma caixa que não responde, e o
-        // analista clica duas, três vezes achando que a tela travou.
-        bloqueado ? 'cursor-not-allowed' : 'cursor-pointer',
-        // APAGADO, não verde. Eu tinha pintado a linha já enviada de verde-musgo, e
-        // verde aqui é a cor do canal SELECIONADO — a linha morta ficava com a
-        // aparência da linha ativa e convidava ao clique. Canal indisponível tem de
-        // parecer desligado.
-        bloqueado ? 'border-osg-100 bg-osg-50/50'
-          : marcado ? 'border-osg-moss/50 bg-osg-moss/10'
-            : 'border-osg-200 bg-background hover:bg-osg-50/60',
-      )}>
-        {jaSaiu
-          ? <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-osg-300" />
-          : (
-            <Checkbox
-              checked={marcado}
-              onCheckedChange={onAlternar}
-              disabled={bloqueado}
-              className="h-[18px] w-[18px]"
-            />
-          )}
-        <Icone className={cn('h-4 w-4 shrink-0',
-          bloqueado ? 'text-osg-300' : marcado ? 'text-osg-moss' : 'text-osg-500')} />
-        <span className="min-w-0">
-          <span className={cn('block text-sm font-semibold',
-            bloqueado ? 'text-osg-300' : 'text-osg-700')}>
-            {rotulo}
-          </span>
-          <span className={cn('block text-xs',
-            bloqueado ? 'text-osg-300' : 'text-osg-500')}>
-            {nota}
-          </span>
-        </span>
-      </label>
-    </ComTooltip>
-  );
+  return `Enviar por ${rotuloDosCanais(canais)}`;
 }
 
 export interface ModalAvisarClienteProps {
@@ -273,49 +114,117 @@ export function ModalAvisarCliente({
   );
   const {
     data: historico = [], isLoading: carregandoHist, isError: erroHist,
-  } = useHistoricoNotificacoes(aberto ? solicitacaoId : null);
+    // `aoVivo` porque o painel está na tela: a confirmação do n8n chega alguns
+    // segundos depois do envio, e sem repetir a busca ela só apareceria na
+    // próxima abertura. Ver a nota do hook.
+  } = useHistoricoNotificacoes(aberto ? solicitacaoId : null, { aoVivo: aberto });
 
-  const alcance = useMemo(() => alcanceDosCanais(destinatarios), [destinatarios]);
   const jaHoje = useMemo(() => disparoDeHoje(historico, TIPO_NO_BANCO), [historico]);
-
-  /**
-   * O que já saiu HOJE, por canal — e o bloqueio é por canal, não pelo aviso.
-   *
-   * Se o analista manda e-mail e só depois percebe que esqueceu o WhatsApp, ele tem
-   * de conseguir mandar o WhatsApp em seguida. A borda já permite: a chave de
-   * idempotência inclui o canal, então a segunda chamada reserva o WhatsApp e recusa
-   * só o e-mail.
-   */
-  const enviadosHoje = useMemo(
-    () => canaisEnviadosHoje(historico, TIPO_NO_BANCO), [historico],
-  );
-
-  const indisponivel = (canal: CanalAviso) => (
-    alcance[canal] === 0 || Boolean(enviadosHoje[canal])
-  );
+  // Contato → nome, para o histórico anotar quem era. Sai do cadastro de AGORA e
+  // por isso acompanha o contato gravado, nunca o substitui — ver `AvisoDestinatarios`.
+  const nomes = useMemo(() => nomePorContato(destinatarios), [destinatarios]);
 
   const [canais, setCanais] = useState<CanalAviso[]>(['email', 'whatsapp']);
+  const [selecionados, setSelecionados] = useState<string[]>([]);
   const [enviando, setEnviando] = useState(false);
+  const queryClient = useQueryClient();
   const avisoNosProjetos = useAvisoProjetosDaOS();
 
-  // Desmarca sozinho o que não pode ir: canal sem destinatário alcançável e canal
-  // que já saiu hoje. Fica no efeito e não no estado inicial porque as duas
-  // consultas chegam depois da abertura do modal.
-  useEffect(() => {
-    if (carregandoDest || carregandoHist) return;
-    setCanais((atual) => atual.filter((c) => !indisponivel(c)));
-    // `indisponivel` deriva de alcance e enviadosHoje; depender dos dois é o que
-    // evita reexecutar em toda renderização.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [carregandoDest, carregandoHist, alcance.email, alcance.whatsapp,
-      enviadosHoje.email, enviadosHoje.whatsapp]);
+  const carregando = carregandoDest || carregandoHist;
 
-  const alternar = (canal: CanalAviso) => setCanais((atual) => (
+  /**
+   * A seleção nasce com TODO MUNDO que ainda pode receber, e é semeada uma vez
+   * por abertura.
+   *
+   * O padrão ser "todos" repete a decisão do canal: esquecer alguém é o cliente
+   * não avisado, e o erro por omissão tem de ser mandar mais e não menos. Quem
+   * já recebeu hoje fica de fora porque a borda recusaria a linha dele.
+   *
+   * A trava de uma vez por abertura existe porque `useQuery` refaz a consulta ao
+   * voltar o foco da janela: sem ela, o analista que desmarcasse um sócio e
+   * trocasse de aba veria a marca voltar sozinha.
+   */
+  const semeado = useRef(false);
+  useEffect(() => {
+    if (!aberto) { semeado.current = false; return; }
+    if (semeado.current || carregando) return;
+    semeado.current = true;
+    setSelecionados(
+      destinatarios.filter((d) => podeReceberAgora(d, jaHoje)).map((d) => d.user_id),
+    );
+  }, [aberto, carregando, destinatarios, jaHoje]);
+
+  const escolhidos = useMemo(
+    () => destinatarios.filter((d) => selecionados.includes(d.user_id)),
+    [destinatarios, selecionados],
+  );
+
+  /**
+   * Por canal: quantos dos escolhidos ele alcança, e quantos já receberam hoje.
+   *
+   * A divisão entre os dois é o que permite a frase certa na caixa. "0
+   * destinatários" cabe em duas situações opostas — ninguém tem telefone, ou
+   * todos já receberam — e o analista age diferente em cada uma.
+   */
+  const contagem = useMemo(() => {
+    const conta = (canal: CanalAviso) => {
+      let aReceber = 0;
+      let jaReceberam = 0;
+      for (const d of escolhidos) {
+        const contato = contatoNoCanal(d, canal);
+        if (!contato) continue;
+        if (envioDeHojePara(jaHoje, canal, contato)) jaReceberam += 1;
+        else aReceber += 1;
+      }
+      return { aReceber, jaReceberam };
+    };
+    return { email: conta('email'), whatsapp: conta('whatsapp') };
+  }, [escolhidos, jaHoje]);
+
+  /**
+   * Os canais que este envio vai realmente percorrer.
+   *
+   * Marcado não basta: o canal precisa alcançar alguém dos escolhidos que ainda
+   * não recebeu. É esta lista que vai no corpo da chamada, para a borda não
+   * abrir um canal que a tela já sabe que não tem destino.
+   */
+  const canaisEfetivos = useMemo(
+    () => CANAIS.filter((c) => canais.includes(c) && contagem[c].aReceber > 0),
+    [canais, contagem],
+  );
+
+  /**
+   * Canal que NENHUM representante do cliente alcança sai desmarcado sozinho.
+   *
+   * A conta aqui é sobre o cliente inteiro, e não sobre os escolhidos, de
+   * propósito: é propriedade estável do cadastro. Desmarcar em função da escolha
+   * faria a caixa piscar a cada clique na lista de destinatários, e o analista
+   * teria de remarcar o canal depois de trocar de sócio.
+   */
+  const alcanceTotal = useMemo(() => alcanceDosCanais(destinatarios), [destinatarios]);
+  useEffect(() => {
+    if (carregandoDest) return;
+    setCanais((atual) => atual.filter((c) => alcanceTotal[c] > 0));
+  }, [carregandoDest, alcanceTotal]);
+
+  const alternarCanal = (canal: CanalAviso) => setCanais((atual) => (
     atual.includes(canal) ? atual.filter((c) => c !== canal) : [...atual, canal]
   ));
 
-  const nenhumCanalDisponivel = indisponivel('email') && indisponivel('whatsapp');
-  const podeEnviar = temAlgoParaAvisar(dados) && canais.length > 0 && !enviando;
+  const alternarDestinatario = (userId: string) => setSelecionados((atual) => (
+    atual.includes(userId) ? atual.filter((id) => id !== userId) : [...atual, userId]
+  ));
+
+  /**
+   * A TRAVA DO PAR, igual nos três modais de aviso (11/09/2026): um destinatário
+   * marcado E um canal que o alcance. Não existe disparar evento sem avisar
+   * ninguém — vale para enviar, cobrar e finalizar.
+   *
+   * Aqui ela soma a pré-condição própria desta tela: sem pendência nem devolução
+   * não há o que informar, e a mensagem sairia dizendo "faltam 0 documentos".
+   */
+  const temOParMinimo = escolhidos.length > 0 && canaisEfetivos.length > 0;
+  const podeEnviar = temAlgoParaAvisar(dados) && temOParMinimo && !enviando;
 
   /**
    * As datas saem do DIA DO DISPARO, não de `new Date()`.
@@ -327,37 +236,56 @@ export function ModalAvisarCliente({
   const dataDoAviso = jaHoje ? formatarDia(jaHoje.dia) : '';
   const proximoEm = jaHoje ? formatarDia(diaSeguinte(jaHoje.dia)) : '';
 
+  // As duas faixas do topo falam do CLIENTE, não da escolha: são estados em que
+  // não há envio possível hoje faça o analista o que fizer, e por isso não podem
+  // aparecer e sumir conforme ele marca e desmarca gente.
+  const semNinguem = destinatarios.length > 0
+    && destinatarios.every((d) => !d.email && !d.telefone);
+  const todosJaReceberam = destinatarios.length > 0
+    && destinatarios.every((d) => !podeReceberAgora(d, jaHoje));
+
   /**
    * Por que o botão está apagado, em uma frase — e `undefined` quando ele funciona.
    *
-   * A ordem importa: o dia fechado é o motivo mais provável e o mais específico, e
-   * tem de ganhar dos genéricos. "Escolha um canal" em cima de "já enviado hoje"
-   * mandaria o analista escolher um canal que não existe.
+   * A ordem importa: vai do que o analista consegue resolver na hora (marcar
+   * alguém, marcar um canal) para o que ele não resolve (o dia já fechou). Dizer
+   * "já enviado hoje" para quem simplesmente desmarcou todo mundo mandaria ele
+   * esperar até amanhã sem motivo.
    */
   const motivoDoBloqueio = enviando ? undefined
-    : nenhumCanalDisponivel && jaHoje
-      ? `A notificação já foi enviada hoje, ${dataDoAviso}, por `
-        + `${rotuloDosCanais(jaHoje.canais)}. Uma nova poderá ser enviada a partir de `
-        + `${proximoEm}.`
-      : nenhumCanalDisponivel
-        ? 'Nenhum representante com acesso ao portal tem e-mail ou telefone '
-          + 'cadastrado. Complete o cadastro do cliente para liberar o envio.'
-        : !temAlgoParaAvisar(dados)
-          ? 'Não há documento pendente nem devolução para informar ao cliente.'
-          : canais.length === 0
-            ? 'Escolha pelo menos um canal para enviar a notificação.'
-            : undefined;
+    : !temAlgoParaAvisar(dados)
+      ? 'Não há documento pendente nem devolução para informar ao cliente.'
+      /* A janela diária entra ANTES do motivo compartilhado, e só ela: é o único
+         caso desta tela que os outros dois modais não têm, porque só a cobrança
+         se repete. O resto das frases vem de `motivoDaEscolha`, para as três
+         telas dizerem a mesma coisa com as mesmas palavras. */
+      : canaisEfetivos.length === 0 && escolhidos.length > 0 && canais.length > 0 && jaHoje
+        ? `Os destinatários marcados já receberam esta notificação hoje, `
+          + `${dataDoAviso}. Uma nova poderá ser enviada a partir de ${proximoEm}.`
+        : motivoDaEscolha({
+          destinatarios: destinatarios.length,
+          escolhidos: escolhidos.length,
+          canais: canais.length,
+          canaisEfetivos: canaisEfetivos.length,
+        }, 'para enviar a notificação');
 
   const enviar = async () => {
     setEnviando(true);
     try {
-      const { data, error } = await supabase.functions.invoke('notificar', {
-        body: {
-          event_type: 'situacao_documentos',
-          solicitacao_id: solicitacaoId,
-          situacao: dados,
-          canais,
-        },
+      // `invocarBorda` e não `functions.invoke`: renova a sessão antes e repete uma
+      // vez no 401. Ver o cabeçalho de `bordaSupabase.ts` — em 09/09/2026 a borda
+      // recusou um aviso com "Invalid token" enquanto o UPDATE da mesma sessão passava.
+      const { data, error } = await invocarBorda('notificar', {
+        event_type: 'situacao_documentos',
+        solicitacao_id: solicitacaoId,
+        situacao: dados,
+        canais: canaisEfetivos,
+        // Só os que ainda podem receber. A borda recusaria os outros pela chave de
+        // idempotência, mas mandar quem a tela já sabe estar travado poluiria o log
+        // com dedup que não é dedup — é escolha nossa mal filtrada.
+        destinatarios: escolhidos
+          .filter((d) => podeReceberAgora(d, jaHoje))
+          .map((d) => d.user_id),
       });
       // `invoke` só rejeita em falha de transporte; recusa da função vem em `data`.
       if (error) throw error;
@@ -365,6 +293,16 @@ export function ModalAvisarCliente({
       const { texto, ok } = descreverEnvio((data ?? {}) as RespostaNotificar);
       if (ok) toast.success(texto);
       else toast.warning(texto, { duration: 8000 });
+
+      /**
+       * O painel de histórico tem linha nova para mostrar. Invalidar aqui não
+       * basta sozinho — a linha ainda está `pendente` neste instante e o painel
+       * só mostra confirmada —, mas derruba o cache para que a próxima abertura
+       * do modal vá ao banco em vez de servir a lista de antes do envio.
+       */
+      void queryClient.invalidateQueries({
+        queryKey: historicoNotificacoesKey(solicitacaoId),
+      });
 
       /**
        * Aviso 2, lado interno (GES-03). Um evento na thread de todos os projetos da
@@ -386,7 +324,7 @@ export function ModalAvisarCliente({
 
       onFechar();
     } catch (erro) {
-      toast.error('Não foi possível avisar o cliente: ' + (erro as Error).message);
+      toast.error('Não foi possível enviar a notificação: ' + (erro as Error).message);
     } finally {
       setEnviando(false);
     }
@@ -399,20 +337,26 @@ export function ModalAvisarCliente({
           histórico de notificações mais comprido ficaria cortado sem barra. */}
       <DialogContent className="flex max-w-3xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="px-6 pt-6">
+          {/* NÃO é "Enviar solicitação de documentos" (sugestão da Patrícia,
+              10/09/2026), e a distinção é o ponto: a solicitação já foi enviada
+              na tela de Solicitação de documentos, e existe um botão "Enviar
+              solicitação" de verdade lá. O mesmo verbo nas duas telas faria o
+              analista achar que está reenviando o pedido inteiro.
+
+              O nome é "notificação" porque é o termo que o resto do fluxo usa —
+              o painel ao lado ("Notificações enviadas"), o botão de envio e a
+              faixa de "o cliente não recebeu a notificação". */}
           <DialogTitle className="text-lg font-extrabold tracking-tight text-osg-700">
-            Avisar o cliente sobre a documentação
+            Enviar notificação de documentos pendentes
           </DialogTitle>
           <DialogDescription>
-            Confira o que vai ser enviado e por onde, antes de confirmar.
+            Confira os documentos, o destinatário e os canais de envio antes de confirmar.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid min-h-0 flex-1 overflow-y-auto md:grid-cols-[1fr_260px]">
           {/* ── ESQUERDA · o que vai ser enviado ── */}
           <div className="space-y-5 px-6 py-5">
-            {/* A faixa só aparece quando NÃO SOBROU canal. Enquanto houver um
-                disponível, o aviso de "já saiu hoje" vive na caixa do canal em
-                questão — travar tudo por causa de um canal era o erro anterior. */}
             {/* Verde, não âmbar. Âmbar é a cor de problema, e não há problema
                 nenhum aqui: o aviso saiu, o cliente foi informado, o trabalho está
                 feito. Pintar de amarelo um resultado bem-sucedido faz o analista
@@ -422,13 +366,13 @@ export function ModalAvisarCliente({
                 nem dizia notificação: "avisado" pode ser conversa, ligação, qualquer
                 coisa. E "amanhã" obriga o analista a fazer a conta de que dia é
                 amanhã para saber quando volta a poder. */}
-            {nenhumCanalDisponivel && jaHoje && (
+            {todosJaReceberam && jaHoje && (
               <p className="flex items-start gap-2 rounded-xl border border-osg-moss/30 bg-osg-moss/[0.07] px-3 py-2.5 text-sm leading-relaxed text-osg-700">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss" />
                 <span>
                   <strong className="font-semibold">
-                    A notificação já foi enviada hoje, {dataDoAviso}, por{' '}
-                    {rotuloDosCanais(jaHoje.canais)}.
+                    Todos os destinatários já receberam esta notificação hoje,{' '}
+                    {dataDoAviso}.
                   </strong>{' '}
                   Uma nova notificação poderá ser enviada a partir de amanhã,{' '}
                   {proximoEm}.
@@ -436,7 +380,7 @@ export function ModalAvisarCliente({
               </p>
             )}
 
-            {nenhumCanalDisponivel && !jaHoje && (
+            {semNinguem && (
               <p className="rounded-lg border border-osg-200 bg-osg-50 px-3 py-2 text-sm text-osg-700">
                 <strong className="font-semibold">Nenhum canal disponível.</strong> Nenhum
                 representante com acesso ao portal tem e-mail ou telefone cadastrado.
@@ -444,7 +388,7 @@ export function ModalAvisarCliente({
             )}
 
             <section>
-              <Rotulo>O que o cliente vai ver</Rotulo>
+              <Rotulo>Documentos da solicitação</Rotulo>
 
               {/* Os dois números são a informação central do modal, e antes eram
                   duas frases soltas. Aqui viram cartão, no mesmo padrão do
@@ -456,25 +400,52 @@ export function ModalAvisarCliente({
                   rotulo={dados.pendentes.length === 1 ? 'documento pendente' : 'documentos pendentes'}
                   tom="pendente"
                 />
-                {/* "com o motivo" saiu do rótulo e desceu para a nota: em caixa
-                    alta a vírgula ficava travada, e o rótulo do tijolo tem de ser
-                    lido de relance, não interpretado. */}
+                {/* "a reenviar" não dizia reenviar o quê. Estes são os arquivos
+                    que o cliente mandou e o analista RECUSOU — o rótulo agora
+                    nomeia o ato que os produziu, o mesmo verbo do botão Recusar
+                    no checklist. Quem reenvia é o cliente, e isso o corpo da
+                    mensagem explica. */}
                 <Numero
                   valor={dados.recusados.length}
-                  rotulo="a reenviar"
+                  rotulo={dados.recusados.length === 1
+                    ? 'documento recusado' : 'documentos recusados'}
                   tom="reenviar"
                 />
               </div>
 
+              {/* "recebidos" e não "conferidos": a conta soma toda linha que tem
+                  arquivo, inclusive a que ainda espera veredito do analista.
+                  Dizer "conferidos" afirmaria uma revisão que pode não ter havido. */}
               <p className="mt-3 text-xs leading-relaxed text-osg-500">
-                {dados.recebidos} de {dados.base} documentos já conferidos. A relação
-                completa vai no corpo da mensagem
-                {dados.recusados.length > 0 && ', com o motivo de cada devolução'}.
+                {dados.recebidos} de {dados.base} documentos já foram recebidos. Os{' '}
+                {dados.pendentes.length} documentos pendentes
+                {dados.recusados.length > 0
+                  && ` e os ${dados.recusados.length} recusados, com o motivo de cada devolução,`}
+                {' '}serão incluídos na mensagem enviada ao cliente.
               </p>
             </section>
 
+            {/* PARA QUEM antes de POR ONDE: o analista decide o canal olhando
+                quem tem e-mail e quem tem telefone, e a ordem inversa o fazia
+                marcar a caixa para só depois descobrir que ninguém era alcançável
+                por ali. Pedido da Luana (OSG, 09/09/2026). */}
             <section>
-              <Rotulo>Por onde enviar</Rotulo>
+              <Rotulo>
+                {destinatarios.length > 1 ? 'Destinatários' : 'Destinatário'}
+              </Rotulo>
+              <ListaDeDestinatarios
+                destinatarios={destinatarios}
+                carregando={carregando}
+                selecionados={new Set(selecionados)}
+                onAlternar={alternarDestinatario}
+                jaHoje={jaHoje}
+                proximoEm={proximoEm}
+                enviando={enviando}
+              />
+            </section>
+
+            <section>
+              <Rotulo>Canais de envio</Rotulo>
               <div className="mt-3 space-y-2">
                 <LinhaCanal
                   canal="email"
@@ -483,10 +454,12 @@ export function ModalAvisarCliente({
                   contato="e-mail"
                   Icone={Mail}
                   marcado={canais.includes('email')}
-                  onAlternar={() => alternar('email')}
-                  carregando={carregandoDest || carregandoHist}
-                  alcance={alcance.email}
-                  enviadoEm={enviadosHoje.email}
+                  onAlternar={() => alternarCanal('email')}
+                  carregando={carregando}
+                  semSelecao={escolhidos.length === 0}
+                  aReceber={contagem.email.aReceber}
+                  jaReceberam={contagem.email.jaReceberam}
+                  enviadoEm={jaHoje?.porCanal.email}
                   proximoEm={proximoEm}
                   enviando={enviando}
                 />
@@ -497,10 +470,12 @@ export function ModalAvisarCliente({
                   contato="telefone"
                   Icone={MessageCircle}
                   marcado={canais.includes('whatsapp')}
-                  onAlternar={() => alternar('whatsapp')}
-                  carregando={carregandoDest || carregandoHist}
-                  alcance={alcance.whatsapp}
-                  enviadoEm={enviadosHoje.whatsapp}
+                  onAlternar={() => alternarCanal('whatsapp')}
+                  carregando={carregando}
+                  semSelecao={escolhidos.length === 0}
+                  aReceber={contagem.whatsapp.aReceber}
+                  jaReceberam={contagem.whatsapp.jaReceberam}
+                  enviadoEm={jaHoje?.porCanal.whatsapp}
                   proximoEm={proximoEm}
                   enviando={enviando}
                 />
@@ -518,39 +493,13 @@ export function ModalAvisarCliente({
           <aside className="border-t border-osg-100 bg-osg-50/40 px-5 py-5 md:border-l md:border-t-0">
             <Rotulo>Notificações enviadas</Rotulo>
 
-            {carregandoHist && <p className="mt-3 text-sm text-osg-500">Carregando...</p>}
-
-            {/* Painel que não carregou e painel vazio são coisas diferentes, e o
-                analista precisa saber qual é: sem isso, uma falha de leitura
-                pareceria "nunca avisamos" e ele mandaria um aviso repetido. */}
-            {erroHist && (
-              <p className="mt-3 text-sm text-destructive">
-                Não foi possível carregar o histórico. Recarregue antes de enviar.
-              </p>
-            )}
-
-            {!carregandoHist && !erroHist && historico.length === 0 && (
-              <p className="mt-3 text-sm text-osg-500">Nenhuma notificação enviada ainda.</p>
-            )}
-
-            <ul className="mt-3 space-y-3">
-              {historico.map((d) => (
-                <li
-                  key={d.chave}
-                  className={cn(
-                    'rounded-lg border bg-background px-3 py-2',
-                    d === jaHoje ? 'border-osg-moss/30' : 'border-osg-100',
-                  )}
-                >
-                  <p className="flex items-center gap-1.5 text-[13px] font-semibold text-osg-700">
-                    {formatarQuando(d.quando)}
-                    {d === jaHoje && <CheckCircle2 className="h-3.5 w-3.5 text-osg-moss" />}
-                  </p>
-                  <p className="mt-0.5 text-xs text-osg-500">{rotuloDoAviso(d.tipo)}</p>
-                  <p className="text-xs text-osg-500">{rotuloDosCanais(d.canais)}</p>
-                </li>
-              ))}
-            </ul>
+            <PainelDeHistorico
+              historico={historico}
+              jaHoje={jaHoje}
+              nomes={nomes}
+              carregando={carregandoHist}
+              erro={Boolean(erroHist)}
+            />
           </aside>
         </div>
 
@@ -572,7 +521,7 @@ export function ModalAvisarCliente({
               <Button onClick={enviar} disabled={!podeEnviar}>
                 {enviando
                   ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando...</>
-                  : <><Send className="mr-2 h-4 w-4" />{rotuloDoBotao(canais)}</>}
+                  : <><Send className="mr-2 h-4 w-4" />{rotuloDoBotao(canaisEfetivos)}</>}
               </Button>
             </span>
           </ComTooltip>

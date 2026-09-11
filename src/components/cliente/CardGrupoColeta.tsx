@@ -19,7 +19,8 @@ import {
 import { cn } from '@/lib/utils';
 import type { DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
 import { ACCEPT, MAX_BYTES, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
-import type { GrupoColeta } from '@/lib/coletaDocumentosCliente';
+import { BotaoModelo } from '@/components/shared/BotaoModelo';
+import type { DocumentoPedido, GrupoColeta } from '@/lib/coletaDocumentosCliente';
 import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
 
 const GRUPO_ICON: Record<GrupoDocumentoKey, LucideIcon> = {
@@ -40,6 +41,31 @@ const FOCO = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring
  * rolava a lista em vez de mandar arquivo.
  */
 const PREVIA = 5;
+
+/**
+ * Um documento pedido, na relação "Ver quais documentos".
+ *
+ * Vive fora do card porque a MESMA linha aparece em dois lugares — a prévia de
+ * cinco e o modal da lista completa —, e as duas cópias já tinham divergido de
+ * espaçamento. Extrair foi o que permitiu o chip do modelo entrar uma vez só.
+ *
+ * O modelo é LINK discreto, e não botão: esta gaveta é caixa de ENTRADA, e um
+ * botão sólido aqui competiria com o alvo de upload, que é a ação principal do
+ * card. Quem manda na hierarquia é o "arraste os arquivos aqui".
+ */
+function ItemDocumentoPedido({ doc }: { doc: DocumentoPedido }) {
+  return (
+    <li>
+      <span className="font-medium text-foreground">{doc.nome}</span>
+      {doc.instrucao && <span className="mt-0.5 block leading-snug">{doc.instrucao}</span>}
+      {doc.modelo && (
+        <span className="mt-1 block">
+          <BotaoModelo modelo={doc.modelo} tom="portal" />
+        </span>
+      )}
+    </li>
+  );
+}
 
 interface CardGrupoColetaProps {
   grupo: GrupoColeta;
@@ -289,12 +315,7 @@ export function CardGrupoColeta({
                 className="mt-3 list-disc space-y-2 border-t pl-5 pt-3 text-xs text-muted-foreground duration-200 animate-in fade-in-0"
               >
                 {grupo.documentos.slice(0, PREVIA).map((doc) => (
-                  <li key={doc.nome}>
-                    <span className="font-medium text-foreground">{doc.nome}</span>
-                    {doc.instrucao && (
-                      <span className="mt-0.5 block leading-snug">{doc.instrucao}</span>
-                    )}
-                  </li>
+                  <ItemDocumentoPedido key={doc.nome} doc={doc} />
                 ))}
               </ul>
               {grupo.documentos.length > PREVIA && (
@@ -326,12 +347,7 @@ export function CardGrupoColeta({
           </DialogHeader>
           <ul className="max-h-[60vh] list-disc space-y-2.5 overflow-y-auto pl-5 text-xs text-muted-foreground">
             {grupo.documentos.map((doc) => (
-              <li key={doc.nome}>
-                <span className="font-medium text-foreground">{doc.nome}</span>
-                {doc.instrucao && (
-                  <span className="mt-0.5 block leading-snug">{doc.instrucao}</span>
-                )}
-              </li>
+              <ItemDocumentoPedido key={doc.nome} doc={doc} />
             ))}
           </ul>
         </DialogContent>

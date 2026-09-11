@@ -700,7 +700,7 @@ export function ProjetosTarefasList({
         {allOsExpanded ? 'Recolher tudo' : 'Expandir tudo'}
       </Button>
     </div>
-    <div className="overflow-x-auto overflow-y-hidden rounded-xl border bg-card shadow-sm">
+    <div className="overflow-x-auto overflow-y-hidden rounded-xl border bg-card">
     <BarraDeMes periodo={periodo} />
     {/* Rótulo de coluna não significa nada depois do refluxo em duas colunas. */}
     <div className={cn(GRID, 'max-md:hidden border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground')}>
@@ -715,13 +715,19 @@ export function ProjetosTarefasList({
       const isExpanded = expanded.has(groupId);
       const showClientDivider = index === 0 || sortedHierarchy[index - 1].clientKey !== group.clientKey;
       return <Fragment key={group.id}>
-        {showClientDivider && <div className={cn('flex items-center gap-2 border-b border-t bg-muted/60 px-4 py-2.5 first:border-t-0', FULL_ROW_MIN_WIDTH)}>
+        {/* A faixa do cliente carrega a ÂNCORA da área, e não o neutro. Ela era
+            `bg-muted/60` e a linha da OS logo abaixo era `bg-primary/[0.045]`:
+            compostas sobre o card ficavam a 1,02:1 uma da outra — menos que o
+            1,24:1 com que a borda de 1px se separa do card. A faixa é o
+            cabeçalho do bloco, então é ela que recebe a cor da área e a linha
+            da OS volta ao card limpo. */}
+        {showClientDivider && <div className={cn('flex items-center gap-2 border-b border-t border-primary/20 bg-primary/10 px-4 py-2.5 first:border-t-0', FULL_ROW_MIN_WIDTH)}>
           <Building2 className="h-4 w-4 text-primary" />
-          <span className="text-xs font-bold uppercase tracking-wider text-foreground">{group.clientName}</span>
+          <span className="text-sm font-bold uppercase tracking-wider text-foreground">{group.clientName}</span>
           <span className="text-xs text-muted-foreground">{sortedHierarchy.filter(item => item.clientKey === group.clientKey).length} OS/grupo(s)</span>
         </div>}
         <section>
-        {/* No celular a tinta sobe e ganha trilho: `primary/[0.045]` é
+{/* No celular a tinta sobe e ganha trilho: `primary/[0.045]` é
             invisível num telefone, e sem separar as superfícies os quatro
             níveis leem como um. Trilho grosso na âncora = o nível mais alto. */}
         <div className={cn(GRID, 'border-b bg-primary/[0.045]', 'max-md:border-l-4 max-md:border-l-primary max-md:bg-primary/10')}>
@@ -746,7 +752,19 @@ export function ProjetosTarefasList({
           const projectTaskIds = collectNodeTaskIds(projectNode.tasks);
           const selectedInProject = projectTaskIds.filter(id => selectedTaskIds.has(id)).length;
           return <div key={projectId}>
-            <div className={cn(GRID, 'group relative z-10 bg-muted/30 text-sm shadow-md hover:bg-muted/45', 'max-md:border-l-4 max-md:border-l-primary/35 max-md:bg-muted/70')}>
+{/* O fundo sai do neutro e vai para a âncora, na mesma família da
+                faixa do cliente. Na OSG a superfície é bege (matiz 32) e a
+                âncora é musgo (149): com a faixa verde logo acima, o neutro
+                quente encostado nela era lido como ROSA — contraste simultâneo,
+                o mesmo efeito do `--muted-foreground` matiz 220 sobre marfim.
+                `bg-primary/5` é o degrau que a linha de tarefa selecionada já
+                usa. No celular a tinta sobe e ganha trilho mais discreto que o
+                da OS. */}
+            {/* A sombra saiu junto com o `z-10`, que só existia para levantá-la
+                acima dos vizinhos: quem separa a linha agora é o preenchimento,
+                e a sombra virava reforço de uma coisa já dita — sombra preta
+                neutra sobre superfície quente ainda por cima acinzenta. */}
+            <div className={cn(GRID, 'group bg-primary/5 text-sm hover:bg-primary/10', 'max-md:border-l-4 max-md:border-l-primary/35 max-md:bg-muted/70')}>
               <div
                 className={cn(CELULA_NOME, 'relative flex min-w-0 items-center gap-2 px-4 py-2.5 pl-[var(--recuo)] max-md:pl-[var(--recuo-estreito)]')}
                 style={{

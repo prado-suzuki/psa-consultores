@@ -4,6 +4,7 @@ import { toast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { currentAmbiente } from '@/config/api';
 import { subirArquivoGcs, type DocCategoria, type DocRevisao } from '@/hooks/useDocumentoArquivo';
+import type { ModeloDocumento } from '@/lib/solicitacao';
 
 /**
  * A fase de CHECKLIST no portal do cliente: o que falta, de quem, e o anexo por
@@ -54,6 +55,14 @@ export interface PendenciaCliente {
   grupo: 'pf' | 'pj' | 'bens_imoveis' | 'outros';
   documento: string;
   nota: string | null;
+  /**
+   * A planilha em branco que a PSA manda junto, quando existe (card 4).
+   *
+   * Chega montada pela RPC e SÓ do catálogo, nunca do tipo avulso — o modelo é
+   * fixo para todos os clientes. Nulo é o caso comum, e é o que faz a linha não
+   * mostrar botão nenhum.
+   */
+  modelo: ModeloDocumento | null;
   granularidade: string;
   alvo: AlvoPendencia;
   recebido: boolean;

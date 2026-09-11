@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Building2, Check, ClipboardCheck, FilePlus2, FileText, Hourglass, Landmark, Loader2, Search,
-  ShieldCheck, Trash2, TriangleAlert, UploadCloud, Users,
+  Building2, ClipboardCheck, FilePlus2, Landmark, Search, ShieldCheck, Users,
 } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -14,20 +13,32 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
-import { ACCEPT, MAX_BYTES, extensaoValida } from '@/components/equipe/osg/documentos/docMeta';
+import { MAX_BYTES, extensaoValida, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
+
+/**
+ * Os formatos em português, para a recusa dizer o que fazer.
+ *
+ * Escrito por extenso e não a partir do `ACCEPT`: ".pdf,.jpg,.jpeg,.png,.doc,
+ * .docx,.xls,.xlsx" é lista de extensão para o seletor de arquivo do navegador,
+ * não frase para o cliente ler.
+ */
+const FORMATOS_ACEITOS = 'PDF, imagem (JPG ou PNG), Word e Excel';
 import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
 import {
   montarGavetasChecklist, resumirPendencias,
   type EntidadeChecklist, type GavetaChecklist,
 } from '@/lib/checklistCliente';
 import {
-  contarEstados, estadoDoDocumento, ESTADOS_DOCUMENTO, type EstadoDocumento,
+  contarEstados, ESTADOS_DOCUMENTO, type EstadoDocumento,
 } from '@/lib/estadoDocumento';
-import { estadoDocumentoColors, revisaoArquivoColors } from '@/lib/estadoDocumentoColors';
+import { estadoDocumentoColors } from '@/lib/estadoDocumentoColors';
 import {
   usePendenciasCliente, useAnexarPendencia, useRemoverDocumentoPendencia,
   type ArquivoDaPendencia, type PendenciaCliente,
 } from '@/hooks/useDomainPendenciasCliente';
+import { LinhaPendencia } from './checklist/LinhaPendencia';
+import { ResumoHero } from './checklist/ResumoHero';
+import { ESTADO_LABEL, estadoDaPendencia, FOCO } from './checklist/checklistKit';
 
 /**
  * A área do cliente na fase de CHECKLIST.
@@ -60,8 +71,6 @@ const GRUPO_ICON: Record<GrupoDocumentoKey, LucideIcon> = {
   outros: FilePlus2,
 };
 
-const FOCO = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40';
-
 type FiltroGrupo = 'todos' | GrupoDocumentoKey;
 type FiltroStatus = 'todos' | 'faltando' | 'recebidos';
 
@@ -79,18 +88,14 @@ const FILTROS_STATUS: Array<{ value: FiltroStatus; label: string; dot?: string }
   { value: 'recebidos', label: 'Recebidos', dot: 'bg-primary' },
 ];
 
-/** O vocabulário do portal para os quatro estados (o consultor usa outro). */
-const ESTADO_LABEL: Record<EstadoDocumento, string> = {
-  pendente: 'Falta enviar',
-  em_analise: 'Em análise',
-  recusado: 'Recusado',
-  aprovado: 'Aprovado',
-};
 // A COR dos quatro é compartilhada com o checklist do consultor, em papéis de
 // status: `@/lib/estadoDocumentoColors`. Só o rótulo acima é por público.
-
-const estadoDaPendencia = (pendencia: PendenciaCliente): EstadoDocumento =>
-  estadoDoDocumento(pendencia.recebido, pendencia.arquivos);
+const ESTADO_CHIP: Record<EstadoDocumento, string> = {
+  pendente: estadoDocumentoColors.pendente.chip,
+  em_analise: estadoDocumentoColors.em_analise.chip,
+  recusado: estadoDocumentoColors.recusado.chip,
+  aprovado: estadoDocumentoColors.aprovado.chip,
+};
 
 const casaComStatus = (pendencia: PendenciaCliente, filtro: FiltroStatus) => filtro === 'todos'
   || (filtro === 'faltando' && !pendencia.recebido)
@@ -172,12 +177,28 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
   }, [gavetas, entidadeAtiva]);
 
   const enviar = async (gaveta: GavetaChecklist, pendencia: PendenciaCliente, arquivo: File) => {
+    /**
+     * As duas recusas dizem o LIMITE, e não só que passou dele.
+     *
+     * "Não é um formato que recebemos" e "passa do limite por arquivo" deixavam
+     * o cliente adivinhar o que fazer. A tela da gaveta, no MESMO portal, já
+     * dizia `formatBytes(MAX_BYTES)` — eram duas respostas para a mesma recusa.
+     * O número sai da constante para a frase não envelhecer se o teto mudar.
+     */
     if (!extensaoValida(arquivo.name)) {
-      toast({ title: 'Formato não aceito', description: `"${arquivo.name}" não é um formato que recebemos.`, variant: 'destructive' });
+      toast({
+        title: 'Formato não aceito',
+        description: `"${arquivo.name}" não pode ser enviado. Aceitamos ${FORMATOS_ACEITOS}.`,
+        variant: 'destructive',
+      });
       return;
     }
     if (arquivo.size > MAX_BYTES) {
-      toast({ title: 'Arquivo muito grande', description: `"${arquivo.name}" passa do limite por arquivo.`, variant: 'destructive' });
+      toast({
+        title: 'Arquivo muito grande',
+        description: `"${arquivo.name}" passa de ${formatBytes(MAX_BYTES)}, o limite por arquivo.`,
+        variant: 'destructive',
+      });
       return;
     }
     const chave = `${pendencia.solicitacao_item_id}|${pendencia.alvo.id ?? 'cliente'}`;
@@ -338,59 +359,6 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
   );
 }
 
-function ResumoHero({ pct, total, recebidos, faltando }: {
-  pct: number; total: number; recebidos: number; faltando: number;
-}) {
-  return (
-    <section className="relative overflow-hidden rounded-2xl border border-border/80 bg-white/80 p-5 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.4)] sm:p-7">
-      <div aria-hidden className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
-      <div className="relative grid gap-7 lg:grid-cols-[1fr_240px] lg:items-center">
-        <div>
-          <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
-            Documentos solicitados
-          </span>
-          <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-foreground">
-            Documentos que faltam
-          </h2>
-          <div className="mt-1 h-[3px] w-8 rounded-full bg-primary" />
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-            Cada documento aparece junto de quem ele é, e o envio acontece ali mesmo: assim ele já
-            chega organizado, e você não precisa renomear nem separar nada.
-          </p>
-          <div className="mt-6 flex flex-wrap items-end gap-x-4 gap-y-1">
-            <span className="text-4xl font-extrabold leading-none tabular-nums text-primary">{pct}%</span>
-            <span className="text-sm text-muted-foreground">{recebidos} de {total} documentos recebidos</span>
-          </div>
-          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-primary transition-[width] duration-500"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3 border-border lg:border-l lg:pl-7">
-          <Metrica label="Falta enviar" value={faltando} tom="atencao" />
-          <Metrica label="Recebidos" value={recebidos} tom="neutro" />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Metrica({ label, value, tom }: { label: string; value: number; tom: 'atencao' | 'neutro' }) {
-  return (
-    <div className="flex flex-col items-center rounded-xl bg-muted/80 px-2 py-3 text-center">
-      <div className={cn(
-        'text-xl font-bold leading-none tabular-nums',
-        tom === 'atencao' ? 'text-status-espera' : 'text-primary',
-      )}>
-        {value}
-      </div>
-      <div className="mt-1 text-[10px] font-semibold uppercase leading-tight text-muted-foreground">{label}</div>
-    </div>
-  );
-}
-
 function SecaoGaveta({ gaveta, onAbrir }: {
   gaveta: GavetaChecklist;
   onAbrir: (entidade: EntidadeChecklist, estado?: EstadoDocumento) => void;
@@ -501,7 +469,9 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
         </p>
       )}
       <p className="pointer-events-none relative z-10 mt-1 line-clamp-2 min-h-10 text-sm leading-relaxed text-muted-foreground">
-        {previa || 'Você já enviou tudo desta ficha.'}
+        {/* "ficha" é o nome interno do modal na tela do consultor; o cliente vê
+            um cartão por pessoa, imóvel ou empresa e nunca leu essa palavra. */}
+        {previa || 'Você já enviou tudo o que foi pedido aqui.'}
       </p>
 
       <ChipsDeEstado contagem={contagem} onEscolher={onAbrir} />
@@ -547,7 +517,7 @@ function ChipsDeEstado({ contagem, onEscolher }: {
           onClick={() => onEscolher(estado)}
           className={cn(
             'pointer-events-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors',
-            estadoDocumentoColors[estado].chip,
+            ESTADO_CHIP[estado],
             FOCO,
           )}
         >
@@ -592,7 +562,7 @@ function EntidadeDialog({
             <div className="flex items-center gap-2 pt-1">
               <span className={cn(
                 'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
-                estadoDocumentoColors[filtro].chip,
+                ESTADO_CHIP[filtro],
               )}>
                 {ESTADO_LABEL[filtro]}
                 <span className="tabular-nums opacity-70">{pendencias.length}</span>
@@ -621,167 +591,6 @@ function EntidadeDialog({
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo, onRemover }: {
-  pendencia: PendenciaCliente;
-  somenteLeitura: boolean;
-  enviando: string | null;
-  onArquivo: (pendencia: PendenciaCliente, arquivo: File) => void;
-  onRemover: (arquivo: ArquivoDaPendencia) => void;
-}) {
-  const chave = `${pendencia.solicitacao_item_id}|${pendencia.alvo.id ?? 'cliente'}`;
-  const ocupado = enviando === chave;
-  /**
-   * Item pedido à mão que não tem tipo cadastrado: a RPC de anexo recusaria, então
-   * a linha aparece sem campo de envio, com o caminho de saída dito na tela.
-   */
-  const semTipo = !pendencia.documento_tipo_id;
-
-  /**
-   * O selo da linha responde "e agora?", e por isso não é o mesmo que o estado de
-   * cada arquivo. Recusado ganha destaque porque é o único que pede ação; entre os
-   * que já valem, aprovado vence "em análise" (a PSA já bateu o martelo).
-   */
-  const estado = estadoDaPendencia(pendencia);
-  const recusado = estado === 'recusado';
-  const selo = pendencia.recebido_interno && pendencia.arquivos.length === 0
-    ? 'Já temos'
-    : estado === 'pendente' ? null : ESTADO_LABEL[estado];
-
-  return (
-    <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start">
-      <span className={cn(
-        'mt-0.5 hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg sm:flex',
-        estadoDocumentoColors[estado].pilula,
-      )}>
-        {pendencia.recebido ? <Check className="h-4 w-4" />
-          : recusado ? <TriangleAlert className="h-4 w-4" /> : <UploadCloud className="h-4 w-4" />}
-      </span>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={cn('text-sm font-medium', pendencia.recebido ? 'text-muted-foreground' : 'text-foreground')}>
-            {pendencia.documento}
-          </span>
-          {selo && (
-            <span className={cn(
-              'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
-              estadoDocumentoColors[estado].pilula,
-            )}>
-              {recusado ? <TriangleAlert className="h-3 w-3" />
-                : estado === 'em_analise' ? <Hourglass className="h-3 w-3" />
-                  : <Check className="h-3 w-3" />}
-              {selo}
-            </span>
-          )}
-        </div>
-        {pendencia.nota && !pendencia.recebido && (
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{pendencia.nota}</p>
-        )}
-        {pendencia.arquivos.length > 0 && (
-          <ul className="mt-2 space-y-1.5">
-            {pendencia.arquivos.map((arquivo) => (
-              <ArquivoEnviado
-                key={arquivo.id}
-                arquivo={arquivo}
-                somenteLeitura={somenteLeitura}
-                onRemover={onRemover}
-              />
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {!pendencia.recebido && !somenteLeitura && (
-        semTipo ? (
-          <span className="shrink-0 text-xs text-muted-foreground">Fale com a PSA para enviar este</span>
-        ) : (
-          <label
-            className={cn(
-              'inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-primary/30 bg-white px-3 py-2 text-xs font-semibold text-primary transition-colors hover:border-primary/60 hover:bg-accent/5',
-              FOCO,
-              ocupado && 'pointer-events-none opacity-60',
-            )}
-          >
-            {ocupado ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-            {ocupado ? 'Enviando...' : recusado ? 'Enviar novamente' : 'Enviar arquivo'}
-            <input
-              type="file"
-              className="sr-only"
-              accept={ACCEPT}
-              disabled={ocupado}
-              onChange={(evento) => {
-                const arquivo = evento.target.files?.[0];
-                evento.target.value = '';
-                if (arquivo) onArquivo(pendencia, arquivo);
-              }}
-            />
-          </label>
-        )
-      )}
-    </div>
-  );
-}
-
-/**
- * Um arquivo que o cliente já mandou, com o que aconteceu com ele.
- *
- * O botão de remover só some quando a PSA aprovou: antes disso o arquivo é do
- * cliente, e mandar errado tem conserto sem precisar pedir. Depois da aprovação
- * ele vira insumo de trabalho interno, e a RPC recusa a remoção mesmo que alguém
- * chame por fora — aqui a ausência do botão é só a versão educada da mesma regra.
- */
-function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
-  arquivo: ArquivoDaPendencia;
-  somenteLeitura: boolean;
-  onRemover: (arquivo: ArquivoDaPendencia) => void;
-}) {
-  const recusado = arquivo.revisao === 'recusado';
-  const aprovado = arquivo.revisao === 'aprovado';
-  const cor = revisaoArquivoColors[arquivo.revisao];
-
-  return (
-    <li className={cn(
-      'rounded-xl border px-3 py-2',
-      // Só a linha recusada se colore: ela é a única que pede ação do cliente.
-      // Arquivo em análise ou aprovado fica neutro para a lista não gritar.
-      recusado ? cor.linha : 'border-border/80 bg-muted/60',
-    )}>
-      <div className="flex items-center gap-2">
-        <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? cor.texto : 'text-muted-foreground')} />
-        <span className={cn(
-          'min-w-0 flex-1 truncate text-xs font-medium',
-          recusado ? cn(cor.texto, 'line-through') : 'text-muted-foreground',
-        )}>
-          {arquivo.nome}
-        </span>
-        <span className={cn(
-          'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]',
-          cor.pilula,
-        )}>
-          {recusado ? 'Recusado' : aprovado ? 'Aprovado' : 'Em análise'}
-        </span>
-        {!aprovado && !somenteLeitura && (
-          <button
-            type="button"
-            onClick={() => onRemover(arquivo)}
-            title="Remover este arquivo"
-            className={cn(
-              'shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive',
-              FOCO,
-            )}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            <span className="sr-only">Remover {arquivo.nome}</span>
-          </button>
-        )}
-      </div>
-      {recusado && arquivo.motivo && (
-        <p className={cn('mt-1 pl-5 text-xs leading-relaxed', cor.texto)}>{arquivo.motivo}</p>
-      )}
-    </li>
   );
 }
 

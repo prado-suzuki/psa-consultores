@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { supabase } from '@/integrations/supabase/client';
+import { STALE_TIMES } from '@/lib/queryClient';
 import {
   montarHistorico, type DisparoHistorico, type EnvioParaHistorico,
 } from '@/lib/historicoNotificacoes';
@@ -35,14 +36,52 @@ export const historicoNotificacoesKey = (solicitacaoId: string | null) =>
 
 const STATUS_QUE_CHEGARAM = ['enviado', 'entregue', 'lido'] as const;
 
-export function useHistoricoNotificacoes(solicitacaoId: string | null) {
+/**
+ * O painel mostra só o que o n8n JÁ CONFIRMOU, e isso tem consequência de tempo.
+ *
+ * A borda grava a linha como `pendente` ANTES de chamar o n8n, e quem a promove a
+ * `enviado` é o callback do fluxo. Medido em 11/09/2026 nesta mesma solicitação:
+ * entre a reserva e a confirmação passam de 2,2 a 5,5 segundos. Ou seja, uma
+ * busca disparada no instante em que o modal fecha encontraria a linha ainda
+ * `pendente` e o painel continuaria sem ela — não por cache, por relógio.
+ *
+ * Daí as duas peças:
+ *
+ *   `staleTime: REALTIME` — o default da casa é 1 minuto (`queryClient.ts`), e
+ *     com ele reabrir o modal logo após enviar servia a lista anterior ao envio
+ *     sem ir ao banco. Era a causa do "só aparece depois do F5". A própria tabela
+ *     de `STALE_TIMES` já classifica notificação como REALTIME.
+ *
+ *   `aoVivo` — enquanto o modal está aberto, repete a busca a cada 4s, para a
+ *     confirmação que chega segundos depois aparecer sozinha. Fora do modal fica
+ *     desligado: é consulta de painel, não de tela.
+ */
+export interface OpcoesHistorico {
+  /** Repete a busca enquanto a tela estiver aberta. Use só com o modal montado. */
+  aoVivo?: boolean;
+}
+
+export function useHistoricoNotificacoes(
+  solicitacaoId: string | null,
+  { aoVivo = false }: OpcoesHistorico = {},
+) {
   return useQuery<DisparoHistorico[]>({
     queryKey: historicoNotificacoesKey(solicitacaoId),
     enabled: Boolean(solicitacaoId),
+    staleTime: STALE_TIMES.REALTIME,
+    // `false` e não `0`: zero seria "repetir o mais rápido possível".
+    refetchInterval: aoVivo ? 4000 : false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notificacao_envio')
-        .select('tipo, canal, status, enviado_em, entregue_em, lido_em')
+        // `destinatario_email` e `destinatario_telefone` entram por pedido da Luana
+        // (OSG, 09/09/2026): o painel dizia QUANDO e POR ONDE, nunca PARA QUEM. O
+        // nome não vem porque não é gravado — ver `DestinoDoDisparo`.
+        //
+        // A lista fica em UMA linha, feia e comprida, porque o supabase-js infere o
+        // tipo do retorno a partir do literal: quebrada com `+`, a inferência morre
+        // e o resultado volta como `GenericStringError[]`.
+        .select('tipo, canal, status, enviado_em, entregue_em, lido_em, destinatario_email, destinatario_telefone')
         .eq('entidade_tipo', 'solicitacao')
         .eq('entidade_id', solicitacaoId as string)
         .in('status', STATUS_QUE_CHEGARAM)

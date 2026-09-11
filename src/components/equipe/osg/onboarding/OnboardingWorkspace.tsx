@@ -80,6 +80,9 @@ function paraExibicao(item: ItemSolicitacao): DisplayDocument {
     note: item.nota ?? '',
     grupo: item.grupo,
     granularidade: item.granularidade,
+    // Vem resolvido do catálogo pelo `resolverItem`, na mesma herança do texto:
+    // o modelo é do tipo de documento, nunca da linha deste cliente.
+    modelo: item.modelo,
   };
 }
 
@@ -255,6 +258,11 @@ export function OnboardingWorkspace({
               variant="outline"
               className="shrink-0"
               onClick={() => setEditor({ open: true, mode: 'add' })}
+              /* O modal oferece as DUAS entradas, e o tooltip precisa dizer isso:
+                 escolher do catálogo é o caminho comum, criar à mão é a exceção.
+                 O "manualmente" do texto da Patrícia (10/09/2026) esconderia o
+                 principal, então virou a segunda metade da frase. */
+              title="Adiciona um documento a esta solicitação, escolhido do catálogo ou criado à mão."
             >
               <Plus className="h-4 w-4" />
               Adicionar documento

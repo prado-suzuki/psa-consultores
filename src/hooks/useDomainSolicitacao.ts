@@ -5,6 +5,24 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { useAvisoProjetosDaOS } from '@/hooks/useAvisoProjetosDaOS';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { avisoDeEnvioKey } from '@/hooks/useAvisoDeEnvioNaoSaiu';
+import { descreverEnvio, type RespostaNotificar } from '@/lib/avisoSituacaoDocumentos';
+import { invocarBorda } from '@/lib/bordaSupabase';
+import type { CanalAviso } from '@/lib/historicoNotificacoes';
+
+/**
+ * O que o modal de envio decidiu: para quem e por onde.
+ *
+ * Os dois são obrigatórios porque o modal sempre os preenche — o padrão dele é
+ * "todos os alcançáveis, pelos dois canais". Deixar opcional convidaria um
+ * chamador futuro a enviar sem escolha e reabrir por engano o comportamento
+ * antigo, que é justamente o que o modal existe para acabar.
+ */
+export interface EscolhaDoEnvio {
+  canais: CanalAviso[];
+  /** `user_id` de cada representante marcado. */
+  destinatarios: string[];
+}
 import { computeFieldDiff } from '@/lib/diffUtils';
 import {
   CAMPOS_AUDITADOS_ITEM,
@@ -90,10 +108,55 @@ const SELECT_SOLICITACAO = `
     id, item_padrao_id, granularidade, grupo, documento, entidade, nota,
     status, ordem, observacao,
     catalogo:documento_tipo!solicitacao_item_item_padrao_id_fkey (
-      id, codigo, documento, entidade, nota, granularidade, grupo, ordem, confidencial
+      id, codigo, documento, entidade, nota, granularidade, grupo, ordem, confidencial,
+      modelo_bucket, modelo_path, modelo_nome
     )
   )
 `;
+
+/**
+ * Traduz a recusa da RLS na frase que diz O QUE FAZER.
+ *
+ * As seis policies de escrita de `solicitacao` e `solicitacao_item` dependem de uma
+ * função só, `sublider_na_os`, e ela devolve um booleano — o motivo se perde no
+ * caminho. Sem reconstruí-lo aqui, toda recusa vira "você não tem permissão", que
+ * é falso e improdutivo quando o problema é a OS não ter projeto nenhum: aí não há
+ * o que pedir para você, há um projeto a criar.
+ *
+ * RESSALVA CONHECIDA: a contagem passa pela RLS de `org_projects`, que libera admin,
+ * criador, responsável, líder e `can_view_org_project`. Quem não enxerga os projetos
+ * da OS conta zero e recebe a frase da OS vazia mesmo havendo projeto. Na prática é
+ * estreito — admin agora escreve sem cair aqui, e quem é da área enxerga os projetos
+ * dela —, mas está escrito para quem for depurar não se surpreender.
+ */
+async function motivoDaRecusa(ordemServicoId: string | null): Promise<string> {
+  if (!ordemServicoId) {
+    return 'Esta solicitação está sem ordem de serviço vinculada, e nesse estado só um '
+      + 'administrador consegue alterá-la. Fale com o time do Digital.';
+  }
+
+  const { count, error } = await supabase
+    .from('org_projects')
+    .select('id', { count: 'exact', head: true })
+    .eq('ordem_servico_id', ordemServicoId);
+
+  // Sondagem falhou: dizer que não se sabe é melhor que escolher um motivo no chute.
+  if (error) {
+    return 'Não foi possível alterar esta solicitação, e não deu para apurar o motivo. '
+      + 'Fale com o time do Digital.';
+  }
+
+  if ((count ?? 0) === 0) {
+    return 'A ordem de serviço deste cliente não tem nenhum projeto vinculado — e é a '
+      + 'participação em um projeto da OS que autoriza enviar a solicitação. Peça a '
+      + 'criação do projeto desta OS: enquanto ele não existir, ninguém da equipe '
+      + 'consegue enviar.';
+  }
+
+  return 'Você não participa de nenhum projeto da OS deste cliente, e é isso que '
+    + 'autoriza enviar a solicitação. Peça para ser incluído como membro, responsável '
+    + 'ou líder de um dos projetos desta OS.';
+}
 
 /** Violação de índice único no Postgres. */
 const UNIQUE_VIOLATION = '23505';
@@ -164,6 +227,11 @@ export function useDomainSolicitacao(clienteId: string | null) {
     // A leitura do portal do cliente (EDU-24/EDU-27) tem cache proprio: sem
     // isto, enviar ou encerrar so apareceria para o cliente no proximo refetch.
     queryClient.invalidateQueries({ queryKey: ['solicitacao-ativa-cliente'] });
+    // O painel de historico do modal de cobranca mostra os TRES avisos, entao
+    // enviar e encerrar mexem nele tambem — e sem isto o envio so aparecia la
+    // depois de um F5 (11/09/2026). A lista fica sob o prefixo da chave, o que
+    // cobre a solicitacao corrente sem precisar do id aqui.
+    queryClient.invalidateQueries({ queryKey: ['historico-notificacoes'] });
   };
 
   /**
@@ -539,17 +607,22 @@ export function useDomainSolicitacao(clienteId: string | null) {
     if (error) throw error;
     if (!data || data.length === 0) {
       /**
-       * Zero linhas tem DUAS causas, e acusar a errada custou tempo de verdade:
+       * Zero linhas tem TRÊS causas, e acusar a errada custou tempo de verdade:
        *
        *   a) alguém mudou o status antes (a corrida que o WHERE existe para pegar);
-       *   b) a RLS de escrita recusou. Desde a migration 20260812160000, escrever
-       *      em `solicitacao` exige papel de sublíder ou acima E ser membro de
-       *      algum projeto da OS do cliente. A LEITURA não mudou, então a tela
-       *      mostra o pedido inteiro e só as ações falham, o que faz a recusa
-       *      parecer bug de estado.
+       *   b) a OS do cliente não tem NENHUM projeto vinculado. Aí a recusa não é
+       *      sobre quem você é: `sublider_na_os` devolve falso para todo mundo,
+       *      porque não existe projeto de que ser participante. Medido em
+       *      08/09/2026: 43 das 51 OS com produto OSG estavam nesse estado;
+       *   c) você não participa de nenhum projeto daquela OS.
        *
-       * A leitura é permitida a quem vê o cliente, então uma consulta separa as
-       * duas: se o status continua onde estava, ninguém correu, foi permissão.
+       * A mensagem precisa distinguir (b) de (c) porque a saída é oposta: em (b)
+       * alguém tem de criar o projeto da OS, e em (c) basta te incluírem num que
+       * já existe. Dizer "você não tem permissão" quando o problema é a OS vazia
+       * manda a pessoa procurar o erro no lugar errado.
+       *
+       * A leitura é permitida a quem vê o cliente, então uma consulta separa (a):
+       * se o status continua onde estava, ninguém correu, foi a RLS.
        */
       const { data: agora } = await supabase
         .from('solicitacao')
@@ -558,10 +631,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
         .maybeSingle();
       const statusAgora = agora?.status as SolicitacaoStatus | undefined;
       if (statusAgora && de.includes(statusAgora)) {
-        throw new Error(
-          'Você não tem permissão para alterar esta solicitação. A escrita exige papel de '
-          + 'sublíder ou acima e ser membro de algum projeto da OS deste cliente.',
-        );
+        throw new Error(await motivoDaRecusa(atual.ordemServicoId));
       }
       throw new Error(erroSeNaoMoveu);
     }
@@ -581,7 +651,15 @@ export function useDomainSolicitacao(clienteId: string | null) {
   };
 
   const enviarSolicitacao = useMutation({
-    mutationFn: () => moverStatus(
+    /**
+     * A escolha do modal de envio (10/09/2026): para quem e por onde.
+     *
+     * Antes a chamada ia sem nada e a borda mandava para todo representante
+     * alcançável pelos dois canais. Continua sendo o padrão do modal — o erro
+     * por omissão tem de ser avisar mais gente, não menos —, mas agora quem
+     * decide é o analista, e a decisão precisa atravessar a mutação até a borda.
+     */
+    mutationFn: (_escolha: EscolhaDoEnvio) => moverStatus(
       ['rascunho'],
       'enviada',
       'enviada_em',
@@ -595,7 +673,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
      * liberou a área do cliente. Falha do aviso não desfaz o envio, e cai no
      * `onError` da própria mutação do aviso, não no deste envio.
      */
-    onSuccess: () => {
+    onSuccess: (_vazio, escolha) => {
       invalidar();
 
       const atual = solicitacaoQuery.data;
@@ -616,17 +694,61 @@ export function useDomainSolicitacao(clienteId: string | null) {
          * a borda resolve e-mail e WhatsApp por conta própria, cada um com sua
          * rota no n8n e sua linha de registro.
          *
-         * `invoke` sem `await` e com a falha morrendo no `catch`, igual aos seis
-         * pontos de chamada de `notify-ticket` (useTicketMutations.ts:144 e :192):
-         * o aviso não pode desfazer a mutação, que já gravou status e data e já
-         * registrou auditoria.
+         * `invoke` sem `await`: o aviso não pode desfazer a mutação, que já gravou
+         * status e data e já registrou auditoria. Falhar o envio por causa do
+         * aviso faria o analista reenviar um pedido que já saiu.
+         *
+         * Mas a falha APARECE. Até 08/09/2026 ela morria em `.catch(console.error)`,
+         * e o pior modo de falha deste fluxo é justamente esse: a tela diz que
+         * enviou, o cliente nunca recebe o e-mail, e ninguém fica sabendo até ele
+         * cobrar. Os dois caminhos de erro são tratados porque `invoke` resolve com
+         * `{ error }` em vez de rejeitar quando a borda responde com falha — só o
+         * `catch` deixaria passar exatamente o caso mais provável.
+         *
+         * `invocarBorda` e não `functions.invoke` desde 09/09/2026: naquele dia a
+         * borda recusou este aviso com "Auth failed: Invalid token" enquanto o
+         * UPDATE da mesma sessão passava. Ver o cabeçalho de `bordaSupabase.ts`.
+         *
+         * `descreverEnvio` é a mesma tradução que o botão manual de cobrança usa.
+         * Sem ela, resposta `{ skipped: true }` chega como sucesso e o analista lê
+         * "enviada" para um aviso que a borda recusou de propósito.
          */
-        supabase.functions.invoke('notificar', {
-          body: {
-            event_type: 'solicitacao_enviada',
-            solicitacao_id: atual.id,
-          },
-        }).catch(console.error);
+        void invocarBorda<RespostaNotificar>('notificar', {
+          event_type: 'solicitacao_enviada',
+          solicitacao_id: atual.id,
+          canais: escolha.canais,
+          destinatarios: escolha.destinatarios,
+        })
+          .then(({ data, error }) => {
+            if (error) throw error;
+            const { texto, ok } = descreverEnvio(data ?? {});
+            if (!ok) throw new Error(texto);
+          })
+          .catch((erro: unknown) => {
+            console.error('[solicitacao_enviada] aviso ao cliente falhou', erro);
+            toast.error(
+              // A instrução é acionar a PSA Digital, e não sair avisando o cliente
+              // por fora: falha de envio é do Digital, o consultor não tem como
+              // consertar, e a faixa permanente na tela diz exatamente isto
+              // (texto da Patrícia, 10/09/2026). Duas saídas diferentes para o
+              // mesmo problema fariam metade do time contornar e metade reportar.
+              'A solicitação foi enviada, mas a notificação ao cliente não saiu. '
+              + 'Entre em contato com o suporte da PSA Digital.',
+              { description: (erro as Error).message },
+            );
+          })
+          /**
+           * A faixa de "o cliente não foi avisado" lê `notificacao_envio`, e a
+           * borda só grava a linha DEPOIS desta chamada. Sem invalidar aqui, a
+           * resposta que a faixa guardou é a de antes do aviso existir — foi o
+           * que acendeu a faixa em três envios bem-sucedidos em 10/09/2026.
+           *
+           * No `finally` porque vale nos dois desfechos: se saiu, a faixa some;
+           * se não saiu, ela passa a ter fundamento em vez de palpite.
+           */
+          .finally(() => {
+            queryClient.invalidateQueries({ queryKey: avisoDeEnvioKey(atual.id) });
+          });
       }
     },
     onError: (error: Error) => {
@@ -661,13 +783,21 @@ export function useDomainSolicitacao(clienteId: string | null) {
   });
 
   const encerrarSolicitacao = useMutation({
-    mutationFn: () => moverStatus(
+    /**
+     * A escolha do modal de finalização (11/09/2026): para quem e por onde.
+     *
+     * `null` significa "não há a quem avisar", e acontece num caso só: rascunho
+     * encerrado, que nunca chegou ao cliente. NÃO existe finalizar sem avisar por
+     * escolha — a caixa foi proposta e recusada no mesmo dia: fechar o pedido é
+     * fato que o cliente tem de saber.
+     */
+    mutationFn: (_escolha: EscolhaDoEnvio | null) => moverStatus(
       ['rascunho', 'enviada', 'em_checklist'],
       'encerrada',
       'encerrada_em',
       'Esta solicitação já estava encerrada. Recarregue a página.',
     ),
-    onSuccess: () => {
+    onSuccess: (_resultado, escolha) => {
       invalidar();
 
       const atual = solicitacaoQuery.data;
@@ -689,19 +819,46 @@ export function useDomainSolicitacao(clienteId: string | null) {
        *
        * Sem `await` e com a falha no `catch`, pelo mesmo motivo do envio: o aviso
        * não desfaz a transição, que já gravou status e data.
+       *
+       * A falha APARECE, desde 09/09/2026. Este ponto ainda estava em
+       * `.catch(console.error)` — o mesmo defeito que o envio perdeu em 08/09 e
+       * que custou um aviso não entregue no go-live. Encerrar é o último ato do
+       * fluxo: se o "recebemos e conferimos" não sai, ninguém volta para conferir.
        */
       if (atual?.enviadaEm) {
-        supabase.functions.invoke('notificar', {
-          body: {
+        // Cinto e suspensório: com `enviadaEm` gravado o modal SEMPRE manda uma
+        // escolha, então o ramo falso não tem caminho por esta tela. A guarda
+        // existe porque a mutação é exportada e pode ser chamada de outro lugar,
+        // e chamar a borda com lista vazia volta 400.
+        if (escolha) {
+          void invocarBorda<RespostaNotificar>('notificar', {
             event_type: 'documento_aprovado',
             solicitacao_id: atual.id,
-          },
-        }).catch(console.error);
+            canais: escolha.canais,
+            destinatarios: escolha.destinatarios,
+          })
+            .then(({ data, error }) => {
+              if (error) throw error;
+              const { texto, ok } = descreverEnvio(data ?? {});
+              if (!ok) throw new Error(texto);
+            })
+            .catch((erro: unknown) => {
+              console.error('[documento_aprovado] aviso ao cliente falhou', erro);
+              toast.error(
+                'A solicitação foi finalizada, mas a notificação de conferência não saiu. '
+                + 'Entre em contato com o suporte da PSA Digital.',
+                { description: (erro as Error).message },
+              );
+            });
+        }
 
         /**
          * Aviso 3, lado interno (GES-03). Mesma guarda de `enviadaEm` do aviso ao
          * cliente, e pelo mesmo motivo: rascunho encerrado nunca chegou ao cliente,
          * então "documentação conferida" seria falso também na thread da equipe.
+         *
+         * FORA do `if (escolha)`: não avisar o cliente é decisão sobre a mensagem
+         * que sai para fora, não sobre o registro interno do que aconteceu.
          */
         avisoNosProjetos.mutate({
           solicitacaoId: atual.id,

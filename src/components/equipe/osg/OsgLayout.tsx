@@ -208,7 +208,11 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   // Itens do agrupador "Onboarding" — a solicitação inicial e a tela onde os
   // arquivos que chegaram viram cadastro. Mesmo padrão de dropdown por hover.
   const onbItems = [
-    { path: '/equipe/osg/work/onboarding', label: 'Solicitação Inicial' },
+    // O rótulo acompanha o título da tela (10/09/2026, Patrícia): mesmo nome
+    // para a mesma coisa no menu e no cabeçalho. A rota segue `onboarding`
+    // porque está gravada em `page_permissions` — endereço é técnico, rótulo é
+    // do usuário, e os dois não precisam casar.
+    { path: '/equipe/osg/work/onboarding', label: 'Solicitação de documentos' },
     { path: '/equipe/osg/work/onboarding/cadastro', label: 'Cadastro por Documento' },
   ];
   const isOnbActive = onbItems.some((item) => item.path === location.pathname);
@@ -216,7 +220,9 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   // Itens do agrupador "Documentos do Cliente" — mesmo padrão de dropdown por hover
   const docClienteItems = [
     { path: '/equipe/osg/work/documentos', label: 'Explorador de arquivos' },
-    { path: '/equipe/osg/work/checklists', label: 'Checklists de documentos' },
+    // Singular desde 10/09/2026: eram duas abas (Pendências e Planejamento
+    // tributário) e sobrou uma. A rota segue no plural — é endereço, não rótulo.
+    { path: '/equipe/osg/work/checklists', label: 'Checklist de documentos' },
   ];
   const isDocClienteActive = docClienteItems.some((item) => item.path === location.pathname);
 

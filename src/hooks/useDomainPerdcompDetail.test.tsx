@@ -170,6 +170,8 @@ describe('consultas do detalhe do PER', () => {
 describe('mutações de ressarcimento', () => {
   it('atualiza valores arredondados antes de inserir a situação com payload exato', async () => {
     const sitData = { id: 'S1' };
+    // O update precisa devolver a linha afetada: zero linhas passou a ser recusa.
+    results.set('per', [{ data: [{ nr_per: 'P1' }], error: null }]);
     results.set('per_situacao', [{ data: sitData, error: null }]);
     renderHook(() => useRegisterPerReimbursement());
 
@@ -204,7 +206,7 @@ describe('mutações de ressarcimento', () => {
     const updateError = new Error('update falhou');
     results.set('per', [
       { data: null, error: updateError },
-      { data: null, error: null },
+      { data: [{ nr_per: 'P1' }], error: null },
     ]);
     renderHook(() => useRegisterPerReimbursement());
     await expect(
@@ -271,6 +273,7 @@ describe('mutações de ressarcimento', () => {
   it('protege PER vazio e limpa com payload, usuário e timestamp exatos', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-17T12:34:56.000Z'));
+    results.set('per', [{ data: [{ nr_per: 'P1' }], error: null }]);
     renderHook(() => useClearPerReimbursement());
     await expect(
       mutations()[0].mutationFn({ nrPer: undefined, userId: 'U1' } as never),
@@ -304,5 +307,33 @@ describe('mutações de ressarcimento', () => {
     mutations()[0].onError?.(error);
     expect(onSuccess).toHaveBeenCalledOnce();
     expect(onError).toHaveBeenCalledWith(error);
+  });
+
+  // RLS recusando um UPDATE devolve zero linhas, não erro. Sem estes dois, o
+  // "ressarcimento registrado" volta a aparecer com o banco intacto — e, pior,
+  // a situação "PER deferido" volta a ser inserida sobre um valor que não foi
+  // gravado.
+  it('registro que não altera nenhuma linha falha e não insere a situação', async () => {
+    results.set('per', [{ data: [], error: null }]);
+    renderHook(() => useRegisterPerReimbursement());
+
+    await expect(
+      mutations()[0].mutationFn({
+        nrPer: 'P1',
+        valor: 10,
+        valorOriginal: 10,
+        dataPagamento: '2026-01-01',
+      } as never),
+    ).rejects.toThrow(/Não foi possível registrar o ressarcimento/);
+    expect(callsFor('per_situacao', 'insert')).toHaveLength(0);
+  });
+
+  it('limpeza que não altera nenhuma linha não passa por concluída', async () => {
+    results.set('per', [{ data: [], error: null }]);
+    renderHook(() => useClearPerReimbursement());
+
+    await expect(
+      mutations()[0].mutationFn({ nrPer: 'P1', userId: 'U1' } as never),
+    ).rejects.toThrow(/Não foi possível excluir o ressarcimento/);
   });
 });

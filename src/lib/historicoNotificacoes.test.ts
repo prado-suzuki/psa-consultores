@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   chegouAoCliente, diaLocal, disparoDeHoje, formatarDia, formatarQuando, diaSeguinte,
-  montarHistorico, rotuloDoAviso, rotuloDosCanais, canaisEnviadosHoje,
+  montarHistorico, nomePorContato, rotuloDoAviso, rotuloDosCanais, canaisEnviadosHoje,
+  envioDeHojePara,
   type EnvioParaHistorico,
 } from '@/lib/historicoNotificacoes';
 
@@ -13,6 +14,8 @@ const linha = (over: Partial<EnvioParaHistorico> = {}): EnvioParaHistorico => ({
   enviado_em: '2026-08-17T17:32:00.000Z',
   entregue_em: null,
   lido_em: null,
+  destinatario_email: 'ana@fazenda.com',
+  destinatario_telefone: '65999990000',
   ...over,
 } as EnvioParaHistorico);
 
@@ -31,6 +34,34 @@ describe('chegouAoCliente', () => {
     expect(['falhou', 'ignorado', 'pendente'].some(
       (s) => chegouAoCliente(linha({ status: s } as Partial<EnvioParaHistorico>)),
     )).toBe(false);
+  });
+});
+
+describe('nomePorContato', () => {
+  it('indexa pelos dois contatos, para casar com a linha que só tem um', () => {
+    const mapa = nomePorContato([
+      { nome: 'Ana Prado', email: 'ana@fazenda.com', telefone: '65999990000' },
+    ]);
+    expect(mapa.get('ana@fazenda.com')).toBe('Ana Prado');
+    expect(mapa.get('65999990000')).toBe('Ana Prado');
+  });
+
+  /**
+   * Dois representantes no mesmo e-mail existe — era o caso do módulo até 09/09.
+   * Qualquer escolha é arbitrária; o que não pode é alternar entre renders.
+   */
+  it('com dois nomes no mesmo contato, o primeiro vence e fica', () => {
+    const entrada = [
+      { nome: 'Ana Prado', email: 'contato@fazenda.com', telefone: null },
+      { nome: 'Bruno Prado', email: 'contato@fazenda.com', telefone: null },
+    ];
+    expect(nomePorContato(entrada).get('contato@fazenda.com')).toBe('Ana Prado');
+    expect(nomePorContato(entrada).get('contato@fazenda.com')).toBe('Ana Prado');
+  });
+
+  it('representante sem nome não entra no mapa', () => {
+    const mapa = nomePorContato([{ nome: '  ', email: 'x@y.com', telefone: null }]);
+    expect(mapa.has('x@y.com')).toBe(false);
   });
 });
 
@@ -53,6 +84,57 @@ describe('montarHistorico', () => {
     ]);
     expect(h).toHaveLength(1);
     expect(h[0].linhas).toBe(3);
+  });
+
+  /**
+   * O engano que o painel cometia sem isto: a borda grava e-mail E telefone nas
+   * DUAS linhas de um destinatário que recebeu pelos dois canais. Sem deduplicar,
+   * um clique com dois canais listaria a mesma pessoa duas vezes.
+   */
+  it('o mesmo destinatário nos dois canais aparece uma vez só', () => {
+    const h = montarHistorico([
+      linha({ canal: 'email' }),
+      linha({ canal: 'whatsapp', enviado_em: '2026-08-17T17:32:04.000Z' }),
+    ]);
+    expect(h[0].linhas).toBe(2);
+    expect(h[0].destinos).toEqual([
+      {
+        email: 'ana@fazenda.com',
+        telefone: '65999990000',
+        // A segunda linha não se descarta: é ela que traz o horário do WhatsApp.
+        porCanal: {
+          email: '2026-08-17T17:32:00.000Z',
+          whatsapp: '2026-08-17T17:32:04.000Z',
+        },
+      },
+    ]);
+  });
+
+  it('destinatários diferentes viram entradas diferentes, na ordem em que saíram', () => {
+    const h = montarHistorico([
+      linha({ destinatario_email: 'ana@fazenda.com', destinatario_telefone: null }),
+      linha({
+        destinatario_email: 'bruno@fazenda.com',
+        destinatario_telefone: null,
+        enviado_em: '2026-08-17T17:32:01.000Z',
+      }),
+    ]);
+    expect(h[0].destinos.map((d) => d.email)).toEqual(['ana@fazenda.com', 'bruno@fazenda.com']);
+  });
+
+  it('linha sem contato nenhum não vira destino em branco', () => {
+    const h = montarHistorico([
+      linha({ destinatario_email: null, destinatario_telefone: null }),
+    ]);
+    expect(h).toHaveLength(1);
+    expect(h[0].destinos).toEqual([]);
+  });
+
+  it('espaço em branco no contato conta como ausente', () => {
+    const h = montarHistorico([
+      linha({ destinatario_email: '  ', destinatario_telefone: '  ' }),
+    ]);
+    expect(h[0].destinos).toEqual([]);
   });
 
   it('o instante do disparo é o do PRIMEIRO envio, não o do último', () => {
@@ -122,6 +204,60 @@ describe('montarHistorico', () => {
  * idempotência. Em UTC os dois discordariam entre 20h e 00h locais: a tela liberaria
  * o botão e o banco recusaria.
  */
+/**
+ * A pergunta que a escolha de destinatário criou (10/09/2026): não basta saber
+ * que o e-mail saiu hoje, é preciso saber PARA QUEM. Travar o canal inteiro
+ * porque a Ana já recebeu impediria justamente o envio ao Bruno.
+ */
+describe('envioDeHojePara', () => {
+  const doisSocios = montarHistorico([
+    linha({
+      destinatario_email: 'ana@fazenda.com', destinatario_telefone: '65999990000',
+      canal: 'email',
+    }),
+    linha({
+      destinatario_email: 'ana@fazenda.com', destinatario_telefone: '65999990000',
+      canal: 'whatsapp', enviado_em: '2026-08-17T17:32:03.000Z',
+    }),
+    linha({
+      destinatario_email: 'bruno@fazenda.com', destinatario_telefone: null,
+      canal: 'email', enviado_em: '2026-08-17T17:32:05.000Z',
+    }),
+  ]);
+  const hoje = doisSocios[0];
+
+  it('quem recebeu por um canal aparece com o horário daquele canal', () => {
+    expect(envioDeHojePara(hoje, 'email', 'ana@fazenda.com'))
+      .toBe('2026-08-17T17:32:00.000Z');
+    expect(envioDeHojePara(hoje, 'whatsapp', '65999990000'))
+      .toBe('2026-08-17T17:32:03.000Z');
+  });
+
+  it('o mesmo destino travado num canal continua livre no outro', () => {
+    // O Bruno recebeu por e-mail; ele não tem telefone, então nada travou lá.
+    expect(envioDeHojePara(hoje, 'email', 'bruno@fazenda.com')).toBeTruthy();
+    expect(envioDeHojePara(hoje, 'whatsapp', 'bruno@fazenda.com')).toBeUndefined();
+  });
+
+  it('contato que não recebeu hoje volta undefined, e não o do vizinho', () => {
+    expect(envioDeHojePara(hoje, 'email', 'carla@fazenda.com')).toBeUndefined();
+  });
+
+  it('sem disparo hoje, ou sem contato, ninguém está travado', () => {
+    expect(envioDeHojePara(null, 'email', 'ana@fazenda.com')).toBeUndefined();
+    expect(envioDeHojePara(hoje, 'email', null)).toBeUndefined();
+  });
+
+  /**
+   * O e-mail do canal não pode casar com o telefone e vice-versa: os dois campos
+   * estão preenchidos na MESMA linha gravada, e cruzá-los travaria o WhatsApp de
+   * quem só recebeu e-mail.
+   */
+  it('não cruza os campos: telefone não casa com o canal de e-mail', () => {
+    expect(envioDeHojePara(hoje, 'email', '65999990000')).toBeUndefined();
+  });
+});
+
 describe('diaLocal — o fuso da casa', () => {
   it('23h59 UTC de 17/08 ainda é dia 17 em Cuiabá', () => {
     expect(diaLocal('2026-08-17T23:59:00.000Z')).toBe('2026-08-17');

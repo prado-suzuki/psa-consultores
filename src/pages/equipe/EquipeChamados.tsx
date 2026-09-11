@@ -16,7 +16,7 @@ import { useUserEstrutura } from '@/hooks/useUserEstrutura';
 import { useDomainClusterPorCategoria } from '@/hooks/useDomainClusterPorCategoria';
 import { ESPELHO, PARAM_DE_ESPELHO, VOLTA_DO_ESPELHO } from '@/lib/areaTheme';
 import type { PageCategory } from '@/lib/clusterPorCategoria';
-import { createEquipeChamadosFilters, filterAndSortTickets, getTicketStats } from '@/lib/equipeChamados';
+import { CLUSTER_SEM_VINCULO, combinaComCluster, createEquipeChamadosFilters, filterAndSortTickets, getTicketStats } from '@/lib/equipeChamados';
 import type { SortColumn, SortDirection } from '@/lib/equipeChamados';
 
 export default function EquipeChamados() {
@@ -42,11 +42,17 @@ export default function EquipeChamados() {
   // Esta tela é UMA, e se apresenta como sendo do ambiente de onde foi aberta.
   // `?area=osg` a torna a tela de chamados da OSG: tema musgo E lista da OSG.
   //
-  // COR E CONTEÚDO ANDAM SEMPRE JUNTOS — nunca teal mostrando OSG, nunca
-  // mostrando tudo estando musgo. O que garante isso é a chave ser UMA SÓ: a
-  // mesma categoria resolve o tema (em `areaTheme.ts`, síncrono, antes da
-  // pintura) e o cluster da lista (aqui, por query). Ver o bloco de
-  // espelhamento em `src/lib/areaTheme.ts`.
+  // A chave é UMA SÓ: a mesma categoria resolve o tema (em `areaTheme.ts`,
+  // síncrono, antes da pintura) e o cluster INICIAL da lista (aqui, por query).
+  // Ver o bloco de espelhamento em `src/lib/areaTheme.ts`.
+  //
+  // O espelho dá o valor inicial do filtro, e não o tranca. A trava existiu para
+  // a cor nunca divergir do conteúdo, e o preço foi alto: chamado que nasce sem
+  // cluster não casa com cluster nenhum, sumia das DUAS telas de gestão e não
+  // havia como pedi-lo — foi assim que um chamado em andamento ficou invisível
+  // para o responsável e para a diretoria (04/09/2026). O que mantém a tela
+  // honesta agora é `ticketsDoEscopo` seguir o filtro: trocando o cluster,
+  // cartões, denominador e lista se movem juntos.
   const [searchParams] = useSearchParams();
   const chaveBruta = searchParams.get(PARAM_DE_ESPELHO);
   const espelho = chaveBruta && chaveBruta in ESPELHO ? (chaveBruta as PageCategory) : null;
@@ -86,14 +92,18 @@ export default function EquipeChamados() {
    * O UNIVERSO da tela — e ele tem três níveis, não dois.
    *
    * 1. `tickets`          tudo que a query carregou
-   * 2. `ticketsDoEscopo`  o universo do espelho          ← este
-   * 3. `filteredTickets`  filtros do usuário, dentro de 2
+   * 2. `ticketsDoEscopo`  o CLUSTER escolhido no filtro   ← este
+   * 3. `filteredTickets`  os demais filtros, dentro de 2
    *
    * Os cartões e o `de N` do contador vivem no nível 2, e isso preserva a
    * decisão que já estava testada ("mantém stats sobre todos os tickets
    * carregados enquanto combina os filtros da tabela"): os cartões continuam
-   * sendo o fundo FIXO contra o qual o `X de Y` mostra o estreitamento — só que
-   * agora dentro do universo espelhado, e não do universo inteiro.
+   * sendo o fundo FIXO contra o qual o `X de Y` mostra o estreitamento — o
+   * cluster é o único filtro que move esse fundo, porque é ele que diz de qual
+   * ambiente a tela está falando. Espelhada, ele começa no cluster do espelho.
+   *
+   * Sem espelho o fundo é tudo o que carregou, como sempre foi: ali a tela não
+   * promete ambiente nenhum, então não há o que divergir.
    *
    * Antes disso os cartões estavam no nível 1, e era a regra caindo no lugar
    * mais visível da tela: espelhada na OSG, a tela dizia "354 chamados, 8
@@ -106,8 +116,8 @@ export default function EquipeChamados() {
   const ticketsDoEscopo = useMemo(() => {
     if (!espelho) return tickets;
     if (!clusterDoEspelho) return [];
-    return tickets.filter((t) => t.cluster_id === clusterDoEspelho);
-  }, [tickets, espelho, clusterDoEspelho]);
+    return tickets.filter((t) => combinaComCluster(t, filters.cluster));
+  }, [tickets, espelho, clusterDoEspelho, filters.cluster]);
 
   const stats = useMemo(() => getTicketStats(ticketsDoEscopo), [ticketsDoEscopo]);
 
@@ -148,8 +158,10 @@ export default function EquipeChamados() {
   // uma tela vazia parece defeito, e ninguém distingue "filtrou e não achou" de
   // "quebrou". Hoje é a única confirmação VISÍVEL de que o espelhamento
   // funciona, porque só o cluster TAX tem chamados.
-  const nomeDoEscopo = clusterDoEspelho ? clusterMap.get(clusterDoEspelho) ?? null : null;
-  const mensagemVazia = espelho
+  const nomeDoEscopo = clusterMap.get(filters.cluster) ?? null;
+  const mensagemVazia = filters.cluster === CLUSTER_SEM_VINCULO
+    ? 'Nenhum chamado sem cluster.'
+    : espelho
     ? `Nenhum chamado em ${nomeDoEscopo ?? espelho.toUpperCase()}.`
     : tickets.length === 0
       ? (canAssignTickets ? 'Nenhum chamado encontrado.' : 'Você não possui chamados atribuídos no momento.')
@@ -185,7 +197,6 @@ export default function EquipeChamados() {
           filteredCount={filteredTickets.length}
           totalCount={ticketsDoEscopo.length}
           onReset={resetFilters}
-          clusterTravado={espelho !== null}
         />
         {/* `resolvendoEspelho` entra no mesmo gate do carregamento: enquanto o
             cluster do espelho não resolveu, a lista ainda está sem recorte, e

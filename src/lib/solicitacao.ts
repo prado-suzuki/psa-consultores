@@ -118,8 +118,51 @@ export function graoSugeridoParaGrupo(grupo: OsgDocGrupo): Granularidade | null 
   }
 }
 
+/**
+ * O modelo em branco que a PSA anexa a um tipo de documento.
+ *
+ * Alguns itens do catálogo não são documento que o cliente já tem (CPF,
+ * matrícula): são planilhas que a PSA manda vazias para ele preencher. O modelo
+ * é campo do CATÁLOGO, nunca da linha do cliente — é fixo para todos, e trocar o
+ * arquivo no balde vale para todo mundo no mesmo instante.
+ */
+export interface ModeloDocumento {
+  bucket: string;
+  path: string;
+  nome: string;
+}
+
+/** As três colunas de `documento_tipo`, cruas como a query as traz. */
+export interface ColunasDeModelo {
+  modelo_bucket: string | null;
+  modelo_path: string | null;
+  modelo_nome: string | null;
+}
+
+/**
+ * Monta o modelo a partir das três colunas do catálogo — ou `null`.
+ *
+ * `modelo_path` nulo é o que significa "documento sem modelo", e o banco garante
+ * tudo-ou-nada pelo `check (num_nonnulls(...) in (0,3))`.
+ *
+ * Quando `modelo_nome` é nulo, o nome cai para o último trecho do caminho. Isso
+ * espelha de propósito o `COALESCE(modelo_nome, regexp_replace(...))` que as duas
+ * RPCs do portal já fazem: os dois lados têm de mostrar o mesmo nome para o mesmo
+ * arquivo.
+ */
+export function modeloDoCatalogo(
+  row: ColunasDeModelo | null | undefined,
+): ModeloDocumento | null {
+  if (!row?.modelo_bucket || !row.modelo_path) return null;
+  return {
+    bucket: row.modelo_bucket,
+    path: row.modelo_path,
+    nome: row.modelo_nome ?? row.modelo_path.replace(/^.*\//, ''),
+  };
+}
+
 /** O que a lib precisa saber de `documento_tipo` para resolver a herança. */
-export interface CatalogoDocumento {
+export interface CatalogoDocumento extends ColunasDeModelo {
   id: string;
   codigo: string;
   documento: string;
@@ -176,6 +219,11 @@ export interface ItemSolicitacao {
   /** Do catálogo; nulo no item manual. */
   codigo: string | null;
   confidencial: boolean;
+  /**
+   * O modelo em branco, quando o catálogo tem um. Nulo é o caso comum (2 dos 68
+   * tipos têm modelo hoje) e é o que faz a tela não mostrar botão nenhum.
+   */
+  modelo: ModeloDocumento | null;
 }
 
 /**
@@ -220,6 +268,10 @@ export function resolverItem(row: SolicitacaoItemRow): ItemSolicitacao {
     },
     codigo: catalogo?.codigo ?? null,
     confidencial: catalogo?.confidencial ?? false,
+    // Item manual não tem catálogo embarcado, e o tipo avulso que nasce dele
+    // nunca ganha modelo: modelo é material genérico da PSA, e avulso é de um
+    // cliente só.
+    modelo: modeloDoCatalogo(catalogo),
   };
 }
 

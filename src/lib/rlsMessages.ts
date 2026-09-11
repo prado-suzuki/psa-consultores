@@ -146,9 +146,9 @@ export interface CadastroOperacao {
  * Fecho padrão de toda falha técnica que a pessoa não consegue corrigir sozinha.
  *
  * Exportado porque a mesma frase é o que substitui a mensagem crua do banco nos
- * guardas de exclusão fora do cadastro (painel de tarefas, cadastro de
- * projetos): duas cópias do mesmo texto é o começo de duas redações do mesmo
- * texto.
+ * guardas de exclusão fora do cadastro de cliente (o primeiro é o do PERDCOMP;
+ * depois vieram o painel de tarefas e o cadastro de projetos): duas cópias do
+ * mesmo texto é o começo de duas redações do mesmo texto.
  */
 export const FECHO_SUPORTE = 'Tente novamente. Se o problema continuar, entre em contato com o suporte.';
 const FECHO_ZERO_LINHAS = 'Os dados podem ter sido modificados. Atualize a página e tente novamente.';

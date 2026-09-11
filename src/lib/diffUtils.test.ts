@@ -86,3 +86,36 @@ describe('computeEntityListDiff', () => {
     expect(result).toEqual([]);
   });
 });
+
+/**
+ * A exclusão é o espelho da criação, e o jeito de escrevê-la tem pegadinha.
+ *
+ * `computeFieldDiff` aceita `null` no lado ANTIGO (criação) mas NÃO no novo: lá
+ * ele faz `newObj[field]` direto. Com `strictNullChecks: false` no tsconfig, o
+ * `null` passa pelo typecheck e estoura só em execução — foi assim que a
+ * remoção de "não se aplica" derrubou a mutação DEPOIS de já ter apagado a
+ * linha (10/09/2026). O lado novo de uma exclusão se escreve `{}`.
+ */
+describe('computeFieldDiff — a forma de escrever uma exclusão', () => {
+  const linha = { id: 'x1', solicitacao_item_id: 'item-1', cliente_id: 'c1' };
+
+  it('exclusão com `{}` no lado novo devolve old preenchido e new nulo', () => {
+    const diff = computeFieldDiff(linha, {}, ['solicitacao_item_id', 'cliente_id']);
+    expect(diff).toEqual({
+      solicitacao_item_id: { old: 'item-1', new: null },
+      cliente_id: { old: 'c1', new: null },
+    });
+  });
+
+  it('é o espelho exato da criação', () => {
+    const criacao = computeFieldDiff(null, linha, ['solicitacao_item_id']);
+    expect(criacao).toEqual({ solicitacao_item_id: { old: null, new: 'item-1' } });
+  });
+
+  /** A regressão em si: `null` no lado novo não é caminho válido. */
+  it('`null` no lado novo estoura, e por isso ninguém deve escrever assim', () => {
+    expect(() => computeFieldDiff(
+      linha, null as unknown as Record<string, unknown>, ['solicitacao_item_id'],
+    )).toThrow();
+  });
+});

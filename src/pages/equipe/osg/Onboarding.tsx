@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { AlertCircle, ListChecks, Loader2, Lock, PackageOpen, Rocket, Send } from 'lucide-react';
 import { toast } from 'sonner';
+import { AvisoClienteNaoNotificado } from '@/components/equipe/osg/AvisoClienteNaoNotificado';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { OnboardingWorkspace } from '@/components/equipe/osg/onboarding/OnboardingWorkspace';
 import { SolicitacaoAcoes } from '@/components/equipe/osg/onboarding/SolicitacaoAcoes';
+import { ModalEnviarSolicitacao } from '@/components/equipe/osg/onboarding/ModalEnviarSolicitacao';
+import { ModalFinalizarSolicitacao } from '@/components/equipe/osg/onboarding/ModalFinalizarSolicitacao';
 import { SolicitacaoVazia } from '@/components/equipe/osg/onboarding/SolicitacaoVazia';
 import { SelecionarOsDialog } from '@/components/equipe/osg/onboarding/SelecionarOsDialog';
 import { OnboardingEmptyState } from '@/components/equipe/osg/onboarding/OnboardingEmptyState';
 import { panelContainerCls } from '@/components/equipe/osg/onboarding/onboardingKit';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useOnboarding } from '@/hooks/useOnboarding';
-import { useDomainSolicitacao } from '@/hooks/useDomainSolicitacao';
+import { useDomainSolicitacao, type EscolhaDoEnvio } from '@/hooks/useDomainSolicitacao';
 import { useDocumentosByCliente } from '@/hooks/useDocumentoArquivo';
 import { contarArquivosSemTipo } from '@/lib/checklistDerivado';
 import {
@@ -143,8 +146,15 @@ const Onboarding = () => {
   };
 
 
-  const enviar = async () => {
-    await enviarSolicitacao.mutateAsync();
+  /**
+   * O envio passa por modal desde 10/09/2026: o analista escolhe para quem e
+   * por onde. O botão só abre a caixa; quem envia é o `onConfirmar` dela.
+   */
+  const [modalDeEnvio, setModalDeEnvio] = useState(false);
+
+  const enviar = async (escolha: EscolhaDoEnvio) => {
+    await enviarSolicitacao.mutateAsync(escolha);
+    setModalDeEnvio(false);
     toast.success('Solicitação enviada — o cliente já vê a lista');
   };
 
@@ -153,9 +163,17 @@ const Onboarding = () => {
     toast.success('Agora o cliente vê o checklist, com upload por documento');
   };
 
-  const encerrar = async () => {
-    await encerrarSolicitacao.mutateAsync();
-    toast.success('Solicitação encerrada');
+  /**
+   * A finalização passou a ter modal em 11/09/2026, pelo mesmo motivo do envio:
+   * o aviso "recebemos e conferimos" saía para todo mundo sem ninguém escolher.
+   * `null` só aparece em rascunho, que nunca chegou ao cliente.
+   */
+  const [modalDeFinalizacao, setModalDeFinalizacao] = useState(false);
+
+  const encerrar = async (escolha: EscolhaDoEnvio | null) => {
+    await encerrarSolicitacao.mutateAsync(escolha);
+    setModalDeFinalizacao(false);
+    toast.success('Solicitação finalizada');
   };
 
   /**
@@ -194,9 +212,9 @@ const Onboarding = () => {
         arquivosSemTipo={contarArquivosSemTipo(documentosDoCliente)}
         ocupado={ocupado}
         onGerar={() => void gerar()}
-        onEnviar={enviar}
+        onEnviar={() => setModalDeEnvio(true)}
         onPassarParaChecklist={() => void virarChecklist()}
-        onEncerrar={encerrar}
+        onEncerrar={() => setModalDeFinalizacao(true)}
         onAbrirNova={abrirNova}
       />
     )
@@ -232,16 +250,22 @@ const Onboarding = () => {
   const emData = (iso: string | null) =>
     (iso ? new Date(iso).toLocaleDateString('pt-BR') : '');
 
-  const subtitulo = solicitacao?.status === 'enviada'
-    ? `Enviada ao cliente em ${emData(solicitacao.enviadaEm)}`
-    : emChecklist
-      ? 'Em fase de checklist: o cliente envia por documento que falta'
-      : encerrada
-        ? `Encerrada em ${emData(solicitacao?.encerradaEm ?? null)}`
-        : 'Solicitação inicial de documentos ao cliente';
+  /**
+   * O subtítulo é FIXO: o texto da Patrícia (10/09/2026), e mais nada.
+   *
+   * Ele variava com o estado — "Enviada ao cliente em 10/09/2026", "Em fase de
+   * checklist", "Encerrada em ..." —, e com isso o texto que a coordenação
+   * escreveu para a tela só aparecia quando não havia solicitação, que é a
+   * situação mais rara. Foi decisão minha e estava errada por dois motivos: o
+   * subtítulo descreve a TELA, não o registro aberto nela; e os três estados já
+   * têm faixa própria logo abaixo, com data e com o que muda em cada um. O
+   * subtítulo variável repetia a faixa em versão pior.
+   */
+  const SUBTITULO = 'Gerencie os documentos que serão solicitados ao cliente '
+    + 'para os produtos contratados.';
 
   return (
-    <OsgLayout title="Solicitação Inicial" subtitle={subtitulo} headerActions={acoesDoTopo}>
+    <OsgLayout title="Solicitação de documentos" subtitle={SUBTITULO} headerActions={acoesDoTopo}>
       {!clienteId ? (
         <OnboardingEmptyState icon={Rocket} title="Selecione um cliente">
           Use a barra acima para carregar a solicitação de documentos deste cliente.
@@ -265,9 +289,10 @@ const Onboarding = () => {
         </div>
       ) : semOrigemNaOs ? (
         <OnboardingEmptyState icon={PackageOpen} title="Nenhum produto OSG contratado">
-          Este cliente não tem OS com Empresa/Faturamento da OSG e produto contratado. A
-          solicitação sai dos produtos da OS, então não há o que pedir enquanto isso não
-          existir. Cadastre ou ajuste a OS no cadastro do cliente e volte aqui.
+          Nenhuma OS deste cliente contrata produto da OSG. A solicitação sai dos produtos da
+          OS, então não há o que pedir enquanto isso não existir — e note que quem decide é o
+          produto contratado, não a empresa que fatura. Cadastre ou ajuste a OS no cadastro do
+          cliente e volte aqui.
         </OnboardingEmptyState>
       ) : convidarAGerar ? (
         <SolicitacaoVazia
@@ -278,14 +303,23 @@ const Onboarding = () => {
         />
       ) : (
         <div className="space-y-3">
+          {/* Primeiro de todos, e acima do "aberta desde": aquela faixa diz que o
+              cliente está vendo a lista, e é justamente a impressão que precisa
+              ser desmentida quando o aviso não saiu. */}
+          <AvisoClienteNaoNotificado
+            solicitacaoId={solicitacao?.id ?? null}
+            enviadaEm={solicitacao?.enviadaEm}
+          />
+
           {solicitacao?.status === 'enviada' && (
             <div className="flex items-start gap-3 rounded-2xl border border-osg-200/70 bg-osg-50/60 p-4 text-sm text-osg-700">
               <Send className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss/70" />
               <p className="leading-relaxed">
                 Solicitação <strong className="font-semibold">aberta desde{' '}
-                {emData(solicitacao.enviadaEm)}</strong> — o cliente vê a lista e pode
-                enviar os arquivos. Incluir documentos agora também chega até ele; o
-                pedido só fecha quando você encerrar.
+                {emData(solicitacao.enviadaEm)}</strong>. O cliente já pode visualizar a
+                lista e enviar os documentos. Novos documentos adicionados à solicitação
+                também ficarão disponíveis no portal. A solicitação permanecerá aberta até
+                ser finalizada.
               </p>
             </div>
           )}
@@ -294,11 +328,15 @@ const Onboarding = () => {
             <div className="flex items-start gap-3 rounded-2xl border border-osg-200/70 bg-osg-50/60 p-4 text-sm text-osg-700">
               <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss/70" />
               <p className="leading-relaxed">
+                {/* "A solicitação permanecerá aberta até ser finalizada", e não
+                    "o pedido só fecha quando você encerrar". A Patrícia mandou
+                    trocar essa frase em 10/09/2026; ela existia em DUAS faixas e
+                    a primeira passagem só corrigiu a de "aberta desde". */}
                 Esta solicitação está <strong className="font-semibold">em fase de
                 checklist</strong>: a tela do cliente mostra o que falta, de quem é cada
-                documento, e o envio dele já chega classificado. Incluir documento aqui
-                continua chegando até ele, e é o normal desta fase. O pedido só fecha
-                quando você encerrar.
+                documento, e o envio dele já chega classificado. Novos documentos
+                adicionados aqui também ficarão disponíveis no portal. A solicitação
+                permanecerá aberta até ser finalizada.
               </p>
             </div>
           )}
@@ -339,6 +377,33 @@ const Onboarding = () => {
         onOpenChange={setEscolhendoOs}
         onEscolher={(id) => void gerar(id)}
       />
+
+      {/* Montado só quando abre: ele consulta os destinatários do cliente, e
+          essa consulta não tem por que rodar em toda renderização da tela. */}
+      {clienteId && modalDeEnvio && (
+        <ModalEnviarSolicitacao
+          aberto={modalDeEnvio}
+          onFechar={() => setModalDeEnvio(false)}
+          clienteId={clienteId}
+          itensAtivos={ativos.length}
+          enviando={enviarSolicitacao.isPending}
+          onConfirmar={(escolha) => void enviar(escolha)}
+        />
+      )}
+
+      {clienteId && modalDeFinalizacao && (
+        <ModalFinalizarSolicitacao
+          aberto={modalDeFinalizacao}
+          onFechar={() => setModalDeFinalizacao(false)}
+          clienteId={clienteId}
+          itensAtivos={ativos.length}
+          /* A mesma condição que a mutação e a borda usam: sem `enviada_em` o
+             pedido nunca chegou ao cliente, e não há o que avisar. */
+          jaEnviada={Boolean(solicitacao?.enviadaEm)}
+          encerrando={encerrarSolicitacao.isPending}
+          onConfirmar={(escolha) => void encerrar(escolha)}
+        />
+      )}
     </OsgLayout>
   );
 };

@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useExcluirPerDcompDefinitivamente } from '@/hooks/useDomainPerdcomp';
+import { FECHO_SUPORTE } from '@/lib/rlsMessages';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -32,7 +33,12 @@ interface SoftDeleteModalProps {
 export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDeleteModalProps) {
   const queryClient = useQueryClient();
   const { isAdmin, isLider, isSublider } = useAuth();
+  // Bate com as políticas de DELETE de `per`, `per_situacao` e `dcomp`, que a
+  // migration `20260908212829_perdcomp_exclusao_sublider_cascata` baixou de
+  // `lider` para `sublider`. Enquanto a régua da tela era mais frouxa que a do
+  // banco, o sublíder via o botão habilitado e a exclusão sumia em silêncio.
   const canWrite = isAdmin || isLider || isSublider;
+  const label = type === 'per' ? 'PER' : 'DCOMP';
 
   const mutation = useExcluirPerDcompDefinitivamente(type, identifier, {
     onSuccess: () => {
@@ -43,16 +49,21 @@ export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDe
       queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
       queryClient.invalidateQueries({ queryKey: ['dcomps-existentes'] });
 
-      const label = type === 'per' ? 'PER' : 'DCOMP';
       toast.success(`${label} excluído definitivamente.`);
       onOpenChange(false);
     },
-    onError: (error: { message?: string }) => {
-      toast.error(`Erro ao excluir: ${error?.message ?? 'erro desconhecido'}`);
+    onError: (error: Error) => {
+      // As recusas conhecidas já chegam como frase pronta do hook. O que não é
+      // `Error` é objeto cru do PostgREST — esse vai para o console, não para a
+      // tela.
+      if (error instanceof Error) {
+        toast.error(error.message);
+        return;
+      }
+      console.error('[perdcomp] falha ao excluir', error);
+      toast.error(`Não foi possível excluir este ${label}. ${FECHO_SUPORTE}`);
     },
   });
-
-  const label = type === 'per' ? 'PER' : 'DCOMP';
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>

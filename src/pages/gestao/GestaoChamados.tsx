@@ -5,6 +5,7 @@ import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
 import { contextoBoardChamados } from '@/lib/agenteContextoChamados';
 import type { ChaveDeEspelho } from '@/lib/areaTheme';
 import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
+import { CLUSTER_SEM_VINCULO, RESPONSAVEL_SEM_ATRIBUICAO, combinaComCluster, combinaComResponsavel } from '@/lib/equipeChamados';
 import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
 import { useAssignTicket, useUpdateTicketDeadline, useDeleteTickets } from '@/hooks/useTicketMutations';
 import { CreateTicketDialog } from '@/components/gestao/CreateTicketDialog';
@@ -128,6 +129,15 @@ export function ChamadosGestaoContent({
     return map;
   }, [areasData]);
 
+  // A RPC entrega os internos sem ordem; num filtro com dezenas de nomes,
+  // procurar em lista fora de ordem é o mesmo que não ter filtro.
+  const agentesOrdenados = useMemo(
+    () => [...agents].sort((a, b) =>
+      `${a.first_name ?? ''} ${a.last_name ?? ''}`.trim()
+        .localeCompare(`${b.first_name ?? ''} ${b.last_name ?? ''}`.trim(), 'pt-BR')),
+    [agents],
+  );
+
   const clusterMap = useMemo(() => {
     const map = new Map<string, string>();
     clustersData.forEach(c => map.set(c.id, c.name));
@@ -153,6 +163,7 @@ export function ChamadosGestaoContent({
     departamento: 'todos',
     area: 'todos',
     cluster: 'todos',
+    responsavel: 'todos',
     searchId: '',
   });
 
@@ -212,9 +223,12 @@ export function ChamadosGestaoContent({
       filtered = filtered.filter(t => t.estrutura_area_id === filters.area);
     }
 
-    if (filters.cluster !== 'todos') {
-      filtered = filtered.filter(t => t.cluster_id === filters.cluster);
-    }
+    filtered = filtered.filter(t => combinaComCluster(t, filters.cluster));
+
+    // "Sem responsável" é opção porque chamado sem atribuir é o que trava a
+    // fila: em "Todos" ele se perde no meio dos demais, e é justamente ele que
+    // alguém precisa pegar.
+    filtered = filtered.filter(t => combinaComResponsavel(t, filters.responsavel));
 
     if (filters.searchId) {
       filtered = filtered.filter(t => 
@@ -375,12 +389,14 @@ export function ChamadosGestaoContent({
   };
 
   /**
-   * O universo da tela: os chamados do CLUSTER da área onde ela está montada.
+   * O universo da tela: os chamados do CLUSTER escolhido no filtro — que, numa
+   * rota com área fixa, começa sendo o cluster dela.
    *
    * Mesmos três níveis da `EquipeChamados`: `tickets` (o que a RLS entregou), este
-   * (o escopo da rota) e `filteredAndSortedTickets` (os filtros do usuário). Os
+   * (o cluster em foco) e `filteredAndSortedTickets` (os demais filtros). Os
    * cartões ficam neste, não no primeiro — número no topo afirmando escopo que a
-   * lista não tem é o defeito que esta prop existe para fechar.
+   * lista não tem é o defeito que este nível existe para fechar, e ele continua
+   * fechado com o filtro aberto porque os dois andam juntos.
    *
    * Escopo declarado e ainda não resolvido devolve vazio: zero nunca afirma
    * escopo que não existe.
@@ -388,8 +404,8 @@ export function ChamadosGestaoContent({
   const ticketsDoEscopo = useMemo(() => {
     if (!escopo) return tickets;
     if (!clusterDoEscopo) return [];
-    return tickets.filter(t => t.cluster_id === clusterDoEscopo);
-  }, [tickets, escopo, clusterDoEscopo]);
+    return tickets.filter(t => combinaComCluster(t, filters.cluster));
+  }, [tickets, escopo, clusterDoEscopo, filters.cluster]);
 
   // Sincroniza SÓ o filtro de cluster — o resto do estado do usuário sobrevive.
   useEffect(() => {
@@ -406,9 +422,12 @@ export function ChamadosGestaoContent({
     emAndamento: ticketsDoEscopo.filter(t => t.status === 'em_andamento').length,
     resolvidos: ticketsDoEscopo.filter(t => t.status === 'resolvido' || t.status === 'fechado').length,
   }), [ticketsDoEscopo]);
-  const nomeDoEscopo = clusterDoEscopo
-    ? clustersData.find(c => c.id === clusterDoEscopo)?.name ?? null
-    : null;
+  // Segue o filtro, que é quem manda no escopo: o rótulo que o Agente lê e a
+  // mensagem de vazio precisam nomear o que a tela mostra AGORA, não a rota.
+  const nomeDoEscopo = filters.cluster === CLUSTER_SEM_VINCULO
+    ? 'chamados sem cluster'
+    : clustersData.find(c => c.id === filters.cluster)?.name
+      ?? (clusterDoEscopo ? clustersData.find(c => c.id === clusterDoEscopo)?.name ?? null : null);
 
   // ── O que o Agente PSA le desta tela ─────────────────────────────────
   // O MESMO `stats` dos cartoes do topo, mais o que a tabela mostra e o
@@ -555,10 +574,13 @@ export function ChamadosGestaoContent({
 
             <div className="space-y-2">
               <Label>Cluster</Label>
-              {/* Travado quando a tela tem escopo: o cluster não é filtro que o
-                  usuário pôs, é a área onde a tela está montada. Sem a trava a
-                  correção dura até o primeiro clique. */}
-              <Select value={filters.cluster} disabled={!!escopo}
+              {/* Aberto mesmo com escopo: a rota dá o valor inicial, não uma
+                  trava. Chamado sem cluster não casa com cluster nenhum, e com o
+                  campo travado ele não existia em tela alguma — "Sem cluster" é
+                  como se acha o que precisa de roteamento. Os cartões seguem
+                  este filtro (ver `ticketsDoEscopo`), então cor e número nunca
+                  afirmam um escopo que a lista não tem. */}
+              <Select value={filters.cluster}
                 onValueChange={(v) => setFilters({...filters, cluster: v})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
@@ -568,6 +590,28 @@ export function ChamadosGestaoContent({
                   {clustersData.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
+                  <SelectItem value={CLUSTER_SEM_VINCULO}>Sem cluster</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Responsável</Label>
+              {/* A mesma lista do seletor de atribuição (`useTicketAgents`), para
+                  o filtro não oferecer nome que não pode ser responsável. */}
+              <Select value={filters.responsavel}
+                onValueChange={(v) => setFilters({...filters, responsavel: v})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {agentesOrdenados.map((agent) => (
+                    <SelectItem key={agent.id} value={agent.id}>
+                      {`${agent.first_name ?? ''} ${agent.last_name ?? ''}`.trim() || 'Sem nome'}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={RESPONSAVEL_SEM_ATRIBUICAO}>Sem responsável</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -688,9 +732,11 @@ export function ChamadosGestaoContent({
                 {!loading && !resolvendoEscopo && filteredAndSortedTickets.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={14} className="py-12 text-center text-muted-foreground">
-                      {escopo
-                        ? `Nenhum chamado em ${nomeDoEscopo ?? escopo.toUpperCase()}.`
-                        : 'Nenhum chamado encontrado com os filtros selecionados.'}
+                      {filters.cluster === CLUSTER_SEM_VINCULO
+                        ? 'Nenhum chamado sem cluster.'
+                        : nomeDoEscopo
+                          ? `Nenhum chamado em ${nomeDoEscopo}.`
+                          : 'Nenhum chamado encontrado com os filtros selecionados.'}
                     </TableCell>
                   </TableRow>
                 )}

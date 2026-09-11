@@ -14,6 +14,7 @@ import { ChecklistPendentes } from './ChecklistPendentes';
 
 const mocks = vi.hoisted(() => ({
   revisar: vi.fn(),
+  sincronizarNaoAplicavel: vi.fn(),
   linhas: [] as LinhaChecklist[],
 }));
 
@@ -26,6 +27,12 @@ vi.mock('@/hooks/useDocumentoArquivo', () => ({
   // Os dois abaixo são do BotaoComprovante (EDU-7), que a tela renderiza.
   useDocumentosByCliente: () => ({ data: [] }),
   useUploaderNames: () => ({ data: {} }),
+}));
+
+// A ficha grava a marca de "não se aplica" por este hook; sem o mock ele pede o
+// QueryClient, que a tela não monta.
+vi.mock('@/hooks/useDomainSolicitacaoNaoAplicavel', () => ({
+  useSincronizarSolicitacaoNaoAplicavel: () => ({ mutate: mocks.sincronizarNaoAplicavel }),
 }));
 
 vi.mock('@/hooks/useChecklistDerivado', () => ({
@@ -81,6 +88,7 @@ const abrirFicha = async (user: ReturnType<typeof userEvent.setup>) => {
 describe('ChecklistPendentes — revisão do arquivo', () => {
   beforeEach(() => {
     mocks.revisar.mockReset();
+    mocks.sincronizarNaoAplicavel.mockReset();
     mocks.linhas = [linha()];
   });
 
@@ -167,6 +175,65 @@ describe('ChecklistPendentes — revisão do arquivo', () => {
     // E dá para voltar à ficha inteira sem fechar e reabrir.
     await user.click(ficha.getByRole('button', { name: /ver todos os 2/ }));
     expect(ficha.getByText('CPF')).toBeInTheDocument();
+  });
+
+  it('marca "não se aplica" mandando o conjunto da entidade, não só a linha clicada', async () => {
+    mocks.linhas = [
+      linha({ status: 'pendente', arquivos: [] }),
+      linha({
+        chave: 'item-casamento|pessoa:p-joao',
+        itemId: 'item-casamento',
+        documento: 'Certidão de casamento',
+        ordem: 2,
+        status: 'nao_aplicavel',
+        arquivos: [],
+      }),
+    ];
+    const user = userEvent.setup();
+    render(<ChecklistPendentes clienteId="cliente-1" />);
+
+    const ficha = await abrirFicha(user);
+    await user.click(ficha.getByRole('button', { name: /Não se aplica — CPF/ }));
+
+    // O hook grava por sincronização: o conjunto atual da entidade MAIS a nova.
+    expect(mocks.sincronizarNaoAplicavel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        alvo: { kind: 'pessoa', id: 'p-joao' },
+        itemIds: ['item-casamento', 'item-cpf'],
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('desmarcar tira só a linha clicada do conjunto', async () => {
+    mocks.linhas = [linha({ status: 'nao_aplicavel', arquivos: [] })];
+    const user = userEvent.setup();
+    render(<ChecklistPendentes clienteId="cliente-1" />);
+
+    const ficha = await abrirFicha(user);
+    await user.click(ficha.getByRole('button', { name: /Voltar a solicitar — CPF/ }));
+
+    expect(mocks.sincronizarNaoAplicavel).toHaveBeenCalledWith(
+      expect.objectContaining({ itemIds: [] }),
+      expect.anything(),
+    );
+  });
+
+  it('documento já recebido não oferece a marca', async () => {
+    const user = userEvent.setup();
+    render(<ChecklistPendentes clienteId="cliente-1" />);
+
+    const ficha = await abrirFicha(user);
+    expect(ficha.queryByRole('button', { name: /Não se aplica/ })).not.toBeInTheDocument();
+  });
+
+  /**
+   * A faixa de "o cliente não foi avisado" mora só na Solicitação Inicial desde
+   * 10/09/2026: é lá que o envio acontece e é de lá que se age.
+   */
+  it('não repete aqui a faixa de cliente não avisado', () => {
+    render(<ChecklistPendentes clienteId="cliente-1" />);
+    expect(screen.queryByText(/não foi avisado deste envio/)).not.toBeInTheDocument();
   });
 
   it('arquivo produzido pela PSA não é revisável', async () => {

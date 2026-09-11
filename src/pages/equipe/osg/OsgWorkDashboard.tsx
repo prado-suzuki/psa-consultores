@@ -14,8 +14,8 @@ interface Ferramenta {
 const FERRAMENTAS: Ferramenta[] = [
   {
     id: 'onboarding',
-    titulo: 'Solicitação Inicial',
-    descricao: 'Preparação da solicitação inicial de documentos conforme os produtos contratados.',
+    titulo: 'Solicitação de documentos',
+    descricao: 'Gerencie os documentos que serão solicitados ao cliente para os produtos contratados.',
     path: '/equipe/osg/work/onboarding',
     icon: <Rocket className="h-5 w-5 text-osg-600" />,
   },

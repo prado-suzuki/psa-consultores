@@ -89,23 +89,42 @@ export function usePersDcompForm(contribuinteId: string | undefined) {
 }
 
 async function replaceDistribuicoes(nrDocumento: string, context: PersistenceContext) {
-  // A leitura amostral é best-effort: seu erro continua deliberadamente ignorado.
-  const { data: sample } = await supabase
+  // Montar antes de apagar. `buildDistribuicaoRows` é pura e hoje não lança, mas
+  // construir as linhas novas depois de destruir as antigas é a ordem que
+  // converte qualquer erro de montagem em perda de dado.
+  const rows = buildDistribuicaoRows({ ...context, nrDocumento });
+
+  // Contagem real, não amostra: é o número que prova que o delete fez efeito.
+  // A leitura era `limit(1)` com o erro ignorado, então nem o "quantas havia"
+  // nem a falha da própria leitura chegavam até aqui.
+  const { data: existentes, error: leituraErro } = await supabase
     .from('distribuicao_dcomp')
     .select('id')
-    .eq('nr_documento', nrDocumento)
-    .limit(1)
-    .maybeSingle();
-  if (sample?.id) await assertCanPerform('distribuicao_dcomp', 'delete', sample.id);
-
-  const { error: deleteError } = await supabase
-    .from('distribuicao_dcomp')
-    .delete()
     .eq('nr_documento', nrDocumento);
-  if (deleteError) throw deleteError;
+  if (leituraErro) throw leituraErro;
 
-  // Construção intencionalmente posterior ao delete: preserva a sequência e falhas parciais legadas.
-  const rows = buildDistribuicaoRows({ ...context, nrDocumento });
+  const atuais = existentes ?? [];
+  if (atuais.length > 0) {
+    await assertCanPerform('distribuicao_dcomp', 'delete', atuais[0].id);
+
+    // `.select()` obrigatório: RLS recusando um DELETE devolve ZERO linhas, não
+    // erro. Sem conferir, o insert logo abaixo somava as linhas novas às antigas
+    // e o DCOMP terminava com a distribuição duplicada.
+    const { data: apagadas, error: deleteError } = await supabase
+      .from('distribuicao_dcomp')
+      .delete()
+      .eq('nr_documento', nrDocumento)
+      .select('id');
+    if (deleteError) throw deleteError;
+
+    if ((apagadas?.length ?? 0) < atuais.length) {
+      throw new Error(
+        'O banco recusou a remoção das linhas de distribuição anteriores deste DCOMP. ' +
+          'A distribuição não foi substituída, e nada novo foi inserido, para não duplicar.',
+      );
+    }
+  }
+
   if (rows.length > 0) {
     const { error: insertError } = await supabase.from('distribuicao_dcomp').insert(rows);
     if (insertError) throw insertError;
@@ -139,11 +158,21 @@ export function useUpdateDcompForm(options?: DcompMutationOptions<UpdateDcompInp
     ...options,
     mutationFn: async (context) => {
       const record = buildUpdateRecord(context.data);
-      const { error } = await supabase
+      // `.select()` pelo mesmo motivo do delete: update recusado pela RLS não
+      // volta erro, volta zero linhas — e aí as distribuições eram substituídas
+      // sob um DCOMP que não tinha mudado.
+      const { data, error } = await supabase
         .from('dcomp')
         .update(record)
-        .eq('nr_documento', context.originalNrDocumento);
+        .eq('nr_documento', context.originalNrDocumento)
+        .select('nr_documento');
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error(
+          'Não foi possível salvar este DCOMP: a alteração foi recusada pelo banco, ou o ' +
+            'documento não está mais disponível para você. Atualize a página e tente novamente.',
+        );
+      }
       await replaceDistribuicoes(context.originalNrDocumento, context);
       return { ...record, nr_documento: context.originalNrDocumento };
     },
