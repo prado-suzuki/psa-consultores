@@ -378,8 +378,8 @@ export default function EquipeBacklog() {
                       <Badge 
                         variant="outline" 
                         className={
-                          item.priority === 'high' ? 'bg-red-50 text-red-700 border-red-200' :
-                          item.priority === 'medium' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                          item.priority === 'high' ? 'bg-status-alerta-soft text-status-alerta border-status-alerta/30' :
+                          item.priority === 'medium' ? 'bg-status-espera-soft text-status-espera border-status-espera/30' :
                           'bg-muted text-muted-foreground border-border'
                         }
                       >

@@ -118,11 +118,17 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     'src/components/equipe/sprint-detalhes/MetricsTab.tsx': 2,
     'src/components/equipe/sprint-detalhes/RisksTab.tsx': 4,
     'src/components/sprint/GroupedTasks.tsx': 1,
-    'src/pages/equipe/EquipeBacklog.tsx': 3,
+    // O `EquipeBacklog` saiu em 11/09/2026: a escada de prioridade dele — alta,
+    // média, e o resto em `muted` — converteu inteira para `alerta`/`espera`/neutro,
+    // pela escada de quatro degraus que ela aprovou olhando a página de comparação.
     'src/pages/equipe/EquipeKanban.tsx': 2,
   },
   'outro-papel': {
-    'src/components/equipe/StageEditCard.tsx': 3,
+    // O `StageEditCard` caiu de 3 para 1 em 11/09/2026, e o que sobrou é o mais
+    // claro do grupo: o âmbar da escada de prioridade foi embora com a conversão, e
+    // ficou só a bolinha do número da etapa EM MODO DE EDIÇÃO — que é o mesmo âmbar
+    // do lápis e do `--edit-shadow-color`, e continua não sendo estado de nada.
+    'src/components/equipe/StageEditCard.tsx': 1,
     'src/components/equipe/dashboards/analise-inteligente/AnaliseInteligenteAnalysis.tsx': 4,
     // As seis abas de `correcoes-sped` saíram daqui em 10/09/2026, e o grupo estava
     // certo em tê-las: o âmbar delas era DUAS outras coisas, não uma. O marcador de

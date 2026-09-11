@@ -93,21 +93,20 @@
     escrito na catraca. As quatro estão abaixo, na ordem do que destrava mais coisa.
   </p>
 
-  <h2><span class="n">1</span>O lote está mal recortado — entram <code>green</code> e <code>rose</code>?</h2>
-  <p>Esta muda o tamanho de tudo. <b>20 das 78</b> estão em escada com uma família que ficou fora do
-     lote: o saldo do PER/DCOMP usa <code>green</code> do lado bom, e a calculadora IBS/CBS usa
-     <code>rose</code> do lado ruim. Converter só o que é <code>red</code>/<code>emerald</code> deixa
-     token de um lado e cor de estoque do outro — o defeito que o motivo
-     <code>escada-de-status</code> existe para evitar.</p>
+  <h2><span class="n">1</span>As escadas meio cruas — 20 sítios com o par fora do lote</h2>
+  <p>Em 16 arquivos o vermelho ou o verde tem um <b>par</b> que ficou fora do lote: o saldo do
+     PER/DCOMP usa <code>green</code> do lado bom, e a calculadora IBS/CBS usa <code>rose</code> do lado
+     ruim. Converter só o que é <code>red</code>/<code>emerald</code> deixa token de um lado e cor de
+     estoque do outro — o defeito que o motivo <code>escada-de-status</code> existe para evitar.</p>
   <div class="par">
-    <div class="col"><div class="hd">o saldo do PER — 6 ocorrências, 4 arquivos</div><div class="card">
+    <div class="col"><div class="hd">hoje · o saldo do PER — 6 no lote, 6 fora</div><div class="card">
       <div class="linha" style="gap:18px">
         <span style="color:var(--green-600);font-weight:700;font-size:17px;font-family:ui-monospace,Consolas,monospace">R$ 12.400,00</span>
         <span style="color:var(--red-600);font-weight:700;font-size:17px;font-family:ui-monospace,Consolas,monospace">−R$ 3.180,00</span>
       </div>
       <p class="meta">O vermelho está no lote; o verde é <code>green-600</code>, que não está.</p>
     </div></div>
-    <div class="col"><div class="hd">o delta da calculadora — 14 ocorrências, 5 arquivos</div><div class="card">
+    <div class="col"><div class="hd">hoje · o delta da calculadora — 14 no lote, 14 fora</div><div class="card">
       <div class="linha" style="gap:18px">
         <span style="color:var(--emerald-700);font-weight:600">−2,14 p.p.</span>
         <span style="color:var(--rose-700);font-weight:600">+1,08 p.p.</span>
@@ -115,14 +114,47 @@
       <p class="meta">O esmeralda está no lote; o <code>rose</code> não. Sempre aos pares.</p>
     </div></div>
   </div>
-  <p class="meta"><b>Medido hoje:</b> <code>green</code> tem 77 ocorrências em 27 arquivos,
-     <code>rose</code> tem 22 em 9. Levar as duas junto é <b>+99 ocorrências</b> na frente, e fecha os
-     20 sítios acima em vez de deixá-los pela metade.</p>
-  <div class="decide"><b>O que eu faria</b>
-    Levar as duas. Um par que quer dizer “bom / ruim” é uma decisão só, e meia conversão garante que
-    daqui a um mês alguém olha essa tela e não entende por que um número é token e o outro é estoque.
-    Se preferir parar o lote aqui, os 20 ficam na catraca com o motivo — o que <b>não</b> vale é
-    converter um lado.
+
+  <h3>Terceira proposta — fechar a escada sem abrir a família</h3>
+  <p style="color:hsl(var(--muted-foreground));font-size:14px">As duas primeiras eram grandes demais ou
+     paradas demais. Esta é a do meio, e ela existe porque <b>o problema não é a família, são os 9
+     arquivos</b>: dá para levar o par <i>só onde ele está na mesma escada</i>, e deixar o resto do
+     <code>green</code> e do <code>rose</code> onde está, medido e com motivo.</p>
+  <div class="par">
+    <div class="col"><div class="hd">depois · o par inteiro, nos dois</div><div class="card">
+      <div class="linha" style="gap:18px">
+        <span style="color:hsl(var(--status-feito));font-weight:700;font-size:17px;font-family:ui-monospace,Consolas,monospace">R$ 12.400,00</span>
+        <span style="color:hsl(var(--status-ajuste));font-weight:700;font-size:17px;font-family:ui-monospace,Consolas,monospace">−R$ 3.180,00</span>
+      </div>
+      <div class="linha" style="gap:18px;margin-top:14px">
+        <span style="color:hsl(var(--status-feito));font-weight:600">−2,14 p.p.</span>
+        <span style="color:hsl(var(--status-ajuste));font-weight:600">+1,08 p.p.</span>
+      </div>
+      <p class="meta"><span class="cr" data-fg="hsl(var(--status-feito))" data-bg="hsl(var(--card))"></span> no bom ·
+         <span class="cr" data-fg="hsl(var(--status-ajuste))" data-bg="hsl(var(--card))"></span> no ruim —
+         contra 3,26 e 4,83 de hoje. São <code>success</code> e <code>destructive</code>, que é o par
+         que o <b>próprio PER/DCOMP já usa</b> no <code>DcompDistributionSection</code> desde hoje de
+         manhã.</p>
+    </div></div>
+    <div class="col"><div class="hd">o tamanho de cada caminho</div><div class="card">
+      <table style="margin:0">
+        <tr><th>caminho</th><th class="num">ocorr.</th><th class="num">arq.</th></tr>
+        <tr><td><b>A</b> · as famílias inteiras</td><td class="num">20 + 99</td><td class="num">+34</td></tr>
+        <tr><td><b>B</b> · deixar na catraca</td><td class="num">0</td><td class="num">0</td></tr>
+        <tr style="background:hsl(var(--primary)/.06)"><td><b>C</b> · só as escadas</td><td class="num"><b>40</b></td><td class="num"><b>9</b></td></tr>
+      </table>
+      <p class="meta">Em C entram as 20 do lote mais <b>os 20 pares que moram nos mesmos 9 arquivos</b>
+         — 6 <code>green</code> e 14 <code>rose</code>, contados um a um. Fora ficam 71
+         <code>green</code> e 8 <code>rose</code>, que <b>não estão em escada com ninguém do lote</b> e
+         entram na catraca medidos.</p>
+    </div></div>
+  </div>
+  <div class="decide"><b>Por que eu faria a C</b>
+    O defeito que você viu não é “existe <code>green</code> no produto” — é <b>meia escada</b>. A C
+    conserta exatamente isso: nenhum dos 9 arquivos fica com token de um lado e estoque do outro, e
+    nenhuma frente nova de 99 ocorrências é aberta hoje. O que sobra de <code>green</code> e
+    <code>rose</code> fica medido, com o motivo escrito, e vira uma frente própria quando você quiser —
+    aí sim olhando as telas delas, não estas.
   </div>
 
   <h2><span class="n">2</span>A escala de prioridade está errada antes da cor</h2>

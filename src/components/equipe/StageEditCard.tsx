@@ -40,11 +40,11 @@
  }
  
  const AUTOMATION_LEVELS = [
-   { value: 'none', label: 'Nenhuma', color: 'bg-status-neutro-soft text-status-neutro' },
-   { value: 'low', label: 'Baixa', color: 'bg-yellow-100 text-yellow-700' },
-   { value: 'medium', label: 'Média', color: 'bg-blue-100 text-blue-700' },
-   { value: 'high', label: 'Alta', color: 'bg-green-100 text-green-700' },
-   { value: 'critical', label: 'Crítica', color: 'bg-red-100 text-red-700' }
+   { value: 'none', label: 'Nenhuma', color: 'bg-muted text-muted-foreground' },
+   { value: 'low', label: 'Baixa', color: 'bg-status-neutro-soft text-status-neutro' },
+   { value: 'medium', label: 'Média', color: 'bg-status-espera-soft text-status-espera' },
+   { value: 'high', label: 'Alta', color: 'bg-status-alerta-soft text-status-alerta' },
+   { value: 'critical', label: 'Crítica', color: 'bg-status-ajuste-soft text-status-ajuste' }
  ];
  
  export function StageEditCard({ stage, index, totalStages, onUpdate, onDelete }: StageEditCardProps) {
