@@ -111,14 +111,20 @@ const AREAS = {
     acento: 'bg-primary/10 text-primary',
     tom: 'tokens',
   },
+  // As duas últimas a sair do acento cru, em 10/09/2026, junto com o cromo das
+  // barras delas. Elas tinham `teal-500` e `blue-500` — primitivas da escala
+  // que moram no `:root` e que NENHUM tema sobrescreve, então o avatar não
+  // acompanhava a área: ficava azul dentro de uma barra que passou a pintar o
+  // item ativo com a âncora da casa. Agora as nove entradas usam o mesmo
+  // `--primary`, e é o tema da rota que resolve o tom.
   administracao: {
     rotulo: 'Administrador',
-    acento: 'bg-teal-500/10 text-teal-600',
+    acento: 'bg-primary/10 text-primary',
     tom: 'slate',
   },
   fixos: {
     rotulo: 'Fixos',
-    acento: 'bg-blue-500/10 text-blue-600',
+    acento: 'bg-primary/10 text-primary',
     tom: 'slate',
   },
   // As tres ultimas entraram em 10/09/2026, quando a Patricia pediu o cartao em

@@ -23,6 +23,8 @@ import {
 import { SidebarFundoGaveta } from '@/components/shared/SidebarFundoGaveta';
 import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
 import { classeLarguraBarra, classeRecuoCabecalho, classesGavetaBarra, larguraBarraCss } from '@/lib/sidebarMedidas';
+import { FACE_DA_BARRA, classesItemDaBarra } from '@/lib/barraLateralCromo';
+import { cn } from '@/lib/utils';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -75,17 +77,17 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
         <div className={`${classeRecuoCabecalho(trilho)} border-b border-border/60`}>
           {trilho ? (
             <div className="flex justify-center">
-              <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center">
-                <Settings className="h-5 w-5 text-teal-600" />
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Settings className="h-5 w-5 text-primary" />
               </div>
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center flex-shrink-0">
-                <Settings className="h-5 w-5 text-teal-600" />
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Settings className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold text-foreground text-lg">{AREAS.admin.nome}</h2>
+                <h2 className={cn(FACE_DA_BARRA, 'font-semibold text-foreground text-lg')}>{AREAS.admin.nome}</h2>
                 <p className="text-xs text-muted-foreground">{AREAS.admin.subtitulo}</p>
               </div>
             </div>
@@ -109,11 +111,7 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
             <Button
               key={item.path}
               variant="ghost"
-              className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive(item.path) 
-                  ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15' 
-                  : 'text-foreground hover:bg-muted hover:text-teal-600'
-              }`}
+              className={classesItemDaBarra({ ativo: isActive(item.path), trilho })}
               onClick={() => navigate(item.path)}
               title={trilho ? item.label : undefined}
             >
@@ -130,7 +128,7 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
 
           <Button 
             variant="ghost" 
-            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-teal-600 transition-colors`}
+            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-primary transition-colors`}
             onClick={() => navigate('/equipe')}
             title={trilho ? 'Trocar área' : undefined}
           >

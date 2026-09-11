@@ -52,14 +52,14 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
         <div className={`${classeRecuoCabecalho(trilho)} border-b border-border/60`}>
           {trilho ? (
             <div className="flex justify-center">
-              <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                <Building className="h-5 w-5 text-blue-600" />
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Building className="h-5 w-5 text-primary" />
               </div>
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                <Building className="h-5 w-5 text-blue-600" />
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Building className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <h2 className="font-semibold text-foreground text-lg">{AREAS.fixos.nome}</h2>
@@ -93,7 +93,7 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
           
           <Button 
             variant="ghost" 
-            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-blue-600 transition-colors`}
+            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-primary transition-colors`}
             onClick={() => navigate('/equipe/projetos')}
             title={trilho ? 'Trocar área' : undefined}
           >
@@ -102,7 +102,7 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
           </Button>
           <Button 
             variant="ghost" 
-            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-blue-600 transition-colors`}
+            className={`w-full ${trilho ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-primary transition-colors`}
             onClick={() => navigate('/')}
             title={trilho ? 'Voltar ao site' : undefined}
           >
