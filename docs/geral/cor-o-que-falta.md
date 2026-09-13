@@ -517,7 +517,7 @@ Medido em 10/09/2026, ordenado:
 | **`gray`** | **580** | 61 | só parcial — a `cor-de-estoque` só dispara em tom que a escala do projeto NÃO tem |
 | `red` | 176 | 58 | nenhuma |
 | ~~`teal`~~ | **0** | 0 | **FECHADA em 11/09/2026** — catraca `filaDoTeal.test.ts` e ESLint em `error`. A família INTEIRA zerou nas pastas de tela, não só os três degraus do aviso |
-| `blue` | 108 | 41 | nenhuma |
+| `blue` | **52** | 25 | **catraca `filaDoBlue.test.ts`** desde 11/09/2026, em cinco grupos pelo motivo |
 | `green` / `amber` | 81 / 81 | 28 / 31 | `amber` tem a `filaDoAlerta` |
 | `emerald` | 72 | 29 | nenhuma |
 
@@ -569,7 +569,45 @@ Nesta ordem, do que rende ao que exige decisão:
    As 25 que ficam são o site público (10, que é outro produto), paleta categórica (8, cujo destino
    são os `--tag-*`) e o rótulo de cargo (7, que não é estado).
 
-4. ~~**`projects.status`** (§3)~~ — **fechado em 10/09/2026.** E ele saiu desta lista com uma
+4. **`blue`** — **rodada 1 fechada em 11/09/2026, e a fila tem dono.** Eram **100** em 39
+   arquivos (não 108: o número velho contava prosa e teste). Sobram **52** em 25, com catraca.
+
+   O que esta família ensinou, e não vale só para ela:
+
+   · **o azul é o único com TRÊS casas legítimas no contrato**, e nenhuma é óbvia olhando a
+     classe: o papel `fila` já é azul, o `--tag-b` é o frio da área, e o `--info` é azul e
+     **não** acompanha a área. Por isso "converter o azul" nunca foi uma decisão — foram seis,
+     e varrer por família teria escolhido a errada em pelo menos duas telas;
+   · **medir a classe não é medir o que aparece.** Registrei um selo como reprovando o AA
+     (4,35:1 "em 10px negrito"); fui converter e o conteúdo dele era um `<Check/>`. O
+     `text-[10px] font-bold` era herança da forma do irmão e não pintava nada — o piso que
+     valia era o 3:1 de ícone, e ele passava. **Abra o filho antes de medir o pai.** O outro
+     achado de contraste continua de pé, e é em token: `bg-info/10 text-info` dá 4,49:1 sob a
+     palavra "Média";
+   · **as ROTAS dizem o tamanho do commit, e a pasta não.** O inventário por arquivo escondia
+     duas coisas que só apareceram percorrendo os `import` até o `App.tsx`: cinco ocorrências
+     em código que **nenhuma rota monta** (converter ali não muda um pixel), e uma linha só —
+     o ícone de documento do `docMeta` — com alcance de **doze** rotas;
+   · **quem converte um mapa reconfere TODAS as filas que tocam aquele arquivo.** A conversão
+     do Kanban levou o âmbar junto com o azul e deixou a `filaDoAlerta` vermelha na `develop`.
+     A catraca da outra frente é que apontou.
+
+   **O que trava a rodada 2, e é decisão dela:** o que sobra é quase todo mapa de CATEGORIA com
+   mais entradas do que o contrato tem tons — `pageCategoryStyles` (10 categorias), `AgendaTab`
+   (6 tipos de evento), `PROCESS_STAGES` (6 etapas), `EquipeRelatorios`. Existe uma paleta de
+   **oito** tons (`--area-1..8`), mas o próprio `index.css` avisa que ela **colapsa sob
+   protanopia e deuteranopia quando a cor aparece SOZINHA** (pior par ΔE 1,4) — ela só serve
+   onde o rótulo acompanha. As três saídas — dividir os quatro `--tag-*`, emprestar o
+   `--area-1..8` onde há rótulo, ou desenhar uma rampa nova — estão sem página de comparação.
+
+   **E um achado que não é de ninguém das duas frentes:** o ícone por tipo de arquivo está
+   descrito em dois lugares (`EquipeBiblioteca` e `osg/documentos/docMeta`) e as duas cópias **já
+   divergiram** — planilha é `green-500` numa e `emerald-600` na outra, e **imagem é AZUL numa e
+   ROXA na outra**, enquanto o azul da outra significa *Word*. A mesma cor dizendo duas coisas é
+   exatamente o defeito que mapa existe para matar. Ficou sem converter porque os dois arquivos
+   estão na `filaDoRedEmerald`, e quem mexer primeiro quebra a fila do outro.
+
+5. ~~**`projects.status`** (§3)~~ — **fechado em 10/09/2026.** E ele saiu desta lista com uma
    correção junto: não era "o único item que o CLIENTE vê". A tabela de vínculo está vazia,
    então nenhum cliente via nada. Ver o §3, que agora é a retificação do próprio §3.
 
