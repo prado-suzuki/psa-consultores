@@ -7,7 +7,8 @@ import DevLayout from '@/components/equipe/dev/DevLayout';
 import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
+import { SelecaoDeContribuinte } from '@/components/equipe/selecao/SelecaoDeContribuinte';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MonthRangePicker, type MonthRange } from '@/components/ui/month-range-picker';
@@ -351,31 +352,25 @@ const ControleBalancetes = () => {
             {/* Cliente */}
             <div className="col-span-4 space-y-2">
               <Label className="text-sm font-medium text-muted-foreground">Cliente <RequiredMark /></Label>
-              <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
-                <SelectTrigger className="h-11 rounded-lg">
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientes?.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SelecaoDeCliente
+                clientes={clientes}
+                value={clienteId}
+                onChange={(v) => { setClienteId(v); setContribuinteId(''); }}
+                placeholder="Selecione o cliente"
+                className="w-full min-w-0 h-11 rounded-lg"
+              />
             </div>
 
             {/* Contribuinte */}
             <div className="col-span-4 space-y-2">
               <Label className="text-sm font-medium text-muted-foreground">Contribuinte <RequiredMark /></Label>
-              <Select value={contribuinteId} onValueChange={setContribuinteId}>
-                <SelectTrigger className="h-11 rounded-lg">
-                  <SelectValue placeholder="Selecione o contribuinte" />
-                </SelectTrigger>
-                <SelectContent>
-                  {contribuintes?.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome_razao_social}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SelecaoDeContribuinte
+                contribuintes={contribuintes}
+                value={contribuinteId}
+                onChange={setContribuinteId}
+                placeholder="Selecione o contribuinte"
+                className="w-full min-w-0 h-11 rounded-lg"
+              />
             </div>
 
             {/* Período */}

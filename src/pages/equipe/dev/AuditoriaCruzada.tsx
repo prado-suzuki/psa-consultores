@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
+import { SelecaoDeContribuinte } from '@/components/equipe/selecao/SelecaoDeContribuinte';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -87,32 +88,27 @@ const AuditoriaCruzadaContent = () => {
                     Cliente <RequiredMark />
                     <FieldTooltip text={AUDITORIA_TOOLTIPS.cliente} />
                   </label>
-                  <Select value={clienteId} onValueChange={setClienteId}>
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clientes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SelecaoDeCliente
+                    clientes={clientes}
+                    value={clienteId}
+                    onChange={setClienteId}
+                    placeholder="Selecione..."
+                    className="w-full min-w-0 h-11"
+                  />
                 </div>
                 <div className="col-span-12 md:col-span-6 lg:col-span-3">
                   <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                     Contribuinte <RequiredMark />
                     <FieldTooltip text={AUDITORIA_TOOLTIPS.contribuinte} />
                   </label>
-                  <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder={clienteId ? 'Selecione...' : 'Selecione um cliente'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {contribuintes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{c.nome_razao_social}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SelecaoDeContribuinte
+                    contribuintes={contribuintes}
+                    value={contribuinteId}
+                    onChange={setContribuinteId}
+                    disabled={!clienteId}
+                    placeholder={clienteId ? 'Selecione...' : 'Selecione um cliente'}
+                    className="w-full min-w-0 h-11"
+                  />
                 </div>
                 <div className="col-span-12 md:col-span-6 lg:col-span-3">
                   <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
