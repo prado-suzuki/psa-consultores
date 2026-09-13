@@ -34,6 +34,14 @@ interface SelecaoDeContribuinteProps {
   emptyText?: string;
   className?: string;
   id?: string;
+  /**
+   * Repassados ao gatilho. Existem porque o `FormControl` do react-hook-form é
+   * um `Slot`: ele injeta `id`, `aria-describedby` e `aria-invalid` no filho, e
+   * um componente que não os declara os descarta em silêncio — a mensagem de
+   * erro do campo deixa de ser anunciada, sem aviso nenhum.
+   */
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean;
 }
 
 export function SelecaoDeContribuinte({
@@ -46,6 +54,8 @@ export function SelecaoDeContribuinte({
   emptyText = 'Nenhum contribuinte encontrado.',
   className,
   id,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
 }: SelecaoDeContribuinteProps) {
   const options = useMemo<ComboOption[]>(
     () =>
@@ -71,6 +81,8 @@ export function SelecaoDeContribuinte({
       placeholder={loading ? 'Carregando...' : placeholder}
       emptyText={emptyText}
       className={className}
+      aria-describedby={ariaDescribedBy}
+      aria-invalid={ariaInvalid}
     />
   );
 }

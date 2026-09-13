@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SelecaoDeContribuinte } from '@/components/equipe/selecao/SelecaoDeContribuinte';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload, CheckCircle2, AlertTriangle, Loader2, FileSpreadsheet, Info } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -320,18 +320,13 @@ export function CargaPerdcompCSV() {
         {/* Seleção de Contribuinte */}
         <div className="space-y-2">
           <Label>Contribuinte</Label>
-          <Select value={selectedContribuinte} onValueChange={setSelectedContribuinte}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione o contribuinte..." />
-            </SelectTrigger>
-            <SelectContent>
-              {contribuintes.map((contrib) => (
-                <SelectItem key={contrib.id} value={contrib.id}>
-                  {contrib.nome_razao_social} {contrib.cpf_cnpj && `(${contrib.cpf_cnpj})`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SelecaoDeContribuinte
+            contribuintes={contribuintes}
+            value={selectedContribuinte}
+            onChange={setSelectedContribuinte}
+            placeholder="Selecione o contribuinte..."
+            className="w-full min-w-0"
+          />
           {selectedContribuinteInfo && (
             <p className="text-sm text-muted-foreground">
               Contribuinte selecionado: <strong>{selectedContribuinteInfo.nome_razao_social}</strong>

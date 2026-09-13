@@ -45,6 +45,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
+import { SelecaoDeContribuinte } from '@/components/equipe/selecao/SelecaoDeContribuinte';
 import {
   Popover,
   PopoverContent,
@@ -402,25 +404,17 @@ export function PerFormModal({
             {/* Cliente */}
             <div className="space-y-2">
               <FormLabel>Cliente</FormLabel>
-              <Select
+              <SelecaoDeCliente
+                clientes={clientes}
                 value={selectedClienteId}
-                onValueChange={(v) => {
+                onChange={(v) => {
                   setSelectedClienteId(v);
                   // Reset contribuinte when client changes
                   form.setValue('id_contribuinte', '');
                 }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Selecione o cliente"
+                className="w-full min-w-0"
+              />
             </div>
 
             {/* Contribuinte */}
@@ -430,20 +424,15 @@ export function PerFormModal({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Contribuinte <RequiredMark /></FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o contribuinte" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {contribuintes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.nome_razao_social} {c.cpf_cnpj ? `(${c.cpf_cnpj})` : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SelecaoDeContribuinte
+                      contribuintes={contribuintes}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Selecione o contribuinte"
+                      className="w-full min-w-0"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

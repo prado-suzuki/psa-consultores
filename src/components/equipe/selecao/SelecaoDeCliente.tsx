@@ -37,6 +37,14 @@ interface SelecaoDeClienteProps {
   emptyText?: string;
   className?: string;
   id?: string;
+  /**
+   * Repassados ao gatilho. Existem porque o `FormControl` do react-hook-form é
+   * um `Slot`: ele injeta `id`, `aria-describedby` e `aria-invalid` no filho, e
+   * um componente que não os declara os descarta em silêncio — a mensagem de
+   * erro do campo deixa de ser anunciada, sem aviso nenhum.
+   */
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean;
 }
 
 export function SelecaoDeCliente({
@@ -49,6 +57,8 @@ export function SelecaoDeCliente({
   emptyText = 'Nenhum cliente encontrado.',
   className,
   id,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
 }: SelecaoDeClienteProps) {
   const cnpjsPorCliente = useCnpjsPorCliente();
 
@@ -76,6 +86,8 @@ export function SelecaoDeCliente({
       placeholder={loading ? 'Carregando...' : placeholder}
       emptyText={emptyText}
       className={className}
+      aria-describedby={ariaDescribedBy}
+      aria-invalid={ariaInvalid}
     />
   );
 }

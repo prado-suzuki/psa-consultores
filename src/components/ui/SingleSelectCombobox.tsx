@@ -19,6 +19,14 @@ interface SingleSelectComboboxProps {
   emptyText?: string;
   disabled?: boolean;
   className?: string;
+  /**
+   * Repassados ao gatilho. Existem porque o `FormControl` do react-hook-form é
+   * um `Slot`: ele injeta `id`, `aria-describedby` e `aria-invalid` no filho, e
+   * um componente que não os declara os descarta em silêncio — a mensagem de
+   * erro do campo deixa de ser anunciada, sem aviso nenhum.
+   */
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean;
 }
 
 /**
@@ -40,6 +48,8 @@ export function SingleSelectCombobox({
   emptyText = 'Nenhum item encontrado.',
   disabled,
   className,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
 }: SingleSelectComboboxProps) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
@@ -52,6 +62,8 @@ export function SingleSelectCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-describedby={ariaDescribedBy}
+          aria-invalid={ariaInvalid}
           disabled={disabled}
           // `hover:` neutralizado, e não é preferência: a variante `outline` traz
           // `hover:bg-accent hover:text-accent-foreground`, e `--accent` aqui é

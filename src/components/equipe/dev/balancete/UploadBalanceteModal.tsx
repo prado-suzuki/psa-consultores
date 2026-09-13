@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
+import { SelecaoDeContribuinte } from '@/components/equipe/selecao/SelecaoDeContribuinte';
 import { MonthRangePicker, type MonthRange } from '@/components/ui/month-range-picker';
 import { monthRangeToDateStrings } from '@/components/ui/month-range-picker.utils';
 import { Switch } from '@/components/ui/switch';
@@ -361,31 +362,26 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
             {/* Cliente */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-muted-foreground">Cliente</Label>
-              <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
-                <SelectTrigger className="h-11 rounded-lg">
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientes?.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SelecaoDeCliente
+                clientes={clientes}
+                value={clienteId}
+                onChange={(v) => { setClienteId(v); setContribuinteId(''); }}
+                placeholder="Selecione o cliente"
+                className="w-full min-w-0 h-11 rounded-lg"
+              />
             </div>
 
             {/* Contribuinte */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-muted-foreground">Contribuinte</Label>
-              <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
-                <SelectTrigger className="h-11 rounded-lg">
-                  <SelectValue placeholder="Selecione o contribuinte" />
-                </SelectTrigger>
-                <SelectContent>
-                  {contribuintes?.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome_razao_social}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SelecaoDeContribuinte
+                contribuintes={contribuintes}
+                value={contribuinteId}
+                onChange={setContribuinteId}
+                disabled={!clienteId}
+                placeholder="Selecione o contribuinte"
+                className="w-full min-w-0 h-11 rounded-lg"
+              />
             </div>
 
             {/* Detalhamento prompt */}
