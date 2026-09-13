@@ -585,12 +585,29 @@ All colors MUST be HSL.
        textarea, select, botão outline, toggle, OTP e os editores de texto rico.
        Nenhum é divisória. Medido antes de mexer.
 
-       A luminosidade difere entre as áreas (52 / 56 / 54,5) e isso não é
-       escolha: é o valor em que a matiz e a saturação de cada área alcançam 3:1
-       contra o CARTÃO dela — o da OSG não é branco, é `32 28% 98,5%`, e por isso
-       ele desce meio ponto a mais. No `.dark` a linha CLAREIA para 42%, porque
-       lá o cartão é escuro. O teste cobra a razão, não o número: valor fixo
-       diria a coisa certa numa área e a errada nas outras.
+       ⚠️ A luminosidade ERA diferente entre as áreas (52 / 56 / 54,5), e o
+       parágrafo abaixo, que continua verdadeiro, explicava por quê: cada valor
+       era o mais CLARO que ainda alcança 3:1 contra o cartão da própria área —
+       o da OSG não é branco, é `32 28% 98,5%`.
+
+       **Em 11/09/2026 ela decidiu alinhar as três em 52%**, olhando os três
+       campos lado a lado. 52% é o mais escuro dos três, então ninguém perde
+       contraste: a base fica onde estava (3,05:1), a Tax sobe para 3,42:1 e a
+       OSG para 3,24:1. O preço é o inverso do de sempre — a linha da Tax e da
+       OSG fica um pouco mais firme do que o mínimo pedia.
+
+       Alinhar por cima não era possível, e é por isso que 52% é o único valor
+       que serve: a 54% a base reprova (2,88:1) e a 56% base e OSG reprovam
+       (2,73 e 2,88). O teste continua cobrando a RAZÃO e não o número — se uma
+       área mudar de canvas, é a razão que acusa, não a igualdade dos valores.
+
+       No `.dark` a linha CLAREIA para 42%, porque lá o cartão é escuro, e ela
+       fica de fora deste alinhamento pelo mesmo motivo.
+
+       ⚠️ **O que este alinhamento NÃO resolve, e ficou medido em 11/09:** os 3:1
+       valem contra o CARTÃO. Contra o canvas — a página, onde vivem as barras de
+       filtro e os formulários sem cartão — os três dão 2,64 / 2,61 / 2,67, e
+       reprovam. É frente própria, e tem defeito medido dentro.
 
        ⚠️ `bg-input` NÃO existe mais como preenchimento. O `Switch` usava o
        `--input` para pintar a trilha desligada, o que era o mesmo defeito de
@@ -929,7 +946,7 @@ All colors MUST be HSL.
        a borda ser mais saturada que a própria página morreu aqui: era 16%
        sobre um canvas de 10%, e agora é 14%, o mesmo do rebaixado. */
     --border: 192 14% 86%;
-    --input: 192 14% 56%;
+    --input: 192 14% 52%;
     --success: var(--status-feito);
     --warning: var(--status-alerta);
     --success-foreground: 0 0% 100%;
@@ -974,7 +991,7 @@ All colors MUST be HSL.
        registro. */
     /* Um degrau abaixo do rebaixado (89%), na saturação dele. */
     --border: 32 28% 86%;
-    --input: 32 28% 54.5%;
+    --input: 32 28% 52%;
 
     /* Sinais na OSG — foi o bloco que mais mudou. "Ok" era o verde musgo e
        "aviso" era o dourado do marca-texto, tokens de marca da área usados
