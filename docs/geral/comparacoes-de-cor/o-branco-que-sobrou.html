@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O branco que sobrou</title>
+<style>
+  /* Valores lidos do src/index.css em 12/09/2026, tema Tax (a área das duas telas
+     que ela apontou; a Nova Ferramenta é Dev, que veste o base-theme — a
+     diferença é só a matiz, e está na tabela do fim). */
+  :root{
+    --bgp:192 18% 99.6%;  /* página, desde 12/09 */
+    --cd:192 18% 99.6%;   /* cartão */
+    --mt:192 14% 89%;     /* rebaixada */
+    --ln:192 14% 86%;     /* linha */
+    --fg:20 81% 10%;
+    --mf:185 8% 38.5%;
+    --pr:192 73% 20%;     /* âncora Tax */
+    --esc:222 47% 11%;    /* --surface-escura-2 da Tax */
+    --ok:128 56% 21%;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:34px 24px 80px;background:hsl(var(--bgp));color:hsl(var(--fg));
+       font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1280px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 8px;letter-spacing:-.015em}
+  .sub{color:hsl(var(--mf));margin:0;max-width:82ch}
+  h2{font-size:14px;text-transform:uppercase;letter-spacing:.07em;margin:56px 0 6px;color:hsl(var(--mf))}
+  h2 + p{margin:0 0 14px;max-width:86ch;font-size:14.5px}
+  h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:28px 0 8px;color:hsl(var(--mf));font-weight:700}
+  p.nota{color:hsl(var(--mf));font-size:13.5px;max-width:86ch;margin:8px 0 0}
+  code{font:12.5px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:hsl(192 10% 96%);
+       padding:1px 5px;border-radius:4px;border:1px solid hsl(var(--ln))}
+  .decisao{border:1px solid hsl(var(--ln));border-left:3px solid hsl(var(--pr));background:hsl(192 10% 97%);
+           border-radius:10px;padding:15px 18px;margin:20px 0 0;max-width:96ch}
+  .decisao b{display:block;margin-bottom:6px;font-size:15px}
+  .decisao ol{margin:6px 0 0;padding-left:20px}
+  .decisao li{margin-bottom:4px}
+
+  /* ── palco: a área <main> da tela, em escala real (1344px na tela dela) ── */
+  .palco{border:1px solid hsl(var(--ln));border-radius:12px;overflow:hidden;margin-top:12px;background:hsl(var(--bgp))}
+  .palco .rotulo{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:hsl(var(--mf));
+                 padding:8px 12px;background:hsl(var(--cd));border-bottom:1px solid hsl(var(--ln));display:flex;gap:10px;align-items:baseline}
+  .palco .rotulo em{font-style:normal;font-weight:500;text-transform:none;letter-spacing:0;opacity:.8}
+  .palco .rotulo .rec{margin-left:auto;color:hsl(var(--ok));text-transform:none;letter-spacing:0;font-weight:700}
+  .tela{padding:0 24px 24px;position:relative}
+
+  /* cabeçalho da tela (o <header> do layout) */
+  .cab{background:hsl(var(--cd));border-bottom:1px solid hsl(var(--ln) / .6);margin:0 -24px 24px;padding:12px 24px;
+       display:flex;justify-content:space-between;align-items:center;min-height:64px}
+  .cab .sobre{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:hsl(var(--mf))}
+  .cab .tit{font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1.1;margin-top:2px}
+  .cab .subt{font-size:13px;color:hsl(var(--mf));margin-top:2px}
+  .cab .sino{width:18px;height:18px;border:2px solid hsl(var(--fg));border-radius:6px 6px 8px 8px;opacity:.8}
+  /* D — cabeçalho forte */
+  .forte .cab{background:hsl(var(--pr));background-image:linear-gradient(120deg,hsl(var(--esc)) 0%,hsl(var(--pr)) 70%);
+              border-bottom:0;color:#fff;min-height:88px}
+  .forte .cab .sobre{color:rgba(255,255,255,.7)}
+  .forte .cab .subt{color:rgba(255,255,255,.8)}
+  .forte .cab .sino{border-color:#fff}
+
+  /* ── cartões do dashboard ── */
+  .card{background:hsl(var(--cd));border:1px solid hsl(var(--ln) / .7);border-radius:16px;box-shadow:0 1px 2px hsl(var(--fg) / .05)}
+  .card-head{display:flex;align-items:center;gap:8px;padding:14px 20px 10px;font-size:13.5px;font-weight:600}
+  .card-head .ic{width:14px;height:14px;border:1.5px solid hsl(var(--pr));border-radius:3px}
+  .card-body{padding:0 20px 18px}
+  .well{border-radius:10px;padding:12px}
+  .grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .campo label{display:block;font-size:11px;color:hsl(var(--mf));margin-bottom:4px}
+  .ctrl{height:36px;border:1px solid hsl(var(--ln));border-radius:7px;background:hsl(var(--cd));font-size:13px;
+        display:flex;align-items:center;justify-content:space-between;padding:0 12px}
+  .ctrl span.v{color:hsl(var(--mf))}
+  .ctrl:after{content:"⌄";color:hsl(var(--mf));font-size:12px}
+  .atalhos{display:flex;gap:8px;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid hsl(var(--ln));font-size:10.5px;color:hsl(var(--mf))}
+  .atalhos span{border:1px solid hsl(var(--ln));border-radius:6px;padding:4px 10px;font-size:11px;color:hsl(var(--fg))}
+  .kpi{padding:20px}
+  .kpi .l{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:hsl(var(--mf))}
+  .kpi .l .ic{width:22px;height:22px;border-radius:999px;background:hsl(var(--pr) / .1);border:1px solid hsl(var(--pr) / .25)}
+  .kpi .v{font-size:36px;font-weight:800;letter-spacing:-.03em;line-height:1;margin:14px 0 8px;font-variant-numeric:tabular-nums}
+  .kpi .s{font-size:12.5px;color:hsl(var(--mf))}
+  .kpi.solid{background:hsl(var(--pr));background-image:linear-gradient(to left,rgba(0,0,0,.45),transparent 75%);color:#fff;border-color:transparent}
+  .kpi.solid .l,.kpi.solid .s{color:rgba(255,255,255,.85)}
+  .kpi.solid .l .ic{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3)}
+  .hero-row{display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-top:24px}
+  .hero{background:hsl(var(--esc));background-image:linear-gradient(120deg,hsl(var(--esc)),hsl(var(--pr) / .6));color:#fff;border-radius:16px;padding:32px;min-height:220px}
+  .hero .eb{font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.7)}
+  .hero .t{font-size:28px;font-weight:800;letter-spacing:-.02em;margin-top:14px}
+  .hero .d{font-size:14px;color:rgba(255,255,255,.8);margin-top:8px;max-width:60ch}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid2 .kpi .v{font-size:32px}
+  .espaco{margin-top:24px}
+
+  /* A — miolo rebaixado (a receita do balão do Feed: bg-muted/35) */
+  .a .well{background:hsl(var(--mt) / .35)}
+  /* B — faixa de título (a receita da faixa de origem do Feed: bg-primary/10) */
+  .b .card-head{background:hsl(var(--pr) / .1);border-bottom:1px solid hsl(var(--ln) / .6);border-radius:16px 16px 0 0;padding-top:12px;padding-bottom:12px}
+  .b .card-body{padding-top:16px}
+  /* C — cartão tingido (bg-muted/35 no cartão inteiro, controle fica branco) */
+  .c .card{background:hsl(var(--mt) / .35)}
+  .c .kpi.solid{background:hsl(var(--pr));background-image:linear-gradient(to left,rgba(0,0,0,.45),transparent 75%)}
+  .c .ctrl{background:hsl(0 0% 100%)}
+
+  /* G — filtros em barra (o padrão do Feed) */
+  .barra{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid hsl(var(--ln) / .7);
+         background:hsl(var(--cd));border-radius:16px;padding:8px;box-shadow:0 1px 2px hsl(var(--fg) / .05)}
+  .seg{display:flex;gap:2px;background:hsl(var(--mt) / .6);border-radius:8px;padding:2px}
+  .seg span{font-size:12px;padding:6px 10px;border-radius:6px;color:hsl(var(--mf));white-space:nowrap}
+  .seg span.on{background:hsl(var(--cd));color:hsl(var(--fg));font-weight:600;box-shadow:0 1px 2px hsl(var(--fg) / .07)}
+  .bots{display:flex;gap:8px}
+  .bots span{font-size:12.5px;padding:8px 12px;border-radius:8px;border:1px solid hsl(var(--ln));background:hsl(var(--cd))}
+  .bots span.n:after{content:"2";display:inline-grid;place-items:center;width:16px;height:16px;border-radius:999px;background:hsl(var(--pr));color:#fff;font-size:10px;font-weight:700;margin-left:6px}
+  .etq{display:flex;gap:6px;margin-top:8px;padding:0 8px}
+  .etq span{font-size:11.5px;padding:3px 9px;border-radius:999px;background:hsl(var(--mt) / .5);color:hsl(var(--fg))}
+
+  /* ── nova ferramenta ── */
+  .aviso{border:1px solid hsl(var(--pr) / .25);background:hsl(var(--cd));border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.55}
+  .aviso b{display:block;font-size:13px;margin-bottom:3px}
+  .form .card-head{flex-direction:column;align-items:flex-start;gap:2px;padding:22px 24px 8px}
+  .form .card-head .t{font-size:22px;font-weight:700;letter-spacing:-.015em}
+  .form .card-head .s{font-size:13.5px;color:hsl(var(--mf));font-weight:400}
+  .form .card-body{padding:8px 24px 22px;display:flex;flex-direction:column;gap:18px}
+  .form label.big{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+  .form .in{height:40px;border:1px solid hsl(var(--ln));border-radius:8px;background:hsl(var(--cd));font-size:13.5px;color:hsl(var(--mf));display:flex;align-items:center;padding:0 12px}
+  .form .in.ta{height:96px;align-items:flex-start;padding-top:10px}
+  .form .ajuda{font-size:13px;color:hsl(var(--mf));margin-top:6px}
+  .grupo{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:hsl(var(--mf));margin:6px 0 6px}
+  .chk{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .chk span{height:44px;border:1px solid hsl(var(--ln));border-radius:8px;display:flex;align-items:center;gap:10px;padding:0 12px;font-size:13.5px;font-weight:500}
+  .chk span:before{content:"";width:16px;height:16px;border:1.5px solid hsl(var(--mf));border-radius:4px}
+  .coluna{width:672px}
+  .centro .coluna{margin:0 auto}
+  .duas{display:grid;grid-template-columns:2fr 1fr;gap:24px;align-items:start}
+
+  /* ── tela de lista (Consulta ECD): aviso + filtros + caixa grande de tabela ── */
+  .grid-f{display:grid;grid-template-columns:1.2fr 2fr 0.8fr 0.8fr;gap:16px}
+  .acoes{display:flex;justify-content:flex-end;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid hsl(var(--ln))}
+  .acoes span{font-size:13px;padding:9px 16px;border-radius:8px;border:1px solid hsl(var(--pr) / .3);color:hsl(var(--pr));font-weight:600}
+  .acoes span.ok{background:hsl(var(--pr));color:#fff;border-color:transparent;opacity:.55}
+  .tab{width:100%;border-collapse:collapse;font-size:13px;margin:0;max-width:none}
+  .tab th{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:hsl(var(--mf));padding:10px 14px;border-bottom:1px solid hsl(var(--ln))}
+  .tab td{padding:13px 14px;border-bottom:1px solid hsl(var(--ln) / .6)}
+  .tab td.d{color:hsl(var(--mf));font-variant-numeric:tabular-nums}
+  .tab tr:nth-child(even) td{background:hsl(var(--mt) / .25)}
+  .pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:hsl(var(--ok) / .12);color:hsl(var(--ok))}
+  /* C2 — cartão tingido SÓ nas caixinhas: a caixa da tabela fica branca */
+  .c2 .card{background:hsl(var(--mt) / .35)}
+  .c2 .card.tabela{background:hsl(var(--cd))}
+  .c2 .ctrl{background:hsl(0 0% 100%)}
+  .fam{width:100%;max-width:none;font-size:12.5px}
+  .fam td:first-child{white-space:nowrap;font-weight:600}
+  .fam td.telas{color:hsl(var(--mf));line-height:1.5}
+
+  table{border-collapse:collapse;margin-top:12px;font-size:13px;width:100%;max-width:900px}
+  th,td{text-align:left;padding:7px 12px;border-bottom:1px solid hsl(var(--ln))}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:hsl(var(--mf));font-weight:700}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+  ul{max-width:90ch;font-size:14.5px}
+  li{margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>O branco que sobrou</h1>
+<p class="sub">A página branca funcionou no Feed e ficou “muito branca” no Dashboard da Tax e na Solicitar nova
+ferramenta do Dev. Medi as <b>96 rotas</b> do sistema no navegador (1600×1000, sessão logada): largura e posição da coluna,
+percentual de pixels brancos do <code>&lt;main&gt;</code>, e quantas caixas são brancas e quantas carregam tinta. A tabela
+inteira está na seção 7. O resumo: não é uma causa, são duas — e o Feed é exceção, não regra.</p>
+
+<div class="decisao">
+  <b>Diagnóstico, e o que eu recomendo.</b>
+  <ol>
+    <li><b>Coluna solta — 2 telas, as duas do Dev.</b> Solicitar nova ferramenta (672 de 1344px) e Carregar dados (768 de
+      1344px) têm a coluna colada à esquerda e metade da tela nua. Cinza, isso lia como margem; branca, lê como inacabada. O
+      Feed tem coluna do mesmo tamanho e não sofre disso porque ela é centralizada.
+      → <b>Centralizar</b>, como o Feed. Uma classe em duas telas (mais o Detalhe da ferramenta, que precisa de id e não entrou
+      na varredura).</li>
+    <li><b>Branco dentro de branco — 36 telas, é a regra do sistema.</b> Página, cartão e campo no mesmo valor, separados por uma
+      linha a 1,23:1, e <b>nenhuma</b> caixa com tinta. O Feed escapa porque cada cartão dele carrega tinta própria (a faixa
+      da origem e o balão do evento); só 14 telas têm duas ou mais caixas tingidas. E o Dashboard — a tela que você apontou —
+      tem <b>o mesmo percentual de branco do Feed</b> (70% contra 71%): o problema não é a quantidade de branco, é que no
+      Dashboard ele está em dez caixas separadas e no Feed em cinco, com tinta no meio.
+      → <b>Cartão tingido</b> (“preencher as caixinhas”, com a receita do balão do Feed) <b>+ filtros em barra</b> no Dashboard.
+      Mas a varredura mostrou uma família que a receita não serve, e ela é grande: as <b>telas de lista</b> — uma caixa só,
+      com tabela ou estado vazio dentro, 90%+ de branco. Tingir a tabela é outra decisão, e está renderizada na seção 6.</li>
+  </ol>
+  A seção 4 é o caminho disruptivo: cabeçalho da tela em faixa da âncora. Muda a cara das oito áreas, e briga com o banner
+  escuro do Dashboard — está lá para você olhar, não é a minha recomendação.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2>1 · Solicitar nova ferramenta — a coluna solta</h2>
+<p>O <code>&lt;main&gt;</code> em escala real. A coluna do formulário tem os mesmos 672px nas três; o que muda é onde ela
+está e o que ocupa o resto.</p>
+
+<div class="palco">
+  <div class="rotulo">Hoje <em>· coluna a 280px da borda, 672px de largura, 672px de página nua à direita</em></div>
+  <div class="tela">
+    <div class="cab"><div><div class="sobre">Digital Dev</div><div class="tit">Solicitar nova ferramenta</div>
+      <div class="subt">Registre uma ideia para entrar no backlog do Digital Dev</div></div><div class="sino"></div></div>
+    <div class="coluna form">
+      <div class="aviso"><b>Como funciona</b>Você descreve a necessidade e ela entra no catálogo com status “Em desenvolvimento”. O time Digital Dev avalia e desenvolve a ferramenta; quando estiver pronta, as áreas selecionadas abaixo ganham acesso automaticamente.</div>
+      <div class="card espaco" style="margin-top:16px">
+        <div class="card-head"><span class="t">Informações da ferramenta</span><span class="s">Preencha os dados básicos da solicitação</span></div>
+        <div class="card-body">
+          <div><label class="big">Nome da ferramenta *</label><div class="in">Ex: Automação de Relatórios</div><div class="ajuda">Um nome curto que identifique a ferramenta no catálogo</div></div>
+          <div><label class="big">Descrição</label><div class="in ta">Ex: Automatiza o cruzamento entre XML e SPED para conferência de créditos...</div></div>
+          <div><label class="big">Áreas que vão usar essa ferramenta</label>
+            <div class="grupo">Digital</div><div class="chk"><span>Área Digital</span></div>
+            <div class="grupo">Prado Advogados</div><div class="chk"><span>PRADO ADV CIVIL</span><span>TAX LEGAL</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="palco centro">
+  <div class="rotulo">Centralizada <em>· a mesma coluna, no meio — é o que o Feed faz</em><span class="rec">recomendada</span></div>
+  <div class="tela">
+    <div class="cab"><div><div class="sobre">Digital Dev</div><div class="tit">Solicitar nova ferramenta</div>
+      <div class="subt">Registre uma ideia para entrar no backlog do Digital Dev</div></div><div class="sino"></div></div>
+    <div class="coluna form">
+      <div class="aviso"><b>Como funciona</b>Você descreve a necessidade e ela entra no catálogo com status “Em desenvolvimento”. O time Digital Dev avalia e desenvolve a ferramenta; quando estiver pronta, as áreas selecionadas abaixo ganham acesso automaticamente.</div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-head"><span class="t">Informações da ferramenta</span><span class="s">Preencha os dados básicos da solicitação</span></div>
+        <div class="card-body">
+          <div><label class="big">Nome da ferramenta *</label><div class="in">Ex: Automação de Relatórios</div><div class="ajuda">Um nome curto que identifique a ferramenta no catálogo</div></div>
+          <div><label class="big">Descrição</label><div class="in ta">Ex: Automatiza o cruzamento entre XML e SPED para conferência de créditos...</div></div>
+          <div><label class="big">Áreas que vão usar essa ferramenta</label>
+            <div class="grupo">Digital</div><div class="chk"><span>Área Digital</span></div>
+            <div class="grupo">Prado Advogados</div><div class="chk"><span>PRADO ADV CIVIL</span><span>TAX LEGAL</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="palco">
+  <div class="rotulo">Duas colunas <em>· formulário à esquerda, “Como funciona” e áreas à direita — usa a largura</em></div>
+  <div class="tela">
+    <div class="cab"><div><div class="sobre">Digital Dev</div><div class="tit">Solicitar nova ferramenta</div>
+      <div class="subt">Registre uma ideia para entrar no backlog do Digital Dev</div></div><div class="sino"></div></div>
+    <div class="duas form">
+      <div class="card">
+        <div class="card-head"><span class="t">Informações da ferramenta</span><span class="s">Preencha os dados básicos da solicitação</span></div>
+        <div class="card-body">
+          <div><label class="big">Nome da ferramenta *</label><div class="in">Ex: Automação de Relatórios</div><div class="ajuda">Um nome curto que identifique a ferramenta no catálogo</div></div>
+          <div><label class="big">Descrição</label><div class="in ta">Ex: Automatiza o cruzamento entre XML e SPED para conferência de créditos...</div><div class="ajuda">Explique o problema que essa ferramenta resolve e o resultado esperado — isso ajuda o time a priorizar</div></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="aviso"><b>Como funciona</b>Você descreve a necessidade e ela entra no catálogo com status “Em desenvolvimento”. O time avalia e desenvolve; quando estiver pronta, as áreas abaixo ganham acesso.</div>
+        <div class="card"><div class="card-head" style="padding-bottom:4px"><span class="t" style="font-size:15px">Áreas que vão usar</span></div>
+          <div class="card-body" style="gap:8px"><div class="grupo">Digital</div><div class="chk" style="grid-template-columns:1fr"><span>Área Digital</span></div>
+          <div class="grupo">Prado Advogados</div><div class="chk" style="grid-template-columns:1fr"><span>PRADO ADV CIVIL</span><span>TAX LEGAL</span></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="nota">Medido nas 96 rotas: só duas têm coluna estreita colada à esquerda — esta e <b>Carregar dados</b> (768 de
+1344px). O <b>Detalhe da ferramenta</b> tem o mesmo <code>max-w-2xl</code> no código mas exige um id e não entrou na
+varredura. Gerenciar dados, que eu tinha listado por busca no código, mediu 1152px centralizado — a busca errou, a
+medição corrige. A opção de duas colunas resolve o branco mas muda a ordem de leitura do formulário (áreas antes da
+descrição) e não vale para o Carregar dados, que não tem segundo bloco.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2>2 · Dashboard — o que segura o cartão quando a página é branca</h2>
+<p>O topo do Dashboard da Tax com os números reais de hoje, em escala real. As três receitas são as que o Feed já usa;
+o que muda é <b>onde</b> a tinta cai.</p>
+
+<div class="palco">
+  <div class="rotulo">Hoje <em>· página, cartão e campo no mesmo valor; a linha a 1,23:1 é tudo que separa</em></div>
+  <div class="tela">
+    <div class="cab"><div><div class="sobre">Tax</div><div class="tit">Dashboard</div><div class="subt">Visão geral da área fiscal — atualizado em tempo real</div></div><div class="sino"></div></div>
+    <div class="card"><div class="card-head"><span class="ic"></span>Filtros Estratégicos</div>
+      <div class="card-body"><div class="well" style="padding:0">
+        <div class="grid5"><div class="campo"><label>Vencimento de</label><div class="ctrl"><span class="v">dd/mm/aaaa</span></div></div><div class="campo"><label>Vencimento até</label><div class="ctrl"><span class="v">dd/mm/aaaa</span></div></div><div class="campo"><label>Urgência</label><div class="ctrl">Todas</div></div><div class="campo"><label>Status da Tarefa</label><div class="ctrl">Todos</div></div><div class="campo"><label>Status do Projeto</label><div class="ctrl">Todos</div></div></div>
+        <div class="grid4" style="margin-top:12px"><div class="campo"><label>Cliente</label><div class="ctrl">Todos os clientes</div></div><div class="campo"><label>Projeto</label><div class="ctrl">Todos os projetos</div></div><div class="campo"><label>Responsável</label><div class="ctrl">Todos os responsáveis</div></div><div class="campo"><label>Equipe Fiscal</label><div class="ctrl">Todas as equipes</div></div></div>
+        <div class="atalhos">ATALHOS: <span>Apenas atrasadas</span><span>Próximos 7 dias</span><span>Em progresso</span><span>Backlog ativo</span></div>
+      </div></div></div>
+    <div class="grid4 espaco">
+      <div class="card kpi"><div class="l"><span class="ic"></span>Projetos ativos</div><div class="v">102</div><div class="s">94% do portfólio</div></div>
+      <div class="card kpi"><div class="l"><span class="ic"></span>Taxa de conclusão</div><div class="v">73%</div><div class="s">320 de 439 tarefas concluídas</div></div>
+      <div class="card kpi"><div class="l"><span class="ic"></span>Tarefas atrasadas</div><div class="v">92</div><div class="s">requerem ação imediata</div></div>
+      <div class="card kpi solid"><div class="l"><span class="ic"></span>Horas planejadas</div><div class="v">5869h</div><div class="s">13h em média por tarefa</div></div>
+    </div>
+    <div class="hero-row"><div class="hero"><div class="eb">Tax</div><div class="t">92 tarefas precisam de atenção</div><div class="d">Identifique as tarefas com maior atraso e re-priorize. A tabela abaixo mostra o ranking por dias de atraso.</div></div>
+      <div class="grid2"><div class="card kpi"><div class="l"><span class="ic"></span>Total projetos</div><div class="v">109</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Concluídos</div><div class="v">3</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Pausados</div><div class="v">1</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Total tarefas</div><div class="v">439</div></div></div></div>
+  </div>
+</div>
+
+<div class="palco a">
+  <div class="rotulo">A · Miolo rebaixado <em>· a área dos campos ganha o fundo do balão do Feed (<code>bg-muted/35</code>); cartão e KPI seguem brancos</em></div>
+  <div class="tela">
+    <div class="cab"><div><div class="sobre">Tax</div><div class="tit">Dashboard</div><div class="subt">Visão geral da área fiscal — atualizado em tempo real</div></div><div class="sino"></div></div>
+    <div class="card"><div class="card-head"><span class="ic"></span>Filtros Estratégicos</div>
+      <div class="card-body"><div class="well">
+        <div class="grid5"><div class="campo"><label>Vencimento de</label><div class="ctrl"><span class="v">dd/mm/aaaa</span></div></div><div class="campo"><label>Vencimento até</label><div class="ctrl"><span class="v">dd/mm/aaaa</span></div></div><div class="campo"><label>Urgência</label><div class="ctrl">Todas</div></div><div class="campo"><label>Status da Tarefa</label><div class="ctrl">Todos</div></div><div class="campo"><label>Status do Projeto</label><div class="ctrl">Todos</div></div></div>
+        <div class="grid4" style="margin-top:12px"><div class="campo"><label>Cliente</label><div class="ctrl">Todos os clientes</div></div><div class="campo"><label>Projeto</label><div class="ctrl">Todos os projetos</div></div><div class="campo"><label>Responsável</label><div class="ctrl">Todos os responsáveis</div></div><div class="campo"><label>Equipe Fiscal</label><div class="ctrl">Todas as equipes</div></div></div>
+        <div class="atalhos">ATALHOS: <span>Apenas atrasadas</span><span>Próximos 7 dias</span><span>Em progresso</span><span>Backlog ativo</span></div>
+      </div></div></div>
+    <div class="grid4 espaco">
+      <div class="card kpi"><div class="l"><span class="ic"></span>Projetos ativos</div><div class="v">102</div><div class="s">94% do portfólio</div></div>
+      <div class="card kpi"><div class="l"><span class="ic"></span>Taxa de conclusão</div><div class="v">73%</div><div class="s">320 de 439 tarefas concluídas</div></div>
+      <div class="card kpi"><div class="l"><span class="ic"></span>Tarefas atrasadas</div><div class="v">92</div><div class="s">requerem ação imediata</div></div>
+      <div class="card kpi solid"><div class="l"><span class="ic"></span>Horas planejadas</div><div class="v">5869h</div><div class="s">13h em média por tarefa</div></div>
+    </div>
+    <div class="hero-row"><div class="hero"><div class="eb">Tax</div><div class="t">92 tarefas precisam de atenção</div><div class="d">Identifique as tarefas com maior atraso e re-priorize. A tabela abaixo mostra o ranking por dias de atraso.</div></div>
+      <div class="grid2"><div class="card kpi"><div class="l"><span class="ic"></span>Total projetos</div><div class="v">109</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Concluídos</div><div class="v">3</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Pausados</div><div class="v">1</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Total tarefas</div><div class="v">439</div></div></div></div>
+  </div>
+</div>
+
+<div class="palco b">
+  <div class="rotulo">B · Faixa de título <em>· o título de cada cartão vira a faixa de origem do Feed (<code>bg-primary/10</code>); os KPI não têm título e seguem brancos</em></div>
+  <div class="tela">
+    <div class="cab"><div><div class="sobre">Tax</div><div class="tit">Dashboard</div><div class="subt">Visão geral da área fiscal — atualizado em tempo real</div></div><div class="sino"></div></div>
+    <div class="card"><div class="card-head"><span class="ic"></span>Filtros Estratégicos</div>
+      <div class="card-body"><div class="well" style="padding:0">
+        <div class="grid5"><div class="campo"><label>Vencimento de</label><div class="ctrl"><span class="v">dd/mm/aaaa</span></div></div><div class="campo"><label>Vencimento até</label><div class="ctrl"><span class="v">dd/mm/aaaa</span></div></div><div class="campo"><label>Urgência</label><div class="ctrl">Todas</div></div><div class="campo"><label>Status da Tarefa</label><div class="ctrl">Todos</div></div><div class="campo"><label>Status do Projeto</label><div class="ctrl">Todos</div></div></div>
+        <div class="grid4" style="margin-top:12px"><div class="campo"><label>Cliente</label><div class="ctrl">Todos os clientes</div></div><div class="campo"><label>Projeto</label><div class="ctrl">Todos os projetos</div></div><div class="campo"><label>Responsável</label><div class="ctrl">Todos os responsáveis</div></div><div class="campo"><label>Equipe Fiscal</label><div class="ctrl">Todas as equipes</div></div></div>
+        <div class="atalhos">ATALHOS: <span>Apenas atrasadas</span><span>Próximos 7 dias</span><span>Em progresso</span><span>Backlog ativo</span></div>
+      </div></div></div>
+    <div class="grid4 espaco">
+      <div class="card kpi"><div class="l"><span class="ic"></span>Projetos ativos</div><div class="v">102</div><div class="s">94% do portfólio</div></div>
+      <div class="card kpi"><div class="l"><span class="ic"></span>Taxa de conclusão</div><div class="v">73%</div><div class="s">320 de 439 tarefas concluídas</div></div>
+      <div class="card kpi"><div class="l"><span class="ic"></span>Tarefas atrasadas</div><div class="v">92</div><div class="s">requerem ação imediata</div></div>
+      <div class="card kpi solid"><div class="l"><span class="ic"></span>Horas planejadas</div><div class="v">5869h</div><div class="s">13h em média por tarefa</div></div>
+    </div>
+    <div class="hero-row"><div class="hero"><div class="eb">Tax</div><div class="t">92 tarefas precisam de atenção</div><div class="d">Identifique as tarefas com maior atraso e re-priorize. A tabela abaixo mostra o ranking por dias de atraso.</div></div>
+      <div class="grid2"><div class="card kpi"><div class="l"><span class="ic"></span>Total projetos</div><div class="v">109</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Concluídos</div><div class="v">3</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Pausados</div><div class="v">1</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Total tarefas</div><div class="v">439</div></div></div></div>
+  </div>
+</div>
+
+<div class="palco c">
+  <div class="rotulo">C · Cartão tingido <em>· “preencher as caixinhas”: o cartão inteiro leva <code>bg-muted/35</code> e o campo fica branco dentro dele</em><span class="rec">recomendada, com a barra da seção 3</span></div>
+  <div class="tela">
+    <div class="cab"><div><div class="sobre">Tax</div><div class="tit">Dashboard</div><div class="subt">Visão geral da área fiscal — atualizado em tempo real</div></div><div class="sino"></div></div>
+    <div class="card"><div class="card-head"><span class="ic"></span>Filtros Estratégicos</div>
+      <div class="card-body"><div class="well" style="padding:0">
+        <div class="grid5"><div class="campo"><label>Vencimento de</label><div class="ctrl"><span class="v">dd/mm/aaaa</span></div></div><div class="campo"><label>Vencimento até</label><div class="ctrl"><span class="v">dd/mm/aaaa</span></div></div><div class="campo"><label>Urgência</label><div class="ctrl">Todas</div></div><div class="campo"><label>Status da Tarefa</label><div class="ctrl">Todos</div></div><div class="campo"><label>Status do Projeto</label><div class="ctrl">Todos</div></div></div>
+        <div class="grid4" style="margin-top:12px"><div class="campo"><label>Cliente</label><div class="ctrl">Todos os clientes</div></div><div class="campo"><label>Projeto</label><div class="ctrl">Todos os projetos</div></div><div class="campo"><label>Responsável</label><div class="ctrl">Todos os responsáveis</div></div><div class="campo"><label>Equipe Fiscal</label><div class="ctrl">Todas as equipes</div></div></div>
+        <div class="atalhos">ATALHOS: <span>Apenas atrasadas</span><span>Próximos 7 dias</span><span>Em progresso</span><span>Backlog ativo</span></div>
+      </div></div></div>
+    <div class="grid4 espaco">
+      <div class="card kpi"><div class="l"><span class="ic"></span>Projetos ativos</div><div class="v">102</div><div class="s">94% do portfólio</div></div>
+      <div class="card kpi"><div class="l"><span class="ic"></span>Taxa de conclusão</div><div class="v">73%</div><div class="s">320 de 439 tarefas concluídas</div></div>
+      <div class="card kpi"><div class="l"><span class="ic"></span>Tarefas atrasadas</div><div class="v">92</div><div class="s">requerem ação imediata</div></div>
+      <div class="card kpi solid"><div class="l"><span class="ic"></span>Horas planejadas</div><div class="v">5869h</div><div class="s">13h em média por tarefa</div></div>
+    </div>
+    <div class="hero-row"><div class="hero"><div class="eb">Tax</div><div class="t">92 tarefas precisam de atenção</div><div class="d">Identifique as tarefas com maior atraso e re-priorize. A tabela abaixo mostra o ranking por dias de atraso.</div></div>
+      <div class="grid2"><div class="card kpi"><div class="l"><span class="ic"></span>Total projetos</div><div class="v">109</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Concluídos</div><div class="v">3</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Pausados</div><div class="v">1</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Total tarefas</div><div class="v">439</div></div></div></div>
+  </div>
+</div>
+<p class="nota">Por que C e não A ou B: A só alcança cartão que tem campo dentro — os oito KPI ficam brancos como hoje. B só alcança
+cartão que tem título — de novo os KPI ficam de fora, e são eles que fazem a massa branca do meio da tela. C alcança
+todos, e faz uma coisa a mais: devolve a escada de três alturas que a página cinza tinha (página → cartão → campo),
+só que invertida — agora o campo é o mais claro, que é onde a mão vai.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2>3 · Dashboard — o maior bloco branco é uma ferramenta</h2>
+<p>Os filtros ocupam 1296×280px, o maior cartão da tela, no lugar mais nobre — e são um controle, não um resultado. O Feed
+resolveu o mesmo problema com uma barra: os dois filtros do dia a dia à vista, os outros num popover, e o que está ligado
+vira etiqueta. Aqui, com o cartão tingido de C.</p>
+
+<div class="palco c">
+  <div class="rotulo">G · Filtros em barra + cartão tingido <em>· 280px viram 56px; os quatro atalhos ficam à vista, os nove campos vão para o popover</em><span class="rec">recomendada</span></div>
+  <div class="tela">
+    <div class="cab"><div><div class="sobre">Tax</div><div class="tit">Dashboard</div><div class="subt">Visão geral da área fiscal — atualizado em tempo real</div></div><div class="sino"></div></div>
+    <div class="barra">
+      <div class="seg"><span class="on">Tudo</span><span>Atrasadas</span><span>Próximos 7 dias</span><span>Em progresso</span><span>Backlog ativo</span></div>
+      <div class="bots"><span>Qualquer vencimento ⌄</span><span class="n">Filtros</span></div>
+    </div>
+    <div class="etq"><span>Cliente: Frigobom ×</span><span>Equipe: Sinop ×</span></div>
+    <div class="grid4 espaco">
+      <div class="card kpi"><div class="l"><span class="ic"></span>Projetos ativos</div><div class="v">102</div><div class="s">94% do portfólio</div></div>
+      <div class="card kpi"><div class="l"><span class="ic"></span>Taxa de conclusão</div><div class="v">73%</div><div class="s">320 de 439 tarefas concluídas</div></div>
+      <div class="card kpi"><div class="l"><span class="ic"></span>Tarefas atrasadas</div><div class="v">92</div><div class="s">requerem ação imediata</div></div>
+      <div class="card kpi solid"><div class="l"><span class="ic"></span>Horas planejadas</div><div class="v">5869h</div><div class="s">13h em média por tarefa</div></div>
+    </div>
+    <div class="hero-row"><div class="hero"><div class="eb">Tax</div><div class="t">92 tarefas precisam de atenção</div><div class="d">Identifique as tarefas com maior atraso e re-priorize. A tabela abaixo mostra o ranking por dias de atraso.</div></div>
+      <div class="grid2"><div class="card kpi"><div class="l"><span class="ic"></span>Total projetos</div><div class="v">109</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Concluídos</div><div class="v">3</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Pausados</div><div class="v">1</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Total tarefas</div><div class="v">439</div></div></div></div>
+  </div>
+</div>
+<p class="nota">As etiquetas “Cliente: Frigobom ×” mostram o estado <b>com filtro aplicado</b> — sem elas o filtro do popover fica
+invisível e a tela parece vazia, que é o defeito que o Feed já documenta. O número no botão Filtros conta só o que não
+está à vista. Este mesmo miolo (<code>AreaDashboardContent</code>) monta o Dashboard da OSG e o consolidado do Board,
+então a barra vale para os três de uma vez.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2>4 · Disruptivo — peso no nível de cima</h2>
+<p>Em vez de tingir os cartões, o <b>cabeçalho da tela</b> vira uma faixa da âncora da área. É a direção que você escolheu em
+10/09 nas telas do Dev (“caixa branca e quieta, e uma proposta forte para o cabeçalho”), levada para o layout. Abaixo dele,
+tudo branco como hoje.</p>
+
+<div class="palco forte">
+  <div class="rotulo">D · Cabeçalho forte <em>· o <code>&lt;header&gt;</code> de 64px vira faixa da âncora com o véu escuro do banner; o corpo fica como hoje</em></div>
+  <div class="tela">
+    <div class="cab"><div><div class="sobre">Tax</div><div class="tit">Dashboard</div><div class="subt">Visão geral da área fiscal — atualizado em tempo real</div></div><div class="sino"></div></div>
+    <div class="barra">
+      <div class="seg"><span class="on">Tudo</span><span>Atrasadas</span><span>Próximos 7 dias</span><span>Em progresso</span><span>Backlog ativo</span></div>
+      <div class="bots"><span>Qualquer vencimento ⌄</span><span class="n">Filtros</span></div>
+    </div>
+    <div class="grid4 espaco">
+      <div class="card kpi"><div class="l"><span class="ic"></span>Projetos ativos</div><div class="v">102</div><div class="s">94% do portfólio</div></div>
+      <div class="card kpi"><div class="l"><span class="ic"></span>Taxa de conclusão</div><div class="v">73%</div><div class="s">320 de 439 tarefas concluídas</div></div>
+      <div class="card kpi"><div class="l"><span class="ic"></span>Tarefas atrasadas</div><div class="v">92</div><div class="s">requerem ação imediata</div></div>
+      <div class="card kpi solid"><div class="l"><span class="ic"></span>Horas planejadas</div><div class="v">5869h</div><div class="s">13h em média por tarefa</div></div>
+    </div>
+    <div class="hero-row"><div class="hero"><div class="eb">Tax</div><div class="t">92 tarefas precisam de atenção</div><div class="d">Identifique as tarefas com maior atraso e re-priorize. A tabela abaixo mostra o ranking por dias de atraso.</div></div>
+      <div class="grid2"><div class="card kpi"><div class="l"><span class="ic"></span>Total projetos</div><div class="v">109</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Concluídos</div><div class="v">3</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Pausados</div><div class="v">1</div></div><div class="card kpi"><div class="l"><span class="ic"></span>Total tarefas</div><div class="v">439</div></div></div></div>
+  </div>
+</div>
+<p class="nota">O que D custa: muda o layout das oito áreas, não uma tela; e no Dashboard passa a haver <b>duas faixas escuras</b> a
+30px de distância — o cabeçalho e o banner “92 tarefas precisam de atenção”, que hoje é o único elemento pesado da tela e
+existe para isso. Ou o banner clareia, ou D não entra no Dashboard. Nas telas sem banner (a Nova ferramenta, as listas)
+D funciona sozinho. Está aqui porque foi a direção que você escolheu uma vez; a recomendação continua sendo C + G.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2>5 · Os números</h2>
+<p>Contraste WCAG entre superfícies vizinhas, tema Tax. As três receitas de tinta são as do Feed — nenhuma cor nova.</p>
+<table>
+  <tr><th>o que se lê</th><th class="n">tax</th><th class="n">casa (Dev)</th><th class="n">osg</th></tr>
+  <tr><td>hoje — cartão ↔ página</td><td class="n">1,000</td><td class="n">1,012</td><td class="n">1,000</td></tr>
+  <tr><td>hoje — linha do cartão (<code>border/70</code>) ↔ cartão</td><td class="n">1,229</td><td class="n">1,216</td><td class="n">1,207</td></tr>
+  <tr><td>A/C — <code>bg-muted/35</code> ↔ branco (o balão do Feed)</td><td class="n">1,082</td><td class="n">1,078</td><td class="n">1,072</td></tr>
+  <tr><td>B — <code>bg-primary/10</code> ↔ branco (a faixa do Feed)</td><td class="n">1,184</td><td class="n">1,150</td><td class="n">1,169</td></tr>
+  <tr><td>C — linha ↔ cartão tingido</td><td class="n">1,278</td><td class="n">1,253</td><td class="n">1,273</td></tr>
+  <tr><td>G — canaleta da barra (<code>bg-muted/60</code>) ↔ página</td><td class="n">1,146</td><td class="n">1,132</td><td class="n">1,129</td></tr>
+</table>
+<p class="nota">O 1,08 de C é menor que o degrau de 1,15 que você tirou da página — e é de propósito: a tinta agora está <b>no
+objeto</b>, não em volta dele, e o campo branco dentro dela faz o segundo degrau (1,08) no sentido certo. A linha do cartão
+sobe de 1,23 para 1,28 porque passa a ter tinta dos dois lados. Se olhando parecer pouco, o próximo degrau da mesma
+receita é <code>bg-muted/50</code> (≈1,12) — mesma matiz, só mais alfa.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2>6 · A família que a receita não serve sozinha — telas de lista</h2>
+<p>Metade das telas do sistema é isto: um aviso, um cartão de filtros e <b>uma caixa grande com tabela ou estado vazio</b> —
+90 a 99% de branco, uma caixa só. Consulta ECD é o exemplo (as quatro Consultas do Dev, Controle de Balancetes, Controle
+PERDCOMP, Correções SPED e as sete do OSG Work medem igual). Se “cartão tingido” valer para todo <code>&lt;Card&gt;</code>,
+a tabela vai junto. Compare.</p>
+
+<div class="palco">
+  <div class="rotulo">Hoje <em>· Consulta ECD: 95% de branco, quatro caixas, nenhuma com tinta</em></div>
+  <div class="tela">
+    <div class="cab"><div><div class="sobre">Digital Dev</div><div class="tit">Consulta ECD</div><div class="subt">Escriturações Contábeis Digitais da base de dados</div></div><div class="sino"></div></div>
+    <div class="aviso"><b>Visão Geral</b>A Consulta ECD centraliza a busca e o download das <b>Escriturações Contábeis Digitais</b> da base de dados. Utilize os filtros abaixo para consultar arquivos específicos ou analisar períodos inteiros.</div>
+    <div class="card espaco" style="margin-top:16px"><div class="card-head"><span class="ic"></span>Filtros de busca</div>
+      <div class="card-body"><div class="grid-f"><div class="campo"><label>Cliente *</label><div class="ctrl"><span class="v">Selecione o cliente</span></div></div><div class="campo"><label>Contribuinte *</label><div class="ctrl"><span class="v">Selecione o contribuinte</span></div></div><div class="campo"><label>Data de início *</label><div class="ctrl">Set/2021</div></div><div class="campo"><label>Data fim *</label><div class="ctrl">Set/2026</div></div></div>
+      <div class="acoes"><span>Limpar filtros</span><span class="ok">Buscar arquivos</span></div></div></div>
+    <div class="card tabela espaco"><table class="tab"><tr><th>Arquivo</th><th>Contribuinte</th><th>Período</th><th>Situação</th><th></th></tr>
+      <tr><td>ECD_2025_00112.txt</td><td>Frigobom Indústria de Alimentos</td><td class="d">01/2025 – 12/2025</td><td><span class="pill">Validado</span></td><td class="d">.zip · .xlsx</td></tr>
+      <tr><td>ECD_2024_00098.txt</td><td>Frigobom Indústria de Alimentos</td><td class="d">01/2024 – 12/2024</td><td><span class="pill">Validado</span></td><td class="d">.zip · .xlsx</td></tr>
+      <tr><td>ECD_2023_00071.txt</td><td>Iglu Tropical Climatização</td><td class="d">01/2023 – 12/2023</td><td><span class="pill">Validado</span></td><td class="d">.zip · .xlsx</td></tr>
+      <tr><td>ECD_2022_00044.txt</td><td>Iglu Tropical Climatização</td><td class="d">01/2022 – 12/2022</td><td><span class="pill">Validado</span></td><td class="d">.zip · .xlsx</td></tr></table></div>
+  </div>
+</div>
+
+<div class="palco c">
+  <div class="rotulo">C em tudo <em>· o cartão tingido alcança a caixa da tabela; a zebra das linhas (<code>bg-muted/25</code>) fica em cima da mesma tinta</em></div>
+  <div class="tela">
+    <div class="cab"><div><div class="sobre">Digital Dev</div><div class="tit">Consulta ECD</div><div class="subt">Escriturações Contábeis Digitais da base de dados</div></div><div class="sino"></div></div>
+    <div class="aviso"><b>Visão Geral</b>A Consulta ECD centraliza a busca e o download das <b>Escriturações Contábeis Digitais</b> da base de dados. Utilize os filtros abaixo para consultar arquivos específicos ou analisar períodos inteiros.</div>
+    <div class="card espaco" style="margin-top:16px"><div class="card-head"><span class="ic"></span>Filtros de busca</div>
+      <div class="card-body"><div class="grid-f"><div class="campo"><label>Cliente *</label><div class="ctrl"><span class="v">Selecione o cliente</span></div></div><div class="campo"><label>Contribuinte *</label><div class="ctrl"><span class="v">Selecione o contribuinte</span></div></div><div class="campo"><label>Data de início *</label><div class="ctrl">Set/2021</div></div><div class="campo"><label>Data fim *</label><div class="ctrl">Set/2026</div></div></div>
+      <div class="acoes"><span>Limpar filtros</span><span class="ok">Buscar arquivos</span></div></div></div>
+    <div class="card tabela espaco"><table class="tab"><tr><th>Arquivo</th><th>Contribuinte</th><th>Período</th><th>Situação</th><th></th></tr>
+      <tr><td>ECD_2025_00112.txt</td><td>Frigobom Indústria de Alimentos</td><td class="d">01/2025 – 12/2025</td><td><span class="pill">Validado</span></td><td class="d">.zip · .xlsx</td></tr>
+      <tr><td>ECD_2024_00098.txt</td><td>Frigobom Indústria de Alimentos</td><td class="d">01/2024 – 12/2024</td><td><span class="pill">Validado</span></td><td class="d">.zip · .xlsx</td></tr>
+      <tr><td>ECD_2023_00071.txt</td><td>Iglu Tropical Climatização</td><td class="d">01/2023 – 12/2023</td><td><span class="pill">Validado</span></td><td class="d">.zip · .xlsx</td></tr>
+      <tr><td>ECD_2022_00044.txt</td><td>Iglu Tropical Climatização</td><td class="d">01/2022 – 12/2022</td><td><span class="pill">Validado</span></td><td class="d">.zip · .xlsx</td></tr></table></div>
+  </div>
+</div>
+
+<div class="palco c2">
+  <div class="rotulo">C só nas caixinhas <em>· filtros e KPI tingidos; a caixa da tabela fica branca, porque tabela se lê pelas linhas</em><span class="rec">recomendada</span></div>
+  <div class="tela">
+    <div class="cab"><div><div class="sobre">Digital Dev</div><div class="tit">Consulta ECD</div><div class="subt">Escriturações Contábeis Digitais da base de dados</div></div><div class="sino"></div></div>
+    <div class="aviso"><b>Visão Geral</b>A Consulta ECD centraliza a busca e o download das <b>Escriturações Contábeis Digitais</b> da base de dados. Utilize os filtros abaixo para consultar arquivos específicos ou analisar períodos inteiros.</div>
+    <div class="card espaco" style="margin-top:16px"><div class="card-head"><span class="ic"></span>Filtros de busca</div>
+      <div class="card-body"><div class="grid-f"><div class="campo"><label>Cliente *</label><div class="ctrl"><span class="v">Selecione o cliente</span></div></div><div class="campo"><label>Contribuinte *</label><div class="ctrl"><span class="v">Selecione o contribuinte</span></div></div><div class="campo"><label>Data de início *</label><div class="ctrl">Set/2021</div></div><div class="campo"><label>Data fim *</label><div class="ctrl">Set/2026</div></div></div>
+      <div class="acoes"><span>Limpar filtros</span><span class="ok">Buscar arquivos</span></div></div></div>
+    <div class="card tabela espaco"><table class="tab"><tr><th>Arquivo</th><th>Contribuinte</th><th>Período</th><th>Situação</th><th></th></tr>
+      <tr><td>ECD_2025_00112.txt</td><td>Frigobom Indústria de Alimentos</td><td class="d">01/2025 – 12/2025</td><td><span class="pill">Validado</span></td><td class="d">.zip · .xlsx</td></tr>
+      <tr><td>ECD_2024_00098.txt</td><td>Frigobom Indústria de Alimentos</td><td class="d">01/2024 – 12/2024</td><td><span class="pill">Validado</span></td><td class="d">.zip · .xlsx</td></tr>
+      <tr><td>ECD_2023_00071.txt</td><td>Iglu Tropical Climatização</td><td class="d">01/2023 – 12/2023</td><td><span class="pill">Validado</span></td><td class="d">.zip · .xlsx</td></tr>
+      <tr><td>ECD_2022_00044.txt</td><td>Iglu Tropical Climatização</td><td class="d">01/2022 – 12/2022</td><td><span class="pill">Validado</span></td><td class="d">.zip · .xlsx</td></tr></table></div>
+  </div>
+</div>
+<p class="nota">As linhas da tabela são exemplo — a tela medida estava no estado vazio (“Nenhum arquivo listado”), que é ainda mais
+branco: a caixa grande com um ícone no meio. No código, “só nas caixinhas” é uma variante do <code>&lt;Card&gt;</code>
+(ou a caixa da tabela deixar de ser <code>Card</code>), e é uma regra que dá para cobrar por teste.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2>7 · A varredura — 96 rotas, por família</h2>
+<p>Cada rota protegida aberta a 1600×1000 com a sessão logada. <b>Branco</b> é o percentual de pixels quase brancos
+(≥250 nos três canais) do <code>&lt;main&gt;</code> no primeiro viewport; <b>caixas</b> são elementos arredondados com borda ou
+sombra e mais de 20.000px², separados em brancos e tingidos. Os nomes são os das telas, não das rotas.</p>
+<table class="fam">
+  <tr><th>família</th><th class="n">telas</th><th>o que é</th><th>quais</th></tr>
+  <tr><td>Coluna solta</td><td class="n">2</td><td>coluna estreita colada à esquerda, metade da tela nua</td>
+    <td class="telas">Dev: Solicitar nova ferramenta (50%), Carregar dados (57%)</td></tr>
+  <tr><td>Caixinhas sem tinta</td><td class="n">15</td><td>várias caixas brancas, nenhuma tingida — a assinatura do Dashboard, piorada</td>
+    <td class="telas">Equipe: Acessos (89%), Backlog (90%), Dashboard (85%), Processos (91%), Sprints (91%), Chamados (95%) · Tax: Gestão de chamados (96%) · OSG: Início (96%), Work (89%), Gestão de chamados (96%) · Dev: Papel de trabalho (97%), Procedimentos (96%) · Gestão: Painel (95%), Contatos (99%) · Equipe: Biblioteca (99%)</td></tr>
+  <tr><td>Lista — uma caixa grande</td><td class="n">19</td><td>aviso + filtros + tabela ou estado vazio; 90–99% de branco</td>
+    <td class="telas">Dev: Consulta ECD, ECF, EFD, EFD-ICMS, XMLs (95–96%), Controle de balancetes (95%), Controle PERDCOMP (96%), Correções SPED (96%), Mapa NCM (89%), Dashboards de dados (98%), Dashboard PERDCOMP (98%) · OSG Work: Calculadora ITCMD (94%), Controle de matrículas, Diagnóstico patrimonial, Exploração rural, Onboarding, Qualificação das partes (93%) · Equipe: Projetos (96%) · OSG: Clientes (82%)</td></tr>
+  <tr><td>Dashboard com tinta</td><td class="n">6</td><td>caixas brancas com uma ou duas tingidas (banner, KPI sólido); é o caso apontado</td>
+    <td class="telas">Tax: Dashboard (70%, 10 brancas / 2 tingidas), Dashboard de chamados (80%, 12/2) · OSG: Dashboard (69%, 10/2), Dashboard de chamados (79%, 12/2) · Equipe: Daily (82%, 4/2), Relatórios (81%, 5/1)</td></tr>
+  <tr><td>Como o Feed</td><td class="n">8</td><td>três ou mais caixas tingidas, ou tinta em mais da metade — não precisa de nada</td>
+    <td class="telas">Tax e OSG: Feed (71%, 5/3) · Equipe: Kanban (67%, 20/3), Mapeamento (65%, 10/4) · Dev: Painel (35%), Consulta SPED (65%, 4/2), Planejamento tributário (66%, 2/4), Processo DIFAL (83%, 4/3)</td></tr>
+  <tr><td>Board</td><td class="n">11</td><td>design system próprio (<code>bd-*</code>); as caixas não passam pelo <code>&lt;Card&gt;</code> e a varredura não as conta. 69–78% de branco</td>
+    <td class="telas">Dashboard, Clientes, Clientes e OS, Performance, Capacidade, Uso e envio, Logs, Chamados, Dashboard de chamados; Desempenho e Relatórios responderam <b>404</b> nesta sessão</td></tr>
+  <tr><td>Mapa</td><td class="n">11</td><td>layout legado com CSS próprio, fora do Tailwind; a coluna de 460px é o painel lateral dele, não defeito</td>
+    <td class="telas">Mapa e as dez telas de processos, gargalos, melhorias, sistemas, responsáveis, documentos, cascata, ROI, evolução</td></tr>
+  <tr><td>Não medido</td><td class="n">10</td><td>o guia de introdução abriu por cima (fundo escurecido) ou a rota exige id</td>
+    <td class="telas">Tax e OSG: Clientes, Cadastro de projetos, Tarefas, Cadastro em lote · OSG Work: Quadro societário · Dev: Detalhe da ferramenta</td></tr>
+  <tr><td>Resto</td><td class="n">14</td><td>entre 65 e 92% de branco, com uma caixa tingida; nem Feed nem Dashboard</td>
+    <td class="telas">Dev: Análise ICMS, ICMS Saídas, Apuração PIS/COFINS, Calculadora IBS/CBS, Cruzamento de dados, Gerenciar dados, Levantamento PIS/COFINS, PERDCOMP, Gerador de slides · OSG Work: Matriz de governança, Órgãos, Relatórios · Equipe: Rotinas · Tax/OSG: Logs de equipe</td></tr>
+</table>
+<p class="nota">Dois achados fora do assunto, para não perder: <b>Desempenho</b> e <b>Relatórios</b> do Board estão em
+<code>App.tsx</code> e em <code>protectedPages.ts</code> e responderam 404 para a minha sessão — pode ser papel, pode ser
+rota quebrada; e <code>/equipe/dev/ferramenta</code> está registrada sem o <code>:id</code> que a rota real exige. A tabela
+bruta (96 linhas, 11 colunas) e as 96 capturas ficaram na pasta de trabalho da sessão; não entram no repositório.</p>
+
+<h2>8 · O que muda no código, se você aprovar C + G e a centralização</h2>
+<ul>
+  <li><b>Centralizar</b> — <code>mx-auto</code> em <code>NovaFerramenta</code>, <code>CarregarDados</code> e <code>DetalheFerramenta</code>. Três linhas.</li>
+  <li><b>Cartão tingido</b> — na classe base do <code>&lt;Card&gt;</code> (<code>ui/card.tsx</code>) e no <code>KpiHero</code>, que
+      escreve <code>bg-card</code> por conta própria. <b>Não</b> no token <code>--card</code>: ele pinta onze cabeçalhos e barras
+      laterais, que têm que continuar brancos. Campo (<code>Input</code>, <code>Select</code>) já é <code>bg-background</code>,
+      então fica branco dentro do cartão sem mexer em nada. A caixa de <b>tabela</b> fica branca (seção 6): ou uma variante
+      do <code>Card</code>, ou ela deixa de ser <code>Card</code>. E há <b>70 caixas com <code>bg-card</code> escrito à mão</b>
+      fora do componente (14 só na OSG) que a mudança não alcança — precisam de passada própria, e de uma catraca para o
+      próximo não nascer branco.</li>
+  <li><b>Filtros em barra</b> — <code>AreaDashboardFilters</code> reescrito no molde do <code>FeedFiltros</code>: alternância com os
+      quatro atalhos, vencimento à vista, os nove campos em popover, etiquetas do que está ligado. É a maior das três
+      frentes e é uma tela só (o miolo é compartilhado por Tax, OSG e Board).</li>
+  <li><b>O que eu conferiria depois, na tela</b> — o cartão tingido dentro de modal (que também é branco) e a tabela dentro do
+      cartão, onde a zebra de linha usa <code>bg-muted</code> e vai ficar próxima do fundo novo.</li>
+</ul>
+<p class="nota">Medido em 12/09/2026 com <code>getBoundingClientRect()</code> nas três rotas, sessão logada, 1600×1000. Os valores
+desta página são do <code>src/index.css</code> dessa data e não se atualizam sozinhos.</p>
+
+</div>
+</body>
+</html>
