@@ -149,7 +149,10 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/acessos',
-    page_name: 'Controle de Acessos (Equipe)',
+    // O sufixo "(Equipe)" existia para distinguir de `/gestao/acessos`, que era
+    // a MESMA permissão cadastrada duas vezes (mesma categoria, mesmas flags).
+    // Com aquela fora, o parêntese só confunde.
+    page_name: 'Controle de Acessos',
     page_description: 'Gerenciar permissões de páginas e usuários',
     category: 'gestao',
     requires_admin: true,
@@ -900,12 +903,10 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
-  {
-    page_path: '/gestao/acessos',
-    page_name: 'Controle de Acessos',
-    page_description: 'Gerenciar permissões de acesso',
-    category: 'gestao',
-    requires_admin: true,
-    requires_team_member: true,
-  },
+  // `/gestao/acessos` saiu daqui em 12/09/2026: a tela virou a seção "Papéis"
+  // de `/equipe/acessos` e a rota virou redirect. Tirá-la só daqui NÃO basta —
+  // o sincronizador insere e atualiza, mas nunca apaga o que sumiu deste
+  // arquivo. A linha e as 14 concessões penduradas nela são apagadas pela
+  // migração `20260912000000_remove_gestao_acessos.sql`, no mesmo padrão que
+  // `/gestao/chamados` usou.
 ];

@@ -185,7 +185,6 @@ const DashboardUsoEnvioGerencial = lazy(() => import("./pages/equipe/board/Dashb
 // Gestão
 const GestaoNovidades = lazy(() => import("./pages/gestao/GestaoNovidades"));
 const GestaoContatos = lazy(() => import("./pages/gestao/GestaoContatos"));
-const GestaoAcessos = lazy(() => import("./pages/gestao/GestaoAcessos"));
 
 // Gerencial > Desempenho
 const DesempenhoVisaoGeral = lazy(() => import("./pages/gerencial/desempenho/DesempenhoVisaoGeral"));
@@ -311,7 +310,14 @@ const App = () => (
               <Route path="/gestao/chamados/dashboard" element={<Navigate to="/equipe/tax/gerencial/chamados/dashboard" replace />} />
               <Route path="/gestao/chamados/:id" element={<RedirecionaChamadoAntigo />} />
               <Route path="/gestao/contatos" element={<GestaoAccessGate><GestaoContatos /></GestaoAccessGate>} />
-              <Route path="/gestao/acessos" element={<GestaoAccessGate><GestaoAcessos /></GestaoAccessGate>} />
+              {/* `/gestao/acessos` montava a matriz de papéis dentro do
+                  GestaoLayout — cuja barra tem DOIS itens (Novidades e
+                  Contatos), nenhum deles este. A tela existia, funcionava, e só
+                  abria digitando a URL. O conteúdo virou a seção "Papéis" de
+                  `/equipe/acessos`, que é onde o resto do controle de acesso já
+                  mora. Ver a migração 20260912000000 para a linha que sobrou em
+                  `page_permissions`. */}
+              <Route path="/gestao/acessos" element={<Navigate to="/equipe/acessos" replace />} />
 
               {/* Tax (Fiscal) Routes */}
               <Route path="/equipe/tax" element={<ProtectedRoute><FiscalBoasVindas /></ProtectedRoute>} />

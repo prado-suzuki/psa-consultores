@@ -37,6 +37,7 @@ import CadastroCategorias from '@/components/equipe/CadastroCategorias';
 import CentroCustoTab from '@/components/equipe/CentroCustoTab';
 import { PagesTab } from '@/components/acessos/PagesTab';
 import { UsersTab } from '@/components/acessos/UsersTab';
+import { UsersRolesView } from '@/components/acessos/UsersRolesView';
 import DashboardsTab from '@/components/acessos/DashboardsTab';
 import { AccessStatsCards } from '@/components/acessos/AccessStatsCards';
 import { PontoDaArea } from '@/components/acessos/PontoDaArea';
@@ -199,7 +200,7 @@ const EquipeControleAcessos = () => {
     }
   };
 
-  // A barra desta tela são as sete seções que eram abas: ver `AcessosLayout`.
+  // A barra desta tela são as seções que eram abas: ver `AcessosLayout`.
   // O título da página passa a ser o da seção aberta.
   return (
     <AcessosLayout secao={secao} onSecaoChange={abrirSecao}>
@@ -265,6 +266,13 @@ const EquipeControleAcessos = () => {
               </TabsContent>
 
               {/* Cadastros Clientes Tab */}
+              {/* A matriz das 7 permissoes e a legenda do que cada papel abre.
+                  Ela morava em `/gestao/acessos`, que nenhum menu linkava: a
+                  tela existia, funcionava, e so abria digitando a URL. */}
+              <TabsContent value="papeis" className="space-y-4">
+                <UsersRolesView variant="full" />
+              </TabsContent>
+
               <TabsContent value="cadastros_clientes" className="space-y-4">
                 <GestaoClientesContent todosOsClusters />
               </TabsContent>

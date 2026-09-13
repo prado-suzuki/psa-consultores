@@ -4,6 +4,7 @@ import {
   FileText,
   FolderKanban,
   LayoutDashboard,
+  UserCheck,
   Users,
 } from 'lucide-react';
 
@@ -21,7 +22,7 @@ import { AREAS } from '@/lib/nomeDaArea';
  * `<TabsContent>` na página. Renomear um lado sem o outro não quebra o build e
  * não quebra o typecheck: a seção simplesmente abre VAZIA, com a barra acesa no
  * item certo. É por isso que `secoesDeAcessos.test.ts` lê o fonte da página e
- * confere os sete pares — é o único lugar onde a divergência aparece.
+ * confere cada par — é o único lugar onde a divergência aparece.
  */
 
 export interface SecaoDeAcessos {
@@ -34,6 +35,10 @@ export const SECOES_DE_ACESSOS = [
   { id: 'pages', label: 'Páginas', icon: FileText },
   { id: 'cadastros', label: 'Cadastros Estrutura', icon: Building2 },
   { id: 'users', label: 'Usuários Estrutura', icon: Users },
+  // Irmã de leitura da anterior: a de cima EDITA usuário e papel, esta MOSTRA
+  // quem tem o quê e o que cada papel abre. Ela veio de `/gestao/acessos`, uma
+  // rota que nenhum menu do produto linkava — só abria digitando a URL.
+  { id: 'papeis', label: 'Papéis', icon: UserCheck },
   { id: 'cadastros_clientes', label: 'Cadastros Clientes', icon: Users },
   { id: 'cadastro_categorias', label: 'Produtos & Serviços', icon: FolderKanban },
   { id: 'dashboards', label: 'Dashboards', icon: LayoutDashboard },

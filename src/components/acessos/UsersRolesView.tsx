@@ -81,23 +81,29 @@ export const UsersRolesView = ({
           icon={<Users className="h-5 w-5 text-muted-foreground" />}
           iconColor="bg-foreground/[0.05]"
         />
+        {/* Os tres cartoes seguem a MESMA decisao que tirou a cor da hierarquia
+            no `PapelBadge`: contagem de admin nao e erro e contagem de membro
+            nao e categoria, entao os dois degraus internos ficam neutros. Cor so
+            no eixo de fora — e ai ela repete o tom do badge de Cliente, para o
+            cartao e a pilula dizerem a mesma coisa com a mesma cor.
+            A regra vem da rodada do Audit: selo veste papel, contagem nao. */}
         <MetricCard
           title="Administradores"
           value={stats.admins}
-          icon={<Shield className="h-5 w-5 text-red-600" />}
-          iconColor="bg-red-100"
+          icon={<Shield className="h-5 w-5 text-status-neutro" />}
+          iconColor="bg-status-neutro-soft"
         />
         <MetricCard
           title="Membros da Equipe"
           value={stats.teamMembers}
-          icon={<UserCheck className="h-5 w-5 text-blue-600" />}
-          iconColor="bg-blue-100"
+          icon={<UserCheck className="h-5 w-5 text-muted-foreground" />}
+          iconColor="bg-muted"
         />
         <MetricCard
           title="Clientes"
           value={stats.clients}
-          icon={<Users className="h-5 w-5 text-primary" />}
-          iconColor="bg-primary/15"
+          icon={<Users className="h-5 w-5 text-tag-d" />}
+          iconColor="bg-tag-d/15"
         />
       </div>
 
