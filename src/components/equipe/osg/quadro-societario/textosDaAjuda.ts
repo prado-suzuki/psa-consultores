@@ -1,6 +1,21 @@
 // A AJUDA DE CADA GESTO SOCIETÁRIO, em duas frentes: o que ele faz no QUADRO e o
 // que ele alimenta no CONTRATO.
 //
+// ⚠️ O NOME DESTE ARQUIVO NÃO PODE VOLTAR A SER `ajudaSocietaria.ts`, e o motivo
+// não aparece em máquina nenhuma da equipe até aparecer em TODAS. Ele morava ao
+// lado do componente `AjudaSocietaria.tsx`, e os dois diferiam SÓ NA CAIXA da
+// primeira letra. No Linux — que é onde o Lovable compila — os dois são arquivos
+// distintos e tudo funciona. No Windows o sistema de arquivos não distingue, o
+// TypeScript tenta `.ts` antes de `.tsx`, e `import { AjudaSocietaria } from
+// './AjudaSocietaria'` passava a resolver para ESTE arquivo: dez telas quebravam
+// com "has no exported member named 'AjudaSocietaria'. Did you mean
+// 'AJUDA_SOCIETARIA'?" — a mensagem que denuncia o acidente, porque o membro que
+// ela sugere é o daqui.
+//
+// Foi renomeado em 12/09/2026, quando um merge do `origin/develop` trouxe os dois
+// para a mesma árvore e o `tsc` parou de compilar no Windows. A regra que fica:
+// dentro de uma pasta, dois arquivos nunca se distinguem só pela caixa.
+//
 // Existe separada dos componentes porque é conteúdo jurídico revisado, não
 // decoração: o mesmo texto serve o seletor de movimento, o cabeçalho dentro do
 // formulário e as colunas da tabela de usufruto, e uma redação por tela faria
