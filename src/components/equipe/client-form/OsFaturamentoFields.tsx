@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { SelecaoDeContribuinte } from '@/components/equipe/selecao/SelecaoDeContribuinte';
 import { RequiredMark } from "@/components/ui/required-mark";
 import { cn } from "@/lib/utils";
 import type { DraftEntity, DraftOrdemServico } from "@/types/clientForm";
@@ -94,26 +95,19 @@ export default function OsFaturamentoFields({
           {contribuintesSalvos.length > 0 && <RequiredMark />}
         </Label>
         <div className="mt-1">
-          <Select
-            value={contrato.contribuinte_id || "__none__"}
-            onValueChange={onContribuinteChange}
+          <SelecaoDeContribuinte
+            contribuintes={contribuintesSalvos.map((c) => ({
+              id: c._dbId,
+              nome_razao_social: getContribuinteLabel(c),
+            }))}
+            value={contrato.contribuinte_id || ""}
+            onChange={onContribuinteChange}
             disabled={contribuintesSalvos.length === 0}
-          >
-            <SelectTrigger
-              {...acessibilidadeObrigatorio(idFalta('contribuinte_id'), falta('contribuinte_id'))}
-              className={cn("h-9", falta('contribuinte_id') && CLASSE_CAMPO_PENDENTE)}
-            >
-              <SelectValue placeholder="Selecione o contribuinte" />
-            </SelectTrigger>
-            <SelectContent className="max-h-72">
-              <SelectItem value="__none__">Selecione o contribuinte</SelectItem>
-              {contribuintesSalvos.map((contribuinte) => (
-                <SelectItem key={contribuinte._dbId} value={contribuinte._dbId}>
-                  {getContribuinteLabel(contribuinte)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            opcaoVazia="Selecione o contribuinte"
+            placeholder="Selecione o contribuinte"
+            {...acessibilidadeObrigatorio(idFalta('contribuinte_id'), falta('contribuinte_id'))}
+            className={cn("h-9 w-full min-w-0", falta('contribuinte_id') && CLASSE_CAMPO_PENDENTE)}
+          />
           <MarcaPendencia id={idFalta('contribuinte_id')}>{falta('contribuinte_id')}</MarcaPendencia>
           {contribuintesSalvos.length === 0 && (
             <p className="mt-1 text-xs text-muted-foreground">

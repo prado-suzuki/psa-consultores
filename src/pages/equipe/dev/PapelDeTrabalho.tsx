@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
 import { toast } from '@/hooks/use-toast';
 import { extractErrorMessage } from '@/lib/rlsMessages';
 import { useClientesList } from '@/hooks/useDevClients';
@@ -400,9 +401,11 @@ function Escolha({
           </Label>
           <FieldTooltip text="O cliente para quem o planejamento foi feito. É ele que define quem enxerga esta revisão depois." />
         </div>
-        <Select
+        <SelecaoDeCliente
+          id="pt-cliente"
+          clientes={clientes}
           value={clienteId}
-          onValueChange={(v) => {
+          onChange={(v) => {
             setMexeuNoCliente(true);
             onCliente(v);
             onOrdemServico('');
@@ -410,18 +413,10 @@ function Escolha({
           onOpenChange={(aberto) => {
             if (!aberto) setMexeuNoCliente(true);
           }}
-        >
-          <SelectTrigger id="pt-cliente" aria-invalid={faltaCliente || undefined}>
-            <SelectValue placeholder="Selecione um cliente" />
-          </SelectTrigger>
-          <SelectContent>
-            {clientes.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          aria-invalid={faltaCliente || undefined}
+          placeholder="Selecione um cliente"
+          className="w-full min-w-0"
+        />
         {faltaCliente && (
           <p className="text-sm font-medium text-destructive">Selecione um cliente</p>
         )}
