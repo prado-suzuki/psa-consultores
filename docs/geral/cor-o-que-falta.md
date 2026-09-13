@@ -266,16 +266,17 @@ melhor evidência que este trabalho produziu de que o inventário serve. A conve
 grupo, e o teste falhou até o inventário ser atualizado — que é o comportamento correto, e é
 por isso que se atualiza a fila em vez de silenciar a asserção.
 
-## 2. As escadas que exigem decisão, não conversão
+## 2. As escadas que exigiam decisão — as quatro foram respondidas em 11/09/2026
 
-Estas ficaram paradas de propósito. Cada uma precisa de uma escolha sua antes de virar código.
+Esta seção era uma fila de quatro. Ela fechou num dia, e o que sobrou dela é de outra
+natureza — não é cor.
 
-| onde | a escolha |
+| onde | o que ela decidiu |
 |---|---|
-| `projectPresentation.tsx`, `getStatusBadge` | `blocked` é `espera` ("travado por alguém de fora") ou `ajuste` ("deu problema")? Hoje é vermelho, e o `archived` do lado já está em papel |
-| `PerDetailModal.tsx` | ~20 estados de PER/DCOMP que não mapeiam nos oito papéis. Precisa decidir o vocabulário antes da cor |
-| as 12 paletas categóricas | `pageCategoryStyles`, `roleOptions`, `AgendaTab` e outras têm 5 a 7 categorias. O contrato tem **quatro** `--tag-*`, e são quatro de propósito. Não há token para a quinta |
-| `AuditPendenciasTable`, `CORES_MOTIVO` | Os seis motivos são **gradiente de gravidade**, não estados — e o contrato diz que escala não veste papel. Ou nasce uma escala institucional para severidade, ou fica em cor crua. Foi a única coisa que ficou de pé na rodada da pasta `audit`, e o motivo está escrito no próprio arquivo |
+| ~~`projectPresentation.tsx`~~ | ✅ **Fechado.** A cor saiu da mão e veste a escada do projeto; o rótulo duplicado — dois caminhos do mesmo `switch` devolvendo "Alta" — virou **Crítica** e **Alta**, com os quatro níveis que o dado sempre teve. Commit `bd08822f` |
+| ~~`PerDetailModal.tsx`~~ | ✅ **Fechado.** "Homologado" e "Cancelado" viram papel (`feito` e `ajuste`); o resto fica como etiqueta, sem virar estado |
+| ~~`AuditPendenciasTable`, `CORES_MOTIVO`~~ | ✅ **Fechado.** O gradiente de gravidade virou papel |
+| as 12 paletas categóricas | ⛔ **NÃO converter, e a decisão é de outra ordem.** Seis propostas foram renderizadas e recusadas — cor por grupo, cor por área, sigla no lugar da cor, barra na linha. A resposta dela: *"às vezes vale a pena rever do jeito que tá construído"*. E a medição concorda: as dez categorias de página de `pageCategoryStyles` são quase um espelho das áreas, **que já têm âncora própria**. Enquanto a categoria for uma string livre paralela à área, qualquer paleta é remendo — inclusive um quinto `--tag-*`. Frente de ESTRUTURA, não de cor, e ela abre quando a dona da tela quiser. Até lá as seis cruas ficam medidas, com o motivo, nas catracas |
 
 ## 3. `projects.status` — fechado em 10/09/2026, e o diagnóstico estava errado
 
@@ -453,7 +454,7 @@ O que **continua** à mão, e por quê:
 | `--canvas` | é o par do `--muted`: uma escolha livre por área, como a âncora. **Tem que continuar livre** — a OSG é âncora musgo (149) com superfície areia (32), o que prova que superfície não se deriva de âncora |
 | `--background` / `--card` / `--popover` | a 99% de luminosidade a matiz não renderiza, então não há relação a extrair — a base põe `card` em branco puro e as duas áreas põem um fio de cast; as duas leituras são defensáveis |
 | ~~`--border`~~ | **fechou em 10/09/2026, e esta linha mentiu por um dia.** Ela ainda dizia "−2 na base, +6 na Tax e −4 na OSG, não existe uma escada, existem três" — números de antes da opção D. Hoje `riscar(--canvas)` o gera nas três (matiz e saturação do rebaixado, três pontos abaixo dele), com a catraca `problemasDeRebaixamento` cobrando igualdade exata. Remedido em 11/09 por quem foi montar a comparação: **S +4 e L −7 nas três, sem exceção** — a conferência só confirmou a fórmula |
-| `--input` | **este sim continua à mão, e é o que sobrou.** Saiu da derivação de propósito em 10/09: deixou de ser cópia do `--border` e virou a linha de CONTROLE, cobrada por RAZÃO (3:1, WCAG 1.4.11) em `problemasDaLinhaDeControle`, não por fórmula. Hoje vale 52% na base, 56% na Tax e 54,5% na OSG. Divisória e contorno de campo são trabalhos diferentes e param em luminosidades diferentes; alinhar os três custa pixel |
+| ~~`--input`~~ | ✅ **Alinhado em 52% nas três, por decisão dela em 11/09/2026** (commit `7a634c94`), olhando os três campos lado a lado. Ele continua fora da derivação e cobrado por RAZÃO (3:1 da WCAG 1.4.11) em `problemasDaLinhaDeControle` — o alinhamento é escolha de desenho, não fórmula. **52% é o único valor que serve:** era o mais escuro dos três, então ninguém perde contraste (base 3,05, Tax 3,42, OSG 3,24); a 54% a base reprova e a 56% base e OSG reprovam. **O que ele NÃO resolve, medido no mesmo dia:** os 3:1 valem contra o CARTÃO — contra o canvas os três dão 2,64 / 2,61 / 2,67 e reprovam. O campo sobre a página é frente própria, e tem defeito medido dentro |
 
 > **A matiz da pilha da Tax fechou junto**, em 10/09: `background`/`card`/`popover` e
 > `border`/`input` estavam em 170 enquanto `canvas` e `muted` já tinham ido para 192. Custou
