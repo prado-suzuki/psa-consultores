@@ -63,7 +63,7 @@ export function DailyHistoryCard({
   onPageChange,
 }: DailyHistoryCardProps) {
   return (
-    <Card className="bg-card border-border">
+    <Card className="border-border">
       <CardHeader>
         <div className="flex flex-col gap-4">
           <CardTitle className="text-foreground flex items-center gap-2"><User className="h-5 w-5 text-muted-foreground" />Histórico de Dailys</CardTitle>

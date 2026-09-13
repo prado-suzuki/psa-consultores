@@ -44,7 +44,10 @@ export function KpiHero({
         'group relative rounded-2xl p-5 shadow-sm transition-all hover:shadow-md',
         isSolid
           ? 'kpi-hero-solid bg-primary text-primary-foreground'
-          : 'bg-card border border-border/70 text-foreground',
+          // Este é o cartão que faz a massa branca do meio do Dashboard: oito
+          // deles, e o `<Card>` não os alcança porque o KpiHero desenha a
+          // própria caixa. Mesma tinta do `<Card>` — ver `cartaoTingido.test.ts`.
+          : 'bg-superficie-cartao border border-border/70 text-foreground',
         className
       )}
     >

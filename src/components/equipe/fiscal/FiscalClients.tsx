@@ -48,7 +48,7 @@ export function FiscalClients() {
       </div>
 
       {/* Table */}
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="bg-superficie-cartao border border-border rounded-lg overflow-hidden">
         {filteredClients.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Building className="h-12 w-12 mb-4 opacity-50" />

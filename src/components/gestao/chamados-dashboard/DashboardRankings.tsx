@@ -43,7 +43,7 @@ function RankingCard({
   // card mantém a altura de sempre e rola por dentro quando passa disso.
   const max = Math.max(1, ...rows.map((row) => row[highlightField]));
   return (
-    <div className={`rounded-2xl border border-border/70 bg-card p-5 shadow-sm ${className ?? ''}`}>
+    <div className={`rounded-2xl border border-border/70 bg-superficie-cartao p-5 shadow-sm ${className ?? ''}`}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           {icon}

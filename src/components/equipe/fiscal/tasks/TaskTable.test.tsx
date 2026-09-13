@@ -105,8 +105,14 @@ describe('TaskTable — barra de período', () => {
     // barra do mes entrou em cima.
     renderTable([]);
 
+    // A asserção é sobre DECLARAR superfície, e não sobre qual delas: em
+    // 12/09/2026 a do cartão saiu de `bg-card` para `bg-superficie-cartao`
+    // (ver `src/lib/cartaoTingido.test.ts`), e a caixa de TABELA é justamente a
+    // família em que as duas ainda estão em comparação — seção 6 de
+    // `docs/geral/comparacoes-de-cor/o-branco-que-sobrou.html`. O que este teste
+    // nunca pode deixar passar é o container voltar a ser transparente.
     const container = screen.getByText('Agosto de 2026').closest('.rounded-lg');
-    expect(container?.className).toContain('bg-card');
+    expect(container?.className).toMatch(/\bbg-(?:card|superficie-cartao)\b/);
   });
 });
 

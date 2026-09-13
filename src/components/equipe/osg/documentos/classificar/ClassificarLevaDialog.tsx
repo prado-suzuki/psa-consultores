@@ -254,7 +254,9 @@ export function ClassificarLevaDialog({
                   key={doc.id}
                   className={cn(
                     'overflow-hidden rounded-xl border transition-colors',
-                    escolhido ? 'border-osg-moss/60 bg-osg-moss/[0.04]' : 'border-osg-200 bg-card',
+                    escolhido
+                      ? 'border-osg-moss/60 bg-osg-moss/[0.04]'
+                      : 'border-osg-200 bg-superficie-cartao',
                   )}
                 >
                   <div className="flex items-center gap-3 px-3 py-2.5">

@@ -79,7 +79,7 @@ export default function ClienteTab({
   // parece vazio e sugere que dá para digitar — não serve para leitura.
   if (isReadOnly) {
     return (
-      <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
+      <section className="bg-superficie-cartao rounded-xl border shadow-sm overflow-hidden">
         <div className="px-4 py-2 bg-muted/50 border-b">
           <h3 className="text-sm font-bold text-foreground">Dados do Cliente/Grupo</h3>
         </div>
@@ -127,7 +127,7 @@ export default function ClienteTab({
   };
 
   return (
-    <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
+    <section className="bg-superficie-cartao rounded-xl border shadow-sm overflow-hidden">
       <div className="px-4 py-2 bg-muted/50 border-b">
         <h3 className="text-sm font-bold text-foreground">Dados do Cliente/Grupo</h3>
       </div>

@@ -92,7 +92,7 @@ export const PagesTab = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-superficie-cartao p-4 shadow-sm">
         <div>
           <h3 className="text-base font-medium text-foreground">Páginas Cadastradas</h3>
           <p className="text-sm text-muted-foreground">Atualize para ver novas páginas implementadas</p>

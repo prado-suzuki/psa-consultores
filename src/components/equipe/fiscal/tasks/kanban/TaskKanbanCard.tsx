@@ -68,7 +68,7 @@ export function TaskKanbanCard({
         data-task-card={isCopy ? undefined : task.id}
         data-task-entry={entry.key}
         className={cn(
-          'border-border bg-card transition-shadow hover:shadow-md',
+          'border-border transition-shadow hover:shadow-md',
           canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
           draggedTaskId === task.id && !isCopy && 'opacity-50',
           highlightedTaskIds.has(task.id) && !isCopy && 'ring-2 ring-primary ring-offset-1',

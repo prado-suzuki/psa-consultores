@@ -108,7 +108,7 @@ export const TaskCard = ({
     return (
       <div 
         className={cn(
-          "p-3 bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow",
+          "p-3 bg-superficie-cartao rounded-lg border shadow-sm hover:shadow-md transition-shadow",
           isFixedEvent && "border-l-4 border-l-tag-c"
         )}
       >

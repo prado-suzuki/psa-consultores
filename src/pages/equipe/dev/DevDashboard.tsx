@@ -254,7 +254,7 @@ const DevDashboard = () => {
           </div>
         </a>
 
-        <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
+        <div className="rounded-2xl border border-border/70 bg-superficie-cartao p-5 shadow-sm">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-foreground">Catálogo de Ferramentas</h2>
@@ -459,7 +459,7 @@ const DevDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:col-span-2">
+          <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-superficie-cartao p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:col-span-2">
             <div>
               <p className="text-sm font-semibold text-foreground">Não achou a ferramenta que precisa?</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
@@ -476,7 +476,7 @@ const DevDashboard = () => {
             </Button>
           </div>
 
-          <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
+          <div className="rounded-2xl border border-border/70 bg-superficie-cartao p-5 shadow-sm">
             <h3 className="mb-3 text-sm font-semibold text-foreground">Categorias</h3>
             <div className="flex flex-wrap gap-2">
               {toolGroups.map((group) => (

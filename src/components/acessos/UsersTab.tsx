@@ -137,7 +137,7 @@ export const UsersTab = () => {
   return (
     <div className="space-y-4">
       {/* Header com botão de criar usuário */}
-      <div className="flex items-center justify-between bg-card rounded-lg p-4 border border-border shadow-sm">
+      <div className="flex items-center justify-between bg-superficie-cartao rounded-lg p-4 border border-border shadow-sm">
         <div>
           <h3 className="text-base font-medium text-foreground">Usuários do Sistema</h3>
           <p className="text-sm text-muted-foreground">Gerencie usuários e suas permissões de acesso</p>

@@ -496,6 +496,58 @@ O que **continua** à mão, e por quê:
 
 ---
 
+## 8. O branco no branco — o cartão parou de ser `--card` (12/09/2026)
+
+A página virou branca no mesmo dia (`e1befb6a`), e o efeito colateral só apareceu quando
+ela olhou duas telas: **página, cartão e campo passaram a ter o mesmo valor**, separados por
+uma linha a 1,23:1. A varredura das 96 rotas está em
+[`comparacoes-de-cor/o-branco-que-sobrou.html`](comparacoes-de-cor/o-branco-que-sobrou.html),
+e o que ela mostrou não foi quantidade: o Dashboard tem o **mesmo** percentual de branco do
+Feed (70 x 71%). A diferença é que o Feed tem tinta ENTRE as caixas e o Dashboard não tem
+nenhuma — "branco dentro de branco" é a regra do sistema, e o Feed é a exceção.
+
+**A saída escolhida (opção C) põe a tinta no OBJETO**, com a receita do Feed e nenhuma cor
+nova: o cartão desce 35% de `--muted`, o campo dentro dele fica branco, e a escada de três
+alturas volta — invertida, com o mais claro onde a mão vai.
+
+**O que foi feito, e o que NÃO foi:**
+
+| | |
+|---|---|
+| `<Card>` (`ui/card.tsx`) | `bg-card` → `bg-superficie-cartao`. **392 usos em 173 arquivos numa linha** |
+| `KpiHero` | mesma tinta. Ele desenha a própria caixa, e são os oito KPI que fazem a massa branca do Dashboard |
+| caixa escrita à mão | **101 caixas em 72 arquivos** (25 só na OSG). **70 tingidas**, 31 ficam brancas por motivo inventariado |
+| `<Card className="bg-card">` | cinco cancelavam a tinta em silêncio (`cn()` deixa a última vencer). Limpos |
+| token `--card` | **não mudou de valor**, e é o ponto todo: ele pinta onze cabeçalhos e barras laterais, `SelectTrigger`, `Input`, a pastilha do segmentado e a superfície de modal |
+
+O valor mora num lugar só — a cor `superficie-cartao` do `tailwind.config.ts`, feita de
+`hsl(var(--muted) / 0.35)`, que acompanha Tax, OSG e a casa sozinha. O próximo degrau da
+mesma receita é trocar `0.35` por `0.40`, ali, sem varredura.
+
+**Catraca:** [`cartaoTingido.test.ts`](../../src/lib/cartaoTingido.test.ts) — caixa
+arredondada (`rounded-md` para cima) não pinta `bg-card` na mão, com as 31 exceções em seis
+motivos. Ela lê a **expressão de classe inteira**, e não a linha: o `KpiHero` abre o `cn()`
+numa linha, declara `rounded-2xl` na seguinte e `bg-card` três abaixo — linha a linha, o
+cartão que o problema é passava invisível pela catraca feita para achá-lo. A regra de ESLint
+`ui/token-nao-sobrescrito` teve o mapa atualizado no mesmo commit.
+
+**O que continua ABERTO, e é decisão dela:**
+
+- **A caixa de tabela** (seção 6 da página). 19 telas são um aviso, um cartão de filtros e uma
+  caixa grande com tabela ou estado vazio — 90 a 99% de branco, uma caixa só. A página
+  renderiza as duas saídas. Se a escolha for "tabela branca", o conserto são **52 blocos
+  `<Card>` com tabela dentro**, por uma variante do `<Card>` (ou a caixa da tabela deixando
+  de ser `Card`) — não por exceção na catraca.
+- **O Board não foi junto.** Ele pinta pelo CSS próprio (`.v3-card`, `.v4-card`, `.kpi`,
+  `.mc`), que lê `--bd-surface` = `hsl(var(--card))`. Os cartões dele continuam brancos, e
+  isso é divergência real: mexer no `--bd-surface` muda o Board inteiro de uma vez.
+- **Conferir na tela**: o cartão tingido dentro de modal e a zebra da tabela dentro do
+  cartão, que usa `bg-muted` e ficou vizinha do fundo novo.
+- As outras duas frentes da mesma página — **centralizar** as duas telas de coluna solta e os
+  **filtros em barra** do `AreaDashboardFilters` — não entraram neste commit.
+
+---
+
 ## Se você for retomar por um só item
 
 **A ordem mudou em 10/09/2026, e mudou porque alguém rodou o comando.** A lista anterior

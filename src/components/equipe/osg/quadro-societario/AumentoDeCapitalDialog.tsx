@@ -194,7 +194,7 @@ export const AumentoDeCapitalDialog = ({
               {novas.map((m) => (
                 <div
                   key={m.id}
-                  className="flex items-center justify-between gap-3 rounded-md border border-osg-200/80 bg-card px-3 py-2"
+                  className="flex items-center justify-between gap-3 rounded-md border border-osg-200/80 bg-superficie-cartao px-3 py-2"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm text-foreground">

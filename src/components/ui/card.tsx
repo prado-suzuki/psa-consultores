@@ -2,8 +2,27 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * `bg-superficie-cartao` e NÃO `bg-card`, desde 12/09/2026.
+ *
+ * A página ficou branca, e com ela o cartão e o campo — três superfícies no
+ * mesmo valor, separadas só por uma linha a 1,23:1. A tinta voltou para o
+ * OBJETO: o cartão desce 35% de `--muted` e o campo dentro dele fica branco.
+ * A receita, o porquê de não ser o token `--card` e as exceções estão no
+ * `tailwind.config.ts` (cor `superficie-cartao`) e na catraca
+ * `src/lib/cartaoTingido.test.ts`.
+ *
+ * Esta linha alcança 365 usos de `<Card>` em 173 arquivos de uma vez — é o
+ * motivo pelo qual ela existe. Um `className="bg-card"` no consumidor a
+ * CANCELA (o `cn` deixa a última classe vencer), e cinco faziam isso sem
+ * querer; a catraca cobre esse caso à parte.
+ */
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props} />
+  <div
+    ref={ref}
+    className={cn("rounded-lg border bg-superficie-cartao text-card-foreground shadow-sm", className)}
+    {...props}
+  />
 ));
 Card.displayName = "Card";
 

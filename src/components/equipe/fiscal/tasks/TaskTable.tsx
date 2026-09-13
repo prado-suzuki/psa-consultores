@@ -278,12 +278,12 @@ const statusLabels = Object.fromEntries(
    // vazio soa como projeto sem tarefa. `null` = não há recorte a culpar.
    const vazioDoRecorte = mensagemDoVazio(periodo);
 
-   // `bg-card` explicito: o container da tabela sempre foi transparente, e isso
+   // Superficie de cartao explicita: o container da tabela sempre foi transparente, e isso
    // nao aparecia porque as linhas da Table carregam fundo proprio. Com a barra
    // do mes em cima, a faixa dela ficava no fundo da PAGINA — a tabela era a
    // unica das quatro abas sem a superficie do card.
    return (
-     <div className="border rounded-lg overflow-hidden bg-card">
+     <div className="border rounded-lg overflow-hidden bg-superficie-cartao">
        <BarraDeMes periodo={periodo} />
        {/* `min-w-[1260px]`: é a soma exata dos oito `w-[...]` do cabeçalho.
            Sem ela a tabela era `w-full` e nada mais — e `width` num `<th>` sem

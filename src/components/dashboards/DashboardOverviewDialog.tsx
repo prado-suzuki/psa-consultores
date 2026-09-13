@@ -240,7 +240,7 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
               <p className="text-xs text-muted-foreground shrink-0">Sem filtro — todos com acesso veem o mesmo conteúdo.</p>
             )}
 
-            <div className="flex-1 min-h-0 overflow-hidden rounded-lg border border-border bg-card">
+            <div className="flex-1 min-h-0 overflow-hidden rounded-lg border border-border bg-superficie-cartao">
               {!dashboard?.is_active ? (
                 <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
                   <MonitorOff className="h-8 w-8" />

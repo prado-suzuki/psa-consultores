@@ -236,7 +236,7 @@ export default function FaturamentoTab({
 
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
+    <section className="overflow-hidden rounded-xl border bg-superficie-cartao shadow-sm">
       {/*
         CABEÇALHO COM A BARRA DE OS. O título diz o que é o painel e a barra diz
         de qual OS ele está falando, e as duas coisas moram juntas porque a

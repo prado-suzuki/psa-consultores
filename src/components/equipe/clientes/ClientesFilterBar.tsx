@@ -171,7 +171,7 @@ const ClientesFilterBar = ({
     !!value.search || !!value.status || !!value.tipo || !!value.categoria;
 
   return (
-    <section className="bg-card p-4 md:p-6 rounded-xl shadow-sm border border-border">
+    <section className="bg-superficie-cartao p-4 md:p-6 rounded-xl shadow-sm border border-border">
       <div className="flex flex-col gap-4 md:gap-6">
         {/* Linha de topo: busca + contador + limpar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

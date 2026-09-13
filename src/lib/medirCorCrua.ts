@@ -20,7 +20,14 @@ const RAIZ = resolve(__dirname, '../..');
     quando existe, é dado de gráfico, e isso é outra frente (a fase 3b). */
 export const PASTAS_DE_TELA = ['src/components', 'src/pages'] as const;
 
-function arquivosDeCodigo(dir: string): string[] {
+/**
+ * Os arquivos de tela de uma pasta, recursivamente. Exportado desde 12/09/2026,
+ * quando a `cartaoTingido` precisou da MESMA varredura com outro predicado (ela
+ * não procura família de cor, procura caixa arredondada pintada à mão). Copiar o
+ * `readdirSync` de novo seria a terceira cópia do mesmo caminhar — e o
+ * `fundoDePagina.test.ts` já tem duas dele.
+ */
+export function arquivosDeCodigo(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap(entrada => {
     const caminho = join(dir, entrada.name);
     if (entrada.isDirectory()) return arquivosDeCodigo(caminho);

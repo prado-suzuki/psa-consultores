@@ -131,12 +131,13 @@ const FILA_DO_BLUE = {
     'src/components/acessos/pageCategoryStyles.ts': 3,
     'src/components/equipe/mapeamento/ScenarioComparator.tsx': 3,
     'src/components/equipe/mapeamento/ScenarioCreateModal.tsx': 3,
-    // Caiu de 4 para 2 em 11/09/2026, pela outra frente (commit `f0538b86`): o
-    // par azul do papel `team_member` saiu junto com o mapa `ROLE_VISUALS`, que
-    // virou `ui/PapelBadge`. O que sobra é o cartão de contagem de usuários
-    // ativos — ícone e fundo —, que é KPI e não papel: decoração de métrica, e
-    // entra com a decisão 2 da página do azul.
-    'src/components/acessos/UsersRolesView.tsx': 2,
+    // O `UsersRolesView.tsx` esteve aqui: caiu de 4 para 2 em 11/09/2026
+    // (`f0538b86`, o mapa `ROLE_VISUALS` virando `ui/PapelBadge`) e ZEROU em
+    // `dad2e9fa`, quando o cartão de contagem de usuários ativos saiu junto com a
+    // matriz de papéis mudando de rota. A linha não acompanhou, e esta catraca e a
+    // `filaDoRedEmerald` ficaram vermelhas na `develop` até 12/09/2026 cobrando um
+    // arquivo que já tinha pago. É o modo de falhar que o inventário por motivo
+    // tem: quem converte por OUTRA frente não sabe que existe uma linha aqui.
     'src/components/equipe/projetos/constants.ts': 2,
     'src/components/equipe/sprint-detalhes/AgendaTab.tsx': 2,
     'src/pages/equipe/EquipeRelatorios.tsx': 2,

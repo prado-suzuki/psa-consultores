@@ -50,10 +50,16 @@ type MotivoDeFicar =
   /** "Admin": rótulo de ACESSO. Não é estado de nada — mesmo motivo pelo qual
       "Líder" ficou na `filaDoAlerta`. Cargo não muda de estado; a pessoa é ou não é.
 
-      ⚠️ Estes três arquivos estão TAMBÉM na mira da frente do azul, que já levou o
+      ⚠️ Estes arquivos estão TAMBÉM na mira da frente do azul, que já levou o
       `roleOptions.ts` inteiro em `f0538b86` ("o papel do usuário para de ser sete
       cores: a cor marca só quem é de fora"). Se ela voltar a esta mesa, o vermelho
-      do "Admin" sai junto e estas três entradas somem daqui. */
+      do "Admin" sai junto e estas entradas somem daqui.
+
+      E uma já saiu, sem ninguém dar baixa: o `UsersRolesView.tsx` estava aqui com 2,
+      e `dad2e9fa` — a matriz de papéis saindo de uma rota que nenhum menu linkava —
+      levou os quatro `red-`/`blue-` do cartão de contagem junto. A linha ficou para
+      trás, e as duas catracas (esta e a `filaDoBlue`) ficaram VERMELHAS na `develop`
+      desde então, cobrando um arquivo que já tinha pago. Baixa dada em 12/09/2026. */
   | 'rotulo-nao-status';
 
 const FILA_DO_RED_EMERALD: Record<MotivoDeFicar, Record<string, number>> = {
@@ -72,7 +78,6 @@ const FILA_DO_RED_EMERALD: Record<MotivoDeFicar, Record<string, number>> = {
   },
   'rotulo-nao-status': {
     'src/components/acessos/PagesTab.tsx': 3,
-    'src/components/acessos/UsersRolesView.tsx': 2,
     'src/pages/administracao/AdminUsuarios.tsx': 2,
   },
 };

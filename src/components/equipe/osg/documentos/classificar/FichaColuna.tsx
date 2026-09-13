@@ -383,7 +383,7 @@ export function FichaColuna({
     <>
       <section
         aria-label="Ficha do cadastro"
-        className="flex w-[384px] min-w-0 shrink-0 flex-col overflow-hidden rounded-xl border border-osg-300/60 bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-14px_hsl(var(--osg-700)/0.20)]"
+        className="flex w-[384px] min-w-0 shrink-0 flex-col overflow-hidden rounded-xl border border-osg-300/60 bg-superficie-cartao shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-14px_hsl(var(--osg-700)/0.20)]"
       >
         <div className="border-b border-osg-100 px-3.5 py-2.5">
           <div className="flex items-center gap-2">

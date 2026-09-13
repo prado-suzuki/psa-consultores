@@ -184,7 +184,7 @@ function FeedCarregando() {
     <div className="space-y-3">
       <Skeleton className="h-5 w-20 rounded-full" />
       {[0, 1].map((bloco) => (
-        <div key={bloco} className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+        <div key={bloco} className="overflow-hidden rounded-2xl border border-border/70 bg-superficie-cartao">
           <div className="flex items-center gap-3 border-b border-border/60 bg-muted/50 px-3.5 py-2.5">
             <Skeleton className="h-9 w-9 rounded-xl" />
             <div className="flex-1 space-y-1.5">
@@ -211,7 +211,7 @@ function FeedCarregando() {
 
 function FeedVazio() {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+    <div className="rounded-2xl border border-dashed border-border bg-superficie-cartao px-6 py-16 text-center">
       <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-tool-icon-bg text-tool-icon">
         <MessagesSquare aria-hidden className="h-7 w-7" />
       </span>
@@ -232,7 +232,7 @@ function FeedVazio() {
  */
 function FeedSemResultado({ onLimpar }: { onLimpar: () => void }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+    <div className="rounded-2xl border border-dashed border-border bg-superficie-cartao px-6 py-16 text-center">
       <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-muted text-muted-foreground">
         <SearchX aria-hidden className="h-7 w-7" />
       </span>

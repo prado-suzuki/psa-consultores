@@ -19,6 +19,9 @@ import { TOKEN_DO_COMPONENTE, CRU, regra } from './token-nao-sobrescrito.js';
 const TOKENS = ['foreground', 'background', 'card', 'card-foreground', 'popover',
   'popover-foreground', 'primary', 'primary-foreground', 'secondary', 'secondary-foreground',
   'muted', 'muted-foreground', 'accent', 'accent-foreground', 'destructive',
+  // `superficie-cartao` não é variável do `index.css`: é cor do `tailwind.config.ts`,
+  // feita de `--muted` com alfa fechado, e é o que o `<Card>` traz desde 12/09/2026.
+  'superficie-cartao',
   'destructive-foreground', 'border', 'input', 'ring', 'canvas', 'success', 'warning'];
 const TOK = new RegExp(`^(text|bg|border|divide|ring|placeholder)-(?:${TOKENS.join('|')})(?:/[0-9.]+)?$`);
 
@@ -71,7 +74,7 @@ describe('o mapa acompanha o ui/', () => {
    * volta a passar sem aviso — e foram estes seis que a Etapa 2 encontrou.
    */
   it('os seis da Etapa 2 continuam cobertos', () => {
-    expect(TOKEN_DO_COMPONENTE.Card.bg).toBe('bg-card');
+    expect(TOKEN_DO_COMPONENTE.Card.bg).toBe('bg-superficie-cartao');
     expect(TOKEN_DO_COMPONENTE.CardDescription.text).toBe('text-muted-foreground');
     expect(TOKEN_DO_COMPONENTE.TableHead.text).toBe('text-muted-foreground');
     expect(TOKEN_DO_COMPONENTE.DialogDescription.text).toBe('text-muted-foreground');

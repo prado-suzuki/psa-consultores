@@ -2,7 +2,8 @@
  * ui/token-nao-sobrescrito — cor crua escrita por cima do token que o componente já traz.
  *
  * O DEFEITO. Os componentes de `src/components/ui/` chegam com o token certo de
- * fábrica: `<Card>` já é `bg-card`, `<CardDescription>` já é
+ * fábrica: `<Card>` já é `bg-superficie-cartao` (a superfície do cartão, que em
+ * 12/09/2026 deixou de ser o token `--card`), `<CardDescription>` já é
  * `text-muted-foreground`, `<SelectTrigger>` já é `bg-background border-input`.
  * Quando a `className` local escreve `bg-white` ou `text-slate-500` na MESMA
  * propriedade, ela não acrescenta nada — ela substitui o token por um valor fixo.
@@ -45,7 +46,7 @@ export const TOKEN_DO_COMPONENTE = {
   AvatarFallback: { bg: 'bg-muted' },
   BreadcrumbList: { text: 'text-muted-foreground' },
   BreadcrumbPage: { text: 'text-foreground' },
-  Card: { bg: 'bg-card', text: 'text-card-foreground' },
+  Card: { bg: 'bg-superficie-cartao', text: 'text-card-foreground' },
   CardDescription: { text: 'text-muted-foreground' },
   ChartTooltipContent: { bg: 'bg-background', border: 'border-border/50' },
   Command: { bg: 'bg-popover', text: 'text-popover-foreground' },

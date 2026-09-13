@@ -57,7 +57,7 @@ export function FeedGrupoOrigem({
   const threads = montarThreads(itens);
 
   return (
-    <article className="group/origem overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
+    <article className="group/origem overflow-hidden rounded-2xl border border-border/70 bg-superficie-cartao shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
       <Link
         to={hrefDeOrigem(primeiro, area)}
         /*

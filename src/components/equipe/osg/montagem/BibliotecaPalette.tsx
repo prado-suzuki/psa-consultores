@@ -45,7 +45,7 @@ export function BibliotecaPalette({ documentoId, idsNoModelo }: Props) {
     });
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-osg-300/60 bg-card shadow-[0_1px_2px_hsl(var(--osg-700)/0.06)]">
+    <div className="flex h-full flex-col rounded-2xl border border-osg-300/60 bg-superficie-cartao shadow-[0_1px_2px_hsl(var(--osg-700)/0.06)]">
       <div className="flex items-center gap-2 border-b border-osg-100 px-3 py-2.5">
         <Library className="h-4 w-4 text-osg-600" />
         <h3 className="text-sm font-semibold text-osg-700">Biblioteca de blocos</h3>

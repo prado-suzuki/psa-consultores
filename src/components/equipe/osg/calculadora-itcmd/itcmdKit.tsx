@@ -321,7 +321,7 @@ export const linhaCls = 'border-t border-border/70 transition-colors hover:bg-os
 
 /** A MOLDURA da tabela: borda da OSG, cantos, e rolagem própria quando não cabe. */
 export const molduraDaTabelaCls =
-  'overflow-x-auto rounded-lg border border-border bg-card';
+  'overflow-x-auto rounded-lg border border-border bg-superficie-cartao';
 
 /**
  * UM QUADRO: tabela COM TÍTULO — a moldura das telas de leitura.
@@ -333,7 +333,8 @@ export const molduraDaTabelaCls =
  *
  * O título é `text-sm font-semibold`, e não o rótulo em caixa alta das colunas: mesma
  * receita seria mesma hierarquia, e o título passaria a ler como uma super-coluna. Ele
- * fica em `bg-card` e a faixa bege do `thead` vem logo abaixo — nome do quadro, depois
+ * fica na superfície do cartão (`bg-superficie-cartao` desde 12/09/2026) e a faixa bege do
+ * `thead` vem logo abaixo — nome do quadro, depois
  * nomes das colunas.
  *
  * A rolagem horizontal é do CORPO, não do quadro: com ela na moldura, o título saía da
@@ -346,7 +347,7 @@ export function Quadro({ titulo, legenda, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-card">
+    <section className="overflow-hidden rounded-lg border border-border bg-superficie-cartao">
       <header className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-border/70 px-3 py-2">
         <h4 className="text-sm font-semibold text-osg-700">{titulo}</h4>
         {legenda && (

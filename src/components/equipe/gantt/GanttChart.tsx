@@ -116,7 +116,7 @@ export function GanttChart({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-hidden rounded-lg border border-border bg-superficie-cartao">
         <GanttBarraDeNavegacao
           titulo={eixo.titulo}
           escala={escala}

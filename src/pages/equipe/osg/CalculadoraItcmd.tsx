@@ -102,7 +102,7 @@ const CalculadoraItcmd = () => {
             O bloco vem ANTES da lista porque é ali que a simulação nova vai nascer:
             a espera ocupa o lugar do resultado. */}
         {calc.gravando && (
-          <div className="flex animate-osg-rise items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 motion-reduce:animate-none">
+          <div className="flex animate-osg-rise items-center gap-3 rounded-lg border border-border bg-superficie-cartao px-4 py-3 motion-reduce:animate-none">
             <OsgWorkLoader size={32} label="Gravando a simulação" />
             <div className="space-y-0.5">
               <p className="text-sm font-semibold text-osg-700">
@@ -126,7 +126,7 @@ const CalculadoraItcmd = () => {
         {naSessao && (
           <div className="space-y-3">
             <Aviso>{calc.motivoDeNaoGravar}</Aviso>
-            <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 rounded-lg border border-border bg-card px-4 py-3 text-sm">
+            <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 rounded-lg border border-border bg-superficie-cartao px-4 py-3 text-sm">
               <Dado rotulo="Sociedade" valor={naSessao.empresaNome} />
               <Dado rotulo="Quotas" valor={quotasDeBigint(BigInt(naSessao.totalDeQuotas))} mono />
               <Dado

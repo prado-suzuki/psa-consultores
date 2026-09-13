@@ -1,4 +1,3 @@
-import type { ReactElement } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createTestQueryClient } from '@/test/queryWrapper';
 import { readFileSync } from 'node:fs';

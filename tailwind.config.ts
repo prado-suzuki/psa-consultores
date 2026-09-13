@@ -132,6 +132,42 @@ export default {
           DEFAULT: 'hsl(var(--card) / <alpha-value>)',
           foreground: 'hsl(var(--card-foreground) / <alpha-value>)',
         },
+        /* A superfície do CARTÃO, desde 12/09/2026 — e ela deixou de ser o
+           `--card`. A página virou branca no mesmo dia, e com isso página,
+           cartão e campo passaram a ter o MESMO valor: o que separava os três
+           era uma linha a 1,23:1. A medição das três telas está em
+           `docs/geral/comparacoes-de-cor/o-branco-que-sobrou.html`, e a saída
+           escolhida ali (opção C) foi pôr a tinta NO OBJETO em vez de em volta
+           dele — o cartão desce, o campo dentro dele fica branco, e a escada de
+           três alturas volta, invertida: agora o mais claro é onde a mão vai.
+
+           POR QUE NÃO MEXER NO TOKEN `--card`. Ele não pinta só cartão: pinta
+           onze cabeçalhos e barras laterais, o `SelectTrigger`, o `Input`, a
+           pastilha ativa do segmentado e a superfície de modal. Descer o token
+           desceria o cromo do produto inteiro junto. O `--card` continua sendo
+           "o branco do cromo e do controle"; esta classe é "a superfície do
+           objeto cartão". São dois papéis que sempre foram dois, e até aqui
+           dividiam um nome só.
+
+           A RECEITA NÃO INVENTA COR: é o balão do Feed (`bg-muted/35`), a única
+           tinta de cartão que já existia no produto e que ela aprovou olhando.
+           Lê `--muted`, então acompanha a área sozinha — Tax, OSG e a casa dão
+           1,082, 1,072 e 1,078 contra o branco, os três medidos. Se olhando
+           parecer pouco, o próximo degrau da MESMA receita é `/ 0.40`; o alfa
+           mora aqui, num lugar só, e é por isso que ele pode mudar sem varredura.
+
+           O ALFA É DE PROPÓSITO, e é o que faz o cartão funcionar dentro de
+           modal: `DialogContent` é branco, a página é branca, e 35% de `--muted`
+           sobre qualquer um dos dois dá o mesmo pixel. A contrapartida está
+           inventariada na catraca (`src/lib/cartaoTingido.test.ts`): caixa que
+           se apoia em `bg-muted` ou que FLUTUA sobre conteúdo não leva esta
+           classe — sobre o rebaixado ela some, e flutuando ela deixa passar o
+           que está atrás. Essas continuam em `bg-card`, uma a uma, com o motivo
+           escrito.
+
+           Sem `<alpha-value>`: o alfa já está fechado no valor, e `bg-superficie-cartao/50`
+           não é para existir. Quem precisa de outro degrau muda o número aqui. */
+        'superficie-cartao': 'hsl(var(--muted) / 0.35)',
         teal: {
           500: 'hsl(var(--teal-500))',
           600: 'hsl(var(--teal-600))',

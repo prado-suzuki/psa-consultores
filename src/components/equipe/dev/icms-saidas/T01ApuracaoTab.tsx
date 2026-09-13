@@ -205,7 +205,7 @@ const MatrizApuracaoCard = ({ matriz }: { matriz: T01MatrizSection }) => {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border border-border bg-card overflow-x-auto">
+        <div className="rounded-md border border-border bg-superficie-cartao overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted hover:bg-muted">

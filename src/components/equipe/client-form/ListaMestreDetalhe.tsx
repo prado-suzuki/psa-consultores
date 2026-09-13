@@ -154,7 +154,7 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
     <section
       data-tour={dataTour}
       className={cn(
-        'bg-card rounded-xl border shadow-sm overflow-hidden',
+        'bg-superficie-cartao rounded-xl border shadow-sm overflow-hidden',
         // Em pagina a casca precisa VIRAR item flex do pai e distribuir a altura
         // que recebe. Sem isto o `flex-1` da linha de baixo nao tem contra o que
         // crescer, a altura vira a do conteudo da lista (19 produtos = ~1500px)

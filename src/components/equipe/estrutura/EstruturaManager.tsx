@@ -261,7 +261,7 @@ export default function EstruturaManager() {
   const renderClusterItem = (cluster: Cluster) => {
     const clusterAreas = areas.filter(a => a.cluster_id === cluster.id);
     return (
-      <AccordionItem key={cluster.id} value={cluster.id} className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+      <AccordionItem key={cluster.id} value={cluster.id} className="bg-superficie-cartao rounded-lg border border-border shadow-sm overflow-hidden">
         <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-foreground/[0.03]">
           <div className="flex items-center gap-3 flex-1 text-left">
             <Network className="h-5 w-5 text-primary shrink-0" />
@@ -446,7 +446,7 @@ export default function EstruturaManager() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex justify-between items-center bg-card rounded-lg p-4 border border-border shadow-sm">
+      <div className="flex justify-between items-center bg-superficie-cartao rounded-lg p-4 border border-border shadow-sm">
         <div>
           <h3 className="text-base font-medium text-foreground">Estrutura Organizacional</h3>
           <p className="text-sm text-muted-foreground">Gerencie clusters, áreas, líderes, equipes e membros.</p>
