@@ -31,6 +31,7 @@ import {
 } from '@/hooks/useOrgProjects';
 import { useReviewerCandidates } from '@/hooks/useReviewerCandidates';
 import { statusList } from '@/lib/taskStatusColors';
+import { ordenarPorTitulo } from '@/lib/ordemDeTarefas';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 import { resolveActiveReviewerName } from '@/lib/orgTaskReviewer';
 import { taskSaveErrorMessage } from '@/lib/rlsMessages';
@@ -71,6 +72,12 @@ interface TaskModalProps {
   parentTasks?: OrgTask[];
   defaultParentId?: string | null;
   defaultProjectId?: string | null;
+  /**
+   * Este modal é o que abriu por cima de outro, pelo atalho de editar da linha
+   * de subtarefa. Serve para uma coisa só: não oferecer o mesmo atalho de novo,
+   * parando a pilha em um nível.
+   */
+  aninhado?: boolean;
 }
 
 export const TaskModal = ({
@@ -82,6 +89,7 @@ export const TaskModal = ({
   parentTasks = [],
   defaultParentId,
   defaultProjectId,
+  aninhado = false,
 }: TaskModalProps) => {
   const { user } = useAuth();
   const createTask = useCreateOrgTask(area, { showToasts: false });
@@ -94,6 +102,11 @@ export const TaskModal = ({
   const dialogContentRef = useRef<HTMLDivElement>(null);
 
   const [showDraftNotice, setShowDraftNotice] = useState(false);
+  /**
+   * A subtarefa aberta pelo atalho da linha. Guardar a linha inteira (e não só
+   * o id) evita uma segunda consulta: ela já veio de `useOrgSubtasks`.
+   */
+  const [subtarefaAberta, setSubtarefaAberta] = useState<OrgTask | null>(null);
   const [reviewAction, setReviewAction] = useState<ReviewAction | null>(null);
   const [reviewFeedback, setReviewFeedback] = useState<ReviewOutcome | null>(null);
   // Incrementa a cada "Adicionar anexo": o painel de atividade observa o número
@@ -250,9 +263,18 @@ export const TaskModal = ({
     return projects.filter((p) => p.external_client_id === watchedClientId);
   }, [projects, watchedClientId]);
 
-  const filteredParentTasks = watchedProjectId
-    ? parentTasks.filter((t) => t.project_id === watchedProjectId)
-    : parentTasks;
+  // Com projeto escolhido, este seletor É o escopo "tarefas-pai de um projeto":
+  // alfabético. Sem projeto (o seletor cai para todos), a ordem alfabética
+  // continua servindo — aqui ela organiza um seletor, não uma visualização, e
+  // procurar por nome numa lista misturada é pior do que numa ordenada.
+  const filteredParentTasks = useMemo(
+    () => ordenarPorTitulo(
+      watchedProjectId
+        ? parentTasks.filter((t) => t.project_id === watchedProjectId)
+        : parentTasks,
+    ),
+    [parentTasks, watchedProjectId],
+  );
 
   // Teto do calendário de Vencimento quando a tarefa é subtarefa. Sai da lista
   // que já veio para o seletor de mãe; se a mãe não estiver nela (a lista da
@@ -727,6 +749,9 @@ export const TaskModal = ({
                     assignedToName={task.assigned_to_name}
                     teamMembers={filteredTeamMembers}
                     onAddAttachment={() => setComposerFocusSignal((signal) => signal + 1)}
+                    // Um nível só: aberto DE uma subtarefa, a linha das netas
+                    // não oferece o atalho. Ver o segundo TaskModal, no fim.
+                    onEditarSubtarefa={aninhado ? undefined : setSubtarefaAberta}
                   />
                 </div>
                 </>
@@ -778,6 +803,34 @@ export const TaskModal = ({
         onClose={closeReviewAction}
         onConfirm={confirmReviewAction}
       />
+
+      {/*
+        A subtarefa aberta pelo atalho, no mesmo modal de sempre, empilhado por
+        cima deste.
+
+        É o próprio componente se renderizando — recursão dentro do módulo, não
+        import circular. Vale a pena porque o formulário da subtarefa é
+        exatamente este: nome, prazo, descrição, horas, revisão, comentários e
+        anexos, com as mesmas regras de permissão. Um editor paralelo só para
+        subtarefa seria uma segunda verdade sobre como se edita uma tarefa.
+
+        `aninhado` corta a pilha em um nível: a linha das netas não repete o
+        atalho. E o modal só monta quando há subtarefa escolhida, então nada
+        disso pesa enquanto ninguém clica.
+      */}
+      {subtarefaAberta && (
+        <TaskModal
+          open
+          onOpenChange={(aberto) => {
+            if (!aberto) setSubtarefaAberta(null);
+          }}
+          task={subtarefaAberta}
+          area={area}
+          teamMembers={teamMembers}
+          parentTasks={parentTasks}
+          aninhado
+        />
+      )}
     </>
   );
 };

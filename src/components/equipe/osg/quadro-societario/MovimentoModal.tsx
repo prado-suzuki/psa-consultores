@@ -7,18 +7,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RequiredMark } from '@/components/ui/required-mark';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Info, Loader2 } from 'lucide-react';
 import { fieldCls, labelCls, FieldSection } from '@/components/equipe/osg/formKit';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { useRegistrarMovimento, type SocioDoQuadro } from '@/hooks/useMovimentacaoQuotas';
+import { useOnusDaEmpresa } from '@/hooks/useDoacaoDeQuotas';
+import { planejarSubrogacao } from '@/lib/osg/onusDaSociedade';
 import {
   capitalDoMovimento,
   FORMAS_MOVIMENTO,
   problemaDoMovimento,
-  TIPOS_MOVIMENTO,
   type MovimentoDeQuotas,
   type TipoMovimento,
 } from '@/lib/osg/movimentoQuotas';
+import { AjudaSocietaria } from './AjudaSocietaria';
+import { AJUDA_DO_TIPO } from './gestosSocietarios';
+import { GestoEscolhido } from './GestoEscolhido';
 import { fmtBRL, fmtInt } from './quadroFmt';
 
 // O formulário do movimento de quota, que substituiu o formulário do SÓCIO.
@@ -27,16 +31,25 @@ import { fmtBRL, fmtInt } from './quadroFmt';
 // quadro (e remover sócio apagava a linha), agora se registra o que aconteceu e o
 // quadro é a consequência. É por isso que não há "editar": saldo não se edita,
 // e corrigir um número é registrar o movimento que faltava.
+//
+// O TIPO chega pronto, de fora. Antes ele era escolhido aqui, num select que
+// abria em Aporte (ou em Cessão, quando o gesto partia da linha de um sócio):
+// quem entrava já entrava com uma decisão tomada por inferência, e a doação com
+// reserva aparecia na lista só para mandar o consultor fechar a janela e
+// procurar outro botão. A escolha virou passo próprio, antes do formulário
+// (`EscolherMovimentoDialog`), e daqui saiu junto o aviso que apontava para ela.
 
 interface MovimentoModalProps {
   open: boolean;
+  /** O gesto escolhido na porta de entrada. Não há mais tipo por inferência. */
+  tipo: TipoMovimento;
   empresa: PessoaRow;
   /** Quadro atual (saldo): de onde saem os candidatos a cedente e os limites. */
   quadro: SocioDoQuadro[];
   pessoasCliente: PessoaRow[];
-  /** Cedente já escolhido, quando o gesto partiu da linha de um sócio. */
-  origemInicial?: string | null;
   onClose: () => void;
+  /** Volta ao seletor de gesto. Ausente quando não há porta para voltar. */
+  onTrocar?: () => void;
 }
 
 interface Draft {
@@ -47,34 +60,56 @@ interface Draft {
   dataMovimento: string;
 }
 
-const draftInicial = (origemInicial?: string | null): Draft => ({
-  // Partindo da linha de um sócio, o gesto pretendido é mover as quotas DELE: a
-  // cessão é o caso comum, e o aporte não tem cedente.
-  tipo: origemInicial ? 'cessao' : 'aporte',
-  origemPessoaId: origemInicial ?? '',
+const draftInicial = (tipo: TipoMovimento): Draft => ({
+  tipo,
+  origemPessoaId: '',
   destinoPessoaId: '',
   quotas: '',
   dataMovimento: '',
 });
 
 export function MovimentoModal({
-  open, empresa, quadro, pessoasCliente, origemInicial, onClose,
+  open, tipo, empresa, quadro, pessoasCliente, onClose, onTrocar,
 }: MovimentoModalProps) {
-  const [draft, setDraft] = useState<Draft>(() => draftInicial(origemInicial));
+  const [draft, setDraft] = useState<Draft>(() => draftInicial(tipo));
   const registrar = useRegistrarMovimento();
   const initialDraftRef = useRef<string>('');
 
+  // O tipo vive no DRAFT, e não direto na prop, para o rótulo não piscar durante
+  // a animação de fechamento: o efeito só corre com o modal aberto.
   useEffect(() => {
     if (!open) return;
-    const inicial = draftInicial(origemInicial);
+    const inicial = draftInicial(tipo);
     setDraft(inicial);
     initialDraftRef.current = JSON.stringify(inicial);
-  }, [open, origemInicial]);
+  }, [open, tipo]);
 
   const isDirty = JSON.stringify(draft) !== initialDraftRef.current;
-  const { requestClose, alertProps } = useDirtyClose({ isDirty, onClose });
+  // Saída confirmada, com DOIS destinos: fechar de vez ou voltar ao seletor. O
+  // guard é o mesmo, e o destino é decidido por quem pediu a saída — trocar de
+  // gesto com o formulário preenchido descarta o draft pela mesma pergunta que
+  // fechar a janela faria.
+  const destinoDaSaida = useRef<'fechar' | 'trocar'>('fechar');
+  const { requestClose, alertProps } = useDirtyClose({
+    isDirty,
+    onClose: () => (destinoDaSaida.current === 'trocar' && onTrocar ? onTrocar() : onClose()),
+  });
+  const pedirFechamento = () => {
+    destinoDaSaida.current = 'fechar';
+    requestClose();
+  };
+  const pedirTroca = () => {
+    destinoDaSaida.current = 'trocar';
+    requestClose();
+  };
 
   const forma = FORMAS_MOVIMENTO[draft.tipo];
+  const { data: onusVigentes = [] } = useOnusDaEmpresa(open ? empresa.id : null);
+  const nomes = useMemo(() => {
+    const m = new Map(pessoasCliente.map((p) => [p.id, p.denominacao ?? '—']));
+    for (const s of quadro) if (!m.has(s.pessoaId)) m.set(s.pessoaId, s.denominacao);
+    return m;
+  }, [pessoasCliente, quadro]);
   const saldo = useMemo(
     () => new Map(quadro.map((s) => [s.pessoaId, s.quotas])),
     [quadro],
@@ -99,8 +134,37 @@ export function MovimentoModal({
     quotas,
     dataMovimento: draft.dataMovimento || null,
   };
-  const problema = problemaDoMovimento(movimento, saldo, empresa.id);
+  const problemaDoLivro = problemaDoMovimento(movimento, saldo, empresa.id);
   const saldoDaOrigem = draft.origemPessoaId ? (saldo.get(draft.origemPessoaId) ?? 0) : null;
+
+  // O ÔNUS acompanha a quota. Se as quotas que saem estiverem gravadas ou sob
+  // usufruto, o gesto tem consequência além do quadro, e o consultor precisa
+  // ver isso ANTES de gravar — inclusive a recusa, quando a inalienabilidade
+  // barra uma cessão onerosa. A mutação recalcula o mesmo plano na hora de
+  // escrever; aqui ele só é mostrado.
+  const subrogacao = useMemo(() => {
+    if (!movimento.origemPessoaId || movimento.tipo === 'aporte') return null;
+    return planejarSubrogacao({
+      movimento: {
+        tipo: movimento.tipo,
+        origemPessoaId: movimento.origemPessoaId,
+        destinoPessoaId: movimento.destinoPessoaId,
+        quotas: movimento.quotas,
+      },
+      onusVigentes: onusVigentes.map((o) => ({
+        id: o.id,
+        nuProprietarioId: o.nuProprietarioId,
+        usufrutuarioIds: o.usufrutuarioIds,
+        usufrutoOrigem: o.usufrutoOrigem,
+        comVoto: o.comVoto,
+        quotas: o.quotas,
+        gravames: o.gravames,
+      })),
+      saldoDoCedente: saldo.get(movimento.origemPessoaId) ?? 0,
+      nomes,
+    });
+  }, [movimento.tipo, movimento.origemPessoaId, movimento.destinoPessoaId, movimento.quotas, onusVigentes, saldo, nomes]);
+  const problema = problemaDoLivro ?? subrogacao?.problema ?? null;
 
   const setCampo = <K extends keyof Draft>(campo: K, valor: Draft[K]) =>
     setDraft((prev) => ({ ...prev, [campo]: valor }));
@@ -122,7 +186,7 @@ export function MovimentoModal({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
+      <Dialog open={open} onOpenChange={(o) => !o && pedirFechamento()}>
         <DialogContent className="flex max-h-[90vh] max-w-lg flex-col gap-0 overflow-visible p-0 sm:[clip-path:none]">
           <div className="shrink-0 rounded-t-lg bg-background px-6 pt-5">
             <DialogHeader className="space-y-0 text-left">
@@ -137,34 +201,13 @@ export function MovimentoModal({
 
           <div className="min-h-0 flex-1 space-y-0 overflow-y-auto px-6 py-5">
             <FieldSection number="01" title="O que aconteceu">
-              <div className="space-y-1.5">
-                <Label className={labelCls}>Tipo do movimento<RequiredMark /></Label>
-                <Select
-                  value={draft.tipo}
-                  onValueChange={(v) =>
-                    setDraft((prev) => {
-                      const nova = FORMAS_MOVIMENTO[v as TipoMovimento];
-                      // Limpa o lado que o novo tipo não tem, senão a validação
-                      // reclamaria de um cedente que a tela nem mostra mais.
-                      return {
-                        ...prev,
-                        tipo: v as TipoMovimento,
-                        origemPessoaId: nova.rotuloOrigem ? prev.origemPessoaId : '',
-                        destinoPessoaId: nova.rotuloDestino ? prev.destinoPessoaId : '',
-                      };
-                    })}
-                >
-                  <SelectTrigger className={fieldCls}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIPOS_MOVIMENTO.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {FORMAS_MOVIMENTO[t].label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-2">
+                <GestoEscolhido
+                  rotulo={forma.label}
+                  ajuda={AJUDA_DO_TIPO[draft.tipo]}
+                  onTrocar={onTrocar ? pedirTroca : undefined}
+                  disabled={registrar.isPending}
+                />
                 <p className="text-xs text-muted-foreground">{forma.descricao}</p>
               </div>
             </FieldSection>
@@ -253,16 +296,30 @@ export function MovimentoModal({
               </div>
               {/* O valor não se digita: é as quotas ao valor nominal da casa. Ver
                   capitalDoMovimento. Gravar o preço pago aqui corromperia o
-                  capital do quadro, que é a soma desta coluna. */}
-              <p className="mt-3 text-xs text-muted-foreground">
-                Valor de capital das quotas movidas:{' '}
-                <span className="font-semibold tabular-nums text-foreground">
-                  {Number.isInteger(quotas) && quotas > 0 ? fmtBRL.format(capitalDoMovimento(quotas)) : '—'}
+                  capital do quadro, que é a soma desta coluna. O número
+                  calculado continua à vista; o que virou ajuda pedida é a
+                  distinção entre nominal e preço pago. */}
+              <p className="mt-3 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                <span>
+                  Valor de capital das quotas movidas:{' '}
+                  <span className="font-semibold tabular-nums text-foreground">
+                    {Number.isInteger(quotas) && quotas > 0 ? fmtBRL.format(capitalDoMovimento(quotas)) : '—'}
+                  </span>
+                  {' '}· ao valor nominal de {fmtBRL.format(capitalDoMovimento(1))} por quota.
                 </span>
-                {' '}· ao valor nominal de {fmtBRL.format(capitalDoMovimento(1))} por quota, não ao preço pago.
+                <AjudaSocietaria chave="valorNominal" rotulo="valor nominal" />
               </p>
             </FieldSection>
 
+            {isDirty && !problemaDoLivro && (subrogacao?.avisos.length ?? 0) > 0 && (
+              <div className="mt-6 space-y-1.5">
+                {subrogacao!.avisos.map((aviso) => (
+                  <p key={aviso} className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {aviso}
+                  </p>
+                ))}
+              </div>
+            )}
             {isDirty && problema && (
               <div className="mt-6 flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -272,7 +329,7 @@ export function MovimentoModal({
           </div>
 
           <DialogFooter className="shrink-0 rounded-b-lg border-t border-osg-100 bg-background px-6 py-3.5">
-            <Button variant="outline" onClick={requestClose} disabled={registrar.isPending}>
+            <Button variant="outline" onClick={pedirFechamento} disabled={registrar.isPending}>
               Cancelar
             </Button>
             <Button

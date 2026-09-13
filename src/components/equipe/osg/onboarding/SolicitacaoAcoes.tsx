@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import type { SolicitacaoStatus } from '@/lib/solicitacao';
+import { DialogoPassarParaChecklist } from './DialogoPassarParaChecklist';
 
 /**
  * As ações do topo da Solicitação Inicial, que dependem do status.
@@ -29,6 +30,11 @@ import type { SolicitacaoStatus } from '@/lib/solicitacao';
  * encerrada por cliente, ela não retorna para rascunho, e encerrar é definitivo.
  * Por isso as três pedem confirmação, e a atualização também pede quando a lista
  * já está com o cliente, porque ali o documento novo aparece para ele na hora.
+ *
+ * DUAS das confirmações são `AlertDialog` daqui; as outras duas ações — enviar e
+ * finalizar — abrem modal próprio na página, porque além de confirmar elas
+ * escolhem quem recebe a notificação. Este componente só avisa que o botão foi
+ * clicado (`onEnviar`, `onEncerrar`).
  */
 interface SolicitacaoAcoesProps {
   status: SolicitacaoStatus | null;
@@ -67,7 +73,6 @@ export function SolicitacaoAcoes({
 }: SolicitacaoAcoesProps) {
   const [confirmarAtualizacao, setConfirmarAtualizacao] = useState(false);
   const [confirmarChecklist, setConfirmarChecklist] = useState(false);
-  const [confirmarEncerramento, setConfirmarEncerramento] = useState(false);
 
   if (status === 'encerrada') {
     return (
@@ -91,23 +96,47 @@ export function SolicitacaoAcoes({
           variant={listaVazia ? 'default' : 'outline'}
           onClick={() => (comOCliente ? setConfirmarAtualizacao(true) : onGerar())}
           disabled={ocupado}
+          /* A primeira frase é a da Patrícia (10/09/2026). A segunda diz o que a
+             ação NÃO faz, e é a parte que evita chamado: quem dispensou um
+             documento e clica aqui esperando recuperá-lo não recupera — a RPC é
+             idempotente e nunca desfaz dispensa. */
+          title={listaVazia
+            ? 'Cria a lista de documentos a partir dos produtos contratados na OS.'
+            : 'Verifica se novos produtos foram incluídos na OS e adiciona os documentos '
+              + 'necessários à solicitação. Não remove nada, e documento dispensado não volta.'}
         >
           {ocupado
             ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             : <FileStack className="mr-2 h-4 w-4" />}
-          {listaVazia ? 'Gerar lista a partir da OS' : 'Atualizar a partir da OS'}
+          {listaVazia ? 'Gerar lista a partir da OS' : 'Atualizar documentos da OS'}
         </Button>
       )}
 
       {status === 'rascunho' && (
-        <Button size="sm" onClick={onEnviar} disabled={ocupado || itensAtivos === 0}>
+        <Button
+          size="sm"
+          onClick={onEnviar}
+          disabled={ocupado || itensAtivos === 0}
+          /* Abre o modal, não envia. E diz que é uma vez só: o botão some
+             depois, porque só existe em rascunho, e quem não sabe disso fica
+             procurando um segundo "Enviar" para cobrar o que faltou. */
+          title={'Abre a escolha de destinatários e canais. O envio acontece uma vez: '
+            + 'depois dele, cobrar o que faltar é pelo checklist.'}
+        >
           <Send className="mr-2 h-4 w-4" />
           Enviar solicitação
         </Button>
       )}
 
       {enviada && (
-        <Button size="sm" onClick={() => setConfirmarChecklist(true)} disabled={ocupado}>
+        <Button
+          size="sm"
+          onClick={() => setConfirmarChecklist(true)}
+          disabled={ocupado}
+          title={'Passa a classificar automaticamente o que o cliente enviar: cada '
+            + 'documento aparece ligado à pessoa ou ao imóvel a que pertence. Não há '
+            + 'como voltar.'}
+        >
           <ListChecks className="mr-2 h-4 w-4" />
           Passar para o checklist
         </Button>
@@ -117,8 +146,13 @@ export function SolicitacaoAcoes({
         <Button
           size="sm"
           variant="outline"
-          onClick={() => setConfirmarEncerramento(true)}
+          onClick={onEncerrar}
           disabled={ocupado}
+          /* Abre o modal, não finaliza. Desde 11/09/2026 a confirmação deixou de
+             ser um `AlertDialog` daqui e virou `ModalFinalizarSolicitacao`, que
+             além de confirmar escolhe quem recebe o aviso de conferência. */
+          title={'Abre a confirmação de encerramento e a escolha de quem é avisado. '
+            + 'Finalizar é definitivo: não há como reabrir.'}
         >
           <Lock className="mr-2 h-4 w-4" />
           Finalizar solicitação
@@ -142,53 +176,17 @@ export function SolicitacaoAcoes({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={confirmarChecklist} onOpenChange={setConfirmarChecklist}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Passar esta solicitação para o checklist?</AlertDialogTitle>
-            <AlertDialogDescription>
-              A tela do cliente deixa de ser a gaveta de envio e passa a ser o checklist:
-              ele vê o que falta, de quem é cada documento, e envia na própria linha, já
-              classificado. Não há como voltar para a fase de gaveta.
-              {arquivosSemTipo > 0 && (
-                <>
-                  {' '}
-                  <strong className="font-semibold">
-                    Atenção: {arquivosSemTipo} arquivo(s) dele ainda estão sem tipo de
-                    documento.
-                  </strong>{' '}
-                  Enquanto não forem classificados no Cadastro por Documento, o checklist
-                  vai cobrar coisa que já foi entregue.
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={onPassarParaChecklist}>
-              Passar para o checklist
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* O texto mora em `DialogoPassarParaChecklist` desde 11/09/2026, quando a
+          tela do checklist ganhou a segunda porta para o mesmo ato. Duas cópias
+          divergiriam no primeiro ajuste. */}
+      <DialogoPassarParaChecklist
+        aberto={confirmarChecklist}
+        onOpenChange={setConfirmarChecklist}
+        arquivosSemTipo={arquivosSemTipo}
+        verbo="Passar"
+        onConfirmar={onPassarParaChecklist}
+      />
 
-      <AlertDialog open={confirmarEncerramento} onOpenChange={setConfirmarEncerramento}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Finalizar esta solicitação?</AlertDialogTitle>
-            <AlertDialogDescription>
-              A finalização é definitiva, não há como reabrir. A lista fica só para
-              consulta, e a tela do cliente passa a modo leitura: os arquivos continuam
-              visíveis, mas ele não envia mais nada, nem pela gaveta nem pelo checklist.
-              {itensAtivos > 0 && ` São ${itensAtivos} documento(s) ainda ativos.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={onEncerrar}>Finalizar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

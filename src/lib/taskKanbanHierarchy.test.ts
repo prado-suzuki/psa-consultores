@@ -18,10 +18,16 @@ const STATUSES: readonly OrgTaskStatus[] = [
   'done',
 ];
 
-const task = (id: string, status: OrgTaskStatus, parent_task_id: string | null = null): KanbanTask => ({
+const task = (
+  id: string,
+  status: OrgTaskStatus,
+  parent_task_id: string | null = null,
+  title = id,
+): KanbanTask => ({
   id,
   status,
   parent_task_id,
+  title,
 });
 
 const column = (columns: TaskKanbanColumn<KanbanTask>[], status: OrgTaskStatus) =>
@@ -248,6 +254,60 @@ describe('buildTaskKanbanColumns', () => {
 
     expect(columns.map((item) => item.status)).toEqual(STATUSES);
     expect(columns.every((item) => item.entries.length === 0 && item.taskCount === 0)).toBe(true);
+  });
+
+  it('ordena as filhas do card por título, com número lido como número', () => {
+    const tasks = [
+      task('mae', 'todo'),
+      task('f10', 'todo', 'mae', '4.10 Décima'),
+      task('f2', 'todo', 'mae', '4.2 Segunda'),
+      task('f1', 'todo', 'mae', '4.1 Primeira'),
+    ];
+
+    expect(resumo(buildTaskKanbanColumns(tasks, STATUSES), 'todo')).toEqual([
+      { dona: 'mae', copia: false, filhas: ['f1', 'f2', 'f10'] },
+    ]);
+  });
+
+  it('ordena também as filhas espalhadas por outras colunas e os destinos', () => {
+    const tasks = [
+      task('mae', 'todo'),
+      task('f3', 'review', 'mae', '4.3 Terceira'),
+      task('f1', 'review', 'mae', '4.1 Primeira'),
+      task('f2', 'done', 'mae', '4.2 Segunda'),
+    ];
+
+    const columns = buildTaskKanbanColumns(tasks, STATUSES);
+
+    expect(resumo(columns, 'review')).toEqual([
+      { dona: 'mae', copia: true, filhas: ['f1', 'f3'] },
+    ]);
+    expect(column(columns, 'todo').entries[0].elsewhere).toEqual([
+      { status: 'review', count: 2, taskIds: ['f1', 'f3'] },
+      { status: 'done', count: 1, taskIds: ['f2'] },
+    ]);
+  });
+
+  it('ordena a neta dentro da cópia da mãe do meio', () => {
+    const tasks = [
+      task('avo', 'todo'),
+      task('mae', 'todo', 'avo'),
+      task('n2', 'review', 'mae', '4.1.2 Segunda neta'),
+      task('n1', 'review', 'mae', '4.1.1 Primeira neta'),
+    ];
+
+    expect(resumo(buildTaskKanbanColumns(tasks, STATUSES), 'review')).toEqual([
+      { dona: 'mae', copia: true, filhas: ['n1', 'n2'] },
+    ]);
+  });
+
+  it('não reordena os cards da coluna: eles misturam projetos diferentes', () => {
+    const tasks = [task('z', 'todo', null, 'Zebra'), task('a', 'todo', null, 'Abacate')];
+
+    expect(resumo(buildTaskKanbanColumns(tasks, STATUSES), 'todo')).toEqual([
+      { dona: 'z', copia: false, filhas: [] },
+      { dona: 'a', copia: false, filhas: [] },
+    ]);
   });
 
   it('preserva a ordem de entrada: o card nasce na posição de quem precisou dele', () => {

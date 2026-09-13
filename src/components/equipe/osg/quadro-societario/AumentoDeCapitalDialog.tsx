@@ -14,6 +14,7 @@ import { useGravarAumentoDeCapital, type SocioDoQuadro } from '@/hooks/useMovime
 import { contarImoveis, matriculasForaDoLivro, proporAumentoDeCapital } from '@/lib/osg/aporteInicial';
 import { capitalDeQuotas } from '@/lib/templates/capital';
 import type { MatriculaIntegralizacao } from '@/lib/templates/mapeadores';
+import { AjudaSocietaria } from './AjudaSocietaria';
 import { fmtBRL, fmtInt } from './quadroFmt';
 
 // O gesto que faltava: gravar o aumento de capital produzido pelos imóveis
@@ -124,9 +125,13 @@ export const AumentoDeCapitalDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex flex-wrap items-center gap-2">
             <TrendingUp className="h-4 w-4 text-osg-moss" />
             Aumento de capital por integralização
+            <AjudaSocietaria
+              chave="aumentoDeCapital"
+              rotulo="aumento de capital por integralização"
+            />
           </DialogTitle>
           <DialogDescription>
             Os imóveis aprovados que ainda não entraram no capital de{' '}

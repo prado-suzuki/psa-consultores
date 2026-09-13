@@ -11,11 +11,13 @@ vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: vi.fn() } }
 
 import { currentAmbiente } from '@/config/api';
 import {
+  useAtualizarPerPorNumero,
   useBuscarProcessoGlobalPerdcomp,
   useClientesControlePerdcomp,
   useContribuintesControlePerdcomp,
   useDcompsControlePerdcomp,
   useDistribuicoesControlePerdcomp,
+  useExcluirPerDcompDefinitivamente,
   usePersControlePerdcomp,
   useSituacoesControlePerdcomp,
   useSituacoesDistintasControlePerdcomp,
@@ -30,6 +32,9 @@ interface Registration {
 interface MutationRegistration {
   mutationKey: readonly unknown[];
   mutationFn: (value: string) => Promise<unknown>;
+}
+interface VoidMutationRegistration {
+  mutationFn: (value?: unknown) => Promise<unknown>;
 }
 interface Call {
   table: string;
@@ -60,6 +65,8 @@ function chain(table: string) {
     'range',
     'order',
     'maybeSingle',
+    'delete',
+    'update',
   ]) {
     value[method] = vi.fn((...args: unknown[]) => {
       calls.push({ table, method, args });
@@ -287,5 +294,139 @@ describe('busca global de processo', () => {
     ).toEqual(['per', 'dcomp', 'per', 'contribuinte']);
     expect(callsFor('dcomp', 'like')[0].args).toEqual(['nr_documento', '%99%']);
     expect(callsFor('per', 'eq')[0].args).toEqual(['nr_per', 'PER-2']);
+  });
+});
+
+/**
+ * O caso que motivou tudo: a RLS recusando um DELETE não devolve erro, devolve
+ * ZERO linhas. Sem estes testes, o hook volta a anunciar sucesso calado na
+ * primeira mexida.
+ */
+describe('exclusão definitiva de PER/DCOMP', () => {
+  function excluir(type: 'per' | 'dcomp', identifier: string) {
+    renderHook(() => useExcluirPerDcompDefinitivamente(type, identifier));
+    return (queryMocks.useMutation.mock.calls[0][0] as VoidMutationRegistration).mutationFn;
+  }
+
+  it('apaga o PER num comando só, sem tocar nas tabelas filhas', async () => {
+    queue('per', { data: [{ nr_per: 'P1' }], error: null });
+
+    await expect(excluir('per', 'P1')()).resolves.toBeUndefined();
+
+    expect(calls.map(({ table, method }) => `${table}.${method}`)).toEqual([
+      'per.delete',
+      'per.eq',
+      'per.select',
+    ]);
+    expect(callsFor('per', 'eq')[0].args).toEqual(['nr_per', 'P1']);
+    expect(callsFor('per', 'select')[0].args).toEqual(['nr_per']);
+  });
+
+  it('apaga o DCOMP num comando só, sem apagar as distribuições antes', async () => {
+    queue('dcomp', { data: [{ nr_documento: 'D1' }], error: null });
+
+    await expect(excluir('dcomp', 'D1')()).resolves.toBeUndefined();
+
+    expect(calls.map(({ table, method }) => `${table}.${method}`)).toEqual([
+      'dcomp.delete',
+      'dcomp.eq',
+      'dcomp.select',
+    ]);
+    expect(callsFor('distribuicao_dcomp', 'delete')).toHaveLength(0);
+  });
+
+  it('zero linhas com o registro ainda visível é recusa de permissão, não sucesso', async () => {
+    queue('per', { data: [], error: null }, { data: { nr_per: 'P1' }, error: null });
+
+    await expect(excluir('per', 'P1')()).rejects.toThrow(
+      /Você não tem permissão para excluir este PER.*Sublíder/s,
+    );
+  });
+
+  it('zero linhas com o registro fora de alcance avisa que ele não está mais disponível', async () => {
+    queue('dcomp', { data: [], error: null }, { data: null, error: null });
+
+    await expect(excluir('dcomp', 'D1')()).rejects.toThrow(
+      /Este DCOMP não está mais disponível para você/,
+    );
+  });
+
+  it('traduz a FK de retificação em vez de vazar o erro cru do banco', async () => {
+    queue('per', {
+      data: null,
+      error: {
+        code: '23503',
+        message: 'violates foreign key constraint "per_nr_proc_ret_fkey"',
+      },
+    });
+
+    await expect(excluir('per', 'P1')()).rejects.toThrow(
+      /outro PER o aponta como processo retificado/,
+    );
+  });
+
+  // Apagar um PER arrasta os DCOMPs dele pela cascata, então a violação pode vir
+  // da FK de retificação de DCOMP — e aí o retificador é um DCOMP de outro
+  // processo, não um PER. Frase única mandaria procurar o que não existe.
+  it('nomeia o DCOMP retificador quando é a FK de DCOMP que barra a exclusão do PER', async () => {
+    queue('per', {
+      data: null,
+      error: {
+        code: '23503',
+        message: 'violates foreign key constraint "dcomp_nr_dcomp_ret_fkey" on table "dcomp"',
+      },
+    });
+
+    await expect(excluir('per', 'P1')()).rejects.toThrow(
+      /um DCOMP de outro processo aponta como retificado um dos DCOMPs deste PER/,
+    );
+  });
+
+  it('na exclusão de DCOMP a frase fala em documento retificado', async () => {
+    queue('dcomp', {
+      data: null,
+      error: { code: '23503', message: 'violates foreign key constraint' },
+    });
+
+    await expect(excluir('dcomp', 'D1')()).rejects.toThrow(
+      /outro DCOMP o aponta como documento retificado/,
+    );
+  });
+
+  it('sondagem que falha não vira "excluído por outra pessoa"', async () => {
+    const console_error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    queue(
+      'per',
+      { data: [], error: null },
+      { data: null, error: { code: 'PGRST303', message: 'JWT expired' } },
+    );
+
+    await expect(excluir('per', 'P1')()).rejects.toThrow(/não foi possível confirmar o motivo/);
+    expect(console_error).toHaveBeenCalled();
+    console_error.mockRestore();
+  });
+});
+
+describe('atualização de PER por número', () => {
+  function atualizar() {
+    renderHook(() => useAtualizarPerPorNumero());
+    return queryMocks.useMutation.mock.calls[0][0] as {
+      mutationFn: (input: { nrPer: string | undefined; payload: unknown }) => Promise<unknown>;
+    };
+  }
+
+  it('recusa número indefinido em vez de filtrar por `undefined`', async () => {
+    await expect(
+      atualizar().mutationFn({ nrPer: undefined, payload: { exercicio: 2026 } }),
+    ).rejects.toThrow('PER inválido');
+    expect(calls).toHaveLength(0);
+  });
+
+  it('update que não altera nenhuma linha não passa por salvo', async () => {
+    queue('per', { data: [], error: null });
+
+    await expect(
+      atualizar().mutationFn({ nrPer: 'P1', payload: { exercicio: 2026 } }),
+    ).rejects.toThrow(/Não foi possível salvar este PER/);
   });
 });

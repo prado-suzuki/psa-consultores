@@ -293,6 +293,64 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     fonte: 'quadro',
     camposExtras: [],
   },
+  doacoes: {
+    label: 'Doações de quotas',
+    tipo: 'pessoa',
+    itemKey: 'doador',
+    itemKeysExtras: ['donatario', 'doacao'],
+    secoesItem: ['comOrigem', 'comInstrumento'],
+    fonte: 'quadro',
+    camposExtras: [],
+  },
+  usufrutos: {
+    label: 'Reservas de usufruto da doação',
+    tipo: 'pessoa',
+    itemKey: 'nuProprietario',
+    itemKeysExtras: ['usufruto'],
+    secoesItem: ['comVoto', 'semVoto'],
+    fonte: 'quadro',
+    camposExtras: [],
+  },
+  gravamesQuotas: {
+    label: 'Gravames das quotas doadas',
+    tipo: 'pessoa',
+    itemKey: 'nuProprietario',
+    itemKeysExtras: ['gravame'],
+    fonte: 'quadro',
+    camposExtras: [],
+  },
+  quadroUsufruto: {
+    label: 'Quadro de usufruto e voto',
+    tipo: 'pessoa',
+    itemKey: 'titular',
+    itemKeysExtras: ['usufruto'],
+    fonte: 'quadro',
+    camposExtras: [],
+  },
+  // O usufruto INSTITUÍDO, que não é o reservado de `usufrutos`: a direção do
+  // ato inverte. Na reserva quem doou guarda o voto; aqui quem tem a quota o
+  // entrega, por ato próprio e guia própria, sem que a quota mude de mão.
+  usufrutosInstituidos: {
+    label: 'Usufrutos instituídos',
+    tipo: 'pessoa',
+    itemKey: 'nuProprietario',
+    itemKeysExtras: ['usufruto'],
+    secoesItem: ['comVoto', 'semVoto'],
+    fonte: 'quadro',
+    camposExtras: [],
+  },
+  // Os gravames VIGENTES, que é coisa diferente de `gravamesQuotas`: aquela
+  // narra o que este ato criou, esta descreve o que a sociedade carrega hoje. O
+  // contrato consolidado republica a segunda a cada alteração, inclusive nas
+  // que nada têm a ver com doação (ver doacao-de-quotas-com-usufruto.md).
+  gravamesVigentes: {
+    label: 'Gravames vigentes sobre quotas',
+    tipo: 'pessoa',
+    itemKey: 'nuProprietario',
+    itemKeysExtras: ['gravame'],
+    fonte: 'quadro',
+    camposExtras: [],
+  },
   // Os sócios que SAEM nesta alteração. Deriva do mesmo par que as cessões (o
   // livro + o quadro resultante), então a fonte é 'quadro': quem cedeu a
   // totalidade das quotas não sobra em {{#socios}}, e sem uma lista própria a
@@ -765,6 +823,43 @@ export function listarPlaceholders(): PlaceholderSugerido[] {
     ['cessao.ordemRomana', 'Ordem em romano minúsculo (i, ii…)'],
   ] as const) {
     out.push({ placeholder: id, label: `Cessões — ${label}`, grupo: grupoCessoes, tipo: 'texto' });
+  }
+  for (const [grupo, campos] of [
+    [PAPEIS_LISTA.doacoes.label, [
+      ['doacao.quotas', 'Quotas doadas'], ['doacao.quotasExtenso', 'Quotas doadas por extenso'],
+      ['doacao.valor', 'Valor das quotas'], ['doacao.valorExtenso', 'Valor por extenso'],
+      ['doacao.quotasLegitima', 'Quotas da legítima'], ['doacao.quotasLegitimaExtenso', 'Legítima por extenso'],
+      ['doacao.quotasDisponivel', 'Quotas da parte disponível'], ['doacao.quotasDisponivelExtenso', 'Parte disponível por extenso'],
+      ['doacao.instrumentoData', 'Data do instrumento'], ['doacao.instrumentoDataExtenso', 'Data do instrumento por extenso'],
+    ]],
+    [PAPEIS_LISTA.usufrutos.label, [
+      ['usufruto.quotas', 'Quotas em usufruto'], ['usufruto.quotasExtenso', 'Quotas em usufruto por extenso'],
+      ['usufruto.usufrutuarioNomes', 'Nomes dos usufrutuários'],
+      ['usufruto.usufrutuarioQualificacoes', 'Qualificações dos usufrutuários'],
+    ]],
+    [PAPEIS_LISTA.gravamesQuotas.label, [
+      ['gravame.quotas', 'Quotas gravadas'], ['gravame.quotasExtenso', 'Quotas gravadas por extenso'],
+      ['gravame.nomes', 'Gravames aplicados'],
+    ]],
+    [PAPEIS_LISTA.usufrutosInstituidos.label, [
+      ['usufruto.quotas', 'Quotas instituídas'], ['usufruto.quotasExtenso', 'Quotas instituídas por extenso'],
+      ['usufruto.usufrutuarioNomes', 'Nomes das pessoas usufrutuárias'],
+      ['usufruto.usufrutuarioQualificacoes', 'Qualificações das pessoas usufrutuárias'],
+    ]],
+    [PAPEIS_LISTA.gravamesVigentes.label, [
+      ['gravame.quotas', 'Quotas gravadas'], ['gravame.quotasExtenso', 'Quotas gravadas por extenso'],
+      ['gravame.nomes', 'Gravames aplicados'],
+    ]],
+    [PAPEIS_LISTA.quadroUsufruto.label, [
+      ['usufruto.quotas', 'Quotas do titular'], ['usufruto.plena', 'Propriedade plena'],
+      ['usufruto.nua', 'Nua propriedade'], ['usufruto.usufruto', 'Usufruto com voto'],
+      ['usufruto.vozEVoto', 'Quotas com voz e voto'], ['usufruto.pctParticipacao', 'Participação no capital (%)'],
+      ['usufruto.pctVozEVoto', 'Voz e voto (%)'],
+    ]],
+  ] as const) {
+    for (const [id, label] of campos) {
+      out.push({ placeholder: id, label: `${grupo} — ${label}`, grupo, tipo: 'texto' });
+    }
   }
   // Referências de numeração resolvidas pela composição (ver index.ts).
   out.push({

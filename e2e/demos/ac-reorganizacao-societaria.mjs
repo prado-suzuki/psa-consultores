@@ -278,8 +278,16 @@ const listar = (rotulo, itens) => {
  * É o que torna a demo re-executável: uma segunda passada lê isto antes de
  * apertar qualquer coisa e continua de onde a primeira parou.
  */
-const estadoDoQuadro = (page) =>
-  page.evaluate(() => {
+const estadoDoQuadro = async (page) => {
+  // Os atos ficam num cartão RECOLHIDO: o cabeçalho e a contagem estão sempre
+  // à vista, a lista só depois de "Ver atos". Sem abrir, `atos` viria vazio e a
+  // demo concluiria que não há ato nenhum.
+  const verAtos = page.getByRole('button', { name: 'Ver atos', exact: true });
+  if (await verAtos.count()) {
+    await verAtos.first().click();
+    await pausa(600);
+  }
+  return page.evaluate(() => {
     const limpo = (s) => (s || '').replace(/\s+/g, ' ').trim();
     const painel = limpo(document.querySelector('main')?.innerText);
     const botoes = [...document.querySelectorAll('main button')].map((b) => limpo(b.innerText));
@@ -310,25 +318,31 @@ const estadoDoQuadro = (page) =>
         : /Lista de Sócios \(/.test(painel)
           ? 'Lista de Sócios'
           : null,
-      gravado: /Quadro registrado, apurado da movimentação de quotas/.test(painel),
-      aindaNaoGravado: /Ainda não gravado/.test(painel),
+      gravado: /Quadro registrado/.test(painel),
+      aindaNaoGravado: /Proposta não gravada/.test(painel),
       podeGravar: botoes.includes('Gravar quadro societário'),
-      podeTransferir: botoes.includes('Transferir quotas para a controladora'),
+      // O gesto da subida deixou de ser um botão da página: ele é uma OPÇÃO da
+      // porta única. Quem quer saber se ele existe abre a porta e olha a
+      // opção — inferir capacidade pelo nome do botão do cabeçalho passaria a
+      // dar falso positivo, porque "Registrar movimento" agora existe nas duas
+      // empresas com catálogos diferentes.
       podeRegistrarMovimento: botoes.includes('Registrar movimento'),
       totalAtos: quantosAtos ? Number(quantosAtos[1]) : 0,
       // A frase do cartão de atos que explica o alcance da reversão.
-      reversaoEDoAtoInteiro: /Desfazer apaga o ato inteiro/.test(painel),
+      reversaoEDoAtoInteiro: /pode ser desfeito enquanto nenhum documento o formalizou/.test(painel),
       atos,
     };
   });
+};
 
 /**
  * A tabela de sócios: uma linha por sócio, com a PROCEDÊNCIA de cada saldo, mais
- * o rodapé de total e os três KPIs do topo.
+ * o rodapé de total e a faixa de resumo do cabeçalho.
  *
- * O rodapé é lido além dos KPIs porque os KPIs são animados (count-up de 650ms)
- * e o rodapé não: comparar antes e depois com número animado seria comparar o
- * instante da leitura, não o valor.
+ * A faixa substituiu os três cartões de KPI do topo, e com eles saiu a contagem
+ * animada: os números da faixa já são o valor final na primeira leitura. O
+ * rodapé continua sendo lido porque é a soma da tabela, e conferir os dois
+ * lados é o que pega divergência entre o cabeçalho e o corpo.
  */
 const lerQuadro = (page) =>
   page.evaluate(() => {
@@ -345,6 +359,8 @@ const lerQuadro = (page) =>
       const paragrafos = [...(celulas[0]?.querySelectorAll('p') ?? [])].map((p) =>
         limpo(p.textContent),
       );
+      // O avatar de iniciais saiu da célula, então os <span> dela são só as
+      // etiquetas de procedência. O botão "Ver procedência (n)" não é <span>.
       const etiquetas = [...(celulas[0]?.querySelectorAll('span') ?? [])].map((e) =>
         limpo(e.textContent),
       );
@@ -359,22 +375,22 @@ const lerQuadro = (page) =>
     });
 
     const rodape = [...tabela.querySelectorAll('tfoot td')].map((td) => limpo(td.innerText));
-    const kpi = (titulo) => {
-      const rotulo = [...document.querySelectorAll('main p')].find(
-        (p) => limpo(p.textContent) === titulo,
+    // A faixa de resumo é uma lista de definição: <dt> rótulo, <dd> valor.
+    const resumo = (rotulo) => {
+      const dt = [...document.querySelectorAll('main dt')].find(
+        (e) => limpo(e.textContent) === `${rotulo}:`,
       );
-      const corpo = rotulo?.parentElement?.parentElement;
-      const paragrafos = corpo ? [...corpo.children].filter((e) => e.tagName === 'P') : [];
-      return paragrafos.length ? limpo(paragrafos[paragrafos.length - 1].textContent) : null;
+      const dd = dt?.nextElementSibling;
+      return dd ? limpo(dd.textContent) : null;
     };
 
     return {
       linhas,
       total: { quotas: rodape[1] ?? null, capital: rodape[2] ?? null },
-      kpis: {
-        capital: kpi('Capital Social Total'),
-        quotas: kpi('Total de Quotas'),
-        nominal: kpi('Valor Nominal'),
+      resumo: {
+        capital: resumo('Capital social'),
+        quotas: resumo('Quotas'),
+        nominal: resumo('Valor nominal'),
       },
     };
   });
@@ -1112,7 +1128,7 @@ async function ensaio(page) {
   if (estadoPr.podeGravar) {
     await nota(
       page,
-      `"${estadoPr.cartao}" e "Ainda não gravado": ${proposta.linhas.length} sócio(s), ` +
+      `"${estadoPr.cartao}" e "Proposta não gravada": ${proposta.linhas.length} sócio(s), ` +
         `${proposta.total.quotas} quotas, ${proposta.total.capital}`,
       2600,
     );
@@ -1121,7 +1137,7 @@ async function ensaio(page) {
     feito.gravouQuadro = true;
     estadoPr = await estadoDoQuadro(page);
     quadroPr = await lerQuadro(page);
-    await nota(page, 'Cartão virou "Quadro registrado, apurado da movimentação de quotas"', 2200);
+    await nota(page, 'Cartão virou "Quadro registrado", com o saldo apurado da movimentação', 2200);
   } else if (estadoPr.gravado) {
     await nota(page, 'O quadro já estava gravado nesta empresa: sigo de onde a rodada anterior parou', 2400);
   } else {
@@ -1142,8 +1158,8 @@ async function ensaio(page) {
     o_que: 'quadro de constituição',
     gravou_nesta_rodada: feito.gravouQuadro,
     estado_da_aba: estadoPr,
-    antes: { total: proposta.total, kpis: proposta.kpis, linhas: proposta.linhas },
-    depois: { total: quadroPr.total, kpis: quadroPr.kpis, linhas: quadroPr.linhas },
+    antes: { total: proposta.total, resumo: proposta.resumo, linhas: proposta.linhas },
+    depois: { total: quadroPr.total, resumo: quadroPr.resumo, linhas: quadroPr.linhas },
     totais_iguais: fecharamOsTotais,
     // Sem gravação nesta rodada os dois lados são a mesma leitura, e a
     // igualdade não prova nada: o registro diz isso em vez de deixar parecer.
@@ -1291,15 +1307,44 @@ async function ensaio(page) {
       2600,
     );
   } else {
+    // A subida virou OPÇÃO da porta única, e não mais um botão do cabeçalho:
+    // "Registrar movimento" abre a escolha do gesto, e é a opção aberta que diz
+    // se ele está disponível — o motivo do bloqueio aparece por extenso ao lado
+    // dela, em vez de num `title` de botão desabilitado.
     exigir(
-      estadoPr.podeTransferir,
-      'O botão "Transferir quotas para a controladora" não apareceu na aba da proprietária.',
+      estadoPr.podeRegistrarMovimento,
+      'O botão "Registrar movimento" não apareceu na aba da proprietária.',
       'Ele só existe com quadro GRAVADO. Confira o passo 2 na última foto.',
     );
-    await page
-      .getByRole('button', { name: 'Transferir quotas para a controladora', exact: true })
-      .first()
-      .click();
+    await page.getByRole('button', { name: 'Registrar movimento', exact: true }).first().click();
+    await pausa(1200);
+
+    const porta = page.getByRole('dialog');
+    const opcaoDaSubida = porta.getByRole('radio', {
+      name: /^Transferir quotas para a controladora/,
+    });
+    exigir(
+      await opcaoDaSubida.count(),
+      'A opção "Transferir quotas para a controladora" não apareceu na escolha do gesto.',
+      'O catálogo da proprietária tem dois gestos: o aumento por integralização e a subida.',
+    );
+    const motivoDoBloqueio = await porta.evaluate((d) => {
+      const limpo = (s) => (s || '').replace(/\s+/g, ' ').trim();
+      const rotulo = [...d.querySelectorAll('label')].find((l) =>
+        /^Transferir quotas para a controladora/.test(limpo(l.textContent)),
+      );
+      const linhas = [...(rotulo?.parentElement?.querySelectorAll('p') ?? [])].map((e) =>
+        limpo(e.textContent),
+      );
+      return linhas.length > 1 ? linhas[linhas.length - 1] : null;
+    });
+    exigir(
+      await opcaoDaSubida.isEnabled(),
+      `A opção da subida está indisponível: ${motivoDoBloqueio ?? 'sem motivo na tela'}`,
+      'As travas são o registro do ato constitutivo e o ingresso pendente. Confira o passo 4.',
+    );
+    await opcaoDaSubida.click();
+    await porta.getByRole('button', { name: 'Continuar', exact: true }).click();
     await pausa(1600);
 
     const modal = page.getByRole('dialog');

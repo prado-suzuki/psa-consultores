@@ -8,6 +8,7 @@ const pendencia = (over: Partial<PendenciaCliente> = {}): PendenciaCliente => ({
   grupo: 'pf',
   documento: 'CPF',
   nota: null,
+  modelo: null,
   granularidade: 'pessoa_pf',
   alvo: { kind: 'pessoa', id: 'p1', nome: 'João', detalhe: null },
   recebido: false,

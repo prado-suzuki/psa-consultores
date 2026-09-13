@@ -142,11 +142,15 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     // média, e o resto em `muted` — converteu inteira para `alerta`/`espera`/neutro,
     // pela escada de quatro degraus que ela aprovou olhando a página de comparação.
     //
-    // O `EquipeKanban` saiu no mesmo dia, e saiu de CARONA: a frente do `blue`
-    // (commit `07f4d74b`) trocou o `switch` de cor escrito à mão pelo
-    // `entregavelStatusColors`, e as duas ocorrências âmbar foram junto — elas
-    // eram o "Em Andamento" da mesma escada. É o caso que a mensagem desta
-    // catraca descreve: contagem que CAIU porque a conversão andou.
+    // O `EquipeKanban` saiu no mesmo dia, e saiu de CARONA: o amarelo era degrau
+    // do `getStatusBadgeColor` escrito à mão, e quem o matou foi a frente do
+    // `blue` (commit `07f4d74b`), trocando o `switch` inteiro por uma leitura do
+    // `entregavelStatusColors`. A escada fechou de uma vez, nas três cores.
+    //
+    // É o caso que a mensagem desta catraca descreve, e ele mordeu: a contagem
+    // CAIU sem ninguém baixar a fila, e a `develop` ficou com a catraca vermelha
+    // até a outra sessão apontar. Quem converte um MAPA reconfere todas as filas
+    // que citam aquele arquivo, não só a da família que foi buscar.
   },
   'outro-papel': {
     // O `StageEditCard` caiu de 3 para 1 em 11/09/2026, e o que sobrou é o mais
@@ -186,10 +190,13 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     'src/pages/equipe/dev/ConsultaEFD.tsx': 3,
   },
   'rotulo-nao-status': {
-    // O `UsersRolesView` e o `roleOptions` saíram em 11/09/2026 (commit
-    // `f0538b86`): os sete papéis viraram o `ui/PapelBadge`, e a cor deixou de
-    // desenhar hierarquia para marcar só o eixo "de fora da PSA". O âmbar do
-    // "Líder Geral" saiu junto porque o mapa inteiro andou.
+    // Os dois da pasta acessos saíram em 11/09/2026 (commit `f0538b86`): o âmbar
+    // do "Líder Geral" vivia nos mapas de papel — `ROLE_VISUALS` no
+    // `UsersRolesView` e `ROLE_BADGE_CLASSES` no `roleOptions` —, e os dois mapas
+    // morreram no `ui/PapelBadge`. É fim do âmbar, não mudança de motivo: a cor
+    // deixou de desenhar hierarquia e passou a marcar só o eixo "de fora da PSA".
+    // O grupo continua existindo, agora pela escada de peso que o `PapelBadge`
+    // desenha.
     'src/pages/administracao/AdminUsuarios.tsx': 2,
     'src/pages/equipe/EquipeUsuarios.tsx': 6,
   },

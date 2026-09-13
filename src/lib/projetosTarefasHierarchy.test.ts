@@ -120,6 +120,29 @@ describe('buildProjetosTarefasHierarchy', () => {
     expect(result[1].projects.map(node => node.project?.id ?? null)).toEqual(['project-sem-os', null]);
   });
 
+  it('ordena raízes, filhas e netas por título lendo número como número', () => {
+    // "4.10" antes de "4.2" era o defeito: `localeCompare` sem `numeric` compara
+    // "1" com "2" e para ali. Vale nos três níveis, cada um entre suas irmãs.
+    const result = buildProjetosTarefasHierarchy(
+      [project('project-1')],
+      [
+        task('r2', { title: '2. Cadastros fiscais' }),
+        task('r10', { title: '10. Encerramento' }),
+        task('r1', { title: '1. Refinamento' }),
+        task('f10', { title: '1.10 Décima', parent_task_id: 'r1' }),
+        task('f2', { title: '1.2 Segunda', parent_task_id: 'r1' }),
+        task('n10', { title: '1.2.10 Décima neta', parent_task_id: 'f2' }),
+        task('n1', { title: '1.2.1 Primeira neta', parent_task_id: 'f2' }),
+      ],
+      [os],
+    );
+
+    const raizes = result[0].projects[0].tasks;
+    expect(raizes.map(node => node.task.id)).toEqual(['r1', 'r2', 'r10']);
+    expect(raizes[0].children.map(node => node.task.id)).toEqual(['f2', 'f10']);
+    expect(raizes[0].children[0].children.map(node => node.task.id)).toEqual(['n1', 'n10']);
+  });
+
   it('agrega o esforço do projeto até a OS, contando concluídas sem horas', () => {
     const result = buildProjetosTarefasHierarchy(
       [project('project-1'), project('project-2')],

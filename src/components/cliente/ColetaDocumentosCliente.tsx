@@ -75,15 +75,22 @@ export function ColetaDocumentosCliente() {
        pessoa nem renomear arquivos, a PSA organiza depois. Pode enviar vários de uma vez e
        voltar quando quiser.`
     : status === 'encerrada'
-      ? `Este pedido foi encerrado. Os documentos que você enviou continuam aqui, disponíveis
-         para consulta e download. Se precisar enviar algo novo, fale com a PSA.`
-      : `A PSA ainda não enviou um pedido de documentos. Quando enviar, a relação aparece aqui
-         e o envio é liberado.`;
+      ? `Esta solicitação foi finalizada. Os documentos que você enviou continuam aqui,
+         disponíveis para consulta e download. Se precisar enviar algo novo, fale com a PSA.`
+      : `A PSA ainda não enviou uma solicitação de documentos. Quando enviar, a relação
+         aparece aqui e o envio é liberado.`;
 
-  /** A mesma razão, curta, para caber na gaveta trancada. */
+  /**
+   * A mesma razão, curta, para caber na gaveta trancada.
+   *
+   * "Solicitação" e não "pedido": é o termo que a tela do consultor usa do começo
+   * ao fim, e os dois lados falam da MESMA coisa — o cliente que liga citando "o
+   * pedido" obriga o consultor a traduzir. "Finalizada" e não "encerrada" pela
+   * mesma razão: é o que o botão do consultor diz desde 27/08/2026.
+   */
   const motivoBloqueio = status === 'encerrada'
-    ? 'Este pedido foi encerrado'
-    : 'Nenhum pedido de documentos aberto';
+    ? 'Esta solicitação foi finalizada'
+    : 'Nenhuma solicitação de documentos aberta';
 
   /**
    * Fase de CHECKLIST: outra tela, não outro modo desta.

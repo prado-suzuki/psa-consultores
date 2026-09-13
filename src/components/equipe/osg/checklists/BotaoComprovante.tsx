@@ -65,7 +65,12 @@ export function BotaoComprovante({ clienteId, clienteNome, solicitacao }: BotaoC
       });
     } catch (erro) {
       console.error('Falha ao emitir o comprovante de recebimento', erro);
-      toast.error('Não foi possível gerar o comprovante. Tente de novo.');
+      // Frase à mão e não `FECHO_SUPORTE`: o fecho compartilhado diz só "o
+      // suporte", e trocá-lo mexeria no cadastro de cliente e no PERDCOMP.
+      toast.error(
+        'Não foi possível gerar o comprovante. Tente novamente. Se o problema continuar, '
+        + 'entre em contato com o suporte da PSA Digital.',
+      );
     } finally {
       setEmitindo(false);
     }
@@ -73,7 +78,18 @@ export function BotaoComprovante({ clienteId, clienteNome, solicitacao }: BotaoC
 
   return (
     <div className="flex justify-end">
-      <Button variant="outline" onClick={emitir} disabled={emitindo}>
+      <Button
+        variant="outline"
+        onClick={emitir}
+        disabled={emitindo}
+        /* SINGULAR, e o tooltip diz por quê: é um documento só, consolidado, e o
+           número ao lado conta os ARQUIVOS que entram nele — não comprovantes.
+           A dúvida é da Patrícia (11/09/2026) e se resolve aqui, sem pluralizar
+           um botão que gera um PDF. */
+        title={`Gera um único PDF com a relação dos ${documentos.length} arquivos `
+          + 'recebidos nesta solicitação, com data e quem enviou cada um. '
+          + 'Não envia nada ao cliente.'}
+      >
         {emitindo
           ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           : <FileDown className="mr-2 h-4 w-4" />}

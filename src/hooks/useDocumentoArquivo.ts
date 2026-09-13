@@ -11,6 +11,7 @@ import type { Database } from '@/integrations/supabase/types';
 // Só o tipo: as chaves dos 4 grupos são definidas em agrupadorDocumentos, que é
 // a fonte única. O import é `type` dos dois lados, então o ciclo some no build.
 import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
+import type { ModeloDocumento } from '@/lib/solicitacao';
 import { computeFieldDiff } from '@/lib/diffUtils';
 
 /**
@@ -452,11 +453,31 @@ export function useRevisarDocumento() {
             : 'Revisão desfeita',
       });
     },
-    onError: (erro: unknown) => toast({
-      title: 'Não foi possível revisar',
-      description: (erro as Error).message,
-      variant: 'destructive',
-    }),
+    /**
+     * O erro CRU vai para o console, nunca para a tela.
+     *
+     * As duas recusas possíveis da RPC — papel abaixo de `team_member` e arquivo
+     * que não veio do cliente — a tela já impede antes do clique, então o que
+     * sobra aqui é defeito. Texto de PostgREST não diz nada ao consultor e nem
+     * sempre é seguro de exibir; sem o `console.error`, em compensação, o chamado
+     * chegaria sem nada para investigar. Mesmo desenho do commit `1ec00175`.
+     *
+     * Vale só para o checklist do OSG: `useRevisarDocumento` não tem outro
+     * consumidor. O resto deste arquivo ficou como estava.
+     */
+    onError: (erro: unknown, vars) => {
+      console.error('[revisar-documento] falha ao gravar veredito', {
+        documentoId: vars.documentoId, veredito: vars.veredito,
+      }, erro);
+      toast({
+        title: 'Não foi possível salvar a revisão',
+        // Frase à mão e não `FECHO_SUPORTE`: o fecho compartilhado diz só "o
+        // suporte", e trocá-lo mexeria no cadastro de cliente e no PERDCOMP.
+        description: 'O documento continua como estava para o cliente. Tente novamente. '
+          + 'Se o problema continuar, entre em contato com o suporte da PSA Digital.',
+        variant: 'destructive',
+      });
+    },
   });
 }
 
@@ -504,6 +525,14 @@ export interface SolicitacaoItemCliente {
   nota: string | null;
   entidade: string | null;
   ordem: number | null;
+  /**
+   * O modelo em branco que a PSA manda junto, quando existe (card 4).
+   *
+   * Chega montado pela RPC, com `bucket`, `path` e `nome` — e SÓ do catálogo,
+   * nunca do tipo avulso: o modelo é fixo para todos os clientes. Nulo é o caso
+   * comum, e é o que faz a tela não mostrar botão nenhum.
+   */
+  modelo: ModeloDocumento | null;
 }
 
 /** EDU-24: cabeçalho da solicitação enviada. Nulo quando não há pedido enviado. */

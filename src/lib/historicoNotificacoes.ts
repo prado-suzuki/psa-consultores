@@ -28,7 +28,68 @@ type Canal = Database['public']['Enums']['notificacao_canal'];
 export type EnvioParaHistorico = Pick<
   LinhaEnvio,
   'tipo' | 'canal' | 'status' | 'enviado_em' | 'entregue_em' | 'lido_em'
+  | 'destinatario_email' | 'destinatario_telefone'
 >;
+
+/**
+ * Para onde um disparo foi, do jeito que ficou GRAVADO.
+ *
+ * O nome NÃO entra aqui, e a ausência é deliberada. `notificacao_envio` guarda
+ * e-mail e telefone, mas não o nome — `destinatario_id` vem nulo em aviso de
+ * cliente. Resolver o nome pelo cadastro atual, na hora de ler, produz mentira
+ * assim que alguém renomeia ou remove um representante: em 09/09/2026 um
+ * representante deste módulo foi renomeado e outro foi removido no mesmo dia, e
+ * as linhas de histórico anteriores passariam a exibir gente que não recebeu
+ * nada.
+ *
+ * Quem quiser mostrar nome resolve na tela, ao lado do contato e nunca no lugar
+ * dele: o contato é o que aconteceu, o nome é o palpite de hoje.
+ */
+export interface DestinoDoDisparo {
+  email: string | null;
+  telefone: string | null;
+  /**
+   * Quando cada canal saiu para ESTE destino.
+   *
+   * O `porCanal` do disparo inteiro não serve para decidir bloqueio desde que o
+   * analista escolhe destinatário (10/09/2026): "e-mail já saiu hoje" pode ser
+   * verdade para a Ana e falso para o Bruno, e travar o canal inteiro por causa
+   * dela impediria justamente o envio que a escolha existe para permitir.
+   *
+   * A granularidade aqui é a MESMA da chave de idempotência da borda
+   * (`tipo:solicitacao:id:canal:destino:dia`), de propósito: o que a tela mostra
+   * como bloqueado é exatamente o que o banco vai recusar.
+   */
+  porCanal: Partial<Record<Canal, string>>;
+}
+
+/** Identidade de um destino, para não repetir a mesma pessoa por causa do canal. */
+const chaveDoDestino = (d: DestinoDoDisparo) => `${d.email ?? ''}|${d.telefone ?? ''}`;
+
+/**
+ * Contato → nome, para o histórico poder anotar quem era.
+ *
+ * Indexa por e-mail E por telefone porque a linha gravada pode ter só um dos dois,
+ * e porque o mesmo representante costuma aparecer pelos dois canais.
+ *
+ * O tipo de entrada é estrutural de propósito: a lib do histórico não deve saber
+ * que existe um hook de destinatários.
+ */
+export function nomePorContato(
+  destinatarios: readonly { nome: string; email: string | null; telefone: string | null }[],
+): Map<string, string> {
+  const mapa = new Map<string, string>();
+  for (const d of destinatarios) {
+    const nome = d.nome?.trim();
+    if (!nome) continue;
+    // O primeiro vence: dois representantes no mesmo contato existe — era o caso
+    // deste módulo até 09/09 —, qualquer escolha ali é arbitrária, e alternar o
+    // nome a cada render seria pior que escolher um e ficar com ele.
+    if (d.email && !mapa.has(d.email)) mapa.set(d.email, nome);
+    if (d.telefone && !mapa.has(d.telefone)) mapa.set(d.telefone, nome);
+  }
+  return mapa;
+}
 
 /** Um clique do analista, ou um disparo automático, como o painel exibe. */
 export interface DisparoHistorico {
@@ -50,6 +111,15 @@ export interface DisparoHistorico {
    * "e-mail já enviado às 09:15" na caixa do e-mail, e nada na do WhatsApp.
    */
   porCanal: Partial<Record<Canal, string>>;
+  /**
+   * Para quem foi, sem repetir a pessoa por causa do canal.
+   *
+   * Um clique com dois canais produz duas linhas para o MESMO destinatário, e a
+   * borda preenche e-mail e telefone nas duas. Sem deduplicar, o painel listaria
+   * o mesmo contato duas vezes e o analista leria dois destinatários onde há um
+   * — que é exatamente o engano que a contagem do modal já cometia.
+   */
+  destinos: DestinoDoDisparo[];
   /** Quantas linhas o disparo produziu — destinatários vezes canais. */
   linhas: number;
 }
@@ -109,6 +179,36 @@ export function montarHistorico(
   linhas: readonly EnvioParaHistorico[],
 ): DisparoHistorico[] {
   const grupos = new Map<string, DisparoHistorico>();
+  // Destinos já vistos, por grupo. Fora do `DisparoHistorico` porque é andaime da
+  // montagem, não coisa que o painel precise ler.
+  const vistos = new Map<string, Map<string, DestinoDoDisparo>>();
+
+  const acumularDestino = (chave: string, linha: EnvioParaHistorico, quando: string) => {
+    const destino: DestinoDoDisparo = {
+      email: linha.destinatario_email?.trim() || null,
+      telefone: linha.destinatario_telefone?.trim() || null,
+      porCanal: { [linha.canal]: quando },
+    };
+    // Linha sem contato nenhum não é destino: seria uma entrada em branco na lista.
+    if (!destino.email && !destino.telefone) return;
+
+    const jaVistos = vistos.get(chave) ?? new Map<string, DestinoDoDisparo>();
+    vistos.set(chave, jaVistos);
+    const id = chaveDoDestino(destino);
+
+    // Repetido é o MESMO destino por outro canal, e a segunda linha não se
+    // descarta: é ela que carrega o horário daquele canal. Antes bastava ignorar,
+    // porque só interessava listar a pessoa uma vez.
+    const anterior = jaVistos.get(id);
+    if (anterior) {
+      const jaTinha = anterior.porCanal[linha.canal];
+      if (!jaTinha || quando < jaTinha) anterior.porCanal[linha.canal] = quando;
+      return;
+    }
+
+    jaVistos.set(id, destino);
+    grupos.get(chave)?.destinos.push(destino);
+  };
 
   for (const linha of linhas) {
     if (!chegouAoCliente(linha)) continue;
@@ -122,12 +222,15 @@ export function montarHistorico(
     if (!grupo) {
       grupos.set(chave, {
         chave, dia, tipo: linha.tipo, quando,
-        canais: [linha.canal], porCanal: { [linha.canal]: quando }, linhas: 1,
+        canais: [linha.canal], porCanal: { [linha.canal]: quando },
+        destinos: [], linhas: 1,
       });
+      acumularDestino(chave, linha, quando);
       continue;
     }
 
     grupo.linhas += 1;
+    acumularDestino(chave, linha, quando);
     const anterior = grupo.porCanal[linha.canal];
     if (!anterior || quando < anterior) grupo.porCanal[linha.canal] = quando;
     // O instante do disparo é o do PRIMEIRO envio do grupo: os outros saíram em
@@ -172,6 +275,35 @@ export function canaisEnviadosHoje(
   agora: Date | string = new Date(),
 ): Partial<Record<Canal, string>> {
   return disparoDeHoje(historico, tipo, agora)?.porCanal ?? {};
+}
+
+/**
+ * Os dois canais que alcançam o cliente. `sino` é interno e não entra em aviso.
+ *
+ * Mora aqui, e não na tela, porque é o histórico que sabe o que é canal de
+ * cliente — a tela só desenha o que esta camada admite.
+ */
+export type CanalAviso = 'email' | 'whatsapp';
+
+/**
+ * Quando ESTE contato recebeu ESTE aviso hoje por ESTE canal. `undefined` = não recebeu.
+ *
+ * Casa com a chave de idempotência da borda, que é por destino e por canal: quem
+ * já recebeu está travado, quem não recebeu continua livre no mesmo dia. Antes de
+ * o analista poder escolher destinatário, a pergunta só existia por canal.
+ *
+ * O casamento é pelo CONTATO e não pelo `user_id`, porque contato é o que fica
+ * gravado em `notificacao_envio` e é o que a chave usa. Dois representantes com o
+ * mesmo e-mail travam juntos — e travam mesmo, porque a borda recusaria o segundo.
+ */
+export function envioDeHojePara(
+  jaHoje: DisparoHistorico | null,
+  canal: CanalAviso,
+  contato: string | null,
+): string | undefined {
+  if (!jaHoje || !contato) return undefined;
+  const campo = canal === 'email' ? 'email' : 'telefone';
+  return jaHoje.destinos.find((d) => d[campo] === contato)?.porCanal[canal];
 }
 
 /** Rótulo do aviso para o painel. Os nomes de enum não servem para leitura. */
@@ -222,6 +354,11 @@ export function diaSeguinte(dia: string): string {
   if (Number.isNaN(d.getTime())) return '';
   d.setUTCDate(d.getUTCDate() + 1);
   return d.toISOString().slice(0, 10);
+}
+
+/** Só o `14:32` de `17/08/2026 às 14:32`. Para onde o dia já está dito ao lado. */
+export function soAHora(iso: string): string {
+  return formatarQuando(iso).split(' às ')[1] ?? '';
 }
 
 /** `17/08/2026 às 14:32`, no fuso da casa. */

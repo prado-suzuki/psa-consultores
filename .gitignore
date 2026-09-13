@@ -32,6 +32,10 @@ dist-ssr
 # Definições locais de agentes (não commitar)
 .pi/
 
+# Mesma coisa, para os outros CLIs de agente
+.agents/
+.codex/
+
 # Lovale attachments
 .lovale-attachments/
 

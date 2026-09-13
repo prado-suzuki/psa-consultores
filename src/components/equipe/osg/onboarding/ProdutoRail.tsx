@@ -53,15 +53,20 @@ export function ProdutoRail({
         onClick={() => onSelecionar(FILTRO_TODOS)}
         className={railItemCls(selecionado === FILTRO_TODOS, true)}
       >
-        <span className="flex items-center justify-between gap-2">
-          <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-osg-700">
-            <Layers3 className="h-4 w-4 shrink-0 text-osg-moss" />
-            <span className="truncate">Lista de solicitação consolidada</span>
+        {/* O nome QUEBRA em vez de cortar. Com `truncate` ele aparecia como
+            "Lista de solicitação cons…", que não diz o que a entrada é — e é
+            justamente a entrada que mostra a solicitação inteira. `items-start`
+            acompanha: com o título em duas linhas, alinhar pelo centro jogaria o
+            contador para o meio da segunda. */}
+        <span className="flex items-start justify-between gap-2">
+          <span className="flex min-w-0 items-start gap-2 text-sm font-semibold text-osg-700">
+            <Layers3 className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss" />
+            <span className="leading-snug">Lista de documentos solicitados</span>
           </span>
-          <span className={counterPillCls}>{total}</span>
+          <span className={`${counterPillCls} shrink-0`}>{total}</span>
         </span>
         <span className="mt-1 block pl-6 text-xs leading-relaxed text-muted-foreground">
-          Tudo que foi pedido, incluindo o que foi criado à mão
+          Todos os documentos solicitados, incluindo os adicionados manualmente
         </span>
       </button>
 
@@ -89,8 +94,8 @@ export function ProdutoRail({
 
       {umDocumentoEmMaisDeUmProduto && (
         <p className="mt-3 border-t border-osg-100 px-2.5 pt-2.5 text-[11px] leading-relaxed text-muted-foreground">
-          Um documento pode ser pedido por mais de um produto — por isso a soma dos
-          contadores passa do total.
+          Um mesmo documento pode ser solicitado para mais de um produto. Por isso, a soma
+          dos documentos por produto pode ser maior que o total de documentos da solicitação.
         </p>
       )}
     </aside>

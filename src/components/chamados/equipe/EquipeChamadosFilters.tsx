@@ -4,6 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CLUSTER_SEM_VINCULO } from '@/lib/equipeChamados';
 import type { EquipeChamadosFilters as Filters } from '@/lib/equipeChamados';
 import { departamentoOptions } from '@/lib/chamadosDepartamentos';
 
@@ -18,18 +19,9 @@ interface EquipeChamadosFiltersProps {
   filteredCount: number;
   totalCount: number;
   onReset: () => void;
-  /**
-   * Trava o filtro de Cluster quando a tela está ESPELHADA (`?area=`).
-   *
-   * Sem isto a regra "cor e conteúdo andam juntos" cai no primeiro clique: a
-   * tela abre musgo com a lista da OSG e o usuário troca o cluster para TAX à
-   * mão — musgo mostrando TAX. O espelho define o escopo; dentro dele o
-   * usuário filtra o que quiser, menos o escopo.
-   */
-  clusterTravado?: boolean;
 }
 
-export function EquipeChamadosFilters({ filters, onFiltersChange, mostrarUrgentes, onMostrarUrgentesChange, areas, clusters, filteredCount, totalCount, onReset, clusterTravado = false }: EquipeChamadosFiltersProps) {
+export function EquipeChamadosFilters({ filters, onFiltersChange, mostrarUrgentes, onMostrarUrgentesChange, areas, clusters, filteredCount, totalCount, onReset }: EquipeChamadosFiltersProps) {
   const update = (field: keyof Filters, value: string) => onFiltersChange({ ...filters, [field]: value });
   return (
     <Card className="mb-6">
@@ -51,11 +43,17 @@ export function EquipeChamadosFilters({ filters, onFiltersChange, mostrarUrgente
           <FilterSelect label="Área" value={filters.area} onChange={(value) => update('area', value)} options={[
             ['todos', 'Todas Áreas'], ...areas.map((area) => [area.id, area.name] as [string, string]),
           ]} />
+          {/* Sempre aberto, inclusive na tela espelhada (`?area=`): o espelho dá
+              o valor INICIAL do filtro, não uma prisão. Quem precisa achar o
+              chamado que nasceu sem cluster tem de poder sair do cluster da
+              tela — e "Sem cluster" é o único jeito de isolar esses. Cartões e
+              denominador acompanham a escolha (ver `ticketsDoEscopo`), então a
+              tela nunca afirma um escopo que a lista não tem. */}
           <FilterSelect label="Cluster" value={filters.cluster} onChange={(value) => update('cluster', value)}
-            disabled={clusterTravado}
-            ajuda={clusterTravado ? 'Definido pelo ambiente desta tela' : undefined}
             options={[
-              ['todos', 'Todos'], ...clusters.map((cluster) => [cluster.id, cluster.name] as [string, string]),
+              ['todos', 'Todos'],
+              ...clusters.map((cluster) => [cluster.id, cluster.name] as [string, string]),
+              [CLUSTER_SEM_VINCULO, 'Sem cluster'],
             ]} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -77,17 +75,16 @@ export function EquipeChamadosFilters({ filters, onFiltersChange, mostrarUrgente
 
 interface FilterSelectProps {
   label: string; value: string; onChange: (value: string) => void;
-  options: [string, string][]; disabled?: boolean; ajuda?: string;
+  options: [string, string][];
 }
-function FilterSelect({ label, value, onChange, options, disabled = false, ajuda }: FilterSelectProps) {
+function FilterSelect({ label, value, onChange, options }: FilterSelectProps) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <Select value={value} onValueChange={onChange} disabled={disabled}>
+      <Select value={value} onValueChange={onChange}>
         <SelectTrigger><SelectValue /></SelectTrigger>
         <SelectContent>{options.map(([optionValue, text]) => <SelectItem key={optionValue} value={optionValue}>{text}</SelectItem>)}</SelectContent>
       </Select>
-      {ajuda ? <p className="text-xs text-muted-foreground">{ajuda}</p> : null}
     </div>
   );
 }

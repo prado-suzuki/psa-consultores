@@ -19,7 +19,11 @@
 
 import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
 import { GRUPOS_DOCUMENTO } from '@/lib/agrupadorDocumentos';
-import { normalizarNomeDocumento, type Granularidade } from '@/lib/solicitacao';
+import {
+  normalizarNomeDocumento,
+  type Granularidade,
+  type ModeloDocumento,
+} from '@/lib/solicitacao';
 
 export interface OnboardingDocument {
   id: string;
@@ -32,6 +36,14 @@ export interface OnboardingDocument {
   grupo: GrupoDocumentoKey;
   /** O grão: por qual coisa o documento se repete. */
   granularidade: Granularidade;
+  /**
+   * A planilha em branco que a PSA manda junto, quando existe.
+   *
+   * Opcional, e não `| null`, porque o item manual nunca tem: só o catálogo
+   * carrega modelo, e o tipo avulso que nasce de um pedido à mão é de um cliente
+   * só, enquanto o modelo é material genérico da PSA.
+   */
+  modelo?: ModeloDocumento | null;
 }
 
 /**

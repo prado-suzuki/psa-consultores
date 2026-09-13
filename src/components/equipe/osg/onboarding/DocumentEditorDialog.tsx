@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,10 +15,12 @@ import {
 } from '@/components/equipe/osg/OsgDialog';
 import { fieldCls, labelCls, textareaCls } from '@/components/equipe/osg/formKit';
 import { RequiredMark } from '@/components/ui/required-mark';
+import { BotaoModelo } from '@/components/shared/BotaoModelo';
 import { GRUPOS_DOCUMENTO, type GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
 import {
   GRAOS_DE_BENS_IMOVEIS,
   graoSugeridoParaGrupo,
+  modeloDoCatalogo,
   ROTULO_GRANULARIDADE,
   type CatalogoDocumento,
   type Granularidade,
@@ -201,6 +204,23 @@ export function DocumentEditorDialog({
     });
   };
 
+  /**
+   * O modelo do documento em edição — leitura, nunca escrita.
+   *
+   * No modo editar sai do item, que já herdou do catálogo. No modo adicionar sai
+   * do tipo escolhido na lista, para o analista conferir o formulário ANTES de
+   * incluir o documento no pedido.
+   *
+   * Não há campo para trocar nem para remover, e isso é a regra e não uma
+   * lacuna: o modelo é do CATÁLOGO e vale para todos os clientes ao mesmo tempo.
+   * Um controle aqui sugeriria que dá para ajustar o arquivo neste pedido — e
+   * quem mexesse mexeria em todos.
+   */
+  const modelo = useMemo(() => {
+    if (mode === 'edit') return item?.modelo ?? null;
+    return modeloDoCatalogo(catalogo.find((documento) => documento.id === value.catalogId));
+  }, [catalogo, item, mode, value.catalogId]);
+
   const ehNovo = escolha === NOVO_DOCUMENTO;
   /**
    * O nome é obrigatório quando é o único texto que existe: documento novo, ou
@@ -225,7 +245,9 @@ export function DocumentEditorDialog({
           <DialogDescription>
             {mode === 'add'
               ? 'Escolha um documento do catálogo ou crie um novo. Vale apenas para esta solicitação.'
-              : 'Ajuste o pedido deste documento. Vale apenas para esta solicitação.'}
+              // "o que está sendo solicitado", e não "o pedido": último resquício
+              // do termo que a régua da Patrícia aposentou (10/09/2026).
+              : 'Ajuste o que está sendo solicitado neste documento. Vale apenas para esta solicitação.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -313,6 +335,22 @@ export function DocumentEditorDialog({
               className={`min-h-[60px] ${textareaCls}`}
             />
           </Field>
+
+          {modelo && (
+            <Field label="Modelo que vai junto do pedido">
+              <div className="flex items-center gap-3 rounded-lg border border-osg-200/70 bg-osg-50/40 px-3 py-2">
+                <FileSpreadsheet className="h-4 w-4 shrink-0 text-osg-500/70" />
+                <span className="min-w-0 flex-1 truncate text-sm text-foreground" title={modelo.nome}>
+                  {modelo.nome}
+                </span>
+                <BotaoModelo modelo={modelo} tom="osg" />
+              </div>
+              <p className="px-1 pt-1.5 text-xs leading-relaxed text-muted-foreground">
+                Este arquivo é do catálogo e o cliente o baixa junto do pedido. Ele é o mesmo
+                para todos os clientes, então não se troca nem se remove por aqui.
+              </p>
+            </Field>
+          )}
 
           {mode === 'edit' && item?.doCatalogo && (
             <p className="px-1 text-xs leading-relaxed text-muted-foreground">

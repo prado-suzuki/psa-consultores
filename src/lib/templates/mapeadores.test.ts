@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { conferirSomasDoUsufruto, type LinhaDoUsufruto, type TotaisDoUsufruto } from '@/lib/osg/usufrutoDoAto';
 import {
   calcularCapitalSociedade,
   calcularParticipacoesPR,
@@ -9,6 +10,9 @@ import {
   causaDaRequalificacaoVigente,
   vocabularioDaRequalificacao,
   mapearIntegralizacoes,
+  mapearEstadoDosOnus,
+  mapearListasDaDoacao,
+  mapearUsufrutosInstituidos,
   matriculasDescritasNasIntegralizacoes,
   mapearMatricula,
   mapearPartesSelecionadas,
@@ -85,6 +89,164 @@ describe('identidade persistida nos mapeadores', () => {
     expect(mapearSociedade(pessoa).id).toBeUndefined();
     expect((mapearPartesSelecionadas([{ id: pessoa.id, campos: mapearPessoa(pessoa) }])[0].parte as Campos).id)
       .toBeUndefined();
+  });
+});
+
+describe('listas da doação com reserva de usufruto', () => {
+  const doador = { id: 'doador', denominacao: 'Doador', tipo_pessoa: 'PF' } as PessoaRow;
+  const donatario = { id: 'donatario', denominacao: 'Donatário', tipo_pessoa: 'PF' } as PessoaRow;
+  const pessoas = new Map([[doador.id, doador], [donatario.id, donatario]]);
+  const pessoaPorId = (id: string) => pessoas.get(id);
+  const doacao = {
+    id: 'mov-doacao', cedente: doador, cessionario: donatario,
+    quotas: 101, valor: 101, doacao: true, quotasLegitima: 51,
+    quotasDisponivel: 50, instrumentoData: '2026-09-10',
+  };
+  const onus = {
+    movimentoId: 'mov-doacao', nuProprietarioId: donatario.id,
+    usufrutuarioIds: [doador.id], usufrutoOrigem: 'reserva' as const, comVoto: true,
+    quotas: 101, gravames: ['inalienabilidade' as const, 'impenhorabilidade' as const],
+  };
+  const quadro = [{ pessoa: donatario, quotas: 101, vlr_total: 101, representante: null }];
+
+  it('o ato publica os pares, a reserva e os gravames que ele cria', () => {
+    const listas = mapearListasDaDoacao([doacao], [onus], pessoaPorId);
+
+    expect(listas.doacoes[0].doacao).toMatchObject({
+      quotas: '101', quotasLegitima: '51', quotasDisponivel: '50',
+      instrumentoData: '10/09/2.026',
+    });
+    expect(listas.usufrutos[0]).toMatchObject({ comVoto: true, usufruto: { quotas: '101', usufrutuarioNomes: 'Doador' } });
+    expect(listas.gravamesQuotas[0].gravame).toMatchObject({
+      nomes: 'INALIENABILIDADE, IMPENHORABILIDADE',
+    });
+  });
+
+  it('o estado publica o quadro de voto com o usufrutuário que se retirou', () => {
+    const estado = mapearEstadoDosOnus([onus], quadro, pessoaPorId, 101);
+
+    expect(estado.quadroUsufruto.map((i) => ({
+      nome: (i.titular as Campos).nome,
+      nua: (i.usufruto as Campos).nua,
+      voto: (i.usufruto as Campos).vozEVoto,
+    }))).toEqual([
+      { nome: 'Donatário', nua: '101', voto: '0' },
+      { nome: 'Doador', nua: '0', voto: '101' },
+    ]);
+    expect(estado.gravamesVigentes[0].gravame).toMatchObject({
+      quotas: '101', nomes: 'INALIENABILIDADE, IMPENHORABILIDADE',
+    });
+    expect(estado.problemas).toEqual([]);
+  });
+
+  it('gravame de ato anterior continua vigente mesmo sem doação nesta peça', () => {
+    const semAto = mapearListasDaDoacao([], [onus], pessoaPorId);
+    expect(semAto.doacoes).toEqual([]);
+    expect(semAto.gravamesQuotas).toEqual([]);
+
+    const estado = mapearEstadoDosOnus([onus], quadro, pessoaPorId, 101);
+    expect(estado.gravamesVigentes).toHaveLength(1);
+    expect(estado.quadroUsufruto).toHaveLength(2);
+  });
+
+  it('sem ônus não há tabela de voto nem nota de gravame, e o bloco cai por lista vazia', () => {
+    const estado = mapearEstadoDosOnus([], quadro, pessoaPorId, 101);
+    expect(estado).toEqual({ quadroUsufruto: [], gravamesVigentes: [], problemas: [] });
+  });
+
+  it('capital declarado maior que o quadro acusa quem ficou de fora da tabela', () => {
+    const estado = mapearEstadoDosOnus([onus], quadro, pessoaPorId, 200);
+    expect(estado.problemas.join(' | ')).toContain('Alguém do quadro ficou de fora');
+    // A tabela continua saindo: a pendência avisa, não trava a prévia.
+    expect(estado.quadroUsufruto).toHaveLength(2);
+  });
+});
+
+describe('usufruto instituído, que não é o reservado', () => {
+  const pai = { id: 'pai', denominacao: 'João', tipo_pessoa: 'PF' } as PessoaRow;
+  const mae = { id: 'mae', denominacao: 'Maria', tipo_pessoa: 'PF' } as PessoaRow;
+  const filha = { id: 'filha', denominacao: 'Ana', tipo_pessoa: 'PF' } as PessoaRow;
+  const pessoas = new Map([[pai.id, pai], [mae.id, mae], [filha.id, filha]]);
+
+  it('nomeia quem concede, quem usufrui e se o voto acompanha', () => {
+    const itens = mapearUsufrutosInstituidos([{
+      movimentoId: null, nuProprietarioId: filha.id, usufrutuarioIds: [pai.id, mae.id],
+      usufrutoOrigem: 'instituicao', comVoto: true, quotas: 4_874_552, gravames: [],
+    }], (id) => pessoas.get(id));
+
+    expect(itens).toHaveLength(1);
+    expect(itens[0]).toMatchObject({ comVoto: true, semVoto: false });
+    expect(itens[0].nuProprietario).toMatchObject({ nome: 'Ana' });
+    expect(itens[0].usufruto).toMatchObject({
+      quotas: '4.874.552', usufrutuarioNomes: 'João e Maria', ordemRomana: 'i',
+    });
+  });
+
+  it('sem voto, a seção que o instrumento usa é a outra', () => {
+    const [item] = mapearUsufrutosInstituidos([{
+      movimentoId: null, nuProprietarioId: filha.id, usufrutuarioIds: [pai.id],
+      usufrutoOrigem: 'instituicao', comVoto: false, quotas: 100, gravames: [],
+    }], (id) => pessoas.get(id));
+    expect(item).toMatchObject({ comVoto: false, semVoto: true });
+  });
+
+  it('ônus sem usufrutuário (só gravame) não é instituição e fica de fora', () => {
+    expect(mapearUsufrutosInstituidos([{
+      movimentoId: null, nuProprietarioId: filha.id, usufrutuarioIds: [],
+      usufrutoOrigem: null, comVoto: true, quotas: 100, gravames: ['inalienabilidade'],
+    }], (id) => pessoas.get(id))).toEqual([]);
+  });
+});
+
+describe('conferirSomasDoUsufruto', () => {
+  const linha = (over: Partial<LinhaDoUsufruto>): LinhaDoUsufruto => ({
+    pessoaId: 'p', nome: 'Pessoa', quotas: 100n, plena: 100n, nua: 0n, usufruto: 0n,
+    nuaDeReserva: 0n, nuaDeInstituicao: 0n, vozEVoto: 100n,
+    pctParticipacao: '100.0000', pctVozEVoto: '100.0000', concedePara: [],
+    ...over,
+  });
+  const totais = (over: Partial<TotaisDoUsufruto>): TotaisDoUsufruto => ({
+    quotas: 100n, plena: 100n, nua: 0n, usufruto: 0n, vozEVoto: 100n,
+    pctParticipacao: '100.0000', pctVozEVoto: '100.0000',
+    ...over,
+  });
+
+  it('tabela que fecha nas três somas não acusa nada', () => {
+    expect(conferirSomasDoUsufruto([linha({})], totais({}), 100n)).toEqual([]);
+  });
+
+  it('lista vazia não é erro: é sociedade sem usufruto', () => {
+    expect(conferirSomasDoUsufruto([], totais({ quotas: 0n, plena: 0n, vozEVoto: 0n }), 100n)).toEqual([]);
+  });
+
+  it('quadro que não cobre o capital', () => {
+    const codigos = conferirSomasDoUsufruto(
+      [linha({ quotas: 60n, plena: 60n, vozEVoto: 60n })],
+      totais({ quotas: 60n, plena: 60n, vozEVoto: 60n }),
+      100n,
+    ).map((p) => p.codigo);
+    expect(codigos).toContain('quadro-nao-cobre-o-capital');
+    expect(codigos).toContain('voto-nao-fecha-o-capital');
+  });
+
+  it('plena mais nua diferente das quotas da linha', () => {
+    // Concedeu 120 tendo 100: montarUsufruto apara a plena em zero e a
+    // diferença sumiria sem esta soma.
+    const problemas = conferirSomasDoUsufruto(
+      [linha({ nua: 120n, plena: 0n, vozEVoto: 0n })],
+      totais({ nua: 120n, plena: 0n, vozEVoto: 0n }),
+      100n,
+    );
+    expect(problemas.map((p) => p.codigo)).toContain('plena-mais-nua-nao-fecha');
+    expect(problemas[0].mensagem).toContain('Pessoa');
+  });
+
+  it('voto contado duas vezes no casal usufrutuário', () => {
+    expect(conferirSomasDoUsufruto(
+      [linha({})],
+      totais({ vozEVoto: 151n }),
+      100n,
+    ).map((p) => p.codigo)).toEqual(['voto-nao-fecha-o-capital']);
   });
 });
 

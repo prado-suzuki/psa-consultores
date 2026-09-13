@@ -40,6 +40,39 @@ export interface PrazoInfo {
 
 export { departmentLabels } from '@/lib/chamadosDepartamentos';
 
+/**
+ * O valor do filtro de Cluster que pede os chamados SEM cluster.
+ *
+ * Não é um cluster: é a ausência dele. Existe porque chamado sem cluster não
+ * casa com nenhuma opção da lista, e sem esta opção ele só aparecia em "Todos",
+ * misturado — não havia como isolar os que precisam de roteamento. Ver
+ * `combinaComCluster`.
+ */
+export const CLUSTER_SEM_VINCULO = 'sem-cluster';
+
+/** Mesma ideia no filtro de Responsável: pedir os que ainda não têm dono. */
+export const RESPONSAVEL_SEM_ATRIBUICAO = 'sem-responsavel';
+
+/** Regra única do filtro de cluster — a tela da equipe e a da gestão usam esta. */
+export function combinaComCluster(
+  ticket: Pick<TicketListItem, 'cluster_id'>,
+  cluster: string,
+) {
+  if (cluster === 'todos') return true;
+  if (cluster === CLUSTER_SEM_VINCULO) return !ticket.cluster_id;
+  return ticket.cluster_id === cluster;
+}
+
+/** Regra única do filtro de responsável. */
+export function combinaComResponsavel(
+  ticket: Pick<TicketListItem, 'assigned_to'>,
+  responsavel: string,
+) {
+  if (responsavel === 'todos') return true;
+  if (responsavel === RESPONSAVEL_SEM_ATRIBUICAO) return !ticket.assigned_to;
+  return ticket.assigned_to === responsavel;
+}
+
 export function createEquipeChamadosFilters(defaultCluster: string): EquipeChamadosFilters {
   return {
     periodo: 'todas',
@@ -143,8 +176,7 @@ export function filterAndSortTickets(
     filtered = filtered.filter((ticket) => ticket.department === filters.departamento);
   if (filters.area !== 'todos')
     filtered = filtered.filter((ticket) => ticket.estrutura_area_id === filters.area);
-  if (filters.cluster !== 'todos')
-    filtered = filtered.filter((ticket) => ticket.cluster_id === filters.cluster);
+  filtered = filtered.filter((ticket) => combinaComCluster(ticket, filters.cluster));
   if (filters.searchId) {
     const searchId = filters.searchId.toLowerCase();
     filtered = filtered.filter((ticket) => ticket.id.toLowerCase().includes(searchId));

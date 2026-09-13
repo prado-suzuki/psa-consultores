@@ -15,6 +15,7 @@ import { useConstitutivosRegistrados } from '@/hooks/useDocumentoGerado';
 import { avaliarTravaDaSubida } from '@/lib/osg/travaDaSubida';
 import type { TravaDoIngresso } from '@/lib/osg/travaDoIngresso';
 import { planejarSubidaDeQuotas, type SocioQueSobe } from '@/lib/osg/subidaDeQuotas';
+import { AjudaSocietaria } from './AjudaSocietaria';
 import { fmtBRL, fmtInt } from './quadroFmt';
 
 // O MACRO da subida das quotas: os sócios da Proprietária passam as quotas dela
@@ -136,9 +137,13 @@ export const SubirQuotasDialog = ({
     <Dialog open={open} onOpenChange={fechar}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex flex-wrap items-center gap-2">
             <ArrowUpFromLine className="h-4 w-4 text-osg-moss" />
             Transferir quotas para a controladora
+            <AjudaSocietaria
+              chave="subidaDeQuotas"
+              rotulo="transferência de quotas para a controladora"
+            />
           </DialogTitle>
           <DialogDescription>
             Os sócios de <span className="font-medium text-foreground">{proprietaria.denominacao}</span>{' '}

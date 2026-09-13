@@ -30,6 +30,9 @@ const catalogo = (overrides: Partial<CatalogoDocumento> = {}): CatalogoDocumento
   grupo: 'pf',
   ordem: 10,
   confidencial: false,
+  modelo_bucket: null,
+  modelo_path: null,
+  modelo_nome: null,
   ...overrides,
 });
 

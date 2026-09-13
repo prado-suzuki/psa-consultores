@@ -165,7 +165,6 @@ Deno.serve(async (req) => {
     }
 
     // Executar sync em background usando o token do usuário
-    // @ts-expect-error - EdgeRuntime é disponível em runtime no Deno Deploy
     const edgeRuntime = (globalThis as any).EdgeRuntime;
     if (edgeRuntime?.waitUntil) {
       edgeRuntime.waitUntil(syncWithDW(body, userToken));

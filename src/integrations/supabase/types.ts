@@ -2847,6 +2847,9 @@ export type Database = {
           granularidade: string
           grupo: Database["public"]["Enums"]["osg_doc_grupo"]
           id: string
+          modelo_bucket: string | null
+          modelo_nome: string | null
+          modelo_path: string | null
           modulo: string
           nota: string | null
           obrigatorio_default: boolean
@@ -2869,6 +2872,9 @@ export type Database = {
           granularidade?: string
           grupo: Database["public"]["Enums"]["osg_doc_grupo"]
           id?: string
+          modelo_bucket?: string | null
+          modelo_nome?: string | null
+          modelo_path?: string | null
           modulo: string
           nota?: string | null
           obrigatorio_default?: boolean
@@ -2891,6 +2897,9 @@ export type Database = {
           granularidade?: string
           grupo?: Database["public"]["Enums"]["osg_doc_grupo"]
           id?: string
+          modelo_bucket?: string | null
+          modelo_nome?: string | null
+          modelo_path?: string | null
           modulo?: string
           nota?: string | null
           obrigatorio_default?: boolean
@@ -5441,6 +5450,7 @@ export type Database = {
           documento_gerado_id: string | null
           empresa_pessoa_id: string
           id: string
+          instrumento_data: string | null
           origem_pessoa_id: string | null
           pago_com_empresa_pessoa_id: string | null
           pago_com_quotas: number | null
@@ -5449,6 +5459,8 @@ export type Database = {
           pct_vlr_contabil: number | null
           pct_vlr_mercado: number | null
           quotas: number
+          quotas_disponivel: number | null
+          quotas_legitima: number | null
           reserva_capital: number | null
           sequencia: number | null
           tipo: string
@@ -5469,6 +5481,7 @@ export type Database = {
           documento_gerado_id?: string | null
           empresa_pessoa_id: string
           id?: string
+          instrumento_data?: string | null
           origem_pessoa_id?: string | null
           pago_com_empresa_pessoa_id?: string | null
           pago_com_quotas?: number | null
@@ -5477,6 +5490,8 @@ export type Database = {
           pct_vlr_contabil?: number | null
           pct_vlr_mercado?: number | null
           quotas: number
+          quotas_disponivel?: number | null
+          quotas_legitima?: number | null
           reserva_capital?: number | null
           sequencia?: number | null
           tipo: string
@@ -5497,6 +5512,7 @@ export type Database = {
           documento_gerado_id?: string | null
           empresa_pessoa_id?: string
           id?: string
+          instrumento_data?: string | null
           origem_pessoa_id?: string | null
           pago_com_empresa_pessoa_id?: string | null
           pago_com_quotas?: number | null
@@ -5505,6 +5521,8 @@ export type Database = {
           pct_vlr_contabil?: number | null
           pct_vlr_mercado?: number | null
           quotas?: number
+          quotas_disponivel?: number | null
+          quotas_legitima?: number | null
           reserva_capital?: number | null
           sequencia?: number | null
           tipo?: string
@@ -5801,6 +5819,109 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      onus_quotas: {
+        Row: {
+          ato_id: string | null
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          empresa_pessoa_id: string
+          extinto_em: string | null
+          extinto_por_movimento_id: string | null
+          gravames: string[]
+          id: string
+          movimento_id: string | null
+          nu_proprietario_pessoa_id: string
+          quotas: number
+          updated_at: string
+          updated_by: string | null
+          usufruto_com_voto: boolean
+          usufruto_origem: string | null
+          usufrutuario_pessoa_ids: string[]
+        }
+        Insert: {
+          ato_id?: string | null
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          empresa_pessoa_id: string
+          extinto_em?: string | null
+          extinto_por_movimento_id?: string | null
+          gravames?: string[]
+          id?: string
+          movimento_id?: string | null
+          nu_proprietario_pessoa_id: string
+          quotas: number
+          updated_at?: string
+          updated_by?: string | null
+          usufruto_com_voto?: boolean
+          usufruto_origem?: string | null
+          usufrutuario_pessoa_ids?: string[]
+        }
+        Update: {
+          ato_id?: string | null
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_pessoa_id?: string
+          extinto_em?: string | null
+          extinto_por_movimento_id?: string | null
+          gravames?: string[]
+          id?: string
+          movimento_id?: string | null
+          nu_proprietario_pessoa_id?: string
+          quotas?: number
+          updated_at?: string
+          updated_by?: string | null
+          usufruto_com_voto?: boolean
+          usufruto_origem?: string | null
+          usufrutuario_pessoa_ids?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onus_quotas_ato_id_fkey"
+            columns: ["ato_id"]
+            isOneToOne: false
+            referencedRelation: "ato_societario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onus_quotas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onus_quotas_empresa_pessoa_id_fkey"
+            columns: ["empresa_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onus_quotas_extinto_por_movimento_id_fkey"
+            columns: ["extinto_por_movimento_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacao_quotas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onus_quotas_movimento_id_fkey"
+            columns: ["movimento_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacao_quotas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onus_quotas_nu_proprietario_pessoa_id_fkey"
+            columns: ["nu_proprietario_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ordem_servico: {
         Row: {

@@ -255,14 +255,17 @@ describe('consultas do formulário DCOMP', () => {
 });
 
 describe('persistência do formulário DCOMP', () => {
-  it('na criação executa duplicate check, insert em array, precheck opcional, delete, build e insert', async () => {
+  it('na criação executa duplicate check, insert em array, precheck, delete conferido e insert', async () => {
     results.set('dcomp', [
       { data: null, error: null },
       { data: null, error: null },
     ]);
     results.set('distribuicao_dcomp', [
-      { data: { id: 'SAMPLE' }, error: new Error('erro amostral ignorado') },
-      { data: null, error: null },
+      // Leitura das linhas atuais: virou contagem real, não mais amostra de uma
+      // linha com o erro ignorado. É esse número que prova, adiante, que o
+      // delete fez efeito.
+      { data: [{ id: 'SAMPLE' }], error: null },
+      { data: [{ id: 'SAMPLE' }], error: null },
       { data: null, error: null },
     ]);
     renderHook(() => useCreateDcompForm());
@@ -302,10 +305,11 @@ describe('persistência do formulário DCOMP', () => {
       'dcomp.insert',
       'distribuicao_dcomp.select',
       'distribuicao_dcomp.eq',
-      'distribuicao_dcomp.limit',
-      'distribuicao_dcomp.maybeSingle',
       'distribuicao_dcomp.delete',
       'distribuicao_dcomp.eq',
+      // O `.select()` do delete é o que separa "apagou" de "a RLS recusou": sem
+      // ele o insert abaixo somava as linhas novas às antigas.
+      'distribuicao_dcomp.select',
       'distribuicao_dcomp.insert',
     ]);
   });
@@ -322,61 +326,99 @@ describe('persistência do formulário DCOMP', () => {
     expect(callsFor('dcomp', 'insert')).toHaveLength(0);
   });
 
-  it('expõe falhas parciais de insert principal, delete, construção pós-delete e insert do rateio', async () => {
+  it('expõe falhas de insert principal, leitura, delete, construção e insert do rateio', async () => {
     renderHook(() => useCreateDcompForm());
     const mutationFn = mutations()[0].mutationFn;
-
-    results.set('dcomp', [
+    const dcompOk: Result[] = [
       { data: null, error: null },
-      { data: null, error: new Error('principal') },
-    ]);
+      { data: null, error: null },
+    ];
+
+    results.set('dcomp', [...dcompOk.slice(0, 1), { data: null, error: new Error('principal') }]);
     await expect(mutationFn(context as never)).rejects.toThrow('principal');
     expect(callsFor('distribuicao_dcomp', 'delete')).toHaveLength(0);
 
+    // A leitura das linhas atuais era `limit(1)` com o erro ignorado. Agora ela
+    // interrompe o salvamento em vez de deixar seguir às cegas.
     calls.length = 0;
-    results.set('dcomp', [
-      { data: null, error: null },
-      { data: null, error: null },
-    ]);
+    results.set('dcomp', [...dcompOk]);
+    results.set('distribuicao_dcomp', [{ data: null, error: new Error('leitura') }]);
+    await expect(mutationFn(context as never)).rejects.toThrow('leitura');
+    expect(callsFor('distribuicao_dcomp', 'delete')).toHaveLength(0);
+
+    calls.length = 0;
+    results.set('dcomp', [...dcompOk]);
     results.set('distribuicao_dcomp', [
-      { data: null, error: null },
+      { data: [{ id: 'L1' }], error: null },
       { data: null, error: new Error('delete') },
     ]);
     await expect(mutationFn(context as never)).rejects.toThrow('delete');
     expect(callsFor('distribuicao_dcomp', 'insert')).toHaveLength(0);
 
+    // Construção das linhas novas passou para ANTES do delete: um erro de
+    // montagem não chega mais a destruir o rateio que já estava gravado.
     calls.length = 0;
-    results.set('dcomp', [
-      { data: null, error: null },
-      { data: null, error: null },
-    ]);
+    results.set('dcomp', [...dcompOk]);
     results.set('distribuicao_dcomp', [
-      { data: null, error: null },
-      { data: null, error: null },
+      { data: [{ id: 'L1' }], error: null },
+      { data: [{ id: 'L1' }], error: null },
     ]);
     const invalidContext = { ...context, distribuicoes: null };
     await expect(mutationFn(invalidContext as never)).rejects.toThrow();
-    expect(callsFor('distribuicao_dcomp', 'delete')).toHaveLength(1);
+    expect(callsFor('distribuicao_dcomp', 'delete')).toHaveLength(0);
 
     calls.length = 0;
-    results.set('dcomp', [
-      { data: null, error: null },
-      { data: null, error: null },
-    ]);
+    results.set('dcomp', [...dcompOk]);
     results.set('distribuicao_dcomp', [
-      { data: null, error: null },
-      { data: null, error: null },
+      { data: [{ id: 'L1' }], error: null },
+      { data: [{ id: 'L1' }], error: null },
       { data: null, error: new Error('rateio') },
     ]);
     await expect(mutationFn(context as never)).rejects.toThrow('rateio');
     expect(callsFor('distribuicao_dcomp', 'delete')).toHaveLength(1);
   });
 
-  it('no update atualiza primeiro, não procura duplicata nem faz precheck de DCOMP, depois substitui rateio', async () => {
-    results.set('dcomp', [{ data: null, error: null }]);
-    results.set('distribuicao_dcomp', [
-      { data: { id: 'L1' }, error: null },
+  /**
+   * O caso que produzia rateio duplicado: a RLS recusa o DELETE, o Postgres
+   * responde zero linhas sem erro, e o INSERT logo abaixo somava as linhas
+   * novas às antigas.
+   */
+  it('não insere o rateio novo quando o banco recusa a remoção do anterior', async () => {
+    results.set('dcomp', [
       { data: null, error: null },
+      { data: null, error: null },
+    ]);
+    results.set('distribuicao_dcomp', [
+      { data: [{ id: 'L1' }, { id: 'L2' }], error: null },
+      { data: [], error: null },
+    ]);
+    renderHook(() => useCreateDcompForm());
+
+    await expect(mutations()[0].mutationFn(context as never)).rejects.toThrow(
+      /recusou a remoção das linhas de distribuição anteriores/,
+    );
+    expect(callsFor('distribuicao_dcomp', 'insert')).toHaveLength(0);
+  });
+
+  it('não dispara DELETE nem precheck quando não há rateio anterior', async () => {
+    results.set('dcomp', [
+      { data: null, error: null },
+      { data: null, error: null },
+    ]);
+    results.set('distribuicao_dcomp', [{ data: [], error: null }]);
+    renderHook(() => useCreateDcompForm());
+
+    await mutations()[0].mutationFn(context as never);
+    expect(callsFor('distribuicao_dcomp', 'delete')).toHaveLength(0);
+    expect(mocks.assertCanPerform).not.toHaveBeenCalled();
+    expect(callsFor('distribuicao_dcomp', 'insert')).toHaveLength(1);
+  });
+
+  it('no update atualiza primeiro, não procura duplicata nem faz precheck de DCOMP, depois substitui rateio', async () => {
+    results.set('dcomp', [{ data: [{ nr_documento: 'ORIGINAL' }], error: null }]);
+    results.set('distribuicao_dcomp', [
+      { data: [{ id: 'L1' }], error: null },
+      { data: [{ id: 'L1' }], error: null },
       { data: null, error: null },
     ]);
     renderHook(() => useUpdateDcompForm());
@@ -386,7 +428,11 @@ describe('persistência do formulário DCOMP', () => {
     } as never);
     expect(record).toMatchObject({ nr_documento: 'ORIGINAL', nr_per_orig: '9' });
     expect(callsFor('dcomp', 'update')).toHaveLength(1);
-    expect(callsFor('dcomp', 'select')).toHaveLength(0);
+    // O `select` que existe aqui é o do próprio update, conferindo a linha
+    // afetada. Duplicata continua sem ser procurada: aquela busca usa
+    // `maybeSingle`.
+    expect(callsFor('dcomp', 'select')).toEqual([['nr_documento']]);
+    expect(callsFor('dcomp', 'maybeSingle')).toHaveLength(0);
     expect(mocks.assertCanPerform).toHaveBeenCalledTimes(1);
     expect(mocks.assertCanPerform).toHaveBeenCalledWith('distribuicao_dcomp', 'delete', 'L1');
     expect(sequence.indexOf('dcomp.update')).toBeLessThan(
@@ -407,10 +453,10 @@ describe('persistência do formulário DCOMP', () => {
     expect(callsFor('distribuicao_dcomp', 'delete')).toHaveLength(0);
 
     calls.length = 0;
-    results.set('dcomp', [{ data: null, error: null }]);
+    results.set('dcomp', [{ data: [{ nr_documento: 'D' }], error: null }]);
     results.set('distribuicao_dcomp', [
-      { data: null, error: null },
-      { data: null, error: null },
+      { data: [{ id: 'L1' }], error: null },
+      { data: [{ id: 'L1' }], error: null },
     ]);
     await mutations()[0].mutationFn({
       ...context,
@@ -419,6 +465,20 @@ describe('persistência do formulário DCOMP', () => {
     } as never);
     expect(callsFor('distribuicao_dcomp', 'delete')).toHaveLength(1);
     expect(callsFor('distribuicao_dcomp', 'insert')).toHaveLength(0);
+  });
+
+  /**
+   * Update recusado pela RLS também volta zero linhas, sem erro. Sem esta
+   * conferência, o rateio era substituído sob um DCOMP que não tinha mudado.
+   */
+  it('update que não altera nenhuma linha falha antes de mexer no rateio', async () => {
+    results.set('dcomp', [{ data: [], error: null }]);
+    renderHook(() => useUpdateDcompForm());
+
+    await expect(
+      mutations()[0].mutationFn({ ...context, originalNrDocumento: 'D' } as never),
+    ).rejects.toThrow(/Não foi possível salvar este DCOMP/);
+    expect(calls.filter((call) => call.table === 'distribuicao_dcomp')).toHaveLength(0);
   });
 
   it('preserva callbacks no nível dos hooks e encapsula sync sem aguardar', () => {
