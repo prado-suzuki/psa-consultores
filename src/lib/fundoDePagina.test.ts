@@ -40,6 +40,9 @@ const PINTA_FUNDO = /\b(bg-[a-z0-9[\]/.-]+|backgroundColor)\b/;
 /** O elemento de página de um layout é o que declara `min-h-screen`. */
 const ELEMENTO_DE_PAGINA = /min-h-screen/;
 
+/** A superfície REBAIXADA, que nunca é fundo de página — nem de layout, nem de página solta. */
+const SUPERFICIE_REBAIXADA = /\bbg-muted\b/;
+
 function arquivosDeLayout(dir: string): string[] {
   const achados: string[] = [];
   for (const nome of readdirSync(dir)) {
@@ -47,6 +50,19 @@ function arquivosDeLayout(dir: string): string[] {
     if (statSync(caminho).isDirectory()) {
       achados.push(...arquivosDeLayout(caminho));
     } else if (/Layout.*\.tsx$/.test(nome) && !nome.endsWith('.test.tsx')) {
+      achados.push(caminho);
+    }
+  }
+  return achados;
+}
+
+function arquivosTsx(dir: string): string[] {
+  const achados: string[] = [];
+  for (const nome of readdirSync(dir)) {
+    const caminho = join(dir, nome);
+    if (statSync(caminho).isDirectory()) {
+      achados.push(...arquivosTsx(caminho));
+    } else if (nome.endsWith('.tsx') && !nome.endsWith('.test.tsx')) {
       achados.push(caminho);
     }
   }
@@ -75,6 +91,39 @@ describe('fundo de página: quem pinta é o body, e só ele', () => {
       'layout pintando o próprio fundo. O fundo de página é do `body` (ver a nota\n' +
         'no `index.css`): tire a classe do layout em vez de trocá-la pela certa —\n' +
         'trocar deixa a próxima nascer errada igual.\n' +
+        culpados.join('\n'),
+    ).toEqual([]);
+  });
+
+  it('nenhuma PÁGINA cobre a tela com a superfície rebaixada', () => {
+    // A regra acima só olha `*Layout.tsx`, e foi por essa fresta que a NONA
+    // ocorrência passou: `EquipeChamados` tem header próprio, não entra em
+    // layout nenhum, e pintava `min-h-screen bg-muted` — 89%, a superfície
+    // calibrada para uma pílula saltar em cima. Ninguém viu enquanto a página
+    // das outras rotas também era cinza; quando a página virou branca em
+    // 12/09/2026, ela ficaria a única parede de tinta do produto.
+    //
+    // O recorte é mais estreito que o da regra acima DE PROPÓSITO. Página solta
+    // fora de layout pode precisar de fundo próprio (`Auth`, `Index`,
+    // `NotFound`, o Portal do Cliente), e a dívida de cor crua delas está em
+    // `docs/geral/cor-o-que-falta.md`. O que nunca pode é o valor: `--muted` é
+    // superfície REBAIXADA, e rebaixada em relação a algo que, cobrindo a tela,
+    // não existe mais.
+    const culpados: string[] = [];
+
+    for (const caminho of arquivosTsx(join(RAIZ, 'pages'))) {
+      const linhas = readFileSync(caminho, 'utf8').split('\n');
+      linhas.forEach((linha, i) => {
+        if (!ELEMENTO_DE_PAGINA.test(linha)) return;
+        if (!SUPERFICIE_REBAIXADA.test(linha)) return;
+        culpados.push(`${relative(RAIZ, caminho)}:${i + 1} — "bg-muted" cobrindo a tela`);
+      });
+    }
+
+    expect(
+      culpados,
+      'página cobrindo a tela com `bg-muted`. A superfície REBAIXADA não é fundo\n' +
+        'de página: troque por `bg-background`, que é o que o `body` pinta.\n' +
         culpados.join('\n'),
     ).toEqual([]);
   });

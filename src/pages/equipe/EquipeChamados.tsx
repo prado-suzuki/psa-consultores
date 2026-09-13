@@ -168,7 +168,14 @@ export default function EquipeChamados() {
       : 'Nenhum chamado encontrado com os filtros selecionados.';
 
   return (
-    <div className="min-h-screen bg-muted">
+    /* Esta tela tem header próprio e não entra em layout, então a catraca de
+       10/09 — que só olha `*Layout.tsx` — não a alcançou: ela era a NONA
+       ocorrência do mesmo defeito, pintando a página com a superfície REBAIXADA
+       (89%, calibrada para uma pílula saltar em cima, não para cobrir a tela).
+       Passou despercebida enquanto a página das outras rotas era cinza também;
+       com a página branca de 12/09 ela ficaria a única parede de tinta do
+       produto. O `fundoDePagina.test.ts` passou a cobrir página, não só layout. */
+    <div className="min-h-screen bg-background">
       <header className="h-16 border-b border-border/60 bg-white flex items-center px-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate(backTo)} className="text-muted-foreground hover:text-primary hover:bg-muted">
