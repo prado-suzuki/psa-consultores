@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O fundo que some — a página deixa de ser cinza</title>
+<style>
+  :root{
+    /* Valores lidos do src/index.css em 12/09/2026, com a pilha da opção D no ar
+       (canvas 93% → muted 89% → border 86%, nas três áreas). */
+    --fg: 20 81% 10%;
+    --mf: 185 8% 38.5%;
+    --ln: 192 14% 86%;
+    --cd: 192 18% 99.6%;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;padding:34px 24px 80px;
+    background:hsl(var(--cd));color:hsl(var(--fg));
+    font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .wrap{max-width:1280px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 8px;letter-spacing:-.015em}
+  .sub{color:hsl(var(--mf));margin:0;max-width:80ch}
+  h2{font-size:14px;text-transform:uppercase;letter-spacing:.07em;margin:52px 0 6px;color:hsl(var(--mf))}
+  h2 + p{margin:0 0 14px;max-width:84ch;font-size:14.5px}
+  h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:26px 0 8px;color:hsl(var(--mf));font-weight:700}
+  p.nota{color:hsl(var(--mf));font-size:13.5px;max-width:84ch;margin:8px 0 0}
+  code{font:12.5px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+       background:hsl(192 10% 96%);padding:1px 5px;border-radius:4px;border:1px solid hsl(var(--ln))}
+
+  .decisao{
+    border:1px solid hsl(var(--ln));border-left:3px solid hsl(192 73% 20%);
+    background:hsl(192 10% 97%);border-radius:10px;padding:15px 18px;margin:20px 0 0;max-width:92ch;
+  }
+  .decisao b{display:block;margin-bottom:5px;font-size:15px}
+
+  /* ── as três áreas ───────────────────────────────────────────────────────
+     Cada bloco carrega a pilha real da área: --cv é a página de HOJE,
+     --bgp é a página CANDIDATA (o --background da área), e muted/border/card
+     não mudam entre as duas colunas — é justamente o que a comparação prova. */
+  .base{--cv:168 16% 93%;--bgp:168 22% 99.4%;--cd:0 0% 100%;--mt:168 20% 89%;--ln:168 20% 86%;
+        --fg:178 30% 9%;--mf:180 10% 38%;--ac:175 84% 25%}
+  .tax {--cv:192 10% 93%;--bgp:192 18% 99.6%;--cd:192 18% 99.6%;--mt:192 14% 89%;--ln:192 14% 86%;
+        --fg:20 81% 10%;--mf:185 8% 38.5%;--ac:192 73% 20%}
+  .osg {--cv:32 24% 93%; --bgp:32 28% 98.5%; --cd:32 28% 98.5%; --mt:32 28% 89%; --ln:32 28% 86%;
+        --fg:220 26% 12%;--mf:24 12% 40%;--ac:149 66% 22%}
+
+  .par{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:10px}
+  @media (max-width:1080px){.par{grid-template-columns:1fr}}
+
+  .palco{border:1px solid hsl(var(--ln));border-radius:12px;overflow:hidden}
+  .palco .rotulo{
+    font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+    color:hsl(var(--mf));padding:8px 12px;background:hsl(var(--cd));border-bottom:1px solid hsl(var(--ln));
+  }
+  .palco .rotulo em{font-style:normal;font-weight:600;text-transform:none;letter-spacing:0;opacity:.75}
+  /* o fundo da tela: é ISTO que a comparação troca */
+  .tela{padding:14px 16px 20px}
+  .tela.hoje  {background:hsl(var(--cv))}
+  .tela.branca{background:hsl(var(--bgp))}
+
+  /* ── o cabeçalho da área, que é bg-card e fica colado no topo ── */
+  .cabecalho{background:hsl(var(--cd));border-bottom:1px solid hsl(var(--ln) / .6);
+             margin:-14px -16px 14px;padding:9px 14px}
+  .cabecalho .sobre{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:hsl(var(--mf))}
+  .cabecalho .tit{font-size:18px;font-weight:700;letter-spacing:-.02em;line-height:1.15;margin-top:1px}
+  .cabecalho .subt{font-size:11.5px;color:hsl(var(--mf));margin-top:1px}
+
+  .coluna{max-width:560px;margin:0 auto}
+
+  /* ── barra de filtros: rounded-2xl border-border/70 bg-card shadow-sm ── */
+  .filtros{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    border:1px solid hsl(var(--ln) / .7);background:hsl(var(--cd));
+    border-radius:16px;padding:7px;box-shadow:0 1px 2px hsl(var(--fg) / .05);margin-bottom:12px;
+  }
+  .alternancia{display:flex;gap:2px;background:hsl(var(--mt) / .6);border-radius:8px;padding:2px}
+  .alternancia span{font-size:11.5px;padding:5px 9px;border-radius:6px;color:hsl(var(--mf));white-space:nowrap}
+  .alternancia span.on{background:hsl(var(--cd));color:hsl(var(--fg));font-weight:600;box-shadow:0 1px 2px hsl(var(--fg) / .07)}
+  .botoes{display:flex;gap:6px}
+  .botoes span{font-size:11.5px;padding:6px 10px;border-radius:8px;border:1px solid hsl(var(--ln));
+               background:hsl(var(--cd));color:hsl(var(--fg));white-space:nowrap}
+
+  /* ── cabeçalho do dia: bg-canvas/80, o único lugar fora do body que usa o token ── */
+  .dia{display:flex;align-items:center;gap:10px;padding:6px 2px 8px}
+  .dia .pilula{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+               color:hsl(var(--fg) / .75);background:hsl(var(--cd));border:1px solid hsl(var(--ln) / .7);
+               border-radius:999px;padding:3px 9px;box-shadow:0 1px 2px hsl(var(--fg) / .05)}
+  .dia .fio{flex:1;height:1px;background:linear-gradient(to right,hsl(var(--ln)),transparent)}
+  .dia .qtd{font-size:10.5px;color:hsl(var(--mf))}
+
+  /* ── o cartão do feed: rounded-2xl border-border/70 bg-card shadow-sm ── */
+  .conversa{border:1px solid hsl(var(--ln) / .7);background:hsl(var(--cd));border-radius:16px;
+            box-shadow:0 1px 2px hsl(var(--fg) / .05);overflow:hidden;margin-bottom:12px}
+  .conversa .origem{display:flex;align-items:center;gap:10px;padding:9px 13px;
+                    background:hsl(var(--ac) / .1);border-bottom:1px solid hsl(var(--ln) / .6)}
+  .conversa .icone{width:30px;height:30px;border-radius:10px;flex:0 0 auto;
+                   background:hsl(var(--ac) / .12);display:grid;place-items:center;color:hsl(var(--ac));font-size:13px}
+  .conversa .trilha{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:hsl(var(--mf))}
+  .conversa .trilha b{color:hsl(var(--ac))}
+  .conversa .trilha i{font-style:normal;text-transform:none;letter-spacing:0;font-weight:600;color:hsl(var(--fg) / .7)}
+  .conversa .nome{font-size:13px;font-weight:700;margin-top:1px}
+  .conversa .corpo{padding:9px 14px 12px}
+  .fala{display:flex;gap:9px}
+  .fala .av{width:26px;height:26px;border-radius:999px;flex:0 0 auto;background:hsl(var(--mt));
+            display:grid;place-items:center;font-size:8.5px;font-weight:700;color:hsl(var(--mf))}
+  .fala .tit{font-size:12.5px;font-weight:700}
+  .fala .hora{font-size:10.5px;color:hsl(var(--mf));font-weight:400;margin-left:6px}
+  .fala .evento{margin-top:5px;border-left:2px solid hsl(var(--ac) / .4);background:hsl(var(--mt) / .35);
+                border-radius:8px;padding:7px 11px;font-size:12.5px}
+
+  /* ── a caixa SEM borda (os três estados do PIS/COFINS do Dev) ── */
+  .sem-borda{background:hsl(var(--cd));border-radius:12px;box-shadow:0 1px 2px hsl(var(--fg) / .05);
+             padding:20px;text-align:center}
+  .sem-borda .t{font-size:13px;font-weight:600}
+  .sem-borda .s{font-size:12px;color:hsl(var(--mf));margin-top:3px}
+
+  table{border-collapse:collapse;margin-top:12px;font-size:13px;width:100%;max-width:800px}
+  th,td{text-align:left;padding:7px 12px;border-bottom:1px solid hsl(var(--ln))}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:hsl(var(--mf));font-weight:700}
+  td.n,th.n{text-align:right}
+  td.n{font-variant-numeric:tabular-nums}
+  .sobe{color:hsl(128 56% 21%);font-weight:600}
+  ul{max-width:88ch;font-size:14.5px}
+  li{margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>O fundo que some</h1>
+<p class="sub">A página é cinza desde 10/09/2026, quando a opção D desceu o <code>--canvas</code> de 96% para 93%
+para que o degrau cartão↔página substituísse a borda. A pergunta agora é a inversa: e se a página for branca?</p>
+
+<div class="decisao">
+  <b>Recomendação: dá para tirar — e a caixa fica mais definida, não menos.</b>
+  Hoje o cartão se separa da página por um degrau de 1,125–1,154:1. Com a página branca, quem separa passa a ser
+  a borda que já está lá, a 1,207–1,229:1 — mais forte que o degrau de hoje nas três áreas. O único lugar que perde
+  aresta são três caixas do Dev que não têm borda. Olhe as colunas abaixo: o número diz que melhora, mas quem decide
+  se fica “clean” é você.
+</div>
+
+<h2>1 · O Feed, a tela do print</h2>
+<p>A mesma tela nas três áreas. À esquerda o que está no ar; à direita a página branca, com
+<b>nenhuma outra mudança</b> — cartão, borda, faixa da alternância e balão de evento têm exatamente o mesmo valor
+nas duas colunas.</p>
+
+<h3>Tax — a do print</h3>
+<div class="par tax">
+  <div class="palco">
+    <div class="rotulo">Hoje <em>· página 192 10% 93%</em></div>
+    <div class="tela hoje">
+      <div class="cabecalho"><div class="sobre">Tax</div><div class="tit">Feed</div>
+        <div class="subt">O que está sendo conversado nos seus projetos e tarefas</div></div>
+      <div class="coluna">
+        <div class="filtros">
+          <div class="alternancia"><span class="on">Tudo</span><span>Menções</span></div>
+          <div class="botoes"><span>Qualquer data</span><span>Filtros</span></div>
+        </div>
+        <div class="dia"><span class="pilula">Ontem</span><span class="fio"></span><span class="qtd">11 comentários</span></div>
+        <div class="conversa">
+          <div class="origem"><div class="icone">▤</div>
+            <div><div class="trilha"><b>Projeto</b> › <i>Bombonatto Indústria de Alimentos S/A (Frigobom)</i></div>
+              <div class="nome">Planejamento Sucessório</div></div></div>
+          <div class="corpo"><div class="fala"><div class="av">PSA</div>
+            <div><div class="tit">Documentos solicitados ao cliente<span class="hora">11/09/2026 16:42</span></div>
+              <div class="evento">A lista de documentos foi enviada ao cliente e o acesso ao portal foi liberado.</div>
+            </div></div></div>
+        </div>
+        <div class="conversa">
+          <div class="origem"><div class="icone">▤</div>
+            <div><div class="trilha"><b>Projeto</b> › <i>Bombonatto Indústria de Alimentos S/A (Frigobom)</i></div>
+              <div class="nome">Planejamento Tributário</div></div></div>
+          <div class="corpo"><div class="fala"><div class="av">PSA</div>
+            <div><div class="tit">Documentos solicitados ao cliente<span class="hora">11/09/2026 16:42</span></div>
+              <div class="evento">A lista de documentos foi enviada ao cliente e o acesso ao portal foi liberado.</div>
+            </div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="palco">
+    <div class="rotulo">Página branca <em>· 192 18% 99,6% (o --background da Tax)</em></div>
+    <div class="tela branca">
+      <div class="cabecalho"><div class="sobre">Tax</div><div class="tit">Feed</div>
+        <div class="subt">O que está sendo conversado nos seus projetos e tarefas</div></div>
+      <div class="coluna">
+        <div class="filtros">
+          <div class="alternancia"><span class="on">Tudo</span><span>Menções</span></div>
+          <div class="botoes"><span>Qualquer data</span><span>Filtros</span></div>
+        </div>
+        <div class="dia"><span class="pilula">Ontem</span><span class="fio"></span><span class="qtd">11 comentários</span></div>
+        <div class="conversa">
+          <div class="origem"><div class="icone">▤</div>
+            <div><div class="trilha"><b>Projeto</b> › <i>Bombonatto Indústria de Alimentos S/A (Frigobom)</i></div>
+              <div class="nome">Planejamento Sucessório</div></div></div>
+          <div class="corpo"><div class="fala"><div class="av">PSA</div>
+            <div><div class="tit">Documentos solicitados ao cliente<span class="hora">11/09/2026 16:42</span></div>
+              <div class="evento">A lista de documentos foi enviada ao cliente e o acesso ao portal foi liberado.</div>
+            </div></div></div>
+        </div>
+        <div class="conversa">
+          <div class="origem"><div class="icone">▤</div>
+            <div><div class="trilha"><b>Projeto</b> › <i>Bombonatto Indústria de Alimentos S/A (Frigobom)</i></div>
+              <div class="nome">Planejamento Tributário</div></div></div>
+          <div class="corpo"><div class="fala"><div class="av">PSA</div>
+            <div><div class="tit">Documentos solicitados ao cliente<span class="hora">11/09/2026 16:42</span></div>
+              <div class="evento">A lista de documentos foi enviada ao cliente e o acesso ao portal foi liberado.</div>
+            </div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3>OSG — é a areia que mais se perde, porque é a página mais colorida das três</h3>
+<div class="par osg">
+  <div class="palco">
+    <div class="rotulo">Hoje <em>· página 32 24% 93%</em></div>
+    <div class="tela hoje">
+      <div class="cabecalho"><div class="sobre">OSG</div><div class="tit">Feed</div>
+        <div class="subt">O que está sendo conversado nos seus projetos e tarefas</div></div>
+      <div class="coluna">
+        <div class="filtros">
+          <div class="alternancia"><span class="on">Tudo</span><span>Menções</span></div>
+          <div class="botoes"><span>Qualquer data</span><span>Filtros</span></div>
+        </div>
+        <div class="dia"><span class="pilula">Ontem</span><span class="fio"></span><span class="qtd">4 comentários</span></div>
+        <div class="conversa">
+          <div class="origem"><div class="icone">▤</div>
+            <div><div class="trilha"><b>Tarefa</b> › <i>Diagnóstico Societário</i></div>
+              <div class="nome">Levantar quadro societário atual</div></div></div>
+          <div class="corpo"><div class="fala"><div class="av">PSA</div>
+            <div><div class="tit">Tarefa aprovada<span class="hora">11/09/2026 09:12</span></div>
+              <div class="evento">Aprovada e devolvida para Em Ajuste.</div>
+            </div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="palco">
+    <div class="rotulo">Página branca <em>· 32 28% 98,5%</em></div>
+    <div class="tela branca">
+      <div class="cabecalho"><div class="sobre">OSG</div><div class="tit">Feed</div>
+        <div class="subt">O que está sendo conversado nos seus projetos e tarefas</div></div>
+      <div class="coluna">
+        <div class="filtros">
+          <div class="alternancia"><span class="on">Tudo</span><span>Menções</span></div>
+          <div class="botoes"><span>Qualquer data</span><span>Filtros</span></div>
+        </div>
+        <div class="dia"><span class="pilula">Ontem</span><span class="fio"></span><span class="qtd">4 comentários</span></div>
+        <div class="conversa">
+          <div class="origem"><div class="icone">▤</div>
+            <div><div class="trilha"><b>Tarefa</b> › <i>Diagnóstico Societário</i></div>
+              <div class="nome">Levantar quadro societário atual</div></div></div>
+          <div class="corpo"><div class="fala"><div class="av">PSA</div>
+            <div><div class="tit">Tarefa aprovada<span class="hora">11/09/2026 09:12</span></div>
+              <div class="evento">Aprovada e devolvida para Em Ajuste.</div>
+            </div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3>Casa — Portal do Cliente, Board, Rotina, Dev, Gerencial e Equipe</h3>
+<div class="par base">
+  <div class="palco">
+    <div class="rotulo">Hoje <em>· página 168 16% 93%</em></div>
+    <div class="tela hoje">
+      <div class="cabecalho"><div class="sobre">Equipe</div><div class="tit">Chamados</div>
+        <div class="subt">Tudo que entrou pelos clientes e pela equipe</div></div>
+      <div class="coluna">
+        <div class="filtros">
+          <div class="alternancia"><span class="on">Abertos</span><span>Todos</span></div>
+          <div class="botoes"><span>Qualquer data</span><span>Filtros</span></div>
+        </div>
+        <div class="dia"><span class="pilula">Hoje</span><span class="fio"></span><span class="qtd">3 chamados</span></div>
+        <div class="conversa">
+          <div class="origem"><div class="icone">▤</div>
+            <div><div class="trilha"><b>Chamado</b> › <i>Frigobom</i></div>
+              <div class="nome">Acesso ao portal não abre</div></div></div>
+          <div class="corpo"><div class="fala"><div class="av">PM</div>
+            <div><div class="tit">Patricia Melo<span class="hora">hoje 08:30</span></div>
+              <div class="evento">Encaminhado para o time de Sistemas.</div>
+            </div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="palco">
+    <div class="rotulo">Página branca <em>· 168 22% 99,4%</em></div>
+    <div class="tela branca">
+      <div class="cabecalho"><div class="sobre">Equipe</div><div class="tit">Chamados</div>
+        <div class="subt">Tudo que entrou pelos clientes e pela equipe</div></div>
+      <div class="coluna">
+        <div class="filtros">
+          <div class="alternancia"><span class="on">Abertos</span><span>Todos</span></div>
+          <div class="botoes"><span>Qualquer data</span><span>Filtros</span></div>
+        </div>
+        <div class="dia"><span class="pilula">Hoje</span><span class="fio"></span><span class="qtd">3 chamados</span></div>
+        <div class="conversa">
+          <div class="origem"><div class="icone">▤</div>
+            <div><div class="trilha"><b>Chamado</b> › <i>Frigobom</i></div>
+              <div class="nome">Acesso ao portal não abre</div></div></div>
+          <div class="corpo"><div class="fala"><div class="av">PM</div>
+            <div><div class="tit">Patricia Melo<span class="hora">hoje 08:30</span></div>
+              <div class="evento">Encaminhado para o time de Sistemas.</div>
+            </div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>2 · O que perde aresta — e é só isto</h2>
+<p>No produto inteiro, três caixas pintam <code>bg-card</code> <b>sem borda</b> e ficam soltas na página: os estados de
+carregando, erro e vazio da apuração de PIS/COFINS, em <code>/equipe/dev</code>. Hoje elas aparecem pelo degrau; na
+página branca sobra só a sombra.</p>
+<div class="par base">
+  <div class="palco">
+    <div class="rotulo">Hoje <em>· a caixa aparece pelo degrau</em></div>
+    <div class="tela hoje"><div class="coluna" style="padding:14px 0">
+      <div class="sem-borda"><div class="t">Nenhum dado para o período</div>
+        <div class="s">Selecione uma competência e clique em Apurar</div></div>
+    </div></div>
+  </div>
+  <div class="palco">
+    <div class="rotulo">Página branca <em>· sobra a sombra</em></div>
+    <div class="tela branca"><div class="coluna" style="padding:14px 0">
+      <div class="sem-borda"><div class="t">Nenhum dado para o período</div>
+        <div class="s">Selecione uma competência e clique em Apurar</div></div>
+    </div></div>
+  </div>
+</div>
+<p class="nota">Conserto de uma palavra cada: acrescentar <code>border</code>, que é o que todo o resto do produto já
+faz. Não é motivo para manter o fundo.</p>
+
+<h2>3 · Os números</h2>
+<p>Contraste WCAG entre superfícies vizinhas. Entre as duas colunas muda só a página.</p>
+<table>
+  <tr><th>o que se lê</th><th class="n">casa</th><th class="n">tax</th><th class="n">osg</th></tr>
+  <tr><td>cartão ↔ página <b>hoje</b> — o degrau que separa</td><td class="n">1,153</td><td class="n">1,154</td><td class="n">1,125</td></tr>
+  <tr><td>cartão ↔ página <b>branca</b> — o degrau some</td><td class="n">1,012</td><td class="n">1,000</td><td class="n">1,000</td></tr>
+  <tr><td><b>borda</b> do cartão ↔ cartão — quem passa a separar</td><td class="n sobe">1,216</td><td class="n sobe">1,229</td><td class="n sobe">1,207</td></tr>
+  <tr><td>faixa da alternância (<code>muted</code>) ↔ página, hoje → branca</td><td class="n">1,082 → 1,233</td><td class="n">1,092 → 1,260</td><td class="n">1,091 → 1,227</td></tr>
+</table>
+<p class="nota">A leitura da terceira linha: a borda que hoje é quase redundante (1,10–1,12:1 contra a página cinza)
+passa a ser <b>o</b> contorno, a 1,207–1,229:1 — acima do degrau de hoje nas três áreas. A quarta diz que a canaleta
+cinza do “Tudo / Menções” fica mais visível, não menos.</p>
+
+<h2>4 · O que muda no código, se você aprovar</h2>
+<ul>
+  <li><b>Uma linha pinta a página</b> — o <code>body</code>, no <code>index.css</code>, passa de <code>bg-canvas</code>
+      para <code>bg-background</code>. Isso cobre as oito áreas de uma vez, porque desde 10/09 nenhum layout pinta o
+      próprio fundo.</li>
+  <li><b>O cabeçalho do dia no Feed</b> — <code>bg-canvas/80</code> vira <code>bg-background/80</code>, senão a máscara
+      do rolar continua cinza no meio do branco.</li>
+  <li><b>Os três painéis do Board</b> (<code>BoardDashboard</code>, <code>BoardDashboardClientesOs</code>,
+      <code>PerformanceDashboard</code>) pintam o fundo por fora, com <code>var(--bd-page)</code>; esse alias passa a
+      apontar para o <code>--background</code>.</li>
+  <li><b>O <code>--canvas</code> não muda de valor, e é de propósito.</b> Ele é a raiz da escada da área: a catraca em
+      <code>paletaDeArea.ts</code> obriga <code>muted = canvas −4</code> e <code>border = canvas −7</code>. Clarear o
+      token levaria junto a faixa cinza e <b>toda linha do produto</b>, que é o oposto do que se quer. Então ele deixa
+      de ser o fundo da página e passa a ser só a raiz da família de superfície da área — e aí o nome dele mente, o que
+      se resolve num commit separado.</li>
+  <li><b>Três bordas a acrescentar</b> nos estados do PIS/COFINS (seção 2).</li>
+</ul>
+<p class="nota">Os valores desta página são do <code>src/index.css</code> em 12/09/2026 e não se atualizam sozinhos.
+A fonte corrente é sempre o <code>index.css</code>.</p>
+
+</div>
+</body>
+</html>

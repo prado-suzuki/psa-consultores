@@ -108,7 +108,12 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
       <>
         {dias.map((dia) => (
           <section key={dia.dia} className="pb-5">
-            <div className="sticky top-0 z-20 -mx-1 flex items-center gap-3 bg-canvas/80 px-1 py-2 backdrop-blur-sm">
+            {/* O fundo aqui é MÁSCARA, não decoração: a faixa do dia fica presa
+                no topo e o conteúdo passa por baixo dela. Por isso ele tem que
+                ser o mesmo token que o `body` pinta — em 12/09/2026 a página
+                foi para `bg-background` e este `bg-canvas/80` teria ficado como
+                a única mancha cinza da tela, justamente onde o texto atravessa. */}
+            <div className="sticky top-0 z-20 -mx-1 flex items-center gap-3 bg-background/80 px-1 py-2 backdrop-blur-sm">
               <h2 className="rounded-full border border-border/70 bg-card px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-foreground/75 shadow-sm">
                 {dia.rotulo}
               </h2>

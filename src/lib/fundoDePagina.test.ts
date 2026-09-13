@@ -79,17 +79,22 @@ describe('fundo de página: quem pinta é o body, e só ele', () => {
     ).toEqual([]);
   });
 
-  it('o body pinta o canvas, e não a superfície de card', () => {
-    // A outra metade do contrato: com os layouts calados, se o `body` perder o
-    // canvas ninguém pinta nada e a tela sai branca — sem erro de build. Esta
-    // asserção é o que impede a correção acima de virar uma tela sem fundo.
+  it('o body declara o fundo da página, e ele é o `--background`', () => {
+    // A outra metade do contrato: com os layouts calados, se o `body` perder a
+    // declaração ninguém pinta nada e a tela fica à mercê do agente de usuário.
+    // Esta asserção é o que impede a correção acima de virar uma tela sem fundo.
     //
-    // `bg-background` NÃO serve, e não é sinônimo: o `--background` está entre
-    // 98,5% e 99,6%, ou seja é a superfície do cartão, e é o que `bg-background`
-    // pinta em popover, sheet e dropdown. Era o valor herdado do shadcn.
+    // `bg-background` E NÃO `bg-canvas`, desde 12/09/2026: a página é branca. O
+    // `--canvas` continua existindo com o valor de antes, mas como RAIZ da
+    // escada da área (`muted = canvas −4`, `border = canvas −7`, cobrado em
+    // `paletaDeArea.ts`) e não como fundo de página. Um `bg-canvas` de volta
+    // aqui traria o cinza de 93% junto — ver a nota do `body` no `index.css` e
+    // `docs/geral/comparacoes-de-cor/o-fundo-que-some.html`.
     const css = readFileSync(join(RAIZ, 'index.css'), 'utf8');
     const corpo = css.match(/\bbody\s*\{[^}]*\}/);
     expect(corpo, 'o `index.css` não tem regra para o `body`').not.toBeNull();
-    expect(corpo?.[0], 'o `body` deixou de pintar `bg-canvas`').toMatch(/@apply[^;]*\bbg-canvas\b/);
+    expect(corpo?.[0], 'o `body` deixou de pintar `bg-background`').toMatch(
+      /@apply[^;]*\bbg-background\b/,
+    );
   });
 });

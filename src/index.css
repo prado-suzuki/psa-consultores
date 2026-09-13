@@ -1309,7 +1309,12 @@ All colors MUST be HSL.
      Antes de 31/08 o par apontava para a `.board-theme`. Aquele bloco saiu no
      mesmo dia, porque as duas listas descreviam a MESMA casa: este é `:root` e
      valia em toda rota, enquanto o outro só vestia `/equipe/board`. */
-  --bd-page:      hsl(var(--canvas));   /* fundo da área (fora dos cards)   */
+  /* `--background` e não `--canvas` desde 12/09/2026: os três painéis que
+     consomem este alias (`BoardDashboard`, `BoardDashboardClientesOs`,
+     `PerformanceDashboard`) pintam o fundo POR FORA, num `style` inline, então
+     o `body` virar branco não os alcançaria e eles ficariam as três únicas
+     telas cinzas do produto. Ver a nota do `body`, no fim do arquivo. */
+  --bd-page:      hsl(var(--background)); /* fundo da área (fora dos cards)  */
   --bd-surface:   hsl(var(--card));     /* card                             */
   --bd-line:      hsl(var(--border));   /* borda de card, régua de tabela   */
   /* Estes DOIS continuam cravados, e é o que sobra da lista dupla. Os de cima
@@ -2491,11 +2496,30 @@ All colors MUST be HSL.
   }
 
   /* ─── O fundo de página se pinta AQUI, e em nenhum outro lugar ─────────
-     `bg-canvas` e não `bg-background`: o `--background` é uma SUPERFÍCIE —
-     99,4% a 99,6%, praticamente o `--card` — e é o que `bg-background`
-     pinta em popover, sheet e dropdown, 178 vezes no produto. O `--canvas`
-     é o token que existe para ser fundo de página. O `body` usar o outro
-     era herança do shadcn que ninguém tinha revisitado.
+     `bg-background` e não `bg-canvas`, desde 12/09/2026: A PÁGINA É BRANCA.
+     Ela foi cinza por dois dias — a opção D de 10/09 desceu o `--canvas` para
+     93% para que o degrau cartão↔página substituísse a borda —, e a decisão
+     se inverteu olhando as três áreas lado a lado em
+     `docs/geral/comparacoes-de-cor/o-fundo-que-some.html`.
+
+     O que a página mostrou, e é o contrário do que se supõe ao tirar um fundo:
+     a caixa fica MAIS definida, não menos. O degrau que separava o cartão da
+     página cinza dava 1,125–1,154:1; sem ele quem separa é a borda que sempre
+     esteve lá, a 1,207–1,229:1 nas três áreas. O contorno era o redundante, não
+     o degrau.
+
+     POR QUE O `--canvas` NÃO MUDOU DE VALOR, e clarear ele seria o erro: ele é
+     a RAIZ da escada da área. A catraca em `paletaDeArea.ts` obriga
+     `muted = canvas −4` e `border = canvas −7`, então levar o token para 99%
+     arrastaria junto a faixa rebaixada e TODA LINHA DO PRODUTO para perto do
+     branco — o oposto do que se queria. Ele deixou de ser o fundo da página e
+     ficou sendo só a raiz da família de superfície; o nome passou a mentir, e
+     isso se corrige em commit próprio.
+
+     O `.dark` não declara `--canvas` (e nada põe a classe `dark` na raiz hoje).
+     Enquanto o `body` pintava o canvas, um escuro ligado herdaria a página
+     CLARA da área. Com o `--background`, que o `.dark` declara a 9%, essa mina
+     deixa de existir — não é o motivo da mudança, é consequência dela.
 
      Por que aqui e não em cada layout: até 10/09/2026 cada layout pintava a
      própria página, e o resultado foi previsível — o `FiscalLayout` usava
@@ -2508,7 +2532,7 @@ All colors MUST be HSL.
      novo nasce certo por não fazer nada, que é o único jeito de nascer
      certo de forma confiável. A catraca está em `fundoDePagina.test.ts`. */
   body {
-    @apply bg-canvas text-foreground;
+    @apply bg-background text-foreground;
     font-family: 'Work Sans', sans-serif;
   }
   

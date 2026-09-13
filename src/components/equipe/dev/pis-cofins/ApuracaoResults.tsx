@@ -5,11 +5,19 @@ import type { ApuracaoPisCofinsController, PisCofinsTab } from "@/hooks/useApura
 import { ApuracaoTab, CreditosTab, DebitosTab, ResumoTab } from "@/components/equipe/dev/pis-cofins/ApuracaoMainTabs";
 import { RateioTab } from "@/components/equipe/dev/pis-cofins/RateioTab";
 
+/**
+ * As três caixas abaixo eram as ÚNICAS do produto que pintavam `bg-card` sem
+ * borda: elas apareciam pelo degrau entre o cartão e a página cinza. Em
+ * 12/09/2026 a página virou branca (ver a nota do `body` no `index.css`), o
+ * degrau deixou de existir e sem `border` sobrava só a sombra. É o mesmo
+ * contorno que o `<Card>` já declara — a caixa passou a se desenhar como o
+ * resto do produto em vez de depender do fundo atrás dela.
+ */
 export function ApuracaoResults({ controller }: { controller: ApuracaoPisCofinsController }) {
   if (!controller.searchTriggered) return null;
-  if (controller.query.isLoading) return <div className="bg-card rounded-xl shadow-sm p-6 space-y-3">{Array.from({ length: 8 }, (_, index) => <Skeleton key={index} className="h-8 w-full" />)}</div>;
-  if (controller.query.error) return <div className="bg-card rounded-xl shadow-sm p-8 text-center space-y-2"><AlertCircle className="h-8 w-8 text-destructive mx-auto" /><p className="text-sm text-foreground">Erro ao buscar dados</p><p className="text-xs text-muted-foreground">{controller.query.error.message}</p></div>;
-  if (!controller.hasData) return <div className="bg-card rounded-xl shadow-sm p-8 text-center">
+  if (controller.query.isLoading) return <div className="border bg-card rounded-xl shadow-sm p-6 space-y-3">{Array.from({ length: 8 }, (_, index) => <Skeleton key={index} className="h-8 w-full" />)}</div>;
+  if (controller.query.error) return <div className="border bg-card rounded-xl shadow-sm p-8 text-center space-y-2"><AlertCircle className="h-8 w-8 text-destructive mx-auto" /><p className="text-sm text-foreground">Erro ao buscar dados</p><p className="text-xs text-muted-foreground">{controller.query.error.message}</p></div>;
+  if (!controller.hasData) return <div className="border bg-card rounded-xl shadow-sm p-8 text-center">
     {controller.shouldCheckImports && !controller.imports.ready ? <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>Verificando documentos importados...</span></div> : <p className="text-sm text-muted-foreground">{controller.emptyStateMessage}</p>}
   </div>;
   return <>
