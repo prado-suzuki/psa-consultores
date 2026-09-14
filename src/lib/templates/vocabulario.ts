@@ -1253,8 +1253,11 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
        * segunda função, e é o que estes três fazem, chamando o `concordar` que
        * já qualifica pessoa.
        *
-       * O gênero NÃO se deduz do nome: "Conselho de Administração" termina em
-       * palavra feminina, e "Gestão" termina como "órgão", que é masculino.
+       * O gênero não se deduz da TERMINAÇÃO: "Conselho de Administração" acaba
+       * em palavra feminina, e "gestão" e "órgão" acabam igual sendo uma
+       * feminina e outro masculino. Deduz-se da primeira palavra, que é o
+       * núcleo, e quem faz isso é `generoDoOrgao` no cadastro. Aqui o campo
+       * chega resolvido.
        *
        * `interno` porque é propriedade da PALAVRA, não do órgão: no painel de
        * conferência ele não seria dado a conferir, seria uma alavanca para

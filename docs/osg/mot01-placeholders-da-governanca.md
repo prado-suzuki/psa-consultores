@@ -49,6 +49,14 @@ vigência do órgão não vira cláusula nenhuma. São histórico do sistema.
 `entra_no_contrato` também não é campo de texto: é o filtro que decide se o
 órgão gera cláusula, e isso é decisão de composição do modelo, não placeholder.
 
+**De onde vêm os valores, desde 14/09.** A seção "Composição" do modal de órgão,
+na tela "Órgãos de governança". Até então as colunas existiam no banco sem
+formulário, e os dois órgãos que o documento de teste conseguiu escrever tinham
+sido preenchidos por SQL. O gênero não é perguntado: `generoDoOrgao` adivinha
+pela primeira palavra do nome e a tela mostra a frase que vai sair, com um
+"trocar" ao lado. `padrao_chave` continua fora do formulário, posta pelo botão
+de padrões.
+
 ## 2. Papéis do órgão
 
 Papel é o que a tela Gerar pergunta ao consultor ("qual registro é este?"), e
