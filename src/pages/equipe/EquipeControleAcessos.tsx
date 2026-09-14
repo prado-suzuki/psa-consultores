@@ -206,8 +206,13 @@ const EquipeControleAcessos = () => {
     <AcessosLayout secao={secao} onSecaoChange={abrirSecao}>
 
           <div className="space-y-6">
-            {/* Stats Cards (extraído em componente) */}
-            <AccessStatsCards />
+            {/*
+              Os cartões falam de Páginas, Usuários e Permissões — e por isso
+              não aparecem em Produtos & Serviços, que não é sobre nenhum dos
+              três. Lá eles custavam a altura da primeira dobra para empurrar
+              para baixo a bancada em que o trabalho é feito.
+            */}
+            {secao !== 'cadastro_categorias' && <AccessStatsCards />}
 
             {/* Tabs */}
             {/* Sem `TabsList`: quem troca de secao e a barra. */}

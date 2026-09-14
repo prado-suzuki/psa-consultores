@@ -12,6 +12,9 @@ import ServicosLista, {
 import ServicoDetalhePanel, {
   type ProdutoVinculado,
 } from '@/components/equipe/produto-servico/ServicoDetalhePanel';
+import {
+  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
+} from '@/components/ui/sheet';
 import ProdutoFormDialog from '@/components/equipe/produto-servico/ProdutoFormDialog';
 import ServicoFormDialog from '@/components/equipe/produto-servico/ServicoFormDialog';
 import ConfirmarExclusaoDialog from '@/components/equipe/produto-servico/ConfirmarExclusaoDialog';
@@ -61,7 +64,6 @@ const FORM_FECHADO = { aberto: false, alvo: null };
 export default function ProdutosServicosTab() {
   const [produtoEscolhidoId, setProdutoEscolhidoId] = useState<string | null>(null);
   const [servicoAbertoId, setServicoAbertoId] = useState<string | null>(null);
-  const [painelAberto, setPainelAberto] = useState(true);
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [buscaProduto, setBuscaProduto] = useState('');
   const [cluster, setCluster] = useState<string>(TODOS_CLUSTERS);
@@ -452,100 +454,119 @@ export default function ProdutosServicosTab() {
         }}
         vazio={buscaProduto ? 'Nenhum produto com esse texto.' : 'Nenhum produto neste cluster.'}
       >
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-          {
-            /*
-              A coluna do meio fica SEMPRE montada. Antes, produto sem vínculo
-              nenhum trocava a coluna inteira por um cartaz — e o cartaz não tem
-              busca, não tem "Novo serviço" e não tem o lápis do produto. Quem
-              desvinculava tudo perdia o acesso a criar serviço no produto.
-              Agora a mesma mensagem desce como faixa dentro da coluna.
-            */
-            <ServicosLista
-              produto={produtoSelecionado}
-              doCluster={listasDeServico.doCluster}
-              outrosClusters={listasDeServico.outros}
-              mostrarOutros={mostrarOutrosClusters}
-              onMostrarOutros={setMostrarOutrosClusters}
-              idsVisiveis={idsVisiveis}
-              resumo={{ vinculados: vinculosDoProduto.length, total: totalPorCluster[produtoSelecionado?.cluster_id ?? ''] ?? 0 }}
-              filtro={filtroServico}
-              onFiltroChange={(patch) => setFiltroServico((atual) => ({ ...atual, ...patch }))}
-              marcados={marcados}
-              onMarcar={marcar}
-              onLimparMarcados={() => setMarcados(new Set())}
-              servicoAbertoId={servicoAbertoId}
-              onAbrirServico={(servico) => { setServicoAbertoId(servico.id); setPainelAberto(true); }}
-              onLote={(acao, alvos) => void executarLote(acao, alvos)}
-              onAlternarVinculo={(servico) => {
-                if (produtoSelecionado) void alternarVinculo(produtoSelecionado.id, servico.id, servico.nome);
-              }}
-              onNovo={() => setFormServico({ aberto: true, alvo: null })}
-              onEditarProduto={() => {
-                if (produtoSelecionado) setFormProduto({ aberto: true, alvo: produtoSelecionado });
-              }}
-              /*
-                Produto sem serviço é ESTADO VÁLIDO, e a faixa é informativa —
-                nem âmbar, nem alarme.
+        {/*
+          A lista fica SEMPRE montada. Antes, produto sem vínculo nenhum trocava
+          a coluna inteira por um cartaz — e o cartaz não tem busca, não tem
+          "Novo serviço" e não tem o lápis do produto. Quem desvinculava tudo
+          perdia o acesso a criar serviço no produto. Agora a mesma mensagem
+          desce como faixa dentro da coluna.
 
-                Ela dizia "sem vínculo, nenhum projeto pode ser cadastrado para
-                ele", e isso era falso. Conferido nos dois lados em 27/08/2026:
-                `validateProjectForm` não pede `servico_id`, e
-                `gerar_tarefas_projeto` sai por `select` vazio devolvendo 0, sem
-                exceção. Produto sem serviço cria projeto igual — o projeto só
-                nasce sem tarefa, que é o desenho do Canal de Chamados.
-              */
-              aviso={semVinculoNenhum ? (
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-md border bg-muted/40 px-2.5 py-2 text-xs text-muted-foreground">
-                  <span>
-                    Nenhum serviço vinculado. Projetos de{' '}
-                    <strong className="font-semibold text-foreground">
-                      {produtoSelecionado?.codigo} — {produtoSelecionado?.nome}
-                    </strong>
-                    {' '}são cadastrados normalmente; só nascem sem tarefa nenhuma.
-                  </span>
-                  {produtoSelecionado?.cluster_id && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="ml-auto h-7 text-xs"
-                      onClick={vincularSugeridosDoCluster}
-                    >
-                      Vincular sugeridos do mesmo cluster
-                    </Button>
-                  )}
-                </div>
-              ) : undefined}
-              carregando={isLoading}
-            />
-          }
+          O `div` que embrulhava esta coluna e o painel saiu junto com o painel:
+          a moldura `pagina` do `ListaMestreDetalhe` já entrega um slot flex, e
+          `ServicosLista` já é o item que o preenche.
+        */}
+        <ServicosLista
+          produto={produtoSelecionado}
+          doCluster={listasDeServico.doCluster}
+          outrosClusters={listasDeServico.outros}
+          mostrarOutros={mostrarOutrosClusters}
+          onMostrarOutros={setMostrarOutrosClusters}
+          idsVisiveis={idsVisiveis}
+          resumo={{ vinculados: vinculosDoProduto.length, total: totalPorCluster[produtoSelecionado?.cluster_id ?? ''] ?? 0 }}
+          filtro={filtroServico}
+          onFiltroChange={(patch) => setFiltroServico((atual) => ({ ...atual, ...patch }))}
+          marcados={marcados}
+          onMarcar={marcar}
+          onLimparMarcados={() => setMarcados(new Set())}
+          servicoAbertoId={servicoAbertoId}
+          onAbrirServico={(servico) => setServicoAbertoId(servico.id)}
+          onLote={(acao, alvos) => void executarLote(acao, alvos)}
+          onAlternarVinculo={(servico) => {
+            if (produtoSelecionado) void alternarVinculo(produtoSelecionado.id, servico.id, servico.nome);
+          }}
+          onNovo={() => setFormServico({ aberto: true, alvo: null })}
+          onEditarProduto={() => {
+            if (produtoSelecionado) setFormProduto({ aberto: true, alvo: produtoSelecionado });
+          }}
+          /*
+            Produto sem serviço é ESTADO VÁLIDO, e a faixa é informativa —
+            nem âmbar, nem alarme.
 
-          {painelAberto && (
-            <ServicoDetalhePanel
-              servico={servicoAberto}
-              cluster={clusterDoServico}
-              vinculados={produtosDoServico.vinculados}
-              disponiveis={produtosDoServico.disponiveis}
-              carregando={isLoading}
-              onEditar={() => {
-                const bruto = servicos.find((s) => s.id === servicoAberto?.id);
-                if (bruto) setFormServico({ aberto: true, alvo: bruto });
-              }}
-              onExcluir={() => {
-                const bruto = servicos.find((s) => s.id === servicoAberto?.id);
-                if (bruto) setServicoParaExcluir(bruto);
-              }}
-              onFechar={() => setPainelAberto(false)}
-              onDesvincular={(produto) => {
-                if (servicoAberto) void alternarVinculo(produto.id, servicoAberto.id, servicoAberto.nome);
-              }}
-              onVincular={(produtoId) => {
-                if (servicoAberto) void alternarVinculo(produtoId, servicoAberto.id, servicoAberto.nome);
-              }}
-            />
-          )}
-        </div>
+            Ela dizia "sem vínculo, nenhum projeto pode ser cadastrado para
+            ele", e isso era falso. Conferido nos dois lados em 27/08/2026:
+            `validateProjectForm` não pede `servico_id`, e
+            `gerar_tarefas_projeto` sai por `select` vazio devolvendo 0, sem
+            exceção. Produto sem serviço cria projeto igual — o projeto só
+            nasce sem tarefa, que é o desenho do Canal de Chamados.
+          */
+          aviso={semVinculoNenhum ? (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-md border bg-muted/40 px-2.5 py-2 text-xs text-muted-foreground">
+              <span>
+                Nenhum serviço vinculado. Projetos de{' '}
+                <strong className="font-semibold text-foreground">
+                  {produtoSelecionado?.codigo} — {produtoSelecionado?.nome}
+                </strong>
+                {' '}são cadastrados normalmente; só nascem sem tarefa nenhuma.
+              </span>
+              {produtoSelecionado?.cluster_id && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="ml-auto h-7 text-xs"
+                  onClick={vincularSugeridosDoCluster}
+                >
+                  Vincular sugeridos do mesmo cluster
+                </Button>
+              )}
+            </div>
+          ) : undefined}
+          carregando={isLoading}
+        />
       </ListaMestreDetalhe>
+
+      {/*
+        O detalhe do serviço vive SOBRE a tela, e não ao lado dela.
+
+        Era uma terceira coluna de 320px, sempre montada, que na maior parte do
+        tempo mostrava "Selecione um serviço" — um terço da largura reservado
+        para um vazio, enquanto a lista de serviços, que é onde se trabalha,
+        ficava com o que sobrava. O conteúdo é o mesmo e o gesto que abre também:
+        clicar no nome do serviço.
+      */}
+      <Sheet
+        open={!!servicoAberto}
+        onOpenChange={(aberto) => { if (!aberto) setServicoAbertoId(null); }}
+      >
+        <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-sm">
+          <SheetHeader className="sr-only">
+            <SheetTitle>{dividirNomeServico(servicoAberto?.nome).nome || 'Serviço'}</SheetTitle>
+            <SheetDescription>
+              Cluster do serviço e em quais produtos ele é usado.
+            </SheetDescription>
+          </SheetHeader>
+          <ServicoDetalhePanel
+            servico={servicoAberto}
+            cluster={clusterDoServico}
+            vinculados={produtosDoServico.vinculados}
+            disponiveis={produtosDoServico.disponiveis}
+            carregando={isLoading}
+            onEditar={() => {
+              const bruto = servicos.find((s) => s.id === servicoAberto?.id);
+              if (bruto) setFormServico({ aberto: true, alvo: bruto });
+            }}
+            onExcluir={() => {
+              const bruto = servicos.find((s) => s.id === servicoAberto?.id);
+              if (bruto) setServicoParaExcluir(bruto);
+            }}
+            onDesvincular={(produto) => {
+              if (servicoAberto) void alternarVinculo(produto.id, servicoAberto.id, servicoAberto.nome);
+            }}
+            onVincular={(produtoId) => {
+              if (servicoAberto) void alternarVinculo(produtoId, servicoAberto.id, servicoAberto.nome);
+            }}
+          />
+        </SheetContent>
+      </Sheet>
 
       <ProdutoFormDialog
         aberto={formProduto.aberto}
