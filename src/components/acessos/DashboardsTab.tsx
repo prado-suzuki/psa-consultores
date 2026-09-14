@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  Plus, Pencil, Trash2, RefreshCw, LayoutDashboard, Shield, Users, Building2,
+  Plus, Pencil, Trash2, Loader2, LayoutDashboard, Shield, Users, Building2,
   Layers, AlertTriangle,
 } from 'lucide-react';
 import { RequiredMark } from '@/components/ui/required-mark';
@@ -305,7 +305,7 @@ export default function DashboardsTab() {
 
       {isLoading ? (
         <Card className="flex items-center justify-center border-border/70 py-16 shadow-sm">
-          <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </Card>
       ) : items.length === 0 ? (
         <Card className="border-border/70 py-14 shadow-sm">
@@ -528,7 +528,7 @@ export default function DashboardsTab() {
           <DialogFooter className="shrink-0 border-t border-border bg-muted/60 px-6 py-3.5">
             <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving && <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" />}Salvar
+              {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}Salvar
             </Button>
           </DialogFooter>
         </DialogContent>

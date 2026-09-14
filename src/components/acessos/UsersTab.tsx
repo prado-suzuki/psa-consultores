@@ -4,7 +4,7 @@ import type { AppRole, UserWithRoles } from '@/hooks/useUsersWithRoles';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PapelBadge } from '@/components/ui/PapelBadge';
-import { RefreshCw, Pencil, Trash2, Users } from 'lucide-react';
+import { Loader2, Pencil, Trash2, Users } from 'lucide-react';
 import { useUsersWithRoles } from '@/hooks/useUsersWithRoles';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useUserPageAccess } from '@/hooks/useUserPageAccess';
@@ -108,7 +108,7 @@ export const UsersTab = () => {
           <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
             {loadingUsers ? (
               <div className="flex items-center justify-center py-4">
-                <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
               </div>
             ) : groupedUsers.length === 0 ? (
               <div className="text-center py-6 text-sm text-muted-foreground">
