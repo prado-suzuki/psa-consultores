@@ -6,6 +6,7 @@ import { useOnusDaEmpresa } from '@/hooks/useDoacaoDeQuotas';
 import { useBensByCliente, useCartorios } from '@/hooks/useDiagnosticoPatrimonial';
 import { useExploracaoRural, type ExploracaoRuralEnriched } from '@/hooks/useExploracaoRural';
 import { STATUS_ELEGIVEIS_PARA_INTEGRALIZACAO } from '@/lib/osg/statusIntegralizacao';
+import { ehEspecieDeDireito } from '@/lib/osg/integralizacaoDaMatricula';
 import type { TipoEntidade } from '@/lib/templates/vocabulario';
 import { PARES } from '@/lib/templates/concordancia';
 import {
@@ -52,7 +53,7 @@ const MATRICULA_GERACAO_SELECT = `
     area_construida_m2, participa_estruturacao
   ),
   cartorio:cartorio_id ( nome_completo, comarca, uf ),
-  titularidade ( integralizador, fracao, titular:titular_pessoa_id ( id, denominacao, cliente_id ) )
+  titularidade ( integralizador, fracao, tipo, vlr_contabil, vlr_integralizar, titular:titular_pessoa_id ( id, denominacao, cliente_id ) )
 `;
 
 interface RawMatriculaGeracao {
@@ -74,8 +75,31 @@ interface RawMatriculaGeracao {
   titularidade: Array<{
     integralizador: boolean | null;
     fracao: number | null;
+    tipo: string | null;
+    vlr_contabil: number | null;
+    vlr_integralizar: number | null;
     titular: { id: string; denominacao: string | null; cliente_id: string | null } | null;
   }> | null;
+}
+
+/**
+ * Os valores por titular que o mapeador recebe de UMA linha de titularidade.
+ *
+ * A linha de FATO e a de USUFRUTO chegam zeradas de propósito: quem integraliza
+ * é quem tem a PROPRIEDADE (decisão 5 do plano de 14/09/2026), e o
+ * `dedupTitulares` do mapeador funde as linhas da mesma pessoa preferindo a que
+ * tem valor. Filtrar aqui, e não lá, mantém uma regra só sobre o que a espécie
+ * significa — o mapeador não conhece `titularidade.tipo`.
+ */
+function valoresDoTitular(
+  tipo: string | null,
+  vlrContabil: number | null,
+  vlrIntegralizar: number | null,
+): { vlrContabil: number | null; vlrIntegralizar: number | null } {
+  if (tipo != null && !ehEspecieDeDireito(tipo)) {
+    return { vlrContabil: null, vlrIntegralizar: null };
+  }
+  return { vlrContabil, vlrIntegralizar };
 }
 
 function useMatriculasGeracao(clienteId: string | null) {
@@ -290,7 +314,7 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
             area_documento, area_unidade, vlr_contabil, confrontacoes_texto, descricao_psa_completa,
             tipo_bem, tipo_exploracao_posse,
             cartorio:cartorio_id ( nome_completo, comarca, uf ),
-            titularidade ( id, integralizador, fracao, titular:titular_pessoa_id ( id, denominacao, tipo_pessoa, cpf_cnpj ) ),
+            titularidade ( id, integralizador, fracao, tipo, vlr_contabil, vlr_integralizar, titular:titular_pessoa_id ( id, denominacao, tipo_pessoa, cpf_cnpj ) ),
             impedimento ( id, cancelado )
           )
         `)
@@ -318,7 +342,8 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
           cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
           titularidade: Array<{
             id: string;
-            integralizador: boolean | null; fracao: number | null;
+            integralizador: boolean | null; fracao: number | null; tipo: string | null;
+            vlr_contabil: number | null; vlr_integralizar: number | null;
             titular: { id: string; denominacao: string | null; tipo_pessoa: string | null; cpf_cnpj: string | null } | null;
           }> | null;
           impedimento: Array<{ id: string; cancelado: boolean | null }> | null;
@@ -370,6 +395,11 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
               cpfCnpj: t.titular?.cpf_cnpj ?? null,
               integralizador: !!t.integralizador,
               fracao: t.fracao ?? null,
+              // Os valores por titular viajam só da linha DE DIREITO: quem
+              // integraliza é quem tem a propriedade, e o usufrutuário não
+              // integraliza (decisão 5 do plano de 14/09/2026). A linha de fato
+              // chega zerada e o `dedupTitulares` prefere a que tem valor.
+              ...valoresDoTitular(t.tipo, t.vlr_contabil, t.vlr_integralizar),
             })),
           });
         }

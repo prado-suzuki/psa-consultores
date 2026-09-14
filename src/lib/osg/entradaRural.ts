@@ -19,6 +19,7 @@
  * Ou seja: este arquivo não é organização, é a correção de um ponto cego. Se a
  * conversão viver em dois lugares, o teste volta a validar outra coisa.
  */
+import { ehEspecieDeDireito } from '@/lib/osg/integralizacaoDaMatricula';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { MatriculaParaMapear } from '@/lib/templates/mapeadores';
 import type {
@@ -68,6 +69,10 @@ export interface MatriculaCrua {
   titularidade: Array<{
     integralizador: boolean | null;
     fracao: number | null;
+    /** Espécie da titularidade: só a DE DIREITO carrega os valores por titular. */
+    tipo?: string | null;
+    vlr_contabil?: number | null;
+    vlr_integralizar?: number | null;
     titular: { id: string; denominacao: string | null; cliente_id?: string | null } | null;
   }> | null;
 }
@@ -109,6 +114,11 @@ export function matriculaParaMapear(m: MatriculaCrua): MatriculaParaMapear {
       denominacao: t.titular?.denominacao ?? null,
       integralizador: !!t.integralizador,
       fracao: t.fracao ?? null,
+      // Só a linha DE DIREITO carrega valor: quem integraliza é quem tem a
+      // propriedade, e o usufrutuário não integraliza. Sem `tipo` (JOIN legado
+      // que não o pede) o valor não viaja, e o mapeador cai na conta antiga.
+      vlrContabil: t.tipo != null && ehEspecieDeDireito(t.tipo) ? t.vlr_contabil ?? null : null,
+      vlrIntegralizar: t.tipo != null && ehEspecieDeDireito(t.tipo) ? t.vlr_integralizar ?? null : null,
     })),
   } as MatriculaParaMapear;
 }

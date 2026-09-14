@@ -824,8 +824,41 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
           return construida < total - 0.01 ? 'sim' : '';
         },
       },
+      // Três valores, porque na integralização eles DIVERGEM e o bloco precisa
+      // dizer qual está dizendo (frente de 14/09/2026):
+      //   · `valor` é o de sempre — o do imóvel no cadastro, MAS sobrescrito
+      //     dentro de {{#integralizacoes}} pelo que o sócio da alínea
+      //     integraliza, que é o comportamento que os modelos já esperam;
+      //   · `valorDoImovel` é o do imóvel, sempre, mesmo dentro da alínea;
+      //   · `valorIntegralizado` é o que AQUELE sócio integraliza, sempre.
+      // Com integralização parcial (A entra com 33%, B segura 67%) e com
+      // matrícula dividida entre dois sócios, "avaliado em R$ X" e "integraliza
+      // R$ Y" são números diferentes, e o leitor que soma as alíneas precisa dos
+      // dois para não achar que o capital está errado.
       { id: 'valor', label: 'Valor contábil (R$)', tipo: 'valor' },
       valorExtensoCampo,
+      { id: 'valorDoImovel', label: 'Valor contábil do imóvel inteiro (R$)', tipo: 'valor' },
+      {
+        id: 'valorDoImovelExtenso',
+        label: 'Valor do imóvel inteiro (por extenso)',
+        tipo: 'texto',
+        derivadoDe: 'valorDoImovel',
+        derivar: (v) => {
+          const n = paraNumeroBR(v.valorDoImovel);
+          return Number.isFinite(n) ? valorExtenso(n) : '';
+        },
+      },
+      { id: 'valorIntegralizado', label: 'Valor que este sócio integraliza (R$)', tipo: 'valor' },
+      {
+        id: 'valorIntegralizadoExtenso',
+        label: 'Valor que este sócio integraliza (por extenso)',
+        tipo: 'texto',
+        derivadoDe: 'valorIntegralizado',
+        derivar: (v) => {
+          const n = paraNumeroBR(v.valorIntegralizado);
+          return Number.isFinite(n) ? valorExtenso(n) : '';
+        },
+      },
       { id: 'denominacao', label: 'Denominação', tipo: 'texto' },
       { id: 'proprietario', label: 'Proprietário(s)', tipo: 'texto' },
       // Fração integralizada (composse/condomínio): o titular integralizador
