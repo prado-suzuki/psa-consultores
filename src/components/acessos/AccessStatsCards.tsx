@@ -1,13 +1,22 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Users, ShieldCheck } from 'lucide-react';
+import { MetricCard } from '@/components/ui/metric-card';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useUsersWithRoles } from '@/hooks/useUsersWithRoles';
 import { useUserPageAccess } from '@/hooks/useUserPageAccess';
 
 /**
- * Três cards de estatísticas no topo do Controle de Acessos.
+ * Três cartões de contagem no topo do Controle de Acessos.
  * Páginas ativas, total de usuários, permissões customizadas.
  * Dados via hooks compartilhados — React Query deduplica as requisições.
+ *
+ * Eram `<Card>` escritos à mão, e a seção Papéis — na MESMA tela, um clique ao
+ * lado — já montava os quatro cartões dela com `MetricCard`. Dois desenhos de
+ * cartão de contagem na mesma página: o ícone aqui era círculo de `p-2`, lá um
+ * quadrado de 40px; o título aqui era `text-foreground`, lá `muted`.
+ *
+ * Passam a ser o mesmo componente. O que muda para quem olha é só isso: ícone
+ * em quadrado arredondado, título em cinza, e a borda no valor cheio em vez de
+ * 60%.
  */
 export const AccessStatsCards = () => {
   const { data: pages } = usePagePermissions();
@@ -27,46 +36,27 @@ export const AccessStatsCards = () => {
      que manda aqui e a da COLUNA, nao a da tela. */
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-      <Card className="border-border/60 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium text-foreground">Páginas Ativas</CardTitle>
-          <div className="p-2 rounded-full bg-primary/15">
-            <FileText className="h-4 w-4 text-primary" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold text-foreground">{activePages}</div>
-          <p className="text-sm text-muted-foreground">de {totalPages} páginas</p>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border/60 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium text-foreground">Usuários</CardTitle>
-          <div className="p-2 rounded-full bg-primary/15">
-            <Users className="h-4 w-4 text-primary" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold text-foreground">{totalUsers}</div>
-          <p className="text-sm text-muted-foreground">cadastrados no sistema</p>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border/60 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium text-foreground">
-            Permissões Customizadas
-          </CardTitle>
-          <div className="p-2 rounded-full bg-primary/15">
-            <ShieldCheck className="h-4 w-4 text-primary" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold text-foreground">{totalAccess}</div>
-          <p className="text-sm text-muted-foreground">acessos individuais</p>
-        </CardContent>
-      </Card>
+      <MetricCard
+        title="Páginas Ativas"
+        value={activePages}
+        change={`de ${totalPages} páginas`}
+        icon={<FileText className="h-5 w-5 text-primary" />}
+        iconColor="bg-primary/15"
+      />
+      <MetricCard
+        title="Usuários"
+        value={totalUsers}
+        change="cadastrados no sistema"
+        icon={<Users className="h-5 w-5 text-primary" />}
+        iconColor="bg-primary/15"
+      />
+      <MetricCard
+        title="Permissões Customizadas"
+        value={totalAccess}
+        change="acessos individuais"
+        icon={<ShieldCheck className="h-5 w-5 text-primary" />}
+        iconColor="bg-primary/15"
+      />
     </div>
   );
 };
