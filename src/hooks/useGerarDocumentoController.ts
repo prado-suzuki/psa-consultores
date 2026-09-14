@@ -1412,10 +1412,26 @@ export function useGerarDocumentoController() {
       if (candidatos.length === 1) aLigar[b.nome] = candidatos[0].id;
     }
 
-    if (Object.keys(aLigar).length > 0) {
-      setRegistroPorBinding((prev) => ({ ...aLigar, ...prev }));
-    }
-  }, [orgaosGovQ, bindings, registroPorBinding]);
+    if (Object.keys(aLigar).length === 0) return;
+
+    /*
+     * DUAS COISAS, E NÃO UMA. Marcar o registro escolhido não preenche o
+     * documento: quem carrega os campos é `selecao`, e é por isso que
+     * `escolherRegistro` mexe nos dois estados. A primeira versão deste efeito
+     * só mexia em `registroPorBinding`, e o resultado foi a pergunta sumir da
+     * tela e a geração continuar morrendo em "Placeholder não resolvido":
+     * o Conselho aparecia escolhido e chegava vazio ao Word.
+     */
+    setRegistroPorBinding((prev) => ({ ...aLigar, ...prev }));
+    setSelecao((prev) => {
+      const next = { ...prev };
+      for (const [nome, id] of Object.entries(aLigar)) {
+        const reg = registros.orgaoGovernanca.find((r) => r.id === id);
+        if (reg) next[nome] = camposDoRegistro('orgaoGovernanca', reg.row);
+      }
+      return next;
+    });
+  }, [orgaosGovQ, bindings, registroPorBinding, registros]);
 
   // Capital social + total de quotas da sociedade: a PR ainda sem quadro gravado
   // soma as integralizações aprovadas (quota = R$ 1,00); as demais (e a PR
