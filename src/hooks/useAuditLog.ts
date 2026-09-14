@@ -71,7 +71,14 @@ type AuditEntityType =
   // nao os milhares de valores dela: um registro por linha afogaria o log.
   | 'wp_importacao'
   | 'wp_apresentacao'
-  | 'wp_estudo';
+  | 'wp_estudo'
+  // Controle de Acessos: o vinculo de PAPEL (`user_roles`) e o de AREA DE
+  // ACESSO (o conjunto de paginas de uma area em `user_page_access`). O
+  // `entity_id` dos dois e o id da PESSOA, e nao o da linha de vinculo: a
+  // pergunta que se faz ao log e sempre "o que mudou no acesso do fulano", e a
+  // linha de `user_roles` deixa de existir no momento em que o papel e tirado.
+  | 'papel'
+  | 'area_de_acesso';
 
 interface AuditLogEntry {
   area: AuditArea;

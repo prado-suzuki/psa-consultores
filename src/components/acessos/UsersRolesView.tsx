@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Shield, Users, CheckCircle, XCircle, UserCheck } from 'lucide-react';
 import { MetricCard } from '@/components/ui/metric-card';
 import { useUsersWithRoles, type AppRole } from '@/hooks/useUsersWithRoles';
+import { PainelDaMatrizDeAcessos } from './PainelDaMatrizDeAcessos';
 
 /* A segunda cópia do mapa de papel morreu aqui em 11/09/2026. Esta era a que
    passava em AA nos sete — a da lista de usuários reprovava em quatro —, e duas
@@ -33,6 +34,16 @@ export interface UsersRolesViewProps {
   roleColumns?: AppRole[];
   /** Label customizado para a coluna"team_member" (compact usa"Equipe", full usa"Membro"). */
   teamMemberColumnLabel?: string;
+  /**
+   * Troca a tabela de leitura pelo painel editável (filtros, interruptor de
+   * eixo, seleção em lote e célula que grava no clique).
+   *
+   * É opt-in, e o default é `false`, porque `/administracao/acessos` mostra a
+   * mesma informação para quem não administra acesso nenhum — lá a tabela
+   * continua sendo o que sempre foi. Os cartões e a legenda são comuns aos
+   * dois: eles descrevem o sistema, não o que você pode mexer.
+   */
+  editavel?: boolean;
 }
 
 const VARIANT_COLUMNS: Record<NonNullable<UsersRolesViewProps['variant']>, AppRole[]> = {
@@ -54,6 +65,7 @@ export const UsersRolesView = ({
   variant = 'compact',
   roleColumns,
   teamMemberColumnLabel,
+  editavel = false,
 }: UsersRolesViewProps) => {
   const { data: usersWithRoles, isLoading } = useUsersWithRoles();
 
@@ -113,6 +125,9 @@ export const UsersRolesView = ({
       </div>
 
       {/* Users Table */}
+      {editavel ? (
+        <PainelDaMatrizDeAcessos />
+      ) : (
       <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle className="text-foreground">Usuários e Permissões</CardTitle>
@@ -186,6 +201,7 @@ export const UsersRolesView = ({
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Access Legend */}
       <Card className="mt-6 border-border shadow-sm">
