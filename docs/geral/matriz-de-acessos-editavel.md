@@ -110,6 +110,52 @@ significam algo sob "TAX › Tax", e existem duas áreas chamadas OSG em cluster
 diferentes. Por isso o cabeçalho dela tem duas linhas — a área em miúdo, o nome
 embaixo — e as colunas vêm na ordem do caminho, para as irmãs ficarem vizinhas.
 
+### Ordenação por clique
+
+**Crescente → decrescente → padrão.** O terceiro clique existe porque tabela sem
+como desfazer a ordenação obriga a recarregar a página para recuperar a leitura
+original.
+
+O que ela tem além de conveniência: clicar numa **coluna da matriz** junta quem
+tem aquilo no topo — "quem são os 5 admins destes 68" deixa de precisar do
+filtro. Por isso, numa coluna de ✓, o primeiro clique é *quem tem primeiro* e
+não A→Z: ele responde a pergunta que levou a pessoa a clicar ali.
+
+Três regras que não são estilo:
+
+- **Todo critério desempata por nome.** Sem isso, ordenar por coluna booleana
+  deixaria a ordem dentro de cada bloco à mercê do que o banco devolveu, e as
+  mesmas 68 linhas apareceriam diferentes a cada carga.
+- **Trocar de eixo devolve a ordem ao padrão quando ela era por coluna.**
+  Ordenar por "Admin" e passar para Equipes deixaria a ordenação apontando para
+  uma coluna que não existe naquele eixo: empate geral, e nenhum cabeçalho
+  explicando. Ordem por nome ou e-mail atravessa a troca — essas colunas existem
+  nos três eixos.
+- **A seta aparece sempre, não só no hover.** Cabeçalho que só a revela sob o
+  ponteiro não avisa que a tabela é ordenável, e não diz nada a quem usa teclado
+  ou toque. `aria-sort` no `<th>`, conferido no DOM nos três estados.
+
+### A largura em produção, e o que ficou de fora
+
+O sandbox tem 8 equipes; **produção tem 11**. Montei uma tabela real de 11
+colunas dentro da página para medir, e duas coisas tiveram de mudar:
+
+- **O e-mail sai na dimensão de equipe.** As 11 colunas pedem 1278px só para
+  elas; a coluna de e-mail (220px) levava o total a 1758px — mais que os 1566px
+  de uma tela de 1920.
+- **O caminho da área trunca a 7,5rem; o nome não.** "TAX › Trabalhos
+  compartilhados OSG" mede 187px e se repete em duas colunas irmãs, enquanto
+  "Fiscal" mede 52. O caminho é *contexto* (repete entre irmãs), o nome é
+  *identidade*. O caminho inteiro fica no `title` e no rótulo de cada célula.
+
+**1574px → 1313px.** A 1920 cabe com 253px de folga.
+
+> **Não resolvido:** abaixo de ~1650px a matriz de Equipes rola na horizontal, e
+> a coluna do nome sai da tela — que é o defeito que esta mesma frente corrigiu
+> na dimensão de papéis. A saída seria fixar a coluna do nome (`sticky`), e ela
+> esbarra no contrato de cor: célula fixa precisa de fundo **opaco**, e o cartão
+> desta tela é translúcido (`--muted` a 35%). É decisão de projeto, não detalhe.
+
 ### Duas travas
 
 - **Ninguém remove o próprio `admin`.** Vive na mutação, não no botão: quem se
