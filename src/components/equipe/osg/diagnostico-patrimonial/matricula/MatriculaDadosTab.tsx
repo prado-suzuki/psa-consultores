@@ -19,9 +19,23 @@ const EXPLORACAO = ['Exploração Direta', 'Arrendamento', 'Parceria', 'Comodato
 const GEORREF = ['Sim', 'Não', 'Parcial', 'Em processo'];
 const UNIDADES = [{ value: 'ha', label: 'ha' }, { value: 'm2', label: 'm²' }, { value: 'ha_m2', label: 'ha e m²' }];
 
-interface Props { draft: DraftMatricula; onChange: (draft: DraftMatricula) => void; bemTipo: string | null; matricula: MatriculaRow | null; matriculasDoBem: MatriculaRow[]; }
+interface Props {
+  draft: DraftMatricula;
+  onChange: (draft: DraftMatricula) => void;
+  bemTipo: string | null;
+  matricula: MatriculaRow | null;
+  matriculasDoBem: MatriculaRow[];
+  /**
+   * Soma do contábil declarado pelos TITULARES da matrícula, quando ao menos um
+   * declarou. Com ela o campo "Vlr. contábil" vira leitura: o valor do imóvel é
+   * a soma do que cada titular pôs na DIRPF (decisão 7 do plano de 14/09/2026),
+   * e a coluna da matrícula passou a ser cache mantido pelo hook que salva o
+   * titular. Deixar os dois editáveis criaria duas verdades para o mesmo número.
+   */
+  contabilDosTitulares?: number | null;
+}
 
-export function MatriculaDadosTab({ draft, onChange, bemTipo, matricula, matriculasDoBem }: Props) {
+export function MatriculaDadosTab({ draft, onChange, bemTipo, matricula, matriculasDoBem, contabilDosTitulares = null }: Props) {
   const set = <K extends keyof DraftMatricula>(key: K, value: DraftMatricula[K]) => onChange({ ...draft, [key]: value });
   // Trocar a unidade CONVERTE o que já foi digitado (10.000 m² = 1 ha) em vez de
   // reinterpretar o número. Quando a conversão não cabe nas casas que gravamos
@@ -80,7 +94,9 @@ export function MatriculaDadosTab({ draft, onChange, bemTipo, matricula, matricu
     </FieldSection>
     {rural && <FieldSection number={next()} title="Georreferenciamento"><div className={`${formGridCls(2)} items-end gap-3`}><Campo rotulo="Status"><Select value={draft.georreferenciado || undefined} onValueChange={(v) => set('georreferenciado', v)}><SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger><SelectContent>{GEORREF.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></Campo><div className={switchBoxCls}><Switch checked={draft.georref_prejudica_transferencia} onCheckedChange={(v) => set('georref_prejudica_transferencia', v)} /><Label className="text-sm">Prejudica transferência</Label></div></div></FieldSection>}
     <FieldSection number={next()} title="Valores"><div className={`${formGridCls(3)} gap-3`}>
-      <Money label="Vlr. contábil" value={draft.vlr_contabil} onChange={(v) => set('vlr_contabil', v)} /><Money label="Vlr. contábil ajustado" value={draft.vlr_contabil_ajustado} onChange={(v) => set('vlr_contabil_ajustado', v)} /><Money label="Vlr. benfeitorias" value={draft.vlr_benfeitorias} onChange={(v) => set('vlr_benfeitorias', v)} /><Money label="Vlr. mercado" value={draft.vlr_mercado} onChange={(v) => set('vlr_mercado', v)} /><Money label={tipo === 'IR' ? 'ITR anual' : tipo === 'IB' ? 'IPTU anual' : 'Imposto anual'} value={draft.vlr_imposto_anual} onChange={(v) => set('vlr_imposto_anual', v)} /><Campo rotulo="Exercício"><Input type="number" value={draft.imposto_anual_exercicio} onChange={(e) => set('imposto_anual_exercicio', e.target.value)} placeholder="ex: 2025" className={`${fieldCls} font-mono`} /></Campo>
+      {contabilDosTitulares != null
+        ? <ContabilDosTitulares valor={contabilDosTitulares} />
+        : <Money label="Vlr. contábil" value={draft.vlr_contabil} onChange={(v) => set('vlr_contabil', v)} />}<Money label="Vlr. contábil ajustado" value={draft.vlr_contabil_ajustado} onChange={(v) => set('vlr_contabil_ajustado', v)} /><Money label="Vlr. benfeitorias" value={draft.vlr_benfeitorias} onChange={(v) => set('vlr_benfeitorias', v)} /><Money label="Vlr. mercado" value={draft.vlr_mercado} onChange={(v) => set('vlr_mercado', v)} /><Money label={tipo === 'IR' ? 'ITR anual' : tipo === 'IB' ? 'IPTU anual' : 'Imposto anual'} value={draft.vlr_imposto_anual} onChange={(v) => set('vlr_imposto_anual', v)} /><Campo rotulo="Exercício"><Input type="number" value={draft.imposto_anual_exercicio} onChange={(e) => set('imposto_anual_exercicio', e.target.value)} placeholder="ex: 2025" className={`${fieldCls} font-mono`} /></Campo>
     </div></FieldSection>
     <FieldSection number={next()} title="Histórico e descrição"><div className={`${formGridCls(2)} gap-3`}>
       <Campo rotulo="Tipo de exploração/posse"><Select value={draft.tipo_exploracao_posse || undefined} onValueChange={(v) => set('tipo_exploracao_posse', v)}><SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger><SelectContent>{EXPLORACAO.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></Campo>
@@ -96,3 +112,25 @@ export function MatriculaDadosTab({ draft, onChange, bemTipo, matricula, matricu
 function Wide({ label, children }: { label: string; children: React.ReactNode }) { return <div className={`space-y-1.5 ${formSpanCls(2)}`}><Label className={labelCls}>{label}</Label>{children}</div>; }
 function Area({ label, required, campo, value, onChange }: { label: string; required?: boolean; campo?: string; value: string; onChange: (value: string) => void }) { return <Campo rotulo={label} required={required} campo={campo}><Input type="number" step={AREA_STEP} value={value} onChange={(e) => onChange(clampAreaInput(e.target.value))} className={`${fieldCls} font-mono`} /></Campo>; }
 function Money({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <Campo rotulo={label}><CurrencyInput value={value} onChange={onChange} className={`${fieldCls} font-mono`} /></Campo>; }
+
+// O contábil que veio dos titulares: mostrado como campo desabilitado, e não
+// escondido, porque ele continua sendo o número que o resto do sistema lê
+// (relatório do DP, calculadora de ITCMD, mapeador). Quem quer mudá-lo muda o
+// valor do titular, e a legenda diz onde.
+function ContabilDosTitulares({ valor }: { valor: number }) {
+  return (
+    <Campo rotulo="Vlr. contábil">
+      <Input
+        readOnly
+        tabIndex={-1}
+        value={brlContabil.format(valor)}
+        aria-label="Valor contábil (soma dos titulares)"
+        title="Soma do contábil declarado pelos titulares — edite na aba Titularidade"
+        className={`${fieldCls} cursor-not-allowed bg-muted/50 font-mono text-muted-foreground`}
+      />
+      <span className="text-[11px] text-muted-foreground">soma dos titulares (aba Titularidade)</span>
+    </Campo>
+  );
+}
+
+const brlContabil = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });

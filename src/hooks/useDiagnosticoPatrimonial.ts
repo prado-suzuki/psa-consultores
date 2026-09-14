@@ -4,6 +4,11 @@ import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { computeFieldDiff } from '@/lib/diffUtils';
 import { derivarValoresDoBem, type ValoresDoBem } from '@/lib/osg/valoresDoBem';
+import {
+  somaContabilDosTitulares,
+  titularesEfetivos,
+  type LinhaDeTitularidade,
+} from '@/lib/osg/integralizacaoDaMatricula';
 import type { Database, Json } from '@/integrations/supabase/types';
 
 // Endereço e área construída do imóvel urbano (migration 20260806120500). Vivem
@@ -84,6 +89,7 @@ const MATRICULA_DIFF_FIELDS: (keyof MatriculaRow)[] = [
 
 const TITULARIDADE_DIFF_FIELDS: (keyof TitularidadeRow)[] = [
   'matricula_id', 'bem_id', 'titular_pessoa_id', 'tipo', 'fracao', 'integralizador',
+  'vlr_contabil', 'vlr_integralizar',
 ];
 
 const IMPEDIMENTO_DIFF_FIELDS: (keyof ImpedimentoRow)[] = [
@@ -398,6 +404,14 @@ export interface TitularInicial {
   titular_pessoa_id: string;
   tipo: string;
   fracao: number | null;
+  /**
+   * Os dois valores por titular da matrícula. Opcionais porque o mesmo tipo
+   * serve à criação de BEM sem matrícula, que não os tem (decisão 4 do plano de
+   * 14/09/2026), e porque nulo em `vlr_integralizar` é o estado "não
+   * integraliza", não um dado faltando.
+   */
+  vlr_contabil?: number | null;
+  vlr_integralizar?: number | null;
 }
 
 /**
@@ -422,9 +436,39 @@ async function inserirTitularesRestantes(
       titular_pessoa_id: titular.titular_pessoa_id,
       tipo: titular.tipo,
       fracao: titular.fracao,
+      vlr_contabil: titular.vlr_contabil ?? null,
+      vlr_integralizar: titular.vlr_integralizar ?? null,
     })) as RawTitularidadeInsert[],
   );
   if (error) throw error;
+}
+
+/**
+ * Os valores do PRIMEIRO titular, gravados logo depois da RPC de criação.
+ *
+ * A RPC `criar_matricula_com_titular` insere a titularidade com colunas fixas
+ * (pessoa, tipo, fração) e ignora o resto do jsonb. Mudá-la é DDL, portanto
+ * passo humano em produção; até lá o primeiro titular recebe os valores num
+ * update logo em seguida, endereçado pela chave natural que o índice único
+ * `titularidade_unq` garante ser única: (matrícula, pessoa, tipo).
+ *
+ * Falhar aqui não derruba a criação: a matrícula e o titular já existem, e o
+ * valor é editável na aba de titularidade.
+ */
+async function gravarValoresDoPrimeiroTitular(
+  matriculaId: string,
+  titular: TitularInicial,
+): Promise<void> {
+  if (titular.vlr_contabil == null && titular.vlr_integralizar == null) return;
+  await supabase
+    .from('titularidade')
+    .update({
+      vlr_contabil: titular.vlr_contabil ?? null,
+      vlr_integralizar: titular.vlr_integralizar ?? null,
+    } as unknown as RawTitularidadeUpdate)
+    .eq('matricula_id', matriculaId)
+    .eq('titular_pessoa_id', titular.titular_pessoa_id)
+    .eq('tipo', titular.tipo);
 }
 
 export function useUpsertMatricula() {
@@ -470,6 +514,11 @@ export function useUpsertMatricula() {
       if (error) throw error;
       const row = data as MatriculaRow;
       await inserirTitularesRestantes({ matricula_id: row.id }, demais);
+      await gravarValoresDoPrimeiroTitular(row.id, primeiro);
+      // O contábil da matrícula é a soma dos titulares: se algum deles nasceu
+      // com valor, o que o formulário digitou no campo do imóvel é substituído
+      // pela soma, em vez de as duas verdades conviverem.
+      await tentarSincronizarContabil(row.id);
       return { row, original: null };
     },
     onSuccess: async ({ row, original }) => {
@@ -637,6 +686,23 @@ function invalidateTitularidadeLists(
   }
 }
 
+/**
+ * O que precisa cair quando a soma dos titulares muda `matricula.vlr_contabil`:
+ * as listas de matrícula (o modal e a coluna) e a lista de bens, cujo "Total
+ * contábil" é a soma das matrículas. Sem isto o número novo só apareceria no
+ * próximo recarregamento da página.
+ */
+function invalidateMatriculaDerivada(
+  queryClient: ReturnType<typeof useQueryClient>,
+  matriculaId: string | null,
+) {
+  if (!matriculaId) return;
+  queryClient.invalidateQueries({ queryKey: ['matriculas-by-bem'] });
+  queryClient.invalidateQueries({ queryKey: ['matriculas-all'] });
+  queryClient.invalidateQueries({ queryKey: ['matriculas-orphan'] });
+  invalidateBensDerivados(queryClient);
+}
+
 function useTitularidadesByAnchor(anchor: TitularidadeAnchor | null) {
   return useQuery<TitularidadeEnriched[]>({
     queryKey: anchor ? anchorQueryKey(anchor) : ['titularidades-by-none'],
@@ -675,6 +741,54 @@ export function useTitularidadesByBem(bemId: string | null) {
   return useTitularidadesByAnchor(bemId ? { kind: 'bem', id: bemId } : null);
 }
 
+/**
+ * `matricula.vlr_contabil` passou a ser CACHE da soma dos contábeis dos
+ * titulares (decisão 7 do plano de 14/09/2026). Ele não sai da tabela porque o
+ * relatório do DP, a calculadora de ITCMD e o mapeador leem dele, e derivar a
+ * soma em cada um desses lugares espalharia a mesma conta por quatro telas.
+ *
+ * Quem mantém o cache é esta função, chamada por toda mutação de titularidade
+ * ancorada em matrícula. Enquanto NINGUÉM declarou valor a coluna não é tocada:
+ * ela continua sendo o campo digitado no modal, que é a fonte enquanto o
+ * cadastro por titular não existe para aquela matrícula.
+ */
+async function sincronizarContabilDaMatricula(matriculaId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from('titularidade')
+    .select('id, titular_pessoa_id, tipo, fracao, vlr_contabil, vlr_integralizar')
+    .eq('matricula_id', matriculaId);
+  if (error) throw error;
+
+  const soma = somaContabilDosTitulares(
+    titularesEfetivos((data ?? []) as unknown as LinhaDeTitularidade[]),
+  );
+  if (soma == null) return;
+
+  const { error: erroDaSoma } = await supabase
+    .from('matricula')
+    .update({ vlr_contabil: soma } as MatriculaUpdate)
+    .eq('id', matriculaId);
+  if (erroDaSoma) throw erroDaSoma;
+}
+
+/**
+ * Sincroniza o cache e diz se conseguiu, em vez de derrubar a mutação.
+ *
+ * A titularidade JÁ FOI GRAVADA quando isto roda. Propagar o erro faria a tela
+ * anunciar falha sobre um dado que salvou, que é o modo de falha mais caro que
+ * este módulo já teve (ver o `.select()` no delete). Falhar aqui só desatualiza
+ * um total que a próxima edição recalcula, e a tela avisa.
+ */
+async function tentarSincronizarContabil(matriculaId: string | null): Promise<boolean> {
+  if (!matriculaId) return true;
+  try {
+    await sincronizarContabilDaMatricula(matriculaId);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function useUpsertTitularidade() {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
@@ -687,26 +801,32 @@ export function useUpsertTitularidade() {
       values: TitularidadeInsert | TitularidadeUpdate;
       original?: TitularidadeRow | null;
     }) => {
-      if (original?.id) {
+      const gravar = async () => {
+        if (original?.id) {
+          const { data, error } = await supabase
+            .from('titularidade')
+            .update(values as unknown as RawTitularidadeUpdate)
+            .eq('id', original.id)
+            .select('*')
+            .single();
+          if (error) throw error;
+          return { row: data as TitularidadeRow, original };
+        }
         const { data, error } = await supabase
           .from('titularidade')
-          .update(values as unknown as RawTitularidadeUpdate)
-          .eq('id', original.id)
+          .insert(values as unknown as RawTitularidadeInsert)
           .select('*')
           .single();
         if (error) throw error;
-        return { row: data as TitularidadeRow, original };
-      }
-      const { data, error } = await supabase
-        .from('titularidade')
-        .insert(values as unknown as RawTitularidadeInsert)
-        .select('*')
-        .single();
-      if (error) throw error;
-      return { row: data as TitularidadeRow, original: null };
+        return { row: data as TitularidadeRow, original: null };
+      };
+      const salvo = await gravar();
+      const somaOk = await tentarSincronizarContabil(salvo.row.matricula_id);
+      return { ...salvo, somaOk };
     },
-    onSuccess: async ({ row, original }) => {
+    onSuccess: async ({ row, original, somaOk }) => {
       invalidateTitularidadeLists(queryClient, row);
+      invalidateMatriculaDerivada(queryClient, row.matricula_id);
 
       const changed = computeFieldDiff(
         original as unknown as Record<string, unknown> | null,
@@ -723,7 +843,14 @@ export function useUpsertTitularidade() {
         changed_fields: Object.keys(changed).length > 0 ? changed : undefined,
       });
 
-      toast({ title: original ? 'Titularidade atualizada' : 'Titularidade cadastrada' });
+      if (somaOk) {
+        toast({ title: original ? 'Titularidade atualizada' : 'Titularidade cadastrada' });
+      } else {
+        toast({
+          title: original ? 'Titularidade atualizada' : 'Titularidade cadastrada',
+          description: 'O valor contábil da matrícula não pôde ser recalculado agora; a próxima edição o acerta.',
+        });
+      }
     },
     onError: (error: Error) => {
       toast({ title: 'Erro ao salvar titularidade', description: error.message, variant: 'destructive' });
@@ -807,10 +934,13 @@ export function useDeleteTitularidade() {
           'A exclusão foi recusada pelo banco. Você não tem permissão para remover a titularidade deste cliente.',
         );
       }
-      return titularidade;
+      // Sai um titular, muda a soma: o cache da matrícula tem de acompanhar.
+      const somaOk = await tentarSincronizarContabil(titularidade.matricula_id);
+      return { titularidade, somaOk };
     },
-    onSuccess: async (titularidade) => {
+    onSuccess: async ({ titularidade, somaOk }) => {
       invalidateTitularidadeLists(queryClient, titularidade);
+      invalidateMatriculaDerivada(queryClient, titularidade.matricula_id);
       await logAction({
         area: 'osg',
         entity_type: 'titularidade',
@@ -818,7 +948,12 @@ export function useDeleteTitularidade() {
         entity_name: titularidade.tipo,
         action: 'deleted',
       });
-      toast({ title: 'Titularidade removida' });
+      toast({
+        title: 'Titularidade removida',
+        description: somaOk
+          ? undefined
+          : 'O valor contábil da matrícula não pôde ser recalculado agora; a próxima edição o acerta.',
+      });
     },
     onError: (error: Error) => {
       toast({ title: 'Erro ao remover titularidade', description: error.message, variant: 'destructive' });

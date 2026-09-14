@@ -185,10 +185,13 @@ describe('MatriculaModal', () => {
     await user.click(screen.getByRole('button', { name: 'Cadastrar matrícula' }));
     const [payload] = mocks.upsert.mock.calls[0];
     // DT primeiro: o primeiro da lista é o que a RPC usa para achar o cliente.
+    // Os dois valores por titular viajam junto e vazios são NULOS, não zero:
+    // "a integralizar" nulo é o titular que não integraliza (ver a migration
+    // 20260914152326), e a linha de FT nunca os carrega.
     expect(payload.titulares).toEqual([
-      { titular_pessoa_id: 'P1', tipo: 'DIREITO', fracao: 60 },
-      { titular_pessoa_id: 'P2', tipo: 'DIREITO', fracao: 40 },
-      { titular_pessoa_id: 'P2', tipo: 'FATO', fracao: null },
+      { titular_pessoa_id: 'P1', tipo: 'DIREITO', fracao: 60, vlr_contabil: null, vlr_integralizar: null },
+      { titular_pessoa_id: 'P2', tipo: 'DIREITO', fracao: 40, vlr_contabil: null, vlr_integralizar: null },
+      { titular_pessoa_id: 'P2', tipo: 'FATO', fracao: null, vlr_contabil: null, vlr_integralizar: null },
     ]);
   });
 
@@ -209,7 +212,39 @@ describe('MatriculaModal', () => {
 
     const [payload] = mocks.upsert.mock.calls[0];
     expect(payload.titulares).toEqual([
-      { titular_pessoa_id: 'P2', tipo: 'DIREITO', fracao: null },
+      { titular_pessoa_id: 'P2', tipo: 'DIREITO', fracao: null, vlr_contabil: null, vlr_integralizar: null },
+    ]);
+  });
+
+  // Os dois valores por titular nascem no cadastro, não só na edição: quem
+  // cadastra a matrícula já tem a DIRPF na frente. O campo do imóvel some do
+  // formulário quando eles aparecem, porque o valor da matrícula passou a ser a
+  // SOMA dos titulares e ter os dois editáveis criaria duas verdades.
+  it('os valores por titular viajam no cadastro e tomam o lugar do campo do imóvel', async () => {
+    const user = userEvent.setup();
+    renderModal({ pessoasCliente: duasPessoas });
+    await user.type(inputAfter('Nº da matrícula'), '789');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Cartório' }), 'CART1');
+    await user.type(inputAfter('Município'), 'Sinop');
+    await choose(2, 'MT');
+    await user.type(inputAfter('Área documento'), '50');
+    await user.click(screen.getByRole('tab', { name: /Titularidade/ }));
+    await choose(0, 'Titular Um');
+    await user.type(screen.getAllByLabelText('Fração (%)')[0], '50');
+    await user.type(screen.getByLabelText('Valor contábil declarado'), '60000');
+    await user.type(screen.getByLabelText('Valor a integralizar'), '50000');
+
+    // De volta à aba Dados: o campo digitado virou leitura, com a soma.
+    await user.click(screen.getByRole('tab', { name: 'Dados' }));
+    // `\u00a0` no lugar do espaço: é o que o Intl.NumberFormat pt-BR devolve.
+    const somaNaAba = screen.getByLabelText('Valor contábil (soma dos titulares)') as HTMLInputElement;
+    expect(somaNaAba.value.replace(/\u00a0/g, ' ')).toBe('R$ 600,00');
+    expect(somaNaAba).toHaveAttribute('readonly');
+
+    await user.click(screen.getByRole('button', { name: 'Cadastrar matrícula' }));
+    const [payload] = mocks.upsert.mock.calls[0];
+    expect(payload.titulares).toEqual([
+      { titular_pessoa_id: 'P1', tipo: 'DIREITO', fracao: 50, vlr_contabil: 600, vlr_integralizar: 500 },
     ]);
   });
 
