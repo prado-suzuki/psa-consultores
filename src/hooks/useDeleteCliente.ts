@@ -9,6 +9,11 @@ interface DeleteClienteParams {
   nome: string;
 }
 
+type SoftDeleteClienteRpc = (
+  fn: 'soft_delete_cliente',
+  params: { _ids: string[] },
+) => Promise<{ data: number | null; error: unknown }>;
+
 export function useDeleteCliente() {
   const queryClient = useQueryClient();
   const { logActionOrThrow } = useAuditLog();
@@ -41,11 +46,12 @@ export function useDeleteCliente() {
         changed_fields: { excluido: { old: false, new: true } },
       });
 
-      const { error } = await supabase
-        .from('cliente')
-        .update({ excluido: true })
-        .eq('id', id);
+      // A RPC veio por migration e ainda não consta no types.ts desta branch.
+      // O cast fica isolado aqui até a geração oficial dos tipos do banco.
+      const softDeleteCliente = supabase.rpc as unknown as SoftDeleteClienteRpc;
+      const { data, error } = await softDeleteCliente('soft_delete_cliente', { _ids: [id] });
       if (error) throw error;
+      if (data !== 1) throw new Error('O cliente não foi excluído. Atualize a página e tente novamente.');
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['clientes'] });

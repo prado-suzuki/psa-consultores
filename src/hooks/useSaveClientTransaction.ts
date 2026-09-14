@@ -119,10 +119,8 @@ const precheck = async (
  * esta operação. A validação é a da própria função, que é tudo-ou-nada e
  * devolve quantas linhas marcou.
  *
- * `soft_delete_cliente` existe no banco pelo mesmo motivo e ainda não tem
- * chamador: o único ponto que exclui cliente logicamente é o botão da lista
- * (`useDeleteCliente`), hoje restrito a admin, que escapa da policy. Ele passa
- * a precisar dela quando o botão for liberado para sublíder.
+ * `soft_delete_cliente` existe no banco pelo mesmo motivo e é chamada pelo
+ * botão da lista (`useDeleteCliente`), liberado para sublíder ou acima.
  */
 const softDeleteViaRpc = async (
   rpc: "soft_delete_contribuinte",
