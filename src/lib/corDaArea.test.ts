@@ -134,9 +134,13 @@ describe('objeto sem color_index — a origem do ponto que não aparece', () => 
  * quebrar é obrigado a olhar o site novo e confirmar que ele também tem texto ao
  * lado do ponto. Se tiver, sobe o número. Se não tiver, a premissa caiu e a
  * paleta precisa ser refeita por luminosidade — não é o número que está errado.
+ *
+ * Tirar um site quebra igual, e foi o que aconteceu em 14/09/2026: o diálogo de
+ * área do Controle de Acessos saiu inteiro (ele não abria) e levou junto o seu
+ * ponto. Aí o número desce, e é só isso.
  */
 describe('premissa: a cor de área nunca aparece sem nome ao lado', () => {
-  const SITES_ESPERADOS = 8;
+  const SITES_ESPERADOS = 7;
 
   function sitesQueRenderizamOPonto(): { arquivo: string; linha: number }[] {
     const achados: { arquivo: string; linha: number }[] = [];
