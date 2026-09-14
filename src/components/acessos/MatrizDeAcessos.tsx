@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Circle, Loader2, Pencil } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, Circle, Loader2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import {
   type AlvoDaMatriz,
 } from '@/hooks/useAcessosEmLote';
 import type { AppRole, UserWithRoles } from '@/hooks/useUsersWithRoles';
+import { ariaSortDe, proximaOrdem, type OrdemDaMatriz } from '@/lib/filtroDeUsuarios';
 import { ROLE_SHORT_LABELS } from './roleOptions';
 import { cn } from '@/lib/utils';
 
@@ -81,6 +82,9 @@ export interface MatrizDeAcessosProps {
   onAlternarSelecao: (userId: string) => void;
   onSelecionarVisiveis: (marcar: boolean) => void;
   onEditar: (usuario: UserWithRoles) => void;
+  /** Ordem em vigor. Quem ORDENA é o pai — aqui só se pede a próxima. */
+  ordem: OrdemDaMatriz;
+  onOrdemChange: (ordem: OrdemDaMatriz) => void;
   isLoading?: boolean;
 }
 
@@ -95,6 +99,8 @@ export const MatrizDeAcessos = ({
   onAlternarSelecao,
   onSelecionarVisiveis,
   onEditar,
+  ordem,
+  onOrdemChange,
   isLoading,
 }: MatrizDeAcessosProps) => {
   const [salvando, setSalvando] = useState<string | null>(null);
@@ -216,34 +222,80 @@ export const MatrizDeAcessos = ({
               aria-label="Selecionar todos os usuários visíveis"
             />
           </TableHead>
-          <TableHead>Usuário</TableHead>
-          <TableHead className="hidden 2xl:table-cell">Email</TableHead>
+          <TableHead aria-sort={ariaSortDe(ordem, 'nome')}>
+            <BotaoDeOrdem
+              ativo={ordem.campo === 'nome'}
+              ascendente={ordem.ascendente}
+              onClick={() => onOrdemChange(proximaOrdem(ordem, 'nome'))}
+              titulo="Ordenar por nome"
+            >
+              Usuário
+            </BotaoDeOrdem>
+          </TableHead>
+          {/* O e-mail sai na dimensão de EQUIPE, e é medição que mandou: as 11
+              equipes de produção pedem 1278px só para elas, e a coluna de
+              e-mail (220px) empurrava o total para 1758px — mais do que os
+              1566px que sobram numa tela de 1920. O nome já identifica a linha;
+              o e-mail é o que dá para dispensar sem perder a identidade. */}
+          <TableHead
+            className={cn('hidden', dimensao === 'equipes' ? 'hidden' : '2xl:table-cell')}
+            aria-sort={ariaSortDe(ordem, 'email')}
+          >
+            <BotaoDeOrdem
+              ativo={ordem.campo === 'email'}
+              ascendente={ordem.ascendente}
+              onClick={() => onOrdemChange(proximaOrdem(ordem, 'email'))}
+              titulo="Ordenar por e-mail"
+            >
+              Email
+            </BotaoDeOrdem>
+          </TableHead>
           {/* Pílulas e matriz são a MESMA informação — a linha mostra uma só.
               Ver o commit que tirou a tabela de dez colunas. */}
           <TableHead className="xl:hidden">Permissões</TableHead>
           {colunas.map((coluna) => (
             <TableHead
               key={coluna}
-              className="hidden xl:table-cell text-center text-xs align-bottom"
-              title={nomeLongoDaColuna(coluna)}
+              className="hidden xl:table-cell text-center text-xs align-bottom p-0"
+              aria-sort={ariaSortDe(ordem, 'coluna', coluna)}
             >
-              {/* O caminho em miúdo, só na dimensão de equipe. Ver o docstring:
-                  "Fiscal" e "Fixos" são irmãs de TAX › Tax, e há duas áreas
-                  chamadas OSG — o nome sozinho não localiza a coluna. */}
-              {dimensao === 'equipes' && (
-                <span className="block text-[10px] font-normal normal-case text-muted-foreground">
-                  {equipeDe(coluna)?.caminhoDaArea}
-                </span>
-              )}
-              {rotuloDaColuna(coluna)}
-              {/* Equipe desativada que ainda tem gente. A marca é palavra e não
-                  cor: a coluna já é miúda, e "inativa" é informação que precisa
-                  sobreviver a quem não distingue tons. */}
-              {equipeDe(coluna)?.inativa && (
-                <span className="block text-[10px] font-normal normal-case text-muted-foreground">
-                  (desativada)
-                </span>
-              )}
+              <BotaoDeOrdem
+                ativo={ordem.campo === 'coluna' && ordem.coluna === coluna}
+                ascendente={ordem.ascendente}
+                onClick={() => onOrdemChange(proximaOrdem(ordem, 'coluna', coluna))}
+                titulo={`Ordenar por ${nomeLongoDaColuna(coluna)} — quem tem primeiro`}
+                centralizado
+                // Só a dimensão de equipe precisa: é a que tem 11 colunas e a
+                // que trunca o caminho — sem um teto, o `truncate` não tem
+                // contra o que truncar e a coluna volta a crescer.
+                estreita={dimensao === 'equipes'}
+              >
+                {/* O caminho em miúdo, só na dimensão de equipe. Ver o docstring:
+                    "Fiscal" e "Fixos" são irmãs de TAX › Tax, e há duas áreas
+                    chamadas OSG — o nome sozinho não localiza a coluna. */}
+                {/* O caminho TRUNCA e o nome não, e essa assimetria é medida.
+                    "TAX › Trabalhos compartilhados OSG" mede 187px e apareceria
+                    em duas colunas irmãs, enquanto "Fiscal" mede 52 — o caminho
+                    repetido é que estourava a largura das 11 colunas de
+                    produção. Ele é CONTEXTO (a área, que se repete entre
+                    irmãs); o nome é a IDENTIDADE da coluna. Contexto cortado
+                    ainda orienta, e o caminho inteiro continua no `title` e no
+                    rótulo de cada célula. */}
+                {dimensao === 'equipes' && (
+                  <span className="block max-w-[7.5rem] truncate text-[10px] font-normal normal-case text-muted-foreground">
+                    {equipeDe(coluna)?.caminhoDaArea}
+                  </span>
+                )}
+                {rotuloDaColuna(coluna)}
+                {/* Equipe desativada que ainda tem gente. A marca é palavra e não
+                    cor: a coluna já é miúda, e "inativa" é informação que precisa
+                    sobreviver a quem não distingue tons. */}
+                {equipeDe(coluna)?.inativa && (
+                  <span className="block text-[10px] font-normal normal-case text-muted-foreground">
+                    (desativada)
+                  </span>
+                )}
+              </BotaoDeOrdem>
             </TableHead>
           ))}
           <TableHead className="w-10" />
@@ -264,11 +316,24 @@ export const MatrizDeAcessos = ({
             </TableCell>
             <TableCell className="font-medium text-foreground">
               {nomeDe(usuario)}
-              <span className="block 2xl:hidden text-xs font-normal text-muted-foreground [overflow-wrap:anywhere]">
+              {/* Quando não há coluna de e-mail, ele vem embaixo do nome. */}
+              <span
+                className={cn(
+                  'block text-xs font-normal text-muted-foreground [overflow-wrap:anywhere]',
+                  dimensao !== 'equipes' && '2xl:hidden',
+                )}
+              >
                 {usuario.email}
               </span>
             </TableCell>
-            <TableCell className="hidden 2xl:table-cell text-muted-foreground [overflow-wrap:anywhere]">{usuario.email}</TableCell>
+            <TableCell
+              className={cn(
+                'hidden text-muted-foreground [overflow-wrap:anywhere]',
+                dimensao !== 'equipes' && '2xl:table-cell',
+              )}
+            >
+              {usuario.email}
+            </TableCell>
             <TableCell className="xl:hidden">
               <div className="flex gap-1 flex-wrap">
                 {usuario.roles.map((papel) => (
@@ -305,6 +370,60 @@ export const MatrizDeAcessos = ({
         ))}
       </TableBody>
     </Table>
+  );
+};
+
+/**
+ * O cabeçalho clicável.
+ *
+ * A seta aparece SEMPRE, e não só no hover: cabeçalho que só revela a seta
+ * quando o ponteiro passa por cima não diz a ninguém que a tabela é ordenável —
+ * e não diz nada a quem navega por teclado ou toque. Em repouso ela é a de duas
+ * pontas, apagada; ativa, é a ponta única que aponta o sentido em vigor.
+ *
+ * O `<th>` fica com `aria-sort` e o botão com o `title` que explica o gesto. A
+ * seta não é a única pista do estado: o rótulo escurece para `text-foreground`
+ * quando a coluna está ordenando, porque forma de ícone a 10px é pista frágil.
+ */
+const BotaoDeOrdem = ({
+  ativo,
+  ascendente,
+  onClick,
+  titulo,
+  centralizado,
+  estreita,
+  children,
+}: {
+  ativo: boolean;
+  ascendente: boolean;
+  onClick: () => void;
+  titulo: string;
+  /** Coluna de matriz: rótulo e seta empilhados e centrados. */
+  centralizado?: boolean;
+  /** Teto de largura, para o `truncate` do caminho ter contra o que truncar. */
+  estreita?: boolean;
+  children: React.ReactNode;
+}) => {
+  const Seta = !ativo ? ArrowUpDown : ascendente ? ArrowUp : ArrowDown;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={titulo}
+      className={cn(
+        'group flex w-full items-center gap-1 rounded-md py-2 transition-colors',
+        'hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        centralizado ? 'flex-col justify-end px-1 text-center' : 'px-1 text-left',
+        estreita && 'max-w-[7.5rem]',
+        ativo ? 'text-foreground' : 'text-muted-foreground',
+      )}
+    >
+      <span className={cn('min-w-0', centralizado && 'block max-w-full')}>{children}</span>
+      <Seta
+        className={cn('h-3 w-3 flex-shrink-0', ativo ? 'text-foreground' : 'text-muted-foreground/50')}
+        aria-hidden
+      />
+    </button>
   );
 };
 

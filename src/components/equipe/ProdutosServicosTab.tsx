@@ -383,9 +383,15 @@ export default function ProdutosServicosTab() {
         <span className="shrink-0 text-xs text-muted-foreground">Salvo automaticamente</span>
       </div>
 
+      {/*
+        A coluna de produtos SOME abaixo de `lg`, e não encolhe: com 280px fixos
+        ela e a lista de serviços dividiam uma tela de tablet em duas metades
+        estreitas demais para qualquer uma das duas. Quem troca de produto no
+        estreito é o seletor no cabeçalho da lista.
+      */}
       <ListaMestreDetalhe<string>
         moldura="pagina"
-        larguraLista="w-[280px]"
+        larguraLista="hidden w-[280px] lg:block"
         titulo={`Produtos (${produtosVisiveis.length})`}
         cabecalhoLista={(
           <div className="space-y-2">
@@ -467,6 +473,8 @@ export default function ProdutosServicosTab() {
         */}
         <ServicosLista
           produto={produtoSelecionado}
+          produtos={produtosVisiveis}
+          onSelecionarProduto={setProdutoEscolhidoId}
           doCluster={listasDeServico.doCluster}
           outrosClusters={listasDeServico.outros}
           mostrarOutros={mostrarOutrosClusters}

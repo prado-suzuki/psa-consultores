@@ -14,7 +14,14 @@ import {
 } from '@/hooks/useEstruturaManager';
 import { areasDeAcessoPorUsuario } from '@/lib/areasDeAcessoDoUsuario';
 import { colunasDeEquipeDaMatriz, equipesPorUsuario } from '@/lib/equipesDaEstrutura';
-import { FILTRO_VAZIO, filtrarUsuarios, ordenarUsuarios, type FiltroDeUsuarios } from '@/lib/filtroDeUsuarios';
+import {
+  FILTRO_VAZIO,
+  ORDEM_PADRAO,
+  filtrarUsuarios,
+  ordenarUsuariosPor,
+  type FiltroDeUsuarios,
+  type OrdemDaMatriz,
+} from '@/lib/filtroDeUsuarios';
 import type { AlvoDaMatriz } from '@/hooks/useAcessosEmLote';
 import { BarraDeLoteDeAcessos } from './BarraDeLoteDeAcessos';
 import { EditUserDialog } from './EditUserDialog';
@@ -44,6 +51,7 @@ import { MatrizDeAcessos, type DimensaoDaMatriz } from './MatrizDeAcessos';
 export const PainelDaMatrizDeAcessos = () => {
   const [filtro, setFiltro] = useState<FiltroDeUsuarios>(FILTRO_VAZIO);
   const [dimensao, setDimensao] = useState<DimensaoDaMatriz>('papeis');
+  const [ordem, setOrdem] = useState<OrdemDaMatriz>(ORDEM_PADRAO);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [emEdicao, setEmEdicao] = useState<UserWithRoles | null>(null);
 
@@ -71,9 +79,31 @@ export const PainelDaMatrizDeAcessos = () => {
   );
   const equipesDoUsuarioMapa = useMemo(() => equipesPorUsuario(membros), [membros]);
 
+  /**
+   * "Tem esta coluna ligada?", para a ordenação por coluna da matriz.
+   *
+   * A mesma pergunta que a célula desenha — e é ela que a ordenação por coluna
+   * usa para pôr quem tem no topo. Mora aqui, e não na `MatrizDeAcessos`,
+   * porque quem ordena é este componente: a matriz recebe a lista pronta.
+   */
+  const colunaLigada = (usuario: UserWithRoles, coluna: string) =>
+    dimensao === 'papeis'
+      ? usuario.roles.includes(coluna as (typeof usuario.roles)[number])
+      : dimensao === 'areas'
+        ? (areasDeAcesso[usuario.id]?.has(coluna as never) ?? false)
+        : (equipesDoUsuarioMapa[usuario.id]?.has(coluna) ?? false);
+
   const visiveis = useMemo(
-    () => ordenarUsuarios(filtrarUsuarios(usuarios, filtro, areasPorUsuario)),
-    [usuarios, filtro, areasPorUsuario],
+    () =>
+      ordenarUsuariosPor(
+        filtrarUsuarios(usuarios, filtro, areasPorUsuario),
+        ordem,
+        colunaLigada,
+      ),
+    // `colunaLigada` é recriada a cada render de propósito: ela fecha sobre
+    // `dimensao`, `areasDeAcesso` e o mapa de equipes, que já estão na lista.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [usuarios, filtro, areasPorUsuario, ordem, dimensao, areasDeAcesso, equipesDoUsuarioMapa],
   );
 
   /** Só quem está visível E marcado. Ver a nota no topo. */
@@ -84,6 +114,23 @@ export const PainelDaMatrizDeAcessos = () => {
         .map((u) => ({ id: u.id, nome: `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() })),
     [visiveis, selecionados],
   );
+
+  /**
+   * Trocar de eixo devolve a ordem ao padrão **quando ela era por coluna**.
+   *
+   * Ordenar por"Admin" e passar para Equipes deixaria a ordenação apontando
+   * para uma coluna que não existe mais naquele eixo: `ligada` responderia
+   * `false` para todo mundo, a lista cairia num empate geral ordenado por nome,
+   * e nenhum cabeçalho mostraria seta explicando por quê. Uma tabela ordenada
+   * por um critério invisível é pior do que uma tabela sem ordenação.
+   *
+   * Ordem por nome ou por e-mail atravessa a troca — essas colunas existem nos
+   * três eixos, e perdê-las seria desfazer um gesto que continua válido.
+   */
+  const trocarDimensao = (nova: DimensaoDaMatriz) => {
+    setDimensao(nova);
+    if (ordem.campo === 'coluna') setOrdem(ORDEM_PADRAO);
+  };
 
   const alternarSelecao = (userId: string) =>
     setSelecionados((atual) => {
@@ -117,7 +164,7 @@ export const PainelDaMatrizDeAcessos = () => {
 
           {/* O eixo da matriz. 7 papéis + 5 áreas + 11 equipes: juntos, não
               cabem em tela nenhuma; um de cada vez, cabem todos. */}
-          <Tabs value={dimensao} onValueChange={(v) => setDimensao(v as DimensaoDaMatriz)}>
+          <Tabs value={dimensao} onValueChange={(v) => trocarDimensao(v as DimensaoDaMatriz)}>
             <TabsList className="bg-foreground/[0.05] border border-border flex-wrap h-auto">
               {[
                 { id: 'papeis', rotulo: 'Papéis' },
@@ -166,6 +213,8 @@ export const PainelDaMatrizDeAcessos = () => {
           onAlternarSelecao={alternarSelecao}
           onSelecionarVisiveis={selecionarVisiveis}
           onEditar={setEmEdicao}
+          ordem={ordem}
+          onOrdemChange={setOrdem}
           isLoading={carregandoUsuarios}
         />
       </CardContent>

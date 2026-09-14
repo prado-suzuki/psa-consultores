@@ -43,6 +43,12 @@ const MODOS: { valor: FiltroVinculo; rotulo: string }[] = [
 
 interface Props {
   produto: ProdutoSegmento | null;
+  /**
+   * Os produtos que a coluna da esquerda lista. Abaixo de `lg` essa coluna não
+   * existe, e é por este seletor que se troca de produto.
+   */
+  produtos: ProdutoSegmento[];
+  onSelecionarProduto: (produtoId: string) => void;
   /** Serviços do cluster do produto, na ordem do código. É a lista principal. */
   doCluster: ServicoNaLista[];
   /** Serviços de outros clusters (e os sem cluster), na mesma ordem. */
@@ -102,7 +108,8 @@ interface Props {
  * um fio. Quem manda na cor do estado é o `listRowStates`; a forma é local.
  */
 export default function ServicosLista({
-  produto, doCluster, outrosClusters, mostrarOutros, onMostrarOutros,
+  produto, produtos, onSelecionarProduto,
+  doCluster, outrosClusters, mostrarOutros, onMostrarOutros,
   idsVisiveis, resumo, filtro, onFiltroChange,
   marcados, onMarcar, onLimparMarcados, servicoAbertoId, onAbrirServico,
   onLote, onAlternarVinculo, onNovo, onEditarProduto, aviso, carregando,
@@ -230,11 +237,31 @@ export default function ServicosLista({
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Cabeçalho fixo do produto aberto */}
       <div className="shrink-0 space-y-2 border-b bg-muted/40 px-4 py-2.5">
+        {/*
+          Abaixo de `lg` a coluna de produtos não está na tela, então o nome do
+          produto aberto deixa de ser um rótulo e vira o CONTROLE que troca de
+          produto. Acima de `lg` a coluna já faz esse trabalho, e aqui o nome
+          volta a ser só o título do que está aberto.
+        */}
+        <Select value={produto.id} onValueChange={onSelecionarProduto}>
+          <SelectTrigger className="h-8 w-full text-sm lg:hidden" aria-label="Produto aberto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {produtos.map((p) => (
+              <SelectItem key={p.id} value={p.id} className="text-sm">
+                <span className="font-mono text-[11px] text-muted-foreground">{p.codigo || '—'}</span>
+                {' '}{p.nome || '(sem nome)'}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="font-mono text-xs text-muted-foreground">{produto.codigo || '—'}</span>
-          <span className="text-sm font-semibold text-foreground">{produto.nome || '(sem nome)'}</span>
+          <span className="hidden font-mono text-xs text-muted-foreground lg:inline">{produto.codigo || '—'}</span>
+          <span className="hidden text-sm font-semibold text-foreground lg:inline">{produto.nome || '(sem nome)'}</span>
           {produto.estrutura_clusters?.name && (
-            <Badge variant="outline" className="text-[10px] font-normal">
+            <Badge variant="outline" className="hidden text-[10px] font-normal lg:inline-flex">
               {produto.estrutura_clusters.name}
             </Badge>
           )}
