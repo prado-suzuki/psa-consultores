@@ -49,6 +49,7 @@ o P1 do RLS, e o `color_index`, que uma fila de agosto dava como pendente e em p
 | [`planos/render-from-snapshot.md`](planos/render-from-snapshot.md) | ✅ FEITO | `gerar/renderizarVersao.ts` |
 | [`planos/notificacoes-mudanca-variavel.md`](planos/notificacoes-mudanca-variavel.md) | ✅ FEITO | — |
 | [`planos/historico-alteracoes-cadastros.md`](planos/historico-alteracoes-cadastros.md) | ✅ FEITO | — |
+| [`osg/mot01-placeholders-da-governanca.md`](osg/mot01-placeholders-da-governanca.md) | ✅ FEITO | Os nomes de campo da governança no motor, combinados antes de codar como o card da MOT-01 exige. Entregue em 14/09: três entidades no `vocabulario.ts`, cinco papéis e quatro listas no `binding.ts`, o `contextoGovernanca.ts` e o documento gerado de verdade. Traz a medição que sustenta cada decisão, inclusive as três que resultaram em NÃO fazer campo |
 | [`osg/plano-binding-namespaced.md`](osg/plano-binding-namespaced.md) | ✅ FEITO | `src/lib/templates/binding.ts` já é namespaced e trata o legado plano |
 | [`planos/plano-osg-documentos-recebidos.md`](planos/plano-osg-documentos-recebidos.md) | ✅ FEITO | v1 no ar (`useDocumentoArquivo`). O arquivo é enorme e não tem mais uso decisório |
 | [`osg/tela-gerar-descarte-visivel.md`](osg/tela-gerar-descarte-visivel.md) | ✅ FEITO | O próprio documento se declara implementado |
