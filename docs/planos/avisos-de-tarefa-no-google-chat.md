@@ -70,17 +70,25 @@ pessoas — responsável e gestor — e sem isso metade nunca receberia.
 No Chat a mensagem é do **espaço**, não da pessoa. Copiar a chave de lá produziria duas
 mensagens idênticas no mesmo espaço, uma por destinatário. A chave aqui é:
 
-    chat:<area>:<tipo>:<entidade_id>:<dia>        aviso avulso
-    chat:<area>:<tipo>:resumo:<dia>               resumo diário de prazo
+    chat:<area>:<tipo>:<tarefa>:<dia>
 
 Sem destinatário, de propósito. E `notificacao_envio.destinatario_id` fica nulo nas linhas
-deste canal, porque não há um.
+deste canal, porque não há um — é assim que se lê, no registro, que a mensagem foi para um
+espaço.
+
+**Uma chave por tarefa, mesmo quando a mensagem é uma só.** A reserva é por tarefa; o
+agrupamento em resumo é formatação, não unidade de dedup. Assim uma tarefa nunca aparece
+duas vezes, e se o envio falhar dá para marcar exatamente quais tarefas não saíram.
+
+**Medido em 14/09, contra produção:** 250 linhas de sino para **150 tarefas distintas** em
+30 dias. A dedup por tarefa corta 40% — e essas 100 linhas a mais seriam mensagem repetida
+no mesmo espaço.
 
 ### Resumo diário para prazo, mensagem avulsa para o resto
 
-Os ~14 avisos de prazo nascem todos às 11h UTC, do mesmo job. Viram **uma** mensagem por
-área e por tipo, com a lista das tarefas. Os ~3 de trigger saem avulsos, um por evento.
-Isso põe o espaço em ~4 mensagens/dia por área em vez de ~17.
+Os avisos de prazo nascem todos às 11h UTC, do mesmo job. Viram **uma** mensagem por área
+e por tipo, com a lista das tarefas. Os de trigger saem avulsos, um por evento. Pelas 150
+tarefas de 30 dias, o espaço fica em torno de **2 a 3 mensagens por dia por área**.
 
 ### Thread por projeto
 
@@ -102,19 +110,28 @@ espaço da sua área. Nenhum código precisa saber em que ambiente está.
 Postgres não deixa usar valor de enum na mesma transação que o cria — é o mesmo motivo
 pelo qual a GES-01A foi partida em três. Reversível sem tocar em nada que roda.
 
-**2 · O mapa área→espaço.** Um segredo por área (`GCHAT_WEBHOOK_TAX`, `GCHAT_WEBHOOK_OSG`)
-e, no código, só a correspondência nome-da-área→nome-do-segredo. A URL do webhook **é
-credencial**: não entra em tabela, não entra em arquivo versionado. Área sem segredo não
-envia e não é erro — é como as cinco áreas sem projeto ficam de fora sem código extra.
+**2 · `avisos_para_o_chat`, que só lê.** Molde do `tarefas_a_alertar` da GES-01A: a função
+diz o que sairia, e quem envia é outra coisa. É ela que deduplica por tarefa, resolve a
+área, monta a chave e aplica o recorte de `ambiente`. Roda a vontade antes de existir
+borda, segredo ou espaço: `select * from avisos_para_o_chat(interval '30 days')` é a
+passada seca. **A ordem em produção importa:** esta migration referencia o valor
+`google_chat`, então a fase 1 tem de ser aplicada antes — os timestamps garantem, desde que
+apliquem na ordem.
 
-**3 · A borda `notificar-equipe`.** Padrão **reservar → enviar → confirmar** da
+**3 · A borda `notificar-equipe`, e o mapa área→espaço dentro dela.** Um segredo por área
+(`GCHAT_WEBHOOK_TAX`, `GCHAT_WEBHOOK_OSG`) e, no código, só a correspondência
+nome-da-área→nome-do-segredo. A URL do webhook **é credencial**: não entra em tabela, não
+entra em arquivo versionado. Área sem segredo não envia e não é erro — é como as cinco
+áreas ativas sem projeto ficam de fora sem código extra.
+
+Padrão **reservar → enviar → confirmar** da
 `supabase/functions/notificar/`, pelo motivo que aquele arquivo já escreve: se a função
 morre entre enviar e gravar, sobra evidência da tentativa. Função **nova**, não extensão da
 `notificar`: aquela é moldada em aviso ao cliente, com `solicitacao` como entidade e canais
 que falam com o n8n. É a mesma razão pela qual ela própria não estendeu a `notify-ticket`.
 
-**4 · O despachante.** Cron curto que varre `notificacao` recente sem envio `google_chat` e
-chama a borda, agrupando prazo em resumo. Molde do `net.http_post` + vault da GES-04
+**4 · O despachante.** Cron curto que chama a borda, que por sua vez lê a
+`avisos_para_o_chat` e agrupa prazo em resumo. Molde do `net.http_post` + vault da GES-04
 (`20260825140358`), que já está no repositório. **Nasce desativado**, como os dois crons que
 escrevem sozinhos — ligar é um UPDATE em `cron.job`, por banco, quando for a hora.
 
