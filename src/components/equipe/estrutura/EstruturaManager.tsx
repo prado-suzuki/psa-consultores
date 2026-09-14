@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { MetricCard } from '@/components/ui/metric-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -459,10 +460,10 @@ export default function EstruturaManager() {
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard icon={<Network className="h-4 w-4 text-primary" />} label="Clusters" value={clusters.length} />
-        <StatCard icon={<Building2 className="h-4 w-4 text-primary" />} label="Áreas" value={areas.length} />
-        <StatCard icon={<Users className="h-4 w-4 text-primary" />} label="Equipes" value={totalEquipes} />
-        <StatCard icon={<UserCheck className="h-4 w-4 text-primary" />} label="Membros Alocados" value={totalMembros} />
+        <MetricCard icon={<Network className="h-5 w-5 text-primary" />} iconColor="bg-primary/15" title="Clusters" value={clusters.length} />
+        <MetricCard icon={<Building2 className="h-5 w-5 text-primary" />} iconColor="bg-primary/15" title="Áreas" value={areas.length} />
+        <MetricCard icon={<Users className="h-5 w-5 text-primary" />} iconColor="bg-primary/15" title="Equipes" value={totalEquipes} />
+        <MetricCard icon={<UserCheck className="h-5 w-5 text-primary" />} iconColor="bg-primary/15" title="Membros Alocados" value={totalMembros} />
       </div>
 
       {/* Clusters accordion */}
@@ -693,20 +694,5 @@ export default function EstruturaManager() {
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-// ─── Stat Card ──────────────────────────────────────────────────────────
-function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
-  return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-foreground">{label}</CardTitle>
-        <div className="p-2 rounded-full bg-primary/15">{icon}</div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-3xl font-bold text-foreground">{value}</div>
-      </CardContent>
-    </Card>
   );
 }
