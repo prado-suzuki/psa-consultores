@@ -74,7 +74,12 @@ export const UsersRolesView = ({
   return (
     <>
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      {/* `sm`/`xl`, e nao `md`: a partir de 768px a barra lateral sai da
+          gaveta e volta ao fluxo levando 256px, entao em 768px cravados a
+          coluna tem 464px. Com `md:grid-cols-4` isso dava 116px por cartao —
+          68px uteis depois do `p-6`, para "Membros da Equipe" mais um numero
+          `text-3xl`. Quem dita o ponto de virada e a COLUNA, nao a viewport. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <MetricCard
           title="Total de Usuários"
           value={stats.total}
@@ -125,10 +130,15 @@ export const UsersRolesView = ({
               <TableHeader className="bg-muted">
                 <TableRow>
                   <TableHead>Usuário</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Permissões</TableHead>
+                  <TableHead className="hidden xl:table-cell">Email</TableHead>
+                  {/* A pilula e a matriz dizem A MESMA COISA — a linha nunca
+                      mostra as duas. Abaixo de `lg` ficam as pilulas (que cabem
+                      numa celula so); de `lg` para cima, as sete colunas. Era
+                      essa duplicata que fazia a tabela ter dez colunas e rolar
+                      para o lado em qualquer tela que nao fosse a de 1920. */}
+                  <TableHead className="lg:hidden">Permissões</TableHead>
                   {columns.map((role) => (
-                    <TableHead key={role} className="text-center">
+                    <TableHead key={role} className="hidden lg:table-cell text-center">
                       {columnHeader(role)}
                     </TableHead>
                   ))}
@@ -139,9 +149,18 @@ export const UsersRolesView = ({
                   <TableRow key={user.id} className="hover:bg-foreground/[0.03]">
                     <TableCell className="font-medium text-foreground">
                       {user.first_name} {user.last_name}
+                      {/* Enquanto a coluna de Email nao existe, o email vem
+                          embaixo do nome — e o mesmo empilhamento da lista de
+                          usuarios da aba ao lado, e evita o email sumir de vez
+                          nas larguras em que ele nao cabe como coluna. */}
+                      <span className="block xl:hidden text-xs font-normal text-muted-foreground">
+                        {user.email}
+                      </span>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden xl:table-cell text-muted-foreground">
+                      {user.email}
+                    </TableCell>
+                    <TableCell className="lg:hidden">
                       <div className="flex gap-1 flex-wrap">
                         {user.roles.map((role) => (
                           <PapelBadge key={role} papel={role} />
@@ -152,7 +171,7 @@ export const UsersRolesView = ({
                       </div>
                     </TableCell>
                     {columns.map((role) => (
-                      <TableCell key={role} className="text-center">
+                      <TableCell key={role} className="hidden lg:table-cell text-center">
                         {user.roles.includes(role) ? (
                           <CheckCircle className="h-5 w-5 text-status-feito mx-auto" />
                         ) : (
@@ -175,8 +194,11 @@ export const UsersRolesView = ({
         </CardHeader>
         <CardContent>
           <div
-            className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${
-              columns.length > 3 ? 'lg:grid-cols-6' : ''
+            /* `lg:grid-cols-6` disparava em 1024px, onde a coluna tem 720px:
+               120px por caixa, 88px uteis depois do `p-4`, para um paragrafo de
+               ~100 caracteres. Seis colunas so a partir de `2xl`. */
+            className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ${
+              columns.length > 3 ? '2xl:grid-cols-6' : ''
             }`}
           >
             {columns.map((role) => (

@@ -19,8 +19,14 @@ export const AccessStatsCards = () => {
   const totalUsers = users?.length ?? 0;
   const totalAccess = userAccess?.length ?? 0;
 
+  /* O ponto de virada e `sm`/`xl`, e NAO `md`: abaixo de `md` a barra lateral
+     e gaveta e o conteudo pega a viewport inteira, mas a partir de 768px ela
+     volta ao fluxo e leva 256px. Em 768px cravados sobravam 464px de coluna,
+     que com `md:grid-cols-3` dava 155px por cartao — 107px uteis depois do
+     `p-6`, com "Permissoes Customizadas" quebrando em tres linhas. A largura
+     que manda aqui e a da COLUNA, nao a da tela. */
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
       <Card className="border-border/60 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-foreground">Páginas Ativas</CardTitle>
