@@ -30,11 +30,30 @@ A tabela tinha **dez colunas**, e a causa não era o número de papéis: a colun
 duas vezes**. Ela rolava na horizontal — e a coluna "Usuário" rolava junto, o
 que faz chegar na coluna "Marketing" sem saber de quem é a linha.
 
-A linha passa a mostrar **uma das duas**: pílulas abaixo de `lg`, matriz de `lg`
-para cima. Email vira coluna só a partir de `xl`; antes disso fica embaixo do
-nome, no mesmo empilhamento que a lista da aba ao lado já usa. Nenhuma
-lista-de-cartões paralela foi criada — duas árvores para a mesma linha é o que
-diverge depois.
+A linha passa a mostrar **uma das duas**. Nenhuma lista-de-cartões paralela foi
+criada — duas árvores para a mesma linha é o que diverge depois.
+
+### Onde as duas viram foi decidido MEDINDO, e o olho tinha errado
+
+A primeira escolha (`lg` para a matriz, `xl` para o email) foi feita pela conta
+acima. O navegador dirigido mostrou que a tabela ainda rolava em **390, 768,
+1024 e 1280** — excesso de 168, 62, 227 e 126px. Duas causas, e a primeira não
+era o número de colunas:
+
+- **O e-mail não quebra.** `hercio.junior@psaconsultores.com.br` não oferece
+  ponto de quebra ao CSS (nem `.` nem `@` contam), então aquela string sozinha
+  cravava uma coluna "Usuário" de **289px** — numa tela de 390. `break-all`
+  derruba para 112px. Uma classe explicava metade do estouro.
+- **As sete colunas estreavam cedo.** Elas precisam de ~537px só para os
+  rótulos, mais caixa (40) e lápis (40): **~800px de coluna**, que com a barra
+  de 256px pede 1056px de viewport. `lg` é 1024 — trinta pixels curto.
+
+Final: matriz em `xl`, e-mail em `2xl`, e-mail com `break-all`. Remedido nas
+mesmas sete larguras: **excesso 0 em todas**.
+
+> Vale como método: "cabe?" não se responde somando as colunas que você escreveu.
+> Uma string sem ponto de quebra é uma coluna com largura mínima que nenhuma
+> classe declara.
 
 ## Parte 2 — a célula grava
 
@@ -142,6 +161,26 @@ pessoa na mesma tela**.
 
 Alguém pode estar na área Tax da estrutura e **não** ter acesso à área Tax do
 sistema — e é esse descompasso que a tela existe para consertar.
+
+## O que foi provado na tela, e contra o banco
+
+Sandbox (`vgzomuwnsdgrxbkyoavq`), 14/09/2026, lendo o efeito no banco e não na
+tela — usuários semeados (`@exemplo.dev`), nunca gente de verdade:
+
+| O quê | Resultado |
+|---|---|
+| Clique numa célula de papel | `["admin"]` → `["admin","marketing"]` |
+| Desfazer | voltou a `["admin"]` |
+| Lote em 3 pessoas | as 3 ganharam o papel; o Desfazer devolveu as 3 |
+| Clique numa célula de **área** | **+37 páginas** (29 → 66) num gesto |
+| Desfazer da área | voltou a 29 |
+| Trava do próprio `admin` | recusou: "Você não pode remover o seu próprio papel de Administrador." |
+| Auditoria | os dois sentidos, com `changed_fields` campo-a-campo |
+| Filtro por nome | 68 linhas → 5 |
+
+A busca é por **nome** e não por e-mail — meu próprio teste tropeçou nisso
+procurando `user0`. O e-mail nesta casa deriva do nome (`nome.sobrenome@`), e
+incluí-lo faria "lima" trazer o e-mail de outra pessoa.
 
 ## Onde está
 
