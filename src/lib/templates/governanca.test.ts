@@ -13,7 +13,7 @@
 import { describe, expect, it } from 'vitest';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, PAPEIS_LISTA } from './binding';
 import {
-  mapearAcordoQuotistas, mapearCompetenciaMatriz, mapearOrgaoGovernanca,
+  mapearAcordoQuotistas, mapearCompetenciaMatriz, mapearOrgaoGovernanca, mapearRegistro,
 } from './mapeadores';
 import { renderConteudo } from './render';
 import { segmentar } from './tabela';
@@ -135,6 +135,35 @@ describe('MOT-01 · os blocos do modelo de verdade', () => {
 
     const grade = detectar(BLOCO_GRADE);
     expect(grade.campos.filter((c) => c.includes('DaGrade') || c.startsWith('celula.'))).toEqual([]);
+  });
+});
+
+describe('MOT-01 · o despacho conhece os tipos novos', () => {
+  /*
+   * A tela não chama o mapeador direto: ela chama `mapearRegistro`, que despacha
+   * pelo tipo. Os três tipos entraram no vocabulário e não neste switch, e o
+   * resultado foi o Conselho chegar VAZIO ao documento e a geração morrer em
+   * "Placeholder não resolvido: {{conselhoAdministracao.artigo}}". Os testes de
+   * unidade passavam porque chamavam o mapeador pelo nome.
+   */
+  it('o órgão passa pelo despacho e volta com os campos derivados', () => {
+    const campos = mapearRegistro('orgaoGovernanca', {
+      id: 'og1', nome: 'Conselho de Administração', genero: 'M',
+      membros_minimo: 3, membros_maximo: 6, mandato_anos: 3,
+    });
+    expect(campos.nome).toBe('Conselho de Administração');
+    expect(campos.artigo).toBe('o');
+    expect(campos.membrosMinimoNumeral).toBe('03');
+  });
+
+  it('a competência e o acordo também', () => {
+    const c = mapearRegistro('competenciaMatriz', {
+      id: 'c1', atividade: 'Distribuição de Lucros', papeis: ['Valida'],
+    });
+    expect(c.atividade).toBe('Distribuição de Lucros');
+
+    const a = mapearRegistro('acordoQuotistas', { clienteId: 'cli1', assinadoEm: '2025-09-29' });
+    expect(a.jaAssinado).toBe('sim');
   });
 });
 

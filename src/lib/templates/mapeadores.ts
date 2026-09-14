@@ -2180,12 +2180,35 @@ export function mapearRegistro(tipo: TipoEntidade, row: unknown): Campos {
       // despacha é `camposDoRegistro`, na tela Gerar, junto das listas do mesmo
       // cadastro.
       return {};
+    case 'orgaoGovernanca':
+      return mapearOrgaoGovernanca(row as OrgaoParaMapear);
+    case 'competenciaMatriz':
+      return mapearCompetenciaMatriz(row as CompetenciaParaMapear);
+    case 'acordoQuotistas':
+      return mapearAcordoQuotistas(row as AcordoParaMapear);
     case 'vertice':
     case 'origemPosse':
       // Sempre itens de lista ({{#vertices}}, {{#origensDaPosse}}), nunca binding
       // unitário — não têm registro/seletor próprio. Ver mapearVertice e
       // listasDoInstrumentoRural.
       return {};
+    default:
+      /*
+       * TIPO NOVO SEM CASO AQUI PARA DE PASSAR BATIDO.
+       *
+       * `nunca` é `never` só enquanto o switch cobre todos os `TipoEntidade`.
+       * Acrescentar um tipo sem tratá-lo aqui vira erro de compilação, em vez
+       * de devolver `{}` calado.
+       *
+       * Custou um documento quebrado para aparecer: em 11/09 os três tipos de
+       * governança entraram no vocabulário e não neste despacho, e a tela
+       * escolhia o Conselho, recebia campo nenhum, e a geração morria em
+       * "Placeholder não resolvido". A checagem de retorno do projeto está
+       * desligada, então o TypeScript não avisou.
+       */
+      return ((nunca: never) => {
+        throw new Error(`mapearRegistro: tipo de entidade sem mapeador: ${String(nunca)}`);
+      })(tipo);
   }
 }
 
