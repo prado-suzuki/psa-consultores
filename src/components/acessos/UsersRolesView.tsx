@@ -52,14 +52,29 @@ const VARIANT_COLUMNS: Record<NonNullable<UsersRolesViewProps['variant']>, AppRo
 };
 
 /**
- * Tabela read-only de usuários e suas roles + cards de estatística + legenda.
+ * Cartões de estatística, a tabela de usuários × papéis e a legenda.
  *
- * Componente compartilhado entre:
- * - /administracao/acessos (variant="compact")
- * - /gestao/acessos (variant="full")
+ * ## ELE TEM UM CONSUMIDOR SÓ, e o docstring anterior dizia que eram dois
  *
- * O layout de moldura (AdminLayout / GestaoLayout) permanece na página-pai;
- * aqui só cuidamos do conteúdo.
+ * Dizia"compartilhado entre `/administracao/acessos` (compact) e
+ * `/gestao/acessos` (full)". Conferido no navegador em 14/09/2026: as duas
+ * rotas sumiram, e a lista inteira de consumidores é a seção **Papéis** de
+ * `/equipe/acessos`, com `variant="full" editavel`.
+ *
+ * - `/gestao/acessos` virou `<Navigate>` para `/equipe/acessos` (ver `App.tsx`).
+ * - `/administracao/acessos` dá **404**: a rota saiu do `App.tsx` em
+ *   13/01/2026, no commit que criou o `/gestao`, e `AdminAcessos.tsx` ficou no
+ *   repositório sem ninguém montar.
+ *
+ * Por isso `variant="compact"`, `roleColumns` e `teamMemberColumnLabel` não têm
+ * chamador vivo. Ficam porque a decisão de apagar a pasta `administracao/`
+ * inteira (685 linhas em 4 arquivos, mais 5 catracas que a citam no inventário)
+ * é maior do que este arquivo — está registrada em
+ * `docs/geral/matriz-de-acessos-editavel.md`.
+ *
+ * A lição, que vale além daqui: **um docstring que lista consumidores envelhece
+ * sem avisar.** Este sobreviveu oito meses a duas rotas mortas, e só caiu porque
+ * alguém foi abrir uma delas.
  */
 export const UsersRolesView = ({
   variant = 'compact',

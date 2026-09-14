@@ -268,6 +268,51 @@ A busca é por **nome** e não por e-mail — meu próprio teste tropeçou nisso
 procurando `user0`. O e-mail nesta casa deriva do nome (`nome.sobrenome@`), e
 incluí-lo faria "lima" trazer o e-mail de outra pessoa.
 
+## A rota `/administracao/acessos` não existe — e isso corrige o que eu disse
+
+Eu havia anotado que mexer nos breakpoints da `UsersRolesView` alcançava também
+`/administracao/acessos`, a versão só-leitura. Fui validar e **as três rotas
+`/administracao/*` dão 404**.
+
+| rota | estado |
+|---|---|
+| `/administracao` | 404 |
+| `/administracao/acessos` | 404 |
+| `/administracao/usuarios` | 404 |
+| `/gestao/acessos` | `<Navigate>` para `/equipe/acessos` |
+
+A rota saiu do `App.tsx` em **13/01/2026**, no commit que criou o `/gestao`
+(`68356afc`). As páginas ficaram no repositório sem ninguém montar — e o
+`AdminLayout` ainda tem um menu apontando para elas.
+
+Consequência para este componente: a `UsersRolesView` tem **um consumidor só**
+(a seção Papéis de `/equipe/acessos`), e o docstring dela afirmava dois. Foi
+corrigido. `variant="compact"`, `roleColumns` e `teamMemberColumnLabel` seguem
+sem chamador vivo.
+
+> **Um docstring que lista consumidores envelhece sem avisar.** Esse sobreviveu
+> oito meses a duas rotas mortas, e só caiu porque alguém tentou abrir uma.
+
+### O que apagar custaria — e é decisão dela
+
+| arquivo | linhas |
+|---|---|
+| `pages/administracao/AdminUsuarios.tsx` | 347 |
+| `components/administracao/AdminLayout.tsx` | 181 |
+| `pages/administracao/AdminPerformance.tsx` | 142 |
+| `pages/administracao/AdminAcessos.tsx` | 15 |
+| **total** | **685** |
+
+Não é só apagar: **cinco catracas citam esses arquivos** e teriam de ser
+reajustadas no mesmo commit — `filaDoAlerta`, `filaDoBlue`, `filaDoRedEmerald`
+(inventariam ocorrências de cor em `AdminUsuarios`/`AdminPerformance`),
+`sidebarMedidas` (conta o `AdminLayout` como uma das barras) e `fundoDePagina`
+(cita-o num comentário). Há ainda `useDomainAdminUsuarios` e
+`useDomainAdminPerformance`, com teste próprio, que ficariam órfãos.
+
+A pergunta que decide: **essas telas vão voltar?** Se sim, o que falta é a rota;
+se não, é remoção com as catracas ajustadas junto.
+
 ## Onde está
 
 | Arquivo | Papel |
