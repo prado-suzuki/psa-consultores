@@ -12,22 +12,27 @@ import ServicosLista, {
 import ServicoDetalhePanel, {
   type ProdutoVinculado,
 } from '@/components/equipe/produto-servico/ServicoDetalhePanel';
+import {
+  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
+} from '@/components/ui/sheet';
 import ProdutoFormDialog from '@/components/equipe/produto-servico/ProdutoFormDialog';
 import ServicoFormDialog from '@/components/equipe/produto-servico/ServicoFormDialog';
 import ConfirmarExclusaoDialog from '@/components/equipe/produto-servico/ConfirmarExclusaoDialog';
+import CopiarDeProdutoDialog from '@/components/equipe/produto-servico/CopiarDeProdutoDialog';
 import { cn } from '@/lib/utils';
 import {
-  TODOS_CLUSTERS, contarVinculosPorProduto, filtrarProdutos, filtrarServicos,
+  TODOS_CLUSTERS, candidatosParaCopia, contarVinculosPorProduto, filtrarProdutos,
+  filtrarServicos, servicosACopiar,
 } from '@/lib/produtoServicoVinculo';
 import {
   contarVinculosPorServico, dividirNomeServico, ordenarPorCodigoDeServico,
 } from '@/lib/produtoServicoNomes';
 import {
-  isVinculoOtimista, useProdutoSegmentoList, useProdutoServicoList,
-  useProdutoServicoLote, useProdutoServicoToggle, useServicosPrestadosDelete,
+  useProdutoSegmentoList, useProdutoServicoList, useServicosPrestadosDelete,
   useServicosPrestadosList,
   type ProdutoSegmento, type ServicoPrestado,
 } from '@/hooks/useCategorias';
+import { useVinculoProdutoServicoController } from '@/hooks/useVinculoProdutoServicoController';
 import type { FiltroVinculo } from '@/lib/produtoServicoVinculo';
 
 interface EstadoFormulario<T> {
@@ -61,7 +66,6 @@ const FORM_FECHADO = { aberto: false, alvo: null };
 export default function ProdutosServicosTab() {
   const [produtoEscolhidoId, setProdutoEscolhidoId] = useState<string | null>(null);
   const [servicoAbertoId, setServicoAbertoId] = useState<string | null>(null);
-  const [painelAberto, setPainelAberto] = useState(true);
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [buscaProduto, setBuscaProduto] = useState('');
   const [cluster, setCluster] = useState<string>(TODOS_CLUSTERS);
@@ -69,17 +73,15 @@ export default function ProdutosServicosTab() {
     busca: '', modo: 'todos',
   });
   const [mostrarOutrosClusters, setMostrarOutrosClusters] = useState(false);
-  const [emAndamento, setEmAndamento] = useState<Set<string>>(new Set());
   const [formProduto, setFormProduto] = useState<EstadoFormulario<ProdutoSegmento>>(FORM_FECHADO);
   const [formServico, setFormServico] = useState<EstadoFormulario<ServicoPrestado>>(FORM_FECHADO);
   const [servicoParaExcluir, setServicoParaExcluir] = useState<ServicoPrestado | null>(null);
+  const [copiarAberto, setCopiarAberto] = useState(false);
 
   const { data: vinculos = [], isLoading } = useProdutoServicoList();
   const { data: produtos = [] } = useProdutoSegmentoList();
   const { data: servicos = [] } = useServicosPrestadosList();
 
-  const toggleVinculo = useProdutoServicoToggle();
-  const lote = useProdutoServicoLote();
   const { remove: removerServico } = useServicosPrestadosDelete();
 
   // ── Produtos ────────────────────────────────────────────────────────
@@ -105,6 +107,17 @@ export default function ProdutosServicosTab() {
     () => produtos.find((p) => p.id === produtoEscolhidoId) ?? produtosVisiveis[0] ?? null,
     [produtos, produtoEscolhidoId, produtosVisiveis],
   );
+
+  // ── Ações ───────────────────────────────────────────────────────────
+  // As três que escrevem vínculo moram no controlador: alternar uma, o lote com
+  // desfazer, e a cópia do conjunto de outro produto.
+  const { emAndamento, alternarVinculo, executarLote, copiarDe } =
+    useVinculoProdutoServicoController({
+      vinculos,
+      produto: produtoSelecionado,
+      servicos,
+      aoConcluirLote: () => setMarcados(new Set()),
+    });
 
   // ── Serviços do produto aberto ──────────────────────────────────────
   const vinculosDoProduto = useMemo(
@@ -216,124 +229,6 @@ export default function ProdutosServicosTab() {
     };
   }, [vinculos, servicoAbertoId, produtosAtivos]);
 
-  // ── Ações ───────────────────────────────────────────────────────────
-  /**
-   * O "Desfazer" do toast precisa chamar `alternarVinculo`, que é definida
-   * abaixo — referenciá-la direto criaria ciclo no `useCallback`. A ref guarda
-   * sempre a versão corrente.
-   */
-  const alternarVinculoRef = useRef<(p: string, s: string, n: string) => Promise<void>>();
-
-  const alternarVinculo = useCallback(async (produtoId: string, servicoId: string, servicoNome: string) => {
-    if (emAndamento.has(servicoId)) return;
-    const vinculoAtual = vinculos.find(
-      (v) => v.produto_segmento_id === produtoId && v.servico_prestado_id === servicoId,
-    ) ?? null;
-    if (vinculoAtual && isVinculoOtimista(vinculoAtual.id)) return;
-
-    const desvinculando = !!vinculoAtual;
-    setEmAndamento((atual) => new Set(atual).add(servicoId));
-    try {
-      await toggleVinculo.mutateAsync({
-        produtoSegmentoId: produtoId,
-        servicoPrestadoId: servicoId,
-        vinculoAtual,
-        entityName: `${produtoSelecionado?.codigo || '?'} → ${servicoNome}`,
-      });
-      // O desfazer de um clique é o próprio clique de volta — o toggle é
-      // simétrico. Existe mesmo assim porque, sem ele, desvincular por engano
-      // só se percebe depois, e aí é preciso reencontrar a linha na lista.
-      const { nome } = dividirNomeServico(servicoNome);
-      toast.success(desvinculando ? `"${nome}" desvinculado` : `"${nome}" vinculado`, {
-        action: {
-          label: 'Desfazer',
-          onClick: () => void alternarVinculoRef.current?.(produtoId, servicoId, servicoNome),
-        },
-      });
-    } catch {
-      // erro já tratado no hook (rollback + toast)
-    } finally {
-      setEmAndamento((atual) => {
-        const proximo = new Set(atual);
-        proximo.delete(servicoId);
-        return proximo;
-      });
-    }
-  }, [emAndamento, vinculos, toggleVinculo, produtoSelecionado?.codigo]);
-
-  alternarVinculoRef.current = alternarVinculo;
-
-  /**
-   * Vincula/desvincula em lote e oferece DESFAZER.
-   *
-   * O desfazer é o inverso exato: o que foi criado é apagado pelos ids que o
-   * insert devolveu, e o que foi apagado é recriado a partir dos serviços que a
-   * ação recebeu. Só existe para o lote — o clique numa linha só já é otimista e
-   * se desfaz clicando de novo.
-   */
-  const executarLote = useCallback(async (
-    acao: 'vincular' | 'desvincular',
-    servicosAlvo: ServicoNaLista[],
-  ) => {
-    if (!produtoSelecionado || servicosAlvo.length === 0) return;
-    const produtoId = produtoSelecionado.id;
-    const produtoCodigo = produtoSelecionado.codigo || '?';
-    const quantos = servicosAlvo.length;
-    const rotulo = `${quantos} ${quantos === 1 ? 'serviço' : 'serviços'}`;
-
-    try {
-      if (acao === 'vincular') {
-        const resultado = await lote.mutateAsync({
-          acao: 'vincular',
-          produtoSegmentoId: produtoId,
-          produtoCodigo,
-          servicos: servicosAlvo.map((s) => ({ id: s.id, nome: s.nome })),
-        });
-        const criados = resultado.acao === 'vincular' ? resultado.criados : [];
-        toast.success(`${rotulo} vinculados`, {
-          action: {
-            label: 'Desfazer',
-            onClick: () => {
-              void lote.mutateAsync({
-                acao: 'desvincular',
-                produtoCodigo,
-                vinculos: criados.map((linha) => ({
-                  id: linha.id,
-                  servicoNome: servicosAlvo.find((s) => s.id === linha.servico_prestado_id)?.nome || '?',
-                })),
-              });
-            },
-          },
-        });
-      } else {
-        const alvos = servicosAlvo
-          .map((s) => ({ vinculo: vinculoPorServico.get(s.id), servico: s }))
-          .filter((par) => !!par.vinculo && !isVinculoOtimista(par.vinculo.id));
-        if (alvos.length === 0) return;
-        await lote.mutateAsync({
-          acao: 'desvincular',
-          produtoCodigo,
-          vinculos: alvos.map((par) => ({ id: par.vinculo!.id, servicoNome: par.servico.nome })),
-        });
-        toast.success(`${rotulo} desvinculados`, {
-          action: {
-            label: 'Desfazer',
-            onClick: () => {
-              void lote.mutateAsync({
-                acao: 'vincular',
-                produtoSegmentoId: produtoId,
-                produtoCodigo,
-                servicos: alvos.map((par) => ({ id: par.servico.id, nome: par.servico.nome })),
-              });
-            },
-          },
-        });
-      }
-      setMarcados(new Set());
-    } catch {
-      // erro já tratado no hook
-    }
-  }, [produtoSelecionado, lote, vinculoPorServico]);
 
   const marcar = useCallback((ids: string[], marcarAgora: boolean) => {
     setMarcados((atual) => {
@@ -346,10 +241,16 @@ export default function ProdutosServicosTab() {
     });
   }, []);
 
-  const vincularSugeridosDoCluster = useCallback(() => {
-    if (!produtoSelecionado?.cluster_id) return;
-    void executarLote('vincular', listasDeServico.doCluster.filter((s) => !s.vinculado));
-  }, [produtoSelecionado, listasDeServico, executarLote]);
+  /**
+   * Os produtos que podem servir de origem para uma cópia, com os DOIS números
+   * que a escolha pede: quantos serviços o candidato tem, e quantos deles ainda
+   * faltam aqui. Os do mesmo cluster vão para o topo; os demais continuam
+   * alcançáveis, porque produto sem cluster existe.
+   */
+  const candidatosParaCopiar = useMemo(
+    () => (produtoSelecionado ? candidatosParaCopia(produtosAtivos, vinculos, produtoSelecionado) : []),
+    [produtosAtivos, vinculos, produtoSelecionado],
+  );
 
   const semVinculoNenhum = produtoSelecionado && vinculosDoProduto.length === 0;
 
@@ -381,9 +282,15 @@ export default function ProdutosServicosTab() {
         <span className="shrink-0 text-xs text-muted-foreground">Salvo automaticamente</span>
       </div>
 
+      {/*
+        A coluna de produtos SOME abaixo de `lg`, e não encolhe: com 280px fixos
+        ela e a lista de serviços dividiam uma tela de tablet em duas metades
+        estreitas demais para qualquer uma das duas. Quem troca de produto no
+        estreito é o seletor no cabeçalho da lista.
+      */}
       <ListaMestreDetalhe<string>
         moldura="pagina"
-        larguraLista="w-[280px]"
+        larguraLista="hidden w-[280px] lg:block"
         titulo={`Produtos (${produtosVisiveis.length})`}
         cabecalhoLista={(
           <div className="space-y-2">
@@ -452,100 +359,129 @@ export default function ProdutosServicosTab() {
         }}
         vazio={buscaProduto ? 'Nenhum produto com esse texto.' : 'Nenhum produto neste cluster.'}
       >
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-          {
-            /*
-              A coluna do meio fica SEMPRE montada. Antes, produto sem vínculo
-              nenhum trocava a coluna inteira por um cartaz — e o cartaz não tem
-              busca, não tem "Novo serviço" e não tem o lápis do produto. Quem
-              desvinculava tudo perdia o acesso a criar serviço no produto.
-              Agora a mesma mensagem desce como faixa dentro da coluna.
-            */
-            <ServicosLista
-              produto={produtoSelecionado}
-              doCluster={listasDeServico.doCluster}
-              outrosClusters={listasDeServico.outros}
-              mostrarOutros={mostrarOutrosClusters}
-              onMostrarOutros={setMostrarOutrosClusters}
-              idsVisiveis={idsVisiveis}
-              resumo={{ vinculados: vinculosDoProduto.length, total: totalPorCluster[produtoSelecionado?.cluster_id ?? ''] ?? 0 }}
-              filtro={filtroServico}
-              onFiltroChange={(patch) => setFiltroServico((atual) => ({ ...atual, ...patch }))}
-              marcados={marcados}
-              onMarcar={marcar}
-              onLimparMarcados={() => setMarcados(new Set())}
-              servicoAbertoId={servicoAbertoId}
-              onAbrirServico={(servico) => { setServicoAbertoId(servico.id); setPainelAberto(true); }}
-              onLote={(acao, alvos) => void executarLote(acao, alvos)}
-              onAlternarVinculo={(servico) => {
-                if (produtoSelecionado) void alternarVinculo(produtoSelecionado.id, servico.id, servico.nome);
-              }}
-              onNovo={() => setFormServico({ aberto: true, alvo: null })}
-              onEditarProduto={() => {
-                if (produtoSelecionado) setFormProduto({ aberto: true, alvo: produtoSelecionado });
-              }}
-              /*
-                Produto sem serviço é ESTADO VÁLIDO, e a faixa é informativa —
-                nem âmbar, nem alarme.
+        {/*
+          A lista fica SEMPRE montada. Antes, produto sem vínculo nenhum trocava
+          a coluna inteira por um cartaz — e o cartaz não tem busca, não tem
+          "Novo serviço" e não tem o lápis do produto. Quem desvinculava tudo
+          perdia o acesso a criar serviço no produto. Agora a mesma mensagem
+          desce como faixa dentro da coluna.
 
-                Ela dizia "sem vínculo, nenhum projeto pode ser cadastrado para
-                ele", e isso era falso. Conferido nos dois lados em 27/08/2026:
-                `validateProjectForm` não pede `servico_id`, e
-                `gerar_tarefas_projeto` sai por `select` vazio devolvendo 0, sem
-                exceção. Produto sem serviço cria projeto igual — o projeto só
-                nasce sem tarefa, que é o desenho do Canal de Chamados.
-              */
-              aviso={semVinculoNenhum ? (
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-md border bg-muted/40 px-2.5 py-2 text-xs text-muted-foreground">
-                  <span>
-                    Nenhum serviço vinculado. Projetos de{' '}
-                    <strong className="font-semibold text-foreground">
-                      {produtoSelecionado?.codigo} — {produtoSelecionado?.nome}
-                    </strong>
-                    {' '}são cadastrados normalmente; só nascem sem tarefa nenhuma.
-                  </span>
-                  {produtoSelecionado?.cluster_id && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="ml-auto h-7 text-xs"
-                      onClick={vincularSugeridosDoCluster}
-                    >
-                      Vincular sugeridos do mesmo cluster
-                    </Button>
-                  )}
-                </div>
-              ) : undefined}
-              carregando={isLoading}
-            />
-          }
+          O `div` que embrulhava esta coluna e o painel saiu junto com o painel:
+          a moldura `pagina` do `ListaMestreDetalhe` já entrega um slot flex, e
+          `ServicosLista` já é o item que o preenche.
+        */}
+        <ServicosLista
+          produto={produtoSelecionado}
+          produtos={produtosVisiveis}
+          onSelecionarProduto={setProdutoEscolhidoId}
+          doCluster={listasDeServico.doCluster}
+          outrosClusters={listasDeServico.outros}
+          mostrarOutros={mostrarOutrosClusters}
+          onMostrarOutros={setMostrarOutrosClusters}
+          idsVisiveis={idsVisiveis}
+          resumo={{ vinculados: vinculosDoProduto.length, total: totalPorCluster[produtoSelecionado?.cluster_id ?? ''] ?? 0 }}
+          filtro={filtroServico}
+          onFiltroChange={(patch) => setFiltroServico((atual) => ({ ...atual, ...patch }))}
+          marcados={marcados}
+          onMarcar={marcar}
+          onLimparMarcados={() => setMarcados(new Set())}
+          servicoAbertoId={servicoAbertoId}
+          onAbrirServico={(servico) => setServicoAbertoId(servico.id)}
+          onLote={(acao, alvos) => void executarLote(acao, alvos)}
+          onAlternarVinculo={(servico) => {
+            if (produtoSelecionado) void alternarVinculo(produtoSelecionado.id, servico.id, servico.nome);
+          }}
+          onNovo={() => setFormServico({ aberto: true, alvo: null })}
+          onCopiarDeOutro={() => setCopiarAberto(true)}
+          podeCopiar={candidatosParaCopiar.length > 0}
+          onEditarProduto={() => {
+            if (produtoSelecionado) setFormProduto({ aberto: true, alvo: produtoSelecionado });
+          }}
+          /*
+            Produto sem serviço é ESTADO VÁLIDO, e a faixa é informativa —
+            nem âmbar, nem alarme.
 
-          {painelAberto && (
-            <ServicoDetalhePanel
-              servico={servicoAberto}
-              cluster={clusterDoServico}
-              vinculados={produtosDoServico.vinculados}
-              disponiveis={produtosDoServico.disponiveis}
-              carregando={isLoading}
-              onEditar={() => {
-                const bruto = servicos.find((s) => s.id === servicoAberto?.id);
-                if (bruto) setFormServico({ aberto: true, alvo: bruto });
-              }}
-              onExcluir={() => {
-                const bruto = servicos.find((s) => s.id === servicoAberto?.id);
-                if (bruto) setServicoParaExcluir(bruto);
-              }}
-              onFechar={() => setPainelAberto(false)}
-              onDesvincular={(produto) => {
-                if (servicoAberto) void alternarVinculo(produto.id, servicoAberto.id, servicoAberto.nome);
-              }}
-              onVincular={(produtoId) => {
-                if (servicoAberto) void alternarVinculo(produtoId, servicoAberto.id, servicoAberto.nome);
-              }}
-            />
-          )}
-        </div>
+            Ela dizia "sem vínculo, nenhum projeto pode ser cadastrado para
+            ele", e isso era falso. Conferido nos dois lados em 27/08/2026:
+            `validateProjectForm` não pede `servico_id`, e
+            `gerar_tarefas_projeto` sai por `select` vazio devolvendo 0, sem
+            exceção. Produto sem serviço cria projeto igual — o projeto só
+            nasce sem tarefa, que é o desenho do Canal de Chamados.
+          */
+          aviso={semVinculoNenhum ? (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-md border bg-muted/40 px-2.5 py-2 text-xs text-muted-foreground">
+              <span>
+                Nenhum serviço vinculado. Projetos de{' '}
+                <strong className="font-semibold text-foreground">
+                  {produtoSelecionado?.codigo} — {produtoSelecionado?.nome}
+                </strong>
+                {' '}são cadastrados normalmente; só nascem sem tarefa nenhuma.
+              </span>
+              {/*
+                Era "Vincular sugeridos do mesmo cluster", e ele marcava o
+                CLUSTER INTEIRO — dezenas de serviços num produto cujo vizinho
+                mais cheio tem 16. Nenhum produto quer isso. Copiar de um produto
+                parecido traz o punhado que de fato se usa junto.
+              */}
+              {candidatosParaCopiar.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="ml-auto h-7 text-xs"
+                  onClick={() => setCopiarAberto(true)}
+                >
+                  Copiar de outro produto
+                </Button>
+              )}
+            </div>
+          ) : undefined}
+          carregando={isLoading}
+        />
       </ListaMestreDetalhe>
+
+      {/*
+        O detalhe do serviço vive SOBRE a tela, e não ao lado dela.
+
+        Era uma terceira coluna de 320px, sempre montada, que na maior parte do
+        tempo mostrava "Selecione um serviço" — um terço da largura reservado
+        para um vazio, enquanto a lista de serviços, que é onde se trabalha,
+        ficava com o que sobrava. O conteúdo é o mesmo e o gesto que abre também:
+        clicar no nome do serviço.
+      */}
+      <Sheet
+        open={!!servicoAberto}
+        onOpenChange={(aberto) => { if (!aberto) setServicoAbertoId(null); }}
+      >
+        <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-sm">
+          <SheetHeader className="sr-only">
+            <SheetTitle>{dividirNomeServico(servicoAberto?.nome).nome || 'Serviço'}</SheetTitle>
+            <SheetDescription>
+              Cluster do serviço e em quais produtos ele é usado.
+            </SheetDescription>
+          </SheetHeader>
+          <ServicoDetalhePanel
+            servico={servicoAberto}
+            cluster={clusterDoServico}
+            vinculados={produtosDoServico.vinculados}
+            disponiveis={produtosDoServico.disponiveis}
+            carregando={isLoading}
+            onEditar={() => {
+              const bruto = servicos.find((s) => s.id === servicoAberto?.id);
+              if (bruto) setFormServico({ aberto: true, alvo: bruto });
+            }}
+            onExcluir={() => {
+              const bruto = servicos.find((s) => s.id === servicoAberto?.id);
+              if (bruto) setServicoParaExcluir(bruto);
+            }}
+            onDesvincular={(produto) => {
+              if (servicoAberto) void alternarVinculo(produto.id, servicoAberto.id, servicoAberto.nome);
+            }}
+            onVincular={(produtoId) => {
+              if (servicoAberto) void alternarVinculo(produtoId, servicoAberto.id, servicoAberto.nome);
+            }}
+          />
+        </SheetContent>
+      </Sheet>
 
       <ProdutoFormDialog
         aberto={formProduto.aberto}
@@ -564,6 +500,14 @@ export default function ProdutosServicosTab() {
           // Serviço criado dentro de um produto já entra vinculado a ele.
           if (produtoSelecionado) void alternarVinculo(produtoSelecionado.id, servicoId, nome);
         }}
+      />
+
+      <CopiarDeProdutoDialog
+        aberto={copiarAberto}
+        nomeDoAlvo={`${produtoSelecionado?.codigo ?? '?'} — ${produtoSelecionado?.nome ?? ''}`}
+        candidatos={candidatosParaCopiar}
+        onFechar={() => setCopiarAberto(false)}
+        onConfirmar={copiarDe}
       />
 
       <ConfirmarExclusaoDialog

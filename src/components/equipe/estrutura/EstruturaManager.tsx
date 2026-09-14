@@ -28,10 +28,10 @@ import { cnpjIncompleto, formatarCnpj } from '@/lib/cnpj';
 import { PontoDaArea } from '@/components/acessos/PontoDaArea';
 
 import { nomeDoTomDaArea } from '@/lib/corDaArea';
-const colorPresets = [
-  '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444',
-  '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
-];
+
+// A paleta de dez hexadecimais que ficava aqui saiu em 14/09/2026: ela já não
+// tinha leitor desde que o seletor de cor virou o nome do tom (`nomeDoTomDaArea`),
+// e cor de área vem de `color_index` — ver a nota em `src/lib/corDaArea.ts`.
 
 function profileLabel(p: Profile) {
   const name = [p.first_name, p.last_name].filter(Boolean).join(' ');

@@ -31,6 +31,8 @@ export interface UsuarioFiltravel {
   first_name: string;
   last_name: string;
   roles: AppRole[];
+  /** Só a ordenação por e-mail usa; o filtro não olha (busca é por nome). */
+  email?: string | null;
 }
 
 export interface FiltroDeUsuarios {
@@ -111,4 +113,106 @@ export function contarPorPapel(
     }
   }
   return contagem;
+}
+
+/* ── Ordenação clicável ──────────────────────────────────────────────────
+ *
+ * A ordem padrão (hierarquia de papel, depois nome) continua sendo a de
+ * chegada, e continua sendo para onde o terceiro clique volta: uma tabela que
+ * não tem como desfazer a ordenação obriga a recarregar a página para recuperar
+ * a leitura original.
+ *
+ * ## O clique numa COLUNA DA MATRIZ é o que essa ordenação tem de diferente
+ *
+ * Ordenar por nome ou por e-mail é conveniência. Ordenar pela coluna "Admin"
+ * junta os cinco administradores no topo de uma lista de 68 — é a pergunta"quem
+ * tem isto?" respondida sem filtrar, e ela vale igual para papel, área e equipe.
+ *
+ * ## Todo critério desempata por NOME
+ *
+ * Sem isso, ordenar por uma coluna booleana deixaria a ordem de dentro de cada
+ * bloco à mercê do que o banco devolveu — as mesmas 68 linhas apareceriam em
+ * ordem diferente a cada carga, e a tabela pareceria instável sem estar.
+ */
+
+/** O que está ordenando a matriz agora. */
+export interface OrdemDaMatriz {
+  /** `'padrao'` = hierarquia de papel e depois nome. */
+  campo: 'padrao' | 'nome' | 'email' | 'coluna';
+  /** Qual coluna, quando `campo === 'coluna'`. */
+  coluna?: string;
+  ascendente: boolean;
+}
+
+export const ORDEM_PADRAO: OrdemDaMatriz = { campo: 'padrao', ascendente: true };
+
+/**
+ * O próximo estado do clique num cabeçalho: **crescente → decrescente → padrão**.
+ *
+ * Clicar numa coluna diferente recomeça o ciclo nela, em vez de herdar o sentido
+ * da anterior — herdar faria o primeiro clique numa coluna nova cair em
+ * decrescente sem ninguém ter pedido.
+ *
+ * Numa coluna da matriz, "crescente" é **quem tem no topo**. Parece invertido
+ * ao lado de A→Z, e é deliberado: o primeiro clique tem de responder a pergunta
+ * que levou a pessoa a clicar ali, que é"quem tem isto".
+ */
+export function proximaOrdem(
+  atual: OrdemDaMatriz,
+  campo: OrdemDaMatriz['campo'],
+  coluna?: string,
+): OrdemDaMatriz {
+  const mesma = atual.campo === campo && atual.coluna === coluna;
+  if (!mesma) return { campo, coluna, ascendente: true };
+  if (atual.ascendente) return { campo, coluna, ascendente: false };
+  return ORDEM_PADRAO;
+}
+
+/**
+ * Ordena pela `ordem` pedida, desempatando sempre por nome.
+ *
+ * `ligada` fica por conta de quem chama: é ela que sabe se a pessoa tem aquele
+ * papel, aquela área ou aquela equipe, e manter essa pergunta fora daqui é o que
+ * permite as três dimensões usarem a MESMA ordenação.
+ */
+export function ordenarUsuariosPor<T extends UsuarioFiltravel>(
+  usuarios: T[],
+  ordem: OrdemDaMatriz,
+  ligada: (usuario: T, coluna: string) => boolean,
+): T[] {
+  if (ordem.campo === 'padrao') return ordenarUsuarios(usuarios);
+
+  const collator = new Intl.Collator('pt-BR', { sensitivity: 'base' });
+  const nome = (u: T) => `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim();
+  const sentido = ordem.ascendente ? 1 : -1;
+
+  const comparar = (a: T, b: T): number => {
+    if (ordem.campo === 'nome') return sentido * collator.compare(nome(a), nome(b));
+    if (ordem.campo === 'email') {
+      // Quem não tem e-mail vai para o fim nos DOIS sentidos: linha sem dado não
+      // é"menor", é ausente, e alternar o sentido não deveria promovê-la ao topo.
+      const ea = a.email ?? '';
+      const eb = b.email ?? '';
+      if (!ea && !eb) return 0;
+      if (!ea) return 1;
+      if (!eb) return -1;
+      return sentido * collator.compare(ea, eb);
+    }
+    const temA = ligada(a, ordem.coluna ?? '');
+    const temB = ligada(b, ordem.coluna ?? '');
+    if (temA !== temB) return sentido * (temA ? -1 : 1);
+    return 0;
+  };
+
+  return [...usuarios].sort((a, b) => comparar(a, b) || collator.compare(nome(a), nome(b)));
+}
+
+/** O que o `aria-sort` do cabeçalho deve dizer. */
+export function ariaSortDe(
+  ordem: OrdemDaMatriz,
+  campo: OrdemDaMatriz['campo'],
+  coluna?: string,
+): 'ascending' | 'descending' | 'none' {
+  if (ordem.campo !== campo || ordem.coluna !== coluna) return 'none';
+  return ordem.ascendente ? 'ascending' : 'descending';
 }
