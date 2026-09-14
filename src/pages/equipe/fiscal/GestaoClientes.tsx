@@ -23,7 +23,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Users, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import {
+  podeEditarCadastroCliente,
+  podeExcluirCliente,
+} from '@/lib/cadastroClientePermissions';
 
 import {
   useClientesFiltrados,
@@ -196,7 +199,9 @@ const GestaoClientes = ({
   todosOsClusters = false,
 }: { area?: AreaKey; todosOsClusters?: boolean } = {}) => {
   const { isAdmin, isLider, isSublider } = useAuth();
-  const canEdit = isAdmin || isLider || isSublider;
+  const papel = { isAdmin, isLider, isSublider };
+  const canEdit = podeEditarCadastroCliente(papel);
+  const canDelete = podeExcluirCliente(papel);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [tipo, setTipo] = useState('');
@@ -361,7 +366,7 @@ const GestaoClientes = ({
                 <TableHead className="h-11 px-4 text-xs uppercase tracking-[0.12em]">
                   Clusters
                 </TableHead>
-                {canEdit && (
+                {canDelete && (
                   <TableHead className="h-11 w-14 px-4 text-right text-xs uppercase tracking-[0.12em]">
                     Ações
                   </TableHead>
@@ -371,7 +376,7 @@ const GestaoClientes = ({
             <TableBody>
               {paginatedResults.map((row, indice) => {
                 const isExpanded = expandedClienteId === row.id;
-                const totalCols = canEdit ? 9 : 8;
+                const totalCols = canDelete ? 9 : 8;
                 // As âncoras do tour guiado moram só na PRIMEIRA linha: o passo
                 // aponta um lugar, e dez linhas com a mesma âncora deixariam o
                 // Joyride escolhendo qual iluminar.
@@ -452,7 +457,7 @@ const GestaoClientes = ({
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      {canEdit && (
+                      {canDelete && (
                         <TableCell className="px-4 py-3 text-right">
                           <Button
                             variant="ghost"
@@ -461,12 +466,6 @@ const GestaoClientes = ({
                             aria-label={`Excluir ${row.nome || 'cliente'}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (!isAdmin) {
-                                toast.warning(
-                                  'Você não tem permissão para excluir clientes/contribuintes, fale com a equipe Digital para realizar essa operação',
-                                );
-                                return;
-                              }
                               setDeletingCliente({ id: row.id, nome: row.nome || 'Sem nome' });
                             }}
                           >
