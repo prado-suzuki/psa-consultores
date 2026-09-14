@@ -120,9 +120,10 @@ describe('buildProjetosTarefasHierarchy', () => {
     expect(result[1].projects.map(node => node.project?.id ?? null)).toEqual(['project-sem-os', null]);
   });
 
-  it('ordena raízes, filhas e netas por título lendo número como número', () => {
-    // "4.10" antes de "4.2" era o defeito: `localeCompare` sem `numeric` compara
-    // "1" com "2" e para ali. Vale nos três níveis, cada um entre suas irmãs.
+  it('desempata raízes, filhas e netas de mesmo prazo por título, lendo número como número', () => {
+    // Sem prazo em nenhuma, o desempate é o único critério em jogo. "4.10" antes
+    // de "4.2" era o defeito: `localeCompare` sem `numeric` compara "1" com "2"
+    // e para ali. Vale nos três níveis, cada um entre suas irmãs.
     const result = buildProjetosTarefasHierarchy(
       [project('project-1')],
       [
@@ -141,6 +142,43 @@ describe('buildProjetosTarefasHierarchy', () => {
     expect(raizes.map(node => node.task.id)).toEqual(['r1', 'r2', 'r10']);
     expect(raizes[0].children.map(node => node.task.id)).toEqual(['f2', 'f10']);
     expect(raizes[0].children[0].children.map(node => node.task.id)).toEqual(['n1', 'n10']);
+  });
+
+  it('ordena as tarefas do projeto pelo prazo, do mais próximo ao mais distante', () => {
+    // O caso relatado, com os nomes da tela: em ordem alfabética a tarefa de
+    // agosto encabeçava o projeto, e as cinco de março apareciam embaixo dela.
+    const result = buildProjetosTarefasHierarchy(
+      [project('project-1')],
+      [
+        task('agosto', { title: '1.1.Apoio na implantação', due_date: '2026-08-31' }),
+        task('marco', { title: '1.1.Suporte em auditorias', due_date: '2026-03-12' }),
+        task('agosto-25', { title: '1.1.Estruturação de plano de contas', due_date: '2026-08-25' }),
+      ],
+      [os],
+    );
+
+    expect(result[0].projects[0].tasks.map(node => node.task.id)).toEqual([
+      'marco',
+      'agosto-25',
+      'agosto',
+    ]);
+  });
+
+  it('põe a tarefa sem prazo na frente das datadas, em qualquer nível', () => {
+    const result = buildProjetosTarefasHierarchy(
+      [project('project-1')],
+      [
+        task('mae-datada', { title: 'A. Com prazo', due_date: '2026-03-12' }),
+        task('mae-sem-prazo', { title: 'Z. Sem prazo' }),
+        task('filha-datada', { title: 'A. Filha com prazo', due_date: '2026-03-12', parent_task_id: 'mae-datada' }),
+        task('filha-sem-prazo', { title: 'Z. Filha sem prazo', parent_task_id: 'mae-datada' }),
+      ],
+      [os],
+    );
+
+    const raizes = result[0].projects[0].tasks;
+    expect(raizes.map(node => node.task.id)).toEqual(['mae-sem-prazo', 'mae-datada']);
+    expect(raizes[1].children.map(node => node.task.id)).toEqual(['filha-sem-prazo', 'filha-datada']);
   });
 
   it('agrega o esforço do projeto até a OS, contando concluídas sem horas', () => {

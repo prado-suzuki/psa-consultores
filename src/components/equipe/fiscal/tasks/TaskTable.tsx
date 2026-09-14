@@ -29,7 +29,7 @@ import { parseDate } from '@/lib/dateUtils';
  } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { OrgTask, OrgTaskStatus, OrgTaskPriority, useUpdateOrgTask } from '@/hooks/useOrgTasks';
-import { ordenarPorTitulo } from '@/lib/ordemDeTarefas';
+import { ordenarPorPrazo } from '@/lib/ordemDeTarefas';
 import { statusColors } from '@/lib/taskStatusColors';
 import { taskPriorityList } from '@/lib/taskPriorityColors';
 import { AreaKey } from '@/config/areaCategories';
@@ -73,14 +73,14 @@ const statusLabels = Object.fromEntries(
    const transicao = useTaskStatusTransition();
  
    // As tarefas-pai NÃO são reordenadas: esta tabela mistura projetos numa
-   // lista só, e ordenar por título intercalaria a "1." de um cliente com a de
-   // outro. As subtarefas, sim — elas saem como bloco contíguo debaixo da mãe,
-   // que é o escopo onde a ordem alfabética significa alguma coisa. Como
+   // lista só, e quem manda nela é a ordem em que a página as trouxe. As
+   // subtarefas, sim — elas saem como bloco contíguo debaixo da mãe, que é o
+   // escopo onde ordenar significa alguma coisa, e saem por prazo. Como
    // `renderTaskRow` é recursivo e refaz esta chamada a cada nível, ordenar
    // aqui vale para neta, bisneta e o que vier.
    const parentTasks = tasks.filter(t => !t.parent_task_id);
    const getSubtasks = (parentId: string) =>
-     ordenarPorTitulo(tasks.filter(t => t.parent_task_id === parentId));
+     ordenarPorPrazo(tasks.filter(t => t.parent_task_id === parentId));
  
    const toggleExpand = (taskId: string) => {
      setExpandedTasks(prev => {
