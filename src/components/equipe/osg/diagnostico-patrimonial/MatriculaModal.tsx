@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/equipe/osg/OsgDialog';
 import { useDirtyClose } from '@/components/equipe/osg/useDirtyClose';
 import { UnsavedChangesAlert } from '@/components/equipe/osg/UnsavedChangesAlert';
@@ -15,6 +15,11 @@ import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { HistoricoFlutuante } from '@/components/equipe/osg/HistoricoFlutuante';
 import { useClienteTemDocumentoGerado } from '@/hooks/useDocumentoGerado';
 import { TitularidadesPanel } from '@/components/equipe/osg/diagnostico-patrimonial/TitularidadesPanel';
+import {
+  somaContabilDosTitulares,
+  titularesEfetivos,
+  type LinhaDeTitularidade,
+} from '@/lib/osg/integralizacaoDaMatricula';
 import { ImpedimentosPanel } from '@/components/equipe/osg/diagnostico-patrimonial/impedimentos/ImpedimentosPanel';
 import { MatriculaDadosTab } from '@/components/equipe/osg/diagnostico-patrimonial/matricula/MatriculaDadosTab';
 import { TitularesIniciaisSection } from '@/components/equipe/osg/diagnostico-patrimonial/titularidade/TitularesIniciaisSection';
@@ -58,7 +63,36 @@ export function MatriculaModal({ open, bemId, bemTipo, matricula, pessoasCliente
   const { clienteId } = useOsgWork();
   const { data: temDocumento = false } = useClienteTemDocumentoGerado(isEdit ? clienteId || null : null);
   const mostrarHistorico = isEdit && temDocumento;
-  const { data: titularidades = [] } = useTitularidadesByMatricula(mostrarHistorico && matricula ? matricula.id : null);
+  // A lista de titulares serve a DUAS coisas agora: os ids que o histórico
+  // flutuante observa e a soma do contábil declarado, que a aba Dados mostra no
+  // lugar do campo digitado. Por isso ela não depende mais do histórico estar
+  // ligado. A chave é a mesma do painel de titularidade deste modal, então não
+  // há consulta a mais.
+  const { data: titularidades = [] } = useTitularidadesByMatricula(isEdit && matricula ? matricula.id : null);
+  const contabilDosTitulares = useMemo(
+    () => somaContabilDosTitulares(titularesEfetivos(titularidades as unknown as LinhaDeTitularidade[])),
+    [titularidades],
+  );
+  // No cadastro novo nada foi ao banco ainda: a soma vem do rascunho local, e é
+  // ela que faz o campo "Vlr. contábil" da aba Dados virar leitura já na
+  // criação. Sem isso o formulário pediria o mesmo número duas vezes.
+  const contabilDoRascunho = useMemo(
+    () => somaContabilDosTitulares(
+      titularesEfetivos(
+        titularesIniciais
+          .filter((linha) => linha.titular_pessoa_id && linha.tipo === 'DIREITO')
+          .map((linha) => ({
+            id: linha.key,
+            titular_pessoa_id: linha.titular_pessoa_id,
+            tipo: linha.tipo,
+            fracao: null,
+            vlr_contabil: linha.vlr_contabil.trim() ? Number(linha.vlr_contabil) : null,
+            vlr_integralizar: linha.vlr_integralizar.trim() ? Number(linha.vlr_integralizar) : null,
+          })),
+      ),
+    ),
+    [titularesIniciais],
+  );
   const initialDraftRef = useRef('');
   const initialTitularRef = useRef('');
   // Lido SÓ na abertura: enquanto está aberto, o modal é o dono do formulário. A
@@ -100,6 +134,7 @@ export function MatriculaModal({ open, bemId, bemTipo, matricula, pessoasCliente
       { invalido: !draft.area_documento.trim() || Number.isNaN(Number(draft.area_documento)), mensagem: 'Informe a área do documento.', aba: 'dados', campo: 'area_documento' },
       { invalido: falhaTitulares === 'sem_titular', mensagem: 'Selecione ao menos um titular da matrícula, na aba Titularidade.', aba: 'titulares', campo: 'titular_pessoa_id' },
       { invalido: falhaTitulares === 'fracao_invalida', mensagem: 'A fração de cada titular deve estar entre 0 e 100.', aba: 'titulares', campo: 'titular_fracao' },
+      { invalido: falhaTitulares === 'valor_invalido', mensagem: 'Os valores por titular precisam ser números não negativos.', aba: 'titulares', campo: 'titular_vlr_contabil' },
       { invalido: falhaTitulares === 'duplicado', mensagem: 'A mesma pessoa aparece duas vezes na mesma espécie de titularidade.', aba: 'titulares', campo: 'titular_pessoa_id' },
     ], { abrirAba: setActiveTab });
     if (!ok) return;
@@ -132,7 +167,7 @@ export function MatriculaModal({ open, bemId, bemTipo, matricula, pessoasCliente
           {/* `formScopeCls`: as grades do formulário medem ESTE contêiner (848px aqui),
                 não a janela — ver formKit. Mantém o modal largo como era. */}
             <div className={`min-h-0 flex-1 overflow-y-auto px-6 py-5 ${formScopeCls}`}>
-            <TabsContent value="dados" className="mt-0 focus-visible:ring-0"><MatriculaDadosTab draft={draft} onChange={setDraft} bemTipo={bemTipo} matricula={matricula} matriculasDoBem={matriculasDoBem} /></TabsContent>
+            <TabsContent value="dados" className="mt-0 focus-visible:ring-0"><MatriculaDadosTab draft={draft} onChange={setDraft} bemTipo={bemTipo} matricula={matricula} matriculasDoBem={matriculasDoBem} contabilDosTitulares={isEdit ? contabilDosTitulares : contabilDoRascunho} /></TabsContent>
             <TabsContent value="titulares" className="mt-0 focus-visible:ring-0">{isEdit && matricula ? <TitularidadesPanel anchor={{ kind: 'matricula', id: matricula.id }} pessoasCliente={pessoasCliente} requireAtLeastOne /> : <TitularesIniciaisSection entity="matrícula" pessoas={pessoasCliente} value={titularesIniciais} onChange={setTitularesIniciais} />}</TabsContent>
             <TabsContent value="impedimentos" className="mt-0 focus-visible:ring-0">{isEdit && matricula && <ImpedimentosPanel matriculaId={matricula.id} areaUnidade={matricula.area_unidade} pessoasCliente={pessoasCliente} />}</TabsContent>
             <TabsContent value="documentos" className="mt-0 focus-visible:ring-0">{isEdit && matricula && <DocumentosTab clienteId={clienteId} vinculo={{ matriculaId: matricula.id, bemId: bemId ?? null }} categoriaPadrao="agrarios" nrMatricula={matricula.numero} />}</TabsContent>

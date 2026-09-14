@@ -812,9 +812,14 @@ describe('EquipeSprintDetalhes: UI pública', () => {
     boundary.useDomain.mockReturnValue(pageData({ deliverables: [deliverables[4]] }));
     renderPage();
     await user.click(screen.getByRole('checkbox'));
+    // Concluir pede as horas antes de gravar; sem elas nada vai para o banco.
+    expect(mutations.updateDeliverableStatus.mutateAsync).not.toHaveBeenCalled();
+    await user.type(await screen.findByLabelText(/Horas realizadas/), '4');
+    await user.click(screen.getByRole('button', { name: 'Concluir tarefa' }));
     expect(mutations.updateDeliverableStatus.mutateAsync).toHaveBeenCalledWith({
       deliverableId: 'late',
       newStatus: 'completed',
+      actualHours: 4,
     });
 
     await user.click(screen.getByRole('button', { name: 'Nova Tarefa' }));
@@ -854,9 +859,18 @@ describe('EquipeSprintDetalhes: UI pública', () => {
     expect(mutations.updateDeliverableStatus.mutateAsync).not.toHaveBeenCalled();
 
     await user.click(within(warning).getByRole('button', { name: 'Concluir mesmo assim' }));
+    // Confirmar o aviso apenas libera o próximo passo: as horas continuam obrigatórias.
+    expect(mutations.updateDeliverableStatus.mutateAsync).not.toHaveBeenCalled();
+    // 6,5h numa tarefa de 2h estimadas é o triplo: o aviso de digitação trava o botão
+    // até alguém dizer que está certo mesmo.
+    await user.type(await screen.findByLabelText(/Horas realizadas/), '6.5');
+    expect(screen.getByRole('button', { name: 'Concluir tarefa' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Está certo' }));
+    await user.click(screen.getByRole('button', { name: 'Concluir tarefa' }));
     expect(mutations.updateDeliverableStatus.mutateAsync).toHaveBeenCalledWith({
       deliverableId: 'parent',
       newStatus: 'completed',
+      actualHours: 6.5,
     });
   });
 
@@ -886,9 +900,13 @@ describe('EquipeSprintDetalhes: UI pública', () => {
     await user.click(within(parentCard as HTMLElement).getAllByRole('button')[0]);
     await user.click(screen.getAllByRole('checkbox')[2]);
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    // Sem aviso de subtarefa aberta, mas com as horas: folha também aponta.
+    await user.type(await screen.findByLabelText(/Horas realizadas/), '2');
+    await user.click(screen.getByRole('button', { name: 'Concluir tarefa' }));
     expect(mutations.updateDeliverableStatus.mutateAsync).toHaveBeenCalledWith({
       deliverableId: 'child-10',
       newStatus: 'completed',
+      actualHours: 2,
     });
   });
 
@@ -902,11 +920,16 @@ describe('EquipeSprintDetalhes: UI pública', () => {
     expect(screen.getByRole('heading', { name: 'Editar Entregável' })).toBeInTheDocument();
     await user.click(screen.getByLabelText('Status'));
     await user.click(screen.getByRole('option', { name: 'Concluído' }));
+    // Salvar como concluído sem horas não grava — o campo só aparece nesse status.
+    await user.click(screen.getByRole('button', { name: 'Salvar Alterações' }));
+    expect(mutations.updateDeliverable.mutateAsync).not.toHaveBeenCalled();
+    await user.type(screen.getByLabelText('Horas realizadas'), '3');
     await user.click(screen.getByRole('button', { name: 'Salvar Alterações' }));
     expect(mutations.updateDeliverable.mutateAsync).toHaveBeenCalledWith({
       deliverableId: 'late',
       updates: expect.objectContaining({
         status: 'completed',
+        actual_hours: 3,
         completed_at: expect.stringMatching(/^2026-07-21T12:34:56\.\d{3}Z$/),
       }),
     });

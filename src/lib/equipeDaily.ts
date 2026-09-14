@@ -47,11 +47,11 @@ export function filterDailyTasksBySearch<T extends SearchableDailyTask>(tasks: T
   );
 }
 
-export function parseDailyActualHours(value: string): number | null {
-  if (!value.trim()) return null;
-  const hours = Number(value.replace(',', '.'));
-  return Number.isFinite(hours) && hours >= 0 ? hours : null;
-}
+/**
+ * Mesma validação usada pela conclusão no Kanban e na Sprint — o nome daqui é
+ * histórico, a regra vive em `horasApontamento`.
+ */
+export { parseHorasRealizadas as parseDailyActualHours } from '@/lib/horasApontamento';
 
 function normalizeDailyTaskSearch(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('pt-BR');

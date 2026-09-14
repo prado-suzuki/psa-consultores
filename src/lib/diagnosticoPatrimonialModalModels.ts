@@ -26,6 +26,16 @@ export type TitularInicialDraft = {
   titular_pessoa_id: string;
   tipo: TipoTitularidadeInicial;
   fracao: string;
+  /**
+   * Os dois valores por titular da MATRÍCULA (migration 20260914152326), como
+   * string do campo de dinheiro ("1234.56" ou vazio). Só a linha de DIREITO os
+   * usa, e o formulário de bem não os mostra: o valor do bem sem matrícula
+   * segue no próprio bem (decisão 4 do plano de 14/09/2026).
+   *
+   * VAZIO EM `vlr_integralizar` É O ESTADO "NÃO INTEGRALIZA", não "zero".
+   */
+  vlr_contabil: string;
+  vlr_integralizar: string;
 };
 
 export type TitularesIniciaisDraft = TitularInicialDraft[];
@@ -35,13 +45,15 @@ export const novaLinhaTitular = (tipo: TipoTitularidadeInicial): TitularInicialD
   titular_pessoa_id: '',
   tipo,
   fracao: '',
+  vlr_contabil: '',
+  vlr_integralizar: '',
 });
 
 /** Abre com uma linha de DT: é a espécie que define o cliente da matrícula. */
 export const emptyTitularesIniciais = (): TitularesIniciaisDraft => [novaLinhaTitular('DIREITO')];
 
 /** O que impede a lista de titulares de ser gravada. Ordem = ordem do aviso. */
-export type FalhaTitularesIniciais = 'sem_titular' | 'fracao_invalida' | 'duplicado';
+export type FalhaTitularesIniciais = 'sem_titular' | 'fracao_invalida' | 'valor_invalido' | 'duplicado';
 
 const fracaoDaLinha = (linha: TitularInicialDraft): number | null => {
   const digitado = linha.fracao.trim();
@@ -50,6 +62,25 @@ const fracaoDaLinha = (linha: TitularInicialDraft): number | null => {
 };
 
 const linhaPreenchida = (linha: TitularInicialDraft) => !!linha.titular_pessoa_id;
+
+/**
+ * O campo de dinheiro em três estados, porque o VAZIO é dado: `null` é "não
+ * informado" (e, em `vlr_integralizar`, "não integraliza"), o número é o valor,
+ * e 'invalido' é texto que não vira número e não pode virar null em silêncio.
+ */
+const valorDaLinha = (campo: string): number | null | 'invalido' => {
+  const digitado = campo.trim();
+  if (!digitado) return null;
+  const numero = Number(digitado);
+  return Number.isFinite(numero) && numero >= 0 ? numero : 'invalido';
+};
+
+/** Só a linha de DIREITO carrega valores (a verdade mora na propriedade). */
+const valorGravavel = (linha: TitularInicialDraft, campo: string): number | null => {
+  if (linha.tipo !== 'DIREITO') return null;
+  const valor = valorDaLinha(campo);
+  return valor === 'invalido' ? null : valor;
+};
 
 export function conferirTitularesIniciais(
   linhas: TitularesIniciaisDraft,
@@ -60,6 +91,9 @@ export function conferirTitularesIniciais(
     const fracao = fracaoDaLinha(linha);
     if (fracao != null && (Number.isNaN(fracao) || fracao <= 0 || fracao > 100)) {
       return 'fracao_invalida';
+    }
+    if (valorDaLinha(linha.vlr_contabil) === 'invalido' || valorDaLinha(linha.vlr_integralizar) === 'invalido') {
+      return 'valor_invalido';
     }
   }
   // Espelha o índice único `titularidade_unq` (matricula_id, titular_pessoa_id,
@@ -88,6 +122,8 @@ export function parseTitularesIniciais(linhas: TitularesIniciaisDraft): TitularI
       titular_pessoa_id: linha.titular_pessoa_id,
       tipo: linha.tipo,
       fracao: fracao == null || Number.isNaN(fracao) ? null : fracao,
+      vlr_contabil: valorGravavel(linha, linha.vlr_contabil),
+      vlr_integralizar: valorGravavel(linha, linha.vlr_integralizar),
     };
   });
 }

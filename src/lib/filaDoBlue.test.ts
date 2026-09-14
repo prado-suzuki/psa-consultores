@@ -172,9 +172,7 @@ const FILA_DO_BLUE = {
 
   /**
    * CÓDIGO QUE NINGUÉM CONSEGUE ABRIR — medido em 11/09/2026 percorrendo os
-   * `import` até as páginas montadas no `App.tsx`: nenhuma rota monta estes três
-   * arquivos (`AdminUsuarios`, `AdminPerformance`, e o `DemandList` via
-   * `EquipeDemandas`).
+   * `import` até as páginas montadas no `App.tsx`.
    *
    * Converter aqui não muda um pixel para ninguém, e por isso não entra em
    * nenhuma das rodadas — mas fica MEDIDO, e não silenciosamente ignorado: se um
@@ -182,11 +180,16 @@ const FILA_DO_BLUE = {
    * de que ele precisa ser convertido antes.
    *
    * É a mesma situação dos "componentes órfãos" que sobraram na fila do `gray`.
+   *
+   * **`AdminUsuarios` e `AdminPerformance` saíram daqui em 14/09/2026, e não por
+   * conversão: os arquivos foram APAGADOS.** Esta anotação de 11/09 tinha
+   * medido certo — nenhuma rota os montava — e parou na medição; em 14/09
+   * alguém foi abrir `/administracao/acessos`, viu o 404, e a Patrícia
+   * confirmou que as telas não voltam. É a diferença entre registrar código
+   * morto e removê-lo: o registro sobreviveu três dias, o código oito meses.
    */
   semRotaQueOsMonte: {
     'src/components/equipe/demandas/DemandList.tsx': 2,
-    'src/pages/administracao/AdminUsuarios.tsx': 2,
-    'src/pages/administracao/AdminPerformance.tsx': 1,
   },
 
   /**

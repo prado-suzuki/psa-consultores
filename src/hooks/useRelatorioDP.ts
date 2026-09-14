@@ -9,7 +9,6 @@ export interface DPTitular {
   denominacao: string;
   tipo: string | null;
   fracao: number | null;
-  integralizador: boolean;
 }
 
 export interface DPMatricula {
@@ -50,9 +49,9 @@ const SELECT = `
   matricula (
     id, numero, matricula_anterior_texto, municipio_imovel, uf_imovel,
     area_documento, area_real, area_unidade, tipo_exploracao_posse, vlr_contabil, vlr_mercado,
-    titularidade ( tipo, fracao, integralizador, titular:titular_pessoa_id ( denominacao, tipo_pessoa ) )
+    titularidade ( tipo, fracao, titular:titular_pessoa_id ( denominacao, tipo_pessoa ) )
   ),
-  titularidade ( tipo, fracao, integralizador, titular:titular_pessoa_id ( denominacao, tipo_pessoa ) )
+  titularidade ( tipo, fracao, titular:titular_pessoa_id ( denominacao, tipo_pessoa ) )
 `;
 
 /**
@@ -62,7 +61,6 @@ const SELECT = `
 interface TitularidadeEmbed {
   tipo: string | null;
   fracao: number | null;
-  integralizador: boolean | null;
   titular: { denominacao: string | null; tipo_pessoa: string | null } | null;
 }
 
@@ -70,7 +68,6 @@ const mapTit = (t: TitularidadeEmbed): DPTitular => ({
   denominacao: t?.titular?.denominacao ?? '—',
   tipo: t?.titular?.tipo_pessoa ?? null,
   fracao: t?.fracao ?? null,
-  integralizador: !!t?.integralizador,
 });
 
 export function useRelatorioDP(clienteId: string | null) {

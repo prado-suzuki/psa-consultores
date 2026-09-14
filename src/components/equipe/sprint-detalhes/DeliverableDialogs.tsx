@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { ConclusaoComHorasDialog } from '@/components/equipe/ConclusaoComHorasDialog';
 import { OpenSubtasksWarningDialog } from '@/components/equipe/OpenSubtasksWarningDialog';
 import { MoveDeliverableDialog } from '@/components/equipe/sprint-detalhes/MoveDeliverableDialog';
 import { DeliverableFormFields } from '@/components/equipe/sprint-detalhes/DeliverableFormFields';
@@ -76,6 +77,13 @@ export function DeliverableDialogs({
 
   return (
     <>
+      <ConclusaoComHorasDialog
+        tarefa={c.conclusao.pendente}
+        salvando={c.conclusao.salvando}
+        onCancelar={c.conclusao.cancelar}
+        onConfirmar={(horas) => void c.conclusao.confirmar(horas)}
+      />
+
       <OpenSubtasksWarningDialog
         taskTitle={c.completionWarning?.taskTitle ?? null}
         openSubtasks={c.completionWarning?.openSubtasks ?? []}

@@ -78,7 +78,8 @@ const FILA_DO_RED_EMERALD: Record<MotivoDeFicar, Record<string, number>> = {
   },
   'rotulo-nao-status': {
     'src/components/acessos/PagesTab.tsx': 3,
-    'src/pages/administracao/AdminUsuarios.tsx': 2,
+    // `AdminUsuarios.tsx` saiu em 14/09/2026 com a pasta `administracao/`
+    // inteira — rota 404 desde 13/01/2026, e a Patrícia confirmou que não volta.
   },
 };
 

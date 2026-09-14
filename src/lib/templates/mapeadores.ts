@@ -264,16 +264,27 @@ export function calcularCapitalSociedade(
 }
 
 /**
- * O valor contábil que uma matrícula leva ao capital, ou `null` quando ela fica
- * de fora. Sem valor não há o que somar; sem titular não há a quem atribuir as
- * quotas, e o rateio (calcularParticipacoesPR) a pula — as duas contas precisam
- * pular a MESMA matrícula, senão a identidade "Σ quotas dos sócios ===
- * totalQuotas" quebra sem ninguém perceber.
+ * O valor que uma matrícula leva ao capital, ou `null` quando ela fica de fora.
+ *
+ * Com valores por titular é a soma do que ELES INTEGRALIZAM, e não o valor do
+ * imóvel: na integralização parcial os 67% que ninguém integralizou não podem
+ * entrar no capital nem virar quota (era daí que saía o "titular legado" que
+ * travava a gravação do aporte inicial). Sem valores por titular, é o valor
+ * único do cadastro, como sempre foi.
+ *
+ * Sem titular não há a quem atribuir as quotas, e o rateio
+ * (calcularParticipacoesPR) pula a matrícula — as duas contas precisam pular a
+ * MESMA matrícula, senão a identidade "Σ quotas dos sócios === totalQuotas"
+ * quebra sem ninguém perceber. É por isso que este recorte e o de
+ * `ratearMatriculaEntreTitulares` são escritos lado a lado.
  */
 function valorParaCapital(m: MatriculaParaMapear): number | null {
-  const vlr = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
-  if (vlr == null || m.titulares.length === 0) return null;
-  return vlr;
+  const titulares = dedupTitulares(m.titulares);
+  if (titulares.length === 0) return null;
+  if (temValorPorTitular(titulares)) {
+    return titulares.reduce((soma, t) => soma + centDoTitular(t), 0) / 100;
+  }
+  return m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
 }
 
 /**
@@ -398,18 +409,39 @@ export interface MatriculaParaMapear {
   titularidadeIds?: string[];
 }
 
-// Titular de uma matrícula. `integralizador`/`fracao` vêm da titularidade e só
-// importam para a forma fracionada (composse/condomínio); `pessoaId` permite
-// deduplicar as duas linhas (posse de fato + de direito) de uma mesma pessoa.
-// `tipoPessoa`/`cpfCnpj` enriquecem a visão derivada do Quadro Societário (PR).
+// Titular de uma matrícula. `fracao` vem da titularidade e importa para a forma
+// fracionada (composse/condomínio); `pessoaId` permite deduplicar as duas linhas
+// (posse de fato + de direito) de uma mesma pessoa. `tipoPessoa`/`cpfCnpj`
+// enriquecem a visão derivada do Quadro Societário (PR).
 // Todos opcionais: titulares legados (`{ denominacao }`) seguem válidos.
 export interface TitularParaMapear {
   denominacao: string | null;
   pessoaId?: string | null;
+  /**
+   * QUEM LIDERA ESTA ALÍNEA, não uma escolha de cadastro: `mapearIntegralizacoes`
+   * o marca no sócio de cada parágrafo, para a descrição sair na voz dele ("50%
+   * de propriedade de FULANO, remanescente de SICRANA"). O flag homônimo da
+   * tabela `titularidade` foi aposentado — ver a frente de 14/09/2026 —, porque
+   * um titular escolhido à mão passaria a contradizer os valores por titular.
+   */
   integralizador?: boolean;
   fracao?: number | null;
   tipoPessoa?: string | null;
   cpfCnpj?: string | null;
+  /**
+   * R$ que este titular declarou na DIRPF para o imóvel. Publicado para quem
+   * soma o valor do imóvel; quem decide capital e quotas é o campo abaixo.
+   */
+  vlrContabil?: number | null;
+  /**
+   * R$ que este titular INTEGRALIZA na sociedade, decidido pelo contador do
+   * cliente (colunas de `titularidade`, migration 20260914152326).
+   *
+   * NULO É SIGNIFICATIVO: o titular NÃO integraliza. É assim que a
+   * integralização parcial se expressa — A entra com os 33% dele e B segura os
+   * 67%, sem que os 67% contem no capital nem virem quota de ninguém.
+   */
+  vlrIntegralizar?: number | null;
 }
 
 /**
@@ -417,6 +449,13 @@ export interface TitularParaMapear {
  * titularidade (posse de fato + de direito) — combinando integralizador (OR) e a
  * primeira fração não nula, na ordem de aparição. Titulares sem pessoaId (dado
  * legado) não são agrupados.
+ *
+ * Os VALORES não seguem a regra da fração ("a primeira não nula"): eles vêm da
+ * linha que os tem, porque a verdade mora na titularidade DE DIREITO e a de
+ * fato costuma vir antes na lista. Preferir a primeira perderia o valor em
+ * silêncio, e um titular sem valor não integraliza — o cadastro sumiria do
+ * capital sem ninguém ver. Mesma regra de `@/lib/osg/integralizacaoDaMatricula`,
+ * que é a que a TELA usa.
  */
 function dedupTitulares(titulares: TitularParaMapear[]): TitularParaMapear[] {
   const porPessoa = new Map<string, TitularParaMapear>();
@@ -430,6 +469,12 @@ function dedupTitulares(titulares: TitularParaMapear[]): TitularParaMapear[] {
     if (existente) {
       existente.integralizador = existente.integralizador || t.integralizador;
       if (existente.fracao == null) existente.fracao = t.fracao;
+      if (existente.vlrContabil == null && existente.vlrIntegralizar == null) {
+        if (t.vlrContabil != null || t.vlrIntegralizar != null) {
+          existente.vlrContabil = t.vlrContabil;
+          existente.vlrIntegralizar = t.vlrIntegralizar;
+        }
+      }
     } else {
       const novo = { ...t };
       porPessoa.set(t.pessoaId, novo);
@@ -437,6 +482,51 @@ function dedupTitulares(titulares: TitularParaMapear[]): TitularParaMapear[] {
     }
   }
   return out;
+}
+
+/**
+ * A matrícula tem valor POR TITULAR, ou só o valor único do cadastro antigo?
+ *
+ * Esta pergunta é a chave de tudo que veio da frente de 14/09/2026, e a resposta
+ * é por MATRÍCULA, não por titular. Com ela, `vlrIntegralizar` nulo num titular
+ * significa "não integraliza" (decisão 6 do plano); sem ela, nulo em todos
+ * significa apenas "esta matrícula ainda não tem o dado", e a conta antiga
+ * (fração × valor da matrícula) continua valendo.
+ *
+ * Sem esse recorte, uma matrícula cadastrada só com o valor no modal sairia com
+ * capital zero e ninguém receberia quota: a regressão silenciosa mais cara que
+ * esta frente podia produzir.
+ */
+function temValorPorTitular(titulares: TitularParaMapear[]): boolean {
+  return titulares.some((t) => t.vlrIntegralizar != null);
+}
+
+/** Centavos que um titular integraliza. Zero para quem não integraliza. */
+const centDoTitular = (t: TitularParaMapear): number =>
+  t.vlrIntegralizar == null ? 0 : Math.round(t.vlrIntegralizar * 100);
+
+/**
+ * Σ do contábil declarado pelos titulares, ou `null` quando ninguém declarou.
+ * Soma em centavos porque 0,1 + 0,2 em float dá 0,30000000000000004, e este
+ * número vai impresso no contrato.
+ */
+function somaContabilDeTitulares(titulares: TitularParaMapear[]): number | null {
+  const declarados = titulares.filter((t) => t.vlrContabil != null);
+  if (declarados.length === 0) return null;
+  return declarados.reduce((soma, t) => soma + Math.round(t.vlrContabil! * 100), 0) / 100;
+}
+
+/**
+ * ESTE SÓCIO integraliza esta matrícula? Ser titular não basta desde a frente de
+ * 14/09/2026: o titular que segura a parte dele (sem valor a integralizar) não
+ * ganha alínea, porque a alínea afirma que ele está entregando o imóvel à
+ * sociedade.
+ */
+function socioIntegralizaMatricula(m: MatriculaParaMapear, pessoaId: string): boolean {
+  const tits = dedupTitulares(m.titulares);
+  const dele = tits.find((t) => t.pessoaId === pessoaId);
+  if (!dele) return false;
+  return temValorPorTitular(tits) ? dele.vlrIntegralizar != null : true;
 }
 
 export function mapearMatricula(m: MatriculaParaMapear): Campos {
@@ -499,16 +589,46 @@ export function mapearMatricula(m: MatriculaParaMapear): Campos {
     }));
   }
 
-  const valor = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
+  // O valor do imóvel é a SOMA DO CONTÁBIL DOS TITULARES quando eles o
+  // declararam (decisão 7 do plano de 14/09/2026). `matricula.vlr_contabil`
+  // continua existindo como cache dessa soma, mantido pelo hook que salva o
+  // titular, e é o fallback de toda matrícula que ainda não tem o dado — e da
+  // prévia que roda antes de o cache alcançar a edição.
+  const valor = somaContabilDeTitulares(dedupTitulares(m.titulares))
+    ?? m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
 
   // Titularidade: deduplica por pessoa e decide entre forma inteira e fracionada.
-  // Fracionada quando há um integralizador com fração definida E outros titulares
-  // (o remanescente). Caso contrário, "de propriedade de A, B e C" (integralizador
-  // primeiro, se houver).
+  //
+  // Dois caminhos, e o primeiro tem precedência porque é mais específico:
+  //
+  //   1. ALÍNEA DE UM SÓCIO. `mapearIntegralizacoes` marca o sócio do parágrafo
+  //      como líder, e a descrição sai na voz dele: "50% de propriedade de
+  //      FULANO, remanescente de SICRANA". Vale mesmo quando SICRANA também
+  //      integraliza numa alínea dela — cada parágrafo descreve a parte de um.
+  //   2. IMÓVEL AVULSO (binding unitário). Não há líder, e quem responde é o
+  //      valor: proprietário são os que INTEGRALIZAM, remanescente são os que
+  //      não. É por aqui que a integralização parcial aparece no texto sem
+  //      depender de nenhum flag escolhido à mão.
+  //
+  // Sem líder e sem valores, nada mudou: "de propriedade de A, B e C".
   const titulares = dedupTitulares(m.titulares);
-  const integralizador = titulares.find((t) => t.integralizador) ?? null;
-  const outros = integralizador ? titulares.filter((t) => t !== integralizador) : [];
-  const fracionado = !!integralizador && integralizador.fracao != null && outros.length > 0;
+  const lider = titulares.find((t) => t.integralizador) ?? null;
+  const porValor = !lider && temValorPorTitular(titulares);
+  const integralizam = porValor ? titulares.filter((t) => t.vlrIntegralizar != null) : [];
+  const outros = lider
+    ? titulares.filter((t) => t !== lider)
+    : porValor
+      ? titulares.filter((t) => t.vlrIntegralizar == null)
+      : [];
+  // Fracionada exige o percentual: sem fração cadastrada não há "X% de
+  // propriedade de", e a forma inteira é a que não mente.
+  const fracaoDaFrente = lider
+    ? lider.fracao ?? null
+    : integralizam.length > 0 && integralizam.every((t) => t.fracao != null)
+      ? integralizam.reduce((soma, t) => soma + t.fracao!, 0)
+      : null;
+  const fracionado = fracaoDaFrente != null && outros.length > 0
+    && (lider != null || integralizam.length > 0);
 
   set('numero', m.numero);
   set('livro', m.livro);
@@ -516,16 +636,20 @@ export function mapearMatricula(m: MatriculaParaMapear): Campos {
   set('municipio', m.municipio_imovel);
   set('uf', ufPorExtenso(m.uf_imovel));
   if (valor != null) set('valor', formatarValor(valor));
+  // O valor do IMÓVEL, preservado sob nome próprio: `valor` é sobrescrito pela
+  // alínea de {{#integralizacoes}} com o que AQUELE sócio integraliza, e o bloco
+  // que precisa dizer os dois números perderia este sem um campo só dele.
+  if (valor != null) set('valorDoImovel', formatarValor(valor));
   set('denominacao', m.bem?.denominacao);
+  const nomes = (lista: TitularParaMapear[]) =>
+    lista.map((t) => t.denominacao).filter(Boolean).join(' e ');
   if (fracionado) {
-    set('proprietario', integralizador!.denominacao);
-    set('percentual', formatarPercentual(integralizador!.fracao!));
-    set('remanescente', outros.map((t) => t.denominacao).filter(Boolean).join(' e '));
+    set('proprietario', lider ? lider.denominacao : nomes(integralizam));
+    set('percentual', formatarPercentual(fracaoDaFrente!));
+    set('remanescente', nomes(outros));
   } else {
-    const ordenados = integralizador
-      ? [integralizador, ...titulares.filter((t) => t !== integralizador)]
-      : titulares;
-    set('proprietario', ordenados.map((t) => t.denominacao).filter(Boolean).join(' e '));
+    const ordenados = lider ? [lider, ...titulares.filter((t) => t !== lider)] : titulares;
+    set('proprietario', nomes(ordenados));
   }
   // Cartório: o que identifica a serventia é o NOME CADASTRADO ("2º Ofício de
   // Registro de Imóveis de Sinop"), não um rótulo institucional montado com a
@@ -772,11 +896,27 @@ export interface ParticipacaoPR {
 export function ratearMatriculaEntreTitulares(
   m: MatriculaIntegralizacao,
 ): Map<TitularParaMapear, number> | null {
+  const titulares = dedupTitulares(m.titulares);
   // MESMA base de calcularCapitalSociedade: sem valor ou sem titular, a
   // matrícula fica fora dos DOIS lados da identidade Σ quotas === totalQuotas.
-  const vlr = valorParaCapital(m);
+  if (titulares.length === 0) return null;
+
+  // Com valores por titular não há rateio a fazer: o contador já decidiu quanto
+  // cada um integraliza, e o arredondamento some junto com a divisão. Quem não
+  // integraliza não entra no mapa — entrar com zero o faria aparecer no quadro
+  // derivado e, sem pessoa cadastrada, virar "titular legado" que trava a
+  // gravação do aporte inicial. É exatamente o defeito que esta frente corrige.
+  if (temValorPorTitular(titulares)) {
+    const porValor = new Map<TitularParaMapear, number>();
+    for (const t of titulares) {
+      if (t.vlrIntegralizar == null) continue;
+      porValor.set(t, centDoTitular(t));
+    }
+    return porValor;
+  }
+
+  const vlr = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
   if (vlr == null) return null;
-  const titulares = dedupTitulares(m.titulares);
 
   const totalCent = Math.round(vlr * 100);
   const comFracao = titulares.filter((t) => t.fracao != null);
@@ -927,9 +1067,17 @@ export interface AporteComQuotasDeOutra {
  * é a composição, carimbando {{ ref }} em cada item conforme a posição real da
  * instância no documento (ver index.ts) — o texto usa {{ refItem.ref }}.
  *
- * Valor da alínea = fração × valor da matrícula. Quando as frações fecham 100%
- * entre os sócios, o último absorve a diferença de centavos do arredondamento
- * (ex.: R$ 138.027,21 → 69.013,61 + 69.013,60, como nos contratos registrados).
+ * Valor da alínea = o que ESTE sócio integraliza daquela matrícula. Com valores
+ * por titular ele vem do cadastro, decidido pelo contador do cliente, e não há
+ * arredondamento a fechar. Sem eles (matrícula que só tem o valor único), é
+ * fração × valor da matrícula, e quando as frações fecham 100% entre os sócios
+ * o último absorve a diferença de centavos (ex.: R$ 138.027,21 → 69.013,61 +
+ * 69.013,60, como nos contratos registrados).
+ *
+ * `{{ imovel.valorIntegralizado }}` carrega esse mesmo número; `{{ imovel.valor }}`
+ * continua sendo o valor do IMÓVEL. Os dois divergem quando alguém fica de fora
+ * ou quando a matrícula é de dois sócios, e o bloco precisa dos dois para não
+ * fazer o leitor somar errado.
  *
  * Cada sócio ganha DUAS listas de alíneas, e elas coincidem no caso comum:
  *
@@ -957,12 +1105,15 @@ export function mapearIntegralizacoes(
 
   // Pré-passada por matrícula: quantos sócios-titulares faltam processar e se a
   // divisão "fecha" (todos os titulares são sócios, com fração somando 100%).
+  // O fechamento só vale no caminho antigo: com valor por titular os centavos
+  // vêm do cadastro e não há resíduo para o último absorver.
   const pendentes = new Map<string, number>();
   const fechadas = new Set<string>();
   for (const m of matriculas) {
     const tits = dedupTitulares(m.titulares);
     const deSocios = tits.filter((t) => t.pessoaId && sociosIds.has(t.pessoaId));
     pendentes.set(m.id, deSocios.length);
+    if (temValorPorTitular(tits)) continue;
     const vlr = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
     if (
       vlr != null &&
@@ -983,9 +1134,7 @@ export function mapearIntegralizacoes(
   const referenciasPendentes: Array<{ alvo: ItemLista; indice: number }> = [];
 
   for (const s of socios) {
-    const doSocio = matriculas.filter((m) =>
-      dedupTitulares(m.titulares).some((t) => t.pessoaId === s.pessoa.id),
-    );
+    const doSocio = matriculas.filter((m) => socioIntegralizaMatricula(m, s.pessoa.id));
     // O sócio entra por matrícula OU por lançamento do livro: o aporte pago em
     // moeda corrente ou em quotas de outra sociedade não tem imóvel nenhum, e a
     // guarda antiga (só matrícula) o descartava calado — era o que deixava a
@@ -1005,10 +1154,16 @@ export function mapearIntegralizacoes(
       const titular = tits.find((t) => t.integralizador)!;
       const campos = mapearMatricula({ ...m, titulares: tits });
 
-      // Valor da fração (em centavos, para o fechamento exato do último sócio).
-      const vlr = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
+      // O QUE ESTE SÓCIO INTEGRALIZA desta matrícula. Com valor por titular vem
+      // do cadastro, sem rateio nem resíduo; sem ele, é fração × valor, com o
+      // último sócio da matrícula fechada absorvendo os centavos.
       const pend = pendentes.get(m.id)!;
-      if (vlr != null && titular.fracao != null) {
+      const vlr = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
+      if (temValorPorTitular(tits)) {
+        if (titular.vlrIntegralizar != null) {
+          campos.valor = formatarValor(centDoTitular(titular) / 100);
+        }
+      } else if (vlr != null && titular.fracao != null) {
         const totalCent = Math.round(vlr * 100);
         const jaAlocado = alocado.get(m.id) ?? 0;
         const cent =
@@ -1019,6 +1174,11 @@ export function mapearIntegralizacoes(
         campos.valor = formatarValor(cent / 100);
       }
       pendentes.set(m.id, pend - 1);
+      // O valor do IMÓVEL e o que o sócio integraliza dele são números
+      // diferentes sempre que a matrícula é dividida ou alguém fica de fora. A
+      // alínea sobrescreve `valor` desde sempre, e o bloco que precisar dizer os
+      // dois tem aqui o segundo, sem perder o primeiro.
+      campos.valorIntegralizado = campos.valor ?? '';
 
       const alinea = letraAlinea(j + 1);
       campos.alinea = alinea;
@@ -1101,9 +1261,8 @@ export function matriculasDescritasNasIntegralizacoes(
   socios: SocioParaMapear[],
   matriculas: MatriculaIntegralizacao[],
 ): string[] {
-  const sociosIds = new Set(socios.map((s) => s.pessoa.id));
   return matriculas
-    .filter((m) => dedupTitulares(m.titulares).some((t) => t.pessoaId && sociosIds.has(t.pessoaId)))
+    .filter((m) => socios.some((s) => socioIntegralizaMatricula(m, s.pessoa.id)))
     .map((m) => m.id);
 }
 

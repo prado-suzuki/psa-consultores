@@ -351,8 +351,30 @@ export function getEquipeKanbanSubtasks(deliverables: EquipeKanbanDeliverable[],
   return deliverables.filter((item) => item.parent_id === parentId).sort(sortByTaskCode);
 }
 
-export function buildDeliverableStatusPayload(status: string) {
-  return { status, completed_at: status === 'completed' ? new Date().toISOString() : null };
+export interface DeliverableStatusPayload {
+  status: string;
+  completed_at: string | null;
+  actual_hours?: number;
+}
+
+/**
+ * Concluir grava as horas junto com o status, numa escrita só.
+ *
+ * As horas são obrigatórias na tela (diálogo de conclusão), mas o parâmetro é
+ * opcional de propósito: sair de concluído não apaga o que já foi apontado — o
+ * histórico de horas não é consequência do status atual.
+ */
+export function buildDeliverableStatusPayload(
+  status: string,
+  actualHours?: number,
+): DeliverableStatusPayload {
+  const concluindo = status === 'completed';
+  const payload: DeliverableStatusPayload = {
+    status,
+    completed_at: concluindo ? new Date().toISOString() : null,
+  };
+  if (concluindo && actualHours !== undefined) payload.actual_hours = actualHours;
+  return payload;
 }
 
 export function buildDeliverableUpdatePayload(
