@@ -115,15 +115,27 @@ export const TabelaSocios = ({
   const [busca, setBusca] = useState('');
   const buscaAtiva = busca.trim().length > 0;
 
+  // Da maior participação para a menor, com o nome desempatando quotas iguais.
+  // A ordem de origem era a do livro (quem entrou primeiro no quadro), que não
+  // diz nada sobre quem manda na sociedade e mudava a cada movimento gravado.
+  // Ordenar por quotas também alinha a tabela com a rosca, que já entra assim:
+  // a rampa de verde passa a descer junto com as linhas.
+  const ordenadas = useMemo(
+    () => [...linhas].sort(
+      (a, b) => b.quotas - a.quotas || a.denominacao.localeCompare(b.denominacao, 'pt-BR'),
+    ),
+    [linhas],
+  );
+
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    if (!q) return linhas;
-    return linhas.filter(
+    if (!q) return ordenadas;
+    return ordenadas.filter(
       (l) =>
         l.denominacao.toLowerCase().includes(q) ||
         (l.cpfCnpj ?? '').toLowerCase().includes(q),
     );
-  }, [linhas, busca]);
+  }, [ordenadas, busca]);
 
   if (linhas.length === 0) return <>{vazio}</>;
 
