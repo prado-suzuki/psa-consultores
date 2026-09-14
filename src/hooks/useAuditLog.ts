@@ -67,6 +67,13 @@ type AuditEntityType =
   // e o recorte que o log precisa ter para alguem reconstituir o que mudou.
   | 'matriz_alcadas'
   | 'matriz_atividade'
+  // GOV-03: o Acordo de Quotistas. Audita-se o ACORDO INTEIRO, e nenhuma das
+  // cinco filhas tem tipo próprio, pelo mesmo motivo do instrumento rural: os
+  // quóruns, os ramos, a ordem da preferência, os signatários e as sociedades
+  // são listas curtas que a pessoa preenche e salva de uma vez. Uma entrada por
+  // linha viraria dezenas de registros para um clique só, e o `changed_fields`
+  // já leva cada lista escrita por extenso (ver `lib/acordoQuotistas`).
+  | 'acordo_quotistas'
   // PT-02: a importacao de um papel de trabalho. Audita-se a IMPORTACAO, e
   // nao os milhares de valores dela: um registro por linha afogaria o log.
   | 'wp_importacao'

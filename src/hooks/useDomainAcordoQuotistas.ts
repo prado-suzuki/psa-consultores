@@ -1,0 +1,448 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
+import { useAuditLog } from '@/hooks/useAuditLog';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+import {
+  QUORUNS_PADRAO,
+  mecanismosPadrao,
+  type BaseQuorum,
+  type TipoQuorum,
+} from '@/lib/acordoQuotistasPadrao';
+import {
+  diffDasListas,
+  diffDoAcordo,
+  resumoDaOrdem,
+  resumoDosQuoruns,
+  resumoDosRamos,
+} from '@/lib/acordoQuotistas';
+
+/**
+ * Camada de dados do Acordo de Quotistas (GOV-03).
+ *
+ * O acordo é o contrato ENTRE OS SÓCIOS, e não da sociedade: o contrato social
+ * diz quem é dono de quanto e quem manda, e o acordo diz o que acontece quando
+ * alguém quer sair, morre, se separa ou quer vender.
+ *
+ * UM ACORDO POR CLIENTE, VERSIONADO, no mesmo desenho da Matriz de Alçadas. A
+ * versão anterior não some porque o acordo vira cláusula de contrato, e saber
+ * qual versão virou qual contrato importa. A leitura sempre traz a mais recente.
+ *
+ * SEM FILTRO DE `ambiente`, e é de propósito: nenhuma das seis tabelas tem a
+ * coluna, porque o ambiente delas é o do cliente a que pertencem, como em
+ * `orgao_governanca` e `matriz_alcadas`. A leitura é sempre por um cliente já
+ * escolhido na tela, e a tela só oferece cliente do ambiente corrente.
+ *
+ * AS LISTAS FILHAS SÃO SUBSTITUÍDAS INTEIRAS, e não reconciliadas linha a linha.
+ * São no máximo sete quóruns e um punhado de ramos; comparar o que mudou custaria
+ * mais código do que o banco gasta para refazer. É a mesma escolha do
+ * `salvarLinha` da Matriz, e o preço é o mesmo: entre o apagar e o gravar existe
+ * uma janela, e um erro de rede no meio deixa a lista vazia. Para lista de sete
+ * linhas que a tela recarrega em seguida, o troco compensa.
+ */
+
+type AcordoRow = Database['public']['Tables']['acordo_quotistas']['Row'];
+type QuorumRow = Database['public']['Tables']['acordo_quorum']['Row'];
+type RamoRow = Database['public']['Tables']['acordo_ramo_familiar']['Row'];
+type OrdemRow = Database['public']['Tables']['acordo_ordem_preferencia']['Row'];
+type SignatarioRow = Database['public']['Tables']['acordo_signatario']['Row'];
+type SociedadeRow = Database['public']['Tables']['acordo_sociedade_relacionada']['Row'];
+
+export type AcordoQuotistas = AcordoRow;
+export type QuorumDoAcordo = QuorumRow;
+export type RamoFamiliar = RamoRow;
+
+/** O acordo com tudo o que pende dele, que é o que a tela desenha de uma vez. */
+export interface AcordoCompleto {
+  acordo: AcordoRow;
+  quoruns: QuorumRow[];
+  ramos: RamoRow[];
+  ordemPreferencia: OrdemRow[];
+  signatarios: SignatarioRow[];
+  sociedades: SociedadeRow[];
+}
+
+/** O que a tela manda gravar no cabeçalho. Sem id, versão nem auditoria. */
+export type AcordoInput = Partial<
+  Omit<
+    AcordoRow,
+    'id' | 'cliente_id' | 'versao' | 'excluido' | 'created_at' | 'created_by' | 'updated_at' | 'updated_by'
+  >
+>;
+
+export interface QuorumInput {
+  materia: string;
+  chave?: string | null;
+  tipo: TipoQuorum;
+  percentual?: number | null;
+  base: BaseQuorum;
+}
+
+export interface RamoInput {
+  nome: string;
+  rotulo: 'ramo' | 'descendentes';
+}
+
+export const acordoQueryKey = (clienteId?: string | null) =>
+  ['acordo-quotistas', clienteId ?? null] as const;
+
+// ─── Leitura ──────────────────────────────────────────────────────────────────
+
+/**
+ * O acordo vigente do cliente, com as cinco listas, numa ida só ao banco.
+ *
+ * Embutir as filhas no `select` em vez de fazer seis consultas: a tela precisa de
+ * todas ao abrir, e seis idas seriam seis esperas para desenhar uma janela.
+ */
+export function useAcordoDoCliente(clienteId?: string | null) {
+  return useQuery<AcordoCompleto | null>({
+    queryKey: acordoQueryKey(clienteId),
+    enabled: !!clienteId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('acordo_quotistas')
+        .select(
+          '*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*),'
+          + ' acordo_signatario(*), acordo_sociedade_relacionada(*)',
+        )
+        .eq('cliente_id', clienteId as string)
+        .eq('excluido', false)
+        .order('versao', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+
+      const {
+        acordo_quorum: quoruns,
+        acordo_ramo_familiar: ramos,
+        acordo_ordem_preferencia: ordem,
+        acordo_signatario: signatarios,
+        acordo_sociedade_relacionada: sociedades,
+        ...acordo
+      } = data;
+
+      const porOrdem = <T extends { ordem: number }>(l: T[] | null) =>
+        [...(l ?? [])].sort((a, b) => a.ordem - b.ordem);
+
+      return {
+        acordo,
+        quoruns: porOrdem(quoruns),
+        ramos: porOrdem(ramos),
+        ordemPreferencia: porOrdem(ordem),
+        signatarios: porOrdem(signatarios),
+        sociedades: porOrdem(sociedades),
+      };
+    },
+  });
+}
+
+// ─── Escrita ──────────────────────────────────────────────────────────────────
+
+export function useAcordoMutations(clienteId?: string | null) {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { logAction } = useAuditLog();
+
+  const invalidar = () =>
+    queryClient.invalidateQueries({ queryKey: acordoQueryKey(clienteId) });
+
+  const carimbo = () => ({ created_by: user?.id ?? null, updated_by: user?.id ?? null });
+
+  /**
+   * Cria o acordo do cliente já semeado.
+   *
+   * Os sete quóruns entram preenchidos com o que foi medido no modelo, e os
+   * mecanismos padrão vêm marcados. Nascer vazio obrigaria o consultor a digitar
+   * sete linhas antes de olhar o primeiro campo que interessa a ele, e a semente
+   * é justamente o que o escritório usa em quase todo acordo.
+   *
+   * A semente sai de `acordoQuotistasPadrao`, em código: quando a consultoria
+   * responder, muda lá e todo acordo criado a partir dali nasce certo. Acordo já
+   * criado não muda, porque os valores dele já são dados daquele cliente.
+   */
+  const criarAcordo = useMutation({
+    mutationFn: async () => {
+      if (!clienteId) throw new Error('Selecione um cliente antes de criar o acordo.');
+
+      const { data: acordo, error } = await supabase
+        .from('acordo_quotistas')
+        .insert({
+          cliente_id: clienteId,
+          data_referencia: new Date().toISOString().slice(0, 10),
+          versao: 1,
+          mecanismos: mecanismosPadrao(),
+          ...carimbo(),
+        })
+        .select()
+        .single();
+      if (error) throw error;
+
+      const { error: erroQuoruns } = await supabase.from('acordo_quorum').insert(
+        QUORUNS_PADRAO.map((q, i) => ({
+          acordo_id: acordo.id,
+          chave: q.chave,
+          materia: q.materia,
+          tipo: q.tipo,
+          percentual: q.percentual ?? null,
+          base: q.base,
+          ordem: i,
+          ...carimbo(),
+        })),
+      );
+      if (erroQuoruns) throw erroQuoruns;
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'acordo_quotistas',
+        entity_id: acordo.id,
+        entity_name: `Acordo de Quotistas, versão ${acordo.versao}`,
+        action: 'created',
+      });
+
+      return acordo;
+    },
+    onSuccess: () => {
+      invalidar();
+      toast.success('Acordo criado com os quóruns padrão');
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : 'Não consegui criar o acordo'),
+  });
+
+  /**
+   * Grava o cabeçalho, com o histórico em nome de gente.
+   *
+   * O diff sai da comparação com a linha atual, e não do formulário inteiro: sem
+   * isso o log registraria como alteração todo campo que a pessoa apenas viu.
+   */
+  const salvarAcordo = useMutation({
+    mutationFn: async (args: { id: string; campos: AcordoInput }) => {
+      const { data: atual, error: erroLeitura } = await supabase
+        .from('acordo_quotistas')
+        .select('*')
+        .eq('id', args.id)
+        .single();
+      if (erroLeitura) throw erroLeitura;
+
+      const mudou = diffDoAcordo(
+        atual as unknown as Record<string, unknown>,
+        args.campos as Record<string, unknown>,
+      );
+      if (Object.keys(mudou).length === 0) return atual;
+
+      const { data, error } = await supabase
+        .from('acordo_quotistas')
+        .update({ ...args.campos, updated_by: user?.id ?? null })
+        .eq('id', args.id)
+        .select()
+        .single();
+      if (error) throw error;
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'acordo_quotistas',
+        entity_id: args.id,
+        entity_name: `Acordo de Quotistas, versão ${data.versao}`,
+        action: 'updated',
+        changed_fields: mudou,
+      });
+
+      return data;
+    },
+    onSuccess: () => {
+      invalidar();
+      toast.success('Acordo salvo');
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : 'Não consegui salvar o acordo'),
+  });
+
+  /**
+   * Substitui os quóruns, os ramos e a ordem da preferência de uma vez.
+   *
+   * As três juntas porque a tela salva o grupo inteiro, e porque o log fica
+   * legível assim: uma entrada dizendo como cada lista ficou, em vez de três
+   * registros separados de um clique só.
+   */
+  const salvarListas = useMutation({
+    mutationFn: async (args: {
+      acordoId: string;
+      versao: number;
+      quoruns: QuorumInput[];
+      ramos: RamoInput[];
+      ordemPreferencia: string[];
+      /** Como as três estavam antes, já em prosa, para o log. */
+      antes: { quoruns: string; ramos: string; ordem: string };
+    }) => {
+      const depois = {
+        quoruns: resumoDosQuoruns(args.quoruns),
+        ramos: resumoDosRamos(args.ramos),
+        ordem: resumoDaOrdem(args.ordemPreferencia.map((quem, ordem) => ({ quem, ordem }))),
+      };
+      const mudou = diffDasListas(args.antes, depois);
+      if (Object.keys(mudou).length === 0) return;
+
+      // Apaga e regrava. O `ordem` de cada linha nasce da posição na tela, que é
+      // a ordem em que o documento vai escrever.
+      const trocar = async (
+        tabela: 'acordo_quorum' | 'acordo_ramo_familiar' | 'acordo_ordem_preferencia',
+        linhas: Record<string, unknown>[],
+      ) => {
+        const { error: erroApagar } = await supabase
+          .from(tabela)
+          .delete()
+          .eq('acordo_id', args.acordoId);
+        if (erroApagar) throw erroApagar;
+        if (linhas.length === 0) return;
+        const { error: erroGravar } = await supabase.from(tabela).insert(linhas as never);
+        if (erroGravar) throw erroGravar;
+      };
+
+      await trocar(
+        'acordo_quorum',
+        args.quoruns.map((q, i) => ({
+          acordo_id: args.acordoId,
+          materia: q.materia.trim(),
+          chave: q.chave ?? null,
+          tipo: q.tipo,
+          // O CHECK da tabela recusa percentual em maioria e unanimidade, então
+          // o valor é zerado aqui em vez de chegar ao banco e voltar como erro.
+          percentual: q.tipo === 'percentual' ? q.percentual ?? null : null,
+          base: q.base,
+          ordem: i,
+          ...carimbo(),
+        })),
+      );
+
+      await trocar(
+        'acordo_ramo_familiar',
+        args.ramos.map((r, i) => ({
+          acordo_id: args.acordoId,
+          nome: r.nome.trim(),
+          rotulo: r.rotulo,
+          ordem: i,
+          ...carimbo(),
+        })),
+      );
+
+      await trocar(
+        'acordo_ordem_preferencia',
+        args.ordemPreferencia.map((quem, i) => ({
+          acordo_id: args.acordoId,
+          quem: quem.trim(),
+          ordem: i,
+          ...carimbo(),
+        })),
+      );
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'acordo_quotistas',
+        entity_id: args.acordoId,
+        entity_name: `Acordo de Quotistas, versão ${args.versao}`,
+        action: 'updated',
+        changed_fields: mudou,
+      });
+    },
+    onSuccess: () => {
+      invalidar();
+      toast.success('Quóruns e listas salvos');
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : 'Não consegui salvar as listas'),
+  });
+
+  /** Os signatários originais e as sociedades alcançadas, que são vínculos a pessoas. */
+  const salvarVinculos = useMutation({
+    mutationFn: async (args: {
+      acordoId: string;
+      versao: number;
+      signatarios: string[];
+      sociedades: string[];
+    }) => {
+      const { error: erroApagarS } = await supabase
+        .from('acordo_signatario')
+        .delete()
+        .eq('acordo_id', args.acordoId);
+      if (erroApagarS) throw erroApagarS;
+
+      if (args.signatarios.length > 0) {
+        const { error } = await supabase.from('acordo_signatario').insert(
+          args.signatarios.map((pessoa_id, ordem) => ({
+            acordo_id: args.acordoId, pessoa_id, ordem, ...carimbo(),
+          })),
+        );
+        if (error) throw error;
+      }
+
+      const { error: erroApagarE } = await supabase
+        .from('acordo_sociedade_relacionada')
+        .delete()
+        .eq('acordo_id', args.acordoId);
+      if (erroApagarE) throw erroApagarE;
+
+      if (args.sociedades.length > 0) {
+        const { error } = await supabase.from('acordo_sociedade_relacionada').insert(
+          args.sociedades.map((empresa_pessoa_id, ordem) => ({
+            acordo_id: args.acordoId, empresa_pessoa_id, ordem, ...carimbo(),
+          })),
+        );
+        if (error) throw error;
+      }
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'acordo_quotistas',
+        entity_id: args.acordoId,
+        entity_name: `Acordo de Quotistas, versão ${args.versao}`,
+        action: 'updated',
+        changed_fields: {
+          Signatários: { old: '', new: `${args.signatarios.length} pessoa(s)` },
+          'Sociedades relacionadas': { old: '', new: `${args.sociedades.length} sociedade(s)` },
+        },
+      });
+    },
+    onSuccess: () => {
+      invalidar();
+      toast.success('Signatários e sociedades salvos');
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : 'Não consegui salvar os vínculos'),
+  });
+
+  /**
+   * Exclusão é SOFT, por `excluido`.
+   *
+   * Mesma razão do órgão de governança: apagar um acordo que já virou cláusula de
+   * contrato assinado apagaria história. O DELETE físico existe na RLS para
+   * sublíder ou acima, e a tela não usa.
+   */
+  const excluirAcordo = useMutation({
+    mutationFn: async (args: { id: string; versao: number }) => {
+      const { error } = await supabase
+        .from('acordo_quotistas')
+        .update({ excluido: true, updated_by: user?.id ?? null })
+        .eq('id', args.id);
+      if (error) throw error;
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'acordo_quotistas',
+        entity_id: args.id,
+        entity_name: `Acordo de Quotistas, versão ${args.versao}`,
+        action: 'deleted',
+      });
+    },
+    onSuccess: () => {
+      invalidar();
+      toast.success('Acordo excluído');
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : 'Não consegui excluir o acordo'),
+  });
+
+  return { criarAcordo, salvarAcordo, salvarListas, salvarVinculos, excluirAcordo };
+}
