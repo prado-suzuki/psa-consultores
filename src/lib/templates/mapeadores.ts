@@ -764,8 +764,12 @@ export interface CompetenciaParaMapear {
   atividade: string;
   detalhamento?: string | null;
   papeis: string[];
+  /** Os mesmos papéis no infinitivo, do catálogo. Vazio cai no `papeis`. */
+  papeisInfinitivo?: string[];
   alcada?: string | null;
   sobePara?: string | null;
+  /** "ao" ou "à", pelo gênero do órgão de destino. */
+  sobeParaAo?: string | null;
   foraDaPolitica?: boolean;
   /** A célula inteira em uma linha, para a grade. Ver `lib/matrizAlcadas.ts`. */
   resumo?: string | null;
@@ -786,8 +790,14 @@ export function mapearCompetenciaMatriz(row: CompetenciaParaMapear): Campos {
   set('atividade', row.atividade);
   set('detalhamento', row.detalhamento);
   set('papeis', prosaDeLista(row.papeis));
+  // Sem infinitivo no catálogo, a alínea usa o nome: papel de cliente ainda não
+  // tem o campo, e sair na terceira pessoa é melhor que sair vazio.
+  set('papeisInfinitivo', prosaDeLista(
+    row.papeisInfinitivo?.length ? row.papeisInfinitivo : row.papeis,
+  ));
   set('alcada', row.alcada);
   set('sobePara', row.sobePara);
+  set('sobeParaAo', row.sobeParaAo);
   set('foraDaPolitica', row.foraDaPolitica ? 'sim' : '');
   set('resumo', row.resumo);
   return comOrigem(derivarCampos('competenciaMatriz', out), {

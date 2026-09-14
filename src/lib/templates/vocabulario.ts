@@ -1349,6 +1349,20 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'atividade', label: 'Atividade', tipo: 'texto', obrigatorio: true },
       { id: 'detalhamento', label: 'O que a atividade abrange neste cliente', tipo: 'texto' },
       { id: 'papeis', label: 'Papéis na decisão', tipo: 'texto' },
+      /*
+       * OS MESMOS VERBOS NO INFINITIVO, que é como a alínea do contrato
+       * escreve: a célula da Matriz diz "Delibera" e a cláusula diz
+       * "Deliberar sobre a distribuição de lucros". Vem do catálogo, não de
+       * derivação: 7 dos 32 papéis terminam em "e" e são ambíguos entre -er e
+       * -ir (Decide/Decidir contra Submete/Submeter).
+       */
+      { id: 'papeisInfinitivo', label: 'Papéis no infinitivo', tipo: 'texto' },
+      /*
+       * A preposição do órgão de destino, que concorda com o gênero DELE e não
+       * com o desta célula. Sem ela saía "encaminhando a Conselho" e
+       * "encaminhando a Reunião de Sócios", no documento gerado em 14/09.
+       */
+      { id: 'sobeParaAo', label: 'Preposição do destino (ao/à)', tipo: 'texto' },
       { id: 'alcada', label: 'Alçada (valor ou percentual, já formatada)', tipo: 'texto' },
       { id: 'sobePara', label: 'Sobe para', tipo: 'texto' },
       { id: 'foraDaPolitica', label: 'Trata do que foge da política? (condicional)', tipo: 'texto' },

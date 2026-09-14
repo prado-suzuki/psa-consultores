@@ -273,11 +273,18 @@ describe('MOT-01 · a grade da Matriz sai como tabela com as colunas do cliente'
       id: 'mc1',
       atividade: 'Distribuição de Lucros',
       papeis: ['Valida', 'Sugere'],
+      papeisInfinitivo: ['Validar', 'Sugerir'],
       alcada: 'até R$ 100.000,00',
       sobePara: 'Reunião de Sócios',
+      sobeParaAo: 'à',
       resumo: 'Valida, Sugere · até R$ 100.000,00 · sobe para Reunião de Sócios',
     });
     expect(campos.papeis).toBe('Valida e Sugere');
+    // O documento gerado em 14/09 mostrou a alínea nascendo na terceira pessoa
+    // ("Delibera Distribuição de Lucros"), e os sete contratos escrevem
+    // infinitivo. Sem catálogo, cai no nome em vez de sair vazio.
+    expect(campos.papeisInfinitivo).toBe('Validar e Sugerir');
+    expect(campos.sobeParaAo).toBe('à');
     expect(campos.sobe).toBe('sim');
     expect(campos.temAlcada).toBe('sim');
     expect(campos.resumo).toContain('sobe para Reunião de Sócios');

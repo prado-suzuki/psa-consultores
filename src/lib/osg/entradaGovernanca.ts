@@ -39,7 +39,21 @@ export function entradaDaGovernanca(
 
   const nomeDaAtividade = new Map(atividades.map((a) => [a.id, a.nome]));
   const nomeDoPapel = new Map(papeis.map((p) => [p.id, p.nome]));
+  /*
+   * O infinitivo vem do catálogo, e não de derivação: 7 dos 32 papéis terminam
+   * em "e" e são ambíguos entre -er e -ir. Papel sem o campo cai no nome.
+   */
+  const infinitivoDoPapel = new Map(
+    papeis.map((p) => [p.id, (p as { infinitivo?: string | null }).infinitivo || p.nome]),
+  );
   const nomeDoOrgao = new Map(orgaos.map((o) => [o.id, o.nome]));
+  /*
+   * "ao" ou "à" pelo gênero do órgão de DESTINO. Sem isto o documento saía
+   * "encaminhando a Conselho" e "encaminhando a Reunião de Sócios".
+   */
+  const preposicaoDoOrgao = new Map(
+    orgaos.map((o) => [o.id, (o as { genero?: string | null }).genero === 'F' ? 'à' : 'ao']),
+  );
 
   const linhas: LinhaParaMapear[] = linhasDaMatriz.map((linha) => ({
     id: linha.id,
@@ -51,8 +65,10 @@ export function entradaDaGovernanca(
       orgaoId: c.orgao_id,
       naoParticipa: c.nao_participa,
       papeis: (c.papeis ?? []).map((id) => nomeDoPapel.get(id) ?? '?'),
+      papeisInfinitivo: (c.papeis ?? []).map((id) => infinitivoDoPapel.get(id) ?? '?'),
       alcada: textoDaAlcada(c),
       sobePara: c.sobe_para_orgao_id ? (nomeDoOrgao.get(c.sobe_para_orgao_id) ?? null) : null,
+      sobeParaAo: c.sobe_para_orgao_id ? (preposicaoDoOrgao.get(c.sobe_para_orgao_id) ?? 'ao') : null,
       foraDaPolitica: c.fora_da_politica,
       // A célula inteira em uma linha, que é o que a grade do documento da
       // Matriz põe dentro de cada quadradinho.
