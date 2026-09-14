@@ -68,66 +68,18 @@ export function useUserPageAccess(userId?: string | null) {
   });
 }
 
-/**
- * Concede acesso a uma página para um usuário.
+/*
+ * `useGrantPageAccess` e `useRevokePageAccess` saíram em 14/09/2026: conceder e
+ * revogar UMA página de cada vez não tinha chamador nenhum, e não é assim que a
+ * tela funciona — a árvore de permissões marca um nó e escreve a subárvore
+ * inteira mais os ancestrais, que é o que `useBulkUpdatePageAccess`, logo
+ * abaixo, faz numa ida só. Os dois eram o desenho anterior, mantido exportado.
+ *
+ * Quem precisar de uma página só: `useBulkUpdatePageAccess` com uma lista de um
+ * item. Um par novo de mutações repetiria as quatro invalidações de cache que o
+ * de lote já faz — e duas listas de invalidação para a mesma escrita é o tipo
+ * de coisa que diverge sem ninguém notar.
  */
-export function useGrantPageAccess() {
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
-
-  return useMutation({
-    mutationFn: async ({ userId, pageId }: { userId: string; pageId: string }) => {
-      const { error } = await supabase
-        .from('user_page_access')
-        .insert({
-          user_id: userId,
-          page_permission_id: pageId,
-          granted_by: user?.id,
-        });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
-      queryClient.invalidateQueries({ queryKey: ['page-access'] });
-      queryClient.invalidateQueries({ queryKey: ['user-accessible-categories'] });
-      queryClient.invalidateQueries({ queryKey: ['can-assign-tickets'] });
-      toast.success('Acesso concedido');
-    },
-    onError: () => {
-      toast.error('Erro ao conceder acesso');
-    },
-  });
-}
-
-/**
- * Revoga acesso de uma página para um usuário.
- */
-export function useRevokePageAccess() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ userId, pageId }: { userId: string; pageId: string }) => {
-      const { error } = await supabase
-        .from('user_page_access')
-        .delete()
-        .eq('user_id', userId)
-        .eq('page_permission_id', pageId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
-      queryClient.invalidateQueries({ queryKey: ['page-access'] });
-      queryClient.invalidateQueries({ queryKey: ['user-accessible-categories'] });
-      queryClient.invalidateQueries({ queryKey: ['can-assign-tickets'] });
-      toast.success('Acesso revogado');
-    },
-    onError: () => {
-      toast.error('Erro ao revogar acesso');
-    },
-  });
-}
 
 /**
  * Aplica concessões e revogações em lote para um único usuário em uma só transação.

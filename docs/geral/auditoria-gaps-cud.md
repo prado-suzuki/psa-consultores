@@ -173,7 +173,7 @@ pois muda comportamento (novas linhas em `audit_logs`) e exige `changed_fields` 
 | `components/acessos/PagesTab.tsx` | `usePagePermissions.useTogglePagePermission` | `page_permissions` | update | liga e desliga uma página **para todo mundo**, num clique de `Switch`, sem confirmação |
 | `components/acessos/PermissionsTree.tsx` | `useUserPageAccess.useBulkUpdatePageAccess` | `user_page_access` | delete, upsert | concede e revoga caminho a caminho; marcar um nó da árvore escreve a subárvore inteira mais os ancestrais |
 | `hooks/useTeamMemberMutations.ts` | `useUserPageAccess.useSyncUserAreaAccess` | `page_permissions` (leitura), `user_page_access` | insert, delete | reescreve os acessos da pessoa quando as **áreas** mudam no diálogo de criar/editar. O hook consumidor audita o usuário; as linhas de acesso que ele cria e apaga, não |
-| `hooks/useUserPageAccess.ts` | `useGrantPageAccess`, `useRevokePageAccess` | `user_page_access` | insert, delete | **sem consumidor nenhum** hoje — inventariados porque estão exportados e prontos para serem ligados |
+| `hooks/useUserPageAccess.ts` | `useGrantPageAccess`, `useRevokePageAccess` | `user_page_access` | insert, delete | **fechado por remoção em 14/09/2026**, horas depois de inventariado: não tinham consumidor nenhum e eram o desenho anterior ao de lote. A linha fica porque conceder página uma a uma pode voltar — e se voltar, volta pelo `useBulkUpdatePageAccess`, que está nesta tabela |
 
 ### Por que estas cinco linhas são de outra natureza (14/09/2026)
 
