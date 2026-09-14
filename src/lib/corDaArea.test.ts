@@ -136,7 +136,7 @@ describe('objeto sem color_index — a origem do ponto que não aparece', () => 
  * paleta precisa ser refeita por luminosidade — não é o número que está errado.
  */
 describe('premissa: a cor de área nunca aparece sem nome ao lado', () => {
-  const SITES_ESPERADOS = 6;
+  const SITES_ESPERADOS = 8;
 
   function sitesQueRenderizamOPonto(): { arquivo: string; linha: number }[] {
     const achados: { arquivo: string; linha: number }[] = [];
