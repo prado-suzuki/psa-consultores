@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { prioridadeDoProjeto, prioridadeDoProjetoLista } from "@/lib/prioridadeDoProjeto";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import {
   useCreateDomainBacklogDeliverable,
@@ -377,14 +378,9 @@ export default function EquipeBacklog() {
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       <Badge 
                         variant="outline" 
-                        className={
-                          item.priority === 'high' ? 'bg-status-alerta-soft text-status-alerta border-status-alerta/30' :
-                          item.priority === 'medium' ? 'bg-status-espera-soft text-status-espera border-status-espera/30' :
-                          'bg-muted text-muted-foreground border-border'
-                        }
+                        className={(prioridadeDoProjeto(item.priority) ?? prioridadeDoProjetoLista[0]).badge}
                       >
-                        {item.priority === 'high' ? 'Alta' : 
-                         item.priority === 'medium' ? 'Média' : 'Baixa'}
+                        {(prioridadeDoProjeto(item.priority) ?? prioridadeDoProjetoLista[0]).label}
                       </Badge>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium">{item.title}</h4>

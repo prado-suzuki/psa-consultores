@@ -50,11 +50,25 @@ const STATUS_LABEL: Record<ScenarioStatus, string> = {
   archived: 'Arquivado',
 };
 
+/**
+ * A escada do cenário, e o degrau que NÃO é degrau.
+ *
+ * `promoted` quer dizer "virou projeto" — decisão dela em 11/09/2026, escolhendo
+ * entre as duas leituras renderizadas: saiu da mesa (aí seria `revisao`, o degrau
+ * seguinte ao aprovado) ou está em execução. Ela escolheu a segunda, e a
+ * consequência é que ele deixa a escada: um cenário promovido não está mais em
+ * nenhum estado de cenário, ele virou outra coisa. Por isso ETIQUETA (`--tag-b`)
+ * e não papel de status.
+ *
+ * Os outros três degraus foram junto porque meia escada em token é o defeito que
+ * esta frente existe para evitar: `analyzing` é `andamento`, `approved` é `feito`,
+ * e as duas pontas mudas já eram `muted`.
+ */
 const STATUS_COLOR: Record<ScenarioStatus, string> = {
   draft: 'bg-muted text-foreground',
-  analyzing: 'bg-blue-100 text-blue-700',
-  approved: 'bg-emerald-100 text-emerald-700',
-  promoted: 'bg-violet-100 text-violet-700',
+  analyzing: 'bg-status-andamento-soft text-status-andamento',
+  approved: 'bg-status-feito-soft text-status-feito',
+  promoted: 'bg-tag-b/15 text-tag-b',
   archived: 'bg-muted text-muted-foreground',
 };
 

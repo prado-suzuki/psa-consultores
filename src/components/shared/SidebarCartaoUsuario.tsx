@@ -111,17 +111,16 @@ const AREAS = {
     acento: 'bg-primary/10 text-primary',
     tom: 'tokens',
   },
-  // As duas últimas a sair do acento cru, em 10/09/2026, junto com o cromo das
-  // barras delas. Elas tinham `teal-500` e `blue-500` — primitivas da escala
-  // que moram no `:root` e que NENHUM tema sobrescreve, então o avatar não
-  // acompanhava a área: ficava azul dentro de uma barra que passou a pintar o
-  // item ativo com a âncora da casa. Agora as nove entradas usam o mesmo
+  // A `administracao` era a companheira desta entrada e saiu em 14/09/2026,
+  // junto com o `AdminLayout.tsx`: as três rotas `/administracao/*` davam 404
+  // desde 13/01/2026, e a Patrícia confirmou que as telas não voltam.
+  //
+  // As duas foram as últimas a sair do acento cru, em 10/09/2026, junto com o
+  // cromo das barras delas. Tinham `teal-500` e `blue-500` — primitivas da
+  // escala que moram no `:root` e que NENHUM tema sobrescreve, então o avatar
+  // não acompanhava a área: ficava azul dentro de uma barra que passou a pintar
+  // o item ativo com a âncora da casa. Hoje TODAS as entradas usam o mesmo
   // `--primary`, e é o tema da rota que resolve o tom.
-  administracao: {
-    rotulo: 'Administrador',
-    acento: 'bg-primary/10 text-primary',
-    tom: 'slate',
-  },
   fixos: {
     rotulo: 'Fixos',
     acento: 'bg-primary/10 text-primary',

@@ -194,7 +194,7 @@ const GestaoContatos = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-card rounded-lg border shadow-sm">
+      <div className="bg-superficie-cartao rounded-lg border shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>

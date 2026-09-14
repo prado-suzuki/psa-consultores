@@ -77,31 +77,50 @@ const SITUACAO_OPTIONS = [
   { value: 'Retificado', label: 'Retificado' },
 ];
 
+/**
+ * As situações do PER/DCOMP na Receita.
+ *
+ * ESTAS NÃO SÃO ESTADOS DE TAREFA, e é por isso que quase nenhuma vira papel.
+ * "Despacho decisório emitido" não é *feito* nem *em ajuste*: é uma fase de um
+ * processo administrativo que segue andando. Decisão dela em 11/09/2026, olhando
+ * as duas leituras lado a lado: **só as duas pontas viram papel** — o que o
+ * cliente lê como resultado —, e o resto vira ETIQUETA de fase.
+ *
+ * · `Homologado` acabou bem   -> `status-feito`
+ * · `Cancelado` acabou mal    -> `status-ajuste`
+ * · deferimentos e conclusões -> `--tag-a`, que é o verde categórico
+ * · fases de análise          -> `--tag-b`
+ * · decisão e discussão       -> `--tag-c`
+ * · ação exigida do contribuinte -> `--tag-d`
+ *
+ * As duas entradas em `status-neutro` já estavam convertidas e continuam: "não
+ * admitido" e "cancelamento deferido" são fim de linha sem carga.
+ */
 const SITUACAO_COLORS: Record<string, string> = {
-  'Analise concluida':'bg-green-100 text-green-800',
+  'Analise concluida':'bg-tag-a/15 text-tag-a',
   'Analise preliminar disponibilizada':
-    'bg-blue-100 text-blue-800',
-  Cancelado:'bg-red-100 text-red-800',
+    'bg-tag-b/15 text-tag-b',
+  Cancelado:'bg-status-ajuste-soft text-status-ajuste',
   'Contribuinte intimado':
-    'bg-orange-100 text-orange-800',
+    'bg-tag-d/15 text-tag-d',
   'Despacho decisorio emitido':
-    'bg-purple-100 text-purple-800',
-  'Em analise':'bg-yellow-100 text-yellow-800',
+    'bg-tag-c/15 text-tag-c',
+  'Em analise':'bg-tag-b/15 text-tag-b',
   'Em discussao administrativa - CARF':
-    'bg-amber-100 text-amber-800',
+    'bg-tag-c/15 text-tag-c',
   'Em discussao administrativa - CSRF':
-    'bg-amber-100 text-amber-800',
+    'bg-tag-c/15 text-tag-c',
   'Em discussao administrativa - DRJ':
-    'bg-amber-100 text-amber-800',
-  Homologado:'bg-emerald-100 text-emerald-800',
+    'bg-tag-c/15 text-tag-c',
+  Homologado:'bg-status-feito-soft text-status-feito',
   'Nao admitido':'bg-status-neutro-soft text-status-neutro',
   'Pedido de cancelamento deferido':
     'bg-status-neutro-soft text-status-neutro',
-  'PER deferido':'bg-green-100 text-green-800',
-  Retificado:'bg-indigo-100 text-indigo-800',
-  Deferido:'bg-green-100 text-green-800',
-  Analisado:'bg-blue-100 text-blue-800',
-  'Em análise':'bg-yellow-100 text-yellow-800',
+  'PER deferido':'bg-tag-a/15 text-tag-a',
+  Retificado:'bg-tag-c/15 text-tag-c',
+  Deferido:'bg-tag-a/15 text-tag-a',
+  Analisado:'bg-tag-b/15 text-tag-b',
+  'Em análise':'bg-tag-b/15 text-tag-b',
 };
 
 const formatCurrency = (value: number) =>

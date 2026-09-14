@@ -1,4 +1,4 @@
-import { Link2, MousePointerClick, PanelRightClose, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Link2, Pencil, Plus, Trash2, X } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,12 +27,18 @@ interface Props {
   onVincular: (produtoId: string) => void;
   onEditar: () => void;
   onExcluir: () => void;
-  onFechar: () => void;
   carregando: boolean;
 }
 
 /**
- * Painel direito: o serviço aberto, e sobretudo em QUE produtos ele vive.
+ * O serviço aberto, e sobretudo em QUE produtos ele vive.
+ *
+ * Foi coluna fixa de 320px até 14/09/2026, e passa a ser o conteúdo de um painel
+ * que só existe quando alguém pede. A coluna era o terço direito da tela dizendo
+ * "Selecione um serviço" na maior parte do tempo, enquanto a lista — que é onde
+ * o trabalho acontece — era espremida no que sobrava. Sob demanda, ela devolve
+ * a largura inteira para a lista e não perde nada: o caminho para abrir daqui
+ * continua sendo o mesmo clique no nome do serviço.
  *
  * O que este painel mostra é o que o banco tem. `servicos_prestados` são três
  * colunas — `id`, `nome`, `cluster_id` —, então não há descrição, status,
@@ -47,58 +53,31 @@ interface Props {
  */
 export default function ServicoDetalhePanel({
   servico, cluster, vinculados, disponiveis, onDesvincular, onVincular,
-  onEditar, onExcluir, onFechar, carregando,
+  onEditar, onExcluir, carregando,
 }: Props) {
-  if (carregando) {
+  // O vazio e o "selecione um serviço" saíram com a coluna fixa: sem serviço
+  // aberto este painel simplesmente não existe na tela.
+  if (carregando || !servico) {
     return (
-      <aside className="w-[320px] shrink-0 space-y-3 border-l p-4">
+      <div className="space-y-3 p-4">
         <Skeleton className="h-4 w-16" />
         <Skeleton className="h-6 w-full" />
         <Skeleton className="h-4 w-2/3" />
-      </aside>
-    );
-  }
-
-  if (!servico) {
-    // Vazio ANCORADO: o painel ocupa quase um terço da largura, e um parágrafo
-    // solto encostado na borda lê como área em branco por engano, não como
-    // "falta escolher". Ícone e texto centrados dizem que o espaço é de alguém.
-    return (
-      <aside className="flex w-[320px] shrink-0 flex-col items-center justify-center gap-3 border-l p-6 text-center">
-        <span className="grid h-11 w-11 place-items-center rounded-full bg-muted" aria-hidden>
-          <MousePointerClick className="h-5 w-5 text-muted-foreground" />
-        </span>
-        <p className="text-sm font-medium text-foreground">
-          Selecione um serviço para ver os detalhes
-        </p>
-        <p className="max-w-[220px] text-xs leading-relaxed text-muted-foreground">
-          Clique no nome de um serviço na lista ao lado para ver o cluster dele e
-          em quais produtos ele já é usado.
-        </p>
-      </aside>
+      </div>
     );
   }
 
   const { codigo, nome } = dividirNomeServico(servico.nome);
 
   return (
-    <aside className="flex w-[320px] shrink-0 flex-col overflow-hidden border-l">
-      <div className="flex shrink-0 items-center gap-2 border-b px-4 py-2">
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="flex shrink-0 items-center gap-2 border-b px-4 py-2 pr-10">
         <span className="font-mono text-[11px] text-muted-foreground">{codigo || 'sem código'}</span>
         {servico.vinculado && (
           <Badge variant="outline" className="border-primary/40 text-[10px] text-primary">
             vinculado
           </Badge>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="ml-auto h-7 w-7 text-muted-foreground"
-          onClick={onFechar}
-          aria-label="Fechar painel de detalhes"
-        >
-          <PanelRightClose className="h-4 w-4" />
-        </Button>
       </div>
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4">
@@ -186,10 +165,10 @@ export default function ServicoDetalhePanel({
       </div>
 
       {/*
-        Editar e excluir vivem AQUI, e não na linha da lista. A linha tem 36px e
-        já carrega caixa, código, nome e o contador de uso; dois botões de ícone
-        a mais só apareceriam no hover, que é onde a tela antiga os escondia. No
-        painel eles ficam visíveis, ao lado do serviço a que se referem.
+        Editar e excluir vivem AQUI, e não na linha da lista. A linha é uma faixa
+        de uma altura, com caixa, código e nome; dois botões de ícone a mais só
+        apareceriam no hover, que é onde a tela antiga os escondia. Neste painel
+        eles ficam visíveis, ao lado do serviço a que se referem.
       */}
       <div className="flex shrink-0 items-center gap-2 border-t px-4 py-2">
         {/* "Editar serviço", e nao "Editar": a tela tem dois cadastros abertos
@@ -207,6 +186,6 @@ export default function ServicoDetalhePanel({
           <Trash2 className="mr-1 h-3 w-3" />Excluir
         </Button>
       </div>
-    </aside>
+    </div>
   );
 }

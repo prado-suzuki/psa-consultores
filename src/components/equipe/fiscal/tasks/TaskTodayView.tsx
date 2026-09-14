@@ -13,6 +13,7 @@ import { parseDate } from '@/lib/dateUtils';
  import { useTaskCompletionHours } from '@/hooks/useTaskCompletionHours';
  import { tarefaRichTextToPlain } from '@/lib/tarefaRichText';
  import { toast } from 'sonner';
+import { taskPriorityConfig } from '@/lib/taskPriorityColors';
 
  interface TaskTodayViewProps {
    tasks: OrgTask[];
@@ -23,19 +24,13 @@ import { parseDate } from '@/lib/dateUtils';
  
  const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
  
- const priorityColors = {
-   urgent: 'text-destructive',
-   high: 'text-warning',
-   medium: 'text-info',
-   low: 'text-muted-foreground',
- };
- 
- const priorityLabels = {
-   urgent: 'Urgente',
-   high: 'Alta',
-   medium: 'Média',
-   low: 'Baixa',
- };
+ /* Os dois mapas locais de prioridade sairam daqui em 11/09/2026, na mesma
+    passada do TaskCard e do TaskTable. O de COR era o unico dos quatro que
+    pintava SO a letra (`text-destructive`, sem fundo): a pilula ficava
+    diferente da do cartao e da do modal para a mesma tarefa. O mapa passou a
+    ter um campo `texto` para este caso, entao a tela continua so-de-letra e a
+    ESCADA passa a ser a mesma das outras tres: neutro -> fila -> alerta ->
+    ajuste. O `medium` era --info, azul que nao pertence a area nenhuma. */
  
  export const TaskTodayView = ({ tasks, area, onEdit, currentUserId }: TaskTodayViewProps) => {
    const updateTask = useUpdateOrgTask(area);
@@ -131,8 +126,8 @@ import { parseDate } from '@/lib/dateUtils';
                          {task.due_time.slice(0, 5)}
                        </span>
                      )}
-                     <Badge variant="outline" className={priorityColors[task.priority]}>
-                       {priorityLabels[task.priority]}
+                     <Badge variant="outline" className={taskPriorityConfig(task.priority).texto}>
+                       {taskPriorityConfig(task.priority).label}
                      </Badge>
                      {task.category === 'fixed_event' && (
                        <Badge variant="outline" className="border-tag-c/40 text-tag-c">

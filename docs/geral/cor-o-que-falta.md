@@ -266,16 +266,17 @@ melhor evidência que este trabalho produziu de que o inventário serve. A conve
 grupo, e o teste falhou até o inventário ser atualizado — que é o comportamento correto, e é
 por isso que se atualiza a fila em vez de silenciar a asserção.
 
-## 2. As escadas que exigem decisão, não conversão
+## 2. As escadas que exigiam decisão — as quatro foram respondidas em 11/09/2026
 
-Estas ficaram paradas de propósito. Cada uma precisa de uma escolha sua antes de virar código.
+Esta seção era uma fila de quatro. Ela fechou num dia, e o que sobrou dela é de outra
+natureza — não é cor.
 
-| onde | a escolha |
+| onde | o que ela decidiu |
 |---|---|
-| `projectPresentation.tsx`, `getStatusBadge` | `blocked` é `espera` ("travado por alguém de fora") ou `ajuste` ("deu problema")? Hoje é vermelho, e o `archived` do lado já está em papel |
-| `PerDetailModal.tsx` | ~20 estados de PER/DCOMP que não mapeiam nos oito papéis. Precisa decidir o vocabulário antes da cor |
-| as 12 paletas categóricas | `pageCategoryStyles`, `roleOptions`, `AgendaTab` e outras têm 5 a 7 categorias. O contrato tem **quatro** `--tag-*`, e são quatro de propósito. Não há token para a quinta |
-| `AuditPendenciasTable`, `CORES_MOTIVO` | Os seis motivos são **gradiente de gravidade**, não estados — e o contrato diz que escala não veste papel. Ou nasce uma escala institucional para severidade, ou fica em cor crua. Foi a única coisa que ficou de pé na rodada da pasta `audit`, e o motivo está escrito no próprio arquivo |
+| ~~`projectPresentation.tsx`~~ | ✅ **Fechado.** A cor saiu da mão e veste a escada do projeto; o rótulo duplicado — dois caminhos do mesmo `switch` devolvendo "Alta" — virou **Crítica** e **Alta**, com os quatro níveis que o dado sempre teve. Commit `bd08822f` |
+| ~~`PerDetailModal.tsx`~~ | ✅ **Fechado.** "Homologado" e "Cancelado" viram papel (`feito` e `ajuste`); o resto fica como etiqueta, sem virar estado |
+| ~~`AuditPendenciasTable`, `CORES_MOTIVO`~~ | ✅ **Fechado.** O gradiente de gravidade virou papel |
+| as 12 paletas categóricas | ⛔ **NÃO converter, e a decisão é de outra ordem.** Seis propostas foram renderizadas e recusadas — cor por grupo, cor por área, sigla no lugar da cor, barra na linha. A resposta dela: *"às vezes vale a pena rever do jeito que tá construído"*. E a medição concorda: as dez categorias de página de `pageCategoryStyles` são quase um espelho das áreas, **que já têm âncora própria**. Enquanto a categoria for uma string livre paralela à área, qualquer paleta é remendo — inclusive um quinto `--tag-*`. Frente de ESTRUTURA, não de cor, e ela abre quando a dona da tela quiser. Até lá as seis cruas ficam medidas, com o motivo, nas catracas |
 
 ## 3. `projects.status` — fechado em 10/09/2026, e o diagnóstico estava errado
 
@@ -395,7 +396,8 @@ domínios de uma vez — foi ele que ficou com o masculino.
 | cor crua **slate** | catraca `src/lib/filaDoSlate.test.ts` — nasce **vazia**, e qualquer classe slate nova derruba |
 | âncora `osg-red` pintando status | catraca `src/lib/filaDoOsgRed.test.ts` — nasce **vazia**; não é cor de estoque, é token nosso no lugar errado |
 | cinza (`gray`) | catraca `src/lib/filaDoGray.test.ts` desde 10/09/2026 — inventário por motivo, e o recorte interno tem asserção própria. Era o buraco maior (580) porque o nome está no `tailwind.config.ts` e a `cor-de-estoque` só dispara em tom que a escala não define |
-| **verde, vermelho, azul, roxo, laranja** | **nenhuma** |
+| cor crua **`red` e `emerald`** | catraca `src/lib/filaDoRedEmerald.test.ts` desde 11/09/2026 — inventário por motivo, mais uma asserção própria: **nenhuma tela interna** pode ter vermelho ou verde cru fora do inventário |
+| **roxo, laranja, violeta, índigo** | **nenhuma** |
 | rótulo divergente de **chamado** | catraca `src/lib/chamadoStatusColors.test.ts` — nasce **vazia**, varre pelo conjunto de chaves |
 | rótulo divergente de status | catraca `src/lib/rotulosDeStatus.test.ts` — pega "Em Progresso" em JSX e trava a palavra dos três mapas |
 | **`--muted` divergindo do `--canvas` da área** | catraca `problemasDeRebaixamento` em `paletaDeArea.test.ts` — não olha o valor, **recalcula** com `rebaixar(--canvas)` e compara sem tolerância |
@@ -451,7 +453,8 @@ O que **continua** à mão, e por quê:
 |---|---|
 | `--canvas` | é o par do `--muted`: uma escolha livre por área, como a âncora. **Tem que continuar livre** — a OSG é âncora musgo (149) com superfície areia (32), o que prova que superfície não se deriva de âncora |
 | `--background` / `--card` / `--popover` | a 99% de luminosidade a matiz não renderiza, então não há relação a extrair — a base põe `card` em branco puro e as duas áreas põem um fio de cast; as duas leituras são defensáveis |
-| `--border` / `--input` | **precisa de decisão sua.** Contra o canvas da própria área a saturação é −2 na base, +6 na Tax e −4 na OSG: não existe uma escada ali, existem três. Alinhar custa pixel, ao contrário da matiz |
+| ~~`--border`~~ | **fechou em 10/09/2026, e esta linha mentiu por um dia.** Ela ainda dizia "−2 na base, +6 na Tax e −4 na OSG, não existe uma escada, existem três" — números de antes da opção D. Hoje `riscar(--canvas)` o gera nas três (matiz e saturação do rebaixado, três pontos abaixo dele), com a catraca `problemasDeRebaixamento` cobrando igualdade exata. Remedido em 11/09 por quem foi montar a comparação: **S +4 e L −7 nas três, sem exceção** — a conferência só confirmou a fórmula |
+| ~~`--input`~~ | ✅ **Alinhado em 52% nas três, por decisão dela em 11/09/2026** (commit `7a634c94`), olhando os três campos lado a lado. Ele continua fora da derivação e cobrado por RAZÃO (3:1 da WCAG 1.4.11) em `problemasDaLinhaDeControle` — o alinhamento é escolha de desenho, não fórmula. **52% é o único valor que serve:** era o mais escuro dos três, então ninguém perde contraste (base 3,05, Tax 3,42, OSG 3,24); a 54% a base reprova e a 56% base e OSG reprovam. **O que ele NÃO resolve, medido no mesmo dia:** os 3:1 valem contra o CARTÃO — contra o canvas os três dão 2,64 / 2,61 / 2,67 e reprovam. O campo sobre a página é frente própria, e tem defeito medido dentro |
 
 > **A matiz da pilha da Tax fechou junto**, em 10/09: `background`/`card`/`popover` e
 > `border`/`input` estavam em 170 enquanto `canvas` e `muted` já tinham ido para 192. Custou
@@ -493,6 +496,91 @@ O que **continua** à mão, e por quê:
 
 ---
 
+## 8. O branco no branco — o cartão parou de ser `--card` (12/09/2026)
+
+A página virou branca no mesmo dia (`e1befb6a`), e o efeito colateral só apareceu quando
+ela olhou duas telas: **página, cartão e campo passaram a ter o mesmo valor**, separados por
+uma linha a 1,23:1. A varredura das 96 rotas está em
+[`comparacoes-de-cor/o-branco-que-sobrou.html`](comparacoes-de-cor/o-branco-que-sobrou.html),
+e o que ela mostrou não foi quantidade: o Dashboard tem o **mesmo** percentual de branco do
+Feed (70 x 71%). A diferença é que o Feed tem tinta ENTRE as caixas e o Dashboard não tem
+nenhuma — "branco dentro de branco" é a regra do sistema, e o Feed é a exceção.
+
+**A saída escolhida (opção C) põe a tinta no OBJETO**, com a receita do Feed e nenhuma cor
+nova: o cartão desce 35% de `--muted`, o campo dentro dele fica branco, e a escada de três
+alturas volta — invertida, com o mais claro onde a mão vai.
+
+**O que foi feito, e o que NÃO foi:**
+
+| | |
+|---|---|
+| `<Card>` (`ui/card.tsx`) | `bg-card` → `bg-superficie-cartao`. **392 usos em 173 arquivos numa linha** |
+| `KpiHero` | mesma tinta. Ele desenha a própria caixa, e são os oito KPI que fazem a massa branca do Dashboard |
+| caixa escrita à mão | **101 caixas em 72 arquivos** (25 só na OSG). **70 tingidas**, 31 ficam brancas por motivo inventariado |
+| `<Card className="bg-card">` | cinco cancelavam a tinta em silêncio (`cn()` deixa a última vencer). Limpos |
+| token `--card` | **não mudou de valor**, e é o ponto todo: ele pinta onze cabeçalhos e barras laterais, `SelectTrigger`, `Input`, a pastilha do segmentado e a superfície de modal |
+
+O valor mora num lugar só — a cor `superficie-cartao` do `tailwind.config.ts`, feita de
+`hsl(var(--muted) / 0.35)`, que acompanha Tax, OSG e a casa sozinha. O próximo degrau da
+mesma receita é trocar `0.35` por `0.40`, ali, sem varredura.
+
+**Catraca:** [`cartaoTingido.test.ts`](../../src/lib/cartaoTingido.test.ts) — caixa
+arredondada (`rounded-md` para cima) não pinta `bg-card` na mão, com as 31 exceções em seis
+motivos. Ela lê a **expressão de classe inteira**, e não a linha: o `KpiHero` abre o `cn()`
+numa linha, declara `rounded-2xl` na seguinte e `bg-card` três abaixo — linha a linha, o
+cartão que o problema é passava invisível pela catraca feita para achá-lo. A regra de ESLint
+`ui/token-nao-sobrescrito` teve o mapa atualizado no mesmo commit.
+
+### O degrau sobre o cartão foi junto, e ele é o defeito de classe (12/09/2026)
+
+**Quando uma superfície se move, todo degrau construído sobre ela se move junto, e nada
+falha.** O cartão desceu 35% de `--muted`. A faixa de totais e o hover de linha do
+`ui/table`, a faixa de cabeçalho dos blocos do cadastro de cliente, a listra de fim de
+semana do Gantt e a caixa de KPI da fiscal são feitos do MESMO `--muted` — encolheram
+todos, em toda tela que tem cartão, sem uma linha de código mudar. Medido no `ui/table`:
+**1,112 → 1,073** na casa, **1,120 → 1,078** na Tax, **1,106 → 1,069** na OSG.
+
+A correção **não** foi varrer `bg-muted/50`. Os 66 lugares foram classificados pelo FUNDO,
+um a um:
+
+| | |
+|---|---|
+| **41 se apoiam em cartão** | viraram `bg-superficie-realce`, cor nova do `tailwind.config.ts`: `hsl(var(--muted) / 0.75)` |
+| **25 não se apoiam** | ficam em `bg-muted/50`. Modal e gaveta são `bg-background`, popover é `bg-popover`, e os três continuam brancos |
+
+`0.75` recompõe EXATO: devolve 1,112 / 1,120 / 1,106, os mesmos três números que o `/50`
+dava contra o cartão branco. Converter os 25 junto teria **escurecido caixa que está
+certa** — o erro simétrico do que a conversão consertou. O número mora num lugar só, como
+o do cartão: mover o chão de novo é mudar uma linha, não varrer 41.
+
+**Catraca, nas duas direções**, no mesmo `cartaoTingido.test.ts`: uma RECALCULA o degrau a
+partir do `index.css` e do `tailwind.config.ts` — quem mexer no alfa do cartão, no do
+realce ou no `--muted` ouve, sem precisar saber que os três conversam; a outra é o
+inventário dos 25 que ficam, agrupado pelo MOTIVO e não por linha. As duas foram provadas
+quebrando de propósito antes do commit.
+
+**Achado que sobra, e é frente nova:** `mapeamento/AreaAccordion.tsx` e
+`dev/MapaNCMPisCofins.tsx` seguram a caixa com `bg-white` cru, e por isso o `bg-muted/50`
+de dentro delas está certo hoje. `bg-white` não é `bg-card`, então a catraca do cartão não
+o vê; e a regra de cor crua só dispara em sobrescrita de componente do `ui/`, não em `div`
+solta. São **142 ocorrências em 79 arquivos** das pastas de tela, nenhuma medida ainda.
+**O que continua ABERTO, e é decisão dela:**
+
+- **A caixa de tabela** (seção 6 da página). 19 telas são um aviso, um cartão de filtros e uma
+  caixa grande com tabela ou estado vazio — 90 a 99% de branco, uma caixa só. A página
+  renderiza as duas saídas. Se a escolha for "tabela branca", o conserto são **52 blocos
+  `<Card>` com tabela dentro**, por uma variante do `<Card>` (ou a caixa da tabela deixando
+  de ser `Card`) — não por exceção na catraca.
+- **O Board não foi junto.** Ele pinta pelo CSS próprio (`.v3-card`, `.v4-card`, `.kpi`,
+  `.mc`), que lê `--bd-surface` = `hsl(var(--card))`. Os cartões dele continuam brancos, e
+  isso é divergência real: mexer no `--bd-surface` muda o Board inteiro de uma vez.
+- **Conferir na tela**: o cartão tingido dentro de modal. A zebra da tabela saiu desta
+  lista — ela era o degrau de `bg-muted/50`, foi medida e virou `bg-superficie-realce`.
+- As outras duas frentes da mesma página — **centralizar** as duas telas de coluna solta e os
+  **filtros em barra** do `AreaDashboardFilters` — não entraram neste commit.
+
+---
+
 ## Se você for retomar por um só item
 
 **A ordem mudou em 10/09/2026, e mudou porque alguém rodou o comando.** A lista anterior
@@ -515,7 +603,7 @@ Medido em 10/09/2026, ordenado:
 | **`gray`** | **580** | 61 | só parcial — a `cor-de-estoque` só dispara em tom que a escala do projeto NÃO tem |
 | `red` | 176 | 58 | nenhuma |
 | ~~`teal`~~ | **0** | 0 | **FECHADA em 11/09/2026** — catraca `filaDoTeal.test.ts` e ESLint em `error`. A família INTEIRA zerou nas pastas de tela, não só os três degraus do aviso |
-| `blue` | 108 | 41 | nenhuma |
+| `blue` | **52** | 25 | **catraca `filaDoBlue.test.ts`** desde 11/09/2026, em cinco grupos pelo motivo |
 | `green` / `amber` | 81 / 81 | 28 / 31 | `amber` tem a `filaDoAlerta` |
 | `emerald` | 72 | 29 | nenhuma |
 
@@ -541,24 +629,71 @@ Nesta ordem, do que rende ao que exige decisão:
      sobram são quase todas dela, mais quatro componentes órfãos que ninguém importa.
 
 2. **Os papéis que faltam** (§1) — por mapa, nunca por classe. Mesma alavanca do item acima.
-3. **`red` e `emerald`** (§5) — aí sim inventário por motivo, na forma da `filaDoAlerta`, porque
-   não têm concentração. O molde está em `medirCorCrua.ts`, e a `chamadoStatusColors.test.ts`
-   mostra a variante que varre por conjunto de chaves em vez de por classe.
+3. ~~**`red` e `emerald`**~~ — **fechado em 11/09/2026.** Eram **248** ocorrências em 78 arquivos;
+   sobram **25**, e nenhuma é estado. A aposta de que seria inventário, e não mapa, estava certa pela
+   metade: o inventário serviu para AGRUPAR (14 motivos, sem sobra), mas quem converteu foram os
+   MAPAS que o agrupamento revelou — `ACTION_LABELS` em três cópias, o mapa de situação do cliente,
+   a fileira de KPI, as nove situações do PER.
 
-   **O inventário foi feito em 11/09/2026 e está renderizado**, não convertido:
-   [`comparacoes-de-cor/vermelho-e-verde-o-que-cada-um-diz.html`](comparacoes-de-cor/vermelho-e-verde-o-que-cada-um-diz.html).
-   As 248 ocorrências caíram em **14 motivos**, sem sobra. Dois deles (ação destrutiva e erro, **81
-   ocorrências**) já têm precedente — é o mesmo `destructive` do `osg-red` — e quatro param em
-   decisão dela. Dois achados que a varredura por família não daria:
+   Cinco coisas que esta passada ensinou, e que valem para a próxima família:
 
-   · **o lote está mal recortado.** 16 dos 78 arquivos carregam `green` (77) ou `rose` (22) cru na
-     MESMA escada. Converter só `red`/`emerald` troca escada crua por escada com token de um lado e
-     cor de estoque do outro — o defeito que o motivo `escada-de-status` existe para evitar;
-   · **27 das 176 vermelhas não destroem nada**: 19 são o botão "Limpar filtros" e 8 são o X de
-     fechar modal — quatro cópias byte a byte de `hover:text-red-500 hover:bg-red-50`, e como o
-     vermelho só aparece no hover, ninguém viu. No cartão de erro, `text-red-500` sobre `red-50` dá
-     **3,44:1** e reprova AA justamente na linha que diz o que houve.
-4. ~~**`projects.status`** (§3)~~ — **fechado em 10/09/2026.** E ele saiu desta lista com uma
+   · **a pergunta quase nunca era o tom.** "Scope creep é azul" não se responde com uma cor: se
+     responde dizendo se aquele número acusa alguém. Enquanto a pergunta foi "qual tom", ela não
+     tinha o que responder — e disse isso, com todas as letras;
+   · **recortar por FAMÍLIA é cômodo para quem varre e errado para quem lê a tela.** 16 dos 78
+     arquivos tinham o par fora do lote (`green` no saldo, `rose` no delta). A saída não foi abrir as
+     duas famílias (119 ocorrências) nem parar: foi fechar os NOVE arquivos onde o par mora, levando
+     só os 20 pares que vivem neles — 40 ocorrências, mesmo resultado na tela;
+   · **proposta que só TIRA cor é recusada.** O "Limpar filtros" em vermelho virou um botão que
+     carrega a CONTAGEM de filtros ativos, na âncora da área, e deixou de sumir quando não há filtro:
+     o par de estados é o que faz o aviso existir. Nove cópias viraram um `BotaoLimparFiltros`;
+   · **comparação precisa do contexto real.** Mostrar o mesmo selo em dois tons, solto, não decide
+     nada — ela leu como "por que tem dois 'Sim'?". Dentro da linha da tabela, decidiu na hora;
+   · **a catraca cobra conversão FEITA, não só cor nova.** Foi assim que apareceu que duas conversões
+     da frente do azul tinham deixado a `filaDoAlerta` vermelha.
+
+   As 25 que ficam são o site público (10, que é outro produto), paleta categórica (8, cujo destino
+   são os `--tag-*`) e o rótulo de cargo (7, que não é estado).
+
+4. **`blue`** — **rodada 1 fechada em 11/09/2026, e a fila tem dono.** Eram **100** em 39
+   arquivos (não 108: o número velho contava prosa e teste). Sobram **52** em 25, com catraca.
+
+   O que esta família ensinou, e não vale só para ela:
+
+   · **o azul é o único com TRÊS casas legítimas no contrato**, e nenhuma é óbvia olhando a
+     classe: o papel `fila` já é azul, o `--tag-b` é o frio da área, e o `--info` é azul e
+     **não** acompanha a área. Por isso "converter o azul" nunca foi uma decisão — foram seis,
+     e varrer por família teria escolhido a errada em pelo menos duas telas;
+   · **medir a classe não é medir o que aparece.** Registrei um selo como reprovando o AA
+     (4,35:1 "em 10px negrito"); fui converter e o conteúdo dele era um `<Check/>`. O
+     `text-[10px] font-bold` era herança da forma do irmão e não pintava nada — o piso que
+     valia era o 3:1 de ícone, e ele passava. **Abra o filho antes de medir o pai.** O outro
+     achado de contraste continua de pé, e é em token: `bg-info/10 text-info` dá 4,49:1 sob a
+     palavra "Média";
+   · **as ROTAS dizem o tamanho do commit, e a pasta não.** O inventário por arquivo escondia
+     duas coisas que só apareceram percorrendo os `import` até o `App.tsx`: cinco ocorrências
+     em código que **nenhuma rota monta** (converter ali não muda um pixel), e uma linha só —
+     o ícone de documento do `docMeta` — com alcance de **doze** rotas;
+   · **quem converte um mapa reconfere TODAS as filas que tocam aquele arquivo.** A conversão
+     do Kanban levou o âmbar junto com o azul e deixou a `filaDoAlerta` vermelha na `develop`.
+     A catraca da outra frente é que apontou.
+
+   **O que trava a rodada 2, e é decisão dela:** o que sobra é quase todo mapa de CATEGORIA com
+   mais entradas do que o contrato tem tons — `pageCategoryStyles` (10 categorias), `AgendaTab`
+   (6 tipos de evento), `PROCESS_STAGES` (6 etapas), `EquipeRelatorios`. Existe uma paleta de
+   **oito** tons (`--area-1..8`), mas o próprio `index.css` avisa que ela **colapsa sob
+   protanopia e deuteranopia quando a cor aparece SOZINHA** (pior par ΔE 1,4) — ela só serve
+   onde o rótulo acompanha. As três saídas — dividir os quatro `--tag-*`, emprestar o
+   `--area-1..8` onde há rótulo, ou desenhar uma rampa nova — estão sem página de comparação.
+
+   **E um achado que não é de ninguém das duas frentes:** o ícone por tipo de arquivo está
+   descrito em dois lugares (`EquipeBiblioteca` e `osg/documentos/docMeta`) e as duas cópias **já
+   divergiram** — planilha é `green-500` numa e `emerald-600` na outra, e **imagem é AZUL numa e
+   ROXA na outra**, enquanto o azul da outra significa *Word*. A mesma cor dizendo duas coisas é
+   exatamente o defeito que mapa existe para matar. Ficou sem converter porque os dois arquivos
+   estão na `filaDoRedEmerald`, e quem mexer primeiro quebra a fila do outro.
+
+5. ~~**`projects.status`** (§3)~~ — **fechado em 10/09/2026.** E ele saiu desta lista com uma
    correção junto: não era "o único item que o CLIENTE vê". A tabela de vínculo está vazia,
    então nenhum cliente via nada. Ver o §3, que agora é a retificação do próprio §3.
 

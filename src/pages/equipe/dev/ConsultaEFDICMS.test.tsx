@@ -1,3 +1,6 @@
+import type { ReactElement } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createTestQueryClient } from '@/test/queryWrapper';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PropsWithChildren } from 'react';
@@ -147,9 +150,17 @@ beforeEach(() => {
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 });
 
+// O campo de cliente passou a buscar o indice de CNPJ (`useCnpjsPorCliente`),
+// entao a tela exige um QueryClient. Provider de verdade, e nao mock de
+// react-query: mockar a biblioteca inteira aqui esconderia as outras consultas
+// da pagina, que este arquivo existe para observar.
+function renderComQuery(ui: ReactElement) {
+  return render(<QueryClientProvider client={createTestQueryClient()}>{ui}</QueryClientProvider>);
+}
+
 describe('ConsultaEFDICMS', () => {
   it('submete o contrato ICMS só após cliente/contribuinte e apresenta a tabela fiscal', async () => {
-    render(<ConsultaEFDICMS />);
+    renderComQuery(<ConsultaEFDICMS />);
 
     expect(mocks.overview).toHaveBeenLastCalledWith({
       enabled: false,
@@ -184,7 +195,7 @@ describe('ConsultaEFDICMS', () => {
   });
 
   it('filtra filial localmente e encaminha análise com o arquivo e contrato ICMS', async () => {
-    render(<ConsultaEFDICMS />);
+    renderComQuery(<ConsultaEFDICMS />);
     await selecionarClienteEBuscar();
 
     const user = userEvent.setup();
@@ -210,7 +221,7 @@ describe('ConsultaEFDICMS', () => {
       ok: true,
       blob: vi.fn().mockResolvedValue(new Blob(['txt'])),
     });
-    render(<ConsultaEFDICMS />);
+    renderComQuery(<ConsultaEFDICMS />);
     await selecionarClienteEBuscar();
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Selecionar Matriz PSA' }));
@@ -238,7 +249,7 @@ describe('ConsultaEFDICMS', () => {
   });
 
   it('múltiplos selecionados preservam o download amplo por contribuinte, sem enviar IDs selecionados', async () => {
-    render(<ConsultaEFDICMS />);
+    renderComQuery(<ConsultaEFDICMS />);
     await selecionarClienteEBuscar();
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Selecionar todos' }));
@@ -263,7 +274,7 @@ describe('ConsultaEFDICMS', () => {
   });
 
   it('limpar restaura o estado inicial e remove seleção/resultados', async () => {
-    render(<ConsultaEFDICMS />);
+    renderComQuery(<ConsultaEFDICMS />);
     await selecionarClienteEBuscar();
     const row = screen.getByText('Matriz PSA').closest('tr');
     fireEvent.click(within(row!).getByRole('checkbox'));

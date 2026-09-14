@@ -17,23 +17,19 @@ import { useUsersWithRoles } from '@/hooks/useUsersWithRoles';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useUserPageAccess } from '@/hooks/useUserPageAccess';
 import { useDomainAreasPorUsuario } from '@/hooks/useDomainAreasPorUsuario';
+import { SEM_AREA, agruparUsuariosPorArea, contarUsuariosPorArea } from '@/lib/acessosPorArea';
 import {
-  SEM_AREA,
-  agruparUsuariosPorArea,
-  contarUsuariosPorArea,
-  usuarioEstaNaArea,
-} from '@/lib/acessosPorArea';
+  ORDEM_DE_PAPEIS,
+  contarPorPapel,
+  filtrarUsuarios,
+  ordenarUsuarios,
+} from '@/lib/filtroDeUsuarios';
 import { CreateUserDialog } from './CreateUserDialog';
 import { EditUserDialog } from './EditUserDialog';
 import { DeleteUserDialog } from './DeleteUserDialog';
 import { PermissionsTree } from './PermissionsTree';
 import { ROLE_SHORT_LABELS } from './roleOptions';
 import { PontoDaArea } from './PontoDaArea';
-
-/** Hierarquia de papéis: ordena a lista e define o papel principal de cada um. */
-const ROLE_ORDER: AppRole[] = [
-  'admin', 'lider', 'sublider', 'team_member', 'marketing', 'timecliente', 'client',
-];
 
 /**
  * Aba"Usuários" do Controle de Acessos.
@@ -65,19 +61,7 @@ export const UsersTab = () => {
   const selectedUser = users?.find((u) => u.id === selectedUserId) ?? null;
 
   // Contagem por role (independente da pesquisa) para mostrar nas abas.
-  const roleCounts = useMemo(() => {
-    const counts: Record<AppRole | 'all', number> = {
-      all: 0, admin: 0, lider: 0, sublider: 0, team_member: 0, client: 0, timecliente: 0, marketing: 0,
-    };
-    if (!users) return counts;
-    counts.all = users.length;
-    for (const u of users) {
-      for (const r of u.roles) {
-        if (r in counts) counts[r] += 1;
-      }
-    }
-    return counts;
-  }, [users]);
+  const roleCounts = useMemo(() => contarPorPapel(users ?? []), [users]);
 
   // Contagem por área (independente da pesquisa) para os chips do filtro.
   const areaCounts = useMemo(
@@ -105,39 +89,18 @@ export const UsersTab = () => {
    */
   const groupedUsers = useMemo(() => {
     if (!users) return [];
-    const normalize = (s: string) =>
-      s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
-    const term = normalize(searchTerm.trim());
-    let filtered = term
-      ? users.filter((u) => {
-          const fullName = `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim();
-          return normalize(fullName).includes(term);
-        })
-      : users;
-    if (roleFilter !== 'all') {
-      filtered = filtered.filter((u) => u.roles.includes(roleFilter));
-    }
-    if (areaFilter !== 'all') {
-      filtered = filtered.filter((u) => usuarioEstaNaArea(u.id, areaFilter, areasPorUsuario));
-    }
-
-    const collator = new Intl.Collator('pt-BR', { sensitivity: 'base' });
-    const sortKey = (u: UserWithRoles) => `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim();
-    const rolePeso = (u: UserWithRoles) => {
-      const i = ROLE_ORDER.findIndex((r) => u.roles.includes(r));
-      return i === -1 ? ROLE_ORDER.length : i;
-    };
-    const ordenados = [...filtered].sort(
-      (a, b) => rolePeso(a) - rolePeso(b) || collator.compare(sortKey(a), sortKey(b)),
+    const filtrados = filtrarUsuarios(
+      users,
+      { termo: searchTerm, papel: roleFilter, areaId: areaFilter },
+      areasPorUsuario,
     );
-
-    return agruparUsuariosPorArea(ordenados, areasPorUsuario);
+    return agruparUsuariosPorArea(ordenarUsuarios(filtrados), areasPorUsuario);
   }, [users, searchTerm, roleFilter, areaFilter, areasPorUsuario]);
 
   return (
     <div className="space-y-4">
       {/* Header com botão de criar usuário */}
-      <div className="flex items-center justify-between bg-card rounded-lg p-4 border border-border shadow-sm">
+      <div className="flex items-center justify-between bg-superficie-cartao rounded-lg p-4 border border-border shadow-sm">
         <div>
           <h3 className="text-base font-medium text-foreground">Usuários do Sistema</h3>
           <p className="text-sm text-muted-foreground">Gerencie usuários e suas permissões de acesso</p>
@@ -162,7 +125,7 @@ export const UsersTab = () => {
                   <SelectValue placeholder="Papel" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(['all', ...ROLE_ORDER] as Array<AppRole | 'all'>).map((r) => (
+                  {(['all', ...ORDEM_DE_PAPEIS] as Array<AppRole | 'all'>).map((r) => (
                     <SelectItem key={r} value={r} className="text-xs">
                       {r === 'all' ? 'Todos os papéis' : (ROLE_SHORT_LABELS[r] ?? r)}
                       <span className="ml-1 text-muted-foreground">({roleCounts[r] ?? 0})</span>

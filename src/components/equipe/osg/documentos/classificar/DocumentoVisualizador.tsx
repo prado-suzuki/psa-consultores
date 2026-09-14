@@ -80,7 +80,7 @@ export function DocumentoVisualizador({ doc, url, carregando, erro, onRecarregar
     <>
       <section
         aria-label="Documento aberto"
-        className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-osg-300/60 bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-14px_hsl(var(--osg-700)/0.20)]"
+        className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-osg-300/60 bg-superficie-cartao shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-14px_hsl(var(--osg-700)/0.20)]"
       >
         <div className="flex items-center gap-2 border-b border-osg-100 px-3.5 py-2.5">
           <FileText className="h-4 w-4 shrink-0 text-osg-600" aria-hidden />

@@ -6,13 +6,7 @@ import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
 import { FiltroDeBusca } from '@/components/equipe/FiltroDeBusca';
 import { PapeisDeTrabalhoReport } from '@/components/equipe/osg/relatorios/PapeisDeTrabalhoReport';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
 import { useClientesList } from '@/hooks/useDevClients';
 
 /**
@@ -45,18 +39,15 @@ const GeradorDeSlides = () => {
         <FiltroDeBusca colunas={2}>
           <div className="space-y-2">
             <Label htmlFor="gs-cliente">Cliente</Label>
-            <Select value={clienteId} onValueChange={setClienteId} disabled={isLoading}>
-              <SelectTrigger id="gs-cliente">
-                <SelectValue placeholder={isLoading ? 'Carregando…' : 'Selecione um cliente'} />
-              </SelectTrigger>
-              <SelectContent>
-                {clientes.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SelecaoDeCliente
+              id="gs-cliente"
+              clientes={clientes}
+              value={clienteId}
+              onChange={setClienteId}
+              loading={isLoading}
+              placeholder="Selecione um cliente"
+              className="w-full min-w-0"
+            />
           </div>
         </FiltroDeBusca>
 

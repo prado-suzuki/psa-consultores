@@ -111,8 +111,27 @@ Menu ganha o item "Minha conta"; a página tem abas, nunca blocos empilhados.
 
 ## Fase 3 — a escala escura 🔵 ABERTA, e é frente do tamanho da passada de cor clara
 
-O `.dark` do `index.css` **nunca foi ligado**: nada põe a classe no `<html>`, e o único
-consumidor de `next-themes` é o `ui/sonner`, sem provider montado. Medido em 10/09/2026, ele
+⚠️ **"O `.dark` nunca foi ligado" estava errado, e foi remedido em 11/09/2026.** Nada põe a
+classe no `<html>` — isso continua verdade, e o único consumidor de `next-themes` é o
+`ui/sonner`, sem provider montado. Mas **seis arquivos põem a classe no próprio wrapper**, e
+rodam na escala escura hoje: `EquipeAuth`, `PrimeiroAcesso`, `ResetPassword`,
+`DigitalAreaSelector`, `OsgAreaSelector` e o `GestaoAccessGate`, todos com
+`min-h-screen dark bg-background`. São **dez wrappers** e não seis, porque três desses
+arquivos pintam também o estado de carregamento e o de erro — e é por isso que o número de
+"telas" depende de como se conta. Rode o comando em vez de repetir o número:
+
+```bash
+grep -rn 'min-h-screen[^"]*\bdark\b' src/pages src/components --include=*.tsx
+```
+
+Isso muda a conclusão desta fase em dois pontos. Primeiro, a escala escura **não é
+inalcançável** — ela já está no ar nas portas de entrada, e é lá que se olha para saber como
+ela se comporta. Segundo, o acento delas já é o claro: o `.dark` declara
+`--primary: 172 66% 50%`, que é o valor do `--teal-400`, e medido sobre o fundo de lá dá
+**9,52:1** — ou seja, a decisão "qual acento no escuro" da `porta-de-entrada.html` **já estava
+implementada** nessas telas, e a página de agosto é que não sabia.
+
+O que segue verdadeiro é o tamanho do buraco: medido em 10/09/2026, o `.dark`
 declara **24 das 51 variáveis** que a `.tax-theme` usa. As outras 27 ficam no valor claro:
 todos os `--status-*`, `--canvas`, os `--tag-*` e as `--surface-escura*`.
 

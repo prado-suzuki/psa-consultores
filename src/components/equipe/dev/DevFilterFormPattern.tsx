@@ -17,13 +17,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelecaoDeCliente } from "@/components/equipe/selecao/SelecaoDeCliente";
+import { SelecaoDeContribuinte } from "@/components/equipe/selecao/SelecaoDeContribuinte";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { RequiredMark } from "@/components/ui/required-mark";
 import { useToast } from "@/hooks/use-toast";
@@ -164,27 +159,19 @@ export const DevFilterFormPattern = ({
                       Cliente
                       <RequiredMark />
                     </FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        form.setValue("contribuinteId", "");
-                        onClienteChange?.(value);
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um cliente" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {clientes.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <SelecaoDeCliente
+                        clientes={clientes}
+                        value={field.value}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          form.setValue("contribuinteId", "");
+                          onClienteChange?.(value);
+                        }}
+                        placeholder="Selecione um cliente"
+                        className="w-full min-w-0 h-10"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -221,32 +208,22 @@ export const DevFilterFormPattern = ({
                           </TooltipContent>
                         </Tooltip>
                       </FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={disabled}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue
-                              placeholder={
-                                !clienteId
-                                  ? "Selecione um cliente primeiro"
-                                  : loadingContribuintes
-                                    ? "Carregando..."
-                                    : "Selecione um contribuinte"
-                              }
-                            />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {contribuintes.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <SelecaoDeContribuinte
+                          contribuintes={contribuintes.map((c) => ({ id: c.id, nome_razao_social: c.nome }))}
+                          value={field.value}
+                          onChange={field.onChange}
+                          disabled={disabled}
+                          placeholder={
+                            !clienteId
+                              ? "Selecione um cliente primeiro"
+                              : loadingContribuintes
+                                ? "Carregando..."
+                                : "Selecione um contribuinte"
+                          }
+                          className="w-full min-w-0 h-10"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   );

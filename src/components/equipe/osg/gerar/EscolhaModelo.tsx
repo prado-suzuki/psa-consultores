@@ -55,7 +55,7 @@ export const EscolhaModelo = ({ modelos, carregando, modeloId, onEscolher }: Esc
             aria-pressed={selecionado}
             onClick={() => onEscolher(m.id)}
             className={cn(
-              'group relative flex flex-col gap-2 rounded-md border bg-card p-4 pl-5 text-left shadow-sm transition-all duration-200 animate-osg-card-in motion-reduce:animate-none',
+              'group relative flex flex-col gap-2 rounded-md border bg-superficie-cartao p-4 pl-5 text-left shadow-sm transition-all duration-200 animate-osg-card-in motion-reduce:animate-none',
               selecionado
                 ? 'border-osg-moss/60 shadow-osg-300/40 ring-1 ring-osg-moss/25'
                 : 'border-osg-300/60 shadow-osg-300/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-300/30',

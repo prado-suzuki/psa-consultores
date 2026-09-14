@@ -1,5 +1,5 @@
 import { AjudaSocietaria } from './AjudaSocietaria';
-import type { ChaveDaAjuda } from './ajudaSocietaria';
+import type { ChaveDaAjuda } from './textosDaAjuda';
 
 // O GESTO JÁ ESCOLHIDO, dentro do formulário que ele abriu.
 //

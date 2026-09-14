@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
+import { SelecaoDeContribuinte } from '@/components/equipe/selecao/SelecaoDeContribuinte';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { T01ApuracaoTab } from '@/components/equipe/dev/icms-saidas/T01ApuracaoTab';
@@ -107,24 +108,18 @@ const IcmsSaidas = () => {
                     <FieldTooltip text={ICMS_PAGE_TOOLTIPS.cliente} />
                   </span>
                 </label>
-                <Select
+                <SelecaoDeCliente
+                  clientes={clientes}
                   value={selectedCliente}
-                  onValueChange={(value) => {
+                  onChange={(value) => {
                     setSelectedCliente(value);
                     setSelectedContribuinte('');
                     setSearchTriggered(false);
                   }}
-                  disabled={isLoadingClientes}
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Selecione o cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientes?.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  loading={isLoadingClientes}
+                  placeholder="Selecione o cliente"
+                  className="w-full min-w-0 h-11"
+                />
               </div>
 
               <div className="md:col-span-4">
@@ -136,23 +131,18 @@ const IcmsSaidas = () => {
                     <FieldTooltip text={ICMS_PAGE_TOOLTIPS.contribuinte} />
                   </span>
                 </label>
-                <Select
+                <SelecaoDeContribuinte
+                  contribuintes={contribuintes}
                   value={selectedContribuinte}
-                  onValueChange={(value) => {
+                  onChange={(value) => {
                     setSelectedContribuinte(value);
                     setSearchTriggered(false);
                   }}
-                  disabled={!selectedCliente || isLoadingContribuintes}
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Selecione o contribuinte" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contribuintes?.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome_razao_social}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  loading={isLoadingContribuintes}
+                  disabled={!selectedCliente}
+                  placeholder="Selecione o contribuinte"
+                  className="w-full min-w-0 h-11"
+                />
               </div>
 
               <div className="md:col-span-2">

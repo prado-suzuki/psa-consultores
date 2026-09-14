@@ -1,3 +1,5 @@
+import { normalizarTexto } from '@/lib/produtoServicoVinculo';
+
 /**
  * O código do serviço — e o remendo que ele é.
  *
@@ -120,4 +122,154 @@ export function faixaDeSelecao(
   if (inicio === -1 || fim === -1) return [alvo];
   const [de, ate] = inicio <= fim ? [inicio, fim] : [fim, inicio];
   return idsVisiveis.slice(de, ate + 1);
+}
+
+/* ───────────────────────────────────────────────────────────────────────
+ * O CÓDIGO DO SERVIÇO, DO LADO DE QUEM CADASTRA
+ *
+ * O bloco acima LÊ o código de dentro do nome. O daqui para baixo ESCREVE:
+ * é o que permite o formulário propor o próximo número em vez de pedir que
+ * alguém o digite de cabeça.
+ *
+ * Ele não conserta o catálogo nem inventa convenção. Observa a que já existe
+ * em cada cluster — inclusive o zero à esquerda, que a OSG usa e a Tax não —
+ * e devolve o próximo número que ninguém ocupou. Código repetido continua
+ * podendo ser gravado: quem cadastra decide, a tela só avisa.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+/** O mínimo que estas funções precisam de um serviço do catálogo. */
+export interface ServicoDoCatalogo {
+  id: string;
+  nome: string;
+  cluster_id: string | null;
+}
+
+export interface GrupoDeCodigo {
+  /** Primeiro nível do código: o "1" de "1.1". */
+  raiz: string;
+  /** Códigos completos já ocupados no grupo. */
+  usados: Set<string>;
+  /**
+   * Dígitos do segundo nível. A OSG escreve "2.01" e a Tax "1.1" — propor
+   * "2.17" numa e "1.10" na outra é o que mantém cada catálogo coerente
+   * consigo mesmo.
+   */
+  largura: number;
+  /** Um nome do grupo. O seletor precisa dele: número sozinho não orienta. */
+  exemplo: string;
+  /** Quantos serviços caem neste grupo. */
+  quantos: number;
+}
+
+const doCluster = (servicos: readonly ServicoDoCatalogo[], clusterId: string | null) =>
+  servicos.filter((s) => (s.cluster_id ?? null) === (clusterId ?? null));
+
+/**
+ * Os grupos que existem num cluster, na ordem numérica.
+ *
+ * Sai do que está gravado, não de uma tabela de grupos — ela não existe. Nome
+ * sem código não entra em grupo nenhum e por isso não aparece aqui.
+ */
+export function gruposDeCodigo(
+  servicos: readonly ServicoDoCatalogo[],
+  clusterId: string | null,
+): GrupoDeCodigo[] {
+  const porRaiz = new Map<string, GrupoDeCodigo>();
+
+  for (const servico of doCluster(servicos, clusterId)) {
+    const { codigo, nome, secao } = dividirNomeServico(servico.nome);
+    if (!codigo || !secao) continue;
+
+    if (!porRaiz.has(secao)) {
+      porRaiz.set(secao, {
+        raiz: secao, usados: new Set(), largura: 1, exemplo: nome, quantos: 0,
+      });
+    }
+    const grupo = porRaiz.get(secao)!;
+    grupo.usados.add(codigo);
+    grupo.quantos += 1;
+
+    const segundo = codigo.split('.')[1];
+    if (segundo) grupo.largura = Math.max(grupo.largura, segundo.length);
+  }
+
+  return [...porRaiz.values()].sort((a, b) => Number(a.raiz) - Number(b.raiz));
+}
+
+/**
+ * O próximo número livre de um grupo — o valor que o formulário já chega
+ * mostrando.
+ *
+ * Procura o primeiro vago a partir de 1, e não o "último mais um": o catálogo
+ * tem buracos, e reaproveitá-los é o que impede a numeração de crescer para
+ * sempre enquanto sobra espaço no meio.
+ *
+ * Grupo que ainda não existe herda a largura do cluster, para o primeiro
+ * serviço dele já nascer no formato dos vizinhos.
+ */
+export function proximoCodigoLivre(
+  servicos: readonly ServicoDoCatalogo[],
+  clusterId: string | null,
+  raiz: string,
+): string {
+  const grupos = gruposDeCodigo(servicos, clusterId);
+  const grupo = grupos.find((g) => g.raiz === raiz);
+  const largura = grupo?.largura ?? Math.max(1, ...grupos.map((g) => g.largura), 1);
+  const usados = grupo?.usados ?? new Set<string>();
+
+  let n = 1;
+  while (usados.has(`${raiz}.${String(n).padStart(largura, '0')}`)) n += 1;
+  return `${raiz}.${String(n).padStart(largura, '0')}`;
+}
+
+/**
+ * Quem já usa este código no cluster.
+ *
+ * Devolve lista, e não booleano, porque a tela mostra os nomes: "1.1 já é
+ * usado por 8 serviços" sem dizer quais manda procurar na mão.
+ */
+export function servicosComCodigo<T extends ServicoDoCatalogo>(
+  servicos: readonly T[],
+  clusterId: string | null,
+  codigo: string,
+): T[] {
+  const alvo = codigo.trim();
+  if (!alvo) return [];
+  return doCluster(servicos, clusterId).filter(
+    (s) => dividirNomeServico(s.nome).codigo === alvo,
+  ) as T[];
+}
+
+/**
+ * Serviços do cluster cujo nome, ignorando código, acento e caixa, é o mesmo.
+ *
+ * É a trava contra o duplicado: sem código para procurar, quem não acha um
+ * serviço cadastra outro igual, e os vínculos se partem entre as duas linhas.
+ */
+export function servicosComMesmoNome<T extends ServicoDoCatalogo>(
+  servicos: readonly T[],
+  clusterId: string | null,
+  titulo: string,
+  ignorarId?: string | null,
+): T[] {
+  const alvo = normalizarTexto(titulo).replace(/\s+/g, ' ');
+  if (!alvo) return [];
+  return doCluster(servicos, clusterId).filter((s) => {
+    if (ignorarId && s.id === ignorarId) return false;
+    return normalizarTexto(dividirNomeServico(s.nome).nome).replace(/\s+/g, ' ') === alvo;
+  }) as T[];
+}
+
+/**
+ * Remonta o que vai para a coluna `nome`.
+ *
+ * O formato é o dominante no catálogo — "1.1.Nome", sem espaço depois do
+ * ponto —, e `dividirNomeServico` o desfaz de volta. Sem código, grava só o
+ * nome: serviço sem número continua sendo estado válido.
+ */
+export function montarNomeServico(codigo: string, titulo: string): string {
+  const cod = codigo.trim().replace(/\.+$/, '');
+  const nome = titulo.trim();
+  if (!cod) return nome;
+  return nome ? `${cod}.${nome}` : cod;
 }

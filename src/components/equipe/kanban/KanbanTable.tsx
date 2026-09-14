@@ -140,7 +140,7 @@ export function KanbanTable(props: KanbanTableProps) {
                     <TableRow
                       key={subtask.id}
                       className={cn(
-                        'cursor-pointer hover:bg-muted bg-muted/50',
+                        'cursor-pointer hover:bg-muted bg-superficie-realce',
                         subtask.status === 'completed' && 'opacity-60',
                       )}
                       onClick={() => props.onOpenDeliverable(subtask)}

@@ -408,7 +408,10 @@ export default function Auth() {
 
         {/* Mobile: novidades num cartão teal abaixo do form (o painel lateral some no mobile) */}
         <div className="lg:hidden mt-10">
-          <div className="rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-6">
+          {/* O mesmo véu do painel, na versão que o celular vê — e liso pelo mesmo
+              motivo: o degradê ia de `primary` a `primary/80`, e no fim dele o
+              branco do conteúdo caía junto com o fundo. */}
+          <div className="rounded-2xl bg-surface-escura/95 p-6">
             <NovidadesShowcase />
           </div>
         </div>
@@ -417,7 +420,14 @@ export default function Auth() {
       {/* Right Side - Novidades sobre a imagem do agro (mesma linguagem do hero da home) */}
       <div className="hidden lg:flex lg:w-1/2 lg:order-1 relative items-center justify-center p-12 overflow-hidden">
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${heroImage})` }} />
-        <div className="absolute inset-0 bg-gradient-to-br from-surface-escura-2/90 via-primary/85 to-surface-escura/90" />
+        {/* Véu LISO, decidido por ela em 11/09/2026 — a porta de entrada.
+            Eram três paradas (`surface-escura-2/90 → primary/85 → surface-escura/90`),
+            e a do meio era o problema: sobre `--primary` a 85% o texto branco do
+            NovidadesShowcase lê a 5,5:1, contra os ~16:1 que o escuro dá. Um
+            gradiente que só não engole o conteúdo quando termina quase preto está
+            trabalhando contra si mesmo. Liso resolve sem negociar, e a foto do agro
+            continua aparecendo pelos 10% que o véu deixa passar. */}
+        <div className="absolute inset-0 bg-surface-escura/90" />
         <div className="relative z-10 w-full max-w-md">
           <NovidadesShowcase />
         </div>

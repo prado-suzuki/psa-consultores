@@ -236,7 +236,7 @@ export default function FaturamentoTab({
 
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
+    <section className="overflow-hidden rounded-xl border bg-superficie-cartao shadow-sm">
       {/*
         CABEÇALHO COM A BARRA DE OS. O título diz o que é o painel e a barra diz
         de qual OS ele está falando, e as duas coisas moram juntas porque a
@@ -244,7 +244,7 @@ export default function FaturamentoTab({
         título: número de OS é comprido, e com três ou quatro elas apertariam o
         título até truncar.
       */}
-      <div className="border-b bg-muted/50 px-4 py-2">
+      <div className="border-b bg-superficie-realce px-4 py-2">
         <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
           Dados de Faturamento
         </h3>

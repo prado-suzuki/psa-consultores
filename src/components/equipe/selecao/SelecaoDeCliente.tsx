@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type CSSProperties, type ReactNode } from 'react';
 
 import { SingleSelectCombobox } from '@/components/ui/SingleSelectCombobox';
 import type { ComboOption } from '@/components/ui/MultiSelectCombobox';
@@ -37,6 +37,23 @@ interface SelecaoDeClienteProps {
   emptyText?: string;
   className?: string;
   id?: string;
+  /** Estilo do gatilho. */
+  style?: CSSProperties;
+  /** Desenhado à esquerda do rótulo, dentro do gatilho. */
+  icone?: ReactNode;
+  /** Rótulo de uma primeira linha que limpa o campo ("Todos os clientes"). */
+  opcaoVazia?: string;
+  /** Avisa quando a lista abre e fecha. */
+  onOpenChange?: (aberto: boolean) => void;
+  /**
+   * Repassados ao gatilho. Existem porque o `FormControl` do react-hook-form é
+   * um `Slot`: ele injeta `id`, `aria-describedby` e `aria-invalid` no filho, e
+   * um componente que não os declara os descarta em silêncio — a mensagem de
+   * erro do campo deixa de ser anunciada, sem aviso nenhum.
+   */
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean;
+  'aria-required'?: boolean;
 }
 
 export function SelecaoDeCliente({
@@ -49,6 +66,13 @@ export function SelecaoDeCliente({
   emptyText = 'Nenhum cliente encontrado.',
   className,
   id,
+  style,
+  icone,
+  opcaoVazia,
+  onOpenChange,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
+  'aria-required': ariaRequired,
 }: SelecaoDeClienteProps) {
   const cnpjsPorCliente = useCnpjsPorCliente();
 
@@ -76,6 +100,13 @@ export function SelecaoDeCliente({
       placeholder={loading ? 'Carregando...' : placeholder}
       emptyText={emptyText}
       className={className}
+      style={style}
+      icone={icone}
+      opcaoVazia={opcaoVazia}
+      onOpenChange={onOpenChange}
+      aria-describedby={ariaDescribedBy}
+      aria-invalid={ariaInvalid}
+      aria-required={ariaRequired}
     />
   );
 }

@@ -15,7 +15,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Plus, Pencil, Trash2, RefreshCw, LayoutDashboard, Shield, Users, Building2,
-  Layers, Globe, Lock, AlertTriangle,
+  Layers, AlertTriangle,
 } from 'lucide-react';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { DicaIcon, IconTooltip } from '@/components/equipe/mapa/Tooltip';
@@ -29,18 +29,12 @@ import { useClusters } from '@/hooks/useClusters';
 import { MultiSelectCombobox } from '@/components/ui/MultiSelectCombobox';
 import { DashboardOverviewDialog } from '@/components/dashboards/DashboardOverviewDialog';
 import { DASHBOARD_PAGES, DASHBOARD_PAGE_PATH } from '@/config/dashboardPages';
+import {
+  dashboardFilterColors, dashboardFilterConfig, tipoDoFiltro, tipoDoFiltroBadge,
+} from '@/components/dashboards/dashboardFilterColors';
 
-const FILTER_LABEL: Record<DashboardFilterType, string> = {
-  cluster: 'Por cluster',
-  cliente: 'Por cliente',
-  nenhum: 'Sem filtro',
-};
 // Ordenação padrão: sem filtro -> por cluster -> por cliente.
 const FILTER_RANK: Record<DashboardFilterType, number> = { nenhum: 0, cluster: 1, cliente: 2 };
-//"Tipo" é derivado do filtro: nenhum = interno (sem RLS); cluster/cliente = externo.
-const tipoLabel = (ft: DashboardFilterType) => (ft === 'nenhum' ? 'Interno' : 'Externo');
-const tipoBadgeClass = (ft: DashboardFilterType) =>
-  ft === 'nenhum' ? 'border-border bg-foreground/[0.05] text-muted-foreground' : 'border-primary/30 bg-primary/10 text-primary';
 const FILTER_HELP: Record<DashboardFilterType, string> = {
   cluster: 'Valor resolvido do cluster do usuário que abre (ou do cliente).',
   cliente: 'Valor resolvido do id_cliente do viewer. Use p/ relatórios externos (ex.: PERDCOMP).',
@@ -58,13 +52,6 @@ const MIN_ROLE_LABEL: Record<MinRole, string> = {
   team_member: 'Membro+', sublider: 'Sublíder+', lider: 'Líder+', admin: 'Admin',
 };
 
-// Identidade visual por variante: interno = cadeado (restrito à equipe);
-// externo por cluster = globo teal; externo por cliente = prédio indigo.
-const VARIANT_STYLE: Record<DashboardFilterType, { icon: typeof Globe; disc: string; iconColor: string }> = {
-  nenhum: { icon: Lock, disc: 'bg-foreground/[0.05]', iconColor: 'text-muted-foreground' },
-  cluster: { icon: Globe, disc: 'bg-primary/10', iconColor: 'text-primary' },
-  cliente: { icon: Building2, disc: 'bg-indigo-500/10', iconColor: 'text-indigo-600' },
-};
 
 /** Botão de ícone com tooltip (padrão do MAPA). */
 const IconAction = ({ label, onClick, className, children }: {
@@ -201,7 +188,7 @@ export default function DashboardsTab() {
       const names = ids.map((id) => clienteName.get(id) ?? id);
       return (
         <IconTooltip label={names.join(' · ')}>
-          <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-medium text-indigo-700">
+          <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium ${dashboardFilterColors.cliente.badge}`}>
             <Building2 className="h-3 w-3" /> {ids.length} cliente{ids.length > 1 ? 's' : ''}
           </span>
         </IconTooltip>
@@ -235,11 +222,11 @@ export default function DashboardsTab() {
 
   // ── Linha de um relatório dentro do card da família ──────────────────────
   const renderReport = (d: Dashboard) => {
-    const style = VARIANT_STYLE[d.filter_type];
+    const style = dashboardFilterConfig(d.filter_type);
     const Icon = style.icon;
     // dentro da família o nome costuma repetir o grupo — a identidade é a variante
-    const title = d.grupo && d.name.trim() === d.grupo.trim() ? tipoLabel(d.filter_type) : d.name;
-    const showTipoBadge = title !== tipoLabel(d.filter_type);
+    const title = d.grupo && d.name.trim() === d.grupo.trim() ? tipoDoFiltro(d.filter_type) : d.name;
+    const showTipoBadge = title !== tipoDoFiltro(d.filter_type);
     return (
       <div
         key={d.id}
@@ -258,10 +245,10 @@ export default function DashboardsTab() {
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-sm font-medium text-foreground truncate">{title}</span>
               {showTipoBadge && (
-                <Badge variant="outline" className={`${tipoBadgeClass(d.filter_type)} text-[10px] px-1.5 py-0`}>{tipoLabel(d.filter_type)}</Badge>
+                <Badge variant="outline" className={`${tipoDoFiltroBadge(d.filter_type)} text-[10px] px-1.5 py-0`}>{tipoDoFiltro(d.filter_type)}</Badge>
               )}
             </div>
-            <span className="text-[11px] text-muted-foreground">{FILTER_LABEL[d.filter_type]}</span>
+            <span className="text-[11px] text-muted-foreground">{dashboardFilterConfig(d.filter_type).label}</span>
           </div>
         </div>
 

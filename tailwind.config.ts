@@ -132,6 +132,66 @@ export default {
           DEFAULT: 'hsl(var(--card) / <alpha-value>)',
           foreground: 'hsl(var(--card-foreground) / <alpha-value>)',
         },
+        /* A superfície do CARTÃO, desde 12/09/2026 — e ela deixou de ser o
+           `--card`. A página virou branca no mesmo dia, e com isso página,
+           cartão e campo passaram a ter o MESMO valor: o que separava os três
+           era uma linha a 1,23:1. A medição das três telas está em
+           `docs/geral/comparacoes-de-cor/o-branco-que-sobrou.html`, e a saída
+           escolhida ali (opção C) foi pôr a tinta NO OBJETO em vez de em volta
+           dele — o cartão desce, o campo dentro dele fica branco, e a escada de
+           três alturas volta, invertida: agora o mais claro é onde a mão vai.
+
+           POR QUE NÃO MEXER NO TOKEN `--card`. Ele não pinta só cartão: pinta
+           onze cabeçalhos e barras laterais, o `SelectTrigger`, o `Input`, a
+           pastilha ativa do segmentado e a superfície de modal. Descer o token
+           desceria o cromo do produto inteiro junto. O `--card` continua sendo
+           "o branco do cromo e do controle"; esta classe é "a superfície do
+           objeto cartão". São dois papéis que sempre foram dois, e até aqui
+           dividiam um nome só.
+
+           A RECEITA NÃO INVENTA COR: é o balão do Feed (`bg-muted/35`), a única
+           tinta de cartão que já existia no produto e que ela aprovou olhando.
+           Lê `--muted`, então acompanha a área sozinha — Tax, OSG e a casa dão
+           1,082, 1,072 e 1,078 contra o branco, os três medidos. Se olhando
+           parecer pouco, o próximo degrau da MESMA receita é `/ 0.40`; o alfa
+           mora aqui, num lugar só, e é por isso que ele pode mudar sem varredura.
+
+           O ALFA É DE PROPÓSITO, e é o que faz o cartão funcionar dentro de
+           modal: `DialogContent` é branco, a página é branca, e 35% de `--muted`
+           sobre qualquer um dos dois dá o mesmo pixel. A contrapartida está
+           inventariada na catraca (`src/lib/cartaoTingido.test.ts`): caixa que
+           se apoia em `bg-muted` ou que FLUTUA sobre conteúdo não leva esta
+           classe — sobre o rebaixado ela some, e flutuando ela deixa passar o
+           que está atrás. Essas continuam em `bg-card`, uma a uma, com o motivo
+           escrito.
+
+           Sem `<alpha-value>`: o alfa já está fechado no valor, e `bg-superficie-cartao/50`
+           não é para existir. Quem precisa de outro degrau muda o número aqui. */
+        'superficie-cartao': 'hsl(var(--muted) / 0.35)',
+        /* O DEGRAU ACIMA DO CARTÃO, desde 12/09/2026 — e ele existe porque o
+           CHÃO subiu. Era `bg-muted/50` escrito à mão em 41 lugares: a faixa de
+           cabeçalho dos blocos do cadastro de cliente, a faixa de totais e o
+           hover de linha do `ui/table`, a listra de fim de semana do Gantt, a
+           caixa de KPI da fiscal. Todos são degraus feitos do MESMO `--muted` que
+           o `superficie-cartao` acabou de pôr no fundo — então os 41 encolheram
+           juntos, em toda tela que tem cartão, sem uma linha de código mudar e
+           sem nada falhar.
+
+           `0.75` RECOMPÕE, e recompõe exato: contra o cartão tingido ele devolve
+           1,112 / 1,120 / 1,106 na casa, na Tax e na OSG — os mesmos três números
+           que o `/50` dava contra o cartão branco. Não é arredondamento feliz; é
+           o alfa que resolve a conta, e a conta está travada em
+           `src/lib/cartaoTingido.test.ts`, que RECALCULA os dois lados a partir
+           do `index.css` e deste arquivo em vez de olhar o número.
+
+           QUEM NÃO USA ESTA CLASSE: o que não se apoia no cartão. Modal e gaveta
+           são `bg-background`, popover é `bg-popover`, e os três continuam
+           brancos — lá o `bg-muted/50` está certo e fica. O inventário dos que
+           ficam, com o motivo de cada um, está na mesma catraca.
+
+           Sem `<alpha-value>`, pelo mesmo motivo do `superficie-cartao`: o alfa
+           já está fechado no valor. Quem precisar de outro degrau muda aqui. */
+        'superficie-realce': 'hsl(var(--muted) / 0.75)',
         teal: {
           500: 'hsl(var(--teal-500))',
           600: 'hsl(var(--teal-600))',

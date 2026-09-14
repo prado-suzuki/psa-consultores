@@ -23,7 +23,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Users, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import {
+  podeEditarCadastroCliente,
+  podeExcluirCliente,
+} from '@/lib/cadastroClientePermissions';
 
 import {
   useClientesFiltrados,
@@ -99,7 +102,7 @@ const OsExpandSection = ({ clienteId, area }: { clienteId: string; area?: AreaKe
               .filter(Boolean)
               .join('  ·  ');
             return (
-              <li key={os.id} className="rounded-lg border border-border/70 bg-card px-3.5 py-3">
+              <li key={os.id} className="rounded-lg border border-border/70 bg-superficie-cartao px-3.5 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="text-sm font-semibold text-foreground">
@@ -172,7 +175,7 @@ const ContribuintesExpandSection = ({
               .filter(Boolean)
               .join('  ·  ');
             return (
-              <li key={c.id} className="rounded-lg border border-border/70 bg-card px-3.5 py-3">
+              <li key={c.id} className="rounded-lg border border-border/70 bg-superficie-cartao px-3.5 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
                   <span className="text-sm font-medium text-foreground">{c.nome_razao_social}</span>
                   <span className="text-sm tabular-nums text-muted-foreground">
@@ -196,7 +199,9 @@ const GestaoClientes = ({
   todosOsClusters = false,
 }: { area?: AreaKey; todosOsClusters?: boolean } = {}) => {
   const { isAdmin, isLider, isSublider } = useAuth();
-  const canEdit = isAdmin || isLider || isSublider;
+  const papel = { isAdmin, isLider, isSublider };
+  const canEdit = podeEditarCadastroCliente(papel);
+  const canDelete = podeExcluirCliente(papel);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [tipo, setTipo] = useState('');
@@ -322,11 +327,11 @@ const GestaoClientes = ({
       />
 
       {isLoading ? (
-        <div className="flex h-48 items-center justify-center rounded-xl border border-border/70 bg-card text-primary">
+        <div className="flex h-48 items-center justify-center rounded-xl border border-border/70 bg-superficie-cartao text-primary">
           <AreaLoader area={area} size={56} />
         </div>
       ) : filteredResults.length === 0 ? (
-        <div className="flex h-48 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card text-muted-foreground">
+        <div className="flex h-48 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-superficie-cartao text-muted-foreground">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
             <Users className="h-4 w-4" />
           </span>
@@ -334,7 +339,7 @@ const GestaoClientes = ({
           <span className="text-xs">Tente ajustar os filtros da busca.</span>
         </div>
       ) : (
-        <div className="flex flex-col overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
+        <div className="flex flex-col overflow-hidden rounded-xl border border-border/80 bg-superficie-cartao shadow-sm">
           <div className="h-0.5 bg-primary" />
           <Table className="min-w-[1100px]" containerClassName="scrollbar-thin">
             <TableHeader className="bg-muted/35">
@@ -361,7 +366,7 @@ const GestaoClientes = ({
                 <TableHead className="h-11 px-4 text-xs uppercase tracking-[0.12em]">
                   Clusters
                 </TableHead>
-                {canEdit && (
+                {canDelete && (
                   <TableHead className="h-11 w-14 px-4 text-right text-xs uppercase tracking-[0.12em]">
                     Ações
                   </TableHead>
@@ -371,7 +376,7 @@ const GestaoClientes = ({
             <TableBody>
               {paginatedResults.map((row, indice) => {
                 const isExpanded = expandedClienteId === row.id;
-                const totalCols = canEdit ? 9 : 8;
+                const totalCols = canDelete ? 9 : 8;
                 // As âncoras do tour guiado moram só na PRIMEIRA linha: o passo
                 // aponta um lugar, e dez linhas com a mesma âncora deixariam o
                 // Joyride escolhendo qual iluminar.
@@ -452,7 +457,7 @@ const GestaoClientes = ({
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      {canEdit && (
+                      {canDelete && (
                         <TableCell className="px-4 py-3 text-right">
                           <Button
                             variant="ghost"
@@ -461,12 +466,6 @@ const GestaoClientes = ({
                             aria-label={`Excluir ${row.nome || 'cliente'}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (!isAdmin) {
-                                toast.warning(
-                                  'Você não tem permissão para excluir clientes/contribuintes, fale com a equipe Digital para realizar essa operação',
-                                );
-                                return;
-                              }
                               setDeletingCliente({ id: row.id, nome: row.nome || 'Sem nome' });
                             }}
                           >

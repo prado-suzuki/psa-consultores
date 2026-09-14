@@ -7,25 +7,12 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useHistoricoFlutuanteLogs } from '@/hooks/useDomainHistoricoFlutuante';
 import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
 import { formatChangedFields, type LookupMaps } from '../audit/auditFieldFormatter';
+import { ACTION_LABELS } from '../audit/auditLabels';
 
 interface HistoricoFlutuanteProps {
   /** Ids de audit_logs.entity_id a buscar (entidade + sub-entidades que o modal edita). */
   entityIds: string[];
 }
-
-/**
- * A ação de uma linha de auditoria, nos papéis de status da área.
- *
- * As três entradas falavam três línguas: `created` e `updated` em esmeralda e
- * azul do estoque do Tailwind, que não acompanham tema nenhum, e `deleted` em
- * `osg-red`, que é a ÂNCORA da OSG e não pinta papel de status. Como é um mapa,
- * as três andam juntas — converter só a vermelha deixaria escada meio crua.
- */
-const ACTION_LABELS: Record<string, { label: string; color: string }> = {
-  created: { label: 'Criação', color: 'bg-status-feito-soft text-status-feito' },
-  updated: { label: 'Edição', color: 'bg-status-andamento-soft text-status-andamento' },
-  deleted: { label: 'Exclusão', color: 'bg-status-ajuste-soft text-status-ajuste' },
-};
 
 const ENTITY_LABELS_OSG: Record<string, string> = {
   pessoa: 'Pessoa',

@@ -111,7 +111,7 @@ export function ProjetoLoteRow({
   const selectAllMembers = () => toggleMembers(availableMembers.map(member => member.id));
 
   return (
-    <div className={cn('bg-card border rounded-lg overflow-hidden transition-opacity', disabled && 'opacity-60')}>
+    <div className={cn('bg-superficie-cartao border rounded-lg overflow-hidden transition-opacity', disabled && 'opacity-60')}>
       <div className="flex items-center gap-3 px-4 py-3 bg-muted/40 border-b">
         <Checkbox
           checked={row.include}

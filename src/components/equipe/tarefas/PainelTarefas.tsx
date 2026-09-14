@@ -412,7 +412,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
             separado", e gastar as três em tudo achata a hierarquia em vez de
             criá-la. A barra de ferramentas é UM objeto com três faixas. */}
         <Tabs value={activeView} onValueChange={setActiveView} className="min-w-0">
-<div className="rounded-xl border bg-card">
+<div className="rounded-xl border bg-superficie-cartao">
             <TaskKPICards tasks={tasks} />
             <div className="overflow-x-auto border-t p-2 pb-0">
               <TabsList data-tour="tarefas-visoes" className="w-max min-w-full justify-start">

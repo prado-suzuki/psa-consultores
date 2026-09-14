@@ -347,7 +347,7 @@ export const FichaBloco = ({
       onKeyDown={aoTeclar}
       className={cn(
         // Padrão de card OSG: borda marrom-areia atenuada + sombra tonal.
-        'group relative flex cursor-pointer flex-col gap-1.5 rounded-md border border-osg-300/60 bg-card p-3.5 pl-4 shadow-sm shadow-osg-300/30 animate-osg-card-in',
+        'group relative flex cursor-pointer flex-col gap-1.5 rounded-md border border-osg-300/60 bg-superficie-cartao p-3.5 pl-4 shadow-sm shadow-osg-300/30 animate-osg-card-in',
         'transition-all duration-200 hover:z-10 hover:-translate-y-0.5 hover:border-osg-300 hover:shadow-md hover:shadow-osg-300/40',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/50',
         (!b.ativo || inativoNaFrente) && 'opacity-55',

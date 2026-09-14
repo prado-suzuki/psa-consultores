@@ -4,6 +4,7 @@
  */
 import { useMemo } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
 import { useBoardCluster } from '@/hooks/useBoardCluster';
 import { useDashboardAmbiente } from '@/lib/dashboardAmbiente';
 import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
@@ -23,6 +24,12 @@ export const BoardRecorteBar = () => {
     return [...rows].sort((a, b) => a.cliente_nome.localeCompare(b.cliente_nome, 'pt-BR'));
   }, [negocio.data, cluster]);
 
+  // A lista do Board vem do painel de negócio, com outro formato de linha.
+  const opcoesDeCliente = useMemo(
+    () => clientes.map((c) => ({ id: c.cliente_id, nome: c.cliente_nome })),
+    [clientes],
+  );
+
   const anos = useMemo(
     () => anosDisponiveis(filtrarPorCluster(negocio.data?.osRows ?? [], cluster), negocio.hoje),
     [negocio.data, cluster, negocio.hoje],
@@ -35,21 +42,16 @@ export const BoardRecorteBar = () => {
 
   return (
     <>
-      <Select
-        value={cliente || TODOS}
-        onValueChange={(v) => setCliente(v === TODOS ? '' : v)}
-        disabled={negocio.isLoading}
-      >
-        <SelectTrigger className="h-8 w-[176px] rounded-md text-[12.5px] font-medium" style={trigger}>
-          <SelectValue placeholder="Todos os clientes" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={TODOS}>Todos os clientes</SelectItem>
-          {clientes.map((c) => (
-            <SelectItem key={c.cliente_id} value={c.cliente_id}>{c.cliente_nome}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <SelecaoDeCliente
+        clientes={opcoesDeCliente}
+        value={cliente}
+        onChange={setCliente}
+        loading={negocio.isLoading}
+        opcaoVazia="Todos os clientes"
+        placeholder="Todos os clientes"
+        style={trigger}
+        className="h-8 w-[176px] min-w-0 rounded-md text-[12.5px] font-medium"
+      />
       <Select value={ano || TODOS} onValueChange={(v) => setAno(v === TODOS ? '' : v)}>
         <SelectTrigger className="h-8 w-[108px] rounded-md text-[12.5px] font-medium" style={trigger}>
           <SelectValue placeholder="Ano" />

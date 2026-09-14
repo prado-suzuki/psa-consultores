@@ -40,6 +40,9 @@ const PINTA_FUNDO = /\b(bg-[a-z0-9[\]/.-]+|backgroundColor)\b/;
 /** O elemento de página de um layout é o que declara `min-h-screen`. */
 const ELEMENTO_DE_PAGINA = /min-h-screen/;
 
+/** A superfície REBAIXADA, que nunca é fundo de página — nem de layout, nem de página solta. */
+const SUPERFICIE_REBAIXADA = /\bbg-muted\b/;
+
 function arquivosDeLayout(dir: string): string[] {
   const achados: string[] = [];
   for (const nome of readdirSync(dir)) {
@@ -47,6 +50,19 @@ function arquivosDeLayout(dir: string): string[] {
     if (statSync(caminho).isDirectory()) {
       achados.push(...arquivosDeLayout(caminho));
     } else if (/Layout.*\.tsx$/.test(nome) && !nome.endsWith('.test.tsx')) {
+      achados.push(caminho);
+    }
+  }
+  return achados;
+}
+
+function arquivosTsx(dir: string): string[] {
+  const achados: string[] = [];
+  for (const nome of readdirSync(dir)) {
+    const caminho = join(dir, nome);
+    if (statSync(caminho).isDirectory()) {
+      achados.push(...arquivosTsx(caminho));
+    } else if (nome.endsWith('.tsx') && !nome.endsWith('.test.tsx')) {
       achados.push(caminho);
     }
   }
@@ -79,17 +95,55 @@ describe('fundo de página: quem pinta é o body, e só ele', () => {
     ).toEqual([]);
   });
 
-  it('o body pinta o canvas, e não a superfície de card', () => {
-    // A outra metade do contrato: com os layouts calados, se o `body` perder o
-    // canvas ninguém pinta nada e a tela sai branca — sem erro de build. Esta
-    // asserção é o que impede a correção acima de virar uma tela sem fundo.
+  it('nenhuma PÁGINA cobre a tela com a superfície rebaixada', () => {
+    // A regra acima só olha `*Layout.tsx`, e foi por essa fresta que a NONA
+    // ocorrência passou: `EquipeChamados` tem header próprio, não entra em
+    // layout nenhum, e pintava `min-h-screen bg-muted` — 89%, a superfície
+    // calibrada para uma pílula saltar em cima. Ninguém viu enquanto a página
+    // das outras rotas também era cinza; quando a página virou branca em
+    // 12/09/2026, ela ficaria a única parede de tinta do produto.
     //
-    // `bg-background` NÃO serve, e não é sinônimo: o `--background` está entre
-    // 98,5% e 99,6%, ou seja é a superfície do cartão, e é o que `bg-background`
-    // pinta em popover, sheet e dropdown. Era o valor herdado do shadcn.
+    // O recorte é mais estreito que o da regra acima DE PROPÓSITO. Página solta
+    // fora de layout pode precisar de fundo próprio (`Auth`, `Index`,
+    // `NotFound`, o Portal do Cliente), e a dívida de cor crua delas está em
+    // `docs/geral/cor-o-que-falta.md`. O que nunca pode é o valor: `--muted` é
+    // superfície REBAIXADA, e rebaixada em relação a algo que, cobrindo a tela,
+    // não existe mais.
+    const culpados: string[] = [];
+
+    for (const caminho of arquivosTsx(join(RAIZ, 'pages'))) {
+      const linhas = readFileSync(caminho, 'utf8').split('\n');
+      linhas.forEach((linha, i) => {
+        if (!ELEMENTO_DE_PAGINA.test(linha)) return;
+        if (!SUPERFICIE_REBAIXADA.test(linha)) return;
+        culpados.push(`${relative(RAIZ, caminho)}:${i + 1} — "bg-muted" cobrindo a tela`);
+      });
+    }
+
+    expect(
+      culpados,
+      'página cobrindo a tela com `bg-muted`. A superfície REBAIXADA não é fundo\n' +
+        'de página: troque por `bg-background`, que é o que o `body` pinta.\n' +
+        culpados.join('\n'),
+    ).toEqual([]);
+  });
+
+  it('o body declara o fundo da página, e ele é o `--background`', () => {
+    // A outra metade do contrato: com os layouts calados, se o `body` perder a
+    // declaração ninguém pinta nada e a tela fica à mercê do agente de usuário.
+    // Esta asserção é o que impede a correção acima de virar uma tela sem fundo.
+    //
+    // `bg-background` E NÃO `bg-canvas`, desde 12/09/2026: a página é branca. O
+    // `--canvas` continua existindo com o valor de antes, mas como RAIZ da
+    // escada da área (`muted = canvas −4`, `border = canvas −7`, cobrado em
+    // `paletaDeArea.ts`) e não como fundo de página. Um `bg-canvas` de volta
+    // aqui traria o cinza de 93% junto — ver a nota do `body` no `index.css` e
+    // `docs/geral/comparacoes-de-cor/o-fundo-que-some.html`.
     const css = readFileSync(join(RAIZ, 'index.css'), 'utf8');
     const corpo = css.match(/\bbody\s*\{[^}]*\}/);
     expect(corpo, 'o `index.css` não tem regra para o `body`').not.toBeNull();
-    expect(corpo?.[0], 'o `body` deixou de pintar `bg-canvas`').toMatch(/@apply[^;]*\bbg-canvas\b/);
+    expect(corpo?.[0], 'o `body` deixou de pintar `bg-background`').toMatch(
+      /@apply[^;]*\bbg-background\b/,
+    );
   });
 });

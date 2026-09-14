@@ -3,29 +3,48 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * O aviso: superfície de CARTÃO, com a cor na faixa e no ícone.
+ *
+ * ## A decisão (dela, 11/09/2026 — opção C)
+ *
+ * As duas primeiras propostas foram recusadas: o fundo tingido no papel (a
+ * mancha de cor lavada, que era o desenho anterior desta variante) e o neutro
+ * com o significado só no ícone — porque **tirar a cor não é opção**: o aviso
+ * tem que se ver na tela.
+ *
+ * A saída é a terceira: a superfície volta a ser a do cartão, e a cor vira
+ * **faixa de 4px na esquerda mais o ícone**. O aviso continua se vendo de longe
+ * pela faixa, e o texto sai do tom — lê a 14,2:1 em vez dos ~6,8:1 que o texto
+ * colorido sobre o próprio fundo dava.
+ *
+ * O custo, que ela aceitou olhando: dois avisos seguidos viram uma pilha de
+ * listras.
+ *
+ * ## A armadilha do ícone, que continua valendo
+ *
+ * A string base tem `[&>svg]:text-foreground`, que é especificidade 0,1,1
+ * (classe + elemento). Classe de cor posta no próprio `<svg>` é 0,1,0 e PERDE,
+ * sem erro de build e sem aviso de lint. Por isso cada variante repõe a cor do
+ * ícone como `[&>svg]:...`, na mesma forma — aí o `tailwind-merge` do `cn()`
+ * descarta a da base.
+ */
 const alertVariants = cva(
-  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
+  "relative w-full rounded-lg border border-l-4 bg-card text-card-foreground p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
   {
     variants: {
       variant: {
-        default: "bg-background text-foreground",
-        destructive: "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
+        default: "border-l-border",
+        destructive: "border-l-destructive [&>svg]:text-destructive",
         /* Painel de aviso — o papel `alerta`.
 
-           O texto fica em `text-warning`, como o `destructive` logo acima fica
-           em `text-destructive`: num painel de sinal a cor do texto É parte do
-           sinal. Fecha AA com folga — `--warning` é `var(--status-alerta)`
-           (`20 72% 32%`) e dá 7,4:1 sobre o card, ou 6,8:1 sobre o próprio
-           fundo a 10%.
-
-           O que esta variante acrescenta ao desenho do `destructive` é o fundo
-           suave, e ele vem do semântico com ALFA e não de `bg-status-alerta-soft`:
-           o `.dark` não declara nenhum `--status-*`, então o painel cairia no
-           valor do tema claro quando o escuro entrar. `--warning` o `.dark`
-           declara. É também a recomendação registrada em
-           `docs/geral/comparacoes-de-cor/superficie-de-estado.html`, e o padrão
-           que a casa já usava à mão antes desta variante existir. */
-        warning: "border-warning/40 bg-warning/10 text-warning [&>svg]:text-warning",
+           O fundo a 10% e o texto em `text-warning` saíram em 11/09/2026: eram
+           o desenho que ela recusou, e o motivo está no docstring acima. A cor
+           continua semântica (`--warning` é `var(--status-alerta)`) e continua
+           vindo do semântico e não de `bg-status-alerta-soft`, porque o `.dark`
+           não declara nenhum `--status-*` e o painel cairia no valor do tema
+           claro quando o escuro entrar — `--warning` o `.dark` declara. */
+        warning: "border-l-warning [&>svg]:text-warning",
       },
     },
     defaultVariants: {

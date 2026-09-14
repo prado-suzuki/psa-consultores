@@ -25,7 +25,7 @@ export const TaskKPICards = ({ tasks }: TaskKPICardsProps) => {
     // A sétima célula ocupa a linha inteira: 7 não divide nem por 2 nem por 3, e
     // deixar a última sozinha num canto lê como célula faltando. "Concluído" é o
     // estado terminal, então a faixa cheia embaixo lê como fecho, não como sobra.
-    <div className="grid grid-cols-2 gap-1 rounded-xl border bg-card p-1 shadow-sm sm:grid-cols-3 md:flex md:gap-0 md:overflow-x-auto">
+    <div className="grid grid-cols-2 gap-1 rounded-xl border bg-superficie-cartao p-1 shadow-sm sm:grid-cols-3 md:flex md:gap-0 md:overflow-x-auto">
       {statusList.map((status, index) => {
         const total = counts[status.key] ?? 0;
         return (
@@ -38,7 +38,7 @@ export const TaskKPICards = ({ tasks }: TaskKPICardsProps) => {
           <div
             key={status.key}
             className={cn(
-              'flex items-center justify-between gap-3 rounded-lg bg-muted/50 px-3 py-2',
+              'flex items-center justify-between gap-3 rounded-lg bg-superficie-realce px-3 py-2',
               // O separador de régua só existe quando a régua é uma linha.
               'md:min-w-[120px] md:shrink-0 md:grow md:rounded-none md:bg-transparent',
               index > 0 && 'md:border-l',

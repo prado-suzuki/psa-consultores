@@ -183,13 +183,42 @@ export function ImpactDashboard() {
           </CardContent>
         </Card>
 
+        {/*
+          A FILA DE CARTÕES VESTE OS TONS CATEGÓRICOS, um por medida.
+
+          Decisão dela em 11/09/2026, olhando a fila renderizada: o cartão de KPI
+          é varrido de LONGE, e a cor é o que separa um do outro — diferente da
+          coluna de tabela, que se lê de perto e onde a regra da pasta `audit`
+          manda a contagem perder a cor ("selo veste papel; contagem não").
+          Aqui a cor fica, mas deixa de ser tinta de fábrica.
+
+          `--tag-*`, e não `--status-*`: cada cartão é uma MEDIDA diferente, não
+          um estado. Os quatro tons são os mesmos da paleta categórica de
+          gráfico, então o cartão e a barra do mesmo dado passam a combinar.
+
+          O DEFEITO QUE ISSO DESFEZ não era o azul: eram os DOIS VERDES. Havia
+          `green-500`/`green-600` em "Melhorados" e o mesmo par em "Economia" —
+          duas medidas sem relação nenhuma pintadas igual, numa fila em que a cor
+          é justamente o que distingue. Agora processos é o verde da área e
+          dinheiro é o quente dela.
+
+          O "ROI Médio" fica na ÂNCORA (`primary`) de propósito, e é a única que
+          não é `tag`: o contrato reserva a âncora para a série que vem primeiro,
+          e o ROI é o número que resume os outros quatro.
+
+          ⚠️ AS DUAS COLUNAS DE DINHEIRO DA TABELA ABAIXO (linhas ~493 e ~537)
+          seguem em `green-600` cru, e ficam para a frente do `red`/`emerald`,
+          que está rodando em paralelo. Quando saírem, o destino delas é
+          `tag-d` — o mesmo do cartão "Economia" —, para a coluna e o cartão do
+          mesmo dado não lerem como coisas diferentes.
+        */}
         <Card className="border-border">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
-              <Zap className="h-4 w-4 text-green-500" />
+              <Zap className="h-4 w-4 text-tag-a" />
               <p className="text-xs text-muted-foreground">Melhorados</p>
             </div>
-            <p className="text-2xl font-bold text-green-600">{hasActiveFilters ? filteredMetrics.improvedProcesses : metrics.improvedProcesses}</p>
+            <p className="text-2xl font-bold text-tag-a">{hasActiveFilters ? filteredMetrics.improvedProcesses : metrics.improvedProcesses}</p>
             <p className="text-xs text-muted-foreground">processos</p>
           </CardContent>
         </Card>
@@ -197,10 +226,10 @@ export function ImpactDashboard() {
         <Card className="border-border">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-4 w-4 text-blue-500" />
+              <Clock className="h-4 w-4 text-tag-b" />
               <p className="text-xs text-muted-foreground">Tempo</p>
             </div>
-            <p className="text-2xl font-bold text-blue-600">{(hasActiveFilters ? filteredMetrics.totalTimeSaved : metrics.totalTimeSaved).toFixed(0)}h</p>
+            <p className="text-2xl font-bold text-tag-b">{(hasActiveFilters ? filteredMetrics.totalTimeSaved : metrics.totalTimeSaved).toFixed(0)}h</p>
             <p className="text-xs text-muted-foreground">economizadas/mês</p>
           </CardContent>
         </Card>
@@ -208,10 +237,10 @@ export function ImpactDashboard() {
         <Card className="border-border">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="h-4 w-4 text-green-500" />
+              <DollarSign className="h-4 w-4 text-tag-d" />
               <p className="text-xs text-muted-foreground">Economia</p>
             </div>
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-2xl font-bold text-tag-d">
               R$ {(hasActiveFilters ? filteredMetrics.totalCostSaved : metrics.totalCostSaved).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </p>
             <p className="text-xs text-muted-foreground">/mês</p>
@@ -232,10 +261,10 @@ export function ImpactDashboard() {
         <Card className="border-border">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
-              <Users className="h-4 w-4 text-purple-500" />
+              <Users className="h-4 w-4 text-tag-c" />
               <p className="text-xs text-muted-foreground">FTE</p>
             </div>
-            <p className="text-2xl font-bold text-purple-600">{(hasActiveFilters ? filteredMetrics.fteSaved : metrics.fteSaved).toFixed(1)}</p>
+            <p className="text-2xl font-bold text-tag-c">{(hasActiveFilters ? filteredMetrics.fteSaved : metrics.fteSaved).toFixed(1)}</p>
             <p className="text-xs text-muted-foreground">liberados</p>
           </CardContent>
         </Card>
@@ -537,7 +566,7 @@ export function ImpactDashboard() {
                         <span className="text-green-600 font-semibold">
                           R$ {improvement.cost_saved_monthly.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}/mês
                         </span>
-                        <Badge variant="outline" className="border-blue-300 text-blue-700">
+                        <Badge variant="outline" className="border-tag-b/30 text-tag-b">
                           {improvement.time_saved_hours?.toFixed(0)}h/mês
                         </Badge>
                         <Badge className="bg-accent/10 text-primary border-0">

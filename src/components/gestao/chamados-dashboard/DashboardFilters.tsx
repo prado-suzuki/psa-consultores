@@ -65,7 +65,7 @@ export function DashboardFilters({
   const update = (field: keyof Filters) => (value: string) =>
     onChange({ ...filters, [field]: value });
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
+    <div className="rounded-2xl border border-border/70 bg-superficie-cartao p-4 shadow-sm">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <FilterSelect
           label="Período"

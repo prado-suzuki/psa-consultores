@@ -79,8 +79,8 @@ export default function PropostaTab({ clienteId }: PropostaTabProps) {
     preview.mutate(doc, { onSuccess: (url) => window.open(url, '_blank', 'noopener') });
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/50 px-4 py-2">
+    <section className="overflow-hidden rounded-xl border bg-superficie-cartao shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-superficie-realce px-4 py-2">
         <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
           Proposta Comercial
         </h3>

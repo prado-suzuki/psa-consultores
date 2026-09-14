@@ -7,10 +7,12 @@ import { KanbanDeliverableDialog } from '@/components/equipe/kanban/KanbanDelive
 import { KanbanFilters } from '@/components/equipe/kanban/KanbanFilters';
 import { KanbanTable } from '@/components/equipe/kanban/KanbanTable';
 import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController';
+import { ConclusaoComHorasDialog } from '@/components/equipe/ConclusaoComHorasDialog';
 import { OpenSubtasksWarningDialog } from '@/components/equipe/OpenSubtasksWarningDialog';
 import { Button } from '@/components/ui/button';
 import { useEquipeKanbanDeliverableMutations } from '@/hooks/useDomainEquipeKanbanDeliverableMutations';
 import { useEquipeKanbanInitialQuery } from '@/hooks/useDomainEquipeKanbanQueries';
+import { useConclusaoComHoras } from '@/hooks/useConclusaoComHoras';
 import { useDeliverableBlockers } from '@/hooks/useDeliverableBlockers';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { getBlockingOpenSubtasks } from '@/lib/deliverableCompletion';
@@ -32,6 +34,7 @@ import {
   type EquipeKanbanSprint as Sprint,
 } from '@/lib/equipeKanban';
 import { entregavelStatusConfig, entregavelStatusLabel } from '@/lib/entregavelStatusColors';
+import { parseHorasRealizadas } from '@/lib/horasApontamento';
 
 const EquipeKanban = () => {
   // Quadro de três colunas ocupando a largura toda: a barra recolhe sozinha.
@@ -60,6 +63,8 @@ const EquipeKanban = () => {
     confirm: () => Promise<void>;
   } | null>(null);
   const [confirmingCompletion, setConfirmingCompletion] = useState(false);
+  // Conclusão só grava depois que as horas realizadas forem informadas.
+  const conclusao = useConclusaoComHoras();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -244,12 +249,26 @@ const EquipeKanban = () => {
   const applyDeliverableStatus = async (
     id: string,
     newStatus: 'pending' | 'in_progress' | 'completed',
+    actualHours?: number,
   ) => {
     try {
-      await deliverableMutations.updateStatus.mutateAsync({ deliverableId: id, status: newStatus });
-      setDeliverables(
-        deliverables.map((deliverable) =>
-          deliverable.id === id ? { ...deliverable, status: newStatus } : deliverable,
+      await deliverableMutations.updateStatus.mutateAsync({
+        deliverableId: id,
+        status: newStatus,
+        // Só a conclusão carrega horas; nos outros status o payload segue como era.
+        ...(actualHours === undefined ? {} : { actualHours }),
+      });
+      // Atualização funcional: entre o clique e esta linha houve um diálogo, e a lista
+      // capturada naquele render pode não ser mais a atual.
+      setDeliverables((current) =>
+        current.map((deliverable) =>
+          deliverable.id === id
+            ? {
+                ...deliverable,
+                status: newStatus,
+                ...(actualHours === undefined ? {} : { actual_hours: actualHours }),
+              }
+            : deliverable,
         ),
       );
     } catch (error) {
@@ -262,16 +281,29 @@ const EquipeKanban = () => {
     newStatus: 'pending' | 'in_progress' | 'completed',
   ) => {
     const target = deliverables.find((deliverable) => deliverable.id === id);
+    // Concluir passa pelo apontamento de horas; os outros status gravam direto.
+    const prosseguir = () => {
+      if (newStatus !== 'completed') return applyDeliverableStatus(id, newStatus);
+      conclusao.pedirHoras(
+        {
+          titulo: target?.title ?? '',
+          horasEstimadas: target?.estimated_hours ?? null,
+          horasRealizadas: target?.actual_hours ?? null,
+        },
+        (horas) => applyDeliverableStatus(id, 'completed', horas),
+      );
+      return Promise.resolve();
+    };
     const blocking = getBlockingOpenSubtasks(deliverables, id, newStatus, target?.status);
     if (blocking.length > 0) {
       setCompletionWarning({
         taskTitle: target?.title ?? '',
         openSubtasks: blocking,
-        confirm: () => applyDeliverableStatus(id, newStatus),
+        confirm: prosseguir,
       });
       return;
     }
-    await applyDeliverableStatus(id, newStatus);
+    await prosseguir();
   };
 
   const confirmCompletionWarning = async () => {
@@ -334,6 +366,11 @@ const EquipeKanban = () => {
 
   const saveDeliverable = async () => {
     if (!selectedDeliverable) return;
+    // Mesma regra do diálogo de conclusão: concluir sem horas não é uma entrega completa.
+    if (editForm.status === 'completed' && parseHorasRealizadas(editForm.actual_hours) === null) {
+      toast.error('Informe as horas realizadas para concluir a tarefa.');
+      return;
+    }
     const blocking = getBlockingOpenSubtasks(
       deliverables,
       selectedDeliverable.id,
@@ -521,6 +558,13 @@ const EquipeKanban = () => {
           await updateDeliverableStatus(subtask.id, newStatus);
         }}
         onOpenSubtask={openDeliverableDetail}
+      />
+
+      <ConclusaoComHorasDialog
+        tarefa={conclusao.pendente}
+        salvando={conclusao.salvando}
+        onCancelar={conclusao.cancelar}
+        onConfirmar={(horas) => void conclusao.confirmar(horas)}
       />
 
       <OpenSubtasksWarningDialog

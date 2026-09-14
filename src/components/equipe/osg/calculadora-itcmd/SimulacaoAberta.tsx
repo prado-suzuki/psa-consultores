@@ -790,7 +790,7 @@ function QuadroDoCenario({ cenario, ordem, simulacao, nome }: {
   return (
     <section
       style={{ animationDelay: `${ordem * 70}ms` }}
-      className="animate-osg-rise overflow-hidden rounded-lg border border-border bg-card motion-reduce:animate-none"
+      className="animate-osg-rise overflow-hidden rounded-lg border border-border bg-superficie-cartao motion-reduce:animate-none"
     >
       <h4 className="border-b border-border bg-osg-50/60 px-3 py-2 text-xs font-semibold text-osg-700">
         <ComDica dica={DICA_CENARIO[cenario]}>{ROTULO_CENARIO[cenario]}</ComDica>

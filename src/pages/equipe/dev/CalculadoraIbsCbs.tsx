@@ -3,7 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { DevLayout } from "@/components/equipe/dev/DevLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
+import { SelecaoDeContribuinte } from '@/components/equipe/selecao/SelecaoDeContribuinte';
 import { Filter } from "lucide-react";
 import { AbaResumo } from "@/components/equipe/dev/calculadora-ibs-cbs/AbaResumo";
 import { AbaPorAnexo } from "@/components/equipe/dev/calculadora-ibs-cbs/AbaPorAnexo";
@@ -85,45 +86,29 @@ const CalculadoraIbsCbs = () => {
               <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
                 Cliente
               </label>
-              <Select
+              <SelecaoDeCliente
+                clientes={clientes}
                 value={clienteId}
-                onValueChange={(v) => {
+                onChange={(v) => {
                   setClienteId(v);
                   setContribuinteId("");
                 }}
-              >
-                <SelectTrigger className="h-11">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Selecione..."
+                className="w-full min-w-0 h-11"
+              />
             </div>
             <div>
               <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
                 Contribuinte
               </label>
-              <Select
+              <SelecaoDeContribuinte
+                contribuintes={contribuintes}
                 value={contribuinteId}
-                onValueChange={setContribuinteId}
+                onChange={setContribuinteId}
                 disabled={!clienteId}
-              >
-                <SelectTrigger className="h-11">
-                  <SelectValue placeholder={clienteId ? "Selecione..." : "Selecione um cliente"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {contribuintes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome_razao_social}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder={clienteId ? "Selecione..." : "Selecione um cliente"}
+                className="w-full min-w-0 h-11"
+              />
             </div>
           </div>
         </CardContent>

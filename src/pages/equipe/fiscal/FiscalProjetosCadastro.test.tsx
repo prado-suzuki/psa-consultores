@@ -1,3 +1,6 @@
+import type { ReactElement } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createTestQueryClient } from '@/test/queryWrapper';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -323,6 +326,16 @@ beforeEach(() => {
   }));
 });
 
+// O campo de cliente busca o indice de CNPJ (`useCnpjsPorCliente`), entao a tela
+// exige um QueryClient. O `rerender` e reembrulhado de proposito: o que o RTL
+// devolve remonta SEM o provider, e a segunda renderizacao quebraria sozinha.
+function renderComQuery(ui: ReactElement) {
+  const client = createTestQueryClient();
+  const envolver = (no: ReactElement) => <QueryClientProvider client={client}>{no}</QueryClientProvider>;
+  const resultado = render(envolver(ui));
+  return { ...resultado, rerender: (no: ReactElement) => resultado.rerender(envolver(no)) };
+}
+
 describe('FiscalProjetosCadastro — caracterização F1', () => {
   it('mantém validação, filtros, ordenação e agrupamento em funções puras', () => {
     expect(validateProjectForm({ ...EMPTY_PROJECT_FORM }, false, null)).toBe('Selecione o Cliente');
@@ -343,7 +356,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
   it('mantém o cadastro exportado e usa o painel consolidado na fachada Tax', () => {
     expect(ProjetosCadastroContent).toEqual(expect.any(Function));
 
-    render(<FiscalProjetosCadastro />);
+    renderComQuery(<FiscalProjetosCadastro />);
 
     expect(screen.getByTestId('fiscal-layout')).toHaveTextContent('Projetos e tarefas');
     expect(screen.getByTestId('fiscal-layout')).toHaveTextContent('Acompanhe a execução por ordem de serviço');
@@ -351,7 +364,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
   });
 
   it('usa o mesmo painel consolidado na fachada OSG', () => {
-    render(<OsgProjetos />);
+    renderComQuery(<OsgProjetos />);
 
     expect(screen.getByTestId('osg-layout')).toHaveTextContent('Projetos e tarefas');
     expect(screen.getByTestId('osg-layout')).toHaveTextContent('Acompanhe a execução por ordem de serviço');
@@ -368,7 +381,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
       },
     };
 
-    render(<ProjetosCadastroContent area="osg" />);
+    renderComQuery(<ProjetosCadastroContent area="osg" />);
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(inputNear(/Nome do Projeto/)).toHaveValue('Beta Cliente - Planejamento Tributário');
@@ -381,7 +394,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
   it('preserva estados de carregamento, vazio e ausência temporária do conjunto visível', () => {
     mocks.useOrgProjects.mockReturnValue({ data: [], isLoading: true });
     mocks.useDashboardProjectIds.mockReturnValue({ ids: undefined });
-    const { rerender } = render(<ProjetosCadastroContent />);
+    const { rerender } = renderComQuery(<ProjetosCadastroContent />);
     expect(screen.getByText('Carregando projetos...')).toBeInTheDocument();
 
     mocks.useOrgProjects.mockReturnValue({ data: [], isLoading: false });
@@ -392,7 +405,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
 
   it('filtra, limpa, ordena e agrupa sem mudar os dados de fronteira', async () => {
     const user = userEvent.setup();
-    render(<ProjetosCadastroContent />);
+    renderComQuery(<ProjetosCadastroContent />);
 
     const filterComboboxes = screen.getAllByRole('combobox');
     await user.click(filterComboboxes[0]);
@@ -424,7 +437,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
 
   it('encaminha exclusão com identidade e nome necessários à auditoria da mutation', async () => {
     const user = userEvent.setup();
-    render(<ProjetosCadastroContent />);
+    renderComQuery(<ProjetosCadastroContent />);
 
     const row = screen.getByText('Zeta Tax').closest('tr');
     if (!row) throw new Error('Linha do projeto ausente');
@@ -442,7 +455,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
   it('avisa no diálogo quantas tarefas em Backlog/A Fazer vão junto com o projeto', async () => {
     mocks.resumoExclusaoProjeto.mockResolvedValue({ total: 3, bloqueantes: 0 });
     const user = userEvent.setup();
-    render(<ProjetosCadastroContent />);
+    renderComQuery(<ProjetosCadastroContent />);
 
     const row = screen.getByText('Zeta Tax').closest('tr');
     if (!row) throw new Error('Linha do projeto ausente');
@@ -455,7 +468,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
   it('recusa a exclusão antes de abrir o diálogo quando há tarefa fora de Backlog/A Fazer', async () => {
     mocks.resumoExclusaoProjeto.mockResolvedValue({ total: 5, bloqueantes: 2 });
     const user = userEvent.setup();
-    render(<ProjetosCadastroContent />);
+    renderComQuery(<ProjetosCadastroContent />);
 
     const row = screen.getByText('Zeta Tax').closest('tr');
     if (!row) throw new Error('Linha do projeto ausente');
@@ -471,7 +484,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
 
   it('valida em ordem e cria com OS/produto/equipe, datas automáticas e payload integral', async () => {
     const user = userEvent.setup();
-    render(<ProjetosCadastroContent />);
+    renderComQuery(<ProjetosCadastroContent />);
     await user.click(screen.getByRole('button', { name: /Novo Projeto/ }));
     expect(screen.getByRole('heading', { name: 'Novo Projeto' })).toBeInTheDocument();
 
@@ -526,7 +539,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
 
   it('abre edição sem limpar serviço/datas, resolve o produto depois da OS e envia snapshots para auditoria', async () => {
     const user = userEvent.setup();
-    render(<ProjetosCadastroContent />);
+    renderComQuery(<ProjetosCadastroContent />);
     await user.click(screen.getByText('Zeta Tax'));
 
     // Na edição o nome é o próprio título e o período vira pílula ("Início" /

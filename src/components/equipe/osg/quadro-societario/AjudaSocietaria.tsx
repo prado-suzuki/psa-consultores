@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { AJUDA_SOCIETARIA, type ChaveDaAjuda } from './ajudaSocietaria';
+import { AJUDA_SOCIETARIA, type ChaveDaAjuda } from './textosDaAjuda';
 
 // O ÍCONE DE INFORMAÇÃO dos gestos societários: o rótulo escolhe, o ícone
 // explica.

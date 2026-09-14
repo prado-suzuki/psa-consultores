@@ -8,6 +8,20 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }
 
+// jsdom não implementa ResizeObserver, e o cmdk instancia um ao montar — então
+// toda tela com combobox de busca quebrava com `ReferenceError` antes de
+// renderizar. Era remendo por arquivo (TaskFilters, OrgCommentsPanel e outros
+// declaram o próprio); virou ambiente quando o campo de cliente passou a ser um
+// componente compartilhado e o remendo teria de ser copiado em cada tela que o
+// recebesse. Os stubs locais continuam válidos: `vi.stubGlobal` sobrescreve este.
+if (!globalThis.ResizeObserver) {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 // jsdom não implementa elementFromPoint — o rastreio de viewport do Placeholder
 // (TipTap) chama posAtCoords do ProseMirror, que depende dele. Devolver null faz
 // o ProseMirror cair no caminho de fallback, que já trata "posição desconhecida".

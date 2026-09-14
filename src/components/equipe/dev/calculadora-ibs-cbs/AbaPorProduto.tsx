@@ -529,13 +529,13 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                         {fmtBRL(getTributoDepoisIbsCbs(p))}
                       </TableCell>
                       <TableCell
-                        className={`text-right tabular-nums ${getDeltaRsIbsCbs(p) < 0 ? 'text-emerald-700' : 'text-rose-700'}`}
+                        className={`text-right tabular-nums ${getDeltaRsIbsCbs(p) < 0 ? 'text-success' : 'text-destructive'}`}
                       >
                         {getDeltaRsIbsCbs(p) >= 0 ? '+' : ''}
                         {fmtBRL(getDeltaRsIbsCbs(p))}
                       </TableCell>
                       <TableCell
-                        className={`text-right tabular-nums ${getDeltaPpIbsCbs(p) < 0 ? 'text-emerald-700' : 'text-rose-700'}`}
+                        className={`text-right tabular-nums ${getDeltaPpIbsCbs(p) < 0 ? 'text-success' : 'text-destructive'}`}
                       >
                         {fmtPp(getDeltaPpIbsCbs(p))}
                       </TableCell>

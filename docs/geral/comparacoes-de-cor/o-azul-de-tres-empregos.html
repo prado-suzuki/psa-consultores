@@ -551,10 +551,21 @@ todos abaixo do piso de 3:1. Hoje a tela usa <span class="mono">green-600</span>
 acompanham o escuro — então a opção A não piora nada, mas <strong>assume</strong> essa dívida.
 É a mesma que a página "A superfície de estado" já registrou para os <code>--status-*</code>.</div>
 
-<div class="nota"><strong>Um selo desta frente se conserta de qualquer jeito:</strong>
-o do <code>BalanceteTreeTable</code> — <span class="mono">text-blue-600</span> sobre
-<span class="mono">bg-blue-500/15</span>, em 10px negrito — mede <span class="bad">4,35:1</span> e
-reprova o AA. Vai para um par medido.</div>
+<div class="nota" style="border-left-color:#A03024;background:#FBF1EF;padding:12px 0 12px 16px;border-radius:0 8px 8px 0">
+<strong>Correção de 11/09, e ela desfaz metade de um achado meu.</strong> Eu disse que o selo do
+<code>BalanceteTreeTable</code> reprovava o AA — <span class="mono">text-blue-600</span> sobre
+<span class="mono">bg-blue-500/15</span>, 4,35:1, "em 10px negrito". Errado: fui converter e o
+conteúdo do selo é um <strong>ícone</strong> (<code>&lt;Check/&gt;</code>), não texto. O
+<span class="mono">text-[10px] font-bold</span> está lá como herança da forma do selo irmão e não
+pinta nada. O piso que vale é o <strong>3:1 da WCAG 1.4.11</strong>, e 4,35 passa com folga.
+<br><br>
+Ele foi convertido assim mesmo — <code>tag-b</code>, 6,30:1, e agora acompanha a área —, mas por
+ser cor de fábrica, não por reprovar contraste.
+<br><br>
+<strong>O outro achado continua de pé, e é o que importava:</strong> o
+<code>taskPriorityColors.medium</code> em <span class="mono">bg-info/10 text-info</span> dá
+<span class="bad">4,49:1</span> sob a palavra "Média" — ali é <em>texto</em>, o piso é 4,5:1, e
+reprova por um centésimo.</div>
 
 <!-- ══════════════════════════════════════════════════════════════ -->
 <h2>Decisão 3 · Backlog e Lista de Processos</h2>
@@ -1181,8 +1192,8 @@ vocabulário de situação do PER/DCOMP é uma rodada inteira.</div></div>
   <td class="n">5,49</td><td class="n good">5,08</td><td class="mono">Kanban, projetos</td></tr>
 <tr><td>chip de categoria · <code>blue-700/blue-50</code> → <code>tag-b</code></td>
   <td class="n">6,16</td><td class="n good">6,30</td><td class="mono">Backlog, selos</td></tr>
-<tr><td>selo de 10px · <code>blue-600</code> sobre <code>blue-500/15</code> <span class="bad">reprova AA</span></td>
-  <td class="n bad">4,35</td><td class="n good">5,76</td><td class="mono">BalanceteTreeTable</td></tr>
+<tr><td>selo de <em>ícone</em> · <code>blue-600</code> sobre <code>blue-500/15</code> <span class="good">passa — ver correção</span></td>
+  <td class="n">4,35</td><td class="n good">6,30</td><td class="mono">BalanceteTreeTable</td></tr>
 <tr><td>botão cheio · branco sobre <code>blue-600</code> → sobre <code>primary</code></td>
   <td class="n">5,17</td><td class="n good">5,56</td><td class="mono">Exportar</td></tr>
 <tr><td><code>info</code> sobre <code>info/10</code> <span class="bad">reprova AA por 0,01</span></td>

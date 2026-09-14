@@ -28,10 +28,10 @@ import { cnpjIncompleto, formatarCnpj } from '@/lib/cnpj';
 import { PontoDaArea } from '@/components/acessos/PontoDaArea';
 
 import { nomeDoTomDaArea } from '@/lib/corDaArea';
-const colorPresets = [
-  '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444',
-  '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
-];
+
+// A paleta de dez hexadecimais que ficava aqui saiu em 14/09/2026: ela já não
+// tinha leitor desde que o seletor de cor virou o nome do tom (`nomeDoTomDaArea`),
+// e cor de área vem de `color_index` — ver a nota em `src/lib/corDaArea.ts`.
 
 function profileLabel(p: Profile) {
   const name = [p.first_name, p.last_name].filter(Boolean).join(' ');
@@ -261,7 +261,7 @@ export default function EstruturaManager() {
   const renderClusterItem = (cluster: Cluster) => {
     const clusterAreas = areas.filter(a => a.cluster_id === cluster.id);
     return (
-      <AccordionItem key={cluster.id} value={cluster.id} className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+      <AccordionItem key={cluster.id} value={cluster.id} className="bg-superficie-cartao rounded-lg border border-border shadow-sm overflow-hidden">
         <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-foreground/[0.03]">
           <div className="flex items-center gap-3 flex-1 text-left">
             <Network className="h-5 w-5 text-primary shrink-0" />
@@ -312,7 +312,7 @@ export default function EstruturaManager() {
                     .filter((p): p is Profile => !!p);
 
                   return (
-                    <AccordionItem key={area.id} value={area.id} className="rounded-md border border-border bg-muted/50">
+                    <AccordionItem key={area.id} value={area.id} className="rounded-md border border-border bg-superficie-realce">
                       <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-foreground/[0.03] text-sm">
                         <div className="flex items-center gap-2 flex-1 text-left">
                           <PontoDaArea area={area} comBorda />
@@ -446,7 +446,7 @@ export default function EstruturaManager() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex justify-between items-center bg-card rounded-lg p-4 border border-border shadow-sm">
+      <div className="flex justify-between items-center bg-superficie-cartao rounded-lg p-4 border border-border shadow-sm">
         <div>
           <h3 className="text-base font-medium text-foreground">Estrutura Organizacional</h3>
           <p className="text-sm text-muted-foreground">Gerencie clusters, áreas, líderes, equipes e membros.</p>

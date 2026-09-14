@@ -54,7 +54,7 @@ function ProjectRow({ project }: { project: OrgProject }) {
   const products = project.ordem_servico_id ? (listingOsProdutosByOs[project.ordem_servico_id] || []) : [];
   const totalHours = products.reduce((sum, product) => sum + (product.horas_contratadas ?? 0), 0);
   return (
-    <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => handleOpenModal(project)}>
+    <TableRow className="cursor-pointer hover:bg-superficie-realce" onClick={() => handleOpenModal(project)}>
       <TableCell className="whitespace-normal break-words"><span className="font-medium">{project.name}</span></TableCell>
       <TableCell className="whitespace-normal break-words"><span className="text-sm">{project.servico_contratado || '-'}</span></TableCell>
       <TableCell className="whitespace-normal break-words"><span className="text-sm">{project.servico_nome || '-'}</span></TableCell>

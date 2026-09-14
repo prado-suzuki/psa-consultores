@@ -48,7 +48,7 @@ export function FiscalClients() {
       </div>
 
       {/* Table */}
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="bg-superficie-cartao border border-border rounded-lg overflow-hidden">
         {filteredClients.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Building className="h-12 w-12 mb-4 opacity-50" />
@@ -60,7 +60,7 @@ export function FiscalClients() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableRow className="bg-superficie-realce hover:bg-superficie-realce">
                 <TableHead className="font-semibold">Cliente</TableHead>
                 <TableHead className="font-semibold">Categoria</TableHead>
                 <TableHead className="font-semibold">Setor</TableHead>
@@ -72,7 +72,7 @@ export function FiscalClients() {
               {filteredClients.map((client) => (
                 <TableRow 
                   key={client.id}
-                  className="cursor-pointer hover:bg-muted/50"
+                  className="cursor-pointer hover:bg-superficie-realce"
                 >
                   <TableCell>
                     <span className="font-medium text-foreground">{client.nome}</span>

@@ -528,7 +528,7 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
                         })}
                       </TableRow>
                       {expansivel && aberta && (
-                        <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableRow className="bg-superficie-realce hover:bg-superficie-realce">
                           <TableCell colSpan={colunas.length} className="p-4">
                             <AuditProdutosDaPessoa
                               nome={linha.nome}

@@ -158,7 +158,7 @@ export function ControlePerdcompResults({
             <TableHeader className="[&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-foreground">
               <TableRow>
                 <TableHead
-                  className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+                  className="whitespace-nowrap cursor-pointer hover:bg-superficie-realce"
                   onClick={() => onSort('processo')}
                 >
                   <span className="flex items-center">
@@ -167,7 +167,7 @@ export function ControlePerdcompResults({
                   </span>
                 </TableHead>
                 <TableHead
-                  className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+                  className="whitespace-nowrap cursor-pointer hover:bg-superficie-realce"
                   onClick={() => onSort('situacao')}
                 >
                   <span className="flex items-center">
@@ -177,7 +177,7 @@ export function ControlePerdcompResults({
                 </TableHead>
                 <TableHead className="whitespace-nowrap">Últ. atualização</TableHead>
                 <TableHead
-                  className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+                  className="whitespace-nowrap cursor-pointer hover:bg-superficie-realce"
                   onClick={() => onSort('dt_solicitada')}
                 >
                   <span className="flex items-center">
@@ -186,7 +186,7 @@ export function ControlePerdcompResults({
                   </span>
                 </TableHead>
                 <TableHead
-                  className="cursor-pointer hover:bg-muted/50"
+                  className="cursor-pointer hover:bg-superficie-realce"
                   onClick={() => onSort('exercicio')}
                 >
                   <span className="flex items-center">
@@ -195,7 +195,7 @@ export function ControlePerdcompResults({
                   </span>
                 </TableHead>
                 <TableHead
-                  className="cursor-pointer hover:bg-muted/50"
+                  className="cursor-pointer hover:bg-superficie-realce"
                   onClick={() => onSort('trimestre')}
                 >
                   <span className="flex items-center">
@@ -206,7 +206,7 @@ export function ControlePerdcompResults({
                 <TableHead className="whitespace-nowrap">Tipo Crédito</TableHead>
                 <TableHead className="text-right whitespace-nowrap">% PSA</TableHead>
                 <TableHead
-                  className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
+                  className="text-right whitespace-nowrap cursor-pointer hover:bg-superficie-realce"
                   onClick={() => onSort('vlr_credito')}
                 >
                   <span className="flex items-center justify-end">
@@ -215,7 +215,7 @@ export function ControlePerdcompResults({
                   </span>
                 </TableHead>
                 <TableHead
-                  className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
+                  className="text-right whitespace-nowrap cursor-pointer hover:bg-superficie-realce"
                   onClick={() => onSort('vlr_compensado')}
                 >
                   <span className="flex items-center justify-end">
@@ -226,7 +226,7 @@ export function ControlePerdcompResults({
                 <TableHead className="text-right whitespace-nowrap">Ressarcido</TableHead>
                 <TableHead className="whitespace-nowrap">Dt. Pagamento</TableHead>
                 <TableHead
-                  className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
+                  className="text-right whitespace-nowrap cursor-pointer hover:bg-superficie-realce"
                   onClick={() => onSort('saldo')}
                 >
                   <span className="flex items-center justify-end">
@@ -235,7 +235,7 @@ export function ControlePerdcompResults({
                   </span>
                 </TableHead>
                 <TableHead
-                  className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
+                  className="text-right whitespace-nowrap cursor-pointer hover:bg-superficie-realce"
                   onClick={() => onSort('vlr_corrigido')}
                 >
                   <span className="flex items-center justify-end">
@@ -277,7 +277,7 @@ export function ControlePerdcompResults({
                   return (
                     <TableRow
                       key={item.nr_per}
-                      className="cursor-pointer hover:bg-muted/50"
+                      className="cursor-pointer hover:bg-superficie-realce"
                       onClick={() => onRowClick(item)}
                     >
                       <TableCell className="font-medium">
@@ -309,9 +309,9 @@ export function ControlePerdcompResults({
                           className={cn(
                             'font-medium',
                             saldo > 0
-                              ?'text-green-600'
+                              ?'text-success'
                               : saldo < 0
-                                ?'text-red-600'
+                                ?'text-destructive'
                                 : '',
                           )}
                         >
@@ -420,9 +420,9 @@ export function ControlePerdcompResults({
                     <span
                       className={cn(
                         totals.saldo > 0
-                          ?'text-green-600'
+                          ?'text-success'
                           : totals.saldo < 0
-                            ?'text-red-600'
+                            ?'text-destructive'
                             : '',
                       )}
                     >

@@ -44,40 +44,40 @@ export function AnaliseInteligenteKpis({
       <Card className="border-border shadow-sm">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <AlertTriangle className="h-4 w-4 text-red-500" />
+            <AlertTriangle className="h-4 w-4 text-status-ajuste" />
             <span className="text-xs text-muted-foreground">Atrasados</span>
           </div>
-          <div className="text-2xl font-bold text-red-600">{kpis.overdue}</div>
+          <div className="text-2xl font-bold text-status-ajuste">{kpis.overdue}</div>
           <p className="text-xs text-muted-foreground mt-1">itens vencidos</p>
         </CardContent>
       </Card>
       <Card className="border-border shadow-sm">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <ShieldAlert className="h-4 w-4 text-amber-500" />
+            <ShieldAlert className="h-4 w-4 text-status-alerta" />
             <span className="text-xs text-muted-foreground">Bloqueios</span>
           </div>
-          <div className="text-2xl font-bold text-amber-600">{kpis.blockers}</div>
+          <div className="text-2xl font-bold text-status-alerta">{kpis.blockers}</div>
           <p className="text-xs text-muted-foreground mt-1">em {kpis.totalDailys} dailys</p>
         </CardContent>
       </Card>
       <Card className="border-border shadow-sm">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <Activity className="h-4 w-4 text-blue-500" />
+            <Activity className="h-4 w-4 text-status-alerta" />
             <span className="text-xs text-muted-foreground">Scope Creep</span>
           </div>
-          <div className="text-2xl font-bold text-blue-600">{kpis.scopeCreep}</div>
+          <div className="text-2xl font-bold text-status-alerta">{kpis.scopeCreep}</div>
           <p className="text-xs text-muted-foreground mt-1">fora do planejado</p>
         </CardContent>
       </Card>
       <Card className="border-border shadow-sm">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <DollarSign className="h-4 w-4 text-red-500" />
+            <DollarSign className="h-4 w-4 text-status-ajuste" />
             <span className="text-xs text-muted-foreground">Gasto Extra</span>
           </div>
-          <div className="text-2xl font-bold text-red-600">{extraCostLabel}</div>
+          <div className="text-2xl font-bold text-status-ajuste">{extraCostLabel}</div>
           <p className="text-xs text-muted-foreground mt-1">estimado</p>
         </CardContent>
       </Card>

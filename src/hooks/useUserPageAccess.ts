@@ -10,28 +10,58 @@ export interface UserPageAccessRecord {
   granted_at: string;
 }
 
+/** Teto de linhas por resposta do PostgREST. Ver `useUserPageAccess`. */
+const PAGINA_POSTGREST = 1000;
+
 /**
  * Lista registros de user_page_access.
  *
- * - Sem argumento: traz tudo (uso administrativo agregado, ex.: cards de estatísticas).
- *   Atenção: sujeito ao cap padrão de linhas do PostgREST quando a tabela cresce.
+ * - Sem argumento: traz tudo, PAGINANDO (ver abaixo).
  * - Com `userId` (string): filtra server-side e devolve só as linhas daquele usuário.
- *   Use isso em telas que exibem permissões de um único usuário — evita o cap e
- *   garante que toda a linha do usuário selecionado venha no payload.
  * - Com `null`: query desabilitada (útil quando nenhum usuário está selecionado).
+ *
+ * ## Por que o `while`, e não um `select` só
+ *
+ * O PostgREST corta a resposta em 1000 linhas e **não avisa**: vem um array de
+ * 1000, sem erro, sem flag. Em 14/09/2026 produção tinha **1494** linhas nesta
+ * tabela, e a busca global devolvia 1000 — o card"Permissões Customizadas" do
+ * Controle de Acessos exibia, com toda a confiança, o TETO DA PÁGINA como se
+ * fosse a contagem. Um terço dos vínculos era invisível para qualquer tela que
+ * lesse daqui sem `userId`.
+ *
+ * A assinatura da função sempre prometeu"traz tudo"; o docstring anterior
+ * apenas registrava o corte como"atenção". Agora ela cumpre a promessa: pede de
+ * mil em mil até a página vir curta. Duas viagens hoje, três quando passar de
+ * 2000 — e nenhuma tela precisa saber disso.
+ *
+ * Quem lê de um usuário só continua vindo por `.eq('user_id', ...)`, numa
+ * viagem, porque ninguém tem mil páginas.
  */
 export function useUserPageAccess(userId?: string | null) {
   const enabled = userId !== null;
   return useQuery({
     queryKey: ['user-page-access', userId ?? 'all'],
     queryFn: async (): Promise<UserPageAccessRecord[]> => {
-      let query = supabase.from('user_page_access').select('*');
-      if (typeof userId === 'string') {
-        query = query.eq('user_id', userId);
+      const linhas: UserPageAccessRecord[] = [];
+      for (let inicio = 0; ; inicio += PAGINA_POSTGREST) {
+        let query = supabase
+          .from('user_page_access')
+          .select('*')
+          .order('id')
+          .range(inicio, inicio + PAGINA_POSTGREST - 1);
+        if (typeof userId === 'string') query = query.eq('user_id', userId);
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        const pagina = (data ?? []) as UserPageAccessRecord[];
+        linhas.push(...pagina);
+        // Página curta é a última. `order('id')` está aqui para o recorte ser
+        // estável entre as viagens — sem ordem explícita o Postgres não promete
+        // a mesma sequência, e uma linha poderia vir duas vezes ou nenhuma.
+        if (pagina.length < PAGINA_POSTGREST) break;
       }
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data ?? []) as UserPageAccessRecord[];
+      return linhas;
     },
     enabled,
     staleTime: 60 * 1000,

@@ -9,7 +9,8 @@ import { useApiAuth } from '@/hooks/useApiAuth';
 import { useDomainConsultaECD } from '@/hooks/useDomainConsultaECD';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
+import { SelecaoDeContribuinte } from '@/components/equipe/selecao/SelecaoDeContribuinte';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -373,21 +374,25 @@ const ConsultaECD = () => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             <div className="md:col-span-3">
               <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} /></label>
-              <Select value={selectedCliente} onValueChange={(value) => { setSelectedCliente(value); setSelectedContribuinte(""); setSearchTriggered(false); }}>
-                <SelectTrigger className="h-11"><SelectValue placeholder={loadingClientes ?"Carregando...":"Selecione o cliente"} /></SelectTrigger>
-                <SelectContent className="bg-background border z-50">
-                  {clientes?.map((cliente) => (<SelectItem key={cliente.id} value={cliente.id}>{cliente.nome}</SelectItem>))}
-                </SelectContent>
-              </Select>
+              <SelecaoDeCliente
+                clientes={clientes}
+                value={selectedCliente}
+                onChange={(value) => { setSelectedCliente(value); setSelectedContribuinte(""); setSearchTriggered(false); }}
+                loading={loadingClientes}
+                placeholder="Selecione o cliente"
+                className="w-full min-w-0 h-11"
+              />
             </div>
             <div className="md:col-span-5">
               <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} /></label>
-              <Select value={selectedContribuinte} onValueChange={(value) => { setSelectedContribuinte(value); setSearchTriggered(false); setSelectedArquivos(new Set()); }}>
-                <SelectTrigger className="h-11"><SelectValue placeholder={loadingContribuintes ?"Carregando...":"Selecione o contribuinte"} /></SelectTrigger>
-                <SelectContent className="bg-background border z-50">
-                  {contribuintes?.map((contrib) => (<SelectItem key={contrib.id} value={contrib.id}>{contrib.nome_razao_social} {contrib.cpf_cnpj ? `(${formatCNPJ(contrib.cpf_cnpj)})` : ''}</SelectItem>))}
-                </SelectContent>
-              </Select>
+              <SelecaoDeContribuinte
+                contribuintes={contribuintes}
+                value={selectedContribuinte}
+                onChange={(value) => { setSelectedContribuinte(value); setSearchTriggered(false); setSelectedArquivos(new Set()); }}
+                loading={loadingContribuintes}
+                placeholder="Selecione o contribuinte"
+                className="w-full min-w-0 h-11"
+              />
             </div>
             <div className="md:col-span-2">
               <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">Data de Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.start_date} /></label>

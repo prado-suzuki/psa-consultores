@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const boundary = vi.hoisted(() => ({
   executeSave: vi.fn(),
   toastError: vi.fn(),
+  auth: { isAdmin: true, isLider: false, isSublider: false },
 }));
 
 vi.mock('sonner', () => ({
@@ -20,7 +21,7 @@ vi.mock('sonner', () => ({
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({ user: { id: 'user-1' }, isAdmin: true, isLider: false }),
+  useAuth: () => ({ user: { id: 'user-1' }, ...boundary.auth }),
 }));
 
 vi.mock('@/hooks/useDraftPersistence', () => ({
@@ -86,15 +87,21 @@ vi.mock('./client-form/HistoricoTab', () => ({ default: () => <div /> }));
 
 import NewClientModal from './NewClientModal';
 
-function renderModal() {
+function renderModal(editingClienteId?: string) {
   return render(
-    <NewClientModal open onOpenChange={vi.fn()} area="tax" />,
+    <NewClientModal
+      open
+      onOpenChange={vi.fn()}
+      area="tax"
+      editingClienteId={editingClienteId}
+    />,
   );
 }
 
 describe('NewClientModal · salvamento que rejeita', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.assign(boundary.auth, { isAdmin: true, isLider: false, isSublider: false });
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -134,5 +141,33 @@ describe('NewClientModal · salvamento que rejeita', () => {
 
     await new Promise((r) => setTimeout(r, 0));
     expect(boundary.toastError).not.toHaveBeenCalled();
+  });
+});
+
+describe('NewClientModal · alçadas das abas financeiras', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('não mostra OS, Faturamento nem Proposta para sublíder', () => {
+    Object.assign(boundary.auth, { isAdmin: false, isLider: false, isSublider: true });
+    renderModal('cliente-1');
+
+    expect(screen.queryByRole('tab', { name: /OS - Ordem de Serviço/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Faturamento' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /Proposta/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Histórico/ })).toBeInTheDocument();
+  });
+
+  it.each([
+    ['admin', { isAdmin: true, isLider: false, isSublider: false }],
+    ['líder', { isAdmin: false, isLider: true, isSublider: false }],
+  ])('mostra OS, Faturamento e Proposta para %s', (_papel, auth) => {
+    Object.assign(boundary.auth, auth);
+    renderModal('cliente-1');
+
+    expect(screen.getByRole('tab', { name: /OS - Ordem de Serviço/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Faturamento' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Proposta/ })).toBeInTheDocument();
   });
 });

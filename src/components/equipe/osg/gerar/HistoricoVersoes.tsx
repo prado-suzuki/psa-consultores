@@ -55,7 +55,7 @@ export const HistoricoVersoes = ({
 
   return (
     <Collapsible open={aberto} onOpenChange={onAbertoChange}>
-      <div className="rounded-md border border-osg-300/60 bg-card shadow-sm shadow-osg-300/30">
+      <div className="rounded-md border border-osg-300/60 bg-superficie-cartao shadow-sm shadow-osg-300/30">
         <CollapsibleTrigger asChild>
           <button type="button" className="flex w-full items-center gap-2 px-3 py-2.5 text-left">
             <History className="h-4 w-4 shrink-0 text-osg-moss" />

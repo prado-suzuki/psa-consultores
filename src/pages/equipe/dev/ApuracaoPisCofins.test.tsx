@@ -1,3 +1,6 @@
+import type { ReactElement } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createTestQueryClient } from '@/test/queryWrapper';
 import type { PropsWithChildren } from 'react';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -202,6 +205,14 @@ beforeEach(() => {
   mocks.importState.ready = true;
 });
 
+// O campo de cliente passou a buscar o indice de CNPJ (`useCnpjsPorCliente`),
+// entao a tela exige um QueryClient. Provider de verdade, e nao mock de
+// react-query: mockar a biblioteca inteira aqui esconderia as outras consultas
+// da pagina, que este arquivo existe para observar.
+function renderComQuery(ui: ReactElement) {
+  return render(<QueryClientProvider client={createTestQueryClient()}>{ui}</QueryClientProvider>);
+}
+
 describe('fórmulas fiscais atuais', () => {
   it('congela as faixas de CST, inclusive CST 51 zerado e demais saídas', () => {
     expect(['01', '10'].map((cst) => isItemReceita(item({ cst_pis: cst })))).toEqual([true, true]);
@@ -281,7 +292,7 @@ describe('fórmulas fiscais atuais', () => {
 describe('ApuracaoPisCofins', () => {
   it('expõe estado inicial, textos orientativos e valida contribuinte antes de consultar', async () => {
     const user = userEvent.setup();
-    render(<ApuracaoPisCofins />);
+    renderComQuery(<ApuracaoPisCofins />);
 
     expect(screen.getByRole('heading', { name: 'Apuração PIS/COFINS' })).toBeInTheDocument();
     expect(screen.getByText(/consolida débitos, créditos, isenções e rateios/i)).toBeInTheDocument();
@@ -300,7 +311,7 @@ describe('ApuracaoPisCofins', () => {
 
   it('controla filtros vivos/commitados e Limpar desabilita a consulta', async () => {
     const user = userEvent.setup();
-    render(<ApuracaoPisCofins />);
+    renderComQuery(<ApuracaoPisCofins />);
 
     await selectClientAndSearch(user);
     await waitFor(() => expect(mocks.apuracao).toHaveBeenLastCalledWith({
@@ -318,7 +329,7 @@ describe('ApuracaoPisCofins', () => {
 
   it('apresenta resultado e as cinco abas com tabelas, fórmulas e textos atuais', async () => {
     const user = userEvent.setup();
-    render(<ApuracaoPisCofins />);
+    renderComQuery(<ApuracaoPisCofins />);
     await selectClientAndSearch(user);
 
     expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
@@ -377,7 +388,7 @@ describe('ApuracaoPisCofins', () => {
 
   it('agrega por ano, expande meses e filtra a tabela Resumo por conta', async () => {
     const user = userEvent.setup();
-    render(<ApuracaoPisCofins />);
+    renderComQuery(<ApuracaoPisCofins />);
     await selectClientAndSearch(user);
 
     expect(screen.getAllByText('2026').length).toBeGreaterThan(0);
@@ -396,7 +407,7 @@ describe('ApuracaoPisCofins', () => {
   it('alterna Prado aberto/fechado, muda os valores apresentados e oculta Rateio', async () => {
     const user = userEvent.setup();
     mocks.apiState.data = pradoFixture;
-    render(<ApuracaoPisCofins />);
+    renderComQuery(<ApuracaoPisCofins />);
     await selectClientAndSearch(user);
 
     await user.click(screen.getAllByRole('combobox')[2]);
@@ -417,7 +428,7 @@ describe('ApuracaoPisCofins', () => {
     const user = userEvent.setup();
     mocks.apiState.data = null;
     mocks.apiState.error = new Error('falha fiscal');
-    const { unmount } = render(<ApuracaoPisCofins />);
+    const { unmount } = renderComQuery(<ApuracaoPisCofins />);
     await selectClientAndSearch(user);
     expect(screen.getByText('Erro ao buscar dados')).toBeInTheDocument();
     expect(screen.getByText('falha fiscal')).toBeInTheDocument();
@@ -427,7 +438,7 @@ describe('ApuracaoPisCofins', () => {
     mocks.apiState.data = { periodos: [] };
     mocks.importState.hasEfd = false;
     mocks.importState.hasBalancete = false;
-    render(<ApuracaoPisCofins />);
+    renderComQuery(<ApuracaoPisCofins />);
     await selectClientAndSearch(user);
     expect(screen.getByText(/nem a EFD Contribuições nem o Balancete/i)).toBeInTheDocument();
     expect(mocks.imports).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: true }));
