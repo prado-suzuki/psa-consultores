@@ -12,7 +12,9 @@ import {
   useEstruturaEquipesTodas,
   useEstruturaMembros,
 } from '@/hooks/useEstruturaManager';
+import { CLASSES_DA_ABA, CLASSES_DA_LISTA_DE_ABAS } from '@/lib/abasDaSecao';
 import { areasDeAcessoPorUsuario } from '@/lib/areasDeAcessoDoUsuario';
+import { cn } from '@/lib/utils';
 import { colunasDeEquipeDaMatriz, equipesPorUsuario } from '@/lib/equipesDaEstrutura';
 import {
   FILTRO_VAZIO,
@@ -165,17 +167,13 @@ export const PainelDaMatrizDeAcessos = () => {
           {/* O eixo da matriz. 7 papéis + 5 áreas + 11 equipes: juntos, não
               cabem em tela nenhuma; um de cada vez, cabem todos. */}
           <Tabs value={dimensao} onValueChange={(v) => trocarDimensao(v as DimensaoDaMatriz)}>
-            <TabsList className="bg-foreground/[0.05] border border-border flex-wrap h-auto">
+            <TabsList className={cn(CLASSES_DA_LISTA_DE_ABAS, 'flex-wrap h-auto')}>
               {[
                 { id: 'papeis', rotulo: 'Papéis' },
                 { id: 'areas', rotulo: 'Áreas de acesso' },
                 { id: 'equipes', rotulo: 'Equipes' },
               ].map((aba) => (
-                <TabsTrigger
-                  key={aba.id}
-                  value={aba.id}
-                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                >
+                <TabsTrigger key={aba.id} value={aba.id} className={CLASSES_DA_ABA}>
                   {aba.rotulo}
                 </TabsTrigger>
               ))}

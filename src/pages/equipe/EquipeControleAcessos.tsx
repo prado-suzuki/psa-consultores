@@ -5,6 +5,7 @@ import EstruturaManager from '@/components/equipe/estrutura/EstruturaManager';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Network, Wallet } from 'lucide-react';
+import { CLASSES_DA_ABA, CLASSES_DA_LISTA_DE_ABAS } from '@/lib/abasDaSecao';
 import { GestaoClientesContent } from '@/pages/equipe/fiscal/GestaoClientes';
 import CadastroCategorias from '@/components/equipe/CadastroCategorias';
 import CentroCustoTab from '@/components/equipe/CentroCustoTab';
@@ -75,18 +76,12 @@ const EquipeControleAcessos = () => {
                   Os dois cadastros são irmãos em sub-abas, nunca empilhados. */}
               <TabsContent value="cadastros" className="space-y-4">
                 <Tabs defaultValue="organizacao" className="space-y-4">
-                  <TabsList className="bg-foreground/[0.05] border border-border">
-                    <TabsTrigger
-                      value="organizacao"
-                      className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                    >
+                  <TabsList className={CLASSES_DA_LISTA_DE_ABAS}>
+                    <TabsTrigger value="organizacao" className={CLASSES_DA_ABA}>
                       <Network className="h-4 w-4 mr-2" />
                       Estrutura
                     </TabsTrigger>
-                    <TabsTrigger
-                      value="centros_custo"
-                      className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                    >
+                    <TabsTrigger value="centros_custo" className={CLASSES_DA_ABA}>
                       <Wallet className="h-4 w-4 mr-2" />
                       Centros de Custo
                     </TabsTrigger>
