@@ -916,12 +916,17 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // A area da Adm & Fin, criada em 14/09/2026. O caminho e `/equipe/adm-fin`
   // e NAO deriva do nome: "Adm & Fin" tem espaco e `&`, reservado em URL.
   //
-  // A categoria nasce aqui e precisa CHEGAR ao banco por dois caminhos, que
-  // sao independentes: `page_permissions` recebe estas linhas pelo botao
-  // "Atualizar" de `/equipe/acessos` (`useSyncProtectedPages`), e
-  // `estrutura_areas.page_categories` da area "Adm & Fin" precisa passar a
-  // conter 'adm_fin'. Enquanto o segundo estiver vazio, `useClusterIdByPageCategory`
-  // nao acha o cluster e ninguem alem de admin consegue receber acesso.
+  // Estas duas linhas chegam a `page_permissions` pelo botao "Atualizar" de
+  // `/equipe/acessos` (`useSyncProtectedPages`), e e SO disso que a concessao
+  // de acesso depende: `useUserAccessibleCategories` le `user_page_access`
+  // juntado a `page_permissions`, e nao encosta em `estrutura_areas`.
+  //
+  // `estrutura_areas.page_categories` e outra coisa, e a propria tela de
+  // Estrutura diz isso em cima do campo: ele e de ESCOPO, decide em que telas
+  // a area aparece (`useDomainClusterPorCategoria`, `useEstruturaAreas`, o
+  // bucket do Board). Marcar 'adm_fin' la e desejavel, nao bloqueante — e a
+  // tela de Clientes desta area nem o consulta, porque vai com
+  // `todosOsClusters`.
   // ====================================================================
   {
     page_path: '/equipe/adm-fin',

@@ -634,7 +634,11 @@ export default function EstruturaManager() {
                     duas, então marcar não surtia efeito algum. `mapa` continua
                     fora de propósito — acrescentá-la amplia o que se pode
                     escopar e não se faz por dedução. */}
-                {['dev', 'rotina', 'tax', 'osg', 'board', 'gestao', 'geral'].map(cat => {
+                {/* `adm_fin` entrou em 14/09/2026, com a área Adm & Fin. Sem ela
+                    na lista, o campo de escopo da área era INALCANÇÁVEL pela
+                    tela: a área existia, a categoria existia em
+                    `protectedPages.ts`, e não havia como ligar as duas sem SQL. */}
+                {['dev', 'rotina', 'tax', 'osg', 'board', 'gestao', 'geral', 'adm_fin'].map(cat => {
                   const selected = areaForm.page_categories.includes(cat);
                   return (
                     <button
