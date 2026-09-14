@@ -87,6 +87,19 @@ function sugerirCorrecao(realizadas: number, estimadas: number): number | null {
   return null;
 }
 
+/**
+ * Horas realizadas digitadas à mão, para validar o campo obrigatório da conclusão.
+ *
+ * Devolve `null` para tudo que não serve como apontamento: vazio, só espaço, texto
+ * e negativo. Zero passa — tarefa que não consumiu tempo é apontamento válido, e
+ * é diferente de campo em branco.
+ */
+export function parseHorasRealizadas(valor: string): number | null {
+  if (!valor.trim()) return null;
+  const horas = parseHoras(valor);
+  return horas !== null && horas >= 0 ? horas : null;
+}
+
 /** Aceita número, string com ponto ou com vírgula (o campo é digitado à mão). */
 function parseHoras(valor: number | string | null | undefined): number | null {
   if (valor === null || valor === undefined || valor === '') return null;
