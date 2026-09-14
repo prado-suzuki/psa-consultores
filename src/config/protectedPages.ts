@@ -21,7 +21,7 @@ export interface ProtectedPage {
    * ATENCAO ao acrescentar: a categoria e a chave de acesso E, a partir da
    * resolucao por categoria, do tema. Categoria desconhecida cai no piso.
    */
-  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'osg' | 'board' | 'tax' | 'mapa';
+  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'osg' | 'board' | 'tax' | 'mapa' | 'adm_fin';
   requires_admin: boolean;
   requires_team_member: boolean;
 }
@@ -909,4 +909,34 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // arquivo. A linha e as 14 concessões penduradas nela são apagadas pela
   // migração `20260912000000_remove_gestao_acessos.sql`, no mesmo padrão que
   // `/gestao/chamados` usou.
+
+  // ====================================================================
+  // === CATEGORIA `adm_fin` ===
+  //
+  // A area da Adm & Fin, criada em 14/09/2026. O caminho e `/equipe/adm-fin`
+  // e NAO deriva do nome: "Adm & Fin" tem espaco e `&`, reservado em URL.
+  //
+  // A categoria nasce aqui e precisa CHEGAR ao banco por dois caminhos, que
+  // sao independentes: `page_permissions` recebe estas linhas pelo botao
+  // "Atualizar" de `/equipe/acessos` (`useSyncProtectedPages`), e
+  // `estrutura_areas.page_categories` da area "Adm & Fin" precisa passar a
+  // conter 'adm_fin'. Enquanto o segundo estiver vazio, `useClusterIdByPageCategory`
+  // nao acha o cluster e ninguem alem de admin consegue receber acesso.
+  // ====================================================================
+  {
+    page_path: '/equipe/adm-fin',
+    page_name: 'Adm & Fin',
+    page_description: 'Boas-vindas da area Administrativo e Financeiro',
+    category: 'adm_fin',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/adm-fin/clientes',
+    page_name: 'Clientes (Adm & Fin)',
+    page_description: 'Cadastros de clientes e contribuintes, sem recorte de cluster',
+    category: 'adm_fin',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 ];

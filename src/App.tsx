@@ -170,6 +170,10 @@ const MatrizDeAlcadas = lazy(() => import('./pages/equipe/osg/MatrizDeAlcadas'))
 const PapelDeTrabalho = lazy(() => import('./pages/equipe/dev/PapelDeTrabalho'));
 const GeradorDeSlides = lazy(() => import('./pages/equipe/dev/GeradorDeSlides'));
 const PlanejamentoTributarioHub = lazy(() => import('./pages/equipe/dev/PlanejamentoTributarioHub'));
+// Equipe > Adm & Fin
+const AdmFinBoasVindas = lazy(() => import("./pages/equipe/adm-fin/AdmFinBoasVindas"));
+const AdmFinClientes = lazy(() => import("./pages/equipe/adm-fin/AdmFinClientes"));
+
 import { BoardClusterProvider } from "./contexts/BoardClusterContext";
 const BoardDashboard = lazy(() => import("./pages/equipe/board/BoardDashboard"));
 const BoardRelatorios = lazy(() => import("./pages/equipe/board/BoardRelatorios"));
@@ -386,6 +390,13 @@ const App = () => (
               {/* Logs de Uso (ex-Auditoria, ex-Logs de Equipe) — líder+, igual à Tax; quem não é volta para a home do OSG. */}
               <Route path="/equipe/osg/gerencial/logs-equipe" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/logs-equipe"><OsgAuditoria /></PageAccessGate></LiderRoute>} />
               <Route path="/equipe/osg/auditoria" element={<Navigate to="/equipe/osg/gerencial/logs-equipe" replace />} />
+
+              {/* ── Adm & Fin ────────────────────────────────────────────
+                  O caminho é `/equipe/adm-fin` e NÃO deriva do nome da área:
+                  "Adm & Fin" tem espaço e `&`, reservado em URL. Ele é escrito
+                  à mão aqui, em `AREA_ROUTES` e em `MAPA_DE_ROTAS`. */}
+              <Route path="/equipe/adm-fin" element={<PageAccessGate pagePath="/equipe/adm-fin"><AdmFinBoasVindas /></PageAccessGate>} />
+              <Route path="/equipe/adm-fin/clientes" element={<PageAccessGate pagePath="/equipe/adm-fin/clientes"><AdmFinClientes /></PageAccessGate>} />
 
               {/* Board Routes */}
               {/* Rota sem path só para o Provider: o seletor global de cliente

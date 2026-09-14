@@ -38,6 +38,7 @@ export interface NomeDeArea {
 
 export const AREAS = {
   tax: { nome: 'Tax', subtitulo: 'Gestão de Projetos' },
+  admFin: { nome: 'Adm & Fin', subtitulo: 'Administrativo e Financeiro' },
   rotina: { nome: 'Digital Rotina', subtitulo: 'Gestão de Projetos' },
   dev: { nome: 'Digital Dev', subtitulo: 'Ambiente de desenvolvimento' },
   gestao: { nome: 'Gestão', subtitulo: 'Painel de Controle' },
