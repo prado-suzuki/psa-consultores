@@ -93,14 +93,22 @@ mutação** (`userIds: string[]`, `length === 1` no clique): duas versões da me
 escrita divergiriam em auditoria, invalidação e regra de permissão, e a que
 diverge é sempre a menos usada.
 
-### Duas colunas, nunca as doze juntas
+### Três dimensões, uma de cada vez
 
-São 7 papéis e 5 áreas. Juntas seriam 12 colunas de ícone mais nome, e-mail e
-seleção — e a versão que "cabia" só cabia rolando para o lado. Um interruptor
-troca o eixo mantendo as mesmas linhas, o mesmo filtro e a mesma seleção.
+São 7 papéis, 5 áreas e 11 equipes. Juntas seriam 23 colunas de ícone mais nome,
+e-mail e seleção — e a versão que "cabia" só cabia rolando para o lado. Um
+interruptor troca o eixo mantendo as mesmas linhas, o mesmo filtro e a mesma
+seleção.
 
-**Equipe não virou coluna**: é uma árvore cluster › área › equipe com dezenas de
-opções, não uma matriz. Entra só pela barra de lote.
+**A de equipe eu tinha descartado**, argumentando que a estrutura é uma árvore de
+três degraus e não uma matriz. Ela pediu, eu medi, e **são 11 equipes** (8
+ativas). Cabem. O argumento da árvore valia para o SELETOR — que precisa deixar
+escolher entre todas, agrupadas — e não para a coluna.
+
+O que a equipe exige e as outras duas não é o **caminho**: "Fiscal" e "Fixos" só
+significam algo sob "TAX › Tax", e existem duas áreas chamadas OSG em clusters
+diferentes. Por isso o cabeçalho dela tem duas linhas — a área em miúdo, o nome
+embaixo — e as colunas vêm na ordem do caminho, para as irmãs ficarem vizinhas.
 
 ### Duas travas
 
@@ -118,7 +126,37 @@ que o diálogo já tinha (sem papel interno, o `syncAreaAccess` nem roda) e é
 deliberado: papel e acesso a página são dois eixos, e é por não se implicarem
 que a matriz os mostra em colunas separadas.
 
-## O defeito achado no caminho
+## O segundo defeito, e ele estava na captura de tela dela
+
+O chip do diálogo de edição do Hercio mostrava
+`32bc9000-f524-43f0-9aa9-44d2381c17d7`. Aquilo é a equipe **"Área para Estudos e
+Pesquisas"**: desativada, e com **9 membros**.
+
+Desativar uma equipe **não desliga ninguém dela**. Em produção são **15 vínculos
+em três equipes desativadas**. Para essas, `caminhoDaEquipe` devolvia `null`, o
+`?? equipeId` assumia, e o UUID ia para a tela.
+
+A causa é uma confusão entre **oferecer** e **mostrar**, e agora são duas listas:
+
+| Função | Pergunta | Inclui desativada? |
+|---|---|---|
+| `montarGruposDeEquipe` | em que equipe a pessoa pode ENTRAR? | não — caminho fechado |
+| `colunasDeEquipeDaMatriz` | em que equipe a pessoa ESTÁ? | sim, se tiver gente dentro |
+
+Sem essa separação a aba nova seria mentirosa: diria que 15 pessoas não estão em
+equipe nenhuma, e não haveria por onde desvinculá-las. É o mesmo raciocínio que
+o `EditUserDialog` já aplicava ao manter o campo de equipe visível para quem
+perdeu o papel interno — esconder o campo prenderia o vínculo.
+
+A coluna desativada aparece marcada **"(desativada)"**, em palavra e não em cor:
+a coluna já é miúda, e a informação precisa sobreviver a quem não distingue tons.
+
+**Um teste meu falhou com razão.** Eu havia escrito que cluster inativo derrubava
+a coluna mesmo com gente dentro; o código discordou. A regra não pergunta em que
+degrau a estrutura fechou — o vínculo existe igual, e sem coluna não há por onde
+tirá-lo.
+
+## O primeiro defeito achado no caminho
 
 O card **"Permissões Customizadas"** mostrava **1000**. Produção tem **1494**
 linhas em `user_page_access`.
@@ -177,6 +215,8 @@ tela — usuários semeados (`@exemplo.dev`), nunca gente de verdade:
 | Trava do próprio `admin` | recusou: "Você não pode remover o seu próprio papel de Administrador." |
 | Auditoria | os dois sentidos, com `changed_fields` campo-a-campo |
 | Filtro por nome | 68 linhas → 5 |
+| Clique numa célula de **equipe** | 0 → 1 equipe, aviso "Tânia Pires entrou em Equipe Digital" |
+| Desfazer da equipe | voltou a 0 |
 
 A busca é por **nome** e não por e-mail — meu próprio teste tropeçou nisso
 procurando `user0`. O e-mail nesta casa deriva do nome (`nome.sobrenome@`), e
@@ -197,7 +237,8 @@ Lá a mesma `UsersRolesView` segue só-leitura, para quem não administra acesso
 
 ## Em aberto
 
-- **A equipe não tem coluna.** Se um dia a estrutura couber numa matriz (poucas
-  equipes por área), a coluna é possível; hoje não cabe.
+- **As três equipes desativadas continuam desativadas, com gente dentro.** A tela
+  agora mostra e deixa remover, mas a pergunta de estrutura — essas 15 pessoas
+  deviam estar em outra equipe? a equipe devia voltar a ser ativa? — é dela.
 - **Nada disso está em produção.** É código de front, sem migration — sobe pelo
   caminho normal da `develop` → `main`.
