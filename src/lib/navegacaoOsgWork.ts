@@ -1,7 +1,6 @@
 import {
-  Calculator, ClipboardCheck, FileBarChart2, FileSearch, FileSignature, FileStack,
-  FileText, FolderArchive, Landmark, Layers, Network, PieChart, Rocket, Scale,
-  ScrollText, Sprout, Users, type LucideIcon,
+  Calculator, FileBarChart2, FileSignature, FolderArchive, Network, Rocket, Scale,
+  type LucideIcon,
 } from 'lucide-react';
 
 /**
@@ -34,6 +33,13 @@ import {
  * Fazer as páginas lerem daqui é o passo seguinte — são 16 arquivos, e por ora
  * as duas cópias andam juntas.
  *
+ * SÓ O GRUPO TEM ÍCONE, decisão de 14/09/2026. Por um dia os cinco filhos de
+ * "Estrutura do Cliente" carregaram o próprio, herdado de quando eram itens
+ * soltos na barra, e os outros nove não — inconsistência que ficou anotada aqui
+ * esperando decisão. A saída escolhida foi tirar dos cinco: o ícone do grupo já
+ * diz de que família a tela é, e um por linha dentro do dropdown competia com
+ * ele. O mesmo vale no painel de entrada, onde os cartões perderam o selo.
+ *
  * O QUE NÃO ENTRA AQUI: os agrupadores da área OSG Projects (Projetos,
  * Gerencial). São de outra área, com outra lista e outro painel.
  */
@@ -41,8 +47,6 @@ import {
 export interface TelaOsgWork {
   path: string;
   label: string;
-  /** Usado sempre no cartão do painel; na barra, só onde o grupo pede. */
-  icone: LucideIcon;
   /** Subtítulo da tela, e texto do cartão. Ver a nota do cabeçalho. */
   descricao: string;
 }
@@ -52,20 +56,6 @@ export interface GrupoOsgWork {
   rotulo: string;
   icone: LucideIcon;
   telas: readonly TelaOsgWork[];
-  /**
-   * Os itens da barra mostram o próprio ícone.
-   *
-   * Verdadeiro só em "Estrutura do Cliente", e por um motivo de história: as
-   * cinco telas dele eram itens SOLTOS na barra e já levavam ícone; agrupá-las
-   * sem isto apagaria cinco ícones que existiam. Os outros grupos nasceram com
-   * os filhos sem ícone.
-   *
-   * A inconsistência é conhecida e está em aberto — uniformizar exige escolher
-   * entre dar ícone aos nove que não têm ou tirar dos cinco que têm, e isso é
-   * padrão visual, decisão de quem escreveu a especificação. Quando ela decidir,
-   * é este sinalizador que muda.
-   */
-  iconeNosItens?: boolean;
 }
 
 export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
@@ -77,7 +67,6 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
       {
         path: '/equipe/osg/work/onboarding',
         label: 'Solicitação de documentos',
-        icone: Rocket,
         // Sem a palavra "iniciais" da especificação: ela era eco do nome que a
         // spec propunha para a tela, "Solicitação Inicial", e o nome não mudou.
         descricao: 'Solicite e acompanhe os documentos de cada cliente.',
@@ -85,7 +74,6 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
       {
         path: '/equipe/osg/work/onboarding/cadastro',
         label: 'Cadastro por Documento',
-        icone: FileSearch,
         // AJUSTADA. A spec dizia "Cadastre uma ENTIDADE". "Entidade" é palavra
         // nossa, de modelo de dados — o usuário vê pessoa, empresa ou imóvel. O
         // §6 da spec pede evitar alternância com linguagem técnica.
@@ -100,12 +88,10 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
     // matrículas, e o que os junta são os vínculos. NÃO reusa `Building2`, que
     // já marca CLIENTE na barra de seleção logo acima.
     icone: Network,
-    iconeNosItens: true,
     telas: [
       {
         path: '/equipe/osg/work/qualificacao-das-partes',
         label: 'Qualificação das Partes',
-        icone: Users,
         // AJUSTADA, com o motivo dela: no PDF da Tax ela troca "Cadastro dos
         // clientes" por "Consulte e gerencie" porque "cadastro pode parecer
         // apenas criação de registro". A tela também edita e exclui.
@@ -114,13 +100,11 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
       {
         path: '/equipe/osg/work/quadro-societario',
         label: 'Quadro Societário',
-        icone: PieChart,
         descricao: 'Visualize e gerencie a participação dos sócios em cada empresa.',
       },
       {
         path: '/equipe/osg/work/diagnostico-patrimonial',
         label: 'Diagnóstico Patrimonial',
-        icone: Landmark,
         // NÃO AJUSTADA, e é a única pendência de decisão da frente.
         //
         // A spec §5 não manda mudar: manda VALIDAR. "Validar a função real da
@@ -153,13 +137,11 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
       {
         path: '/equipe/osg/work/controle-matriculas',
         label: 'Controle de Matrículas',
-        icone: FileText,
         descricao: 'Consulte e gerencie as matrículas imobiliárias do cliente.',
       },
       {
         path: '/equipe/osg/work/exploracao-rural',
         label: 'Exploração Rural',
-        icone: Sprout,
         descricao: 'Registre relações de exploração rural entre partes, imóveis e origens da posse.',
       },
     ],
@@ -172,13 +154,11 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
       {
         path: '/equipe/osg/work/governanca/orgaos',
         label: 'Órgãos de Governança',
-        icone: Scale,
         descricao: 'Cadastre as instâncias responsáveis pelas decisões do cliente.',
       },
       {
         path: '/equipe/osg/work/governanca/matriz',
         label: 'Matriz de Alçadas',
-        icone: Layers,
         descricao: 'Defina quais decisões e limites competem a cada órgão de governança.',
       },
     ],
@@ -191,13 +171,11 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
       {
         path: '/equipe/osg/work/biblioteca-modelos',
         label: 'Biblioteca de Modelos',
-        icone: Layers,
         descricao: 'Crie e gerencie blocos reutilizáveis para a montagem de documentos.',
       },
       {
         path: '/equipe/osg/work/montagem-documentos',
         label: 'Montagem de Documentos',
-        icone: FileStack,
         // Sem a metáfora "como um lego de contrato": a especificação a tira do
         // subtítulo permanente e a libera para ajuda contextual.
         descricao: 'Monte modelos combinando e ordenando os blocos da Biblioteca.',
@@ -205,7 +183,6 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
       {
         path: '/equipe/osg/work/gerar-documento',
         label: 'Gerar Documento',
-        icone: ScrollText,
         // Sem "o documento sai pronto", que a especificação manda remover: o
         // texto tem de preservar a necessidade de revisão.
         descricao: 'Gere documentos preenchidos automaticamente com os dados cadastrados.',
@@ -220,7 +197,6 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
       {
         path: '/equipe/osg/work/documentos',
         label: 'Documentos do Cliente',
-        icone: FolderArchive,
         // AJUSTADA em dois pontos, os dois dela: tirou "TODOS" — no PDF ela
         // reprova "todos os chamados" porque "deixa o universo ambíguo" — e
         // trocou "por entidade" pelos nomes que o usuário reconhece.
@@ -232,7 +208,6 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
         // enquanto a tela tinha duas abas. A segunda saiu em 10/09, auditada, e
         // sobrou um checklist. A rota segue no plural — é endereço, não rótulo.
         label: 'Checklist de documentos',
-        icone: ClipboardCheck,
         // AJUSTADA por FATO, não por estilo. A spec escreve "documentos
         // OBRIGATÓRIOS", e a tela não tem essa noção: `checklistDerivado` conta
         // recebido, pendente e não solicitado, e `obrigatorio` não aparece em
@@ -252,7 +227,6 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
       {
         path: '/equipe/osg/work/calculadora-itcmd',
         label: 'Calculadora de ITCD',
-        icone: Calculator,
         descricao: 'Simule o ITCD sobre doações de quotas em diferentes cenários de avaliação.',
       },
     ],
@@ -265,7 +239,6 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
       {
         path: '/equipe/osg/work/relatorios',
         label: 'Relatórios',
-        icone: FileBarChart2,
         // AJUSTADA: "relatórios consolidados" é vago, e a tela tem quatro
         // relatórios nomeáveis — diagnóstico patrimonial, quadro societário/
         // organograma, abertura de demanda e papéis de trabalho do planejamento

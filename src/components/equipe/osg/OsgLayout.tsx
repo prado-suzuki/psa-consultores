@@ -397,13 +397,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                     icone={grupo.icone}
                     rotulo={grupo.rotulo}
                     ativo={grupo.telas.some((t) => t.path === location.pathname)}
-                    itens={grupo.telas.map((t) => ({
-                      path: t.path,
-                      label: t.label,
-                      // Ícone no filho só onde o grupo pede — ver a nota do
-                      // `iconeNosItens` na fonte.
-                      icone: grupo.iconeNosItens ? t.icone : undefined,
-                    }))}
+                    itens={grupo.telas}
                     trilho={trilho}
                     rotuloCls={rotuloCls}
                   />

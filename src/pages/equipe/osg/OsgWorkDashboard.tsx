@@ -49,29 +49,31 @@ const OsgWorkDashboard = () => {
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {grupo.telas.map((tela) => {
-                  const IconeDaTela = tela.icone;
-                  return (
-                    <Card
-                      key={tela.path}
-                      className="group cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-osg-300 hover:shadow-md"
-                      onClick={() => navigate(tela.path)}
-                    >
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-osg-100">
-                            <IconeDaTela className="h-5 w-5 text-osg-600" />
-                          </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-osg-600" />
-                        </div>
-                        <CardTitle className="mt-3 text-base">{tela.label}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <CardDescription>{tela.descricao}</CardDescription>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                {grupo.telas.map((tela) => (
+                  <Card
+                    key={tela.path}
+                    className="group cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-osg-300 hover:shadow-md"
+                    onClick={() => navigate(tela.path)}
+                  >
+                    {/* SEM ÍCONE no cartão (14/09/2026). Cada um trazia o selo
+                        `bg-osg-100` com o ícone da tela, e numa grade de três
+                        colunas por sete seções isso virava dezesseis selos
+                        disputando atenção com os títulos. O ícone ficou onde
+                        distingue: no cabeçalho da seção, um por grupo.
+
+                        Sem o selo, a seta sobe para a linha do título em vez de
+                        ficar sozinha acima dele. */}
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-base">{tela.label}</CardTitle>
+                        <ChevronRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-osg-600" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>{tela.descricao}</CardDescription>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </section>
           );

@@ -31,18 +31,18 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { classesItemDaBarra } from '@/lib/barraLateralCromo';
 
+/**
+ * Item de dentro do grupo: rota e rótulo, e nada mais.
+ *
+ * ÍCONE É DO CABEÇALHO DO GRUPO, e só dele — decisão de 14/09/2026. Por um dia
+ * os cinco filhos de "Estrutura do Cliente" carregaram o próprio, herdado de
+ * quando eram itens soltos na barra, enquanto os outros nove nunca tiveram. A
+ * saída foi tirar dos cinco: o ícone do grupo já diz de que família a tela é, e
+ * um por linha dentro do dropdown competia com ele sem acrescentar informação.
+ */
 export interface ItemDoGrupo {
   path: string;
   label: string;
-  /**
-   * Ícone do ITEM, não do grupo.
-   *
-   * Os agrupadores nascidos até 11/09/2026 não passam ícone nos filhos — o
-   * ícone do cabeçalho já diz de que grupo se trata. O "Estrutura do Cliente"
-   * passa, porque os cinco itens dele eram soltos na barra e já tinham o seu:
-   * agrupar sem isto apagaria cinco ícones que hoje existem.
-   */
-  icone?: LucideIcon;
 }
 
 export interface GrupoDaBarraProps {
@@ -109,7 +109,7 @@ export function GrupoDaBarra({
               trilho ? '' : 'ml-2 pl-2 border-l border-osg-100',
             )}
           >
-            {itens.map(({ path, label, icone: IconeDoItem }) => (
+            {itens.map(({ path, label }) => (
               <button
                 key={path}
                 onClick={() => navigate(path)}
@@ -117,7 +117,6 @@ export function GrupoDaBarra({
                   classesItemDaBarra({ ativo: location.pathname === path, trilho }),
                 )}
               >
-                {IconeDoItem && <IconeDoItem className="h-4 w-4 flex-shrink-0" />}
                 <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
               </button>
             ))}
