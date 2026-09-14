@@ -1,0 +1,129 @@
+# Avisos de projeto e tarefa no Google Chat
+
+**Pedido de 14/09/2026 (Patrícia):** ligar o site da PSA ao espaço do Google Chat, para a
+equipe ser avisada de projetos e tarefas onde ela já conversa.
+
+**Decisão de recorte, no mesmo dia:** um espaço **por área**, e o primeiro corte leva
+`tarefa_prazo_proximo`, `tarefa_atrasada`, `tarefa_atribuida`, `tarefa_em_revisao` e
+movimento de projeto.
+
+---
+
+## O que este plano NÃO faz, e por quê
+
+**Não inventa aviso novo.** Quatro dos cinco eventos já existem em `public.notificacao` e
+já foram decididos: quem recebe, quando, e com que texto. O trabalho aqui é **um canal a
+mais**, não um sistema de notificação.
+
+**Não usa o n8n.** E-mail e WhatsApp passam por lá porque o n8n é quem fala com o Gmail e
+com a Meta. O webhook de espaço do Chat é um POST JSON e não precisa de intermediário: uma
+peça a menos, o texto versionado neste repositório, e o segredo no mesmo lugar dos outros.
+
+**Não manda DM.** Webhook de espaço posta no espaço, e só. Mensagem direta exigiria um app
+do Chat com service account e delegação no Workspace, que é outra ordem de trabalho.
+
+**Não menciona ninguém com `@`.** Menção que acende exige o Google user ID de cada pessoa,
+que `profiles` não tem. O nome vai em texto. Se a menção virar requisito, é coluna nova em
+`profiles` mais preenchimento manual — frente separada.
+
+## Medição em produção, 14/09/2026
+
+O que mudou o desenho depois de medir:
+
+| achado | número | consequência |
+|---|---|---|
+| Áreas com projeto | **2**: Tax (115 projetos, 291 tarefas abertas) e OSG (31 / 181) | "um espaço por área" são **dois** espaços hoje, não sete |
+| Áreas ativas sem nenhum projeto | 5 (Board, Digital, Marketing, Adm & Fin, PRADO ADV CIVIL, TAX LEGAL) | não criar webhook para elas agora |
+| Tarefa aberta sem área | **0** | o mapa área→espaço cobre tudo; não precisa de espaço "órfão" |
+| `alertar-tarefas-prazo-diario` | **ativo**, 11h UTC, rodando desde 03/09 | a fonte dos avisos de prazo já está no ar e não precisa ser ligada |
+| Avisos de prazo | 108 `prazo_proximo` + 65 `atrasada` em 12 dias (~14/dia) | **todos nascem no mesmo minuto**, das 11h UTC: repassar um a um seria despejo |
+| Avisos de trigger | 60 `tarefa_atribuida` + 28 `tarefa_em_revisao` em 35 dias (~3/dia) | mensagem avulsa serve |
+| Mudança de status de projeto | **2 em 60 dias** (contra 105 projetos criados) | aviso de "status mudou" seria mudo. O evento útil é **projeto criado** |
+| Tarefas já atrasadas | 217 | se algum dia alguém trocar o D+1 exato por um intervalo, o espaço recebe 217 mensagens de uma vez |
+
+## Desenho: o Chat espelha o sino
+
+Todo aviso já nasce em `public.notificacao`, gravado por trigger ou pelo cron. Em vez de
+ensinar cada gatilho a falar com o Chat, **um despachante lê o que ainda não foi espelhado
+e manda**.
+
+    trigger / cron  ->  public.notificacao  ->  despachante  ->  borda  ->  espaço do Chat
+                              (já existe)        (novo)        (nova)
+
+Três coisas saem de graça desse formato:
+
+1. Os quatro avisos existentes entram de uma vez, sem tocar em nenhum trigger que hoje
+   funciona.
+2. Nenhuma escrita de usuário ganha HTTP dentro da transação. Trigger que faz rede é
+   trigger que trava commit quando a rede cai.
+3. Aviso futuro no sino ganha o Chat sem código novo.
+
+### A chave de idempotência do Chat NÃO é a do sino
+
+Este é o ponto onde o plano erra se for feito no automático.
+
+`notificacao_envio.chave_idempotencia` tem índice único **global**
+(`notificacao_envio_idem_uidx`). A GES-01A precisou pôr o destinatário na chave
+(`20260901120951_ges01a_chave_por_destinatario.sql`) porque cada tarefa avisa **duas**
+pessoas — responsável e gestor — e sem isso metade nunca receberia.
+
+No Chat a mensagem é do **espaço**, não da pessoa. Copiar a chave de lá produziria duas
+mensagens idênticas no mesmo espaço, uma por destinatário. A chave aqui é:
+
+    chat:<area>:<tipo>:<entidade_id>:<dia>        aviso avulso
+    chat:<area>:<tipo>:resumo:<dia>               resumo diário de prazo
+
+Sem destinatário, de propósito. E `notificacao_envio.destinatario_id` fica nulo nas linhas
+deste canal, porque não há um.
+
+### Resumo diário para prazo, mensagem avulsa para o resto
+
+Os ~14 avisos de prazo nascem todos às 11h UTC, do mesmo job. Viram **uma** mensagem por
+área e por tipo, com a lista das tarefas. Os ~3 de trigger saem avulsos, um por evento.
+Isso põe o espaço em ~4 mensagens/dia por área em vez de ~17.
+
+### Thread por projeto
+
+O envio usa `threadKey = project_id` com
+`messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD`. Cada projeto vira uma conversa
+no espaço, em vez de uma parede plana.
+
+### Sandbox não fala com o espaço de verdade
+
+Segredo do Supabase é por projeto, então os dois bancos têm segredos de mesmo nome e valor
+diferente: no sandbox, ambos apontam para o webhook **Teste**; em produção, cada um para o
+espaço da sua área. Nenhum código precisa saber em que ambiente está.
+
+---
+
+## Fases (uma por commit)
+
+**1 · O valor de enum.** `google_chat` em `notificacao_canal`. Arquivo sozinho porque
+Postgres não deixa usar valor de enum na mesma transação que o cria — é o mesmo motivo
+pelo qual a GES-01A foi partida em três. Reversível sem tocar em nada que roda.
+
+**2 · O mapa área→espaço.** Um segredo por área (`GCHAT_WEBHOOK_TAX`, `GCHAT_WEBHOOK_OSG`)
+e, no código, só a correspondência nome-da-área→nome-do-segredo. A URL do webhook **é
+credencial**: não entra em tabela, não entra em arquivo versionado. Área sem segredo não
+envia e não é erro — é como as cinco áreas sem projeto ficam de fora sem código extra.
+
+**3 · A borda `notificar-equipe`.** Padrão **reservar → enviar → confirmar** da
+`supabase/functions/notificar/`, pelo motivo que aquele arquivo já escreve: se a função
+morre entre enviar e gravar, sobra evidência da tentativa. Função **nova**, não extensão da
+`notificar`: aquela é moldada em aviso ao cliente, com `solicitacao` como entidade e canais
+que falam com o n8n. É a mesma razão pela qual ela própria não estendeu a `notify-ticket`.
+
+**4 · O despachante.** Cron curto que varre `notificacao` recente sem envio `google_chat` e
+chama a borda, agrupando prazo em resumo. Molde do `net.http_post` + vault da GES-04
+(`20260825140358`), que já está no repositório. **Nasce desativado**, como os dois crons que
+escrevem sozinhos — ligar é um UPDATE em `cron.job`, por banco, quando for a hora.
+
+**5 · Projeto criado.** Único item que é gatilho novo, não canal novo: valor novo em
+`notificacao_tipo` e trigger em `org_projects`. Depois que o resto estiver provado — e
+sabendo que são ~2 por dia, contra as 2 mudanças de status em 60 dias que **não** justificam
+aviso.
+
+## Ordem que não pode inverter
+
+Migration aplicada no sandbox vem **junto** do commit que a usa, nunca depois. Produção é
+passo humano pelo chat do Lovable, antes de `develop → main`.

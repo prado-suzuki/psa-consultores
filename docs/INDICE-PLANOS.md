@@ -115,6 +115,7 @@ o P1 do RLS, e o `color_index`, que uma fila de agosto dava como pendente e em p
 
 | Documento | Status | Observação |
 |---|---|---|
+| [`planos/avisos-de-tarefa-no-google-chat.md`](planos/avisos-de-tarefa-no-google-chat.md) | 🔵 ABERTO | Pedido de 14/09/2026: ligar o site ao Google Chat, **um espaço por área**. O Chat espelha `public.notificacao` — não é aviso novo, é canal novo. Medido em produção no mesmo dia: só **Tax e OSG** têm projeto (as outras 5 áreas ativas têm zero), o cron de prazo **já está ativo**, e status de projeto mudou **2 vezes em 60 dias** — o evento útil é projeto criado. 5 fases; a 1 (valor de enum `google_chat`) está na `develop` |
 | [`planos/delegar-revisao-tarefas.md`](planos/delegar-revisao-tarefas.md) | ✅ FEITO | Entregue em 15/07. O "Aprovar devolve para Em Ajuste" **é o comportamento decidido**, não é bug — ver `geral/achados-taskmodal.md` §1 |
 | [`planos/plano-comentarios-mencoes-feed.md`](planos/plano-comentarios-mencoes-feed.md) | 🟡 PARCIAL | Fases 1 e 2 implementadas. **Reações e follow/unfollow seguem só propostas** |
 | [`geral/divida-tipos-org-comments.md`](geral/divida-tipos-org-comments.md) | 🟡 PARCIAL | **A causa acabou**: o `types.ts` regerado em 31/08 já conhece `org_comments_feed`, `criar_org_comment` e `org_comment_mentions`. Os `as unknown as` nos três hooks viraram peso morto e podem sair — é a única coisa que resta deste documento |
