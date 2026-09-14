@@ -28,8 +28,6 @@ interface Props {
 const VAZIO = {
   nome: '',
   entra_no_contrato: false,
-  vigencia_inicio: '',
-  vigencia_fim: '',
   /** Só o que o consultor TROCOU à mão. Nulo quer dizer "vale o palpite". */
   genero: null as 'M' | 'F' | null,
   membros_minimo: '',
@@ -63,6 +61,14 @@ const ROTULO = 'flex h-5 items-center gap-1.5';
  * escrever "Compete a..." para aquele órgão. Os gerentes existem na Matriz e
  * ficam fora do contrato, e é exatamente essa diferença que o campo guarda.
  *
+ * A VIGÊNCIA DO ÓRGÃO SAIU DA TELA em 14/09, e as colunas continuam no banco.
+ * Elas guardavam sem que nada lesse: a listagem não filtra por vigência, o motor
+ * as exclui de propósito, e nos 25 órgãos do sandbox nenhuma estava preenchida.
+ * O uso que justificaria os campos é manter íntegra uma Matriz assinada cujo
+ * órgão foi extinto depois, e esse comportamento não existe. Quando existir, os
+ * campos voltam com a regra junto; até lá, campo que promete o que não faz
+ * atrapalha mais do que a falta dele.
+ *
  * A SEÇÃO "COMPOSIÇÃO" alimenta a cláusula do contrato, e por isso ela existe.
  * Tudo nela é opcional: a Reunião de Sócios não tem membro, mandato nem cargo, e
  * a cláusula dela simplesmente omite o trecho.
@@ -93,8 +99,6 @@ export function OrgaoGovernancaModal({
     setForm({
       nome: orgao.nome,
       entra_no_contrato: orgao.entra_no_contrato,
-      vigencia_inicio: orgao.vigencia_inicio ?? '',
-      vigencia_fim: orgao.vigencia_fim ?? '',
       genero: orgao.genero && orgao.genero !== palpite ? orgao.genero : null,
       membros_minimo: orgao.membros_minimo?.toString() ?? '',
       membros_maximo: orgao.membros_maximo?.toString() ?? '',
@@ -114,10 +118,6 @@ export function OrgaoGovernancaModal({
    * automático", que é o desfazer, e o rótulo diz de onde veio o artigo.
    */
   const ajustadoAMao = form.genero !== null && form.genero !== palpite;
-
-  // O banco tem o mesmo check; aqui é só para não deixar salvar e tomar erro.
-  const vigenciaInvertida = !!form.vigencia_inicio && !!form.vigencia_fim
-    && form.vigencia_fim < form.vigencia_inicio;
 
   const minimo = form.membros_minimo === '' ? null : Number(form.membros_minimo);
   const maximo = form.membros_maximo === '' ? null : Number(form.membros_maximo);
@@ -144,7 +144,7 @@ export function OrgaoGovernancaModal({
     cargos_do_orgao: form.cargos,
   }) || 'Preencha mínimo, máximo ou mandato para ver como a cláusula vai ficar. Em branco, ela não descreve a composição do órgão.';
 
-  const impedeSalvar = nomeVazio || vigenciaInvertida || faixaInvertida
+  const impedeSalvar = nomeVazio || faixaInvertida
     || membrosZerados || mandatoInvalido || precisaEscolherGenero;
 
   const acrescentarCargo = (bruto: string) => {
@@ -164,8 +164,6 @@ export function OrgaoGovernancaModal({
       nome: form.nome,
       entra_no_contrato: form.entra_no_contrato,
       ordem: orgao?.ordem ?? proximaOrdem,
-      vigencia_inicio: form.vigencia_inicio || null,
-      vigencia_fim: form.vigencia_fim || null,
       // O palpite é GRAVADO, e não recalculado na hora de gerar: assim o
       // documento não muda de artigo se um dia a lista de núcleos mudar.
       genero: generoEfetivo,
@@ -400,42 +398,6 @@ export function OrgaoGovernancaModal({
             </div>
           </div>
 
-          <div className="grid items-end gap-3 border-t pt-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              {/*
-                A dúvida é legítima e foi levantada na validação de 14/09: com
-                "mandato" logo acima, "vigência" parece a mesma coisa. Não é.
-                Mandato é do MEMBRO e vira cláusula; vigência é do ÓRGÃO e é
-                histórico do sistema, que não entra em contrato nenhum (medido
-                nos sete do acervo).
-              */}
-              <Label htmlFor="orgao-inicio" className={ROTULO}>
-                Vigência, início
-                <AjudaDoCampo texto="O período em que o ÓRGÃO existiu na estrutura do cliente, e não o tempo de cada membro, que é o mandato. Um Conselho criado em 2020 e extinto em 2024 fica registrado sem sumir das matrizes antigas. Em branco quer dizer vigente hoje. Não entra no contrato." />
-              </Label>
-              <Input
-                id="orgao-inicio"
-                type="date"
-                value={form.vigencia_inicio}
-                onChange={(e) => setForm((f) => ({ ...f, vigencia_inicio: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="orgao-fim" className={ROTULO}>Vigência, fim</Label>
-              <Input
-                id="orgao-fim"
-                type="date"
-                value={form.vigencia_fim}
-                onChange={(e) => setForm((f) => ({ ...f, vigencia_fim: e.target.value }))}
-              />
-            </div>
-          </div>
-
-          {vigenciaInvertida && (
-            <p className="text-xs font-medium text-destructive">
-              O fim da vigência não pode ser antes do início.
-            </p>
-          )}
           {faixaInvertida && (
             <p className="text-xs font-medium text-destructive">
               O máximo de membros não pode ser menor que o mínimo.

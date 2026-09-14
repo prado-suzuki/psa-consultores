@@ -216,3 +216,19 @@ describe('a lista de cargos', () => {
     expect(within(restantes[0].parentElement!).getByText('Secretário')).toBeInTheDocument();
   });
 });
+
+describe('vigência do órgão', () => {
+  it('não é oferecida, e salvar não manda os campos', async () => {
+    // Saiu em 14/09: nada no sistema lê essas colunas, e nos 25 órgãos do
+    // sandbox nenhuma estava preenchida. As colunas continuam no banco.
+    const { onSalvar } = montar({ orgao: orgaoSalvo() });
+
+    expect(screen.queryByText(/Vigência/i)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    const enviado = onSalvar.mock.calls[0][0];
+    expect(enviado).not.toHaveProperty('vigencia_inicio');
+    expect(enviado).not.toHaveProperty('vigencia_fim');
+  });
+});

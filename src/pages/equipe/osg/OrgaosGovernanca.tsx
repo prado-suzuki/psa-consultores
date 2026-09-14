@@ -178,11 +178,6 @@ const OrgaosGovernanca = () => {
                         o contrato, as duas células leem sozinhas.
                       */}
                       <TableHead>Contrato social</TableHead>
-                      <TableHead>
-                        <ComAjuda texto="O período em que o órgão existiu na estrutura do cliente. Em branco quer dizer que está vigente hoje.">
-                          Vigência
-                        </ComAjuda>
-                      </TableHead>
                       <TableHead className="w-24 text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -248,11 +243,6 @@ const OrgaosGovernanca = () => {
                               Só na Matriz
                             </Badge>
                           )}
-                        </TableCell>
-                        <TableCell className="py-2.5 text-xs text-muted-foreground">
-                          {orgao.vigencia_inicio || orgao.vigencia_fim
-                            ? `${orgao.vigencia_inicio ?? '…'} a ${orgao.vigencia_fim ?? 'hoje'}`
-                            : '—'}
                         </TableCell>
                         <TableCell className="py-2.5">
                           {/* Os dois na mesma linha, encostados à direita. */}
