@@ -14,12 +14,16 @@ import { PontoDaArea } from './PontoDaArea';
 import { X } from 'lucide-react';
 import {
   useEstruturaAreas,
+  useEstruturaAreasTodas,
   useEstruturaClusters,
   useEstruturaEquipes,
+  useEstruturaEquipesTodas,
+  useEstruturaMembros,
 } from '@/hooks/useEstruturaManager';
 import {
   areasDeAcessoDaEquipe,
-  caminhoDaEquipe,
+  caminhoDeQualquerEquipe,
+  colunasDeEquipeDaMatriz,
   montarGruposDeEquipe,
 } from '@/lib/equipesDaEstrutura';
 import type { AreaKey } from '@/config/areaCategories';
@@ -57,6 +61,26 @@ export const EquipesEstruturaField = ({
     [clusters, areas, equipes],
   );
 
+  /*
+   * OFERECER e MOSTRAR pedem listas diferentes, e confundir as duas imprimia
+   * UUID na tela.
+   *
+   * O seletor abaixo oferece só equipe ativa (`grupos`) — entrar numa equipe
+   * que a estrutura fechou seria abrir caminho para lugar nenhum. Mas os chips
+   * acima mostram vínculo que JÁ EXISTE, e desativar uma equipe não desliga
+   * ninguém dela: em 14/09/2026 produção tinha 15 pessoas em três equipes
+   * desativadas. Para essas, `caminhoDaEquipe` devolvia `null`, o `?? equipeId`
+   * assumia, e o chip exibia `32bc9000-f524-43f0-9aa9-44d2381c17d7` — que é
+   * como o defeito apareceu, numa captura de tela.
+   */
+  const { data: areasTodas = [] } = useEstruturaAreasTodas();
+  const { data: equipesTodas = [] } = useEstruturaEquipesTodas();
+  const { data: membros = [] } = useEstruturaMembros();
+  const todasAsColunas = useMemo(
+    () => colunasDeEquipeDaMatriz(clusters, areasTodas, equipesTodas, membros),
+    [clusters, areasTodas, equipesTodas, membros],
+  );
+
   const disponiveis = useMemo(
     () =>
       grupos
@@ -90,7 +114,10 @@ export const EquipesEstruturaField = ({
         <div className="flex flex-wrap gap-1.5">
           {value.map((equipeId) => (
             <Badge key={equipeId} variant="secondary" className="gap-1 pr-1 text-xs font-normal">
-              {caminhoDaEquipe(equipeId, grupos) ?? equipeId}
+              {/* Nunca cai no id: um UUID não diz a ninguém de que equipe se
+                  trata, e"equipe desconhecida" é o que a pessoa precisa ler
+                  quando nem a estrutura sabe mais. */}
+              {caminhoDeQualquerEquipe(equipeId, todasAsColunas) ?? 'Equipe desconhecida'}
               <button
                 type="button"
                 aria-label="Remover equipe"

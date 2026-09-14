@@ -6,7 +6,14 @@ import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useUserPageAccess } from '@/hooks/useUserPageAccess';
 import { useUsersWithRoles, type UserWithRoles } from '@/hooks/useUsersWithRoles';
 import { useDomainAreasPorUsuario } from '@/hooks/useDomainAreasPorUsuario';
+import {
+  useEstruturaAreasTodas,
+  useEstruturaClusters,
+  useEstruturaEquipesTodas,
+  useEstruturaMembros,
+} from '@/hooks/useEstruturaManager';
 import { areasDeAcessoPorUsuario } from '@/lib/areasDeAcessoDoUsuario';
+import { colunasDeEquipeDaMatriz, equipesPorUsuario } from '@/lib/equipesDaEstrutura';
 import { FILTRO_VAZIO, filtrarUsuarios, ordenarUsuarios, type FiltroDeUsuarios } from '@/lib/filtroDeUsuarios';
 import type { AlvoDaMatriz } from '@/hooks/useAcessosEmLote';
 import { BarraDeLoteDeAcessos } from './BarraDeLoteDeAcessos';
@@ -45,10 +52,24 @@ export const PainelDaMatrizDeAcessos = () => {
   const { data: acessos = [] } = useUserPageAccess();
   const { areasPorUsuario, areas } = useDomainAreasPorUsuario();
 
+  // A estrutura vem INTEIRA aqui, incluindo o que foi desativado — ver
+  // `useEstruturaAreasTodas`. Desativar uma equipe não desliga ninguém dela, e
+  // uma coluna a menos seria um vínculo sem tela para removê-lo.
+  const { data: clusters = [] } = useEstruturaClusters();
+  const { data: areasEstrutura = [] } = useEstruturaAreasTodas();
+  const { data: equipes = [] } = useEstruturaEquipesTodas();
+  const { data: membros = [] } = useEstruturaMembros();
+
   const areasDeAcesso = useMemo(
     () => areasDeAcessoPorUsuario(paginas, acessos),
     [paginas, acessos],
   );
+
+  const colunasEquipe = useMemo(
+    () => colunasDeEquipeDaMatriz(clusters, areasEstrutura, equipes, membros),
+    [clusters, areasEstrutura, equipes, membros],
+  );
+  const equipesDoUsuarioMapa = useMemo(() => equipesPorUsuario(membros), [membros]);
 
   const visiveis = useMemo(
     () => ordenarUsuarios(filtrarUsuarios(usuarios, filtro, areasPorUsuario)),
@@ -94,21 +115,23 @@ export const PainelDaMatrizDeAcessos = () => {
             </CardDescription>
           </div>
 
-          {/* O eixo da matriz. São 7 papéis e 5 áreas: juntos não cabem. */}
+          {/* O eixo da matriz. 7 papéis + 5 áreas + 11 equipes: juntos, não
+              cabem em tela nenhuma; um de cada vez, cabem todos. */}
           <Tabs value={dimensao} onValueChange={(v) => setDimensao(v as DimensaoDaMatriz)}>
-            <TabsList className="bg-foreground/[0.05] border border-border">
-              <TabsTrigger
-                value="papeis"
-                className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-              >
-                Papéis
-              </TabsTrigger>
-              <TabsTrigger
-                value="areas"
-                className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-              >
-                Áreas de acesso
-              </TabsTrigger>
+            <TabsList className="bg-foreground/[0.05] border border-border flex-wrap h-auto">
+              {[
+                { id: 'papeis', rotulo: 'Papéis' },
+                { id: 'areas', rotulo: 'Áreas de acesso' },
+                { id: 'equipes', rotulo: 'Equipes' },
+              ].map((aba) => (
+                <TabsTrigger
+                  key={aba.id}
+                  value={aba.id}
+                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                >
+                  {aba.rotulo}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </Tabs>
         </div>
@@ -137,6 +160,8 @@ export const PainelDaMatrizDeAcessos = () => {
           dimensao={dimensao}
           areasDeAcesso={areasDeAcesso}
           paginas={paginas}
+          colunasDeEquipe={colunasEquipe}
+          equipesPorUsuario={equipesDoUsuarioMapa}
           selecionados={selecionados}
           onAlternarSelecao={alternarSelecao}
           onSelecionarVisiveis={selecionarVisiveis}

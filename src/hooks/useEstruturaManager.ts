@@ -99,6 +99,46 @@ export const useEstruturaMembros = () =>
     },
   });
 
+/**
+ * Áreas e equipes SEM o filtro de `is_active` — inclusive as desativadas.
+ *
+ * ## Por que isto precisa existir
+ *
+ * `useEstruturaAreas` e `useEstruturaEquipes` filtram `is_active = true`, e está
+ * certo: elas alimentam o SELETOR, e oferecer uma equipe desativada para alguém
+ * entrar seria abrir um caminho que a estrutura fechou.
+ *
+ * Só que desativar a equipe **não desliga ninguém dela**. Em 14/09/2026,
+ * produção tinha **15 vínculos** em três equipes desativadas — nove só na"Área
+ * para Estudos e Pesquisas". Esses vínculos existem, contam, e sumiam da tela:
+ * o chip do diálogo caía no `?? equipeId` de `caminhoDaEquipe` e imprimia o
+ * **UUID cru** para a pessoa ler.
+ *
+ * Ler é diferente de oferecer. Quem MOSTRA vínculo existente (o chip do
+ * diálogo, a coluna da matriz) precisa das desativadas; quem OFERECE vínculo
+ * novo, não. Por isso são duas queries e não um filtro no consumidor — e por
+ * isso esta tem `queryKey` própria, para não contaminar o cache da outra.
+ */
+export const useEstruturaAreasTodas = () =>
+  useQuery({
+    queryKey: ['estrutura-areas-todas'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('estrutura_areas').select('*').order('name');
+      if (error) throw error;
+      return data as Area[];
+    },
+  });
+
+export const useEstruturaEquipesTodas = () =>
+  useQuery({
+    queryKey: ['estrutura-equipes-todas'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('estrutura_equipes').select('*').order('name');
+      if (error) throw error;
+      return data as Equipe[];
+    },
+  });
+
 // useEstruturaEmpresas removido — empresa agora vive dentro de estrutura_clusters
 
 
