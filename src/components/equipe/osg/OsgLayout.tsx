@@ -193,6 +193,14 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
       label: 'Dashboard de Chamados',
       icon: LineChart,
     },
+    // Na Gerencial e não em Projetos, pela mesma razão da Tax: aqui o líder+ já
+    // está isolado pelo agrupador, e em Projetos o item apareceria aceso para
+    // quem a rota vai barrar.
+    {
+      path: '/equipe/osg/gerencial/produtos-servicos',
+      label: 'Produtos & Serviços',
+      icon: FolderKanban,
+    },
     { path: '/equipe/osg/gerencial/logs-equipe', label: 'Logs de Uso', icon: Shield },
   ];
   const isGerencialActive = location.pathname.startsWith('/equipe/osg/gerencial');

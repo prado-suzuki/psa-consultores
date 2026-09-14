@@ -139,6 +139,7 @@ const FiscalProdutosServicos = lazy(() => import("./pages/equipe/fiscal/FiscalPr
 const OsgGerencialChamados = lazy(() => import("./pages/equipe/osg/OsgGerencialChamados"));
 const OsgGerencialChamadosDashboard = lazy(() => import("./pages/equipe/osg/OsgGerencialChamadosDashboard"));
 const OsgGerencialChamadoDetalhe = lazy(() => import("./pages/equipe/osg/OsgGerencialChamadoDetalhe"));
+const OsgProdutosServicos = lazy(() => import("./pages/equipe/osg/OsgProdutosServicos"));
 
 // Equipe > OSG / Board
 const OsgAreaSelector = lazy(() => import("./pages/equipe/osg/OsgAreaSelector"));
@@ -400,6 +401,12 @@ const App = () => (
               {/* Logs de Uso (ex-Auditoria, ex-Logs de Equipe) — líder+, igual à Tax; quem não é volta para a home do OSG. */}
               <Route path="/equipe/osg/gerencial/logs-equipe" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/logs-equipe"><OsgAuditoria /></PageAccessGate></LiderRoute>} />
               <Route path="/equipe/osg/auditoria" element={<Navigate to="/equipe/osg/gerencial/logs-equipe" replace />} />
+
+              {/* Produtos & Serviços — espelho da Tax, e a MESMA bancada de
+                  /equipe/acessos montada no OsgLayout. Duas travas, como as vizinhas:
+                  papel (LiderRoute) e permissão nominal. A RLS das tabelas abriu em
+                  líder+ na migration 20260914212709, que vale para as três telas. */}
+              <Route path="/equipe/osg/gerencial/produtos-servicos" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/produtos-servicos"><OsgProdutosServicos /></PageAccessGate></LiderRoute>} />
 
               {/* ── Adm & Fin ────────────────────────────────────────────
                   O caminho é `/equipe/adm-fin` e NÃO deriva do nome da área:

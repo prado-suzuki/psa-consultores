@@ -783,6 +783,17 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  {
+    // Espelho da entrada Tax ao lado: a MESMA bancada, o componente e não uma
+    // cópia. A permissão é separada de propósito — a página é uma por área, e
+    // é ela que decide em qual cluster a bancada abre.
+    page_path: '/equipe/osg/gerencial/produtos-servicos',
+    page_name: 'Produtos & Serviços (OSG)',
+    page_description: 'Quais serviços cada produto gera em projeto novo (somente líder+)',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 
   // =============================================
   // === BOARD PAGES ===
