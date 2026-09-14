@@ -268,9 +268,13 @@ const EquipeControleAcessos = () => {
               {/* Cadastros Clientes Tab */}
               {/* A matriz das 7 permissoes e a legenda do que cada papel abre.
                   Ela morava em `/gestao/acessos`, que nenhum menu linkava: a
-                  tela existia, funcionava, e so abria digitando a URL. */}
+                  tela existia, funcionava, e so abria digitando a URL.
+
+                  `editavel` desde 14/09/2026: a celula grava no clique e a
+                  selecao aplica papel, area e equipe em lote. A mesma matriz
+                  sem a prop continua so-leitura em `/administracao/acessos`. */}
               <TabsContent value="papeis" className="space-y-4">
-                <UsersRolesView variant="full" />
+                <UsersRolesView variant="full" editavel />
               </TabsContent>
 
               <TabsContent value="cadastros_clientes" className="space-y-4">

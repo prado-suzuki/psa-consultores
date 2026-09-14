@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { arquivosDeCodigo, PASTAS_DE_TELA } from '@/lib/medirCorCrua';
+import { arquivosDeCodigo, medirCorCrua, PASTAS_DE_TELA } from '@/lib/medirCorCrua';
+import { corDoTema, hslParaRgb, luminancia, TEMAS, type Hsl } from '@/lib/paletaDeArea';
 
 /**
  * Catraca do cartão tingido: **caixa arredondada não pinta `bg-card` na mão.**
@@ -145,6 +146,37 @@ function fimDaExpressao(texto: string, inicio: number): number | null {
 }
 
 /**
+ * Tolerância da comparação de degrau, no teste do degrau sobre o cartão.
+ *
+ * Hoje ela não é usada: 0.75 recompõe os três degraus EXATOS (1,112 / 1,120 /
+ * 1,106 nas três áreas, na terceira casa). A folga existe para o dia em que
+ * `--muted` ou o alfa do cartão se mexerem e o alfa do realce não fechar mais
+ * redondo — aí o que importa é não ter perdido degrau, não empatar na quarta
+ * casa. Maior que isto deixaria passar perda de verdade.
+ */
+const FOLGA = 0.005;
+
+/** Um alfa escrito no fonte. Falha alto se o padrão não casar: alfa que a busca
+    não acha é alfa que o teste estaria medindo de mentira. */
+function alfaDeclarado(fonte: string, padrao: RegExp, onde: string): number {
+  const achado = fonte.match(padrao);
+  expect(achado, `não achei ${onde} — o teste não tem o que medir`).not.toBeNull();
+  return Number(achado?.[1]);
+}
+
+/** `frente` sobre `fundo` com alfa, em RGB — é o que o navegador faz com `bg-x/NN`. */
+function misturar(frente: number[], fundo: number[], alfa: number): [number, number, number] {
+  return [0, 1, 2].map(i => frente[i] * alfa + fundo[i] * (1 - alfa)) as [number, number, number];
+}
+
+/** Razão de contraste entre dois RGB já compostos. O `contraste` do `paletaDeArea`
+    recebe HSL, e superfície com alfa não volta a ser HSL. */
+function razao(a: [number, number, number], b: [number, number, number]): number {
+  const [claro, escuro] = [luminancia(a), luminancia(b)].sort((x, y) => y - x);
+  return (claro + 0.05) / (escuro + 0.05);
+}
+
+/**
  * Por arquivo, quantas caixas arredondadas ainda pintam `bg-card` na mão.
  *
  * Conta a OCORRÊNCIA, e não a linha que casa: o contexto de uma expressão
@@ -263,6 +295,63 @@ const CAIXA_QUE_FICA_BRANCA: Record<MotivoDeFicarBranca, Record<string, number>>
   },
 };
 
+/**
+ * O `bg-muted/50` que FICA, agrupado pelo MOTIVO de ter ficado.
+ *
+ * Dos 66 lugares que pintavam `bg-muted/50` em 12/09/2026, 41 se apoiavam em
+ * cartão e viraram `bg-superficie-realce`. Estes 25 não se apoiam, e o motivo é
+ * sempre o mesmo: **o chão deles não se moveu quando o cartão desceu.** Modal e
+ * gaveta são `bg-background`, popover é `bg-popover`, e os três continuam
+ * brancos. Converter os 25 junto teria escurecido caixa que está certa — o erro
+ * simétrico do que a conversão consertou.
+ *
+ * A asserção é de igualdade EXATA: classe nova em arquivo que não está aqui
+ * derruba o teste dizendo onde. Quem acrescentar uma linha responde antes qual é
+ * o fundo dela, e se o fundo for cartão a classe é a outra.
+ */
+const SOBRE_BRANCO: Record<string, number> = {
+  // MODAL. `DialogContent` é `bg-background`, como a página: o alfa do cartão foi
+  // escolhido justamente para dar o mesmo pixel nos dois, e nada aqui mudou.
+  'src/components/equipe/NewClientModal.tsx': 1,
+  'src/components/equipe/client-form/HistoricoTab.tsx': 1,
+  'src/components/equipe/dev/EFDAnalysisModal.tsx': 1,
+  'src/components/equipe/dev/EFDExportDialog.tsx': 1,
+  'src/components/equipe/dev/balancete/UploadBalanceteModal.tsx': 1,
+  'src/components/equipe/dev/carga-chamados/RepresentantesPendentesModal.tsx': 1,
+  'src/components/equipe/dev/export-dialog/ColumnSelector.tsx': 1,
+  'src/components/equipe/dev/perdcomp/per-detail/PerDetailDcompPanel.tsx': 1,
+  'src/components/equipe/dev/perdcomp/per-detail/PerDetailSituationSidebar.tsx': 1,
+  'src/components/equipe/osg/governanca/AcrescentarAtividadeModal.tsx': 1,
+  'src/components/equipe/processos/ProcessStagesTab.tsx': 1,
+  'src/pages/gestao/GestaoContatos.tsx': 1,
+
+  // GAVETA. `SheetContent` também é `bg-background`.
+  'src/components/equipe/fiscal/tasks/TaskCalendar.tsx': 1,
+  'src/components/sprint/SprintCalendar.tsx': 1,
+
+  // POPOVER. `bg-popover`, que tem valor próprio e continua branco.
+  'src/components/comentarios/feed/FeedFiltros.tsx': 1,
+  'src/components/equipe/dev/pis-cofins/ColumnFilterDropdown.tsx': 1,
+  'src/components/notifications/NotificationPopover.tsx': 4,
+
+  // CAIXA QUE FICOU BRANCA, e cada uma por um motivo já inventariado acima: o
+  // relatório é papel, o aviso do chamado se apoia em `bg-background`. Os dois
+  // últimos são DÍVIDA e não decisão: a caixa que os segura está pintada
+  // `bg-white` cru, que nem a catraca de `bg-card` nem a de cor crua pegam.
+  'src/components/equipe/osg/relatorios/PapeisDeTrabalhoReport.tsx': 1,
+  'src/pages/cliente/NovoChamado.tsx': 1,
+  'src/components/equipe/mapeamento/AreaAccordion.tsx': 1,
+  'src/pages/equipe/dev/MapaNCMPisCofins.tsx': 1,
+
+  // CONTROLE, e aqui o papel é outro: é campo DESABILITADO. O degrau dele não é
+  // contra o cartão, é contra os campos habilitados ao lado, que são brancos e
+  // não mudaram. Subir o alfa aqui não conserta nada e apaga a diferença.
+  'src/components/equipe/client-form/ContribuinteDadosFiscais.tsx': 1,
+};
+
+/** A classe com qualquer variante na frente (`hover:`, `md:`, `dark:`). */
+const CLASSE_MUTED_50 = /\b(?:[a-z-]+:)*bg-muted\/50\b/g;
+
 describe('cartão tingido: caixa arredondada não pinta `bg-card` na mão', () => {
   it('a caixa branca que sobrou é exatamente a que está inventariada', () => {
     const esperado = Object.fromEntries(
@@ -338,6 +427,90 @@ describe('cartão tingido: caixa arredondada não pinta `bg-card` na mão', () =
         + 'classe em vez de trocá-la; o `<Card>` já pinta a superfície certa.\n'
         + culpados.join('\n'),
     ).toEqual([]);
+  });
+
+  it('tingir o cartão não custou o degrau que se apoia nele', () => {
+    /*
+     * O DEFEITO DE CLASSE, e ele já apareceu duas vezes no mesmo dia: **quando
+     * uma superfície se move, todo degrau construído sobre ela se move junto, e
+     * nada falha.** O `<Card>` desceu 35% de `--muted`, e o hover da linha
+     * (`hover:bg-muted/50`) e a faixa de totais (`bg-muted/50`) são feitos do
+     * MESMO `--muted` que agora está no fundo — os dois encolheram por tabela,
+     * em toda tabela do produto, sem uma linha de código mudar.
+     *
+     * Esta asserção RECALCULA em vez de olhar o número: ela lê os dois alfas de
+     * onde eles moram (os dois no `tailwind.config.ts`, `superficie-cartao` e
+     * `superficie-realce`), lê `--card` e `--muted` de cada tema no `index.css`,
+     * compõe as duas camadas e compara com o degrau que o hover tinha contra o
+     * cartão BRANCO. É a mesma forma do `rebaixar(--canvas)`: quem mexer em
+     * qualquer uma das quatro peças ouve, e não precisa saber que as quatro
+     * conversam.
+     *
+     * Por que ler o fonte: a opacidade mora numa classe do Tailwind, então não
+     * há função para chamar — é a mesma razão do `contrasteDaEscadinha.test.ts`.
+     */
+    const css = readFileSync(resolve(RAIZ, 'src/index.css'), 'utf8');
+    const alfaDoCartao = alfaDeclarado(
+      readFileSync(resolve(RAIZ, 'tailwind.config.ts'), 'utf8'),
+      /'superficie-cartao':\s*'hsl\(var\(--muted\)\s*\/\s*([\d.]+)\)'/,
+      'o alfa da cor `superficie-cartao` no tailwind.config.ts',
+    );
+    const alfaDoRealce = alfaDeclarado(
+      readFileSync(resolve(RAIZ, 'tailwind.config.ts'), 'utf8'),
+      /'superficie-realce':\s*'hsl\(var\(--muted\)\s*\/\s*([\d.]+)\)'/,
+      'o alfa da cor `superficie-realce` no tailwind.config.ts',
+    );
+
+    const frouxos: string[] = [];
+    for (const tema of TEMAS) {
+      const card = corDoTema(css, tema, 'card');
+      const muted = corDoTema(css, tema, 'muted');
+      expect(card, `${tema}: --card não resolve`).not.toBeNull();
+      expect(muted, `${tema}: --muted não resolve`).not.toBeNull();
+
+      const branco = hslParaRgb(card as Hsl);
+      const tinta = hslParaRgb(muted as Hsl);
+      // Como era: hover sobre o cartão BRANCO, no alfa de hoje do componente.
+      const antes = razao(misturar(tinta, branco, 0.5), branco);
+      // Como está: as duas camadas, hover sobre o cartão TINGIDO.
+      const tingido = misturar(tinta, branco, alfaDoCartao);
+      const agora = razao(misturar(tinta, tingido, alfaDoRealce), tingido);
+      if (agora < antes - FOLGA) {
+        frouxos.push(
+          `${tema}: hover a ${agora.toFixed(3)}:1 contra o cartão, e valia ${antes.toFixed(3)}:1`,
+        );
+      }
+    }
+
+    expect(
+      frouxos,
+      'O degrau sobre o cartão encolheu contra a superfície dele.\n'
+        + 'Não conserte mexendo no cartão: quem compensa é o alfa do\n'
+        + '`superficie-realce`, no `tailwind.config.ts` (hoje 0.75, calibrado\n'
+        + 'exatamente para repor o que havia contra o cartão branco). As 41\n'
+        + 'linhas que usam a classe acompanham o número sem serem tocadas — é\n'
+        + 'para isso que ele mora num lugar só.\n'
+        + frouxos.join('\n'),
+    ).toEqual([]);
+  });
+
+  it('o `bg-muted/50` que sobrou não se apoia no cartão', () => {
+    /*
+     * O par do teste acima, e é ele que impede a correção de virar varredura
+     * cega. Subir o alfa de tudo que era `bg-muted/50` teria escurecido 25
+     * caixas que estão certas — o chão delas é branco e continua branco.
+     *
+     * O inventário é por ARQUIVO e por MOTIVO, não por linha: linha se move a
+     * cada edição, e o motivo é o que a próxima pessoa precisa ler.
+     */
+    expect(
+      medirCorCrua(CLASSE_MUTED_50),
+      'Mudou quem pinta o degrau de `--muted` nas pastas de tela.\n'
+        + 'Se a caixa nova se apoia em cartão, a classe é `bg-superficie-realce`:\n'
+        + 'o degrau encolhe sobre o cartão, porque os dois são feitos do mesmo\n'
+        + '`--muted`. Se ela se apoia em modal, gaveta ou popover, o alfa de hoje\n'
+        + 'está certo — acrescente o arquivo ao inventário, no grupo do motivo.\n',
+    ).toEqual(SOBRE_BRANCO);
   });
 
   it('a superfície do cartão é feita do `--muted`, para acompanhar a área sozinha', () => {

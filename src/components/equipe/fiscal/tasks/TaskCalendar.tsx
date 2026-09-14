@@ -163,7 +163,7 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: T
                   // e a faixa de 640-767px em 100px — o desktop encolheria.
                   'flex min-h-[3rem] flex-col items-start overflow-hidden border-b border-r p-1 text-left transition-colors sm:p-2 md:min-h-[100px]',
                   FECHA_A_GRADE,
-                  dayTasks.length > 0 ? 'cursor-pointer hover:bg-muted/50' : 'cursor-default',
+                  dayTasks.length > 0 ? 'cursor-pointer hover:bg-superficie-realce' : 'cursor-default',
                   isSelected && 'bg-muted/60 ring-2 ring-inset ring-primary',
                 )}
               >

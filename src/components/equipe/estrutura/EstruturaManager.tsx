@@ -312,7 +312,7 @@ export default function EstruturaManager() {
                     .filter((p): p is Profile => !!p);
 
                   return (
-                    <AccordionItem key={area.id} value={area.id} className="rounded-md border border-border bg-muted/50">
+                    <AccordionItem key={area.id} value={area.id} className="rounded-md border border-border bg-superficie-realce">
                       <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-foreground/[0.03] text-sm">
                         <div className="flex items-center gap-2 flex-1 text-left">
                           <PontoDaArea area={area} comBorda />

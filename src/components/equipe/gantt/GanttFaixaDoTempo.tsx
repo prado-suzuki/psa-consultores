@@ -24,7 +24,7 @@ export function GanttFaixaDoTempo({ eixo, agora, altura, children }: GanttFaixaD
             key={unidade.inicio.toISOString()}
             className={cn(
               'flex-shrink-0 border-r border-border last:border-r-0',
-              unidade.fimDeSemana && 'bg-muted/50',
+              unidade.fimDeSemana && 'bg-superficie-realce',
               unidade.contemHoje && 'bg-primary/5',
             )}
             style={{ width: eixo.larguraDaUnidade }}

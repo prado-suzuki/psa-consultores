@@ -80,7 +80,7 @@ export default function ClienteTab({
   if (isReadOnly) {
     return (
       <section className="bg-superficie-cartao rounded-xl border shadow-sm overflow-hidden">
-        <div className="px-4 py-2 bg-muted/50 border-b">
+        <div className="px-4 py-2 bg-superficie-realce border-b">
           <h3 className="text-sm font-bold text-foreground">Dados do Cliente/Grupo</h3>
         </div>
         <dl className="px-4 py-2 divide-y divide-border/50">
@@ -128,7 +128,7 @@ export default function ClienteTab({
 
   return (
     <section className="bg-superficie-cartao rounded-xl border shadow-sm overflow-hidden">
-      <div className="px-4 py-2 bg-muted/50 border-b">
+      <div className="px-4 py-2 bg-superficie-realce border-b">
         <h3 className="text-sm font-bold text-foreground">Dados do Cliente/Grupo</h3>
       </div>
       <div className="space-y-6 px-4 py-4">

@@ -405,7 +405,7 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
   return (
     <Card className={`border-0 overflow-hidden ${isEditMode ? 'shadow-[0_0_30px_0px_hsl(var(--edit-shadow-color)/0.55)]' : 'shadow-md ring-1 ring-border/50'}`}>
       <CardContent className="p-0">
-        <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between">
+        <div className="px-4 py-2.5 border-b bg-superficie-realce flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados{isEditMode && selection.selectedIds.size > 0 && ` · ${selection.selectedIds.size} selecionados`}</span>
           <div className="flex items-center gap-2">
             <CorrecoesActionButtons

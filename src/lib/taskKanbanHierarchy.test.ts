@@ -23,11 +23,13 @@ const task = (
   status: OrgTaskStatus,
   parent_task_id: string | null = null,
   title = id,
+  due_date: string | null = null,
 ): KanbanTask => ({
   id,
   status,
   parent_task_id,
   title,
+  due_date,
 });
 
 const column = (columns: TaskKanbanColumn<KanbanTask>[], status: OrgTaskStatus) =>
@@ -194,6 +196,21 @@ describe('buildTaskKanbanColumns', () => {
     expect(cardDaMae.children.map((item) => item.id)).toEqual(['f3']);
     // A cópia carrega a mesma contagem — é o mesmo card, repetido.
     expect(column(columns, 'done').entries[0].subtaskCount).toBe(3);
+  });
+
+  it('lista as filhas do card por prazo, com a sem prazo na frente', () => {
+    // Ordem alfabética era o critério antigo: por ele a lista sairia
+    // 'agosto', 'marco', 'sem-prazo', que é a ordem inversa da urgência.
+    const tasks = [
+      task('mae', 'backlog'),
+      task('agosto', 'backlog', 'mae', 'A. Agosto', '2026-08-31'),
+      task('marco', 'backlog', 'mae', 'M. Março', '2026-03-12'),
+      task('sem-prazo', 'backlog', 'mae', 'S. Sem prazo', null),
+    ];
+
+    const cardDaMae = column(buildTaskKanbanColumns(tasks, STATUSES), 'backlog').entries[0];
+
+    expect(cardDaMae.children.map((item) => item.id)).toEqual(['sem-prazo', 'marco', 'agosto']);
   });
 
   it('diz em que colunas estão as filhas que não aparecem neste card', () => {

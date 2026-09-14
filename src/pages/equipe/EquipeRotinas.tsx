@@ -291,7 +291,7 @@ const EquipeRotinas = () => {
                             return (
                               <div
                                 key={routine.id}
-                                className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                                className="flex items-center justify-between p-3 bg-superficie-realce rounded-lg hover:bg-muted transition-colors"
                               >
                                 <div className="flex items-center gap-3 min-w-0">
                                   <Badge className={due.className}>{due.label}</Badge>
@@ -325,7 +325,7 @@ const EquipeRotinas = () => {
                         return (
                           <div
                             key={routine.id}
-                            className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                            className="flex items-center justify-between p-3 bg-superficie-realce rounded-lg hover:bg-muted transition-colors"
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <Badge className={due.className}>{due.label}</Badge>

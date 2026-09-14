@@ -90,7 +90,7 @@ export const TOKEN_DO_COMPONENTE = {
   Skeleton: { bg: 'bg-muted' },
   Switch: { bg: 'bg-background' },
   TableCaption: { text: 'text-muted-foreground' },
-  TableFooter: { bg: 'bg-muted/50' },
+  TableFooter: { bg: 'bg-superficie-realce' },
   TableHead: { text: 'text-muted-foreground' },
   TabsList: { bg: 'bg-muted', text: 'text-muted-foreground' },
   Textarea: { bg: 'bg-background', border: 'border-input' },

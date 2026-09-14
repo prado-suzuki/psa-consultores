@@ -537,7 +537,7 @@ export default function TabA170({
           </div>
         ) : (
           <>
-            <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between gap-3">
+            <div className="px-4 py-2.5 border-b bg-superficie-realce flex items-center justify-between gap-3">
               <span className="text-xs font-medium text-muted-foreground">
                 {filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados
                 {isEditMode && selection.selectedIds.size > 0 && ` · ${selection.selectedIds.size} selecionados`}

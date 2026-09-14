@@ -14,7 +14,7 @@ interface GanttCabecalhoDoEixoProps {
  */
 export function GanttCabecalhoDoEixo({ eixo, larguraDoNome, rotuloDaColuna }: GanttCabecalhoDoEixoProps) {
   return (
-    <div className="sticky top-0 z-20 bg-muted/50 backdrop-blur-sm">
+    <div className="sticky top-0 z-20 bg-superficie-realce backdrop-blur-sm">
       <div className="flex border-b border-border">
         <div
           className="sticky left-0 z-10 flex flex-shrink-0 items-end border-r border-border bg-muted px-4 py-2 text-sm font-medium"
