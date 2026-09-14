@@ -54,6 +54,34 @@ export interface MensagemDoChat {
   chaves: string[];
 }
 
+/**
+ * Separa os avisos cujo espaço está configurado dos que não têm para onde ir.
+ *
+ * ISTO ACONTECE ANTES DA RESERVA, e a ordem é o ponto. Reservar e depois marcar
+ * `falhou` deixaria a chave de idempotência GRAVADA: a `avisos_para_o_chat`
+ * filtra por ela, a tarefa nunca mais é devolvida, e o aviso não sairia nem
+ * depois que o espaço daquela área fosse criado.
+ *
+ * E ligar uma área de cada vez é o caminho NORMAL — o primeiro espaço a existir
+ * foi o da OSG, em 14/09/2026. Área sem espaço não é erro: é área que ainda não
+ * chegou a vez.
+ */
+export function separarPorEspaco(
+  avisos: AvisoDoChat[],
+  temEspaco: (area: string) => boolean,
+): { comEspaco: AvisoDoChat[]; semEspaco: Record<string, number> } {
+  const comEspaco: AvisoDoChat[] = [];
+  const semEspaco: Record<string, number> = {};
+  for (const aviso of avisos) {
+    if (temEspaco(aviso.area_nome)) {
+      comEspaco.push(aviso);
+    } else {
+      semEspaco[aviso.area_nome] = (semEspaco[aviso.area_nome] ?? 0) + 1;
+    }
+  }
+  return { comEspaco, semEspaco };
+}
+
 /** Rótulo por tipo. Igual ao do sino. */
 const ROTULO: Record<TipoDeAviso, string> = {
   tarefa_prazo_proximo: "Prazo de tarefa",

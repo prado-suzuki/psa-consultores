@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { montarMensagens, dataCurta, type AvisoDoChat } from './mensagemDoChat';
+import { montarMensagens, separarPorEspaco, dataCurta, type AvisoDoChat } from './mensagemDoChat';
 
 const BASE = 'https://psa-consultores.lovable.app';
 const DIA = '2026-09-14';
@@ -136,6 +136,44 @@ describe('montarMensagens', () => {
 
   it('devolve lista vazia quando não há aviso', () => {
     expect(montarMensagens([], BASE, DIA)).toEqual([]);
+  });
+});
+
+describe('separarPorEspaco', () => {
+  const soOsg = (area: string) => area === 'OSG';
+
+  it('deixa passar só a área que tem espaço configurado', () => {
+    const { comEspaco, semEspaco } = separarPorEspaco(
+      [
+        aviso({ area_nome: 'OSG', chave: 'k1' }),
+        aviso({ area_nome: 'Tax', chave: 'k2' }),
+        aviso({ area_nome: 'Tax', chave: 'k3' }),
+      ],
+      soOsg,
+    );
+
+    expect(comEspaco.map((a) => a.chave)).toEqual(['k1']);
+    expect(semEspaco).toEqual({ Tax: 2 });
+  });
+
+  it('conta por área o que ficou de fora, em vez de só descartar', () => {
+    // O número é o que diz, na resposta da borda, que existe área esperando
+    // espaço — sem ele, "não saiu nada" e "não havia nada" ficam iguais.
+    const { semEspaco } = separarPorEspaco(
+      [aviso({ area_nome: 'Tax' }), aviso({ area_nome: 'Marketing' })],
+      () => false,
+    );
+
+    expect(semEspaco).toEqual({ Tax: 1, Marketing: 1 });
+  });
+
+  it('não devolve nada para reservar quando nenhuma área tem espaço', () => {
+    // É o caso do primeiro dia: o espaço da OSG existe, o do Tax não. Se estes
+    // avisos fossem reservados, a chave do dia ficaria gravada e a tarefa não
+    // sairia nem depois que o espaço da área fosse criado.
+    const { comEspaco } = separarPorEspaco([aviso(), aviso()], () => false);
+
+    expect(comEspaco).toEqual([]);
   });
 });
 

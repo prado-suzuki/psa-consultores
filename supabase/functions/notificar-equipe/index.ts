@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { handleCorsPreflightRequest, buildCorsHeaders } from "../_shared/cors.ts";
-import { montarMensagens, type AvisoDoChat } from "../_shared/mensagemDoChat.ts";
+import { montarMensagens, separarPorEspaco, type AvisoDoChat } from "../_shared/mensagemDoChat.ts";
 
 // ── Avisos de tarefa no espaço do Google Chat ──
 //
@@ -210,11 +210,24 @@ Deno.serve(async (req) => {
       return json({ avisos: 0, mensagens: 0, detalhe: "nada a enviar" });
     }
 
+    // Área sem espaço sai ANTES da reserva. Ver `separarPorEspaco`: reservar e
+    // marcar falhou queimaria a chave do dia, e o aviso não sairia nem quando o
+    // espaço daquela área existisse.
+    const { comEspaco, semEspaco } = separarPorEspaco(pendentes, (area) => {
+      const segredo = SEGREDO_DA_AREA[area];
+      return Boolean(segredo && Deno.env.get(segredo));
+    });
+
+    if (comEspaco.length === 0) {
+      return json({ avisos: pendentes.length, mensagens: 0, sem_espaco: semEspaco });
+    }
+
     if (simular) {
       return json({
         simulado: true,
-        avisos: pendentes.length,
-        mensagens: montarMensagens(pendentes, PUBLISHED_URL, diaLocal()),
+        avisos: comEspaco.length,
+        sem_espaco: semEspaco,
+        mensagens: montarMensagens(comEspaco, PUBLISHED_URL, diaLocal()),
       });
     }
 
@@ -223,7 +236,7 @@ Deno.serve(async (req) => {
     // neste espaço. Não é erro, é o dedup funcionando.
     const envioPorChave = new Map<string, string>();
     const reservados: AvisoDoChat[] = [];
-    for (const aviso of pendentes) {
+    for (const aviso of comEspaco) {
       const { data: envioId, error: erroReserva } = await admin.rpc("reservar_envio", {
         _chave: aviso.chave,
         _canal: CANAL,
@@ -247,15 +260,23 @@ Deno.serve(async (req) => {
     }
 
     if (reservados.length === 0) {
-      return json({ avisos: pendentes.length, mensagens: 0, detalhe: "tudo já reservado hoje" });
+      return json({
+        avisos: pendentes.length,
+        mensagens: 0,
+        sem_espaco: semEspaco,
+        detalhe: "tudo já reservado hoje",
+      });
     }
 
     const mensagens = montarMensagens(reservados, PUBLISHED_URL, diaLocal());
     const resultado: Record<string, { enviadas: number; falhas: number; erro?: string }> = {};
 
     for (const mensagem of mensagens) {
-      const nomeDoSegredo = SEGREDO_DA_AREA[mensagem.area];
-      const webhook = nomeDoSegredo ? Deno.env.get(nomeDoSegredo) : undefined;
+      // O `separarPorEspaco` acima já garantiu que existe segredo para esta área.
+      // A string vazia no impossível cai em "webhook malformado" no POST, que
+      // marca `falhou` como qualquer outra falha de envio — em vez de repetir a
+      // decisão aqui e abrir a porta para os dois lugares divergirem.
+      const webhook = Deno.env.get(SEGREDO_DA_AREA[mensagem.area] ?? "") ?? "";
       const marcar = async (status: "enviado" | "falhou", erro?: string) => {
         for (const chave of mensagem.chaves) {
           const envioId = envioPorChave.get(chave);
@@ -271,20 +292,6 @@ Deno.serve(async (req) => {
 
       const linha = resultado[mensagem.area] ?? { enviadas: 0, falhas: 0 };
 
-      if (!webhook) {
-        // Área sem espaço configurado. `ignorado` seria o status mais bonito, mas
-        // ele e `falhou` são os dois terminais que `confirmar_envio` aceita a
-        // partir de pendente, e o erro escrito diz exatamente o que fazer.
-        await marcar(
-          "falhou",
-          `área sem webhook configurado (${nomeDoSegredo ?? "sem segredo mapeado"})`,
-        );
-        linha.falhas += mensagem.chaves.length;
-        linha.erro = "sem webhook configurado";
-        resultado[mensagem.area] = linha;
-        continue;
-      }
-
       const envio = await postarNoEspaco(webhook, mensagem.texto, mensagem.threadKey);
       if (envio.ok) {
         await marcar("enviado");
@@ -298,7 +305,12 @@ Deno.serve(async (req) => {
       resultado[mensagem.area] = linha;
     }
 
-    return json({ avisos: pendentes.length, mensagens: mensagens.length, por_area: resultado });
+    return json({
+      avisos: pendentes.length,
+      mensagens: mensagens.length,
+      por_area: resultado,
+      sem_espaco: semEspaco,
+    });
   } catch (e) {
     console.error("[notificar-equipe] erro inesperado:", e);
     return json({ error: (e as Error).message }, 500);
