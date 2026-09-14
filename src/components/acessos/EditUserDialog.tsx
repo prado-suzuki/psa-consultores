@@ -14,6 +14,7 @@ import {
 import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { AREA_CATEGORIES_MAP, type AreaKey } from '@/config/areaCategories';
+import { areasDeAcessoDoUsuario } from '@/lib/areasDeAcessoDoUsuario';
 import { useUpdateTeamMember } from '@/hooks/useTeamMemberMutations';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useUserPageAccess } from '@/hooks/useUserPageAccess';
@@ -62,20 +63,9 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
   useEffect(() => {
     if (!open || !user) return;
 
-    const userAccessIds =
-      userAccess?.filter((a) => a.user_id === user.id).map((a) => a.page_permission_id) ?? [];
-    const userPageCategories = new Set(
-      pages?.filter((p) => userAccessIds.includes(p.id)).map((p) => p.category) ?? []
-    );
-
-    // Área é considerada marcada se o usuário tem acesso a PELO MENOS UMA página
-    // de suas categorias — `every()` quebraria quando há categorias sem páginas.
-    const inferredAreas: string[] = [];
-    for (const [areaKey, areaDef] of Object.entries(AREA_CATEGORIES_MAP)) {
-      if (areaDef.categories.some((cat) => userPageCategories.has(cat))) {
-        inferredAreas.push(areaKey);
-      }
-    }
+    // A inferência (uma página basta — `some`, não `every`) mora em
+    // `@/lib/areasDeAcessoDoUsuario`, compartilhada com a matriz de Papéis.
+    const inferredAreas = areasDeAcessoDoUsuario(user.id, pages ?? [], userAccess ?? []);
 
     setForm({
       first_name: user.first_name,
