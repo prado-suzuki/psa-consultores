@@ -204,7 +204,7 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
         <Send className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss" />
         <span>
           Entrega para a <b className="font-semibold text-osg-700">área Fiscal (Planejamento Tributário)</b>: o contexto societário/patrimonial abaixo.
-          Os <b className="font-semibold text-osg-700">documentos do cliente</b> e o que <b className="font-semibold text-osg-700">falta solicitar</b> ficam em <b className="font-semibold text-osg-700">Documentos do Cliente → Checklists de documentos</b>.
+          Os <b className="font-semibold text-osg-700">documentos do cliente</b> e o que <b className="font-semibold text-osg-700">falta solicitar</b> ficam em <b className="font-semibold text-osg-700">Documentos do Cliente → Checklist de documentos</b>.
         </span>
       </div>
 

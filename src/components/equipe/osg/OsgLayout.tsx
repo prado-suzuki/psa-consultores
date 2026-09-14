@@ -219,9 +219,16 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
 
   // Itens do agrupador "Documentos do Cliente" — mesmo padrão de dropdown por hover
   const docClienteItems = [
-    { path: '/equipe/osg/work/documentos', label: 'Explorador de arquivos' },
-    // Singular desde 10/09/2026: eram duas abas (Pendências e Planejamento
-    // tributário) e sobrou uma. A rota segue no plural — é endereço, não rótulo.
+    // "Explorador de arquivos" saiu na especificação final da Patrícia
+    // (11/09/2026): o rótulo do menu passa a ser o mesmo H1 da página, para
+    // ninguém clicar num nome e encontrar outro.
+    { path: '/equipe/osg/work/documentos', label: 'Documentos do Cliente' },
+    // SINGULAR, e este é o único item em que a especificação final da Patrícia
+    // (11/09/2026) não foi seguida. Ela escreve "Checklists de Documentos", no
+    // plural, que era certo enquanto a tela tinha duas abas — Pendências e
+    // Planejamento tributário. A segunda saiu em 10/09, depois de auditada, e
+    // sobrou um checklist só. Plural aqui prometeria uma lista que não existe.
+    // A rota segue no plural: é endereço, não rótulo.
     { path: '/equipe/osg/work/checklists', label: 'Checklist de documentos' },
   ];
   const isDocClienteActive = docClienteItems.some((item) => item.path === location.pathname);

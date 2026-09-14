@@ -32,11 +32,16 @@ const ChecklistsDocumentos = () => {
 
   return (
     <OsgLayout
-      /* Singular desde que a aba saiu, e caixa baixa como no menu lateral. */
+      /* Singular, e igual ao rótulo do menu — a padronização H1↔menu que a
+         especificação final pede, só que no singular dela. A spec escreve
+         "Checklists de Documentos", que valia enquanto havia duas abas; a
+         segunda saiu em 10/09 e sobrou um checklist. Ver a nota em
+         `OsgLayout`. */
       title="Checklist de documentos"
-      /* Texto da Patrícia (11/09/2026): usa os mesmos termos dos status logo
-         abaixo — solicitados, recebidos, pendentes. */
-      subtitle="Acompanhe os documentos solicitados, recebidos e ainda pendentes de cada cliente."
+      /* Subtítulo da mesma especificação. Ele troca "solicitados" por
+         "obrigatórios" — os dois contam coisas diferentes, e é a palavra dela
+         que vale. */
+      subtitle="Acompanhe documentos obrigatórios, recebidos e pendentes de cada cliente."
       headerActions={
         clienteId ? (
           <Button
