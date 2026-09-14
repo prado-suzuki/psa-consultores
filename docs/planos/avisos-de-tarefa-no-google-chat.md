@@ -130,8 +130,8 @@ morre entre enviar e gravar, sobra evidência da tentativa. Função **nova**, n
 `notificar`: aquela é moldada em aviso ao cliente, com `solicitacao` como entidade e canais
 que falam com o n8n. É a mesma razão pela qual ela própria não estendeu a `notify-ticket`.
 
-**4 · O despachante.** Cron curto que chama a borda, que por sua vez lê a
-`avisos_para_o_chat` e agrupa prazo em resumo. Molde do `net.http_post` + vault da GES-04
+**4 · O despachante.** Cron a cada 15 minutos que chama a borda, que por sua vez lê a
+`avisos_para_o_chat` e agrupa prazo em resumo. Quinze minutos, e não uma vez por dia, porque as duas origens têm ritmos diferentes: prazo nasce em lote às 11h UTC, atribuição e revisão nascem de trigger ao longo do dia, e aviso de atribuição que chega no dia seguinte já não é aviso. Molde do `net.http_post` + vault da GES-04
 (`20260825140358`), que já está no repositório. **Nasce desativado**, como os dois crons que
 escrevem sozinhos — ligar é um UPDATE em `cron.job`, por banco, quando for a hora.
 
@@ -151,7 +151,11 @@ Três coisas que nenhum commit entrega, e sem as quais a borda responde mas não
    ela ficou lá, do lado das outras.
 2. **Os segredos `GCHAT_WEBHOOK_TAX` e `GCHAT_WEBHOOK_OSG`**, um por área, em cada banco.
    No sandbox, ambos apontando para o webhook de teste.
-3. **O segredo `CRON_CHAT_TOKEN`**, que é como o cron se identifica na borda.
+3. **O segredo `CRON_CHAT_TOKEN`** na edge function, e o mesmo valor no vault do banco como
+   `cron_chat_token`, mais o `notificar_url` (que a GES-04 já usa, e é a mesma URL base —
+   não crie um segundo com outro nome). É por aí que o cron se identifica na borda.
+4. **Ligar o job**, que nasce desativado nos dois bancos:
+   `UPDATE cron.job SET active = true WHERE jobname = 'despachar-avisos-do-chat'`.
 
 ## Ordem que não pode inverter
 
