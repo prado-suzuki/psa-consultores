@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -220,8 +221,8 @@ const BibliotecaModelos = () => {
 
   return (
     <OsgLayout
-      title="Biblioteca de Modelos"
-      subtitle="Crie e gerencie blocos reutilizáveis para a montagem de documentos."
+      title={TELAS_OSG_WORK.bibliotecaModelos.label}
+      subtitle={TELAS_OSG_WORK.bibliotecaModelos.descricao}
       headerActions={
         <Button size="sm" onClick={abrirNovo} className="bg-osg-600 hover:bg-osg-700">
           <Plus className="h-4 w-4 mr-1.5" />

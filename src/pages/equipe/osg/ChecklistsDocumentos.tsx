@@ -1,5 +1,6 @@
 import { ListChecks, Printer } from 'lucide-react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { ChecklistPendentes } from '@/components/equipe/osg/checklists/ChecklistPendentes';
@@ -32,19 +33,12 @@ const ChecklistsDocumentos = () => {
 
   return (
     <OsgLayout
-      /* Singular, e igual ao rótulo do menu — a padronização H1↔menu que a
-         especificação final pede. A spec escreve "Checklists de Documentos", que
-         valia enquanto havia duas abas; a segunda saiu em 10/09, auditada, e
-         sobrou um checklist. O singular foi VALIDADO COM A COORDENAÇÃO. Ver a
-         nota em `navegacaoOsgWork`. */
-      title="Checklist de documentos"
-      /* "SOLICITADOS", e não "obrigatórios" como a especificação escreve. Os dois
-         contam coisas diferentes, e a tela só sabe contar o primeiro:
-         `checklistDerivado` soma recebido, pendente e não solicitado, e
-         `obrigatorio` não aparece em ponto nenhum do checklist. Escrever
-         "obrigatórios" seria prometer um recorte que a conta não faz.
-         A troca foi VALIDADA COM A COORDENAÇÃO — não é desvio de redação. */
-      subtitle="Acompanhe os documentos solicitados, recebidos e pendentes de cada cliente."
+      /* Os dois vêm de `navegacaoOsgWork`, e é lá que estão os motivos: o
+         singular (a spec escreve "Checklists de Documentos", que valia enquanto
+         havia duas abas) e o "solicitados" no lugar do "obrigatórios" dela — que
+         o checklist não sabe contar. Os dois validados com a coordenação. */
+      title={TELAS_OSG_WORK.checklistDocumentos.label}
+      subtitle={TELAS_OSG_WORK.checklistDocumentos.descricao}
       headerActions={
         clienteId ? (
           <Button

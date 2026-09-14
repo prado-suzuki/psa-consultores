@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { FolderArchive, Inbox } from 'lucide-react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Card, CardContent } from '@/components/ui/card';
 import { ClassificarDocumentos } from '@/components/equipe/osg/documentos/classificar/ClassificarDocumentos';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
@@ -27,8 +28,8 @@ const CadastroPorDocumento = () => {
 
   return (
     <OsgLayout
-      title="Cadastro por Documento"
-      subtitle="Cadastre pessoas, empresas ou imóveis a partir de um documento ainda não vinculado."
+      title={TELAS_OSG_WORK.cadastroPorDocumento.label}
+      subtitle={TELAS_OSG_WORK.cadastroPorDocumento.descricao}
     >
       {!clienteId ? (
         <Card>

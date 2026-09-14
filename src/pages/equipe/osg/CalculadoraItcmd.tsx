@@ -1,6 +1,7 @@
 import { AlertTriangle, Calculator, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import OsgWorkLoader from '@/components/equipe/osg/OsgWorkLoader';
 import { Button } from '@/components/ui/button';
 import { CenariosEmColunas } from '@/components/equipe/osg/calculadora-itcmd/CenariosEmColunas';
@@ -168,8 +169,8 @@ function Molde({ children, acoes }: {
 }) {
   return (
     <OsgLayout
-      title="Calculadora de ITCD"
-      subtitle="Simule o ITCD sobre doações de quotas em diferentes cenários de avaliação."
+      title={TELAS_OSG_WORK.calculadoraItcd.label}
+      subtitle={TELAS_OSG_WORK.calculadoraItcd.descricao}
       headerActions={acoes}
     >
       {children}

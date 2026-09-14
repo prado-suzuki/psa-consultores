@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Landmark, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
 
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { OrgaoGovernancaModal } from '@/components/equipe/osg/governanca/OrgaoGovernancaModal';
 import { ComAjuda } from '@/components/equipe/osg/ComAjuda';
 import { Badge } from '@/components/ui/badge';
@@ -66,8 +67,8 @@ const OrgaosGovernanca = () => {
 
   return (
     <OsgLayout
-      title="Órgãos de Governança"
-      subtitle="Cadastre as instâncias responsáveis pelas decisões do cliente."
+      title={TELAS_OSG_WORK.orgaosGovernanca.label}
+      subtitle={TELAS_OSG_WORK.orgaosGovernanca.descricao}
       headerActions={
         // Com a lista vazia a orientação inteira vive na caixa do meio, que já
         // traz este mesmo botão ao lado do de padrões. Repeti-lo aqui em cima

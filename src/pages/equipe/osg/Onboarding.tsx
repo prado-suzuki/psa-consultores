@@ -3,6 +3,7 @@ import { AlertCircle, ListChecks, Loader2, Lock, PackageOpen, Rocket, Send } fro
 import { toast } from 'sonner';
 import { AvisoClienteNaoNotificado } from '@/components/equipe/osg/AvisoClienteNaoNotificado';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { OnboardingWorkspace } from '@/components/equipe/osg/onboarding/OnboardingWorkspace';
 import { SolicitacaoAcoes } from '@/components/equipe/osg/onboarding/SolicitacaoAcoes';
 import { ModalEnviarSolicitacao } from '@/components/equipe/osg/onboarding/ModalEnviarSolicitacao';
@@ -260,21 +261,19 @@ const Onboarding = () => {
    * subtítulo descreve a TELA, não o registro aberto nela; e os três estados já
    * têm faixa própria logo abaixo, com data e com o que muda em cada um. O
    * subtítulo variável repetia a faixa em versão pior.
+   *
+   * O TEXTO em si mora em `navegacaoOsgWork`, com o motivo de ele não trazer a
+   * palavra "iniciais" e de o nome da tela não ser o "Solicitação Inicial" que a
+   * spec propunha. É a mesma frase do cartão no painel de entrada, e era a
+   * divergência entre as duas que originou aquele arquivo.
    */
-  // Da especificação final da Patrícia (11/09/2026), menos a palavra "iniciais".
-  // Ela vinha do nome que a spec propunha para a tela, "Solicitação Inicial";
-  // o nome ficou "Solicitação de documentos", VALIDADO COM A COORDENAÇÃO.
-  // Mantido "iniciais", o título falaria de documentos e o subtítulo de outra
-  // coisa. O resto é o dela, palavra por palavra, inclusive o molde
-  // verbo + objeto + finalidade.
-  //
-  // Esta linha TEM de continuar igual à `descricao` desta tela em
-  // `navegacaoOsgWork` — é a mesma frase no cartão do painel e aqui no
-  // cabeçalho, e foi a divergência entre as duas que originou aquele arquivo.
-  const SUBTITULO = 'Solicite e acompanhe os documentos de cada cliente.';
 
   return (
-    <OsgLayout title="Solicitação de documentos" subtitle={SUBTITULO} headerActions={acoesDoTopo}>
+    <OsgLayout
+      title={TELAS_OSG_WORK.solicitacaoDocumentos.label}
+      subtitle={TELAS_OSG_WORK.solicitacaoDocumentos.descricao}
+      headerActions={acoesDoTopo}
+    >
       {!clienteId ? (
         <OnboardingEmptyState icon={Rocket} title="Selecione um cliente">
           Use a barra acima para carregar a solicitação de documentos deste cliente.

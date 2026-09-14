@@ -10,6 +10,7 @@ import {
 import { Link } from 'react-router-dom';
 
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { MatrizLinhaModal } from '@/components/equipe/osg/governanca/MatrizLinhaModal';
 import { AcrescentarAtividadeModal } from '@/components/equipe/osg/governanca/AcrescentarAtividadeModal';
 import { Button } from '@/components/ui/button';
@@ -101,8 +102,8 @@ const MatrizDeAlcadas = () => {
 
   return (
     <OsgLayout
-      title="Matriz de Alçadas"
-      subtitle="Defina quais decisões e limites competem a cada órgão de governança."
+      title={TELAS_OSG_WORK.matrizDeAlcadas.label}
+      subtitle={TELAS_OSG_WORK.matrizDeAlcadas.descricao}
       headerActions={
         matriz ? (
           <Button size="sm" variant="outline" onClick={() => setAcrescentando(true)}>

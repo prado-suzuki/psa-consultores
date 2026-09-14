@@ -1,5 +1,6 @@
 import { FolderArchive } from 'lucide-react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Card, CardContent } from '@/components/ui/card';
 import { OrganizarDocumentos } from '@/components/equipe/osg/documentos/OrganizarDocumentos';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
@@ -15,8 +16,8 @@ const DocumentosCliente = () => {
 
   return (
     <OsgLayout
-      title="Documentos do Cliente"
-      subtitle="Consulte os arquivos recebidos, organizados por pessoa, empresa ou imóvel."
+      title={TELAS_OSG_WORK.documentosCliente.label}
+      subtitle={TELAS_OSG_WORK.documentosCliente.descricao}
     >
       {!clienteId ? (
         <Card>

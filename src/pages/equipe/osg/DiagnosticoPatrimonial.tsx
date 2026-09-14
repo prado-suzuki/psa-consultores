@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -72,13 +73,12 @@ const DiagnosticoPatrimonial = () => {
 
   return (
     <OsgLayout
-      /* "Cadastro Patrimonial" desde 14/09/2026. A tela é cadastral — bens,
-         matrículas, titulares, impedimentos — e chamar-se "Diagnóstico" a
-         confundia com o relatório de mesmo nome, que é o pptx e continua
-         "Diagnóstico Patrimonial". O nome do arquivo, do hook e da rota não
-         acompanham de propósito: ver a nota em `navegacaoOsgWork`. */
-      title="Cadastro Patrimonial"
-      subtitle="Cadastre e gerencie bens, titulares, matrículas e impedimentos do cliente."
+      /* Vêm de `navegacaoOsgWork`, com a história toda: por que esta tela deixou
+         de se chamar "Diagnóstico Patrimonial" em 14/09/2026, por que o
+         relatório de mesmo nome NÃO acompanhou, e por que o arquivo, o hook e a
+         rota continuam com o nome antigo. */
+      title={TELAS_OSG_WORK.cadastroPatrimonial.label}
+      subtitle={TELAS_OSG_WORK.cadastroPatrimonial.descricao}
     >
       <div className="space-y-4">
         {!clienteId ? (
