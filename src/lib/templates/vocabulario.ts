@@ -1249,6 +1249,21 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         derivar: (v) => PARES.artigo(v.genero === 'F' ? 'F' : 'M'),
       },
       {
+        /*
+         * O artigo em caixa alta, para começo de frase. O contrato abre a
+         * cláusula com "O Conselho de Administração será composto" e diz
+         * "Compete ao Conselho" no meio de outra: é a mesma concordância em
+         * duas posições, e o motor não capitaliza sozinho. Mesma ideia do
+         * `socioTitulo`, que existe porque o rótulo da assinatura é título e
+         * não meio de frase.
+         */
+        id: 'artigoMaiusculo',
+        label: 'Artigo em começo de frase (O/A)',
+        tipo: 'texto',
+        derivadoDe: 'genero',
+        derivar: (v) => concordar(v.genero === 'F' ? 'F' : 'M', 'O', 'A'),
+      },
+      {
         id: 'ao',
         label: 'Preposição com artigo (ao/à)',
         tipo: 'texto',

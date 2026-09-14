@@ -185,11 +185,14 @@ describe('MOT-01 · os mapeadores entregam a frase que o contrato escreve', () =
   it('a cláusula concorda com o gênero do órgão', () => {
     const conselho = mapearOrgaoGovernanca({ id: 'm', nome: 'Conselho de Administração', genero: 'M' });
     expect(conselho.artigo).toBe('o');
+    // Começo de frase: "O Conselho de Administração será composto".
+    expect(conselho.artigoMaiusculo).toBe('O');
     expect(conselho.ao).toBe('ao');
     expect(conselho.composto).toBe('composto');
 
     const diretoria = mapearOrgaoGovernanca({ id: 'f', nome: 'Diretoria Executiva', genero: 'F' });
     expect(diretoria.artigo).toBe('a');
+    expect(diretoria.artigoMaiusculo).toBe('A');
     expect(diretoria.ao).toBe('à');
     expect(diretoria.composto).toBe('composta');
   });
