@@ -1364,6 +1364,59 @@ export function useGerarDocumentoController() {
     })),
     [registros.pessoa],
   );
+  /*
+   * O ÓRGÃO PADRÃO SE VINCULA SOZINHO.
+   *
+   * Para pessoa a pergunta faz sentido: "quem é o outorgante?" tem várias
+   * respostas. Para órgão não: o cliente tem UM Conselho de Administração, e a
+   * pergunta vira "qual dos seus órgãos é o Conselho de Administração?", que se
+   * responde sozinha. O usuário travou nela na primeira geração, e com razão.
+   *
+   * O que torna isto possível é a coluna `padrao_chave`, de 11/09: antes o
+   * sistema só sabia comparar nomes, e um cliente que renomeasse o órgão
+   * quebraria o palpite. Órgão criado pelo cliente não tem chave e continua
+   * sendo perguntado, que é onde a pergunta é legítima.
+   *
+   * Vincula só o que ainda está em branco: escolha do consultor nunca é
+   * sobrescrita, e rascunho reidratado chega com o vínculo já preenchido.
+   */
+  useEffect(() => {
+    /*
+     * `padrao_chave` é lido por um tipo local, e não pelo `types.ts`.
+     *
+     * A coluna existe no banco desde a migration de 11/09, mas o `types.ts`
+     * commitado na develop está atrasado em relação às próprias migrations
+     * dela: ele ainda declara `soft_delete_ordem_servico`, que uma migration
+     * de 10/09 derrubou. Regenerar o arquivo aqui consertaria isso e quebraria
+     * `useTaxReferenceData.ts`, que é código da Tax e não é escopo desta
+     * linha. Quando alguém regenerar de verdade, este tipo local sai.
+     */
+    const orgaos = orgaosGovQ.data as
+      | (typeof orgaosGovQ.data extends (infer T)[] | undefined ? T & { padrao_chave?: string | null } : never)[]
+      | undefined;
+    if (!orgaos?.length) return;
+
+    const porChave: Record<string, string> = {
+      conselhoAdministracao: 'conselho_administracao',
+      diretoria: 'diretoria_executiva',
+      reuniaoSocios: 'reuniao_socios',
+    };
+
+    const aLigar: Record<string, string> = {};
+    for (const b of bindings) {
+      if (b.tipo !== 'orgaoGovernanca' || registroPorBinding[b.nome]) continue;
+      const chave = porChave[b.nome];
+      if (!chave) continue;
+      const candidatos = orgaos.filter((o) => o.padrao_chave === chave && o.entra_no_contrato);
+      // Dois candidatos é ambiguidade real, e aí perguntar é o certo.
+      if (candidatos.length === 1) aLigar[b.nome] = candidatos[0].id;
+    }
+
+    if (Object.keys(aLigar).length > 0) {
+      setRegistroPorBinding((prev) => ({ ...aLigar, ...prev }));
+    }
+  }, [orgaosGovQ, bindings, registroPorBinding]);
+
   // Capital social + total de quotas da sociedade: a PR ainda sem quadro gravado
   // soma as integralizações aprovadas (quota = R$ 1,00); as demais (e a PR
   // depois de gravar) somam o quadro societário.
