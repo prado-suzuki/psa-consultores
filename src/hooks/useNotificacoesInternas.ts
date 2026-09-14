@@ -5,6 +5,7 @@ import { currentAmbiente } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { avisosDoAmbiente, type NotificacaoInterna } from '@/lib/notificacoesInternas';
+import { LIMITE_DO_SINO } from '@/lib/sinoNotificacoes';
 
 /**
  * Caixa de entrada dos avisos internos do sino, lendo `public.notificacao`.
@@ -15,6 +16,18 @@ import { avisosDoAmbiente, type NotificacaoInterna } from '@/lib/notificacoesInt
  * existe, e por isso não davam conta de acontecimento que não deixa rastro, como
  * o cliente anexar um arquivo. Agora há tabela genérica de notificação, e é esta:
  * a linha é gravada pelos triggers da EDU-2 e "não lida" é `lido_em IS NULL`.
+ *
+ * **A leitura NÃO filtra por `lido_em`** desde 14/09/2026. A caixa devolve os 30
+ * avisos mais recentes, lidos ou não, porque o balão do sino virou histórico: a
+ * bolinha baixa assim que a pessoa abre o balão, e se a consulta continuasse
+ * trazendo só o não lido a lista se esvaziaria na frente de quem acabou de
+ * abri-la. Quem separa uma coisa da outra é `lido_em`, que agora vem junto —
+ * `naoLidas` conta, `idsNaoLidos` é o que o balão carimba ao abrir.
+ *
+ * O preço disso está registrado: `notificacao_nao_lidas_idx` é um índice PARCIAL
+ * (`where lido_em is null`) e deixa de servir a esta consulta. O índice pleno por
+ * `(destinatario_id, created_at desc)` entra pela migration
+ * `20260914*_notificacao_sino_historico_idx.sql`.
  *
  * **Uma ida ao banco só**, ao contrário do hook de menção. Ele faz duas, e a
  * justificativa está nas linhas 27-31 dele: `org_comments_feed` é view e o
@@ -28,10 +41,15 @@ import { avisosDoAmbiente, type NotificacaoInterna } from '@/lib/notificacoesInt
  * enum `notificacao_tipo`, então o tipo real é usado direto.
  */
 
-const LIMITE = 20;
+/**
+ * Trinta, e não os 20 de antes: é o tamanho do histórico que o balão mostra
+ * (`LIMITE_DO_SINO`). Cada fonte traz até 30 e o balão corta o total, então o
+ * limite daqui é teto, nunca cota garantida.
+ */
+const LIMITE = LIMITE_DO_SINO;
 const TABELA = 'notificacao' as const;
 const COLUNAS =
-  'id, tipo, titulo, corpo, entidade_tipo, entidade_id, href, quantidade, metadata, created_at';
+  'id, tipo, titulo, corpo, entidade_tipo, entidade_id, href, quantidade, metadata, created_at, lido_em';
 
 export type { NotificacaoInterna };
 
@@ -52,7 +70,6 @@ export function useNotificacoesInternas() {
         .from(TABELA)
         .select(COLUNAS)
         .eq('destinatario_id', userId)
-        .is('lido_em', null)
         .order('created_at', { ascending: false })
         .limit(LIMITE);
 
@@ -95,9 +112,16 @@ export function useNotificacoesInternas() {
     onError: (error: Error) => toast.error('Erro ao marcar aviso como lido: ' + error.message),
   });
 
+  const notifications = query.data ?? [];
+  const naoLidos = notifications.filter((aviso) => aviso.lido_em === null);
+
   return {
-    notifications: query.data ?? [],
-    count: (query.data ?? []).length,
+    notifications,
+    count: notifications.length,
+    /** Quantos ainda não foram lidos — é o que a bolinha do sino soma. */
+    naoLidas: naoLidos.length,
+    /** O que o balão carimba ao abrir. */
+    idsNaoLidos: naoLidos.map((aviso) => aviso.id),
     isLoading: query.isLoading,
     refetch: query.refetch,
     marcarComoLidas,

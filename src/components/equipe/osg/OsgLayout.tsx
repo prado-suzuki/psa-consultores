@@ -856,8 +856,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           <div className="flex items-center gap-3">
             {headerActions}
             <NotificationPopover
-              navigateTo="/equipe/chamados"
-              espelho="osg"
+              baseDosChamados="/equipe/chamados"
               tasksNavigateTo="/equipe/osg/projetos/tarefas"
               mencoesArea="osg"
             />

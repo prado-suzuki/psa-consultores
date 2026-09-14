@@ -554,7 +554,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
             {/* SEM espelho: "chamados dos clientes desta área" não se aplica ao
                 Digital, que não tem clientes. Ver o bloco `ESPELHO` em
                 `src/lib/areaTheme.ts`. */}
-            <NotificationPopover navigateTo="/equipe/chamados" backTo={location.pathname} />
+            <NotificationPopover baseDosChamados="/equipe/chamados" backTo={location.pathname} />
             {headerActions}
           </div>
         </header>

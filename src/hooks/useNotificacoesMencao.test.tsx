@@ -18,10 +18,7 @@ vi.mock('@/hooks/useDomainOrgComments', () => ({
 }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: vi.fn() } }));
 
-import {
-  notificacoesMencaoQueryKey,
-  useNotificacoesMencao,
-} from '@/hooks/useNotificacoesMencao';
+import { notificacoesMencaoQueryKey, useNotificacoesMencao } from '@/hooks/useNotificacoesMencao';
 import { supabase } from '@/integrations/supabase/client';
 
 interface DbResult {
@@ -107,24 +104,69 @@ describe('useNotificacoesMencao — registro da query', () => {
 });
 
 describe('useNotificacoesMencao — leitura da caixa', () => {
-  it('lê só as linhas minhas ainda não lidas, mais recentes primeiro', async () => {
+  it('lê as linhas minhas, lidas ou não, mais recentes primeiro', async () => {
     renderHook(() => useNotificacoesMencao());
     await queryRegistro().queryFn();
 
     expect(supabase.from).toHaveBeenCalledWith('org_comment_mentions');
     // `motivo` faz parte do contrato da leitura: é o que separa "mencionou você"
-    // de "respondeu você" no sino.
-    expect(callsFor('select')[0].args).toEqual(['id, comment_id, created_at, motivo']);
+    // de "respondeu você" no sino. `lido_em` entrou em 14/09/2026, quando deixou
+    // de ser filtro e virou o campo `lida` da notificação.
+    expect(callsFor('select')[0].args).toEqual(['id, comment_id, created_at, motivo, lido_em']);
     expect(callsFor('eq')[0].args).toEqual(['mentioned_user_id', 'U1']);
-    expect(callsFor('is')[0].args).toEqual(['lido_em', null]);
     expect(callsFor('order')[0].args).toEqual(['created_at', { ascending: false }]);
-    expect(callsFor('limit')[0].args).toEqual([20]);
+    expect(callsFor('limit')[0].args).toEqual([30]);
+  });
+
+  /*
+   * A trava do histórico, igual à do hook de avisos internos: o balão mostra as
+   * últimas 30, e voltar a filtrar por não lido esvaziaria a lista na abertura.
+   */
+  it('não filtra por lido_em, senão o balão se esvaziaria ao ser aberto', async () => {
+    renderHook(() => useNotificacoesMencao());
+    await queryRegistro().queryFn();
+
+    expect(callsFor('is')).toEqual([]);
+  });
+
+  it('marca a linha já carimbada como lida, e ela sai da conta da bolinha', async () => {
+    resultado = {
+      data: [
+        {
+          id: 'M1',
+          comment_id: 'C1',
+          created_at: '2026-07-29T12:00:00.000Z',
+          motivo: 'mencao',
+          lido_em: '2026-09-14T10:00:00.000Z',
+        },
+        {
+          id: 'M2',
+          comment_id: 'C1',
+          created_at: '2026-07-29T12:00:00.000Z',
+          motivo: 'mencao',
+          lido_em: null,
+        },
+      ],
+      error: null,
+    };
+    mocks.buscarComentariosPorId.mockResolvedValue(new Map([['C1', comentario()]]));
+
+    renderHook(() => useNotificacoesMencao());
+    const notificacoes = (await queryRegistro().queryFn()) as Array<Record<string, unknown>>;
+
+    expect(notificacoes.map((item) => item.lida)).toEqual([true, false]);
   });
 
   it('hidrata os comentários citados num lote só e devolve a notificação montada', async () => {
     resultado = {
       data: [
-        { id: 'M1', comment_id: 'C1', created_at: '2026-07-29T12:00:00.000Z', motivo: 'mencao' },
+        {
+          id: 'M1',
+          comment_id: 'C1',
+          created_at: '2026-07-29T12:00:00.000Z',
+          motivo: 'mencao',
+          lido_em: null,
+        },
       ],
       error: null,
     };
@@ -147,7 +189,13 @@ describe('useNotificacoesMencao — leitura da caixa', () => {
   it('a linha de resposta chega ao sino com o motivo resposta', async () => {
     resultado = {
       data: [
-        { id: 'M2', comment_id: 'C1', created_at: '2026-07-29T12:00:00.000Z', motivo: 'resposta' },
+        {
+          id: 'M2',
+          comment_id: 'C1',
+          created_at: '2026-07-29T12:00:00.000Z',
+          motivo: 'resposta',
+          lido_em: null,
+        },
       ],
       error: null,
     };
@@ -162,8 +210,20 @@ describe('useNotificacoesMencao — leitura da caixa', () => {
   it('motivo desconhecido ou ausente lê como menção', async () => {
     resultado = {
       data: [
-        { id: 'M3', comment_id: 'C1', created_at: '2026-07-29T12:00:00.000Z', motivo: null },
-        { id: 'M4', comment_id: 'C1', created_at: '2026-07-29T12:00:00.000Z', motivo: 'outro' },
+        {
+          id: 'M3',
+          comment_id: 'C1',
+          created_at: '2026-07-29T12:00:00.000Z',
+          motivo: null,
+          lido_em: null,
+        },
+        {
+          id: 'M4',
+          comment_id: 'C1',
+          created_at: '2026-07-29T12:00:00.000Z',
+          motivo: 'outro',
+          lido_em: null,
+        },
       ],
       error: null,
     };
