@@ -2,11 +2,13 @@ import { describe, it, expect } from 'vitest';
 import {
   SEM_CLUSTER,
   agruparPorCluster,
+  candidatosParaCopia,
   contarVinculosPorProduto,
   filtrarProdutos,
   filtrarServicos,
   normalizarTexto,
   separarVisiveisParaLote,
+  servicosACopiar,
 } from './produtoServicoVinculo';
 
 const produtos = [
@@ -112,5 +114,71 @@ describe('separarVisiveisParaLote', () => {
     const { paraVincular, jaVinculados } = separarVisiveisParaLote(servicos, new Set(['s-1']));
     expect(paraVincular.map(s => s.id)).toEqual(['s-2', 's-3', 's-4']);
     expect(jaVinculados.map(s => s.id)).toEqual(['s-1']);
+  });
+});
+
+/* ───────────────────────────────────────────────────────────────────────
+ * Copiar de outro produto
+ * ─────────────────────────────────────────────────────────────────────── */
+
+const TAX = 'cl-tax';
+const OSG = 'cl-osg';
+
+const prod = (id: string, cluster_id: string | null) => ({
+  id, codigo: id.toUpperCase(), nome: `Produto ${id}`, cluster_id,
+});
+const liga = (p: string, s: string) => ({ produto_segmento_id: p, servico_prestado_id: s });
+
+const PRODUTOS = [prod('alvo', TAX), prod('cheio', TAX), prod('irmao', TAX), prod('fora', OSG), prod('vazio', TAX)];
+const VINCULOS = [
+  liga('alvo', 's1'),
+  liga('cheio', 's1'), liga('cheio', 's2'), liga('cheio', 's3'),
+  liga('irmao', 's1'), liga('irmao', 's2'),
+  liga('fora', 's9'), liga('fora', 's10'), liga('fora', 's11'),
+];
+
+describe('servicosACopiar', () => {
+  it('traz só o que o alvo ainda não tem', () => {
+    expect(servicosACopiar(VINCULOS, 'cheio', 'alvo')).toEqual(['s2', 's3']);
+  });
+
+  it('origem contida no alvo não traz nada', () => {
+    expect(servicosACopiar(VINCULOS, 'alvo', 'cheio')).toEqual([]);
+  });
+
+  it('origem sem vínculo nenhum não traz nada', () => {
+    expect(servicosACopiar(VINCULOS, 'vazio', 'alvo')).toEqual([]);
+  });
+});
+
+describe('candidatosParaCopia', () => {
+  const alvo = PRODUTOS[0];
+
+  it('deixa de fora o próprio alvo e quem não tem vínculo nenhum', () => {
+    const ids = candidatosParaCopia(PRODUTOS, VINCULOS, alvo).map((c) => c.id);
+    expect(ids).not.toContain('alvo');
+    expect(ids).not.toContain('vazio');
+  });
+
+  /*
+   * A ordem É a recomendação: o primeiro da lista é o que a pessoa escolhe sem
+   * ler o resto. Mesmo cluster primeiro; dentro dele, quem traz mais coisa nova.
+   */
+  it('põe o mesmo cluster na frente e, dentro dele, quem traz mais', () => {
+    // `fora` traz 3 novos contra os 2 de `cheio`: se o cluster não viesse
+    // primeiro, ele lideraria. É o que separa esta regra de uma ordenação
+    // simples por quantidade.
+    expect(candidatosParaCopia(PRODUTOS, VINCULOS, alvo).map((c) => c.id))
+      .toEqual(['cheio', 'irmao', 'fora']);
+  });
+
+  it('separa o total do candidato do que ele acrescenta aqui', () => {
+    const cheio = candidatosParaCopia(PRODUTOS, VINCULOS, alvo).find((c) => c.id === 'cheio');
+    expect(cheio).toMatchObject({ total: 3, novos: 2 });
+  });
+
+  it('produto de outro cluster continua alcançável, só que depois', () => {
+    const fora = candidatosParaCopia(PRODUTOS, VINCULOS, alvo).find((c) => c.id === 'fora');
+    expect(fora).toMatchObject({ mesmoCluster: false, total: 3, novos: 3 });
   });
 });

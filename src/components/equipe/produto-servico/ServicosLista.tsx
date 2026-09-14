@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Layers, Link2, Pencil, Plus, Search, Unlink } from 'lucide-react';
+import { Copy, Layers, Link2, Pencil, Plus, Search, Unlink } from 'lucide-react';
 
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -69,6 +69,10 @@ interface Props {
   /** Liga/desliga o vínculo de UM serviço, na hora. É o clique da caixa. */
   onAlternarVinculo: (servico: ServicoNaLista) => void;
   onNovo: () => void;
+  /** Abre a cópia do conjunto de serviços de outro produto. */
+  onCopiarDeOutro: () => void;
+  /** Há produto de onde copiar? Sem nenhum, o botão não aparece. */
+  podeCopiar: boolean;
   /** Abre o formulário do PRODUTO aberto — é o único lugar que edita o nome dele. */
   onEditarProduto: () => void;
   /** Faixa de aviso logo abaixo do cabeçalho (produto sem vínculo nenhum). */
@@ -112,7 +116,8 @@ export default function ServicosLista({
   doCluster, outrosClusters, mostrarOutros, onMostrarOutros,
   idsVisiveis, resumo, filtro, onFiltroChange,
   marcados, onMarcar, onLimparMarcados, servicoAbertoId, onAbrirServico,
-  onLote, onAlternarVinculo, onNovo, onEditarProduto, aviso, carregando,
+  onLote, onAlternarVinculo, onNovo, onCopiarDeOutro, podeCopiar,
+  onEditarProduto, aviso, carregando,
 }: Props) {
   const [ancora, setAncora] = useState<string | null>(null);
   const [confirmarDesvincular, setConfirmarDesvincular] = useState(false);
@@ -321,6 +326,23 @@ export default function ServicosLista({
               ))}
             </SelectContent>
           </Select>
+
+          {/*
+            Cabe aqui porque o dropdown de ações em massa e os dois botões de
+            filtro saíram desta barra. Fica ao lado do "Novo serviço" de
+            propósito: são os dois jeitos de encher um produto — um serviço por
+            vez, ou o conjunto de um produto parecido.
+          */}
+          {podeCopiar && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 shrink-0 text-xs"
+              onClick={onCopiarDeOutro}
+            >
+              <Copy className="mr-1 h-3 w-3" />Copiar de outro produto
+            </Button>
+          )}
 
           <Button size="sm" variant="outline" className="h-8 shrink-0 text-xs" onClick={onNovo}>
             <Plus className="mr-1 h-3 w-3" />Novo serviço

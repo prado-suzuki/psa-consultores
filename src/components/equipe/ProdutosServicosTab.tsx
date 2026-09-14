@@ -18,19 +18,21 @@ import {
 import ProdutoFormDialog from '@/components/equipe/produto-servico/ProdutoFormDialog';
 import ServicoFormDialog from '@/components/equipe/produto-servico/ServicoFormDialog';
 import ConfirmarExclusaoDialog from '@/components/equipe/produto-servico/ConfirmarExclusaoDialog';
+import CopiarDeProdutoDialog from '@/components/equipe/produto-servico/CopiarDeProdutoDialog';
 import { cn } from '@/lib/utils';
 import {
-  TODOS_CLUSTERS, contarVinculosPorProduto, filtrarProdutos, filtrarServicos,
+  TODOS_CLUSTERS, candidatosParaCopia, contarVinculosPorProduto, filtrarProdutos,
+  filtrarServicos, servicosACopiar,
 } from '@/lib/produtoServicoVinculo';
 import {
   contarVinculosPorServico, dividirNomeServico, ordenarPorCodigoDeServico,
 } from '@/lib/produtoServicoNomes';
 import {
-  isVinculoOtimista, useProdutoSegmentoList, useProdutoServicoList,
-  useProdutoServicoLote, useProdutoServicoToggle, useServicosPrestadosDelete,
+  useProdutoSegmentoList, useProdutoServicoList, useServicosPrestadosDelete,
   useServicosPrestadosList,
   type ProdutoSegmento, type ServicoPrestado,
 } from '@/hooks/useCategorias';
+import { useVinculoProdutoServicoController } from '@/hooks/useVinculoProdutoServicoController';
 import type { FiltroVinculo } from '@/lib/produtoServicoVinculo';
 
 interface EstadoFormulario<T> {
@@ -71,17 +73,15 @@ export default function ProdutosServicosTab() {
     busca: '', modo: 'todos',
   });
   const [mostrarOutrosClusters, setMostrarOutrosClusters] = useState(false);
-  const [emAndamento, setEmAndamento] = useState<Set<string>>(new Set());
   const [formProduto, setFormProduto] = useState<EstadoFormulario<ProdutoSegmento>>(FORM_FECHADO);
   const [formServico, setFormServico] = useState<EstadoFormulario<ServicoPrestado>>(FORM_FECHADO);
   const [servicoParaExcluir, setServicoParaExcluir] = useState<ServicoPrestado | null>(null);
+  const [copiarAberto, setCopiarAberto] = useState(false);
 
   const { data: vinculos = [], isLoading } = useProdutoServicoList();
   const { data: produtos = [] } = useProdutoSegmentoList();
   const { data: servicos = [] } = useServicosPrestadosList();
 
-  const toggleVinculo = useProdutoServicoToggle();
-  const lote = useProdutoServicoLote();
   const { remove: removerServico } = useServicosPrestadosDelete();
 
   // ── Produtos ────────────────────────────────────────────────────────
@@ -107,6 +107,17 @@ export default function ProdutosServicosTab() {
     () => produtos.find((p) => p.id === produtoEscolhidoId) ?? produtosVisiveis[0] ?? null,
     [produtos, produtoEscolhidoId, produtosVisiveis],
   );
+
+  // ── Ações ───────────────────────────────────────────────────────────
+  // As três que escrevem vínculo moram no controlador: alternar uma, o lote com
+  // desfazer, e a cópia do conjunto de outro produto.
+  const { emAndamento, alternarVinculo, executarLote, copiarDe } =
+    useVinculoProdutoServicoController({
+      vinculos,
+      produto: produtoSelecionado,
+      servicos,
+      aoConcluirLote: () => setMarcados(new Set()),
+    });
 
   // ── Serviços do produto aberto ──────────────────────────────────────
   const vinculosDoProduto = useMemo(
@@ -218,124 +229,6 @@ export default function ProdutosServicosTab() {
     };
   }, [vinculos, servicoAbertoId, produtosAtivos]);
 
-  // ── Ações ───────────────────────────────────────────────────────────
-  /**
-   * O "Desfazer" do toast precisa chamar `alternarVinculo`, que é definida
-   * abaixo — referenciá-la direto criaria ciclo no `useCallback`. A ref guarda
-   * sempre a versão corrente.
-   */
-  const alternarVinculoRef = useRef<(p: string, s: string, n: string) => Promise<void>>();
-
-  const alternarVinculo = useCallback(async (produtoId: string, servicoId: string, servicoNome: string) => {
-    if (emAndamento.has(servicoId)) return;
-    const vinculoAtual = vinculos.find(
-      (v) => v.produto_segmento_id === produtoId && v.servico_prestado_id === servicoId,
-    ) ?? null;
-    if (vinculoAtual && isVinculoOtimista(vinculoAtual.id)) return;
-
-    const desvinculando = !!vinculoAtual;
-    setEmAndamento((atual) => new Set(atual).add(servicoId));
-    try {
-      await toggleVinculo.mutateAsync({
-        produtoSegmentoId: produtoId,
-        servicoPrestadoId: servicoId,
-        vinculoAtual,
-        entityName: `${produtoSelecionado?.codigo || '?'} → ${servicoNome}`,
-      });
-      // O desfazer de um clique é o próprio clique de volta — o toggle é
-      // simétrico. Existe mesmo assim porque, sem ele, desvincular por engano
-      // só se percebe depois, e aí é preciso reencontrar a linha na lista.
-      const { nome } = dividirNomeServico(servicoNome);
-      toast.success(desvinculando ? `"${nome}" desvinculado` : `"${nome}" vinculado`, {
-        action: {
-          label: 'Desfazer',
-          onClick: () => void alternarVinculoRef.current?.(produtoId, servicoId, servicoNome),
-        },
-      });
-    } catch {
-      // erro já tratado no hook (rollback + toast)
-    } finally {
-      setEmAndamento((atual) => {
-        const proximo = new Set(atual);
-        proximo.delete(servicoId);
-        return proximo;
-      });
-    }
-  }, [emAndamento, vinculos, toggleVinculo, produtoSelecionado?.codigo]);
-
-  alternarVinculoRef.current = alternarVinculo;
-
-  /**
-   * Vincula/desvincula em lote e oferece DESFAZER.
-   *
-   * O desfazer é o inverso exato: o que foi criado é apagado pelos ids que o
-   * insert devolveu, e o que foi apagado é recriado a partir dos serviços que a
-   * ação recebeu. Só existe para o lote — o clique numa linha só já é otimista e
-   * se desfaz clicando de novo.
-   */
-  const executarLote = useCallback(async (
-    acao: 'vincular' | 'desvincular',
-    servicosAlvo: ServicoNaLista[],
-  ) => {
-    if (!produtoSelecionado || servicosAlvo.length === 0) return;
-    const produtoId = produtoSelecionado.id;
-    const produtoCodigo = produtoSelecionado.codigo || '?';
-    const quantos = servicosAlvo.length;
-    const rotulo = `${quantos} ${quantos === 1 ? 'serviço' : 'serviços'}`;
-
-    try {
-      if (acao === 'vincular') {
-        const resultado = await lote.mutateAsync({
-          acao: 'vincular',
-          produtoSegmentoId: produtoId,
-          produtoCodigo,
-          servicos: servicosAlvo.map((s) => ({ id: s.id, nome: s.nome })),
-        });
-        const criados = resultado.acao === 'vincular' ? resultado.criados : [];
-        toast.success(`${rotulo} vinculados`, {
-          action: {
-            label: 'Desfazer',
-            onClick: () => {
-              void lote.mutateAsync({
-                acao: 'desvincular',
-                produtoCodigo,
-                vinculos: criados.map((linha) => ({
-                  id: linha.id,
-                  servicoNome: servicosAlvo.find((s) => s.id === linha.servico_prestado_id)?.nome || '?',
-                })),
-              });
-            },
-          },
-        });
-      } else {
-        const alvos = servicosAlvo
-          .map((s) => ({ vinculo: vinculoPorServico.get(s.id), servico: s }))
-          .filter((par) => !!par.vinculo && !isVinculoOtimista(par.vinculo.id));
-        if (alvos.length === 0) return;
-        await lote.mutateAsync({
-          acao: 'desvincular',
-          produtoCodigo,
-          vinculos: alvos.map((par) => ({ id: par.vinculo!.id, servicoNome: par.servico.nome })),
-        });
-        toast.success(`${rotulo} desvinculados`, {
-          action: {
-            label: 'Desfazer',
-            onClick: () => {
-              void lote.mutateAsync({
-                acao: 'vincular',
-                produtoSegmentoId: produtoId,
-                produtoCodigo,
-                servicos: alvos.map((par) => ({ id: par.servico.id, nome: par.servico.nome })),
-              });
-            },
-          },
-        });
-      }
-      setMarcados(new Set());
-    } catch {
-      // erro já tratado no hook
-    }
-  }, [produtoSelecionado, lote, vinculoPorServico]);
 
   const marcar = useCallback((ids: string[], marcarAgora: boolean) => {
     setMarcados((atual) => {
@@ -348,10 +241,16 @@ export default function ProdutosServicosTab() {
     });
   }, []);
 
-  const vincularSugeridosDoCluster = useCallback(() => {
-    if (!produtoSelecionado?.cluster_id) return;
-    void executarLote('vincular', listasDeServico.doCluster.filter((s) => !s.vinculado));
-  }, [produtoSelecionado, listasDeServico, executarLote]);
+  /**
+   * Os produtos que podem servir de origem para uma cópia, com os DOIS números
+   * que a escolha pede: quantos serviços o candidato tem, e quantos deles ainda
+   * faltam aqui. Os do mesmo cluster vão para o topo; os demais continuam
+   * alcançáveis, porque produto sem cluster existe.
+   */
+  const candidatosParaCopiar = useMemo(
+    () => (produtoSelecionado ? candidatosParaCopia(produtosAtivos, vinculos, produtoSelecionado) : []),
+    [produtosAtivos, vinculos, produtoSelecionado],
+  );
 
   const semVinculoNenhum = produtoSelecionado && vinculosDoProduto.length === 0;
 
@@ -493,6 +392,8 @@ export default function ProdutosServicosTab() {
             if (produtoSelecionado) void alternarVinculo(produtoSelecionado.id, servico.id, servico.nome);
           }}
           onNovo={() => setFormServico({ aberto: true, alvo: null })}
+          onCopiarDeOutro={() => setCopiarAberto(true)}
+          podeCopiar={candidatosParaCopiar.length > 0}
           onEditarProduto={() => {
             if (produtoSelecionado) setFormProduto({ aberto: true, alvo: produtoSelecionado });
           }}
@@ -516,14 +417,20 @@ export default function ProdutosServicosTab() {
                 </strong>
                 {' '}são cadastrados normalmente; só nascem sem tarefa nenhuma.
               </span>
-              {produtoSelecionado?.cluster_id && (
+              {/*
+                Era "Vincular sugeridos do mesmo cluster", e ele marcava o
+                CLUSTER INTEIRO — dezenas de serviços num produto cujo vizinho
+                mais cheio tem 16. Nenhum produto quer isso. Copiar de um produto
+                parecido traz o punhado que de fato se usa junto.
+              */}
+              {candidatosParaCopiar.length > 0 && (
                 <Button
                   size="sm"
                   variant="outline"
                   className="ml-auto h-7 text-xs"
-                  onClick={vincularSugeridosDoCluster}
+                  onClick={() => setCopiarAberto(true)}
                 >
-                  Vincular sugeridos do mesmo cluster
+                  Copiar de outro produto
                 </Button>
               )}
             </div>
@@ -593,6 +500,14 @@ export default function ProdutosServicosTab() {
           // Serviço criado dentro de um produto já entra vinculado a ele.
           if (produtoSelecionado) void alternarVinculo(produtoSelecionado.id, servicoId, nome);
         }}
+      />
+
+      <CopiarDeProdutoDialog
+        aberto={copiarAberto}
+        nomeDoAlvo={`${produtoSelecionado?.codigo ?? '?'} — ${produtoSelecionado?.nome ?? ''}`}
+        candidatos={candidatosParaCopiar}
+        onFechar={() => setCopiarAberto(false)}
+        onConfirmar={copiarDe}
       />
 
       <ConfirmarExclusaoDialog
