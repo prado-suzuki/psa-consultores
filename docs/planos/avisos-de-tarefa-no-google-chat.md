@@ -140,6 +140,19 @@ escrevem sozinhos — ligar é um UPDATE em `cron.job`, por banco, quando for a 
 sabendo que são ~2 por dia, contra as 2 mudanças de status em 60 dias que **não** justificam
 aviso.
 
+## O que só existe no deploy, e não no repositório
+
+Três coisas que nenhum commit entrega, e sem as quais a borda responde mas não publica:
+
+1. **`[functions.notificar-equipe] verify_jwt = false` no `supabase/config.toml`.** Sem
+   isso o cron, que chama com `x-api-key` e sem `Authorization` (molde da GES-04), leva 401
+   antes de entrar na função. O arquivo é autogerado e o AGENTS.md proíbe editá-lo à mão,
+   então **quem grava a entrada é o Lovable, ao publicar a função** — vale conferir que
+   ela ficou lá, do lado das outras.
+2. **Os segredos `GCHAT_WEBHOOK_TAX` e `GCHAT_WEBHOOK_OSG`**, um por área, em cada banco.
+   No sandbox, ambos apontando para o webhook de teste.
+3. **O segredo `CRON_CHAT_TOKEN`**, que é como o cron se identifica na borda.
+
 ## Ordem que não pode inverter
 
 Migration aplicada no sandbox vem **junto** do commit que a usa, nunca depois. Produção é
