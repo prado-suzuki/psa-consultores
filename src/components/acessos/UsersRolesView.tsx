@@ -145,15 +145,15 @@ export const UsersRolesView = ({
               <TableHeader className="bg-muted">
                 <TableRow>
                   <TableHead>Usuário</TableHead>
-                  <TableHead className="hidden xl:table-cell">Email</TableHead>
+                  <TableHead className="hidden 2xl:table-cell">Email</TableHead>
                   {/* A pilula e a matriz dizem A MESMA COISA — a linha nunca
                       mostra as duas. Abaixo de `lg` ficam as pilulas (que cabem
                       numa celula so); de `lg` para cima, as sete colunas. Era
                       essa duplicata que fazia a tabela ter dez colunas e rolar
                       para o lado em qualquer tela que nao fosse a de 1920. */}
-                  <TableHead className="lg:hidden">Permissões</TableHead>
+                  <TableHead className="xl:hidden">Permissões</TableHead>
                   {columns.map((role) => (
-                    <TableHead key={role} className="hidden lg:table-cell text-center">
+                    <TableHead key={role} className="hidden xl:table-cell text-center">
                       {columnHeader(role)}
                     </TableHead>
                   ))}
@@ -168,14 +168,14 @@ export const UsersRolesView = ({
                           embaixo do nome — e o mesmo empilhamento da lista de
                           usuarios da aba ao lado, e evita o email sumir de vez
                           nas larguras em que ele nao cabe como coluna. */}
-                      <span className="block xl:hidden text-xs font-normal text-muted-foreground">
+                      <span className="block 2xl:hidden text-xs font-normal text-muted-foreground break-all">
                         {user.email}
                       </span>
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell text-muted-foreground">
+                    <TableCell className="hidden 2xl:table-cell text-muted-foreground break-all">
                       {user.email}
                     </TableCell>
-                    <TableCell className="lg:hidden">
+                    <TableCell className="xl:hidden">
                       <div className="flex gap-1 flex-wrap">
                         {user.roles.map((role) => (
                           <PapelBadge key={role} papel={role} />
@@ -186,7 +186,7 @@ export const UsersRolesView = ({
                       </div>
                     </TableCell>
                     {columns.map((role) => (
-                      <TableCell key={role} className="hidden lg:table-cell text-center">
+                      <TableCell key={role} className="hidden xl:table-cell text-center">
                         {user.roles.includes(role) ? (
                           <CheckCircle className="h-5 w-5 text-status-feito mx-auto" />
                         ) : (

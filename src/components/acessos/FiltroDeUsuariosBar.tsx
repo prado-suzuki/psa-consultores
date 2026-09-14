@@ -93,7 +93,7 @@ export const FiltroDeUsuariosBar = ({
           value={filtro.papel}
           onValueChange={(v) => onChange({ ...filtro, papel: v as AppRole | 'all' })}
         >
-          <SelectTrigger className="h-9 text-xs sm:w-40">
+          <SelectTrigger className="h-9 text-xs sm:w-44">
             <SelectValue placeholder="Papel" />
           </SelectTrigger>
           <SelectContent>
@@ -111,7 +111,7 @@ export const FiltroDeUsuariosBar = ({
           onValueChange={(v) => onChange({ ...filtro, areaId: v })}
           disabled={opcoesDeArea.length === 0}
         >
-          <SelectTrigger className="h-9 text-xs sm:w-40">
+          <SelectTrigger className="h-9 text-xs sm:w-44">
             <SelectValue placeholder="Área" />
           </SelectTrigger>
           <SelectContent>

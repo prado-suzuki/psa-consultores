@@ -167,12 +167,12 @@ export const MatrizDeAcessos = ({
             />
           </TableHead>
           <TableHead>Usuário</TableHead>
-          <TableHead className="hidden xl:table-cell">Email</TableHead>
+          <TableHead className="hidden 2xl:table-cell">Email</TableHead>
           {/* Pílulas e matriz são a MESMA informação — a linha mostra uma só.
               Ver o commit que tirou a tabela de dez colunas. */}
-          <TableHead className="lg:hidden">Permissões</TableHead>
+          <TableHead className="xl:hidden">Permissões</TableHead>
           {colunas.map((coluna) => (
-            <TableHead key={coluna} className="hidden lg:table-cell text-center text-xs">
+            <TableHead key={coluna} className="hidden xl:table-cell text-center text-xs">
               {rotuloDaColuna(coluna)}
             </TableHead>
           ))}
@@ -194,12 +194,12 @@ export const MatrizDeAcessos = ({
             </TableCell>
             <TableCell className="font-medium text-foreground">
               {nomeDe(usuario)}
-              <span className="block xl:hidden text-xs font-normal text-muted-foreground">
+              <span className="block 2xl:hidden text-xs font-normal text-muted-foreground break-all">
                 {usuario.email}
               </span>
             </TableCell>
-            <TableCell className="hidden xl:table-cell text-muted-foreground">{usuario.email}</TableCell>
-            <TableCell className="lg:hidden">
+            <TableCell className="hidden 2xl:table-cell text-muted-foreground break-all">{usuario.email}</TableCell>
+            <TableCell className="xl:hidden">
               <div className="flex gap-1 flex-wrap">
                 {usuario.roles.map((papel) => (
                   <PapelBadge key={papel} papel={papel} />
@@ -210,7 +210,7 @@ export const MatrizDeAcessos = ({
               </div>
             </TableCell>
             {colunas.map((coluna) => (
-              <TableCell key={coluna} className="hidden lg:table-cell text-center p-1">
+              <TableCell key={coluna} className="hidden xl:table-cell text-center p-1">
                 <CelulaDaMatriz
                   ligada={ligada(usuario, coluna)}
                   salvando={salvando === `${usuario.id}:${coluna}`}
