@@ -57,6 +57,7 @@ import {
 } from '@/lib/sidebarMedidas';
 import { FACE_DA_BARRA, classesItemDaBarra } from '@/lib/barraLateralCromo';
 import { GrupoDaBarra } from '@/components/equipe/osg/GrupoDaBarra';
+import { GRUPOS_OSG_WORK, INICIO_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
 import { linkEspelhado } from '@/lib/areaTheme';
@@ -203,98 +204,6 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
     { path: '/equipe/osg/gerencial/logs-equipe', label: 'Logs de Uso', icon: Shield },
   ];
   const isGerencialActive = location.pathname.startsWith('/equipe/osg/gerencial');
-
-  // Itens do agrupador "Documentos" — expande no hover (e fica aberto na rota ativa)
-  const docItems = [
-    { path: '/equipe/osg/work/biblioteca-modelos', label: 'Biblioteca de Modelos' },
-    { path: '/equipe/osg/work/montagem-documentos', label: 'Montagem de Documentos' },
-    { path: '/equipe/osg/work/gerar-documento', label: 'Gerar Documento' },
-  ];
-  const isDocsActive = docItems.some((item) => item.path === location.pathname);
-
-  // Itens do agrupador "Onboarding" — a solicitação inicial e a tela onde os
-  // arquivos que chegaram viram cadastro. Mesmo padrão de dropdown por hover.
-  const onbItems = [
-    // O rótulo acompanha o título da tela (10/09/2026, Patrícia): mesmo nome
-    // para a mesma coisa no menu e no cabeçalho. A rota segue `onboarding`
-    // porque está gravada em `page_permissions` — endereço é técnico, rótulo é
-    // do usuário, e os dois não precisam casar.
-    { path: '/equipe/osg/work/onboarding', label: 'Solicitação de documentos' },
-    { path: '/equipe/osg/work/onboarding/cadastro', label: 'Cadastro por Documento' },
-  ];
-  const isOnbActive = onbItems.some((item) => item.path === location.pathname);
-
-  /**
-   * Itens do agrupador "Estrutura do Cliente" (especificação final da Patrícia,
-   * 11/09/2026). Os cinco eram itens SOLTOS na barra e passam a ser filhos.
-   *
-   * CADA UM MANTÉM O SEU ÍCONE, e é por isso que `GrupoDaBarra` aceita ícone no
-   * filho: agrupar sem isso apagaria cinco ícones que hoje existem na tela.
-   *
-   * A ordem é a da spec, e não a alfabética nem a de hoje: Qualificação e Quadro
-   * Societário ficam lado a lado de propósito — o checklist dela pede "Mover
-   * Quadro Societário para Estrutura do Cliente, próximo de Qualificação das
-   * Partes".
-   */
-  const estruturaItems = [
-    { path: '/equipe/osg/work/qualificacao-das-partes', label: 'Qualificação das Partes', icone: Users },
-    { path: '/equipe/osg/work/quadro-societario', label: 'Quadro Societário', icone: PieChart },
-    { path: '/equipe/osg/work/diagnostico-patrimonial', label: 'Diagnóstico Patrimonial', icone: Landmark },
-    { path: '/equipe/osg/work/controle-matriculas', label: 'Controle de Matrículas', icone: FileText },
-    { path: '/equipe/osg/work/exploracao-rural', label: 'Exploração Rural', icone: Sprout },
-  ];
-  const isEstruturaActive = estruturaItems.some((item) => item.path === location.pathname);
-
-  /**
-   * Os dois agrupadores de UM item só, também da especificação.
-   *
-   * O ÍCONE SOBE PARA O CABEÇALHO e o filho fica sem: `Calculator` e
-   * `FileBarChart2` eram dos próprios itens quando eles viviam soltos. Assim
-   * nada some da tela — inclusive no trilho recolhido, onde só o ícone aparece —
-   * e evita-se grupo e filho ostentando o mesmo desenho um embaixo do outro.
-   *
-   * Um dropdown de um item é redundante hoje, e é assumido: a spec cria as duas
-   * categorias para a SEGUNDA ferramenta e o SEGUNDO relatório entrarem sem
-   * reorganizar o menu de novo. É a mesma razão registrada no "Governança", que
-   * também nasceu com um item.
-   */
-  const ferramentasItems = [
-    { path: '/equipe/osg/work/calculadora-itcmd', label: 'Calculadora de ITCD' },
-  ];
-  const isFerramentasActive = ferramentasItems.some((item) => item.path === location.pathname);
-
-  const relatoriosItems = [
-    { path: '/equipe/osg/work/relatorios', label: 'Relatórios' },
-  ];
-  const isRelatoriosActive = relatoriosItems.some((item) => item.path === location.pathname);
-
-  // Itens do agrupador "Documentos" — o grupo perdeu o "do Cliente" na
-  // especificação de 11/09; quem carrega esse nome agora é o item de dentro.
-  const documentosItems = [
-    // "Explorador de arquivos" saiu na especificação final da Patrícia
-    // (11/09/2026): o rótulo do menu passa a ser o mesmo H1 da página, para
-    // ninguém clicar num nome e encontrar outro.
-    { path: '/equipe/osg/work/documentos', label: 'Documentos do Cliente' },
-    // SINGULAR, e este é o único item em que a especificação final da Patrícia
-    // (11/09/2026) não foi seguida. Ela escreve "Checklists de Documentos", no
-    // plural, que era certo enquanto a tela tinha duas abas — Pendências e
-    // Planejamento tributário. A segunda saiu em 10/09, depois de auditada, e
-    // sobrou um checklist só. Plural aqui prometeria uma lista que não existe.
-    // A rota segue no plural: é endereço, não rótulo.
-    { path: '/equipe/osg/work/checklists', label: 'Checklist de documentos' },
-  ];
-  const isDocumentosActive = documentosItems.some((item) => item.path === location.pathname);
-
-  // Itens do agrupador "Governança" (GOV-01). Nasce com um item só, de propósito:
-  // o levantamento mapeou seis documentos de governança, e cada um vira tela ou
-  // parte de tela. Criar o agrupador agora evita que o segundo entre solto e o
-  // terceiro obrigue a renomear endereço já com permissão concedida, o que exige
-  // migration com UPDATE porque o sincronizador de páginas casa por CAMINHO.
-  const govItems = [
-    { path: '/equipe/osg/work/governanca/orgaos', label: 'Órgãos de Governança' },
-    { path: '/equipe/osg/work/governanca/matriz', label: 'Matriz de Alçadas' },
-  ];
-  const isGovActive = govItems.some((item) => item.path === location.pathname);
 
   // Os NOMES moram em `@/lib/nomeDaArea`; a decisão de qual rota é qual fica
   // aqui, onde os predicados já existem para o menu.
@@ -462,75 +371,43 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             )}
 
             {/* ───── OSG Work: ferramentas próprias (inalteradas) ───── */}
-            {/* ───── OSG Work: a ordem e os agrupamentos da especificação final
-                 da Patrícia (11/09/2026), seção 3 — "entrada do cliente →
-                 estruturação → governança → produção documental → gestão
-                 documental → ferramentas → relatórios".
-
-                 UMA INCONSISTÊNCIA FICA DE PÉ, e é deliberada: os cinco filhos
-                 de "Estrutura do Cliente" têm ícone porque eram itens soltos e
-                 o tinham, enquanto os nove filhos dos outros grupos nunca
-                 tiveram. Uniformizar exige decidir entre dar ícone aos nove ou
-                 tirar dos cinco, e isso é padrão visual — vai junto com a
-                 validação da própria spec com quem a escreveu. ───── */}
+            {/* ───── OSG Work: a barra inteira sai de `navegacaoOsgWork`, a
+                 mesma fonte que o painel de entrada lê. Eram duas listas da
+                 mesma coisa e elas divergiram — o menu com 14 telas em sete
+                 grupos, o painel com sete soltas e outras frases. ───── */}
             {isWork && (
               <>
-                <GrupoDaBarra
-                  icone={Rocket}
-                  rotulo="Onboarding"
-                  ativo={isOnbActive}
-                  itens={onbItems}
-                  trilho={trilho}
-                  rotuloCls={rotuloCls}
-                />
-                <GrupoDaBarra
-                  icone={Network}
-                  rotulo="Estrutura do Cliente"
-                  ativo={isEstruturaActive}
-                  itens={estruturaItems}
-                  trilho={trilho}
-                  rotuloCls={rotuloCls}
-                />
-                <GrupoDaBarra
-                  icone={Scale}
-                  rotulo="Governança"
-                  ativo={isGovActive}
-                  itens={govItems}
-                  trilho={trilho}
-                  rotuloCls={rotuloCls}
-                />
-                <GrupoDaBarra
-                  icone={FileSignature}
-                  rotulo="Oficina de Contratos"
-                  ativo={isDocsActive}
-                  itens={docItems}
-                  trilho={trilho}
-                  rotuloCls={rotuloCls}
-                />
-                <GrupoDaBarra
-                  icone={FolderArchive}
-                  rotulo="Documentos"
-                  ativo={isDocumentosActive}
-                  itens={documentosItems}
-                  trilho={trilho}
-                  rotuloCls={rotuloCls}
-                />
-                <GrupoDaBarra
-                  icone={Calculator}
-                  rotulo="Ferramentas / Cálculos"
-                  ativo={isFerramentasActive}
-                  itens={ferramentasItems}
-                  trilho={trilho}
-                  rotuloCls={rotuloCls}
-                />
-                <GrupoDaBarra
-                  icone={FileBarChart2}
-                  rotulo="Relatórios"
-                  ativo={isRelatoriosActive}
-                  itens={relatoriosItems}
-                  trilho={trilho}
-                  rotuloCls={rotuloCls}
-                />
+                {/* "Início" volta ao padrão das outras duas áreas (Tax e OSG
+                    Projects): a rota do painel existia e NENHUM item levava a
+                    ela. Você caía lá ao entrar na área e, depois do primeiro
+                    clique, não voltava mais. */}
+                <button
+                  onClick={() => navigate(INICIO_OSG_WORK)}
+                  className={cn(
+                    classesItemDaBarra({ ativo: location.pathname === INICIO_OSG_WORK, trilho }),
+                  )}
+                >
+                  <Home className="h-4 w-4 flex-shrink-0" />
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Início</span>
+                </button>
+
+                {GRUPOS_OSG_WORK.map((grupo) => (
+                  <GrupoDaBarra
+                    key={grupo.id}
+                    icone={grupo.icone}
+                    rotulo={grupo.rotulo}
+                    ativo={grupo.telas.some((t) => t.path === location.pathname)}
+                    itens={grupo.telas.map((t) => ({
+                      path: t.path,
+                      label: t.label,
+                      // Ícone no filho só onde o grupo pede — ver a nota do
+                      // `iconeNosItens` na fonte.
+                      icone: grupo.iconeNosItens ? t.icone : undefined,
+                    }))}
+                    trilho={trilho}
+                    rotuloCls={rotuloCls}
+                  />
+                ))}
               </>
             )}
 

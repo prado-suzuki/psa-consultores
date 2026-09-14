@@ -28,7 +28,7 @@ const CadastroPorDocumento = () => {
   return (
     <OsgLayout
       title="Cadastro por Documento"
-      subtitle="Cadastre uma entidade a partir de um documento ainda não vinculado."
+      subtitle="Cadastre pessoas, empresas ou imóveis a partir de um documento ainda não vinculado."
     >
       {!clienteId ? (
         <Card>

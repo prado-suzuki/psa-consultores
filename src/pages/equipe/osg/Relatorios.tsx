@@ -31,7 +31,7 @@ const Relatorios = () => {
   return (
     <OsgLayout
       title="Relatórios"
-      subtitle="Consulte relatórios consolidados do OSG Work por cliente."
+      subtitle="Gere os relatórios de diagnóstico patrimonial, quadro societário e planejamento tributário do cliente."
       headerActions={
         clienteId ? (
           <div className="flex items-center gap-2">

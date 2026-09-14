@@ -16,7 +16,7 @@ const DocumentosCliente = () => {
   return (
     <OsgLayout
       title="Documentos do Cliente"
-      subtitle="Consulte todos os arquivos recebidos e organizados por entidade."
+      subtitle="Consulte os arquivos recebidos, organizados por pessoa, empresa ou imóvel."
     >
       {!clienteId ? (
         <Card>

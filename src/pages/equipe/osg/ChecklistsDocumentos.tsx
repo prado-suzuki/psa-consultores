@@ -41,7 +41,7 @@ const ChecklistsDocumentos = () => {
       /* Subtítulo da mesma especificação. Ele troca "solicitados" por
          "obrigatórios" — os dois contam coisas diferentes, e é a palavra dela
          que vale. */
-      subtitle="Acompanhe documentos obrigatórios, recebidos e pendentes de cada cliente."
+      subtitle="Acompanhe os documentos solicitados, recebidos e pendentes de cada cliente."
       headerActions={
         clienteId ? (
           <Button

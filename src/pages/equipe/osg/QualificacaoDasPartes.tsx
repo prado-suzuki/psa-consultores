@@ -236,7 +236,7 @@ const QualificacaoDasPartes = () => {
   return (
     <OsgLayout
       title="Qualificação das Partes"
-      subtitle="Cadastre pessoas, empresas e vínculos relacionados ao cliente."
+      subtitle="Cadastre e gerencie pessoas, empresas e vínculos relacionados ao cliente."
     >
       <div className="space-y-4">
         {!clienteId ? (
