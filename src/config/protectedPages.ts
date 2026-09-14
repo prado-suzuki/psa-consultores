@@ -677,7 +677,9 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/osg/work/diagnostico-patrimonial',
-    page_name: 'Diagnóstico Patrimonial',
+    // O `page_path` continua `diagnostico-patrimonial`: é a chave de
+    // `page_permissions` em produção. Só o nome exibido acompanha o menu.
+    page_name: 'Cadastro Patrimonial',
     page_description: 'Cadastro de bens, matrículas, titulares e impedimentos por cliente',
     category: 'osg',
     requires_admin: false,

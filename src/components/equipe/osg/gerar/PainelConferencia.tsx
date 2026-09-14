@@ -170,7 +170,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                           <SecaoPainel icone={<Users />} titulo="Sócios" contagem={socios.length}>
                             {socios.length === 0 ? (
                               <AvisoPendencia
-                                acao={ehEmpresaPR ? 'Abrir Diagnóstico Patrimonial' : 'Abrir Quadro Societário'}
+                                acao={ehEmpresaPR ? 'Abrir Cadastro Patrimonial' : 'Abrir Quadro Societário'}
                                 onAcao={() =>
                                   navigate(
                                     ehEmpresaPR
@@ -180,7 +180,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                 }
                               >
                                 {ehEmpresaPR
-                                  ? 'Nenhum bem aprovado para integralização nesta empresa — os sócios da Proprietária vêm do Diagnóstico Patrimonial.'
+                                  ? 'Nenhum bem aprovado para integralização nesta empresa — os sócios da Proprietária vêm do Cadastro Patrimonial.'
                                   : 'Nenhum sócio no Quadro Societário desta empresa.'}
                               </AvisoPendencia>
                             ) : (
@@ -260,7 +260,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                           >
                             {integralizacoes.length === 0 ? (
                               <AvisoPendencia
-                                acao="Abrir Diagnóstico Patrimonial"
+                                acao="Abrir Cadastro Patrimonial"
                                 onAcao={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}
                               >
                                 Nenhum imóvel aprovado para integralização nesta empresa.

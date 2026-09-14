@@ -205,7 +205,7 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
               O quadro não pode ser gravado enquanto houver titular sem pessoa cadastrada:
               o sócio precisa existir no cadastro para receber as quotas. Cadastre e vincule{' '}
               {proposta.titularesLegados.length === 1 ? 'o titular' : 'os titulares'} abaixo na
-              titularidade da matrícula, no Diagnóstico Patrimonial.
+              titularidade da matrícula, no Cadastro Patrimonial.
             </span>
           </div>
           <ul className="mt-2 space-y-1">
@@ -263,7 +263,7 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
                   que a PR tem. Um botão primário aqui e outro no cabeçalho
                   dariam dois comandos de registro na mesma tela. */}
               <p className="mt-0.5">
-                Aprovados no Diagnóstico Patrimonial depois da constituição, eles ainda não
+                Aprovados no Cadastro Patrimonial depois da constituição, eles ainda não
                 entraram no capital desta empresa. O aumento está em Registrar movimento, para que
                 a próxima alteração contratual o publique.
               </p>
@@ -326,7 +326,7 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
                         <br />
                         <br />
                         A partir daí o quadro passa a ser o registrado, e deixa de acompanhar
-                        sozinho o Diagnóstico Patrimonial: mudar o valor de um bem não muda mais o
+                        sozinho o Cadastro Patrimonial: mudar o valor de um bem não muda mais o
                         capital, como acontece na sociedade de verdade.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -363,7 +363,7 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
               nota={
                 gravado
                   ? 'Saldo apurado da movimentação de quotas.'
-                  : 'Proposta calculada dos bens aprovados no Diagnóstico Patrimonial, rateada pelas frações de titularidade. Confira e grave: nada existe no cadastro até então.'
+                  : 'Proposta calculada dos bens aprovados no Cadastro Patrimonial, rateada pelas frações de titularidade. Confira e grave: nada existe no cadastro até então.'
               }
             />
           }
@@ -387,7 +387,7 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
                     variant="outline"
                     onClick={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}
                   >
-                    Ir para o Diagnóstico Patrimonial
+                    Ir para o Cadastro Patrimonial
                   </Button>
                 </div>
               }

@@ -60,7 +60,7 @@ export const DICA_CENARIO: Record<Cenario, string> = {
   itr: 'O acervo pelo valor declarado no ITR das matrículas, que o cliente já declara '
     + 'à Receita.',
   mercado: 'O acervo pelo valor de mercado das matrículas. Só existe quando alguém '
-    + 'preencheu esse valor no Diagnóstico Patrimonial.',
+    + 'preencheu esse valor no Cadastro Patrimonial.',
 };
 
 export interface EntradaPessoa {

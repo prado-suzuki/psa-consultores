@@ -203,7 +203,7 @@ export function ImoveisPanel({ draft, onChange, matriculas, pessoas, instrumento
         {matriculas.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Este cliente não tem matrícula cadastrada. O item do Anexo exige uma matrícula — cadastre
-            em Diagnóstico Patrimonial primeiro.
+            em Cadastro Patrimonial primeiro.
           </p>
         ) : draft.imoveis.length === 0 ? (
           <p className="text-sm text-muted-foreground">

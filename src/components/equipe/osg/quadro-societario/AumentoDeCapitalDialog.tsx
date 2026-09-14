@@ -172,7 +172,7 @@ export const AumentoDeCapitalDialog = ({
                   O aumento não pode ser gravado enquanto houver titular sem pessoa cadastrada: o
                   sócio precisa existir no cadastro para receber as quotas. Cadastre e vincule{' '}
                   {proposta.titularesLegados.length === 1 ? 'o titular' : 'os titulares'} abaixo na
-                  titularidade da matrícula, no Diagnóstico Patrimonial.
+                  titularidade da matrícula, no Cadastro Patrimonial.
                 </span>
               </div>
               <ul className="mt-2 space-y-1">

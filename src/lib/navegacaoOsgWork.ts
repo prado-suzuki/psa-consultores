@@ -104,35 +104,37 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
       },
       {
         path: '/equipe/osg/work/diagnostico-patrimonial',
-        label: 'Diagnóstico Patrimonial',
-        // NÃO AJUSTADA, e é a única pendência de decisão da frente.
+        // RENOMEADA em 14/09/2026, por decisão da coordenação.
         //
-        // A spec §5 não manda mudar: manda VALIDAR. "Validar a função real da
-        // tela. Se houver análise/diagnóstico, manter o nome. Se a função for
+        // A spec §5 não mandava mudar: mandava VALIDAR. "Validar a função real
+        // da tela. Se houver análise/diagnóstico, manter o nome. Se a função for
         // apenas cadastral, considerar 'Patrimônio' ou 'Estrutura Patrimonial'."
-        // Ou seja: a dúvida é sobre o NOME da tela, e a saída proposta é tirar a
-        // palavra "Diagnóstico" — não combiná-la de outro jeito.
-        //
-        // O que a tela faz, conferido em 14/09/2026: tabela de bens com Ref.,
+        // O que a tela faz, conferido antes de decidir: tabela de bens com Ref.,
         // Tipo, Denominação, Valor contábil, Valor de mercado, Status e Ações,
         // mais cadastrar/editar/excluir. Sem gráfico, sem apuração, sem
-        // comparação. Pelo critério dela, cai no ramo "apenas cadastral".
+        // comparação — o ramo "apenas cadastral" do critério dela.
         //
-        // O RELATÓRIO NÃO ENTRA NO RENOME, e isso reduz o alcance da mudança.
-        // Existem duas coisas com este nome: esta tela, que é cadastro, e o
+        // O RELATÓRIO NÃO FOI RENOMEADO. Havia duas coisas com o mesmo nome, e
+        // essa colisão era parte da confusão: esta tela, que é cadastro, e o
         // "Diagnóstico Patrimonial" da tela de Relatórios, que é o pptx gerado
         // por `DiagnosticoPatrimonialReport`. O relatório é o entregável, e nele
-        // a palavra "diagnóstico" é literal — ali ela fica. Duas coisas
-        // diferentes com o mesmo nome é justamente parte da confusão.
+        // a palavra "diagnóstico" é literal — ali ela fica.
         //
-        // Sobram dois pontos a mudar, se o renome for aprovado: o título/rótulo
-        // desta tela e o `page_name` dela no Controle de Acessos (o `page_path`
-        // NÃO muda — é chave de `page_permissions`).
-        //
-        // Não executo porque ela pediu VALIDAR, e a parte que falta não está no
-        // código: se "diagnóstico" é o termo que a OSG usa com o cliente, o nome
-        // da tela pode acompanhar o do entregável de propósito.
-        descricao: 'Mapeie bens, titulares, matrículas e impedimentos do cliente.',
+        // O QUE TAMBÉM NÃO MUDOU, e não é esquecimento:
+        //   - `page_path` — chave de `page_permissions` em produção
+        //   - `documento_tipo.modulo`, que tem 29 linhas gravadas com o nome
+        //     antigo (conferido em produção em 14/09). O literal de
+        //     `checklistPadrao.ts` casa com esse dado; renomear lá quebraria a
+        //     junção. Mudar isso é migração de dado, não de rótulo.
+        //   - nomes de arquivo, componente, hook e pasta
+        label: 'Cadastro Patrimonial',
+        // A spec dava "Mapeie bens, titulares…", verbo que combinava com
+        // "Diagnóstico". Com o título dizendo CADASTRO, "mapear" traria de volta
+        // pela porta dos fundos a ideia de análise que o renome tirou — e o
+        // critério dela no PDF da Tax é o oposto: ao ver "Cadastro dos clientes"
+        // ela trocou por "Consulte e gerencie", porque "cadastro pode parecer
+        // apenas criação de registro". A tela também edita e exclui.
+        descricao: 'Cadastre e gerencie bens, titulares, matrículas e impedimentos do cliente.',
       },
       {
         path: '/equipe/osg/work/controle-matriculas',

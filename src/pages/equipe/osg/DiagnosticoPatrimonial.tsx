@@ -72,15 +72,20 @@ const DiagnosticoPatrimonial = () => {
 
   return (
     <OsgLayout
-      title="Diagnóstico Patrimonial"
-      subtitle="Mapeie bens, titulares, matrículas e impedimentos do cliente."
+      /* "Cadastro Patrimonial" desde 14/09/2026. A tela é cadastral — bens,
+         matrículas, titulares, impedimentos — e chamar-se "Diagnóstico" a
+         confundia com o relatório de mesmo nome, que é o pptx e continua
+         "Diagnóstico Patrimonial". O nome do arquivo, do hook e da rota não
+         acompanham de propósito: ver a nota em `navegacaoOsgWork`. */
+      title="Cadastro Patrimonial"
+      subtitle="Cadastre e gerencie bens, titulares, matrículas e impedimentos do cliente."
     >
       <div className="space-y-4">
         {!clienteId ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
               <Landmark className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Selecione um cliente na barra acima para visualizar e gerenciar o Diagnóstico Patrimonial.</p>
+              <p className="text-sm">Selecione um cliente na barra acima para visualizar e gerenciar o Cadastro Patrimonial.</p>
             </CardContent>
           </Card>
         ) : loadingBens ? (
