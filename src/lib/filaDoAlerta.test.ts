@@ -197,7 +197,12 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     // deixou de desenhar hierarquia e passou a marcar só o eixo "de fora da PSA".
     // O grupo continua existindo, agora pela escada de peso que o `PapelBadge`
     // desenha.
-    'src/pages/administracao/AdminUsuarios.tsx': 2,
+    //
+    // O `AdminUsuarios.tsx` saiu deste inventário em 14/09/2026 junto com o
+    // arquivo: a pasta `administracao/` inteira foi apagada, porque as três
+    // rotas dela davam 404 desde 13/01/2026 e a Patrícia confirmou que as telas
+    // não voltam. As duas ocorrências de âmbar foram embora com ele — não é
+    // conversão, é o arquivo que deixou de existir.
     'src/pages/equipe/EquipeUsuarios.tsx': 6,
   },
   'decoracao': {
