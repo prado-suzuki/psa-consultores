@@ -54,8 +54,15 @@ const EquipeControleAcessos = () => {
               não aparecem em Produtos & Serviços, que não é sobre nenhum dos
               três. Lá eles custavam a altura da primeira dobra para empurrar
               para baixo a bancada em que o trabalho é feito.
+
+              Em Papéis a faixa é outra: a seção já abre o total de usuários em
+              quatro cartões logo abaixo, e repetir o mesmo número em cima era
+              gastar a primeira dobra para dizer duas vezes. O porquê de cada
+              cartão que entrou e saiu está no `AccessStatsCards`.
             */}
-            {secao !== 'cadastro_categorias' && <AccessStatsCards />}
+            {secao !== 'cadastro_categorias' && (
+              <AccessStatsCards variante={secao === 'papeis' ? 'papeis' : 'geral'} />
+            )}
 
             {/* Tabs */}
             {/* Sem `TabsList`: quem troca de secao e a barra. */}
