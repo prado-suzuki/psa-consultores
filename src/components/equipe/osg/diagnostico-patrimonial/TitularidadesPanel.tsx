@@ -1,22 +1,30 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Loader2, Plus, Pencil, X, Copy, Star } from 'lucide-react';
+import { Loader2, Plus, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { FRACAO_STEP, clampFracaoInput } from '@/components/equipe/osg/diagnostico-patrimonial/fracaoUtils';
 import { validarFormulario } from '@/lib/osg/validacaoFormulario';
-import { fieldCls, FieldSection } from '@/components/equipe/osg/formKit';
+import { CurrencyInput } from '@/components/equipe/osg/CurrencyInput';
+import { Campo, fieldCls, FieldSection } from '@/components/equipe/osg/formKit';
+import { TitularidadeLinha } from '@/components/equipe/osg/diagnostico-patrimonial/titularidade/TitularidadeLinha';
+import {
+  brl, campoInvalido, campoParaValor, fechamentoDasFracoes, formatarFracao, valorParaCampo,
+} from '@/components/equipe/osg/diagnostico-patrimonial/titularidade/valoresDoTitular';
+import {
+  aderenciaPorPessoa,
+  ehEspecieDeDireito,
+  somaAIntegralizarDosTitulares,
+  somaContabilDosTitulares,
+  titularesEfetivos,
+  type LinhaDeTitularidade,
+} from '@/lib/osg/integralizacaoDaMatricula';
 import {
   useTitularidadesByMatricula,
   useTitularidadesByBem,
   useUpsertTitularidade,
   useDeleteTitularidade,
-  useSetIntegralizador,
   titularidadeAnchorValues,
   type TitularidadeAnchor,
   type TitularidadeRow,
@@ -44,7 +52,29 @@ export function TitularidadesPanel({ anchor, pessoasCliente, requireAtLeastOne =
   const matriculaQuery = useTitularidadesByMatricula(anchor.kind === 'matricula' ? anchor.id : null);
   const bemQuery = useTitularidadesByBem(anchor.kind === 'bem' ? anchor.id : null);
   const { data: titularidades = [], isLoading } = anchor.kind === 'matricula' ? matriculaQuery : bemQuery;
-  const setIntegralizador = useSetIntegralizador();
+
+  // O valor é da MATRÍCULA: bem sem matrícula (veículo, quotas de outra
+  // empresa) segue com o valor no próprio bem, e a decisão 4 do plano o deixou
+  // de fora desta frente.
+  const ancoradoEmMatricula = anchor.kind === 'matricula';
+
+  const efetivos = useMemo(
+    () => titularesEfetivos(titularidades as unknown as LinhaDeTitularidade[]),
+    [titularidades],
+  );
+  const aderencias = useMemo(() => aderenciaPorPessoa(efetivos), [efetivos]);
+  const somaContabil = somaContabilDosTitulares(efetivos);
+  const somaIntegralizar = somaAIntegralizarDosTitulares(efetivos);
+
+  // Quem tem linha de direito edita os valores NELA. Quem só tem linha de fato
+  // edita na de fato: deixá-la sem os campos tiraria essa pessoa da
+  // integralização sem que a tela dissesse por quê.
+  const pessoasComDireito = useMemo(
+    () => new Set(titularidades.filter((t) => ehEspecieDeDireito(t.tipo)).map((t) => t.titular_pessoa_id)),
+    [titularidades],
+  );
+  const editaValores = (tipo: string, pessoaId: string) =>
+    ancoradoEmMatricula && (ehEspecieDeDireito(tipo) || !pessoasComDireito.has(pessoaId));
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground text-center py-4">Carregando...</p>;
@@ -54,36 +84,63 @@ export function TitularidadesPanel({ anchor, pessoasCliente, requireAtLeastOne =
   const direito = titularidades.filter((t) => t.tipo !== 'FATO');
   const totalTitulares = titularidades.length;
 
-  // Integralizador é "um por imóvel" (entre FATO e DIREITO): alterna o alvo e a
-  // mutation limpa os demais da âncora. Só faz sentido com mais de um titular.
-  const toggleIntegralizador = (t: TitularidadeRow) =>
-    setIntegralizador.mutate({ anchor, titularidadeId: t.id, value: !t.integralizador });
+  const comum = {
+    anchor,
+    pessoasCliente,
+    totalTitulares,
+    requireAtLeastOne,
+    aderencias,
+    editaValores,
+  };
 
   return (
     <div>
-      <TitularBucket
-        number="01"
-        anchor={anchor}
-        tipo="FATO"
-        titularidades={fato}
-        pessoasCliente={pessoasCliente}
-        totalTitulares={totalTitulares}
-        requireAtLeastOne={requireAtLeastOne}
-        onToggleIntegralizador={toggleIntegralizador}
-        integralizadorPending={setIntegralizador.isPending}
-      />
-      <TitularBucket
-        number="02"
-        anchor={anchor}
-        tipo="DIREITO"
-        titularidades={direito}
-        pessoasCliente={pessoasCliente}
-        totalTitulares={totalTitulares}
-        requireAtLeastOne={requireAtLeastOne}
-        copySource={fato}
-        onToggleIntegralizador={toggleIntegralizador}
-        integralizadorPending={setIntegralizador.isPending}
-      />
+      <TitularBucket {...comum} number="01" tipo="FATO" titularidades={fato} />
+      <TitularBucket {...comum} number="02" tipo="DIREITO" titularidades={direito} copySource={fato} />
+      {ancoradoEmMatricula && (somaContabil != null || somaIntegralizar != null) && (
+        <SomaDaMatricula contabil={somaContabil} integralizar={somaIntegralizar} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * O TOTAL DO IMÓVEL, que é a soma dos titulares e não mais um campo digitado.
+ *
+ * Os dois números divergem de propósito quando alguém fica de fora: o contábil
+ * é o imóvel inteiro (como a DIRPF o conta) e o a integralizar é o que entra na
+ * sociedade. A diferença é dita com todas as letras, porque ver "R$ 300.000,00"
+ * e "R$ 100.000,00" lado a lado sem explicação parece erro de cadastro.
+ */
+function SomaDaMatricula({ contabil, integralizar }: { contabil: number | null; integralizar: number | null }) {
+  const diferenca = contabil != null && integralizar != null ? contabil - integralizar : 0;
+  const parcial = Math.abs(diferenca) > 0.005;
+  return (
+    <div className="mt-6 rounded-lg border border-osg-200/60 bg-osg-50/60 px-4 py-3">
+      <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2">
+        <Total rotulo="Contábil declarado" valor={contabil} />
+        <Total rotulo="A integralizar" valor={integralizar} destaque />
+      </div>
+      {parcial && (
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          {diferenca > 0
+            ? `${brl.format(diferenca)} ficam de fora da integralização: é o que os titulares sem valor a integralizar seguram.`
+            : `${brl.format(-diferenca)} a mais do que o contábil declarado pelos titulares.`}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Total({ rotulo, valor, destaque }: { rotulo: string; valor: number | null; destaque?: boolean }) {
+  return (
+    <div className="space-y-0.5">
+      <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        {rotulo}
+      </span>
+      <span className={`block font-mono tabular-nums ${destaque ? 'text-base font-semibold text-osg-moss' : 'text-base font-medium text-osg-700'}`}>
+        {valor != null ? brl.format(valor) : '—'}
+      </span>
     </div>
   );
 }
@@ -98,13 +155,24 @@ interface TitularBucketProps {
   requireAtLeastOne: boolean;
   // Quando presente (seção PD), habilita o botão de copiar titulares da PT.
   copySource?: TitularidadeEnriched[];
-  onToggleIntegralizador: (t: TitularidadeRow) => void;
-  integralizadorPending: boolean;
+  aderencias: ReturnType<typeof aderenciaPorPessoa>;
+  editaValores: (tipo: string, pessoaId: string) => boolean;
 }
+
+interface DraftTitular {
+  titular_pessoa_id: string;
+  fracao: string;
+  vlr_contabil: string;
+  vlr_integralizar: string;
+}
+
+const DRAFT_VAZIO: DraftTitular = {
+  titular_pessoa_id: '', fracao: '', vlr_contabil: '', vlr_integralizar: '',
+};
 
 function TitularBucket({
   number, anchor, tipo, titularidades, pessoasCliente, totalTitulares, requireAtLeastOne, copySource,
-  onToggleIntegralizador, integralizadorPending,
+  aderencias, editaValores,
 }: TitularBucketProps) {
   const upsert = useUpsertTitularidade();
   const deleteMutation = useDeleteTitularidade();
@@ -112,9 +180,7 @@ function TitularBucket({
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState<{ titular_pessoa_id: string; fracao: string }>({
-    titular_pessoa_id: '', fracao: '',
-  });
+  const [draft, setDraft] = useState<DraftTitular>(DRAFT_VAZIO);
 
   const startEdit = (t: TitularidadeRow) => {
     setAdding(false);
@@ -122,13 +188,15 @@ function TitularBucket({
     setDraft({
       titular_pessoa_id: t.titular_pessoa_id,
       fracao: t.fracao != null ? String(t.fracao) : '',
+      vlr_contabil: valorParaCampo(t.vlr_contabil),
+      vlr_integralizar: valorParaCampo(t.vlr_integralizar),
     });
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setAdding(false);
-    setDraft({ titular_pessoa_id: '', fracao: '' });
+    setDraft(DRAFT_VAZIO);
   };
 
   const handleSave = () => {
@@ -140,11 +208,22 @@ function TitularBucket({
       { invalido: !draft.titular_pessoa_id, mensagem: 'Selecione o titular.', campo: 'titularidade_titular' },
       { invalido: fracaoParsed != null && Number.isNaN(fracaoParsed), mensagem: 'A fração digitada não é um número.', campo: 'titularidade_fracao' },
       { invalido: fracaoParsed != null && !Number.isNaN(fracaoParsed) && (fracaoParsed <= 0 || fracaoParsed > 100), mensagem: 'A fração deve estar entre 0 e 100.', campo: 'titularidade_fracao' },
+      { invalido: campoInvalido(draft.vlr_contabil), mensagem: 'O valor contábil digitado não é um número.', campo: 'titularidade_vlr_contabil' },
+      { invalido: campoInvalido(draft.vlr_integralizar), mensagem: 'O valor a integralizar digitado não é um número.', campo: 'titularidade_vlr_integralizar' },
     ]);
     if (!ok) return;
     const fracaoNum: number | null = fracaoParsed;
 
     const original = editingId ? titularidades.find((t) => t.id === editingId) ?? null : null;
+    // Linha que não edita valores (a de fato de quem também consta no registro)
+    // não os envia: eles pertencem à linha de direito, e mandar null daqui
+    // apagaria o que o formulário de lá gravou.
+    const valores = editaValores(tipo, draft.titular_pessoa_id)
+      ? {
+          vlr_contabil: campoParaValor(draft.vlr_contabil),
+          vlr_integralizar: campoParaValor(draft.vlr_integralizar),
+        }
+      : {};
 
     upsert.mutate(
       {
@@ -153,6 +232,7 @@ function TitularBucket({
           titular_pessoa_id: draft.titular_pessoa_id,
           tipo,
           fracao: fracaoNum,
+          ...valores,
         },
         original,
       },
@@ -170,12 +250,17 @@ function TitularBucket({
     }
     try {
       for (const t of aCopiar) {
+        // Os valores vêm junto: a linha de direito passa a ser a que os carrega
+        // (ver `titularesEfetivos`), e deixá-los para trás tiraria a pessoa da
+        // integralização no gesto que só queria repetir a lista.
         await upsert.mutateAsync({
           values: {
             ...titularidadeAnchorValues(anchor),
             titular_pessoa_id: t.titular_pessoa_id,
             tipo,
             fracao: t.fracao,
+            vlr_contabil: t.vlr_contabil,
+            vlr_integralizar: t.vlr_integralizar,
           },
         });
       }
@@ -186,9 +271,11 @@ function TitularBucket({
 
   const comFracao = titularidades.filter((t) => t.fracao != null);
   const totalFracao = comFracao.reduce((sum, t) => sum + Number(t.fracao), 0);
+  const fechamento = fechamentoDasFracoes(totalFracao);
   const formOpen = adding || editingId != null;
   // Só protege o último titular quando a âncora exige ao menos um (matrícula).
   const canDelete = !requireAtLeastOne || totalTitulares > 1;
+  const valoresNoFormulario = editaValores(tipo, draft.titular_pessoa_id);
 
   return (
     <FieldSection
@@ -200,8 +287,14 @@ function TitularBucket({
         </span>
       }
       hint={comFracao.length > 0 ? (
-        <span className={totalFracao > 100 ? 'tabular-nums text-destructive' : 'tabular-nums'}>
-          {totalFracao}%{totalFracao > 100 && ' • excede 100%'}
+        // Passar de 100% é erro de cadastro; ficar ABAIXO é informação, não
+        // erro: com integralização parcial o cadastro legítimo tem titular que
+        // não integraliza, e pintar isso de vermelho ensinaria a ignorar o aviso
+        // que importa.
+        <span className={fechamento === 'excede' ? 'tabular-nums text-destructive' : 'tabular-nums'}>
+          {formatarFracao(totalFracao)}%
+          {fechamento === 'excede' && ' • excede 100%'}
+          {fechamento === 'abaixo' && ' • abaixo de 100%'}
         </span>
       ) : undefined}
       actions={copySource ? (
@@ -224,14 +317,13 @@ function TitularBucket({
         ) : (
           <div className="space-y-1">
             {titularidades.map((t) => (
-              <TitularidadeRowItem
+              <TitularidadeLinha
                 key={t.id}
                 titularidade={t}
                 isEditing={editingId === t.id}
                 canDelete={canDelete}
-                showIntegralizador={totalTitulares > 1}
-                integralizadorPending={integralizadorPending}
-                onToggleIntegralizador={() => onToggleIntegralizador(t)}
+                mostrarValores={editaValores(t.tipo, t.titular_pessoa_id)}
+                aderencia={aderencias.get(t.titular_pessoa_id)}
                 onEdit={() => startEdit(t)}
                 onDelete={() => deleteMutation.mutate(t)}
               />
@@ -286,8 +378,27 @@ function TitularBucket({
                 </Button>
               </div>
             </div>
+            {valoresNoFormulario && (
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Campo rotulo="Vlr. contábil declarado (DIRPF)" campo="titularidade_vlr_contabil">
+                  <CurrencyInput
+                    value={draft.vlr_contabil}
+                    onChange={(v) => setDraft((p) => ({ ...p, vlr_contabil: v }))}
+                    className={`${fieldCls} font-mono`}
+                  />
+                </Campo>
+                <Campo rotulo="Vlr. a integralizar" campo="titularidade_vlr_integralizar">
+                  <CurrencyInput
+                    value={draft.vlr_integralizar}
+                    onChange={(v) => setDraft((p) => ({ ...p, vlr_integralizar: v }))}
+                    className={`${fieldCls} font-mono`}
+                  />
+                </Campo>
+              </div>
+            )}
             <p className="text-[11px] text-muted-foreground">
               Deixe a fração vazia quando a composse for indefinida.
+              {valoresNoFormulario && ' Deixe "a integralizar" vazio quando este titular NÃO integraliza: a parte dele fica fora do capital e aparece no contrato como área remanescente.'}
             </p>
           </div>
         ) : (
@@ -296,7 +407,7 @@ function TitularBucket({
             variant="ghost"
             size="sm"
             className="h-8 w-full justify-start gap-1.5 border border-dashed border-osg-200 text-muted-foreground hover:text-osg-700"
-            onClick={() => { setEditingId(null); setDraft({ titular_pessoa_id: '', fracao: '' }); setAdding(true); }}
+            onClick={() => { setEditingId(null); setDraft(DRAFT_VAZIO); setAdding(true); }}
           >
             <Plus className="h-3.5 w-3.5" />
             Adicionar titular
@@ -304,102 +415,5 @@ function TitularBucket({
         )}
       </div>
     </FieldSection>
-  );
-}
-
-interface TitularidadeRowItemProps {
-  titularidade: TitularidadeEnriched;
-  isEditing: boolean;
-  canDelete: boolean;
-  // Só mostra a estrela de integralizador quando há mais de um titular no imóvel.
-  showIntegralizador: boolean;
-  integralizadorPending: boolean;
-  onToggleIntegralizador: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-}
-
-function TitularidadeRowItem({
-  titularidade, isEditing, canDelete, showIntegralizador, integralizadorPending,
-  onToggleIntegralizador, onEdit, onDelete,
-}: TitularidadeRowItemProps) {
-  const isIntegralizador = titularidade.integralizador;
-  return (
-    <div
-      className={`group flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors ${isEditing ? 'bg-osg-50 border-osg-200' : 'bg-card hover:bg-muted/40'}`}
-    >
-      <div className="flex flex-1 items-center gap-2 min-w-0">
-        <span className="text-sm font-medium truncate">{titularidade.titular_denominacao}</span>
-        {titularidade.titular_tipo && (
-          <span className="shrink-0 text-[11px] text-muted-foreground">{titularidade.titular_tipo}</span>
-        )}
-        {isIntegralizador && (
-          <span className="shrink-0 rounded bg-osg-moss/10 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-osg-moss">
-            Integralizador
-          </span>
-        )}
-      </div>
-      {showIntegralizador && (
-        <Button
-          size="icon"
-          variant="ghost"
-          className={`h-7 w-7 shrink-0 transition-opacity ${isIntegralizador ? 'text-osg-moss' : 'text-muted-foreground/40 opacity-0 group-hover:opacity-100 focus-within:opacity-100'}`}
-          disabled={integralizadorPending}
-          title={isIntegralizador
-            ? 'Integralizador (lidera a descrição do imóvel) — clique para desmarcar'
-            : 'Marcar como integralizador (lidera a descrição; os demais viram a área remanescente)'}
-          onClick={onToggleIntegralizador}
-        >
-          <Star className={`h-3.5 w-3.5 ${isIntegralizador ? 'fill-osg-moss' : ''}`} />
-        </Button>
-      )}
-      <span
-        className={`shrink-0 text-sm font-mono tabular-nums ${titularidade.fracao != null ? 'font-medium text-foreground' : 'text-muted-foreground/60'}`}
-      >
-        {titularidade.fracao != null ? `${titularidade.fracao}%` : '—'}
-      </span>
-      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEdit}>
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-        {!canDelete ? (
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 w-7 text-muted-foreground"
-          disabled
-          title="Precisa de ao menos um titular"
-        >
-          <X className="h-3.5 w-3.5" />
-        </Button>
-      ) : (
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive">
-            <X className="h-3.5 w-3.5" />
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remover titularidade?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Remover {titularidade.titular_denominacao} ({TIPO_TITULARIDADE[titularidade.tipo as TipoTitularidade]?.code ?? titularidade.tipo}
-              {titularidade.fracao != null ? `, ${titularidade.fracao}%` : ''}).
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={onDelete}
-            >
-              Remover
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      )}
-      </div>
-    </div>
   );
 }

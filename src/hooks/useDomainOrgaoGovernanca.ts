@@ -8,7 +8,7 @@ import type { Database } from '@/integrations/supabase/types';
 import {
   ORGAOS_GOVERNANCA_PADRAO,
   erroDeOrgaoGovernanca,
-  mesmaChaveDeOrgao,
+  ehEstePadrao,
   padroesFaltando,
 } from '@/lib/orgaosGovernancaPadrao';
 
@@ -36,7 +36,29 @@ import {
 
 type OrgaoRow = Database['public']['Tables']['orgao_governanca']['Row'];
 
-export type OrgaoGovernanca = OrgaoRow;
+/**
+ * As seis colunas de parametrização, da migration `20260911201231`.
+ *
+ * DECLARADAS À MÃO porque o `types.ts` commitado na develop está atrasado em
+ * relação às migrations dela e não as conhece. Regerar quebra código da Tax
+ * (`useTaxReferenceData.ts`), que é fora deste escopo. Quando alguém reger,
+ * este bloco some e `OrgaoGovernanca` volta a ser `OrgaoRow` puro.
+ *
+ * `Partial` na junção de propósito: a leitura não pode assumir que vieram, e
+ * órgão cadastrado antes de 11/09 tem tudo nulo.
+ */
+export interface ParametrizacaoDoOrgao {
+  /** 'M' ou 'F', para a cláusula concordar. Nulo é "ninguém disse ainda". */
+  genero: 'M' | 'F' | null;
+  membros_minimo: number | null;
+  membros_maximo: number | null;
+  mandato_anos: number | null;
+  cargos_do_orgao: string[] | null;
+  /** Identidade do padrão da OSG, que sobrevive a um rename. Não se digita. */
+  padrao_chave: string | null;
+}
+
+export type OrgaoGovernanca = OrgaoRow & Partial<ParametrizacaoDoOrgao>;
 
 export interface OrgaoGovernancaInput {
   nome: string;
@@ -44,6 +66,18 @@ export interface OrgaoGovernancaInput {
   ordem?: number;
   vigencia_inicio?: string | null;
   vigencia_fim?: string | null;
+  genero?: 'M' | 'F' | null;
+  membros_minimo?: number | null;
+  membros_maximo?: number | null;
+  mandato_anos?: number | null;
+  cargos_do_orgao?: string[] | null;
+  /**
+   * SÓ O BOTÃO DE PADRÕES MANDA ISTO, e só na criação. O modal não oferece o
+   * campo, e `atualizar` não o inclui: se incluísse, salvar o órgão pelo modal
+   * mandaria `undefined` e apagaria a chave, soltando a trava de ordem e
+   * derrubando o vínculo automático da tela Gerar.
+   */
+  padrao_chave?: string | null;
 }
 
 export const orgaosGovernancaQueryKey = (clienteId?: string | null) =>
@@ -96,18 +130,28 @@ export function useOrgaoGovernancaMutations(clienteId?: string | null) {
   const inserir = async (input: OrgaoGovernancaInput) => {
       if (!clienteId) throw new Error('Selecione um cliente antes de cadastrar o órgão.');
 
+      const novo = {
+        cliente_id: clienteId,
+        nome: input.nome.trim(),
+        entra_no_contrato: input.entra_no_contrato,
+        ordem: input.ordem ?? 0,
+        vigencia_inicio: input.vigencia_inicio ?? null,
+        vigencia_fim: input.vigencia_fim ?? null,
+        genero: input.genero ?? null,
+        membros_minimo: input.membros_minimo ?? null,
+        membros_maximo: input.membros_maximo ?? null,
+        mandato_anos: input.mandato_anos ?? null,
+        cargos_do_orgao: input.cargos_do_orgao ?? null,
+        padrao_chave: input.padrao_chave ?? null,
+        created_by: user?.id ?? null,
+        updated_by: user?.id ?? null,
+      };
+
+      // As colunas de parametrização são novas: o `types.ts` autogerado ainda
+      // não as conhece até alguém regerar. Mesmo contorno de `useDomainBacklog`.
       const { data, error } = await supabase
         .from('orgao_governanca')
-        .insert({
-          cliente_id: clienteId,
-          nome: input.nome.trim(),
-          entra_no_contrato: input.entra_no_contrato,
-          ordem: input.ordem ?? 0,
-          vigencia_inicio: input.vigencia_inicio ?? null,
-          vigencia_fim: input.vigencia_fim ?? null,
-          created_by: user?.id ?? null,
-          updated_by: user?.id ?? null,
-        })
+        .insert(novo as typeof novo & Record<string, unknown>)
         .select()
         .single();
 
@@ -142,12 +186,19 @@ export function useOrgaoGovernancaMutations(clienteId?: string | null) {
         .single();
       if (erroLeitura) throw erroLeitura;
 
+      // `padrao_chave` NÃO entra aqui de propósito: ver o comentário no campo,
+      // em `OrgaoGovernancaInput`. Salvar pelo modal apagaria a chave.
       const novo = {
         nome: input.nome.trim(),
         entra_no_contrato: input.entra_no_contrato,
         ordem: input.ordem ?? atual.ordem,
         vigencia_inicio: input.vigencia_inicio ?? null,
         vigencia_fim: input.vigencia_fim ?? null,
+        genero: input.genero ?? null,
+        membros_minimo: input.membros_minimo ?? null,
+        membros_maximo: input.membros_maximo ?? null,
+        mandato_anos: input.mandato_anos ?? null,
+        cargos_do_orgao: input.cargos_do_orgao ?? null,
       };
 
       const mudou: Record<string, { old: unknown; new: unknown }> = {};
@@ -162,9 +213,11 @@ export function useOrgaoGovernancaMutations(clienteId?: string | null) {
       // vazia de quem só abriu e fechou o modal.
       if (Object.keys(mudou).length === 0) return atual;
 
+      const alteracao = { ...novo, updated_by: user?.id ?? null };
       const { data, error } = await supabase
         .from('orgao_governanca')
-        .update({ ...novo, updated_by: user?.id ?? null })
+        // Mesmo motivo do insert: colunas novas, `types.ts` atrasado.
+        .update(alteracao as typeof alteracao & Record<string, unknown>)
         .eq('id', id)
         .select()
         .single();
@@ -267,11 +320,24 @@ export function useOrgaoGovernancaMutations(clienteId?: string | null) {
    */
   const semear = useMutation({
     mutationFn: async (atuais: OrgaoGovernanca[]) => {
-      const faltam = padroesFaltando(atuais.map((o) => o.nome));
+      const faltam = padroesFaltando(atuais);
       for (const padrao of faltam) {
+        /*
+         * O GÊNERO E A CHAVE VÊM DO CATÁLOGO, e por muito tempo não vinham.
+         * Os dois estão em `ORGAOS_GOVERNANCA_PADRAO` desde 11/09 e este laço
+         * passava só nome e `entraNoContrato`, então todo cliente semeado pelo
+         * botão nascia com os dois nulos. Duas consequências silenciosas: o
+         * vínculo automático da tela Gerar, que procura por `padrao_chave`, não
+         * achava nada e voltava a perguntar "qual dos seus órgãos é o Conselho
+         * de Administração?"; e a cláusula saía "A Diretoria Executiva será
+         * compostO", porque gênero nulo cai em masculino na concordância.
+         * Medido no sandbox em 14/09: 3 de 25 órgãos tinham chave.
+         */
         await inserir({
           nome: padrao.nome,
           entra_no_contrato: padrao.entraNoContrato,
+          genero: padrao.genero,
+          padrao_chave: padrao.chave,
         });
       }
       if (faltam.length === 0) return 0;
@@ -281,13 +347,14 @@ export function useOrgaoGovernancaMutations(clienteId?: string | null) {
       // clicar aqui ficaria com os gerentes acima da Reunião de Sócios, e o
       // escalonamento da Matriz apontaria para o lugar errado.
       const depois = await buscarPorCliente(clienteId as string);
-      const ehPadrao = (nome: string) =>
-        ORGAOS_GOVERNANCA_PADRAO.some((p) => mesmaChaveDeOrgao(p.nome, nome));
+      // Pela CHAVE, e não pelo nome: órgão padrão renomeado continua no topo.
+      const ehPadrao = (o: OrgaoGovernanca) =>
+        ORGAOS_GOVERNANCA_PADRAO.some((p) => ehEstePadrao(o, p));
 
       const padroesNaOrdemOficial = ORGAOS_GOVERNANCA_PADRAO
-        .map((p) => depois.find((o) => mesmaChaveDeOrgao(o.nome, p.nome)))
+        .map((p) => depois.find((o) => ehEstePadrao(o, p)))
         .filter((o): o is OrgaoGovernanca => !!o);
-      const doCliente = depois.filter((o) => !ehPadrao(o.nome));
+      const doCliente = depois.filter((o) => !ehPadrao(o));
 
       await gravarOrdem([...padroesNaOrdemOficial, ...doCliente]);
       return faltam.length;

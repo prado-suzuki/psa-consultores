@@ -9,6 +9,9 @@ import { campoDaEntidade, camposDaEntidade, type CampoEntidade } from '@/lib/tem
  * - campo DERIVADO (qualificação, endereço em prosa…) não é editável; entram no
  *   lugar dele os campos-base de que ele deriva, porque é neles que a correção
  *   tem efeito;
+ * - campo INTERNO (gênero do nome do órgão) não é editável nem entra pela porta
+ *   dos fundos como base de um derivado: é peça de concordância, não dado a
+ *   conferir. Ver `interno` no vocabulário;
  * - campo referenciado pelo modelo mas fora do catálogo da entidade vira input
  *   de texto livre sob o binding, para o consultor não ficar sem saída;
  * - a ordem é a do catálogo da entidade (os de fora dele vão ao fim), e não a
@@ -35,6 +38,7 @@ export function camposEditaveisPorBinding(
     const vistos = new Set<string>();
     const lista: CampoEntidade[] = [];
     const adicionar = (c: CampoEntidade) => {
+      if (c.interno) return;
       if (!vistos.has(c.id)) {
         vistos.add(c.id);
         lista.push(c);

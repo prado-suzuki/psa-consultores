@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { TIPOS_ENTIDADE, type TipoEntidade } from './vocabulario';
 import {
-  mapearBem, mapearCartorio, mapearMatricula, mapearPessoa, mapearSociedade, mapearVertice,
+  mapearAcordoQuotistas, mapearBem, mapearCartorio, mapearCompetenciaMatriz, mapearMatricula,
+  mapearOrgaoGovernanca, mapearPessoa, mapearSociedade, mapearVertice,
   type Campos, type ItemLista,
 } from './mapeadores';
 import { listasDoInstrumentoRural, mapearInstrumentoRural, type EntradaInstrumentoRural } from './contextoRural';
@@ -85,6 +86,43 @@ const IDENTIDADE_POR_ENTIDADE: Record<TipoEntidade, { id: string; montar: () => 
   origemPosse: {
     id: 'o1',
     montar: () => (listasDoInstrumentoRural(ENTRADA_RURAL).origensDaPosse[0] as ItemLista).origemPosse,
+  },
+  // Governança. O órgão vem de `orgao_governanca`; a parametrização entra nos
+  // opcionais quando a migration dela for aprovada, e o mapeador já lê.
+  orgaoGovernanca: {
+    id: 'og1',
+    montar: () => mapearOrgaoGovernanca({
+      id: 'og1',
+      nome: 'Conselho de Administração',
+      membros_minimo: 3,
+      membros_maximo: 6,
+      mandato_anos: 3,
+      cargos_do_orgao: null,
+    }),
+  },
+  competenciaMatriz: {
+    id: 'mc1',
+    montar: () => mapearCompetenciaMatriz({
+      id: 'mc1',
+      atividade: 'Distribuição de Lucros',
+      papeis: ['Valida', 'Sugere'],
+      alcada: 'até R$ 100.000,00',
+      sobePara: 'Reunião de Sócios',
+      foraDaPolitica: false,
+      resumo: 'Valida, Sugere · até R$ 100.000,00 · sobe para Reunião de Sócios',
+    }),
+  },
+  // Um acordo por cliente, então a identidade é o cliente. Sem tabela ainda:
+  // o cadastro é a GOV-03.
+  acordoQuotistas: {
+    id: 'cli1',
+    montar: () => mapearAcordoQuotistas({
+      clienteId: 'cli1',
+      assinadoEm: '2025-09-29',
+      vigenciaAnos: 20,
+      ordemPreferencia: '1º a holding, 2º os demais quotistas',
+      usaFluxoDeCaixa: true,
+    }),
   },
 };
 

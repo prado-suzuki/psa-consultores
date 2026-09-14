@@ -120,6 +120,9 @@ const FIELD_LABELS: Record<string, string> = {
   descricao_psa_completa: 'Descrição',
   fracao: 'Fração',
   integralizador: 'Integralizador',
+  // Por TITULAR da matrícula (o da matrícula reusa `vlr_contabil`, acima):
+  // quanto ele declarou na DIRPF e quanto integraliza na sociedade.
+  vlr_integralizar: 'Valor a Integralizar',
   tipo: 'Tipo',
   natureza: 'Natureza',
   pode_isoladamente: 'Pode Isoladamente',

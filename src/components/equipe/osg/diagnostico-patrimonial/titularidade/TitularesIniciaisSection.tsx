@@ -4,7 +4,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Copy, Plus, X } from 'lucide-react';
 import { Campo, FieldSection, fieldCls } from '@/components/equipe/osg/formKit';
 import { formGridCls, formSpanCls } from '@/lib/osgFormGrid';
+import { CurrencyInput } from '@/components/equipe/osg/CurrencyInput';
 import { FRACAO_STEP, clampFracaoInput } from '@/components/equipe/osg/diagnostico-patrimonial/fracaoUtils';
+import { fechamentoDasFracoes, formatarFracao } from '@/components/equipe/osg/diagnostico-patrimonial/titularidade/valoresDoTitular';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import {
   novaLinhaTitular,
@@ -100,9 +102,12 @@ export function TitularesIniciaisSection({
         onRemover={removerLinha}
         onAdicionar={() => adicionarLinha('DIREITO')}
         onCopiarDaFt={temFatoPreenchida ? copiarDaFt : undefined}
+        // Quem integraliza é quem tem a PROPRIEDADE, e o valor é da matrícula:
+        // a linha de fato e o bem sem matrícula não têm o que preencher aqui.
+        mostrarValores={entity === 'matrícula'}
         rodape={entity === 'bem'
           ? 'Todo bem sem matrícula precisa de ao menos um titular. Deixe a fração vazia quando a composse for indefinida.'
-          : 'Toda matrícula precisa de ao menos um titular — é ele que define o cliente. Deixe a fração vazia quando a composse for indefinida.'}
+          : 'Toda matrícula precisa de ao menos um titular — é ele que define o cliente. Deixe a fração vazia quando a composse for indefinida, e "a integralizar" vazio quando o titular NÃO integraliza (a parte dele fica fora do capital).'}
       />
     </div>
   );
@@ -117,15 +122,18 @@ interface BaldeProps {
   onRemover: (key: string) => void;
   onAdicionar: () => void;
   onCopiarDaFt?: () => void;
+  /** Os dois valores por titular: só na propriedade de direito de matrícula. */
+  mostrarValores?: boolean;
   rodape?: string;
 }
 
 function Balde({
-  numero, tipo, linhas, pessoas, onLinha, onRemover, onAdicionar, onCopiarDaFt, rodape,
+  numero, tipo, linhas, pessoas, onLinha, onRemover, onAdicionar, onCopiarDaFt, mostrarValores, rodape,
 }: BaldeProps) {
   const { code, label } = ESPECIE[tipo];
   const comFracao = linhas.filter((l) => l.titular_pessoa_id && l.fracao.trim() && !Number.isNaN(Number(l.fracao)));
   const totalFracao = comFracao.reduce((soma, l) => soma + Number(l.fracao), 0);
+  const fechamento = fechamentoDasFracoes(totalFracao);
 
   return (
     <FieldSection
@@ -137,8 +145,13 @@ function Balde({
         </span>
       }
       hint={comFracao.length > 0 ? (
-        <span className={totalFracao > 100 ? 'tabular-nums text-destructive' : 'tabular-nums'}>
-          {totalFracao}%{totalFracao > 100 && ' • excede 100%'}
+        // Abaixo de 100% é INFORMAÇÃO: com integralização parcial o cadastro
+        // legítimo tem titular que não integraliza, e pintar isso de vermelho
+        // ensinaria a ignorar o aviso que importa (ver TitularidadesPanel).
+        <span className={fechamento === 'excede' ? 'tabular-nums text-destructive' : 'tabular-nums'}>
+          {formatarFracao(totalFracao)}%
+          {fechamento === 'excede' && ' • excede 100%'}
+          {fechamento === 'abaixo' && ' • abaixo de 100%'}
         </span>
       ) : undefined}
       actions={onCopiarDaFt ? (
@@ -207,6 +220,26 @@ function Balde({
                   <X className="h-3.5 w-3.5" />
                 </Button>
               </div>
+              {mostrarValores && (
+                <>
+                  <Campo rotulo="Vlr. contábil (DIRPF)" campo="titular_vlr_contabil" className={formSpanCls(2)}>
+                    <CurrencyInput
+                      value={linha.vlr_contabil}
+                      onChange={(v) => onLinha(linha.key, { vlr_contabil: v })}
+                      aria-label="Valor contábil declarado"
+                      className={`${fieldCls} font-mono`}
+                    />
+                  </Campo>
+                  <Campo rotulo="Vlr. a integralizar" campo="titular_vlr_integralizar" className={formSpanCls(2)}>
+                    <CurrencyInput
+                      value={linha.vlr_integralizar}
+                      onChange={(v) => onLinha(linha.key, { vlr_integralizar: v })}
+                      aria-label="Valor a integralizar"
+                      className={`${fieldCls} font-mono`}
+                    />
+                  </Campo>
+                </>
+              )}
             </div>
           ))
         )}

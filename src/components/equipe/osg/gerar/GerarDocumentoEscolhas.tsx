@@ -158,7 +158,25 @@ export function GerarDocumentoEscolhas({ controller }: { controller: GerarDocume
                 </div>
               )}
 
-              {bindingsNaoSociedade.length > 0 && (
+              {/*
+                SEM CLIENTE, UMA FRASE, E NÃO UM FORMULÁRIO DESABILITADO.
+                Antes o passo mostrava o rótulo de cada papel com uma lista
+                vazia escrita "Escolha um cliente na barra acima", uma vez por
+                papel. Com três papéis viravam três caixas mortas dizendo a
+                mesma coisa, e a pessoa lia "Conselho de Administração" antes
+                de entender que o problema era outro. Cartório é a exceção:
+                ele não depende de cliente e continua escolhível.
+              */}
+              {bindingsNaoSociedade.length > 0
+                && !clienteId
+                && bindingsNaoSociedade.every((b) => b.tipo !== 'cartorio') && (
+                <p className="text-sm text-muted-foreground">
+                  Escolha um cliente na barra acima para apontar os registros deste documento.
+                </p>
+              )}
+
+              {bindingsNaoSociedade.length > 0
+                && (!!clienteId || bindingsNaoSociedade.some((b) => b.tipo === 'cartorio')) && (
                 <div className="space-y-3">
                   {precisaEmpresa && (
                     <p className="text-xs font-semibold text-muted-foreground">

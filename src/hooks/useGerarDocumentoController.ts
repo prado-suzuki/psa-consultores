@@ -36,6 +36,12 @@ import { blocosForaDaFolha, resumoDaFolha } from '@/components/equipe/osg/gerar/
 import { camposEditaveisPorBinding } from '@/components/equipe/osg/gerar/camposDoBinding';
 import { lerSnapshotVersoes } from '@/components/equipe/osg/gerar/renderizarVersao';
 import { linhasRegistradas, marcoPreenchido } from '@/lib/osg/registrosDaSociedade';
+import { entradaDaGovernanca } from '@/lib/osg/entradaGovernanca';
+import { gradeDaMatriz, listasDaGovernanca } from '@/lib/templates/contextoGovernanca';
+import {
+  useCatalogoDeAtividades, useCatalogoDePapeis, useMatrizDoCliente,
+} from '@/hooks/useDomainMatrizAlcadas';
+import { useOrgaosGovernanca } from '@/hooks/useDomainOrgaoGovernanca';
 import type { Contexto } from '@/lib/templates';
 
 const fmtDataNotificacao = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -108,6 +114,25 @@ export function useGerarDocumentoController() {
   // Cliente vem da barra global da área OSG (igual aos cadastros).
   const { clienteId } = useOsgWork();
   const { registros, isFetching: carregandoRegistros } = useRegistrosPorTipo(clienteId);
+
+  /*
+   * A governança do cliente. Quatro consultas porque a cláusula precisa das
+   * quatro coisas: os órgãos (a coluna), a matriz (a grade), e os dois
+   * catálogos, sem os quais a alínea sairia com uuid no lugar do assunto e do
+   * verbo. Nenhuma delas depende da empresa escolhida, então não entram na
+   * conta do passo de Empresa.
+   */
+  const orgaosGovQ = useOrgaosGovernanca(clienteId);
+  const matrizQ = useMatrizDoCliente(clienteId);
+  const atividadesQ = useCatalogoDeAtividades(clienteId);
+  const papeisQ = useCatalogoDePapeis(clienteId);
+
+  const entradaGov = useMemo(
+    () => entradaDaGovernanca(
+      matrizQ.data, orgaosGovQ.data ?? [], atividadesQ.data ?? [], papeisQ.data ?? [],
+    ),
+    [matrizQ.data, orgaosGovQ.data, atividadesQ.data, papeisQ.data],
+  );
 
   // selecao[binding][campoId] = valor; selecaoRegistroId[binding] = id do registro escolhido.
   const [selecao, setSelecao] = useState<Record<string, Record<string, string>>>({});
@@ -1164,8 +1189,11 @@ export function useGerarDocumentoController() {
   // Vértices (fonte 'georef') vêm da matrícula e as listas do instrumento agrário
   // (fonte 'exploracao_rural') vêm da linha de exploração rural — nenhuma das duas
   // depende da empresa, então não fazem o passo de Empresa aparecer.
+  // `matriz_alcadas` entra na lista de exceções pelo mesmo motivo das outras
+  // três: a governança sai do cliente, não da empresa escolhida. Sem isto, um
+  // modelo só de governança pediria uma Empresa que ele não usa para nada.
   const usaListas = listas.some(
-    (l) => !['georef', 'selecao', 'exploracao_rural'].includes(l.papel.fonte),
+    (l) => !['georef', 'selecao', 'exploracao_rural', 'matriz_alcadas'].includes(l.papel.fonte),
   );
   // A "Sociedade" (objeto do contrato) é dirigida pela mesma Empresa que alimenta
   // listas e flags — não tem seletor próprio. Detectar aqui faz o passo de Empresa
@@ -1336,6 +1364,75 @@ export function useGerarDocumentoController() {
     })),
     [registros.pessoa],
   );
+  /*
+   * O ÓRGÃO PADRÃO SE VINCULA SOZINHO.
+   *
+   * Para pessoa a pergunta faz sentido: "quem é o outorgante?" tem várias
+   * respostas. Para órgão não: o cliente tem UM Conselho de Administração, e a
+   * pergunta vira "qual dos seus órgãos é o Conselho de Administração?", que se
+   * responde sozinha. O usuário travou nela na primeira geração, e com razão.
+   *
+   * O que torna isto possível é a coluna `padrao_chave`, de 11/09: antes o
+   * sistema só sabia comparar nomes, e um cliente que renomeasse o órgão
+   * quebraria o palpite. Órgão criado pelo cliente não tem chave e continua
+   * sendo perguntado, que é onde a pergunta é legítima.
+   *
+   * Vincula só o que ainda está em branco: escolha do consultor nunca é
+   * sobrescrita, e rascunho reidratado chega com o vínculo já preenchido.
+   */
+  useEffect(() => {
+    /*
+     * `padrao_chave` é lido por um tipo local, e não pelo `types.ts`.
+     *
+     * A coluna existe no banco desde a migration de 11/09, mas o `types.ts`
+     * commitado na develop está atrasado em relação às próprias migrations
+     * dela: ele ainda declara `soft_delete_ordem_servico`, que uma migration
+     * de 10/09 derrubou. Regenerar o arquivo aqui consertaria isso e quebraria
+     * `useTaxReferenceData.ts`, que é código da Tax e não é escopo desta
+     * linha. Quando alguém regenerar de verdade, este tipo local sai.
+     */
+    const orgaos = orgaosGovQ.data as
+      | (typeof orgaosGovQ.data extends (infer T)[] | undefined ? T & { padrao_chave?: string | null } : never)[]
+      | undefined;
+    if (!orgaos?.length) return;
+
+    const porChave: Record<string, string> = {
+      conselhoAdministracao: 'conselho_administracao',
+      diretoria: 'diretoria_executiva',
+      reuniaoSocios: 'reuniao_socios',
+    };
+
+    const aLigar: Record<string, string> = {};
+    for (const b of bindings) {
+      if (b.tipo !== 'orgaoGovernanca' || registroPorBinding[b.nome]) continue;
+      const chave = porChave[b.nome];
+      if (!chave) continue;
+      const candidatos = orgaos.filter((o) => o.padrao_chave === chave && o.entra_no_contrato);
+      // Dois candidatos é ambiguidade real, e aí perguntar é o certo.
+      if (candidatos.length === 1) aLigar[b.nome] = candidatos[0].id;
+    }
+
+    if (Object.keys(aLigar).length === 0) return;
+
+    /*
+     * DUAS COISAS, E NÃO UMA. Marcar o registro escolhido não preenche o
+     * documento: quem carrega os campos é `selecao`, e é por isso que
+     * `escolherRegistro` mexe nos dois estados. A primeira versão deste efeito
+     * só mexia em `registroPorBinding`, e o resultado foi a pergunta sumir da
+     * tela e a geração continuar morrendo em "Placeholder não resolvido":
+     * o Conselho aparecia escolhido e chegava vazio ao Word.
+     */
+    setRegistroPorBinding((prev) => ({ ...aLigar, ...prev }));
+    setSelecao((prev) => {
+      const next = { ...prev };
+      for (const [nome, id] of Object.entries(aLigar)) {
+        const reg = registros.orgaoGovernanca.find((r) => r.id === id);
+        if (reg) next[nome] = camposDoRegistro('orgaoGovernanca', reg.row);
+      }
+      return next;
+    });
+  }, [orgaosGovQ, bindings, registroPorBinding, registros]);
+
   // Capital social + total de quotas da sociedade: a PR ainda sem quadro gravado
   // soma as integralizações aprovadas (quota = R$ 1,00); as demais (e a PR
   // depois de gravar) somam o quadro societário.
@@ -1452,8 +1549,17 @@ export function useGerarDocumentoController() {
       // `signatarios` daqui substitui a do quadro societário acima. Sem instrumento
       // escolhido, o objeto é vazio e nada é substituído.
       ...listasDoInstrumentoRural_ouVazio,
+      /*
+       * Governança. `orgaosComCompetencia` é a coleção que o bloco da cláusula
+       * repete, uma vez por órgão, cada um já com as SUAS alíneas; `orgaos` e
+       * `linhas` são a grade do documento da Matriz. Vêm por último como as
+       * rurais, e por não conflitarem com nenhuma chave acima não substituem
+       * nada.
+       */
+      ...listasDaGovernanca(entradaGov),
+      ...gradeDaMatriz(entradaGov),
     }),
-    [quadro, socios, administradores, integralizacoes, aportes, cessoesOnerosas, listasDaDoacao, estadoDosOnus, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista, listasDoInstrumentoRural_ouVazio],
+    [quadro, socios, administradores, integralizacoes, aportes, cessoesOnerosas, listasDaDoacao, estadoDosOnus, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista, listasDoInstrumentoRural_ouVazio, entradaGov],
   );
 
   // --- Notificações de mudança de variável (só com versão validada) ---------

@@ -166,6 +166,8 @@ function validarTitulares(
         : 'Selecione ao menos um titular da matrícula';
     case 'fracao_invalida':
       return 'Fração de cada titular deve estar entre 0 e 100';
+    case 'valor_invalido':
+      return 'Os valores por titular precisam ser números não negativos';
     case 'duplicado':
       return 'A mesma pessoa aparece duas vezes na mesma espécie de titularidade';
     default:

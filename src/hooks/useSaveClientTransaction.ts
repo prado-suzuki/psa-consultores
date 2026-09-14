@@ -77,6 +77,43 @@ const apagaVerificado = async (
 };
 
 /**
+ * O salvamento não mudou nada?
+ *
+ * Virou função nomeada porque a resposta errada já foi ao ar **três vezes**, e
+ * sempre pela mesma porta: uma fonte de mudança que não aparecia na conta.
+ * Primeiro o salvamento sem toque, que gravava quatro linhas dizendo que nada
+ * mudara; depois o rateio, que é lista filha da OS e não entra nos diffs; agora
+ * a remoção de item, que não altera campo nenhum — o item só sai da lista.
+ *
+ * Cada correção anterior acrescentou uma parcela aqui dentro e seguiu inline,
+ * então a regra nunca teve teste. Com ela isolada, cada fonte de mudança ganha
+ * um caso, e a quarta não passa despercebida.
+ *
+ * Só vale editando: no cadastro novo tudo é mudança.
+ */
+export function nadaMudouNoCadastro(p: {
+  isEditing: boolean;
+  clientHasChange: boolean;
+  contribDiffs: number;
+  partDiffs: number;
+  osDiffs: number;
+  /** Rateio e produtos contratados: listas filhas da OS, fora dos diffs. */
+  filhosDeOsAlterados: boolean;
+  /** Contribuinte, representante ou OS que saíram da lista. */
+  houveRemocao: boolean;
+}): boolean {
+  if (!p.isEditing) return false;
+  return (
+    !p.clientHasChange &&
+    p.contribDiffs === 0 &&
+    p.partDiffs === 0 &&
+    p.osDiffs === 0 &&
+    !p.filhosDeOsAlterados &&
+    !p.houveRemocao
+  );
+}
+
+/**
  * Precheck traduzido para o item da tela.
  *
  * `assertCanPerform` devolve a frase genérica dele ("Você precisa do papel…"),
@@ -1145,22 +1182,40 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       }
 
       // Soft-deleted entities
+      /**
+       * Algum item foi REMOVIDO da lista.
+       *
+       * Sai da mesma varredura que escreve o log de exclusão, logo abaixo, e é
+       * de propósito: remover não altera campo nenhum — o item some da lista —,
+       * então `nothingChanged` dava verdadeiro e a tela anunciava "Nenhuma
+       * alteração detectada" depois de gravar a remoção. Medido em 11/09/2026:
+       * um contribuinte ficou marcado como excluído no mesmo instante em que a
+       * tela dizia que nada tinha mudado.
+       *
+       * A comparação já existia aqui para a auditoria. Fazer uma segunda conta
+       * para a mensagem é o que produziu as duas divergências anteriores deste
+       * mesmo aviso — a do salvamento sem toque e a do rateio.
+       */
+      let houveRemocao = false;
       if (isEditing && snap) {
         const currentContribIds = new Set(entities.filter(e => e._dbId).map(e => e._dbId!));
         for (const old of snap.entities) {
           if (old._dbId && !currentContribIds.has(old._dbId)) {
+            houveRemocao = true;
             logAction({ area: 'dev', entity_type: 'contribuinte', entity_id: old._dbId, entity_name: old.nome_razao_social, action: 'deleted', details: `Cliente: ${clientData.nome.trim()}` });
           }
         }
         const currentPartIds = new Set(participants.filter(p => p._dbId).map(p => p._dbId!));
         for (const old of snap.participants) {
           if (old._dbId && !currentPartIds.has(old._dbId)) {
+            houveRemocao = true;
             logAction({ area: 'dev', entity_type: 'representante', entity_id: old._dbId, entity_name: old.nome, action: 'deleted', details: `Cliente: ${clientData.nome.trim()}` });
           }
         }
         const currentOsIds = new Set(contracts.filter(c => c._dbId).map(c => c._dbId!));
         for (const old of snap.contracts) {
           if (old._dbId && !currentOsIds.has(old._dbId)) {
+            houveRemocao = true;
             logAction({ area: 'dev', entity_type: 'ordem_servico', entity_id: old._dbId, entity_name: old.ordem_servico || '(sem número)', action: 'deleted', details: `Cliente: ${clientData.nome.trim()}` });
           }
         }
@@ -1169,18 +1224,22 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       // Feedback preciso: se estava editando e nenhuma entidade teve diff real,
       // informar explicitamente para o usuário perceber que o que ele editou
       // não chegou ao estado salvo (ex.: edição inline não commitada na aba).
-      const nothingChanged =
-        isEditing &&
-        !clientHasChange &&
-        contribDiffs.length === 0 &&
-        partDiffs.length === 0 &&
-        osDiffs.length === 0 &&
-        // Rateio e produtos são listas filhas da OS e não aparecem nos diffs
-        // acima. Sem esta parcela, mexer só no rateio gravava o valor novo e a
-        // tela ainda dizia "Nenhuma alteração detectada".
-        !filhosDeOsAlterados;
+      const nothingChanged = nadaMudouNoCadastro({
+        isEditing,
+        clientHasChange,
+        contribDiffs: contribDiffs.length,
+        partDiffs: partDiffs.length,
+        osDiffs: osDiffs.length,
+        filhosDeOsAlterados,
+        houveRemocao,
+      });
       if (nothingChanged) {
-        toast.info("Nenhuma alteração detectada. Se você editou algum item, confirme o botão Salvar da linha antes de salvar o cliente.");
+        // A frase antiga mandava "confirmar o botão Salvar da linha", e esse
+        // botão não existe: as três abas gravam pelo "Salvar Alterações" do
+        // rodapé, e cada uma diz isso no próprio comentário. Instrução para um
+        // controle inexistente faz o consultor procurar o que não há e repetir
+        // a operação achando que falhou.
+        toast.info("Nenhuma alteração detectada. O cadastro continua como estava.");
       } else {
         // Um aviso só para o salvamento inteiro: as frases de cada item servem
         // para nomear a etapa que falhou, não para anunciar etapa concluída.

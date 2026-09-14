@@ -434,6 +434,10 @@ describe('GerarDocumento — caracterização O1', () => {
         // candidatos confirmados no assistente.
         requalificados: [],
         imoveis: [], signatarios: [], vertices: [], memoriais: [],
+        // Governança: presentes e vazias porque o cliente do teste não tem
+        // Matriz. Modelo que cite a cláusula do órgão renderiza sem alínea,
+        // em vez de quebrar por "Lista ausente".
+        orgaosComCompetencia: [], matrizOrgaos: [], matrizLinhas: [],
       },
       total: null,
     });

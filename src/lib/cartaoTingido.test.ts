@@ -281,7 +281,7 @@ const CAIXA_QUE_FICA_BRANCA: Record<MotivoDeFicarBranca, Record<string, number>>
     // explica a maioria e o resto está escrito aqui.
     'src/components/equipe/daily/DailyQuickStatusDialog.tsx': 4,
     'src/components/equipe/fiscal/tasks/kanban/TaskKanbanSubtaskRow.tsx': 1,
-    'src/components/equipe/osg/diagnostico-patrimonial/TitularidadesPanel.tsx': 1,
+    'src/components/equipe/osg/diagnostico-patrimonial/titularidade/TitularidadeLinha.tsx': 1,
     'src/components/equipe/osg/diagnostico-patrimonial/exploracao-rural/ImoveisPanel.tsx': 1,
     'src/components/equipe/osg/diagnostico-patrimonial/exploracao-rural/PartesPanel.tsx': 1,
     'src/components/equipe/osg/quadro-societario/AtosSocietarios.tsx': 1,
@@ -347,6 +347,7 @@ const SOBRE_BRANCO: Record<string, number> = {
   // contra o cartão, é contra os campos habilitados ao lado, que são brancos e
   // não mudaram. Subir o alfa aqui não conserta nada e apaga a diferença.
   'src/components/equipe/client-form/ContribuinteDadosFiscais.tsx': 1,
+  'src/components/equipe/osg/diagnostico-patrimonial/matricula/MatriculaDadosTab.tsx': 1,
 };
 
 /** A classe com qualquer variante na frente (`hover:`, `md:`, `dark:`). */

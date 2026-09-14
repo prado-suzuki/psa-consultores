@@ -1669,3 +1669,160 @@ describe('causaDaRequalificacaoVigente — quem manda e a peca, nao a tela', () 
     expect(domicilio.verbo).toBe('Altera-se');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VALOR POR TITULAR (frente de 14/09/2026)
+//
+// A OSG relatou dois problemas, e os dois atravessam os cinco pontos do mapeador
+// que faziam "fração × valor da matrícula":
+//
+//   1. INTEGRALIZAÇÃO PARCIAL. O sócio integraliza só a fração dele; os 67% de
+//      fora não podem entrar no capital, virar quota, nem transformar o dono
+//      deles em "titular legado" que trava a gravação do aporte inicial.
+//   2. O CONTADOR DECIDE O VALOR. Titularidade 50/50 com valores declarados 60 e
+//      40 integraliza o que o contador mandou, não o que a fração pediria.
+//
+// A chave é por MATRÍCULA: sem nenhum valor por titular, tudo abaixo continua
+// valendo a conta antiga, e é isso que os testes acima (que não passam valor
+// nenhum) provam ao continuar verdes.
+describe('valor por titular — o cadastro decide capital, quotas e alínea', () => {
+  const matValor = (
+    id: string,
+    vlr: number | null,
+    titulares: TitularParaMapear[],
+  ): MatriculaIntegralizacao => ({
+    id, numero: id, livro: null, folha: null,
+    municipio_imovel: null, uf_imovel: null,
+    area_documento: null, area_unidade: null, vlr_contabil: vlr,
+    confrontacoes_texto: null, descricao_psa_completa: null,
+    bem: null, cartorio: null, titulares,
+  });
+
+  const socio = (id: string, denominacao: string): SocioParaMapear => ({
+    pessoa: { id, denominacao, tipo_pessoa: 'PF', genero: 'M' } as unknown as PessoaRow,
+    quotas: 100, vlr_total: 100, representante: null,
+  });
+
+  const jose = socio('j', 'José Eduardo');
+  const maria = socio('m', 'Maria Auxiliadora');
+
+  // O caso que a OSG contou: 50/50 de titularidade, 60/40 declarado, e o
+  // contador mandou integralizar 60 e 40 mesmo assim.
+  const SESSENTA_QUARENTA = matValor('m1', 100_000, [
+    { pessoaId: 'j', denominacao: 'José Eduardo', fracao: 50, vlrContabil: 60_000, vlrIntegralizar: 60_000 },
+    { pessoaId: 'm', denominacao: 'Maria Auxiliadora', fracao: 50, vlrContabil: 40_000, vlrIntegralizar: 40_000 },
+  ]);
+
+  // Integralização parcial: A entra com a fração dele, B (que nem é sócio)
+  // segura os 67%.
+  const PARCIAL = matValor('m2', 300_000, [
+    { pessoaId: 'j', denominacao: 'José Eduardo', fracao: 33, vlrContabil: 100_000, vlrIntegralizar: 100_000 },
+    { pessoaId: 'x', denominacao: 'Terceiro de Fora', fracao: 67, vlrContabil: 200_000 },
+  ]);
+
+  describe('capital da PR', () => {
+    it('é o que os titulares INTEGRALIZAM, não o valor do imóvel', () => {
+      const { capitalValor, totalQuotas } = calcularCapitalSociedade(
+        { tipo_empresa: 'PR' }, [], [PARCIAL],
+      );
+      expect(capitalValor).toBe(100_000);
+      expect(totalQuotas).toBe(100_000);
+    });
+
+    it('sem valor por titular, segue sendo o valor único da matrícula', () => {
+      const { capitalValor } = calcularCapitalSociedade(
+        { tipo_empresa: 'PR' }, [],
+        [matValor('m9', 300_000, [{ pessoaId: 'j', denominacao: 'José Eduardo', fracao: 33 }])],
+      );
+      expect(capitalValor).toBe(300_000);
+    });
+  });
+
+  describe('rateio e quadro derivado', () => {
+    it('cada titular leva o que integraliza, e o contador vence a fração', () => {
+      const [a, b] = calcularParticipacoesPR([SESSENTA_QUARENTA]);
+      expect([a.denominacao, a.valor]).toEqual(['José Eduardo', 60_000]);
+      expect([b.denominacao, b.valor]).toEqual(['Maria Auxiliadora', 40_000]);
+      expect(a.quotas + b.quotas).toBe(100_000);
+    });
+
+    // O defeito que esta frente corrige: o dono dos 67% recebia quotas no quadro
+    // derivado e, sem pessoa cadastrada, virava "titular legado" que travava a
+    // gravação do aporte inicial.
+    it('quem não integraliza fica FORA do quadro derivado', () => {
+      const participacoes = calcularParticipacoesPR([PARCIAL]);
+      expect(participacoes.map((p) => p.denominacao)).toEqual(['José Eduardo']);
+      expect(participacoes[0].percentual).toBe(100);
+    });
+
+    // A invariante da casa, agora pelo caminho novo.
+    it('Σ quotas dos sócios continua === totalQuotas', () => {
+      const matriculas = [SESSENTA_QUARENTA, PARCIAL];
+      const { totalQuotas } = calcularCapitalSociedade({ tipo_empresa: 'PR' }, [], matriculas);
+      const soma = calcularParticipacoesPR(matriculas).reduce((s, p) => s + p.quotas, 0);
+      expect(soma).toBe(totalQuotas);
+    });
+  });
+
+  describe('alíneas de {{#integralizacoes}}', () => {
+    const imovel = (item: ItemLista, i: number) =>
+      ((item.imoveis as ItemLista[])[i].imovel as Record<string, string>);
+
+    it('a alínea diz o que o sócio integraliza, e o imóvel guarda o valor dele', () => {
+      const [pJose, pMaria] = mapearIntegralizacoes([jose, maria], [SESSENTA_QUARENTA]);
+      expect(imovel(pJose, 0).valor).toBe('60.000,00');
+      expect(imovel(pJose, 0).valorIntegralizado).toBe('60.000,00');
+      // O valor do IMÓVEL é a soma do contábil dos titulares, e sobrevive à
+      // sobrescrita da alínea sob nome próprio.
+      expect(imovel(pJose, 0).valorDoImovel).toBe('100.000,00');
+      expect(imovel(pMaria, 0).valor).toBe('40.000,00');
+    });
+
+    it('titular que não integraliza não ganha alínea, e vira o remanescente', () => {
+      const itens = mapearIntegralizacoes([jose, socio('x', 'Terceiro de Fora')], [PARCIAL]);
+      expect(itens).toHaveLength(1);
+      const a = imovel(itens[0], 0);
+      expect(a.proprietario).toBe('José Eduardo');
+      expect(a.remanescente).toBe('Terceiro de Fora');
+      expect(a.valor).toBe('100.000,00');
+      expect(a.valorDoImovel).toBe('300.000,00');
+    });
+
+    it('a matrícula que ninguém do quadro integraliza não é descrita', () => {
+      expect(matriculasDescritasNasIntegralizacoes([socio('x', 'Terceiro de Fora')], [PARCIAL]))
+        .toEqual([]);
+      expect(matriculasDescritasNasIntegralizacoes([jose], [PARCIAL])).toEqual(['m2']);
+    });
+  });
+
+  describe('mapearMatricula avulso (binding unitário, sem sócio para liderar)', () => {
+    it('proprietário é quem integraliza; remanescente é quem segurou a parte', () => {
+      const campos = mapearMatricula(PARCIAL) as Campos;
+      expect(campos.proprietario).toBe('José Eduardo');
+      expect(campos.remanescente).toBe('Terceiro de Fora');
+      expect(campos.percentual).toBe('33,000%');
+      expect(campos.fracionado).toBe('sim');
+      expect(campos.valor).toBe('300.000,00');
+    });
+
+    it('todos integralizando é forma inteira: não há remanescente a citar', () => {
+      const campos = mapearMatricula(SESSENTA_QUARENTA) as Campos;
+      expect(campos.proprietario).toBe('José Eduardo e Maria Auxiliadora');
+      expect(campos.fracionado).toBe('');
+      expect(campos.inteiro).toBe('sim');
+    });
+  });
+
+  // A armadilha do §9 do plano: a linha de FATO aparece antes na lista e não
+  // carrega valor nenhum. Preferir "a primeira" apagaria a integralização
+  // inteira de quem também consta no registro.
+  it('a linha de fato não apaga o valor da linha de direito', () => {
+    const comFato = matValor('m3', 250_000, [
+      { pessoaId: 'j', denominacao: 'José Eduardo', fracao: 100 },
+      { pessoaId: 'j', denominacao: 'José Eduardo', fracao: 100, vlrContabil: 250_000, vlrIntegralizar: 250_000 },
+    ]);
+    const { capitalValor } = calcularCapitalSociedade({ tipo_empresa: 'PR' }, [], [comFato]);
+    expect(capitalValor).toBe(250_000);
+    expect(calcularParticipacoesPR([comFato])).toHaveLength(1);
+  });
+});

@@ -43,3 +43,53 @@ describe('camposEditaveisPorBinding', () => {
     expect(out.sociedade).toEqual([]);
   });
 });
+
+describe('campo interno some do formulário sem parar de valer', () => {
+  it('o gênero do órgão não é oferecido nem quando o modelo o cita direto', () => {
+    const out = camposEditaveisPorBinding(
+      ['conselhoAdministracao.genero'],
+      [binding('conselhoAdministracao', 'orgaoGovernanca')],
+    );
+    expect(out.conselhoAdministracao).toEqual([]);
+  });
+
+  it('nem entra pela porta dos fundos, como base de um derivado que concorda', () => {
+    // `artigoMaiusculo` e `composto` derivam de `genero`. A regra do derivado é
+    // trocá-lo pela base; a do interno é não oferecer a base. A segunda vence.
+    const out = camposEditaveisPorBinding(
+      ['conselhoAdministracao.artigoMaiusculo', 'conselhoAdministracao.composto'],
+      [binding('conselhoAdministracao', 'orgaoGovernanca')],
+    );
+    expect(out.conselhoAdministracao).toEqual([]);
+  });
+
+  it('o bloco de composição oferece só o que é dado do órgão', () => {
+    // Os placeholders são os do bloco de composição, na ordem em que ele os
+    // escreve: artigo, nome, concordância, mínimo, máximo e mandato.
+    const out = camposEditaveisPorBinding(
+      [
+        'conselhoAdministracao.artigoMaiusculo',
+        'conselhoAdministracao.nome',
+        'conselhoAdministracao.composto',
+        'conselhoAdministracao.membrosMinimoNumeral',
+        'conselhoAdministracao.membrosMinimoExtenso',
+        'conselhoAdministracao.membrosMaximoNumeral',
+        'conselhoAdministracao.membrosMaximoExtenso',
+        'conselhoAdministracao.mandatoAnosNumeral',
+        'conselhoAdministracao.mandatoAnosExtenso',
+      ],
+      [binding('conselhoAdministracao', 'orgaoGovernanca')],
+    );
+    expect(out.conselhoAdministracao.map((c) => c.id)).toEqual([
+      'nome',
+      'membrosMinimo',
+      'membrosMaximo',
+      'mandatoAnos',
+    ]);
+  });
+
+  it('CONTROLE: o gênero da PESSOA continua editável, porque é dado dela', () => {
+    const out = camposEditaveisPorBinding(['socio.genero'], [binding('socio', 'pessoa')]);
+    expect(out.socio.map((c) => c.id)).toEqual(['genero']);
+  });
+});

@@ -21,7 +21,12 @@ export type TipoEntidade =
   // instrumento e a origem da posse de cada imóvel. Pessoa e matrícula NÃO
   // ganham entidade nova — o contrato rural qualifica as mesmas pessoas e
   // descreve os mesmos imóveis que o Contrato Social.
-  | 'instrumento' | 'origemPosse';
+  | 'instrumento' | 'origemPosse'
+  // Governança (GOV-01/GOV-02 e o levantamento do acordo). Mesmo movimento do
+  // rural: pessoa e sociedade NÃO ganham entidade nova, porque a alteração
+  // contratual de governança qualifica os mesmos sócios e a mesma holding. O
+  // que falta é o órgão, a célula da matriz e os parâmetros do acordo.
+  | 'orgaoGovernanca' | 'competenciaMatriz' | 'acordoQuotistas';
 
 export interface CampoEntidade {
   /** Id do campo dentro da entidade (parte após o ponto no placeholder). */
@@ -47,6 +52,22 @@ export interface CampoEntidade {
    * instrumento assinado à mão quer no lugar de "Lucas do Rio Verde/MT, .".
    */
   manual?: boolean;
+  /**
+   * Campo de MÁQUINA, não de conferência: existe para o motor concordar ou
+   * calcular, e não é dado que o consultor tenha o que conferir. Some do
+   * "Ajustar dados manualmente" da tela Gerar e continua valendo por trás.
+   *
+   * Não confundir com `derivadoDe`, que também não aparece no formulário: o
+   * derivado some porque a correção tem efeito é na BASE dele, e a base entra
+   * no lugar. Aqui é a própria base que não deve ser oferecida.
+   *
+   * O caso que criou o sinalizador é `orgaoGovernanca.genero`. Ele não descreve
+   * o órgão, descreve a palavra: existe só para sair "O Conselho será composto"
+   * e "A Diretoria será composta". Quem digitasse "F" ali não corrigiria um
+   * dado errado, quebraria a concordância do documento. Contraste com
+   * `pessoa.genero`, que É dado da pessoa e continua editável.
+   */
+  interno?: boolean;
 }
 
 export interface Entidade {
@@ -824,8 +845,41 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
           return construida < total - 0.01 ? 'sim' : '';
         },
       },
+      // Três valores, porque na integralização eles DIVERGEM e o bloco precisa
+      // dizer qual está dizendo (frente de 14/09/2026):
+      //   · `valor` é o de sempre — o do imóvel no cadastro, MAS sobrescrito
+      //     dentro de {{#integralizacoes}} pelo que o sócio da alínea
+      //     integraliza, que é o comportamento que os modelos já esperam;
+      //   · `valorDoImovel` é o do imóvel, sempre, mesmo dentro da alínea;
+      //   · `valorIntegralizado` é o que AQUELE sócio integraliza, sempre.
+      // Com integralização parcial (A entra com 33%, B segura 67%) e com
+      // matrícula dividida entre dois sócios, "avaliado em R$ X" e "integraliza
+      // R$ Y" são números diferentes, e o leitor que soma as alíneas precisa dos
+      // dois para não achar que o capital está errado.
       { id: 'valor', label: 'Valor contábil (R$)', tipo: 'valor' },
       valorExtensoCampo,
+      { id: 'valorDoImovel', label: 'Valor contábil do imóvel inteiro (R$)', tipo: 'valor' },
+      {
+        id: 'valorDoImovelExtenso',
+        label: 'Valor do imóvel inteiro (por extenso)',
+        tipo: 'texto',
+        derivadoDe: 'valorDoImovel',
+        derivar: (v) => {
+          const n = paraNumeroBR(v.valorDoImovel);
+          return Number.isFinite(n) ? valorExtenso(n) : '';
+        },
+      },
+      { id: 'valorIntegralizado', label: 'Valor que este sócio integraliza (R$)', tipo: 'valor' },
+      {
+        id: 'valorIntegralizadoExtenso',
+        label: 'Valor que este sócio integraliza (por extenso)',
+        tipo: 'texto',
+        derivadoDe: 'valorIntegralizado',
+        derivar: (v) => {
+          const n = paraNumeroBR(v.valorIntegralizado);
+          return Number.isFinite(n) ? valorExtenso(n) : '';
+        },
+      },
       { id: 'denominacao', label: 'Denominação', tipo: 'texto' },
       { id: 'proprietario', label: 'Proprietário(s)', tipo: 'texto' },
       // Fração integralizada (composse/condomínio): o titular integralizador
@@ -1168,6 +1222,232 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
           return Number.isFinite(n) ? valorExtenso(n) : '';
         },
       },
+    ],
+  },
+
+  /**
+   * Um órgão de governança do cliente: Conselho de Administração, Diretoria,
+   * Reunião de Sócios, ou a instância que o cliente inventou.
+   *
+   * Os campos de composição vêm de `orgao_governanca` (GOV-01) mais a
+   * parametrização. NÃO entram aqui `vigencia_inicio` e `vigencia_fim`: nos
+   * sete contratos lidos a vigência do órgão não vira cláusula nenhuma, é
+   * histórico do sistema. Nem `entra_no_contrato`, que é filtro de composição
+   * do modelo e não texto.
+   *
+   * Numeral E extenso lado a lado, como no livro e folha da matrícula, porque
+   * o contrato escreve "no mínimo 03 (três) e no máximo 06 (seis) membros".
+   */
+  orgaoGovernanca: {
+    tipo: 'orgaoGovernanca',
+    label: 'Órgão de governança',
+    campos: [
+      { id: 'nome', label: 'Nome do órgão', tipo: 'texto', obrigatorio: true },
+
+      /*
+       * A CLÁUSULA CONCORDA COM O ÓRGÃO, e por isso o gênero é campo.
+       *
+       * "O Conselho de Administração será compostO por" contra "A Diretoria
+       * será compostA por"; "Compete AO Conselho" contra "Compete À Diretoria".
+       * O card manda usar `derivadoDe`/`derivar` para concordância em vez de uma
+       * segunda função, e é o que estes três fazem, chamando o `concordar` que
+       * já qualifica pessoa.
+       *
+       * O gênero não se deduz da TERMINAÇÃO: "Conselho de Administração" acaba
+       * em palavra feminina, e "gestão" e "órgão" acabam igual sendo uma
+       * feminina e outro masculino. Deduz-se da primeira palavra, que é o
+       * núcleo, e quem faz isso é `generoDoOrgao` no cadastro. Aqui o campo
+       * chega resolvido.
+       *
+       * `interno` porque é propriedade da PALAVRA, não do órgão: no painel de
+       * conferência ele não seria dado a conferir, seria uma alavanca para
+       * quebrar a concordância. Vem do cadastro do órgão e se corrige lá.
+       */
+      { id: 'genero', label: 'Gênero do nome (M/F)', tipo: 'texto', interno: true },
+      {
+        id: 'artigo',
+        label: 'Artigo do órgão (o/a)',
+        tipo: 'texto',
+        derivadoDe: 'genero',
+        derivar: (v) => PARES.artigo(v.genero === 'F' ? 'F' : 'M'),
+      },
+      {
+        /*
+         * O artigo em caixa alta, para começo de frase. O contrato abre a
+         * cláusula com "O Conselho de Administração será composto" e diz
+         * "Compete ao Conselho" no meio de outra: é a mesma concordância em
+         * duas posições, e o motor não capitaliza sozinho. Mesma ideia do
+         * `socioTitulo`, que existe porque o rótulo da assinatura é título e
+         * não meio de frase.
+         */
+        id: 'artigoMaiusculo',
+        label: 'Artigo em começo de frase (O/A)',
+        tipo: 'texto',
+        derivadoDe: 'genero',
+        derivar: (v) => concordar(v.genero === 'F' ? 'F' : 'M', 'O', 'A'),
+      },
+      {
+        id: 'ao',
+        label: 'Preposição com artigo (ao/à)',
+        tipo: 'texto',
+        derivadoDe: 'genero',
+        derivar: (v) => concordar(v.genero === 'F' ? 'F' : 'M', 'ao', 'à'),
+      },
+      {
+        id: 'composto',
+        label: 'Composto/composta, concordado',
+        tipo: 'texto',
+        derivadoDe: 'genero',
+        derivar: (v) => concordar(v.genero === 'F' ? 'F' : 'M', 'composto', 'composta'),
+      },
+
+      { id: 'membrosMinimo', label: 'Mínimo de membros', tipo: 'inteiro' },
+      numeralCampo('membrosMinimoNumeral', 'Mínimo de membros (numeral)', 'membrosMinimo'),
+      cardinalCampo('membrosMinimoExtenso', 'Mínimo de membros (por extenso)', 'membrosMinimo'),
+
+      { id: 'membrosMaximo', label: 'Máximo de membros', tipo: 'inteiro' },
+      numeralCampo('membrosMaximoNumeral', 'Máximo de membros (numeral)', 'membrosMaximo'),
+      cardinalCampo('membrosMaximoExtenso', 'Máximo de membros (por extenso)', 'membrosMaximo'),
+
+      /*
+       * Horita e Bela Vista escrevem "composto por 03 (três) membros", sem
+       * faixa. Não é campo novo: é mínimo igual a máximo, e o bloco troca de
+       * redação sozinho. Publicar os dois lados porque o engine não tem else.
+       */
+      condicionalCampo(
+        'membrosFixo',
+        'Número fixo de membros? (condicional)',
+        ['membrosMinimo', 'membrosMaximo'],
+        (v) => !!v.membrosMinimo && v.membrosMinimo === v.membrosMaximo,
+      ),
+      condicionalCampo(
+        'membrosEmFaixa',
+        'Membros em faixa mínimo/máximo? (condicional)',
+        ['membrosMinimo', 'membrosMaximo'],
+        (v) => !!v.membrosMinimo && !!v.membrosMaximo && v.membrosMinimo !== v.membrosMaximo,
+      ),
+
+      { id: 'mandatoAnos', label: 'Mandato, em anos', tipo: 'inteiro' },
+      numeralCampo('mandatoAnosNumeral', 'Mandato (numeral)', 'mandatoAnos'),
+      cardinalCampo('mandatoAnosExtenso', 'Mandato (por extenso)', 'mandatoAnos'),
+
+      /*
+       * Os cargos chegam já concatenados pelo mapeador ("Diretor de Mercado e
+       * Finanças, Diretor Operações e Diretor de Sistema de Irrigação", que é o
+       * Bela Vista literal). Vazio, o Mattei mostra a saída: "com denominação
+       * atribuída no momento da composição".
+       */
+      { id: 'cargos', label: 'Cargos deste órgão', tipo: 'texto' },
+      condicionalCampo('temCargos', 'Tem cargos nomeados? (condicional)', 'cargos', (v) => !!v.cargos),
+      condicionalCampo('semCargos', 'Sem cargos nomeados? (condicional)', 'cargos', (v) => !v.cargos),
+
+      /*
+       * NÃO HÁ CAMPO DE REPRESENTAÇÃO AQUI, e a ausência é medida.
+       *
+       * O limite de valor para representar a sociedade aparece em UM dos sete
+       * contratos, o Perci ("cujo valor não exceda R$ 2.000.000,00"). Mattei,
+       * Bela Vista, Horita, Zamo, Agro Ferragens e o modelo da casa não têm nem
+       * "exceda" nem "dois diretores em conjunto".
+       *
+       * Nas matrizes a frequência é outra, três em cinco, o que diz que a
+       * consultoria propõe a regra e ela raramente chega ao contrato. Uma
+       * ocorrência em sete não paga campo; ele volta se a consultoria disser
+       * que a regra é padrão.
+       */
+    ],
+  },
+
+  /**
+   * Uma célula da Matriz de Alçadas: o que UM órgão faz em UMA atividade.
+   *
+   * É o item da lista que vira alínea da cláusula de competência, e a mesma
+   * célula serve à grade do documento da Matriz. Os campos chegam prontos do
+   * mapeador porque a leitura deles já existe em `lib/matrizAlcadas.ts`: papéis
+   * concatenados, alçada com unidade e base já resolvidas.
+   */
+  competenciaMatriz: {
+    tipo: 'competenciaMatriz',
+    label: 'Competência da Matriz de Alçadas',
+    campos: [
+      { id: 'atividade', label: 'Atividade', tipo: 'texto', obrigatorio: true },
+      { id: 'detalhamento', label: 'O que a atividade abrange neste cliente', tipo: 'texto' },
+      { id: 'papeis', label: 'Papéis na decisão', tipo: 'texto' },
+      /*
+       * OS MESMOS VERBOS NO INFINITIVO, que é como a alínea do contrato
+       * escreve: a célula da Matriz diz "Delibera" e a cláusula diz
+       * "Deliberar sobre a distribuição de lucros". Vem do catálogo, não de
+       * derivação: 7 dos 32 papéis terminam em "e" e são ambíguos entre -er e
+       * -ir (Decide/Decidir contra Submete/Submeter).
+       */
+      { id: 'papeisInfinitivo', label: 'Papéis no infinitivo', tipo: 'texto' },
+      /*
+       * A preposição do órgão de destino, que concorda com o gênero DELE e não
+       * com o desta célula. Sem ela saía "encaminhando a Conselho" e
+       * "encaminhando a Reunião de Sócios", no documento gerado em 14/09.
+       */
+      { id: 'sobeParaAo', label: 'Preposição do destino (ao/à)', tipo: 'texto' },
+      { id: 'alcada', label: 'Alçada (valor ou percentual, já formatada)', tipo: 'texto' },
+      { id: 'sobePara', label: 'Sobe para', tipo: 'texto' },
+      { id: 'foraDaPolitica', label: 'Trata do que foge da política? (condicional)', tipo: 'texto' },
+      { id: 'resumo', label: 'A célula inteira em uma linha (para a grade)', tipo: 'texto' },
+      condicionalCampo('temDetalhamento', 'Tem detalhamento? (condicional)', 'detalhamento', (v) => !!v.detalhamento),
+      condicionalCampo('temAlcada', 'Tem alçada? (condicional)', 'alcada', (v) => !!v.alcada),
+      condicionalCampo('sobe', 'Escala para outro órgão? (condicional)', 'sobePara', (v) => !!v.sobePara),
+    ],
+  },
+
+  /**
+   * Os parâmetros do Acordo de Quotistas que a alteração contratual consome.
+   *
+   * Vinculados contra o LEVANTAMENTO, não contra tabela: o cadastro do acordo é
+   * a GOV-03 e vem depois. Aqui entram os seis medidos descendo ao contrato
+   * social (cláusula de preferência e de apuração de haveres) mais os que a
+   * cláusula do capítulo do Acordo precisa. Os outros 27 parâmetros medidos
+   * chegam com a GOV-03.
+   */
+  acordoQuotistas: {
+    tipo: 'acordoQuotistas',
+    label: 'Acordo de Quotistas (parâmetros)',
+    campos: [
+      // O capítulo "Do Acordo de Quotistas" tem duas redações, e é a existência
+      // do acordo que escolhe: sem ele "os sócios poderão firmar", com ele
+      // "os sócios firmaram em tal data". Está literal no modelo da casa.
+      { id: 'assinadoEm', label: 'Data de assinatura do acordo', tipo: 'data' },
+      dataExtensoCampo('assinadoEmExtenso', 'Data de assinatura (por extenso)', 'assinadoEm'),
+      condicionalCampo('jaAssinado', 'Acordo já assinado? (condicional)', 'assinadoEm', (v) => !!v.assinadoEm),
+      condicionalCampo('aindaNaoAssinado', 'Acordo ainda não firmado? (condicional)', 'assinadoEm', (v) => !v.assinadoEm),
+
+      { id: 'vigenciaAnos', label: 'Vigência do acordo, em anos', tipo: 'inteiro' },
+      numeralCampo('vigenciaAnosNumeral', 'Vigência do acordo (numeral)', 'vigenciaAnos'),
+      cardinalCampo('vigenciaAnosExtenso', 'Vigência do acordo (por extenso)', 'vigenciaAnos'),
+
+      /*
+       * A APURAÇÃO DE HAVERES TEM UM CAMPO SÓ, E NÃO SEIS.
+       *
+       * A primeira versão publicava prazo do balanço, horizonte do fluxo, taxa
+       * mínima e regra de combinação como campos. Medido nos sete contratos,
+       * nenhum deles varia: "60 (sessenta) dias" em 6 de 6, "05 (cinco) anos"
+       * em 3 de 3, IPCA nos 2 que têm, e "maior valor" nos 2 que têm. Campo que
+       * não varia é texto fixo do modelo, e publicá-lo convida alguém a montar
+       * formulário para uma pergunta que não existe.
+       *
+       * O que VARIA é se a apuração usa o fluxo de caixa descontado além do
+       * patrimônio líquido: Bela Vista, Horita e Agro Ferragens usam os dois;
+       * Perci, Mattei e Zamo usam só o patrimônio líquido. Então é UMA condição
+       * que acende o bloco inteiro do fluxo, com os números dentro dele fixos.
+       */
+      { id: 'ordemPreferencia', label: 'Ordem do direito de preferência', tipo: 'texto' },
+      {
+        id: 'usaFluxoDeCaixa',
+        label: 'A apuração inclui fluxo de caixa descontado? (condicional)',
+        tipo: 'texto',
+      },
+      condicionalCampo(
+        'somentePatrimonioLiquido',
+        'Apuração só por patrimônio líquido? (condicional)',
+        'usaFluxoDeCaixa',
+        (v) => !v.usaFluxoDeCaixa,
+      ),
     ],
   },
 };

@@ -81,6 +81,14 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
   baixarVersao, folhaEstado, infoFolha, temPainel, mostraSocios, mostraAdministradores,
   mostraIntegralizacoes,
 } = controller;
+  /*
+   * Binding sem NENHUM campo editável não vira seção de formulário vazia. Isso
+   * só passou a acontecer com os campos `interno` (o gênero do órgão): antes,
+   * todo binding tinha ao menos um campo, porque é de um placeholder
+   * `papel.campo` que ele nasce. Um bloco que só escreva "{{ orgao.ao }}"
+   * renderizaria o título do órgão com nada embaixo.
+   */
+  const bindingsAjustaveis = bindings.filter((b) => (camposPorBinding[b.nome] ?? []).length > 0);
   return (<>              {temPainel && (
                 <Card className="order-3 rounded-md border-osg-300/60 shadow-sm shadow-osg-300/30 xl:sticky xl:top-4 xl:order-1">
                   <CardHeader className="space-y-2 pb-4">
@@ -356,7 +364,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                       </SecaoPainel>
                     )}
 
-                    {bindings.length > 0 && (
+                    {bindingsAjustaveis.length > 0 && (
                       <Collapsible open={ajustesAbertos} onOpenChange={setAjustesAbertos}>
                         <CollapsibleTrigger asChild>
                           <button
@@ -376,7 +384,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                           <p className="text-xs text-muted-foreground">
                             Os ajustes valem só para este documento — o cadastro não muda.
                           </p>
-                          {bindings.map((b) => (
+                          {bindingsAjustaveis.map((b) => (
                             <div key={b.nome} className="space-y-2.5">
                               <p className="text-sm font-semibold text-muted-foreground">
                                 {labelDoBinding(b.nome)}

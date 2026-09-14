@@ -155,19 +155,38 @@ const FECHO_ZERO_LINHAS = 'Os dados podem ter sido modificados. Atualize a pági
 /** Dentro do salvamento do cliente a orientação é mais curta (T4 da tarefa). */
 const FECHO_SUPORTE_NO_SALVAMENTO = 'Tente novamente.';
 
-/** Papel exigido para gravar no módulo, quando o banco não disse qual. */
+/**
+ * Papel exigido para gravar no módulo, quando o banco não disse qual.
+ *
+ * É o piso do cadastro geral — cliente, contribuinte e representante. **OS,
+ * rateio e produtos contratados exigem `lider`** desde a migração
+ * `20260911212357`, e a Proposta também. Esses caminhos não caem aqui: o
+ * `can_perform` roda antes da gravação da OS e devolve o papel que o banco
+ * pediu, e as três abas nem aparecem para quem está abaixo de líder.
+ *
+ * Se um dia uma dessas escritas chegar a uma recusa crua, sem precheck, a
+ * frase dirá "Sublíder" onde o banco quer "Líder". A correção então é o papel
+ * vir por tabela, não subir este padrão — subi-lo mentiria para o cadastro
+ * geral, que é o caminho comum.
+ */
 const PAPEL_PADRAO: RlsRequiredRole = 'sublider';
 
 /**
  * A escrita no cadastro de cliente já é decidida só por cargo em produção?
  *
- * Enquanto for `false`, uma recusa crua de permissão (código do Postgres, sem o
- * precheck dizendo o papel) **ainda pode ser por cluster** — as tarefas 1 a 3 da
- * sprint 12 é que fecham isso. Nesse estado a frase não afirma cargo: cai em
- * Falha, porque prometer "papel de Sublíder" a quem já é sublíder é pior do que
- * não explicar. Virar `true` quando as três migrações estiverem em produção.
+ * **`true` desde 14/09/2026.** Conferido por SELECT em produção: nenhuma policy
+ * de escrita de `cliente`, `contribuinte`, `representante` ou `ordem_servico`
+ * cita `cliente_visivel_para` ou `resolve_user_cluster_ids`. As nove migrações
+ * do bloco de permissões estão aplicadas lá.
+ *
+ * Enquanto era `false`, uma recusa crua de permissão ainda podia vir do
+ * cluster, e afirmar "é necessário o papel de Sublíder" para quem já era
+ * sublíder seria mentir — por isso caía em Falha. Agora a recusa por cargo é a
+ * única possível na gravação, e a frase passa a dizer o que resolve.
+ *
+ * Só volte para `false` se o cluster voltar para alguma policy de escrita.
  */
-const RECUSA_DE_ESCRITA_E_SO_POR_CARGO = false;
+const RECUSA_DE_ESCRITA_E_SO_POR_CARGO = true;
 
 interface CelulaCatalogo {
   /** Fragmento `{ação} {item}` da Falha e da Zero linhas: "atualizar a OS {numero}". */

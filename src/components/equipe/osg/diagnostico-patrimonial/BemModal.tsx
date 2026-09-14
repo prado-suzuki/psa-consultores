@@ -95,6 +95,7 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose, rascun
       { invalido: !isImovel && (!draft.vlr_contabil.trim() || Number.isNaN(Number(draft.vlr_contabil))), mensagem: 'Informe o valor contábil do bem.', aba: 'dados', campo: 'vlr_contabil' },
       { invalido: falhaTitulares === 'sem_titular', mensagem: 'Selecione ao menos um titular do bem, na aba Titularidade.', aba: 'titulares', campo: 'titular_pessoa_id' },
       { invalido: falhaTitulares === 'fracao_invalida', mensagem: 'A fração de cada titular deve estar entre 0 e 100.', aba: 'titulares', campo: 'titular_fracao' },
+      { invalido: falhaTitulares === 'valor_invalido', mensagem: 'Os valores por titular precisam ser números não negativos.', aba: 'titulares', campo: 'titular_fracao' },
       { invalido: falhaTitulares === 'duplicado', mensagem: 'A mesma pessoa aparece duas vezes na mesma espécie de titularidade.', aba: 'titulares', campo: 'titular_pessoa_id' },
     ], { abrirAba: setActiveTab });
     if (!ok) return;

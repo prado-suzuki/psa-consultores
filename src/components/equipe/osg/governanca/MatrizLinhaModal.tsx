@@ -202,6 +202,19 @@ export function MatrizLinhaModal({
             const orgao = orgaos.find((o) => o.id === c.orgao_id);
             if (!orgao) return null;
             const outros = orgaos.filter((o) => o.id !== c.orgao_id);
+            /*
+             * O PRIMEIRO ÓRGÃO DA LISTA NÃO ESCALA, e por isso não recebe o
+             * campo. Ele é a instância soberana: nos contratos a Reunião de
+             * Sócios delibera e decide, e na coluna dela da matriz V1, nas 15
+             * linhas, não há uma ocorrência de "submete" nem de "encaminha".
+             *
+             * A regra é "primeiro da lista", e não "o mais alto que participa
+             * desta linha". Se a Reunião de Sócios não participa de uma
+             * atividade, o Conselho ainda manda para ela: no Mattei, seis das
+             * vinte alíneas do Conselho começam com "Encaminhar à Reunião de
+             * Sócios", inclusive em assunto que ela não trata no dia a dia.
+             */
+            const ehOTopo = orgaos[0]?.id === c.orgao_id;
 
             return (
               <div key={c.orgao_id} className="space-y-3 rounded-lg border border-osg-200 p-3">
@@ -312,6 +325,7 @@ export function MatrizLinhaModal({
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2">
+                      {!ehOTopo && (
                       <div className="space-y-1.5">
                         <Label className="flex items-center gap-1.5">
                           Depois disso, vai para
@@ -336,7 +350,17 @@ export function MatrizLinhaModal({
                           </SelectContent>
                         </Select>
                       </div>
+                      )}
 
+                      {/*
+                        O órgão do topo também não tem teto. Medido nas duas
+                        matrizes que o separam: na coluna da Assembleia de
+                        Sócios da V1 e da EDP não há um único valor em R$. Ela
+                        delibera, decide, elege e autoriza, e nenhum desses
+                        verbos tem limite. Perguntar "decide sozinho até" a
+                        quem é soberano é convidar a inventar um número.
+                      */}
+                      {!ehOTopo && (
                       <div className="space-y-1.5">
                         <Label className="flex items-center gap-1.5">
                           Decide sozinho até
@@ -393,6 +417,7 @@ export function MatrizLinhaModal({
                           </Select>
                         )}
                       </div>
+                      )}
                     </div>
 
                     {/*
