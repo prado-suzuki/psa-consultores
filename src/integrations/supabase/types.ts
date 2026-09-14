@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       access_change_log: {
@@ -71,6 +46,369 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      acordo_ordem_preferencia: {
+        Row: {
+          acordo_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          ordem: number
+          quem: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acordo_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ordem?: number
+          quem: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acordo_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ordem?: number
+          quem?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acordo_ordem_preferencia_acordo_id_fkey"
+            columns: ["acordo_id"]
+            isOneToOne: false
+            referencedRelation: "acordo_quotistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      acordo_quorum: {
+        Row: {
+          acordo_id: string
+          base: string
+          chave: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          materia: string
+          ordem: number
+          percentual: number | null
+          tipo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acordo_id: string
+          base?: string
+          chave?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          materia: string
+          ordem?: number
+          percentual?: number | null
+          tipo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acordo_id?: string
+          base?: string
+          chave?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          materia?: string
+          ordem?: number
+          percentual?: number | null
+          tipo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acordo_quorum_acordo_id_fkey"
+            columns: ["acordo_id"]
+            isOneToOne: false
+            referencedRelation: "acordo_quotistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      acordo_quotistas: {
+        Row: {
+          assinado_em: string | null
+          camara_arbitral: string | null
+          cliente_id: string
+          consolida_composse: boolean
+          created_at: string
+          created_by: string | null
+          data_referencia: string | null
+          excluido: boolean
+          horizonte_fluxo_anos: number | null
+          id: string
+          juros_valor_subscrito: string | null
+          mecanismos: string[] | null
+          metodos_avaliacao: string[] | null
+          nao_concorrencia: boolean
+          nao_concorrencia_alcanca_parentes: boolean
+          nao_concorrencia_area: string | null
+          nao_concorrencia_multa: string | null
+          nao_concorrencia_prazo_anos: number | null
+          objetos_preferencia: string[] | null
+          opcao_compra_preco: string | null
+          opcao_compra_prevista: boolean
+          opcao_compra_quem: string | null
+          opcao_venda_prevista: boolean
+          prazo_balanco_dias: number | null
+          prazo_indicacao_arbitros_dias: number | null
+          prazo_sigilo_anos: number | null
+          regra_combinacao: string | null
+          representante_pessoa_id: string | null
+          reuniao_previa_obrigatoria: boolean
+          solucao_litigios: string | null
+          taxa_minima_crescimento: string | null
+          updated_at: string
+          updated_by: string | null
+          versao: number
+          vigencia_anos: number | null
+        }
+        Insert: {
+          assinado_em?: string | null
+          camara_arbitral?: string | null
+          cliente_id: string
+          consolida_composse?: boolean
+          created_at?: string
+          created_by?: string | null
+          data_referencia?: string | null
+          excluido?: boolean
+          horizonte_fluxo_anos?: number | null
+          id?: string
+          juros_valor_subscrito?: string | null
+          mecanismos?: string[] | null
+          metodos_avaliacao?: string[] | null
+          nao_concorrencia?: boolean
+          nao_concorrencia_alcanca_parentes?: boolean
+          nao_concorrencia_area?: string | null
+          nao_concorrencia_multa?: string | null
+          nao_concorrencia_prazo_anos?: number | null
+          objetos_preferencia?: string[] | null
+          opcao_compra_preco?: string | null
+          opcao_compra_prevista?: boolean
+          opcao_compra_quem?: string | null
+          opcao_venda_prevista?: boolean
+          prazo_balanco_dias?: number | null
+          prazo_indicacao_arbitros_dias?: number | null
+          prazo_sigilo_anos?: number | null
+          regra_combinacao?: string | null
+          representante_pessoa_id?: string | null
+          reuniao_previa_obrigatoria?: boolean
+          solucao_litigios?: string | null
+          taxa_minima_crescimento?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+          vigencia_anos?: number | null
+        }
+        Update: {
+          assinado_em?: string | null
+          camara_arbitral?: string | null
+          cliente_id?: string
+          consolida_composse?: boolean
+          created_at?: string
+          created_by?: string | null
+          data_referencia?: string | null
+          excluido?: boolean
+          horizonte_fluxo_anos?: number | null
+          id?: string
+          juros_valor_subscrito?: string | null
+          mecanismos?: string[] | null
+          metodos_avaliacao?: string[] | null
+          nao_concorrencia?: boolean
+          nao_concorrencia_alcanca_parentes?: boolean
+          nao_concorrencia_area?: string | null
+          nao_concorrencia_multa?: string | null
+          nao_concorrencia_prazo_anos?: number | null
+          objetos_preferencia?: string[] | null
+          opcao_compra_preco?: string | null
+          opcao_compra_prevista?: boolean
+          opcao_compra_quem?: string | null
+          opcao_venda_prevista?: boolean
+          prazo_balanco_dias?: number | null
+          prazo_indicacao_arbitros_dias?: number | null
+          prazo_sigilo_anos?: number | null
+          regra_combinacao?: string | null
+          representante_pessoa_id?: string | null
+          reuniao_previa_obrigatoria?: boolean
+          solucao_litigios?: string | null
+          taxa_minima_crescimento?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+          vigencia_anos?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acordo_quotistas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acordo_quotistas_representante_pessoa_id_fkey"
+            columns: ["representante_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      acordo_ramo_familiar: {
+        Row: {
+          acordo_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+          ordem: number
+          rotulo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acordo_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          rotulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acordo_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          rotulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acordo_ramo_familiar_acordo_id_fkey"
+            columns: ["acordo_id"]
+            isOneToOne: false
+            referencedRelation: "acordo_quotistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      acordo_signatario: {
+        Row: {
+          acordo_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          ordem: number
+          pessoa_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acordo_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ordem?: number
+          pessoa_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acordo_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ordem?: number
+          pessoa_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acordo_signatario_acordo_id_fkey"
+            columns: ["acordo_id"]
+            isOneToOne: false
+            referencedRelation: "acordo_quotistas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acordo_signatario_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      acordo_sociedade_relacionada: {
+        Row: {
+          acordo_id: string
+          created_at: string
+          created_by: string | null
+          empresa_pessoa_id: string
+          id: string
+          ordem: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acordo_id: string
+          created_at?: string
+          created_by?: string | null
+          empresa_pessoa_id: string
+          id?: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acordo_id?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_pessoa_id?: string
+          id?: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acordo_sociedade_relacionada_acordo_id_fkey"
+            columns: ["acordo_id"]
+            isOneToOne: false
+            referencedRelation: "acordo_quotistas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acordo_sociedade_relacionada_empresa_pessoa_id_fkey"
+            columns: ["empresa_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       administracao: {
         Row: {
@@ -2283,7 +2621,6 @@ export type Database = {
       distribuicao_receita: {
         Row: {
           created_at: string | null
-          excluido: boolean
           id: string
           id_centro_custo: string
           id_ordem_servico: string
@@ -2291,7 +2628,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          excluido?: boolean
           id?: string
           id_centro_custo: string
           id_ordem_servico: string
@@ -2299,7 +2635,6 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          excluido?: boolean
           id?: string
           id_centro_custo?: string
           id_ordem_servico?: string
@@ -5931,7 +6266,6 @@ export type Database = {
           data_emissao: string | null
           data_fim: string | null
           data_inicio: string | null
-          excluido: boolean
           id: string
           id_cliente: string
           id_produto_segmento: string | null
@@ -5956,7 +6290,6 @@ export type Database = {
           data_emissao?: string | null
           data_fim?: string | null
           data_inicio?: string | null
-          excluido?: boolean
           id?: string
           id_cliente: string
           id_produto_segmento?: string | null
@@ -5981,7 +6314,6 @@ export type Database = {
           data_emissao?: string | null
           data_fim?: string | null
           data_inicio?: string | null
-          excluido?: boolean
           id?: string
           id_cliente?: string
           id_produto_segmento?: string | null
@@ -6628,42 +6960,60 @@ export type Database = {
       }
       orgao_governanca: {
         Row: {
+          cargos_do_orgao: string[] | null
           cliente_id: string
           created_at: string
           created_by: string | null
           entra_no_contrato: boolean
           excluido: boolean
+          genero: string | null
           id: string
+          mandato_anos: number | null
+          membros_maximo: number | null
+          membros_minimo: number | null
           nome: string
           ordem: number
+          padrao_chave: string | null
           updated_at: string
           updated_by: string | null
           vigencia_fim: string | null
           vigencia_inicio: string | null
         }
         Insert: {
+          cargos_do_orgao?: string[] | null
           cliente_id: string
           created_at?: string
           created_by?: string | null
           entra_no_contrato?: boolean
           excluido?: boolean
+          genero?: string | null
           id?: string
+          mandato_anos?: number | null
+          membros_maximo?: number | null
+          membros_minimo?: number | null
           nome: string
           ordem?: number
+          padrao_chave?: string | null
           updated_at?: string
           updated_by?: string | null
           vigencia_fim?: string | null
           vigencia_inicio?: string | null
         }
         Update: {
+          cargos_do_orgao?: string[] | null
           cliente_id?: string
           created_at?: string
           created_by?: string | null
           entra_no_contrato?: boolean
           excluido?: boolean
+          genero?: string | null
           id?: string
+          mandato_anos?: number | null
+          membros_maximo?: number | null
+          membros_minimo?: number | null
           nome?: string
           ordem?: number
+          padrao_chave?: string | null
           updated_at?: string
           updated_by?: string | null
           vigencia_fim?: string | null
@@ -6765,6 +7115,7 @@ export type Database = {
           excluido: boolean
           grupo: string | null
           id: string
+          infinitivo: string | null
           nome: string
           ordem: number
           updated_at: string
@@ -6777,6 +7128,7 @@ export type Database = {
           excluido?: boolean
           grupo?: string | null
           id?: string
+          infinitivo?: string | null
           nome: string
           ordem?: number
           updated_at?: string
@@ -6789,6 +7141,7 @@ export type Database = {
           excluido?: boolean
           grupo?: string | null
           id?: string
+          infinitivo?: string | null
           nome?: string
           ordem?: number
           updated_at?: string
@@ -8595,6 +8948,7 @@ export type Database = {
       }
       quadro_societario: {
         Row: {
+          com_usufruto: boolean
           created_at: string
           created_by: string | null
           data_referencia: string | null
@@ -8606,8 +8960,10 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           vlr_total: number | null
+          voto_exercido_por: string | null
         }
         Insert: {
+          com_usufruto?: boolean
           created_at?: string
           created_by?: string | null
           data_referencia?: string | null
@@ -8619,8 +8975,10 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           vlr_total?: number | null
+          voto_exercido_por?: string | null
         }
         Update: {
+          com_usufruto?: boolean
           created_at?: string
           created_by?: string | null
           data_referencia?: string | null
@@ -8632,6 +8990,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           vlr_total?: number | null
+          voto_exercido_por?: string | null
         }
         Relationships: [
           {
@@ -8711,7 +9070,6 @@ export type Database = {
           cargo: string | null
           created_at: string | null
           email: string | null
-          excluido: boolean
           id_cliente: string
           id_representante: string
           nome: string
@@ -8726,7 +9084,6 @@ export type Database = {
           cargo?: string | null
           created_at?: string | null
           email?: string | null
-          excluido?: boolean
           id_cliente: string
           id_representante?: string
           nome: string
@@ -8741,7 +9098,6 @@ export type Database = {
           cargo?: string | null
           created_at?: string | null
           email?: string | null
-          excluido?: boolean
           id_cliente?: string
           id_representante?: string
           nome?: string
@@ -11143,6 +11499,7 @@ export type Database = {
       }
     }
     Functions: {
+      acordo_visivel_para: { Args: { _acordo_id: string }; Returns: boolean }
       alertar_tarefas_por_prazo: {
         Args: { _ambiente?: string; _hoje?: string }
         Returns: {
@@ -11182,6 +11539,10 @@ export type Database = {
           _nome_original: string
           _tamanho: number
         }
+        Returns: string
+      }
+      audit_log_cliente_id: {
+        Args: { _entity_id: string; _entity_type: string }
         Returns: string
       }
       can_perform: {
@@ -11462,7 +11823,6 @@ export type Database = {
           data_emissao: string | null
           data_fim: string | null
           data_inicio: string | null
-          excluido: boolean
           id: string
           id_cliente: string
           id_produto_segmento: string | null
@@ -11735,15 +12095,12 @@ export type Database = {
         Args: { _sistema_id: string }
         Returns: boolean
       }
-      soft_delete_distribuicao_receita: {
-        Args: { _ids: string[] }
-        Returns: number
-      }
+      soft_delete_cliente: { Args: { _ids: string[] }; Returns: number }
+      soft_delete_contribuinte: { Args: { _ids: string[] }; Returns: number }
       soft_delete_documento_cliente: {
         Args: { _id: string }
         Returns: undefined
       }
-      soft_delete_ordem_servico: { Args: { _ids: string[] }; Returns: number }
       solicitacoes_a_cobrar: {
         Args: { _intervalo_dias?: number }
         Returns: {
@@ -11823,7 +12180,7 @@ export type Database = {
       itcd_origem_usufruto: "reserva" | "instituicao"
       itcd_papel_usufruto: "usufrui" | "concede"
       itcd_simulacao_status: "rascunho" | "gerada" | "aprovada" | "substituida"
-      notificacao_canal: "sino" | "email" | "whatsapp"
+      notificacao_canal: "sino" | "email" | "whatsapp" | "google_chat"
       notificacao_envio_status:
         | "pendente"
         | "enviado"
@@ -12078,9 +12435,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: [
@@ -12113,7 +12467,7 @@ export const Constants = {
       itcd_origem_usufruto: ["reserva", "instituicao"],
       itcd_papel_usufruto: ["usufrui", "concede"],
       itcd_simulacao_status: ["rascunho", "gerada", "aprovada", "substituida"],
-      notificacao_canal: ["sino", "email", "whatsapp"],
+      notificacao_canal: ["sino", "email", "whatsapp", "google_chat"],
       notificacao_envio_status: [
         "pendente",
         "enviado",
