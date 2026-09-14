@@ -585,6 +585,17 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  {
+    // A mesma bancada que a seção "Produtos & Serviços" de /equipe/acessos
+    // monta — o componente, não uma cópia. Lá o acesso é admin (AdminRoute);
+    // aqui é líder+, e a RLS das tabelas acompanhou (migration 20260914212709).
+    page_path: '/equipe/tax/gerencial/produtos-servicos',
+    page_name: 'Produtos & Serviços (Tax)',
+    page_description: 'Quais serviços cada produto gera em projeto novo (somente líder+)',
+    category: 'tax',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 
   // =============================================
   // === OSG PAGES ===

@@ -57,18 +57,32 @@ const FORM_FECHADO = { aberto: false, alvo: null };
  * é dizer isso — daí o "Salvo automaticamente" no cabeçalho — e oferecer
  * desfazer no que muda muita linha de uma vez.
  *
- * A tela usa só token semântico. Ela vive em `/equipe/acessos`, que o resolvedor
- * de tema resolve para `base-theme` e mais nada, então o acento sai no teal da
- * casa sem que nada aqui saiba disso. Saiu do grafite em 31/08/2026, junto com o
- * resto do Digital, e esta tela não precisou de uma linha para acompanhar — é o
- * que o token semântico compra.
+ * A tela usa só token semântico, e por isso MORA EM DOIS ENDEREÇOS sem saber de
+ * nenhum dos dois: `/equipe/acessos`, que o resolvedor de tema resolve para
+ * `base-theme` (acento no teal da casa), e `/equipe/tax/gerencial/produtos-servicos`,
+ * onde o mesmo componente sai na âncora da Tax. Saiu do grafite em 31/08/2026,
+ * junto com o resto do Digital, e não precisou de uma linha para acompanhar —
+ * é o que o token semântico compra, e é o que fez o espelho na Tax ser uma
+ * página de quinze linhas em vez de uma cópia.
  */
-export default function ProdutosServicosTab() {
+interface ProdutosServicosTabProps {
+  /**
+   * Cluster em que a bancada ABRE. A Acessos não passa nada e abre em "Todos",
+   * porque lá a pergunta é o catálogo da casa inteira; a Tax passa o cluster da
+   * área, para o líder não ter de filtrar os 28 produtos toda vez que entra.
+   *
+   * É só o estado INICIAL. Os chips continuam lá e trocar de cluster segue a um
+   * clique nos dois endereços — quem entra pela Tax não fica preso à Tax.
+   */
+  clusterInicial?: string | null;
+}
+
+export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosServicosTabProps) {
   const [produtoEscolhidoId, setProdutoEscolhidoId] = useState<string | null>(null);
   const [servicoAbertoId, setServicoAbertoId] = useState<string | null>(null);
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [buscaProduto, setBuscaProduto] = useState('');
-  const [cluster, setCluster] = useState<string>(TODOS_CLUSTERS);
+  const [cluster, setCluster] = useState<string>(clusterInicial ?? TODOS_CLUSTERS);
   const [filtroServico, setFiltroServico] = useState<{ busca: string; modo: FiltroVinculo }>({
     busca: '', modo: 'todos',
   });
@@ -77,6 +91,20 @@ export default function ProdutosServicosTab() {
   const [formServico, setFormServico] = useState<EstadoFormulario<ServicoPrestado>>(FORM_FECHADO);
   const [servicoParaExcluir, setServicoParaExcluir] = useState<ServicoPrestado | null>(null);
   const [copiarAberto, setCopiarAberto] = useState(false);
+
+  /**
+   * O cluster da área chega por QUERY, então pode chegar depois do primeiro
+   * render — daí o estado inicial acima não bastar sozinho.
+   *
+   * Sincroniza só o filtro, e não por `key` no componente: `key` remontaria a
+   * bancada inteira e jogaria fora o produto aberto e a marcação em curso. Roda
+   * uma vez, quando o id resolve; trocar de chip depois disso é do usuário, e o
+   * efeito não volta para desfazer — `clusterInicial` já não muda mais.
+   */
+  useEffect(() => {
+    if (!clusterInicial) return;
+    setCluster(clusterInicial);
+  }, [clusterInicial]);
 
   const { data: vinculos = [], isLoading } = useProdutoServicoList();
   const { data: produtos = [] } = useProdutoSegmentoList();

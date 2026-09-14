@@ -135,6 +135,7 @@ const FiscalGerencial = lazy(() => import("./pages/equipe/fiscal/FiscalGerencial
 const FiscalGerencialChamados = lazy(() => import("./pages/equipe/fiscal/FiscalGerencialChamados"));
 const FiscalGerencialChamadosDashboard = lazy(() => import("./pages/equipe/fiscal/FiscalGerencialChamadosDashboard"));
 const FiscalGerencialChamadoDetalhe = lazy(() => import("./pages/equipe/fiscal/FiscalGerencialChamadoDetalhe"));
+const FiscalProdutosServicos = lazy(() => import("./pages/equipe/fiscal/FiscalProdutosServicos"));
 const OsgGerencialChamados = lazy(() => import("./pages/equipe/osg/OsgGerencialChamados"));
 const OsgGerencialChamadosDashboard = lazy(() => import("./pages/equipe/osg/OsgGerencialChamadosDashboard"));
 const OsgGerencialChamadoDetalhe = lazy(() => import("./pages/equipe/osg/OsgGerencialChamadoDetalhe"));
@@ -350,6 +351,15 @@ const App = () => (
                   O endereço antigo redireciona para não quebrar link salvo. */}
               <Route path="/equipe/tax/gerencial/logs-equipe" element={<LiderRoute><PageAccessGate pagePath="/equipe/tax/gerencial/logs-equipe"><FiscalAuditoria /></PageAccessGate></LiderRoute>} />
               <Route path="/equipe/tax/auditoria" element={<Navigate to="/equipe/tax/gerencial/logs-equipe" replace />} />
+
+              {/* Produtos & Serviços — a MESMA bancada de /equipe/acessos, montada no
+                  FiscalLayout. Duas travas, como as de Chamados e Logs de Uso ao lado:
+                  papel (LiderRoute) e permissão nominal.
+
+                  A trava de papel não é decorativa aqui: a RLS das três tabelas da tela
+                  também abre em líder+ (ver a migration 20260914212709). Front e banco
+                  são fechaduras independentes, e esta rota é a que fecha a de cima. */}
+              <Route path="/equipe/tax/gerencial/produtos-servicos" element={<LiderRoute><PageAccessGate pagePath="/equipe/tax/gerencial/produtos-servicos"><FiscalProdutosServicos /></PageAccessGate></LiderRoute>} />
 
               {/* OSG Routes */}
               <Route path="/equipe/osg" element={<ProtectedRoute><OsgAreaSelector /></ProtectedRoute>} />
