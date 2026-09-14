@@ -293,7 +293,32 @@ sem chamador vivo.
 > **Um docstring que lista consumidores envelhece sem avisar.** Esse sobreviveu
 > oito meses a duas rotas mortas, e só caiu porque alguém tentou abrir uma.
 
-### O que apagar custaria — e é decisão dela
+### Apagado em 14/09/2026 — ela confirmou que as telas não voltam
+
+> *"tudo q eu preciso já está em `/equipe/acessos`"*
+
+Saíram **1226 linhas**: as três páginas, o `AdminLayout` e os dois hooks que só
+elas consumiam. A `UsersRolesView` perdeu quatro props de uma vez (`variant`,
+`roleColumns`, `teamMemberColumnLabel`, `editavel`) e, com elas, a tabela
+só-leitura que a `editavel={false}` desenhava — mantê-la seria dead code "por
+garantia", que o AGENTS.md proíbe por nome. Está em `b0ba2d12^`.
+
+**Ajustar as cinco catracas expôs o que elas já sabiam.** A `filaDoBlue` tinha um
+grupo chamado `semRotaQueOsMonte`, escrito em 11/09 com a anotação *"CÓDIGO QUE
+NINGUÉM CONSEGUE ABRIR"*. Ela mediu certo e parou na medição.
+
+> **O registro sobreviveu três dias; o código, oito meses.** Medir código morto
+> não o remove, e um inventário sem dono vira documentação de um defeito em vez
+> de conserto.
+
+Nas três catracas de cor a saída **não é conversão** — é o arquivo que deixou de
+existir, e os comentários dizem isso para ninguém ler como progresso de cor.
+
+De passagem caíram as contagens em prosa que a remoção deixou erradas ("as oito
+barras", "as outras oito", "as nove entradas" → "todas"). Número escrito em
+comentário envelhece sozinho, e estes acabaram de provar.
+
+### O custo que a decisão pesou
 
 | arquivo | linhas |
 |---|---|
