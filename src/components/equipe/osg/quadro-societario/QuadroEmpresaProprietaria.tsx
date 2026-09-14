@@ -1,13 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { AlertTriangle, Calculator, Landmark, Loader2, Plus, TrendingUp, Users } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { AlertTriangle, Calculator, Landmark, Loader2, Plus, TrendingUp } from 'lucide-react';
 import { useIntegralizacoesAprovadas } from '@/hooks/useGeracaoDocumento';
 import { useConstitutivosRegistrados } from '@/hooks/useDocumentoGerado';
 import {
@@ -24,12 +22,12 @@ import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { AjudaSocietaria } from './AjudaSocietaria';
 import { AtosSocietarios } from './AtosSocietarios';
 import { AumentoDeCapitalDialog } from './AumentoDeCapitalDialog';
+import { CardDoQuadro } from './CardDoQuadro';
 import { EscolherMovimentoDialog } from './EscolherMovimentoDialog';
 import { GESTOS_DA_PROPRIETARIA, type GestoDaProprietaria } from './gestosSocietarios';
 import { SubirQuotasDialog } from './SubirQuotasDialog';
 import { fmtBRL, fmtInt } from './quadroFmt';
-import { CabecalhoDoCard, cardDoQuadroCls, FaixaDeResumo } from './quadroKit';
-import { TabelaSocios, type LinhaSocio } from './TabelaSocios';
+import { type LinhaSocio } from './TabelaSocios';
 
 interface QuadroEmpresaProprietariaProps {
   empresa: PessoaRow;
@@ -272,129 +270,114 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
         </div>
       )}
 
-      <Card
-        className={cn(cardDoQuadroCls, 'animate-osg-rise motion-reduce:animate-none')}
-        style={{ animationDelay: '180ms' }}
-      >
-        <CabecalhoDoCard
-          icone={<Users className="h-4 w-4 text-muted-foreground" />}
-          titulo={`${gravado ? 'Lista de Sócios' : 'Quadro proposto'} (${linhas.length})`}
-          acoes={
-            gravado ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-osg-50 px-2 py-1.5 text-[11px] font-semibold text-osg-700">
-                  <Landmark className="h-3.5 w-3.5" />
-                  Quadro registrado
-                </span>
-                {/* UM comando, com o catálogo da PR: o aumento por
-                    integralização e a subida das quotas, cada um com a trava
-                    que já tinha. Os seis gestos da Controladora NÃO aparecem
-                    aqui: a PR nunca os ofereceu, e reunir as entradas não é
-                    criar capacidade nova. */}
-                <Button
-                  size="sm"
-                  className="h-9 gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
-                  onClick={() => setPorta(true)}
-                >
-                  <Plus className="h-3.5 w-3.5" /> Registrar movimento
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-warning/10 px-2 py-1.5 text-[11px] font-semibold text-warning">
-                  <Calculator className="h-3.5 w-3.5" />
-                  Proposta não gravada
-                </span>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      size="sm"
-                      className="h-9"
-                      disabled={travadoPorLegado || linhas.length === 0 || gravar.isPending}
-                    >
-                      {gravar.isPending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
-                      Gravar quadro societário
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Gravar o quadro de constituição</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {linhas.length} sócio(s) e {fmtInt.format(totalQuotas)} quotas
-                        ({fmtBRL.format(capital)}) entram como aporte de constituição de{' '}
-                        {empresa.denominacao}, um movimento por bem integralizado.
-                        <br />
-                        <br />
-                        A partir daí o quadro passa a ser o registrado, e deixa de acompanhar
-                        sozinho o Cadastro Patrimonial: mudar o valor de um bem não muda mais o
-                        capital, como acontece na sociedade de verdade.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() =>
-                          gravar.mutate({
-                            clienteId: empresa.cliente_id!,
-                            empresaPessoaId: empresa.id,
-                            aportes: proposta.aportes,
-                          })}
-                      >
-                        Gravar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            )
-          }
-          apoio={
-            <FaixaDeResumo
-              itens={[
-                { rotulo: 'Capital social', valor: fmtBRL.format(capital) },
-                { rotulo: 'Quotas', valor: fmtInt.format(totalQuotas) },
-                // Quota a R$ 1,00 por definição na PR — não é capital ÷ quotas.
-                {
-                  rotulo: 'Valor nominal',
-                  valor: fmtBRL.format(1),
-                  ajuda: <AjudaSocietaria chave="valorNominal" rotulo="valor nominal" />,
-                },
-              ]}
-              nota={
-                gravado
-                  ? 'Saldo apurado da movimentação de quotas.'
-                  : 'Proposta calculada dos bens aprovados no Cadastro Patrimonial: cada titular entra pelo valor que integraliza, e só a matrícula sem valor por titular se rateia pela fração. Confira e grave: nada existe no cadastro até então.'
-              }
-            />
-          }
-        />
-        <CardContent>
-          {carregando ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">Carregando...</p>
+      <CardDoQuadro
+        delay={180}
+        titulo={`${gravado ? 'Lista de Sócios' : 'Quadro proposto'} (${linhas.length})`}
+        acoes={
+          gravado ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-osg-200/70 bg-osg-50 px-2 py-1.5 text-[11px] font-semibold text-osg-700">
+                <Landmark className="h-3.5 w-3.5" />
+                Quadro registrado
+              </span>
+              {/* UM comando, com o catálogo da PR: o aumento por
+                  integralização e a subida das quotas, cada um com a trava
+                  que já tinha. Os seis gestos da Controladora NÃO aparecem
+                  aqui: a PR nunca os ofereceu, e reunir as entradas não é
+                  criar capacidade nova. */}
+              <Button
+                size="sm"
+                className="h-9 gap-1.5 bg-osg-moss text-white shadow-sm shadow-osg-moss/20 transition-all hover:bg-osg-moss/90 hover:shadow-md hover:shadow-osg-moss/25 active:scale-[0.98]"
+                onClick={() => setPorta(true)}
+              >
+                <Plus className="h-3.5 w-3.5" /> Registrar movimento
+              </Button>
+            </div>
           ) : (
-            <TabelaSocios
-              linhas={linhas}
-              totalQuotas={totalQuotas}
-              capital={capital}
-              vazio={
-                <div className="py-8 text-center text-muted-foreground">
-                  <p className="text-sm mb-4">
-                    {travadoPorLegado
-                      ? 'A proposta fica em branco enquanto houver titular sem pessoa cadastrada.'
-                      : 'Nenhum bem aprovado para integralização com destino a esta empresa.'}
-                  </p>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2 py-1.5 text-[11px] font-semibold text-warning">
+                <Calculator className="h-3.5 w-3.5" />
+                Proposta não gravada
+              </span>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
                   <Button
-                    variant="outline"
-                    onClick={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}
+                    size="sm"
+                    className="h-9 transition-all active:scale-[0.98]"
+                    disabled={travadoPorLegado || linhas.length === 0 || gravar.isPending}
                   >
-                    Ir para o Cadastro Patrimonial
+                    {gravar.isPending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+                    Gravar quadro societário
                   </Button>
-                </div>
-              }
-            />
-          )}
-        </CardContent>
-      </Card>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Gravar o quadro de constituição</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {linhas.length} sócio(s) e {fmtInt.format(totalQuotas)} quotas
+                      ({fmtBRL.format(capital)}) entram como aporte de constituição de{' '}
+                      {empresa.denominacao}, um movimento por bem integralizado.
+                      <br />
+                      <br />
+                      A partir daí o quadro passa a ser o registrado, e deixa de acompanhar
+                      sozinho o Cadastro Patrimonial: mudar o valor de um bem não muda mais o
+                      capital, como acontece na sociedade de verdade.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() =>
+                        gravar.mutate({
+                          clienteId: empresa.cliente_id!,
+                          empresaPessoaId: empresa.id,
+                          aportes: proposta.aportes,
+                        })}
+                    >
+                      Gravar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )
+        }
+        itensDoResumo={[
+          { rotulo: 'Capital social', valor: capital, formatar: (n) => fmtBRL.format(n) },
+          { rotulo: 'Quotas', valor: totalQuotas, formatar: (n) => fmtInt.format(Math.round(n)) },
+          // Quota a R$ 1,00 por definição na PR — não é capital ÷ quotas.
+          {
+            rotulo: 'Valor nominal',
+            valor: 1,
+            formatar: (n) => fmtBRL.format(n),
+            ajuda: <AjudaSocietaria chave="valorNominal" rotulo="valor nominal" />,
+          },
+        ]}
+        nota={
+          gravado
+            ? 'Saldo apurado da movimentação de quotas.'
+            : 'Proposta calculada dos bens aprovados no Cadastro Patrimonial: cada titular entra pelo valor que integraliza, e só a matrícula sem valor por titular se rateia pela fração. Confira e grave: nada existe no cadastro até então.'
+        }
+        linhas={linhas}
+        totalQuotas={totalQuotas}
+        capital={capital}
+        carregando={carregando}
+        vazio={
+          <div className="py-8 text-center text-muted-foreground">
+            <p className="text-sm mb-4">
+              {travadoPorLegado
+                ? 'A proposta fica em branco enquanto houver titular sem pessoa cadastrada.'
+                : 'Nenhum bem aprovado para integralização com destino a esta empresa.'}
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}
+            >
+              Ir para o Cadastro Patrimonial
+            </Button>
+          </div>
+        }
+      />
 
       <AtosSocietarios movimentos={livro?.movimentos ?? []} atos={livro?.atos ?? []} />
 

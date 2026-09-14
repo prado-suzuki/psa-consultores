@@ -4,6 +4,8 @@ import {
   Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { Search } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { chaveDaLinha } from './fatiasDoQuadro';
 import { fmtBRL, fmtInt, fmtPct } from './quadroFmt';
 
 // Tabela de sócios do Quadro Societário, com busca e linha de total. Serve a
@@ -16,6 +18,11 @@ import { fmtBRL, fmtInt, fmtPct } from './quadroFmt';
 // escritos ao lado; o quarto abria o movimento avulso já em Cessão, o que fazia
 // um clique na linha significar um gesto que ninguém escolheu. O que a tabela
 // mostra é o SALDO e de onde ele veio.
+//
+// O que voltou, e por quê: um PONTO colorido antes do nome. Ele não repete o
+// percentual escrito ao lado — é a legenda da rosca do resumo, e sem ele a
+// rosca seria um desenho sem nome. Passar o mouse na linha acende a fatia, e
+// vice-versa (`emFoco` / `onFoco`).
 
 export interface LinhaSocio {
   pessoaId: string | null;
@@ -38,6 +45,10 @@ interface TabelaSociosProps {
   totalQuotas: number;
   capital: number;
   vazio: React.ReactNode;
+  /** Cor da fatia de cada linha, pela chave. Sem ela o ponto não é desenhado. */
+  corPorLinha?: ReadonlyMap<string, string>;
+  emFoco?: string | null;
+  onFoco?: (chave: string | null) => void;
 }
 
 /**
@@ -51,11 +62,11 @@ const Procedencia = ({ origens }: { origens: string[] }) => {
   const visiveis = tudo ? origens : origens.slice(0, 1);
 
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-1">
+    <div className="mt-1.5 flex flex-wrap items-center gap-1">
       {visiveis.map((origem) => (
         <span
           key={origem}
-          className="rounded bg-osg-50 px-1.5 py-0.5 text-[10px] font-medium text-osg-700"
+          className="rounded border border-osg-200/60 bg-osg-50 px-1.5 py-0.5 text-[10px] font-medium text-osg-700"
         >
           {origem}
         </span>
@@ -73,7 +84,34 @@ const Procedencia = ({ origens }: { origens: string[] }) => {
   );
 };
 
-export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio }: TabelaSociosProps) => {
+/** Esqueleto do quadro enquanto a consulta corre, no lugar de "Carregando...". */
+export const EsqueletoDoQuadro = () => (
+  <div className="space-y-3" aria-hidden>
+    <div className="h-9 w-56 animate-pulse rounded-md bg-osg-100/70" />
+    <div className="overflow-hidden rounded-md border">
+      {[0, 1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="flex items-center gap-4 border-b px-4 py-4 last:border-b-0"
+          style={{ animationDelay: `${i * 90}ms` }}
+        >
+          <div className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-osg-200/80" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3.5 w-48 animate-pulse rounded bg-osg-100/80" />
+            <div className="h-2.5 w-32 animate-pulse rounded bg-osg-100/50" />
+          </div>
+          <div className="h-3.5 w-20 animate-pulse rounded bg-osg-100/70" />
+          <div className="h-3.5 w-28 animate-pulse rounded bg-osg-100/70" />
+          <div className="h-3.5 w-16 animate-pulse rounded bg-osg-100/70" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+export const TabelaSocios = ({
+  linhas, totalQuotas, capital, vazio, corPorLinha, emFoco, onFoco,
+}: TabelaSociosProps) => {
   const [busca, setBusca] = useState('');
   const buscaAtiva = busca.trim().length > 0;
 
@@ -91,13 +129,13 @@ export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio }: TabelaSoci
 
   return (
     <div className="space-y-3">
-      <div className="relative w-56">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="group relative w-56">
+        <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-osg-moss" />
         <Input
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Buscar sócio..."
-          className="h-9 pl-8"
+          className="h-9 pl-8 transition-shadow focus-visible:shadow-[0_0_0_4px_hsl(var(--osg-moss)/0.08)]"
         />
       </div>
 
@@ -118,22 +156,44 @@ export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio }: TabelaSoci
                 <TableHead className="text-right">Participação no capital</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody onMouseLeave={() => onFoco?.(null)}>
               {filtradas.map((l, i) => {
                 // Stagger limitado: depois da 15ª linha entram todas juntas.
                 const delay = Math.min(i, 15) * 30;
+                const chave = chaveDaLinha(l);
+                const cor = corPorLinha?.get(chave);
+                const foco = emFoco === chave;
                 return (
                   <TableRow
-                    key={l.pessoaId ?? l.denominacao}
-                    className="animate-osg-rise motion-reduce:animate-none"
+                    key={chave}
+                    onMouseEnter={() => onFoco?.(chave)}
+                    data-foco={foco || undefined}
+                    className={cn(
+                      'animate-osg-rise motion-reduce:animate-none',
+                      'transition-colors data-[foco]:bg-osg-50/70',
+                    )}
                     style={{ animationDelay: `${delay}ms` }}
                   >
                     <TableCell>
-                      <p className="text-sm font-medium">{l.denominacao}</p>
-                      <p className="font-mono text-xs text-muted-foreground">
-                        {l.tipoPessoa ?? '—'}{l.cpfCnpj ? ` · ${l.cpfCnpj}` : ''}
-                      </p>
-                      {(l.procedencia?.length ?? 0) > 0 && <Procedencia origens={l.procedencia!} />}
+                      <div className="flex items-start gap-2.5">
+                        {cor && (
+                          <span
+                            aria-hidden
+                            className={cn(
+                              'mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full transition-transform duration-200',
+                              foco && 'scale-[1.45]',
+                            )}
+                            style={{ backgroundColor: cor }}
+                          />
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">{l.denominacao}</p>
+                          <p className="font-mono text-xs text-muted-foreground">
+                            {l.tipoPessoa ?? '—'}{l.cpfCnpj ? ` · ${l.cpfCnpj}` : ''}
+                          </p>
+                          {(l.procedencia?.length ?? 0) > 0 && <Procedencia origens={l.procedencia!} />}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {fmtInt.format(l.quotas)}

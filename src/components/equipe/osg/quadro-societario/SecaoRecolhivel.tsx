@@ -47,7 +47,11 @@ export function SecaoRecolhivel({
           titulo={titulo}
           acoes={
             <CollapsibleTrigger asChild>
-              <Button size="sm" variant="outline" className="h-9 gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 gap-1.5 transition-colors hover:border-osg-300 hover:bg-osg-50 hover:text-osg-700"
+              >
                 {aberta ? rotuloFechar : rotuloAbrir}
                 <ChevronDown
                   aria-hidden
@@ -58,8 +62,13 @@ export function SecaoRecolhivel({
           }
           apoio={<p className="text-xs text-muted-foreground">{resumo}</p>}
         />
-        <CollapsibleContent>
-          <CardContent>{children}</CardContent>
+        {/* A altura anima nos dois sentidos (`--radix-collapsible-content-height`,
+            que o Radix mede sozinho), e o conteúdo entra com um fade curto em
+            cima dela: abrir de estalo fazia a página inteira dar um pulo. */}
+        <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down motion-reduce:animate-none">
+          <CardContent className="animate-osg-rise [animation-duration:280ms] motion-reduce:animate-none">
+            {children}
+          </CardContent>
         </CollapsibleContent>
       </Card>
     </Collapsible>
