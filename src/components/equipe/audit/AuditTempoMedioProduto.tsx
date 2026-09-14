@@ -177,7 +177,7 @@ export const AuditTempoMedioProduto = ({
                         </TableCell>
                       </TableRow>
                       {aberta && (
-                        <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableRow className="bg-superficie-realce hover:bg-superficie-realce">
                           <TableCell colSpan={COLUNAS.length} className="p-4">
                             <AuditClientesDoProduto
                               produto={linha.nome}

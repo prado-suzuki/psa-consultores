@@ -106,7 +106,7 @@
                      </div>
  
                      {improvement.improvement_description && (
-                       <p className="text-sm text-foreground mb-4 bg-muted/50 p-3 rounded">
+                       <p className="text-sm text-foreground mb-4 bg-superficie-realce p-3 rounded">
                          {improvement.improvement_description}
                        </p>
                      )}

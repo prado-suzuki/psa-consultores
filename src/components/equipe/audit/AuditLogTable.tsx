@@ -174,7 +174,7 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
                         </CollapsibleTrigger>
                         {isExpandable && (
                           <CollapsibleContent asChild>
-                            <TableRow className="bg-muted/50">
+                            <TableRow className="bg-superficie-realce">
                               <TableCell colSpan={6} className="p-4">
                                 <div className="text-xs space-y-1">
                                   {/* Details (e.g. reassignment reason) */}

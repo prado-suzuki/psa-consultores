@@ -19,9 +19,11 @@ import { TOKEN_DO_COMPONENTE, CRU, regra } from './token-nao-sobrescrito.js';
 const TOKENS = ['foreground', 'background', 'card', 'card-foreground', 'popover',
   'popover-foreground', 'primary', 'primary-foreground', 'secondary', 'secondary-foreground',
   'muted', 'muted-foreground', 'accent', 'accent-foreground', 'destructive',
-  // `superficie-cartao` não é variável do `index.css`: é cor do `tailwind.config.ts`,
-  // feita de `--muted` com alfa fechado, e é o que o `<Card>` traz desde 12/09/2026.
-  'superficie-cartao',
+  // As duas `superficie-*` não são variáveis do `index.css`: são cores do
+  // `tailwind.config.ts`, feitas de `--muted` com alfa fechado. `cartao` é o que o
+  // `<Card>` traz desde 12/09/2026; `realce` é o degrau que se apoia nele, e o
+  // `<TableFooter>` o traz desde o mesmo dia.
+  'superficie-cartao', 'superficie-realce',
   'destructive-foreground', 'border', 'input', 'ring', 'canvas', 'success', 'warning'];
 const TOK = new RegExp(`^(text|bg|border|divide|ring|placeholder)-(?:${TOKENS.join('|')})(?:/[0-9.]+)?$`);
 

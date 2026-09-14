@@ -28,9 +28,34 @@ const TableBody = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes
 );
 TableBody.displayName = "TableBody";
 
+/**
+ * `bg-superficie-realce` e NÃO o `/50` cru, nos dois lugares deste arquivo — a
+ * faixa de totais e o hover da linha —, desde 12/09/2026.
+ *
+ * O degrau não mudou por gosto: mudou porque o CHÃO subiu. O `<Card>` deixou de
+ * ser branco e passou a `bg-superficie-cartao` (35% de `--muted`), e toda tabela
+ * do produto vive dentro de um. Os dois degraus aqui eram feitos do MESMO
+ * `--muted` que agora está no fundo, então eles encolheram por tabela:
+ *
+ *     casa  1,112:1 → 1,073:1     Tax  1,120:1 → 1,078:1     OSG  1,106:1 → 1,069:1
+ *
+ * A classe recompõe o que havia contra o cartão branco, e recompõe EXATO nas três
+ * áreas — os mesmos três números da coluna da esquerda. O alfa dela mora no
+ * `tailwind.config.ts`, num lugar só, junto com o porquê; a conta está travada em
+ * `cartaoTingido.test.ts`, que RECALCULA os dois lados a partir do `index.css` e
+ * do `tailwind.config.ts` em vez de olhar o número.
+ *
+ * É o mesmo defeito do par de cenários da calculadora de ITCD, no mesmo dia:
+ * **quando uma superfície se move, todo degrau construído sobre ela se move
+ * junto, e nada falha.**
+ *
+ * O `data-[state=selected]` da linha ficou como estava: nenhum consumidor do
+ * produto o liga (procurei), é herança do shadcn e mexer nele seria calibrar
+ * um estado que ninguém vê.
+ */
 const TableFooter = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
   ({ className, ...props }, ref) => (
-    <tfoot ref={ref} className={cn("border-t bg-muted/50 font-medium [&>tr]:last:border-b-0", className)} {...props} />
+    <tfoot ref={ref} className={cn("border-t bg-superficie-realce font-medium [&>tr]:last:border-b-0", className)} {...props} />
   ),
 );
 TableFooter.displayName = "TableFooter";
@@ -39,7 +64,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
   ({ className, ...props }, ref) => (
     <tr
       ref={ref}
-      className={cn("border-b transition-colors data-[state=selected]:bg-muted hover:bg-muted/50", className)}
+      className={cn("border-b transition-colors data-[state=selected]:bg-muted hover:bg-superficie-realce", className)}
       {...props}
     />
   ),

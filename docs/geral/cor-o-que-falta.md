@@ -531,6 +531,39 @@ numa linha, declara `rounded-2xl` na seguinte e `bg-card` três abaixo — linha
 cartão que o problema é passava invisível pela catraca feita para achá-lo. A regra de ESLint
 `ui/token-nao-sobrescrito` teve o mapa atualizado no mesmo commit.
 
+### O degrau sobre o cartão foi junto, e ele é o defeito de classe (12/09/2026)
+
+**Quando uma superfície se move, todo degrau construído sobre ela se move junto, e nada
+falha.** O cartão desceu 35% de `--muted`. A faixa de totais e o hover de linha do
+`ui/table`, a faixa de cabeçalho dos blocos do cadastro de cliente, a listra de fim de
+semana do Gantt e a caixa de KPI da fiscal são feitos do MESMO `--muted` — encolheram
+todos, em toda tela que tem cartão, sem uma linha de código mudar. Medido no `ui/table`:
+**1,112 → 1,073** na casa, **1,120 → 1,078** na Tax, **1,106 → 1,069** na OSG.
+
+A correção **não** foi varrer `bg-muted/50`. Os 66 lugares foram classificados pelo FUNDO,
+um a um:
+
+| | |
+|---|---|
+| **41 se apoiam em cartão** | viraram `bg-superficie-realce`, cor nova do `tailwind.config.ts`: `hsl(var(--muted) / 0.75)` |
+| **25 não se apoiam** | ficam em `bg-muted/50`. Modal e gaveta são `bg-background`, popover é `bg-popover`, e os três continuam brancos |
+
+`0.75` recompõe EXATO: devolve 1,112 / 1,120 / 1,106, os mesmos três números que o `/50`
+dava contra o cartão branco. Converter os 25 junto teria **escurecido caixa que está
+certa** — o erro simétrico do que a conversão consertou. O número mora num lugar só, como
+o do cartão: mover o chão de novo é mudar uma linha, não varrer 41.
+
+**Catraca, nas duas direções**, no mesmo `cartaoTingido.test.ts`: uma RECALCULA o degrau a
+partir do `index.css` e do `tailwind.config.ts` — quem mexer no alfa do cartão, no do
+realce ou no `--muted` ouve, sem precisar saber que os três conversam; a outra é o
+inventário dos 25 que ficam, agrupado pelo MOTIVO e não por linha. As duas foram provadas
+quebrando de propósito antes do commit.
+
+**Achado que sobra, e é frente nova:** `mapeamento/AreaAccordion.tsx` e
+`dev/MapaNCMPisCofins.tsx` seguram a caixa com `bg-white` cru, e por isso o `bg-muted/50`
+de dentro delas está certo hoje. `bg-white` não é `bg-card`, então a catraca do cartão não
+o vê; e a regra de cor crua só dispara em sobrescrita de componente do `ui/`, não em `div`
+solta. São **142 ocorrências em 79 arquivos** das pastas de tela, nenhuma medida ainda.
 **O que continua ABERTO, e é decisão dela:**
 
 - **A caixa de tabela** (seção 6 da página). 19 telas são um aviso, um cartão de filtros e uma
@@ -541,8 +574,8 @@ cartão que o problema é passava invisível pela catraca feita para achá-lo. A
 - **O Board não foi junto.** Ele pinta pelo CSS próprio (`.v3-card`, `.v4-card`, `.kpi`,
   `.mc`), que lê `--bd-surface` = `hsl(var(--card))`. Os cartões dele continuam brancos, e
   isso é divergência real: mexer no `--bd-surface` muda o Board inteiro de uma vez.
-- **Conferir na tela**: o cartão tingido dentro de modal e a zebra da tabela dentro do
-  cartão, que usa `bg-muted` e ficou vizinha do fundo novo.
+- **Conferir na tela**: o cartão tingido dentro de modal. A zebra da tabela saiu desta
+  lista — ela era o degrau de `bg-muted/50`, foi medida e virou `bg-superficie-realce`.
 - As outras duas frentes da mesma página — **centralizar** as duas telas de coluna solta e os
   **filtros em barra** do `AreaDashboardFilters` — não entraram neste commit.
 

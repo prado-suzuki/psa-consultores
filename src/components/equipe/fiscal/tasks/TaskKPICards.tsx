@@ -38,7 +38,7 @@ export const TaskKPICards = ({ tasks }: TaskKPICardsProps) => {
           <div
             key={status.key}
             className={cn(
-              'flex items-center justify-between gap-3 rounded-lg bg-muted/50 px-3 py-2',
+              'flex items-center justify-between gap-3 rounded-lg bg-superficie-realce px-3 py-2',
               // O separador de régua só existe quando a régua é uma linha.
               'md:min-w-[120px] md:shrink-0 md:grow md:rounded-none md:bg-transparent',
               index > 0 && 'md:border-l',

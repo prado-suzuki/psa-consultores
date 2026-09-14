@@ -60,7 +60,7 @@ export function FiscalClients() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableRow className="bg-superficie-realce hover:bg-superficie-realce">
                 <TableHead className="font-semibold">Cliente</TableHead>
                 <TableHead className="font-semibold">Categoria</TableHead>
                 <TableHead className="font-semibold">Setor</TableHead>
@@ -72,7 +72,7 @@ export function FiscalClients() {
               {filteredClients.map((client) => (
                 <TableRow 
                   key={client.id}
-                  className="cursor-pointer hover:bg-muted/50"
+                  className="cursor-pointer hover:bg-superficie-realce"
                 >
                   <TableCell>
                     <span className="font-medium text-foreground">{client.nome}</span>

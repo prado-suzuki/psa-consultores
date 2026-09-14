@@ -168,6 +168,30 @@ export default {
            Sem `<alpha-value>`: o alfa já está fechado no valor, e `bg-superficie-cartao/50`
            não é para existir. Quem precisa de outro degrau muda o número aqui. */
         'superficie-cartao': 'hsl(var(--muted) / 0.35)',
+        /* O DEGRAU ACIMA DO CARTÃO, desde 12/09/2026 — e ele existe porque o
+           CHÃO subiu. Era `bg-muted/50` escrito à mão em 41 lugares: a faixa de
+           cabeçalho dos blocos do cadastro de cliente, a faixa de totais e o
+           hover de linha do `ui/table`, a listra de fim de semana do Gantt, a
+           caixa de KPI da fiscal. Todos são degraus feitos do MESMO `--muted` que
+           o `superficie-cartao` acabou de pôr no fundo — então os 41 encolheram
+           juntos, em toda tela que tem cartão, sem uma linha de código mudar e
+           sem nada falhar.
+
+           `0.75` RECOMPÕE, e recompõe exato: contra o cartão tingido ele devolve
+           1,112 / 1,120 / 1,106 na casa, na Tax e na OSG — os mesmos três números
+           que o `/50` dava contra o cartão branco. Não é arredondamento feliz; é
+           o alfa que resolve a conta, e a conta está travada em
+           `src/lib/cartaoTingido.test.ts`, que RECALCULA os dois lados a partir
+           do `index.css` e deste arquivo em vez de olhar o número.
+
+           QUEM NÃO USA ESTA CLASSE: o que não se apoia no cartão. Modal e gaveta
+           são `bg-background`, popover é `bg-popover`, e os três continuam
+           brancos — lá o `bg-muted/50` está certo e fica. O inventário dos que
+           ficam, com o motivo de cada um, está na mesma catraca.
+
+           Sem `<alpha-value>`, pelo mesmo motivo do `superficie-cartao`: o alfa
+           já está fechado no valor. Quem precisar de outro degrau muda aqui. */
+        'superficie-realce': 'hsl(var(--muted) / 0.75)',
         teal: {
           500: 'hsl(var(--teal-500))',
           600: 'hsl(var(--teal-600))',

@@ -99,7 +99,7 @@ export const SprintCalendar = ({ deliverables, onEdit }: SprintCalendarProps) =>
                 className={cn(
                   "min-h-[80px] sm:min-h-[100px] p-1 border rounded-lg transition-colors flex flex-col items-start overflow-hidden",
                   isToday && "border-primary bg-primary/10",
-                  dayDeliverables.length > 0 && "hover:bg-muted/50 cursor-pointer",
+                  dayDeliverables.length > 0 && "hover:bg-superficie-realce cursor-pointer",
                   dayDeliverables.length === 0 && "cursor-default",
                   selectedDate && isSameDay(day, selectedDate) && "ring-2 ring-primary"
                 )}

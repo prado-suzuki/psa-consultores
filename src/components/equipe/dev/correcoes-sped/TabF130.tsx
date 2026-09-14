@@ -491,7 +491,7 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
           <div className="p-8 text-center text-sm text-muted-foreground">Nenhum item F130 encontrado para os filtros selecionados.</div>
         ) : (
           <>
-            <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between">
+            <div className="px-4 py-2.5 border-b bg-superficie-realce flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados{isEditMode && selection.selectedIds.size > 0 && ` · ${selection.selectedIds.size} selecionados`}</span>
               <div className="flex items-center gap-2">
                 <CorrecoesActionButtons

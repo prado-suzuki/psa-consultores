@@ -185,7 +185,7 @@ function FeedCarregando() {
       <Skeleton className="h-5 w-20 rounded-full" />
       {[0, 1].map((bloco) => (
         <div key={bloco} className="overflow-hidden rounded-2xl border border-border/70 bg-superficie-cartao">
-          <div className="flex items-center gap-3 border-b border-border/60 bg-muted/50 px-3.5 py-2.5">
+          <div className="flex items-center gap-3 border-b border-border/60 bg-superficie-realce px-3.5 py-2.5">
             <Skeleton className="h-9 w-9 rounded-xl" />
             <div className="flex-1 space-y-1.5">
               <Skeleton className="h-2.5 w-28" />
