@@ -10,17 +10,17 @@ import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
 import {
   listRowAria, listRowClasses, listRowFocusClasses, listRowTitleClasses,
-  listRowLinkedLabelClasses,
 } from '@/lib/listRowStates';
 import { dividirNomeServico, faixaDeSelecao } from '@/lib/produtoServicoNomes';
 import type { FiltroVinculo } from '@/lib/produtoServicoVinculo';
 import type { ProdutoSegmento } from '@/hooks/useCategorias';
-import AcoesEmMassaMenu from './AcoesEmMassaMenu';
 
 export interface ServicoNaLista {
   id: string;
@@ -37,8 +37,8 @@ export interface ServicoNaLista {
 
 const MODOS: { valor: FiltroVinculo; rotulo: string }[] = [
   { valor: 'todos', rotulo: 'Todos' },
-  { valor: 'vinculados', rotulo: 'Vinculados' },
-  { valor: 'disponiveis', rotulo: 'Disponíveis' },
+  { valor: 'vinculados', rotulo: 'Só vinculados' },
+  { valor: 'disponiveis', rotulo: 'Só os que faltam' },
 ];
 
 interface Props {
@@ -109,6 +109,8 @@ export default function ServicosLista({
 }: Props) {
   const [ancora, setAncora] = useState<string | null>(null);
   const [confirmarDesvincular, setConfirmarDesvincular] = useState(false);
+  /** As duas ações que alcançam a lista inteira passam por confirmação. */
+  const [acaoVisiveis, setAcaoVisiveis] = useState<'vincular' | 'desvincular' | null>(null);
 
   const marcadosNaTela = useMemo(
     () => idsVisiveis.filter((id) => marcados.has(id)),
@@ -208,12 +210,15 @@ export default function ServicosLista({
               {servico.clusterNome || 'sem cluster'}
             </Badge>
           )}
-          {servico.vinculado && (
-            <span className={listRowLinkedLabelClasses()}>vinculado</span>
-          )}
-          <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
-            usado em {servico.usadoEm} {servico.usadoEm === 1 ? 'produto' : 'produtos'}
-          </span>
+          {/*
+            Saíram daqui a palavra "vinculado" e o "usado em N produtos".
+
+            O primeiro repetia o que a caixa marcada já diz, na mesma linha. O
+            segundo é sobre o serviço no catálogo inteiro, não sobre este
+            produto — informação de outra pergunta, repetida em todas as linhas
+            da lista. Ele continua existindo, no painel do serviço, sob "Uso",
+            onde é a pergunta que está sendo feita.
+          */}
         </div>
       </li>
     );
@@ -234,19 +239,20 @@ export default function ServicosLista({
             </Badge>
           )}
           {/* O lápis do PRODUTO mora ao lado do nome do produto, e o do SERVIÇO
-              no painel do serviço. É a única pista de que os dois cadastros são
-              editáveis, e de qual dos dois cada botão mexe. */}
+              no rodapé do painel. Só o ícone: o rótulo por extenso disputava a
+              linha com o nome do produto, e a barra de baixo já estava cheia. O
+              que diz de qual cadastro ele é continua sendo a POSIÇÃO — encostado
+              no nome do produto — mais o rótulo acessível. */}
           <Button
             variant="ghost"
-            size="sm"
-            className="h-6 shrink-0 px-1.5 text-[11px] text-muted-foreground"
+            size="icon"
+            className="h-6 w-6 shrink-0 text-muted-foreground"
             onClick={onEditarProduto}
+            title="Editar produto"
+            aria-label="Editar produto"
           >
-            <Pencil className="mr-1 h-3 w-3" />Editar produto
+            <Pencil className="h-3.5 w-3.5" />
           </Button>
-          {/* O lápis do PRODUTO mora ao lado do nome do produto, e o do SERVIÇO
-              no painel do serviço. É a única pista de que os dois cadastros são
-              editáveis, e de qual dos dois cada botão mexe. */}
 
           <span className="ml-auto text-xs text-muted-foreground">
             <strong className="font-semibold text-primary">{resumo.vinculados}</strong>
@@ -266,43 +272,33 @@ export default function ServicosLista({
             />
           </div>
 
-          <ToggleGroup
-            type="single"
+          {/*
+            Três modos num seletor, e não em três botões lado a lado. O grupo de
+            botões custava ~210px de uma barra que já não cabia — a busca chegava
+            a "Buscar servi" — para oferecer duas opções que quase nunca são
+            usadas. Nenhuma saiu: o que mudou é que agora elas custam o tamanho
+            de uma, e a busca fica com a largura que sobra.
+          */}
+          <Select
             value={filtro.modo}
-            onValueChange={(valor) => valor && onFiltroChange({ modo: valor as FiltroVinculo })}
-            className="h-8 shrink-0 gap-0 rounded-md bg-muted p-0.5"
+            onValueChange={(valor) => onFiltroChange({ modo: valor as FiltroVinculo })}
           >
-            {MODOS.map((modo) => (
-              <ToggleGroupItem
-                key={modo.valor}
-                value={modo.valor}
-                className="h-7 rounded px-2.5 text-xs data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
-              >
-                {modo.rotulo}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-
-          <AcoesEmMassaMenu
-            faltamVincular={visiveisSemVinculo.length}
-            jaVinculados={visiveisComVinculo.length}
-            onVincularVisiveis={() => onLote('vincular', visiveisSemVinculo)}
-            onDesvincularVisiveis={() => onLote('desvincular', visiveisComVinculo)}
-            nomeDoProduto={`${produto.codigo || '?'} — ${produto.nome || ''}`}
-          />
+            <SelectTrigger className="h-8 w-[124px] shrink-0 text-xs" aria-label="Filtrar serviços">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MODOS.map((modo) => (
+                <SelectItem key={modo.valor} value={modo.valor} className="text-xs">
+                  {modo.rotulo}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <Button size="sm" variant="outline" className="h-8 shrink-0 text-xs" onClick={onNovo}>
             <Plus className="mr-1 h-3 w-3" />Novo serviço
           </Button>
         </div>
-
-        {/* Dica permanente, e não tooltip: quem não sabe que o gesto existe não
-            passa o mouse para descobrir — e em toque não há mouse nenhum. Subiu
-            para cá quando as seções saíram: era no cabeçalho do cluster que ela
-            morava. */}
-        <p className="hidden text-[11px] text-muted-foreground sm:block">
-          A caixa vincula na hora · Shift+clique no nome seleciona um intervalo
-        </p>
       </div>
 
       {aviso && <div className="shrink-0 px-4 pt-2">{aviso}</div>}
@@ -330,6 +326,45 @@ export default function ServicosLista({
               },
             ]}
           />
+        </div>
+      )}
+
+      {/*
+        A caixa de marcar TODOS os visíveis, alinhada com as caixas das linhas.
+
+        Substitui o menu "Ações em massa", que era um dropdown de duas opções
+        — vincular e desvincular os visíveis — ocupando o dobro da largura e
+        escondendo atrás de um clique o gesto que toda lista com caixas já tem
+        na primeira linha. As duas ações continuam aqui: qual das duas a caixa
+        faz depende do que está na tela, e é o rótulo ao lado que diz qual é.
+      */}
+      {!carregando && visiveis.length > 0 && (
+        <div className="flex shrink-0 items-center gap-2.5 border-b bg-muted/30 px-4 py-1.5">
+          <Checkbox
+            checked={visiveisSemVinculo.length === 0}
+            aria-label={visiveisSemVinculo.length > 0
+              ? `Vincular os ${visiveisSemVinculo.length} serviços visíveis que faltam`
+              : `Desvincular os ${visiveisComVinculo.length} serviços visíveis`}
+            onCheckedChange={() => setAcaoVisiveis(
+              visiveisSemVinculo.length > 0 ? 'vincular' : 'desvincular',
+            )}
+          />
+          <button
+            type="button"
+            className="text-left text-[11px] text-muted-foreground hover:text-foreground"
+            onClick={() => setAcaoVisiveis(
+              visiveisSemVinculo.length > 0 ? 'vincular' : 'desvincular',
+            )}
+          >
+            {visiveisSemVinculo.length > 0
+              ? `Vincular ${visiveisSemVinculo.length === 1
+                  ? 'o serviço que falta' : `os ${visiveisSemVinculo.length} que faltam`}`
+              : `Desvincular ${visiveisComVinculo.length === 1
+                  ? 'o serviço visível' : `os ${visiveisComVinculo.length} visíveis`}`}
+          </button>
+          <span className="ml-auto shrink-0 text-[11px] tabular-nums text-muted-foreground">
+            {visiveisComVinculo.length}/{visiveis.length} nesta lista
+          </span>
         </div>
       )}
 
@@ -378,6 +413,45 @@ export default function ServicosLista({
           </div>
         )}
       </div>
+
+      {/*
+        A confirmação das ações em massa veio inteira do `AcoesEmMassaMenu`, que
+        deixou de existir. As DUAS confirmam, e não só a que desvincula: são as
+        ações mais abrangentes da tela — mudam o que nasce em todo projeto novo
+        do produto — e "visíveis" é literal, busca e filtro contam.
+      */}
+      <AlertDialog open={acaoVisiveis !== null} onOpenChange={(a) => !a && setAcaoVisiveis(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {acaoVisiveis === 'vincular'
+                ? `Vincular ${visiveisSemVinculo.length} ${visiveisSemVinculo.length === 1 ? 'serviço' : 'serviços'}?`
+                : `Desvincular ${visiveisComVinculo.length} ${visiveisComVinculo.length === 1 ? 'serviço' : 'serviços'}?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {acaoVisiveis === 'vincular'
+                ? `Todos os serviços visíveis passam a valer para projetos de "${produto.codigo} — ${produto.nome}".`
+                : `Os serviços visíveis deixam de estar disponíveis para projetos de "${produto.codigo} — ${produto.nome}".`}
+              {' '}A ação vale só para o que está na tela agora — busca e filtro contam.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className={acaoVisiveis === 'desvincular'
+                ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                : undefined}
+              onClick={() => {
+                if (acaoVisiveis === 'vincular') onLote('vincular', visiveisSemVinculo);
+                else onLote('desvincular', visiveisComVinculo);
+                setAcaoVisiveis(null);
+              }}
+            >
+              {acaoVisiveis === 'vincular' ? 'Vincular' : 'Desvincular'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={confirmarDesvincular} onOpenChange={setConfirmarDesvincular}>
         <AlertDialogContent>
