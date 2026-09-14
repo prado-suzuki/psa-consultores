@@ -3,7 +3,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { AlertTriangle, Pencil, Star, X } from 'lucide-react';
+import { AlertTriangle, Pencil, X } from 'lucide-react';
 import { brl } from '@/components/equipe/osg/diagnostico-patrimonial/titularidade/valoresDoTitular';
 import type { AderenciaDoTitular } from '@/lib/osg/integralizacaoDaMatricula';
 import type { TitularidadeEnriched, TitularidadeRow } from '@/hooks/useDiagnosticoPatrimonial';
@@ -19,9 +19,6 @@ export interface TitularidadeLinhaProps {
   titularidade: TitularidadeEnriched;
   isEditing: boolean;
   canDelete: boolean;
-  /** Só mostra a estrela de integralizador quando há mais de um titular no imóvel. */
-  showIntegralizador: boolean;
-  integralizadorPending: boolean;
   /**
    * Esta linha é a que carrega os valores desta pessoa nesta matrícula (a de
    * direito, quando há uma). Falso na linha de fato de quem também consta no
@@ -30,13 +27,18 @@ export interface TitularidadeLinhaProps {
   mostrarValores: boolean;
   /** O que a distribuição de titularidade esperaria deste titular, quando há o que comparar. */
   aderencia?: AderenciaDoTitular;
-  onToggleIntegralizador: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
 /**
  * UMA LINHA DE TITULARIDADE na lista do imóvel.
+ *
+ * A estrela de "integralizador" saiu daqui na frente de 14/09/2026. Ela elegia
+ * UM titular por imóvel para liderar a descrição e mandava os demais para a
+ * área remanescente — decisão de texto tomada à mão, que os valores por titular
+ * passaram a contradizer. Quem lidera hoje é o sócio do parágrafo, e o
+ * remanescente é quem não tem valor a integralizar.
  *
  * Além de quem é e de que fração tem, a linha de direito de matrícula mostra os
  * dois valores por titular: o CONTÁBIL que ele declarou na DIRPF e o que ele
@@ -46,10 +48,8 @@ export interface TitularidadeLinhaProps {
  * remanescente. É por isso que o vazio é escrito por extenso, e não como "—".
  */
 export function TitularidadeLinha({
-  titularidade, isEditing, canDelete, showIntegralizador, integralizadorPending,
-  mostrarValores, aderencia, onToggleIntegralizador, onEdit, onDelete,
+  titularidade, isEditing, canDelete, mostrarValores, aderencia, onEdit, onDelete,
 }: TitularidadeLinhaProps) {
-  const isIntegralizador = titularidade.integralizador;
   const foraDoEsperado = aderencia?.foraDoEsperado ?? false;
   const codigo = CODIGO_DA_ESPECIE[titularidade.tipo] ?? titularidade.tipo;
 
@@ -69,26 +69,7 @@ export function TitularidadeLinha({
           {titularidade.titular_tipo && (
             <span className="shrink-0 text-[11px] text-muted-foreground">{titularidade.titular_tipo}</span>
           )}
-          {isIntegralizador && (
-            <span className="shrink-0 rounded bg-osg-moss/10 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-osg-moss">
-              Integralizador
-            </span>
-          )}
         </div>
-        {showIntegralizador && (
-          <Button
-            size="icon"
-            variant="ghost"
-            className={`h-7 w-7 shrink-0 transition-opacity ${isIntegralizador ? 'text-osg-moss' : 'text-muted-foreground/40 opacity-0 group-hover:opacity-100 focus-within:opacity-100'}`}
-            disabled={integralizadorPending}
-            title={isIntegralizador
-              ? 'Integralizador (lidera a descrição do imóvel) — clique para desmarcar'
-              : 'Marcar como integralizador (lidera a descrição; os demais viram a área remanescente)'}
-            onClick={onToggleIntegralizador}
-          >
-            <Star className={`h-3.5 w-3.5 ${isIntegralizador ? 'fill-osg-moss' : ''}`} />
-          </Button>
-        )}
         <span
           className={`shrink-0 text-sm font-mono tabular-nums ${titularidade.fracao != null ? 'font-medium text-foreground' : 'text-muted-foreground/60'}`}
         >

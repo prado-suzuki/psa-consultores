@@ -33,10 +33,12 @@ export type MatriculaRow = Database['public']['Tables']['matricula']['Row'];
 export type MatriculaInsert = Database['public']['Tables']['matricula']['Insert'];
 export type MatriculaUpdate = Database['public']['Tables']['matricula']['Update'];
 
-// `fracao` é opcional desde a migration 20260526140000 (composse sem percentual definido)
-// e `integralizador` foi adicionado em 20260608120000 (titular que lidera a descrição
-// do imóvel). Os tipos autogerados do Supabase ainda não refletem ambos — sobrescrevemos
-// aqui até a próxima regeneração de tipos.
+// `fracao` é opcional desde a migration 20260526140000 (composse sem percentual
+// definido). O tipo autogerado ainda não reflete isso — sobrescrevemos aqui até a
+// próxima regeneração. `integralizador` segue no tipo porque a coluna segue no
+// banco, mas nenhuma escrita a toca desde a frente de 14/09/2026: quem lidera a
+// descrição de uma alínea é o sócio do parágrafo, e quem fica de fora é o
+// titular sem valor a integralizar.
 type RawTitularidadeRow = Database['public']['Tables']['titularidade']['Row'];
 type RawTitularidadeInsert = Database['public']['Tables']['titularidade']['Insert'];
 type RawTitularidadeUpdate = Database['public']['Tables']['titularidade']['Update'];
@@ -87,8 +89,12 @@ const MATRICULA_DIFF_FIELDS: (keyof MatriculaRow)[] = [
   'vlr_mercado', 'vlr_imposto_anual', 'imposto_anual_exercicio',
 ] as (keyof MatriculaRow)[];
 
+// `integralizador` saiu daqui junto com o gesto que o escrevia: nenhuma mutação
+// o toca mais (ver a frente de 14/09/2026). A coluna continua no banco até o
+// ciclo de corte, e o rótulo continua no `auditFieldFormatter` porque os logs
+// antigos ainda a citam.
 const TITULARIDADE_DIFF_FIELDS: (keyof TitularidadeRow)[] = [
-  'matricula_id', 'bem_id', 'titular_pessoa_id', 'tipo', 'fracao', 'integralizador',
+  'matricula_id', 'bem_id', 'titular_pessoa_id', 'tipo', 'fracao',
   'vlr_contabil', 'vlr_integralizar',
 ];
 
@@ -854,59 +860,6 @@ export function useUpsertTitularidade() {
     },
     onError: (error: Error) => {
       toast({ title: 'Erro ao salvar titularidade', description: error.message, variant: 'destructive' });
-    },
-  });
-}
-
-/**
- * Define (ou remove) o titular integralizador de um imóvel — aquele que lidera a
- * descrição na geração de documentos; os demais titulares viram a área
- * remanescente. "Um por imóvel": ao marcar, limpa os demais da âncora ANTES de
- * marcar o alvo (respeita o índice único parcial idx_titularidade_integralizador_*).
- */
-export function useSetIntegralizador() {
-  const queryClient = useQueryClient();
-  const { logAction } = useAuditLog();
-
-  return useMutation({
-    mutationFn: async ({
-      anchor,
-      titularidadeId,
-      value,
-    }: {
-      anchor: TitularidadeAnchor;
-      titularidadeId: string;
-      value: boolean;
-    }) => {
-      if (value) {
-        const { error: clearErr } = await supabase
-          .from('titularidade')
-          .update({ integralizador: false } as unknown as RawTitularidadeUpdate)
-          .eq(anchorColumn(anchor.kind), anchor.id)
-          .eq('integralizador', true)
-          .neq('id', titularidadeId);
-        if (clearErr) throw clearErr;
-      }
-      const { error } = await supabase
-        .from('titularidade')
-        .update({ integralizador: value } as unknown as RawTitularidadeUpdate)
-        .eq('id', titularidadeId);
-      if (error) throw error;
-      return { anchor, titularidadeId, value };
-    },
-    onSuccess: async ({ anchor, titularidadeId, value }) => {
-      queryClient.invalidateQueries({ queryKey: anchorQueryKey(anchor) });
-      await logAction({
-        area: 'osg',
-        entity_type: 'titularidade',
-        entity_id: titularidadeId,
-        entity_name: 'integralizador',
-        action: 'updated',
-        changed_fields: { integralizador: { old: !value, new: value } },
-      });
-    },
-    onError: (error: Error) => {
-      toast({ title: 'Erro ao definir integralizador', description: error.message, variant: 'destructive' });
     },
   });
 }

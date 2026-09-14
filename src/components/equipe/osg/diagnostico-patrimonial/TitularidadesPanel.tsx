@@ -25,7 +25,6 @@ import {
   useTitularidadesByBem,
   useUpsertTitularidade,
   useDeleteTitularidade,
-  useSetIntegralizador,
   titularidadeAnchorValues,
   type TitularidadeAnchor,
   type TitularidadeRow,
@@ -53,7 +52,6 @@ export function TitularidadesPanel({ anchor, pessoasCliente, requireAtLeastOne =
   const matriculaQuery = useTitularidadesByMatricula(anchor.kind === 'matricula' ? anchor.id : null);
   const bemQuery = useTitularidadesByBem(anchor.kind === 'bem' ? anchor.id : null);
   const { data: titularidades = [], isLoading } = anchor.kind === 'matricula' ? matriculaQuery : bemQuery;
-  const setIntegralizador = useSetIntegralizador();
 
   // O valor é da MATRÍCULA: bem sem matrícula (veículo, quotas de outra
   // empresa) segue com o valor no próprio bem, e a decisão 4 do plano o deixou
@@ -86,18 +84,11 @@ export function TitularidadesPanel({ anchor, pessoasCliente, requireAtLeastOne =
   const direito = titularidades.filter((t) => t.tipo !== 'FATO');
   const totalTitulares = titularidades.length;
 
-  // Integralizador é "um por imóvel" (entre FATO e DIREITO): alterna o alvo e a
-  // mutation limpa os demais da âncora. Só faz sentido com mais de um titular.
-  const toggleIntegralizador = (t: TitularidadeRow) =>
-    setIntegralizador.mutate({ anchor, titularidadeId: t.id, value: !t.integralizador });
-
   const comum = {
     anchor,
     pessoasCliente,
     totalTitulares,
     requireAtLeastOne,
-    onToggleIntegralizador: toggleIntegralizador,
-    integralizadorPending: setIntegralizador.isPending,
     aderencias,
     editaValores,
   };
@@ -164,8 +155,6 @@ interface TitularBucketProps {
   requireAtLeastOne: boolean;
   // Quando presente (seção PD), habilita o botão de copiar titulares da PT.
   copySource?: TitularidadeEnriched[];
-  onToggleIntegralizador: (t: TitularidadeRow) => void;
-  integralizadorPending: boolean;
   aderencias: ReturnType<typeof aderenciaPorPessoa>;
   editaValores: (tipo: string, pessoaId: string) => boolean;
 }
@@ -183,7 +172,7 @@ const DRAFT_VAZIO: DraftTitular = {
 
 function TitularBucket({
   number, anchor, tipo, titularidades, pessoasCliente, totalTitulares, requireAtLeastOne, copySource,
-  onToggleIntegralizador, integralizadorPending, aderencias, editaValores,
+  aderencias, editaValores,
 }: TitularBucketProps) {
   const upsert = useUpsertTitularidade();
   const deleteMutation = useDeleteTitularidade();
@@ -333,11 +322,8 @@ function TitularBucket({
                 titularidade={t}
                 isEditing={editingId === t.id}
                 canDelete={canDelete}
-                showIntegralizador={totalTitulares > 1}
-                integralizadorPending={integralizadorPending}
                 mostrarValores={editaValores(t.tipo, t.titular_pessoa_id)}
                 aderencia={aderencias.get(t.titular_pessoa_id)}
-                onToggleIntegralizador={() => onToggleIntegralizador(t)}
                 onEdit={() => startEdit(t)}
                 onDelete={() => deleteMutation.mutate(t)}
               />

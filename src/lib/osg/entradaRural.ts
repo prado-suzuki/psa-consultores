@@ -67,7 +67,6 @@ export interface MatriculaCrua {
   } | null;
   cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
   titularidade: Array<{
-    integralizador: boolean | null;
     fracao: number | null;
     /** Espécie da titularidade: só a DE DIREITO carrega os valores por titular. */
     tipo?: string | null;
@@ -112,7 +111,6 @@ export function matriculaParaMapear(m: MatriculaCrua): MatriculaParaMapear {
     titulares: (m.titularidade ?? []).map((t) => ({
       pessoaId: t.titular?.id ?? null,
       denominacao: t.titular?.denominacao ?? null,
-      integralizador: !!t.integralizador,
       fracao: t.fracao ?? null,
       // Só a linha DE DIREITO carrega valor: quem integraliza é quem tem a
       // propriedade, e o usufrutuário não integraliza. Sem `tipo` (JOIN legado

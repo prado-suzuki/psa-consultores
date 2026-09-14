@@ -53,7 +53,7 @@ const MATRICULA_GERACAO_SELECT = `
     area_construida_m2, participa_estruturacao
   ),
   cartorio:cartorio_id ( nome_completo, comarca, uf ),
-  titularidade ( integralizador, fracao, tipo, vlr_contabil, vlr_integralizar, titular:titular_pessoa_id ( id, denominacao, cliente_id ) )
+  titularidade ( fracao, tipo, vlr_contabil, vlr_integralizar, titular:titular_pessoa_id ( id, denominacao, cliente_id ) )
 `;
 
 interface RawMatriculaGeracao {
@@ -73,7 +73,6 @@ interface RawMatriculaGeracao {
   } | null;
   cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
   titularidade: Array<{
-    integralizador: boolean | null;
     fracao: number | null;
     tipo: string | null;
     vlr_contabil: number | null;
@@ -314,7 +313,7 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
             area_documento, area_unidade, vlr_contabil, confrontacoes_texto, descricao_psa_completa,
             tipo_bem, tipo_exploracao_posse,
             cartorio:cartorio_id ( nome_completo, comarca, uf ),
-            titularidade ( id, integralizador, fracao, tipo, vlr_contabil, vlr_integralizar, titular:titular_pessoa_id ( id, denominacao, tipo_pessoa, cpf_cnpj ) ),
+            titularidade ( id, fracao, tipo, vlr_contabil, vlr_integralizar, titular:titular_pessoa_id ( id, denominacao, tipo_pessoa, cpf_cnpj ) ),
             impedimento ( id, cancelado )
           )
         `)
@@ -342,7 +341,7 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
           cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
           titularidade: Array<{
             id: string;
-            integralizador: boolean | null; fracao: number | null; tipo: string | null;
+            fracao: number | null; tipo: string | null;
             vlr_contabil: number | null; vlr_integralizar: number | null;
             titular: { id: string; denominacao: string | null; tipo_pessoa: string | null; cpf_cnpj: string | null } | null;
           }> | null;
@@ -393,7 +392,6 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
               denominacao: t.titular?.denominacao ?? null,
               tipoPessoa: t.titular?.tipo_pessoa ?? null,
               cpfCnpj: t.titular?.cpf_cnpj ?? null,
-              integralizador: !!t.integralizador,
               fracao: t.fracao ?? null,
               // Os valores por titular viajam só da linha DE DIREITO: quem
               // integraliza é quem tem a propriedade, e o usufrutuário não
