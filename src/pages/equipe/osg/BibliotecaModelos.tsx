@@ -221,7 +221,7 @@ const BibliotecaModelos = () => {
   return (
     <OsgLayout
       title="Biblioteca de Modelos"
-      subtitle="Blocos de texto reutilizáveis com campos — as peças que compõem os documentos"
+      subtitle="Crie e gerencie blocos reutilizáveis para a montagem de documentos."
       headerActions={
         <Button size="sm" onClick={abrirNovo} className="bg-osg-600 hover:bg-osg-700">
           <Plus className="h-4 w-4 mr-1.5" />

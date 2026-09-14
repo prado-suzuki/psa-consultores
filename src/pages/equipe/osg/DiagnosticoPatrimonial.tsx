@@ -73,7 +73,7 @@ const DiagnosticoPatrimonial = () => {
   return (
     <OsgLayout
       title="Diagnóstico Patrimonial"
-      subtitle="Cadastro de bens, matrículas, titulares e impedimentos por cliente"
+      subtitle="Mapeie bens, titulares, matrículas e impedimentos do cliente."
     >
       <div className="space-y-4">
         {!clienteId ? (

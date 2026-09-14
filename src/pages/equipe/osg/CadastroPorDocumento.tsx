@@ -28,7 +28,7 @@ const CadastroPorDocumento = () => {
   return (
     <OsgLayout
       title="Cadastro por Documento"
-      subtitle="Abra um arquivo sem dono e cadastre a entidade a partir dele"
+      subtitle="Cadastre uma entidade a partir de um documento ainda não vinculado."
     >
       {!clienteId ? (
         <Card>

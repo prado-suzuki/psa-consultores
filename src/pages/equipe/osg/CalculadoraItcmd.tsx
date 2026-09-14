@@ -169,7 +169,7 @@ function Molde({ children, acoes }: {
   return (
     <OsgLayout
       title="Calculadora de ITCD"
-      subtitle="Doação de quotas — base integral, três cenários de avaliação, por donatário"
+      subtitle="Simule o ITCD sobre doações de quotas em diferentes cenários de avaliação."
       headerActions={acoes}
     >
       {children}

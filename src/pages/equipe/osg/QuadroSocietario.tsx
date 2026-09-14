@@ -68,7 +68,7 @@ const QuadroSocietario = () => {
   return (
     <OsgLayout
       title="Quadro Societário"
-      subtitle="Distribuição de quotas e participação dos sócios por empresa"
+      subtitle="Visualize e gerencie a participação dos sócios em cada empresa."
     >
       <div className="space-y-4">
         {!clienteId ? (

@@ -59,7 +59,7 @@ const MontagemDocumentos = () => {
   return (
     <OsgLayout
       title="Montagem de Documentos"
-      subtitle="Monte um modelo como um lego de contrato: arraste blocos da Biblioteca e organize a sequência"
+      subtitle="Monte modelos combinando e ordenando os blocos da Biblioteca."
       headerActions={
         selecionado ? undefined : (
           <Button size="sm" className="bg-osg-600 hover:bg-osg-700" onClick={() => setModeloDialog({ open: true, form: MODELO_VAZIO })}>

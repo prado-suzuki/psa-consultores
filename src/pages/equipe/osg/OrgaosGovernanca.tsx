@@ -67,7 +67,7 @@ const OrgaosGovernanca = () => {
   return (
     <OsgLayout
       title="Órgãos de Governança"
-      subtitle="Cadastre os grupos ou instâncias responsáveis por aprovar decisões do cliente, como Diretoria, Conselho ou Comitê. Cada órgão cadastrado será usado na Matriz de Alçadas."
+      subtitle="Cadastre as instâncias responsáveis pelas decisões do cliente."
       headerActions={
         // Com a lista vazia a orientação inteira vive na caixa do meio, que já
         // traz este mesmo botão ao lado do de padrões. Repeti-lo aqui em cima

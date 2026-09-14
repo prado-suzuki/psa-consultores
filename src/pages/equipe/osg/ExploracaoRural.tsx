@@ -80,7 +80,7 @@ const ExploracaoRural = () => {
   return (
     <OsgLayout
       title="Exploração Rural"
-      subtitle="Instrumentos de parceria e composse: partes, imóveis e origens da posse"
+      subtitle="Registre relações de exploração rural entre partes, imóveis e origens da posse."
     >
       <div className="space-y-4">
         {!clienteId ? (

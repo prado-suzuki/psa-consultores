@@ -261,8 +261,13 @@ const Onboarding = () => {
    * têm faixa própria logo abaixo, com data e com o que muda em cada um. O
    * subtítulo variável repetia a faixa em versão pior.
    */
-  const SUBTITULO = 'Gerencie os documentos que serão solicitados ao cliente '
-    + 'para os produtos contratados.';
+  // Da especificação final da Patrícia (11/09/2026), menos a palavra "iniciais".
+  // Ela vinha do nome que a spec propunha para a tela, "Solicitação Inicial", e
+  // esse foi o ÚNICO ponto em que a spec não foi seguida: o nome continua
+  // "Solicitação de documentos". Mantido "iniciais", o título falaria de
+  // documentos e o subtítulo de outra coisa. O resto é o dela, palavra por
+  // palavra, inclusive o molde verbo + objeto + finalidade.
+  const SUBTITULO = 'Solicite e acompanhe os documentos de cada cliente.';
 
   return (
     <OsgLayout title="Solicitação de documentos" subtitle={SUBTITULO} headerActions={acoesDoTopo}>

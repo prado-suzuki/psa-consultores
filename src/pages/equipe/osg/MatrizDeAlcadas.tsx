@@ -102,7 +102,7 @@ const MatrizDeAlcadas = () => {
   return (
     <OsgLayout
       title="Matriz de Alçadas"
-      subtitle="Quem decide o quê na empresa do cliente, e até que valor cada instância decide sozinha. As colunas são os órgãos cadastrados em Órgãos de Governança."
+      subtitle="Defina quais decisões e limites competem a cada órgão de governança."
       headerActions={
         matriz ? (
           <Button size="sm" variant="outline" onClick={() => setAcrescentando(true)}>

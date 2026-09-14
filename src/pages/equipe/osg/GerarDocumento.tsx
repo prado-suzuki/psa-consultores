@@ -16,7 +16,7 @@ const GerarDocumento = () => {
   return (
     <OsgLayout
       title="Gerar Documento"
-      subtitle="Etapa final da oficina: escolha o modelo e a empresa — o documento sai pronto, preenchido do cadastro"
+      subtitle="Gere documentos preenchidos automaticamente com os dados cadastrados."
     >
       <div className="space-y-6 py-2">
         {!controller.modoDocumento && <GerarDocumentoEscolhas controller={controller} />}

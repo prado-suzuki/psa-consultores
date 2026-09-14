@@ -85,7 +85,7 @@ const ControleMatriculas = () => {
     return (
       <OsgLayout
         title="Controle de Matrículas"
-        subtitle="Registro de matrículas do cliente, vinculadas ou órfãs"
+        subtitle="Consulte e gerencie as matrículas imobiliárias do cliente."
       >
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
@@ -100,7 +100,7 @@ const ControleMatriculas = () => {
   return (
     <OsgLayout
       title="Controle de Matrículas"
-      subtitle="Registro de matrículas do cliente, vinculadas ou órfãs"
+      subtitle="Consulte e gerencie as matrículas imobiliárias do cliente."
     >
       <div className="space-y-4">
         <Card>
