@@ -1,16 +1,7 @@
 import { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { PontoDaArea } from './PontoDaArea';
+import { SelecaoDeEquipe } from './SelecaoDeEquipe';
 import { X } from 'lucide-react';
 import {
   useEstruturaAreas,
@@ -131,36 +122,23 @@ export const EquipesEstruturaField = ({
         </div>
       )}
 
-      <Select value="" onValueChange={adicionar} disabled={semOpcoes || disponiveis.length === 0}>
-        <SelectTrigger className="h-9 text-sm">
-          <SelectValue
-            placeholder={
-              semOpcoes
-                ? 'Nenhuma equipe cadastrada na estrutura'
-                : disponiveis.length === 0
-                  ? 'Já está em todas as equipes'
-                  : value.length === 0
-                    ? 'Selecionar equipe...'
-                    : '+ Adicionar outra equipe...'
-            }
-          />
-        </SelectTrigger>
-        <SelectContent>
-          {disponiveis.map((grupo) => (
-            <SelectGroup key={grupo.areaId}>
-              <SelectLabel className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                <PontoDaArea area={{ color: grupo.cor, color_index: grupo.corIndice }} />
-                {grupo.caminho}
-              </SelectLabel>
-              {grupo.equipes.map((equipe) => (
-                <SelectItem key={equipe.id} value={equipe.id} className="text-xs">
-                  {equipe.name}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          ))}
-        </SelectContent>
-      </Select>
+      {/* `value=""` sempre: este seletor não guarda escolha, ele ACRESCENTA — o
+          que já foi escolhido está nos chips acima. */}
+      <SelecaoDeEquipe
+        value=""
+        onChange={adicionar}
+        grupos={disponiveis}
+        disabled={semOpcoes || disponiveis.length === 0}
+        placeholder={
+          semOpcoes
+            ? 'Nenhuma equipe cadastrada na estrutura'
+            : disponiveis.length === 0
+              ? 'Já está em todas as equipes'
+              : value.length === 0
+                ? 'Selecionar equipe...'
+                : '+ Adicionar outra equipe...'
+        }
+      />
     </div>
   );
 };

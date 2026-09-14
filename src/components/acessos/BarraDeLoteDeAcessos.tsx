@@ -6,9 +6,7 @@ import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -30,7 +28,7 @@ import {
   type AlvoDaMatriz,
 } from '@/hooks/useAcessosEmLote';
 import { ROLE_SHORT_LABELS } from './roleOptions';
-import { PontoDaArea } from './PontoDaArea';
+import { SelecaoDeEquipe } from './SelecaoDeEquipe';
 import type { AppRole } from '@/hooks/useUsersWithRoles';
 
 /**
@@ -187,24 +185,14 @@ export const BarraDeLoteDeAcessos = ({ alvos, paginas, onLimpar }: BarraDeLoteDe
           onConceder={() => rodarEquipe(true)}
           onRemover={() => rodarEquipe(false)}
         >
-          <Select value={equipeId} onValueChange={setEquipeId} disabled={grupos.length === 0}>
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder={grupos.length ? 'Escolher equipe...' : 'Nenhuma equipe cadastrada'} />
-            </SelectTrigger>
-            <SelectContent>
-              {grupos.map((grupo) => (
-                <SelectGroup key={grupo.areaId}>
-                  <SelectLabel className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    <PontoDaArea area={{ color: grupo.cor, color_index: grupo.corIndice }} />
-                    {grupo.caminho}
-                  </SelectLabel>
-                  {grupo.equipes.map((equipe) => (
-                    <SelectItem key={equipe.id} value={equipe.id} className="text-xs">{equipe.name}</SelectItem>
-                  ))}
-                </SelectGroup>
-              ))}
-            </SelectContent>
-          </Select>
+          <SelecaoDeEquipe
+            value={equipeId}
+            onChange={setEquipeId}
+            grupos={grupos}
+            disabled={grupos.length === 0}
+            placeholder={grupos.length ? 'Escolher equipe...' : 'Nenhuma equipe cadastrada'}
+            className="h-8 text-xs"
+          />
         </LinhaDeLote>
       </div>
     </div>
