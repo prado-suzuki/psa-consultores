@@ -52,6 +52,22 @@ export interface CampoEntidade {
    * instrumento assinado à mão quer no lugar de "Lucas do Rio Verde/MT, .".
    */
   manual?: boolean;
+  /**
+   * Campo de MÁQUINA, não de conferência: existe para o motor concordar ou
+   * calcular, e não é dado que o consultor tenha o que conferir. Some do
+   * "Ajustar dados manualmente" da tela Gerar e continua valendo por trás.
+   *
+   * Não confundir com `derivadoDe`, que também não aparece no formulário: o
+   * derivado some porque a correção tem efeito é na BASE dele, e a base entra
+   * no lugar. Aqui é a própria base que não deve ser oferecida.
+   *
+   * O caso que criou o sinalizador é `orgaoGovernanca.genero`. Ele não descreve
+   * o órgão, descreve a palavra: existe só para sair "O Conselho será composto"
+   * e "A Diretoria será composta". Quem digitasse "F" ali não corrigiria um
+   * dado errado, quebraria a concordância do documento. Contraste com
+   * `pessoa.genero`, que É dado da pessoa e continua editável.
+   */
+  interno?: boolean;
 }
 
 export interface Entidade {
@@ -1239,8 +1255,12 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
        *
        * O gênero NÃO se deduz do nome: "Conselho de Administração" termina em
        * palavra feminina, e "Gestão" termina como "órgão", que é masculino.
+       *
+       * `interno` porque é propriedade da PALAVRA, não do órgão: no painel de
+       * conferência ele não seria dado a conferir, seria uma alavanca para
+       * quebrar a concordância. Vem do cadastro do órgão e se corrige lá.
        */
-      { id: 'genero', label: 'Gênero do nome (M/F)', tipo: 'texto' },
+      { id: 'genero', label: 'Gênero do nome (M/F)', tipo: 'texto', interno: true },
       {
         id: 'artigo',
         label: 'Artigo do órgão (o/a)',

@@ -169,3 +169,43 @@ sociedadesRelacionadas -> sociedade, até onde o acordo alcança
 - **GOV-01 e GOV-02 não estão em produção** (falta PR e merge do Bernardo). Não
   trava o desenvolvimento, que vincula contra o schema, mas trava a validação do
   aceite se ela for feita em produção.
+
+## 7. O que o "Ajustar dados manualmente" vai mostrar
+
+Vale para quem for escrever os blocos de verdade (GOV-C). O painel "Conferência
+dos dados" da tela Gerar oferece um grupo de campos por BINDING, e binding é
+papel citado direto no texto. Item de coleção que se repete não é binding, e
+nunca teve campo ali. Daí a forma do bloco decidir o que o consultor vê.
+
+**Cláusula por órgão, cada um pelo nome.** É o formato do contrato de verdade,
+um capítulo para o Conselho, outro para a Diretoria, outro para a Reunião de
+Sócios:
+
+```
+{{ conselhoAdministracao.artigoMaiusculo }} {{ conselhoAdministracao.nome }} ...
+{{ diretoria.artigoMaiusculo }} {{ diretoria.nome }} ...
+```
+
+O painel mostra os três grupos, um por órgão, cada um com nome, mínimo, máximo e
+mandato. Os três se vinculam sozinhos pela `padrao_chave`, sem pergunta.
+
+**Um bloco só, repetindo a coleção.** Se a composição virar uma frase única
+repetida por órgão, com "repete a coleção" em `orgaosComCompetencia`, o
+documento sai certo e o painel não mostra órgão nenhum: todos viraram item.
+
+**A armadilha.** Escrever `{{ orgao.nome }}` num bloco SEM marcar "repete a
+coleção" transforma `orgao` em papel unitário, e a tela passa a perguntar "qual
+é o Órgão de governança?" num campo de escolha. O vínculo automático não cobre
+`orgao`, que é genérico e não tem `padrao_chave`. Foi esta pergunta que travou o
+consultor na primeira geração de 14/09.
+
+**O limite conhecido.** O mesmo órgão pode aparecer pelos dois caminhos: pelo
+nome na cláusula de composição e como item na de competências. O ajuste manual
+alcança só o primeiro. Renomear o Conselho no painel faz a composição dizer um
+nome e a competência dizer outro. Os números não correm esse risco, porque
+mínimo, máximo e mandato não aparecem na cláusula de competência. Igualar isso é
+GOV-C, não MOT-01.
+
+**Campo `interno`.** `orgaoGovernanca.genero` não aparece no painel e não deve
+aparecer: é propriedade da palavra, não do órgão, e serve só para o motor
+escrever "O Conselho" e "A Diretoria". Corrige-se no cadastro do órgão.
