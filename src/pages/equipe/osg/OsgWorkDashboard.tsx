@@ -10,9 +10,9 @@ import { GRUPOS_OSG_WORK } from '@/lib/navegacaoOsgWork';
  *
  * ELE ESPELHA O MENU, e agora por construção: as duas listas saem de
  * `navegacaoOsgWork`. Antes eram dois arquivos com a mesma informação e
- * divergiram — em 14/09/2026 o menu tinha 14 telas em sete grupos e este painel
- * mostrava SETE, soltas, com descrições diferentes das que a própria tela exibe
- * no cabeçalho. Quem clicava lia uma frase no cartão e encontrava outra ao
+ * divergiram — em 14/09/2026 o menu tinha as 16 telas em sete grupos e este
+ * painel mostrava SETE, soltas, com descrições diferentes das que a própria tela
+ * exibe no cabeçalho. Quem clicava lia uma frase no cartão e encontrava outra ao
  * chegar.
  *
  * A ROTA JÁ EXISTIA E NÃO TINHA PORTA. Até 14/09 nenhum item do menu levava

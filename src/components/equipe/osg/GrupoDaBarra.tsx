@@ -2,9 +2,11 @@
 // itens que abrem no hover (ou ficam abertos quando a rota ativa é de dentro).
 //
 // Saiu de `OsgLayout` em 14/09/2026, quando a especificação final da Patrícia
-// pediu um quinto agrupador. O arquivo estava em 885 linhas contra o teto de 600
-// do AGENTS.md, com QUATRO cópias deste bloco de ~58 linhas — a regra é decompor
-// antes de acrescentar, e acrescentar à mão levaria a 943.
+// passou o OSG Work de DOIS agrupadores (Oficina de Contratos e Relatórios) para
+// SETE. O arquivo estava em 885 linhas contra o teto de 600 do AGENTS.md, com
+// QUATRO cópias deste bloco de ~58 linhas — duas do Work e duas da área OSG
+// Projetos. A regra é decompor antes de acrescentar, e escrever à mão os cinco
+// agrupadores que faltavam levaria o arquivo a ~1.175 linhas.
 //
 // AS QUATRO NÃO ERAM IDÊNTICAS, e isso foi medido antes de extrair. Três usavam
 // `flex-1 min-w-0 truncate` no rótulo e a Oficina de Contratos usava

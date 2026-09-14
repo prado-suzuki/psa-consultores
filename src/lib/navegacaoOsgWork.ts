@@ -7,7 +7,7 @@ import {
  * A navegação do OSG Work, em UM lugar só.
  *
  * POR QUE EXISTE. O menu lateral e o painel de entrada listavam as mesmas telas
- * em dois arquivos, e divergiram: em 14/09/2026 o menu tinha 14 telas em sete
+ * em dois arquivos, e divergiram: em 14/09/2026 o menu tinha as 16 telas em sete
  * grupos e o painel mostrava SETE, soltas, com descrições diferentes das que a
  * própria tela exibe no cabeçalho. Quem clicava lia uma frase no cartão e
  * encontrava outra ao chegar. Duas listas da mesma coisa divergem sempre; a
@@ -66,9 +66,12 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
     telas: [
       {
         path: '/equipe/osg/work/onboarding',
+        // O NOME DA TELA foi VALIDADO COM A COORDENAÇÃO. A spec §3 propunha
+        // "Solicitação Inicial"; ficou "Solicitação de documentos", que já era o
+        // termo fechado no glossário do fluxo OSG.
         label: 'Solicitação de documentos',
         // Sem a palavra "iniciais" da especificação: ela era eco do nome que a
-        // spec propunha para a tela, "Solicitação Inicial", e o nome não mudou.
+        // spec propunha para a tela, e o nome não mudou.
         descricao: 'Solicite e acompanhe os documentos de cada cliente.',
       },
       {
@@ -206,15 +209,16 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
       },
       {
         path: '/equipe/osg/work/checklists',
-        // SINGULAR: a especificação escreve "Checklists de Documentos", que valia
-        // enquanto a tela tinha duas abas. A segunda saiu em 10/09, auditada, e
-        // sobrou um checklist. A rota segue no plural — é endereço, não rótulo.
+        // SINGULAR, VALIDADO COM A COORDENAÇÃO: a especificação escreve
+        // "Checklists de Documentos", que valia enquanto a tela tinha duas abas. A
+        // segunda saiu em 10/09, auditada, e sobrou um checklist. A rota segue no
+        // plural — é endereço, não rótulo.
         label: 'Checklist de documentos',
-        // AJUSTADA por FATO, não por estilo. A spec escreve "documentos
-        // OBRIGATÓRIOS", e a tela não tem essa noção: `checklistDerivado` conta
-        // recebido, pendente e não solicitado, e `obrigatorio` não aparece em
-        // nenhum ponto do checklist. "Solicitados" é o que a conta faz — e era a
-        // palavra dela em 11/09, antes da spec.
+        // AJUSTADA por FATO, não por estilo, e VALIDADA COM A COORDENAÇÃO. A spec
+        // escreve "documentos OBRIGATÓRIOS", e a tela não tem essa noção:
+        // `checklistDerivado` conta recebido, pendente e não solicitado, e
+        // `obrigatorio` não aparece em nenhum ponto do checklist. "Solicitados" é
+        // o que a conta faz — e era a palavra dela em 11/09, antes da spec.
         descricao: 'Acompanhe os documentos solicitados, recebidos e pendentes de cada cliente.',
       },
     ],

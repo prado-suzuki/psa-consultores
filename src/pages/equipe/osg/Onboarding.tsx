@@ -262,11 +262,15 @@ const Onboarding = () => {
    * subtítulo variável repetia a faixa em versão pior.
    */
   // Da especificação final da Patrícia (11/09/2026), menos a palavra "iniciais".
-  // Ela vinha do nome que a spec propunha para a tela, "Solicitação Inicial", e
-  // esse foi o ÚNICO ponto em que a spec não foi seguida: o nome continua
-  // "Solicitação de documentos". Mantido "iniciais", o título falaria de
-  // documentos e o subtítulo de outra coisa. O resto é o dela, palavra por
-  // palavra, inclusive o molde verbo + objeto + finalidade.
+  // Ela vinha do nome que a spec propunha para a tela, "Solicitação Inicial";
+  // o nome ficou "Solicitação de documentos", VALIDADO COM A COORDENAÇÃO.
+  // Mantido "iniciais", o título falaria de documentos e o subtítulo de outra
+  // coisa. O resto é o dela, palavra por palavra, inclusive o molde
+  // verbo + objeto + finalidade.
+  //
+  // Esta linha TEM de continuar igual à `descricao` desta tela em
+  // `navegacaoOsgWork` — é a mesma frase no cartão do painel e aqui no
+  // cabeçalho, e foi a divergência entre as duas que originou aquele arquivo.
   const SUBTITULO = 'Solicite e acompanhe os documentos de cada cliente.';
 
   return (

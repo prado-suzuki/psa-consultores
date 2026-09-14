@@ -33,14 +33,17 @@ const ChecklistsDocumentos = () => {
   return (
     <OsgLayout
       /* Singular, e igual ao rótulo do menu — a padronização H1↔menu que a
-         especificação final pede, só que no singular dela. A spec escreve
-         "Checklists de Documentos", que valia enquanto havia duas abas; a
-         segunda saiu em 10/09 e sobrou um checklist. Ver a nota em
-         `OsgLayout`. */
+         especificação final pede. A spec escreve "Checklists de Documentos", que
+         valia enquanto havia duas abas; a segunda saiu em 10/09, auditada, e
+         sobrou um checklist. O singular foi VALIDADO COM A COORDENAÇÃO. Ver a
+         nota em `navegacaoOsgWork`. */
       title="Checklist de documentos"
-      /* Subtítulo da mesma especificação. Ele troca "solicitados" por
-         "obrigatórios" — os dois contam coisas diferentes, e é a palavra dela
-         que vale. */
+      /* "SOLICITADOS", e não "obrigatórios" como a especificação escreve. Os dois
+         contam coisas diferentes, e a tela só sabe contar o primeiro:
+         `checklistDerivado` soma recebido, pendente e não solicitado, e
+         `obrigatorio` não aparece em ponto nenhum do checklist. Escrever
+         "obrigatórios" seria prometer um recorte que a conta não faz.
+         A troca foi VALIDADA COM A COORDENAÇÃO — não é desvio de redação. */
       subtitle="Acompanhe os documentos solicitados, recebidos e pendentes de cada cliente."
       headerActions={
         clienteId ? (
