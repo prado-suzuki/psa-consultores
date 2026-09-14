@@ -3,6 +3,7 @@ import { Search, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -44,6 +45,19 @@ export interface FiltroDeUsuariosBarProps {
   areasPorUsuario: AreasPorUsuario;
   /** Quantas linhas o filtro deixou passar, para o"mostrando N de M". */
   visiveis: number;
+  /**
+   * Empilha busca, seletores e contagem em coluna.
+   *
+   * A matriz dá a largura da tela inteira à barra, e ali ela é uma linha. Na aba
+   * de Usuários ela mora na coluna estreita do cartão da lista (um terço da
+   * largura), e linha ali não é decisão de gosto: os dois seletores e a busca
+   * lado a lado em ~300px cortam o rótulo antes do primeiro caractere útil.
+   *
+   * É prop e não medida de container porque o `sm:` do Tailwind lê a VIEWPORT,
+   * não o elemento — num monitor largo a barra viraria linha dentro da coluna
+   * estreita, que é exatamente o caso que precisa ficar empilhado.
+   */
+  empilhado?: boolean;
 }
 
 export const FiltroDeUsuariosBar = ({
@@ -53,6 +67,7 @@ export const FiltroDeUsuariosBar = ({
   areas,
   areasPorUsuario,
   visiveis,
+  empilhado = false,
 }: FiltroDeUsuariosBarProps) => {
   const contagemPorPapel = useMemo(() => contarPorPapel(usuarios), [usuarios]);
 
@@ -77,7 +92,7 @@ export const FiltroDeUsuariosBar = ({
   const limpo = filtroEstaVazio(filtro);
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+    <div className={cn('flex flex-col gap-2', !empilhado && 'sm:flex-row sm:items-center')}>
       <div className="relative flex-1 min-w-0">
         <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <Input
@@ -88,12 +103,12 @@ export const FiltroDeUsuariosBar = ({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:flex sm:w-auto">
+      <div className={cn('grid grid-cols-2 gap-2', !empilhado && 'sm:flex sm:w-auto')}>
         <Select
           value={filtro.papel}
           onValueChange={(v) => onChange({ ...filtro, papel: v as AppRole | 'all' })}
         >
-          <SelectTrigger className="h-9 text-xs sm:w-44">
+          <SelectTrigger className={cn('h-9 text-xs', !empilhado && 'sm:w-44')}>
             <SelectValue placeholder="Papel" />
           </SelectTrigger>
           <SelectContent>
@@ -111,7 +126,7 @@ export const FiltroDeUsuariosBar = ({
           onValueChange={(v) => onChange({ ...filtro, areaId: v })}
           disabled={opcoesDeArea.length === 0}
         >
-          <SelectTrigger className="h-9 text-xs sm:w-44">
+          <SelectTrigger className={cn('h-9 text-xs', !empilhado && 'sm:w-44')}>
             <SelectValue placeholder="Área" />
           </SelectTrigger>
           <SelectContent>
@@ -135,7 +150,7 @@ export const FiltroDeUsuariosBar = ({
       {/* O"N de M" e o limpar só aparecem com filtro ligado: sem filtro eles
           diriam"68 de 68" e um botão que não faz nada. */}
       {!limpo && (
-        <div className="flex items-center gap-2 shrink-0">
+        <div className={cn('flex items-center gap-2 shrink-0', empilhado && 'justify-between')}>
           <span className="text-xs text-muted-foreground whitespace-nowrap">
             {visiveis} de {usuarios.length}
           </span>

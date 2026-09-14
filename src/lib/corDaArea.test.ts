@@ -135,12 +135,19 @@ describe('objeto sem color_index — a origem do ponto que não aparece', () => 
  * lado do ponto. Se tiver, sobe o número. Se não tiver, a premissa caiu e a
  * paleta precisa ser refeita por luminosidade — não é o número que está errado.
  *
- * Tirar um site quebra igual, e foi o que aconteceu em 14/09/2026: o diálogo de
- * área do Controle de Acessos saiu inteiro (ele não abria) e levou junto o seu
- * ponto. Aí o número desce, e é só isso.
+ * Tirar um site quebra igual, e foi o que aconteceu duas vezes em 14/09/2026.
+ * Primeiro o diálogo de área do Controle de Acessos saiu inteiro (ele não abria)
+ * e levou junto o seu ponto, de 8 para 7. Depois o filtro da aba de Usuários
+ * passou a ser o mesmo componente da matriz (`FiltroDeUsuariosBar`), e os dois
+ * pontos que pintavam a mesma lista de áreas viraram um, de 7 para 6.
+ *
+ * O segundo caso é o que este teste mais serve para ver: o número cair porque
+ * duas cópias viraram uma é exatamente o que se quer, e o número cair porque
+ * alguém apagou a cor de um lugar onde ela informava, não. Quem mexer confere
+ * qual dos dois é.
  */
 describe('premissa: a cor de área nunca aparece sem nome ao lado', () => {
-  const SITES_ESPERADOS = 7;
+  const SITES_ESPERADOS = 6;
 
   function sitesQueRenderizamOPonto(): { arquivo: string; linha: number }[] {
     const achados: { arquivo: string; linha: number }[] = [];
