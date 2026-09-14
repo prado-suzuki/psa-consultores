@@ -4,7 +4,12 @@ import {
   contarVinculosPorServico,
   dividirNomeServico,
   faixaDeSelecao,
+  gruposDeCodigo,
+  montarNomeServico,
   ordenarPorCodigoDeServico,
+  proximoCodigoLivre,
+  servicosComCodigo,
+  servicosComMesmoNome,
 } from '@/lib/produtoServicoNomes';
 
 const nomeDe = (s: { nome: string }) => s.nome;
@@ -132,5 +137,143 @@ describe('faixaDeSelecao', () => {
     // A âncora pode ter sido filtrada para fora entre um clique e outro; o
     // shift+clique tem que continuar selecionando ao menos o alvo.
     expect(faixaDeSelecao(visiveis, 'z', 'c')).toEqual(['c']);
+  });
+});
+
+/* ───────────────────────────────────────────────────────────────────────
+ * Proposta de código — os casos saem do catálogo de produção, porque é nele
+ * que as duas convenções convivem: a OSG com zero à esquerda ("2.01") e a Tax
+ * sem ("1.1"), no mesmo banco.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+const TAX = 'cluster-tax';
+const OSG = 'cluster-osg';
+
+const servico = (id: string, nome: string, cluster_id: string | null) => ({ id, nome, cluster_id });
+
+/** Recorte fiel do catálogo: os dois clusters, com os buracos que eles têm. */
+const CATALOGO = [
+  servico('t1', '1.0.Análise de incidência tributária por operação', TAX),
+  servico('t2', '1.1.Apoio no fechamento contábil', TAX),
+  servico('t3', '1.1.Suporte em auditorias independentes', TAX),
+  servico('t4', '1.2.Consultoria em regimes especiais', TAX),
+  servico('t5', '2.1.Análise dos indicadores financeiros', TAX),
+  servico('t6', '2.3.Revisão de atas', TAX),
+  servico('t7', 'Outros', TAX),
+  servico('t8', 'Suporte em auditorias independentes', TAX),
+  servico('o1', '2.01.Diagnóstico Patrimonial', OSG),
+  servico('o2', '2.02.Qualificação dos Sócios', OSG),
+  servico('o3', '2.16.Atos Societários de Manutenção', OSG),
+];
+
+describe('gruposDeCodigo', () => {
+  it('monta os grupos do cluster em ordem numérica, com um nome de exemplo', () => {
+    const grupos = gruposDeCodigo(CATALOGO, TAX);
+    expect(grupos.map((g) => g.raiz)).toEqual(['1', '2']);
+    expect(grupos[0].exemplo).toBe('Análise de incidência tributária por operação');
+    expect(grupos[0].quantos).toBe(4);
+  });
+
+  it('lê a largura de cada catálogo em vez de impor uma', () => {
+    expect(gruposDeCodigo(CATALOGO, TAX)[0].largura).toBe(1);
+    expect(gruposDeCodigo(CATALOGO, OSG)[0].largura).toBe(2);
+  });
+
+  it('serviço sem código não entra em grupo nenhum', () => {
+    const grupos = gruposDeCodigo(CATALOGO, TAX);
+    expect(grupos.reduce((t, g) => t + g.quantos, 0)).toBe(CATALOGO.filter(
+      (s) => s.cluster_id === TAX && dividirNomeServico(s.nome).codigo,
+    ).length);
+  });
+
+  it('não mistura cluster', () => {
+    expect(gruposDeCodigo(CATALOGO, OSG).map((g) => g.raiz)).toEqual(['2']);
+  });
+});
+
+describe('proximoCodigoLivre', () => {
+  it('preenche o buraco antes de crescer — "2.2" está vago entre 2.1 e 2.3', () => {
+    expect(proximoCodigoLivre(CATALOGO, TAX, '2')).toBe('2.2');
+  });
+
+  it('respeita o zero à esquerda da OSG', () => {
+    expect(proximoCodigoLivre(CATALOGO, OSG, '2')).toBe('2.03');
+  });
+
+  it('pula os ocupados do grupo 1 da Tax', () => {
+    expect(proximoCodigoLivre(CATALOGO, TAX, '1')).toBe('1.3');
+  });
+
+  it('grupo inédito herda a largura do cluster', () => {
+    expect(proximoCodigoLivre(CATALOGO, OSG, '9')).toBe('9.01');
+    expect(proximoCodigoLivre(CATALOGO, TAX, '9')).toBe('9.1');
+  });
+
+  it('cluster vazio não trava', () => {
+    expect(proximoCodigoLivre([], null, '1')).toBe('1.1');
+  });
+});
+
+describe('servicosComCodigo', () => {
+  it('devolve todos os que disputam o código, para a tela poder nomeá-los', () => {
+    expect(servicosComCodigo(CATALOGO, TAX, '1.1').map((s) => s.id)).toEqual(['t2', 't3']);
+  });
+
+  it('código livre devolve lista vazia', () => {
+    expect(servicosComCodigo(CATALOGO, TAX, '1.3')).toEqual([]);
+  });
+
+  it('o mesmo código em outro cluster não conta', () => {
+    expect(servicosComCodigo(CATALOGO, OSG, '1.1')).toEqual([]);
+  });
+});
+
+describe('servicosComMesmoNome', () => {
+  /*
+   * O par que existe de verdade em produção: o serviço foi cadastrado uma vez
+   * com número e outra sem, e os vínculos se partiram entre as duas linhas.
+   */
+  it('acha o duplicado mesmo quando um dos dois tem código e o outro não', () => {
+    expect(servicosComMesmoNome(CATALOGO, TAX, 'Suporte em auditorias independentes')
+      .map((s) => s.id)).toEqual(['t3', 't8']);
+  });
+
+  it('ignora acento, caixa e espaço repetido', () => {
+    expect(servicosComMesmoNome(CATALOGO, TAX, '  SUPORTE  em   auditorias INDEPENDENTES ')
+      .map((s) => s.id)).toEqual(['t3', 't8']);
+  });
+
+  it('não acusa o próprio serviço em edição', () => {
+    expect(servicosComMesmoNome(CATALOGO, TAX, 'Suporte em auditorias independentes', 't3')
+      .map((s) => s.id)).toEqual(['t8']);
+  });
+
+  it('nome vazio não acusa nada', () => {
+    expect(servicosComMesmoNome(CATALOGO, TAX, '   ')).toEqual([]);
+  });
+});
+
+describe('montarNomeServico', () => {
+  it('grava no formato dominante do catálogo', () => {
+    expect(montarNomeServico('1.10', 'Apoio no fechamento contábil'))
+      .toBe('1.10.Apoio no fechamento contábil');
+  });
+
+  /* O que sai daqui tem de voltar por `dividirNomeServico` — é o mesmo dado. */
+  it('sobrevive à ida e volta', () => {
+    const gravado = montarNomeServico('2.01', 'Diagnóstico Patrimonial');
+    expect(dividirNomeServico(gravado)).toEqual({
+      codigo: '2.01', nome: 'Diagnóstico Patrimonial', secao: '2',
+    });
+  });
+
+  it('sem código, grava só o nome — serviço sem número continua válido', () => {
+    expect(montarNomeServico('', 'Outros')).toBe('Outros');
+    expect(montarNomeServico('   ', 'Outros')).toBe('Outros');
+  });
+
+  it('ponto sobrando no código não vira ponto duplo', () => {
+    expect(montarNomeServico('1.1.', 'Consolidação de balanços'))
+      .toBe('1.1.Consolidação de balanços');
   });
 });
