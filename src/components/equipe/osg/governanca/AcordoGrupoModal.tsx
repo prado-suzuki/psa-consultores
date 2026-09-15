@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { ExternalLink, Plus, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
@@ -15,6 +16,8 @@ import { Switch } from '@/components/ui/switch';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { MultiSelectCombobox, type ComboOption } from '@/components/ui/MultiSelectCombobox';
+import { SingleSelectCombobox } from '@/components/ui/SingleSelectCombobox';
 import { expressaoDoQuorum, type BaseQuorum, type TipoQuorum } from '@/lib/acordoQuotistasPadrao';
 import type { CampoDoAcordo, GrupoDoAcordo } from '@/lib/acordoGrupos';
 
@@ -23,6 +26,16 @@ export interface ValoresDoAcordo extends Record<string, unknown> {
   quoruns: { materia: string; chave?: string | null; tipo: TipoQuorum; percentual?: number | null; base: BaseQuorum }[];
   ramos: { nome: string; rotulo: 'ramo' | 'descendentes' }[];
   ordemPreferencia: string[];
+  signatarios: string[];
+  sociedades: string[];
+}
+
+/** Uma pessoa do cliente, como o seletor a mostra. */
+export interface PessoaParaEscolher {
+  id: string;
+  denominacao: string;
+  tipo_pessoa: string | null;
+  cpf_cnpj: string | null;
 }
 
 interface Props {
@@ -30,14 +43,27 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   grupo: GrupoDoAcordo;
   valores: ValoresDoAcordo;
+  /** As pessoas já cadastradas do cliente. A tela busca, o modal só desenha. */
+  pessoas: PessoaParaEscolher[];
+  /** Quantas participações do cliente têm usufruto gravado, de `onus_quotas`. */
+  gravamesDeUsufruto: number;
   onSalvar: (valores: ValoresDoAcordo) => Promise<unknown>;
   salvando: boolean;
 }
 
 const ROTULO = 'flex h-5 items-center gap-1.5';
 
-/** Fora dos três controles próprios, o modal ainda não desenha estes. */
-const ESPERANDO_SELETOR_DE_PESSOA = ['signatarios', 'sociedades', 'representante_pessoa_id'];
+/** Pessoa vira opção de lista, com o documento como texto de busca. */
+function comoOpcao(p: PessoaParaEscolher): ComboOption {
+  const doc = (p.cpf_cnpj ?? '').trim();
+  return {
+    value: p.id,
+    label: p.denominacao,
+    hint: doc || undefined,
+    // Sem pontuação também: quem digita o CNPJ raramente digita os pontos.
+    keywords: doc ? [doc, doc.replace(/\D/g, '')] : undefined,
+  };
+}
 
 /**
  * Um grupo do Acordo de Quotistas, aberto para edição.
@@ -53,7 +79,7 @@ const ESPERANDO_SELETOR_DE_PESSOA = ['signatarios', 'sociedades', 'representante
  * escolhe o tipo e a base.
  */
 export function AcordoGrupoModal({
-  open, onOpenChange, grupo, valores, onSalvar, salvando,
+  open, onOpenChange, grupo, valores, pessoas, gravamesDeUsufruto, onSalvar, salvando,
 }: Props) {
   const [form, setForm] = useState<ValoresDoAcordo>(valores);
 
@@ -65,6 +91,13 @@ export function AcordoGrupoModal({
     setForm((f) => ({ ...f, [campo]: valor }));
 
   const visivel = (c: CampoDoAcordo) => !c.dependeDe || form[c.dependeDe] === true;
+
+  const opcoesDePessoa = useMemo(() => pessoas.map(comoOpcao), [pessoas]);
+  // Sociedade relacionada é empresa, então a lista só oferece pessoa jurídica.
+  const opcoesDeEmpresa = useMemo(
+    () => pessoas.filter((p) => p.tipo_pessoa === 'PJ').map(comoOpcao),
+    [pessoas],
+  );
 
   /*
    * Os campos em BLOCOS, na ordem em que foram declarados.
@@ -202,18 +235,56 @@ export function AcordoGrupoModal({
                 />
               )}
 
-              {ESPERANDO_SELETOR_DE_PESSOA.includes(c.campo) && (
-                <p className="rounded-md border border-dashed border-osg-300 bg-osg-50/40 px-3 py-2.5 text-xs text-muted-foreground">
-                  Este campo aponta para pessoas já cadastradas, e o seletor entra na
-                  próxima etapa. O resto do grupo já salva.
-                </p>
+              {(c.campo === 'signatarios' || c.campo === 'sociedades') && (
+                pessoas.length === 0 ? (
+                  <SemPessoas />
+                ) : (
+                  <MultiSelectCombobox
+                    options={c.campo === 'sociedades' ? opcoesDeEmpresa : opcoesDePessoa}
+                    selected={(form[c.campo] as string[]) ?? []}
+                    onChange={(v) => mexer(c.campo, v)}
+                    placeholder={c.campo === 'sociedades'
+                      ? 'Clique para incluir uma sociedade…'
+                      : 'Clique para incluir um signatário…'}
+                    addLabel="incluir"
+                  />
+                )
               )}
 
+              {c.campo === 'representante_pessoa_id' && (
+                pessoas.length === 0 ? (
+                  <SemPessoas />
+                ) : (
+                  <SingleSelectCombobox
+                    id={`ac-${c.campo}`}
+                    options={opcoesDePessoa}
+                    value={(form[c.campo] as string | null) ?? null}
+                    onChange={(v) => mexer(c.campo, v)}
+                    placeholder="Escolha quem representa"
+                  />
+                )
+              )}
+
+              {/*
+                O USUFRUTO NÃO SE CADASTRA AQUI, ele se LÊ. O gravame nasce junto do
+                ato que o criou, na doação com reserva, e vive em `onus_quotas` desde
+                10/09. Duplicar a marcação aqui faria o acordo dizer um dono do voto e
+                o contrato dizer outro. A tela mostra o que há e manda cadastrar onde
+                se cadastra, como a Matriz faz com os órgãos.
+              */}
               {c.campo === 'usufruto' && (
-                <p className="rounded-md border border-dashed border-osg-300 bg-osg-50/40 px-3 py-2.5 text-xs text-muted-foreground">
-                  A marcação é quota a quota, no quadro societário do cliente, e entra
-                  junto do seletor de pessoas.
-                </p>
+                <div className="space-y-2 rounded-md border border-osg-200 bg-osg-50/50 px-3 py-2.5">
+                  <p className="text-xs text-muted-foreground">
+                    {gravamesDeUsufruto === 0
+                      ? 'Nenhuma quota deste cliente está gravada com usufruto hoje.'
+                      : `${gravamesDeUsufruto} gravame(s) de usufruto neste cliente. O acordo escreve quem vota a partir deles.`}
+                  </p>
+                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" asChild>
+                    <Link to="/equipe/osg/work/quadro-societario">
+                      <ExternalLink className="h-3 w-3" /> Abrir o Quadro Societário
+                    </Link>
+                  </Button>
+                </div>
               )}
             </div>
                 ))}
@@ -230,6 +301,16 @@ export function AcordoGrupoModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Cliente sem ninguém cadastrado: diz onde cadastrar, em vez de lista vazia. */
+function SemPessoas() {
+  return (
+    <p className="rounded-md border border-dashed border-osg-300 bg-osg-50/40 px-3 py-2.5 text-xs text-muted-foreground">
+      Este cliente ainda não tem pessoas cadastradas. Cadastre em Qualificação das
+      Partes e volte aqui.
+    </p>
   );
 }
 

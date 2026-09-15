@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Check, FileSignature, Sparkles } from 'lucide-react';
+import { Check, FileSignature, MousePointerClick, Sparkles } from 'lucide-react';
 
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import {
@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { rowActivateProps } from '@/hooks/rowActivateProps';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useAcordoDoCliente, useAcordoMutations } from '@/hooks/useDomainAcordoQuotistas';
+import { useGravamesDeUsufruto } from '@/hooks/useDomainAcordoQuotistas';
+import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
 import {
   GRUPOS_DO_ACORDO, preenchidosNoGrupo, type GrupoDoAcordo,
 } from '@/lib/acordoGrupos';
@@ -45,7 +47,11 @@ import { cn } from '@/lib/utils';
 const AcordoDeQuotistas = () => {
   const { clienteId } = useOsgWork();
   const { data, isLoading } = useAcordoDoCliente(clienteId);
-  const { criarAcordo, salvarAcordo, salvarListas } = useAcordoMutations(clienteId);
+  const { data: pessoas = [] } = usePessoasByCliente(clienteId ?? null);
+  const { data: gravamesDeUsufruto = 0 } = useGravamesDeUsufruto(clienteId);
+  const {
+    criarAcordo, salvarAcordo, salvarListas, salvarVinculos,
+  } = useAcordoMutations(clienteId);
 
   const [grupoAberto, setGrupoAberto] = useState<GrupoDoAcordo | null>(null);
 
@@ -63,11 +69,13 @@ const AcordoDeQuotistas = () => {
       nome: r.nome, rotulo: r.rotulo as 'ramo' | 'descendentes',
     })),
     ordemPreferencia: (data?.ordemPreferencia ?? []).map((o) => o.quem),
+    signatarios: (data?.signatarios ?? []).map((x) => x.pessoa_id),
+    sociedades: (data?.sociedades ?? []).map((x) => x.empresa_pessoa_id),
   }), [data]);
 
   const salvarGrupo = async (novos: ValoresDoAcordo) => {
     if (!data) return;
-    const { quoruns, ramos, ordemPreferencia, ...cabecalho } = novos;
+    const { quoruns, ramos, ordemPreferencia, signatarios, sociedades, ...cabecalho } = novos;
 
     // As três listas viajam juntas porque a auditoria delas é uma entrada por
     // lista, e não uma por linha. Ver `lib/acordoQuotistas`.
@@ -84,10 +92,18 @@ const AcordoDeQuotistas = () => {
       },
     });
 
+    await salvarVinculos.mutateAsync({
+      acordoId: data.acordo.id,
+      versao: data.acordo.versao,
+      signatarios,
+      sociedades,
+    });
+
     await salvarAcordo.mutateAsync({ id: data.acordo.id, campos: cabecalho });
   };
 
-  const salvando = salvarAcordo.isPending || salvarListas.isPending;
+  const salvando = salvarAcordo.isPending || salvarListas.isPending
+    || salvarVinculos.isPending;
 
   return (
     <OsgLayout
@@ -128,6 +144,21 @@ const AcordoDeQuotistas = () => {
                   ? `assinado em ${data.acordo.assinado_em}`
                   : 'ainda em minuta'}
               </span>
+            </div>
+
+            {/*
+              A faixa de instrução, no mesmo molde da Matriz: o que fazer primeiro
+              tem de estar visível sem rolar. Ela diz o GESTO, e não repete o que
+              o cartão e o subtítulo já dizem.
+            */}
+            <div className="flex items-start gap-2.5 rounded-xl border border-osg-200 bg-osg-50/60 p-4">
+              <MousePointerClick className="mt-0.5 h-4 w-4 shrink-0 text-osg-600" aria-hidden />
+              <p className="text-sm text-osg-700">
+                <span className="font-semibold">Clique em um bloco para preencher.</span>{' '}
+                Os quóruns e os mecanismos mais comuns já vêm respondidos, então percorra
+                os blocos e corrija só o que este cliente tem de diferente. Cada campo
+                mostra, na ajuda, a frase que o modelo usa e o número que ele traz.
+              </p>
             </div>
 
             {/*
@@ -190,6 +221,8 @@ const AcordoDeQuotistas = () => {
           onOpenChange={(aberto) => !aberto && setGrupoAberto(null)}
           grupo={grupoAberto}
           valores={valores}
+          pessoas={pessoas}
+          gravamesDeUsufruto={gravamesDeUsufruto}
           onSalvar={salvarGrupo}
           salvando={salvando}
         />
