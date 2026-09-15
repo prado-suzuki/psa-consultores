@@ -198,11 +198,15 @@ const AcordoDeQuotistas = () => {
                 leu.
 
                 E SÓ NA VERSÃO MAIS NOVA: criar a versão 3 olhando a 1 daria uma
-                versão que não continua o que está na tela. Some também na versão
-                assinada, onde o caminho de mudar de ideia é outro botão que ainda
-                não existe (criar a seguinte a partir desta).
+                versão que não continua o que está na tela.
+
+                NA VERSÃO ASSINADA ELE APARECE SEMPRE, e essa exceção é o que
+                impede um beco sem saída. A versão assinada congela, e se o botão
+                também sumisse dela a tela ficaria sem nenhuma porta: nem corrigir
+                nem seguir. Criar a próxima é justamente o caminho certo depois de
+                assinado, então ali ele não espera conferência nenhuma.
               */}
-              {faltamConferir === 0 && ehMaisRecente && !somenteLeitura && (
+              {ehMaisRecente && (somenteLeitura || faltamConferir === 0) && (
                 <Button
                   size="sm"
                   variant="outline"
