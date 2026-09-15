@@ -288,6 +288,18 @@ function percentualCartorialCampo(id: string, label: string, derivadoDe: string)
   };
 }
 
+/**
+ * Primeira letra em minúscula, para o texto entrar no meio de uma frase. Palavra
+ * inteiramente maiúscula (sigla) passa intacta.
+ */
+function minusculaNoMeioDaFrase(texto: string | undefined): string {
+  const t = (texto ?? '').trim();
+  if (!t) return '';
+  const primeira = t.split(/\s+/)[0];
+  if (primeira.length > 1 && primeira === primeira.toUpperCase()) return t;
+  return t[0].toLocaleLowerCase('pt-BR') + t.slice(1);
+}
+
 /** Campo derivado que expande uma UF (sigla) por extenso ("MT" → "Mato Grosso"). */
 /**
  * Uma chave está marcada numa lista de múltipla escolha do cadastro?
@@ -1484,6 +1496,21 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
     label: 'Competência da Matriz de Alçadas',
     campos: [
       { id: 'atividade', label: 'Atividade', tipo: 'texto', obrigatorio: true },
+      /*
+       * A MESMA atividade em meio de frase. O catálogo guarda o nome
+       * capitalizado, que é como a grade da Matriz o mostra; a alínea o emenda
+       * depois do verbo ("Autorizar a contratação de prestadores de serviços"),
+       * e ali a maiúscula do catálogo vira erro de digitação no contrato.
+       *
+       * Sigla fica intacta: "ITCMD" não vira "iTCMD".
+       */
+      {
+        id: 'atividadeMinuscula',
+        label: 'Atividade em meio de frase',
+        tipo: 'texto',
+        derivadoDe: 'atividade',
+        derivar: (v) => minusculaNoMeioDaFrase(v.atividade),
+      },
       { id: 'detalhamento', label: 'O que a atividade abrange neste cliente', tipo: 'texto' },
       { id: 'papeis', label: 'Papéis na decisão', tipo: 'texto' },
       /*
@@ -1576,6 +1603,13 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       condicionalCampo('temDetalhamento', 'Tem detalhamento? (condicional)', 'detalhamento', (v) => !!v.detalhamento),
       condicionalCampo('temAlcada', 'Tem alçada? (condicional)', 'alcada', (v) => !!v.alcada),
       condicionalCampo('sobe', 'Escala para outro órgão? (condicional)', 'sobePara', (v) => !!v.sobePara),
+      /*
+       * O outro lado de `sobe`, porque o motor não tem else e a ressalva do que
+       * foge da política se lê ao contrário nos dois lados da escada: quem tem
+       * destino SUBMETE o que não está previsto, quem não tem AUTORIZA. É a
+       * mesma distinção que `resumoDaCompetencia` já faz na grade.
+       */
+      condicionalCampo('naoSobe', 'Decide sem escalar? (condicional)', 'sobePara', (v) => !v.sobePara),
 
       /*
        * Os três degraus da escada, publicados como condicionais porque é isso que
