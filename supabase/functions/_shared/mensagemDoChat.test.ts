@@ -10,11 +10,21 @@ import {
 const BASE = 'https://psa-consultores.lovable.app';
 const HOJE = '2026-09-14';
 
+/**
+ * Cada aviso nasce com tarefa PRÓPRIA, salvo quando o teste diz o contrário.
+ *
+ * Um `entidade_id` fixo no molde fazia todos os avisos de um teste serem a mesma
+ * tarefa sem que o teste dissesse isso — e, com a dedup por tarefa, os casos
+ * passavam a medir outra coisa.
+ */
+let proximaTarefa = 0;
+
 function aviso(over: Partial<AvisoDoChat> = {}): AvisoDoChat {
+  proximaTarefa += 1;
   return {
     area_nome: 'OSG',
     tipo: 'tarefa_prazo_proximo',
-    entidade_id: 'aaaaaaaa-0000-0000-0000-000000000001',
+    entidade_id: `tarefa-${proximaTarefa}`,
     task_title: '1.2 Ata AGE 29/09/2026 - Aprovação Comissão',
     due_date: '2026-09-14',
     project_id: 'pppppppp-0000-0000-0000-000000000001',
@@ -60,6 +70,37 @@ describe('montarMensagens · resumo de prazo', () => {
     expect(msgs).toHaveLength(1);
     expect(msgs[0].texto).toContain('atrasada desde 08/09');
     expect(msgs[0].texto).toContain('vence em 3 dias (17/09)');
+  });
+
+  it('escreve UMA linha por tarefa, mesmo quando ela tem dois avisos de prazo', () => {
+    // A mesma tarefa pode ter `tarefa_prazo_proximo` e `tarefa_atrasada` no mesmo
+    // dia. Antes cada tipo ia para uma mensagem e ninguém via; na mesma lista, a
+    // tarefa aparecia duas vezes seguidas — visto com dados reais em 14/09/2026.
+    const msgs = montarMensagens(
+      [
+        aviso({ tipo: 'tarefa_prazo_proximo', entidade_id: 't1', chave: 'k-prazo' }),
+        aviso({ tipo: 'tarefa_atrasada', entidade_id: 't1', chave: 'k-atraso' }),
+      ],
+      BASE,
+      HOJE,
+    );
+
+    const linhas = msgs[0].texto.split('\n').filter((l) => l.startsWith('•'));
+    expect(linhas).toHaveLength(1);
+  });
+
+  it('reserva as DUAS chaves da tarefa que virou uma linha só', () => {
+    // Reservar só a da linha deixaria a outra viva para ser oferecida amanhã.
+    const msgs = montarMensagens(
+      [
+        aviso({ tipo: 'tarefa_prazo_proximo', entidade_id: 't1', chave: 'k-prazo' }),
+        aviso({ tipo: 'tarefa_atrasada', entidade_id: 't1', chave: 'k-atraso' }),
+      ],
+      BASE,
+      HOJE,
+    );
+
+    expect(msgs[0].chaves).toEqual(['k-prazo', 'k-atraso']);
   });
 
   it('carrega prazo, projeto e cliente em cada linha', () => {

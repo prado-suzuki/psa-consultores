@@ -208,6 +208,21 @@ function mensagemAvulsa(aviso: AvisoDoChat, baseUrl: string, hoje: string): stri
   return [cabecalho, linkDaTarefa(aviso, baseUrl), rodape].filter(Boolean).join("\n");
 }
 
+/**
+ * A primeira ocorrência de cada tarefa, preservando a ordem.
+ *
+ * A frase do prazo sai da DATA, então dois avisos da mesma tarefa produzem a
+ * mesma linha — ficar com a primeira não perde nada.
+ */
+function porTarefa(avisos: AvisoDoChat[]): AvisoDoChat[] {
+  const vistas = new Set<string>();
+  return avisos.filter((a) => {
+    if (vistas.has(a.entidade_id)) return false;
+    vistas.add(a.entidade_id);
+    return true;
+  });
+}
+
 /** Agrupa preservando a ordem de chegada, que a `avisos_para_o_chat` já ordenou. */
 function agruparPor<T>(itens: T[], chave: (item: T) => string): Map<string, T[]> {
   const grupos = new Map<string, T[]>();
@@ -255,7 +270,17 @@ export function montarMensagens(
     const corpo: string[] = [];
     for (const [pessoa, tarefas] of porPessoa) {
       corpo.push(`*${semDelimitador(pessoa)}*`);
-      for (const tarefa of tarefas) corpo.push(linhaDePrazo(tarefa, baseUrl, hoje));
+      // UMA LINHA POR TAREFA, e não por aviso. A mesma tarefa pode ter os dois
+      // tipos de prazo no mesmo dia (`tarefa_prazo_proximo` e `tarefa_atrasada`),
+      // e antes isso não aparecia porque cada tipo ia para uma mensagem. Agora
+      // que convivem na mesma lista, sem isto a tarefa se repete — visto na
+      // primeira passada com dados reais, em 14/09/2026.
+      //
+      // As duas chaves continuam na mensagem (ver `chaves`, abaixo): reservar só
+      // uma deixaria a outra viva para ser oferecida de novo amanhã.
+      for (const tarefa of porTarefa(tarefas)) {
+        corpo.push(linhaDePrazo(tarefa, baseUrl, hoje));
+      }
       corpo.push("");
     }
     mensagens.push({
