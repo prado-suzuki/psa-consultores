@@ -24,6 +24,13 @@ emissão/início/fim e contato do cliente (representantes com e-mail ou telefone
 Nada disso começa antes das respostas da Letícia (as sete perguntas no fim) e da decisão
 sobre a `os_parcela`, que é a mesma tabela da tarefa do ERP.
 
+**Para validar antes de mexer no banco** existe um protótipo, fora do sistema:
+`planos/prototipo-faturamento.html`, que abre em
+`http://localhost:8080/docs/planos/prototipo-faturamento.html`. Dados de exemplo, nada ligado
+ao banco. Mostra os dois tipos de faturamento, as parcelas com competência e vencimento, a OS
+faturada em dois contribuintes e o reembolso por tipo, e marca o que é novo contra o que já
+existe hoje.
+
 ## O tamanho de cada ponto
 
 | O que ela pediu | O que existe hoje | O que falta |
