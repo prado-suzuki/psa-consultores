@@ -18,7 +18,7 @@ export function useReviewerCandidates(clusterIds: readonly string[] = []) {
         supabase
           .from('user_roles')
           .select('user_id')
-          .in('role', ['sublider', 'lider', 'admin']),
+          .in('role', ['team_member', 'sublider', 'lider', 'admin']),
         Promise.all(
           stableClusterIds.map(clusterId =>
             supabase.rpc('get_cluster_members', { _cluster_id: clusterId })
