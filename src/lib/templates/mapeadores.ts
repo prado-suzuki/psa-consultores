@@ -830,6 +830,8 @@ export interface AcordoParaMapear {
   // porque uma seção {{#…}} vazia não reescreve a frase que está fora dela.
   temSociedadesRelacionadas?: boolean;
   temRamos?: boolean;
+  /** Quantos ramos, para a definição que abre contando ("os dois grupos"). */
+  quantosRamos?: number | null;
 
   // Deliberação
   reuniaoPreviaObrigatoria?: boolean;
@@ -882,15 +884,35 @@ export interface AcordoParaMapear {
 export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
   const { out, set } = coletor();
   const chaves = (lista: string[] | null | undefined) => (lista ?? []).join(', ');
-  const sim = (ligado: boolean | undefined) => (ligado ? 'sim' : '');
+
+  /*
+   * CONDICIONAL DESLIGADA PRECISA EXISTIR NO CONTEXTO, e `set` a apagaria.
+   *
+   * O `coletor` descarta string vazia, o que e certo para dado ("CPF em branco
+   * nao e CPF") e ERRADO para condicional: o render trata chave AUSENTE como
+   * secao nao resolvida e LEVANTA `Seção não resolvida: {{#acordo.temRamos}}`.
+   * Nao e silencio, e o documento inteiro deixando de sair, e sairia justamente
+   * nos 6 dos 7 clientes que nao tem ramo.
+   *
+   * A derivada nao sofre disso porque `derivarCampos` grava o retorno de
+   * `derivar`, inclusive ''. Estas sao BASE, vem do cadastro, e por isso
+   * escrevem direto em `out` em vez de passar pelo `set`.
+   *
+   * Achado em 15/09 ao montar a clausula dos ramos para conferir contra o
+   * documento real. Nenhum teste de campo pegaria: so renderizando.
+   */
+  const condicional = (chave: string, ligado: boolean | undefined) => {
+    out[chave] = ligado ? 'sim' : '';
+  };
 
   set('assinadoEm', entrada.assinadoEm);
   set('vigenciaAnos', entrada.vigenciaAnos);
   set('prazoSigiloAnos', entrada.prazoSigiloAnos);
 
-  set('temSociedadesRelacionadas', sim(entrada.temSociedadesRelacionadas));
-  set('temRamos', sim(entrada.temRamos));
-  set('reuniaoPreviaObrigatoria', sim(entrada.reuniaoPreviaObrigatoria));
+  condicional('temSociedadesRelacionadas', entrada.temSociedadesRelacionadas);
+  condicional('temRamos', entrada.temRamos);
+  set('quantosRamos', entrada.quantosRamos);
+  condicional('reuniaoPreviaObrigatoria', entrada.reuniaoPreviaObrigatoria);
 
   set('ordemPreferencia', entrada.ordemPreferencia);
   set('objetosPreferencia', entrada.objetosPreferencia);
@@ -910,19 +932,19 @@ export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
   const comFluxo = entrada.metodosAvaliacao
     ? entrada.metodosAvaliacao.includes('fluxo_de_caixa_descontado')
     : !!entrada.usaFluxoDeCaixa;
-  set('usaFluxoDeCaixa', sim(comFluxo));
-  set('consolidaComposse', sim(entrada.consolidaComposse));
+  condicional('usaFluxoDeCaixa', comFluxo);
+  condicional('consolidaComposse', entrada.consolidaComposse);
 
-  set('naoConcorrencia', sim(entrada.naoConcorrencia));
+  condicional('naoConcorrencia', entrada.naoConcorrencia);
   set('naoConcorrenciaPrazoAnos', entrada.naoConcorrenciaPrazoAnos);
   set('naoConcorrenciaArea', entrada.naoConcorrenciaArea);
   set('naoConcorrenciaMulta', entrada.naoConcorrenciaMulta);
-  set('naoConcorrenciaAlcancaParentes', sim(entrada.naoConcorrenciaAlcancaParentes));
+  condicional('naoConcorrenciaAlcancaParentes', entrada.naoConcorrenciaAlcancaParentes);
 
-  set('opcaoCompraPrevista', sim(entrada.opcaoCompraPrevista));
+  condicional('opcaoCompraPrevista', entrada.opcaoCompraPrevista);
   set('opcaoCompraQuem', entrada.opcaoCompraQuem);
   set('opcaoCompraPreco', entrada.opcaoCompraPreco);
-  set('opcaoVendaPrevista', sim(entrada.opcaoVendaPrevista));
+  condicional('opcaoVendaPrevista', entrada.opcaoVendaPrevista);
   set('jurosValorSubscrito', entrada.jurosValorSubscrito);
 
   set('solucaoLitigios', entrada.solucaoLitigios);

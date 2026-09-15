@@ -595,6 +595,76 @@ describe('GOV-03 · as listas do Acordo', () => {
     }
   });
 
+  it('a definição dos ramos sai igual à do acordo da AgroAliança', () => {
+    /*
+     * A prova de que o campo não INVENTA nada: o texto montado tem de sair
+     * igual ao do documento real, palavra por palavra. Se sair diferente, ou o
+     * campo está errado ou o acordo não precisava dele.
+     */
+    const contexto = {
+      ...mapearAcordoQuotistas({ clienteId: 'c1', temRamos: true, quantosRamos: 2 }),
+      acordo: mapearAcordoQuotistas({ clienteId: 'c1', temRamos: true, quantosRamos: 2 }),
+      sociedade: { nomeCurto: 'ALIANÇA' },
+      ramosFamiliares: [
+        { ramo: { alinea: 'a', rotulo: 'DESCENDENTES DE CRISTINA',
+          definicao: 'formado por CRISTINA e seus descendentes em linha vertical' } },
+        { ramo: { alinea: 'b', rotulo: 'DESCENDENTES DE REGINA',
+          definicao: 'formado por REGINA e seus descendentes em linha vertical' } },
+      ],
+    };
+    const modelo = '{{#acordo.temRamos}}DESCENDENTES DAS QUOTISTAS: os '
+      + '{{ acordo.quantosRamosExtenso }} grupos de descendentes em linha vertical das '
+      + 'QUOTISTAS que compõem ou poderão compor o quadro societário da '
+      + '{{ sociedade.nomeCurto }}, assim definidos: '
+      + '{{#ramosFamiliares sep="; e "}}({{ ramo.alinea }}) {{ ramo.rotulo }}, '
+      + '{{ ramo.definicao }}{{/ramosFamiliares}}.{{/acordo.temRamos}}';
+
+    // AgroAliança, 1.1.7, literal.
+    expect(renderConteudo(modelo, contexto)).toBe(
+      'DESCENDENTES DAS QUOTISTAS: os dois grupos de descendentes em linha vertical das '
+      + 'QUOTISTAS que compõem ou poderão compor o quadro societário da ALIANÇA, assim '
+      + 'definidos: (a) DESCENDENTES DE CRISTINA, formado por CRISTINA e seus descendentes '
+      + 'em linha vertical; e (b) DESCENDENTES DE REGINA, formado por REGINA e seus '
+      + 'descendentes em linha vertical.',
+    );
+  });
+
+  it('sem ramos, a definição inteira não existe no documento', () => {
+    const modelo = '{{#acordo.temRamos}}DESCENDENTES DAS QUOTISTAS: …{{/acordo.temRamos}}';
+    const semRamos = mapearAcordoQuotistas({ clienteId: 'c1' });
+    expect(renderConteudo(modelo, { acordo: semRamos })).toBe('');
+  });
+
+  it('NENHUMA condicional do acordo derruba o render quando está desligada', () => {
+    /*
+     * A CATRACA DESTE ARQUIVO.
+     *
+     * Condicional ausente do contexto nao some calada: `renderConteudo` levanta
+     * "Seção não resolvida" e o documento inteiro deixa de sair. Foi o que
+     * aconteceu com `temRamos`, porque o `coletor` descarta string vazia e a
+     * condicional desligada e exatamente string vazia.
+     *
+     * Um acordo vazio e o pior caso de proposito: e o cliente que nao tem ramo,
+     * nem sigilo, nem opcao de compra, que sao 6 dos 7 do acervo.
+     */
+    const vazio = mapearAcordoQuotistas({ clienteId: 'c1' });
+    const condicionais = camposDaEntidade('acordoQuotistas')
+      .filter((c) => c.label.includes('(condicional)'))
+      .map((c) => c.id);
+
+    expect(condicionais.length, 'a entidade perdeu as condicionais').toBeGreaterThan(15);
+    const quebraram: string[] = [];
+    for (const campo of condicionais) {
+      const modelo = `{{#acordo.${campo}}}x{{/acordo.${campo}}}`;
+      try {
+        renderConteudo(modelo, { acordo: vazio });
+      } catch {
+        quebraram.push(campo);
+      }
+    }
+    expect(quebraram, 'condicional ausente do contexto derruba o documento inteiro').toEqual([]);
+  });
+
   it('a lista escreve as alíneas de quórum como o modelo escreve', () => {
     const contexto = {
       quorunsDoAcordo: [

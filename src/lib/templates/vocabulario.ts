@@ -1474,6 +1474,18 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         tipo: 'texto', interno: true },
       { id: 'temRamos', label: 'O acordo divide a família em ramos? (condicional)',
         tipo: 'texto', interno: true },
+      /*
+       * QUANTOS RAMOS SAO, POR EXTENSO, e a falta disto so apareceu ao montar a
+       * clausula de verdade para conferir.
+       *
+       * O AgroAlianca abre a definicao contando: "os DOIS grupos de descendentes
+       * em linha vertical das QUOTISTAS". O numero esta FORA da secao de
+       * repeticao, entao {{#ramosFamiliares}} nao o alcanca, e sem campo a frase
+       * sairia "os grupos de descendentes" ou com um numero chumbado no bloco,
+       * que mentiria no cliente com tres ramos.
+       */
+      { id: 'quantosRamos', label: 'Quantos ramos familiares', tipo: 'inteiro', interno: true },
+      cardinalCampo('quantosRamosExtenso', 'Quantos ramos (por extenso)', 'quantosRamos'),
 
       /*
        * A REUNIÃO PRÉVIA, e o que ela obriga.
