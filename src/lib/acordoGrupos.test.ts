@@ -59,13 +59,18 @@ describe('GRUPOS_DO_ACORDO', () => {
 });
 
 describe('camposQueDescem', () => {
-  it('são os cinco da apuração de haveres, que está nos oito contratos', () => {
-    // O usufruto também desce ao contrato, mas não é campo DESTE cadastro: ele
-    // vem de `onus_quotas`, preenchido no Quadro Societário.
-    expect(camposQueDescem().map((c) => c.campo)).toEqual([
-      'metodos_avaliacao', 'regra_combinacao', 'prazo_balanco_dias',
-      'horizonte_fluxo_anos', 'taxa_minima_crescimento',
-    ]);
+  it('a apuração de haveres desce ao contrato, e cabe num campo só', () => {
+    /*
+     * Eram cinco campos. Quatro deles não variam nos contratos do acervo: 60 dias
+     * em 7 de 7, 05 anos em 3 de 3, IPCA nos dois que citam índice, e "maior
+     * valor" em todos que combinam métodos. Campo que não varia é texto fixo do
+     * modelo, e a decisão está no motor desde 14/09; esta tela contrariava a
+     * própria medição. O que varia é QUAIS métodos entram.
+     *
+     * O usufruto também desce ao contrato, mas não é campo deste cadastro: ele
+     * vem de `onus_quotas`, preenchido no Quadro Societário.
+     */
+    expect(camposQueDescem().map((c) => c.campo)).toEqual(['metodos_avaliacao']);
   });
 });
 
@@ -105,9 +110,12 @@ describe('as ajudas saem do documento, e não da minha cabeça', () => {
     const ajudaDe = (campo: string) =>
       GRUPOS_DO_ACORDO.flatMap((g) => g.campos).find((c) => c.campo === campo)?.ajuda ?? '';
 
-    expect(ajudaDe('prazo_balanco_dias')).toContain('60 (sessenta) dias antes do evento');
-    expect(ajudaDe('horizonte_fluxo_anos')).toContain('05 (cinco) anos');
-    expect(ajudaDe('taxa_minima_crescimento')).toContain('IPCA');
+    // Os quatro números da apuração não são campos, porque não variam. Eles
+    // aparecem na ajuda do único campo que restou, para o consultor saber que
+    // estão no documento sem ter de digitá-los.
+    expect(ajudaDe('metodos_avaliacao')).toContain('60 (sessenta) dias');
+    expect(ajudaDe('metodos_avaliacao')).toContain('05 (cinco) anos');
+    expect(ajudaDe('metodos_avaliacao')).toContain('IPCA');
     expect(ajudaDe('nao_concorrencia_prazo_anos')).toContain('03 (três)');
     expect(ajudaDe('nao_concorrencia_multa')).toContain('R$ 1.000.000,00');
     expect(ajudaDe('juros_valor_subscrito')).toContain('1% (um por cento) ao mês');

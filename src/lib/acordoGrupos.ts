@@ -199,28 +199,35 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           + 'inteira do documento gerado; desmarcada, a cláusula não aparece. Sete das dez '
           + 'não existem em contrato social nenhum, e são o que o acordo acrescenta.' },
 
-      { campo: 'metodos_avaliacao', rotulo: 'Métodos de avaliação da quota',
+      /*
+       * A APURAÇÃO DE HAVERES TEM DOIS CAMPOS, E NÃO SEIS.
+       *
+       * A primeira versão desta tela publicava prazo do balanço, horizonte do
+       * fluxo, taxa mínima e regra de combinação, e isso contrariava uma medição
+       * que eu mesmo tinha feito em 14/09 e deixado escrita no motor
+       * (`vocabulario.ts`, entidade `acordoQuotistas`). Nos contratos do acervo
+       * nenhum dos quatro varia: 60 dias em 7 de 7 que têm a cláusula, 05 anos em
+       * 3 de 3, IPCA nos dois que citam índice, e "maior valor" em todos que
+       * combinam métodos.
+       *
+       * Campo que não varia é texto fixo do modelo, e publicá-lo convida alguém a
+       * responder uma pergunta que não existe, além de abrir a chance de digitar
+       * um número diferente do que o escritório usa.
+       *
+       * O que VARIA é se a apuração usa o fluxo de caixa descontado além do
+       * patrimônio líquido: Bela Vista, Horita e Agro Ferragens usam os dois;
+       * Perci, Mattei e Zamo usam só o patrimônio líquido. É uma escolha, e ela
+       * já cabe em `metodos_avaliacao`. Os números vão fixos dentro do bloco que
+       * a escolha acende.
+       */
+      { campo: 'metodos_avaliacao', rotulo: 'Como se apura quanto vale a quota',
         tipo: 'multi', opcoes: METODOS, desceAoContrato: true,
         secao: 'Quanto vale a quota de quem sai',
-        ajuda: 'Como se calcula quanto se paga a quem sai. No modelo são dois: o patrimônio '
-          + 'líquido apurado em balanço, e o fluxo de caixa descontado.' },
-      { campo: 'regra_combinacao', rotulo: 'Regra de combinação dos métodos',
-        tipo: 'texto', desceAoContrato: true, secao: 'Quanto vale a quota de quem sai',
-        ajuda: 'Quando há mais de um método, qual vale. No modelo: "correspondente ao MAIOR '
-          + 'VALOR apurado através das seguintes metodologias".' },
-      { campo: 'prazo_balanco_dias', rotulo: 'Prazo máximo do balanço, em dias',
-        tipo: 'numero', desceAoContrato: true, secao: 'Quanto vale a quota de quem sai',
-        ajuda: 'Quão velho o balanço pode ser. No modelo: "o valor do patrimônio líquido '
-          + 'apurado em balanço, levantado, no máximo, 60 (sessenta) dias antes do evento". '
-          + 'Responda 60 se o cliente segue o padrão.' },
-      { campo: 'horizonte_fluxo_anos', rotulo: 'Horizonte do fluxo de caixa, em anos',
-        tipo: 'numero', desceAoContrato: true, secao: 'Quanto vale a quota de quem sai',
-        ajuda: 'Por quantos anos o fluxo é projetado. No modelo: "fluxo de caixa projetado '
-          + 'para um período de 05 (cinco) anos". Responda 5 se o cliente segue o padrão.' },
-      { campo: 'taxa_minima_crescimento', rotulo: 'Taxa mínima de crescimento',
-        tipo: 'texto', desceAoContrato: true, secao: 'Quanto vale a quota de quem sai',
-        ajuda: 'O piso de crescimento usado na projeção. No modelo: "a taxa de crescimento '
-          + 'da perpetuidade será o índice projetado pelo IPCA". Responda IPCA se for o padrão.' },
+        ajuda: 'Marque os métodos que este acordo usa. Os números de cada um são fixos no '
+          + 'modelo e não se digitam: balanço de no máximo 60 (sessenta) dias, fluxo '
+          + 'projetado para 05 (cinco) anos, crescimento pelo IPCA, e prevalece o maior '
+          + 'valor quando há mais de um. Medido nos contratos do acervo, nenhum desses '
+          + 'quatro varia; o que varia é quais métodos entram.' },
       { campo: 'consolida_composse', rotulo: 'Consolida composse na avaliação',
         tipo: 'booleano', secao: 'Quanto vale a quota de quem sai',
         ajuda: 'Se o que o sócio explora junto com a sociedade entra na conta dos haveres. '
