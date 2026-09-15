@@ -115,6 +115,8 @@ export interface LinhaFaturamentoOs {
   valor_reembolso_km: number;
   valor_reembolso_refeicao: number;
   // 04 — empresa / faturamento e distribuição de receita
+  /** O cluster da OS. Guardado porque o filtro de empresa casa por id, não por nome. */
+  cluster_id: string | null;
   empresa_faturamento: string | null;
   rateio: FatiaRateioOs[];
 }
@@ -261,6 +263,7 @@ export function montarLinhasFaturamentoOs(input: {
       }),
       valor_reembolso_km: o.valor_reembolso_km ?? 0,
       valor_reembolso_refeicao: o.valor_reembolso_refeicao ?? 0,
+      cluster_id: o.cluster_id,
       empresa_faturamento: cluster ? getEmpresaLabel(cluster) : null,
       rateio: rateios.get(o.id) ?? [],
     });
@@ -270,35 +273,85 @@ export function montarLinhasFaturamentoOs(input: {
 }
 
 /**
- * O filtro da busca: número da OS, cliente, contribuinte ou documento.
- *
- * Quatro campos e não um, porque quem procura chega por qualquer um deles — o
- * financeiro tem o CNPJ da nota na mão, a coordenação tem o nome do cliente. O
- * documento compara só os dígitos, senão "26825052" não acha "26.825.052/8395-06".
+ * O que a barra de filtros escolheu. Vazio (`null`) é "todos".
  */
-export function filtrarLinhas(linhas: LinhaFaturamentoOs[], busca: string): LinhaFaturamentoOs[] {
-  const termo = busca.trim().toLowerCase();
-  if (!termo) return linhas;
-  const digitos = termo.replace(/\D/g, '');
+export interface FiltrosDeFaturamento {
+  clienteId: string | null;
+  clusterId: string | null;
+  osId: string | null;
+}
+
+export const SEM_FILTRO: FiltrosDeFaturamento = { clienteId: null, clusterId: null, osId: null };
+
+/** Quantos filtros estão aplicados. É o número que o botão de limpar carrega. */
+export function quantidadeDeFiltros(filtros: FiltrosDeFaturamento): number {
+  return [filtros.clienteId, filtros.clusterId, filtros.osId].filter(Boolean).length;
+}
+
+/**
+ * As linhas que sobram depois dos filtros.
+ *
+ * Os três se acumulam (E, não OU): escolher cliente e empresa mostra as OS que
+ * são das duas coisas. Empresa `null` na linha (OS sem cluster) só aparece
+ * quando o filtro de empresa está vazio — filtrar por uma empresa e receber de
+ * volta a OS que não tem empresa nenhuma seria mentira.
+ */
+export function filtrarLinhas(
+  linhas: LinhaFaturamentoOs[],
+  filtros: FiltrosDeFaturamento,
+): LinhaFaturamentoOs[] {
   return linhas.filter((l) => {
-    const texto = [l.numero_os, l.cliente_nome, l.contribuinte_nome, l.empresa_faturamento]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
-    if (texto.includes(termo)) return true;
-    return digitos.length > 0 && (l.cpf_cnpj ?? '').replace(/\D/g, '').includes(digitos);
+    if (filtros.clienteId && l.cliente_id !== filtros.clienteId) return false;
+    if (filtros.clusterId && l.cluster_id !== filtros.clusterId) return false;
+    if (filtros.osId && l.os_id !== filtros.osId) return false;
+    return true;
   });
 }
 
-/** Os totais do rodapé: as quatro colunas de dinheiro da visão filtrada. */
-export function totaisFaturamento(linhas: LinhaFaturamentoOs[]) {
-  return linhas.reduce(
-    (acc, l) => ({
-      valor_projeto: acc.valor_projeto + l.valor_projeto,
-      valor_entrada: acc.valor_entrada + l.valor_entrada,
-      valor_reembolso_km: acc.valor_reembolso_km + l.valor_reembolso_km,
-      valor_reembolso_refeicao: acc.valor_reembolso_refeicao + l.valor_reembolso_refeicao,
-    }),
-    { valor_projeto: 0, valor_entrada: 0, valor_reembolso_km: 0, valor_reembolso_refeicao: 0 },
-  );
+/** Os clientes QUE TÊM OS, para o campo de cliente. Sem repetir, em ordem alfabética. */
+export function opcoesDeCliente(
+  linhas: LinhaFaturamentoOs[],
+): Array<{ id: string; nome: string }> {
+  const porId = new Map<string, string>();
+  for (const l of linhas) porId.set(l.cliente_id, l.cliente_nome);
+  return [...porId]
+    .map(([id, nome]) => ({ id, nome }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+
+/**
+ * As empresas que faturam, para o campo de empresa.
+ *
+ * Sai das OS e não do cadastro de clusters de propósito: cluster que nunca
+ * faturou nada vira opção que devolve lista vazia, e opção assim faz quem filtra
+ * duvidar do filtro em vez de duvidar do dado.
+ */
+export function opcoesDeEmpresa(
+  linhas: LinhaFaturamentoOs[],
+): Array<{ id: string; nome: string }> {
+  const porId = new Map<string, string>();
+  for (const l of linhas) {
+    if (l.cluster_id && l.empresa_faturamento) porId.set(l.cluster_id, l.empresa_faturamento);
+  }
+  return [...porId]
+    .map(([id, nome]) => ({ id, nome }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+
+/**
+ * As OS para o campo de OS, na ordem em que a lista as mostra.
+ *
+ * Cada opção carrega o cliente como texto secundário, e o documento do
+ * contribuinte como palavra de busca: quem tem a nota na mão procura pelo CNPJ,
+ * não pelo número da OS.
+ */
+export function opcoesDeOs(
+  linhas: LinhaFaturamentoOs[],
+): Array<{ id: string; numero: string; cliente: string; documento: string | null }> {
+  return linhas.map((l) => ({
+    id: l.os_id,
+    numero: l.numero_os || 'sem número',
+    cliente: l.cliente_nome,
+    documento: l.cpf_cnpj,
+  }));
 }

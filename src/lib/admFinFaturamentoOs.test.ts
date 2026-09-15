@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
+  SEM_FILTRO,
   cidadeUf,
   enderecoDeCobranca,
   filtrarLinhas,
   montarLinhasFaturamentoOs,
+  opcoesDeCliente,
+  opcoesDeEmpresa,
+  opcoesDeOs,
   ordenarPorEntrada,
+  quantidadeDeFiltros,
   situacaoLabel,
-  totaisFaturamento,
   type LinhaFaturamentoOs,
   type RawOsFaturamento,
 } from './admFinFaturamentoOs';
@@ -166,39 +170,80 @@ describe('ordenarPorEntrada', () => {
 });
 
 describe('filtrarLinhas', () => {
-  const linhas = montar([
-    os({ id: 'os-1', numero_os: '092/2026', contribuinte_id: 'con-1', cluster_id: 'clu-1' }),
-    os({ id: 'os-2', numero_os: 'OS-TESTE-B' }),
-  ]);
+  const OUTRO_CLIENTE = [...CLIENTES, { id: 'cli-2', nome: '[TESTE] Bravo' }];
+  const linhas = montar(
+    [
+      os({ id: 'os-1', numero_os: '092/2026', contribuinte_id: 'con-1', cluster_id: 'clu-1' }),
+      os({ id: 'os-2', numero_os: 'OS-TESTE-B' }),
+      os({ id: 'os-3', numero_os: '077/2026', id_cliente: 'cli-2', cluster_id: 'clu-1' }),
+    ],
+    { clientes: OUTRO_CLIENTE },
+  );
 
-  it('acha pelo número da OS, pelo cliente e pela empresa que fatura', () => {
-    expect(filtrarLinhas(linhas, '092').map((l) => l.os_id)).toEqual(['os-1']);
-    expect(filtrarLinhas(linhas, 'aurora')).toHaveLength(2);
-    expect(filtrarLinhas(linhas, 'ouro verde').map((l) => l.os_id)).toEqual(['os-1']);
+  it('sem filtro nenhum, devolve tudo', () => {
+    expect(filtrarLinhas(linhas, SEM_FILTRO)).toHaveLength(3);
   });
 
-  it('acha pelo documento com ou sem pontuação', () => {
-    expect(filtrarLinhas(linhas, '26825052').map((l) => l.os_id)).toEqual(['os-1']);
-    expect(filtrarLinhas(linhas, '26.825.052').map((l) => l.os_id)).toEqual(['os-1']);
+  it('recorta por cliente, por empresa e por OS', () => {
+    expect(filtrarLinhas(linhas, { ...SEM_FILTRO, clienteId: 'cli-2' }).map((l) => l.os_id))
+      .toEqual(['os-3']);
+    expect(filtrarLinhas(linhas, { ...SEM_FILTRO, clusterId: 'clu-1' }).map((l) => l.os_id).sort())
+      .toEqual(['os-1', 'os-3']);
+    expect(filtrarLinhas(linhas, { ...SEM_FILTRO, osId: 'os-2' }).map((l) => l.numero_os))
+      .toEqual(['OS-TESTE-B']);
   });
 
-  it('busca vazia devolve tudo', () => {
-    expect(filtrarLinhas(linhas, '   ')).toHaveLength(2);
+  it('os filtros se somam, não se substituem', () => {
+    expect(filtrarLinhas(linhas, { ...SEM_FILTRO, clienteId: 'cli-1', clusterId: 'clu-1' }).map((l) => l.os_id))
+      .toEqual(['os-1']);
+  });
+
+  it('OS sem empresa não aparece quando se filtra por uma empresa', () => {
+    const semEmpresa = filtrarLinhas(linhas, { ...SEM_FILTRO, clusterId: 'clu-1' });
+    expect(semEmpresa.map((l) => l.os_id)).not.toContain('os-2');
+  });
+
+  it('conta os filtros ativos para o botão de limpar', () => {
+    expect(quantidadeDeFiltros(SEM_FILTRO)).toBe(0);
+    expect(quantidadeDeFiltros({ clienteId: 'cli-1', clusterId: 'clu-1', osId: null })).toBe(2);
   });
 });
 
-describe('totaisFaturamento', () => {
-  it('soma as quatro colunas de dinheiro', () => {
-    const linhas = montar([
-      os({ id: 'os-1', valor_projeto: 1000, valor_entrada: 100, valor_reembolso_km: 2, valor_reembolso_refeicao: 30 }),
-      os({ id: 'os-2', valor_projeto: 500 }),
+describe('opções dos filtros', () => {
+  const OUTRO_CLIENTE = [...CLIENTES, { id: 'cli-2', nome: '[TESTE] Alfa' }];
+  const linhas = montar(
+    [
+      os({ id: 'os-1', numero_os: '092/2026', contribuinte_id: 'con-1', cluster_id: 'clu-1' }),
+      os({ id: 'os-2', numero_os: '091/2026', cluster_id: 'clu-1' }),
+      os({ id: 'os-3', numero_os: '077/2026', id_cliente: 'cli-2' }),
+    ],
+    { clientes: OUTRO_CLIENTE },
+  );
+
+  it('cliente: um por cliente com OS, em ordem alfabética', () => {
+    expect(opcoesDeCliente(linhas).map((c) => c.nome)).toEqual(['[TESTE] Alfa', '[TESTE] Aurora']);
+  });
+
+  it('empresa: só as que aparecem em alguma OS, sem repetir', () => {
+    expect(opcoesDeEmpresa(linhas)).toEqual([
+      { id: 'clu-1', nome: 'Ouro Verde Transportes Ltda' },
     ]);
-    expect(totaisFaturamento(linhas)).toEqual({
-      valor_projeto: 1500,
-      valor_entrada: 100,
-      valor_reembolso_km: 2,
-      valor_reembolso_refeicao: 30,
+  });
+
+  it('OS: na ordem da lista, com cliente e documento para a busca', () => {
+    const opcoes = opcoesDeOs(linhas);
+    expect(opcoes.map((o) => o.id)).toEqual(linhas.map((l) => l.os_id));
+    expect(opcoes[0]).toEqual({
+      id: 'os-1',
+      numero: '092/2026',
+      cliente: '[TESTE] Aurora',
+      documento: '26.825.052/8395-06',
     });
+  });
+
+  it('OS sem número não vira opção em branco', () => {
+    const [semNumero] = opcoesDeOs(montar([os({ id: 'os-x' })]));
+    expect(semNumero.numero).toBe('sem número');
   });
 });
 
