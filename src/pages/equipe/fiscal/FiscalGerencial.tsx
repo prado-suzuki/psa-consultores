@@ -16,7 +16,7 @@ import { DashboardEmbedView } from '@/components/dashboards/DashboardEmbedView';
  * dado de fora do cluster e desmente o subtítulo.
  */
 const FiscalGerencial = () => (
-  <FiscalLayout title="Gerencial" subtitle="Clientes e OS do seu cluster">
+  <FiscalLayout title="Gerencial" subtitle="Acompanhe clientes e ordens de serviço do seu cluster.">
     <DashboardEmbedView
       targetPage="tax_gerencial"
       loadingOverlay

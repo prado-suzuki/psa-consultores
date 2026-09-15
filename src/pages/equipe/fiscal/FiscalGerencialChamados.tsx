@@ -21,7 +21,7 @@ const FiscalGerencialChamados = () => {
   useTelaDeTrabalhoLargo();
 
   return (
-    <FiscalLayout title="Gestão de Chamados" subtitle="Chamados dos clientes da sua carteira">
+    <FiscalLayout title="Gestão de Chamados" subtitle="Consulte e gerencie os chamados dos clientes da sua carteira.">
       <ChamadosGestaoContent basePath="/equipe/tax/gerencial/chamados" escopo="tax" />
     </FiscalLayout>
   );

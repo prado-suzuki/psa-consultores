@@ -124,7 +124,6 @@ const IcmsSaidas = lazy(() => import("./pages/equipe/dev/IcmsSaidas"));
 // Equipe > Fiscal / Tax
 const FiscalBoasVindas = lazy(() => import("./pages/equipe/fiscal/FiscalBoasVindas"));
 const FiscalDashboard = lazy(() => import("./pages/equipe/fiscal/FiscalDashboard"));
-const FiscalDemandasTarefas = lazy(() => import("./pages/equipe/fiscal/FiscalDemandasTarefas"));
 const FiscalFeed = lazy(() => import("./pages/equipe/fiscal/FiscalFeed"));
 const FiscalProjetosCadastro = lazy(() => import("./pages/equipe/fiscal/FiscalProjetosCadastro"));
 const FiscalProjetosLote = lazy(() => import("./pages/equipe/fiscal/FiscalProjetosLote"));
@@ -325,7 +324,15 @@ const App = () => (
               <Route path="/equipe/tax/projetos/clientes" element={<PageAccessGate pagePath="/equipe/tax/projetos/clientes"><FiscalCadastrosClientes /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/tax/projetos/cadastro"><FiscalProjetosCadastro /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/cadastro-lote" element={<PageAccessGate pagePath="/equipe/tax/projetos/cadastro-lote"><FiscalProjetosLote /></PageAccessGate>} />
-              <Route path="/equipe/tax/projetos/tarefas" element={<PageAccessGate pagePath="/equipe/tax/projetos/tarefas"><FiscalDemandasTarefas /></PageAccessGate>} />
+              {/* Mesma tela de `/projetos/cadastro`, servida por duas rotas. Até
+                  14/09/2026 havia DOIS arquivos com o corpo idêntico — o `diff`
+                  devolvia só o nome da const. Vieram do redesign de 23/07, quando
+                  projeto e tarefa viraram uma hierarquia só e o `PainelTarefas`
+                  passou a dar conta das duas; ninguém removeu a página antiga.
+                  As duas rotas ficam: esta é o destino do sino de notificações,
+                  das pendências, do feed e da criação em lote. O `pagePath` de
+                  cada uma segue o seu, então nenhuma permissão muda. */}
+              <Route path="/equipe/tax/projetos/tarefas" element={<PageAccessGate pagePath="/equipe/tax/projetos/tarefas"><FiscalProjetosCadastro /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/feed" element={<PageAccessGate pagePath="/equipe/tax/projetos/feed"><FiscalFeed /></PageAccessGate>} />
 
               {/* Tax Gerencial — restrita a líder+ (dashboard nativo de Clientes e OS) */}
