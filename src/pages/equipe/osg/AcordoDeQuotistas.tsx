@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { rowActivateProps } from '@/hooks/rowActivateProps';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useAcordoDoCliente, useAcordoMutations } from '@/hooks/useDomainAcordoQuotistas';
-import { useGravamesDeUsufruto } from '@/hooks/useDomainAcordoQuotistas';
 import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
 import {
   GRUPOS_DO_ACORDO, preenchidosNoGrupo, type GrupoDoAcordo,
@@ -48,7 +47,6 @@ const AcordoDeQuotistas = () => {
   const { clienteId } = useOsgWork();
   const { data, isLoading } = useAcordoDoCliente(clienteId);
   const { data: pessoas = [] } = usePessoasByCliente(clienteId ?? null);
-  const { data: gravamesDeUsufruto = 0 } = useGravamesDeUsufruto(clienteId);
   const {
     criarAcordo, salvarAcordo, salvarListas, salvarVinculos,
   } = useAcordoMutations(clienteId);
@@ -235,7 +233,6 @@ const AcordoDeQuotistas = () => {
           grupo={grupoAberto}
           valores={valores}
           pessoas={pessoas}
-          gravamesDeUsufruto={gravamesDeUsufruto}
           onSalvar={salvarGrupo}
           salvando={salvando}
         />

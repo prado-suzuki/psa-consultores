@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ExternalLink, Plus, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Plus, X } from 'lucide-react';
 
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
@@ -46,8 +45,6 @@ interface Props {
   valores: ValoresDoAcordo;
   /** As pessoas já cadastradas do cliente. A tela busca, o modal só desenha. */
   pessoas: PessoaParaEscolher[];
-  /** Quantas participações do cliente têm usufruto gravado, de `onus_quotas`. */
-  gravamesDeUsufruto: number;
   onSalvar: (valores: ValoresDoAcordo) => Promise<unknown>;
   salvando: boolean;
 }
@@ -80,7 +77,7 @@ function comoOpcao(p: PessoaParaEscolher): ComboOption {
  * escolhe o tipo e a base.
  */
 export function AcordoGrupoModal({
-  open, onOpenChange, grupo, valores, pessoas, gravamesDeUsufruto, onSalvar, salvando,
+  open, onOpenChange, grupo, valores, pessoas, onSalvar, salvando,
 }: Props) {
   const [form, setForm] = useState<ValoresDoAcordo>(valores);
 
@@ -283,27 +280,6 @@ export function AcordoGrupoModal({
                 )
               )}
 
-              {/*
-                O USUFRUTO NÃO SE CADASTRA AQUI, ele se LÊ. O gravame nasce junto do
-                ato que o criou, na doação com reserva, e vive em `onus_quotas` desde
-                10/09. Duplicar a marcação aqui faria o acordo dizer um dono do voto e
-                o contrato dizer outro. A tela mostra o que há e manda cadastrar onde
-                se cadastra, como a Matriz faz com os órgãos.
-              */}
-              {c.campo === 'usufruto' && (
-                <div className="space-y-2 rounded-md border border-osg-200 bg-osg-50/50 px-3 py-2.5">
-                  <p className="text-xs text-muted-foreground">
-                    {gravamesDeUsufruto === 0
-                      ? 'Nenhuma quota deste cliente está gravada com usufruto hoje.'
-                      : `${gravamesDeUsufruto} gravame(s) de usufruto neste cliente. O acordo escreve quem vota a partir deles.`}
-                  </p>
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" asChild>
-                    <Link to="/equipe/osg/work/quadro-societario">
-                      <ExternalLink className="h-3 w-3" /> Abrir o Quadro Societário
-                    </Link>
-                  </Button>
-                </div>
-              )}
             </div>
                 ))}
               </div>

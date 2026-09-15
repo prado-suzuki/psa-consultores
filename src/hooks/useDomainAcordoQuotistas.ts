@@ -139,32 +139,6 @@ export function useAcordoDoCliente(clienteId?: string | null) {
   });
 }
 
-/**
- * Quantos gravames de usufruto o cliente tem hoje.
- *
- * Lê `onus_quotas`, que é onde o usufruto mora desde 10/09, e NÃO uma coluna do
- * acordo. O gravame nasce junto do ato que o criou, na doação com reserva, e
- * atravessa toda consolidação seguinte do contrato; duplicar a marcação no
- * acordo faria um documento dizer um dono do voto e o outro dizer outro.
- *
- * O acordo só precisa saber que existem, para escrever a cláusula de quem vota.
- */
-export function useGravamesDeUsufruto(clienteId?: string | null) {
-  return useQuery<number>({
-    queryKey: ['acordo-gravames-usufruto', clienteId ?? null],
-    enabled: !!clienteId,
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('onus_quotas')
-        .select('id', { count: 'exact', head: true })
-        .eq('cliente_id', clienteId as string)
-        .is('extinto_em', null);
-      if (error) throw error;
-      return count ?? 0;
-    },
-  });
-}
-
 // ─── Escrita ──────────────────────────────────────────────────────────────────
 
 export function useAcordoMutations(clienteId?: string | null) {

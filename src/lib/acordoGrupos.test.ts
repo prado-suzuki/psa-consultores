@@ -8,11 +8,20 @@ import {
 } from '@/lib/acordoGrupos';
 
 describe('GRUPOS_DO_ACORDO', () => {
-  it('são os oito da validação de 11/09, com os nomes das cláusulas', () => {
+  it('são os sete que restaram da validação de 11/09, com os nomes das cláusulas', () => {
+    // Eram oito. O de usufruto saiu: ele não pedia nada ao analista, e o Quadro
+    // Societário já tem o card que lê os ônus e monta a tabela de quem vota.
     expect(GRUPOS_DO_ACORDO.map((g) => g.chave)).toEqual([
       'alcance', 'quorum', 'reuniao_previa', 'saida',
-      'opcoes', 'usufruto', 'conflitos', 'representacao',
+      'opcoes', 'conflitos', 'representacao',
     ]);
+  });
+
+  it('nenhum grupo pede usufruto, porque ele se cadastra no Quadro', () => {
+    // Tranca a correção: cadastrar aqui faria o acordo dizer um dono do voto e o
+    // contrato dizer outro. O motor lê `onus_quotas` na hora de gerar.
+    const campos = GRUPOS_DO_ACORDO.flatMap((g) => g.campos.map((c) => c.campo));
+    expect(campos).not.toContain('usufruto');
   });
 
   it('nenhum campo aparece em dois grupos', () => {
@@ -48,12 +57,12 @@ describe('GRUPOS_DO_ACORDO', () => {
 });
 
 describe('camposQueDescem', () => {
-  it('são os sete que também viram cláusula no contrato social', () => {
-    // Cinco de apuração de haveres, que está nos oito contratos do acervo, mais o
-    // usufruto, que no cadastro é um controle só sobre o quadro societário.
+  it('são os cinco da apuração de haveres, que está nos oito contratos', () => {
+    // O usufruto também desce ao contrato, mas não é campo DESTE cadastro: ele
+    // vem de `onus_quotas`, preenchido no Quadro Societário.
     expect(camposQueDescem().map((c) => c.campo)).toEqual([
       'metodos_avaliacao', 'regra_combinacao', 'prazo_balanco_dias',
-      'horizonte_fluxo_anos', 'taxa_minima_crescimento', 'usufruto',
+      'horizonte_fluxo_anos', 'taxa_minima_crescimento',
     ]);
   });
 });

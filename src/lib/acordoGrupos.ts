@@ -79,7 +79,7 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
   {
     chave: 'alcance',
     titulo: 'Alcance do acordo',
-    resumo: 'Quais empresas do grupo o acordo abrange, e como a família se divide em ramos',
+    resumo: 'Sobre quais empresas o acordo vale, e como a família se divide em ramos',
     campos: [
       {
         campo: 'sociedades',
@@ -118,7 +118,7 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
   {
     chave: 'reuniao_previa',
     titulo: 'Reunião prévia e voto em bloco',
-    resumo: 'Se os sócios combinam antes como vão votar depois',
+    resumo: 'Se os sócios se reúnem antes para fechar o voto, e com que quórum',
     campos: [
       {
         campo: 'reuniao_previa_obrigatoria',
@@ -238,22 +238,22 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           + 'ÍNDICE DE ATUALIZAÇÃO".' },
     ],
   },
-  {
-    chave: 'usufruto',
-    titulo: 'Usufruto e voto',
-    resumo: 'Quotas em que o dono e quem vota são pessoas diferentes',
-    campos: [
-      {
-        campo: 'usufruto',
-        rotulo: 'Quotas gravadas com usufruto',
-        tipo: 'especial',
-        desceAoContrato: true,
-        ajuda:
-          'Marca quota a quota no quadro societário. Quem detém a quota não é '
-          + 'necessariamente quem vota, e qualquer conta de quórum que ignore isso erra.',
-      },
-    ],
-  },
+  /*
+   * NÃO EXISTE GRUPO DE USUFRUTO AQUI, e a ausência custou duas correções.
+   *
+   * Primeiro eu criei duas colunas em `quadro_societario` para marcá-lo, e elas
+   * duplicavam `onus_quotas`, que existe desde 10/09 e guarda melhor: vários
+   * usufrutuários, a quantidade de quotas gravadas e a data de extinção.
+   *
+   * Depois transformei o grupo num ponteiro para o Quadro Societário. Também
+   * sobra: a tela do Quadro já tem o card `UsufrutoEVoto`, que lê os ônus e monta
+   * a tabela de quem vota sobre o saldo de hoje, que é o mesmo objeto que a
+   * consolidação reimprime. O bloco no Acordo não pedia nada ao analista e não
+   * mostrava nada que o Quadro não mostrasse melhor.
+   *
+   * O usufruto continua indo para o acordo gerado: o motor lê `onus_quotas` na
+   * hora de escrever a cláusula de quem vota. Cadastro é no Quadro, uso é aqui.
+   */
   {
     chave: 'conflitos',
     titulo: 'Solução de conflitos',
@@ -278,7 +278,7 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
   {
     chave: 'representacao',
     titulo: 'Garantias e representação',
-    resumo: 'Quem assina e fala em nome dos quotistas perante a sociedade',
+    resumo: 'Quem os quotistas elegem para falar por eles perante a sociedade',
     campos: [
       {
         campo: 'representante_pessoa_id',
