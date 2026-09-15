@@ -151,7 +151,7 @@ export function ControleDeProjetosTabela({
     return (
       <div className="rounded-lg border border-dashed py-12 text-center">
         <p className="text-sm text-muted-foreground">
-          Nenhuma ordem de serviço da OSG com esses filtros.
+          Nenhum produto contratado da OSG com esses filtros.
         </p>
       </div>
     );
@@ -173,20 +173,21 @@ export function ControleDeProjetosTabela({
       <Table>
         <TableHeader>
           <TableRow>
-            {coluna('cliente', 'Cliente', '16%')}
-            {coluna('os', 'OS', '8%', 'whitespace-nowrap')}
-            {coluna('regiao', 'Região', '7%')}
-            {coluna('situacao', 'Situação', '10%')}
-            {coluna('inicio', 'Início', '9%', 'whitespace-nowrap')}
-            {coluna('prazo', 'Prazo', '9%', 'whitespace-nowrap')}
-            {coluna('produtos', 'Produtos', '14%')}
-            {coluna('responsaveis', 'Responsáveis', '12%')}
-            {coluna('observacao', 'Observação', '15%')}
+            {coluna('cliente', 'Cliente', '14%')}
+            {coluna('os', 'OS', '7%', 'whitespace-nowrap')}
+            {coluna('area', 'Área', '6%')}
+            {coluna('produto', 'Produto', '14%')}
+            {coluna('situacao', 'Situação', '9%')}
+            {coluna('responsaveis', 'Responsável', '12%')}
+            {coluna('regiao', 'Região', '6%')}
+            {coluna('inicio', 'Início', '8%', 'whitespace-nowrap')}
+            {coluna('prazo', 'Prazo', '8%', 'whitespace-nowrap')}
+            {coluna('observacao', 'Observação', '13%')}
           </TableRow>
         </TableHeader>
         <TableBody>
           {linhas.map((linha) => (
-            <TableRow key={linha.osId}>
+            <TableRow key={linha.chave} className={cn(!linha.daArea && 'text-muted-foreground')}>
               <TableCell className="whitespace-normal break-words font-medium">
                 {linha.clienteNome}
                 {!linha.clienteAtivo && (
@@ -194,6 +195,34 @@ export function ControleDeProjetosTabela({
                 )}
               </TableCell>
               <TableCell className="whitespace-nowrap text-sm">{linha.numeroOs || '—'}</TableCell>
+              <TableCell>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'whitespace-nowrap font-normal',
+                    // A área de fora não ganha cor: tingir as duas faria a linha
+                    // da TAX competir com a situação, que é o estado do trabalho.
+                    linha.daArea && 'border-primary/20 bg-primary/5 text-primary',
+                  )}
+                >
+                  {linha.area}
+                </Badge>
+              </TableCell>
+              <TableCell className="whitespace-normal break-words text-sm">
+                {linha.produtoNome}
+              </TableCell>
+              <TableCell>
+                <Situacao situacao={linha.situacao} />
+              </TableCell>
+              <TableCell className="whitespace-normal break-words text-sm">
+                {linha.responsaveis.length > 0 ? (
+                  linha.responsaveis.join(', ')
+                ) : (
+                  // Produto contratado sem projeto criado. É a distância entre o
+                  // que foi vendido e o que alguém está tocando.
+                  <span className="text-muted-foreground">Sem projeto</span>
+                )}
+              </TableCell>
               <TableCell className="text-sm">
                 {linha.regiao ? (
                   <Tooltip>
@@ -206,28 +235,9 @@ export function ControleDeProjetosTabela({
                   <span className="text-muted-foreground">—</span>
                 )}
               </TableCell>
-              <TableCell>
-                <Situacao situacao={linha.situacao} />
-              </TableCell>
               <TableCell className="whitespace-nowrap text-sm">{data(linha.dataInicio)}</TableCell>
               <TableCell className="text-sm">
                 <Prazo linha={linha} />
-              </TableCell>
-              <TableCell className="whitespace-normal break-words text-sm">
-                {linha.produtos.length > 0 ? (
-                  linha.produtos.join(', ')
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
-              </TableCell>
-              <TableCell className="whitespace-normal break-words text-sm">
-                {linha.responsaveis.length > 0 ? (
-                  linha.responsaveis.join(', ')
-                ) : (
-                  // OS sem projeto criado. É informação, e não falha: em
-                  // produção, 61 dos 84 clientes da OSG com OS estão assim.
-                  <span className="text-muted-foreground">Sem projeto</span>
-                )}
               </TableCell>
               <TableCell className="whitespace-normal break-words text-sm">
                 <Observacao texto={linha.observacoes} />

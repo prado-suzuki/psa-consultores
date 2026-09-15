@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   FILTROS_VAZIOS,
+  ORDEM_PADRAO,
   filtrarControle,
   montarControleDeProjetos,
-  ORDEM_PADRAO,
   opcoesDoControle,
   ordenarControle,
   prazoVencido,
@@ -21,6 +21,11 @@ const OSG = 'cluster-osg';
 const TAX = 'cluster-tax';
 const HOJE = '2026-09-15';
 
+const nomeDoCluster = new Map<string, string>([
+  [OSG, 'OSG'],
+  [TAX, 'TAX'],
+]);
+
 const produtoPorId = new Map<string, ProdutoSegmento>([
   ['p-gov', { id: 'p-gov', nome: 'Governança', cluster_id: OSG }],
   ['p-suc', { id: 'p-suc', nome: 'Planejamento Sucessório', cluster_id: OSG }],
@@ -35,6 +40,7 @@ const clientePorId = new Map<string, ClienteCru>([
 const pessoaPorId = new Map<string, PessoaCrua>([
   ['u-1', { id: 'u-1', first_name: 'Fernando', last_name: 'Prado' }],
   ['u-2', { id: 'u-2', first_name: 'Elvis', last_name: 'Souza' }],
+  ['u-3', { id: 'u-3', first_name: 'Monica', last_name: 'Matunaga' }],
 ]);
 
 function ordem(over: Partial<OrdemCrua> = {}): OrdemCrua {
@@ -57,6 +63,7 @@ function projeto(over: Partial<ProjetoDaOrdem> = {}): ProjetoDaOrdem {
     name: 'Governança',
     status: 'active',
     ordem_servico_id: 'os-1',
+    produto_segmento_id: 'p-gov',
     responsible_id: 'u-2',
     leader_id: 'u-1',
     ...over,
@@ -67,83 +74,137 @@ function montar(
   ordens: OrdemCrua[],
   contratados: Array<{ ordem_servico_id: string; produto_segmento_id: string }>,
   projetos: ProjetoDaOrdem[] = [],
+  produtos = produtoPorId,
 ) {
   return montarControleDeProjetos(
     ordens,
     contratados,
-    produtoPorId,
+    produtos,
     projetos,
     clientePorId,
     pessoaPorId,
+    nomeDoCluster,
     OSG,
     HOJE,
   );
 }
 
 describe('montarControleDeProjetos', () => {
-  it('traz a OS que contrata produto da área', () => {
-    const linhas = montar([ordem()], [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }]);
-    expect(linhas).toHaveLength(1);
-    expect(linhas[0].clienteNome).toBe('Di Domenico');
-    expect(linhas[0].produtos).toEqual(['Governança']);
+  it('faz uma linha por produto contratado', () => {
+    const linhas = montar(
+      [ordem()],
+      [
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-suc' },
+      ],
+    );
+    expect(linhas.map((l) => l.produtoNome)).toEqual(['Governança', 'Planejamento Sucessório']);
+    expect(linhas.every((l) => l.osId === 'os-1')).toBe(true);
   });
 
-  it('deixa de fora a OS que só contrata produto de outra área', () => {
+  it('MOSTRA o produto de outra área, marcado com a área dele', () => {
+    // É o caso Família Lunardi: três produtos OSG e cinco TAX na mesma OS. No
+    // grão da OS os cinco desapareciam dentro de uma célula.
+    const linhas = montar(
+      [ordem()],
+      [
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-trib' },
+      ],
+    );
+    const tributario = linhas.find((l) => l.produtoNome === 'Planejamento Tributário');
+    expect(tributario?.area).toBe('TAX');
+    expect(tributario?.daArea).toBe(false);
+    expect(linhas.find((l) => l.produtoNome === 'Governança')?.daArea).toBe(true);
+  });
+
+  it('deixa de fora a OS que não contrata nenhum produto da área', () => {
     const linhas = montar([ordem()], [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-trib' }]);
     expect(linhas).toEqual([]);
   });
 
-  it('mostra só os produtos da área numa OS mista', () => {
+  it('dá a cada produto o responsável do projeto DAQUELE produto', () => {
+    // Sem casar por produto, o executor da TAX apareceria na linha da OSG.
     const linhas = montar(
       [ordem()],
       [
-        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-trib' },
-        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-suc' },
         { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-trib' },
+      ],
+      [
+        projeto({ id: 'proj-1', produto_segmento_id: 'p-gov' }),
+        projeto({
+          id: 'proj-2',
+          produto_segmento_id: 'p-trib',
+          leader_id: null,
+          responsible_id: 'u-3',
+        }),
       ],
     );
-    expect(linhas[0].produtos).toEqual(['Governança', 'Planejamento Sucessório']);
+    expect(linhas.find((l) => l.produtoNome === 'Governança')?.responsaveis).toEqual([
+      'Elvis Souza',
+      'Fernando Prado',
+    ]);
+    expect(linhas.find((l) => l.produtoNome === 'Planejamento Tributário')?.responsaveis).toEqual([
+      'Monica Matunaga',
+    ]);
   });
 
-  it('mantém a OS cujo produto da área está sem nome', () => {
-    // O recorte é pela chave do mapa e não pelo tamanho da lista: produto sem
-    // `nome` deixaria a lista vazia e a OS sumiria da tela.
-    const semNome = new Map(produtoPorId);
-    semNome.set('p-gov', { id: 'p-gov', nome: null, cluster_id: OSG });
-    const linhas = montarControleDeProjetos(
-      [ordem()],
-      [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
-      semNome,
-      [],
-      clientePorId,
-      pessoaPorId,
-      OSG,
-      HOJE,
-    );
-    expect(linhas).toHaveLength(1);
-    expect(linhas[0].produtos).toEqual([]);
-  });
-
-  it('junta os responsáveis dos projetos da OS sem repetir', () => {
-    // É o caso Di Domenico: quatro projetos na mesma OS, o mesmo par de pessoas.
+  it('junta sem repetir quando o par OS/produto tem mais de um projeto', () => {
+    // São 3 pares assim em produção.
     const linhas = montar(
       [ordem()],
       [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
       [
         projeto({ id: 'proj-1' }),
-        projeto({ id: 'proj-2' }),
-        projeto({ id: 'proj-3', leader_id: 'u-2', responsible_id: 'u-2' }),
+        projeto({ id: 'proj-2', leader_id: 'u-2', responsible_id: 'u-2' }),
       ],
     );
     expect(linhas[0].responsaveis).toEqual(['Elvis Souza', 'Fernando Prado']);
-    expect(linhas[0].projetos).toBe(3);
+    expect(linhas[0].projetos).toBe(2);
   });
 
-  it('aceita OS sem projeto, com a coluna vazia', () => {
-    // 61 dos 84 clientes da OSG com OS em produção estão assim.
+  it('deixa a coluna vazia no produto sem projeto', () => {
     const linhas = montar([ordem()], [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }]);
     expect(linhas[0].responsaveis).toEqual([]);
     expect(linhas[0].projetos).toBe(0);
+  });
+
+  it('ignora projeto sem produto, em vez de pendurá-lo num produto qualquer', () => {
+    // São 2 em produção. Pendurar poria o responsável no produto errado.
+    const linhas = montar(
+      [ordem()],
+      [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
+      [projeto({ produto_segmento_id: null })],
+    );
+    expect(linhas[0].projetos).toBe(0);
+  });
+
+  it('ignora projeto sem OS vinculada', () => {
+    const linhas = montar(
+      [ordem()],
+      [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
+      [projeto({ ordem_servico_id: null })],
+    );
+    expect(linhas[0].projetos).toBe(0);
+  });
+
+  it('nomeia o produto e a área que não reconhece, em vez de sumir com a linha', () => {
+    const comOrfao = new Map(produtoPorId);
+    comOrfao.set('p-orfao', { id: 'p-orfao', nome: null, cluster_id: null });
+    const linhas = montar(
+      [ordem()],
+      [
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-orfao' },
+      ],
+      [],
+      comOrfao,
+    );
+    expect(linhas).toHaveLength(2);
+    const orfao = linhas.find((l) => l.produtoId === 'p-orfao');
+    expect(orfao?.produtoNome).toBe('Produto não identificado');
+    expect(orfao?.area).toBe('Sem área');
   });
 
   it('não esconde a linha do cliente inativo', () => {
@@ -159,28 +220,23 @@ describe('montarControleDeProjetos', () => {
       [ordem({ id: 'os-3', id_cliente: 'c-fora' })],
       [{ ordem_servico_id: 'os-3', produto_segmento_id: 'p-gov' }],
     );
-    expect(linhas).toHaveLength(1);
     expect(linhas[0].clienteNome).toBe('Cliente não identificado');
   });
 
-  it('ordena por nome de cliente', () => {
+  it('ordena por cliente, com a área desta página antes da outra', () => {
     const linhas = montar(
       [ordem(), ordem({ id: 'os-2', id_cliente: 'c-2' })],
       [
-        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-trib' },
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-suc' },
         { ordem_servico_id: 'os-2', produto_segmento_id: 'p-gov' },
       ],
     );
-    expect(linhas.map((linha) => linha.clienteNome)).toEqual(['Anversa', 'Di Domenico']);
-  });
-
-  it('ignora projeto sem OS vinculada', () => {
-    const linhas = montar(
-      [ordem()],
-      [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
-      [projeto({ ordem_servico_id: null })],
-    );
-    expect(linhas[0].projetos).toBe(0);
+    expect(linhas.map((l) => `${l.clienteNome}/${l.produtoNome}`)).toEqual([
+      'Anversa/Governança',
+      'Di Domenico/Planejamento Sucessório',
+      'Di Domenico/Planejamento Tributário',
+    ]);
   });
 });
 
@@ -211,10 +267,9 @@ describe('prazoVencido', () => {
 });
 
 describe('situacaoLabel', () => {
-  it('usa a palavra do cadastro, e nao a da planilha', () => {
+  it('usa a palavra do cadastro, e não a da planilha', () => {
     // A planilha diz "Hibernando"; o banco grava `suspenso` e o seletor de OS
-    // ja chama isso de "Suspenso". Rotulo proprio desta tela faria duas telas
-    // darem nomes diferentes ao mesmo valor.
+    // já chama isso de "Suspenso".
     expect(situacaoLabel('suspenso')).toBe('Suspenso');
     expect(situacaoLabel('em_andamento')).toBe('Em andamento');
   });
@@ -232,39 +287,50 @@ describe('filtrarControle', () => {
   const linhas = montar(
     [
       ordem({ observacoes: 'Aguardando guia da Sefaz' }),
-      ordem({ id: 'os-2', id_cliente: 'c-2', numero_os: '106/2026', regiao: 'MPT', situacao: 'suspenso' }),
+      ordem({
+        id: 'os-2',
+        id_cliente: 'c-2',
+        numero_os: '106/2026',
+        regiao: 'MPT',
+        situacao: 'suspenso',
+      }),
     ],
     [
       { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+      { ordem_servico_id: 'os-1', produto_segmento_id: 'p-trib' },
       { ordem_servico_id: 'os-2', produto_segmento_id: 'p-gov' },
     ],
   );
 
   it('sem filtro devolve tudo', () => {
-    expect(filtrarControle(linhas, FILTROS_VAZIOS)).toHaveLength(2);
+    expect(filtrarControle(linhas, FILTROS_VAZIOS)).toHaveLength(3);
+  });
+
+  it('filtra por área, que é o recorte novo do grão por produto', () => {
+    const achadas = filtrarControle(linhas, { ...FILTROS_VAZIOS, area: 'TAX' });
+    expect(achadas.map((l) => l.produtoNome)).toEqual(['Planejamento Tributário']);
   });
 
   it('filtra por situação', () => {
     const achadas = filtrarControle(linhas, { ...FILTROS_VAZIOS, situacao: 'suspenso' });
-    expect(achadas.map((linha) => linha.clienteNome)).toEqual(['Anversa']);
+    expect(achadas.map((l) => l.clienteNome)).toEqual(['Anversa']);
   });
 
   it('filtra por região', () => {
-    const achadas = filtrarControle(linhas, { ...FILTROS_VAZIOS, regiao: 'BRA' });
-    expect(achadas.map((linha) => linha.clienteNome)).toEqual(['Di Domenico']);
+    expect(filtrarControle(linhas, { ...FILTROS_VAZIOS, regiao: 'BRA' })).toHaveLength(2);
+  });
+
+  it('busca por nome de produto', () => {
+    const achadas = filtrarControle(linhas, { ...FILTROS_VAZIOS, busca: 'tributário' });
+    expect(achadas).toHaveLength(1);
   });
 
   it('busca por nome de cliente, sem depender de caixa', () => {
-    expect(filtrarControle(linhas, { ...FILTROS_VAZIOS, busca: 'DOMENICO' })).toHaveLength(1);
-  });
-
-  it('busca por número da OS', () => {
-    expect(filtrarControle(linhas, { ...FILTROS_VAZIOS, busca: '106/2026' })).toHaveLength(1);
+    expect(filtrarControle(linhas, { ...FILTROS_VAZIOS, busca: 'DOMENICO' })).toHaveLength(2);
   });
 
   it('busca dentro da observação, que é onde mora o motivo da parada', () => {
-    const achadas = filtrarControle(linhas, { ...FILTROS_VAZIOS, busca: 'sefaz' });
-    expect(achadas.map((linha) => linha.clienteNome)).toEqual(['Di Domenico']);
+    expect(filtrarControle(linhas, { ...FILTROS_VAZIOS, busca: 'sefaz' })).toHaveLength(2);
   });
 });
 
@@ -277,13 +343,15 @@ describe('opcoesDoControle', () => {
       ],
       [
         { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-trib' },
         { ordem_servico_id: 'os-2', produto_segmento_id: 'p-gov' },
       ],
     );
     const opcoes = opcoesDoControle(linhas);
-    // BRA vem antes de MPT porque é assim em REGIAO_OPTIONS, não por ordem alfabética.
+    // BRA antes de MPT porque é assim em REGIAO_OPTIONS, não por ordem alfabética.
     expect(opcoes.regioes).toEqual(['BRA', 'MPT']);
     expect(opcoes.situacoes).toEqual(['em_andamento', 'suspenso']);
+    expect(opcoes.areas).toEqual(['OSG', 'TAX']);
   });
 
   it('põe no fim a praça que não está na lista das sete', () => {
@@ -345,20 +413,16 @@ describe('ordenarControle', () => {
   });
 
   it('mantém o vazio no fim também no decrescente', () => {
-    // O vazio não inverte com a direção: OS sem prazo no topo enterraria as
-    // que têm, que são o motivo de clicar na coluna.
     const ordenadas = ordenarControle(tres, { campo: 'prazo', ascendente: false });
     expect(ordenadas.map((l) => l.dataFim)).toEqual(['2026-12-30', '2026-06-30', null]);
   });
 
   it('ordena a OS por ano e sequência, não como texto', () => {
-    // Como texto, '200/2025' viria depois de '106/2026' pelo primeiro dígito.
     const ordenadas = ordenarControle(tres, { campo: 'os', ascendente: true });
     expect(ordenadas.map((l) => l.numeroOs)).toEqual(['200/2025', '096/2026', '106/2026']);
   });
 
-  it('desempata por cliente quando a coluna empata', () => {
-    // As três têm a mesma situação; a ordem de dentro do bloco tem de ser estável.
+  it('desempata pela ordem padrão quando a coluna empata', () => {
     const ordenadas = ordenarControle(tres, { campo: 'situacao', ascendente: true });
     expect(ordenadas.map((l) => l.clienteNome)).toEqual([
       'Anversa',
@@ -368,8 +432,8 @@ describe('ordenarControle', () => {
   });
 
   it('não muta a lista recebida', () => {
-    const antes = tres.map((l) => l.osId);
+    const antes = tres.map((l) => l.chave);
     ordenarControle(tres, { campo: 'prazo', ascendente: false });
-    expect(tres.map((l) => l.osId)).toEqual(antes);
+    expect(tres.map((l) => l.chave)).toEqual(antes);
   });
 });

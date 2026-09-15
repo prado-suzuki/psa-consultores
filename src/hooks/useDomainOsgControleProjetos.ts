@@ -18,7 +18,7 @@ import {
 import { todayIsoBrazil } from '@/lib/dateUtils';
 
 /**
- * As linhas do Controle de Projetos da OSG: uma por ordem de serviço.
+ * As linhas do Controle de Projetos da OSG: uma por PRODUTO contratado da OS.
  *
  * As consultas são PLANAS e o cruzamento acontece em memória, na função pura de
  * `lib/osgControleDeProjetos.ts`. Não é preferência de estilo: embed aninhado
@@ -54,8 +54,15 @@ export function useDomainOsgControleProjetos() {
     queryFn: async () => {
       const ambientePorCliente = await queryClient.fetchQuery(ambientePorClienteQuery());
 
-      const [ordensRes, contratadosRes, produtosRes, projetosRes, clientesRes, pessoasRes] =
-        await Promise.all([
+      const [
+        ordensRes,
+        contratadosRes,
+        produtosRes,
+        projetosRes,
+        clientesRes,
+        pessoasRes,
+        clustersRes,
+      ] = await Promise.all([
           supabase
             .from('ordem_servico')
             .select('id, numero_os, id_cliente, situacao, data_inicio, data_fim, observacoes, regiao'),
@@ -63,7 +70,9 @@ export function useDomainOsgControleProjetos() {
           supabase.from('produto_segmento').select('id, nome, cluster_id'),
           supabase
             .from('org_projects')
-            .select('id, name, status, ordem_servico_id, responsible_id, leader_id'),
+            .select(
+              'id, name, status, ordem_servico_id, produto_segmento_id, responsible_id, leader_id',
+            ),
           // `cliente` TEM a coluna `ambiente` e é filtrada na própria query, ao
           // contrário das outras quatro. A RLS ainda recorta por cluster.
           supabase
@@ -72,6 +81,7 @@ export function useDomainOsgControleProjetos() {
             .eq('excluido', false)
             .eq('ambiente', currentAmbiente),
           supabase.from('profiles').select('id, first_name, last_name'),
+          supabase.from('estrutura_clusters').select('id, name'),
         ]);
 
       const erro =
@@ -80,12 +90,14 @@ export function useDomainOsgControleProjetos() {
         produtosRes.error ||
         projetosRes.error ||
         clientesRes.error ||
-        pessoasRes.error;
+        pessoasRes.error ||
+        clustersRes.error;
       if (erro) throw erro;
 
       const clientes = (clientesRes.data ?? []) as ClienteCru[];
       const pessoas = (pessoasRes.data ?? []) as PessoaCrua[];
       const produtos = (produtosRes.data ?? []) as ProdutoSegmento[];
+      const clusters = (clustersRes.data ?? []) as Array<{ id: string; name: string }>;
 
       const ordens = ((ordensRes.data ?? []) as OrdemCrua[]).filter((ordem) =>
         isDoAmbiente(ordem.id_cliente, ambientePorCliente),
@@ -98,6 +110,7 @@ export function useDomainOsgControleProjetos() {
         (projetosRes.data ?? []) as ProjetoDaOrdem[],
         new Map(clientes.map((cliente) => [cliente.id, cliente])),
         new Map(pessoas.map((pessoa) => [pessoa.id, pessoa])),
+        new Map(clusters.map((cluster) => [cluster.id, cluster.name])),
         clusterId as string,
         todayIsoBrazil(),
       );

@@ -2,15 +2,22 @@
 //
 // Substitui a planilha `Relação de Projetos - OSG.xlsx`. A análise que sustenta
 // o desenho está em `docs/osg/relacao-de-projetos-planilha-x-ferramenta.md`;
-// aqui fica só a regra, pura, porque "quais OS aparecem" é decisão que precisa
-// de teste e não de leitura de hook com I/O.
+// aqui fica só a regra, pura, porque "quais linhas aparecem" é decisão que
+// precisa de teste e não de leitura de hook com I/O.
 //
-// O GRÃO É A ORDEM DE SERVIÇO, e essa é a decisão que manda em todo o resto. A
-// planilha tem uma linha por engajamento do cliente; `org_projects` tem uma
-// linha por produto contratado (Di Domenico tem quatro, todas na mesma OS
-// 111/2026, com as mesmas datas e o mesmo status). Medido em produção em
-// 15/09/2026: pela OS a tela alcança 84 clientes, por `org_projects` alcançaria
-// 23, e a planilha acompanha 62.
+// O GRÃO É O PRODUTO CONTRATADO DA OS, e essa decisão foi tomada duas vezes: a
+// primeira, pelo grão da OS, estava errada.
+//
+// O erro apareceu na pergunta "por que tem produto como Planejamento Tributário
+// que o responsável é o Tax". No grão da OS os produtos viram uma lista dentro
+// de uma célula, e o responsável de cada um desaparece dentro dela. Medido em
+// produção em 15/09/2026, a Família Lunardi (OS 100/2026) é o caso inteiro num
+// cliente só: três produtos da OSG com a Anne Strini, e cinco da TAX com a
+// Monica Matunaga e a Geizi Andrade. A tela mostrava os três primeiros e uma
+// pessoa. São 12 produtos da TAX escondidos em 8 OS.
+//
+// No grão do produto, cada linha carrega a própria área e o próprio executor:
+// 169 linhas para as 84 OS, contra 84 linhas que escondiam 12 produtos.
 
 import { SITUACAO_PROJETO_OPTIONS } from '@/components/equipe/client-form/constants';
 import { REGIAO_OPTIONS } from '@/lib/regioes';
@@ -27,7 +34,6 @@ export interface OrdemCrua {
   regiao: string | null;
 }
 
-/** Produto contratado por uma OS, já resolvido no cluster que o executa. */
 export interface ProdutoContratado {
   ordem_servico_id: string;
   produto_segmento_id: string;
@@ -39,12 +45,12 @@ export interface ProdutoSegmento {
   cluster_id: string | null;
 }
 
-/** Projeto pendurado numa OS — é de onde saem os responsáveis da linha. */
 export interface ProjetoDaOrdem {
   id: string;
   name: string;
   status: string | null;
   ordem_servico_id: string | null;
+  produto_segmento_id: string | null;
   responsible_id: string | null;
   leader_id: string | null;
 }
@@ -61,25 +67,31 @@ export interface PessoaCrua {
   last_name: string | null;
 }
 
-/** Uma linha da tela: o que a planilha chamava de "um projeto". */
+/** Uma linha da tela: um produto contratado de uma OS. */
 export interface LinhaDoControle {
+  /** Única por linha. A mesma OS aparece uma vez por produto. */
+  chave: string;
   osId: string;
   numeroOs: string;
   clienteId: string;
   clienteNome: string;
   /** Cliente inativo continua na lista: sumir com trabalho parado é o oposto do que a tela faz. */
   clienteAtivo: boolean;
+  produtoId: string;
+  produtoNome: string;
+  /** Nome do cluster que responde pelo produto. É o que distingue OSG de TAX na mesma OS. */
+  area: string;
+  /** `true` quando o produto é da área desta página. */
+  daArea: boolean;
+  /** Líder e executor do projeto DESTE produto, sem repetir. Vazio = produto sem projeto. */
+  responsaveis: string[];
+  /** Quantos projetos existem para este par OS/produto. Zero = ninguém criou. */
+  projetos: number;
   regiao: string | null;
   situacao: string | null;
   dataInicio: string | null;
   dataFim: string | null;
   observacoes: string | null;
-  /** Nomes dos produtos DESTA área, ordenados. */
-  produtos: string[];
-  /** Líder e executor dos projetos da OS, sem repetir, ordenados. */
-  responsaveis: string[];
-  /** Quantos projetos a OS gerou. Zero significa OS sem projeto criado. */
-  projetos: number;
   /** `data_fim` no passado e a OS ainda não concluída nem cancelada. */
   prazoVencido: boolean;
 }
@@ -124,27 +136,26 @@ export function prazoVencido(
 }
 
 /**
- * Monta as linhas da tela.
+ * Monta as linhas da tela: uma por produto contratado.
  *
- * QUAIS OS APARECEM: as que contratam ao menos um produto do cluster desta
- * página, lido em `produto_segmento.cluster_id`. Não é
- * `ordem_servico.cluster_id`, que é o campo Empresa / Faturamento e responde
- * "quem emitiu a nota", não "de quem é o trabalho". A mesma troca já foi feita
- * em `ordensDaArea.ts` em 03/09/2026, e lá ela revelou 17 OS invisíveis. Medido
- * de novo aqui em 15/09/2026, conferindo 14 OS de clientes que a planilha e o
- * sistema têm em comum: `ordem_servico.cluster_id` é sempre OSG ou TAX, nunca
- * Familly Business ou PSA Norte, que é o que a planilha registra como Área
- * Líder.
+ * QUAIS OS ENTRAM: as que contratam ao menos um produto do cluster desta página,
+ * lido em `produto_segmento.cluster_id`. Não é `ordem_servico.cluster_id`, que é
+ * o campo Empresa / Faturamento e responde "quem emitiu a nota", não "de quem é
+ * o trabalho". A mesma troca já foi feita em `ordensDaArea.ts` em 03/09/2026, e
+ * lá ela revelou 17 OS invisíveis.
  *
- * QUAIS PRODUTOS APARECEM: só os desta área, pelo mesmo motivo de `ordensDaArea`
- * — nome de produto de outra área na linha mandaria o analista procurar aqui
- * trabalho que não é dele.
+ * QUAIS PRODUTOS ENTRAM: TODOS os da OS que entrou, inclusive os de outra área,
+ * cada um marcado com a própria área em `area`. É o oposto do que `ordensDaArea`
+ * faz, e de propósito: lá a pergunta é "que documento esta OS me obriga a pedir",
+ * e produto de outra área só produziria trabalho que não é meu. Aqui a pergunta é
+ * "onde este cliente está", e metade do trabalho dele estar com a TAX é resposta,
+ * não ruído. `daArea` deixa a tela distinguir os dois sem esconder nenhum.
  *
- * RESPONSÁVEIS vêm dos projetos da OS, e não da OS: `ordem_servico` não tem
- * responsável. Uma OS com quatro projetos costuma ter o mesmo par de pessoas nos
- * quatro, então a lista sai sem repetição. OS sem projeto fica com a coluna
- * vazia, o que é informação e não falha: em produção, 61 dos 84 clientes da OSG
- * que têm OS não têm nenhum projeto criado.
+ * RESPONSÁVEIS vêm do projeto DAQUELE produto, casado por (OS, produto):
+ * `ordem_servico` não tem responsável e o projeto tem. Três pares têm mais de um
+ * projeto em produção, então a lista sai sem repetição. Produto sem projeto fica
+ * com a coluna vazia, o que é informação e não falha: é a distância entre o que
+ * foi vendido e o que alguém está tocando.
  */
 export function montarControleDeProjetos(
   ordens: OrdemCrua[],
@@ -153,76 +164,111 @@ export function montarControleDeProjetos(
   projetos: ProjetoDaOrdem[],
   clientePorId: Map<string, ClienteCru>,
   pessoaPorId: Map<string, PessoaCrua>,
+  nomeDoCluster: Map<string, string>,
   clusterDaArea: string,
   hoje: string,
 ): LinhaDoControle[] {
-  const produtosDaOs = new Map<string, string[]>();
+  const contratadosDaOs = new Map<string, ProdutoContratado[]>();
+  const osQualifica = new Set<string>();
   for (const contratado of produtosContratados) {
+    const atuais = contratadosDaOs.get(contratado.ordem_servico_id) ?? [];
+    atuais.push(contratado);
+    contratadosDaOs.set(contratado.ordem_servico_id, atuais);
     const produto = produtoPorId.get(contratado.produto_segmento_id);
-    if (!produto || produto.cluster_id !== clusterDaArea) continue;
-    const atuais = produtosDaOs.get(contratado.ordem_servico_id) ?? [];
-    if (produto.nome) atuais.push(produto.nome);
-    produtosDaOs.set(contratado.ordem_servico_id, atuais);
+    if (produto?.cluster_id === clusterDaArea) osQualifica.add(contratado.ordem_servico_id);
   }
 
-  const projetosDaOs = new Map<string, ProjetoDaOrdem[]>();
+  // Projetos indexados pelo PAR (OS, produto). Projeto sem `produto_segmento_id`
+  // fica de fora de qualquer linha — são 2 em produção, e pendurá-los num
+  // produto arbitrário poria o responsável no lugar errado.
+  const projetosDoPar = new Map<string, ProjetoDaOrdem[]>();
   for (const projeto of projetos) {
-    if (!projeto.ordem_servico_id) continue;
-    const atuais = projetosDaOs.get(projeto.ordem_servico_id) ?? [];
+    if (!projeto.ordem_servico_id || !projeto.produto_segmento_id) continue;
+    const chave = `${projeto.ordem_servico_id}::${projeto.produto_segmento_id}`;
+    const atuais = projetosDoPar.get(chave) ?? [];
     atuais.push(projeto);
-    projetosDaOs.set(projeto.ordem_servico_id, atuais);
+    projetosDoPar.set(chave, atuais);
   }
 
   const linhas: LinhaDoControle[] = [];
   for (const ordem of ordens) {
-    // A OS entra pela CHAVE do mapa, e não pelo tamanho da lista: produto desta
-    // área com `nome` nulo deixaria a lista vazia e sumiria com a OS.
-    if (!produtosDaOs.has(ordem.id)) continue;
+    if (!osQualifica.has(ordem.id)) continue;
 
     const cliente = clientePorId.get(ordem.id_cliente);
-    const daOrdem = projetosDaOs.get(ordem.id) ?? [];
+    const vencido = prazoVencido(ordem.data_fim ?? null, ordem.situacao ?? null, hoje);
 
-    const nomes = new Set<string>();
-    for (const projeto of daOrdem) {
-      const lider = nomeDaPessoa(pessoaPorId.get(projeto.leader_id ?? ''));
-      const executor = nomeDaPessoa(pessoaPorId.get(projeto.responsible_id ?? ''));
-      if (lider) nomes.add(lider);
-      if (executor) nomes.add(executor);
+    for (const contratado of contratadosDaOs.get(ordem.id) ?? []) {
+      const produto = produtoPorId.get(contratado.produto_segmento_id);
+      const doPar = projetosDoPar.get(`${ordem.id}::${contratado.produto_segmento_id}`) ?? [];
+
+      const nomes = new Set<string>();
+      for (const projeto of doPar) {
+        const lider = nomeDaPessoa(pessoaPorId.get(projeto.leader_id ?? ''));
+        const executor = nomeDaPessoa(pessoaPorId.get(projeto.responsible_id ?? ''));
+        if (lider) nomes.add(lider);
+        if (executor) nomes.add(executor);
+      }
+
+      linhas.push({
+        chave: `${ordem.id}::${contratado.produto_segmento_id}`,
+        osId: ordem.id,
+        numeroOs: ordem.numero_os ?? '',
+        clienteId: ordem.id_cliente,
+        // Cliente fora do alcance da RLS não some da lista: ver `isDoAmbiente`,
+        // que segue a mesma regra. Some o nome, não a linha.
+        clienteNome: cliente?.nome ?? 'Cliente não identificado',
+        clienteAtivo: cliente?.ativo !== false,
+        produtoId: contratado.produto_segmento_id,
+        produtoNome: produto?.nome ?? 'Produto não identificado',
+        area: (produto?.cluster_id && nomeDoCluster.get(produto.cluster_id)) || 'Sem área',
+        daArea: produto?.cluster_id === clusterDaArea,
+        responsaveis: [...nomes].sort((a, b) => a.localeCompare(b, 'pt-BR')),
+        projetos: doPar.length,
+        regiao: ordem.regiao ?? null,
+        situacao: ordem.situacao ?? null,
+        dataInicio: ordem.data_inicio ?? null,
+        dataFim: ordem.data_fim ?? null,
+        observacoes: ordem.observacoes?.trim() || null,
+        prazoVencido: vencido,
+      });
     }
-
-    linhas.push({
-      osId: ordem.id,
-      numeroOs: ordem.numero_os ?? '',
-      clienteId: ordem.id_cliente,
-      // Cliente fora do alcance da RLS não some da lista: ver `isDoAmbiente`,
-      // que segue a mesma regra. Some o nome, não a linha.
-      clienteNome: cliente?.nome ?? 'Cliente não identificado',
-      clienteAtivo: cliente?.ativo !== false,
-      regiao: ordem.regiao ?? null,
-      situacao: ordem.situacao ?? null,
-      dataInicio: ordem.data_inicio ?? null,
-      dataFim: ordem.data_fim ?? null,
-      observacoes: ordem.observacoes?.trim() || null,
-      produtos: [...(produtosDaOs.get(ordem.id) ?? [])].sort((a, b) => a.localeCompare(b, 'pt-BR')),
-      responsaveis: [...nomes].sort((a, b) => a.localeCompare(b, 'pt-BR')),
-      projetos: daOrdem.length,
-      prazoVencido: prazoVencido(ordem.data_fim ?? null, ordem.situacao ?? null, hoje),
-    });
   }
 
-  return linhas.sort((a, b) => a.clienteNome.localeCompare(b.clienteNome, 'pt-BR'));
+  return linhas.sort(comparaPadrao);
+}
+
+/**
+ * A ordem de chegada: cliente, depois a área desta página primeiro, depois
+ * produto.
+ *
+ * A área entra no meio porque a linha da TAX num cliente da OSG é contexto, e
+ * não o trabalho de quem abriu a tela. Intercalar as duas por nome de produto
+ * faria a pessoa caçar as próprias linhas dentro do bloco do cliente.
+ */
+function comparaPadrao(a: LinhaDoControle, b: LinhaDoControle): number {
+  const porCliente = a.clienteNome.localeCompare(b.clienteNome, 'pt-BR');
+  if (porCliente !== 0) return porCliente;
+  if (a.daArea !== b.daArea) return a.daArea ? -1 : 1;
+  return a.produtoNome.localeCompare(b.produtoNome, 'pt-BR');
 }
 
 export interface FiltrosDoControle {
   busca: string;
   situacao: string;
   regiao: string;
+  /** `''` = todas; senão o nome do cluster. */
+  area: string;
 }
 
-export const FILTROS_VAZIOS: FiltrosDoControle = { busca: '', situacao: '', regiao: '' };
+export const FILTROS_VAZIOS: FiltrosDoControle = {
+  busca: '',
+  situacao: '',
+  regiao: '',
+  area: '',
+};
 
 /**
- * Aplica os filtros da barra. A busca cobre cliente, número da OS e observação:
+ * Aplica os filtros da barra. A busca cobre cliente, OS, produto e observação:
  * é o campo em que a equipe achava o cliente na planilha com Ctrl+F, e a
  * observação é onde mora o motivo de o trabalho estar parado.
  */
@@ -234,8 +280,9 @@ export function filtrarControle(
   return linhas.filter((linha) => {
     if (filtros.situacao && linha.situacao !== filtros.situacao) return false;
     if (filtros.regiao && linha.regiao !== filtros.regiao) return false;
+    if (filtros.area && linha.area !== filtros.area) return false;
     if (!busca) return true;
-    const alvo = [linha.clienteNome, linha.numeroOs, linha.observacoes ?? '']
+    const alvo = [linha.clienteNome, linha.numeroOs, linha.produtoNome, linha.observacoes ?? '']
       .join(' ')
       .toLowerCase();
     return alvo.includes(busca);
@@ -243,13 +290,13 @@ export function filtrarControle(
 }
 
 /**
- * As opções dos dois seletores, tiradas do que a lista TEM e não do domínio
- * inteiro: filtro que oferece praça sem nenhuma OS é filtro que só produz tela
- * vazia. A região sai na ordem de `REGIAO_OPTIONS`, que é a ordem que o cadastro
- * de OS já usa.
+ * As opções dos seletores, tiradas do que a lista TEM e não do domínio inteiro:
+ * filtro que oferece praça sem nenhuma OS só produz tela vazia. A região sai na
+ * ordem de `REGIAO_OPTIONS`, que é a ordem que o cadastro de OS já usa.
  */
 export function opcoesDoControle(linhas: LinhaDoControle[]) {
   const situacoes = [...new Set(linhas.map((linha) => linha.situacao).filter(Boolean))] as string[];
+  const areas = [...new Set(linhas.map((linha) => linha.area))];
   const regioesPresentes = new Set(linhas.map((linha) => linha.regiao).filter(Boolean));
   const regioes = REGIAO_OPTIONS.map((opcao) => opcao.value).filter((valor) =>
     regioesPresentes.has(valor),
@@ -262,6 +309,7 @@ export function opcoesDoControle(linhas: LinhaDoControle[]) {
   return {
     situacoes: situacoes.sort((a, b) => situacaoLabel(a).localeCompare(situacaoLabel(b), 'pt-BR')),
     regioes,
+    areas: areas.sort((a, b) => a.localeCompare(b, 'pt-BR')),
   };
 }
 
@@ -270,35 +318,35 @@ export function opcoesDoControle(linhas: LinhaDoControle[]) {
  * Mesma regra que a matriz de `/equipe/acessos` já usa (ver `proximaOrdem` em
  * `filtroDeUsuarios.ts`): **crescente → decrescente → padrão**. O terceiro
  * clique existe porque tabela sem desfazer obriga a recarregar a página para
- * recuperar a leitura original — aqui, a ordem alfabética por cliente, que é
- * como a planilha sempre foi lida.
+ * recuperar a leitura original, que aqui é cliente, área desta página, produto.
  *
  * DUAS DECISÕES QUE NÃO SÃO ÓBVIAS:
  *
- * **Vazio fica sempre por último**, nos dois sentidos. Ordenar por Prazo com
- * nulo no topo enterraria as OS com prazo, que são o motivo de clicar ali; e as
- * OS sem prazo são 1 em 95, contra 30 vencidas. O mesmo vale para OS sem
- * projeto (61 dos 84 clientes) na coluna Responsáveis: em ordem crescente elas
- * empurrariam para baixo tudo que tem gente.
+ * **Vazio fica sempre por último**, nos dois sentidos, sem inverter com a
+ * direção. Ordenar por Prazo com nulo no topo enterraria as OS com prazo, que
+ * são o motivo de clicar ali. O mesmo na coluna Responsáveis, onde produto sem
+ * projeto é a maioria: em ordem crescente eles empurrariam para baixo tudo que
+ * tem gente.
  *
- * **Todo critério desempata por cliente.** Sem isso, ordenar por Situação (três
- * valores para 84 linhas) deixaria a ordem dentro de cada bloco à mercê do que o
- * banco devolveu, e a tabela pareceria instável sem estar.
+ * **Todo critério desempata pela ordem padrão.** Situação tem três valores para
+ * 169 linhas; sem desempate, a ordem dentro de cada bloco ficaria à mercê do que
+ * o banco devolveu, e a tabela pareceria instável sem estar.
  */
 
 export type ColunaDoControle =
   | 'cliente'
   | 'os'
+  | 'area'
+  | 'produto'
   | 'regiao'
   | 'situacao'
   | 'inicio'
   | 'prazo'
-  | 'produtos'
   | 'responsaveis'
   | 'observacao';
 
 export interface OrdemDoControle {
-  /** `'padrao'` = alfabética por cliente, a ordem de chegada. */
+  /** `'padrao'` = cliente, área desta página, produto. */
   campo: ColunaDoControle | 'padrao';
   ascendente: boolean;
 }
@@ -325,7 +373,7 @@ export function proximaOrdemDoControle(
  * O número da OS ordenado por ANO e depois por sequência, e não como texto.
  *
  * Como texto, "096/2026" vem antes de "106/2026" por acaso (o zero à esquerda),
- * e "99/2025" viria depois de "100/2026". Produção tem as duas grafias.
+ * e "200/2025" viria depois das duas. Produção tem as duas grafias.
  */
 function chaveDaOs(numeroOs: string): [number, number] {
   const partes = numeroOs.split('/');
@@ -334,7 +382,6 @@ function chaveDaOs(numeroOs: string): [number, number] {
   return [Number.isNaN(ano) ? 0 : ano, Number.isNaN(sequencia) ? 0 : sequencia];
 }
 
-/** O valor comparável de cada coluna, junto com "este está vazio". */
 function valorDaColuna(linha: LinhaDoControle, campo: ColunaDoControle): string | number {
   switch (campo) {
     case 'cliente':
@@ -343,6 +390,10 @@ function valorDaColuna(linha: LinhaDoControle, campo: ColunaDoControle): string 
       const [ano, sequencia] = chaveDaOs(linha.numeroOs);
       return ano * 10000 + sequencia;
     }
+    case 'area':
+      return linha.area.toLocaleLowerCase('pt-BR');
+    case 'produto':
+      return linha.produtoNome.toLocaleLowerCase('pt-BR');
     case 'regiao':
       return linha.regiao ?? '';
     case 'situacao':
@@ -351,8 +402,6 @@ function valorDaColuna(linha: LinhaDoControle, campo: ColunaDoControle): string 
       return linha.dataInicio ?? '';
     case 'prazo':
       return linha.dataFim ?? '';
-    case 'produtos':
-      return linha.produtos.join(', ').toLocaleLowerCase('pt-BR');
     case 'responsaveis':
       return linha.responsaveis.join(', ').toLocaleLowerCase('pt-BR');
     case 'observacao':
@@ -363,6 +412,8 @@ function valorDaColuna(linha: LinhaDoControle, campo: ColunaDoControle): string 
 function estaVazio(linha: LinhaDoControle, campo: ColunaDoControle): boolean {
   switch (campo) {
     case 'cliente':
+    case 'area':
+    case 'produto':
       return false;
     case 'os':
       return !linha.numeroOs;
@@ -374,8 +425,6 @@ function estaVazio(linha: LinhaDoControle, campo: ColunaDoControle): boolean {
       return !linha.dataInicio;
     case 'prazo':
       return !linha.dataFim;
-    case 'produtos':
-      return linha.produtos.length === 0;
     case 'responsaveis':
       return linha.responsaveis.length === 0;
     case 'observacao':
@@ -388,10 +437,7 @@ export function ordenarControle(
   linhas: LinhaDoControle[],
   ordem: OrdemDoControle,
 ): LinhaDoControle[] {
-  const porCliente = (a: LinhaDoControle, b: LinhaDoControle) =>
-    a.clienteNome.localeCompare(b.clienteNome, 'pt-BR');
-
-  if (ordem.campo === 'padrao') return [...linhas].sort(porCliente);
+  if (ordem.campo === 'padrao') return [...linhas].sort(comparaPadrao);
   const campo = ordem.campo;
 
   return [...linhas].sort((a, b) => {
@@ -399,7 +445,7 @@ export function ordenarControle(
     const bVazio = estaVazio(b, campo);
     // O vazio não inverte com a direção: ver o cabeçalho desta seção.
     if (aVazio !== bVazio) return aVazio ? 1 : -1;
-    if (aVazio && bVazio) return porCliente(a, b);
+    if (aVazio && bVazio) return comparaPadrao(a, b);
 
     const valorA = valorDaColuna(a, campo);
     const valorB = valorDaColuna(b, campo);
@@ -410,6 +456,6 @@ export function ordenarControle(
       comparacao = String(valorA).localeCompare(String(valorB), 'pt-BR');
     }
     if (comparacao !== 0) return ordem.ascendente ? comparacao : -comparacao;
-    return porCliente(a, b);
+    return comparaPadrao(a, b);
   });
 }

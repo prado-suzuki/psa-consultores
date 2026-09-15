@@ -1,4 +1,4 @@
-import { Filter, MapPin, Search, X } from 'lucide-react';
+import { Building2, Filter, MapPin, Search, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  FILTROS_VAZIOS,
   situacaoLabel,
   type FiltrosDoControle,
   type LinhaDoControle,
@@ -19,7 +20,7 @@ import { getRegiaoLabel } from '@/lib/regioes';
 interface Props {
   filtros: FiltrosDoControle;
   setFiltros: (filtros: FiltrosDoControle) => void;
-  opcoes: { situacoes: string[]; regioes: string[] };
+  opcoes: { situacoes: string[]; regioes: string[]; areas: string[] };
   total: number;
   visiveis: number;
   vencidas: number;
@@ -41,13 +42,15 @@ export function ControleDeProjetosToolbar({
   visiveis,
   vencidas,
 }: Props) {
-  const temFiltro = Boolean(filtros.busca || filtros.situacao || filtros.regiao);
+  const temFiltro = Boolean(filtros.busca || filtros.situacao || filtros.regiao || filtros.area);
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <p className="text-sm text-muted-foreground">
-          {temFiltro ? `${visiveis} de ${total} ordens de serviço` : `${total} ordens de serviço`}
+          {temFiltro
+            ? `${visiveis} de ${total} produtos contratados`
+            : `${total} produtos contratados`}
         </p>
         {vencidas > 0 && (
           <p className="text-sm font-medium text-destructive">
@@ -64,11 +67,29 @@ export function ControleDeProjetosToolbar({
           <Input
             value={filtros.busca}
             onChange={(evento) => setFiltros({ ...filtros, busca: evento.target.value })}
-            placeholder="Cliente, número da OS ou observação"
+            placeholder="Cliente, OS, produto ou observação"
             className="pl-9"
-            aria-label="Buscar por cliente, número da OS ou observação"
+            aria-label="Buscar por cliente, número da OS, produto ou observação"
           />
         </div>
+
+        <Select
+          value={filtros.area || 'all'}
+          onValueChange={(valor) => setFiltros({ ...filtros, area: valor === 'all' ? '' : valor })}
+        >
+          <SelectTrigger className="w-40" aria-label="Filtrar por área">
+            <Building2 className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+            <SelectValue placeholder="Área" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as áreas</SelectItem>
+            {opcoes.areas.map((area) => (
+              <SelectItem key={area} value={area}>
+                {area}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <Select
           value={filtros.situacao || 'all'}
@@ -111,7 +132,7 @@ export function ControleDeProjetosToolbar({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setFiltros({ busca: '', situacao: '', regiao: '' })}
+            onClick={() => setFiltros(FILTROS_VAZIOS)}
           >
             <X className="mr-1 h-4 w-4" />
             Limpar
