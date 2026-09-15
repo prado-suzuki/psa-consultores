@@ -10,7 +10,7 @@ import { ChamadosDashboardContent } from '@/pages/gestao/GestaoChamadosDashboard
  * porque a rota é de líder+ pelo `LiderRoute`.
  */
 const FiscalGerencialChamadosDashboard = () => (
-  <FiscalLayout title="Dashboard de Chamados" subtitle="Panorama operacional, prazos e responsáveis">
+  <FiscalLayout title="Dashboard de Chamados" subtitle="Monitore volume, prazos, status e responsáveis pelos chamados.">
     <ChamadosDashboardContent listaPath="/equipe/tax/gerencial/chamados" />
   </FiscalLayout>
 );

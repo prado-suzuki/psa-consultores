@@ -132,9 +132,10 @@ vi.mock('@/components/comentarios/OrgCommentAttachments', () => ({
   ),
 }));
 
-import FiscalProjetosCadastro, {
-  ProjetosCadastroContent,
-} from '@/pages/equipe/fiscal/FiscalProjetosCadastro';
+import FiscalProjetosCadastro from '@/pages/equipe/fiscal/FiscalProjetosCadastro';
+// Do módulo real, e não reexportado pela página: era o único consumidor daquele
+// reexport, e é de lá que a OSG já importava.
+import { ProjetosCadastroContent } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContent';
 import OsgProjetos from '@/pages/equipe/osg/OsgProjetos';
 import {
   filterAndSortProjects,
@@ -359,7 +360,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
     renderComQuery(<FiscalProjetosCadastro />);
 
     expect(screen.getByTestId('fiscal-layout')).toHaveTextContent('Projetos e tarefas');
-    expect(screen.getByTestId('fiscal-layout')).toHaveTextContent('Acompanhe a execução por ordem de serviço');
+    expect(screen.getByTestId('fiscal-layout')).toHaveTextContent('Acompanhe ordens de serviço, projetos, tarefas e subtarefas por status e responsável.');
     expect(screen.getByTestId('projetos-tarefas')).toHaveTextContent('Painel consolidado tax');
   });
 

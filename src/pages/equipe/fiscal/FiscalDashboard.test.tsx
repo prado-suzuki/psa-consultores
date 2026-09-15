@@ -222,7 +222,7 @@ describe('FiscalDashboard e contrato público compartilhado', () => {
 
     expect(screen.getByTestId('fiscal-layout')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument();
-    expect(screen.getByText('Visão geral da área fiscal — atualizado em tempo real')).toBeInTheDocument();
+    expect(screen.getByText('Acompanhe os principais indicadores operacionais da área Tax em tempo real.')).toBeInTheDocument();
     expect(screen.getByTestId('hero')).toHaveTextContent('Tax');
     expect(screen.getByText('Tax')).toBeInTheDocument();
     expect(mocks.areas).toHaveBeenCalledWith('tax');

@@ -9,7 +9,7 @@ const FiscalFeed = () => {
   return (
     <FiscalLayout
       title="Feed"
-      subtitle="O que está sendo conversado nos seus projetos e tarefas"
+      subtitle="Acompanhe atualizações e conversas vinculadas aos seus projetos e tarefas."
     >
       <FeedComentarios area="tax" />
     </FiscalLayout>
