@@ -10,8 +10,22 @@ import { formatCurrencyDisplay } from "./constants";
 import { calcularValorParcela } from "@/lib/osParcelamento";
 import type { DraftOrdemServico } from "@/types/clientForm";
 
+/**
+ * Os cinco campos que este bloco lê, e só eles.
+ *
+ * O tipo era `DraftOrdemServico` inteiro, e isso prendia o bloco ao rascunho do
+ * cadastro de cliente: o dashboard da Adm & Fin lê as mesmas OS direto do banco,
+ * e precisaria inventar um rascunho falso só para reaproveitar a leitura. Como o
+ * `Draft` continua satisfazendo este recorte, os dois consumidores de dentro do
+ * modal não mudam.
+ */
+export type ValoresDaOs = Pick<
+  DraftOrdemServico,
+  'valor_projeto' | 'numero_parcelas' | 'valor_entrada' | 'valor_reembolso_km' | 'valor_reembolso_refeicao'
+>;
+
 export interface OsValoresLeituraProps {
-  contrato: DraftOrdemServico;
+  contrato: ValoresDaOs;
   /**
    * Colunas da grade. Quatro na aba de OS, que ocupa a largura do modal; três na
    * aba de Faturamento, onde o bloco tem metade dela: com duas, os seis valores

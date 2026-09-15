@@ -175,6 +175,7 @@ const PlanejamentoTributarioHub = lazy(() => import('./pages/equipe/dev/Planejam
 // Equipe > Adm & Fin
 const AdmFinBoasVindas = lazy(() => import("./pages/equipe/adm-fin/AdmFinBoasVindas"));
 const AdmFinClientes = lazy(() => import("./pages/equipe/adm-fin/AdmFinClientes"));
+const AdmFinDashboard = lazy(() => import("./pages/equipe/adm-fin/AdmFinDashboard"));
 
 import { BoardClusterProvider } from "./contexts/BoardClusterContext";
 const BoardDashboard = lazy(() => import("./pages/equipe/board/BoardDashboard"));
@@ -423,6 +424,7 @@ const App = () => (
                   à mão aqui, em `AREA_ROUTES` e em `MAPA_DE_ROTAS`. */}
               <Route path="/equipe/adm-fin" element={<PageAccessGate pagePath="/equipe/adm-fin"><AdmFinBoasVindas /></PageAccessGate>} />
               <Route path="/equipe/adm-fin/clientes" element={<PageAccessGate pagePath="/equipe/adm-fin/clientes"><AdmFinClientes /></PageAccessGate>} />
+              <Route path="/equipe/adm-fin/dashboard" element={<PageAccessGate pagePath="/equipe/adm-fin/dashboard"><AdmFinDashboard /></PageAccessGate>} />
 
               {/* Board Routes */}
               {/* Rota sem path só para o Provider: o seletor global de cliente

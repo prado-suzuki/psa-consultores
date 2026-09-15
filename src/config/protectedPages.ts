@@ -974,4 +974,12 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  {
+    page_path: '/equipe/adm-fin/dashboard',
+    page_name: 'Dashboard (Adm & Fin)',
+    page_description: 'Ordens de servico na ordem de entrada, com os dados de faturamento',
+    category: 'adm_fin',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 ];
