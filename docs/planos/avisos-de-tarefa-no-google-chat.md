@@ -84,11 +84,25 @@ duas vezes, e se o envio falhar dá para marcar exatamente quais tarefas não sa
 30 dias. A dedup por tarefa corta 40% — e essas 100 linhas a mais seriam mensagem repetida
 no mesmo espaço.
 
-### Resumo diário para prazo, mensagem avulsa para o resto
+### Resumo diário para prazo, agrupado por PESSOA
 
-Os avisos de prazo nascem todos às 11h UTC, do mesmo job. Viram **uma** mensagem por área
-e por tipo, com a lista das tarefas. Os de trigger saem avulsos, um por evento. Pelas 150
-tarefas de 30 dias, o espaço fica em torno de **2 a 3 mensagens por dia por área**.
+Os avisos de prazo nascem todos às 11h UTC, do mesmo job. Viram **uma** mensagem por área,
+com seções por responsável. Os de trigger saem avulsos, um por evento. Pelas 150 tarefas de
+30 dias, o espaço fica em torno de **2 a 3 mensagens por dia por área**.
+
+**Por pessoa, e não por marco** — decisão da Patrícia em 14/09, olhando as primeiras
+mensagens no espaço. A pergunta que um grupo faz é "de quem é a bola", não "o que vence
+hoje": o nome vira cabeçalho e o marco vai no fim da linha. Por isso vencida e a vencer
+convivem na mesma mensagem, ao contrário do sino, onde cada aviso é uma linha na caixa de
+UMA pessoa e o marco é o título.
+
+**O marco sai da data, não do tipo.** `tarefa_prazo_proximo` cobre dois marcos (faltam 3
+dias e vence hoje), então o tipo não basta para escrever a frase — e, vindo da data, ela
+sai certa mesmo se o cron pular um dia e pegar a tarefa noutro ponto da régua.
+
+**Cada linha carrega responsável, projeto, cliente e prazo.** O cliente entrou em 14/09
+(migration `20260915000433`): das 446 tarefas abertas, as 446 têm cliente pelos dois
+vínculos, o da tarefa e o do projeto.
 
 ### Thread por projeto
 
