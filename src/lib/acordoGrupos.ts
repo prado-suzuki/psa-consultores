@@ -90,11 +90,25 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
     campos: [
       {
         campo: 'assinado_em',
-        rotulo: 'Assinado em',
+        /*
+         * NÃO É A LINHA DE ASSINATURA, e o rótulo "Assinado em" deixava isso no
+         * ar. A linha que se preenche à mão é outra coisa: é `dataAssinatura`,
+         * campo manual da tela Gerar, que vazio vira a lacuna assinalável.
+         *
+         * Esta data é o FATO que o contrato social cita, e a ajuda de antes
+         * descrevia justamente a outra, o que propagava a confusão.
+         */
+        rotulo: 'Data em que o acordo foi assinado (citada no contrato social)',
         tipo: 'data',
+        desceAoContrato: true,
         ajuda:
-          'Deixe em branco enquanto for minuta. O documento gerado usa esta data para '
-          + 'escrever o fecho; sem ela, ele deixa a lacuna para assinar à mão.',
+          'É a data que o CONTRATO SOCIAL cita, e não a linha que se assina à mão no fim do '
+          + 'acordo. No Perci: "o acordo celebrado entre as partes, em 29 de Janeiro de 2.021, '
+          + 'e disponível na sede da sociedade". Deixe em branco enquanto o acordo for minuta: '
+          + 'aí o contrato sai na outra redação, com a lacuna, como no Bela Vista, "firmaram '
+          + 'em __ de ____ de 2.025, acordo de quotistas com vigência pelo período de 20 '
+          + '(vinte) anos". ATENÇÃO: preenchida, ela CONGELA esta versão, porque o cadastro '
+          + 'passa a ter de bater com o papel assinado.',
       },
       {
         campo: 'vigencia_anos',

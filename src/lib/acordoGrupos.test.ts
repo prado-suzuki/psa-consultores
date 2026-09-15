@@ -59,18 +59,26 @@ describe('GRUPOS_DO_ACORDO', () => {
 });
 
 describe('camposQueDescem', () => {
-  it('a apuração de haveres desce ao contrato, e cabe num campo só', () => {
+  it('dois campos descem ao contrato social, e são estes', () => {
     /*
-     * Eram cinco campos. Quatro deles não variam nos contratos do acervo: 60 dias
-     * em 7 de 7, 05 anos em 3 de 3, IPCA nos dois que citam índice, e "maior
-     * valor" em todos que combinam métodos. Campo que não varia é texto fixo do
-     * modelo, e a decisão está no motor desde 14/09; esta tela contrariava a
-     * própria medição. O que varia é QUAIS métodos entram.
+     * A DATA DE ASSINATURA, porque o contrato social a CITA no corpo de uma
+     * cláusula. No Perci: "o acordo celebrado entre as partes, em 29 de Janeiro
+     * de 2.021". Sem ela, o contrato sai na outra redação, com a lacuna. Não
+     * confundir com a linha que se assina à mão, que é `dataAssinatura`, campo
+     * manual da tela Gerar.
+     *
+     * A APURAÇÃO DE HAVERES, num campo só. Eram cinco. Quatro não variam nos
+     * contratos do acervo: 60 dias em 7 de 7, 05 anos em 3 de 3, IPCA nos dois
+     * que citam índice, e "maior valor" em todos que combinam métodos. Campo que
+     * não varia é texto fixo do modelo, e a decisão está no motor desde 14/09;
+     * esta tela contrariava a própria medição. O que varia é QUAIS métodos
+     * entram.
      *
      * O usufruto também desce ao contrato, mas não é campo deste cadastro: ele
      * vem de `onus_quotas`, preenchido no Quadro Societário.
      */
-    expect(camposQueDescem().map((c) => c.campo)).toEqual(['metodos_avaliacao']);
+    expect(camposQueDescem().map((c) => c.campo))
+      .toEqual(['assinado_em', 'metodos_avaliacao']);
   });
 });
 
