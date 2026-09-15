@@ -8,15 +8,27 @@
  * - clausula:  conteúdo é só o caput; "CLÁUSULA {ordinal}:" é automática (contínua, não reseta por capítulo)
  * - paragrafo: conteúdo é só o texto; agrupado sob a cláusula anterior como
  *              "Parágrafo Único:" (se for o único) ou "Parágrafo {ordinal}:" (reseta por cláusula)
+ * - item:      conteúdo é só o texto; numeração DECIMAL sob a cláusula anterior
+ *              ("2.1", "2.2"), reiniciando a cada cláusula nova
  * - livre:     renderizado como está (preâmbulo, fecho, anexos etc.)
+ *
+ * POR QUE `item` EXISTE, ao lado de `paragrafo`. Os dois são subdivisão de
+ * cláusula, e a diferença é de DOCUMENTO, não de gosto: o contrato social
+ * escreve "Parágrafo Segundo:" e o Acordo de Quotistas escreve "2.2". Medido no
+ * modelo da casa, 92 dos 243 parágrafos do Acordo são itens decimais, e o
+ * próprio texto se referencia por eles, sete vezes ("observado o item 5.5").
+ *
+ * Escrever o número no texto do bloco não serve: cláusula condicional desligada
+ * renumera as seguintes, e aí "5.5" passaria a apontar para outro item, calado.
  */
-export const TIPOS_BLOCO = ['capitulo', 'clausula', 'paragrafo', 'livre'] as const;
+export const TIPOS_BLOCO = ['capitulo', 'clausula', 'paragrafo', 'item', 'livre'] as const;
 export type TipoBloco = (typeof TIPOS_BLOCO)[number];
 
 export const LABEL_TIPO_BLOCO: Record<TipoBloco, string> = {
   capitulo: 'capítulo',
   clausula: 'cláusula',
   paragrafo: 'parágrafo',
+  item: 'item',
   livre: 'livre',
 };
 
@@ -26,6 +38,18 @@ export interface Bloco {
   conteudo: string;
   /** Tipo estrutural; ausente equivale a 'livre' (blocos legados). */
   tipo?: TipoBloco;
+  /**
+   * O título que vai DEPOIS do ordinal, no documento: "CLÁUSULA PRIMEIRA –
+   * Definições das expressões utilizadas neste ACORDO."
+   *
+   * Só a cláusula usa, e só o Acordo de Quotistas tem. Sem ele a cláusula sai
+   * como sempre saiu, "CLÁUSULA PRIMEIRA:", que é a forma do contrato social.
+   *
+   * NÃO CONFUNDIR COM `tmpl_bloco.nome`, que é rótulo de BIBLIOTECA ("Cláusula
+   * — Composição do Conselho"): aquele serve para achar o bloco na estante, e
+   * este é texto que sai no Word.
+   */
+  tituloDocumento?: string;
   /**
    * Reinicia capítulos e cláusulas a partir deste bloco. A consolidação dentro
    * de uma alteração contratual é um documento embutido e começa outra série.

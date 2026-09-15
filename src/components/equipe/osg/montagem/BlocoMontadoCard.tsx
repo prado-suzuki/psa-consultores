@@ -16,6 +16,10 @@ import { PAPEIS_LISTA } from '@/lib/templates/binding';
 const CHIP_POR_TIPO: Record<Exclude<TipoBloco, 'livre'>, string> = {
   capitulo: 'bg-osg-moss text-white',
   clausula: 'bg-osg-600 text-white',
+  // O item é subdivisão como o parágrafo, e usa o mesmo peso visual: os dois
+  // são o nível de baixo, e distingui-los por cor sugeriria hierarquia que não
+  // existe entre eles (um é do Acordo, o outro do contrato).
+  item: 'border border-osg-300 text-osg-700 bg-osg-50',
   paragrafo: 'border border-osg-300 text-osg-700 bg-osg-50',
 };
 

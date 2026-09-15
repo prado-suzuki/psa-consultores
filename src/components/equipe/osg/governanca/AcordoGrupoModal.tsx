@@ -3,7 +3,7 @@ import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
 import { AjudaDoCampo } from '@/components/equipe/osg/ComAjuda';
 import { FieldSection } from '@/components/equipe/osg/formKit';
@@ -174,7 +174,12 @@ export function AcordoGrupoModal({
       <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{grupo.titulo}</DialogTitle>
-          <p className="text-sm text-muted-foreground">{grupo.resumo}</p>
+          {/*
+            `DialogDescription` e não `<p>`: o Radix procura um elemento descritor
+            para ligar em `aria-describedby`, e sem ele avisa no console a cada
+            abertura. Era um aviso por modal aberto, medido no QA.
+          */}
+          <DialogDescription>{grupo.resumo}</DialogDescription>
         </DialogHeader>
 
         <div className="py-2">

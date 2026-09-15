@@ -437,6 +437,7 @@ export function useGerarDocumentoController() {
           flagsRequeridas: b.bloco!.flags,
           repeteColecao: b.bloco!.repete_colecao ?? undefined,
           ancora: b.bloco!.ancora ?? undefined,
+          tituloDocumento: b.bloco!.titulo_documento ?? undefined,
         };
       });
     return { id: modeloId ?? 'novo', nome: 'documento', blocos };
@@ -470,6 +471,9 @@ export function useGerarDocumentoController() {
         flagsRequeridas: b.bloco!.flags,
         repeteColecao: b.bloco!.repete_colecao ?? undefined,
         ancora: b.bloco!.ancora ?? undefined,
+        // O titulo que sai DEPOIS do ordinal, so no Acordo: "CLÁUSULA
+        // PRIMEIRA – Definições…". Nulo mantém "CLÁUSULA PRIMEIRA:".
+        tituloDocumento: b.bloco!.titulo_documento ?? undefined,
       }));
     return { id: modeloId ?? 'novo', nome: 'documento', blocos };
   }, [docBlocos, modeloId, posicoesSobrescritas, template, modeloSocietario, reiniciaNumeracaoPorBlocoId, reproduzindoRegistrado]);

@@ -195,3 +195,90 @@ describe('gerarDocumento com numeração', () => {
     );
   });
 });
+
+/*
+ * A NUMERAÇÃO DO ACORDO DE QUOTISTAS, que é outra do contrato social.
+ *
+ * O contrato escreve "CLÁUSULA PRIMEIRA:" e "Parágrafo Segundo:". O Acordo
+ * escreve "CLÁUSULA PRIMEIRA – Definições das expressões utilizadas neste
+ * ACORDO." e "2.1". Medido no modelo da casa: 92 dos 243 parágrafos do Acordo
+ * são itens decimais, e o texto se cita por eles sete vezes.
+ */
+describe('numeração do Acordo de Quotistas', () => {
+  it('a cláusula com título usa travessão, e sem título continua com dois-pontos', () => {
+    const numerados = numerarBlocos([
+      bloco('c1', 'clausula', 'Para fins deste ACORDO serão adotadas as definições abaixo.',
+        { tituloDocumento: 'Definições das expressões utilizadas neste ACORDO.' }),
+      bloco('c2', 'clausula', 'O capital será de R$ 100,00.'),
+    ]);
+    expect(numerados[0].conteudo).toBe(
+      '*CLÁUSULA PRIMEIRA – Definições das expressões utilizadas neste ACORDO.*\n'
+      + 'Para fins deste ACORDO serão adotadas as definições abaixo.',
+    );
+    // Sem título, o contrato social sai exatamente como sempre saiu.
+    expect(numerados[1].conteudo).toBe('*CLÁUSULA SEGUNDA:* O capital será de R$ 100,00.');
+  });
+
+  it('o item numera por cláusula e reinicia na cláusula seguinte', () => {
+    const numerados = numerarBlocos([
+      bloco('c1', 'clausula', 'Das QUOTAS sujeitas a este ACORDO.'),
+      bloco('i1', 'item', 'Estão sujeitas ao presente ACORDO todas as QUOTAS.'),
+      bloco('i2', 'item', 'As PARTES signatárias estabelecem que…'),
+      bloco('c2', 'clausula', 'Do Voto.'),
+      bloco('i3', 'item', 'Os QUOTISTAS se comprometem a votar…'),
+    ]);
+    expect(numerados.map((b) => b.conteudo.split(' ')[0]))
+      .toEqual(['*CLÁUSULA', '1.1', '1.2', '*CLÁUSULA', '2.1']);
+  });
+
+  it('o item conta pela cláusula, mesmo com outro bloco no meio', () => {
+    /*
+     * Diferente do parágrafo de propósito. O parágrafo reseta quando a sequência
+     * consecutiva é interrompida; o item não, porque "2.7" depende da CLÁUSULA
+     * corrente. Uma tabela ou um bloco livre no meio de uma cláusula do Acordo
+     * não pode fazer a contagem voltar a 1.
+     */
+    const numerados = numerarBlocos([
+      bloco('c1', 'clausula', 'Do aumento do capital.'),
+      bloco('i1', 'item', 'O direito dos QUOTISTAS observará o disposto abaixo.'),
+      bloco('lv', 'livre', 'Quadro de subscrição:'),
+      bloco('i2', 'item', 'Os QUOTISTAS farão com que a ADMINISTRAÇÃO envie o aviso.'),
+    ]);
+    expect(numerados[3].conteudo.split(' ')[0]).toBe('1.2');
+  });
+
+  it('cláusula desligada renumera os itens das seguintes, e é por isso que o número não vai no texto', () => {
+    /*
+     * O CASO QUE MOTIVOU O TIPO NOVO.
+     *
+     * Desmarcar lock-up faz a cláusula dele não existir, e a seguinte sobe. Com
+     * o número escrito no texto do bloco, os itens continuariam "6.1" numa
+     * cláusula que virou quinta, e as sete referências cruzadas do modelo
+     * ("observado o item 5.5") passariam a apontar para outro lugar, caladas.
+     */
+    const comLockUp = numerarBlocos([
+      bloco('c1', 'clausula', 'Da preferência.'),
+      bloco('c2', 'clausula', 'Do lock-up.'),
+      bloco('i1', 'item', 'Nenhum QUOTISTA poderá alienar suas QUOTAS.'),
+    ]);
+    expect(comLockUp[2].conteudo.split(' ')[0]).toBe('2.1');
+
+    const semLockUp = numerarBlocos([
+      bloco('c1', 'clausula', 'Da preferência.'),
+      bloco('i1', 'item', 'Nenhum QUOTISTA poderá alienar suas QUOTAS.'),
+    ]);
+    expect(semLockUp[1].conteudo.split(' ')[0]).toBe('1.1');
+  });
+
+  it('o item se cita por número, e o parágrafo por extenso', () => {
+    // O Acordo escreve "observado o item 5.5"; o contrato escreve "no parágrafo
+    // segundo desta cláusula". Cada documento se cita como se escreve.
+    const blocos = [
+      bloco('c1', 'clausula', 'Das condições.'),
+      bloco('i1', 'item', 'Primeiro item.'),
+      bloco('p1', 'paragrafo', 'Um parágrafo.'),
+    ];
+    expect(refsNumeracao(blocos)).toEqual(['Cláusula Primeira', 'item 1.1', 'parágrafo único']);
+    expect(rotulosNumeracao(blocos)).toEqual(['CLÁUSULA PRIMEIRA', '1.1', 'Parágrafo Único']);
+  });
+});

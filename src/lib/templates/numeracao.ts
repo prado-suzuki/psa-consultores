@@ -14,7 +14,10 @@ function capitalizarPalavras(texto: string): string {
 
 /** Posição estrutural de um bloco na composição (null para livre/sem tipo). */
 type EstruturaBloco =
-  | { tipo: 'capitulo' | 'clausula'; n: number }
+  | { tipo: 'capitulo'; n: number }
+  | { tipo: 'clausula'; n: number; titulo?: string }
+  /** `nClausula` entra porque o item se escreve "2.1": cláusula ponto ordem. */
+  | { tipo: 'item'; n: number; nClausula: number }
   | { tipo: 'paragrafo'; n: number; unico: boolean }
   | null;
 
@@ -25,22 +28,31 @@ type EstruturaBloco =
  * - clausula: contínua — não reseta por capítulo
  * - paragrafo: posição dentro da sequência consecutiva sob a cláusula anterior
  *   (1 só → "único"; o contador reseta a cada interrupção da sequência)
+ * - item: posição sob a CLÁUSULA corrente, reiniciando em 1 a cada cláusula
+ *   nova. Diferente do parágrafo de propósito: a numeração decimal do Acordo
+ *   continua contando mesmo que outro tipo se intrometa no meio, porque "2.7"
+ *   depende da cláusula, e não de a sequência ter sido ininterrupta.
  */
 function estruturar(blocos: Bloco[]): EstruturaBloco[] {
   let nCapitulo = 0;
   let nClausula = 0;
+  let nItem = 0;
 
   return blocos.map((bloco, i) => {
     if (bloco.reiniciaNumeracao) {
       nCapitulo = 0;
       nClausula = 0;
+      nItem = 0;
     }
 
     switch (bloco.tipo) {
       case 'capitulo':
         return { tipo: 'capitulo', n: ++nCapitulo };
       case 'clausula':
-        return { tipo: 'clausula', n: ++nClausula };
+        nItem = 0;
+        return { tipo: 'clausula', n: ++nClausula, titulo: bloco.tituloDocumento };
+      case 'item':
+        return { tipo: 'item', n: ++nItem, nClausula };
       case 'paragrafo': {
         let inicio = i;
         while (inicio > 0 && blocos[inicio - 1].tipo === 'paragrafo') inicio -= 1;
@@ -74,7 +86,19 @@ export function prefixosNumeracao(blocos: Bloco[]): string[] {
       case 'capitulo':
         return `*CAPÍTULO ${romano(e.n)}*\n`;
       case 'clausula':
-        return `*CLÁUSULA ${ordinalExtenso(e.n, 'f').toUpperCase()}:* `;
+        /*
+         * COM TÍTULO, O SEPARADOR É TRAVESSÃO; SEM, DOIS-PONTOS.
+         *
+         * "CLÁUSULA PRIMEIRA – Definições das expressões utilizadas neste
+         * ACORDO." é o Acordo; "CLÁUSULA PRIMEIRA:" é o contrato social. Os dois
+         * saem daqui, e quem escolhe é a existência do título, não uma opção do
+         * modelo: bloco sem título continua com o comportamento de sempre.
+         */
+        return e.titulo
+          ? `*CLÁUSULA ${ordinalExtenso(e.n, 'f').toUpperCase()} – ${e.titulo}*\n`
+          : `*CLÁUSULA ${ordinalExtenso(e.n, 'f').toUpperCase()}:* `;
+      case 'item':
+        return `${e.nClausula}.${e.n} `;
       case 'paragrafo': {
         const rotulo = e.unico ? 'Parágrafo Único' : `Parágrafo ${capitalizarPalavras(ordinalExtenso(e.n, 'm'))}`;
         return `*${rotulo}:* `;
@@ -105,6 +129,8 @@ export function rotulosNumeracao(blocos: Bloco[]): (string | null)[] {
         return `CAPÍTULO ${romano(e.n)}`;
       case 'clausula':
         return `CLÁUSULA ${ordinalExtenso(e.n, 'f').toUpperCase()}`;
+      case 'item':
+        return `${e.nClausula}.${e.n}`;
       case 'paragrafo':
         return e.unico ? 'Parágrafo Único' : `Parágrafo ${capitalizarPalavras(ordinalExtenso(e.n, 'm'))}`;
       default:
@@ -128,6 +154,13 @@ export function refsNumeracao(blocos: Bloco[]): (string | null)[] {
         return `Capítulo ${romano(e.n)}`;
       case 'clausula':
         return `Cláusula ${capitalizarPalavras(ordinalExtenso(e.n, 'f'))}`;
+      /*
+       * "item 5.5", que é como o Acordo se cita: sete ocorrências no modelo. O
+       * parágrafo se cita por extenso e o item por número, porque é assim que
+       * cada documento faz.
+       */
+      case 'item':
+        return `item ${e.nClausula}.${e.n}`;
       case 'paragrafo':
         return e.unico ? 'parágrafo único' : `parágrafo ${ordinalExtenso(e.n, 'm')}`;
       default:

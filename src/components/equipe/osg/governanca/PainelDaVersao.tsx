@@ -23,8 +23,24 @@ import { cn } from '@/lib/utils';
  * sozinho.
  */
 
+/*
+ * DATA PURA NÃO PASSA POR `new Date`, e o QA de 15/09 mostrou por quê.
+ *
+ * `assinado_em` é `date` no banco e chega como "2026-09-15", sem hora. O
+ * `new Date("2026-09-15")` lê isso como MEIA-NOITE UTC, e `toLocaleDateString`
+ * devolve ao fuso local: em Cuiabá, UTC-4, vira 14/09. Foi medido exatamente
+ * assim — gravou 15, mostrou "Assinada em 14/09/26" no painel e no histórico.
+ *
+ * `created_at` é `timestamptz` e tem hora, então aí o `Date` está certo: o
+ * instante é absoluto e a conversão para o fuso local é o que se quer.
+ *
+ * Mesma regra do `isoParaBR` dos mapeadores, que já resolve isso no motor
+ * "sem passar por Date (evita fuso)".
+ */
 const fmtData = (iso: string | null | undefined): string => {
   if (!iso) return '';
+  const soData = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
+  if (soData) return `${soData[3]}/${soData[2]}/${soData[1].slice(2)}`;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });

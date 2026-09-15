@@ -288,8 +288,15 @@ const AcordoDeQuotistas = () => {
                       conferido ? 'border-osg-200' : 'border-osg-300/70',
                     )}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-semibold">{g.titulo}</p>
+                    {/*
+                      `flex-wrap` e `min-w-0`: medido em 1024px, o contador
+                      passava até 48px da borda direita do cartão. Com o painel
+                      lateral comendo 248px, a coluna fica estreita demais para
+                      título e badge na mesma linha; agora o badge desce em vez
+                      de vazar.
+                    */}
+                    <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
+                      <p className="min-w-0 flex-1 text-sm font-semibold">{g.titulo}</p>
                       {conferido ? (
                         <Badge
                           variant="outline"
@@ -317,11 +324,21 @@ const AcordoDeQuotistas = () => {
               </div>
 
               {/*
-                `sticky` para o painel acompanhar a rolagem dos oito blocos: ele é
-                a identidade do que está sendo editado, e some da vista no terceiro
-                bloco se ficar parado.
+                SEM `sticky`, e a tentativa está registrada porque ela não funciona
+                aqui por um motivo que não é desta tela.
+                
+                O `OsgLayout` envolve o conteúdo num `div.flex-1.overflow-y-auto`,
+                que passa a ser o contêiner de rolagem do `sticky`. Só que ele
+                NUNCA rola: medido em quatro resoluções, `scrollHeight` é igual a
+                `clientHeight`, e quem rola é a janela. Contra um contêiner que não
+                rola, o `sticky` nunca engata: em 1024x700 o painel saiu inteiro da
+                tela em vez de travar no topo.
+                
+                Consertar de verdade é fechar a cadeia de altura do `OsgLayout`,
+                que vale para TODAS as telas da área. Não é mudança para embutir
+                aqui de carona.
               */}
-              <aside className="order-1 lg:sticky lg:top-4 lg:order-2">
+              <aside className="order-1 lg:order-2">
                 <PainelDaVersao
                   versao={data.acordo.versao}
                   assinadoEm={data.acordo.assinado_em}

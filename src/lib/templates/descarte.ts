@@ -34,10 +34,17 @@ export type MotivoDescarte =
   /** O parágrafo perdeu a cláusula que o governava durante o descarte em cascata. */
   | 'clausula-descartada';
 
-/** Índices dos blocos `paragrafo` que perderam a cláusula governante. */
+/**
+ * Índices dos blocos subordinados que perderam a cláusula governante.
+ *
+ * VALE PARA `paragrafo` E PARA `item`, e pelo mesmo motivo: os dois se numeram
+ * a partir da cláusula anterior. Sem ela, o parágrafo sairia como "Parágrafo
+ * Único" solto no meio do documento, e o item como "0.1", que é numeração de
+ * cláusula que não existe.
+ */
 export function paragrafosOrfaos(blocos: Bloco[]): boolean[] {
   return blocos.map((bloco, i) => {
-    if (bloco.tipo !== 'paragrafo') return false;
+    if (bloco.tipo !== 'paragrafo' && bloco.tipo !== 'item') return false;
 
     for (let anterior = i - 1; anterior >= 0; anterior -= 1) {
       const tipo = blocos[anterior].tipo;

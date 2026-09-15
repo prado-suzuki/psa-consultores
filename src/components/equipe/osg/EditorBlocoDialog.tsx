@@ -49,6 +49,7 @@ const DICA_POR_TIPO: Record<TipoBloco, string | null> = {
   capitulo: 'Escreva só o título do capítulo — "CAPÍTULO I/II/…" entra automaticamente pela posição no documento.',
   clausula: 'Escreva só o caput, sem "CLÁUSULA …:" — a numeração é automática pela ordem no documento.',
   paragrafo: 'Escreva só o texto, sem "Parágrafo …:" — vira "Parágrafo Único" ou recebe o ordinal conforme a composição.',
+  item: 'Escreva só o texto, sem "2.1" — a numeração decimal entra pela posição sob a cláusula. É a forma do Acordo de Quotistas.',
   livre: null,
 };
 
