@@ -12,6 +12,7 @@
 // 15/09/2026: pela OS a tela alcança 84 clientes, por `org_projects` alcançaria
 // 23, e a planilha acompanha 62.
 
+import { SITUACAO_PROJETO_OPTIONS } from '@/components/equipe/client-form/constants';
 import { REGIAO_OPTIONS } from '@/lib/regioes';
 
 /** OS crua, como as colunas de `ordem_servico` a devolvem. */
@@ -86,19 +87,17 @@ export interface LinhaDoControle {
 /** Situações que contam como trabalho em aberto, para efeito de prazo vencido. */
 export const SITUACOES_EM_ABERTO = ['em_andamento', 'suspenso'];
 
-/** Rótulo de cada `ordem_servico.situacao`, na palavra que a OSG usa. */
-export const SITUACAO_LABELS: Record<string, string> = {
-  em_andamento: 'Ativo',
-  // A planilha chama de "Hibernando" o que o cadastro grava como `suspenso`. O
-  // rótulo segue a palavra da equipe; o valor do banco não muda.
-  suspenso: 'Hibernando',
-  concluido: 'Finalizado',
-  cancelado: 'Cancelado',
-};
-
+/**
+ * O rótulo de uma `ordem_servico.situacao`, na palavra do CADASTRO.
+ *
+ * A fonte é `SITUACAO_PROJETO_OPTIONS`, a mesma lista que o cadastro de OS usa
+ * no seletor. A planilha chama de "Hibernando" o que o sistema grava como
+ * `suspenso`, e a tela segue o sistema: rótulo que só esta página usa faria duas
+ * telas darem nomes diferentes ao mesmo valor do banco.
+ */
 export function situacaoLabel(situacao: string | null | undefined): string {
   if (!situacao) return 'Sem situação';
-  return SITUACAO_LABELS[situacao] ?? situacao;
+  return SITUACAO_PROJETO_OPTIONS.find((opcao) => opcao.value === situacao)?.label ?? situacao;
 }
 
 function nomeDaPessoa(pessoa: PessoaCrua | undefined): string | null {

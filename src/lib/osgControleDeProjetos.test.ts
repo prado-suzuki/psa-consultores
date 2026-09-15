@@ -186,7 +186,7 @@ describe('prazoVencido', () => {
     expect(prazoVencido('2026-06-30', 'em_andamento', HOJE)).toBe(true);
   });
 
-  it('acusa prazo passado em OS hibernando', () => {
+  it('acusa prazo passado em OS suspensa', () => {
     expect(prazoVencido('2026-06-30', 'suspenso', HOJE)).toBe(true);
   });
 
@@ -208,8 +208,12 @@ describe('prazoVencido', () => {
 });
 
 describe('situacaoLabel', () => {
-  it('chama `suspenso` de Hibernando, que é a palavra da equipe', () => {
-    expect(situacaoLabel('suspenso')).toBe('Hibernando');
+  it('usa a palavra do cadastro, e nao a da planilha', () => {
+    // A planilha diz "Hibernando"; o banco grava `suspenso` e o seletor de OS
+    // ja chama isso de "Suspenso". Rotulo proprio desta tela faria duas telas
+    // darem nomes diferentes ao mesmo valor.
+    expect(situacaoLabel('suspenso')).toBe('Suspenso');
+    expect(situacaoLabel('em_andamento')).toBe('Em andamento');
   });
 
   it('devolve o valor cru quando não há rótulo', () => {
