@@ -338,6 +338,7 @@ describe('GOV-03 · o motor conhece os parâmetros do acordo', () => {
     jurosValorSubscrito: 'juros de 1% (um por cento) ao mês',
     solucaoLitigios: 'arbitragem',
     camaraArbitral: 'Câmara de Comércio Brasil Canadá',
+    regimeNomeacaoArbitros: 'partes',
     representanteNome: 'LUIZ MARCELO',
     representanteGenero: 'M',
   };
@@ -408,6 +409,18 @@ describe('GOV-03 · o motor conhece os parâmetros do acordo', () => {
       ...COMPLETO, representanteNome: 'CRISTINA', representanteGenero: 'F',
     });
     expect(ela.representanteTratamento).toBe('Sra.');
+  });
+
+  it('quem escolhe os árbitros acende uma redação e apaga a outra', () => {
+    // Em 5 dos 7 acordos, incluindo o modelo, as partes nomeiam; em 2 é a
+    // câmara, "conforme o regulamento da CAM-CCBCC".
+    const partes = mapearAcordoQuotistas(COMPLETO);
+    expect(partes.arbitrosPelasPartes).toBe('sim');
+    expect(partes.arbitrosPelaCamara).toBe('');
+
+    const camara = mapearAcordoQuotistas({ ...COMPLETO, regimeNomeacaoArbitros: 'camara' });
+    expect(camara.arbitrosPelasPartes).toBe('');
+    expect(camara.arbitrosPelaCamara).toBe('sim');
   });
 
   it('a solução de litígios acende uma redação e apaga a outra', () => {

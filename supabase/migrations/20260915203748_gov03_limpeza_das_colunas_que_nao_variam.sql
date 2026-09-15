@@ -1,6 +1,7 @@
--- 20260915180000_gov03_limpeza_das_colunas_que_nao_variam.sql
--- GOV-03: saem quatro colunas que guardam numero que nao varia, e o rotulo do
--- ramo passa a nascer no unico formato que os documentos usam.
+-- 20260915203748_gov03_limpeza_das_colunas_que_nao_variam.sql
+-- GOV-03: saem cinco colunas que guardam numero que nao varia e o rotulo do ramo
+-- que nenhum documento escreve; entra o regime de nomeacao dos arbitros, que
+-- varia de verdade.
 --
 -- ESCRITA EM 15/09/2026. NAO APLICAR SEM O OK.
 --
@@ -29,31 +30,40 @@
 -- ou grava qualquer uma delas.
 --
 --
--- 2. `prazo_indicacao_arbitros_dias` NAO ENTRA, E EU ESTAVA ERRADO SOBRE ELA
+-- 2. O PRAZO DOS ARBITROS SAI, E NO LUGAR ENTRA O REGIME DE NOMEACAO
 --
--- Eu registrei em 15/09 que esse prazo "nao existe em documento nenhum", e a
--- coluna entraria nesta limpeza junto das outras quatro. Refiz a contagem nos
--- sete acordos e a afirmacao e falsa: o AgroAlianca, clausula 26.3, escreve
+-- Esta secao ja teve tres redacoes, e vale registrar as tres porque o erro do
+-- meio custou dois dias.
+--
+-- Primeiro eu escrevi que o prazo "nao existe em documento nenhum" e o derrubei
+-- da tela. Refeita a contagem, e falso: o AgroAlianca, clausula 26.3, escreve
 -- "Cada parte devera nomear seu arbitro no prazo de 15 (quinze) dias contados do
--- recebimento da notificacao de instauracao da arbitragem; findo o prazo sem
--- nomeacao, o arbitro sera designado nos termos [do regulamento]".
+-- recebimento da notificacao de instauracao da arbitragem". Devolvi o campo.
 --
--- E 1 de 7, contra 0 de 7 que eu tinha afirmado, entao a coluna fica ate a
--- decisao ser tomada com o numero certo na mao. Derrubar coluna com base numa
--- medicao que ja se provou errada e como nao medir.
+-- Agora ele sai de novo, por um motivo diferente e melhor: temos UMA unica
+-- observacao do valor, esses 15 dias, e nenhuma evidencia de que o numero mude.
+-- Pela mesma regra que tirou os 60 dias do balanco, e linha fixa dentro da
+-- clausula, e nao pergunta ao consultor. Perguntar convida a inventar variacao
+-- que nunca existiu.
 --
--- A medicao tambem mostrou uma variacao MAIOR, que nenhuma coluna guarda hoje:
--- como os arbitros sao nomeados. Sao dois regimes, e nao um.
+-- O QUE VARIA DE VERDADE, e a mesma releitura mostrou, e COMO os arbitros sao
+-- escolhidos. Sao dois regimes, e o prazo so faz sentido dentro do primeiro:
 --
---   as partes nomeiam    4 de 7 (AgroAlianca, Utida, modelo, Perci): "um nomeado
---                        pelo reclamante, o outro pela parte reclamada e o
---                        terceiro eleito por aqueles dois"
---   pelo regulamento     2 de 7 (Horita, Via Fertil): "os quais serao nomeados
---                        conforme o regulamento da CAM-CCBCC"
+--   partes   5 de 7 (modelo, AgroAlianca, Utida, Perci, Luizao): "sendo um
+--            nomeado pelo reclamante, o outro pela parte reclamada e o terceiro
+--            eleito por aqueles dois outros arbitros"
+--   camara   2 de 7 (Horita, Via Fertil): "os quais serao nomeados conforme o
+--            regulamento da CAM-CCBCC"
 --
--- O QUANTOS sao nao varia: "03 (tres)" em 6 de 6 que dizem, entao esse segue
--- fora, pela mesma regra das quatro acima. Se um campo novo nascer aqui, e o
--- REGIME, nao o prazo.
+-- O modelo da casa usa `partes`, entao e esse o padrao.
+--
+-- A RESSALVA, e ela esta registrada: os dois documentos que fogem usam a MESMA
+-- frase, palavra por palavra, o que pode ser um copiado do outro em vez de duas
+-- decisoes de cliente. Perguntado a Anne junto das outras duas duvidas. Se a
+-- resposta for que nao se escolhe, a coluna sai e o texto volta a ser fixo.
+--
+-- O QUANTOS sao nao varia: "03 (tres)" em 6 de 6 que dizem, entao esse nao vira
+-- coluna, pela mesma regra das quatro da apuracao.
 --
 --
 -- 3. A COLUNA `rotulo` DO RAMO SAI INTEIRA
@@ -88,14 +98,27 @@ ALTER TABLE public.acordo_quotistas
   DROP COLUMN IF EXISTS regra_combinacao,
   DROP COLUMN IF EXISTS prazo_balanco_dias,
   DROP COLUMN IF EXISTS horizonte_fluxo_anos,
-  DROP COLUMN IF EXISTS taxa_minima_crescimento;
+  DROP COLUMN IF EXISTS taxa_minima_crescimento,
+  DROP COLUMN IF EXISTS prazo_indicacao_arbitros_dias;
+
+ALTER TABLE public.acordo_quotistas
+  ADD COLUMN IF NOT EXISTS regime_nomeacao_arbitros text;
+
+-- Fechado nos dois que os documentos escrevem. Nulo continua valendo: e o acordo
+-- que nao tem clausula de arbitragem, ou que ainda nao foi respondido.
+ALTER TABLE public.acordo_quotistas
+  DROP CONSTRAINT IF EXISTS acordo_quotistas_regime_arbitros_ck;
+ALTER TABLE public.acordo_quotistas
+  ADD CONSTRAINT acordo_quotistas_regime_arbitros_ck
+    CHECK (regime_nomeacao_arbitros IS NULL
+           OR regime_nomeacao_arbitros IN ('partes', 'camara'));
 
 ALTER TABLE public.acordo_ramo_familiar
   DROP CONSTRAINT IF EXISTS acordo_ramo_rotulo_ck,
   DROP COLUMN IF EXISTS rotulo;
 
--- GATE: prova que as quatro sumiram, que a quinta ficou, que o rotulo saiu e que
--- o nome do ramo continua obrigatorio.
+-- GATE: prova que as cinco sumiram, que o regime nasceu aceitando so os dois
+-- valores medidos, que o rotulo do ramo saiu e que o nome dele segue obrigatorio.
 DO $$
 DECLARE
   v_falhas  text[] := ARRAY[]::text[];
@@ -104,7 +127,8 @@ DECLARE
   v_col     text;
 BEGIN
   FOREACH v_col IN ARRAY ARRAY[
-    'regra_combinacao', 'prazo_balanco_dias', 'horizonte_fluxo_anos', 'taxa_minima_crescimento'
+    'regra_combinacao', 'prazo_balanco_dias', 'horizonte_fluxo_anos',
+    'taxa_minima_crescimento', 'prazo_indicacao_arbitros_dias'
   ] LOOP
     IF EXISTS (
       SELECT 1 FROM information_schema.columns
@@ -117,9 +141,9 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
      WHERE table_schema = 'public' AND table_name = 'acordo_quotistas'
-       AND column_name = 'prazo_indicacao_arbitros_dias'
+       AND column_name = 'regime_nomeacao_arbitros'
   ) THEN
-    v_falhas := v_falhas || 'prazo_indicacao_arbitros_dias sumiu, e esta migration nao a derruba';
+    v_falhas := v_falhas || 'regime_nomeacao_arbitros nao foi criada';
   END IF;
 
   IF EXISTS (
@@ -134,6 +158,19 @@ BEGIN
   IF v_cliente IS NOT NULL THEN
     INSERT INTO public.acordo_quotistas (cliente_id, versao)
     VALUES (v_cliente, 999996) RETURNING id INTO v_acordo;
+
+    -- Os dois regimes medidos entram; um terceiro qualquer nao.
+    UPDATE public.acordo_quotistas
+       SET regime_nomeacao_arbitros = 'partes' WHERE id = v_acordo;
+    UPDATE public.acordo_quotistas
+       SET regime_nomeacao_arbitros = 'camara' WHERE id = v_acordo;
+    BEGIN
+      UPDATE public.acordo_quotistas
+         SET regime_nomeacao_arbitros = 'sorteio' WHERE id = v_acordo;
+      v_falhas := v_falhas || 'o CHECK do regime aceitou um valor fora dos dois medidos';
+    EXCEPTION WHEN check_violation THEN
+      NULL;
+    END;
 
     -- O ramo continua gravando so com o nome, e o nome segue obrigatorio.
     INSERT INTO public.acordo_ramo_familiar (acordo_id, nome)

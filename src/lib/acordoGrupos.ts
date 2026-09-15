@@ -334,38 +334,34 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           + 'Arbitragem. Quantos árbitros são não se digita: o modelo fixa três em todos.' },
 
       /*
-       * O PRAZO VOLTOU, e a primeira contagem estava errada.
+       * O QUE VARIA É QUEM ESCOLHE OS ÁRBITROS, e não o prazo.
        *
-       * Eu tirei este campo em 15/09 escrevendo que "não existe em documento
-       * nenhum". Refiz a contagem nos sete acordos e existe: o AgroAliança, na
-       * cláusula 26.3, escreve "Cada parte deverá nomear seu árbitro no prazo de
-       * 15 (quinze) dias contados do recebimento da notificação de instauração
-       * da arbitragem; findo o prazo sem nomeação, o árbitro será designado nos
-       * termos [do regulamento]". É 1 de 7, e não 0 de 7.
+       * Este lugar já teve um campo de "prazo para indicação de árbitros", e ele
+       * saiu duas vezes, a segunda pelo motivo certo. Da primeira eu escrevi que
+       * o prazo "não existe em documento nenhum", o que é falso: o AgroAliança,
+       * cláusula 26.3, traz "no prazo de 15 (quinze) dias". Da segunda, porque
+       * temos UMA observação desse valor e nenhuma de um valor diferente. Pela
+       * mesma regra que tirou os 60 dias do balanço, é linha fixa da cláusula, e
+       * perguntar convida a inventar variação que nunca existiu.
        *
-       * Um de sete é pouco, e é exatamente a mesma proporção do RAMO FAMILIAR,
-       * que fica pelo mesmo motivo: ausência nos outros seis não é prova de que
-       * o campo sobra, é o cliente que não tem aquela cláusula. Campo opcional
-       * vazio não escreve nada.
+       * Relendo a cláusula inteira em vez de caçar a palavra "prazo", o que
+       * varia apareceu: são dois regimes de nomeação, medidos nos sete acordos.
+       * O modelo da casa usa o primeiro.
        *
-       * O QUE NÃO É CAMPO é quantos árbitros são: "03 (três)" em 6 de 6 que
-       * dizem, texto fixo do modelo.
-       *
-       * FALTA MODELAR O REGIME DE NOMEAÇÃO, que varia mais que o prazo e ainda
-       * não tem coluna. São dois, e o prazo só faz sentido no primeiro:
-       *   as partes nomeiam    4 de 7 (AgroAliança, Utida, modelo, Perci)
-       *   pelo regulamento     2 de 7 (Horita, Via Fértil), "os quais serão
-       *                        nomeados conforme o regulamento da CAM-CCBCC"
-       * Enquanto o regime não existir, a condição vive na ajuda abaixo.
+       * O QUANTOS são não é campo: "03 (três)" em 6 de 6 que dizem.
        */
-      { campo: 'prazo_indicacao_arbitros_dias',
-        rotulo: 'Prazo para cada parte indicar seu árbitro, em dias', tipo: 'numero',
-        ajuda: 'Só se aplica quando as partes nomeiam os árbitros, que é o caso em 4 dos 7 '
-          + 'acordos; nos outros dois quem nomeia é a câmara, pelo regulamento dela, e aí '
-          + 'não há prazo a digitar. Um único acordo do acervo fixa o prazo, o da '
-          + 'AgroAliança: "Cada parte deverá nomear seu árbitro no prazo de 15 (quinze) dias '
-          + 'contados do recebimento da notificação de instauração da arbitragem". Deixe '
-          + 'vazio se este acordo não traz prazo.' },
+      { campo: 'regime_nomeacao_arbitros', rotulo: 'Quem escolhe os árbitros',
+        tipo: 'escolha',
+        opcoes: [
+          { valor: 'partes', rotulo: 'Cada lado escolhe o seu, e os dois escolhem o terceiro' },
+          { valor: 'camara', rotulo: 'A câmara escolhe os três, pelo regulamento dela' },
+        ],
+        ajuda: 'São sempre três árbitros, e o que muda é quem os indica. Em 5 dos 7 acordos, '
+          + 'incluindo o modelo da casa: "sendo um nomeado pelo reclamante, o outro pela '
+          + 'parte reclamada e o terceiro eleito por aqueles dois outros árbitros". Nos '
+          + 'outros dois, Horita e Via Fértil: "os quais serão nomeados conforme o '
+          + 'regulamento da CAM-CCBCC". Quantos são não se digita: o modelo fixa três em '
+          + 'todos.' },
     ],
   },
   {

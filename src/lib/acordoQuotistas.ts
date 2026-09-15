@@ -106,7 +106,7 @@ const ROTULO_DO_CAMPO: Record<string, string> = {
   reuniao_previa_obrigatoria: 'Reunião prévia obrigatória',
   solucao_litigios: 'Solução de litígios',
   camara_arbitral: 'Câmara arbitral',
-  prazo_indicacao_arbitros_dias: 'Prazo para indicação de árbitros, em dias',
+  regime_nomeacao_arbitros: 'Quem escolhe os árbitros',
   representante_pessoa_id: 'Representante dos quotistas',
   mecanismos: 'Mecanismos presentes',
 };

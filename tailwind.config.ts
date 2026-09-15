@@ -337,6 +337,18 @@ export default {
             height: '0',
           },
         },
+        // O Collapsible do Radix expõe a altura em OUTRA variável que o Accordion
+        // (`--radix-collapsible-content-height`), então ele não aproveita as duas
+        // de cima: reusá-las deixa a altura em `auto` e o painel abre seco, sem
+        // animação nenhuma. Foi o que aconteceu no histórico do Acordo.
+        'collapsible-down': {
+          from: { height: '0', opacity: '0' },
+          to: { height: 'var(--radix-collapsible-content-height)', opacity: '1' },
+        },
+        'collapsible-up': {
+          from: { height: 'var(--radix-collapsible-content-height)', opacity: '1' },
+          to: { height: '0', opacity: '0' },
+        },
         // Abertura/fechamento dos modais OSG: entrada com física de mola —
         // sobe de baixo, passa levemente do centro (overshoot) e assenta. Só
         // transform + opacity (compositados na GPU) para rodar liso; nada de
@@ -528,6 +540,8 @@ export default {
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'collapsible-down': 'collapsible-down 0.22s cubic-bezier(0.22, 1, 0.36, 1)',
+        'collapsible-up': 'collapsible-up 0.18s cubic-bezier(0.4, 0, 1, 1)',
         // Entrada com overshoot de mola (~0.42s); saída curta e seca.
         'osg-modal-in': 'osg-modal-in 0.42s cubic-bezier(0.34, 1.2, 0.42, 1)',
         'osg-modal-out': 'osg-modal-out 0.2s cubic-bezier(0.4, 0, 1, 1)',

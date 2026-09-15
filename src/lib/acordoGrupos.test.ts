@@ -112,7 +112,7 @@ describe('preenchidosNoGrupo', () => {
   it('lista vazia e texto em branco não contam', () => {
     const g = grupoDoAcordo('conflitos')!;
     expect(preenchidosNoGrupo(g, {
-      solucao_litigios: '', camara_arbitral: null, prazo_indicacao_arbitros_dias: null,
+      solucao_litigios: '', camara_arbitral: null, regime_nomeacao_arbitros: '',
     })).toEqual({ preenchidos: 0, total: 3 });
   });
 });
@@ -136,34 +136,34 @@ describe('as ajudas saem do documento, e não da minha cabeça', () => {
     expect(ajudaDe('camara_arbitral')).toContain('Câmara de Comércio Brasil Canadá');
   });
 
-  it('o que NÃO varia não é campo; o que varia é, mesmo aparecendo uma vez', () => {
+  it('o que NÃO varia não é campo; o que varia é', () => {
     /*
-     * ESTE TESTE JÁ TRAVOU A AFIRMAÇÃO ERRADA.
+     * ESTE TESTE JÁ TRAVOU DUAS AFIRMAÇÕES ERRADAS MINHAS, e é por isso que ele
+     * trava a REGRA e não a lista.
      *
-     * Ele dizia que "prazo para indicação de árbitros" não existia em documento
-     * nenhum, e travava a ausência do campo. Refeita a contagem nos sete
-     * acordos, existe: AgroAliança, cláusula 26.3, "Cada parte deverá nomear seu
-     * árbitro no prazo de 15 (quinze) dias contados do recebimento da
-     * notificação de instauração da arbitragem". É 1 de 7.
+     * Primeiro ele dizia que "prazo para indicação de árbitros" não existia em
+     * documento nenhum. Existe: AgroAliança, 26.3, "no prazo de 15 (quinze)
+     * dias". Corrigido, ele passou a exigir o campo. Errado de novo, por outro
+     * motivo: há UMA observação desse valor e nenhuma de um valor diferente, e
+     * valor que não varia é linha fixa da cláusula, como os 60 dias do balanço.
      *
-     * A lição é sobre a catraca, não sobre o campo: teste escrito contra uma
-     * medição errada não protege nada, congela o erro. O que se trava aqui agora
-     * é a REGRA, com um exemplo de cada lado.
+     * O que a releitura da cláusula inteira mostrou variar é QUEM escolhe os
+     * árbitros: as partes em 5 de 7, a câmara em 2 de 7.
      */
     const campos = GRUPOS_DO_ACORDO.flatMap((g) => g.campos).map((c) => c.campo);
 
-    // VARIA, então é campo. A câmara: cinco usam a Brasil Canadá, a Utida usa a
-    // Câmara FGV. O prazo: 15 dias em 1 de 7, ausente nos outros seis.
+    // VARIA entre documentos, então é campo. A câmara: cinco usam a Brasil
+    // Canadá, a Utida usa a Câmara FGV. O regime: 5 contra 2.
     expect(campos).toContain('camara_arbitral');
-    expect(campos).toContain('prazo_indicacao_arbitros_dias');
+    expect(campos).toContain('regime_nomeacao_arbitros');
 
-    // NÃO VARIA, então é texto fixo do modelo. Quantos árbitros são: "03 (três)"
-    // em 6 de 6 que dizem. E os quatro números da apuração de haveres.
+    // NÃO VARIA: um único valor observado, ou o mesmo em todos. É texto fixo do
+    // modelo, e publicar o campo convida a inventar variação que não existe.
     for (const fixo of [
-      'numero_arbitros', 'prazo_balanco_dias', 'horizonte_fluxo_anos',
-      'taxa_minima_crescimento', 'regra_combinacao',
+      'prazo_indicacao_arbitros_dias', 'numero_arbitros', 'prazo_balanco_dias',
+      'horizonte_fluxo_anos', 'taxa_minima_crescimento', 'regra_combinacao',
     ]) {
-      expect(campos, `${fixo} não varia em documento nenhum`).not.toContain(fixo);
+      expect(campos, `${fixo} não varia nos documentos do acervo`).not.toContain(fixo);
     }
   });
 

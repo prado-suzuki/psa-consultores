@@ -867,6 +867,8 @@ export interface AcordoParaMapear {
   // Conflito
   solucaoLitigios?: string | null;
   camaraArbitral?: string | null;
+  /** 'partes' ou 'camara'. Ver a entidade em `vocabulario`. */
+  regimeNomeacaoArbitros?: string | null;
 
   // Representação
   representanteNome?: string | null;
@@ -949,6 +951,7 @@ export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
 
   set('solucaoLitigios', entrada.solucaoLitigios);
   set('camaraArbitral', entrada.camaraArbitral);
+  set('regimeNomeacaoArbitros', entrada.regimeNomeacaoArbitros);
 
   set('representanteNome', entrada.representanteNome);
   set('representanteGenero', entrada.representanteGenero);

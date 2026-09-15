@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
-import { Check, FilePlus2, FileSignature, MousePointerClick, Sparkles } from 'lucide-react';
+import { Check, FileSignature, MousePointerClick, Sparkles } from 'lucide-react';
 
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import {
   AcordoGrupoModal, type ValoresDoAcordo,
 } from '@/components/equipe/osg/governanca/AcordoGrupoModal';
 import {
-  FaixaDaVersao, HistoricoDoAcordo,
-} from '@/components/equipe/osg/governanca/HistoricoDoAcordo';
+  FaixaDaVersao, PainelDaVersao,
+} from '@/components/equipe/osg/governanca/PainelDaVersao';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { rowActivateProps } from '@/hooks/rowActivateProps';
@@ -60,7 +60,6 @@ const AcordoDeQuotistas = () => {
    * consulta pega a de número mais alto.
    */
   const [versaoVistaId, setVersaoVistaId] = useState<string | null>(null);
-  const [historicoAberto, setHistoricoAberto] = useState(false);
 
   const { data, isLoading } = useAcordoDoCliente(clienteId, versaoVistaId);
   const { data: versoes = [] } = useVersoesDoAcordo(clienteId);
@@ -155,7 +154,7 @@ const AcordoDeQuotistas = () => {
       title="Acordo de Quotistas"
       subtitle="O contrato entre os sócios: o que acontece quando alguém quer sair, morre, se separa ou quer vender. O contrato social diz quem é dono e quem manda; o acordo diz o resto."
     >
-      <div className="mx-auto max-w-5xl space-y-5">
+      <div className="mx-auto max-w-6xl space-y-5">
         {!clienteId ? (
           <Vazio texto="Selecione um cliente na barra acima para abrir o acordo dele." />
         ) : isLoading ? (
@@ -180,72 +179,23 @@ const AcordoDeQuotistas = () => {
           </div>
         ) : (
           <>
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-osg-200 bg-osg-50/60 px-4 py-3">
-              <p className="text-sm font-semibold text-osg-700">
-                Acordo, versão {data.acordo.versao}
-              </p>
-              <span className="text-xs text-muted-foreground">
-                {data.acordo.assinado_em
-                  ? `assinado em ${data.acordo.assinado_em}`
-                  : 'ainda em minuta'}
-              </span>
-
-              {/*
-                O BOTÃO DE NOVA VERSÃO SÓ APARECE COM TUDO CONFERIDO, por decisão
-                de 15/09. "Terminado" não é "todo campo tem valor", porque o acordo
-                nasce semeado: é todo bloco aberto e salvo por alguém. Oferecer a
-                versão 2 antes disso seria oferecer partir de um acordo que ninguém
-                leu.
-
-                E SÓ NA VERSÃO MAIS NOVA: criar a versão 3 olhando a 1 daria uma
-                versão que não continua o que está na tela.
-
-                NA VERSÃO ASSINADA ELE APARECE SEMPRE, e essa exceção é o que
-                impede um beco sem saída. A versão assinada congela, e se o botão
-                também sumisse dela a tela ficaria sem nenhuma porta: nem corrigir
-                nem seguir. Criar a próxima é justamente o caminho certo depois de
-                assinado, então ali ele não espera conferência nenhuma.
-              */}
-              {ehMaisRecente && (somenteLeitura || faltamConferir === 0) && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="ml-auto"
-                  disabled={novaVersao.isPending}
-                  onClick={() => novaVersao.mutate({ versaoAtual: data.acordo.versao })}
-                >
-                  {/*
-                    "Em branco" era mentira: a versão nova nasce com os sete
-                    quóruns e os mecanismos padrão, como um acordo novo. O rótulo
-                    agora diz o que acontece.
-                  */}
-                  <FilePlus2 className="mr-2 h-4 w-4" /> Nova versão, com os padrões
-                </Button>
-              )}
-            </div>
-
             {/*
-              O histórico só aparece quando há o que escolher. Com uma versão só,
-              a lista seria uma linha dizendo o que o cabeçalho acima já diz.
+              DUAS COLUNAS, e o painel da versão na estreita.
+
+              Ele já foi duas faixas no topo: uma barra bege com três palavras
+              dentro e a lista de versões, que empurrava os oito blocos para baixo
+              cada vez que abria. Informação de contexto não disputa espaço com o
+              trabalho. Embaixo de 1024px vira uma coluna só, e aí o painel vem
+              primeiro, porque é a identidade do que está na tela.
             */}
-            {versoes.length > 1 && (
-              <HistoricoDoAcordo
-                versoes={versoes}
-                autores={autores}
-                versaoVistaId={versaoVistaId}
-                onSelecionar={(id) => {
-                  setVersaoVistaId(id);
-                  setGrupoAberto(null);
-                }}
-                aberto={historicoAberto}
-                onAbertoChange={setHistoricoAberto}
-              />
-            )}
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_248px] lg:items-start">
+              <div className="order-2 space-y-5 lg:order-1">
 
             {/*
               A faixa aparece nas duas situações que fogem do caso comum: versão
               assinada (congelada) e versão que não é a mais nova. Na minuta mais
-              recente, que é o caso de sempre, ela não tem o que dizer.
+              recente, que é o caso de sempre, ela não tem o que dizer, e quem
+              informa é o painel ao lado.
             */}
             {(somenteLeitura || !ehMaisRecente) && (
               <FaixaDaVersao
@@ -253,7 +203,6 @@ const AcordoDeQuotistas = () => {
                 numeroAtual={versoes[0]?.versao ?? data.acordo.versao}
                 assinadoEm={data.acordo.assinado_em}
                 ehMaisRecente={ehMaisRecente}
-                onVoltar={() => setVersaoVistaId(null)}
               />
             )}
 
@@ -364,6 +313,44 @@ const AcordoDeQuotistas = () => {
                   </div>
                 );
               })}
+            </div>
+              </div>
+
+              {/*
+                `sticky` para o painel acompanhar a rolagem dos oito blocos: ele é
+                a identidade do que está sendo editado, e some da vista no terceiro
+                bloco se ficar parado.
+              */}
+              <aside className="order-1 lg:sticky lg:top-4 lg:order-2">
+                <PainelDaVersao
+                  versao={data.acordo.versao}
+                  assinadoEm={data.acordo.assinado_em}
+                  atualizadoEm={data.acordo.updated_at}
+                  atualizadoPor={autores[data.acordo.updated_by ?? ''] || null}
+                  versoes={versoes}
+                  autores={autores}
+                  versaoVistaId={versaoVistaId}
+                  onSelecionar={(id) => {
+                    setVersaoVistaId(id);
+                    setGrupoAberto(null);
+                  }}
+                  /*
+                    O BOTÃO DE NOVA VERSÃO SÓ COM TUDO CONFERIDO, por decisão de
+                    15/09. "Terminado" não é "todo campo tem valor", porque o
+                    acordo nasce semeado: é todo bloco aberto e salvo por alguém.
+
+                    E SÓ NA MAIS NOVA: criar a versão 3 olhando a 1 daria uma
+                    versão que não continua o que está na tela.
+
+                    NA VERSÃO ASSINADA ELE APARECE SEMPRE, e essa exceção é o que
+                    impede um beco sem saída: a assinada congela, e sem o botão a
+                    tela ficaria sem porta nenhuma, nem corrigir nem seguir.
+                  */
+                  podeNovaVersao={ehMaisRecente && (somenteLeitura || faltamConferir === 0)}
+                  criandoVersao={novaVersao.isPending}
+                  onNovaVersao={() => novaVersao.mutate({ versaoAtual: data.acordo.versao })}
+                />
+              </aside>
             </div>
           </>
         )}

@@ -1658,6 +1658,21 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'camaraArbitral', label: 'Câmara arbitral', tipo: 'texto' },
 
       /*
+       * QUEM ESCOLHE OS ÁRBITROS, que são sempre três.
+       *
+       * Duas redações, medidas nos sete acordos. Em 5, incluindo o modelo: "um
+       * nomeado pelo reclamante, o outro pela parte reclamada e o terceiro
+       * eleito por aqueles dois". Em 2: "nomeados conforme o regulamento da
+       * CAM-CCBCC". O número três é texto fixo, 6 de 6 que dizem.
+       */
+      { id: 'regimeNomeacaoArbitros', label: 'Quem escolhe os árbitros (partes/câmara)',
+        tipo: 'texto', interno: true },
+      condicionalCampo('arbitrosPelasPartes', 'As partes nomeiam os árbitros? (condicional)',
+        'regimeNomeacaoArbitros', (v) => v.regimeNomeacaoArbitros === 'partes'),
+      condicionalCampo('arbitrosPelaCamara', 'A câmara nomeia os árbitros? (condicional)',
+        'regimeNomeacaoArbitros', (v) => v.regimeNomeacaoArbitros === 'camara'),
+
+      /*
        * O REPRESENTANTE DOS QUOTISTAS, com o tratamento concordado.
        *
        * O modelo escreve "os QUOTISTAS elegem o Sr. LUIZ MARCELO como
