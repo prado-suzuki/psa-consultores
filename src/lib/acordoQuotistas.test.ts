@@ -79,9 +79,11 @@ describe('resumoDosMecanismos', () => {
 
 describe('diffDoAcordo', () => {
   it('registra o rótulo de gente, e não o nome da coluna', () => {
-    const d = diffDoAcordo({ prazo_balanco_dias: 60 }, { prazo_balanco_dias: 90 });
+    const d = diffDoAcordo(
+      { nao_concorrencia_prazo_anos: 3 }, { nao_concorrencia_prazo_anos: 5 },
+    );
     expect(d).toEqual({
-      'Prazo máximo do balanço, em dias': { old: '60', new: '90' },
+      'Prazo da não concorrência, em anos': { old: '3', new: '5' },
     });
   });
 

@@ -74,10 +74,9 @@ const ROTULO_DO_CAMPO: Record<string, string> = {
   vigencia_anos: 'Vigência, em anos',
   prazo_sigilo_anos: 'Prazo de sigilo, em anos',
   metodos_avaliacao: 'Métodos de avaliação da quota',
-  regra_combinacao: 'Regra de combinação dos métodos',
-  prazo_balanco_dias: 'Prazo máximo do balanço, em dias',
-  horizonte_fluxo_anos: 'Horizonte do fluxo de caixa, em anos',
-  taxa_minima_crescimento: 'Taxa mínima de crescimento',
+  // Os quatro numeros da apuracao de haveres nao estao aqui porque nao sao
+  // campo: 60 dias em 7 de 7, 05 anos em 3 de 3, IPCA e "maior valor" nos que
+  // citam. Texto fixo do modelo, e as colunas saem na migration de 15/09.
   consolida_composse: 'Consolida composse na avaliação',
   nao_concorrencia: 'Cláusula de não concorrência',
   nao_concorrencia_prazo_anos: 'Prazo da não concorrência, em anos',
