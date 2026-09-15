@@ -806,19 +806,73 @@ export function mapearCompetenciaMatriz(row: CompetenciaParaMapear): Campos {
   });
 }
 
-/** Os parâmetros do acordo. Sem tabela ainda: o cadastro é a GOV-03. */
+/**
+ * Os parâmetros do acordo, como o cadastro da GOV-03 os entrega.
+ *
+ * Tudo opcional: o acervo tem acordo sem sigilo, sem opção de compra e sem não
+ * concorrência, e o motor tem de escrever cada um desses documentos sem inventar
+ * resposta. Campo ausente vira condicional apagada, e a cláusula não sai.
+ *
+ * As PROSAS (`ordemPreferencia`, `objetosPreferencia`) chegam prontas de quem
+ * traduz o banco, e não se montam aqui: os rótulos em português moram no
+ * cadastro (`lib/acordoGrupos`), e o motor não deve depender da tela.
+ */
 export interface AcordoParaMapear {
   /** Um acordo por cliente, então a identidade é o cliente. */
   clienteId: string;
+
+  // Identificação e prazos
   assinadoEm?: string | null;
   vigenciaAnos?: number | null;
+  prazoSigiloAnos?: number | null;
+
+  // Alcance. As listas em si são papéis de lista; aqui vem só o interruptor,
+  // porque uma seção {{#…}} vazia não reescreve a frase que está fora dela.
+  temSociedadesRelacionadas?: boolean;
+  temRamos?: boolean;
+
+  // Deliberação
+  reuniaoPreviaObrigatoria?: boolean;
+
+  // Preferência
   ordemPreferencia?: string | null;
-  /** A apuração usa fluxo de caixa descontado, além do patrimônio líquido? */
+  objetosPreferencia?: string | null;
+  objetosPreferenciaChaves?: string[] | null;
+
+  /** As dez marcações do cadastro, pelas chaves. Ver a regra em `vocabulario`. */
+  mecanismos?: string[] | null;
+
+  // Apuração de haveres
+  metodosAvaliacao?: string[] | null;
+  /** Só é lido quando `metodosAvaliacao` não vem; ver o comentário abaixo. */
   usaFluxoDeCaixa?: boolean;
+  consolidaComposse?: boolean;
+
+  // Não concorrência
+  naoConcorrencia?: boolean;
+  naoConcorrenciaPrazoAnos?: number | null;
+  naoConcorrenciaArea?: string | null;
+  naoConcorrenciaMulta?: string | null;
+  naoConcorrenciaAlcancaParentes?: boolean;
+
+  // Opções de compra e venda
+  opcaoCompraPrevista?: boolean;
+  opcaoCompraQuem?: string | null;
+  opcaoCompraPreco?: string | null;
+  opcaoVendaPrevista?: boolean;
+  jurosValorSubscrito?: string | null;
+
+  // Conflito
+  solucaoLitigios?: string | null;
+  camaraArbitral?: string | null;
+
+  // Representação
+  representanteNome?: string | null;
+  representanteGenero?: string | null;
 }
 
 /**
- * Os parâmetros do Acordo de Quotistas que a alteração contratual consome.
+ * Os parâmetros do Acordo de Quotistas, para o acordo e para o contrato social.
  *
  * `assinadoEm` é o campo que decide a redação do capítulo "Do Acordo de
  * Quotistas", e isso está literal no modelo da casa: sem acordo, "os sócios
@@ -827,10 +881,56 @@ export interface AcordoParaMapear {
  */
 export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
   const { out, set } = coletor();
+  const chaves = (lista: string[] | null | undefined) => (lista ?? []).join(', ');
+  const sim = (ligado: boolean | undefined) => (ligado ? 'sim' : '');
+
   set('assinadoEm', entrada.assinadoEm);
   set('vigenciaAnos', entrada.vigenciaAnos);
+  set('prazoSigiloAnos', entrada.prazoSigiloAnos);
+
+  set('temSociedadesRelacionadas', sim(entrada.temSociedadesRelacionadas));
+  set('temRamos', sim(entrada.temRamos));
+  set('reuniaoPreviaObrigatoria', sim(entrada.reuniaoPreviaObrigatoria));
+
   set('ordemPreferencia', entrada.ordemPreferencia);
-  set('usaFluxoDeCaixa', entrada.usaFluxoDeCaixa ? 'sim' : '');
+  set('objetosPreferencia', entrada.objetosPreferencia);
+  set('objetosPreferenciaChaves', chaves(entrada.objetosPreferenciaChaves));
+  set('mecanismos', chaves(entrada.mecanismos));
+
+  /*
+   * A LISTA DE MÉTODOS MANDA NO INTERRUPTOR DO FLUXO DE CAIXA.
+   *
+   * `usaFluxoDeCaixa` nasceu antes do cadastro, como booleano solto, e três
+   * testes ainda o passam assim. Com o cadastro pronto ele é consequência de
+   * `metodos_avaliacao`, e deixar as duas entradas valerem ao mesmo tempo é
+   * deixar o documento depender de qual chegou por último. Então: havendo
+   * lista, é ela que decide; o booleano só responde quando lista não veio.
+   */
+  set('metodosAvaliacao', chaves(entrada.metodosAvaliacao));
+  const comFluxo = entrada.metodosAvaliacao
+    ? entrada.metodosAvaliacao.includes('fluxo_de_caixa_descontado')
+    : !!entrada.usaFluxoDeCaixa;
+  set('usaFluxoDeCaixa', sim(comFluxo));
+  set('consolidaComposse', sim(entrada.consolidaComposse));
+
+  set('naoConcorrencia', sim(entrada.naoConcorrencia));
+  set('naoConcorrenciaPrazoAnos', entrada.naoConcorrenciaPrazoAnos);
+  set('naoConcorrenciaArea', entrada.naoConcorrenciaArea);
+  set('naoConcorrenciaMulta', entrada.naoConcorrenciaMulta);
+  set('naoConcorrenciaAlcancaParentes', sim(entrada.naoConcorrenciaAlcancaParentes));
+
+  set('opcaoCompraPrevista', sim(entrada.opcaoCompraPrevista));
+  set('opcaoCompraQuem', entrada.opcaoCompraQuem);
+  set('opcaoCompraPreco', entrada.opcaoCompraPreco);
+  set('opcaoVendaPrevista', sim(entrada.opcaoVendaPrevista));
+  set('jurosValorSubscrito', entrada.jurosValorSubscrito);
+
+  set('solucaoLitigios', entrada.solucaoLitigios);
+  set('camaraArbitral', entrada.camaraArbitral);
+
+  set('representanteNome', entrada.representanteNome);
+  set('representanteGenero', entrada.representanteGenero);
+
   return comOrigem(derivarCampos('acordoQuotistas', out), {
     tipo: 'acordoQuotistas',
     id: entrada.clienteId,

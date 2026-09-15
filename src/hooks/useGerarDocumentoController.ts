@@ -1192,8 +1192,12 @@ export function useGerarDocumentoController() {
   // `matriz_alcadas` entra na lista de exceções pelo mesmo motivo das outras
   // três: a governança sai do cliente, não da empresa escolhida. Sem isto, um
   // modelo só de governança pediria uma Empresa que ele não usa para nada.
+  // `acordo_quotistas` entra pelo mesmo motivo de `matriz_alcadas`: o acordo é do
+  // CLIENTE, não da empresa escolhida, e sem isto um modelo só de acordo pediria
+  // uma Empresa que ele não usa para nada.
   const usaListas = listas.some(
-    (l) => !['georef', 'selecao', 'exploracao_rural', 'matriz_alcadas'].includes(l.papel.fonte),
+    (l) => !['georef', 'selecao', 'exploracao_rural', 'matriz_alcadas', 'acordo_quotistas']
+      .includes(l.papel.fonte),
   );
   // A "Sociedade" (objeto do contrato) é dirigida pela mesma Empresa que alimenta
   // listas e flags — não tem seletor próprio. Detectar aqui faz o passo de Empresa
