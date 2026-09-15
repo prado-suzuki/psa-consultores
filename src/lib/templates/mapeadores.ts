@@ -778,6 +778,12 @@ export interface CompetenciaParaMapear {
   papeis: string[];
   /** Os mesmos papéis no infinitivo, do catálogo. Vazio cai no `papeis`. */
   papeisInfinitivo?: string[];
+  /**
+   * Os GRUPOS dos papéis desta célula (`papel_governanca.grupo`), sem repetir.
+   * É o que vira as condicionais que o seletor da família lê — ver
+   * `CONDICIONAL_DO_GRUPO`.
+   */
+  grupos?: string[];
   alcada?: string | null;
   /**
    * A alçada em PEÇAS: o número do teto, a unidade, a base em prosa e o piso
@@ -800,6 +806,37 @@ export interface CompetenciaParaMapear {
 }
 
 /**
+ * UMA CONDICIONAL POR GRUPO DE PAPEL.
+ *
+ * A diferença entre a alínea do Conselho e a da Diretoria, na mesma linha da
+ * Matriz, é REDAÇÃO, e ela pertence ao bloco: "Deliberar sobre a contratação"
+ * contra "Submeter ao Conselho a contratação". O motor já sabe escolher redação
+ * por item (a família de variantes, `familia.ts`); o que faltava era algo em que
+ * o seletor pudesse pegar, porque `papeis` chega como prosa concatenada
+ * ("Aprova, Monitora") e o seletor compara igualdade de string.
+ *
+ * Os cinco grupos são os do catálogo (32 papéis em 06/09/2026: 5 de Decisão, 7
+ * de Análise, 6 de Preparação, 5 de Negociação e 9 de Execução). Grupo que não
+ * está aqui (papel criado por um cliente, que `papel_governanca.cliente_id`
+ * permite) simplesmente não acende condicional nenhuma: é melhor a variante
+ * padrão escrever a alínea genérica do que o motor inventar uma categoria.
+ *
+ * O seletor da família aceita '' como valor esperado, então "decide E NÃO
+ * analisa" se escreve {"competencia.decide":"sim","competencia.analisa":""} e
+ * não precisa de negação no motor.
+ */
+const CONDICIONAL_DO_GRUPO: Record<string, string> = {
+  'Decisão': 'decide',
+  'Análise': 'analisa',
+  'Preparação': 'prepara',
+  'Negociação': 'negocia',
+  'Execução': 'executa',
+};
+
+/** Os ids das cinco condicionais, para o vocabulário declarar as mesmas. */
+export const CONDICIONAIS_DE_GRUPO = Object.values(CONDICIONAL_DO_GRUPO);
+
+/**
  * Uma competência da Matriz de Alçadas.
  *
  * Ela vira DUAS coisas e por isso carrega os campos soltos e o `resumo` junto:
@@ -819,6 +856,10 @@ export function mapearCompetenciaMatriz(row: CompetenciaParaMapear): Campos {
   set('papeisInfinitivo', prosaDeLista(
     row.papeisInfinitivo?.length ? row.papeisInfinitivo : row.papeis,
   ));
+  for (const grupo of row.grupos ?? []) {
+    const condicional = CONDICIONAL_DO_GRUPO[grupo];
+    if (condicional) set(condicional, 'sim');
+  }
   set('alcada', row.alcada);
   /*
    * DUAS DECIMAIS E VÍRGULA, como o capital, e não o número cru.

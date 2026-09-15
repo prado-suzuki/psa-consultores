@@ -1495,6 +1495,22 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
        */
       { id: 'papeisInfinitivo', label: 'Papéis no infinitivo', tipo: 'texto' },
       /*
+       * O QUE A CÉLULA FAZ, por grupo de papel — as cinco condicionais que
+       * separam a redação do Conselho da redação da Diretoria na mesma linha da
+       * Matriz. Quem as publica é `mapearCompetenciaMatriz`, a partir de
+       * `papel_governanca.grupo`; aqui elas só se declaram, para não caírem em
+       * "desconhecidos" e para o painel saber o que são.
+       *
+       * `interno` pelo mesmo motivo do `genero` do órgão: descrevem o PAPEL
+       * escolhido na Matriz, não um dado a conferir. Quem digitasse "sim" aqui
+       * não corrigiria nada, trocaria a redação da alínea por outra.
+       */
+      { id: 'decide', label: 'A célula decide? (condicional)', tipo: 'texto', interno: true },
+      { id: 'analisa', label: 'A célula analisa/encaminha? (condicional)', tipo: 'texto', interno: true },
+      { id: 'prepara', label: 'A célula prepara/valida? (condicional)', tipo: 'texto', interno: true },
+      { id: 'negocia', label: 'A célula negocia? (condicional)', tipo: 'texto', interno: true },
+      { id: 'executa', label: 'A célula executa/monitora? (condicional)', tipo: 'texto', interno: true },
+      /*
        * A preposição do órgão de destino, que concorda com o gênero DELE e não
        * com o desta célula. Sem ela saía "encaminhando a Conselho" e
        * "encaminhando a Reunião de Sócios", no documento gerado em 14/09.

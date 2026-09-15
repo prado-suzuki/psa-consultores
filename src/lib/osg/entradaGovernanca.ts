@@ -46,6 +46,17 @@ export function entradaDaGovernanca(
   const infinitivoDoPapel = new Map(
     papeis.map((p) => [p.id, (p as { infinitivo?: string | null }).infinitivo || p.nome]),
   );
+  /*
+   * O GRUPO do papel, que é o que separa a redação da alínea do Conselho da
+   * redação da Diretoria na MESMA linha da matriz. Ele já existe no catálogo
+   * (`papel_governanca.grupo`, com Decisão, Análise, Preparação, Negociação e
+   * Execução); o que faltava era levá-lo ao motor, porque `papeis` chega como
+   * prosa concatenada ("Aprova, Monitora") e o seletor de família compara
+   * igualdade de string.
+   */
+  const grupoDoPapel = new Map(
+    papeis.map((p) => [p.id, (p as { grupo?: string | null }).grupo ?? null]),
+  );
   const nomeDoOrgao = new Map(orgaos.map((o) => [o.id, o.nome]));
   /*
    * "ao" ou "à" pelo gênero do órgão de DESTINO. Sem isto o documento saía
@@ -85,6 +96,11 @@ export function entradaDaGovernanca(
         naoParticipa: c.nao_participa,
         papeis: (c.papeis ?? []).map((id) => nomeDoPapel.get(id) ?? '?'),
         papeisInfinitivo: (c.papeis ?? []).map((id) => infinitivoDoPapel.get(id) ?? '?'),
+        // Sem repetir: a célula com "Aprova" e "Autoriza" é uma célula de
+        // decisão, não duas.
+        grupos: [...new Set(
+          (c.papeis ?? []).map((id) => grupoDoPapel.get(id)).filter((g): g is string => !!g),
+        )],
         alcada: textoDaAlcada(c),
         /*
          * A ALÇADA TAMBÉM EM PEÇAS, e não só na frase pronta.

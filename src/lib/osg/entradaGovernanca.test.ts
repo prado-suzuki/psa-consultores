@@ -18,6 +18,8 @@ import { describe, expect, it } from 'vitest';
 import { entradaDaGovernanca } from './entradaGovernanca';
 import { listasDaGovernanca } from '@/lib/templates/contextoGovernanca';
 import { renderConteudo } from '@/lib/templates/render';
+import { CONDICIONAIS_DE_GRUPO, mapearCompetenciaMatriz } from '@/lib/templates/mapeadores';
+import { camposDaEntidade } from '@/lib/templates/vocabulario';
 import type { Campos, ItemLista } from '@/lib/templates/mapeadores';
 import type {
   AtividadeDoCatalogo, Competencia, MatrizDoCliente, PapelDeGovernanca,
@@ -75,7 +77,13 @@ const ATIVIDADES = [
 
 const PAPEIS = [
   { id: 'papel-decide', nome: 'Decide', infinitivo: 'Decidir', grupo: 'Decisão' },
-  { id: 'papel-analisa', nome: 'Analisa', infinitivo: 'Analisar', grupo: 'Análise' },
+  { id: 'papel-analisa', nome: 'Analisa e encaminha', infinitivo: 'Analisar e encaminhar', grupo: 'Análise' },
+  { id: 'papel-aprova', nome: 'Aprova', infinitivo: 'Aprovar', grupo: 'Decisão' },
+  { id: 'papel-valida', nome: 'Valida', infinitivo: 'Validar', grupo: 'Preparação' },
+  { id: 'papel-negocia', nome: 'Participa da negociação', infinitivo: 'Participar da negociação', grupo: 'Negociação' },
+  { id: 'papel-executa', nome: 'Monitora', infinitivo: 'Monitorar', grupo: 'Execução' },
+  // Papel de cliente, sem grupo: o catálogo permite (papel_governanca.cliente_id).
+  { id: 'papel-do-cliente', nome: 'Referenda', infinitivo: 'Referendar', grupo: null },
 ] as unknown as PapelDeGovernanca[];
 
 /** A escada do Zamo: a Gestão é interna e é ela que dá o piso da Diretoria. */
@@ -272,5 +280,96 @@ describe('as regras do piso', () => {
       .find((o) => (o.orgao as Campos).nome === 'Conselho de Administração')!;
     const alineas = (conselho.competencias as ItemLista[]).map((a) => a.competencia as Campos);
     expect(alineas.map((a) => a.alcadaPiso)).toEqual(['500.000,00', '']);
+  });
+});
+
+
+describe('uma condicional por grupo de papel', () => {
+  /*
+   * O que isto destrava: a alínea do Conselho e a da Diretoria saem da MESMA
+   * linha da matriz e se leem diferente ("Deliberar sobre a contratação" contra
+   * "Submeter ao Conselho a contratação"). A diferença é redação, e redação
+   * pertence ao bloco; o motor já elege uma variante por item, mas o seletor
+   * compara string, e `papeis` chega como prosa concatenada ("Aprova,
+   * Monitora"). Sem as condicionais não há em que o seletor pegar.
+   */
+  const comPapeis = (papeisDaCelula: string[]) => competenciaDe(
+    escada([{ orgao: 'conselho', papeis: papeisDaCelula, teto: 1000 }], [CONSELHO]),
+    'Conselho de Administração',
+  );
+
+  it('a célula de decisão acende só `decide`', () => {
+    expect(comPapeis(['papel-decide', 'papel-aprova'])).toMatchObject({
+      decide: 'sim', analisa: '', prepara: '', negocia: '', executa: '',
+    });
+  });
+
+  it('papéis de dois grupos acendem as duas condicionais', () => {
+    expect(comPapeis(['papel-aprova', 'papel-executa'])).toMatchObject({
+      decide: 'sim', executa: 'sim', analisa: '', prepara: '', negocia: '',
+    });
+  });
+
+  it('célula sem papel nenhum não acende nenhuma', () => {
+    expect(comPapeis([])).toMatchObject({
+      decide: '', analisa: '', prepara: '', negocia: '', executa: '',
+    });
+  });
+
+  it('papel sem grupo não inventa categoria', () => {
+    // O catálogo deixa o cliente criar papel próprio. Ele entra na prosa da
+    // alínea como qualquer outro; o que não pode é acender uma condicional que
+    // ninguém declarou.
+    expect(comPapeis(['papel-do-cliente'])).toMatchObject({
+      papeis: 'Referenda', decide: '', analisa: '', prepara: '', negocia: '', executa: '',
+    });
+  });
+
+  it('"decide E NÃO analisa" se escreve com o valor vazio, sem negação no motor', () => {
+    // É a forma que o seletor da família usa:
+    // {"competencia.decide":"sim","competencia.analisa":""}.
+    const seletor = { 'competencia.decide': 'sim', 'competencia.analisa': '' };
+    const casa = (campos: Campos) =>
+      Object.entries(seletor).every(([caminho, esperado]) => campos[caminho.split('.')[1]] === esperado);
+
+    expect(casa(comPapeis(['papel-aprova']))).toBe(true);
+    expect(casa(comPapeis(['papel-aprova', 'papel-analisa']))).toBe(false);
+  });
+});
+
+describe('o vocabulário conhece todo campo que o mapeador publica', () => {
+  /*
+   * Nome de campo que não existe no vocabulário NÃO dá erro: ele simplesmente
+   * nunca casa. Foi assim que `capitalValorExtenso` fez o aumento de capital
+   * sair com o algarismo novo e o extenso velho, calado. Este teste é a rede
+   * para a mesma classe de defeito nos campos de alçada e de grupo.
+   */
+  it('nenhum campo publicado fica fora do catálogo de `competenciaMatriz`', () => {
+    const declarados = new Set(camposDaEntidade('competenciaMatriz').map((c) => c.id));
+    const publicados = Object.keys(mapearCompetenciaMatriz({
+      id: 'celula-1',
+      atividade: 'Contratação de prestadores de serviços',
+      detalhamento: 'inclusive consultorias',
+      papeis: ['Aprova'],
+      papeisInfinitivo: ['Aprovar'],
+      grupos: ['Decisão', 'Execução'],
+      alcada: 'até R$ 5.000.000,00',
+      alcadaValor: 5000000,
+      alcadaUnidade: 'moeda',
+      alcadaBase: '',
+      alcadaPiso: 500000,
+      sobePara: 'Conselho de Administração',
+      sobeParaAo: 'ao',
+      foraDaPolitica: true,
+      resumo: 'Aprova · até R$ 5.000.000,00',
+    })).filter((chave) => !chave.startsWith('__'));
+
+    expect(publicados.filter((chave) => !declarados.has(chave))).toEqual([]);
+  });
+
+  it('as cinco condicionais de grupo estão declaradas', () => {
+    const declarados = new Set(camposDaEntidade('competenciaMatriz').map((c) => c.id));
+    expect(CONDICIONAIS_DE_GRUPO.filter((id) => !declarados.has(id))).toEqual([]);
+    expect(CONDICIONAIS_DE_GRUPO).toEqual(['decide', 'analisa', 'prepara', 'negocia', 'executa']);
   });
 });
