@@ -714,6 +714,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/osg/work/governanca/acordo',
+    page_name: 'Acordo de Quotistas',
+    page_description: 'O contrato entre os sócios: preferência na venda, quanto vale a quota de quem sai, quóruns e não concorrência',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/osg/work/controle-matriculas',
     page_name: 'Controle de Matrículas',
     page_description: 'Registro de todas as matrículas (vinculadas ou órfãs), com vínculo a bens',
