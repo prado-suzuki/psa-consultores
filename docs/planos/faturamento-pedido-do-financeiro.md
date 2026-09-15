@@ -17,8 +17,7 @@ pena**, e o que levar para ela está no fim.
 | 2. Campo de vencimento (data acordada) | nenhuma data de vencimento. A OS tem emissão, início e fim | **Banco + tela.** Vive na parcela, não na OS — ver ponto 1 |
 | 3. Rateio: tem limite? | **não tem limite.** 18 centros de custo cadastrados; o maior rateio em uso hoje tem 4 linhas; a soma 100% já é exigida para salvar | **nada.** Só responder a ela — e olhar as **3 OS cujo rateio não fecha 100%**, anteriores à regra |
 | 4. Observação do serviço que vai na NF (nº da OC, do pedido, inscrição estadual) | `ordem_servico.observacoes`, campo genérico, **10 OS preenchidas**, e o dashboard não mostra | **Banco + tela**, se for texto próprio da nota. Ver a pergunta B |
-| 5. Faturar em mais de um CPF/CNPJ | **um** `contribuinte_id` por OS. **96 clientes já têm mais de um contribuinte** cadastrado | **Banco + tela.** É o ponto mais delicado: são dois rateios diferentes (ver abaixo) |
-| 6. Projeto em nome de João, faturado para Maria/Joana | impossível hoje: a OS só oferece contribuintes **do próprio cliente**, e em produção **nenhuma** OS foge disso | **Banco + tela**, junto com o ponto 5 |
+| 5 e 6. Faturar em mais de um CPF/CNPJ, e faturar para Maria/Joana num projeto de João | **um** `contribuinte_id` por OS. Mas o cadastro já modela o grupo: **96 clientes têm mais de um contribuinte**, **30 já têm duas ou mais pessoas físicas**, 45 misturam PF e PJ, e o maior cliente tem 26 | **Banco + tela, e é UMA funcionalidade só** (ver abaixo): N contribuintes na OS com regra de divisão |
 | 7. Reembolso de água e pedágio | duas colunas fixas: `valor_reembolso_km` e `valor_reembolso_refeicao`. **13 OS** têm algum reembolso | **Banco + tela.** Tabela de tipos, não mais colunas — ver abaixo |
 | 8. Dados de contato (e-mail e telefone) | o contribuinte tem **telefone** e **não tem e-mail**. Quem tem e-mail é o representante do cliente: **73 preenchidos** | **Banco + tela**, dependendo da resposta da pergunta F |
 
@@ -30,6 +29,15 @@ centro de custo — é interno e não aparece em nota nenhuma. O que ela pediu n
 **a nota** entre CPFs/CNPJs **do cliente**. São duas divisões independentes: a mesma OS pode
 ser faturada em dois CNPJs do cliente e, ainda assim, ter a receita repartida entre PSA Norte
 e Prado Suzuki. Precisam de tabelas separadas.
+
+**Os pontos 5 e 6 são a mesma coisa, menos um caso.** "Faturar para Maria" é, na prática,
+escolher **outro contribuinte do mesmo cliente** — e isso o cadastro já representa: 30
+clientes têm duas ou mais pessoas físicas como contribuinte, que é exatamente o grupo
+familiar. Então a funcionalidade é uma: **N contribuintes por OS**. Duas ressalvas: ela não
+se resume a "adicionar mais um", porque o sistema precisa saber **quanto vai em cada nota**
+(pergunta C); e fica de fora o caso em que a Maria **não pertence ao grupo daquele cliente**,
+que é vínculo de cadastro, não escolha na lista (pergunta D). A resposta da D decide se isso
+é uma frente ou duas.
 
 **Reembolso: tabela, não coluna.** Hoje cada tipo de reembolso é uma coluna. Água e pedágio
 viram mais duas, e o próximo pedido (hotel, passagem, estacionamento) vira mais uma migration
