@@ -72,6 +72,12 @@ permissão continuam pendentes em produção do jeito que a tabela acima diz.
 O clique dobrado é vizinho do defeito da tarefa 2: um fabricava cliente repetido, o outro deixa
 cliente órfão. O desfazer continua sem pegar.
 
+## Avisos no Google Chat
+
+| Tarefa | Escopo | Banco? | Status |
+|---|---|---|---|
+| [7 Coleta de documentos e menções no Google Chat](TAREFA_coleta-e-mencao-no-google-chat.md) | As duas frentes do sino que ficaram de fora do canal do Chat **e que já têm evento gravado**: aviso de coleta (`solicitacao_enviada`, texto da Patricia já gravado em `notificacao`, reusado tal e qual) e menção em comentário (`org_comment_mentions`, com `lido_em` próprio). **Chamado fica fora por decisão dela em 14/09** — já tem o espaço "PSA Chamados"; **revisão-pendente fica fora** porque o sino a deriva do estado e não existe evento para espelhar. Volume medido: ~1 mensagem por semana. Três decisões abertas (D1 a D3), sendo a mais pesada se menção — que é endereçada a UMA pessoa — deve mesmo ir para espaço coletivo | Sim, **3 ⚠️ MIGRAÇÕES**: a leitura ganha `org_project`, a função irmã `mencoes_para_o_chat`, e um valor de enum para menção em `notificacao_tipo` — este **bloqueante**, porque sem ele a linha de envio não grava e não há dedup nem rastro | 🔵 ABERTO |
+
 ## Avisos de prazo de tarefa
 
 | Tarefa | Escopo | Banco? | Status |

@@ -34,7 +34,7 @@
 export const CLASSE_BASE = 'base-theme';
 
 /** Áreas do ponto de vista do TEMA (ver nota acima sobre `AreaKey`). */
-export type AreaDeTema = 'tax' | 'osg' | 'board' | 'rotina' | 'digital' | 'sistema' | 'base';
+export type AreaDeTema = 'tax' | 'osg' | 'board' | 'rotina' | 'digital' | 'sistema' | 'admFin' | 'base';
 
 /**
  * Classe de tema de cada área, ou `null` para "só o piso".
@@ -113,6 +113,11 @@ export const TEMA_DA_AREA: Record<AreaDeTema, string | null> = {
   tax: 'tax-theme',
   osg: 'osg-theme',
   board: null,
+  // A Adm & Fin nasce sem delta, pela mesma regra da Rotina e do Board: a
+  // ancora dela e a da CASA, e a casa e o que o piso ja pinta. A linha existe
+  // porque a AREA existe, e a pergunta "de que area e esta rota?" precisa de
+  // resposta mesmo quando a resposta nao muda um pixel.
+  admFin: null,
   rotina: null,
   digital: null,
   sistema: null,
@@ -148,6 +153,11 @@ export const MAPA_DE_ROTAS: RegraDeRota[] = [
   // ── Áreas com paleta própria ────────────────────────────────────────
   { prefixo: '/equipe/tax', area: 'tax' },
   { prefixo: '/equipe/osg', area: 'osg' },
+
+  // ── Adm & Fin: área da PSA Prado Suzuki, na cor da casa ─────────────
+  // O caminho NÃO vem do nome: "Adm & Fin" tem espaço e `&`, e o `&` é
+  // reservado em URL. Ele é escrito aqui e em `AREA_ROUTES`, nos dois à mão.
+  { prefixo: '/equipe/adm-fin', area: 'admFin' },
 
   // ── Digital: área de negócio, e a cor dela é a da casa ──────────────
   // Sem paleta própria — e, como a Rotina, sem precisar de uma: a âncora do

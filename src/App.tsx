@@ -134,9 +134,11 @@ const FiscalGerencial = lazy(() => import("./pages/equipe/fiscal/FiscalGerencial
 const FiscalGerencialChamados = lazy(() => import("./pages/equipe/fiscal/FiscalGerencialChamados"));
 const FiscalGerencialChamadosDashboard = lazy(() => import("./pages/equipe/fiscal/FiscalGerencialChamadosDashboard"));
 const FiscalGerencialChamadoDetalhe = lazy(() => import("./pages/equipe/fiscal/FiscalGerencialChamadoDetalhe"));
+const FiscalProdutosServicos = lazy(() => import("./pages/equipe/fiscal/FiscalProdutosServicos"));
 const OsgGerencialChamados = lazy(() => import("./pages/equipe/osg/OsgGerencialChamados"));
 const OsgGerencialChamadosDashboard = lazy(() => import("./pages/equipe/osg/OsgGerencialChamadosDashboard"));
 const OsgGerencialChamadoDetalhe = lazy(() => import("./pages/equipe/osg/OsgGerencialChamadoDetalhe"));
+const OsgProdutosServicos = lazy(() => import("./pages/equipe/osg/OsgProdutosServicos"));
 
 // Equipe > OSG / Board
 const OsgAreaSelector = lazy(() => import("./pages/equipe/osg/OsgAreaSelector"));
@@ -166,9 +168,14 @@ const Relatorios = lazy(() => import("./pages/equipe/osg/Relatorios"));
 const OsgAuditoria = lazy(() => import("./pages/equipe/osg/OsgAuditoria"));
 const OrgaosGovernanca = lazy(() => import('./pages/equipe/osg/OrgaosGovernanca'));
 const MatrizDeAlcadas = lazy(() => import('./pages/equipe/osg/MatrizDeAlcadas'));
+const AcordoDeQuotistas = lazy(() => import('./pages/equipe/osg/AcordoDeQuotistas'));
 const PapelDeTrabalho = lazy(() => import('./pages/equipe/dev/PapelDeTrabalho'));
 const GeradorDeSlides = lazy(() => import('./pages/equipe/dev/GeradorDeSlides'));
 const PlanejamentoTributarioHub = lazy(() => import('./pages/equipe/dev/PlanejamentoTributarioHub'));
+// Equipe > Adm & Fin
+const AdmFinBoasVindas = lazy(() => import("./pages/equipe/adm-fin/AdmFinBoasVindas"));
+const AdmFinClientes = lazy(() => import("./pages/equipe/adm-fin/AdmFinClientes"));
+
 import { BoardClusterProvider } from "./contexts/BoardClusterContext";
 const BoardDashboard = lazy(() => import("./pages/equipe/board/BoardDashboard"));
 const BoardRelatorios = lazy(() => import("./pages/equipe/board/BoardRelatorios"));
@@ -354,6 +361,15 @@ const App = () => (
               <Route path="/equipe/tax/gerencial/logs-equipe" element={<LiderRoute><PageAccessGate pagePath="/equipe/tax/gerencial/logs-equipe"><FiscalAuditoria /></PageAccessGate></LiderRoute>} />
               <Route path="/equipe/tax/auditoria" element={<Navigate to="/equipe/tax/gerencial/logs-equipe" replace />} />
 
+              {/* Produtos & Serviços — a MESMA bancada de /equipe/acessos, montada no
+                  FiscalLayout. Duas travas, como as de Chamados e Logs de Uso ao lado:
+                  papel (LiderRoute) e permissão nominal.
+
+                  A trava de papel não é decorativa aqui: a RLS das três tabelas da tela
+                  também abre em líder+ (ver a migration 20260914212709). Front e banco
+                  são fechaduras independentes, e esta rota é a que fecha a de cima. */}
+              <Route path="/equipe/tax/gerencial/produtos-servicos" element={<LiderRoute><PageAccessGate pagePath="/equipe/tax/gerencial/produtos-servicos"><FiscalProdutosServicos /></PageAccessGate></LiderRoute>} />
+
               {/* OSG Routes */}
               <Route path="/equipe/osg" element={<ProtectedRoute><OsgAreaSelector /></ProtectedRoute>} />
               <Route path="/equipe/osg/inicio" element={<ProtectedRoute><OsgBoasVindas /></ProtectedRoute>} />
@@ -383,6 +399,7 @@ const App = () => (
                 <Route path="/equipe/osg/work/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/governanca/orgaos" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/orgaos"> <OrgaosGovernanca /> </PageAccessGate> } />
                 <Route path="/equipe/osg/work/governanca/matriz" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/matriz"> <MatrizDeAlcadas /> </PageAccessGate> } />
+                <Route path="/equipe/osg/work/governanca/acordo" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/acordo"> <AcordoDeQuotistas /> </PageAccessGate> } />
               </Route>
               {/* Gestão de Chamados dentro da Gerencial da OSG. Espelha a Tax. Hoje
                   nasce vazia: não há chamado com cluster OSG. */}
@@ -393,6 +410,19 @@ const App = () => (
               {/* Logs de Uso (ex-Auditoria, ex-Logs de Equipe) — líder+, igual à Tax; quem não é volta para a home do OSG. */}
               <Route path="/equipe/osg/gerencial/logs-equipe" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/logs-equipe"><OsgAuditoria /></PageAccessGate></LiderRoute>} />
               <Route path="/equipe/osg/auditoria" element={<Navigate to="/equipe/osg/gerencial/logs-equipe" replace />} />
+
+              {/* Produtos & Serviços — espelho da Tax, e a MESMA bancada de
+                  /equipe/acessos montada no OsgLayout. Duas travas, como as vizinhas:
+                  papel (LiderRoute) e permissão nominal. A RLS das tabelas abriu em
+                  líder+ na migration 20260914212709, que vale para as três telas. */}
+              <Route path="/equipe/osg/gerencial/produtos-servicos" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/produtos-servicos"><OsgProdutosServicos /></PageAccessGate></LiderRoute>} />
+
+              {/* ── Adm & Fin ────────────────────────────────────────────
+                  O caminho é `/equipe/adm-fin` e NÃO deriva do nome da área:
+                  "Adm & Fin" tem espaço e `&`, reservado em URL. Ele é escrito
+                  à mão aqui, em `AREA_ROUTES` e em `MAPA_DE_ROTAS`. */}
+              <Route path="/equipe/adm-fin" element={<PageAccessGate pagePath="/equipe/adm-fin"><AdmFinBoasVindas /></PageAccessGate>} />
+              <Route path="/equipe/adm-fin/clientes" element={<PageAccessGate pagePath="/equipe/adm-fin/clientes"><AdmFinClientes /></PageAccessGate>} />
 
               {/* Board Routes */}
               {/* Rota sem path só para o Provider: o seletor global de cliente

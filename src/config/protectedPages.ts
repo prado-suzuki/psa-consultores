@@ -21,7 +21,7 @@ export interface ProtectedPage {
    * ATENCAO ao acrescentar: a categoria e a chave de acesso E, a partir da
    * resolucao por categoria, do tema. Categoria desconhecida cai no piso.
    */
-  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'osg' | 'board' | 'tax' | 'mapa';
+  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'osg' | 'board' | 'tax' | 'mapa' | 'adm_fin';
   requires_admin: boolean;
   requires_team_member: boolean;
 }
@@ -585,6 +585,17 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  {
+    // A mesma bancada que a seção "Produtos & Serviços" de /equipe/acessos
+    // monta — o componente, não uma cópia. Lá o acesso é admin (AdminRoute);
+    // aqui é líder+, e a RLS das tabelas acompanhou (migration 20260914212709).
+    page_path: '/equipe/tax/gerencial/produtos-servicos',
+    page_name: 'Produtos & Serviços (Tax)',
+    page_description: 'Quais serviços cada produto gera em projeto novo (somente líder+)',
+    category: 'tax',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 
   // =============================================
   // === OSG PAGES ===
@@ -703,6 +714,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/osg/work/governanca/acordo',
+    page_name: 'Acordo de Quotistas',
+    page_description: 'O contrato entre os sócios: preferência na venda, quanto vale a quota de quem sai, quóruns e não concorrência',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/osg/work/controle-matriculas',
     page_name: 'Controle de Matrículas',
     page_description: 'Registro de todas as matrículas (vinculadas ou órfãs), com vínculo a bens',
@@ -768,6 +787,17 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     page_path: '/equipe/osg/gerencial/chamados/dashboard',
     page_name: 'Dashboard de Chamados (OSG)',
     page_description: 'Panorama de chamados: KPIs, prazos e rankings (somente líder+)',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    // Espelho da entrada Tax ao lado: a MESMA bancada, o componente e não uma
+    // cópia. A permissão é separada de propósito — a página é uma por área, e
+    // é ela que decide em qual cluster a bancada abre.
+    page_path: '/equipe/osg/gerencial/produtos-servicos',
+    page_name: 'Produtos & Serviços (OSG)',
+    page_description: 'Quais serviços cada produto gera em projeto novo (somente líder+)',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,
@@ -909,4 +939,39 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // arquivo. A linha e as 14 concessões penduradas nela são apagadas pela
   // migração `20260912000000_remove_gestao_acessos.sql`, no mesmo padrão que
   // `/gestao/chamados` usou.
+
+  // ====================================================================
+  // === CATEGORIA `adm_fin` ===
+  //
+  // A area da Adm & Fin, criada em 14/09/2026. O caminho e `/equipe/adm-fin`
+  // e NAO deriva do nome: "Adm & Fin" tem espaco e `&`, reservado em URL.
+  //
+  // Estas duas linhas chegam a `page_permissions` pelo botao "Atualizar" de
+  // `/equipe/acessos` (`useSyncProtectedPages`), e e SO disso que a concessao
+  // de acesso depende: `useUserAccessibleCategories` le `user_page_access`
+  // juntado a `page_permissions`, e nao encosta em `estrutura_areas`.
+  //
+  // `estrutura_areas.page_categories` e outra coisa, e a propria tela de
+  // Estrutura diz isso em cima do campo: ele e de ESCOPO, decide em que telas
+  // a area aparece (`useDomainClusterPorCategoria`, `useEstruturaAreas`, o
+  // bucket do Board). Marcar 'adm_fin' la e desejavel, nao bloqueante — e a
+  // tela de Clientes desta area nem o consulta, porque vai com
+  // `todosOsClusters`.
+  // ====================================================================
+  {
+    page_path: '/equipe/adm-fin',
+    page_name: 'Adm & Fin',
+    page_description: 'Boas-vindas da area Administrativo e Financeiro',
+    category: 'adm_fin',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/adm-fin/clientes',
+    page_name: 'Clientes (Adm & Fin)',
+    page_description: 'Cadastros de clientes e contribuintes, sem recorte de cluster',
+    category: 'adm_fin',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 ];

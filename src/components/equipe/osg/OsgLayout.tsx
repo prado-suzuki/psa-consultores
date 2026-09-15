@@ -193,6 +193,14 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
       label: 'Dashboard de Chamados',
       icon: LineChart,
     },
+    // Na Gerencial e não em Projetos, pela mesma razão da Tax: aqui o líder+ já
+    // está isolado pelo agrupador, e em Projetos o item apareceria aceso para
+    // quem a rota vai barrar.
+    {
+      path: '/equipe/osg/gerencial/produtos-servicos',
+      label: 'Produtos & Serviços',
+      icon: FolderKanban,
+    },
     { path: '/equipe/osg/gerencial/logs-equipe', label: 'Logs de Uso', icon: Shield },
   ];
   const isGerencialActive = location.pathname.startsWith('/equipe/osg/gerencial');
@@ -234,6 +242,11 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   const govItems = [
     { path: '/equipe/osg/work/governanca/orgaos', label: 'Órgãos de Governança' },
     { path: '/equipe/osg/work/governanca/matriz', label: 'Matriz de Alçadas' },
+    // O acordo vem DEPOIS da matriz, e isso foi verificado no documento: o
+    // próprio acordo manda que composição, eleição e prazos de gestão obedeçam
+    // ao contrato social, e define o quórum PARA ALTERAR o contrato. Como a
+    // matriz é o que vira as cláusulas de competência dele, ela vem antes.
+    { path: '/equipe/osg/work/governanca/acordo', label: 'Acordo de Quotistas' },
   ];
   const isGovActive = govItems.some((item) => item.path === location.pathname);
 

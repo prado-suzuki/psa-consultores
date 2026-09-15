@@ -130,6 +130,15 @@ const menuItems: MenuItem[] = [
         path: '/equipe/tax/gerencial/chamados/dashboard'
       },
       {
+        // Entrou na Gerencial, e não em Projetos, porque é aqui que o líder+ já
+        // está isolado — em Projetos o item apareceria aceso para o consultor,
+        // que a rota barra, e `children` não tem campo de papel para escondê-lo.
+        id: 'gerencial-produtos-servicos',
+        label: 'Produtos & Serviços',
+        icon: FolderKanban,
+        path: '/equipe/tax/gerencial/produtos-servicos'
+      },
+      {
         id: 'gerencial-logs',
         label: 'Logs de Uso',
         icon: Shield,

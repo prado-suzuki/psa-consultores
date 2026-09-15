@@ -10,7 +10,7 @@
  * (campo `category`) e em page_permissions.category. Categorias "fantasma"
  * (sem páginas associadas) tornam a inferência `every()` sempre false.
  */
-export type AreaKey = 'digital' | 'tax' | 'osg' | 'board' | 'controle_site';
+export type AreaKey = 'digital' | 'tax' | 'osg' | 'board' | 'controle_site' | 'adm_fin';
 
 export interface AreaDefinition {
   label: string;
@@ -19,6 +19,10 @@ export interface AreaDefinition {
 }
 
 export const AREA_CATEGORIES_MAP: Record<AreaKey, AreaDefinition> = {
+  // O nome oficial do cluster tem espaco e `&`, e nenhum dos dois sobrevive a
+  // URL. Por isso a CHAVE e o CAMINHO sao escritos aqui, a mao, e nunca
+  // derivados do nome (ver `docs/geral/inventario-telas-por-cluster.md`).
+  adm_fin: { label: 'Adm & Fin', categories: ['adm_fin'] },
   digital: { label: 'Digital', categories: ['rotina', 'dev'] },
   tax: { label: 'Tax', categories: ['tax'] },
   osg: { label: 'OSG', categories: ['osg'] },
@@ -33,6 +37,7 @@ export const ALL_AREA_CATEGORIES: string[] = Object.values(AREA_CATEGORIES_MAP).
 
 /** Rotas de destino ao selecionar uma área no login. */
 export const AREA_ROUTES: Record<AreaKey, string> = {
+  adm_fin: '/equipe/adm-fin',
   digital: '/equipe/digital',
   tax: '/equipe/tax',
   osg: '/equipe/osg',
@@ -42,6 +47,7 @@ export const AREA_ROUTES: Record<AreaKey, string> = {
 
 /** Lista ordenada para o select de área no login. */
 export const AREAS_LIST: Array<{ id: AreaKey; label: string }> = [
+  { id: 'adm_fin', label: 'Adm & Fin' },
   { id: 'board', label: 'Board' },
   { id: 'digital', label: 'Digital' },
   { id: 'controle_site', label: 'Marketing' },

@@ -154,6 +154,15 @@ const AREAS = {
     acento: 'bg-primary/10 text-primary',
     tom: 'tokens',
   },
+  // A Adm & Fin nasceu com barra propria em 14/09/2026, ja com o cartao: e a
+  // primeira area a entrar depois que este componente virou o padrao, entao
+  // ela nunca teve copia a mao para migrar. `tokens` porque a barra dela e
+  // Tailwind sobre os tokens da casa, como a do Tax e a dos Acessos.
+  admFin: {
+    rotulo: NOMES_DE_AREA.admFin.nome,
+    acento: 'bg-primary/10 text-primary',
+    tom: 'tokens',
+  },
   mapa: {
     rotulo: 'Mapeamento',
     // A barra do Mapeamento e CSS legado (`mapa.css`), fora do Tailwind: o
