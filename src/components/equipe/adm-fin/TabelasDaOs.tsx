@@ -1,3 +1,4 @@
+import { SectionHeading } from '@/components/ui/section-heading';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrencyDisplay } from '@/components/equipe/client-form/constants';
 import { formatarPercentual } from '@/lib/rateioReceita';
@@ -30,10 +31,12 @@ export interface TabelasDaOsProps {
 const ou = (valor: string | null | undefined) => valor?.trim() || '—';
 
 const Quadro = ({ titulo, children }: { titulo: string; children: React.ReactNode }) => (
-  <section className="min-w-0">
-    <h4 className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-      {titulo}
-    </h4>
+  <section className="min-w-0 space-y-1.5">
+    {/* O título é o `SectionHeading` da casa, o mesmo dos modais de tarefa e de
+        projeto. Era um `h4` escrito aqui, com peso e caixa quase iguais — quase
+        é justamente o problema: dois títulos de seção que se parecem envelhecem
+        separado. */}
+    <SectionHeading>{titulo}</SectionHeading>
     {/*
       `bg-card` e não a superfície do cartão: este painel já está DENTRO da casca
       `ListaMestreDetalhe`, que é `bg-superficie-cartao` (35% de `--muted`, e o
