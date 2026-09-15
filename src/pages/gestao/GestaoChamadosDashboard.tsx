@@ -6,6 +6,7 @@ import { DashboardDistributions } from '@/components/gestao/chamados-dashboard/D
 import { DashboardFilters } from '@/components/gestao/chamados-dashboard/DashboardFilters';
 import { DashboardKpis } from '@/components/gestao/chamados-dashboard/DashboardKpis';
 import { DashboardRankings } from '@/components/gestao/chamados-dashboard/DashboardRankings';
+import { DashboardRecorteAviso } from '@/components/gestao/chamados-dashboard/DashboardRecorteAviso';
 import { TaxTopicsCloud } from '@/components/gestao/chamados-dashboard/TaxTopicsCloud';
 import { Button } from '@/components/ui/button';
 import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
@@ -112,6 +113,22 @@ export function ChamadosDashboardContent({ listaPath }: ChamadosDashboardContent
     () => rankingAtrasoPorPessoa(chamadosPorPrazo.fora),
     [chamadosPorPrazo],
   );
+  /**
+   * Quantos chamados o recorte de PERÍODO deixou de fora — só ele, com os demais
+   * filtros neutros. `filteredTickets` não serve para esta conta: ele já aplicou
+   * cliente, departamento, área e cluster, e a diferença sairia inflada.
+   */
+  const foraDoPeriodo = useMemo(() => {
+    const soPeriodo = {
+      ...filters,
+      cliente: 'todos',
+      departamento: 'todos',
+      area: 'todos',
+      cluster: 'todos',
+    };
+    return tickets.length - filterDashboardTickets(tickets, soPeriodo, new Date()).length;
+  }, [tickets, filters]);
+
   const openTickets = () => navigate(listaPath);
 
   return (
@@ -134,6 +151,9 @@ export function ChamadosDashboardContent({ listaPath }: ChamadosDashboardContent
         clusters={clusters}
         onChange={setFilters}
       />
+      {/* Antes dos números, e não depois: o aviso existe para o leitor não somar
+          errado, e depois dos cartões já seria tarde. */}
+      <DashboardRecorteAviso foraDoPeriodo={foraDoPeriodo} periodo={filters.periodo} />
       <DashboardKpis
         stats={analytics.stats}
         periodo={filters.periodo}
