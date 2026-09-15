@@ -748,7 +748,18 @@ export function mapearOrgaoGovernanca(row: OrgaoParaMapear): Campos {
   set('membrosMaximo', row.membros_maximo);
   set('mandatoAnos', row.mandato_anos);
   set('cargos', prosaDeLista(row.cargos_do_orgao));
-  return comOrigem(derivarCampos('orgaoGovernanca', out), { tipo: 'orgaoGovernanca', id: row.id });
+  /*
+   * `publicarOpcionais` antes de derivar: campo do catálogo que o cadastro não
+   * tem sai como '' em vez de sumir. Sumir tem dois efeitos ruins e silenciosos
+   * — o placeholder do bloco lança "não resolvido", e o seletor de uma família
+   * acusa "classificação ausente" em vez de escolher a redação sem o dado. O
+   * `nome` é obrigatório e por isso NÃO é completado: sem ele o documento tem
+   * de falhar alto.
+   */
+  return comOrigem(
+    derivarCampos('orgaoGovernanca', publicarOpcionais('orgaoGovernanca', out)),
+    { tipo: 'orgaoGovernanca', id: row.id },
+  );
 }
 
 /** "A", "A e B", "A, B e C" — a juntura que a cláusula usa. */
@@ -768,6 +779,18 @@ export interface CompetenciaParaMapear {
   /** Os mesmos papéis no infinitivo, do catálogo. Vazio cai no `papeis`. */
   papeisInfinitivo?: string[];
   alcada?: string | null;
+  /**
+   * A alçada em PEÇAS: o número do teto, a unidade, a base em prosa e o piso
+   * derivado da escada da linha (ver `pisosDaLinha`). É o que permite a alínea
+   * do meio da escada escrever "superior a X e até Y" e o extenso de cada
+   * valor — coisas que a frase pronta de `alcada` não sabe fazer.
+   */
+  alcadaValor?: number | null;
+  /** 'moeda' ou 'percentual', como o cadastro guarda. */
+  alcadaUnidade?: string | null;
+  /** Já em prosa ("do orçamento aprovado"), como a alínea escreve. */
+  alcadaBase?: string | null;
+  alcadaPiso?: number | null;
   sobePara?: string | null;
   /** "ao" ou "à", pelo gênero do órgão de destino. */
   sobeParaAo?: string | null;
@@ -797,11 +820,27 @@ export function mapearCompetenciaMatriz(row: CompetenciaParaMapear): Campos {
     row.papeisInfinitivo?.length ? row.papeisInfinitivo : row.papeis,
   ));
   set('alcada', row.alcada);
+  /*
+   * DUAS DECIMAIS E VÍRGULA, como o capital, e não o número cru.
+   *
+   * `paraNumeroBR` (vocabulario.ts) lê "1.234" como 1,234 quando não há vírgula
+   * — defeito conhecido e registrado. Formatar na origem é o que mantém esse
+   * defeito restrito à edição manual no painel: o valor que o mapeador emite
+   * sempre tem a vírgula, então o extenso derivado dele sempre confere.
+   */
+  set('alcadaValor', row.alcadaValor === null || row.alcadaValor === undefined
+    ? null : formatarValor(row.alcadaValor));
+  set('alcadaUnidade', row.alcadaUnidade);
+  set('alcadaBase', row.alcadaBase);
+  set('alcadaPiso', row.alcadaPiso === null || row.alcadaPiso === undefined
+    ? null : formatarValor(row.alcadaPiso));
   set('sobePara', row.sobePara);
   set('sobeParaAo', row.sobeParaAo);
   set('foraDaPolitica', row.foraDaPolitica ? 'sim' : '');
   set('resumo', row.resumo);
-  return comOrigem(derivarCampos('competenciaMatriz', out), {
+  // Mesma razão do órgão: a alínea da faixa cita o piso, e a célula que não tem
+  // piso precisa dele como '' para a condicional decidir — não ausente.
+  return comOrigem(derivarCampos('competenciaMatriz', publicarOpcionais('competenciaMatriz', out)), {
     tipo: 'competenciaMatriz',
     id: row.id,
   });

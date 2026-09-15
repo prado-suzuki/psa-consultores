@@ -2004,8 +2004,13 @@ export function useGerarDocumentoController() {
       // proposto, porque só aqui existem os NÚMEROS: o estado proposto já
       // trabalha com os itens formatados.
       ...estadoDosOnus.problemas,
+      // A escada de alçada cujos degraus não se comparam (percentual subindo
+      // para moeda). Mesma natureza das somas acima: o dado existe, e é a
+      // combinação dele que não vira frase — a alínea sai só com o teto, e quem
+      // olha a Matriz precisa saber disso antes de levar a peça à junta.
+      ...(entradaGov.pendencias ?? []),
     ])],
-    [analise, estadoProposto, estadoDosOnus],
+    [analise, estadoProposto, estadoDosOnus, entradaGov],
   );
   const confirmarProposta = useConfirmarPropostaAC();
 

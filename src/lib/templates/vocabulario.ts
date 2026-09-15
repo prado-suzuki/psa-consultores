@@ -1501,12 +1501,87 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
        */
       { id: 'sobeParaAo', label: 'Preposição do destino (ao/à)', tipo: 'texto' },
       { id: 'alcada', label: 'Alçada (valor ou percentual, já formatada)', tipo: 'texto' },
+
+      /*
+       * A ALÇADA EM PEÇAS, que é o que a alínea de verdade precisa.
+       *
+       * A frase pronta acima traz "até R$ 5.000.000,00" e serve à grade da
+       * Matriz. A cláusula do contrato escreve outra coisa em cada degrau da
+       * escada: a Diretoria do Zamo sai "superior a R$ 500.000,00 e até
+       * R$ 5.000.000,00" e o Conselho "superior a R$ 5.000.000,00". Com o "até"
+       * grudado no texto não há como escrever nenhuma das duas, e sem um NÚMERO
+       * irmão não há de onde derivar o extenso — campo derivado precisa de base
+       * numérica, e prosa não é.
+       *
+       * O PISO não é campo de cadastro: é o teto de quem sobe para este órgão na
+       * mesma linha, derivado em `pisosDaLinha` (matrizAlcadas.ts). Nada aqui
+       * pede tela nova.
+       */
+      { id: 'alcadaValor', label: 'Alçada — teto (R$ ou %)', tipo: 'valor' },
+      {
+        id: 'alcadaExtenso',
+        label: 'Alçada — teto em reais (por extenso)',
+        tipo: 'texto',
+        derivadoDe: 'alcadaValor',
+        derivar: (v) => {
+          const n = paraNumeroBR(v.alcadaValor);
+          return Number.isFinite(n) ? valorExtenso(n) : '';
+        },
+      },
+      percentualCartorialCampo(
+        'alcadaPercentualExtenso', 'Alçada — teto em percentual (por extenso)', 'alcadaValor',
+      ),
+      { id: 'alcadaPiso', label: 'Alçada — piso (R$ ou %)', tipo: 'valor' },
+      {
+        id: 'alcadaPisoExtenso',
+        label: 'Alçada — piso em reais (por extenso)',
+        tipo: 'texto',
+        derivadoDe: 'alcadaPiso',
+        derivar: (v) => {
+          const n = paraNumeroBR(v.alcadaPiso);
+          return Number.isFinite(n) ? valorExtenso(n) : '';
+        },
+      },
+      percentualCartorialCampo(
+        'alcadaPisoPercentualExtenso', 'Alçada — piso em percentual (por extenso)', 'alcadaPiso',
+      ),
+      /*
+       * `interno` porque descreve a MEDIDA, não a decisão: quem digitasse
+       * "percentual" aqui não corrigiria um dado errado, faria a alínea imprimir
+       * "%" onde o cadastro diz reais. Corrige-se na Matriz. Mesma razão do
+       * `genero` do órgão.
+       */
+      { id: 'alcadaUnidade', label: 'Unidade da alçada (moeda/percentual)', tipo: 'texto', interno: true },
+      { id: 'alcadaBase', label: 'Base do percentual ("do orçamento aprovado")', tipo: 'texto' },
+
       { id: 'sobePara', label: 'Sobe para', tipo: 'texto' },
       { id: 'foraDaPolitica', label: 'Trata do que foge da política? (condicional)', tipo: 'texto' },
       { id: 'resumo', label: 'A célula inteira em uma linha (para a grade)', tipo: 'texto' },
       condicionalCampo('temDetalhamento', 'Tem detalhamento? (condicional)', 'detalhamento', (v) => !!v.detalhamento),
       condicionalCampo('temAlcada', 'Tem alçada? (condicional)', 'alcada', (v) => !!v.alcada),
       condicionalCampo('sobe', 'Escala para outro órgão? (condicional)', 'sobePara', (v) => !!v.sobePara),
+
+      /*
+       * Os três degraus da escada, publicados como condicionais porque é isso que
+       * o SELETOR DA FAMÍLIA sabe ler: ele compara string no escopo do item, e
+       * condicional derivada existe sempre (vale 'sim' ou ''), enquanto campo
+       * base some quando o cadastro não o tem — e o que some vira "classificação
+       * ausente" na cara do consultor, não uma variante escolhida.
+       */
+      condicionalCampo('temTeto', 'Tem teto de alçada? (condicional)', 'alcadaValor', (v) => !!v.alcadaValor),
+      condicionalCampo('temPiso', 'Tem piso de alçada? (condicional)', 'alcadaPiso', (v) => !!v.alcadaPiso),
+      condicionalCampo(
+        'temFaixa', 'Alçada em faixa (piso e teto)? (condicional)',
+        ['alcadaValor', 'alcadaPiso'], (v) => !!v.alcadaValor && !!v.alcadaPiso,
+      ),
+      condicionalCampo(
+        'emMoeda', 'Alçada em reais? (condicional)', ['alcadaUnidade', 'alcadaValor', 'alcadaPiso'],
+        (v) => v.alcadaUnidade !== 'percentual' && (!!v.alcadaValor || !!v.alcadaPiso),
+      ),
+      condicionalCampo(
+        'emPercentual', 'Alçada em percentual? (condicional)', ['alcadaUnidade', 'alcadaValor', 'alcadaPiso'],
+        (v) => v.alcadaUnidade === 'percentual' && (!!v.alcadaValor || !!v.alcadaPiso),
+      ),
     ],
   },
 

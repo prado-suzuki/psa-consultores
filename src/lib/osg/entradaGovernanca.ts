@@ -1,4 +1,4 @@
-import { resumoDaCompetencia, textoDaAlcada } from '@/lib/matrizAlcadas';
+import { baseDaAlcada, pisosDaLinha, resumoDaCompetencia, textoDaAlcada } from '@/lib/matrizAlcadas';
 import type { EntradaGovernanca, LinhaParaMapear } from '@/lib/templates/contextoGovernanca';
 import type { AtividadeDoCatalogo, MatrizDoCliente, PapelDeGovernanca } from '@/hooks/useDomainMatrizAlcadas';
 import type { OrgaoGovernanca } from '@/hooks/useDomainOrgaoGovernanca';
@@ -35,7 +35,7 @@ export function entradaDaGovernanca(
    * inteira por causa de um cadastro vazio.
    */
   const linhasDaMatriz = matriz?.linhas ?? [];
-  if (linhasDaMatriz.length === 0) return { orgaos: doContrato, linhas: [] };
+  if (linhasDaMatriz.length === 0) return { orgaos: doContrato, linhas: [], pendencias: [] };
 
   const nomeDaAtividade = new Map(atividades.map((a) => [a.id, a.nome]));
   const nomeDoPapel = new Map(papeis.map((p) => [p.id, p.nome]));
@@ -55,30 +55,63 @@ export function entradaDaGovernanca(
     orgaos.map((o) => [o.id, (o as { genero?: string | null }).genero === 'F' ? 'à' : 'ao']),
   );
 
-  const linhas: LinhaParaMapear[] = linhasDaMatriz.map((linha) => ({
-    id: linha.id,
-    atividade: nomeDaAtividade.get(linha.atividade_id) ?? '(atividade removida do catálogo)',
-    detalhamento: linha.detalhamento,
-    ordem: linha.ordem,
-    celulas: (linha.competencias ?? []).map((c) => ({
-      id: c.id,
-      orgaoId: c.orgao_id,
-      naoParticipa: c.nao_participa,
-      papeis: (c.papeis ?? []).map((id) => nomeDoPapel.get(id) ?? '?'),
-      papeisInfinitivo: (c.papeis ?? []).map((id) => infinitivoDoPapel.get(id) ?? '?'),
-      alcada: textoDaAlcada(c),
-      sobePara: c.sobe_para_orgao_id ? (nomeDoOrgao.get(c.sobe_para_orgao_id) ?? null) : null,
-      sobeParaAo: c.sobe_para_orgao_id ? (preposicaoDoOrgao.get(c.sobe_para_orgao_id) ?? 'ao') : null,
-      foraDaPolitica: c.fora_da_politica,
-      // A célula inteira em uma linha, que é o que a grade do documento da
-      // Matriz põe dentro de cada quadradinho.
-      resumo: resumoDaCompetencia(
-        { ...c, alcada_valor: c.alcada_valor === null ? null : Number(c.alcada_valor) },
-        (id) => nomeDoPapel.get(id) ?? '?',
-        (id) => nomeDoOrgao.get(id) ?? '?',
-      ),
-    })),
-  }));
+  const pendencias: string[] = [];
 
-  return { orgaos: doContrato, linhas };
+  const linhas: LinhaParaMapear[] = linhasDaMatriz.map((linha) => {
+    const atividade = nomeDaAtividade.get(linha.atividade_id) ?? '(atividade removida do catálogo)';
+    const celulasDaLinha = linha.competencias ?? [];
+    /*
+     * O piso sai da LINHA INTEIRA, antes de qualquer filtro: quem dá o piso da
+     * Diretoria do Zamo é a Gestão, que é órgão interno e não recebe cláusula
+     * (ver `pisosDaLinha`). Derivar depois do filtro de `doContrato` perderia
+     * justamente a célula que sustenta a faixa.
+     */
+    const pisos = pisosDaLinha(celulasDaLinha);
+    if ([...pisos.values()].some((p) => p.incomparavel)) {
+      pendencias.push(
+        `Na atividade "${atividade}", a alçada de quem sobe e a de quem recebe não se comparam `
+        + '(unidades ou bases diferentes): a alínea sai só com o teto, sem a faixa.',
+      );
+    }
+
+    return {
+      id: linha.id,
+      atividade,
+      detalhamento: linha.detalhamento,
+      ordem: linha.ordem,
+      celulas: celulasDaLinha.map((c) => ({
+        id: c.id,
+        orgaoId: c.orgao_id,
+        naoParticipa: c.nao_participa,
+        papeis: (c.papeis ?? []).map((id) => nomeDoPapel.get(id) ?? '?'),
+        papeisInfinitivo: (c.papeis ?? []).map((id) => infinitivoDoPapel.get(id) ?? '?'),
+        alcada: textoDaAlcada(c),
+        /*
+         * A ALÇADA TAMBÉM EM PEÇAS, e não só na frase pronta.
+         *
+         * `textoDaAlcada` entrega "até R$ 5.000.000,00" montado, e daí saíam dois
+         * defeitos: o "até" ficava fixo (a faixa do meio da escada precisa de
+         * "superior a … e até …") e não havia de onde derivar o extenso, porque
+         * campo derivado precisa de um número irmão e o irmão era prosa. A frase
+         * pronta fica, para quem quiser a forma curta; o bloco novo usa as peças.
+         */
+        alcadaValor: c.alcada_valor === null || c.alcada_valor === undefined ? null : Number(c.alcada_valor),
+        alcadaUnidade: c.alcada_unidade,
+        alcadaBase: baseDaAlcada(c.alcada_base),
+        alcadaPiso: pisos.get(c.orgao_id)?.valor ?? null,
+        sobePara: c.sobe_para_orgao_id ? (nomeDoOrgao.get(c.sobe_para_orgao_id) ?? null) : null,
+        sobeParaAo: c.sobe_para_orgao_id ? (preposicaoDoOrgao.get(c.sobe_para_orgao_id) ?? 'ao') : null,
+        foraDaPolitica: c.fora_da_politica,
+        // A célula inteira em uma linha, que é o que a grade do documento da
+        // Matriz põe dentro de cada quadradinho.
+        resumo: resumoDaCompetencia(
+          { ...c, alcada_valor: c.alcada_valor === null ? null : Number(c.alcada_valor) },
+          (id) => nomeDoPapel.get(id) ?? '?',
+          (id) => nomeDoOrgao.get(id) ?? '?',
+        ),
+      })),
+    };
+  });
+
+  return { orgaos: doContrato, linhas, pendencias };
 }
