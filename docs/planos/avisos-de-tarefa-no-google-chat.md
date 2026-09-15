@@ -168,8 +168,22 @@ Três coisas que nenhum commit entrega, e sem as quais a borda responde mas não
 3. **O segredo `CRON_CHAT_TOKEN`** na edge function, e o mesmo valor no vault do banco como
    `cron_chat_token`, mais o `notificar_url` (que a GES-04 já usa, e é a mesma URL base —
    não crie um segundo com outro nome). É por aí que o cron se identifica na borda.
-4. **Ligar o job**, que nasce desativado nos dois bancos:
-   `UPDATE cron.job SET active = true WHERE jobname = 'despachar-avisos-do-chat'`.
+4. **Ligar o job**, que nasce desativado nos dois bancos — e **não é por `UPDATE`**:
+
+   ```sql
+   select cron.alter_job(
+     job_id := (select jobid from cron.job where jobname = 'despachar-avisos-do-chat'),
+     active := true)
+   ```
+
+   O `UPDATE cron.job SET active = true` é o que a documentação do pg_cron mostra, e foi o
+   que o cabeçalho da migration `20260914235057` escreveu — mas no sandbox ele volta
+   `42501: permission denied for table job`, porque o papel do CLI lê `cron.job` e não
+   escreve nela. O `alter_job` roda como dono do job e passa. Medido em 14/09/2026.
+
+   **Não corrija aquele cabeçalho editando o arquivo da migration:** ela já está no ledger,
+   e reaplicá-la faz `unschedule` + `schedule`, o que devolveria o job ao estado desativado
+   — desligando justamente o que se acabou de ligar.
 
 ## Ordem que não pode inverter
 
