@@ -342,6 +342,7 @@ function ListaDeQuoruns({
               className="h-8 flex-1 text-sm"
               value={q.materia}
               aria-label={`Matéria do quórum ${i + 1}`}
+              placeholder="O assunto, por exemplo: Alterar o contrato social"
               onChange={(e) => trocar(i, 'materia', e.target.value)}
             />
             {!q.chave && (
@@ -386,9 +387,15 @@ function ListaDeQuoruns({
           </div>
 
           {/* A prévia, onde ela muda decisão: a frase que vai sair no documento. */}
+          {/*
+            A frase pronta embaixo de cada linha responde a dúvida antes de ela
+            existir: o consultor digita o ASSUNTO, e o sistema escreve o resto.
+          */}
           <p className="mt-2 text-xs text-muted-foreground">
-            No acordo:{' '}
-            <span className="font-medium text-foreground">{expressaoDoQuorum(q)}</span>
+            No acordo vai sair:{' '}
+            <span className="font-medium text-foreground">
+              {q.materia.trim() || 'o assunto'}, {expressaoDoQuorum(q)}
+            </span>
           </p>
         </div>
       ))}

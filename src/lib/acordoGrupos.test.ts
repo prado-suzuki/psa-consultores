@@ -98,8 +98,8 @@ describe('preenchidosNoGrupo', () => {
   it('lista vazia e texto em branco não contam', () => {
     const g = grupoDoAcordo('conflitos')!;
     expect(preenchidosNoGrupo(g, {
-      solucao_litigios: '', camara_arbitral: null, prazo_indicacao_arbitros_dias: undefined,
-    })).toEqual({ preenchidos: 0, total: 3 });
+      solucao_litigios: '', camara_arbitral: null,
+    })).toEqual({ preenchidos: 0, total: 2 });
   });
 });
 
@@ -122,13 +122,24 @@ describe('as ajudas saem do documento, e não da minha cabeça', () => {
     expect(ajudaDe('camara_arbitral')).toContain('Câmara de Comércio Brasil Canadá');
   });
 
-  it('o campo sem fonte no modelo avisa em vez de fingir', () => {
-    // O modelo diz quantos árbitros são, e não em quanto tempo se indica. O
-    // campo veio do levantamento e pode estar com o nome trocado.
-    const c = GRUPOS_DO_ACORDO.flatMap((g) => g.campos)
-      .find((x) => x.campo === 'prazo_indicacao_arbitros_dias');
-    expect(c?.ajuda).toContain('ATENÇÃO');
-    expect(c?.ajuda).toContain('03 (três)');
+  it('o campo sem fonte no documento foi REMOVIDO, e não só avisado', () => {
+    /*
+     * "Prazo para indicação de árbitros" veio do levantamento e não existe em
+     * nenhum dos sete acordos. Seis deles trazem outra coisa, com a mesma
+     * redação: "o número de árbitros será de 03 (três)". Esse número também não
+     * é campo, porque não varia.
+     *
+     * A câmara fica, porque varia: cinco usam a Brasil Canadá e a Utida usa a
+     * Câmara FGV.
+     */
+    const campos = GRUPOS_DO_ACORDO.flatMap((g) => g.campos).map((c) => c.campo);
+    expect(campos).not.toContain('prazo_indicacao_arbitros_dias');
+    expect(campos).toContain('camara_arbitral');
+  });
+
+  it('a ajuda do quórum diz que se digita o ASSUNTO, e não a frase', () => {
+    const c = GRUPOS_DO_ACORDO.flatMap((g) => g.campos).find((x) => x.campo === 'quoruns');
+    expect(c?.ajuda).toContain('SÓ O ASSUNTO');
   });
 
   it('só o grupo de 15 campos se divide em blocos', () => {

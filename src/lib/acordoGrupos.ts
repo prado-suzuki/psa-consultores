@@ -146,9 +146,11 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         rotulo: 'Os quóruns do acordo',
         tipo: 'especial',
         ajuda:
-          'Sete no modelo. Cada um diz quanto precisa e sobre o que conta: os presentes na '
-          + 'reunião ou o capital todo. Numa segunda convocação, que instala com qualquer '
-          + 'número, um sócio de 40% é 100% dos presentes e 40% do capital.',
+          'ESCREVA SÓ O ASSUNTO, e não a frase da cláusula: "Alterar o contrato social", e '
+          + 'não "conforme decidam três quartos dos presentes em relação à alteração do '
+          + 'contrato social". A frase inteira o sistema monta, e você a vê pronta embaixo '
+          + 'de cada linha. Sete vêm preenchidos; acrescente linha só se este cliente tiver '
+          + 'uma matéria a mais, como o Perci, que exige 75% para emprestar a quotista.',
       },
     ],
   },
@@ -162,8 +164,10 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         rotulo: 'Reunião prévia obrigatória',
         tipo: 'booleano',
         ajuda:
-          'Quando obrigatória, os quotistas deliberam antes e votam em bloco na reunião de '
-          + 'sócios, conforme o que combinaram.',
+          'É uma reunião só entre os sócios, ANTES da reunião oficial. Nela eles discutem e '
+          + 'decidem entre si qual vai ser o voto; depois, na reunião de sócios, todos votam '
+          + 'igual ao que combinaram, mesmo quem foi voto vencido. É isso que "votar em '
+          + 'bloco" quer dizer: a sociedade vê um voto só, e a divergência fica em casa.',
       },
     ],
   },
@@ -308,15 +312,28 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           { valor: 'arbitragem', rotulo: 'Arbitragem' },
           { valor: 'judicial', rotulo: 'Judicial' },
         ] },
+      /*
+       * NÃO EXISTE "PRAZO PARA INDICAÇÃO DE ÁRBITROS", e o campo saiu daqui.
+       *
+       * Ele veio do levantamento, e rastreei nos sete acordos: nenhum traz prazo.
+       * Seis dos sete trazem outra coisa, com a mesma redação, "o número de
+       * árbitros será de 03 (três), sendo um nomeado pelo reclamante, o outro
+       * pela parte reclamada e o terceiro eleito por aqueles dois".
+       *
+       * E esse número também não vira campo: 3 em 6 de 6 é texto fixo do modelo,
+       * pela mesma regra que tirou os quatro números da apuração de haveres.
+       *
+       * A CÂMARA FICA, porque essa varia de verdade: cinco acordos usam a Câmara
+       * de Comércio Brasil Canadá e a Utida usa a Câmara FGV de Conciliação e
+       * Arbitragem.
+       *
+       * A coluna `prazo_indicacao_arbitros_dias` continua no banco, vazia, junto
+       * das quatro da apuração. Derrubar as cinco é uma migration de limpeza.
+       */
       { campo: 'camara_arbitral', rotulo: 'Câmara arbitral', tipo: 'texto',
-        ajuda: 'Qual câmara julga. No modelo: "de acordo com as Regras de Arbitragem da '
-          + 'Câmara de Comércio Brasil Canadá".' },
-      { campo: 'prazo_indicacao_arbitros_dias', rotulo: 'Prazo para indicação de árbitros, em dias',
-        tipo: 'numero',
-        ajuda: 'ATENÇÃO: o modelo não traz prazo nenhum aqui. Ele diz quantos árbitros são e '
-          + 'quem escolhe cada um, "o número de árbitros será de 03 (três), sendo um nomeado '
-          + 'pelo reclamante, o outro pela parte reclamada e o terceiro eleito por aqueles '
-          + 'dois". O campo veio do levantamento e pode estar com o nome trocado.' },
+        ajuda: 'Qual câmara julga a briga. Cinco dos sete acordos usam a Câmara de Comércio '
+          + 'Brasil Canadá, a CAM-CCBC, e a Utida usa a Câmara FGV de Conciliação e '
+          + 'Arbitragem. Quantos árbitros são não se digita: o modelo fixa três em todos.' },
     ],
   },
   {
