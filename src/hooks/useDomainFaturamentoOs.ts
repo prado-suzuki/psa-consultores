@@ -11,7 +11,11 @@ import {
   type RawClusterEmpresa,
   type RawContribuinteFaturamento,
   type RawOsFaturamento,
+  type RawProdutoDaOs,
+  type RawProdutoSegmentoOs,
   type RawRateioOs,
+  type RawRepresentante,
+  type RawServicoOs,
 } from '@/lib/admFinFaturamentoOs';
 
 /**
@@ -47,6 +51,10 @@ interface RawBundle {
   clusters: RawClusterEmpresa[];
   rateio: RawRateioOs[];
   centrosCusto: RawCentroCustoOs[];
+  servicos: RawServicoOs[];
+  produtosDaOs: RawProdutoDaOs[];
+  produtos: RawProdutoSegmentoOs[];
+  representantes: RawRepresentante[];
 }
 
 /** O que qualquer uma das seis consultas devolve, visto daqui. */
@@ -98,13 +106,13 @@ export function useDomainFaturamentoOs() {
     queryKey: ['adm-fin-faturamento-os', currentAmbiente],
     staleTime: 60_000,
     queryFn: async () => {
-      const [cliRes, osRes, contribRes, cluRes, ratRes, ccRes] = await Promise.all([
+      const [cliRes, osRes, contribRes, cluRes, ratRes, ccRes, servRes, osProdRes, prodRes, repRes] = await Promise.all([
         tabela('cliente')
           .select('id, nome')
           .eq('excluido', false)
           .eq('ambiente', currentAmbiente),
         tabela('ordem_servico')
-          .select('id, numero_os, id_cliente, contribuinte_id, cluster_id, situacao, created_at, valor_projeto, numero_parcelas, valor_entrada, valor_reembolso_km, valor_reembolso_refeicao'),
+          .select('id, numero_os, id_cliente, contribuinte_id, cluster_id, situacao, created_at, id_servico, observacoes, data_emissao, data_inicio, data_fim, valor_projeto, numero_parcelas, valor_entrada, valor_reembolso_km, valor_reembolso_refeicao'),
         tabela('contribuinte')
           .select('id, nome_razao_social, tipo_pessoa, cpf_cnpj, inscricao_estadual, telefone, cep, logradouro, complemento, numero, bairro, municipio, uf')
           .eq('excluido', false)
@@ -112,6 +120,13 @@ export function useDomainFaturamentoOs() {
         tabela('estrutura_clusters').select('id, name, nome_empresa'),
         tabela('distribuicao_receita').select('id_ordem_servico, id_centro_custo, percentual_rateio'),
         tabela('centros_custo').select('id, codigo, nome'),
+        tabela('servicos_prestados').select('id, nome'),
+        tabela('os_produtos_contratados').select('ordem_servico_id, produto_segmento_id, horas_contratadas'),
+        tabela('produto_segmento').select('id, codigo, nome'),
+        // `representante` não tem `excluido` (conferido nos dois bancos em
+        // 15/09/2026), e é de onde sai o contato: o contribuinte tem telefone e
+        // não tem e-mail.
+        tabela('representante').select('id_representante, id_cliente, nome, cargo, email, telefone, tipo_representante'),
       ]);
 
       return {
@@ -121,6 +136,10 @@ export function useDomainFaturamentoOs() {
         clusters: linhasDe<RawClusterEmpresa>(cluRes, 'empresas de faturamento'),
         rateio: linhasDe<RawRateioOs>(ratRes, 'rateio de receita'),
         centrosCusto: linhasDe<RawCentroCustoOs>(ccRes, 'centros de custo'),
+        servicos: linhasDe<RawServicoOs>(servRes, 'serviços prestados'),
+        produtosDaOs: linhasDe<RawProdutoDaOs>(osProdRes, 'produtos das OS'),
+        produtos: linhasDe<RawProdutoSegmentoOs>(prodRes, 'catálogo de produtos'),
+        representantes: linhasDe<RawRepresentante>(repRes, 'representantes'),
       };
     },
   });

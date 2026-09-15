@@ -34,6 +34,11 @@ export interface RawOsFaturamento {
   cluster_id: string | null;
   situacao: string | null;
   created_at: string | null;
+  id_servico: string | null;
+  observacoes: string | null;
+  data_emissao: string | null;
+  data_inicio: string | null;
+  data_fim: string | null;
   valor_projeto: number | null;
   numero_parcelas: number | null;
   valor_entrada: number | null;
@@ -57,6 +62,40 @@ export interface RawContribuinteFaturamento {
   bairro: string | null;
   municipio: string | null;
   uf: string | null;
+}
+
+/** `servicos_prestados` — o serviço contratado na OS. */
+export interface RawServicoOs {
+  id: string;
+  nome: string;
+}
+
+/** `os_produtos_contratados` — N produtos por OS, com as horas contratadas. */
+export interface RawProdutoDaOs {
+  ordem_servico_id: string;
+  produto_segmento_id: string;
+  horas_contratadas: number | null;
+}
+
+/** `produto_segmento` — catálogo global de produtos. */
+export interface RawProdutoSegmentoOs {
+  id: string;
+  codigo: string;
+  nome: string;
+}
+
+/**
+ * `representante` — as pessoas do cliente. É de onde sai o contato de
+ * faturamento: o contribuinte tem telefone e NÃO tem e-mail.
+ */
+export interface RawRepresentante {
+  id_representante: string;
+  id_cliente: string;
+  nome: string;
+  cargo: string | null;
+  email: string | null;
+  telefone: string | null;
+  tipo_representante: string | null;
 }
 
 /** `estrutura_clusters` — a empresa do grupo PSA que emite a nota. */
@@ -88,6 +127,20 @@ export interface FatiaRateioOs {
   percentual: number;
 }
 
+/** Um produto contratado na OS, já com código, nome e horas. */
+export interface ProdutoDaOs {
+  label: string;
+  horas: number | null;
+}
+
+/** Uma pessoa do cliente, com o contato que serve para mandar a nota. */
+export interface ContatoDoCliente {
+  nome: string;
+  cargo: string | null;
+  email: string | null;
+  telefone: string | null;
+}
+
 export interface LinhaFaturamentoOs {
   os_id: string;
   numero_os: string | null;
@@ -97,6 +150,21 @@ export interface LinhaFaturamentoOs {
   entrou_em: string | null;
   situacao: string | null;
   situacao_label: string;
+  // o contrato: o que foi vendido e quando
+  servico_nome: string | null;
+  produtos: ProdutoDaOs[];
+  /**
+   * `ordem_servico.observacoes`. É o campo mais perto do que a Letícia chamou de
+   * "observação do serviço que precisa constar na NF" (15/09/2026) — e é
+   * genérico: 10 das 155 OS em produção o têm preenchido. A tela mostra o que
+   * existe; o campo próprio da nota é decisão em aberto.
+   */
+  observacoes: string | null;
+  data_emissao: string | null;
+  data_inicio: string | null;
+  data_fim: string | null;
+  /** As pessoas do cliente, para saber a quem mandar a nota. */
+  contatos: ContatoDoCliente[];
   // 01 — contribuinte de faturamento da OS
   contribuinte_nome: string | null;
   cpf_cnpj: string | null;
@@ -221,6 +289,54 @@ function rateioPorOs(
 }
 
 /**
+ * Os produtos de cada OS, indexados por OS e já rotulados "código - nome".
+ *
+ * Produto fora do catálogo cai no id, pelo mesmo motivo do rateio: sumir com a
+ * linha esconderia horas contratadas que existem.
+ */
+function produtosPorOrdemServico(
+  contratados: RawProdutoDaOs[],
+  catalogo: RawProdutoSegmentoOs[],
+): Map<string, ProdutoDaOs[]> {
+  const porId = new Map(catalogo.map((p) => [p.id, `${p.codigo} - ${p.nome}`] as const));
+  const mapa = new Map<string, ProdutoDaOs[]>();
+  for (const c of contratados) {
+    const lista = mapa.get(c.ordem_servico_id) ?? [];
+    lista.push({
+      label: porId.get(c.produto_segmento_id) ?? c.produto_segmento_id,
+      horas: c.horas_contratadas,
+    });
+    mapa.set(c.ordem_servico_id, lista);
+  }
+  for (const lista of mapa.values()) lista.sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+  return mapa;
+}
+
+/**
+ * Os contatos de cada cliente, e SÓ quem tem e-mail ou telefone.
+ *
+ * Representante sem nenhum dos dois não é contato: ocuparia linha na tabela para
+ * dizer dois travessões. Quem tem e-mail vem primeiro, que é por onde a nota sai.
+ */
+function contatosPorClienteId(
+  representantes: RawRepresentante[],
+): Map<string, ContatoDoCliente[]> {
+  const mapa = new Map<string, ContatoDoCliente[]>();
+  for (const r of representantes) {
+    const email = r.email?.trim() || null;
+    const telefone = r.telefone?.trim() || null;
+    if (!email && !telefone) continue;
+    const lista = mapa.get(r.id_cliente) ?? [];
+    lista.push({ nome: r.nome, cargo: r.cargo?.trim() || null, email, telefone: telefone ? formatPhone(telefone) : null });
+    mapa.set(r.id_cliente, lista);
+  }
+  for (const lista of mapa.values()) {
+    lista.sort((a, b) => Number(Boolean(b.email)) - Number(Boolean(a.email)) || a.nome.localeCompare(b.nome, 'pt-BR'));
+  }
+  return mapa;
+}
+
+/**
  * Monta as linhas da tabela.
  *
  * A OS SEM CLIENTE NA LISTA SAI, e isso é o recorte de ambiente desta tela:
@@ -241,8 +357,15 @@ export function montarLinhasFaturamentoOs(input: {
   clusters: RawClusterEmpresa[];
   rateio: RawRateioOs[];
   centrosCusto: RawCentroCustoOs[];
+  servicos?: RawServicoOs[];
+  produtosDaOs?: RawProdutoDaOs[];
+  produtos?: RawProdutoSegmentoOs[];
+  representantes?: RawRepresentante[];
 }): LinhaFaturamentoOs[] {
   const { os, clientes, contribuintes, clusters, rateio, centrosCusto } = input;
+  const servicoPorId = new Map((input.servicos ?? []).map((s) => [s.id, s.nome] as const));
+  const produtosPorOs = produtosPorOrdemServico(input.produtosDaOs ?? [], input.produtos ?? []);
+  const contatosPorCliente = contatosPorClienteId(input.representantes ?? []);
   const clientePorId = new Map(clientes.map((c) => [c.id, c] as const));
   const contribuintePorId = new Map(contribuintes.map((c) => [c.id, c] as const));
   const clusterPorId = new Map(clusters.map((c) => [c.id, c] as const));
@@ -263,6 +386,13 @@ export function montarLinhasFaturamentoOs(input: {
       entrou_em: o.created_at,
       situacao: o.situacao,
       situacao_label: situacaoLabel(o.situacao),
+      servico_nome: o.id_servico ? servicoPorId.get(o.id_servico) ?? null : null,
+      produtos: produtosPorOs.get(o.id) ?? [],
+      observacoes: o.observacoes?.trim() || null,
+      data_emissao: o.data_emissao,
+      data_inicio: o.data_inicio,
+      data_fim: o.data_fim,
+      contatos: contatosPorCliente.get(cliente.id) ?? [],
       contribuinte_nome: contribuinte?.nome_razao_social ?? null,
       cpf_cnpj: documentoFormatado(contribuinte?.cpf_cnpj, contribuinte?.tipo_pessoa),
       // "Isento" só quando HÁ contribuinte: sem ele a célula não tem sobre quem
