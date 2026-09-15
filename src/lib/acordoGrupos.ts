@@ -374,6 +374,8 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
 export function preenchidosNoGrupo(
   grupo: GrupoDoAcordo,
   valores: Record<string, unknown>,
+  /** O bloco já foi aberto e salvo por alguém? Ver o porquê abaixo. */
+  conferido = false,
 ): { preenchidos: number; total: number } {
   const visiveis = grupo.campos.filter(
     (c) => !c.dependeDe || valores[c.dependeDe] === true,
@@ -382,7 +384,21 @@ export function preenchidosNoGrupo(
     const v = valores[c.campo];
     if (v === null || v === undefined || v === '') return false;
     if (Array.isArray(v)) return v.length > 0;
-    // Booleano desligado conta como respondido: "não tem" é uma resposta.
+    /*
+     * BOOLEANO SÓ CONTA DEPOIS DE CONFERIDO, e é a mesma correção do selo
+     * "Pronto" que saiu desta tela em 15/09.
+     *
+     * As colunas booleanas são `NOT NULL DEFAULT false`, então `false` não
+     * distingue "o cliente não tem" de "ninguém abriu isto ainda". Contando
+     * sempre, uma versão recém-criada anunciava "2 de 3 respondidos" sem
+     * ninguém ter respondido nada, que é o convite a pular o bloco.
+     *
+     * Depois que o bloco foi aberto e salvo, o `false` passa a ser resposta de
+     * verdade: alguém olhou e deixou desligado. Daí o parâmetro, em vez de
+     * nunca contar booleano, o que apagaria a resposta legítima de quem disse
+     * "não tem".
+     */
+    if (typeof v === 'boolean') return conferido;
     return true;
   };
   return { preenchidos: visiveis.filter(temValor).length, total: visiveis.length };

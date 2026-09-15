@@ -89,10 +89,24 @@ describe('preenchidosNoGrupo', () => {
     expect(comCompra.total).toBe(5);
   });
 
-  it('booleano desligado conta como respondido, porque "não tem" é resposta', () => {
+  it('booleano desligado só conta depois que alguém conferiu o bloco', () => {
+    /*
+     * As colunas booleanas são `NOT NULL DEFAULT false`: antes de alguém abrir o
+     * bloco, `false` não é resposta, é a ausência dela. Uma versão recém-criada
+     * anunciava "2 de 3 respondidos" sem ninguém ter respondido nada.
+     *
+     * Depois de conferido, o mesmo `false` é resposta legítima de quem olhou e
+     * disse "não tem", e volta a contar.
+     */
     const g = grupoDoAcordo('reuniao_previa')!;
     expect(preenchidosNoGrupo(g, { reuniao_previa_obrigatoria: false }))
+      .toEqual({ preenchidos: 0, total: 1 });
+    expect(preenchidosNoGrupo(g, { reuniao_previa_obrigatoria: false }, true))
       .toEqual({ preenchidos: 1, total: 1 });
+    // Ligado também espera a conferência: o seed não liga nenhum booleano hoje,
+    // mas o dia em que ligar, "true" tambem seria resposta que ninguem deu.
+    expect(preenchidosNoGrupo(g, { reuniao_previa_obrigatoria: true }))
+      .toEqual({ preenchidos: 0, total: 1 });
   });
 
   it('lista vazia e texto em branco não contam', () => {

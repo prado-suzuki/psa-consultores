@@ -5,11 +5,17 @@ import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import {
   AcordoGrupoModal, type ValoresDoAcordo,
 } from '@/components/equipe/osg/governanca/AcordoGrupoModal';
+import {
+  FaixaVersaoAnterior, HistoricoDoAcordo,
+} from '@/components/equipe/osg/governanca/HistoricoDoAcordo';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { rowActivateProps } from '@/hooks/rowActivateProps';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
-import { useAcordoDoCliente, useAcordoMutations } from '@/hooks/useDomainAcordoQuotistas';
+import { useAuditAutores } from '@/hooks/useNotificacoesDocumento';
+import {
+  useAcordoDoCliente, useAcordoMutations, useVersoesDoAcordo,
+} from '@/hooks/useDomainAcordoQuotistas';
 import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
 import {
   GRUPOS_DO_ACORDO, preenchidosNoGrupo, type GrupoDoAcordo,
@@ -45,13 +51,29 @@ import { cn } from '@/lib/utils';
  */
 const AcordoDeQuotistas = () => {
   const { clienteId } = useOsgWork();
-  const { data, isLoading } = useAcordoDoCliente(clienteId);
+
+  /*
+   * A VERSÃO SOB LEITURA, e null quando se está na atual.
+   *
+   * Mesma convenção da tela Gerar: null é a head, que é a única editável. Sem
+   * isto, criar a versão 2 fazia a 1 sumir da tela para sempre, porque a
+   * consulta pega a de número mais alto.
+   */
+  const [versaoVistaId, setVersaoVistaId] = useState<string | null>(null);
+  const [historicoAberto, setHistoricoAberto] = useState(false);
+
+  const { data, isLoading } = useAcordoDoCliente(clienteId, versaoVistaId);
+  const { data: versoes = [] } = useVersoesDoAcordo(clienteId);
+  const { data: autores = {} } = useAuditAutores();
   const { data: pessoas = [] } = usePessoasByCliente(clienteId ?? null);
   const {
     criarAcordo, salvarAcordo, salvarListas, salvarVinculos, novaVersao,
   } = useAcordoMutations(clienteId);
 
   const [grupoAberto, setGrupoAberto] = useState<GrupoDoAcordo | null>(null);
+
+  const versaoVista = versaoVistaId ? versoes.find((v) => v.id === versaoVistaId) : null;
+  const somenteLeitura = !!versaoVista;
 
   /** O estado do acordo achatado, como os grupos e o modal o leem. */
   const valores: ValoresDoAcordo = useMemo(() => ({
@@ -168,8 +190,11 @@ const AcordoDeQuotistas = () => {
                 nasce semeado: é todo bloco aberto e salvo por alguém. Oferecer a
                 versão 2 antes disso seria oferecer partir de um acordo que ninguém
                 leu.
+
+                E NÃO APARECE EM MODO LEITURA: criar a versão 3 olhando a 1 daria
+                uma versão que não continua o que está na tela.
               */}
-              {faltamConferir === 0 && (
+              {faltamConferir === 0 && !somenteLeitura && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -177,16 +202,53 @@ const AcordoDeQuotistas = () => {
                   disabled={novaVersao.isPending}
                   onClick={() => novaVersao.mutate({ versaoAtual: data.acordo.versao })}
                 >
-                  <FilePlus2 className="mr-2 h-4 w-4" /> Nova versão, em branco
+                  {/*
+                    "Em branco" era mentira: a versão nova nasce com os sete
+                    quóruns e os mecanismos padrão, como um acordo novo. O rótulo
+                    agora diz o que acontece.
+                  */}
+                  <FilePlus2 className="mr-2 h-4 w-4" /> Nova versão, com os padrões
                 </Button>
               )}
             </div>
 
             {/*
+              O histórico só aparece quando há o que escolher. Com uma versão só,
+              a lista seria uma linha dizendo o que o cabeçalho acima já diz.
+            */}
+            {versoes.length > 1 && (
+              <HistoricoDoAcordo
+                versoes={versoes}
+                autores={autores}
+                versaoVistaId={versaoVistaId}
+                onSelecionar={(id) => {
+                  setVersaoVistaId(id);
+                  setGrupoAberto(null);
+                }}
+                aberto={historicoAberto}
+                onAbertoChange={setHistoricoAberto}
+              />
+            )}
+
+            {somenteLeitura && versaoVista && (
+              <FaixaVersaoAnterior
+                numero={versaoVista.versao}
+                numeroAtual={versoes[0]?.versao ?? versaoVista.versao}
+                data={versaoVista.assinado_em ?? versaoVista.created_at}
+                autor={autores[versaoVista.created_by ?? ''] || null}
+                onVoltar={() => setVersaoVistaId(null)}
+              />
+            )}
+
+            {/*
               A faixa de instrução, no mesmo molde da Matriz: o que fazer primeiro
               tem de estar visível sem rolar. Ela diz o GESTO, e não repete o que
               o cartão e o subtítulo já dizem.
+
+              SOME EM MODO LEITURA, onde ela mandaria fazer o que a tela não deixa:
+              o lugar dela é a faixa da versão anterior, que diz por que não dá.
             */}
+            {!somenteLeitura && (
             <div className="flex items-start gap-2.5 rounded-xl border border-osg-200 bg-osg-50/60 p-4">
               <MousePointerClick className="mt-0.5 h-4 w-4 shrink-0 text-osg-600" aria-hidden />
               <p className="text-sm text-osg-700">
@@ -203,6 +265,7 @@ const AcordoDeQuotistas = () => {
                 )}
               </p>
             </div>
+            )}
 
             {/*
               Os oito grupos como cartões, com o estado de preenchimento. O
@@ -211,8 +274,8 @@ const AcordoDeQuotistas = () => {
             */}
             <div className="grid gap-4 sm:grid-cols-2">
               {GRUPOS_DO_ACORDO.map((g) => {
-                const { preenchidos, total } = preenchidosNoGrupo(g, valores);
                 const conferido = conferidos.has(g.chave);
+                const { preenchidos, total } = preenchidosNoGrupo(g, valores, conferido);
                 /*
                  * NÃO EXISTE "PRONTO" AQUI, e a ausência é deliberada.
                  *
@@ -238,16 +301,24 @@ const AcordoDeQuotistas = () => {
                       perde moldura, fundo e espaçamento de uma vez, que foi o que
                       aconteceu na primeira versão desta tela.
                     */
-                    {...rowActivateProps(() => setGrupoAberto(g))}
+                    /*
+                      Em leitura o cartão não é botão: sem `role`, sem tabIndex e
+                      sem clique. Deixá-lo clicável abriria o modal editando a
+                      versão VELHA, que é justamente o que a faixa promete que não
+                      acontece.
+                    */
+                    {...(somenteLeitura ? {} : rowActivateProps(() => setGrupoAberto(g)))}
                     className={cn(
                       // `bg-superficie-cartao` é a superfície do OBJETO cartão, tingida.
                       // A outra classe, a do cromo e do controle, difere em duas letras e
                       // significa o oposto; escrevê-la aqui deixaria a caixa branca sobre
                       // página branca. A catraca de `cartaoTingido.test.ts` guarda isso, e
                       // casa o texto do arquivo inteiro, comentário incluído.
-                      'cursor-pointer rounded-xl border bg-superficie-cartao p-4',
+                      'rounded-xl border bg-superficie-cartao p-4',
                       'shadow-sm shadow-osg-300/20 transition-colors',
-                      'hover:border-osg-moss hover:bg-osg-50/60 hover:shadow-md',
+                      somenteLeitura
+                        ? 'cursor-default'
+                        : 'cursor-pointer hover:border-osg-moss hover:bg-osg-50/60 hover:shadow-md',
                       conferido ? 'border-osg-200' : 'border-osg-300/70',
                     )}
                   >

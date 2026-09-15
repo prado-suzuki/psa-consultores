@@ -85,8 +85,21 @@ export interface RamoInput {
   rotulo: 'ramo' | 'descendentes';
 }
 
-export const acordoQueryKey = (clienteId?: string | null) =>
-  ['acordo-quotistas', clienteId ?? null] as const;
+export const acordoQueryKey = (clienteId?: string | null, acordoId?: string | null) =>
+  ['acordo-quotistas', clienteId ?? null, acordoId ?? 'atual'] as const;
+
+export const versoesDoAcordoQueryKey = (clienteId?: string | null) =>
+  ['acordo-quotistas-versoes', clienteId ?? null] as const;
+
+/** Uma linha do histórico: o bastante para a lista, sem carregar as filhas. */
+export interface VersaoDoAcordo {
+  id: string;
+  versao: number;
+  assinado_em: string | null;
+  data_referencia: string | null;
+  created_at: string;
+  created_by: string | null;
+}
 
 // ─── Leitura ──────────────────────────────────────────────────────────────────
 
@@ -96,12 +109,19 @@ export const acordoQueryKey = (clienteId?: string | null) =>
  * Embutir as filhas no `select` em vez de fazer seis consultas: a tela precisa de
  * todas ao abrir, e seis idas seriam seis esperas para desenhar uma janela.
  */
-export function useAcordoDoCliente(clienteId?: string | null) {
+export function useAcordoDoCliente(clienteId?: string | null, acordoId?: string | null) {
   return useQuery<AcordoCompleto | null>({
-    queryKey: acordoQueryKey(clienteId),
+    queryKey: acordoQueryKey(clienteId, acordoId),
     enabled: !!clienteId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      /*
+       * SEM `acordoId`, a versão mais alta; com ele, aquela versão.
+       *
+       * O filtro por id não dispensa o `cliente_id`: a RLS já barra o acordo de
+       * outro cliente, mas um id vindo da URL não deve nem chegar ao banco
+       * apontando para fora do cliente escolhido na barra.
+       */
+      const consulta = supabase
         .from('acordo_quotistas')
         /*
          * UMA LINHA SÓ, e não duas concatenadas com `+`.
@@ -113,13 +133,13 @@ export function useAcordoDoCliente(clienteId?: string | null) {
          * `tsc --noEmit` que eu rodava não checa nada neste projeto de
          * referências; quem acusa é `npm run typecheck`.
          */
-        // eslint-disable-next-line max-len
         .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*), acordo_signatario(*), acordo_sociedade_relacionada(*)')
         .eq('cliente_id', clienteId as string)
-        .eq('excluido', false)
-        .order('versao', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .eq('excluido', false);
+
+      const { data, error } = acordoId
+        ? await consulta.eq('id', acordoId).maybeSingle()
+        : await consulta.order('versao', { ascending: false }).limit(1).maybeSingle();
       if (error) throw error;
       if (!data) return null;
 
@@ -147,6 +167,34 @@ export function useAcordoDoCliente(clienteId?: string | null) {
   });
 }
 
+/**
+ * TODAS as versões do acordo deste cliente, da mais nova para a mais velha.
+ *
+ * Consulta separada, e não um campo do acordo: a tela abre sempre numa versão
+ * só, e trazer as filhas de todas seria carregar seis tabelas vezes o número de
+ * versões para desenhar uma lista de datas.
+ *
+ * Existe porque a versão anterior ficava INALCANÇÁVEL. `useAcordoDoCliente`
+ * pega a de número mais alto, e quem criasse a versão 2 perdia a 1 de vista: ela
+ * seguia no banco, sem lista, sem link e sem volta.
+ */
+export function useVersoesDoAcordo(clienteId?: string | null) {
+  return useQuery<VersaoDoAcordo[]>({
+    queryKey: versoesDoAcordoQueryKey(clienteId),
+    enabled: !!clienteId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('acordo_quotistas')
+        .select('id, versao, assinado_em, data_referencia, created_at, created_by')
+        .eq('cliente_id', clienteId as string)
+        .eq('excluido', false)
+        .order('versao', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 // ─── Escrita ──────────────────────────────────────────────────────────────────
 
 export function useAcordoMutations(clienteId?: string | null) {
@@ -154,8 +202,19 @@ export function useAcordoMutations(clienteId?: string | null) {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
 
-  const invalidar = () =>
-    queryClient.invalidateQueries({ queryKey: acordoQueryKey(clienteId) });
+  /*
+   * As DUAS consultas, e não só a do acordo.
+   *
+   * A chave do acordo ganhou o id da versão vista, então uma invalidação com a
+   * chave de três partes não alcança as outras. `invalidateQueries` casa por
+   * prefixo, e é por isso que a chave parcial basta aqui. A lista de versões tem
+   * chave própria e precisa da sua: sem ela, criar a versão 2 deixaria o
+   * histórico mostrando só a 1.
+   */
+  const invalidar = () => {
+    queryClient.invalidateQueries({ queryKey: ['acordo-quotistas', clienteId ?? null] });
+    queryClient.invalidateQueries({ queryKey: versoesDoAcordoQueryKey(clienteId) });
+  };
 
   const carimbo = () => ({ created_by: user?.id ?? null, updated_by: user?.id ?? null });
 
@@ -496,7 +555,7 @@ export function useAcordoMutations(clienteId?: string | null) {
     },
     onSuccess: (a) => {
       invalidar();
-      toast.success(`Versão ${a.versao} criada em branco`);
+      toast.success(`Versão ${a.versao} criada, com os sete quóruns e os mecanismos padrão`);
     },
     onError: (e: unknown) =>
       toast.error(e instanceof Error ? e.message : 'Não consegui criar a versão'),
