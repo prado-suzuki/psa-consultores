@@ -163,10 +163,10 @@ export function AcordoGrupoModal({
                 </div>
               )}
 
-              {(c.tipo === 'texto' || c.tipo === 'numero') && (
+              {(c.tipo === 'texto' || c.tipo === 'numero' || c.tipo === 'data') && (
                 <Input
                   id={`ac-${c.campo}`}
-                  type={c.tipo === 'numero' ? 'number' : 'text'}
+                  type={c.tipo === 'numero' ? 'number' : c.tipo === 'data' ? 'date' : 'text'}
                   min={c.tipo === 'numero' ? 1 : undefined}
                   value={(form[c.campo] as string | number | null) ?? ''}
                   onChange={(e) => mexer(

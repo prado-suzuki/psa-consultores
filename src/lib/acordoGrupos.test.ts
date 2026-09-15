@@ -8,11 +8,13 @@ import {
 } from '@/lib/acordoGrupos';
 
 describe('GRUPOS_DO_ACORDO', () => {
-  it('são os sete que restaram da validação de 11/09, com os nomes das cláusulas', () => {
-    // Eram oito. O de usufruto saiu: ele não pedia nada ao analista, e o Quadro
-    // Societário já tem o card que lê os ônus e monta a tabela de quem vota.
+  it('são os da validação de 11/09, mais a identificação, na ordem de leitura', () => {
+    // Eram oito na validação. O de usufruto saiu, porque não pedia nada ao
+    // analista e o Quadro Societário já monta a tabela de quem vota. Entrou a
+    // identificação, que guarda assinatura, vigência e sigilo, e que não tinha
+    // dono em tela nenhuma. Ela vem primeiro porque é o cabeçalho do documento.
     expect(GRUPOS_DO_ACORDO.map((g) => g.chave)).toEqual([
-      'alcance', 'quorum', 'reuniao_previa', 'saida',
+      'identificacao', 'alcance', 'quorum', 'reuniao_previa', 'saida',
       'opcoes', 'conflitos', 'representacao',
     ]);
   });

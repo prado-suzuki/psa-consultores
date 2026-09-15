@@ -219,7 +219,7 @@ export function useAcordoMutations(clienteId?: string | null) {
    * isso o log registraria como alteração todo campo que a pessoa apenas viu.
    */
   const salvarAcordo = useMutation({
-    mutationFn: async (args: { id: string; campos: AcordoInput }) => {
+    mutationFn: async (args: { id: string; campos: AcordoInput; grupo?: string }) => {
       const { data: atual, error: erroLeitura } = await supabase
         .from('acordo_quotistas')
         .select('*')
@@ -231,23 +231,44 @@ export function useAcordoMutations(clienteId?: string | null) {
         atual as unknown as Record<string, unknown>,
         args.campos as Record<string, unknown>,
       );
-      if (Object.keys(mudou).length === 0) return atual;
+
+      /*
+       * O BLOCO VIRA CONFERIDO AO SALVAR, mesmo que nada tenha mudado.
+       *
+       * São coisas diferentes: `mudou` diz se algum valor é outro, e conferido diz
+       * que alguém abriu e concordou. O acordo nasce semeado, então o caso mais
+       * comum de um bloco correto é justamente o de abrir, ler e fechar sem
+       * digitar nada. Se só o que muda contasse, esse bloco ficaria eternamente
+       * por conferir.
+       */
+      const conferidos = new Set<string>(atual.grupos_conferidos ?? []);
+      const conferindo = args.grupo && !conferidos.has(args.grupo);
+      if (conferindo) conferidos.add(args.grupo!);
+
+      if (Object.keys(mudou).length === 0 && !conferindo) return atual;
 
       const { data, error } = await supabase
         .from('acordo_quotistas')
-        .update({ ...args.campos, updated_by: user?.id ?? null })
+        .update({
+          ...args.campos,
+          grupos_conferidos: [...conferidos],
+          updated_by: user?.id ?? null,
+        })
         .eq('id', args.id)
         .select()
         .single();
       if (error) throw error;
 
+      // Abrir e concordar sem mudar nada também é ato, e o log registra.
       await logAction({
         area: 'osg',
         entity_type: 'acordo_quotistas',
         entity_id: args.id,
         entity_name: `Acordo de Quotistas, versão ${data.versao}`,
         action: 'updated',
-        changed_fields: mudou,
+        changed_fields: Object.keys(mudou).length > 0
+          ? mudou
+          : { Conferência: { old: '', new: `bloco "${args.grupo}" conferido` } },
       });
 
       return data;
@@ -414,6 +435,66 @@ export function useAcordoMutations(clienteId?: string | null) {
   });
 
   /**
+   * Uma versão nova do acordo, EM BRANCO.
+   *
+   * Em branco e não copiando a anterior, por decisão de 15/09. O acordo que se
+   * renegocia é outro documento, e partir do anterior arrastaria valor que
+   * ninguém reviu justamente no momento em que tudo está sendo revisto. A
+   * semente entra igual à da primeira: os sete quóruns e as regras mais comuns.
+   *
+   * A anterior não some, fica na mesma linha com a versão menor. É o que permite
+   * saber qual versão do acordo virou qual contrato.
+   */
+  const novaVersao = useMutation({
+    mutationFn: async (args: { versaoAtual: number }) => {
+      if (!clienteId) throw new Error('Selecione um cliente.');
+
+      const { data: acordo, error } = await supabase
+        .from('acordo_quotistas')
+        .insert({
+          cliente_id: clienteId,
+          data_referencia: new Date().toISOString().slice(0, 10),
+          versao: args.versaoAtual + 1,
+          mecanismos: mecanismosPadrao(),
+          ...carimbo(),
+        })
+        .select()
+        .single();
+      if (error) throw error;
+
+      const { error: erroQuoruns } = await supabase.from('acordo_quorum').insert(
+        QUORUNS_PADRAO.map((q, i) => ({
+          acordo_id: acordo.id,
+          chave: q.chave,
+          materia: q.materia,
+          tipo: q.tipo,
+          percentual: q.percentual ?? null,
+          base: q.base,
+          ordem: i,
+          ...carimbo(),
+        })),
+      );
+      if (erroQuoruns) throw erroQuoruns;
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'acordo_quotistas',
+        entity_id: acordo.id,
+        entity_name: `Acordo de Quotistas, versão ${acordo.versao}`,
+        action: 'created',
+      });
+
+      return acordo;
+    },
+    onSuccess: (a) => {
+      invalidar();
+      toast.success(`Versão ${a.versao} criada em branco`);
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : 'Não consegui criar a versão'),
+  });
+
+  /**
    * Exclusão é SOFT, por `excluido`.
    *
    * Mesma razão do órgão de governança: apagar um acordo que já virou cláusula de
@@ -444,5 +525,7 @@ export function useAcordoMutations(clienteId?: string | null) {
       toast.error(e instanceof Error ? e.message : 'Não consegui excluir o acordo'),
   });
 
-  return { criarAcordo, salvarAcordo, salvarListas, salvarVinculos, excluirAcordo };
+  return {
+    criarAcordo, salvarAcordo, salvarListas, salvarVinculos, novaVersao, excluirAcordo,
+  };
 }

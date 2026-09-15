@@ -240,3 +240,69 @@ describe('excluirAcordo', () => {
     );
   });
 });
+
+describe('conferido não é preenchido', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('salvar o bloco marca conferido MESMO sem mudar nada', async () => {
+    /*
+     * É o caso mais comum, e o motivo de a marca existir: o acordo nasce semeado,
+     * então o bloco correto é o que a pessoa abre, lê e fecha sem digitar. Se só
+     * o que muda contasse, ele ficaria eternamente por conferir.
+     */
+    const { updates } = espiar({ grupos_conferidos: [], vigencia_anos: 10 });
+    const { salvarAcordo } = useAcordoMutations('c1');
+
+    await (salvarAcordo as unknown as ComMutationFn).mutationFn(
+      { id: 'ac1', campos: { vigencia_anos: 10 }, grupo: 'quorum' } as never,
+    );
+
+    expect((updates['acordo_quotistas']![0] as Record<string, unknown>).grupos_conferidos)
+      .toEqual(['quorum']);
+  });
+
+  it('não desmarca o que já estava conferido, e não duplica', async () => {
+    const { updates } = espiar({ grupos_conferidos: ['quorum'], vigencia_anos: 10 });
+    const { salvarAcordo } = useAcordoMutations('c1');
+
+    await (salvarAcordo as unknown as ComMutationFn).mutationFn(
+      { id: 'ac1', campos: { vigencia_anos: 12 }, grupo: 'quorum' } as never,
+    );
+
+    expect((updates['acordo_quotistas']![0] as Record<string, unknown>).grupos_conferidos)
+      .toEqual(['quorum']);
+  });
+
+  it('sem grupo e sem mudança, não grava nada', async () => {
+    const { updates } = espiar({ grupos_conferidos: [], vigencia_anos: 10 });
+    const { salvarAcordo } = useAcordoMutations('c1');
+
+    await (salvarAcordo as unknown as ComMutationFn).mutationFn(
+      { id: 'ac1', campos: { vigencia_anos: 10 } } as never,
+    );
+
+    expect(updates['acordo_quotistas']).toBeUndefined();
+  });
+});
+
+describe('novaVersao', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('nasce EM BRANCO e com a semente, e não copiando a anterior', async () => {
+    // Decisão de 15/09: o acordo que se renegocia é outro documento, e partir do
+    // anterior arrastaria valor que ninguém reviu no momento em que tudo é revisto.
+    const { inserts } = espiar();
+    const { novaVersao } = useAcordoMutations('c1');
+
+    await (novaVersao as unknown as ComMutationFn).mutationFn({ versaoAtual: 1 } as never);
+
+    const cabecalho = inserts['acordo_quotistas']![0] as Record<string, unknown>;
+    expect(cabecalho.versao).toBe(2);
+    expect(cabecalho.mecanismos).toEqual(mecanismosPadrao());
+    // Nenhum valor do acordo anterior veio junto.
+    expect(cabecalho.vigencia_anos).toBeUndefined();
+    expect(cabecalho.camara_arbitral).toBeUndefined();
+    // E os sete quóruns entram semeados, como na primeira versão.
+    expect(inserts['acordo_quorum']![0]).toHaveLength(QUORUNS_PADRAO.length);
+  });
+});

@@ -151,6 +151,7 @@ export type Database = {
           created_by: string | null
           data_referencia: string | null
           excluido: boolean
+          grupos_conferidos: string[]
           horizonte_fluxo_anos: number | null
           id: string
           juros_valor_subscrito: string | null
@@ -188,6 +189,7 @@ export type Database = {
           created_by?: string | null
           data_referencia?: string | null
           excluido?: boolean
+          grupos_conferidos?: string[]
           horizonte_fluxo_anos?: number | null
           id?: string
           juros_valor_subscrito?: string | null
@@ -225,6 +227,7 @@ export type Database = {
           created_by?: string | null
           data_referencia?: string | null
           excluido?: boolean
+          grupos_conferidos?: string[]
           horizonte_fluxo_anos?: number | null
           id?: string
           juros_valor_subscrito?: string | null
@@ -8948,7 +8951,6 @@ export type Database = {
       }
       quadro_societario: {
         Row: {
-          com_usufruto: boolean
           created_at: string
           created_by: string | null
           data_referencia: string | null
@@ -8960,10 +8962,8 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           vlr_total: number | null
-          voto_exercido_por: string | null
         }
         Insert: {
-          com_usufruto?: boolean
           created_at?: string
           created_by?: string | null
           data_referencia?: string | null
@@ -8975,10 +8975,8 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           vlr_total?: number | null
-          voto_exercido_por?: string | null
         }
         Update: {
-          com_usufruto?: boolean
           created_at?: string
           created_by?: string | null
           data_referencia?: string | null
@@ -8990,7 +8988,6 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           vlr_total?: number | null
-          voto_exercido_por?: string | null
         }
         Relationships: [
           {
@@ -11545,6 +11542,22 @@ export type Database = {
         Args: { _entity_id: string; _entity_type: string }
         Returns: string
       }
+      avisos_para_o_chat: {
+        Args: { _ambiente?: string; _janela?: string }
+        Returns: {
+          area_nome: string
+          chave: string
+          cliente_nome: string
+          dono_nome: string
+          due_date: string
+          entidade_id: string
+          project_id: string
+          project_name: string
+          task_status: Database["public"]["Enums"]["fiscal_task_status"]
+          task_title: string
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
+        }[]
+      }
       can_perform: {
         Args: { p_id: string; p_op: string; p_table: string }
         Returns: Json
@@ -11933,6 +11946,10 @@ export type Database = {
         Returns: boolean
       }
       itcd_gravar_simulacao: { Args: { p: Json }; Returns: string }
+      liberar_reserva_falha: {
+        Args: { _erro?: string; _id: string }
+        Returns: undefined
+      }
       list_profiles_safe: {
         Args: never
         Returns: {

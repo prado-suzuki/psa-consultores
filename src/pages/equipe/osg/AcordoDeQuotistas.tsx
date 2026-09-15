@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FileSignature, MousePointerClick, Sparkles } from 'lucide-react';
+import { Check, FilePlus2, FileSignature, MousePointerClick, Sparkles } from 'lucide-react';
 
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import {
@@ -48,7 +48,7 @@ const AcordoDeQuotistas = () => {
   const { data, isLoading } = useAcordoDoCliente(clienteId);
   const { data: pessoas = [] } = usePessoasByCliente(clienteId ?? null);
   const {
-    criarAcordo, salvarAcordo, salvarListas, salvarVinculos,
+    criarAcordo, salvarAcordo, salvarListas, salvarVinculos, novaVersao,
   } = useAcordoMutations(clienteId);
 
   const [grupoAberto, setGrupoAberto] = useState<GrupoDoAcordo | null>(null);
@@ -97,11 +97,17 @@ const AcordoDeQuotistas = () => {
       sociedades,
     });
 
-    await salvarAcordo.mutateAsync({ id: data.acordo.id, campos: cabecalho });
+    // O `grupo` é o que carimba o bloco como conferido. Ver `salvarAcordo`.
+    await salvarAcordo.mutateAsync({
+      id: data.acordo.id, campos: cabecalho, grupo: grupoAberto?.chave,
+    });
   };
 
   const salvando = salvarAcordo.isPending || salvarListas.isPending
     || salvarVinculos.isPending;
+
+  const conferidos = new Set(data?.acordo.grupos_conferidos ?? []);
+  const faltamConferir = GRUPOS_DO_ACORDO.filter((g) => !conferidos.has(g.chave)).length;
 
   return (
     <OsgLayout
@@ -142,6 +148,25 @@ const AcordoDeQuotistas = () => {
                   ? `assinado em ${data.acordo.assinado_em}`
                   : 'ainda em minuta'}
               </span>
+
+              {/*
+                O BOTÃO DE NOVA VERSÃO SÓ APARECE COM TUDO CONFERIDO, por decisão
+                de 15/09. "Terminado" não é "todo campo tem valor", porque o acordo
+                nasce semeado: é todo bloco aberto e salvo por alguém. Oferecer a
+                versão 2 antes disso seria oferecer partir de um acordo que ninguém
+                leu.
+              */}
+              {faltamConferir === 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="ml-auto"
+                  disabled={novaVersao.isPending}
+                  onClick={() => novaVersao.mutate({ versaoAtual: data.acordo.versao })}
+                >
+                  <FilePlus2 className="mr-2 h-4 w-4" /> Nova versão, em branco
+                </Button>
+              )}
             </div>
 
             {/*
@@ -153,9 +178,16 @@ const AcordoDeQuotistas = () => {
               <MousePointerClick className="mt-0.5 h-4 w-4 shrink-0 text-osg-600" aria-hidden />
               <p className="text-sm text-osg-700">
                 <span className="font-semibold">Clique em um bloco para preencher.</span>{' '}
-                Os quóruns e os mecanismos mais comuns já vêm respondidos, então percorra
-                os blocos e corrija só o que este cliente tem de diferente. Cada campo
-                mostra, na ajuda, a frase que o modelo usa e o número que ele traz.
+                Os quóruns e as regras mais comuns já vêm respondidos, então percorra os
+                blocos e corrija só o que este cliente tem de diferente. Cada campo mostra,
+                na ajuda, a frase que o modelo usa e o número que ele traz.{' '}
+                {faltamConferir > 0 ? (
+                  <span className="font-semibold">
+                    Faltam {faltamConferir} de {GRUPOS_DO_ACORDO.length} blocos por conferir.
+                  </span>
+                ) : (
+                  <span className="font-semibold">Todos os blocos foram conferidos.</span>
+                )}
               </p>
             </div>
 
@@ -167,6 +199,7 @@ const AcordoDeQuotistas = () => {
             <div className="grid gap-4 sm:grid-cols-2">
               {GRUPOS_DO_ACORDO.map((g) => {
                 const { preenchidos, total } = preenchidosNoGrupo(g, valores);
+                const conferido = conferidos.has(g.chave);
                 /*
                  * NÃO EXISTE "PRONTO" AQUI, e a ausência é deliberada.
                  *
@@ -202,20 +235,29 @@ const AcordoDeQuotistas = () => {
                       'cursor-pointer rounded-xl border bg-superficie-cartao p-4',
                       'shadow-sm shadow-osg-300/20 transition-colors',
                       'hover:border-osg-moss hover:bg-osg-50/60 hover:shadow-md',
-                      cheio ? 'border-osg-200' : 'border-osg-300/70',
+                      conferido ? 'border-osg-200' : 'border-osg-300/70',
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-sm font-semibold">{g.titulo}</p>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          'shrink-0 tabular-nums',
-                          cheio ? 'border-osg-200 bg-osg-50 text-osg-700' : 'text-muted-foreground',
-                        )}
-                      >
-                        {preenchidos} de {total} respondidos
-                      </Badge>
+                      {conferido ? (
+                        <Badge
+                          variant="outline"
+                          className="shrink-0 gap-1 border-osg-200 bg-osg-50 text-osg-700"
+                        >
+                          <Check className="h-3 w-3" /> conferido
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            'shrink-0 tabular-nums',
+                            cheio ? 'text-osg-700' : 'text-muted-foreground',
+                          )}
+                        >
+                          {preenchidos} de {total} respondidos
+                        </Badge>
+                      )}
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{g.resumo}</p>
                   </div>

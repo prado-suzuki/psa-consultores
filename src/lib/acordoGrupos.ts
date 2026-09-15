@@ -21,6 +21,7 @@ export type TipoCampoAcordo =
   | 'textoLongo'
   | 'numero'
   | 'booleano'
+  | 'data'
   | 'escolha'
   | 'multi'
   /** Tem controle próprio: quóruns, ramos, ordem, pessoas, usufruto. */
@@ -77,6 +78,35 @@ const OBJETOS = [
 
 export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
   {
+    chave: 'identificacao',
+    titulo: 'Identificação e vigência',
+    resumo: 'Se já foi assinado, por quanto tempo vale e por quanto tempo é sigiloso',
+    campos: [
+      {
+        campo: 'assinado_em',
+        rotulo: 'Assinado em',
+        tipo: 'data',
+        ajuda:
+          'Deixe em branco enquanto for minuta. O documento gerado usa esta data para '
+          + 'escrever o fecho; sem ela, ele deixa a lacuna para assinar à mão.',
+      },
+      {
+        campo: 'vigencia_anos',
+        rotulo: 'Vigência, em anos',
+        tipo: 'numero',
+        ajuda:
+          'Por quantos anos o acordo vale. No acordo da Utida: "permanecerá em vigor por '
+          + 'um período de 10 (dez) anos".',
+      },
+      {
+        campo: 'prazo_sigilo_anos',
+        rotulo: 'Prazo de sigilo, em anos',
+        tipo: 'numero',
+        ajuda: 'Por quantos anos o conteúdo do acordo não pode ser divulgado.',
+      },
+    ],
+  },
+  {
     chave: 'alcance',
     titulo: 'Alcance do acordo',
     resumo: 'Sobre quais empresas o acordo vale, e como a família se divide em ramos',
@@ -86,16 +116,23 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         rotulo: 'Sociedades relacionadas abrangidas',
         tipo: 'especial',
         ajuda:
-          'O modelo estende quase toda regra às sociedades relacionadas, então esta lista '
-          + 'muda o alcance do documento inteiro.',
+          'AS OUTRAS EMPRESAS DO GRUPO, e não os sócios. O acordo estende quase toda '
+          + 'regra a elas: a preferência na venda, a não concorrência e o dever de levar '
+          + 'oportunidade à administração valem para a holding e para cada operacional '
+          + 'listada aqui. Incluir ou tirar uma empresa muda o alcance do documento '
+          + 'inteiro.',
       },
       {
         campo: 'ramos',
         rotulo: 'Ramos familiares',
         tipo: 'especial',
         ajuda:
-          'Os rótulos aceitos são "RAMO [nome]" e "DESCENDENTES DE [nome]". Nunca "núcleo '
-          + 'familiar", porque o termo exclui o cônjuge, e cônjuge não integra ramo.',
+          'Cada ramo é um sócio fundador MAIS os descendentes dele em linha reta, e leva '
+          + 'o nome desse fundador. No acordo da AgroAliança: "DESCENDENTES DE CRISTINA, '
+          + 'formado por CRISTINA e seus descendentes em linha vertical; e DESCENDENTES DE '
+          + 'REGINA". Serve para dividir direitos entre os lados da família, como a ordem '
+          + 'da preferência. Nunca escreva "núcleo familiar": o termo exclui o cônjuge, e '
+          + 'cônjuge não integra ramo nem entra no quadro societário.',
       },
     ],
   },
