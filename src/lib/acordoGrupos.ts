@@ -328,28 +328,44 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           { valor: 'arbitragem', rotulo: 'Arbitragem' },
           { valor: 'judicial', rotulo: 'Judicial' },
         ] },
-      /*
-       * NÃO EXISTE "PRAZO PARA INDICAÇÃO DE ÁRBITROS", e o campo saiu daqui.
-       *
-       * Ele veio do levantamento, e rastreei nos sete acordos: nenhum traz prazo.
-       * Seis dos sete trazem outra coisa, com a mesma redação, "o número de
-       * árbitros será de 03 (três), sendo um nomeado pelo reclamante, o outro
-       * pela parte reclamada e o terceiro eleito por aqueles dois".
-       *
-       * E esse número também não vira campo: 3 em 6 de 6 é texto fixo do modelo,
-       * pela mesma regra que tirou os quatro números da apuração de haveres.
-       *
-       * A CÂMARA FICA, porque essa varia de verdade: cinco acordos usam a Câmara
-       * de Comércio Brasil Canadá e a Utida usa a Câmara FGV de Conciliação e
-       * Arbitragem.
-       *
-       * A coluna `prazo_indicacao_arbitros_dias` continua no banco, vazia, junto
-       * das quatro da apuração. Derrubar as cinco é uma migration de limpeza.
-       */
       { campo: 'camara_arbitral', rotulo: 'Câmara arbitral', tipo: 'texto',
         ajuda: 'Qual câmara julga a briga. Cinco dos sete acordos usam a Câmara de Comércio '
           + 'Brasil Canadá, a CAM-CCBC, e a Utida usa a Câmara FGV de Conciliação e '
           + 'Arbitragem. Quantos árbitros são não se digita: o modelo fixa três em todos.' },
+
+      /*
+       * O PRAZO VOLTOU, e a primeira contagem estava errada.
+       *
+       * Eu tirei este campo em 15/09 escrevendo que "não existe em documento
+       * nenhum". Refiz a contagem nos sete acordos e existe: o AgroAliança, na
+       * cláusula 26.3, escreve "Cada parte deverá nomear seu árbitro no prazo de
+       * 15 (quinze) dias contados do recebimento da notificação de instauração
+       * da arbitragem; findo o prazo sem nomeação, o árbitro será designado nos
+       * termos [do regulamento]". É 1 de 7, e não 0 de 7.
+       *
+       * Um de sete é pouco, e é exatamente a mesma proporção do RAMO FAMILIAR,
+       * que fica pelo mesmo motivo: ausência nos outros seis não é prova de que
+       * o campo sobra, é o cliente que não tem aquela cláusula. Campo opcional
+       * vazio não escreve nada.
+       *
+       * O QUE NÃO É CAMPO é quantos árbitros são: "03 (três)" em 6 de 6 que
+       * dizem, texto fixo do modelo.
+       *
+       * FALTA MODELAR O REGIME DE NOMEAÇÃO, que varia mais que o prazo e ainda
+       * não tem coluna. São dois, e o prazo só faz sentido no primeiro:
+       *   as partes nomeiam    4 de 7 (AgroAliança, Utida, modelo, Perci)
+       *   pelo regulamento     2 de 7 (Horita, Via Fértil), "os quais serão
+       *                        nomeados conforme o regulamento da CAM-CCBCC"
+       * Enquanto o regime não existir, a condição vive na ajuda abaixo.
+       */
+      { campo: 'prazo_indicacao_arbitros_dias',
+        rotulo: 'Prazo para cada parte indicar seu árbitro, em dias', tipo: 'numero',
+        ajuda: 'Só se aplica quando as partes nomeiam os árbitros, que é o caso em 4 dos 7 '
+          + 'acordos; nos outros dois quem nomeia é a câmara, pelo regulamento dela, e aí '
+          + 'não há prazo a digitar. Um único acordo do acervo fixa o prazo, o da '
+          + 'AgroAliança: "Cada parte deverá nomear seu árbitro no prazo de 15 (quinze) dias '
+          + 'contados do recebimento da notificação de instauração da arbitragem". Deixe '
+          + 'vazio se este acordo não traz prazo.' },
     ],
   },
   {

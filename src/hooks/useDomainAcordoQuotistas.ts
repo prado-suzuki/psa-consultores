@@ -82,7 +82,6 @@ export interface QuorumInput {
 
 export interface RamoInput {
   nome: string;
-  rotulo: 'ramo' | 'descendentes';
 }
 
 export const acordoQueryKey = (clienteId?: string | null, acordoId?: string | null) =>
@@ -410,7 +409,6 @@ export function useAcordoMutations(clienteId?: string | null) {
         args.ramos.map((r, i) => ({
           acordo_id: args.acordoId,
           nome: r.nome.trim(),
-          rotulo: r.rotulo,
           ordem: i,
           ...carimbo(),
         })),

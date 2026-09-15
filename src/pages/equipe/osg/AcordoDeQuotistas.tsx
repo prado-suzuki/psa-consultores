@@ -6,7 +6,7 @@ import {
   AcordoGrupoModal, type ValoresDoAcordo,
 } from '@/components/equipe/osg/governanca/AcordoGrupoModal';
 import {
-  FaixaVersaoAnterior, HistoricoDoAcordo,
+  FaixaDaVersao, HistoricoDoAcordo,
 } from '@/components/equipe/osg/governanca/HistoricoDoAcordo';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -72,8 +72,16 @@ const AcordoDeQuotistas = () => {
 
   const [grupoAberto, setGrupoAberto] = useState<GrupoDoAcordo | null>(null);
 
-  const versaoVista = versaoVistaId ? versoes.find((v) => v.id === versaoVistaId) : null;
-  const somenteLeitura = !!versaoVista;
+  const ehMaisRecente = versaoVistaId === null;
+  /*
+   * ASSINADA, CONGELA. Velha, não.
+   *
+   * Ver o comentário longo em `HistoricoDoAcordo`: o que vale é o documento
+   * assinado, e enquanto ele não existe o cadastro é minuta, corrigível. O
+   * precedente é a tela Gerar, onde a versão editável é a que está em rascunho,
+   * e não a mais nova.
+   */
+  const somenteLeitura = !!data?.acordo.assinado_em;
 
   /** O estado do acordo achatado, como os grupos e o modal o leem. */
   const valores: ValoresDoAcordo = useMemo(() => ({
@@ -85,9 +93,7 @@ const AcordoDeQuotistas = () => {
       percentual: q.percentual,
       base: q.base as BaseQuorum,
     })),
-    ramos: (data?.ramos ?? []).map((r) => ({
-      nome: r.nome, rotulo: r.rotulo as 'ramo' | 'descendentes',
-    })),
+    ramos: (data?.ramos ?? []).map((r) => ({ nome: r.nome })),
     ordemPreferencia: (data?.ordemPreferencia ?? []).map((o) => o.quem),
     signatarios: (data?.signatarios ?? []).map((x) => x.pessoa_id),
     sociedades: (data?.sociedades ?? []).map((x) => x.empresa_pessoa_id),
@@ -191,10 +197,12 @@ const AcordoDeQuotistas = () => {
                 versão 2 antes disso seria oferecer partir de um acordo que ninguém
                 leu.
 
-                E NÃO APARECE EM MODO LEITURA: criar a versão 3 olhando a 1 daria
-                uma versão que não continua o que está na tela.
+                E SÓ NA VERSÃO MAIS NOVA: criar a versão 3 olhando a 1 daria uma
+                versão que não continua o que está na tela. Some também na versão
+                assinada, onde o caminho de mudar de ideia é outro botão que ainda
+                não existe (criar a seguinte a partir desta).
               */}
-              {faltamConferir === 0 && !somenteLeitura && (
+              {faltamConferir === 0 && ehMaisRecente && !somenteLeitura && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -230,12 +238,17 @@ const AcordoDeQuotistas = () => {
               />
             )}
 
-            {somenteLeitura && versaoVista && (
-              <FaixaVersaoAnterior
-                numero={versaoVista.versao}
-                numeroAtual={versoes[0]?.versao ?? versaoVista.versao}
-                data={versaoVista.assinado_em ?? versaoVista.created_at}
-                autor={autores[versaoVista.created_by ?? ''] || null}
+            {/*
+              A faixa aparece nas duas situações que fogem do caso comum: versão
+              assinada (congelada) e versão que não é a mais nova. Na minuta mais
+              recente, que é o caso de sempre, ela não tem o que dizer.
+            */}
+            {(somenteLeitura || !ehMaisRecente) && (
+              <FaixaDaVersao
+                numero={data.acordo.versao}
+                numeroAtual={versoes[0]?.versao ?? data.acordo.versao}
+                assinadoEm={data.acordo.assinado_em}
+                ehMaisRecente={ehMaisRecente}
                 onVoltar={() => setVersaoVistaId(null)}
               />
             )}
@@ -248,7 +261,7 @@ const AcordoDeQuotistas = () => {
               SOME EM MODO LEITURA, onde ela mandaria fazer o que a tela não deixa:
               o lugar dela é a faixa da versão anterior, que diz por que não dá.
             */}
-            {!somenteLeitura && (
+            {!somenteLeitura && ehMaisRecente && (
             <div className="flex items-start gap-2.5 rounded-xl border border-osg-200 bg-osg-50/60 p-4">
               <MousePointerClick className="mt-0.5 h-4 w-4 shrink-0 text-osg-600" aria-hidden />
               <p className="text-sm text-osg-700">

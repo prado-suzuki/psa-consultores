@@ -37,13 +37,27 @@ export function resumoDosQuoruns(lista: readonly QuorumLegivel[]): string {
   return lista.length === 0 ? 'nenhum' : lista.map(resumoDoQuorum).join(' · ');
 }
 
-/** "RAMO Silva", "DESCENDENTES DE João" — o rótulo do jeito que o documento escreve. */
-export function rotuloDoRamo(ramo: { nome: string; rotulo: string }): string {
+/*
+ * "DESCENDENTES DE JOÃO", que é o único rótulo que documento algum usa.
+ *
+ * Havia escolha entre "RAMO [nome]" e "DESCENDENTES DE [nome]", e ela veio do
+ * levantamento de 11/09 (`docs/osg/campos-governanca.md`). Contado nos 14
+ * documentos do acervo, sete acordos e sete contratos: "RAMO [nome]" como grupo
+ * da família aparece em ZERO, e "ramo" com o sentido de ramo de ATIVIDADE
+ * aparece em três acordos. Imprimir "RAMO BOCOLLI" num documento que usa a
+ * palavra para linha de negócio é colisão de vocabulário.
+ *
+ * O MOCKUP JÁ TINHA DERRUBADO ISSO, e eu reintroduzi. Está escrito em
+ * `src/previews/cadastroGovernancaDados.ts`, na branch do mockup: "as duas
+ * opções de cima estão escritas em documento; 'ramo familiar' não estava em
+ * nenhum, e foi retirada".
+ */
+export function rotuloDoRamo(ramo: { nome: string }): string {
   const nome = ramo.nome.trim().toLocaleUpperCase('pt-BR');
-  return ramo.rotulo === 'descendentes' ? `DESCENDENTES DE ${nome}` : `RAMO ${nome}`;
+  return `DESCENDENTES DE ${nome}`;
 }
 
-export function resumoDosRamos(lista: readonly { nome: string; rotulo: string }[]): string {
+export function resumoDosRamos(lista: readonly { nome: string }[]): string {
   return lista.length === 0 ? 'nenhum' : lista.map(rotuloDoRamo).join(', ');
 }
 

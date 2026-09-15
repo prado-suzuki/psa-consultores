@@ -28,22 +28,24 @@ describe('resumoDoQuorum', () => {
 });
 
 describe('rotuloDoRamo', () => {
-  it('escreve os dois rótulos que o card aceita, em caixa alta', () => {
-    // "núcleo familiar" é proibido: o termo exclui o cônjuge implicitamente.
-    expect(rotuloDoRamo({ nome: 'Silva', rotulo: 'ramo' })).toBe('RAMO SILVA');
-    expect(rotuloDoRamo({ nome: 'João Pedro', rotulo: 'descendentes' }))
-      .toBe('DESCENDENTES DE JOÃO PEDRO');
+  it('escreve o único rótulo que os documentos usam, em caixa alta', () => {
+    /*
+     * "RAMO [nome]" SAIU. Contado nos 14 documentos do acervo, ele não aparece
+     * em nenhum, e "ramo" já significa ramo de ATIVIDADE em três acordos. O
+     * mockup da governança tinha derrubado a opção com a mesma medição.
+     *
+     * "núcleo familiar" segue proibido: o termo exclui o cônjuge implicitamente.
+     */
+    expect(rotuloDoRamo({ nome: 'João Pedro' })).toBe('DESCENDENTES DE JOÃO PEDRO');
   });
 
   it('não deixa espaço solto virar parte do nome', () => {
-    expect(rotuloDoRamo({ nome: '  Costa  ', rotulo: 'ramo' })).toBe('RAMO COSTA');
+    expect(rotuloDoRamo({ nome: '  Costa  ' })).toBe('DESCENDENTES DE COSTA');
   });
 
   it('junta os ramos por vírgula', () => {
-    expect(resumoDosRamos([
-      { nome: 'Silva', rotulo: 'ramo' },
-      { nome: 'Ana', rotulo: 'descendentes' },
-    ])).toBe('RAMO SILVA, DESCENDENTES DE ANA');
+    expect(resumoDosRamos([{ nome: 'Cristina' }, { nome: 'Regina' }]))
+      .toBe('DESCENDENTES DE CRISTINA, DESCENDENTES DE REGINA');
   });
 });
 

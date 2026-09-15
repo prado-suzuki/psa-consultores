@@ -56,11 +56,12 @@
 -- REGIME, nao o prazo.
 --
 --
--- 3. O ROTULO DO RAMO PASSA A NASCER 'descendentes'
+-- 3. A COLUNA `rotulo` DO RAMO SAI INTEIRA
 --
--- O padrao era 'ramo', e ele veio do levantamento de 11/09
--- (`docs/osg/campos-governanca.md`), que diz "os rotulos aceitos sao 'RAMO
--- [nome]' ou 'DESCENDENTES DE [nome]', e a escolha e por acordo".
+-- Ela existia para escolher entre "RAMO [nome]" e "DESCENDENTES DE [nome]", e a
+-- escolha veio do levantamento de 11/09 (`docs/osg/campos-governanca.md`): "os
+-- rotulos aceitos sao 'RAMO [nome]' ou 'DESCENDENTES DE [nome]', e a escolha e
+-- por acordo".
 --
 -- Contado nos 14 documentos do acervo, sete acordos e sete contratos sociais:
 --
@@ -68,14 +69,20 @@
 --   "DESCENDENTES DE [nome]"                  1 de 14 (AgroAlianca)
 --   "ramo" querendo dizer ramo de ATIVIDADE   3 acordos
 --
--- Ou seja, o unico rotulo que algum documento usa e DESCENDENTES DE, e "ramo"
--- ja significa outra coisa dentro do mesmo texto: "oportunidades de negocios
--- relacionados aos ramos de atividade". Imprimir "RAMO BOCOLLI" num documento
--- que usa a palavra para linha de negocio e colisao de vocabulario.
+-- Nenhum documento escreve "RAMO [nome]", e "ramo" ja significa outra coisa
+-- dentro do mesmo texto: "oportunidades de negocios relacionados aos ramos de
+-- atividade". Imprimir "RAMO BOCOLLI" num documento que usa a palavra para
+-- linha de negocio e colisao de vocabulario.
 --
--- O CHECK CONTINUA ACEITANDO OS DOIS. O levantamento afirma que a casa usa os
--- dois, e sete acordos sao amostra, nao o universo; estreitar o CHECK e
--- irreversivel sem outra migration. Muda so de onde se parte.
+-- O MOCKUP DA GOVERNANCA JA TINHA DERRUBADO ISSO, com a mesma medicao, e esta
+-- escrito la: "as duas opcoes de cima estao escritas em documento; 'ramo
+-- familiar' nao estava em nenhum, e foi retirada"
+-- (`src/previews/cadastroGovernancaDados.ts`, branch mockup/cadastro-governanca).
+-- A opcao voltou por eu ter seguido o levantamento em vez do documento.
+--
+-- Com um rotulo so, a coluna nao guarda decisao nenhuma: o rotulo passa a ser
+-- derivado do nome, em `rotuloDoRamo`. Conferido no sandbox antes de escrever:
+-- `acordo_ramo_familiar` esta VAZIA, zero linhas, entao nao ha dado a migrar.
 
 ALTER TABLE public.acordo_quotistas
   DROP COLUMN IF EXISTS regra_combinacao,
@@ -84,16 +91,16 @@ ALTER TABLE public.acordo_quotistas
   DROP COLUMN IF EXISTS taxa_minima_crescimento;
 
 ALTER TABLE public.acordo_ramo_familiar
-  ALTER COLUMN rotulo SET DEFAULT 'descendentes';
+  DROP CONSTRAINT IF EXISTS acordo_ramo_rotulo_ck,
+  DROP COLUMN IF EXISTS rotulo;
 
--- GATE: prova que as quatro sumiram, que a quinta ficou, e que um ramo gravado
--- sem rotulo nasce no formato dos documentos.
+-- GATE: prova que as quatro sumiram, que a quinta ficou, que o rotulo saiu e que
+-- o nome do ramo continua obrigatorio.
 DO $$
 DECLARE
   v_falhas  text[] := ARRAY[]::text[];
   v_cliente uuid;
   v_acordo  uuid;
-  v_rotulo  text;
   v_col     text;
 BEGIN
   FOREACH v_col IN ARRAY ARRAY[
@@ -115,25 +122,29 @@ BEGIN
     v_falhas := v_falhas || 'prazo_indicacao_arbitros_dias sumiu, e esta migration nao a derruba';
   END IF;
 
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'acordo_ramo_familiar'
+       AND column_name = 'rotulo'
+  ) THEN
+    v_falhas := v_falhas || 'a coluna rotulo continua em acordo_ramo_familiar';
+  END IF;
+
   SELECT id INTO v_cliente FROM public.cliente WHERE excluido = false LIMIT 1;
   IF v_cliente IS NOT NULL THEN
     INSERT INTO public.acordo_quotistas (cliente_id, versao)
     VALUES (v_cliente, 999996) RETURNING id INTO v_acordo;
 
+    -- O ramo continua gravando so com o nome, e o nome segue obrigatorio.
     INSERT INTO public.acordo_ramo_familiar (acordo_id, nome)
     VALUES (v_acordo, 'GATE');
 
-    SELECT rotulo INTO v_rotulo
-      FROM public.acordo_ramo_familiar WHERE acordo_id = v_acordo;
-    IF v_rotulo <> 'descendentes' THEN
-      v_falhas := v_falhas || format('o ramo nasceu com rotulo "%s", esperado "descendentes"', v_rotulo);
-    END IF;
-
-    -- E 'ramo' continua aceito: o CHECK nao foi estreitado.
     BEGIN
-      UPDATE public.acordo_ramo_familiar SET rotulo = 'ramo' WHERE acordo_id = v_acordo;
+      INSERT INTO public.acordo_ramo_familiar (acordo_id, nome)
+      VALUES (v_acordo, '   ');
+      v_falhas := v_falhas || 'o CHECK do nome deixou de recusar ramo sem nome';
     EXCEPTION WHEN check_violation THEN
-      v_falhas := v_falhas || 'o CHECK deixou de aceitar "ramo", e esta migration nao o estreita';
+      NULL;
     END;
 
     DELETE FROM public.acordo_ramo_familiar WHERE acordo_id = v_acordo;

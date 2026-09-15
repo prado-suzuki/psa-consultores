@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { MultiSelectCombobox, type ComboOption } from '@/components/ui/MultiSelectCombobox';
 import { SingleSelectCombobox } from '@/components/ui/SingleSelectCombobox';
+import { rotuloDoRamo } from '@/lib/acordoQuotistas';
 import { expressaoDoQuorum, type BaseQuorum, type TipoQuorum } from '@/lib/acordoQuotistasPadrao';
 import { cn } from '@/lib/utils';
 import type { CampoDoAcordo, GrupoDoAcordo } from '@/lib/acordoGrupos';
@@ -25,7 +26,7 @@ import type { CampoDoAcordo, GrupoDoAcordo } from '@/lib/acordoGrupos';
 /** O que o modal edita: os campos do cabeçalho mais as três listas. */
 export interface ValoresDoAcordo extends Record<string, unknown> {
   quoruns: { materia: string; chave?: string | null; tipo: TipoQuorum; percentual?: number | null; base: BaseQuorum }[];
-  ramos: { nome: string; rotulo: 'ramo' | 'descendentes' }[];
+  ramos: { nome: string }[];
   ordemPreferencia: string[];
   signatarios: string[];
   sociedades: string[];
@@ -478,6 +479,17 @@ function ListaDeQuoruns({
   );
 }
 
+/*
+ * SÓ O NOME SE DIGITA, e o rótulo deixou de ser escolha.
+ *
+ * Havia um seletor entre "RAMO [nome]" e "DESCENDENTES DE [nome]". Contado nos
+ * 14 documentos do acervo, "RAMO [nome]" não aparece em nenhum, e "ramo" já
+ * significa ramo de ATIVIDADE em três acordos. O mockup da governança tinha
+ * derrubado essa opção com a mesma medição, e ela voltou por eu ter seguido o
+ * levantamento de 11/09 em vez do documento.
+ *
+ * No lugar do seletor entra a prévia: quem digita vê a frase que vai sair.
+ */
 function ListaDeRamos({
   linhas, mexer,
 }: { linhas: ValoresDoAcordo['ramos']; mexer: (l: ValoresDoAcordo['ramos']) => void }) {
@@ -487,29 +499,20 @@ function ListaDeRamos({
         <div key={i} className="flex items-center gap-2">
           <Input
             className="h-8 flex-1 text-sm" value={r.nome}
-            aria-label={`Nome do ramo ${i + 1}`}
+            aria-label={`Nome do fundador do ramo ${i + 1}`}
+            placeholder="CRISTINA"
             onChange={(e) => {
               const nova = [...linhas];
               nova[i] = { ...nova[i], nome: e.target.value };
               mexer(nova);
             }}
           />
-          <Select
-            value={r.rotulo}
-            onValueChange={(v) => {
-              const nova = [...linhas];
-              nova[i] = { ...nova[i], rotulo: v as 'ramo' | 'descendentes' };
-              mexer(nova);
-            }}
-          >
-            <SelectTrigger className="h-8 w-48 text-sm" aria-label={`Rótulo do ramo ${i + 1}`}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ramo">RAMO [nome]</SelectItem>
-              <SelectItem value="descendentes">DESCENDENTES DE [nome]</SelectItem>
-            </SelectContent>
-          </Select>
+          <span className="w-72 shrink-0 truncate text-xs text-muted-foreground">
+            {r.nome.trim()
+              ? `${rotuloDoRamo(r)}, formado por ${r.nome.trim().toUpperCase()} e seus `
+                + 'descendentes em linha vertical'
+              : 'digite o nome do fundador'}
+          </span>
           <Button
             size="icon" variant="ghost" className="h-8 w-8"
             aria-label={`Tirar ${r.nome || 'ramo'}`}
@@ -522,7 +525,7 @@ function ListaDeRamos({
       <Button
         variant="ghost" size="sm"
         className="h-8 gap-1 border border-dashed border-border px-2 text-xs font-normal text-osg-700 hover:border-osg-moss hover:bg-osg-50 hover:text-osg-moss"
-        onClick={() => mexer([...linhas, { nome: '', rotulo: 'ramo' }])}
+        onClick={() => mexer([...linhas, { nome: '' }])}
       >
         <Plus className="h-3 w-3" /> Outro ramo
       </Button>

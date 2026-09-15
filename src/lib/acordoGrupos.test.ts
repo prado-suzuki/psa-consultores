@@ -112,8 +112,8 @@ describe('preenchidosNoGrupo', () => {
   it('lista vazia e texto em branco não contam', () => {
     const g = grupoDoAcordo('conflitos')!;
     expect(preenchidosNoGrupo(g, {
-      solucao_litigios: '', camara_arbitral: null,
-    })).toEqual({ preenchidos: 0, total: 2 });
+      solucao_litigios: '', camara_arbitral: null, prazo_indicacao_arbitros_dias: null,
+    })).toEqual({ preenchidos: 0, total: 3 });
   });
 });
 
@@ -136,19 +136,35 @@ describe('as ajudas saem do documento, e não da minha cabeça', () => {
     expect(ajudaDe('camara_arbitral')).toContain('Câmara de Comércio Brasil Canadá');
   });
 
-  it('o campo sem fonte no documento foi REMOVIDO, e não só avisado', () => {
+  it('o que NÃO varia não é campo; o que varia é, mesmo aparecendo uma vez', () => {
     /*
-     * "Prazo para indicação de árbitros" veio do levantamento e não existe em
-     * nenhum dos sete acordos. Seis deles trazem outra coisa, com a mesma
-     * redação: "o número de árbitros será de 03 (três)". Esse número também não
-     * é campo, porque não varia.
+     * ESTE TESTE JÁ TRAVOU A AFIRMAÇÃO ERRADA.
      *
-     * A câmara fica, porque varia: cinco usam a Brasil Canadá e a Utida usa a
-     * Câmara FGV.
+     * Ele dizia que "prazo para indicação de árbitros" não existia em documento
+     * nenhum, e travava a ausência do campo. Refeita a contagem nos sete
+     * acordos, existe: AgroAliança, cláusula 26.3, "Cada parte deverá nomear seu
+     * árbitro no prazo de 15 (quinze) dias contados do recebimento da
+     * notificação de instauração da arbitragem". É 1 de 7.
+     *
+     * A lição é sobre a catraca, não sobre o campo: teste escrito contra uma
+     * medição errada não protege nada, congela o erro. O que se trava aqui agora
+     * é a REGRA, com um exemplo de cada lado.
      */
     const campos = GRUPOS_DO_ACORDO.flatMap((g) => g.campos).map((c) => c.campo);
-    expect(campos).not.toContain('prazo_indicacao_arbitros_dias');
+
+    // VARIA, então é campo. A câmara: cinco usam a Brasil Canadá, a Utida usa a
+    // Câmara FGV. O prazo: 15 dias em 1 de 7, ausente nos outros seis.
     expect(campos).toContain('camara_arbitral');
+    expect(campos).toContain('prazo_indicacao_arbitros_dias');
+
+    // NÃO VARIA, então é texto fixo do modelo. Quantos árbitros são: "03 (três)"
+    // em 6 de 6 que dizem. E os quatro números da apuração de haveres.
+    for (const fixo of [
+      'numero_arbitros', 'prazo_balanco_dias', 'horizonte_fluxo_anos',
+      'taxa_minima_crescimento', 'regra_combinacao',
+    ]) {
+      expect(campos, `${fixo} não varia em documento nenhum`).not.toContain(fixo);
+    }
   });
 
   it('a ajuda do quórum diz que se digita o ASSUNTO, e não a frase', () => {

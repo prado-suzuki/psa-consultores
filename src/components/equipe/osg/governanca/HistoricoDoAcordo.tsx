@@ -117,41 +117,65 @@ export const HistoricoDoAcordo = ({
   );
 };
 
-interface FaixaVersaoAnteriorProps {
+interface FaixaDaVersaoProps {
   numero: number;
   numeroAtual: number;
-  data: string | null | undefined;
-  autor?: string | null;
+  /** A data em `assinado_em`; nula quando a versão ainda é minuta. */
+  assinadoEm: string | null | undefined;
+  /** Está vendo a versão mais nova? Então não há para onde voltar. */
+  ehMaisRecente: boolean;
   onVoltar: () => void;
 }
 
-/**
- * A faixa sobre os blocos em modo leitura.
+/*
+ * O QUE CONGELA UMA VERSÃO É A ASSINATURA, E NÃO A IDADE.
  *
- * ELA DIZ POR QUE NÃO SE EDITA, e não só que não se edita. Uma versão passada é
- * o que os sócios combinaram naquela data; reescrevê-la depois faria o registro
- * de auditoria descrever um acordo que nunca existiu. Quem quer mudar a decisão
- * muda na versão atual, que é a que vale.
+ * A primeira versão desta tela travava toda versão anterior, com o argumento de
+ * que ela é "o que os sócios combinaram naquele dia". O argumento não se
+ * sustenta: o que vale é o documento ASSINADO, e enquanto ele não existe o
+ * cadastro é minuta. Erro de preenchimento costuma aparecer só quando se gera o
+ * documento e se lê a cláusula, e travar a minuta obrigaria a refazer a versão
+ * inteira para corrigir uma palavra.
+ *
+ * O PRECEDENTE ESTÁ NA TELA GERAR, e é exatamente este: `ehHead: row.status ===
+ * 'rascunho'` (`useDocumentoGerado`). Lá a versão editável é a que está em
+ * rascunho, não a mais nova; uma versão selada é que fica em leitura. Aqui o
+ * equivalente de selada é `assinado_em` preenchido.
+ *
+ * A consequência vale também para a versão mais nova: preenchida a data de
+ * assinatura, ela congela, e mudar de ideia passa a ser criar a versão
+ * seguinte. É o que o documento assinado impõe.
  */
-export const FaixaVersaoAnterior = ({
-  numero, numeroAtual, data, autor, onVoltar,
-}: FaixaVersaoAnteriorProps) => (
-  <div className="flex flex-wrap items-center gap-3 rounded-md border border-osg-moss/30 bg-osg-moss/[0.07] px-4 py-2.5">
-    <History className="h-4 w-4 shrink-0 text-osg-moss" />
-    <div className="min-w-0 flex-1">
-      <p className="text-sm font-semibold text-osg-700">
-        Vendo a versão {numero}{' '}
-        <span className="font-normal text-osg-600">· somente leitura</span>
-      </p>
-      <p className="text-xs text-osg-600/80">
-        É o que estava combinado{data ? ` em ${fmtData(data)}` : ''}
-        {autor ? `, por ${autor}` : ''}. Não se edita: mudar aqui faria o histórico descrever um
-        acordo que nunca existiu. Para mudar uma decisão, volte à versão {numeroAtual}.
-      </p>
+export const FaixaDaVersao = ({
+  numero, numeroAtual, assinadoEm, ehMaisRecente, onVoltar,
+}: FaixaDaVersaoProps) => {
+  const congelada = !!assinadoEm;
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-md border border-osg-moss/30 bg-osg-moss/[0.07] px-4 py-2.5">
+      <History className="h-4 w-4 shrink-0 text-osg-moss" />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-osg-700">
+          Vendo a versão {numero}
+          <span className="font-normal text-osg-600">
+            {congelada ? ' · assinada, somente leitura' : ' · minuta, ainda dá para corrigir'}
+          </span>
+        </p>
+        <p className="text-xs text-osg-600/80">
+          {congelada
+            ? `Assinada em ${fmtData(assinadoEm)}. O cadastro tem de continuar batendo com o `
+              + 'papel, então a correção aqui seria o cadastro mentindo sobre o que foi '
+              + 'assinado. Para mudar uma decisão, crie a versão seguinte.'
+            : 'Ainda não foi assinada, então o que está aqui é minuta e pode ser corrigido. '
+              + 'Erro de preenchimento costuma aparecer só ao gerar o documento e ler a '
+              + 'cláusula.'}
+        </p>
+      </div>
+      {!ehMaisRecente && (
+        <Button size="sm" className="shrink-0 bg-osg-600 hover:bg-osg-700" onClick={onVoltar}>
+          <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+          Voltar à versão {numeroAtual}
+        </Button>
+      )}
     </div>
-    <Button size="sm" className="shrink-0 bg-osg-600 hover:bg-osg-700" onClick={onVoltar}>
-      <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
-      Voltar à versão {numeroAtual}
-    </Button>
-  </div>
-);
+  );
+};
