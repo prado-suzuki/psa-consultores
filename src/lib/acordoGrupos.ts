@@ -31,7 +31,12 @@ export interface CampoDoAcordo {
   campo: string;
   rotulo: string;
   tipo: TipoCampoAcordo;
-  opcoes?: readonly { valor: string; rotulo: string }[];
+  /**
+    * `descricao` aparece SOB o rótulo, dentro da caixa de marcar, e não numa
+    * tooltip. Vale para lista cujo nome não se explica sozinho: ninguém precisa
+    * de ajuda para "Imóveis", mas "Drag along" só diz o que é depois de lido.
+    */
+  opcoes?: readonly { valor: string; rotulo: string; descricao?: string }[];
   ajuda?: string;
   /** Também vira cláusula no contrato social. */
   desceAoContrato?: boolean;
@@ -74,7 +79,7 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
   {
     chave: 'alcance',
     titulo: 'Alcance do acordo',
-    resumo: 'Quais sociedades o acordo alcança e como a família se divide em ramos',
+    resumo: 'Quais empresas do grupo o acordo abrange, e como a família se divide em ramos',
     campos: [
       {
         campo: 'sociedades',
@@ -145,11 +150,17 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         ajuda: 'O que não pode ir a terceiro sem passar pelos sócios antes. A Cláusula '
           + 'Quinta trata das quotas e a Décima estende a sociedades relacionadas, imóveis '
           + 'e oportunidades de negócio.' },
-      { campo: 'mecanismos', rotulo: 'Mecanismos presentes', tipo: 'multi',
-        opcoes: MECANISMOS.map((m) => ({ valor: m.chave, rotulo: m.rotulo })),
+      { campo: 'mecanismos', rotulo: 'Quais destas regras este acordo tem', tipo: 'multi',
+        // Cada opção leva a própria explicação, porque "drag along" e "lock-up"
+        // não dizem nada a quem não convive com eles. "Mecanismos" era título
+        // interno meu, e na tela não ajudava ninguém.
+        opcoes: MECANISMOS.map((m) => ({
+          valor: m.chave, rotulo: m.rotulo, descricao: m.explicacao,
+        })),
         secao: 'A quem se oferece a quota',
-        ajuda: 'Marcado, a cláusula entra no acordo gerado. Desmarcado, ela não aparece. '
-          + 'Sete dos dez não existem em contrato social nenhum: é o que o acordo acrescenta.' },
+        ajuda: 'Marque as que existem neste acordo. Cada marcação liga uma cláusula '
+          + 'inteira do documento gerado; desmarcada, a cláusula não aparece. Sete das dez '
+          + 'não existem em contrato social nenhum, e são o que o acordo acrescenta.' },
 
       { campo: 'metodos_avaliacao', rotulo: 'Métodos de avaliação da quota',
         tipo: 'multi', opcoes: METODOS, desceAoContrato: true,
@@ -211,7 +222,7 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
   {
     chave: 'opcoes',
     titulo: 'Opções de compra e venda',
-    resumo: 'Quem pode obrigar quem a comprar ou a vender',
+    resumo: 'Quando um sócio pode ser obrigado a vender, ou exigir que comprem a parte dele',
     campos: [
       { campo: 'opcao_compra_prevista', rotulo: 'Opção de compra prevista', tipo: 'booleano',
         ajuda: 'O direito de exigir que outro lhe venda a participação.' },
@@ -230,7 +241,7 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
   {
     chave: 'usufruto',
     titulo: 'Usufruto e voto',
-    resumo: 'Quais quotas têm usufruto e quem vota cada uma',
+    resumo: 'Quotas em que o dono e quem vota são pessoas diferentes',
     campos: [
       {
         campo: 'usufruto',
@@ -267,7 +278,7 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
   {
     chave: 'representacao',
     titulo: 'Garantias e representação',
-    resumo: 'Quem fala pelos quotistas',
+    resumo: 'Quem assina e fala em nome dos quotistas perante a sociedade',
     campos: [
       {
         campo: 'representante_pessoa_id',

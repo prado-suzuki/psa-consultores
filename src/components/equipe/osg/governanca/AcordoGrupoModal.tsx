@@ -19,6 +19,7 @@ import {
 import { MultiSelectCombobox, type ComboOption } from '@/components/ui/MultiSelectCombobox';
 import { SingleSelectCombobox } from '@/components/ui/SingleSelectCombobox';
 import { expressaoDoQuorum, type BaseQuorum, type TipoQuorum } from '@/lib/acordoQuotistasPadrao';
+import { cn } from '@/lib/utils';
 import type { CampoDoAcordo, GrupoDoAcordo } from '@/lib/acordoGrupos';
 
 /** O que o modal edita: os campos do cabeçalho mais as três listas. */
@@ -197,19 +198,36 @@ export function AcordoGrupoModal({
               )}
 
               {c.tipo === 'multi' && (
-                <div className="flex flex-wrap gap-x-4 gap-y-2 rounded-md border p-3">
+                <div
+                  className={cn(
+                    'rounded-md border p-3',
+                    // Opção com explicação ocupa a linha inteira; sem ela, as
+                    // opções cabem lado a lado e a caixa não vira uma coluna longa.
+                    c.opcoes?.some((o) => o.descricao)
+                      ? 'space-y-2.5'
+                      : 'flex flex-wrap gap-x-4 gap-y-2',
+                  )}
+                >
                   {c.opcoes?.map((o) => {
                     const marcados = (form[c.campo] as string[] | null) ?? [];
                     return (
-                      <label key={o.valor} className="flex items-center gap-2 text-sm">
+                      <label key={o.valor} className="flex items-start gap-2 text-sm">
                         <Checkbox
+                          className="mt-0.5"
                           checked={marcados.includes(o.valor)}
                           onCheckedChange={(v) => mexer(
                             c.campo,
                             v ? [...marcados, o.valor] : marcados.filter((x) => x !== o.valor),
                           )}
                         />
-                        {o.rotulo}
+                        <span>
+                          {o.rotulo}
+                          {o.descricao && (
+                            <span className="block text-xs text-muted-foreground">
+                              {o.descricao}
+                            </span>
+                          )}
+                        </span>
                       </label>
                     );
                   })}

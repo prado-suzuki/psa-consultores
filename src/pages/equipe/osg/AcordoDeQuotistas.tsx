@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Check, FileSignature, MousePointerClick, Sparkles } from 'lucide-react';
+import { FileSignature, MousePointerClick, Sparkles } from 'lucide-react';
 
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import {
@@ -169,7 +169,20 @@ const AcordoDeQuotistas = () => {
             <div className="grid gap-4 sm:grid-cols-2">
               {GRUPOS_DO_ACORDO.map((g) => {
                 const { preenchidos, total } = preenchidosNoGrupo(g, valores);
-                const completo = preenchidos === total && total > 0;
+                /*
+                 * NÃO EXISTE "PRONTO" AQUI, e a ausência é deliberada.
+                 *
+                 * Ter todos os campos com valor não quer dizer que alguém olhou:
+                 * os quóruns e as regras mais comuns nascem respondidos pela
+                 * semente, e o grupo aparecia com o selo de pronto antes de o
+                 * analista abrir. Isso convida a pular justamente o bloco que
+                 * mais precisa de conferência, porque é o que veio de fora.
+                 *
+                 * O selo volta quando existir o registro de quem CONFERIU, que é
+                 * outra coisa que ter valor. Até lá, a contagem é o que é honesto
+                 * dizer: quantos campos têm resposta, de quantos existem.
+                 */
+                const cheio = preenchidos === total && total > 0;
                 return (
                   <div
                     key={g.chave}
@@ -191,20 +204,20 @@ const AcordoDeQuotistas = () => {
                       'cursor-pointer rounded-xl border bg-superficie-cartao p-4',
                       'shadow-sm shadow-osg-300/20 transition-colors',
                       'hover:border-osg-moss hover:bg-osg-50/60 hover:shadow-md',
-                      completo ? 'border-osg-200' : 'border-osg-300/70',
+                      cheio ? 'border-osg-200' : 'border-osg-300/70',
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-sm font-semibold">{g.titulo}</p>
-                      {completo ? (
-                        <Badge variant="outline" className="shrink-0 gap-1 border-osg-200 bg-osg-50 text-osg-700">
-                          <Check className="h-3 w-3" /> pronto
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="shrink-0 tabular-nums text-muted-foreground">
-                          {preenchidos} de {total}
-                        </Badge>
-                      )}
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'shrink-0 tabular-nums',
+                          cheio ? 'border-osg-200 bg-osg-50 text-osg-700' : 'text-muted-foreground',
+                        )}
+                      >
+                        {preenchidos} de {total} respondidos
+                      </Badge>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{g.resumo}</p>
                   </div>
