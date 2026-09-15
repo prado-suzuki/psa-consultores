@@ -37,6 +37,14 @@ export interface CampoDoAcordo {
   desceAoContrato?: boolean;
   /** Só aparece quando este outro campo está ligado. */
   dependeDe?: string;
+  /**
+   * O bloco dentro do grupo. Existe por causa do "Saída de sócio e preferência",
+   * que sozinho tem 15 campos e cobre três assuntos: a quem se oferece a quota,
+   * quanto ela vale, e o que o sócio não pode fazer depois. Sem a divisão, o
+   * modal daquele grupo vira a mesma parede de campos que a crítica ao mockup
+   * apontou. Grupo sem seção nenhuma desenha os campos direto.
+   */
+  secao?: string;
 }
 
 export interface GrupoDoAcordo {
@@ -123,41 +131,81 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
     resumo: 'A quem se oferece a quota, quanto ela vale e o que o sócio não pode fazer depois',
     campos: [
       { campo: 'signatarios', rotulo: 'Quotistas signatários originais', tipo: 'especial',
-        ajuda: 'Congela em quem assinou: o acordo fala em "descendentes dos signatários", e '
-          + 'esse recorte não muda quando o quadro societário muda.' },
+        secao: 'A quem se oferece a quota',
+        ajuda: 'Quem assinou a primeira versão. Congela neles: o acordo fala em '
+          + '"descendentes dos signatários", e esse recorte não muda quando o quadro '
+          + 'societário muda.' },
       { campo: 'ordemPreferencia', rotulo: 'Ordem do direito de preferência', tipo: 'especial',
-        ajuda: 'A quem se oferece primeiro, antes de a quota poder ir a terceiro.' },
+        secao: 'A quem se oferece a quota',
+        ajuda: 'A fila de quem tem direito de comprar antes de a quota poder ir a terceiro. '
+          + 'A Via Fértil oferece primeiro à holding; o modelo oferece primeiro aos '
+          + 'descendentes dos signatários, e é o que vale por decisão de 14/09.' },
       { campo: 'objetos_preferencia', rotulo: 'Objetos sujeitos à preferência',
-        tipo: 'multi', opcoes: OBJETOS },
+        tipo: 'multi', opcoes: OBJETOS, secao: 'A quem se oferece a quota',
+        ajuda: 'O que não pode ir a terceiro sem passar pelos sócios antes. A Cláusula '
+          + 'Quinta trata das quotas e a Décima estende a sociedades relacionadas, imóveis '
+          + 'e oportunidades de negócio.' },
       { campo: 'mecanismos', rotulo: 'Mecanismos presentes', tipo: 'multi',
         opcoes: MECANISMOS.map((m) => ({ valor: m.chave, rotulo: m.rotulo })),
-        ajuda: 'Marcado, a cláusula entra no acordo gerado. Desmarcado, ela não aparece.' },
+        secao: 'A quem se oferece a quota',
+        ajuda: 'Marcado, a cláusula entra no acordo gerado. Desmarcado, ela não aparece. '
+          + 'Sete dos dez não existem em contrato social nenhum: é o que o acordo acrescenta.' },
 
       { campo: 'metodos_avaliacao', rotulo: 'Métodos de avaliação da quota',
-        tipo: 'multi', opcoes: METODOS, desceAoContrato: true },
+        tipo: 'multi', opcoes: METODOS, desceAoContrato: true,
+        secao: 'Quanto vale a quota de quem sai',
+        ajuda: 'Como se calcula quanto se paga a quem sai. No modelo são dois: o patrimônio '
+          + 'líquido apurado em balanço, e o fluxo de caixa descontado.' },
       { campo: 'regra_combinacao', rotulo: 'Regra de combinação dos métodos',
-        tipo: 'texto', desceAoContrato: true,
-        ajuda: 'No modelo: "o MAIOR VALOR atingido por uma das seguintes metodologias".' },
+        tipo: 'texto', desceAoContrato: true, secao: 'Quanto vale a quota de quem sai',
+        ajuda: 'Quando há mais de um método, qual vale. No modelo: "correspondente ao MAIOR '
+          + 'VALOR apurado através das seguintes metodologias".' },
       { campo: 'prazo_balanco_dias', rotulo: 'Prazo máximo do balanço, em dias',
-        tipo: 'numero', desceAoContrato: true },
+        tipo: 'numero', desceAoContrato: true, secao: 'Quanto vale a quota de quem sai',
+        ajuda: 'Quão velho o balanço pode ser. No modelo: "o valor do patrimônio líquido '
+          + 'apurado em balanço, levantado, no máximo, 60 (sessenta) dias antes do evento". '
+          + 'Responda 60 se o cliente segue o padrão.' },
       { campo: 'horizonte_fluxo_anos', rotulo: 'Horizonte do fluxo de caixa, em anos',
-        tipo: 'numero', desceAoContrato: true },
+        tipo: 'numero', desceAoContrato: true, secao: 'Quanto vale a quota de quem sai',
+        ajuda: 'Por quantos anos o fluxo é projetado. No modelo: "fluxo de caixa projetado '
+          + 'para um período de 05 (cinco) anos". Responda 5 se o cliente segue o padrão.' },
       { campo: 'taxa_minima_crescimento', rotulo: 'Taxa mínima de crescimento',
-        tipo: 'texto', desceAoContrato: true },
+        tipo: 'texto', desceAoContrato: true, secao: 'Quanto vale a quota de quem sai',
+        ajuda: 'O piso de crescimento usado na projeção. No modelo: "a taxa de crescimento '
+          + 'da perpetuidade será o índice projetado pelo IPCA". Responda IPCA se for o padrão.' },
       { campo: 'consolida_composse', rotulo: 'Consolida composse na avaliação',
-        tipo: 'booleano' },
+        tipo: 'booleano', secao: 'Quanto vale a quota de quem sai',
+        ajuda: 'Se o que o sócio explora junto com a sociedade entra na conta dos haveres. '
+          + 'No modelo: "inclusive através de parceria rural, condomínio ou composse, serão '
+          + 'descontados ou acrescidos dos haveres devidos".' },
 
-      { campo: 'nao_concorrencia', rotulo: 'Cláusula de não concorrência', tipo: 'booleano' },
+      { campo: 'nao_concorrencia', rotulo: 'Cláusula de não concorrência', tipo: 'booleano',
+        secao: 'O que o sócio não pode fazer depois',
+        ajuda: 'Se o acordo proíbe o sócio de montar negócio igual. Está em 6 dos 7 acordos '
+          + 'do acervo.' },
       { campo: 'nao_concorrencia_prazo_anos', rotulo: 'Prazo da não concorrência, em anos',
-        tipo: 'numero', dependeDe: 'nao_concorrencia' },
+        tipo: 'numero', dependeDe: 'nao_concorrencia',
+        secao: 'O que o sócio não pode fazer depois',
+        ajuda: 'Por quanto tempo a proibição vale depois que o sócio sai. No modelo: '
+          + '"qualquer ATIVIDADE CONCORRENTE na ÁREA DE ATUAÇÃO em um período de 03 (três) '
+          + 'anos".' },
       { campo: 'nao_concorrencia_area', rotulo: 'Área protegida', tipo: 'texto',
-        dependeDe: 'nao_concorrencia',
-        ajuda: 'Sai do objeto social do contrato: onde a sociedade atua é onde o sócio não pode concorrer.' },
+        dependeDe: 'nao_concorrencia', secao: 'O que o sócio não pode fazer depois',
+        ajuda: 'Onde a proibição vale. No modelo é uma definição: "ÁREA DE ATUAÇÃO: em todos '
+          + 'os estados do Brasil, incluindo Mato Grosso e Pernambuco, e/ou regiões de '
+          + 'atuação da sociedade". Sai do objeto social do contrato.' },
       { campo: 'nao_concorrencia_multa', rotulo: 'Multa por descumprimento',
         tipo: 'texto', dependeDe: 'nao_concorrencia',
-        ajuda: 'Texto, e não valor: o modelo define a multa por fórmula.' },
+        secao: 'O que o sócio não pode fazer depois',
+        ajuda: 'Quanto se paga por quebrar a proibição. No modelo: "multa meramente punitiva '
+          + 'de R$ 1.000.000,00 (um milhão de reais), cujo valor será atualizado pelo ÍNDICE '
+          + 'DE ATUALIZAÇÃO". É texto e não moeda porque o índice anda junto do valor.' },
       { campo: 'nao_concorrencia_alcanca_parentes', rotulo: 'Alcança parentes e sócios',
-        tipo: 'booleano', dependeDe: 'nao_concorrencia' },
+        tipo: 'booleano', dependeDe: 'nao_concorrencia',
+        secao: 'O que o sócio não pode fazer depois',
+        ajuda: 'Se a proibição pega também cônjuge, companheiro e parte relacionada. No '
+          + 'modelo: "poderá ser exigida de qualquer QUOTISTA caso alguma PARTE RELACIONADA, '
+          + 'seu cônjuge ou companheiro(a) descumpra".' },
     ],
   },
   {
@@ -173,7 +221,10 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         dependeDe: 'opcao_compra_prevista' },
       { campo: 'opcao_venda_prevista', rotulo: 'Opção de venda prevista', tipo: 'booleano',
         ajuda: 'O direito de exigir que os outros comprem a sua parte.' },
-      { campo: 'juros_valor_subscrito', rotulo: 'Juros sobre o valor subscrito', tipo: 'texto' },
+      { campo: 'juros_valor_subscrito', rotulo: 'Juros sobre o valor subscrito', tipo: 'texto',
+        ajuda: 'Quanto rende o valor que o sócio pôs no aumento de capital. No modelo: '
+          + '"acrescido de juros de 1% (um por cento) ao mês e atualização monetária pelo '
+          + 'ÍNDICE DE ATUALIZAÇÃO".' },
     ],
   },
   {
@@ -202,9 +253,15 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           { valor: 'arbitragem', rotulo: 'Arbitragem' },
           { valor: 'judicial', rotulo: 'Judicial' },
         ] },
-      { campo: 'camara_arbitral', rotulo: 'Câmara arbitral', tipo: 'texto' },
+      { campo: 'camara_arbitral', rotulo: 'Câmara arbitral', tipo: 'texto',
+        ajuda: 'Qual câmara julga. No modelo: "de acordo com as Regras de Arbitragem da '
+          + 'Câmara de Comércio Brasil Canadá".' },
       { campo: 'prazo_indicacao_arbitros_dias', rotulo: 'Prazo para indicação de árbitros, em dias',
-        tipo: 'numero' },
+        tipo: 'numero',
+        ajuda: 'ATENÇÃO: o modelo não traz prazo nenhum aqui. Ele diz quantos árbitros são e '
+          + 'quem escolhe cada um, "o número de árbitros será de 03 (três), sendo um nomeado '
+          + 'pelo reclamante, o outro pela parte reclamada e o terceiro eleito por aqueles '
+          + 'dois". O campo veio do levantamento e pode estar com o nome trocado.' },
     ],
   },
   {

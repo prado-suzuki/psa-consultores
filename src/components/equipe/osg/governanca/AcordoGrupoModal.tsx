@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
 import { AjudaDoCampo } from '@/components/equipe/osg/ComAjuda';
+import { FieldSection } from '@/components/equipe/osg/formKit';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -65,6 +66,29 @@ export function AcordoGrupoModal({
 
   const visivel = (c: CampoDoAcordo) => !c.dependeDe || form[c.dependeDe] === true;
 
+  /*
+   * Os campos em BLOCOS, na ordem em que foram declarados.
+   *
+   * Só o "Saída de sócio e preferência" tem mais de um: ele sozinho cobre três
+   * assuntos e quinze campos, e sem a divisão o modal dele vira a parede de
+   * campos que a crítica ao mockup apontou. Os outros sete grupos caem num bloco
+   * único, que recebe o título do próprio grupo em vez de um subtítulo repetido.
+   */
+  const blocos = useMemo(() => {
+    const ordem: (string | undefined)[] = [];
+    const porSecao = new Map<string | undefined, CampoDoAcordo[]>();
+    for (const c of grupo.campos.filter(visivel)) {
+      if (!porSecao.has(c.secao)) {
+        porSecao.set(c.secao, []);
+        ordem.push(c.secao);
+      }
+      porSecao.get(c.secao)!.push(c);
+    }
+    return ordem.map((titulo) => ({ titulo, campos: porSecao.get(titulo)! }));
+    // `form` entra porque `visivel` lê os interruptores: ligar a não concorrência
+    // faz quatro campos aparecerem, e o bloco tem de crescer junto.
+  }, [grupo, form]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const salvar = async () => {
     await onSalvar(form);
     onOpenChange(false);
@@ -78,8 +102,15 @@ export function AcordoGrupoModal({
           <p className="text-sm text-muted-foreground">{grupo.resumo}</p>
         </DialogHeader>
 
-        <div className="space-y-5 py-2">
-          {grupo.campos.filter(visivel).map((c) => (
+        <div className="py-2">
+          {blocos.map((b, i) => (
+            <FieldSection
+              key={b.titulo ?? 'unico'}
+              number={String(i + 1).padStart(2, '0')}
+              title={b.titulo ?? grupo.titulo}
+            >
+              <div className="space-y-5">
+                {b.campos.map((c) => (
             <div key={c.campo} className="space-y-1.5">
               <Label htmlFor={`ac-${c.campo}`} className={ROTULO}>
                 {c.rotulo}
@@ -185,6 +216,9 @@ export function AcordoGrupoModal({
                 </p>
               )}
             </div>
+                ))}
+              </div>
+            </FieldSection>
           ))}
         </div>
 

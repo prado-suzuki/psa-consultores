@@ -143,7 +143,13 @@ const AcordoDeQuotistas = () => {
                   <div
                     key={g.chave}
                     className={cn(
-                      'cursor-pointer rounded-xl border p-4 transition-colors hover:border-osg-moss hover:bg-osg-50/40',
+                      // `bg-superficie-cartao` é a superfície do OBJETO cartão, tingida.
+                      // A outra classe, a do cromo e do controle, difere em duas letras e
+                      // significa o oposto; escrevê-la aqui deixaria a caixa branca sobre
+                      // página branca. A catraca de `cartaoTingido.test.ts` guarda isso, e
+                      // casa o texto do arquivo inteiro, comentário incluído.
+                      'cursor-pointer rounded-xl border bg-superficie-cartao p-4 shadow-sm shadow-osg-300/20',
+                      'transition-colors hover:border-osg-moss hover:bg-osg-50/40',
                       completo ? 'border-osg-200' : 'border-osg-300/70',
                     )}
                     {...rowActivateProps(() => setGrupoAberto(g))}

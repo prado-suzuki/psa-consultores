@@ -86,3 +86,41 @@ describe('preenchidosNoGrupo', () => {
     })).toEqual({ preenchidos: 0, total: 3 });
   });
 });
+
+describe('as ajudas saem do documento, e não da minha cabeça', () => {
+  it('todo campo que pede número diz qual número o modelo usa', () => {
+    // A lição de 14/09: teste escrito contra a suposição passa e mente. Estas
+    // frases foram conferidas no `VF_Modelo Acordo de Quotistas`.
+    const ajudaDe = (campo: string) =>
+      GRUPOS_DO_ACORDO.flatMap((g) => g.campos).find((c) => c.campo === campo)?.ajuda ?? '';
+
+    expect(ajudaDe('prazo_balanco_dias')).toContain('60 (sessenta) dias antes do evento');
+    expect(ajudaDe('horizonte_fluxo_anos')).toContain('05 (cinco) anos');
+    expect(ajudaDe('taxa_minima_crescimento')).toContain('IPCA');
+    expect(ajudaDe('nao_concorrencia_prazo_anos')).toContain('03 (três)');
+    expect(ajudaDe('nao_concorrencia_multa')).toContain('R$ 1.000.000,00');
+    expect(ajudaDe('juros_valor_subscrito')).toContain('1% (um por cento) ao mês');
+    expect(ajudaDe('camara_arbitral')).toContain('Câmara de Comércio Brasil Canadá');
+  });
+
+  it('o campo sem fonte no modelo avisa em vez de fingir', () => {
+    // O modelo diz quantos árbitros são, e não em quanto tempo se indica. O
+    // campo veio do levantamento e pode estar com o nome trocado.
+    const c = GRUPOS_DO_ACORDO.flatMap((g) => g.campos)
+      .find((x) => x.campo === 'prazo_indicacao_arbitros_dias');
+    expect(c?.ajuda).toContain('ATENÇÃO');
+    expect(c?.ajuda).toContain('03 (três)');
+  });
+
+  it('só o grupo de 15 campos se divide em blocos', () => {
+    for (const g of GRUPOS_DO_ACORDO) {
+      const secoes = new Set(g.campos.map((c) => c.secao));
+      if (g.chave === 'saida') {
+        expect(secoes.size, 'a saída de sócio precisa de mais de um bloco').toBe(3);
+        expect(secoes.has(undefined), 'campo sem bloco no grupo dividido').toBe(false);
+      } else {
+        expect(secoes, `${g.chave} não devia ter bloco`).toEqual(new Set([undefined]));
+      }
+    }
+  });
+});
