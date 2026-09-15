@@ -4,6 +4,7 @@ import {
   MECANISMOS,
   QUORUNS_PADRAO,
   expressaoDoQuorum,
+  mecanismosCoerentes,
   mecanismosPadrao,
   quorumPadrao,
 } from '@/lib/acordoQuotistasPadrao';
@@ -144,5 +145,44 @@ describe('MECANISMOS', () => {
   it('não tem chave repetida', () => {
     const chaves = MECANISMOS.map((m) => m.chave);
     expect(new Set(chaves).size).toBe(chaves.length);
+  });
+});
+
+describe('mecanismosCoerentes · a lista não discorda dos interruptores', () => {
+  it('liga os quatro espelhados a partir do interruptor de cada um', () => {
+    const fora = mecanismosCoerentes([], {
+      nao_concorrencia: true,
+      opcao_compra_prevista: true,
+      opcao_venda_prevista: true,
+      solucao_litigios: 'arbitragem',
+    });
+    expect(fora).toEqual(['arbitragem', 'nao_concorrencia', 'opcao_compra', 'opcao_venda']);
+  });
+
+  it('apaga a marcação velha quando o interruptor é desligado noutro bloco', () => {
+    // O caso que motivou a função: a pessoa desliga a opção de compra no bloco
+    // "Opções", e a marcação ficaria no banco porque ela mora na lista do bloco
+    // "Saída". O documento sairia com o cabeçalho da cláusula e o corpo vazio.
+    const depois = mecanismosCoerentes(['lock_up', 'opcao_compra'], {
+      opcao_compra_prevista: false,
+    });
+    expect(depois).toEqual(['lock_up']);
+  });
+
+  it('não mexe nos seis que só existem na lista', () => {
+    const marcados = ['preferencia', 'lock_up', 'tag_along', 'drag_along', 'usufruto', 'quarentena'];
+    expect(mecanismosCoerentes(marcados, {})).toEqual(marcados);
+  });
+
+  it('a ordem é a do catálogo, e não a do clique', () => {
+    expect(mecanismosCoerentes(['quarentena', 'lock_up', 'preferencia'], {}))
+      .toEqual(['preferencia', 'lock_up', 'quarentena']);
+  });
+
+  it('exatamente quatro mecanismos são espelhados, e são os que têm detalhe', () => {
+    // Se alguém criar um interruptor novo com detalhes, tem de espelhar aqui
+    // também, senão volta a haver duas respostas para o mesmo fato.
+    expect(MECANISMOS.filter((m) => m.espelha).map((m) => m.chave))
+      .toEqual(['arbitragem', 'nao_concorrencia', 'opcao_compra', 'opcao_venda']);
   });
 });

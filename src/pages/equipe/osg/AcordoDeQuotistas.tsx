@@ -15,7 +15,7 @@ import {
   GRUPOS_DO_ACORDO, preenchidosNoGrupo, type GrupoDoAcordo,
 } from '@/lib/acordoGrupos';
 import { resumoDaOrdem, resumoDosQuoruns, resumoDosRamos } from '@/lib/acordoQuotistas';
-import type { BaseQuorum, TipoQuorum } from '@/lib/acordoQuotistasPadrao';
+import { mecanismosCoerentes, type BaseQuorum, type TipoQuorum } from '@/lib/acordoQuotistasPadrao';
 import { cn } from '@/lib/utils';
 
 /**
@@ -74,6 +74,19 @@ const AcordoDeQuotistas = () => {
   const salvarGrupo = async (novos: ValoresDoAcordo) => {
     if (!data) return;
     const { quoruns, ramos, ordemPreferencia, signatarios, sociedades, ...cabecalho } = novos;
+
+    /*
+     * Os quatro mecanismos espelhados se acertam AQUI, e não na tela.
+     *
+     * A opção de compra se liga no bloco "Opções de compra e venda", e a
+     * marcação dela mora na lista do bloco "Saída". Sem passar por esta função,
+     * desligar o interruptor deixaria a marcação velha no banco até alguém abrir
+     * o outro bloco. Como toda gravação passa por aqui, seja qual for o bloco
+     * editado, a lista nunca discorda dos interruptores.
+     */
+    cabecalho.mecanismos = mecanismosCoerentes(
+      cabecalho.mecanismos as string[] | null, novos,
+    );
 
     // As três listas viajam juntas porque a auditoria delas é uma entrada por
     // lista, e não uma por linha. Ver `lib/acordoQuotistas`.

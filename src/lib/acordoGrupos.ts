@@ -14,7 +14,7 @@
  * conversa sobre o contrato e não só sobre o acordo.
  */
 
-import { MECANISMOS } from '@/lib/acordoQuotistasPadrao';
+import { MECANISMOS, type EspelhoDoMecanismo } from '@/lib/acordoQuotistasPadrao';
 
 export type TipoCampoAcordo =
   | 'texto'
@@ -37,7 +37,13 @@ export interface CampoDoAcordo {
     * tooltip. Vale para lista cujo nome não se explica sozinho: ninguém precisa
     * de ajuda para "Imóveis", mas "Drag along" só diz o que é depois de lido.
     */
-  opcoes?: readonly { valor: string; rotulo: string; descricao?: string }[];
+  opcoes?: readonly {
+    valor: string;
+    rotulo: string;
+    descricao?: string;
+    /** Opção que só reflete um interruptor de outro bloco; ver `EspelhoDoMecanismo`. */
+    espelha?: EspelhoDoMecanismo;
+  }[];
   ajuda?: string;
   /** Também vira cláusula no contrato social. */
   desceAoContrato?: boolean;
@@ -130,8 +136,10 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           'Cada ramo é um sócio fundador MAIS os descendentes dele em linha reta, e leva '
           + 'o nome desse fundador. No acordo da AgroAliança: "DESCENDENTES DE CRISTINA, '
           + 'formado por CRISTINA e seus descendentes em linha vertical; e DESCENDENTES DE '
-          + 'REGINA". Serve para dividir direitos entre os lados da família, como a ordem '
-          + 'da preferência. Nunca escreva "núcleo familiar": o termo exclui o cônjuge, e '
+          + 'REGINA". O rótulo vira nome próprio e o resto do acordo o repete: a herança vai '
+          + 'para os descendentes DA MESMA QUOTISTA, e se um grupo acaba as quotas passam ao '
+          + 'outro. Em alguns acordos o ramo também é a UNIDADE DE VOTO, e cada um vota como '
+          + 'bloco único. Nunca escreva "núcleo familiar": o termo exclui o cônjuge, e '
           + 'cônjuge não integra ramo nem entra no quadro societário.',
       },
     ],
@@ -157,17 +165,25 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
   {
     chave: 'reuniao_previa',
     titulo: 'Reunião prévia e voto em bloco',
-    resumo: 'Se os sócios se reúnem antes para fechar o voto, e com que quórum',
+    resumo: 'Se os sócios fecham o voto entre si antes, e chegam combinados à reunião oficial',
     campos: [
       {
         campo: 'reuniao_previa_obrigatoria',
-        rotulo: 'Reunião prévia obrigatória',
+        // "Reunião prévia obrigatória" deixava no ar se era obrigação da lei ou
+        // deste acordo. É deste acordo: existe no modelo, no Perci, no Horita e
+        // na AgroAliança, e NÃO existe na Utida.
+        rotulo: 'Este acordo exige reunião prévia',
         tipo: 'booleano',
         ajuda:
-          'É uma reunião só entre os sócios, ANTES da reunião oficial. Nela eles discutem e '
-          + 'decidem entre si qual vai ser o voto; depois, na reunião de sócios, todos votam '
-          + 'igual ao que combinaram, mesmo quem foi voto vencido. É isso que "votar em '
-          + 'bloco" quer dizer: a sociedade vê um voto só, e a divergência fica em casa.',
+          'Ligado em 4 dos 7 acordos do acervo; a Utida não tem. Não é exigência de lei, é '
+          + 'escolha deste acordo. '
+          + 'É uma reunião só entre os sócios, ANTES da reunião oficial, em que eles votam entre '
+          + 'si e registram o resultado em ata. Essa ata "constitui Acordo de Voto, de forma a '
+          + 'definir e vincular o voto dos QUOTISTAS a serem proferidos, sempre em bloco e de '
+          + 'modo uniforme, nas REUNIÕES DE SÓCIOS": na reunião oficial todos repetem o que se '
+          + 'decidiu lá, inclusive quem foi voto vencido. A sociedade vê um voto só e a '
+          + 'divergência fica em casa. No modelo o bloco é o conjunto dos quotistas; na '
+          + 'AgroAliança cada ramo é um bloco, e os dois podem divergir entre si.',
       },
     ],
   },
@@ -196,7 +212,7 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         // não dizem nada a quem não convive com eles. "Mecanismos" era título
         // interno meu, e na tela não ajudava ninguém.
         opcoes: MECANISMOS.map((m) => ({
-          valor: m.chave, rotulo: m.rotulo, descricao: m.explicacao,
+          valor: m.chave, rotulo: m.rotulo, descricao: m.explicacao, espelha: m.espelha,
         })),
         secao: 'A quem se oferece a quota',
         ajuda: 'Marque as que existem neste acordo. Cada marcação liga uma cláusula '
