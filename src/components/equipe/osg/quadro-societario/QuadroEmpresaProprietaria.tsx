@@ -363,7 +363,7 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
               nota={
                 gravado
                   ? 'Saldo apurado da movimentação de quotas.'
-                  : 'Proposta calculada dos bens aprovados no Diagnóstico Patrimonial, rateada pelas frações de titularidade. Confira e grave: nada existe no cadastro até então.'
+                  : 'Proposta calculada dos bens aprovados no Diagnóstico Patrimonial: cada titular entra pelo valor que integraliza, e só a matrícula sem valor por titular se rateia pela fração. Confira e grave: nada existe no cadastro até então.'
               }
             />
           }

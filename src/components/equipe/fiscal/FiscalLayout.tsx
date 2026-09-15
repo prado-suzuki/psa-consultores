@@ -91,8 +91,7 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
             )}
 
             <NotificationPopover
-              navigateTo="/equipe/chamados"
-              espelho="tax"
+              baseDosChamados="/equipe/chamados"
               tasksNavigateTo="/equipe/tax/projetos/tarefas"
             />
           </div>

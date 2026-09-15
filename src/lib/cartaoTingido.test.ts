@@ -332,7 +332,11 @@ const SOBRE_BRANCO: Record<string, number> = {
   // POPOVER. `bg-popover`, que tem valor próprio e continua branco.
   'src/components/comentarios/feed/FeedFiltros.tsx': 1,
   'src/components/equipe/dev/pis-cofins/ColumnFilterDropdown.tsx': 1,
-  'src/components/notifications/NotificationPopover.tsx': 4,
+  // As quatro linhas do sino (chamado, revisão, menção, aviso interno). Saíram do
+  // `NotificationPopover.tsx` em 14/09/2026, quando o balão ganhou histórico e a
+  // fachada passou do teto de 600 linhas — o fundo delas não mudou, continua o
+  // `bg-popover`.
+  'src/components/notifications/ItensDoSino.tsx': 4,
 
   // CAIXA QUE FICOU BRANCA, e cada uma por um motivo já inventariado acima: o
   // relatório é papel, o aviso do chamado se apoia em `bg-background`. Os dois

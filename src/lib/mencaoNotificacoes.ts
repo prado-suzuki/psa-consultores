@@ -22,12 +22,21 @@ import { textoPlanoDoCorpo } from '@/lib/orgCommentRichText';
  */
 export type MotivoDaNotificacao = 'mencao' | 'resposta';
 
-/** Linha de `org_comment_mentions` na fatia que a caixa de entrada usa. */
-export interface MencaoNaoLida {
+/**
+ * Linha de `org_comment_mentions` na fatia que a caixa de entrada usa.
+ *
+ * Chamava-se `MencaoNaoLida` até 14/09/2026, quando o balão do sino passou a
+ * mostrar histórico: a caixa lê as 30 linhas mais recentes, lidas ou não, e o
+ * nome antigo descreveria metade delas errado. Quem ainda conta para a bolinha é
+ * `lida === false`.
+ */
+export interface LinhaDeMencao {
   id: string;
   comment_id: string;
   created_at: string;
   motivo: MotivoDaNotificacao;
+  /** `lido_em` já preenchido: a pessoa abriu a thread, ou o item do sino. */
+  lida: boolean;
 }
 
 /** O comentário citado, na fatia que o item da notificação precisa. */
@@ -63,6 +72,8 @@ export interface MencaoNotificacao {
   trecho: string;
   /** Data do comentário (é o que a pessoa reconhece, não a da linha de menção). */
   created_at: string;
+  /** Já lida — fica no histórico do balão e fora da bolinha. */
+  lida: boolean;
 }
 
 const TRECHO_MAX = 120;
@@ -79,7 +90,7 @@ export function trechoDoComentario(body: string, max = TRECHO_MAX): string {
 }
 
 /**
- * Junta as linhas não lidas com os comentários que as originaram, preservando a
+ * Junta as linhas da caixa com os comentários que as originaram, preservando a
  * ordem recebida (mais recente primeiro).
  *
  * Duas linhas somem no caminho, e nos dois casos em silêncio:
@@ -95,7 +106,7 @@ export function trechoDoComentario(body: string, max = TRECHO_MAX): string {
  *   notificação sem conteúdo é pior que notificação nenhuma.
  */
 export function montarNotificacoesDeMencao(
-  mencoes: MencaoNaoLida[],
+  mencoes: LinhaDeMencao[],
   comentariosPorId: Map<string, ComentarioCitado>,
   usuarioId: string,
 ): MencaoNotificacao[] {
@@ -117,6 +128,7 @@ export function montarNotificacoesDeMencao(
       motivo: mencao.motivo,
       trecho: trechoDoComentario(comentario.body),
       created_at: comentario.created_at,
+      lida: mencao.lida,
     });
   }
 
@@ -124,10 +136,15 @@ export function montarNotificacoesDeMencao(
 }
 
 /**
- * Ids das menções que estão nos comentários informados.
+ * Ids das menções AINDA NÃO LIDAS que estão nos comentários informados.
  *
  * É o que a thread aberta usa para baixar o sino: quem leu o comentário na
  * tarefa não deveria continuar com a menção pendurada na caixa de entrada.
+ *
+ * O filtro por `lida` não é economia de escrita, é o que impede um laço: desde
+ * que a caixa passou a trazer também o que já foi lido (14/09/2026), sem ele a
+ * thread aberta mandaria carimbar as mesmas linhas a cada refetch — e cada
+ * carimbo invalida a query que traz as linhas de volta.
  */
 export function mencoesDosComentarios(
   notificacoes: MencaoNotificacao[],
@@ -136,6 +153,6 @@ export function mencoesDosComentarios(
   if (commentIds.length === 0) return [];
   const alvos = new Set(commentIds);
   return notificacoes
-    .filter((notificacao) => alvos.has(notificacao.commentId))
+    .filter((notificacao) => !notificacao.lida && alvos.has(notificacao.commentId))
     .map((notificacao) => notificacao.id);
 }
