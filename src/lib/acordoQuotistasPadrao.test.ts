@@ -57,13 +57,35 @@ describe('QUORUNS_PADRAO', () => {
 });
 
 describe('expressaoDoQuorum', () => {
-  it('escreve símbolo mais extenso, como os sete acordos escrevem', () => {
-    // "¾ (três quartos) das QUOTAS" é a forma do modelo. Só o extenso, sem o
-    // símbolo, nao e como nenhum dos sete documentos escreve.
+  it('porcentagem quando ela fecha, fração quando não fecha', () => {
+    /*
+     * ESTE TESTE JÁ TRAVOU A FORMA ERRADA, e por isso ele agora cita as alíneas.
+     *
+     * Ele exigia "¾ (três quartos)" para 75%, apoiado numa suposição minha. As
+     * alíneas do modelo da casa dizem o contrário, literais:
+     *
+     *   Conforme decidam 75% (setenta e cinco por cento) dos VOTOS dos QUOTISTAS…
+     *   Conforme decidam 2/3 (dois terços) dos VOTOS dos QUOTISTAS presentes…
+     *
+     * O critério é esse: porcentagem quando ela fecha em número redondo, fração
+     * quando não fecha. E o símbolo `¾` não aparece em documento nenhum do
+     * acervo: onde três quartos vira fração, no Luizão, sai "3/4 (três quartos)".
+     */
     expect(expressaoDoQuorum({ tipo: 'percentual', percentual: 75, base: 'capital' }))
-      .toBe('¾ (três quartos) do capital social');
+      .toBe('75% (setenta e cinco por cento) do capital social');
     expect(expressaoDoQuorum({ tipo: 'percentual', percentual: 66.67, base: 'presentes' }))
       .toBe('2/3 (dois terços) dos presentes');
+    // 50 e 25 fecham, então saem como porcentagem, e não como 1/2 e 1/4.
+    expect(expressaoDoQuorum({ tipo: 'percentual', percentual: 50, base: 'capital' }))
+      .toBe('50% (cinquenta por cento) do capital social');
+  });
+
+  it('nenhuma fração do catálogo usa símbolo que os documentos não escrevem', () => {
+    // A catraca contra reinventar `¾`. Os documentos escrevem a barra.
+    for (const valor of [66.67, 33.33]) {
+      const frase = expressaoDoQuorum({ tipo: 'percentual', percentual: valor, base: 'capital' });
+      expect(frase, `${valor} saiu sem a barra`).toMatch(/^\d\/\d /);
+    }
   });
 
   it('o parêntese soletra o que está à esquerda dele', () => {
@@ -79,9 +101,9 @@ describe('expressaoDoQuorum', () => {
 
   it('a base entra na frase, porque ela muda o sentido', () => {
     expect(expressaoDoQuorum({ tipo: 'percentual', percentual: 75, base: 'presentes' }))
-      .toBe('¾ (três quartos) dos presentes');
+      .toBe('75% (setenta e cinco por cento) dos presentes');
     expect(expressaoDoQuorum({ tipo: 'percentual', percentual: 75, base: 'capital' }))
-      .toBe('¾ (três quartos) do capital social');
+      .toBe('75% (setenta e cinco por cento) do capital social');
   });
 
   it('maioria e unanimidade não viram número', () => {

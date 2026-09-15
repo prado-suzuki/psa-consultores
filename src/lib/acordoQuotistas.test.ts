@@ -19,7 +19,7 @@ describe('resumoDoQuorum', () => {
       tipo: 'percentual',
       percentual: 75,
       base: 'presentes',
-    })).toBe('Alterar o contrato social: ¾ (três quartos) dos presentes');
+    })).toBe('Alterar o contrato social: 75% (setenta e cinco por cento) dos presentes');
   });
 
   it('lista vazia diz "nenhum", e não some do log', () => {

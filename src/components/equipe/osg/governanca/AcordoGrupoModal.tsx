@@ -112,7 +112,7 @@ function comoOpcao(p: PessoaParaEscolher): ComboOption {
  *
  * A PRÉVIA DA CLÁUSULA fica dentro do grupo que a alimenta, e não numa segunda
  * coluna: é onde ela muda decisão. No grupo dos quóruns, cada linha mostra a
- * frase que vai sair, "¾ (três quartos) dos presentes", enquanto o consultor
+ * frase que vai sair, "75% (setenta e cinco por cento) dos presentes", enquanto o consultor
  * escolhe o tipo e a base.
  */
 export function AcordoGrupoModal({

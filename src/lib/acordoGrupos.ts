@@ -155,7 +155,8 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         tipo: 'especial',
         ajuda:
           'ESCREVA SÓ O ASSUNTO, e não a frase da cláusula: "Alterar o contrato social", e '
-          + 'não "conforme decidam três quartos dos presentes em relação à alteração do '
+          + 'não "conforme decidam 75% (setenta e cinco por cento) dos presentes em relação '
+          + 'à alteração do '
           + 'contrato social". A frase inteira o sistema monta, e você a vê pronta embaixo '
           + 'de cada linha. Sete vêm preenchidos; acrescente linha só se este cliente tiver '
           + 'uma matéria a mais, como o Perci, que exige 75% para emprestar a quotista.',

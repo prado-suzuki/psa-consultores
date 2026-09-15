@@ -5,7 +5,7 @@
  * gente. A auditoria da GOV-02 ensinou o porquê, e vale igual aqui. Registrar
  * "acordo_quorum: 3 linhas alteradas" obrigaria quem lê o log meses depois a
  * abrir o banco e remontar o que mudou; registrar "Alterar o contrato social:
- * antes ¾ (três quartos) dos presentes, depois a maioria dos presentes" já é a
+ * antes 75% (setenta e cinco por cento) dos presentes, depois a maioria" já é a
  * resposta.
  *
  * Tudo aqui é puro. O hook chama, a tela chama, e o teste não precisa de banco.
@@ -27,7 +27,7 @@ export interface QuorumLegivel {
   base: BaseQuorum;
 }
 
-/** "Alterar o contrato social: ¾ (três quartos) dos presentes" */
+/** "Alterar o contrato social: 75% (setenta e cinco por cento) dos presentes" */
 export function resumoDoQuorum(q: QuorumLegivel): string {
   return `${q.materia}: ${expressaoDoQuorum(q)}`;
 }

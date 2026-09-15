@@ -5,6 +5,8 @@ import { usePessoasByCliente, type PessoaRow } from '@/hooks/useQualificacaoDasP
 import { useOnusDaEmpresa } from '@/hooks/useDoacaoDeQuotas';
 import { useBensByCliente, useCartorios } from '@/hooks/useDiagnosticoPatrimonial';
 import { useExploracaoRural, type ExploracaoRuralEnriched } from '@/hooks/useExploracaoRural';
+import { entradaDoAcordo } from '@/lib/osg/entradaAcordo';
+import { useAcordoDoCliente } from '@/hooks/useDomainAcordoQuotistas';
 import { STATUS_ELEGIVEIS_PARA_INTEGRALIZACAO } from '@/lib/osg/statusIntegralizacao';
 import { ehEspecieDeDireito } from '@/lib/osg/integralizacaoDaMatricula';
 import type { TipoEntidade } from '@/lib/templates/vocabulario';
@@ -201,6 +203,13 @@ export function useRegistrosPorTipo(clienteId: string | null) {
   const exploracoesQ = useExploracaoRural(clienteId);
   const administradoresQ = useAdministradoresDasOutorgantes(exploracoesQ.data);
   const orgaosQ = useOrgaosGovernanca(clienteId);
+  /*
+   * O acordo VIGENTE do cliente, que é sempre um só: a versão de número mais
+   * alto. Não há o que o consultor escolher na tela Gerar, e é por isso que
+   * `acordoQuotistas` entra como registro único e se liga sozinho (ver o efeito
+   * de vínculo automático no controller).
+   */
+  const acordoQ = useAcordoDoCliente(clienteId);
 
   const registros = useMemo<Record<TipoEntidade, Registro[]>>(() => {
     const pessoa: Registro[] = (pessoasQ.data ?? []).map((p) => ({
@@ -281,17 +290,35 @@ export function useRegistrosPorTipo(clienteId: string | null) {
       .map((o) => ({ id: o.id, label: o.nome, row: o }));
 
     /*
-     * Vazios de propósito, e cada um por um motivo diferente. A competência da
-     * Matriz não é registro que o consultor escolhe: ela chega em LISTA, pelo
-     * órgão já vinculado no bloco (ver PAPEIS_LISTA). E o acordo de quotistas
-     * ainda não tem cadastro — é a GOV-03 —, então o vocabulário existe para o
-     * modelo ser escrito, e a fonte entra quando a tabela nascer.
+     * O ACORDO DE QUOTISTAS, que é UM por cliente.
+     *
+     * A `row` já vai traduzida (`entradaDoAcordo`), como a do instrumento
+     * agrário: o motor não sabe ler `tipo`+`percentual`+`base` em três colunas,
+     * e a pessoa do signatário não está na tabela de vínculo, só o uuid dela.
+     *
+     * O label é o que o seletor mostraria. Ele existe por completude do tipo
+     * `Registro`, mas na prática não aparece: com um candidato só, o vínculo é
+     * automático e o passo de escolha não chega a ser oferecido.
+     */
+    const entradaAcordo = entradaDoAcordo(acordoQ.data, pessoaPorId);
+    const acordoQuotistas: Registro[] = entradaAcordo && acordoQ.data
+      ? [{
+        id: acordoQ.data.acordo.id,
+        label: `Acordo de Quotistas, versão ${acordoQ.data.acordo.versao}`,
+        row: entradaAcordo,
+      }]
+      : [];
+
+    /*
+     * A competência da Matriz continua vazia, e de propósito: ela não é registro
+     * que o consultor escolhe, chega em LISTA pelo órgão já vinculado no bloco
+     * (ver PAPEIS_LISTA).
      */
     return {
       pessoa, sociedade, bem, matricula, cartorio, vertice: [], instrumento, origemPosse: [],
-      orgaoGovernanca, competenciaMatriz: [], acordoQuotistas: [],
+      orgaoGovernanca, competenciaMatriz: [], acordoQuotistas,
     };
-  }, [pessoasQ.data, bensQ.data, matriculasQ.data, cartoriosQ.data, exploracoesQ.data, administradoresQ.data, orgaosQ.data, clienteId]);
+  }, [pessoasQ.data, bensQ.data, matriculasQ.data, cartoriosQ.data, exploracoesQ.data, administradoresQ.data, orgaosQ.data, acordoQ.data, clienteId]);
 
   return {
     registros,

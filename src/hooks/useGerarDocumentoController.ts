@@ -37,6 +37,7 @@ import { camposEditaveisPorBinding } from '@/components/equipe/osg/gerar/camposD
 import { lerSnapshotVersoes } from '@/components/equipe/osg/gerar/renderizarVersao';
 import { linhasRegistradas, marcoPreenchido } from '@/lib/osg/registrosDaSociedade';
 import { entradaDaGovernanca } from '@/lib/osg/entradaGovernanca';
+import { camposDoAcordo, listasDoAcordo, type EntradaAcordo } from '@/lib/templates/contextoAcordo';
 import { gradeDaMatriz, listasDaGovernanca } from '@/lib/templates/contextoGovernanca';
 import {
   useCatalogoDeAtividades, useCatalogoDePapeis, useMatrizDoCliente,
@@ -1179,10 +1180,22 @@ export function useGerarDocumentoController() {
    * produção. O desvio mora aqui, num lugar só, em vez de espalhar `if` pelos quatro
    * pontos que escolhem registro.
    */
-  const camposDoRegistro = (tipo: TipoEntidade, row: unknown) =>
-    tipo === 'instrumento'
-      ? mapearInstrumentoRural(row as EntradaInstrumentoRural)
-      : mapearRegistro(tipo, row);
+  const camposDoRegistro = (tipo: TipoEntidade, row: unknown) => {
+    if (tipo === 'instrumento') return mapearInstrumentoRural(row as EntradaInstrumentoRural);
+    /*
+     * O ACORDO DESVIA PELO MESMO MOTIVO DO INSTRUMENTO, e não por comodidade.
+     *
+     * `mapearRegistro` chamaria `mapearAcordoQuotistas` direto, e aí o que sai
+     * é o cabeçalho sem nada que dependa das listas: `temRamos`,
+     * `quantosRamos`, a fila da preferência em prosa e os objetos com as
+     * palavras do documento. Quem junta as duas metades é `camposDoAcordo`, em
+     * `contextoAcordo.ts`, que importa `mapeadores.ts` — pôr a seta de volta lá
+     * criaria ciclo de import, e ciclo de inicialização já derrubou esta
+     * aplicação em produção uma vez (ver vite.config.ts).
+     */
+    if (tipo === 'acordoQuotistas') return camposDoAcordo(row as EntradaAcordo);
+    return mapearRegistro(tipo, row);
+  };
 
   // Listas relacionais (sócios/administradores) carregam da empresa escolhida;
   // a empresa também alimenta as flags, então o passo aparece em ambos os casos.
@@ -1437,6 +1450,41 @@ export function useGerarDocumentoController() {
     });
   }, [orgaosGovQ, bindings, registroPorBinding, registros]);
 
+  /*
+   * O ACORDO SE LIGA SOZINHO, porque é UM por cliente.
+   *
+   * Diferente do órgão, aqui não há de-para nem ambiguidade possível: a consulta
+   * devolve a versão de número mais alto e pronto. Oferecer um passo de escolha
+   * com um candidato só seria pedir ao consultor que confirmasse o óbvio, e o
+   * passo é justamente o que a tela Gerar tenta não ter.
+   *
+   * MEXE NOS DOIS ESTADOS, pela lição do vínculo do órgão logo acima: marcar o
+   * registro escolhido não preenche o documento. Só `registroPorBinding` fazia a
+   * pergunta sumir da tela e a geração morrer em "Placeholder não resolvido".
+   */
+  useEffect(() => {
+    const doAcordo = bindings.filter(
+      (b) => b.tipo === 'acordoQuotistas' && !registroPorBinding[b.nome],
+    );
+    if (doAcordo.length === 0) return;
+    const reg = registros.acordoQuotistas[0];
+    if (!reg) return;
+
+    const campos = camposDoRegistro('acordoQuotistas', reg.row);
+    setRegistroPorBinding((prev) => {
+      const next = { ...prev };
+      for (const b of doAcordo) if (!next[b.nome]) next[b.nome] = reg.id;
+      return next;
+    });
+    setSelecao((prev) => {
+      const next = { ...prev };
+      for (const b of doAcordo) if (!next[b.nome]) next[b.nome] = campos;
+      return next;
+    });
+    // `camposDoRegistro` é recriada a cada render e não entra nas dependências:
+    // ela só lê `registros`, que já está aqui.
+  }, [bindings, registroPorBinding, registros]);
+
   // Capital social + total de quotas da sociedade: a PR ainda sem quadro gravado
   // soma as integralizações aprovadas (quota = R$ 1,00); as demais (e a PR
   // depois de gravar) somam o quadro societário.
@@ -1516,6 +1564,19 @@ export function useGerarDocumentoController() {
     [entradaRural, georefsPorMatricula],
   );
 
+  /*
+   * A entrada do acordo sai do REGISTRO, e não de uma consulta própria daqui.
+   *
+   * Ela já foi traduzida em `useGeracaoDocumento` (`entradaDoAcordo`), e ler de
+   * lá garante que o cabeçalho e as listas venham do mesmo retrato: duas
+   * consultas poderiam chegar em momentos diferentes e escrever um documento com
+   * a cláusula dos ramos falando em dois grupos e a lista trazendo três.
+   */
+  const listasDoAcordo_ouVazio = useMemo<Record<string, ItemLista[]>>(() => {
+    const reg = registros.acordoQuotistas[0];
+    return reg ? listasDoAcordo(reg.row as EntradaAcordo) : {};
+  }, [registros]);
+
   const itensPorLista = useMemo<Record<string, ItemLista[]>>(
     () => ({
       socios: quadro.itens,
@@ -1562,8 +1623,20 @@ export function useGerarDocumentoController() {
        */
       ...listasDaGovernanca(entradaGov),
       ...gradeDaMatriz(entradaGov),
+      /*
+       * As cinco do Acordo, por último e pelo mesmo motivo das rurais: elas saem
+       * de UM cadastro só, e `quotistasSignatarios` tem de vencer qualquer
+       * homônima acima. Não há homônima hoje — `signatarios` é outra chave, a do
+       * fecho do contrato —, e é justamente por isso que a ordem importa: o dia
+       * em que houver, quem manda é o cadastro do acordo, que é o documento
+       * sendo escrito.
+       *
+       * Sem acordo cadastrado o objeto é vazio, e as seções {{#…}} do modelo
+       * renderizam nada em vez de quebrar por "Lista ausente".
+       */
+      ...listasDoAcordo_ouVazio,
     }),
-    [quadro, socios, administradores, integralizacoes, aportes, cessoesOnerosas, listasDaDoacao, estadoDosOnus, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista, listasDoInstrumentoRural_ouVazio, entradaGov],
+    [quadro, socios, administradores, integralizacoes, aportes, cessoesOnerosas, listasDaDoacao, estadoDosOnus, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista, listasDoInstrumentoRural_ouVazio, entradaGov, listasDoAcordo_ouVazio],
   );
 
   // --- Notificações de mudança de variável (só com versão validada) ---------
