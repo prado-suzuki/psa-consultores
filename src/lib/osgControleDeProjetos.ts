@@ -264,3 +264,152 @@ export function opcoesDoControle(linhas: LinhaDoControle[]) {
     regioes,
   };
 }
+
+/* ── Ordenação clicável ──────────────────────────────────────────────────
+ *
+ * Mesma regra que a matriz de `/equipe/acessos` já usa (ver `proximaOrdem` em
+ * `filtroDeUsuarios.ts`): **crescente → decrescente → padrão**. O terceiro
+ * clique existe porque tabela sem desfazer obriga a recarregar a página para
+ * recuperar a leitura original — aqui, a ordem alfabética por cliente, que é
+ * como a planilha sempre foi lida.
+ *
+ * DUAS DECISÕES QUE NÃO SÃO ÓBVIAS:
+ *
+ * **Vazio fica sempre por último**, nos dois sentidos. Ordenar por Prazo com
+ * nulo no topo enterraria as OS com prazo, que são o motivo de clicar ali; e as
+ * OS sem prazo são 1 em 95, contra 30 vencidas. O mesmo vale para OS sem
+ * projeto (61 dos 84 clientes) na coluna Responsáveis: em ordem crescente elas
+ * empurrariam para baixo tudo que tem gente.
+ *
+ * **Todo critério desempata por cliente.** Sem isso, ordenar por Situação (três
+ * valores para 84 linhas) deixaria a ordem dentro de cada bloco à mercê do que o
+ * banco devolveu, e a tabela pareceria instável sem estar.
+ */
+
+export type ColunaDoControle =
+  | 'cliente'
+  | 'os'
+  | 'regiao'
+  | 'situacao'
+  | 'inicio'
+  | 'prazo'
+  | 'produtos'
+  | 'responsaveis'
+  | 'observacao';
+
+export interface OrdemDoControle {
+  /** `'padrao'` = alfabética por cliente, a ordem de chegada. */
+  campo: ColunaDoControle | 'padrao';
+  ascendente: boolean;
+}
+
+export const ORDEM_PADRAO: OrdemDoControle = { campo: 'padrao', ascendente: true };
+
+/**
+ * O próximo estado do clique num cabeçalho.
+ *
+ * Clicar numa coluna diferente recomeça o ciclo nela em vez de herdar o sentido
+ * da anterior: herdar faria o primeiro clique numa coluna nova cair em
+ * decrescente sem ninguém ter pedido.
+ */
+export function proximaOrdemDoControle(
+  atual: OrdemDoControle,
+  campo: ColunaDoControle,
+): OrdemDoControle {
+  if (atual.campo !== campo) return { campo, ascendente: true };
+  if (atual.ascendente) return { campo, ascendente: false };
+  return ORDEM_PADRAO;
+}
+
+/**
+ * O número da OS ordenado por ANO e depois por sequência, e não como texto.
+ *
+ * Como texto, "096/2026" vem antes de "106/2026" por acaso (o zero à esquerda),
+ * e "99/2025" viria depois de "100/2026". Produção tem as duas grafias.
+ */
+function chaveDaOs(numeroOs: string): [number, number] {
+  const partes = numeroOs.split('/');
+  const sequencia = Number.parseInt(partes[0] ?? '', 10);
+  const ano = Number.parseInt(partes[1] ?? '', 10);
+  return [Number.isNaN(ano) ? 0 : ano, Number.isNaN(sequencia) ? 0 : sequencia];
+}
+
+/** O valor comparável de cada coluna, junto com "este está vazio". */
+function valorDaColuna(linha: LinhaDoControle, campo: ColunaDoControle): string | number {
+  switch (campo) {
+    case 'cliente':
+      return linha.clienteNome.toLocaleLowerCase('pt-BR');
+    case 'os': {
+      const [ano, sequencia] = chaveDaOs(linha.numeroOs);
+      return ano * 10000 + sequencia;
+    }
+    case 'regiao':
+      return linha.regiao ?? '';
+    case 'situacao':
+      return situacaoLabel(linha.situacao).toLocaleLowerCase('pt-BR');
+    case 'inicio':
+      return linha.dataInicio ?? '';
+    case 'prazo':
+      return linha.dataFim ?? '';
+    case 'produtos':
+      return linha.produtos.join(', ').toLocaleLowerCase('pt-BR');
+    case 'responsaveis':
+      return linha.responsaveis.join(', ').toLocaleLowerCase('pt-BR');
+    case 'observacao':
+      return (linha.observacoes ?? '').toLocaleLowerCase('pt-BR');
+  }
+}
+
+function estaVazio(linha: LinhaDoControle, campo: ColunaDoControle): boolean {
+  switch (campo) {
+    case 'cliente':
+      return false;
+    case 'os':
+      return !linha.numeroOs;
+    case 'regiao':
+      return !linha.regiao;
+    case 'situacao':
+      return !linha.situacao;
+    case 'inicio':
+      return !linha.dataInicio;
+    case 'prazo':
+      return !linha.dataFim;
+    case 'produtos':
+      return linha.produtos.length === 0;
+    case 'responsaveis':
+      return linha.responsaveis.length === 0;
+    case 'observacao':
+      return !linha.observacoes;
+  }
+}
+
+/** Ordena pela `ordem` pedida. Não muta a lista recebida. */
+export function ordenarControle(
+  linhas: LinhaDoControle[],
+  ordem: OrdemDoControle,
+): LinhaDoControle[] {
+  const porCliente = (a: LinhaDoControle, b: LinhaDoControle) =>
+    a.clienteNome.localeCompare(b.clienteNome, 'pt-BR');
+
+  if (ordem.campo === 'padrao') return [...linhas].sort(porCliente);
+  const campo = ordem.campo;
+
+  return [...linhas].sort((a, b) => {
+    const aVazio = estaVazio(a, campo);
+    const bVazio = estaVazio(b, campo);
+    // O vazio não inverte com a direção: ver o cabeçalho desta seção.
+    if (aVazio !== bVazio) return aVazio ? 1 : -1;
+    if (aVazio && bVazio) return porCliente(a, b);
+
+    const valorA = valorDaColuna(a, campo);
+    const valorB = valorDaColuna(b, campo);
+    let comparacao: number;
+    if (typeof valorA === 'number' && typeof valorB === 'number') {
+      comparacao = valorA - valorB;
+    } else {
+      comparacao = String(valorA).localeCompare(String(valorB), 'pt-BR');
+    }
+    if (comparacao !== 0) return ordem.ascendente ? comparacao : -comparacao;
+    return porCliente(a, b);
+  });
+}

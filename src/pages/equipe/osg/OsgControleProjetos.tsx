@@ -9,9 +9,14 @@ import { useDomainOsgControleProjetos } from '@/hooks/useDomainOsgControleProjet
 import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController';
 import {
   FILTROS_VAZIOS,
+  ORDEM_PADRAO,
   filtrarControle,
   opcoesDoControle,
+  ordenarControle,
+  proximaOrdemDoControle,
+  type ColunaDoControle,
   type FiltrosDoControle,
+  type OrdemDoControle,
 } from '@/lib/osgControleDeProjetos';
 
 /**
@@ -38,8 +43,12 @@ const OsgControleProjetos = () => {
 
   const { linhas, isLoading, error } = useDomainOsgControleProjetos();
   const [filtros, setFiltros] = useState<FiltrosDoControle>(FILTROS_VAZIOS);
+  const [ordem, setOrdem] = useState<OrdemDoControle>(ORDEM_PADRAO);
 
-  const visiveis = useMemo(() => filtrarControle(linhas, filtros), [linhas, filtros]);
+  const visiveis = useMemo(
+    () => ordenarControle(filtrarControle(linhas, filtros), ordem),
+    [linhas, filtros, ordem],
+  );
   const opcoes = useMemo(() => opcoesDoControle(linhas), [linhas]);
   const vencidas = useMemo(() => visiveis.filter((linha) => linha.prazoVencido).length, [visiveis]);
 
@@ -65,7 +74,13 @@ const OsgControleProjetos = () => {
                 visiveis={visiveis.length}
                 vencidas={vencidas}
               />
-              <ControleDeProjetosTabela linhas={visiveis} />
+              <ControleDeProjetosTabela
+                linhas={visiveis}
+                ordem={ordem}
+                onOrdenar={(campo: ColunaDoControle) =>
+                  setOrdem((atual) => proximaOrdemDoControle(atual, campo))
+                }
+              />
             </>
           )}
         </CardContent>

@@ -4,8 +4,11 @@ import {
   FILTROS_VAZIOS,
   filtrarControle,
   montarControleDeProjetos,
+  ORDEM_PADRAO,
   opcoesDoControle,
+  ordenarControle,
   prazoVencido,
+  proximaOrdemDoControle,
   situacaoLabel,
   type ClienteCru,
   type OrdemCrua,
@@ -293,5 +296,80 @@ describe('opcoesDoControle', () => {
       ],
     );
     expect(opcoesDoControle(linhas).regioes).toEqual(['BRA', 'MT']);
+  });
+});
+
+describe('proximaOrdemDoControle', () => {
+  it('cicla crescente, decrescente e volta ao padrão', () => {
+    const um = proximaOrdemDoControle(ORDEM_PADRAO, 'prazo');
+    expect(um).toEqual({ campo: 'prazo', ascendente: true });
+    const dois = proximaOrdemDoControle(um, 'prazo');
+    expect(dois).toEqual({ campo: 'prazo', ascendente: false });
+    expect(proximaOrdemDoControle(dois, 'prazo')).toEqual(ORDEM_PADRAO);
+  });
+
+  it('recomeça o ciclo ao trocar de coluna, em vez de herdar o sentido', () => {
+    const decrescente = { campo: 'prazo' as const, ascendente: false };
+    expect(proximaOrdemDoControle(decrescente, 'cliente')).toEqual({
+      campo: 'cliente',
+      ascendente: true,
+    });
+  });
+});
+
+describe('ordenarControle', () => {
+  const tres = montar(
+    [
+      ordem({ id: 'os-1', numero_os: '106/2026', data_fim: '2026-12-30' }),
+      ordem({ id: 'os-2', id_cliente: 'c-2', numero_os: '096/2026', data_fim: '2026-06-30' }),
+      ordem({ id: 'os-3', id_cliente: 'c-fora', numero_os: '200/2025', data_fim: null }),
+    ],
+    [
+      { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+      { ordem_servico_id: 'os-2', produto_segmento_id: 'p-gov' },
+      { ordem_servico_id: 'os-3', produto_segmento_id: 'p-gov' },
+    ],
+  );
+
+  it('o padrão é alfabético por cliente', () => {
+    expect(ordenarControle(tres, ORDEM_PADRAO).map((l) => l.clienteNome)).toEqual([
+      'Anversa',
+      'Cliente não identificado',
+      'Di Domenico',
+    ]);
+  });
+
+  it('ordena o prazo crescente com o vazio no fim', () => {
+    const ordenadas = ordenarControle(tres, { campo: 'prazo', ascendente: true });
+    expect(ordenadas.map((l) => l.dataFim)).toEqual(['2026-06-30', '2026-12-30', null]);
+  });
+
+  it('mantém o vazio no fim também no decrescente', () => {
+    // O vazio não inverte com a direção: OS sem prazo no topo enterraria as
+    // que têm, que são o motivo de clicar na coluna.
+    const ordenadas = ordenarControle(tres, { campo: 'prazo', ascendente: false });
+    expect(ordenadas.map((l) => l.dataFim)).toEqual(['2026-12-30', '2026-06-30', null]);
+  });
+
+  it('ordena a OS por ano e sequência, não como texto', () => {
+    // Como texto, '200/2025' viria depois de '106/2026' pelo primeiro dígito.
+    const ordenadas = ordenarControle(tres, { campo: 'os', ascendente: true });
+    expect(ordenadas.map((l) => l.numeroOs)).toEqual(['200/2025', '096/2026', '106/2026']);
+  });
+
+  it('desempata por cliente quando a coluna empata', () => {
+    // As três têm a mesma situação; a ordem de dentro do bloco tem de ser estável.
+    const ordenadas = ordenarControle(tres, { campo: 'situacao', ascendente: true });
+    expect(ordenadas.map((l) => l.clienteNome)).toEqual([
+      'Anversa',
+      'Cliente não identificado',
+      'Di Domenico',
+    ]);
+  });
+
+  it('não muta a lista recebida', () => {
+    const antes = tres.map((l) => l.osId);
+    ordenarControle(tres, { campo: 'prazo', ascendente: false });
+    expect(tres.map((l) => l.osId)).toEqual(antes);
   });
 });

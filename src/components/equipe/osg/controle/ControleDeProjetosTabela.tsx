@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import {
@@ -12,7 +12,12 @@ import {
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { parseDate } from '@/lib/dateUtils';
-import { situacaoLabel, type LinhaDoControle } from '@/lib/osgControleDeProjetos';
+import {
+  situacaoLabel,
+  type ColunaDoControle,
+  type LinhaDoControle,
+  type OrdemDoControle,
+} from '@/lib/osgControleDeProjetos';
 import { getRegiaoLabel } from '@/lib/regioes';
 import { cn } from '@/lib/utils';
 
@@ -88,7 +93,60 @@ function Observacao({ texto }: { texto: string | null }) {
   );
 }
 
-export function ControleDeProjetosTabela({ linhas }: { linhas: LinhaDoControle[] }) {
+/**
+ * Cabeçalho que ordena no clique.
+ *
+ * É `<button>` dentro do `<th>`, e não um `onClick` no `<th>`: a célula sozinha
+ * não recebe foco nem responde ao Enter, e a tabela inteira ficaria fora do
+ * alcance de quem navega por teclado. O `aria-sort` diz o estado para o leitor
+ * de tela, que é o que o ícone diz para quem enxerga.
+ */
+function Cabecalho({
+  campo,
+  label,
+  largura,
+  ordem,
+  onOrdenar,
+  className,
+}: {
+  campo: ColunaDoControle;
+  label: string;
+  largura: string;
+  ordem: OrdemDoControle;
+  onOrdenar: (campo: ColunaDoControle) => void;
+  className?: string;
+}) {
+  const ativa = ordem.campo === campo;
+  const Icone = !ativa ? ArrowUpDown : ordem.ascendente ? ArrowUp : ArrowDown;
+  return (
+    <TableHead
+      style={{ width: largura }}
+      className={className}
+      aria-sort={!ativa ? 'none' : ordem.ascendente ? 'ascending' : 'descending'}
+    >
+      <button
+        type="button"
+        onClick={() => onOrdenar(campo)}
+        className="flex w-full items-center gap-1 text-left font-medium hover:text-foreground"
+      >
+        {label}
+        <Icone
+          className={cn('h-3.5 w-3.5 shrink-0', ativa ? 'text-primary' : 'text-muted-foreground/50')}
+        />
+      </button>
+    </TableHead>
+  );
+}
+
+export function ControleDeProjetosTabela({
+  linhas,
+  ordem,
+  onOrdenar,
+}: {
+  linhas: LinhaDoControle[];
+  ordem: OrdemDoControle;
+  onOrdenar: (campo: ColunaDoControle) => void;
+}) {
   if (linhas.length === 0) {
     return (
       <div className="rounded-lg border border-dashed py-12 text-center">
@@ -99,26 +157,31 @@ export function ControleDeProjetosTabela({ linhas }: { linhas: LinhaDoControle[]
     );
   }
 
+  const coluna = (campo: ColunaDoControle, label: string, largura: string, className?: string) => (
+    <Cabecalho
+      campo={campo}
+      label={label}
+      largura={largura}
+      ordem={ordem}
+      onOrdenar={onOrdenar}
+      className={className}
+    />
+  );
+
   return (
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead style={{ width: '16%' }}>Cliente</TableHead>
-            <TableHead style={{ width: '8%' }} className="whitespace-nowrap">
-              OS
-            </TableHead>
-            <TableHead style={{ width: '7%' }}>Região</TableHead>
-            <TableHead style={{ width: '10%' }}>Situação</TableHead>
-            <TableHead style={{ width: '9%' }} className="whitespace-nowrap">
-              Início
-            </TableHead>
-            <TableHead style={{ width: '9%' }} className="whitespace-nowrap">
-              Prazo
-            </TableHead>
-            <TableHead style={{ width: '14%' }}>Produtos</TableHead>
-            <TableHead style={{ width: '12%' }}>Responsáveis</TableHead>
-            <TableHead style={{ width: '15%' }}>Observação</TableHead>
+            {coluna('cliente', 'Cliente', '16%')}
+            {coluna('os', 'OS', '8%', 'whitespace-nowrap')}
+            {coluna('regiao', 'Região', '7%')}
+            {coluna('situacao', 'Situação', '10%')}
+            {coluna('inicio', 'Início', '9%', 'whitespace-nowrap')}
+            {coluna('prazo', 'Prazo', '9%', 'whitespace-nowrap')}
+            {coluna('produtos', 'Produtos', '14%')}
+            {coluna('responsaveis', 'Responsáveis', '12%')}
+            {coluna('observacao', 'Observação', '15%')}
           </TableRow>
         </TableHeader>
         <TableBody>
