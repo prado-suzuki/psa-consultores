@@ -645,6 +645,15 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/osg/projetos/controle',
+    page_name: 'Controle de Projetos OSG',
+    page_description:
+      'Onde cada cliente está, uma linha por ordem de serviço (substitui a planilha Relação de Projetos)',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/osg/projetos/tarefas',
     page_name: 'Tarefas OSG',
     page_description:

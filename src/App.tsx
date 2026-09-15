@@ -151,6 +151,7 @@ const OsgFeed = lazy(() => import("./pages/equipe/osg/OsgFeed"));
 const OsgClientes = lazy(() => import("./pages/equipe/osg/OsgClientes"));
 const OsgProjetos = lazy(() => import("./pages/equipe/osg/OsgProjetos"));
 const OsgProjetosLote = lazy(() => import("./pages/equipe/osg/OsgProjetosLote"));
+const OsgControleProjetos = lazy(() => import("./pages/equipe/osg/OsgControleProjetos"));
 const OsgWorkDashboard = lazy(() => import("./pages/equipe/osg/OsgWorkDashboard"));
 const Onboarding = lazy(() => import("./pages/equipe/osg/Onboarding"));
 const CadastroPorDocumento = lazy(() => import("./pages/equipe/osg/CadastroPorDocumento"));
@@ -371,6 +372,7 @@ const App = () => (
               <Route path="/equipe/osg/projetos/clientes" element={<PageAccessGate pagePath="/equipe/osg/projetos/clientes"><OsgClientes /></PageAccessGate>} />
               <Route path="/equipe/osg/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/osg/projetos/cadastro"><OsgProjetos /></PageAccessGate>} />
               <Route path="/equipe/osg/projetos/cadastro-lote" element={<PageAccessGate pagePath="/equipe/osg/projetos/cadastro-lote"><OsgProjetosLote /></PageAccessGate>} />
+              <Route path="/equipe/osg/projetos/controle" element={<PageAccessGate pagePath="/equipe/osg/projetos/controle"><OsgControleProjetos /></PageAccessGate>} />
               <Route path="/equipe/osg/projetos/tarefas" element={<PageAccessGate pagePath="/equipe/osg/projetos/tarefas"><OsgTarefas /></PageAccessGate>} />
               <Route path="/equipe/osg/projetos/feed" element={<PageAccessGate pagePath="/equipe/osg/projetos/feed"><OsgFeed /></PageAccessGate>} />
               {/* OSG Gerencial — restrita a líder+ (dashboard nativo de Clientes e OS) */}
