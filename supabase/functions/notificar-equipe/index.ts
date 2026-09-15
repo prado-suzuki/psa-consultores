@@ -127,7 +127,23 @@ function diaLocal(): string {
 }
 
 /**
- * Posta no espaço.
+ * Quanto esperar entre duas mensagens para o MESMO espaço.
+ *
+ * O Google Chat limita webhook a cerca de uma mensagem por segundo por espaço.
+ * Medido em 14/09/2026, no primeiro envio de verdade: onze mensagens seguidas, e
+ * a última voltou 429 (RESOURCE_EXHAUSTED). A folga de 200ms é para o relógio
+ * deles não discordar do nosso por uma fração.
+ */
+const PAUSA_ENTRE_MENSAGENS_MS = 1200;
+
+/** Espera do 429, antes da única nova tentativa. */
+const ESPERA_APOS_429_MS = 2500;
+
+const espere = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Posta no espaço, com uma nova tentativa quando o Chat diz que estamos rápidos
+ * demais.
  *
  * `threadKey` mais `REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD` é o que faz a mensagem
  * cair na conversa do projeto em vez de numa parede plana; sem o fallback, uma
@@ -140,6 +156,7 @@ async function postarNoEspaco(
   webhook: string,
   texto: string,
   threadKey: string,
+  tentativa = 1,
 ): Promise<{ ok: boolean; erro?: string }> {
   let alvo: URL;
   try {
@@ -158,6 +175,13 @@ async function postarNoEspaco(
     });
     if (!resposta.ok) {
       const corpo = await resposta.text();
+      // 429 é "rápido demais", não "mensagem inválida": esperar e repetir resolve.
+      // Uma tentativa só — se a segunda também bater no limite, a reserva é
+      // liberada e a próxima passada do cron, 15 minutos depois, tenta de novo.
+      if (resposta.status === 429 && tentativa === 1) {
+        await espere(ESPERA_APOS_429_MS);
+        return postarNoEspaco(webhook, texto, threadKey, 2);
+      }
       return { ok: false, erro: `Chat respondeu ${resposta.status}: ${corpo.slice(0, 300)}` };
     }
     return { ok: true };
@@ -271,33 +295,38 @@ Deno.serve(async (req) => {
     const mensagens = montarMensagens(reservados, PUBLISHED_URL, diaLocal());
     const resultado: Record<string, { enviadas: number; falhas: number; erro?: string }> = {};
 
-    for (const mensagem of mensagens) {
+    for (const [indice, mensagem] of mensagens.entries()) {
+      // Uma pausa ENTRE as mensagens, nunca antes da primeira nem depois da
+      // última: o limite do Chat é por espaço e por segundo, e esperar sem ter
+      // acabado de postar só queima o tempo da função.
+      if (indice > 0) await espere(PAUSA_ENTRE_MENSAGENS_MS);
+
       // O `separarPorEspaco` acima já garantiu que existe segredo para esta área.
       // A string vazia no impossível cai em "webhook malformado" no POST, que
-      // marca `falhou` como qualquer outra falha de envio — em vez de repetir a
-      // decisão aqui e abrir a porta para os dois lugares divergirem.
+      // marca a falha como qualquer outra de envio — em vez de repetir a decisão
+      // aqui e abrir a porta para os dois lugares divergirem.
       const webhook = Deno.env.get(SEGREDO_DA_AREA[mensagem.area] ?? "") ?? "";
-      const marcar = async (status: "enviado" | "falhou", erro?: string) => {
-        for (const chave of mensagem.chaves) {
-          const envioId = envioPorChave.get(chave);
-          if (envioId) {
-            await admin.rpc("confirmar_envio", {
-              _id: envioId,
-              _status: status,
-              _erro: erro ?? null,
-            });
-          }
-        }
-      };
+      const idsDaMensagem = mensagem.chaves
+        .map((chave) => envioPorChave.get(chave))
+        .filter((id): id is string => Boolean(id));
 
       const linha = resultado[mensagem.area] ?? { enviadas: 0, falhas: 0 };
 
       const envio = await postarNoEspaco(webhook, mensagem.texto, mensagem.threadKey);
       if (envio.ok) {
-        await marcar("enviado");
+        for (const id of idsDaMensagem) {
+          await admin.rpc("confirmar_envio", { _id: id, _status: "enviado" });
+        }
         linha.enviadas += mensagem.chaves.length;
       } else {
-        await marcar("falhou", envio.erro);
+        // `liberar_reserva_falha` e NÃO `confirmar_envio('falhou')`: a segunda
+        // deixaria a chave gravada, e `avisos_para_o_chat` filtra por existência
+        // de chave, sem olhar status — a tarefa nunca mais seria oferecida e o
+        // aviso sumiria em silêncio por uma oscilação de rede. A primeira anula a
+        // chave e mantém a linha com o erro escrito.
+        for (const id of idsDaMensagem) {
+          await admin.rpc("liberar_reserva_falha", { _id: id, _erro: envio.erro ?? null });
+        }
         linha.falhas += mensagem.chaves.length;
         linha.erro = envio.erro;
         console.error(`[notificar-equipe] envio falhou (${mensagem.area}):`, envio.erro);
