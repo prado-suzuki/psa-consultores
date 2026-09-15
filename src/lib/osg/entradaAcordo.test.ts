@@ -10,6 +10,9 @@ import { describe, expect, it } from 'vitest';
 import type { AcordoCompleto } from '@/hooks/useDomainAcordoQuotistas';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 
+import { camposDoAcordo, listasDoAcordo } from '@/lib/templates/contextoAcordo';
+import { renderConteudo } from '@/lib/templates/render';
+
 import { entradaDoAcordo } from './entradaAcordo';
 
 const pessoa = (id: string, nome: string, genero?: string): PessoaRow => ({
@@ -141,5 +144,117 @@ describe('entradaDoAcordo', () => {
       regimeNomeacaoArbitros: 'partes',
     });
     expect(e.objetosPreferencia).toEqual(['quotas', 'imoveis']);
+  });
+});
+
+/*
+ * A CADEIA INTEIRA, DA COLUNA AO PLACEHOLDER (GOV-03, passos 1 a 4).
+ *
+ * Os quatro passos foram escritos em dias diferentes, e cada um tem o seu teste.
+ * Nenhum deles prova o que mais importa: que uma coluna do cadastro CHEGA ao
+ * documento. Campo esquecido em qualquer elo não dá erro em lugar nenhum —
+ * resolve vazio e a cláusula sai truncada no Word entregue.
+ *
+ * Este bloco percorre a cadeia de ponta a ponta com um cadastro cheio:
+ *
+ *   coluna do banco → entradaDoAcordo → camposDoAcordo → placeholder resolvido
+ */
+describe('a cadeia do acordo, da coluna ao documento', () => {
+  /** O de-para, coluna a coluna. Coluna nova sem linha aqui falha o teste. */
+  const COLUNA_VIRA_CAMPO: Record<string, string> = {
+    assinado_em: 'assinadoEm',
+    vigencia_anos: 'vigenciaAnos',
+    prazo_sigilo_anos: 'prazoSigiloAnos',
+    metodos_avaliacao: 'metodosAvaliacao',
+    consolida_composse: 'consolidaComposse',
+    nao_concorrencia: 'naoConcorrencia',
+    nao_concorrencia_prazo_anos: 'naoConcorrenciaPrazoAnos',
+    nao_concorrencia_area: 'naoConcorrenciaArea',
+    nao_concorrencia_multa: 'naoConcorrenciaMulta',
+    nao_concorrencia_alcanca_parentes: 'naoConcorrenciaAlcancaParentes',
+    opcao_compra_prevista: 'opcaoCompraPrevista',
+    opcao_compra_quem: 'opcaoCompraQuem',
+    opcao_compra_preco: 'opcaoCompraPreco',
+    opcao_venda_prevista: 'opcaoVendaPrevista',
+    objetos_preferencia: 'objetosPreferencia',
+    juros_valor_subscrito: 'jurosValorSubscrito',
+    reuniao_previa_obrigatoria: 'reuniaoPreviaObrigatoria',
+    solucao_litigios: 'solucaoLitigios',
+    camara_arbitral: 'camaraArbitral',
+    representante_pessoa_id: 'representanteNome',
+    mecanismos: 'mecanismos',
+    regime_nomeacao_arbitros: 'regimeNomeacaoArbitros',
+  };
+
+  /** Um cadastro com TUDO ligado, para nada sair vazio por falta de resposta. */
+  const CHEIO = {
+    ...CADASTRO,
+    acordo: {
+      ...CADASTRO.acordo,
+      prazo_sigilo_anos: 5,
+      consolida_composse: true,
+      opcao_compra_prevista: true,
+      opcao_compra_quem: 'os demais QUOTISTAS',
+      opcao_compra_preco: 'o VALOR DAS QUOTAS da Cláusula Décima Nona',
+      opcao_venda_prevista: true,
+    },
+  } as unknown as AcordoCompleto;
+
+  it('toda coluna de conteúdo chega ao motor com valor', () => {
+    const campos = camposDoAcordo(entradaDoAcordo(CHEIO, PESSOAS)!);
+    const vazios = Object.entries(COLUNA_VIRA_CAMPO)
+      .filter(([, campo]) => !campos[campo])
+      .map(([coluna, campo]) => `${coluna} → ${campo}`);
+    expect(vazios, 'coluna que não chega ao motor sai truncada no Word').toEqual([]);
+  });
+
+  it('o de-para cobre todas as colunas de conteúdo da tabela', () => {
+    /*
+     * A lista de baixo é a tabela `acordo_quotistas` sem as colunas de máquina.
+     * Ela existe para que acrescentar coluna sem tratá-la quebre AQUI, e não no
+     * documento de um cliente. `data_referencia` está fora de propósito: ela é
+     * gravada e nunca lida, e está na lista de pendências do cadastro.
+     */
+    const DE_MAQUINA = [
+      'id', 'cliente_id', 'versao', 'excluido', 'created_at', 'created_by',
+      'updated_at', 'updated_by', 'grupos_conferidos', 'data_referencia',
+    ];
+    const naTabela = Object.keys(CADASTRO.acordo as Record<string, unknown>)
+      .filter((c) => !DE_MAQUINA.includes(c));
+    const semDePara = naTabela.filter((c) => !(c in COLUNA_VIRA_CAMPO));
+    expect(semDePara, 'coluna sem de-para nunca chega ao documento').toEqual([]);
+  });
+
+  it('as cinco listas chegam com item, e o item com os campos que o bloco usa', () => {
+    const listas = listasDoAcordo(entradaDoAcordo(CHEIO, PESSOAS)!);
+    const campoDoItem = (lista: string, item: string, campo: string) =>
+      (listas[lista]?.[0]?.[item] as Record<string, string> | undefined)?.[campo];
+
+    expect(campoDoItem('quorunsDoAcordo', 'quorum', 'expressao')).toBeTruthy();
+    expect(campoDoItem('ramosFamiliares', 'ramo', 'rotulo')).toBe('DESCENDENTES DE CRISTINA');
+    expect(campoDoItem('ordemDaPreferencia', 'preferente', 'quem')).toBeTruthy();
+    expect(campoDoItem('quotistasSignatarios', 'quotista', 'nome')).toBe('CRISTINA BOCOLLI');
+    expect(campoDoItem('sociedadesRelacionadas', 'sociedadeRelacionada', 'razaoSocial'))
+      .toBeTruthy();
+  });
+
+  it('a cláusula sai pronta no fim da cadeia, sem placeholder sobrando', () => {
+    // O teste de ponta a ponta: cadastro em forma de banco entra, frase sai.
+    const entrada = entradaDoAcordo(CHEIO, PESSOAS)!;
+    const contexto = { acordo: camposDoAcordo(entrada), ...listasDoAcordo(entrada) };
+    const modelo = 'Os QUOTISTAS elegem o {{ acordo.representanteTratamento }} '
+      + '{{ acordo.representanteNome }} como representante dos QUOTISTAS. '
+      + '{{#acordo.arbitrosPelasPartes}}O número de árbitros será de 03 (três), sendo um '
+      + 'nomeado pelo reclamante, o outro pela parte reclamada e o terceiro eleito por '
+      + 'aqueles dois, na {{ acordo.camaraArbitral }}.{{/acordo.arbitrosPelasPartes}}';
+
+    const saida = renderConteudo(modelo, contexto);
+    expect(saida).toBe(
+      'Os QUOTISTAS elegem o Sr. LUIZ MARCELO como representante dos QUOTISTAS. '
+      + 'O número de árbitros será de 03 (três), sendo um nomeado pelo reclamante, o outro '
+      + 'pela parte reclamada e o terceiro eleito por aqueles dois, na Câmara de Comércio '
+      + 'Brasil Canadá.',
+    );
+    expect(saida, 'sobrou placeholder na saída').not.toContain('{{');
   });
 });
