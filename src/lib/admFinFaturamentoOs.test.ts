@@ -1,0 +1,223 @@
+import { describe, expect, it } from 'vitest';
+import {
+  cidadeUf,
+  enderecoDeCobranca,
+  filtrarLinhas,
+  montarLinhasFaturamentoOs,
+  ordenarPorEntrada,
+  situacaoLabel,
+  totaisFaturamento,
+  type LinhaFaturamentoOs,
+  type RawOsFaturamento,
+} from './admFinFaturamentoOs';
+
+const os = (o: Partial<RawOsFaturamento> & { id: string }): RawOsFaturamento => ({
+  numero_os: null,
+  id_cliente: 'cli-1',
+  contribuinte_id: null,
+  cluster_id: null,
+  situacao: 'em_andamento',
+  created_at: '2026-09-01T10:00:00Z',
+  valor_projeto: null,
+  numero_parcelas: null,
+  valor_entrada: null,
+  valor_reembolso_km: null,
+  valor_reembolso_refeicao: null,
+  ...o,
+});
+
+const CLIENTES = [{ id: 'cli-1', nome: '[TESTE] Aurora' }];
+const CONTRIBUINTES = [
+  {
+    id: 'con-1',
+    nome_razao_social: 'Aurora Agropecuária S.A.',
+    cpf_cnpj: '26.825.052/8395-06',
+    inscricao_estadual: null,
+    telefone: null,
+    cep: '78000-000',
+    logradouro: 'Rua de Teste',
+    complemento: null,
+    numero: null,
+    bairro: 'Centro',
+    municipio: 'BARRA DO BUGRES',
+    uf: 'MT',
+  },
+];
+const CLUSTERS = [{ id: 'clu-1', name: 'PSA Norte', nome_empresa: 'Ouro Verde Transportes Ltda' }];
+const CENTROS = [{ id: 'cc-1', codigo: 'CC-0006', nome: 'PSA CONSULTORIA EMPRESARIAL' }];
+
+const montar = (osRows: RawOsFaturamento[], extra: Partial<Parameters<typeof montarLinhasFaturamentoOs>[0]> = {}) =>
+  montarLinhasFaturamentoOs({
+    os: osRows,
+    clientes: CLIENTES,
+    contribuintes: CONTRIBUINTES,
+    clusters: CLUSTERS,
+    rateio: [],
+    centrosCusto: CENTROS,
+    ...extra,
+  });
+
+describe('montarLinhasFaturamentoOs', () => {
+  it('monta os quatro blocos da aba de Faturamento numa linha só', () => {
+    const [linha] = montar([
+      os({
+        id: 'os-1',
+        numero_os: '092/2026',
+        contribuinte_id: 'con-1',
+        cluster_id: 'clu-1',
+        valor_projeto: 12000,
+        valor_entrada: 2000,
+        numero_parcelas: 5,
+        valor_reembolso_km: 1.5,
+        valor_reembolso_refeicao: 40,
+      }),
+    ]);
+
+    expect(linha.cliente_nome).toBe('[TESTE] Aurora');
+    expect(linha.situacao_label).toBe('Em andamento');
+    expect(linha.contribuinte_nome).toBe('Aurora Agropecuária S.A.');
+    expect(linha.cpf_cnpj).toBe('26.825.052/8395-06');
+    expect(linha.endereco).toBe('Rua de Teste');
+    expect(linha.cidade_uf).toBe('BARRA DO BUGRES / MT');
+    // Derivado como na aba: (12000 - 2000) / 5.
+    expect(linha.valor_parcela).toBe(2000);
+    expect(linha.empresa_faturamento).toBe('Ouro Verde Transportes Ltda');
+  });
+
+  it('OS de cliente fora da lista sai — é o recorte de ambiente da tela', () => {
+    const linhas = montar([os({ id: 'os-1' }), os({ id: 'os-2', id_cliente: 'cli-de-outro-ambiente' })]);
+    expect(linhas.map((l) => l.os_id)).toEqual(['os-1']);
+  });
+
+  it('OS sem contribuinte e sem cluster continua na lista, com as células vazias', () => {
+    const [linha] = montar([os({ id: 'os-1' })]);
+    expect(linha.contribuinte_nome).toBeNull();
+    expect(linha.empresa_faturamento).toBeNull();
+    // Sem contribuinte não há sobre quem afirmar isenção.
+    expect(linha.inscricao_estadual).toBeNull();
+  });
+
+  it('inscrição estadual em branco vira "Isento" quando há contribuinte', () => {
+    const [linha] = montar([os({ id: 'os-1', contribuinte_id: 'con-1' })]);
+    expect(linha.inscricao_estadual).toBe('Isento');
+  });
+
+  it('sem parcelamento não inventa parcela', () => {
+    const [linha] = montar([os({ id: 'os-1', valor_projeto: 9000 })]);
+    expect(linha.numero_parcelas).toBeNull();
+    expect(linha.valor_parcela).toBeNull();
+  });
+
+  it('resolve o rateio pelo centro de custo, maior fatia primeiro', () => {
+    const [linha] = montar([os({ id: 'os-1' })], {
+      rateio: [
+        { id_ordem_servico: 'os-1', id_centro_custo: 'cc-fantasma', percentual_rateio: 30 },
+        { id_ordem_servico: 'os-1', id_centro_custo: 'cc-1', percentual_rateio: 70 },
+        { id_ordem_servico: 'os-outra', id_centro_custo: 'cc-1', percentual_rateio: 100 },
+      ],
+    });
+    expect(linha.rateio).toEqual([
+      { label: 'CC-0006 - PSA CONSULTORIA EMPRESARIAL', percentual: 70 },
+      // Centro de custo fora do catálogo cai no id em vez de sumir.
+      { label: 'cc-fantasma', percentual: 30 },
+    ]);
+  });
+});
+
+describe('ordenarPorEntrada', () => {
+  const linha = (l: Partial<LinhaFaturamentoOs> & { os_id: string }) =>
+    ({ numero_os: null, entrou_em: null, ...l }) as LinhaFaturamentoOs;
+
+  it('a mais recente no topo', () => {
+    const ordenada = ordenarPorEntrada([
+      linha({ os_id: 'antiga', entrou_em: '2026-01-05T09:00:00Z' }),
+      linha({ os_id: 'nova', entrou_em: '2026-09-14T09:00:00Z' }),
+      linha({ os_id: 'meio', entrou_em: '2026-05-02T09:00:00Z' }),
+    ]);
+    expect(ordenada.map((l) => l.os_id)).toEqual(['nova', 'meio', 'antiga']);
+  });
+
+  it('OS sem data de entrada vai para o fim, não para o topo', () => {
+    const ordenada = ordenarPorEntrada([
+      linha({ os_id: 'sem-data' }),
+      linha({ os_id: 'com-data', entrou_em: '2026-01-05T09:00:00Z' }),
+    ]);
+    expect(ordenada.map((l) => l.os_id)).toEqual(['com-data', 'sem-data']);
+  });
+
+  it('empate de timestamp (carga em lote) desempata pelo número da OS', () => {
+    const mesmoInstante = '2026-07-09T13:00:00Z';
+    const ordenada = ordenarPorEntrada([
+      linha({ os_id: 'a', numero_os: '009/2026', entrou_em: mesmoInstante }),
+      linha({ os_id: 'b', numero_os: '101/2026', entrou_em: mesmoInstante }),
+      linha({ os_id: 'c', numero_os: '020/2026', entrou_em: mesmoInstante }),
+    ]);
+    expect(ordenada.map((l) => l.numero_os)).toEqual(['101/2026', '020/2026', '009/2026']);
+  });
+
+  it('não altera o array recebido', () => {
+    const entrada = [
+      linha({ os_id: 'antiga', entrou_em: '2026-01-05T09:00:00Z' }),
+      linha({ os_id: 'nova', entrou_em: '2026-09-14T09:00:00Z' }),
+    ];
+    ordenarPorEntrada(entrada);
+    expect(entrada.map((l) => l.os_id)).toEqual(['antiga', 'nova']);
+  });
+});
+
+describe('filtrarLinhas', () => {
+  const linhas = montar([
+    os({ id: 'os-1', numero_os: '092/2026', contribuinte_id: 'con-1', cluster_id: 'clu-1' }),
+    os({ id: 'os-2', numero_os: 'OS-TESTE-B' }),
+  ]);
+
+  it('acha pelo número da OS, pelo cliente e pela empresa que fatura', () => {
+    expect(filtrarLinhas(linhas, '092').map((l) => l.os_id)).toEqual(['os-1']);
+    expect(filtrarLinhas(linhas, 'aurora')).toHaveLength(2);
+    expect(filtrarLinhas(linhas, 'ouro verde').map((l) => l.os_id)).toEqual(['os-1']);
+  });
+
+  it('acha pelo documento com ou sem pontuação', () => {
+    expect(filtrarLinhas(linhas, '26825052').map((l) => l.os_id)).toEqual(['os-1']);
+    expect(filtrarLinhas(linhas, '26.825.052').map((l) => l.os_id)).toEqual(['os-1']);
+  });
+
+  it('busca vazia devolve tudo', () => {
+    expect(filtrarLinhas(linhas, '   ')).toHaveLength(2);
+  });
+});
+
+describe('totaisFaturamento', () => {
+  it('soma as quatro colunas de dinheiro', () => {
+    const linhas = montar([
+      os({ id: 'os-1', valor_projeto: 1000, valor_entrada: 100, valor_reembolso_km: 2, valor_reembolso_refeicao: 30 }),
+      os({ id: 'os-2', valor_projeto: 500 }),
+    ]);
+    expect(totaisFaturamento(linhas)).toEqual({
+      valor_projeto: 1500,
+      valor_entrada: 100,
+      valor_reembolso_km: 2,
+      valor_reembolso_refeicao: 30,
+    });
+  });
+});
+
+describe('rótulos e endereço', () => {
+  it('situação fora da lista volta como veio', () => {
+    expect(situacaoLabel('concluido')).toBe('Concluído');
+    expect(situacaoLabel('situacao_nova_do_banco')).toBe('situacao_nova_do_banco');
+    expect(situacaoLabel(null)).toBe('—');
+  });
+
+  it('endereço junta o complemento; sem logradouro não há endereço', () => {
+    expect(enderecoDeCobranca({ logradouro: 'Rua A', complemento: 'sala 3' })).toBe('Rua A, sala 3');
+    expect(enderecoDeCobranca({ logradouro: 'Rua A', complemento: null })).toBe('Rua A');
+    expect(enderecoDeCobranca({ logradouro: null, complemento: 'sala 3' })).toBeNull();
+    expect(enderecoDeCobranca(undefined)).toBeNull();
+  });
+
+  it('cidade sem UF não vira "cidade / "', () => {
+    expect(cidadeUf({ municipio: 'Cuiabá', uf: null })).toBe('Cuiabá');
+    expect(cidadeUf({ municipio: null, uf: 'MT' })).toBeNull();
+  });
+});

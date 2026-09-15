@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronLeft, ChevronRight, Home, Menu, Users, Wallet } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Home, LayoutDashboard, Menu, Users, Wallet } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
@@ -30,8 +30,8 @@ import {
  *
  * A BARRA FALA DESTA ÁREA, e é por isso que ela existe em vez de reaproveitar a
  * do Tax ou da OSG. Barra que mostra o menu de outra área é pior do que barra
- * nenhuma: ela mente sobre onde a pessoa está. O menu de hoje tem duas entradas
- * porque a área tem duas telas; a de Faturamento entra quando a tela existir.
+ * nenhuma: ela mente sobre onde a pessoa está. O menu tem uma entrada por tela
+ * da área; a de Controle de Faturamento entra quando a tela existir.
  *
  * O TEMA NÃO É APLICADO AQUI. Quem o aplica é o `AreaThemeProvider`, a partir da
  * rota, acima dos gates de acesso (ver `src/lib/areaTheme.ts`). A Adm & Fin não
@@ -49,6 +49,7 @@ interface ItemDeMenu {
 
 const MENU: ItemDeMenu[] = [
   { id: 'inicio', label: 'Início', icon: Home, path: '/equipe/adm-fin', exato: true },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/equipe/adm-fin/dashboard' },
   { id: 'clientes', label: 'Clientes', icon: Users, path: '/equipe/adm-fin/clientes' },
 ];
 
