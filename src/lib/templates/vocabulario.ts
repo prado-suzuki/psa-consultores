@@ -1438,9 +1438,31 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
     tipo: 'acordoQuotistas',
     label: 'Acordo de Quotistas (parâmetros)',
     campos: [
-      // O capítulo "Do Acordo de Quotistas" tem duas redações, e é a existência
-      // do acordo que escolhe: sem ele "os sócios poderão firmar", com ele
-      // "os sócios firmaram em tal data". Está literal no modelo da casa.
+      /*
+       * `assinadoEm` NÃO É A LINHA DE ASSINATURA. São duas datas diferentes, e
+       * confundi-las escreve o documento errado.
+       *
+       * A LINHA que se preenche à mão na hora de assinar é `dataAssinatura`, em
+       * CAMPOS_MANUAIS, no fim deste arquivo: ela é do documento SENDO GERADO,
+       * não tem cadastro por trás, e vazia vira a lacuna assinalável em vez de
+       * resolver ''. É ela que o fecho do Acordo usa.
+       *
+       * `assinadoEm` é um FATO sobre um acordo que já existe, e quem o escreve é
+       * o CONTRATO SOCIAL, no meio de uma cláusula dele. Medido nos contratos do
+       * acervo, os três casos:
+       *
+       *   Perci, já assinado: "o acordo celebrado entre as partes, em 29 de
+       *   Janeiro de 2.021, e disponível na sede da sociedade"
+       *
+       *   Bela Vista, ainda não: "firmaram em __ de ____ de 2.025, acordo de
+       *   quotistas com vigência pelo período de 20 (vinte) anos"
+       *
+       *   Modelo: "firmaram em [dia] de [mês] de [ano], acordo de quotistas"
+       *
+       * Ou seja: o contrato social precisa saber a data do acordo do cliente
+       * para citá-la, e é isso que este campo guarda. Vazio, o capítulo sai na
+       * outra redação, com a lacuna ou com "os sócios poderão firmar".
+       */
       { id: 'assinadoEm', label: 'Data de assinatura do acordo', tipo: 'data' },
       dataExtensoCampo('assinadoEmExtenso', 'Data de assinatura (por extenso)', 'assinadoEm'),
       condicionalCampo('jaAssinado', 'Acordo já assinado? (condicional)', 'assinadoEm', (v) => !!v.assinadoEm),
