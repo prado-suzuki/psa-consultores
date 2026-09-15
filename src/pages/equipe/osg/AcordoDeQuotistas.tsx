@@ -135,24 +135,33 @@ const AcordoDeQuotistas = () => {
               consultor vai ao grupo que este cliente tem de diferente, como vai
               à cláusula pintada no documento que ele adapta.
             */}
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               {GRUPOS_DO_ACORDO.map((g) => {
                 const { preenchidos, total } = preenchidosNoGrupo(g, valores);
                 const completo = preenchidos === total && total > 0;
                 return (
                   <div
                     key={g.chave}
+                    /*
+                      O SPREAD VEM ANTES DO `className`, e a ordem não é gosto.
+                      `rowActivateProps` devolve `className: 'cursor-pointer'`, porque
+                      nasceu para `<TableRow>`, que não recebe classe de quem chama.
+                      Espalhado depois, ele substitui o `className` inteiro e o cartão
+                      perde moldura, fundo e espaçamento de uma vez, que foi o que
+                      aconteceu na primeira versão desta tela.
+                    */
+                    {...rowActivateProps(() => setGrupoAberto(g))}
                     className={cn(
                       // `bg-superficie-cartao` é a superfície do OBJETO cartão, tingida.
                       // A outra classe, a do cromo e do controle, difere em duas letras e
                       // significa o oposto; escrevê-la aqui deixaria a caixa branca sobre
                       // página branca. A catraca de `cartaoTingido.test.ts` guarda isso, e
                       // casa o texto do arquivo inteiro, comentário incluído.
-                      'cursor-pointer rounded-xl border bg-superficie-cartao p-4 shadow-sm shadow-osg-300/20',
-                      'transition-colors hover:border-osg-moss hover:bg-osg-50/40',
+                      'cursor-pointer rounded-xl border bg-superficie-cartao p-4',
+                      'shadow-sm shadow-osg-300/20 transition-colors',
+                      'hover:border-osg-moss hover:bg-osg-50/60 hover:shadow-md',
                       completo ? 'border-osg-200' : 'border-osg-300/70',
                     )}
-                    {...rowActivateProps(() => setGrupoAberto(g))}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-sm font-semibold">{g.titulo}</p>
