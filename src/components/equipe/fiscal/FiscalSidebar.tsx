@@ -119,13 +119,13 @@ const menuItems: MenuItem[] = [
       },
       {
         id: 'gerencial-chamados',
-        label: 'Gestão de Chamados',
+        label: 'Lista de Chamados',
         icon: MessageSquare,
         path: '/equipe/tax/gerencial/chamados'
       },
       {
         id: 'gerencial-chamados-dashboard',
-        label: 'Dashboard de Chamados',
+        label: 'Indicadores de Chamados',
         icon: LineChart,
         path: '/equipe/tax/gerencial/chamados/dashboard'
       },
