@@ -103,10 +103,18 @@ export function useAcordoDoCliente(clienteId?: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('acordo_quotistas')
-        .select(
-          '*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*),'
-          + ' acordo_signatario(*), acordo_sociedade_relacionada(*)',
-        )
+        /*
+         * UMA LINHA SÓ, e não duas concatenadas com `+`.
+         *
+         * O cliente do Supabase deduz o TIPO do retorno lendo o texto do select
+         * como literal. Quebrado em `'a' + 'b'`, o tipo vira `string` e a
+         * dedução desiste, devolvendo `{ error: true }`: as cinco filhas somem
+         * do tipo e o `data` deixa de ser objeto. Compilava assim mesmo porque o
+         * `tsc --noEmit` que eu rodava não checa nada neste projeto de
+         * referências; quem acusa é `npm run typecheck`.
+         */
+        // eslint-disable-next-line max-len
+        .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*), acordo_signatario(*), acordo_sociedade_relacionada(*)')
         .eq('cliente_id', clienteId as string)
         .eq('excluido', false)
         .order('versao', { ascending: false })

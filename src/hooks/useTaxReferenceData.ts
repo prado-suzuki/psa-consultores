@@ -48,7 +48,16 @@ export interface OrdemServico {
   id_servico: string | null;
   /** @deprecated Legado — usar produtos_contratados */
   id_produto_segmento: string | null;
-  excluido: boolean;
+  /*
+   * OPCIONAL, e não por comodidade.
+   *
+   * A OS chega por dois caminhos: a tabela, que traz a coluna, e o RPC
+   * `get_ordens_by_client_name`, que não a seleciona. Exigir o campo obrigava o
+   * RPC a mentir num `as`, e era o que acontecia: passava calado enquanto o
+   * `types.ts` estava atrasado, e o compilador só viu quando ele foi regerado em
+   * 15/09. Ninguém lê `excluido` a partir deste tipo.
+   */
+  excluido?: boolean;
   created_at: string;
   produtos_contratados?: Array<{ id: string; produto_segmento_id: string }>;
   [key: string]: unknown;
@@ -195,6 +204,7 @@ export function useClienteOrdens(clientId: string | null) {
         p_client_id: clientId,
       });
       if (error) throw error;
+      // O RPC não devolve `excluido`; ver o campo na interface acima.
       return (data || []) as OrdemServico[];
     },
     enabled: !!clientId,

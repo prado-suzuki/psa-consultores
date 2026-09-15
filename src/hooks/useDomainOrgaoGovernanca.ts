@@ -37,28 +37,20 @@ import {
 type OrgaoRow = Database['public']['Tables']['orgao_governanca']['Row'];
 
 /**
- * As seis colunas de parametrização, da migration `20260911201231`.
+ * O gênero apertado para 'M' | 'F', que é a única coisa que o `types.ts` não dá.
  *
- * DECLARADAS À MÃO porque o `types.ts` commitado na develop está atrasado em
- * relação às migrations dela e não as conhece. Regerar quebra código da Tax
- * (`useTaxReferenceData.ts`), que é fora deste escopo. Quando alguém reger,
- * este bloco some e `OrgaoGovernanca` volta a ser `OrgaoRow` puro.
+ * Aqui havia as SEIS colunas da migration `20260911201231` declaradas à mão,
+ * porque o `types.ts` da develop estava atrasado e não as conhecia. Ele foi
+ * regerado em 15/09 e agora conhece as seis, então as outras cinco saíram: tipo
+ * repetido à mão é tipo que diverge do banco sem ninguém perceber.
  *
- * `Partial` na junção de propósito: a leitura não pode assumir que vieram, e
- * órgão cadastrado antes de 11/09 tem tudo nulo.
+ * O gênero fica, com outro motivo. A coluna é `text`, e o gerador escreve
+ * `string | null`; quem garante os dois valores é o CHECK
+ * `orgao_governanca_genero_ck`, que o gerador não lê. Sem o aperto, `concordar`
+ * aceitaria qualquer string e a cláusula sairia "será compostO" por um dado que
+ * o banco jamais deixaria entrar.
  */
-export interface ParametrizacaoDoOrgao {
-  /** 'M' ou 'F', para a cláusula concordar. Nulo é "ninguém disse ainda". */
-  genero: 'M' | 'F' | null;
-  membros_minimo: number | null;
-  membros_maximo: number | null;
-  mandato_anos: number | null;
-  cargos_do_orgao: string[] | null;
-  /** Identidade do padrão da OSG, que sobrevive a um rename. Não se digita. */
-  padrao_chave: string | null;
-}
-
-export type OrgaoGovernanca = OrgaoRow & Partial<ParametrizacaoDoOrgao>;
+export type OrgaoGovernanca = Omit<OrgaoRow, 'genero'> & { genero: 'M' | 'F' | null };
 
 export interface OrgaoGovernancaInput {
   nome: string;
@@ -94,7 +86,8 @@ async function buscarPorCliente(clienteId: string): Promise<OrgaoGovernanca[]> {
     .order('nome');
 
   if (error) throw error;
-  return data ?? [];
+  // O CHECK do banco é quem prova que só há 'M', 'F' e nulo; ver o tipo acima.
+  return (data ?? []) as OrgaoGovernanca[];
 }
 
 export function useOrgaosGovernanca(clienteId?: string | null) {
