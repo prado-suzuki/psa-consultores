@@ -9,6 +9,15 @@ banco** — e dois desses quatro (faturar em mais de um CNPJ, e o faturamento me
 vencimento) são decisão de desenho, não implementação. **A reunião que ela ofereceu vale a
 pena**, e o que levar para ela está no fim.
 
+## Onde parei (15/09/2026, fim do dia)
+
+As sete perguntas foram enviadas para a Letícia. **A Patrícia retoma em 16/09/2026**, e o
+próximo passo depende do que ela responder: com as respostas, desenhar a `os_parcela` e a
+tabela de contribuintes da OS; sem elas, nada de migration.
+
+O protótipo já está pronto para ela olhar:
+`http://localhost:8080/docs/planos/prototipo-faturamento.html`.
+
 ## Estado: parado aqui, por decisão (15/09/2026)
 
 **Entregue na tela**, sem migration: serviço, produtos com horas, observação da OS, datas de
