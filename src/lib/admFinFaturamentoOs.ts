@@ -13,7 +13,7 @@
 // casamento OS × contribuinte × cluster × rateio, e casamento errado não aparece
 // na tela — aparece como nome de outro cliente na linha. É o que os testes ao
 // lado travam.
-import { SITUACAO_PROJETO_OPTIONS } from '@/components/equipe/client-form/constants';
+import { SITUACAO_PROJETO_OPTIONS, formatCep, formatCpfCnpj, formatPhone } from '@/components/equipe/client-form/constants';
 import { getEmpresaLabel } from '@/components/equipe/client-form/contratosLabels';
 import { calcularValorParcela } from '@/lib/osParcelamento';
 
@@ -45,6 +45,8 @@ export interface RawOsFaturamento {
 export interface RawContribuinteFaturamento {
   id: string;
   nome_razao_social: string;
+  /** 'PF' ou 'PJ'. Decide a máscara do documento, como no cadastro. */
+  tipo_pessoa: string | null;
   cpf_cnpj: string | null;
   inscricao_estadual: string | null;
   telefone: string | null;
@@ -141,6 +143,26 @@ export function enderecoDeCobranca(
   return contribuinte.complemento
     ? `${contribuinte.logradouro}, ${contribuinte.complemento}`
     : contribuinte.logradouro;
+}
+
+/**
+ * O documento com a máscara do cadastro, e não como está gravado.
+ *
+ * A coluna guarda os dois jeitos: há contribuinte com `26.825.052/8395-06` e
+ * contribuinte com `26825052839506`, porque a máscara é da tela e nem toda carga
+ * passou por ela. Sem isto, a mesma tela mostra os dois formatos e quem confere
+ * contra a nota acha que são documentos diferentes. `tipo_pessoa` decide a
+ * máscara; sem ele, quem decide é a contagem de dígitos.
+ */
+export function documentoFormatado(
+  cpfCnpj: string | null | undefined,
+  tipoPessoa: string | null | undefined,
+): string | null {
+  if (!cpfCnpj?.trim()) return null;
+  const digitos = cpfCnpj.replace(/\D/g, '');
+  if (digitos.length !== 11 && digitos.length !== 14) return cpfCnpj;
+  const tipo = tipoPessoa ?? (digitos.length === 11 ? 'PF' : 'PJ');
+  return formatCpfCnpj(digitos, tipo);
 }
 
 /** Cidade / UF, também como o bloco 02: sem UF, só a cidade. */
@@ -242,13 +264,13 @@ export function montarLinhasFaturamentoOs(input: {
       situacao: o.situacao,
       situacao_label: situacaoLabel(o.situacao),
       contribuinte_nome: contribuinte?.nome_razao_social ?? null,
-      cpf_cnpj: contribuinte?.cpf_cnpj ?? null,
+      cpf_cnpj: documentoFormatado(contribuinte?.cpf_cnpj, contribuinte?.tipo_pessoa),
       // "Isento" só quando HÁ contribuinte: sem ele a célula não tem sobre quem
       // afirmar isenção, e escrever "Isento" na linha vazia seria inventar
       // cadastro. É a mesma regra do bloco 01 da aba.
       inscricao_estadual: contribuinte ? contribuinte.inscricao_estadual || 'Isento' : null,
-      telefone: contribuinte?.telefone ?? null,
-      cep: contribuinte?.cep ?? null,
+      telefone: contribuinte?.telefone ? formatPhone(contribuinte.telefone) : null,
+      cep: contribuinte?.cep ? formatCep(contribuinte.cep) : null,
       endereco: enderecoDeCobranca(contribuinte),
       numero: contribuinte?.numero ?? null,
       bairro: contribuinte?.bairro ?? null,

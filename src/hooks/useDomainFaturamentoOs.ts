@@ -106,7 +106,7 @@ export function useDomainFaturamentoOs() {
         tabela('ordem_servico')
           .select('id, numero_os, id_cliente, contribuinte_id, cluster_id, situacao, created_at, valor_projeto, numero_parcelas, valor_entrada, valor_reembolso_km, valor_reembolso_refeicao'),
         tabela('contribuinte')
-          .select('id, nome_razao_social, cpf_cnpj, inscricao_estadual, telefone, cep, logradouro, complemento, numero, bairro, municipio, uf')
+          .select('id, nome_razao_social, tipo_pessoa, cpf_cnpj, inscricao_estadual, telefone, cep, logradouro, complemento, numero, bairro, municipio, uf')
           .eq('excluido', false)
           .eq('ambiente', currentAmbiente),
         tabela('estrutura_clusters').select('id, name, nome_empresa'),

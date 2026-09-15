@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   SEM_FILTRO,
   cidadeUf,
+  documentoFormatado,
   enderecoDeCobranca,
   filtrarLinhas,
   montarLinhasFaturamentoOs,
@@ -35,10 +36,13 @@ const CONTRIBUINTES = [
   {
     id: 'con-1',
     nome_razao_social: 'Aurora Agropecuária S.A.',
-    cpf_cnpj: '26.825.052/8395-06',
+    tipo_pessoa: 'PJ',
+    // Gravado SEM máscara de propósito: é assim que parte da base está, e a tela
+    // tem de mostrar os dois jeitos iguais.
+    cpf_cnpj: '26825052839506',
     inscricao_estadual: null,
-    telefone: null,
-    cep: '78000-000',
+    telefone: '65999998888',
+    cep: '78000000',
     logradouro: 'Rua de Teste',
     complemento: null,
     numero: null,
@@ -81,6 +85,8 @@ describe('montarLinhasFaturamentoOs', () => {
     expect(linha.situacao_label).toBe('Em andamento');
     expect(linha.contribuinte_nome).toBe('Aurora Agropecuária S.A.');
     expect(linha.cpf_cnpj).toBe('26.825.052/8395-06');
+    expect(linha.telefone).toBe('(65) 99999-8888');
+    expect(linha.cep).toBe('78000-000');
     expect(linha.endereco).toBe('Rua de Teste');
     expect(linha.cidade_uf).toBe('BARRA DO BUGRES / MT');
     // Derivado como na aba: (12000 - 2000) / 5.
@@ -244,6 +250,24 @@ describe('opções dos filtros', () => {
   it('OS sem número não vira opção em branco', () => {
     const [semNumero] = opcoesDeOs(montar([os({ id: 'os-x' })]));
     expect(semNumero.numero).toBe('sem número');
+  });
+});
+
+describe('documentoFormatado', () => {
+  it('mascara o que está gravado cru, dos dois tipos', () => {
+    expect(documentoFormatado('26825052839506', 'PJ')).toBe('26.825.052/8395-06');
+    expect(documentoFormatado('12345678909', 'PF')).toBe('123.456.789-09');
+  });
+
+  it('sem tipo de pessoa, decide pela contagem de dígitos', () => {
+    expect(documentoFormatado('12345678909', null)).toBe('123.456.789-09');
+    expect(documentoFormatado('26825052839506', null)).toBe('26.825.052/8395-06');
+  });
+
+  it('documento de tamanho estranho volta como está, sem inventar máscara', () => {
+    expect(documentoFormatado('123', 'PF')).toBe('123');
+    expect(documentoFormatado('', 'PJ')).toBeNull();
+    expect(documentoFormatado(null, null)).toBeNull();
   });
 });
 
