@@ -9,6 +9,21 @@ banco** — e dois desses quatro (faturar em mais de um CNPJ, e o faturamento me
 vencimento) são decisão de desenho, não implementação. **A reunião que ela ofereceu vale a
 pena**, e o que levar para ela está no fim.
 
+## Estado: parado aqui, por decisão (15/09/2026)
+
+**Entregue na tela**, sem migration: serviço, produtos com horas, observação da OS, datas de
+emissão/início/fim e contato do cliente (representantes com e-mail ou telefone).
+
+**Parado, e é o que precisa de migration:**
+
+1. parcela com vencimento e competência (os dois tipos de faturamento);
+2. N contribuintes por OS, com regra de divisão da nota;
+3. texto do serviço que vai na NF, se for por nota e não por OS;
+4. reembolso por tipo (água, pedágio e o que mais vier), em tabela.
+
+Nada disso começa antes das respostas da Letícia (as sete perguntas no fim) e da decisão
+sobre a `os_parcela`, que é a mesma tabela da tarefa do ERP.
+
 ## O tamanho de cada ponto
 
 | O que ela pediu | O que existe hoje | O que falta |
