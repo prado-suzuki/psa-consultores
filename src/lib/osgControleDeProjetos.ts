@@ -19,7 +19,7 @@
 // No grão do produto, cada linha carrega a própria área e o próprio executor:
 // 169 linhas para as 84 OS, contra 84 linhas que escondiam 12 produtos.
 
-import { SITUACAO_PROJETO_OPTIONS } from '@/components/equipe/client-form/constants';
+import { OS_SITUACAO_TO_PROJECT_STATUS, STATUS_LABELS } from '@/lib/projetosCadastro';
 import { REGIAO_OPTIONS } from '@/lib/regioes';
 
 /** OS crua, como as colunas de `ordem_servico` a devolvem. */
@@ -98,7 +98,20 @@ export interface LinhaDoControle {
   /** Quantos projetos existem para este par OS/produto. Zero = ninguém criou. */
   projetos: number;
   regiao: string | null;
-  situacao: string | null;
+  /**
+   * O status DO PRODUTO, na chave de `org_projects.status`.
+   *
+   * Vem do projeto quando ele existe. Quando não existe, é herdado da situação
+   * da OS pelo `OS_SITUACAO_TO_PROJECT_STATUS`, que é o mesmo de-para que o
+   * sistema já usa ao criar projeto a partir de uma OS. Produto sem projeto numa
+   * OS em andamento está em andamento; dizer "sem status" seria menos verdade
+   * que herdar.
+   */
+  status: string;
+  /** `false` quando o status foi herdado da OS por falta de projeto. */
+  statusDoProjeto: boolean;
+  /** A situação crua da OS, que o filtro ainda usa. */
+  situacaoDaOs: string | null;
   dataInicio: string | null;
   dataFim: string | null;
   observacoes: string | null;
@@ -106,20 +119,20 @@ export interface LinhaDoControle {
   prazoVencido: boolean;
 }
 
-/** Situações que contam como trabalho em aberto, para efeito de prazo vencido. */
-export const SITUACOES_EM_ABERTO = ['em_andamento', 'suspenso'];
+/** Status de projeto que contam como trabalho em aberto, para efeito de prazo. */
+export const STATUS_EM_ABERTO = ['planned', 'active', 'on_hold'];
 
 /**
- * O rótulo de uma `ordem_servico.situacao`, na palavra do CADASTRO.
+ * O rótulo de um `org_projects.status`, na palavra do CADASTRO.
  *
- * A fonte é `SITUACAO_PROJETO_OPTIONS`, a mesma lista que o cadastro de OS usa
- * no seletor. A planilha chama de "Hibernando" o que o sistema grava como
- * `suspenso`, e a tela segue o sistema: rótulo que só esta página usa faria duas
- * telas darem nomes diferentes ao mesmo valor do banco.
+ * A fonte é `STATUS_LABELS`, a mesma que a tabela e o modal de projeto já usam.
+ * A planilha chama de "Hibernando" o que o sistema chama de "Pausado", e a tela
+ * segue o sistema: rótulo que só esta página usa faria duas telas darem nomes
+ * diferentes ao mesmo valor do banco.
  */
-export function situacaoLabel(situacao: string | null | undefined): string {
-  if (!situacao) return 'Sem situação';
-  return SITUACAO_PROJETO_OPTIONS.find((opcao) => opcao.value === situacao)?.label ?? situacao;
+export function statusLabel(status: string | null | undefined): string {
+  if (!status) return 'Sem status';
+  return STATUS_LABELS[status] ?? status;
 }
 
 function nomeDaPessoa(pessoa: PessoaCrua | undefined): string | null {
@@ -129,19 +142,19 @@ function nomeDaPessoa(pessoa: PessoaCrua | undefined): string | null {
 }
 
 /**
- * OS vencida: prazo no passado e trabalho ainda aberto.
+ * Prazo vencido: a data da OS ficou para trás e o produto ainda não fechou.
+ *
+ * O prazo é da OS (o produto não tem data própria) e o estado é do produto, que
+ * é o que torna a conta útil no grão novo: numa OS vencida, o produto já
+ * concluído não pisca e o que continua aberto pisca.
  *
  * `hoje` entra por parâmetro para o teste não depender do relógio. A comparação
  * é entre strings ISO de propósito, porque `data_fim` é `date` e virar `Date`
  * aqui traria fuso para uma conta que não tem hora.
  */
-export function prazoVencido(
-  dataFim: string | null,
-  situacao: string | null,
-  hoje: string,
-): boolean {
+export function prazoVencido(dataFim: string | null, status: string, hoje: string): boolean {
   if (!dataFim) return false;
-  if (!situacao || !SITUACOES_EM_ABERTO.includes(situacao)) return false;
+  if (!STATUS_EM_ABERTO.includes(status)) return false;
   return dataFim < hoje;
 }
 
@@ -205,7 +218,8 @@ export function montarControleDeProjetos(
     if (!osQualifica.has(ordem.id)) continue;
 
     const cliente = clientePorId.get(ordem.id_cliente);
-    const vencido = prazoVencido(ordem.data_fim ?? null, ordem.situacao ?? null, hoje);
+    // O status que a OS empresta ao produto que ainda não tem projeto.
+    const statusDaOs = OS_SITUACAO_TO_PROJECT_STATUS[ordem.situacao ?? ''] ?? 'active';
 
     for (const contratado of contratadosDaOs.get(ordem.id) ?? []) {
       const produto = produtoPorId.get(contratado.produto_segmento_id);
@@ -219,6 +233,16 @@ export function montarControleDeProjetos(
         if (lider) lideres.add(lider);
         if (executor) executores.add(executor);
       }
+
+      // Dois projetos no mesmo par com status diferente: vale o mais aberto, que
+      // é o primeiro da ordem do ciclo de vida. Fechar a linha porque um dos
+      // dois fechou esconderia trabalho que continua correndo.
+      const statusDoProjeto = doPar.length > 0;
+      const status = statusDoProjeto
+        ? ([...STATUS_EM_ABERTO, 'completed', 'cancelled'].find((chave) =>
+            doPar.some((projeto) => projeto.status === chave),
+          ) ?? doPar[0].status ?? statusDaOs)
+        : statusDaOs;
 
       linhas.push({
         chave: `${ordem.id}::${contratado.produto_segmento_id}`,
@@ -237,11 +261,13 @@ export function montarControleDeProjetos(
         lideres: [...lideres].sort((a, b) => a.localeCompare(b, 'pt-BR')),
         projetos: doPar.length,
         regiao: ordem.regiao ?? null,
-        situacao: ordem.situacao ?? null,
+        status,
+        statusDoProjeto,
+        situacaoDaOs: ordem.situacao ?? null,
         dataInicio: ordem.data_inicio ?? null,
         dataFim: ordem.data_fim ?? null,
         observacoes: ordem.observacoes?.trim() || null,
-        prazoVencido: vencido,
+        prazoVencido: prazoVencido(ordem.data_fim ?? null, status, hoje),
       });
     }
   }
@@ -266,7 +292,7 @@ function comparaPadrao(a: LinhaDoControle, b: LinhaDoControle): number {
 
 export interface FiltrosDoControle {
   busca: string;
-  situacao: string;
+  status: string;
   regiao: string;
   /** `''` = todas; senão o nome do cluster. */
   area: string;
@@ -274,7 +300,7 @@ export interface FiltrosDoControle {
 
 export const FILTROS_VAZIOS: FiltrosDoControle = {
   busca: '',
-  situacao: '',
+  status: '',
   regiao: '',
   area: '',
 };
@@ -291,7 +317,7 @@ export function filtrarControle(
 ): LinhaDoControle[] {
   const busca = filtros.busca.trim().toLowerCase();
   return linhas.filter((linha) => {
-    if (filtros.situacao && linha.situacao !== filtros.situacao) return false;
+    if (filtros.status && linha.status !== filtros.status) return false;
     if (filtros.regiao && linha.regiao !== filtros.regiao) return false;
     if (filtros.area && linha.area !== filtros.area) return false;
     if (!busca) return true;
@@ -314,7 +340,7 @@ export function filtrarControle(
  * ordem de `REGIAO_OPTIONS`, que é a ordem que o cadastro de OS já usa.
  */
 export function opcoesDoControle(linhas: LinhaDoControle[]) {
-  const situacoes = [...new Set(linhas.map((linha) => linha.situacao).filter(Boolean))] as string[];
+  const statuses = [...new Set(linhas.map((linha) => linha.status).filter(Boolean))];
   const areas = [...new Set(linhas.map((linha) => linha.area))];
   const regioesPresentes = new Set(linhas.map((linha) => linha.regiao).filter(Boolean));
   const regioes = REGIAO_OPTIONS.map((opcao) => opcao.value).filter((valor) =>
@@ -326,7 +352,7 @@ export function opcoesDoControle(linhas: LinhaDoControle[]) {
     if (regiao && !regioes.includes(regiao)) regioes.push(regiao);
   }
   return {
-    situacoes: situacoes.sort((a, b) => situacaoLabel(a).localeCompare(situacaoLabel(b), 'pt-BR')),
+    statuses: statuses.sort((a, b) => statusLabel(a).localeCompare(statusLabel(b), 'pt-BR')),
     regioes,
     areas: areas.sort((a, b) => a.localeCompare(b, 'pt-BR')),
   };
@@ -358,7 +384,7 @@ export type ColunaDoControle =
   | 'area'
   | 'produto'
   | 'regiao'
-  | 'situacao'
+  | 'status'
   | 'inicio'
   | 'prazo'
   | 'executor'
@@ -416,8 +442,8 @@ function valorDaColuna(linha: LinhaDoControle, campo: ColunaDoControle): string 
       return linha.produtoNome.toLocaleLowerCase('pt-BR');
     case 'regiao':
       return linha.regiao ?? '';
-    case 'situacao':
-      return situacaoLabel(linha.situacao).toLocaleLowerCase('pt-BR');
+    case 'status':
+      return statusLabel(linha.status).toLocaleLowerCase('pt-BR');
     case 'inicio':
       return linha.dataInicio ?? '';
     case 'prazo':
@@ -441,8 +467,8 @@ function estaVazio(linha: LinhaDoControle, campo: ColunaDoControle): boolean {
       return !linha.numeroOs;
     case 'regiao':
       return !linha.regiao;
-    case 'situacao':
-      return !linha.situacao;
+    case 'status':
+      return !linha.status;
     case 'inicio':
       return !linha.dataInicio;
     case 'prazo':

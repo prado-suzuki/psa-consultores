@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select';
 import {
   FILTROS_VAZIOS,
-  situacaoLabel,
+  statusLabel,
   type FiltrosDoControle,
   type LinhaDoControle,
 } from '@/lib/osgControleDeProjetos';
@@ -20,7 +20,7 @@ import { getRegiaoLabel } from '@/lib/regioes';
 interface Props {
   filtros: FiltrosDoControle;
   setFiltros: (filtros: FiltrosDoControle) => void;
-  opcoes: { situacoes: string[]; regioes: string[]; areas: string[] };
+  opcoes: { statuses: string[]; regioes: string[]; areas: string[] };
   total: number;
   visiveis: number;
   vencidas: number;
@@ -42,7 +42,7 @@ export function ControleDeProjetosToolbar({
   visiveis,
   vencidas,
 }: Props) {
-  const temFiltro = Boolean(filtros.busca || filtros.situacao || filtros.regiao || filtros.area);
+  const temFiltro = Boolean(filtros.busca || filtros.status || filtros.regiao || filtros.area);
 
   return (
     <div className="space-y-3">
@@ -92,19 +92,17 @@ export function ControleDeProjetosToolbar({
         </Select>
 
         <Select
-          value={filtros.situacao || 'all'}
-          onValueChange={(valor) =>
-            setFiltros({ ...filtros, situacao: valor === 'all' ? '' : valor })
-          }
+          value={filtros.status || 'all'}
+          onValueChange={(valor) => setFiltros({ ...filtros, status: valor === 'all' ? '' : valor })}
         >
-          <SelectTrigger className="w-44" aria-label="Filtrar por situação">
-            <SelectValue placeholder="Situação" />
+          <SelectTrigger className="w-44" aria-label="Filtrar por status">
+            <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas as situações</SelectItem>
-            {opcoes.situacoes.map((situacao) => (
-              <SelectItem key={situacao} value={situacao}>
-                {situacaoLabel(situacao)}
+            <SelectItem value="all">Todos os status</SelectItem>
+            {opcoes.statuses.map((status) => (
+              <SelectItem key={status} value={status}>
+                {statusLabel(status)}
               </SelectItem>
             ))}
           </SelectContent>

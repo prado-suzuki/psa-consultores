@@ -15,42 +15,49 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { parseDate } from '@/lib/dateUtils';
 import {
-  situacaoLabel,
+  statusLabel,
   type ColunaDoControle,
   type GrupoDoControle,
   type LinhaDoControle,
   type OrdemDoControle,
 } from '@/lib/osgControleDeProjetos';
 import { getRegiaoLabel } from '@/lib/regioes';
+import { projectStatusConfig } from '@/lib/projetoStatusColors';
 import { cn } from '@/lib/utils';
 
-/**
- * Cor da situação da OS, pelo PAPEL e não pelo tom: quem resolve o matiz é o
- * tema da área, no `<html>`. Os papéis são os mesmos que o projeto já usa em
- * `projetoStatusColors.ts`, porque na mesma tela a mesma ideia não pode ter
- * duas cores.
- */
 /** Quantas colunas a tabela tem, para o `colSpan` da cabeça de grupo. */
 const COLUNAS = 10;
-
-const SITUACAO_BADGE: Record<string, string> = {
-  em_andamento: 'bg-status-andamento-soft text-status-andamento border-status-andamento/15',
-  suspenso: 'bg-status-espera-soft text-status-espera border-status-espera/15',
-  concluido: 'bg-status-feito-soft text-status-feito border-status-feito/15',
-  cancelado: 'bg-status-ajuste-soft text-status-ajuste border-status-ajuste/15',
-};
 
 function data(valor: string | null): string {
   if (!valor) return '—';
   return format(parseDate(valor), 'dd/MM/yyyy');
 }
 
-function Situacao({ situacao }: { situacao: string | null }) {
-  const classe = situacao ? SITUACAO_BADGE[situacao] : undefined;
-  return (
-    <Badge variant="outline" className={cn('whitespace-nowrap font-normal', classe)}>
-      {situacaoLabel(situacao)}
+/**
+ * O status do produto.
+ *
+ * A cor vem de `projectStatusColors.ts`, a mesma pílula que o modal de projeto
+ * e a tabela de Projetos usam: na mesma ideia, duas telas não podem ter duas
+ * cores. O asterisco marca o status HERDADO da OS, quando o produto ainda não
+ * tem projeto — sem ele a tela afirmaria um estado que ninguém declarou.
+ */
+function Status({ linha }: { linha: LinhaDoControle }) {
+  const config = projectStatusConfig(linha.status);
+  const pilula = (
+    <Badge variant="outline" className={cn('whitespace-nowrap font-normal', config.badge)}>
+      <span className={cn('mr-1.5 h-2 w-2 shrink-0 rounded-full', config.dot)} />
+      {statusLabel(linha.status)}
+      {!linha.statusDoProjeto && <span className="ml-0.5">*</span>}
     </Badge>
+  );
+  if (linha.statusDoProjeto) return pilula;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="cursor-default">{pilula}</span>
+      </TooltipTrigger>
+      <TooltipContent>Herdado da situação da OS: o produto ainda não tem projeto</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -195,10 +202,24 @@ function CabecaDoGrupo({
   );
 }
 
-/** Uma linha: um produto contratado. */
-function LinhaDaTabela({ linha }: { linha: LinhaDoControle }) {
+/**
+ * Uma linha: um produto contratado.
+ *
+ * O clique abre o modal de projeto — o MESMO `ProjetoDialog` da tela de
+ * Projetos, montado pela página sobre o `ProjetosCadastroContext`. Não é uma
+ * cópia: a edição grava pelas mutations de lá e aparece nas duas telas, que é o
+ * motivo de a tela não ter formulário próprio.
+ */
+function LinhaDaTabela({ linha, onAbrir }: { linha: LinhaDoControle; onAbrir: () => void }) {
   return (
-    <TableRow key={linha.chave} className={cn(!linha.daArea && 'text-muted-foreground')}>
+    <TableRow
+      key={linha.chave}
+      onClick={onAbrir}
+      className={cn(
+        'cursor-pointer hover:bg-superficie-realce',
+        !linha.daArea && 'text-muted-foreground',
+      )}
+    >
       <TableCell className="whitespace-normal break-words font-medium">
         {linha.clienteNome}
         {!linha.clienteAtivo && (
@@ -223,7 +244,7 @@ function LinhaDaTabela({ linha }: { linha: LinhaDoControle }) {
         {linha.produtoNome}
       </TableCell>
       <TableCell>
-        <Situacao situacao={linha.situacao} />
+        <Status linha={linha} />
       </TableCell>
       <TableCell className="whitespace-normal break-words text-sm">
         {linha.lideres.length > 0 ? (
@@ -261,6 +282,7 @@ export function ControleDeProjetosTabela({
   onOrdenar,
   abertos,
   onAlternar,
+  onAbrirLinha,
 }: {
   grupos: GrupoDoControle[];
   ordem: OrdemDoControle;
@@ -268,6 +290,8 @@ export function ControleDeProjetosTabela({
   /** Chaves de grupo abertas. O executor `''` é o grupo sem responsável. */
   abertos: Set<string>;
   onAlternar: (executor: string) => void;
+  /** Clique numa linha: abre o modal de projeto (edição, ou criação se não houver). */
+  onAbrirLinha: (linha: LinhaDoControle) => void;
 }) {
   if (grupos.length === 0) {
     return (
@@ -299,7 +323,7 @@ export function ControleDeProjetosTabela({
             {coluna('os', 'OS', '7%', 'whitespace-nowrap')}
             {coluna('area', 'Área', '6%')}
             {coluna('produto', 'Produto', '14%')}
-            {coluna('situacao', 'Situação', '9%')}
+            {coluna('status', 'Status', '9%')}
             {coluna('gestor', 'Gestor', '12%')}
             {coluna('regiao', 'Região', '6%')}
             {coluna('inicio', 'Início', '8%', 'whitespace-nowrap')}
@@ -319,7 +343,13 @@ export function ControleDeProjetosTabela({
                   colunas={COLUNAS}
                 />
                 {aberto &&
-                  grupo.linhas.map((linha) => <LinhaDaTabela key={linha.chave} linha={linha} />)}
+                  grupo.linhas.map((linha) => (
+                    <LinhaDaTabela
+                      key={linha.chave}
+                      linha={linha}
+                      onAbrir={() => onAbrirLinha(linha)}
+                    />
+                  ))}
               </Fragment>
             );
           })}

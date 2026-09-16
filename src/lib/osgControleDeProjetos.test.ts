@@ -10,7 +10,7 @@ import {
   ordenarControle,
   prazoVencido,
   proximaOrdemDoControle,
-  situacaoLabel,
+  statusLabel,
   type ClienteCru,
   type OrdemCrua,
   type PessoaCrua,
@@ -239,45 +239,97 @@ describe('montarControleDeProjetos', () => {
 });
 
 describe('prazoVencido', () => {
-  it('acusa prazo passado em OS em andamento', () => {
-    expect(prazoVencido('2026-06-30', 'em_andamento', HOJE)).toBe(true);
+  it('acusa prazo passado em produto ativo', () => {
+    expect(prazoVencido('2026-06-30', 'active', HOJE)).toBe(true);
   });
 
-  it('acusa prazo passado em OS suspensa', () => {
-    expect(prazoVencido('2026-06-30', 'suspenso', HOJE)).toBe(true);
+  it('acusa prazo passado em produto pausado', () => {
+    expect(prazoVencido('2026-06-30', 'on_hold', HOJE)).toBe(true);
   });
 
-  it('não acusa OS concluída', () => {
-    expect(prazoVencido('2026-06-30', 'concluido', HOJE)).toBe(false);
+  it('NÃO acusa o produto já concluído numa OS vencida', () => {
+    // É o ganho do grão novo: a OS vencia inteira, agora só pisca o que
+    // continua aberto dentro dela.
+    expect(prazoVencido('2026-06-30', 'completed', HOJE)).toBe(false);
+    expect(prazoVencido('2026-06-30', 'cancelled', HOJE)).toBe(false);
   });
 
   it('não acusa prazo no futuro', () => {
-    expect(prazoVencido('2026-12-30', 'em_andamento', HOJE)).toBe(false);
+    expect(prazoVencido('2026-12-30', 'active', HOJE)).toBe(false);
   });
 
-  it('não acusa OS sem prazo', () => {
-    expect(prazoVencido(null, 'em_andamento', HOJE)).toBe(false);
+  it('não acusa produto sem prazo', () => {
+    expect(prazoVencido(null, 'active', HOJE)).toBe(false);
   });
 
   it('não acusa no próprio dia do prazo', () => {
-    expect(prazoVencido(HOJE, 'em_andamento', HOJE)).toBe(false);
+    expect(prazoVencido(HOJE, 'active', HOJE)).toBe(false);
   });
 });
 
-describe('situacaoLabel', () => {
+describe('statusLabel', () => {
   it('usa a palavra do cadastro, e não a da planilha', () => {
-    // A planilha diz "Hibernando"; o banco grava `suspenso` e o seletor de OS
-    // já chama isso de "Suspenso".
-    expect(situacaoLabel('suspenso')).toBe('Suspenso');
-    expect(situacaoLabel('em_andamento')).toBe('Em andamento');
+    // A planilha diz "Hibernando"; o sistema chama de "Pausado" na tabela de
+    // projetos e no modal.
+    expect(statusLabel('on_hold')).toBe('Pausado');
+    expect(statusLabel('active')).toBe('Ativo');
   });
 
   it('devolve o valor cru quando não há rótulo', () => {
-    expect(situacaoLabel('valor_novo')).toBe('valor_novo');
+    expect(statusLabel('valor_novo')).toBe('valor_novo');
   });
 
   it('nomeia a ausência', () => {
-    expect(situacaoLabel(null)).toBe('Sem situação');
+    expect(statusLabel(null)).toBe('Sem status');
+  });
+});
+
+describe('status do produto', () => {
+  it('herda o status da OS quando o produto não tem projeto', () => {
+    // Produto sem projeto numa OS suspensa está pausado; dizer "sem status"
+    // seria menos verdade que herdar.
+    const linhas = montar(
+      [ordem({ situacao: 'suspenso' })],
+      [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
+    );
+    expect(linhas[0].status).toBe('on_hold');
+    expect(linhas[0].statusDoProjeto).toBe(false);
+  });
+
+  it('usa o status do projeto quando ele existe', () => {
+    const linhas = montar(
+      [ordem({ situacao: 'em_andamento' })],
+      [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
+      [projeto({ status: 'completed' })],
+    );
+    expect(linhas[0].status).toBe('completed');
+    expect(linhas[0].statusDoProjeto).toBe(true);
+  });
+
+  it('não marca vencido o produto concluído dentro de uma OS vencida', () => {
+    // A linha passa pelo `montar`, e não pelo `prazoVencido` direto: o primeiro
+    // teste de vencido cobria só a função, e trocar a chamada dentro do
+    // montador por uma comparação de data crua não derrubava nada.
+    const linhas = montar(
+      [ordem({ data_fim: '2026-06-30' })],
+      [
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-suc' },
+      ],
+      [projeto({ produto_segmento_id: 'p-gov', status: 'completed' })],
+    );
+    expect(linhas.find((l) => l.produtoId === 'p-gov')?.prazoVencido).toBe(false);
+    expect(linhas.find((l) => l.produtoId === 'p-suc')?.prazoVencido).toBe(true);
+  });
+
+  it('com dois projetos no mesmo par, vale o mais aberto', () => {
+    // Fechar a linha porque um dos dois fechou esconderia trabalho correndo.
+    const linhas = montar(
+      [ordem()],
+      [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
+      [projeto({ id: 'p1', status: 'completed' }), projeto({ id: 'p2', status: 'active' })],
+    );
+    expect(linhas[0].status).toBe('active');
   });
 });
 
@@ -309,8 +361,8 @@ describe('filtrarControle', () => {
     expect(achadas.map((l) => l.produtoNome)).toEqual(['Planejamento Tributário']);
   });
 
-  it('filtra por situação', () => {
-    const achadas = filtrarControle(linhas, { ...FILTROS_VAZIOS, situacao: 'suspenso' });
+  it('filtra por status', () => {
+    const achadas = filtrarControle(linhas, { ...FILTROS_VAZIOS, status: 'on_hold' });
     expect(achadas.map((l) => l.clienteNome)).toEqual(['Anversa']);
   });
 
@@ -348,7 +400,7 @@ describe('opcoesDoControle', () => {
     const opcoes = opcoesDoControle(linhas);
     // BRA antes de MPT porque é assim em REGIAO_OPTIONS, não por ordem alfabética.
     expect(opcoes.regioes).toEqual(['BRA', 'MPT']);
-    expect(opcoes.situacoes).toEqual(['em_andamento', 'suspenso']);
+    expect(opcoes.statuses).toEqual(['Ativo', 'Pausado'].map((r) => (r === 'Ativo' ? 'active' : 'on_hold')));
     expect(opcoes.areas).toEqual(['OSG', 'TAX']);
   });
 
@@ -421,7 +473,7 @@ describe('ordenarControle', () => {
   });
 
   it('desempata pela ordem padrão quando a coluna empata', () => {
-    const ordenadas = ordenarControle(tres, { campo: 'situacao', ascendente: true });
+    const ordenadas = ordenarControle(tres, { campo: 'status', ascendente: true });
     expect(ordenadas.map((l) => l.clienteNome)).toEqual([
       'Anversa',
       'Cliente não identificado',
