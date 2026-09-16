@@ -318,11 +318,24 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
   const semVinculoNenhum = produtoSelecionado && vinculosDoProduto.length === 0;
 
   return (
-    // Altura DEFINIDA, não mínima: é ela que a casca reparte entre a lista de
-    // produtos, os serviços e o painel. Com `min-h` a casca crescia até a altura
-    // dos 19 produtos e as duas colunas da direita ficavam centradas ~800px
-    // abaixo, fora da tela — a bancada parecia vazia à direita.
-    <div className="flex h-[72vh] min-h-[480px] flex-col gap-2">
+    /*
+      Altura DEFINIDA, não mínima: é ela que a casca reparte entre a lista de
+      produtos, os serviços e o painel. Com `min-h` a casca crescia até a altura
+      dos 19 produtos e as duas colunas da direita ficavam centradas ~800px
+      abaixo, fora da tela — a bancada parecia vazia à direita.
+
+      LARGURA COM TETO, e o número sai do dado, não do gosto: o maior nome de
+      serviço do catálogo tem 77 caracteres e a média 36 (produção, 16/09/2026),
+      ou seja ~490px no pior caso a 13px. Numa janela de 1900px a coluna do meio
+      chegava a ~1300px — o dobro do que qualquer nome pede, e nenhum deles
+      truncava nem perto disso. Com 1100 no teto ela fica em ~800px, que ainda
+      segura o pior caso com folga, e o que sobra vira margem em vez de linha
+      esticada. Abaixo de 1100 nada muda: aqui é teto, não largura.
+
+      Não centralizada de propósito: o título da página é alinhado à esquerda, e
+      um cartão centrado embaixo dele ficaria fora de prumo com a própria página.
+    */
+    <div className="flex h-[72vh] min-h-[480px] max-w-[1100px] flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         {/*
           O texto anterior — "define quais serviços aparecem ao cadastrar
