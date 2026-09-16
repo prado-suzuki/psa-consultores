@@ -9736,6 +9736,8 @@ export type Database = {
           titular_pessoa_id: string
           updated_at: string
           updated_by: string | null
+          vlr_contabil: number | null
+          vlr_integralizar: number | null
         }
         Insert: {
           bem_id?: string | null
@@ -9749,6 +9751,8 @@ export type Database = {
           titular_pessoa_id: string
           updated_at?: string
           updated_by?: string | null
+          vlr_contabil?: number | null
+          vlr_integralizar?: number | null
         }
         Update: {
           bem_id?: string | null
@@ -9762,6 +9766,8 @@ export type Database = {
           titular_pessoa_id?: string
           updated_at?: string
           updated_by?: string | null
+          vlr_contabil?: number | null
+          vlr_integralizar?: number | null
         }
         Relationships: [
           {
