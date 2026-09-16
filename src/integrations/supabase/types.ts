@@ -11373,6 +11373,7 @@ export type Database = {
         Returns: {
           area_nome: string
           chave: string
+          cliente_nome: string
           dono_nome: string
           due_date: string
           entidade_id: string
