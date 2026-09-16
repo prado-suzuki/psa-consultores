@@ -157,15 +157,16 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         campo: 'ramos',
         rotulo: 'Ramos familiares',
         tipo: 'especial',
+        /*
+         * A ajuda tinha nove linhas e contava a história toda: a herança, o voto
+         * em bloco, a proibição de "núcleo familiar". Tooltip não é lugar de
+         * doutrina — ela diz o que o campo faz e como a linha sai. O resto está
+         * no documento de referência dos campos.
+         */
         ajuda:
-          'Cada ramo é um sócio fundador MAIS os descendentes dele em linha reta, e leva '
-          + 'o nome desse fundador. No acordo da AgroAliança: "DESCENDENTES DE CRISTINA, '
-          + 'formado por CRISTINA e seus descendentes em linha vertical; e DESCENDENTES DE '
-          + 'REGINA". O rótulo vira nome próprio e o resto do acordo o repete: a herança vai '
-          + 'para os descendentes DA MESMA QUOTISTA, e se um grupo acaba as quotas passam ao '
-          + 'outro. Em alguns acordos o ramo também é a UNIDADE DE VOTO, e cada um vota como '
-          + 'bloco único. Nunca escreva "núcleo familiar": o termo exclui o cônjuge, e '
-          + 'cônjuge não integra ramo nem entra no quadro societário.',
+          'Divide a família em grupos, um por fundador. Digite só o nome dele; a frase o '
+          + 'sistema monta. Com "Cristina" sai: "DESCENDENTES DE CRISTINA, formado por '
+          + 'CRISTINA e seus descendentes em linha vertical".',
       },
     ],
   },

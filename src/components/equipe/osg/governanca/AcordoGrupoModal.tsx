@@ -494,6 +494,9 @@ function ListaDeQuoruns({
  * levantamento de 11/09 em vez do documento.
  *
  * No lugar do seletor entra a prévia: quem digita vê a frase que vai sair.
+ *
+ * E o placeholder do campo é genérico, e não um nome: "CRISTINA" é a fundadora
+ * da AgroAliança, e num campo vazio ela parecia dado já preenchido do cliente.
  */
 function ListaDeRamos({
   linhas, mexer,
@@ -505,7 +508,7 @@ function ListaDeRamos({
           <Input
             className="h-8 flex-1 text-sm" value={r.nome}
             aria-label={`Nome do fundador do ramo ${i + 1}`}
-            placeholder="CRISTINA"
+            placeholder="Nome do fundador"
             onChange={(e) => {
               const nova = [...linhas];
               nova[i] = { ...nova[i], nome: e.target.value };

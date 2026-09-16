@@ -954,7 +954,30 @@ export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
   set('representanteNome', entrada.representanteNome);
   set('representanteGenero', entrada.representanteGenero);
 
-  return comOrigem(derivarCampos('acordoQuotistas', out), {
+  /*
+   * TODO CAMPO DECLARADO SAI PREENCHIDO, nem que seja com ''.
+   *
+   * O render LEVANTA quando o placeholder nao existe no contexto
+   * ("Placeholder não resolvido: {{acordo.naoConcorrenciaMulta}}"), e o
+   * `coletor` descarta valor vazio. Juntando os dois, qualquer campo OPCIONAL em
+   * branco derrubava a geracao inteira: foi o que travou a primeira geracao de
+   * verdade, com a multa da nao concorrencia sem preencher.
+   *
+   * Vazio tem de virar '' e seguir, que e o caminho do "documento incompleto":
+   * o campo marcado `obrigatorio` acende o aviso e a tela pede confirmacao antes
+   * de baixar. Derrubar a geracao inteira por um campo que o acordo daquele
+   * cliente nao tem e outra coisa.
+   *
+   * Quem faz isso e `publicarOpcionais`, que ja existe e que `pessoa` e
+   * `matricula` usam desde antes. Faltava o Acordo passar por ela — e e aqui
+   * que ela mais importa, porque neste cadastro a maioria dos campos e opcional
+   * por natureza: acordo sem opcao de compra, sem nao concorrencia e sem
+   * representante existe no acervo.
+   *
+   * Campo marcado `obrigatorio` continua de fora, de proposito: esse falha cedo
+   * em vez de deixar o documento sair mudo no dado que o identifica.
+   */
+  return comOrigem(derivarCampos('acordoQuotistas', publicarOpcionais('acordoQuotistas', out)), {
     tipo: 'acordoQuotistas',
     id: entrada.clienteId,
   });
