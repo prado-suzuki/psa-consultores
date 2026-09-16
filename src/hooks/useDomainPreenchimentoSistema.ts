@@ -1,5 +1,7 @@
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { ambientePorClienteQuery } from '@/hooks/useDomainAmbienteClientes';
+import { isDoAmbiente } from '@/lib/ambienteScope';
 import type {
   AreaCadastroPreenchimento, ProjetoPreenchimento, OsPreenchimento, ClientePreenchimento,
 } from '@/lib/preenchimentoSistema';
@@ -29,6 +31,8 @@ export interface DomainPreenchimentoSistema {
  * quando a query falhou, para nunca fabricar um "zero" de elogio indevido.
  */
 export function useDomainPreenchimentoSistema(): DomainPreenchimentoSistema {
+  const queryClient = useQueryClient();
+
   const areasQuery = useQuery<AreaCadastroPreenchimento[]>({
     queryKey: ['preenchimento-sistema-areas'],
     staleTime: STALE_TIME,
@@ -49,23 +53,31 @@ export function useDomainPreenchimentoSistema(): DomainPreenchimentoSistema {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('org_projects')
-        .select('id, name, estrutura_area_id, responsible_id, equipe_id, start_date, end_date, ordem_servico_id');
+        .select('id, name, estrutura_area_id, responsible_id, equipe_id, start_date, end_date, ordem_servico_id, external_client_id');
       if (error) throw error;
-      return (data ?? []) as ProjetoPreenchimento[];
+      const ambientePorCliente = await queryClient.fetchQuery(ambientePorClienteQuery());
+      return (data ?? [])
+        .filter(p => isDoAmbiente(p.external_client_id, ambientePorCliente, 'prod')) as ProjetoPreenchimento[];
     },
   });
 
-  // `ordem_servico` não tem coluna `ambiente` (o recorte dev/prod dela vem do
-  // cliente, ver AGENTS.md) -- só o soft delete se aplica aqui.
+  // `ordem_servico` e `org_projects` não têm coluna `ambiente`: o recorte vem do
+  // cliente (ver AGENTS.md). O corte é para 'prod' FIXO, e não `currentAmbiente`,
+  // porque este bloco mede a lacuna de cadastro da CARTEIRA REAL — é a mesma
+  // decisão que a consulta de `cliente` logo abaixo já tomava. Sem ele, as OS e
+  // os projetos dos clientes `[TESTE]` entravam na conta de lacuna contra uma
+  // lista de clientes que não os contém.
   const osQuery = useQuery<OsPreenchimento[]>({
     queryKey: ['preenchimento-sistema-os'],
     staleTime: STALE_TIME,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ordem_servico')
-        .select('id, numero_os, data_inicio');
+        .select('id, numero_os, data_inicio, id_cliente');
       if (error) throw error;
-      return (data ?? []) as OsPreenchimento[];
+      const ambientePorCliente = await queryClient.fetchQuery(ambientePorClienteQuery());
+      return (data ?? [])
+        .filter(os => isDoAmbiente(os.id_cliente, ambientePorCliente, 'prod')) as OsPreenchimento[];
     },
   });
 
