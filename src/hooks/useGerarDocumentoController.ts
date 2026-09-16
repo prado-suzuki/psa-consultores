@@ -423,7 +423,19 @@ export function useGerarDocumentoController() {
   // seguem inalterados (o override é aplicado fora do motor).
   const templateDoModelo = useMemo<Template>(() => {
     const blocos = docBlocos
-      .filter((b) => b.bloco?.conteudo)
+      /*
+       * BLOCO SEM CONTEÚDO SAI, MENOS A CLÁUSULA COM TÍTULO.
+       *
+       * No Acordo de Quotistas a cláusula é só a linha do título: o corpo começa
+       * no item "1.1". Este filtro as derrubava antes do motor, e aí os 237
+       * itens ficavam órfãos e caíam em cascata — o documento saiu com 3 de 240
+       * blocos na primeira geração de verdade.
+       *
+       * O título não está no `conteudo` porque a numeração o cola DEPOIS do
+       * render (ver `prefixosNumeracao`). `motivoDeDescarte` já sabe disso; este
+       * filtro, que roda antes, não sabia.
+       */
+      .filter((b) => b.bloco?.conteudo || b.bloco?.titulo_documento)
       .map((b) => {
         const ov = b.bloco?.id ? porBlocoAlvo.get(b.bloco.id) : undefined;
         return {
@@ -459,7 +471,19 @@ export function useGerarDocumentoController() {
   const templateOriginal = useMemo<Template>(() => {
     if (reproduzindoRegistrado || posicoesSobrescritas.size === 0) return template;
     const blocos = docBlocos
-      .filter((b) => b.bloco?.conteudo)
+      /*
+       * BLOCO SEM CONTEÚDO SAI, MENOS A CLÁUSULA COM TÍTULO.
+       *
+       * No Acordo de Quotistas a cláusula é só a linha do título: o corpo começa
+       * no item "1.1". Este filtro as derrubava antes do motor, e aí os 237
+       * itens ficavam órfãos e caíam em cascata — o documento saiu com 3 de 240
+       * blocos na primeira geração de verdade.
+       *
+       * O título não está no `conteudo` porque a numeração o cola DEPOIS do
+       * render (ver `prefixosNumeracao`). `motivoDeDescarte` já sabe disso; este
+       * filtro, que roda antes, não sabia.
+       */
+      .filter((b) => b.bloco?.conteudo || b.bloco?.titulo_documento)
       .map((b) => ({
         id: b.id,
         tipo: b.bloco!.tipo,
@@ -1471,6 +1495,13 @@ export function useGerarDocumentoController() {
       (b) => b.tipo === 'acordoQuotistas' && !registroPorBinding[b.nome],
     );
     if (doAcordo.length === 0) return;
+    /*
+     * SÓ LIGA SOZINHO COM UM CANDIDATO. Dois é ambiguidade real, e aí perguntar
+     * é o certo: a versão 2 pode ser a negociação em curso enquanto a 1 é a
+     * assinada e vigente, e escolher por ele seria emitir o documento errado.
+     * Mesma regra do vínculo do órgão de governança, logo acima.
+     */
+    if (registros.acordoQuotistas.length !== 1) return;
     const reg = registros.acordoQuotistas[0];
     if (!reg) return;
 

@@ -6,7 +6,7 @@ import { useOnusDaEmpresa } from '@/hooks/useDoacaoDeQuotas';
 import { useBensByCliente, useCartorios } from '@/hooks/useDiagnosticoPatrimonial';
 import { useExploracaoRural, type ExploracaoRuralEnriched } from '@/hooks/useExploracaoRural';
 import { entradaDoAcordo } from '@/lib/osg/entradaAcordo';
-import { useAcordoDoCliente } from '@/hooks/useDomainAcordoQuotistas';
+import { useAcordosDoCliente } from '@/hooks/useDomainAcordoQuotistas';
 import { STATUS_ELEGIVEIS_PARA_INTEGRALIZACAO } from '@/lib/osg/statusIntegralizacao';
 import { ehEspecieDeDireito } from '@/lib/osg/integralizacaoDaMatricula';
 import type { TipoEntidade } from '@/lib/templates/vocabulario';
@@ -204,12 +204,18 @@ export function useRegistrosPorTipo(clienteId: string | null) {
   const administradoresQ = useAdministradoresDasOutorgantes(exploracoesQ.data);
   const orgaosQ = useOrgaosGovernanca(clienteId);
   /*
-   * O acordo VIGENTE do cliente, que é sempre um só: a versão de número mais
-   * alto. Não há o que o consultor escolher na tela Gerar, e é por isso que
-   * `acordoQuotistas` entra como registro único e se liga sozinho (ver o efeito
-   * de vínculo automático no controller).
+   * TODAS as versões do acordo, e não só a mais nova.
+   *
+   * A tela Gerar tem seletor de papel, e o consultor tem de poder dizer qual
+   * versão o documento reproduz: a 2 pode ser a negociação em curso enquanto a 1
+   * é a assinada e vigente. Com uma só chegando aqui, o seletor mostrava um
+   * candidato e não havia escolha a fazer.
+   *
+   * Com mais de uma, o vínculo automático do controller deixa de ligar sozinho:
+   * dois candidatos é ambiguidade real, e aí perguntar é o certo — mesma regra
+   * do órgão de governança.
    */
-  const acordoQ = useAcordoDoCliente(clienteId);
+  const acordosQ = useAcordosDoCliente(clienteId);
 
   const registros = useMemo<Record<TipoEntidade, Registro[]>>(() => {
     const pessoa: Registro[] = (pessoasQ.data ?? []).map((p) => ({
@@ -300,14 +306,15 @@ export function useRegistrosPorTipo(clienteId: string | null) {
      * `Registro`, mas na prática não aparece: com um candidato só, o vínculo é
      * automático e o passo de escolha não chega a ser oferecido.
      */
-    const entradaAcordo = entradaDoAcordo(acordoQ.data, pessoaPorId);
-    const acordoQuotistas: Registro[] = entradaAcordo && acordoQ.data
-      ? [{
-        id: acordoQ.data.acordo.id,
-        label: `Acordo de Quotistas, versão ${acordoQ.data.acordo.versao}`,
-        row: entradaAcordo,
-      }]
-      : [];
+    const acordoQuotistas: Registro[] = (acordosQ.data ?? [])
+      .map((a) => ({ a, entrada: entradaDoAcordo(a, pessoaPorId) }))
+      .filter((x): x is { a: typeof x.a; entrada: NonNullable<typeof x.entrada> } => !!x.entrada)
+      .map(({ a, entrada }) => ({
+        id: a.acordo.id,
+        label: `Acordo de Quotistas, versão ${a.acordo.versao}`
+          + (a.acordo.assinado_em ? ' (assinada)' : ' (minuta)'),
+        row: entrada,
+      }));
 
     /*
      * A competência da Matriz continua vazia, e de propósito: ela não é registro
@@ -318,7 +325,7 @@ export function useRegistrosPorTipo(clienteId: string | null) {
       pessoa, sociedade, bem, matricula, cartorio, vertice: [], instrumento, origemPosse: [],
       orgaoGovernanca, competenciaMatriz: [], acordoQuotistas,
     };
-  }, [pessoasQ.data, bensQ.data, matriculasQ.data, cartoriosQ.data, exploracoesQ.data, administradoresQ.data, orgaosQ.data, acordoQ.data, clienteId]);
+  }, [pessoasQ.data, bensQ.data, matriculasQ.data, cartoriosQ.data, exploracoesQ.data, administradoresQ.data, orgaosQ.data, acordosQ.data, clienteId]);
 
   return {
     registros,

@@ -194,6 +194,56 @@ export function useVersoesDoAcordo(clienteId?: string | null) {
   });
 }
 
+/**
+ * TODAS as versões do acordo, cada uma com as cinco listas.
+ *
+ * A tela Gerar tem seletor de papel, e o consultor tem de poder escolher QUAL
+ * versão o documento vai reproduzir: a versão 2 pode ser a negociação em curso
+ * enquanto a 1 é a assinada e vigente. Enquanto só a mais nova chegava aqui, o
+ * seletor mostrava um candidato e não havia escolha nenhuma a fazer.
+ *
+ * É a mesma consulta de `useAcordoDoCliente`, sem o `limit(1)`. Traz as filhas
+ * de todas as versões de uma vez: são poucas por cliente, e a alternativa é uma
+ * ida ao banco por versão escolhida.
+ */
+export function useAcordosDoCliente(clienteId?: string | null) {
+  return useQuery<AcordoCompleto[]>({
+    queryKey: ['acordo-quotistas', clienteId ?? null, 'todos'],
+    enabled: !!clienteId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('acordo_quotistas')
+        .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*), acordo_signatario(*), acordo_sociedade_relacionada(*)')
+        .eq('cliente_id', clienteId as string)
+        .eq('excluido', false)
+        .order('versao', { ascending: false });
+      if (error) throw error;
+
+      const porOrdem = <T extends { ordem: number }>(l: T[] | null) =>
+        [...(l ?? [])].sort((a, b) => a.ordem - b.ordem);
+
+      return (data ?? []).map((linha) => {
+        const {
+          acordo_quorum: quoruns,
+          acordo_ramo_familiar: ramos,
+          acordo_ordem_preferencia: ordem,
+          acordo_signatario: signatarios,
+          acordo_sociedade_relacionada: sociedades,
+          ...acordo
+        } = linha;
+        return {
+          acordo,
+          quoruns: porOrdem(quoruns),
+          ramos: porOrdem(ramos),
+          ordemPreferencia: porOrdem(ordem),
+          signatarios: porOrdem(signatarios),
+          sociedades: porOrdem(sociedades),
+        } as AcordoCompleto;
+      });
+    },
+  });
+}
+
 // ─── Escrita ──────────────────────────────────────────────────────────────────
 
 export function useAcordoMutations(clienteId?: string | null) {
