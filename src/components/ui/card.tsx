@@ -41,12 +41,30 @@ type CardProps = React.HTMLAttributes<HTMLDivElement> & {
   variant?: "tabela";
 };
 
+/**
+ * ⚠️ A STRING BASE FICA INTEIRA, LITERAL E COLADA NO `cn(`, e a variante
+ * SOBREPÕE. Não é estilo: **dois testes leem este arquivo como TEXTO.**
+ *
+ * · `cartaoTingido.test.ts` casa a string inteira para provar que o cartão
+ *   padrão continua tingido.
+ * · `eslint-rules/token-nao-sobrescrito.test.ts` deriva o token de cada
+ *   componente do `ui/` com `/\b(?:cn|cva)\(\s*"([^"]+)"/` — ou seja, exige o
+ *   literal **imediatamente** depois do `cn(`, só com espaço no meio.
+ *
+ * A primeira tentativa pôs as duas superfícies num ternário, e a segunda pôs um
+ * comentário entre o `cn(` e o literal. As duas derrubaram a derivação, e a
+ * segunda de um jeito que só aparece em teste: o `<Card>` sumiu do mapa da regra
+ * de ESLint, que é o que impede consumidor de repintar token.
+ *
+ * `cn` deixa a última classe vencer — é o mesmo mecanismo pelo qual um
+ * `className="bg-card"` no consumidor cancela a tinta, documentado acima.
+ */
 const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, variant, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border text-card-foreground shadow-sm",
-      variant === "tabela" ? "bg-card" : "bg-superficie-cartao",
+      "rounded-lg border bg-superficie-cartao text-card-foreground shadow-sm",
+      variant === "tabela" && "bg-card",
       className,
     )}
     {...props}

@@ -187,15 +187,15 @@ function razao(a: [number, number, number], b: [number, number, number]): number
 /**
  * O `<Card>` NÃO entra na própria medição.
  *
- * Desde 16/09/2026 ele cita as duas superfícies num ternário (`variant="tabela"`
- * desvia para `bg-card`), e como o `rounded-lg` está no mesmo `cn()` ele passou a
- * casar com o padrão "caixa arredondada pintada à mão". Mas ele não é uma caixa
- * desenhada à mão — é o componente que DEFINE as duas, e é exatamente o que esta
- * catraca manda usar no lugar da caixa à mão. Inventariá-lo como dívida diria o
- * contrário do que o arquivo inteiro diz.
+ * Desde 16/09/2026 ele cita as duas superfícies: a tinta na string base e o
+ * `bg-card` da variante `tabela` sobrepondo. Como o `rounded-lg` está no mesmo
+ * `cn()`, ele passou a casar com o padrão "caixa arredondada pintada à mão" — mas
+ * ele não é caixa desenhada à mão. É o componente que DEFINE as duas, e é
+ * exatamente o que esta catraca manda usar no lugar da caixa à mão.
+ * Inventariá-lo como dívida diria o contrário do que o arquivo inteiro diz.
  *
  * Ele não fica sem guarda: a asserção "o `<Card>` continua sendo a alavanca" lê
- * este arquivo à parte e cobra os dois lados do ternário.
+ * este arquivo à parte, e a `caixaDeTabela.test.ts` cobra a variante.
  */
 const DEFINE_AS_DUAS_SUPERFICIES = 'src/components/ui/card.tsx';
 
@@ -418,16 +418,8 @@ describe('cartão tingido: caixa arredondada não pinta `bg-card` na mão', () =
     // arquivos. Um `bg-card` de volta aqui devolveria o branco a 84% do produto
     // sem derrubar nenhuma das asserções acima.
     const card = readFileSync(resolve(RAIZ, 'src/components/ui/card.tsx'), 'utf8');
-    // Desde 16/09/2026 a tinta é o RAMO PADRÃO de um ternário, e não uma classe
-    // solta: `variant="tabela"` desvia para `bg-card` (decisão dela; ver
-    // `caixaDeTabela.test.ts`, que cobra os dois lados). O que esta asserção
-    // guarda continua sendo o mesmo: o cartão SEM variante é o tingido. Trocar os
-    // dois lados do ternário devolveria o branco a 84% do produto em silêncio.
-    expect(card, 'o `<Card>` deixou de pintar `bg-superficie-cartao` no ramo padrão').toMatch(
-      /variant === "tabela" \? "bg-card" : "bg-superficie-cartao"/,
-    );
-    expect(card, 'o `<Card>` perdeu o raio, a borda ou a sombra').toMatch(
-      /"rounded-lg border text-card-foreground shadow-sm"/,
+    expect(card, 'o `<Card>` deixou de pintar `bg-superficie-cartao`').toMatch(
+      /rounded-lg border bg-superficie-cartao text-card-foreground/,
     );
   });
 
