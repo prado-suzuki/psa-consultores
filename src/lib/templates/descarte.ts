@@ -82,11 +82,21 @@ export function paragrafosOrfaos(blocos: Bloco[]): boolean[] {
  * Bloco em que 1 de 5 campos veio preenchido não é descartado — a pontuação
  * órfã que sobra é assunto do aviso de documento incompleto (pendências).
  */
-export function motivoDeDescarte({
-  segmentos,
-  secoesDeRepeticao,
-  itensDeRepeticao,
-}: RenderDeBloco): MotivoDescarte | null {
+export function motivoDeDescarte(
+  { segmentos, secoesDeRepeticao, itensDeRepeticao }: RenderDeBloco,
+  /**
+   * O bloco de origem, para o caso da CLÁUSULA COM TÍTULO.
+   *
+   * No Acordo de Quotistas a cláusula tem só o título: o corpo começa no item
+   * "1.1". O título não está no render, porque a numeração o cola DEPOIS (ver
+   * `prefixosNumeracao`), então o render sai em branco e a regra de baixo
+   * descartaria as 26 cláusulas do documento.
+   *
+   * Opcional para não obrigar os chamadores antigos a mudar: sem o bloco, a
+   * regra é a de sempre.
+   */
+  bloco?: Pick<Bloco, 'tipo' | 'tituloDocumento'>,
+): MotivoDescarte | null {
   const texto = segmentos.map((s) => s.texto).join('');
   const valores = segmentos.filter((s) => s.tipo === 'valor');
   const tabelas = segmentar(texto.split('\n')).filter((s) => s.tipo === 'tabela');
@@ -105,6 +115,8 @@ export function motivoDeDescarte({
   if (secoesDeRepeticao > 0) return 'lista-vazia';
   if (tabelas.length > 0) return 'tabela-vazia';
   if (valores.length > 0) return 'campos-vazios';
+  // A cláusula com título sempre tem o que imprimir, mesmo de corpo vazio.
+  if (bloco?.tipo === 'clausula' && bloco.tituloDocumento?.trim()) return null;
   // Render em branco sem ponto de dado nenhum: nada a imprimir, e um parágrafo
   // mudo ainda consumiria um número de cláusula.
   return texto.trim() === '' ? 'render-em-branco' : null;

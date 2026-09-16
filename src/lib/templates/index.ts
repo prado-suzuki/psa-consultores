@@ -111,7 +111,7 @@ export function gerarComposicao(
   // em no máximo N.
   while (true) {
     renders = renderizarComReferencias(blocos, blocosDescartados, contexto, opcoes);
-    const motivosProprios = renders.map(motivoDeDescarte);
+    const motivosProprios = renders.map((r, i) => motivoDeDescarte(r, blocos[i]));
     const orfaos = paragrafosOrfaos(blocos);
     const motivos = motivosProprios.map((motivo, i): MotivoDescarte | null => {
       // O motivo do próprio conteúdo explica melhor o descarte no painel; a

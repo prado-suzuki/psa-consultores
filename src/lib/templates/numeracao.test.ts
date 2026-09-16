@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { numerarBlocos, refsNumeracao, rotulosNumeracao, unirBlocos } from './numeracao';
-import { paragrafosOrfaos } from './descarte';
+import { motivoDeDescarte, paragrafosOrfaos } from './descarte';
 import { gerarDocumento } from './index';
 import type { Bloco, Template } from './types';
 
@@ -344,5 +344,25 @@ describe('os três níveis abaixo do item', () => {
       bloco('s2', 'subitem', 'Este tem cláusula.'),
     ]);
     expect(orfaos).toEqual([false, true, true, true, false, false]);
+  });
+});
+
+describe('a cláusula do Acordo tem só o título, e sobrevive ao descarte', () => {
+  it('cláusula com título e corpo vazio NÃO é descartada', () => {
+    /*
+     * No Acordo a cláusula é só a linha do título: o corpo começa no item 1.1.
+     * O título é colado DEPOIS do render (ver `prefixosNumeracao`), então o
+     * render sai em branco e a regra de "render-em-branco" descartaria as 26
+     * cláusulas do documento inteiro.
+     */
+    const render = {
+      segmentos: [{ tipo: 'texto' as const, texto: '' }],
+      secoesDeRepeticao: 0,
+      itensDeRepeticao: 0,
+    };
+    expect(motivoDeDescarte(render, { tipo: 'clausula', tituloDocumento: 'Do Voto' })).toBeNull();
+    // Sem título, a regra de sempre continua valendo: bloco mudo consome número.
+    expect(motivoDeDescarte(render, { tipo: 'clausula' })).toBe('render-em-branco');
+    expect(motivoDeDescarte(render)).toBe('render-em-branco');
   });
 });
