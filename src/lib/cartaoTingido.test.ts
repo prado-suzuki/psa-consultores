@@ -280,6 +280,14 @@ const CAIXA_QUE_FICA_BRANCA: Record<MotivoDeFicarBranca, Record<string, number>>
     // "nenhum arquivo aparece em dois motivos" —, então ela mora no motivo que
     // explica a maioria e o resto está escrito aqui.
     'src/components/equipe/daily/DailyQuickStatusDialog.tsx': 4,
+    // As quatro tabelas da OS do Adm & Fin, dentro da casca
+    // `ListaMestreDetalhe`, que é `bg-superficie-cartao`. Decidido OLHANDO, em
+    // 15/09/2026: tabela sem fundo próprio herda o tingido da casca e a tela
+    // inteira lê verde, porque o `--muted` desta casa puxa para lá ("tá tudo
+    // verde, o padrão não é sem fundo"). É o segundo degrau da escada — campo
+    // claro dentro de cartão tingido —, com a faixa de cabeçalho em `bg-muted`
+    // por cima. O motivo está escrito no próprio componente.
+    'src/components/equipe/adm-fin/TabelasDaOs.tsx': 1,
     'src/components/equipe/fiscal/tasks/kanban/TaskKanbanSubtaskRow.tsx': 1,
     'src/components/equipe/osg/diagnostico-patrimonial/titularidade/TitularidadeLinha.tsx': 1,
     'src/components/equipe/osg/diagnostico-patrimonial/exploracao-rural/ImoveisPanel.tsx': 1,
