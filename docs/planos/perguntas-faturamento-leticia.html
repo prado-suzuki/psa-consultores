@@ -119,6 +119,24 @@
     .opcao{border-left:0;border-top:1px solid hsl(var(--ln))}
     .opcao:first-child{border-top:0}
   }
+
+  /* A versão em PDF é gerada desta mesma página (A4 deitada), porque o quadro de
+     opções lado a lado é o que faz a pergunta se responder sozinha — em retrato
+     ele se espreme. Nada aqui muda a tela. */
+  @page{size:A4 landscape;margin:10mm}
+  @media print{
+    body{padding:0;background:#fff}
+    .wrap{max-width:100%}
+    .pergunta,.painel,.curta,.estado,.quadro{break-inside:avoid;page-break-inside:avoid}
+    h1,h2{break-after:avoid;page-break-after:avoid}
+    h2{margin-top:26px}
+    .instrucao{margin-bottom:26px}
+    /* Uma pergunta por página, de propósito: quem vai responder lê uma coisa de
+       cada vez, e as duas opções ficam lado a lado sem concorrer com a seguinte. */
+    h2.quebra,.pergunta ~ .pergunta{break-before:page;page-break-before:always}
+    .pergunta{margin-bottom:0}
+    footer{margin-top:30px}
+  }
 </style>
 </head>
 <body>
@@ -166,7 +184,7 @@ acontece hoje — não sobre o sistema. Basta olhar os dois desenhos e dizer qua
 
 </div>
 
-<h2>As 5 perguntas</h2>
+<h2 class="quebra">As 5 perguntas</h2>
 
 <!-- 1 -->
 <div class="pergunta">
@@ -395,7 +413,7 @@ acontece hoje — não sobre o sistema. Basta olhar os dois desenhos e dizer qua
   </div>
 </div>
 
-<h2>Mais duas, rápidas</h2>
+<h2 class="quebra">Mais duas, rápidas</h2>
 
 <div class="curta">
   <h3>6. Para qual e-mail a nota é enviada?</h3>

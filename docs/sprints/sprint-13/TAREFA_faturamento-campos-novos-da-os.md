@@ -35,6 +35,10 @@ opções lado a lado, em
 (abre em `http://localhost:8080/docs/planos/perguntas-faturamento-leticia.html`). Ela responde
 por letra.
 
+**O anexo do quadro é o PDF**, gerado dessa mesma página em A4 deitada, uma pergunta por
+página: `G:\Drives compartilhados\PSA Digital\03_Clientes_Internos\PSA_Adm\Faturamento\Faturamento_Perguntas_Financeiro_2026-09-16.pdf`.
+Quem mudar as perguntas mexe no HTML e gera o PDF de novo — o HTML é a fonte.
+
 | Pergunta | O que a resposta decide |
 |---|---|
 | 1. A nota mensal vence sempre no mesmo dia? | se a parcela guarda **uma data ou duas**, e se existe dia fixo no contrato |
