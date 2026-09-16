@@ -10,6 +10,7 @@ import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController
 import {
   FILTROS_VAZIOS,
   ORDEM_PADRAO,
+  agruparPorExecutor,
   filtrarControle,
   opcoesDoControle,
   ordenarControle,
@@ -51,6 +52,17 @@ const OsgControleProjetos = () => {
   );
   const opcoes = useMemo(() => opcoesDoControle(linhas), [linhas]);
   const vencidas = useMemo(() => visiveis.filter((linha) => linha.prazoVencido).length, [visiveis]);
+  const grupos = useMemo(() => agruparPorExecutor(visiveis), [visiveis]);
+
+  // Todo grupo abre ABERTO, menos o "sem responsável" (`''`), que tem 131 das
+  // 169 linhas em produção e empurraria os executores para fora da tela.
+  // Guardado por nome de executor, e não por índice, para o conjunto sobreviver
+  // à mudança de filtro que reordena os grupos.
+  const [fechados, setFechados] = useState<Set<string>>(new Set(['']));
+  const abertos = useMemo(
+    () => new Set(grupos.map((grupo) => grupo.executor).filter((nome) => !fechados.has(nome))),
+    [grupos, fechados],
+  );
 
   return (
     <OsgLayout title="Controle de Projetos" subtitle="Onde cada cliente está, por ordem de serviço">
@@ -75,10 +87,19 @@ const OsgControleProjetos = () => {
                 vencidas={vencidas}
               />
               <ControleDeProjetosTabela
-                linhas={visiveis}
+                grupos={grupos}
                 ordem={ordem}
                 onOrdenar={(campo: ColunaDoControle) =>
                   setOrdem((atual) => proximaOrdemDoControle(atual, campo))
+                }
+                abertos={abertos}
+                onAlternar={(executor) =>
+                  setFechados((atuais) => {
+                    const proximo = new Set(atuais);
+                    if (proximo.has(executor)) proximo.delete(executor);
+                    else proximo.add(executor);
+                    return proximo;
+                  })
                 }
               />
             </>

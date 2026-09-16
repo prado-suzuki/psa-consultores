@@ -83,8 +83,18 @@ export interface LinhaDoControle {
   area: string;
   /** `true` quando o produto é da área desta página. */
   daArea: boolean;
-  /** Líder e executor do projeto DESTE produto, sem repetir. Vazio = produto sem projeto. */
-  responsaveis: string[];
+  /**
+   * Quem executa o produto: `org_projects.responsible_id` do projeto DESTE
+   * produto. Vazio = produto contratado sem projeto criado. É a coluna B da
+   * planilha (Equipe OSG) e a chave do agrupamento da tela.
+   */
+  executores: string[];
+  /**
+   * O Líder Geral do projeto (`leader_id`), que é a coluna C da planilha
+   * (Gestor). Separado do executor de propósito: a planilha sempre teve as duas
+   * colunas, e juntar as duas numa só apagava quem responde pelo trabalho.
+   */
+  lideres: string[];
   /** Quantos projetos existem para este par OS/produto. Zero = ninguém criou. */
   projetos: number;
   regiao: string | null;
@@ -201,12 +211,13 @@ export function montarControleDeProjetos(
       const produto = produtoPorId.get(contratado.produto_segmento_id);
       const doPar = projetosDoPar.get(`${ordem.id}::${contratado.produto_segmento_id}`) ?? [];
 
-      const nomes = new Set<string>();
+      const executores = new Set<string>();
+      const lideres = new Set<string>();
       for (const projeto of doPar) {
         const lider = nomeDaPessoa(pessoaPorId.get(projeto.leader_id ?? ''));
         const executor = nomeDaPessoa(pessoaPorId.get(projeto.responsible_id ?? ''));
-        if (lider) nomes.add(lider);
-        if (executor) nomes.add(executor);
+        if (lider) lideres.add(lider);
+        if (executor) executores.add(executor);
       }
 
       linhas.push({
@@ -222,7 +233,8 @@ export function montarControleDeProjetos(
         produtoNome: produto?.nome ?? 'Produto não identificado',
         area: (produto?.cluster_id && nomeDoCluster.get(produto.cluster_id)) || 'Sem área',
         daArea: produto?.cluster_id === clusterDaArea,
-        responsaveis: [...nomes].sort((a, b) => a.localeCompare(b, 'pt-BR')),
+        executores: [...executores].sort((a, b) => a.localeCompare(b, 'pt-BR')),
+        lideres: [...lideres].sort((a, b) => a.localeCompare(b, 'pt-BR')),
         projetos: doPar.length,
         regiao: ordem.regiao ?? null,
         situacao: ordem.situacao ?? null,
@@ -268,7 +280,8 @@ export const FILTROS_VAZIOS: FiltrosDoControle = {
 };
 
 /**
- * Aplica os filtros da barra. A busca cobre cliente, OS, produto e observação:
+ * Aplica os filtros da barra. A busca cobre cliente, OS, produto, executor e
+ * observação:
  * é o campo em que a equipe achava o cliente na planilha com Ctrl+F, e a
  * observação é onde mora o motivo de o trabalho estar parado.
  */
@@ -282,7 +295,13 @@ export function filtrarControle(
     if (filtros.regiao && linha.regiao !== filtros.regiao) return false;
     if (filtros.area && linha.area !== filtros.area) return false;
     if (!busca) return true;
-    const alvo = [linha.clienteNome, linha.numeroOs, linha.produtoNome, linha.observacoes ?? '']
+    const alvo = [
+      linha.clienteNome,
+      linha.numeroOs,
+      linha.produtoNome,
+      linha.executores.join(' '),
+      linha.observacoes ?? '',
+    ]
       .join(' ')
       .toLowerCase();
     return alvo.includes(busca);
@@ -324,9 +343,9 @@ export function opcoesDoControle(linhas: LinhaDoControle[]) {
  *
  * **Vazio fica sempre por último**, nos dois sentidos, sem inverter com a
  * direção. Ordenar por Prazo com nulo no topo enterraria as OS com prazo, que
- * são o motivo de clicar ali. O mesmo na coluna Responsáveis, onde produto sem
- * projeto é a maioria: em ordem crescente eles empurrariam para baixo tudo que
- * tem gente.
+ * são o motivo de clicar ali. O mesmo na coluna Executor, onde produto sem
+ * projeto é a maioria esmagadora (131 de 169 em produção): em ordem crescente
+ * eles empurrariam para baixo as 38 linhas que têm gente.
  *
  * **Todo critério desempata pela ordem padrão.** Situação tem três valores para
  * 169 linhas; sem desempate, a ordem dentro de cada bloco ficaria à mercê do que
@@ -342,7 +361,8 @@ export type ColunaDoControle =
   | 'situacao'
   | 'inicio'
   | 'prazo'
-  | 'responsaveis'
+  | 'executor'
+  | 'gestor'
   | 'observacao';
 
 export interface OrdemDoControle {
@@ -402,8 +422,10 @@ function valorDaColuna(linha: LinhaDoControle, campo: ColunaDoControle): string 
       return linha.dataInicio ?? '';
     case 'prazo':
       return linha.dataFim ?? '';
-    case 'responsaveis':
-      return linha.responsaveis.join(', ').toLocaleLowerCase('pt-BR');
+    case 'executor':
+      return linha.executores.join(', ').toLocaleLowerCase('pt-BR');
+    case 'gestor':
+      return linha.lideres.join(', ').toLocaleLowerCase('pt-BR');
     case 'observacao':
       return (linha.observacoes ?? '').toLocaleLowerCase('pt-BR');
   }
@@ -425,8 +447,10 @@ function estaVazio(linha: LinhaDoControle, campo: ColunaDoControle): boolean {
       return !linha.dataInicio;
     case 'prazo':
       return !linha.dataFim;
-    case 'responsaveis':
-      return linha.responsaveis.length === 0;
+    case 'executor':
+      return linha.executores.length === 0;
+    case 'gestor':
+      return linha.lideres.length === 0;
     case 'observacao':
       return !linha.observacoes;
   }
@@ -457,5 +481,75 @@ export function ordenarControle(
     }
     if (comparacao !== 0) return ordem.ascendente ? comparacao : -comparacao;
     return comparaPadrao(a, b);
+  });
+}
+
+/* ── Agrupamento por executor ────────────────────────────────────────────
+ *
+ * A tela abre agrupada por quem executa, que é `org_projects.responsible_id` do
+ * projeto daquele produto. É a coluna B da planilha (Equipe OSG), onde a equipe
+ * lia "o que é meu" antes de ler qualquer outra coisa.
+ *
+ * O GRUPO SEM RESPONSÁVEL VEM PRIMEIRO, e é o maior: 131 dos 169 produtos
+ * contratados, em 72 dos 82 clientes, não têm projeto criado. Ele encabeça a
+ * tela porque não é sobra, é fila de delegação: produto vendido que ninguém
+ * está tocando é a coisa mais urgente que esta tela tem a dizer, e enterrá-lo
+ * embaixo de oito grupos pequenos faria a tela esconder justamente o que ela
+ * descobriu.
+ *
+ * Ele abre FECHADO, apesar de vir primeiro. São 131 linhas, e abertas elas
+ * empurrariam os oito executores para fora da primeira tela — o cabeçalho com a
+ * contagem diz o tamanho sem custar a rolagem.
+ *
+ * Produto com dois executores entra nos DOIS grupos. A soma das contagens passa
+ * do total, e é o certo: a pergunta que o agrupamento responde é "o que é meu",
+ * e uma linha que é de duas pessoas é de cada uma delas.
+ */
+
+export interface GrupoDoControle {
+  /** Nome do executor, ou `''` no grupo sem responsável. */
+  executor: string;
+  linhas: LinhaDoControle[];
+  /** Clientes distintos dentro do grupo. */
+  clientes: number;
+  /** Linhas com prazo vencido dentro do grupo. */
+  vencidas: number;
+  /** `true` só no grupo sem responsável, que vem primeiro e abre fechado. */
+  semResponsavel: boolean;
+}
+
+/**
+ * Agrupa por executor: "sem responsável" primeiro, depois do maior para o menor.
+ *
+ * Maior primeiro, e não alfabético, porque quem carrega dez produtos é quem a
+ * tela precisa mostrar antes; empate desempata por nome, para a ordem não
+ * depender do que o banco devolveu.
+ */
+export function agruparPorExecutor(linhas: LinhaDoControle[]): GrupoDoControle[] {
+  const porExecutor = new Map<string, LinhaDoControle[]>();
+  for (const linha of linhas) {
+    const chaves = linha.executores.length > 0 ? linha.executores : [''];
+    for (const chave of chaves) {
+      const atuais = porExecutor.get(chave) ?? [];
+      atuais.push(linha);
+      porExecutor.set(chave, atuais);
+    }
+  }
+
+  const grupos: GrupoDoControle[] = [];
+  for (const [executor, doGrupo] of porExecutor) {
+    grupos.push({
+      executor,
+      linhas: doGrupo,
+      clientes: new Set(doGrupo.map((linha) => linha.clienteId)).size,
+      vencidas: doGrupo.filter((linha) => linha.prazoVencido).length,
+      semResponsavel: executor === '',
+    });
+  }
+
+  return grupos.sort((a, b) => {
+    if (a.semResponsavel !== b.semResponsavel) return a.semResponsavel ? -1 : 1;
+    if (a.linhas.length !== b.linhas.length) return b.linhas.length - a.linhas.length;
+    return a.executor.localeCompare(b.executor, 'pt-BR');
   });
 }

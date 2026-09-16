@@ -1,5 +1,7 @@
+import { Fragment } from 'react';
+
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronRight, UserX } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import {
@@ -15,6 +17,7 @@ import { parseDate } from '@/lib/dateUtils';
 import {
   situacaoLabel,
   type ColunaDoControle,
+  type GrupoDoControle,
   type LinhaDoControle,
   type OrdemDoControle,
 } from '@/lib/osgControleDeProjetos';
@@ -27,6 +30,9 @@ import { cn } from '@/lib/utils';
  * `projetoStatusColors.ts`, porque na mesma tela a mesma ideia não pode ter
  * duas cores.
  */
+/** Quantas colunas a tabela tem, para o `colSpan` da cabeça de grupo. */
+const COLUNAS = 10;
+
 const SITUACAO_BADGE: Record<string, string> = {
   em_andamento: 'bg-status-andamento-soft text-status-andamento border-status-andamento/15',
   suspenso: 'bg-status-espera-soft text-status-espera border-status-espera/15',
@@ -138,16 +144,132 @@ function Cabecalho({
   );
 }
 
+
+/**
+ * A cabeça de um grupo de executor.
+ *
+ * O grupo sem responsável vem primeiro e abre fechado: são 131 dos 169 produtos
+ * em produção, e abertos eles empurrariam os executores para fora da primeira
+ * tela. Ele é fila de delegação, não sobra, e por isso encabeça a lista em vez
+ * de ficar no fim.
+ */
+function CabecaDoGrupo({
+  grupo,
+  aberto,
+  onAlternar,
+  colunas,
+}: {
+  grupo: GrupoDoControle;
+  aberto: boolean;
+  onAlternar: () => void;
+  colunas: number;
+}) {
+  const Seta = aberto ? ChevronDown : ChevronRight;
+  return (
+    <TableRow className="hover:bg-transparent">
+      <TableCell colSpan={colunas} className="bg-superficie-realce p-0">
+        <button
+          type="button"
+          onClick={onAlternar}
+          aria-expanded={aberto}
+          className="flex w-full items-center gap-2 px-4 py-2 text-left"
+        >
+          <Seta className="h-4 w-4 shrink-0 text-muted-foreground" />
+          {grupo.semResponsavel && <UserX className="h-4 w-4 shrink-0 text-destructive" />}
+          <span className={cn('font-medium', grupo.semResponsavel && 'text-destructive')}>
+            {grupo.semResponsavel ? 'Sem responsável' : grupo.executor}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {grupo.linhas.length} {grupo.linhas.length === 1 ? 'produto' : 'produtos'}
+            {' · '}
+            {grupo.clientes} {grupo.clientes === 1 ? 'cliente' : 'clientes'}
+          </span>
+          {grupo.vencidas > 0 && (
+            <span className="text-sm font-medium text-destructive">
+              {grupo.vencidas} vencido{grupo.vencidas === 1 ? '' : 's'}
+            </span>
+          )}
+        </button>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+/** Uma linha: um produto contratado. */
+function LinhaDaTabela({ linha }: { linha: LinhaDoControle }) {
+  return (
+    <TableRow key={linha.chave} className={cn(!linha.daArea && 'text-muted-foreground')}>
+      <TableCell className="whitespace-normal break-words font-medium">
+        {linha.clienteNome}
+        {!linha.clienteAtivo && (
+          <span className="ml-2 text-xs font-normal text-muted-foreground">(inativo)</span>
+        )}
+      </TableCell>
+      <TableCell className="whitespace-nowrap text-sm">{linha.numeroOs || '—'}</TableCell>
+      <TableCell>
+        <Badge
+          variant="outline"
+          className={cn(
+    'whitespace-nowrap font-normal',
+    // A área de fora não ganha cor: tingir as duas faria a linha
+    // da TAX competir com a situação, que é o estado do trabalho.
+    linha.daArea && 'border-primary/20 bg-primary/5 text-primary',
+          )}
+        >
+          {linha.area}
+        </Badge>
+      </TableCell>
+      <TableCell className="whitespace-normal break-words text-sm">
+        {linha.produtoNome}
+      </TableCell>
+      <TableCell>
+        <Situacao situacao={linha.situacao} />
+      </TableCell>
+      <TableCell className="whitespace-normal break-words text-sm">
+        {linha.lideres.length > 0 ? (
+          linha.lideres.join(', ')
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell className="text-sm">
+        {linha.regiao ? (
+          <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="cursor-default">{linha.regiao}</span>
+    </TooltipTrigger>
+    <TooltipContent>{getRegiaoLabel(linha.regiao)}</TooltipContent>
+          </Tooltip>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell className="whitespace-nowrap text-sm">{data(linha.dataInicio)}</TableCell>
+      <TableCell className="text-sm">
+        <Prazo linha={linha} />
+      </TableCell>
+      <TableCell className="whitespace-normal break-words text-sm">
+        <Observacao texto={linha.observacoes} />
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export function ControleDeProjetosTabela({
-  linhas,
+  grupos,
   ordem,
   onOrdenar,
+  abertos,
+  onAlternar,
 }: {
-  linhas: LinhaDoControle[];
+  grupos: GrupoDoControle[];
   ordem: OrdemDoControle;
   onOrdenar: (campo: ColunaDoControle) => void;
+  /** Chaves de grupo abertas. O executor `''` é o grupo sem responsável. */
+  abertos: Set<string>;
+  onAlternar: (executor: string) => void;
 }) {
-  if (linhas.length === 0) {
+  if (grupos.length === 0) {
     return (
       <div className="rounded-lg border border-dashed py-12 text-center">
         <p className="text-sm text-muted-foreground">
@@ -178,7 +300,7 @@ export function ControleDeProjetosTabela({
             {coluna('area', 'Área', '6%')}
             {coluna('produto', 'Produto', '14%')}
             {coluna('situacao', 'Situação', '9%')}
-            {coluna('responsaveis', 'Responsável', '12%')}
+            {coluna('gestor', 'Gestor', '12%')}
             {coluna('regiao', 'Região', '6%')}
             {coluna('inicio', 'Início', '8%', 'whitespace-nowrap')}
             {coluna('prazo', 'Prazo', '8%', 'whitespace-nowrap')}
@@ -186,64 +308,21 @@ export function ControleDeProjetosTabela({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {linhas.map((linha) => (
-            <TableRow key={linha.chave} className={cn(!linha.daArea && 'text-muted-foreground')}>
-              <TableCell className="whitespace-normal break-words font-medium">
-                {linha.clienteNome}
-                {!linha.clienteAtivo && (
-                  <span className="ml-2 text-xs font-normal text-muted-foreground">(inativo)</span>
-                )}
-              </TableCell>
-              <TableCell className="whitespace-nowrap text-sm">{linha.numeroOs || '—'}</TableCell>
-              <TableCell>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    'whitespace-nowrap font-normal',
-                    // A área de fora não ganha cor: tingir as duas faria a linha
-                    // da TAX competir com a situação, que é o estado do trabalho.
-                    linha.daArea && 'border-primary/20 bg-primary/5 text-primary',
-                  )}
-                >
-                  {linha.area}
-                </Badge>
-              </TableCell>
-              <TableCell className="whitespace-normal break-words text-sm">
-                {linha.produtoNome}
-              </TableCell>
-              <TableCell>
-                <Situacao situacao={linha.situacao} />
-              </TableCell>
-              <TableCell className="whitespace-normal break-words text-sm">
-                {linha.responsaveis.length > 0 ? (
-                  linha.responsaveis.join(', ')
-                ) : (
-                  // Produto contratado sem projeto criado. É a distância entre o
-                  // que foi vendido e o que alguém está tocando.
-                  <span className="text-muted-foreground">Sem projeto</span>
-                )}
-              </TableCell>
-              <TableCell className="text-sm">
-                {linha.regiao ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-default">{linha.regiao}</span>
-                    </TooltipTrigger>
-                    <TooltipContent>{getRegiaoLabel(linha.regiao)}</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
-              </TableCell>
-              <TableCell className="whitespace-nowrap text-sm">{data(linha.dataInicio)}</TableCell>
-              <TableCell className="text-sm">
-                <Prazo linha={linha} />
-              </TableCell>
-              <TableCell className="whitespace-normal break-words text-sm">
-                <Observacao texto={linha.observacoes} />
-              </TableCell>
-            </TableRow>
-          ))}
+          {grupos.map((grupo) => {
+            const aberto = abertos.has(grupo.executor);
+            return (
+              <Fragment key={grupo.executor || '__sem__'}>
+                <CabecaDoGrupo
+                  grupo={grupo}
+                  aberto={aberto}
+                  onAlternar={() => onAlternar(grupo.executor)}
+                  colunas={COLUNAS}
+                />
+                {aberto &&
+                  grupo.linhas.map((linha) => <LinhaDaTabela key={linha.chave} linha={linha} />)}
+              </Fragment>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

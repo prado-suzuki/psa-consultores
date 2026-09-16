@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   FILTROS_VAZIOS,
   ORDEM_PADRAO,
+  agruparPorExecutor,
   filtrarControle,
   montarControleDeProjetos,
   opcoesDoControle,
@@ -141,13 +142,8 @@ describe('montarControleDeProjetos', () => {
         }),
       ],
     );
-    expect(linhas.find((l) => l.produtoNome === 'Governança')?.responsaveis).toEqual([
-      'Elvis Souza',
-      'Fernando Prado',
-    ]);
-    expect(linhas.find((l) => l.produtoNome === 'Planejamento Tributário')?.responsaveis).toEqual([
-      'Monica Matunaga',
-    ]);
+    expect(linhas.find((l) => l.produtoNome === 'Governança')?.executores).toEqual(['Elvis Souza']);
+    expect(linhas.find((l) => l.produtoNome === 'Planejamento Tributário')?.executores).toEqual(['Monica Matunaga']);
   });
 
   it('junta sem repetir quando o par OS/produto tem mais de um projeto', () => {
@@ -160,13 +156,15 @@ describe('montarControleDeProjetos', () => {
         projeto({ id: 'proj-2', leader_id: 'u-2', responsible_id: 'u-2' }),
       ],
     );
-    expect(linhas[0].responsaveis).toEqual(['Elvis Souza', 'Fernando Prado']);
+    expect(linhas[0].executores).toEqual(['Elvis Souza']);
+    expect(linhas[0].lideres).toEqual(['Elvis Souza', 'Fernando Prado']);
     expect(linhas[0].projetos).toBe(2);
   });
 
   it('deixa a coluna vazia no produto sem projeto', () => {
     const linhas = montar([ordem()], [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }]);
-    expect(linhas[0].responsaveis).toEqual([]);
+    expect(linhas[0].executores).toEqual([]);
+    expect(linhas[0].lideres).toEqual([]);
     expect(linhas[0].projetos).toBe(0);
   });
 
@@ -435,5 +433,72 @@ describe('ordenarControle', () => {
     const antes = tres.map((l) => l.chave);
     ordenarControle(tres, { campo: 'prazo', ascendente: false });
     expect(tres.map((l) => l.chave)).toEqual(antes);
+  });
+});
+
+describe('agruparPorExecutor', () => {
+  const linhas = montar(
+    [ordem(), ordem({ id: 'os-2', id_cliente: 'c-2' })],
+    [
+      { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+      { ordem_servico_id: 'os-1', produto_segmento_id: 'p-suc' },
+      { ordem_servico_id: 'os-1', produto_segmento_id: 'p-trib' },
+      { ordem_servico_id: 'os-2', produto_segmento_id: 'p-gov' },
+    ],
+    [
+      projeto({ id: 'proj-1', produto_segmento_id: 'p-gov', responsible_id: 'u-2' }),
+      projeto({ id: 'proj-2', produto_segmento_id: 'p-suc', responsible_id: 'u-2' }),
+      projeto({
+        id: 'proj-3',
+        produto_segmento_id: 'p-trib',
+        responsible_id: 'u-3',
+        leader_id: null,
+      }),
+    ],
+  );
+
+  it('põe o grupo sem responsável PRIMEIRO, porque é fila de delegação', () => {
+    const grupos = agruparPorExecutor(linhas);
+    expect(grupos[0].semResponsavel).toBe(true);
+    expect(grupos[0].linhas).toHaveLength(1);
+  });
+
+  it('ordena os demais do maior para o menor', () => {
+    const grupos = agruparPorExecutor(linhas);
+    expect(grupos.slice(1).map((g) => `${g.executor}:${g.linhas.length}`)).toEqual([
+      'Elvis Souza:2',
+      'Monica Matunaga:1',
+    ]);
+  });
+
+  it('conta clientes distintos e vencidas por grupo', () => {
+    const grupos = agruparPorExecutor(linhas);
+    expect(grupos.find((g) => g.executor === 'Elvis Souza')?.clientes).toBe(1);
+    expect(grupos.every((g) => g.vencidas === 0)).toBe(true);
+  });
+
+  it('põe o produto de dois executores nos dois grupos', () => {
+    // A soma passa do total de propósito: a pergunta é "o que é meu", e uma
+    // linha de duas pessoas é de cada uma delas.
+    const doisDonos = montar(
+      [ordem()],
+      [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
+      [
+        projeto({ id: 'proj-1', responsible_id: 'u-2' }),
+        projeto({ id: 'proj-2', responsible_id: 'u-3' }),
+      ],
+    );
+    const grupos = agruparPorExecutor(doisDonos);
+    expect(grupos.map((g) => g.executor).sort()).toEqual(['Elvis Souza', 'Monica Matunaga']);
+    expect(grupos.every((g) => g.linhas.length === 1)).toBe(true);
+  });
+
+  it('separa gestor de executor, que na planilha são duas colunas', () => {
+    // Há duas linhas de Governança (os-1 e os-2); a de os-1 é a que tem projeto.
+    const governanca = linhas.find(
+      (l) => l.produtoNome === 'Governança' && l.osId === 'os-1',
+    );
+    expect(governanca?.executores).toEqual(['Elvis Souza']);
+    expect(governanca?.lideres).toEqual(['Fernando Prado']);
   });
 });
