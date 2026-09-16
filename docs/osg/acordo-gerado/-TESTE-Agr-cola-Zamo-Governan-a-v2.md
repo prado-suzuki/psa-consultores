@@ -164,23 +164,7 @@ III.DAS DISPOSIÇÕES ACORDADAS:
 
 6.2.3 Todos os custos e despesas incorridos na preparação e efetivação da alienação, inclusive honorários legais e profissionais suportados pelo QUOTISTA ALIENANTE, serão rateados pelos demais QUOTISTAS que exerceram o direito de Tag Along na proporção de suas QUOTAS que forem objeto do exercício deste direito e serão pagos em até 30 (trinta) dias contados da manifestação e interesse em exercer o direito tratado nesta cláusula, salvo se outro prazo tiver sido contratado pelo QUOTISTA ALIENANTE.
 
-6.3 Os QUOTISTAS que, em conjunto, sejam titulares de, no mínimo, a maioria das QUOTAS da ZAMO e que desejarem alienar todas as QUOTAS da SOCIEDADE a um só QUOTISTA ou a TERCEIROS (se autorizado nos termos deste ACORDO), terão o direito de exigir que os demais QUOTISTAS alienem, em conjunto com aqueles primeiros, a totalidade das QUOTAS que estes últimos sejam titulares (Cláusula de Drag along); desde que:
-
-(I) o preço de cada QUOTA não seja inferior ao VALOR DA QUOTA e o índice de atualização objeto da negociação não seja considerado desfavorável se comparado ao ÍNDICE DE ATUALIZAÇÃO;
-
-(II) o QUOTISTA que se viu obrigado a alienar suas QUOTAS possa escolher receber o preço que lhe for devido dentre os dois modos: (a) no prazo aplicável a OPÇÃO DE VENDA; ou, (b) no prazo contratual estabelecido pelo QUOTISTA que exerceu a cláusula de Drag Along com o TERCEIRO e/ou com o QUOTISTA adquirente das QUOTAS.
-
-6.3.1 Para o exercício do direito de Drag Along, os QUOTISTAS que desejarem alienar as QUOTAS deverão enviar aos demais QUOTISTAS, em conjunto com a NOTIFICAÇÃO DE OFERTA, a informação de que estão exercendo este direito.
-
-6.3.2 Os outros QUOTISTAS deverão responder se desejam exercer o DIREITO DE PREFERÊNCIA que possuem por força do disposto na Cláusula Quinta. No caso de resposta negativa ou decadência do direito, os QUOTISTAS que exerceram o direito de Drag Along poderão efetivar a venda da totalidade das QUOTAS da ZAMO nas condições previstas naquela notificação, obrigando aos demais QUOTISTAS sobre cujas QUOTAS o direito de Drag Along foi exercido a praticar todos os atos necessários à efetivação da alienação de suas QUOTAS.
-
-6.3.3 Se qualquer QUOTISTA obrigado a alienar suas QUOTAS por força do direito de Drag Along não realizar a transferência da propriedade dessas QUOTAS, os QUOTISTAS que exercerem o direito poderão, inclusive isoladamente, consignar extrajudicialmente o preço das QUOTAS, conforme o caso, e requerer uma decisão arbitral que produza o mesmo efeito de contrato de compra e venda e substitua a assinatura daquele QUOTISTA no contrato social da ZAMO.
-
-6.3.4 O depósito na conta objeto da consignação extrajudicial que trata o item anterior será exercido até que o juízo arbitral indique outra conta bancária, ficando assegurado aos QUOTISTAS que discordarem do valor a ser pago previsto para o direito de Drag Along sacarem os valores consignados extrajudicialmente, bem como receber eventuais valores posteriores que lhe seriam devidos, até que definido o preço da QUOTA em procedimento específico para revisão desses valores.
-
-6.3.5 O procedimento para revisão descrito anteriormente e/ou a impugnação da alienação serão realizados nos termos da Cláusula de Solução de Litígios previstas neste ACORDO.
-
-6.3.6 O QUOTISTA cujas QUOTAS recair o direito de Drag Along e Tag Along deverá cumprir a CLÁUSULA DE NÃO CONCORRÊNCIA, se assim for exigido pelo comprador ou novo sócio da ZAMO.
+6.2.4 O QUOTISTA cujas QUOTAS recair o direito de Drag Along e Tag Along deverá cumprir a CLÁUSULA DE NÃO CONCORRÊNCIA, se assim for exigido pelo comprador ou novo sócio da ZAMO.
 
 *CLÁUSULA SÉTIMA – Da eventual constituição de empresas pelos QUOTISTAS para integralização das QUOTAS de sua propriedade (“holdings familiares”)*
 

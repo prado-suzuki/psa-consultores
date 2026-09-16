@@ -130,7 +130,7 @@ describe('a geração do Acordo de ponta a ponta', () => {
   });
 });
 
-describe('o mecanismo que DESLIGA clausula', () => {
+describe('os mecanismos que DESLIGAM texto', () => {
   /*
    * ATE HOJE NENHUMA RESPOSTA DO CADASTRO TIRAVA CLAUSULA DO DOCUMENTO.
    *
@@ -139,29 +139,71 @@ describe('o mecanismo que DESLIGA clausula', () => {
    * flag nenhuma. Do outro, `avaliarFlags` so recebia a EMPRESA como fonte, e
    * nenhum campo do acordo chegava ate ela.
    *
-   * A nao concorrencia e o caso testado porque o texto dela E SEPARAVEL: sao 7
-   * blocos, quatro definicoes na Clausula Primeira e tres regras, e nenhum
-   * carrega outro assunto junto. Desligar remove os sete inteiros.
+   * O MAPA NAO SAI DO TITULO DA CLAUSULA. A Clausula Sexta se chama "(Lock-up)"
+   * e o corpo dela tem tres mecanismos: um item de lock-up, quatro de tag along
+   * e oito de drag along. Foi preciso ler os 266.
    */
-  const comFlag = blocos.filter((b) => b.flagsRequeridas?.length);
+  const TODAS = [
+    'acordo_nao_concorrencia', 'acordo_tem_lock_up', 'acordo_tem_tag_along',
+    'acordo_tem_drag_along', 'acordo_opcao_venda_prevista',
+    'acordo_opcao_compra_prevista', 'acordo_tem_preferencia',
+    'acordo_reuniao_previa_obrigatoria', 'acordo_por_arbitragem',
+  ];
 
-  it('sao 7 blocos sob a flag da nao concorrencia, e so eles', () => {
-    expect(comFlag).toHaveLength(7);
-    expect(new Set(comFlag.flatMap((b) => b.flagsRequeridas!)))
-      .toEqual(new Set(['acordo_nao_concorrencia']));
+  it('sao nove mecanismos governando 60 blocos, e o resto do documento e fixo', () => {
+    const porFlag = new Map<string, number>();
+    for (const b of blocos) for (const f of b.flagsRequeridas ?? []) {
+      porFlag.set(f, (porFlag.get(f) ?? 0) + 1);
+    }
+    expect([...porFlag.keys()].sort()).toEqual([...TODAS].sort());
+    expect(Object.fromEntries(porFlag)).toEqual({
+      acordo_nao_concorrencia: 7, acordo_tem_lock_up: 1, acordo_tem_tag_along: 4,
+      acordo_tem_drag_along: 8, acordo_opcao_venda_prevista: 1,
+      acordo_opcao_compra_prevista: 6, acordo_tem_preferencia: 18,
+      acordo_reuniao_previa_obrigatoria: 10, acordo_por_arbitragem: 5,
+    });
+    expect(blocos.filter((b) => !b.flagsRequeridas?.length)).toHaveLength(206);
   });
 
-  it('ligada, os 7 entram; desligada, saem os 7 e mais nada', () => {
-    const ligada = gerarBlocos(template, contextoDe(ENTRADA), ['acordo_nao_concorrencia']);
-    const desligada = gerarBlocos(template, contextoDe(ENTRADA), []);
-    expect(ligada).toHaveLength(266);
-    expect(desligada).toHaveLength(259);
+  it('cada mecanismo tira SO os blocos dele, e o documento continua de pe', () => {
+    const tudoLigado = gerarBlocos(template, contextoDe(ENTRADA), TODAS);
+    expect(tudoLigado).toHaveLength(266);
 
-    const texto = desligada.map((b) => b.conteudo).join(String.fromCharCode(10));
-    // As frases que so existem se o mecanismo existe.
+    for (const flag of TODAS) {
+      const sem = gerarBlocos(template, contextoDe(ENTRADA), TODAS.filter((f) => f !== flag));
+      const quantos = blocos.filter((b) => b.flagsRequeridas?.includes(flag)).length;
+      /*
+       * Pode sair MAIS do que os blocos da flag: a clausula que perdeu todos os
+       * itens sai junto (`clausula-sem-corpo`), e e isso que impede o cabecalho
+       * "CLAUSULA DECIMA - Do direito de preferencia" de sobrar sozinho.
+       */
+      expect(sem.length, flag).toBeLessThanOrEqual(266 - quantos);
+      expect(sem.length, flag).toBeGreaterThan(200);
+      // O fecho com as assinaturas nunca sai, aconteca o que acontecer.
+      expect(sem[sem.length - 1].conteudo, flag).toContain('TESTEMUNHAS');
+    }
+  });
+
+  it('desligar a preferencia leva as duas clausulas inteiras, cabecalho incluido', () => {
+    const sem = gerarBlocos(
+      template, contextoDe(ENTRADA), TODAS.filter((f) => f !== 'acordo_tem_preferencia'),
+    );
+    const texto = sem.map((b) => b.conteudo).join(String.fromCharCode(10));
+    // As duas clausulas da preferencia somem, e a numeracao fecha sem buraco.
+    const clausulas = texto.match(/^\*CLÁUSULA [^*]+\*/gm) ?? [];
+    expect(clausulas).toHaveLength(24);
+    expect(texto).not.toContain('DIREITO DE PREFERÊNCIA para os casos de alienação');
+    expect(clausulas[clausulas.length - 1]).toContain('VIGÉSIMA QUARTA');
+  });
+
+  it('desligar a nao concorrencia tira os sete e mantem as 26 clausulas', () => {
+    const sem = gerarBlocos(
+      template, contextoDe(ENTRADA), TODAS.filter((f) => f !== 'acordo_nao_concorrencia'),
+    );
+    expect(sem).toHaveLength(259);
+    const texto = sem.map((b) => b.conteudo).join(String.fromCharCode(10));
     expect(texto).not.toContain('CLÁUSULA DE NÃO CONCORRÊNCIA');
     expect(texto).not.toContain('ATIVIDADE(S) CONCORRENTE(S):');
-    // E o resto do documento continua de pe, com as 26 clausulas.
     expect(texto.match(/^\*CLÁUSULA /gm)).toHaveLength(26);
   });
 });
