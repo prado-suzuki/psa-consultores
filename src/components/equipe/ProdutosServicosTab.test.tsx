@@ -205,6 +205,91 @@ describe('lista de serviços', () => {
     expect(screen.queryByText('Levantar a estrutura societária')).not.toBeInTheDocument();
   });
 
+  /*
+   * OS VINCULADOS NO TOPO, e a razão de o corte ser um RETRATO.
+   *
+   * O pedido veio de um produto com 5 serviços num cluster de 40: os cinco
+   * ficavam espalhados pela lista e só se achavam caixa por caixa. O que estes
+   * três testes protegem não é o topo — é o topo SEM a lista pular embaixo da
+   * mão de quem marca, que é o motivo pelo qual a lista corrida tinha ganhado
+   * do agrupamento em 27/08.
+   */
+  describe('vinculados no topo', () => {
+    /** Passa a existir um vínculo do produto `p-cc` com o serviço `s-21`. */
+    const vincularAnalise = () => {
+      dados.vinculos = [...dados.vinculos, {
+        id: 'v-cc-21',
+        produto_segmento_id: 'p-cc',
+        servico_prestado_id: 's-21',
+        produto_segmento: { codigo: '03-CC', nome: CONTABIL },
+        servicos_prestados: { nome: '2.1.Análise das demonstrações financeiras' },
+      }];
+    };
+
+    it('abre com o que o produto já tem, e nomeia os dois blocos', async () => {
+      render(<ProdutosServicosTab />);
+      await abrirProduto(userEvent.setup(), CONTABIL);
+
+      // "1.2" à frente de "1.1": dentro de cada bloco a ordem do código continua,
+      // mas o bloco vem antes dela.
+      expect(servicosNaTela()).toEqual([
+        'Revisão de plano de contas',
+        'Apoio na implantação de práticas contábeis',
+        'Décimo item da primeira',
+        'Análise das demonstrações financeiras',
+        'Outros',
+      ]);
+      expect(screen.getByText('Vinculados')).toBeInTheDocument();
+      expect(screen.getByText('Faltam vincular')).toBeInTheDocument();
+    });
+
+    it('vincular não sobe a linha: a lista fica onde está', async () => {
+      const { rerender } = render(<ProdutosServicosTab />);
+      await abrirProduto(userEvent.setup(), CONTABIL);
+
+      vincularAnalise();
+      rerender(<ProdutosServicosTab />);
+
+      // Ao vivo, "Análise" teria saltado para a segunda posição. Ela fica no
+      // lugar, marcada — é o que impede a lista de se mexer a cada clique.
+      expect(servicosNaTela()).toEqual([
+        'Revisão de plano de contas',
+        'Apoio na implantação de práticas contábeis',
+        'Décimo item da primeira',
+        'Análise das demonstrações financeiras',
+        'Outros',
+      ]);
+      expect(screen.getByRole('checkbox', {
+        name: 'Desvincular Análise das demonstrações financeiras',
+      })).toBeChecked();
+    });
+
+    // O outro sentido do teste acima: o congelamento não é permanente. Sem isto,
+    // "não sobe a linha" passaria com uma lista que nunca mais se reorganiza.
+    it('reassenta ao trocar de produto e ao mudar a busca', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(<ProdutosServicosTab />);
+      await abrirProduto(user, CONTABIL);
+      vincularAnalise();
+      rerender(<ProdutosServicosTab />);
+
+      await abrirProduto(user, CHA);
+      await abrirProduto(user, CONTABIL);
+
+      expect(servicosNaTela().slice(0, 2)).toEqual([
+        'Revisão de plano de contas',
+        'Análise das demonstrações financeiras',
+      ]);
+
+      // E a busca: digitar reassenta sem esperar troca de produto.
+      await user.type(screen.getByPlaceholderText('Buscar serviço...'), 'de');
+      expect(servicosNaTela().slice(0, 2)).toEqual([
+        'Revisão de plano de contas',
+        'Análise das demonstrações financeiras',
+      ]);
+    });
+  });
+
   it('a busca recorta a lista sem mexer na ordem', async () => {
     const user = userEvent.setup();
     render(<ProdutosServicosTab />);

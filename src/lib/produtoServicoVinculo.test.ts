@@ -7,7 +7,7 @@ import {
   filtrarProdutos,
   filtrarServicos,
   normalizarTexto,
-  separarVisiveisParaLote,
+  separarPorVinculo,
   servicosACopiar,
 } from './produtoServicoVinculo';
 
@@ -109,11 +109,22 @@ describe('agruparPorCluster', () => {
   });
 });
 
-describe('separarVisiveisParaLote', () => {
+describe('separarPorVinculo', () => {
   it('separa o que falta vincular do que já está vinculado', () => {
-    const { paraVincular, jaVinculados } = separarVisiveisParaLote(servicos, new Set(['s-1']));
+    const { paraVincular, jaVinculados } = separarPorVinculo(servicos, new Set(['s-1']));
     expect(paraVincular.map(s => s.id)).toEqual(['s-2', 's-3', 's-4']);
     expect(jaVinculados.map(s => s.id)).toEqual(['s-1']);
+  });
+
+  // Os dois lados viram os dois blocos da lista, e é a ordem de entrada que diz
+  // qual serviço vem antes dentro de cada um. Ordenar aqui de novo — por id, por
+  // nome, por qualquer coisa — jogaria fora a ordem do código.
+  it('preserva a ordem de entrada dentro de cada lado', () => {
+    const { paraVincular, jaVinculados } = separarPorVinculo(
+      [...servicos].reverse(), new Set(['s-1', 's-3']),
+    );
+    expect(jaVinculados.map(s => s.id)).toEqual(['s-3', 's-1']);
+    expect(paraVincular.map(s => s.id)).toEqual(['s-4', 's-2']);
   });
 });
 

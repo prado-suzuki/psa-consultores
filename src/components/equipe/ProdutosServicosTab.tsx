@@ -22,7 +22,7 @@ import CopiarDeProdutoDialog from '@/components/equipe/produto-servico/CopiarDeP
 import { cn } from '@/lib/utils';
 import {
   TODOS_CLUSTERS, candidatosParaCopia, contarVinculosPorProduto, filtrarProdutos,
-  filtrarServicos, servicosACopiar,
+  filtrarServicos, separarPorVinculo, servicosACopiar,
 } from '@/lib/produtoServicoVinculo';
 import {
   contarVinculosPorServico, dividirNomeServico, ordenarPorCodigoDeServico,
@@ -46,7 +46,8 @@ const FORM_FECHADO = { aberto: false, alvo: null };
  *
  * Esquerda: os produtos, na casca `ListaMestreDetalhe` (a mesma do cadastro de
  * cliente, agora em moldura de página). Centro: os serviços do produto aberto,
- * em seções recolhíveis. Direita: o serviço aberto e — o que importa — em quais
+ * em dois blocos — os vinculados no topo, os que faltam abaixo, cada um na ordem
+ * do código. Direita: o serviço aberto e — o que importa — em quais
  * outros produtos ele vive, com o vínculo reverso ali mesmo.
  *
  * O vínculo não é decorativo: é ele que define quais serviços aparecem ao
@@ -177,8 +178,35 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
   ), [servicos, filtroServico, idsVinculados, emAndamento, usoPorServico]);
 
   /**
-   * DUAS listas planas, ordenadas pelo código: a do cluster do produto e a dos
-   * outros.
+   * O RETRATO dos vínculos, e por que a lista não se reordena a cada clique.
+   *
+   * Os serviços do produto vão para o topo (bloco "Vinculados"), e os do cluster
+   * que faltam vêm abaixo. Se essa divisão olhasse o vínculo AO VIVO, cada
+   * clique na caixa — que grava na hora — mandaria a linha para o outro bloco:
+   * ela sai de baixo do cursor e a próxima sobe uma posição. Marcar dez serviços
+   * em sequência, que é o trabalho desta tela, ficaria pior do que na lista
+   * corrida que havia antes.
+   *
+   * Então quem decide o bloco é o retrato do momento em que a lista SE ASSENTOU:
+   * ao abrir o produto e a cada mudança de busca ou de filtro. Marcar e desmarcar
+   * troca a caixa e não move nada; a lista se reorganiza no próximo assentamento.
+   *
+   * Em `ref` e calculado no render, não em `useEffect`: com efeito, o primeiro
+   * render do produto novo sairia com o retrato do produto anterior — a lista
+   * apareceria na ordem errada e se recolocaria no frame seguinte.
+   */
+  const chaveDeAssentamento = [
+    produtoSelecionado?.id ?? '', filtroServico.busca, filtroServico.modo,
+  ].join('|');
+  const retrato = useRef({ chave: '', ids: new Set<string>() });
+  if (retrato.current.chave !== chaveDeAssentamento) {
+    retrato.current = { chave: chaveDeAssentamento, ids: new Set(idsVinculados) };
+  }
+  const vinculadosAoAssentar = retrato.current.ids;
+
+  /**
+   * TRÊS listas planas, todas ordenadas pelo código: os serviços vinculados ao
+   * produto, os do cluster dele que faltam, e os de outros clusters.
    *
    * Substituiu o agrupamento em dois níveis (cluster › seção numérica) em
    * 27/08/2026. O corte por cluster ficou, mas virou uma decisão de VISIBILIDADE
@@ -193,19 +221,26 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
   const listasDeServico = useMemo(() => {
     const emOrdem = ordenarPorCodigoDeServico(servicosVisiveis, (s) => s.nome);
     const clusterDoProduto = produtoSelecionado?.cluster_id ?? null;
-    if (!clusterDoProduto) return { doCluster: emOrdem, outros: [] as ServicoNaLista[] };
-    return {
-      doCluster: emOrdem.filter((s) => s.clusterId === clusterDoProduto),
-      outros: emOrdem.filter((s) => s.clusterId !== clusterDoProduto),
-    };
-  }, [servicosVisiveis, produtoSelecionado?.cluster_id]);
+    const doCluster = clusterDoProduto
+      ? emOrdem.filter((s) => s.clusterId === clusterDoProduto)
+      : emOrdem;
+    const outros = clusterDoProduto
+      ? emOrdem.filter((s) => s.clusterId !== clusterDoProduto)
+      : ([] as ServicoNaLista[]);
+    // Os outros clusters NÃO se dividem em dois blocos: eles moram atrás de um
+    // botão justamente porque não é neles que se mexe, e um produto raramente
+    // tem vínculo fora do próprio cluster.
+    const { jaVinculados, paraVincular } = separarPorVinculo(doCluster, vinculadosAoAssentar);
+    return { vinculados: jaVinculados, faltam: paraVincular, outros };
+  }, [servicosVisiveis, produtoSelecionado?.cluster_id, vinculadosAoAssentar]);
 
-  // Ordem de exibição — é dela que sai a faixa do shift+clique. Os outros
-  // clusters só entram quando estão abertos: shift+clique não pode saltar para
-  // uma linha que a pessoa não vê.
+  // Ordem de exibição — é dela que sai a faixa do shift+clique, e ela tem de ser
+  // a ordem dos BLOCOS, não a do código: a faixa segue o que a pessoa vê. Os
+  // outros clusters só entram quando estão abertos, pelo mesmo motivo.
   const idsVisiveis = useMemo(
     () => [
-      ...listasDeServico.doCluster.map((s) => s.id),
+      ...listasDeServico.vinculados.map((s) => s.id),
+      ...listasDeServico.faltam.map((s) => s.id),
       ...(mostrarOutrosClusters ? listasDeServico.outros.map((s) => s.id) : []),
     ],
     [listasDeServico, mostrarOutrosClusters],
@@ -402,7 +437,8 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
           produto={produtoSelecionado}
           produtos={produtosVisiveis}
           onSelecionarProduto={setProdutoEscolhidoId}
-          doCluster={listasDeServico.doCluster}
+          vinculados={listasDeServico.vinculados}
+          faltam={listasDeServico.faltam}
           outrosClusters={listasDeServico.outros}
           mostrarOutros={mostrarOutrosClusters}
           onMostrarOutros={setMostrarOutrosClusters}
