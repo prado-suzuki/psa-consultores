@@ -38,7 +38,11 @@ const FERRAMENTAS: FerramentaOsg[] = [
   {
     id: 'projetos-tarefas',
     titulo: 'Projetos e tarefas',
-    descricao: 'Execução organizada por OS, projeto, tarefa e subtarefa.',
+    // Primeira ocorrência da sigla NESTA tela, então ela vem expandida: o card
+    // Gerencial, logo abaixo, já pode usar "OS" solto. É o item §3 do PDF de
+    // ajustes ("Ordem de Serviço (OS)" na primeira vez, "OS" depois), que vale
+    // para o produto inteiro e não só para a Tax.
+    descricao: 'Execução organizada por Ordem de Serviço (OS), projeto, tarefa e subtarefa.',
     path: '/equipe/osg/projetos/cadastro',
     icon: <FolderKanban className="h-5 w-5 text-osg-600" />,
   },
