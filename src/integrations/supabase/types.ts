@@ -10176,6 +10176,7 @@ export type Database = {
           repete_colecao: string | null
           tipo: string
           tipo_derivacao: string | null
+          titulo_documento: string | null
           updated_at: string
           updated_by: string | null
           variante_ordem: number | null
@@ -10199,6 +10200,7 @@ export type Database = {
           repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
+          titulo_documento?: string | null
           updated_at?: string
           updated_by?: string | null
           variante_ordem?: number | null
@@ -10222,6 +10224,7 @@ export type Database = {
           repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
+          titulo_documento?: string | null
           updated_at?: string
           updated_by?: string | null
           variante_ordem?: number | null
