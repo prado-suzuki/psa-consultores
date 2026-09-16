@@ -402,6 +402,33 @@ describe('editar o que a tela mostra', () => {
       .toHaveTextContent('editar:2.1.Análise das demonstrações financeiras');
   });
 
+  /*
+   * O EMBRULHO DO ÍCONE NÃO PODE SER `span`, e nenhum outro tipo de verificação
+   * pega isso: o `SelectTrigger` carrega `[&>span]:line-clamp-1`, cuja regra
+   * aplica `display: -webkit-box` + `box-orient: vertical` em todo `span` filho
+   * direto. Ela tem especificidade maior que `.flex` e vem depois no CSS gerado
+   * (conferido no bundle de dev em 16/09/2026), então ganha sempre: os filhos
+   * deixam de ficar lado a lado e o "+" empilha acima do texto, dentro de uma
+   * caixa de 32px.
+   *
+   * Em jsdom não há CSS para medir — o que dá para travar é a ESTRUTURA, que é
+   * onde o defeito nasce. Sem este teste, trocar `div` por `span` volta a
+   * quebrar a caixa sem erro de build, de tipo nem de lint.
+   */
+  it('o gatilho de vincular não embrulha o ícone num span', async () => {
+    const user = userEvent.setup();
+    render(<ProdutosServicosTab />);
+    await abrirProduto(user, CHA);
+    await user.click(screen.getByText('Análise das demonstrações financeiras'));
+
+    const gatilho = screen.getByLabelText('Vincular a outro produto');
+    const spansFlex = [...gatilho.children].filter(
+      (filho) => filho.tagName === 'SPAN' && filho.className.includes('flex'),
+    );
+    expect(spansFlex).toHaveLength(0);
+    expect(screen.getByText('Vincular a outro produto')).toBeInTheDocument();
+  });
+
   // O detalhe virou DIÁLOGO em 16/09/2026 (era painel lateral de altura
   // inteira). Painel podia ficar aberto atrás do formulário; diálogo sobre
   // diálogo empilha dois focos presos e dois overlays.

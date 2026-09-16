@@ -6,7 +6,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { listRowClasses, listRowTitleClasses } from '@/lib/listRowStates';
 import { dividirNomeServico } from '@/lib/produtoServicoNomes';
+import { cn } from '@/lib/utils';
 import type { ServicoNaLista } from './ServicosLista';
 
 export interface ProdutoVinculado {
@@ -115,15 +117,34 @@ export default function ServicoDetalhePanel({
         ) : (
           <ul className="space-y-1">
             {vinculados.map((produto) => (
+              /*
+                A caixa é a LINHA VINCULADA do `listRowStates`, e não uma borda
+                escrita à mão aqui: é o mesmo vocabulário das linhas da lista ao
+                lado, e estas aqui são, por definição, vínculos — a borda de
+                acento é exatamente o que o padrão reserva para esse estado.
+
+                O código perdeu a largura fixa de 52px. Com `text-center` dentro
+                dela, um código de duas letras ("CC") abria um vão até o nome, e
+                a coluna só existia para alinhar nomes numa lista que em produção
+                tem no máximo 3 linhas.
+              */
               <li
                 key={produto.id}
-                className="flex items-center gap-2 rounded-md border px-2 py-1.5"
+                className={cn(
+                  listRowClasses({ vinculado: true }),
+                  'items-center gap-2 py-1 pr-1',
+                )}
               >
                 <Link2 className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
-                <span className="w-[52px] shrink-0 truncate font-mono text-[11px] text-muted-foreground">
+                <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
                   {produto.codigo || '—'}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[13px] text-foreground">
+                <span
+                  className={cn(
+                    'min-w-0 flex-1 truncate text-[13px]',
+                    listRowTitleClasses({ vinculado: true }),
+                  )}
+                >
                   {produto.nome || '(sem nome)'}
                 </span>
                 <Button
@@ -143,11 +164,24 @@ export default function ServicoDetalhePanel({
         {disponiveis.length > 0 && (
           <div className="mt-2">
             <Select value="" onValueChange={onVincular}>
-              <SelectTrigger className="h-8 text-xs" aria-label="Vincular a outro produto">
-                <span className="flex items-center gap-1.5 text-muted-foreground">
-                  <Plus className="h-3.5 w-3.5" />
+              {/*
+                O embrulho do ícone é `div`, e isso NÃO é indiferente: o
+                `SelectTrigger` carrega `[&>span]:line-clamp-1`, que aplica
+                `display: -webkit-box` com `box-orient: vertical` em todo `span`
+                filho direto. Num `span.flex`, o `display` da regra ganha — ela
+                tem especificidade maior e vem depois no CSS gerado (conferido no
+                bundle de dev em 16/09/2026) — e os filhos deixam de ficar lado a
+                lado: o "+" empilhava ACIMA do texto, dentro de uma caixa de
+                32px. `div` não casa com o seletor e o flex sobrevive.
+
+                Altura 9, como os campos da casa: o `h-8` que estava aqui já era
+                aperto antes do empilhamento.
+              */}
+              <SelectTrigger className="h-9 text-xs" aria-label="Vincular a outro produto">
+                <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+                  <Plus className="h-3.5 w-3.5 shrink-0" />
                   <SelectValue placeholder="Vincular a outro produto" />
-                </span>
+                </div>
               </SelectTrigger>
               <SelectContent>
                 {disponiveis.map((produto) => (
