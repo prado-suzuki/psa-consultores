@@ -157,6 +157,43 @@ evento virar aviso do sino, ele migra.
    no espaço.
 4. Nenhuma das duas mensagens contém senha.
 
+## Para cadastrar na Lista de Tarefas
+
+**Nome:** Aviso de usuário cadastrado: cópia para a coordenação e espaço no Chat
+
+**Descrição:**
+
+> O e-mail de usuário cadastrado hoje é endereçado ao Ricardo ("Olá, Ricardo!") e afirma que
+> o novo usuário está vinculado à área dele. Passa a ir para o grupo
+> `coordenacao@psaconsultores.com.br`, com texto sem nome próprio e sem a frase de área para
+> quem não tem área (6 dos 13 cadastros dos últimos 90 dias são acesso de portal de cliente).
+> Junto, um espaço no Google Chat recebe um aviso a cada cadastro, cerca de um por semana.
+> O e-mail nasce no front, em três pontos, e é montado dentro do fluxo do n8n: a maior parte
+> do trabalho é lá, e o repositório entra para mandar a equipe/área de verdade e a origem do
+> disparo, que hoje não distingue sandbox de produção. Detalhe, medição e aceite em
+> `docs/sprints/sprint-13/TAREFA_copia-do-usuario-cadastrado.md`.
+
+**Estimativa: 10 horas**, distribuídas assim:
+
+| item | onde | horas |
+|---|---|---|
+| T0 criar o grupo da coordenação | admin do Workspace | 0,25 |
+| T1 abrir o fluxo e registrar o que ele faz | n8n | 1 |
+| T2 + T5 texto sem nome próprio, e o assunto | n8n | 1,25 |
+| T3 payload com equipe e área resolvidas, nos três pontos de chamada, com teste | repositório | 3 |
+| T4 campo de origem do disparo | repositório | 1 |
+| T6 criar o espaço e o webhook | Workspace | 0,5 |
+| T7 + T8 nó do Chat, mensagem, e a senha fora dela | n8n | 1,5 |
+| T9 guarda de ambiente | n8n | 0,5 |
+| Validação de ponta a ponta: cadastrar usuário de teste e conferir e-mail e espaço | os dois | 1 |
+
+Cerca de 4 horas no repositório e 4 no n8n, mais os dois passos humanos no Workspace.
+
+**A T1 é a incerteza.** O fluxo do n8n não pôde ser aberto na sessão que escreveu esta
+tarefa, então a faixa honesta é de **8 a 13 horas**: se o e-mail de coordenação for um nó
+separado, é mexer num lugar só; se for uma cópia oculta do e-mail de boas-vindas, o template
+precisa ser partido em dois antes de qualquer outra coisa.
+
 ## Dependências
 
 Nada aqui depende de migração, e é de propósito. A frente B pelo caminho 2 dependeria de o
