@@ -9,15 +9,16 @@ import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController
  * mesmo conjunto de dados que o painel analítico ao lado mostra, e o par "Lista
  * de Chamados" / "Indicadores de Chamados" é o que torna essa relação evidente.
  *
- * A DIVERGÊNCIA COM AS OUTRAS ÁREAS É DELIBERADA. O miolo é compartilhado, mas o
- * título é escrito à mão em cada arquivo — então renomear aqui NÃO renomeia a OSG,
- * o Board nem a Gestão, que seguem com o nome antigo. Isso foi autorizado: só a
- * Tax tem tarefa de revisão de conteúdo nesta sprint, a OSG não tem um único
- * chamado classificado, e o Board já se chamava "Chamados". Se a coordenação
- * decidir que as outras acompanham, são 6 títulos, os 2 rótulos de menu da OSG
- * (no `OsgLayout`) e 3 `page_name` — a Gestão não entra na conta, porque
- * `/gestao/chamados` e `/gestao/chamados/dashboard` já são redirecionamentos
- * para cá.
+ * O TEXTO NÃO ESTÁ AQUI, e é de propósito: o invólucro nomeia a TELA e o texto
+ * sai de `@/config/textosDasTelas`, um lugar só para as duas áreas. A OSG monta
+ * esta mesma tela e lê a mesma entrada — renomear é uma linha lá, e as duas
+ * mudam juntas. Foi assim que a divergência de 15/09/2026 acabou: por um dia, a
+ * Tax dizia "Lista de Chamados" e a OSG seguia em "Gestão de Chamados", porque
+ * o título era escrito à mão em cada arquivo.
+ *
+ * O BOARD monta o mesmo miolo e NÃO entra no espelho: ele tem registro próprio
+ * ("Chamados", "Projetos", "Logs") e cabeçalho que nem usa o `TituloDaPagina`.
+ * O motivo está escrito no cabeçalho do `textosDasTelas`.
  *
  * Mesma tela da área de Gestão, montada aqui dentro do `FiscalLayout`. O miolo
  * é o mesmo componente: não há cópia de arquivo, no padrão que a Gerencial já
@@ -35,7 +36,7 @@ const FiscalGerencialChamados = () => {
   useTelaDeTrabalhoLargo();
 
   return (
-    <FiscalLayout title="Lista de Chamados" subtitle="Consulte e gerencie os chamados dos clientes da sua carteira.">
+    <FiscalLayout tela="chamadosLista">
       <ChamadosGestaoContent basePath="/equipe/tax/gerencial/chamados" escopo="tax" />
     </FiscalLayout>
   );

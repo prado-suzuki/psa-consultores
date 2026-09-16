@@ -4,6 +4,7 @@ import { createTestQueryClient } from '@/test/queryWrapper';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
+import type { TextoDoCabecalho } from '@/config/textosDasTelas';
 import type { OrgProject } from '@/hooks/useOrgProjects';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -52,24 +53,42 @@ vi.mock('react-router-dom', () => ({
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: mocks.useAuth }));
-vi.mock('@/components/equipe/fiscal/FiscalLayout', () => ({
-  FiscalLayout: ({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) => (
-    <main data-testid="fiscal-layout">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-      {children}
-    </main>
-  ),
-}));
-vi.mock('@/components/equipe/osg/OsgLayout', () => ({
-  OsgLayout: ({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) => (
-    <main data-testid="osg-layout">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-      {children}
-    </main>
-  ),
-}));
+// Os mocks de layout resolvem o cabeçalho como os layouts de verdade: o
+// invólucro nomeia a TELA e `@/config/textosDasTelas` responde. Renderizar
+// `title`/`subtitle` crus faria o teste passar com o cabeçalho VAZIO, porque o
+// texto não mora mais no invólucro.
+type PropsDeLayoutMock = { children: ReactNode } & TextoDoCabecalho;
+
+vi.mock('@/components/equipe/fiscal/FiscalLayout', async () => {
+  const { resolverCabecalho } = await import('@/config/textosDasTelas');
+  return {
+    FiscalLayout: ({ children, ...texto }: PropsDeLayoutMock) => {
+      const { title, subtitle } = resolverCabecalho(texto, 'tax');
+      return (
+        <main data-testid="fiscal-layout">
+          <h1>{title}</h1>
+          <p>{subtitle}</p>
+          {children}
+        </main>
+      );
+    },
+  };
+});
+vi.mock('@/components/equipe/osg/OsgLayout', async () => {
+  const { resolverCabecalho } = await import('@/config/textosDasTelas');
+  return {
+    OsgLayout: ({ children, ...texto }: PropsDeLayoutMock) => {
+      const { title, subtitle } = resolverCabecalho(texto, 'osg');
+      return (
+        <main data-testid="osg-layout">
+          <h1>{title}</h1>
+          <p>{subtitle}</p>
+          {children}
+        </main>
+      );
+    },
+  };
+});
 vi.mock('@/components/equipe/tarefas/PainelTarefas', () => ({
   default: ({ area }: { area: string }) => <section data-testid="projetos-tarefas">Painel consolidado {area}</section>,
 }));
@@ -368,7 +387,11 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
     renderComQuery(<OsgProjetos />);
 
     expect(screen.getByTestId('osg-layout')).toHaveTextContent('Projetos e tarefas');
-    expect(screen.getByTestId('osg-layout')).toHaveTextContent('Acompanhe a execução por ordem de serviço');
+    // Era "Acompanhe a execução por ordem de serviço" — a OSG passou a ler o
+    // mesmo texto da Tax, que é o que o espelho significa.
+    expect(screen.getByTestId('osg-layout')).toHaveTextContent(
+      'Acompanhe ordens de serviço, projetos, tarefas e subtarefas por status e responsável.',
+    );
     expect(screen.getByTestId('projetos-tarefas')).toHaveTextContent('Painel consolidado osg');
   });
 

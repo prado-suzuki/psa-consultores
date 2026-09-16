@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { addDays, format, startOfDay } from 'date-fns';
 import type { ReactNode } from 'react';
+import type { TextoDoCabecalho } from '@/config/textosDasTelas';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -36,41 +37,43 @@ vi.mock('@/hooks/useEstruturaEquipes', () => ({
 }));
 vi.mock('@/hooks/useTaxReferenceData', () => ({ useTeamProfilesSafe: mocks.members }));
 
-vi.mock('@/components/equipe/fiscal/FiscalLayout', () => ({
-  FiscalLayout: ({
-    title,
-    subtitle,
-    children,
-  }: {
-    title: string;
-    subtitle: string;
-    children: ReactNode;
-  }) => (
-    <main data-testid="fiscal-layout">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-      {children}
-    </main>
-  ),
-}));
+// Os mocks de layout resolvem o cabeçalho como os layouts de verdade: o
+// invólucro nomeia a TELA e `@/config/textosDasTelas` responde. Renderizar
+// `title`/`subtitle` crus faria o teste passar com o cabeçalho VAZIO, porque o
+// texto não mora mais no invólucro.
+type PropsDeLayoutMock = { children: ReactNode } & TextoDoCabecalho;
 
-vi.mock('@/components/equipe/osg/OsgLayout', () => ({
-  OsgLayout: ({
-    title,
-    subtitle,
-    children,
-  }: {
-    title: string;
-    subtitle: string;
-    children: ReactNode;
-  }) => (
-    <main data-testid="osg-layout">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-      {children}
-    </main>
-  ),
-}));
+vi.mock('@/components/equipe/fiscal/FiscalLayout', async () => {
+  const { resolverCabecalho } = await import('@/config/textosDasTelas');
+  return {
+    FiscalLayout: ({ children, ...texto }: PropsDeLayoutMock) => {
+      const { title, subtitle } = resolverCabecalho(texto, 'tax');
+      return (
+        <main data-testid="fiscal-layout">
+          <h1>{title}</h1>
+          <p>{subtitle}</p>
+          {children}
+        </main>
+      );
+    },
+  };
+});
+
+vi.mock('@/components/equipe/osg/OsgLayout', async () => {
+  const { resolverCabecalho } = await import('@/config/textosDasTelas');
+  return {
+    OsgLayout: ({ children, ...texto }: PropsDeLayoutMock) => {
+      const { title, subtitle } = resolverCabecalho(texto, 'osg');
+      return (
+        <main data-testid="osg-layout">
+          <h1>{title}</h1>
+          <p>{subtitle}</p>
+          {children}
+        </main>
+      );
+    },
+  };
+});
 
 // Os componentes Momentum são uma fronteira visual compartilhada e congelada nesta onda.
 // Estes doubles expõem as props públicas para caracterizar os cálculos do dashboard.
@@ -240,7 +243,12 @@ describe('FiscalDashboard e contrato público compartilhado', () => {
     );
 
     expect(screen.getByTestId('osg-layout')).toBeInTheDocument();
-    expect(screen.getByText('Visão geral da área OSG')).toBeInTheDocument();
+    // A OSG exibe o texto da Tax com o nome dela: o espelho é o catálogo.
+    expect(
+      screen.getByText(
+        'Acompanhe os principais indicadores operacionais da área OSG em tempo real.',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('hero')).toHaveTextContent('OSG');
     expect(screen.getByText('OSG')).toBeInTheDocument();
     expect(kpi('Total Projetos')).toHaveTextContent('1');

@@ -1,3 +1,4 @@
+import { resolverCabecalho, type TextoDoCabecalho } from '@/config/textosDasTelas';
 import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -110,14 +111,23 @@ const OsgWorkClienteBar = () => {
   );
 };
 
-interface OsgLayoutProps {
+/**
+ * Ou `tela` — o texto espelhado, de `@/config/textosDasTelas` — ou `title` e
+ * `subtitle` escritos à mão, para o que só existe na OSG: o OSG Work, o
+ * Controle de Projetos e a Solicitação de documentos. Nunca os dois.
+ */
+type OsgLayoutProps = {
   children: React.ReactNode;
-  title: string;
-  subtitle?: string;
   headerActions?: React.ReactNode;
-}
+} & TextoDoCabecalho;
 
-export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayoutProps) => {
+export const OsgLayout = (props: OsgLayoutProps) => {
+  const { children, headerActions } = props;
+  // A ÁREA É DO LAYOUT (ver a mesma nota no `FiscalLayout`), e é `osg` fixo —
+  // NÃO a apresentação da rota que o `areaLabel` resolve mais abaixo. As três
+  // caras da OSG existem para o sobretítulo e para a barra; quem escreve "na
+  // área OSG" dentro de um subtítulo está falando da área, uma só.
+  const { title, subtitle } = resolverCabecalho(props, 'osg');
   const { isAdmin, isLider } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -189,10 +199,10 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   // vieram para debaixo dela.
   const gerencialItems = [
     { path: '/equipe/osg/gerencial', label: 'Dashboards', icon: LayoutDashboard },
-    { path: '/equipe/osg/gerencial/chamados', label: 'Gestão de Chamados', icon: MessageSquare },
+    { path: '/equipe/osg/gerencial/chamados', label: 'Lista de Chamados', icon: MessageSquare },
     {
       path: '/equipe/osg/gerencial/chamados/dashboard',
-      label: 'Dashboard de Chamados',
+      label: 'Indicadores de Chamados',
       icon: LineChart,
     },
     // Na Gerencial e não em Projetos, pela mesma razão da Tax: aqui o líder+ já

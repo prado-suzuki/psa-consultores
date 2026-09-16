@@ -19,10 +19,10 @@ import { DashboardEmbedView } from '@/components/dashboards/DashboardEmbedView';
  * primeiro filho, que é o principal. As três valem — o que não vale é o filho e
  * a página se chamarem coisas diferentes.
  *
- * A OSG Projetos tem o mesmo defeito e fica como está: mesmo grupo "Gerencial",
- * mesmo primeiro filho "Dashboards", e o H1 do `OsgGerencial` ainda dizendo
- * "Gerencial". Ela não tem tarefa de revisão de conteúdo nesta sprint, e
- * corrigir de carona seria executar tarefa que ninguém escreveu.
+ * A OSG Projetos tinha o MESMO defeito, pelo mesmo motivo, e saiu junto: o
+ * título das duas vem de `@/config/textosDasTelas`, então o "Dashboards" desta
+ * entrada é o que as duas exibem. O defeito nasceu de o texto ser escrito à mão
+ * em cada arquivo — corrigir só de um lado teria sido consertar metade dele.
  *
  * Um seletor só, no formato do Board → Relatórios: a primeira opção é o
  * dashboard nativo de Clientes e OS, as demais são os relatórios do Looker
@@ -35,7 +35,7 @@ import { DashboardEmbedView } from '@/components/dashboards/DashboardEmbedView';
  * dado de fora do cluster e desmente o subtítulo.
  */
 const FiscalGerencial = () => (
-  <FiscalLayout title="Dashboards" subtitle="Acompanhe clientes e ordens de serviço do seu cluster.">
+  <FiscalLayout tela="dashboardsGerencial">
     <DashboardEmbedView
       targetPage="tax_gerencial"
       loadingOverlay
