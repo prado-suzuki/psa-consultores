@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { avaliarFlags, comFlagDaPecaRetroativa, comporBlocos, copiarOrigemProfunda, flagDaPeca, idDoRegistro, gerarBlocos, gerarComposicao, inclusoesDe, mapearSignatarios, marcarRealceDiff, pendenciasDoDocumento, removerMarcas, unirBlocos, type Bloco, type BlocoDescartado, type BlocoGerado, type FlagDeclarativa, type OrigemValor, type RegistroFamilias, type Template } from '@/lib/templates';
 import { baixarDocx } from '@/lib/templates/docx';
@@ -38,6 +38,7 @@ import { camposEditaveisPorBinding } from '@/components/equipe/osg/gerar/camposD
 import { lerSnapshotVersoes } from '@/components/equipe/osg/gerar/renderizarVersao';
 import { linhasRegistradas, marcoPreenchido } from '@/lib/osg/registrosDaSociedade';
 import { entradaDaGovernanca } from '@/lib/osg/entradaGovernanca';
+import { fonteDeGovernanca, FLAG_GOVERNANCA } from '@/lib/osg/governancaNoContrato';
 import { camposDoAcordo, listasDoAcordo, type EntradaAcordo } from '@/lib/templates/contextoAcordo';
 import { gradeDaMatriz, listasDaGovernanca } from '@/lib/templates/contextoGovernanca';
 import {
@@ -958,7 +959,9 @@ export function useGerarDocumentoController() {
     // A peça que nasce daqui é a alteração seguinte à registrada em cena, ou a
     // própria alteração já em cena: o número muda com quem está na folha.
     const numeroDaPeca = documentoRegistrado ? elosDaSucessao + 1 : numeroAlteracao;
-    const flags = [...new Set([...flagsDerivadas, ...flagsManuaisForaDaAlteracao, ...eventos, flagDaPeca(numeroDaPeca)])];
+    // `derivarFlags(eventosSet)` e não `flagsDerivadas`: as derivadas desta peça
+    // saem da seleção que está sendo confirmada agora (ver `derivarFlags`).
+    const flags = [...new Set([...derivarFlags(eventosSet), ...flagsManuaisForaDaAlteracao, ...eventos, flagDaPeca(numeroDaPeca)])];
     await responderEventos.mutateAsync({
       clienteId,
       pjPessoaId: empresaId,
@@ -1103,31 +1106,87 @@ export function useGerarDocumentoController() {
     setRegistroAlvoId(null);
   };
 
-  const flagsDerivadas = useMemo(() => {
-    const declarativas: FlagDeclarativa[] = catalogoFlags
-      .filter((f) => f.entidade && f.campo && f.valor)
-      .map((f) => ({ nome: f.nome, entidade: f.entidade!, campo: f.campo!, valor: f.valor! }));
-    /*
-     * O ACORDO COMO FONTE DE FLAG, ao lado da empresa.
-     *
-     * Era só a empresa, e por isso nenhuma resposta do cadastro do Acordo
-     * conseguia tirar cláusula do documento: as dez caixas de mecanismo eram
-     * índice do que o acordo tem, e não interruptor. Os campos condicionais do
-     * acordo já resolvem 'sim'/'' (ver `condicional` em mapeadores), que é
-     * exatamente a comparação que `avaliarFlags` faz.
-     *
-     * Sem acordo escolhido a fonte é vazia, e toda flag de acordo fica desligada
-     * — que é o certo: o contrato social não tem acordo e não deve perder nada
-     * por causa disso, porque nenhum bloco dele exige flag de acordo.
-     */
-    const registroAcordo = registros.acordoQuotistas.find(
-      (r) => Object.values(registroPorBinding).includes(r.id),
-    ) ?? registros.acordoQuotistas[0];
-    const fonteAcordo = registroAcordo
-      ? camposDoAcordo(registroAcordo.row as EntradaAcordo)
-      : undefined;
-    return avaliarFlags(declarativas, { empresa: empresaRow, acordo: fonteAcordo });
-  }, [catalogoFlags, empresaRow, registros.acordoQuotistas, registroPorBinding]);
+  /*
+   * A governança que a peça BASE publicou, que é o que decide entre os dois
+   * regramentos da Administração (ver governancaNoContrato.ts). Lê o snapshot do
+   * documento base direto, e não `baseSnap`: aquele const mora na seção da
+   * alteração contratual, centenas de linhas abaixo desta, e as flags são
+   * consumidas aqui em cima pela composição.
+   */
+  const governancaDaBase = useMemo<readonly unknown[] | null>(() => {
+    const snap = documentoBase?.snapshot_dados as unknown as SnapshotDados | null | undefined;
+    const lista = snap?.itensPorLista?.orgaosComCompetencia;
+    return Array.isArray(lista) ? lista : null;
+  }, [documentoBase]);
+
+  /*
+   * As linhas declarativas do catálogo, prontas para `avaliarFlags`.
+   *
+   * `f.valor !== null` e não `f.valor`: `administracao_simples` está cadastrada
+   * com `valor = ''`, que é o lado DESLIGADO do par, e o filtro por truthy a
+   * descartava. Sem a linha, nenhum dos dois lados do par acendia e o contrato
+   * saía com o cabeçalho do Capítulo da Administração e nada embaixo. Entidade e
+   * campo continuam obrigatórios; só o valor pode ser vazio de propósito.
+   */
+  const declarativasDoCatalogo = useMemo<FlagDeclarativa[]>(
+    () => catalogoFlags
+      .filter((f) => f.entidade && f.campo && f.valor !== null && f.valor !== undefined)
+      .map((f) => ({ nome: f.nome, entidade: f.entidade!, campo: f.campo!, valor: f.valor! })),
+    [catalogoFlags],
+  );
+
+  /**
+   * As flags derivadas PARA UM CONJUNTO DE EVENTOS, e não para o conjunto que
+   * está em cena.
+   *
+   * A governança é a primeira flag derivada que depende de um evento CONFIRMADO
+   * (ver governancaNoContrato.ts), e isso quebra a leitura de sempre no instante
+   * da confirmação: ali o evento acabou de ser marcado e a proposta ainda não foi
+   * gravada, então `eventosConfirmados` é o conjunto ANTERIOR. Gravar a partir
+   * dele selava a peça com `evento_governanca` ligado e `administracao_simples`
+   * junto, que é o contrato pedindo governança e escrevendo administração
+   * simples. Quem confirma passa a seleção nova aqui.
+   *
+   * TRÊS FONTES, e cada uma responde por uma família de flags:
+   *
+   * - `empresa`, o perfil (controladora, proprietária, UF);
+   * - `acordo`, as respostas do cadastro do Acordo de Quotistas. Era só a
+   *   empresa, e por isso nenhuma resposta daquele cadastro conseguia tirar
+   *   cláusula do documento: as dez caixas de mecanismo eram índice do que o
+   *   acordo tem, e não interruptor. Os campos condicionais do acordo já
+   *   resolvem 'sim'/'' (ver `condicional` em mapeadores), que é exatamente a
+   *   comparação que `avaliarFlags` faz. Sem acordo escolhido a fonte é vazia e
+   *   toda flag de acordo fica desligada, que é o certo: o contrato social não
+   *   tem acordo e não deve perder nada por isso, porque nenhum bloco dele exige
+   *   flag de acordo;
+   * - `governanca`, qual dos dois regramentos da Administração entra.
+   */
+  const derivarFlags = useCallback(
+    (eventos: ReadonlySet<string>) => {
+      const registroAcordo = registros.acordoQuotistas.find(
+        (r) => Object.values(registroPorBinding).includes(r.id),
+      ) ?? registros.acordoQuotistas[0];
+      return avaliarFlags(declarativasDoCatalogo, {
+        empresa: empresaRow,
+        acordo: registroAcordo ? camposDoAcordo(registroAcordo.row as EntradaAcordo) : undefined,
+        governanca: fonteDeGovernanca({
+          temPecaBase: documentoBaseId != null,
+          governancaDaBase,
+          eventoConfirmado: eventos.has(FLAG_GOVERNANCA),
+          orgaosNoContrato: entradaGov.orgaos.length,
+        }),
+      });
+    },
+    [
+      declarativasDoCatalogo, empresaRow, registros.acordoQuotistas, registroPorBinding,
+      documentoBaseId, governancaDaBase, entradaGov,
+    ],
+  );
+
+  const flagsDerivadas = useMemo(
+    () => derivarFlags(eventosConfirmados),
+    [derivarFlags, eventosConfirmados],
+  );
   const flagsAtivasLive = useMemo(
     // Para o motor os dois tipos são o mesmo interruptor: ele recebe uma lista
     // de nomes ativos e não pergunta de onde cada nome veio. As manuais entram
