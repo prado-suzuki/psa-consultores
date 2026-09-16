@@ -17,10 +17,38 @@ import { cn } from "@/lib/utils";
  * CANCELA (o `cn` deixa a última classe vencer), e cinco faziam isso sem
  * querer; a catraca cobre esse caso à parte.
  */
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
+/**
+ * A VARIANTE `tabela`, decidida pela Patricia em 16/09/2026.
+ *
+ * O cartão que envolve uma tabela fica BRANCO, e não tingido. Não é exceção:
+ * é a regra para esse recorte, e a catraca cobra os dois lados (ver
+ * `src/lib/caixaDeTabela.test.ts`).
+ *
+ * O que decidiu, medido em `docs/geral/comparacoes-de-cor/a-caixa-da-tabela.html`:
+ * **o hover de linha tem teto.** A zebra que a tabela perde sobre o cartão
+ * tingido se recupera subindo o alfa; o hover não, porque é feito de `--muted` e
+ * a superfície do cartão já é 35% de `--muted`. Mesmo a 100%, sem transparência,
+ * ele chega a 1,154:1 contra os 1,175:1 que tem sobre o branco — não é
+ * calibração, é fim de escala. E o hover é o único dos dois que serve para
+ * AGIR: saber em qual linha se vai clicar.
+ *
+ * O custo é real e está aceito: `--card` e `--background` têm o mesmo valor, então
+ * o cartão de tabela apoiado direto na página fica a 1,000:1 dela e quem o segura
+ * é a borda. Onde há superfície tingida atrás, o custo some.
+ */
+type CardProps = React.HTMLAttributes<HTMLDivElement> & {
+  /** `tabela` = o cartão envolve uma `<Table>` e fica branco. Ver acima. */
+  variant?: "tabela";
+};
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, variant, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("rounded-lg border bg-superficie-cartao text-card-foreground shadow-sm", className)}
+    className={cn(
+      "rounded-lg border text-card-foreground shadow-sm",
+      variant === "tabela" ? "bg-card" : "bg-superficie-cartao",
+      className,
+    )}
     {...props}
   />
 ));
