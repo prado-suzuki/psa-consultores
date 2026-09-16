@@ -79,7 +79,7 @@ export const CriarUsuariosTab = () => {
           </CardTitle>
           <CardDescription>
             Cria os usuários (auth + role <code>client</code>) para representantes que ainda não têm acesso.
-            Após a criação, ativa <strong>Acesso a Chamados</strong> no cadastro do representante.
+            Após a criação, ativa <strong>Acesso à plataforma</strong> no cadastro do representante.
             Não altera dados de representantes que já possuem usuário.
           </CardDescription>
         </CardHeader>

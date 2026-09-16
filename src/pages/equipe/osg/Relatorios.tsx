@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FolderArchive, Printer } from 'lucide-react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -30,8 +31,8 @@ const Relatorios = () => {
 
   return (
     <OsgLayout
-      title="Relatórios"
-      subtitle="Relatórios da área OSG Work, por cliente"
+      title={TELAS_OSG_WORK.relatorios.label}
+      subtitle={TELAS_OSG_WORK.relatorios.descricao}
       headerActions={
         clienteId ? (
           <div className="flex items-center gap-2">

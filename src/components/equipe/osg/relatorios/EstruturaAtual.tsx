@@ -72,7 +72,7 @@ export function EstruturaAtual({ bens, titulo = 'Estrutura atual (antes da reorg
 
       {!layout ? (
         <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-          Nenhum imóvel cadastrado — preencha no <b className="font-medium text-muted-foreground">Diagnóstico Patrimonial</b> para o estado atual aparecer.
+          Nenhum imóvel cadastrado — preencha no <b className="font-medium text-muted-foreground">Cadastro Patrimonial</b> para o estado atual aparecer.
         </p>
       ) : (
         <>

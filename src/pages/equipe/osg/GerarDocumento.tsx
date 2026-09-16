@@ -1,4 +1,5 @@
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { GerarDocumentoEscolhas } from '@/components/equipe/osg/gerar/GerarDocumentoEscolhas';
 import { PainelConferencia } from '@/components/equipe/osg/gerar/PainelConferencia';
 import { DocumentoCentroRail } from '@/components/equipe/osg/gerar/DocumentoCentroRail';
@@ -15,8 +16,8 @@ const GerarDocumento = () => {
 
   return (
     <OsgLayout
-      title="Gerar Documento"
-      subtitle="Etapa final da oficina: escolha o modelo e a empresa — o documento sai pronto, preenchido do cadastro"
+      title={TELAS_OSG_WORK.gerarDocumento.label}
+      subtitle={TELAS_OSG_WORK.gerarDocumento.descricao}
     >
       <div className="space-y-6 py-2">
         {!controller.modoDocumento && <GerarDocumentoEscolhas controller={controller} />}

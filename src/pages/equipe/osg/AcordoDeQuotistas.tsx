@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Check, FileSignature, MousePointerClick, Sparkles } from 'lucide-react';
 
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import {
   AcordoGrupoModal, type ValoresDoAcordo,
 } from '@/components/equipe/osg/governanca/AcordoGrupoModal';
@@ -151,8 +152,8 @@ const AcordoDeQuotistas = () => {
 
   return (
     <OsgLayout
-      title="Acordo de Quotistas"
-      subtitle="O contrato entre os sócios: o que acontece quando alguém quer sair, morre, se separa ou quer vender. O contrato social diz quem é dono e quem manda; o acordo diz o resto."
+      title={TELAS_OSG_WORK.acordoQuotistas.label}
+      subtitle={TELAS_OSG_WORK.acordoQuotistas.descricao}
     >
       <div className="mx-auto max-w-6xl space-y-5">
         {!clienteId ? (

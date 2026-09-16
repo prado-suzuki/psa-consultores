@@ -244,7 +244,10 @@ export function DiagnosticoPatrimonialReport({ clienteId }: { clienteId: string 
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center">
         <Landmark className="h-10 w-10 text-osg-500" />
-        <p className="text-sm text-muted-foreground">Nenhum bem cadastrado no Diagnóstico Patrimonial de {clienteNome || 'este cliente'}.</p>
+        {/* "Nenhum bem cadastrado no Cadastro Patrimonial" repetiria a palavra
+            depois do renome de 14/09/2026; o verbo sai e o nome da tela fica,
+            que é o que diz onde resolver. */}
+        <p className="text-sm text-muted-foreground">Nenhum bem no Cadastro Patrimonial de {clienteNome || 'este cliente'}.</p>
       </div>
     );
   }
@@ -256,7 +259,11 @@ export function DiagnosticoPatrimonialReport({ clienteId }: { clienteId: string 
           <h2 className="text-base font-semibold text-foreground">
             Quadro Patrimonial — <span className="text-osg-700">{clienteNome}</span>
           </h2>
-          <span className="text-xs text-muted-foreground">Espelha os slides de Organização Patrimonial · fonte: módulo Diagnóstico Patrimonial</span>
+          {/* O relatório continua se chamando "Diagnóstico Patrimonial" no
+              seletor; a FONTE é a tela de cadastro, que virou "Cadastro
+              Patrimonial". Os dois nomes juntos aqui são o que desfaz a
+              confusão que o renome atacou — não são a mesma coisa. */}
+          <span className="text-xs text-muted-foreground">Espelha os slides de Organização Patrimonial · fonte: módulo Cadastro Patrimonial</span>
         </div>
         <GerarDeckButton clienteId={clienteId} tipo="patrimonial" label="Gerar deck Patrimonial" />
       </div>

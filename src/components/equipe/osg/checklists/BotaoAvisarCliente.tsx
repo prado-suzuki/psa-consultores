@@ -40,18 +40,12 @@ export function BotaoAvisarCliente({ clienteId, linhas, solicitacao }: BotaoAvis
   const temAlgo = temAlgoParaAvisar(dados);
   const total = dados.pendentes.length + dados.recusados.length;
 
-  // Rascunho não cobra: o cliente ainda não recebeu o pedido, então o que aparece
-  // como pendente nunca foi pedido a ele.
-  //
-  // Encerrada também não: encerrar é o consultor declarando o pedido concluído, e
-  // cobrar depois disso é incoerente. A guarda estava faltando aqui, e a tela
-  // sozinha não segurava porque este checklist é derivado dos DOCUMENTOS, não da
-  // solicitação — ele mostra pendência mesmo sem solicitação aberta. As outras
-  // duas camadas são a borda `notificar` e a RPC `notificar_projetos_da_os`.
-  //
-  // `enviada` e `em_checklist` seguem liberados: cobrar com a solicitação aberta é
-  // justamente o objetivo do botão.
-  if (solicitacao.status === 'rascunho' || solicitacao.status === 'encerrada') return null;
+  // A cobrança manual pertence exclusivamente à fase `em_checklist`. Em
+  // `enviada`, o cliente ainda está na coleta em lote e o analista primeiro
+  // precisa passar a solicitação para o checklist; em `rascunho` nada foi pedido
+  // e em `encerrada` não cabe cobrar. A fachada já condiciona a montagem, e esta
+  // guarda protege o contrato se o botão for reutilizado.
+  if (solicitacao.status !== 'em_checklist') return null;
 
   return (
     <>

@@ -12,7 +12,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, Check, Plus } from "lucide-react";
+import { Pencil, Trash2, Check, Plus, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { TIPO_REPRESENTANTE_OPTIONS, formatPhone } from "./constants";
@@ -24,8 +24,35 @@ import MarcaPendencia, { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from
 import { idsAlterados, resolverSelecao, selecaoAposRemover } from "@/lib/listaMestreDetalhe";
 import type { FocoPendencia, MapaPendencias } from "@/lib/camposObrigatorios";
 
+// Repete palavra por palavra a mensagem que o trigger
+// `tg_representante_block_disable_acesso_chamados` levanta no banco: as duas
+// saídas do mesmo bloqueio têm de dizer a mesma coisa, e a do banco só muda por
+// migration. Por isso ela continua falando "chamados" mesmo com o rótulo em
+// "Acesso à plataforma".
 const DISABLE_TOOLTIP =
   "Você não tem permissão para desabilitar acesso ao chamados, fale com a equipe Digital para realizar essa operação";
+
+/**
+ * O que a chave faz, para o consultor decidir antes de salvar. Texto pedido em
+ * 16/09/2026, uma frase por decisão de quem pediu: as duas ressalvas abaixo
+ * foram propostas para o tooltip e ficaram de fora, então elas ficam aqui — são
+ * as duas perguntas que chegam ao Digital quando a tela surpreende.
+ *
+ * - **E-mail que já tem conta não recebe e-mail nenhum.** Ninguém programou um
+ *   "vincular login existente": isso cai de duas guardas de idempotência. A edge
+ *   function `upsert-representante-user` procura `profiles` pelo e-mail antes de
+ *   criar; achando, reaproveita aquele `user_id`, devolve `created: false` sem
+ *   senha temporária — e sem ela o webhook de boas-vindas não dispara. O acesso
+ *   sai de pé de todo jeito, porque a função garante a role `client` se estiver
+ *   faltando, e o `user_id` vai para a linha do representante. O caso não é raro:
+ *   a mesma pessoa representante de dois clientes cai nele no segundo cadastro.
+ * - **Desativar a chave depois não apaga o acesso.** `acesso_chamados` não entra
+ *   em nenhuma policy de chamado — quem dá acesso é a role `client` do usuário, e
+ *   ela fica. A chave é marca de cadastro e gatilho de provisionamento.
+ */
+const ACESSO_TOOLTIP =
+  "Ao salvar, cria o acesso do representante à plataforma e envia as credenciais para o "
+  + "e-mail cadastrado.";
 
 export interface RepresentantesTabProps {
   participants: DraftRepresentante[];
@@ -179,7 +206,7 @@ export default function RepresentantesTab({
         titulo: p.nome?.trim() || "Novo representante",
         subtitulo: p.tipo_representante || "sem cargo",
         etiqueta: p.acesso_chamados ? (
-          <Badge variant="outline" className="text-[10px]">Chamados</Badge>
+          <Badge variant="outline" className="text-[10px]">Plataforma</Badge>
         ) : undefined,
         alterado: alterados.has(p._id),
         pendente: pendencias?.itens.has(p._id) ?? false,
@@ -258,7 +285,7 @@ export default function RepresentantesTab({
           <FieldPair label="Cargo/função" value={part.tipo_representante} />
           <FieldPair label="Email" value={part.email} />
           <FieldPair label="Telefone" value={part.telefone} />
-          <FieldPair label="Acesso a Chamados" value={part.acesso_chamados ? "Sim" : "Não"} />
+          <FieldPair label="Acesso à plataforma" value={part.acesso_chamados ? "Sim" : "Não"} />
           {part.observacoes && (
             <div className="col-span-2 min-w-0">
               <FieldPair label="Observações" value={part.observacoes} />
@@ -345,7 +372,27 @@ export default function RepresentantesTab({
           <SecaoFormulario numero={3} titulo="Acesso e observações" pendente={secaoPendente(3)} dataTour="repr-acesso">
           <div className="flex flex-col gap-2.5">
           <div className="flex flex-row items-center gap-4">
-            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Acesso Chamados</Label>
+            {/* A dica vai no ícone ao lado do rótulo, não embaixo do controle:
+                texto solto mudaria a altura da linha e desalinharia o switch do
+                resto da seção. Mesma forma do `Dica` da OSG. */}
+            <Label className="flex w-48 shrink-0 items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+              Acesso à plataforma
+              <Tooltip>
+                <TooltipTrigger
+                  type="button"
+                  // A dica é apoio, não parada obrigatória do Tab: quem navega
+                  // por teclado cai direto no switch.
+                  tabIndex={-1}
+                  className="shrink-0 text-muted-foreground/60 transition-colors hover:text-foreground"
+                  aria-label="O que esta opção faz"
+                >
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-xs text-xs leading-relaxed">
+                  {ACESSO_TOOLTIP}
+                </TooltipContent>
+              </Tooltip>
+            </Label>
             <div className="min-w-0 flex-1">
               <div className="flex h-8 items-center gap-2">
                 {acessoTravado ? (

@@ -14,6 +14,7 @@ import { useRevisarDocumento } from '@/hooks/useDocumentoArquivo';
 import { AvisosDaFase } from './AvisosDaFase';
 import { BotaoAvisarCliente } from './BotaoAvisarCliente';
 import { BotaoComprovante } from './BotaoComprovante';
+import { BotaoTrazerParaChecklist } from './BotaoTrazerParaChecklist';
 import { DocumentosDialog, RecusaDialog } from './DocumentosDialog';
 import {
   CLUSTER_ICON, CLUSTER_LABEL, ESTADO_CHIP, ESTADO_LABEL, estadoDaLinha,
@@ -196,11 +197,45 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
     );
   }
 
+  // Antes desta transição há uma solicitação enviada, mas ainda não existe um
+  // checklist operacional. Deixar filtros, entidades, comprovante e cobrança
+  // visíveis aqui fazia a tela prometer ações sobre uma etapa que não começou.
+  // O resumo permanece para dar contexto; a única ação possível é abrir a fase.
+  const checklistLiberado = solicitacao.status === 'em_checklist'
+    || solicitacao.status === 'encerrada';
+
+  if (!checklistLiberado) {
+    return (
+      <div className="space-y-8">
+        <ResumoHero clienteNome={clienteNome} {...resumo} />
+
+        {solicitacao.status === 'enviada' && (
+          <div className="flex flex-wrap items-center gap-3">
+            <BotaoTrazerParaChecklist
+              clienteId={clienteId}
+              status={solicitacao.status}
+              arquivosSemTipo={arquivosSemTipo}
+            />
+          </div>
+        )}
+
+        <AvisosDaFase
+          status={solicitacao.status}
+          encerradaEm={solicitacao.encerradaEm}
+          arquivosSemTipo={arquivosSemTipo}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <ResumoHero clienteNome={clienteNome} {...resumo} />
 
       <div className="flex flex-wrap items-center gap-3">
+        {/* Estas ações só montam depois da passagem ao checklist. Além de
+            esconder os botões, isso evita as consultas do comprovante antes de
+            existir uma etapa de conferência. */}
         <BotaoComprovante
           clienteId={clienteId}
           clienteNome={clienteNome}
@@ -218,7 +253,6 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
       </div>
 
       <AvisosDaFase
-        clienteId={clienteId}
         status={solicitacao.status}
         encerradaEm={solicitacao.encerradaEm}
         arquivosSemTipo={arquivosSemTipo}
