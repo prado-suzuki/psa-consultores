@@ -116,9 +116,13 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         campo: 'vigencia_anos',
         rotulo: 'Vigência, em anos',
         tipo: 'numero',
+        desceAoContrato: true,
         ajuda:
           'Por quantos anos o acordo vale. No acordo da Utida: "permanecerá em vigor por '
-          + 'um período de 10 (dez) anos".',
+          + 'um período de 10 (dez) anos". TAMBÉM DESCE AO CONTRATO SOCIAL, na redação que '
+          + 'nomeia um acordo concreto: o Bela Vista e o modelo da casa escrevem "acordo de '
+          + 'quotistas com vigência pelo período de 20 (vinte) anos a partir da sua '
+          + 'assinatura"; os outros cinco só dizem "eventual Acordo de Quotistas".',
       },
       /*
        * NÃO EXISTE CLÁUSULA DE SIGILO, e o campo saiu daqui.
@@ -320,9 +324,18 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
       { campo: 'opcao_compra_prevista', rotulo: 'Opção de compra prevista', tipo: 'booleano',
         ajuda: 'O direito de exigir que outro lhe venda a participação.' },
       { campo: 'opcao_compra_quem', rotulo: 'Quem detém a opção de compra', tipo: 'texto',
-        dependeDe: 'opcao_compra_prevista' },
+        dependeDe: 'opcao_compra_prevista',
+        ajuda: 'Quem pode exigir que o outro venda. No modelo é qualquer sócio: "é direito de '
+          + 'qualquer QUOTISTA exigir que outro QUOTISTA venda suas QUOTAS para quem exerceu '
+          + 'esta opção". Responda diferente se no cliente o direito for só de alguns, por '
+          + 'exemplo da holding, dos fundadores ou do ramo de quem sai.' },
       { campo: 'opcao_compra_preco', rotulo: 'Preço na opção de compra', tipo: 'texto',
-        dependeDe: 'opcao_compra_prevista' },
+        dependeDe: 'opcao_compra_prevista',
+        ajuda: 'Como o preço se forma quando alguém exerce a opção. No modelo é o MAIOR entre '
+          + 'dois: "o VALOR DAS QUOTAS na data da OPÇÃO DE COMPRA" e "o valor subscrito e '
+          + 'integralizado", este corrigido por juros e índice. O pagamento sai em até 36 '
+          + 'parcelas mensais. Responda diferente se o cliente combinou outra conta, por '
+          + 'exemplo só o valor apurado, ou com deságio.' },
       { campo: 'opcao_venda_prevista', rotulo: 'Opção de venda prevista', tipo: 'booleano',
         ajuda: 'O direito de exigir que os outros comprem a sua parte.' },
       { campo: 'juros_valor_subscrito', rotulo: 'Juros sobre o valor subscrito', tipo: 'texto',
@@ -353,6 +366,11 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
     resumo: 'Para onde vai a briga que os sócios não resolverem entre si',
     campos: [
       { campo: 'solucao_litigios', rotulo: 'Solução de litígios', tipo: 'escolha',
+        ajuda: 'Para onde vai a briga que os sócios não resolverem. ARBITRAGEM é um juiz '
+          + 'particular: em vez de irem ao fórum, contratam uma câmara privada, e a decisão '
+          + 'vale como sentença, sem recurso. JUDICIAL é o fórum comum. Os 7 acordos do acervo '
+          + 'escolhem arbitragem, e nenhum dos 8 contratos sociais a tem. Marcando judicial, os '
+          + 'dois campos abaixo (câmara e árbitros) deixam de ter uso.',
         opcoes: [
           { valor: 'arbitragem', rotulo: 'Arbitragem' },
           { valor: 'judicial', rotulo: 'Judicial' },
@@ -391,6 +409,20 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           + 'outros dois, Horita e Via Fértil: "os quais serão nomeados conforme o '
           + 'regulamento da CAM-CCBCC". Quantos são não se digita: o modelo fixa três em '
           + 'todos.' },
+
+      /*
+       * O FORO ELEITO fica aqui porque é a mesma cláusula: a 26.6 ressalva que,
+       * só para medida liminar, os quotistas vão ao judiciário desta comarca.
+       * E é a mesma cidade da arbitragem em 5 dos 5 acordos que trazem as duas.
+       */
+      { campo: 'foro_eleito_comarca', rotulo: 'Foro eleito — cidade', tipo: 'texto',
+        ajuda: 'Em que comarca. Sai duas vezes: "elegem o foro da cidade de Cuiabá, estado de '
+          + 'Mato Grosso, por mais privilegiado outro o seja" e, na cláusula da arbitragem, '
+          + '"o local de arbitragem será a cidade de Cuiabá". No acervo variam Cuiabá, Lucas '
+          + 'do Rio Verde, Tangará da Serra e Campo Novo do Parecis, e não é a cidade da '
+          + 'sede: o AgroAliança senta em Sorriso e elege Cuiabá.' },
+      { campo: 'foro_eleito_estado', rotulo: 'Foro eleito — estado', tipo: 'texto',
+        ajuda: 'O estado POR EXTENSO, como o documento escreve: "Mato Grosso", e não "MT".' },
     ],
   },
   {
@@ -403,9 +435,22 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         rotulo: 'Representante dos quotistas',
         tipo: 'especial',
         ajuda:
-          'O limite de aval e fiança que o card previa não entrou: procurei nos sete acordos '
-          + 'e nos oito contratos e não existe número nenhum. A cláusula diz quem pode '
-          + 'garantir quem, não quanto.',
+          'Quem fala pelos sócios perante a sociedade, nos termos do §10 do art. 118 da Lei '
+          + 'das S/A. Sai "os QUOTISTAS elegem o Sr. LUIZ MARCELO como representante dos '
+          + 'QUOTISTAS", e o Sr. ou Sra. concorda com o gênero da pessoa escolhida. O limite '
+          + 'de aval e fiança que o card previa não é campo: procurei nos sete acordos e nos '
+          + 'oito contratos e não existe número nenhum, a cláusula diz quem pode garantir '
+          + 'quem, não quanto.',
+      },
+      {
+        campo: 'substituto_representante_pessoa_id',
+        rotulo: 'Substituto do representante',
+        tipo: 'especial',
+        ajuda:
+          'Quem assume se o representante faltar. A mesma cláusula continua: "sendo que na '
+          + 'sua falta ou incapacidade civil, a incumbência passará ao Sr. FLÁVIO". Faltando '
+          + 'os dois, o acordo manda os quotistas escolherem outro em reunião, e isso é linha '
+          + 'fixa, não se digita.',
       },
     ],
   },

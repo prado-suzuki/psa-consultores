@@ -339,7 +339,8 @@ export function AcordoGrupoModal({
                 )
               )}
 
-              {c.campo === 'representante_pessoa_id' && (
+              {(c.campo === 'representante_pessoa_id'
+                || c.campo === 'substituto_representante_pessoa_id') && (
                 pessoas.length === 0 ? (
                   <SemPessoas />
                 ) : (

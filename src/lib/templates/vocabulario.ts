@@ -750,6 +750,24 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'sedeNumero', label: 'Sede — número', tipo: 'texto' },
       { id: 'sedeComplemento', label: 'Sede — complemento', tipo: 'texto' },
       { id: 'sedeBairro', label: 'Sede — bairro', tipo: 'texto' },
+      /*
+       * COMO A EMPRESA É CHAMADA, que não é a razão social nem pedaço dela.
+       *
+       * O Acordo declara o apelido no preâmbulo e o repete 189 vezes ("a
+       * ADMINISTRAÇÃO da DUAL"). Medido nos cinco acordos que declaram apelido:
+       * DUAL, ALIANÇA e VIA FÉRTIL saem do começo da razão social, mas "PERCI
+       * SMANIOTTO AGRONEGÓCIOS" vira "PS AGRO", que é o nome fantasia, e um
+       * usa "NEWCO", empresa a constituir. Cortar na primeira palavra acertaria
+       * três e escreveria "PERCI" e "COMÉRCIO" nos outros dois, calado.
+       *
+       * OBRIGATÓRIO, e só pesa em quem o usa: a pendência se calcula sobre os
+       * campos que O DOCUMENTO cita, então o contrato social, que escreve a
+       * razão social por extenso, não passa a cobrar nada. Aqui ele precisa
+       * disso: vazio, o Acordo sairia com 189 lacunas, e é melhor a tela dizer
+       * "falta o nome fantasia" antes de baixar.
+       */
+      { id: 'nomeFantasia', label: 'Nome fantasia (como o documento a chama)', tipo: 'texto',
+        obrigatorio: true },
       { id: 'sedeMunicipio', label: 'Sede — município', tipo: 'texto' },
       { id: 'sedeUf', label: 'Sede — UF', tipo: 'texto' },
       ufExtensoCampo('sedeUfExtenso', 'Sede — Estado por extenso', 'sedeUf'),
@@ -1730,6 +1748,30 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       },
       condicionalCampo('temRepresentante', 'Há representante eleito? (condicional)',
         'representanteNome', (v) => !!(v.representanteNome ?? '').trim()),
+      /*
+       * O SUBSTITUTO, que a mesma cláusula nomeia logo depois: "na sua falta ou
+       * incapacidade civil, a incumbência passará ao Sr. …". Mesma dupla de
+       * campos do titular, e pelo mesmo motivo: o tratamento concorda com o
+       * gênero da pessoa cadastrada, que texto livre não teria.
+       */
+      { id: 'substitutoRepresentanteNome', label: 'Substituto do representante', tipo: 'texto' },
+      { id: 'substitutoRepresentanteGenero', label: 'Gênero do substituto (M/F)', tipo: 'texto',
+        interno: true },
+      {
+        id: 'substitutoRepresentanteTratamento',
+        label: 'Tratamento do substituto (Sr./Sra.)',
+        tipo: 'texto',
+        derivadoDe: 'substitutoRepresentanteGenero',
+        derivar: (v) => concordar(v.substitutoRepresentanteGenero === 'F' ? 'F' : 'M', 'Sr.', 'Sra.'),
+      },
+      /*
+       * O FORO ELEITO, cláusula 26.6, e também a cidade da arbitragem, que é a
+       * mesma em 5 dos 5 acordos que trazem as duas. Não deriva da sede: o
+       * AgroAliança senta em Sorriso e elege Cuiabá. O estado vai por extenso,
+       * como o documento escreve.
+       */
+      { id: 'foroEleitoComarca', label: 'Foro eleito — cidade', tipo: 'texto' },
+      { id: 'foroEleitoEstado', label: 'Foro eleito — estado por extenso', tipo: 'texto' },
     ],
   },
 };
@@ -1752,59 +1794,6 @@ export const TIPOS_ENTIDADE = Object.keys(ENTIDADES) as TipoEntidade[];
  */
 export const CAMPOS_MANUAIS: CampoEntidade[] = [
   { id: 'dataAssinatura', label: 'Data da assinatura', tipo: 'data', manual: true, obrigatorio: true },
-  /*
-   * O NOME CURTO DA EMPRESA NO DOCUMENTO, que o Acordo usa 193 vezes.
-   *
-   * O acordo declara o apelido no preâmbulo e o repete o documento inteiro:
-   * "neste ato representada por seus administradores […]; doravante nominada
-   * «DUAL»". Depois disso é sempre "a DUAL fará com que a ADMINISTRAÇÃO da
-   * DUAL…", nunca a razão social por extenso.
-   *
-   * MANUAL, E NÃO COLUNA, por enquanto. Não existe campo de nome curto no
-   * cadastro da empresa, e criar um é migração. Aqui ele custa uma digitação por
-   * geração e zero risco de schema; se a repetição incomodar, aí a coluna se
-   * paga. Vazio, vira a lacuna assinalável como os demais manuais.
-   *
-   * NÃO SE DEDUZ DA RAZÃO SOCIAL: medido nos acordos, "DUAL" vem de "DUAL
-   * COMÉRCIO E INDÚSTRIA", "ALIANÇA" de "ALIANÇA PARTICIPAÇÕES" e "VIA FÉRTIL"
-   * de "VIA FÉRTIL PARTICIPAÇÕES", mas a primeira palavra erraria em "AGRO
-   * FERRAGENS LUIZÃO", que viraria "AGRO". É o mesmo tipo de dedução que já
-   * falhou no gênero do órgão.
-   */
-  { id: 'nomeCurtoDaEmpresa', label: 'Como o documento chama a empresa (ex.: DUAL)', tipo: 'texto', manual: true },
-  /*
-   * O SUBSTITUTO do representante dos quotistas, que o cadastro não guarda.
-   *
-   * O acordo nomeia um representante e, na falta dele, um segundo: "na falta
-   * ou incapacidade civil, a incumbência passará ao Sr. …". O cadastro tem UM
-   * campo de representante, e inventar o segundo sem medir nos acordos seria
-   * criar coluna por suposição. Manual, vira lacuna assinalável enquanto a
-   * consultoria não disser se o substituto é regra ou exceção.
-   */
-  { id: 'substitutoDoRepresentante', label: 'Substituto do representante dos quotistas', tipo: 'texto', manual: true },
-  /*
-   * O FORO ELEITO, que é do cliente e não do modelo.
-   *
-   * "Eleito" no nome porque `foroComarca`/`foroUf` já existem e são OUTRA coisa:
-   * lá são o LOCAL DA ASSINATURA, a "Cidade/UF" que abre o fecho da alteração
-   * contratual. Reaproveitar o nome faria o fecho daquele documento passar a
-   * estampar lacuna, que é mudança no documento de outra frente.
-   *
-   * Medido nos acordos do acervo: Horita elege Cuiabá, Perci elege Lucas do Rio
-   * Verde, o modelo e a Utida elegem Campo Novo do Parecis. Estava escrito fixo
-   * no bloco, e assim todo cliente elegia o foro de outro.
-   *
-   * MANUAL, e não derivado da sede: no próprio modelo o foro (Campo Novo do
-   * Parecis) não é o município da sede (Limoeiro/PE). Deduzir um do outro seria
-   * inventar. O estado vai por extenso e digitado pelo mesmo motivo por que a
-   * comarca vai: sem entidade por trás, não há de onde derivar a concordância.
-   *
-   * O par `foroComarca`/`foroUf` que existe na entidade `instrumento` é o mesmo
-   * fato, e lá ele é campo da entidade porque o contrato rural tem cadastro
-   * próprio. Aqui não tem, e por isso é de topo.
-   */
-  { id: 'foroEleitoComarca', label: 'Foro eleito — cidade', tipo: 'texto', manual: true },
-  { id: 'foroEleitoEstado', label: 'Foro eleito — estado por extenso', tipo: 'texto', manual: true },
   { id: 'testemunha1Nome', label: 'Testemunha 1 — nome', tipo: 'texto', manual: true },
   { id: 'testemunha1Cpf', label: 'Testemunha 1 — CPF', tipo: 'texto', manual: true },
   { id: 'testemunha1Rg', label: 'Testemunha 1 — RG', tipo: 'texto', manual: true },

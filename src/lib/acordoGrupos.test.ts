@@ -76,9 +76,14 @@ describe('camposQueDescem', () => {
      *
      * O usufruto também desce ao contrato, mas não é campo deste cadastro: ele
      * vem de `onus_quotas`, preenchido no Quadro Societário.
+     *
+     * A VIGÊNCIA entrou em 16/09: medida nos sete contratos que citam o acordo,
+     * dois escrevem "acordo de quotistas com vigência pelo período de 20 (vinte)
+     * anos a partir da sua assinatura" (Bela Vista e o modelo da casa), que é a
+     * mesma redação que nomeia um acordo concreto em vez de "eventual".
      */
     expect(camposQueDescem().map((c) => c.campo))
-      .toEqual(['assinado_em', 'metodos_avaliacao']);
+      .toEqual(['assinado_em', 'vigencia_anos', 'metodos_avaliacao']);
   });
 });
 
@@ -121,7 +126,8 @@ describe('preenchidosNoGrupo', () => {
     const g = grupoDoAcordo('conflitos')!;
     expect(preenchidosNoGrupo(g, {
       solucao_litigios: '', camara_arbitral: null, regime_nomeacao_arbitros: '',
-    })).toEqual({ preenchidos: 0, total: 3 });
+      foro_eleito_comarca: '', foro_eleito_estado: null,
+    })).toEqual({ preenchidos: 0, total: 5 });
   });
 });
 

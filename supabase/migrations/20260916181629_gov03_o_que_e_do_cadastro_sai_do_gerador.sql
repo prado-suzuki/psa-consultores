@@ -1,4 +1,4 @@
--- 20260916201500_gov03_o_que_e_do_cadastro_sai_do_gerador.sql
+-- 20260916181629_gov03_o_que_e_do_cadastro_sai_do_gerador.sql
 -- GOV-03: tres fatos que o consultor redigitava a cada documento passam a ser
 -- cadastro.
 --

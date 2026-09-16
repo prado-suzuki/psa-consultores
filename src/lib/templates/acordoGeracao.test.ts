@@ -50,12 +50,9 @@ const contextoDe = (e: EntradaAcordo) => ({
     sede: 'Rua das Araucárias, n.º 300, no município de Curitiba, Estado do Paraná',
     sedeMunicipio: 'Curitiba',
     sedeUfComPreposicao: 'do Paraná',
+    nomeFantasia: 'ABACAXI',
     sedeUf: 'PR',
   },
-  nomeCurtoDaEmpresa: 'ABACAXI',
-  substitutoDoRepresentante: '',
-  foroEleitoComarca: '',
-  foroEleitoEstado: '',
   dataAssinatura: '',
   testemunha1Nome: '', testemunha1Rg: '', testemunha1Cpf: '',
   testemunha2Nome: '', testemunha2Rg: '', testemunha2Cpf: '',
@@ -141,15 +138,16 @@ describe('o caminho da TELA, que o teste de motor nao cobre', () => {
     expect(d.bindings.map((b) => b.nome).sort()).toEqual(['acordo', 'sociedade']);
     expect(d.listas.map((l) => l.nome).sort()).toEqual(['administradores', 'quotistasSignatarios']);
     /*
-     * Os de topo, e cada um tem de estar em CAMPOS_MANUAIS: é o que faz a tela
-     * marcar LACUNA em vez de resolver '' calado. Data e testemunhas chegaram
-     * com o fecho, que citava "…/MT, … de … de 2.021" e trazia as duas
-     * testemunhas coladas numa linha só. O Acordo não tem linha de advogado,
-     * diferente da alteração contratual.
+     * SOBRARAM SETE, e todos são do ATO DE ASSINAR: a data e as duas
+     * testemunhas. É essa a régua do campo manual.
+     *
+     * O foro eleito, o substituto do representante e o apelido da empresa já
+     * estiveram nesta lista, e saíram: são combinados uma vez e valem por vinte
+     * anos, então viraram cadastro (migration 20260916181629). Campo manual que
+     * o consultor redigita a cada geração é campo no lugar errado.
      */
     expect([...d.desconhecidos].sort()).toEqual([
-      'dataAssinatura', 'foroEleitoComarca', 'foroEleitoEstado',
-      'nomeCurtoDaEmpresa', 'substitutoDoRepresentante',
+      'dataAssinatura',
       'testemunha1Cpf', 'testemunha1Nome', 'testemunha1Rg',
       'testemunha2Cpf', 'testemunha2Nome', 'testemunha2Rg',
     ]);

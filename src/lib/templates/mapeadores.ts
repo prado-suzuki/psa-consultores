@@ -308,6 +308,7 @@ export function mapearSociedade(
   set('numeroAlteracao', instrumento?.numeroAlteracao ?? 0);
   set('tituloColetivoSocios', instrumento?.tituloColetivoSocios);
   set('razaoSocial', row.denominacao);
+  set('nomeFantasia', row.nome_fantasia);
   set('cnpj', row.cpf_cnpj);
   set('nire', row.nire);
   set('juntaUf', row.junta_comercial_uf);
@@ -872,6 +873,10 @@ export interface AcordoParaMapear {
   // Representação
   representanteNome?: string | null;
   representanteGenero?: string | null;
+  substitutoRepresentanteNome?: string | null;
+  substitutoRepresentanteGenero?: string | null;
+  foroEleitoComarca?: string | null;
+  foroEleitoEstado?: string | null;
 }
 
 /**
@@ -953,6 +958,10 @@ export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
 
   set('representanteNome', entrada.representanteNome);
   set('representanteGenero', entrada.representanteGenero);
+  set('substitutoRepresentanteNome', entrada.substitutoRepresentanteNome);
+  set('substitutoRepresentanteGenero', entrada.substitutoRepresentanteGenero);
+  set('foroEleitoComarca', entrada.foroEleitoComarca);
+  set('foroEleitoEstado', entrada.foroEleitoEstado);
 
   /*
    * TODO CAMPO DECLARADO SAI PREENCHIDO, nem que seja com ''.

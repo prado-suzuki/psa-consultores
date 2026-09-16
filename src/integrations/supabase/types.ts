@@ -151,6 +151,8 @@ export type Database = {
           created_by: string | null
           data_referencia: string | null
           excluido: boolean
+          foro_eleito_comarca: string | null
+          foro_eleito_estado: string | null
           grupos_conferidos: string[]
           id: string
           juros_valor_subscrito: string | null
@@ -171,6 +173,7 @@ export type Database = {
           representante_pessoa_id: string | null
           reuniao_previa_obrigatoria: boolean
           solucao_litigios: string | null
+          substituto_representante_pessoa_id: string | null
           updated_at: string
           updated_by: string | null
           versao: number
@@ -185,6 +188,8 @@ export type Database = {
           created_by?: string | null
           data_referencia?: string | null
           excluido?: boolean
+          foro_eleito_comarca?: string | null
+          foro_eleito_estado?: string | null
           grupos_conferidos?: string[]
           id?: string
           juros_valor_subscrito?: string | null
@@ -205,6 +210,7 @@ export type Database = {
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
           solucao_litigios?: string | null
+          substituto_representante_pessoa_id?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
@@ -219,6 +225,8 @@ export type Database = {
           created_by?: string | null
           data_referencia?: string | null
           excluido?: boolean
+          foro_eleito_comarca?: string | null
+          foro_eleito_estado?: string | null
           grupos_conferidos?: string[]
           id?: string
           juros_valor_subscrito?: string | null
@@ -239,6 +247,7 @@ export type Database = {
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
           solucao_litigios?: string | null
+          substituto_representante_pessoa_id?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
@@ -255,6 +264,13 @@ export type Database = {
           {
             foreignKeyName: "acordo_quotistas_representante_pessoa_id_fkey"
             columns: ["representante_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acordo_quotistas_substituto_representante_pessoa_id_fkey"
+            columns: ["substituto_representante_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
@@ -7386,6 +7402,7 @@ export type Database = {
           naturalidade_municipio: string | null
           naturalidade_uf: string | null
           nire: string | null
+          nome_fantasia: string | null
           objeto_social: string | null
           profissao: string | null
           regime_bens: string | null
@@ -7429,6 +7446,7 @@ export type Database = {
           naturalidade_municipio?: string | null
           naturalidade_uf?: string | null
           nire?: string | null
+          nome_fantasia?: string | null
           objeto_social?: string | null
           profissao?: string | null
           regime_bens?: string | null
@@ -7472,6 +7490,7 @@ export type Database = {
           naturalidade_municipio?: string | null
           naturalidade_uf?: string | null
           nire?: string | null
+          nome_fantasia?: string | null
           objeto_social?: string | null
           profissao?: string | null
           regime_bens?: string | null
