@@ -30,7 +30,6 @@ export interface OrdemCrua {
   situacao: string | null;
   data_inicio: string | null;
   data_fim: string | null;
-  observacoes: string | null;
   regiao: string | null;
 }
 
@@ -112,7 +111,6 @@ export interface LinhaDoControle {
   situacaoDaOs: string | null;
   dataInicio: string | null;
   dataFim: string | null;
-  observacoes: string | null;
   /** `data_fim` no passado e a OS ainda não concluída nem cancelada. */
   prazoVencido: boolean;
 }
@@ -270,7 +268,6 @@ export function montarControleDeProjetos(
         situacaoDaOs: ordem.situacao ?? null,
         dataInicio: ordem.data_inicio ?? null,
         dataFim: ordem.data_fim ?? null,
-        observacoes: ordem.observacoes?.trim() || null,
         prazoVencido: prazoVencido(ordem.data_fim ?? null, status, hoje),
       });
     }
@@ -310,10 +307,8 @@ export const FILTROS_VAZIOS: FiltrosDoControle = {
 };
 
 /**
- * Aplica os filtros da barra. A busca cobre cliente, OS, produto, executor e
- * observação:
- * é o campo em que a equipe achava o cliente na planilha com Ctrl+F, e a
- * observação é onde mora o motivo de o trabalho estar parado.
+ * Aplica os filtros da barra. A busca cobre cliente, OS, produto e executor: é
+ * o campo em que a equipe achava o cliente na planilha com Ctrl+F.
  */
 export function filtrarControle(
   linhas: LinhaDoControle[],
@@ -330,7 +325,6 @@ export function filtrarControle(
       linha.numeroOs,
       linha.produtoNome,
       linha.executores.join(' '),
-      linha.observacoes ?? '',
     ]
       .join(' ')
       .toLowerCase();
@@ -392,8 +386,7 @@ export type ColunaDoControle =
   | 'inicio'
   | 'prazo'
   | 'executor'
-  | 'gestor'
-  | 'observacao';
+  | 'gestor';
 
 export interface OrdemDoControle {
   /** `'padrao'` = cliente, área desta página, produto. */
@@ -456,8 +449,6 @@ function valorDaColuna(linha: LinhaDoControle, campo: ColunaDoControle): string 
       return linha.executores.join(', ').toLocaleLowerCase('pt-BR');
     case 'gestor':
       return linha.lideres.join(', ').toLocaleLowerCase('pt-BR');
-    case 'observacao':
-      return (linha.observacoes ?? '').toLocaleLowerCase('pt-BR');
   }
 }
 
@@ -481,8 +472,6 @@ function estaVazio(linha: LinhaDoControle, campo: ColunaDoControle): boolean {
       return linha.executores.length === 0;
     case 'gestor':
       return linha.lideres.length === 0;
-    case 'observacao':
-      return !linha.observacoes;
   }
 }
 

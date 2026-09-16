@@ -65,7 +65,7 @@ export function useDomainOsgControleProjetos() {
       ] = await Promise.all([
           supabase
             .from('ordem_servico')
-            .select('id, numero_os, id_cliente, situacao, data_inicio, data_fim, observacoes, regiao'),
+            .select('id, numero_os, id_cliente, situacao, data_inicio, data_fim, regiao'),
           supabase.from('os_produtos_contratados').select('ordem_servico_id, produto_segmento_id'),
           supabase.from('produto_segmento').select('id, nome, cluster_id'),
           supabase

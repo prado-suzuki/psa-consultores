@@ -37,7 +37,7 @@ import { projectStatusConfig } from '@/lib/projetoStatusColors';
 import { cn } from '@/lib/utils';
 
 /** Quantas colunas a tabela tem, para o `colSpan` da cabeça de grupo. */
-const COLUNAS = 10;
+const COLUNAS = 9;
 
 function data(valor: string | null): string {
   if (!valor) return '—';
@@ -105,26 +105,6 @@ function Prazo({ linha }: { linha: LinhaDoControle }) {
         <TooltipContent>Prazo vencido e a OS continua aberta</TooltipContent>
       </Tooltip>
     </span>
-  );
-}
-
-/**
- * A observação, que é a coluna N da planilha.
- *
- * Fica em duas linhas com o texto inteiro no hover. Em produção a maior tem 486
- * caracteres, e deixar a célula crescer faria uma linha empurrar a tabela toda;
- * cortar sem oferecer o resto esconderia justamente o motivo de o trabalho estar
- * parado, que é para o que a equipe lê esta coluna.
- */
-function Observacao({ texto }: { texto: string | null }) {
-  if (!texto) return <span className="text-muted-foreground">—</span>;
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="line-clamp-2 cursor-default text-left">{texto}</span>
-      </TooltipTrigger>
-      <TooltipContent className="max-w-md whitespace-pre-line">{texto}</TooltipContent>
-    </Tooltip>
   );
 }
 
@@ -310,9 +290,6 @@ function LinhaDaTabela({ linha, onAbrir }: { linha: LinhaDoControle; onAbrir: ()
       <TableCell className="text-sm">
         <Prazo linha={linha} />
       </TableCell>
-      <TableCell className="whitespace-normal break-words text-sm">
-        <Observacao texto={linha.observacoes} />
-      </TableCell>
     </TableRow>
   );
 }
@@ -360,16 +337,27 @@ export function ControleDeProjetosTabela({
       <Table>
         <TableHeader>
           <TableRow>
-            {coluna('cliente', 'Cliente', '14%')}
-            {coluna('os', 'OS', '7%', 'whitespace-nowrap')}
-            {coluna('area', 'Área', '6%')}
-            {coluna('produto', 'Produto', '14%')}
-            {coluna('status', 'Status', '9%')}
-            {coluna('gestor', 'Gestor', '12%')}
-            {coluna('regiao', 'Região', '6%')}
-            {coluna('inicio', 'Início', '8%', 'whitespace-nowrap')}
-            {coluna('prazo', 'Prazo', '8%', 'whitespace-nowrap')}
-            {coluna('observacao', 'Observação', '13%')}
+            {/*
+              Os rótulos são os do CADASTRO, não os da planilha nem invenção
+              desta tela: "Produto Contratado" e "Região" saem do formulário de
+              OS, "Líder Geral" e "Status" do modal de projeto, "Data Início" e
+              "Data Fim" do bloco de período da OS. Coluna com nome próprio
+              obriga quem lê a traduzir de volta para achar onde se edita.
+
+              "Área Executora" é a exceção, e é deliberada:
+              `produto_segmento.cluster_id` não tem rótulo em tela nenhuma, e
+              chamá-la de "Área" a confundiria com "Área do Negócio" da OS, que é
+              o setor do cliente (Agropecuária, Indústria) e é outra coisa.
+            */}
+            {coluna('cliente', 'Cliente', '15%')}
+            {coluna('os', 'OS', '8%', 'whitespace-nowrap')}
+            {coluna('area', 'Área Executora', '9%')}
+            {coluna('produto', 'Produto Contratado', '18%')}
+            {coluna('status', 'Status', '11%')}
+            {coluna('gestor', 'Líder Geral', '14%')}
+            {coluna('regiao', 'Região', '7%')}
+            {coluna('inicio', 'Data Início', '9%', 'whitespace-nowrap')}
+            {coluna('prazo', 'Data Fim', '9%', 'whitespace-nowrap')}
           </TableRow>
         </TableHeader>
         <TableBody>

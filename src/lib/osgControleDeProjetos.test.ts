@@ -55,7 +55,6 @@ function ordem(over: Partial<OrdemCrua> = {}): OrdemCrua {
     situacao: 'em_andamento',
     data_inicio: '2025-10-01',
     data_fim: '2026-12-30',
-    observacoes: null,
     regiao: 'BRA',
     ...over,
   };
@@ -338,7 +337,7 @@ describe('status do produto', () => {
 describe('filtrarControle', () => {
   const linhas = montar(
     [
-      ordem({ observacoes: 'Aguardando guia da Sefaz' }),
+      ordem(),
       ordem({
         id: 'os-2',
         id_cliente: 'c-2',
@@ -382,8 +381,8 @@ describe('filtrarControle', () => {
     expect(filtrarControle(linhas, { ...FILTROS_VAZIOS, busca: 'DOMENICO' })).toHaveLength(2);
   });
 
-  it('busca dentro da observação, que é onde mora o motivo da parada', () => {
-    expect(filtrarControle(linhas, { ...FILTROS_VAZIOS, busca: 'sefaz' })).toHaveLength(2);
+  it('não acha o que não está em nenhuma das colunas buscadas', () => {
+    expect(filtrarControle(linhas, { ...FILTROS_VAZIOS, busca: 'sefaz' })).toHaveLength(0);
   });
 });
 
