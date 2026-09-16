@@ -434,7 +434,7 @@ c) Tratando-se de dívida(s) superior a R$ 300.000,00 (trezentos mil reais), o Q
 
 *CLÁUSULA VIGÉSIMA PRIMEIRA – Do representante dos QUOTISTAS*
 
-21.1 Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/c art. 1.053, parágrafo único do Código Civil, os QUOTISTAS elegem o Sr. Zamo Governança Participações Ltda. como representante dos QUOTISTAS, sendo que na sua falta ou incapacidade civil, a incumbência passará ao ____________________, os quais serão substituídos por outro QUOTISTA caso ocorra o falecimento ou seja declarada a incapacidade civil de ambos, conforme os QUOTISTAS decidam em REUNIÃO DE QUOTISTAS, convocada para este fim.
+21.1 Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/c art. 1.053, parágrafo único do Código Civil, os QUOTISTAS elegem o Sr. Zamo Governança Participações Ltda. como representante dos QUOTISTAS, sendo que na sua falta ou incapacidade civil, a incumbência passará ao Sr. Bruno Zamo Teste, os quais serão substituídos por outro QUOTISTA caso ocorra o falecimento ou seja declarada a incapacidade civil de ambos, conforme os QUOTISTAS decidam em REUNIÃO DE QUOTISTAS, convocada para este fim.
 
 *CLÁUSULA VIGÉSIMA SEGUNDA – Da Vigência e do arquivamento deste ACORDO*
 
@@ -526,11 +526,11 @@ c) Tratando-se de dívida(s) superior a R$ 300.000,00 (trezentos mil reais), o Q
 
 26.3 Os QUOTISTAS acordam desde já, que o número de árbitros será de 03 (três), sendo um nomeado pelo reclamante, o outro pela parte reclamada e o terceiro a ser eleito por aqueles dois outros árbitros.
 
-26.4 O local de arbitragem será a cidade de ____________________, estado de ____________________, onde a decisão arbitral será proferida.
+26.4 O local de arbitragem será a cidade de Curitiba, estado de Paraná, onde a decisão arbitral será proferida.
 
 26.5 Os QUOTISTAS têm plena consciência e ciência de todos os termos e efeitos da cláusula arbitral prevista neste instrumento, e irrevogavelmente concordam que quaisquer disputas decorrentes ou relacionadas ao presente ACORDO serão exclusivamente resolvidas por arbitragem.
 
-26.6 Com o objetivo exclusivo de solicitar uma medida liminar ou cautelar, seja ela preventiva, provisória ou permanente, os QUOTISTAS e a ZAMO elegem o foro da cidade de ____________________, estado de ____________________, por mais privilegiado outro o seja.
+26.6 Com o objetivo exclusivo de solicitar uma medida liminar ou cautelar, seja ela preventiva, provisória ou permanente, os QUOTISTAS e a ZAMO elegem o foro da cidade de Curitiba, estado de Paraná, por mais privilegiado outro o seja.
 
 26.7 Para fins do disposto nos artigos 165 e seguintes do Código de Processo Civil, os QUOTISTAS e a INTERVENIENTE ANUENTE nomeiam como mediadora antes de ajuizarem qualquer medida judicial e/ou requerer qualquer procedimento arbitral a empresa PRADO SUZUKI & Associados S/S, inscrita no CNPJ/MF sob o nº 37.465.705/0001-04, sediada a Rua Desembargador José Barros do Vale, no 03, Bairro Duque de Caxias, no município de Cuiabá, estado de Mato Grosso, cujo nome só será substituído por decisão unânime dos QUOTISTAS.
 

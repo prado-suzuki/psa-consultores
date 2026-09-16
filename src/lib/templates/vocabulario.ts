@@ -53,6 +53,20 @@ export interface CampoEntidade {
    */
   manual?: boolean;
   /**
+   * Vazio, vira LACUNA em vez de ''. Igual ao `manual`, mas o campo continua
+   * vindo do cadastro.
+   *
+   * É opt-in por campo, e não regra geral do obrigatório, porque o descarte de
+   * bloco por "campos vazios" existe de propósito: a cláusula de capital de um
+   * contrato sem sócios TEM de sumir, e não voltar como "R$ ____" (emenda 9.1).
+   *
+   * Serve para o campo que o documento cita em dezenas de blocos de PROSA, onde
+   * a frase continua de pé sem ele. O apelido da empresa é o caso: sem esta
+   * marca, um cliente com o nome fantasia em branco perdia 130 dos 266 blocos
+   * do Acordo, e o documento saía pela metade sem erro nenhum.
+   */
+  lacunaSeVazio?: boolean;
+  /**
    * Campo de MÁQUINA, não de conferência: existe para o motor concordar ou
    * calcular, e não é dado que o consultor tenha o que conferir. Some do
    * "Ajustar dados manualmente" da tela Gerar e continua valendo por trás.
@@ -767,7 +781,7 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
        * "falta o nome fantasia" antes de baixar.
        */
       { id: 'nomeFantasia', label: 'Nome fantasia (como o documento a chama)', tipo: 'texto',
-        obrigatorio: true },
+        obrigatorio: true, lacunaSeVazio: true },
       { id: 'sedeMunicipio', label: 'Sede — município', tipo: 'texto' },
       { id: 'sedeUf', label: 'Sede — UF', tipo: 'texto' },
       ufExtensoCampo('sedeUfExtenso', 'Sede — Estado por extenso', 'sedeUf'),

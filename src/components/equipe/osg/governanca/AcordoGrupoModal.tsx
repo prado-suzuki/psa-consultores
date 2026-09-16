@@ -130,6 +130,17 @@ export function AcordoGrupoModal({
   const visivel = (c: CampoDoAcordo) => !c.dependeDe || form[c.dependeDe] === true;
 
   const opcoesDePessoa = useMemo(() => pessoas.map(comoOpcao), [pessoas]);
+  /*
+   * Representante e substituto são PESSOA FÍSICA. A cláusula escreve "os
+   * QUOTISTAS elegem o Sr. …", com o tratamento concordando pelo gênero, e
+   * empresa não tem gênero. Sem o filtro dava para eleger a própria sociedade
+   * como representante dos sócios dela, que foi o que aconteceu no cadastro de
+   * teste.
+   */
+  const opcoesDePessoaFisica = useMemo(
+    () => pessoas.filter((p) => p.tipo_pessoa !== 'PJ').map(comoOpcao),
+    [pessoas],
+  );
   // Sociedade relacionada é empresa, então a lista só oferece pessoa jurídica.
   const opcoesDeEmpresa = useMemo(
     () => pessoas.filter((p) => p.tipo_pessoa === 'PJ').map(comoOpcao),
@@ -189,9 +200,14 @@ export function AcordoGrupoModal({
               number={String(i + 1).padStart(2, '0')}
               title={b.titulo ?? grupo.titulo}
             >
-              <div className="space-y-5">
+              {/*
+                Duas colunas, e o campo ocupa as duas por padrão. Cidade e UF do
+                foro são o par que pede meia linha: são um endereço só partido em
+                dois, e um embaixo do outro sugeria perguntas independentes.
+              */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-5">
                 {b.campos.map((c) => (
-            <div key={c.campo} className="space-y-1.5">
+            <div key={c.campo} className={cn('space-y-1.5', c.meiaLinha ? 'col-span-1' : 'col-span-2')}>
               <Label htmlFor={`ac-${c.campo}`} className={ROTULO}>
                 {c.rotulo}
                 {c.desceAoContrato && (
@@ -346,7 +362,7 @@ export function AcordoGrupoModal({
                 ) : (
                   <SingleSelectCombobox
                     id={`ac-${c.campo}`}
-                    options={opcoesDePessoa}
+                    options={opcoesDePessoaFisica}
                     value={(form[c.campo] as string | null) ?? null}
                     onChange={(v) => mexer(c.campo, v)}
                     placeholder="Escolha quem representa"

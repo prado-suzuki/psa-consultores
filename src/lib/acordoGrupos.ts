@@ -47,6 +47,8 @@ export interface CampoDoAcordo {
   ajuda?: string;
   /** Também vira cláusula no contrato social. */
   desceAoContrato?: boolean;
+  /** Divide a linha com o campo vizinho, em vez de ocupar a largura toda. */
+  meiaLinha?: boolean;
   /** Só aparece quando este outro campo está ligado. */
   dependeDe?: string;
   /**
@@ -416,12 +418,14 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
        * E é a mesma cidade da arbitragem em 5 dos 5 acordos que trazem as duas.
        */
       { campo: 'foro_eleito_comarca', rotulo: 'Foro eleito — cidade', tipo: 'texto',
+        meiaLinha: true,
         ajuda: 'Em que comarca. Sai duas vezes: "elegem o foro da cidade de Cuiabá, estado de '
           + 'Mato Grosso, por mais privilegiado outro o seja" e, na cláusula da arbitragem, '
           + '"o local de arbitragem será a cidade de Cuiabá". No acervo variam Cuiabá, Lucas '
           + 'do Rio Verde, Tangará da Serra e Campo Novo do Parecis, e não é a cidade da '
           + 'sede: o AgroAliança senta em Sorriso e elege Cuiabá.' },
       { campo: 'foro_eleito_estado', rotulo: 'Foro eleito — estado', tipo: 'texto',
+        meiaLinha: true,
         ajuda: 'O estado POR EXTENSO, como o documento escreve: "Mato Grosso", e não "MT".' },
     ],
   },
