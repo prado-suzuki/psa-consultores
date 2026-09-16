@@ -109,6 +109,7 @@ interface LinhaDoCatalogo {
     tipo: string | null;
     titulo_documento: string | null;
     versoes: { conteudo: string; atual: boolean }[];
+    flags: { flag: { nome: string } | null }[];
   } | null;
 }
 
@@ -119,7 +120,8 @@ async function carregarTemplate(nome: string): Promise<Template> {
   if (docs.length !== 1) throw new Error(`esperava 1 documento "${nome}", achei ${docs.length}`);
   const linhas = await get<LinhaDoCatalogo>(
     'tmpl_documento_bloco?select=ordem,obrigatorio,'
-    + 'bloco:tmpl_bloco(nome,tipo,titulo_documento,versoes:tmpl_bloco_versao(conteudo,atual))'
+    + 'bloco:tmpl_bloco(nome,tipo,titulo_documento,versoes:tmpl_bloco_versao(conteudo,atual),'
+    + 'flags:tmpl_bloco_flag(flag:tmpl_flag(nome)))'
     + `&documento_id=eq.${docs[0].id}&order=ordem&limit=2000`,
   );
 
@@ -138,6 +140,9 @@ async function carregarTemplate(nome: string): Promise<Template> {
       obrigatorio: l.obrigatorio !== false,
       conteudo: atual?.conteudo ?? '',
       tituloDocumento: l.bloco.titulo_documento ?? undefined,
+      // As flags que o bloco EXIGE. Sem carregá-las o arnês veria todo bloco como
+      // incondicional e diria que o mecanismo funciona quando ele não funciona.
+      flagsRequeridas: l.bloco.flags.flatMap((f) => (f.flag ? [f.flag.nome] : [])),
     } satisfies Bloco;
   });
   return { id: nome, nome, blocos };
@@ -244,7 +249,14 @@ console.log(`blocos no catálogo  : ${template.blocos.length}`);
 
 let composicao;
 try {
-  composicao = gerarComposicao(template, contexto, [], {});
+  // As flags ativas saem do CADASTRO, como no controller: campo condicional que
+  // resolve 'sim' acende a flag de mesmo nome prefixada por `acordo_`.
+  const campos = camposDoAcordo(entrada) as Record<string, string>;
+  const flagsAtivas = Object.entries(campos)
+    .filter(([, v]) => v === 'sim')
+    .map(([k]) => `acordo_${k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)}`);
+  console.log(`flags ativas        : ${flagsAtivas.join(', ') || 'nenhuma'}`);
+  composicao = gerarComposicao(template, contexto, flagsAtivas, {});
 } catch (erro) {
   console.error(`\n✗ O MOTOR LANÇOU: ${(erro as Error).message}`);
   process.exit(1);

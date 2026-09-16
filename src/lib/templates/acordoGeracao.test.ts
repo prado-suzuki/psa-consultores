@@ -15,7 +15,9 @@ import { CAMPOS_MANUAIS, camposDaEntidade } from './vocabulario';
 import { montarDocx } from './docx';
 import type { Bloco, Template, TipoBloco } from './types';
 
-interface BlocoDoArquivo { nome: string; tipo: string; titulo: string | null; conteudo: string }
+interface BlocoDoArquivo {
+  nome: string; tipo: string; titulo: string | null; conteudo: string; flags?: string[];
+}
 
 const blocos: Bloco[] = (blocosDoAcordo as BlocoDoArquivo[]).map((b, i) => ({
   id: `b${i}`,
@@ -23,6 +25,7 @@ const blocos: Bloco[] = (blocosDoAcordo as BlocoDoArquivo[]).map((b, i) => ({
   tituloDocumento: b.titulo ?? undefined,
   conteudo: b.conteudo,
   obrigatorio: true,
+  flagsRequeridas: b.flags,
 }));
 
 const template: Template = { id: 'acordo', nome: 'Acordo de Quotistas', blocos };
@@ -79,6 +82,10 @@ const ENTRADA: EntradaAcordo = {
     camaraArbitral: 'Câmara de Comércio Brasil Canadá',
     representanteNome: 'LUIZ MARCELO',
     representanteGenero: 'M',
+    substitutoRepresentanteNome: 'ANA KARLA',
+    substitutoRepresentanteGenero: 'F',
+    foroEleitoComarca: 'Cuiabá',
+    foroEleitoEstado: 'Mato Grosso',
   },
   quoruns: [],
   ramos: [],
@@ -120,6 +127,42 @@ describe('a geração do Acordo de ponta a ponta', () => {
     expect(saida.match(/\b\d{11}\b/g) ?? []).toEqual(['41200000001']); // só o NIRE dele
     expect(saida).not.toContain('Campo Novo do Parecis');              // foro do modelo
     expect(saida).not.toContain('Limoeiro');                           // sede do modelo
+  });
+});
+
+describe('o mecanismo que DESLIGA clausula', () => {
+  /*
+   * ATE HOJE NENHUMA RESPOSTA DO CADASTRO TIRAVA CLAUSULA DO DOCUMENTO.
+   *
+   * O motor sempre soube: `comporBlocos` descarta bloco cuja flag exigida nao
+   * esta ativa. Faltavam as duas pontas. De um lado, os 266 blocos entraram sem
+   * flag nenhuma. Do outro, `avaliarFlags` so recebia a EMPRESA como fonte, e
+   * nenhum campo do acordo chegava ate ela.
+   *
+   * A nao concorrencia e o caso testado porque o texto dela E SEPARAVEL: sao 7
+   * blocos, quatro definicoes na Clausula Primeira e tres regras, e nenhum
+   * carrega outro assunto junto. Desligar remove os sete inteiros.
+   */
+  const comFlag = blocos.filter((b) => b.flagsRequeridas?.length);
+
+  it('sao 7 blocos sob a flag da nao concorrencia, e so eles', () => {
+    expect(comFlag).toHaveLength(7);
+    expect(new Set(comFlag.flatMap((b) => b.flagsRequeridas!)))
+      .toEqual(new Set(['acordo_nao_concorrencia']));
+  });
+
+  it('ligada, os 7 entram; desligada, saem os 7 e mais nada', () => {
+    const ligada = gerarBlocos(template, contextoDe(ENTRADA), ['acordo_nao_concorrencia']);
+    const desligada = gerarBlocos(template, contextoDe(ENTRADA), []);
+    expect(ligada).toHaveLength(266);
+    expect(desligada).toHaveLength(259);
+
+    const texto = desligada.map((b) => b.conteudo).join(String.fromCharCode(10));
+    // As frases que so existem se o mecanismo existe.
+    expect(texto).not.toContain('CLÁUSULA DE NÃO CONCORRÊNCIA');
+    expect(texto).not.toContain('ATIVIDADE(S) CONCORRENTE(S):');
+    // E o resto do documento continua de pe, com as 26 clausulas.
+    expect(texto.match(/^\*CLÁUSULA /gm)).toHaveLength(26);
   });
 });
 

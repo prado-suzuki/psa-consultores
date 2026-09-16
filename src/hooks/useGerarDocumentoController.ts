@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { avaliarFlags, comFlagDaPecaRetroativa, comporBlocos, copiarOrigemProfunda, flagDaPeca, idDoRegistro, gerarBlocos, gerarComposicao, inclusoesDe, mapearSignatarios, marcarRealceDiff, pendenciasDoDocumento, removerMarcas, unirBlocos, type Bloco, type BlocoDescartado, type BlocoGerado, type FlagDeclarativa, type OrigemValor, type RegistroFamilias, type Template } from '@/lib/templates';
 import { baixarDocx } from '@/lib/templates/docx';
-import { camposDaEntidade, derivarCampos, type TipoEntidade } from '@/lib/templates/vocabulario';
+import { campoManual, camposDaEntidade, derivarCampos, type TipoEntidade } from '@/lib/templates/vocabulario';
+import { dataExtenso } from '@/lib/templates/extenso';
 import { calcularHistoricoCapital } from '@/lib/templates/historicoCapital';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
 import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearEstadoDosOnus, mapearIntegralizacoes, mapearListasDaDoacao, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosSocios, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
@@ -1106,8 +1107,27 @@ export function useGerarDocumentoController() {
     const declarativas: FlagDeclarativa[] = catalogoFlags
       .filter((f) => f.entidade && f.campo && f.valor)
       .map((f) => ({ nome: f.nome, entidade: f.entidade!, campo: f.campo!, valor: f.valor! }));
-    return avaliarFlags(declarativas, { empresa: empresaRow });
-  }, [catalogoFlags, empresaRow]);
+    /*
+     * O ACORDO COMO FONTE DE FLAG, ao lado da empresa.
+     *
+     * Era só a empresa, e por isso nenhuma resposta do cadastro do Acordo
+     * conseguia tirar cláusula do documento: as dez caixas de mecanismo eram
+     * índice do que o acordo tem, e não interruptor. Os campos condicionais do
+     * acordo já resolvem 'sim'/'' (ver `condicional` em mapeadores), que é
+     * exatamente a comparação que `avaliarFlags` faz.
+     *
+     * Sem acordo escolhido a fonte é vazia, e toda flag de acordo fica desligada
+     * — que é o certo: o contrato social não tem acordo e não deve perder nada
+     * por causa disso, porque nenhum bloco dele exige flag de acordo.
+     */
+    const registroAcordo = registros.acordoQuotistas.find(
+      (r) => Object.values(registroPorBinding).includes(r.id),
+    ) ?? registros.acordoQuotistas[0];
+    const fonteAcordo = registroAcordo
+      ? camposDoAcordo(registroAcordo.row as EntradaAcordo)
+      : undefined;
+    return avaliarFlags(declarativas, { empresa: empresaRow, acordo: fonteAcordo });
+  }, [catalogoFlags, empresaRow, registros.acordoQuotistas, registroPorBinding]);
   const flagsAtivasLive = useMemo(
     // Para o motor os dois tipos são o mesmo interruptor: ele recebe uma lista
     // de nomes ativos e não pergunta de onde cada nome veio. As manuais entram
@@ -2153,7 +2173,15 @@ export function useGerarDocumentoController() {
     // para a prévia não travar antes de preencher (diferente dos bindings, que
     // exigem seleção de registro).
     const livresFonte = dados?.valoresLivres ?? valoresLivres;
-    const livres = Object.fromEntries(desconhecidosVisiveis.map((ph) => [ph, livresFonte[ph] ?? '']));
+    /*
+     * O campo de DATA guarda o ISO do seletor e o documento recebe o EXTENSO.
+     * O fecho escreve "Cuiabá/MT, 10 de outubro de 2.026", e sem esta conversão
+     * sairia "2026-10-10", que é o valor do <input type="date">.
+     */
+    const livres = Object.fromEntries(desconhecidosVisiveis.map((ph) => {
+      const bruto = livresFonte[ph] ?? '';
+      return [ph, campoManual(ph)?.tipo === 'data' && bruto ? dataExtenso(bruto) : bruto];
+    }));
     // Seções desconhecidas resolvem como '' (falsy): o trecho sai da prévia sem travar.
     for (const nome of secoesDesconhecidas) livres[nome] = livres[nome] ?? '';
     // Snapshot antigo sem itensPorLista/total cai para a fonte viva até revalidar.

@@ -177,25 +177,37 @@
   "nome": "Acordo 030 Subitem — ATIVIDADE(S) CONCORRENTE(S): a(s) atividade(s) econômi…",
   "tipo": "subitem",
   "titulo": null,
-  "conteudo": "ATIVIDADE(S) CONCORRENTE(S): a(s) atividade(s) econômica(s) descrita(s) como objeto social no contrato social da {{ sociedade.nomeFantasia }} ou de suas SOCIEDADES RELACIONADAS na data do evento em que for ser analisada a CLÁUSULA DE NÃO CONCORRÊNCIA ou imposição de não exercer atividade concorrente, nos termos de ACORDO, ou ainda, a(s) reconhecida(s) como concorrente(s) em REUNIÃO DE SÓCIOS, REUNIÃO PRÉVIA, REUNIÃO DE QUOTISTAS e/ou reunião da ALTA ADMINISTRAÇÃO de todas aquelas sociedades;"
+  "conteudo": "ATIVIDADE(S) CONCORRENTE(S): a(s) atividade(s) econômica(s) descrita(s) como objeto social no contrato social da {{ sociedade.nomeFantasia }} ou de suas SOCIEDADES RELACIONADAS na data do evento em que for ser analisada a CLÁUSULA DE NÃO CONCORRÊNCIA ou imposição de não exercer atividade concorrente, nos termos de ACORDO, ou ainda, a(s) reconhecida(s) como concorrente(s) em REUNIÃO DE SÓCIOS, REUNIÃO PRÉVIA, REUNIÃO DE QUOTISTAS e/ou reunião da ALTA ADMINISTRAÇÃO de todas aquelas sociedades;",
+  "flags": [
+   "acordo_nao_concorrencia"
+  ]
  },
  {
   "nome": "Acordo 031 Subitem — CLÁUSULA DE NÃO CONCORRÊNCIA: a obrigação que os QUOTI…",
   "tipo": "subitem",
   "titulo": null,
-  "conteudo": "CLÁUSULA DE NÃO CONCORRÊNCIA: a obrigação que os QUOTISTAS assumem de não exercer (por ação ou omissão) qualquer ATIVIDADE CONCORRENTE na ÁREA DE ATUAÇÃO em um período de {{ acordo.naoConcorrenciaPrazoAnosNumeral }} ({{ acordo.naoConcorrenciaPrazoAnosExtenso }}) anos na ÁREA DE ATUAÇÃO ou face a CARTEIRA DE CLIENTES, sob pena de ser imputada a parte que descumprir esta obrigação, MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA. Esta obrigação poderá ser exigida de qualquer QUOTISTA caso alguma PARTE RELACIONADA, seu cônjuge ou companheiro(a), sócio e/ou acionista de qualquer QUOTISTA (bem como descendentes, cônjuge e/ou companheira destes) descumpra a CLÁUSULA DE NÃO CONCORRÊNCIA, hipótese que a {{ sociedade.nomeFantasia }} e/ou qualquer outro QUOTISTA poderá exigir qualquer direito que lhe for assegurado por este ACORDO face a tal descumprimento, como se aquele QUOTISTA tivesse descumprido o ACORDO, incluindo a MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA, eventuais OPÇÃO DE VENDA ou OPÇÃO DE COMPRA, além de multas, astreintes e perdas e danos."
+  "conteudo": "CLÁUSULA DE NÃO CONCORRÊNCIA: a obrigação que os QUOTISTAS assumem de não exercer (por ação ou omissão) qualquer ATIVIDADE CONCORRENTE na ÁREA DE ATUAÇÃO em um período de {{ acordo.naoConcorrenciaPrazoAnosNumeral }} ({{ acordo.naoConcorrenciaPrazoAnosExtenso }}) anos na ÁREA DE ATUAÇÃO ou face a CARTEIRA DE CLIENTES, sob pena de ser imputada a parte que descumprir esta obrigação, MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA. Esta obrigação poderá ser exigida de qualquer QUOTISTA caso alguma PARTE RELACIONADA, seu cônjuge ou companheiro(a), sócio e/ou acionista de qualquer QUOTISTA (bem como descendentes, cônjuge e/ou companheira destes) descumpra a CLÁUSULA DE NÃO CONCORRÊNCIA, hipótese que a {{ sociedade.nomeFantasia }} e/ou qualquer outro QUOTISTA poderá exigir qualquer direito que lhe for assegurado por este ACORDO face a tal descumprimento, como se aquele QUOTISTA tivesse descumprido o ACORDO, incluindo a MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA, eventuais OPÇÃO DE VENDA ou OPÇÃO DE COMPRA, além de multas, astreintes e perdas e danos.",
+  "flags": [
+   "acordo_nao_concorrencia"
+  ]
  },
  {
   "nome": "Acordo 032 Subitem — MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNC…",
   "tipo": "subitem",
   "titulo": null,
-  "conteudo": "MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA: multa meramente punitiva a ser exigida de quem descumpriu a CLÁUSULA DE NÃO CONCORRÊNCIA de {{ acordo.naoConcorrenciaMulta }}, cujo valor será atualizado pelo ÍNDICE DE ATUALIZAÇÃO, pro rata die a partir da assinatura deste ACORDO, reservado ainda a {{ sociedade.nomeFantasia }} e/ou às suas SOCIEDADES RELACIONADAS exigir do QUOTISTA que descumpriu essa regra que cesse o descumprimento, sob pena de ser acrescida penalidade diária enquanto perdurar o descumprimento não inferior a 10% (dez por cento) da primeira multa, além de eventuais perdas e danos, honorários advocatícios desde já fixados em 20% (vinte por cento), custas periciais, eventualmente judiciais e/ou decorrentes de procedimentos de arbitragem, podendo ser exigidas daquele que descumpriu tal acordo;"
+  "conteudo": "MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA: multa meramente punitiva a ser exigida de quem descumpriu a CLÁUSULA DE NÃO CONCORRÊNCIA de {{ acordo.naoConcorrenciaMulta }}, cujo valor será atualizado pelo ÍNDICE DE ATUALIZAÇÃO, pro rata die a partir da assinatura deste ACORDO, reservado ainda a {{ sociedade.nomeFantasia }} e/ou às suas SOCIEDADES RELACIONADAS exigir do QUOTISTA que descumpriu essa regra que cesse o descumprimento, sob pena de ser acrescida penalidade diária enquanto perdurar o descumprimento não inferior a 10% (dez por cento) da primeira multa, além de eventuais perdas e danos, honorários advocatícios desde já fixados em 20% (vinte por cento), custas periciais, eventualmente judiciais e/ou decorrentes de procedimentos de arbitragem, podendo ser exigidas daquele que descumpriu tal acordo;",
+  "flags": [
+   "acordo_nao_concorrencia"
+  ]
  },
  {
   "nome": "Acordo 033 Subitem — ÁREA DE ATUAÇÃO: em todos os estados do Brasil, inclui…",
   "tipo": "subitem",
   "titulo": null,
-  "conteudo": "ÁREA DE ATUAÇÃO: {{ acordo.naoConcorrenciaArea }} e/ou regiões de atuação da {{ sociedade.nomeFantasia }} que estão sujeitas a CLÁUSULA DE NÃO CONCORRÊNCIA, incluindo ainda, os municípios descritos no contrato social da SOCIEDADE e/ou de suas SOCIEDADES RELACIONADAS como sendo sua sede e/ou filiais."
+  "conteudo": "ÁREA DE ATUAÇÃO: {{ acordo.naoConcorrenciaArea }} e/ou regiões de atuação da {{ sociedade.nomeFantasia }} que estão sujeitas a CLÁUSULA DE NÃO CONCORRÊNCIA, incluindo ainda, os municípios descritos no contrato social da SOCIEDADE e/ou de suas SOCIEDADES RELACIONADAS como sendo sua sede e/ou filiais.",
+  "flags": [
+   "acordo_nao_concorrencia"
+  ]
  },
  {
   "nome": "Acordo 034 Subitem — ÁREA DE PROSPECÇÃO: ainda que não relacionadas na área…",
@@ -519,7 +531,10 @@
   "nome": "Acordo 087 Subitem — O QUOTISTA cujas QUOTAS recair o direito de Drag Along…",
   "tipo": "subitem",
   "titulo": null,
-  "conteudo": "O QUOTISTA cujas QUOTAS recair o direito de Drag Along e Tag Along deverá cumprir a CLÁUSULA DE NÃO CONCORRÊNCIA, se assim for exigido pelo comprador ou novo sócio da {{ sociedade.nomeFantasia }}."
+  "conteudo": "O QUOTISTA cujas QUOTAS recair o direito de Drag Along e Tag Along deverá cumprir a CLÁUSULA DE NÃO CONCORRÊNCIA, se assim for exigido pelo comprador ou novo sócio da {{ sociedade.nomeFantasia }}.",
+  "flags": [
+   "acordo_nao_concorrencia"
+  ]
  },
  {
   "nome": "Acordo 088 Cláusula — Da eventual constituição de empresas pelos QUOTISTAS p…",
@@ -621,7 +636,10 @@
   "nome": "Acordo 104 Item — Uma vez que qualquer QUOTISTA deixe de pertencer ao qu…",
   "tipo": "item",
   "titulo": null,
-  "conteudo": "Uma vez que qualquer QUOTISTA deixe de pertencer ao quadro societário da {{ sociedade.nomeFantasia }}, por força de eventual exercício de OPÇÃO DE COMPRA, OPÇÃO DE VENDA e/ou qualquer outro direito, ainda que, por força de decisão judicial e/ou arbitral, este se compromete expressamente a cumprir a CLÁUSULA DE NÃO CONCORRÊNCIA, observada a ÁREA DE ATUAÇÃO e o não exercício, direta ou indiretamente, de qualquer NEGÓCIO CONCORRENTE, sob pena do pagamento da MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA, exceto se os QUOTISTAS que representem a maioria das QUOTAS remanescentes (ou seja, excluído o QUOTISTA que retirou-se), manifestarem-se contrários neste sentido em REUNIÃO DE QUOTISTAS, REUNIÃO PRÉVIA ou REUNIÃO DE SÓCIOS."
+  "conteudo": "Uma vez que qualquer QUOTISTA deixe de pertencer ao quadro societário da {{ sociedade.nomeFantasia }}, por força de eventual exercício de OPÇÃO DE COMPRA, OPÇÃO DE VENDA e/ou qualquer outro direito, ainda que, por força de decisão judicial e/ou arbitral, este se compromete expressamente a cumprir a CLÁUSULA DE NÃO CONCORRÊNCIA, observada a ÁREA DE ATUAÇÃO e o não exercício, direta ou indiretamente, de qualquer NEGÓCIO CONCORRENTE, sob pena do pagamento da MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA, exceto se os QUOTISTAS que representem a maioria das QUOTAS remanescentes (ou seja, excluído o QUOTISTA que retirou-se), manifestarem-se contrários neste sentido em REUNIÃO DE QUOTISTAS, REUNIÃO PRÉVIA ou REUNIÃO DE SÓCIOS.",
+  "flags": [
+   "acordo_nao_concorrencia"
+  ]
  },
  {
   "nome": "Acordo 105 Item — QUOTISTAS que sejam detentores da maioria das QUOTAS p…",
@@ -837,7 +855,10 @@
   "nome": "Acordo 140 Item — .Não será admitido à qualquer QUOTISTA, seus descenden…",
   "tipo": "item",
   "titulo": null,
-  "conteudo": ".Não será admitido à qualquer QUOTISTA, seus descendentes, cônjuges e/ou companheiros(as), realizar qualquer ato ou negócio jurídico descrito como ATIVIDADE CONCORRENTE, sob pena de ser aplicada a MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA e até mesmo possa ser exercida uma OPÇÃO DE COMPRA em desfavor do QUOTISTA que descumpriu essa cláusula, devendo ser notificada a parte contrária para deixar de descumprir este ACORDO em até 30 (trinta) dias contados do recebimento da notificação; exceto se autorizado por todos os QUOTISTAS."
+  "conteudo": ".Não será admitido à qualquer QUOTISTA, seus descendentes, cônjuges e/ou companheiros(as), realizar qualquer ato ou negócio jurídico descrito como ATIVIDADE CONCORRENTE, sob pena de ser aplicada a MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA e até mesmo possa ser exercida uma OPÇÃO DE COMPRA em desfavor do QUOTISTA que descumpriu essa cláusula, devendo ser notificada a parte contrária para deixar de descumprir este ACORDO em até 30 (trinta) dias contados do recebimento da notificação; exceto se autorizado por todos os QUOTISTAS.",
+  "flags": [
+   "acordo_nao_concorrencia"
+  ]
  },
  {
   "nome": "Acordo 141 Item — Os QUOTISTAS não poderão ser sócios de outras atividad…",

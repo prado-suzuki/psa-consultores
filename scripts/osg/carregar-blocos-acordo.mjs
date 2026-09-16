@@ -128,6 +128,35 @@ if (antigos?.length) {
   console.log(`${antigos.length} blocos antigos removidos.`);
 }
 
+/*
+ * AS FLAGS DO ACORDO, que sao o que permite uma resposta do cadastro TIRAR
+ * clausula do documento.
+ *
+ * Declarativas: o motor casa `entidade.campo === valor` contra as fontes que o
+ * controller passa, e os campos condicionais do acordo ja resolvem 'sim'/''.
+ * Sem a linha em `tmpl_flag` o vinculo em `tmpl_bloco_flag` nao existe, e o
+ * bloco entra sempre.
+ */
+const FLAGS = [
+  { nome: 'acordo_nao_concorrencia', campo: 'naoConcorrencia',
+    descricao: 'O acordo tem clausula de nao concorrencia (cadastro do Acordo).' },
+];
+const flagIdPorNome = new Map();
+for (const f of FLAGS) {
+  const [achada] = await api(`tmpl_flag?nome=eq.${f.nome}&select=id`);
+  if (achada) { flagIdPorNome.set(f.nome, achada.id); continue; }
+  const [criada] = await api('tmpl_flag', {
+    method: 'POST',
+    body: JSON.stringify({
+      nome: f.nome, tipo: 'derivada', escopo: 'pj',
+      entidade: 'acordo', campo: f.campo, valor: 'sim',
+      descricao: f.descricao, ativo: true,
+    }),
+  });
+  flagIdPorNome.set(f.nome, criada.id);
+}
+console.log(`flags: ${[...flagIdPorNome.keys()].join(', ')}`);
+
 const [doc] = await api('tmpl_documento', {
   method: 'POST',
   body: JSON.stringify({
@@ -172,6 +201,12 @@ for (let i = 0; i < blocos.length; i += LOTE) {
       documento_id: doc.id, bloco_id: c.id, ordem: ++ordem, obrigatorio: true,
     }))),
   });
+  // O vinculo bloco -> flag. Bloco sem flag entra sempre; com flag, so quando o
+  // cadastro do acordo a acende.
+  const vinculos = criados.flatMap((c, k) => (fatia[k].flags ?? []).map((nome) => ({
+    bloco_id: c.id, flag_id: flagIdPorNome.get(nome),
+  })));
+  if (vinculos.length) await api('tmpl_bloco_flag', { method: 'POST', body: JSON.stringify(vinculos) });
   process.stdout.write(`\r  ${ordem}/${blocos.length} blocos`);
 }
 console.log('');

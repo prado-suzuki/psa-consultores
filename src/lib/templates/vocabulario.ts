@@ -33,6 +33,13 @@ export interface CampoEntidade {
   id: string;
   label: string;
   tipo: TipoCampo;
+  /**
+   * O que este campo faz no documento, para a tela explicar sozinha. Hoje só os
+   * CAMPOS_MANUAIS a usam, no painel "Preencher à mão" da tela Gerar: eles são
+   * os únicos que a pessoa responde sem ter aberto um cadastro antes, então são
+   * os únicos sem ajuda em lugar nenhum.
+   */
+  ajuda?: string;
   /** Se presente, é um campo DERIVADO de outro(s) (não é entrada direta no form). */
   derivadoDe?: string | string[];
   /** Recalcula o valor do campo a partir dos demais (extensos, concordância). */
@@ -1807,7 +1814,24 @@ export const TIPOS_ENTIDADE = Object.keys(ENTIDADES) as TipoEntidade[];
  * um {{ observacao }} opcional não estampar um traço no contrato.
  */
 export const CAMPOS_MANUAIS: CampoEntidade[] = [
-  { id: 'dataAssinatura', label: 'Data da assinatura', tipo: 'data', manual: true, obrigatorio: true },
+  {
+    id: 'dataAssinatura',
+    label: 'Data da assinatura',
+    tipo: 'data',
+    manual: true,
+    obrigatorio: true,
+    /*
+     * NÃO CONFUNDIR COM A DATA DO CADASTRO. São duas, e dizem coisas opostas:
+     * esta é a data em que ESTE documento vai ser assinado, e a do cadastro do
+     * Acordo é a data em que o acordo JÁ FOI assinado, que é o que o contrato
+     * social cita. Preencher a do cadastro congela a versão; esta não muda nada
+     * de cadastro, vale só para o papel que sai agora.
+     */
+    ajuda: 'A data que vai impressa no fecho deste documento, "Cuiabá/MT, 10 de outubro de '
+      + '2.026". Não é a mesma do cadastro do Acordo: lá você informa a data em que o acordo '
+      + 'JÁ FOI assinado, e é ela que o contrato social cita e que congela a versão. Em '
+      + 'branco, sai a lacuna para preencher à mão.',
+  },
   { id: 'testemunha1Nome', label: 'Testemunha 1 — nome', tipo: 'texto', manual: true },
   { id: 'testemunha1Cpf', label: 'Testemunha 1 — CPF', tipo: 'texto', manual: true },
   { id: 'testemunha1Rg', label: 'Testemunha 1 — RG', tipo: 'texto', manual: true },

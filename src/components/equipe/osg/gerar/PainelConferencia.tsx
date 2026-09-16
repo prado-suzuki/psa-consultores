@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { cn } from '@/lib/utils';
 import { campoDaEntidade, campoManual } from '@/lib/templates/vocabulario';
 import { labelDoBinding } from '@/lib/templates/binding';
+import { AjudaDoCampo } from '@/components/equipe/osg/ComAjuda';
 import { BlocosSemDado } from '@/components/equipe/osg/gerar/BlocosSemDado';
 import { fraseExcluidosPorFlag } from '@/components/equipe/osg/gerar/resumoDaComposicao';
 import { fmtBRL, fmtInt } from '@/components/equipe/osg/quadro-societario/quadroFmt';
@@ -358,8 +359,20 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                               */}
                               <Label className={cn(labelCls, 'text-sm')}>
                                 {campoManual(ph)?.label ?? ph}
+                                {campoManual(ph)?.ajuda && (
+                                  <AjudaDoCampo texto={campoManual(ph)!.ajuda!} />
+                                )}
                               </Label>
+                              {/*
+                                CAMPO DE DATA É CALENDÁRIO, e o documento recebe o
+                                extenso. Digitado à mão, o fecho saía com o que a
+                                pessoa escrevesse: "10/10/26", "10 de out". O
+                                valor guardado continua sendo a data ISO do
+                                seletor, e `dataExtenso` a converte para "10 de
+                                outubro de 2.026" na hora de montar o contexto.
+                              */}
                               <Input
+                                type={campoManual(ph)?.tipo === 'data' ? 'date' : 'text'}
                                 value={valoresLivres[ph] ?? ''}
                                 onChange={(e) => {
                                   setValoresLivres((prev) => ({ ...prev, [ph]: e.target.value }));
