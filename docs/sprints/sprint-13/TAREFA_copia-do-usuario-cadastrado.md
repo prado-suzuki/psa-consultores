@@ -59,7 +59,11 @@ metade dos cadastros novos não é de Tax.
 
 ## Frente A · Para quem vai a cópia
 
-### D1 · A lista de destinatários
+### D1 · A lista de destinatários · **DECIDIDO em 16/09/2026**
+
+**Decisão da Patrícia: a opção 1.** Cria-se o grupo `coordenacao@psaconsultores.com.br` no
+Workspace, e o n8n passa a mandar a cópia para ele. As outras três ficam registradas abaixo
+para não serem redescobertas.
 
 | opção | o que é | custo | efeito colateral |
 |---|---|---|---|
@@ -68,12 +72,23 @@ metade dos cadastros novos não é de Tax.
 | 3. Gestor da equipe do novo usuário | roteia pela estrutura, como a `notify-ticket` faz com `gestor_chamados_id` | o payload teria de mandar `equipe_ids`, que hoje não manda | **quebra em 3 das 9 equipes ativas** e em todo usuário `client`, que não tem equipe |
 | 4. Só o espaço do Chat, sem e-mail de cópia | mata a frente A | zero | perde o registro na caixa de quem não abre o Chat |
 
-**Recomendada: a 1.** É a única que não precisa de código para acompanhar mudança de
-coordenação, e a lista fica onde já se administra gente. A 3 é a mais "certa" no papel e a
-que mais falha calada no banco de hoje.
+A 1 é a única que não precisa de código para acompanhar mudança de coordenação, e a lista
+fica onde já se administra gente. A 3 é a mais "certa" no papel e a que mais falha calada no
+banco de hoje.
 
 ### Subtarefas
 
+- **T0 · Criar o grupo `coordenacao@psaconsultores.com.br`.** Passo humano, no admin do
+  Workspace, e é ele que destrava a T1. Três coisas a acertar na criação, todas dentro da
+  mesma tela:
+  - **Quem entra.** Os 13 `lider` e os 5 `sublider` do banco são o ponto de partida, não a
+    resposta: o grupo é da coordenação, e quem decide a composição é ela. A lista medida está
+    na seção acima.
+  - **Quem pode postar.** Restrito à organização, senão o grupo vira endereço aberto. Quem
+    manda é a conta que o n8n usa no Gmail, que é interna, então "membros da organização"
+    basta e nada precisa ser liberado para fora.
+  - **Fica fora do e-mail de boas-vindas.** O grupo recebe a cópia da coordenação, nunca o
+    e-mail que vai para o novo usuário, que carrega senha.
 - **T1 · Abrir o fluxo no n8n e registrar o que ele faz.** Destinatário, assunto, template, e
   se a cópia é um segundo e-mail ou uma cópia oculta do e-mail de boas-vindas. Sem isso todo
   o resto é chute. O MCP do n8n está fora do ar, então é passo humano.
@@ -134,8 +149,8 @@ evento virar aviso do sino, ele migra.
 
 ## Aceite
 
-1. Um usuário criado em `/equipe/acessos` gera cópia para a lista decidida no D1, sem nome
-   próprio no corpo, e uma mensagem no espaço do Chat.
+1. Um usuário criado em `/equipe/acessos` gera cópia para `coordenacao@psaconsultores.com.br`,
+   sem nome próprio no corpo, e uma mensagem no espaço do Chat.
 2. Um representante criado pelo salvamento de cliente gera a mesma cópia, sem a frase de
    área, dizendo que é acesso de portal.
 3. O mesmo cadastro feito com o app apontando para o sandbox não produz e-mail nem mensagem
