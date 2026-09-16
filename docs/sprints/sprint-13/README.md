@@ -78,6 +78,12 @@ cliente órfão. O desfazer continua sem pegar.
 |---|---|---|---|
 | [7 Coleta de documentos e menções no Google Chat](TAREFA_coleta-e-mencao-no-google-chat.md) | As duas frentes do sino que ficaram de fora do canal do Chat **e que já têm evento gravado**: aviso de coleta (`solicitacao_enviada`, texto da Patricia já gravado em `notificacao`, reusado tal e qual) e menção em comentário (`org_comment_mentions`, com `lido_em` próprio). **Chamado fica fora por decisão dela em 14/09** — já tem o espaço "PSA Chamados"; **revisão-pendente fica fora** porque o sino a deriva do estado e não existe evento para espelhar. Volume medido: ~1 mensagem por semana. Três decisões abertas (D1 a D3), sendo a mais pesada se menção — que é endereçada a UMA pessoa — deve mesmo ir para espaço coletivo | Sim, **3 ⚠️ MIGRAÇÕES**: a leitura ganha `org_project`, a função irmã `mencoes_para_o_chat`, e um valor de enum para menção em `notificacao_tipo` — este **bloqueante**, porque sem ele a linha de envio não grava e não há dedup nem rastro | 🔵 ABERTO |
 
+## Aviso de usuário cadastrado
+
+| Tarefa | Escopo | Banco? | Status |
+|---|---|---|---|
+| [10 A cópia de usuário cadastrado sai do nome do Ricardo, e ganha espaço no Chat](TAREFA_copia-do-usuario-cadastrado.md) | Pedido dela em 16/09, ao receber `[PSA - COPIA COORDENACAO]`. O e-mail abre com "Olá, Ricardo!" e diz "vinculado à sua área": vai virar texto sem nome próprio, para uma lista de coordenação (**D1**, quatro opções, recomendada o grupo do Workspace), e ganha um espaço no Chat. Medido em produção: **6 cadastros em 30 dias**, e **6 dos 13 de 90 dias são `client` sem área nenhuma**, ou seja, a frase da área mente em quase metade dos casos. O e-mail não nasce no banco nem em edge function: sai do front, de **três** pontos, para o webhook do n8n, e a saudação mora dentro do fluxo de lá. Dois bugs junto: o webhook é o **mesmo** no sandbox e em produção (usuário de teste manda e-mail com senha e cópia à coordenação), e a senha temporária viaja no payload, a um clique do nó do Chat | **Não.** Nem migração, nem RPC. O que muda é o payload do POST e o fluxo do n8n | 🔵 ABERTO |
+
 ## Ordem de serviço editável de qualquer tela
 
 | Tarefa | Escopo | Banco? | Status |
