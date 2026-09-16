@@ -293,9 +293,11 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           + 'anos".' },
       { campo: 'nao_concorrencia_area', rotulo: 'Área protegida', tipo: 'texto',
         dependeDe: 'nao_concorrencia', secao: 'O que o sócio não pode fazer depois',
-        ajuda: 'Onde a proibição vale. No modelo é uma definição: "ÁREA DE ATUAÇÃO: em todos '
-          + 'os estados do Brasil, incluindo Mato Grosso e Pernambuco, e/ou regiões de '
-          + 'atuação da sociedade". Sai do objeto social do contrato.' },
+        ajuda: 'Onde a proibição vale. O que você escrever aqui vira a definição de ÁREA DE '
+          + 'ATUAÇÃO na Cláusula Primeira, e o resto da frase é fixo: escrevendo "Estado do '
+          + 'Paraná", sai "ÁREA DE ATUAÇÃO: Estado do Paraná e/ou regiões de atuação da '
+          + 'empresa que estão sujeitas a CLÁUSULA DE NÃO CONCORRÊNCIA, incluindo ainda, os '
+          + 'municípios descritos no contrato social". Sai do objeto social do contrato.' },
       { campo: 'nao_concorrencia_multa', rotulo: 'Multa por descumprimento',
         tipo: 'texto', dependeDe: 'nao_concorrencia',
         secao: 'O que o sócio não pode fazer depois',

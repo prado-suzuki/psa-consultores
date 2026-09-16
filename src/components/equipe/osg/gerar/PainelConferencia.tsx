@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
-import { campoDaEntidade } from '@/lib/templates/vocabulario';
+import { campoDaEntidade, campoManual } from '@/lib/templates/vocabulario';
 import { labelDoBinding } from '@/lib/templates/binding';
 import { BlocosSemDado } from '@/components/equipe/osg/gerar/BlocosSemDado';
 import { fraseExcluidosPorFlag } from '@/components/equipe/osg/gerar/resumoDaComposicao';
@@ -349,7 +349,16 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                         <div className="space-y-3">
                           {desconhecidosVisiveis.map((ph) => (
                             <div key={ph} className="space-y-1.5">
-                              <Label className={cn(labelCls, 'text-sm')}>{ph}</Label>
+                              {/*
+                                O RÓTULO, e não o id do placeholder.
+                                Os campos manuais já declaram `label` em CAMPOS_MANUAIS, e a
+                                tela mostrava "foroEleitoComarca" em vez de "Foro eleito —
+                                cidade". Placeholder que ninguém declarou continua aparecendo
+                                pelo id, que é o que permite a quem montou o modelo achá-lo.
+                              */}
+                              <Label className={cn(labelCls, 'text-sm')}>
+                                {campoManual(ph)?.label ?? ph}
+                              </Label>
                               <Input
                                 value={valoresLivres[ph] ?? ''}
                                 onChange={(e) => {
