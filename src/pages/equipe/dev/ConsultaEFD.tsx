@@ -394,13 +394,11 @@ const ConsultaEFD = () => {
   return (
     <DevLayout 
       title="Consulta EFD Contribuições" 
-      subtitle="Consulta de EFD Contribuições"
-      sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-contribuicoes/"
+      subtitle="Consulte, analise e baixe arquivos da EFD Contribuições."
     >
       <TooltipProvider delayDuration={300}>
       <DevPageHeader
         description="A Consulta de EFD Contribuições centraliza a busca e o download das **Escriturações Fiscais Digitais das Contribuições** da base de dados. Utilize os filtros abaixo para consultar arquivos específicos ou analisar períodos inteiros, permitindo a análise detalhada de blocos e registros diretamente em tela, o download dos arquivos originais em lote (.zip) ou a exportação em formato Excel (.xlsx)."
-        manualUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-contribuicoes/"
       />
 
       {/* Card de Filtros de Busca */}

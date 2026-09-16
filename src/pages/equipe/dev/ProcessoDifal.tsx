@@ -281,13 +281,11 @@ const ProcessoDifal = () => {
   return (
     <DevLayout
       title="DIFAL Inteligente"
-      subtitle="Auditoria e classificação fiscal de produtos"
-      sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/difal-inteligente/"
+      subtitle="Audite e classifique produtos para análise de DIFAL."
     >
       <TooltipProvider delayDuration={300}>
         <DevPageHeader
           description="A ferramenta **DIFAL Inteligente** centraliza a busca e a classificação tributária das operações de Diferencial de Alíquota da base de dados. Utilize os filtros abaixo para buscar os itens das notas fiscais por período, permitindo identificar pendências de NCM, definir regras tributárias individuais em tela, sincronizar os dados validados com o servidor e exportar os resultados consolidados em formato Excel (.xlsx)."
-          manualUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/difal-inteligente/"
         />
         <DifalFiltersCard
           selectedCliente={selectedCliente}

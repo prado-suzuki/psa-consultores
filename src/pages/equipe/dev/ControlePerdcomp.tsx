@@ -229,13 +229,11 @@ export default function ControlePerdcomp() {
   return (
     <DevLayout
       title="Controle PERDCOMP"
-      subtitle="Gerenciamento de PER e DCOMP"
-      sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp/"
+      subtitle="Gerencie processos de PER e DCOMP, status, vínculos e pagamentos."
     >
       <TooltipProvider delayDuration={300}>
         <DevPageHeader
           description="A ferramenta **Controle PERDCOMP** centraliza a busca e o gerenciamento dos Processos de Ressarcimento e Compensação da base de dados. Utilize os filtros abaixo para consultar processos específicos ou analisar exercícios inteiros, permitindo a visualização detalhada e atualização de status em tela, o cadastro de novas DCOMPs vinculadas e o registro de pagamentos efetivos de ressarcimentos."
-          manualUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp/"
         />
         <ControlePerdcompFilters
           clienteId={clienteId}

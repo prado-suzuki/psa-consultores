@@ -20,7 +20,7 @@ const PerdcompDashboard = () => {
   return (
     <DevLayout
       title="Dashboard PERDCOMP"
-      subtitle="Visualização incorporada do Looker Studio para acompanhamento do PERDCOMP"
+      subtitle="Acompanhe os principais indicadores de PERDCOMP no painel analítico."
       headerActions={
         <Button variant="outline" onClick={() => navigate('/equipe/dev/perdcomp')}>
           <ArrowLeft className="mr-2 h-4 w-4" />

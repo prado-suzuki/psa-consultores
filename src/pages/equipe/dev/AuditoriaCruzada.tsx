@@ -70,9 +70,9 @@ const AuditoriaCruzadaContent = () => {
   };
 
   return (
-    <DevLayout title="Análise Cruzada" subtitle="Auditoria cruzada de arquivos e balancete contra a EFD Contribuições.">
+    <DevLayout title="Análise Cruzada" subtitle="Cruze balancete, EFD Contribuições, EFD ICMS e XMLs para identificar divergências.">
       <TooltipProvider delayDuration={300}>
-        <DevPageHeader description={PAGE_DESCRIPTION} hideManualLink />
+        <DevPageHeader description={PAGE_DESCRIPTION} />
         <div className="space-y-4">
           <Card className="mb-6">
             <CardHeader className="pb-4">
