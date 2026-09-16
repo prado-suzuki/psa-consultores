@@ -1373,6 +1373,28 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         derivadoDe: 'genero',
         derivar: (v) => concordar(v.genero === 'F' ? 'F' : 'M', 'ao', 'à'),
       },
+      /*
+       * As outras duas contrações que o capítulo usa, pela mesma razão do `ao`:
+       * "a competência DO Conselho" contra "DA Diretoria", "aprovado PELO
+       * Conselho" contra "PELA Diretoria". Sem elas o bloco cita
+       * `{{ conselhoAdministracao.pelo }}`, o campo não existe no contexto e o
+       * render derruba o documento inteiro, que foi o que aconteceu na primeira
+       * geração com governança em 16/09/2026.
+       */
+      {
+        id: 'do',
+        label: 'Preposição com artigo (do/da)',
+        tipo: 'texto',
+        derivadoDe: 'genero',
+        derivar: (v) => concordar(v.genero === 'F' ? 'F' : 'M', 'do', 'da'),
+      },
+      {
+        id: 'pelo',
+        label: 'Preposição com artigo (pelo/pela)',
+        tipo: 'texto',
+        derivadoDe: 'genero',
+        derivar: (v) => concordar(v.genero === 'F' ? 'F' : 'M', 'pelo', 'pela'),
+      },
       {
         id: 'composto',
         label: 'Composto/composta, concordado',
