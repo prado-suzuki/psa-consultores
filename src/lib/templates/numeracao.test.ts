@@ -332,18 +332,26 @@ describe('os três níveis abaixo do item', () => {
       .toEqual(['Cláusula Primeira', 'item 1.1', 'item 1.1.1', 'alínea "a"', 'inciso (II)']);
   });
 
-  it('subitem, alínea e inciso somem se perderem a cláusula', () => {
-    // Mesma regra do parágrafo órfão: sem cláusula acima, "1.1.1" seria
-    // numeração de uma cláusula que não existe.
+  it('subitem some se perder a cláusula, mas alínea e inciso do preâmbulo ficam', () => {
+    /*
+     * A regra do órfão vale para quem TIRA O NÚMERO DA CLÁUSULA. Sem ela,
+     * "1.1.1" seria numeração de uma cláusula que não existe.
+     *
+     * Alínea e inciso contam a própria sequência: "a)" e "(I)" se bastam. Antes
+     * da primeira cláusula eles são a lista do PREÂMBULO, e o Acordo usa
+     * exatamente isso — os seis CONSIDERANDOS saem em letra, e o modelo os
+     * numera assim no XML. Tratá-los como órfãos apagava os seis e o documento
+     * saía com "CONSIDERANDO que:" seguido de nada.
+     */
     const orfaos = paragrafosOrfaos([
       bloco('lv', 'livre', 'Preâmbulo.'),
-      bloco('s1', 'subitem', 'Órfão.'),
-      bloco('a1', 'alinea', 'Órfã.'),
-      bloco('n1', 'inciso', 'Órfão.'),
+      bloco('s1', 'subitem', 'Órfão: o número viria da cláusula.'),
+      bloco('a1', 'alinea', 'Considerando que…'),
+      bloco('n1', 'inciso', 'Idem, em romano.'),
       bloco('c1', 'clausula', 'Uma cláusula.'),
       bloco('s2', 'subitem', 'Este tem cláusula.'),
     ]);
-    expect(orfaos).toEqual([false, true, true, true, false, false]);
+    expect(orfaos).toEqual([false, true, false, false, false, false]);
   });
 });
 

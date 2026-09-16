@@ -3,7 +3,7 @@
   "nome": "Acordo 001 Livre — ACORDO DE QUOTISTAS DA SOCIEDADE DUAL COMÉRCIO E INDÚS…",
   "tipo": "livre",
   "titulo": null,
-  "conteudo": "ACORDO DE QUOTISTAS DA SOCIEDADE\n{{ sociedade.razaoSocial }}\nI. PARTES INTEGRANTES:\nNa condição de signatários do presente Acordo de Quotistas, doravante nominado “ACORDO”, dos atuais sócios da {{ sociedade.razaoSocial }}, as pessoas adiante qualificadas e doravante designadas quando em conjunto de “QUOTISTAS” e quando isoladamente de “QUOTISTA”:\n{{#quotistasSignatarios sep=\"\\n\"}}{{ quotista.qualificacao }}{{/quotistasSignatarios}}\nNa condição de INTERVENIENTE ANUENTE dos termos do presente ACORDO, a sociedade empresária do tipo jurídico sociedade limitada abaixo qualificada, a qual declara ter recebido uma das vias deste ACORDO, que fora arquivada na sede da sociedade, na forma entabulada pelos artigos 1.053, parágrafo único da Lei 10.406/2.002 (doravante “Código Civil” e/ou “CC”) e 118 da Lei 6.404/1.976 e suas alterações (doravante “Lei das S/A”):\n{{ sociedade.razaoSocial }}, pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 24.542.953/0001-40, registrada na Junta Comercial do Estado de Pernambuco sob NIRE n° 26200597355, com sede estabelecida na Avenida Octaviano Heraclio Duarte, n° 351, Bairro Centro, no município de Limoeiro, Estado de Pernambuco, CEP: 55.700-000, neste ato representada por {{#administradores sep=\", \" fim=\" e \"}}{{ administrador.nome }}{{/administradores}}; doravante nominada “{{ nomeCurtoDaEmpresa }}” ou “{{ nomeCurtoDaEmpresa }}”.\nII. CONSIDERAÇÕES INICIAIS:\nCONSIDERANDO que:"
+  "conteudo": "ACORDO DE QUOTISTAS DA SOCIEDADE\n{{ sociedade.razaoSocial }}\nI. PARTES INTEGRANTES:\nNa condição de signatários do presente Acordo de Quotistas, doravante nominado “ACORDO”, dos atuais sócios da {{ sociedade.razaoSocial }}, as pessoas adiante qualificadas e doravante designadas quando em conjunto de “QUOTISTAS” e quando isoladamente de “QUOTISTA”:\n{{#quotistasSignatarios sep=\"\\n\"}}{{ quotista.qualificacao }}{{/quotistasSignatarios}}\nNa condição de INTERVENIENTE ANUENTE dos termos do presente ACORDO, a sociedade empresária do tipo jurídico sociedade limitada abaixo qualificada, a qual declara ter recebido uma das vias deste ACORDO, que fora arquivada na sede da sociedade, na forma entabulada pelos artigos 1.053, parágrafo único da Lei 10.406/2.002 (doravante “Código Civil” e/ou “CC”) e 118 da Lei 6.404/1.976 e suas alterações (doravante “Lei das S/A”):\n{{ sociedade.razaoSocial }}, pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº {{ sociedade.cnpj }}, registrada na Junta Comercial do Estado {{ sociedade.juntaUfComPreposicao }} sob NIRE n° {{ sociedade.nire }}, com sede estabelecida {{ sociedade.sede }}, neste ato representada por {{#administradores sep=\", \" fim=\" e \"}}{{ administrador.nome }}{{/administradores}}; doravante nominada “{{ nomeCurtoDaEmpresa }}” ou “{{ nomeCurtoDaEmpresa }}”.\nII. CONSIDERAÇÕES INICIAIS:\nCONSIDERANDO que:"
  },
  {
   "nome": "Acordo 002 Alínea — Os QUOTISTAS da DUAL autorizaram no contrato social de…",
@@ -195,7 +195,7 @@
   "nome": "Acordo 033 Subitem — ÁREA DE ATUAÇÃO: em todos os estados do Brasil, inclui…",
   "tipo": "subitem",
   "titulo": null,
-  "conteudo": "ÁREA DE ATUAÇÃO: em todos os estados do Brasil, incluindo Mato Grosso e Pernambuco e Mato Grosso e/ou regiões de atuação da {{ nomeCurtoDaEmpresa }} que estão sujeitas a CLÁUSULA DE NÃO CONCORRÊNCIA, incluindo ainda, os municípios descritos no contrato social da SOCIEDADE e/ou de suas SOCIEDADES RELACIONADAS como sendo sua sede e/ou filiais."
+  "conteudo": "ÁREA DE ATUAÇÃO: {{ acordo.naoConcorrenciaArea }} e/ou regiões de atuação da {{ nomeCurtoDaEmpresa }} que estão sujeitas a CLÁUSULA DE NÃO CONCORRÊNCIA, incluindo ainda, os municípios descritos no contrato social da SOCIEDADE e/ou de suas SOCIEDADES RELACIONADAS como sendo sua sede e/ou filiais."
  },
  {
   "nome": "Acordo 034 Subitem — ÁREA DE PROSPECÇÃO: ainda que não relacionadas na área…",
@@ -1473,7 +1473,7 @@
   "nome": "Acordo 246 Subitem — A publicação anterior, deverá ser realizada, por três…",
   "tipo": "subitem",
   "titulo": null,
-  "conteudo": "A publicação anterior, deverá ser realizada, por três vezes, em dias úteis consecutivos, no jornal de maior circulação do município de Campo Novo do Parecis, estado de Mato Grosso."
+  "conteudo": "A publicação anterior, deverá ser realizada, por três vezes, em dias úteis consecutivos, no jornal de maior circulação do município de {{ sociedade.sedeMunicipio }}, estado {{ sociedade.sedeUfComPreposicao }}."
  },
  {
   "nome": "Acordo 247 Subitem — Fica dispensada a convocação formal nos termos propost…",
@@ -1557,7 +1557,7 @@
   "nome": "Acordo 260 Item — O local de arbitragem será a cidade de Campo Novo do P…",
   "tipo": "item",
   "titulo": null,
-  "conteudo": "O local de arbitragem será a cidade de Campo Novo do Parecis, estado de Mato Grosso, onde a decisão arbitral será proferida."
+  "conteudo": "O local de arbitragem será a cidade de {{ foroEleitoComarca }}, estado de {{ foroEleitoEstado }}, onde a decisão arbitral será proferida."
  },
  {
   "nome": "Acordo 261 Item — Os QUOTISTAS têm plena consciência e ciência de todos…",
@@ -1569,7 +1569,7 @@
   "nome": "Acordo 262 Item — Com o objetivo exclusivo de solicitar uma medida limin…",
   "tipo": "item",
   "titulo": null,
-  "conteudo": "Com o objetivo exclusivo de solicitar uma medida liminar ou cautelar, seja ela preventiva, provisória ou permanente, os QUOTISTAS e a {{ nomeCurtoDaEmpresa }} elegem o foro da cidade de Campo Novo do Parecis, estado de Mato Grosso, por mais privilegiado outro o seja."
+  "conteudo": "Com o objetivo exclusivo de solicitar uma medida liminar ou cautelar, seja ela preventiva, provisória ou permanente, os QUOTISTAS e a {{ nomeCurtoDaEmpresa }} elegem o foro da cidade de {{ foroEleitoComarca }}, estado de {{ foroEleitoEstado }}, por mais privilegiado outro o seja."
  },
  {
   "nome": "Acordo 263 Item — Para fins do disposto nos artigos 165 e seguintes do C…",
@@ -1593,6 +1593,6 @@
   "nome": "Acordo 266 Livre — E, por estarem assim justas e acordadas, os QUOTISTAS…",
   "tipo": "livre",
   "titulo": null,
-  "conteudo": "E, por estarem assim justas e acordadas, os QUOTISTAS e a {{ nomeCurtoDaEmpresa }} (“INTERVENIENTE ANUENTE”) assinam o presente instrumento em 06 (seis) vias de igual teor e forma, para um só efeito, na presença das 02 (duas) testemunhas abaixo qualificadas.\nCampo Novo do Parecis/MT, ... de .... de 2.021.\nSOCIEDADE INTERVENIENTE:\n_________________________________________\n{{ sociedade.razaoSocial }}\nQUOTISTAS:\n{{#quotistasSignatarios sep=\"\\n\\n\"}}_________________________________________\n{{ quotista.nomeMaiusculo }}{{/quotistasSignatarios}}\nTESTEMUNHAS:\nNOME:NOME:\nRG:RG:\nCPF/MF:CPF/MF:"
+  "conteudo": "E, por estarem assim justas e acordadas, os QUOTISTAS e a {{ nomeCurtoDaEmpresa }} (“INTERVENIENTE ANUENTE”) assinam o presente instrumento em 06 (seis) vias de igual teor e forma, para um só efeito, na presença das 02 (duas) testemunhas abaixo qualificadas.\n{{ sociedade.sedeMunicipio }}/{{ sociedade.sedeUf }}, {{ dataAssinatura }}.\nSOCIEDADE INTERVENIENTE:\n_________________________________________\n{{ sociedade.razaoSocial }}\nQUOTISTAS:\n{{#quotistasSignatarios sep=\"\\n\\n\"}}_________________________________________\n{{ quotista.nomeMaiusculo }}{{/quotistasSignatarios}}\nTESTEMUNHAS:\nNOME: {{ testemunha1Nome }}\nRG: {{ testemunha1Rg }}\nCPF/MF: {{ testemunha1Cpf }}\nNOME: {{ testemunha2Nome }}\nRG: {{ testemunha2Rg }}\nCPF/MF: {{ testemunha2Cpf }}"
  }
 ]

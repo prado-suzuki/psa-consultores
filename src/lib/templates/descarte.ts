@@ -56,7 +56,24 @@ export function paragrafosOrfaos(blocos: Bloco[]): boolean[] {
       // Livre, inclusive o legado sem tipo, não rompe o vínculo estrutural: há
       // tabelas legítimas entre o caput e os parágrafos que ele governa.
     }
-    return true;
+    /*
+     * CHEGOU AO TOPO SEM ENCONTRAR CLÁUSULA: o bloco está no PREÂMBULO.
+     *
+     * Lá, alínea e inciso são legítimos e se bastam, porque o rótulo deles não
+     * vem da cláusula: "a)" e "(I)" contam a própria sequência. O Acordo usa
+     * exatamente isso — os seis CONSIDERANDOS são uma lista em letra antes da
+     * Cláusula Primeira, e o modelo os numera assim (`lowerLetter` no XML).
+     * Tratá-los como órfãos apagava os seis, e o documento saía com
+     * "CONSIDERANDO que:" seguido de nada.
+     *
+     * Item, subitem e parágrafo continuam órfãos, porque o rótulo DEPENDE da
+     * cláusula: sem ela o item sai "0.1" e o parágrafo sai "Parágrafo Único"
+     * solto, que é numeração de cláusula que não existe.
+     *
+     * Cláusula descartada não cai aqui: o bloco que a perdeu encontra a cláusula
+     * anterior na volta do laço e continua subordinado a ela.
+     */
+    return !['alinea', 'inciso'].includes(bloco.tipo as string);
   });
 }
 

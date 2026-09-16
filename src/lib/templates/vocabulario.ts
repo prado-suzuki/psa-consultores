@@ -650,6 +650,15 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'nire', label: 'NIRE (registro na Junta)', tipo: 'texto' },
       { id: 'juntaUf', label: 'UF da Junta Comercial', tipo: 'texto' },
       ufExtensoCampo('juntaUfExtenso', 'Junta Comercial — Estado por extenso', 'juntaUf'),
+      /*
+       * "do Estado DO Paraná", não "do Estado DE Paraná".
+       *
+       * A mesma regência que já vale no endereço de cada parte (ver
+       * `enderecoProsa`): dezesseis das vinte e sete unidades da federação não
+       * aceitam o "de" seco. O preâmbulo do Acordo escreve a Junta uma vez por
+       * documento, e escrevia errado.
+       */
+      ufComPreposicaoCampo('juntaUfComPreposicao', 'Junta Comercial — Estado com a preposição', 'juntaUf'),
       { id: 'dataConstituicao', label: 'Data de constituição', tipo: 'texto' },
       { id: 'objeto', label: 'Objeto social', tipo: 'textarea' },
       // Capital social e quotas: calculados na geração (calcularCapitalSociedade
@@ -744,6 +753,9 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'sedeMunicipio', label: 'Sede — município', tipo: 'texto' },
       { id: 'sedeUf', label: 'Sede — UF', tipo: 'texto' },
       ufExtensoCampo('sedeUfExtenso', 'Sede — Estado por extenso', 'sedeUf'),
+      // "estado DO Parana", nao "estado DE Parana": a mesma regencia do
+      // endereco de cada parte. O Acordo escreve a sede duas vezes.
+      ufComPreposicaoCampo('sedeUfComPreposicao', 'Sede — Estado com a preposição', 'sedeUf'),
       { id: 'sedeCep', label: 'Sede — CEP', tipo: 'texto' },
     ],
   },
@@ -1770,6 +1782,29 @@ export const CAMPOS_MANUAIS: CampoEntidade[] = [
    * consultoria não disser se o substituto é regra ou exceção.
    */
   { id: 'substitutoDoRepresentante', label: 'Substituto do representante dos quotistas', tipo: 'texto', manual: true },
+  /*
+   * O FORO ELEITO, que é do cliente e não do modelo.
+   *
+   * "Eleito" no nome porque `foroComarca`/`foroUf` já existem e são OUTRA coisa:
+   * lá são o LOCAL DA ASSINATURA, a "Cidade/UF" que abre o fecho da alteração
+   * contratual. Reaproveitar o nome faria o fecho daquele documento passar a
+   * estampar lacuna, que é mudança no documento de outra frente.
+   *
+   * Medido nos acordos do acervo: Horita elege Cuiabá, Perci elege Lucas do Rio
+   * Verde, o modelo e a Utida elegem Campo Novo do Parecis. Estava escrito fixo
+   * no bloco, e assim todo cliente elegia o foro de outro.
+   *
+   * MANUAL, e não derivado da sede: no próprio modelo o foro (Campo Novo do
+   * Parecis) não é o município da sede (Limoeiro/PE). Deduzir um do outro seria
+   * inventar. O estado vai por extenso e digitado pelo mesmo motivo por que a
+   * comarca vai: sem entidade por trás, não há de onde derivar a concordância.
+   *
+   * O par `foroComarca`/`foroUf` que existe na entidade `instrumento` é o mesmo
+   * fato, e lá ele é campo da entidade porque o contrato rural tem cadastro
+   * próprio. Aqui não tem, e por isso é de topo.
+   */
+  { id: 'foroEleitoComarca', label: 'Foro eleito — cidade', tipo: 'texto', manual: true },
+  { id: 'foroEleitoEstado', label: 'Foro eleito — estado por extenso', tipo: 'texto', manual: true },
   { id: 'testemunha1Nome', label: 'Testemunha 1 — nome', tipo: 'texto', manual: true },
   { id: 'testemunha1Cpf', label: 'Testemunha 1 — CPF', tipo: 'texto', manual: true },
   { id: 'testemunha1Rg', label: 'Testemunha 1 — RG', tipo: 'texto', manual: true },

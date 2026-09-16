@@ -4,12 +4,36 @@ import { motivoDeDescarte, paragrafosOrfaos, type MotivoDescarte } from './desca
 import type { RegistroFamilias } from './familia';
 import { prefixosNumeracao, refsNumeracao, unirBlocos } from './numeracao';
 import { expandirRepetidores } from './repetidor';
-import { renderBloco, type OpcoesRender, type RenderDeBloco, type SegmentoRender } from './render';
+import { renderBloco, renderConteudo, type OpcoesRender, type RenderDeBloco, type SegmentoRender } from './render';
 import type { Bloco, Contexto, Template, TipoBloco } from './types';
 
 /** Bloco pronto: conteúdo renderizado (string) + os mesmos segmentos com proveniência (prévia interativa). */
 export interface BlocoGerado extends Bloco {
   segmentos: SegmentoRender[];
+}
+
+/**
+ * O TÍTULO DA CLÁUSULA TAMBÉM TEM PLACEHOLDER, e ele precisa resolver.
+ *
+ * O título não está no `conteudo`: mora em `tituloDocumento` e a numeração o
+ * cola no rótulo ("CLÁUSULA TERCEIRA – Dos princípios…"). Por isso ele nunca
+ * passava pelo render, e sete títulos do Acordo saíam com o `{{ … }}` literal no
+ * documento entregue: "do quadro de sócios da {{ nomeCurtoDaEmpresa }}". Não dá
+ * erro em lugar nenhum, porque o motor nem sabe que aquele texto existe.
+ *
+ * Renderizar aqui, ANTES do laço de descarte, deixa a cadeia inteira vendo o
+ * título já resolvido: o descarte, a numeração e as referências.
+ *
+ * `tolerante` NÃO entra: título que cita campo inexistente tem de estourar, como
+ * estoura no corpo. O que resolve vazio vira lacuna, e é o mesmo que acontece
+ * com qualquer campo manual.
+ */
+function comTituloRenderizado(blocos: Bloco[], contexto: Contexto, opcoes: OpcoesRender): Bloco[] {
+  return blocos.map((bloco) => (
+    bloco.tituloDocumento?.includes('{{')
+      ? { ...bloco, tituloDocumento: renderConteudo(bloco.tituloDocumento, contexto, opcoes) }
+      : bloco
+  ));
 }
 
 /**
@@ -97,8 +121,12 @@ export function gerarComposicao(
   flagsAtivas: Iterable<string> = [],
   familias: RegistroFamilias = {},
 ): Composicao {
-  const expandidos = expandirRepetidores(comporBlocos(template, flagsAtivas), contexto);
   const opcoes: OpcoesRender = { familias, campo: marcacaoDoCaminho };
+  const expandidos = comTituloRenderizado(
+    expandirRepetidores(comporBlocos(template, flagsAtivas), contexto),
+    contexto,
+    opcoes,
+  );
 
   let blocos = expandidos;
   let renders: RenderDeBloco[] = [];

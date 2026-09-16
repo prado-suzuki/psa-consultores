@@ -11,7 +11,7 @@ import blocosDoAcordo from '../../../docs/osg/acordo-blocos.json';
 import { camposDoAcordo, listasDoAcordo, type EntradaAcordo } from './contextoAcordo';
 import { detectarBindingsDeConteudo } from './binding';
 import { gerarBlocos, gerarDocumento } from './index';
-import { camposDaEntidade } from './vocabulario';
+import { CAMPOS_MANUAIS, camposDaEntidade } from './vocabulario';
 import { montarDocx } from './docx';
 import type { Bloco, Template, TipoBloco } from './types';
 
@@ -35,9 +35,30 @@ const template: Template = { id: 'acordo', nome: 'Acordo de Quotistas', blocos }
  */
 const contextoDe = (e: EntradaAcordo) => ({
   acordo: camposDoAcordo(e),
-  sociedade: { razaoSocial: 'ABACAXI ELÉTRICO MINERAÇÃO E BALÉ S.A.' },
+  /*
+   * A QUALIFICAÇÃO INTEIRA, e não só a razão social: o preâmbulo do Acordo
+   * qualifica a INTERVENIENTE ANUENTE como o contrato social qualifica a
+   * sociedade. Os quatro campos abaixo saem de `mapearSociedade` no caminho de
+   * verdade; aqui entram à mão porque montar uma `PessoaRow` inteira só para
+   * isto esconderia o que o teste está medindo.
+   */
+  sociedade: {
+    razaoSocial: 'ABACAXI ELÉTRICO MINERAÇÃO E BALÉ S.A.',
+    cnpj: '11.222.333/0001-81',
+    nire: '41200000001',
+    juntaUfComPreposicao: 'do Paraná',
+    sede: 'Rua das Araucárias, n.º 300, no município de Curitiba, Estado do Paraná',
+    sedeMunicipio: 'Curitiba',
+    sedeUfComPreposicao: 'do Paraná',
+    sedeUf: 'PR',
+  },
   nomeCurtoDaEmpresa: 'ABACAXI',
   substitutoDoRepresentante: '',
+  foroEleitoComarca: '',
+  foroEleitoEstado: '',
+  dataAssinatura: '',
+  testemunha1Nome: '', testemunha1Rg: '', testemunha1Cpf: '',
+  testemunha2Nome: '', testemunha2Rg: '', testemunha2Cpf: '',
   /*
    * `administradores` vem da EMPRESA, e nao do acordo: e a lista que o
    * contrato social ja usa no preambulo, e o Acordo a reaproveita para dizer
@@ -77,6 +98,32 @@ describe('a geração do Acordo de ponta a ponta', () => {
     expect(saida).not.toContain('DUAL');
     expect(saida).toContain('ABACAXI');
   });
+
+  it('nenhum dado de identidade fica escrito no texto dos blocos', () => {
+    /*
+     * A CATRACA DO CLIENTE ERRADO, e ela mede a IDENTIDADE, não o nome.
+     *
+     * Trocar "DUAL" pelo placeholder deixou para trás o CNPJ, o NIRE e o
+     * endereço da mesma empresa, na qualificação da INTERVENIENTE ANUENTE, e
+     * mais o foro de outra cidade. Nome errado uma pessoa nota; CNPJ errado
+     * atravessa a revisão e chega assinado.
+     *
+     * Mede a SAÍDA, e não os blocos: título de cláusula não está no `conteudo`,
+     * e foi por aí que sete deles escaparam da primeira varredura.
+     *
+     * O que pode ficar escrito é o que não é de cliente nenhum: a mediadora
+     * PRADO SUZUKI é a firma do próprio escritório, nomeada nos 4 acordos do
+     * acervo que nomeiam mediadora, sempre com o mesmo CNPJ.
+     */
+    const saida = gerarDocumento(template, contextoDe(ENTRADA));
+    const semAMediadora = saida.replace('37.465.705/0001-04', '');
+
+    expect(semAMediadora.match(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g) ?? [])
+      .toEqual(['11.222.333/0001-81']);          // só o CNPJ que veio do contexto
+    expect(saida.match(/\b\d{11}\b/g) ?? []).toEqual(['41200000001']); // só o NIRE dele
+    expect(saida).not.toContain('Campo Novo do Parecis');              // foro do modelo
+    expect(saida).not.toContain('Limoeiro');                           // sede do modelo
+  });
 });
 
 describe('o caminho da TELA, que o teste de motor nao cobre', () => {
@@ -93,8 +140,21 @@ describe('o caminho da TELA, que o teste de motor nao cobre', () => {
     expect(d.secoesDesconhecidas, 'secao sem papel some do Word inteira').toEqual([]);
     expect(d.bindings.map((b) => b.nome).sort()).toEqual(['acordo', 'sociedade']);
     expect(d.listas.map((l) => l.nome).sort()).toEqual(['administradores', 'quotistasSignatarios']);
-    expect([...d.desconhecidos].sort())
-      .toEqual(['nomeCurtoDaEmpresa', 'substitutoDoRepresentante']);
+    /*
+     * Os de topo, e cada um tem de estar em CAMPOS_MANUAIS: é o que faz a tela
+     * marcar LACUNA em vez de resolver '' calado. Data e testemunhas chegaram
+     * com o fecho, que citava "…/MT, … de … de 2.021" e trazia as duas
+     * testemunhas coladas numa linha só. O Acordo não tem linha de advogado,
+     * diferente da alteração contratual.
+     */
+    expect([...d.desconhecidos].sort()).toEqual([
+      'dataAssinatura', 'foroEleitoComarca', 'foroEleitoEstado',
+      'nomeCurtoDaEmpresa', 'substitutoDoRepresentante',
+      'testemunha1Cpf', 'testemunha1Nome', 'testemunha1Rg',
+      'testemunha2Cpf', 'testemunha2Nome', 'testemunha2Rg',
+    ]);
+    const manuais = new Set(CAMPOS_MANUAIS.map((c) => c.id));
+    expect(d.desconhecidos.filter((ph) => !manuais.has(ph))).toEqual([]);
   });
 
   it('o docx sai sem levantar, com os 266 blocos', async () => {
