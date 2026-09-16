@@ -19,7 +19,7 @@
 // No grão do produto, cada linha carrega a própria área e o próprio executor:
 // 169 linhas para as 84 OS, contra 84 linhas que escondiam 12 produtos.
 
-import { OS_SITUACAO_TO_PROJECT_STATUS, STATUS_LABELS } from '@/lib/projetosCadastro';
+import { STATUS_LABELS } from '@/lib/projetosCadastro';
 import { REGIAO_OPTIONS } from '@/lib/regioes';
 
 /** OS crua, como as colunas de `ordem_servico` a devolvem. */
@@ -99,17 +99,15 @@ export interface LinhaDoControle {
   projetos: number;
   regiao: string | null;
   /**
-   * O status DO PRODUTO, na chave de `org_projects.status`.
+   * O status DO PRODUTO: a chave de `org_projects.status`, ou `SEM_PROJETO`.
    *
-   * Vem do projeto quando ele existe. Quando não existe, é herdado da situação
-   * da OS pelo `OS_SITUACAO_TO_PROJECT_STATUS`, que é o mesmo de-para que o
-   * sistema já usa ao criar projeto a partir de uma OS. Produto sem projeto numa
-   * OS em andamento está em andamento; dizer "sem status" seria menos verdade
-   * que herdar.
+   * `SEM_PROJETO` não é um status de projeto, é a ausência de um. A primeira
+   * versão herdava a situação da OS aqui, e o efeito era a tela escrever "Ativo"
+   * num produto que ninguém abriu — afirmar que o trabalho corre quando não
+   * existe nem quem o toque. Herdar parecia mais informativo e era menos
+   * verdadeiro.
    */
   status: string;
-  /** `false` quando o status foi herdado da OS por falta de projeto. */
-  statusDoProjeto: boolean;
   /** A situação crua da OS, que o filtro ainda usa. */
   situacaoDaOs: string | null;
   dataInicio: string | null;
@@ -119,8 +117,14 @@ export interface LinhaDoControle {
   prazoVencido: boolean;
 }
 
-/** Status de projeto que contam como trabalho em aberto, para efeito de prazo. */
-export const STATUS_EM_ABERTO = ['planned', 'active', 'on_hold'];
+/**
+ * Produto contratado que não tem projeto criado. Não é `org_projects.status`:
+ * é a ausência de linha em `org_projects` para aquele par (OS, produto).
+ */
+export const SEM_PROJETO = 'sem_projeto';
+
+/** Estados que contam como trabalho em aberto, para efeito de prazo. */
+export const STATUS_EM_ABERTO = [SEM_PROJETO, 'planned', 'active', 'on_hold'];
 
 /**
  * O rótulo de um `org_projects.status`, na palavra do CADASTRO.
@@ -132,6 +136,7 @@ export const STATUS_EM_ABERTO = ['planned', 'active', 'on_hold'];
  */
 export function statusLabel(status: string | null | undefined): string {
   if (!status) return 'Sem status';
+  if (status === SEM_PROJETO) return 'Sem projeto';
   return STATUS_LABELS[status] ?? status;
 }
 
@@ -218,8 +223,6 @@ export function montarControleDeProjetos(
     if (!osQualifica.has(ordem.id)) continue;
 
     const cliente = clientePorId.get(ordem.id_cliente);
-    // O status que a OS empresta ao produto que ainda não tem projeto.
-    const statusDaOs = OS_SITUACAO_TO_PROJECT_STATUS[ordem.situacao ?? ''] ?? 'active';
 
     for (const contratado of contratadosDaOs.get(ordem.id) ?? []) {
       const produto = produtoPorId.get(contratado.produto_segmento_id);
@@ -237,12 +240,14 @@ export function montarControleDeProjetos(
       // Dois projetos no mesmo par com status diferente: vale o mais aberto, que
       // é o primeiro da ordem do ciclo de vida. Fechar a linha porque um dos
       // dois fechou esconderia trabalho que continua correndo.
-      const statusDoProjeto = doPar.length > 0;
-      const status = statusDoProjeto
-        ? ([...STATUS_EM_ABERTO, 'completed', 'cancelled'].find((chave) =>
-            doPar.some((projeto) => projeto.status === chave),
-          ) ?? doPar[0].status ?? statusDaOs)
-        : statusDaOs;
+      const status =
+        doPar.length === 0
+          ? SEM_PROJETO
+          : ([...STATUS_EM_ABERTO, 'completed', 'cancelled'].find((chave) =>
+              doPar.some((projeto) => projeto.status === chave),
+            ) ??
+            doPar[0].status ??
+            SEM_PROJETO);
 
       linhas.push({
         chave: `${ordem.id}::${contratado.produto_segmento_id}`,
@@ -262,7 +267,6 @@ export function montarControleDeProjetos(
         projetos: doPar.length,
         regiao: ordem.regiao ?? null,
         status,
-        statusDoProjeto,
         situacaoDaOs: ordem.situacao ?? null,
         dataInicio: ordem.data_inicio ?? null,
         dataFim: ordem.data_fim ?? null,
@@ -516,36 +520,57 @@ export function ordenarControle(
  * projeto daquele produto. É a coluna B da planilha (Equipe OSG), onde a equipe
  * lia "o que é meu" antes de ler qualquer outra coisa.
  *
- * O GRUPO SEM RESPONSÁVEL VEM PRIMEIRO, e é o maior: 131 dos 169 produtos
- * contratados, em 72 dos 82 clientes, não têm projeto criado. Ele encabeça a
- * tela porque não é sobra, é fila de delegação: produto vendido que ninguém
- * está tocando é a coisa mais urgente que esta tela tem a dizer, e enterrá-lo
- * embaixo de oito grupos pequenos faria a tela esconder justamente o que ela
- * descobriu.
+ * SÃO DOIS GRUPOS SEM GENTE, E NÃO UM. A primeira versão juntava os dois num
+ * "sem responsável" de 131 linhas, e eles pedem ações diferentes:
  *
- * Ele abre FECHADO, apesar de vir primeiro. São 131 linhas, e abertas elas
- * empurrariam os oito executores para fora da primeira tela — o cabeçalho com a
- * contagem diz o tamanho sem custar a rolagem.
+ * - **Sem projeto aberto** (127 em produção): produto vendido, numa OS assinada,
+ *   sem linha em `org_projects`. Não há o que delegar, há o que CRIAR. Parte
+ *   deles é trabalho que aconteceu fora da ferramenta e nunca foi registrado, e
+ *   o banco não distingue os dois casos — a tela afirma só o que sabe, que é
+ *   "isto foi vendido e não está sendo acompanhado aqui".
+ * - **Projeto sem responsável** (4): a linha existe, o `responsible_id` está
+ *   nulo. Aí sim é um campo a preencher.
+ *
+ * Os dois vêm PRIMEIRO, nessa ordem, porque não são sobra: são o que a tela
+ * descobriu. Enterrá-los embaixo dos executores esconderia o achado.
+ *
+ * "Sem projeto aberto" abre FECHADO, apesar de vir primeiro: 127 linhas abertas
+ * empurrariam todo o resto para fora da primeira tela, e o cabeçalho com a
+ * contagem já diz o tamanho sem custar a rolagem.
  *
  * Produto com dois executores entra nos DOIS grupos. A soma das contagens passa
  * do total, e é o certo: a pergunta que o agrupamento responde é "o que é meu",
  * e uma linha que é de duas pessoas é de cada uma delas.
  */
 
+/** As duas chaves reservadas dos grupos sem gente. */
+export const GRUPO_SEM_PROJETO = '__sem_projeto__';
+export const GRUPO_SEM_RESPONSAVEL = '__sem_responsavel__';
+
 export interface GrupoDoControle {
-  /** Nome do executor, ou `''` no grupo sem responsável. */
+  /** Nome do executor, ou uma das duas chaves reservadas. */
   executor: string;
   linhas: LinhaDoControle[];
   /** Clientes distintos dentro do grupo. */
   clientes: number;
   /** Linhas com prazo vencido dentro do grupo. */
   vencidas: number;
-  /** `true` só no grupo sem responsável, que vem primeiro e abre fechado. */
+  /** Produto vendido sem projeto criado: não há o que delegar, há o que criar. */
+  semProjeto: boolean;
+  /** Projeto criado com `responsible_id` nulo: aí sim é um campo a preencher. */
   semResponsavel: boolean;
 }
 
+/** O rótulo de um grupo, já resolvendo as duas chaves reservadas. */
+export function grupoLabel(executor: string): string {
+  if (executor === GRUPO_SEM_PROJETO) return 'Sem projeto aberto';
+  if (executor === GRUPO_SEM_RESPONSAVEL) return 'Projeto sem responsável';
+  return executor;
+}
+
 /**
- * Agrupa por executor: "sem responsável" primeiro, depois do maior para o menor.
+ * Agrupa por executor: os dois grupos sem gente primeiro, depois do maior para
+ * o menor.
  *
  * Maior primeiro, e não alfabético, porque quem carrega dez produtos é quem a
  * tela precisa mostrar antes; empate desempata por nome, para a ordem não
@@ -554,7 +579,10 @@ export interface GrupoDoControle {
 export function agruparPorExecutor(linhas: LinhaDoControle[]): GrupoDoControle[] {
   const porExecutor = new Map<string, LinhaDoControle[]>();
   for (const linha of linhas) {
-    const chaves = linha.executores.length > 0 ? linha.executores : [''];
+    const chaves =
+      linha.executores.length > 0
+        ? linha.executores
+        : [linha.status === SEM_PROJETO ? GRUPO_SEM_PROJETO : GRUPO_SEM_RESPONSAVEL];
     for (const chave of chaves) {
       const atuais = porExecutor.get(chave) ?? [];
       atuais.push(linha);
@@ -569,12 +597,16 @@ export function agruparPorExecutor(linhas: LinhaDoControle[]): GrupoDoControle[]
       linhas: doGrupo,
       clientes: new Set(doGrupo.map((linha) => linha.clienteId)).size,
       vencidas: doGrupo.filter((linha) => linha.prazoVencido).length,
-      semResponsavel: executor === '',
+      semProjeto: executor === GRUPO_SEM_PROJETO,
+      semResponsavel: executor === GRUPO_SEM_RESPONSAVEL,
     });
   }
 
+  // Ordem fixa nos dois primeiros: "sem projeto" antes de "sem responsável",
+  // porque criar é o gesto maior e o grupo é trinta vezes maior.
+  const peso = (grupo: GrupoDoControle) => (grupo.semProjeto ? 0 : grupo.semResponsavel ? 1 : 2);
   return grupos.sort((a, b) => {
-    if (a.semResponsavel !== b.semResponsavel) return a.semResponsavel ? -1 : 1;
+    if (peso(a) !== peso(b)) return peso(a) - peso(b);
     if (a.linhas.length !== b.linhas.length) return b.linhas.length - a.linhas.length;
     return a.executor.localeCompare(b.executor, 'pt-BR');
   });

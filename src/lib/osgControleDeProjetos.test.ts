@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   FILTROS_VAZIOS,
   ORDEM_PADRAO,
+  GRUPO_SEM_PROJETO,
+  GRUPO_SEM_RESPONSAVEL,
+  SEM_PROJETO,
   agruparPorExecutor,
   filtrarControle,
   montarControleDeProjetos,
@@ -285,15 +288,15 @@ describe('statusLabel', () => {
 });
 
 describe('status do produto', () => {
-  it('herda o status da OS quando o produto não tem projeto', () => {
-    // Produto sem projeto numa OS suspensa está pausado; dizer "sem status"
-    // seria menos verdade que herdar.
+  it('NÃO herda o status da OS: produto sem projeto é "sem projeto"', () => {
+    // A primeira versão herdava, e escrevia "Ativo" num produto que ninguém
+    // abriu. Herdar parecia mais informativo e era menos verdadeiro.
     const linhas = montar(
-      [ordem({ situacao: 'suspenso' })],
+      [ordem({ situacao: 'em_andamento' })],
       [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
     );
-    expect(linhas[0].status).toBe('on_hold');
-    expect(linhas[0].statusDoProjeto).toBe(false);
+    expect(linhas[0].status).toBe(SEM_PROJETO);
+    expect(statusLabel(linhas[0].status)).toBe('Sem projeto');
   });
 
   it('usa o status do projeto quando ele existe', () => {
@@ -303,7 +306,6 @@ describe('status do produto', () => {
       [projeto({ status: 'completed' })],
     );
     expect(linhas[0].status).toBe('completed');
-    expect(linhas[0].statusDoProjeto).toBe(true);
   });
 
   it('não marca vencido o produto concluído dentro de uma OS vencida', () => {
@@ -362,8 +364,9 @@ describe('filtrarControle', () => {
   });
 
   it('filtra por status', () => {
-    const achadas = filtrarControle(linhas, { ...FILTROS_VAZIOS, status: 'on_hold' });
-    expect(achadas.map((l) => l.clienteNome)).toEqual(['Anversa']);
+    // Nenhuma linha deste conjunto tem projeto, entao todas sao `sem_projeto`.
+    expect(filtrarControle(linhas, { ...FILTROS_VAZIOS, status: SEM_PROJETO })).toHaveLength(3);
+    expect(filtrarControle(linhas, { ...FILTROS_VAZIOS, status: 'active' })).toHaveLength(0);
   });
 
   it('filtra por região', () => {
@@ -400,7 +403,7 @@ describe('opcoesDoControle', () => {
     const opcoes = opcoesDoControle(linhas);
     // BRA antes de MPT porque é assim em REGIAO_OPTIONS, não por ordem alfabética.
     expect(opcoes.regioes).toEqual(['BRA', 'MPT']);
-    expect(opcoes.statuses).toEqual(['Ativo', 'Pausado'].map((r) => (r === 'Ativo' ? 'active' : 'on_hold')));
+    expect(opcoes.statuses).toEqual([SEM_PROJETO]);
     expect(opcoes.areas).toEqual(['OSG', 'TAX']);
   });
 
@@ -509,9 +512,25 @@ describe('agruparPorExecutor', () => {
     ],
   );
 
-  it('põe o grupo sem responsável PRIMEIRO, porque é fila de delegação', () => {
+  it('separa "sem projeto aberto" de "projeto sem responsável"', () => {
+    // São ações diferentes: um precisa ser criado, o outro precisa de um campo.
+    const mistas = montar(
+      [ordem()],
+      [
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-suc' },
+      ],
+      [projeto({ produto_segmento_id: 'p-suc', responsible_id: null })],
+    );
+    const grupos = agruparPorExecutor(mistas);
+    expect(grupos.map((g) => g.executor)).toEqual([GRUPO_SEM_PROJETO, GRUPO_SEM_RESPONSAVEL]);
+    expect(grupos[0].linhas[0].produtoNome).toBe('Governança');
+    expect(grupos[1].linhas[0].produtoNome).toBe('Planejamento Sucessório');
+  });
+
+  it('põe os dois grupos sem gente PRIMEIRO, porque são o achado da tela', () => {
     const grupos = agruparPorExecutor(linhas);
-    expect(grupos[0].semResponsavel).toBe(true);
+    expect(grupos[0].semProjeto).toBe(true);
     expect(grupos[0].linhas).toHaveLength(1);
   });
 

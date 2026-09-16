@@ -1,7 +1,16 @@
 import { Fragment } from 'react';
 
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronRight, UserX } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronDown,
+  ChevronRight,
+  FolderPlus,
+  UserX,
+} from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import {
@@ -15,6 +24,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { parseDate } from '@/lib/dateUtils';
 import {
+  SEM_PROJETO,
+  grupoLabel,
   statusLabel,
   type ColunaDoControle,
   type GrupoDoControle,
@@ -36,28 +47,39 @@ function data(valor: string | null): string {
 /**
  * O status do produto.
  *
- * A cor vem de `projectStatusColors.ts`, a mesma pílula que o modal de projeto
+ * A cor vem de `projetoStatusColors.ts`, a mesma pílula que o modal de projeto
  * e a tabela de Projetos usam: na mesma ideia, duas telas não podem ter duas
- * cores. O asterisco marca o status HERDADO da OS, quando o produto ainda não
- * tem projeto — sem ele a tela afirmaria um estado que ninguém declarou.
+ * cores.
+ *
+ * "Sem projeto" é tracejado e sem tom de status, porque não É um status: é a
+ * ausência de projeto. Pintá-lo como os outros o poria na mesma prateleira de
+ * Ativo e Pausado, que é o erro que a versão anterior cometia ao herdar o
+ * estado da OS e escrever "Ativo" num produto que ninguém abriu.
  */
 function Status({ linha }: { linha: LinhaDoControle }) {
+  if (linha.status === SEM_PROJETO) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge
+            variant="outline"
+            className="cursor-default whitespace-nowrap border-dashed font-normal text-muted-foreground"
+          >
+            Sem projeto
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">
+          Produto contratado nesta OS sem projeto criado. Clique para abrir um.
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
   const config = projectStatusConfig(linha.status);
-  const pilula = (
+  return (
     <Badge variant="outline" className={cn('whitespace-nowrap font-normal', config.badge)}>
       <span className={cn('mr-1.5 h-2 w-2 shrink-0 rounded-full', config.dot)} />
       {statusLabel(linha.status)}
-      {!linha.statusDoProjeto && <span className="ml-0.5">*</span>}
     </Badge>
-  );
-  if (linha.statusDoProjeto) return pilula;
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="cursor-default">{pilula}</span>
-      </TooltipTrigger>
-      <TooltipContent>Herdado da situação da OS: o produto ainda não tem projeto</TooltipContent>
-    </Tooltip>
   );
 }
 
@@ -172,6 +194,8 @@ function CabecaDoGrupo({
   colunas: number;
 }) {
   const Seta = aberto ? ChevronDown : ChevronRight;
+  const semGente = grupo.semProjeto || grupo.semResponsavel;
+  const Icone = grupo.semProjeto ? FolderPlus : UserX;
   return (
     <TableRow className="hover:bg-transparent">
       <TableCell colSpan={colunas} className="bg-superficie-realce p-0">
@@ -179,12 +203,12 @@ function CabecaDoGrupo({
           type="button"
           onClick={onAlternar}
           aria-expanded={aberto}
-          className="flex w-full items-center gap-2 px-4 py-2 text-left"
+          className="flex w-full flex-wrap items-center gap-x-2 gap-y-0.5 px-4 py-2 text-left"
         >
           <Seta className="h-4 w-4 shrink-0 text-muted-foreground" />
-          {grupo.semResponsavel && <UserX className="h-4 w-4 shrink-0 text-destructive" />}
-          <span className={cn('font-medium', grupo.semResponsavel && 'text-destructive')}>
-            {grupo.semResponsavel ? 'Sem responsável' : grupo.executor}
+          {semGente && <Icone className="h-4 w-4 shrink-0 text-destructive" />}
+          <span className={cn('font-medium', semGente && 'text-destructive')}>
+            {grupoLabel(grupo.executor)}
           </span>
           <span className="text-sm text-muted-foreground">
             {grupo.linhas.length} {grupo.linhas.length === 1 ? 'produto' : 'produtos'}
@@ -193,7 +217,24 @@ function CabecaDoGrupo({
           </span>
           {grupo.vencidas > 0 && (
             <span className="text-sm font-medium text-destructive">
-              {grupo.vencidas} vencido{grupo.vencidas === 1 ? '' : 's'}
+              {grupo.vencidas} com prazo vencido
+            </span>
+          )}
+          {/*
+            O que o grupo é, em uma linha. Sem isto a contagem sozinha vira
+            acusação: parte dos "sem projeto aberto" é trabalho que aconteceu
+            fora da ferramenta e nunca foi registrado, e o banco não distingue os
+            dois casos.
+          */}
+          {grupo.semProjeto && (
+            <span className="basis-full pl-6 text-xs text-muted-foreground">
+              Vendido nesta OS e sem projeto criado: ou ninguém abriu, ou foi feito fora da
+              ferramenta. Clique numa linha para abrir o projeto.
+            </span>
+          )}
+          {grupo.semResponsavel && (
+            <span className="basis-full pl-6 text-xs text-muted-foreground">
+              O projeto existe e está sem executor. Clique para delegar.
             </span>
           )}
         </button>
