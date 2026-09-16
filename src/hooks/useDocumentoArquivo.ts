@@ -13,6 +13,7 @@ import type { Database } from '@/integrations/supabase/types';
 import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
 import type { ModeloDocumento } from '@/lib/solicitacao';
 import { computeFieldDiff } from '@/lib/diffUtils';
+import { nomeDoZip, nomesUnicosNoZip } from '@/lib/downloadEmLote';
 
 /**
  * A linha do arquivo.
@@ -798,6 +799,24 @@ export function usePreviewUrl() {
 }
 
 /**
+ * Registra, sem esperar, que a URL assinada saiu para esta pessoa.
+ *
+ * Sem await, de propósito: falhar o registro não pode acionar o onError sobre um
+ * download que funcionou. Por isso o erro vai ao console em vez de captura vazia
+ * — se a migração não estiver aplicada, é o único aviso.
+ */
+function registrarAcessoAoDocumento(documentoId: string) {
+  void (async () => {
+    const { error } = await supabase.rpc('registrar_download_documento', {
+      _documento_id: documentoId,
+    });
+    if (error) console.error('Falha ao registrar download do documento', error);
+  })().catch((error) => {
+    console.error('Falha ao registrar download do documento', error);
+  });
+}
+
+/**
  * Pede a signed GET URL, abre o download em nova aba e registra o acesso.
  *
  * O que fica registrado é que a URL assinada foi entregue a esta pessoa para
@@ -822,18 +841,7 @@ export function useBaixarDocumento() {
       // Abra primeiro: adiar o window.open para fora do turno síncrono do gesto
       // faz o navegador bloquear a janela. E só depois da resposta OK, senão
       // passaria a registrar tentativa que falhou.
-      //
-      // Sem await, de propósito: falhar o registro não pode acionar o onError
-      // sobre um download que funcionou. Por isso o erro vai ao console em vez
-      // de captura vazia — se a migração não estiver aplicada, é o único aviso.
-      void (async () => {
-        const { error } = await supabase.rpc('registrar_download_documento', {
-          _documento_id: row.id,
-        });
-        if (error) console.error('Falha ao registrar download do documento', error);
-      })().catch((error) => {
-        console.error('Falha ao registrar download do documento', error);
-      });
+      registrarAcessoAoDocumento(row.id);
     },
     // Por prefixo: a aba de Downloads da auditoria tem uma entrada de cache por
     // janela de período, e aqui não se sabe qual delas está aberta.
@@ -843,4 +851,119 @@ export function useBaixarDocumento() {
     onError: (e: unknown) =>
       toast({ title: 'Erro ao baixar', description: (e as Error).message, variant: 'destructive' }),
   });
+}
+
+/** Quantos arquivos o lote busca ao mesmo tempo, como no upload em lote. */
+const CONCORRENCIA_LOTE = 4;
+
+export interface ProgressoDoLote {
+  /** Arquivos que o lote tem (os selecionados que de fato têm arquivo). */
+  total: number;
+  /** Quantos já foram resolvidos, com sucesso ou com falha. */
+  concluidos: number;
+  etapa: 'baixando' | 'compactando';
+}
+
+const salvarBlob = (blob: Blob, nomeDoArquivo: string) => {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url; anchor.download = nomeDoArquivo;
+  document.body.appendChild(anchor); anchor.click(); document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+};
+
+/**
+ * Baixa vários documentos de uma vez, como um único .zip.
+ *
+ * Por que .zip e não N downloads: o navegador bloqueia a segunda janela aberta
+ * fora do gesto do usuário, e `<a download>` é ignorado em URL de outra origem
+ * (o arquivo mora no armazenamento em nuvem, não aqui) — o segundo arquivo
+ * navegaria a aba em vez de baixar. Trazer os bytes e empacotar no cliente é o
+ * que entrega o lote inteiro sem depender de endpoint novo no backend.
+ *
+ * Um arquivo que falha NÃO derruba o lote: ele fica de fora, o .zip sai com o
+ * resto e o aviso diz quantos ficaram. O registro de acesso é por documento,
+ * igual ao download de um só (ver `useBaixarDocumento`).
+ */
+export function useBaixarDocumentosEmLote() {
+  const { fetchWithAuth } = useApiAuth();
+  const qc = useQueryClient();
+  const [progresso, setProgresso] = useState<ProgressoDoLote | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: async ({ docs, rotuloDaPasta }: { docs: DocumentoArquivoRow[]; rotuloDaPasta: string }) => {
+      const comArquivo = docs.filter((d) => d.gcs_uri);
+      if (comArquivo.length === 0) throw new Error('Nenhum dos documentos selecionados tem arquivo associado');
+
+      // Os nomes saem prontos ANTES do laço: a numeração de repetidos depende do
+      // conjunto inteiro, e a ordem de chegada dos downloads é imprevisível.
+      const nomes = nomesUnicosNoZip(comArquivo.map((d) => d.nome_original));
+      // Import dinâmico, como o gerador de .docx: quem nunca baixa em lote não
+      // carrega o compactador (e o chunk é o mesmo, o `docx` já usa jszip).
+      const { default: JSZip } = await import('jszip');
+      const zip = new JSZip();
+      const falhas: string[] = [];
+      setProgresso({ total: comArquivo.length, concluidos: 0, etapa: 'baixando' });
+
+      let proxima = 0;
+      const worker = async () => {
+        for (let i = proxima; i < comArquivo.length; i = proxima) {
+          proxima += 1;
+          const d = comArquivo[i];
+          try {
+            const res = await fetchWithAuth(getApiUrl('/api/v1/osg/documentos/sign-download'), {
+              method: 'POST',
+              body: JSON.stringify({ gcs_uri: d.gcs_uri }),
+            });
+            if (!res.ok) throw new Error('falha ao gerar o link');
+            const { signed_url } = (await res.json()) as { signed_url: string };
+            const arquivo = await fetch(signed_url);
+            if (!arquivo.ok) throw new Error(`o armazenamento respondeu ${arquivo.status}`);
+            zip.file(nomes[i], await arquivo.blob());
+            registrarAcessoAoDocumento(d.id);
+          } catch (e) {
+            console.error('Falha ao baixar documento do lote', d.nome_original, e);
+            falhas.push(d.nome_original);
+          }
+          setProgresso((p) => (p ? { ...p, concluidos: p.concluidos + 1 } : p));
+        }
+      };
+      await Promise.all(
+        Array.from({ length: Math.min(CONCORRENCIA_LOTE, comArquivo.length) }, () => worker()),
+      );
+
+      if (falhas.length === comArquivo.length) throw new Error('Nenhum dos arquivos pôde ser baixado');
+
+      setProgresso((p) => (p ? { ...p, etapa: 'compactando' } : p));
+      // STORE e não DEFLATE: PDF, JPG e DOCX já chegam comprimidos, e comprimir
+      // de novo custa segundos de CPU para economizar quase nada.
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+      salvarBlob(blob, nomeDoZip(rotuloDaPasta, new Date()));
+
+      return { baixados: comArquivo.length - falhas.length, falhas, semArquivo: docs.length - comArquivo.length };
+    },
+    // Por prefixo, como no download de um só: a aba de Downloads da auditoria
+    // tem uma entrada de cache por janela de período.
+    onSuccess: ({ baixados, falhas, semArquivo }) => {
+      qc.invalidateQueries({ queryKey: [DOWNLOADS_QUERY_KEY] });
+      const sobras = [
+        falhas.length ? `${falhas.length} falhou${falhas.length > 1 ? 'ram' : ''}` : null,
+        semArquivo ? `${semArquivo} sem arquivo` : null,
+      ].filter(Boolean).join(' · ');
+      toast({
+        title: `${baixados} ${baixados === 1 ? 'documento baixado' : 'documentos baixados'}`,
+        description: sobras ? `Ficaram de fora: ${sobras}.` : 'O .zip está na sua pasta de downloads.',
+        variant: sobras ? 'destructive' : undefined,
+      });
+    },
+    onError: (e: unknown) =>
+      toast({ title: 'Erro ao baixar em lote', description: (e as Error).message, variant: 'destructive' }),
+    onSettled: () => setProgresso(null),
+  });
+
+  return {
+    baixarEmLote: mutation.mutate,
+    baixando: mutation.isPending,
+    progresso,
+  };
 }

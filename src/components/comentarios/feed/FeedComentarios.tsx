@@ -108,7 +108,12 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
       <>
         {dias.map((dia) => (
           <section key={dia.dia} className="pb-5">
-            <div className="sticky top-0 z-20 -mx-1 flex items-center gap-3 bg-canvas/80 px-1 py-2 backdrop-blur-sm">
+            {/* O fundo aqui é MÁSCARA, não decoração: a faixa do dia fica presa
+                no topo e o conteúdo passa por baixo dela. Por isso ele tem que
+                ser o mesmo token que o `body` pinta — em 12/09/2026 a página
+                foi para `bg-background` e este `bg-canvas/80` teria ficado como
+                a única mancha cinza da tela, justamente onde o texto atravessa. */}
+            <div className="sticky top-0 z-20 -mx-1 flex items-center gap-3 bg-background/80 px-1 py-2 backdrop-blur-sm">
               <h2 className="rounded-full border border-border/70 bg-card px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-foreground/75 shadow-sm">
                 {dia.rotulo}
               </h2>
@@ -179,8 +184,8 @@ function FeedCarregando() {
     <div className="space-y-3">
       <Skeleton className="h-5 w-20 rounded-full" />
       {[0, 1].map((bloco) => (
-        <div key={bloco} className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-          <div className="flex items-center gap-3 border-b border-border/60 bg-muted/50 px-3.5 py-2.5">
+        <div key={bloco} className="overflow-hidden rounded-2xl border border-border/70 bg-superficie-cartao">
+          <div className="flex items-center gap-3 border-b border-border/60 bg-superficie-realce px-3.5 py-2.5">
             <Skeleton className="h-9 w-9 rounded-xl" />
             <div className="flex-1 space-y-1.5">
               <Skeleton className="h-2.5 w-28" />
@@ -206,7 +211,7 @@ function FeedCarregando() {
 
 function FeedVazio() {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+    <div className="rounded-2xl border border-dashed border-border bg-superficie-cartao px-6 py-16 text-center">
       <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-tool-icon-bg text-tool-icon">
         <MessagesSquare aria-hidden className="h-7 w-7" />
       </span>
@@ -227,7 +232,7 @@ function FeedVazio() {
  */
 function FeedSemResultado({ onLimpar }: { onLimpar: () => void }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+    <div className="rounded-2xl border border-dashed border-border bg-superficie-cartao px-6 py-16 text-center">
       <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-muted text-muted-foreground">
         <SearchX aria-hidden className="h-7 w-7" />
       </span>

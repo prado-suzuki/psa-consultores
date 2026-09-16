@@ -196,8 +196,13 @@ const ExploracaoRural = () => {
                           return (
                             <TableRow
                               key={row.id}
-                              className="group"
-                              {...rowActivateProps(() => setModal({ open: true, exploracao: row }))}
+                              {...rowActivateProps(
+                                () => setModal({ open: true, exploracao: row }),
+                                // No argumento, e não num `className` ao lado: o spread
+                                // substituiria o `group` e os botões de ação da linha
+                                // nunca apareceriam no hover, só pelo teclado.
+                                'group',
+                              )}
                             >
                               <TableCell>
                                 <Badge variant="outline" className="border-osg-200 bg-osg-50 text-osg-700">

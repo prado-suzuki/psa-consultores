@@ -26,7 +26,7 @@ pois muda comportamento (novas linhas em `audit_logs`) e exige `changed_fields` 
 | `components/equipe/dev/perdcomp/SituacaoFormModal.tsx` | (hook perdcomp) | `per_situacao` | insert | |
 | `components/equipe/dev/perdcomp/PerDetailModal.tsx` | (hook perdcomp) | `per_situacao`, `per` | insert, update | god-component |
 | `components/equipe/dev/perdcomp/DcompFormModal.tsx` | (hook perdcomp) | `distribuicao_dcomp`, `dcomp` | delete, insert | god-component |
-| `pages/equipe/EquipeControleAcessos.tsx` | — | `catalog_clients` | insert, update, delete | |
+| `pages/equipe/EquipeControleAcessos.tsx` | — | `catalog_clients` | insert, update, delete | **fechado por remoção em 14/09/2026**: o diálogo que fazia essas três escritas nunca abriu (nenhum botão chamava as funções) e saiu inteiro, com o hook. `catalog_clients` deixou de ter escrita no aplicativo — a linha fica porque se a tela voltar, o gap volta com ela |
 | `pages/equipe/EquipeNovaTarefa.tsx` | — | `tasks` | insert | |
 | `pages/equipe/EquipeRotinas.tsx` | — | `routines` | insert | |
 | `pages/equipe/EquipeSprints.tsx` | — | `sprints` | insert | |
@@ -170,6 +170,24 @@ pois muda comportamento (novas linhas em `audit_logs`) e exige `changed_fields` 
 | `pages/equipe/EquipeDemandas.tsx` | `useEquipeDemandaItemMutations.createItemMutation` | `demand_items` | insert | payload integral preservado; validações permanecem no consumidor; sem precheck |
 | `pages/equipe/EquipeDemandas.tsx` | `useEquipeDemandaItemMutations.updateItemStatusMutation` | `demand_items` | update | alteração de status e filtro por ID preservados; sem precheck; campo `error` intencionalmente ignorado |
 | `pages/equipe/EquipeDemandas.tsx` | `useEquipeDemandaItemMutations.deleteItemMutation` | `demand_items` | delete | filtro por ID preservado; sem precheck; campo `error` intencionalmente ignorado |
+| `components/acessos/PagesTab.tsx` | `usePagePermissions.useTogglePagePermission` | `page_permissions` | update | liga e desliga uma página **para todo mundo**, num clique de `Switch`, sem confirmação |
+| `components/acessos/PermissionsTree.tsx` | `useUserPageAccess.useBulkUpdatePageAccess` | `user_page_access` | delete, upsert | concede e revoga caminho a caminho; marcar um nó da árvore escreve a subárvore inteira mais os ancestrais |
+| `hooks/useTeamMemberMutations.ts` | `useUserPageAccess.useSyncUserAreaAccess` | `page_permissions` (leitura), `user_page_access` | insert, delete | reescreve os acessos da pessoa quando as **áreas** mudam no diálogo de criar/editar. O hook consumidor audita o usuário; as linhas de acesso que ele cria e apaga, não |
+| `hooks/useUserPageAccess.ts` | `useGrantPageAccess`, `useRevokePageAccess` | `user_page_access` | insert, delete | **fechado por remoção em 14/09/2026**, horas depois de inventariado: não tinham consumidor nenhum e eram o desenho anterior ao de lote. A linha fica porque conceder página uma a uma pode voltar — e se voltar, volta pelo `useBulkUpdatePageAccess`, que está nesta tabela |
+
+### Por que estas cinco linhas são de outra natureza (14/09/2026)
+
+As demais linhas desta tabela são cadastro: quem mudou o valor de um campo. Estas mudam **quem
+enxerga o quê** — e é a própria tela de Controle de Acessos que as dispara.
+
+O contraste dentro da mesma tela é o argumento: a barra de seleção em lote da matriz de Papéis
+(`useAcessosEmLote`, 14/09/2026) audita as quatro operações dela. Então alterar o papel de doze
+pessoas de uma vez deixa rastro, e liberar uma tela para uma pessoa não deixa. A pergunta "quem deu
+acesso a isso, e quando" hoje não tem resposta no sistema.
+
+Vale o mesmo aviso de sempre: **escrita que não passa pela tela também não aparece** no
+`audit_logs` (ver a seção dos gatilhos, abaixo) — então ausência de linha não prova que ninguém
+mexeu.
 
 ## Escritas que não vêm do frontend (gatilhos de banco)
 

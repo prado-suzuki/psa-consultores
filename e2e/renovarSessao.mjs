@@ -57,6 +57,8 @@ console.log(`token    ${restam > 0 ? `valido por ${restam}s` : `expirado ha ${-r
 // <ref>" mesmo com o arquivo certo no repositorio, e a conferencia no navegador
 // travava antes de comecar.
 let apikey = null;
+// `.env.sandbox` entra na lista porque e o nome que o sandbox tem NESTE repo — sem
+// ele o script dizia "nao sei qual chave anon usar" com a chave ali do lado.
 for (const arquivo of ['.env.development.local', '.env.development', '.env.sandbox', '.env']) {
   const env = lerEnv(arquivo);
   if (!(env.VITE_SUPABASE_URL ?? '').includes(ref)) continue;

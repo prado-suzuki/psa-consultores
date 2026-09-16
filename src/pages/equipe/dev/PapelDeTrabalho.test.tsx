@@ -1,9 +1,11 @@
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createTestQueryClient } from '@/test/queryWrapper';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { fireEvent, render as renderCru, screen, waitFor } from '@testing-library/react';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import type { PropsWithChildren, ReactElement } from 'react';
+import type { PropsWithChildren, ReactElement, ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 /*
@@ -58,14 +60,20 @@ vi.mock('@/hooks/useDomainPapelDeTrabalho', () => ({
 
 vi.mock('@/hooks/use-toast', () => ({ toast: vi.fn() }));
 
-vi.mock('@/components/equipe/dev/DevLayout', () => ({
-  DevLayout: ({ children, title }: PropsWithChildren<{ title: string }>) => (
-    <main>
-      <h1>{title}</h1>
-      {children}
-    </main>
-  ),
-}));
+vi.mock('@/components/equipe/dev/DevLayout', async () => {
+  // A fábrica é içada acima dos imports, então o resolvedor entra por import
+  // dinâmico. O cabeçalho vem do registro (`tela`), como na tela real — resolver
+  // aqui pela mesma função evita o teste medir o mock em vez do nome da tela.
+  const { resolverCabecalhoDoDev } = await import('@/config/telasDoDigitalDev');
+  return {
+    DevLayout: ({ children, ...cabecalho }: { children: ReactNode }) => (
+      <main>
+        <h1>{resolverCabecalhoDoDev(cabecalho as never).title}</h1>
+        {children}
+      </main>
+    ),
+  };
+});
 
 import PapelDeTrabalho, { Revisoes } from '@/pages/equipe/dev/PapelDeTrabalho';
 import { EscolhaDoProjeto } from '@/components/equipe/dev/planejamento-tributario/EscolhaDoProjeto';
@@ -111,9 +119,19 @@ function fixture(caso: string): BlobPart {
   return readFileSync(join(FIXTURES, caso, 'entrada.xlsx'));
 }
 
+// O campo de cliente busca o indice de CNPJ (`useCnpjsPorCliente`), entao a tela
+// exige um QueryClient. O `rerender` e reembrulhado de proposito: o que o RTL
+// devolve remonta SEM o provider, e a segunda renderizacao quebraria sozinha.
+function renderComQuery(ui: ReactElement) {
+  const client = createTestQueryClient();
+  const envolver = (no: ReactElement) => <QueryClientProvider client={client}>{no}</QueryClientProvider>;
+  const resultado = render(envolver(ui));
+  return { ...resultado, rerender: (no: ReactElement) => resultado.rerender(envolver(no)) };
+}
+
 describe('PapelDeTrabalho', () => {
   it('abre pedindo o arquivo, sem quebrar', () => {
-    render(<PapelDeTrabalho />);
+    renderComQuery(<PapelDeTrabalho />);
 
     expect(screen.getByRole('heading', { name: 'Papel de Trabalho' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Escolher o WP/ })).toBeInTheDocument();
@@ -122,7 +140,7 @@ describe('PapelDeTrabalho', () => {
 
   /* A promessa que a tela faz, e que sustenta o preview: nada sai daqui. */
   it('avisa que o arquivo não sai do navegador', () => {
-    render(<PapelDeTrabalho />);
+    renderComQuery(<PapelDeTrabalho />);
 
     expect(screen.getByText(/Nada sai daqui enquanto você não confirmar/)).toBeInTheDocument();
   });
@@ -134,7 +152,7 @@ describe('PapelDeTrabalho', () => {
    * motivo de existir.
    */
   it('lista os slides com a fonte de cada um', async () => {
-    render(<PapelDeTrabalho />);
+    renderComQuery(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'WP.xlsx');
 
     await waitFor(() =>
@@ -151,7 +169,7 @@ describe('PapelDeTrabalho', () => {
    * um zero numa contagem, e ninguém descobria que a apresentação sairia furada.
    */
   it('conta quantos slides sairiam vazios, e diz quais', async () => {
-    render(<PapelDeTrabalho />);
+    renderComQuery(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'so-apoio.xlsx');
 
     await waitFor(() =>
@@ -170,7 +188,7 @@ describe('PapelDeTrabalho', () => {
    * incompleto sem explicação.
    */
   it('avisa que o cart\u00e3o de hect\u00e1res n\u00e3o tem fonte', async () => {
-    render(<PapelDeTrabalho />);
+    renderComQuery(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'WP.xlsx');
 
     await waitFor(() =>
@@ -188,7 +206,7 @@ describe('PapelDeTrabalho', () => {
    * visto não lê o resto.
    */
   it('não dá visto de completo ao slide que sai com parte dos números', async () => {
-    render(<PapelDeTrabalho />);
+    renderComQuery(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'WP.xlsx');
 
     await waitFor(() =>
@@ -204,7 +222,7 @@ describe('PapelDeTrabalho', () => {
 
   /* Os títulos das colunas dizem o que cada uma é, sem depender do tooltip. */
   it('nomeia as três colunas da tabela de slides', async () => {
-    render(<PapelDeTrabalho />);
+    renderComQuery(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'WP.xlsx');
 
     await waitFor(() =>
@@ -217,7 +235,7 @@ describe('PapelDeTrabalho', () => {
   });
 
   it('mostra o que foi lido, sem bloco de problema, num WP bom', async () => {
-    render(<PapelDeTrabalho />);
+    renderComQuery(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'WP do cliente.xlsx');
 
     await waitFor(() =>
@@ -236,7 +254,7 @@ describe('PapelDeTrabalho', () => {
    * diz de onde vêm os anos a mais, em vez de mostrar o intervalo cru.
    */
   it('explica os anos que passam do período do estudo', async () => {
-    render(<PapelDeTrabalho />);
+    renderComQuery(<PapelDeTrabalho />);
     escolhe(fixture('transferencia-rural'), 'venda.xlsx');
 
     await waitFor(() =>
@@ -261,7 +279,7 @@ describe('PapelDeTrabalho', () => {
    * evita listando o que falta. Sem cliente e sem OS, a tela nomeia os dois.
    */
   it('sem cliente e sem OS, o botão diz o que falta', async () => {
-    render(<PapelDeTrabalho />);
+    renderComQuery(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'bom.xlsx');
 
     await waitFor(() =>
@@ -277,7 +295,7 @@ describe('PapelDeTrabalho', () => {
    * protecao contra subir o WP de um cliente no cadastro de outro.
    */
   it('mostra o cliente que a planilha declara, para conferência', async () => {
-    render(<PapelDeTrabalho />);
+    renderComQuery(<PapelDeTrabalho />);
     escolhe(fixture('cabecalho-do-estudo'), 'cab.xlsx');
 
     await waitFor(() =>
@@ -288,7 +306,7 @@ describe('PapelDeTrabalho', () => {
   });
 
   it('num arquivo trocado, mostra o impedimento e diz que não há o que gravar', async () => {
-    render(<PapelDeTrabalho />);
+    renderComQuery(<PapelDeTrabalho />);
     escolhe('isto nao e uma planilha', 'foto.xlsx');
 
     await waitFor(() => expect(screen.getByText(/impede(m)? a importação/)).toBeInTheDocument());
@@ -300,7 +318,7 @@ describe('PapelDeTrabalho', () => {
   });
 
   it('começar de novo devolve a tela ao estado inicial', async () => {
-    render(<PapelDeTrabalho />);
+    renderComQuery(<PapelDeTrabalho />);
     escolhe(fixture('dre'), 'dre.xlsx');
 
     await waitFor(() =>
@@ -344,7 +362,7 @@ describe('PapelDeTrabalho', () => {
     it('quem não é admin não vê o botão', () => {
       comRevisao();
       mocks.isAdmin = false;
-      render(<Revisoes estudoId="est-1" />);
+      renderComQuery(<Revisoes estudoId="est-1" />);
 
       /* A revisão aparece; só o botão é que não. */
       expect(screen.getByText('WP.xlsx')).toBeInTheDocument();
@@ -355,7 +373,7 @@ describe('PapelDeTrabalho', () => {
       comRevisao();
       mocks.isAdmin = true;
       const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
-      render(<Revisoes estudoId="est-1" />);
+      renderComQuery(<Revisoes estudoId="est-1" />);
 
       fireEvent.click(screen.getByRole('button', { name: /Descartar/ }));
 
@@ -369,7 +387,7 @@ describe('PapelDeTrabalho', () => {
       comRevisao();
       mocks.isAdmin = true;
       const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
-      render(<Revisoes estudoId="est-1" />);
+      renderComQuery(<Revisoes estudoId="est-1" />);
 
       fireEvent.click(screen.getByRole('button', { name: /Descartar/ }));
 
@@ -393,7 +411,7 @@ describe('PapelDeTrabalho', () => {
 describe('PapelDeTrabalho, a escolha do projeto', () => {
   function preparaComArquivoAceito() {
     mocks.estudos = [{ id: 'est-1', ordem_servico_id: 'os-1', projeto_id: null }];
-    render(<PapelDeTrabalho />);
+    renderComQuery(<PapelDeTrabalho />);
     escolhe(fixture('bens-e-dividas'), 'WP.xlsx');
   }
 
@@ -543,7 +561,7 @@ describe('PapelDeTrabalho, o aviso do projeto', () => {
         created_at: '2026-09-08T12:00:00Z',
       },
     ];
-    render(<Revisoes estudoId="est-1" semProjeto />);
+    renderComQuery(<Revisoes estudoId="est-1" semProjeto />);
 
     expect(screen.getByText(/não está ligado a nenhum projeto da OS/)).toBeInTheDocument();
     expect(screen.getByText(/Na próxima importação a tela pergunta/)).toBeInTheDocument();
@@ -564,7 +582,7 @@ describe('PapelDeTrabalho, o aviso do projeto', () => {
         created_at: '2026-09-08T12:00:00Z',
       },
     ];
-    render(<Revisoes estudoId="est-1" />);
+    renderComQuery(<Revisoes estudoId="est-1" />);
 
     expect(screen.queryByText(/não está ligado a nenhum projeto/)).not.toBeInTheDocument();
   });
@@ -573,7 +591,7 @@ describe('PapelDeTrabalho, o aviso do projeto', () => {
    * avisar, e a tela ja diz que a primeira importacao cria o planejamento. */
   it('não avisa quando ainda não há revisão', () => {
     mocks.revisoes = [];
-    render(<Revisoes estudoId="est-1" semProjeto />);
+    renderComQuery(<Revisoes estudoId="est-1" semProjeto />);
 
     expect(screen.queryByText(/não está ligado a nenhum projeto/)).not.toBeInTheDocument();
   });

@@ -109,7 +109,7 @@ export function PeriodResultsTable({
               ) : (
               <TableRow key={row.label} className={cn(
                 row.highlighted && cn(ROW_HIGHLIGHT_CLASS, "font-bold"),
-                row.muted && "bg-muted/50 text-xs",
+                row.muted && "bg-superficie-realce text-xs",
                 row.totalRow && "font-bold bg-muted/30",
                 row.subdued && "text-muted-foreground",
               )}>
@@ -120,7 +120,7 @@ export function PeriodResultsTable({
                     : row.totalRow
                       ? "bg-muted/30 font-bold"
                       : row.muted
-                        ? "bg-muted/50 font-bold"
+                        ? "bg-superficie-realce font-bold"
                         : "bg-card",
                 )} style={{ minWidth: 250 }}>{row.label}</TableCell>
                 {headerBottom.map((column) => (

@@ -211,11 +211,28 @@ describe('nada de linguagem técnica no texto da tela', () => {
 });
 
 describe('a categoria vem do motivo, não de palavra na mensagem', () => {
-  it('código de permissão cru não afirma cargo enquanto a recusa puder ser por cluster', () => {
-    // As tarefas 1 a 3 é que deixam a escrita só por cargo. Antes delas, um
-    // 42501 pode ser cluster — dizer "papel de Sublíder" mentiria para quem já
-    // é sublíder.
-    expect(categoriaDaRecusa({ code: '42501', message: 'permission denied' })).toBe('falha');
+  it('código de permissão cru passa a afirmar cargo, agora que a escrita é só por cargo', () => {
+    // Virou em 14/09/2026, quando as nove migrações do bloco chegaram a
+    // produção: nenhuma policy de escrita do cadastro cita cluster, então a
+    // única recusa possível na gravação é de cargo, e a frase pode dizer o que
+    // resolve. Enquanto o cluster ainda barrava, isto caía em 'falha', porque
+    // prometer "papel de Sublíder" a quem já era sublíder seria mentir.
+    expect(categoriaDaRecusa({ code: '42501', message: 'permission denied' })).toBe('permissao');
+  });
+
+  it('o papel afirmado pelo banco vence o padrão do módulo', () => {
+    // O padrão é o piso do cadastro geral. OS, rateio e Proposta exigem líder,
+    // e quem diz isso é o precheck: quando ele responde, a frase usa o papel
+    // que o banco pediu, e não o padrão.
+    const erro = new RlsPrecheckError({
+      allowed: false,
+      reason: 'rls_blocked',
+      required_role: 'lider',
+      message: 'sem permissão',
+    });
+    const recusa = recusaDeOperacao({ item: 'os', acao: 'atualizar' }, erro);
+    expect(recusa.categoria).toBe('permissao');
+    expect(textoDaRecusa(recusa).detalhe).toContain('Líder');
   });
 
   it('a recusa de cargo da criação de cliente é permissão, e diz o papel', () => {

@@ -147,7 +147,7 @@ const LINHA_URBANA = {
   },
   cartorio: { nome_completo: 'Cartório do 2º Ofício', comarca: 'Cuiabá', uf: 'MT' },
   titularidade: [
-    { integralizador: true, fracao: null, titular: { id: 'p-1', denominacao: 'José Eduardo', cliente_id: 'cliente-1' } },
+    { fracao: null, titular: { id: 'p-1', denominacao: 'José Eduardo', cliente_id: 'cliente-1' } },
   ],
 };
 
@@ -263,7 +263,7 @@ describe('useIntegralizacoesAprovadas — colunas da query de bem + matrícula',
     matricula: [
       {
         ...LINHA_URBANA,
-        titularidade: [{ id: 't-1', integralizador: true, fracao: 100, titular: { id: 'p-1', denominacao: 'José Eduardo', tipo_pessoa: 'PF', cpf_cnpj: '000' } }],
+        titularidade: [{ id: 't-1', fracao: 100, titular: { id: 'p-1', denominacao: 'José Eduardo', tipo_pessoa: 'PF', cpf_cnpj: '000' } }],
         impedimento: [],
       },
     ],

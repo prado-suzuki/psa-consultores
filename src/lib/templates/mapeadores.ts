@@ -264,16 +264,27 @@ export function calcularCapitalSociedade(
 }
 
 /**
- * O valor contábil que uma matrícula leva ao capital, ou `null` quando ela fica
- * de fora. Sem valor não há o que somar; sem titular não há a quem atribuir as
- * quotas, e o rateio (calcularParticipacoesPR) a pula — as duas contas precisam
- * pular a MESMA matrícula, senão a identidade "Σ quotas dos sócios ===
- * totalQuotas" quebra sem ninguém perceber.
+ * O valor que uma matrícula leva ao capital, ou `null` quando ela fica de fora.
+ *
+ * Com valores por titular é a soma do que ELES INTEGRALIZAM, e não o valor do
+ * imóvel: na integralização parcial os 67% que ninguém integralizou não podem
+ * entrar no capital nem virar quota (era daí que saía o "titular legado" que
+ * travava a gravação do aporte inicial). Sem valores por titular, é o valor
+ * único do cadastro, como sempre foi.
+ *
+ * Sem titular não há a quem atribuir as quotas, e o rateio
+ * (calcularParticipacoesPR) pula a matrícula — as duas contas precisam pular a
+ * MESMA matrícula, senão a identidade "Σ quotas dos sócios === totalQuotas"
+ * quebra sem ninguém perceber. É por isso que este recorte e o de
+ * `ratearMatriculaEntreTitulares` são escritos lado a lado.
  */
 function valorParaCapital(m: MatriculaParaMapear): number | null {
-  const vlr = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
-  if (vlr == null || m.titulares.length === 0) return null;
-  return vlr;
+  const titulares = dedupTitulares(m.titulares);
+  if (titulares.length === 0) return null;
+  if (temValorPorTitular(titulares)) {
+    return titulares.reduce((soma, t) => soma + centDoTitular(t), 0) / 100;
+  }
+  return m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
 }
 
 /**
@@ -297,6 +308,7 @@ export function mapearSociedade(
   set('numeroAlteracao', instrumento?.numeroAlteracao ?? 0);
   set('tituloColetivoSocios', instrumento?.tituloColetivoSocios);
   set('razaoSocial', row.denominacao);
+  set('nomeFantasia', row.nome_fantasia);
   set('cnpj', row.cpf_cnpj);
   set('nire', row.nire);
   set('juntaUf', row.junta_comercial_uf);
@@ -398,18 +410,39 @@ export interface MatriculaParaMapear {
   titularidadeIds?: string[];
 }
 
-// Titular de uma matrícula. `integralizador`/`fracao` vêm da titularidade e só
-// importam para a forma fracionada (composse/condomínio); `pessoaId` permite
-// deduplicar as duas linhas (posse de fato + de direito) de uma mesma pessoa.
-// `tipoPessoa`/`cpfCnpj` enriquecem a visão derivada do Quadro Societário (PR).
+// Titular de uma matrícula. `fracao` vem da titularidade e importa para a forma
+// fracionada (composse/condomínio); `pessoaId` permite deduplicar as duas linhas
+// (posse de fato + de direito) de uma mesma pessoa. `tipoPessoa`/`cpfCnpj`
+// enriquecem a visão derivada do Quadro Societário (PR).
 // Todos opcionais: titulares legados (`{ denominacao }`) seguem válidos.
 export interface TitularParaMapear {
   denominacao: string | null;
   pessoaId?: string | null;
+  /**
+   * QUEM LIDERA ESTA ALÍNEA, não uma escolha de cadastro: `mapearIntegralizacoes`
+   * o marca no sócio de cada parágrafo, para a descrição sair na voz dele ("50%
+   * de propriedade de FULANO, remanescente de SICRANA"). O flag homônimo da
+   * tabela `titularidade` foi aposentado — ver a frente de 14/09/2026 —, porque
+   * um titular escolhido à mão passaria a contradizer os valores por titular.
+   */
   integralizador?: boolean;
   fracao?: number | null;
   tipoPessoa?: string | null;
   cpfCnpj?: string | null;
+  /**
+   * R$ que este titular declarou na DIRPF para o imóvel. Publicado para quem
+   * soma o valor do imóvel; quem decide capital e quotas é o campo abaixo.
+   */
+  vlrContabil?: number | null;
+  /**
+   * R$ que este titular INTEGRALIZA na sociedade, decidido pelo contador do
+   * cliente (colunas de `titularidade`, migration 20260914152326).
+   *
+   * NULO É SIGNIFICATIVO: o titular NÃO integraliza. É assim que a
+   * integralização parcial se expressa — A entra com os 33% dele e B segura os
+   * 67%, sem que os 67% contem no capital nem virem quota de ninguém.
+   */
+  vlrIntegralizar?: number | null;
 }
 
 /**
@@ -417,6 +450,13 @@ export interface TitularParaMapear {
  * titularidade (posse de fato + de direito) — combinando integralizador (OR) e a
  * primeira fração não nula, na ordem de aparição. Titulares sem pessoaId (dado
  * legado) não são agrupados.
+ *
+ * Os VALORES não seguem a regra da fração ("a primeira não nula"): eles vêm da
+ * linha que os tem, porque a verdade mora na titularidade DE DIREITO e a de
+ * fato costuma vir antes na lista. Preferir a primeira perderia o valor em
+ * silêncio, e um titular sem valor não integraliza — o cadastro sumiria do
+ * capital sem ninguém ver. Mesma regra de `@/lib/osg/integralizacaoDaMatricula`,
+ * que é a que a TELA usa.
  */
 function dedupTitulares(titulares: TitularParaMapear[]): TitularParaMapear[] {
   const porPessoa = new Map<string, TitularParaMapear>();
@@ -430,6 +470,12 @@ function dedupTitulares(titulares: TitularParaMapear[]): TitularParaMapear[] {
     if (existente) {
       existente.integralizador = existente.integralizador || t.integralizador;
       if (existente.fracao == null) existente.fracao = t.fracao;
+      if (existente.vlrContabil == null && existente.vlrIntegralizar == null) {
+        if (t.vlrContabil != null || t.vlrIntegralizar != null) {
+          existente.vlrContabil = t.vlrContabil;
+          existente.vlrIntegralizar = t.vlrIntegralizar;
+        }
+      }
     } else {
       const novo = { ...t };
       porPessoa.set(t.pessoaId, novo);
@@ -437,6 +483,51 @@ function dedupTitulares(titulares: TitularParaMapear[]): TitularParaMapear[] {
     }
   }
   return out;
+}
+
+/**
+ * A matrícula tem valor POR TITULAR, ou só o valor único do cadastro antigo?
+ *
+ * Esta pergunta é a chave de tudo que veio da frente de 14/09/2026, e a resposta
+ * é por MATRÍCULA, não por titular. Com ela, `vlrIntegralizar` nulo num titular
+ * significa "não integraliza" (decisão 6 do plano); sem ela, nulo em todos
+ * significa apenas "esta matrícula ainda não tem o dado", e a conta antiga
+ * (fração × valor da matrícula) continua valendo.
+ *
+ * Sem esse recorte, uma matrícula cadastrada só com o valor no modal sairia com
+ * capital zero e ninguém receberia quota: a regressão silenciosa mais cara que
+ * esta frente podia produzir.
+ */
+function temValorPorTitular(titulares: TitularParaMapear[]): boolean {
+  return titulares.some((t) => t.vlrIntegralizar != null);
+}
+
+/** Centavos que um titular integraliza. Zero para quem não integraliza. */
+const centDoTitular = (t: TitularParaMapear): number =>
+  t.vlrIntegralizar == null ? 0 : Math.round(t.vlrIntegralizar * 100);
+
+/**
+ * Σ do contábil declarado pelos titulares, ou `null` quando ninguém declarou.
+ * Soma em centavos porque 0,1 + 0,2 em float dá 0,30000000000000004, e este
+ * número vai impresso no contrato.
+ */
+function somaContabilDeTitulares(titulares: TitularParaMapear[]): number | null {
+  const declarados = titulares.filter((t) => t.vlrContabil != null);
+  if (declarados.length === 0) return null;
+  return declarados.reduce((soma, t) => soma + Math.round(t.vlrContabil! * 100), 0) / 100;
+}
+
+/**
+ * ESTE SÓCIO integraliza esta matrícula? Ser titular não basta desde a frente de
+ * 14/09/2026: o titular que segura a parte dele (sem valor a integralizar) não
+ * ganha alínea, porque a alínea afirma que ele está entregando o imóvel à
+ * sociedade.
+ */
+function socioIntegralizaMatricula(m: MatriculaParaMapear, pessoaId: string): boolean {
+  const tits = dedupTitulares(m.titulares);
+  const dele = tits.find((t) => t.pessoaId === pessoaId);
+  if (!dele) return false;
+  return temValorPorTitular(tits) ? dele.vlrIntegralizar != null : true;
 }
 
 export function mapearMatricula(m: MatriculaParaMapear): Campos {
@@ -499,16 +590,46 @@ export function mapearMatricula(m: MatriculaParaMapear): Campos {
     }));
   }
 
-  const valor = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
+  // O valor do imóvel é a SOMA DO CONTÁBIL DOS TITULARES quando eles o
+  // declararam (decisão 7 do plano de 14/09/2026). `matricula.vlr_contabil`
+  // continua existindo como cache dessa soma, mantido pelo hook que salva o
+  // titular, e é o fallback de toda matrícula que ainda não tem o dado — e da
+  // prévia que roda antes de o cache alcançar a edição.
+  const valor = somaContabilDeTitulares(dedupTitulares(m.titulares))
+    ?? m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
 
   // Titularidade: deduplica por pessoa e decide entre forma inteira e fracionada.
-  // Fracionada quando há um integralizador com fração definida E outros titulares
-  // (o remanescente). Caso contrário, "de propriedade de A, B e C" (integralizador
-  // primeiro, se houver).
+  //
+  // Dois caminhos, e o primeiro tem precedência porque é mais específico:
+  //
+  //   1. ALÍNEA DE UM SÓCIO. `mapearIntegralizacoes` marca o sócio do parágrafo
+  //      como líder, e a descrição sai na voz dele: "50% de propriedade de
+  //      FULANO, remanescente de SICRANA". Vale mesmo quando SICRANA também
+  //      integraliza numa alínea dela — cada parágrafo descreve a parte de um.
+  //   2. IMÓVEL AVULSO (binding unitário). Não há líder, e quem responde é o
+  //      valor: proprietário são os que INTEGRALIZAM, remanescente são os que
+  //      não. É por aqui que a integralização parcial aparece no texto sem
+  //      depender de nenhum flag escolhido à mão.
+  //
+  // Sem líder e sem valores, nada mudou: "de propriedade de A, B e C".
   const titulares = dedupTitulares(m.titulares);
-  const integralizador = titulares.find((t) => t.integralizador) ?? null;
-  const outros = integralizador ? titulares.filter((t) => t !== integralizador) : [];
-  const fracionado = !!integralizador && integralizador.fracao != null && outros.length > 0;
+  const lider = titulares.find((t) => t.integralizador) ?? null;
+  const porValor = !lider && temValorPorTitular(titulares);
+  const integralizam = porValor ? titulares.filter((t) => t.vlrIntegralizar != null) : [];
+  const outros = lider
+    ? titulares.filter((t) => t !== lider)
+    : porValor
+      ? titulares.filter((t) => t.vlrIntegralizar == null)
+      : [];
+  // Fracionada exige o percentual: sem fração cadastrada não há "X% de
+  // propriedade de", e a forma inteira é a que não mente.
+  const fracaoDaFrente = lider
+    ? lider.fracao ?? null
+    : integralizam.length > 0 && integralizam.every((t) => t.fracao != null)
+      ? integralizam.reduce((soma, t) => soma + t.fracao!, 0)
+      : null;
+  const fracionado = fracaoDaFrente != null && outros.length > 0
+    && (lider != null || integralizam.length > 0);
 
   set('numero', m.numero);
   set('livro', m.livro);
@@ -516,16 +637,20 @@ export function mapearMatricula(m: MatriculaParaMapear): Campos {
   set('municipio', m.municipio_imovel);
   set('uf', ufPorExtenso(m.uf_imovel));
   if (valor != null) set('valor', formatarValor(valor));
+  // O valor do IMÓVEL, preservado sob nome próprio: `valor` é sobrescrito pela
+  // alínea de {{#integralizacoes}} com o que AQUELE sócio integraliza, e o bloco
+  // que precisa dizer os dois números perderia este sem um campo só dele.
+  if (valor != null) set('valorDoImovel', formatarValor(valor));
   set('denominacao', m.bem?.denominacao);
+  const nomes = (lista: TitularParaMapear[]) =>
+    lista.map((t) => t.denominacao).filter(Boolean).join(' e ');
   if (fracionado) {
-    set('proprietario', integralizador!.denominacao);
-    set('percentual', formatarPercentual(integralizador!.fracao!));
-    set('remanescente', outros.map((t) => t.denominacao).filter(Boolean).join(' e '));
+    set('proprietario', lider ? lider.denominacao : nomes(integralizam));
+    set('percentual', formatarPercentual(fracaoDaFrente!));
+    set('remanescente', nomes(outros));
   } else {
-    const ordenados = integralizador
-      ? [integralizador, ...titulares.filter((t) => t !== integralizador)]
-      : titulares;
-    set('proprietario', ordenados.map((t) => t.denominacao).filter(Boolean).join(' e '));
+    const ordenados = lider ? [lider, ...titulares.filter((t) => t !== lider)] : titulares;
+    set('proprietario', nomes(ordenados));
   }
   // Cartório: o que identifica a serventia é o NOME CADASTRADO ("2º Ofício de
   // Registro de Imóveis de Sinop"), não um rótulo institucional montado com a
@@ -582,6 +707,289 @@ export function mapearCartorio(row: CartorioRow): Campos {
   set('comarca', row.comarca);
   set('uf', ufPorExtenso(row.uf));
   return comOrigem(derivarCampos('cartorio', out), { tipo: 'cartorio', id: row.id });
+}
+
+// --- Governança (GOV-01, GOV-02 e o levantamento do acordo) -------------------
+
+/** A linha de `orgao_governanca` que o mapeador precisa. */
+export interface OrgaoParaMapear {
+  id: string;
+  nome: string;
+  /*
+   * A parametrização (mínimo, máximo, mandato, cargos e representação) ainda
+   * NÃO existe como coluna: está em `docs/osg/mot01-placeholders-da-governanca.md`
+   * esperando a validação da Patricia. Opcionais aqui para o mapeador já saber
+   * ler quando a migration entrar, sem obrigar o chamador de hoje.
+   */
+  genero?: 'M' | 'F' | null;
+  padrao_chave?: string | null;
+  membros_minimo?: number | null;
+  membros_maximo?: number | null;
+  mandato_anos?: number | null;
+  cargos_do_orgao?: string[] | null;
+}
+
+/**
+ * Um órgão de governança.
+ *
+ * Os campos derivados (numeral, extenso e as condicionais) saem do
+ * `derivarCampos`, que é onde "3" vira "03" e "três", e onde mínimo igual a
+ * máximo acende `membrosFixo`. O mapeador só entrega o dado cru.
+ *
+ * Os cargos chegam concatenados em prosa porque é assim que a cláusula os
+ * escreve: "sendo Diretor de Mercado e Finanças, Diretor Operações e Diretor de
+ * Sistema de Irrigação" (Bela Vista, cláusula 13ª).
+ */
+export function mapearOrgaoGovernanca(row: OrgaoParaMapear): Campos {
+  const { out, set } = coletor();
+  set('nome', row.nome);
+  set('genero', row.genero);
+  set('membrosMinimo', row.membros_minimo);
+  set('membrosMaximo', row.membros_maximo);
+  set('mandatoAnos', row.mandato_anos);
+  set('cargos', prosaDeLista(row.cargos_do_orgao));
+  return comOrigem(derivarCampos('orgaoGovernanca', out), { tipo: 'orgaoGovernanca', id: row.id });
+}
+
+/** "A", "A e B", "A, B e C" — a juntura que a cláusula usa. */
+function prosaDeLista(itens: string[] | null | undefined): string {
+  const limpos = (itens ?? []).map((i) => i.trim()).filter(Boolean);
+  if (limpos.length === 0) return '';
+  if (limpos.length === 1) return limpos[0];
+  return `${limpos.slice(0, -1).join(', ')} e ${limpos[limpos.length - 1]}`;
+}
+
+/** Uma célula da Matriz, já com papéis e alçada resolvidos por quem chamou. */
+export interface CompetenciaParaMapear {
+  id: string;
+  atividade: string;
+  detalhamento?: string | null;
+  papeis: string[];
+  /** Os mesmos papéis no infinitivo, do catálogo. Vazio cai no `papeis`. */
+  papeisInfinitivo?: string[];
+  alcada?: string | null;
+  sobePara?: string | null;
+  /** "ao" ou "à", pelo gênero do órgão de destino. */
+  sobeParaAo?: string | null;
+  foraDaPolitica?: boolean;
+  /** A célula inteira em uma linha, para a grade. Ver `lib/matrizAlcadas.ts`. */
+  resumo?: string | null;
+}
+
+/**
+ * Uma competência da Matriz de Alçadas.
+ *
+ * Ela vira DUAS coisas e por isso carrega os campos soltos e o `resumo` junto:
+ * na alteração contratual é alínea da cláusula do órgão, montada a partir dos
+ * campos; no documento da Matriz é célula de uma grade, e ali o que se quer é a
+ * linha pronta. Medido: no contrato do Mattei a matriz aparece como alínea, e
+ * tabela nenhuma — as duas tabelas daquele arquivo são o quadro societário e o
+ * bloco de assinaturas.
+ */
+export function mapearCompetenciaMatriz(row: CompetenciaParaMapear): Campos {
+  const { out, set } = coletor();
+  set('atividade', row.atividade);
+  set('detalhamento', row.detalhamento);
+  set('papeis', prosaDeLista(row.papeis));
+  // Sem infinitivo no catálogo, a alínea usa o nome: papel de cliente ainda não
+  // tem o campo, e sair na terceira pessoa é melhor que sair vazio.
+  set('papeisInfinitivo', prosaDeLista(
+    row.papeisInfinitivo?.length ? row.papeisInfinitivo : row.papeis,
+  ));
+  set('alcada', row.alcada);
+  set('sobePara', row.sobePara);
+  set('sobeParaAo', row.sobeParaAo);
+  set('foraDaPolitica', row.foraDaPolitica ? 'sim' : '');
+  set('resumo', row.resumo);
+  return comOrigem(derivarCampos('competenciaMatriz', out), {
+    tipo: 'competenciaMatriz',
+    id: row.id,
+  });
+}
+
+/**
+ * Os parâmetros do acordo, como o cadastro da GOV-03 os entrega.
+ *
+ * Tudo opcional: o acervo tem acordo sem sigilo, sem opção de compra e sem não
+ * concorrência, e o motor tem de escrever cada um desses documentos sem inventar
+ * resposta. Campo ausente vira condicional apagada, e a cláusula não sai.
+ *
+ * As PROSAS (`ordemPreferencia`, `objetosPreferencia`) chegam prontas de quem
+ * traduz o banco, e não se montam aqui: os rótulos em português moram no
+ * cadastro (`lib/acordoGrupos`), e o motor não deve depender da tela.
+ */
+export interface AcordoParaMapear {
+  /** Um acordo por cliente, então a identidade é o cliente. */
+  clienteId: string;
+
+  // Identificação e prazos
+  assinadoEm?: string | null;
+  vigenciaAnos?: number | null;
+
+  // Alcance. As listas em si são papéis de lista; aqui vem só o interruptor,
+  // porque uma seção {{#…}} vazia não reescreve a frase que está fora dela.
+  temSociedadesRelacionadas?: boolean;
+  temRamos?: boolean;
+  /** Quantos ramos, para a definição que abre contando ("os dois grupos"). */
+  quantosRamos?: number | null;
+
+  // Deliberação
+  reuniaoPreviaObrigatoria?: boolean;
+
+  // Preferência
+  ordemPreferencia?: string | null;
+  objetosPreferencia?: string | null;
+  objetosPreferenciaChaves?: string[] | null;
+
+  /** As dez marcações do cadastro, pelas chaves. Ver a regra em `vocabulario`. */
+  mecanismos?: string[] | null;
+
+  // Apuração de haveres
+  metodosAvaliacao?: string[] | null;
+  /** Só é lido quando `metodosAvaliacao` não vem; ver o comentário abaixo. */
+  usaFluxoDeCaixa?: boolean;
+  consolidaComposse?: boolean;
+
+  // Não concorrência
+  naoConcorrencia?: boolean;
+  naoConcorrenciaPrazoAnos?: number | null;
+  naoConcorrenciaArea?: string | null;
+  naoConcorrenciaMulta?: string | null;
+  naoConcorrenciaAlcancaParentes?: boolean;
+
+  // Opções de compra e venda
+  opcaoCompraPrevista?: boolean;
+  opcaoCompraQuem?: string | null;
+  opcaoCompraPreco?: string | null;
+  opcaoVendaPrevista?: boolean;
+  jurosValorSubscrito?: string | null;
+
+  // Conflito
+  solucaoLitigios?: string | null;
+  camaraArbitral?: string | null;
+  /** 'partes' ou 'camara'. Ver a entidade em `vocabulario`. */
+  regimeNomeacaoArbitros?: string | null;
+
+  // Representação
+  representanteNome?: string | null;
+  representanteGenero?: string | null;
+  substitutoRepresentanteNome?: string | null;
+  substitutoRepresentanteGenero?: string | null;
+  foroEleitoComarca?: string | null;
+  foroEleitoEstado?: string | null;
+}
+
+/**
+ * Os parâmetros do Acordo de Quotistas, para o acordo e para o contrato social.
+ *
+ * `assinadoEm` é o campo que decide a redação do capítulo "Do Acordo de
+ * Quotistas", e isso está literal no modelo da casa: sem acordo, "os sócios
+ * poderão firmar"; com acordo, "os sócios [nomes] firmaram em tal data, acordo
+ * de quotistas com vigência pelo período de 20 (vinte) anos".
+ */
+export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
+  const { out, set } = coletor();
+  const chaves = (lista: string[] | null | undefined) => (lista ?? []).join(', ');
+
+  /*
+   * CONDICIONAL DESLIGADA PRECISA EXISTIR NO CONTEXTO, e `set` a apagaria.
+   *
+   * O `coletor` descarta string vazia, o que e certo para dado ("CPF em branco
+   * nao e CPF") e ERRADO para condicional: o render trata chave AUSENTE como
+   * secao nao resolvida e LEVANTA `Seção não resolvida: {{#acordo.temRamos}}`.
+   * Nao e silencio, e o documento inteiro deixando de sair, e sairia justamente
+   * nos 6 dos 7 clientes que nao tem ramo.
+   *
+   * A derivada nao sofre disso porque `derivarCampos` grava o retorno de
+   * `derivar`, inclusive ''. Estas sao BASE, vem do cadastro, e por isso
+   * escrevem direto em `out` em vez de passar pelo `set`.
+   *
+   * Achado em 15/09 ao montar a clausula dos ramos para conferir contra o
+   * documento real. Nenhum teste de campo pegaria: so renderizando.
+   */
+  const condicional = (chave: string, ligado: boolean | undefined) => {
+    out[chave] = ligado ? 'sim' : '';
+  };
+
+  set('assinadoEm', entrada.assinadoEm);
+  set('vigenciaAnos', entrada.vigenciaAnos);
+
+  condicional('temSociedadesRelacionadas', entrada.temSociedadesRelacionadas);
+  condicional('temRamos', entrada.temRamos);
+  set('quantosRamos', entrada.quantosRamos);
+  condicional('reuniaoPreviaObrigatoria', entrada.reuniaoPreviaObrigatoria);
+
+  set('ordemPreferencia', entrada.ordemPreferencia);
+  set('objetosPreferencia', entrada.objetosPreferencia);
+  set('objetosPreferenciaChaves', chaves(entrada.objetosPreferenciaChaves));
+  set('mecanismos', chaves(entrada.mecanismos));
+
+  /*
+   * A LISTA DE MÉTODOS MANDA NO INTERRUPTOR DO FLUXO DE CAIXA.
+   *
+   * `usaFluxoDeCaixa` nasceu antes do cadastro, como booleano solto, e três
+   * testes ainda o passam assim. Com o cadastro pronto ele é consequência de
+   * `metodos_avaliacao`, e deixar as duas entradas valerem ao mesmo tempo é
+   * deixar o documento depender de qual chegou por último. Então: havendo
+   * lista, é ela que decide; o booleano só responde quando lista não veio.
+   */
+  set('metodosAvaliacao', chaves(entrada.metodosAvaliacao));
+  const comFluxo = entrada.metodosAvaliacao
+    ? entrada.metodosAvaliacao.includes('fluxo_de_caixa_descontado')
+    : !!entrada.usaFluxoDeCaixa;
+  condicional('usaFluxoDeCaixa', comFluxo);
+  condicional('consolidaComposse', entrada.consolidaComposse);
+
+  condicional('naoConcorrencia', entrada.naoConcorrencia);
+  set('naoConcorrenciaPrazoAnos', entrada.naoConcorrenciaPrazoAnos);
+  set('naoConcorrenciaArea', entrada.naoConcorrenciaArea);
+  set('naoConcorrenciaMulta', entrada.naoConcorrenciaMulta);
+  condicional('naoConcorrenciaAlcancaParentes', entrada.naoConcorrenciaAlcancaParentes);
+
+  condicional('opcaoCompraPrevista', entrada.opcaoCompraPrevista);
+  set('opcaoCompraQuem', entrada.opcaoCompraQuem);
+  set('opcaoCompraPreco', entrada.opcaoCompraPreco);
+  condicional('opcaoVendaPrevista', entrada.opcaoVendaPrevista);
+  set('jurosValorSubscrito', entrada.jurosValorSubscrito);
+
+  set('solucaoLitigios', entrada.solucaoLitigios);
+  set('camaraArbitral', entrada.camaraArbitral);
+  set('regimeNomeacaoArbitros', entrada.regimeNomeacaoArbitros);
+
+  set('representanteNome', entrada.representanteNome);
+  set('representanteGenero', entrada.representanteGenero);
+  set('substitutoRepresentanteNome', entrada.substitutoRepresentanteNome);
+  set('substitutoRepresentanteGenero', entrada.substitutoRepresentanteGenero);
+  set('foroEleitoComarca', entrada.foroEleitoComarca);
+  set('foroEleitoEstado', entrada.foroEleitoEstado);
+
+  /*
+   * TODO CAMPO DECLARADO SAI PREENCHIDO, nem que seja com ''.
+   *
+   * O render LEVANTA quando o placeholder nao existe no contexto
+   * ("Placeholder não resolvido: {{acordo.naoConcorrenciaMulta}}"), e o
+   * `coletor` descarta valor vazio. Juntando os dois, qualquer campo OPCIONAL em
+   * branco derrubava a geracao inteira: foi o que travou a primeira geracao de
+   * verdade, com a multa da nao concorrencia sem preencher.
+   *
+   * Vazio tem de virar '' e seguir, que e o caminho do "documento incompleto":
+   * o campo marcado `obrigatorio` acende o aviso e a tela pede confirmacao antes
+   * de baixar. Derrubar a geracao inteira por um campo que o acordo daquele
+   * cliente nao tem e outra coisa.
+   *
+   * Quem faz isso e `publicarOpcionais`, que ja existe e que `pessoa` e
+   * `matricula` usam desde antes. Faltava o Acordo passar por ela — e e aqui
+   * que ela mais importa, porque neste cadastro a maioria dos campos e opcional
+   * por natureza: acordo sem opcao de compra, sem nao concorrencia e sem
+   * representante existe no acervo.
+   *
+   * Campo marcado `obrigatorio` continua de fora, de proposito: esse falha cedo
+   * em vez de deixar o documento sair mudo no dado que o identifica.
+   */
+  return comOrigem(derivarCampos('acordoQuotistas', publicarOpcionais('acordoQuotistas', out)), {
+    tipo: 'acordoQuotistas',
+    id: entrada.clienteId,
+  });
 }
 
 // --- Itens de lista (seções {{#socios}} / {{#administradores}}) ---------------
@@ -772,11 +1180,27 @@ export interface ParticipacaoPR {
 export function ratearMatriculaEntreTitulares(
   m: MatriculaIntegralizacao,
 ): Map<TitularParaMapear, number> | null {
+  const titulares = dedupTitulares(m.titulares);
   // MESMA base de calcularCapitalSociedade: sem valor ou sem titular, a
   // matrícula fica fora dos DOIS lados da identidade Σ quotas === totalQuotas.
-  const vlr = valorParaCapital(m);
+  if (titulares.length === 0) return null;
+
+  // Com valores por titular não há rateio a fazer: o contador já decidiu quanto
+  // cada um integraliza, e o arredondamento some junto com a divisão. Quem não
+  // integraliza não entra no mapa — entrar com zero o faria aparecer no quadro
+  // derivado e, sem pessoa cadastrada, virar "titular legado" que trava a
+  // gravação do aporte inicial. É exatamente o defeito que esta frente corrige.
+  if (temValorPorTitular(titulares)) {
+    const porValor = new Map<TitularParaMapear, number>();
+    for (const t of titulares) {
+      if (t.vlrIntegralizar == null) continue;
+      porValor.set(t, centDoTitular(t));
+    }
+    return porValor;
+  }
+
+  const vlr = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
   if (vlr == null) return null;
-  const titulares = dedupTitulares(m.titulares);
 
   const totalCent = Math.round(vlr * 100);
   const comFracao = titulares.filter((t) => t.fracao != null);
@@ -927,9 +1351,17 @@ export interface AporteComQuotasDeOutra {
  * é a composição, carimbando {{ ref }} em cada item conforme a posição real da
  * instância no documento (ver index.ts) — o texto usa {{ refItem.ref }}.
  *
- * Valor da alínea = fração × valor da matrícula. Quando as frações fecham 100%
- * entre os sócios, o último absorve a diferença de centavos do arredondamento
- * (ex.: R$ 138.027,21 → 69.013,61 + 69.013,60, como nos contratos registrados).
+ * Valor da alínea = o que ESTE sócio integraliza daquela matrícula. Com valores
+ * por titular ele vem do cadastro, decidido pelo contador do cliente, e não há
+ * arredondamento a fechar. Sem eles (matrícula que só tem o valor único), é
+ * fração × valor da matrícula, e quando as frações fecham 100% entre os sócios
+ * o último absorve a diferença de centavos (ex.: R$ 138.027,21 → 69.013,61 +
+ * 69.013,60, como nos contratos registrados).
+ *
+ * `{{ imovel.valorIntegralizado }}` carrega esse mesmo número; `{{ imovel.valor }}`
+ * continua sendo o valor do IMÓVEL. Os dois divergem quando alguém fica de fora
+ * ou quando a matrícula é de dois sócios, e o bloco precisa dos dois para não
+ * fazer o leitor somar errado.
  *
  * Cada sócio ganha DUAS listas de alíneas, e elas coincidem no caso comum:
  *
@@ -957,12 +1389,15 @@ export function mapearIntegralizacoes(
 
   // Pré-passada por matrícula: quantos sócios-titulares faltam processar e se a
   // divisão "fecha" (todos os titulares são sócios, com fração somando 100%).
+  // O fechamento só vale no caminho antigo: com valor por titular os centavos
+  // vêm do cadastro e não há resíduo para o último absorver.
   const pendentes = new Map<string, number>();
   const fechadas = new Set<string>();
   for (const m of matriculas) {
     const tits = dedupTitulares(m.titulares);
     const deSocios = tits.filter((t) => t.pessoaId && sociosIds.has(t.pessoaId));
     pendentes.set(m.id, deSocios.length);
+    if (temValorPorTitular(tits)) continue;
     const vlr = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
     if (
       vlr != null &&
@@ -983,9 +1418,7 @@ export function mapearIntegralizacoes(
   const referenciasPendentes: Array<{ alvo: ItemLista; indice: number }> = [];
 
   for (const s of socios) {
-    const doSocio = matriculas.filter((m) =>
-      dedupTitulares(m.titulares).some((t) => t.pessoaId === s.pessoa.id),
-    );
+    const doSocio = matriculas.filter((m) => socioIntegralizaMatricula(m, s.pessoa.id));
     // O sócio entra por matrícula OU por lançamento do livro: o aporte pago em
     // moeda corrente ou em quotas de outra sociedade não tem imóvel nenhum, e a
     // guarda antiga (só matrícula) o descartava calado — era o que deixava a
@@ -1005,10 +1438,16 @@ export function mapearIntegralizacoes(
       const titular = tits.find((t) => t.integralizador)!;
       const campos = mapearMatricula({ ...m, titulares: tits });
 
-      // Valor da fração (em centavos, para o fechamento exato do último sócio).
-      const vlr = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
+      // O QUE ESTE SÓCIO INTEGRALIZA desta matrícula. Com valor por titular vem
+      // do cadastro, sem rateio nem resíduo; sem ele, é fração × valor, com o
+      // último sócio da matrícula fechada absorvendo os centavos.
       const pend = pendentes.get(m.id)!;
-      if (vlr != null && titular.fracao != null) {
+      const vlr = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
+      if (temValorPorTitular(tits)) {
+        if (titular.vlrIntegralizar != null) {
+          campos.valor = formatarValor(centDoTitular(titular) / 100);
+        }
+      } else if (vlr != null && titular.fracao != null) {
         const totalCent = Math.round(vlr * 100);
         const jaAlocado = alocado.get(m.id) ?? 0;
         const cent =
@@ -1019,6 +1458,11 @@ export function mapearIntegralizacoes(
         campos.valor = formatarValor(cent / 100);
       }
       pendentes.set(m.id, pend - 1);
+      // O valor do IMÓVEL e o que o sócio integraliza dele são números
+      // diferentes sempre que a matrícula é dividida ou alguém fica de fora. A
+      // alínea sobrescreve `valor` desde sempre, e o bloco que precisar dizer os
+      // dois tem aqui o segundo, sem perder o primeiro.
+      campos.valorIntegralizado = campos.valor ?? '';
 
       const alinea = letraAlinea(j + 1);
       campos.alinea = alinea;
@@ -1101,9 +1545,8 @@ export function matriculasDescritasNasIntegralizacoes(
   socios: SocioParaMapear[],
   matriculas: MatriculaIntegralizacao[],
 ): string[] {
-  const sociosIds = new Set(socios.map((s) => s.pessoa.id));
   return matriculas
-    .filter((m) => dedupTitulares(m.titulares).some((t) => t.pessoaId && sociosIds.has(t.pessoaId)))
+    .filter((m) => socios.some((s) => socioIntegralizaMatricula(m, s.pessoa.id)))
     .map((m) => m.id);
 }
 
@@ -1902,12 +2345,35 @@ export function mapearRegistro(tipo: TipoEntidade, row: unknown): Campos {
       // despacha é `camposDoRegistro`, na tela Gerar, junto das listas do mesmo
       // cadastro.
       return {};
+    case 'orgaoGovernanca':
+      return mapearOrgaoGovernanca(row as OrgaoParaMapear);
+    case 'competenciaMatriz':
+      return mapearCompetenciaMatriz(row as CompetenciaParaMapear);
+    case 'acordoQuotistas':
+      return mapearAcordoQuotistas(row as AcordoParaMapear);
     case 'vertice':
     case 'origemPosse':
       // Sempre itens de lista ({{#vertices}}, {{#origensDaPosse}}), nunca binding
       // unitário — não têm registro/seletor próprio. Ver mapearVertice e
       // listasDoInstrumentoRural.
       return {};
+    default:
+      /*
+       * TIPO NOVO SEM CASO AQUI PARA DE PASSAR BATIDO.
+       *
+       * `nunca` é `never` só enquanto o switch cobre todos os `TipoEntidade`.
+       * Acrescentar um tipo sem tratá-lo aqui vira erro de compilação, em vez
+       * de devolver `{}` calado.
+       *
+       * Custou um documento quebrado para aparecer: em 11/09 os três tipos de
+       * governança entraram no vocabulário e não neste despacho, e a tela
+       * escolhia o Conselho, recebia campo nenhum, e a geração morria em
+       * "Placeholder não resolvido". A checagem de retorno do projeto está
+       * desligada, então o TypeScript não avisou.
+       */
+      return ((nunca: never) => {
+        throw new Error(`mapearRegistro: tipo de entidade sem mapeador: ${String(nunca)}`);
+      })(tipo);
   }
 }
 

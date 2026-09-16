@@ -92,6 +92,24 @@ describe('proporAportesIniciais — a proposta que a tela da PR grava', () => {
     expect(titularesLegados).toEqual(['Espólio de Antônio']);
   });
 
+  // O defeito que a frente de 14/09/2026 corrigiu: com integralização parcial,
+  // quem segura a parte dele não integraliza NADA, e não pode continuar
+  // bloqueando a proposta só por constar na matrícula. Antes, o titular sem
+  // pessoa cadastrada recebia quotas do rateio e travava a gravação inteira.
+  it('titular que NÃO integraliza não bloqueia a proposta, nem que seja legado', () => {
+    const { aportes, titularesLegados, totalQuotas } = proporAportesIniciais([
+      matPR('m1', 300000, [
+        { pessoaId: 'j', denominacao: 'José Eduardo', fracao: 33, vlrIntegralizar: 100000 },
+        { pessoaId: null, denominacao: 'Espólio de Antônio', fracao: 67, vlrContabil: 200000 },
+      ], 'bem-1'),
+    ]);
+    expect(titularesLegados).toEqual([]);
+    expect(totalQuotas).toBe(100000);
+    expect(aportes).toEqual([
+      { pessoaId: 'j', denominacao: 'José Eduardo', bemId: 'bem-1', quotas: 100000, valor: 100000 },
+    ]);
+  });
+
   it('sem matrícula com valor, não há o que propor', () => {
     expect(proporAportesIniciais([])).toEqual({
       aportes: [], titularesLegados: [], totalQuotas: 0,

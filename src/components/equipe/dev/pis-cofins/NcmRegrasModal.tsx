@@ -43,7 +43,7 @@ const RegraCard = ({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <div className="rounded-lg border bg-card transition-shadow hover:shadow-sm">
+      <div className="rounded-lg border bg-superficie-cartao transition-shadow hover:shadow-sm">
         <CollapsibleTrigger asChild>
           <button className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
             <div className="flex flex-1 items-center gap-3 min-w-0">

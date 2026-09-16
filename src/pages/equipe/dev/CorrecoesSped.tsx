@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
+import { SelecaoDeContribuinte } from '@/components/equipe/selecao/SelecaoDeContribuinte';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -176,11 +178,10 @@ const CorrecoesSped = () => {
   const canConsult = !!contribuinteId && !!dtIni && !!dtFin && (activeTab !== 'f100' || f100FiltersValid);
 
   return (
-    <DevLayout title="Correções no SPED" subtitle="Revisão de notas e itens EFD vs XML para correções no SPED Contribuições.">
+    <DevLayout tela="correcoesEfdContribuicoes">
       <TooltipProvider delayDuration={300}>
         <DevPageHeader
-          description="A ferramenta **Correções no SPED** permite revisar e ajustar os registros do SPED Contribuições (**C170**, **A170**, **D100**, **F100**, **F120**, **F130**) cruzando dados da escrituração com XMLs originais. Use os filtros para selecionar contribuinte e período, navegue pelas abas e edite as linhas com divergências para gerar correções rastreáveis."
-          hideManualLink
+          description="As **Correções na EFD Contribuições** preparam os ajustes dos registros escriturados antes da retificação. Usa a **EFD Contribuições** cruzada com os **XMLs** originais, nos registros C170, A170, D100, F100, F120 e F130. Selecione contribuinte e período, percorra as abas e edite as linhas divergentes para gerar correções rastreáveis."
         />
         <div className="space-y-4">
         {/* Filters */}
@@ -198,32 +199,27 @@ const CorrecoesSped = () => {
                   Cliente <RequiredMark />
                   <FieldTooltip text={SPED_TOOLTIPS.cliente} />
                 </label>
-                <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientes.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SelecaoDeCliente
+                  clientes={clientes}
+                  value={clienteId}
+                  onChange={(v) => { setClienteId(v); setContribuinteId(''); }}
+                  placeholder="Selecione..."
+                  className="w-full min-w-0 h-11"
+                />
               </div>
               <div>
                 <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Contribuinte <RequiredMark />
                   <FieldTooltip text={SPED_TOOLTIPS.contribuinte} />
                 </label>
-                <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder={clienteId ? 'Selecione...' : 'Selecione um cliente'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contribuintes.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome_razao_social}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SelecaoDeContribuinte
+                  contribuintes={contribuintes}
+                  value={contribuinteId}
+                  onChange={setContribuinteId}
+                  disabled={!clienteId}
+                  placeholder={clienteId ? 'Selecione...' : 'Selecione um cliente'}
+                  className="w-full min-w-0 h-11"
+                />
               </div>
               <div>
                 <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">

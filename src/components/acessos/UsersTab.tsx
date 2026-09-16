@@ -4,36 +4,24 @@ import type { AppRole, UserWithRoles } from '@/hooks/useUsersWithRoles';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PapelBadge } from '@/components/ui/PapelBadge';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { RefreshCw, Pencil, Trash2, Users, Search } from 'lucide-react';
+import { Loader2, Pencil, Trash2, Users } from 'lucide-react';
 import { useUsersWithRoles } from '@/hooks/useUsersWithRoles';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useUserPageAccess } from '@/hooks/useUserPageAccess';
 import { useDomainAreasPorUsuario } from '@/hooks/useDomainAreasPorUsuario';
+import { SEM_AREA, agruparUsuariosPorArea } from '@/lib/acessosPorArea';
 import {
-  SEM_AREA,
-  agruparUsuariosPorArea,
-  contarUsuariosPorArea,
-  usuarioEstaNaArea,
-} from '@/lib/acessosPorArea';
+  FILTRO_VAZIO,
+  filtrarUsuarios,
+  ordenarUsuarios,
+  type FiltroDeUsuarios,
+} from '@/lib/filtroDeUsuarios';
 import { CreateUserDialog } from './CreateUserDialog';
 import { EditUserDialog } from './EditUserDialog';
 import { DeleteUserDialog } from './DeleteUserDialog';
+import { FiltroDeUsuariosBar } from './FiltroDeUsuariosBar';
 import { PermissionsTree } from './PermissionsTree';
-import { ROLE_SHORT_LABELS } from './roleOptions';
 import { PontoDaArea } from './PontoDaArea';
-
-/** Hierarquia de papéis: ordena a lista e define o papel principal de cada um. */
-const ROLE_ORDER: AppRole[] = [
-  'admin', 'lider', 'sublider', 'team_member', 'marketing', 'timecliente', 'client',
-];
 
 /**
  * Aba"Usuários" do Controle de Acessos.
@@ -51,9 +39,7 @@ export const UsersTab = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<AppRole | 'all'>('all');
-  const [areaFilter, setAreaFilter] = useState<string>('all');
+  const [filtro, setFiltro] = useState<FiltroDeUsuarios>(FILTRO_VAZIO);
 
   const { data: users, isLoading: loadingUsers } = useUsersWithRoles();
   const { areasPorUsuario, areas } = useDomainAreasPorUsuario();
@@ -64,80 +50,30 @@ export const UsersTab = () => {
 
   const selectedUser = users?.find((u) => u.id === selectedUserId) ?? null;
 
-  // Contagem por role (independente da pesquisa) para mostrar nas abas.
-  const roleCounts = useMemo(() => {
-    const counts: Record<AppRole | 'all', number> = {
-      all: 0, admin: 0, lider: 0, sublider: 0, team_member: 0, client: 0, timecliente: 0, marketing: 0,
-    };
-    if (!users) return counts;
-    counts.all = users.length;
-    for (const u of users) {
-      for (const r of u.roles) {
-        if (r in counts) counts[r] += 1;
-      }
-    }
-    return counts;
-  }, [users]);
-
-  // Contagem por área (independente da pesquisa) para os chips do filtro.
-  const areaCounts = useMemo(
-    () => contarUsuariosPorArea((users ?? []).map((u) => u.id), areasPorUsuario),
-    [users, areasPorUsuario],
-  );
-
-  // Só entram no seletor as áreas com gente dentro — área recém-criada e ainda
-  // vazia não vira opção que não filtra nada.
-  const areaOptions = useMemo(() => {
-    const comGente = areas.filter((a) => (areaCounts[a.id] ?? 0) > 0);
-    if (!comGente.length && !areaCounts[SEM_AREA]) return [];
-    return [
-      ...comGente.map((a) => ({ id: a.id, label: a.name, color: a.color, color_index: a.color_index })),
-      ...(areaCounts[SEM_AREA] ? [{ id: SEM_AREA, label: 'Sem área', color: null, color_index: null }] : []),
-    ];
-  }, [areas, areaCounts]);
-
   /**
    * Lista final: filtra por nome, papel e área e agrupa pela área da estrutura.
    *
    * Dentro do grupo a ordem é hierarquia de papel e depois nome — quem lidera
    * aparece primeiro, que é por onde a liberação de caminhos costuma começar.
    * Quem está em duas áreas aparece nos dois grupos, de propósito.
+   *
+   * `visiveis` conta a lista ANTES de agrupar: quem está em duas áreas aparece
+   * nos dois grupos, então somar os grupos daria uma pessoa duas vezes no"N de
+   * M" da barra.
    */
-  const groupedUsers = useMemo(() => {
-    if (!users) return [];
-    const normalize = (s: string) =>
-      s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
-    const term = normalize(searchTerm.trim());
-    let filtered = term
-      ? users.filter((u) => {
-          const fullName = `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim();
-          return normalize(fullName).includes(term);
-        })
-      : users;
-    if (roleFilter !== 'all') {
-      filtered = filtered.filter((u) => u.roles.includes(roleFilter));
-    }
-    if (areaFilter !== 'all') {
-      filtered = filtered.filter((u) => usuarioEstaNaArea(u.id, areaFilter, areasPorUsuario));
-    }
-
-    const collator = new Intl.Collator('pt-BR', { sensitivity: 'base' });
-    const sortKey = (u: UserWithRoles) => `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim();
-    const rolePeso = (u: UserWithRoles) => {
-      const i = ROLE_ORDER.findIndex((r) => u.roles.includes(r));
-      return i === -1 ? ROLE_ORDER.length : i;
+  const { groupedUsers, visiveis } = useMemo(() => {
+    if (!users) return { groupedUsers: [], visiveis: 0 };
+    const filtrados = filtrarUsuarios(users, filtro, areasPorUsuario);
+    return {
+      groupedUsers: agruparUsuariosPorArea(ordenarUsuarios(filtrados), areasPorUsuario),
+      visiveis: filtrados.length,
     };
-    const ordenados = [...filtered].sort(
-      (a, b) => rolePeso(a) - rolePeso(b) || collator.compare(sortKey(a), sortKey(b)),
-    );
-
-    return agruparUsuariosPorArea(ordenados, areasPorUsuario);
-  }, [users, searchTerm, roleFilter, areaFilter, areasPorUsuario]);
+  }, [users, filtro, areasPorUsuario]);
 
   return (
     <div className="space-y-4">
       {/* Header com botão de criar usuário */}
-      <div className="flex items-center justify-between bg-card rounded-lg p-4 border border-border shadow-sm">
+      <div className="flex items-center justify-between bg-superficie-cartao rounded-lg p-4 border border-border shadow-sm">
         <div>
           <h3 className="text-base font-medium text-foreground">Usuários do Sistema</h3>
           <p className="text-sm text-muted-foreground">Gerencie usuários e suas permissões de acesso</p>
@@ -153,63 +89,26 @@ export const UsersTab = () => {
             <CardDescription>
               Selecione um usuário para gerenciar acessos
             </CardDescription>
-            {/* Papel e Área lado a lado: dois seletores de largura fixa, que não
-                crescem com o número de papéis nem de áreas ativas — a fileira de
-                chips rolava para o lado e escondia opção. */}
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as AppRole | 'all')}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Papel" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(['all', ...ROLE_ORDER] as Array<AppRole | 'all'>).map((r) => (
-                    <SelectItem key={r} value={r} className="text-xs">
-                      {r === 'all' ? 'Todos os papéis' : (ROLE_SHORT_LABELS[r] ?? r)}
-                      <span className="ml-1 text-muted-foreground">({roleCounts[r] ?? 0})</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={areaFilter}
-                onValueChange={setAreaFilter}
-                disabled={areaOptions.length === 0}
-              >
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Área" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" className="text-xs">
-                    Todas as áreas
-                    <span className="ml-1 text-muted-foreground">({users?.length ?? 0})</span>
-                  </SelectItem>
-                  {areaOptions.map((opt) => (
-                    <SelectItem key={opt.id} value={opt.id} className="text-xs">
-                      <span className="flex items-center gap-1.5">
-                        <PontoDaArea area={opt} />
-                        {opt.label}
-                        <span className="text-muted-foreground">({areaCounts[opt.id] ?? 0})</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="relative mt-2">
-              <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-              <Input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Pesquisar por nome..."
-                className="pl-8 h-9 text-sm"
+            {/* A MESMA barra da matriz, empilhada. Papel, área e busca eram
+                escritos aqui à mão, com a regra de"só área com gente dentro"
+                repetida — duas cópias da mesma coisa, e a daqui não tinha o"N
+                de M" nem o Limpar. */}
+            <div className="mt-3">
+              <FiltroDeUsuariosBar
+                filtro={filtro}
+                onChange={setFiltro}
+                usuarios={users ?? []}
+                areas={areas}
+                areasPorUsuario={areasPorUsuario}
+                visiveis={visiveis}
+                empilhado
               />
             </div>
           </CardHeader>
           <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
             {loadingUsers ? (
               <div className="flex items-center justify-center py-4">
-                <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
               </div>
             ) : groupedUsers.length === 0 ? (
               <div className="text-center py-6 text-sm text-muted-foreground">

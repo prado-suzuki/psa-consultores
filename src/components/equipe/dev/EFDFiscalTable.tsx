@@ -112,11 +112,23 @@ export function EFDFiscalTable({
         </thead>
         <tbody className="divide-y divide-border bg-white">
           {data.map((row, rowIdx) => (
-            <tr 
-              key={rowIdx} 
+            /*
+              O hover era `blue-50` numa tabela cujo zebrado e' `bg-muted`: duas
+              familias na mesma tabela, e o azul aparecia por meio segundo sem
+              dizer nada. Foi para a ancora com alfa baixo, e NAO para `muted` —
+              se fosse `muted`, a linha impar (que ja e' `muted`) nao mudaria
+              nada sob o cursor, e metade da tabela perderia o retorno.
+
+              A ORDEM importa: o `hover:` vem DEPOIS do zebrado no `cn()`, senao
+              o `bg-muted` da linha impar venceria o hover. E' a mesma armadilha
+              do trilho da OSG, e ela nao da erro nenhum — so nao funciona.
+            */
+            <tr
+              key={rowIdx}
               className={cn(
-                "hover:bg-blue-50 transition-colors",
-                rowIdx % 2 === 1 &&"bg-muted"
+                "transition-colors",
+                rowIdx % 2 === 1 && "bg-muted",
+                "hover:bg-primary/10"
               )}
             >
               {columns.map((col, colIdx) => {

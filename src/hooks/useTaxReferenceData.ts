@@ -35,7 +35,22 @@ export interface ContribuinteOption {
   cpf_cnpj: string | null;
 }
 
-/** Interface local para evitar (os as any) — tabela 'ordem_servico' ausente do schema tipado */
+/**
+ * A OS como a RPC `get_ordens_by_client_name` a devolve.
+ *
+ * Era "interface local para evitar `as any`, tabela ausente do schema tipado".
+ * A tabela deixou de estar ausente — o `types.ts` foi regenerado em `33ed57a8` e
+ * hoje descreve a RPC campo a campo —, e com isso o `as` daqui passou a ser
+ * conferido de verdade. Foi essa conferência que mostrou que a interface
+ * prometia duas coisas que a RPC não entrega.
+ *
+ * `excluido` a RPC não seleciona: ela já filtra por ele lá dentro, então o campo
+ * não vem na linha. Prometê-lo obrigatório fazia o `as` não bater e, pior,
+ * autorizava `os.excluido` numa leitura que sempre daria `undefined` — ninguém
+ * faz isso hoje, e opcional é o que impede que passe a fazer.
+ *
+ * `created_at` vem anulável; declará-lo `string` era só otimismo.
+ */
 export interface OrdemServico {
   id: string;
   numero_os: string | null;
@@ -50,7 +65,7 @@ export interface OrdemServico {
   id_produto_segmento: string | null;
   /** @deprecated Coluna removida da ordem_servico em 10/09/2026 (exclusão passou a ser definitiva) */
   excluido?: boolean;
-  created_at: string;
+  created_at: string | null;
   produtos_contratados?: Array<{ id: string; produto_segmento_id: string }>;
   [key: string]: unknown;
 }
@@ -196,6 +211,7 @@ export function useClienteOrdens(clientId: string | null) {
         p_client_id: clientId,
       });
       if (error) throw error;
+      // O RPC não devolve `excluido`; ver o campo na interface acima.
       return (data || []) as OrdemServico[];
     },
     enabled: !!clientId,

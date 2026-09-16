@@ -355,6 +355,19 @@ describe('equipeKanban', () => {
       status: 'pending',
       completed_at: null,
     });
+    // Concluir com horas grava as duas coisas numa escrita só.
+    expect(buildDeliverableStatusPayload('completed', 3.5)).toEqual({
+      status: 'completed',
+      completed_at: '2026-07-17T12:00:00.000Z',
+      actual_hours: 3.5,
+    });
+    // Zero é apontamento válido: tem de chegar à coluna, não sumir por ser falsy.
+    expect(buildDeliverableStatusPayload('completed', 0).actual_hours).toBe(0);
+    // Reabrir não mexe nas horas já apontadas — nem para gravar, nem para limpar.
+    expect(buildDeliverableStatusPayload('in_progress', 3.5)).toEqual({
+      status: 'in_progress',
+      completed_at: null,
+    });
     expect(buildDeliverableUpdatePayload(form, 'pending')).toEqual({
       title: 'Entrega',
       description: null,

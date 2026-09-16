@@ -6,13 +6,7 @@ import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
 import { FiltroDeBusca } from '@/components/equipe/FiltroDeBusca';
 import { PapeisDeTrabalhoReport } from '@/components/equipe/osg/relatorios/PapeisDeTrabalhoReport';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
 import { useClientesList } from '@/hooks/useDevClients';
 
 /**
@@ -34,29 +28,26 @@ const GeradorDeSlides = () => {
   const [clienteId, setClienteId] = useState('');
 
   return (
-    <DevLayout title="Gerador de Slides" subtitle="Planejamento Tributário rural">
+    <DevLayout tela="geradorDeSlides">
       <div className="space-y-5">
         <DevPageHeader
           title="Como funciona"
-          description="Escolha o cliente e qual revisão do papel de trabalho usar. A ferramenta monta os slides tributários da apresentação, com as tabelas de premissas, carga tributária, transferência da atividade rural e resumo. **Os números vêm do papel de trabalho que já foi conferido**, e não do que está nesta tela. As tabelas saem editáveis, para você acertar o que precisar no PowerPoint."
+          description="O **Gerador de Slides** monta os slides tributários da apresentação do cliente. Usa a revisão escolhida do **papel de trabalho** — **os números vêm de lá, já conferidos**, e não do que está nesta tela. Escolha o cliente e a revisão para gerar as tabelas de premissas, carga tributária, transferência da atividade rural e resumo."
           icon={Presentation}
         />
 
         <FiltroDeBusca colunas={2}>
           <div className="space-y-2">
             <Label htmlFor="gs-cliente">Cliente</Label>
-            <Select value={clienteId} onValueChange={setClienteId} disabled={isLoading}>
-              <SelectTrigger id="gs-cliente">
-                <SelectValue placeholder={isLoading ? 'Carregando…' : 'Selecione um cliente'} />
-              </SelectTrigger>
-              <SelectContent>
-                {clientes.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SelecaoDeCliente
+              id="gs-cliente"
+              clientes={clientes}
+              value={clienteId}
+              onChange={setClienteId}
+              loading={isLoading}
+              placeholder="Selecione um cliente"
+              className="w-full min-w-0"
+            />
           </div>
         </FiltroDeBusca>
 

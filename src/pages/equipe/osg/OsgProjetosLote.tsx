@@ -5,7 +5,7 @@ import { ProjetosLoteContent } from '@/components/equipe/projetos-lote/ProjetosL
 // (<ProjetosLoteContent />), no layout da OSG. A prop `area="osg"` faz a tela
 // oferecer as equipes da OSG e voltar para as rotas da própria área.
 const OsgProjetosLote = () => (
-  <OsgLayout title="Criar projetos em lote" subtitle="Um projeto por produto da Ordem de Serviço">
+  <OsgLayout tela="projetosEmLote">
     <ProjetosLoteContent area="osg" />
   </OsgLayout>
 );

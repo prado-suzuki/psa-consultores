@@ -21,7 +21,7 @@ export interface ProtectedPage {
    * ATENCAO ao acrescentar: a categoria e a chave de acesso E, a partir da
    * resolucao por categoria, do tema. Categoria desconhecida cai no piso.
    */
-  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'osg' | 'board' | 'tax' | 'mapa';
+  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'osg' | 'board' | 'tax' | 'mapa' | 'adm_fin';
   requires_admin: boolean;
   requires_team_member: boolean;
 }
@@ -149,7 +149,10 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/acessos',
-    page_name: 'Controle de Acessos (Equipe)',
+    // O sufixo "(Equipe)" existia para distinguir de `/gestao/acessos`, que era
+    // a MESMA permissão cadastrada duas vezes (mesma categoria, mesmas flags).
+    // Com aquela fora, o parêntese só confunde.
+    page_name: 'Controle de Acessos',
     page_description: 'Gerenciar permissões de páginas e usuários',
     category: 'gestao',
     requires_admin: true,
@@ -161,7 +164,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // =============================================
   {
     page_path: '/equipe/dev',
-    page_name: 'Dev Dashboard',
+    page_name: 'Ferramentas Digital Dev',
     page_description: 'Painel de desenvolvimento',
     category: 'dev',
     requires_admin: false,
@@ -193,7 +196,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/consulta-sped',
-    page_name: 'Consulta SPED',
+    page_name: 'Consulta de arquivos SPED',
     page_description:
       'Area de acesso as consultas e analises do Sistema Publico de Escrituracao Digital',
     category: 'dev',
@@ -218,7 +221,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/consulta-ecd',
-    page_name: 'Consulta ECD',
+    page_name: 'ECD',
     page_description: 'Consulta de arquivos ECD',
     category: 'dev',
     requires_admin: false,
@@ -226,7 +229,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/consulta-ecf',
-    page_name: 'Consulta ECF',
+    page_name: 'ECF',
     page_description: 'Consulta de arquivos ECF',
     category: 'dev',
     requires_admin: false,
@@ -258,7 +261,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/levantamento-pis-cofins',
-    page_name: 'Area Levantamento PIS/COFINS',
+    page_name: 'Levantamento PIS/COFINS',
     page_description:
       'Area de acesso as ferramentas de parametrizacao, apuracao, auditoria e revisao do levantamento de creditos de PIS e COFINS',
     category: 'dev',
@@ -267,7 +270,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/perdcomp',
-    page_name: 'Area PERDCOMP',
+    page_name: 'PERDCOMP',
     page_description:
       'Area de acesso ao painel analitico e ao controle operacional dos pedidos de restituicao e compensacao',
     category: 'dev',
@@ -284,7 +287,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/analise-icms',
-    page_name: 'Area Analise ICMS',
+    page_name: 'Análise de ICMS',
     page_description:
       'Area de acesso a apuracao de saidas e a auditoria de classificacao para diferencial de aliquota',
     category: 'dev',
@@ -309,7 +312,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/controle-balancetes',
-    page_name: 'Controle Balancetes',
+    page_name: 'Controle de Balancetes',
     page_description: 'Gerenciamento de balancetes',
     category: 'dev',
     requires_admin: false,
@@ -341,7 +344,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/mapa-ncm-pis-cofins',
-    page_name: 'Mapa NCM PIS/COFINS',
+    page_name: 'Mapa NCM',
     page_description: 'Gerenciamento de regras fiscais NCM para PIS/COFINS',
     category: 'dev',
     requires_admin: false,
@@ -357,7 +360,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/correcoes-sped',
-    page_name: 'Correções no SPED',
+    page_name: 'Correções na EFD Contribuições',
     page_description: 'Revisão de notas e itens EFD vs XML para correções',
     category: 'dev',
     requires_admin: false,
@@ -501,7 +504,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/tax/dashboard',
     page_name: 'Tax Dashboard',
-    page_description: 'Painel principal da área Tax',
+    page_description: 'Acompanhe os principais indicadores operacionais da área Tax em tempo real',
     category: 'tax',
     requires_admin: false,
     requires_team_member: true,
@@ -541,7 +544,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/tax/projetos/clientes',
     page_name: 'Tax Clientes',
-    page_description: 'Cadastros de clientes da área Tax',
+    page_description: 'Consulte e gerencie os cadastros de clientes e contribuintes',
     category: 'tax',
     requires_admin: false,
     requires_team_member: true,
@@ -568,7 +571,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // de hoje copiadas, para ninguém perder a tela na virada.
   {
     page_path: '/equipe/tax/gerencial/chamados',
-    page_name: 'Gestão de Chamados (Tax)',
+    page_name: 'Lista de Chamados (Tax)',
     page_description: 'Lista e gestão dos chamados dos clientes (somente líder+)',
     category: 'tax',
     requires_admin: false,
@@ -576,8 +579,19 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/tax/gerencial/chamados/dashboard',
-    page_name: 'Dashboard de Chamados (Tax)',
+    page_name: 'Indicadores de Chamados (Tax)',
     page_description: 'Panorama de chamados: KPIs, prazos e rankings (somente líder+)',
+    category: 'tax',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    // A mesma bancada que a seção "Produtos & Serviços" de /equipe/acessos
+    // monta — o componente, não uma cópia. Lá o acesso é admin (AdminRoute);
+    // aqui é líder+, e a RLS das tabelas acompanhou (migration 20260914212709).
+    page_path: '/equipe/tax/gerencial/produtos-servicos',
+    page_name: 'Produtos & Serviços (Tax)',
+    page_description: 'Quais serviços cada produto gera em projeto novo (somente líder+)',
     category: 'tax',
     requires_admin: false,
     requires_team_member: true,
@@ -626,6 +640,15 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     page_path: '/equipe/osg/projetos/cadastro-lote',
     page_name: 'OSG Criar Projetos em Lote',
     page_description: 'Criação de projetos em lote a partir de uma ordem de serviço',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/osg/projetos/controle',
+    page_name: 'Controle de Projetos OSG',
+    page_description:
+      'Onde cada cliente está, uma linha por ordem de serviço (substitui a planilha Relação de Projetos)',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,
@@ -702,6 +725,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/osg/work/governanca/acordo',
+    page_name: 'Acordo de Quotistas',
+    page_description: 'O contrato entre os sócios: preferência na venda, quanto vale a quota de quem sai, quóruns e não concorrência',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/osg/work/controle-matriculas',
     page_name: 'Controle de Matrículas',
     page_description: 'Registro de todas as matrículas (vinculadas ou órfãs), com vínculo a bens',
@@ -757,7 +788,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // Chamados dentro do dropdown Gerencial da OSG. Ver a observação da Tax.
   {
     page_path: '/equipe/osg/gerencial/chamados',
-    page_name: 'Gestão de Chamados (OSG)',
+    page_name: 'Lista de Chamados (OSG)',
     page_description: 'Lista e gestão dos chamados dos clientes (somente líder+)',
     category: 'osg',
     requires_admin: false,
@@ -765,8 +796,19 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/osg/gerencial/chamados/dashboard',
-    page_name: 'Dashboard de Chamados (OSG)',
+    page_name: 'Indicadores de Chamados (OSG)',
     page_description: 'Panorama de chamados: KPIs, prazos e rankings (somente líder+)',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    // Espelho da entrada Tax ao lado: a MESMA bancada, o componente e não uma
+    // cópia. A permissão é separada de propósito — a página é uma por área, e
+    // é ela que decide em qual cluster a bancada abre.
+    page_path: '/equipe/osg/gerencial/produtos-servicos',
+    page_name: 'Produtos & Serviços (OSG)',
+    page_description: 'Quais serviços cada produto gera em projeto novo (somente líder+)',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,
@@ -902,12 +944,53 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  // `/gestao/acessos` saiu daqui em 12/09/2026: a tela virou a seção "Papéis"
+  // de `/equipe/acessos` e a rota virou redirect. Tirá-la só daqui NÃO basta —
+  // o sincronizador insere e atualiza, mas nunca apaga o que sumiu deste
+  // arquivo. A linha e as 14 concessões penduradas nela são apagadas pela
+  // migração `20260912000000_remove_gestao_acessos.sql`, no mesmo padrão que
+  // `/gestao/chamados` usou.
+
+  // ====================================================================
+  // === CATEGORIA `adm_fin` ===
+  //
+  // A area da Adm & Fin, criada em 14/09/2026. O caminho e `/equipe/adm-fin`
+  // e NAO deriva do nome: "Adm & Fin" tem espaco e `&`, reservado em URL.
+  //
+  // Estas duas linhas chegam a `page_permissions` pelo botao "Atualizar" de
+  // `/equipe/acessos` (`useSyncProtectedPages`), e e SO disso que a concessao
+  // de acesso depende: `useUserAccessibleCategories` le `user_page_access`
+  // juntado a `page_permissions`, e nao encosta em `estrutura_areas`.
+  //
+  // `estrutura_areas.page_categories` e outra coisa, e a propria tela de
+  // Estrutura diz isso em cima do campo: ele e de ESCOPO, decide em que telas
+  // a area aparece (`useDomainClusterPorCategoria`, `useEstruturaAreas`, o
+  // bucket do Board). Marcar 'adm_fin' la e desejavel, nao bloqueante — e a
+  // tela de Clientes desta area nem o consulta, porque vai com
+  // `todosOsClusters`.
+  // ====================================================================
   {
-    page_path: '/gestao/acessos',
-    page_name: 'Controle de Acessos',
-    page_description: 'Gerenciar permissões de acesso',
-    category: 'gestao',
-    requires_admin: true,
+    page_path: '/equipe/adm-fin',
+    page_name: 'Adm & Fin',
+    page_description: 'Boas-vindas da area Administrativo e Financeiro',
+    category: 'adm_fin',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/adm-fin/clientes',
+    page_name: 'Clientes (Adm & Fin)',
+    page_description: 'Cadastros de clientes e contribuintes, sem recorte de cluster',
+    category: 'adm_fin',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/adm-fin/dashboard',
+    page_name: 'Dashboard (Adm & Fin)',
+    page_description: 'Ordens de servico na ordem de entrada, com os dados de faturamento',
+    category: 'adm_fin',
+    requires_admin: false,
     requires_team_member: true,
   },
 ];

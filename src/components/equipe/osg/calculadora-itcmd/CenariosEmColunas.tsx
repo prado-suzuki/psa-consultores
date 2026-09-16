@@ -70,8 +70,13 @@ function QuadroDoCenario({ cenario, ordem, saida, instituicao, total, falta }: {
       style={{ animationDelay: `${ordem * 70}ms` }}
       className={`animate-osg-rise overflow-hidden rounded-lg border motion-reduce:animate-none ${
         indisponivel
-          ? 'border-dashed border-border bg-muted/50'
-          : 'border-border bg-card'
+          // `bg-muted` cheio, e não `/50`, desde 12/09/2026: o cartão desceu
+          // para 35% de `--muted` (ver `ui/card.tsx`) e o par ia colapsar —
+          // 35% contra 50% da MESMA tinta é a mesma coluna duas vezes. O que
+          // separa cenário indisponível de cenário disponível é o degrau, e ele
+          // voltou a ser um degrau.
+          ? 'border-dashed border-border bg-muted'
+          : 'border-border bg-superficie-cartao'
       }`}
     >
       <h3 className="border-b border-border bg-osg-50/60 px-3 py-2 text-sm font-semibold text-osg-700">

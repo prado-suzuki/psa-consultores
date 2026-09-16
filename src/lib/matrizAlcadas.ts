@@ -21,6 +21,26 @@ const BASES: Record<string, string> = {
   faturamento_ano_anterior: 'do faturamento do ano anterior',
 };
 
+/**
+ * Só o pedaço da alçada, em texto: "até R$ 100.000,00" ou "até 10% do orçamento
+ * aprovado". Sai daqui e não do `resumoDaCompetencia` porque a alínea do
+ * contrato usa a alçada sozinha, no meio da frase, enquanto o resumo é a célula
+ * inteira para a grade. Duas leituras do mesmo dado, uma função cada.
+ */
+export function textoDaAlcada(c: {
+  alcada_valor: number | string | null;
+  alcada_unidade: string | null;
+  alcada_base: string | null;
+}): string | null {
+  if (c.alcada_valor === null || c.alcada_valor === undefined) return null;
+  const valor = Number(c.alcada_valor);
+  if (c.alcada_unidade === 'percentual') {
+    const base = c.alcada_base ? (BASES[c.alcada_base] ?? '') : '';
+    return `até ${valor}% ${base}`.trim();
+  }
+  return `até R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+}
+
 /** Uma célula em uma linha de texto, do jeito que ela se lê. */
 export function resumoDaCompetencia(
   c: {

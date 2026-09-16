@@ -9,7 +9,9 @@ import {
   useDomainEquipeSprintDetalhes,
   type SprintDetalhesDeliverable as Deliverable,
 } from '@/hooks/useDomainEquipeSprintDetalhes';
+import { useConclusaoComHoras } from '@/hooks/useConclusaoComHoras';
 import { getBlockingOpenSubtasks } from '@/lib/deliverableCompletion';
+import { parseHorasRealizadas } from '@/lib/horasApontamento';
 import { tarefaRichTextToPlain } from '@/lib/tarefaRichText';
 import { parseExcelFile, processExcelData, type ImportPreview } from '@/lib/excelImporter';
 import {
@@ -107,6 +109,8 @@ export function useEquipeSprintDetalhesController() {
     confirm: () => Promise<void>;
   } | null>(null);
   const [confirmingCompletion, setConfirmingCompletion] = useState(false);
+  // Conclusão só grava depois que as horas realizadas forem informadas.
+  const conclusao = useConclusaoComHoras();
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -487,9 +491,14 @@ export function useEquipeSprintDetalhesController() {
       setMoving(false);
     }
   };
-  const applyStatus = async (deliverableId: string, newStatus: string) => {
+  const applyStatus = async (deliverableId: string, newStatus: string, actualHours?: number) => {
     try {
-      await data.updateDeliverableStatus.mutateAsync({ deliverableId, newStatus });
+      await data.updateDeliverableStatus.mutateAsync({
+        deliverableId,
+        newStatus,
+        // Só a conclusão carrega horas; nos outros status o payload segue como era.
+        ...(actualHours === undefined ? {} : { actualHours }),
+      });
       toast({ title: 'Status atualizado' });
     } catch (error) {
       toast({ title: 'Erro', description: errorMessage(error), variant: 'destructive' });
@@ -497,6 +506,19 @@ export function useEquipeSprintDetalhesController() {
   };
   const updateStatus = async (deliverableId: string, newStatus: string) => {
     const target = deliverables.find((item) => item.id === deliverableId);
+    // Concluir passa pelo apontamento de horas; os outros status gravam direto.
+    const prosseguir = () => {
+      if (newStatus !== 'completed') return applyStatus(deliverableId, newStatus);
+      conclusao.pedirHoras(
+        {
+          titulo: target?.title ?? '',
+          horasEstimadas: target?.estimated_hours ?? null,
+          horasRealizadas: target?.actual_hours ?? null,
+        },
+        (horas) => applyStatus(deliverableId, 'completed', horas),
+      );
+      return Promise.resolve();
+    };
     const blocking = getBlockingOpenSubtasks(
       deliverables,
       deliverableId,
@@ -507,11 +529,11 @@ export function useEquipeSprintDetalhesController() {
       setCompletionWarning({
         taskTitle: target?.title ?? '',
         openSubtasks: blocking,
-        confirm: () => applyStatus(deliverableId, newStatus),
+        confirm: prosseguir,
       });
       return;
     }
-    await applyStatus(deliverableId, newStatus);
+    await prosseguir();
   };
   const confirmCompletionWarning = async () => {
     if (!completionWarning) return;
@@ -534,6 +556,15 @@ export function useEquipeSprintDetalhesController() {
   };
   const saveDeliverable = async () => {
     if (!editingDeliverable) return;
+    // Mesma regra do diálogo de conclusão: concluir sem horas não é uma entrega completa.
+    if (editForm.status === 'completed' && parseHorasRealizadas(editForm.actual_hours) === null) {
+      toast({
+        title: 'Informe as horas realizadas',
+        description: 'A tarefa só fica concluída com as horas apontadas.',
+        variant: 'destructive',
+      });
+      return;
+    }
     const blocking = getBlockingOpenSubtasks(
       deliverables,
       editingDeliverable.id,
@@ -859,6 +890,7 @@ export function useEquipeSprintDetalhesController() {
     completionWarning,
     confirmingCompletion,
     confirmCompletionWarning,
+    conclusao,
     cancelCompletionWarning: () => setCompletionWarning(null),
     createModalOpen,
     setCreateModalOpen,

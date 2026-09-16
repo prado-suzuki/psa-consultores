@@ -25,6 +25,7 @@ import {
   ehOrgaoPadrao,
   hierarquiaArrumada,
   padroesFaltando,
+  resumoDoOrgao,
 } from '@/lib/orgaosGovernancaPadrao';
 import { cn } from '@/lib/utils';
 
@@ -47,11 +48,12 @@ const OrgaosGovernanca = () => {
   const [emEdicao, setEmEdicao] = useState<OrgaoGovernanca | null>(null);
   const [aExcluir, setAExcluir] = useState<OrgaoGovernanca | null>(null);
 
-  const nomes = useMemo(() => orgaos.map((o) => o.nome), [orgaos]);
-  const faltamPadroes = useMemo(() => padroesFaltando(nomes), [nomes]);
+  // Reconhecimento pela `padrao_chave`, com o nome só de rede: renomear um dos
+  // três não faz o sistema achar que ele sumiu e oferecer criar outro igual.
+  const faltamPadroes = useMemo(() => padroesFaltando(orgaos), [orgaos]);
   // O botão também serve para arrumar: os três podem existir e estar fora de
   // lugar, se alguém cadastrou um deles à mão em vez de usar o botão.
-  const foraDeOrdem = useMemo(() => !hierarquiaArrumada(nomes), [nomes]);
+  const foraDeOrdem = useMemo(() => !hierarquiaArrumada(orgaos), [orgaos]);
   const mostrarBotaoPadroes = faltamPadroes.length > 0 || foraDeOrdem;
   const proximaOrdem = orgaos.length;
 
@@ -177,11 +179,6 @@ const OrgaosGovernanca = () => {
                         o contrato, as duas células leem sozinhas.
                       */}
                       <TableHead>Contrato social</TableHead>
-                      <TableHead>
-                        <ComAjuda texto="O período em que o órgão existiu na estrutura do cliente. Em branco quer dizer que está vigente hoje.">
-                          Vigência
-                        </ComAjuda>
-                      </TableHead>
                       <TableHead className="w-24 text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -191,7 +188,8 @@ const OrgaosGovernanca = () => {
                       // três é dada, e a consultoria confirmou que órgão do cliente
                       // nunca fica acima deles. Livre é só a ordem entre os do
                       // cliente, abaixo dos padrão.
-                      const travado = ehOrgaoPadrao(orgao.nome);
+                      const travado = ehOrgaoPadrao(orgao);
+                      const resumo = resumoDoOrgao(orgao);
                       return (
                       <TableRow key={orgao.id} {...rowActivateProps(() => abrirEdicao(orgao))}>
                         <TableCell className="py-2.5">
@@ -209,7 +207,7 @@ const OrgaosGovernanca = () => {
                               title={travado ? 'A ordem dos órgãos padrão é fixa' : 'Subir na hierarquia'}
                               aria-label={`Subir ${orgao.nome} na hierarquia`}
                               disabled={indice === 0 || mover.isPending || travado
-                                || ehOrgaoPadrao(orgaos[indice - 1]?.nome ?? '')}
+                                || (!!orgaos[indice - 1] && ehOrgaoPadrao(orgaos[indice - 1]))}
                               onClick={() => mover.mutate({ lista: orgaos, indice, direcao: 'cima' })}
                             >
                               <ArrowUp className="h-3.5 w-3.5" />
@@ -227,7 +225,15 @@ const OrgaosGovernanca = () => {
                             </Button>
                           </div>
                         </TableCell>
-                        <TableCell className="py-2.5 text-sm font-medium">{orgao.nome}</TableCell>
+                        <TableCell className="py-2.5 text-sm font-medium">
+                          {orgao.nome}
+                          {/* A parametrização se confere aqui, sem abrir o modal. */}
+                          {resumo && (
+                            <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                              {resumo}
+                            </span>
+                          )}
+                        </TableCell>
                         <TableCell className="py-2.5">
                           {orgao.entra_no_contrato ? (
                             <Badge variant="outline" className="border-osg-200 bg-osg-50 text-osg-700">
@@ -238,11 +244,6 @@ const OrgaosGovernanca = () => {
                               Só na Matriz
                             </Badge>
                           )}
-                        </TableCell>
-                        <TableCell className="py-2.5 text-xs text-muted-foreground">
-                          {orgao.vigencia_inicio || orgao.vigencia_fim
-                            ? `${orgao.vigencia_inicio ?? '…'} a ${orgao.vigencia_fim ?? 'hoje'}`
-                            : '—'}
                         </TableCell>
                         <TableCell className="py-2.5">
                           {/* Os dois na mesma linha, encostados à direita. */}

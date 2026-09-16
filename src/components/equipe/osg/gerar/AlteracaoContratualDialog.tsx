@@ -266,7 +266,7 @@ export const AlteracaoContratualDialog = ({
                   <div
                     key={flag.id}
                     className={cn(
-                      'rounded-md border bg-card p-3 pl-4 transition-colors duration-200 animate-osg-card-in motion-reduce:animate-none',
+                      'rounded-md border bg-superficie-cartao p-3 pl-4 transition-colors duration-200 animate-osg-card-in motion-reduce:animate-none',
                       ligada ? 'border-osg-moss/50 bg-osg-moss/[0.04]' : 'border-osg-200/80',
                     )}
                     style={{ animationDelay: `${i * 40}ms` }}

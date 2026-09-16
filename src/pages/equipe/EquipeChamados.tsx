@@ -168,7 +168,14 @@ export default function EquipeChamados() {
       : 'Nenhum chamado encontrado com os filtros selecionados.';
 
   return (
-    <div className="min-h-screen bg-muted">
+    /* Esta tela tem header próprio e não entra em layout, então a catraca de
+       10/09 — que só olha `*Layout.tsx` — não a alcançou: ela era a NONA
+       ocorrência do mesmo defeito, pintando a página com a superfície REBAIXADA
+       (89%, calibrada para uma pílula saltar em cima, não para cobrir a tela).
+       Passou despercebida enquanto a página das outras rotas era cinza também;
+       com a página branca de 12/09 ela ficaria a única parede de tinta do
+       produto. O `fundoDePagina.test.ts` passou a cobrir página, não só layout. */
+    <div className="min-h-screen bg-background">
       <header className="h-16 border-b border-border/60 bg-white flex items-center px-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate(backTo)} className="text-muted-foreground hover:text-primary hover:bg-muted">
@@ -179,8 +186,20 @@ export default function EquipeChamados() {
                 é o nome da tela de /gestao/chamados (chamados dos clientes) — repetir
                 aqui confundia as duas. O papel aparece no subtítulo. */}
             <h1 className="text-xl font-bold text-foreground">Chamados da Equipe</h1>
+            {/* OS DOIS RAMOS mudaram juntos, e não só o primeiro.
+                A revisão de conteúdo da coordenação (14/09/2026) pede, para esta
+                tela, "Consulte os chamados da equipe, acompanhe o status e atribua
+                responsáveis" — e cita como texto atual apenas o ramo de quem
+                atribui. Trocar só ele deixaria quem NÃO atribui lendo uma promessa
+                falsa, porque o subtítulo é condicional e o documento viu um lado.
+                O segundo ramo segue a mesma régua sem prometer atribuição.
+
+                TELA COMPARTILHADA: esta é a mesma de /equipe/chamados espelhada na
+                Tax e na OSG (ver `linkEspelhado`). A mudança aparece nas duas. */}
             <p className="text-sm text-muted-foreground">
-              {canAssignTickets ? 'Visualize todos os chamados e atribua responsáveis' : 'Visualize e responda os chamados atribuídos a você'}
+              {canAssignTickets
+                ? 'Consulte os chamados da equipe, acompanhe o status e atribua responsáveis'
+                : 'Consulte e responda os chamados atribuídos a você'}
             </p>
           </div>
         </div>

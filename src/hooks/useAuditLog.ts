@@ -67,11 +67,25 @@ type AuditEntityType =
   // e o recorte que o log precisa ter para alguem reconstituir o que mudou.
   | 'matriz_alcadas'
   | 'matriz_atividade'
+  // GOV-03: o Acordo de Quotistas. Audita-se o ACORDO INTEIRO, e nenhuma das
+  // cinco filhas tem tipo próprio, pelo mesmo motivo do instrumento rural: os
+  // quóruns, os ramos, a ordem da preferência, os signatários e as sociedades
+  // são listas curtas que a pessoa preenche e salva de uma vez. Uma entrada por
+  // linha viraria dezenas de registros para um clique só, e o `changed_fields`
+  // já leva cada lista escrita por extenso (ver `lib/acordoQuotistas`).
+  | 'acordo_quotistas'
   // PT-02: a importacao de um papel de trabalho. Audita-se a IMPORTACAO, e
   // nao os milhares de valores dela: um registro por linha afogaria o log.
   | 'wp_importacao'
   | 'wp_apresentacao'
-  | 'wp_estudo';
+  | 'wp_estudo'
+  // Controle de Acessos: o vinculo de PAPEL (`user_roles`) e o de AREA DE
+  // ACESSO (o conjunto de paginas de uma area em `user_page_access`). O
+  // `entity_id` dos dois e o id da PESSOA, e nao o da linha de vinculo: a
+  // pergunta que se faz ao log e sempre "o que mudou no acesso do fulano", e a
+  // linha de `user_roles` deixa de existir no momento em que o papel e tirado.
+  | 'papel'
+  | 'area_de_acesso';
 
 interface AuditLogEntry {
   area: AuditArea;

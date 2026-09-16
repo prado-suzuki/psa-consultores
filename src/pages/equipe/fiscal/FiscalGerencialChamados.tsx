@@ -3,7 +3,22 @@ import { ChamadosGestaoContent } from '@/pages/gestao/GestaoChamados';
 import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController';
 
 /**
- * Gestão de Chamados dentro da Gerencial da Tax.
+ * A lista de chamados dentro da Gerencial da Tax.
+ *
+ * CHAMAVA-SE "Gestão de Chamados" até 15/09/2026. Esta é a visão em LISTA do
+ * mesmo conjunto de dados que o painel analítico ao lado mostra, e o par "Lista
+ * de Chamados" / "Indicadores de Chamados" é o que torna essa relação evidente.
+ *
+ * O TEXTO NÃO ESTÁ AQUI, e é de propósito: o invólucro nomeia a TELA e o texto
+ * sai de `@/config/textosDasTelas`, um lugar só para as duas áreas. A OSG monta
+ * esta mesma tela e lê a mesma entrada — renomear é uma linha lá, e as duas
+ * mudam juntas. Foi assim que a divergência de 15/09/2026 acabou: por um dia, a
+ * Tax dizia "Lista de Chamados" e a OSG seguia em "Gestão de Chamados", porque
+ * o título era escrito à mão em cada arquivo.
+ *
+ * O BOARD monta o mesmo miolo e NÃO entra no espelho: ele tem registro próprio
+ * ("Chamados", "Projetos", "Logs") e cabeçalho que nem usa o `TituloDaPagina`.
+ * O motivo está escrito no cabeçalho do `textosDasTelas`.
  *
  * Mesma tela da área de Gestão, montada aqui dentro do `FiscalLayout`. O miolo
  * é o mesmo componente: não há cópia de arquivo, no padrão que a Gerencial já
@@ -21,7 +36,7 @@ const FiscalGerencialChamados = () => {
   useTelaDeTrabalhoLargo();
 
   return (
-    <FiscalLayout title="Gestão de Chamados" subtitle="Chamados dos clientes da sua carteira">
+    <FiscalLayout tela="chamadosLista">
       <ChamadosGestaoContent basePath="/equipe/tax/gerencial/chamados" escopo="tax" />
     </FiscalLayout>
   );

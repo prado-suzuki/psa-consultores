@@ -34,10 +34,20 @@ export type MotivoDescarte =
   /** O parágrafo perdeu a cláusula que o governava durante o descarte em cascata. */
   | 'clausula-descartada';
 
-/** Índices dos blocos `paragrafo` que perderam a cláusula governante. */
+/** Os tipos que se numeram a partir da cláusula anterior, e sem ela não existem. */
+const SUBORDINADOS = ['paragrafo', 'item', 'subitem', 'alinea', 'inciso'];
+
+/**
+ * Índices dos blocos subordinados que perderam a cláusula governante.
+ *
+ * VALE PARA `paragrafo` E PARA `item`, e pelo mesmo motivo: os dois se numeram
+ * a partir da cláusula anterior. Sem ela, o parágrafo sairia como "Parágrafo
+ * Único" solto no meio do documento, e o item como "0.1", que é numeração de
+ * cláusula que não existe.
+ */
 export function paragrafosOrfaos(blocos: Bloco[]): boolean[] {
   return blocos.map((bloco, i) => {
-    if (bloco.tipo !== 'paragrafo') return false;
+    if (!SUBORDINADOS.includes(bloco.tipo as string)) return false;
 
     for (let anterior = i - 1; anterior >= 0; anterior -= 1) {
       const tipo = blocos[anterior].tipo;
@@ -46,7 +56,24 @@ export function paragrafosOrfaos(blocos: Bloco[]): boolean[] {
       // Livre, inclusive o legado sem tipo, não rompe o vínculo estrutural: há
       // tabelas legítimas entre o caput e os parágrafos que ele governa.
     }
-    return true;
+    /*
+     * CHEGOU AO TOPO SEM ENCONTRAR CLÁUSULA: o bloco está no PREÂMBULO.
+     *
+     * Lá, alínea e inciso são legítimos e se bastam, porque o rótulo deles não
+     * vem da cláusula: "a)" e "(I)" contam a própria sequência. O Acordo usa
+     * exatamente isso — os seis CONSIDERANDOS são uma lista em letra antes da
+     * Cláusula Primeira, e o modelo os numera assim (`lowerLetter` no XML).
+     * Tratá-los como órfãos apagava os seis, e o documento saía com
+     * "CONSIDERANDO que:" seguido de nada.
+     *
+     * Item, subitem e parágrafo continuam órfãos, porque o rótulo DEPENDE da
+     * cláusula: sem ela o item sai "0.1" e o parágrafo sai "Parágrafo Único"
+     * solto, que é numeração de cláusula que não existe.
+     *
+     * Cláusula descartada não cai aqui: o bloco que a perdeu encontra a cláusula
+     * anterior na volta do laço e continua subordinado a ela.
+     */
+    return !['alinea', 'inciso'].includes(bloco.tipo as string);
   });
 }
 
@@ -72,11 +99,21 @@ export function paragrafosOrfaos(blocos: Bloco[]): boolean[] {
  * Bloco em que 1 de 5 campos veio preenchido não é descartado — a pontuação
  * órfã que sobra é assunto do aviso de documento incompleto (pendências).
  */
-export function motivoDeDescarte({
-  segmentos,
-  secoesDeRepeticao,
-  itensDeRepeticao,
-}: RenderDeBloco): MotivoDescarte | null {
+export function motivoDeDescarte(
+  { segmentos, secoesDeRepeticao, itensDeRepeticao }: RenderDeBloco,
+  /**
+   * O bloco de origem, para o caso da CLÁUSULA COM TÍTULO.
+   *
+   * No Acordo de Quotistas a cláusula tem só o título: o corpo começa no item
+   * "1.1". O título não está no render, porque a numeração o cola DEPOIS (ver
+   * `prefixosNumeracao`), então o render sai em branco e a regra de baixo
+   * descartaria as 26 cláusulas do documento.
+   *
+   * Opcional para não obrigar os chamadores antigos a mudar: sem o bloco, a
+   * regra é a de sempre.
+   */
+  bloco?: Pick<Bloco, 'tipo' | 'tituloDocumento'>,
+): MotivoDescarte | null {
   const texto = segmentos.map((s) => s.texto).join('');
   const valores = segmentos.filter((s) => s.tipo === 'valor');
   const tabelas = segmentar(texto.split('\n')).filter((s) => s.tipo === 'tabela');
@@ -95,6 +132,8 @@ export function motivoDeDescarte({
   if (secoesDeRepeticao > 0) return 'lista-vazia';
   if (tabelas.length > 0) return 'tabela-vazia';
   if (valores.length > 0) return 'campos-vazios';
+  // A cláusula com título sempre tem o que imprimir, mesmo de corpo vazio.
+  if (bloco?.tipo === 'clausula' && bloco.tituloDocumento?.trim()) return null;
   // Render em branco sem ponto de dado nenhum: nada a imprimir, e um parágrafo
   // mudo ainda consumiria um número de cláusula.
   return texto.trim() === '' ? 'render-em-branco' : null;

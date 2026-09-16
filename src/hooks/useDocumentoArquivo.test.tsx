@@ -33,7 +33,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 import {
-  useAtualizarDocumento, useBaixarDocumento, useExcluirDocumento,
+  useAtualizarDocumento, useBaixarDocumento, useBaixarDocumentosEmLote, useExcluirDocumento,
   type AtualizarDocumentoPatch, type DocumentoArquivoRow,
 } from '@/hooks/useDocumentoArquivo';
 import { DOWNLOADS_QUERY_KEY } from '@/hooks/useDomainDocumentoDownload';
@@ -399,5 +399,157 @@ describe('useBaixarDocumento — registro do acesso (EDU-8)', () => {
     expect(qcMocks.invalidateQueries).toHaveBeenCalledWith({
       queryKey: [DOWNLOADS_QUERY_KEY],
     });
+  });
+});
+
+describe('useBaixarDocumentosEmLote — o .zip da seleção', () => {
+  interface LoteArgs { docs: DocumentoArquivoRow[]; rotuloDaPasta: string }
+  interface Resultado { baixados: number; falhas: string[]; semArquivo: number }
+
+  function loteMutation() {
+    renderHook(() => useBaixarDocumentosEmLote());
+    // O hook do lote é o ÚLTIMO useMutation registrado por este render.
+    const chamadas = reactQueryMocks.useMutation.mock.calls.map(([o]) => o as {
+      mutationFn: (a: LoteArgs) => Promise<Resultado>;
+      onSuccess: (r: Resultado) => void;
+      onError: (e: unknown) => void;
+    });
+    return chamadas[chamadas.length - 1];
+  }
+
+  const bytesDe = (nome: string) => new Blob([`conteúdo de ${nome}`], { type: 'application/pdf' });
+  const salvos: Blob[] = [];
+
+  /** Lê de volta o .zip que foi entregue ao navegador. */
+  async function entradasDoZip(): Promise<string[]> {
+    const { default: JSZip } = await import('jszip');
+    const zip = await JSZip.loadAsync(await salvos[salvos.length - 1].arrayBuffer());
+    return Object.keys(zip.files).sort();
+  }
+
+  beforeEach(() => {
+    salvos.length = 0;
+    apiMocks.fetchWithAuth.mockImplementation(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ signed_url: 'https://storage.test/objeto.pdf?assinatura' }),
+    }) as unknown as Response);
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      blob: async () => bytesDe('qualquer'),
+    }) as unknown as Response));
+    dbMocks.rpc.mockResolvedValue({ data: 'ev-1', error: null });
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((b: Blob | MediaSource) => {
+      salvos.push(b as Blob);
+      return 'blob:lote';
+    });
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    // O clique de verdade faria o jsdom tentar navegar para a URL do blob.
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('entrega um .zip com um arquivo por documento selecionado', async () => {
+    const r = await loteMutation().mutationFn({
+      docs: [
+        docRow({ id: 'd1', nome_original: 'contrato.pdf' }),
+        docRow({ id: 'd2', nome_original: 'matricula.pdf' }),
+      ],
+      rotuloDaPasta: 'Todos os documentos',
+    });
+
+    expect(r).toMatchObject({ baixados: 2, falhas: [], semArquivo: 0 });
+    expect(await entradasDoZip()).toEqual(['contrato.pdf', 'matricula.pdf']);
+  });
+
+  // O nome repetido é normal (o cliente manda o RG de três pessoas), e duas
+  // entradas de mesmo nome perdem uma na extração, sem erro nenhum.
+  it('dois documentos de mesmo nome viram duas entradas distintas', async () => {
+    await loteMutation().mutationFn({
+      docs: [
+        docRow({ id: 'd1', nome_original: 'RG.pdf' }),
+        docRow({ id: 'd2', nome_original: 'RG.pdf' }),
+      ],
+      rotuloDaPasta: 'Pessoas Físicas',
+    });
+
+    expect(await entradasDoZip()).toEqual(['RG (2).pdf', 'RG.pdf']);
+  });
+
+  it('registra o acesso de cada documento que entrou no .zip', async () => {
+    await loteMutation().mutationFn({
+      docs: [docRow({ id: 'd1' }), docRow({ id: 'd2' })],
+      rotuloDaPasta: 'Todos os documentos',
+    });
+
+    expect(dbMocks.rpc).toHaveBeenCalledWith('registrar_download_documento', { _documento_id: 'd1' });
+    expect(dbMocks.rpc).toHaveBeenCalledWith('registrar_download_documento', { _documento_id: 'd2' });
+  });
+
+  it('um arquivo que falha fica de fora, e o resto do lote sai assim mesmo', async () => {
+    let n = 0;
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      n += 1;
+      return (n === 1
+        ? { ok: false, status: 404 }
+        : { ok: true, status: 200, blob: async () => bytesDe('ok') }) as unknown as Response;
+    }));
+
+    const r = await loteMutation().mutationFn({
+      docs: [
+        docRow({ id: 'd1', nome_original: 'sumiu.pdf' }),
+        docRow({ id: 'd2', nome_original: 'veio.pdf' }),
+      ],
+      rotuloDaPasta: 'Todos os documentos',
+    });
+
+    expect(r.baixados).toBe(1);
+    expect(r.falhas).toEqual(['sumiu.pdf']);
+    expect(await entradasDoZip()).toEqual(['veio.pdf']);
+  });
+
+  it('documento sem arquivo associado é contado, não baixado', async () => {
+    const r = await loteMutation().mutationFn({
+      docs: [docRow({ id: 'd1', nome_original: 'veio.pdf' }), docRow({ id: 'd2', gcs_uri: null })],
+      rotuloDaPasta: 'Todos os documentos',
+    });
+
+    expect(r).toMatchObject({ baixados: 1, semArquivo: 1 });
+    expect(await entradasDoZip()).toEqual(['veio.pdf']);
+  });
+
+  it('nenhum arquivo baixado não produz .zip vazio: a mutação falha', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500 }) as unknown as Response));
+
+    await expect(loteMutation().mutationFn({
+      docs: [docRow({ id: 'd1' })],
+      rotuloDaPasta: 'Todos os documentos',
+    })).rejects.toThrow('Nenhum dos arquivos');
+    expect(salvos).toHaveLength(0);
+  });
+
+  it('seleção sem nenhum arquivo associado nem chega a pedir link', async () => {
+    await expect(loteMutation().mutationFn({
+      docs: [docRow({ id: 'd1', gcs_uri: null })],
+      rotuloDaPasta: 'Sem vínculo',
+    })).rejects.toThrow('Nenhum dos documentos selecionados tem arquivo');
+    expect(apiMocks.fetchWithAuth).not.toHaveBeenCalled();
+  });
+
+  it('avisa quantos ficaram de fora e invalida a aba de auditoria', () => {
+    loteMutation().onSuccess({ baixados: 2, falhas: ['sumiu.pdf'], semArquivo: 1 });
+
+    expect(qcMocks.invalidateQueries).toHaveBeenCalledWith({ queryKey: [DOWNLOADS_QUERY_KEY] });
+    expect(toastMocks.toast).toHaveBeenCalledWith(expect.objectContaining({
+      title: '2 documentos baixados',
+      description: expect.stringContaining('1 falhou'),
+      variant: 'destructive',
+    }));
   });
 });

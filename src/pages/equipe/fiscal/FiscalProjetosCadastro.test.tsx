@@ -1,6 +1,10 @@
+import type { ReactElement } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createTestQueryClient } from '@/test/queryWrapper';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
+import type { TextoDoCabecalho } from '@/config/textosDasTelas';
 import type { OrgProject } from '@/hooks/useOrgProjects';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -49,24 +53,42 @@ vi.mock('react-router-dom', () => ({
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: mocks.useAuth }));
-vi.mock('@/components/equipe/fiscal/FiscalLayout', () => ({
-  FiscalLayout: ({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) => (
-    <main data-testid="fiscal-layout">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-      {children}
-    </main>
-  ),
-}));
-vi.mock('@/components/equipe/osg/OsgLayout', () => ({
-  OsgLayout: ({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) => (
-    <main data-testid="osg-layout">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-      {children}
-    </main>
-  ),
-}));
+// Os mocks de layout resolvem o cabeçalho como os layouts de verdade: o
+// invólucro nomeia a TELA e `@/config/textosDasTelas` responde. Renderizar
+// `title`/`subtitle` crus faria o teste passar com o cabeçalho VAZIO, porque o
+// texto não mora mais no invólucro.
+type PropsDeLayoutMock = { children: ReactNode } & TextoDoCabecalho;
+
+vi.mock('@/components/equipe/fiscal/FiscalLayout', async () => {
+  const { resolverCabecalho } = await import('@/config/textosDasTelas');
+  return {
+    FiscalLayout: ({ children, ...texto }: PropsDeLayoutMock) => {
+      const { title, subtitle } = resolverCabecalho(texto, 'tax');
+      return (
+        <main data-testid="fiscal-layout">
+          <h1>{title}</h1>
+          <p>{subtitle}</p>
+          {children}
+        </main>
+      );
+    },
+  };
+});
+vi.mock('@/components/equipe/osg/OsgLayout', async () => {
+  const { resolverCabecalho } = await import('@/config/textosDasTelas');
+  return {
+    OsgLayout: ({ children, ...texto }: PropsDeLayoutMock) => {
+      const { title, subtitle } = resolverCabecalho(texto, 'osg');
+      return (
+        <main data-testid="osg-layout">
+          <h1>{title}</h1>
+          <p>{subtitle}</p>
+          {children}
+        </main>
+      );
+    },
+  };
+});
 vi.mock('@/components/equipe/tarefas/PainelTarefas', () => ({
   default: ({ area }: { area: string }) => <section data-testid="projetos-tarefas">Painel consolidado {area}</section>,
 }));
@@ -129,9 +151,10 @@ vi.mock('@/components/comentarios/OrgCommentAttachments', () => ({
   ),
 }));
 
-import FiscalProjetosCadastro, {
-  ProjetosCadastroContent,
-} from '@/pages/equipe/fiscal/FiscalProjetosCadastro';
+import FiscalProjetosCadastro from '@/pages/equipe/fiscal/FiscalProjetosCadastro';
+// Do módulo real, e não reexportado pela página: era o único consumidor daquele
+// reexport, e é de lá que a OSG já importava.
+import { ProjetosCadastroContent } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContent';
 import OsgProjetos from '@/pages/equipe/osg/OsgProjetos';
 import {
   filterAndSortProjects,
@@ -323,6 +346,16 @@ beforeEach(() => {
   }));
 });
 
+// O campo de cliente busca o indice de CNPJ (`useCnpjsPorCliente`), entao a tela
+// exige um QueryClient. O `rerender` e reembrulhado de proposito: o que o RTL
+// devolve remonta SEM o provider, e a segunda renderizacao quebraria sozinha.
+function renderComQuery(ui: ReactElement) {
+  const client = createTestQueryClient();
+  const envolver = (no: ReactElement) => <QueryClientProvider client={client}>{no}</QueryClientProvider>;
+  const resultado = render(envolver(ui));
+  return { ...resultado, rerender: (no: ReactElement) => resultado.rerender(envolver(no)) };
+}
+
 describe('FiscalProjetosCadastro — caracterização F1', () => {
   it('mantém validação, filtros, ordenação e agrupamento em funções puras', () => {
     expect(validateProjectForm({ ...EMPTY_PROJECT_FORM }, false, null)).toBe('Selecione o Cliente');
@@ -343,18 +376,22 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
   it('mantém o cadastro exportado e usa o painel consolidado na fachada Tax', () => {
     expect(ProjetosCadastroContent).toEqual(expect.any(Function));
 
-    render(<FiscalProjetosCadastro />);
+    renderComQuery(<FiscalProjetosCadastro />);
 
     expect(screen.getByTestId('fiscal-layout')).toHaveTextContent('Projetos e tarefas');
-    expect(screen.getByTestId('fiscal-layout')).toHaveTextContent('Acompanhe a execução por ordem de serviço');
+    expect(screen.getByTestId('fiscal-layout')).toHaveTextContent('Acompanhe ordens de serviço, projetos, tarefas e subtarefas por status e responsável.');
     expect(screen.getByTestId('projetos-tarefas')).toHaveTextContent('Painel consolidado tax');
   });
 
   it('usa o mesmo painel consolidado na fachada OSG', () => {
-    render(<OsgProjetos />);
+    renderComQuery(<OsgProjetos />);
 
     expect(screen.getByTestId('osg-layout')).toHaveTextContent('Projetos e tarefas');
-    expect(screen.getByTestId('osg-layout')).toHaveTextContent('Acompanhe a execução por ordem de serviço');
+    // Era "Acompanhe a execução por ordem de serviço" — a OSG passou a ler o
+    // mesmo texto da Tax, que é o que o espelho significa.
+    expect(screen.getByTestId('osg-layout')).toHaveTextContent(
+      'Acompanhe ordens de serviço, projetos, tarefas e subtarefas por status e responsável.',
+    );
     expect(screen.getByTestId('projetos-tarefas')).toHaveTextContent('Painel consolidado osg');
   });
 
@@ -368,7 +405,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
       },
     };
 
-    render(<ProjetosCadastroContent area="osg" />);
+    renderComQuery(<ProjetosCadastroContent area="osg" />);
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(inputNear(/Nome do Projeto/)).toHaveValue('Beta Cliente - Planejamento Tributário');
@@ -381,7 +418,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
   it('preserva estados de carregamento, vazio e ausência temporária do conjunto visível', () => {
     mocks.useOrgProjects.mockReturnValue({ data: [], isLoading: true });
     mocks.useDashboardProjectIds.mockReturnValue({ ids: undefined });
-    const { rerender } = render(<ProjetosCadastroContent />);
+    const { rerender } = renderComQuery(<ProjetosCadastroContent />);
     expect(screen.getByText('Carregando projetos...')).toBeInTheDocument();
 
     mocks.useOrgProjects.mockReturnValue({ data: [], isLoading: false });
@@ -392,7 +429,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
 
   it('filtra, limpa, ordena e agrupa sem mudar os dados de fronteira', async () => {
     const user = userEvent.setup();
-    render(<ProjetosCadastroContent />);
+    renderComQuery(<ProjetosCadastroContent />);
 
     const filterComboboxes = screen.getAllByRole('combobox');
     await user.click(filterComboboxes[0]);
@@ -424,7 +461,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
 
   it('encaminha exclusão com identidade e nome necessários à auditoria da mutation', async () => {
     const user = userEvent.setup();
-    render(<ProjetosCadastroContent />);
+    renderComQuery(<ProjetosCadastroContent />);
 
     const row = screen.getByText('Zeta Tax').closest('tr');
     if (!row) throw new Error('Linha do projeto ausente');
@@ -442,7 +479,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
   it('avisa no diálogo quantas tarefas em Backlog/A Fazer vão junto com o projeto', async () => {
     mocks.resumoExclusaoProjeto.mockResolvedValue({ total: 3, bloqueantes: 0 });
     const user = userEvent.setup();
-    render(<ProjetosCadastroContent />);
+    renderComQuery(<ProjetosCadastroContent />);
 
     const row = screen.getByText('Zeta Tax').closest('tr');
     if (!row) throw new Error('Linha do projeto ausente');
@@ -455,7 +492,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
   it('recusa a exclusão antes de abrir o diálogo quando há tarefa fora de Backlog/A Fazer', async () => {
     mocks.resumoExclusaoProjeto.mockResolvedValue({ total: 5, bloqueantes: 2 });
     const user = userEvent.setup();
-    render(<ProjetosCadastroContent />);
+    renderComQuery(<ProjetosCadastroContent />);
 
     const row = screen.getByText('Zeta Tax').closest('tr');
     if (!row) throw new Error('Linha do projeto ausente');
@@ -471,7 +508,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
 
   it('valida em ordem e cria com OS/produto/equipe, datas automáticas e payload integral', async () => {
     const user = userEvent.setup();
-    render(<ProjetosCadastroContent />);
+    renderComQuery(<ProjetosCadastroContent />);
     await user.click(screen.getByRole('button', { name: /Novo Projeto/ }));
     expect(screen.getByRole('heading', { name: 'Novo Projeto' })).toBeInTheDocument();
 
@@ -526,7 +563,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
 
   it('abre edição sem limpar serviço/datas, resolve o produto depois da OS e envia snapshots para auditoria', async () => {
     const user = userEvent.setup();
-    render(<ProjetosCadastroContent />);
+    renderComQuery(<ProjetosCadastroContent />);
     await user.click(screen.getByText('Zeta Tax'));
 
     // Na edição o nome é o próprio título e o período vira pílula ("Início" /

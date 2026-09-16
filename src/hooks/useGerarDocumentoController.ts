@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { avaliarFlags, comFlagDaPecaRetroativa, comporBlocos, copiarOrigemProfunda, flagDaPeca, idDoRegistro, gerarBlocos, gerarComposicao, inclusoesDe, mapearSignatarios, marcarRealceDiff, pendenciasDoDocumento, removerMarcas, unirBlocos, type Bloco, type BlocoDescartado, type BlocoGerado, type FlagDeclarativa, type OrigemValor, type RegistroFamilias, type Template } from '@/lib/templates';
 import { baixarDocx } from '@/lib/templates/docx';
-import { camposDaEntidade, derivarCampos, type TipoEntidade } from '@/lib/templates/vocabulario';
+import { campoManual, camposDaEntidade, derivarCampos, type TipoEntidade } from '@/lib/templates/vocabulario';
+import { dataExtenso } from '@/lib/templates/extenso';
 import { calcularHistoricoCapital } from '@/lib/templates/historicoCapital';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
 import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearEstadoDosOnus, mapearIntegralizacoes, mapearListasDaDoacao, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosSocios, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
@@ -36,6 +37,14 @@ import { blocosForaDaFolha, resumoDaFolha } from '@/components/equipe/osg/gerar/
 import { camposEditaveisPorBinding } from '@/components/equipe/osg/gerar/camposDoBinding';
 import { lerSnapshotVersoes } from '@/components/equipe/osg/gerar/renderizarVersao';
 import { linhasRegistradas, marcoPreenchido } from '@/lib/osg/registrosDaSociedade';
+import { entradaDaGovernanca } from '@/lib/osg/entradaGovernanca';
+import { fonteDeGovernanca, FLAG_GOVERNANCA } from '@/lib/osg/governancaNoContrato';
+import { camposDoAcordo, listasDoAcordo, type EntradaAcordo } from '@/lib/templates/contextoAcordo';
+import { gradeDaMatriz, listasDaGovernanca } from '@/lib/templates/contextoGovernanca';
+import {
+  useCatalogoDeAtividades, useCatalogoDePapeis, useMatrizDoCliente,
+} from '@/hooks/useDomainMatrizAlcadas';
+import { useOrgaosGovernanca } from '@/hooks/useDomainOrgaoGovernanca';
 import type { Contexto } from '@/lib/templates';
 
 const fmtDataNotificacao = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -108,6 +117,25 @@ export function useGerarDocumentoController() {
   // Cliente vem da barra global da área OSG (igual aos cadastros).
   const { clienteId } = useOsgWork();
   const { registros, isFetching: carregandoRegistros } = useRegistrosPorTipo(clienteId);
+
+  /*
+   * A governança do cliente. Quatro consultas porque a cláusula precisa das
+   * quatro coisas: os órgãos (a coluna), a matriz (a grade), e os dois
+   * catálogos, sem os quais a alínea sairia com uuid no lugar do assunto e do
+   * verbo. Nenhuma delas depende da empresa escolhida, então não entram na
+   * conta do passo de Empresa.
+   */
+  const orgaosGovQ = useOrgaosGovernanca(clienteId);
+  const matrizQ = useMatrizDoCliente(clienteId);
+  const atividadesQ = useCatalogoDeAtividades(clienteId);
+  const papeisQ = useCatalogoDePapeis(clienteId);
+
+  const entradaGov = useMemo(
+    () => entradaDaGovernanca(
+      matrizQ.data, orgaosGovQ.data ?? [], atividadesQ.data ?? [], papeisQ.data ?? [],
+    ),
+    [matrizQ.data, orgaosGovQ.data, atividadesQ.data, papeisQ.data],
+  );
 
   // selecao[binding][campoId] = valor; selecaoRegistroId[binding] = id do registro escolhido.
   const [selecao, setSelecao] = useState<Record<string, Record<string, string>>>({});
@@ -397,7 +425,19 @@ export function useGerarDocumentoController() {
   // seguem inalterados (o override é aplicado fora do motor).
   const templateDoModelo = useMemo<Template>(() => {
     const blocos = docBlocos
-      .filter((b) => b.bloco?.conteudo)
+      /*
+       * BLOCO SEM CONTEÚDO SAI, MENOS A CLÁUSULA COM TÍTULO.
+       *
+       * No Acordo de Quotistas a cláusula é só a linha do título: o corpo começa
+       * no item "1.1". Este filtro as derrubava antes do motor, e aí os 237
+       * itens ficavam órfãos e caíam em cascata — o documento saiu com 3 de 240
+       * blocos na primeira geração de verdade.
+       *
+       * O título não está no `conteudo` porque a numeração o cola DEPOIS do
+       * render (ver `prefixosNumeracao`). `motivoDeDescarte` já sabe disso; este
+       * filtro, que roda antes, não sabia.
+       */
+      .filter((b) => b.bloco?.conteudo || b.bloco?.titulo_documento)
       .map((b) => {
         const ov = b.bloco?.id ? porBlocoAlvo.get(b.bloco.id) : undefined;
         return {
@@ -411,6 +451,7 @@ export function useGerarDocumentoController() {
           flagsRequeridas: b.bloco!.flags,
           repeteColecao: b.bloco!.repete_colecao ?? undefined,
           ancora: b.bloco!.ancora ?? undefined,
+          tituloDocumento: b.bloco!.titulo_documento ?? undefined,
         };
       });
     return { id: modeloId ?? 'novo', nome: 'documento', blocos };
@@ -432,7 +473,19 @@ export function useGerarDocumentoController() {
   const templateOriginal = useMemo<Template>(() => {
     if (reproduzindoRegistrado || posicoesSobrescritas.size === 0) return template;
     const blocos = docBlocos
-      .filter((b) => b.bloco?.conteudo)
+      /*
+       * BLOCO SEM CONTEÚDO SAI, MENOS A CLÁUSULA COM TÍTULO.
+       *
+       * No Acordo de Quotistas a cláusula é só a linha do título: o corpo começa
+       * no item "1.1". Este filtro as derrubava antes do motor, e aí os 237
+       * itens ficavam órfãos e caíam em cascata — o documento saiu com 3 de 240
+       * blocos na primeira geração de verdade.
+       *
+       * O título não está no `conteudo` porque a numeração o cola DEPOIS do
+       * render (ver `prefixosNumeracao`). `motivoDeDescarte` já sabe disso; este
+       * filtro, que roda antes, não sabia.
+       */
+      .filter((b) => b.bloco?.conteudo || b.bloco?.titulo_documento)
       .map((b) => ({
         id: b.id,
         tipo: b.bloco!.tipo,
@@ -444,6 +497,9 @@ export function useGerarDocumentoController() {
         flagsRequeridas: b.bloco!.flags,
         repeteColecao: b.bloco!.repete_colecao ?? undefined,
         ancora: b.bloco!.ancora ?? undefined,
+        // O titulo que sai DEPOIS do ordinal, so no Acordo: "CLÁUSULA
+        // PRIMEIRA – Definições…". Nulo mantém "CLÁUSULA PRIMEIRA:".
+        tituloDocumento: b.bloco!.titulo_documento ?? undefined,
       }));
     return { id: modeloId ?? 'novo', nome: 'documento', blocos };
   }, [docBlocos, modeloId, posicoesSobrescritas, template, modeloSocietario, reiniciaNumeracaoPorBlocoId, reproduzindoRegistrado]);
@@ -903,7 +959,9 @@ export function useGerarDocumentoController() {
     // A peça que nasce daqui é a alteração seguinte à registrada em cena, ou a
     // própria alteração já em cena: o número muda com quem está na folha.
     const numeroDaPeca = documentoRegistrado ? elosDaSucessao + 1 : numeroAlteracao;
-    const flags = [...new Set([...flagsDerivadas, ...flagsManuaisForaDaAlteracao, ...eventos, flagDaPeca(numeroDaPeca)])];
+    // `derivarFlags(eventosSet)` e não `flagsDerivadas`: as derivadas desta peça
+    // saem da seleção que está sendo confirmada agora (ver `derivarFlags`).
+    const flags = [...new Set([...derivarFlags(eventosSet), ...flagsManuaisForaDaAlteracao, ...eventos, flagDaPeca(numeroDaPeca)])];
     await responderEventos.mutateAsync({
       clienteId,
       pjPessoaId: empresaId,
@@ -1048,12 +1106,87 @@ export function useGerarDocumentoController() {
     setRegistroAlvoId(null);
   };
 
-  const flagsDerivadas = useMemo(() => {
-    const declarativas: FlagDeclarativa[] = catalogoFlags
-      .filter((f) => f.entidade && f.campo && f.valor)
-      .map((f) => ({ nome: f.nome, entidade: f.entidade!, campo: f.campo!, valor: f.valor! }));
-    return avaliarFlags(declarativas, { empresa: empresaRow });
-  }, [catalogoFlags, empresaRow]);
+  /*
+   * A governança que a peça BASE publicou, que é o que decide entre os dois
+   * regramentos da Administração (ver governancaNoContrato.ts). Lê o snapshot do
+   * documento base direto, e não `baseSnap`: aquele const mora na seção da
+   * alteração contratual, centenas de linhas abaixo desta, e as flags são
+   * consumidas aqui em cima pela composição.
+   */
+  const governancaDaBase = useMemo<readonly unknown[] | null>(() => {
+    const snap = documentoBase?.snapshot_dados as unknown as SnapshotDados | null | undefined;
+    const lista = snap?.itensPorLista?.orgaosComCompetencia;
+    return Array.isArray(lista) ? lista : null;
+  }, [documentoBase]);
+
+  /*
+   * As linhas declarativas do catálogo, prontas para `avaliarFlags`.
+   *
+   * `f.valor !== null` e não `f.valor`: `administracao_simples` está cadastrada
+   * com `valor = ''`, que é o lado DESLIGADO do par, e o filtro por truthy a
+   * descartava. Sem a linha, nenhum dos dois lados do par acendia e o contrato
+   * saía com o cabeçalho do Capítulo da Administração e nada embaixo. Entidade e
+   * campo continuam obrigatórios; só o valor pode ser vazio de propósito.
+   */
+  const declarativasDoCatalogo = useMemo<FlagDeclarativa[]>(
+    () => catalogoFlags
+      .filter((f) => f.entidade && f.campo && f.valor !== null && f.valor !== undefined)
+      .map((f) => ({ nome: f.nome, entidade: f.entidade!, campo: f.campo!, valor: f.valor! })),
+    [catalogoFlags],
+  );
+
+  /**
+   * As flags derivadas PARA UM CONJUNTO DE EVENTOS, e não para o conjunto que
+   * está em cena.
+   *
+   * A governança é a primeira flag derivada que depende de um evento CONFIRMADO
+   * (ver governancaNoContrato.ts), e isso quebra a leitura de sempre no instante
+   * da confirmação: ali o evento acabou de ser marcado e a proposta ainda não foi
+   * gravada, então `eventosConfirmados` é o conjunto ANTERIOR. Gravar a partir
+   * dele selava a peça com `evento_governanca` ligado e `administracao_simples`
+   * junto, que é o contrato pedindo governança e escrevendo administração
+   * simples. Quem confirma passa a seleção nova aqui.
+   *
+   * TRÊS FONTES, e cada uma responde por uma família de flags:
+   *
+   * - `empresa`, o perfil (controladora, proprietária, UF);
+   * - `acordo`, as respostas do cadastro do Acordo de Quotistas. Era só a
+   *   empresa, e por isso nenhuma resposta daquele cadastro conseguia tirar
+   *   cláusula do documento: as dez caixas de mecanismo eram índice do que o
+   *   acordo tem, e não interruptor. Os campos condicionais do acordo já
+   *   resolvem 'sim'/'' (ver `condicional` em mapeadores), que é exatamente a
+   *   comparação que `avaliarFlags` faz. Sem acordo escolhido a fonte é vazia e
+   *   toda flag de acordo fica desligada, que é o certo: o contrato social não
+   *   tem acordo e não deve perder nada por isso, porque nenhum bloco dele exige
+   *   flag de acordo;
+   * - `governanca`, qual dos dois regramentos da Administração entra.
+   */
+  const derivarFlags = useCallback(
+    (eventos: ReadonlySet<string>) => {
+      const registroAcordo = registros.acordoQuotistas.find(
+        (r) => Object.values(registroPorBinding).includes(r.id),
+      ) ?? registros.acordoQuotistas[0];
+      return avaliarFlags(declarativasDoCatalogo, {
+        empresa: empresaRow,
+        acordo: registroAcordo ? camposDoAcordo(registroAcordo.row as EntradaAcordo) : undefined,
+        governanca: fonteDeGovernanca({
+          temPecaBase: documentoBaseId != null,
+          governancaDaBase,
+          eventoConfirmado: eventos.has(FLAG_GOVERNANCA),
+          orgaosNoContrato: entradaGov.orgaos.length,
+        }),
+      });
+    },
+    [
+      declarativasDoCatalogo, empresaRow, registros.acordoQuotistas, registroPorBinding,
+      documentoBaseId, governancaDaBase, entradaGov,
+    ],
+  );
+
+  const flagsDerivadas = useMemo(
+    () => derivarFlags(eventosConfirmados),
+    [derivarFlags, eventosConfirmados],
+  );
   const flagsAtivasLive = useMemo(
     // Para o motor os dois tipos são o mesmo interruptor: ele recebe uma lista
     // de nomes ativos e não pergunta de onde cada nome veio. As manuais entram
@@ -1154,18 +1287,37 @@ export function useGerarDocumentoController() {
    * produção. O desvio mora aqui, num lugar só, em vez de espalhar `if` pelos quatro
    * pontos que escolhem registro.
    */
-  const camposDoRegistro = (tipo: TipoEntidade, row: unknown) =>
-    tipo === 'instrumento'
-      ? mapearInstrumentoRural(row as EntradaInstrumentoRural)
-      : mapearRegistro(tipo, row);
+  const camposDoRegistro = (tipo: TipoEntidade, row: unknown) => {
+    if (tipo === 'instrumento') return mapearInstrumentoRural(row as EntradaInstrumentoRural);
+    /*
+     * O ACORDO DESVIA PELO MESMO MOTIVO DO INSTRUMENTO, e não por comodidade.
+     *
+     * `mapearRegistro` chamaria `mapearAcordoQuotistas` direto, e aí o que sai
+     * é o cabeçalho sem nada que dependa das listas: `temRamos`,
+     * `quantosRamos`, a fila da preferência em prosa e os objetos com as
+     * palavras do documento. Quem junta as duas metades é `camposDoAcordo`, em
+     * `contextoAcordo.ts`, que importa `mapeadores.ts` — pôr a seta de volta lá
+     * criaria ciclo de import, e ciclo de inicialização já derrubou esta
+     * aplicação em produção uma vez (ver vite.config.ts).
+     */
+    if (tipo === 'acordoQuotistas') return camposDoAcordo(row as EntradaAcordo);
+    return mapearRegistro(tipo, row);
+  };
 
   // Listas relacionais (sócios/administradores) carregam da empresa escolhida;
   // a empresa também alimenta as flags, então o passo aparece em ambos os casos.
   // Vértices (fonte 'georef') vêm da matrícula e as listas do instrumento agrário
   // (fonte 'exploracao_rural') vêm da linha de exploração rural — nenhuma das duas
   // depende da empresa, então não fazem o passo de Empresa aparecer.
+  // `matriz_alcadas` entra na lista de exceções pelo mesmo motivo das outras
+  // três: a governança sai do cliente, não da empresa escolhida. Sem isto, um
+  // modelo só de governança pediria uma Empresa que ele não usa para nada.
+  // `acordo_quotistas` entra pelo mesmo motivo de `matriz_alcadas`: o acordo é do
+  // CLIENTE, não da empresa escolhida, e sem isto um modelo só de acordo pediria
+  // uma Empresa que ele não usa para nada.
   const usaListas = listas.some(
-    (l) => !['georef', 'selecao', 'exploracao_rural'].includes(l.papel.fonte),
+    (l) => !['georef', 'selecao', 'exploracao_rural', 'matriz_alcadas', 'acordo_quotistas']
+      .includes(l.papel.fonte),
   );
   // A "Sociedade" (objeto do contrato) é dirigida pela mesma Empresa que alimenta
   // listas e flags — não tem seletor próprio. Detectar aqui faz o passo de Empresa
@@ -1336,6 +1488,117 @@ export function useGerarDocumentoController() {
     })),
     [registros.pessoa],
   );
+  /*
+   * O ÓRGÃO PADRÃO SE VINCULA SOZINHO.
+   *
+   * Para pessoa a pergunta faz sentido: "quem é o outorgante?" tem várias
+   * respostas. Para órgão não: o cliente tem UM Conselho de Administração, e a
+   * pergunta vira "qual dos seus órgãos é o Conselho de Administração?", que se
+   * responde sozinha. O usuário travou nela na primeira geração, e com razão.
+   *
+   * O que torna isto possível é a coluna `padrao_chave`, de 11/09: antes o
+   * sistema só sabia comparar nomes, e um cliente que renomeasse o órgão
+   * quebraria o palpite. Órgão criado pelo cliente não tem chave e continua
+   * sendo perguntado, que é onde a pergunta é legítima.
+   *
+   * Vincula só o que ainda está em branco: escolha do consultor nunca é
+   * sobrescrita, e rascunho reidratado chega com o vínculo já preenchido.
+   */
+  useEffect(() => {
+    /*
+     * `padrao_chave` é lido por um tipo local, e não pelo `types.ts`.
+     *
+     * A coluna existe no banco desde a migration de 11/09, mas o `types.ts`
+     * commitado na develop está atrasado em relação às próprias migrations
+     * dela: ele ainda declara `soft_delete_ordem_servico`, que uma migration
+     * de 10/09 derrubou. Regenerar o arquivo aqui consertaria isso e quebraria
+     * `useTaxReferenceData.ts`, que é código da Tax e não é escopo desta
+     * linha. Quando alguém regenerar de verdade, este tipo local sai.
+     */
+    const orgaos = orgaosGovQ.data as
+      | (typeof orgaosGovQ.data extends (infer T)[] | undefined ? T & { padrao_chave?: string | null } : never)[]
+      | undefined;
+    if (!orgaos?.length) return;
+
+    const porChave: Record<string, string> = {
+      conselhoAdministracao: 'conselho_administracao',
+      diretoria: 'diretoria_executiva',
+      reuniaoSocios: 'reuniao_socios',
+    };
+
+    const aLigar: Record<string, string> = {};
+    for (const b of bindings) {
+      if (b.tipo !== 'orgaoGovernanca' || registroPorBinding[b.nome]) continue;
+      const chave = porChave[b.nome];
+      if (!chave) continue;
+      const candidatos = orgaos.filter((o) => o.padrao_chave === chave && o.entra_no_contrato);
+      // Dois candidatos é ambiguidade real, e aí perguntar é o certo.
+      if (candidatos.length === 1) aLigar[b.nome] = candidatos[0].id;
+    }
+
+    if (Object.keys(aLigar).length === 0) return;
+
+    /*
+     * DUAS COISAS, E NÃO UMA. Marcar o registro escolhido não preenche o
+     * documento: quem carrega os campos é `selecao`, e é por isso que
+     * `escolherRegistro` mexe nos dois estados. A primeira versão deste efeito
+     * só mexia em `registroPorBinding`, e o resultado foi a pergunta sumir da
+     * tela e a geração continuar morrendo em "Placeholder não resolvido":
+     * o Conselho aparecia escolhido e chegava vazio ao Word.
+     */
+    setRegistroPorBinding((prev) => ({ ...aLigar, ...prev }));
+    setSelecao((prev) => {
+      const next = { ...prev };
+      for (const [nome, id] of Object.entries(aLigar)) {
+        const reg = registros.orgaoGovernanca.find((r) => r.id === id);
+        if (reg) next[nome] = camposDoRegistro('orgaoGovernanca', reg.row);
+      }
+      return next;
+    });
+  }, [orgaosGovQ, bindings, registroPorBinding, registros]);
+
+  /*
+   * O ACORDO SE LIGA SOZINHO, porque é UM por cliente.
+   *
+   * Diferente do órgão, aqui não há de-para nem ambiguidade possível: a consulta
+   * devolve a versão de número mais alto e pronto. Oferecer um passo de escolha
+   * com um candidato só seria pedir ao consultor que confirmasse o óbvio, e o
+   * passo é justamente o que a tela Gerar tenta não ter.
+   *
+   * MEXE NOS DOIS ESTADOS, pela lição do vínculo do órgão logo acima: marcar o
+   * registro escolhido não preenche o documento. Só `registroPorBinding` fazia a
+   * pergunta sumir da tela e a geração morrer em "Placeholder não resolvido".
+   */
+  useEffect(() => {
+    const doAcordo = bindings.filter(
+      (b) => b.tipo === 'acordoQuotistas' && !registroPorBinding[b.nome],
+    );
+    if (doAcordo.length === 0) return;
+    /*
+     * SÓ LIGA SOZINHO COM UM CANDIDATO. Dois é ambiguidade real, e aí perguntar
+     * é o certo: a versão 2 pode ser a negociação em curso enquanto a 1 é a
+     * assinada e vigente, e escolher por ele seria emitir o documento errado.
+     * Mesma regra do vínculo do órgão de governança, logo acima.
+     */
+    if (registros.acordoQuotistas.length !== 1) return;
+    const reg = registros.acordoQuotistas[0];
+    if (!reg) return;
+
+    const campos = camposDoRegistro('acordoQuotistas', reg.row);
+    setRegistroPorBinding((prev) => {
+      const next = { ...prev };
+      for (const b of doAcordo) if (!next[b.nome]) next[b.nome] = reg.id;
+      return next;
+    });
+    setSelecao((prev) => {
+      const next = { ...prev };
+      for (const b of doAcordo) if (!next[b.nome]) next[b.nome] = campos;
+      return next;
+    });
+    // `camposDoRegistro` é recriada a cada render e não entra nas dependências:
+    // ela só lê `registros`, que já está aqui.
+  }, [bindings, registroPorBinding, registros]);
+
   // Capital social + total de quotas da sociedade: a PR ainda sem quadro gravado
   // soma as integralizações aprovadas (quota = R$ 1,00); as demais (e a PR
   // depois de gravar) somam o quadro societário.
@@ -1415,6 +1678,19 @@ export function useGerarDocumentoController() {
     [entradaRural, georefsPorMatricula],
   );
 
+  /*
+   * A entrada do acordo sai do REGISTRO, e não de uma consulta própria daqui.
+   *
+   * Ela já foi traduzida em `useGeracaoDocumento` (`entradaDoAcordo`), e ler de
+   * lá garante que o cabeçalho e as listas venham do mesmo retrato: duas
+   * consultas poderiam chegar em momentos diferentes e escrever um documento com
+   * a cláusula dos ramos falando em dois grupos e a lista trazendo três.
+   */
+  const listasDoAcordo_ouVazio = useMemo<Record<string, ItemLista[]>>(() => {
+    const reg = registros.acordoQuotistas[0];
+    return reg ? listasDoAcordo(reg.row as EntradaAcordo) : {};
+  }, [registros]);
+
   const itensPorLista = useMemo<Record<string, ItemLista[]>>(
     () => ({
       socios: quadro.itens,
@@ -1452,8 +1728,29 @@ export function useGerarDocumentoController() {
       // `signatarios` daqui substitui a do quadro societário acima. Sem instrumento
       // escolhido, o objeto é vazio e nada é substituído.
       ...listasDoInstrumentoRural_ouVazio,
+      /*
+       * Governança. `orgaosComCompetencia` é a coleção que o bloco da cláusula
+       * repete, uma vez por órgão, cada um já com as SUAS alíneas; `orgaos` e
+       * `linhas` são a grade do documento da Matriz. Vêm por último como as
+       * rurais, e por não conflitarem com nenhuma chave acima não substituem
+       * nada.
+       */
+      ...listasDaGovernanca(entradaGov),
+      ...gradeDaMatriz(entradaGov),
+      /*
+       * As cinco do Acordo, por último e pelo mesmo motivo das rurais: elas saem
+       * de UM cadastro só, e `quotistasSignatarios` tem de vencer qualquer
+       * homônima acima. Não há homônima hoje — `signatarios` é outra chave, a do
+       * fecho do contrato —, e é justamente por isso que a ordem importa: o dia
+       * em que houver, quem manda é o cadastro do acordo, que é o documento
+       * sendo escrito.
+       *
+       * Sem acordo cadastrado o objeto é vazio, e as seções {{#…}} do modelo
+       * renderizam nada em vez de quebrar por "Lista ausente".
+       */
+      ...listasDoAcordo_ouVazio,
     }),
-    [quadro, socios, administradores, integralizacoes, aportes, cessoesOnerosas, listasDaDoacao, estadoDosOnus, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista, listasDoInstrumentoRural_ouVazio],
+    [quadro, socios, administradores, integralizacoes, aportes, cessoesOnerosas, listasDaDoacao, estadoDosOnus, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista, listasDoInstrumentoRural_ouVazio, entradaGov, listasDoAcordo_ouVazio],
   );
 
   // --- Notificações de mudança de variável (só com versão validada) ---------
@@ -1935,7 +2232,15 @@ export function useGerarDocumentoController() {
     // para a prévia não travar antes de preencher (diferente dos bindings, que
     // exigem seleção de registro).
     const livresFonte = dados?.valoresLivres ?? valoresLivres;
-    const livres = Object.fromEntries(desconhecidosVisiveis.map((ph) => [ph, livresFonte[ph] ?? '']));
+    /*
+     * O campo de DATA guarda o ISO do seletor e o documento recebe o EXTENSO.
+     * O fecho escreve "Cuiabá/MT, 10 de outubro de 2.026", e sem esta conversão
+     * sairia "2026-10-10", que é o valor do <input type="date">.
+     */
+    const livres = Object.fromEntries(desconhecidosVisiveis.map((ph) => {
+      const bruto = livresFonte[ph] ?? '';
+      return [ph, campoManual(ph)?.tipo === 'data' && bruto ? dataExtenso(bruto) : bruto];
+    }));
     // Seções desconhecidas resolvem como '' (falsy): o trecho sai da prévia sem travar.
     for (const nome of secoesDesconhecidas) livres[nome] = livres[nome] ?? '';
     // Snapshot antigo sem itensPorLista/total cai para a fonte viva até revalidar.

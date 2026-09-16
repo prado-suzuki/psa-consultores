@@ -98,8 +98,16 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     // gravidade seguindo em `muted`. O porquê está no comentário do próprio arquivo.
     // O `AuditPessoasTable` já tinha saído em 03/09 — o `parou` dele era estado de
     // verdade, e virou `alerta`.
-    'src/components/equipe/dashboards/analise-inteligente/AnaliseInteligenteKpis.tsx': 2,
-    'src/components/equipe/dev/calculadora-ibs-cbs/por-estado/PorEstadoKpis.tsx': 1,
+    // A fileira de KPI da Análise Inteligente saiu em 11/09/2026, e ela foi
+    // convertida INTEIRA porque a decisão dela foi sobre o significado, não sobre
+    // o tom: "Scope creep é coisa ruim como os outros três". Os quatro viraram
+    // `ajuste`/`alerta`/`alerta`/`ajuste` — o azul do scope creep junto, o que tira
+    // duas da `filaDoBlue` também. Ela decidiu olhando a tela rodando, com os dois
+    // candidatos aplicados ao vivo sobre o dado real (31, 33, 691 e R$ 18,6k).
+    // O `PorEstadoKpis` saiu em 11/09/2026 junto com o lote das escadas: o âmbar
+    // dele era o degrau do meio de "concentração geográfica" (alta / moderada /
+    // baixa), e os outros dois degraus eram `rose` e `emerald`. Escada de três,
+    // convertida inteira.
     // O `EFDExportStatus` saiu em 10/09/2026, e a classificação estava certa: é
     // escada de status de verdade — `processing`/`starting`, `completed`, `idle` —,
     // e converteu inteira. O âmbar dele era `andamento` e não `alerta`: nada está
@@ -112,21 +120,37 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     // correção aplicada, ou seja o mesmo mapa de "valor alterado" que as Correções
     // SPED ganharam no mesmo dia. Dois arquivos, duas coisas diferentes, o mesmo
     // tom. Ver a nota da pasta em `corCruaNaTelaDoDev.test.ts`.
-    'src/components/equipe/dev/perdcomp/PerDetailModal.tsx': 10,
+    // O `PerDetailModal` saiu em 11/09/2026, e não por virar papel: as nove
+    // situações da Receita viraram ETIQUETA de fase (`--tag-*`), que é o destino de
+    // quem não é estado de trabalho. Só as duas pontas ganharam papel —
+    // `Homologado` em `feito`, `Cancelado` em `ajuste` —, por decisão dela: são as
+    // duas que o cliente lê como resultado. O âmbar daqui eram as três instâncias
+    // de "em discussão administrativa", que agora são `--tag-c`.
     'src/components/equipe/dev/processo-difal/DifalProductsCard.tsx': 4,
     'src/components/equipe/mapeamento/ScenarioComparator.tsx': 2,
     'src/components/equipe/mapeamento/ScenarioList.tsx': 3,
-    'src/components/equipe/projetos/projectPresentation.tsx': 3,
     'src/components/equipe/sprint-detalhes/AgendaTab.tsx': 2,
     'src/components/equipe/sprint-detalhes/MetricsTab.tsx': 2,
-    'src/components/equipe/sprint-detalhes/RisksTab.tsx': 4,
+    // O `RisksTab` e o `projectPresentation` saíram em 11/09/2026 pela FRENTE DO
+    // AZUL, que roda em paralelo (`32e04e6b` e `bd08822f`), e as duas conversões
+    // deixaram esta catraca vermelha: quem converteu âmbar não atualizou o
+    // inventário do alerta. Ficou registrado aqui porque é o modo de falha que a
+    // catraca existe para expor — ela reprova por conversão feita, não só por cor
+    // nova, e a fila só pode encolher com a lista na mão.
     'src/components/sprint/GroupedTasks.tsx': 1,
     // O `EquipeBacklog` saiu em 11/09/2026: a escada de prioridade dele — alta,
     // média, e o resto em `muted` — converteu inteira para `alerta`/`espera`/neutro,
     // pela escada de quatro degraus que ela aprovou olhando a página de comparação.
-    // O `EquipeKanban` saiu no mesmo dia, pelo commit da própria frente do Kanban:
-    // o amarelo era degrau do `getStatusBadgeColor` escrito à mão, que morreu para
-    // ler a cor do `entregavelStatusColors` — a escada dele fechou inteira.
+    //
+    // O `EquipeKanban` saiu no mesmo dia, e saiu de CARONA: o amarelo era degrau
+    // do `getStatusBadgeColor` escrito à mão, e quem o matou foi a frente do
+    // `blue` (commit `07f4d74b`), trocando o `switch` inteiro por uma leitura do
+    // `entregavelStatusColors`. A escada fechou de uma vez, nas três cores.
+    //
+    // É o caso que a mensagem desta catraca descreve, e ele mordeu: a contagem
+    // CAIU sem ninguém baixar a fila, e a `develop` ficou com a catraca vermelha
+    // até a outra sessão apontar. Quem converte um MAPA reconfere todas as filas
+    // que citam aquele arquivo, não só a da família que foi buscar.
   },
   'outro-papel': {
     // O `StageEditCard` caiu de 3 para 1 em 11/09/2026, e o que sobrou é o mais
@@ -154,7 +178,10 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
   },
   'paleta-categorica': {
     'src/pages/equipe/DigitalAreaSelector.tsx': 1,
-    'src/components/equipe/ImprovementHistoryModal.tsx': 1,
+    // Saiu em 11/09/2026, de carona com a frente do `blue`: o âmbar era o ícone
+    // de "Outras economias", uma das três entradas de um trio que estava copiado
+    // em dois arquivos. Converter só a azul deixaria escada meio crua, então o
+    // mapa andou inteiro e virou `@/lib/tipoDeEconomia`, em tons categóricos.
     'src/components/acessos/pageCategoryStyles.ts': 3,
     'src/components/equipe/dev/consulta-efd-icms/EfdResultsTable.tsx': 3,
     'src/components/equipe/mapeamento/ScenarioCreateModal.tsx': 3,
@@ -163,12 +190,19 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     'src/pages/equipe/dev/ConsultaEFD.tsx': 3,
   },
   'rotulo-nao-status': {
-    // Os dois da pasta acessos saíram em 11/09/2026: o âmbar do líder vivia nos
-    // mapas de papel (`ROLE_VISUALS` no UsersRolesView, `ROLE_BADGE_CLASSES` no
-    // roleOptions), e os dois mapas morreram no `PapelBadge` — fim do âmbar, não
-    // mudança de motivo. O rótulo de acesso sem status continua existindo, agora
-    // pela escada de peso e pelo eixo de fora que o PapelBadge desenha.
-    'src/pages/administracao/AdminUsuarios.tsx': 2,
+    // Os dois da pasta acessos saíram em 11/09/2026 (commit `f0538b86`): o âmbar
+    // do "Líder Geral" vivia nos mapas de papel — `ROLE_VISUALS` no
+    // `UsersRolesView` e `ROLE_BADGE_CLASSES` no `roleOptions` —, e os dois mapas
+    // morreram no `ui/PapelBadge`. É fim do âmbar, não mudança de motivo: a cor
+    // deixou de desenhar hierarquia e passou a marcar só o eixo "de fora da PSA".
+    // O grupo continua existindo, agora pela escada de peso que o `PapelBadge`
+    // desenha.
+    //
+    // O `AdminUsuarios.tsx` saiu deste inventário em 14/09/2026 junto com o
+    // arquivo: a pasta `administracao/` inteira foi apagada, porque as três
+    // rotas dela davam 404 desde 13/01/2026 e a Patrícia confirmou que as telas
+    // não voltam. As duas ocorrências de âmbar foram embora com ele — não é
+    // conversão, é o arquivo que deixou de existir.
     'src/pages/equipe/EquipeUsuarios.tsx': 6,
   },
   'decoracao': {

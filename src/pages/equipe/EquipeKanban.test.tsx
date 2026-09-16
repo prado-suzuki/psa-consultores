@@ -168,7 +168,16 @@ describe('EquipeKanban', () => {
     expect(updateStatus).not.toHaveBeenCalled();
 
     await user.click(within(warning).getByRole('button', { name: 'Concluir mesmo assim' }));
-    expect(updateStatus).toHaveBeenCalledWith({ deliverableId: 'mae', status: 'completed' });
+    // Confirmar o aviso não conclui nada: o status só vai para o banco com as horas.
+    const campoHoras = await screen.findByLabelText(/Horas realizadas/);
+    expect(updateStatus).not.toHaveBeenCalled();
+    await user.type(campoHoras, '4');
+    await user.click(screen.getByRole('button', { name: 'Concluir tarefa' }));
+    expect(updateStatus).toHaveBeenCalledWith({
+      deliverableId: 'mae',
+      status: 'completed',
+      actualHours: 4,
+    });
   });
 
   it('abre sozinho a mãe concluída que esconde subtarefa aberta e sinaliza no card', async () => {

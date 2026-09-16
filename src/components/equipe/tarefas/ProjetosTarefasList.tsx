@@ -629,7 +629,7 @@ export function ProjetosTarefasList({
     // A barra do mes fica POR CIMA do vazio: sem ela, um mes sem tarefas
     // prenderia a pessoa ali — o controle que a trouxe desapareceria junto.
     const comBarra = (conteudo: ReactNode) => <div className="space-y-2">
-      <div className="overflow-hidden rounded-xl border bg-card shadow-sm"><BarraDeMes periodo={periodo} /></div>
+      <div className="overflow-hidden rounded-xl border bg-superficie-cartao shadow-sm"><BarraDeMes periodo={periodo} /></div>
       {conteudo}
     </div>;
     // Carregando vem ANTES dos vazios: a lista depende de várias consultas em
@@ -700,7 +700,7 @@ export function ProjetosTarefasList({
         {allOsExpanded ? 'Recolher tudo' : 'Expandir tudo'}
       </Button>
     </div>
-    <div className="overflow-x-auto overflow-y-hidden rounded-xl border bg-card">
+    <div className="overflow-x-auto overflow-y-hidden rounded-xl border bg-superficie-cartao">
     <BarraDeMes periodo={periodo} />
     {/* Rótulo de coluna não significa nada depois do refluxo em duas colunas. */}
     <div className={cn(GRID, 'max-md:hidden border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground')}>

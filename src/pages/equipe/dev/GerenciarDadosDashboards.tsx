@@ -9,7 +9,7 @@ import { DashboardEmbedView } from "@/components/dashboards/DashboardEmbedView";
  */
 const GerenciarDadosDashboards = () => {
   return (
-    <DevLayout title="Dashboards" subtitle="Dashboards ligados a gestao de dados">
+    <DevLayout tela="dashboardsGerenciarDados">
       <DashboardEmbedView
         targetPage="dev_gerenciar_dados"
         emptyMessage="Nenhum dashboard liberado para o seu usuário aqui."

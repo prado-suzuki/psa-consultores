@@ -12,22 +12,25 @@ import ServicosLista, {
 import ServicoDetalhePanel, {
   type ProdutoVinculado,
 } from '@/components/equipe/produto-servico/ServicoDetalhePanel';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import ProdutoFormDialog from '@/components/equipe/produto-servico/ProdutoFormDialog';
 import ServicoFormDialog from '@/components/equipe/produto-servico/ServicoFormDialog';
 import ConfirmarExclusaoDialog from '@/components/equipe/produto-servico/ConfirmarExclusaoDialog';
+import CopiarDeProdutoDialog from '@/components/equipe/produto-servico/CopiarDeProdutoDialog';
 import { cn } from '@/lib/utils';
 import {
-  TODOS_CLUSTERS, contarVinculosPorProduto, filtrarProdutos, filtrarServicos,
+  TODOS_CLUSTERS, candidatosParaCopia, contarVinculosPorProduto, filtrarProdutos,
+  filtrarServicos, separarPorVinculo, servicosACopiar,
 } from '@/lib/produtoServicoVinculo';
 import {
   contarVinculosPorServico, dividirNomeServico, ordenarPorCodigoDeServico,
 } from '@/lib/produtoServicoNomes';
 import {
-  isVinculoOtimista, useProdutoSegmentoList, useProdutoServicoList,
-  useProdutoServicoLote, useProdutoServicoToggle, useServicosPrestadosDelete,
+  useProdutoSegmentoList, useProdutoServicoList, useServicosPrestadosDelete,
   useServicosPrestadosList,
   type ProdutoSegmento, type ServicoPrestado,
 } from '@/hooks/useCategorias';
+import { useVinculoProdutoServicoController } from '@/hooks/useVinculoProdutoServicoController';
 import type { FiltroVinculo } from '@/lib/produtoServicoVinculo';
 
 interface EstadoFormulario<T> {
@@ -41,7 +44,8 @@ const FORM_FECHADO = { aberto: false, alvo: null };
  *
  * Esquerda: os produtos, na casca `ListaMestreDetalhe` (a mesma do cadastro de
  * cliente, agora em moldura de página). Centro: os serviços do produto aberto,
- * em seções recolhíveis. Direita: o serviço aberto e — o que importa — em quais
+ * em dois blocos — os vinculados no topo, os que faltam abaixo, cada um na ordem
+ * do código. Direita: o serviço aberto e — o que importa — em quais
  * outros produtos ele vive, com o vínculo reverso ali mesmo.
  *
  * O vínculo não é decorativo: é ele que define quais serviços aparecem ao
@@ -52,34 +56,59 @@ const FORM_FECHADO = { aberto: false, alvo: null };
  * é dizer isso — daí o "Salvo automaticamente" no cabeçalho — e oferecer
  * desfazer no que muda muita linha de uma vez.
  *
- * A tela usa só token semântico. Ela vive em `/equipe/acessos`, que o resolvedor
- * de tema resolve para `base-theme` e mais nada, então o acento sai no teal da
- * casa sem que nada aqui saiba disso. Saiu do grafite em 31/08/2026, junto com o
- * resto do Digital, e esta tela não precisou de uma linha para acompanhar — é o
- * que o token semântico compra.
+ * A tela usa só token semântico, e por isso MORA EM DOIS ENDEREÇOS sem saber de
+ * nenhum dos dois: `/equipe/acessos`, que o resolvedor de tema resolve para
+ * `base-theme` (acento no teal da casa), e `/equipe/tax/gerencial/produtos-servicos`,
+ * onde o mesmo componente sai na âncora da Tax. Saiu do grafite em 31/08/2026,
+ * junto com o resto do Digital, e não precisou de uma linha para acompanhar —
+ * é o que o token semântico compra, e é o que fez o espelho na Tax ser uma
+ * página de quinze linhas em vez de uma cópia.
  */
-export default function ProdutosServicosTab() {
+interface ProdutosServicosTabProps {
+  /**
+   * Cluster em que a bancada ABRE. A Acessos não passa nada e abre em "Todos",
+   * porque lá a pergunta é o catálogo da casa inteira; a Tax passa o cluster da
+   * área, para o líder não ter de filtrar os 28 produtos toda vez que entra.
+   *
+   * É só o estado INICIAL. Os chips continuam lá e trocar de cluster segue a um
+   * clique nos dois endereços — quem entra pela Tax não fica preso à Tax.
+   */
+  clusterInicial?: string | null;
+}
+
+export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosServicosTabProps) {
   const [produtoEscolhidoId, setProdutoEscolhidoId] = useState<string | null>(null);
   const [servicoAbertoId, setServicoAbertoId] = useState<string | null>(null);
-  const [painelAberto, setPainelAberto] = useState(true);
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [buscaProduto, setBuscaProduto] = useState('');
-  const [cluster, setCluster] = useState<string>(TODOS_CLUSTERS);
+  const [cluster, setCluster] = useState<string>(clusterInicial ?? TODOS_CLUSTERS);
   const [filtroServico, setFiltroServico] = useState<{ busca: string; modo: FiltroVinculo }>({
     busca: '', modo: 'todos',
   });
   const [mostrarOutrosClusters, setMostrarOutrosClusters] = useState(false);
-  const [emAndamento, setEmAndamento] = useState<Set<string>>(new Set());
   const [formProduto, setFormProduto] = useState<EstadoFormulario<ProdutoSegmento>>(FORM_FECHADO);
   const [formServico, setFormServico] = useState<EstadoFormulario<ServicoPrestado>>(FORM_FECHADO);
   const [servicoParaExcluir, setServicoParaExcluir] = useState<ServicoPrestado | null>(null);
+  const [copiarAberto, setCopiarAberto] = useState(false);
+
+  /**
+   * O cluster da área chega por QUERY, então pode chegar depois do primeiro
+   * render — daí o estado inicial acima não bastar sozinho.
+   *
+   * Sincroniza só o filtro, e não por `key` no componente: `key` remontaria a
+   * bancada inteira e jogaria fora o produto aberto e a marcação em curso. Roda
+   * uma vez, quando o id resolve; trocar de chip depois disso é do usuário, e o
+   * efeito não volta para desfazer — `clusterInicial` já não muda mais.
+   */
+  useEffect(() => {
+    if (!clusterInicial) return;
+    setCluster(clusterInicial);
+  }, [clusterInicial]);
 
   const { data: vinculos = [], isLoading } = useProdutoServicoList();
   const { data: produtos = [] } = useProdutoSegmentoList();
   const { data: servicos = [] } = useServicosPrestadosList();
 
-  const toggleVinculo = useProdutoServicoToggle();
-  const lote = useProdutoServicoLote();
   const { remove: removerServico } = useServicosPrestadosDelete();
 
   // ── Produtos ────────────────────────────────────────────────────────
@@ -105,6 +134,17 @@ export default function ProdutosServicosTab() {
     () => produtos.find((p) => p.id === produtoEscolhidoId) ?? produtosVisiveis[0] ?? null,
     [produtos, produtoEscolhidoId, produtosVisiveis],
   );
+
+  // ── Ações ───────────────────────────────────────────────────────────
+  // As três que escrevem vínculo moram no controlador: alternar uma, o lote com
+  // desfazer, e a cópia do conjunto de outro produto.
+  const { emAndamento, alternarVinculo, executarLote, copiarDe } =
+    useVinculoProdutoServicoController({
+      vinculos,
+      produto: produtoSelecionado,
+      servicos,
+      aoConcluirLote: () => setMarcados(new Set()),
+    });
 
   // ── Serviços do produto aberto ──────────────────────────────────────
   const vinculosDoProduto = useMemo(
@@ -136,8 +176,35 @@ export default function ProdutosServicosTab() {
   ), [servicos, filtroServico, idsVinculados, emAndamento, usoPorServico]);
 
   /**
-   * DUAS listas planas, ordenadas pelo código: a do cluster do produto e a dos
-   * outros.
+   * O RETRATO dos vínculos, e por que a lista não se reordena a cada clique.
+   *
+   * Os serviços do produto vão para o topo (bloco "Vinculados"), e os do cluster
+   * que faltam vêm abaixo. Se essa divisão olhasse o vínculo AO VIVO, cada
+   * clique na caixa — que grava na hora — mandaria a linha para o outro bloco:
+   * ela sai de baixo do cursor e a próxima sobe uma posição. Marcar dez serviços
+   * em sequência, que é o trabalho desta tela, ficaria pior do que na lista
+   * corrida que havia antes.
+   *
+   * Então quem decide o bloco é o retrato do momento em que a lista SE ASSENTOU:
+   * ao abrir o produto e a cada mudança de busca ou de filtro. Marcar e desmarcar
+   * troca a caixa e não move nada; a lista se reorganiza no próximo assentamento.
+   *
+   * Em `ref` e calculado no render, não em `useEffect`: com efeito, o primeiro
+   * render do produto novo sairia com o retrato do produto anterior — a lista
+   * apareceria na ordem errada e se recolocaria no frame seguinte.
+   */
+  const chaveDeAssentamento = [
+    produtoSelecionado?.id ?? '', filtroServico.busca, filtroServico.modo,
+  ].join('|');
+  const retrato = useRef({ chave: '', ids: new Set<string>() });
+  if (retrato.current.chave !== chaveDeAssentamento) {
+    retrato.current = { chave: chaveDeAssentamento, ids: new Set(idsVinculados) };
+  }
+  const vinculadosAoAssentar = retrato.current.ids;
+
+  /**
+   * TRÊS listas planas, todas ordenadas pelo código: os serviços vinculados ao
+   * produto, os do cluster dele que faltam, e os de outros clusters.
    *
    * Substituiu o agrupamento em dois níveis (cluster › seção numérica) em
    * 27/08/2026. O corte por cluster ficou, mas virou uma decisão de VISIBILIDADE
@@ -152,19 +219,26 @@ export default function ProdutosServicosTab() {
   const listasDeServico = useMemo(() => {
     const emOrdem = ordenarPorCodigoDeServico(servicosVisiveis, (s) => s.nome);
     const clusterDoProduto = produtoSelecionado?.cluster_id ?? null;
-    if (!clusterDoProduto) return { doCluster: emOrdem, outros: [] as ServicoNaLista[] };
-    return {
-      doCluster: emOrdem.filter((s) => s.clusterId === clusterDoProduto),
-      outros: emOrdem.filter((s) => s.clusterId !== clusterDoProduto),
-    };
-  }, [servicosVisiveis, produtoSelecionado?.cluster_id]);
+    const doCluster = clusterDoProduto
+      ? emOrdem.filter((s) => s.clusterId === clusterDoProduto)
+      : emOrdem;
+    const outros = clusterDoProduto
+      ? emOrdem.filter((s) => s.clusterId !== clusterDoProduto)
+      : ([] as ServicoNaLista[]);
+    // Os outros clusters NÃO se dividem em dois blocos: eles moram atrás de um
+    // botão justamente porque não é neles que se mexe, e um produto raramente
+    // tem vínculo fora do próprio cluster.
+    const { jaVinculados, paraVincular } = separarPorVinculo(doCluster, vinculadosAoAssentar);
+    return { vinculados: jaVinculados, faltam: paraVincular, outros };
+  }, [servicosVisiveis, produtoSelecionado?.cluster_id, vinculadosAoAssentar]);
 
-  // Ordem de exibição — é dela que sai a faixa do shift+clique. Os outros
-  // clusters só entram quando estão abertos: shift+clique não pode saltar para
-  // uma linha que a pessoa não vê.
+  // Ordem de exibição — é dela que sai a faixa do shift+clique, e ela tem de ser
+  // a ordem dos BLOCOS, não a do código: a faixa segue o que a pessoa vê. Os
+  // outros clusters só entram quando estão abertos, pelo mesmo motivo.
   const idsVisiveis = useMemo(
     () => [
-      ...listasDeServico.doCluster.map((s) => s.id),
+      ...listasDeServico.vinculados.map((s) => s.id),
+      ...listasDeServico.faltam.map((s) => s.id),
       ...(mostrarOutrosClusters ? listasDeServico.outros.map((s) => s.id) : []),
     ],
     [listasDeServico, mostrarOutrosClusters],
@@ -216,124 +290,6 @@ export default function ProdutosServicosTab() {
     };
   }, [vinculos, servicoAbertoId, produtosAtivos]);
 
-  // ── Ações ───────────────────────────────────────────────────────────
-  /**
-   * O "Desfazer" do toast precisa chamar `alternarVinculo`, que é definida
-   * abaixo — referenciá-la direto criaria ciclo no `useCallback`. A ref guarda
-   * sempre a versão corrente.
-   */
-  const alternarVinculoRef = useRef<(p: string, s: string, n: string) => Promise<void>>();
-
-  const alternarVinculo = useCallback(async (produtoId: string, servicoId: string, servicoNome: string) => {
-    if (emAndamento.has(servicoId)) return;
-    const vinculoAtual = vinculos.find(
-      (v) => v.produto_segmento_id === produtoId && v.servico_prestado_id === servicoId,
-    ) ?? null;
-    if (vinculoAtual && isVinculoOtimista(vinculoAtual.id)) return;
-
-    const desvinculando = !!vinculoAtual;
-    setEmAndamento((atual) => new Set(atual).add(servicoId));
-    try {
-      await toggleVinculo.mutateAsync({
-        produtoSegmentoId: produtoId,
-        servicoPrestadoId: servicoId,
-        vinculoAtual,
-        entityName: `${produtoSelecionado?.codigo || '?'} → ${servicoNome}`,
-      });
-      // O desfazer de um clique é o próprio clique de volta — o toggle é
-      // simétrico. Existe mesmo assim porque, sem ele, desvincular por engano
-      // só se percebe depois, e aí é preciso reencontrar a linha na lista.
-      const { nome } = dividirNomeServico(servicoNome);
-      toast.success(desvinculando ? `"${nome}" desvinculado` : `"${nome}" vinculado`, {
-        action: {
-          label: 'Desfazer',
-          onClick: () => void alternarVinculoRef.current?.(produtoId, servicoId, servicoNome),
-        },
-      });
-    } catch {
-      // erro já tratado no hook (rollback + toast)
-    } finally {
-      setEmAndamento((atual) => {
-        const proximo = new Set(atual);
-        proximo.delete(servicoId);
-        return proximo;
-      });
-    }
-  }, [emAndamento, vinculos, toggleVinculo, produtoSelecionado?.codigo]);
-
-  alternarVinculoRef.current = alternarVinculo;
-
-  /**
-   * Vincula/desvincula em lote e oferece DESFAZER.
-   *
-   * O desfazer é o inverso exato: o que foi criado é apagado pelos ids que o
-   * insert devolveu, e o que foi apagado é recriado a partir dos serviços que a
-   * ação recebeu. Só existe para o lote — o clique numa linha só já é otimista e
-   * se desfaz clicando de novo.
-   */
-  const executarLote = useCallback(async (
-    acao: 'vincular' | 'desvincular',
-    servicosAlvo: ServicoNaLista[],
-  ) => {
-    if (!produtoSelecionado || servicosAlvo.length === 0) return;
-    const produtoId = produtoSelecionado.id;
-    const produtoCodigo = produtoSelecionado.codigo || '?';
-    const quantos = servicosAlvo.length;
-    const rotulo = `${quantos} ${quantos === 1 ? 'serviço' : 'serviços'}`;
-
-    try {
-      if (acao === 'vincular') {
-        const resultado = await lote.mutateAsync({
-          acao: 'vincular',
-          produtoSegmentoId: produtoId,
-          produtoCodigo,
-          servicos: servicosAlvo.map((s) => ({ id: s.id, nome: s.nome })),
-        });
-        const criados = resultado.acao === 'vincular' ? resultado.criados : [];
-        toast.success(`${rotulo} vinculados`, {
-          action: {
-            label: 'Desfazer',
-            onClick: () => {
-              void lote.mutateAsync({
-                acao: 'desvincular',
-                produtoCodigo,
-                vinculos: criados.map((linha) => ({
-                  id: linha.id,
-                  servicoNome: servicosAlvo.find((s) => s.id === linha.servico_prestado_id)?.nome || '?',
-                })),
-              });
-            },
-          },
-        });
-      } else {
-        const alvos = servicosAlvo
-          .map((s) => ({ vinculo: vinculoPorServico.get(s.id), servico: s }))
-          .filter((par) => !!par.vinculo && !isVinculoOtimista(par.vinculo.id));
-        if (alvos.length === 0) return;
-        await lote.mutateAsync({
-          acao: 'desvincular',
-          produtoCodigo,
-          vinculos: alvos.map((par) => ({ id: par.vinculo!.id, servicoNome: par.servico.nome })),
-        });
-        toast.success(`${rotulo} desvinculados`, {
-          action: {
-            label: 'Desfazer',
-            onClick: () => {
-              void lote.mutateAsync({
-                acao: 'vincular',
-                produtoSegmentoId: produtoId,
-                produtoCodigo,
-                servicos: alvos.map((par) => ({ id: par.servico.id, nome: par.servico.nome })),
-              });
-            },
-          },
-        });
-      }
-      setMarcados(new Set());
-    } catch {
-      // erro já tratado no hook
-    }
-  }, [produtoSelecionado, lote, vinculoPorServico]);
 
   const marcar = useCallback((ids: string[], marcarAgora: boolean) => {
     setMarcados((atual) => {
@@ -346,19 +302,38 @@ export default function ProdutosServicosTab() {
     });
   }, []);
 
-  const vincularSugeridosDoCluster = useCallback(() => {
-    if (!produtoSelecionado?.cluster_id) return;
-    void executarLote('vincular', listasDeServico.doCluster.filter((s) => !s.vinculado));
-  }, [produtoSelecionado, listasDeServico, executarLote]);
+  /**
+   * Os produtos que podem servir de origem para uma cópia, com os DOIS números
+   * que a escolha pede: quantos serviços o candidato tem, e quantos deles ainda
+   * faltam aqui. Os do mesmo cluster vão para o topo; os demais continuam
+   * alcançáveis, porque produto sem cluster existe.
+   */
+  const candidatosParaCopiar = useMemo(
+    () => (produtoSelecionado ? candidatosParaCopia(produtosAtivos, vinculos, produtoSelecionado) : []),
+    [produtosAtivos, vinculos, produtoSelecionado],
+  );
 
   const semVinculoNenhum = produtoSelecionado && vinculosDoProduto.length === 0;
 
   return (
-    // Altura DEFINIDA, não mínima: é ela que a casca reparte entre a lista de
-    // produtos, os serviços e o painel. Com `min-h` a casca crescia até a altura
-    // dos 19 produtos e as duas colunas da direita ficavam centradas ~800px
-    // abaixo, fora da tela — a bancada parecia vazia à direita.
-    <div className="flex h-[72vh] min-h-[480px] flex-col gap-2">
+    /*
+      Altura DEFINIDA, não mínima: é ela que a casca reparte entre a lista de
+      produtos, os serviços e o painel. Com `min-h` a casca crescia até a altura
+      dos 19 produtos e as duas colunas da direita ficavam centradas ~800px
+      abaixo, fora da tela — a bancada parecia vazia à direita.
+
+      LARGURA COM TETO, e o número sai do dado, não do gosto: o maior nome de
+      serviço do catálogo tem 77 caracteres e a média 36 (produção, 16/09/2026),
+      ou seja ~490px no pior caso a 13px. Numa janela de 1900px a coluna do meio
+      chegava a ~1300px — o dobro do que qualquer nome pede, e nenhum deles
+      truncava nem perto disso. Com 1100 no teto ela fica em ~800px, que ainda
+      segura o pior caso com folga, e o que sobra vira margem em vez de linha
+      esticada. Abaixo de 1100 nada muda: aqui é teto, não largura.
+
+      Não centralizada de propósito: o título da página é alinhado à esquerda, e
+      um cartão centrado embaixo dele ficaria fora de prumo com a própria página.
+    */
+    <div className="flex h-[72vh] min-h-[480px] max-w-[1100px] flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         {/*
           O texto anterior — "define quais serviços aparecem ao cadastrar
@@ -381,9 +356,15 @@ export default function ProdutosServicosTab() {
         <span className="shrink-0 text-xs text-muted-foreground">Salvo automaticamente</span>
       </div>
 
+      {/*
+        A coluna de produtos SOME abaixo de `lg`, e não encolhe: com 280px fixos
+        ela e a lista de serviços dividiam uma tela de tablet em duas metades
+        estreitas demais para qualquer uma das duas. Quem troca de produto no
+        estreito é o seletor no cabeçalho da lista.
+      */}
       <ListaMestreDetalhe<string>
         moldura="pagina"
-        larguraLista="w-[280px]"
+        larguraLista="hidden w-[280px] lg:block"
         titulo={`Produtos (${produtosVisiveis.length})`}
         cabecalhoLista={(
           <div className="space-y-2">
@@ -452,100 +433,138 @@ export default function ProdutosServicosTab() {
         }}
         vazio={buscaProduto ? 'Nenhum produto com esse texto.' : 'Nenhum produto neste cluster.'}
       >
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-          {
-            /*
-              A coluna do meio fica SEMPRE montada. Antes, produto sem vínculo
-              nenhum trocava a coluna inteira por um cartaz — e o cartaz não tem
-              busca, não tem "Novo serviço" e não tem o lápis do produto. Quem
-              desvinculava tudo perdia o acesso a criar serviço no produto.
-              Agora a mesma mensagem desce como faixa dentro da coluna.
-            */
-            <ServicosLista
-              produto={produtoSelecionado}
-              doCluster={listasDeServico.doCluster}
-              outrosClusters={listasDeServico.outros}
-              mostrarOutros={mostrarOutrosClusters}
-              onMostrarOutros={setMostrarOutrosClusters}
-              idsVisiveis={idsVisiveis}
-              resumo={{ vinculados: vinculosDoProduto.length, total: totalPorCluster[produtoSelecionado?.cluster_id ?? ''] ?? 0 }}
-              filtro={filtroServico}
-              onFiltroChange={(patch) => setFiltroServico((atual) => ({ ...atual, ...patch }))}
-              marcados={marcados}
-              onMarcar={marcar}
-              onLimparMarcados={() => setMarcados(new Set())}
-              servicoAbertoId={servicoAbertoId}
-              onAbrirServico={(servico) => { setServicoAbertoId(servico.id); setPainelAberto(true); }}
-              onLote={(acao, alvos) => void executarLote(acao, alvos)}
-              onAlternarVinculo={(servico) => {
-                if (produtoSelecionado) void alternarVinculo(produtoSelecionado.id, servico.id, servico.nome);
-              }}
-              onNovo={() => setFormServico({ aberto: true, alvo: null })}
-              onEditarProduto={() => {
-                if (produtoSelecionado) setFormProduto({ aberto: true, alvo: produtoSelecionado });
-              }}
-              /*
-                Produto sem serviço é ESTADO VÁLIDO, e a faixa é informativa —
-                nem âmbar, nem alarme.
+        {/*
+          A lista fica SEMPRE montada. Antes, produto sem vínculo nenhum trocava
+          a coluna inteira por um cartaz — e o cartaz não tem busca, não tem
+          "Novo serviço" e não tem o lápis do produto. Quem desvinculava tudo
+          perdia o acesso a criar serviço no produto. Agora a mesma mensagem
+          desce como faixa dentro da coluna.
 
-                Ela dizia "sem vínculo, nenhum projeto pode ser cadastrado para
-                ele", e isso era falso. Conferido nos dois lados em 27/08/2026:
-                `validateProjectForm` não pede `servico_id`, e
-                `gerar_tarefas_projeto` sai por `select` vazio devolvendo 0, sem
-                exceção. Produto sem serviço cria projeto igual — o projeto só
-                nasce sem tarefa, que é o desenho do Canal de Chamados.
-              */
-              aviso={semVinculoNenhum ? (
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-md border bg-muted/40 px-2.5 py-2 text-xs text-muted-foreground">
-                  <span>
-                    Nenhum serviço vinculado. Projetos de{' '}
-                    <strong className="font-semibold text-foreground">
-                      {produtoSelecionado?.codigo} — {produtoSelecionado?.nome}
-                    </strong>
-                    {' '}são cadastrados normalmente; só nascem sem tarefa nenhuma.
-                  </span>
-                  {produtoSelecionado?.cluster_id && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="ml-auto h-7 text-xs"
-                      onClick={vincularSugeridosDoCluster}
-                    >
-                      Vincular sugeridos do mesmo cluster
-                    </Button>
-                  )}
-                </div>
-              ) : undefined}
-              carregando={isLoading}
-            />
-          }
+          O `div` que embrulhava esta coluna e o painel saiu junto com o painel:
+          a moldura `pagina` do `ListaMestreDetalhe` já entrega um slot flex, e
+          `ServicosLista` já é o item que o preenche.
+        */}
+        <ServicosLista
+          produto={produtoSelecionado}
+          produtos={produtosVisiveis}
+          onSelecionarProduto={setProdutoEscolhidoId}
+          vinculados={listasDeServico.vinculados}
+          faltam={listasDeServico.faltam}
+          outrosClusters={listasDeServico.outros}
+          mostrarOutros={mostrarOutrosClusters}
+          onMostrarOutros={setMostrarOutrosClusters}
+          idsVisiveis={idsVisiveis}
+          resumo={{ vinculados: vinculosDoProduto.length, total: totalPorCluster[produtoSelecionado?.cluster_id ?? ''] ?? 0 }}
+          filtro={filtroServico}
+          onFiltroChange={(patch) => setFiltroServico((atual) => ({ ...atual, ...patch }))}
+          marcados={marcados}
+          onMarcar={marcar}
+          onLimparMarcados={() => setMarcados(new Set())}
+          servicoAbertoId={servicoAbertoId}
+          onAbrirServico={(servico) => setServicoAbertoId(servico.id)}
+          onLote={(acao, alvos) => void executarLote(acao, alvos)}
+          onAlternarVinculo={(servico) => {
+            if (produtoSelecionado) void alternarVinculo(produtoSelecionado.id, servico.id, servico.nome);
+          }}
+          onNovo={() => setFormServico({ aberto: true, alvo: null })}
+          onCopiarDeOutro={() => setCopiarAberto(true)}
+          podeCopiar={candidatosParaCopiar.length > 0}
+          onEditarProduto={() => {
+            if (produtoSelecionado) setFormProduto({ aberto: true, alvo: produtoSelecionado });
+          }}
+          /*
+            Produto sem serviço é ESTADO VÁLIDO, e a faixa é informativa —
+            nem âmbar, nem alarme.
 
-          {painelAberto && (
-            <ServicoDetalhePanel
-              servico={servicoAberto}
-              cluster={clusterDoServico}
-              vinculados={produtosDoServico.vinculados}
-              disponiveis={produtosDoServico.disponiveis}
-              carregando={isLoading}
-              onEditar={() => {
-                const bruto = servicos.find((s) => s.id === servicoAberto?.id);
-                if (bruto) setFormServico({ aberto: true, alvo: bruto });
-              }}
-              onExcluir={() => {
-                const bruto = servicos.find((s) => s.id === servicoAberto?.id);
-                if (bruto) setServicoParaExcluir(bruto);
-              }}
-              onFechar={() => setPainelAberto(false)}
-              onDesvincular={(produto) => {
-                if (servicoAberto) void alternarVinculo(produto.id, servicoAberto.id, servicoAberto.nome);
-              }}
-              onVincular={(produtoId) => {
-                if (servicoAberto) void alternarVinculo(produtoId, servicoAberto.id, servicoAberto.nome);
-              }}
-            />
-          )}
-        </div>
+            Ela dizia "sem vínculo, nenhum projeto pode ser cadastrado para
+            ele", e isso era falso. Conferido nos dois lados em 27/08/2026:
+            `validateProjectForm` não pede `servico_id`, e
+            `gerar_tarefas_projeto` sai por `select` vazio devolvendo 0, sem
+            exceção. Produto sem serviço cria projeto igual — o projeto só
+            nasce sem tarefa, que é o desenho do Canal de Chamados.
+          */
+          aviso={semVinculoNenhum ? (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-md border bg-muted/40 px-2.5 py-2 text-xs text-muted-foreground">
+              <span>
+                Nenhum serviço vinculado. Projetos de{' '}
+                <strong className="font-semibold text-foreground">
+                  {produtoSelecionado?.codigo} — {produtoSelecionado?.nome}
+                </strong>
+                {' '}são cadastrados normalmente; só nascem sem tarefa nenhuma.
+              </span>
+              {/*
+                Era "Vincular sugeridos do mesmo cluster", e ele marcava o
+                CLUSTER INTEIRO — dezenas de serviços num produto cujo vizinho
+                mais cheio tem 16. Nenhum produto quer isso. Copiar de um produto
+                parecido traz o punhado que de fato se usa junto.
+              */}
+              {candidatosParaCopiar.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="ml-auto h-7 text-xs"
+                  onClick={() => setCopiarAberto(true)}
+                >
+                  Copiar de outro produto
+                </Button>
+              )}
+            </div>
+          ) : undefined}
+          carregando={isLoading}
+        />
       </ListaMestreDetalhe>
+
+      {/*
+        O detalhe do serviço vive SOBRE a tela, e não ao lado dela — e do TAMANHO
+        do que tem para dizer.
+
+        Era uma terceira coluna de 320px, sempre montada, que na maior parte do
+        tempo mostrava "Selecione um serviço". Virou painel lateral de altura
+        inteira, o que resolveu o vazio permanente mas manteve o exagero de
+        escala: 384px pela altura da janela para um nome, um cluster, um número e
+        uma lista que em produção tem no máximo 3 linhas. Agora é um diálogo de
+        `max-w-md` com altura automática. O conteúdo é o mesmo e o gesto que abre
+        também: clicar no nome do serviço.
+      */}
+      <Dialog
+        open={!!servicoAberto}
+        onOpenChange={(aberto) => { if (!aberto) setServicoAbertoId(null); }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <ServicoDetalhePanel
+            servico={servicoAberto}
+            cluster={clusterDoServico}
+            vinculados={produtosDoServico.vinculados}
+            disponiveis={produtosDoServico.disponiveis}
+            carregando={isLoading}
+            /*
+              Os dois FECHAM o detalhe antes de abrir o seu diálogo. Enquanto o
+              detalhe era painel lateral, ele podia ficar aberto atrás do
+              formulário; diálogo sobre diálogo empilha dois focos presos e duas
+              camadas de overlay para mostrar a mesma coisa duas vezes. Quem vai
+              editar ou excluir já decidiu — o detalhe não tem mais o que dizer.
+            */
+            onEditar={() => {
+              const bruto = servicos.find((s) => s.id === servicoAberto?.id);
+              if (!bruto) return;
+              setServicoAbertoId(null);
+              setFormServico({ aberto: true, alvo: bruto });
+            }}
+            onExcluir={() => {
+              const bruto = servicos.find((s) => s.id === servicoAberto?.id);
+              if (!bruto) return;
+              setServicoAbertoId(null);
+              setServicoParaExcluir(bruto);
+            }}
+            onDesvincular={(produto) => {
+              if (servicoAberto) void alternarVinculo(produto.id, servicoAberto.id, servicoAberto.nome);
+            }}
+            onVincular={(produtoId) => {
+              if (servicoAberto) void alternarVinculo(produtoId, servicoAberto.id, servicoAberto.nome);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       <ProdutoFormDialog
         aberto={formProduto.aberto}
@@ -564,6 +583,14 @@ export default function ProdutosServicosTab() {
           // Serviço criado dentro de um produto já entra vinculado a ele.
           if (produtoSelecionado) void alternarVinculo(produtoSelecionado.id, servicoId, nome);
         }}
+      />
+
+      <CopiarDeProdutoDialog
+        aberto={copiarAberto}
+        nomeDoAlvo={`${produtoSelecionado?.codigo ?? '?'} — ${produtoSelecionado?.nome ?? ''}`}
+        candidatos={candidatosParaCopiar}
+        onFechar={() => setCopiarAberto(false)}
+        onConfirmar={copiarDe}
       />
 
       <ConfirmarExclusaoDialog

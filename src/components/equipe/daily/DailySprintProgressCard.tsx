@@ -225,7 +225,7 @@ function PersonTasksDialog({
           {person?.tasks.map((task) => {
             const status = entregavelStatusColors[task.status];
             return (
-              <div key={task.id} className="flex items-start justify-between gap-3 rounded-lg border bg-card p-3">
+              <div key={task.id} className="flex items-start justify-between gap-3 rounded-lg border bg-superficie-cartao p-3">
                 <div className="min-w-0">
                   {task.task_code && <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{task.task_code}</p>}
                   <p className="text-sm font-medium text-foreground">{task.title}</p>

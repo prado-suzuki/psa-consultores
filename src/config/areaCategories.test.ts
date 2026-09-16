@@ -8,8 +8,12 @@ import {
 import { PROTECTED_PAGES } from './protectedPages';
 
 describe('AREA_CATEGORIES_MAP', () => {
-  it('possui exatamente as 5 áreas internas esperadas', () => {
+  it('possui exatamente as áreas internas esperadas', () => {
+    // A lista é a asserção; o título não repete a contagem, que envelhece a
+    // cada área nova. `adm_fin` entrou em 14/09/2026 — chave e caminho
+    // escritos à mão, nunca derivados do nome ("Adm & Fin" não sobrevive a URL).
     expect(Object.keys(AREA_CATEGORIES_MAP).sort()).toEqual([
+      'adm_fin',
       'board',
       'controle_site',
       'digital',

@@ -154,7 +154,7 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
     <section
       data-tour={dataTour}
       className={cn(
-        'bg-card rounded-xl border shadow-sm overflow-hidden',
+        'bg-superficie-cartao rounded-xl border shadow-sm overflow-hidden',
         // Em pagina a casca precisa VIRAR item flex do pai e distribuir a altura
         // que recebe. Sem isto o `flex-1` da linha de baixo nao tem contra o que
         // crescer, a altura vira a do conteudo da lista (19 produtos = ~1500px)
@@ -163,7 +163,7 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
         moldura === 'pagina' && 'flex min-h-0 flex-1 flex-col',
       )}
     >
-      <div className="px-4 py-2 bg-muted/50 border-b flex items-center justify-between gap-3">
+      <div className="px-4 py-2 bg-superficie-realce border-b flex items-center justify-between gap-3">
         <h3 className="min-w-0 truncate text-sm font-bold text-foreground">{titulo}</h3>
         {acaoCriar && <div className="shrink-0">{acaoCriar}</div>}
       </div>

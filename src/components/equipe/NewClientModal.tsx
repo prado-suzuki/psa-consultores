@@ -20,6 +20,7 @@ import TourTrigger from "@/components/tour/TourTrigger";
 import { useTour } from "@/components/tour/useTour";
 import { AreaLoader } from "@/components/equipe/AreaLoader";
 import { cn } from "@/lib/utils";
+import { podeVerAbasFinanceirasCliente } from "@/lib/cadastroClientePermissions";
 import { textoDeRecusa } from "@/lib/rlsMessages";
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
 import { defaultClientData } from "./client-form/constants";
@@ -152,7 +153,7 @@ export default function NewClientModal({
 
 
   const isEditing = !!editingClienteId;
-  const canViewFinancialTabs = isAdmin || isLider;
+  const canViewFinancialTabs = podeVerAbasFinanceirasCliente({ isAdmin, isLider });
   const visibleTabs = canViewFinancialTabs
     ? (["cliente", "contribuintes", "representantes", "contratos", "faturamento"] as const)
     : (["cliente", "contribuintes", "representantes"] as const);

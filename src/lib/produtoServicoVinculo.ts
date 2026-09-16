@@ -114,18 +114,103 @@ export function agruparPorCluster<T extends ItemComCluster>(
 }
 
 /**
- * Divide os serviços visíveis entre "faltam vincular" e "já vinculados",
- * base das ações em lote (marcar/desmarcar tudo o que está na tela).
+ * Divide os serviços entre "já vinculados" e "faltam vincular", PRESERVANDO a
+ * ordem recebida dentro de cada lado.
+ *
+ * É o que põe os serviços do produto no topo da lista: a tela ordena pelo código
+ * e passa o resultado por aqui, e os dois lados saem como os dois blocos.
+ *
+ * O conjunto `vinculados` que decide não precisa ser o estado ao vivo do vínculo
+ * — na lista é, de propósito, um RETRATO do momento em que ela se assentou.
+ * Quem chama explica o porquê (`ProdutosServicosTab`).
  */
-export function separarVisiveisParaLote<T extends { id: string }>(
-  visiveis: T[],
-  vinculados: Set<string>,
-): { paraVincular: T[]; jaVinculados: T[] } {
+export function separarPorVinculo<T extends { id: string }>(
+  servicos: readonly T[],
+  vinculados: ReadonlySet<string>,
+): { jaVinculados: T[]; paraVincular: T[] } {
   const paraVincular: T[] = [];
   const jaVinculados: T[] = [];
-  for (const servico of visiveis) {
+  for (const servico of servicos) {
     if (vinculados.has(servico.id)) jaVinculados.push(servico);
     else paraVincular.push(servico);
   }
-  return { paraVincular, jaVinculados };
+  return { jaVinculados, paraVincular };
+}
+
+/* ───────────────────────────────────────────────────────────────────────
+ * COPIAR O CONJUNTO DE SERVIÇOS DE UM PRODUTO PARA OUTRO
+ *
+ * O gesto que a tela pedia não era o gesto que o trabalho tem: a lista oferece
+ * o catálogo do cluster e pede que se marque um a um, mas cada produto tem um
+ * punhado de serviços, e produto novo quase sempre se parece com um que já
+ * existe. Estas duas funções respondem "de quem copiar" e "o que viria".
+ * ─────────────────────────────────────────────────────────────────────── */
+
+/** O mínimo de um produto para ele poder ser origem de uma cópia. */
+export interface ProdutoParaCopia {
+  id: string;
+  codigo: string | null;
+  nome: string | null;
+  cluster_id: string | null;
+}
+
+export interface CandidatoDeCopia {
+  id: string;
+  codigo: string | null;
+  nome: string | null;
+  /** Mesmo cluster do produto aberto — estes vão para o topo da lista. */
+  mesmoCluster: boolean;
+  /** Serviços vinculados ao candidato. */
+  total: number;
+  /** Destes, quantos o produto aberto ainda NÃO tem. É o número que decide. */
+  novos: number;
+}
+
+/** Os serviços que uma cópia de `origemId` acrescentaria a `alvoId`. */
+export function servicosACopiar(
+  vinculos: readonly { produto_segmento_id: string; servico_prestado_id: string }[],
+  origemId: string,
+  alvoId: string,
+): string[] {
+  const jaTem = new Set(
+    vinculos.filter((v) => v.produto_segmento_id === alvoId).map((v) => v.servico_prestado_id),
+  );
+  const vistos = new Set<string>();
+  return vinculos
+    .filter((v) => v.produto_segmento_id === origemId && !jaTem.has(v.servico_prestado_id))
+    .map((v) => v.servico_prestado_id)
+    .filter((id) => (vistos.has(id) ? false : vistos.add(id) && true));
+}
+
+/**
+ * Os produtos de onde dá para copiar, na ordem em que a escolha é feita:
+ * mesmo cluster primeiro, e dentro disso quem traz mais coisa nova.
+ *
+ * Produto sem vínculo nenhum fica de fora — copiar dele não faria nada. O
+ * próprio alvo também, por razão óbvia. Produto de OUTRO cluster continua na
+ * lista: existe serviço sem cluster no catálogo, e recortar por cluster
+ * tornaria parte dele inalcançável.
+ */
+export function candidatosParaCopia<T extends ProdutoParaCopia>(
+  produtos: readonly T[],
+  vinculos: readonly { produto_segmento_id: string; servico_prestado_id: string }[],
+  alvo: ProdutoParaCopia,
+): CandidatoDeCopia[] {
+  return produtos
+    .filter((p) => p.id !== alvo.id)
+    .map((p) => {
+      const total = new Set(
+        vinculos.filter((v) => v.produto_segmento_id === p.id).map((v) => v.servico_prestado_id),
+      ).size;
+      return {
+        id: p.id,
+        codigo: p.codigo,
+        nome: p.nome,
+        mesmoCluster: !!p.cluster_id && p.cluster_id === alvo.cluster_id,
+        total,
+        novos: servicosACopiar(vinculos, p.id, alvo.id).length,
+      };
+    })
+    .filter((p) => p.total > 0)
+    .sort((a, b) => Number(b.mesmoCluster) - Number(a.mesmoCluster) || b.novos - a.novos);
 }

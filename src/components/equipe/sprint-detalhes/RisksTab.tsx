@@ -10,6 +10,23 @@ import type { SprintDetalhesDeliverable as Deliverable } from '@/hooks/useDomain
 import type { EquipeSprintDetalhesController } from '@/hooks/useEquipeSprintDetalhesController';
 import { entregavelStatusColors } from '@/lib/entregavelStatusColors';
 
+/**
+ * A escada do PRAZO desta aba: já venceu → vence hoje → vence amanhã.
+ *
+ * Eram quatro famílias de estoque em fileira — vermelho, âmbar, amarelo e um
+ * roxo sozinho no fim —, e a pergunta que travava a conversão não era de tom:
+ * ninguém sabia o que o roxo queria dizer. **Decisão dela em 11/09/2026:
+ * "Métricas em Risco" É problema, e entra na mesma escala dos atrasos** — a
+ * fileira inteira passa a ser urgência, e quem olha entende que os quatro pedem
+ * ação. Por isso ela veste `vencido`, igual a "Atrasados", em vez de uma
+ * etiqueta própria.
+ */
+const PRAZO = {
+  vencido: { texto: 'text-status-ajuste', superficie: 'bg-status-ajuste-soft' },
+  hoje: { texto: 'text-status-alerta', superficie: 'bg-status-alerta-soft' },
+  amanha: { texto: 'text-status-espera', superficie: 'bg-status-espera-soft' },
+};
+
 function DueCard({
   title,
   items,
@@ -66,10 +83,10 @@ export function RisksTab({ controller: c }: { controller: EquipeSprintDetalhesCo
     <TabsContent value="risks" className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          [r.overdue.length, 'Atrasados', 'text-red-600'],
-          [r.dueToday.length, 'Vencendo Hoje', 'text-amber-600'],
-          [r.dueTomorrow.length, 'Vencendo Amanhã', 'text-yellow-600'],
-          [r.metricsAtRisk.length, 'Métricas em Risco', 'text-purple-600'],
+          [r.overdue.length, 'Atrasados', PRAZO.vencido.texto],
+          [r.dueToday.length, 'Vencendo Hoje', PRAZO.hoje.texto],
+          [r.dueTomorrow.length, 'Vencendo Amanhã', PRAZO.amanha.texto],
+          [r.metricsAtRisk.length, 'Métricas em Risco', PRAZO.vencido.texto],
         ].map(([count, label, color]) => (
           <Card key={String(label)}>
             <CardContent className="py-4 text-center">
@@ -99,7 +116,7 @@ export function RisksTab({ controller: c }: { controller: EquipeSprintDetalhesCo
       {!!r.overdue.length && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm text-red-700 flex gap-2">
+            <CardTitle className={`text-sm flex gap-2 ${PRAZO.vencido.texto}`}>
               <AlertTriangle className="h-4 w-4" />
               Entregáveis Atrasados
             </CardTitle>
@@ -108,7 +125,7 @@ export function RisksTab({ controller: c }: { controller: EquipeSprintDetalhesCo
             {r.overdue.map((item) => {
               const days = Math.abs(differenceInDays(parseDate(item.due_date), new Date()));
               return (
-                <div key={item.id} className="flex justify-between p-3 bg-red-50 rounded-lg">
+                <div key={item.id} className={`flex justify-between p-3 rounded-lg ${PRAZO.vencido.superficie}`}>
                   <div>
                     <p className="font-medium">{item.title}</p>
                     <p className="text-xs">
@@ -133,21 +150,21 @@ export function RisksTab({ controller: c }: { controller: EquipeSprintDetalhesCo
       <DueCard
         title="Vencendo Hoje"
         items={r.dueToday}
-        color="text-amber-700"
+        color={PRAZO.hoje.texto}
         icon={<Clock className="h-4 w-4" />}
         controller={c}
       />
       <DueCard
         title="Vencendo Amanhã"
         items={r.dueTomorrow}
-        color="text-yellow-700"
+        color={PRAZO.amanha.texto}
         icon={<CalendarClock className="h-4 w-4" />}
         controller={c}
       />
       {!!r.metricsAtRisk.length && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm text-purple-700">Métricas em Risco</CardTitle>
+            <CardTitle className={`text-sm ${PRAZO.vencido.texto}`}>Métricas em Risco</CardTitle>
             <p className="text-xs">
               Sprint está em {Math.round(r.sprintProgress)}% do tempo, mas estas métricas estão
               abaixo de 50%
@@ -159,7 +176,7 @@ export function RisksTab({ controller: c }: { controller: EquipeSprintDetalhesCo
                 ? Math.round(((metric.current_value ?? 0) / metric.target_value) * 100)
                 : 0;
               return (
-                <div key={metric.id} className="p-3 bg-purple-50 rounded-lg">
+                <div key={metric.id} className={`p-3 rounded-lg ${PRAZO.vencido.superficie}`}>
                   <div className="flex justify-between">
                     <p>{metric.name}</p>
                     <span>

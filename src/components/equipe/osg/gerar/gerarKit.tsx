@@ -55,7 +55,7 @@ export const PassoCard = ({
 }: PassoCardProps) => (
   <section
     className={cn(
-      'rounded-md border bg-card shadow-sm animate-osg-rise motion-reduce:animate-none',
+      'rounded-md border bg-superficie-cartao shadow-sm animate-osg-rise motion-reduce:animate-none',
       estado === 'bloqueado'
         ? 'border-osg-200/60 shadow-osg-300/20 opacity-60'
         : 'border-osg-300/60 shadow-osg-300/30',
@@ -113,7 +113,7 @@ export const SeletorRail = ({
   children,
 }: SeletorRailProps) => (
   <Collapsible open={aberto} onOpenChange={onAbertoChange}>
-    <div className="rounded-md border border-osg-300/60 bg-card shadow-sm shadow-osg-300/30">
+    <div className="rounded-md border border-osg-300/60 bg-superficie-cartao shadow-sm shadow-osg-300/30">
       <CollapsibleTrigger asChild>
         <button type="button" className="flex w-full items-center gap-2 px-3 py-2.5 text-left">
           <span className="min-w-0 flex-1">

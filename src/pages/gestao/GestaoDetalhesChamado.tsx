@@ -205,7 +205,7 @@ export function ChamadoDetalheContent({ listaPath }: ChamadoDetalheContentProps)
         </Button>
       </div>
       <div className="max-w-4xl mx-auto space-y-6">
-        <Card className="p-6 bg-card border-border/60 shadow-sm">
+        <Card className="p-6 border-border/60 shadow-sm">
           <div className="space-y-4">
             <div className="flex items-start justify-between">
               <div>
@@ -417,7 +417,7 @@ export function ChamadoDetalheContent({ listaPath }: ChamadoDetalheContentProps)
           </div>
         </Card>
 
-        <Card className="p-6 bg-card border-border/60 shadow-sm">
+        <Card className="p-6 border-border/60 shadow-sm">
           <h2 className="text-xl font-semibold text-foreground mb-4">Mensagens</h2>
           <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
             {messages.length === 0 ? (

@@ -25,7 +25,7 @@ interface Props {
 
 export function EFDExportProfiles(props: Props) {
   const selectedId = props.selectedProfile.startsWith('user_') ? props.selectedProfile.replace('user_', '') : null;
-  return <div className="flex flex-wrap gap-4 items-end justify-between bg-card p-4 rounded-xl border border-border shadow-sm mt-4">
+  return <div className="flex flex-wrap gap-4 items-end justify-between bg-superficie-cartao p-4 rounded-xl border border-border shadow-sm mt-4">
     <div className="flex-1 min-w-[280px]">
       <Label className="text-xs font-bold text-muted-foreground uppercase mb-1.5 block">Carregar Perfil</Label>
       <div className="flex gap-2">

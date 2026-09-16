@@ -9,6 +9,8 @@ import {
 interface UpdateStatusInput {
   deliverableId: string;
   status: string;
+  /** Horas realizadas, cobradas pela tela ao concluir. */
+  actualHours?: number;
 }
 
 interface SaveDeliverableInput {
@@ -21,10 +23,10 @@ const mutationOptions = { retry: false, networkMode: 'always', onError: () => un
 export function useEquipeKanbanDeliverableMutations() {
   const updateStatus = useMutation({
     mutationKey: ['domain-equipe-kanban', 'update-status'],
-    mutationFn: async ({ deliverableId, status }: UpdateStatusInput) => {
+    mutationFn: async ({ deliverableId, status, actualHours }: UpdateStatusInput) => {
       await supabase
         .from('sprint_deliverables')
-        .update(buildDeliverableStatusPayload(status))
+        .update(buildDeliverableStatusPayload(status, actualHours))
         .eq('id', deliverableId);
     },
     ...mutationOptions,

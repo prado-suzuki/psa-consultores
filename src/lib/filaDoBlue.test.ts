@@ -70,16 +70,33 @@ const FILA_DO_BLUE = {
    *   dois ícones de hoje são a mesma seta desenhada duas vezes.
    */
   decididoAguardandoExecucao: {
-    'src/pages/equipe/dev/ControleBalancetes.tsx': 7,
-    'src/components/equipe/ImpactDashboard.tsx': 4,
+    // O `ControleBalancetes` saiu em 11/09/2026, e era a maior concentração numa
+    // tela só: 7 das 100, todas dizendo "Excel". Decisão dela, opção F — a ação
+    // de um balancete mora na LINHA dele, e a barra de lote só aparece quando há
+    // seleção, dizendo quantos. O azul não era estado nem categoria: era
+    // hierarquia de ação escrita com cor de estoque, inventando um terceiro
+    // nível que o vocabulário do `ui/button` não tem.
+    // O `ImpactDashboard` saiu em 11/09/2026, com a fila de cartões inteira: a
+    // decisão foi manter cor no KPI (ele é varrido de longe, e a cor é o que
+    // separa um cartão do outro) mas trocar tinta de fábrica por tom
+    // categórico. O achado não foi o azul — eram os DOIS VERDES iguais em
+    // "Melhorados" e "Economia", duas medidas sem relação pintadas igual numa
+    // fila onde a cor é justamente o que distingue.
     'src/components/equipe/dev/consulta-efd-icms/EfdResultsTable.tsx': 3,
-    'src/components/equipe/dev/pis-cofins/BalanceteTreeTable.tsx': 3,
+    // Saiu em 11/09/2026, e com uma CORREÇÃO: eu tinha registrado este selo como
+    // reprovando o AA (4,35:1 "em 10px negrito"). O conteúdo dele é um ÍCONE, não
+    // texto — o `text-[10px] font-bold` é herança da forma do selo irmão e não
+    // pinta nada. O piso que vale é o 3:1 da WCAG 1.4.11, e 4,35 passava. Foi
+    // convertido por ser cor de fábrica, não por contraste; agora dá 6,30:1.
     'src/components/equipe/processos/ProcessList.tsx': 3,
     'src/pages/equipe/dev/ConsultaECD.tsx': 3,
     'src/pages/equipe/dev/ConsultaECF.tsx': 3,
     'src/pages/equipe/dev/ConsultaEFD.tsx': 3,
     'src/pages/equipe/EquipeBacklog.tsx': 3,
-    'src/components/equipe/dashboards/analise-inteligente/AnaliseInteligenteKpis.tsx': 2,
+    // Saiu em 11/09/2026 pela frente do VERMELHO E VERDE: a fileira de KPI tem as
+    // duas famílias na mesma linha (atraso em vermelho, scope creep em azul), e ela
+    // decidiu que scope creep é problema como os outros. Converter metade da
+    // fileira era o defeito; foi inteira, e o azul veio junto.
     'src/components/equipe/dev/perdcomp/controle/ControlePerdcompResults.tsx': 2,
     'src/components/equipe/dashboards/analise-inteligente/AnaliseInteligenteAnalysis.tsx': 1,
     'src/components/equipe/dev/perdcomp/dcomp/DcompFields.tsx': 1,
@@ -100,22 +117,35 @@ const FILA_DO_BLUE = {
    * fecha), ele veste a âncora e passa a informar o estado aberto.
    */
   semDecisao: {
-    'src/components/equipe/mapeamento/ScenarioList.tsx': 5,
-    'src/components/equipe/process-improvement/SavingsSections.tsx': 5,
-    'src/components/equipe/ImprovementHistoryModal.tsx': 4,
+    // Caiu de 5 para 3 em 11/09/2026: o `analyzing` do STATUS_COLOR virou
+    // `status-andamento` quando a escada do cenário fechou (decisão dela: `promoted`
+    // é DESTINO, vira `--tag-b`, e os outros degraus foram junto). O que sobra são
+    // as três classes do `KIND_COLOR`, que é outra coisa — tipo de cenário, não
+    // estado — e continua esperando a decisão desta fila.
+    'src/components/equipe/mapeamento/ScenarioList.tsx': 3,
+    // As duas saíram em 11/09/2026, e a resposta veio de 27/08: o azul emoldurava
+    // um bloco de formulário e não dizia nada. Mas os cabeçalhos são CONTROLE —
+    // abrem e fecham —, então em vez de perderem a cor eles vestem a âncora da
+    // área, e só quando ABERTOS: a cor passou a informar o estado. Junto saiu a
+    // segunda cópia do trio de tipo de economia, que virou `@/lib/tipoDeEconomia`.
     'src/components/acessos/pageCategoryStyles.ts': 3,
     'src/components/equipe/mapeamento/ScenarioComparator.tsx': 3,
     'src/components/equipe/mapeamento/ScenarioCreateModal.tsx': 3,
-    // O UsersRolesView caiu de 4 para 2 em 11/09/2026: o par azul do papel
-    // `team_member` saiu junto com o mapa `ROLE_VISUALS`, que virou `PapelBadge`.
-    // O que sobrou é o ícone do cartão de usuários ativos (`text-blue-600` sobre
-    // `bg-blue-100`) — decoração de métrica, mesma leitura daqui.
-    'src/components/acessos/UsersRolesView.tsx': 2,
+    // O `UsersRolesView.tsx` esteve aqui: caiu de 4 para 2 em 11/09/2026
+    // (`f0538b86`, o mapa `ROLE_VISUALS` virando `ui/PapelBadge`) e ZEROU em
+    // `dad2e9fa`, quando o cartão de contagem de usuários ativos saiu junto com a
+    // matriz de papéis mudando de rota. A linha não acompanhou, e esta catraca e a
+    // `filaDoRedEmerald` ficaram vermelhas na `develop` até 12/09/2026 cobrando um
+    // arquivo que já tinha pago. É o modo de falhar que o inventário por motivo
+    // tem: quem converte por OUTRA frente não sabe que existe uma linha aqui.
     'src/components/equipe/projetos/constants.ts': 2,
     'src/components/equipe/sprint-detalhes/AgendaTab.tsx': 2,
     'src/pages/equipe/EquipeRelatorios.tsx': 2,
-    'src/components/equipe/dev/consulta-xmls/ConsultaXmlFilters.tsx': 1,
-    'src/components/equipe/dev/EFDFiscalTable.tsx': 1,
+    // As duas saíram em 11/09/2026. O par Entrada/Saída do filtro de XML é
+    // CATEGORIA (direção do movimento), e andou inteiro — o verde foi junto,
+    // senão sobraria meia escada. E o hover da `EFDFiscalTable` foi para a
+    // âncora com alfa, não para `muted`: o zebrado da tabela JÁ é `muted`, e o
+    // hover igual ao zebrado não mudaria nada na linha ímpar.
     'src/pages/equipe/DigitalAreaSelector.tsx': 1,
     'src/pages/equipe/EquipeBiblioteca.tsx': 1,
   },
@@ -135,14 +165,14 @@ const FILA_DO_BLUE = {
    * decisão de produto, não de cor.
    */
   vocabularioDeDominioNaoDecidido: {
-    'src/components/equipe/dev/perdcomp/PerDetailModal.tsx': 4,
+    // Saiu em 11/09/2026 pela frente do vermelho e verde: o mapa inteiro das
+    // situações do PER virou etiqueta de fase, e o azul de "análise preliminar" e
+    // "analisado" foi junto — `--tag-b`. Meia tabela em token era o defeito.
   },
 
   /**
    * CÓDIGO QUE NINGUÉM CONSEGUE ABRIR — medido em 11/09/2026 percorrendo os
-   * `import` até as páginas montadas no `App.tsx`: nenhuma rota monta estes três
-   * arquivos (`AdminUsuarios`, `AdminPerformance`, e o `DemandList` via
-   * `EquipeDemandas`).
+   * `import` até as páginas montadas no `App.tsx`.
    *
    * Converter aqui não muda um pixel para ninguém, e por isso não entra em
    * nenhuma das rodadas — mas fica MEDIDO, e não silenciosamente ignorado: se um
@@ -150,11 +180,16 @@ const FILA_DO_BLUE = {
    * de que ele precisa ser convertido antes.
    *
    * É a mesma situação dos "componentes órfãos" que sobraram na fila do `gray`.
+   *
+   * **`AdminUsuarios` e `AdminPerformance` saíram daqui em 14/09/2026, e não por
+   * conversão: os arquivos foram APAGADOS.** Esta anotação de 11/09 tinha
+   * medido certo — nenhuma rota os montava — e parou na medição; em 14/09
+   * alguém foi abrir `/administracao/acessos`, viu o 404, e a Patrícia
+   * confirmou que as telas não voltam. É a diferença entre registrar código
+   * morto e removê-lo: o registro sobreviveu três dias, o código oito meses.
    */
   semRotaQueOsMonte: {
     'src/components/equipe/demandas/DemandList.tsx': 2,
-    'src/pages/administracao/AdminUsuarios.tsx': 2,
-    'src/pages/administracao/AdminPerformance.tsx': 1,
   },
 
   /**

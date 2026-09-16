@@ -35,6 +35,10 @@ const ARQUIVOS_DA_TELA = [
   // `task-modal` já usa sobre o mesmo dado. Guardar a tela sem guardar a casca dela
   // deixaria metade do que se vê fora do contrato.
   'src/components/notifications/NotificationPopover.tsx',
+  // As quatro linhas do balão saíram do arquivo acima em 14/09/2026 (histórico do
+  // sino, teto de 600 linhas). É onde o roxo de "Revisão pendente" mora agora —
+  // guardar só a fachada deixaria de fora justamente o que se vê.
+  'src/components/notifications/ItensDoSino.tsx',
 
   // ─── As seis rotas de hub, fechadas em 10/09/2026 ───────────────────────────
   //

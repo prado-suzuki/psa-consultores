@@ -22,7 +22,7 @@ function DistributionCard({
   segments: DashboardSegment[];
 }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm lg:col-span-1">
+    <div className="rounded-2xl border border-border/70 bg-superficie-cartao p-5 shadow-sm lg:col-span-1">
       <div className="mb-4 flex items-center gap-2">
         {icon}
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>

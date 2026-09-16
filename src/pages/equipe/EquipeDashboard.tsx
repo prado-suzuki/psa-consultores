@@ -238,7 +238,7 @@ const EquipeDashboard = () => {
                   {myDeliverables.map((deliverable) => (
                     <div
                       key={deliverable.id}
-                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                      className="flex items-center justify-between p-3 bg-superficie-realce rounded-lg hover:bg-muted transition-colors cursor-pointer"
                       onClick={() => navigate('/equipe/sprints')}
                     >
                       <div className="flex items-center gap-3">

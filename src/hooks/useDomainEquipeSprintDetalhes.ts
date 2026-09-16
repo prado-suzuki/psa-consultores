@@ -5,6 +5,7 @@ import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { computeFieldDiff } from '@/lib/diffUtils';
 import { fetchIdsEquipeDigital } from '@/lib/equipeDigital';
+import { buildDeliverableStatusPayload } from '@/lib/equipeKanban';
 import { clampDatesToSprint, collectDeliverableSubtree } from '@/lib/equipeSprintDetalhes';
 import { findProfileByName, type TaskGroup } from '@/lib/excelImporter';
 
@@ -120,6 +121,8 @@ const temRetrospectiva = (valor: unknown) =>
 interface DeliverableStatusInput {
   deliverableId: string;
   newStatus: string;
+  /** Horas realizadas, cobradas pela tela ao concluir. */
+  actualHours?: number;
 }
 
 interface ReorderDeliverablesInput {
@@ -587,11 +590,9 @@ export function useDomainEquipeSprintDetalhes(
   }, [queryClient, sincronizarDescricaoNoCache, sprintId]);
 
   const updateDeliverableStatus = useMutation({
-    mutationFn: async ({ deliverableId, newStatus }: DeliverableStatusInput) => {
-      const updates = {
-        status: newStatus,
-        completed_at: newStatus === 'completed' ? new Date().toISOString() : null,
-      };
+    mutationFn: async ({ deliverableId, newStatus, actualHours }: DeliverableStatusInput) => {
+      // Mesmo payload do Kanban: as duas telas escrevem na mesma linha.
+      const updates = buildDeliverableStatusPayload(newStatus, actualHours);
       const { error } = await supabase
         .from('sprint_deliverables')
         .update(updates)

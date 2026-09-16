@@ -1,6 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
+import { ambientePorClienteQuery } from '@/hooks/useDomainAmbienteClientes';
+import { isDoAmbiente } from '@/lib/ambienteScope';
 
 // ── Shared types ──────────────────────────────────────────────
 
@@ -138,6 +140,7 @@ interface TicketsListOptions {
 
 export function useTicketsList(options?: TicketsListOptions) {
   const assignedTo = options?.filterAssigned ? options?.assignedTo : undefined;
+  const queryClient = useQueryClient();
 
   return useQuery({
     queryKey: ['tickets', 'list', assignedTo ?? 'all'],
@@ -151,9 +154,26 @@ export function useTicketsList(options?: TicketsListOptions) {
         query = query.eq('assigned_to', assignedTo);
       }
 
-      const { data: ticketsData, error } = await query;
+      const { data: ticketsBrutos, error } = await query;
       if (error) throw error;
-      if (!ticketsData || ticketsData.length === 0) return [];
+      if (!ticketsBrutos || ticketsBrutos.length === 0) return [];
+
+      // `tickets` não tem coluna `ambiente`: o ambiente do chamado é o do cliente
+      // a que ele pertence, como em org_projects e ordem_servico.
+      //
+      // Sem este corte o preview listava os chamados de PRODUÇÃO — e, como o
+      // seletor de Cliente do bloco "Roteamento" filtra por ambiente, um chamado
+      // real já roteado aparecia ali com o cliente em branco (o id de produção não
+      // está na lista de dev). A tela convidava a "preencher", e a única opção era
+      // um cliente de teste. Aconteceu duas vezes, em 30/04 e 14/05/2026, com
+      // chamados reais da Tecnomyl; a apuração está em
+      // `docs/sprints/sprint-13/APURACAO_chamados-no-cliente-de-teste.md`.
+      //
+      // Chamado sem cliente não é escondido (ver `isDoAmbiente`): sumir com
+      // trabalho real por falta de vínculo é pior que mostrar de mais.
+      const ambientePorCliente = await queryClient.fetchQuery(ambientePorClienteQuery());
+      const ticketsData = ticketsBrutos.filter(t => isDoAmbiente(t.cliente_id, ambientePorCliente));
+      if (ticketsData.length === 0) return [];
 
       // Enrich with profiles
       const userIds = [...new Set(ticketsData.map(t => t.user_id))];
@@ -190,8 +210,10 @@ export function useTicketsList(options?: TicketsListOptions) {
 
       // Cliente (empresa) names
       const clienteIds = [...new Set(ticketsData.filter(t => (t as any).cliente_id).map(t => (t as any).cliente_id as string))];
-      // Enriquecimento de cliente (empresa) feito por UUID — sem filtro de ambiente,
-      // pois tickets antigos podem referenciar clientes de outro ambiente.
+      // Enriquecimento por UUID, sem filtro de ambiente — e agora sem risco: a
+      // lista já foi recortada acima, então estes ids ou são do ambiente atual ou
+      // são de cliente fora da régua, que `isDoAmbiente` deixa passar de propósito.
+      // Filtrar de novo aqui só tiraria o NOME de um chamado que continua na tela.
       const { data: clientesData } = clienteIds.length > 0
         ? await supabase.from('cliente').select('id, nome').in('id', clienteIds)
         : { data: [] as { id: string; nome: string }[] };
@@ -233,6 +255,8 @@ interface TicketDetailOptions {
 }
 
 export function useTicketDetail(ticketId: string | undefined, options?: TicketDetailOptions) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: ['tickets', 'detail', ticketId],
     queryFn: async (): Promise<TicketDetail | null> => {
@@ -248,6 +272,18 @@ export function useTicketDetail(ticketId: string | undefined, options?: TicketDe
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
       if (!data) return null;
+
+      // Mesmo recorte de ambiente da lista, e aqui ele vale MAIS: esta tela tem o
+      // bloco "Roteamento", que GRAVA cliente, cluster e área. Sem o corte, um
+      // endereço de preview abria chamado de produção pelo link direto e podia
+      // escrever nele — foi assim que dois chamados da Tecnomyl foram parar num
+      // cliente `[TESTE]`. Chamado de outro ambiente devolve `null` e as três telas
+      // que consomem este hook mandam de volta para a lista, onde ele também não
+      // aparece. Chamado sem cliente continua abrindo (ver `isDoAmbiente`).
+      const ambientePorCliente = await queryClient.fetchQuery(ambientePorClienteQuery());
+      if (!isDoAmbiente((data as { cliente_id?: string | null }).cliente_id, ambientePorCliente)) {
+        return null;
+      }
 
       // Fetch creator profile
       const { data: profileData } = await supabase

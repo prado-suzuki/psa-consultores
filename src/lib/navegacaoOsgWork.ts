@@ -14,7 +14,7 @@ import {
  * questão é só quando.
  *
  * TRÊS CONSUMIDORES, UMA FONTE. O menu (`GrupoDaBarra`, via `OsgLayout`), o
- * painel de entrada (`OsgWorkDashboard`) e o cabeçalho de cada uma das 16
+ * painel de entrada (`OsgWorkDashboard`) e o cabeçalho de cada uma das 17
  * páginas leem daqui. Até 14/09/2026 a frase ainda estava escrita duas vezes —
  * aqui e no `subtitle` de cada página — e a igualdade dependia de alguém
  * conferir. Agora as páginas referenciam `TELAS_OSG_WORK` pela chave, e o
@@ -71,7 +71,7 @@ export interface GrupoOsgWork {
 }
 
 /**
- * As 16 telas, por chave. É daqui que cada página lê o próprio título e
+ * As 17 telas, por chave. É daqui que cada página lê o próprio título e
  * subtítulo — ver o `OsgLayout` de qualquer uma delas.
  *
  * `satisfies` em vez de anotação de tipo: preserva os nomes das chaves, então
@@ -173,6 +173,16 @@ export const TELAS_OSG_WORK = {
     descricao: 'Defina quais decisões e limites competem a cada órgão de governança.',
   },
 
+  acordoQuotistas: {
+    path: '/equipe/osg/work/governanca/acordo',
+    label: 'Acordo de Quotistas',
+    // A 17ª tela, e a única fora da especificação de 11/09: nasceu na frente
+    // GOV-03, depois. A descrição é a frase que a própria tela já exibia antes
+    // de haver lista, então card e cabeçalho continuam dizendo o mesmo.
+    descricao:
+      'O contrato entre os sócios: o que acontece quando alguém quer sair, morre, se separa ou quer vender. O contrato social diz quem é dono e quem manda; o acordo diz o resto.',
+  },
+
   bibliotecaModelos: {
     path: '/equipe/osg/work/biblioteca-modelos',
     label: 'Biblioteca de Modelos',
@@ -272,6 +282,12 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
     telas: [
       TELAS_OSG_WORK.orgaosGovernanca,
       TELAS_OSG_WORK.matrizDeAlcadas,
+      // O acordo vem DEPOIS da matriz, e isso foi verificado no documento: o
+      // próprio acordo manda que composição, eleição e prazos de gestão
+      // obedeçam ao contrato social, e define o quórum PARA ALTERAR o
+      // contrato. Como a matriz é o que vira as cláusulas de competência dele,
+      // ela vem antes.
+      TELAS_OSG_WORK.acordoQuotistas,
     ],
   },
   {

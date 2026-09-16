@@ -10,94 +10,76 @@ export interface UserPageAccessRecord {
   granted_at: string;
 }
 
+/** Teto de linhas por resposta do PostgREST. Ver `useUserPageAccess`. */
+const PAGINA_POSTGREST = 1000;
+
 /**
  * Lista registros de user_page_access.
  *
- * - Sem argumento: traz tudo (uso administrativo agregado, ex.: cards de estatísticas).
- *   Atenção: sujeito ao cap padrão de linhas do PostgREST quando a tabela cresce.
+ * - Sem argumento: traz tudo, PAGINANDO (ver abaixo).
  * - Com `userId` (string): filtra server-side e devolve só as linhas daquele usuário.
- *   Use isso em telas que exibem permissões de um único usuário — evita o cap e
- *   garante que toda a linha do usuário selecionado venha no payload.
  * - Com `null`: query desabilitada (útil quando nenhum usuário está selecionado).
+ *
+ * ## Por que o `while`, e não um `select` só
+ *
+ * O PostgREST corta a resposta em 1000 linhas e **não avisa**: vem um array de
+ * 1000, sem erro, sem flag. Em 14/09/2026 produção tinha **1494** linhas nesta
+ * tabela, e a busca global devolvia 1000 — o card"Permissões Customizadas" do
+ * Controle de Acessos exibia, com toda a confiança, o TETO DA PÁGINA como se
+ * fosse a contagem. Um terço dos vínculos era invisível para qualquer tela que
+ * lesse daqui sem `userId`.
+ *
+ * A assinatura da função sempre prometeu"traz tudo"; o docstring anterior
+ * apenas registrava o corte como"atenção". Agora ela cumpre a promessa: pede de
+ * mil em mil até a página vir curta. Duas viagens hoje, três quando passar de
+ * 2000 — e nenhuma tela precisa saber disso.
+ *
+ * Quem lê de um usuário só continua vindo por `.eq('user_id', ...)`, numa
+ * viagem, porque ninguém tem mil páginas.
  */
 export function useUserPageAccess(userId?: string | null) {
   const enabled = userId !== null;
   return useQuery({
     queryKey: ['user-page-access', userId ?? 'all'],
     queryFn: async (): Promise<UserPageAccessRecord[]> => {
-      let query = supabase.from('user_page_access').select('*');
-      if (typeof userId === 'string') {
-        query = query.eq('user_id', userId);
+      const linhas: UserPageAccessRecord[] = [];
+      for (let inicio = 0; ; inicio += PAGINA_POSTGREST) {
+        let query = supabase
+          .from('user_page_access')
+          .select('*')
+          .order('id')
+          .range(inicio, inicio + PAGINA_POSTGREST - 1);
+        if (typeof userId === 'string') query = query.eq('user_id', userId);
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        const pagina = (data ?? []) as UserPageAccessRecord[];
+        linhas.push(...pagina);
+        // Página curta é a última. `order('id')` está aqui para o recorte ser
+        // estável entre as viagens — sem ordem explícita o Postgres não promete
+        // a mesma sequência, e uma linha poderia vir duas vezes ou nenhuma.
+        if (pagina.length < PAGINA_POSTGREST) break;
       }
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data ?? []) as UserPageAccessRecord[];
+      return linhas;
     },
     enabled,
     staleTime: 60 * 1000,
   });
 }
 
-/**
- * Concede acesso a uma página para um usuário.
+/*
+ * `useGrantPageAccess` e `useRevokePageAccess` saíram em 14/09/2026: conceder e
+ * revogar UMA página de cada vez não tinha chamador nenhum, e não é assim que a
+ * tela funciona — a árvore de permissões marca um nó e escreve a subárvore
+ * inteira mais os ancestrais, que é o que `useBulkUpdatePageAccess`, logo
+ * abaixo, faz numa ida só. Os dois eram o desenho anterior, mantido exportado.
+ *
+ * Quem precisar de uma página só: `useBulkUpdatePageAccess` com uma lista de um
+ * item. Um par novo de mutações repetiria as quatro invalidações de cache que o
+ * de lote já faz — e duas listas de invalidação para a mesma escrita é o tipo
+ * de coisa que diverge sem ninguém notar.
  */
-export function useGrantPageAccess() {
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
-
-  return useMutation({
-    mutationFn: async ({ userId, pageId }: { userId: string; pageId: string }) => {
-      const { error } = await supabase
-        .from('user_page_access')
-        .insert({
-          user_id: userId,
-          page_permission_id: pageId,
-          granted_by: user?.id,
-        });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
-      queryClient.invalidateQueries({ queryKey: ['page-access'] });
-      queryClient.invalidateQueries({ queryKey: ['user-accessible-categories'] });
-      queryClient.invalidateQueries({ queryKey: ['can-assign-tickets'] });
-      toast.success('Acesso concedido');
-    },
-    onError: () => {
-      toast.error('Erro ao conceder acesso');
-    },
-  });
-}
-
-/**
- * Revoga acesso de uma página para um usuário.
- */
-export function useRevokePageAccess() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ userId, pageId }: { userId: string; pageId: string }) => {
-      const { error } = await supabase
-        .from('user_page_access')
-        .delete()
-        .eq('user_id', userId)
-        .eq('page_permission_id', pageId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
-      queryClient.invalidateQueries({ queryKey: ['page-access'] });
-      queryClient.invalidateQueries({ queryKey: ['user-accessible-categories'] });
-      queryClient.invalidateQueries({ queryKey: ['can-assign-tickets'] });
-      toast.success('Acesso revogado');
-    },
-    onError: () => {
-      toast.error('Erro ao revogar acesso');
-    },
-  });
-}
 
 /**
  * Aplica concessões e revogações em lote para um único usuário em uma só transação.

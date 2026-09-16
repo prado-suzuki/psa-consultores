@@ -1,5 +1,5 @@
 import type { TipoMovimento } from '@/lib/osg/movimentoQuotas';
-import type { ChaveDaAjuda } from './ajudaSocietaria';
+import type { ChaveDaAjuda } from './textosDaAjuda';
 
 // O CATÁLOGO DE GESTOS que a porta única do quadro oferece, por empresa.
 //

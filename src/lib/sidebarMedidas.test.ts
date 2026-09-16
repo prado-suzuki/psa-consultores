@@ -14,9 +14,16 @@ import {
 const ler = (caminhoRelativo: string) =>
   readFileSync(fileURLToPath(new URL(caminhoRelativo, import.meta.url)), 'utf8');
 
-/** As barras laterais que seguem o padrão de trilho de 80px. */
+/**
+ * As barras laterais que seguem o padrão de trilho de 80px.
+ *
+ * Eram NOVE até 14/09/2026. A "Administração" saiu da lista porque o
+ * `AdminLayout.tsx` foi apagado: as três rotas `/administracao/*` davam 404
+ * desde 13/01/2026 e a Patrícia confirmou que as telas não voltam. É subtração
+ * de escopo, não relaxamento da catraca — a regra continua valendo para todas
+ * as barras que existem.
+ */
 const LAYOUTS_DO_PADRAO = {
-  Administração: '../components/administracao/AdminLayout.tsx',
   Tax: '../components/equipe/fiscal/FiscalSidebar.tsx',
   Fixos: '../components/equipe/fixos/FixosLayout.tsx',
   OSG: '../components/equipe/osg/OsgLayout.tsx',
@@ -109,7 +116,7 @@ describe('as barras do padrão não têm cópia própria da medida', () => {
   // recolhida (`py-6` fixo) e o Dev 92px aberta (cabeçalho só de texto, sem
   // selo), contra os 88/72 das outras cinco. Como todas as telas de uma área
   // compartilham o layout, o desalinhamento só aparece na TROCA de área.
-  it('as oito barras Tailwind tiram o recuo do cabeçalho da mesma função', () => {
+  it('toda barra Tailwind tira o recuo do cabeçalho da mesma função', () => {
     const BARRAS = {
       ...LAYOUTS_DO_PADRAO,
       Board: '../components/equipe/board/BoardLayout.tsx',
@@ -128,7 +135,7 @@ describe('as barras do padrão não têm cópia própria da medida', () => {
 
     expect(layout).toContain('MEDIDAS_TRILHO_SIDEBAR.larguraRecolhidaPx');
     // A aberta também: o `.css` declarava 260px, um quarto valor ao lado dos
-    // 256 das outras oito.
+    // 256 que todas as outras barras usam.
     expect(layout).toContain('MEDIDAS_TRILHO_SIDEBAR.larguraAbertaPx');
     expect(css).not.toMatch(/--sidebar-width-collapsed:\s*\d/);
     expect(css).not.toMatch(/--sidebar-width:\s*\d/);
@@ -145,7 +152,7 @@ describe('as barras do padrão não têm cópia própria da medida', () => {
     // O gradiente escuro que fazia o Mapeamento parecer outro produto.
     expect(barra).not.toContain('--roi-teal-deep');
     expect(barra).not.toMatch(/color:\s*hsl\(var\(--slate-400\)\)/);
-    // Pílula cheia na âncora da área, como nas outras oito.
+    // Pílula cheia na âncora da área, como em todas as outras.
     expect(barra).toMatch(/\.sidebar-menu a\.active\{[^}]*background-color:\s*hsl\(var\(--primary\)\)/);
     expect(barra).toMatch(/\.sidebar-menu a\.active\{[^}]*color:\s*hsl\(var\(--primary-foreground\)\)/);
     expect(barra).toContain("'Instrument Sans'");
@@ -178,13 +185,13 @@ describe('a barra vira gaveta em tela estreita', () => {
 });
 
 /**
- * O bug do celular era o MESMO nas nove áreas, e chegou lá porque cada layout
+ * O bug do celular era o MESMO em todas as áreas, e chegou lá porque cada layout
  * tem a sua própria linha de classes na barra. Este teste lê o fonte: é o que
  * impede uma área de ficar para trás na próxima vez que alguém mexer numa só.
  */
 describe('todas as barras laterais viram gaveta no celular', () => {
   const BARRAS = {
-    Administração: '../components/administracao/AdminLayout.tsx',
+    // A "Administração" saiu em 14/09/2026 com o arquivo — ver LAYOUTS_DO_PADRAO.
     Tax: '../components/equipe/fiscal/FiscalSidebar.tsx',
     Fixos: '../components/equipe/fixos/FixosLayout.tsx',
     OSG: '../components/equipe/osg/OsgLayout.tsx',

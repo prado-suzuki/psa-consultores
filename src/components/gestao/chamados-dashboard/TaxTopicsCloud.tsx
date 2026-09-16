@@ -17,7 +17,7 @@ export function TaxTopicsCloud({ topics, totalTickets }: TaxTopicsCloudProps) {
     ratio(value) > 0.25 ? 'text-primary' : 'text-muted-foreground';
 
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
+    <div className="rounded-2xl border border-border/70 bg-superficie-cartao p-5 shadow-sm">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <Cloud className="h-4 w-4 text-primary" />

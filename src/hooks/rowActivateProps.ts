@@ -14,12 +14,20 @@ let pressStart: { x: number; y: number; t: number } | null = null;
  *
  * Cliques originados de elementos interativos internos (botões, links, inputs,
  * triggers de dialog) são ignorados para não conflitar com as ações da linha.
+ *
+ * PASSE A SUA CLASSE AQUI, no segundo argumento, e não no `className` do
+ * elemento. O objeto devolvido JÁ TEM `className`, então espalhá-lo depois de um
+ * `className` seu substitui o seu por inteiro, sem erro de tipo e sem aviso de
+ * lint. Foi o que apagou o `group` da linha de exploração rural, deixando os
+ * botões de ação invisíveis no hover, e a moldura dos cartões do Acordo de
+ * Quotistas. Espalhar ANTES também funciona, mas depende de ordem e some na
+ * primeira refatoração; o argumento não.
  */
-export function rowActivateProps(onActivate: () => void) {
+export function rowActivateProps(onActivate: () => void, className?: string) {
   return {
     role: 'button' as const,
     tabIndex: 0,
-    className: 'cursor-pointer',
+    className: className ? `cursor-pointer ${className}` : 'cursor-pointer',
     onMouseDown: (e: React.MouseEvent) => {
       pressStart = e.button === 0 ? { x: e.clientX, y: e.clientY, t: Date.now() } : null;
     },

@@ -45,6 +45,24 @@ export const PAPEIS: Record<string, Papel> = {
   // Cabeçalho do instrumento agrário (cadastro de exploração rural). Papel
   // unitário como `sociedade`: vale para o contrato inteiro, não para uma parte.
   instrumento: { tipo: 'instrumento', label: 'Instrumento (exploração rural)' },
+
+  /*
+   * Governança. Papéis NOMEADOS, e não uma lista de órgãos, porque no contrato
+   * cada órgão tem cláusula com redação própria: a do Conselho fala de mandato
+   * e reeleição, a da Diretoria fala de representação e procuradores, e a
+   * Reunião de Sócios nem membros tem, tem quórum de instalação. Uma lista
+   * obrigaria o bloco a condicionar cada variação.
+   *
+   * `orgao` é o coringa do cliente que criou instância própria e a fez entrar
+   * no contrato — raro, mas o cadastro permite.
+   */
+  conselhoAdministracao: { tipo: 'orgaoGovernanca', label: 'Conselho de Administração' },
+  diretoria: { tipo: 'orgaoGovernanca', label: 'Diretoria' },
+  reuniaoSocios: { tipo: 'orgaoGovernanca', label: 'Reunião de Sócios' },
+  orgao: { tipo: 'orgaoGovernanca', label: 'Órgão de governança' },
+
+  // Um acordo por cliente, então papel unitário como `sociedade`.
+  acordo: { tipo: 'acordoQuotistas', label: 'Acordo de Quotistas' },
 };
 
 // Contratos societários anteriores ao binding namespaced usam campos planos ou
@@ -164,7 +182,26 @@ export function normalizarSelecaoLegada(
  */
 export type FonteLista =
   | 'quadro' | 'administracao' | 'integralizacao' | 'georef' | 'signatarios' | 'selecao'
-  | 'exploracao_rural';
+  | 'exploracao_rural'
+  /*
+   * A Matriz de Alçadas do cliente, RECORTADA pelo órgão vinculado no mesmo
+   * bloco. É a única fonte que depende de outro binding para saber o que
+   * devolver: `quadro` e `administracao` saem de uma relação da empresa
+   * escolhida e bastam a si mesmas. Sem o recorte, a cláusula do Conselho
+   * receberia também as alíneas da Diretoria.
+   */
+  | 'matriz_alcadas'
+  /*
+   * O cadastro do Acordo de Quotistas do cliente, com as CINCO listas dele:
+   * quóruns, ramos, ordem da preferência, signatários e sociedades relacionadas.
+   *
+   * Fonte própria pelo mesmo motivo de `exploracao_rural`: a lista inteira sai
+   * de um cadastro só, e não há o que o consultor amarrar registro a registro.
+   * Antes da GOV-03 duas delas eram `selecao`, o consultor escolhendo à mão na
+   * tela Gerar, porque o cadastro não existia. Existe desde 15/09, e continuar
+   * pedindo escolha seria fazer digitar de novo o que já está gravado.
+   */
+  | 'acordo_quotistas';
 
 export interface CampoExtra {
   id: string;
@@ -182,6 +219,13 @@ export interface PapelLista {
   /** Seções conhecidas dentro do item (listas aninhadas e condicionais próprias). */
   secoesItem?: string[];
   fonte: FonteLista;
+  /**
+   * O campo do item que representa o item numa sugestão de autocomplete.
+   * Padrão `nome`, que serve a pessoa e sociedade. A competência da Matriz não
+   * tem nome: ela se identifica pela atividade, e sem isto o editor sugeriria
+   * um placeholder que não resolve.
+   */
+  campoResumo?: string;
   /** Campos da RELAÇÃO (não da pessoa), mesclados ao item pelo mapeador. */
   camposExtras: CampoExtra[];
 }
@@ -478,6 +522,182 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     fonte: 'exploracao_rural',
     camposExtras: [],
   },
+
+  /*
+   * A CLÁUSULA DE COMPETÊNCIA, UMA POR ÓRGÃO.
+   *
+   * Esta é a coleção que o bloco repete (`repete_colecao`), no mesmo caminho de
+   * `integralizacoes` e `memoriais`. Cada item é um órgão, e DENTRO dele vem a
+   * lista das alíneas daquele órgão: no Mattei o Conselho tem 19 alíneas
+   * enumeradas e a Diretoria tem cláusula própria, então a lista não pode ser
+   * de topo, senão as duas receberiam as mesmas.
+   *
+   * `secoesItem: ['competencias']` é o que declara a lista aninhada. Sem isto o
+   * `detectarBindings` chama `{{#competencias}}` de seção desconhecida e o
+   * trecho SOME do documento; e `orgao.nome`, que é chave do item, seria lido
+   * como binding de topo e a tela pediria ao consultor que escolhesse um órgão
+   * que a repetição já dá.
+   */
+  orgaosComCompetencia: {
+    label: 'Órgãos com as suas competências (cláusula por órgão)',
+    tipo: 'orgaoGovernanca',
+    itemKey: 'orgao',
+    secoesItem: ['competencias'],
+    fonte: 'matriz_alcadas',
+    camposExtras: [],
+  },
+
+  /* As alíneas de UM órgão, aninhadas na coleção acima. */
+  competencias: {
+    label: 'Competências da Matriz (alíneas do órgão)',
+    tipo: 'competenciaMatriz',
+    itemKey: 'competencia',
+    fonte: 'matriz_alcadas',
+    campoResumo: 'atividade',
+    camposExtras: [
+      { id: 'alinea', label: 'Letra da alínea (a, b, c…)' },
+      { id: 'ordem', label: 'Ordem da atividade na matriz (1, 2…)' },
+    ],
+  },
+
+  /*
+   * A GRADE DO DOCUMENTO DA MATRIZ, que são duas listas e não uma: a de órgãos
+   * dá as COLUNAS (cabeçalho e separadora) e a de linhas dá as LINHAS, com as
+   * células aninhadas. É assim porque o `tabela.ts` tira o número de colunas do
+   * texto renderizado, então as colunas precisam ser emitidas por um laço
+   * próprio antes do corpo começar.
+   */
+  matrizOrgaos: {
+    label: 'Matriz: os órgãos (colunas da grade)',
+    tipo: 'orgaoGovernanca',
+    itemKey: 'orgaoDaGrade',
+    fonte: 'matriz_alcadas',
+    camposExtras: [{ id: 'nome', label: 'Nome do órgão na coluna' }],
+  },
+
+  matrizLinhas: {
+    label: 'Matriz: as linhas (atividades da grade)',
+    tipo: 'competenciaMatriz',
+    itemKey: 'linhaDaGrade',
+    secoesItem: ['celulas'],
+    fonte: 'matriz_alcadas',
+    campoResumo: 'atividade',
+    camposExtras: [{ id: 'atividade', label: 'Atividade da linha' }],
+  },
+
+  celulas: {
+    label: 'Matriz: as células de uma linha',
+    tipo: 'competenciaMatriz',
+    itemKey: 'celula',
+    fonte: 'matriz_alcadas',
+    campoResumo: 'resumo',
+    camposExtras: [{ id: 'resumo', label: 'A célula em uma linha' }],
+  },
+
+  /*
+   * AS CINCO LISTAS DO ACORDO DE QUOTISTAS.
+   *
+   * As duas primeiras nasceram com `fonte: 'selecao'`, o consultor escolhendo à
+   * mão, porque em 11/09 o cadastro do acordo não existia. Passaram para
+   * `acordo_quotistas` em 15/09, quando ele passou a existir. Conferi antes de
+   * trocar: nenhuma versão de bloco no sandbox usa as duas seções, então a
+   * troca não muda documento nenhum já escrito.
+   *
+   * Os signatários continuam sendo um recorte que nenhuma OUTRA relação do
+   * sistema conhece: são os da PRIMEIRA versão, e o quadro societário de hoje
+   * não sabe quem assinou em 2019. Por isso saem de `acordo_signatario`, e não
+   * do quadro.
+   */
+  quotistasSignatarios: {
+    label: 'Quotistas signatários do Acordo',
+    tipo: 'pessoa',
+    itemKey: 'quotista',
+    fonte: 'acordo_quotistas',
+    camposExtras: [{ id: 'ordem', label: 'Ordem do quotista (1, 2…)' }],
+  },
+
+  sociedadesRelacionadas: {
+    label: 'Sociedades relacionadas (alcance do Acordo)',
+    tipo: 'sociedade',
+    itemKey: 'sociedadeRelacionada',
+    fonte: 'acordo_quotistas',
+    campoResumo: 'razaoSocial',
+    camposExtras: [],
+  },
+
+  /*
+   * OS QUÓRUNS, uma alínea cada, no bloco de deliberação.
+   *
+   * O modelo escreve "prevalecerão os seguintes quóruns de deliberação: a)
+   * Conforme decidam 75% (setenta e cinco por cento) dos VOTOS dos QUOTISTAS
+   * presentes [...] em relação aos seguintes assuntos: alteração do contrato
+   * social". Daí os três campos: a letra, a expressão e a matéria.
+   *
+   * `expressao` chega pronta de `expressaoDoQuorum`, e não se monta no bloco: os
+   * documentos escrevem símbolo mais extenso entre parênteses, "¾ (três
+   * quartos)", e deixar cada bloco montar isso é deixar cada um escrever
+   * diferente.
+   *
+   * O `tipo` aponta para `acordoQuotistas` porque uma linha de quórum não é
+   * entidade própria do vocabulário, e TODOS os campos do item estão em
+   * `camposExtras`. Vale para as três listas novas: o `tipo` de um papel de
+   * lista só é consultado na tela de seleção manual, que estas não têm.
+   */
+  quorunsDoAcordo: {
+    label: 'Quóruns do Acordo (alíneas da deliberação)',
+    tipo: 'acordoQuotistas',
+    itemKey: 'quorum',
+    fonte: 'acordo_quotistas',
+    campoResumo: 'materia',
+    camposExtras: [
+      { id: 'materia', label: 'Sobre o que ele decide' },
+      { id: 'expressao', label: 'Quanto precisa, já escrito ("¾ (três quartos) do capital social")' },
+      { id: 'alinea', label: 'Letra da alínea (a, b, c…)' },
+      { id: 'ordem', label: 'Ordem do quórum na cláusula (1, 2…)' },
+    ],
+  },
+
+  /*
+   * OS RAMOS FAMILIARES, que a cláusula de definições nomeia.
+   *
+   * Na AgroAliança: "(a) DESCENDENTES DE CRISTINA, formado por CRISTINA e seus
+   * descendentes em linha vertical; e (b) DESCENDENTES DE REGINA". `rotulo` é o
+   * nome próprio que o resto do acordo repete, e `definicao` é a explicação que
+   * vem depois da vírgula.
+   */
+  ramosFamiliares: {
+    label: 'Ramos familiares (grupos de descendentes)',
+    tipo: 'acordoQuotistas',
+    itemKey: 'ramo',
+    fonte: 'acordo_quotistas',
+    campoResumo: 'rotulo',
+    camposExtras: [
+      { id: 'rotulo', label: 'Como o acordo o chama ("DESCENDENTES DE CRISTINA")' },
+      { id: 'nome', label: 'Nome do fundador do ramo' },
+      { id: 'definicao', label: 'A definição que segue o rótulo' },
+      { id: 'alinea', label: 'Letra da alínea (a, b, c…)' },
+      { id: 'ordem', label: 'Ordem do ramo (1, 2…)' },
+    ],
+  },
+
+  /*
+   * A FILA DA PREFERÊNCIA, de quem compra antes de a quota poder ir a terceiro.
+   *
+   * O contrato social diz só "aos demais sócios, na proporção"; a ordem existe
+   * no acordo, e é o que esta lista escreve.
+   */
+  ordemDaPreferencia: {
+    label: 'Ordem do direito de preferência (a fila)',
+    tipo: 'acordoQuotistas',
+    itemKey: 'preferente',
+    fonte: 'acordo_quotistas',
+    campoResumo: 'quem',
+    camposExtras: [
+      { id: 'quem', label: 'Quem tem a vez ("os descendentes dos SIGNATÁRIOS")' },
+      { id: 'alinea', label: 'Letra da alínea (a, b, c…)' },
+      { id: 'ordem', label: 'Posição na fila (1, 2…)' },
+    ],
+  },
 };
 
 /** Condicionais de item conhecidas dentro de seções de lista. */
@@ -728,14 +948,14 @@ export function listarPlaceholders(): PlaceholderSugerido[] {
       label: `${papel.label} — repetição em prosa ("A; B; e C")`,
       grupo: papel.label,
       tipo: 'texto',
-      insercao: `{{#${nome} sep="; " fim="; e "}}{{ ${papel.itemKey}.nome }}{{/${nome}}}`,
+      insercao: `{{#${nome} sep="; " fim="; e "}}{{ ${papel.itemKey}.${papel.campoResumo ?? 'nome'} }}{{/${nome}}}`,
     });
     out.push({
       placeholder: `${nome}.linhas`,
       label: `${papel.label} — repetição em linhas (um por linha)`,
       grupo: papel.label,
       tipo: 'texto',
-      insercao: `{{#${nome}}}{{ ${papel.itemKey}.nome }}{{/${nome}}}`,
+      insercao: `{{#${nome}}}{{ ${papel.itemKey}.${papel.campoResumo ?? 'nome'} }}{{/${nome}}}`,
     });
     // Campos do item ({{ socio.nome }}…) já são sugeridos pelo papel singular
     // correspondente; aqui entram só os EXTRAS da relação e as condicionais.

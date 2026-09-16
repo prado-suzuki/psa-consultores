@@ -91,7 +91,6 @@ const NovaFerramenta = () => {
         <DevPageHeader
           title="Como funciona"
           icon={Lightbulb}
-          hideManualLink
           description={'Você descreve a necessidade e ela entra no catálogo com status "Em desenvolvimento". O time Digital Dev avalia e desenvolve a ferramenta; quando estiver pronta, as áreas selecionadas abaixo ganham acesso automaticamente.'}
         />
 

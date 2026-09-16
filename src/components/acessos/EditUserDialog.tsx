@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -11,16 +10,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { RefreshCw } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { AREA_CATEGORIES_MAP, type AreaKey } from '@/config/areaCategories';
+import { type AreaKey } from '@/config/areaCategories';
+import { areasDeAcessoDoUsuario } from '@/lib/areasDeAcessoDoUsuario';
 import { useUpdateTeamMember } from '@/hooks/useTeamMemberMutations';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useUserPageAccess } from '@/hooks/useUserPageAccess';
 import { useEstruturaMembros } from '@/hooks/useEstruturaManager';
 import { equipesDoUsuario } from '@/lib/equipesDaEstrutura';
 import type { UserWithRoles } from '@/hooks/useUsersWithRoles';
-import { ROLE_OPTIONS } from './roleOptions';
+import { AreasDeAcessoField, PapeisDoUsuarioField } from './PapeisEAreasDoUsuario';
 import { EquipesEstruturaField } from './EquipesEstruturaField';
 
 export interface EditUserDialogProps {
@@ -62,20 +62,9 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
   useEffect(() => {
     if (!open || !user) return;
 
-    const userAccessIds =
-      userAccess?.filter((a) => a.user_id === user.id).map((a) => a.page_permission_id) ?? [];
-    const userPageCategories = new Set(
-      pages?.filter((p) => userAccessIds.includes(p.id)).map((p) => p.category) ?? []
-    );
-
-    // Área é considerada marcada se o usuário tem acesso a PELO MENOS UMA página
-    // de suas categorias — `every()` quebraria quando há categorias sem páginas.
-    const inferredAreas: string[] = [];
-    for (const [areaKey, areaDef] of Object.entries(AREA_CATEGORIES_MAP)) {
-      if (areaDef.categories.some((cat) => userPageCategories.has(cat))) {
-        inferredAreas.push(areaKey);
-      }
-    }
+    // A inferência (uma página basta — `some`, não `every`) mora em
+    // `@/lib/areasDeAcessoDoUsuario`, compartilhada com a matriz de Papéis.
+    const inferredAreas = areasDeAcessoDoUsuario(user.id, pages ?? [], userAccess ?? []);
 
     setForm({
       first_name: user.first_name,
@@ -162,38 +151,11 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
               />
             </div>
 
-            <div className="space-y-3">
-              <Label className="text-foreground text-sm font-medium">Papéis do usuário</Label>
-              {ROLE_OPTIONS.map((role) => (
-                <div
-                  key={role.value}
-                  className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-border"
-                >
-                  <Checkbox
-                    id={`edit_role_${role.value}`}
-                    checked={form.roles.includes(role.value)}
-                    onCheckedChange={(checked) => {
-                      setForm((prev) => ({
-                        ...prev,
-                        roles: checked
-                          ? [...prev.roles, role.value]
-                          : prev.roles.filter((r) => r !== role.value),
-                      }));
-                    }}
-                    className="mt-0.5"
-                  />
-                  <div>
-                    <Label
-                      htmlFor={`edit_role_${role.value}`}
-                      className="text-foreground text-sm font-medium cursor-pointer"
-                    >
-                      {role.label}
-                    </Label>
-                    <p className="text-xs text-muted-foreground">{role.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <PapeisDoUsuarioField
+              value={form.roles}
+              onChange={(roles) => setForm((prev) => ({ ...prev, roles }))}
+              idPrefix="edit_role_"
+            />
 
             {mostrarEquipes && (
               <EquipesEstruturaField
@@ -204,41 +166,11 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
             )}
 
             {hasInternalRole && (
-              <div className="space-y-3">
-                <Label className="text-foreground text-sm font-medium">Áreas de Acesso</Label>
-                <p className="text-xs text-muted-foreground">
-                  Selecione as áreas que o membro terá acesso
-                </p>
-                {Object.entries(AREA_CATEGORIES_MAP).map(([key, area]) => (
-                  <div
-                    key={key}
-                    className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-border"
-                  >
-                    <Checkbox
-                      id={`edit_area_${key}`}
-                      checked={form.areas.includes(key)}
-                      onCheckedChange={(checked) => {
-                        setForm((prev) => ({
-                          ...prev,
-                          areas: checked
-                            ? [...prev.areas, key]
-                            : prev.areas.filter((a) => a !== key),
-                        }));
-                      }}
-                      className="mt-0.5"
-                    />
-                    <div>
-                      <Label
-                        htmlFor={`edit_area_${key}`}
-                        className="text-foreground text-sm font-medium cursor-pointer"
-                      >
-                        {area.label}
-                      </Label>
-                      <p className="text-xs text-muted-foreground">{area.categories.join(', ')}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <AreasDeAcessoField
+                value={form.areas}
+                onChange={(areas) => setForm((prev) => ({ ...prev, areas }))}
+                idPrefix="edit_area_"
+              />
             )}
           </div>
 
@@ -257,7 +189,7 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
             >
               {updateUser.isPending ? (
                 <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Salvando...
                 </>
               ) : (

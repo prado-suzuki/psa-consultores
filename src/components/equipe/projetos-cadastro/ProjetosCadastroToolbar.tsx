@@ -1,6 +1,7 @@
 import { Building2, FileText, Filter, FolderKanban, Layers, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
 import { STATUS_LABELS, type ProjectGroupBy } from '@/lib/projetosCadastro';
 import { useProjetosCadastro } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContext';
 
@@ -29,13 +30,15 @@ export function ProjetosCadastroToolbar() {
       </div>
       <div className="flex items-center gap-3 flex-wrap">
         <Filter className="h-4 w-4 text-muted-foreground" />
-        <Select value={filterCliente} onValueChange={value => setFilterCliente(value === 'all' ? '' : value)}>
-          <SelectTrigger className="w-52"><Building2 className="h-4 w-4 mr-2 text-muted-foreground" /><SelectValue placeholder="Cliente" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os clientes</SelectItem>
-            {filterOptions.clientes.map(client => <SelectItem key={client.id} value={client.id}>{client.nome}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <SelecaoDeCliente
+          clientes={filterOptions.clientes}
+          value={filterCliente}
+          onChange={setFilterCliente}
+          opcaoVazia="Todos os clientes"
+          placeholder="Cliente"
+          icone={<Building2 className="h-4 w-4 mr-2 text-muted-foreground" />}
+          className="w-52 min-w-0"
+        />
         <Select value={filterProduto} onValueChange={value => setFilterProduto(value === 'all' ? '' : value)}>
           <SelectTrigger className="w-52"><FileText className="h-4 w-4 mr-2 text-muted-foreground" /><SelectValue placeholder="Produto" /></SelectTrigger>
           <SelectContent>

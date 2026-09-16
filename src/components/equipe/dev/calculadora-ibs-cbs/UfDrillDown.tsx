@@ -132,7 +132,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                   </p>
                   <p
                     className={`text-lg font-bold tabular-nums ${
-                      dados.deltaPp < 0 ? "text-emerald-700" : "text-rose-700"
+                      dados.deltaPp < 0 ? "text-success" : "text-destructive"
                     }`}
                   >
                     {fmtPp(dados.deltaPp)}
@@ -174,8 +174,8 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
             <div
               className={`mt-4 p-3 rounded-lg text-xs leading-relaxed ${
                 dados.deltaPp < 0
-                  ? "bg-emerald-50 border border-emerald-200 text-emerald-900"
-                  : "bg-rose-50 border border-rose-200 text-rose-900"
+                  ? "bg-success/10 border border-success/30 text-success"
+                  : "bg-destructive/10 border border-destructive/30 text-destructive"
               }`}
             >
               <div className="flex items-start gap-2">
@@ -238,7 +238,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                           </TableCell>
                           <TableCell
                             className={`text-right tabular-nums text-xs font-semibold ${
-                              delta < 0 ? "text-emerald-700" : delta > 0 ? "text-rose-700" : "text-muted-foreground"
+                              delta < 0 ? "text-success" : delta > 0 ? "text-destructive" : "text-muted-foreground"
                             }`}
                           >
                             {fmtPp(delta)}

@@ -29,8 +29,9 @@ import { parseDate } from '@/lib/dateUtils';
  } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { OrgTask, OrgTaskStatus, OrgTaskPriority, useUpdateOrgTask } from '@/hooks/useOrgTasks';
-import { ordenarPorTitulo } from '@/lib/ordemDeTarefas';
+import { ordenarPorPrazo } from '@/lib/ordemDeTarefas';
 import { statusColors } from '@/lib/taskStatusColors';
+import { taskPriorityList } from '@/lib/taskPriorityColors';
 import { AreaKey } from '@/config/areaCategories';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 import { TaskCompletionHoursDialog } from '@/components/equipe/fiscal/tasks/TaskCompletionHoursDialog';
@@ -55,20 +56,11 @@ interface TaskTableProps {
   periodo: PeriodoDeTarefas;
 }
  
- const priorityColors = {
-   urgent: 'bg-destructive/10 text-destructive',
-   high: 'bg-warning/10 text-warning',
-   medium: 'bg-info/10 text-info',
-   low: 'bg-muted text-foreground',
- };
- 
- const priorityLabels = {
-   urgent: 'Urgente',
-   high: 'Alta',
-   medium: 'Média',
-   low: 'Baixa',
- };
- 
+ /* Os dois mapas locais de prioridade sairam daqui em 11/09/2026. O de COR
+    estava morto — declarado e nao usado, porque esta tela edita a prioridade
+    num Select e nunca pintou pilula. O de ROTULO virou as opcoes do proprio
+    Select, que agora saem de `taskPriorityList` na ordem da escada. */
+
 const statusLabels = Object.fromEntries(
   Object.entries(statusColors).map(([k, v]) => [k, v.label])
 ) as Record<OrgTaskStatus, string>;
@@ -81,14 +73,14 @@ const statusLabels = Object.fromEntries(
    const transicao = useTaskStatusTransition();
  
    // As tarefas-pai NÃO são reordenadas: esta tabela mistura projetos numa
-   // lista só, e ordenar por título intercalaria a "1." de um cliente com a de
-   // outro. As subtarefas, sim — elas saem como bloco contíguo debaixo da mãe,
-   // que é o escopo onde a ordem alfabética significa alguma coisa. Como
+   // lista só, e quem manda nela é a ordem em que a página as trouxe. As
+   // subtarefas, sim — elas saem como bloco contíguo debaixo da mãe, que é o
+   // escopo onde ordenar significa alguma coisa, e saem por prazo. Como
    // `renderTaskRow` é recursivo e refaz esta chamada a cada nível, ordenar
    // aqui vale para neta, bisneta e o que vier.
    const parentTasks = tasks.filter(t => !t.parent_task_id);
    const getSubtasks = (parentId: string) =>
-     ordenarPorTitulo(tasks.filter(t => t.parent_task_id === parentId));
+     ordenarPorPrazo(tasks.filter(t => t.parent_task_id === parentId));
  
    const toggleExpand = (taskId: string) => {
      setExpandedTasks(prev => {
@@ -202,8 +194,8 @@ const statusLabels = Object.fromEntries(
                  <SelectValue />
                </SelectTrigger>
                <SelectContent>
-                 {Object.entries(priorityLabels).map(([value, label]) => (
-                   <SelectItem key={value} value={value}>{label}</SelectItem>
+                 {taskPriorityList.map((prioridade) => (
+                   <SelectItem key={prioridade.key} value={prioridade.key}>{prioridade.label}</SelectItem>
                  ))}
                </SelectContent>
              </Select>
@@ -286,12 +278,12 @@ const statusLabels = Object.fromEntries(
    // vazio soa como projeto sem tarefa. `null` = não há recorte a culpar.
    const vazioDoRecorte = mensagemDoVazio(periodo);
 
-   // `bg-card` explicito: o container da tabela sempre foi transparente, e isso
+   // Superficie de cartao explicita: o container da tabela sempre foi transparente, e isso
    // nao aparecia porque as linhas da Table carregam fundo proprio. Com a barra
    // do mes em cima, a faixa dela ficava no fundo da PAGINA — a tabela era a
    // unica das quatro abas sem a superficie do card.
    return (
-     <div className="border rounded-lg overflow-hidden bg-card">
+     <div className="border rounded-lg overflow-hidden bg-superficie-cartao">
        <BarraDeMes periodo={periodo} />
        {/* `min-w-[1260px]`: é a soma exata dos oito `w-[...]` do cabeçalho.
            Sem ela a tabela era `w-full` e nada mais — e `width` num `<th>` sem

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { defaultFilter } from 'cmdk';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -19,7 +19,33 @@ interface SingleSelectComboboxProps {
   emptyText?: string;
   disabled?: boolean;
   className?: string;
+  /** Estilo do gatilho. A barra do Board pinta borda e fundo por variável CSS. */
+  style?: CSSProperties;
+  /** Desenhado à esquerda do rótulo, dentro do gatilho. */
+  icone?: ReactNode;
+  /**
+   * Rótulo de uma primeira linha que LIMPA o campo — "Todos os clientes",
+   * "Selecione o contribuinte". Existe porque em filtro o estado vazio é uma
+   * escolha legítima e precisa ter endereço: sem essa linha, o único jeito de
+   * voltar atrás é clicar no item já escolhido, que ninguém descobre sozinho.
+   * Sem a prop, a linha não aparece e o campo vazio é só o texto de espera.
+   */
+  opcaoVazia?: string;
+  /** Avisa quando a lista abre e fecha. Tela que valida "o usuário mexeu?" usa o fechar. */
+  onOpenChange?: (aberto: boolean) => void;
+  /**
+   * Repassados ao gatilho. Existem porque o `FormControl` do react-hook-form é
+   * um `Slot`: ele injeta `id`, `aria-describedby` e `aria-invalid` no filho, e
+   * um componente que não os declara os descarta em silêncio — a mensagem de
+   * erro do campo deixa de ser anunciada, sem aviso nenhum.
+   */
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean;
+  'aria-required'?: boolean;
 }
+
+/** Valor interno da linha que limpa. Não sai daqui: o `onChange` devolve `null`. */
+const VALOR_VAZIO = '__combobox_vazio__';
 
 /**
  * As palavras que a busca enxerga: o rótulo sempre, mais o que a opção pedir.
@@ -40,19 +66,35 @@ export function SingleSelectCombobox({
   emptyText = 'Nenhum item encontrado.',
   disabled,
   className,
+  style,
+  icone,
+  opcaoVazia,
+  onOpenChange,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
+  'aria-required': ariaRequired,
 }: SingleSelectComboboxProps) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
 
+  const abrirOuFechar = (aberto: boolean) => {
+    setOpen(aberto);
+    onOpenChange?.(aberto);
+  };
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={abrirOuFechar}>
       <PopoverTrigger asChild>
         <Button
           id={id}
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-describedby={ariaDescribedBy}
+          aria-invalid={ariaInvalid}
+          aria-required={ariaRequired}
           disabled={disabled}
+          style={style}
           // `hover:` neutralizado, e não é preferência: a variante `outline` traz
           // `hover:bg-accent hover:text-accent-foreground`, e `--accent` aqui é
           // TOM CHEIO — na OSG o campo inteiro virava bloco verde escuro ao passar
@@ -70,6 +112,7 @@ export function SingleSelectCombobox({
             className,
           )}
         >
+          {icone}
           <span className={cn('truncate', !selected && 'text-muted-foreground text-xs')}>
             {selected?.label ?? placeholder}
           </span>
@@ -104,6 +147,19 @@ export function SingleSelectCombobox({
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
+              {opcaoVazia && (
+                <CommandItem
+                  value={VALOR_VAZIO}
+                  keywords={[opcaoVazia]}
+                  onSelect={() => {
+                    onChange(null);
+                    abrirOuFechar(false);
+                  }}
+                >
+                  <Check className={cn('mr-2 h-4 w-4 shrink-0', value ? 'opacity-0' : 'opacity-100')} />
+                  <span className="text-sm text-muted-foreground">{opcaoVazia}</span>
+                </CommandItem>
+              )}
               {options.map((opt) => (
                 <CommandItem
                   key={opt.value}
@@ -112,7 +168,7 @@ export function SingleSelectCombobox({
                   className="group"
                   onSelect={() => {
                     onChange(opt.value === value ? null : opt.value);
-                    setOpen(false);
+                    abrirOuFechar(false);
                   }}
                 >
                   <Check className={cn('mr-2 h-4 w-4 shrink-0', value === opt.value ? 'opacity-100' : 'opacity-0')} />

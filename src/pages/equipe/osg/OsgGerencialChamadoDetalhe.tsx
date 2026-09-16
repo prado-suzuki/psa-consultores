@@ -3,7 +3,7 @@ import { ChamadoDetalheContent } from '@/pages/gestao/GestaoDetalhesChamado';
 
 /** Detalhe do chamado dentro da Gerencial da OSG. Ver a versão da Tax. */
 const OsgGerencialChamadoDetalhe = () => (
-  <OsgLayout title="Detalhes do Chamado" subtitle="Chamado do cliente">
+  <OsgLayout tela="chamadoDetalhe">
     <ChamadoDetalheContent listaPath="/equipe/osg/gerencial/chamados" />
   </OsgLayout>
 );

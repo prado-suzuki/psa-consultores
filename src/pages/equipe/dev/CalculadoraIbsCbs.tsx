@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { DevLayout } from "@/components/equipe/dev/DevLayout";
+import { DevPageHeader } from "@/components/equipe/dev/DevPageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
+import { SelecaoDeContribuinte } from '@/components/equipe/selecao/SelecaoDeContribuinte';
 import { Filter } from "lucide-react";
 import { AbaResumo } from "@/components/equipe/dev/calculadora-ibs-cbs/AbaResumo";
 import { AbaPorAnexo } from "@/components/equipe/dev/calculadora-ibs-cbs/AbaPorAnexo";
@@ -68,10 +70,8 @@ const CalculadoraIbsCbs = () => {
   };
 
   return (
-    <DevLayout
-      title="Calculadora de IBS e CBS"
-      subtitle="Classificação fiscal e análise de carga tributária — antes vs depois da reforma"
-    >
+    <DevLayout tela="calculadoraIbsCbs"    >
+      <DevPageHeader description="A **Calculadora IBS/CBS** simula a carga tributária do contribuinte no modelo atual e no da reforma, para mostrar a diferença antes de ela acontecer. Parte da **classificação fiscal dos produtos** e das operações já escrituradas. O **Resumo** traz o comparativo consolidado, e as demais abas abrem o mesmo número **por anexo, por produto e por estado**." />
       <Card className="mb-6 border-border shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2 uppercase tracking-wider font-bold text-foreground">
@@ -85,45 +85,29 @@ const CalculadoraIbsCbs = () => {
               <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
                 Cliente
               </label>
-              <Select
+              <SelecaoDeCliente
+                clientes={clientes}
                 value={clienteId}
-                onValueChange={(v) => {
+                onChange={(v) => {
                   setClienteId(v);
                   setContribuinteId("");
                 }}
-              >
-                <SelectTrigger className="h-11">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Selecione..."
+                className="w-full min-w-0 h-11"
+              />
             </div>
             <div>
               <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
                 Contribuinte
               </label>
-              <Select
+              <SelecaoDeContribuinte
+                contribuintes={contribuintes}
                 value={contribuinteId}
-                onValueChange={setContribuinteId}
+                onChange={setContribuinteId}
                 disabled={!clienteId}
-              >
-                <SelectTrigger className="h-11">
-                  <SelectValue placeholder={clienteId ? "Selecione..." : "Selecione um cliente"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {contribuintes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome_razao_social}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder={clienteId ? "Selecione..." : "Selecione um cliente"}
+                className="w-full min-w-0 h-11"
+              />
             </div>
           </div>
         </CardContent>

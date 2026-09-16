@@ -9,7 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { RefreshCw } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useDeleteTeamMember } from '@/hooks/useTeamMemberMutations';
 import type { UserWithRoles } from '@/hooks/useUsersWithRoles';
 
@@ -65,7 +65,7 @@ export const DeleteUserDialog = ({
             >
               {deleteUser.isPending ? (
                 <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Excluindo...
                 </>
               ) : (

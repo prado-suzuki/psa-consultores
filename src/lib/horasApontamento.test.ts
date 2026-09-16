@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { avaliarHorasApontadas } from '@/lib/horasApontamento';
+import { avaliarHorasApontadas, parseHorasRealizadas } from '@/lib/horasApontamento';
 
 describe('avaliarHorasApontadas', () => {
   it('não avisa quando as horas batem com a estimativa', () => {
@@ -55,5 +55,22 @@ describe('avaliarHorasApontadas', () => {
     expect(avaliarHorasApontadas({ realizadas: 'abc', estimadas: 5 })).toBeNull();
     expect(avaliarHorasApontadas({ realizadas: 0, estimadas: 5 })).toBeNull();
     expect(avaliarHorasApontadas({ realizadas: null, estimadas: null })).toBeNull();
+  });
+});
+
+describe('parseHorasRealizadas', () => {
+  it('aceita zero e vírgula decimal', () => {
+    expect(parseHorasRealizadas('0')).toBe(0);
+    expect(parseHorasRealizadas('2,5')).toBe(2.5);
+    expect(parseHorasRealizadas('2.5')).toBe(2.5);
+  });
+
+  it('recusa o que não serve como apontamento', () => {
+    // Campo em branco é o caso que torna as horas obrigatórias na conclusão:
+    // '   ' precisa cair aqui, porque Number('   ') é 0 e passaria como válido.
+    expect(parseHorasRealizadas('')).toBeNull();
+    expect(parseHorasRealizadas('   ')).toBeNull();
+    expect(parseHorasRealizadas('abc')).toBeNull();
+    expect(parseHorasRealizadas('-1')).toBeNull();
   });
 });

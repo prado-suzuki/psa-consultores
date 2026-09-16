@@ -72,7 +72,7 @@ export function DailyFormCard({
   const processLabel = processes.find((process) => process.id === form.process_id)?.name;
 
   return (
-    <Card className="bg-card border-border">
+    <Card className="border-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-foreground">
           <Clock className="h-5 w-5 text-muted-foreground" />

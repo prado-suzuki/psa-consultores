@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { RefreshCw, Search } from 'lucide-react';
+import { Loader2, RefreshCw, Search } from 'lucide-react';
 import AbasDeGrupo, { type GrupoAba } from '@/components/shared/AbasDeGrupo';
 import {
   usePagePermissions,
@@ -92,7 +92,7 @@ export const PagesTab = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-superficie-cartao p-4 shadow-sm">
         <div>
           <h3 className="text-base font-medium text-foreground">Páginas Cadastradas</h3>
           <p className="text-sm text-muted-foreground">Atualize para ver novas páginas implementadas</p>
@@ -115,6 +115,11 @@ export const PagesTab = () => {
             disabled={loadingPages || isSyncing}
             className="border-border text-muted-foreground hover:bg-foreground/[0.03] hover:text-primary"
           >
+            {/* AQUI é `RefreshCw` de propósito, e é um dos dois lugares da tela
+                que sobraram: o ícone É o botão de atualizar, e ele existe
+                parado — girar é só o estado ocupado dele. Onde o ícone só
+                aparece durante a espera, quem gira é `Loader2`, cujo único
+                trabalho é esse. Ver a mesma decisão no `AgenteTab`. */}
             <RefreshCw
               className={`h-4 w-4 mr-2 ${loadingPages || isSyncing ? 'animate-spin' : ''}`}
             />
@@ -125,7 +130,7 @@ export const PagesTab = () => {
 
       {loadingPages ? (
         <div className="flex items-center justify-center py-8">
-          <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : (
         <Card className="border-border/60 shadow-sm">

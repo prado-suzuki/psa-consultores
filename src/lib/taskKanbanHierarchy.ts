@@ -1,12 +1,12 @@
 import type { OrgTask, OrgTaskStatus } from '@/hooks/useOrgTasks';
-import { compararTitulosDeTarefa } from '@/lib/ordemDeTarefas';
+import { compararTarefasPorPrazo } from '@/lib/ordemDeTarefas';
 
 /**
  * O mínimo que o quadro precisa saber de uma tarefa. As regras de montagem
- * dependem de id/status/mãe, mais o título — que ordena a lista de filhas
- * dentro do card.
+ * dependem de id/status/mãe, mais prazo e título — o par que ordena a lista de
+ * filhas dentro do card.
  */
-export type KanbanTask = Pick<OrgTask, 'id' | 'status' | 'parent_task_id' | 'title'>;
+export type KanbanTask = Pick<OrgTask, 'id' | 'status' | 'parent_task_id' | 'title' | 'due_date'>;
 
 /** Filhas que estão em OUTRA coluna, agrupadas pelo status onde foram parar. */
 export interface TaskKanbanSubtaskGroup {
@@ -126,14 +126,14 @@ export function buildTaskKanbanColumns<T extends KanbanTask>(
     list.push(task);
     childrenByParent.set(parent.id, list);
   }
-  // As irmãs da mesma mãe saem em ordem alfabética — é o único escopo do quadro
-  // onde isso significa alguma coisa. Os CARDS da coluna continuam na ordem de
-  // entrada: ali convivem raízes de projetos diferentes, e ordenar misturaria
-  // as numerações de dois clientes. Ordenado uma vez aqui, vale para a lista do
+  // As irmãs da mesma mãe saem por prazo — é o único escopo do quadro onde
+  // ordenar significa alguma coisa. Os CARDS da coluna continuam na ordem de
+  // entrada: ali convivem raízes de projetos diferentes, e a coluna já é, ela
+  // mesma, um recorte de estado. Ordenado uma vez aqui, vale para a lista do
   // card (`children`) e para os destinos (`elsewhere`), em qualquer nível — a
   // mãe do meio de uma neta usa este mesmo mapa.
   for (const list of childrenByParent.values()) {
-    list.sort((a, b) => compararTitulosDeTarefa(a.title, b.title));
+    list.sort(compararTarefasPorPrazo);
   }
 
   const columns = new Map<OrgTaskStatus, TaskKanbanColumn<T>>(

@@ -46,7 +46,7 @@ export function GaleriaModelos({ modelos, isLoading, onSelect, onNovo }: Props) 
             type="button"
             onClick={() => onSelect(m.id)}
             className={cn(
-              'group relative flex min-h-[8.5rem] flex-col rounded-2xl border border-osg-300/60 bg-card p-4 text-left shadow-[0_1px_2px_hsl(var(--osg-700)/0.06)] transition-all hover:-translate-y-0.5 hover:border-osg-moss/50 hover:shadow-md',
+              'group relative flex min-h-[8.5rem] flex-col rounded-2xl border border-osg-300/60 bg-superficie-cartao p-4 text-left shadow-[0_1px_2px_hsl(var(--osg-700)/0.06)] transition-all hover:-translate-y-0.5 hover:border-osg-moss/50 hover:shadow-md',
               !m.ativo && 'opacity-60',
             )}
           >

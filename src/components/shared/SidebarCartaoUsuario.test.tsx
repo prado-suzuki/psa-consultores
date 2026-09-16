@@ -77,9 +77,12 @@ describe('SidebarCartaoUsuario', () => {
   });
 
   it('recolhido, o nome também fica ao alcance do mouse', () => {
-    render(<SidebarCartaoUsuario area="administracao" collapsed />);
+    // Era `administracao`, que saiu do mapa em 14/09/2026 com o `AdminLayout`.
+    // A asserção é sobre o TÍTULO do botão recolhido, não sobre a área: qualquer
+    // entrada do mapa serve, e `acessos` é a que tem barra viva hoje.
+    render(<SidebarCartaoUsuario area="acessos" collapsed />);
 
-    expect(screen.getByRole('button')).toHaveAttribute('title', 'joana.silva · Administrador');
+    expect(screen.getByRole('button')).toHaveAttribute('title', 'joana.silva · Acessos');
   });
 
   it('sem e-mail no perfil, cai em "Usuário" em vez de deixar o cartão vazio', () => {

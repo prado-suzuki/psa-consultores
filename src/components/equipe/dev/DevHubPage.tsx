@@ -42,7 +42,7 @@ const DevHubPage = ({ hub }: DevHubPageProps) => {
                 key={option.path}
                 type="button"
                 onClick={() => navigate(option.path)}
-                className="group flex min-h-[320px] flex-col rounded-3xl border border-border bg-card p-8 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="group flex min-h-[320px] flex-col rounded-3xl border border-border bg-superficie-cartao p-8 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <div className="mb-6 flex items-start justify-between gap-4">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/5 text-primary transition-colors group-hover:bg-primary/15">
