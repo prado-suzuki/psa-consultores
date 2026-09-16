@@ -1,0 +1,26 @@
+-- 20260914210352_canal_google_chat.sql
+-- Avisos no Google Chat, parte 1: o valor novo de `notificacao_canal`.
+--
+-- ARQUIVO SOZINHO DE PROPOSITO. `ALTER TYPE ... ADD VALUE` nao divide transacao
+-- com o USO do valor: a funcao que reserva o envio deste canal viria com "unsafe
+-- use of new value" se estivesse aqui. Mesma pedra da GES-01A
+-- (20260831202229_ges01a_tipos_de_aviso_de_prazo.sql) e da GES-03.
+--
+-- SEM VOLTA. Postgres nao tem DROP VALUE em enum. O nome descreve o CANAL, que e
+-- o Google Chat, e nao o espaco nem a area: os espacos mudam, o canal nao.
+--
+-- POR QUE UM CANAL E NAO UM TIPO. Os avisos que vao para o Chat ja existem em
+-- `notificacao_tipo` -- `tarefa_prazo_proximo`, `tarefa_atrasada`,
+-- `tarefa_atribuida`, `tarefa_em_revisao` -- e ja sao gravados por trigger e pelo
+-- cron `alertar-tarefas-prazo-diario`, ativo em producao desde 03/09/2026. O que
+-- falta e por onde a mesma coisa sai. Ver docs/planos/avisos-de-tarefa-no-google-chat.md.
+--
+-- UMA ADVERTENCIA PARA A PARTE 3, que e onde este canal se comporta diferente dos
+-- outros dois: `notificacao_envio.chave_idempotencia` tem indice UNICO GLOBAL, e a
+-- chave dos outros canais inclui o DESTINATARIO (a correcao da
+-- 20260901120951_ges01a_chave_por_destinatario.sql, feita porque cada tarefa avisa
+-- o responsavel E o gestor). Aqui a mensagem e do ESPACO, nao da pessoa: repetir
+-- aquela chave publicaria a mesma tarefa duas vezes no mesmo espaco. A chave deste
+-- canal e por area+tipo+entidade+dia, e `destinatario_id` fica NULO.
+
+ALTER TYPE public.notificacao_canal ADD VALUE IF NOT EXISTS 'google_chat';
