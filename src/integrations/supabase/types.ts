@@ -11368,6 +11368,21 @@ export type Database = {
         Args: { _entity_id: string; _entity_type: string }
         Returns: string
       }
+      avisos_para_o_chat: {
+        Args: { _ambiente?: string; _janela?: string }
+        Returns: {
+          area_nome: string
+          chave: string
+          dono_nome: string
+          due_date: string
+          entidade_id: string
+          project_id: string
+          project_name: string
+          task_status: Database["public"]["Enums"]["fiscal_task_status"]
+          task_title: string
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
+        }[]
+      }
       can_perform: {
         Args: { p_id: string; p_op: string; p_table: string }
         Returns: Json
