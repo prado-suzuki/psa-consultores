@@ -69,6 +69,7 @@ function projeto(over: Partial<ProjetoDaOrdem> = {}): ProjetoDaOrdem {
     produto_segmento_id: 'p-gov',
     responsible_id: 'u-2',
     leader_id: 'u-1',
+    description: null,
     ...over,
   };
 }
@@ -168,6 +169,39 @@ describe('montarControleDeProjetos', () => {
     expect(linhas[0].executores).toEqual([]);
     expect(linhas[0].lideres).toEqual([]);
     expect(linhas[0].projetos).toBe(0);
+    expect(linhas[0].descricao).toBe('');
+  });
+
+  it('traz a descrição do projeto daquele produto', () => {
+    const linhas = montar(
+      [ordem()],
+      [
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-suc' },
+      ],
+      [
+        projeto({ id: 'proj-1', produto_segmento_id: 'p-gov', description: 'Revisar governança' }),
+        projeto({ id: 'proj-2', produto_segmento_id: 'p-suc', description: null }),
+      ],
+    );
+    expect(linhas.find((l) => l.produtoNome === 'Governança')?.descricao).toBe(
+      'Revisar governança',
+    );
+    expect(linhas.find((l) => l.produtoNome === 'Planejamento Sucessório')?.descricao).toBe('');
+  });
+
+  it('no par com dois projetos, vale a primeira descrição preenchida', () => {
+    // Descrição em branco no primeiro projeto não pode apagar a do segundo:
+    // concatenar as duas daria um parágrafo que não é de nenhum dos dois.
+    const linhas = montar(
+      [ordem()],
+      [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
+      [
+        projeto({ id: 'proj-1', description: '   ' }),
+        projeto({ id: 'proj-2', description: 'Diagnóstico societário' }),
+      ],
+    );
+    expect(linhas[0].descricao).toBe('Diagnóstico societário');
   });
 
   it('ignora projeto sem produto, em vez de pendurá-lo num produto qualquer', () => {

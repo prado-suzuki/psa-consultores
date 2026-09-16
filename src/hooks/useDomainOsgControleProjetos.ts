@@ -71,7 +71,7 @@ export function useDomainOsgControleProjetos() {
           supabase
             .from('org_projects')
             .select(
-              'id, name, status, ordem_servico_id, produto_segmento_id, responsible_id, leader_id',
+              'id, name, status, ordem_servico_id, produto_segmento_id, responsible_id, leader_id, description',
             ),
           // `cliente` TEM a coluna `ambiente` e é filtrada na própria query, ao
           // contrário das outras quatro. A RLS ainda recorta por cluster.

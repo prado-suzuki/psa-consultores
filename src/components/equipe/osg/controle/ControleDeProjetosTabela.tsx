@@ -37,7 +37,7 @@ import { projectStatusConfig } from '@/lib/projetoStatusColors';
 import { cn } from '@/lib/utils';
 
 /** Quantas colunas a tabela tem, para o `colSpan` da cabeça de grupo. */
-const COLUNAS = 9;
+const COLUNAS = 10;
 
 function data(valor: string | null): string {
   if (!valor) return '—';
@@ -105,6 +105,29 @@ function Prazo({ linha }: { linha: LinhaDoControle }) {
         <TooltipContent>Prazo vencido e a OS continua aberta</TooltipContent>
       </Tooltip>
     </span>
+  );
+}
+
+/**
+ * A descrição do projeto, a mesma que o modal edita.
+ *
+ * Cortada em duas linhas com o texto inteiro no tooltip: é campo livre, e
+ * deixá-la crescer faria uma linha de descrição longa empurrar a altura de todas
+ * as outras nove colunas. Produto sem projeto cai no traço junto com o projeto
+ * de descrição vazia — os dois estados já se distinguem na coluna Status, e
+ * repetir a distinção aqui só encheria a célula.
+ */
+function Descricao({ linha }: { linha: LinhaDoControle }) {
+  if (!linha.descricao) return <span className="text-muted-foreground">—</span>;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="line-clamp-2 cursor-default whitespace-normal break-words text-left">
+          {linha.descricao}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-sm whitespace-pre-wrap">{linha.descricao}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -290,6 +313,9 @@ function LinhaDaTabela({ linha, onAbrir }: { linha: LinhaDoControle; onAbrir: ()
       <TableCell className="text-sm">
         <Prazo linha={linha} />
       </TableCell>
+      <TableCell className="text-sm">
+        <Descricao linha={linha} />
+      </TableCell>
     </TableRow>
   );
 }
@@ -340,8 +366,8 @@ export function ControleDeProjetosTabela({
             {/*
               Os rótulos são os do CADASTRO, não os da planilha nem invenção
               desta tela: "Produto Contratado" e "Região" saem do formulário de
-              OS, "Líder Geral" e "Status" do modal de projeto, "Data Início" e
-              "Data Fim" do bloco de período da OS. Coluna com nome próprio
+              OS, "Líder Geral", "Status" e "Descrição" do modal de projeto,
+              "Data Início" e "Data Fim" do bloco de período da OS. Coluna com nome próprio
               obriga quem lê a traduzir de volta para achar onde se edita.
 
               "Área Executora" é a exceção, e é deliberada:
@@ -349,15 +375,16 @@ export function ControleDeProjetosTabela({
               chamá-la de "Área" a confundiria com "Área do Negócio" da OS, que é
               o setor do cliente (Agropecuária, Indústria) e é outra coisa.
             */}
-            {coluna('cliente', 'Cliente', '15%')}
-            {coluna('os', 'OS', '8%', 'whitespace-nowrap')}
-            {coluna('area', 'Área Executora', '9%')}
-            {coluna('produto', 'Produto Contratado', '18%')}
-            {coluna('status', 'Status', '11%')}
-            {coluna('gestor', 'Líder Geral', '14%')}
-            {coluna('regiao', 'Região', '7%')}
-            {coluna('inicio', 'Data Início', '9%', 'whitespace-nowrap')}
-            {coluna('prazo', 'Data Fim', '9%', 'whitespace-nowrap')}
+            {coluna('cliente', 'Cliente', '13%')}
+            {coluna('os', 'OS', '7%', 'whitespace-nowrap')}
+            {coluna('area', 'Área Executora', '8%')}
+            {coluna('produto', 'Produto Contratado', '15%')}
+            {coluna('status', 'Status', '10%')}
+            {coluna('gestor', 'Líder Geral', '12%')}
+            {coluna('regiao', 'Região', '6%')}
+            {coluna('inicio', 'Data Início', '7%', 'whitespace-nowrap')}
+            {coluna('prazo', 'Data Fim', '7%', 'whitespace-nowrap')}
+            {coluna('descricao', 'Descrição', '15%')}
           </TableRow>
         </TableHeader>
         <TableBody>

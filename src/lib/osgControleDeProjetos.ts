@@ -52,6 +52,7 @@ export interface ProjetoDaOrdem {
   produto_segmento_id: string | null;
   responsible_id: string | null;
   leader_id: string | null;
+  description: string | null;
 }
 
 export interface ClienteCru {
@@ -113,6 +114,16 @@ export interface LinhaDoControle {
   dataFim: string | null;
   /** `data_fim` no passado e a OS ainda não concluída nem cancelada. */
   prazoVencido: boolean;
+  /**
+   * A descrição do projeto daquele produto — o mesmo `org_projects.description`
+   * que o modal de projeto edita, e por isso sem texto próprio desta tela.
+   *
+   * Vazia quando não há projeto, ou quando o projeto existe e ninguém preencheu.
+   * Dos três pares com mais de um projeto em produção, vale a primeira descrição
+   * preenchida: concatenar duas descrições daria um parágrafo que não é de
+   * nenhum dos dois.
+   */
+  descricao: string;
 }
 
 /**
@@ -269,6 +280,7 @@ export function montarControleDeProjetos(
         dataInicio: ordem.data_inicio ?? null,
         dataFim: ordem.data_fim ?? null,
         prazoVencido: prazoVencido(ordem.data_fim ?? null, status, hoje),
+        descricao: doPar.map((projeto) => projeto.description?.trim() ?? '').find(Boolean) ?? '',
       });
     }
   }
@@ -386,7 +398,8 @@ export type ColunaDoControle =
   | 'inicio'
   | 'prazo'
   | 'executor'
-  | 'gestor';
+  | 'gestor'
+  | 'descricao';
 
 export interface OrdemDoControle {
   /** `'padrao'` = cliente, área desta página, produto. */
@@ -449,6 +462,8 @@ function valorDaColuna(linha: LinhaDoControle, campo: ColunaDoControle): string 
       return linha.executores.join(', ').toLocaleLowerCase('pt-BR');
     case 'gestor':
       return linha.lideres.join(', ').toLocaleLowerCase('pt-BR');
+    case 'descricao':
+      return linha.descricao.toLocaleLowerCase('pt-BR');
   }
 }
 
@@ -472,6 +487,8 @@ function estaVazio(linha: LinhaDoControle, campo: ColunaDoControle): boolean {
       return linha.executores.length === 0;
     case 'gestor':
       return linha.lideres.length === 0;
+    case 'descricao':
+      return !linha.descricao;
   }
 }
 
