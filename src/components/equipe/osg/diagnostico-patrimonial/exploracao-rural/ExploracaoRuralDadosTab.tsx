@@ -6,9 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import DateFieldWithInput from '@/components/equipe/client-form/DateFieldWithInput';
 import { FieldSection, fieldCls, switchBoxCls } from '@/components/equipe/osg/formKit';
 import { formGridCls } from '@/lib/osgFormGrid';
+import { cn } from '@/lib/utils';
 import { clampFracaoInput, FRACAO_STEP } from '@/components/equipe/osg/diagnostico-patrimonial/fracaoUtils';
 import type { DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
-import { Campo } from '@/components/equipe/osg/diagnostico-patrimonial/exploracao-rural/CampoComDica';
+import { Campo, Dica } from '@/components/equipe/osg/diagnostico-patrimonial/exploracao-rural/CampoComDica';
 import {
   MODALIDADE_PECUARIA_OPCOES,
   statusDaPartilha,
@@ -211,13 +212,15 @@ export function ExploracaoRuralDadosTab({ draft, onChange, documentos }: Props) 
         </FieldSection>
       )}
 
-      {/* Culturas ocupa 2 colunas e os dois switches fecham as outras 2 — a linha de 4
-          fecha exata, sem meia linha vazia no meio da grade. */}
+      {/* Duas linhas que fecham exatas na grade de 4: culturas (3) + o switch do gado
+          (1); modalidades (3) + o switch do penhor (1). Os dois switches ficam na
+          MESMA coluna, um embaixo do outro — antes o do penhor caía solto no meio da
+          lista de modalidades, porque ela é o único campo alto da seção. */}
       <FieldSection number={next()} title="Atividade">
         <div className={`${formGridCls(4)} items-end gap-3`}>
           <Campo
             label="Culturas permitidas"
-            colunas={2}
+            colunas={3}
             dica="O que pode ser plantado ou criado na área. Escreva a lista combinada neste contrato, separada por ponto e vírgula."
           >
             <Input
@@ -249,29 +252,32 @@ export function ExploracaoRuralDadosTab({ draft, onChange, documentos }: Props) 
             <Campo
               label="Modalidades da pecuária"
               campo="pecuaria_modalidades"
-              colunas={2}
+              colunas={3}
               dica="Define o que conta como FRUTO na partilha da Cláusula Quinta, e cada uma mede de um jeito. Marque todas as que este contrato explora."
             >
-              <div className="flex flex-col gap-2 pt-1">
+              {/* Uma linha só, como qualquer outro controle da grade: o que cada
+                  modalidade mede vai no TOOLTIP do item, não embaixo dele. Texto sob
+                  o controle é o que fazia esta célula crescer três linhas e empurrar
+                  o vizinho — a regra está escrita em CampoComDica.tsx. */}
+              <div className={cn(switchBoxCls, 'h-auto min-h-9 flex-wrap gap-x-5 gap-y-1.5 py-1.5')}>
                 {MODALIDADE_PECUARIA_OPCOES.map((o) => {
                   const marcada = draft.pecuaria_modalidades.includes(o.valor);
                   return (
-                    <label key={o.valor} className="flex items-start gap-2 text-sm">
-                      <Checkbox
-                        checked={marcada}
-                        onCheckedChange={(v) => set(
-                          'pecuaria_modalidades',
-                          v
-                            ? [...draft.pecuaria_modalidades, o.valor]
-                            : draft.pecuaria_modalidades.filter((m) => m !== o.valor),
-                        )}
-                        className="mt-0.5"
-                      />
-                      <span>
+                    <span key={o.valor} className="flex items-center gap-1.5">
+                      <label className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={marcada}
+                          onCheckedChange={(v) => set(
+                            'pecuaria_modalidades',
+                            v
+                              ? [...draft.pecuaria_modalidades, o.valor]
+                              : draft.pecuaria_modalidades.filter((m) => m !== o.valor),
+                          )}
+                        />
                         {o.rotulo}
-                        <span className="block text-xs text-muted-foreground">{o.dica}</span>
-                      </span>
-                    </label>
+                      </label>
+                      <Dica>{o.dica}</Dica>
+                    </span>
                   );
                 })}
               </div>

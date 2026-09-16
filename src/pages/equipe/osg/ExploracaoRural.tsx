@@ -19,7 +19,7 @@ import {
   type ExploracaoRuralEnriched,
 } from '@/hooks/useExploracaoRural';
 import { ExploracaoRuralModal } from '@/components/equipe/osg/diagnostico-patrimonial/ExploracaoRuralModal';
-import { TIPOS_EXPLORACAO_OPCOES } from '@/lib/exploracaoRuralModalModels';
+import { ROTULO_TIPO_EXPLORACAO, TIPOS_EXPLORACAO_OPCOES } from '@/lib/exploracaoRuralModalModels';
 
 const TODOS = '__todos__';
 
@@ -33,8 +33,10 @@ const areaCedida = (row: ExploracaoRuralEnriched): number =>
     return soma + (item.area_unidade === 'm2' ? valor / 10000 : valor);
   }, 0);
 
+// Pelo MAPA, não pela lista oferecida: o seletor só mostra parceria e composse, mas
+// uma linha antiga gravada com outro tipo continua tendo que aparecer por extenso.
 const rotuloDoTipo = (tipo: string): string =>
-  TIPOS_EXPLORACAO_OPCOES.find((t) => t.valor === tipo)?.rotulo ?? tipo;
+  ROTULO_TIPO_EXPLORACAO[tipo as keyof typeof ROTULO_TIPO_EXPLORACAO] ?? tipo;
 
 /** Quem explora: outorgados na parceria, compossuidores na composse. */
 const partesQueExploram = (row: ExploracaoRuralEnriched): string[] => {

@@ -82,18 +82,33 @@ export const ORIGEM_TIPO_OPCOES: { valor: OrigemTipo; rotulo: string }[] = [
 ];
 
 /**
- * Os seis tipos do enum do banco. A tela oferece todos, mas só `parceria` e
- * `composse` têm seções próprias — os outros quatro existem na coluna desde antes
- * da ALE-3 e não têm modelo de contrato mapeado. Oferecer todos é mais honesto que
- * esconder: o `FiscalReport` já os rotula.
+ * Rótulo de CADA um dos seis tipos do enum do banco.
+ *
+ * Existe separado da lista oferecida porque a coluna `osg_tipo_exploracao` aceita os
+ * seis desde antes da ALE-3: linha antiga gravada como `comodato` continua tendo que
+ * aparecer escrita por extenso na listagem e no relatório Fiscal, mesmo agora que a
+ * tela não oferece mais esse tipo para escolher.
+ */
+export const ROTULO_TIPO_EXPLORACAO: Record<TipoExploracaoRural, string> = {
+  parceria: 'Parceria',
+  composse: 'Composse',
+  arrendamento: 'Arrendamento',
+  comodato: 'Comodato',
+  condominio: 'Condomínio',
+  propria: 'Exploração própria',
+};
+
+/**
+ * O que a tela OFERECE: só parceria e composse (decisão do Alexandre, 16/09/2026).
+ *
+ * São os dois únicos com seções próprias no cadastro e com modelo de contrato no
+ * catálogo. Os outros quatro não geram documento nenhum, e oferecê-los no seletor
+ * fazia a tela prometer um cadastro que não leva a lugar algum — pior do que
+ * escondê-los. Quando um deles ganhar cláusulas, volta para cá.
  */
 export const TIPOS_EXPLORACAO_OPCOES: { valor: TipoExploracaoRural; rotulo: string }[] = [
-  { valor: 'parceria', rotulo: 'Parceria' },
-  { valor: 'composse', rotulo: 'Composse' },
-  { valor: 'arrendamento', rotulo: 'Arrendamento' },
-  { valor: 'comodato', rotulo: 'Comodato' },
-  { valor: 'condominio', rotulo: 'Condomínio' },
-  { valor: 'propria', rotulo: 'Exploração própria' },
+  { valor: 'parceria', rotulo: ROTULO_TIPO_EXPLORACAO.parceria },
+  { valor: 'composse', rotulo: ROTULO_TIPO_EXPLORACAO.composse },
 ];
 
 // ── Rascunho ────────────────────────────────────────────────────────────────────
@@ -128,7 +143,6 @@ export interface OrigemExternaDraft {
   titulo_instrumento: string;
   data_assinatura: string;
   outorgante_pessoa_id: string | null;
-  outorgante_capital_social_na_assinatura: string;
   outorgante_representante: string;
 }
 
@@ -270,7 +284,6 @@ export const novaOrigemExterna = (): OrigemExternaDraft => ({
   titulo_instrumento: '',
   data_assinatura: '',
   outorgante_pessoa_id: null,
-  outorgante_capital_social_na_assinatura: '',
   outorgante_representante: '',
 });
 
@@ -644,7 +657,6 @@ export function exploracaoRuralParaDraft(
       titulo_instrumento: str(o.titulo_instrumento),
       data_assinatura: data(o.data_assinatura),
       outorgante_pessoa_id: o.outorgante_pessoa_id,
-      outorgante_capital_social_na_assinatura: str(o.outorgante_capital_social_na_assinatura),
       outorgante_representante: str(o.outorgante_representante),
     };
   });
@@ -837,7 +849,6 @@ export function draftParaOrigens(draft: DraftExploracaoRural) {
       titulo_instrumento: texto(o.titulo_instrumento),
       data_assinatura: texto(o.data_assinatura),
       outorgante_pessoa_id: o.outorgante_pessoa_id,
-      outorgante_capital_social_na_assinatura: numero(o.outorgante_capital_social_na_assinatura),
       outorgante_representante: texto(o.outorgante_representante),
     }));
 }

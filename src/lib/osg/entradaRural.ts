@@ -161,7 +161,6 @@ export interface ExploracaoCrua {
     data_assinatura: string | null;
     outorgante_pessoa_id: string | null;
     outorgante_representante: string | null;
-    outorgante_capital_social_na_assinatura: number | null;
   }>;
 }
 
@@ -281,7 +280,12 @@ export function entradaDoInstrumento(
           ? administradoresPorPj.get(o.outorgante_pessoa_id) ?? []
           : [],
         outorganteRepresentante: o.outorgante_representante,
-        capitalSocialNaAssinatura: o.outorgante_capital_social_na_assinatura,
+        // A origem EXTERNA não guarda capital social (removido em 16/09/2026): o
+        // capital é retrato do INSTRUMENTO, e a origem externa não é um. Quando a
+        // origem é interna, ele continua vindo da exploração apontada — logo
+        // abaixo. Na externa, o Considerando V qualifica a contraparte sem o
+        // capital, que é o que a própria banca já emitiu (achado E do relatório 14).
+        capitalSocialNaAssinatura: null,
       })),
       // Internas: a contraparte é o outorgante do instrumento apontado, e a data
       // é a dele. A chave repete o prefixo que os imóveis usam (ver `origemChave`
