@@ -401,4 +401,21 @@ describe('editar o que a tela mostra', () => {
     expect(screen.getByTestId('form-servico'))
       .toHaveTextContent('editar:2.1.Análise das demonstrações financeiras');
   });
+
+  // O detalhe virou DIÁLOGO em 16/09/2026 (era painel lateral de altura
+  // inteira). Painel podia ficar aberto atrás do formulário; diálogo sobre
+  // diálogo empilha dois focos presos e dois overlays.
+  it('abrir o formulário do serviço fecha o detalhe', async () => {
+    const user = userEvent.setup();
+    render(<ProdutosServicosTab />);
+    await abrirProduto(user, CHA);
+
+    await user.click(screen.getByText('Análise das demonstrações financeiras'));
+    expect(screen.getByText('Em que produtos')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Editar serviço/ }));
+
+    expect(screen.queryByText('Em que produtos')).not.toBeInTheDocument();
+    expect(screen.getByTestId('form-servico')).toBeInTheDocument();
+  });
 });

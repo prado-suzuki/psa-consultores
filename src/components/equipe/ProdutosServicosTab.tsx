@@ -12,9 +12,7 @@ import ServicosLista, {
 import ServicoDetalhePanel, {
   type ProdutoVinculado,
 } from '@/components/equipe/produto-servico/ServicoDetalhePanel';
-import {
-  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
-} from '@/components/ui/sheet';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import ProdutoFormDialog from '@/components/equipe/produto-servico/ProdutoFormDialog';
 import ServicoFormDialog from '@/components/equipe/produto-servico/ServicoFormDialog';
 import ConfirmarExclusaoDialog from '@/components/equipe/produto-servico/ConfirmarExclusaoDialog';
@@ -517,38 +515,46 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
       </ListaMestreDetalhe>
 
       {/*
-        O detalhe do serviço vive SOBRE a tela, e não ao lado dela.
+        O detalhe do serviço vive SOBRE a tela, e não ao lado dela — e do TAMANHO
+        do que tem para dizer.
 
         Era uma terceira coluna de 320px, sempre montada, que na maior parte do
-        tempo mostrava "Selecione um serviço" — um terço da largura reservado
-        para um vazio, enquanto a lista de serviços, que é onde se trabalha,
-        ficava com o que sobrava. O conteúdo é o mesmo e o gesto que abre também:
-        clicar no nome do serviço.
+        tempo mostrava "Selecione um serviço". Virou painel lateral de altura
+        inteira, o que resolveu o vazio permanente mas manteve o exagero de
+        escala: 384px pela altura da janela para um nome, um cluster, um número e
+        uma lista que em produção tem no máximo 3 linhas. Agora é um diálogo de
+        `max-w-md` com altura automática. O conteúdo é o mesmo e o gesto que abre
+        também: clicar no nome do serviço.
       */}
-      <Sheet
+      <Dialog
         open={!!servicoAberto}
         onOpenChange={(aberto) => { if (!aberto) setServicoAbertoId(null); }}
       >
-        <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-sm">
-          <SheetHeader className="sr-only">
-            <SheetTitle>{dividirNomeServico(servicoAberto?.nome).nome || 'Serviço'}</SheetTitle>
-            <SheetDescription>
-              Cluster do serviço e em quais produtos ele é usado.
-            </SheetDescription>
-          </SheetHeader>
+        <DialogContent className="sm:max-w-md">
           <ServicoDetalhePanel
             servico={servicoAberto}
             cluster={clusterDoServico}
             vinculados={produtosDoServico.vinculados}
             disponiveis={produtosDoServico.disponiveis}
             carregando={isLoading}
+            /*
+              Os dois FECHAM o detalhe antes de abrir o seu diálogo. Enquanto o
+              detalhe era painel lateral, ele podia ficar aberto atrás do
+              formulário; diálogo sobre diálogo empilha dois focos presos e duas
+              camadas de overlay para mostrar a mesma coisa duas vezes. Quem vai
+              editar ou excluir já decidiu — o detalhe não tem mais o que dizer.
+            */
             onEditar={() => {
               const bruto = servicos.find((s) => s.id === servicoAberto?.id);
-              if (bruto) setFormServico({ aberto: true, alvo: bruto });
+              if (!bruto) return;
+              setServicoAbertoId(null);
+              setFormServico({ aberto: true, alvo: bruto });
             }}
             onExcluir={() => {
               const bruto = servicos.find((s) => s.id === servicoAberto?.id);
-              if (bruto) setServicoParaExcluir(bruto);
+              if (!bruto) return;
+              setServicoAbertoId(null);
+              setServicoParaExcluir(bruto);
             }}
             onDesvincular={(produto) => {
               if (servicoAberto) void alternarVinculo(produto.id, servicoAberto.id, servicoAberto.nome);
@@ -557,8 +563,8 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
               if (servicoAberto) void alternarVinculo(produtoId, servicoAberto.id, servicoAberto.nome);
             }}
           />
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       <ProdutoFormDialog
         aberto={formProduto.aberto}
