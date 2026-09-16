@@ -6652,6 +6652,7 @@ export type Database = {
           excluido: boolean
           grupo: string | null
           id: string
+          infinitivo: string | null
           nome: string
           ordem: number
           updated_at: string
@@ -6664,6 +6665,7 @@ export type Database = {
           excluido?: boolean
           grupo?: string | null
           id?: string
+          infinitivo?: string | null
           nome: string
           ordem?: number
           updated_at?: string
@@ -6676,6 +6678,7 @@ export type Database = {
           excluido?: boolean
           grupo?: string | null
           id?: string
+          infinitivo?: string | null
           nome?: string
           ordem?: number
           updated_at?: string
