@@ -290,6 +290,37 @@ describe('lista de serviços', () => {
     });
   });
 
+  /*
+   * O CÓDIGO REPETIDO, que é o Tax e não a OSG.
+   *
+   * Conferido em produção em 16/09/2026: na OSG os 40 serviços têm 40 códigos
+   * distintos; no Tax os 82 se distribuem em 25 prefixos — o "1.1" cobre 8 — e
+   * 14 nomes não têm prefixo nenhum. A coluna repetia "1.1" oito vezes.
+   */
+  it('mostra o código uma vez por grupo, e de novo no bloco seguinte', async () => {
+    dados.servicos = [
+      ...dados.servicos,
+      servico('s-11b', '1.1.Apoio no fechamento contábil', CLUSTER_TAX, 'TAX'),
+      servico('s-11c', '1.1.Consolidação de balanços', CLUSTER_TAX, 'TAX'),
+    ];
+    dados.vinculos = [...dados.vinculos, {
+      id: 'v-cc-11',
+      produto_segmento_id: 'p-cc',
+      servico_prestado_id: 's-11',
+      produto_segmento: { codigo: '03-CC', nome: CONTABIL },
+      servicos_prestados: { nome: '1.1.Apoio na implantação de práticas contábeis' },
+    }];
+
+    render(<ProdutosServicosTab />);
+    await abrirProduto(userEvent.setup(), CONTABIL);
+
+    // Três serviços "1.1" na tela, em dois blocos: o código sai uma vez em cada.
+    // Duas vezes, e não três — e também não uma, porque bloco novo recomeça.
+    expect(screen.getAllByText('1.1')).toHaveLength(2);
+    expect(screen.getAllByText('1.2')).toHaveLength(1);
+    expect(screen.getAllByText('1.10')).toHaveLength(1);
+  });
+
   it('a busca recorta a lista sem mexer na ordem', async () => {
     const user = userEvent.setup();
     render(<ProdutosServicosTab />);

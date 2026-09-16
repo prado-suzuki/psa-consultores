@@ -186,7 +186,7 @@ export default function ServicosLista({
   const restante = paraDesvincular.length - nomesDoAviso.length;
 
   /** A faixa de um serviço. Sai daqui duas vezes: cluster do produto e outros. */
-  const linha = (servico: ServicoNaLista, comCluster: boolean) => {
+  const linha = (servico: ServicoNaLista, comCluster: boolean, codigoAcima?: string | null) => {
     const aberto = servico.id === servicoAbertoId;
     const marcado = marcados.has(servico.id);
     const estado = {
@@ -212,8 +212,25 @@ export default function ServicosLista({
             aria-label={`${servico.vinculado ? 'Desvincular' : 'Vincular'} ${nome}`}
             onCheckedChange={() => onAlternarVinculo(servico)}
           />
+          {/*
+            O CÓDIGO SÓ APARECE QUANDO MUDA.
+
+            Nos dois catálogos ele é o mesmo prefixo lido do nome, mas significa
+            coisas diferentes (conferido em produção em 16/09/2026): na OSG os 40
+            serviços têm 40 códigos distintos — o código É o serviço, e aqui nada
+            muda, toda linha mostra o seu. No Tax os 82 se distribuem em 25
+            prefixos, o "1.1" cobre 8 serviços e 14 nomes não têm prefixo nenhum:
+            repetir "1.1" oito vezes, ou "—" quatorze, é uma coluna dizendo a
+            mesma coisa linha após linha.
+
+            Escondido, e não apagado: o espaço fica reservado (a largura é fixa),
+            os nomes seguem alinhados e o código volta a aparecer na primeira
+            linha do grupo seguinte — o que dá à lista a marcação de seção que as
+            sanfonas de "Seção 1" tentaram dar, sem cabeçalho e sem nada para
+            abrir. O `aria-label` da caixa nunca dependeu do código.
+          */}
           <span className="w-[46px] shrink-0 truncate text-center font-mono text-[11px] text-muted-foreground">
-            {codigo || '—'}
+            {codigo === codigoAcima ? '' : codigo || '—'}
           </span>
           <button
             type="button"
@@ -262,6 +279,21 @@ export default function ServicosLista({
    * cabeçalho e o "x/y nesta lista" da faixa abaixo dele.
    */
   const comRotulos = vinculados.length > 0 && faltam.length > 0;
+
+  /**
+   * Um bloco de linhas. Cada uma recebe o código da linha ACIMA DELA para poder
+   * esconder o próprio quando é o mesmo — e cada bloco começa do zero, porque a
+   * primeira linha de um bloco não tem linha acima.
+   */
+  const blocoDeLinhas = (itens: ServicoNaLista[], comCluster: boolean) => (
+    <ul className="divide-y">
+      {itens.map((servico, i) => linha(
+        servico,
+        comCluster,
+        i === 0 ? undefined : dividirNomeServico(itens[i - 1].nome).codigo,
+      ))}
+    </ul>
+  );
   const rotuloDeBloco = (texto: string, extra?: string) => (
     <p
       className={cn(
@@ -475,13 +507,13 @@ export default function ServicosLista({
             {vinculados.length > 0 && (
               <>
                 {comRotulos && rotuloDeBloco('Vinculados')}
-                <ul className="divide-y">{vinculados.map((servico) => linha(servico, false))}</ul>
+                {blocoDeLinhas(vinculados, false)}
               </>
             )}
             {faltam.length > 0 && (
               <>
                 {comRotulos && rotuloDeBloco('Faltam vincular', 'mt-2 border-t pt-2')}
-                <ul className="divide-y">{faltam.map((servico) => linha(servico, false))}</ul>
+                {blocoDeLinhas(faltam, false)}
               </>
             )}
           </>
@@ -507,9 +539,7 @@ export default function ServicosLista({
                 ? `Ocultar os ${outrosClusters.length} serviços de outros clusters`
                 : `Ver ${outrosClusters.length} ${outrosClusters.length === 1 ? 'serviço' : 'serviços'} de outros clusters`}
             </Button>
-            {mostrarOutros && (
-              <ul className="divide-y">{outrosClusters.map((servico) => linha(servico, true))}</ul>
-            )}
+            {mostrarOutros && blocoDeLinhas(outrosClusters, true)}
           </div>
         )}
       </div>
