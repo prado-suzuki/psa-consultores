@@ -34,11 +34,11 @@ export const DEV_HUBS: Record<
     label: DEV_NAV_LABELS.consultaSped,
     landingPath: '/equipe/dev/consulta-sped',
     landingDescription:
-      'Área para localizar arquivos do Sistema Público de Escrituração Digital, filtrar por contribuinte e período, baixar os arquivos originais e abrir a leitura detalhada de cada entrega.',
+      'Acesse EFD Contribuições, EFD ICMS/IPI, ECD e ECF para consulta, análise e download.',
     landingIcon: Receipt,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
     title: 'Consulta dos arquivos SPEDs do cliente',
-    subtitle: 'Ferramentas para consulta, download e análise dos SPEDs fiscais.',
+    subtitle: 'Acesse EFD Contribuições, EFD ICMS/IPI, ECD e ECF para consulta, análise e download.',
     heroEyebrow: '',
     heroTitle: 'Consulta dos arquivos SPEDs do cliente',
     heroDescription:
@@ -108,13 +108,13 @@ export const DEV_HUBS: Record<
     label: DEV_NAV_LABELS.levantamentoPisCofins,
     landingPath: '/equipe/dev/levantamento-pis-cofins',
     landingDescription:
-      'Área do levantamento de crédito para parametrizar regras fiscais, apurar contribuições, reconciliar bases e revisar registros antes de consolidar o trabalho.',
+      'Acesse ferramentas para regras fiscais, apuração, análise cruzada e correções da EFD Contribuições.',
     landingIcon: Calculator,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
     title:
       'Levantamento PIS/COFINS — Programa de Integração Social e Contribuição para o Financiamento da Seguridade Social',
     subtitle:
-      'Escolha a ferramenta de cadastro de regras, apuração, análise cruzada e revisão de registros.',
+      'Acesse ferramentas para parametrização de regras, apuração, análise cruzada e correções da EFD Contribuições.',
     heroEyebrow: '',
     heroTitle: 'Levantamento PIS/COFINS',
     heroDescription:
@@ -187,12 +187,12 @@ export const DEV_HUBS: Record<
     label: DEV_NAV_LABELS.analiseIcms,
     landingPath: '/equipe/dev/analise-icms',
     landingDescription:
-      'Área para apurar saídas, revisar CFOP e substituição tributária e auditar a classificação de produtos usada no processo de diferencial de alíquota.',
+      'Acesse ferramentas para análise de ICMS das saídas e DIFAL.',
     landingIcon: Truck,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
     title: 'Análise do Imposto sobre Circulação de Mercadorias e Serviços (ICMS)',
     subtitle:
-      'Ferramentas para análise do ICMS das saídas e para análise do diferencial de alíquota (DIFAL).',
+      'Acesse as análises de ICMS das saídas e DIFAL.',
     heroEyebrow: '',
     heroTitle: 'Análise ICMS',
     heroDescription:
@@ -234,12 +234,12 @@ export const DEV_HUBS: Record<
     label: DEV_NAV_LABELS.perdcomp,
     landingPath: '/equipe/dev/perdcomp',
     landingDescription:
-      'Área com entradas separadas para a leitura analítica do painel e para a gestão operacional dos pedidos de restituição, ressarcimento, reembolso e declaração de compensação.',
+      'Acesse o dashboard e o controle operacional de PERDCOMP.',
     landingIcon: BarChart3,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
     title:
       'Pedido Eletrônico de Restituição, Ressarcimento ou Reembolso e Declaração de Compensação (PERDCOMP)',
-    subtitle: 'Ferramentas para análise e controle do PERDCOMP.',
+    subtitle: 'Acesse o acompanhamento analítico e o controle operacional de PERDCOMP.',
     heroEyebrow: '',
     heroTitle: 'PERDCOMP',
     heroDescription:
