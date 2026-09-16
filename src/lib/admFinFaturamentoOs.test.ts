@@ -23,6 +23,11 @@ const os = (o: Partial<RawOsFaturamento> & { id: string }): RawOsFaturamento => 
   cluster_id: null,
   situacao: 'em_andamento',
   created_at: '2026-09-01T10:00:00Z',
+  id_servico: null,
+  observacoes: null,
+  data_emissao: null,
+  data_inicio: null,
+  data_fim: null,
   valor_projeto: null,
   numero_parcelas: null,
   valor_entrada: null,
@@ -131,6 +136,60 @@ describe('montarLinhasFaturamentoOs', () => {
       // Centro de custo fora do catálogo cai no id em vez de sumir.
       { label: 'cc-fantasma', percentual: 30 },
     ]);
+  });
+});
+
+describe('serviço, produtos, observação e contato', () => {
+  const SERVICOS = [{ id: 'srv-1', nome: 'Planejamento Tributário' }];
+  const CATALOGO = [
+    { id: 'pro-1', codigo: 'P-01', nome: 'Governança' },
+    { id: 'pro-2', codigo: 'P-02', nome: 'Sucessão' },
+  ];
+
+  it('traz o serviço, os produtos em ordem e as horas', () => {
+    const [linha] = montar([os({ id: 'os-1', id_servico: 'srv-1' })], {
+      servicos: SERVICOS,
+      produtos: CATALOGO,
+      produtosDaOs: [
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'pro-2', horas_contratadas: 40 },
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'pro-1', horas_contratadas: null },
+        { ordem_servico_id: 'outra', produto_segmento_id: 'pro-1', horas_contratadas: 10 },
+      ],
+    });
+    expect(linha.servico_nome).toBe('Planejamento Tributário');
+    expect(linha.produtos).toEqual([
+      { label: 'P-01 - Governança', horas: null },
+      { label: 'P-02 - Sucessão', horas: 40 },
+    ]);
+  });
+
+  it('observação em branco vira nulo, e não uma linha vazia na tela', () => {
+    const [comEspaco] = montar([os({ id: 'os-1', observacoes: '   ' })]);
+    expect(comEspaco.observacoes).toBeNull();
+    const [comTexto] = montar([os({ id: 'os-2', observacoes: 'Serviços de Auditoria 2026' })]);
+    expect(comTexto.observacoes).toBe('Serviços de Auditoria 2026');
+  });
+
+  it('contato: só quem tem e-mail ou telefone, com quem tem e-mail na frente', () => {
+    const [linha] = montar([os({ id: 'os-1' })], {
+      representantes: [
+        { id_representante: 'r1', id_cliente: 'cli-1', nome: 'Zilda', cargo: null, email: null, telefone: '65999998888', tipo_representante: null },
+        { id_representante: 'r2', id_cliente: 'cli-1', nome: 'Ana', cargo: 'Financeiro', email: 'ana@x.com', telefone: null, tipo_representante: null },
+        { id_representante: 'r3', id_cliente: 'cli-1', nome: 'Sem contato', cargo: null, email: '  ', telefone: null, tipo_representante: null },
+        { id_representante: 'r4', id_cliente: 'outro-cliente', nome: 'De outro', cargo: null, email: 'z@x.com', telefone: null, tipo_representante: null },
+      ],
+    });
+    expect(linha.contatos).toEqual([
+      { nome: 'Ana', cargo: 'Financeiro', email: 'ana@x.com', telefone: null },
+      { nome: 'Zilda', cargo: null, email: null, telefone: '(65) 99999-8888' },
+    ]);
+  });
+
+  it('as datas da OS vêm como estão, para a tela formatar', () => {
+    const [linha] = montar([os({ id: 'os-1', data_emissao: '2026-03-12', data_fim: '2026-12-31' })]);
+    expect(linha.data_emissao).toBe('2026-03-12');
+    expect(linha.data_inicio).toBeNull();
+    expect(linha.data_fim).toBe('2026-12-31');
   });
 });
 

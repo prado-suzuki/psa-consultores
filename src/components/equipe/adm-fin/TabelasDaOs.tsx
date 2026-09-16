@@ -1,6 +1,6 @@
 import { SectionHeading } from '@/components/ui/section-heading';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { formatCurrencyDisplay } from '@/components/equipe/client-form/constants';
+import { formatCurrencyDisplay, isoToMasked } from '@/components/equipe/client-form/constants';
 import { formatarPercentual } from '@/lib/rateioReceita';
 import type { LinhaFaturamentoOs } from '@/lib/admFinFaturamentoOs';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,9 @@ export interface TabelasDaOsProps {
 
 /** Célula vazia: travessão, como a leitura da OS. */
 const ou = (valor: string | null | undefined) => valor?.trim() || '—';
+
+/** Data em dd/mm/aaaa, pelo mesmo formatador da leitura da OS. */
+const data = (iso: string | null) => (iso ? isoToMasked(iso) || '—' : '—');
 
 const Quadro = ({ titulo, children }: { titulo: string; children: React.ReactNode }) => (
   <section className="min-w-0 space-y-1.5">
@@ -61,6 +64,72 @@ export function TabelasDaOs({ linha }: TabelasDaOsProps) {
 
   return (
     <div className="space-y-4">
+      {/*
+        O QUE FOI VENDIDO, E QUANDO. Entrou em 15/09/2026, depois da validação do
+        financeiro: a Letícia pediu "a observação do serviço que precisa constar
+        na NF", e o que existe hoje é o serviço contratado, os produtos e o campo
+        `observacoes` da OS. Não é o campo próprio da nota, que ainda é decisão em
+        aberto (ver `docs/planos/faturamento-pedido-do-financeiro.md`); é o que o
+        sistema tem, e mostrá-lo já responde metade da pergunta dela.
+      */}
+      <Quadro titulo="Serviço e prazos">
+        <Table className="text-xs">
+          <TableHeader>
+            <TableRow className="bg-muted hover:bg-muted">
+              <Th>Serviço</Th>
+              <Th>Emissão</Th>
+              <Th>Início</Th>
+              <Th>Fim</Th>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow className="hover:bg-transparent">
+              <TableCell className="font-medium">{ou(linha.servico_nome)}</TableCell>
+              <TableCell className="whitespace-nowrap tabular-nums">{data(linha.data_emissao)}</TableCell>
+              <TableCell className="whitespace-nowrap tabular-nums">{data(linha.data_inicio)}</TableCell>
+              <TableCell className="whitespace-nowrap tabular-nums">{data(linha.data_fim)}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </Quadro>
+
+      {/* Produtos só aparecem quando existem: OS sem produto contratado é comum, e
+          um quadro com uma linha de travessão não informa nada. */}
+      {linha.produtos.length > 0 && (
+        <Quadro titulo="Produtos contratados">
+          <Table className="text-xs">
+            <TableHeader>
+              <TableRow className="bg-muted hover:bg-muted">
+                <Th>Produto</Th>
+                <Th className={cn(NUMERICA, 'w-[8rem]')}>Horas contratadas</Th>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {linha.produtos.map((produto, i) => (
+                <TableRow key={`${produto.label}-${i}`} className="hover:bg-transparent">
+                  <TableCell>{produto.label}</TableCell>
+                  <TableCell className={NUMERICA}>
+                    {produto.horas != null ? produto.horas : '—'}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Quadro>
+      )}
+
+      {linha.observacoes && (
+        <Quadro titulo="Observação da OS">
+          <Table className="text-xs">
+            <TableBody>
+              <TableRow className="hover:bg-transparent">
+                <TableCell className="whitespace-pre-line">{linha.observacoes}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </Quadro>
+      )}
+
       <Quadro titulo="Contribuinte de faturamento da OS">
         <Table className="text-xs">
           <TableHeader>
@@ -121,6 +190,45 @@ export function TabelasDaOs({ linha }: TabelasDaOsProps) {
                 </TableCell>
               )}
             </TableRow>
+          </TableBody>
+        </Table>
+      </Quadro>
+
+      {/*
+        O CONTATO É DO REPRESENTANTE, e não do contribuinte, porque o contribuinte
+        não tem e-mail no cadastro: a coluna não existe. Em produção são 73
+        representantes com e-mail. Pedido da Letícia ("um campo com os dados de
+        contato: e-mail, telefone"), respondido com o que há; de quem deve ser o
+        e-mail da nota é a pergunta F do documento.
+      */}
+      <Quadro titulo="Contato do cliente">
+        <Table className="text-xs">
+          <TableHeader>
+            <TableRow className="bg-muted hover:bg-muted">
+              <Th>Nome</Th>
+              <Th>Cargo</Th>
+              <Th>E-mail</Th>
+              <Th>Telefone</Th>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {linha.contatos.length === 0 ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={4} className="text-muted-foreground">
+                  Nenhum representante com e-mail ou telefone neste cliente. O cadastro é feito na
+                  aba Representantes.
+                </TableCell>
+              </TableRow>
+            ) : (
+              linha.contatos.map((contato, i) => (
+                <TableRow key={`${contato.nome}-${i}`} className="hover:bg-transparent">
+                  <TableCell className="font-medium">{contato.nome}</TableCell>
+                  <TableCell className="text-muted-foreground">{ou(contato.cargo)}</TableCell>
+                  <TableCell>{ou(contato.email)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{ou(contato.telefone)}</TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </Quadro>

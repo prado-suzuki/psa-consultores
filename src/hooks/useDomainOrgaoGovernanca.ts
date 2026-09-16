@@ -37,18 +37,25 @@ import {
 type OrgaoRow = Database['public']['Tables']['orgao_governanca']['Row'];
 
 /**
- * O gênero apertado para 'M' | 'F', que é a única coisa que o `types.ts` não dá.
+ * O ÓRGÃO COMO A TELA O LÊ: a linha do banco, com `genero` estreitado.
  *
- * Aqui havia as SEIS colunas da migration `20260911201231` declaradas à mão,
+ * As seis colunas da migration `20260911201231` eram declaradas à mão aqui,
  * porque o `types.ts` da develop estava atrasado e não as conhecia. Ele foi
- * regerado em 15/09 e agora conhece as seis, então as outras cinco saíram: tipo
- * repetido à mão é tipo que diverge do banco sem ninguém perceber.
+ * regenerado em `33ed57a8` e agora traz as seis, então a declaração paralela
+ * saiu, como o comentário antigo mandava: tipo repetido à mão é tipo que diverge
+ * do banco sem ninguém perceber. Cinco delas vêm com o tipo certo e não precisam
+ * de nada.
  *
- * O gênero fica, com outro motivo. A coluna é `text`, e o gerador escreve
- * `string | null`; quem garante os dois valores é o CHECK
- * `orgao_governanca_genero_ck`, que o gerador não lê. Sem o aperto, `concordar`
- * aceitaria qualquer string e a cláusula sairia "será compostO" por um dado que
- * o banco jamais deixaria entrar.
+ * `genero` é a exceção, e por isso sobra uma linha em vez de nenhuma. A coluna é
+ * `text` no Postgres e o gerador a descreve como `string | null`; quem promete os
+ * dois valores é o CHECK `orgao_governanca_genero_ck` (`genero IS NULL OR genero
+ * IN ('M','F')`), que o gerador não lê. Sem o aperto, o modal
+ * (`OrgaoGovernancaModal.tsx`), que guarda o campo como `'M' | 'F' | null` e decide
+ * a concordância da cláusula em cima disso, para de compilar, e `concordar`
+ * aceitaria qualquer string: a cláusula sairia "será compostO" por um dado que o
+ * banco jamais deixaria entrar.
+ *
+ * Se um dia a coluna virar enum no banco, esta linha some junto com o `Omit`.
  */
 export type OrgaoGovernanca = Omit<OrgaoRow, 'genero'> & { genero: 'M' | 'F' | null };
 
@@ -86,7 +93,9 @@ async function buscarPorCliente(clienteId: string): Promise<OrgaoGovernanca[]> {
     .order('nome');
 
   if (error) throw error;
-  // O CHECK do banco é quem prova que só há 'M', 'F' e nulo; ver o tipo acima.
+  // O estreitamento de `genero` acontece AQUI, na fronteira, e não espalhado
+  // pelas telas. Quem prova que só há 'M', 'F' e nulo é o CHECK do banco, que o
+  // gerador de tipos não lê; ver o tipo acima.
   return (data ?? []) as OrgaoGovernanca[];
 }
 

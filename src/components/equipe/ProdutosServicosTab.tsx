@@ -12,9 +12,7 @@ import ServicosLista, {
 import ServicoDetalhePanel, {
   type ProdutoVinculado,
 } from '@/components/equipe/produto-servico/ServicoDetalhePanel';
-import {
-  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
-} from '@/components/ui/sheet';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import ProdutoFormDialog from '@/components/equipe/produto-servico/ProdutoFormDialog';
 import ServicoFormDialog from '@/components/equipe/produto-servico/ServicoFormDialog';
 import ConfirmarExclusaoDialog from '@/components/equipe/produto-servico/ConfirmarExclusaoDialog';
@@ -22,7 +20,7 @@ import CopiarDeProdutoDialog from '@/components/equipe/produto-servico/CopiarDeP
 import { cn } from '@/lib/utils';
 import {
   TODOS_CLUSTERS, candidatosParaCopia, contarVinculosPorProduto, filtrarProdutos,
-  filtrarServicos, servicosACopiar,
+  filtrarServicos, separarPorVinculo, servicosACopiar,
 } from '@/lib/produtoServicoVinculo';
 import {
   contarVinculosPorServico, dividirNomeServico, ordenarPorCodigoDeServico,
@@ -46,7 +44,8 @@ const FORM_FECHADO = { aberto: false, alvo: null };
  *
  * Esquerda: os produtos, na casca `ListaMestreDetalhe` (a mesma do cadastro de
  * cliente, agora em moldura de página). Centro: os serviços do produto aberto,
- * em seções recolhíveis. Direita: o serviço aberto e — o que importa — em quais
+ * em dois blocos — os vinculados no topo, os que faltam abaixo, cada um na ordem
+ * do código. Direita: o serviço aberto e — o que importa — em quais
  * outros produtos ele vive, com o vínculo reverso ali mesmo.
  *
  * O vínculo não é decorativo: é ele que define quais serviços aparecem ao
@@ -177,8 +176,35 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
   ), [servicos, filtroServico, idsVinculados, emAndamento, usoPorServico]);
 
   /**
-   * DUAS listas planas, ordenadas pelo código: a do cluster do produto e a dos
-   * outros.
+   * O RETRATO dos vínculos, e por que a lista não se reordena a cada clique.
+   *
+   * Os serviços do produto vão para o topo (bloco "Vinculados"), e os do cluster
+   * que faltam vêm abaixo. Se essa divisão olhasse o vínculo AO VIVO, cada
+   * clique na caixa — que grava na hora — mandaria a linha para o outro bloco:
+   * ela sai de baixo do cursor e a próxima sobe uma posição. Marcar dez serviços
+   * em sequência, que é o trabalho desta tela, ficaria pior do que na lista
+   * corrida que havia antes.
+   *
+   * Então quem decide o bloco é o retrato do momento em que a lista SE ASSENTOU:
+   * ao abrir o produto e a cada mudança de busca ou de filtro. Marcar e desmarcar
+   * troca a caixa e não move nada; a lista se reorganiza no próximo assentamento.
+   *
+   * Em `ref` e calculado no render, não em `useEffect`: com efeito, o primeiro
+   * render do produto novo sairia com o retrato do produto anterior — a lista
+   * apareceria na ordem errada e se recolocaria no frame seguinte.
+   */
+  const chaveDeAssentamento = [
+    produtoSelecionado?.id ?? '', filtroServico.busca, filtroServico.modo,
+  ].join('|');
+  const retrato = useRef({ chave: '', ids: new Set<string>() });
+  if (retrato.current.chave !== chaveDeAssentamento) {
+    retrato.current = { chave: chaveDeAssentamento, ids: new Set(idsVinculados) };
+  }
+  const vinculadosAoAssentar = retrato.current.ids;
+
+  /**
+   * TRÊS listas planas, todas ordenadas pelo código: os serviços vinculados ao
+   * produto, os do cluster dele que faltam, e os de outros clusters.
    *
    * Substituiu o agrupamento em dois níveis (cluster › seção numérica) em
    * 27/08/2026. O corte por cluster ficou, mas virou uma decisão de VISIBILIDADE
@@ -193,19 +219,26 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
   const listasDeServico = useMemo(() => {
     const emOrdem = ordenarPorCodigoDeServico(servicosVisiveis, (s) => s.nome);
     const clusterDoProduto = produtoSelecionado?.cluster_id ?? null;
-    if (!clusterDoProduto) return { doCluster: emOrdem, outros: [] as ServicoNaLista[] };
-    return {
-      doCluster: emOrdem.filter((s) => s.clusterId === clusterDoProduto),
-      outros: emOrdem.filter((s) => s.clusterId !== clusterDoProduto),
-    };
-  }, [servicosVisiveis, produtoSelecionado?.cluster_id]);
+    const doCluster = clusterDoProduto
+      ? emOrdem.filter((s) => s.clusterId === clusterDoProduto)
+      : emOrdem;
+    const outros = clusterDoProduto
+      ? emOrdem.filter((s) => s.clusterId !== clusterDoProduto)
+      : ([] as ServicoNaLista[]);
+    // Os outros clusters NÃO se dividem em dois blocos: eles moram atrás de um
+    // botão justamente porque não é neles que se mexe, e um produto raramente
+    // tem vínculo fora do próprio cluster.
+    const { jaVinculados, paraVincular } = separarPorVinculo(doCluster, vinculadosAoAssentar);
+    return { vinculados: jaVinculados, faltam: paraVincular, outros };
+  }, [servicosVisiveis, produtoSelecionado?.cluster_id, vinculadosAoAssentar]);
 
-  // Ordem de exibição — é dela que sai a faixa do shift+clique. Os outros
-  // clusters só entram quando estão abertos: shift+clique não pode saltar para
-  // uma linha que a pessoa não vê.
+  // Ordem de exibição — é dela que sai a faixa do shift+clique, e ela tem de ser
+  // a ordem dos BLOCOS, não a do código: a faixa segue o que a pessoa vê. Os
+  // outros clusters só entram quando estão abertos, pelo mesmo motivo.
   const idsVisiveis = useMemo(
     () => [
-      ...listasDeServico.doCluster.map((s) => s.id),
+      ...listasDeServico.vinculados.map((s) => s.id),
+      ...listasDeServico.faltam.map((s) => s.id),
       ...(mostrarOutrosClusters ? listasDeServico.outros.map((s) => s.id) : []),
     ],
     [listasDeServico, mostrarOutrosClusters],
@@ -283,11 +316,24 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
   const semVinculoNenhum = produtoSelecionado && vinculosDoProduto.length === 0;
 
   return (
-    // Altura DEFINIDA, não mínima: é ela que a casca reparte entre a lista de
-    // produtos, os serviços e o painel. Com `min-h` a casca crescia até a altura
-    // dos 19 produtos e as duas colunas da direita ficavam centradas ~800px
-    // abaixo, fora da tela — a bancada parecia vazia à direita.
-    <div className="flex h-[72vh] min-h-[480px] flex-col gap-2">
+    /*
+      Altura DEFINIDA, não mínima: é ela que a casca reparte entre a lista de
+      produtos, os serviços e o painel. Com `min-h` a casca crescia até a altura
+      dos 19 produtos e as duas colunas da direita ficavam centradas ~800px
+      abaixo, fora da tela — a bancada parecia vazia à direita.
+
+      LARGURA COM TETO, e o número sai do dado, não do gosto: o maior nome de
+      serviço do catálogo tem 77 caracteres e a média 36 (produção, 16/09/2026),
+      ou seja ~490px no pior caso a 13px. Numa janela de 1900px a coluna do meio
+      chegava a ~1300px — o dobro do que qualquer nome pede, e nenhum deles
+      truncava nem perto disso. Com 1100 no teto ela fica em ~800px, que ainda
+      segura o pior caso com folga, e o que sobra vira margem em vez de linha
+      esticada. Abaixo de 1100 nada muda: aqui é teto, não largura.
+
+      Não centralizada de propósito: o título da página é alinhado à esquerda, e
+      um cartão centrado embaixo dele ficaria fora de prumo com a própria página.
+    */
+    <div className="flex h-[72vh] min-h-[480px] max-w-[1100px] flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         {/*
           O texto anterior — "define quais serviços aparecem ao cadastrar
@@ -402,7 +448,8 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
           produto={produtoSelecionado}
           produtos={produtosVisiveis}
           onSelecionarProduto={setProdutoEscolhidoId}
-          doCluster={listasDeServico.doCluster}
+          vinculados={listasDeServico.vinculados}
+          faltam={listasDeServico.faltam}
           outrosClusters={listasDeServico.outros}
           mostrarOutros={mostrarOutrosClusters}
           onMostrarOutros={setMostrarOutrosClusters}
@@ -468,38 +515,46 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
       </ListaMestreDetalhe>
 
       {/*
-        O detalhe do serviço vive SOBRE a tela, e não ao lado dela.
+        O detalhe do serviço vive SOBRE a tela, e não ao lado dela — e do TAMANHO
+        do que tem para dizer.
 
         Era uma terceira coluna de 320px, sempre montada, que na maior parte do
-        tempo mostrava "Selecione um serviço" — um terço da largura reservado
-        para um vazio, enquanto a lista de serviços, que é onde se trabalha,
-        ficava com o que sobrava. O conteúdo é o mesmo e o gesto que abre também:
-        clicar no nome do serviço.
+        tempo mostrava "Selecione um serviço". Virou painel lateral de altura
+        inteira, o que resolveu o vazio permanente mas manteve o exagero de
+        escala: 384px pela altura da janela para um nome, um cluster, um número e
+        uma lista que em produção tem no máximo 3 linhas. Agora é um diálogo de
+        `max-w-md` com altura automática. O conteúdo é o mesmo e o gesto que abre
+        também: clicar no nome do serviço.
       */}
-      <Sheet
+      <Dialog
         open={!!servicoAberto}
         onOpenChange={(aberto) => { if (!aberto) setServicoAbertoId(null); }}
       >
-        <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-sm">
-          <SheetHeader className="sr-only">
-            <SheetTitle>{dividirNomeServico(servicoAberto?.nome).nome || 'Serviço'}</SheetTitle>
-            <SheetDescription>
-              Cluster do serviço e em quais produtos ele é usado.
-            </SheetDescription>
-          </SheetHeader>
+        <DialogContent className="sm:max-w-md">
           <ServicoDetalhePanel
             servico={servicoAberto}
             cluster={clusterDoServico}
             vinculados={produtosDoServico.vinculados}
             disponiveis={produtosDoServico.disponiveis}
             carregando={isLoading}
+            /*
+              Os dois FECHAM o detalhe antes de abrir o seu diálogo. Enquanto o
+              detalhe era painel lateral, ele podia ficar aberto atrás do
+              formulário; diálogo sobre diálogo empilha dois focos presos e duas
+              camadas de overlay para mostrar a mesma coisa duas vezes. Quem vai
+              editar ou excluir já decidiu — o detalhe não tem mais o que dizer.
+            */
             onEditar={() => {
               const bruto = servicos.find((s) => s.id === servicoAberto?.id);
-              if (bruto) setFormServico({ aberto: true, alvo: bruto });
+              if (!bruto) return;
+              setServicoAbertoId(null);
+              setFormServico({ aberto: true, alvo: bruto });
             }}
             onExcluir={() => {
               const bruto = servicos.find((s) => s.id === servicoAberto?.id);
-              if (bruto) setServicoParaExcluir(bruto);
+              if (!bruto) return;
+              setServicoAbertoId(null);
+              setServicoParaExcluir(bruto);
             }}
             onDesvincular={(produto) => {
               if (servicoAberto) void alternarVinculo(produto.id, servicoAberto.id, servicoAberto.nome);
@@ -508,8 +563,8 @@ export default function ProdutosServicosTab({ clusterInicial = null }: ProdutosS
               if (servicoAberto) void alternarVinculo(produtoId, servicoAberto.id, servicoAberto.nome);
             }}
           />
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       <ProdutoFormDialog
         aberto={formProduto.aberto}

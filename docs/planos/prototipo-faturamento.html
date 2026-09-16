@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Protótipo: o faturamento com o que o financeiro pediu</title>
+<style>
+  /* Valores lidos do src/index.css em 15/09/2026, área base. */
+  :root{
+    --pg: 168 16% 93%;     /* --canvas  */
+    --cd: 42 24% 99.8%;    /* --card    */
+    --fg: 20 81% 10%;      /* --foreground */
+    --mf: 180 10% 38%;     /* --muted-foreground */
+    --mt: 168 20% 89%;     /* --muted   */
+    --ln: 40 12% 91%;      /* --border  */
+    --pr: 175 84% 25%;     /* --primary */
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;padding:32px 24px 72px;
+    background:hsl(var(--pg));color:hsl(var(--fg));
+    font:14.5px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:25px;margin:0 0 6px;letter-spacing:-.01em}
+  .sub{color:hsl(var(--mf));margin:0 0 4px;max-width:78ch}
+  .aviso{
+    margin:18px 0 34px;padding:10px 14px;border-radius:8px;
+    border:1px solid hsl(var(--pr) / .35);background:hsl(var(--pr) / .07);
+    color:hsl(var(--pr));font-size:13.5px;max-width:78ch;
+  }
+  h2{font-size:14px;text-transform:uppercase;letter-spacing:.07em;margin:40px 0 6px;color:hsl(var(--mf))}
+  h2 + p{margin:0 0 14px;max-width:80ch;font-size:14px}
+  .cartao{background:hsl(var(--cd));border:1px solid hsl(var(--ln));border-radius:10px;overflow:hidden;margin-bottom:18px}
+  .cabeca{padding:9px 14px;border-bottom:1px solid hsl(var(--ln));display:flex;flex-wrap:wrap;gap:10px;align-items:baseline}
+  .cabeca strong{font-size:13.5px}
+  .cabeca span{font-size:12.5px;color:hsl(var(--mf))}
+  .corpo{padding:14px}
+  .rotulo{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:hsl(var(--mf));margin:0 0 6px}
+  .quadro{border:1px solid hsl(var(--ln));border-radius:6px;overflow:hidden;margin-bottom:16px}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th{
+    text-align:left;padding:7px 10px;background:hsl(var(--mt));
+    font-size:11px;font-weight:600;color:hsl(var(--fg));border-bottom:1px solid hsl(var(--ln));white-space:nowrap;
+  }
+  td{padding:7px 10px;border-bottom:1px solid hsl(var(--ln) / .7);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .fraco{color:hsl(var(--mf))}
+  .novo{
+    display:inline-block;padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700;
+    letter-spacing:.04em;text-transform:uppercase;background:hsl(var(--pr) / .12);color:hsl(var(--pr));
+  }
+  .hoje{
+    display:inline-block;padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700;
+    letter-spacing:.04em;text-transform:uppercase;background:hsl(var(--mt));color:hsl(var(--mf));
+  }
+  .pergunta{border-left:3px solid hsl(var(--pr) / .5);padding:2px 0 2px 12px;margin:14px 0;max-width:84ch}
+  .pergunta b{font-size:13.5px}
+  .pergunta p{margin:2px 0 0;font-size:13.5px;color:hsl(var(--mf))}
+  footer{margin-top:46px;padding-top:14px;border-top:1px solid hsl(var(--ln));font-size:12.5px;color:hsl(var(--mf));max-width:84ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>O faturamento com o que a Letícia pediu</h1>
+<p class="sub">Desenho de tela, feito a partir da validação de 15/09/2026. Mostra como as OS ficariam
+quando o banco guardar parcela, vencimento, mais de um contribuinte e reembolso por tipo.</p>
+
+<div class="aviso">
+  Isto é um protótipo. Os dados são de exemplo, nada aqui está ligado ao sistema e nada do que
+  aparece nesta página existe no banco hoje. A tela que está no ar é a
+  <code>/equipe/adm-fin/dashboard</code>, e ela mostra só o que já está gravado.
+</div>
+
+<h2>Exemplo 1: valor integral parcelado</h2>
+<p>O caso mais comum hoje. Contrato fechado, dividido em parcelas, cada uma com vencimento
+acordado. <span class="hoje">hoje</span> o sistema guarda o número de parcelas e a entrada, e nada
+mais: não sabe quando vence nem se já foi faturada.</p>
+
+<div class="cartao">
+  <div class="cabeca">
+    <strong>OS 092/2026</strong>
+    <span>Aurora Agropecuária S.A.</span>
+    <span>Em andamento</span>
+  </div>
+  <div class="corpo">
+
+    <p class="rotulo">Faturamento <span class="novo">novo</span></p>
+    <div class="quadro">
+      <table>
+        <tr><th>Tipo</th><th class="num">Valor do projeto</th><th class="num">Entrada</th><th class="num">Parcelas</th><th class="num">Valor da parcela</th><th>Dia do vencimento</th></tr>
+        <tr><td>Parcelado</td><td class="num">R$ 75.000,00</td><td class="num">R$ 15.000,00</td><td class="num">4</td><td class="num">R$ 15.000,00</td><td>dia 10</td></tr>
+      </table>
+    </div>
+
+    <p class="rotulo">Parcelas <span class="novo">novo</span></p>
+    <div class="quadro">
+      <table>
+        <tr>
+          <th>#</th><th>Competência</th><th>Vencimento</th><th>Contribuinte</th>
+          <th class="num">Valor</th><th>Observação da NF</th><th>Situação</th>
+        </tr>
+        <tr>
+          <td>1</td><td>09/2026</td><td>10/09/2026</td><td>Aurora Agropecuária S.A.</td>
+          <td class="num">R$ 15.000,00</td><td class="fraco">Serviços de Auditoria 2026</td><td>Faturada</td>
+        </tr>
+        <tr>
+          <td>2</td><td>10/2026</td><td>10/10/2026</td><td>Aurora Agropecuária S.A.</td>
+          <td class="num">R$ 15.000,00</td><td class="fraco">Serviços de Auditoria 2026</td><td>A faturar</td>
+        </tr>
+        <tr>
+          <td>3</td><td>11/2026</td><td>10/11/2026</td><td>Aurora Agropecuária S.A.</td>
+          <td class="num">R$ 15.000,00</td><td class="fraco">Serviços de Auditoria 2026</td><td>A faturar</td>
+        </tr>
+        <tr>
+          <td>4</td><td>12/2026</td><td>10/12/2026</td><td>Aurora Agropecuária S.A.</td>
+          <td class="num">R$ 15.000,00</td><td class="fraco">Serviços de Auditoria 2026</td><td>A faturar</td>
+        </tr>
+      </table>
+    </div>
+
+    <p class="rotulo">Reembolsos <span class="novo">novo</span></p>
+    <div class="quadro">
+      <table>
+        <tr><th>Tipo</th><th class="num">Valor</th><th>Entra em</th></tr>
+        <tr><td>Quilometragem</td><td class="num">R$ 2,10 / km</td><td class="fraco">cada parcela, conforme lançamento</td></tr>
+        <tr><td>Refeição</td><td class="num">R$ 60,00</td><td class="fraco">cada parcela, conforme lançamento</td></tr>
+        <tr><td>Pedágio</td><td class="num">R$ 48,00</td><td class="fraco">cada parcela, conforme lançamento</td></tr>
+        <tr><td>Água</td><td class="num">R$ 12,00</td><td class="fraco">cada parcela, conforme lançamento</td></tr>
+      </table>
+    </div>
+    <p class="sub" style="font-size:12.5px;margin:0">
+      <span class="hoje">hoje</span> só existem quilometragem e refeição, e são duas colunas fixas da OS.
+      Pedágio e água entram nesta lista sem mudar a tela de novo.
+    </p>
+
+  </div>
+</div>
+
+<h2>Exemplo 2: faturamento mensal conforme os vencimentos</h2>
+<p>O segundo caso que ela descreveu. O contrato tem valor total, mas a nota sai mês a mês, e a
+diferença para o exemplo anterior está em duas colunas: a competência manda, e o valor total serve
+de saldo.</p>
+
+<div class="cartao">
+  <div class="cabeca">
+    <strong>OS 101/2026</strong>
+    <span>Dragão de Chinelo Calçados Ltda</span>
+    <span>Em andamento</span>
+  </div>
+  <div class="corpo">
+
+    <p class="rotulo">Faturamento <span class="novo">novo</span></p>
+    <div class="quadro">
+      <table>
+        <tr><th>Tipo</th><th class="num">Valor do projeto</th><th class="num">Faturado</th><th class="num">Saldo</th><th>Competências</th><th>Dia do vencimento</th></tr>
+        <tr><td>Mensal por competência</td><td class="num">R$ 120.000,00</td><td class="num">R$ 30.000,00</td><td class="num">R$ 90.000,00</td><td>01/2026 a 12/2026</td><td>dia 5</td></tr>
+      </table>
+    </div>
+
+    <p class="rotulo">Parcelas, faturadas em dois contribuintes <span class="novo">novo</span></p>
+    <div class="quadro">
+      <table>
+        <tr>
+          <th>#</th><th>Competência</th><th>Vencimento</th><th>Contribuinte</th>
+          <th class="num">Valor</th><th>Observação da NF</th><th>Situação</th>
+        </tr>
+        <tr>
+          <td>1</td><td>01/2026</td><td>05/01/2026</td><td>Dragão de Chinelo Calçados Ltda</td>
+          <td class="num">R$ 6.000,00</td><td class="fraco">Honorários advocatícios ref. Processo nº 1002345-67</td><td>Faturada</td>
+        </tr>
+        <tr>
+          <td>1</td><td>01/2026</td><td>05/01/2026</td><td>Maria Souza (CPF)</td>
+          <td class="num">R$ 4.000,00</td><td class="fraco">Honorários advocatícios ref. Processo nº 1002345-67</td><td>Faturada</td>
+        </tr>
+        <tr>
+          <td>2</td><td>02/2026</td><td>05/02/2026</td><td>Dragão de Chinelo Calçados Ltda</td>
+          <td class="num">R$ 6.000,00</td><td class="fraco">OC 44821 . Insc. Estadual 13.204.558-9</td><td>A faturar</td>
+        </tr>
+        <tr>
+          <td>2</td><td>02/2026</td><td>05/02/2026</td><td>Maria Souza (CPF)</td>
+          <td class="num">R$ 4.000,00</td><td class="fraco">OC 44821</td><td>A faturar</td>
+        </tr>
+      </table>
+    </div>
+
+    <p class="rotulo">Contribuintes desta OS <span class="novo">novo</span></p>
+    <div class="quadro">
+      <table>
+        <tr><th>Contribuinte</th><th>CPF/CNPJ</th><th>Contato para a nota</th><th class="num">Divisão</th></tr>
+        <tr><td>Dragão de Chinelo Calçados Ltda</td><td>12.345.678/0001-90</td><td class="fraco">financeiro@dragao.com.br</td><td class="num">60%</td></tr>
+        <tr><td>Maria Souza</td><td>123.456.789-09</td><td class="fraco">maria@exemplo.com</td><td class="num">40%</td></tr>
+      </table>
+    </div>
+    <p class="sub" style="font-size:12.5px;margin:0">
+      <span class="hoje">hoje</span> a OS aceita um contribuinte só, e ele precisa ser do próprio
+      cliente. Os dois casos que ela citou (faturar em dois CNPJs, e faturar para uma pessoa que não
+      é a do projeto) são esta mesma tabela.
+    </p>
+
+  </div>
+</div>
+
+<h2>O que este desenho ainda pergunta</h2>
+<p>Cada uma muda o que o banco precisa guardar, e nenhuma dá para responder olhando o sistema.</p>
+
+<div class="pergunta">
+  <b>A nota mensal vence sempre no mesmo dia?</b>
+  <p>No desenho acima existe um "dia do vencimento" no contrato e uma data por parcela. Se cada
+  parcela for negociada à parte, o dia do contrato não serve para nada e sai.</p>
+</div>
+
+<div class="pergunta">
+  <b>A observação da NF muda de uma nota para a outra?</b>
+  <p>No exemplo 2 ela muda: a competência 02/2026 leva o número da OC do cliente. Se na prática o
+  texto for sempre o mesmo do contrato, o campo é da OS e a coluna some da tabela de parcelas.</p>
+</div>
+
+<div class="pergunta">
+  <b>Quando são dois contribuintes, a divisão é por percentual, por valor fixo, ou uma nota por serviço?</b>
+  <p>O desenho mostra percentual, que é o que o rateio interno já usa. Valor fixo por contribuinte
+  muda a conta das parcelas.</p>
+</div>
+
+<div class="pergunta">
+  <b>A Maria do exemplo 2 é cadastro nosso?</b>
+  <p>Se ela já é contribuinte daquele cliente, basta poder escolher mais de um. Se não é, o cadastro
+  de contribuinte precisa deixar de ser sempre de um cliente só, e aí a mudança é maior.</p>
+</div>
+
+<div class="pergunta">
+  <b>Reembolso é valor combinado no contrato ou lançado quando a despesa acontece?</b>
+  <p>A tabela acima mostra valor combinado. Se for lançamento por viagem, com data e comprovante,
+  isso é outra tela, e o valor da parcela passa a depender dela.</p>
+</div>
+
+<footer>
+  Feito em 15/09/2026 para a validação com a Letícia Brites. A análise escrita, com os números de
+  produção e o tamanho de cada mudança, está em
+  <code>docs/planos/faturamento-pedido-do-financeiro.md</code>.
+</footer>
+
+</div>
+</body>
+</html>

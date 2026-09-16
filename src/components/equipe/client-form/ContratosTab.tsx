@@ -30,27 +30,13 @@ import { getContribuinteLabel, getEmpresaLabel, getProductLabel, ordenarPorRotul
 import OsPeriodoFields from "./OsPeriodoFields";
 import { todayIsoBrazil } from "@/lib/dateUtils";
 import { idsAlterados, resolverSelecao, selecaoAposRemover } from "@/lib/listaMestreDetalhe";
+import { REGIAO_OPTIONS, getRegiaoLabel } from "@/lib/regioes";
 import type { FocoPendencia, MapaPendencias } from "@/lib/camposObrigatorios";
 
 interface SetorCliente {
   id: string;
   nome: string;
   sigla: string;
-}
-
-const REGIAO_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: "BRA", label: "BRA - Bahia, Goiás, Distrito Federal" },
-  { value: "3NO", label: "3NO - BR-163 Norte" },
-  { value: "3SU", label: "3SU - BR-163 Sul, Vale do Araguaia, Serra da Petrovina, Norte do MS" },
-  { value: "PAR", label: "PAR - Chapadão do Parecis, região sucroalcooleira, Rondônia" },
-  { value: "CBA", label: "CBA - Baixada Cuiabana" },
-  { value: "RAO", label: "RAO - Sul do MS, Paraná, SC, Cerrado Mineiro, São Paulo" },
-  { value: "MPT", label: "MPT - Mapito, BR-010, Pará" },
-];
-
-function getRegiaoLabel(value: string | undefined): string {
-  if (!value) return "—";
-  return REGIAO_OPTIONS.find(o => o.value === value)?.label || value;
 }
 
 /**

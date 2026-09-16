@@ -186,8 +186,20 @@ export default function EquipeChamados() {
                 é o nome da tela de /gestao/chamados (chamados dos clientes) — repetir
                 aqui confundia as duas. O papel aparece no subtítulo. */}
             <h1 className="text-xl font-bold text-foreground">Chamados da Equipe</h1>
+            {/* OS DOIS RAMOS mudaram juntos, e não só o primeiro.
+                A revisão de conteúdo da coordenação (14/09/2026) pede, para esta
+                tela, "Consulte os chamados da equipe, acompanhe o status e atribua
+                responsáveis" — e cita como texto atual apenas o ramo de quem
+                atribui. Trocar só ele deixaria quem NÃO atribui lendo uma promessa
+                falsa, porque o subtítulo é condicional e o documento viu um lado.
+                O segundo ramo segue a mesma régua sem prometer atribuição.
+
+                TELA COMPARTILHADA: esta é a mesma de /equipe/chamados espelhada na
+                Tax e na OSG (ver `linkEspelhado`). A mudança aparece nas duas. */}
             <p className="text-sm text-muted-foreground">
-              {canAssignTickets ? 'Visualize todos os chamados e atribua responsáveis' : 'Visualize e responda os chamados atribuídos a você'}
+              {canAssignTickets
+                ? 'Consulte os chamados da equipe, acompanhe o status e atribua responsáveis'
+                : 'Consulte e responda os chamados atribuídos a você'}
             </p>
           </div>
         </div>

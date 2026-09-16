@@ -26,8 +26,7 @@ const OsgProdutosServicos = () => {
 
   return (
     <OsgLayout
-      title="Produtos & Serviços"
-      subtitle="Os serviços que cada produto gera em projeto novo"
+      tela="produtosServicos"
     >
       <ProdutosServicosTab clusterInicial={clusterId} />
     </OsgLayout>

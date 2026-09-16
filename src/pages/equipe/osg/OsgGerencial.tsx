@@ -15,7 +15,7 @@ import { DashboardEmbedView } from '@/components/dashboards/DashboardEmbedView';
  * filter_type = "cluster", senão a tela mostra dado de fora do cluster.
  */
 const OsgGerencial = () => (
-  <OsgLayout title="Gerencial" subtitle="Clientes e OS do seu cluster">
+  <OsgLayout tela="dashboardsGerencial">
     <DashboardEmbedView
       targetPage="osg_gerencial"
       loadingOverlay

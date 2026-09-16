@@ -122,16 +122,15 @@ export function useAcordoDoCliente(clienteId?: string | null, acordoId?: string 
        */
       const consulta = supabase
         .from('acordo_quotistas')
-        /*
-         * UMA LINHA SÓ, e não duas concatenadas com `+`.
-         *
-         * O cliente do Supabase deduz o TIPO do retorno lendo o texto do select
-         * como literal. Quebrado em `'a' + 'b'`, o tipo vira `string` e a
-         * dedução desiste, devolvendo `{ error: true }`: as cinco filhas somem
-         * do tipo e o `data` deixa de ser objeto. Compilava assim mesmo porque o
-         * `tsc --noEmit` que eu rodava não checa nada neste projeto de
-         * referências; quem acusa é `npm run typecheck`.
-         */
+        // LITERAL ÚNICO, e não a concatenação em duas linhas que estava aqui: o
+        // `select` do supabase-js infere o tipo do retorno PARSEANDO a string em
+        // tempo de tipo, e `'a' + 'b'` chega ao parser como `string`, não como o
+        // literal. Sem o literal ele devolve `{ error: true } & String`, e as
+        // cinco relações somem do `data` — que era o TS2339 em cada uma delas,
+        // mais o TS2700 no rest do destructuring logo abaixo.
+        //
+        // Passava calado num `tsc --noEmit` solto, que não checa nada neste
+        // projeto de referências; quem acusa é o `bun run typecheck`.
         .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*), acordo_signatario(*), acordo_sociedade_relacionada(*)')
         .eq('cliente_id', clienteId as string)
         .eq('excluido', false);
