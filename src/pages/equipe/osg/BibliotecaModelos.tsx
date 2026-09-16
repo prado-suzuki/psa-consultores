@@ -37,6 +37,9 @@ const GRUPO_POR_TIPO: Record<TipoBloco, { label: string; Icone: typeof BookOpen 
   clausula: { label: 'Cláusulas', Icone: ScrollText },
   paragrafo: { label: 'Parágrafos', Icone: Pilcrow },
   item: { label: 'Itens numerados', Icone: List },
+  subitem: { label: 'Subitens', Icone: List },
+  alinea: { label: 'Alíneas', Icone: List },
+  inciso: { label: 'Incisos', Icone: List },
   livre: { label: 'Blocos livres', Icone: StickyNote },
 };
 

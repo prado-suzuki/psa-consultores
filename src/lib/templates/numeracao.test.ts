@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { numerarBlocos, refsNumeracao, rotulosNumeracao, unirBlocos } from './numeracao';
+import { paragrafosOrfaos } from './descarte';
 import { gerarDocumento } from './index';
 import type { Bloco, Template } from './types';
 
@@ -280,5 +281,68 @@ describe('numeração do Acordo de Quotistas', () => {
     ];
     expect(refsNumeracao(blocos)).toEqual(['Cláusula Primeira', 'item 1.1', 'parágrafo único']);
     expect(rotulosNumeracao(blocos)).toEqual(['CLÁUSULA PRIMEIRA', '1.1', 'Parágrafo Único']);
+  });
+});
+
+describe('os três níveis abaixo do item', () => {
+  it('o subitem numera cláusula.item.ordem e reinicia a cada item', () => {
+    // A Cláusula Primeira do Acordo é assim: um item de abertura e 26 subitens,
+    // um por termo definido. "1.1.1 ACORDO: este ACORDO DE QUOTISTAS;"
+    const numerados = numerarBlocos([
+      bloco('c1', 'clausula', 'Definições.'),
+      bloco('i1', 'item', 'Para fins deste ACORDO serão adotadas as definições abaixo.'),
+      bloco('s1', 'subitem', 'ACORDO: este ACORDO DE QUOTISTAS;'),
+      bloco('s2', 'subitem', 'QUOTAS: as QUOTAS da sociedade;'),
+      bloco('i2', 'item', 'Outro item.'),
+      bloco('s3', 'subitem', 'Reinicia aqui.'),
+    ]);
+    expect(numerados.map((b) => b.conteudo.split(' ')[0]))
+      .toEqual(['*CLÁUSULA', '1.1', '1.1.1', '1.1.2', '1.2', '1.2.1']);
+  });
+
+  it('alínea sai em letra e inciso em romano, e os dois reiniciam junto', () => {
+    /*
+     * São DOIS tipos e não um porque o modelo usa os dois com sentidos
+     * diferentes: os Considerandos e as faixas de dívida saem em letra, e as
+     * hipóteses de aumento de capital saem em romano, "(I) Se aprovado em
+     * REUNIÃO DE SÓCIOS…".
+     */
+    const numerados = numerarBlocos([
+      bloco('c1', 'clausula', 'Do aumento do capital.'),
+      bloco('i1', 'item', 'O aumento observará o disposto abaixo.'),
+      bloco('n1', 'inciso', 'Se aprovado em REUNIÃO DE SÓCIOS pela maioria.'),
+      bloco('n2', 'inciso', 'Independente de justificativa, por três quartos.'),
+      bloco('i2', 'item', 'Das dívidas.'),
+      bloco('a1', 'alinea', 'Dívida até R$ 100.000,00.'),
+      bloco('a2', 'alinea', 'Dívida superior a R$ 100.000,00.'),
+    ]);
+    expect(numerados.map((b) => b.conteudo.split(' ')[0]))
+      .toEqual(['*CLÁUSULA', '1.1', '(I)', '(II)', '1.2', 'a)', 'b)']);
+  });
+
+  it('a referência textual de cada nível é a do documento', () => {
+    const blocos = [
+      bloco('c1', 'clausula', 'Das condições.'),
+      bloco('i1', 'item', 'Item.'),
+      bloco('s1', 'subitem', 'Subitem.'),
+      bloco('a1', 'alinea', 'Alínea.'),
+      bloco('n1', 'inciso', 'Inciso.'),
+    ];
+    expect(refsNumeracao(blocos))
+      .toEqual(['Cláusula Primeira', 'item 1.1', 'item 1.1.1', 'alínea "a"', 'inciso (II)']);
+  });
+
+  it('subitem, alínea e inciso somem se perderem a cláusula', () => {
+    // Mesma regra do parágrafo órfão: sem cláusula acima, "1.1.1" seria
+    // numeração de uma cláusula que não existe.
+    const orfaos = paragrafosOrfaos([
+      bloco('lv', 'livre', 'Preâmbulo.'),
+      bloco('s1', 'subitem', 'Órfão.'),
+      bloco('a1', 'alinea', 'Órfã.'),
+      bloco('n1', 'inciso', 'Órfão.'),
+      bloco('c1', 'clausula', 'Uma cláusula.'),
+      bloco('s2', 'subitem', 'Este tem cláusula.'),
+    ]);
+    expect(orfaos).toEqual([false, true, true, true, false, false]);
   });
 });

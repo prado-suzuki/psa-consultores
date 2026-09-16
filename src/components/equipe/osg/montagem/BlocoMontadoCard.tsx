@@ -21,6 +21,11 @@ const CHIP_POR_TIPO: Record<Exclude<TipoBloco, 'livre'>, string> = {
   // existe entre eles (um é do Acordo, o outro do contrato).
   item: 'border border-osg-300 text-osg-700 bg-osg-50',
   paragrafo: 'border border-osg-300 text-osg-700 bg-osg-50',
+  // Subitem, alínea e inciso são os níveis DE BAIXO do item. Fundo mais claro
+  // para a hierarquia se ler de relance na montagem, sem inventar cor nova.
+  subitem: 'border border-osg-200 text-osg-600 bg-osg-50/50',
+  alinea: 'border border-osg-200 text-osg-600 bg-osg-50/50',
+  inciso: 'border border-osg-200 text-osg-600 bg-osg-50/50',
 };
 
 interface Props {

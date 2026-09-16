@@ -473,7 +473,8 @@ function paragrafosDoBloco(
      * corpo numerado: caindo no livre sairia sem justificação e sem recuo de
      * alínea, que é a formatação de fecho e anexo.
      */
-    if (tipo === 'clausula' || tipo === 'paragrafo' || tipo === 'item') {
+    if (tipo === 'clausula' || tipo === 'paragrafo' || tipo === 'item'
+        || tipo === 'subitem' || tipo === 'alinea' || tipo === 'inciso') {
       emitir(linhaComRotulo(docx, linha));
       continue;
     }

@@ -34,6 +34,9 @@ export type MotivoDescarte =
   /** O parágrafo perdeu a cláusula que o governava durante o descarte em cascata. */
   | 'clausula-descartada';
 
+/** Os tipos que se numeram a partir da cláusula anterior, e sem ela não existem. */
+const SUBORDINADOS = ['paragrafo', 'item', 'subitem', 'alinea', 'inciso'];
+
 /**
  * Índices dos blocos subordinados que perderam a cláusula governante.
  *
@@ -44,7 +47,7 @@ export type MotivoDescarte =
  */
 export function paragrafosOrfaos(blocos: Bloco[]): boolean[] {
   return blocos.map((bloco, i) => {
-    if (bloco.tipo !== 'paragrafo' && bloco.tipo !== 'item') return false;
+    if (!SUBORDINADOS.includes(bloco.tipo as string)) return false;
 
     for (let anterior = i - 1; anterior >= 0; anterior -= 1) {
       const tipo = blocos[anterior].tipo;

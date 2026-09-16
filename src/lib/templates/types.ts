@@ -10,6 +10,9 @@
  *              "Parágrafo Único:" (se for o único) ou "Parágrafo {ordinal}:" (reseta por cláusula)
  * - item:      conteúdo é só o texto; numeração DECIMAL sob a cláusula anterior
  *              ("2.1", "2.2"), reiniciando a cada cláusula nova
+ * - subitem:   um nível abaixo do item ("1.1.1"); reinicia a cada item novo
+ * - alinea:    letra minúscula ("a)", "b)"); reinicia a cada item ou cláusula
+ * - inciso:    romano maiúsculo entre parênteses ("(I)", "(II)"); idem
  * - livre:     renderizado como está (preâmbulo, fecho, anexos etc.)
  *
  * POR QUE `item` EXISTE, ao lado de `paragrafo`. Os dois são subdivisão de
@@ -21,7 +24,9 @@
  * Escrever o número no texto do bloco não serve: cláusula condicional desligada
  * renumera as seguintes, e aí "5.5" passaria a apontar para outro item, calado.
  */
-export const TIPOS_BLOCO = ['capitulo', 'clausula', 'paragrafo', 'item', 'livre'] as const;
+export const TIPOS_BLOCO = [
+  'capitulo', 'clausula', 'paragrafo', 'item', 'subitem', 'alinea', 'inciso', 'livre',
+] as const;
 export type TipoBloco = (typeof TIPOS_BLOCO)[number];
 
 export const LABEL_TIPO_BLOCO: Record<TipoBloco, string> = {
@@ -29,6 +34,9 @@ export const LABEL_TIPO_BLOCO: Record<TipoBloco, string> = {
   clausula: 'cláusula',
   paragrafo: 'parágrafo',
   item: 'item',
+  subitem: 'subitem',
+  alinea: 'alínea',
+  inciso: 'inciso',
   livre: 'livre',
 };
 

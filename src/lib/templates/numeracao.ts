@@ -4,7 +4,7 @@
 // fato entraram no documento — incluir ou retirar uma cláusula condicional (ou
 // variar o nº de instâncias de um repetidor) nunca quebra a sequência.
 
-import { ordinalExtenso, romano } from './extenso';
+import { letraAlinea, ordinalExtenso, romano } from './extenso';
 import type { Bloco } from './types';
 
 /** "décimo quinto" → "Décimo Quinto" (rótulo de parágrafo). */
@@ -18,6 +18,9 @@ type EstruturaBloco =
   | { tipo: 'clausula'; n: number; titulo?: string }
   /** `nClausula` entra porque o item se escreve "2.1": cláusula ponto ordem. */
   | { tipo: 'item'; n: number; nClausula: number }
+  /** "1.1.1": cláusula, item e ordem. */
+  | { tipo: 'subitem'; n: number; nClausula: number; nItem: number }
+  | { tipo: 'alinea' | 'inciso'; n: number }
   | { tipo: 'paragrafo'; n: number; unico: boolean }
   | null;
 
@@ -32,17 +35,27 @@ type EstruturaBloco =
  *   nova. Diferente do parágrafo de propósito: a numeração decimal do Acordo
  *   continua contando mesmo que outro tipo se intrometa no meio, porque "2.7"
  *   depende da cláusula, e não de a sequência ter sido ininterrupta.
+ * - subitem: um nível abaixo, "1.1.1"; reinicia a cada item novo
+ * - alinea/inciso: listas rotuladas dentro de um item ou de uma cláusula;
+ *   reiniciam quando qualquer um dos dois começa. São dois tipos e não um
+ *   porque o modelo usa os dois com sentidos diferentes: os Considerandos e as
+ *   faixas de dívida saem em letra, e as hipóteses de aumento de capital saem
+ *   em romano, "(I) Se aprovado em REUNIÃO DE SÓCIOS…".
  */
 function estruturar(blocos: Bloco[]): EstruturaBloco[] {
   let nCapitulo = 0;
   let nClausula = 0;
   let nItem = 0;
+  let nSubitem = 0;
+  let nRotulada = 0;
 
   return blocos.map((bloco, i) => {
     if (bloco.reiniciaNumeracao) {
       nCapitulo = 0;
       nClausula = 0;
       nItem = 0;
+      nSubitem = 0;
+      nRotulada = 0;
     }
 
     switch (bloco.tipo) {
@@ -50,9 +63,19 @@ function estruturar(blocos: Bloco[]): EstruturaBloco[] {
         return { tipo: 'capitulo', n: ++nCapitulo };
       case 'clausula':
         nItem = 0;
+        nSubitem = 0;
+        nRotulada = 0;
         return { tipo: 'clausula', n: ++nClausula, titulo: bloco.tituloDocumento };
       case 'item':
+        nSubitem = 0;
+        nRotulada = 0;
         return { tipo: 'item', n: ++nItem, nClausula };
+      case 'subitem':
+        return { tipo: 'subitem', n: ++nSubitem, nClausula, nItem };
+      case 'alinea':
+        return { tipo: 'alinea', n: ++nRotulada };
+      case 'inciso':
+        return { tipo: 'inciso', n: ++nRotulada };
       case 'paragrafo': {
         let inicio = i;
         while (inicio > 0 && blocos[inicio - 1].tipo === 'paragrafo') inicio -= 1;
@@ -99,6 +122,12 @@ export function prefixosNumeracao(blocos: Bloco[]): string[] {
           : `*CLÁUSULA ${ordinalExtenso(e.n, 'f').toUpperCase()}:* `;
       case 'item':
         return `${e.nClausula}.${e.n} `;
+      case 'subitem':
+        return `${e.nClausula}.${e.nItem}.${e.n} `;
+      case 'alinea':
+        return `${letraAlinea(e.n)}) `;
+      case 'inciso':
+        return `(${romano(e.n)}) `;
       case 'paragrafo': {
         const rotulo = e.unico ? 'Parágrafo Único' : `Parágrafo ${capitalizarPalavras(ordinalExtenso(e.n, 'm'))}`;
         return `*${rotulo}:* `;
@@ -131,6 +160,12 @@ export function rotulosNumeracao(blocos: Bloco[]): (string | null)[] {
         return `CLÁUSULA ${ordinalExtenso(e.n, 'f').toUpperCase()}`;
       case 'item':
         return `${e.nClausula}.${e.n}`;
+      case 'subitem':
+        return `${e.nClausula}.${e.nItem}.${e.n}`;
+      case 'alinea':
+        return `${letraAlinea(e.n)})`;
+      case 'inciso':
+        return `(${romano(e.n)})`;
       case 'paragrafo':
         return e.unico ? 'Parágrafo Único' : `Parágrafo ${capitalizarPalavras(ordinalExtenso(e.n, 'm'))}`;
       default:
@@ -161,6 +196,12 @@ export function refsNumeracao(blocos: Bloco[]): (string | null)[] {
        */
       case 'item':
         return `item ${e.nClausula}.${e.n}`;
+      case 'subitem':
+        return `item ${e.nClausula}.${e.nItem}.${e.n}`;
+      case 'alinea':
+        return `alínea "${letraAlinea(e.n)}"`;
+      case 'inciso':
+        return `inciso (${romano(e.n)})`;
       case 'paragrafo':
         return e.unico ? 'parágrafo único' : `parágrafo ${ordinalExtenso(e.n, 'm')}`;
       default:
