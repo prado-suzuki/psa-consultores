@@ -11772,6 +11772,10 @@ export type Database = {
         Returns: boolean
       }
       itcd_gravar_simulacao: { Args: { p: Json }; Returns: string }
+      liberar_reserva_falha: {
+        Args: { _erro?: string; _id: string }
+        Returns: undefined
+      }
       list_profiles_safe: {
         Args: never
         Returns: {
