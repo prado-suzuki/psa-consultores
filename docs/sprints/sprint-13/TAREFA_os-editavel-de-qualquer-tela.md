@@ -82,9 +82,39 @@ verificação e o `recusaDeOperacao`.
 transação continuar com cópia própria, esta tarefa terá criado o caminho duplicado que ela
 existe para evitar.
 
-Fica em aberto uma pergunta que o T1 ajuda a responder: o rateio e os produtos contratados
-entram no hook ou continuam no transaction? Eles são filhos da OS, mas a reconciliação deles
-está escrita contra o rascunho do cliente.
+**Rateio e produtos contratados ENTRAM no hook** (decidido em 16/09/2026). São filhos da OS e
+seguem a OS; deixá-los no transaction faria o modal gravar meia OS e obrigaria a segunda tela a
+reimplementar a outra metade, que é o que a tarefa existe para evitar.
+
+Isso leva a extração de ~60 para **~233 linhas** (822 a 1055), cobrindo oito passos:
+`ordem_servico` update/insert, `distribuicao_receita` delete/update/insert e
+`os_produtos_contratados` delete/insert/update.
+
+### O raio, medido em 16/09/2026
+
+| | |
+|---|---|
+| Arquivos que **escrevem** as três tabelas | **1** (`useSaveClientTransaction`) |
+| Arquivos que só **leem** | 16 |
+| Componentes que montam o transaction | **1** (`NewClientModal.tsx`) |
+
+Os 16 leitores (`useOsProdutosContratados`, `useServicosContratados`, `useDomainFaturamentoOs`,
+`useClientEditData`, os dashboards) têm **zero escritas** e não mudam: o hook grava na mesma
+tabela e eles continuam lendo igual. `useRlsPrecheck` já cobre `ordem_servico` e
+`distribuicao_receita`.
+
+### As duas amarras que o T1 tem de travar antes
+
+**`filhosDeOsAlterados`** é ligado em **seis** pontos dentro do rateio e dos produtos, lido por
+`nadaMudouNoCadastro` (linha 111) e devolvido no resultado (linha 1233). Ele responde "mudou
+alguma coisa?" para o cliente INTEIRO, não para uma OS. O hook precisa devolver esse sinal e o
+transaction agregá-lo; se ficar para trás, o cadastro volta a dizer "nada mudou" depois de a
+pessoa ter mexido no rateio.
+
+**A reconciliação do rateio linha a linha** existe por causa de um defeito que o comentário da
+linha 855 registra: o padrão anterior marcava tudo como excluído e reinseria, e quando o
+soft-delete não pegava, cada salvamento somava um centro de custo repetido (100% → 200% →
+300%) até travar o save do cliente inteiro. Ela sai inteira ou não sai.
 
 ### T3 · `OrdemServicoModal`, autossuficiente
 
