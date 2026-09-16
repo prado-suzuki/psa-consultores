@@ -181,7 +181,7 @@ const CorrecoesSped = () => {
     <DevLayout tela="correcoesEfdContribuicoes">
       <TooltipProvider delayDuration={300}>
         <DevPageHeader
-          description="A ferramenta **Correções no SPED** permite revisar e ajustar os registros do SPED Contribuições (**C170**, **A170**, **D100**, **F100**, **F120**, **F130**) cruzando dados da escrituração com XMLs originais. Use os filtros para selecionar contribuinte e período, navegue pelas abas e edite as linhas com divergências para gerar correções rastreáveis."
+          description="As **Correções na EFD Contribuições** preparam os ajustes dos registros escriturados antes da retificação. Usa a **EFD Contribuições** cruzada com os **XMLs** originais, nos registros C170, A170, D100, F100, F120 e F130. Selecione contribuinte e período, percorra as abas e edite as linhas divergentes para gerar correções rastreáveis."
         />
         <div className="space-y-4">
         {/* Filters */}

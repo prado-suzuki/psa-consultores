@@ -27,7 +27,7 @@ export function ApuracaoFiltersCard({ controller }: { controller: ApuracaoPisCof
       <Info className="h-5 w-5 text-primary" />
       <AlertTitle className="text-sm font-semibold text-foreground">Visão Geral</AlertTitle>
       <AlertDescription className="text-sm leading-relaxed text-foreground mt-1">
-        A <strong className="font-semibold">Apuração PIS/COFINS</strong> consolida débitos, créditos, isenções e rateios do contribuinte a partir do <strong className="font-semibold">EFD Contribuições</strong> ou do <strong className="font-semibold">Balancete</strong> importado, permitindo conferir a base de cálculo, o resultado do período e o saldo apurado mês a mês.
+        A <strong className="font-semibold">Apuração PIS/COFINS</strong> consolida débitos, créditos, isenções e rateios do contribuinte. Usa a <strong className="font-semibold">EFD Contribuições</strong> ou o <strong className="font-semibold">Balancete</strong> importado, conforme a origem escolhida abaixo. Confira a base de cálculo, o resultado do período e o saldo apurado mês a mês.
       </AlertDescription>
     </Alert>
     <Card className="mb-6">

@@ -282,7 +282,7 @@ const ProcessoDifal = () => {
     <DevLayout tela="difalInteligente"    >
       <TooltipProvider delayDuration={300}>
         <DevPageHeader
-          description="A ferramenta **DIFAL Inteligente** centraliza a busca e a classificação tributária das operações de Diferencial de Alíquota da base de dados. Utilize os filtros abaixo para buscar os itens das notas fiscais por período, permitindo identificar pendências de NCM, definir regras tributárias individuais em tela, sincronizar os dados validados com o servidor e exportar os resultados consolidados em formato Excel (.xlsx)."
+          description="O **DIFAL Inteligente** classifica as operações sujeitas ao diferencial de alíquota. Usa os itens das notas fiscais do período, cruzados com o cadastro de produtos. Identifique pendências de NCM, defina a regra tributária de cada item e acompanhe o que já foi classificado."
         />
         <DifalFiltersCard
           selectedCliente={selectedCliente}

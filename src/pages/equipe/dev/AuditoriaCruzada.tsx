@@ -28,7 +28,7 @@ import { AUDITORIA_TOOLTIPS } from '@/components/equipe/dev/auditoria/tooltipCon
 import { RequiredMark } from '@/components/ui/required-mark';
 
 const PAGE_DESCRIPTION =
-  "A ferramenta **Análise Cruzada** realiza a reconciliação fiscal cruzando dados de **Balancete x EFD Contribuições**, **EFD ICMS x EFD Contribuições x XML de NFe** e **XMLs de CT-e por lote**. Use os filtros para selecionar cliente, contribuinte e período, e navegue pelas abas para identificar divergências entre as fontes.";
+  "A **Análise Cruzada** confronta as fontes fiscais de um mesmo período para achar divergência. Usa **balancete**, **EFD Contribuições**, **EFD ICMS** e os **XMLs** de NFe e CT-e. Selecione cliente, contribuinte e período, e percorra as abas para comparar cada par de fontes.";
 
 const AuditoriaCruzadaContent = () => {
   const {

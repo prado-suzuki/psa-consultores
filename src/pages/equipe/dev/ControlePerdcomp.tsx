@@ -230,7 +230,7 @@ export default function ControlePerdcomp() {
     <DevLayout tela="controlePerdcomp"    >
       <TooltipProvider delayDuration={300}>
         <DevPageHeader
-          description="A ferramenta **Controle PERDCOMP** centraliza a busca e o gerenciamento dos Processos de Ressarcimento e Compensação da base de dados. Utilize os filtros abaixo para consultar processos específicos ou analisar exercícios inteiros, permitindo a visualização detalhada e atualização de status em tela, o cadastro de novas DCOMPs vinculadas e o registro de pagamentos efetivos de ressarcimentos."
+          description="O **Controle PERDCOMP** acompanha os processos de restituição, ressarcimento, reembolso e compensação. Usa os processos cadastrados, com seus vínculos, pagamentos e status. Consulte por cliente e exercício, atualize o andamento e registre os valores."
         />
         <ControlePerdcompFilters
           clienteId={clienteId}
