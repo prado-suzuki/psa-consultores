@@ -64,45 +64,86 @@ zebra e contra o realce de hover, que são feitos do mesmo `--muted`.
 
 **Tabela dentro de cartão fica branca ou tingida?**
 
-| opção | o que acontece | custo | efeito colateral |
-|---|---|---|---|
-| **A. Branca** (é a recomendada em 12/09) | variante do `<Card>` — ou a caixa de tabela deixa de ser `<Card>` — e as 52 tingidas viram brancas. A exceção do Adm & Fin **sai** do inventário: deixa de ser exceção e vira a regra | 1 componente + 49 arquivos a revisar | a zebra (`bg-muted/25`) e o hover de linha (`bg-superficie-realce`) voltam a ter o contraste que foram calibrados para ter contra branco |
-| **B. Tingida** | o padrão fica como está, e o Adm & Fin é que está errado: volta a `<Card>` e perde o branco | 1 arquivo | reabre o "tá tudo verde" de 15/09, que foi decidido olhando |
-| **C. Depende da casca** | branca só quando a tabela está dentro de outra superfície tingida (o caso do Adm & Fin); tingida quando é a caixa mais externa | regra a mais para carregar | é a regra que ninguém lembra na tela nova — e foi exatamente assim que nasceu a assimetria de hoje |
+📄 **A comparação está montada:**
+[`geral/comparacoes-de-cor/a-caixa-da-tabela.html`](../../geral/comparacoes-de-cor/a-caixa-da-tabela.html)
+— abrir no navegador. Valores do `src/index.css` de 16/09/2026.
 
-**Ela decide olhando** (ver `relatorio-diz-o-que-ela-decide`). A página de 12/09 já tem a
-comparação, mas está montada com a **Consulta ECD** e com os valores daquela data. A
-**T1** remonta com as telas de hoje, incluindo a do Adm & Fin.
+### O achado da T1, que mudou a pergunta: o hover tem TETO
+
+A página original supunha que "tabela se lê pelas linhas" era argumento de gosto.
+Medido, é aritmética.
+
+A zebra que a tabela perde sobre o cartão tingido **dá para recuperar**: basta subir o
+alfa de 25% para 38% e ela volta aos mesmos 1,054:1 que tem sobre o branco.
+
+**O hover não dá.** Ele é feito de `--muted`, e a superfície do cartão já é 35% de
+`--muted`. Mesmo a **100%, sem transparência nenhuma**, o hover sobre o cartão chega a
+**1,154:1** — contra os **1,175:1** que tem sobre o branco. Não é questão de calibrar:
+acabou a escala. O que vem depois de `--muted` é `--border`, que é linha e não
+superfície, e usá-lo como fundo de linha quebraria o contrato de camada.
+
+Vale nas três áreas — Tax 1,165 contra 1,187; OSG 1,144 contra 1,164.
+
+**Por que isso decide:** o hover é o único dos dois que serve para **agir** (saber em qual
+linha se vai clicar). A zebra só ajuda a ler. Nenhuma calibração empata um teto.
+
+### O custo do branco, que também está medido
+
+`--card` e `--background` têm o **mesmo valor** nas três áreas. Então caixa de tabela
+branca **direto sobre a página** fica a **1,000:1** dela — só a borda a segura. É o defeito
+de 12/09 de novo, e é real.
+
+Ele some onde há casca tingida atrás: no Adm & Fin a caixa branca se separa da casca em
+1,077:1 **e** as linhas ficam no melhor contraste. Nesse caso o branco ganha nos dois
+eixos, sem troca.
+
+### As opções
+
+| opção | o que acontece | zebra | hover | caixa × página |
+|---|---|---|---|---|
+| **A. Tingida** (hoje) | padrão fica como está, e o Adm & Fin volta a ficar verde | 1,036 | **1,112** | 1,077 |
+| **B. Branca** ⭐ | variante do `<Card>`, ou a caixa deixa de ser `<Card>`. A exceção do Adm & Fin sai do inventário e vira regra | 1,054 | **1,175** | 1,000 (só a borda) |
+| **C. Tingida com degrau recomposto** | dois tokens novos: zebra a 38% e hover no máximo | 1,054 | **1,154** (teto) | 1,077 |
+
+**Recomendada: B.** O C parece o meio-termo e não é — custa dois tokens novos, entrega um
+hover **pior** que o B, e deixa o sistema com dois alfas de zebra para a mesma coisa
+conforme a caixa. Complexidade a mais por resultado pior.
 
 ---
 
 ## Subtarefas
 
-### T1 · A página de comparação, remontada com as telas de hoje
+### T1 · A página de comparação, remontada com as telas de hoje · ✅ CONCLUÍDO (16/09/2026)
 
-Reaproveitar a seção 6 de `o-branco-que-sobrou.html`. Três painéis por tela, na mesma
-ordem da página original (hoje · tudo tingido · tabela branca), com **três** telas:
+📄 [`geral/comparacoes-de-cor/a-caixa-da-tabela.html`](../../geral/comparacoes-de-cor/a-caixa-da-tabela.html).
+O achado (o teto do hover) está em D1, acima — ele mudou a recomendação de "tabela
+branca porque se lê pelas linhas" para "tabela branca porque o hover tem teto", que é
+argumento de outra natureza.
 
-1. **Adm & Fin — OS de faturamento.** É o caso que levantou a pergunta, e o único em que
-   a tabela está dentro de outra superfície tingida. Sem ela a opção C não tem como ser
-   julgada.
-2. **Uma tela da família de lista**, em que a caixa da tabela é a caixa mais externa.
-   Consulta ECD é a da página original e serve de continuidade.
-3. **Uma tela com tabela e KPI juntos**, para mostrar o que acontece quando as duas
-   caixas ficam lado a lado com tratamentos diferentes.
+O que a página tem, e o que mudou em relação ao que estava planejado aqui:
 
-Os valores têm de sair do `src/index.css` **da data da remontagem**, não copiados da
-página de 12/09 — a página original avisa que não se atualiza sozinha, e o cartão já
-desceu de valor desde então.
+| seção | o que mostra |
+|---|---|
+| 1 · Adm & Fin, OS de faturamento | O caso que levantou a pergunta, e o único do sistema em que a tabela está dentro de casca tingida. Dois painéis: como está hoje, e como ficaria se seguisse o padrão |
+| 2 · Consulta ECD | A caixa de tabela como caixa mais externa, direto sobre a página. **É aqui que há troca de verdade.** Três painéis: tingida (hoje), branca, e tingida com o degrau recomposto |
+| 3 · A lupa | A **mesma linha**, com o cursor em cima, nos três tratamentos, em faixas grandes. É o que decide, e é o que a página de 12/09 não mostrou |
+| 4 · Os números | Os três tratamentos no tema base, as três áreas lado a lado, e o tamanho no repositório |
+| 5 · A recomendação | Com o argumento, não só a marca |
 
-Incluir a **zebra e o hover de linha** nos painéis. É onde a diferença aparece, e a
-página de 12/09 não os tinha: a seção 8 registra "o que eu conferiria depois, na tela"
-e cita exatamente isso.
+**A terceira tela planejada (KPI + tabela lado a lado) não entrou**, e foi troca
+deliberada: a lupa da seção 3 responde a mesma pergunta com mais precisão. Duas caixas
+com tratamentos diferentes lado a lado já aparecem na seção 2, onde os filtros ficam
+tingidos e a tabela muda — é o mesmo confronto, dentro de uma tela real.
+
+Valores lidos do `src/index.css` de 16/09/2026, com os alfas compostos em sRGB (a mesma
+conta que o navegador faz). As cores de zebra e hover estão escritas **compostas** na
+página, opacas, e não como alfa sobre alfa: alfa empilhado no navegador daria um terceiro
+número, e o que a página compara são os números do produto.
 
 ### T2 · O caminho de código, conforme a resposta
 
-**Se A (branca):** a caixa de tabela ganha superfície própria. Duas saídas, e a escolha
-é de implementação, não dela:
+**Se B (branca — recomendada):** a caixa de tabela ganha superfície própria. Duas saídas,
+e a escolha é de implementação, não dela:
 
 - variante do `<Card>` (ex.: `<Card variant="tabela">`), que mantém raio, borda e sombra
   e só troca o fundo;
@@ -112,11 +153,18 @@ Os 49 arquivos precisam de passada, e a asserção de igualdade exata do
 `cartaoTingido.test.ts` cobra cada um. A entrada
 `'src/components/equipe/adm-fin/TabelasDaOs.tsx'` **sai** do grupo `dentro-do-cartao`.
 
-**Se B (tingida):** reverter `55aba66b` na parte do `Quadro` e tirar a mesma entrada do
-inventário. Um arquivo.
+⚠️ **Conferir na tela, não só no número:** com a caixa branca sobre a página a 1,000:1, a
+borda passa a ser a única coisa que segura a caixa. A página mede o contraste, mas quem
+diz se a borda basta é ela, olhando uma tela cheia.
 
-**Se C:** a regra vira código ou não existe. Regra que mora só em documento não sobrevive
-à próxima tela — é o que esta tarefa está consertando.
+**Se A (tingida — manter):** reverter `55aba66b` na parte do `Quadro` e tirar a mesma
+entrada do inventário. Um arquivo. E a tabela do Adm & Fin volta a ficar verde.
+
+**Se C (degrau recomposto):** dois tokens novos no `tailwind.config.ts` — a zebra a 38% e
+o hover no máximo de `--muted` —, mais a catraca que recalcula os dois a partir do
+`index.css`, no molde do `cartaoTingido.test.ts`. A regra de **qual** zebra usar conforme
+a caixa tem de virar código; regra que mora só em documento não sobrevive à próxima tela,
+que é o que esta tarefa está consertando.
 
 ### T3 · A catraca acompanha a decisão
 
@@ -150,8 +198,8 @@ parece certo escrever.
 
 | item | estado |
 |---|---|
-| D1 · branca, tingida ou depende da casca | 🔵 **ABERTA** — bloqueia T2 e T3 |
-| T1 · página de comparação remontada | 🔵 aberta, e é o que destrava D1 |
+| T1 · página de comparação remontada | ✅ **CONCLUÍDO (16/09/2026)** — [`a-caixa-da-tabela.html`](../../geral/comparacoes-de-cor/a-caixa-da-tabela.html) |
+| D1 · tingida (A), branca (B) ou degrau recomposto (C) | 🔵 **ABERTA, e é só o que falta** — recomendada **B**, pelo teto do hover |
 | T2 · caminho de código | ⛔ bloqueada em D1 |
 | T3 · catraca acompanha | ⛔ bloqueada em D1 |
 

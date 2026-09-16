@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A caixa da tabela</title>
+<style>
+  /* ────────────────────────────────────────────────────────────────────────
+     Valores lidos do src/index.css em 16/09/2026, tema BASE (`:root`), que é o
+     que as duas telas desta página vestem: Adm & Fin não declara classe de tema
+     e Consulta ECD é Dev. Tax e OSG estão na tabela do fim — as três se movem
+     juntas, e nenhuma conclusão muda.
+
+     As cores de zebra e hover estão COMPOSTAS aqui (o valor final, opaco), e não
+     como alfa sobre alfa. É de propósito: alfa empilhado no navegador daria um
+     terceiro número, e o que esta página compara são os números do produto.
+     ──────────────────────────────────────────────────────────────────────── */
+  :root{
+    --pagina:42 24% 99.8%;    /* --background */
+    --branco:42 24% 99.8%;    /* --card — MESMO valor da página, e isso importa */
+    --cartao:166.1 19.2% 96.0%;  /* bg-superficie-cartao = --muted 35% sobre a página */
+    --linha:40 12% 91%;       /* --border */
+    --fg:20 81% 10%;
+    --mf:180 10% 38%;
+    --pr:175 84% 25%;
+    --ok:128 56% 21%;
+    --alerta:25 85% 35%;
+
+    /* zebra e hover, compostos, nos três tratamentos */
+    --zebra-tingida:167.0 19.6% 94.3%;   /* --muted 25% sobre o cartão */
+    --hover-tingido:167.8 19.9% 90.8%;   /* --muted 75% sobre o cartão */
+    --zebra-branca:165.0 18.8% 97.1%;    /* --muted 25% sobre o branco */
+    --hover-branco:167.7 19.9% 91.7%;    /* --muted 75% sobre o branco */
+    --zebra-recomposta:167.3 19.7% 93.4%;/* --muted 38% sobre o cartão */
+    --hover-teto:168 20% 89%;            /* --muted 100% sobre o cartão — o limite */
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:34px 24px 90px;background:hsl(var(--pagina));color:hsl(var(--fg));
+       font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1320px;margin:0 auto}
+  h1{font-size:27px;margin:0 0 8px;letter-spacing:-.015em}
+  .sub{color:hsl(var(--mf));margin:0;max-width:84ch}
+  h2{font-size:14px;text-transform:uppercase;letter-spacing:.07em;margin:58px 0 6px;color:hsl(var(--mf))}
+  h2 + p{margin:0 0 14px;max-width:88ch;font-size:14.5px}
+  h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:30px 0 8px;color:hsl(var(--mf));font-weight:700}
+  p.nota{color:hsl(var(--mf));font-size:13.5px;max-width:88ch;margin:10px 0 0}
+  code{font:12.5px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+       background:hsl(42 14% 96%);padding:1px 5px;border-radius:4px;border:1px solid hsl(var(--linha))}
+  .achado{border:1px solid hsl(var(--linha));border-left:3px solid hsl(var(--alerta));
+          background:hsl(42 14% 97.5%);border-radius:10px;padding:16px 19px;margin:22px 0 0;max-width:98ch}
+  .achado b{display:block;margin-bottom:6px;font-size:15.5px}
+  .decisao{border:1px solid hsl(var(--linha));border-left:3px solid hsl(var(--pr));
+           background:hsl(42 14% 97.5%);border-radius:10px;padding:16px 19px;margin:22px 0 0;max-width:98ch}
+  .decisao b{display:block;margin-bottom:6px;font-size:15.5px}
+  .decisao ol{margin:8px 0 0;padding-left:20px}
+  .decisao li{margin-bottom:7px}
+
+  /* ── palco ───────────────────────────────────────────────────────────── */
+  .par{display:grid;gap:18px;margin-top:14px}
+  .par.dois{grid-template-columns:1fr 1fr}
+  .par.tres{grid-template-columns:1fr 1fr 1fr}
+  .palco{border:1px solid hsl(var(--linha));border-radius:12px;overflow:hidden;background:hsl(var(--pagina))}
+  .rotulo{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:hsl(var(--mf));
+          padding:9px 13px;background:hsl(var(--branco));border-bottom:1px solid hsl(var(--linha));
+          display:flex;gap:9px;align-items:baseline;min-height:36px}
+  .rotulo em{font-style:normal;font-weight:500;text-transform:none;letter-spacing:0;opacity:.85}
+  .rotulo .tag{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:700}
+  .rotulo .rec{color:hsl(var(--ok))}
+  .rotulo .hoje{color:hsl(var(--alerta))}
+  .tela{padding:18px}
+
+  /* superfícies */
+  .tingida{background:hsl(var(--cartao))}
+  .branca{background:hsl(var(--branco))}
+  .caixa{border:1px solid hsl(var(--linha));border-radius:12px;overflow:hidden;
+         box-shadow:0 1px 2px hsl(var(--fg) / .05)}
+  .casca{border:1px solid hsl(var(--linha));border-radius:14px;padding:14px;background:hsl(var(--cartao))}
+
+  /* tabela */
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  thead th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;
+           color:hsl(var(--mf));font-weight:700;padding:9px 12px;border-bottom:1px solid hsl(var(--linha))}
+  tbody td{padding:9px 12px;border-bottom:1px solid hsl(var(--linha) / .55)}
+  tbody tr:last-child td{border-bottom:0}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .pil{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:999px;
+       background:hsl(var(--pr) / .1);color:hsl(var(--pr));border:1px solid hsl(var(--pr) / .22)}
+  /* zebra e hover por tratamento */
+  .t-tingida tbody tr:nth-child(even){background:hsl(var(--zebra-tingida))}
+  .t-tingida tbody tr.hv{background:hsl(var(--hover-tingido))}
+  .t-branca  tbody tr:nth-child(even){background:hsl(var(--zebra-branca))}
+  .t-branca  tbody tr.hv{background:hsl(var(--hover-branco))}
+  .t-degrau  tbody tr:nth-child(even){background:hsl(var(--zebra-recomposta))}
+  .t-degrau  tbody tr.hv{background:hsl(var(--hover-teto))}
+  tr.hv td:first-child:before{content:"▸ ";color:hsl(var(--mf))}
+
+  /* cromo de tela */
+  .secao{font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+         color:hsl(var(--mf));margin:0 0 7px;display:flex;align-items:center;gap:7px}
+  .secao:before{content:"";width:12px;height:12px;border:1.5px solid hsl(var(--pr));border-radius:3px;flex:none}
+  .filtros{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:13px}
+  .campo label{display:block;font-size:10px;color:hsl(var(--mf));margin-bottom:4px}
+  .ctrl{height:32px;border:1px solid hsl(var(--linha));border-radius:7px;background:hsl(var(--branco));
+        font-size:12px;display:flex;align-items:center;padding:0 10px;color:hsl(var(--mf))}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+  .kpi{padding:13px 15px}
+  .kpi .l{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:hsl(var(--mf))}
+  .kpi .v{font-size:25px;font-weight:800;letter-spacing:-.03em;margin-top:6px;font-variant-numeric:tabular-nums}
+  .mini{font-size:11px;color:hsl(var(--mf));margin:9px 0 0}
+
+  /* ── lupa do degrau ──────────────────────────────────────────────────── */
+  .lupa{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:14px}
+  .tira{border:1px solid hsl(var(--linha));border-radius:10px;overflow:hidden}
+  .tira .cab{padding:9px 13px;font-size:11px;font-weight:700;background:hsl(var(--branco));
+             border-bottom:1px solid hsl(var(--linha))}
+  .tira .faixa{height:38px;display:flex;align-items:center;padding:0 13px;font-size:12px}
+  .tira .leg{padding:11px 13px;font-size:11.5px;color:hsl(var(--mf));border-top:1px solid hsl(var(--linha) / .6)}
+  .tira .leg b{color:hsl(var(--fg));font-variant-numeric:tabular-nums}
+
+  /* ── tabelas de número ───────────────────────────────────────────────── */
+  table.dados{width:auto;min-width:min(100%,720px);margin-top:12px;font-size:13px}
+  table.dados th{border-bottom:1px solid hsl(var(--linha));padding:8px 14px 8px 0;font-size:11px}
+  table.dados td{padding:8px 14px 8px 0;border-bottom:1px solid hsl(var(--linha) / .5);
+                 font-variant-numeric:tabular-nums}
+  table.dados td.txt{font-variant-numeric:normal}
+  .bom{color:hsl(var(--ok));font-weight:700}
+  .ruim{color:hsl(var(--alerta));font-weight:700}
+  .teto{background:hsl(var(--alerta) / .07)}
+  @media (max-width:1100px){
+    .par.tres,.lupa,.par.dois{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>A caixa da tabela: branca ou tingida</h1>
+<p class="sub">
+  Remontagem da seção 6 de <code>o-branco-que-sobrou.html</code> com as telas de hoje, o caso do
+  Adm&nbsp;&amp;&nbsp;Fin (que não estava na amostra de 12/09) e a zebra e o hover de linha, que
+  a página original registrou como <em>"o que eu conferiria depois, na tela"</em> e não mostrou.
+  <strong>São eles que decidem.</strong> Valores do <code>src/index.css</code> de 16/09/2026.
+</p>
+
+<div class="achado">
+  <b>O achado que mudou a pergunta: o hover de linha tem um teto.</b>
+  A zebra perdida sobre o cartão tingido dá para recuperar — basta subir o alfa de 25% para 38%.
+  <strong>O hover não dá.</strong> Ele é feito de <code>--muted</code>, e o cartão tingido já é 35%
+  de <code>--muted</code>: mesmo a 100%, sem transparência nenhuma, o hover sobre o cartão chega a
+  <b>1,154:1</b> contra os <b>1,175:1</b> que ele tem sobre o branco. Não é questão de calibrar —
+  acabou a escala. Recuperar exigiria um token novo, mais escuro que <code>--muted</code>, que hoje
+  não existe.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<h2>1 · Adm &amp; Fin, OS de faturamento — a tabela dentro de outra superfície</h2>
+<p>
+  É o caso que levantou a pergunta, e o único do sistema em que a tabela está dentro de uma casca
+  que já é tingida (a <code>ListaMestreDetalhe</code>). Aqui <strong>não há troca a fazer</strong>:
+  a caixa branca se separa da casca em 1,077:1 <em>e</em> as linhas ficam no melhor contraste. Foi
+  o que você viu em 15/09.
+</p>
+
+<div class="par dois">
+  <div class="palco">
+    <div class="rotulo">Hoje · tabela branca dentro da casca <span class="tag hoje">no ar</span></div>
+    <div class="tela">
+      <div class="casca">
+        <p class="secao">Parcelas da OS 096/2026</p>
+        <div class="caixa branca">
+          <table class="t-branca">
+            <thead><tr><th>Parcela</th><th>Competência</th><th class="num">Valor</th><th>Situação</th></tr></thead>
+            <tbody>
+              <tr><td>1 de 4</td><td>Set/2026</td><td class="num">12.500,00</td><td><span class="pil">Faturada</span></td></tr>
+              <tr><td>2 de 4</td><td>Out/2026</td><td class="num">12.500,00</td><td><span class="pil">A faturar</span></td></tr>
+              <tr class="hv"><td>3 de 4</td><td>Nov/2026</td><td class="num">12.500,00</td><td><span class="pil">A faturar</span></td></tr>
+              <tr><td>4 de 4</td><td>Dez/2026</td><td class="num">12.500,00</td><td><span class="pil">A faturar</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mini">A terceira linha está com o cursor em cima.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="palco">
+    <div class="rotulo">Se seguisse o padrão · tabela tingida <em>dentro</em> da casca tingida</div>
+    <div class="tela">
+      <div class="casca">
+        <p class="secao">Parcelas da OS 096/2026</p>
+        <div class="caixa tingida">
+          <table class="t-tingida">
+            <thead><tr><th>Parcela</th><th>Competência</th><th class="num">Valor</th><th>Situação</th></tr></thead>
+            <tbody>
+              <tr><td>1 de 4</td><td>Set/2026</td><td class="num">12.500,00</td><td><span class="pil">Faturada</span></td></tr>
+              <tr><td>2 de 4</td><td>Out/2026</td><td class="num">12.500,00</td><td><span class="pil">A faturar</span></td></tr>
+              <tr class="hv"><td>3 de 4</td><td>Nov/2026</td><td class="num">12.500,00</td><td><span class="pil">A faturar</span></td></tr>
+              <tr><td>4 de 4</td><td>Dez/2026</td><td class="num">12.500,00</td><td><span class="pil">A faturar</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mini">A caixa some na casca, e o cursor quase não marca a linha.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="nota">
+  A caixa tingida sobre a casca tingida fica a <b>1,000:1</b> dela — valor idêntico, só a borda
+  separa. É o defeito de 12/09 acontecendo um nível abaixo: superfície que desce sobre superfície
+  que já desceu não é um degrau, é o mesmo chão.
+</p>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<h2>2 · Consulta ECD — a tabela como a caixa mais externa</h2>
+<p>
+  Aqui está a troca de verdade, e é ela que precisa da sua decisão. Metade das telas do sistema é
+  assim: filtros numa caixa, e uma caixa grande com a tabela dentro, direto sobre a página.
+  <strong>Como <code>--card</code> e <code>--background</code> têm o mesmo valor, caixa branca
+  sobre a página fica a 1,000:1 — só a borda a segura.</strong>
+</p>
+
+<div class="par tres">
+  <div class="palco">
+    <div class="rotulo">A · Tingida <em>(hoje)</em> <span class="tag hoje">no ar</span></div>
+    <div class="tela">
+      <div class="caixa tingida" style="margin-bottom:14px">
+        <p class="secao" style="padding:13px 13px 0;margin-bottom:0">Filtros</p>
+        <div class="filtros">
+          <div class="campo"><label>Cliente</label><div class="ctrl">Frigobom</div></div>
+          <div class="campo"><label>Início</label><div class="ctrl">Set/2021</div></div>
+          <div class="campo"><label>Fim</label><div class="ctrl">Set/2026</div></div>
+        </div>
+      </div>
+      <div class="caixa tingida">
+        <table class="t-tingida">
+          <thead><tr><th>Arquivo</th><th>Período</th><th>Situação</th></tr></thead>
+          <tbody>
+            <tr><td>ECD_2025_00112</td><td>01–12/2025</td><td><span class="pil">Validado</span></td></tr>
+            <tr><td>ECD_2024_00098</td><td>01–12/2024</td><td><span class="pil">Validado</span></td></tr>
+            <tr class="hv"><td>ECD_2023_00071</td><td>01–12/2023</td><td><span class="pil">Validado</span></td></tr>
+            <tr><td>ECD_2022_00044</td><td>01–12/2022</td><td><span class="pil">Validado</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="mini">Caixa nítida na página. Linhas achatadas.</p>
+    </div>
+  </div>
+
+  <div class="palco">
+    <div class="rotulo">B · Tabela branca <span class="tag rec">recomendada em 12/09</span></div>
+    <div class="tela">
+      <div class="caixa tingida" style="margin-bottom:14px">
+        <p class="secao" style="padding:13px 13px 0;margin-bottom:0">Filtros</p>
+        <div class="filtros">
+          <div class="campo"><label>Cliente</label><div class="ctrl">Frigobom</div></div>
+          <div class="campo"><label>Início</label><div class="ctrl">Set/2021</div></div>
+          <div class="campo"><label>Fim</label><div class="ctrl">Set/2026</div></div>
+        </div>
+      </div>
+      <div class="caixa branca">
+        <table class="t-branca">
+          <thead><tr><th>Arquivo</th><th>Período</th><th>Situação</th></tr></thead>
+          <tbody>
+            <tr><td>ECD_2025_00112</td><td>01–12/2025</td><td><span class="pil">Validado</span></td></tr>
+            <tr><td>ECD_2024_00098</td><td>01–12/2024</td><td><span class="pil">Validado</span></td></tr>
+            <tr class="hv"><td>ECD_2023_00071</td><td>01–12/2023</td><td><span class="pil">Validado</span></td></tr>
+            <tr><td>ECD_2022_00044</td><td>01–12/2022</td><td><span class="pil">Validado</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="mini">Linhas no melhor contraste. A caixa só existe pela borda.</p>
+    </div>
+  </div>
+
+  <div class="palco">
+    <div class="rotulo">C · Tingida com o degrau recomposto</div>
+    <div class="tela">
+      <div class="caixa tingida" style="margin-bottom:14px">
+        <p class="secao" style="padding:13px 13px 0;margin-bottom:0">Filtros</p>
+        <div class="filtros">
+          <div class="campo"><label>Cliente</label><div class="ctrl">Frigobom</div></div>
+          <div class="campo"><label>Início</label><div class="ctrl">Set/2021</div></div>
+          <div class="campo"><label>Fim</label><div class="ctrl">Set/2026</div></div>
+        </div>
+      </div>
+      <div class="caixa tingida">
+        <table class="t-degrau">
+          <thead><tr><th>Arquivo</th><th>Período</th><th>Situação</th></tr></thead>
+          <tbody>
+            <tr><td>ECD_2025_00112</td><td>01–12/2025</td><td><span class="pil">Validado</span></td></tr>
+            <tr><td>ECD_2024_00098</td><td>01–12/2024</td><td><span class="pil">Validado</span></td></tr>
+            <tr class="hv"><td>ECD_2023_00071</td><td>01–12/2023</td><td><span class="pil">Validado</span></td></tr>
+            <tr><td>ECD_2022_00044</td><td>01–12/2022</td><td><span class="pil">Validado</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="mini">Zebra recuperada. O hover está <b>no teto</b> e ainda fica abaixo do B.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<h2>3 · A lupa — a zebra e o hover, que é onde a diferença mora</h2>
+<p>
+  As três faixas abaixo são a <strong>mesma linha da tabela</strong>, com o cursor em cima, nos três
+  tratamentos. É o que a página de 12/09 não mostrou.
+</p>
+
+<div class="lupa">
+  <div class="tira">
+    <div class="cab">A · sobre a caixa tingida</div>
+    <div class="faixa tingida">linha em repouso</div>
+    <div class="faixa" style="background:hsl(var(--zebra-tingida))">linha par (zebra)</div>
+    <div class="faixa" style="background:hsl(var(--hover-tingido))">linha com o cursor</div>
+    <div class="leg">zebra <b>1,036:1</b> · hover <b class="ruim">1,112:1</b></div>
+  </div>
+  <div class="tira">
+    <div class="cab">B · sobre a caixa branca</div>
+    <div class="faixa branca">linha em repouso</div>
+    <div class="faixa" style="background:hsl(var(--zebra-branca))">linha par (zebra)</div>
+    <div class="faixa" style="background:hsl(var(--hover-branco))">linha com o cursor</div>
+    <div class="leg">zebra <b>1,054:1</b> · hover <b class="bom">1,175:1</b></div>
+  </div>
+  <div class="tira">
+    <div class="cab">C · tingida, degrau no limite</div>
+    <div class="faixa tingida">linha em repouso</div>
+    <div class="faixa" style="background:hsl(var(--zebra-recomposta))">linha par (zebra 38%)</div>
+    <div class="faixa teto" style="background:hsl(var(--hover-teto))">linha com o cursor — 100%</div>
+    <div class="leg">zebra <b>1,054:1</b> · hover <b class="ruim">1,154:1</b>, no teto</div>
+  </div>
+</div>
+
+<p class="nota">
+  Na faixa C o hover está com <code>--muted</code> puro, sem transparência. <strong>Não existe
+  próximo passo</strong> dentro da família de superfícies de hoje: o que vem depois de
+  <code>--muted</code> é <code>--border</code>, que é linha e não superfície, e usá-lo como fundo
+  de linha quebraria o contrato de camada.
+</p>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<h2>4 · Os números</h2>
+
+<h3>Os três tratamentos, tema base</h3>
+<table class="dados">
+  <thead><tr><th class="txt">O que se separa do quê</th><th>A · tingida</th><th>B · branca</th><th>C · degrau</th></tr></thead>
+  <tbody>
+    <tr><td class="txt">Zebra contra a linha em repouso</td><td>1,036</td><td class="bom">1,054</td><td class="bom">1,054</td></tr>
+    <tr class="teto"><td class="txt"><b>Hover contra a linha em repouso</b></td><td class="ruim">1,112</td><td class="bom">1,175</td><td class="ruim">1,154 <em>(teto)</em></td></tr>
+    <tr><td class="txt">A caixa contra a página</td><td class="bom">1,077</td><td class="ruim">1,000</td><td class="bom">1,077</td></tr>
+    <tr><td class="txt">A caixa contra uma casca tingida <em>(Adm&nbsp;&amp;&nbsp;Fin)</em></td><td class="ruim">1,000</td><td class="bom">1,077</td><td class="ruim">1,000</td></tr>
+  </tbody>
+</table>
+<p class="nota">
+  Piso de referência: <b>1,24:1</b>, que é com o que a borda de 1px se separa do cartão. Nenhum
+  número de linha chega perto dele em tratamento nenhum — linha de tabela sempre se leu por
+  diferença pequena. O que a tabela acima mostra é <em>qual</em> diferença pequena sobrevive.
+</p>
+
+<h3>As três áreas se movem juntas</h3>
+<table class="dados">
+  <thead><tr><th class="txt">Área</th><th>hover tingido</th><th>hover branco</th><th>hover no teto (C)</th></tr></thead>
+  <tbody>
+    <tr><td class="txt">Base <em>(Adm&nbsp;&amp;&nbsp;Fin, Dev)</em></td><td>1,112</td><td class="bom">1,175</td><td>1,154</td></tr>
+    <tr><td class="txt">Tax</td><td>1,120</td><td class="bom">1,187</td><td>1,165</td></tr>
+    <tr><td class="txt">OSG</td><td>1,106</td><td class="bom">1,164</td><td>1,144</td></tr>
+  </tbody>
+</table>
+<p class="nota">
+  A conclusão não depende da área: em todas, a caixa branca dá o melhor hover, e em todas o C bate
+  no teto antes de alcançá-lo.
+</p>
+
+<h3>O tamanho, no repositório</h3>
+<table class="dados">
+  <thead><tr><th class="txt">Medida</th><th>Número</th></tr></thead>
+  <tbody>
+    <tr><td class="txt">Arquivos com <code>&lt;Card&gt;</code> e <code>&lt;Table&gt;</code></td><td>49</td></tr>
+    <tr><td class="txt">Blocos de tabela nesses arquivos</td><td>53</td></tr>
+    <tr><td class="txt">Caixas de tabela <strong>brancas</strong> hoje</td><td>1</td></tr>
+    <tr><td class="txt">Caixas de tabela tingidas <strong>por herança</strong>, sem escolha</td><td>52</td></tr>
+    <tr><td class="txt"><code>&lt;Card&gt;</code> no sistema</td><td>384 em 177 arquivos</td></tr>
+  </tbody>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<h2>5 · O que eu recomendo, e por quê</h2>
+
+<div class="decisao">
+  <b>B, com uma emenda: branca quando a tabela é a caixa da tela; tingida nunca.</b>
+  <ol>
+    <li>
+      <strong>O hover decide.</strong> É o único dos dois que a pessoa usa para <em>agir</em> —
+      saber em qual linha vai clicar. A zebra só ajuda a ler. Entre um tratamento que entrega o
+      hover a 1,175 e outro que bate no teto em 1,154, não há calibração que empate depois.
+    </li>
+    <li>
+      <strong>O custo do B é real e tem conserto barato:</strong> a caixa branca fica a 1,000:1 da
+      página e depende da borda. Mas a borda já é o que separa <em>todas</em> as caixas de controle
+      hoje, e a tabela é o único conteúdo da tela nesse caso — não há dois objetos competindo por
+      atenção. Onde houver casca tingida atrás, some até o custo.
+    </li>
+    <li>
+      <strong>O C parece o meio-termo e não é.</strong> Ele custa dois tokens novos (zebra a 38% e
+      hover no máximo), entrega um hover pior que o B, e deixa o sistema com dois alfas de zebra
+      para a mesma coisa, conforme a caixa. Complexidade a mais para um resultado pior.
+    </li>
+    <li>
+      <strong>Se você escolher A (deixar como está)</strong>, a consequência honesta é que a
+      tabela do Adm&nbsp;&amp;&nbsp;Fin volta a ficar verde — foi ela que gerou a pergunta, e é o
+      caso em que o tingido custa mais e entrega menos.
+    </li>
+  </ol>
+</div>
+
+<p class="nota">
+  Seja qual for a resposta, a terceira subtarefa não muda: a catraca tem de <strong>cobrar</strong>
+  a regra em vez de inventariar quem fugiu dela. Hoje ela pergunta "esta caixa branca está
+  autorizada?"; se tabela virar branca, a pergunta certa passa a ser "esta caixa de tabela está
+  tingida?". Sem isso, a próxima tabela nasce tingida de novo, porque <code>&lt;Card&gt;</code>
+  continua sendo o que parece certo escrever.
+</p>
+
+<p class="nota" style="margin-top:34px">
+  Medido a partir do <code>src/index.css</code> e do <code>tailwind.config.ts</code> de
+  <strong>16/09/2026</strong>, compondo os alfas em sRGB — a mesma conta que o navegador faz. Os
+  valores desta página <strong>não se atualizam sozinhos</strong>. Contagens do repositório na
+  mesma data. Tarefa:
+  <code>docs/sprints/sprint-13/TAREFA_caixa-de-tabela-branca-ou-tingida.md</code>.
+</p>
+
+</div>
+</body>
+</html>
