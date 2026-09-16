@@ -1,0 +1,55 @@
+{
+  "quando": "2026-09-16",
+  "ambiente": "localhost:8080, branch develop (sandbox), sessão autenticada como Alexandre Silva / Digital Dev",
+  "telas": [
+    {
+      "rota": "/equipe/dev/consulta-efd-icms",
+      "nomeNoCatalogo": "EFD ICMS/IPI",
+      "tituloNaPagina": "EFD ICMS/IPI",
+      "batem": true,
+      "acessarManual": 1,
+      "acessarSop": 0
+    },
+    {
+      "rota": "/equipe/dev/consulta-efd",
+      "nomeNoCatalogo": "EFD Contribuições",
+      "tituloNaPagina": "EFD Contribuições",
+      "batem": true,
+      "acessarManual": 1,
+      "acessarSop": 0
+    },
+    {
+      "rota": "/equipe/dev/mapa-ncm-pis-cofins",
+      "nomeNoCatalogo": "Mapa NCM",
+      "tituloNaPagina": "Mapa NCM",
+      "batem": true,
+      "acessarManual": 1,
+      "acessarSop": 0
+    },
+    {
+      "rota": "/equipe/dev/apuracao-pis-cofins",
+      "nomeNoCatalogo": "Apuração PIS/COFINS",
+      "tituloNaPagina": "Apuração PIS/COFINS",
+      "batem": true,
+      "acessarManual": 1,
+      "acessarSop": 0
+    },
+    {
+      "rota": "/equipe/dev/correcoes-sped",
+      "nomeNoCatalogo": "Correções na EFD Contribuições",
+      "tituloNaPagina": "Correções na EFD Contribuições",
+      "batem": true,
+      "acessarManual": 1,
+      "acessarSop": 0
+    },
+    {
+      "rota": "/equipe/dev/calculadora-ibs-cbs",
+      "nomeNoCatalogo": "Calculadora IBS/CBS",
+      "tituloNaPagina": "Calculadora IBS/CBS",
+      "batem": true,
+      "acessarManual": 1,
+      "acessarSop": 0
+    }
+  ],
+  "naoVerificado": []
+}

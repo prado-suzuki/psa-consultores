@@ -41,15 +41,19 @@ import {
   classesGavetaBarra,
 } from '@/lib/sidebarMedidas';
 import { classesItemDaBarra } from '@/lib/barraLateralCromo';
+import { manualDaRota } from '@/constants/devManuais';
+import { resolverCabecalhoDoDev, type CabecalhoDoDev } from '@/config/telasDoDigitalDev';
 import { cn } from '@/lib/utils';
 
-interface DevLayoutProps {
+/**
+ * Ou `tela` — o nome e a explicação vindos de `@/config/telasDoDigitalDev` — ou
+ * `title`/`subtitle` escritos à mão, para as telas sem nome fixo (o detalhe da
+ * ferramenta exibe o nome que vem do banco). Nunca os dois: o tipo não compila.
+ */
+type DevLayoutProps = CabecalhoDoDev & {
   children: React.ReactNode;
-  title: string;
-  subtitle?: string;
-  sopUrl?: string;
   headerActions?: React.ReactNode;
-}
+};
 
 interface NavItem {
   icon: LucideIcon;
@@ -215,9 +219,12 @@ const HubSidebarSection = ({
   </Collapsible>
 );
 
-export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: DevLayoutProps) => {
+export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutProps) => {
+  const { title, subtitle } = resolverCabecalhoDoDev(cabecalho);
   const navigate = useNavigate();
   const location = useLocation();
+  // A rota decide o manual: nenhuma página precisa passar a URL (ver `devManuais`).
+  const manualDestaTela = manualDaRota(location.pathname);
   // O recolhimento automático em telas de trabalho largo mora no hook — é a
   // tela que pede, com `useTelaDeTrabalhoLargo()`; o layout não conhece rotas.
   const barra = useSidebarRecolhimentoController();
@@ -531,26 +538,25 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
               titulo={title}
               subtitulo={subtitle}
               sobretitulo={AREAS.dev.nome}
-              apendiceDoSubtitulo={
-                sopUrl ? (
-                  <>
-                    <span className="mx-2">|</span>
-                    <a
-                      href={sopUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 font-medium text-primary hover:text-primary hover:underline"
-                    >
-                      Acessar SOP desta ferramenta
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  </>
-                ) : null
-              }
             />
           </div>
 
           <div className="flex items-center gap-3">
+            {/* O manual sai do SUBTÍTULO e vira ação do cabeçalho. Antes ele era
+                apêndice da frase ("... | Acessar SOP desta ferramenta"), o que
+                misturava ação de interface com a explicação da tela — e só
+                aparecia nas três páginas que passavam a URL. Agora a rota resolve
+                pelo mesmo registro que o catálogo usa, então o botão nasce no
+                mesmo lugar em toda ferramenta que tenha manual. */}
+            {manualDestaTela && (
+              <Button variant="outline" size="sm" asChild className="gap-1.5">
+                <a href={manualDestaTela} target="_blank" rel="noopener noreferrer">
+                  <BookOpen className="h-4 w-4" />
+                  Acessar manual
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </Button>
+            )}
             {/* SEM espelho: "chamados dos clientes desta área" não se aplica ao
                 Digital, que não tem clientes. Ver o bloco `ESPELHO` em
                 `src/lib/areaTheme.ts`. */}

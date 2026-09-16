@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { DEV_HUBS } from "@/constants/devHubDefinitions";
 import { DEV_NAV_LABELS } from "@/constants/devNavLabels";
+import { MANUAIS_AVULSOS } from "@/constants/devManuais";
 import { KpiHero } from "@/components/dashboard/momentum";
 import { useToolsCounts } from "@/hooks/useToolsCounts";
 
@@ -72,15 +73,15 @@ const toolGroups: ToolGroup[] = [
   {
     label: DEV_NAV_LABELS.consultaXmls,
     landingPath: "/equipe/dev/consulta-xmls",
-    landingDescription: "Busque e visualize documentos fiscais eletrônicos",
+    landingDescription: "Consulte e baixe XMLs de NFe e CT-e por cliente e período.",
     landingIcon: FileCode2,
     tools: [
       {
         name: DEV_NAV_LABELS.consultaXmls,
-        description: "Busque e visualize documentos fiscais eletrônicos",
+        description: "Consulte e baixe XMLs de NFe e CT-e por cliente e período.",
         path: "/equipe/dev/consulta-xmls",
         icon: FileCode2,
-        sopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/consulta-xmls/",
+        sopUrl: MANUAIS_AVULSOS.consultaXmls,
       },
     ],
   },
@@ -111,16 +112,16 @@ const toolGroups: ToolGroup[] = [
   {
     label: DEV_NAV_LABELS.calculadoraIbsCbs,
     landingPath: "/equipe/dev/calculadora-ibs-cbs",
-    landingDescription: "Simulador de cálculo da reforma tributária",
+    landingDescription: "Compare a carga tributária antes e depois da reforma.",
     landingIcon: Percent,
-    landingSopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/",
+    landingSopUrl: MANUAIS_AVULSOS.calculadoraIbsCbs,
     tools: [
       {
         name: DEV_NAV_LABELS.calculadoraIbsCbs,
-        description: "Simulador de cálculo da reforma tributária",
+        description: "Compare a carga tributária antes e depois da reforma.",
         path: "/equipe/dev/calculadora-ibs-cbs",
         icon: Percent,
-        sopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/",
+        sopUrl: MANUAIS_AVULSOS.calculadoraIbsCbs,
       },
     ],
   },
@@ -135,16 +136,16 @@ const toolGroups: ToolGroup[] = [
   {
     label: DEV_NAV_LABELS.controleBalancetes,
     landingPath: "/equipe/dev/controle-balancetes",
-    landingDescription: "Upload e gestão de balancetes contábeis",
+    landingDescription: "Envie, consulte e acompanhe balancetes contábeis.",
     landingIcon: Scale,
-    landingSopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/balancete/",
+    landingSopUrl: MANUAIS_AVULSOS.controleBalancetes,
     tools: [
       {
         name: DEV_NAV_LABELS.controleBalancetes,
-        description: "Upload e gestão de balancetes contábeis",
+        description: "Envie, consulte e acompanhe balancetes contábeis.",
         path: "/equipe/dev/controle-balancetes",
         icon: Scale,
-        sopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/balancete/",
+        sopUrl: MANUAIS_AVULSOS.controleBalancetes,
       },
     ],
   },
@@ -181,13 +182,10 @@ const DevDashboard = () => {
   };
 
   return (
-    <DevLayout
-      title={DEV_NAV_LABELS.inicio}
-      subtitle="Acesse suas ferramentas automatizadas e manuais de operação"
-    >
+    <DevLayout tela="inicio"    >
       <div className="space-y-6">
         <p className="text-sm text-muted-foreground">
-          Use o filtro para achar uma ferramenta específica ou explore por categoria no catálogo abaixo.
+          Use o filtro para localizar uma ferramenta ou navegue pelas categorias abaixo.
         </p>
 
         <a
@@ -235,10 +233,10 @@ const DevDashboard = () => {
                   Estrutura de Pastas do Google Drive
                 </h2>
                 <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                  Cada pasta de cliente no Drive alimenta o banco de dados que abastece{" "}
-                  <span className="font-semibold text-foreground">todas as aplicações Digital DEV</span>.
-                  O envio correto dos documentos na estrutura padrão é essencial para garantir a
-                  integridade da coleta e o funcionamento das ferramentas. Clique em{" "}
+                  A estrutura de pastas no Google Drive é a fonte de dados das{" "}
+                  <span className="font-semibold text-foreground">aplicações Digital Dev</span>. Salve
+                  os documentos dos clientes na estrutura padrão para garantir a coleta correta e o
+                  funcionamento das ferramentas. Clique em{" "}
                   <span className="font-semibold text-foreground">Abrir manual</span> para consultar a
                   estrutura completa e evitar erros de organização.
                 </p>

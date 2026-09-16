@@ -392,15 +392,10 @@ const ConsultaEFD = () => {
   const blocosDisponiveis = overview?.blocos_disponiveis || {};
 
   return (
-    <DevLayout 
-      title="Consulta EFD Contribuições" 
-      subtitle="Consulta de EFD Contribuições"
-      sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-contribuicoes/"
-    >
+    <DevLayout tela="efdContribuicoes"    >
       <TooltipProvider delayDuration={300}>
       <DevPageHeader
-        description="A Consulta de EFD Contribuições centraliza a busca e o download das **Escriturações Fiscais Digitais das Contribuições** da base de dados. Utilize os filtros abaixo para consultar arquivos específicos ou analisar períodos inteiros, permitindo a análise detalhada de blocos e registros diretamente em tela, o download dos arquivos originais em lote (.zip) ou a exportação em formato Excel (.xlsx)."
-        manualUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-contribuicoes/"
+        description="A **EFD Contribuições** reúne as Escriturações Fiscais Digitais das Contribuições entregues ao SPED. Usa os arquivos da base, filtrados por cliente, contribuinte e período. Consulte blocos e registros em tela, baixe os arquivos originais em lote (.zip) ou exporte para Excel (.xlsx)."
       />
 
       {/* Card de Filtros de Busca */}

@@ -27,7 +27,7 @@ export function ApuracaoFiltersCard({ controller }: { controller: ApuracaoPisCof
       <Info className="h-5 w-5 text-primary" />
       <AlertTitle className="text-sm font-semibold text-foreground">Visão Geral</AlertTitle>
       <AlertDescription className="text-sm leading-relaxed text-foreground mt-1">
-        A <strong className="font-semibold">Apuração PIS/COFINS</strong> consolida débitos, créditos, isenções e rateios do contribuinte a partir do <strong className="font-semibold">EFD Contribuições</strong> (modo Cliente) ou do <strong className="font-semibold">Balancete</strong> importado (modo Prado), permitindo conferir a base de cálculo, o resultado do período e o saldo apurado mês a mês.
+        A <strong className="font-semibold">Apuração PIS/COFINS</strong> consolida débitos, créditos, isenções e rateios do contribuinte. Usa a <strong className="font-semibold">EFD Contribuições</strong> ou o <strong className="font-semibold">Balancete</strong> importado, conforme a origem escolhida abaixo. Confira a base de cálculo, o resultado do período e o saldo apurado mês a mês.
       </AlertDescription>
     </Alert>
     <Card className="mb-6">
@@ -43,12 +43,17 @@ export function ApuracaoFiltersCard({ controller }: { controller: ApuracaoPisCof
             <SelecaoDeContribuinte contribuintes={contribuintes} value={controller.selectedContribuinte} onChange={(value) => { controller.setSelectedContribuinte(value); controller.setSearchTriggered(false); }} loading={controller.contribuintesQuery.isLoading && !!controller.selectedCliente} disabled={!controller.selectedCliente} placeholder="Selecione o contribuinte" className="w-full min-w-0 h-11" />
           </div>
           <div className="col-span-12 md:col-span-4">
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">Tipo de análise<FieldTooltip>Cliente utiliza EFD Contribuições; Prado utiliza o balancete importado.</FieldTooltip></label>
-            <Select value={controller.tipoApuracao} onValueChange={(value) => controller.setTipoApuracao(value as TipoApuracao)}><SelectTrigger className="h-11"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="EFD">Cliente</SelectItem><SelectItem value="BALANCETE">Prado</SelectItem></SelectContent></Select>
+            {/* Os rótulos NOMEIAM A ORIGEM DO DADO, não quem pediu a apuração.
+                "Cliente" e "Prado" não eram categorias equivalentes e exigiam
+                conhecimento interno para serem lidas; os valores gravados já se
+                chamam `EFD` e `BALANCETE`, então isto alinha a tela ao que o
+                código sempre fez — nenhum dado muda de sentido. */}
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">Origem do dado<FieldTooltip>EFD Contribuições usa a escrituração entregue; Balancete usa o balancete importado.</FieldTooltip></label>
+            <Select value={controller.tipoApuracao} onValueChange={(value) => controller.setTipoApuracao(value as TipoApuracao)}><SelectTrigger className="h-11"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="EFD">EFD Contribuições</SelectItem><SelectItem value="BALANCETE">Balancete</SelectItem></SelectContent></Select>
           </div>
           <div className="col-span-12 md:col-span-3"><label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">Data Início <RequiredMark /><FieldTooltip>Mês/ano inicial do período de apuração. Obrigatório.</FieldTooltip></label><MonthYearPicker value={controller.mesInicio} onChange={controller.setMesInicio} placeholder="Mês/Ano" /></div>
           <div className="col-span-12 md:col-span-3"><label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">Data Fim <RequiredMark /><FieldTooltip>Mês/ano final do período (≥ Data Início). Obrigatório.</FieldTooltip></label><MonthYearPicker value={controller.mesFim} onChange={controller.setMesFim} placeholder="Mês/Ano" /></div>
-          {controller.tipoApuracao === "BALANCETE" && <div className="col-span-12 md:col-span-6 flex items-end pb-2"><div className="flex items-center gap-2"><Switch id="periodo-fechado" checked={controller.periodoFechado} onCheckedChange={controller.setPeriodoFechado} /><Label htmlFor="periodo-fechado" className="text-sm text-muted-foreground flex items-center gap-1">Período Fechado<FieldTooltip>Quando ativo, considera apenas competências já encerradas no balancete (modo Prado).</FieldTooltip></Label></div></div>}
+          {controller.tipoApuracao === "BALANCETE" && <div className="col-span-12 md:col-span-6 flex items-end pb-2"><div className="flex items-center gap-2"><Switch id="periodo-fechado" checked={controller.periodoFechado} onCheckedChange={controller.setPeriodoFechado} /><Label htmlFor="periodo-fechado" className="text-sm text-muted-foreground flex items-center gap-1">Período Fechado<FieldTooltip>Quando ativo, considera apenas competências já encerradas no balancete.</FieldTooltip></Label></div></div>}
         </div>
         <Separator />
         <div className="flex items-center justify-end gap-2"><Button variant="outline" onClick={controller.handleClear} className="gap-1.5"><Eraser className="h-4 w-4" /> Limpar</Button><Button onClick={controller.handleSearch} disabled={controller.query.isLoading} className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground">{controller.query.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}Consultar</Button></div>

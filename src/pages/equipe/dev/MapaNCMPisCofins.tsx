@@ -233,11 +233,10 @@ const MapaNCMPisCofins = () => {
   };
 
   return (
-    <DevLayout title="Mapa NCM" subtitle="Regras fiscais PIS/COFINS por NCM e segmento do negócio">
+    <DevLayout tela="mapaNCMs">
       <TooltipProvider delayDuration={200}>
         <DevPageHeader
-          description="O **Mapa NCM** centraliza as **regras fiscais de PIS/COFINS** por NCM e segmento de negócio. Use os filtros abaixo para localizar regras específicas, criar novas regras, editar tratamentos tributários (CST, base legal, permissão de crédito) e manter a base atualizada para uso nos cálculos de apuração e correções SPED."
-          hideManualLink
+          description="O **Mapa NCM** mantém as regras fiscais de PIS/COFINS usadas no cálculo da apuração. Usa o cadastro de regras por **NCM** e segmento de negócio. Consulte regras existentes, crie novas e edite o tratamento tributário — CST, base legal e permissão de crédito."
         />
 
         {/* Filters Card */}

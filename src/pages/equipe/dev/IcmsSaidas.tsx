@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
+import { DevPageHeader } from "@/components/equipe/dev/DevPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -84,10 +85,8 @@ const IcmsSaidas = () => {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <DevLayout
-        title="ICMS das Saídas"
-        subtitle="Apuração, reconciliação e classificação fiscal de saídas"
-      >
+      <DevLayout tela="icmsSaidas"      >
+        <DevPageHeader description="O **ICMS das Saídas** apura o imposto das operações de saída do contribuinte e reconcilia o que foi escriturado com a classificação fiscal dos produtos. Usa a **EFD ICMS/IPI** do contribuinte no período, cruzada com o cadastro de produtos. Nas abas você acompanha a **apuração (T01)**, confere os **CFOP (T02)** e revisa as **saídas (T03.1)** e as **saídas com substituição tributária (T03.2)**." />
         <Card className="mb-6 border-border shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg flex items-center gap-2 text-primary">

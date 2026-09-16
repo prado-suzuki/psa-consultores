@@ -717,10 +717,7 @@ const PapelDeTrabalho = () => {
   };
 
   return (
-    <DevLayout
-      title="Papel de Trabalho"
-      subtitle="Traga o papel de trabalho preenchido e o sistema confere as contas dele"
-    >
+    <DevLayout tela="papelDeTrabalho"    >
       <div className="space-y-4">
         <Escolha
           clienteId={clienteId}
