@@ -84,6 +84,12 @@ cliente órfão. O desfazer continua sem pegar.
 |---|---|---|---|
 | [10 A cópia de usuário cadastrado sai do nome do Ricardo, e ganha espaço no Chat](TAREFA_copia-do-usuario-cadastrado.md) | Pedido dela em 16/09, ao receber `[PSA - COPIA COORDENACAO]`. O e-mail abre com "Olá, Ricardo!" e diz "vinculado à sua área": vai virar texto sem nome próprio, para o grupo `coordenacao@psaconsultores.com.br` (**D1 decidido por ela em 16/09**, entre quatro opções medidas; criar o grupo é a T0), e ganha um espaço no Chat. Medido em produção: **6 cadastros em 30 dias**, e **6 dos 13 de 90 dias são `client` sem área nenhuma**, ou seja, a frase da área mente em quase metade dos casos. O e-mail não nasce no banco nem em edge function: sai do front, de **três** pontos, para o webhook do n8n, e a saudação mora dentro do fluxo de lá. Dois bugs junto: o webhook é o **mesmo** no sandbox e em produção (usuário de teste manda e-mail com senha e cópia à coordenação), e a senha temporária viaja no payload, a um clique do nó do Chat | **Não.** Nem migração, nem RPC. O que muda é o payload do POST e o fluxo do n8n | 🔵 ABERTO |
 
+## A caixa de tabela: branca ou tingida
+
+| Tarefa | Escopo | Banco? | Status |
+|---|---|---|---|
+| [11 A caixa de tabela: branca ou tingida, e o padrão muda junto](TAREFA_caixa-de-tabela-branca-ou-tingida.md) | Pergunta dela em 16/09, ao ler que a tabela do Adm & Fin virou **exceção** no inventário da catraca: "então não é padrão ser branco? Tem que me avisar quando não for o padrão, porque aí tem que mudar o padrão". Medido: **53 caixas de tabela em 49 arquivos, e só 1 branca** — a do Adm & Fin, que ficou branca porque ela mandou em 15/09 ("tá tudo verde"). As outras 52 são tingidas **sem ninguém ter escolhido isso para tabela**: herdaram a classe base do `<Card>`. A decisão já estava desenhada e nunca teve resposta — a seção 6 de [`o-branco-que-sobrou.html`](../../geral/comparacoes-de-cor/o-branco-que-sobrou.html) marca "tabela branca, porque tabela se lê pelas linhas" como **recomendada** desde 12/09, e a seção 8 diz que o conserto é variante do `<Card>`, **não exceção**. Três subtarefas: remontar a comparação com as telas de hoje (é o que destrava a decisão), o caminho de código conforme a resposta, e inverter a catraca de lado para esse recorte — senão a próxima tabela nasce tingida de novo | **Não.** Superfície de tela; nem migração, nem RPC, nem policy | 🔵 **ABERTO, bloqueado na decisão dela (D1)** |
+
 ## Ordem de serviço editável de qualquer tela
 
 | Tarefa | Escopo | Banco? | Status |
