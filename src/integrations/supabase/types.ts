@@ -6497,42 +6497,60 @@ export type Database = {
       }
       orgao_governanca: {
         Row: {
+          cargos_do_orgao: string[] | null
           cliente_id: string
           created_at: string
           created_by: string | null
           entra_no_contrato: boolean
           excluido: boolean
+          genero: string | null
           id: string
+          mandato_anos: number | null
+          membros_maximo: number | null
+          membros_minimo: number | null
           nome: string
           ordem: number
+          padrao_chave: string | null
           updated_at: string
           updated_by: string | null
           vigencia_fim: string | null
           vigencia_inicio: string | null
         }
         Insert: {
+          cargos_do_orgao?: string[] | null
           cliente_id: string
           created_at?: string
           created_by?: string | null
           entra_no_contrato?: boolean
           excluido?: boolean
+          genero?: string | null
           id?: string
+          mandato_anos?: number | null
+          membros_maximo?: number | null
+          membros_minimo?: number | null
           nome: string
           ordem?: number
+          padrao_chave?: string | null
           updated_at?: string
           updated_by?: string | null
           vigencia_fim?: string | null
           vigencia_inicio?: string | null
         }
         Update: {
+          cargos_do_orgao?: string[] | null
           cliente_id?: string
           created_at?: string
           created_by?: string | null
           entra_no_contrato?: boolean
           excluido?: boolean
+          genero?: string | null
           id?: string
+          mandato_anos?: number | null
+          membros_maximo?: number | null
+          membros_minimo?: number | null
           nome?: string
           ordem?: number
+          padrao_chave?: string | null
           updated_at?: string
           updated_by?: string | null
           vigencia_fim?: string | null
