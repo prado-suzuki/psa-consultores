@@ -214,10 +214,7 @@ const GerenciarDados = () => {
   };
 
   return (
-    <DevLayout
-      title="Carregar dados"
-      subtitle="Importe ou limpe dados das tabelas cliente e contribuinte"
-    >
+    <DevLayout tela="carregarDados"    >
       <div className="space-y-6 max-w-3xl">
         <CargaChamados />
 

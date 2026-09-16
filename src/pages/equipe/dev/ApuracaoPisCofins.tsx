@@ -11,7 +11,7 @@ const ApuracaoPisCofins = () => {
 
   const controller = useApuracaoPisCofinsController();
   return (
-    <DevLayout title="Apuração PIS/COFINS" subtitle="Apure débitos, créditos e saldos de PIS/COFINS por cliente e período.">
+    <DevLayout tela="apuracaoPisCofins">
       <TooltipProvider delayDuration={200}>
         <ApuracaoFiltersCard controller={controller} />
         <ApuracaoResults controller={controller} />

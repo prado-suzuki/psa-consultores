@@ -70,10 +70,7 @@ const CalculadoraIbsCbs = () => {
   };
 
   return (
-    <DevLayout
-      title="Calculadora de IBS e CBS"
-      subtitle="Compare a carga tributária antes e depois da reforma a partir da classificação fiscal."
-    >
+    <DevLayout tela="calculadoraIbsCbs"    >
       <DevPageHeader description="A **Calculadora IBS/CBS** simula a carga tributária do contribuinte no modelo atual e no da reforma, para mostrar a diferença antes de ela acontecer. Parte da **classificação fiscal dos produtos** e das operações já escrituradas. O **Resumo** traz o comparativo consolidado, e as demais abas abrem o mesmo número **por anexo, por produto e por estado**." />
       <Card className="mb-6 border-border shadow-sm">
         <CardHeader className="pb-3">

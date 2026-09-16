@@ -42,14 +42,18 @@ import {
 } from '@/lib/sidebarMedidas';
 import { classesItemDaBarra } from '@/lib/barraLateralCromo';
 import { manualDaRota } from '@/constants/devManuais';
+import { resolverCabecalhoDoDev, type CabecalhoDoDev } from '@/config/telasDoDigitalDev';
 import { cn } from '@/lib/utils';
 
-interface DevLayoutProps {
+/**
+ * Ou `tela` — o nome e a explicação vindos de `@/config/telasDoDigitalDev` — ou
+ * `title`/`subtitle` escritos à mão, para as telas sem nome fixo (o detalhe da
+ * ferramenta exibe o nome que vem do banco). Nunca os dois: o tipo não compila.
+ */
+type DevLayoutProps = CabecalhoDoDev & {
   children: React.ReactNode;
-  title: string;
-  subtitle?: string;
   headerActions?: React.ReactNode;
-}
+};
 
 interface NavItem {
   icon: LucideIcon;
@@ -215,7 +219,8 @@ const HubSidebarSection = ({
   </Collapsible>
 );
 
-export const DevLayout = ({ children, title, subtitle, headerActions }: DevLayoutProps) => {
+export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutProps) => {
+  const { title, subtitle } = resolverCabecalhoDoDev(cabecalho);
   const navigate = useNavigate();
   const location = useLocation();
   // A rota decide o manual: nenhuma página precisa passar a URL (ver `devManuais`).

@@ -85,10 +85,7 @@ const IcmsSaidas = () => {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <DevLayout
-        title="ICMS das Saídas"
-        subtitle="Analise saídas, reconcilie dados e revise a classificação fiscal."
-      >
+      <DevLayout tela="icmsSaidas"      >
         <DevPageHeader description="O **ICMS das Saídas** apura o imposto das operações de saída do contribuinte e reconcilia o que foi escriturado com a classificação fiscal dos produtos. Usa a **EFD ICMS/IPI** do contribuinte no período, cruzada com o cadastro de produtos. Nas abas você acompanha a **apuração (T01)**, confere os **CFOP (T02)** e revisa as **saídas (T03.1)** e as **saídas com substituição tributária (T03.2)**." />
         <Card className="mb-6 border-border shadow-sm">
           <CardHeader className="pb-4">

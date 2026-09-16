@@ -182,10 +182,7 @@ const DevDashboard = () => {
   };
 
   return (
-    <DevLayout
-      title={DEV_NAV_LABELS.inicio}
-      subtitle="Acesse as ferramentas da área e seus respectivos manuais de operação."
-    >
+    <DevLayout tela="inicio"    >
       <div className="space-y-6">
         <p className="text-sm text-muted-foreground">
           Use o filtro para localizar uma ferramenta ou navegue pelas categorias abaixo.

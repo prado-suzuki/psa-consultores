@@ -350,10 +350,7 @@ const ConsultaECD = () => {
   const blocosDisponiveis = overview?.blocos_disponiveis || {};
 
   return (
-    <DevLayout
-      title="Consulta ECD"
-      subtitle="Consulte, analise e baixe arquivos da Escrituração Contábil Digital (ECD)."
-    >
+    <DevLayout tela="ecd"    >
       <TooltipProvider delayDuration={300}>
       <DevPageHeader
         description="A Consulta ECD centraliza a busca e o download das **Escriturações Contábeis Digitais** da base de dados. Utilize os filtros abaixo para consultar arquivos específicos ou analisar períodos inteiros, permitindo a análise detalhada de blocos e registros diretamente em tela, o download dos arquivos originais em lote (.zip) ou a exportação em formato Excel (.xlsx)."

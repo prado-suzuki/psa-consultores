@@ -28,7 +28,7 @@ const GeradorDeSlides = () => {
   const [clienteId, setClienteId] = useState('');
 
   return (
-    <DevLayout title="Gerador de Slides" subtitle="Planejamento Tributário rural">
+    <DevLayout tela="geradorDeSlides">
       <div className="space-y-5">
         <DevPageHeader
           title="Como funciona"

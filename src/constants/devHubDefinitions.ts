@@ -19,6 +19,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { DEV_NAV_LABELS } from '@/constants/devNavLabels';
+import { TELAS_DO_DEV } from '@/config/telasDoDigitalDev';
 import type { DevHubDefinition } from '@/types/devHub';
 
 export const DEV_HUBS: Record<
@@ -37,10 +38,10 @@ export const DEV_HUBS: Record<
       'Acesse EFD Contribuições, EFD ICMS/IPI, ECD e ECF para consulta, análise e download.',
     landingIcon: Receipt,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
-    title: 'Consulta dos arquivos SPEDs do cliente',
-    subtitle: 'Acesse EFD Contribuições, EFD ICMS/IPI, ECD e ECF para consulta, análise e download.',
+    title: TELAS_DO_DEV.consultaSped.titulo,
+    subtitle: TELAS_DO_DEV.consultaSped.subtitulo,
     heroEyebrow: '',
-    heroTitle: 'Consulta dos arquivos SPEDs do cliente',
+    heroTitle: TELAS_DO_DEV.consultaSped.titulo,
     heroDescription:
       'Use esta área para consultar arquivos da Escrituração Fiscal Digital das Contribuições (EFD Contribuições), da Escrituração Fiscal Digital do Imposto sobre Circulação de Mercadorias e Serviços (ICMS) e do Imposto sobre Produtos Industrializados (IPI) (EFD ICMS/IPI), da Escrituração Contábil Digital (ECD) e da Escrituração Contábil Fiscal (ECF) no Sistema Público de Escrituração Digital (SPED).',
     heroIcon: LayoutGrid,
@@ -72,7 +73,7 @@ export const DEV_HUBS: Record<
         icon: FileText,
         path: '/equipe/dev/consulta-efd-icms',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-icms/',
-        title: `${DEV_NAV_LABELS.efdIcms}/IPI`,
+        title: TELAS_DO_DEV.efdIcms.titulo,
       },
       {
         badge: 'Contábil',
@@ -111,12 +112,10 @@ export const DEV_HUBS: Record<
       'Acesse ferramentas para regras fiscais, apuração, análise cruzada e correções da EFD Contribuições.',
     landingIcon: Calculator,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
-    title:
-      'Levantamento PIS/COFINS — Programa de Integração Social e Contribuição para o Financiamento da Seguridade Social',
-    subtitle:
-      'Acesse ferramentas para parametrização de regras, apuração, análise cruzada e correções da EFD Contribuições.',
+    title: TELAS_DO_DEV.levantamentoPisCofins.titulo,
+    subtitle: TELAS_DO_DEV.levantamentoPisCofins.subtitulo,
     heroEyebrow: '',
-    heroTitle: 'Levantamento PIS/COFINS',
+    heroTitle: TELAS_DO_DEV.levantamentoPisCofins.titulo,
     heroDescription:
       'Use esta área para cadastrar regras, revisar apurações, comparar bases e corrigir registros relacionados ao Programa de Integração Social (PIS) e à Contribuição para o Financiamento da Seguridade Social (COFINS).',
     heroIcon: LayoutGrid,
@@ -133,7 +132,7 @@ export const DEV_HUBS: Record<
         icon: Map,
         path: '/equipe/dev/mapa-ncm-pis-cofins',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/mapa-ncm/',
-        title: 'Mapa de Nomenclatura Comum do Mercosul (NCMs)',
+        title: TELAS_DO_DEV.mapaNCMs.titulo,
       },
       {
         badge: 'Apuração',
@@ -178,8 +177,7 @@ export const DEV_HUBS: Record<
         path: '/equipe/dev/correcoes-sped',
         sopUrl:
           'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/correcoes-sped/',
-        title:
-          'Revisão de Registros da Escrituração Fiscal Digital das Contribuições (EFD Contribuições)',
+        title: TELAS_DO_DEV.correcoesEfdContribuicoes.titulo,
       },
     ],
   },
@@ -190,11 +188,10 @@ export const DEV_HUBS: Record<
       'Acesse ferramentas para análise de ICMS das saídas e DIFAL.',
     landingIcon: Truck,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
-    title: 'Análise do Imposto sobre Circulação de Mercadorias e Serviços (ICMS)',
-    subtitle:
-      'Acesse as análises de ICMS das saídas e DIFAL.',
+    title: TELAS_DO_DEV.analiseIcms.titulo,
+    subtitle: TELAS_DO_DEV.analiseIcms.subtitulo,
     heroEyebrow: '',
-    heroTitle: 'Análise ICMS',
+    heroTitle: TELAS_DO_DEV.analiseIcms.titulo,
     heroDescription:
       'Use esta área para analisar as saídas de ICMS e validar classificações tributárias usadas no cálculo do DIFAL.',
     heroIcon: LayoutGrid,
@@ -237,11 +234,10 @@ export const DEV_HUBS: Record<
       'Acesse o dashboard e o controle operacional de PERDCOMP.',
     landingIcon: BarChart3,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
-    title:
-      'Pedido Eletrônico de Restituição, Ressarcimento ou Reembolso e Declaração de Compensação (PERDCOMP)',
-    subtitle: 'Acesse o acompanhamento analítico e o controle operacional de PERDCOMP.',
+    title: TELAS_DO_DEV.perdcomp.titulo,
+    subtitle: TELAS_DO_DEV.perdcomp.subtitulo,
     heroEyebrow: '',
-    heroTitle: 'PERDCOMP',
+    heroTitle: TELAS_DO_DEV.perdcomp.titulo,
     heroDescription:
       'Use esta área para analisar gráficos, indicadores e fazer o controle do Pedido Eletrônico de Restituição, Ressarcimento ou Reembolso e Declaração de Compensação (PERDCOMP).',
     heroIcon: LayoutGrid,

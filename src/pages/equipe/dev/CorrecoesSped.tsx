@@ -178,7 +178,7 @@ const CorrecoesSped = () => {
   const canConsult = !!contribuinteId && !!dtIni && !!dtFin && (activeTab !== 'f100' || f100FiltersValid);
 
   return (
-    <DevLayout title="Correções no SPED" subtitle="Revise divergências entre a EFD Contribuições e os XMLs e prepare as correções necessárias.">
+    <DevLayout tela="correcoesEfdContribuicoes">
       <TooltipProvider delayDuration={300}>
         <DevPageHeader
           description="A ferramenta **Correções no SPED** permite revisar e ajustar os registros do SPED Contribuições (**C170**, **A170**, **D100**, **F100**, **F120**, **F130**) cruzando dados da escrituração com XMLs originais. Use os filtros para selecionar contribuinte e período, navegue pelas abas e edite as linhas com divergências para gerar correções rastreáveis."

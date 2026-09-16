@@ -334,7 +334,7 @@ const ControleBalancetes = () => {
   const filtrosAtivos = [clienteId, contribuinteId, periodo].filter(Boolean).length;
 
   return (
-    <DevLayout title="Controle de Balancetes" subtitle="Envie, consulte e acompanhe balancetes contábeis.">
+    <DevLayout tela="controleBalancetes">
       <DevPageHeader
         description="A ferramenta **Controle de Balancetes** centraliza a busca e o gerenciamento dos Balancetes Contábeis da base de dados. Utilize os filtros abaixo para consultar arquivos específicos ou analisar períodos inteiros, permitindo a visualização detalhada de contas e saldos diretamente em tela, o acompanhamento da evolução contábil e a exportação dos dados consolidados em formato Excel (.xlsx)."
       />

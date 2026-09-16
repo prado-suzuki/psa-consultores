@@ -70,7 +70,7 @@ const AuditoriaCruzadaContent = () => {
   };
 
   return (
-    <DevLayout title="Análise Cruzada" subtitle="Cruze balancete, EFD Contribuições, EFD ICMS e XMLs para identificar divergências.">
+    <DevLayout tela="analiseCruzada">
       <TooltipProvider delayDuration={300}>
         <DevPageHeader description={PAGE_DESCRIPTION} />
         <div className="space-y-4">

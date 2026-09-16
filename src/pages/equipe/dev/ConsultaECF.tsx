@@ -356,10 +356,7 @@ const ConsultaECF = () => {
   const blocosDisponiveis = overview?.blocos_disponiveis || {};
 
   return (
-    <DevLayout
-      title="Consulta ECF"
-      subtitle="Consulte, analise e baixe arquivos da Escrituração Contábil Fiscal (ECF)."
-    >
+    <DevLayout tela="ecf"    >
       <TooltipProvider delayDuration={300}>
       <DevPageHeader
         description="A Consulta ECF centraliza a busca e o download das **Escriturações Contábeis Fiscais** da base de dados. Utilize os filtros abaixo para consultar arquivos específicos ou analisar períodos inteiros, permitindo a análise detalhada de blocos e registros diretamente em tela, o download dos arquivos originais em lote (.zip) ou a exportação em formato Excel (.xlsx)."
