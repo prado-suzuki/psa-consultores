@@ -225,8 +225,8 @@ const detalheRepresentantes = naAba('representantes', [
   {
     target: '[data-tour="repr-lista"]',
     placement: 'top',
-    title: 'Acesso Chamados',
-    content: 'A chave que libera o portal do cliente para aquela pessoa.',
+    title: 'Acesso à plataforma',
+    content: 'A chave que cria o acesso daquela pessoa à plataforma quando você salva o cadastro.',
   },
 ]);
 

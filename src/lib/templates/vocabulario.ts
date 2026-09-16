@@ -33,6 +33,13 @@ export interface CampoEntidade {
   id: string;
   label: string;
   tipo: TipoCampo;
+  /**
+   * O que este campo faz no documento, para a tela explicar sozinha. Hoje só os
+   * CAMPOS_MANUAIS a usam, no painel "Preencher à mão" da tela Gerar: eles são
+   * os únicos que a pessoa responde sem ter aberto um cadastro antes, então são
+   * os únicos sem ajuda em lugar nenhum.
+   */
+  ajuda?: string;
   /** Se presente, é um campo DERIVADO de outro(s) (não é entrada direta no form). */
   derivadoDe?: string | string[];
   /** Recalcula o valor do campo a partir dos demais (extensos, concordância). */
@@ -52,6 +59,20 @@ export interface CampoEntidade {
    * instrumento assinado à mão quer no lugar de "Lucas do Rio Verde/MT, .".
    */
   manual?: boolean;
+  /**
+   * Vazio, vira LACUNA em vez de ''. Igual ao `manual`, mas o campo continua
+   * vindo do cadastro.
+   *
+   * É opt-in por campo, e não regra geral do obrigatório, porque o descarte de
+   * bloco por "campos vazios" existe de propósito: a cláusula de capital de um
+   * contrato sem sócios TEM de sumir, e não voltar como "R$ ____" (emenda 9.1).
+   *
+   * Serve para o campo que o documento cita em dezenas de blocos de PROSA, onde
+   * a frase continua de pé sem ele. O apelido da empresa é o caso: sem esta
+   * marca, um cliente com o nome fantasia em branco perdia 130 dos 266 blocos
+   * do Acordo, e o documento saía pela metade sem erro nenhum.
+   */
+  lacunaSeVazio?: boolean;
   /**
    * Campo de MÁQUINA, não de conferência: existe para o motor concordar ou
    * calcular, e não é dado que o consultor tenha o que conferir. Some do
@@ -256,6 +277,35 @@ function percentualCartorialCampo(id: string, label: string, derivadoDe: string)
 }
 
 /** Campo derivado que expande uma UF (sigla) por extenso ("MT" → "Mato Grosso"). */
+/**
+ * Uma chave está marcada numa lista de múltipla escolha do cadastro?
+ *
+ * `mecanismos`, `metodosAvaliacao` e `objetosPreferencia` são `text[]` no banco
+ * e chegam ao motor como uma string de chaves separadas por vírgula, porque o
+ * contexto de render é `Record<string, string>`. A separação acontece aqui, e
+ * não em cada `derivar`, para que acrescentar um mecanismo seja uma linha.
+ */
+function listaTem(bruto: string | undefined, chave: string): boolean {
+  return (bruto ?? '').split(',').map((x) => x.trim()).filter(Boolean).includes(chave);
+}
+
+/**
+ * Condicional de um item marcado numa lista do cadastro.
+ *
+ * Cada mecanismo do acordo acende uma CLÁUSULA INTEIRA: desmarcar o lock-up faz
+ * a Cláusula Sexta não existir naquele documento. É por isso que cada um vira
+ * campo próprio em vez de o bloco ler a lista: `{{#acordo.temLockUp}}` é o que
+ * um bloco condicional sabe consumir.
+ */
+function itemDaListaCampo(
+  id: string, label: string, derivadoDe: string, chave: string,
+): CampoEntidade {
+  return {
+    id, label, tipo: 'texto', derivadoDe,
+    derivar: (v) => (listaTem(v[derivadoDe], chave) ? 'sim' : ''),
+  };
+}
+
 function ufExtensoCampo(id: string, label: string, derivadoDe: string): CampoEntidade {
   return {
     id,
@@ -621,6 +671,15 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'nire', label: 'NIRE (registro na Junta)', tipo: 'texto' },
       { id: 'juntaUf', label: 'UF da Junta Comercial', tipo: 'texto' },
       ufExtensoCampo('juntaUfExtenso', 'Junta Comercial — Estado por extenso', 'juntaUf'),
+      /*
+       * "do Estado DO Paraná", não "do Estado DE Paraná".
+       *
+       * A mesma regência que já vale no endereço de cada parte (ver
+       * `enderecoProsa`): dezesseis das vinte e sete unidades da federação não
+       * aceitam o "de" seco. O preâmbulo do Acordo escreve a Junta uma vez por
+       * documento, e escrevia errado.
+       */
+      ufComPreposicaoCampo('juntaUfComPreposicao', 'Junta Comercial — Estado com a preposição', 'juntaUf'),
       { id: 'dataConstituicao', label: 'Data de constituição', tipo: 'texto' },
       { id: 'objeto', label: 'Objeto social', tipo: 'textarea' },
       // Capital social e quotas: calculados na geração (calcularCapitalSociedade
@@ -712,9 +771,30 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'sedeNumero', label: 'Sede — número', tipo: 'texto' },
       { id: 'sedeComplemento', label: 'Sede — complemento', tipo: 'texto' },
       { id: 'sedeBairro', label: 'Sede — bairro', tipo: 'texto' },
+      /*
+       * COMO A EMPRESA É CHAMADA, que não é a razão social nem pedaço dela.
+       *
+       * O Acordo declara o apelido no preâmbulo e o repete 189 vezes ("a
+       * ADMINISTRAÇÃO da DUAL"). Medido nos cinco acordos que declaram apelido:
+       * DUAL, ALIANÇA e VIA FÉRTIL saem do começo da razão social, mas "PERCI
+       * SMANIOTTO AGRONEGÓCIOS" vira "PS AGRO", que é o nome fantasia, e um
+       * usa "NEWCO", empresa a constituir. Cortar na primeira palavra acertaria
+       * três e escreveria "PERCI" e "COMÉRCIO" nos outros dois, calado.
+       *
+       * OBRIGATÓRIO, e só pesa em quem o usa: a pendência se calcula sobre os
+       * campos que O DOCUMENTO cita, então o contrato social, que escreve a
+       * razão social por extenso, não passa a cobrar nada. Aqui ele precisa
+       * disso: vazio, o Acordo sairia com 189 lacunas, e é melhor a tela dizer
+       * "falta o nome fantasia" antes de baixar.
+       */
+      { id: 'nomeFantasia', label: 'Nome fantasia (como o documento a chama)', tipo: 'texto',
+        obrigatorio: true, lacunaSeVazio: true },
       { id: 'sedeMunicipio', label: 'Sede — município', tipo: 'texto' },
       { id: 'sedeUf', label: 'Sede — UF', tipo: 'texto' },
       ufExtensoCampo('sedeUfExtenso', 'Sede — Estado por extenso', 'sedeUf'),
+      // "estado DO Parana", nao "estado DE Parana": a mesma regencia do
+      // endereco de cada parte. O Acordo escreve a sede duas vezes.
+      ufComPreposicaoCampo('sedeUfComPreposicao', 'Sede — Estado com a preposição', 'sedeUf'),
       { id: 'sedeCep', label: 'Sede — CEP', tipo: 'texto' },
     ],
   },
@@ -1293,6 +1373,28 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         derivadoDe: 'genero',
         derivar: (v) => concordar(v.genero === 'F' ? 'F' : 'M', 'ao', 'à'),
       },
+      /*
+       * As outras duas contrações que o capítulo usa, pela mesma razão do `ao`:
+       * "a competência DO Conselho" contra "DA Diretoria", "aprovado PELO
+       * Conselho" contra "PELA Diretoria". Sem elas o bloco cita
+       * `{{ conselhoAdministracao.pelo }}`, o campo não existe no contexto e o
+       * render derruba o documento inteiro, que foi o que aconteceu na primeira
+       * geração com governança em 16/09/2026.
+       */
+      {
+        id: 'do',
+        label: 'Preposição com artigo (do/da)',
+        tipo: 'texto',
+        derivadoDe: 'genero',
+        derivar: (v) => concordar(v.genero === 'F' ? 'F' : 'M', 'do', 'da'),
+      },
+      {
+        id: 'pelo',
+        label: 'Preposição com artigo (pelo/pela)',
+        tipo: 'texto',
+        derivadoDe: 'genero',
+        derivar: (v) => concordar(v.genero === 'F' ? 'F' : 'M', 'pelo', 'pela'),
+      },
       {
         id: 'composto',
         label: 'Composto/composta, concordado',
@@ -1409,9 +1511,31 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
     tipo: 'acordoQuotistas',
     label: 'Acordo de Quotistas (parâmetros)',
     campos: [
-      // O capítulo "Do Acordo de Quotistas" tem duas redações, e é a existência
-      // do acordo que escolhe: sem ele "os sócios poderão firmar", com ele
-      // "os sócios firmaram em tal data". Está literal no modelo da casa.
+      /*
+       * `assinadoEm` NÃO É A LINHA DE ASSINATURA. São duas datas diferentes, e
+       * confundi-las escreve o documento errado.
+       *
+       * A LINHA que se preenche à mão na hora de assinar é `dataAssinatura`, em
+       * CAMPOS_MANUAIS, no fim deste arquivo: ela é do documento SENDO GERADO,
+       * não tem cadastro por trás, e vazia vira a lacuna assinalável em vez de
+       * resolver ''. É ela que o fecho do Acordo usa.
+       *
+       * `assinadoEm` é um FATO sobre um acordo que já existe, e quem o escreve é
+       * o CONTRATO SOCIAL, no meio de uma cláusula dele. Medido nos contratos do
+       * acervo, os três casos:
+       *
+       *   Perci, já assinado: "o acordo celebrado entre as partes, em 29 de
+       *   Janeiro de 2.021, e disponível na sede da sociedade"
+       *
+       *   Bela Vista, ainda não: "firmaram em __ de ____ de 2.025, acordo de
+       *   quotistas com vigência pelo período de 20 (vinte) anos"
+       *
+       *   Modelo: "firmaram em [dia] de [mês] de [ano], acordo de quotistas"
+       *
+       * Ou seja: o contrato social precisa saber a data do acordo do cliente
+       * para citá-la, e é isso que este campo guarda. Vazio, o capítulo sai na
+       * outra redação, com a lacuna ou com "os sócios poderão firmar".
+       */
       { id: 'assinadoEm', label: 'Data de assinatura do acordo', tipo: 'data' },
       dataExtensoCampo('assinadoEmExtenso', 'Data de assinatura (por extenso)', 'assinadoEm'),
       condicionalCampo('jaAssinado', 'Acordo já assinado? (condicional)', 'assinadoEm', (v) => !!v.assinadoEm),
@@ -1420,6 +1544,63 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'vigenciaAnos', label: 'Vigência do acordo, em anos', tipo: 'inteiro' },
       numeralCampo('vigenciaAnosNumeral', 'Vigência do acordo (numeral)', 'vigenciaAnos'),
       cardinalCampo('vigenciaAnosExtenso', 'Vigência do acordo (por extenso)', 'vigenciaAnos'),
+
+      /*
+       * NÃO EXISTE PRAZO DE SIGILO, e os quatro campos dele sairam daqui.
+       *
+       * Contado nos sete acordos do acervo: ZERO ocorrências de sigilo ou
+       * confidencialidade como cláusula. Campo sem frase em documento nenhum é
+       * campo que não devia existir, mesma regra que derrubou o limite de aval e
+       * fiança.
+       *
+       * O par numeral+extenso continua vivo nos outros prazos: `numeralContrato`
+       * zera à esquerda e `cardinalExtenso` soletra, e juntos escrevem "03
+       * (três) anos".
+       */
+
+      /*
+       * O ALCANCE, que muda a redação de quase toda cláusula.
+       *
+       * Com sociedades relacionadas listadas, a regra passa a dizer "da
+       * SOCIEDADE e das SOCIEDADES RELACIONADAS". As empresas em si são LISTA
+       * (ver PAPEIS_LISTA em binding.ts); aqui só fica o interruptor, porque uma
+       * seção {{#…}} vazia não reescreve a frase de fora dela.
+       *
+       * `interno` nos dois: não são dado a conferir, são o reflexo de uma lista
+       * que se confere na própria lista.
+       */
+      { id: 'temSociedadesRelacionadas', label: 'Alcança sociedades relacionadas? (condicional)',
+        tipo: 'texto', interno: true },
+      { id: 'temRamos', label: 'O acordo divide a família em ramos? (condicional)',
+        tipo: 'texto', interno: true },
+      /*
+       * QUANTOS RAMOS SAO, POR EXTENSO, e a falta disto so apareceu ao montar a
+       * clausula de verdade para conferir.
+       *
+       * O AgroAlianca abre a definicao contando: "os DOIS grupos de descendentes
+       * em linha vertical das QUOTISTAS". O numero esta FORA da secao de
+       * repeticao, entao {{#ramosFamiliares}} nao o alcanca, e sem campo a frase
+       * sairia "os grupos de descendentes" ou com um numero chumbado no bloco,
+       * que mentiria no cliente com tres ramos.
+       */
+      { id: 'quantosRamos', label: 'Quantos ramos familiares', tipo: 'inteiro', interno: true },
+      cardinalCampo('quantosRamosExtenso', 'Quantos ramos (por extenso)', 'quantosRamos'),
+
+      /*
+       * A REUNIÃO PRÉVIA, e o que ela obriga.
+       *
+       * Não é combinação verbal: a ata dela "constitui Acordo de Voto, de forma
+       * a definir e vincular o voto dos QUOTISTAS a serem proferidos, sempre em
+       * bloco e de modo uniforme, nas REUNIÕES DE SÓCIOS", literal no modelo da
+       * casa. Quem é o bloco varia: no modelo, Perci e Horita são todos os
+       * quotistas juntos; na AgroAliança é cada ramo por si ("Cada grupo de
+       * DESCENDENTES DAS QUOTISTAS votará conjuntamente, como um bloco único"),
+       * e é `temRamos` que distingue os dois casos para o bloco de texto.
+       */
+      { id: 'reuniaoPreviaObrigatoria', label: 'Reunião prévia obrigatória? (condicional)',
+        tipo: 'texto' },
+      condicionalCampo('semReuniaoPrevia', 'Acordo sem reunião prévia? (condicional)',
+        'reuniaoPreviaObrigatoria', (v) => !v.reuniaoPreviaObrigatoria),
 
       /*
        * A APURAÇÃO DE HAVERES TEM UM CAMPO SÓ, E NÃO SEIS.
@@ -1436,7 +1617,77 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
        * Perci, Mattei e Zamo usam só o patrimônio líquido. Então é UMA condição
        * que acende o bloco inteiro do fluxo, com os números dentro dele fixos.
        */
+      /*
+       * A PREFERÊNCIA: a fila em prosa, o que passa por ela, e o interruptor.
+       *
+       * `ordemPreferencia` é a fila já escrita ("aos descendentes dos
+       * SIGNATÁRIOS, depois aos demais QUOTISTAS"), para a cláusula que a diz
+       * numa frase só. A mesma fila também sai como LISTA, para o bloco que
+       * quer uma alínea por posição; as duas vêm da mesma tabela.
+       */
       { id: 'ordemPreferencia', label: 'Ordem do direito de preferência', tipo: 'texto' },
+      { id: 'objetosPreferencia', label: 'Objetos sujeitos à preferência (em prosa)',
+        tipo: 'texto' },
+      { id: 'objetosPreferenciaChaves', label: 'Objetos sujeitos à preferência (chaves)',
+        tipo: 'texto', interno: true },
+      // A Cláusula Quinta trata das quotas; é a Décima que estende a imóveis,
+      // máquinas e oportunidades, e ela só existe se houver algo além delas.
+      {
+        id: 'preferenciaAlemDasQuotas',
+        label: 'A preferência vai além das quotas? (condicional)',
+        tipo: 'texto',
+        derivadoDe: 'objetosPreferenciaChaves',
+        derivar: (v) => {
+          const itens = (v.objetosPreferenciaChaves ?? '')
+            .split(',').map((x) => x.trim()).filter(Boolean);
+          return itens.some((x) => x !== 'quotas') ? 'sim' : '';
+        },
+      },
+
+      /*
+       * OS MECANISMOS, e por que só seis viram condicional aqui.
+       *
+       * O cadastro tem dez marcações, mas quatro delas já têm um interruptor
+       * próprio com os detalhes pendurados: não concorrência, opção de compra,
+       * opção de venda e arbitragem. Duas fontes para o mesmo fato é convite a
+       * documento com cabeçalho de cláusula e corpo vazio, então A REGRA É UMA:
+       * onde existe interruptor com detalhe, ele decide; a marcação do
+       * mecanismo é índice, não chave. Os seis abaixo não têm detalhe nenhum, e
+       * a marcação é tudo o que existe.
+       *
+       * (A duplicidade está no CADASTRO, não aqui. Some quando a tela deixar as
+       * quatro marcações espelharem o interruptor em vez de aceitarem resposta
+       * própria.)
+       */
+      { id: 'mecanismos', label: 'Mecanismos marcados (chaves)', tipo: 'texto', interno: true },
+      itemDaListaCampo('temPreferencia', 'Tem direito de preferência? (condicional)',
+        'mecanismos', 'preferencia'),
+      itemDaListaCampo('temLockUp', 'Tem lock-up? (condicional)', 'mecanismos', 'lock_up'),
+      itemDaListaCampo('temTagAlong', 'Tem tag along? (condicional)', 'mecanismos', 'tag_along'),
+      itemDaListaCampo('temDragAlong', 'Tem drag along? (condicional)',
+        'mecanismos', 'drag_along'),
+      itemDaListaCampo('temQuarentena', 'Tem quarentena? (condicional)',
+        'mecanismos', 'quarentena'),
+      itemDaListaCampo('temUsufrutoComVoto', 'Trata de usufruto com voto? (condicional)',
+        'mecanismos', 'usufruto'),
+
+      /*
+       * A APURAÇÃO DE HAVERES TEM DOIS CAMPOS, E NÃO SEIS.
+       *
+       * A primeira versão publicava prazo do balanço, horizonte do fluxo, taxa
+       * mínima e regra de combinação como campos. Medido nos sete contratos,
+       * nenhum deles varia: "60 (sessenta) dias" em 7 de 7, "05 (cinco) anos"
+       * em 3 de 3, IPCA nos 2 que citam índice, e "maior valor" em todos que
+       * combinam. Campo que não varia é texto fixo do modelo, e publicá-lo
+       * convida alguém a montar formulário para uma pergunta que não existe.
+       *
+       * O que VARIA é quais métodos entram: Bela Vista, Horita e Agro Ferragens
+       * usam patrimônio líquido e fluxo de caixa descontado; Perci, Mattei e
+       * Zamo usam só o patrimônio líquido. Então é uma condição que acende o
+       * bloco inteiro do fluxo, com os números dentro dele fixos.
+       */
+      { id: 'metodosAvaliacao', label: 'Métodos de avaliação (chaves)', tipo: 'texto',
+        interno: true },
       {
         id: 'usaFluxoDeCaixa',
         label: 'A apuração inclui fluxo de caixa descontado? (condicional)',
@@ -1448,6 +1699,122 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         'usaFluxoDeCaixa',
         (v) => !v.usaFluxoDeCaixa,
       ),
+      itemDaListaCampo('usaDuplaAvaliacao', 'A apuração pede dupla avaliação? (condicional)',
+        'metodosAvaliacao', 'dupla_avaliacao'),
+      { id: 'consolidaComposse', label: 'Consolida composse na avaliação? (condicional)',
+        tipo: 'texto' },
+
+      /*
+       * A NÃO CONCORRÊNCIA: o interruptor e os quatro detalhes dele.
+       *
+       * Está em 6 dos 7 acordos. Os quatro só fazem sentido com ele ligado, e é
+       * o interruptor que a cláusula consulta: o mecanismo `nao_concorrencia`
+       * do cadastro não entra aqui, pela regra escrita acima.
+       */
+      { id: 'naoConcorrencia', label: 'Tem cláusula de não concorrência? (condicional)',
+        tipo: 'texto' },
+      { id: 'naoConcorrenciaPrazoAnos', label: 'Prazo da não concorrência, em anos',
+        tipo: 'inteiro' },
+      numeralCampo('naoConcorrenciaPrazoAnosNumeral', 'Prazo da não concorrência (numeral)',
+        'naoConcorrenciaPrazoAnos'),
+      cardinalCampo('naoConcorrenciaPrazoAnosExtenso', 'Prazo da não concorrência (por extenso)',
+        'naoConcorrenciaPrazoAnos'),
+      { id: 'naoConcorrenciaArea', label: 'Área protegida pela não concorrência',
+        tipo: 'texto' },
+      // Texto, e não valor: no modelo o número anda grudado no índice de
+      // correção, "multa meramente punitiva de R$ 1.000.000,00 (um milhão de
+      // reais), cujo valor será atualizado pelo ÍNDICE DE ATUALIZAÇÃO".
+      { id: 'naoConcorrenciaMulta', label: 'Multa por descumprimento', tipo: 'texto' },
+      { id: 'naoConcorrenciaAlcancaParentes',
+        label: 'A não concorrência alcança parentes e sócios? (condicional)', tipo: 'texto' },
+
+      /*
+       * AS OPÇÕES DE COMPRA E DE VENDA, que são cláusulas inversas.
+       *
+       * A de compra é o direito de EXIGIR que alguém venda; a de venda é o de
+       * exigir que comprem. Costumam valer na morte, na separação e na exclusão.
+       */
+      { id: 'opcaoCompraPrevista', label: 'Tem opção de compra? (condicional)', tipo: 'texto' },
+      { id: 'opcaoCompraQuem', label: 'Quem detém a opção de compra', tipo: 'texto' },
+      { id: 'opcaoCompraPreco', label: 'Preço na opção de compra', tipo: 'texto' },
+      { id: 'opcaoVendaPrevista', label: 'Tem opção de venda? (condicional)', tipo: 'texto' },
+      { id: 'jurosValorSubscrito', label: 'Juros sobre o valor subscrito', tipo: 'texto' },
+
+      /*
+       * A SOLUÇÃO DE CONFLITOS, que é uma escolha entre duas redações.
+       *
+       * Arbitragem está nos 7 acordos e em ZERO dos 8 contratos sociais. A
+       * câmara varia de verdade: cinco usam a Câmara de Comércio Brasil Canadá
+       * e a Utida usa a Câmara FGV. Quantos árbitros são NÃO é campo: "o número
+       * de árbitros será de 03 (três)" em 6 de 6, texto fixo do modelo.
+       */
+      { id: 'solucaoLitigios', label: 'Solução de litígios (arbitragem/judicial)',
+        tipo: 'texto', interno: true },
+      condicionalCampo('porArbitragem', 'Conflito vai para arbitragem? (condicional)',
+        'solucaoLitigios', (v) => v.solucaoLitigios === 'arbitragem'),
+      condicionalCampo('porJudicial', 'Conflito vai para o Judiciário? (condicional)',
+        'solucaoLitigios', (v) => v.solucaoLitigios === 'judicial'),
+      { id: 'camaraArbitral', label: 'Câmara arbitral', tipo: 'texto' },
+
+      /*
+       * QUEM ESCOLHE OS ÁRBITROS, que são sempre três.
+       *
+       * Duas redações, medidas nos sete acordos. Em 5, incluindo o modelo: "um
+       * nomeado pelo reclamante, o outro pela parte reclamada e o terceiro
+       * eleito por aqueles dois". Em 2: "nomeados conforme o regulamento da
+       * CAM-CCBCC". O número três é texto fixo, 6 de 6 que dizem.
+       */
+      { id: 'regimeNomeacaoArbitros', label: 'Quem escolhe os árbitros (partes/câmara)',
+        tipo: 'texto', interno: true },
+      condicionalCampo('arbitrosPelasPartes', 'As partes nomeiam os árbitros? (condicional)',
+        'regimeNomeacaoArbitros', (v) => v.regimeNomeacaoArbitros === 'partes'),
+      condicionalCampo('arbitrosPelaCamara', 'A câmara nomeia os árbitros? (condicional)',
+        'regimeNomeacaoArbitros', (v) => v.regimeNomeacaoArbitros === 'camara'),
+
+      /*
+       * O REPRESENTANTE DOS QUOTISTAS, com o tratamento concordado.
+       *
+       * O modelo escreve "os QUOTISTAS elegem o Sr. LUIZ MARCELO como
+       * representante dos QUOTISTAS". O gênero é `interno` pelo mesmo motivo do
+       * gênero do órgão: descreve a palavra que vem antes do nome e não é dado a
+       * conferir nesta tela, porque a pessoa se corrige no cadastro dela.
+       */
+      { id: 'representanteNome', label: 'Representante dos quotistas', tipo: 'texto' },
+      { id: 'representanteGenero', label: 'Gênero do representante (M/F)', tipo: 'texto',
+        interno: true },
+      {
+        id: 'representanteTratamento',
+        label: 'Tratamento do representante (Sr./Sra.)',
+        tipo: 'texto',
+        derivadoDe: 'representanteGenero',
+        derivar: (v) => concordar(v.representanteGenero === 'F' ? 'F' : 'M', 'Sr.', 'Sra.'),
+      },
+      condicionalCampo('temRepresentante', 'Há representante eleito? (condicional)',
+        'representanteNome', (v) => !!(v.representanteNome ?? '').trim()),
+      /*
+       * O SUBSTITUTO, que a mesma cláusula nomeia logo depois: "na sua falta ou
+       * incapacidade civil, a incumbência passará ao Sr. …". Mesma dupla de
+       * campos do titular, e pelo mesmo motivo: o tratamento concorda com o
+       * gênero da pessoa cadastrada, que texto livre não teria.
+       */
+      { id: 'substitutoRepresentanteNome', label: 'Substituto do representante', tipo: 'texto' },
+      { id: 'substitutoRepresentanteGenero', label: 'Gênero do substituto (M/F)', tipo: 'texto',
+        interno: true },
+      {
+        id: 'substitutoRepresentanteTratamento',
+        label: 'Tratamento do substituto (Sr./Sra.)',
+        tipo: 'texto',
+        derivadoDe: 'substitutoRepresentanteGenero',
+        derivar: (v) => concordar(v.substitutoRepresentanteGenero === 'F' ? 'F' : 'M', 'Sr.', 'Sra.'),
+      },
+      /*
+       * O FORO ELEITO, cláusula 26.6, e também a cidade da arbitragem, que é a
+       * mesma em 5 dos 5 acordos que trazem as duas. Não deriva da sede: o
+       * AgroAliança senta em Sorriso e elege Cuiabá. O estado vai por extenso,
+       * como o documento escreve.
+       */
+      { id: 'foroEleitoComarca', label: 'Foro eleito — cidade', tipo: 'texto' },
+      { id: 'foroEleitoEstado', label: 'Foro eleito — estado por extenso', tipo: 'texto' },
     ],
   },
 };
@@ -1469,7 +1836,24 @@ export const TIPOS_ENTIDADE = Object.keys(ENTIDADES) as TipoEntidade[];
  * um {{ observacao }} opcional não estampar um traço no contrato.
  */
 export const CAMPOS_MANUAIS: CampoEntidade[] = [
-  { id: 'dataAssinatura', label: 'Data da assinatura', tipo: 'data', manual: true, obrigatorio: true },
+  {
+    id: 'dataAssinatura',
+    label: 'Data da assinatura',
+    tipo: 'data',
+    manual: true,
+    obrigatorio: true,
+    /*
+     * NÃO CONFUNDIR COM A DATA DO CADASTRO. São duas, e dizem coisas opostas:
+     * esta é a data em que ESTE documento vai ser assinado, e a do cadastro do
+     * Acordo é a data em que o acordo JÁ FOI assinado, que é o que o contrato
+     * social cita. Preencher a do cadastro congela a versão; esta não muda nada
+     * de cadastro, vale só para o papel que sai agora.
+     */
+    ajuda: 'A data que vai impressa no fecho deste documento, "Cuiabá/MT, 10 de outubro de '
+      + '2.026". Não é a mesma do cadastro do Acordo: lá você informa a data em que o acordo '
+      + 'JÁ FOI assinado, e é ela que o contrato social cita e que congela a versão. Em '
+      + 'branco, sai a lacuna para preencher à mão.',
+  },
   { id: 'testemunha1Nome', label: 'Testemunha 1 — nome', tipo: 'texto', manual: true },
   { id: 'testemunha1Cpf', label: 'Testemunha 1 — CPF', tipo: 'texto', manual: true },
   { id: 'testemunha1Rg', label: 'Testemunha 1 — RG', tipo: 'texto', manual: true },

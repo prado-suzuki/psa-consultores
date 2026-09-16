@@ -164,7 +164,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // =============================================
   {
     page_path: '/equipe/dev',
-    page_name: 'Dev Dashboard',
+    page_name: 'Ferramentas Digital Dev',
     page_description: 'Painel de desenvolvimento',
     category: 'dev',
     requires_admin: false,
@@ -196,7 +196,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/consulta-sped',
-    page_name: 'Consulta SPED',
+    page_name: 'Consulta de arquivos SPED',
     page_description:
       'Area de acesso as consultas e analises do Sistema Publico de Escrituracao Digital',
     category: 'dev',
@@ -221,7 +221,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/consulta-ecd',
-    page_name: 'Consulta ECD',
+    page_name: 'ECD',
     page_description: 'Consulta de arquivos ECD',
     category: 'dev',
     requires_admin: false,
@@ -229,7 +229,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/consulta-ecf',
-    page_name: 'Consulta ECF',
+    page_name: 'ECF',
     page_description: 'Consulta de arquivos ECF',
     category: 'dev',
     requires_admin: false,
@@ -261,7 +261,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/levantamento-pis-cofins',
-    page_name: 'Area Levantamento PIS/COFINS',
+    page_name: 'Levantamento PIS/COFINS',
     page_description:
       'Area de acesso as ferramentas de parametrizacao, apuracao, auditoria e revisao do levantamento de creditos de PIS e COFINS',
     category: 'dev',
@@ -270,7 +270,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/perdcomp',
-    page_name: 'Area PERDCOMP',
+    page_name: 'PERDCOMP',
     page_description:
       'Area de acesso ao painel analitico e ao controle operacional dos pedidos de restituicao e compensacao',
     category: 'dev',
@@ -287,7 +287,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/analise-icms',
-    page_name: 'Area Analise ICMS',
+    page_name: 'Análise de ICMS',
     page_description:
       'Area de acesso a apuracao de saidas e a auditoria de classificacao para diferencial de aliquota',
     category: 'dev',
@@ -312,7 +312,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/controle-balancetes',
-    page_name: 'Controle Balancetes',
+    page_name: 'Controle de Balancetes',
     page_description: 'Gerenciamento de balancetes',
     category: 'dev',
     requires_admin: false,
@@ -344,7 +344,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/mapa-ncm-pis-cofins',
-    page_name: 'Mapa NCM PIS/COFINS',
+    page_name: 'Mapa NCM',
     page_description: 'Gerenciamento de regras fiscais NCM para PIS/COFINS',
     category: 'dev',
     requires_admin: false,
@@ -360,7 +360,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/correcoes-sped',
-    page_name: 'Correções no SPED',
+    page_name: 'Correções na EFD Contribuições',
     page_description: 'Revisão de notas e itens EFD vs XML para correções',
     category: 'dev',
     requires_admin: false,
@@ -700,7 +700,9 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/osg/work/diagnostico-patrimonial',
-    page_name: 'Diagnóstico Patrimonial',
+    // O `page_path` continua `diagnostico-patrimonial`: é a chave de
+    // `page_permissions` em produção. Só o nome exibido acompanha o menu.
+    page_name: 'Cadastro Patrimonial',
     page_description: 'Cadastro de bens, matrículas, titulares e impedimentos por cliente',
     category: 'osg',
     requires_admin: false,

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -67,8 +68,8 @@ const QuadroSocietario = () => {
 
   return (
     <OsgLayout
-      title="Quadro Societário"
-      subtitle="Distribuição de quotas e participação dos sócios por empresa"
+      title={TELAS_OSG_WORK.quadroSocietario.label}
+      subtitle={TELAS_OSG_WORK.quadroSocietario.descricao}
     >
       <div className="space-y-4">
         {!clienteId ? (

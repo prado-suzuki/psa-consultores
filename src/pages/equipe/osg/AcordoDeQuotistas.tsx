@@ -1,21 +1,28 @@
 import { useMemo, useState } from 'react';
-import { Check, FilePlus2, FileSignature, MousePointerClick, Sparkles } from 'lucide-react';
+import { Check, FileSignature, MousePointerClick, Sparkles } from 'lucide-react';
 
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import {
   AcordoGrupoModal, type ValoresDoAcordo,
 } from '@/components/equipe/osg/governanca/AcordoGrupoModal';
+import {
+  FaixaDaVersao, PainelDaVersao,
+} from '@/components/equipe/osg/governanca/PainelDaVersao';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { rowActivateProps } from '@/hooks/rowActivateProps';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
-import { useAcordoDoCliente, useAcordoMutations } from '@/hooks/useDomainAcordoQuotistas';
+import { useAuditAutores } from '@/hooks/useNotificacoesDocumento';
+import {
+  useAcordoDoCliente, useAcordoMutations, useVersoesDoAcordo,
+} from '@/hooks/useDomainAcordoQuotistas';
 import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
 import {
   GRUPOS_DO_ACORDO, preenchidosNoGrupo, type GrupoDoAcordo,
 } from '@/lib/acordoGrupos';
 import { resumoDaOrdem, resumoDosQuoruns, resumoDosRamos } from '@/lib/acordoQuotistas';
-import type { BaseQuorum, TipoQuorum } from '@/lib/acordoQuotistasPadrao';
+import { mecanismosCoerentes, type BaseQuorum, type TipoQuorum } from '@/lib/acordoQuotistasPadrao';
 import { cn } from '@/lib/utils';
 
 /**
@@ -45,13 +52,36 @@ import { cn } from '@/lib/utils';
  */
 const AcordoDeQuotistas = () => {
   const { clienteId } = useOsgWork();
-  const { data, isLoading } = useAcordoDoCliente(clienteId);
+
+  /*
+   * A VERSÃO SOB LEITURA, e null quando se está na atual.
+   *
+   * Mesma convenção da tela Gerar: null é a head, que é a única editável. Sem
+   * isto, criar a versão 2 fazia a 1 sumir da tela para sempre, porque a
+   * consulta pega a de número mais alto.
+   */
+  const [versaoVistaId, setVersaoVistaId] = useState<string | null>(null);
+
+  const { data, isLoading } = useAcordoDoCliente(clienteId, versaoVistaId);
+  const { data: versoes = [] } = useVersoesDoAcordo(clienteId);
+  const { data: autores = {} } = useAuditAutores();
   const { data: pessoas = [] } = usePessoasByCliente(clienteId ?? null);
   const {
     criarAcordo, salvarAcordo, salvarListas, salvarVinculos, novaVersao,
   } = useAcordoMutations(clienteId);
 
   const [grupoAberto, setGrupoAberto] = useState<GrupoDoAcordo | null>(null);
+
+  const ehMaisRecente = versaoVistaId === null;
+  /*
+   * ASSINADA, CONGELA. Velha, não.
+   *
+   * Ver o comentário longo em `HistoricoDoAcordo`: o que vale é o documento
+   * assinado, e enquanto ele não existe o cadastro é minuta, corrigível. O
+   * precedente é a tela Gerar, onde a versão editável é a que está em rascunho,
+   * e não a mais nova.
+   */
+  const somenteLeitura = !!data?.acordo.assinado_em;
 
   /** O estado do acordo achatado, como os grupos e o modal o leem. */
   const valores: ValoresDoAcordo = useMemo(() => ({
@@ -63,9 +93,7 @@ const AcordoDeQuotistas = () => {
       percentual: q.percentual,
       base: q.base as BaseQuorum,
     })),
-    ramos: (data?.ramos ?? []).map((r) => ({
-      nome: r.nome, rotulo: r.rotulo as 'ramo' | 'descendentes',
-    })),
+    ramos: (data?.ramos ?? []).map((r) => ({ nome: r.nome })),
     ordemPreferencia: (data?.ordemPreferencia ?? []).map((o) => o.quem),
     signatarios: (data?.signatarios ?? []).map((x) => x.pessoa_id),
     sociedades: (data?.sociedades ?? []).map((x) => x.empresa_pessoa_id),
@@ -74,6 +102,19 @@ const AcordoDeQuotistas = () => {
   const salvarGrupo = async (novos: ValoresDoAcordo) => {
     if (!data) return;
     const { quoruns, ramos, ordemPreferencia, signatarios, sociedades, ...cabecalho } = novos;
+
+    /*
+     * Os quatro mecanismos espelhados se acertam AQUI, e não na tela.
+     *
+     * A opção de compra se liga no bloco "Opções de compra e venda", e a
+     * marcação dela mora na lista do bloco "Saída". Sem passar por esta função,
+     * desligar o interruptor deixaria a marcação velha no banco até alguém abrir
+     * o outro bloco. Como toda gravação passa por aqui, seja qual for o bloco
+     * editado, a lista nunca discorda dos interruptores.
+     */
+    cabecalho.mecanismos = mecanismosCoerentes(
+      cabecalho.mecanismos as string[] | null, novos,
+    );
 
     // As três listas viajam juntas porque a auditoria delas é uma entrada por
     // lista, e não uma por linha. Ver `lib/acordoQuotistas`.
@@ -111,10 +152,10 @@ const AcordoDeQuotistas = () => {
 
   return (
     <OsgLayout
-      title="Acordo de Quotistas"
-      subtitle="O contrato entre os sócios: o que acontece quando alguém quer sair, morre, se separa ou quer vender. O contrato social diz quem é dono e quem manda; o acordo diz o resto."
+      title={TELAS_OSG_WORK.acordoQuotistas.label}
+      subtitle={TELAS_OSG_WORK.acordoQuotistas.descricao}
     >
-      <div className="mx-auto max-w-5xl space-y-5">
+      <div className="mx-auto max-w-6xl space-y-5">
         {!clienteId ? (
           <Vazio texto="Selecione um cliente na barra acima para abrir o acordo dele." />
         ) : isLoading ? (
@@ -139,41 +180,42 @@ const AcordoDeQuotistas = () => {
           </div>
         ) : (
           <>
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-osg-200 bg-osg-50/60 px-4 py-3">
-              <p className="text-sm font-semibold text-osg-700">
-                Acordo, versão {data.acordo.versao}
-              </p>
-              <span className="text-xs text-muted-foreground">
-                {data.acordo.assinado_em
-                  ? `assinado em ${data.acordo.assinado_em}`
-                  : 'ainda em minuta'}
-              </span>
+            {/*
+              DUAS COLUNAS, e o painel da versão na estreita.
 
-              {/*
-                O BOTÃO DE NOVA VERSÃO SÓ APARECE COM TUDO CONFERIDO, por decisão
-                de 15/09. "Terminado" não é "todo campo tem valor", porque o acordo
-                nasce semeado: é todo bloco aberto e salvo por alguém. Oferecer a
-                versão 2 antes disso seria oferecer partir de um acordo que ninguém
-                leu.
-              */}
-              {faltamConferir === 0 && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="ml-auto"
-                  disabled={novaVersao.isPending}
-                  onClick={() => novaVersao.mutate({ versaoAtual: data.acordo.versao })}
-                >
-                  <FilePlus2 className="mr-2 h-4 w-4" /> Nova versão, em branco
-                </Button>
-              )}
-            </div>
+              Ele já foi duas faixas no topo: uma barra bege com três palavras
+              dentro e a lista de versões, que empurrava os oito blocos para baixo
+              cada vez que abria. Informação de contexto não disputa espaço com o
+              trabalho. Embaixo de 1024px vira uma coluna só, e aí o painel vem
+              primeiro, porque é a identidade do que está na tela.
+            */}
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_248px] lg:items-start">
+              <div className="order-2 space-y-5 lg:order-1">
+
+            {/*
+              A faixa aparece nas duas situações que fogem do caso comum: versão
+              assinada (congelada) e versão que não é a mais nova. Na minuta mais
+              recente, que é o caso de sempre, ela não tem o que dizer, e quem
+              informa é o painel ao lado.
+            */}
+            {(somenteLeitura || !ehMaisRecente) && (
+              <FaixaDaVersao
+                numero={data.acordo.versao}
+                numeroAtual={versoes[0]?.versao ?? data.acordo.versao}
+                assinadoEm={data.acordo.assinado_em}
+                ehMaisRecente={ehMaisRecente}
+              />
+            )}
 
             {/*
               A faixa de instrução, no mesmo molde da Matriz: o que fazer primeiro
               tem de estar visível sem rolar. Ela diz o GESTO, e não repete o que
               o cartão e o subtítulo já dizem.
+
+              SOME EM MODO LEITURA, onde ela mandaria fazer o que a tela não deixa:
+              o lugar dela é a faixa da versão anterior, que diz por que não dá.
             */}
+            {!somenteLeitura && ehMaisRecente && (
             <div className="flex items-start gap-2.5 rounded-xl border border-osg-200 bg-osg-50/60 p-4">
               <MousePointerClick className="mt-0.5 h-4 w-4 shrink-0 text-osg-600" aria-hidden />
               <p className="text-sm text-osg-700">
@@ -190,6 +232,7 @@ const AcordoDeQuotistas = () => {
                 )}
               </p>
             </div>
+            )}
 
             {/*
               Os oito grupos como cartões, com o estado de preenchimento. O
@@ -198,8 +241,8 @@ const AcordoDeQuotistas = () => {
             */}
             <div className="grid gap-4 sm:grid-cols-2">
               {GRUPOS_DO_ACORDO.map((g) => {
-                const { preenchidos, total } = preenchidosNoGrupo(g, valores);
                 const conferido = conferidos.has(g.chave);
+                const { preenchidos, total } = preenchidosNoGrupo(g, valores, conferido);
                 /*
                  * NÃO EXISTE "PRONTO" AQUI, e a ausência é deliberada.
                  *
@@ -225,21 +268,36 @@ const AcordoDeQuotistas = () => {
                       perde moldura, fundo e espaçamento de uma vez, que foi o que
                       aconteceu na primeira versão desta tela.
                     */
-                    {...rowActivateProps(() => setGrupoAberto(g))}
+                    /*
+                      Em leitura o cartão não é botão: sem `role`, sem tabIndex e
+                      sem clique. Deixá-lo clicável abriria o modal editando a
+                      versão VELHA, que é justamente o que a faixa promete que não
+                      acontece.
+                    */
+                    {...(somenteLeitura ? {} : rowActivateProps(() => setGrupoAberto(g)))}
                     className={cn(
                       // `bg-superficie-cartao` é a superfície do OBJETO cartão, tingida.
                       // A outra classe, a do cromo e do controle, difere em duas letras e
                       // significa o oposto; escrevê-la aqui deixaria a caixa branca sobre
                       // página branca. A catraca de `cartaoTingido.test.ts` guarda isso, e
                       // casa o texto do arquivo inteiro, comentário incluído.
-                      'cursor-pointer rounded-xl border bg-superficie-cartao p-4',
+                      'rounded-xl border bg-superficie-cartao p-4',
                       'shadow-sm shadow-osg-300/20 transition-colors',
-                      'hover:border-osg-moss hover:bg-osg-50/60 hover:shadow-md',
+                      somenteLeitura
+                        ? 'cursor-default'
+                        : 'cursor-pointer hover:border-osg-moss hover:bg-osg-50/60 hover:shadow-md',
                       conferido ? 'border-osg-200' : 'border-osg-300/70',
                     )}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-semibold">{g.titulo}</p>
+                    {/*
+                      `flex-wrap` e `min-w-0`: medido em 1024px, o contador
+                      passava até 48px da borda direita do cartão. Com o painel
+                      lateral comendo 248px, a coluna fica estreita demais para
+                      título e badge na mesma linha; agora o badge desce em vez
+                      de vazar.
+                    */}
+                    <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
+                      <p className="min-w-0 flex-1 text-sm font-semibold">{g.titulo}</p>
                       {conferido ? (
                         <Badge
                           variant="outline"
@@ -263,6 +321,54 @@ const AcordoDeQuotistas = () => {
                   </div>
                 );
               })}
+            </div>
+              </div>
+
+              {/*
+                SEM `sticky`, e a tentativa está registrada porque ela não funciona
+                aqui por um motivo que não é desta tela.
+                
+                O `OsgLayout` envolve o conteúdo num `div.flex-1.overflow-y-auto`,
+                que passa a ser o contêiner de rolagem do `sticky`. Só que ele
+                NUNCA rola: medido em quatro resoluções, `scrollHeight` é igual a
+                `clientHeight`, e quem rola é a janela. Contra um contêiner que não
+                rola, o `sticky` nunca engata: em 1024x700 o painel saiu inteiro da
+                tela em vez de travar no topo.
+                
+                Consertar de verdade é fechar a cadeia de altura do `OsgLayout`,
+                que vale para TODAS as telas da área. Não é mudança para embutir
+                aqui de carona.
+              */}
+              <aside className="order-1 lg:order-2">
+                <PainelDaVersao
+                  versao={data.acordo.versao}
+                  assinadoEm={data.acordo.assinado_em}
+                  atualizadoEm={data.acordo.updated_at}
+                  atualizadoPor={autores[data.acordo.updated_by ?? ''] || null}
+                  versoes={versoes}
+                  autores={autores}
+                  versaoVistaId={versaoVistaId}
+                  onSelecionar={(id) => {
+                    setVersaoVistaId(id);
+                    setGrupoAberto(null);
+                  }}
+                  /*
+                    O BOTÃO DE NOVA VERSÃO SÓ COM TUDO CONFERIDO, por decisão de
+                    15/09. "Terminado" não é "todo campo tem valor", porque o
+                    acordo nasce semeado: é todo bloco aberto e salvo por alguém.
+
+                    E SÓ NA MAIS NOVA: criar a versão 3 olhando a 1 daria uma
+                    versão que não continua o que está na tela.
+
+                    NA VERSÃO ASSINADA ELE APARECE SEMPRE, e essa exceção é o que
+                    impede um beco sem saída: a assinada congela, e sem o botão a
+                    tela ficaria sem porta nenhuma, nem corrigir nem seguir.
+                  */
+                  podeNovaVersao={ehMaisRecente && (somenteLeitura || faltamConferir === 0)}
+                  criandoVersao={novaVersao.isPending}
+                  onNovaVersao={() => novaVersao.mutate({ versaoAtual: data.acordo.versao })}
+                />
+              </aside>
             </div>
           </>
         )}

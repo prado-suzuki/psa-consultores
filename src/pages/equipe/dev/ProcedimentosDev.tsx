@@ -161,7 +161,6 @@ const ProcedimentosDev = () => {
       ) : undefined}
     >
       <DevPageHeader
-        hideManualLink
         description={
           podeCurar
             ? 'Cada card é um procedimento da Dev com resumo, etapas e link para o documento oficial — **clique para abrir a ficha completa**. O que chega novo entra em "Na fila", onde você confere o que a IA extraiu antes de publicar para o time.'

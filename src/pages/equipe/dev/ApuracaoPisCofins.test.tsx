@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createTestQueryClient } from '@/test/queryWrapper';
 import type { PropsWithChildren } from 'react';
@@ -87,15 +87,20 @@ vi.mock('@/hooks/usePisCofinsImportStatus', () => ({
 vi.mock('@/hooks/use-toast', () => ({ toast: mocks.toast }));
 
 // O shell depende de autenticação e roteamento; o conteúdo fiscal permanece real.
-vi.mock('@/components/equipe/dev/DevLayout', () => ({
-  DevLayout: ({ children, title, subtitle }: PropsWithChildren<{ title: string; subtitle: string }>) => (
-    <main>
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-      {children}
-    </main>
-  ),
-}));
+vi.mock('@/components/equipe/dev/DevLayout', async () => {
+  // A fábrica é içada acima dos imports, então o resolvedor entra por import
+  // dinâmico. O cabeçalho vem do registro (`tela`), como na tela real — resolver
+  // aqui pela mesma função evita o teste medir o mock em vez do nome da tela.
+  const { resolverCabecalhoDoDev } = await import('@/config/telasDoDigitalDev');
+  return {
+    DevLayout: ({ children, ...cabecalho }: { children: ReactNode }) => (
+      <main>
+        <h1>{resolverCabecalhoDoDev(cabecalho as never).title}</h1>
+        {children}
+      </main>
+    ),
+  };
+});
 
 import ApuracaoPisCofins from '@/pages/equipe/dev/ApuracaoPisCofins';
 
@@ -404,14 +409,16 @@ describe('ApuracaoPisCofins', () => {
     expect(screen.getByRole('button', { name: /remover 3.02 - receita reduzida/i })).toBeInTheDocument();
   });
 
-  it('alterna Prado aberto/fechado, muda os valores apresentados e oculta Rateio', async () => {
+  // "Balancete" é o rótulo que a tela passou a usar em 16/09/2026; o valor
+  // gravado segue sendo `BALANCETE`, e antes disso a opção se chamava "Prado".
+  it('alterna Balancete aberto/fechado, muda os valores apresentados e oculta Rateio', async () => {
     const user = userEvent.setup();
     mocks.apiState.data = pradoFixture;
     renderComQuery(<ApuracaoPisCofins />);
     await selectClientAndSearch(user);
 
     await user.click(screen.getAllByRole('combobox')[2]);
-    await user.click(await screen.findByRole('option', { name: 'Prado' }));
+    await user.click(await screen.findByRole('option', { name: 'Balancete' }));
     expect(screen.queryByRole('tab', { name: 'Rateio' })).not.toBeInTheDocument();
     expect(screen.getByText('Período Fechado')).toBeInTheDocument();
 

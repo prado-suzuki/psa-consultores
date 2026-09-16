@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { fireEvent, render as renderCru, screen, waitFor } from '@testing-library/react';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import type { PropsWithChildren, ReactElement } from 'react';
+import type { PropsWithChildren, ReactElement, ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 /*
@@ -60,14 +60,20 @@ vi.mock('@/hooks/useDomainPapelDeTrabalho', () => ({
 
 vi.mock('@/hooks/use-toast', () => ({ toast: vi.fn() }));
 
-vi.mock('@/components/equipe/dev/DevLayout', () => ({
-  DevLayout: ({ children, title }: PropsWithChildren<{ title: string }>) => (
-    <main>
-      <h1>{title}</h1>
-      {children}
-    </main>
-  ),
-}));
+vi.mock('@/components/equipe/dev/DevLayout', async () => {
+  // A fábrica é içada acima dos imports, então o resolvedor entra por import
+  // dinâmico. O cabeçalho vem do registro (`tela`), como na tela real — resolver
+  // aqui pela mesma função evita o teste medir o mock em vez do nome da tela.
+  const { resolverCabecalhoDoDev } = await import('@/config/telasDoDigitalDev');
+  return {
+    DevLayout: ({ children, ...cabecalho }: { children: ReactNode }) => (
+      <main>
+        <h1>{resolverCabecalhoDoDev(cabecalho as never).title}</h1>
+        {children}
+      </main>
+    ),
+  };
+});
 
 import PapelDeTrabalho, { Revisoes } from '@/pages/equipe/dev/PapelDeTrabalho';
 import { EscolhaDoProjeto } from '@/components/equipe/dev/planejamento-tributario/EscolhaDoProjeto';

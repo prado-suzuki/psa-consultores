@@ -1,5 +1,6 @@
 import { ListChecks, Printer } from 'lucide-react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { ChecklistPendentes } from '@/components/equipe/osg/checklists/ChecklistPendentes';
@@ -32,11 +33,12 @@ const ChecklistsDocumentos = () => {
 
   return (
     <OsgLayout
-      /* Singular desde que a aba saiu, e caixa baixa como no menu lateral. */
-      title="Checklist de documentos"
-      /* Texto da Patrícia (11/09/2026): usa os mesmos termos dos status logo
-         abaixo — solicitados, recebidos, pendentes. */
-      subtitle="Acompanhe os documentos solicitados, recebidos e ainda pendentes de cada cliente."
+      /* Os dois vêm de `navegacaoOsgWork`, e é lá que estão os motivos: o
+         singular (a spec escreve "Checklists de Documentos", que valia enquanto
+         havia duas abas) e o "solicitados" no lugar do "obrigatórios" dela — que
+         o checklist não sabe contar. Os dois validados com a coordenação. */
+      title={TELAS_OSG_WORK.checklistDocumentos.label}
+      subtitle={TELAS_OSG_WORK.checklistDocumentos.descricao}
       headerActions={
         clienteId ? (
           <Button

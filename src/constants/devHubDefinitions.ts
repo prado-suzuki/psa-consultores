@@ -19,6 +19,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { DEV_NAV_LABELS } from '@/constants/devNavLabels';
+import { TELAS_DO_DEV } from '@/config/telasDoDigitalDev';
 import type { DevHubDefinition } from '@/types/devHub';
 
 export const DEV_HUBS: Record<
@@ -34,13 +35,13 @@ export const DEV_HUBS: Record<
     label: DEV_NAV_LABELS.consultaSped,
     landingPath: '/equipe/dev/consulta-sped',
     landingDescription:
-      'Área para localizar arquivos do Sistema Público de Escrituração Digital, filtrar por contribuinte e período, baixar os arquivos originais e abrir a leitura detalhada de cada entrega.',
+      'Acesse EFD Contribuições, EFD ICMS/IPI, ECD e ECF para consulta, análise e download.',
     landingIcon: Receipt,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
-    title: 'Consulta dos arquivos SPEDs do cliente',
-    subtitle: 'Ferramentas para consulta, download e análise dos SPEDs fiscais.',
+    title: TELAS_DO_DEV.consultaSped.titulo,
+    subtitle: TELAS_DO_DEV.consultaSped.subtitulo,
     heroEyebrow: '',
-    heroTitle: 'Consulta dos arquivos SPEDs do cliente',
+    heroTitle: TELAS_DO_DEV.consultaSped.titulo,
     heroDescription:
       'Use esta área para consultar arquivos da Escrituração Fiscal Digital das Contribuições (EFD Contribuições), da Escrituração Fiscal Digital do Imposto sobre Circulação de Mercadorias e Serviços (ICMS) e do Imposto sobre Produtos Industrializados (IPI) (EFD ICMS/IPI), da Escrituração Contábil Digital (ECD) e da Escrituração Contábil Fiscal (ECF) no Sistema Público de Escrituração Digital (SPED).',
     heroIcon: LayoutGrid,
@@ -72,7 +73,7 @@ export const DEV_HUBS: Record<
         icon: FileText,
         path: '/equipe/dev/consulta-efd-icms',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-icms/',
-        title: `${DEV_NAV_LABELS.efdIcms}/IPI`,
+        title: TELAS_DO_DEV.efdIcms.titulo,
       },
       {
         badge: 'Contábil',
@@ -108,15 +109,13 @@ export const DEV_HUBS: Record<
     label: DEV_NAV_LABELS.levantamentoPisCofins,
     landingPath: '/equipe/dev/levantamento-pis-cofins',
     landingDescription:
-      'Área do levantamento de crédito para parametrizar regras fiscais, apurar contribuições, reconciliar bases e revisar registros antes de consolidar o trabalho.',
+      'Acesse ferramentas para regras fiscais, apuração, análise cruzada e correções da EFD Contribuições.',
     landingIcon: Calculator,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
-    title:
-      'Levantamento PIS/COFINS — Programa de Integração Social e Contribuição para o Financiamento da Seguridade Social',
-    subtitle:
-      'Escolha a ferramenta de cadastro de regras, apuração, análise cruzada e revisão de registros.',
+    title: TELAS_DO_DEV.levantamentoPisCofins.titulo,
+    subtitle: TELAS_DO_DEV.levantamentoPisCofins.subtitulo,
     heroEyebrow: '',
-    heroTitle: 'Levantamento PIS/COFINS',
+    heroTitle: TELAS_DO_DEV.levantamentoPisCofins.titulo,
     heroDescription:
       'Use esta área para cadastrar regras, revisar apurações, comparar bases e corrigir registros relacionados ao Programa de Integração Social (PIS) e à Contribuição para o Financiamento da Seguridade Social (COFINS).',
     heroIcon: LayoutGrid,
@@ -133,7 +132,7 @@ export const DEV_HUBS: Record<
         icon: Map,
         path: '/equipe/dev/mapa-ncm-pis-cofins',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/mapa-ncm/',
-        title: 'Mapa de Nomenclatura Comum do Mercosul (NCMs)',
+        title: TELAS_DO_DEV.mapaNCMs.titulo,
       },
       {
         badge: 'Apuração',
@@ -178,8 +177,7 @@ export const DEV_HUBS: Record<
         path: '/equipe/dev/correcoes-sped',
         sopUrl:
           'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/correcoes-sped/',
-        title:
-          'Revisão de Registros da Escrituração Fiscal Digital das Contribuições (EFD Contribuições)',
+        title: TELAS_DO_DEV.correcoesEfdContribuicoes.titulo,
       },
     ],
   },
@@ -187,14 +185,13 @@ export const DEV_HUBS: Record<
     label: DEV_NAV_LABELS.analiseIcms,
     landingPath: '/equipe/dev/analise-icms',
     landingDescription:
-      'Área para apurar saídas, revisar CFOP e substituição tributária e auditar a classificação de produtos usada no processo de diferencial de alíquota.',
+      'Acesse ferramentas para análise de ICMS das saídas e DIFAL.',
     landingIcon: Truck,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
-    title: 'Análise do Imposto sobre Circulação de Mercadorias e Serviços (ICMS)',
-    subtitle:
-      'Ferramentas para análise do ICMS das saídas e para análise do diferencial de alíquota (DIFAL).',
+    title: TELAS_DO_DEV.analiseIcms.titulo,
+    subtitle: TELAS_DO_DEV.analiseIcms.subtitulo,
     heroEyebrow: '',
-    heroTitle: 'Análise ICMS',
+    heroTitle: TELAS_DO_DEV.analiseIcms.titulo,
     heroDescription:
       'Use esta área para analisar as saídas de ICMS e validar classificações tributárias usadas no cálculo do DIFAL.',
     heroIcon: LayoutGrid,
@@ -234,14 +231,13 @@ export const DEV_HUBS: Record<
     label: DEV_NAV_LABELS.perdcomp,
     landingPath: '/equipe/dev/perdcomp',
     landingDescription:
-      'Área com entradas separadas para a leitura analítica do painel e para a gestão operacional dos pedidos de restituição, ressarcimento, reembolso e declaração de compensação.',
+      'Acesse o dashboard e o controle operacional de PERDCOMP.',
     landingIcon: BarChart3,
     landingSopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/',
-    title:
-      'Pedido Eletrônico de Restituição, Ressarcimento ou Reembolso e Declaração de Compensação (PERDCOMP)',
-    subtitle: 'Ferramentas para análise e controle do PERDCOMP.',
+    title: TELAS_DO_DEV.perdcomp.titulo,
+    subtitle: TELAS_DO_DEV.perdcomp.subtitulo,
     heroEyebrow: '',
-    heroTitle: 'PERDCOMP',
+    heroTitle: TELAS_DO_DEV.perdcomp.titulo,
     heroDescription:
       'Use esta área para analisar gráficos, indicadores e fazer o controle do Pedido Eletrônico de Restituição, Ressarcimento ou Reembolso e Declaração de Compensação (PERDCOMP).',
     heroIcon: LayoutGrid,

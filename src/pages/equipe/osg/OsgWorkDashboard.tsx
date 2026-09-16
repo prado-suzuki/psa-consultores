@@ -1,94 +1,83 @@
 import { useNavigate } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
+
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calculator, ChevronRight, Users, Landmark, FileSearch, FileText, PieChart, Rocket } from 'lucide-react';
+import { GRUPOS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 
-interface Ferramenta {
-  id: string;
-  titulo: string;
-  descricao: string;
-  path: string;
-  icon: React.ReactNode;
-}
-
-const FERRAMENTAS: Ferramenta[] = [
-  {
-    id: 'onboarding',
-    titulo: 'Solicitação de documentos',
-    descricao: 'Gerencie os documentos que serão solicitados ao cliente para os produtos contratados.',
-    path: '/equipe/osg/work/onboarding',
-    icon: <Rocket className="h-5 w-5 text-osg-600" />,
-  },
-  {
-    id: 'cadastro-por-documento',
-    titulo: 'Cadastro por Documento',
-    descricao: 'Abertura dos arquivos recebidos para cadastrar a entidade a partir deles.',
-    path: '/equipe/osg/work/onboarding/cadastro',
-    icon: <FileSearch className="h-5 w-5 text-osg-600" />,
-  },
-  {
-    id: 'qualificacao-das-partes',
-    titulo: 'Qualificação das Partes',
-    descricao: 'Cadastro de sócios (PF/PJ) e vínculos de parentesco por cliente.',
-    path: '/equipe/osg/work/qualificacao-das-partes',
-    icon: <Users className="h-5 w-5 text-osg-600" />,
-  },
-  {
-    id: 'diagnostico-patrimonial',
-    titulo: 'Diagnóstico Patrimonial',
-    descricao: 'Cadastro de bens, matrículas, titulares e impedimentos por cliente.',
-    path: '/equipe/osg/work/diagnostico-patrimonial',
-    icon: <Landmark className="h-5 w-5 text-osg-600" />,
-  },
-  {
-    id: 'controle-matriculas',
-    titulo: 'Controle de Matrículas',
-    descricao: 'Registro de todas as matrículas, vinculadas ou órfãs, e seus vínculos com bens.',
-    path: '/equipe/osg/work/controle-matriculas',
-    icon: <FileText className="h-5 w-5 text-osg-600" />,
-  },
-  {
-    id: 'quadro-societario',
-    titulo: 'Quadro Societário',
-    descricao: 'Distribuição de quotas e participação dos sócios das empresas do cliente.',
-    path: '/equipe/osg/work/quadro-societario',
-    icon: <PieChart className="h-5 w-5 text-osg-600" />,
-  },
-  {
-    id: 'calculadora-itcmd',
-    titulo: 'Calculadora de ITCD',
-    descricao: 'Imposto da doação de quotas em três cenários de avaliação, por donatário.',
-    path: '/equipe/osg/work/calculadora-itcmd',
-    icon: <Calculator className="h-5 w-5 text-osg-600" />,
-  },
-];
-
+/**
+ * O painel de entrada do OSG Work: todas as telas da área, agrupadas como no menu.
+ *
+ * ELE ESPELHA O MENU, e agora por construção: as duas listas saem de
+ * `navegacaoOsgWork`. Antes eram dois arquivos com a mesma informação e
+ * divergiram — em 14/09/2026 o menu tinha as 16 telas em sete grupos e este
+ * painel mostrava SETE, soltas, com descrições diferentes das que a própria tela
+ * exibe no cabeçalho. Quem clicava lia uma frase no cartão e encontrava outra ao
+ * chegar.
+ *
+ * A ROTA JÁ EXISTIA E NÃO TINHA PORTA. Até 14/09 nenhum item do menu levava
+ * aqui: você caía nesta tela ao entrar na área e, depois do primeiro clique,
+ * não voltava mais. O "Início" da barra resolve isso, no padrão que a Tax e a
+ * OSG Projects já seguiam.
+ *
+ * O desenho do cartão é o da OSG Projects (`OsgBoasVindas`), com a paleta da
+ * área — selo `bg-osg-100`, ícone `text-osg-600`, borda `osg-300` no hover.
+ * SEM o rodapé "Manual (em breve)" que existe lá: ele promete um manual que não
+ * existe, e a coordenação pediu para não trazer a promessa junto.
+ */
 const OsgWorkDashboard = () => {
   const navigate = useNavigate();
 
   return (
-    <OsgLayout title="OSG Work" subtitle="Ferramentas e aplicações da área OSG">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {FERRAMENTAS.map((f) => (
-          <Card
-            key={f.id}
-            className="cursor-pointer hover:border-osg-300 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 group"
-            onClick={() => navigate(f.path)}
-          >
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="h-10 w-10 rounded-lg bg-osg-100 flex items-center justify-center">
-                  {f.icon}
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-osg-600 group-hover:translate-x-0.5 transition-all" />
+    // Título e subtítulo no molde das outras duas áreas: a Tax abre com
+    // "Bem-vindo à área Tax" e a OSG Projects com "Bem-vindo à área OSG", as
+    // duas com o mesmo subtítulo. Era "OSG Work" seco, que repetia o nome já
+    // escrito no topo da barra e não dizia o que fazer aqui.
+    <OsgLayout title="Bem-vindo à área OSG Work" subtitle="Escolha uma ferramenta para começar">
+      <div className="space-y-8">
+        {GRUPOS_OSG_WORK.map((grupo) => {
+          const IconeDoGrupo = grupo.icone;
+          return (
+            <section key={grupo.id}>
+              {/* O título do grupo repete o rótulo do menu, de propósito: é o que
+                  liga uma leitura à outra para quem está aprendendo a área. */}
+              <div className="mb-3 flex items-center gap-2">
+                <IconeDoGrupo className="h-4 w-4 flex-shrink-0 text-osg-600" />
+                <h2 className="text-sm font-bold uppercase tracking-wide text-osg-700">
+                  {grupo.rotulo}
+                </h2>
               </div>
-              <CardTitle className="text-base mt-3">{f.titulo}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>{f.descricao}</CardDescription>
-            </CardContent>
-          </Card>
-        ))}
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {grupo.telas.map((tela) => (
+                  <Card
+                    key={tela.path}
+                    className="group cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-osg-300 hover:shadow-md"
+                    onClick={() => navigate(tela.path)}
+                  >
+                    {/* SEM ÍCONE no cartão (14/09/2026). Cada um trazia o selo
+                        `bg-osg-100` com o ícone da tela, e numa grade de três
+                        colunas por sete seções isso virava dezesseis selos
+                        disputando atenção com os títulos. O ícone ficou onde
+                        distingue: no cabeçalho da seção, um por grupo.
+
+                        Sem o selo, a seta sobe para a linha do título em vez de
+                        ficar sozinha acima dele. */}
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-base">{tela.label}</CardTitle>
+                        <ChevronRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-osg-600" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>{tela.descricao}</CardDescription>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          );
+        })}
       </div>
     </OsgLayout>
   );

@@ -1,16 +1,20 @@
 // As faixas do topo do checklist: o que a fase da solicitação impõe à leitura
 // dos números logo abaixo.
 //
-// Saíram de `ChecklistPendentes` em 11/09/2026, quando a faixa de `enviada`
-// ganhou o botão de trazer para o checklist e o arquivo passou de 600 linhas. O
-// AGENTS.md manda decompor ANTES de acrescentar, e era o caso: ele já estava em
-// 602. O `Aviso` veio junto porque só estas quatro faixas o usavam.
+// Saíram de `ChecklistPendentes` em 11/09/2026, quando a tela ganhou o botão de
+// trazer para o checklist e o arquivo passou de 600 linhas. O AGENTS.md manda
+// decompor ANTES de acrescentar, e era o caso: ele já estava em 602. O `Aviso`
+// veio junto porque só estas quatro faixas o usavam.
+//
+// Aqui só há TEXTO. O botão chegou a morar dentro da faixa de `enviada` e saiu
+// no mesmo dia: ação fica na barra do topo, junto do comprovante e da cobrança,
+// que é onde o analista já procura botão. A faixa NOMEIA o botão em vez de
+// dizer onde ele está, então o texto sobrevive a mudanças de layout.
 import type { ReactNode } from 'react';
 import { TriangleAlert } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import type { SolicitacaoStatus } from '@/lib/solicitacao';
-import { BotaoTrazerParaChecklist } from './BotaoTrazerParaChecklist';
 
 function Aviso({ children, tom = 'atencao' }: { children: ReactNode; tom?: 'atencao' | 'neutro' }) {
   return (
@@ -27,14 +31,13 @@ function Aviso({ children, tom = 'atencao' }: { children: ReactNode; tom?: 'aten
 }
 
 export interface AvisosDaFaseProps {
-  clienteId: string;
   status: SolicitacaoStatus;
   encerradaEm: string | null;
   arquivosSemTipo: number;
 }
 
 export function AvisosDaFase({
-  clienteId, status, encerradaEm, arquivosSemTipo,
+  status, encerradaEm, arquivosSemTipo,
 }: AvisosDaFaseProps) {
   return (
     <>
@@ -49,26 +52,18 @@ export function AvisosDaFase({
       )}
 
       {status === 'enviada' && (
-        <div className="space-y-3">
-          <Aviso>
-            {/* Texto da Patrícia (11/09/2026). As duas primeiras frases são as
-                dela, palavra por palavra. A terceira mandava acessar a tela de
-                Solicitação de documentos e clicar lá — com o botão logo abaixo,
-                mandar navegar passou a apontar para o lugar errado. */}
-            Os documentos enviados pelo cliente ainda não estão sendo classificados
-            automaticamente. Por isso, alguns documentos já recebidos podem aparecer como
-            pendentes. Para iniciar a classificação dos próximos envios, use{' '}
-            <strong>Trazer para o checklist</strong>.
-          </Aviso>
-          {/* FORA do `Aviso`, e não dentro: o corpo dele é um `<p>`, e botão
-              dentro de parágrafo é aninhamento inválido — o React desmonta o
-              `<div>` para fora do `<p>` e o layout quebra em silêncio. */}
-          <BotaoTrazerParaChecklist
-            clienteId={clienteId}
-            status={status}
-            arquivosSemTipo={arquivosSemTipo}
-          />
-        </div>
+        <Aviso>
+          {/* Texto da Patrícia (11/09/2026). As duas primeiras frases são as
+              dela, palavra por palavra. A terceira mandava acessar a tela de
+              Solicitação de documentos e clicar lá — com o botão no topo desta
+              mesma tela, mandar navegar passou a apontar para o lugar errado.
+              A frase NOMEIA o botão em vez de dizer onde ele está: assim o
+              texto não quebra se a barra de ações mudar de lugar. */}
+          Os documentos enviados pelo cliente ainda não estão sendo classificados
+          automaticamente. Por isso, alguns documentos já recebidos podem aparecer como
+          pendentes. Para iniciar a classificação dos próximos envios, use{' '}
+          <strong>Trazer para o checklist</strong>.
+        </Aviso>
       )}
 
       {status === 'encerrada' && (

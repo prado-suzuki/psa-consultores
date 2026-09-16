@@ -350,14 +350,10 @@ const ConsultaECD = () => {
   const blocosDisponiveis = overview?.blocos_disponiveis || {};
 
   return (
-    <DevLayout
-      title="Consulta ECD"
-      subtitle="Consulta de Escrituração Contábil Digital"
-    >
+    <DevLayout tela="ecd"    >
       <TooltipProvider delayDuration={300}>
       <DevPageHeader
-        description="A Consulta ECD centraliza a busca e o download das **Escriturações Contábeis Digitais** da base de dados. Utilize os filtros abaixo para consultar arquivos específicos ou analisar períodos inteiros, permitindo a análise detalhada de blocos e registros diretamente em tela, o download dos arquivos originais em lote (.zip) ou a exportação em formato Excel (.xlsx)."
-        manualUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECD/"
+        description="A **ECD** reúne as Escriturações Contábeis Digitais entregues ao SPED. Usa os arquivos da base, filtrados por cliente, contribuinte e período. Consulte blocos e registros em tela, baixe os arquivos originais em lote (.zip) ou exporte para Excel (.xlsx)."
       />
 
       {/* Card de Filtros */}

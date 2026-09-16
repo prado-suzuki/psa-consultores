@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -235,8 +236,8 @@ const QualificacaoDasPartes = () => {
 
   return (
     <OsgLayout
-      title="Qualificação das Partes"
-      subtitle="Cadastro de pessoas físicas/jurídicas e vínculos de parentesco por cliente"
+      title={TELAS_OSG_WORK.qualificacaoDasPartes.label}
+      subtitle={TELAS_OSG_WORK.qualificacaoDasPartes.descricao}
     >
       <div className="space-y-4">
         {!clienteId ? (

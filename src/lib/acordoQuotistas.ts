@@ -5,7 +5,7 @@
  * gente. A auditoria da GOV-02 ensinou o porquê, e vale igual aqui. Registrar
  * "acordo_quorum: 3 linhas alteradas" obrigaria quem lê o log meses depois a
  * abrir o banco e remontar o que mudou; registrar "Alterar o contrato social:
- * antes ¾ (três quartos) dos presentes, depois a maioria dos presentes" já é a
+ * antes 75% (setenta e cinco por cento) dos presentes, depois a maioria" já é a
  * resposta.
  *
  * Tudo aqui é puro. O hook chama, a tela chama, e o teste não precisa de banco.
@@ -27,7 +27,7 @@ export interface QuorumLegivel {
   base: BaseQuorum;
 }
 
-/** "Alterar o contrato social: ¾ (três quartos) dos presentes" */
+/** "Alterar o contrato social: 75% (setenta e cinco por cento) dos presentes" */
 export function resumoDoQuorum(q: QuorumLegivel): string {
   return `${q.materia}: ${expressaoDoQuorum(q)}`;
 }
@@ -37,13 +37,27 @@ export function resumoDosQuoruns(lista: readonly QuorumLegivel[]): string {
   return lista.length === 0 ? 'nenhum' : lista.map(resumoDoQuorum).join(' · ');
 }
 
-/** "RAMO Silva", "DESCENDENTES DE João" — o rótulo do jeito que o documento escreve. */
-export function rotuloDoRamo(ramo: { nome: string; rotulo: string }): string {
+/*
+ * "DESCENDENTES DE JOÃO", que é o único rótulo que documento algum usa.
+ *
+ * Havia escolha entre "RAMO [nome]" e "DESCENDENTES DE [nome]", e ela veio do
+ * levantamento de 11/09 (`docs/osg/campos-governanca.md`). Contado nos 14
+ * documentos do acervo, sete acordos e sete contratos: "RAMO [nome]" como grupo
+ * da família aparece em ZERO, e "ramo" com o sentido de ramo de ATIVIDADE
+ * aparece em três acordos. Imprimir "RAMO BOCOLLI" num documento que usa a
+ * palavra para linha de negócio é colisão de vocabulário.
+ *
+ * O MOCKUP JÁ TINHA DERRUBADO ISSO, e eu reintroduzi. Está escrito em
+ * `src/previews/cadastroGovernancaDados.ts`, na branch do mockup: "as duas
+ * opções de cima estão escritas em documento; 'ramo familiar' não estava em
+ * nenhum, e foi retirada".
+ */
+export function rotuloDoRamo(ramo: { nome: string }): string {
   const nome = ramo.nome.trim().toLocaleUpperCase('pt-BR');
-  return ramo.rotulo === 'descendentes' ? `DESCENDENTES DE ${nome}` : `RAMO ${nome}`;
+  return `DESCENDENTES DE ${nome}`;
 }
 
-export function resumoDosRamos(lista: readonly { nome: string; rotulo: string }[]): string {
+export function resumoDosRamos(lista: readonly { nome: string }[]): string {
   return lista.length === 0 ? 'nenhum' : lista.map(rotuloDoRamo).join(', ');
 }
 
@@ -72,12 +86,10 @@ const ROTULO_DO_CAMPO: Record<string, string> = {
   data_referencia: 'Data de referência',
   assinado_em: 'Assinado em',
   vigencia_anos: 'Vigência, em anos',
-  prazo_sigilo_anos: 'Prazo de sigilo, em anos',
   metodos_avaliacao: 'Métodos de avaliação da quota',
-  regra_combinacao: 'Regra de combinação dos métodos',
-  prazo_balanco_dias: 'Prazo máximo do balanço, em dias',
-  horizonte_fluxo_anos: 'Horizonte do fluxo de caixa, em anos',
-  taxa_minima_crescimento: 'Taxa mínima de crescimento',
+  // Os quatro numeros da apuracao de haveres nao estao aqui porque nao sao
+  // campo: 60 dias em 7 de 7, 05 anos em 3 de 3, IPCA e "maior valor" nos que
+  // citam. Texto fixo do modelo, e as colunas saem na migration de 15/09.
   consolida_composse: 'Consolida composse na avaliação',
   nao_concorrencia: 'Cláusula de não concorrência',
   nao_concorrencia_prazo_anos: 'Prazo da não concorrência, em anos',
@@ -93,7 +105,7 @@ const ROTULO_DO_CAMPO: Record<string, string> = {
   reuniao_previa_obrigatoria: 'Reunião prévia obrigatória',
   solucao_litigios: 'Solução de litígios',
   camara_arbitral: 'Câmara arbitral',
-  prazo_indicacao_arbitros_dias: 'Prazo para indicação de árbitros, em dias',
+  regime_nomeacao_arbitros: 'Quem escolhe os árbitros',
   representante_pessoa_id: 'Representante dos quotistas',
   mecanismos: 'Mecanismos presentes',
 };

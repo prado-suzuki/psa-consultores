@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +15,7 @@ import {
   Loader2,
   BookOpen,
   ScrollText,
+  List,
   Pilcrow,
   StickyNote,
   FilterX,
@@ -35,6 +37,10 @@ const GRUPO_POR_TIPO: Record<TipoBloco, { label: string; Icone: typeof BookOpen 
   capitulo: { label: 'Capítulos', Icone: BookOpen },
   clausula: { label: 'Cláusulas', Icone: ScrollText },
   paragrafo: { label: 'Parágrafos', Icone: Pilcrow },
+  item: { label: 'Itens numerados', Icone: List },
+  subitem: { label: 'Subitens', Icone: List },
+  alinea: { label: 'Alíneas', Icone: List },
+  inciso: { label: 'Incisos', Icone: List },
   livre: { label: 'Blocos livres', Icone: StickyNote },
 };
 
@@ -220,8 +226,8 @@ const BibliotecaModelos = () => {
 
   return (
     <OsgLayout
-      title="Biblioteca de Modelos"
-      subtitle="Blocos de texto reutilizáveis com campos — as peças que compõem os documentos"
+      title={TELAS_OSG_WORK.bibliotecaModelos.label}
+      subtitle={TELAS_OSG_WORK.bibliotecaModelos.descricao}
       headerActions={
         <Button size="sm" onClick={abrirNovo} className="bg-osg-600 hover:bg-osg-700">
           <Plus className="h-4 w-4 mr-1.5" />

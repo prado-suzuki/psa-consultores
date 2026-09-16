@@ -8,9 +8,10 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   mencoesDosComentarios,
   montarNotificacoesDeMencao,
-  type MencaoNaoLida,
+  type LinhaDeMencao,
   type MencaoNotificacao,
 } from '@/lib/mencaoNotificacoes';
+import { LIMITE_DO_SINO } from '@/lib/sinoNotificacoes';
 
 /**
  * Caixa de entrada das menções e respostas em comentários de tarefa e projeto.
@@ -24,16 +25,26 @@ import {
  * carimbar a leitura. Os dois motivos compartilham tudo daqui para frente:
  * contador, leitura ao abrir a thread e navegação para a origem.
  *
- * São duas idas ao banco de propósito. A primeira lê as linhas pendentes (a
- * tabela é indexada exatamente para isso: `mentioned_user_id` + `lido_em IS NULL`);
- * a segunda hidrata os comentários pela view, num lote só. Não dá para juntar em
+ * **A leitura NÃO filtra por `lido_em`** desde 14/09/2026: o balão do sino virou
+ * histórico e mostra as 30 mais recentes, lidas ou não. `lido_em` deixou de ser
+ * filtro de consulta e virou campo da linha (`lida`), que é o que ainda separa o
+ * que conta para a bolinha. O índice parcial `org_comment_mentions_unread_idx`
+ * deixa de servir a esta consulta; o pleno entra pela migration
+ * `20260914*_notificacao_sino_historico_idx.sql`.
+ *
+ * São duas idas ao banco de propósito. A primeira lê as linhas da caixa; a
+ * segunda hidrata os comentários pela view, num lote só. Não dá para juntar em
  * um `select` embutido: `org_comments_feed` é view, e o PostgREST não embute view
  * (sem FK declarada) — e é a view que traz título da entidade e nome do projeto.
  */
 
-const LIMITE = 20;
+/**
+ * Trinta, e não os 20 de antes: é o tamanho do histórico que o balão mostra
+ * (`LIMITE_DO_SINO`). Cada fonte traz até 30 e o balão corta o total.
+ */
+const LIMITE = LIMITE_DO_SINO;
 const TABELA = 'org_comment_mentions';
-const COLUNAS = 'id, comment_id, created_at, motivo';
+const COLUNAS = 'id, comment_id, created_at, motivo, lido_em';
 
 export type { MencaoNotificacao };
 
@@ -47,6 +58,7 @@ interface LinhaDaCaixa {
   comment_id: string;
   created_at: string;
   motivo: string | null;
+  lido_em: string | null;
 }
 
 interface CaixaQuery {
@@ -64,12 +76,13 @@ interface CaixaQuery {
  * antiga, gravada antes da coluna existir) lê como menção, que é o que toda
  * linha era até a notificação de resposta.
  */
-function linhaDaCaixa(linha: LinhaDaCaixa): MencaoNaoLida {
+function linhaDaCaixa(linha: LinhaDaCaixa): LinhaDeMencao {
   return {
     id: linha.id,
     comment_id: linha.comment_id,
     created_at: linha.created_at,
     motivo: linha.motivo === 'resposta' ? 'resposta' : 'mencao',
+    lida: linha.lido_em !== null,
   };
 }
 
@@ -89,7 +102,6 @@ export function useNotificacoesMencao() {
       const { data, error } = await (supabase.from(TABELA) as unknown as CaixaQuery)
         .select(COLUNAS)
         .eq('mentioned_user_id', userId)
-        .is('lido_em', null)
         .order('created_at', { ascending: false })
         .limit(LIMITE);
 
@@ -97,9 +109,7 @@ export function useNotificacoesMencao() {
       if (!data || data.length === 0) return [];
 
       const mencoes = data.map(linhaDaCaixa);
-      const comentarios = await buscarComentariosPorId(
-        mencoes.map((mencao) => mencao.comment_id),
-      );
+      const comentarios = await buscarComentariosPorId(mencoes.map((mencao) => mencao.comment_id));
       return montarNotificacoesDeMencao(mencoes, comentarios, userId);
     },
     enabled: !!userId && !sessaoExpirada,
@@ -129,9 +139,16 @@ export function useNotificacoesMencao() {
     onError: (error: Error) => toast.error('Erro ao marcar menção como lida: ' + error.message),
   });
 
+  const notifications = query.data ?? [];
+  const naoLidas = notifications.filter((mencao) => !mencao.lida);
+
   return {
-    notifications: query.data ?? [],
-    count: (query.data ?? []).length,
+    notifications,
+    count: notifications.length,
+    /** Quantas ainda não foram lidas — é o que a bolinha do sino soma. */
+    naoLidas: naoLidas.length,
+    /** O que o balão carimba ao abrir. */
+    idsNaoLidos: naoLidas.map((mencao) => mencao.id),
     isLoading: query.isLoading,
     refetch: query.refetch,
     marcarComoLidas,

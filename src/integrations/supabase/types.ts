@@ -151,8 +151,9 @@ export type Database = {
           created_by: string | null
           data_referencia: string | null
           excluido: boolean
+          foro_eleito_comarca: string | null
+          foro_eleito_estado: string | null
           grupos_conferidos: string[]
-          horizonte_fluxo_anos: number | null
           id: string
           juros_valor_subscrito: string | null
           mecanismos: string[] | null
@@ -167,14 +168,12 @@ export type Database = {
           opcao_compra_prevista: boolean
           opcao_compra_quem: string | null
           opcao_venda_prevista: boolean
-          prazo_balanco_dias: number | null
-          prazo_indicacao_arbitros_dias: number | null
           prazo_sigilo_anos: number | null
-          regra_combinacao: string | null
+          regime_nomeacao_arbitros: string | null
           representante_pessoa_id: string | null
           reuniao_previa_obrigatoria: boolean
           solucao_litigios: string | null
-          taxa_minima_crescimento: string | null
+          substituto_representante_pessoa_id: string | null
           updated_at: string
           updated_by: string | null
           versao: number
@@ -189,8 +188,9 @@ export type Database = {
           created_by?: string | null
           data_referencia?: string | null
           excluido?: boolean
+          foro_eleito_comarca?: string | null
+          foro_eleito_estado?: string | null
           grupos_conferidos?: string[]
-          horizonte_fluxo_anos?: number | null
           id?: string
           juros_valor_subscrito?: string | null
           mecanismos?: string[] | null
@@ -205,14 +205,12 @@ export type Database = {
           opcao_compra_prevista?: boolean
           opcao_compra_quem?: string | null
           opcao_venda_prevista?: boolean
-          prazo_balanco_dias?: number | null
-          prazo_indicacao_arbitros_dias?: number | null
           prazo_sigilo_anos?: number | null
-          regra_combinacao?: string | null
+          regime_nomeacao_arbitros?: string | null
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
           solucao_litigios?: string | null
-          taxa_minima_crescimento?: string | null
+          substituto_representante_pessoa_id?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
@@ -227,8 +225,9 @@ export type Database = {
           created_by?: string | null
           data_referencia?: string | null
           excluido?: boolean
+          foro_eleito_comarca?: string | null
+          foro_eleito_estado?: string | null
           grupos_conferidos?: string[]
-          horizonte_fluxo_anos?: number | null
           id?: string
           juros_valor_subscrito?: string | null
           mecanismos?: string[] | null
@@ -243,14 +242,12 @@ export type Database = {
           opcao_compra_prevista?: boolean
           opcao_compra_quem?: string | null
           opcao_venda_prevista?: boolean
-          prazo_balanco_dias?: number | null
-          prazo_indicacao_arbitros_dias?: number | null
           prazo_sigilo_anos?: number | null
-          regra_combinacao?: string | null
+          regime_nomeacao_arbitros?: string | null
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
           solucao_litigios?: string | null
-          taxa_minima_crescimento?: string | null
+          substituto_representante_pessoa_id?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
@@ -271,6 +268,13 @@ export type Database = {
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "acordo_quotistas_substituto_representante_pessoa_id_fkey"
+            columns: ["substituto_representante_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
         ]
       }
       acordo_ramo_familiar: {
@@ -281,7 +285,6 @@ export type Database = {
           id: string
           nome: string
           ordem: number
-          rotulo: string
           updated_at: string
           updated_by: string | null
         }
@@ -292,7 +295,6 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
-          rotulo?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -303,7 +305,6 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
-          rotulo?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -1229,106 +1230,6 @@ export type Database = {
           },
           {
             foreignKeyName: "bem_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      capital_integralizacao: {
-        Row: {
-          bem_id: string
-          cliente_id: string
-          created_at: string
-          created_by: string | null
-          empresa_destino_pessoa_id: string
-          id: string
-          pct_capital: number | null
-          pct_vlr_contabil: number | null
-          pct_vlr_mercado: number | null
-          reserva_capital: number | null
-          socio_pessoa_id: string
-          updated_at: string
-          updated_by: string | null
-          vlr_capital_arredondado: number | null
-          vlr_contabil: number | null
-          vlr_mercado: number | null
-        }
-        Insert: {
-          bem_id: string
-          cliente_id: string
-          created_at?: string
-          created_by?: string | null
-          empresa_destino_pessoa_id: string
-          id?: string
-          pct_capital?: number | null
-          pct_vlr_contabil?: number | null
-          pct_vlr_mercado?: number | null
-          reserva_capital?: number | null
-          socio_pessoa_id: string
-          updated_at?: string
-          updated_by?: string | null
-          vlr_capital_arredondado?: number | null
-          vlr_contabil?: number | null
-          vlr_mercado?: number | null
-        }
-        Update: {
-          bem_id?: string
-          cliente_id?: string
-          created_at?: string
-          created_by?: string | null
-          empresa_destino_pessoa_id?: string
-          id?: string
-          pct_capital?: number | null
-          pct_vlr_contabil?: number | null
-          pct_vlr_mercado?: number | null
-          reserva_capital?: number | null
-          socio_pessoa_id?: string
-          updated_at?: string
-          updated_by?: string | null
-          vlr_capital_arredondado?: number | null
-          vlr_contabil?: number | null
-          vlr_mercado?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "capital_integralizacao_bem_id_fkey"
-            columns: ["bem_id"]
-            isOneToOne: false
-            referencedRelation: "bem"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "cliente"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_empresa_destino_pessoa_id_fkey"
-            columns: ["empresa_destino_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_socio_pessoa_id_fkey"
-            columns: ["socio_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -7401,6 +7302,7 @@ export type Database = {
           naturalidade_municipio: string | null
           naturalidade_uf: string | null
           nire: string | null
+          nome_fantasia: string | null
           objeto_social: string | null
           profissao: string | null
           regime_bens: string | null
@@ -7444,6 +7346,7 @@ export type Database = {
           naturalidade_municipio?: string | null
           naturalidade_uf?: string | null
           nire?: string | null
+          nome_fantasia?: string | null
           objeto_social?: string | null
           profissao?: string | null
           regime_bens?: string | null
@@ -7487,6 +7390,7 @@ export type Database = {
           naturalidade_municipio?: string | null
           naturalidade_uf?: string | null
           nire?: string | null
+          nome_fantasia?: string | null
           objeto_social?: string | null
           profissao?: string | null
           regime_bens?: string | null
@@ -8949,77 +8853,6 @@ export type Database = {
         }
         Relationships: []
       }
-      quadro_societario: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          data_referencia: string | null
-          empresa_pessoa_id: string
-          id: string
-          percentual: number | null
-          quotas: number | null
-          socio_pessoa_id: string
-          updated_at: string
-          updated_by: string | null
-          vlr_total: number | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          data_referencia?: string | null
-          empresa_pessoa_id: string
-          id?: string
-          percentual?: number | null
-          quotas?: number | null
-          socio_pessoa_id: string
-          updated_at?: string
-          updated_by?: string | null
-          vlr_total?: number | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          data_referencia?: string | null
-          empresa_pessoa_id?: string
-          id?: string
-          percentual?: number | null
-          quotas?: number | null
-          socio_pessoa_id?: string
-          updated_at?: string
-          updated_by?: string | null
-          vlr_total?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "quadro_societario_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quadro_societario_empresa_pessoa_id_fkey"
-            columns: ["empresa_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quadro_societario_socio_pessoa_id_fkey"
-            columns: ["socio_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quadro_societario_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       relatorios_gerados: {
         Row: {
           ciclo_id: string | null
@@ -10362,6 +10195,7 @@ export type Database = {
           repete_colecao: string | null
           tipo: string
           tipo_derivacao: string | null
+          titulo_documento: string | null
           updated_at: string
           updated_by: string | null
           variante_ordem: number | null
@@ -10385,6 +10219,7 @@ export type Database = {
           repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
+          titulo_documento?: string | null
           updated_at?: string
           updated_by?: string | null
           variante_ordem?: number | null
@@ -10408,6 +10243,7 @@ export type Database = {
           repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
+          titulo_documento?: string | null
           updated_at?: string
           updated_by?: string | null
           variante_ordem?: number | null

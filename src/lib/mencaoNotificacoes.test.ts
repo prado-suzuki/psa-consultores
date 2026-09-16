@@ -5,19 +5,21 @@ import {
   montarNotificacoesDeMencao,
   trechoDoComentario,
   type ComentarioCitado,
-  type MencaoNaoLida,
+  type LinhaDeMencao,
 } from '@/lib/mencaoNotificacoes';
 import { docDeTextoLegado, serializarDoc } from '@/lib/orgCommentRichText';
 
 const mencao = (
   id: string,
   commentId: string,
-  motivo: MencaoNaoLida['motivo'] = 'mencao',
-): MencaoNaoLida => ({
+  motivo: LinhaDeMencao['motivo'] = 'mencao',
+  lida = false,
+): LinhaDeMencao => ({
   id,
   comment_id: commentId,
   created_at: '2026-07-29T12:00:00.000Z',
   motivo,
+  lida,
 });
 
 function comentario(overrides: Partial<ComentarioCitado> = {}): ComentarioCitado {
@@ -145,5 +147,20 @@ describe('mencoesDosComentarios', () => {
   it('não devolve nada quando a thread não tem menção minha', () => {
     expect(mencoesDosComentarios(notificacoes, ['C9'])).toEqual([]);
     expect(mencoesDosComentarios(notificacoes, [])).toEqual([]);
+  });
+
+  /*
+   * A caixa passou a trazer o que já foi lido (14/09/2026), e sem este filtro a
+   * thread aberta mandaria carimbar de novo as mesmas linhas a cada refetch —
+   * cada carimbo invalidando a query que as traz de volta.
+   */
+  it('ignora a menção que já está lida, para a thread aberta não recarimbar', () => {
+    const comLida = montarNotificacoesDeMencao(
+      [mencao('M1', 'C1', 'mencao', true), mencao('M2', 'C2')],
+      mapa(comentario(), comentario({ id: 'C2' })),
+      'U1',
+    );
+
+    expect(mencoesDosComentarios(comLida, ['C1', 'C2'])).toEqual(['M2']);
   });
 });

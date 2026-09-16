@@ -162,7 +162,7 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
               esta área não trata mais chamado, e apontar para a Gerencial da Tax
               levaria quem é do Marketing a uma porta que não abre para ele. */}
           <div className="flex items-center gap-3">
-            <NotificationPopover navigateTo="/gestao" />
+            <NotificationPopover baseDosChamados="/gestao" />
             {headerActions}
           </div>
         </header>

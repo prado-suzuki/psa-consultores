@@ -18,10 +18,6 @@ interface DevPageHeaderProps {
   title?: string;
   /** Ícone da caixa. Default: `Info`. */
   icon?: LucideIcon;
-  /** URL do manual de uso desta ferramenta (abre em nova guia). Opcional quando `hideManualLink` é true. */
-  manualUrl?: string;
-  /** Quando true, omite a frase "Para acessar o manual..." e o link `aqui`. Default: false. */
-  hideManualLink?: boolean;
 }
 
 /**
@@ -49,16 +45,15 @@ const renderBoldSegments = (text: string): ReactNode[] => {
  * Renderiza um Alert verde-água padronizado com:
  *  - Ícone Info + título "Visão Geral"
  *  - Descrição (suporta `**negrito**`)
- *  - Frase fixa anexada contiguamente ao final: "Para acessar o manual
- *    de uso completo, clique aqui." — apenas "aqui" é hyperlink, abrindo
- *    em nova guia para `manualUrl`.
+ *
+ * NÃO leva link de manual. Ele já existe uma vez por tela, como botão "Acessar
+ * manual" no cabeçalho do `DevLayout`, resolvido pela rota — dois acessos na
+ * mesma página é o que a revisão de conteúdo pediu para acabar.
  *
  * Aplica `mb-6` para preservar o respiro até o Card de Filtros logo abaixo.
  */
 export const DevPageHeader = ({
   description,
-  manualUrl,
-  hideManualLink = false,
   title = "Visão Geral",
   icon: Icone = Info,
 }: DevPageHeaderProps) => {
@@ -77,20 +72,6 @@ export const DevPageHeader = ({
       </AlertTitle>
       <AlertDescription className={`${AVISO_CAIXA_TEXTO} mt-1`}>
         {renderBoldSegments(description)}
-        {!hideManualLink && manualUrl && (
-          <>
-            {" Para acessar o manual de uso completo, clique "}
-            <a
-              href={manualUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`font-semibold ${AVISO_CAIXA_ACENTO} hover:underline`}
-            >
-              aqui
-            </a>
-            .
-          </>
-        )}
       </AlertDescription>
     </Alert>
   );
