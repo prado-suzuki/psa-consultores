@@ -187,6 +187,15 @@ function Cabecalho({
  * em produção, e abertos eles empurrariam os executores para fora da primeira
  * tela. Ele é fila de delegação, não sobra, e por isso encabeça a lista em vez
  * de ficar no fim.
+ *
+ * A FAIXA CARREGA A ÂNCORA DA ÁREA, e não o neutro — é o mesmo par que a faixa
+ * de cliente de `ProjetosTarefasList` já usa, e pela mesma razão. Ela era
+ * `bg-superficie-realce` com a linha logo abaixo transparente sobre o cartão, e
+ * as duas ficavam a **1,106:1** uma da outra na OSG (1,120 na Tax) — menos que o
+ * 1,24:1 com que a borda de 1px se separa do cartão, que é o piso que a lista de
+ * Projetos já adotou. Só embranquecer a linha sobe para 1,186 e ainda não chega
+ * lá; com a âncora na faixa vai a **1,250** (1,277 na Tax), e a separação passa a
+ * ser de MATIZ, não só de claridade.
  */
 function CabecaDoGrupo({
   grupo,
@@ -204,7 +213,7 @@ function CabecaDoGrupo({
   const Icone = grupo.semProjeto ? FolderPlus : UserX;
   return (
     <TableRow className="hover:bg-transparent">
-      <TableCell colSpan={colunas} className="bg-superficie-realce p-0">
+      <TableCell colSpan={colunas} className="border-b border-primary/20 bg-primary/10 p-0">
         <button
           type="button"
           onClick={onAlternar}
@@ -263,7 +272,11 @@ function LinhaDaTabela({ linha, onAbrir }: { linha: LinhaDoControle; onAbrir: ()
       key={linha.chave}
       onClick={onAbrir}
       className={cn(
-        'cursor-pointer hover:bg-superficie-realce',
+        // A linha de último nível volta ao `bg-card` LIMPO, e quem carrega tinta
+        // é a cabeça do grupo. Mesmo par de `ProjetosTarefasList`, pelo mesmo
+        // motivo medido lá: a faixa é o cabeçalho do bloco, então é ela que
+        // recebe a cor da área, e a linha embaixo volta ao branco.
+        'cursor-pointer bg-card',
         !linha.daArea && 'text-muted-foreground',
       )}
     >
