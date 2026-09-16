@@ -152,7 +152,6 @@ export type Database = {
           data_referencia: string | null
           excluido: boolean
           grupos_conferidos: string[]
-          horizonte_fluxo_anos: number | null
           id: string
           juros_valor_subscrito: string | null
           mecanismos: string[] | null
@@ -167,14 +166,11 @@ export type Database = {
           opcao_compra_prevista: boolean
           opcao_compra_quem: string | null
           opcao_venda_prevista: boolean
-          prazo_balanco_dias: number | null
-          prazo_indicacao_arbitros_dias: number | null
           prazo_sigilo_anos: number | null
-          regra_combinacao: string | null
+          regime_nomeacao_arbitros: string | null
           representante_pessoa_id: string | null
           reuniao_previa_obrigatoria: boolean
           solucao_litigios: string | null
-          taxa_minima_crescimento: string | null
           updated_at: string
           updated_by: string | null
           versao: number
@@ -190,7 +186,6 @@ export type Database = {
           data_referencia?: string | null
           excluido?: boolean
           grupos_conferidos?: string[]
-          horizonte_fluxo_anos?: number | null
           id?: string
           juros_valor_subscrito?: string | null
           mecanismos?: string[] | null
@@ -205,14 +200,11 @@ export type Database = {
           opcao_compra_prevista?: boolean
           opcao_compra_quem?: string | null
           opcao_venda_prevista?: boolean
-          prazo_balanco_dias?: number | null
-          prazo_indicacao_arbitros_dias?: number | null
           prazo_sigilo_anos?: number | null
-          regra_combinacao?: string | null
+          regime_nomeacao_arbitros?: string | null
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
           solucao_litigios?: string | null
-          taxa_minima_crescimento?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
@@ -228,7 +220,6 @@ export type Database = {
           data_referencia?: string | null
           excluido?: boolean
           grupos_conferidos?: string[]
-          horizonte_fluxo_anos?: number | null
           id?: string
           juros_valor_subscrito?: string | null
           mecanismos?: string[] | null
@@ -243,14 +234,11 @@ export type Database = {
           opcao_compra_prevista?: boolean
           opcao_compra_quem?: string | null
           opcao_venda_prevista?: boolean
-          prazo_balanco_dias?: number | null
-          prazo_indicacao_arbitros_dias?: number | null
           prazo_sigilo_anos?: number | null
-          regra_combinacao?: string | null
+          regime_nomeacao_arbitros?: string | null
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
           solucao_litigios?: string | null
-          taxa_minima_crescimento?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
@@ -281,7 +269,6 @@ export type Database = {
           id: string
           nome: string
           ordem: number
-          rotulo: string
           updated_at: string
           updated_by: string | null
         }
@@ -292,7 +279,6 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
-          rotulo?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -303,7 +289,6 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
-          rotulo?: string
           updated_at?: string
           updated_by?: string | null
         }
