@@ -308,6 +308,7 @@ export function mapearSociedade(
   set('numeroAlteracao', instrumento?.numeroAlteracao ?? 0);
   set('tituloColetivoSocios', instrumento?.tituloColetivoSocios);
   set('razaoSocial', row.denominacao);
+  set('nomeFantasia', row.nome_fantasia);
   set('cnpj', row.cpf_cnpj);
   set('nire', row.nire);
   set('juntaUf', row.junta_comercial_uf);
@@ -806,19 +807,80 @@ export function mapearCompetenciaMatriz(row: CompetenciaParaMapear): Campos {
   });
 }
 
-/** Os parâmetros do acordo. Sem tabela ainda: o cadastro é a GOV-03. */
+/**
+ * Os parâmetros do acordo, como o cadastro da GOV-03 os entrega.
+ *
+ * Tudo opcional: o acervo tem acordo sem sigilo, sem opção de compra e sem não
+ * concorrência, e o motor tem de escrever cada um desses documentos sem inventar
+ * resposta. Campo ausente vira condicional apagada, e a cláusula não sai.
+ *
+ * As PROSAS (`ordemPreferencia`, `objetosPreferencia`) chegam prontas de quem
+ * traduz o banco, e não se montam aqui: os rótulos em português moram no
+ * cadastro (`lib/acordoGrupos`), e o motor não deve depender da tela.
+ */
 export interface AcordoParaMapear {
   /** Um acordo por cliente, então a identidade é o cliente. */
   clienteId: string;
+
+  // Identificação e prazos
   assinadoEm?: string | null;
   vigenciaAnos?: number | null;
+
+  // Alcance. As listas em si são papéis de lista; aqui vem só o interruptor,
+  // porque uma seção {{#…}} vazia não reescreve a frase que está fora dela.
+  temSociedadesRelacionadas?: boolean;
+  temRamos?: boolean;
+  /** Quantos ramos, para a definição que abre contando ("os dois grupos"). */
+  quantosRamos?: number | null;
+
+  // Deliberação
+  reuniaoPreviaObrigatoria?: boolean;
+
+  // Preferência
   ordemPreferencia?: string | null;
-  /** A apuração usa fluxo de caixa descontado, além do patrimônio líquido? */
+  objetosPreferencia?: string | null;
+  objetosPreferenciaChaves?: string[] | null;
+
+  /** As dez marcações do cadastro, pelas chaves. Ver a regra em `vocabulario`. */
+  mecanismos?: string[] | null;
+
+  // Apuração de haveres
+  metodosAvaliacao?: string[] | null;
+  /** Só é lido quando `metodosAvaliacao` não vem; ver o comentário abaixo. */
   usaFluxoDeCaixa?: boolean;
+  consolidaComposse?: boolean;
+
+  // Não concorrência
+  naoConcorrencia?: boolean;
+  naoConcorrenciaPrazoAnos?: number | null;
+  naoConcorrenciaArea?: string | null;
+  naoConcorrenciaMulta?: string | null;
+  naoConcorrenciaAlcancaParentes?: boolean;
+
+  // Opções de compra e venda
+  opcaoCompraPrevista?: boolean;
+  opcaoCompraQuem?: string | null;
+  opcaoCompraPreco?: string | null;
+  opcaoVendaPrevista?: boolean;
+  jurosValorSubscrito?: string | null;
+
+  // Conflito
+  solucaoLitigios?: string | null;
+  camaraArbitral?: string | null;
+  /** 'partes' ou 'camara'. Ver a entidade em `vocabulario`. */
+  regimeNomeacaoArbitros?: string | null;
+
+  // Representação
+  representanteNome?: string | null;
+  representanteGenero?: string | null;
+  substitutoRepresentanteNome?: string | null;
+  substitutoRepresentanteGenero?: string | null;
+  foroEleitoComarca?: string | null;
+  foroEleitoEstado?: string | null;
 }
 
 /**
- * Os parâmetros do Acordo de Quotistas que a alteração contratual consome.
+ * Os parâmetros do Acordo de Quotistas, para o acordo e para o contrato social.
  *
  * `assinadoEm` é o campo que decide a redação do capítulo "Do Acordo de
  * Quotistas", e isso está literal no modelo da casa: sem acordo, "os sócios
@@ -827,11 +889,104 @@ export interface AcordoParaMapear {
  */
 export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
   const { out, set } = coletor();
+  const chaves = (lista: string[] | null | undefined) => (lista ?? []).join(', ');
+
+  /*
+   * CONDICIONAL DESLIGADA PRECISA EXISTIR NO CONTEXTO, e `set` a apagaria.
+   *
+   * O `coletor` descarta string vazia, o que e certo para dado ("CPF em branco
+   * nao e CPF") e ERRADO para condicional: o render trata chave AUSENTE como
+   * secao nao resolvida e LEVANTA `Seção não resolvida: {{#acordo.temRamos}}`.
+   * Nao e silencio, e o documento inteiro deixando de sair, e sairia justamente
+   * nos 6 dos 7 clientes que nao tem ramo.
+   *
+   * A derivada nao sofre disso porque `derivarCampos` grava o retorno de
+   * `derivar`, inclusive ''. Estas sao BASE, vem do cadastro, e por isso
+   * escrevem direto em `out` em vez de passar pelo `set`.
+   *
+   * Achado em 15/09 ao montar a clausula dos ramos para conferir contra o
+   * documento real. Nenhum teste de campo pegaria: so renderizando.
+   */
+  const condicional = (chave: string, ligado: boolean | undefined) => {
+    out[chave] = ligado ? 'sim' : '';
+  };
+
   set('assinadoEm', entrada.assinadoEm);
   set('vigenciaAnos', entrada.vigenciaAnos);
+
+  condicional('temSociedadesRelacionadas', entrada.temSociedadesRelacionadas);
+  condicional('temRamos', entrada.temRamos);
+  set('quantosRamos', entrada.quantosRamos);
+  condicional('reuniaoPreviaObrigatoria', entrada.reuniaoPreviaObrigatoria);
+
   set('ordemPreferencia', entrada.ordemPreferencia);
-  set('usaFluxoDeCaixa', entrada.usaFluxoDeCaixa ? 'sim' : '');
-  return comOrigem(derivarCampos('acordoQuotistas', out), {
+  set('objetosPreferencia', entrada.objetosPreferencia);
+  set('objetosPreferenciaChaves', chaves(entrada.objetosPreferenciaChaves));
+  set('mecanismos', chaves(entrada.mecanismos));
+
+  /*
+   * A LISTA DE MÉTODOS MANDA NO INTERRUPTOR DO FLUXO DE CAIXA.
+   *
+   * `usaFluxoDeCaixa` nasceu antes do cadastro, como booleano solto, e três
+   * testes ainda o passam assim. Com o cadastro pronto ele é consequência de
+   * `metodos_avaliacao`, e deixar as duas entradas valerem ao mesmo tempo é
+   * deixar o documento depender de qual chegou por último. Então: havendo
+   * lista, é ela que decide; o booleano só responde quando lista não veio.
+   */
+  set('metodosAvaliacao', chaves(entrada.metodosAvaliacao));
+  const comFluxo = entrada.metodosAvaliacao
+    ? entrada.metodosAvaliacao.includes('fluxo_de_caixa_descontado')
+    : !!entrada.usaFluxoDeCaixa;
+  condicional('usaFluxoDeCaixa', comFluxo);
+  condicional('consolidaComposse', entrada.consolidaComposse);
+
+  condicional('naoConcorrencia', entrada.naoConcorrencia);
+  set('naoConcorrenciaPrazoAnos', entrada.naoConcorrenciaPrazoAnos);
+  set('naoConcorrenciaArea', entrada.naoConcorrenciaArea);
+  set('naoConcorrenciaMulta', entrada.naoConcorrenciaMulta);
+  condicional('naoConcorrenciaAlcancaParentes', entrada.naoConcorrenciaAlcancaParentes);
+
+  condicional('opcaoCompraPrevista', entrada.opcaoCompraPrevista);
+  set('opcaoCompraQuem', entrada.opcaoCompraQuem);
+  set('opcaoCompraPreco', entrada.opcaoCompraPreco);
+  condicional('opcaoVendaPrevista', entrada.opcaoVendaPrevista);
+  set('jurosValorSubscrito', entrada.jurosValorSubscrito);
+
+  set('solucaoLitigios', entrada.solucaoLitigios);
+  set('camaraArbitral', entrada.camaraArbitral);
+  set('regimeNomeacaoArbitros', entrada.regimeNomeacaoArbitros);
+
+  set('representanteNome', entrada.representanteNome);
+  set('representanteGenero', entrada.representanteGenero);
+  set('substitutoRepresentanteNome', entrada.substitutoRepresentanteNome);
+  set('substitutoRepresentanteGenero', entrada.substitutoRepresentanteGenero);
+  set('foroEleitoComarca', entrada.foroEleitoComarca);
+  set('foroEleitoEstado', entrada.foroEleitoEstado);
+
+  /*
+   * TODO CAMPO DECLARADO SAI PREENCHIDO, nem que seja com ''.
+   *
+   * O render LEVANTA quando o placeholder nao existe no contexto
+   * ("Placeholder não resolvido: {{acordo.naoConcorrenciaMulta}}"), e o
+   * `coletor` descarta valor vazio. Juntando os dois, qualquer campo OPCIONAL em
+   * branco derrubava a geracao inteira: foi o que travou a primeira geracao de
+   * verdade, com a multa da nao concorrencia sem preencher.
+   *
+   * Vazio tem de virar '' e seguir, que e o caminho do "documento incompleto":
+   * o campo marcado `obrigatorio` acende o aviso e a tela pede confirmacao antes
+   * de baixar. Derrubar a geracao inteira por um campo que o acordo daquele
+   * cliente nao tem e outra coisa.
+   *
+   * Quem faz isso e `publicarOpcionais`, que ja existe e que `pessoa` e
+   * `matricula` usam desde antes. Faltava o Acordo passar por ela — e e aqui
+   * que ela mais importa, porque neste cadastro a maioria dos campos e opcional
+   * por natureza: acordo sem opcao de compra, sem nao concorrencia e sem
+   * representante existe no acervo.
+   *
+   * Campo marcado `obrigatorio` continua de fora, de proposito: esse falha cedo
+   * em vez de deixar o documento sair mudo no dado que o identifica.
+   */
+  return comOrigem(derivarCampos('acordoQuotistas', publicarOpcionais('acordoQuotistas', out)), {
     tipo: 'acordoQuotistas',
     id: entrada.clienteId,
   });

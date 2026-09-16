@@ -125,6 +125,25 @@ export type ChaveMecanismo =
   | 'usufruto'
   | 'quarentena';
 
+/**
+ * Onde o mecanismo é REALMENTE respondido, quando não é na lista.
+ *
+ * Quatro dos dez já têm interruptor próprio noutro bloco, com os detalhes
+ * pendurados nele: a não concorrência tem prazo, área e multa; a opção de compra
+ * tem quem e por quanto; a arbitragem tem a câmara. Perguntar de novo aqui cria
+ * duas respostas para o mesmo fato, e a que sobrar discordando produz cláusula
+ * com cabeçalho e corpo em branco.
+ *
+ * Então estes quatro viram ESPELHO: mostram o estado, dizem onde se muda, e não
+ * aceitam clique. O motor segue a mesma regra, em `vocabulario.ts`.
+ */
+export interface EspelhoDoMecanismo {
+  /** O bloco que manda, para a tela dizer onde mexer. */
+  bloco: string;
+  /** Lê o interruptor de verdade nos valores do acordo. */
+  ligado: (v: Record<string, unknown>) => boolean;
+}
+
 export interface Mecanismo {
   chave: ChaveMecanismo;
   rotulo: string;
@@ -134,6 +153,8 @@ export interface Mecanismo {
   emQuantosAcordos: number;
   /** Vem marcado num acordo novo? PENDENTE da consultoria. */
   padrao: boolean;
+  /** Preenchido nos quatro que se respondem noutro bloco. */
+  espelha?: EspelhoDoMecanismo;
 }
 
 /**
@@ -161,6 +182,10 @@ export const MECANISMOS: readonly Mecanismo[] = [
     explicacao: 'Briga não vai para o juiz, vai para uma câmara privada.',
     emQuantosAcordos: 7,
     padrao: true,
+    espelha: {
+      bloco: 'Solução de conflitos',
+      ligado: (v) => v.solucao_litigios === 'arbitragem',
+    },
   },
   {
     chave: 'nao_concorrencia',
@@ -168,6 +193,10 @@ export const MECANISMOS: readonly Mecanismo[] = [
     explicacao: 'O sócio não pode montar negócio igual, nem através de parente.',
     emQuantosAcordos: 6,
     padrao: true,
+    espelha: {
+      bloco: 'Saída de sócio e preferência',
+      ligado: (v) => v.nao_concorrencia === true,
+    },
   },
   {
     chave: 'lock_up',
@@ -197,6 +226,10 @@ export const MECANISMOS: readonly Mecanismo[] = [
     explicacao: 'Alguém tem o direito de exigir que outro lhe venda a participação.',
     emQuantosAcordos: 5,
     padrao: false,
+    espelha: {
+      bloco: 'Opções de compra e venda',
+      ligado: (v) => v.opcao_compra_prevista === true,
+    },
   },
   {
     chave: 'usufruto',
@@ -212,6 +245,10 @@ export const MECANISMOS: readonly Mecanismo[] = [
     explicacao: 'O sócio tem o direito de exigir que os outros comprem a parte dele.',
     emQuantosAcordos: 3,
     padrao: false,
+    espelha: {
+      bloco: 'Opções de compra e venda',
+      ligado: (v) => v.opcao_venda_prevista === true,
+    },
   },
   {
     chave: 'quarentena',
@@ -227,26 +264,67 @@ export function mecanismosPadrao(): ChaveMecanismo[] {
   return MECANISMOS.filter((m) => m.padrao).map((m) => m.chave);
 }
 
+/**
+ * A lista de mecanismos com os quatro espelhados forçados ao interruptor.
+ *
+ * Roda no SALVAR, e não na tela, de propósito: o interruptor da opção de compra
+ * está noutro bloco, e quem o desligasse ali deixaria a marcação velha no banco
+ * se a correção só acontecesse ao abrir a lista. Passando por aqui, não importa
+ * qual bloco foi editado — o que vai ao banco é sempre coerente.
+ *
+ * O que a pessoa marcou nos outros seis é respeitado integralmente.
+ */
+export function mecanismosCoerentes(
+  marcados: readonly string[] | null | undefined,
+  valores: Record<string, unknown>,
+): string[] {
+  const manuais = (marcados ?? []).filter(
+    (chave) => !MECANISMOS.some((m) => m.chave === chave && m.espelha),
+  );
+  const espelhados = MECANISMOS
+    .filter((m) => m.espelha?.ligado(valores))
+    .map((m) => m.chave as string);
+
+  // A ordem do catálogo, para o array no banco não depender da ordem do clique.
+  const todos = new Set([...manuais, ...espelhados]);
+  return MECANISMOS.map((m) => m.chave as string).filter((c) => todos.has(c));
+}
+
 /* --- Como o quórum se escreve ----------------------------------------------- */
 
-/**
- * As frações que o contrato escreve como fração, e não como porcentagem.
+/*
+ * AS FRAÇÕES QUE O DOCUMENTO ESCREVE COMO FRAÇÃO, E SÃO DUAS.
+ *
+ * Esta tabela já esteve errada, e vale registrar como, porque o erro passou por
+ * um teste que eu mesmo escrevi. Ela trazia 75, 50 e 25 também, e mandava
+ * escrever "¾ (três quartos)" para o quórum de alteração do contrato. Medido nas
+ * alíneas do modelo da casa, é o contrário:
+ *
+ *   Conforme decidam 75% (setenta e cinco por cento) dos VOTOS dos QUOTISTAS…
+ *   Conforme decidam 2/3 (dois terços) dos VOTOS dos QUOTISTAS presentes…
+ *   Conforme decidam todos os QUOTISTAS…
+ *   Conforme decidam a maioria dos VOTOS dos QUOTISTAS presentes…
+ *
+ * O critério que explica as duas formas: o documento escreve PORCENTAGEM quando
+ * ela fecha em número redondo, e FRAÇÃO quando não fecha. 75%, 50% e 25% fecham;
+ * dois terços viraria "66,67%", e ninguém escreve quórum com duas casas. Daí
+ * sobrarem só as duas de baixo.
+ *
+ * O SÍMBOLO `¾` NÃO APARECE EM DOCUMENTO NENHUM do acervo. Onde a fração de três
+ * quartos é usada, no Luizão, ela sai como "3/4 (três quartos)". Foi invenção
+ * minha ao escrever a função.
  *
  * NÃO É COLUNA NO BANCO, e chegou a ser cogitada. O número já basta para achar a
  * linha aqui. A perda é que 66,67 não é dois terços exatos, o que só importaria
  * numa conta de quórum que ainda não existe, com erro de 0,003 ponto percentual.
- * Se um dia essa casa importar, aí a coluna se paga.
  *
- * O `simbolo` e o `extenso` andam juntos porque o contrato escreve os dois, e o
- * parêntese tem de soletrar o que está à esquerda dele: "¾ (três quartos)" está
- * certo e "75% (três quartos)" está errado.
+ * O `simbolo` e o `extenso` andam juntos porque o documento escreve os dois, e o
+ * parêntese tem de soletrar o que está à esquerda: "2/3 (dois terços)" está
+ * certo e "67% (dois terços)" está errado.
  */
 const FRACOES: readonly { percentual: number; simbolo: string; extenso: string }[] = [
-  { percentual: 75, simbolo: '¾', extenso: 'três quartos' },
   { percentual: 66.67, simbolo: '2/3', extenso: 'dois terços' },
-  { percentual: 50, simbolo: '1/2', extenso: 'metade' },
   { percentual: 33.33, simbolo: '1/3', extenso: 'um terço' },
-  { percentual: 25, simbolo: '1/4', extenso: 'um quarto' },
 ];
 
 /**

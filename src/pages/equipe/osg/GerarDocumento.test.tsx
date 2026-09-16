@@ -174,7 +174,20 @@ vi.mock('@/hooks/useDocumentoGerado', () => ({
 
 const empresa = mocks.empresa;
 
-const registrosVazios = { pessoa: [], bem: [], matricula: [], cartorio: [], sociedade: [], vertice: [] };
+/*
+ * OS ONZE TIPOS, e não os seis de antes.
+ *
+ * `useRegistrosPorTipo` devolve `Record<TipoEntidade, Registro[]>`, e esta
+ * fixture trazia metade. O controller indexa por tipo (`registros[b.tipo]`), e
+ * chave faltando vira `undefined.find(...)` — erro que só aparece quando alguém
+ * mexe no controller, e não quando alguém esquece o tipo aqui. Foi o que
+ * aconteceu ao ligar o acordo: cinquenta testes caíram por causa da fixture.
+ */
+const registrosVazios = {
+  pessoa: [], sociedade: [], bem: [], matricula: [], cartorio: [], vertice: [],
+  instrumento: [], origemPosse: [], orgaoGovernanca: [], competenciaMatriz: [],
+  acordoQuotistas: [],
+};
 
 vi.mock('@/hooks/useGeracaoDocumento', () => ({
   PESSOA_LEGADA_PREFIX: 'legado:',

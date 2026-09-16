@@ -11,7 +11,7 @@ const OsgTarefas = () => {
   useTelaDeTrabalhoLargo();
 
   return (
-    <OsgLayout title="Projetos e tarefas" subtitle="Acompanhe a execução por ordem de serviço">
+    <OsgLayout tela="projetosETarefas">
       <PainelTarefas area="osg" />
     </OsgLayout>
   );

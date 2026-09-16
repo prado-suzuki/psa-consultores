@@ -27,6 +27,13 @@ export interface DocumentoBlocoComBloco extends DocumentoBlocoRow {
     repete_colecao: string | null;
     /** Âncora p/ referências de numeração ({{ refs.ancora }}). */
     ancora: string | null;
+    /**
+     * Título que sai DEPOIS do ordinal, no documento ("CLÁUSULA PRIMEIRA –
+     * Definições…"). Só a cláusula usa, e só o Acordo de Quotistas tem; nulo
+     * mantém a forma do contrato social, "CLÁUSULA PRIMEIRA:". Não confundir
+     * com `nome`, que é o rótulo da biblioteca.
+     */
+    titulo_documento: string | null;
     /** Nomes das flags requeridas (tmpl_bloco_flag → tmpl_flag.nome) — AND na composição. */
     flags: string[];
   } | null;
@@ -63,7 +70,7 @@ export function useModeloBlocos(documentoId: string | null) {
       const { data, error } = await supabase
         .from('tmpl_documento_bloco')
         .select(
-          '*, tmpl_bloco(id, nome, tipo, categoria, ativo, repete_colecao, ancora, tmpl_bloco_versao(conteudo, atual, numero_versao), tmpl_bloco_flag(tmpl_flag(nome)))',
+          '*, tmpl_bloco(id, nome, tipo, categoria, ativo, repete_colecao, ancora, titulo_documento, tmpl_bloco_versao(conteudo, atual, numero_versao), tmpl_bloco_flag(tmpl_flag(nome)))',
         )
         .eq('documento_id', documentoId!)
         .order('ordem', { ascending: true });
@@ -79,6 +86,7 @@ export function useModeloBlocos(documentoId: string | null) {
               ativo: boolean;
               repete_colecao: string | null;
               ancora: string | null;
+              titulo_documento: string | null;
               tmpl_bloco_versao: Array<{ conteudo: string | null; atual: boolean; numero_versao: number }>;
               tmpl_bloco_flag: Array<{ tmpl_flag: { nome: string } | null }>;
             }
@@ -95,6 +103,7 @@ export function useModeloBlocos(documentoId: string | null) {
                 ativo: bloco.ativo,
                 repete_colecao: bloco.repete_colecao,
                 ancora: bloco.ancora,
+                titulo_documento: bloco.titulo_documento,
                 conteudo: versaoAtual?.conteudo ?? null,
                 numero_versao: versaoAtual?.numero_versao ?? null,
                 flags: (bloco.tmpl_bloco_flag ?? [])
@@ -353,6 +362,10 @@ export function useAdicionarBloco() {
               numero_versao: bloco.versao_atual?.numero_versao ?? null,
               repete_colecao: bloco.repete_colecao,
               ancora: bloco.ancora,
+              // O bloco otimista ainda não conhece o título: quem o traz é o
+              // refetch logo a seguir. Nulo aqui só faz a prévia mostrar a
+              // cláusula sem título por um instante.
+              titulo_documento: null,
               flags: [],
             }
           : {
@@ -365,6 +378,7 @@ export function useAdicionarBloco() {
               numero_versao: null,
               repete_colecao: null,
               ancora: null,
+              titulo_documento: null,
               flags: [],
             },
       };

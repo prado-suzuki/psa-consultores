@@ -205,6 +205,122 @@ describe('lista de serviços', () => {
     expect(screen.queryByText('Levantar a estrutura societária')).not.toBeInTheDocument();
   });
 
+  /*
+   * OS VINCULADOS NO TOPO, e a razão de o corte ser um RETRATO.
+   *
+   * O pedido veio de um produto com 5 serviços num cluster de 40: os cinco
+   * ficavam espalhados pela lista e só se achavam caixa por caixa. O que estes
+   * três testes protegem não é o topo — é o topo SEM a lista pular embaixo da
+   * mão de quem marca, que é o motivo pelo qual a lista corrida tinha ganhado
+   * do agrupamento em 27/08.
+   */
+  describe('vinculados no topo', () => {
+    /** Passa a existir um vínculo do produto `p-cc` com o serviço `s-21`. */
+    const vincularAnalise = () => {
+      dados.vinculos = [...dados.vinculos, {
+        id: 'v-cc-21',
+        produto_segmento_id: 'p-cc',
+        servico_prestado_id: 's-21',
+        produto_segmento: { codigo: '03-CC', nome: CONTABIL },
+        servicos_prestados: { nome: '2.1.Análise das demonstrações financeiras' },
+      }];
+    };
+
+    it('abre com o que o produto já tem, e nomeia os dois blocos', async () => {
+      render(<ProdutosServicosTab />);
+      await abrirProduto(userEvent.setup(), CONTABIL);
+
+      // "1.2" à frente de "1.1": dentro de cada bloco a ordem do código continua,
+      // mas o bloco vem antes dela.
+      expect(servicosNaTela()).toEqual([
+        'Revisão de plano de contas',
+        'Apoio na implantação de práticas contábeis',
+        'Décimo item da primeira',
+        'Análise das demonstrações financeiras',
+        'Outros',
+      ]);
+      expect(screen.getByText('Vinculados')).toBeInTheDocument();
+      expect(screen.getByText('Faltam vincular')).toBeInTheDocument();
+    });
+
+    it('vincular não sobe a linha: a lista fica onde está', async () => {
+      const { rerender } = render(<ProdutosServicosTab />);
+      await abrirProduto(userEvent.setup(), CONTABIL);
+
+      vincularAnalise();
+      rerender(<ProdutosServicosTab />);
+
+      // Ao vivo, "Análise" teria saltado para a segunda posição. Ela fica no
+      // lugar, marcada — é o que impede a lista de se mexer a cada clique.
+      expect(servicosNaTela()).toEqual([
+        'Revisão de plano de contas',
+        'Apoio na implantação de práticas contábeis',
+        'Décimo item da primeira',
+        'Análise das demonstrações financeiras',
+        'Outros',
+      ]);
+      expect(screen.getByRole('checkbox', {
+        name: 'Desvincular Análise das demonstrações financeiras',
+      })).toBeChecked();
+    });
+
+    // O outro sentido do teste acima: o congelamento não é permanente. Sem isto,
+    // "não sobe a linha" passaria com uma lista que nunca mais se reorganiza.
+    it('reassenta ao trocar de produto e ao mudar a busca', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(<ProdutosServicosTab />);
+      await abrirProduto(user, CONTABIL);
+      vincularAnalise();
+      rerender(<ProdutosServicosTab />);
+
+      await abrirProduto(user, CHA);
+      await abrirProduto(user, CONTABIL);
+
+      expect(servicosNaTela().slice(0, 2)).toEqual([
+        'Revisão de plano de contas',
+        'Análise das demonstrações financeiras',
+      ]);
+
+      // E a busca: digitar reassenta sem esperar troca de produto.
+      await user.type(screen.getByPlaceholderText('Buscar serviço...'), 'de');
+      expect(servicosNaTela().slice(0, 2)).toEqual([
+        'Revisão de plano de contas',
+        'Análise das demonstrações financeiras',
+      ]);
+    });
+  });
+
+  /*
+   * O CÓDIGO REPETIDO, que é o Tax e não a OSG.
+   *
+   * Conferido em produção em 16/09/2026: na OSG os 40 serviços têm 40 códigos
+   * distintos; no Tax os 82 se distribuem em 25 prefixos — o "1.1" cobre 8 — e
+   * 14 nomes não têm prefixo nenhum. A coluna repetia "1.1" oito vezes.
+   */
+  it('mostra o código uma vez por grupo, e de novo no bloco seguinte', async () => {
+    dados.servicos = [
+      ...dados.servicos,
+      servico('s-11b', '1.1.Apoio no fechamento contábil', CLUSTER_TAX, 'TAX'),
+      servico('s-11c', '1.1.Consolidação de balanços', CLUSTER_TAX, 'TAX'),
+    ];
+    dados.vinculos = [...dados.vinculos, {
+      id: 'v-cc-11',
+      produto_segmento_id: 'p-cc',
+      servico_prestado_id: 's-11',
+      produto_segmento: { codigo: '03-CC', nome: CONTABIL },
+      servicos_prestados: { nome: '1.1.Apoio na implantação de práticas contábeis' },
+    }];
+
+    render(<ProdutosServicosTab />);
+    await abrirProduto(userEvent.setup(), CONTABIL);
+
+    // Três serviços "1.1" na tela, em dois blocos: o código sai uma vez em cada.
+    // Duas vezes, e não três — e também não uma, porque bloco novo recomeça.
+    expect(screen.getAllByText('1.1')).toHaveLength(2);
+    expect(screen.getAllByText('1.2')).toHaveLength(1);
+    expect(screen.getAllByText('1.10')).toHaveLength(1);
+  });
+
   it('a busca recorta a lista sem mexer na ordem', async () => {
     const user = userEvent.setup();
     render(<ProdutosServicosTab />);
@@ -284,5 +400,49 @@ describe('editar o que a tela mostra', () => {
 
     expect(screen.getByTestId('form-servico'))
       .toHaveTextContent('editar:2.1.Análise das demonstrações financeiras');
+  });
+
+  /*
+   * O EMBRULHO DO ÍCONE NÃO PODE SER `span`, e nenhum outro tipo de verificação
+   * pega isso: o `SelectTrigger` carrega `[&>span]:line-clamp-1`, cuja regra
+   * aplica `display: -webkit-box` + `box-orient: vertical` em todo `span` filho
+   * direto. Ela tem especificidade maior que `.flex` e vem depois no CSS gerado
+   * (conferido no bundle de dev em 16/09/2026), então ganha sempre: os filhos
+   * deixam de ficar lado a lado e o "+" empilha acima do texto, dentro de uma
+   * caixa de 32px.
+   *
+   * Em jsdom não há CSS para medir — o que dá para travar é a ESTRUTURA, que é
+   * onde o defeito nasce. Sem este teste, trocar `div` por `span` volta a
+   * quebrar a caixa sem erro de build, de tipo nem de lint.
+   */
+  it('o gatilho de vincular não embrulha o ícone num span', async () => {
+    const user = userEvent.setup();
+    render(<ProdutosServicosTab />);
+    await abrirProduto(user, CHA);
+    await user.click(screen.getByText('Análise das demonstrações financeiras'));
+
+    const gatilho = screen.getByLabelText('Vincular a outro produto');
+    const spansFlex = [...gatilho.children].filter(
+      (filho) => filho.tagName === 'SPAN' && filho.className.includes('flex'),
+    );
+    expect(spansFlex).toHaveLength(0);
+    expect(screen.getByText('Vincular a outro produto')).toBeInTheDocument();
+  });
+
+  // O detalhe virou DIÁLOGO em 16/09/2026 (era painel lateral de altura
+  // inteira). Painel podia ficar aberto atrás do formulário; diálogo sobre
+  // diálogo empilha dois focos presos e dois overlays.
+  it('abrir o formulário do serviço fecha o detalhe', async () => {
+    const user = userEvent.setup();
+    render(<ProdutosServicosTab />);
+    await abrirProduto(user, CHA);
+
+    await user.click(screen.getByText('Análise das demonstrações financeiras'));
+    expect(screen.getByText('Em que produtos')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Editar serviço/ }));
+
+    expect(screen.queryByText('Em que produtos')).not.toBeInTheDocument();
+    expect(screen.getByTestId('form-servico')).toBeInTheDocument();
   });
 });

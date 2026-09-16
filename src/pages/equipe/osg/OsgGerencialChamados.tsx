@@ -20,7 +20,7 @@ const OsgGerencialChamados = () => {
   useTelaDeTrabalhoLargo();
 
   return (
-    <OsgLayout title="Gestão de Chamados" subtitle="Chamados dos clientes do seu cluster">
+    <OsgLayout tela="chamadosLista">
       <ChamadosGestaoContent basePath="/equipe/osg/gerencial/chamados" escopo="osg" />
     </OsgLayout>
   );

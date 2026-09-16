@@ -7,8 +7,7 @@ import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 const OsgFeed = () => {
   return (
     <OsgLayout
-      title="Feed"
-      subtitle="O que está sendo conversado nos seus projetos e tarefas"
+      tela="feed"
     >
       <FeedComentarios area="osg" />
     </OsgLayout>

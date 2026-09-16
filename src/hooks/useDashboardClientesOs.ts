@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Ambiente } from '@/config/api';
+import { ambientePorClienteQuery } from '@/hooks/useDomainAmbienteClientes';
+import { isDoAmbiente, isProjetoDoAmbiente } from '@/lib/ambienteScope';
 import {
   buildClienteRows,
   buildOsRows,
@@ -41,8 +43,8 @@ import type {
  *
  * Regras de leitura (CLAUDE.md): `.eq('excluido', false)` sempre; `.eq('ambiente')`
  * só onde a coluna existe — apenas `cliente` tem `ambiente`. `ordem_servico`,
- * `org_projects`, `org_tasks` não têm: o escopo de ambiente vem do INNER/LEFT
- * JOIN com os clientes já filtrados (igual às views do BQ).
+ * `org_projects` e `org_tasks` não têm, e o escopo delas é aplicado em memória
+ * pela régua de ambiente, logo depois do `Promise.all`.
  */
 interface RawBundle {
   clientes: RawCliente[];
@@ -80,6 +82,8 @@ function unwrap<T>(res: { data: unknown; error: { message?: string } | null }, l
 }
 
 export function useDashboardClientesOs(ambiente: Ambiente) {
+  const queryClient = useQueryClient();
+
   // "Hoje" no fuso America/Sao_Paulo (as views usam CURRENT_DATE('America/Sao_Paulo')).
   const hoje = useMemo(
     () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }),
@@ -130,11 +134,34 @@ export function useDashboardClientesOs(ambiente: Ambiente) {
         supabase.from('produto_segmento').select('id, codigo, nome'),
       ]);
 
+      // `ordem_servico` e `org_projects` não têm coluna `ambiente`: o recorte vem
+      // do cliente (ver AGENTS.md). A consulta de `cliente` acima já filtra, então
+      // sem isto o dashboard cruzava a carteira de UM ambiente com as OS e os
+      // projetos dos DOIS — somando as 8 OS e os 7 projetos dos clientes `[TESTE]`
+      // aos números reais (medido em produção em 16/09/2026).
+      //
+      // A régua vem da RPC, e NÃO do resultado de `cliente` acima: lida direto, a
+      // tabela passa pela RLS que recorta por cluster, e usar aquele conjunto
+      // esconderia trabalho real de quem é de outro cluster.
+      const ambientePorCliente = await queryClient.fetchQuery(ambientePorClienteQuery());
+
+      const os = unwrap<RawOrdemServico>(osRes, 'ordens de serviço')
+        .filter(o => isDoAmbiente(o.id_cliente, ambientePorCliente, ambiente));
+      const projetos = unwrap<RawOrgProject>(projRes, 'projetos')
+        .filter(p => isProjetoDoAmbiente(p, ambientePorCliente, ambiente));
+      const idsDeProjeto = new Set(projetos.map(p => p.id));
+
       return {
         clientes: unwrap<RawCliente>(cliRes, 'clientes'),
-        os: unwrap<RawOrdemServico>(osRes, 'ordens de serviço'),
-        projetos: unwrap<RawOrgProject>(projRes, 'projetos'),
-        tasks: unwrap<RawOrgTask>(taskRes, 'tarefas'),
+        os,
+        projetos,
+        // Coerência do bundle, não correção de conta: `buildHorasPorProjeto`
+        // indexa por `project_id` e a lista final é dirigida pelos projetos, então
+        // tarefa de projeto cortado já cairia numa chave que ninguém lê. O corte
+        // evita que um uso futuro de `tasks` (uma contagem, por exemplo) nasça
+        // misturando ambientes.
+        tasks: unwrap<RawOrgTask>(taskRes, 'tarefas')
+          .filter(t => !t.project_id || idsDeProjeto.has(t.project_id)),
         clienteClusters: unwrap<RawClienteCluster>(ccRes, 'vínculos de cluster'),
         estruturaClusters: unwrap<RawEstruturaCluster>(ecRes, 'clusters'),
         servicos: unwrap<RawServico>(servRes, 'serviços prestados'),

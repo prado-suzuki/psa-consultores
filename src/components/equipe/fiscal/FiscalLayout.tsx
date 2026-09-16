@@ -1,3 +1,4 @@
+import { resolverCabecalho, type TextoDoCabecalho } from '@/config/textosDasTelas';
 import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { Menu } from 'lucide-react';
@@ -14,14 +15,22 @@ import TourTrigger from '@/components/tour/TourTrigger';
 import { REGISTRO_TAX, resolverTourTax } from './tour/tours';
 import { useLocation } from 'react-router-dom';
 
-interface FiscalLayoutProps {
+/**
+ * Ou `tela` — o texto espelhado, de `@/config/textosDasTelas` — ou `title` e
+ * `subtitle` escritos à mão, para as telas que a OSG não tem. Nunca os dois.
+ */
+type FiscalLayoutProps = {
   children: React.ReactNode;
-  title: string;
-  subtitle?: string;
   headerActions?: React.ReactNode;
-}
+} & TextoDoCabecalho;
 
-export const FiscalLayout = ({ children, title, subtitle, headerActions }: FiscalLayoutProps) => {
+export const FiscalLayout = (props: FiscalLayoutProps) => {
+  const { children, headerActions } = props;
+  // A ÁREA É DO LAYOUT, e não do invólucro. É isto que torna o espelho
+  // estrutural: uma tela da Tax não tem como puxar o texto da OSG, porque ela
+  // não escolhe a área — só nomeia a tela. Aqui é sempre `tax`, fixo, e não a
+  // apresentação da rota: o `sobretitulo` logo abaixo é outra pergunta.
+  const { title, subtitle } = resolverCabecalho(props, 'tax');
   // O recolhimento automático em telas de trabalho largo mora no hook — é a
   // tela que pede, com `useTelaDeTrabalhoLargo()`; o layout não conhece rotas.
   const barra = useSidebarRecolhimentoController();

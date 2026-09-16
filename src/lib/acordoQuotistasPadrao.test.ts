@@ -4,6 +4,7 @@ import {
   MECANISMOS,
   QUORUNS_PADRAO,
   expressaoDoQuorum,
+  mecanismosCoerentes,
   mecanismosPadrao,
   quorumPadrao,
 } from '@/lib/acordoQuotistasPadrao';
@@ -56,13 +57,35 @@ describe('QUORUNS_PADRAO', () => {
 });
 
 describe('expressaoDoQuorum', () => {
-  it('escreve símbolo mais extenso, como os sete acordos escrevem', () => {
-    // "¾ (três quartos) das QUOTAS" é a forma do modelo. Só o extenso, sem o
-    // símbolo, nao e como nenhum dos sete documentos escreve.
+  it('porcentagem quando ela fecha, fração quando não fecha', () => {
+    /*
+     * ESTE TESTE JÁ TRAVOU A FORMA ERRADA, e por isso ele agora cita as alíneas.
+     *
+     * Ele exigia "¾ (três quartos)" para 75%, apoiado numa suposição minha. As
+     * alíneas do modelo da casa dizem o contrário, literais:
+     *
+     *   Conforme decidam 75% (setenta e cinco por cento) dos VOTOS dos QUOTISTAS…
+     *   Conforme decidam 2/3 (dois terços) dos VOTOS dos QUOTISTAS presentes…
+     *
+     * O critério é esse: porcentagem quando ela fecha em número redondo, fração
+     * quando não fecha. E o símbolo `¾` não aparece em documento nenhum do
+     * acervo: onde três quartos vira fração, no Luizão, sai "3/4 (três quartos)".
+     */
     expect(expressaoDoQuorum({ tipo: 'percentual', percentual: 75, base: 'capital' }))
-      .toBe('¾ (três quartos) do capital social');
+      .toBe('75% (setenta e cinco por cento) do capital social');
     expect(expressaoDoQuorum({ tipo: 'percentual', percentual: 66.67, base: 'presentes' }))
       .toBe('2/3 (dois terços) dos presentes');
+    // 50 e 25 fecham, então saem como porcentagem, e não como 1/2 e 1/4.
+    expect(expressaoDoQuorum({ tipo: 'percentual', percentual: 50, base: 'capital' }))
+      .toBe('50% (cinquenta por cento) do capital social');
+  });
+
+  it('nenhuma fração do catálogo usa símbolo que os documentos não escrevem', () => {
+    // A catraca contra reinventar `¾`. Os documentos escrevem a barra.
+    for (const valor of [66.67, 33.33]) {
+      const frase = expressaoDoQuorum({ tipo: 'percentual', percentual: valor, base: 'capital' });
+      expect(frase, `${valor} saiu sem a barra`).toMatch(/^\d\/\d /);
+    }
   });
 
   it('o parêntese soletra o que está à esquerda dele', () => {
@@ -78,9 +101,9 @@ describe('expressaoDoQuorum', () => {
 
   it('a base entra na frase, porque ela muda o sentido', () => {
     expect(expressaoDoQuorum({ tipo: 'percentual', percentual: 75, base: 'presentes' }))
-      .toBe('¾ (três quartos) dos presentes');
+      .toBe('75% (setenta e cinco por cento) dos presentes');
     expect(expressaoDoQuorum({ tipo: 'percentual', percentual: 75, base: 'capital' }))
-      .toBe('¾ (três quartos) do capital social');
+      .toBe('75% (setenta e cinco por cento) do capital social');
   });
 
   it('maioria e unanimidade não viram número', () => {
@@ -144,5 +167,44 @@ describe('MECANISMOS', () => {
   it('não tem chave repetida', () => {
     const chaves = MECANISMOS.map((m) => m.chave);
     expect(new Set(chaves).size).toBe(chaves.length);
+  });
+});
+
+describe('mecanismosCoerentes · a lista não discorda dos interruptores', () => {
+  it('liga os quatro espelhados a partir do interruptor de cada um', () => {
+    const fora = mecanismosCoerentes([], {
+      nao_concorrencia: true,
+      opcao_compra_prevista: true,
+      opcao_venda_prevista: true,
+      solucao_litigios: 'arbitragem',
+    });
+    expect(fora).toEqual(['arbitragem', 'nao_concorrencia', 'opcao_compra', 'opcao_venda']);
+  });
+
+  it('apaga a marcação velha quando o interruptor é desligado noutro bloco', () => {
+    // O caso que motivou a função: a pessoa desliga a opção de compra no bloco
+    // "Opções", e a marcação ficaria no banco porque ela mora na lista do bloco
+    // "Saída". O documento sairia com o cabeçalho da cláusula e o corpo vazio.
+    const depois = mecanismosCoerentes(['lock_up', 'opcao_compra'], {
+      opcao_compra_prevista: false,
+    });
+    expect(depois).toEqual(['lock_up']);
+  });
+
+  it('não mexe nos seis que só existem na lista', () => {
+    const marcados = ['preferencia', 'lock_up', 'tag_along', 'drag_along', 'usufruto', 'quarentena'];
+    expect(mecanismosCoerentes(marcados, {})).toEqual(marcados);
+  });
+
+  it('a ordem é a do catálogo, e não a do clique', () => {
+    expect(mecanismosCoerentes(['quarentena', 'lock_up', 'preferencia'], {}))
+      .toEqual(['preferencia', 'lock_up', 'quarentena']);
+  });
+
+  it('exatamente quatro mecanismos são espelhados, e são os que têm detalhe', () => {
+    // Se alguém criar um interruptor novo com detalhes, tem de espelhar aqui
+    // também, senão volta a haver duas respostas para o mesmo fato.
+    expect(MECANISMOS.filter((m) => m.espelha).map((m) => m.chave))
+      .toEqual(['arbitragem', 'nao_concorrencia', 'opcao_compra', 'opcao_venda']);
   });
 });

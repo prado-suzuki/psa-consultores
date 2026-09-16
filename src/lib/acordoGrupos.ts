@@ -14,7 +14,7 @@
  * conversa sobre o contrato e não só sobre o acordo.
  */
 
-import { MECANISMOS } from '@/lib/acordoQuotistasPadrao';
+import { MECANISMOS, type EspelhoDoMecanismo } from '@/lib/acordoQuotistasPadrao';
 
 export type TipoCampoAcordo =
   | 'texto'
@@ -37,10 +37,18 @@ export interface CampoDoAcordo {
     * tooltip. Vale para lista cujo nome não se explica sozinho: ninguém precisa
     * de ajuda para "Imóveis", mas "Drag along" só diz o que é depois de lido.
     */
-  opcoes?: readonly { valor: string; rotulo: string; descricao?: string }[];
+  opcoes?: readonly {
+    valor: string;
+    rotulo: string;
+    descricao?: string;
+    /** Opção que só reflete um interruptor de outro bloco; ver `EspelhoDoMecanismo`. */
+    espelha?: EspelhoDoMecanismo;
+  }[];
   ajuda?: string;
   /** Também vira cláusula no contrato social. */
   desceAoContrato?: boolean;
+  /** Divide a linha com o campo vizinho, em vez de ocupar a largura toda. */
+  meiaLinha?: boolean;
   /** Só aparece quando este outro campo está ligado. */
   dependeDe?: string;
   /**
@@ -84,26 +92,55 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
     campos: [
       {
         campo: 'assinado_em',
-        rotulo: 'Assinado em',
+        /*
+         * NÃO É A LINHA DE ASSINATURA, e o rótulo "Assinado em" deixava isso no
+         * ar. A linha que se preenche à mão é outra coisa: é `dataAssinatura`,
+         * campo manual da tela Gerar, que vazio vira a lacuna assinalável.
+         *
+         * Esta data é o FATO que o contrato social cita, e a ajuda de antes
+         * descrevia justamente a outra, o que propagava a confusão.
+         */
+        // Sem "(citada no contrato social)": a pill "também no contrato" ao lado
+        // diz a mesma coisa, e as duas juntas viram redundância na mesma linha.
+        rotulo: 'Data em que o acordo foi assinado',
         tipo: 'data',
+        desceAoContrato: true,
         ajuda:
-          'Deixe em branco enquanto for minuta. O documento gerado usa esta data para '
-          + 'escrever o fecho; sem ela, ele deixa a lacuna para assinar à mão.',
+          'É a data que o CONTRATO SOCIAL cita, e não a linha que se assina à mão no fim do '
+          + 'acordo. No Perci: "o acordo celebrado entre as partes, em 29 de Janeiro de 2.021, '
+          + 'e disponível na sede da sociedade". Deixe em branco enquanto o acordo for minuta: '
+          + 'aí o contrato sai na outra redação, com a lacuna, como no Bela Vista, "firmaram '
+          + 'em __ de ____ de 2.025, acordo de quotistas com vigência pelo período de 20 '
+          + '(vinte) anos". ATENÇÃO: preenchida, ela CONGELA esta versão, porque o cadastro '
+          + 'passa a ter de bater com o papel assinado.',
       },
       {
         campo: 'vigencia_anos',
         rotulo: 'Vigência, em anos',
         tipo: 'numero',
+        desceAoContrato: true,
         ajuda:
           'Por quantos anos o acordo vale. No acordo da Utida: "permanecerá em vigor por '
-          + 'um período de 10 (dez) anos".',
+          + 'um período de 10 (dez) anos". TAMBÉM DESCE AO CONTRATO SOCIAL, na redação que '
+          + 'nomeia um acordo concreto: o Bela Vista e o modelo da casa escrevem "acordo de '
+          + 'quotistas com vigência pelo período de 20 (vinte) anos a partir da sua '
+          + 'assinatura"; os outros cinco só dizem "eventual Acordo de Quotistas".',
       },
-      {
-        campo: 'prazo_sigilo_anos',
-        rotulo: 'Prazo de sigilo, em anos',
-        tipo: 'numero',
-        ajuda: 'Por quantos anos o conteúdo do acordo não pode ser divulgado.',
-      },
+      /*
+       * NÃO EXISTE CLÁUSULA DE SIGILO, e o campo saiu daqui.
+       *
+       * Ele veio do levantamento de 11/09. Contado nos SETE acordos do acervo:
+       * zero ocorrências de "sigilo" ou "confidencialidade" como cláusula. Não é
+       * o modelo que não tem, é nenhum deles.
+       *
+       * As duas mencões que aparecem numa busca solta são outra coisa: a
+       * definição de ÍNDICE DE ATUALIZAÇÃO e um trecho sobre "informações
+       * confidenciais" dentro da regra de outros negócios dos quotistas.
+       *
+       * Mesma situação do limite de aval e fiança, derrubado em 15/09 pelo mesmo
+       * critério: campo sem frase em documento nenhum é campo que não devia
+       * existir. A coluna cai na migration de limpeza.
+       */
     ],
   },
   {
@@ -126,13 +163,16 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         campo: 'ramos',
         rotulo: 'Ramos familiares',
         tipo: 'especial',
+        /*
+         * A ajuda tinha nove linhas e contava a história toda: a herança, o voto
+         * em bloco, a proibição de "núcleo familiar". Tooltip não é lugar de
+         * doutrina — ela diz o que o campo faz e como a linha sai. O resto está
+         * no documento de referência dos campos.
+         */
         ajuda:
-          'Cada ramo é um sócio fundador MAIS os descendentes dele em linha reta, e leva '
-          + 'o nome desse fundador. No acordo da AgroAliança: "DESCENDENTES DE CRISTINA, '
-          + 'formado por CRISTINA e seus descendentes em linha vertical; e DESCENDENTES DE '
-          + 'REGINA". Serve para dividir direitos entre os lados da família, como a ordem '
-          + 'da preferência. Nunca escreva "núcleo familiar": o termo exclui o cônjuge, e '
-          + 'cônjuge não integra ramo nem entra no quadro societário.',
+          'Divide a família em grupos, um por fundador. Digite só o nome dele; a frase o '
+          + 'sistema monta. Com "Cristina" sai: "DESCENDENTES DE CRISTINA, formado por '
+          + 'CRISTINA e seus descendentes em linha vertical".',
       },
     ],
   },
@@ -146,24 +186,37 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         rotulo: 'Os quóruns do acordo',
         tipo: 'especial',
         ajuda:
-          'Sete no modelo. Cada um diz quanto precisa e sobre o que conta: os presentes na '
-          + 'reunião ou o capital todo. Numa segunda convocação, que instala com qualquer '
-          + 'número, um sócio de 40% é 100% dos presentes e 40% do capital.',
+          'ESCREVA SÓ O ASSUNTO, e não a frase da cláusula: "Alterar o contrato social", e '
+          + 'não "conforme decidam 75% (setenta e cinco por cento) dos presentes em relação '
+          + 'à alteração do '
+          + 'contrato social". A frase inteira o sistema monta, e você a vê pronta embaixo '
+          + 'de cada linha. Sete vêm preenchidos; acrescente linha só se este cliente tiver '
+          + 'uma matéria a mais, como o Perci, que exige 75% para emprestar a quotista.',
       },
     ],
   },
   {
     chave: 'reuniao_previa',
     titulo: 'Reunião prévia e voto em bloco',
-    resumo: 'Se os sócios se reúnem antes para fechar o voto, e com que quórum',
+    resumo: 'Se os sócios fecham o voto entre si antes, e chegam combinados à reunião oficial',
     campos: [
       {
         campo: 'reuniao_previa_obrigatoria',
-        rotulo: 'Reunião prévia obrigatória',
+        // "Reunião prévia obrigatória" deixava no ar se era obrigação da lei ou
+        // deste acordo. É deste acordo: existe no modelo, no Perci, no Horita e
+        // na AgroAliança, e NÃO existe na Utida.
+        rotulo: 'Este acordo exige reunião prévia',
         tipo: 'booleano',
         ajuda:
-          'Quando obrigatória, os quotistas deliberam antes e votam em bloco na reunião de '
-          + 'sócios, conforme o que combinaram.',
+          'Ligado em 4 dos 7 acordos do acervo; a Utida não tem. Não é exigência de lei, é '
+          + 'escolha deste acordo. '
+          + 'É uma reunião só entre os sócios, ANTES da reunião oficial, em que eles votam entre '
+          + 'si e registram o resultado em ata. Essa ata "constitui Acordo de Voto, de forma a '
+          + 'definir e vincular o voto dos QUOTISTAS a serem proferidos, sempre em bloco e de '
+          + 'modo uniforme, nas REUNIÕES DE SÓCIOS": na reunião oficial todos repetem o que se '
+          + 'decidiu lá, inclusive quem foi voto vencido. A sociedade vê um voto só e a '
+          + 'divergência fica em casa. No modelo o bloco é o conjunto dos quotistas; na '
+          + 'AgroAliança cada ramo é um bloco, e os dois podem divergir entre si.',
       },
     ],
   },
@@ -192,35 +245,42 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         // não dizem nada a quem não convive com eles. "Mecanismos" era título
         // interno meu, e na tela não ajudava ninguém.
         opcoes: MECANISMOS.map((m) => ({
-          valor: m.chave, rotulo: m.rotulo, descricao: m.explicacao,
+          valor: m.chave, rotulo: m.rotulo, descricao: m.explicacao, espelha: m.espelha,
         })),
         secao: 'A quem se oferece a quota',
         ajuda: 'Marque as que existem neste acordo. Cada marcação liga uma cláusula '
           + 'inteira do documento gerado; desmarcada, a cláusula não aparece. Sete das dez '
           + 'não existem em contrato social nenhum, e são o que o acordo acrescenta.' },
 
-      { campo: 'metodos_avaliacao', rotulo: 'Métodos de avaliação da quota',
+      /*
+       * A APURAÇÃO DE HAVERES TEM DOIS CAMPOS, E NÃO SEIS.
+       *
+       * A primeira versão desta tela publicava prazo do balanço, horizonte do
+       * fluxo, taxa mínima e regra de combinação, e isso contrariava uma medição
+       * que eu mesmo tinha feito em 14/09 e deixado escrita no motor
+       * (`vocabulario.ts`, entidade `acordoQuotistas`). Nos contratos do acervo
+       * nenhum dos quatro varia: 60 dias em 7 de 7 que têm a cláusula, 05 anos em
+       * 3 de 3, IPCA nos dois que citam índice, e "maior valor" em todos que
+       * combinam métodos.
+       *
+       * Campo que não varia é texto fixo do modelo, e publicá-lo convida alguém a
+       * responder uma pergunta que não existe, além de abrir a chance de digitar
+       * um número diferente do que o escritório usa.
+       *
+       * O que VARIA é se a apuração usa o fluxo de caixa descontado além do
+       * patrimônio líquido: Bela Vista, Horita e Agro Ferragens usam os dois;
+       * Perci, Mattei e Zamo usam só o patrimônio líquido. É uma escolha, e ela
+       * já cabe em `metodos_avaliacao`. Os números vão fixos dentro do bloco que
+       * a escolha acende.
+       */
+      { campo: 'metodos_avaliacao', rotulo: 'Como se apura quanto vale a quota',
         tipo: 'multi', opcoes: METODOS, desceAoContrato: true,
         secao: 'Quanto vale a quota de quem sai',
-        ajuda: 'Como se calcula quanto se paga a quem sai. No modelo são dois: o patrimônio '
-          + 'líquido apurado em balanço, e o fluxo de caixa descontado.' },
-      { campo: 'regra_combinacao', rotulo: 'Regra de combinação dos métodos',
-        tipo: 'texto', desceAoContrato: true, secao: 'Quanto vale a quota de quem sai',
-        ajuda: 'Quando há mais de um método, qual vale. No modelo: "correspondente ao MAIOR '
-          + 'VALOR apurado através das seguintes metodologias".' },
-      { campo: 'prazo_balanco_dias', rotulo: 'Prazo máximo do balanço, em dias',
-        tipo: 'numero', desceAoContrato: true, secao: 'Quanto vale a quota de quem sai',
-        ajuda: 'Quão velho o balanço pode ser. No modelo: "o valor do patrimônio líquido '
-          + 'apurado em balanço, levantado, no máximo, 60 (sessenta) dias antes do evento". '
-          + 'Responda 60 se o cliente segue o padrão.' },
-      { campo: 'horizonte_fluxo_anos', rotulo: 'Horizonte do fluxo de caixa, em anos',
-        tipo: 'numero', desceAoContrato: true, secao: 'Quanto vale a quota de quem sai',
-        ajuda: 'Por quantos anos o fluxo é projetado. No modelo: "fluxo de caixa projetado '
-          + 'para um período de 05 (cinco) anos". Responda 5 se o cliente segue o padrão.' },
-      { campo: 'taxa_minima_crescimento', rotulo: 'Taxa mínima de crescimento',
-        tipo: 'texto', desceAoContrato: true, secao: 'Quanto vale a quota de quem sai',
-        ajuda: 'O piso de crescimento usado na projeção. No modelo: "a taxa de crescimento '
-          + 'da perpetuidade será o índice projetado pelo IPCA". Responda IPCA se for o padrão.' },
+        ajuda: 'Marque os métodos que este acordo usa. Os números de cada um são fixos no '
+          + 'modelo e não se digitam: balanço de no máximo 60 (sessenta) dias, fluxo '
+          + 'projetado para 05 (cinco) anos, crescimento pelo IPCA, e prevalece o maior '
+          + 'valor quando há mais de um. Medido nos contratos do acervo, nenhum desses '
+          + 'quatro varia; o que varia é quais métodos entram.' },
       { campo: 'consolida_composse', rotulo: 'Consolida composse na avaliação',
         tipo: 'booleano', secao: 'Quanto vale a quota de quem sai',
         ajuda: 'Se o que o sócio explora junto com a sociedade entra na conta dos haveres. '
@@ -239,9 +299,11 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           + 'anos".' },
       { campo: 'nao_concorrencia_area', rotulo: 'Área protegida', tipo: 'texto',
         dependeDe: 'nao_concorrencia', secao: 'O que o sócio não pode fazer depois',
-        ajuda: 'Onde a proibição vale. No modelo é uma definição: "ÁREA DE ATUAÇÃO: em todos '
-          + 'os estados do Brasil, incluindo Mato Grosso e Pernambuco, e/ou regiões de '
-          + 'atuação da sociedade". Sai do objeto social do contrato.' },
+        ajuda: 'Onde a proibição vale. O que você escrever aqui vira a definição de ÁREA DE '
+          + 'ATUAÇÃO na Cláusula Primeira, e o resto da frase é fixo: escrevendo "Estado do '
+          + 'Paraná", sai "ÁREA DE ATUAÇÃO: Estado do Paraná e/ou regiões de atuação da '
+          + 'empresa que estão sujeitas a CLÁUSULA DE NÃO CONCORRÊNCIA, incluindo ainda, os '
+          + 'municípios descritos no contrato social". Sai do objeto social do contrato.' },
       { campo: 'nao_concorrencia_multa', rotulo: 'Multa por descumprimento',
         tipo: 'texto', dependeDe: 'nao_concorrencia',
         secao: 'O que o sócio não pode fazer depois',
@@ -264,9 +326,18 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
       { campo: 'opcao_compra_prevista', rotulo: 'Opção de compra prevista', tipo: 'booleano',
         ajuda: 'O direito de exigir que outro lhe venda a participação.' },
       { campo: 'opcao_compra_quem', rotulo: 'Quem detém a opção de compra', tipo: 'texto',
-        dependeDe: 'opcao_compra_prevista' },
+        dependeDe: 'opcao_compra_prevista',
+        ajuda: 'Quem pode exigir que o outro venda. No modelo é qualquer sócio: "é direito de '
+          + 'qualquer QUOTISTA exigir que outro QUOTISTA venda suas QUOTAS para quem exerceu '
+          + 'esta opção". Responda diferente se no cliente o direito for só de alguns, por '
+          + 'exemplo da holding, dos fundadores ou do ramo de quem sai.' },
       { campo: 'opcao_compra_preco', rotulo: 'Preço na opção de compra', tipo: 'texto',
-        dependeDe: 'opcao_compra_prevista' },
+        dependeDe: 'opcao_compra_prevista',
+        ajuda: 'Como o preço se forma quando alguém exerce a opção. No modelo é o MAIOR entre '
+          + 'dois: "o VALOR DAS QUOTAS na data da OPÇÃO DE COMPRA" e "o valor subscrito e '
+          + 'integralizado", este corrigido por juros e índice. O pagamento sai em até 36 '
+          + 'parcelas mensais. Responda diferente se o cliente combinou outra conta, por '
+          + 'exemplo só o valor apurado, ou com deságio.' },
       { campo: 'opcao_venda_prevista', rotulo: 'Opção de venda prevista', tipo: 'booleano',
         ajuda: 'O direito de exigir que os outros comprem a sua parte.' },
       { campo: 'juros_valor_subscrito', rotulo: 'Juros sobre o valor subscrito', tipo: 'texto',
@@ -297,19 +368,65 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
     resumo: 'Para onde vai a briga que os sócios não resolverem entre si',
     campos: [
       { campo: 'solucao_litigios', rotulo: 'Solução de litígios', tipo: 'escolha',
+        ajuda: 'Para onde vai a briga que os sócios não resolverem. ARBITRAGEM é um juiz '
+          + 'particular: em vez de irem ao fórum, contratam uma câmara privada, e a decisão '
+          + 'vale como sentença, sem recurso. JUDICIAL é o fórum comum. Os 7 acordos do acervo '
+          + 'escolhem arbitragem, e nenhum dos 8 contratos sociais a tem. Marcando judicial, os '
+          + 'dois campos abaixo (câmara e árbitros) deixam de ter uso.',
         opcoes: [
           { valor: 'arbitragem', rotulo: 'Arbitragem' },
           { valor: 'judicial', rotulo: 'Judicial' },
         ] },
       { campo: 'camara_arbitral', rotulo: 'Câmara arbitral', tipo: 'texto',
-        ajuda: 'Qual câmara julga. No modelo: "de acordo com as Regras de Arbitragem da '
-          + 'Câmara de Comércio Brasil Canadá".' },
-      { campo: 'prazo_indicacao_arbitros_dias', rotulo: 'Prazo para indicação de árbitros, em dias',
-        tipo: 'numero',
-        ajuda: 'ATENÇÃO: o modelo não traz prazo nenhum aqui. Ele diz quantos árbitros são e '
-          + 'quem escolhe cada um, "o número de árbitros será de 03 (três), sendo um nomeado '
-          + 'pelo reclamante, o outro pela parte reclamada e o terceiro eleito por aqueles '
-          + 'dois". O campo veio do levantamento e pode estar com o nome trocado.' },
+        ajuda: 'Qual câmara julga a briga. Cinco dos sete acordos usam a Câmara de Comércio '
+          + 'Brasil Canadá, a CAM-CCBC, e a Utida usa a Câmara FGV de Conciliação e '
+          + 'Arbitragem. Quantos árbitros são não se digita: o modelo fixa três em todos.' },
+
+      /*
+       * O QUE VARIA É QUEM ESCOLHE OS ÁRBITROS, e não o prazo.
+       *
+       * Este lugar já teve um campo de "prazo para indicação de árbitros", e ele
+       * saiu duas vezes, a segunda pelo motivo certo. Da primeira eu escrevi que
+       * o prazo "não existe em documento nenhum", o que é falso: o AgroAliança,
+       * cláusula 26.3, traz "no prazo de 15 (quinze) dias". Da segunda, porque
+       * temos UMA observação desse valor e nenhuma de um valor diferente. Pela
+       * mesma regra que tirou os 60 dias do balanço, é linha fixa da cláusula, e
+       * perguntar convida a inventar variação que nunca existiu.
+       *
+       * Relendo a cláusula inteira em vez de caçar a palavra "prazo", o que
+       * varia apareceu: são dois regimes de nomeação, medidos nos sete acordos.
+       * O modelo da casa usa o primeiro.
+       *
+       * O QUANTOS são não é campo: "03 (três)" em 6 de 6 que dizem.
+       */
+      { campo: 'regime_nomeacao_arbitros', rotulo: 'Quem escolhe os árbitros',
+        tipo: 'escolha',
+        opcoes: [
+          { valor: 'partes', rotulo: 'Cada lado escolhe o seu, e os dois escolhem o terceiro' },
+          { valor: 'camara', rotulo: 'A câmara escolhe os três, pelo regulamento dela' },
+        ],
+        ajuda: 'São sempre três árbitros, e o que muda é quem os indica. Em 5 dos 7 acordos, '
+          + 'incluindo o modelo da casa: "sendo um nomeado pelo reclamante, o outro pela '
+          + 'parte reclamada e o terceiro eleito por aqueles dois outros árbitros". Nos '
+          + 'outros dois, Horita e Via Fértil: "os quais serão nomeados conforme o '
+          + 'regulamento da CAM-CCBCC". Quantos são não se digita: o modelo fixa três em '
+          + 'todos.' },
+
+      /*
+       * O FORO ELEITO fica aqui porque é a mesma cláusula: a 26.6 ressalva que,
+       * só para medida liminar, os quotistas vão ao judiciário desta comarca.
+       * E é a mesma cidade da arbitragem em 5 dos 5 acordos que trazem as duas.
+       */
+      { campo: 'foro_eleito_comarca', rotulo: 'Foro eleito — cidade', tipo: 'texto',
+        meiaLinha: true,
+        ajuda: 'Em que comarca. Sai duas vezes: "elegem o foro da cidade de Cuiabá, estado de '
+          + 'Mato Grosso, por mais privilegiado outro o seja" e, na cláusula da arbitragem, '
+          + '"o local de arbitragem será a cidade de Cuiabá". No acervo variam Cuiabá, Lucas '
+          + 'do Rio Verde, Tangará da Serra e Campo Novo do Parecis, e não é a cidade da '
+          + 'sede: o AgroAliança senta em Sorriso e elege Cuiabá.' },
+      { campo: 'foro_eleito_estado', rotulo: 'Foro eleito — estado', tipo: 'texto',
+        meiaLinha: true,
+        ajuda: 'O estado POR EXTENSO, como o documento escreve: "Mato Grosso", e não "MT".' },
     ],
   },
   {
@@ -322,9 +439,22 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         rotulo: 'Representante dos quotistas',
         tipo: 'especial',
         ajuda:
-          'O limite de aval e fiança que o card previa não entrou: procurei nos sete acordos '
-          + 'e nos oito contratos e não existe número nenhum. A cláusula diz quem pode '
-          + 'garantir quem, não quanto.',
+          'Quem fala pelos sócios perante a sociedade, nos termos do §10 do art. 118 da Lei '
+          + 'das S/A. Sai "os QUOTISTAS elegem o Sr. LUIZ MARCELO como representante dos '
+          + 'QUOTISTAS", e o Sr. ou Sra. concorda com o gênero da pessoa escolhida. O limite '
+          + 'de aval e fiança que o card previa não é campo: procurei nos sete acordos e nos '
+          + 'oito contratos e não existe número nenhum, a cláusula diz quem pode garantir '
+          + 'quem, não quanto.',
+      },
+      {
+        campo: 'substituto_representante_pessoa_id',
+        rotulo: 'Substituto do representante',
+        tipo: 'especial',
+        ajuda:
+          'Quem assume se o representante faltar. A mesma cláusula continua: "sendo que na '
+          + 'sua falta ou incapacidade civil, a incumbência passará ao Sr. FLÁVIO". Faltando '
+          + 'os dois, o acordo manda os quotistas escolherem outro em reunião, e isso é linha '
+          + 'fixa, não se digita.',
       },
     ],
   },
@@ -334,6 +464,8 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
 export function preenchidosNoGrupo(
   grupo: GrupoDoAcordo,
   valores: Record<string, unknown>,
+  /** O bloco já foi aberto e salvo por alguém? Ver o porquê abaixo. */
+  conferido = false,
 ): { preenchidos: number; total: number } {
   const visiveis = grupo.campos.filter(
     (c) => !c.dependeDe || valores[c.dependeDe] === true,
@@ -342,7 +474,21 @@ export function preenchidosNoGrupo(
     const v = valores[c.campo];
     if (v === null || v === undefined || v === '') return false;
     if (Array.isArray(v)) return v.length > 0;
-    // Booleano desligado conta como respondido: "não tem" é uma resposta.
+    /*
+     * BOOLEANO SÓ CONTA DEPOIS DE CONFERIDO, e é a mesma correção do selo
+     * "Pronto" que saiu desta tela em 15/09.
+     *
+     * As colunas booleanas são `NOT NULL DEFAULT false`, então `false` não
+     * distingue "o cliente não tem" de "ninguém abriu isto ainda". Contando
+     * sempre, uma versão recém-criada anunciava "2 de 3 respondidos" sem
+     * ninguém ter respondido nada, que é o convite a pular o bloco.
+     *
+     * Depois que o bloco foi aberto e salvo, o `false` passa a ser resposta de
+     * verdade: alguém olhou e deixou desligado. Daí o parâmetro, em vez de
+     * nunca contar booleano, o que apagaria a resposta legítima de quem disse
+     * "não tem".
+     */
+    if (typeof v === 'boolean') return conferido;
     return true;
   };
   return { preenchidos: visiveis.filter(temValor).length, total: visiveis.length };

@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, LayoutDashboard, Users, FolderKanban, History, LifeBuoy, LineChart } from 'lucide-react';
+import { ChevronRight, LayoutDashboard, Users, FolderKanban, LifeBuoy, LineChart } from 'lucide-react';
 import { linkEspelhado } from '@/lib/areaTheme';
 
 interface FerramentaTax {
@@ -21,48 +21,55 @@ interface FerramentaTax {
   manualUrl?: string;
 }
 
+/**
+ * Os cartões da entrada da Tax.
+ *
+ * AS DESCRIÇÕES são as da revisão de conteúdo da coordenação (14/09/2026), pela
+ * régua "o subtítulo responde, de forma concreta, o que o usuário encontra ou faz
+ * naquela tela". O que elas corrigem, uma a uma, está no motivo de cada linha do
+ * plano em `docs/sprints/sprint-13/PLANO_ajustes-area-tax.md`.
+ *
+ * LOGS DE USO SAIU DAQUI. Ele abria a mesma tela que o item "Logs de Uso" dentro
+ * de Gerencial — dois caminhos equivalentes, sem hierarquia, fazendo parecer duas
+ * funções diferentes. A coordenação pediu uma localização principal, e escolheu
+ * Gerencial. A rota `/equipe/tax/gerencial/logs-equipe` continua igual.
+ */
 const FERRAMENTAS: FerramentaTax[] = [
   {
     id: 'dashboard',
     titulo: 'Dashboard',
-    descricao: 'Painel principal da área Tax, com indicadores e acompanhamento.',
+    descricao: 'Acompanhe os principais indicadores operacionais da área Tax.',
     path: '/equipe/tax/dashboard',
     icon: <LayoutDashboard className="h-5 w-5 text-primary" />,
   },
   {
     id: 'clientes',
     titulo: 'Clientes',
-    descricao: 'Cadastro dos clientes da área Tax.',
+    descricao: 'Consulte e gerencie os cadastros de clientes e contribuintes.',
     path: '/equipe/tax/projetos/clientes',
     icon: <Users className="h-5 w-5 text-primary" />,
   },
   {
     id: 'projetos-tarefas',
     titulo: 'Projetos e tarefas',
-    descricao: 'Execução organizada por OS, projeto, tarefa e subtarefa.',
+    // "ordem de serviço" por extenso: é a primeira ocorrência da sigla na área, e
+    // a coordenação pede expandi-la antes de usar "OS" solto.
+    descricao: 'Acompanhe a execução por ordem de serviço, projeto, tarefa e subtarefa.',
     path: '/equipe/tax/projetos/cadastro',
     icon: <FolderKanban className="h-5 w-5 text-primary" />,
   },
   {
     id: 'gerencial',
     titulo: 'Gerencial',
-    descricao: 'Dashboard de Clientes e OS do seu cluster (acesso de líder).',
+    descricao: 'Acompanhe clientes, ordens de serviço, chamados e atividades do seu cluster.',
     path: '/equipe/tax/gerencial',
     icon: <LineChart className="h-5 w-5 text-primary" />,
     requiresLider: true,
   },
   {
-    id: 'auditoria',
-    titulo: 'Logs de Uso',
-    descricao: 'Histórico, produtividade e acesso do time na área Tax (acesso de líder).',
-    path: '/equipe/tax/gerencial/logs-equipe',
-    icon: <History className="h-5 w-5 text-primary" />,
-    requiresLider: true,
-  },
-  {
     id: 'chamados',
     titulo: 'Chamados',
-    descricao: 'Abertura e acompanhamento de chamados.',
+    descricao: 'Consulte os chamados da equipe, acompanhe o status e atribua responsáveis.',
     // Espelhada: leva a cor E a lista desta área. Ver `src/lib/areaTheme.ts`.
     path: linkEspelhado('/equipe/chamados', 'tax'),
     icon: <LifeBuoy className="h-5 w-5 text-primary" />,
@@ -77,7 +84,7 @@ const FiscalBoasVindas = () => {
   const ferramentas = FERRAMENTAS.filter((f) => !f.requiresLider || canGerencial);
 
   return (
-    <FiscalLayout title="Bem-vindo à área Tax" subtitle="Escolha uma ferramenta para começar">
+    <FiscalLayout tela="boasVindas">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {ferramentas.map((f) => (
           <Card
@@ -97,9 +104,15 @@ const FiscalBoasVindas = () => {
             <CardContent className="flex-1">
               <CardDescription>{f.descricao}</CardDescription>
             </CardContent>
-            {/* Manual no canto inferior esquerdo, no estilo dos manuais de Dev */}
-            <div className="px-6 pb-4">
-              {f.manualUrl ? (
+            {/* Manual no canto inferior esquerdo, no estilo dos manuais de Dev.
+                SÓ APARECE QUANDO EXISTE, decisão da coordenação em 14/09/2026:
+                nenhum card tem `manualUrl` hoje, então os cinco mostravam
+                "Manual (em breve)" — item recorrente que ocupa espaço e promete
+                uma ação que não pode ser concluída. Some o BLOCO inteiro, não só
+                o texto: deixar o `div` vazio manteria o respiro no rodapé do
+                cartão. Volta sozinho quando o primeiro manual for publicado. */}
+            {f.manualUrl && (
+              <div className="px-6 pb-4">
                 <a
                   href={f.manualUrl}
                   target="_blank"
@@ -109,16 +122,8 @@ const FiscalBoasVindas = () => {
                 >
                   Manual
                 </a>
-              ) : (
-                <span
-                  className="text-sm font-medium text-muted-foreground/60 cursor-default"
-                  title="Manual em breve"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Manual (em breve)
-                </span>
-              )}
-            </div>
+              </div>
+            )}
           </Card>
         ))}
       </div>

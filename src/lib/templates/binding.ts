@@ -190,7 +190,18 @@ export type FonteLista =
    * escolhida e bastam a si mesmas. Sem o recorte, a cláusula do Conselho
    * receberia também as alíneas da Diretoria.
    */
-  | 'matriz_alcadas';
+  | 'matriz_alcadas'
+  /*
+   * O cadastro do Acordo de Quotistas do cliente, com as CINCO listas dele:
+   * quóruns, ramos, ordem da preferência, signatários e sociedades relacionadas.
+   *
+   * Fonte própria pelo mesmo motivo de `exploracao_rural`: a lista inteira sai
+   * de um cadastro só, e não há o que o consultor amarrar registro a registro.
+   * Antes da GOV-03 duas delas eram `selecao`, o consultor escolhendo à mão na
+   * tela Gerar, porque o cadastro não existia. Existe desde 15/09, e continuar
+   * pedindo escolha seria fazer digitar de novo o que já está gravado.
+   */
+  | 'acordo_quotistas';
 
 export interface CampoExtra {
   id: string;
@@ -584,17 +595,24 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
   },
 
   /*
-   * As duas listas do Acordo saem de `selecao`, ou seja, o consultor escolhe à
-   * mão. Não é atalho: o cadastro do acordo é a GOV-03 e ainda não existe, e
-   * mesmo depois dele os signatários da PRIMEIRA versão são um recorte que
-   * nenhuma relação do sistema conhece — o quadro societário de hoje não sabe
-   * quem assinou em 2019.
+   * AS CINCO LISTAS DO ACORDO DE QUOTISTAS.
+   *
+   * As duas primeiras nasceram com `fonte: 'selecao'`, o consultor escolhendo à
+   * mão, porque em 11/09 o cadastro do acordo não existia. Passaram para
+   * `acordo_quotistas` em 15/09, quando ele passou a existir. Conferi antes de
+   * trocar: nenhuma versão de bloco no sandbox usa as duas seções, então a
+   * troca não muda documento nenhum já escrito.
+   *
+   * Os signatários continuam sendo um recorte que nenhuma OUTRA relação do
+   * sistema conhece: são os da PRIMEIRA versão, e o quadro societário de hoje
+   * não sabe quem assinou em 2019. Por isso saem de `acordo_signatario`, e não
+   * do quadro.
    */
   quotistasSignatarios: {
     label: 'Quotistas signatários do Acordo',
     tipo: 'pessoa',
     itemKey: 'quotista',
-    fonte: 'selecao',
+    fonte: 'acordo_quotistas',
     camposExtras: [{ id: 'ordem', label: 'Ordem do quotista (1, 2…)' }],
   },
 
@@ -602,9 +620,83 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     label: 'Sociedades relacionadas (alcance do Acordo)',
     tipo: 'sociedade',
     itemKey: 'sociedadeRelacionada',
-    fonte: 'selecao',
+    fonte: 'acordo_quotistas',
     campoResumo: 'razaoSocial',
     camposExtras: [],
+  },
+
+  /*
+   * OS QUÓRUNS, uma alínea cada, no bloco de deliberação.
+   *
+   * O modelo escreve "prevalecerão os seguintes quóruns de deliberação: a)
+   * Conforme decidam 75% (setenta e cinco por cento) dos VOTOS dos QUOTISTAS
+   * presentes [...] em relação aos seguintes assuntos: alteração do contrato
+   * social". Daí os três campos: a letra, a expressão e a matéria.
+   *
+   * `expressao` chega pronta de `expressaoDoQuorum`, e não se monta no bloco: os
+   * documentos escrevem símbolo mais extenso entre parênteses, "¾ (três
+   * quartos)", e deixar cada bloco montar isso é deixar cada um escrever
+   * diferente.
+   *
+   * O `tipo` aponta para `acordoQuotistas` porque uma linha de quórum não é
+   * entidade própria do vocabulário, e TODOS os campos do item estão em
+   * `camposExtras`. Vale para as três listas novas: o `tipo` de um papel de
+   * lista só é consultado na tela de seleção manual, que estas não têm.
+   */
+  quorunsDoAcordo: {
+    label: 'Quóruns do Acordo (alíneas da deliberação)',
+    tipo: 'acordoQuotistas',
+    itemKey: 'quorum',
+    fonte: 'acordo_quotistas',
+    campoResumo: 'materia',
+    camposExtras: [
+      { id: 'materia', label: 'Sobre o que ele decide' },
+      { id: 'expressao', label: 'Quanto precisa, já escrito ("¾ (três quartos) do capital social")' },
+      { id: 'alinea', label: 'Letra da alínea (a, b, c…)' },
+      { id: 'ordem', label: 'Ordem do quórum na cláusula (1, 2…)' },
+    ],
+  },
+
+  /*
+   * OS RAMOS FAMILIARES, que a cláusula de definições nomeia.
+   *
+   * Na AgroAliança: "(a) DESCENDENTES DE CRISTINA, formado por CRISTINA e seus
+   * descendentes em linha vertical; e (b) DESCENDENTES DE REGINA". `rotulo` é o
+   * nome próprio que o resto do acordo repete, e `definicao` é a explicação que
+   * vem depois da vírgula.
+   */
+  ramosFamiliares: {
+    label: 'Ramos familiares (grupos de descendentes)',
+    tipo: 'acordoQuotistas',
+    itemKey: 'ramo',
+    fonte: 'acordo_quotistas',
+    campoResumo: 'rotulo',
+    camposExtras: [
+      { id: 'rotulo', label: 'Como o acordo o chama ("DESCENDENTES DE CRISTINA")' },
+      { id: 'nome', label: 'Nome do fundador do ramo' },
+      { id: 'definicao', label: 'A definição que segue o rótulo' },
+      { id: 'alinea', label: 'Letra da alínea (a, b, c…)' },
+      { id: 'ordem', label: 'Ordem do ramo (1, 2…)' },
+    ],
+  },
+
+  /*
+   * A FILA DA PREFERÊNCIA, de quem compra antes de a quota poder ir a terceiro.
+   *
+   * O contrato social diz só "aos demais sócios, na proporção"; a ordem existe
+   * no acordo, e é o que esta lista escreve.
+   */
+  ordemDaPreferencia: {
+    label: 'Ordem do direito de preferência (a fila)',
+    tipo: 'acordoQuotistas',
+    itemKey: 'preferente',
+    fonte: 'acordo_quotistas',
+    campoResumo: 'quem',
+    camposExtras: [
+      { id: 'quem', label: 'Quem tem a vez ("os descendentes dos SIGNATÁRIOS")' },
+      { id: 'alinea', label: 'Letra da alínea (a, b, c…)' },
+      { id: 'ordem', label: 'Posição na fila (1, 2…)' },
+    ],
   },
 };
 

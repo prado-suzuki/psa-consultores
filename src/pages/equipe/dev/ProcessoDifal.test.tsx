@@ -1,4 +1,4 @@
-import type { PropsWithChildren } from 'react';
+import type { PropsWithChildren, ReactNode } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { endOfMonth, format, startOfMonth } from 'date-fns';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -101,7 +101,10 @@ vi.mock('@/hooks/useProcessoDifalExport', () => ({
   }),
 }));
 vi.mock('@/components/equipe/dev/DevLayout', () => ({
-  DevLayout: ({ children }: PropsWithChildren) => <main>{children}</main>,
+  // Este arquivo não afere o cabeçalho, então o mock não resolve o registro: o
+  // shell existe aqui só para a página montar. Quem afere o nome da tela é
+  // ApuracaoPisCofins, ControlePerdcomp e PapelDeTrabalho.
+  DevLayout: ({ children }: { children: ReactNode }) => <main>{children}</main>,
 }));
 vi.mock('@/components/equipe/dev/DevPageHeader', () => ({
   DevPageHeader: () => <div>cabeçalho</div>,

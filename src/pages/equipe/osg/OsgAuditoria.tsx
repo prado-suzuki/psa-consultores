@@ -5,7 +5,7 @@ import { AuditTabs } from '@/components/equipe/audit/AuditTabs';
 // outra palavra e saiu. Ver `FiscalAuditoria.tsx`.
 const OsgAuditoria = () => {
   return (
-    <OsgLayout title="Logs de Uso" subtitle="Histórico de alterações">
+    <OsgLayout tela="logsDeUso">
       <div className="space-y-6">
         {/* As abas vivem em AuditTabs — a mesma lista que a Tax e o Board montam. */}
         <AuditTabs area="osg" />

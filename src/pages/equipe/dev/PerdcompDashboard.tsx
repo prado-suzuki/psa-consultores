@@ -18,9 +18,7 @@ const PerdcompDashboard = () => {
   const navigate = useNavigate();
 
   return (
-    <DevLayout
-      title="Dashboard PERDCOMP"
-      subtitle="Visualização incorporada do Looker Studio para acompanhamento do PERDCOMP"
+    <DevLayout tela="dashboardPerdcomp"
       headerActions={
         <Button variant="outline" onClick={() => navigate('/equipe/dev/perdcomp')}>
           <ArrowLeft className="mr-2 h-4 w-4" />

@@ -356,14 +356,10 @@ const ConsultaECF = () => {
   const blocosDisponiveis = overview?.blocos_disponiveis || {};
 
   return (
-    <DevLayout
-      title="Consulta ECF"
-      subtitle="Consulta de Escrituração Contábil Fiscal"
-    >
+    <DevLayout tela="ecf"    >
       <TooltipProvider delayDuration={300}>
       <DevPageHeader
-        description="A Consulta ECF centraliza a busca e o download das **Escriturações Contábeis Fiscais** da base de dados. Utilize os filtros abaixo para consultar arquivos específicos ou analisar períodos inteiros, permitindo a análise detalhada de blocos e registros diretamente em tela, o download dos arquivos originais em lote (.zip) ou a exportação em formato Excel (.xlsx)."
-        manualUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECF/"
+        description="A **ECF** reúne as Escriturações Contábeis Fiscais entregues ao SPED. Usa os arquivos da base, filtrados por cliente, contribuinte e período. Consulte blocos e registros em tela, baixe os arquivos originais em lote (.zip) ou exporte para Excel (.xlsx)."
       />
 
       {/* Card de Filtros */}

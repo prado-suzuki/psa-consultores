@@ -59,13 +59,31 @@ describe('GRUPOS_DO_ACORDO', () => {
 });
 
 describe('camposQueDescem', () => {
-  it('são os cinco da apuração de haveres, que está nos oito contratos', () => {
-    // O usufruto também desce ao contrato, mas não é campo DESTE cadastro: ele
-    // vem de `onus_quotas`, preenchido no Quadro Societário.
-    expect(camposQueDescem().map((c) => c.campo)).toEqual([
-      'metodos_avaliacao', 'regra_combinacao', 'prazo_balanco_dias',
-      'horizonte_fluxo_anos', 'taxa_minima_crescimento',
-    ]);
+  it('dois campos descem ao contrato social, e são estes', () => {
+    /*
+     * A DATA DE ASSINATURA, porque o contrato social a CITA no corpo de uma
+     * cláusula. No Perci: "o acordo celebrado entre as partes, em 29 de Janeiro
+     * de 2.021". Sem ela, o contrato sai na outra redação, com a lacuna. Não
+     * confundir com a linha que se assina à mão, que é `dataAssinatura`, campo
+     * manual da tela Gerar.
+     *
+     * A APURAÇÃO DE HAVERES, num campo só. Eram cinco. Quatro não variam nos
+     * contratos do acervo: 60 dias em 7 de 7, 05 anos em 3 de 3, IPCA nos dois
+     * que citam índice, e "maior valor" em todos que combinam métodos. Campo que
+     * não varia é texto fixo do modelo, e a decisão está no motor desde 14/09;
+     * esta tela contrariava a própria medição. O que varia é QUAIS métodos
+     * entram.
+     *
+     * O usufruto também desce ao contrato, mas não é campo deste cadastro: ele
+     * vem de `onus_quotas`, preenchido no Quadro Societário.
+     *
+     * A VIGÊNCIA entrou em 16/09: medida nos sete contratos que citam o acordo,
+     * dois escrevem "acordo de quotistas com vigência pelo período de 20 (vinte)
+     * anos a partir da sua assinatura" (Bela Vista e o modelo da casa), que é a
+     * mesma redação que nomeia um acordo concreto em vez de "eventual".
+     */
+    expect(camposQueDescem().map((c) => c.campo))
+      .toEqual(['assinado_em', 'vigencia_anos', 'metodos_avaliacao']);
   });
 });
 
@@ -84,17 +102,32 @@ describe('preenchidosNoGrupo', () => {
     expect(comCompra.total).toBe(5);
   });
 
-  it('booleano desligado conta como respondido, porque "não tem" é resposta', () => {
+  it('booleano desligado só conta depois que alguém conferiu o bloco', () => {
+    /*
+     * As colunas booleanas são `NOT NULL DEFAULT false`: antes de alguém abrir o
+     * bloco, `false` não é resposta, é a ausência dela. Uma versão recém-criada
+     * anunciava "2 de 3 respondidos" sem ninguém ter respondido nada.
+     *
+     * Depois de conferido, o mesmo `false` é resposta legítima de quem olhou e
+     * disse "não tem", e volta a contar.
+     */
     const g = grupoDoAcordo('reuniao_previa')!;
     expect(preenchidosNoGrupo(g, { reuniao_previa_obrigatoria: false }))
+      .toEqual({ preenchidos: 0, total: 1 });
+    expect(preenchidosNoGrupo(g, { reuniao_previa_obrigatoria: false }, true))
       .toEqual({ preenchidos: 1, total: 1 });
+    // Ligado também espera a conferência: o seed não liga nenhum booleano hoje,
+    // mas o dia em que ligar, "true" tambem seria resposta que ninguem deu.
+    expect(preenchidosNoGrupo(g, { reuniao_previa_obrigatoria: true }))
+      .toEqual({ preenchidos: 0, total: 1 });
   });
 
   it('lista vazia e texto em branco não contam', () => {
     const g = grupoDoAcordo('conflitos')!;
     expect(preenchidosNoGrupo(g, {
-      solucao_litigios: '', camara_arbitral: null, prazo_indicacao_arbitros_dias: undefined,
-    })).toEqual({ preenchidos: 0, total: 3 });
+      solucao_litigios: '', camara_arbitral: null, regime_nomeacao_arbitros: '',
+      foro_eleito_comarca: '', foro_eleito_estado: null,
+    })).toEqual({ preenchidos: 0, total: 5 });
   });
 });
 
@@ -105,22 +138,52 @@ describe('as ajudas saem do documento, e não da minha cabeça', () => {
     const ajudaDe = (campo: string) =>
       GRUPOS_DO_ACORDO.flatMap((g) => g.campos).find((c) => c.campo === campo)?.ajuda ?? '';
 
-    expect(ajudaDe('prazo_balanco_dias')).toContain('60 (sessenta) dias antes do evento');
-    expect(ajudaDe('horizonte_fluxo_anos')).toContain('05 (cinco) anos');
-    expect(ajudaDe('taxa_minima_crescimento')).toContain('IPCA');
+    // Os quatro números da apuração não são campos, porque não variam. Eles
+    // aparecem na ajuda do único campo que restou, para o consultor saber que
+    // estão no documento sem ter de digitá-los.
+    expect(ajudaDe('metodos_avaliacao')).toContain('60 (sessenta) dias');
+    expect(ajudaDe('metodos_avaliacao')).toContain('05 (cinco) anos');
+    expect(ajudaDe('metodos_avaliacao')).toContain('IPCA');
     expect(ajudaDe('nao_concorrencia_prazo_anos')).toContain('03 (três)');
     expect(ajudaDe('nao_concorrencia_multa')).toContain('R$ 1.000.000,00');
     expect(ajudaDe('juros_valor_subscrito')).toContain('1% (um por cento) ao mês');
     expect(ajudaDe('camara_arbitral')).toContain('Câmara de Comércio Brasil Canadá');
   });
 
-  it('o campo sem fonte no modelo avisa em vez de fingir', () => {
-    // O modelo diz quantos árbitros são, e não em quanto tempo se indica. O
-    // campo veio do levantamento e pode estar com o nome trocado.
-    const c = GRUPOS_DO_ACORDO.flatMap((g) => g.campos)
-      .find((x) => x.campo === 'prazo_indicacao_arbitros_dias');
-    expect(c?.ajuda).toContain('ATENÇÃO');
-    expect(c?.ajuda).toContain('03 (três)');
+  it('o que NÃO varia não é campo; o que varia é', () => {
+    /*
+     * ESTE TESTE JÁ TRAVOU DUAS AFIRMAÇÕES ERRADAS MINHAS, e é por isso que ele
+     * trava a REGRA e não a lista.
+     *
+     * Primeiro ele dizia que "prazo para indicação de árbitros" não existia em
+     * documento nenhum. Existe: AgroAliança, 26.3, "no prazo de 15 (quinze)
+     * dias". Corrigido, ele passou a exigir o campo. Errado de novo, por outro
+     * motivo: há UMA observação desse valor e nenhuma de um valor diferente, e
+     * valor que não varia é linha fixa da cláusula, como os 60 dias do balanço.
+     *
+     * O que a releitura da cláusula inteira mostrou variar é QUEM escolhe os
+     * árbitros: as partes em 5 de 7, a câmara em 2 de 7.
+     */
+    const campos = GRUPOS_DO_ACORDO.flatMap((g) => g.campos).map((c) => c.campo);
+
+    // VARIA entre documentos, então é campo. A câmara: cinco usam a Brasil
+    // Canadá, a Utida usa a Câmara FGV. O regime: 5 contra 2.
+    expect(campos).toContain('camara_arbitral');
+    expect(campos).toContain('regime_nomeacao_arbitros');
+
+    // NÃO VARIA: um único valor observado, ou o mesmo em todos. É texto fixo do
+    // modelo, e publicar o campo convida a inventar variação que não existe.
+    for (const fixo of [
+      'prazo_indicacao_arbitros_dias', 'numero_arbitros', 'prazo_balanco_dias',
+      'horizonte_fluxo_anos', 'taxa_minima_crescimento', 'regra_combinacao',
+    ]) {
+      expect(campos, `${fixo} não varia nos documentos do acervo`).not.toContain(fixo);
+    }
+  });
+
+  it('a ajuda do quórum diz que se digita o ASSUNTO, e não a frase', () => {
+    const c = GRUPOS_DO_ACORDO.flatMap((g) => g.campos).find((x) => x.campo === 'quoruns');
+    expect(c?.ajuda).toContain('SÓ O ASSUNTO');
   });
 
   it('só o grupo de 15 campos se divide em blocos', () => {

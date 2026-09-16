@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { DevLayout } from "@/components/equipe/dev/DevLayout";
+import { DevPageHeader } from "@/components/equipe/dev/DevPageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SelecaoDeCliente } from '@/components/equipe/selecao/SelecaoDeCliente';
@@ -69,10 +70,8 @@ const CalculadoraIbsCbs = () => {
   };
 
   return (
-    <DevLayout
-      title="Calculadora de IBS e CBS"
-      subtitle="Classificação fiscal e análise de carga tributária — antes vs depois da reforma"
-    >
+    <DevLayout tela="calculadoraIbsCbs"    >
+      <DevPageHeader description="A **Calculadora IBS/CBS** simula a carga tributária do contribuinte no modelo atual e no da reforma, para mostrar a diferença antes de ela acontecer. Parte da **classificação fiscal dos produtos** e das operações já escrituradas. O **Resumo** traz o comparativo consolidado, e as demais abas abrem o mesmo número **por anexo, por produto e por estado**." />
       <Card className="mb-6 border-border shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2 uppercase tracking-wider font-bold text-foreground">

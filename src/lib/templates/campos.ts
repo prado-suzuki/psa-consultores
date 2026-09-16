@@ -17,6 +17,8 @@ export interface CampoDoCaminho {
   manual: boolean;
   /** Sem ele resolvido, o documento que o usa está incompleto. */
   obrigatorio: boolean;
+  /** Vazio, vira lacuna como se fosse manual, mas continua vindo do cadastro. */
+  lacunaSeVazio: boolean;
 }
 
 /**
@@ -78,6 +80,7 @@ function doCampo(
     tipo: campo.tipo,
     manual: herdaManualDaBase(tipo, campo),
     obrigatorio: !!campo.obrigatorio,
+    lacunaSeVazio: !!campo.lacunaSeVazio,
   };
 }
 
@@ -90,7 +93,7 @@ export function marcacaoDoCaminho(caminho: string): MarcacaoCampo | undefined {
   const campo = classificarCaminho(caminho);
   if (!campo) return undefined;
   const marcacao: MarcacaoCampo = {};
-  if (campo.manual) marcacao.lacuna = lacunaDoTipo(campo.tipo);
+  if (campo.manual || campo.lacunaSeVazio) marcacao.lacuna = lacunaDoTipo(campo.tipo);
   if (campo.obrigatorio) marcacao.obrigatorio = true;
   return marcacao.lacuna || marcacao.obrigatorio ? marcacao : undefined;
 }

@@ -151,8 +151,9 @@ export type Database = {
           created_by: string | null
           data_referencia: string | null
           excluido: boolean
+          foro_eleito_comarca: string | null
+          foro_eleito_estado: string | null
           grupos_conferidos: string[]
-          horizonte_fluxo_anos: number | null
           id: string
           juros_valor_subscrito: string | null
           mecanismos: string[] | null
@@ -167,14 +168,12 @@ export type Database = {
           opcao_compra_prevista: boolean
           opcao_compra_quem: string | null
           opcao_venda_prevista: boolean
-          prazo_balanco_dias: number | null
-          prazo_indicacao_arbitros_dias: number | null
           prazo_sigilo_anos: number | null
-          regra_combinacao: string | null
+          regime_nomeacao_arbitros: string | null
           representante_pessoa_id: string | null
           reuniao_previa_obrigatoria: boolean
           solucao_litigios: string | null
-          taxa_minima_crescimento: string | null
+          substituto_representante_pessoa_id: string | null
           updated_at: string
           updated_by: string | null
           versao: number
@@ -189,8 +188,9 @@ export type Database = {
           created_by?: string | null
           data_referencia?: string | null
           excluido?: boolean
+          foro_eleito_comarca?: string | null
+          foro_eleito_estado?: string | null
           grupos_conferidos?: string[]
-          horizonte_fluxo_anos?: number | null
           id?: string
           juros_valor_subscrito?: string | null
           mecanismos?: string[] | null
@@ -205,14 +205,12 @@ export type Database = {
           opcao_compra_prevista?: boolean
           opcao_compra_quem?: string | null
           opcao_venda_prevista?: boolean
-          prazo_balanco_dias?: number | null
-          prazo_indicacao_arbitros_dias?: number | null
           prazo_sigilo_anos?: number | null
-          regra_combinacao?: string | null
+          regime_nomeacao_arbitros?: string | null
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
           solucao_litigios?: string | null
-          taxa_minima_crescimento?: string | null
+          substituto_representante_pessoa_id?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
@@ -227,8 +225,9 @@ export type Database = {
           created_by?: string | null
           data_referencia?: string | null
           excluido?: boolean
+          foro_eleito_comarca?: string | null
+          foro_eleito_estado?: string | null
           grupos_conferidos?: string[]
-          horizonte_fluxo_anos?: number | null
           id?: string
           juros_valor_subscrito?: string | null
           mecanismos?: string[] | null
@@ -243,14 +242,12 @@ export type Database = {
           opcao_compra_prevista?: boolean
           opcao_compra_quem?: string | null
           opcao_venda_prevista?: boolean
-          prazo_balanco_dias?: number | null
-          prazo_indicacao_arbitros_dias?: number | null
           prazo_sigilo_anos?: number | null
-          regra_combinacao?: string | null
+          regime_nomeacao_arbitros?: string | null
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
           solucao_litigios?: string | null
-          taxa_minima_crescimento?: string | null
+          substituto_representante_pessoa_id?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
@@ -271,6 +268,13 @@ export type Database = {
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "acordo_quotistas_substituto_representante_pessoa_id_fkey"
+            columns: ["substituto_representante_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
         ]
       }
       acordo_ramo_familiar: {
@@ -281,7 +285,6 @@ export type Database = {
           id: string
           nome: string
           ordem: number
-          rotulo: string
           updated_at: string
           updated_by: string | null
         }
@@ -292,7 +295,6 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
-          rotulo?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -303,7 +305,6 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
-          rotulo?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -7401,6 +7402,7 @@ export type Database = {
           naturalidade_municipio: string | null
           naturalidade_uf: string | null
           nire: string | null
+          nome_fantasia: string | null
           objeto_social: string | null
           profissao: string | null
           regime_bens: string | null
@@ -7444,6 +7446,7 @@ export type Database = {
           naturalidade_municipio?: string | null
           naturalidade_uf?: string | null
           nire?: string | null
+          nome_fantasia?: string | null
           objeto_social?: string | null
           profissao?: string | null
           regime_bens?: string | null
@@ -7487,6 +7490,7 @@ export type Database = {
           naturalidade_municipio?: string | null
           naturalidade_uf?: string | null
           nire?: string | null
+          nome_fantasia?: string | null
           objeto_social?: string | null
           profissao?: string | null
           regime_bens?: string | null
@@ -10362,6 +10366,7 @@ export type Database = {
           repete_colecao: string | null
           tipo: string
           tipo_derivacao: string | null
+          titulo_documento: string | null
           updated_at: string
           updated_by: string | null
           variante_ordem: number | null
@@ -10385,6 +10390,7 @@ export type Database = {
           repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
+          titulo_documento?: string | null
           updated_at?: string
           updated_by?: string | null
           variante_ordem?: number | null
@@ -10408,6 +10414,7 @@ export type Database = {
           repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
+          titulo_documento?: string | null
           updated_at?: string
           updated_by?: string | null
           variante_ordem?: number | null

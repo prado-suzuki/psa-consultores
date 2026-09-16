@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Faturamento: as perguntas, em duas opções cada</title>
+<style>
+  /* Valores lidos do src/index.css em 16/09/2026, área base. Mesma paleta do
+     protótipo `prototipo-faturamento.html`, para as duas páginas serem a mesma coisa. */
+  :root{
+    --pg: 168 16% 93%;     /* --canvas  */
+    --cd: 42 24% 99.8%;    /* --card    */
+    --fg: 20 81% 10%;      /* --foreground */
+    --mf: 180 10% 38%;     /* --muted-foreground */
+    --mt: 168 20% 89%;     /* --muted   */
+    --ln: 40 12% 91%;      /* --border  */
+    --pr: 175 84% 25%;     /* --primary */
+    --ok: 128 63% 21%;     /* --status-feito  */
+    --al: 20 72% 32%;      /* --status-alerta */
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;padding:34px 24px 80px;
+    background:hsl(var(--pg));color:hsl(var(--fg));
+    font:16px/1.6 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:30px;margin:0 0 8px;letter-spacing:-.015em}
+  .sub{color:hsl(var(--mf));margin:0;max-width:70ch}
+  .instrucao{
+    margin:20px 0 40px;padding:14px 18px;border-radius:10px;
+    border:1px solid hsl(var(--pr) / .35);background:hsl(var(--pr) / .07);color:hsl(var(--pr));
+    max-width:70ch;font-size:16px;
+  }
+  .instrucao b{display:block;font-size:17px;margin-bottom:2px}
+
+  h2{
+    font-size:13px;text-transform:uppercase;letter-spacing:.09em;
+    margin:48px 0 14px;color:hsl(var(--mf));
+  }
+
+  /* ---- Onde estamos: dois quadros lado a lado ---- */
+  .estado{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .painel{background:hsl(var(--cd));border:1px solid hsl(var(--ln));border-radius:12px;overflow:hidden}
+  .painel > .topo{padding:12px 16px;border-bottom:1px solid hsl(var(--ln));font-weight:700;font-size:16px}
+  .painel.pronto > .topo{background:hsl(var(--ok) / .08);color:hsl(var(--ok))}
+  .painel.falta > .topo{background:hsl(var(--al) / .08);color:hsl(var(--al))}
+  .painel ul{list-style:none;margin:0;padding:12px 16px 16px}
+  .painel li{padding:6px 0 6px 26px;position:relative;font-size:15px;border-bottom:1px solid hsl(var(--ln) / .7)}
+  .painel li:last-child{border-bottom:0}
+  .painel.pronto li::before{content:"\2713";position:absolute;left:0;color:hsl(var(--ok));font-weight:700}
+  .painel.falta li::before{content:"\2717";position:absolute;left:2px;color:hsl(var(--al));font-weight:700}
+  .painel li small{display:block;color:hsl(var(--mf));font-size:13px;line-height:1.4}
+  .painel .pe{padding:0 16px 16px;font-size:13.5px;color:hsl(var(--mf))}
+
+  /* ---- Pergunta ---- */
+  .pergunta{
+    background:hsl(var(--cd));border:1px solid hsl(var(--ln));border-radius:12px;
+    overflow:hidden;margin-bottom:22px;
+  }
+  .enunciado{display:flex;gap:14px;align-items:flex-start;padding:18px 20px 16px}
+  .numero{
+    flex:0 0 auto;width:34px;height:34px;border-radius:99px;
+    background:hsl(var(--pr));color:hsl(var(--cd));
+    font-weight:700;font-size:17px;display:flex;align-items:center;justify-content:center;
+  }
+  .enunciado h3{margin:2px 0 4px;font-size:20px;line-height:1.3;letter-spacing:-.01em}
+  .enunciado p{margin:0;color:hsl(var(--mf));font-size:14.5px;max-width:74ch}
+  .opcoes{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid hsl(var(--ln))}
+  .opcoes.tres{grid-template-columns:1fr 1fr 1fr}
+  .opcao{padding:16px 20px 18px;border-left:1px solid hsl(var(--ln))}
+  .opcao:first-child{border-left:0}
+  .marca{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+  .letra{
+    width:26px;height:26px;border-radius:6px;border:2px solid hsl(var(--pr) / .5);
+    color:hsl(var(--pr));font-weight:700;font-size:14px;
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  }
+  .marca strong{font-size:16px;line-height:1.25}
+  .quadro{border:1px solid hsl(var(--ln));border-radius:8px;overflow:hidden;margin:10px 0 12px}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th{
+    text-align:left;padding:6px 9px;background:hsl(var(--mt));
+    font-size:11px;font-weight:600;letter-spacing:.02em;border-bottom:1px solid hsl(var(--ln));white-space:nowrap;
+  }
+  td{padding:6px 9px;border-bottom:1px solid hsl(var(--ln) / .7);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .olhe{background:hsl(var(--pr) / .10);font-weight:600}
+  .fraco{color:hsl(var(--mf))}
+  .consequencia{
+    font-size:13.5px;color:hsl(var(--mf));border-left:3px solid hsl(var(--ln));
+    padding:2px 0 2px 11px;margin:0;
+  }
+  .consequencia b{color:hsl(var(--fg));font-weight:600}
+
+  /* ---- Perguntas curtas do fim ---- */
+  .curta{
+    background:hsl(var(--cd));border:1px solid hsl(var(--ln));border-radius:12px;
+    padding:16px 20px;margin-bottom:14px;
+  }
+  .curta h3{margin:0 0 6px;font-size:17px}
+  .curta p{margin:0 0 8px;color:hsl(var(--mf));font-size:14.5px;max-width:74ch}
+  .curta .escolhas{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{
+    border:1px solid hsl(var(--pr) / .4);border-radius:99px;padding:4px 12px;
+    font-size:13.5px;color:hsl(var(--pr));background:hsl(var(--pr) / .06);
+  }
+
+  footer{
+    margin-top:44px;padding-top:16px;border-top:1px solid hsl(var(--ln));
+    font-size:13.5px;color:hsl(var(--mf));max-width:78ch;
+  }
+  code{font-size:.92em;background:hsl(var(--mt));padding:1px 5px;border-radius:4px}
+
+  @media (max-width:760px){
+    body{padding:24px 16px 60px}
+    .estado,.opcoes,.opcoes.tres{grid-template-columns:1fr}
+    .opcao{border-left:0;border-top:1px solid hsl(var(--ln))}
+    .opcao:first-child{border-top:0}
+  }
+
+  /* A versão em PDF é gerada desta mesma página (A4 deitada), porque o quadro de
+     opções lado a lado é o que faz a pergunta se responder sozinha — em retrato
+     ele se espreme. Nada aqui muda a tela. */
+  @page{size:A4 landscape;margin:10mm}
+  @media print{
+    body{padding:0;background:#fff}
+    .wrap{max-width:100%}
+    .pergunta,.painel,.curta,.estado,.quadro{break-inside:avoid;page-break-inside:avoid}
+    h1,h2{break-after:avoid;page-break-after:avoid}
+    h2{margin-top:26px}
+    .instrucao{margin-bottom:26px}
+    /* Uma pergunta por página, de propósito: quem vai responder lê uma coisa de
+       cada vez, e as duas opções ficam lado a lado sem concorrer com a seguinte. */
+    h2.quebra,.pergunta ~ .pergunta{break-before:page;page-break-before:always}
+    .pergunta{margin-bottom:0}
+    footer{margin-top:30px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Faturamento: 5 perguntas, duas respostas cada</h1>
+<p class="sub">Para a Letícia Brites (financeiro). Cada pergunta é sobre como o trabalho
+acontece hoje — não sobre o sistema. Basta olhar os dois desenhos e dizer qual é o seu caso.</p>
+
+<div class="instrucao">
+  <b>Como responder</b>
+  Responda só com a letra: <b style="display:inline">1-A, 2-B, 3-A…</b> Se nenhuma das opções for
+  o seu caso, escreva numa frase o que acontece de verdade. As respostas decidem o que vamos
+  construir — enquanto elas não chegam, nada é feito, para não fazer errado e refazer.
+</div>
+
+<h2>Onde estamos hoje</h2>
+<div class="estado">
+
+  <div class="painel pronto">
+    <div class="topo">Já está pronto e no ar</div>
+    <ul>
+      <li>Serviço contratado e as datas <small>emissão, início e fim</small></li>
+      <li>Produtos contratados <small>com as horas de cada um</small></li>
+      <li>Observação da OS <small>o texto que já é digitado hoje na OS</small></li>
+      <li>Contribuinte da OS <small>nome, CPF/CNPJ, inscrição estadual e telefone</small></li>
+      <li>Endereço de cobrança</li>
+      <li>Contato do cliente <small>nome, cargo, e-mail e telefone do representante</small></li>
+      <li>Valores do contrato <small>valor, nº de parcelas, entrada, valor da parcela, reembolso de km e de refeição</small></li>
+      <li>Empresa de faturamento e rateio por centro de custo <small>sem limite de linhas, e só salva fechando 100%</small></li>
+    </ul>
+    <p class="pe">Abra <code>/equipe/adm-fin/dashboard</code> e clique numa OS para conferir.</p>
+  </div>
+
+  <div class="painel falta">
+    <div class="topo">Ainda não existe — e depende das respostas</div>
+    <ul>
+      <li>Parcela com vencimento e competência <small>hoje o sistema guarda “4 parcelas”, e não sabe quando cada uma vence nem se já foi faturada → <b>pergunta 1</b></small></li>
+      <li>Texto que vai na nota <small>hoje só existe a observação da OS, uma só para o contrato inteiro → <b>pergunta 2</b></small></li>
+      <li>Mais de um CPF/CNPJ na mesma OS <small>hoje a OS aceita um contribuinte só → <b>perguntas 3 e 4</b></small></li>
+      <li>Reembolso de água, pedágio e o que mais vier <small>hoje existem duas colunas fixas: km e refeição → <b>pergunta 5</b></small></li>
+    </ul>
+    <p class="pe">Os quatro mexem no banco de dados. Por isso as perguntas vêm antes.</p>
+  </div>
+
+</div>
+
+<h2 class="quebra">As 5 perguntas</h2>
+
+<!-- 1 -->
+<div class="pergunta">
+  <div class="enunciado">
+    <div class="numero">1</div>
+    <div>
+      <h3>A nota mensal vence sempre no mesmo dia?</h3>
+      <p>Pense num contrato faturado todo mês. O dia do vencimento é sempre o mesmo, ou cada
+      parcela tem uma data combinada à parte?</p>
+    </div>
+  </div>
+  <div class="opcoes">
+
+    <div class="opcao">
+      <div class="marca"><span class="letra">A</span><strong>Sempre o mesmo dia</strong></div>
+      <div class="quadro">
+        <table>
+          <tr><th>Parcela</th><th>Competência</th><th>Vencimento</th></tr>
+          <tr><td>1</td><td>09/2026</td><td class="olhe">10/09/2026</td></tr>
+          <tr><td>2</td><td>10/2026</td><td class="olhe">10/10/2026</td></tr>
+          <tr><td>3</td><td>11/2026</td><td class="olhe">10/11/2026</td></tr>
+          <tr><td>4</td><td>12/2026</td><td class="olhe">10/12/2026</td></tr>
+        </table>
+      </div>
+      <p class="consequencia">Combina-se <b>dia 10</b> uma vez no contrato e o sistema gera as
+      datas sozinho.</p>
+    </div>
+
+    <div class="opcao">
+      <div class="marca"><span class="letra">B</span><strong>Cada parcela tem a data dela</strong></div>
+      <div class="quadro">
+        <table>
+          <tr><th>Parcela</th><th>Competência</th><th>Vencimento</th></tr>
+          <tr><td>1</td><td>09/2026</td><td class="olhe">10/09/2026</td></tr>
+          <tr><td>2</td><td>10/2026</td><td class="olhe">25/10/2026</td></tr>
+          <tr><td>3</td><td>11/2026</td><td class="olhe">05/11/2026</td></tr>
+          <tr><td>4</td><td>12/2026</td><td class="olhe">20/12/2026</td></tr>
+        </table>
+      </div>
+      <p class="consequencia">O dia fixo do contrato <b>não existe</b>: a data é digitada parcela
+      por parcela.</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- 2 -->
+<div class="pergunta">
+  <div class="enunciado">
+    <div class="numero">2</div>
+    <div>
+      <h3>O texto que vai na nota muda de um mês para o outro?</h3>
+      <p>É a observação que precisa sair impressa na NF: descrição do serviço, número da OC do
+      cliente, inscrição estadual, número do processo.</p>
+    </div>
+  </div>
+  <div class="opcoes">
+
+    <div class="opcao">
+      <div class="marca"><span class="letra">A</span><strong>É sempre o mesmo texto</strong></div>
+      <div class="quadro">
+        <table>
+          <tr><th>Competência</th><th>Texto da nota</th></tr>
+          <tr><td>01/2026</td><td class="olhe">Serviços de Auditoria 2026</td></tr>
+          <tr><td>02/2026</td><td class="olhe">Serviços de Auditoria 2026</td></tr>
+          <tr><td>03/2026</td><td class="olhe">Serviços de Auditoria 2026</td></tr>
+        </table>
+      </div>
+      <p class="consequencia">Escreve-se <b>uma vez na OS</b> e se repete em toda nota daquele
+      contrato.</p>
+    </div>
+
+    <div class="opcao">
+      <div class="marca"><span class="letra">B</span><strong>Muda a cada nota</strong></div>
+      <div class="quadro">
+        <table>
+          <tr><th>Competência</th><th>Texto da nota</th></tr>
+          <tr><td>01/2026</td><td class="olhe">Honorários ref. Processo 1002345-67</td></tr>
+          <tr><td>02/2026</td><td class="olhe">OC 44821 · Insc. Est. 13.204.558-9</td></tr>
+          <tr><td>03/2026</td><td class="olhe">OC 45990</td></tr>
+        </table>
+      </div>
+      <p class="consequencia">O texto é <b>digitado mês a mês</b>, junto de cada parcela.</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- 3 -->
+<div class="pergunta">
+  <div class="enunciado">
+    <div class="numero">3</div>
+    <div>
+      <h3>Quando a mesma OS é faturada em dois CPF/CNPJ, como se divide o valor?</h3>
+      <p>Exemplo: R$ 10.000,00 no mês, faturados para a empresa e para uma pessoa física do mesmo
+      grupo.</p>
+    </div>
+  </div>
+  <div class="opcoes tres">
+
+    <div class="opcao">
+      <div class="marca"><span class="letra">A</span><strong>Por percentual</strong></div>
+      <div class="quadro">
+        <table>
+          <tr><th>Quem recebe a nota</th><th class="num">Divisão</th><th class="num">Valor</th></tr>
+          <tr><td>Empresa (CNPJ)</td><td class="num olhe">60%</td><td class="num">R$ 6.000,00</td></tr>
+          <tr><td>Maria (CPF)</td><td class="num olhe">40%</td><td class="num">R$ 4.000,00</td></tr>
+        </table>
+      </div>
+      <p class="consequencia">Combina-se o <b>percentual</b>, e o sistema calcula o valor de cada
+      nota.</p>
+    </div>
+
+    <div class="opcao">
+      <div class="marca"><span class="letra">B</span><strong>Por valor fixo</strong></div>
+      <div class="quadro">
+        <table>
+          <tr><th>Quem recebe a nota</th><th class="num">Valor combinado</th></tr>
+          <tr><td>Empresa (CNPJ)</td><td class="num olhe">R$ 6.000,00</td></tr>
+          <tr><td>Maria (CPF)</td><td class="num olhe">R$ 4.000,00</td></tr>
+        </table>
+      </div>
+      <p class="consequencia">Digita-se o <b>valor</b> de cada um, e ele não se recalcula quando o
+      valor do projeto muda.</p>
+    </div>
+
+    <div class="opcao">
+      <div class="marca"><span class="letra">C</span><strong>Uma nota por serviço</strong></div>
+      <div class="quadro">
+        <table>
+          <tr><th>Serviço</th><th>Vai na nota de</th></tr>
+          <tr><td class="olhe">Consultoria tributária</td><td>Empresa (CNPJ)</td></tr>
+          <tr><td class="olhe">Planejamento sucessório</td><td>Maria (CPF)</td></tr>
+        </table>
+      </div>
+      <p class="consequencia">A divisão vem do <b>serviço</b>, não de um número digitado.</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- 4 -->
+<div class="pergunta">
+  <div class="enunciado">
+    <div class="numero">4</div>
+    <div>
+      <h3>Essa Maria, que recebe a nota, já é cadastro nosso?</h3>
+      <p>É o caso que você citou: o projeto é do João, mas a nota sai para a Maria e para a Joana.
+      A pergunta é se elas já aparecem no cadastro daquele cliente.</p>
+    </div>
+  </div>
+  <div class="opcoes">
+
+    <div class="opcao">
+      <div class="marca"><span class="letra">A</span><strong>Sim, já está na lista do cliente</strong></div>
+      <div class="quadro">
+        <table>
+          <tr><th>Contribuintes do cliente “Grupo João”</th></tr>
+          <tr><td>João Souza (CPF)</td></tr>
+          <tr><td>Souza Agropecuária Ltda (CNPJ)</td></tr>
+          <tr><td class="olhe">Maria Souza (CPF)</td></tr>
+          <tr><td class="olhe">Joana Souza (CPF)</td></tr>
+        </table>
+      </div>
+      <p class="consequencia">Mudança <b>pequena</b>: basta a OS deixar escolher mais de um da
+      lista que já existe.</p>
+    </div>
+
+    <div class="opcao">
+      <div class="marca"><span class="letra">B</span><strong>Não, ela é de fora</strong></div>
+      <div class="quadro">
+        <table>
+          <tr><th>Contribuintes do cliente “Grupo João”</th></tr>
+          <tr><td>João Souza (CPF)</td></tr>
+          <tr><td>Souza Agropecuária Ltda (CNPJ)</td></tr>
+          <tr><td class="fraco">— a Maria não aparece aqui —</td></tr>
+        </table>
+      </div>
+      <p class="consequencia">Mudança <b>grande</b>: hoje cada contribuinte pertence a um cliente
+      só, e isso teria de mudar no cadastro.</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- 5 -->
+<div class="pergunta">
+  <div class="enunciado">
+    <div class="numero">5</div>
+    <div>
+      <h3>O reembolso é valor combinado no contrato, ou lançado quando a despesa acontece?</h3>
+      <p>Vale para km, refeição, pedágio, água e o que mais existir.</p>
+    </div>
+  </div>
+  <div class="opcoes">
+
+    <div class="opcao">
+      <div class="marca"><span class="letra">A</span><strong>Valor combinado no contrato</strong></div>
+      <div class="quadro">
+        <table>
+          <tr><th>Tipo</th><th class="num">Valor</th><th>Entra</th></tr>
+          <tr><td>Quilometragem</td><td class="num">R$ 2,10 / km</td><td class="olhe">todo mês</td></tr>
+          <tr><td>Refeição</td><td class="num">R$ 60,00</td><td class="olhe">todo mês</td></tr>
+          <tr><td>Pedágio</td><td class="num">R$ 48,00</td><td class="olhe">todo mês</td></tr>
+          <tr><td>Água</td><td class="num">R$ 12,00</td><td class="olhe">todo mês</td></tr>
+        </table>
+      </div>
+      <p class="consequencia">Fica <b>na OS</b>, como hoje — só deixa de ser duas colunas fixas e
+      vira uma lista de tipos.</p>
+    </div>
+
+    <div class="opcao">
+      <div class="marca"><span class="letra">B</span><strong>Lançado quando a despesa acontece</strong></div>
+      <div class="quadro">
+        <table>
+          <tr><th>Data</th><th>Tipo</th><th class="num">Valor</th><th>Comprovante</th></tr>
+          <tr><td class="olhe">12/09</td><td>Pedágio</td><td class="num">R$ 48,00</td><td class="fraco">foto</td></tr>
+          <tr><td class="olhe">12/09</td><td>Água</td><td class="num">R$ 12,00</td><td class="fraco">foto</td></tr>
+          <tr><td class="olhe">28/09</td><td>Quilometragem</td><td class="num">R$ 189,00</td><td class="fraco">—</td></tr>
+        </table>
+      </div>
+      <p class="consequencia">Precisa de <b>outra tela</b>, de lançamento por viagem, e o valor da
+      nota passa a depender do que foi lançado no mês.</p>
+    </div>
+
+  </div>
+</div>
+
+<h2 class="quebra">Mais duas, rápidas</h2>
+
+<div class="curta">
+  <h3>6. Para qual e-mail a nota é enviada?</h3>
+  <p>Hoje o sistema guarda o e-mail do <b>representante do cliente</b> (a pessoa). O contribuinte
+  (a empresa) não tem campo de e-mail.</p>
+  <div class="escolhas">
+    <span class="chip">A — o e-mail da empresa</span>
+    <span class="chip">B — o e-mail de uma pessoa do financeiro do cliente</span>
+    <span class="chip">C — mais de um, sempre</span>
+  </div>
+</div>
+
+<div class="curta">
+  <h3>7. Se der para entregar só uma coisa primeiro, qual ajuda mais?</h3>
+  <p>As duas são grandes e não saem juntas. Escolher uma destrava a sua rotina antes.</p>
+  <div class="escolhas">
+    <span class="chip">A — parcelas com vencimento e competência</span>
+    <span class="chip">B — faturar a mesma OS em mais de um CPF/CNPJ</span>
+  </div>
+</div>
+
+<footer>
+  Feito em 16/09/2026, a partir das perguntas enviadas em 15/09. O desenho das telas com tudo
+  isso funcionando está em <code>prototipo-faturamento.html</code>; a análise escrita, com os
+  números de produção e o tamanho de cada mudança, em
+  <code>docs/planos/faturamento-pedido-do-financeiro.md</code>.
+</footer>
+
+</div>
+</body>
+</html>

@@ -164,7 +164,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // =============================================
   {
     page_path: '/equipe/dev',
-    page_name: 'Dev Dashboard',
+    page_name: 'Ferramentas Digital Dev',
     page_description: 'Painel de desenvolvimento',
     category: 'dev',
     requires_admin: false,
@@ -196,7 +196,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/consulta-sped',
-    page_name: 'Consulta SPED',
+    page_name: 'Consulta de arquivos SPED',
     page_description:
       'Area de acesso as consultas e analises do Sistema Publico de Escrituracao Digital',
     category: 'dev',
@@ -221,7 +221,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/consulta-ecd',
-    page_name: 'Consulta ECD',
+    page_name: 'ECD',
     page_description: 'Consulta de arquivos ECD',
     category: 'dev',
     requires_admin: false,
@@ -229,7 +229,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/consulta-ecf',
-    page_name: 'Consulta ECF',
+    page_name: 'ECF',
     page_description: 'Consulta de arquivos ECF',
     category: 'dev',
     requires_admin: false,
@@ -261,7 +261,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/levantamento-pis-cofins',
-    page_name: 'Area Levantamento PIS/COFINS',
+    page_name: 'Levantamento PIS/COFINS',
     page_description:
       'Area de acesso as ferramentas de parametrizacao, apuracao, auditoria e revisao do levantamento de creditos de PIS e COFINS',
     category: 'dev',
@@ -270,7 +270,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/perdcomp',
-    page_name: 'Area PERDCOMP',
+    page_name: 'PERDCOMP',
     page_description:
       'Area de acesso ao painel analitico e ao controle operacional dos pedidos de restituicao e compensacao',
     category: 'dev',
@@ -287,7 +287,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/analise-icms',
-    page_name: 'Area Analise ICMS',
+    page_name: 'Análise de ICMS',
     page_description:
       'Area de acesso a apuracao de saidas e a auditoria de classificacao para diferencial de aliquota',
     category: 'dev',
@@ -312,7 +312,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/controle-balancetes',
-    page_name: 'Controle Balancetes',
+    page_name: 'Controle de Balancetes',
     page_description: 'Gerenciamento de balancetes',
     category: 'dev',
     requires_admin: false,
@@ -344,7 +344,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/mapa-ncm-pis-cofins',
-    page_name: 'Mapa NCM PIS/COFINS',
+    page_name: 'Mapa NCM',
     page_description: 'Gerenciamento de regras fiscais NCM para PIS/COFINS',
     category: 'dev',
     requires_admin: false,
@@ -360,7 +360,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/correcoes-sped',
-    page_name: 'Correções no SPED',
+    page_name: 'Correções na EFD Contribuições',
     page_description: 'Revisão de notas e itens EFD vs XML para correções',
     category: 'dev',
     requires_admin: false,
@@ -504,7 +504,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/tax/dashboard',
     page_name: 'Tax Dashboard',
-    page_description: 'Painel principal da área Tax',
+    page_description: 'Acompanhe os principais indicadores operacionais da área Tax em tempo real',
     category: 'tax',
     requires_admin: false,
     requires_team_member: true,
@@ -544,7 +544,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/tax/projetos/clientes',
     page_name: 'Tax Clientes',
-    page_description: 'Cadastros de clientes da área Tax',
+    page_description: 'Consulte e gerencie os cadastros de clientes e contribuintes',
     category: 'tax',
     requires_admin: false,
     requires_team_member: true,
@@ -571,7 +571,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // de hoje copiadas, para ninguém perder a tela na virada.
   {
     page_path: '/equipe/tax/gerencial/chamados',
-    page_name: 'Gestão de Chamados (Tax)',
+    page_name: 'Lista de Chamados (Tax)',
     page_description: 'Lista e gestão dos chamados dos clientes (somente líder+)',
     category: 'tax',
     requires_admin: false,
@@ -579,7 +579,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/tax/gerencial/chamados/dashboard',
-    page_name: 'Dashboard de Chamados (Tax)',
+    page_name: 'Indicadores de Chamados (Tax)',
     page_description: 'Panorama de chamados: KPIs, prazos e rankings (somente líder+)',
     category: 'tax',
     requires_admin: false,
@@ -640,6 +640,15 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     page_path: '/equipe/osg/projetos/cadastro-lote',
     page_name: 'OSG Criar Projetos em Lote',
     page_description: 'Criação de projetos em lote a partir de uma ordem de serviço',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/osg/projetos/controle',
+    page_name: 'Controle de Projetos OSG',
+    page_description:
+      'Onde cada cliente está, uma linha por ordem de serviço (substitui a planilha Relação de Projetos)',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,
@@ -777,7 +786,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // Chamados dentro do dropdown Gerencial da OSG. Ver a observação da Tax.
   {
     page_path: '/equipe/osg/gerencial/chamados',
-    page_name: 'Gestão de Chamados (OSG)',
+    page_name: 'Lista de Chamados (OSG)',
     page_description: 'Lista e gestão dos chamados dos clientes (somente líder+)',
     category: 'osg',
     requires_admin: false,
@@ -785,7 +794,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/osg/gerencial/chamados/dashboard',
-    page_name: 'Dashboard de Chamados (OSG)',
+    page_name: 'Indicadores de Chamados (OSG)',
     page_description: 'Panorama de chamados: KPIs, prazos e rankings (somente líder+)',
     category: 'osg',
     requires_admin: false,
@@ -970,6 +979,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     page_path: '/equipe/adm-fin/clientes',
     page_name: 'Clientes (Adm & Fin)',
     page_description: 'Cadastros de clientes e contribuintes, sem recorte de cluster',
+    category: 'adm_fin',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/adm-fin/dashboard',
+    page_name: 'Dashboard (Adm & Fin)',
+    page_description: 'Ordens de servico na ordem de entrada, com os dados de faturamento',
     category: 'adm_fin',
     requires_admin: false,
     requires_team_member: true,

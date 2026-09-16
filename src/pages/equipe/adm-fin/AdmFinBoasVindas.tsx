@@ -1,4 +1,4 @@
-import { ChevronRight, Users } from 'lucide-react';
+import { ChevronRight, LayoutDashboard, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { AdmFinLayout } from '@/components/equipe/adm-fin/AdmFinLayout';
@@ -7,9 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 /**
  * Porta de entrada da Adm & Fin, no padrão do `FiscalBoasVindas`.
  *
- * Um cartão só, e isso é estado do mundo, não descuido: a área nasce com a tela
- * de Clientes. A de Controle de Faturamento entra aqui quando existir, e o
- * grid já está em três colunas para recebê-la.
+ * Dois cartões, e isso é estado do mundo, não descuido: a área nasceu com a tela
+ * de Clientes e ganhou o Dashboard em 15/09/2026. A de Controle de Faturamento
+ * entra aqui quando existir, e o grid já está em três colunas para recebê-la.
  */
 
 interface FerramentaAdmFin {
@@ -21,6 +21,14 @@ interface FerramentaAdmFin {
 }
 
 const FERRAMENTAS: FerramentaAdmFin[] = [
+  {
+    id: 'dashboard',
+    titulo: 'Dashboard',
+    descricao:
+      'As OS na ordem em que entraram, com cliente, contribuinte, endereço de cobrança, valores e rateio de cada uma.',
+    path: '/equipe/adm-fin/dashboard',
+    icon: <LayoutDashboard className="h-5 w-5 text-primary" />,
+  },
   {
     id: 'clientes',
     titulo: 'Clientes',
