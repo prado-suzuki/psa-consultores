@@ -13,7 +13,7 @@ import { useDomainOsgControleProjetos } from '@/hooks/useDomainOsgControleProjet
 import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController';
 import {
   FILTROS_VAZIOS,
-  ORDEM_PADRAO,
+  ORDEM_INICIAL,
   GRUPO_SEM_PROJETO,
   agruparPorExecutor,
   filtrarControle,
@@ -56,7 +56,10 @@ const OsgControleProjetos = () => {
   // próprio aqui seria uma segunda verdade sobre `org_projects`.
   const projetos = useProjetosCadastroController('osg');
   const [filtros, setFiltros] = useState<FiltrosDoControle>(FILTROS_VAZIOS);
-  const [ordem, setOrdem] = useState<OrdemDoControle>(ORDEM_PADRAO);
+  // Abre por Data Fim, o prazo mais próximo em cima de cada grupo. O terceiro
+  // clique num cabeçalho volta para a ordem de referência (cliente, área,
+  // produto), que é outra coisa — ver `ORDEM_INICIAL`.
+  const [ordem, setOrdem] = useState<OrdemDoControle>(ORDEM_INICIAL);
 
   const visiveis = useMemo(
     () => ordenarControle(filtrarControle(linhas, filtros), ordem),

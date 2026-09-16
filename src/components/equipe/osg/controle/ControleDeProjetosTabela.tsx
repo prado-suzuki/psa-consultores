@@ -111,9 +111,12 @@ function Prazo({ linha }: { linha: LinhaDoControle }) {
 /**
  * A descrição do projeto, a mesma que o modal edita.
  *
- * Cortada em duas linhas com o texto inteiro no tooltip: é campo livre, e
+ * Cortada em três linhas com o texto inteiro no tooltip: é campo livre, e
  * deixá-la crescer faria uma linha de descrição longa empurrar a altura de todas
- * as outras nove colunas. Produto sem projeto cai no traço junto com o projeto
+ * as outras nove colunas. Três e não duas porque a coluna Cliente já usa as três
+ * ("[TESTE] Dinossauro Aposentado Previdência e Fósseis Ltda" quebra em três
+ * linhas), então a descrição cresce dentro da altura que a linha já tem.
+ * Produto sem projeto cai no traço junto com o projeto
  * de descrição vazia — os dois estados já se distinguem na coluna Status, e
  * repetir a distinção aqui só encheria a célula.
  */
@@ -122,7 +125,7 @@ function Descricao({ linha }: { linha: LinhaDoControle }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="line-clamp-2 cursor-default whitespace-normal break-words text-left">
+        <span className="line-clamp-3 cursor-default whitespace-normal break-words text-left">
           {linha.descricao}
         </span>
       </TooltipTrigger>

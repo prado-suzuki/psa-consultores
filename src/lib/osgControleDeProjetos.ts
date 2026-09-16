@@ -410,6 +410,25 @@ export interface OrdemDoControle {
 export const ORDEM_PADRAO: OrdemDoControle = { campo: 'padrao', ascendente: true };
 
 /**
+ * A ordem em que a tela ABRE: Data Fim crescente, o prazo mais próximo em cima.
+ *
+ * Não é a mesma coisa que `ORDEM_PADRAO`, e as duas precisam existir separadas.
+ * `ORDEM_PADRAO` é para onde o TERCEIRO clique num cabeçalho volta — cliente,
+ * área desta página, produto —, que continua sendo a leitura de referência da
+ * tabela. Esta é só o estado inicial.
+ *
+ * Por que o prazo abre na frente: a tela é lida por grupo de executor, e dentro
+ * do grupo a pergunta é "o que vence primeiro", não "qual cliente vem antes no
+ * alfabeto". Como a ordenação é global e o agrupamento preserva a ordem que
+ * recebe, ordenar por prazo aqui já entrega cada grupo com o mais próximo do fim
+ * na primeira linha. O que já venceu sobe junto, porque está mais no passado que
+ * qualquer prazo futuro — e é justamente o que a coluna marca com o ⚠.
+ *
+ * Linha sem Data Fim continua por último dentro do grupo (ver `estaVazio`).
+ */
+export const ORDEM_INICIAL: OrdemDoControle = { campo: 'prazo', ascendente: true };
+
+/**
  * O próximo estado do clique num cabeçalho.
  *
  * Clicar numa coluna diferente recomeça o ciclo nela em vez de herdar o sentido

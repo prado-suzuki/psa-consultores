@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   FILTROS_VAZIOS,
+  ORDEM_INICIAL,
   ORDEM_PADRAO,
   GRUPO_SEM_PROJETO,
   GRUPO_SEM_RESPONSAVEL,
@@ -522,6 +523,17 @@ describe('ordenarControle', () => {
     ordenarControle(tres, { campo: 'prazo', ascendente: false });
     expect(tres.map((l) => l.chave)).toEqual(antes);
   });
+
+  it('a ordem INICIAL da tela é o prazo crescente, e não a de referência', () => {
+    // As duas constantes existem separadas de propósito: esta é como a tela
+    // abre, `ORDEM_PADRAO` é para onde o terceiro clique volta.
+    expect(ORDEM_INICIAL).toEqual({ campo: 'prazo', ascendente: true });
+    expect(ordenarControle(tres, ORDEM_INICIAL).map((l) => l.dataFim)).toEqual([
+      '2026-06-30',
+      '2026-12-30',
+      null,
+    ]);
+  });
 });
 
 describe('agruparPorExecutor', () => {
@@ -573,6 +585,32 @@ describe('agruparPorExecutor', () => {
       'Elvis Souza:2',
       'Monica Matunaga:1',
     ]);
+  });
+
+  it('dentro do grupo, o prazo mais próximo fica na primeira linha', () => {
+    // É o que a tela entrega ao abrir, e ela só entrega porque o agrupamento
+    // PRESERVA a ordem que recebe. Agrupar reordenando quebraria isto sem
+    // quebrar nenhum teste de `ordenarControle`.
+    const doExecutor = montar(
+      [
+        ordem({ id: 'os-1', data_fim: '2027-06-30' }),
+        ordem({ id: 'os-2', numero_os: '097/2026', data_fim: '2026-10-05' }),
+        ordem({ id: 'os-3', numero_os: '098/2026', data_fim: null }),
+      ],
+      [
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-2', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-3', produto_segmento_id: 'p-gov' },
+      ],
+      [
+        projeto({ id: 'proj-1', ordem_servico_id: 'os-1' }),
+        projeto({ id: 'proj-2', ordem_servico_id: 'os-2' }),
+        projeto({ id: 'proj-3', ordem_servico_id: 'os-3' }),
+      ],
+    );
+    const grupos = agruparPorExecutor(ordenarControle(doExecutor, ORDEM_INICIAL));
+    expect(grupos[0].executor).toBe('Elvis Souza');
+    expect(grupos[0].linhas.map((l) => l.dataFim)).toEqual(['2026-10-05', '2027-06-30', null]);
   });
 
   it('conta clientes distintos e vencidas por grupo', () => {
