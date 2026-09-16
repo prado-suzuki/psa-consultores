@@ -37,28 +37,25 @@ import {
 type OrgaoRow = Database['public']['Tables']['orgao_governanca']['Row'];
 
 /**
- * As seis colunas de parametrização, da migration `20260911201231`.
+ * O ÓRGÃO COMO A TELA O LÊ: a linha do banco, com `genero` estreitado.
  *
- * DECLARADAS À MÃO porque o `types.ts` commitado na develop está atrasado em
- * relação às migrations dela e não as conhece. Regerar quebra código da Tax
- * (`useTaxReferenceData.ts`), que é fora deste escopo. Quando alguém reger,
- * este bloco some e `OrgaoGovernanca` volta a ser `OrgaoRow` puro.
+ * As seis colunas da migration `20260911201231` eram declaradas à mão aqui,
+ * porque o `types.ts` da develop estava atrasado e não as conhecia. Ele foi
+ * regenerado em `33ed57a8` e agora traz as seis — então a declaração paralela
+ * saiu, como o comentário antigo mandava. Cinco delas vêm do banco com o tipo
+ * certo e não precisam de nada.
  *
- * `Partial` na junção de propósito: a leitura não pode assumir que vieram, e
- * órgão cadastrado antes de 11/09 tem tudo nulo.
+ * `genero` é a exceção, e por isso sobra uma linha em vez de nenhuma: a coluna é
+ * `text` no Postgres, então o gerador a descreve como `string | null` e o banco
+ * não tem como dizer que só 'M' e 'F' valem. O modal
+ * (`OrgaoGovernancaModal.tsx`) guarda o campo como `'M' | 'F' | null` e decide a
+ * concordância da cláusula em cima disso; recebendo `string` ele para de
+ * compilar. Quem sustenta o par é a escrita, em `OrgaoGovernancaInput`, que só
+ * aceita os dois valores.
+ *
+ * Se um dia a coluna virar enum no banco, esta linha some junto com o `Omit`.
  */
-export interface ParametrizacaoDoOrgao {
-  /** 'M' ou 'F', para a cláusula concordar. Nulo é "ninguém disse ainda". */
-  genero: 'M' | 'F' | null;
-  membros_minimo: number | null;
-  membros_maximo: number | null;
-  mandato_anos: number | null;
-  cargos_do_orgao: string[] | null;
-  /** Identidade do padrão da OSG, que sobrevive a um rename. Não se digita. */
-  padrao_chave: string | null;
-}
-
-export type OrgaoGovernanca = OrgaoRow & Partial<ParametrizacaoDoOrgao>;
+export type OrgaoGovernanca = Omit<OrgaoRow, 'genero'> & { genero: 'M' | 'F' | null };
 
 export interface OrgaoGovernancaInput {
   nome: string;
@@ -94,7 +91,10 @@ async function buscarPorCliente(clienteId: string): Promise<OrgaoGovernanca[]> {
     .order('nome');
 
   if (error) throw error;
-  return data ?? [];
+  // O estreitamento de `genero` acontece AQUI, na fronteira, e não espalhado
+  // pelas telas: a coluna é `text` e o banco não promete os dois valores, mas
+  // quem escreve nela é só `OrgaoGovernancaInput`, que promete. Ver o tipo.
+  return (data ?? []) as OrgaoGovernanca[];
 }
 
 export function useOrgaosGovernanca(clienteId?: string | null) {
