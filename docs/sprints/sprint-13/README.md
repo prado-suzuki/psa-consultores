@@ -84,6 +84,12 @@ cliente órfão. O desfazer continua sem pegar.
 |---|---|---|---|
 | [8 A OS passa a ser editável de qualquer tela](TAREFA_os-editavel-de-qualquer-tela.md) | `ordem_servico` é gravada **num lugar só**, dentro do `useSaveClientTransaction` (1344 linhas), e não como hook de entidade: editar uma OS de outra tela hoje só duplicando a escrita. Extrai `useUpsertOrdemServico` e cria o `OrdemServicoModal` no molde do `PessoaModal`, que já é montado por **cinco** telas da OSG Work com uma escrita só. Cinco subtarefas, começando por teste de caracterização. **Rateio e produtos contratados entram no hook** (decidido em 16/09): ~233 linhas a extrair, e as duas amarras a travar antes são o `filhosDeOsAlterados` (ligado em 6 pontos, lido pelo "nada mudou" do cliente inteiro) e a reconciliação do rateio, que existe por um defeito de 100%→200%→300%. Raio medido: **1** arquivo escreve as três tabelas, 16 só leem, **1** componente monta o transaction. Nasceu do Controle de Projetos: OS sem data recusa a criação do projeto e obriga a ir ao cadastro do cliente e voltar. **O gatilho não é o volume** (2 de 84 OS da OSG sem data), **é a segunda tela pedindo a mesma coisa** | **Não.** Refatoração de código; schema e policies intactos, e a permissão continua sendo a RLS mais o `podeEditarCadastroCliente` | 🔵 ABERTO |
 
+## Faturamento: os campos novos da OS
+
+| Tarefa | Escopo | Banco? | Status |
+|---|---|---|---|
+| [9 Os campos novos da OS para o faturamento](TAREFA_faturamento-campos-novos-da-os.md) | As **quatro frentes** que sobraram da validação do financeiro em 15/09, depois de a tela já ter entregue tudo que existia no banco: parcela com **competência e vencimento** (16 das 155 OS são parceladas e ninguém sabe quando vencem), **texto que vai na NF**, **N contribuintes por OS** com regra de divisão (30 clientes já têm duas ou mais pessoas físicas cadastradas) e **reembolso por tipo** em tabela, no lugar das duas colunas fixas. Dois cuidados escritos na tarefa: o rateio por centro de custo **não** é a divisão da nota entre CNPJs do cliente (tabelas separadas), e a `os_parcela` é a **mesma tabela** da tarefa do ERP da Centro Oeste, onde o parcelamento são doze bits de mês — quem desenhar uma desenha a outra | Sim, **3 a 4 ⚠️ MIGRAÇÕES**, e duas delas mudam de forma conforme a resposta | ⛔ **Bloqueada nas 7 respostas da Letícia**, enviadas em 15/09. Perguntas desenhadas em [`planos/perguntas-faturamento-leticia.html`](../../planos/perguntas-faturamento-leticia.html) |
+
 ## Avisos de prazo de tarefa
 
 | Tarefa | Escopo | Banco? | Status |
