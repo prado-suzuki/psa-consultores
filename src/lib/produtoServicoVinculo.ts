@@ -114,20 +114,27 @@ export function agruparPorCluster<T extends ItemComCluster>(
 }
 
 /**
- * Divide os serviços visíveis entre "faltam vincular" e "já vinculados",
- * base das ações em lote (marcar/desmarcar tudo o que está na tela).
+ * Divide os serviços entre "já vinculados" e "faltam vincular", PRESERVANDO a
+ * ordem recebida dentro de cada lado.
+ *
+ * É o que põe os serviços do produto no topo da lista: a tela ordena pelo código
+ * e passa o resultado por aqui, e os dois lados saem como os dois blocos.
+ *
+ * O conjunto `vinculados` que decide não precisa ser o estado ao vivo do vínculo
+ * — na lista é, de propósito, um RETRATO do momento em que ela se assentou.
+ * Quem chama explica o porquê (`ProdutosServicosTab`).
  */
-export function separarVisiveisParaLote<T extends { id: string }>(
-  visiveis: T[],
-  vinculados: Set<string>,
-): { paraVincular: T[]; jaVinculados: T[] } {
+export function separarPorVinculo<T extends { id: string }>(
+  servicos: readonly T[],
+  vinculados: ReadonlySet<string>,
+): { jaVinculados: T[]; paraVincular: T[] } {
   const paraVincular: T[] = [];
   const jaVinculados: T[] = [];
-  for (const servico of visiveis) {
+  for (const servico of servicos) {
     if (vinculados.has(servico.id)) jaVinculados.push(servico);
     else paraVincular.push(servico);
   }
-  return { paraVincular, jaVinculados };
+  return { jaVinculados, paraVincular };
 }
 
 /* ───────────────────────────────────────────────────────────────────────

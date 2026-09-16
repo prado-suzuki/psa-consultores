@@ -18,6 +18,17 @@ tabela de contribuintes da OS; sem elas, nada de migration.
 O protótipo já está pronto para ela olhar:
 `http://localhost:8080/docs/planos/prototipo-faturamento.html`.
 
+**16/09/2026:** as perguntas ganharam uma página própria, para responder por letra —
+`http://localhost:8080/docs/planos/perguntas-faturamento-leticia.html`. É o mesmo conteúdo da
+seção "As perguntas para a Letícia", com cada pergunta reduzida a duas ou três opções
+desenhadas lado a lado (a diferença entre elas é a única coluna destacada), mais o quadro do
+que já está no ar contra o que depende de migration e de qual pergunta cada frente depende. O
+texto corrido continua aqui, que é onde moram os números; a página é o que se manda para ela.
+O quadro não aceita anexo em HTML, então a mesma página vira PDF (A4 deitada, uma pergunta por
+página, pelo `@media print` que está no próprio arquivo) em
+`G:\Drives compartilhados\PSA Digital\03_Clientes_Internos\PSA_Adm\Faturamento\`. O HTML é a
+fonte: mudou pergunta, gera o PDF de novo.
+
 ## Estado: parado aqui, por decisão (15/09/2026)
 
 **Entregue na tela**, sem migration: serviço, produtos com horas, observação da OS, datas de

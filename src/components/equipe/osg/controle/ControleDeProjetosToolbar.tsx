@@ -67,9 +67,9 @@ export function ControleDeProjetosToolbar({
           <Input
             value={filtros.busca}
             onChange={(evento) => setFiltros({ ...filtros, busca: evento.target.value })}
-            placeholder="Cliente, OS, produto ou observação"
+            placeholder="Cliente, OS, produto ou responsável"
             className="pl-9"
-            aria-label="Buscar por cliente, número da OS, produto ou observação"
+            aria-label="Buscar por cliente, número da OS, produto ou responsável"
           />
         </div>
 
@@ -77,12 +77,12 @@ export function ControleDeProjetosToolbar({
           value={filtros.area || 'all'}
           onValueChange={(valor) => setFiltros({ ...filtros, area: valor === 'all' ? '' : valor })}
         >
-          <SelectTrigger className="w-40" aria-label="Filtrar por área">
+          <SelectTrigger className="w-40" aria-label="Filtrar por área executora">
             <Building2 className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
-            <SelectValue placeholder="Área" />
+            <SelectValue placeholder="Área Executora" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas as áreas</SelectItem>
+            <SelectItem value="all">Todas as áreas executoras</SelectItem>
             {opcoes.areas.map((area) => (
               <SelectItem key={area} value={area}>
                 {area}

@@ -103,10 +103,13 @@ export function useAcordoDoCliente(clienteId?: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('acordo_quotistas')
-        .select(
-          '*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*),'
-          + ' acordo_signatario(*), acordo_sociedade_relacionada(*)',
-        )
+        // LITERAL ÚNICO, e não a concatenação em duas linhas que estava aqui: o
+        // `select` do supabase-js infere o tipo do retorno PARSEANDO a string em
+        // tempo de tipo, e `'a' + 'b'` chega ao parser como `string`, não como o
+        // literal. Sem o literal ele devolve `{ error: true } & String`, e as
+        // cinco relações somem do `data` — que era o TS2339 em cada uma delas,
+        // mais o TS2700 no rest do destructuring logo abaixo.
+        .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*), acordo_signatario(*), acordo_sociedade_relacionada(*)')
         .eq('cliente_id', clienteId as string)
         .eq('excluido', false)
         .order('versao', { ascending: false })

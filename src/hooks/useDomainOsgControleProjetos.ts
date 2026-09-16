@@ -65,13 +65,13 @@ export function useDomainOsgControleProjetos() {
       ] = await Promise.all([
           supabase
             .from('ordem_servico')
-            .select('id, numero_os, id_cliente, situacao, data_inicio, data_fim, observacoes, regiao'),
+            .select('id, numero_os, id_cliente, situacao, data_inicio, data_fim, regiao'),
           supabase.from('os_produtos_contratados').select('ordem_servico_id, produto_segmento_id'),
           supabase.from('produto_segmento').select('id, nome, cluster_id'),
           supabase
             .from('org_projects')
             .select(
-              'id, name, status, ordem_servico_id, produto_segmento_id, responsible_id, leader_id',
+              'id, name, status, ordem_servico_id, produto_segmento_id, responsible_id, leader_id, description',
             ),
           // `cliente` TEM a coluna `ambiente` e é filtrada na própria query, ao
           // contrário das outras quatro. A RLS ainda recorta por cluster.

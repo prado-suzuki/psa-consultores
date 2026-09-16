@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   FILTROS_VAZIOS,
+  ORDEM_INICIAL,
   ORDEM_PADRAO,
+  GRUPO_SEM_PROJETO,
+  GRUPO_SEM_RESPONSAVEL,
+  SEM_PROJETO,
   agruparPorExecutor,
   filtrarControle,
   montarControleDeProjetos,
@@ -52,7 +56,6 @@ function ordem(over: Partial<OrdemCrua> = {}): OrdemCrua {
     situacao: 'em_andamento',
     data_inicio: '2025-10-01',
     data_fim: '2026-12-30',
-    observacoes: null,
     regiao: 'BRA',
     ...over,
   };
@@ -67,6 +70,7 @@ function projeto(over: Partial<ProjetoDaOrdem> = {}): ProjetoDaOrdem {
     produto_segmento_id: 'p-gov',
     responsible_id: 'u-2',
     leader_id: 'u-1',
+    description: null,
     ...over,
   };
 }
@@ -166,6 +170,39 @@ describe('montarControleDeProjetos', () => {
     expect(linhas[0].executores).toEqual([]);
     expect(linhas[0].lideres).toEqual([]);
     expect(linhas[0].projetos).toBe(0);
+    expect(linhas[0].descricao).toBe('');
+  });
+
+  it('traz a descrição do projeto daquele produto', () => {
+    const linhas = montar(
+      [ordem()],
+      [
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-suc' },
+      ],
+      [
+        projeto({ id: 'proj-1', produto_segmento_id: 'p-gov', description: 'Revisar governança' }),
+        projeto({ id: 'proj-2', produto_segmento_id: 'p-suc', description: null }),
+      ],
+    );
+    expect(linhas.find((l) => l.produtoNome === 'Governança')?.descricao).toBe(
+      'Revisar governança',
+    );
+    expect(linhas.find((l) => l.produtoNome === 'Planejamento Sucessório')?.descricao).toBe('');
+  });
+
+  it('no par com dois projetos, vale a primeira descrição preenchida', () => {
+    // Descrição em branco no primeiro projeto não pode apagar a do segundo:
+    // concatenar as duas daria um parágrafo que não é de nenhum dos dois.
+    const linhas = montar(
+      [ordem()],
+      [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
+      [
+        projeto({ id: 'proj-1', description: '   ' }),
+        projeto({ id: 'proj-2', description: 'Diagnóstico societário' }),
+      ],
+    );
+    expect(linhas[0].descricao).toBe('Diagnóstico societário');
   });
 
   it('ignora projeto sem produto, em vez de pendurá-lo num produto qualquer', () => {
@@ -285,15 +322,15 @@ describe('statusLabel', () => {
 });
 
 describe('status do produto', () => {
-  it('herda o status da OS quando o produto não tem projeto', () => {
-    // Produto sem projeto numa OS suspensa está pausado; dizer "sem status"
-    // seria menos verdade que herdar.
+  it('NÃO herda o status da OS: produto sem projeto é "sem projeto"', () => {
+    // A primeira versão herdava, e escrevia "Ativo" num produto que ninguém
+    // abriu. Herdar parecia mais informativo e era menos verdadeiro.
     const linhas = montar(
-      [ordem({ situacao: 'suspenso' })],
+      [ordem({ situacao: 'em_andamento' })],
       [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
     );
-    expect(linhas[0].status).toBe('on_hold');
-    expect(linhas[0].statusDoProjeto).toBe(false);
+    expect(linhas[0].status).toBe(SEM_PROJETO);
+    expect(statusLabel(linhas[0].status)).toBe('Sem projeto');
   });
 
   it('usa o status do projeto quando ele existe', () => {
@@ -303,7 +340,6 @@ describe('status do produto', () => {
       [projeto({ status: 'completed' })],
     );
     expect(linhas[0].status).toBe('completed');
-    expect(linhas[0].statusDoProjeto).toBe(true);
   });
 
   it('não marca vencido o produto concluído dentro de uma OS vencida', () => {
@@ -336,7 +372,7 @@ describe('status do produto', () => {
 describe('filtrarControle', () => {
   const linhas = montar(
     [
-      ordem({ observacoes: 'Aguardando guia da Sefaz' }),
+      ordem(),
       ordem({
         id: 'os-2',
         id_cliente: 'c-2',
@@ -362,8 +398,9 @@ describe('filtrarControle', () => {
   });
 
   it('filtra por status', () => {
-    const achadas = filtrarControle(linhas, { ...FILTROS_VAZIOS, status: 'on_hold' });
-    expect(achadas.map((l) => l.clienteNome)).toEqual(['Anversa']);
+    // Nenhuma linha deste conjunto tem projeto, entao todas sao `sem_projeto`.
+    expect(filtrarControle(linhas, { ...FILTROS_VAZIOS, status: SEM_PROJETO })).toHaveLength(3);
+    expect(filtrarControle(linhas, { ...FILTROS_VAZIOS, status: 'active' })).toHaveLength(0);
   });
 
   it('filtra por região', () => {
@@ -379,8 +416,8 @@ describe('filtrarControle', () => {
     expect(filtrarControle(linhas, { ...FILTROS_VAZIOS, busca: 'DOMENICO' })).toHaveLength(2);
   });
 
-  it('busca dentro da observação, que é onde mora o motivo da parada', () => {
-    expect(filtrarControle(linhas, { ...FILTROS_VAZIOS, busca: 'sefaz' })).toHaveLength(2);
+  it('não acha o que não está em nenhuma das colunas buscadas', () => {
+    expect(filtrarControle(linhas, { ...FILTROS_VAZIOS, busca: 'sefaz' })).toHaveLength(0);
   });
 });
 
@@ -400,7 +437,7 @@ describe('opcoesDoControle', () => {
     const opcoes = opcoesDoControle(linhas);
     // BRA antes de MPT porque é assim em REGIAO_OPTIONS, não por ordem alfabética.
     expect(opcoes.regioes).toEqual(['BRA', 'MPT']);
-    expect(opcoes.statuses).toEqual(['Ativo', 'Pausado'].map((r) => (r === 'Ativo' ? 'active' : 'on_hold')));
+    expect(opcoes.statuses).toEqual([SEM_PROJETO]);
     expect(opcoes.areas).toEqual(['OSG', 'TAX']);
   });
 
@@ -486,6 +523,17 @@ describe('ordenarControle', () => {
     ordenarControle(tres, { campo: 'prazo', ascendente: false });
     expect(tres.map((l) => l.chave)).toEqual(antes);
   });
+
+  it('a ordem INICIAL da tela é o prazo crescente, e não a de referência', () => {
+    // As duas constantes existem separadas de propósito: esta é como a tela
+    // abre, `ORDEM_PADRAO` é para onde o terceiro clique volta.
+    expect(ORDEM_INICIAL).toEqual({ campo: 'prazo', ascendente: true });
+    expect(ordenarControle(tres, ORDEM_INICIAL).map((l) => l.dataFim)).toEqual([
+      '2026-06-30',
+      '2026-12-30',
+      null,
+    ]);
+  });
 });
 
 describe('agruparPorExecutor', () => {
@@ -509,9 +557,25 @@ describe('agruparPorExecutor', () => {
     ],
   );
 
-  it('põe o grupo sem responsável PRIMEIRO, porque é fila de delegação', () => {
+  it('separa "sem projeto aberto" de "projeto sem responsável"', () => {
+    // São ações diferentes: um precisa ser criado, o outro precisa de um campo.
+    const mistas = montar(
+      [ordem()],
+      [
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-suc' },
+      ],
+      [projeto({ produto_segmento_id: 'p-suc', responsible_id: null })],
+    );
+    const grupos = agruparPorExecutor(mistas);
+    expect(grupos.map((g) => g.executor)).toEqual([GRUPO_SEM_PROJETO, GRUPO_SEM_RESPONSAVEL]);
+    expect(grupos[0].linhas[0].produtoNome).toBe('Governança');
+    expect(grupos[1].linhas[0].produtoNome).toBe('Planejamento Sucessório');
+  });
+
+  it('põe os dois grupos sem gente PRIMEIRO, porque são o achado da tela', () => {
     const grupos = agruparPorExecutor(linhas);
-    expect(grupos[0].semResponsavel).toBe(true);
+    expect(grupos[0].semProjeto).toBe(true);
     expect(grupos[0].linhas).toHaveLength(1);
   });
 
@@ -521,6 +585,32 @@ describe('agruparPorExecutor', () => {
       'Elvis Souza:2',
       'Monica Matunaga:1',
     ]);
+  });
+
+  it('dentro do grupo, o prazo mais próximo fica na primeira linha', () => {
+    // É o que a tela entrega ao abrir, e ela só entrega porque o agrupamento
+    // PRESERVA a ordem que recebe. Agrupar reordenando quebraria isto sem
+    // quebrar nenhum teste de `ordenarControle`.
+    const doExecutor = montar(
+      [
+        ordem({ id: 'os-1', data_fim: '2027-06-30' }),
+        ordem({ id: 'os-2', numero_os: '097/2026', data_fim: '2026-10-05' }),
+        ordem({ id: 'os-3', numero_os: '098/2026', data_fim: null }),
+      ],
+      [
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-2', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-3', produto_segmento_id: 'p-gov' },
+      ],
+      [
+        projeto({ id: 'proj-1', ordem_servico_id: 'os-1' }),
+        projeto({ id: 'proj-2', ordem_servico_id: 'os-2' }),
+        projeto({ id: 'proj-3', ordem_servico_id: 'os-3' }),
+      ],
+    );
+    const grupos = agruparPorExecutor(ordenarControle(doExecutor, ORDEM_INICIAL));
+    expect(grupos[0].executor).toBe('Elvis Souza');
+    expect(grupos[0].linhas.map((l) => l.dataFim)).toEqual(['2026-10-05', '2027-06-30', null]);
   });
 
   it('conta clientes distintos e vencidas por grupo', () => {

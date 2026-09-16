@@ -49,8 +49,16 @@ interface Props {
    */
   produtos: ProdutoSegmento[];
   onSelecionarProduto: (produtoId: string) => void;
-  /** Serviços do cluster do produto, na ordem do código. É a lista principal. */
-  doCluster: ServicoNaLista[];
+  /**
+   * Os serviços que o produto JÁ tem, na ordem do código. Primeiro bloco.
+   *
+   * Quem decide o bloco é o retrato dos vínculos de quando a lista se assentou,
+   * e não a caixa marcada agora — o motivo está no `ProdutosServicosTab`. Daí a
+   * linha deste bloco poder aparecer desmarcada, e a de baixo marcada.
+   */
+  vinculados: ServicoNaLista[];
+  /** Os do cluster do produto que faltam vincular, na ordem do código. */
+  faltam: ServicoNaLista[];
   /** Serviços de outros clusters (e os sem cluster), na mesma ordem. */
   outrosClusters: ServicoNaLista[];
   mostrarOutros: boolean;
@@ -81,7 +89,7 @@ interface Props {
 }
 
 /**
- * Coluna central: os serviços do produto aberto, em UMA lista corrida.
+ * Coluna central: os serviços do produto aberto, em DOIS blocos corridos.
  *
  * Substituiu, em 27/08/2026, um agrupamento de dois níveis — cluster e, dentro
  * dele, "seção" — que a curadoria julgou mais difícil que a lista crua. O motivo
@@ -95,6 +103,11 @@ interface Props {
  *
  * · UMA lista, ordenada pelo código que já vem no nome ("1.1", "1.2", "2.1"…).
  *   A ordem faz o trabalho que o agrupamento tentava fazer, sem esconder nada.
+ *   Desde 16/09/2026 essa lista abre partida em DOIS blocos — "Vinculados" e
+ *   "Faltam vincular" —, porque num produto de 5 serviços num cluster de 40 os
+ *   cinco que interessam ficavam espalhados e só se achavam um a um. A ordem do
+ *   código continua valendo DENTRO de cada bloco, e o corte não é ao vivo: ele
+ *   se refaz no assentamento, para o clique na caixa não mover a linha.
  * · Por padrão só o CLUSTER DO PRODUTO. Os outros clusters ficam atrás de um
  *   botão no fim da lista — existem (há serviço sem cluster no catálogo), mas
  *   não é neles que se mexe.
@@ -113,7 +126,7 @@ interface Props {
  */
 export default function ServicosLista({
   produto, produtos, onSelecionarProduto,
-  doCluster, outrosClusters, mostrarOutros, onMostrarOutros,
+  vinculados, faltam, outrosClusters, mostrarOutros, onMostrarOutros,
   idsVisiveis, resumo, filtro, onFiltroChange,
   marcados, onMarcar, onLimparMarcados, servicoAbertoId, onAbrirServico,
   onLote, onAlternarVinculo, onNovo, onCopiarDeOutro, podeCopiar,
@@ -131,8 +144,8 @@ export default function ServicosLista({
   // "Visíveis" é literal: o que está na tela depois de busca, filtro e da
   // decisão de mostrar ou não os outros clusters.
   const visiveis = useMemo(
-    () => (mostrarOutros ? [...doCluster, ...outrosClusters] : doCluster),
-    [doCluster, outrosClusters, mostrarOutros],
+    () => [...vinculados, ...faltam, ...(mostrarOutros ? outrosClusters : [])],
+    [vinculados, faltam, outrosClusters, mostrarOutros],
   );
   const porId = useMemo(() => new Map(visiveis.map((s) => [s.id, s])), [visiveis]);
 
@@ -173,7 +186,7 @@ export default function ServicosLista({
   const restante = paraDesvincular.length - nomesDoAviso.length;
 
   /** A faixa de um serviço. Sai daqui duas vezes: cluster do produto e outros. */
-  const linha = (servico: ServicoNaLista, comCluster: boolean) => {
+  const linha = (servico: ServicoNaLista, comCluster: boolean, codigoAcima?: string | null) => {
     const aberto = servico.id === servicoAbertoId;
     const marcado = marcados.has(servico.id);
     const estado = {
@@ -199,8 +212,25 @@ export default function ServicosLista({
             aria-label={`${servico.vinculado ? 'Desvincular' : 'Vincular'} ${nome}`}
             onCheckedChange={() => onAlternarVinculo(servico)}
           />
+          {/*
+            O CÓDIGO SÓ APARECE QUANDO MUDA.
+
+            Nos dois catálogos ele é o mesmo prefixo lido do nome, mas significa
+            coisas diferentes (conferido em produção em 16/09/2026): na OSG os 40
+            serviços têm 40 códigos distintos — o código É o serviço, e aqui nada
+            muda, toda linha mostra o seu. No Tax os 82 se distribuem em 25
+            prefixos, o "1.1" cobre 8 serviços e 14 nomes não têm prefixo nenhum:
+            repetir "1.1" oito vezes, ou "—" quatorze, é uma coluna dizendo a
+            mesma coisa linha após linha.
+
+            Escondido, e não apagado: o espaço fica reservado (a largura é fixa),
+            os nomes seguem alinhados e o código volta a aparecer na primeira
+            linha do grupo seguinte — o que dá à lista a marcação de seção que as
+            sanfonas de "Seção 1" tentaram dar, sem cabeçalho e sem nada para
+            abrir. O `aria-label` da caixa nunca dependeu do código.
+          */}
           <span className="w-[46px] shrink-0 truncate text-center font-mono text-[11px] text-muted-foreground">
-            {codigo || '—'}
+            {codigo === codigoAcima ? '' : codigo || '—'}
           </span>
           <button
             type="button"
@@ -236,7 +266,44 @@ export default function ServicosLista({
     );
   };
 
-  const listaVazia = doCluster.length === 0 && (!mostrarOutros || outrosClusters.length === 0);
+  const listaVazia = visiveis.length === 0;
+
+  /**
+   * O rótulo de um bloco. Aparece só quando os DOIS blocos têm linha: com um
+   * bloco sozinho na tela — produto sem nenhum vínculo, filtro "Só vinculados",
+   * busca que sobrou um item — ele nomeia o óbvio e gasta uma linha.
+   *
+   * Sem número: o retrato que decide o bloco não se refaz a cada clique, então
+   * um "Vinculados (5)" ficaria brigando com a caixa que a pessoa acabou de
+   * marcar. Os contadores ao vivo já estão em dois lugares — o "5 de 40" do
+   * cabeçalho e o "x/y nesta lista" da faixa abaixo dele.
+   */
+  const comRotulos = vinculados.length > 0 && faltam.length > 0;
+
+  /**
+   * Um bloco de linhas. Cada uma recebe o código da linha ACIMA DELA para poder
+   * esconder o próprio quando é o mesmo — e cada bloco começa do zero, porque a
+   * primeira linha de um bloco não tem linha acima.
+   */
+  const blocoDeLinhas = (itens: ServicoNaLista[], comCluster: boolean) => (
+    <ul className="divide-y">
+      {itens.map((servico, i) => linha(
+        servico,
+        comCluster,
+        i === 0 ? undefined : dividirNomeServico(itens[i - 1].nome).codigo,
+      ))}
+    </ul>
+  );
+  const rotuloDeBloco = (texto: string, extra?: string) => (
+    <p
+      className={cn(
+        'px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground',
+        extra,
+      )}
+    >
+      {texto}
+    </p>
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -433,7 +500,23 @@ export default function ServicosLista({
                 : 'Nenhum serviço cadastrado neste cluster.'}
           </p>
         ) : (
-          <ul className="divide-y">{doCluster.map((servico) => linha(servico, false))}</ul>
+          <>
+            {/* O que o produto JÁ tem, no topo: é a pergunta com que se entra na
+                tela, e num cluster de 40 serviços ela não se responde varrendo
+                a lista atrás de caixa marcada. */}
+            {vinculados.length > 0 && (
+              <>
+                {comRotulos && rotuloDeBloco('Vinculados')}
+                {blocoDeLinhas(vinculados, false)}
+              </>
+            )}
+            {faltam.length > 0 && (
+              <>
+                {comRotulos && rotuloDeBloco('Faltam vincular', 'mt-2 border-t pt-2')}
+                {blocoDeLinhas(faltam, false)}
+              </>
+            )}
+          </>
         )}
 
         {/*
@@ -456,9 +539,7 @@ export default function ServicosLista({
                 ? `Ocultar os ${outrosClusters.length} serviços de outros clusters`
                 : `Ver ${outrosClusters.length} ${outrosClusters.length === 1 ? 'serviço' : 'serviços'} de outros clusters`}
             </Button>
-            {mostrarOutros && (
-              <ul className="divide-y">{outrosClusters.map((servico) => linha(servico, true))}</ul>
-            )}
+            {mostrarOutros && blocoDeLinhas(outrosClusters, true)}
           </div>
         )}
       </div>
