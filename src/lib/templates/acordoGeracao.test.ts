@@ -27,6 +27,29 @@ const blocos: Bloco[] = (blocosDoAcordo as BlocoDoArquivo[]).map((b, i) => ({
 
 const template: Template = { id: 'acordo', nome: 'Acordo de Quotistas', blocos };
 
+/**
+ * O contexto como a tela monta: os campos do acordo, a sociedade, as listas, e
+ * os CAMPOS LIVRES com '' quando ninguém digitou — que é o que a tela faz em
+ * `livresFonte[ph] ?? ''`. Sem eles o render levanta, porque placeholder
+ * ausente não é o mesmo que placeholder vazio.
+ */
+const contextoDe = (e: EntradaAcordo) => ({
+  acordo: camposDoAcordo(e),
+  sociedade: { razaoSocial: 'ABACAXI ELÉTRICO MINERAÇÃO E BALÉ S.A.' },
+  nomeCurtoDaEmpresa: 'ABACAXI',
+  substitutoDoRepresentante: '',
+  /*
+   * `administradores` vem da EMPRESA, e nao do acordo: e a lista que o
+   * contrato social ja usa no preambulo, e o Acordo a reaproveita para dizer
+   * quem representa a sociedade no ato. Aqui ela entra a mao; na tela, quem a
+   * carrega e o controller, a partir da empresa escolhida.
+   */
+  administradores: [
+    { administrador: { nome: 'SÉRGIO IGLESIAS' } },
+  ],
+  ...listasDoAcordo(e),
+});
+
 /** Um acordo cheio, como o cadastro entrega. */
 const ENTRADA: EntradaAcordo = {
   acordo: {
@@ -48,36 +71,35 @@ const ENTRADA: EntradaAcordo = {
 
 describe('a geração do Acordo de ponta a ponta', () => {
   it('gera o documento inteiro sem levantar', () => {
-    const contexto = {
-      acordo: camposDoAcordo(ENTRADA),
-      sociedade: { razaoSocial: 'ABACAXI ELÉTRICO MINERAÇÃO E BALÉ S.A.' },
-      ...listasDoAcordo(ENTRADA),
-    };
-    const saida = gerarDocumento(template, contexto);
+    const saida = gerarDocumento(template, contextoDe(ENTRADA));
     expect(saida.length).toBeGreaterThan(1000);
+    // O cliente do documento, e nunca o do modelo.
+    expect(saida).not.toContain('DUAL');
+    expect(saida).toContain('ABACAXI');
   });
 });
 
 describe('o caminho da TELA, que o teste de motor nao cobre', () => {
   const conteudoTodo = blocos.map((b) => b.conteudo).join('\n\n');
 
-  it('a deteccao de bindings nao acha papel nem secao desconhecida', () => {
-    // A tela roda isto sobre o modelo inteiro antes de montar os passos. Papel
-    // desconhecido vira campo livre que ela pede para digitar a mao.
+  it('a deteccao acha os papeis certos, e os manuais como campo livre', () => {
+    /*
+     * `desconhecidos` NAO e erro: e o mecanismo dos campos de topo. A tela
+     * transforma cada um num campo de texto livre e o preenche com '' quando
+     * vazio (`livresFonte[ph] ?? ''`), entao o render nao derruba. E o mesmo
+     * caminho da data de assinatura e das testemunhas.
+     */
     const d = detectarBindingsDeConteudo(conteudoTodo);
-    expect(d.desconhecidos, 'placeholder sem papel').toEqual([]);
-    expect(d.secoesDesconhecidas, 'secao sem papel').toEqual([]);
-    expect(d.bindings.map((b) => b.nome).sort()).toEqual(['acordo']);
+    expect(d.secoesDesconhecidas, 'secao sem papel some do Word inteira').toEqual([]);
+    expect(d.bindings.map((b) => b.nome).sort()).toEqual(['acordo', 'sociedade']);
+    expect(d.listas.map((l) => l.nome).sort()).toEqual(['administradores', 'quotistasSignatarios']);
+    expect([...d.desconhecidos].sort())
+      .toEqual(['nomeCurtoDaEmpresa', 'substitutoDoRepresentante']);
   });
 
   it('o docx sai sem levantar, com os 266 blocos', async () => {
     // `montarDocx` recebe os BLOCOS ja renderizados e numerados, nao o texto.
-    const contexto = {
-      acordo: camposDoAcordo(ENTRADA),
-      sociedade: { razaoSocial: 'ABACAXI ELÉTRICO MINERAÇÃO E BALÉ S.A.' },
-      ...listasDoAcordo(ENTRADA),
-    };
-    const prontos = gerarBlocos(template, contexto);
+    const prontos = gerarBlocos(template, contextoDe(ENTRADA));
     await expect(montarDocx(prontos)).resolves.toBeTruthy();
   });
 });
@@ -102,12 +124,7 @@ describe('o acordo VAZIO nao derruba a geracao', () => {
   };
 
   it('gera com o cadastro em branco, sem levantar', () => {
-    const contexto = {
-      acordo: camposDoAcordo(VAZIO),
-      sociedade: { razaoSocial: 'ABACAXI ELÉTRICO MINERAÇÃO E BALÉ S.A.' },
-      ...listasDoAcordo(VAZIO),
-    };
-    expect(() => gerarDocumento(template, contexto)).not.toThrow();
+    expect(() => gerarDocumento(template, contextoDe(VAZIO))).not.toThrow();
   });
 
   it('todo campo declarado chega ao contexto, nem que seja vazio', () => {

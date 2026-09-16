@@ -1760,6 +1760,16 @@ export const CAMPOS_MANUAIS: CampoEntidade[] = [
    * falhou no gênero do órgão.
    */
   { id: 'nomeCurtoDaEmpresa', label: 'Como o documento chama a empresa (ex.: DUAL)', tipo: 'texto', manual: true },
+  /*
+   * O SUBSTITUTO do representante dos quotistas, que o cadastro não guarda.
+   *
+   * O acordo nomeia um representante e, na falta dele, um segundo: "na falta
+   * ou incapacidade civil, a incumbência passará ao Sr. …". O cadastro tem UM
+   * campo de representante, e inventar o segundo sem medir nos acordos seria
+   * criar coluna por suposição. Manual, vira lacuna assinalável enquanto a
+   * consultoria não disser se o substituto é regra ou exceção.
+   */
+  { id: 'substitutoDoRepresentante', label: 'Substituto do representante dos quotistas', tipo: 'texto', manual: true },
   { id: 'testemunha1Nome', label: 'Testemunha 1 — nome', tipo: 'texto', manual: true },
   { id: 'testemunha1Cpf', label: 'Testemunha 1 — CPF', tipo: 'texto', manual: true },
   { id: 'testemunha1Rg', label: 'Testemunha 1 — RG', tipo: 'texto', manual: true },
