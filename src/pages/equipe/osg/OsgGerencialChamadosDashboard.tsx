@@ -3,7 +3,7 @@ import { ChamadosDashboardContent } from '@/pages/gestao/GestaoChamadosDashboard
 
 /** Dashboard de Chamados dentro da Gerencial da OSG. Ver a versão da Tax. */
 const OsgGerencialChamadosDashboard = () => (
-  <OsgLayout title="Dashboard de Chamados" subtitle="Panorama operacional, prazos e responsáveis">
+  <OsgLayout tela="chamadosIndicadores">
     <ChamadosDashboardContent listaPath="/equipe/osg/gerencial/chamados" />
   </OsgLayout>
 );

@@ -8,8 +8,7 @@ import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 const FiscalFeed = () => {
   return (
     <FiscalLayout
-      title="Feed"
-      subtitle="Acompanhe atualizações e conversas vinculadas aos seus projetos e tarefas."
+      tela="feed"
     >
       <FeedComentarios area="tax" />
     </FiscalLayout>

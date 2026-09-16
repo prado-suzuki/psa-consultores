@@ -3,7 +3,7 @@ import { GestaoClientesContent } from '@/pages/equipe/fiscal/GestaoClientes';
 
 const FiscalCadastrosClientes = () => {
   return (
-    <FiscalLayout title="Clientes" subtitle="Consulte e gerencie os cadastros de clientes e contribuintes.">
+    <FiscalLayout tela="clientes">
       <GestaoClientesContent />
     </FiscalLayout>
   );

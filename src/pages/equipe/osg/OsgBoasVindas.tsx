@@ -76,7 +76,7 @@ const OsgBoasVindas = () => {
   const ferramentas = FERRAMENTAS.filter((f) => !f.requiresLider || canGerencial);
 
   return (
-    <OsgLayout title="Bem-vindo à área OSG" subtitle="Escolha uma ferramenta para começar">
+    <OsgLayout tela="boasVindas">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {ferramentas.map((f) => (
           <Card

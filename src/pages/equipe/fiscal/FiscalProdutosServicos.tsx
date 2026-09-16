@@ -27,8 +27,7 @@ const FiscalProdutosServicos = () => {
 
   return (
     <FiscalLayout
-      title="Produtos & Serviços"
-      subtitle="Os serviços que cada produto gera em projeto novo"
+      tela="produtosServicos"
     >
       <ProdutosServicosTab clusterInicial={clusterId} />
     </FiscalLayout>

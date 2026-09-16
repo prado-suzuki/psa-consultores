@@ -21,7 +21,7 @@ const FiscalProjetosCadastro = () => {
   useTelaDeTrabalhoLargo();
 
   return (
-    <FiscalLayout title="Projetos e tarefas" subtitle="Acompanhe ordens de serviço, projetos, tarefas e subtarefas por status e responsável.">
+    <FiscalLayout tela="projetosETarefas">
       <PainelTarefas area="tax" />
     </FiscalLayout>
   );

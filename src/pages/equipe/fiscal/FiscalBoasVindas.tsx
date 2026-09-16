@@ -84,7 +84,7 @@ const FiscalBoasVindas = () => {
   const ferramentas = FERRAMENTAS.filter((f) => !f.requiresLider || canGerencial);
 
   return (
-    <FiscalLayout title="Bem-vindo à área Tax" subtitle="Escolha uma ferramenta para começar">
+    <FiscalLayout tela="boasVindas">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {ferramentas.map((f) => (
           <Card

@@ -9,7 +9,7 @@ import { ChamadoDetalheContent } from '@/pages/gestao/GestaoDetalhesChamado';
  * barra lateral trocava para a do Marketing no meio do fluxo.
  */
 const FiscalGerencialChamadoDetalhe = () => (
-  <FiscalLayout title="Detalhes do Chamado" subtitle="Chamado do cliente">
+  <FiscalLayout tela="chamadoDetalhe">
     <ChamadoDetalheContent listaPath="/equipe/tax/gerencial/chamados" />
   </FiscalLayout>
 );

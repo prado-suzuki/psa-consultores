@@ -786,7 +786,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // Chamados dentro do dropdown Gerencial da OSG. Ver a observação da Tax.
   {
     page_path: '/equipe/osg/gerencial/chamados',
-    page_name: 'Gestão de Chamados (OSG)',
+    page_name: 'Lista de Chamados (OSG)',
     page_description: 'Lista e gestão dos chamados dos clientes (somente líder+)',
     category: 'osg',
     requires_admin: false,
@@ -794,7 +794,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/osg/gerencial/chamados/dashboard',
-    page_name: 'Dashboard de Chamados (OSG)',
+    page_name: 'Indicadores de Chamados (OSG)',
     page_description: 'Panorama de chamados: KPIs, prazos e rankings (somente líder+)',
     category: 'osg',
     requires_admin: false,

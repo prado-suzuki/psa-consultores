@@ -2,7 +2,7 @@ import { AreaDashboardContent } from '@/components/equipe/area-dashboard/AreaDas
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 
 const FiscalDashboard = () => (
-  <FiscalLayout title="Dashboard" subtitle="Acompanhe os principais indicadores operacionais da área Tax em tempo real.">
+  <FiscalLayout tela="dashboard">
     <AreaDashboardContent area="tax" />
   </FiscalLayout>
 );
