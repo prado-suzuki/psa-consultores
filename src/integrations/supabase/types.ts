@@ -47,6 +47,369 @@ export type Database = {
         }
         Relationships: []
       }
+      acordo_ordem_preferencia: {
+        Row: {
+          acordo_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          ordem: number
+          quem: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acordo_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ordem?: number
+          quem: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acordo_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ordem?: number
+          quem?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acordo_ordem_preferencia_acordo_id_fkey"
+            columns: ["acordo_id"]
+            isOneToOne: false
+            referencedRelation: "acordo_quotistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      acordo_quorum: {
+        Row: {
+          acordo_id: string
+          base: string
+          chave: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          materia: string
+          ordem: number
+          percentual: number | null
+          tipo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acordo_id: string
+          base?: string
+          chave?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          materia: string
+          ordem?: number
+          percentual?: number | null
+          tipo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acordo_id?: string
+          base?: string
+          chave?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          materia?: string
+          ordem?: number
+          percentual?: number | null
+          tipo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acordo_quorum_acordo_id_fkey"
+            columns: ["acordo_id"]
+            isOneToOne: false
+            referencedRelation: "acordo_quotistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      acordo_quotistas: {
+        Row: {
+          assinado_em: string | null
+          camara_arbitral: string | null
+          cliente_id: string
+          consolida_composse: boolean
+          created_at: string
+          created_by: string | null
+          data_referencia: string | null
+          excluido: boolean
+          horizonte_fluxo_anos: number | null
+          id: string
+          juros_valor_subscrito: string | null
+          mecanismos: string[] | null
+          metodos_avaliacao: string[] | null
+          nao_concorrencia: boolean
+          nao_concorrencia_alcanca_parentes: boolean
+          nao_concorrencia_area: string | null
+          nao_concorrencia_multa: string | null
+          nao_concorrencia_prazo_anos: number | null
+          objetos_preferencia: string[] | null
+          opcao_compra_preco: string | null
+          opcao_compra_prevista: boolean
+          opcao_compra_quem: string | null
+          opcao_venda_prevista: boolean
+          prazo_balanco_dias: number | null
+          prazo_indicacao_arbitros_dias: number | null
+          prazo_sigilo_anos: number | null
+          regra_combinacao: string | null
+          representante_pessoa_id: string | null
+          reuniao_previa_obrigatoria: boolean
+          solucao_litigios: string | null
+          taxa_minima_crescimento: string | null
+          updated_at: string
+          updated_by: string | null
+          versao: number
+          vigencia_anos: number | null
+        }
+        Insert: {
+          assinado_em?: string | null
+          camara_arbitral?: string | null
+          cliente_id: string
+          consolida_composse?: boolean
+          created_at?: string
+          created_by?: string | null
+          data_referencia?: string | null
+          excluido?: boolean
+          horizonte_fluxo_anos?: number | null
+          id?: string
+          juros_valor_subscrito?: string | null
+          mecanismos?: string[] | null
+          metodos_avaliacao?: string[] | null
+          nao_concorrencia?: boolean
+          nao_concorrencia_alcanca_parentes?: boolean
+          nao_concorrencia_area?: string | null
+          nao_concorrencia_multa?: string | null
+          nao_concorrencia_prazo_anos?: number | null
+          objetos_preferencia?: string[] | null
+          opcao_compra_preco?: string | null
+          opcao_compra_prevista?: boolean
+          opcao_compra_quem?: string | null
+          opcao_venda_prevista?: boolean
+          prazo_balanco_dias?: number | null
+          prazo_indicacao_arbitros_dias?: number | null
+          prazo_sigilo_anos?: number | null
+          regra_combinacao?: string | null
+          representante_pessoa_id?: string | null
+          reuniao_previa_obrigatoria?: boolean
+          solucao_litigios?: string | null
+          taxa_minima_crescimento?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+          vigencia_anos?: number | null
+        }
+        Update: {
+          assinado_em?: string | null
+          camara_arbitral?: string | null
+          cliente_id?: string
+          consolida_composse?: boolean
+          created_at?: string
+          created_by?: string | null
+          data_referencia?: string | null
+          excluido?: boolean
+          horizonte_fluxo_anos?: number | null
+          id?: string
+          juros_valor_subscrito?: string | null
+          mecanismos?: string[] | null
+          metodos_avaliacao?: string[] | null
+          nao_concorrencia?: boolean
+          nao_concorrencia_alcanca_parentes?: boolean
+          nao_concorrencia_area?: string | null
+          nao_concorrencia_multa?: string | null
+          nao_concorrencia_prazo_anos?: number | null
+          objetos_preferencia?: string[] | null
+          opcao_compra_preco?: string | null
+          opcao_compra_prevista?: boolean
+          opcao_compra_quem?: string | null
+          opcao_venda_prevista?: boolean
+          prazo_balanco_dias?: number | null
+          prazo_indicacao_arbitros_dias?: number | null
+          prazo_sigilo_anos?: number | null
+          regra_combinacao?: string | null
+          representante_pessoa_id?: string | null
+          reuniao_previa_obrigatoria?: boolean
+          solucao_litigios?: string | null
+          taxa_minima_crescimento?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+          vigencia_anos?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acordo_quotistas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acordo_quotistas_representante_pessoa_id_fkey"
+            columns: ["representante_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      acordo_ramo_familiar: {
+        Row: {
+          acordo_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+          ordem: number
+          rotulo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acordo_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          rotulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acordo_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          rotulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acordo_ramo_familiar_acordo_id_fkey"
+            columns: ["acordo_id"]
+            isOneToOne: false
+            referencedRelation: "acordo_quotistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      acordo_signatario: {
+        Row: {
+          acordo_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          ordem: number
+          pessoa_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acordo_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ordem?: number
+          pessoa_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acordo_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ordem?: number
+          pessoa_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acordo_signatario_acordo_id_fkey"
+            columns: ["acordo_id"]
+            isOneToOne: false
+            referencedRelation: "acordo_quotistas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acordo_signatario_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      acordo_sociedade_relacionada: {
+        Row: {
+          acordo_id: string
+          created_at: string
+          created_by: string | null
+          empresa_pessoa_id: string
+          id: string
+          ordem: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acordo_id: string
+          created_at?: string
+          created_by?: string | null
+          empresa_pessoa_id: string
+          id?: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acordo_id?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_pessoa_id?: string
+          id?: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acordo_sociedade_relacionada_acordo_id_fkey"
+            columns: ["acordo_id"]
+            isOneToOne: false
+            referencedRelation: "acordo_quotistas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acordo_sociedade_relacionada_empresa_pessoa_id_fkey"
+            columns: ["empresa_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       administracao: {
         Row: {
           administrador_pessoa_id: string
@@ -10959,6 +11322,7 @@ export type Database = {
       }
     }
     Functions: {
+      acordo_visivel_para: { Args: { _acordo_id: string }; Returns: boolean }
       alertar_tarefas_por_prazo: {
         Args: { _ambiente?: string; _hoje?: string }
         Returns: {
