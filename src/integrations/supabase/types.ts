@@ -12003,7 +12003,7 @@ export type Database = {
       itcd_origem_usufruto: "reserva" | "instituicao"
       itcd_papel_usufruto: "usufrui" | "concede"
       itcd_simulacao_status: "rascunho" | "gerada" | "aprovada" | "substituida"
-      notificacao_canal: "sino" | "email" | "whatsapp"
+      notificacao_canal: "sino" | "email" | "whatsapp" | "google_chat"
       notificacao_envio_status:
         | "pendente"
         | "enviado"
@@ -12290,7 +12290,7 @@ export const Constants = {
       itcd_origem_usufruto: ["reserva", "instituicao"],
       itcd_papel_usufruto: ["usufrui", "concede"],
       itcd_simulacao_status: ["rascunho", "gerada", "aprovada", "substituida"],
-      notificacao_canal: ["sino", "email", "whatsapp"],
+      notificacao_canal: ["sino", "email", "whatsapp", "google_chat"],
       notificacao_envio_status: [
         "pendente",
         "enviado",
