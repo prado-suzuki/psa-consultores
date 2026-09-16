@@ -316,7 +316,6 @@ describe('GOV-03 · o motor conhece os parâmetros do acordo', () => {
     clienteId: 'c1',
     assinadoEm: '2025-09-29',
     vigenciaAnos: 10,
-    prazoSigiloAnos: 5,
     temSociedadesRelacionadas: true,
     temRamos: true,
     reuniaoPreviaObrigatoria: true,
@@ -350,8 +349,7 @@ describe('GOV-03 · o motor conhece os parâmetros do acordo', () => {
       .toBe('03 (três) anos');
     // Utida: "permanecerá em vigor por um período de 10 (dez) anos".
     expect(`${c.vigenciaAnosNumeral} (${c.vigenciaAnosExtenso}) anos`).toBe('10 (dez) anos');
-    expect(`${c.prazoSigiloAnosNumeral} (${c.prazoSigiloAnosExtenso}) anos`).toBe('05 (cinco) anos');
-    expect(c.temSigilo).toBe('sim');
+    // O sigilo saiu: zero cláusulas de sigilo nos sete acordos do acervo.
   });
 
   it('cada mecanismo marcado acende a sua condicional, e só ela', () => {
@@ -439,7 +437,7 @@ describe('GOV-03 · o motor conhece os parâmetros do acordo', () => {
     // clientes tem de sair sem os cabeçalhos correspondentes.
     const c = mapearAcordoQuotistas({ clienteId: 'c1' });
     for (const campo of [
-      'temSigilo', 'reuniaoPreviaObrigatoria', 'temSociedadesRelacionadas', 'temRamos',
+      'reuniaoPreviaObrigatoria', 'temSociedadesRelacionadas', 'temRamos',
       'naoConcorrencia', 'opcaoCompraPrevista', 'opcaoVendaPrevista', 'temRepresentante',
       'porArbitragem', 'porJudicial', 'temLockUp', 'temTagAlong', 'temDragAlong',
       'preferenciaAlemDasQuotas', 'usaFluxoDeCaixa', 'consolidaComposse',
@@ -467,8 +465,6 @@ describe('GOV-03 · o motor conhece os parâmetros do acordo', () => {
     const modelo = [
       '{{#acordo.jaAssinado}}firmaram em {{ acordo.assinadoEmExtenso }}, com vigência de',
       '{{ acordo.vigenciaAnosNumeral }} ({{ acordo.vigenciaAnosExtenso }}) anos{{/acordo.jaAssinado}}.',
-      '{{#acordo.temSigilo}}Sigilo por {{ acordo.prazoSigiloAnosNumeral }}',
-      '({{ acordo.prazoSigiloAnosExtenso }}) anos.{{/acordo.temSigilo}}',
       '{{#acordo.temSociedadesRelacionadas}}e das SOCIEDADES RELACIONADAS{{/acordo.temSociedadesRelacionadas}}',
       '{{#acordo.temRamos}}Cada ramo vota como bloco único.{{/acordo.temRamos}}',
       '{{#acordo.reuniaoPreviaObrigatoria}}As deliberações constituirão Acordos de Voto.{{/acordo.reuniaoPreviaObrigatoria}}',

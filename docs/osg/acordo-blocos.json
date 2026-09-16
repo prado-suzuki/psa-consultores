@@ -183,13 +183,13 @@
   "nome": "Acordo 031 Subitem — CLÁUSULA DE NÃO CONCORRÊNCIA: a obrigação que os QUOTI…",
   "tipo": "subitem",
   "titulo": null,
-  "conteudo": "CLÁUSULA DE NÃO CONCORRÊNCIA: a obrigação que os QUOTISTAS assumem de não exercer (por ação ou omissão) qualquer ATIVIDADE CONCORRENTE na ÁREA DE ATUAÇÃO em um período de 03 (três) anos na ÁREA DE ATUAÇÃO ou face a CARTEIRA DE CLIENTES, sob pena de ser imputada a parte que descumprir esta obrigação, MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA. Esta obrigação poderá ser exigida de qualquer QUOTISTA caso alguma PARTE RELACIONADA, seu cônjuge ou companheiro(a), sócio e/ou acionista de qualquer QUOTISTA (bem como descendentes, cônjuge e/ou companheira destes) descumpra a CLÁUSULA DE NÃO CONCORRÊNCIA, hipótese que a DUAL e/ou qualquer outro QUOTISTA poderá exigir qualquer direito que lhe for assegurado por este ACORDO face a tal descumprimento, como se aquele QUOTISTA tivesse descumprido o ACORDO, incluindo a MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA, eventuais OPÇÃO DE VENDA ou OPÇÃO DE COMPRA, além de multas, astreintes e perdas e danos."
+  "conteudo": "CLÁUSULA DE NÃO CONCORRÊNCIA: a obrigação que os QUOTISTAS assumem de não exercer (por ação ou omissão) qualquer ATIVIDADE CONCORRENTE na ÁREA DE ATUAÇÃO em um período de {{ acordo.naoConcorrenciaPrazoAnosNumeral }} ({{ acordo.naoConcorrenciaPrazoAnosExtenso }}) anos na ÁREA DE ATUAÇÃO ou face a CARTEIRA DE CLIENTES, sob pena de ser imputada a parte que descumprir esta obrigação, MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA. Esta obrigação poderá ser exigida de qualquer QUOTISTA caso alguma PARTE RELACIONADA, seu cônjuge ou companheiro(a), sócio e/ou acionista de qualquer QUOTISTA (bem como descendentes, cônjuge e/ou companheira destes) descumpra a CLÁUSULA DE NÃO CONCORRÊNCIA, hipótese que a DUAL e/ou qualquer outro QUOTISTA poderá exigir qualquer direito que lhe for assegurado por este ACORDO face a tal descumprimento, como se aquele QUOTISTA tivesse descumprido o ACORDO, incluindo a MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA, eventuais OPÇÃO DE VENDA ou OPÇÃO DE COMPRA, além de multas, astreintes e perdas e danos."
  },
  {
   "nome": "Acordo 032 Subitem — MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNC…",
   "tipo": "subitem",
   "titulo": null,
-  "conteudo": "MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA: multa meramente punitiva a ser exigida de quem descumpriu a CLÁUSULA DE NÃO CONCORRÊNCIA de R$1.000.000,00 (um milhão de reais), cujo valor será atualizado pelo ÍNDICE DE ATUALIZAÇÃO, pro rata die a partir da assinatura deste ACORDO, reservado ainda a DUAL e/ou às suas SOCIEDADES RELACIONADAS exigir do QUOTISTA que descumpriu essa regra que cesse o descumprimento, sob pena de ser acrescida penalidade diária enquanto perdurar o descumprimento não inferior a 10% (dez por cento) da primeira multa, além de eventuais perdas e danos, honorários advocatícios desde já fixados em 20% (vinte por cento), custas periciais, eventualmente judiciais e/ou decorrentes de procedimentos de arbitragem, podendo ser exigidas daquele que descumpriu tal acordo;"
+  "conteudo": "MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA: multa meramente punitiva a ser exigida de quem descumpriu a CLÁUSULA DE NÃO CONCORRÊNCIA de {{ acordo.naoConcorrenciaMulta }}, cujo valor será atualizado pelo ÍNDICE DE ATUALIZAÇÃO, pro rata die a partir da assinatura deste ACORDO, reservado ainda a DUAL e/ou às suas SOCIEDADES RELACIONADAS exigir do QUOTISTA que descumpriu essa regra que cesse o descumprimento, sob pena de ser acrescida penalidade diária enquanto perdurar o descumprimento não inferior a 10% (dez por cento) da primeira multa, além de eventuais perdas e danos, honorários advocatícios desde já fixados em 20% (vinte por cento), custas periciais, eventualmente judiciais e/ou decorrentes de procedimentos de arbitragem, podendo ser exigidas daquele que descumpriu tal acordo;"
  },
  {
   "nome": "Acordo 033 Subitem — ÁREA DE ATUAÇÃO: em todos os estados do Brasil, inclui…",
@@ -345,7 +345,7 @@
   "nome": "Acordo 058 Inciso — o preço de cada QUOTA objeto DA OPÇÃO DE COMPRA será o…",
   "tipo": "inciso",
   "titulo": null,
-  "conteudo": "o preço de cada QUOTA objeto DA OPÇÃO DE COMPRA será o maior dentre os valores adquiridos através das seguintes metodologias: (i) o VALOR DAS QUOTAS na data da OPÇÃO DE COMPRA; ou, (ii) o valor subscrito e integralizado pelos SUBSCRITORES SUBSTITUTOS para cada QUOTA na época da subscrição, acrescido de juros de 1% (um por cento) ao mês e atualização monetária pelo ÍNDICE DE ATUALIZAÇÃO;"
+  "conteudo": "o preço de cada QUOTA objeto DA OPÇÃO DE COMPRA será o maior dentre os valores adquiridos através das seguintes metodologias: (i) o VALOR DAS QUOTAS na data da OPÇÃO DE COMPRA; ou, (ii) o valor subscrito e integralizado pelos SUBSCRITORES SUBSTITUTOS para cada QUOTA na época da subscrição, acrescido de {{ acordo.jurosValorSubscrito }} ao mês e atualização monetária pelo ÍNDICE DE ATUALIZAÇÃO;"
  },
  {
   "nome": "Acordo 059 Inciso — caso os SUBSCRITORES SUBSTITUTOS e o SUBSCRITOR DESIST…",
@@ -1281,7 +1281,7 @@
   "nome": "Acordo 214 Item — Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/…",
   "tipo": "item",
   "titulo": null,
-  "conteudo": "Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/c art. 1.053, parágrafo único do Código Civil, os QUOTISTAS elegem o Sr. MARCELO como representante dos QUOTISTAS, sendo que na sua falta ou incapacidade civil, a incumbência passará ao Sr. FLÁVIO, os quais serão substituídos por outro QUOTISTA caso ocorra o falecimento ou seja declarada a incapacidade civil de ambos, conforme os QUOTISTAS decidam em REUNIÃO DE QUOTISTAS, convocada para este fim."
+  "conteudo": "Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/c art. 1.053, parágrafo único do Código Civil, os QUOTISTAS elegem o {{ acordo.representanteTratamento }} {{ acordo.representanteNome }} como representante dos QUOTISTAS, sendo que na sua falta ou incapacidade civil, a incumbência passará ao Sr. FLÁVIO, os quais serão substituídos por outro QUOTISTA caso ocorra o falecimento ou seja declarada a incapacidade civil de ambos, conforme os QUOTISTAS decidam em REUNIÃO DE QUOTISTAS, convocada para este fim."
  },
  {
   "nome": "Acordo 215 Cláusula — Da Vigência e do arquivamento deste ACORDO",
@@ -1293,7 +1293,7 @@
   "nome": "Acordo 216 Item — Este ACORDO entrará em vigor na data de sua assinatura…",
   "tipo": "item",
   "titulo": null,
-  "conteudo": "Este ACORDO entrará em vigor na data de sua assinatura e assim permanecerá por um período de 20 (vinte) anos."
+  "conteudo": "Este ACORDO entrará em vigor na data de sua assinatura e assim permanecerá por um período de {{ acordo.vigenciaAnosNumeral }} ({{ acordo.vigenciaAnosExtenso }}) anos."
  },
  {
   "nome": "Acordo 217 Item — É assegurada a modificação deste ACORDO, a qualquer te…",
@@ -1539,7 +1539,7 @@
   "nome": "Acordo 257 Item — Todas as disputas decorrentes de ou relacionadas a est…",
   "tipo": "item",
   "titulo": null,
-  "conteudo": "Todas as disputas decorrentes de ou relacionadas a este ACORDO, incluindo qualquer questão com relação à sua existência, validade ou rescisão, deverão ser necessariamente, de forma definitiva e irrecorrível, resolvidas por arbitragem, a ser instituída e realizada de acordo com as Regras de Arbitragem da Câmara de Comércio Brasil Canadá (“Regras de Arbitragem”), cuja decisão arbitral será definitiva e vinculará os QUOTISTAS, a DUAL e seus sucessores."
+  "conteudo": "Todas as disputas decorrentes de ou relacionadas a este ACORDO, incluindo qualquer questão com relação à sua existência, validade ou rescisão, deverão ser necessariamente, de forma definitiva e irrecorrível, resolvidas por arbitragem, a ser instituída e realizada de acordo com as Regras de Arbitragem da {{ acordo.camaraArbitral }} (“Regras de Arbitragem”), cuja decisão arbitral será definitiva e vinculará os QUOTISTAS, a DUAL e seus sucessores."
  },
  {
   "nome": "Acordo 258 Item — As PARTES declaram expressamente que receberam uma via…",

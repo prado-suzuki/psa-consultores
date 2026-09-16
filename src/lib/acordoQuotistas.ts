@@ -86,7 +86,6 @@ const ROTULO_DO_CAMPO: Record<string, string> = {
   data_referencia: 'Data de referência',
   assinado_em: 'Assinado em',
   vigencia_anos: 'Vigência, em anos',
-  prazo_sigilo_anos: 'Prazo de sigilo, em anos',
   metodos_avaliacao: 'Métodos de avaliação da quota',
   // Os quatro numeros da apuracao de haveres nao estao aqui porque nao sao
   // campo: 60 dias em 7 de 7, 05 anos em 3 de 3, IPCA e "maior valor" nos que

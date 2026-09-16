@@ -98,7 +98,9 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
          * Esta data é o FATO que o contrato social cita, e a ajuda de antes
          * descrevia justamente a outra, o que propagava a confusão.
          */
-        rotulo: 'Data em que o acordo foi assinado (citada no contrato social)',
+        // Sem "(citada no contrato social)": a pill "também no contrato" ao lado
+        // diz a mesma coisa, e as duas juntas viram redundância na mesma linha.
+        rotulo: 'Data em que o acordo foi assinado',
         tipo: 'data',
         desceAoContrato: true,
         ajuda:
@@ -118,12 +120,21 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           'Por quantos anos o acordo vale. No acordo da Utida: "permanecerá em vigor por '
           + 'um período de 10 (dez) anos".',
       },
-      {
-        campo: 'prazo_sigilo_anos',
-        rotulo: 'Prazo de sigilo, em anos',
-        tipo: 'numero',
-        ajuda: 'Por quantos anos o conteúdo do acordo não pode ser divulgado.',
-      },
+      /*
+       * NÃO EXISTE CLÁUSULA DE SIGILO, e o campo saiu daqui.
+       *
+       * Ele veio do levantamento de 11/09. Contado nos SETE acordos do acervo:
+       * zero ocorrências de "sigilo" ou "confidencialidade" como cláusula. Não é
+       * o modelo que não tem, é nenhum deles.
+       *
+       * As duas mencões que aparecem numa busca solta são outra coisa: a
+       * definição de ÍNDICE DE ATUALIZAÇÃO e um trecho sobre "informações
+       * confidenciais" dentro da regra de outros negócios dos quotistas.
+       *
+       * Mesma situação do limite de aval e fiança, derrubado em 15/09 pelo mesmo
+       * critério: campo sem frase em documento nenhum é campo que não devia
+       * existir. A coluna cai na migration de limpeza.
+       */
     ],
   },
   {

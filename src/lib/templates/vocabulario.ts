@@ -1472,14 +1472,18 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       numeralCampo('vigenciaAnosNumeral', 'Vigência do acordo (numeral)', 'vigenciaAnos'),
       cardinalCampo('vigenciaAnosExtenso', 'Vigência do acordo (por extenso)', 'vigenciaAnos'),
 
-      // O par numeral+extenso é o que escreve "03 (três) anos": `numeralContrato`
-      // zera à esquerda e `cardinalExtenso` soletra. Vale para os três prazos
-      // desta entidade, e é por isso que cada um traz os dois derivados.
-      { id: 'prazoSigiloAnos', label: 'Prazo de sigilo, em anos', tipo: 'inteiro' },
-      numeralCampo('prazoSigiloAnosNumeral', 'Prazo de sigilo (numeral)', 'prazoSigiloAnos'),
-      cardinalCampo('prazoSigiloAnosExtenso', 'Prazo de sigilo (por extenso)', 'prazoSigiloAnos'),
-      condicionalCampo('temSigilo', 'Acordo tem cláusula de sigilo? (condicional)',
-        'prazoSigiloAnos', (v) => !!v.prazoSigiloAnos),
+      /*
+       * NÃO EXISTE PRAZO DE SIGILO, e os quatro campos dele sairam daqui.
+       *
+       * Contado nos sete acordos do acervo: ZERO ocorrências de sigilo ou
+       * confidencialidade como cláusula. Campo sem frase em documento nenhum é
+       * campo que não devia existir, mesma regra que derrubou o limite de aval e
+       * fiança.
+       *
+       * O par numeral+extenso continua vivo nos outros prazos: `numeralContrato`
+       * zera à esquerda e `cardinalExtenso` soletra, e juntos escrevem "03
+       * (três) anos".
+       */
 
       /*
        * O ALCANCE, que muda a redação de quase toda cláusula.
@@ -1736,6 +1740,26 @@ export const TIPOS_ENTIDADE = Object.keys(ENTIDADES) as TipoEntidade[];
  */
 export const CAMPOS_MANUAIS: CampoEntidade[] = [
   { id: 'dataAssinatura', label: 'Data da assinatura', tipo: 'data', manual: true, obrigatorio: true },
+  /*
+   * O NOME CURTO DA EMPRESA NO DOCUMENTO, que o Acordo usa 193 vezes.
+   *
+   * O acordo declara o apelido no preâmbulo e o repete o documento inteiro:
+   * "neste ato representada por seus administradores […]; doravante nominada
+   * «DUAL»". Depois disso é sempre "a DUAL fará com que a ADMINISTRAÇÃO da
+   * DUAL…", nunca a razão social por extenso.
+   *
+   * MANUAL, E NÃO COLUNA, por enquanto. Não existe campo de nome curto no
+   * cadastro da empresa, e criar um é migração. Aqui ele custa uma digitação por
+   * geração e zero risco de schema; se a repetição incomodar, aí a coluna se
+   * paga. Vazio, vira a lacuna assinalável como os demais manuais.
+   *
+   * NÃO SE DEDUZ DA RAZÃO SOCIAL: medido nos acordos, "DUAL" vem de "DUAL
+   * COMÉRCIO E INDÚSTRIA", "ALIANÇA" de "ALIANÇA PARTICIPAÇÕES" e "VIA FÉRTIL"
+   * de "VIA FÉRTIL PARTICIPAÇÕES", mas a primeira palavra erraria em "AGRO
+   * FERRAGENS LUIZÃO", que viraria "AGRO". É o mesmo tipo de dedução que já
+   * falhou no gênero do órgão.
+   */
+  { id: 'nomeCurtoDaEmpresa', label: 'Como o documento chama a empresa (ex.: DUAL)', tipo: 'texto', manual: true },
   { id: 'testemunha1Nome', label: 'Testemunha 1 — nome', tipo: 'texto', manual: true },
   { id: 'testemunha1Cpf', label: 'Testemunha 1 — CPF', tipo: 'texto', manual: true },
   { id: 'testemunha1Rg', label: 'Testemunha 1 — RG', tipo: 'texto', manual: true },

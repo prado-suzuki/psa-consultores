@@ -63,7 +63,6 @@ export function entradaDoAcordo(
       clienteId: acordo.cliente_id,
       assinadoEm: acordo.assinado_em,
       vigenciaAnos: acordo.vigencia_anos,
-      prazoSigiloAnos: acordo.prazo_sigilo_anos,
       reuniaoPreviaObrigatoria: acordo.reuniao_previa_obrigatoria,
       mecanismos: acordo.mecanismos,
       metodosAvaliacao: acordo.metodos_avaliacao,

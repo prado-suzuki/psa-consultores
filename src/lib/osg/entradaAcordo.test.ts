@@ -164,7 +164,6 @@ describe('a cadeia do acordo, da coluna ao documento', () => {
   const COLUNA_VIRA_CAMPO: Record<string, string> = {
     assinado_em: 'assinadoEm',
     vigencia_anos: 'vigenciaAnos',
-    prazo_sigilo_anos: 'prazoSigiloAnos',
     metodos_avaliacao: 'metodosAvaliacao',
     consolida_composse: 'consolidaComposse',
     nao_concorrencia: 'naoConcorrencia',
@@ -191,8 +190,7 @@ describe('a cadeia do acordo, da coluna ao documento', () => {
     ...CADASTRO,
     acordo: {
       ...CADASTRO.acordo,
-      prazo_sigilo_anos: 5,
-      consolida_composse: true,
+        consolida_composse: true,
       opcao_compra_prevista: true,
       opcao_compra_quem: 'os demais QUOTISTAS',
       opcao_compra_preco: 'o VALOR DAS QUOTAS da Cláusula Décima Nona',
@@ -218,6 +216,9 @@ describe('a cadeia do acordo, da coluna ao documento', () => {
     const DE_MAQUINA = [
       'id', 'cliente_id', 'versao', 'excluido', 'created_at', 'created_by',
       'updated_at', 'updated_by', 'grupos_conferidos', 'data_referencia',
+      // Coluna morta: nao existe clausula de sigilo em nenhum dos sete acordos,
+      // e o campo saiu da tela e do motor em 16/09. A coluna cai na limpeza.
+      'prazo_sigilo_anos',
     ];
     const naTabela = Object.keys(CADASTRO.acordo as Record<string, unknown>)
       .filter((c) => !DE_MAQUINA.includes(c));

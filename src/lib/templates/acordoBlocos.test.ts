@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest';
 
 import blocosDoAcordo from '../../../docs/osg/acordo-blocos.json';
 import { numerarBlocos } from './numeracao';
+import { camposDaEntidade } from './vocabulario';
 import type { Bloco, TipoBloco } from './types';
 
 interface BlocoDoArquivo {
@@ -121,5 +122,48 @@ describe('os blocos do Acordo numeram como o modelo numera', () => {
     const comTituloIndevido = blocos.filter((b) => b.tipo !== 'clausula' && b.tituloDocumento);
     expect(semTitulo).toEqual([]);
     expect(comTituloIndevido).toEqual([]);
+  });
+});
+
+describe('os placeholders do Acordo', () => {
+  const texto = (blocosDoAcordo as BlocoDoArquivo[]).map((b) => b.conteudo).join('\n');
+
+  it('todo placeholder usado existe na entidade acordoQuotistas', () => {
+    // Placeholder sem campo resolve '' e a frase sai truncada no Word, sem erro
+    // em lugar nenhum. É a mesma rede do teste da governança.
+    const usados = [...texto.matchAll(/\{\{#?\s*acordo\.([A-Za-z0-9_]+)/g)].map((m) => m[1]);
+    const conhecidos = new Set(camposDaEntidade('acordoQuotistas').map((c) => c.id));
+    expect(usados.length).toBeGreaterThan(0);
+    expect([...new Set(usados)].filter((c) => !conhecidos.has(c))).toEqual([]);
+  });
+
+  it('o número que virou campo saiu do texto, e o que não varia ficou', () => {
+    /*
+     * A regra da parametrização: entra placeholder onde o valor VARIA entre os
+     * acordos do acervo; onde não varia, o número fica escrito.
+     */
+    // Viraram campo:
+    expect(texto).not.toContain('20 (vinte) anos');          // vigência
+    expect(texto).not.toContain('R$1.000.000,00');           // multa
+    expect(texto).not.toContain('Câmara de Comércio Brasil Canadá');
+    expect(texto).not.toContain('o Sr. MARCELO');            // representante
+
+    // NÃO viraram, porque não variam em contrato nenhum:
+    expect(texto).toContain('60 (sessenta) dias');           // balanço da apuração
+    expect(texto).toContain('03 (três), sendo um nomeado');  // número de árbitros
+  });
+
+  it('o "1% ao mês" só virou campo onde a base é o valor subscrito', () => {
+    /*
+     * Os dois blocos usam a mesma taxa, e NÃO são a mesma coisa: um incide sobre
+     * o valor subscrito e o outro sobre o VALOR DAS QUOTAS na opção de compra.
+     * Medido, o Perci escreve 1% num e 0,50% no outro. Trocar os dois pelo mesmo
+     * campo produziria documento errado.
+     */
+    const comJuros = (blocosDoAcordo as BlocoDoArquivo[])
+      .filter((b) => /1% \(um por cento\)|jurosValorSubscrito/.test(b.conteudo));
+    expect(comJuros).toHaveLength(2);
+    expect(comJuros.filter((b) => b.conteudo.includes('{{ acordo.jurosValorSubscrito }}')))
+      .toHaveLength(1);
   });
 });

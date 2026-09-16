@@ -824,7 +824,6 @@ export interface AcordoParaMapear {
   // Identificação e prazos
   assinadoEm?: string | null;
   vigenciaAnos?: number | null;
-  prazoSigiloAnos?: number | null;
 
   // Alcance. As listas em si são papéis de lista; aqui vem só o interruptor,
   // porque uma seção {{#…}} vazia não reescreve a frase que está fora dela.
@@ -909,7 +908,6 @@ export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
 
   set('assinadoEm', entrada.assinadoEm);
   set('vigenciaAnos', entrada.vigenciaAnos);
-  set('prazoSigiloAnos', entrada.prazoSigiloAnos);
 
   condicional('temSociedadesRelacionadas', entrada.temSociedadesRelacionadas);
   condicional('temRamos', entrada.temRamos);
