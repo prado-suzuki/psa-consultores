@@ -303,7 +303,7 @@ export default function EquipeBiblioteca() {
       </div>
 
       {/* Documents Table */}
-      <Card>
+      <Card variant="tabela">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">Carregando...</div>

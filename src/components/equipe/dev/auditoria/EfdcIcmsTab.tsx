@@ -158,7 +158,7 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
   }
 
   return (
-    <Card>
+    <Card variant="tabela">
       <CardContent className="p-4 space-y-3">
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1 flex-1 min-w-[220px]">

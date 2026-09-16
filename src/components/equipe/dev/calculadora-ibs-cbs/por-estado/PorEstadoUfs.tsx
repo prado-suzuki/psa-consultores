@@ -30,7 +30,7 @@ export function PorEstadoUfs({ ufs, faturamentoTotal, onSelecionarUf }: PorEstad
           </button>;
         })}</div></CardContent>
       </Card>
-      <Card className="border-border xl:col-span-3">
+      <Card variant="tabela" className="border-border xl:col-span-3">
         <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold text-foreground flex items-center gap-1.5">Detalhamento por UF<HelpHint><strong>Faturamento</strong>: soma de vProd nas saídas com essa uf_dest.<br /><strong>% Total</strong>: participação no faturamento filtrado.<br /><strong>Ticket médio</strong>: faturamento ÷ qtd. de NFs distintas.<br /><strong>Carga antes / depois</strong>: tributo ÷ faturamento da UF.<br /><strong>Δ pp</strong>: diferença (depois − antes) em pontos percentuais.</HelpHint></CardTitle><p className="text-xs text-muted-foreground">Ordenado por faturamento</p></CardHeader>
         <CardContent className="p-0"><div className="overflow-x-auto"><Table>
           <TableHeader><TableRow className="bg-muted hover:bg-muted"><TableHead className="w-14">UF</TableHead><TableHead>Natureza</TableHead><TableHead className="text-right">Faturamento</TableHead><TableHead className="text-right">% Total</TableHead><TableHead className="text-right">NFs</TableHead><TableHead className="text-right">Ticket médio</TableHead><TableHead className="text-right">Carga antes</TableHead><TableHead className="text-right">Carga depois</TableHead><TableHead className="text-right">Δ pp</TableHead></TableRow></TableHeader>

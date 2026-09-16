@@ -81,7 +81,7 @@ const COLUNA = {
 const PessoasTable = ({
   titulo, icone, tipo, pessoas, buscaAtiva, documentoLabel, mostrarPapel, filiacaoPorPessoa, onNovo, onEditar, onRemover,
 }: PessoasTableProps) => (
-  <Card>
+  <Card variant="tabela">
     <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
       <CardTitle className="text-base flex items-center gap-2">
         {icone}

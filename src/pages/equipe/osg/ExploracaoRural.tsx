@@ -158,7 +158,7 @@ const ExploracaoRural = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card variant="tabela">
               <CardHeader className="flex-row items-center justify-between pb-3">
                 <CardTitle className="text-base">
                   {filtradas.length} instrumento{filtradas.length === 1 ? '' : 's'}

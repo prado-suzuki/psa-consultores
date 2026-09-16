@@ -115,7 +115,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
         </AlertDescription>
       </Alert>
 
-      <Card className="border-border">
+      <Card variant="tabela" className="border-border">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Tooltip>

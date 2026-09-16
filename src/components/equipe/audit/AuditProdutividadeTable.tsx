@@ -456,7 +456,7 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
       </div>
 
       {/* Tabela */}
-      <Card>
+      <Card variant="tabela">
         <CardContent className="p-0">
           <Table>
             <TableHeader>

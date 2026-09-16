@@ -485,7 +485,7 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
   if (!hasQueried || !data) return null;
 
   return (
-    <Card className={`border-0 overflow-hidden ${isEditMode ? 'shadow-[0_0_30px_0px_hsl(var(--edit-shadow-color)/0.55)]' : 'shadow-md ring-1 ring-border/50'}`}>
+    <Card variant="tabela" className={`border-0 overflow-hidden ${isEditMode ? 'shadow-[0_0_30px_0px_hsl(var(--edit-shadow-color)/0.55)]' : 'shadow-md ring-1 ring-border/50'}`}>
       <CardContent className="p-0">
         {filtered.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">Nenhum item F130 encontrado para os filtros selecionados.</div>

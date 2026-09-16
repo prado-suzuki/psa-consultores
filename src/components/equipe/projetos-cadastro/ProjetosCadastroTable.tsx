@@ -92,7 +92,7 @@ function EmptyRow() {
 
 function ProjectTable({ projects, className }: { projects: OrgProject[]; className?: string }) {
   const { isLoading } = useProjetosCadastro();
-  return <Card className={className}><CardContent className="p-0 overflow-x-auto"><Table className="table-fixed min-w-[1000px]">
+  return <Card variant="tabela" className={className}><CardContent className="p-0 overflow-x-auto"><Table className="table-fixed min-w-[1000px]">
     <ProjectsTableHeader /><TableBody>{isLoading || projects.length === 0 ? <EmptyRow /> : projects.map(project => <ProjectRow key={project.id} project={project} />)}</TableBody>
   </Table></CardContent></Card>;
 }
