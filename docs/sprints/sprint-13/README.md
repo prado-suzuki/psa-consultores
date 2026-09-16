@@ -78,6 +78,12 @@ cliente órfão. O desfazer continua sem pegar.
 |---|---|---|---|
 | [7 Coleta de documentos e menções no Google Chat](TAREFA_coleta-e-mencao-no-google-chat.md) | As duas frentes do sino que ficaram de fora do canal do Chat **e que já têm evento gravado**: aviso de coleta (`solicitacao_enviada`, texto da Patricia já gravado em `notificacao`, reusado tal e qual) e menção em comentário (`org_comment_mentions`, com `lido_em` próprio). **Chamado fica fora por decisão dela em 14/09** — já tem o espaço "PSA Chamados"; **revisão-pendente fica fora** porque o sino a deriva do estado e não existe evento para espelhar. Volume medido: ~1 mensagem por semana. Três decisões abertas (D1 a D3), sendo a mais pesada se menção — que é endereçada a UMA pessoa — deve mesmo ir para espaço coletivo | Sim, **3 ⚠️ MIGRAÇÕES**: a leitura ganha `org_project`, a função irmã `mencoes_para_o_chat`, e um valor de enum para menção em `notificacao_tipo` — este **bloqueante**, porque sem ele a linha de envio não grava e não há dedup nem rastro | 🔵 ABERTO |
 
+## Ordem de serviço editável de qualquer tela
+
+| Tarefa | Escopo | Banco? | Status |
+|---|---|---|---|
+| [8 A OS passa a ser editável de qualquer tela](TAREFA_os-editavel-de-qualquer-tela.md) | `ordem_servico` é gravada **num lugar só**, dentro do `useSaveClientTransaction` (1344 linhas), e não como hook de entidade: editar uma OS de outra tela hoje só duplicando a escrita. Extrai `useUpsertOrdemServico` e cria o `OrdemServicoModal` no molde do `PessoaModal`, que já é montado por **cinco** telas da OSG Work com uma escrita só. Cinco subtarefas, começando por teste de caracterização. Nasceu do Controle de Projetos: OS sem data recusa a criação do projeto e obriga a ir ao cadastro do cliente e voltar. **O gatilho não é o volume** (2 de 84 OS da OSG sem data), **é a segunda tela pedindo a mesma coisa** | **Não.** Refatoração de código; schema e policies intactos, e a permissão continua sendo a RLS mais o `podeEditarCadastroCliente` | 🔵 ABERTO |
+
 ## Avisos de prazo de tarefa
 
 | Tarefa | Escopo | Banco? | Status |
