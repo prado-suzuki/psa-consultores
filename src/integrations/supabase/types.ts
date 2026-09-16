@@ -151,6 +151,7 @@ export type Database = {
           created_by: string | null
           data_referencia: string | null
           excluido: boolean
+          grupos_conferidos: string[]
           horizonte_fluxo_anos: number | null
           id: string
           juros_valor_subscrito: string | null
@@ -188,6 +189,7 @@ export type Database = {
           created_by?: string | null
           data_referencia?: string | null
           excluido?: boolean
+          grupos_conferidos?: string[]
           horizonte_fluxo_anos?: number | null
           id?: string
           juros_valor_subscrito?: string | null
@@ -225,6 +227,7 @@ export type Database = {
           created_by?: string | null
           data_referencia?: string | null
           excluido?: boolean
+          grupos_conferidos?: string[]
           horizonte_fluxo_anos?: number | null
           id?: string
           juros_valor_subscrito?: string | null
