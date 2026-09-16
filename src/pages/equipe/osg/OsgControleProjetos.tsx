@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
@@ -77,6 +77,42 @@ const OsgControleProjetos = () => {
   );
 
   /**
+   * O produto que a linha pediu, esperando a OS dele carregar.
+   *
+   * Existe porque o prefill NÃO cabe num gesto só, e a primeira versão tentou:
+   * o controller tem um efeito que, ao trocar a OS, limpa produto e serviço de
+   * propósito (os dois pertencem à OS anterior) e busca as datas em `clienteOS`,
+   * que só carrega depois que o cliente entra no formulário. Definir cliente, OS
+   * e produto no mesmo clique fazia o efeito apagar o produto e não achar as
+   * datas — o modal abria com o produto errado e o período vazio.
+   *
+   * Então a intenção fica guardada aqui e é aplicada quando o controller já sabe
+   * responder. Quem manda na invalidação continua sendo ele.
+   */
+  const pendente = useRef<{ osId: string; produtoId: string } | null>(null);
+
+  const { clienteOS, selectedOsId, selectedOsProdutos, setSelectedOsId, setSelectedProdutoId } =
+    projetos;
+
+  // Etapa 2: a OS já está na lista do cliente, então dá para selecioná-la.
+  useEffect(() => {
+    const alvo = pendente.current;
+    if (!alvo || selectedOsId === alvo.osId) return;
+    if (!clienteOS.some((os) => os.id === alvo.osId)) return;
+    setSelectedOsId(alvo.osId);
+  }, [clienteOS, selectedOsId, setSelectedOsId]);
+
+  // Etapa 3: os produtos da OS chegaram, e o efeito do controller já limpou o
+  // campo. Agora a escolha da linha vale.
+  useEffect(() => {
+    const alvo = pendente.current;
+    if (!alvo || selectedOsId !== alvo.osId) return;
+    if (!selectedOsProdutos.some((produto) => produto.produto_segmento_id === alvo.produtoId)) return;
+    setSelectedProdutoId(alvo.produtoId);
+    pendente.current = null;
+  }, [selectedOsId, selectedOsProdutos, setSelectedProdutoId]);
+
+  /**
    * Clique na linha: edita o projeto daquele produto, ou abre a criação já
    * apontada para ele.
    *
@@ -90,21 +126,18 @@ const OsgControleProjetos = () => {
         projeto.ordem_servico_id === linha.osId && projeto.produto_segmento_id === linha.produtoId,
     );
     if (existente) {
+      pendente.current = null;
       projetos.handleOpenModal(existente);
       return;
     }
+    // Etapa 1: só o cliente e o nome. A OS e o produto ficam pendentes, porque
+    // o controller ainda não tem como resolver nenhum dos dois.
+    pendente.current = { osId: linha.osId, produtoId: linha.produtoId };
     projetos.handleOpenModal();
-    projetos.setSelectedOsId(linha.osId);
-    projetos.setSelectedProdutoId(linha.produtoId);
-    // Atualizador, e não valor: o `handleOpenModal` acabou de enfileirar o
-    // formulário vazio, e um valor literal aqui correria o risco de ser
-    // sobrescrito por ele em vez de partir dele.
     projetos.setFormData((anterior) => ({
       ...anterior,
       name: linha.produtoNome,
       external_client_id: linha.clienteId,
-      ordem_servico_id: linha.osId,
-      produto_segmento_id: linha.produtoId,
     }));
   };
 
