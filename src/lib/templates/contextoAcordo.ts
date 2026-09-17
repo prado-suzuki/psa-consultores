@@ -80,9 +80,15 @@ function prosaDasChaves(chaves: readonly string[], vocabulario: Record<string, s
 
 /** Uma linha de `acordo_quorum`, já com a expressão montada pelo cadastro. */
 export interface QuorumParaMapear {
+  /** A chave do catálogo (`alterar_contrato_social`…), que diz ONDE ele escreve. */
+  chave: string;
   materia: string;
   /** "¾ (três quartos) do capital social", de `expressaoDoQuorum`. */
   expressao: string;
+  /** Só a quantidade: "75% (setenta e cinco por cento)", "a maioria". */
+  quantidade: string;
+  /** A mesma quantidade em fração, para o aumento de capital. */
+  quantidadeEmFracao: string;
   ordem: number;
 }
 
@@ -135,9 +141,41 @@ function ramoNoDocumento(nome: string): { rotulo: string; definicao: string } {
 }
 
 /** Os campos do binding `acordo`, com o que se deduz das listas já dentro. */
+/**
+ * O QUÓRUM DE CADA MATÉRIA, no campo da matéria dela.
+ *
+ * Os sete quóruns do cadastro NÃO são sete alíneas de uma lista, e supor isso
+ * teria produzido documento errado. Cruzado com o modelo, linha a linha:
+ *
+ *   ordinaria                       alínea "para as demais matérias"
+ *   alterar_contrato_social         alínea dos 75%
+ *   nomear_administrador_nao_socio  DUAS alíneas, porque o modelo separa o caso
+ *                                   do capital integralizado do não integralizado
+ *   destituir_administrador         alínea da maioria
+ *   aumento_de_capital              FORA da escada, na Cláusula Quarta
+ *   reuniao_previa                  FORA da escada, na Cláusula Vigésima Quarta
+ *   instalacao                      não aparece no Acordo; é regra do contrato
+ *                                   social (art. 1.074 do Código Civil)
+ *
+ * Por isso cada um vira um campo com o nome da chave, e o bloco cita o seu. Um
+ * laço `{{#quoruns}}` escreveria os sete em fila num lugar só, o que o modelo
+ * não faz em nenhum acordo do acervo.
+ */
+function quorunsPorChave(quoruns: readonly QuorumParaMapear[]): Campos {
+  const out: Campos = {};
+  for (const q of quoruns) {
+    const nome = q.chave.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+    out[`quorum${nome[0].toUpperCase()}${nome.slice(1)}`] = q.quantidade;
+    out[`quorum${nome[0].toUpperCase()}${nome.slice(1)}Fracao`] = q.quantidadeEmFracao;
+  }
+  return out;
+}
+
 export function camposDoAcordo(entrada: EntradaAcordo): Campos {
   const objetos = entrada.objetosPreferencia ?? [];
-  return mapearAcordoQuotistas({
+  return {
+    ...quorunsPorChave(entrada.quoruns),
+    ...mapearAcordoQuotistas({
     ...entrada.acordo,
     temRamos: entrada.ramos.length > 0,
     quantosRamos: entrada.ramos.length || null,
@@ -152,7 +190,8 @@ export function camposDoAcordo(entrada: EntradaAcordo): Campos {
     ) || null,
     objetosPreferencia: prosaDasChaves(objetos, OBJETO_NO_DOCUMENTO) || null,
     objetosPreferenciaChaves: [...objetos],
-  });
+    }),
+  };
 }
 
 /**

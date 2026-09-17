@@ -32,10 +32,16 @@ const VAZIA: EntradaAcordo = {
 const AGROALIANCA: EntradaAcordo = {
   acordo: { clienteId: 'c1', vigenciaAnos: 10, reuniaoPreviaObrigatoria: true },
   quoruns: [
-    { materia: 'Alterar o contrato social', ordem: 0,
-      expressao: '75% (setenta e cinco por cento) dos presentes' },
-    { materia: 'Nomear administrador não sócio', ordem: 1, expressao: 'todos os quotistas' },
-    { materia: 'Destituir administrador', ordem: 2, expressao: 'a maioria dos presentes' },
+    { chave: 'alterar_contrato_social', materia: 'Alterar o contrato social', ordem: 0,
+      expressao: '75% (setenta e cinco por cento) dos presentes',
+      quantidade: '75% (setenta e cinco por cento)',
+      quantidadeEmFracao: '¾ (três quartos)' },
+    { chave: 'nomear_administrador_nao_socio', materia: 'Nomear administrador não sócio',
+      ordem: 1, expressao: 'todos os quotistas',
+      quantidade: 'todos os QUOTISTAS', quantidadeEmFracao: 'todos os QUOTISTAS' },
+    { chave: 'destituir_administrador', materia: 'Destituir administrador', ordem: 2,
+      expressao: 'a maioria dos presentes',
+      quantidade: 'a maioria', quantidadeEmFracao: 'a maioria' },
   ],
   ramos: [{ nome: 'Cristina', ordem: 0 }, { nome: 'Regina', ordem: 1 }],
   ordemPreferencia: [
