@@ -542,6 +542,15 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/tax/projetos/controle',
+    page_name: 'Controle de Projetos Tax',
+    page_description:
+      'Onde cada cliente está, uma linha por produto contratado da ordem de serviço',
+    category: 'tax',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/tax/projetos/clientes',
     page_name: 'Tax Clientes',
     page_description: 'Consulte e gerencie os cadastros de clientes e contribuintes',

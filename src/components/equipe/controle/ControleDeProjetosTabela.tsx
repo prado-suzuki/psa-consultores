@@ -30,7 +30,7 @@ import {
   type GrupoDoControle,
   type LinhaDoControle,
   type OrdemDoControle,
-} from '@/lib/osgControleDeProjetos';
+} from '@/lib/controleDeProjetos';
 import { getRegiaoLabel } from '@/lib/regioes';
 import { projectStatusConfig } from '@/lib/projetoStatusColors';
 import { cn } from '@/lib/utils';
@@ -371,6 +371,7 @@ export function ControleDeProjetosTabela({
   onAlternar,
   onAbrirLinha,
   agrupadoPorCliente,
+  nomeDaArea,
 }: {
   /** Já filtradas e ordenadas pela página: a tabela só desenha. */
   linhas: LinhaDoControle[];
@@ -384,12 +385,14 @@ export function ControleDeProjetosTabela({
   /** Clique numa linha: abre o modal de projeto (edição, ou criação se não houver). */
   onAbrirLinha: (linha: LinhaDoControle) => void;
   agrupadoPorCliente: boolean;
+  /** O nome da área na tela ("OSG", "Tax"), só para a frase de lista vazia. */
+  nomeDaArea: string;
 }) {
   if (linhas.length === 0) {
     return (
       <div className="rounded-lg border border-dashed py-12 text-center">
         <p className="text-sm text-muted-foreground">
-          Nenhum produto contratado da OSG com esses filtros.
+          Nenhum produto contratado da {nomeDaArea} com esses filtros.
         </p>
       </div>
     );

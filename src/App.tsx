@@ -127,6 +127,7 @@ const FiscalDashboard = lazy(() => import("./pages/equipe/fiscal/FiscalDashboard
 const FiscalFeed = lazy(() => import("./pages/equipe/fiscal/FiscalFeed"));
 const FiscalProjetosCadastro = lazy(() => import("./pages/equipe/fiscal/FiscalProjetosCadastro"));
 const FiscalProjetosLote = lazy(() => import("./pages/equipe/fiscal/FiscalProjetosLote"));
+const FiscalControleProjetos = lazy(() => import("./pages/equipe/fiscal/FiscalControleProjetos"));
 const FiscalAuditoria = lazy(() => import("./pages/equipe/fiscal/FiscalAuditoria"));
 const FiscalCadastrosClientes = lazy(() => import("./pages/equipe/fiscal/FiscalCadastrosClientes"));
 const GestaoClientes = lazy(() => import("./pages/equipe/fiscal/GestaoClientes"));
@@ -333,6 +334,7 @@ const App = () => (
               <Route path="/equipe/tax/projetos/clientes" element={<PageAccessGate pagePath="/equipe/tax/projetos/clientes"><FiscalCadastrosClientes /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/tax/projetos/cadastro"><FiscalProjetosCadastro /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/cadastro-lote" element={<PageAccessGate pagePath="/equipe/tax/projetos/cadastro-lote"><FiscalProjetosLote /></PageAccessGate>} />
+              <Route path="/equipe/tax/projetos/controle" element={<PageAccessGate pagePath="/equipe/tax/projetos/controle"><FiscalControleProjetos /></PageAccessGate>} />
               {/* Mesma tela de `/projetos/cadastro`, servida por duas rotas. Até
                   14/09/2026 havia DOIS arquivos com o corpo idêntico — o `diff`
                   devolvia só o nome da const. Vieram do redesign de 23/07, quando

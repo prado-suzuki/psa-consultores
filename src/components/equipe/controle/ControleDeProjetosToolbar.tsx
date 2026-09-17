@@ -15,7 +15,7 @@ import {
   type AgrupamentoDoControle,
   type FiltrosDoControle,
   type LinhaDoControle,
-} from '@/lib/osgControleDeProjetos';
+} from '@/lib/controleDeProjetos';
 import { getRegiaoLabel } from '@/lib/regioes';
 
 interface Props {

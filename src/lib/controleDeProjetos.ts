@@ -1,6 +1,11 @@
-// O que o Controle de Projetos da OSG mostra, e por que cada recorte é esse.
+// O que o Controle de Projetos mostra, e por que cada recorte é esse.
 //
-// Substitui a planilha `Relação de Projetos - OSG.xlsx`. A análise que sustenta
+// A TELA É DE ÁREA, não da OSG: o que muda entre OSG e Tax é o cluster que
+// entra em `clusterDaArea`, e mais nada. Ela nasceu na OSG em 15/09/2026 e
+// ganhou a Tax em 17/09; os números medidos nos comentários abaixo são os da
+// OSG em produção, que é onde eles foram levantados.
+//
+// Substitui, na OSG, a planilha `Relação de Projetos - OSG.xlsx`. A análise que sustenta
 // o desenho está em `docs/osg/relacao-de-projetos-planilha-x-ferramenta.md`;
 // aqui fica só a regra, pura, porque "quais linhas aparecem" é decisão que
 // precisa de teste e não de leitura de hook com I/O.
@@ -21,6 +26,16 @@
 
 import { STATUS_LABELS } from '@/lib/projetosCadastro';
 import { REGIAO_OPTIONS } from '@/lib/regioes';
+
+/**
+ * As áreas que têm Controle de Projetos.
+ *
+ * É um subconjunto de `PageCategory`, e não um tipo novo solto: a área serve
+ * para resolver o cluster (`useDomainClusterPorCategoria`) e para nomear a
+ * própria área na tela (`AREAS`, em `lib/nomeDaArea.ts`). Abrir a tela para uma
+ * terceira área é acrescentar a chave aqui — as três pontas são as mesmas.
+ */
+export type AreaDoControle = 'osg' | 'tax';
 
 /** OS crua, como as colunas de `ordem_servico` a devolvem. */
 export interface OrdemCrua {
