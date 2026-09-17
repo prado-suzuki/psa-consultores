@@ -37,6 +37,7 @@ import {
   mapearAdministrador, mapearSociedade, tituloColetivoDosAdministradores,
 } from '../../src/lib/templates/mapeadores';
 import { CAMPOS_MANUAIS } from '../../src/lib/templates/vocabulario';
+import { montarDocx } from '../../src/lib/templates/docx';
 import type { PessoaRow } from '../../src/hooks/useQualificacaoDasPartes';
 import {
   apararSegmentos,
@@ -319,7 +320,20 @@ for (const [nome, itens] of Object.entries(listas)) {
   console.log(`  ${itens.length ? ' ' : '✗'} ${nome}: ${itens.length}`);
 }
 
-const destino = resolve(RAIZ, 'docs/osg/acordo-gerado', `${cliente.nome.replace(/[^\w]+/g, '-')}-v${versao}.md`);
-mkdirSync(dirname(destino), { recursive: true });
-writeFileSync(destino, texto, 'utf8');
-console.log(`\nescrito em          : ${destino.slice(RAIZ.length + 1)}`);
+const base = resolve(RAIZ, 'docs/osg/acordo-gerado', `${cliente.nome.replace(/[^\w]+/g, '-')}-v${versao}`);
+mkdirSync(dirname(base), { recursive: true });
+writeFileSync(`${base}.md`, texto, 'utf8');
+console.log(`\nescrito em          : ${`${base}.md`.slice(RAIZ.length + 1)}`);
+
+/*
+ * O .docx TAMBÉM, porque metade dos defeitos de formatação não aparece no texto.
+ *
+ * O negrito do termo definido, o alinhamento do título de seção e o tamanho da
+ * capa são decisão do `montarDocx`, e não do render: medir só o markdown deixou
+ * passar a capa sem formatação por três semanas. O arquivo é o mesmo que a tela
+ * baixa, e abre no Word.
+ */
+const { Packer } = await import('docx');
+const doc = await montarDocx(composicao.blocos);
+writeFileSync(`${base}.docx`, await Packer.toBuffer(doc));
+console.log(`e o docx em         : ${`${base}.docx`.slice(RAIZ.length + 1)}`);
