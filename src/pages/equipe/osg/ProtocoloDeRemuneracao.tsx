@@ -133,20 +133,33 @@ const ProtocoloDeRemuneracao = () => {
               O seletor só aparece a partir da segunda versão: com uma só, ele
               seria um campo que não escolhe nada. A mais nova vem primeiro e é a
               que abre por padrão.
+
+              O RÓTULO DIZ UM FATO, E NÃO UM STATUS. A primeira versão desta tela
+              marcava a mais nova como "(atual)", e isso prometia uma decisão que
+              o cadastro não tem: não existe aqui nada que diga que uma versão
+              está fechada, nem nada que trave a anterior. "Mais recente" é
+              constatação, e a data diz o resto.
+
+              O Acordo de Quotistas tem o critério que falta, e é `assinado_em`:
+              preenchido, a versão é assinada e fica em leitura; vazio, é minuta
+              e se corrige. Não copiei porque o que se assina é o instrumento em
+              prosa, e o que esta tela gera é planilha. Fica para quando a
+              consultoria disser se o protocolo assinado é o produto final.
             */}
             {versoes.length > 1 && (
               <Select
                 value={protocolo.protocolo.id}
                 onValueChange={(id) => setVersaoAberta(id)}
               >
-                <SelectTrigger className="h-8 w-[150px]">
+                <SelectTrigger className="h-8 w-[230px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {versoes.map((v, i) => (
                     <SelectItem key={v.id} value={v.id}>
                       Versão {v.versao}
-                      {i === 0 ? ' (atual)' : ''}
+                      {i === 0 ? ' · mais recente' : ''}
+                      {` · ${new Date(v.created_at).toLocaleDateString('pt-BR')}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
