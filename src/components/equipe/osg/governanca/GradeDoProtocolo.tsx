@@ -49,10 +49,18 @@ export function GradeDoProtocolo({
           <TableBody>
             {grade.map((secao) => (
               <Fragment key={secao.tema_id}>
+                {/*
+                  O padrão de cabeça de grupo em tabela já existe na área, no
+                  `ControleDeProjetosTabela`: `bg-primary/10` com
+                  `border-b border-primary/20` e texto de tamanho normal. A
+                  primeira versão desta grade usou um bege claro com maiúsculas
+                  miúdas, e o tema sumia no meio das linhas: com 13 temas e 52
+                  itens, quem rola a grade perde a conta de onde está.
+                */}
                 <TableRow className="hover:bg-transparent">
                   <TableCell
                     colSpan={colunas.length + 1}
-                    className="bg-osg-50/70 py-2 text-left text-xs font-semibold uppercase tracking-wide text-osg-700"
+                    className="border-b border-primary/20 bg-primary/10 py-2.5 text-left text-sm font-semibold text-foreground"
                   >
                     {secao.tema}
                   </TableCell>
