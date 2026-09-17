@@ -14,8 +14,30 @@
 > **Entregável:** `docs/geral/texto-explicativo-na-tela.md`, 📘 REF no índice — texto em vigor,
 > não plano.
 >
-> **Status: 🔵 ABERTO.** Medições de 17/09/2026, na `develop`, por varredura de JSX nos 1.043
-> `.tsx` versionados. A etapa 1 (levantamento) **já está feita e está neste arquivo**.
+> **Status: 🟡 PARCIAL (17/09/2026).** As três decisões foram fechadas por ela e o padrão está
+> escrito: **[`geral/texto-explicativo-na-tela.md`](../../geral/texto-explicativo-na-tela.md)**.
+> Faltam a conferência dela numa rota real, a catraca (fase 2) e a conversão da dívida (tarefa
+> própria). Medições de 17/09/2026, na `develop`, por varredura de JSX nos 1.043 `.tsx`.
+>
+> **As três decisões, como ela as fechou:**
+>
+> 1. **O degrau 0 entra**, com a formulação dela: *o controle tem nome claro?* Se tem texto
+>    visível, esse texto é o rótulo; se é só ícone, precisa de **nome acessível**, e aí o tooltip
+>    **pode repetir** esse nome — os dois cumprem funções diferentes. A regra "não repita o
+>    rótulo" não vale nesse degrau.
+> 2. **`title=` deixa de ser mecanismo permitido** para explicação nova: explicação é `<Tooltip>`,
+>    botão de ícone é `aria-label` (mais `<Tooltip>` quando ajudar a descoberta visual), `title`
+>    fica em `<iframe>`. Os **143** legados são **dívida inventariada**, não conversão agora — o
+>    documento existe para impedir o **144º**. Isso separa *decidir o padrão* de *pagar a dívida*.
+> 3. **Texto de apoio entra como papel oficial**, persistente e colado ao controle:
+>    `FormDescription` quando o campo está na composição de formulário, e o **mesmo papel** fora
+>    dela — a ausência de `FormDescription` não é motivo para voltar ao tooltip. **O guideline
+>    manda no papel, não no componente JSX.**
+>
+> **O que isso obrigou no texto final,** e foi decisão dela: o documento nomeia **dois papéis
+> distintos** — *rótulo exposto de controle* ("Editar OS", "Minimizar") e *explicação contextual*
+> — porque teto, pontuação e regra de repetição valem só para o segundo. Chamar os dois de
+> "tooltip" faz alguém aplicar a regra ao papel errado daqui a três meses.
 
 ## O estado de hoje, medido
 
@@ -65,63 +87,75 @@ ter o papel de Sublíder ou superior para realizar esta ação."* Duas redaçõe
 dois arquivos de distância. O padrão herda o catálogo (`src/lib/rlsMessages.ts`) e a palavra
 única de status — não reabre nenhum dos dois.
 
-## A árvore de decisão
+## A árvore de decisão, como ficou
 
-A ordem decidida, do mais barato ao mais caro. **Só desce um degrau quem não resolveu no
-anterior.** É a parte mais importante do documento, porque é ela que impede tooltip para tudo.
+Fechada por ela em 17/09. Do mais barato ao mais caro; só desce um degrau quem não resolveu no
+anterior. É a parte que impede tooltip para tudo.
 
-| | Pergunta | Recurso |
+| | Pergunta | O que fazer |
 |---|---|---|
-| **0** | O controle **tem nome visível**? | Se não (botão de ícone), o texto é o **nome**, não explicação — e as regras de tooltip abaixo não valem para ele |
-| **1** | O label pode ficar mais claro? | **Ajuste o label** e não acrescente nada |
-| **2** | A informação precisa ficar visível o tempo todo? | **Texto de apoio**, sob o campo |
-| **3** | É complementar, só ajuda em caso de dúvida? | **Tooltip** atrás de (i) |
-| **4** | Depende do estado, da etapa ou da situação? | **Mensagem contextual**, onde a situação acontece |
-| **5** | É só o formato esperado no campo? | **Placeholder** — nunca no lugar do label nem de instrução essencial |
+| **0** | O controle tem nome claro? | **Não:** dê nome. Se for só ícone, **nome acessível** e, quando ajudar a descoberta visual, `<Tooltip>` com o mesmo texto |
+| **1** | O próprio rótulo pode resolver a dúvida? | **Melhore o rótulo** e não acrescente nada |
+| **2** | O que a pessoa procura pode ficar visível na tela? | **Mostre o valor**, em vez de explicar onde achá-lo |
+| **3** | A orientação precisa estar disponível durante a ação? | **Texto de apoio** permanente, abaixo do controle |
+| **4** | É complementar, curta e não necessária para concluir? | **Tooltip** |
+| **5** | Nada disso agrega? | **Não escreva nada** |
 
-**O degrau 0 não estava na proposta e a medição obriga.** Sem ele, a regra "não repita o label"
-manda apagar os 54 `title` de `<button>` e os "Editar OS"/"Remover contribuinte" — que não
-repetem label nenhum, porque **não existe label**: são o nome do controle. Custa uma linha no
-documento e evita que a primeira aplicação do padrão quebre acessibilidade.
+**Placeholder e mensagem contextual saíram da árvore e ganharam regra própria** no documento.
+A árvore responde "a pessoa não entendeu este controle"; placeholder é forma do campo e nunca
+resolve dúvida, e mensagem contextual não nasce de dúvida, nasce de um estado do sistema.
 
-**O degrau 4 já aparece misturado no 3, e o exemplo está medido.**
-`DevFilterFormPattern.tsx:204` tem, num tooltip só: *"Contribuinte é a inscrição estadual
-associada ao cliente."* (definição, degrau 3) **+** *"Selecione um cliente primeiro para listar
-os contribuintes disponíveis."* (depende do estado "nenhum cliente escolhido", degrau 4). A
-árvore separa os dois, e é isso que ela tem de fazer no documento.
+**O degrau 0 não estava na proposta inicial e a medição obrigou.** Sem ele, "não repita o
+rótulo" manda apagar os 54 `title` de `<button>` e os "Editar OS"/"Remover contribuinte" — que
+não repetem rótulo nenhum, porque **não existe rótulo**: são o nome do controle.
 
-## Duas coisas que o documento precisa responder, e não são de escrita
+**O exemplo que prova a árvore** é `DevFilterFormPattern.tsx:204`, com duas coisas num balão só:
+*"Contribuinte é a inscrição estadual associada ao cliente."* (definição, degrau 4) **+**
+*"Selecione um cliente primeiro…"* (depende do estado, mensagem contextual). Redação não conserta
+isso — o texto nasceu fazendo trabalho de dois recursos.
 
-**D1 — Qual mecanismo é "tooltip".** Se o documento disser "use tooltip" sem dizer qual, os 86
-arquivos com `title=` continuam como estão e o padrão nasce valendo para 117 casos de 268.
-Proposta em uma linha: **tooltip é `<Tooltip>`; `title=` fica só em `<iframe>` (8), que é título
-de quadro; nome de botão de ícone é `aria-label` + `<Tooltip>`.**
+## As duas que não eram de escrita — decididas
 
-**D2 — Onde mora o texto de apoio.** O degrau 2 é o mais recomendado antes do tooltip e **hoje
-não existe no código**: `FormDescription` tem 0 usos, e os 588 `<p>` com `text-xs
-text-muted-foreground` são uma mistura de apoio, legenda e nota. Sem isso resolvido, a primeira
-pessoa que aplicar a árvore inventa a marcação. Duas saídas: adotar o `FormDescription` do
-shadcn (já está em `ui/form.tsx`), ou documentar a classe padrão. **É escolha de quem escreve o
-documento, e cabe nele em uma linha.**
+**D1 — Qual mecanismo é "tooltip". ✅ Decidido.** Explicação nova é `<Tooltip>`; botão de ícone é
+`aria-label` (mais `<Tooltip>` quando ajudar); `title=` fica em `<iframe>` (8). **`title=` deixa
+de ser mecanismo permitido para explicação nova**, e os 143 legados são dívida inventariada. Sem
+essa linha o padrão nasceria valendo para 117 casos de 268.
+
+**D2 — Onde mora o texto de apoio. ✅ Decidido.** Entra como papel oficial, persistente, colado ao
+controle. `FormDescription` (existe em `ui/form.tsx` e já liga o texto ao campo por
+`aria-describedby`) quando o campo está na composição de formulário; fora dela, o **mesmo papel**,
+com `id` e `aria-describedby` na mão. **Manda o papel, não o componente** — a ausência de
+`FormDescription` não é motivo para voltar ao tooltip.
+
+> **O número que decidiu a redação da D2:** `FormItem` é usado em **10 arquivos**, contra **645**
+> `<Label>` soltos. Se o padrão dissesse só "use `FormDescription`", ele valeria para 10 telas e
+> deixaria as outras sem marcação — que é como o texto de apoio virou tooltip em primeiro lugar.
 
 ## Execução
+
+> **Etapas 1 a 6 ✅ CONCLUÍDAS em 17/09/2026.** O padrão está em
+> [`geral/texto-explicativo-na-tela.md`](../../geral/texto-explicativo-na-tela.md), nas seis
+> seções combinadas. Resta a etapa 7 (conferência dela), a fase 2 (catraca) e a conversão da
+> dívida, que é tarefa própria. O registro abaixo fica como o método — é ele que se repete na
+> próxima frente de texto.
 
 **Etapa 1 — Levantamento · ✅ feita, está acima.** Os números e os candidatos saíram de varredura
 de JSX (expressão, não linha), no molde do `medirCorCrua.ts`. Quem executar lê, não remede.
 
-**Etapa 2 — Fechar a árvore (30–40 min).** Confirmar os seis degraus, o degrau 0 e o D1/D2
-acima. É aqui que a tarefa é ganha ou perdida.
+**Etapa 2 — Fechar a árvore · ✅.** Os seis degraus, o degrau 0 e o D1/D2 acima. Era aqui que a
+tarefa era ganha ou perdida, e foi o que a etapa 1 permitiu decidir com caso na mão.
 
-**Etapa 3 — O padrão por recurso (45–60 min).** Para cada um dos cinco, sempre os mesmos campos,
+**Etapa 3 — O padrão por recurso · ✅ (seis blocos, não cinco: os dois papéis de §2 do documento
+são distintos).** Para cada um, sempre os mesmos campos,
 na mesma ordem: **quando usar · quando não usar · estrutura · tamanho · tom · terminologia ·
 exemplo adequado · exemplo inadequado.** Uma linha por campo. Tabela, não prosa.
 
-**Etapa 4 — Regras transversais (20 min).** No máximo **sete**, e nenhuma que o exemplo já
+**Etapa 4 — Regras transversais · ✅.** No máximo **sete**, e nenhuma que o exemplo já
 ensine. As candidatas medidas: começar pela informação que faz decidir ou agir · voz ativa ·
 não repetir o label · não explicar o óbvio · uma orientação por texto · a mesma palavra para o
 mesmo conceito · reaproveitar a terminologia do catálogo da sprint 12 onde houver equivalência.
 
-**Etapa 5 — Antes → depois, com casos reais (30–45 min).** Cinco a oito pares, todos do
+**Etapa 5 — Antes → depois, com casos reais · ✅.** Cinco a oito pares, todos do
 repositório, com arquivo e linha. **Os candidatos já estão selecionados:**
 
 | Caso | Onde | Por quê |
@@ -140,7 +174,7 @@ E o exemplo do que **já está certo**, que o documento precisa ter para não pa
 `ControleDeProjetosTabela.tsx:70` — *"Produto contratado nesta OS sem projeto criado. Clique para
 abrir um."* (uma ideia, ação no fim) e `CorrecoesSped.tsx:619`, que explica de onde o dado vem.
 
-**Etapa 6 — Checklist de revisão (20 min).** O que a tarefa pede, mais os dois itens que a
+**Etapa 6 — Checklist de revisão · ✅ (nove itens).** O que a tarefa pede, mais os dois itens que a
 medição acrescenta:
 
 - dois textos equivalentes sairiam parecidos?
@@ -153,13 +187,18 @@ medição acrescenta:
 - **o documento diz qual marcação usar**, não só qual recurso? (D1/D2)
 - **um botão de ícone continua tendo nome** depois de aplicada a regra? (degrau 0)
 
-**Tempo:** 2 h a 2 h 30 de trabalho focado, com a etapa 1 já pronta.
+**Etapa 7 — A conferência dela · 🔵 pendente.** Numa rota real, não no documento: um caso de cada
+papel (nome de botão de ícone, explicação, texto de apoio, mensagem contextual, placeholder). O
+teste de fogo do documento não é lê-lo — é alguém abri-lo durante uma implementação e sair com a
+decisão em dois minutos.
 
-## O entregável, em seis seções
+**Tempo:** 2 h a 2 h 30 de trabalho focado, com a etapa 1 já pronta. Foi o que custou.
+
+## O entregável, em seis seções · ✅ [`geral/texto-explicativo-na-tela.md`](../../geral/texto-explicativo-na-tela.md)
 
 1. **Princípio geral** — antes de acrescentar explicação, tornar o próprio controle mais claro.
 2. **Árvore de decisão** — os seis degraus, em tabela, numa tela.
-3. **Padrão por recurso** — cinco blocos, os mesmos oito campos em cada.
+3. **Padrão por recurso** — **seis** blocos, os mesmos oito campos em cada.
 4. **Voz e terminologia** — no máximo sete regras, mais o que nunca aparece no texto (nome de
    tabela, coluna, RPC, UUID, código de erro, inglês do Postgres) e o link para o catálogo.
 5. **Antes → depois** — cinco a oito casos reais, com arquivo e linha.
