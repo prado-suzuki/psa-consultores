@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { SnapshotDados } from '@/hooks/useDocumentoGerado';
 import { analisarAlteracao } from '@/lib/osg/alteracaoPorEventos';
-import { CAMPOS_DE_CAPITAL, comporEstadoProposto, validarSelecaoDeEventos } from '@/lib/osg/estadoProposto';
+import {
+  CAMPOS_DE_CAPITAL, LISTAS_DE_GOVERNANCA, comporEstadoProposto, validarSelecaoDeEventos,
+} from '@/lib/osg/estadoProposto';
+import { PAPEIS_LISTA } from '@/lib/templates/binding';
 import { camposDaEntidade } from '@/lib/templates/vocabulario';
 
 // Dados sinteticos: o contrato do compositor, nao uma fixture juridica.
@@ -378,5 +381,70 @@ describe('capital: os campos seguem o movimento, e todos existem', () => {
     const { estado } = compor(['evento_alteracao_endereco']);
     expect(estado.selecao.sociedade.capitalValor).toBe('100,00');
     expect(estado.selecao.sociedade.capitalExtenso).toBe('cem reais');
+  });
+});
+
+describe('a governança no estado proposto', () => {
+  /*
+   * Sem declaração de matéria, a regra de fallback produzia três
+   * comportamentos, e dois eram errados. Os quatro casos abaixo são a tabela do
+   * plano virada em teste.
+   */
+  const orgao = (nome: string, atividade: string, alcada: string) => ({
+    orgao: { nome, membrosMinimo: '3', membrosMaximo: '6', mandatoAnos: '3', cargos: '' },
+    competencias: [{ competencia: { atividade, papeis: 'Aprova', alcada, alinea: 'a' } }],
+  });
+
+  const NA_BASE = [orgao('Conselho de Administração', 'Contratação de serviços', 'até R$ 1.000.000,00')];
+  const VIVA = [
+    orgao('Conselho de Administração', 'Contratação de serviços', 'até R$ 5.000.000,00'),
+    orgao('Diretoria', 'Contratação de serviços', ''),
+  ];
+
+  const compor = (naBase: unknown[] | null, eventos: string[]) => {
+    const b = base();
+    const v = vivo();
+    if (naBase) b.itensPorLista.orgaosComCompetencia = naBase as SnapshotDados['itensPorLista'][string];
+    v.itensPorLista.orgaosComCompetencia = VIVA as SnapshotDados['itensPorLista'][string];
+    return comporEstadoProposto({
+      base: b, vivo: v, eventosConfirmados: new Set(eventos), bindingsSociedade: ['sociedade'],
+    }).estado.itensPorLista.orgaosComCompetencia;
+  };
+
+  const nomes = (itens: unknown) =>
+    (itens as { orgao: { nome: string } }[]).map((i) => i.orgao.nome);
+
+  it('a PRIMEIRA AC de governança: entra a viva, por declaração e não por acidente', () => {
+    expect(nomes(compor(null, ['evento_governanca'])))
+      .toEqual(['Conselho de Administração', 'Diretoria']);
+  });
+
+  it('AC alheia depois dela: republica o que a base registrou', () => {
+    // Uma cessão não reescreve o capítulo da administração. O contrato
+    // consolidado republica o que a peça anterior publicou.
+    const itens = compor(NA_BASE, ['evento_cessao_quotas']);
+    expect(nomes(itens)).toEqual(['Conselho de Administração']);
+    expect(itens).toEqual(NA_BASE);
+  });
+
+  it('AC de sede com a matriz preenchida e SEM evento: lista vazia', () => {
+    // Era o pior dos três: a governança inteira entrava no contrato sem
+    // ninguém ter pedido, porque a base não conhecia a lista e o fallback
+    // deixava a viva passar.
+    expect(compor(null, ['evento_alteracao_endereco'])).toEqual([]);
+  });
+
+  it('a AC que existe para mudar as alçadas: entra a viva', () => {
+    // O oposto do caso acima, e igualmente calado: prevalecia a base, e a peça
+    // que existe para mudar a alçada republicava a competência velha.
+    const itens = compor(NA_BASE, ['evento_governanca']);
+    expect(nomes(itens)).toEqual(['Conselho de Administração', 'Diretoria']);
+    expect(itens).toEqual(VIVA);
+  });
+
+  it('o nome da lista é o do binding de verdade', () => {
+    // Nome que não existe não dá erro: nunca casa, e o valor da base atravessa
+    // a peça inteira. Foi o que `capitalValorExtenso` fez com o aumento.
+    expect(LISTAS_DE_GOVERNANCA.filter((nome) => !(nome in PAPEIS_LISTA))).toEqual([]);
   });
 });
