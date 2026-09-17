@@ -3,7 +3,7 @@ ACORDO DE QUOTISTAS DA SOCIEDADE
 ZAMO GOVERNANÇA PARTICIPAÇÕES LTDA.
 
 *I. PARTES INTEGRANTES:*
-Na condição de signatários do presente Acordo de Quotistas, doravante nominado “ACORDO”, dos atuais sócios da ZAMO GOVERNANÇA PARTICIPAÇÕES LTDA., as pessoas adiante qualificadas e doravante designadas quando em conjunto de “QUOTISTAS” e quando isoladamente de “QUOTISTA”:
+Na condição de signatários do presente Acordo de Quotistas, doravante nominado “ACORDO”, dos atuais sócios da *ZAMO GOVERNANÇA PARTICIPAÇÕES LTDA.*, as pessoas adiante qualificadas e doravante designadas quando em conjunto de “QUOTISTAS” e quando isoladamente de “QUOTISTA”:
 
 i. *ANA ZAMO TESTE*, brasileira, solteira, nascida em 10/03/1.970, empresária, portadora do RG n.º 1234567 SESP, inscrita no CPF/MF sob o n.º 111.444.777-35, residente e domiciliada na Rua das Araucárias, n.º 100, Bairro Centro, no município de Curitiba, Estado do Paraná, CEP 80010-000
 
@@ -11,7 +11,7 @@ ii. *BRUNO ZAMO TESTE*, brasileiro, solteiro, nascido em 22/08/1.975, administra
 
 Na condição de INTERVENIENTE ANUENTE dos termos do presente ACORDO, a sociedade empresária do tipo jurídico sociedade limitada abaixo qualificada, a qual declara ter recebido uma das vias deste ACORDO, que fora arquivada na sede da sociedade, na forma entabulada pelos artigos 1.053, parágrafo único da Lei 10.406/2.002 (doravante “Código Civil” e/ou “CC”) e 118 da Lei 6.404/1.976 e suas alterações (doravante “Lei das S/A”):
 
-ZAMO GOVERNANÇA PARTICIPAÇÕES LTDA., pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 11.222.333/0001-81, registrada na Junta Comercial do Estado do Paraná sob NIRE n° 41200000001, com sede estabelecida na Rua das Araucárias, n.º 300, Bairro Centro, no município de Curitiba, Estado do Paraná, CEP 80010-000, neste ato representada por sua administradora ANA ZAMO TESTE; doravante nominada “ZAMO” ou “ZAMO”.
+*ZAMO GOVERNANÇA PARTICIPAÇÕES LTDA.*, pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 11.222.333/0001-81, registrada na Junta Comercial do Estado do Paraná sob NIRE n° 41200000001, com sede estabelecida na Rua das Araucárias, n.º 300, Bairro Centro, no município de Curitiba, Estado do Paraná, CEP 80010-000, neste ato representada por sua administradora ANA ZAMO TESTE; doravante nominada “ZAMO” ou “ZAMO”.
 
 *II. CONSIDERAÇÕES INICIAIS:*
 CONSIDERANDO que:
