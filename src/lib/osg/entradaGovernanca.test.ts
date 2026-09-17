@@ -373,3 +373,45 @@ describe('o vocabulário conhece todo campo que o mapeador publica', () => {
     expect(CONDICIONAIS_DE_GRUPO).toEqual(['decide', 'analisa', 'prepara', 'negocia', 'executa']);
   });
 });
+
+describe('o topo da escada herda a MEDIDA do piso, e não só o número', () => {
+  /*
+   * Medido no capítulo do Zamo gerado em 17/09/2026, com a matriz real: a
+   * alínea do Conselho saiu "em valor superior a R$ 5,00 (cinco reais)" onde a
+   * matriz dizia 5% do orçamento aprovado.
+   *
+   * O órgão de topo não tem alçada própria (decide ACIMA do teto de quem sobe
+   * para ele), e a constraint do banco não deixa haver unidade sem valor. Lendo
+   * só a célula, `alcadaUnidade` vinha nula, `emMoeda` acendia por padrão e o
+   * seletor escolhia a variante em reais para um percentual.
+   */
+  const EM_PERCENTUAL: CelulaDoTeste[] = [
+    { orgao: 'conselho' },
+    { orgao: 'diretoria', teto: 5, unidade: 'percentual', base: 'orcamento_aprovado', sobePara: 'conselho' },
+  ];
+
+  it('piso em percentual não vira reais na alínea do topo', () => {
+    const conselho = competenciaDe(escada(EM_PERCENTUAL, [DIRETORIA, CONSELHO]), 'Conselho de Administração');
+    expect(conselho.alcadaPiso).toBe('5,00');
+    expect(conselho.emPercentual).toBe('sim');
+    expect(conselho.emMoeda).toBe('');
+  });
+
+  it('a base do percentual também desce para o topo', () => {
+    const conselho = competenciaDe(escada(EM_PERCENTUAL, [DIRETORIA, CONSELHO]), 'Conselho de Administração');
+    expect(conselho.alcadaBase).toBe('do orçamento aprovado');
+  });
+
+  it('em reais o comportamento não muda: o topo segue em moeda', () => {
+    const conselho = competenciaDe(escada(), 'Conselho de Administração');
+    expect(conselho.emMoeda).toBe('sim');
+    expect(conselho.emPercentual).toBe('');
+  });
+
+  it('a célula com teto PRÓPRIO continua mandando na sua medida', () => {
+    // A Diretoria tem teto seu; a medida dela não pode vir do piso da Gestão.
+    const diretoria = competenciaDe(escada(), 'Diretoria');
+    expect(diretoria.emMoeda).toBe('sim');
+    expect(diretoria.temFaixa).toBe('sim');
+  });
+});

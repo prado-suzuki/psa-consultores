@@ -112,8 +112,21 @@ export function entradaDaGovernanca(
          * pronta fica, para quem quiser a forma curta; o bloco novo usa as peças.
          */
         alcadaValor: c.alcada_valor === null || c.alcada_valor === undefined ? null : Number(c.alcada_valor),
-        alcadaUnidade: c.alcada_unidade,
-        alcadaBase: baseDaAlcada(c.alcada_base),
+        /*
+         * A MEDIDA PODE VIR DO PISO, e não da própria célula.
+         *
+         * O órgão de topo da escada não tem alçada própria: ele decide acima do
+         * teto de quem sobe para ele, e a célula dele guarda `alcada_valor` nulo
+         * (a constraint do banco não deixa haver unidade sem valor). Lendo só a
+         * célula, a unidade vinha nula, o seletor de variante escolhia "só piso,
+         * em reais", e a alínea do Conselho do Zamo saiu "em valor superior a
+         * R$ 5,00 (cinco reais)" onde a matriz dizia 5% do orçamento aprovado.
+         *
+         * A célula vence quando tem teto próprio; nesse caso as duas medidas já
+         * são a mesma, senão `pisosDaLinha` teria marcado incomparável.
+         */
+        alcadaUnidade: c.alcada_unidade ?? pisos.get(c.orgao_id)?.unidade ?? null,
+        alcadaBase: baseDaAlcada(c.alcada_base ?? pisos.get(c.orgao_id)?.base ?? null),
         alcadaPiso: pisos.get(c.orgao_id)?.valor ?? null,
         sobePara: c.sobe_para_orgao_id ? (nomeDoOrgao.get(c.sobe_para_orgao_id) ?? null) : null,
         sobeParaAo: c.sobe_para_orgao_id ? (preposicaoDoOrgao.get(c.sobe_para_orgao_id) ?? 'ao') : null,

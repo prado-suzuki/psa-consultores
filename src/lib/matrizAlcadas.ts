@@ -99,6 +99,21 @@ export interface PisoDaCelula {
    * com o teto, e quem chama transforma isto em pendência do documento.
    */
   incomparavel: boolean;
+  /**
+   * A MEDIDA DO PISO, que vem de quem o fornece e não de quem o recebe.
+   *
+   * O órgão de topo não tem alçada própria: a célula dele traz `alcada_unidade`
+   * nula, porque a constraint do banco não deixa haver unidade sem valor. Sem
+   * estes dois campos, quem monta a alínea só tinha a unidade da célula, lia
+   * nulo, e "5% do orçamento aprovado" virava "R$ 5,00 (cinco reais)" no
+   * contrato do Conselho. Medido no capítulo do Zamo em 17/09/2026.
+   *
+   * Vêm juntos e sem ambiguidade: quando as medidas divergem a função já marca
+   * `incomparavel` e não devolve valor nenhum, então todas as células que
+   * contribuem para um piso têm a MESMA medida.
+   */
+  unidade: string | null;
+  base: string | null;
 }
 
 /** A medida de uma alçada, para comparar duas: "R$" e "10% do orçamento" não se comparam. */
@@ -131,14 +146,19 @@ export function pisosDaLinha(celulas: readonly CelulaDaEscada[]): Map<string, Pi
       medidas.add(medida(recebe));
     }
     if (medidas.size > 1) {
-      pisos.set(orgaoId, { valor: null, incomparavel: true });
+      pisos.set(orgaoId, { valor: null, incomparavel: true, unidade: null, base: null });
       continue;
     }
     // Regra 2: o maior teto entre quem aponta.
     const valor = Math.max(...apontam.map((c) => Number(c.alcada_valor)));
+    // Todas medem igual (senão teria caído no `incomparavel` acima), então a
+    // primeira responde pela medida do piso.
+    const medidor = apontam[0];
     pisos.set(orgaoId, {
       valor: Number.isFinite(valor) ? valor : null,
       incomparavel: false,
+      unidade: medidor.alcada_unidade ?? null,
+      base: medidor.alcada_base ?? null,
     });
   }
   return pisos;
