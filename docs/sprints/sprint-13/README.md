@@ -120,6 +120,12 @@ cliente órfão. O desfazer continua sem pegar.
 |---|---|---|---|
 | **[6 A redação dos avisos de prazo vai para produção](TAREFA_redacao-dos-avisos-de-prazo.md)** 🔴 | A GES-01A subiu a produção em 02/09 **com o texto de trabalho**, e o cron está **ativo**: toda manhã às 7h a equipe recebe `Tarefa atrasada:` com corpo `Prazo em …`, no futuro. Leva a redação fechada pela Patricia, os acentos, e o gestor passa a receber só o atraso. | Sim, **1 ⚠️ MIGRAÇÃO** (`20260902210245`), só duas funções, nada de schema. **Não aplicada** | 🔴 **Urgente pelo cron**: escrita, aguarda o passo humano no Lovable |
 
+## O padrão único das explicações contextuais
+
+| Tarefa | Escopo | Banco? | Status |
+|---|---|---|---|
+| [14 O padrão único das explicações contextuais](TAREFA_padrao-de-texto-explicativo.md) | Decidir **antes das próximas rotas** como a ferramenta explica a si mesma: tooltip, texto de apoio, placeholder, rótulo e mensagem contextual, hoje escritos com estruturas e vozes diferentes em cada tela. Medido em 17/09: **dois mecanismos de tooltip** convivem sem regra — 117 `<Tooltip>` do shadcn contra **151 `title=` nativos** (54 deles em `<button>`), e o nativo, que é o maior, não aparece no toque nem tem estilo; **metade do que se chama tooltip é rótulo, não explicação** (a mediana do texto literal é 1 caractere, e os curtos são "Editar OS", "Remover contribuinte" — o único nome que o botão de ícone tem), enquanto 39 dos 117 são explicação de verdade, atrás de um ícone (i); **o tamanho já estourou** em 15 casos acima de 80 caracteres, e o maior, de **521**, começa com "Como ler esta tabela" e é nota de leitura da tela, papel que hoje não existe; o placeholder tem padrão não escrito (`Selecione…` 130 × `Selecionar…` 23, `Ex:` 57 × `ex:` 18) e a pontuação é sorteada (23 com ponto, 94 sem). **Metade do vocabulário já está decidida** e não é lida fora de onde nasceu — o catálogo de recusa da sprint 12 e a palavra única de status. Entrega um padrão de uma tela e meia em `geral/texto-explicativo-na-tela.md` mais catraca `textoDeAjuda.test.ts`; **a conversão dos 143 `title=` fica para tarefa própria**, depois do padrão | **Não.** Documento e catraca; nem migração, nem RPC, nem policy | 🔵 ABERTO |
+
 ## Como usar esta pasta
 
 - **Uma tarefa = um arquivo** `TAREFA_<slug>.md` nesta pasta.
