@@ -6,6 +6,7 @@ import {
   type RegraDoProtocolo,
   diffDaLinha,
   montarGrade,
+  ordenarBeneficiarios,
   regrasParaSalvar,
 } from '@/lib/protocoloRemuneracao';
 
@@ -63,6 +64,34 @@ const regras: RegraDoProtocolo[] = [
     texto: 'Veículo utilitário até R$ 600.000,00',
   },
 ];
+
+describe('ordenarBeneficiarios', () => {
+  it('ordena pela ordem, não pela ordem de chegada', () => {
+    expect(ordenarBeneficiarios(beneficiarios).map((b) => b.nome)).toEqual([
+      'Sócios Fundadores',
+      'Sucessores na Gestão',
+    ]);
+  });
+
+  it('desempata pelo nome quando alguém repetiu a ordem à mão', () => {
+    const empatados = [
+      { id: 'b', nome: 'Sócios Gestores', ordem: 10 },
+      { id: 'a', nome: 'Fundadores', ordem: 10 },
+    ];
+
+    expect(ordenarBeneficiarios(empatados).map((b) => b.nome)).toEqual([
+      'Fundadores',
+      'Sócios Gestores',
+    ]);
+  });
+
+  it('não mexe no array que recebeu', () => {
+    const original = [...beneficiarios];
+    ordenarBeneficiarios(beneficiarios);
+
+    expect(beneficiarios).toEqual(original);
+  });
+});
 
 describe('montarGrade', () => {
   it('agrupa por tema e ordena os temas pela ordem do catálogo', () => {
