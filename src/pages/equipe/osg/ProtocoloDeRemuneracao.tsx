@@ -13,6 +13,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
+import { useClienteTemDocumentoGerado } from '@/hooks/useDocumentoGerado';
 import {
   useCatalogoDeItens,
   useCatalogoDeTemas,
@@ -51,6 +52,7 @@ const ProtocoloDeRemuneracao = () => {
   const { data: temas = [] } = useCatalogoDeTemas(clienteId);
   const { data: itens = [] } = useCatalogoDeItens(clienteId);
   const { data: protocolo, isLoading } = useProtocoloDoCliente(clienteId);
+  const { data: temDocumento = false } = useClienteTemDocumentoGerado(clienteId ?? null);
   const {
     criarProtocolo, salvarLinha, removerLinha, adicionarItens,
     criarTemaDoCliente, criarItemDoCliente,
@@ -234,6 +236,7 @@ const ProtocoloDeRemuneracao = () => {
         onOpenChange={(aberto) => !aberto && setEmEdicao(null)}
         linha={emEdicao}
         salvando={salvarLinha.isPending}
+        mostrarHistorico={temDocumento}
         onSalvar={(celulas) =>
           salvarLinha.mutateAsync({
             linhaId: emEdicao!.linha_id,

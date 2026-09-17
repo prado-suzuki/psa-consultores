@@ -4,6 +4,7 @@ import { ArrowRight, Trash2 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
+import { HistoricoFlutuante } from '@/components/equipe/osg/HistoricoFlutuante';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,6 +33,7 @@ export function ProtocoloLinhaModal({
   onOpenChange,
   linha,
   salvando,
+  mostrarHistorico,
   onSalvar,
   onTirarDoProtocolo,
   onProxima,
@@ -40,6 +42,13 @@ export function ProtocoloLinhaModal({
   onOpenChange: (aberto: boolean) => void;
   linha: LinhaDaGrade | null;
   salvando: boolean;
+  /**
+   * Quem decide é a página, pelo mesmo critério do `PessoaModal` e do `BemModal`:
+   * só depois que o cliente tem documento gerado. Antes disso "o que mudou desde
+   * então" não significa nada, e o painel só rouba atenção de quem está
+   * preenchendo pela primeira vez.
+   */
+  mostrarHistorico: boolean;
   onSalvar: (celulas: CelulaEditada[]) => Promise<unknown>;
   onTirarDoProtocolo: () => void;
   /** Ausente quando a linha aberta é a última do protocolo. */
@@ -125,6 +134,13 @@ export function ProtocoloLinhaModal({
             </Button>
           </div>
         </DialogFooter>
+
+        {/*
+          O painel é filho do `DialogContent`, e não irmão: fica fora da caixa,
+          mas dentro do DOM do diálogo, para herdar foco e fechamento do Radix.
+          É como as três telas que já usam isto fazem.
+        */}
+        {mostrarHistorico && <HistoricoFlutuante entityIds={[linha.linha_id]} />}
       </DialogContent>
     </Dialog>
   );

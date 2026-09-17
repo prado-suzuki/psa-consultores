@@ -23,6 +23,10 @@ import type {
  * então corta em três linhas e o `title` leva o texto completo, para conferir
  * sem abrir a caixa item por item.
  */
+/** Linha preenchida é a que tem pelo menos uma regra escrita, em qualquer coluna. */
+const preenchidasNaSecao = (secao: SecaoDaGrade) =>
+  secao.linhas.filter((l) => l.celulas.some((c) => c.texto)).length;
+
 export function GradeDoProtocolo({
   grade,
   colunas,
@@ -62,7 +66,19 @@ export function GradeDoProtocolo({
                     colSpan={colunas.length + 1}
                     className="border-b border-primary/20 bg-primary/10 py-2.5 text-left text-sm font-semibold text-foreground"
                   >
-                    {secao.tema}
+                    <span className="flex flex-wrap items-baseline gap-x-2">
+                      {secao.tema}
+                      {/*
+                        O andamento fica no TEMA e não só no topo da tela, no
+                        mesmo espírito do "X de Y respondidos" que o Acordo mostra
+                        por grupo. Com 13 temas, um número global diz que falta
+                        preencher mas não diz ONDE, e quem retoma o trabalho no
+                        dia seguinte precisa achar o buraco sem varrer 62 linhas.
+                      */}
+                      <span className="text-xs font-normal text-muted-foreground">
+                        {preenchidasNaSecao(secao)} de {secao.linhas.length} preenchidos
+                      </span>
+                    </span>
                   </TableCell>
                 </TableRow>
 
