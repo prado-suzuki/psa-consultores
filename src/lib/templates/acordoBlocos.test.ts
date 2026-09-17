@@ -150,7 +150,15 @@ describe('os placeholders do Acordo', () => {
 
     // NÃO viraram, porque não variam em contrato nenhum:
     expect(texto).toContain('60 (sessenta) dias');           // balanço da apuração
-    expect(texto).toContain('03 (três), sendo um nomeado');  // número de árbitros
+    /*
+     * O NÚMERO de árbitros continua fixo, "03 (três)" em 6 de 6 que dizem. O que
+     * o seguia deixou de ser: quem os nomeia virou condicional em 17/09, porque
+     * são duas redações medidas (5 de 7 contra 2 de 7) e o modelo só trazia a
+     * primeira, entregando o contrário a quem escolhesse a segunda.
+     */
+    expect(texto).toContain('o número de árbitros será de 03 (três)');
+    expect(texto).toContain('{{#acordo.arbitrosPelasPartes}}');
+    expect(texto).toContain('{{#acordo.arbitrosPelaCamara}}');
   });
 
   it('o "1% ao mês" só virou campo onde a base é o valor subscrito', () => {

@@ -1,4 +1,7 @@
-import { expressaoDoQuorum, type BaseQuorum, type TipoQuorum } from '@/lib/acordoQuotistasPadrao';
+import {
+  expressaoDoQuorum, quantidadeDoQuorum, quantidadeDoQuorumEmFracao,
+  type BaseQuorum, type TipoQuorum,
+} from '@/lib/acordoQuotistasPadrao';
 import type { EntradaAcordo } from '@/lib/templates/contextoAcordo';
 import type { AcordoCompleto } from '@/hooks/useDomainAcordoQuotistas';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
@@ -32,15 +35,26 @@ export function entradaDoAcordo(
    * então o que o consultor lê ao preencher é literalmente o que sai no Word.
    * Duas montagens da mesma frase divergiriam no dia em que uma mudasse.
    */
-  const quoruns = dados.quoruns.map((q) => ({
-    materia: q.materia,
-    expressao: expressaoDoQuorum({
+  const quoruns = dados.quoruns.map((q) => {
+    const partes = {
       tipo: q.tipo as TipoQuorum,
       percentual: q.percentual,
       base: q.base as BaseQuorum,
-    }),
-    ordem: q.ordem,
-  }));
+    };
+    return {
+      chave: q.chave,
+      materia: q.materia,
+      expressao: expressaoDoQuorum(partes),
+      /*
+       * A quantidade sozinha, porque o documento escreve a base com as palavras
+       * dele. E a variante em fração, porque o aumento de capital é o único
+       * lugar que escreve "¾ (três quartos)" onde a escada escreve "75%".
+       */
+      quantidade: quantidadeDoQuorum(partes),
+      quantidadeEmFracao: quantidadeDoQuorumEmFracao(partes),
+      ordem: q.ordem,
+    };
+  });
 
   /*
    * Vínculo cuja pessoa sumiu do cadastro é DESCARTADO, e não vira item vazio.
@@ -77,7 +91,6 @@ export function entradaDoAcordo(
       naoConcorrenciaAlcancaParentes: acordo.nao_concorrencia_alcanca_parentes,
       opcaoCompraPrevista: acordo.opcao_compra_prevista,
       opcaoCompraQuem: acordo.opcao_compra_quem,
-      opcaoCompraPreco: acordo.opcao_compra_preco,
       opcaoVendaPrevista: acordo.opcao_venda_prevista,
       jurosValorSubscrito: acordo.juros_valor_subscrito,
       solucaoLitigios: acordo.solucao_litigios,

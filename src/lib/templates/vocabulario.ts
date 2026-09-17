@@ -245,6 +245,18 @@ function numeralCampo(id: string, label: string, derivadoDe: string): CampoEntid
  * da pergunta é publicado como um campo. `derivar` devolve string porque é isso
  * que uma seção {{#campo}} lê; booleano funcionaria por acaso.
  */
+/** Condicional ligado por UMA chave da lista de objetos da preferência. */
+function objetoDaPreferenciaCampo(id: string, chave: string, label: string): CampoEntidade {
+  return {
+    id,
+    label,
+    tipo: 'texto',
+    derivadoDe: 'objetosPreferenciaChaves',
+    derivar: (v) => ((v.objetosPreferenciaChaves ?? '')
+      .split(',').map((x) => x.trim()).includes(chave) ? 'sim' : ''),
+  };
+}
+
 function condicionalCampo(
   id: string,
   label: string,
@@ -1632,6 +1644,29 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         tipo: 'texto', interno: true },
       // A Cláusula Quinta trata das quotas; é a Décima que estende a imóveis,
       // máquinas e oportunidades, e ela só existe se houver algo além delas.
+      /*
+       * UM CONDICIONAL POR OBJETO, porque o modelo escreve cada um no seu lugar.
+       *
+       * Eu quase derrubei este campo por achar que o modelo não enumerava os
+       * objetos. Enumera, em prosa espalhada, e o título da Cláusula Décima já
+       * denuncia: "Do direito de preferência caso ocorra venda de SOCIEDADES
+       * RELACIONADAS, de imóveis ou oportunidades de negócios".
+       *
+       *   participacoes   os cinco blocos das SOCIEDADES RELACIONADAS
+       *   imoveis         o item que estende a bens imóveis
+       *   oportunidades   o item das oportunidades de negócio, na Décima Primeira
+       *
+       * `maquinas` e `equipamentos` NÃO ganham condicional: o modelo não os
+       * escreve em bloco nenhum, e a lista da tela nisso é vocabulário do
+       * AgroAliança. Marcá-los no cadastro não muda o documento, e é melhor que
+       * não mude a que eu invente cláusula que o escritório não redigiu.
+       */
+      objetoDaPreferenciaCampo('preferenciaSobreImoveis', 'imoveis',
+        'A preferência alcança bens imóveis? (condicional)'),
+      objetoDaPreferenciaCampo('preferenciaSobreParticipacoes', 'participacoes',
+        'A preferência alcança participações em SOCIEDADES RELACIONADAS? (condicional)'),
+      objetoDaPreferenciaCampo('preferenciaSobreOportunidades', 'oportunidades',
+        'A preferência alcança oportunidades de negócio? (condicional)'),
       {
         id: 'preferenciaAlemDasQuotas',
         label: 'A preferência vai além das quotas? (condicional)',
@@ -1736,7 +1771,6 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
        */
       { id: 'opcaoCompraPrevista', label: 'Tem opção de compra? (condicional)', tipo: 'texto' },
       { id: 'opcaoCompraQuem', label: 'Quem detém a opção de compra', tipo: 'texto' },
-      { id: 'opcaoCompraPreco', label: 'Preço na opção de compra', tipo: 'texto' },
       { id: 'opcaoVendaPrevista', label: 'Tem opção de venda? (condicional)', tipo: 'texto' },
       { id: 'jurosValorSubscrito', label: 'Juros sobre o valor subscrito', tipo: 'texto' },
 
@@ -1754,6 +1788,56 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         'solucaoLitigios', (v) => v.solucaoLitigios === 'arbitragem'),
       condicionalCampo('porJudicial', 'Conflito vai para o Judiciário? (condicional)',
         'solucaoLitigios', (v) => v.solucaoLitigios === 'judicial'),
+      /*
+       * OS SETE QUÓRUNS, um campo por matéria, mais a variante em fração.
+       *
+       * Não são sete alíneas de uma lista, e supor isso produziria documento
+       * errado. Cruzado com o modelo: quatro viram alíneas da escada do voto na
+       * Cláusula Nona, o aumento de capital sai na Quarta, a reunião prévia na
+       * Vigésima Quarta, e a INSTALAÇÃO não aparece no Acordo (é a cláusula de
+       * instalação do contrato social). Por isso cada um tem o seu campo, e o
+       * bloco cita o seu.
+       *
+       * Só a QUANTIDADE, porque a frase do modelo já traz a base com as palavras
+       * dela: "Conforme decidam 75% (setenta e cinco por cento) dos VOTOS dos
+       * QUOTISTAS presentes nas REUNIÕES...".
+       *
+       * A variante em FRAÇÃO existe porque o modelo é inconsistente consigo
+       * mesmo, e ser fiel a ele é reproduzir isso: os mesmos 75% saem
+       * "75% (setenta e cinco por cento)" na escada e "¾ (três quartos) das
+       * QUOTAS" no aumento de capital.
+       *
+       * `lacunaSeVazio` pelo mesmo motivo do apelido da empresa: a alínea é
+       * prosa que se sustenta sem o número, e some inteira se ele faltar.
+       */
+      { id: 'quorumInstalacao', label: 'Quórum: Para a reunião de sócios poder começar', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumInstalacaoFracao', label: 'Quórum em fração: Para a reunião de sócios poder começar', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumOrdinaria', label: 'Quórum: Assunto comum, sem regra própria', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumOrdinariaFracao', label: 'Quórum em fração: Assunto comum, sem regra própria', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumAlterarContratoSocial', label: 'Quórum: Alterar o contrato social', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumAlterarContratoSocialFracao', label: 'Quórum em fração: Alterar o contrato social', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumNomearAdministradorNaoSocio', label: 'Quórum: Nomear administrador não sócio', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumNomearAdministradorNaoSocioFracao', label: 'Quórum em fração: Nomear administrador não sócio', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumDestituirAdministrador', label: 'Quórum: Destituir administrador', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumDestituirAdministradorFracao', label: 'Quórum em fração: Destituir administrador', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumAumentoDeCapital', label: 'Quórum: Aumento de capital', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumAumentoDeCapitalFracao', label: 'Quórum em fração: Aumento de capital', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumReuniaoPrevia', label: 'Quórum: Reunião prévia', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumReuniaoPreviaFracao', label: 'Quórum em fração: Reunião prévia', tipo: 'texto',
+        lacunaSeVazio: true },
       { id: 'camaraArbitral', label: 'Câmara arbitral', tipo: 'texto' },
 
       /*
@@ -1789,6 +1873,20 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         derivadoDe: 'representanteGenero',
         derivar: (v) => concordar(v.representanteGenero === 'F' ? 'F' : 'M', 'Sr.', 'Sra.'),
       },
+      /*
+       * O ARTIGO TAMBÉM CONCORDA, e ele estava escrito fixo no bloco.
+       *
+       * A cláusula saía "os QUOTISTAS elegem o Sra. Ana Zamo" quando o
+       * representante era mulher. O tratamento já concordava; o artigo antes
+       * dele, não. Mesmo par do órgão de governança, que tem `artigo` e `ao`.
+       */
+      {
+        id: 'representanteArtigo',
+        label: 'Artigo do representante (o/a)',
+        tipo: 'texto',
+        derivadoDe: 'representanteGenero',
+        derivar: (v) => concordar(v.representanteGenero === 'F' ? 'F' : 'M', 'o', 'a'),
+      },
       condicionalCampo('temRepresentante', 'Há representante eleito? (condicional)',
         'representanteNome', (v) => !!(v.representanteNome ?? '').trim()),
       /*
@@ -1808,6 +1906,17 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         derivar: (v) => concordar(v.substitutoRepresentanteGenero === 'F' ? 'F' : 'M', 'Sr.', 'Sra.'),
       },
       /*
+       * "passará AO Sr." e "passará À Sra.": aqui é preposição com artigo, e não
+       * artigo solto, porque a frase é "a incumbência passará ao …".
+       */
+      {
+        id: 'substitutoRepresentanteAo',
+        label: 'Preposição do substituto (ao/à)',
+        tipo: 'texto',
+        derivadoDe: 'substitutoRepresentanteGenero',
+        derivar: (v) => concordar(v.substitutoRepresentanteGenero === 'F' ? 'F' : 'M', 'ao', 'à'),
+      },
+      /*
        * O FORO ELEITO, cláusula 26.6, e também a cidade da arbitragem, que é a
        * mesma em 5 dos 5 acordos que trazem as duas. Não deriva da sede: o
        * AgroAliança senta em Sorriso e elege Cuiabá. O estado vai por extenso,
@@ -1815,6 +1924,16 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
        */
       { id: 'foroEleitoComarca', label: 'Foro eleito — cidade', tipo: 'texto' },
       { id: 'foroEleitoEstado', label: 'Foro eleito — estado por extenso', tipo: 'texto' },
+      /*
+       * "estado DO Paraná", e não "estado DE Paraná".
+       *
+       * `ufComPreposicao` já resolve pelo NOME, e não só pela sigla: ele faz a
+       * busca reversa do nome para a sigla justamente porque a matrícula publica
+       * o estado por extenso. Por isso não foi preciso trocar a coluna para
+       * guardar "PR".
+       */
+      ufComPreposicaoCampo('foroEleitoEstadoComPreposicao',
+        'Foro eleito — estado com a preposição', 'foroEleitoEstado'),
     ],
   },
 };

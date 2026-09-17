@@ -1,6 +1,6 @@
 import { classificarCaminho, marcacaoDoCaminho } from './campos';
 import { comporBlocos } from './composition';
-import { motivoDeDescarte, paragrafosOrfaos, type MotivoDescarte } from './descarte';
+import { clausulasSemCorpo, motivoDeDescarte, paragrafosOrfaos, type MotivoDescarte } from './descarte';
 import type { RegistroFamilias } from './familia';
 import { prefixosNumeracao, refsNumeracao, unirBlocos } from './numeracao';
 import { expandirRepetidores } from './repetidor';
@@ -141,11 +141,13 @@ export function gerarComposicao(
     renders = renderizarComReferencias(blocos, blocosDescartados, contexto, opcoes);
     const motivosProprios = renders.map((r, i) => motivoDeDescarte(r, blocos[i]));
     const orfaos = paragrafosOrfaos(blocos);
+    const semCorpo = clausulasSemCorpo(blocos);
     const motivos = motivosProprios.map((motivo, i): MotivoDescarte | null => {
       // O motivo do próprio conteúdo explica melhor o descarte no painel; a
       // estrutura só decide quando o bloco não tinha outra razão para sair.
       if (motivo) return motivo;
-      return orfaos[i] ? 'clausula-descartada' : null;
+      if (orfaos[i]) return 'clausula-descartada';
+      return semCorpo[i] ? 'clausula-sem-corpo' : null;
     });
     if (motivos.every((motivo) => !motivo)) break;
 
@@ -244,7 +246,7 @@ export { expandirRepetidores } from './repetidor';
 export { numerarBlocos, unirBlocos, rotulosNumeracao, refsNumeracao, prefixosNumeracao } from './numeracao';
 export { renderConteudo, renderSegmentos, renderBloco, extrairCampos, expandirInclusoes, inclusoesDe } from './render';
 export type { SegmentoRender, OpcoesRender, MarcacaoCampo, RenderDeBloco } from './render';
-export { motivoDeDescarte, paragrafosOrfaos } from './descarte';
+export { clausulasSemCorpo, motivoDeDescarte, paragrafosOrfaos } from './descarte';
 export type { MotivoDescarte } from './descarte';
 export { marcarSintetizados, ehSintetizado } from './sintetizado';
 export { classificarCaminho, lacunaDoTipo, marcacaoDoCaminho } from './campos';

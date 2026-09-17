@@ -83,7 +83,6 @@ export function resumoDosMecanismos(chaves: readonly string[] | null | undefined
 
 /** Como cada campo do acordo se chama para quem lê o histórico. */
 const ROTULO_DO_CAMPO: Record<string, string> = {
-  data_referencia: 'Data de referência',
   assinado_em: 'Assinado em',
   vigencia_anos: 'Vigência, em anos',
   metodos_avaliacao: 'Métodos de avaliação da quota',
@@ -98,7 +97,6 @@ const ROTULO_DO_CAMPO: Record<string, string> = {
   nao_concorrencia_alcanca_parentes: 'A não concorrência alcança parentes e sócios',
   opcao_compra_prevista: 'Opção de compra prevista',
   opcao_compra_quem: 'Quem detém a opção de compra',
-  opcao_compra_preco: 'Preço na opção de compra',
   opcao_venda_prevista: 'Opção de venda prevista',
   objetos_preferencia: 'Objetos sujeitos à preferência',
   juros_valor_subscrito: 'Juros sobre o valor subscrito',

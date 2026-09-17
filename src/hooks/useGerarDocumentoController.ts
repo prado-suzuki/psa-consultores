@@ -394,6 +394,18 @@ export function useGerarDocumentoController() {
       ),
     [catalogoBlocos],
   );
+  // Mesma mecânica da numeração: efeito estrutural que o catálogo declara e o
+  // gerador do .docx aplica (`tmpl_bloco.quebra_pagina_antes`).
+  const quebraPaginaPorBlocoId = useMemo(
+    () =>
+      new Map(
+        catalogoBlocos.map((b) => [
+          b.id,
+          (b as BlocoComVersao & { quebra_pagina_antes?: boolean }).quebra_pagina_antes,
+        ]),
+      ),
+    [catalogoBlocos],
+  );
   const nomePorVarianteId = useMemo(
     () => new Map([...variantePorId].map(([id, v]) => [id, v.variante_rotulo ?? v.nome])),
     [variantePorId],
@@ -448,6 +460,7 @@ export function useGerarDocumentoController() {
             : (ov ? ov.conteudoSubstituto : (b.bloco!.conteudo as string)),
           obrigatorio: b.obrigatorio,
           reiniciaNumeracao: reiniciaNumeracaoPorBlocoId.get(b.bloco!.id) ?? undefined,
+          quebraPaginaAntes: quebraPaginaPorBlocoId.get(b.bloco!.id) ?? undefined,
           flagsRequeridas: b.bloco!.flags,
           repeteColecao: b.bloco!.repete_colecao ?? undefined,
           ancora: b.bloco!.ancora ?? undefined,
@@ -455,7 +468,7 @@ export function useGerarDocumentoController() {
         };
       });
     return { id: modeloId ?? 'novo', nome: 'documento', blocos };
-  }, [docBlocos, modeloId, porBlocoAlvo, modeloSocietario, reiniciaNumeracaoPorBlocoId]);
+  }, [docBlocos, modeloId, porBlocoAlvo, modeloSocietario, reiniciaNumeracaoPorBlocoId, quebraPaginaPorBlocoId]);
   // A peça REGISTRADA renderiza os blocos congelados no snapshot dela, nunca a
   // Biblioteca de hoje. O que o MODELO declara (flags de evento, por exemplo)
   // continua vindo de `templateDoModelo`: o assistente da alteração pergunta ao
@@ -494,6 +507,7 @@ export function useGerarDocumentoController() {
           : (b.bloco!.conteudo as string),
         obrigatorio: b.obrigatorio,
         reiniciaNumeracao: reiniciaNumeracaoPorBlocoId.get(b.bloco!.id) ?? undefined,
+        quebraPaginaAntes: quebraPaginaPorBlocoId.get(b.bloco!.id) ?? undefined,
         flagsRequeridas: b.bloco!.flags,
         repeteColecao: b.bloco!.repete_colecao ?? undefined,
         ancora: b.bloco!.ancora ?? undefined,
@@ -502,7 +516,7 @@ export function useGerarDocumentoController() {
         tituloDocumento: b.bloco!.titulo_documento ?? undefined,
       }));
     return { id: modeloId ?? 'novo', nome: 'documento', blocos };
-  }, [docBlocos, modeloId, posicoesSobrescritas, template, modeloSocietario, reiniciaNumeracaoPorBlocoId, reproduzindoRegistrado]);
+  }, [docBlocos, modeloId, posicoesSobrescritas, template, modeloSocietario, reiniciaNumeracaoPorBlocoId, quebraPaginaPorBlocoId, reproduzindoRegistrado]);
 
   const nomePorBlocoId = useMemo(
     () => new Map(docBlocos.map((b) => [b.id, b.bloco?.nome ?? b.id])),

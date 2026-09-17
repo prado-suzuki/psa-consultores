@@ -90,7 +90,8 @@ describe('camposQueDescem', () => {
 describe('preenchidosNoGrupo', () => {
   it('conta só o que está à vista: campo escondido não pesa', () => {
     const g = grupoDoAcordo('opcoes')!;
-    // Com a opção de compra desligada, os dois campos dela nem aparecem.
+    // Com a opção de compra desligada, o campo dela nem aparece. Eram dois até
+    // 17/09, quando o preço saiu por não escrever linha nenhuma no documento.
     const semCompra = preenchidosNoGrupo(g, {
       opcao_compra_prevista: false, opcao_venda_prevista: false, juros_valor_subscrito: null,
     });
@@ -99,7 +100,7 @@ describe('preenchidosNoGrupo', () => {
     const comCompra = preenchidosNoGrupo(g, {
       opcao_compra_prevista: true, opcao_venda_prevista: false, juros_valor_subscrito: null,
     });
-    expect(comCompra.total).toBe(5);
+    expect(comCompra.total).toBe(4);
   });
 
   it('booleano desligado só conta depois que alguém conferiu o bloco', () => {

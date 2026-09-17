@@ -80,9 +80,18 @@ function prosaDasChaves(chaves: readonly string[], vocabulario: Record<string, s
 
 /** Uma linha de `acordo_quorum`, já com a expressão montada pelo cadastro. */
 export interface QuorumParaMapear {
+  /**
+   * A chave do catálogo (`alterar_contrato_social`…), que diz ONDE ele escreve.
+   * Nula na linha que o consultor acrescentou à mão, que não tem lugar fixo.
+   */
+  chave: string | null;
   materia: string;
   /** "¾ (três quartos) do capital social", de `expressaoDoQuorum`. */
   expressao: string;
+  /** Só a quantidade: "75% (setenta e cinco por cento)", "a maioria". */
+  quantidade: string;
+  /** A mesma quantidade em fração, para o aumento de capital. */
+  quantidadeEmFracao: string;
   ordem: number;
 }
 
@@ -135,9 +144,77 @@ function ramoNoDocumento(nome: string): { rotulo: string; definicao: string } {
 }
 
 /** Os campos do binding `acordo`, com o que se deduz das listas já dentro. */
+/**
+ * O QUÓRUM DE CADA MATÉRIA, no campo da matéria dela.
+ *
+ * Os sete quóruns do cadastro NÃO são sete alíneas de uma lista, e supor isso
+ * teria produzido documento errado. Cruzado com o modelo, linha a linha:
+ *
+ *   ordinaria                       alínea "para as demais matérias"
+ *   alterar_contrato_social         alínea dos 75%
+ *   nomear_administrador_nao_socio  DUAS alíneas, porque o modelo separa o caso
+ *                                   do capital integralizado do não integralizado
+ *   destituir_administrador         alínea da maioria
+ *   aumento_de_capital              FORA da escada, na Cláusula Quarta
+ *   reuniao_previa                  FORA da escada, na Cláusula Vigésima Quarta
+ *   instalacao                      não aparece no Acordo; é regra do contrato
+ *                                   social (art. 1.074 do Código Civil)
+ *
+ * Por isso cada um vira um campo com o nome da chave, e o bloco cita o seu. Um
+ * laço `{{#quoruns}}` escreveria os sete em fila num lugar só, o que o modelo
+ * não faz em nenhum acordo do acervo.
+ */
+const CHAVES_DE_QUORUM = [
+  'instalacao', 'ordinaria', 'alterar_contrato_social', 'nomear_administrador_nao_socio',
+  'destituir_administrador', 'aumento_de_capital', 'reuniao_previa',
+] as const;
+
+/** `alterar_contrato_social` vira `quorumAlterarContratoSocial`. */
+function nomeDoCampo(chave: string): string {
+  const camel = chave.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+  return `quorum${camel[0].toUpperCase()}${camel.slice(1)}`;
+}
+
+function quorunsPorChave(quoruns: readonly QuorumParaMapear[]): Campos {
+  const out: Campos = {};
+  /*
+   * AS SETE SAEM SEMPRE, vazias quando a linha não existe.
+   *
+   * Mesma regra de `publicarOpcionais`, e pelo mesmo motivo: placeholder AUSENTE
+   * derruba o documento inteiro, placeholder vazio só deixa a frase sem o
+   * número. Um acordo antigo, ou um em que alguém apagou uma linha, não pode
+   * levar o documento junto. Foi o teste do acordo vazio que cobrou.
+   */
+  for (const chave of CHAVES_DE_QUORUM) {
+    out[nomeDoCampo(chave)] = '';
+    out[`${nomeDoCampo(chave)}Fracao`] = '';
+  }
+  for (const q of quoruns) {
+    /*
+     * SEM CHAVE, o quórum não vira campo. `acordo_quorum.chave` é ANULÁVEL: o
+     * catálogo semeia as sete com chave, mas a tela deixa acrescentar linha
+     * livre, e essa não tem lugar fixo no documento. Sem esta guarda, uma linha
+     * dessas derrubava a geração inteira com "Cannot read properties of
+     * undefined", e foi o teste da cadeia que pegou.
+     */
+    if (!q.chave) continue;
+    out[nomeDoCampo(q.chave)] = q.quantidade;
+    out[`${nomeDoCampo(q.chave)}Fracao`] = q.quantidadeEmFracao;
+  }
+  return out;
+}
+
 export function camposDoAcordo(entrada: EntradaAcordo): Campos {
   const objetos = entrada.objetosPreferencia ?? [];
-  return mapearAcordoQuotistas({
+  /*
+   * A ORDEM IMPORTA, e ela me pegou. `mapearAcordoQuotistas` passa por
+   * `publicarOpcionais`, que publica '' para todo campo declarado e não
+   * preenchido, e os quóruns agora são campos declarados. Com eles antes, os
+   * vazios do mapeador sobrescreviam os valores de verdade e o documento saía
+   * com a lacuna no lugar do número, sem erro nenhum.
+   */
+  return {
+    ...mapearAcordoQuotistas({
     ...entrada.acordo,
     temRamos: entrada.ramos.length > 0,
     quantosRamos: entrada.ramos.length || null,
@@ -152,7 +229,9 @@ export function camposDoAcordo(entrada: EntradaAcordo): Campos {
     ) || null,
     objetosPreferencia: prosaDasChaves(objetos, OBJETO_NO_DOCUMENTO) || null,
     objetosPreferenciaChaves: [...objetos],
-  });
+    }),
+    ...quorunsPorChave(entrada.quoruns),
+  };
 }
 
 /**

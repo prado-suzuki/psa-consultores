@@ -24,7 +24,7 @@ import {
   partesDoPapel,
   statusDaPartilha,
   statusDasFracoes,
-  TIPOS_EXPLORACAO_OPCOES,
+  ROTULO_TIPO_EXPLORACAO,
   type DraftExploracaoRural,
 } from '@/lib/exploracaoRuralModalModels';
 import { ExploracaoRuralDadosTab } from '@/components/equipe/osg/diagnostico-patrimonial/exploracao-rural/ExploracaoRuralDadosTab';
@@ -243,8 +243,9 @@ export function ExploracaoRuralModal({ open, clienteId, exploracao, onClose }: P
     );
   };
 
-  const rotuloDoTipo =
-    TIPOS_EXPLORACAO_OPCOES.find((t) => t.valor === draft.tipo_exploracao)?.rotulo ?? '';
+  // Do MAPA de rótulos, não da lista oferecida: instrumento antigo de outro tipo
+  // continua mostrando o nome dele no selo do cabeçalho.
+  const rotuloDoTipo = ROTULO_TIPO_EXPLORACAO[draft.tipo_exploracao] ?? '';
 
   return (
     <>

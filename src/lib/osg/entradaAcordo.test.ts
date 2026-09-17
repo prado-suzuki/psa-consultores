@@ -26,7 +26,6 @@ const CADASTRO = {
     versao: 1,
     assinado_em: '2025-09-29',
     vigencia_anos: 10,
-    prazo_sigilo_anos: null,
     reuniao_previa_obrigatoria: true,
     mecanismos: ['preferencia', 'lock_up'],
     metodos_avaliacao: ['patrimonio_liquido'],
@@ -38,7 +37,6 @@ const CADASTRO = {
     nao_concorrencia_alcanca_parentes: true,
     opcao_compra_prevista: false,
     opcao_compra_quem: null,
-    opcao_compra_preco: null,
     opcao_venda_prevista: false,
     juros_valor_subscrito: 'juros de 1% ao mês',
     solucao_litigios: 'arbitragem',
@@ -173,7 +171,6 @@ describe('a cadeia do acordo, da coluna ao documento', () => {
     nao_concorrencia_alcanca_parentes: 'naoConcorrenciaAlcancaParentes',
     opcao_compra_prevista: 'opcaoCompraPrevista',
     opcao_compra_quem: 'opcaoCompraQuem',
-    opcao_compra_preco: 'opcaoCompraPreco',
     opcao_venda_prevista: 'opcaoVendaPrevista',
     objetos_preferencia: 'objetosPreferencia',
     juros_valor_subscrito: 'jurosValorSubscrito',
@@ -193,8 +190,7 @@ describe('a cadeia do acordo, da coluna ao documento', () => {
         consolida_composse: true,
       opcao_compra_prevista: true,
       opcao_compra_quem: 'os demais QUOTISTAS',
-      opcao_compra_preco: 'o VALOR DAS QUOTAS da Cláusula Décima Nona',
-      opcao_venda_prevista: true,
+        opcao_venda_prevista: true,
     },
   } as unknown as AcordoCompleto;
 
@@ -210,15 +206,15 @@ describe('a cadeia do acordo, da coluna ao documento', () => {
     /*
      * A lista de baixo é a tabela `acordo_quotistas` sem as colunas de máquina.
      * Ela existe para que acrescentar coluna sem tratá-la quebre AQUI, e não no
-     * documento de um cliente. `data_referencia` está fora de propósito: ela é
-     * gravada e nunca lida, e está na lista de pendências do cadastro.
+     * documento de um cliente.
+     *
+     * Ela ENCOLHEU em 17/09: `data_referencia` e `prazo_sigilo_anos` eram
+     * exceções porque estavam mortas, e agora não existem mais na tabela. Toda
+     * coluna que sobrou tem de-para.
      */
     const DE_MAQUINA = [
       'id', 'cliente_id', 'versao', 'excluido', 'created_at', 'created_by',
-      'updated_at', 'updated_by', 'grupos_conferidos', 'data_referencia',
-      // Coluna morta: nao existe clausula de sigilo em nenhum dos sete acordos,
-      // e o campo saiu da tela e do motor em 16/09. A coluna cai na limpeza.
-      'prazo_sigilo_anos',
+      'updated_at', 'updated_by', 'grupos_conferidos',
     ];
     const naTabela = Object.keys(CADASTRO.acordo as Record<string, unknown>)
       .filter((c) => !DE_MAQUINA.includes(c));

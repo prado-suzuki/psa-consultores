@@ -378,6 +378,20 @@ function paragrafosDoBloco(
   let assinatura = 0;
   let primeiraLinha = true;
 
+  // Quebra de página declarada no catálogo (`tmpl_bloco.quebra_pagina_antes`): é
+  // assim que o Anexo Único abre em folha própria sem virar arquivo separado.
+  //
+  // O parágrafo carrega SÓ a quebra e fica no pé da página anterior, onde não se
+  // vê. E `terminaEmBranco` é marcado de propósito: sem isso o bloco ainda abriria
+  // com a linha em branco de sempre, que cairia no topo da página nova.
+  //
+  // `tipoAnterior === undefined` significa primeiro bloco do documento — ali a
+  // quebra só produziria uma folha em branco na frente do título.
+  if (bloco.quebraPaginaAntes && estado.tipoAnterior !== undefined) {
+    saida.push(new Paragraph({ children: [new docx.PageBreak()] }));
+    estado.terminaEmBranco = true;
+  }
+
   /**
    * Linha em branco antes do 1º parágrafo do bloco, como no modelo: antes de
    * todo capítulo e de toda cláusula, EXCETO a cláusula que vem imediatamente

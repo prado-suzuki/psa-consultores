@@ -16,6 +16,7 @@ export const EXPLICACAO_DO_DESCARTE: Record<MotivoDescarte, string> = {
   'campos-vazios': 'nenhum campo dele veio preenchido',
   'render-em-branco': 'ele saiu em branco',
   'clausula-descartada': 'a cláusula que o governa ficou de fora',
+  'clausula-sem-corpo': 'todos os itens dela ficaram de fora, e sobrou só o cabeçalho',
 };
 
 export interface BlocoForaDaFolha {
