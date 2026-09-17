@@ -42,11 +42,6 @@ import { corDoTema, hslParaRgb, luminancia, TEMAS, type Hsl } from '@/lib/paleta
  *
  * O QUE ESTA CATRACA NÃO COBRE, de propósito:
  *
- * · **O sinal do degrau da zebra e da divisória** (`--bd-surface2`,
- *   `--bd-line2`). É a segunda metade da tarefa, e é decisão dela: sobre o
- *   cartão tingido a zebra da casa INVERTE de direção, e a razão quase não muda
- *   — uma asserção que medisse só a razão daria verde. Enquanto a decisão não
- *   vier, não há número certo para cobrar.
  * · **`--bd-warn` e `--bd-risk`**, que estão em hexadecimal no `index.css`.
  *   `corDoTema` não lê hex de propósito, e converter no meio desta passada
  *   misturaria duas medições.
@@ -62,6 +57,31 @@ function tokenDoBoard(nome: string): string {
   const achado = CSS.match(new RegExp(`--${nome}:\\s*([^;]+);`));
   expect(achado, `\`--${nome}\` não foi encontrado no index.css`).not.toBeNull();
   return achado![1].trim();
+}
+
+/**
+ * Valor final de um `--bd-*` PARA UM TEMA, resolvido.
+ *
+ * O `corDoTema` do `paletaDeArea` não serve aqui por um detalhe de estrutura: ele
+ * acha o bloco pelo primeiro `:root {` do arquivo, e os `--bd-*` moram num `:root`
+ * mais abaixo. Então a busca é pela declaração, e o desvio de área — o bloco
+ * `:root.tax-theme, :root.osg-theme` — é consultado antes, que é a ordem em que o
+ * navegador resolve.
+ */
+function corDoBoard(tema: string, nome: string): Hsl {
+  const desvio = CSS.match(/:root\.tax-theme,\s*\r?\n:root\.osg-theme\s*\{([^}]*)\}/);
+  const naArea = tema === ':root'
+    ? null
+    : desvio?.[1].match(new RegExp(`--${nome}:\\s*([^;]+);`))?.[1].trim() ?? null;
+  const valor = naArea ?? tokenDoBoard(nome);
+
+  const referencia = valor.match(/^hsl\(var\(--([a-z0-9-]+)\)\)$/);
+  if (referencia) {
+    const resolvido = corDoTema(CSS, tema, referencia[1]);
+    expect(resolvido, `${tema}: \`--${nome}\` aponta para \`--${referencia[1]}\`, que não resolve`).not.toBeNull();
+    return resolvido as Hsl;
+  }
+  return hslCravado(valor, `\`--${nome}\` (${tema})`);
 }
 
 /** Um `hsl(h s% l%)` escrito à mão, como a rampa de tinta do Board. */
@@ -216,6 +236,51 @@ describe('superfície do Board', () => {
         + '(branco do controle, segue a área) ou `--bd-surface-op` (mesma tinta,\n'
         + 'opaca) — os dois estão declarados ao lado do `--bd-surface`.\n'
         + culpados.join('\n'),
+    ).toEqual([]);
+  });
+
+  it('a zebra e a divisória DESCEM, e não só por pouco', () => {
+    /*
+     * ESTA É A ASSERÇÃO QUE A DO CARTÃO NÃO TEM, e a tarefa pediu por nome: ela
+     * cobra o SINAL do degrau, não só a razão.
+     *
+     * Por quê. Com o cartão branco, `--bd-surface2` (`168 20% 98%`) era levemente
+     * mais escuro que a superfície — listra que DESCE. Sobre o cartão tingido ele
+     * ficava mais CLARO: listra que sobe. E a razão quase não mudava: 1,036 →
+     * 1,040 na casa. **Uma catraca que medisse só a razão daria verde**, e a
+     * tabela do Board teria trocado de direção sem nada falhar. É o terceiro caso
+     * do mesmo defeito de classe nesta frente.
+     *
+     * O piso de 1,05 NÃO é o número medido (hoje são 1,154 / 1,165 / 1,144, com o
+     * `--muted` opaco): é o ponto abaixo do qual a listra deixa de ser vista.
+     * Quem garante a força de verdade é o `--muted`, que sai de
+     * `rebaixar(--canvas)` e tem catraca própria — aqui se cobra que o degrau
+     * existe e aponta para baixo.
+     */
+    const alfa = alfaDoCartao();
+    const problemas: string[] = [];
+
+    for (const tema of TEMAS) {
+      const fundo = superficieTingida(tema, alfa);
+      for (const nome of ['bd-surface2', 'bd-line2'] as const) {
+        const rgb = hslParaRgb(corDoBoard(tema, nome));
+        const medida = razao(rgb, fundo);
+        if (luminancia(rgb) >= luminancia(fundo)) {
+          problemas.push(`${tema}: --${nome} está mais CLARO que a superfície (${medida.toFixed(3)}:1)`);
+        } else if (medida < 1.05) {
+          problemas.push(`${tema}: --${nome} desceu só ${medida.toFixed(3)}:1, abaixo do piso de 1,05`);
+        }
+      }
+    }
+
+    expect(
+      problemas,
+      'A zebra ou a divisória do Board parou de descer.\n'
+        + 'Elas se apoiam no cartão, e o cartão tem tinta: mover um move o outro.\n'
+        + 'Se a superfície desceu de novo, o conserto é no degrau, não na\n'
+        + 'superfície — e o teto já é conhecido, `--muted` opaco sobre um fundo\n'
+        + 'que já é 35% de `--muted` para em ~1,15:1.\n'
+        + problemas.join('\n'),
     ).toEqual([]);
   });
 

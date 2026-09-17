@@ -1300,11 +1300,14 @@ All colors MUST be HSL.
      `--bd-accent-soft` passaram a ler o token do tema. Nenhum moveu um pixel:
      o valor cravado era, número por número, o que a casa já declarava.
 
-     Sobraram TRÊS cravados — `--bd-surface2`, `--bd-line2` e `--bd-accent-l` —
-     e cada um está explicado na linha dele. O critério é o mesmo nos três: o
-     valor da casa NÃO tem par no contrato, então derivar mexeria em pixel, e
-     isso é decisão de design, não limpeza. É por isso que eles ficam visíveis
-     aqui em vez de entrarem de carona numa refatoração.
+     Sobraram TRÊS cravados naquele dia — `--bd-surface2`, `--bd-line2` e
+     `--bd-accent-l` —, e o critério era o mesmo nos três: o valor da casa NÃO
+     tem par no contrato, então derivar mexeria em pixel, e isso é decisão de
+     design, não limpeza. Eles ficaram visíveis aqui, esperando a decisão, em vez
+     de entrarem de carona numa refatoração. **Em 17/09/2026 os dois de
+     superfície saíram**, com a decisão dela e o custo medido na nota deles.
+     Sobra UM, o `--bd-accent-l`, que é da série secundária dos gráficos e precisa
+     de olho num gráfico.
 
      Antes de 31/08 o par apontava para a `.board-theme`. Aquele bloco saiu no
      mesmo dia, porque as duas listas descreviam a MESMA casa: este é `:root` e
@@ -1349,16 +1352,34 @@ All colors MUST be HSL.
      Este segue a área. */
   --bd-control:   hsl(var(--card));     /* campo, pastilha, tooltip, risco   */
   --bd-line:      hsl(var(--border));   /* borda de card, régua de tabela   */
-  /* Estes DOIS continuam cravados, e é o que sobra da lista dupla. Os de cima
-     passaram a seguir o token de tema em 31/08/2026 porque o valor cravado era,
-     número por número, o que a casa já declarava — trocar não moveu um pixel.
-     Estes dois não têm esse par: `--bd-surface2` é 168 20% 98% e o `--muted` da
-     casa é 168 20% 92%; `--bd-line2` é 168 16% 94% contra os mesmos 92%. Seguir
-     o `--muted` escureceria a zebra e a divisória da casa (1,13:1 → 1,17:1 na
-     divisória). É mudança de pixel, então é decisão, não limpeza — e fica aqui
-     esperando por ela em vez de entrar de carona. */
-  --bd-surface2:  hsl(168 20% 98%);   /* hover de linha, zebra, cabeçalho   */
-  --bd-line2:     hsl(168 16% 94%);   /* divisória interna, trilho de barra */
+  /* ESTES DOIS ERAM OS ÚLTIMOS CRAVADOS DE SUPERFÍCIE, e a decisão que este
+     bloco dizia estar "esperando por ela" chegou em 17/09/2026: seguem o
+     `--muted`, nas três áreas. O aviso antigo ficava aqui porque seguir o
+     `--muted` escureceria a zebra e a divisória da CASA — e é isso mesmo que
+     acontece, só que agora o argumento virou do avesso.
+
+     O QUE MUDOU O SINAL DO ARGUMENTO. Com o cartão branco, a zebra da casa
+     estava a 1,036:1 (168 20% 98% contra 42 24% 99.8%) — listra que praticamente
+     não existia, e a única das três áreas assim: a Tax e a OSG já usavam
+     `hsl(var(--muted))`, a 1,260 e 1,227. Com o cartão tingido a casa ficava pior
+     ainda, e de um jeito que catraca nenhuma pegaria: `--bd-surface2` passava a
+     ser mais CLARO que a superfície, listra que sobe em vez de descer, com a
+     razão quase inalterada. Terceiro caso do mesmo defeito de classe nesta
+     frente — degrau construído sobre uma superfície se move junto com ela.
+
+     O QUE CUSTA, medido. A casa GANHA zebra: 1,036 → 1,154. A Tax e a OSG perdem
+     ~8%: 1,260 → 1,165 e 1,227 → 1,144. E essa perda não é calibração ruim, é
+     TETO: `--muted` a 100%, sem transparência, sobre um fundo que já é 35% de
+     `--muted` para nesses números. São os mesmos três que a caixa de tabela
+     encontrou em 16/09, pelo mesmo motivo, e o custo foi aceito ali olhando.
+
+     O que sobrou de aberto está escrito: os dois tokens passam a ter o MESMO
+     valor nas três áreas — o que já era verdade na Tax e na OSG. Não viram um
+     token só porque dizem coisas diferentes (fundo de zebra × divisória e trilho)
+     e porque colapsar 20 usos por igualdade de valor é o contrário do que o
+     `--bd-accent`/`--bd-go` fez aqui em cima. */
+  --bd-surface2:  hsl(var(--muted));  /* hover de linha, zebra, cabeçalho   */
+  --bd-line2:     hsl(var(--muted));  /* divisória interna, trilho de barra */
 
   /* ── Rampa de tinta ── */
   --bd-ink:   hsl(178 30% 9%);        /* número grande, título              */
@@ -1899,14 +1920,18 @@ All colors MUST be HSL.
      `--border`, `--accent-d` e `--accent-soft` entraram no contrato de tema
      nessa mesma passada — ver a nota no `.base-theme`.
 
-   O que sobra são as três em que o valor da casa NÃO tem par no contrato, ou
-   seja: mudar exigiria mexer em pixel. Estão explicadas uma a uma no `:root`.
-   Uma área nova que declare tema não precisa mais entrar aqui — ela herda
-   pelos tokens. */
+   E ENCOLHEU DE 3 LINHAS PARA 1, em 17/09/2026, pelo mesmo mecanismo: o `:root`
+   passou a declarar `hsl(var(--muted))` nos dois tokens de superfície, que era
+   exatamente o que estas duas linhas desviavam. Desvio que virou regra deixa de
+   ser desvio. Ver a nota dos dois no `:root` — ela é quem guarda o custo medido.
+
+   O que sobra é UMA, e é a única em que o valor da casa não tem par no contrato:
+   o `--bd-accent-l` é opaco (175 45% 72%) e aqui é alfa sobre a superfície, o que
+   não dá a mesma cor. Mexer nele é decisão de design na série secundária dos
+   gráficos, e precisa de olho num gráfico. Uma área nova que declare tema não
+   precisa entrar aqui — ela herda pelos tokens. */
 :root.tax-theme,
 :root.osg-theme {
-  --bd-surface2: hsl(var(--muted));
-  --bd-line2:    hsl(var(--muted));
   --bd-accent-l: hsl(var(--primary) / .35);
 }
 

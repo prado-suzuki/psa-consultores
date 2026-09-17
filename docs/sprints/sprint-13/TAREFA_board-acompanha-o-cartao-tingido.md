@@ -158,13 +158,13 @@ já mordeu antes (o rótulo "2025" a 1,48:1, na nota do `LEGEND_STYLE`).
    cresceu de um lugar para sete: ver "Os SETE que não acompanham", acima. Catraca no
    mesmo commit (`superficieDoBoard.test.ts`, quatro asserções), com o defeito
    reintroduzido nas quatro antes de commitar.
-2. 🔵 **ABERTO, e é decisão dela — recompor a zebra e a divisória.** A medição encolheu
+2. ✅ **FEITO em 17/09/2026, ela escolheu A — recompor a zebra e a divisória.** A medição encolheu
    o passo e mudou a pergunta: **quebra uma área, não três** (o bloco
    `:root.tax-theme, :root.osg-theme` já leva os dois tokens para `hsl(var(--muted))`,
    e lá o sinal não inverte). E o método previsto — "achar o alfa que devolve o
    número" — **não fecha na Tax nem na OSG**: bate no teto de escala do `--muted`, o
    mesmo de 16/09. As saídas medidas:
-   - **A** — os dois últimos cravados de superfície do Board saem, e as três áreas usam
+   - **A, a escolhida** — os dois últimos cravados de superfície do Board saem, e as três áreas usam
      `hsl(var(--muted))`, aceitando o teto. A casa GANHA zebra (1,036 → 1,154, e para
      de ser a única área com listra invisível); a Tax e a OSG perdem ~8% (1,260 → 1,165,
      1,227 → 1,144), que é o custo que ela já aceitou para o hover da tabela em 16/09.
@@ -176,9 +176,14 @@ já mordeu antes (o rótulo "2025" a 1,48:1, na nota do `LEGEND_STYLE`).
    - A grade do gráfico vem de carona no `--bd-line2` nas duas — não precisa de token
      novo.
 3. ✅ Saiu no commit do passo 1 (ver acima).
-4. 🔵 **A asserção do SINAL** entra junto com o passo 2, porque é ela que precisa da
-   decisão: enquanto não houver número certo, não há o que cobrar. As outras quatro
-   asserções da catraca já estão no ar.
+4. ✅ **A asserção do SINAL** saiu junto com o passo 2, porque era ela que precisava da
+   decisão. São cinco asserções na catraca, todas recalculando do fonte. A do sinal foi
+   vista reprovando das duas formas que importam: com o cravado de volta no `:root`, e
+   com um desvio mais claro reinscrito no bloco de área.
+   - **Um efeito colateral bom, e não previsto:** a grade tracejada do gráfico é
+     `--bd-line2`, e o medo era que ela sumisse. Na casa ela **ganha** degrau
+     (1,125 → 1,154); na Tax e na OSG cai de 1,260/1,227 para 1,165/1,144 e continua
+     visível. A grade não some em área nenhuma.
 5. 🔵 **Validar olhando**, nas três áreas, com um gráfico na tela. É o passo que decide
    se "moderno e clean" sobreviveu, e nenhum número responde por ele.
 

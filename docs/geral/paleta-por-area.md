@@ -420,13 +420,19 @@ valor — número fixo diria a coisa certa numa área e a errada nas outras, e n
 contrário. É o mesmo motivo pelo qual o 72% pôde ficar dez dias aqui sem ninguém tropeçar:
 não havia teste, só prosa.
 
-Restam **três** valores cravados no bloco `--bd-*`, e os três estão comentados um a um no
-`index.css`: `--bd-surface2` (zebra, `168 20% 98%`), `--bd-line2` (divisória, `168 16% 94%`) e
-`--bd-accent-l` (série secundária de gráfico, `175 45% 72%`). O critério para não derivá-los é
-o mesmo nos três: o valor da casa **não tem par no contrato**, então derivar mexeria em pixel
-— nos dois primeiros escurecendo zebra e divisória, no terceiro trocando opaco por alfa. Isso
-é decisão de design, não limpeza, e é por isso que ficam visíveis em vez de entrarem de
-carona.
+Resta **um** valor cravado no bloco `--bd-*`, comentado na linha dele no `index.css`:
+`--bd-accent-l` (série secundária de gráfico, `175 45% 72%`). O critério para não derivá-lo é
+o de sempre: o valor da casa **não tem par no contrato** — aqui ele é opaco e a Tax e a OSG
+usam alfa sobre a superfície, que não dá a mesma cor —, então derivar mexeria em pixel, e
+isso é decisão de design, não limpeza.
+
+Eram três até 17/09/2026. `--bd-surface2` (zebra) e `--bd-line2` (divisória) saíram quando o
+cartão do Board desceu para a tinta do `<Card>`: cravados, eles passavam a ser mais **claros**
+que a superfície, listra que sobe em vez de descer, com a razão quase inalterada. Hoje os dois
+são `hsl(var(--muted))` nas três áreas. O custo está medido na nota deles: a casa ganha zebra
+(1,036 → 1,154) e a Tax e a OSG perdem ~8% por **teto de escala**, o mesmo que a caixa de
+tabela encontrou em 16/09. Quem guarda o sinal é a `superficieDoBoard.test.ts`, e ela cobra a
+direção do degrau, não só a razão — uma catraca que medisse a razão daria verde nas três.
 
 A resolução passa por herança e por `var()`: nenhuma área declara `--card` própria, e os
 semânticos da OSG são `var(--osg-moss)` / `var(--osg-highlighter)`. Ler só o literal do bloco
