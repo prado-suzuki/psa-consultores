@@ -56,7 +56,6 @@ const CADASTRO = {
   ramos: [{ nome: 'Cristina', ordem: 0 }],
   ordemPreferencia: [{ quem: 'os descendentes dos SIGNATÁRIOS', ordem: 0 }],
   signatarios: [{ pessoa_id: 'p1' }, { pessoa_id: 'p2' }],
-  sociedades: [{ empresa_pessoa_id: 'e1' }],
 } as unknown as AcordoCompleto;
 
 const PESSOAS = new Map<string, PessoaRow>([
@@ -98,8 +97,6 @@ describe('entradaDoAcordo', () => {
     const e = entradaDoAcordo(CADASTRO, PESSOAS)!;
     expect(e.signatarios.map((p) => p.denominacao))
       .toEqual(['CRISTINA BOCOLLI', 'REGINA BOCOLLI']);
-    expect(e.sociedadesRelacionadas.map((p) => p.denominacao))
-      .toEqual(['ALIANÇA PARTICIPAÇÕES LTDA.']);
   });
 
   it('vínculo cuja pessoa não veio é descartado, e não vira linha em branco', () => {
@@ -107,7 +104,6 @@ describe('entradaDoAcordo', () => {
     // escreveria uma linha vazia no meio do preâmbulo do acordo.
     const e = entradaDoAcordo(CADASTRO, new Map([['p1', PESSOAS.get('p1')!]]))!;
     expect(e.signatarios.map((p) => p.denominacao)).toEqual(['CRISTINA BOCOLLI']);
-    expect(e.sociedadesRelacionadas).toEqual([]);
   });
 
   it('o representante traz o nome e o gênero, que é quem decide Sr. ou Sra.', () => {
@@ -222,7 +218,7 @@ describe('a cadeia do acordo, da coluna ao documento', () => {
     expect(semDePara, 'coluna sem de-para nunca chega ao documento').toEqual([]);
   });
 
-  it('as cinco listas chegam com item, e o item com os campos que o bloco usa', () => {
+  it('as quatro listas chegam com item, e o item com os campos que o bloco usa', () => {
     const listas = listasDoAcordo(entradaDoAcordo(CHEIO, PESSOAS)!);
     const campoDoItem = (lista: string, item: string, campo: string) =>
       (listas[lista]?.[0]?.[item] as Record<string, string> | undefined)?.[campo];
@@ -231,8 +227,6 @@ describe('a cadeia do acordo, da coluna ao documento', () => {
     expect(campoDoItem('ramosFamiliares', 'ramo', 'rotulo')).toBe('DESCENDENTES DE CRISTINA');
     expect(campoDoItem('ordemDaPreferencia', 'preferente', 'quem')).toBeTruthy();
     expect(campoDoItem('quotistasSignatarios', 'quotista', 'nome')).toBe('CRISTINA BOCOLLI');
-    expect(campoDoItem('sociedadesRelacionadas', 'sociedadeRelacionada', 'razaoSocial'))
-      .toBeTruthy();
   });
 
   it('a cláusula sai pronta no fim da cadeia, sem placeholder sobrando', () => {

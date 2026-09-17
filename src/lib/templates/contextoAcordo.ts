@@ -1,6 +1,6 @@
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 
-import { cardinalExtenso, letraAlinea } from './extenso';
+import { cardinalExtenso, letraAlinea, romano } from './extenso';
 import {
   mapearAcordoQuotistas, mapearPessoa, mapearSociedade,
   type AcordoParaMapear, type Campos, type ItemLista,
@@ -109,7 +109,7 @@ export interface PreferenteParaMapear {
 
 export interface EntradaAcordo {
   /** O cabeçalho, como o mapeador o espera, menos o que se deriva das listas. */
-  acordo: Omit<AcordoParaMapear, 'temRamos' | 'temSociedadesRelacionadas' | 'quantosRamos'
+  acordo: Omit<AcordoParaMapear, 'temRamos' | 'quantosRamos'
     | 'ordemPreferencia' | 'objetosPreferencia'>;
   quoruns: QuorumParaMapear[];
   ramos: RamoParaMapear[];
@@ -117,7 +117,6 @@ export interface EntradaAcordo {
   /** Os quotistas que assinaram a PRIMEIRA versão, já qualificados. */
   signatarios: PessoaRow[];
   /** As outras empresas do grupo alcançadas pelo acordo. */
-  sociedadesRelacionadas: PessoaRow[];
   /** As chaves de `objetos_preferencia`, para virar prosa aqui. */
   objetosPreferencia?: readonly string[] | null;
 }
@@ -218,7 +217,6 @@ export function camposDoAcordo(entrada: EntradaAcordo): Campos {
     ...entrada.acordo,
     temRamos: entrada.ramos.length > 0,
     quantosRamos: entrada.ramos.length || null,
-    temSociedadesRelacionadas: entrada.sociedadesRelacionadas.length > 0,
     /*
      * A FILA EM PROSA, para a cláusula que a diz numa frase só. A mesma fila sai
      * como lista, para o bloco que quer uma alínea por posição; as duas vêm da
@@ -292,12 +290,18 @@ export function listasDoAcordo(entrada: EntradaAcordo): Record<string, ItemLista
    * objeto só com o nome daria um preâmbulo sem qualificação, que é documento
    * que a Junta devolve.
    */
+  /*
+   * O NUMERO EM ROMANO MINUSCULO, que e como o modelo enumera os signatarios:
+   * "i. MARCELO DUARTE...", "ii. ROMERO DUARTE...". Nossa versao saia sem
+   * numero nenhum, um por linha, e isso passou pelas duas varreduras porque
+   * nenhuma comparava a ESTRUTURA do preambulo, so o texto.
+   */
   const quotistasSignatarios: ItemLista[] = entrada.signatarios.map((p, i) => ({
-    quotista: { ...mapearPessoa(p), ordem: String(i + 1) } as Campos,
-  }));
-
-  const sociedadesRelacionadas: ItemLista[] = entrada.sociedadesRelacionadas.map((s) => ({
-    sociedadeRelacionada: mapearSociedade(s),
+    quotista: {
+      ...mapearPessoa(p),
+      ordem: String(i + 1),
+      indice: romano(i + 1).toLowerCase(),
+    } as Campos,
   }));
 
   return {
@@ -305,7 +309,6 @@ export function listasDoAcordo(entrada: EntradaAcordo): Record<string, ItemLista
     ramosFamiliares,
     ordemDaPreferencia,
     quotistasSignatarios,
-    sociedadesRelacionadas,
   };
 }
 

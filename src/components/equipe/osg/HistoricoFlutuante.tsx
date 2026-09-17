@@ -27,6 +27,14 @@ const ENTITY_LABELS_OSG: Record<string, string> = {
   titularidade: 'Titularidade',
   impedimento: 'Impedimento',
   cartorio: 'Cartório',
+  // GOV-F. A linha é o que a caixa edita, então é o rótulo que aparece quase
+  // sempre; os outros quatro entram porque o mesmo painel serve de histórico do
+  // protocolo inteiro quando alguém mexe em coluna, tema ou item.
+  protocolo_remuneracao: 'Protocolo de Remuneração',
+  protocolo_linha: 'Item do protocolo',
+  protocolo_beneficiario: 'Coluna do protocolo',
+  protocolo_tema_governanca: 'Tema do protocolo',
+  protocolo_item_governanca: 'Item do catálogo',
 };
 
 // Quantas alterações mostrar antes de pedir "Ver mais".

@@ -29,7 +29,6 @@ export interface ValoresDoAcordo extends Record<string, unknown> {
   ramos: { nome: string }[];
   ordemPreferencia: string[];
   signatarios: string[];
-  sociedades: string[];
 }
 
 /*
@@ -131,7 +130,7 @@ export function AcordoGrupoModal({
 
   const opcoesDePessoa = useMemo(() => pessoas.map(comoOpcao), [pessoas]);
   /*
-   * Representante e substituto são PESSOA FÍSICA. A cláusula escreve "os
+   * O representante é PESSOA FÍSICA. A cláusula escreve "os
    * QUOTISTAS elegem o Sr. …", com o tratamento concordando pelo gênero, e
    * empresa não tem gênero. Sem o filtro dava para eleger a própria sociedade
    * como representante dos sócios dela, que foi o que aconteceu no cadastro de
@@ -309,8 +308,8 @@ export function AcordoGrupoModal({
                           )}
                           {espelho && (
                             <span className="block text-xs italic text-muted-foreground">
-                              Liga e desliga no bloco &ldquo;{espelho.bloco}&rdquo;, onde ficam os
-                              detalhes.
+                              Só mostra se a regra existe. Quem liga e desliga é o bloco
+                              &ldquo;{espelho.bloco}&rdquo;, onde ficam os detalhes.
                             </span>
                           )}
                         </span>
@@ -339,24 +338,21 @@ export function AcordoGrupoModal({
                 />
               )}
 
-              {(c.campo === 'signatarios' || c.campo === 'sociedades') && (
+              {c.campo === 'signatarios' && (
                 pessoas.length === 0 ? (
                   <SemPessoas />
                 ) : (
                   <MultiSelectCombobox
-                    options={c.campo === 'sociedades' ? opcoesDeEmpresa : opcoesDePessoa}
+                    options={opcoesDePessoa}
                     selected={(form[c.campo] as string[]) ?? []}
                     onChange={(v) => mexer(c.campo, v)}
-                    placeholder={c.campo === 'sociedades'
-                      ? 'Clique para incluir uma sociedade…'
-                      : 'Clique para incluir um signatário…'}
+                    placeholder="Clique para incluir um signatário…"
                     addLabel="incluir"
                   />
                 )
               )}
 
-              {(c.campo === 'representante_pessoa_id'
-                || c.campo === 'substituto_representante_pessoa_id') && (
+              {c.campo === 'representante_pessoa_id' && (
                 pessoas.length === 0 ? (
                   <SemPessoas />
                 ) : (

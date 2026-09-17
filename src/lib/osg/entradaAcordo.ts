@@ -71,9 +71,6 @@ export function entradaDoAcordo(
   const representante = acordo.representante_pessoa_id
     ? pessoaPorId.get(acordo.representante_pessoa_id)
     : undefined;
-  const substituto = acordo.substituto_representante_pessoa_id
-    ? pessoaPorId.get(acordo.substituto_representante_pessoa_id)
-    : undefined;
 
   return {
     acordo: {
@@ -104,9 +101,6 @@ export function entradaDoAcordo(
        */
       representanteGenero: (representante as { genero?: string | null } | undefined)?.genero
         ?? null,
-      substitutoRepresentanteNome: substituto?.denominacao ?? null,
-      substitutoRepresentanteGenero:
-        (substituto as { genero?: string | null } | undefined)?.genero ?? null,
       foroEleitoComarca: acordo.foro_eleito_comarca,
       foroEleitoEstado: acordo.foro_eleito_estado,
     },
@@ -114,7 +108,6 @@ export function entradaDoAcordo(
     ramos: dados.ramos.map((r) => ({ nome: r.nome, ordem: r.ordem })),
     ordemPreferencia: dados.ordemPreferencia.map((o) => ({ quem: o.quem, ordem: o.ordem })),
     signatarios: pessoas(dados.signatarios),
-    sociedadesRelacionadas: empresas(dados.sociedades),
     objetosPreferencia: acordo.objetos_preferencia,
   };
 }

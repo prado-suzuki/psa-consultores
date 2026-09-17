@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { concordar, generoDeConcordancia, ufComPreposicao, ufPorExtenso } from './concordancia';
+import {
+  comPreposicaoDeLugar, concordar, generoDeConcordancia, ufComPreposicao, ufPorExtenso,
+} from './concordancia';
 import { derivarCampos } from './vocabulario';
 
 // Emenda 9.11 do contrato L2/L3: pessoa jurídica concorda no FEMININO (a
@@ -68,5 +70,32 @@ describe('preposição da UF', () => {
   it('não altera `ufPorExtenso`: a coluna do Anexo quer o nome sem regência', () => {
     expect(ufPorExtenso('BA')).toBe('Bahia');
     expect(ufPorExtenso('MT')).toBe('Mato Grosso');
+  });
+});
+
+describe('comPreposicaoDeLugar — "com sede estabelecida na Rua…"', () => {
+  it('logradouro feminino leva "na"', () => {
+    expect(comPreposicaoDeLugar('Rua Carla Gomes, n.º 1824')).toBe('na Rua Carla Gomes, n.º 1824');
+    expect(comPreposicaoDeLugar('Avenida Octaviano, n° 351')).toBe('na Avenida Octaviano, n° 351');
+    expect(comPreposicaoDeLugar('Rodovia BR 163, km 12')).toBe('na Rodovia BR 163, km 12');
+    expect(comPreposicaoDeLugar('Praça da Sé')).toBe('na Praça da Sé');
+  });
+
+  it('logradouro masculino leva "no", inclusive os terminados em "a"', () => {
+    expect(comPreposicaoDeLugar('Sítio Boa Vista')).toBe('no Sítio Boa Vista');
+    expect(comPreposicaoDeLugar('Loteamento Jardim das Palmeiras')).toBe('no Loteamento Jardim das Palmeiras');
+    expect(comPreposicaoDeLugar('Setor Industrial, quadra 3')).toBe('no Setor Industrial, quadra 3');
+    expect(comPreposicaoDeLugar('Largo do Rosário')).toBe('no Largo do Rosário');
+  });
+
+  it('endereço que já traz a preposição passa intacto', () => {
+    expect(comPreposicaoDeLugar('na Rodovia BR-163')).toBe('na Rodovia BR-163');
+    expect(comPreposicaoDeLugar('no Sítio Boa Vista')).toBe('no Sítio Boa Vista');
+  });
+
+  it('vazio não vira preposição solta', () => {
+    expect(comPreposicaoDeLugar('')).toBe('');
+    expect(comPreposicaoDeLugar(null)).toBe('');
+    expect(comPreposicaoDeLugar(undefined)).toBe('');
   });
 });

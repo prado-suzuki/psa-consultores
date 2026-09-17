@@ -431,9 +431,32 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                   // sociedade.objeto): não preenche do cadastro — avisar
                                   // em vez de deixar vazio em silêncio.
                                   const foraDoCatalogo = !campoDaEntidade(b.tipo, c.id);
+                                  /*
+                                   * CAMPO OBRIGATÓRIO VAZIO SE ANUNCIA AQUI, e não
+                                   * só na hora de baixar.
+                                   *
+                                   * O nome fantasia da empresa é obrigatório porque o
+                                   * Acordo o repete 189 vezes, e sem ele o documento
+                                   * sai com 189 lacunas. Mas a tela o mostrava igual a
+                                   * qualquer outro, e só o diálogo do download contava
+                                   * que faltava: a pessoa descobria depois de pedir o
+                                   * arquivo. Quem sabe o que é obrigatório é o
+                                   * vocabulário, então o aviso sai de lá e vale para
+                                   * qualquer campo, de qualquer documento.
+                                   */
+                                  const faltaObrigatorio =
+                                    !!campoDaEntidade(b.tipo, c.id)?.obrigatorio && !valor.trim();
                                   return (
                                     <div key={c.id} className="space-y-1">
-                                      <Label className={cn(labelCls, 'text-sm')}>{c.label}</Label>
+                                      <Label className={cn(labelCls, 'text-sm')}>
+                                        {c.label}
+                                        {faltaObrigatorio && (
+                                          <span className="ml-1.5 inline-flex items-center gap-1 text-warning">
+                                            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                                            obrigatório
+                                          </span>
+                                        )}
+                                      </Label>
                                       {c.tipo === 'textarea' ? (
                                         <Textarea
                                           value={valor}

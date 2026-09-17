@@ -1,4 +1,5 @@
 import { classificarCaminho, marcacaoDoCaminho } from './campos';
+import { PAPEIS_LISTA } from './binding';
 import { comporBlocos } from './composition';
 import { clausulasSemCorpo, motivoDeDescarte, paragrafosOrfaos, type MotivoDescarte } from './descarte';
 import type { RegistroFamilias } from './familia';
@@ -10,6 +11,8 @@ import type { Bloco, Contexto, Template, TipoBloco } from './types';
 /** Bloco pronto: conteúdo renderizado (string) + os mesmos segmentos com proveniência (prévia interativa). */
 export interface BlocoGerado extends Bloco {
   segmentos: SegmentoRender[];
+  /** Nomes das listas que o bloco percorre e que vieram sem item nenhum. */
+  secoesVazias?: string[];
 }
 
 /**
@@ -177,7 +180,12 @@ export function gerarComposicao(
       if (primeiro?.tipo === 'texto') segmentos[0] = { ...primeiro, texto: prefixo + primeiro.texto };
       else segmentos.unshift({ tipo: 'texto', texto: prefixo });
     }
-    return { ...bloco, conteudo: segmentos.map((s) => s.texto).join(''), segmentos };
+    return {
+      ...bloco,
+      conteudo: segmentos.map((s) => s.texto).join(''),
+      segmentos,
+      secoesVazias: renders[i].secoesVazias,
+    };
   });
 
   return { blocos: gerados, descartados };
@@ -199,6 +207,8 @@ export interface PendenciaDocumento {
   label: string;
   /** Campo preenchido na tela Gerar (data de assinatura…), não vindo de cadastro. */
   manual: boolean;
+  /** É uma LISTA que veio vazia, e não um campo: "Quotistas signatários", não um valor. */
+  lista?: true;
 }
 
 /**
@@ -224,6 +234,23 @@ export function pendenciasDoDocumento(blocos: BlocoGerado[]): PendenciaDocumento
         label: campo?.label ?? segmento.caminho,
         manual: campo?.manual ?? false,
       });
+    }
+    /*
+     * LISTA VAZIA TAMBÉM É PENDÊNCIA, e antes não era.
+     *
+     * O bloco sobrevive quando tem prosa em volta, e a lista some sem sinal: o
+     * preâmbulo do Acordo saía com "as pessoas adiante qualificadas e doravante
+     * designadas de QUOTISTAS:" seguido de NADA, porque o cadastro não tinha
+     * signatário. Nem a tela nem o documento diziam isso, e o consultor só
+     * descobria lendo o Word inteiro.
+     *
+     * Só entra a lista que o bloco de fato percorre: modelo que não cita a
+     * lista não cobra nada, e bloco descartado nem chega aqui.
+     */
+    for (const nome of bloco.secoesVazias ?? []) {
+      if (vistos.has(nome)) continue;
+      vistos.add(nome);
+      out.push({ caminho: nome, label: PAPEIS_LISTA[nome]?.label ?? nome, manual: false, lista: true });
     }
   }
   return out;

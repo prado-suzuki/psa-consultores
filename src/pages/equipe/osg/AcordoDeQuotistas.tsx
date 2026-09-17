@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Check, FileSignature, MousePointerClick, Sparkles } from 'lucide-react';
+import { AlertTriangle, Check, FileSignature, MousePointerClick, Sparkles } from 'lucide-react';
 
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
@@ -19,7 +19,7 @@ import {
 } from '@/hooks/useDomainAcordoQuotistas';
 import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
 import {
-  GRUPOS_DO_ACORDO, preenchidosNoGrupo, type GrupoDoAcordo,
+  GRUPOS_DO_ACORDO, obrigatoriosEmFalta, preenchidosNoGrupo, type GrupoDoAcordo,
 } from '@/lib/acordoGrupos';
 import { resumoDaOrdem, resumoDosQuoruns, resumoDosRamos } from '@/lib/acordoQuotistas';
 import { mecanismosCoerentes, type BaseQuorum, type TipoQuorum } from '@/lib/acordoQuotistasPadrao';
@@ -96,7 +96,6 @@ const AcordoDeQuotistas = () => {
     ramos: (data?.ramos ?? []).map((r) => ({ nome: r.nome })),
     ordemPreferencia: (data?.ordemPreferencia ?? []).map((o) => o.quem),
     signatarios: (data?.signatarios ?? []).map((x) => x.pessoa_id),
-    sociedades: (data?.sociedades ?? []).map((x) => x.empresa_pessoa_id),
   }), [data]);
 
   const salvarGrupo = async (novos: ValoresDoAcordo) => {
@@ -135,7 +134,6 @@ const AcordoDeQuotistas = () => {
       acordoId: data.acordo.id,
       versao: data.acordo.versao,
       signatarios,
-      sociedades,
     });
 
     // O `grupo` é o que carimba o bloco como conferido. Ver `salvarAcordo`.
@@ -241,7 +239,17 @@ const AcordoDeQuotistas = () => {
             */}
             <div className="grid gap-4 sm:grid-cols-2">
               {GRUPOS_DO_ACORDO.map((g) => {
-                const conferido = conferidos.has(g.chave);
+                /*
+                 * CONFERIDO NÃO VENCE CAMPO OBRIGATÓRIO VAZIO.
+                 *
+                 * Antes dava para abrir o bloco, salvar sem preencher e o cartão
+                 * dizer "conferido": o Acordo ficava com os oito blocos verdes e
+                 * sem um único signatário, e o buraco só aparecia no documento,
+                 * com o preâmbulo sem ninguém. O carimbo diz que alguém olhou; o
+                 * que falta continua faltando.
+                 */
+                const faltando = obrigatoriosEmFalta(g, valores);
+                const conferido = conferidos.has(g.chave) && faltando.length === 0;
                 const { preenchidos, total } = preenchidosNoGrupo(g, valores, conferido);
                 /*
                  * NÃO EXISTE "PRONTO" AQUI, e a ausência é deliberada.
@@ -304,6 +312,14 @@ const AcordoDeQuotistas = () => {
                           className="shrink-0 gap-1 border-osg-200 bg-osg-50 text-osg-700"
                         >
                           <Check className="h-3 w-3" /> conferido
+                        </Badge>
+                      ) : faltando.length > 0 ? (
+                        <Badge
+                          variant="outline"
+                          className="shrink-0 gap-1 border-warning/40 bg-warning/10 text-warning"
+                        >
+                          <AlertTriangle className="h-3 w-3" />
+                          falta {faltando.map((c) => c.rotulo.toLowerCase()).join(', ')}
                         </Badge>
                       ) : (
                         <Badge

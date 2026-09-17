@@ -6,7 +6,7 @@ import { campoManual, camposDaEntidade, derivarCampos, type TipoEntidade } from 
 import { dataExtenso } from '@/lib/templates/extenso';
 import { calcularHistoricoCapital } from '@/lib/templates/historicoCapital';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
-import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearEstadoDosOnus, mapearIntegralizacoes, mapearListasDaDoacao, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosSocios, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
+import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearEstadoDosOnus, mapearIntegralizacoes, mapearListasDaDoacao, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, causaDaRequalificacaoVigente, tituloColetivoDosAdministradores, tituloColetivoDosSocios, vocabularioDaRequalificacao, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
 import { quotasDoSocio } from '@/lib/templates/capital';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { montarRegistroFamilias, useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
@@ -1891,6 +1891,12 @@ export function useGerarDocumentoController() {
     [capitalValor, documentoBase?.snapshot_dados],
   );
   const tituloColetivoSocios = useMemo(() => tituloColetivoDosSocios(socios), [socios]);
+  // "seus administradores", "sua diretora": a palavra que abre "neste ato
+  // representada por" no preâmbulo, e que acompanha o cargo do cadastro.
+  const tituloColetivoAdministradores = useMemo(
+    () => tituloColetivoDosAdministradores(administradores),
+    [administradores],
+  );
   // Os campos `sociedade.*` como o cadastro de HOJE os produz. É a única fonte
   // viva da sociedade: alimenta o efeito abaixo, o re-sync e a comparação da
   // alteração contratual.
@@ -1899,10 +1905,14 @@ export function useGerarDocumentoController() {
       ? mapearSociedade(
           empresaRow,
           { capitalValor, totalQuotas },
-          { numeroAlteracao, ...historicoCapital, tituloColetivoSocios },
+          {
+            numeroAlteracao, ...historicoCapital,
+            tituloColetivoSocios, tituloColetivoAdministradores,
+          },
         )
       : {}),
-    [empresaRow, capitalValor, totalQuotas, numeroAlteracao, historicoCapital, tituloColetivoSocios],
+    [empresaRow, capitalValor, totalQuotas, numeroAlteracao, historicoCapital,
+      tituloColetivoSocios, tituloColetivoAdministradores],
   );
   // Os bindings de sociedade do MODELO (não da peça registrada em cena, cujo
   // snapshot pode nem ter blocos): a alteração é composta com o modelo, e é

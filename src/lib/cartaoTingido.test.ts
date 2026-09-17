@@ -353,6 +353,7 @@ const SOBRE_BRANCO: Record<string, number> = {
   'src/components/equipe/dev/perdcomp/per-detail/PerDetailDcompPanel.tsx': 1,
   'src/components/equipe/dev/perdcomp/per-detail/PerDetailSituationSidebar.tsx': 1,
   'src/components/equipe/osg/governanca/AcrescentarAtividadeModal.tsx': 1,
+  'src/components/equipe/osg/governanca/AcrescentarItemModal.tsx': 1,
   'src/components/equipe/processos/ProcessStagesTab.tsx': 1,
   'src/pages/gestao/GestaoContatos.tsx': 1,
 

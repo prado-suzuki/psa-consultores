@@ -11,7 +11,7 @@ import blocosDoAcordo from '../../../docs/osg/acordo-blocos.json';
 import { camposDoAcordo, listasDoAcordo, type EntradaAcordo } from './contextoAcordo';
 import { detectarBindingsDeConteudo } from './binding';
 import { gerarBlocos, gerarDocumento } from './index';
-import { CAMPOS_MANUAIS, camposDaEntidade } from './vocabulario';
+import { CAMPOS_MANUAIS, camposDaEntidade, derivarCampos } from './vocabulario';
 import { montarDocx } from './docx';
 import type { Bloco, Template, TipoBloco } from './types';
 
@@ -45,7 +45,7 @@ const contextoDe = (e: EntradaAcordo) => ({
    * verdade; aqui entram à mão porque montar uma `PessoaRow` inteira só para
    * isto esconderia o que o teste está medindo.
    */
-  sociedade: {
+  sociedade: derivarCampos('sociedade', {
     razaoSocial: 'ABACAXI ELÉTRICO MINERAÇÃO E BALÉ S.A.',
     cnpj: '11.222.333/0001-81',
     nire: '41200000001',
@@ -55,7 +55,13 @@ const contextoDe = (e: EntradaAcordo) => ({
     sedeUfComPreposicao: 'do Paraná',
     nomeFantasia: 'ABACAXI',
     sedeUf: 'PR',
-  },
+    /*
+     * O título coletivo NÃO é derivado: ele precisa da lista de administradores,
+     * que não é campo da sociedade. Quem o calcula é `tituloColetivoDosAdministradores`,
+     * no controller e no arnês; aqui entra pronto, como o mapeador o entrega.
+     */
+    tituloColetivoAdministradores: 'seu administrador',
+  }),
   dataAssinatura: '',
   testemunha1Nome: '', testemunha1Rg: '', testemunha1Cpf: '',
   testemunha2Nome: '', testemunha2Rg: '', testemunha2Cpf: '',
@@ -66,7 +72,7 @@ const contextoDe = (e: EntradaAcordo) => ({
    * carrega e o controller, a partir da empresa escolhida.
    */
   administradores: [
-    { administrador: { nome: 'SÉRGIO IGLESIAS' } },
+    { administrador: { nome: 'SÉRGIO IGLESIAS', nomeMaiusculo: 'SÉRGIO IGLESIAS' } },
   ],
   ...listasDoAcordo(e),
 });
@@ -82,8 +88,6 @@ const ENTRADA: EntradaAcordo = {
     camaraArbitral: 'Câmara de Comércio Brasil Canadá',
     representanteNome: 'LUIZ MARCELO',
     representanteGenero: 'M',
-    substitutoRepresentanteNome: 'ANA KARLA',
-    substitutoRepresentanteGenero: 'F',
     foroEleitoComarca: 'Cuiabá',
     foroEleitoEstado: 'Mato Grosso',
   },
@@ -91,7 +95,6 @@ const ENTRADA: EntradaAcordo = {
   ramos: [],
   ordemPreferencia: [],
   signatarios: [],
-  sociedadesRelacionadas: [],
 };
 
 describe('a geração do Acordo de ponta a ponta', () => {
@@ -272,25 +275,23 @@ describe('a concordancia de quem representa os quotistas', () => {
    * A clausula saia "os QUOTISTAS elegem o Sra. Ana Zamo": o tratamento
    * concordava e o artigo antes dele, nao, porque estava escrito fixo no bloco.
    * Foi a comparacao do gerado contra o modelo que mostrou.
+   *
+   * O SUBSTITUTO saiu em 17/09: a consultoria disse que nao se aplica, e a
+   * propria clausula ja resolve a falta em REUNIAO DE QUOTISTAS.
    */
-  const comGenero = (g: string, gs: string) => gerarDocumento(template, contextoDe({
+  const comGenero = (g: string) => gerarDocumento(template, contextoDe({
     ...ENTRADA,
     acordo: {
       ...ENTRADA.acordo,
       representanteNome: 'ANA ZAMO', representanteGenero: g,
-      substitutoRepresentanteNome: 'BRUNO ZAMO', substitutoRepresentanteGenero: gs,
     },
   }));
 
   it('mulher recebe "a Sra." e homem "o Sr."', () => {
-    expect(comGenero('F', 'M')).toContain('elegem a Sra. ANA ZAMO');
-    expect(comGenero('M', 'M')).toContain('elegem o Sr. ANA ZAMO');
+    expect(comGenero('F')).toContain('elegem a Sra. ANA ZAMO');
+    expect(comGenero('M')).toContain('elegem o Sr. ANA ZAMO');
   });
 
-  it('o substituto usa preposicao com artigo: "passara ao Sr." e "passara a Sra."', () => {
-    expect(comGenero('F', 'M')).toContain('passará ao Sr. BRUNO ZAMO');
-    expect(comGenero('F', 'F')).toContain('passará à Sra. BRUNO ZAMO');
-  });
 });
 
 describe('os objetos da preferencia, um bloco por objeto', () => {
@@ -487,7 +488,7 @@ describe('o acordo VAZIO nao derruba a geracao', () => {
    */
   const VAZIO: EntradaAcordo = {
     acordo: { clienteId: 'c1' },
-    quoruns: [], ramos: [], ordemPreferencia: [], signatarios: [], sociedadesRelacionadas: [],
+    quoruns: [], ramos: [], ordemPreferencia: [], signatarios: [],
   };
 
   it('gera com o cadastro em branco, sem levantar', () => {
