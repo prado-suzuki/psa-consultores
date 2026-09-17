@@ -14,8 +14,6 @@ import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController
 import {
   FILTROS_VAZIOS,
   ORDEM_INICIAL,
-  GRUPO_SEM_PROJETO,
-  agruparPorExecutor,
   filtrarControle,
   opcoesDoControle,
   ordenarControle,
@@ -45,7 +43,7 @@ import {
  * `docs/osg/relacao-de-projetos-planilha-x-ferramenta.md`.
  */
 const OsgControleProjetos = () => {
-  // Nove colunas: a barra recolhe sozinha, como nas outras telas largas.
+  // Onze colunas: a barra recolhe sozinha, como nas outras telas largas.
   useTelaDeTrabalhoLargo();
 
   const { linhas, isLoading, error } = useDomainOsgControleProjetos();
@@ -56,9 +54,9 @@ const OsgControleProjetos = () => {
   // próprio aqui seria uma segunda verdade sobre `org_projects`.
   const projetos = useProjetosCadastroController('osg');
   const [filtros, setFiltros] = useState<FiltrosDoControle>(FILTROS_VAZIOS);
-  // Abre por Data Fim, o prazo mais próximo em cima de cada grupo. O terceiro
-  // clique num cabeçalho volta para a ordem de referência (cliente, área,
-  // produto), que é outra coisa — ver `ORDEM_INICIAL`.
+  // Abre por Data Fim, o prazo mais próximo em cima. O terceiro clique num
+  // cabeçalho volta para a ordem de referência (cliente, área, produto), que é
+  // outra coisa — ver `ORDEM_INICIAL`.
   const [ordem, setOrdem] = useState<OrdemDoControle>(ORDEM_INICIAL);
 
   const visiveis = useMemo(
@@ -67,17 +65,6 @@ const OsgControleProjetos = () => {
   );
   const opcoes = useMemo(() => opcoesDoControle(linhas), [linhas]);
   const vencidas = useMemo(() => visiveis.filter((linha) => linha.prazoVencido).length, [visiveis]);
-  const grupos = useMemo(() => agruparPorExecutor(visiveis), [visiveis]);
-
-  // Todo grupo abre ABERTO, menos o "sem projeto aberto", que tem 127 das 169
-  // linhas em produção e empurraria todo o resto para fora da tela. Guardado por
-  // CHAVE de grupo, e não por índice, para o conjunto sobreviver à mudança de
-  // filtro que reordena os grupos.
-  const [fechados, setFechados] = useState<Set<string>>(new Set([GRUPO_SEM_PROJETO]));
-  const abertos = useMemo(
-    () => new Set(grupos.map((grupo) => grupo.executor).filter((nome) => !fechados.has(nome))),
-    [grupos, fechados],
-  );
 
   /**
    * O produto que a linha pediu, esperando a OS dele carregar.
@@ -168,21 +155,12 @@ const OsgControleProjetos = () => {
                 vencidas={vencidas}
               />
               <ControleDeProjetosTabela
-                grupos={grupos}
+                linhas={visiveis}
                 ordem={ordem}
                 onOrdenar={(campo: ColunaDoControle) =>
                   setOrdem((atual) => proximaOrdemDoControle(atual, campo))
                 }
-                abertos={abertos}
                 onAbrirLinha={abrirLinha}
-                onAlternar={(executor) =>
-                  setFechados((atuais) => {
-                    const proximo = new Set(atuais);
-                    if (proximo.has(executor)) proximo.delete(executor);
-                    else proximo.add(executor);
-                    return proximo;
-                  })
-                }
               />
             </>
           )}
