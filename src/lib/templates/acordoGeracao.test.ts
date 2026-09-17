@@ -212,6 +212,61 @@ describe('os quoruns, cada um na frase que o modelo escreve para ele', () => {
   });
 });
 
+describe('os campos que tiram PEDACO de frase, e nao o bloco', () => {
+  /*
+   * Tres campos do cadastro nao cabiam em flag, porque o que sai e um trecho e
+   * nao o bloco inteiro. Viraram secao condicional dentro do proprio bloco.
+   */
+  /*
+   * COM AS FLAGS LIGADAS: dois dos tres blocos moram em clausula que um
+   * mecanismo governa (a nao concorrencia e a arbitragem). Sem elas o teste
+   * procuraria frase que o documento nao tem por outro motivo.
+   */
+  const TODAS_AS_FLAGS = [
+    'acordo_nao_concorrencia', 'acordo_por_arbitragem', 'acordo_consolida_composse',
+  ];
+  const ligado = (extra: Partial<EntradaAcordo['acordo']>) => gerarDocumento(
+    template,
+    contextoDe({ ...ENTRADA, acordo: { ...ENTRADA.acordo, ...extra } }),
+    TODAS_AS_FLAGS,
+  );
+
+  it('so o patrimonio liquido tira o fluxo de caixa, e mantem a definicao', () => {
+    const doisMetodos = ligado({ metodosAvaliacao: ['patrimonio_liquido', 'fluxo_de_caixa_descontado'] });
+    const soPatrimonio = ligado({ metodosAvaliacao: ['patrimonio_liquido'] });
+    expect(doisMetodos).toContain('fluxo de caixa projetado');
+    expect(doisMetodos).toContain('WACC');
+    expect(soPatrimonio).not.toContain('fluxo de caixa projetado');
+    expect(soPatrimonio).not.toContain('WACC');
+    // A definicao de VALOR DA QUOTA e o patrimonio liquido continuam nos dois.
+    expect(soPatrimonio).toContain('o valor do patrimônio líquido apurado em balanço');
+  });
+
+  it('a nao concorrencia alcanca parentes so quando o cadastro diz', () => {
+    const com = ligado({ naoConcorrencia: true, naoConcorrenciaAlcancaParentes: true });
+    const sem = ligado({ naoConcorrencia: true, naoConcorrenciaAlcancaParentes: false });
+    expect(com).toContain('qualquer QUOTISTA, seus descendentes, cônjuges e/ou companheiros(as), realizar');
+    expect(sem).toContain('qualquer QUOTISTA, realizar');
+    expect(sem).not.toContain('seus descendentes, cônjuges e/ou companheiros(as), realizar');
+  });
+
+  it('o regime dos arbitros escreve a redacao escolhida, e nao sempre a primeira', () => {
+    /*
+     * O modelo so trazia a primeira, medida em 5 dos 7 acordos. Quem escolhesse
+     * a segunda recebia um documento dizendo o contrario do cadastro.
+     */
+    const partes = ligado({ regimeNomeacaoArbitros: 'partes' });
+    const camara = ligado({ regimeNomeacaoArbitros: 'camara' });
+    expect(partes).toContain('sendo um nomeado pelo reclamante');
+    expect(partes).not.toContain('conforme o regulamento');
+    expect(camara).toContain('conforme o regulamento da Câmara de Comércio Brasil Canadá');
+    expect(camara).not.toContain('sendo um nomeado pelo reclamante');
+    // Os tres arbitros sao lei da casa e ficam nos dois.
+    expect(partes).toContain('o número de árbitros será de 03 (três)');
+    expect(camara).toContain('o número de árbitros será de 03 (três)');
+  });
+});
+
 describe('os mecanismos que DESLIGAM texto', () => {
   /*
    * ATE HOJE NENHUMA RESPOSTA DO CADASTRO TIRAVA CLAUSULA DO DOCUMENTO.
@@ -230,9 +285,10 @@ describe('os mecanismos que DESLIGAM texto', () => {
     'acordo_tem_drag_along', 'acordo_opcao_venda_prevista',
     'acordo_opcao_compra_prevista', 'acordo_tem_preferencia',
     'acordo_reuniao_previa_obrigatoria', 'acordo_por_arbitragem',
+    'acordo_consolida_composse',
   ];
 
-  it('sao nove mecanismos governando 60 blocos, e o resto do documento e fixo', () => {
+  it('sao dez flags governando 61 blocos, e o resto do documento e fixo', () => {
     const porFlag = new Map<string, number>();
     for (const b of blocos) for (const f of b.flagsRequeridas ?? []) {
       porFlag.set(f, (porFlag.get(f) ?? 0) + 1);
@@ -243,8 +299,9 @@ describe('os mecanismos que DESLIGAM texto', () => {
       acordo_tem_drag_along: 8, acordo_opcao_venda_prevista: 1,
       acordo_opcao_compra_prevista: 6, acordo_tem_preferencia: 18,
       acordo_reuniao_previa_obrigatoria: 10, acordo_por_arbitragem: 5,
+      acordo_consolida_composse: 1,
     });
-    expect(blocos.filter((b) => !b.flagsRequeridas?.length)).toHaveLength(206);
+    expect(blocos.filter((b) => !b.flagsRequeridas?.length)).toHaveLength(205);
   });
 
   it('cada mecanismo tira SO os blocos dele, e o documento continua de pe', () => {

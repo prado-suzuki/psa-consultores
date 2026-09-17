@@ -154,6 +154,8 @@ const FLAGS = [
     descricao: 'Tem direito de preferencia na alienacao de quotas.' },
   { nome: 'acordo_reuniao_previa_obrigatoria', campo: 'reuniaoPreviaObrigatoria',
     descricao: 'Exige reuniao previa dos quotistas antes da reuniao de socios.' },
+  { nome: 'acordo_consolida_composse', campo: 'consolidaComposse',
+    descricao: 'A avaliacao consolida o que o socio explora junto com a sociedade.' },
   { nome: 'acordo_por_arbitragem', campo: 'porArbitragem',
     descricao: 'A briga vai para arbitragem, e nao para o judiciario.' },
 ];
