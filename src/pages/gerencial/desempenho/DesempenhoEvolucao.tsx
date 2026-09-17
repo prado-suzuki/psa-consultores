@@ -22,6 +22,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, 
 import { toast } from '@/hooks/use-toast';
 import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
 import { useItensAcaoMembroEvolucao, useMetasMembroEvolucao } from '@/hooks/useDomainDesempenhoEvolucao';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 const classifConfig: Record<string, { label: string; bg: string; text: string }> = {
   supera: { label: 'Supera expectativas', bg: 'bg-[var(--bd-go-t)]', text: 'text-[var(--bd-go-d)]' },
@@ -180,9 +181,11 @@ const DesempenhoEvolucao = () => {
                   const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                   const has = reuniaoMonths.has(key);
                   return (
-                    <div key={key} className="w-8 h-8 rounded text-[10px] flex items-center justify-center" style={{ backgroundColor: has ? 'var(--bd-go)' : 'var(--bd-surface2)', color: has ? '#FFFFFF' : 'var(--bd-ink3)' }} title={key}>
+                    <ElementTooltip key={key} text={key}>
+                      <div className="w-8 h-8 rounded text-[10px] flex items-center justify-center" style={{ backgroundColor: has ? 'var(--bd-go)' : 'var(--bd-surface2)', color: has ? '#FFFFFF' : 'var(--bd-ink3)' }}>
                       {d.toLocaleString('pt-BR', { month: 'short' }).slice(0, 3)}
                     </div>
+                    </ElementTooltip>
                   );
                 })}
               </div>

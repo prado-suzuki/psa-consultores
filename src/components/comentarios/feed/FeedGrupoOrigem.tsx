@@ -15,6 +15,7 @@ import {
 } from '@/lib/feedComentarios';
 import { iniciaisDoNome } from '@/lib/orgCommentMentions';
 import { cn } from '@/lib/utils';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface FeedGrupoOrigemProps {
   /** Comentários seguidos da mesma tarefa/projeto, do mais novo ao mais antigo. */
@@ -242,9 +243,9 @@ function PilhaDeAutores({ autores }: { autores: ReturnType<typeof autoresDoGrupo
   const restantes = autores.length - visiveis.length;
 
   return (
-    <span
+    <ElementTooltip text={autores.map((autor) => autor.nome).join(', ')}>
+      <span
       className="hidden shrink-0 items-center sm:flex"
-      title={autores.map((autor) => autor.nome).join(', ')}
     >
       {visiveis.map((autor, indice) => (
         <span
@@ -264,5 +265,6 @@ function PilhaDeAutores({ autores }: { autores: ReturnType<typeof autoresDoGrupo
         </span>
       )}
     </span>
+    </ElementTooltip>
   );
 }

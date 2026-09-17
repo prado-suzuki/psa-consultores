@@ -12,7 +12,7 @@ import { formatDecimal } from '@/utils/format';
 import { dica } from '@/utils/tooltips';
 import { sumHorasEtapa } from '@/lib/mapearProcessoModel';
 import type { EtapasEditorController } from '@/components/equipe/mapa/mapear-processo/useEtapasEditor';
-import { ButtonTooltip } from '@/components/ui/button-tooltip';
+import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
 
 const EXECUCAO_OPCOES = [
   { value: 'manual', label: 'Manual' },
@@ -50,12 +50,16 @@ export function EtapasEditorModal({ editor, docNames, sisNames, respNames }: Pro
               <ol className="etapas-sidebar-list">
                 {editor.list.map((etapa, index) => {
                   const rotulo = cleanEtapaName(etapa.name) || 'Nova etapa';
-                  return <li key={etapa.id} draggable={!isFicou} className={`etapas-sidebar-item${index === editor.activeIndex ? ' active' : ''}${editor.draggedIndex === index ? ' dragging' : ''}`}
+                  return <ElementTooltip key={etapa.id} text={!isFicou ? 'Arraste para reordenar' : rotulo}>
+                    <li draggable={!isFicou} className={`etapas-sidebar-item${index === editor.activeIndex ? ' active' : ''}${editor.draggedIndex === index ? ' dragging' : ''}`}
                     onClick={() => editor.setActiveIndex(index)} onDragStart={() => editor.dragStart(index)} onDragOver={event => editor.dragOver(event, index)} onDrop={editor.drop} onDragEnd={editor.drop}
-                    title={!isFicou ? 'Arraste para reordenar' : rotulo} role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); editor.setActiveIndex(index); } }}>
-                    {!isFicou && <span className="etapas-sidebar-handle" aria-hidden="true" title="Arraste para reordenar"><svg width="10" height="14" viewBox="0 0 10 14" fill="none"><circle cx="2" cy="3" r="1.2" fill="currentColor"/><circle cx="2" cy="7" r="1.2" fill="currentColor"/><circle cx="2" cy="11" r="1.2" fill="currentColor"/><circle cx="8" cy="3" r="1.2" fill="currentColor"/><circle cx="8" cy="7" r="1.2" fill="currentColor"/><circle cx="8" cy="11" r="1.2" fill="currentColor"/></svg></span>}
+                    role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); editor.setActiveIndex(index); } }}>
+                    {!isFicou && <ElementTooltip text="Arraste para reordenar">
+                      <span className="etapas-sidebar-handle" aria-hidden="true"><svg width="10" height="14" viewBox="0 0 10 14" fill="none"><circle cx="2" cy="3" r="1.2" fill="currentColor"/><circle cx="2" cy="7" r="1.2" fill="currentColor"/><circle cx="2" cy="11" r="1.2" fill="currentColor"/><circle cx="8" cy="3" r="1.2" fill="currentColor"/><circle cx="8" cy="7" r="1.2" fill="currentColor"/><circle cx="8" cy="11" r="1.2" fill="currentColor"/></svg></span>
+                    </ElementTooltip>}
                     <span className="etapas-sidebar-num">{index + 1}</span><span className="etapas-sidebar-name">{rotulo}</span>
-                  </li>;
+                  </li>
+                  </ElementTooltip>;
                 })}
               </ol>
               {podeMexerEstrutura && <ButtonTooltip text="Adicionar nova etapa ao final">

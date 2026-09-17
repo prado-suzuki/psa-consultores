@@ -96,20 +96,22 @@ function titlesEmTagNativa(): { porArquivo: Record<string, number>; ambiguas: nu
 }
 
 /**
- * A dívida do `title=`: **89 ocorrências em 56 arquivos**, nenhuma ambígua.
+ * A dívida do `title=`: **8 ocorrências em 6 arquivos**, nenhuma ambígua.
  *
  * Histórico do número, em 17/09/2026, porque ele conta duas coisas diferentes:
  *
  * - nasceu **"143"**, e estava errado — a medição não via `title` depois de arrow function
  *   (ver o parser, acima). O real era **217**;
- * - **215** depois do lote 1 da conversão (os dois `title` de erro do Board);
- * - **89** depois do lote 2, que converteu os **126 botões** para `ButtonTooltip`. O que
- *   resta é `span` 61, `div` 16, `p` 6 e mais 6 avulsos — nenhum deles botão.
+ * - **215** depois do lote 1 (os dois `title` de erro do Board);
+ * - **89** depois do lote 2, que converteu os **126 botões** para `ButtonTooltip`;
+ * - **8** depois do lote 3, que converteu os 81 restantes para `ElementTooltip`.
  *
- * Os 61 de `span` são o grupo do texto cortado em tabela, decidido por ela: converte. É o
- * próximo lote, e este número desce junto com ele, no mesmo commit.
+ * Os 8 que sobraram **não são exceção de padrão, são dívida de conversão**: seis arquivos
+ * onde o script de migração produziu JSX inválido (elemento aninhado de mesmo nome, ou
+ * `<input>` sem fechamento) e que foram revertidos em vez de commitados quebrados. Vão à
+ * mão, e este número vai a zero — sobrando só os 8 `<iframe>`, que o padrão mantém.
  */
-const TITLE_NATIVO_LEGADO = 89;
+const TITLE_NATIVO_LEGADO = 8;
 
 /**
  * Placeholder de escolha ou de busca fora das quatro formas canônicas (§3 do documento):
@@ -186,7 +188,7 @@ describe('o texto que explica a tela', () => {
     expect(
       quantos,
       'A dívida do `title=` mudou de tamanho.\n\n'
-        + `Congelado: ${TITLE_NATIVO_LEGADO} em 56 arquivos (mais ${ambiguas} ambígua).\n`
+        + `Congelado: ${TITLE_NATIVO_LEGADO} em 6 arquivos (mais ${ambiguas} ambígua).\n`
         + `Agora: ${quantos} em ${Object.keys(porArquivo).length}.\n\n`
         + 'SUBIU: `title=` não é mecanismo de explicação — o do navegador não aparece no\n'
         + 'toque, não tem tema e demora a abrir. Use `<Tooltip>` para explicar e\n'

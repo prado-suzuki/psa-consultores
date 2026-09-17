@@ -25,7 +25,7 @@ import {
   type StatusChecklist,
 } from '@/lib/checklistDerivado';
 import { contarEstados, ESTADOS_DOCUMENTO, type EstadoDocumento } from '@/lib/estadoDocumento';
-import { ButtonTooltip } from '@/components/ui/button-tooltip';
+import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * O checklist do consultor: a leitura da subtração, mais o veredito sobre o que
@@ -485,10 +485,12 @@ function Metric({ label, value, tone, dica }: {
   dica?: string;
 }) {
   return (
-    <div className="flex flex-col items-center rounded-xl bg-osg-50/70 px-2 py-3 text-center" title={dica}>
+    <ElementTooltip text={dica}>
+      <div className="flex flex-col items-center rounded-xl bg-osg-50/70 px-2 py-3 text-center">
       <div className={cn('text-xl font-bold leading-none tabular-nums', tone === 'warning' ? 'text-osg-700' : 'text-osg-moss')}>{value}</div>
       <div className="mt-1 text-[10px] font-semibold uppercase leading-tight text-osg-500">{label}</div>
     </div>
+    </ElementTooltip>
   );
 }
 

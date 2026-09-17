@@ -32,7 +32,7 @@ import {
   type CascataProcessNode,
 } from '@/utils/cascataGraph';
 import type { Gargalo } from '@/types';
-import { ButtonTooltip } from '@/components/ui/button-tooltip';
+import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface MeasuredEdge {
   id: string;
@@ -403,14 +403,15 @@ export default function CascataCanvas({
                       </div>
 
                       {node.docsAfetados.length > 0 && (
-                        <div
+                        <ElementTooltip text={`Docs a atualizar: ${node.docsAfetados.join(', ')}`}>
+                          <div
                           className="casc-node-docs"
-                          title={`Docs a atualizar: ${node.docsAfetados.join(', ')}`}
                         >
                           <FileStack size={12} />
                           {node.docsAfetados.length}{' '}
                           {node.docsAfetados.length === 1 ? 'doc a atualizar' : 'docs a atualizar'}
                         </div>
+                        </ElementTooltip>
                       )}
 
                       <AnimatePresence initial={false}>
@@ -446,22 +447,24 @@ export default function CascataCanvas({
                                     </span>
                                   )}
                                   {et.motivo === 'documento' && (
-                                    <span
+                                    <ElementTooltip text={et.viaDocNome ? `Consome: ${et.viaDocNome}` : 'Consome documento alterado'}>
+                                      <span
                                       className="casc-doc-chip"
-                                      title={et.viaDocNome ? `Consome: ${et.viaDocNome}` : 'Consome documento alterado'}
                                     >
                                       <FileInput size={10} />
                                       consome doc
                                     </span>
+                                    </ElementTooltip>
                                   )}
                                   {et.motivo === 'sequencial' && (
-                                    <span
+                                    <ElementTooltip text="Re-executa para regenerar os documentos seguintes do processo">
+                                      <span
                                       className="casc-seq-chip"
-                                      title="Re-executa para regenerar os documentos seguintes do processo"
                                     >
                                       <CornerDownRight size={10} />
                                       reexecução
                                     </span>
+                                    </ElementTooltip>
                                   )}
                                 </li>
                               ))}

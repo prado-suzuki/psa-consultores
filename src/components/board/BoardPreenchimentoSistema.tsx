@@ -10,6 +10,7 @@ import {
   type FaixaEmpresaPreenchimento,
   type MetricaFaixaEmpresa,
 } from '@/lib/preenchimentoSistema';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface BoardPreenchimentoSistemaProps {
   /** Uma linha por área ATIVA do cadastro -- sempre vem de `estrutura_areas`. */
@@ -34,22 +35,24 @@ const corLacuna = (total: number | null) =>
 const CelulaLacuna: React.FC<{ l: { total: number | null; nomes: string[] } }> = ({ l }) => {
   if (l.total === null) {
     return (
-      <span
+      <ElementTooltip text={tituloLacuna(l)}>
+        <span
         style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--bd-risk)' }}
-        title={tituloLacuna(l)}
       >
         <AlertTriangle style={{ width: 12, height: 12 }} />
         <span style={{ fontSize: 11 }}>—</span>
       </span>
+      </ElementTooltip>
     );
   }
   return (
-    <span
+    <ElementTooltip text={tituloLacuna(l, 'Nenhum -- tudo cadastrado')}>
+      <span
       style={{ fontWeight: 600, color: corLacuna(l.total) }}
-      title={tituloLacuna(l, 'Nenhum -- tudo cadastrado')}
     >
       {l.total}
     </span>
+    </ElementTooltip>
   );
 };
 
@@ -107,12 +110,13 @@ const LinhaFaixaEmpresa: React.FC<{ label: string; efeito: string; m: MetricaFai
         <AlertTriangle style={{ width: 13, height: 13 }} /> não foi possível medir
       </span>
     ) : (
-      <span
+      <ElementTooltip text={tituloLacuna(m, 'Nenhum -- tudo cadastrado')}>
+        <span
         style={{ fontSize: 13.5, fontWeight: 700, color: corLacuna(m.comLacuna), fontVariantNumeric: 'tabular-nums' }}
-        title={tituloLacuna(m, 'Nenhum -- tudo cadastrado')}
       >
         {m.comLacuna} de {m.total}
       </span>
+      </ElementTooltip>
     )}
     <span style={{ fontSize: 11, color: 'var(--bd-ink3)', flex: 1, minWidth: 160 }}>— {efeito}</span>
   </div>

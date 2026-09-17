@@ -7,6 +7,7 @@ import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 import { formatKanbanDate } from '@/lib/taskKanbanFormat';
 import { statusColors, statusList } from '@/lib/taskStatusColors';
 import { cn } from '@/lib/utils';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface TaskKanbanSubtaskRowProps {
   subtask: OrgTask;
@@ -106,13 +107,14 @@ export function TaskKanbanSubtaskRow({
           que é o mesmo caminho de leitura do prazo ao lado. Nome inteiro só no
           card e no modal. */}
       {revisor && (
-        <span
+        <ElementTooltip text={`Em revisão com ${revisor}`}>
+          <span
           aria-label={`Em revisão com ${revisor}`}
-          title={`Em revisão com ${revisor}`}
           className={cn('flex-shrink-0', statusColors[subtask.status].text)}
         >
           <UserCheck className="h-3.5 w-3.5" />
         </span>
+        </ElementTooltip>
       )}
       {subtask.due_date && (
         <span className="flex-shrink-0 text-xs text-muted-foreground">

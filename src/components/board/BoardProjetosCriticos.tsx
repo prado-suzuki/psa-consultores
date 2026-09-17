@@ -1,6 +1,7 @@
 import React from 'react';
 import { BoardChip } from './BoardChip';
 import { BoardCard, BoardCardEmpty } from './ui/BoardCard';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 export interface ProjetoCriticoItem {
   id: string;
@@ -60,15 +61,16 @@ export const BoardProjetosCriticos: React.FC<BoardProjetosCriticosProps> = ({
           data-clickable={onProjetoClick ? 'true' : undefined}
         >
           <BoardChip variant={areaChip(p.area_name)}>{p.area_name || 'Sem área'}</BoardChip>
-          <div
+          <ElementTooltip text={p.name}>
+            <div
             style={{
               flex: 1, minWidth: 0, fontWeight: 500, color: 'var(--bd-ink)',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}
-            title={p.name}
           >
             {p.name}
           </div>
+          </ElementTooltip>
           <div style={{ width: 80 }}>
             <div className="v4-pb v4-pb6">
               <div className={`v4-pbf ${classeBarra(pct)}`} style={{ width: `${pct}%` }} />

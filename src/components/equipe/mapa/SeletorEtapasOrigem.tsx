@@ -15,7 +15,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Etapa, Processo, GargaloEtapaRef } from '@/types';
-import { ButtonTooltip } from '@/components/ui/button-tooltip';
+import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface Props {
   etapas: Etapa[];
@@ -224,7 +224,8 @@ export default function SeletorEtapasOrigem({
           </span>
         )}
         {value.map((ref) => (
-          <span key={selectedKey(ref)} className="seo-chip" title={`${ref.processoNome ?? ''} · ${ref.etapaNome ?? ref.etapaId}`}>
+          <ElementTooltip key={selectedKey(ref)} text={`${ref.processoNome ?? ''} · ${ref.etapaNome ?? ref.etapaId}`}>
+            <span className="seo-chip">
             <span className="seo-chip-text">
               {ref.processoNome ? `${ref.processoNome.split(' ')[0]} · ` : ''}{ref.etapaNome ?? ref.etapaId}
             </span>
@@ -238,6 +239,7 @@ export default function SeletorEtapasOrigem({
             </button>
             </ButtonTooltip>
           </span>
+          </ElementTooltip>
         ))}
         <button
           ref={triggerRef}

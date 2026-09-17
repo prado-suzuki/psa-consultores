@@ -4,7 +4,7 @@ import EmptyStateCadastro from '@/components/equipe/mapa/cadastro/EmptyStateCada
 import type { DocRef, Etapa, ResponsavelEtapa } from '@/types';
 import { formatDecimal } from '@/utils/format';
 import { sumHorasEtapa } from '@/lib/mapearProcessoModel';
-import { ButtonTooltip } from '@/components/ui/button-tooltip';
+import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
 
 const EXEC_LABEL: Record<string, string> = {
   manual: 'Manual',
@@ -72,7 +72,8 @@ function EtapaCard({ etapa, index, scenario, onEditar }: { etapa: Etapa; index: 
   const saida = ficou?.docsSaida ?? etapa.docsSaida;
   const horas = sumHorasEtapa(etapa, scenario === 'ficou');
   return (
-    <li className="mapear-etapa mapear-etapa-clicavel" role="button" tabIndex={0} title="Clique para editar esta etapa" style={{ cursor: 'pointer' }}
+    <ElementTooltip text="Clique para editar esta etapa">
+      <li className="mapear-etapa mapear-etapa-clicavel" role="button" tabIndex={0} style={{ cursor: 'pointer' }}
       onClick={() => onEditar(etapa.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onEditar(etapa.id); } }}>
       <div className="mapear-etapa-top"><span className="mapear-etapa-num">{index + 1}</span><h4 className="mapear-etapa-nome">{etapa.name}</h4><span className="mapear-exec">{execLabel(execution)}</span></div>
       {descricao && <p className="mapear-etapa-desc">{descricao}</p>}
@@ -84,6 +85,7 @@ function EtapaCard({ etapa, index, scenario, onEditar }: { etapa: Etapa; index: 
         <Metric label="Retrabalho" value={scenario === 'ficou' && retrabalho == null ? 'Não definido' : `${fmtPct(retrabalho ?? 0)}%`} />
       </div>
     </li>
+    </ElementTooltip>
   );
 }
 

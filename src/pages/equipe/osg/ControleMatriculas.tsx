@@ -33,6 +33,7 @@ import {
 } from '@/hooks/useDiagnosticoPatrimonial';
 import { MatriculaModal } from '@/components/equipe/osg/diagnostico-patrimonial/MatriculaModal';
 import { formatArea } from '@/components/equipe/osg/diagnostico-patrimonial/areaUtils';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 type FiltroVinculo = '__todas__' | 'orfas' | 'vinculadas';
 
@@ -182,12 +183,13 @@ const ControleMatriculas = () => {
                         <TableRow key={m.id} {...rowActivateProps(() => setModal({ open: true, matricula: m }))}>
                           <TableCell>
                             {orfa && (
-                              <span
-                                title="Matrícula órfã (sem bem vinculado)"
+                              <ElementTooltip text="Matrícula órfã (sem bem vinculado)">
+                                <span
                                 className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-warning/10 text-warning font-bold text-xs"
                               >
                                 !
                               </span>
+                              </ElementTooltip>
                             )}
                           </TableCell>
                           <TableCell className="font-mono text-xs font-medium">{m.numero}</TableCell>

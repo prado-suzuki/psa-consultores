@@ -17,6 +17,7 @@ import {
 } from '@/lib/clientesPorRegiao';
 import { useOsVolumePorCliente } from '@/hooks/useOsVolumePorCliente';
 import { formatCurrencyDisplay } from '@/components/equipe/client-form/constants';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * Mapa de calor (choropleth) dos clientes por estado, para o módulo Gerencial.
@@ -406,20 +407,22 @@ export const BoardMapaClientes = ({ clientes, escopoTotal }: BoardMapaClientesPr
                   >
                     {i + 1}
                   </span>
-                  <span
+                  <ElementTooltip text={c.nome}>
+                    <span
                     className="min-w-0 flex-1 truncate text-[12.5px]"
                     style={{ color: 'var(--board-t1)' }}
-                    title={c.nome}
                   >
                     {c.nome}
                   </span>
-                  <span
+                  </ElementTooltip>
+                  <ElementTooltip text={`${c.projetos} OS`}>
+                    <span
                     className="shrink-0 text-[11px] tabular-nums"
                     style={{ color: 'var(--board-t3)' }}
-                    title={`${c.projetos} OS`}
                   >
                     {c.projetos} OS
                   </span>
+                  </ElementTooltip>
                   <span
                     className="shrink-0 text-[12px] font-semibold tabular-nums"
                     style={{ color: 'var(--board-t1)', minWidth: 64, textAlign: 'right' }}

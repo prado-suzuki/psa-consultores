@@ -22,6 +22,7 @@ import { taskPriorityColors, taskPriorityList } from '@/lib/taskPriorityColors';
 import type { TaskFieldOptions, TaskFormValues } from '@/lib/orgTaskForm';
 import { prazoDaFilhaEstoura } from '@/lib/orgTaskPrazo';
 import { cn } from '@/lib/utils';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface TaskPropertyBarProps {
   form: UseFormReturn<TaskFormValues>;
@@ -200,13 +201,14 @@ export function TaskPropertyBar({
           {reviewerName && (
             <div className="min-w-0 space-y-1.5">
               <p className={CHIP_LABEL}>Revisor</p>
-              <div
+              <ElementTooltip text={`Revisão com ${reviewerName}`}>
+                <div
                 className={cn(CHIP_BUTTON, 'flex cursor-default items-center')}
-                title={`Revisão com ${reviewerName}`}
               >
                 <UserCheck className="h-3.5 w-3.5 shrink-0 opacity-60" />
                 <span className="truncate">{reviewerName}</span>
               </div>
+              </ElementTooltip>
             </div>
           )}
 

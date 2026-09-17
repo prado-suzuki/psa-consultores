@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { fmtHorasOuDias, type RankingRow } from '@/lib/gestaoChamadosDashboardAnalytics';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface RankingCardProps {
   title: string;
@@ -75,12 +76,14 @@ function RankingCard({
                   </div>
                   <div className="flex items-center gap-3 text-xs">
                     {showResponseTime && (
-                      <span className="text-muted-foreground tabular-nums" title={responseTimeHint}>
+                      <ElementTooltip text={responseTimeHint}>
+                        <span className="text-muted-foreground tabular-nums">
                         <Timer className="mr-0.5 inline h-3 w-3 align-[-2px]" />
                         {row.tempoMedioRespostaHoras === null
                           ? '—'
                           : fmtHorasOuDias(row.tempoMedioRespostaHoras)}
                       </span>
+                      </ElementTooltip>
                     )}
                     <span className="font-semibold tabular-nums text-foreground">
                       {value}
