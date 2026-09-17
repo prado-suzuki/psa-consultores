@@ -386,7 +386,7 @@ function contatosPorClienteId(
  * lados é o que faz a OS sem número também encontrar o criador dela.
  */
 function chaveDaCriacao(clienteId: string, numeroOs: string | null): string {
-  return `${clienteId} ${numeroOs || '(sem número)'}`;
+  return `${clienteId} :: ${numeroOs || '(sem número)'}`;
 }
 
 /**
