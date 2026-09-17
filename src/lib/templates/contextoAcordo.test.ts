@@ -25,7 +25,6 @@ const VAZIA: EntradaAcordo = {
   ramos: [],
   ordemPreferencia: [],
   signatarios: [],
-  sociedadesRelacionadas: [],
 };
 
 /** A AgroAliança, que é o único acordo do acervo com ramos familiares. */
@@ -49,7 +48,6 @@ const AGROALIANCA: EntradaAcordo = {
     { quem: 'os demais QUOTISTAS', ordem: 1 },
   ],
   signatarios: [pessoa('p1', 'CRISTINA BOCOLLI'), pessoa('p2', 'REGINA BOCOLLI')],
-  sociedadesRelacionadas: [pessoa('e1', 'ALIANÇA PARTICIPAÇÕES LTDA.')],
   objetosPreferencia: ['quotas', 'imoveis', 'maquinas', 'equipamentos', 'participacoes',
     'oportunidades'],
 };
@@ -58,13 +56,11 @@ describe('contextoAcordo · o que se deduz das listas', () => {
   it('as duas condicionais de alcance saem do tamanho das listas, e não de um campo', () => {
     const cheio = camposDoAcordo(AGROALIANCA);
     expect(cheio.temRamos).toBe('sim');
-    expect(cheio.temSociedadesRelacionadas).toBe('sim');
     // Dois ramos: "os DOIS grupos de descendentes" (AgroAliança, 1.1.7).
     expect(cheio.quantosRamosExtenso).toBe('dois');
 
     const vazio = camposDoAcordo(VAZIA);
     expect(vazio.temRamos).toBe('');
-    expect(vazio.temSociedadesRelacionadas).toBe('');
     expect(vazio.quantosRamosExtenso).toBe('');
   });
 
@@ -108,7 +104,7 @@ describe('contextoAcordo · as cinco listas', () => {
     // papel e o trecho inteiro desaparece. Foi o defeito número um da MOT-01.
     expect(Object.keys(listasDoAcordo(VAZIA)).sort()).toEqual([
       'ordemDaPreferencia', 'quorunsDoAcordo', 'quotistasSignatarios',
-      'ramosFamiliares', 'sociedadesRelacionadas',
+      'ramosFamiliares',
     ]);
   });
 
@@ -190,13 +186,10 @@ describe('contextoAcordo · a cláusula sai igual à do documento', () => {
      */
     const contexto = { acordo: camposDoAcordo(VAZIA), ...listasDoAcordo(VAZIA) };
     const modelo = '{{#acordo.temRamos}}há ramos{{/acordo.temRamos}}'
-      + '{{#acordo.temSociedadesRelacionadas}}e relacionadas{{/acordo.temSociedadesRelacionadas}}'
       + '{{#quorunsDoAcordo}}{{ quorum.materia }}{{/quorunsDoAcordo}}'
       + '{{#ramosFamiliares}}{{ ramo.rotulo }}{{/ramosFamiliares}}'
       + '{{#ordemDaPreferencia}}{{ preferente.quem }}{{/ordemDaPreferencia}}'
-      + '{{#quotistasSignatarios}}{{ quotista.nome }}{{/quotistasSignatarios}}'
-      + '{{#sociedadesRelacionadas}}{{ sociedadeRelacionada.razaoSocial }}'
-      + '{{/sociedadesRelacionadas}}';
+      + '{{#quotistasSignatarios}}{{ quotista.nome }}{{/quotistasSignatarios}}';
 
     expect(renderConteudo(modelo, contexto)).toBe('');
   });

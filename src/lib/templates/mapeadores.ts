@@ -828,7 +828,6 @@ export interface AcordoParaMapear {
 
   // Alcance. As listas em si são papéis de lista; aqui vem só o interruptor,
   // porque uma seção {{#…}} vazia não reescreve a frase que está fora dela.
-  temSociedadesRelacionadas?: boolean;
   temRamos?: boolean;
   /** Quantos ramos, para a definição que abre contando ("os dois grupos"). */
   quantosRamos?: number | null;
@@ -872,8 +871,6 @@ export interface AcordoParaMapear {
   // Representação
   representanteNome?: string | null;
   representanteGenero?: string | null;
-  substitutoRepresentanteNome?: string | null;
-  substitutoRepresentanteGenero?: string | null;
   foroEleitoComarca?: string | null;
   foroEleitoEstado?: string | null;
 }
@@ -913,7 +910,6 @@ export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
   set('assinadoEm', entrada.assinadoEm);
   set('vigenciaAnos', entrada.vigenciaAnos);
 
-  condicional('temSociedadesRelacionadas', entrada.temSociedadesRelacionadas);
   condicional('temRamos', entrada.temRamos);
   set('quantosRamos', entrada.quantosRamos);
   condicional('reuniaoPreviaObrigatoria', entrada.reuniaoPreviaObrigatoria);
@@ -956,8 +952,6 @@ export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
 
   set('representanteNome', entrada.representanteNome);
   set('representanteGenero', entrada.representanteGenero);
-  set('substitutoRepresentanteNome', entrada.substitutoRepresentanteNome);
-  set('substitutoRepresentanteGenero', entrada.substitutoRepresentanteGenero);
   set('foroEleitoComarca', entrada.foroEleitoComarca);
   set('foroEleitoEstado', entrada.foroEleitoEstado);
 

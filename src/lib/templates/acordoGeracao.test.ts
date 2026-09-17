@@ -82,8 +82,6 @@ const ENTRADA: EntradaAcordo = {
     camaraArbitral: 'Câmara de Comércio Brasil Canadá',
     representanteNome: 'LUIZ MARCELO',
     representanteGenero: 'M',
-    substitutoRepresentanteNome: 'ANA KARLA',
-    substitutoRepresentanteGenero: 'F',
     foroEleitoComarca: 'Cuiabá',
     foroEleitoEstado: 'Mato Grosso',
   },
@@ -91,7 +89,6 @@ const ENTRADA: EntradaAcordo = {
   ramos: [],
   ordemPreferencia: [],
   signatarios: [],
-  sociedadesRelacionadas: [],
 };
 
 describe('a geração do Acordo de ponta a ponta', () => {
@@ -272,25 +269,23 @@ describe('a concordancia de quem representa os quotistas', () => {
    * A clausula saia "os QUOTISTAS elegem o Sra. Ana Zamo": o tratamento
    * concordava e o artigo antes dele, nao, porque estava escrito fixo no bloco.
    * Foi a comparacao do gerado contra o modelo que mostrou.
+   *
+   * O SUBSTITUTO saiu em 17/09: a consultoria disse que nao se aplica, e a
+   * propria clausula ja resolve a falta em REUNIAO DE QUOTISTAS.
    */
-  const comGenero = (g: string, gs: string) => gerarDocumento(template, contextoDe({
+  const comGenero = (g: string) => gerarDocumento(template, contextoDe({
     ...ENTRADA,
     acordo: {
       ...ENTRADA.acordo,
       representanteNome: 'ANA ZAMO', representanteGenero: g,
-      substitutoRepresentanteNome: 'BRUNO ZAMO', substitutoRepresentanteGenero: gs,
     },
   }));
 
   it('mulher recebe "a Sra." e homem "o Sr."', () => {
-    expect(comGenero('F', 'M')).toContain('elegem a Sra. ANA ZAMO');
-    expect(comGenero('M', 'M')).toContain('elegem o Sr. ANA ZAMO');
+    expect(comGenero('F')).toContain('elegem a Sra. ANA ZAMO');
+    expect(comGenero('M')).toContain('elegem o Sr. ANA ZAMO');
   });
 
-  it('o substituto usa preposicao com artigo: "passara ao Sr." e "passara a Sra."', () => {
-    expect(comGenero('F', 'M')).toContain('passará ao Sr. BRUNO ZAMO');
-    expect(comGenero('F', 'F')).toContain('passará à Sra. BRUNO ZAMO');
-  });
 });
 
 describe('os objetos da preferencia, um bloco por objeto', () => {
@@ -487,7 +482,7 @@ describe('o acordo VAZIO nao derruba a geracao', () => {
    */
   const VAZIO: EntradaAcordo = {
     acordo: { clienteId: 'c1' },
-    quoruns: [], ramos: [], ordemPreferencia: [], signatarios: [], sociedadesRelacionadas: [],
+    quoruns: [], ramos: [], ordemPreferencia: [], signatarios: [],
   };
 
   it('gera com o cadastro em branco, sem levantar', () => {

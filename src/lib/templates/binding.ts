@@ -616,14 +616,6 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     camposExtras: [{ id: 'ordem', label: 'Ordem do quotista (1, 2…)' }],
   },
 
-  sociedadesRelacionadas: {
-    label: 'Sociedades relacionadas (alcance do Acordo)',
-    tipo: 'sociedade',
-    itemKey: 'sociedadeRelacionada',
-    fonte: 'acordo_quotistas',
-    campoResumo: 'razaoSocial',
-    camposExtras: [],
-  },
 
   /*
    * OS QUÓRUNS, uma alínea cada, no bloco de deliberação.

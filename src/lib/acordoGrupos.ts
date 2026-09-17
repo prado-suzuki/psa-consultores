@@ -159,17 +159,6 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
     resumo: 'Sobre quais empresas o acordo vale, e como a família se divide em ramos',
     campos: [
       {
-        campo: 'sociedades',
-        rotulo: 'Sociedades relacionadas abrangidas',
-        tipo: 'especial',
-        ajuda:
-          'AS OUTRAS EMPRESAS DO GRUPO, e não os sócios. O acordo estende quase toda '
-          + 'regra a elas: a preferência na venda, a não concorrência e o dever de levar '
-          + 'oportunidade à administração valem para a holding e para cada operacional '
-          + 'listada aqui. Incluir ou tirar uma empresa muda o alcance do documento '
-          + 'inteiro.',
-      },
-      {
         campo: 'ramos',
         rotulo: 'Ramos familiares',
         tipo: 'especial',
@@ -457,16 +446,6 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           + 'de aval e fiança que o card previa não é campo: procurei nos sete acordos e nos '
           + 'oito contratos e não existe número nenhum, a cláusula diz quem pode garantir '
           + 'quem, não quanto.',
-      },
-      {
-        campo: 'substituto_representante_pessoa_id',
-        rotulo: 'Substituto do representante',
-        tipo: 'especial',
-        ajuda:
-          'Quem assume se o representante faltar. A mesma cláusula continua: "sendo que na '
-          + 'sua falta ou incapacidade civil, a incumbência passará ao Sr. FLÁVIO". Faltando '
-          + 'os dois, o acordo manda os quotistas escolherem outro em reunião, e isso é linha '
-          + 'fixa, não se digita.',
       },
     ],
   },

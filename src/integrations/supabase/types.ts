@@ -195,7 +195,6 @@ export type Database = {
           representante_pessoa_id: string | null
           reuniao_previa_obrigatoria: boolean
           solucao_litigios: string | null
-          substituto_representante_pessoa_id: string | null
           updated_at: string
           updated_by: string | null
           versao: number
@@ -229,7 +228,6 @@ export type Database = {
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
           solucao_litigios?: string | null
-          substituto_representante_pessoa_id?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
@@ -263,7 +261,6 @@ export type Database = {
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
           solucao_litigios?: string | null
-          substituto_representante_pessoa_id?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
@@ -280,13 +277,6 @@ export type Database = {
           {
             foreignKeyName: "acordo_quotistas_representante_pessoa_id_fkey"
             columns: ["representante_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "acordo_quotistas_substituto_representante_pessoa_id_fkey"
-            columns: ["substituto_representante_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
@@ -376,54 +366,6 @@ export type Database = {
           {
             foreignKeyName: "acordo_signatario_pessoa_id_fkey"
             columns: ["pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      acordo_sociedade_relacionada: {
-        Row: {
-          acordo_id: string
-          created_at: string
-          created_by: string | null
-          empresa_pessoa_id: string
-          id: string
-          ordem: number
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          acordo_id: string
-          created_at?: string
-          created_by?: string | null
-          empresa_pessoa_id: string
-          id?: string
-          ordem?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          acordo_id?: string
-          created_at?: string
-          created_by?: string | null
-          empresa_pessoa_id?: string
-          id?: string
-          ordem?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "acordo_sociedade_relacionada_acordo_id_fkey"
-            columns: ["acordo_id"]
-            isOneToOne: false
-            referencedRelation: "acordo_quotistas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "acordo_sociedade_relacionada_empresa_pessoa_id_fkey"
-            columns: ["empresa_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]

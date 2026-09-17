@@ -96,7 +96,6 @@ const AcordoDeQuotistas = () => {
     ramos: (data?.ramos ?? []).map((r) => ({ nome: r.nome })),
     ordemPreferencia: (data?.ordemPreferencia ?? []).map((o) => o.quem),
     signatarios: (data?.signatarios ?? []).map((x) => x.pessoa_id),
-    sociedades: (data?.sociedades ?? []).map((x) => x.empresa_pessoa_id),
   }), [data]);
 
   const salvarGrupo = async (novos: ValoresDoAcordo) => {
@@ -135,7 +134,6 @@ const AcordoDeQuotistas = () => {
       acordoId: data.acordo.id,
       versao: data.acordo.versao,
       signatarios,
-      sociedades,
     });
 
     // O `grupo` é o que carimba o bloco como conferido. Ver `salvarAcordo`.

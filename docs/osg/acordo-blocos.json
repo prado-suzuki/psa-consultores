@@ -1428,7 +1428,7 @@
   "nome": "Acordo 214 Item — Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/c art.…",
   "tipo": "item",
   "titulo": null,
-  "conteudo": "Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/c art. 1.053, parágrafo único do Código Civil, os QUOTISTAS elegem {{ acordo.representanteArtigo }} {{ acordo.representanteTratamento }} {{ acordo.representanteNome }} como representante dos QUOTISTAS, sendo que na sua falta ou incapacidade civil, a incumbência passará {{ acordo.substitutoRepresentanteAo }} {{ acordo.substitutoRepresentanteTratamento }} {{ acordo.substitutoRepresentanteNome }}, os quais serão substituídos por outro QUOTISTA caso ocorra o falecimento ou seja declarada a incapacidade civil de ambos, conforme os QUOTISTAS decidam em REUNIÃO DE QUOTISTAS, convocada para este fim."
+  "conteudo": "Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/c art. 1.053, parágrafo único do Código Civil, os QUOTISTAS elegem {{ acordo.representanteArtigo }} {{ acordo.representanteTratamento }} {{ acordo.representanteNome }} como representante dos QUOTISTAS, o qual será substituído por outro QUOTISTA caso ocorra o falecimento ou seja declarada a sua incapacidade civil, conforme os QUOTISTAS decidam em REUNIÃO DE QUOTISTAS, convocada para este fim."
  },
  {
   "nome": "Acordo 215 Cláusula — Da Vigência e do arquivamento deste ACORDO",

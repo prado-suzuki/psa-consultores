@@ -109,7 +109,7 @@ export interface PreferenteParaMapear {
 
 export interface EntradaAcordo {
   /** O cabeçalho, como o mapeador o espera, menos o que se deriva das listas. */
-  acordo: Omit<AcordoParaMapear, 'temRamos' | 'temSociedadesRelacionadas' | 'quantosRamos'
+  acordo: Omit<AcordoParaMapear, 'temRamos' | 'quantosRamos'
     | 'ordemPreferencia' | 'objetosPreferencia'>;
   quoruns: QuorumParaMapear[];
   ramos: RamoParaMapear[];
@@ -117,7 +117,6 @@ export interface EntradaAcordo {
   /** Os quotistas que assinaram a PRIMEIRA versão, já qualificados. */
   signatarios: PessoaRow[];
   /** As outras empresas do grupo alcançadas pelo acordo. */
-  sociedadesRelacionadas: PessoaRow[];
   /** As chaves de `objetos_preferencia`, para virar prosa aqui. */
   objetosPreferencia?: readonly string[] | null;
 }
@@ -218,7 +217,6 @@ export function camposDoAcordo(entrada: EntradaAcordo): Campos {
     ...entrada.acordo,
     temRamos: entrada.ramos.length > 0,
     quantosRamos: entrada.ramos.length || null,
-    temSociedadesRelacionadas: entrada.sociedadesRelacionadas.length > 0,
     /*
      * A FILA EM PROSA, para a cláusula que a diz numa frase só. A mesma fila sai
      * como lista, para o bloco que quer uma alínea por posição; as duas vêm da
@@ -296,16 +294,11 @@ export function listasDoAcordo(entrada: EntradaAcordo): Record<string, ItemLista
     quotista: { ...mapearPessoa(p), ordem: String(i + 1) } as Campos,
   }));
 
-  const sociedadesRelacionadas: ItemLista[] = entrada.sociedadesRelacionadas.map((s) => ({
-    sociedadeRelacionada: mapearSociedade(s),
-  }));
-
   return {
     quorunsDoAcordo,
     ramosFamiliares,
     ordemDaPreferencia,
     quotistasSignatarios,
-    sociedadesRelacionadas,
   };
 }
 

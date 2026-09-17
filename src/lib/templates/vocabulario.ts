@@ -1890,33 +1890,6 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       condicionalCampo('temRepresentante', 'Há representante eleito? (condicional)',
         'representanteNome', (v) => !!(v.representanteNome ?? '').trim()),
       /*
-       * O SUBSTITUTO, que a mesma cláusula nomeia logo depois: "na sua falta ou
-       * incapacidade civil, a incumbência passará ao Sr. …". Mesma dupla de
-       * campos do titular, e pelo mesmo motivo: o tratamento concorda com o
-       * gênero da pessoa cadastrada, que texto livre não teria.
-       */
-      { id: 'substitutoRepresentanteNome', label: 'Substituto do representante', tipo: 'texto' },
-      { id: 'substitutoRepresentanteGenero', label: 'Gênero do substituto (M/F)', tipo: 'texto',
-        interno: true },
-      {
-        id: 'substitutoRepresentanteTratamento',
-        label: 'Tratamento do substituto (Sr./Sra.)',
-        tipo: 'texto',
-        derivadoDe: 'substitutoRepresentanteGenero',
-        derivar: (v) => concordar(v.substitutoRepresentanteGenero === 'F' ? 'F' : 'M', 'Sr.', 'Sra.'),
-      },
-      /*
-       * "passará AO Sr." e "passará À Sra.": aqui é preposição com artigo, e não
-       * artigo solto, porque a frase é "a incumbência passará ao …".
-       */
-      {
-        id: 'substitutoRepresentanteAo',
-        label: 'Preposição do substituto (ao/à)',
-        tipo: 'texto',
-        derivadoDe: 'substitutoRepresentanteGenero',
-        derivar: (v) => concordar(v.substitutoRepresentanteGenero === 'F' ? 'F' : 'M', 'ao', 'à'),
-      },
-      /*
        * O FORO ELEITO, cláusula 26.6, e também a cidade da arbitragem, que é a
        * mesma em 5 dos 5 acordos que trazem as duas. Não deriva da sede: o
        * AgroAliança senta em Sorriso e elege Cuiabá. O estado vai por extenso,

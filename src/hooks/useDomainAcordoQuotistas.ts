@@ -48,7 +48,6 @@ type QuorumRow = Database['public']['Tables']['acordo_quorum']['Row'];
 type RamoRow = Database['public']['Tables']['acordo_ramo_familiar']['Row'];
 type OrdemRow = Database['public']['Tables']['acordo_ordem_preferencia']['Row'];
 type SignatarioRow = Database['public']['Tables']['acordo_signatario']['Row'];
-type SociedadeRow = Database['public']['Tables']['acordo_sociedade_relacionada']['Row'];
 
 export type AcordoQuotistas = AcordoRow;
 export type QuorumDoAcordo = QuorumRow;
@@ -61,7 +60,6 @@ export interface AcordoCompleto {
   ramos: RamoRow[];
   ordemPreferencia: OrdemRow[];
   signatarios: SignatarioRow[];
-  sociedades: SociedadeRow[];
 }
 
 /** O que a tela manda gravar no cabeçalho. Sem id, versão nem auditoria. */
@@ -130,7 +128,7 @@ export function useAcordoDoCliente(clienteId?: string | null, acordoId?: string 
         //
         // Passava calado num `tsc --noEmit` solto, que não checa nada neste
         // projeto de referências; quem acusa é o `bun run typecheck`.
-        .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*), acordo_signatario(*), acordo_sociedade_relacionada(*)')
+        .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*), acordo_signatario(*)')
         .eq('cliente_id', clienteId as string)
         .eq('excluido', false);
 
@@ -145,7 +143,6 @@ export function useAcordoDoCliente(clienteId?: string | null, acordoId?: string 
         acordo_ramo_familiar: ramos,
         acordo_ordem_preferencia: ordem,
         acordo_signatario: signatarios,
-        acordo_sociedade_relacionada: sociedades,
         ...acordo
       } = data;
 
@@ -158,7 +155,6 @@ export function useAcordoDoCliente(clienteId?: string | null, acordoId?: string 
         ramos: porOrdem(ramos),
         ordemPreferencia: porOrdem(ordem),
         signatarios: porOrdem(signatarios),
-        sociedades: porOrdem(sociedades),
       };
     },
   });
@@ -211,7 +207,7 @@ export function useAcordosDoCliente(clienteId?: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('acordo_quotistas')
-        .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*), acordo_signatario(*), acordo_sociedade_relacionada(*)')
+        .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*), acordo_signatario(*)')
         .eq('cliente_id', clienteId as string)
         .eq('excluido', false)
         .order('versao', { ascending: false });
@@ -226,7 +222,6 @@ export function useAcordosDoCliente(clienteId?: string | null) {
           acordo_ramo_familiar: ramos,
           acordo_ordem_preferencia: ordem,
           acordo_signatario: signatarios,
-          acordo_sociedade_relacionada: sociedades,
           ...acordo
         } = linha;
         return {
@@ -235,8 +230,7 @@ export function useAcordosDoCliente(clienteId?: string | null) {
           ramos: porOrdem(ramos),
           ordemPreferencia: porOrdem(ordem),
           signatarios: porOrdem(signatarios),
-          sociedades: porOrdem(sociedades),
-        } as AcordoCompleto;
+          } as AcordoCompleto;
       });
     },
   });
@@ -488,14 +482,13 @@ export function useAcordoMutations(clienteId?: string | null) {
       toast.error(e instanceof Error ? e.message : 'Não consegui salvar as listas'),
   });
 
-  /** Os signatários originais e as sociedades alcançadas, que são vínculos a pessoas. */
+  /** Os signatários originais, que são vínculo a pessoas. */
   const salvarVinculos = useMutation({
     mutationFn: async (args: {
       acordoId: string;
       versao: number;
       signatarios: string[];
-      sociedades: string[];
-    }) => {
+        }) => {
       const { error: erroApagarS } = await supabase
         .from('acordo_signatario')
         .delete()
@@ -511,21 +504,6 @@ export function useAcordoMutations(clienteId?: string | null) {
         if (error) throw error;
       }
 
-      const { error: erroApagarE } = await supabase
-        .from('acordo_sociedade_relacionada')
-        .delete()
-        .eq('acordo_id', args.acordoId);
-      if (erroApagarE) throw erroApagarE;
-
-      if (args.sociedades.length > 0) {
-        const { error } = await supabase.from('acordo_sociedade_relacionada').insert(
-          args.sociedades.map((empresa_pessoa_id, ordem) => ({
-            acordo_id: args.acordoId, empresa_pessoa_id, ordem, ...carimbo(),
-          })),
-        );
-        if (error) throw error;
-      }
-
       await logAction({
         area: 'osg',
         entity_type: 'acordo_quotistas',
@@ -534,13 +512,12 @@ export function useAcordoMutations(clienteId?: string | null) {
         action: 'updated',
         changed_fields: {
           Signatários: { old: '', new: `${args.signatarios.length} pessoa(s)` },
-          'Sociedades relacionadas': { old: '', new: `${args.sociedades.length} sociedade(s)` },
         },
       });
     },
     onSuccess: () => {
       invalidar();
-      toast.success('Signatários e sociedades salvos');
+      toast.success('Signatários salvos');
     },
     onError: (e: unknown) =>
       toast.error(e instanceof Error ? e.message : 'Não consegui salvar os vínculos'),

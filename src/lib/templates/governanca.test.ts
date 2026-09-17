@@ -316,7 +316,6 @@ describe('GOV-03 · o motor conhece os parâmetros do acordo', () => {
     clienteId: 'c1',
     assinadoEm: '2025-09-29',
     vigenciaAnos: 10,
-    temSociedadesRelacionadas: true,
     temRamos: true,
     reuniaoPreviaObrigatoria: true,
     ordemPreferencia: 'aos descendentes dos SIGNATÁRIOS, depois aos demais QUOTISTAS',
@@ -436,7 +435,7 @@ describe('GOV-03 · o motor conhece os parâmetros do acordo', () => {
     // clientes tem de sair sem os cabeçalhos correspondentes.
     const c = mapearAcordoQuotistas({ clienteId: 'c1' });
     for (const campo of [
-      'reuniaoPreviaObrigatoria', 'temSociedadesRelacionadas', 'temRamos',
+      'reuniaoPreviaObrigatoria', 'temRamos',
       'naoConcorrencia', 'opcaoCompraPrevista', 'opcaoVendaPrevista', 'temRepresentante',
       'porArbitragem', 'porJudicial', 'temLockUp', 'temTagAlong', 'temDragAlong',
       'preferenciaAlemDasQuotas', 'usaFluxoDeCaixa', 'consolidaComposse',
@@ -530,8 +529,6 @@ describe('GOV-03 · as listas do Acordo', () => {
     '{{#quotistasSignatarios sep="; " fim="; e "}}{{ quotista.nome }}{{/quotistasSignatarios}}.',
     '',
     'O ACORDO alcança as SOCIEDADES RELACIONADAS:',
-    '{{#sociedadesRelacionadas sep="; " fim=" e "}}{{ sociedadeRelacionada.razaoSocial }}',
-    '{{/sociedadesRelacionadas}}.',
     '',
     'Os QUOTISTAS dividem-se em:',
     '{{#ramosFamiliares sep="; e "}}({{ ramo.alinea }}) {{ ramo.rotulo }}, {{ ramo.definicao }}',
@@ -546,12 +543,12 @@ describe('GOV-03 · as listas do Acordo', () => {
     '{{/ordemDaPreferencia}}',
   ].join('\n');
 
-  it('as cinco seções são papéis conhecidos', () => {
+  it('as quatro seções são papéis conhecidos', () => {
     const deteccao = detectarBindingsDeConteudo(MODELO_LISTAS);
     expect(deteccao.secoesDesconhecidas, 'seção sem papel some do Word inteira').toEqual([]);
     expect(deteccao.listas.map((l) => l.nome).sort()).toEqual([
       'ordemDaPreferencia', 'quorunsDoAcordo', 'quotistasSignatarios',
-      'ramosFamiliares', 'sociedadesRelacionadas',
+      'ramosFamiliares',
     ]);
   });
 
@@ -560,7 +557,6 @@ describe('GOV-03 · as listas do Acordo', () => {
     // resolve '' e a alínea sai truncada. Quem confere é esta asserção.
     const porItem: Record<string, string> = {
       quotista: 'quotistasSignatarios',
-      sociedadeRelacionada: 'sociedadesRelacionadas',
       ramo: 'ramosFamiliares',
       quorum: 'quorunsDoAcordo',
       preferente: 'ordemDaPreferencia',
@@ -574,7 +570,7 @@ describe('GOV-03 · as listas do Acordo', () => {
      * `{{ quorum.vigenciaAnos }}`, que resolve '' e trunca a alínea. Para elas,
      * só vale o que está em `camposExtras`.
      */
-    const herdaDaEntidade = ['quotistasSignatarios', 'sociedadesRelacionadas'];
+    const herdaDaEntidade = ['quotistasSignatarios'];
     const faltando: string[] = [];
     for (const [item, lista] of Object.entries(porItem)) {
       const papel = PAPEIS_LISTA[lista];
@@ -591,12 +587,12 @@ describe('GOV-03 · as listas do Acordo', () => {
     expect(faltando).toEqual([]);
   });
 
-  it('as cinco saem do cadastro do acordo, e não de escolha na tela', () => {
+  it('as quatro saem do cadastro do acordo, e não de escolha na tela', () => {
     // Enquanto fossem `selecao`, a tela Gerar pediria para escolher de novo o
     // que o cadastro já tem. Conferido em 15/09: nenhum bloco do sandbox usava
     // as duas que existiam antes, então a troca não reescreve documento nenhum.
     for (const nome of [
-      'quotistasSignatarios', 'sociedadesRelacionadas', 'ramosFamiliares',
+      'quotistasSignatarios', 'ramosFamiliares',
       'quorunsDoAcordo', 'ordemDaPreferencia',
     ]) {
       expect(PAPEIS_LISTA[nome].fonte, `${nome} saindo da fonte errada`).toBe('acordo_quotistas');
