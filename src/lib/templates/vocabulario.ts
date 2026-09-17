@@ -1771,7 +1771,6 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
        */
       { id: 'opcaoCompraPrevista', label: 'Tem opção de compra? (condicional)', tipo: 'texto' },
       { id: 'opcaoCompraQuem', label: 'Quem detém a opção de compra', tipo: 'texto' },
-      { id: 'opcaoCompraPreco', label: 'Preço na opção de compra', tipo: 'texto' },
       { id: 'opcaoVendaPrevista', label: 'Tem opção de venda? (condicional)', tipo: 'texto' },
       { id: 'jurosValorSubscrito', label: 'Juros sobre o valor subscrito', tipo: 'texto' },
 

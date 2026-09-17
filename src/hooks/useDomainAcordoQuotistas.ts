@@ -95,7 +95,6 @@ export interface VersaoDoAcordo {
   id: string;
   versao: number;
   assinado_em: string | null;
-  data_referencia: string | null;
   created_at: string;
   created_by: string | null;
 }
@@ -183,7 +182,7 @@ export function useVersoesDoAcordo(clienteId?: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('acordo_quotistas')
-        .select('id, versao, assinado_em, data_referencia, created_at, created_by')
+        .select('id, versao, assinado_em, created_at, created_by')
         .eq('cliente_id', clienteId as string)
         .eq('excluido', false)
         .order('versao', { ascending: false });
@@ -286,7 +285,6 @@ export function useAcordoMutations(clienteId?: string | null) {
         .from('acordo_quotistas')
         .insert({
           cliente_id: clienteId,
-          data_referencia: new Date().toISOString().slice(0, 10),
           versao: 1,
           mecanismos: mecanismosPadrao(),
           ...carimbo(),
@@ -567,7 +565,6 @@ export function useAcordoMutations(clienteId?: string | null) {
         .from('acordo_quotistas')
         .insert({
           cliente_id: clienteId,
-          data_referencia: new Date().toISOString().slice(0, 10),
           versao: args.versaoAtual + 1,
           mecanismos: mecanismosPadrao(),
           ...carimbo(),

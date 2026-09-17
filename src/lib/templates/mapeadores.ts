@@ -860,7 +860,6 @@ export interface AcordoParaMapear {
   // Opções de compra e venda
   opcaoCompraPrevista?: boolean;
   opcaoCompraQuem?: string | null;
-  opcaoCompraPreco?: string | null;
   opcaoVendaPrevista?: boolean;
   jurosValorSubscrito?: string | null;
 
@@ -948,7 +947,6 @@ export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
 
   condicional('opcaoCompraPrevista', entrada.opcaoCompraPrevista);
   set('opcaoCompraQuem', entrada.opcaoCompraQuem);
-  set('opcaoCompraPreco', entrada.opcaoCompraPreco);
   condicional('opcaoVendaPrevista', entrada.opcaoVendaPrevista);
   set('jurosValorSubscrito', entrada.jurosValorSubscrito);
 

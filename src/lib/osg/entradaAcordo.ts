@@ -91,7 +91,6 @@ export function entradaDoAcordo(
       naoConcorrenciaAlcancaParentes: acordo.nao_concorrencia_alcanca_parentes,
       opcaoCompraPrevista: acordo.opcao_compra_prevista,
       opcaoCompraQuem: acordo.opcao_compra_quem,
-      opcaoCompraPreco: acordo.opcao_compra_preco,
       opcaoVendaPrevista: acordo.opcao_venda_prevista,
       jurosValorSubscrito: acordo.juros_valor_subscrito,
       solucaoLitigios: acordo.solucao_litigios,
