@@ -69,7 +69,7 @@ import {
   type EsforcoTarefa,
 } from '@/lib/projetosTarefasEsforco';
 import type { ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
-import { ButtonTooltip } from '@/components/ui/button-tooltip';
+import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface ProjetosTarefasListProps {
   area: AreaKey;
@@ -289,8 +289,12 @@ function ContadorTarefas({ total, concluidas }: { total: number; concluidas: num
   if (total === 0) return null;
   const abertas = total - concluidas;
   return <span className="flex shrink-0 items-center gap-1">
-    {abertas > 0 && <span title={`${abertas} em aberto`} className="rounded bg-status-neutro-soft px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-status-neutro">{abertas}</span>}
-    {concluidas > 0 && <span title={`${concluidas} concluída(s)`} className="rounded bg-status-feito-soft px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-status-feito">{concluidas}</span>}
+    {abertas > 0 && <ElementTooltip text={`${abertas} em aberto`}>
+      <span className="rounded bg-status-neutro-soft px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-status-neutro">{abertas}</span>
+    </ElementTooltip>}
+    {concluidas > 0 && <ElementTooltip text={`${concluidas} concluída(s)`}>
+      <span className="rounded bg-status-feito-soft px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-status-feito">{concluidas}</span>
+    </ElementTooltip>}
   </span>;
 }
 
@@ -332,13 +336,17 @@ function completionPercentage(completed: number, total: number) {
 function EsforcoCell({ esforco, className }: { esforco: EsforcoTarefa; className?: string }) {
   if (esforco.estado === 'sem_apontamento') {
     return <div className={cn('flex items-center px-3', className)}>
-      <span title={esforco.descricao} className="inline-flex items-center gap-1 rounded bg-status-alerta-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-status-alerta">
+      <ElementTooltip text={esforco.descricao}>
+        <span className="inline-flex items-center gap-1 rounded bg-status-alerta-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-status-alerta">
         <AlertTriangle className="h-3 w-3 shrink-0" />{esforco.label}
       </span>
+      </ElementTooltip>
     </div>;
   }
   return <div className={cn('flex items-center px-3 text-xs', esforco.estado === 'apontado' ? 'text-foreground' : 'text-muted-foreground', className)}>
-    <span title={esforco.descricao} className="truncate">{esforco.label}</span>
+    <ElementTooltip text={esforco.descricao}>
+      <span className="truncate">{esforco.label}</span>
+    </ElementTooltip>
   </div>;
 }
 
@@ -571,14 +579,18 @@ export function ProjetosTarefasList({
           {podeEditar && candidatos.length > 0
             ? <Select value={task.assigned_to ?? SEM_RESPONSAVEL} onValueChange={value => updateResponsavel(task, value, candidatos)}>
                 <SelectTrigger aria-label={`Responsável por ${task.title}`} className="h-6 max-md:[&>svg]:hidden border-0 bg-transparent px-1 text-xs shadow-none focus:ring-0">
-                  <span title={task.assigned_to_name || 'Não atribuído'} className={cn('truncate', !task.assigned_to && 'text-muted-foreground')}>{task.assigned_to_name || 'Não atribuído'}</span>
+                  <ElementTooltip text={task.assigned_to_name || 'Não atribuído'}>
+                    <span className={cn('truncate', !task.assigned_to && 'text-muted-foreground')}>{task.assigned_to_name || 'Não atribuído'}</span>
+                  </ElementTooltip>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={SEM_RESPONSAVEL}>Não atribuído</SelectItem>
                   {candidatos.map(member => <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-            : <span title={task.assigned_to_name || 'Não atribuído'} className="truncate text-xs text-muted-foreground">{task.assigned_to_name || 'Não atribuído'}</span>}
+            : <ElementTooltip text={task.assigned_to_name || 'Não atribuído'}>
+              <span className="truncate text-xs text-muted-foreground">{task.assigned_to_name || 'Não atribuído'}</span>
+            </ElementTooltip>}
         </div>
         <div className={cn('flex items-center px-3 py-1.5 text-xs', atrasada ? 'font-medium text-destructive' : 'text-muted-foreground')}>
           {podeEditar
@@ -708,7 +720,9 @@ export function ProjetosTarefasList({
     <div className={cn(GRID, 'max-md:hidden border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground')}>
       <div className="px-4 py-2.5">Nome</div><div className="px-3 py-2.5">Status</div><div className="px-3 py-2.5">Responsável</div>
       <button type="button" onClick={() => cycleSort('prazo')} className={cn('flex items-center gap-1 px-3 py-2.5 uppercase tracking-wider transition-colors hover:text-foreground', sort.column === 'prazo' ? 'text-foreground' : '')}>Prazo{sortIcon('prazo')}</button>
-      <div className="px-3 py-2.5" title="Horas realizadas/estimadas. Alerta nas tarefas concluídas sem horas apontadas.">Esforço</div>
+      <ElementTooltip text="Horas realizadas/estimadas. Alerta nas tarefas concluídas sem horas apontadas.">
+        <div className="px-3 py-2.5">Esforço</div>
+      </ElementTooltip>
       <button type="button" onClick={() => cycleSort('progresso')} className={cn('flex items-center justify-end gap-1 px-3 py-2.5 uppercase tracking-wider transition-colors hover:text-foreground', sort.column === 'progresso' ? 'text-foreground' : '')}>Progresso{sortIcon('progresso')}</button>
       <div />
     </div>
@@ -736,7 +750,11 @@ export function ProjetosTarefasList({
           <div className={cn(CELULA_NOME, 'flex min-w-0 items-center gap-3 px-3 py-3')}>
             <button type="button" onClick={() => toggle(groupId)} className="rounded p-1 text-muted-foreground hover:bg-primary/10" aria-label={isExpanded ? 'Recolher OS' : 'Expandir OS'}>{isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
             <div className="h-5 w-1 rounded-full bg-primary" />
-            <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span title={tituloDaOs(group)} className="line-clamp-2 break-words font-semibold">{tituloDaOs(group)}</span><Badge variant="outline" className="shrink-0 font-normal">{group.projects.length} {group.projects.length === 1 ? 'projeto' : 'projetos'}</Badge></div><p title={group.os?.cliente_nome} className="truncate text-xs text-muted-foreground">{group.os ? group.os.cliente_nome : group.hasLinkedOs ? 'Carregando dados da ordem de serviço vinculada' : 'Projetos e tarefas agrupados sem ordem de serviço'}</p></div>
+            <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><ElementTooltip text={tituloDaOs(group)}>
+              <span className="line-clamp-2 break-words font-semibold">{tituloDaOs(group)}</span>
+            </ElementTooltip><Badge variant="outline" className="shrink-0 font-normal">{group.projects.length} {group.projects.length === 1 ? 'projeto' : 'projetos'}</Badge></div><ElementTooltip text={group.os?.cliente_nome}>
+              <p className="truncate text-xs text-muted-foreground">{group.os ? group.os.cliente_nome : group.hasLinkedOs ? 'Carregando dados da ordem de serviço vinculada' : 'Projetos e tarefas agrupados sem ordem de serviço'}</p>
+            </ElementTooltip></div>
           </div>
           <div />
           <div />

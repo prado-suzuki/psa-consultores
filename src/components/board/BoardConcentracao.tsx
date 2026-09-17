@@ -2,6 +2,7 @@ import React from 'react';
 import { BoardChip } from './BoardChip';
 import { BoardCard, BoardCardEmpty } from './ui/BoardCard';
 import { LIMITE_SHARE_TOP1, LIMITE_SHARE_TOP5, type Concentracao } from '@/lib/boardEstrategico';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface BoardConcentracaoProps {
   concentracao: Concentracao;
@@ -101,15 +102,16 @@ export const BoardConcentracao: React.FC<BoardConcentracaoProps> = ({
               data-clickable={onClienteClick ? 'true' : undefined}
             >
               <span className="v4-srk">{i + 1}</span>
-              <div
+              <ElementTooltip text={c.nome}>
+                <div
                 style={{
                   flex: 1, minWidth: 0, fontWeight: 500, color: 'var(--bd-ink)',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}
-                title={c.nome}
               >
                 {c.nome}
               </div>
+              </ElementTooltip>
               <span style={{ fontSize: 11.5, color: 'var(--bd-ink3)', minWidth: 68, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                 {brl(c.receita)}
               </span>
@@ -118,12 +120,13 @@ export const BoardConcentracao: React.FC<BoardConcentracaoProps> = ({
                   <div className="v4-pbf v4-pi" style={{ width: `${Math.min(100, c.share * 100)}%` }} />
                 </div>
               </div>
-              <span
+              <ElementTooltip text={`${(c.share * 100).toFixed(1)}% sozinho · ${(c.acumulado * 100).toFixed(1)}% acumulado até aqui`}>
+                <span
                 style={{ fontSize: 11.5, fontWeight: 700, minWidth: 40, textAlign: 'right', color: 'var(--bd-ink2)', fontVariantNumeric: 'tabular-nums' }}
-                title={`${(c.share * 100).toFixed(1)}% sozinho · ${(c.acumulado * 100).toFixed(1)}% acumulado até aqui`}
               >
                 {(c.acumulado * 100).toFixed(0)}%
               </span>
+              </ElementTooltip>
             </div>
           ))}
 

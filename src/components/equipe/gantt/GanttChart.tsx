@@ -16,7 +16,7 @@ import { GanttBarraDeNavegacao } from './GanttBarraDeNavegacao';
 import { GanttCabecalhoDoEixo } from './GanttCabecalhoDoEixo';
 import { GanttFaixaDoTempo } from './GanttFaixaDoTempo';
 import type { GanttGrupo, GanttItem, GanttPapel } from './tiposDeGantt';
-import { ButtonTooltip } from '@/components/ui/button-tooltip';
+import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * O Gantt do sistema. Uma implementação só, alimentada por telas diferentes
@@ -155,10 +155,10 @@ export function GanttChart({
                         type="button"
                         onClick={() => alternarGrupo(grupo.id)}
                         aria-expanded={aberto}
-                        // `title` porque a coluna trunca, e a 132px ela trunca
+                        // Tem dica porque a coluna trunca, e a 132px ela trunca
                         // MAIS. Mesma lição da Lista: texto cortado sem tooltip
-                        // é texto perdido, e em toque não há hover para
-                        // recuperá-lo — ao menos no desktop o mouse resolve.
+                        // é texto perdido. Era `title` até 17/09/2026, quando
+                        // virou `ButtonTooltip` — o nativo não abre no toque.
                         className="sticky left-0 z-10 flex flex-shrink-0 items-center gap-2 border-r border-border bg-muted/20 px-4 py-3 text-left"
                         style={{ width: larguraDoNome }}
                       >
@@ -180,11 +180,12 @@ export function GanttChart({
 
                       <GanttFaixaDoTempo eixo={eixo} agora={linhaDeAgora} altura="h-14">
                         {!aberto && geoDoGrupo?.fora === null && (
-                          <div
-                            className="absolute top-5 h-4 rounded-full border border-primary/50 bg-primary/30"
-                            style={{ left: geoDoGrupo.esquerda, width: geoDoGrupo.largura }}
-                            title={`${format(consolidado!.inicio, 'dd/MM')} – ${format(consolidado!.fim, 'dd/MM')}`}
-                          />
+                          <ElementTooltip text={`${format(consolidado!.inicio, 'dd/MM')} – ${format(consolidado!.fim, 'dd/MM')}`}>
+                            <div
+                              className="absolute top-5 h-4 rounded-full border border-primary/50 bg-primary/30"
+                              style={{ left: geoDoGrupo.esquerda, width: geoDoGrupo.largura }}
+                            />
+                          </ElementTooltip>
                         )}
                       </GanttFaixaDoTempo>
                     </div>

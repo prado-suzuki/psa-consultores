@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 export interface HeatmapRow {
   /** Label exibido no eixo Y (ex: nome ou iniciais do membro) */
@@ -82,11 +83,12 @@ export function WorkloadHeatmap({
                   const lvl = intensity(cell);
                   return (
                     <td key={cIdx}>
-                      <div
-                        className="h-5 w-5 rounded-[3px] transition-transform hover:scale-110 cursor-default"
-                        style={{ background: tomDaArea(lvl) }}
-                        title={`${row.label} · ${columnLabels[cIdx]}: ${cell.toFixed(1)}h`}
-                      />
+                      <ElementTooltip text={`${row.label} · ${columnLabels[cIdx]}: ${cell.toFixed(1)}h`}>
+                        <div
+                          className="h-5 w-5 rounded-[3px] transition-transform hover:scale-110 cursor-default"
+                          style={{ background: tomDaArea(lvl) }}
+                        />
+                      </ElementTooltip>
                     </td>
                   );
                 })}

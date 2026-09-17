@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, Sele
 import { Switch } from '@/components/ui/switch';
 import { useProjetosCadastro } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContext';
 import { SEM_EXECUTOR_FIXO_OPTION } from '@/lib/projetoEquipe';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface ProjetoEquipeFieldsProps {
   /**
@@ -31,16 +32,17 @@ interface ProjetoEquipeFieldsProps {
  */
 export function MultidisciplinarToggle() {
   const { formData, setFormData } = useProjetosCadastro();
-  return <label
+  return <ElementTooltip text="Permite selecionar membros de qualquer equipe, agrupados por área.">
+    <label
     className="flex cursor-pointer items-center gap-2 text-xs font-normal normal-case tracking-normal text-muted-foreground"
-    title="Permite selecionar membros de qualquer equipe, agrupados por área."
   >
     Multidisciplinar
     <Switch
       checked={formData.is_multidisciplinar}
       onCheckedChange={checked => setFormData(previous => ({ ...previous, is_multidisciplinar: checked }))}
     />
-  </label>;
+  </label>
+  </ElementTooltip>;
 }
 
 /**

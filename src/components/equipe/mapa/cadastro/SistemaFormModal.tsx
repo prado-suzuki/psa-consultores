@@ -24,6 +24,7 @@ import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { ORIGEM_OPCOES } from '@/components/equipe/mapa/cadastros/sistemaOpcoes';
 import { clusterInicial } from '@/utils/etapaEditor';
 import ConfirmarDescarte from '@/components/equipe/mapa/ConfirmarDescarte';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface Props {
   aberto: boolean;
@@ -200,7 +201,8 @@ export default function SistemaFormModal({ aberto, sistema, clusterIdInicial, on
               {CLUSTERS_DISPONIVEIS.map(c => {
                 const r = clustersRateio[c] ?? 0;
                 return (
-                  <div key={c} className="cadastro-rateio-row" title={`Rateio do custo para ${c}: ${r}%`}>
+                  <ElementTooltip key={c} text={`Rateio do custo para ${c}: ${r}%`}>
+                    <div className="cadastro-rateio-row">
                     <span className="cadastro-rateio-nome">{c}</span>
                     <input
                       type="range" min={0} max={100} step={5} value={r}
@@ -216,6 +218,7 @@ export default function SistemaFormModal({ aberto, sistema, clusterIdInicial, on
                     />
                     <span className="cadastro-rateio-val">{r}%</span>
                   </div>
+                  </ElementTooltip>
                 );
               })}
             </div>

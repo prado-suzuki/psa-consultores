@@ -13,6 +13,7 @@ import {
   quantidadeDeFiltros,
   situacaoLabel,
   type LinhaFaturamentoOs,
+  type RawLogCriacaoOs,
   type RawOsFaturamento,
 } from './admFinFaturamentoOs';
 
@@ -190,6 +191,73 @@ describe('serviço, produtos, observação e contato', () => {
     expect(linha.data_emissao).toBe('2026-03-12');
     expect(linha.data_inicio).toBeNull();
     expect(linha.data_fim).toBe('2026-12-31');
+  });
+});
+
+describe('criado_por', () => {
+  const PERFIS = [
+    { id: 'usr-1', first_name: 'Maritsa', last_name: 'Padilha' },
+    { id: 'usr-2', first_name: 'Layara', last_name: 'Maranguelli' },
+  ];
+  const log = (l: Partial<RawLogCriacaoOs> = {}): RawLogCriacaoOs => ({
+    entity_id: 'cli-1',
+    entity_name: '092/2026',
+    performed_by: 'usr-1',
+    performed_at: '2026-09-01T10:00:02Z',
+    ...l,
+  });
+
+  it('casa o log pelo par cliente + número da OS, não pelo id da OS', () => {
+    // O log de criação guarda o id do CLIENTE em `entity_id` — é o defeito
+    // conhecido de `useSaveClientTransaction`, e é o que esta função contorna.
+    const [linha] = montar([os({ id: 'os-1', numero_os: '092/2026' })], {
+      logsCriacao: [log()],
+      perfis: PERFIS,
+    });
+    expect(linha.criado_por).toBe('Maritsa Padilha');
+  });
+
+  it('log de outro cliente com o mesmo número não vaza para esta OS', () => {
+    const [linha] = montar([os({ id: 'os-1', numero_os: '092/2026' })], {
+      logsCriacao: [log({ entity_id: 'cli-2', performed_by: 'usr-2' })],
+      perfis: PERFIS,
+    });
+    expect(linha.criado_por).toBeNull();
+  });
+
+  it('OS sem número encontra o log pelo rótulo "(sem número)"', () => {
+    const [linha] = montar([os({ id: 'os-1', numero_os: null })], {
+      logsCriacao: [log({ entity_name: '(sem número)', performed_by: 'usr-2' })],
+      perfis: PERFIS,
+    });
+    expect(linha.criado_por).toBe('Layara Maranguelli');
+  });
+
+  it('com dois logs para o mesmo par, o mais antigo é o criador', () => {
+    const [linha] = montar([os({ id: 'os-1', numero_os: '092/2026' })], {
+      logsCriacao: [
+        log({ performed_by: 'usr-2', performed_at: '2026-09-05T08:00:00Z' }),
+        log({ performed_by: 'usr-1', performed_at: '2026-09-01T10:00:02Z' }),
+      ],
+      perfis: PERFIS,
+    });
+    expect(linha.criado_por).toBe('Maritsa Padilha');
+  });
+
+  it('OS anterior à trilha de auditoria fica sem criador, e não com um chute', () => {
+    const [linha] = montar([os({ id: 'os-1', numero_os: '001/2026' })], {
+      logsCriacao: [log()],
+      perfis: PERFIS,
+    });
+    expect(linha.criado_por).toBeNull();
+  });
+
+  it('autor sem perfil legível some em vez de virar UUID na tela', () => {
+    const [linha] = montar([os({ id: 'os-1', numero_os: '092/2026' })], {
+      logsCriacao: [log({ performed_by: 'usr-fantasma' })],
+      perfis: PERFIS,
+    });
+    expect(linha.criado_por).toBeNull();
   });
 });
 

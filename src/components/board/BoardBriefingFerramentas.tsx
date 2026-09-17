@@ -10,6 +10,7 @@ import { BoardAbas } from '@/components/board/BoardAbas';
 import type { MelhoriaRoi } from '@/lib/boardExecutivo';
 import { somaHorasSalvas, fteDeHoras } from '@/lib/boardDiretoria';
 import { catalogoFerramentas, ftePorArea } from '@/lib/boardFerramentasLeitura';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 const brl = (v: number) =>
   v >= 1_000_000
@@ -20,7 +21,9 @@ const qtde = (v: number | null, casas = 1) =>
   v == null ? '—' : v.toLocaleString('pt-BR', { maximumFractionDigits: casas });
 
 const Dash = ({ children }: { children?: ReactNode }) => (
-  <span className="bd-dash" title={typeof children === 'string' ? children : undefined}>—</span>
+  <ElementTooltip text={typeof children === 'string' ? children : undefined}>
+    <span className="bd-dash">—</span>
+  </ElementTooltip>
 );
 
 type Aba = 'implementadas' | 'area';

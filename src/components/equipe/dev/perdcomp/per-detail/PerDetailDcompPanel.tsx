@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/table';
 import type { PerdcompDetailDcomp } from '@/lib/perdcompDetail';
 import { cn } from '@/lib/utils';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 export interface PerDetailDcompRow {
   dcomp: PerdcompDetailDcomp;
@@ -180,12 +181,13 @@ export function PerDetailDcompPanel({
                       <TableCell>{formatDate(dcomp.dt_envio)}</TableCell>
                       <TableCell>
                         {tooltipTodos ? (
-                          <span
+                          <ElementTooltip text={tooltipTodos}>
+                            <span
                             className="cursor-help border-b border-dashed border-muted-foreground/50"
-                            title={tooltipTodos}
                           >
                             {tributoExibido}
                           </span>
+                          </ElementTooltip>
                         ) : (
                           tributoExibido
                         )}

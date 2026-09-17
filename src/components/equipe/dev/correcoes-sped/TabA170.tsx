@@ -26,6 +26,7 @@ import { renderColumnLabel } from '@/components/equipe/dev/pis-cofins/renderColu
 import { SPED_TOOLTIPS } from '@/components/equipe/dev/correcoes-sped/tooltipConstants';
 import type { A170Item, A170Snapshot, CampoAlteradoEfd } from '@/types/correcoesSped';
 import { BOTAO_CONFIRMA_COM_DISABLED } from './classesDeBotao';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 const A170_FILTERABLE_KEYS: { key: string; label: string }[] = [
   { key: 'NOME_0150', label: 'Prestador' },
@@ -475,12 +476,14 @@ export default function TabA170({
 
       if (field === 'DESCR_COMPL') {
         return (
-          <div className="space-y-0.5" title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
+          <ElementTooltip text={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
+            <div className="space-y-0.5">
             <div className={`text-xs truncate ${isChanged ?'text-status-alerta font-bold':''}`}>{item.DESCR_COMPL || item.DESCR_ITEM_0200 ||'—'}</div>
             {item.DESCR_ITEM_0200 && item.DESCR_ITEM_0200 !== item.DESCR_COMPL && (
               <div className="text-[10px] text-muted-foreground truncate">0200: {item.DESCR_ITEM_0200}</div>
             )}
           </div>
+          </ElementTooltip>
         );
       }
 

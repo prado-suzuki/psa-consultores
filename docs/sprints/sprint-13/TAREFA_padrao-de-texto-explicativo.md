@@ -322,6 +322,49 @@ divergir — foi assim com a palavra de status, com o cartão tingido e com o br
 três casos quem segurou foi o teste, não o texto. Mas ela vem **depois** do padrão: catraca
 escrita antes trava o estado de hoje.
 
+## Fase 3 — a conversão da dívida · 🟡 falta o placeholder
+
+Ela aprovou as sete conversões em 17/09, diante de
+[`geral/comparacoes-de-texto/as-conversoes.html`](../../geral/comparacoes-de-texto/as-conversoes.html)
+— a página montou cada caso no contexto e nos dois estados, com o `title` nativo de verdade nos
+casos 1, 2 e 6, porque a diferença de mecanismo só aparece interagindo.
+
+| Lote | O quê | Commit | Dívida de `title` |
+|---|---|---|---|
+| 1 | Os sete casos pontuais (nota de leitura, tooltip do óbvio, duas ideias, erro no `title`, vocabulário, tamanho) | `d1980d59` | 215 |
+| 2 | **126 botões de ícone** → `ButtonTooltip` (`aria-label` + balão) | `147bfa1d` | 89 |
+| 3 | **85 spans e divs** → `ElementTooltip` | `4488f524` | 8 |
+| 4 | Os **8** que o script não deu conta, à mão | `9809b16b` | **0** |
+
+**A dívida do `title` fechou.** Sobram os 8 `<iframe>`, que o padrão mantém, e a catraca passou
+a congelar **zero**: daqui para frente `title=` em tag nativa é regressão, não dívida.
+
+### O que falta, e é o maior
+
+**Os 226 placeholders fora das formas canônicas.** É o único lote que **não se automatiza**: cada
+caso decide entre `Selecione…`, `Buscar…` e `Ex: …`, e alguns não são placeholder nenhum — viram
+texto de apoio (a restrição que vale toda vez) ou somem. A catraca já congela 226, então o
+progresso se mede sozinho.
+
+### Três coisas que a execução ensinou, e que não estavam no plano
+
+- **Balão vazio.** Vários `title` eram condicionais (`cond ? texto : undefined`). Sem texto o
+  `title` não aparecia; um `<Tooltip>` cru abriria um balão em branco no hover. As duas peças
+  devolvem o filho direto quando não há texto — está no `ui/button-tooltip.tsx`.
+- **Os "dinâmicos" não eram texto cortado.** Só 29 dos 89 tinham truncagem na própria classe; o
+  resto era explicação montada (`{tituloLacuna(l)}`), que é o degrau 4 e não o caso 2. Mesmo
+  mecanismo, motivo diferente.
+- **Três arquivos foram revertidos, não commitados quebrados.** O script gerou JSX inválido neles
+  (tag aninhada de mesmo nome), o typecheck acusou, voltaram ao original e saíram à mão no lote 4.
+
+### ⚠️ Um commit misturado, para resolver antes de seguir
+
+O commit `9809b16b` (lote 4) levou junto **três arquivos de outra frente** — `ListaDeOsFaturamento.tsx`,
+`useDomainFaturamentoOs.ts` e `admFinFaturamentoOs.ts` (95 linhas novas, Faturamento) —, porque a
+conversão usou `git add -A src` com trabalho de outra sessão no working tree. **Nada se perdeu**, e
+o conteúdo está lá; o que está errado é a mensagem. Separar em dois commits é decisão dela, e não
+foi feito por conta própria.
+
 ## O que fica de fora, e é decisão, não esquecimento
 
 Os três primeiros itens formam o **backlog técnico paralelo**: nascem do levantamento da etapa 1,

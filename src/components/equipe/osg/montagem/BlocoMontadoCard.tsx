@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import type { DocumentoBlocoComBloco } from '@/hooks/useModelosDocumento';
 import type { TipoBloco } from '@/lib/templates';
 import { PAPEIS_LISTA } from '@/lib/templates/binding';
-import { ButtonTooltip } from '@/components/ui/button-tooltip';
+import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
 
 /** Cor do chip de numeração conforme a hierarquia estrutural do bloco. */
 const CHIP_POR_TIPO: Record<Exclude<TipoBloco, 'livre'>, string> = {
@@ -103,12 +103,13 @@ export function BlocoMontadoCard({
               {bloco?.nome ?? '— bloco removido —'}
             </span>
             {bloco?.repete_colecao && (
-              <span
-                title={`Na geração, vira um parágrafo por item de: ${PAPEIS_LISTA[bloco.repete_colecao]?.label ?? bloco.repete_colecao}`}
+              <ElementTooltip text={`Na geração, vira um parágrafo por item de: ${PAPEIS_LISTA[bloco.repete_colecao]?.label ?? bloco.repete_colecao}`}>
+                <span
                 className="flex shrink-0 items-center gap-1 rounded-md bg-osg-moss/10 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-osg-moss"
               >
                 <Repeat2 className="h-3 w-3" /> {bloco.repete_colecao}
               </span>
+              </ElementTooltip>
             )}
             {carregados > 0 && (
               <span className="shrink-0 rounded-md bg-osg-moss/10 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-osg-moss">

@@ -47,6 +47,7 @@ import {
   NOTA_BASE_SAIDAS,
   NOTA_SEM_ANEXO,
 } from './notasMetodologicas.constants';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 const PALETA: Record<string, string> = {
   'Anexo I': '#0D9488',
@@ -420,12 +421,13 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p
+                          <ElementTooltip text={p.xProdExemplo}>
+                            <p
                             className="font-medium text-foreground line-clamp-1"
-                            title={p.xProdExemplo}
                           >
                             {p.xProdExemplo}
                           </p>
+                          </ElementTooltip>
                           <p className="text-xs text-muted-foreground">
                             {p.produtosDistintos === 1
                               ? '1 produto distinto'

@@ -7,6 +7,7 @@ import {
   type SegmentoProveniencia,
 } from '@/lib/templates/proveniencia';
 import type { OrigemValor, SegmentoRender } from '@/lib/templates/render';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 // Renderiza texto com as marcas inline do engine (*negrito*, _itálico_,
 // ~sublinhado~) como elementos React — usado nas prévias (Gerar Documento,
@@ -83,10 +84,10 @@ function pedacos(lista: Pedaco[], { onClickOrigem, origemClicavel }: ClickOrigem
     if (origem && onClickOrigem && (origemClicavel?.(origem) ?? true)) {
       const abrir = () => onClickOrigem(origem);
       no = (
-        <span
+        <ElementTooltip text="Abrir o cadastro deste dado">
+          <span
           role="button"
           tabIndex={0}
-          title="Abrir o cadastro deste dado"
           className="cursor-pointer rounded-sm transition-colors hover:bg-osg-moss/10 hover:underline hover:decoration-osg-moss/70 hover:decoration-dotted hover:underline-offset-4"
           onClick={(e) => {
             // O bloco em volta abre o popover "Editar bloco" no clique — o
@@ -104,6 +105,7 @@ function pedacos(lista: Pedaco[], { onClickOrigem, origemClicavel }: ClickOrigem
         >
           {no}
         </span>
+        </ElementTooltip>
       );
     }
     // Trecho alterado por um override: marca-texto terracota (diff por palavra).

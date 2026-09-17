@@ -96,20 +96,24 @@ function titlesEmTagNativa(): { porArquivo: Record<string, number>; ambiguas: nu
 }
 
 /**
- * A dívida do `title=`: **89 ocorrências em 56 arquivos**, nenhuma ambígua.
+ * A dívida do `title=`: **zero**. Fechada em 17/09/2026.
  *
  * Histórico do número, em 17/09/2026, porque ele conta duas coisas diferentes:
  *
  * - nasceu **"143"**, e estava errado — a medição não via `title` depois de arrow function
  *   (ver o parser, acima). O real era **217**;
- * - **215** depois do lote 1 da conversão (os dois `title` de erro do Board);
- * - **89** depois do lote 2, que converteu os **126 botões** para `ButtonTooltip`. O que
- *   resta é `span` 61, `div` 16, `p` 6 e mais 6 avulsos — nenhum deles botão.
+ * - **215** depois do lote 1 (os dois `title` de erro do Board);
+ * - **89** depois do lote 2, que converteu os **126 botões** para `ButtonTooltip`;
+ * - **8** depois do lote 3, que converteu os 81 restantes para `ElementTooltip`;
+ * - **0** depois do lote 4, os 8 que o script não deu conta (JSX com tag aninhada de mesmo
+ *   nome, `<input>` sem fechamento casado, e um arquivo escrito em linha única), feitos à
+ *   mão.
  *
- * Os 61 de `span` são o grupo do texto cortado em tabela, decidido por ela: converte. É o
- * próximo lote, e este número desce junto com ele, no mesmo commit.
+ * **A dívida fechou.** O que sobra são os 8 `<iframe>`, que o padrão mantém porque ali
+ * `title` é título de quadro, e a lista de tags acima não os inclui. Daqui para frente este
+ * teste não guarda dívida nenhuma: qualquer `title=` novo em tag nativa é regressão.
  */
-const TITLE_NATIVO_LEGADO = 89;
+const TITLE_NATIVO_LEGADO = 0;
 
 /**
  * Placeholder de escolha ou de busca fora das quatro formas canônicas (§3 do documento):
@@ -186,7 +190,7 @@ describe('o texto que explica a tela', () => {
     expect(
       quantos,
       'A dívida do `title=` mudou de tamanho.\n\n'
-        + `Congelado: ${TITLE_NATIVO_LEGADO} em 56 arquivos (mais ${ambiguas} ambígua).\n`
+        + `Congelado: ${TITLE_NATIVO_LEGADO} em 0 arquivos (mais ${ambiguas} ambígua).\n`
         + `Agora: ${quantos} em ${Object.keys(porArquivo).length}.\n\n`
         + 'SUBIU: `title=` não é mecanismo de explicação — o do navegador não aparece no\n'
         + 'toque, não tem tema e demora a abrir. Use `<Tooltip>` para explicar e\n'

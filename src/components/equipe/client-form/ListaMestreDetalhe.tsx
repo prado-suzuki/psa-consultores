@@ -22,6 +22,7 @@
 // dessa lógica que fez o mesmo defeito de navegação existir nas três.
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * `Id` é genérico com padrão `number` porque as abas de cliente identificam a
@@ -223,17 +224,19 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
                           {linha.titulo}
                         </span>
                         {linha.pendente ? (
-                          <span
-                            title="Campos obrigatórios em falta neste item"
-                            aria-label="Campos obrigatórios em falta neste item"
-                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-destructive"
-                          />
+                          <ElementTooltip text="Campos obrigatórios em falta neste item">
+                            <span
+                              aria-label="Campos obrigatórios em falta neste item"
+                              className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-destructive"
+                            />
+                          </ElementTooltip>
                         ) : linha.alterado ? (
-                          <span
-                            title="Alterações não salvas neste item"
-                            aria-label="Alterações não salvas neste item"
-                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-warning"
-                          />
+                          <ElementTooltip text="Alterações não salvas neste item">
+                            <span
+                              aria-label="Alterações não salvas neste item"
+                              className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-warning"
+                            />
+                          </ElementTooltip>
                         ) : null}
                       </div>
                       {linha.subtitulo && (

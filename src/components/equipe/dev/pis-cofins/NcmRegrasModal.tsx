@@ -13,6 +13,7 @@ import { useSetoresCliente } from '@/hooks/useSetorCliente';
 import { RegraFormSheet } from './RegraFormSheet';
 import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 type RegraNCMRow = Database['public']['Tables']['pis_cofins_regra']['Row'];
 type ModalMode = 'view' | 'edit' | 'create';
@@ -63,9 +64,11 @@ const RegraCard = ({
                 </Badge>
               )}
               {regra.base_legal && (
-                <span className="text-[11px] text-muted-foreground/70 truncate min-w-0 max-w-[250px] hidden sm:inline" title={regra.base_legal}>
+                <ElementTooltip text={regra.base_legal}>
+                  <span className="text-[11px] text-muted-foreground/70 truncate min-w-0 max-w-[250px] hidden sm:inline">
                   {regra.base_legal}
                 </span>
+                </ElementTooltip>
               )}
             </div>
             <ChevronDown

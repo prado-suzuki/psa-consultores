@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { fmtBRL, fmtBRLCompact, fmtInt, fmtPp } from "@/lib/ibs-cbs/formatters";
 import type { ApuracaoFiltros, FatoCliente, FatoUfProduto, NaturezaDestino } from "@/lib/ibs-cbs/types";
+import { ElementTooltip } from "@/components/ui/button-tooltip";
 
 const CORES_NATUREZA: Record<NaturezaDestino, string> = {
   interno: "#0D9488",
@@ -219,9 +220,11 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                       return (
                         <TableRow key={`${p.ncm}-${p.uf}`}>
                           <TableCell className="py-2">
-                            <p className="text-xs font-medium text-foreground line-clamp-1" title={p.xProd}>
+                            <ElementTooltip text={p.xProd}>
+                              <p className="text-xs font-medium text-foreground line-clamp-1">
                               {p.xProd}
                             </p>
+                            </ElementTooltip>
                             <p className="text-[10px] text-muted-foreground font-mono">NCM {p.ncm}</p>
                           </TableCell>
                           <TableCell>

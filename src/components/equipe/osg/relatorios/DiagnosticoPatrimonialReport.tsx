@@ -8,6 +8,7 @@ import {
   type CampoValidacaoDP, type DPBem, type DPMatricula, type DPTitular,
 } from '@/hooks/useRelatorioDP';
 import { GerarDeckButton } from '@/components/equipe/osg/relatorios/GerarApresentacao';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 // ---------- formatação ----------
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -164,7 +165,9 @@ function BlocoForaProjeto({
               {HEAD_FORA.map((h, i) => (
                 <th key={i} className={cn(th, (i === 4 || i === 5 || i === 6) && 'text-right')}>
                   {h}
-                  {i === 5 && <span title="Aguardando campo (migration)" className="ml-1 text-rose-500">•</span>}
+                  {i === 5 && <ElementTooltip text="Aguardando campo (migration)">
+                    <span className="ml-1 text-rose-500">•</span>
+                  </ElementTooltip>}
                   {i === 6 && <Pencil className="ml-1 inline h-3 w-3 text-amber-500" />}
                   {i === 7 && <Pencil className="ml-1 inline h-3 w-3 text-amber-500" />}
                 </th>

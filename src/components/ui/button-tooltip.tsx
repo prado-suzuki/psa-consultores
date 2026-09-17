@@ -30,6 +30,37 @@ export function ButtonTooltip({
   /** Um único elemento que aceite `ref` — o botão. */
   children: ReactElement;
 }) {
+  // Sem texto não há balão. O `title` vazio ou `undefined` simplesmente não
+  // aparecia; um `<Tooltip>` sem esta guarda abriria um balão em branco no hover,
+  // e vários textos convertidos são condicionais (`cond ? texto : undefined`).
+  if (text === null || text === undefined || text === "") return children;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side={side}>{text}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/**
+ * A mesma dica, para um elemento que **não é controle** — a célula que corta o texto, o
+ * selo, o número que precisa dizer de onde veio.
+ *
+ * Existe separado do `ButtonTooltip` porque o papel é outro, e a diferença é acessível:
+ * no botão de ícone o texto **é o nome** e precisa de `aria-label`; aqui o texto já está
+ * na tela (ou é explicação do que está), e um `aria-label` sobreporia o conteúdo que o
+ * leitor de tela já lê. Por isso este não põe `aria-label` nenhum.
+ */
+export function ElementTooltip({
+  text,
+  side = "top",
+  children,
+}: {
+  text: ReactNode;
+  side?: "top" | "right" | "bottom" | "left";
+  children: ReactElement;
+}) {
+  if (text === null || text === undefined || text === "") return children;
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>

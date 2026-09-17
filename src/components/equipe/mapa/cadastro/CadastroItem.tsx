@@ -8,7 +8,7 @@ import type { ReactNode } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { openOnActivationKey, shouldIgnoreOpenClick } from '@/utils/clickOpenGuard';
 import { IconTooltip } from '@/components/equipe/mapa/Tooltip';
-import { ButtonTooltip } from '@/components/ui/button-tooltip';
+import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
 
 export interface CadastroItemMeta {
   icone: ReactNode;
@@ -70,10 +70,12 @@ export default function CadastroItem({ titulo, descricao, badge, badges, leading
           {metasVisiveis.length > 0 && (
             <div className="cadastro-item-metas">
               {metasVisiveis.map((m) => (
-                <span key={m.hint} className="cadastro-item-meta" title={m.hint}>
+                <ElementTooltip key={m.hint} text={m.hint}>
+                  <span className="cadastro-item-meta">
                   {m.icone}
                   {m.valor}
                 </span>
+                </ElementTooltip>
               ))}
             </div>
           )}

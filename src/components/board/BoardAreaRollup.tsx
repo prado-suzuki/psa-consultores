@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BoardChip } from './BoardChip';
 import { BoardCard, BoardCardEmpty } from './ui/BoardCard';
 import type { ResumoAreaCadastro } from '@/lib/boardExecutivo';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 /** Sentinela do "sem recorte" no filtro interno de área. */
 const TODAS_AREAS = '__todas__';
@@ -105,17 +106,18 @@ export const BoardAreaRollup: React.FC<BoardAreaRollupProps> = ({
               )}
             </div>
           </div>
-          <span
+          <ElementTooltip text={a.pontualidade !== null
+              ? `${a.pontualidade}% das ${a.comPrazo ?? a.concluidas} entregas com prazo saíram no prazo`
+              : 'Sem entrega com prazo definido no período'}>
+            <span
             style={{
               fontSize: 11.5, fontWeight: 700, minWidth: 30, textAlign: 'right',
               color: a.pontualidade !== null ? corPontualidade(a.pontualidade) : 'var(--bd-ink3)',
             }}
-            title={a.pontualidade !== null
-              ? `${a.pontualidade}% das ${a.comPrazo ?? a.concluidas} entregas com prazo saíram no prazo`
-              : 'Sem entrega com prazo definido no período'}
           >
             {a.pontualidade !== null ? `${a.pontualidade}%` : '—'}
           </span>
+          </ElementTooltip>
 
           <div style={{ width: 110, display: 'flex', justifyContent: 'flex-end' }}>
             {a.projetos === 0 && a.concluidas === 0 ? (

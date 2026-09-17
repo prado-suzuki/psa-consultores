@@ -29,7 +29,7 @@ import { useRegrasNCM } from '@/hooks/useRegrasNCM';
 import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
 import CorrecoesActionButtons, { type CorrecoesActionsProps } from './CorrecoesActionButtons';
 import { BOTAO_CONFIRMA_COM_DISABLED } from './classesDeBotao';
-import { ButtonTooltip } from '@/components/ui/button-tooltip';
+import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
 
 type NcmFilter = 'all' | 'with' | 'without';
 
@@ -476,9 +476,11 @@ export default function TabC170({
 
       if (field === 'DESCR_COMPL') {
         return (
-          <span className={`text-xs truncate block ${isChanged ?'text-status-alerta font-bold':''}`} title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
+          <ElementTooltip text={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
+            <span className={`text-xs truncate block ${isChanged ?'text-status-alerta font-bold':''}`}>
             {item.DESCR_COMPL || item.DESCR_ITEM_0200 || '\u2014'}
           </span>
+          </ElementTooltip>
         );
       }
 

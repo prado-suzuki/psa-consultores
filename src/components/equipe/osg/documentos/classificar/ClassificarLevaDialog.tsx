@@ -19,7 +19,7 @@ import {
 import type { Alvo } from '@/lib/classificarFicha';
 import { cn } from '@/lib/utils';
 import type { DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
-import { ButtonTooltip } from '@/components/ui/button-tooltip';
+import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
 
 /** Valor do select quando o consultor não quer classificar aquele arquivo. */
 const SEM_TIPO = 'sem-tipo';
@@ -345,7 +345,9 @@ export function ClassificarLevaDialog({
                         disabled={salvando}
                         onCheckedChange={(estado) => marcarNaoAplicavel(item.solicitacaoItemId, item.id, estado === true)}
                       />
-                      <span className="min-w-0 flex-1 truncate" title={item.rotulo}>{item.rotulo}</span>
+                      <ElementTooltip text={item.rotulo}>
+                        <span className="min-w-0 flex-1 truncate">{item.rotulo}</span>
+                      </ElementTooltip>
                       <span className="shrink-0 text-[10.5px] text-muted-foreground">Não se aplica</span>
                     </label>
                   </li>

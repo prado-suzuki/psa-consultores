@@ -3,6 +3,7 @@ import { formatDecimal } from '@/utils/format';
 import { Icon, StatusGlyph, type RoiIconName } from '@/components/icons/RoiIcons';
 import { CAT_ICON } from '@/components/equipe/mapa/wizard-roi/constants';
 import { temDestino } from '@/components/equipe/mapa/wizard-roi/navigation';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 type StatusKey = 'ok' | 'warn' | 'crit' | 'zero';
 
@@ -69,16 +70,17 @@ export function CategoryCard({
         {cat.itens.slice(0, 3).map((item, index) => {
           const editavel = item.status !== 'ok' && !!onItemClick && temDestino(item);
           return (
-            <div
-              key={index}
+            <ElementTooltip key={index} text={editavel ? 'Clique para editar' : undefined}>
+              <div
+             
               className="roi-cat-row"
               style={editavel ? { cursor: 'pointer' } : undefined}
-              title={editavel ? 'Clique para editar' : undefined}
               onClick={editavel ? () => onItemClick(item) : undefined}
             >
               <StatusDot status={item.status} />
               <span>{item.campo}</span>
             </div>
+            </ElementTooltip>
           );
         })}
         {cat.itens.length > 3 && <div className="roi-cat-more">+{cat.itens.length - 3} itens — veja tabela consolidada abaixo</div>}
@@ -114,13 +116,15 @@ export function RoiDataMap({
             {todos.map((item, index) => {
               const editavel = item.status !== 'ok' && !!onItemClick && temDestino(item);
               return (
-                <tr key={index} style={editavel ? { cursor: 'pointer' } : undefined} title={editavel ? 'Clique para editar este campo' : undefined} onClick={editavel ? () => onItemClick(item) : undefined}>
+                <ElementTooltip key={index} text={editavel ? 'Clique para editar este campo' : undefined}>
+                  <tr style={editavel ? { cursor: 'pointer' } : undefined} onClick={editavel ? () => onItemClick(item) : undefined}>
                   <td className="col-indicator">{item.campo}</td>
                   <td>{item.formula ? <FormulaChip formula={item.formula} /> : <span style={{ color: 'hsl(var(--slate-400))' }}>—</span>}</td>
                   <td><FieldChips campos={item.camposFonte} /></td>
                   <td className="col-value">{item.valor != null && item.valor !== '' ? (typeof item.valor === 'number' ? formatDecimal(item.valor) : item.valor) : <span style={{ color: 'hsl(var(--slate-400))' }}>—</span>}</td>
                   <td className="col-status"><StatusBadge status={item.status} /></td>
                 </tr>
+                </ElementTooltip>
               );
             })}
           </tbody>
