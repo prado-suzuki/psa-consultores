@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import {
   type BeneficiarioDoProtocolo,
+  type SecaoDaGrade,
   type CelulaEditada,
   type LinhaComItem,
   type RegraDoProtocolo,
@@ -457,7 +458,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
    * Protocolo versão 1", que diz o que aconteceu.
    */
   const registrarGeracao = useMutation({
-    mutationFn: async (args: { protocoloId: string; versao: number; celulas: string[][] }) => {
+    mutationFn: async (args: { protocoloId: string; versao: number; grade: SecaoDaGrade[] }) => {
       const { data, error } = await supabase
         .from('documento_gerado')
         .insert({
@@ -466,7 +467,9 @@ export function useProtocoloMutations(clienteId?: string | null) {
           gerado_em: new Date().toISOString(),
           gerado_por_id: user?.id ?? null,
           observacao: `Protocolo de Remuneração, versão ${args.versao}`,
-          snapshot_dados: { protocolo_id: args.protocoloId, celulas: args.celulas },
+          snapshot_dados: JSON.parse(
+            JSON.stringify({ protocolo_id: args.protocoloId, grade: args.grade }),
+          ),
           created_by: user?.id ?? null,
           updated_by: user?.id ?? null,
         })

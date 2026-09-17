@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import * as XLSX from 'xlsx';
+import JSZip from 'jszip';
+import { toast } from 'sonner';
 import {
   Columns3, CopyPlus, FileSpreadsheet, MousePointerClick, Plus, ScrollText, Sparkles,
 } from 'lucide-react';
@@ -28,7 +29,7 @@ import {
   useVersoesDoProtocolo,
 } from '@/hooks/useDomainProtocoloRemuneracao';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
-import { nomeDoArquivo, planilhaDoProtocolo } from '@/lib/protocoloPlanilha';
+import { nomeDoArquivo, planilhaXmlDoProtocolo } from '@/lib/protocoloPlanilhaXml';
 import {
   type LinhaDaGrade,
   diffDaLinha,
@@ -120,37 +121,62 @@ const ProtocoloDeRemuneracao = () => {
     );
 
   /**
-   * Escreve a planilha.
+   * Escreve a planilha DENTRO do modelo da casa.
    *
-   * O layout inteiro vem do `planilhaDoProtocolo`, que é função pura e tem
-   * teste; aqui fica só o que não dá para testar sem navegador: montar o livro e
-   * mandar baixar. É o mesmo par que o resto da casa usa (`aoa_to_sheet`,
-   * `book_new`, `book_append_sheet`, `writeFile`).
+   * Não monta um arquivo novo: abre o `.xlsx` do modelo, que é um zip, troca só
+   * a planilha de dentro e refecha. Assim `styles.xml`, fontes, cores, bordas,
+   * alturas de linha, congelamento de painel e configuração de impressão ficam
+   * intocados, e a saída é idêntica ao modelo por construção.
+   *
+   * A primeira versão montava o arquivo do zero com o `xlsx`, e saía cru: a
+   * versão community do SheetJS escreve valor, largura e mesclagem, mas não
+   * escreve estilo de célula. O arquivo saía com 1 fonte e 1 estilo contra as 6
+   * fontes e 18 estilos do modelo.
    */
-  const gerarPlanilha = () => {
+  const gerarPlanilha = async () => {
     if (!protocolo) return;
-    const { celulas, larguras, mesclagens } = planilhaDoProtocolo(
-      grade,
-      colunas,
-      protocolo.protocolo.preambulo,
-    );
-    const aba = XLSX.utils.aoa_to_sheet(celulas);
-    aba['!cols'] = larguras;
-    aba['!merges'] = mesclagens;
-    const livro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(livro, aba, 'Protocolo');
-    XLSX.writeFile(livro, nomeDoArquivo(protocolo.cliente, protocolo.protocolo.versao));
+    try {
+      const resposta = await fetch('/modelos/protocolo-remuneracao-modelo.xlsx');
+      if (!resposta.ok) throw new Error('não encontrei o modelo da casa');
 
-    /*
-      O registro vem DEPOIS do arquivo, e sem `await`: o download é o que a
-      pessoa pediu, e ele não pode esperar uma ida ao banco nem ser desfeito se
-      ela falhar. A mutação avisa sozinha se não conseguir registrar.
-    */
-    void registrarGeracao.mutateAsync({
-      protocoloId: protocolo.protocolo.id,
-      versao: protocolo.protocolo.versao,
-      celulas,
-    });
+      const zip = await JSZip.loadAsync(await resposta.arrayBuffer());
+      const planilha = zip.file('xl/worksheets/sheet1.xml');
+      if (!planilha) throw new Error('o modelo não tem a planilha esperada');
+
+      const { xml } = planilhaXmlDoProtocolo(
+        await planilha.async('string'),
+        grade,
+        colunas,
+        protocolo.protocolo.preambulo,
+      );
+      zip.file('xl/worksheets/sheet1.xml', xml);
+
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nomeDoArquivo(protocolo.cliente, protocolo.protocolo.versao);
+      link.click();
+      URL.revokeObjectURL(url);
+
+      /*
+        O registro vem DEPOIS do arquivo e sem esperar: o download é o que a
+        pessoa pediu, e não pode ser desfeito se o banco falhar. A mutação avisa
+        sozinha se não conseguir registrar.
+      */
+      void registrarGeracao.mutateAsync({
+        protocoloId: protocolo.protocolo.id,
+        versao: protocolo.protocolo.versao,
+        /* O snapshot guarda a grade que produziu o arquivo, e e ela que permite
+           refazer a planilha identica depois. O arquivo em si nao e guardado,
+           como nenhum documento deste sistema e. */
+        grade,
+      });
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? `Não consegui gerar a planilha: ${e.message}` : 'Não consegui gerar a planilha',
+      );
+    }
   };
 
   const vazio = (icone: React.ReactNode, texto: React.ReactNode) => (
@@ -223,7 +249,7 @@ const ProtocoloDeRemuneracao = () => {
               Gerar fica por último e é o único preenchido: é o fim do trabalho
               desta tela, e as outras três ações servem para chegar até ele.
             */}
-            <Button size="sm" onClick={gerarPlanilha}>
+            <Button size="sm" onClick={() => void gerarPlanilha()}>
               <FileSpreadsheet className="mr-2 h-4 w-4" /> Gerar planilha
             </Button>
           </div>
