@@ -80,10 +80,10 @@ describe('o que do modelo NÃO se toca', () => {
   it('troca só o sheetData, as mesclagens e a dimensão', () => {
     const xml = gerar();
 
-    /* 3 de cabeçalho + item, vão, item, e o item do segundo tema = 7 linhas, e
-       a última coluna é J porque são dois beneficiários. */
+    /* 3 de cabeçalho + item, vão, item, vão entre temas, e o item do segundo
+       tema = 8 linhas. A última coluna é J porque são dois beneficiários. */
     expect(xml).not.toContain('A1:L106');
-    expect(xml).toContain('<dimension ref="A1:J7"/>');
+    expect(xml).toContain('<dimension ref="A1:J8"/>');
   });
 });
 
@@ -135,7 +135,29 @@ describe('a grade', () => {
 
     expect(xml).toContain('<row r="6"'); // Abastecimento, o segundo item
     expect(xml).toContain('<c r="E6" s="4" t="inlineStr"><is><t xml:space="preserve">Abastecimento');
-    expect(xml).toContain('<c r="C7" s="15" t="inlineStr"><is><t xml:space="preserve">Outros benefícios');
+  });
+
+  it('SEPARA UM TEMA DO SEGUINTE com uma linha inteiramente vazia', () => {
+    /*
+     * Foi o defeito que a consultoria viu no arquivo baixado: os temas saíam
+     * colados. No modelo existe uma linha entre um bloco e o outro, e ela é de
+     * outra natureza que o vão de dentro do tema: não tem célula NENHUMA, é
+     * auto-fechada, fica fora de qualquer mesclagem e é um pouco mais alta
+     * (5.1 contra 3.95). Medido nas onze passagens de tema do modelo: C4:C14
+     * termina em 14 e C16:C22 começa em 16, com a 15 vazia no meio.
+     */
+    const xml = gerar();
+
+    expect(xml).toContain('<row r="7" spans="3:10" ht="5.1" customHeight="1"/>');
+    /* E o tema seguinte começa DEPOIS dela, não colado no item anterior. */
+    expect(xml).toContain('<c r="C8" s="15" t="inlineStr"><is><t xml:space="preserve">Outros benefícios');
+  });
+
+  it('não põe vão antes do PRIMEIRO tema, que não tem nada acima para separar', () => {
+    const xml = gerar();
+
+    expect(xml).toContain('<row r="4" spans="3:10" s="2" customFormat="1" ht="30">');
+    expect(xml).not.toContain('<row r="4" spans="3:10" ht="5.1" customHeight="1"/>');
   });
 
   it('mescla o tema do primeiro ao último item dele', () => {

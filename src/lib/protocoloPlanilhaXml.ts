@@ -46,7 +46,17 @@ const ROW_TITULO = 'ht="24.95" hidden="1" customHeight="1"';
 const ROW_APOIO = 's="7" customFormat="1" ht="27" hidden="1" customHeight="1"';
 const ROW_CABECALHO = 's="7" customFormat="1" ht="33.95"';
 const ROW_ITEM = 's="2" customFormat="1" ht="30"';
+/** O vão DENTRO do tema: leva a célula C, porque ela faz parte da mesclagem. */
 const ROW_VAO = 'ht="3.95" customHeight="1"';
+/**
+ * O vão ENTRE temas, que é outra coisa.
+ *
+ * No modelo ele é linha inteiramente vazia, sem célula nenhuma, fora de qualquer
+ * mesclagem, e um pouco mais alta que o vão de dentro: `<row r="15" ht="5.1"
+ * customHeight="1"/>`. É ele que separa um bloco de assunto do seguinte, e sem
+ * ele os temas saem colados.
+ */
+const ROW_VAO_ENTRE_TEMAS = 'ht="5.1" customHeight="1"';
 
 const COL_TEMA = 2;
 const COL_ITEM = 4;
@@ -229,8 +239,19 @@ export function planilhaXmlDoProtocolo(
     mesclagens.push(`<mergeCell ref="C${n}:${letraUltima}${n}"/>`);
   }
 
+  let primeiroTema = true;
   for (const secao of secoes) {
     if (secao.linhas.length === 0) continue;
+
+    /* O vão entre temas vem ANTES do tema seguinte, e não depois do anterior:
+       assim a mesclagem do tema que acabou termina num item, e a linha vazia não
+       entra em mesclagem nenhuma. É como o modelo faz. */
+    if (!primeiroTema) {
+      n += 1;
+      linhas.push({ numero: n, xml: `<row r="${n}" ${spans} ${ROW_VAO_ENTRE_TEMAS}/>` });
+    }
+    primeiroTema = false;
+
     const primeira = n + 1;
 
     secao.linhas.forEach((linha, i) => {
