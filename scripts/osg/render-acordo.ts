@@ -39,6 +39,7 @@ import type { PessoaRow } from '../../src/hooks/useQualificacaoDasPartes';
 import {
   apararSegmentos,
   gerarComposicao,
+  pendenciasDoDocumento,
   type Bloco,
   type Contexto,
   type Template,
@@ -168,7 +169,7 @@ const pessoaPorId = new Map(pessoas.map((p) => [p.id, p]));
 
 const crus = await get<Record<string, never>>(
   'acordo_quotistas?select=*,acordo_quorum(*),acordo_ramo_familiar(*),'
-  + 'acordo_ordem_preferencia(*),acordo_signatario(*),acordo_sociedade_relacionada(*)'
+  + 'acordo_ordem_preferencia(*),acordo_signatario(*)'
   + `&cliente_id=eq.${cliente.id}&excluido=eq.false&order=versao.desc`,
 );
 // A forma que `entradaDoAcordo` espera é a de `useAcordosDoCliente`: cabeçalho
@@ -178,13 +179,11 @@ const porOrdem = <T extends { ordem: number }>(l: T[] | null) =>
 const completos = crus.map((linha) => {
   const {
     acordo_quorum: quoruns, acordo_ramo_familiar: ramos,
-    acordo_ordem_preferencia: ordem, acordo_signatario: signatarios,
-    acordo_sociedade_relacionada: sociedades, ...acordo
+    acordo_ordem_preferencia: ordem, acordo_signatario: signatarios, ...acordo
   } = linha as unknown as Record<string, never[]>;
   return {
     acordo, quoruns: porOrdem(quoruns), ramos: porOrdem(ramos),
     ordemPreferencia: porOrdem(ordem), signatarios: porOrdem(signatarios),
-    sociedades: porOrdem(sociedades),
   };
 });
 const escolhido = VERSAO
@@ -273,6 +272,10 @@ if (composicao.descartados.length > 15) {
   console.log(`  · … e mais ${composicao.descartados.length - 15}`);
 }
 
+const pendencias = pendenciasDoDocumento(composicao.blocos);
+console.log(`pendencias          : ${pendencias.length
+  ? pendencias.map((p) => `${p.label}${p.lista ? ' (lista vazia)' : ''}`).join(' | ')
+  : 'nenhuma'}`);
 const pendentes = [...new Set([...texto.matchAll(/\{\{[^}]*\}\}/g)].map((m) => m[0]))];
 console.log(`placeholder pendente: ${pendentes.length ? pendentes.join(', ') : 'nenhum'}`);
 console.log(`"undefined" no texto: ${texto.includes('undefined') ? 'SIM ✗' : 'não'}`);

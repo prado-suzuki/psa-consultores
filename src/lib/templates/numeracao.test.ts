@@ -367,6 +367,7 @@ describe('a cláusula do Acordo tem só o título, e sobrevive ao descarte', () 
       segmentos: [{ tipo: 'texto' as const, texto: '' }],
       secoesDeRepeticao: 0,
       itensDeRepeticao: 0,
+      secoesVazias: [],
     };
     expect(motivoDeDescarte(render, { tipo: 'clausula', tituloDocumento: 'Do Voto' })).toBeNull();
     // Sem título, a regra de sempre continua valendo: bloco mudo consome número.
