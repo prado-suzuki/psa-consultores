@@ -14,10 +14,11 @@
 > **Entregável:** `docs/geral/texto-explicativo-na-tela.md`, 📘 REF no índice — texto em vigor,
 > não plano.
 >
-> **Status: 🟡 PARCIAL (17/09/2026).** As três decisões foram fechadas por ela e o padrão está
-> escrito: **[`geral/texto-explicativo-na-tela.md`](../../geral/texto-explicativo-na-tela.md)**.
-> Faltam a conferência dela numa rota real, a catraca (fase 2) e a conversão da dívida (tarefa
-> própria). Medições de 17/09/2026, na `develop`, por varredura de JSX nos 1.043 `.tsx`.
+> **Status: 🟡 PARCIAL (17/09/2026).** As três decisões foram fechadas por ela, o padrão está
+> escrito — **[`geral/texto-explicativo-na-tela.md`](../../geral/texto-explicativo-na-tela.md)** —,
+> a **etapa 7 passou** (três dry-runs de aplicação, com quatro correções que vieram do uso e não
+> de releitura) e a **catraca está no ar**, vista reprovando antes de passar. **Falta só a
+> conversão da dívida**, que é tarefa própria. Medições de 17/09/2026, na `develop`.
 >
 > **As três decisões, como ela as fechou:**
 >
@@ -187,10 +188,39 @@ medição acrescenta:
 - **o documento diz qual marcação usar**, não só qual recurso? (D1/D2)
 - **um botão de ícone continua tendo nome** depois de aplicada a regra? (degrau 0)
 
-**Etapa 7 — A conferência dela · 🔵 pendente.** Numa rota real, não no documento: um caso de cada
-papel (nome de botão de ícone, explicação, texto de apoio, mensagem contextual, placeholder). O
-teste de fogo do documento não é lê-lo — é alguém abri-lo durante uma implementação e sair com a
-decisão em dois minutos.
+**Etapa 7 — A conferência dela · ✅ PASSOU (17/09).** Feita como **teste de uso**, não como
+releitura: três dry-runs — botão de ícone "Baixar XML" (degrau 0, decisão imediata), campo
+Contribuinte sem cliente escolhido (mensagem contextual mais placeholder canônico) e campo de
+formato não óbvio (placeholder, com a restrição permanente indo para texto de apoio). Nos três a
+decisão saiu sem reinterpretar a árvore.
+
+**O veredito confirmou a escolha de tirar placeholder e mensagem contextual dos degraus:** a
+árvore passou a responder uma pergunta só — *este controle precisa de ajuda para ser entendido?* —
+e os dois recursos, tendo gatilhos diferentes, exigem menos raciocínio separados. O texto que
+explica por que estão fora ficou sendo uma das partes úteis do documento, porque define fronteira
+semântica e não componente.
+
+**As quatro correções que o uso achou, todas aplicadas** (commit `d08457ee`) — e as três primeiras
+são contradições internas que só aparecem quando alguém tenta aplicar a regra:
+
+1. **infinitivo contra imperativo** no rótulo exposto: a estrutura dizia "verbo no infinitivo" e o
+   tom dizia "imperativo impessoal". Duas regras para o mesmo texto obrigam a escolher qual vence;
+   virou "a ação no infinitivo, direta e neutra";
+2. **texto de apoio** mandava começar pela consequência e o próprio exemplo começa pela condição.
+   A regra passou a abranger as três (condição, restrição ou consequência), e o exemplo prova a
+   regra em vez de contradizê-la;
+3. **escopo do `rlsMessages.ts`**: a seção parecia mandar toda frase contextual nova para um
+   catálogo criado para **recusa**, o que o transformaria em repositório universal de microcopy.
+   Agora está explícito — recusa, permissão e falha saem de lá; as demais seguem a §4 e moram onde
+   o estado é tratado;
+4. **`Todos`/`Todas`**, fechado antes de automatizar. Conferido no código: não são "Todos" secos,
+   são "Todos os clientes", "Todas as OS", e já existem **58 `SelectItem value="all"`** com esse
+   rótulo. Então a regra não é proibir — aquele texto é o **rótulo da opção** e tem de casar com o
+   `SelectItem`, palavra por palavra. `Selecione…` não se aplica onde não há nada a selecionar, há
+   um recorte já valendo.
+
+E uma contradição que as próprias correções criaram: a estrutura do placeholder dizia "quatro
+formas canônicas, e nada mais" com a quinta escrita três linhas abaixo.
 
 **Tempo:** 2 h a 2 h 30 de trabalho focado, com a etapa 1 já pronta. Foi o que custou.
 
@@ -207,13 +237,39 @@ decisão em dois minutos.
 **Teto: uma tela e meia.** Padrão que não se lê inteiro não se aplica, e o risco nomeado na
 abertura é exatamente esse.
 
-## Fase 2 — a catraca `textoDeAjuda.test.ts`
+## Fase 2 — a catraca `textoDeAjuda.test.ts` · ✅ FEITA (17/09)
 
-Fora das 2 h 30, e proposta, não decidida. No molde do `rotulosDeStatus.test.ts` e do
-`filaDoBranco.test.ts`: inventário por motivo mais asserção — (a) nenhum `title=` em tag nativa
-fora do inventário; (b) nenhum `<TooltipContent>` literal acima do teto; (c) nenhum placeholder
-de escolha ou de busca fora das formas canônicas. Vista reprovando **antes** do conserto e
-passando depois; verde de primeira não prova nada.
+Liberada por ela depois da etapa 7 — *"a catraca agora faz sentido porque vai congelar um padrão
+que já é utilizável"*. Três asserções, os números congelados no recorte das pastas de tela:
+
+| Asserção | Congelado | O que ela impede |
+|---|---|---|
+| `title=` em tag nativa | **143** em 80 arquivos | o **144º**. Sobe: use `<Tooltip>`/`aria-label`. Desce: a dívida foi paga, e o número desce no mesmo commit |
+| `<TooltipContent>` acima de 140 caracteres **de texto lido** | os **3** conhecidos, por arquivo | nota de leitura nova escondida atrás de hover |
+| placeholder de escolha ou busca fora das quatro formas | **226** em 140 arquivos | texto sob medida novo onde o padrão do componente resolve |
+
+**Vista reprovando antes de passar**, com os três defeitos fabricados num arquivo temporário: as
+três falharam, e a do `title` imprimiu *"Agora: 144 em 81"* — que é o objetivo do documento dito
+pelo teste. Verde de primeira não prova nada.
+
+**Dois achados da execução, e os dois mudaram o teste:**
+
+- **Medir o tooltip bruto superestima 17×.** O conteúdo cru de `<TooltipContent>` acusa **52**
+  casos acima do teto, em 35 arquivos; o texto que a pessoa lê são **3**. A diferença é markup —
+  um tooltip de dez palavras embrulhado em `<div className="…">` reprovaria pelas classes. Por
+  isso essa asserção não é regex: tira as tags e as interpolações antes de medir. Catraca que
+  mede o invólucro reprova quem escreveu certo.
+- **A regex de linha bastou, e isso foi medido antes de escolher.** Contra um parser de tags que
+  atravessa props multilinha, as duas contam as mesmas 143: nenhum `title=` do repositório está
+  separado da sua tag por quebra de linha. O parser seria complexidade sem resultado.
+
+A leitura do texto do tooltip mora no próprio teste, não no `medirCorCrua.ts` — aquele módulo é
+de cor, e esta é a primeira consumidora. Se nascer a segunda, sai para módulo próprio, que foi
+como o `medirEmCaixaArredondada` saiu da `cartaoTingido`.
+
+**O que ela não persegue, e está escrito no arquivo:** `title` em `<iframe>` (8, permitidos),
+`title` como prop de componente nosso (264 — outro `title`, só o nome em comum), o texto em si
+(redação é revisão humana, e está no checklist da §6) e prosa de comentário.
 
 **Por que ela não é opcional para sempre:** todo padrão só de documento nesta casa voltou a
 divergir — foi assim com a palavra de status, com o cartão tingido e com o branco literal, e nos
