@@ -613,7 +613,11 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     tipo: 'pessoa',
     itemKey: 'quotista',
     fonte: 'acordo_quotistas',
-    camposExtras: [{ id: 'ordem', label: 'Ordem do quotista (1, 2…)' }],
+    camposExtras: [
+      { id: 'ordem', label: 'Ordem do quotista (1, 2…)' },
+      // O modelo enumera os signatários em romano minúsculo: "i.", "ii.", "iii.".
+      { id: 'indice', label: 'Número do quotista em romano (i, ii…)' },
+    ],
   },
 
 

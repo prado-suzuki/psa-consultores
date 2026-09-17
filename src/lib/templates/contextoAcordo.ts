@@ -1,6 +1,6 @@
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 
-import { cardinalExtenso, letraAlinea } from './extenso';
+import { cardinalExtenso, letraAlinea, romano } from './extenso';
 import {
   mapearAcordoQuotistas, mapearPessoa, mapearSociedade,
   type AcordoParaMapear, type Campos, type ItemLista,
@@ -290,8 +290,18 @@ export function listasDoAcordo(entrada: EntradaAcordo): Record<string, ItemLista
    * objeto só com o nome daria um preâmbulo sem qualificação, que é documento
    * que a Junta devolve.
    */
+  /*
+   * O NUMERO EM ROMANO MINUSCULO, que e como o modelo enumera os signatarios:
+   * "i. MARCELO DUARTE...", "ii. ROMERO DUARTE...". Nossa versao saia sem
+   * numero nenhum, um por linha, e isso passou pelas duas varreduras porque
+   * nenhuma comparava a ESTRUTURA do preambulo, so o texto.
+   */
   const quotistasSignatarios: ItemLista[] = entrada.signatarios.map((p, i) => ({
-    quotista: { ...mapearPessoa(p), ordem: String(i + 1) } as Campos,
+    quotista: {
+      ...mapearPessoa(p),
+      ordem: String(i + 1),
+      indice: romano(i + 1).toLowerCase(),
+    } as Campos,
   }));
 
   return {
