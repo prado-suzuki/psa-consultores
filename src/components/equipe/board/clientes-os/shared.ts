@@ -147,10 +147,20 @@ export const td: React.CSSProperties = {
 
 // Matriz dimensão × mês: cabeçalho e coluna do nome ficam grudados na rolagem
 // (a tabela rola nos dois eixos quando o período pega muitos meses).
-// `--bd-surface-op` e não `--bd-surface`: a superfície do Board virou tinta com
-// alfa em 17/09/2026, e célula `sticky` com fundo translúcido deixa passar a
-// coluna que rola por baixo. O `-op` é a MESMA cor composta sobre a página.
-const SURFACE = 'var(--bd-surface-op)';
+// Célula `sticky` precisa de fundo OPACO — translúcido deixa passar a coluna que
+// rola por baixo —, e a superfície do Board virou tinta com alfa em 17/09/2026.
+//
+// Por que o BRANCO do controle e não a tinta composta (`--bd-surface-op`), que
+// foi o que entrou primeiro no mesmo dia: o cartão que segura esta matriz é
+// `.v4-card`, e o `BoardLayout` inteiro roda em `bd-leitura`, que apaga o fundo
+// dele com `background: transparent !important` (`index.css`, a regra do
+// `.bd-leitura .v4-card`). A célula tingida ficava sendo a única coisa pintada
+// de uma tela sem cartão — destoava em vez de acompanhar. Este valor é o MESMO
+// pixel que a célula tinha antes de a tinta descer.
+//
+// Se o `bd-leitura` sair e o cartão do Board voltar a pintar, esta linha volta
+// para `var(--bd-surface-op)`: aí existe superfície para acompanhar.
+const SURFACE = 'var(--bd-control)';
 export const thFixo: React.CSSProperties = {
   padding: '9px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '.09em',
   textTransform: 'uppercase', color: 'var(--bd-ink4)',

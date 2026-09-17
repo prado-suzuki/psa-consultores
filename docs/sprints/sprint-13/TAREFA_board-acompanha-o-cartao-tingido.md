@@ -184,8 +184,50 @@ já mordeu antes (o rótulo "2025" a 1,48:1, na nota do `LEGEND_STYLE`).
      `--bd-line2`, e o medo era que ela sumisse. Na casa ela **ganha** degrau
      (1,125 → 1,154); na Tax e na OSG cai de 1,260/1,227 para 1,165/1,144 e continua
      visível. A grade não some em área nenhuma.
-5. 🔵 **Validar olhando**, nas três áreas, com um gráfico na tela. É o passo que decide
-   se "moderno e clean" sobreviveu, e nenhum número responde por ele.
+5. ✅ **Validado por ela em 17/09/2026** — a listra, a divisória e a grade do gráfico
+   passaram. E foi aqui que apareceu o achado abaixo, que nenhuma medição de arquivo
+   pegaria.
+
+## ⚠️ O cartão do Board não lê `--bd-surface`. A premissa desta tarefa está errada
+
+**Achado dirigindo o navegador, 17/09/2026.** Medindo o DOM em `/equipe/board/performance`,
+o `.v4-card` volta `background-color: rgba(0, 0, 0, 0)` — raio 0, sombra nenhuma.
+
+A causa é o `BoardLayout.tsx:263`, que põe `bd-leitura` no shell **sem condição**, e a
+regra do `index.css`:
+
+```css
+.bd-leitura .v4-card, .board-card, .board-kpi, .v4-cyb,
+section.rounded-xl, .rounded-2xl.border, .rounded-xl.border {
+  background: transparent !important;  border: 0 !important;  box-shadow: none !important;
+```
+
+Cruzando classe por classe: as que pintam `--bd-surface` são `v4-card`, `board-card`,
+`board-kpi`, `stat-item`, `v3-fbar`, `kpi`, `mc`, `v3-card`, `v4-mc` e `v4-toolbar`. O
+`bd-leitura` apaga as cinco primeiras. **Das cinco que sobram, nenhuma é usada em tela
+viva:** `v4-mc` só existe no `DesempenhoVisaoGeral`, que é rota desativada, e `kpi` só num
+export.
+
+Ou seja: **o cartão do Board nunca foi branco por causa do `--bd-surface`.** Ele é
+transparente por causa do modo leitura, e o que aparece é a página. O passo 1 moveu um
+token que nenhuma das 10 rotas vivas lê.
+
+Dois erros de método valem o registro, porque são o mesmo erro duas vezes — **conferir o
+arquivo não é conferir a tela**:
+
+- a medição que abriu a tarefa leu o `index.css` e não viu um `!important` de outro bloco;
+- a lista de rotas saiu de um `grep path="` no `App.tsx` e trouxe **oito rotas que estão
+  dentro de um `{/* ... */}`** (a aba Desempenho inteira, desativada em 17/08). Rota
+  comentada casa com a busca igual a rota viva. Tirar os comentários antes de listar
+  derrubou a contagem para 10.
+
+**A decisão que fica aberta, e é dela:** ou o `bd-leitura` sai do `BoardLayout` — e aí o
+Board volta a ter cartão de verdade, tingido como o resto, que é o que ela pediu —, ou o
+"Board acompanha" sai do escopo e a tarefa 12 é só a metade da zebra e da divisória.
+
+**Uma reversão já saiu**, porque era o único ponto em que o passo 1 piorou a tela: a célula
+grudada da matriz de `clientes-os` voltou ao branco do controle. Tingida, ela era a única
+coisa pintada de uma tela sem cartão.
 
 ## Tamanho e raio de revert
 
