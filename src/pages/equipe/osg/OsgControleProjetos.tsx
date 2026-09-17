@@ -12,12 +12,16 @@ import { useProjetosCadastroController } from '@/hooks/useProjetosCadastroContro
 import { useDomainOsgControleProjetos } from '@/hooks/useDomainOsgControleProjetos';
 import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController';
 import {
+  AGRUPAMENTO_PADRAO,
   FILTROS_VAZIOS,
+  GRUPO_SEM_PROJETO,
   ORDEM_INICIAL,
+  agruparControle,
   filtrarControle,
   opcoesDoControle,
   ordenarControle,
   proximaOrdemDoControle,
+  type AgrupamentoDoControle,
   type ColunaDoControle,
   type FiltrosDoControle,
   type LinhaDoControle,
@@ -58,6 +62,8 @@ const OsgControleProjetos = () => {
   // cabeçalho volta para a ordem de referência (cliente, área, produto), que é
   // outra coisa — ver `ORDEM_INICIAL`.
   const [ordem, setOrdem] = useState<OrdemDoControle>(ORDEM_INICIAL);
+  // Abre PLANA. O agrupamento é escolha da barra — ver `agruparControle`.
+  const [agrupamento, setAgrupamento] = useState<AgrupamentoDoControle>(AGRUPAMENTO_PADRAO);
 
   const visiveis = useMemo(
     () => ordenarControle(filtrarControle(linhas, filtros), ordem),
@@ -65,6 +71,25 @@ const OsgControleProjetos = () => {
   );
   const opcoes = useMemo(() => opcoesDoControle(linhas), [linhas]);
   const vencidas = useMemo(() => visiveis.filter((linha) => linha.prazoVencido).length, [visiveis]);
+  const grupos = useMemo(() => agruparControle(visiveis, agrupamento), [visiveis, agrupamento]);
+
+  /**
+   * Os grupos FECHADOS, e não os abertos: grupo que a pessoa nunca tocou abre
+   * aberto, então o conjunto vazio é o estado certo ao ligar o agrupamento.
+   *
+   * A exceção é o "sem projeto aberto" do critério executor, que tem 127 das
+   * 169 linhas em produção e, aberto, empurraria todo o resto para fora da
+   * tela. O cabeçalho com a contagem já diz o tamanho sem custar a rolagem.
+   *
+   * Guardado por CHAVE, e não por índice, para sobreviver ao filtro que
+   * reordena os grupos — e zerado ao trocar de critério, porque as chaves de um
+   * critério não querem dizer nada no outro.
+   */
+  const [fechados, setFechados] = useState<Set<string>>(new Set());
+  useEffect(
+    () => setFechados(new Set(agrupamento === 'executor' ? [GRUPO_SEM_PROJETO] : [])),
+    [agrupamento],
+  );
 
   /**
    * O produto que a linha pediu, esperando a OS dele carregar.
@@ -153,14 +178,27 @@ const OsgControleProjetos = () => {
                 total={linhas.length}
                 visiveis={visiveis.length}
                 vencidas={vencidas}
+                agrupamento={agrupamento}
+                setAgrupamento={setAgrupamento}
               />
               <ControleDeProjetosTabela
                 linhas={visiveis}
+                grupos={grupos}
                 ordem={ordem}
                 onOrdenar={(campo: ColunaDoControle) =>
                   setOrdem((atual) => proximaOrdemDoControle(atual, campo))
                 }
+                fechados={fechados}
+                onAlternar={(chave) =>
+                  setFechados((atuais) => {
+                    const proximo = new Set(atuais);
+                    if (proximo.has(chave)) proximo.delete(chave);
+                    else proximo.add(chave);
+                    return proximo;
+                  })
+                }
                 onAbrirLinha={abrirLinha}
+                agrupadoPorCliente={agrupamento === 'cliente'}
               />
             </>
           )}

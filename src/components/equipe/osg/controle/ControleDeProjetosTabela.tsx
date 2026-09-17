@@ -1,5 +1,16 @@
+import { Fragment } from 'react';
+
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronDown,
+  ChevronRight,
+  FolderPlus,
+  UserX,
+} from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import {
@@ -16,12 +27,16 @@ import {
   SEM_PROJETO,
   statusLabel,
   type ColunaDoControle,
+  type GrupoDoControle,
   type LinhaDoControle,
   type OrdemDoControle,
 } from '@/lib/osgControleDeProjetos';
 import { getRegiaoLabel } from '@/lib/regioes';
 import { projectStatusConfig } from '@/lib/projetoStatusColors';
 import { cn } from '@/lib/utils';
+
+/** Quantas colunas a tabela tem, para o `colSpan` da faixa de grupo. */
+const COLUNAS = 11;
 
 function data(valor: string | null): string {
   if (!valor) return '—';
@@ -178,6 +193,99 @@ function Cabecalho({
 }
 
 /**
+ * A faixa de um grupo, quando a barra pede agrupamento.
+ *
+ * É uma linha `colSpan` DENTRO da mesma `<Table>`, e não um cartão por grupo
+ * como em `ProjetosCadastroTable`: com onze colunas, um cartão por grupo faria
+ * cada bloco calcular a própria largura e as colunas deixariam de se alinhar de
+ * um grupo para o outro.
+ *
+ * A FAIXA É `bg-muted` — o neutro CHEIO da área, sem alfa —, e a linha embaixo é
+ * branca. Chegou aqui em três passos, e o do meio foi recusado OLHANDO.
+ *
+ * Ela era `bg-superficie-realce` com a linha transparente sobre o cartão, e as
+ * duas ficavam a **1,106:1** uma da outra na OSG (1,120 na Tax) — menos que o
+ * 1,24:1 com que a borda de 1px se separa do cartão. Embranquecer a linha subiu
+ * para 1,186, ainda pouco, e a faixa foi para a ÂNCORA (`bg-primary/10`), como a
+ * faixa de cliente de `ProjetosTarefasList`: 1,250, com separação de MATIZ.
+ *
+ * ⚠️ **E ficou feia, na palavra dela (17/09/2026), por um motivo que só existe na
+ * OSG.** A âncora é musgo (matiz 149) e a superfície é areia (matiz 32), 117° de
+ * distância; compostas a 10%, dão **matiz 98** — um verde-amarelado embarrado.
+ * Na Tax as duas concordam (192 contra 192) e o mesmo `primary/10` sai limpo, o
+ * que é exatamente o que o levantamento de 03/09 já tinha medido sobre fill de
+ * âncora na OSG.
+ *
+ * `bg-muted` cheio resolve sem tirar separação: **1,227** na OSG (1,260 na Tax),
+ * contra 1,250 da âncora — três milésimos de diferença —, e a faixa volta a ser a
+ * areia da própria área em vez de uma cor nova. O `primary/6` foi medido junto e
+ * não serve: 1,175, abaixo do ponto de partida, e ainda verde.
+ */
+function FaixaDoGrupo({
+  grupo,
+  aberto,
+  onAlternar,
+  mostrarClientes,
+}: {
+  grupo: GrupoDoControle;
+  aberto: boolean;
+  onAlternar: () => void;
+  /** Falso quando o agrupamento é POR cliente: a contagem seria sempre 1. */
+  mostrarClientes: boolean;
+}) {
+  const Seta = aberto ? ChevronDown : ChevronRight;
+  const semGente = grupo.semProjeto || grupo.semResponsavel;
+  const Icone = grupo.semProjeto ? FolderPlus : UserX;
+  return (
+    <TableRow className="hover:bg-transparent">
+      <TableCell colSpan={COLUNAS} className="border-b bg-muted p-0">
+        <button
+          type="button"
+          onClick={onAlternar}
+          aria-expanded={aberto}
+          className="flex w-full flex-wrap items-center gap-x-2 gap-y-0.5 px-4 py-2 text-left"
+        >
+          <Seta className="h-4 w-4 shrink-0 text-muted-foreground" />
+          {semGente && <Icone className="h-4 w-4 shrink-0 text-destructive" />}
+          <span className={cn('font-medium', semGente && 'text-destructive')}>{grupo.rotulo}</span>
+          <span className="text-sm text-muted-foreground">
+            {grupo.linhas.length} {grupo.linhas.length === 1 ? 'produto' : 'produtos'}
+            {mostrarClientes && (
+              <>
+                {' · '}
+                {grupo.clientes} {grupo.clientes === 1 ? 'cliente' : 'clientes'}
+              </>
+            )}
+          </span>
+          {grupo.vencidas > 0 && (
+            <span className="text-sm font-medium text-destructive">
+              {grupo.vencidas} com prazo vencido
+            </span>
+          )}
+          {/*
+            O que o grupo é, em uma linha. Sem isto a contagem sozinha vira
+            acusação: parte dos "sem projeto aberto" é trabalho que aconteceu
+            fora da ferramenta e nunca foi registrado, e o banco não distingue os
+            dois casos.
+          */}
+          {grupo.semProjeto && (
+            <span className="basis-full pl-6 text-xs text-muted-foreground">
+              Vendido nesta OS e sem projeto criado: ou ninguém abriu, ou foi feito fora da
+              ferramenta. Clique numa linha para abrir o projeto.
+            </span>
+          )}
+          {grupo.semResponsavel && (
+            <span className="basis-full pl-6 text-xs text-muted-foreground">
+              O projeto existe e está sem executor. Clique para delegar.
+            </span>
+          )}
+        </button>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+/**
  * Uma linha: um produto contratado.
  *
  * O clique abre o modal de projeto — o MESMO `ProjetoDialog` da tela de
@@ -191,9 +299,10 @@ function LinhaDaTabela({ linha, onAbrir }: { linha: LinhaDoControle; onAbrir: ()
       key={linha.chave}
       onClick={onAbrir}
       className={cn(
-        // A linha fica no `bg-card` LIMPO: a tabela é uma lista plana, sem faixa
-        // de bloco para carregar tinta. Quem distingue as linhas é o conteúdo
-        // das colunas, não o fundo.
+        // A linha de último nível fica no `bg-card` LIMPO, e quem carrega tinta
+        // é a faixa do grupo, quando há uma. Mesmo par de `ProjetosTarefasList`,
+        // pelo mesmo motivo medido lá: a faixa é o cabeçalho do bloco, então é
+        // ela que recebe a cor da área, e a linha embaixo volta ao branco.
         'cursor-pointer bg-card',
         !linha.daArea && 'text-muted-foreground',
       )}
@@ -255,16 +364,26 @@ function LinhaDaTabela({ linha, onAbrir }: { linha: LinhaDoControle; onAbrir: ()
 
 export function ControleDeProjetosTabela({
   linhas,
+  grupos,
   ordem,
   onOrdenar,
+  fechados,
+  onAlternar,
   onAbrirLinha,
+  agrupadoPorCliente,
 }: {
   /** Já filtradas e ordenadas pela página: a tabela só desenha. */
   linhas: LinhaDoControle[];
+  /** `null` = sem agrupamento, que é como a tela abre. */
+  grupos: GrupoDoControle[] | null;
   ordem: OrdemDoControle;
   onOrdenar: (campo: ColunaDoControle) => void;
+  /** Chaves de grupo fechadas. Só importa quando há agrupamento. */
+  fechados: Set<string>;
+  onAlternar: (chave: string) => void;
   /** Clique numa linha: abre o modal de projeto (edição, ou criação se não houver). */
   onAbrirLinha: (linha: LinhaDoControle) => void;
+  agrupadoPorCliente: boolean;
 }) {
   if (linhas.length === 0) {
     return (
@@ -323,13 +442,38 @@ export function ControleDeProjetosTabela({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {linhas.map((linha) => (
-            <LinhaDaTabela
-              key={linha.chave}
-              linha={linha}
-              onAbrir={() => onAbrirLinha(linha)}
-            />
-          ))}
+          {grupos === null
+            ? linhas.map((linha) => (
+                <LinhaDaTabela
+                  key={linha.chave}
+                  linha={linha}
+                  onAbrir={() => onAbrirLinha(linha)}
+                />
+              ))
+            : grupos.map((grupo) => {
+                const aberto = !fechados.has(grupo.chave);
+                return (
+                  <Fragment key={grupo.chave}>
+                    <FaixaDoGrupo
+                      grupo={grupo}
+                      aberto={aberto}
+                      onAlternar={() => onAlternar(grupo.chave)}
+                      mostrarClientes={!agrupadoPorCliente}
+                    />
+                    {aberto &&
+                      grupo.linhas.map((linha) => (
+                        // A chave leva a do grupo junto: a mesma linha pode
+                        // estar em dois grupos (produto de dois executores), e
+                        // só a chave da linha se repetiria dentro da tabela.
+                        <LinhaDaTabela
+                          key={`${grupo.chave}::${linha.chave}`}
+                          linha={linha}
+                          onAbrir={() => onAbrirLinha(linha)}
+                        />
+                      ))}
+                  </Fragment>
+                );
+              })}
         </TableBody>
       </Table>
     </div>
