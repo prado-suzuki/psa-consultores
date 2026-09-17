@@ -267,6 +267,80 @@ describe('os campos que tiram PEDACO de frase, e nao o bloco', () => {
   });
 });
 
+describe('a concordancia de quem representa os quotistas', () => {
+  /*
+   * A clausula saia "os QUOTISTAS elegem o Sra. Ana Zamo": o tratamento
+   * concordava e o artigo antes dele, nao, porque estava escrito fixo no bloco.
+   * Foi a comparacao do gerado contra o modelo que mostrou.
+   */
+  const comGenero = (g: string, gs: string) => gerarDocumento(template, contextoDe({
+    ...ENTRADA,
+    acordo: {
+      ...ENTRADA.acordo,
+      representanteNome: 'ANA ZAMO', representanteGenero: g,
+      substitutoRepresentanteNome: 'BRUNO ZAMO', substitutoRepresentanteGenero: gs,
+    },
+  }));
+
+  it('mulher recebe "a Sra." e homem "o Sr."', () => {
+    expect(comGenero('F', 'M')).toContain('elegem a Sra. ANA ZAMO');
+    expect(comGenero('M', 'M')).toContain('elegem o Sr. ANA ZAMO');
+  });
+
+  it('o substituto usa preposicao com artigo: "passara ao Sr." e "passara a Sra."', () => {
+    expect(comGenero('F', 'M')).toContain('passará ao Sr. BRUNO ZAMO');
+    expect(comGenero('F', 'F')).toContain('passará à Sra. BRUNO ZAMO');
+  });
+});
+
+describe('os objetos da preferencia, um bloco por objeto', () => {
+  /*
+   * QUASE DERRUBEI ESTE CAMPO por achar que o modelo nao enumerava os objetos.
+   * Enumera, em prosa espalhada, e o titulo da Clausula Decima denuncia: "Do
+   * direito de preferencia caso ocorra venda de SOCIEDADES RELACIONADAS, de
+   * imoveis ou oportunidades de negocios".
+   */
+  const OBJETOS = [
+    'acordo_tem_preferencia', 'acordo_preferencia_sobre_imoveis',
+    'acordo_preferencia_sobre_participacoes', 'acordo_preferencia_sobre_oportunidades',
+  ];
+
+  it('cada objeto marcado traz o trecho dele, e so ele', () => {
+    const tudo = gerarDocumento(template, contextoDe(ENTRADA), OBJETOS);
+    expect(tudo).toContain('alienar a sua participação em qualquer uma das SOCIEDADES RELACIONADAS');
+    expect(tudo).toContain('alienação de bens imóveis');
+    expect(tudo).toContain('Todas as oportunidades de negócios');
+
+    const soQuotas = gerarDocumento(template, contextoDe(ENTRADA), ['acordo_tem_preferencia']);
+    expect(soQuotas).not.toContain('alienar a sua participação em qualquer uma das SOCIEDADES');
+    expect(soQuotas).not.toContain('alienação de bens imóveis');
+    expect(soQuotas).not.toContain('Todas as oportunidades de negócios');
+    // E a Clausula Quinta, que trata das QUOTAS, continua de pe.
+    expect(soQuotas).toContain('DIREITO DE PREFERÊNCIA');
+  });
+
+  it('sem participacoes saem os cinco blocos, mas a clausula fica pelos imoveis', () => {
+    /*
+     * A Clausula Decima hospeda DOIS objetos: as sociedades relacionadas nos
+     * cinco primeiros blocos e os imoveis no ultimo. Tirar um nao leva a
+     * clausula, porque o outro continua morando la. Ela so cai quando os dois
+     * saem, e ai `clausulasSemCorpo` cuida do cabecalho.
+     */
+    const sem = gerarDocumento(
+      template, contextoDe(ENTRADA),
+      OBJETOS.filter((f) => f !== 'acordo_preferencia_sobre_participacoes'),
+    );
+    expect(sem).not.toContain('alienar a sua participação em qualquer uma das SOCIEDADES');
+    expect(sem).toContain('alienação de bens imóveis');
+
+    const nenhumDosDois = gerarDocumento(
+      template, contextoDe(ENTRADA),
+      ['acordo_tem_preferencia', 'acordo_preferencia_sobre_oportunidades'],
+    );
+    expect(nenhumDosDois).not.toContain('caso ocorra venda de SOCIEDADES RELACIONADAS');
+  });
+});
+
 describe('os mecanismos que DESLIGAM texto', () => {
   /*
    * ATE HOJE NENHUMA RESPOSTA DO CADASTRO TIRAVA CLAUSULA DO DOCUMENTO.
@@ -285,10 +359,11 @@ describe('os mecanismos que DESLIGAM texto', () => {
     'acordo_tem_drag_along', 'acordo_opcao_venda_prevista',
     'acordo_opcao_compra_prevista', 'acordo_tem_preferencia',
     'acordo_reuniao_previa_obrigatoria', 'acordo_por_arbitragem',
-    'acordo_consolida_composse',
+    'acordo_consolida_composse', 'acordo_preferencia_sobre_imoveis',
+    'acordo_preferencia_sobre_participacoes', 'acordo_preferencia_sobre_oportunidades',
   ];
 
-  it('sao dez flags governando 61 blocos, e o resto do documento e fixo', () => {
+  it('sao treze flags, e 62 blocos dependem de pelo menos uma', () => {
     const porFlag = new Map<string, number>();
     for (const b of blocos) for (const f of b.flagsRequeridas ?? []) {
       porFlag.set(f, (porFlag.get(f) ?? 0) + 1);
@@ -299,9 +374,19 @@ describe('os mecanismos que DESLIGAM texto', () => {
       acordo_tem_drag_along: 8, acordo_opcao_venda_prevista: 1,
       acordo_opcao_compra_prevista: 6, acordo_tem_preferencia: 18,
       acordo_reuniao_previa_obrigatoria: 10, acordo_por_arbitragem: 5,
-      acordo_consolida_composse: 1,
+      acordo_consolida_composse: 1, acordo_preferencia_sobre_imoveis: 1,
+      acordo_preferencia_sobre_participacoes: 5,
+      acordo_preferencia_sobre_oportunidades: 1,
     });
-    expect(blocos.filter((b) => !b.flagsRequeridas?.length)).toHaveLength(205);
+    /*
+     * 204 sem flag, e nao 198: os cinco blocos das SOCIEDADES RELACIONADAS ja
+     * dependiam da preferencia, porque moram na Clausula Decima. Eles ganharam
+     * uma SEGUNDA flag, e um bloco com duas exige as duas.
+     */
+    expect(blocos.filter((b) => !b.flagsRequeridas?.length)).toHaveLength(204);
+    // Seis com DUAS flags: os da Clausula Decima. O das oportunidades mora na
+    // Decima Primeira, que a preferencia nao governa, entao tem uma so.
+    expect(blocos.filter((b) => (b.flagsRequeridas?.length ?? 0) > 1)).toHaveLength(6);
   });
 
   it('cada mecanismo tira SO os blocos dele, e o documento continua de pe', () => {

@@ -333,8 +333,10 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         ajuda: 'O direito de exigir que outro lhe venda a participação.' },
       { campo: 'opcao_compra_quem', rotulo: 'Quem detém a opção de compra', tipo: 'texto',
         dependeDe: 'opcao_compra_prevista',
-        ajuda: 'Quem pode exigir que o outro venda. O que você escrever entra na frase: '
-          + '"Igualmente será assegurado a ___ exercerem uma OPÇÃO DE COMPRA". Medido nos '
+        ajuda: 'Quem pode exigir que o outro venda. ESCREVA SEM O ARTIGO e em minúscula no '
+          + 'começo, porque a frase já traz o "aos": "Igualmente será assegurado aos ___ '
+          + 'exercerem uma OPÇÃO DE COMPRA". Escrevendo "Os demais quotistas", sai '
+          + '"assegurado a Os demais quotistas". Medido nos '
           + 'acordos, três redações em quatro documentos: "QUOTISTAS que sejam titulares da '
           + 'maioria das QUOTAS" no modelo e no AgroAliança, "demais QUOTISTAS" no Perci, e '
           + '"QUOTISTAS e/ou seus curadores" no Horita.' },

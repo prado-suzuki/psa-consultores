@@ -156,6 +156,12 @@ const FLAGS = [
     descricao: 'Exige reuniao previa dos quotistas antes da reuniao de socios.' },
   { nome: 'acordo_consolida_composse', campo: 'consolidaComposse',
     descricao: 'A avaliacao consolida o que o socio explora junto com a sociedade.' },
+  { nome: 'acordo_preferencia_sobre_imoveis', campo: 'preferenciaSobreImoveis',
+    descricao: 'A preferencia alcanca bens imoveis.' },
+  { nome: 'acordo_preferencia_sobre_participacoes', campo: 'preferenciaSobreParticipacoes',
+    descricao: 'A preferencia alcanca participacoes em SOCIEDADES RELACIONADAS.' },
+  { nome: 'acordo_preferencia_sobre_oportunidades', campo: 'preferenciaSobreOportunidades',
+    descricao: 'A preferencia alcanca oportunidades de negocio.' },
   { nome: 'acordo_por_arbitragem', campo: 'porArbitragem',
     descricao: 'A briga vai para arbitragem, e nao para o judiciario.' },
 ];

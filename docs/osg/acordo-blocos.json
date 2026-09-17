@@ -708,7 +708,7 @@
   "nome": "Acordo 103 Item — Igualmente será assegurado aos QUOTISTAS que sejam titulares…",
   "tipo": "item",
   "titulo": null,
-  "conteudo": "Igualmente será assegurado a {{ acordo.opcaoCompraQuem }} exercerem uma OPÇÃO DE COMPRA, hipótese que vinculará o QUOTISTA ao qual recair esta opção, de modo que este QUOTISTA se compromete a vender suas QUOTAS, bem como todos os demais QUOTISTAS se comprometem em adquirir as QUOTAS sobre as quais recaíram esta opção, bem como votar, assinar todo e qualquer documento e exigir da ADMINISTRAÇÃO da {{ sociedade.nomeFantasia }} e das SOCIEDADES CONTROLADAS que adotem todas as eventuais medidas necessárias para concretizar a OPÇÃO DE COMPRA, podendo qualquer QUOTISTA que se sentir prejudicado, valer-se das prerrogativas previstas na Cláusula de Solução de Litígios, objetivando a garantia do direito ora estabelecido.",
+  "conteudo": "Igualmente será assegurado aos {{ acordo.opcaoCompraQuem }} exercerem uma OPÇÃO DE COMPRA, hipótese que vinculará o QUOTISTA ao qual recair esta opção, de modo que este QUOTISTA se compromete a vender suas QUOTAS, bem como todos os demais QUOTISTAS se comprometem em adquirir as QUOTAS sobre as quais recaíram esta opção, bem como votar, assinar todo e qualquer documento e exigir da ADMINISTRAÇÃO da {{ sociedade.nomeFantasia }} e das SOCIEDADES CONTROLADAS que adotem todas as eventuais medidas necessárias para concretizar a OPÇÃO DE COMPRA, podendo qualquer QUOTISTA que se sentir prejudicado, valer-se das prerrogativas previstas na Cláusula de Solução de Litígios, objetivando a garantia do direito ora estabelecido.",
   "flags": [
    "acordo_opcao_compra_prevista"
   ]
@@ -896,7 +896,8 @@
   "titulo": null,
   "conteudo": "Se a {{ sociedade.nomeFantasia }} pretender alienar a sua participação em qualquer uma das SOCIEDADES RELACIONADAS, será assegurado aos QUOTISTAS adquirirem as ações ou quotas daquelas sociedades, observadas as seguintes premissas:",
   "flags": [
-   "acordo_tem_preferencia"
+   "acordo_tem_preferencia",
+   "acordo_preferencia_sobre_participacoes"
   ]
  },
  {
@@ -905,7 +906,8 @@
   "titulo": null,
   "conteudo": "a {{ sociedade.nomeFantasia }} deverá notificar os QUOTISTAS, para que, querendo, adquiram preferencialmente todas as ações ou quotas das SOCIEDADES RELACIONADAS, em igualdade de condições com TERCEIROS ou até mesmo com outros QUOTISTAS, caso estes sejam os outros adquirentes descritos na notificação, observados os princípios e a proporcionalidade descritas no conceito de DIREITO DE PREFERÊNCIA;",
   "flags": [
-   "acordo_tem_preferencia"
+   "acordo_tem_preferencia",
+   "acordo_preferencia_sobre_participacoes"
   ]
  },
  {
@@ -914,7 +916,8 @@
   "titulo": null,
   "conteudo": "o DIREITO DE PREFERÊNCIA para adquirir as quotas e/ou ações das SOCIEDADES RELACIONADAS será proporcional a participação de cada um dos QUOTISTAS no capital social da {{ sociedade.nomeFantasia }} na data da emissão da notificação descrita anteriormente;",
   "flags": [
-   "acordo_tem_preferencia"
+   "acordo_tem_preferencia",
+   "acordo_preferencia_sobre_participacoes"
   ]
  },
  {
@@ -923,7 +926,8 @@
   "titulo": null,
   "conteudo": "somente após realizados os passos descritos nos itens I e II acima, a participação da {{ sociedade.nomeFantasia }} em SOCIEDADES RELACIONADAS poderá ser cedida para TERCEIROS, observado ainda que a alienação de participações societárias (sejam ações ou quotas) e/ou títulos ou direitos de SOCIEDADES CONTROLADAS para TERCEIROS só poderá ser realizada após a apresentação de declaração assinada por todos os QUOTISTAS revelando que estes não possuem interesse na aquisição desses bens e direitos e que nenhum dos QUOTISTAS se opõe a referida alienação.",
   "flags": [
-   "acordo_tem_preferencia"
+   "acordo_tem_preferencia",
+   "acordo_preferencia_sobre_participacoes"
   ]
  },
  {
@@ -932,7 +936,8 @@
   "titulo": null,
   "conteudo": "a {{ sociedade.nomeFantasia }} deverá exigir das SOCIEDADES CONTROLADAS que seja respeitado o disposto nesta cláusula, bem como deverá assegurar nas sociedades em que seja sócia de TERCEIROS que o disposto nesta cláusula seja observado, inclusive tabulando com estes TERCEIROS eventuais acordos societários (acionistas ou quotistas), conforme o caso.",
   "flags": [
-   "acordo_tem_preferencia"
+   "acordo_tem_preferencia",
+   "acordo_preferencia_sobre_participacoes"
   ]
  },
  {
@@ -941,7 +946,8 @@
   "titulo": null,
   "conteudo": "O disposto no item anterior (exceto o item III) também deverá ser aplicado a todos os casos de alienação de bens imóveis, ou direitos relacionados a estes bens (incluindo imóveis arrendados, locados ou recebidos em parceria), vinculados ou não ao ativo circulante, de propriedade da {{ sociedade.nomeFantasia }} e/ou das SOCIEDADES RELACIONADAS a TERCEIROS ou até mesmo a um ou mais QUOTISTAS.",
   "flags": [
-   "acordo_tem_preferencia"
+   "acordo_tem_preferencia",
+   "acordo_preferencia_sobre_imoveis"
   ]
  },
  {
@@ -954,7 +960,10 @@
   "nome": "Acordo 137 Item — Todas as oportunidades de negócios e/ou novos investimentos …",
   "tipo": "item",
   "titulo": null,
-  "conteudo": "Todas as oportunidades de negócios e/ou novos investimentos relacionados aos ramos de atividade da {{ sociedade.nomeFantasia }} e das SOCIEDADES RELACIONADAS, que tenham como objeto bens imóveis (posse, propriedade, arrendamento ou parceria rurais, negócios jurídicos ou oportunidades que possam ser caracterizadas como ATIVIDADES CONCORRENTES que cheguem ao conhecimento dos QUOTISTAS deverão ser levados para conhecimento da ALTA ADMINISTRAÇÃO para que esta delibere sobre a viabilidade e execução, assegurado à {{ sociedade.nomeFantasia }} e suas SOCIEDADES RELACIONADAS a preferência para realizar tais negócios."
+  "conteudo": "Todas as oportunidades de negócios e/ou novos investimentos relacionados aos ramos de atividade da {{ sociedade.nomeFantasia }} e das SOCIEDADES RELACIONADAS, que tenham como objeto bens imóveis (posse, propriedade, arrendamento ou parceria rurais, negócios jurídicos ou oportunidades que possam ser caracterizadas como ATIVIDADES CONCORRENTES que cheguem ao conhecimento dos QUOTISTAS deverão ser levados para conhecimento da ALTA ADMINISTRAÇÃO para que esta delibere sobre a viabilidade e execução, assegurado à {{ sociedade.nomeFantasia }} e suas SOCIEDADES RELACIONADAS a preferência para realizar tais negócios.",
+  "flags": [
+   "acordo_preferencia_sobre_oportunidades"
+  ]
  },
  {
   "nome": "Acordo 138 Item — Os QUOTISTAS também se comprometem adotar o mesmo mecanismo …",
@@ -1419,7 +1428,7 @@
   "nome": "Acordo 214 Item — Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/c art.…",
   "tipo": "item",
   "titulo": null,
-  "conteudo": "Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/c art. 1.053, parágrafo único do Código Civil, os QUOTISTAS elegem o {{ acordo.representanteTratamento }} {{ acordo.representanteNome }} como representante dos QUOTISTAS, sendo que na sua falta ou incapacidade civil, a incumbência passará ao {{ acordo.substitutoRepresentanteTratamento }} {{ acordo.substitutoRepresentanteNome }}, os quais serão substituídos por outro QUOTISTA caso ocorra o falecimento ou seja declarada a incapacidade civil de ambos, conforme os QUOTISTAS decidam em REUNIÃO DE QUOTISTAS, convocada para este fim."
+  "conteudo": "Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/c art. 1.053, parágrafo único do Código Civil, os QUOTISTAS elegem {{ acordo.representanteArtigo }} {{ acordo.representanteTratamento }} {{ acordo.representanteNome }} como representante dos QUOTISTAS, sendo que na sua falta ou incapacidade civil, a incumbência passará {{ acordo.substitutoRepresentanteAo }} {{ acordo.substitutoRepresentanteTratamento }} {{ acordo.substitutoRepresentanteNome }}, os quais serão substituídos por outro QUOTISTA caso ocorra o falecimento ou seja declarada a incapacidade civil de ambos, conforme os QUOTISTAS decidam em REUNIÃO DE QUOTISTAS, convocada para este fim."
  },
  {
   "nome": "Acordo 215 Cláusula — Da Vigência e do arquivamento deste ACORDO",

@@ -245,6 +245,18 @@ function numeralCampo(id: string, label: string, derivadoDe: string): CampoEntid
  * da pergunta é publicado como um campo. `derivar` devolve string porque é isso
  * que uma seção {{#campo}} lê; booleano funcionaria por acaso.
  */
+/** Condicional ligado por UMA chave da lista de objetos da preferência. */
+function objetoDaPreferenciaCampo(id: string, chave: string, label: string): CampoEntidade {
+  return {
+    id,
+    label,
+    tipo: 'texto',
+    derivadoDe: 'objetosPreferenciaChaves',
+    derivar: (v) => ((v.objetosPreferenciaChaves ?? '')
+      .split(',').map((x) => x.trim()).includes(chave) ? 'sim' : ''),
+  };
+}
+
 function condicionalCampo(
   id: string,
   label: string,
@@ -1632,6 +1644,29 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         tipo: 'texto', interno: true },
       // A Cláusula Quinta trata das quotas; é a Décima que estende a imóveis,
       // máquinas e oportunidades, e ela só existe se houver algo além delas.
+      /*
+       * UM CONDICIONAL POR OBJETO, porque o modelo escreve cada um no seu lugar.
+       *
+       * Eu quase derrubei este campo por achar que o modelo não enumerava os
+       * objetos. Enumera, em prosa espalhada, e o título da Cláusula Décima já
+       * denuncia: "Do direito de preferência caso ocorra venda de SOCIEDADES
+       * RELACIONADAS, de imóveis ou oportunidades de negócios".
+       *
+       *   participacoes   os cinco blocos das SOCIEDADES RELACIONADAS
+       *   imoveis         o item que estende a bens imóveis
+       *   oportunidades   o item das oportunidades de negócio, na Décima Primeira
+       *
+       * `maquinas` e `equipamentos` NÃO ganham condicional: o modelo não os
+       * escreve em bloco nenhum, e a lista da tela nisso é vocabulário do
+       * AgroAliança. Marcá-los no cadastro não muda o documento, e é melhor que
+       * não mude a que eu invente cláusula que o escritório não redigiu.
+       */
+      objetoDaPreferenciaCampo('preferenciaSobreImoveis', 'imoveis',
+        'A preferência alcança bens imóveis? (condicional)'),
+      objetoDaPreferenciaCampo('preferenciaSobreParticipacoes', 'participacoes',
+        'A preferência alcança participações em SOCIEDADES RELACIONADAS? (condicional)'),
+      objetoDaPreferenciaCampo('preferenciaSobreOportunidades', 'oportunidades',
+        'A preferência alcança oportunidades de negócio? (condicional)'),
       {
         id: 'preferenciaAlemDasQuotas',
         label: 'A preferência vai além das quotas? (condicional)',
@@ -1839,6 +1874,20 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         derivadoDe: 'representanteGenero',
         derivar: (v) => concordar(v.representanteGenero === 'F' ? 'F' : 'M', 'Sr.', 'Sra.'),
       },
+      /*
+       * O ARTIGO TAMBÉM CONCORDA, e ele estava escrito fixo no bloco.
+       *
+       * A cláusula saía "os QUOTISTAS elegem o Sra. Ana Zamo" quando o
+       * representante era mulher. O tratamento já concordava; o artigo antes
+       * dele, não. Mesmo par do órgão de governança, que tem `artigo` e `ao`.
+       */
+      {
+        id: 'representanteArtigo',
+        label: 'Artigo do representante (o/a)',
+        tipo: 'texto',
+        derivadoDe: 'representanteGenero',
+        derivar: (v) => concordar(v.representanteGenero === 'F' ? 'F' : 'M', 'o', 'a'),
+      },
       condicionalCampo('temRepresentante', 'Há representante eleito? (condicional)',
         'representanteNome', (v) => !!(v.representanteNome ?? '').trim()),
       /*
@@ -1856,6 +1905,17 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         tipo: 'texto',
         derivadoDe: 'substitutoRepresentanteGenero',
         derivar: (v) => concordar(v.substitutoRepresentanteGenero === 'F' ? 'F' : 'M', 'Sr.', 'Sra.'),
+      },
+      /*
+       * "passará AO Sr." e "passará À Sra.": aqui é preposição com artigo, e não
+       * artigo solto, porque a frase é "a incumbência passará ao …".
+       */
+      {
+        id: 'substitutoRepresentanteAo',
+        label: 'Preposição do substituto (ao/à)',
+        tipo: 'texto',
+        derivadoDe: 'substitutoRepresentanteGenero',
+        derivar: (v) => concordar(v.substitutoRepresentanteGenero === 'F' ? 'F' : 'M', 'ao', 'à'),
       },
       /*
        * O FORO ELEITO, cláusula 26.6, e também a cidade da arbitragem, que é a
