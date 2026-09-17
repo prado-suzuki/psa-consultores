@@ -25,7 +25,7 @@ export const riseDelay = (index: number) => ({ animationDelay: `${index * 60}ms`
  * gavetas, que é o que o cliente vê do outro lado.
  */
 export const railContainerCls =
-  'rounded-2xl border border-osg-200/70 bg-white/70 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)]';
+  'rounded-2xl border border-osg-200/70 bg-card/70 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)]';
 
 /** Container do painel de trabalho. */
 export const panelContainerCls =
@@ -33,7 +33,7 @@ export const panelContainerCls =
 
 /** Card de grupo: superfície branca sobre a moldura, com a sombra tonal OSG. */
 export const groupCardCls =
-  'overflow-hidden rounded-xl border border-osg-300/60 bg-white/75 shadow-[0_8px_24px_-22px_hsl(var(--osg-700)/0.35)]';
+  'overflow-hidden rounded-xl border border-osg-300/60 bg-card/75 shadow-[0_8px_24px_-22px_hsl(var(--osg-700)/0.35)]';
 
 /** Micro-rótulo OSG (mesma assinatura do formKit/quadroKit). */
 export const microLabelCls = 'text-[11px] font-bold uppercase tracking-[0.14em] text-osg-700';

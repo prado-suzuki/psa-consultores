@@ -258,7 +258,7 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
         arquivosSemTipo={arquivosSemTipo}
       />
 
-      <div className="space-y-3 rounded-2xl border border-osg-200/70 bg-white/70 p-3 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)]">
+      <div className="space-y-3 rounded-2xl border border-osg-200/70 bg-card/70 p-3 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)]">
         <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-osg-100 bg-osg-50 p-1">
           {CATEGORIAS_FILTRO.map(({ value, label, substantivo, Icon }) => {
             const ativo = filtroCategoria === value;
@@ -426,7 +426,7 @@ function EstadoVazio({ titulo, descricao, acao }: {
   acao: { para: string; rotulo: string };
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-osg-300/70 bg-white/60 px-6 py-16 text-center shadow-sm">
+    <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-osg-300/70 bg-card/60 px-6 py-16 text-center shadow-sm">
       <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-osg-100 text-osg-moss"><ClipboardCheck className="h-7 w-7" /></span>
       <div>
         <p className="font-semibold text-osg-700">{titulo}</p>
@@ -441,7 +441,7 @@ function ResumoHero({ clienteNome, pct, base, recebidos, pendentes, encerrados }
   clienteNome: string; pct: number; base: number; recebidos: number; pendentes: number; encerrados: number;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-osg-300/60 bg-white/75 p-5 shadow-[0_14px_40px_-28px_hsl(var(--osg-700)/0.35)] sm:p-7">
+    <section className="relative overflow-hidden rounded-2xl border border-osg-300/60 bg-card/75 p-5 shadow-[0_14px_40px_-28px_hsl(var(--osg-700)/0.35)] sm:p-7">
       <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-osg-moss/5 blur-3xl" />
       <div className="relative grid gap-7 lg:grid-cols-[1fr_280px] lg:items-center">
         <div>
@@ -512,7 +512,7 @@ function EntityCard({ grupo, onOpen }: {
    * para o clique atravessar; só os chips reativam o ponteiro.
    */
   return (
-    <div className="group relative flex h-full min-h-48 w-full flex-col rounded-2xl border border-osg-300/60 bg-white/75 p-5 text-left shadow-[0_8px_24px_-22px_hsl(var(--osg-700)/0.35)] transition-all duration-200 hover:-translate-y-1 hover:border-osg-moss/40 hover:shadow-[0_16px_30px_-20px_hsl(var(--osg-moss)/0.24)] focus-within:border-osg-moss/40">
+    <div className="group relative flex h-full min-h-48 w-full flex-col rounded-2xl border border-osg-300/60 bg-card/75 p-5 text-left shadow-[0_8px_24px_-22px_hsl(var(--osg-700)/0.35)] transition-all duration-200 hover:-translate-y-1 hover:border-osg-moss/40 hover:shadow-[0_16px_30px_-20px_hsl(var(--osg-moss)/0.24)] focus-within:border-osg-moss/40">
       <button
         type="button"
         onClick={() => onOpen()}

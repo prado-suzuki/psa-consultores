@@ -42,7 +42,7 @@ export function GerencialFiltros({
   onAtualizar,
 }: GerencialFiltrosProps) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-border bg-white px-4 py-3">
+    <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
       <div className="flex min-w-0 flex-1 flex-wrap items-end gap-3">
         <div className="w-full space-y-1.5 sm:w-auto">
           <Label htmlFor="filtro-periodo-uso" className="text-xs text-muted-foreground">

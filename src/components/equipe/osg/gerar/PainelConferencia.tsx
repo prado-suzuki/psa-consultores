@@ -22,7 +22,7 @@ const SecaoPainel = ({ icone, titulo, contagem, children }: { icone: ReactNode; 
   <div className="space-y-2.5"><div className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground"><span className="text-osg-600 [&>svg]:h-4 [&>svg]:w-4">{icone}</span>{titulo}{contagem != null && <span className="ml-auto rounded-full bg-osg-100 px-1.5 py-px text-xs font-bold tabular-nums text-osg-700">{contagem}</span>}</div>{children}</div>
 );
 const AvisoPendencia = ({ children, acao, onAcao }: { children: ReactNode; acao?: string; onAcao?: () => void }) => (
-  <div className="space-y-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning"><div className="flex items-start gap-1.5"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span>{children}</span></div>{acao && <Button variant="outline" size="sm" className="h-8 border-warning/40 bg-white text-sm text-warning hover:bg-warning/20" onClick={onAcao}>{acao}</Button>}</div>
+  <div className="space-y-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning"><div className="flex items-start gap-1.5"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span>{children}</span></div>{acao && <Button variant="outline" size="sm" className="h-8 border-warning/40 bg-card text-sm text-warning hover:bg-warning/20" onClick={onAcao}>{acao}</Button>}</div>
 );
 
 const ListaNotificacoes = ({ linhas, naoLidas, onMarcarLido, marcando }: {
@@ -45,7 +45,7 @@ const ListaNotificacoes = ({ linhas, naoLidas, onMarcarLido, marcando }: {
     ) : (
       <ul className="space-y-2">
         {linhas.map((linha) => (
-          <li key={linha.key} className="rounded-md border border-osg-200/60 bg-white px-3 py-2 text-sm shadow-sm shadow-osg-300/10">
+          <li key={linha.key} className="rounded-md border border-osg-200/60 bg-card px-3 py-2 text-sm shadow-sm shadow-osg-300/10">
             <p className="leading-snug text-foreground">
               {linha.action === 'field' ? <><span className="font-semibold text-foreground">{linha.label}</span> de <em className="not-italic font-medium text-muted-foreground">{linha.entityName}</em> alterado para <span className="font-semibold text-osg-700">{linha.newValue}</span></> : <><em className="not-italic font-medium text-muted-foreground">{linha.entityName}</em> {linha.action === 'created' ? 'adicionado ao cadastro' : linha.action === 'deleted' ? 'removido do cadastro' : 'atualizado'}</>}
             </p>

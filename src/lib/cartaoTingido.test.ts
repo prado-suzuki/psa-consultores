@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { arquivosDeCodigo, medirCorCrua, PASTAS_DE_TELA } from '@/lib/medirCorCrua';
+import { arquivosDeCodigo, medirCorCrua, medirEmCaixaArredondada, PASTAS_DE_TELA } from '@/lib/medirCorCrua';
 import { corDoTema, hslParaRgb, luminancia, TEMAS, type Hsl } from '@/lib/paletaDeArea';
 
 /**
@@ -68,10 +68,6 @@ import { corDoTema, hslParaRgb, luminancia, TEMAS, type Hsl } from '@/lib/paleta
 
 const RAIZ = resolve(__dirname, '../..');
 
-/** O raio que faz de uma caixa um OBJETO. `rounded-full` (pílula) e
-    `rounded`/`rounded-sm` (chip, bloco de código) ficam de fora de propósito. */
-const CAIXA_ARREDONDADA = /\brounded-(?:md|lg|xl|2xl|3xl)\b/;
-
 /**
  * `bg-card` em repouso, com ou sem alfa.
  *
@@ -81,69 +77,6 @@ const CAIXA_ARREDONDADA = /\brounded-(?:md|lg|xl|2xl|3xl)\b/;
  * não existe hoje, mas nasceria calado — passe por aqui.
  */
 const CARTAO_CRU = /(?<![\w:.-])bg-card(?:\/\d{1,3})?(?![\w-])/g;
-
-/**
- * As linhas do arquivo, cada uma somada à EXPRESSÃO DE CLASSE que a contém.
- *
- * Sem isto a catraca lê linha a linha, e o `KpiHero` prova por que isso não
- * basta: ele abre `cn(` numa linha, declara `rounded-2xl` na seguinte e
- * `bg-card` três linhas abaixo. Linha a linha, o cartão que faz a massa branca
- * do meio do Dashboard — oito deles — passa invisível pela catraca que existe
- * para achá-lo.
- *
- * O recorte é o `className=` inteiro, incluindo `cn()` multilinha e template
- * literal. O teto de 2000 caracteres existe para um `{` desbalanceado dentro de
- * string não engolir o arquivo até o fim.
- */
-function linhasComAExpressaoDeClasse(texto: string): string[] {
-  const linhas = texto.split('\n');
-  const contexto = linhas.slice();
-  const inicioDaLinha: number[] = [];
-  let offset = 0;
-  for (const linha of linhas) {
-    inicioDaLinha.push(offset);
-    offset += linha.length + 1;
-  }
-  const linhaDe = (pos: number) => {
-    let i = inicioDaLinha.length - 1;
-    while (i > 0 && inicioDaLinha[i] > pos) i--;
-    return i;
-  };
-
-  const abertura = /className\s*=\s*/g;
-  let m: RegExpExecArray | null;
-  while ((m = abertura.exec(texto))) {
-    const inicio = m.index + m[0].length;
-    const fim = fimDaExpressao(texto, inicio);
-    if (fim === null) continue;
-    const trecho = texto.slice(inicio, fim).replace(/\s+/g, ' ');
-    for (let l = linhaDe(inicio); l <= linhaDe(fim - 1); l++) {
-      contexto[l] = `${linhas[l]} ${trecho}`;
-    }
-    abertura.lastIndex = fim;
-  }
-  return contexto;
-}
-
-/** O fim da expressão que começa em `inicio`: chaves balanceadas, ou a aspa de fechar. */
-function fimDaExpressao(texto: string, inicio: number): number | null {
-  const TETO = 2000;
-  const primeiro = texto[inicio];
-  if (primeiro === '"' || primeiro === "'" || primeiro === '`') {
-    const fim = texto.indexOf(primeiro, inicio + 1);
-    return fim === -1 || fim - inicio > TETO ? null : fim + 1;
-  }
-  if (primeiro !== '{') return null;
-  let profundidade = 0;
-  for (let i = inicio; i < texto.length && i - inicio < TETO; i++) {
-    if (texto[i] === '{') profundidade++;
-    else if (texto[i] === '}') {
-      profundidade--;
-      if (profundidade === 0) return i + 1;
-    }
-  }
-  return null;
-}
 
 /**
  * Tolerância da comparação de degrau, no teste do degrau sobre o cartão.
@@ -199,23 +132,8 @@ function razao(a: [number, number, number], b: [number, number, number]): number
  */
 const DEFINE_AS_DUAS_SUPERFICIES = 'src/components/ui/card.tsx';
 
-function medirCaixaBranca(): Record<string, number> {
-  const medido: Record<string, number> = {};
-  for (const pasta of PASTAS_DE_TELA) {
-    for (const caminho of arquivosDeCodigo(resolve(RAIZ, pasta))) {
-      if (relative(RAIZ, caminho).split(sep).join('/') === DEFINE_AS_DUAS_SUPERFICIES) continue;
-      const texto = readFileSync(caminho, 'utf8');
-      const contexto = linhasComAExpressaoDeClasse(texto);
-      let achados = 0;
-      texto.split('\n').forEach((linha, i) => {
-        if (!CAIXA_ARREDONDADA.test(contexto[i])) return;
-        achados += linha.match(CARTAO_CRU)?.length ?? 0;
-      });
-      if (achados) medido[relative(RAIZ, caminho).split(sep).join('/')] = achados;
-    }
-  }
-  return medido;
-}
+const medirCaixaBranca = () =>
+  medirEmCaixaArredondada(CARTAO_CRU, [DEFINE_AS_DUAS_SUPERFICIES]);
 
 /**
  * ⚠️ Ao mexer aqui, mexa por MOTIVO e não por arquivo solto.
@@ -255,6 +173,27 @@ type MotivoDeFicarBranca =
       documento que vai ser gerado. Papel é branco; ali o branco é o assunto, não
       a superfície. */
   | 'folha-de-papel'
+  /** **Decidido olhando, em 17/09/2026.** O cartão de conteúdo, o cabeçalho de
+      resumo e a lista vazia do lote 2 da fila do `bg-white`. O candidato tingido
+      estava montado ao lado, nas duas áreas, em
+      `comparacoes-de-cor/o-branco-literal-das-27.html`, e ela escolheu o claro
+      nos três papéis — o cabeçalho e a lista vazia com as palavras "gosto como
+      tá hoje" e "prefiro como tá hoje".
+
+      **Na OSG isso tem custo, e ele está aceito:** `--card` e `--background` da
+      `.osg-theme` são o MESMO valor (`32 28% 98.5%`), então a caixa fica a
+      1,000:1 contra a página e quem a segura é a borda. É o mesmo custo que a
+      caixa de tabela aceitou em 16/09 — e note que o branco LITERAL de antes
+      estava a 1,031:1, ou seja, a conversão perdeu separação ali. Perdeu de
+      propósito: o literal não acompanha tema nem área, e era branco frio no
+      meio da areia. */
+  | 'claro-decidido-olhando'
+  /** **É caixa de tabela.** Tabela se lê pelas linhas, e o hover de linha tem
+      teto — a decisão B de 16/09/2026. Estas duas estavam FORA de `<Card>`, que
+      é o recorte que fez a contagem daquele dia cair de 53 em 49 para 45 em 42,
+      então a decisão alcança elas sem ter sido reaberta. A `caixaDeTabela` cobra
+      a variante do `<Card>`; estas são `div`, e ficam aqui. */
+  | 'caixa-de-tabela'
   /** **O aviso já foi decidido, olhando.** Em `b63d6ede` o `ui/alert.tsx` trocou
       a mancha de cor por uma faixa lateral de 4px, e o texto subiu para 14,2:1
       justamente por ficar sobre branco. Tingir o fundo do aviso reabriria uma
@@ -295,8 +234,16 @@ const CAIXA_QUE_FICA_BRANCA: Record<MotivoDeFicarBranca, Record<string, number>>
     // segmentado, branca sobre a canaleta rebaixada. Com as seis que já estavam
     // acima, são DEZ cópias do mesmo controle escritas à mão em dez arquivos, e
     // isso é sinal de componente que não existe, não de dívida de cor.
-    'src/components/cliente/ChecklistDocumentosCliente.tsx': 1,
+    // Os dois checklists somam SEIS papéis entre eles, e não um: a pastilha
+    // (lote 1), a barra de filtros, a lista vazia, o cabeçalho e o cartão (lote
+    // 2). Entrada de arquivo é única por construção, então eles moram no motivo
+    // da pastilha e da barra — os dois que são controle de verdade — e o resto
+    // está no `claro-decidido-olhando`, que é de onde vieram.
+    'src/components/cliente/ChecklistDocumentosCliente.tsx': 4,
     'src/components/cliente/checklist/LinhaPendencia.tsx': 1,
+    'src/components/equipe/board/dashboard-uso-envio/GerencialFiltros.tsx': 1,
+    'src/components/equipe/kanban/KanbanFilters.tsx': 1,
+    'src/pages/equipe/EquipeKanban.tsx': 1,
     // Duas, e a segunda é a moldura do dashboard embutido: ali o branco é do
     // conteúdo de terceiro, que o `<iframe>` cobre inteiro. Fica no motivo do
     // botão, que é o que explica a maioria do arquivo.
@@ -305,7 +252,7 @@ const CAIXA_QUE_FICA_BRANCA: Record<MotivoDeFicarBranca, Record<string, number>>
     'src/components/equipe/dev/calculadora-ibs-cbs/por-estado/PorEstadoUfs.tsx': 1,
     'src/components/equipe/dev/procedimentos/AddProcedimentoModal.tsx': 1,
     'src/components/equipe/kanban/KanbanBoard.tsx': 1,
-    'src/components/equipe/osg/checklists/ChecklistPendentes.tsx': 1,
+    'src/components/equipe/osg/checklists/ChecklistPendentes.tsx': 5,
     'src/components/equipe/osg/documentos/classificar/ClassificarLevaDialog.tsx': 1,
     'src/components/shared/BotaoModelo.tsx': 1,
     'src/pages/equipe/osg/BibliotecaModelos.tsx': 1,
@@ -354,6 +301,27 @@ const CAIXA_QUE_FICA_BRANCA: Record<MotivoDeFicarBranca, Record<string, number>>
   },
   'aviso-decidido': {
     'src/components/ui/alert.tsx': 1,
+  },
+  'claro-decidido-olhando': {
+    'src/components/cliente/checklist/ResumoHero.tsx': 1,
+    'src/components/equipe/dev/dashboard-uso-envio/primitivos.tsx': 1,
+    // Duas no mesmo arquivo: o cartão de procedimento e o ESQUELETO dele. O
+    // esqueleto não é decisão — ele acompanha o cartão que substitui, senão a
+    // tela muda de cor ao terminar de carregar. Vale para o `ProcedimentosDev`,
+    // que é a terceira cópia do mesmo esqueleto, numa página.
+    'src/components/equipe/dev/procedimentos/ProcedimentoCard.tsx': 2,
+    'src/components/equipe/mapeamento/AreaAccordion.tsx': 1,
+    'src/components/equipe/osg/gerar/PainelConferencia.tsx': 2,
+    'src/components/equipe/osg/onboarding/OnboardingEmptyState.tsx': 1,
+    'src/components/equipe/osg/onboarding/onboardingKit.ts': 2,
+    'src/components/ui/onboarding-checklist.tsx': 1,
+    'src/pages/Ajuda.tsx': 1,
+    'src/pages/equipe/EquipeSprintDetalhes.tsx': 1,
+    'src/pages/equipe/dev/ProcedimentosDev.tsx': 1,
+  },
+  'caixa-de-tabela': {
+    'src/pages/equipe/EquipeRelatorios.tsx': 1,
+    'src/pages/equipe/dev/MapaNCMPisCofins.tsx': 1,
   },
 };
 

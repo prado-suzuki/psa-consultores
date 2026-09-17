@@ -413,7 +413,7 @@
                </div>
              </CardHeader>
              <CardContent className="p-0">
-               <div className="border rounded-lg overflow-hidden bg-white">
+               <div className="border rounded-lg overflow-hidden bg-card">
                  <iframe
                    srcDoc={previewHtml}
                    className="w-full h-[600px] border-0"

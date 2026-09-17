@@ -10,7 +10,7 @@ export function ResumoHero({ pct, total, recebidos, faltando }: {
   pct: number; total: number; recebidos: number; faltando: number;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-border/80 bg-white/80 p-5 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.4)] sm:p-7">
+    <section className="relative overflow-hidden rounded-2xl border border-border/80 bg-card/80 p-5 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.4)] sm:p-7">
       <div aria-hidden className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
       <div className="relative grid gap-7 lg:grid-cols-[1fr_240px] lg:items-center">
         <div>

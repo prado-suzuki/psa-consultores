@@ -384,7 +384,7 @@ export const Painel = ({
 }: CardProps) => (
   <section
     className={cn(
-      'rounded-xl border border-border bg-white shadow-[0_1px_2px_rgba(3,7,18,.04)]',
+      'rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(3,7,18,.04)]',
       className,
     )}
   >

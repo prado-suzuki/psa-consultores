@@ -100,7 +100,47 @@ e não de cor, e mistura duas medições — o mesmo erro que a conversão dos 2
 evitou em 12/09. Fica registrado com o número dos dois lados: **7 das 60** ocorrências
 estão nessa duplicação, e ela é a razão de 2 dos 3 arquivos mais concentrados da lista.
 
-## O que fazer
+## ✅ CONCLUÍDO em 17/09/2026
+
+Os 47 converteram, em dois lotes, e a fila caiu de **60 para 13** no recorte de caixa
+(139 → 92 no total das pastas de tela). Os 13 são exatamente os que este inventário
+manda ficar.
+
+**Lote 1 — 20 casos, sem decisão dela.** Controle, conteúdo dentro de cartão e caixa
+sobre painel rebaixado. `bg-white` → `bg-card`, pixel idêntico na casa. **A catraca do
+cartão pegou sozinha:** os 20 `bg-card` novos caem no inventário dela, que exige o motivo
+de cada caixa clara — reprovou antes da classificação e passou depois, o que é a prova
+nos dois sentidos sem precisar fabricar o defeito.
+
+**Lote 2 — 27 casos, decididos olhando**
+[`o-branco-literal-das-27.html`](../../geral/comparacoes-de-cor/o-branco-literal-das-27.html),
+que montou cada papel nas duas áreas, branco contra tingido. **Ela escolheu claro nos
+quatro papéis**, com estas palavras: o cabeçalho de resumo, "gosto como tá hoje"; a lista
+vazia, "prefiro como tá hoje"; a barra de filtros, "claro com token tá ok"; e o cartão de
+conteúdo, escolhido entre três candidatos desenhados. A caixa de tabela (2) seguiu a
+decisão B de 16/09 sem decisão nova.
+
+**O achado que mudou o lote 2, e não estava previsto:** na OSG, `--card` e `--background`
+são o **mesmo valor** (`32 28% 98.5%`). Uma caixa que vire `bg-card` ali fica a
+**1,000:1** contra a página — some, e quem a segura é a borda. O `bg-white` literal, que
+era `#FFFFFF` de verdade, estava a **1,031:1**. Ou seja, **a conversão perdeu separação
+na OSG**, de propósito: é o mesmo custo que a caixa de tabela aceitou em 16/09, pago em
+troca de a caixa acompanhar tema e área. Tingir era a única saída que separava de fato
+(1,072:1), e foi recusada olhando.
+
+**Catraca `filaDoBranco.test.ts`**, com três asserções: o inventário dos 13 por motivo
+(igualdade exata, cai nos dois sentidos), a de arquivo em dois grupos, e o **total fora
+do recorte de caixa** — essa última existe porque confundir os dois recortes foi
+exatamente o erro que fez o índice prometer 142. Provada reintroduzindo o defeito antes
+do commit: reprova com ele, passa sem ele.
+
+**Achado de método:** a varredura por expressão de classe vivia dentro da
+`cartaoTingido`, e esta foi a segunda catraca a precisar dela. Subiu para o
+`medirCorCrua.ts` como `medirEmCaixaArredondada`, que é a razão de aquele módulo existir
+— o próprio arquivo avisava que uma terceira cópia do mesmo caminhar seria o defeito que
+estas catracas passam o dia consertando em outros lugares.
+
+## O plano, como foi escrito
 
 1. **Converter os 47**, na ordem da concentração (Análise Inteligente primeiro: 6 numa
    sequência só, e é o recorte mais barato de validar olhando).
