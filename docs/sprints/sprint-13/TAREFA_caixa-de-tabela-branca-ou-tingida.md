@@ -60,11 +60,14 @@ zebra e contra o realce de hover, que são feitos do mesmo `--muted`.
 
 ---
 
-## D1 · A decisão · 🔵 ABERTA
+## D1 · A decisão · ✅ **DECIDIDA em 16/09/2026: opção B, tabela BRANCA**
 
-**Tabela dentro de cartão fica branca ou tingida?**
+> "pode fazer a opção B, tabela branca" — Patrícia, 16/09/2026, diante da
+> comparação montada.
 
-📄 **A comparação está montada:**
+**Executada no mesmo dia**, em quatro commits (ver "O que foi feito", no fim).
+
+📄 A comparação que sustentou:
 [`geral/comparacoes-de-cor/a-caixa-da-tabela.html`](../../geral/comparacoes-de-cor/a-caixa-da-tabela.html)
 — abrir no navegador. Valores do `src/index.css` de 16/09/2026.
 
@@ -140,41 +143,56 @@ conta que o navegador faz). As cores de zebra e hover estão escritas **composta
 página, opacas, e não como alfa sobre alfa: alfa empilhado no navegador daria um terceiro
 número, e o que a página compara são os números do produto.
 
-### T2 · O caminho de código, conforme a resposta
+### T2 · O caminho de código · ✅ CONCLUÍDO (16/09/2026)
 
-**Se B (branca — recomendada):** a caixa de tabela ganha superfície própria. Duas saídas,
-e a escolha é de implementação, não dela:
+Saída escolhida: **variante do `<Card>`**, e não componente próprio. `<Card variant="tabela">`
+mantém raio, borda e sombra e só troca o fundo, então nenhum consumidor mudou de forma.
 
-- variante do `<Card>` (ex.: `<Card variant="tabela">`), que mantém raio, borda e sombra
-  e só troca o fundo;
-- ou a caixa de tabela deixa de ser `<Card>` e passa a ser um componente próprio.
+**A contagem do plano estava errada, e a passada a corrigiu.** "53 caixas em 49 arquivos"
+saiu de contar `<Table>` nos arquivos que **também** têm `<Card>` — havia tabela fora de
+cartão no meio. Casando cada `<Card>` com o `</Card>` dele e perguntando se há `<Table>`
+dentro: **45 cartões em 42 arquivos**.
 
-Os 49 arquivos precisam de passada, e a asserção de igualdade exata do
-`cartaoTingido.test.ts` cobra cada um. A entrada
-`'src/components/equipe/adm-fin/TabelasDaOs.tsx'` **sai** do grupo `dentro-do-cartao`.
+⚠️ **E o recorte é por BLOCO, não por arquivo.** Nos mesmos 42 arquivos existem **95 outros
+`<Card>` que não envolvem tabela**, e todos continuam tingidos. Pintar por arquivo teria
+repintado 95 cartões que ninguém pediu.
 
-⚠️ **Conferir na tela, não só no número:** com a caixa branca sobre a página a 1,000:1, a
-borda passa a ser a única coisa que segura a caixa. A página mede o contraste, mas quem
-diz se a borda basta é ela, olhando uma tela cheia.
+Duas armadilhas de varredura por texto, as duas registradas porque se repõem sozinhas:
 
-**Se A (tingida — manter):** reverter `55aba66b` na parte do `Quadro` e tirar a mesma
-entrada do inventário. Um arquivo. E a tabela do Adm & Fin volta a ficar verde.
+1. A primeira passada injetou `variant="tabela"` **dentro de um comentário** do `card.tsx` —
+   o JSDoc que eu acabara de escrever cita `<Card>` e `<Table>` em prosa, o que fez o
+   arquivo passar no filtro e a prosa casar com o padrão.
+2. A segunda tentou mascarar comentários e literais, e **um apóstrofo em texto JSX** abriu
+   uma "string" que nunca fecha: o `ControleBalancetes.tsx` foi mascarado inteiro e sumiu
+   da passada, calado. Só apareceu porque a contagem caiu de 45 para 44.
 
-**Se C (degrau recomposto):** dois tokens novos no `tailwind.config.ts` — a zebra a 38% e
-o hover no máximo de `--muted` —, mais a catraca que recalcula os dois a partir do
-`index.css`, no molde do `cartaoTingido.test.ts`. A regra de **qual** zebra usar conforme
-a caixa tem de virar código; regra que mora só em documento não sobrevive à próxima tela,
-que é o que esta tarefa está consertando.
+E duas no próprio `card.tsx`, a mesma causa: **dois testes leem esse arquivo como TEXTO.**
+O ternário (`variant ? "bg-card" : "bg-superficie-cartao"`) desmontou a string literal e
+derrubou a asserção da alavanca do `cartaoTingido`; passar a sobrepor consertou aquela, mas
+o comentário **entre o `cn(` e o literal** derrubou a derivação de token do
+`eslint-rules/token-nao-sobrescrito`, que casa `/\b(?:cn|cva)\(\s*"([^"]+)"/` e exige o
+literal colado — o `<Card>` sumiu do mapa da regra de ESLint, calado. A forma final mantém
+a string base inteira, literal e colada, com a variante sobrepondo depois.
 
-### T3 · A catraca acompanha a decisão
+### T3 · A catraca acompanha a decisão · ✅ CONCLUÍDO (16/09/2026)
 
-Qualquer que seja a resposta, o `cartaoTingido.test.ts` tem de passar a **cobrar** a
-regra nova, não só inventariar quem fugiu dela. Hoje ele pergunta "esta caixa branca
-está na lista?"; se a tabela virar branca por padrão, a pergunta certa passa a ser
-"esta caixa de tabela está tingida?" — a catraca inverte de lado para esse recorte.
+Catraca nova: [`src/lib/caixaDeTabela.test.ts`](../../../src/lib/caixaDeTabela.test.ts).
+Ela pergunta **"este cartão de tabela está branco?"**, o oposto do que a `cartaoTingido`
+pergunta ("esta caixa branca está autorizada?"). As duas convivem porque cobrem regras
+opostas sobre o mesmo componente, e o que separa uma da outra é ter `<Table>` dentro.
 
-Sem isso a próxima tabela nasce tingida de novo, porque `<Card>` continua sendo o que
-parece certo escrever.
+Três asserções, e a segunda existe porque a primeira sozinha é furada: **apagar a variante
+do `<Card>` faria os 45 voltarem a ser tingidos de uma vez**, com o atributo seguindo
+escrito e sem efeito, e a primeira continuaria verde. Ela cobra também a **ordem** — `cn`
+deixa a última classe vencer, então a variante antes da string base faria a tinta ganhar.
+A terceira trava o erro de medição por arquivo.
+
+Provada nos dois sentidos antes do commit: tirando a variante de um cartão ela aponta
+`GestaoNovidades.tsx:453`; apagando a variante do componente ela diz que sumiu do `<Card>`.
+
+**Limite conhecido, escrito no cabeçalho:** o casamento é textual e dentro do mesmo
+arquivo, então `<Card>` que renderiza uma tabela vinda de componente filho não é visto. A
+alternativa seria varredura de tipos, que nenhuma catraca daqui faz.
 
 ---
 
@@ -199,11 +217,32 @@ parece certo escrever.
 | item | estado |
 |---|---|
 | T1 · página de comparação remontada | ✅ **CONCLUÍDO (16/09/2026)** — [`a-caixa-da-tabela.html`](../../geral/comparacoes-de-cor/a-caixa-da-tabela.html) |
-| D1 · tingida (A), branca (B) ou degrau recomposto (C) | 🔵 **ABERTA, e é só o que falta** — recomendada **B**, pelo teto do hover |
-| T2 · caminho de código | ⛔ bloqueada em D1 |
-| T3 · catraca acompanha | ⛔ bloqueada em D1 |
+| D1 · tingida (A), branca (B) ou degrau recomposto (C) | ✅ **DECIDIDA (16/09/2026): B, tabela branca** |
+| T2 · caminho de código | ✅ **CONCLUÍDO (16/09/2026)** — 45 cartões em 42 arquivos |
+| T3 · catraca acompanha | ✅ **CONCLUÍDO (16/09/2026)** — `caixaDeTabela.test.ts` |
 
-**O que está no ar hoje, e por que não é urgente:** a exceção do Adm & Fin foi inscrita
-em `e28fdb0e` para destravar a CI, que estava vermelha há 22h. Nenhuma tela mudou de
-aparência. A dívida é a assimetria — 52 tingidas contra 1 branca, sem regra escrita —, e
-ela envelhece a cada tela nova com tabela.
+## O que foi feito, por raio de revert
+
+| commit | o que é | reverte sozinho? |
+|---|---|---|
+| `66a7cdaf` | a variante `tabela` no `<Card>`, **sem consumidor** — não muda um pixel | sim |
+| `f66e5476` | os 45 cartões ganham a variante — **é o commit que muda pixel** | sim |
+| `cd1a7d94` | a catraca `caixaDeTabela` passa a cobrar a regra | sim |
+| `9228f385` | o Adm & Fin deixa de escrever `bg-card` à mão e sai do inventário | sim |
+
+Para desfazer a mudança visual sem perder o resto, reverta só o `f66e5476`.
+
+**Validado:** `bun run build` ✓ · `bun run typecheck` 0 erros ✓ · suíte **478 arquivos,
+6133 testes, todos passando** ✓.
+
+⚠️ **Falta a conferência na TELA, e é dela.** Com a caixa branca sobre a página a 1,000:1,
+a borda passa a ser a única coisa que segura a caixa. A comparação mede o contraste, mas
+quem diz se a borda basta é ela, olhando uma tela cheia — e o caso mais exposto é a
+família de lista, onde o cartão de tabela se apoia direto na página (Consulta ECD,
+Controle de Balancetes, Correções SPED). Onde há superfície tingida atrás, o custo some.
+
+**Nota histórica:** a exceção do Adm & Fin foi inscrita em `e28fdb0e` para destravar a CI,
+que estava vermelha há 22h. Foi ao ler essa inscrição que ela fez a pergunta que abriu esta
+tarefa. A entrada saiu em `9228f385` — não porque a caixa deixou de ser branca, mas porque
+deixou de ser exceção. **A assimetria que era a dívida (45 tingidas por herança contra 1
+branca escolhida) está paga, e o que a impede de voltar é a `caixaDeTabela.test.ts`.**
