@@ -40,6 +40,30 @@ export function GerarDocumentoEscolhas({ controller }: { controller: GerarDocume
   baixarVersao, folhaEstado, infoFolha, temPainel, mostraSocios, mostraAdministradores,
   mostraIntegralizacoes,
 } = controller;
+
+  /*
+   * O PASSO 2 PERGUNTA A MESMA COISA EM DOIS DOCUMENTOS DIFERENTES, e a pergunta
+   * não é a mesma.
+   *
+   * No Contrato Social a empresa é o objeto do instrumento e não há o que
+   * escolher: é aquela. No Acordo de Quotistas o cliente tem três, quatro PJ
+   * cadastradas e só uma delas é a acordada — e o texto dizia "a empresa do
+   * contrato", que nem contrato é, e prometia "capital", que o Acordo não usa.
+   * Quem pergunta não sabia por qual critério escolher.
+   *
+   * O tipo vem do BINDING, e não de uma lista de nomes de modelo: modelo se
+   * renomeia, binding é o que o documento realmente pede.
+   */
+  const ehAcordo = bindings.some((b) => b.tipo === 'acordoQuotistas');
+  const tituloDoPasso2 = !precisaEmpresa
+    ? 'Escolha os registros do documento'
+    : ehAcordo ? 'De qual empresa é este Acordo?' : 'Escolha a empresa do contrato';
+  const descricaoDoPasso2 = !precisaEmpresa
+    ? 'Aponte de quem é cada papel do documento'
+    : ehAcordo
+      ? 'A empresa de quem os signatários são sócios. Ela assina como INTERVENIENTE ANUENTE.'
+      : 'Sócios, administradores e capital carregam sozinhos do cadastro dela';
+
   return (
     <>
         {/* Fase de escolhas: só os passos, numa coluna central estreita — a
@@ -98,12 +122,8 @@ export function GerarDocumentoEscolhas({ controller }: { controller: GerarDocume
         {modeloPronto && precisaSelecoes && (
           <PassoCard
             numero={2}
-            titulo={precisaEmpresa ? 'Escolha a empresa do contrato' : 'Escolha os registros do documento'}
-            descricao={
-              precisaEmpresa
-                ? 'Sócios, administradores e capital carregam sozinhos do cadastro dela'
-                : 'Aponte de quem é cada papel do documento'
-            }
+            titulo={tituloDoPasso2}
+            descricao={descricaoDoPasso2}
             estado={passo2Estado}
             resumo={resumoPasso2}
             onTrocar={() => setPassoAberto(2)}
