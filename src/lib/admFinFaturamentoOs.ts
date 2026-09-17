@@ -119,6 +119,42 @@ export interface RawCentroCustoOs {
   nome: string;
 }
 
+/**
+ * `audit_logs` das OS, na hora em que a OS NASCEU — é a única fonte de quem
+ * criou cada uma.
+ *
+ * `ordem_servico` NÃO TEM `created_by` (conferido nos dois bancos em
+ * 17/09/2026): a tabela guarda `created_at` e mais nada sobre autoria. Quem
+ * escreve o nome da pessoa é o log do salvamento do cadastro de cliente
+ * (`useSaveClientTransaction`), com `entity_type = 'ordem_servico'` e
+ * `action = 'created'`.
+ *
+ * E ESSE LOG NÃO É INDEXADO PELA OS. No momento em que ele é escrito a OS acabou
+ * de ser inserida e o código ainda não tem o id dela, então grava
+ * `entity_id = c._dbId || auditClienteId` — ou seja, o ID DO CLIENTE. Medido em
+ * produção em 17/09/2026: dos 179 logs `created` de OS, ZERO batem com um
+ * `ordem_servico.id`; todos batem com um `cliente.id`. Por isso o casamento aqui
+ * é pelo PAR (cliente, número da OS), que é o que o log de fato carrega —
+ * `entity_name` é o número. Cobertura: 148 das 154 OS de produção, nenhuma
+ * ambígua; as 6 restantes são anteriores ao log e ficam sem criador, o que a
+ * tela mostra como ausência, não como chute.
+ */
+export interface RawLogCriacaoOs {
+  /** O id do CLIENTE, não o da OS — ver acima. */
+  entity_id: string;
+  /** O número da OS, ou '(sem número)' quando ela foi salva sem número. */
+  entity_name: string;
+  performed_by: string;
+  performed_at: string;
+}
+
+/** `profiles_safe` — id e nome de quem tem conta, legível por todo team_member. */
+export interface RawPerfilNome {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+}
+
 // ── A linha da tabela ──────────────────────────────────────────────────
 
 /** Uma fatia do rateio, já com o nome do centro de custo resolvido. */
@@ -148,6 +184,11 @@ export interface LinhaFaturamentoOs {
   cliente_nome: string;
   /** `created_at` da OS: quando ela ENTROU no sistema, que é a ordem da tela. */
   entrou_em: string | null;
+  /**
+   * Quem cadastrou a OS, pelo nome. `null` quando não há log de criação —
+   * OS anterior à trilha de auditoria (ver `RawLogCriacaoOs`).
+   */
+  criado_por: string | null;
   situacao: string | null;
   situacao_label: string;
   // o contrato: o que foi vendido e quando
@@ -337,6 +378,56 @@ function contatosPorClienteId(
 }
 
 /**
+ * A chave do casamento entre OS e log de criação: cliente + número da OS.
+ *
+ * O `'(sem número)'` NÃO é enfeite — é literalmente o que
+ * `useSaveClientTransaction` grava em `entity_name` quando a OS é salva sem
+ * número (`c.ordem_servico || '(sem número)'`). Repetir o mesmo texto dos dois
+ * lados é o que faz a OS sem número também encontrar o criador dela.
+ */
+function chaveDaCriacao(clienteId: string, numeroOs: string | null): string {
+  return `${clienteId} ${numeroOs || '(sem número)'}`;
+}
+
+/**
+ * O nome de quem criou cada OS, indexado pela chave acima.
+ *
+ * O LOG MAIS ANTIGO VENCE, e por isso `performed_at` vem no `select`: se o mesmo
+ * par (cliente, número) tiver mais de um log `created` — OS excluída e recriada
+ * com o mesmo número, por exemplo —, o primeiro é o que corresponde à criação.
+ * Não há nenhum caso assim em produção hoje (conferido em 17/09/2026), mas a
+ * regra precisa ser determinística: sem ela a resposta dependeria da ordem em
+ * que o PostgREST devolvesse as linhas.
+ *
+ * Autor sem perfil legível fica de fora em vez de virar UUID na tela: o que a
+ * Patricia pediu é o NOME de quem escreveu a OS, e um id não responde isso.
+ */
+function criadorPorOs(
+  logs: RawLogCriacaoOs[],
+  perfis: RawPerfilNome[],
+): Map<string, string> {
+  const nomePorId = new Map<string, string>();
+  for (const perfil of perfis) {
+    const nome = `${perfil.first_name ?? ''} ${perfil.last_name ?? ''}`.trim();
+    if (nome) nomePorId.set(perfil.id, nome);
+  }
+
+  const maisAntigo = new Map<string, RawLogCriacaoOs>();
+  for (const log of logs) {
+    const chave = chaveDaCriacao(log.entity_id, log.entity_name);
+    const atual = maisAntigo.get(chave);
+    if (!atual || log.performed_at < atual.performed_at) maisAntigo.set(chave, log);
+  }
+
+  const mapa = new Map<string, string>();
+  for (const [chave, log] of maisAntigo) {
+    const nome = nomePorId.get(log.performed_by);
+    if (nome) mapa.set(chave, nome);
+  }
+  return mapa;
+}
+
+/**
  * Monta as linhas da tabela.
  *
  * A OS SEM CLIENTE NA LISTA SAI, e isso é o recorte de ambiente desta tela:
@@ -361,11 +452,14 @@ export function montarLinhasFaturamentoOs(input: {
   produtosDaOs?: RawProdutoDaOs[];
   produtos?: RawProdutoSegmentoOs[];
   representantes?: RawRepresentante[];
+  logsCriacao?: RawLogCriacaoOs[];
+  perfis?: RawPerfilNome[];
 }): LinhaFaturamentoOs[] {
   const { os, clientes, contribuintes, clusters, rateio, centrosCusto } = input;
   const servicoPorId = new Map((input.servicos ?? []).map((s) => [s.id, s.nome] as const));
   const produtosPorOs = produtosPorOrdemServico(input.produtosDaOs ?? [], input.produtos ?? []);
   const contatosPorCliente = contatosPorClienteId(input.representantes ?? []);
+  const criadores = criadorPorOs(input.logsCriacao ?? [], input.perfis ?? []);
   const clientePorId = new Map(clientes.map((c) => [c.id, c] as const));
   const contribuintePorId = new Map(contribuintes.map((c) => [c.id, c] as const));
   const clusterPorId = new Map(clusters.map((c) => [c.id, c] as const));
@@ -384,6 +478,7 @@ export function montarLinhasFaturamentoOs(input: {
       cliente_id: cliente.id,
       cliente_nome: cliente.nome,
       entrou_em: o.created_at,
+      criado_por: criadores.get(chaveDaCriacao(cliente.id, o.numero_os)) ?? null,
       situacao: o.situacao,
       situacao_label: situacaoLabel(o.situacao),
       servico_nome: o.id_servico ? servicoPorId.get(o.id_servico) ?? null : null,

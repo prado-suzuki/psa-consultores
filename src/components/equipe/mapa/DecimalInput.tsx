@@ -5,6 +5,7 @@
 // via onChange e a exibição só é normalizada quando o campo perde o foco.
 
 import { useState, type CSSProperties } from 'react';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface Props {
   value: number;
@@ -40,13 +41,13 @@ export default function DecimalInput({ value, onChange, placeholder, title, clas
   };
 
   return (
+    <ElementTooltip text={title}>
     <input
       type="text"
       inputMode="decimal"
       className={className}
       style={style}
       placeholder={placeholder}
-      title={title}
       value={focused ? text : fmt(value)}
       onFocus={() => { setText(fmt(value)); setFocused(true); }}
       onBlur={() => {
@@ -62,5 +63,6 @@ export default function DecimalInput({ value, onChange, placeholder, title, clas
         onChange(clamp(parse(e.target.value)));
       }}
     />
+    </ElementTooltip>
   );
 }

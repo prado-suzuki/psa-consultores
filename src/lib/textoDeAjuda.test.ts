@@ -96,7 +96,7 @@ function titlesEmTagNativa(): { porArquivo: Record<string, number>; ambiguas: nu
 }
 
 /**
- * A dívida do `title=`: **8 ocorrências em 6 arquivos**, nenhuma ambígua.
+ * A dívida do `title=`: **zero**. Fechada em 17/09/2026.
  *
  * Histórico do número, em 17/09/2026, porque ele conta duas coisas diferentes:
  *
@@ -104,14 +104,16 @@ function titlesEmTagNativa(): { porArquivo: Record<string, number>; ambiguas: nu
  *   (ver o parser, acima). O real era **217**;
  * - **215** depois do lote 1 (os dois `title` de erro do Board);
  * - **89** depois do lote 2, que converteu os **126 botões** para `ButtonTooltip`;
- * - **8** depois do lote 3, que converteu os 81 restantes para `ElementTooltip`.
+ * - **8** depois do lote 3, que converteu os 81 restantes para `ElementTooltip`;
+ * - **0** depois do lote 4, os 8 que o script não deu conta (JSX com tag aninhada de mesmo
+ *   nome, `<input>` sem fechamento casado, e um arquivo escrito em linha única), feitos à
+ *   mão.
  *
- * Os 8 que sobraram **não são exceção de padrão, são dívida de conversão**: seis arquivos
- * onde o script de migração produziu JSX inválido (elemento aninhado de mesmo nome, ou
- * `<input>` sem fechamento) e que foram revertidos em vez de commitados quebrados. Vão à
- * mão, e este número vai a zero — sobrando só os 8 `<iframe>`, que o padrão mantém.
+ * **A dívida fechou.** O que sobra são os 8 `<iframe>`, que o padrão mantém porque ali
+ * `title` é título de quadro, e a lista de tags acima não os inclui. Daqui para frente este
+ * teste não guarda dívida nenhuma: qualquer `title=` novo em tag nativa é regressão.
  */
-const TITLE_NATIVO_LEGADO = 8;
+const TITLE_NATIVO_LEGADO = 0;
 
 /**
  * Placeholder de escolha ou de busca fora das quatro formas canônicas (§3 do documento):
@@ -188,7 +190,7 @@ describe('o texto que explica a tela', () => {
     expect(
       quantos,
       'A dívida do `title=` mudou de tamanho.\n\n'
-        + `Congelado: ${TITLE_NATIVO_LEGADO} em 6 arquivos (mais ${ambiguas} ambígua).\n`
+        + `Congelado: ${TITLE_NATIVO_LEGADO} em 0 arquivos (mais ${ambiguas} ambígua).\n`
         + `Agora: ${quantos} em ${Object.keys(porArquivo).length}.\n\n`
         + 'SUBIU: `title=` não é mecanismo de explicação — o do navegador não aparece no\n'
         + 'toque, não tem tema e demora a abrir. Use `<Tooltip>` para explicar e\n'
