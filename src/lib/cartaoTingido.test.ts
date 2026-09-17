@@ -296,14 +296,12 @@ const CAIXA_QUE_FICA_BRANCA: Record<MotivoDeFicarBranca, Record<string, number>>
     // "nenhum arquivo aparece em dois motivos" —, então ela mora no motivo que
     // explica a maioria e o resto está escrito aqui.
     'src/components/equipe/daily/DailyQuickStatusDialog.tsx': 4,
-    // As quatro tabelas da OS do Adm & Fin, dentro da casca
-    // `ListaMestreDetalhe`, que é `bg-superficie-cartao`. Decidido OLHANDO, em
-    // 15/09/2026: tabela sem fundo próprio herda o tingido da casca e a tela
-    // inteira lê verde, porque o `--muted` desta casa puxa para lá ("tá tudo
-    // verde, o padrão não é sem fundo"). É o segundo degrau da escada — campo
-    // claro dentro de cartão tingido —, com a faixa de cabeçalho em `bg-muted`
-    // por cima. O motivo está escrito no próprio componente.
-    'src/components/equipe/adm-fin/TabelasDaOs.tsx': 1,
+    // O `TabelasDaOs.tsx` do Adm & Fin ESTEVE AQUI, por um dia, e saiu em
+    // 16/09/2026 — não porque a caixa deixou de ser branca, mas porque ela deixou
+    // de ser exceção. Ele foi o único caso do repositório, e a pergunta dela ao
+    // vê-lo inscrito aqui ("então não é padrão ser branco? aí tem que mudar o
+    // padrão") abriu a frente que virou a variante `tabela` do `<Card>`. Quem
+    // guarda o caso agora é a `caixaDeTabela.test.ts`, que cobra o contrário.
     'src/components/equipe/fiscal/tasks/kanban/TaskKanbanSubtaskRow.tsx': 1,
     'src/components/equipe/osg/diagnostico-patrimonial/titularidade/TitularidadeLinha.tsx': 1,
     'src/components/equipe/osg/diagnostico-patrimonial/exploracao-rural/ImoveisPanel.tsx': 1,

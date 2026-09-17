@@ -1,3 +1,4 @@
+import { Card } from '@/components/ui/card';
 import { SectionHeading } from '@/components/ui/section-heading';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrencyDisplay, isoToMasked } from '@/components/equipe/client-form/constants';
@@ -41,14 +42,22 @@ const Quadro = ({ titulo, children }: { titulo: string; children: React.ReactNod
         separado. */}
     <SectionHeading>{titulo}</SectionHeading>
     {/*
-      `bg-card` e não a superfície do cartão: este painel já está DENTRO da casca
-      `ListaMestreDetalhe`, que é `bg-superficie-cartao` (35% de `--muted`, e o
-      `--muted` desta casa puxa para o verde). Tabela sem fundo próprio herda esse
-      tingido e a tela inteira lê verde — "tá tudo verde, o padrão não é sem
-      fundo" (Patricia, 15/09/2026). Branco do cartão embaixo, faixa de cabeçalho
-      em `bg-muted` em cima: é o degrau que as outras tabelas do produto usam.
+      `<Card variant="tabela">`, que é a REGRA desde 16/09/2026 — e não mais o
+      `bg-card` à mão que esta tela escrevia, nem a exceção que ele obrigava a
+      inscrever no inventário da catraca.
+
+      O caso nasceu aqui: este painel está dentro da casca `ListaMestreDetalhe`,
+      que é `bg-superficie-cartao`, e tabela sem fundo próprio herdava esse
+      tingido — "tá tudo verde, o padrão não é sem fundo" (Patricia, 15/09/2026).
+      Ao ler que isso tinha virado exceção, ela mandou mudar o PADRÃO, e a
+      comparação em `docs/geral/comparacoes-de-cor/a-caixa-da-tabela.html` mostrou
+      por quê: o hover de linha tem teto sobre o cartão tingido.
+
+      `rounded-md` e `shadow-none` ficam: são as quatro tabelas curtas de um
+      painel interno, não quatro objetos soltos numa página. A superfície é que
+      passou a vir do componente.
     */}
-    <div className="overflow-hidden rounded-md border bg-card">{children}</div>
+    <Card variant="tabela" className="overflow-hidden rounded-md shadow-none">{children}</Card>
   </section>
 );
 
