@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AGRUPAMENTO_PADRAO,
   FILTROS_VAZIOS,
+  GRUPO_SEM_PROJETO,
+  GRUPO_SEM_RESPONSAVEL,
   ORDEM_INICIAL,
   ORDEM_PADRAO,
   SEM_PROJETO,
+  agruparControle,
   filtrarControle,
   montarControleDeProjetos,
   opcoesDoControle,
@@ -587,5 +591,143 @@ describe('executor e gestor', () => {
     );
     expect(doisDonos).toHaveLength(1);
     expect(doisDonos[0].executores).toEqual(['Elvis Souza', 'Monica Matunaga']);
+  });
+});
+
+describe('agruparControle', () => {
+  const linhas = montar(
+    [ordem(), ordem({ id: 'os-2', id_cliente: 'c-2' })],
+    [
+      { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+      { ordem_servico_id: 'os-1', produto_segmento_id: 'p-suc' },
+      { ordem_servico_id: 'os-1', produto_segmento_id: 'p-trib' },
+      { ordem_servico_id: 'os-2', produto_segmento_id: 'p-gov' },
+    ],
+    [
+      projeto({ id: 'proj-1', produto_segmento_id: 'p-gov', responsible_id: 'u-2' }),
+      projeto({ id: 'proj-2', produto_segmento_id: 'p-suc', responsible_id: 'u-2' }),
+      projeto({
+        id: 'proj-3',
+        produto_segmento_id: 'p-trib',
+        responsible_id: 'u-3',
+        leader_id: null,
+      }),
+    ],
+  );
+
+  it('"nenhum" não agrupa: é a tabela plana, que é como a tela abre', () => {
+    expect(agruparControle(linhas, 'nenhum')).toBeNull();
+    expect(AGRUPAMENTO_PADRAO).toBe('nenhum');
+  });
+
+  it('separa "sem projeto aberto" de "projeto sem responsável"', () => {
+    // São ações diferentes: um precisa ser criado, o outro precisa de um campo.
+    const mistas = montar(
+      [ordem()],
+      [
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-suc' },
+      ],
+      [projeto({ produto_segmento_id: 'p-suc', responsible_id: null })],
+    );
+    const grupos = agruparControle(mistas, 'executor') ?? [];
+    expect(grupos.map((g) => g.chave)).toEqual([GRUPO_SEM_PROJETO, GRUPO_SEM_RESPONSAVEL]);
+    expect(grupos.map((g) => g.rotulo)).toEqual(['Sem projeto aberto', 'Projeto sem responsável']);
+    expect(grupos[0].linhas[0].produtoNome).toBe('Governança');
+    expect(grupos[1].linhas[0].produtoNome).toBe('Planejamento Sucessório');
+  });
+
+  it('põe os dois grupos sem gente PRIMEIRO, porque são o achado da tela', () => {
+    const grupos = agruparControle(linhas, 'executor') ?? [];
+    expect(grupos[0].semProjeto).toBe(true);
+    expect(grupos[0].linhas).toHaveLength(1);
+  });
+
+  it('ordena os executores do maior para o menor', () => {
+    const grupos = agruparControle(linhas, 'executor') ?? [];
+    expect(grupos.slice(1).map((g) => `${g.chave}:${g.linhas.length}`)).toEqual([
+      'Elvis Souza:2',
+      'Monica Matunaga:1',
+    ]);
+  });
+
+  it('dentro do grupo, o prazo mais próximo fica na primeira linha', () => {
+    // É o que a tela entrega ao agrupar, e ela só entrega porque o agrupamento
+    // PRESERVA a ordem que recebe. Agrupar reordenando quebraria isto sem
+    // quebrar nenhum teste de `ordenarControle`.
+    const doExecutor = montar(
+      [
+        ordem({ id: 'os-1', data_fim: '2027-06-30' }),
+        ordem({ id: 'os-2', numero_os: '097/2026', data_fim: '2026-10-05' }),
+        ordem({ id: 'os-3', numero_os: '098/2026', data_fim: null }),
+      ],
+      [
+        { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-2', produto_segmento_id: 'p-gov' },
+        { ordem_servico_id: 'os-3', produto_segmento_id: 'p-gov' },
+      ],
+      [
+        projeto({ id: 'proj-1', ordem_servico_id: 'os-1' }),
+        projeto({ id: 'proj-2', ordem_servico_id: 'os-2' }),
+        projeto({ id: 'proj-3', ordem_servico_id: 'os-3' }),
+      ],
+    );
+    const grupos = agruparControle(ordenarControle(doExecutor, ORDEM_INICIAL), 'executor') ?? [];
+    expect(grupos[0].chave).toBe('Elvis Souza');
+    expect(grupos[0].linhas.map((l) => l.dataFim)).toEqual(['2026-10-05', '2027-06-30', null]);
+  });
+
+  it('conta clientes distintos e vencidas por grupo', () => {
+    const grupos = agruparControle(linhas, 'executor') ?? [];
+    expect(grupos.find((g) => g.chave === 'Elvis Souza')?.clientes).toBe(1);
+    expect(grupos.every((g) => g.vencidas === 0)).toBe(true);
+  });
+
+  it('põe o produto de dois executores nos dois grupos', () => {
+    // A soma passa do total de propósito: a pergunta é "o que é meu", e uma
+    // linha de duas pessoas é de cada uma delas. Sem agrupamento ela continua
+    // aparecendo uma vez só, com os dois nomes na coluna.
+    const doisDonos = montar(
+      [ordem()],
+      [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
+      [
+        projeto({ id: 'proj-1', responsible_id: 'u-2' }),
+        projeto({ id: 'proj-2', responsible_id: 'u-3' }),
+      ],
+    );
+    const grupos = agruparControle(doisDonos, 'executor') ?? [];
+    expect(grupos.map((g) => g.chave).sort()).toEqual(['Elvis Souza', 'Monica Matunaga']);
+    expect(grupos.every((g) => g.linhas.length === 1)).toBe(true);
+  });
+
+  it('por cliente, agrupa pelo ID e ordena alfabeticamente', () => {
+    // Pelo id, e não pelo nome: dois clientes podem ter o mesmo nome, e a linha
+    // do cliente fora do alcance da RLS se chama "Cliente não identificado".
+    const grupos = agruparControle(linhas, 'cliente') ?? [];
+    expect(grupos.map((g) => g.rotulo)).toEqual(['Anversa', 'Di Domenico']);
+    expect(grupos.map((g) => g.chave)).toEqual(['c-2', 'c-1']);
+    expect(grupos.map((g) => g.linhas.length)).toEqual([1, 3]);
+    expect(grupos.every((g) => g.clientes === 1)).toBe(true);
+  });
+
+  it('por produto, junta o mesmo produto de clientes diferentes', () => {
+    const grupos = agruparControle(linhas, 'produto') ?? [];
+    expect(grupos.map((g) => `${g.rotulo}:${g.linhas.length}`)).toEqual([
+      'Governança:2',
+      'Planejamento Sucessório:1',
+      'Planejamento Tributário:1',
+    ]);
+    expect(grupos[0].clientes).toBe(2);
+  });
+
+  it('não cria grupo sem gente fora do critério executor', () => {
+    // Produto sem projeto tem cliente e tem produto: só o executor é que falta.
+    const semProjeto = montar([ordem()], [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }]);
+    expect((agruparControle(semProjeto, 'cliente') ?? []).map((g) => g.rotulo)).toEqual([
+      'Di Domenico',
+    ]);
+    expect((agruparControle(semProjeto, 'executor') ?? []).map((g) => g.chave)).toEqual([
+      GRUPO_SEM_PROJETO,
+    ]);
   });
 });

@@ -1,4 +1,4 @@
-import { Building2, Filter, MapPin, Search, X } from 'lucide-react';
+import { Building2, Filter, Layers, MapPin, Search, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import {
 import {
   FILTROS_VAZIOS,
   statusLabel,
+  type AgrupamentoDoControle,
   type FiltrosDoControle,
   type LinhaDoControle,
 } from '@/lib/osgControleDeProjetos';
@@ -24,6 +25,8 @@ interface Props {
   total: number;
   visiveis: number;
   vencidas: number;
+  agrupamento: AgrupamentoDoControle;
+  setAgrupamento: (agrupamento: AgrupamentoDoControle) => void;
 }
 
 /**
@@ -41,6 +44,8 @@ export function ControleDeProjetosToolbar({
   total,
   visiveis,
   vencidas,
+  agrupamento,
+  setAgrupamento,
 }: Props) {
   const temFiltro = Boolean(filtros.busca || filtros.status || filtros.regiao || filtros.area);
 
@@ -123,6 +128,31 @@ export function ControleDeProjetosToolbar({
                 {getRegiaoLabel(regiao)}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+
+        {/*
+          O agrupamento fica DEPOIS dos filtros e fora do "Limpar" de propósito:
+          ele não esconde linha nenhuma, só muda como as mesmas linhas se
+          arrumam. Zerá-lo junto com os filtros tiraria da pessoa a leitura que
+          ela escolheu por causa de um gesto que era sobre outra coisa.
+
+          São três critérios, e não os nove da tabela: Área, Status e Região já
+          são filtro aqui ao lado — ver `agruparControle`.
+        */}
+        <Select
+          value={agrupamento}
+          onValueChange={(valor) => setAgrupamento(valor as AgrupamentoDoControle)}
+        >
+          <SelectTrigger className="w-56" aria-label="Agrupar a tabela">
+            <Layers className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+            <SelectValue placeholder="Agrupar por" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="nenhum">Sem agrupamento</SelectItem>
+            <SelectItem value="executor">Agrupar por Responsável Executor</SelectItem>
+            <SelectItem value="cliente">Agrupar por Cliente</SelectItem>
+            <SelectItem value="produto">Agrupar por Produto Contratado</SelectItem>
           </SelectContent>
         </Select>
 

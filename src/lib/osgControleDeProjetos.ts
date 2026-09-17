@@ -543,3 +543,149 @@ export function ordenarControle(
     return comparaPadrao(a, b);
   });
 }
+
+/* ── Agrupar por ─────────────────────────────────────────────────────────
+ *
+ * A tabela é PLANA por padrão, e o agrupamento é uma escolha da barra — mesmo
+ * desenho do "Agrupar por" da tela de Projetos (`groupProjects` em
+ * `projetosCadastro.ts`), que é de onde esta tela já tira o modal.
+ *
+ * A tela abriu agrupada por executor até 17/09/2026. O agrupamento fixo era o
+ * problema, não o agrupamento: quem quer ler "o que é de cada um" liga o
+ * critério, e quem quer ler a tabela inteira não paga bloco para abrir.
+ *
+ * TRÊS CRITÉRIOS, e não os nove que a tabela tem de coluna. Área, Status e
+ * Região já são FILTRO na mesma barra — agrupar por eles seria a mesma
+ * pergunta respondida duas vezes. Sobram os três eixos pelos quais a planilha
+ * era lida: quem toca, de quem é, e o que foi vendido.
+ *
+ * NO CRITÉRIO EXECUTOR, SÃO DOIS GRUPOS SEM GENTE, E NÃO UM. A primeira versão
+ * juntava os dois num "sem responsável" de 131 linhas, e eles pedem ações
+ * diferentes:
+ *
+ * - **Sem projeto aberto** (127 em produção): produto vendido, numa OS
+ *   assinada, sem linha em `org_projects`. Não há o que delegar, há o que
+ *   CRIAR. Parte deles é trabalho que aconteceu fora da ferramenta e nunca foi
+ *   registrado, e o banco não distingue os dois casos — a tela afirma só o que
+ *   sabe, que é "isto foi vendido e não está sendo acompanhado aqui".
+ * - **Projeto sem responsável** (4): a linha existe, o `responsible_id` está
+ *   nulo. Aí sim é um campo a preencher.
+ *
+ * Os dois vêm PRIMEIRO, nessa ordem, porque não são sobra: são o que a tela
+ * descobriu. Enterrá-los embaixo dos executores esconderia o achado.
+ *
+ * Produto com dois executores entra nos DOIS grupos. A soma das contagens passa
+ * do total, e é o certo: a pergunta que o agrupamento responde é "o que é meu",
+ * e uma linha que é de duas pessoas é de cada uma delas. Sem agrupamento a
+ * linha continua aparecendo uma vez só, com os dois nomes na coluna.
+ */
+
+export type AgrupamentoDoControle = 'nenhum' | 'executor' | 'cliente' | 'produto';
+
+/** Como a tela abre: plana. */
+export const AGRUPAMENTO_PADRAO: AgrupamentoDoControle = 'nenhum';
+
+/** As duas chaves reservadas dos grupos sem gente, no critério executor. */
+export const GRUPO_SEM_PROJETO = '__sem_projeto__';
+export const GRUPO_SEM_RESPONSAVEL = '__sem_responsavel__';
+
+export interface GrupoDoControle {
+  /** Única por grupo: nome do executor, id do cliente ou do produto, ou uma das reservadas. */
+  chave: string;
+  /** O que a faixa escreve. */
+  rotulo: string;
+  linhas: LinhaDoControle[];
+  /** Clientes distintos dentro do grupo. A faixa esconde isto quando agrupa POR cliente. */
+  clientes: number;
+  /** Linhas com prazo vencido dentro do grupo. */
+  vencidas: number;
+  /** Produto vendido sem projeto criado: não há o que delegar, há o que criar. */
+  semProjeto: boolean;
+  /** Projeto criado com `responsible_id` nulo: aí sim é um campo a preencher. */
+  semResponsavel: boolean;
+}
+
+/** As chaves de grupo de uma linha. Só o executor pode devolver mais de uma. */
+function chavesDoGrupo(
+  linha: LinhaDoControle,
+  criterio: Exclude<AgrupamentoDoControle, 'nenhum'>,
+): Array<{ chave: string; rotulo: string }> {
+  if (criterio === 'cliente') {
+    return [{ chave: linha.clienteId, rotulo: linha.clienteNome }];
+  }
+  if (criterio === 'produto') {
+    return [{ chave: linha.produtoId, rotulo: linha.produtoNome }];
+  }
+  if (linha.executores.length > 0) {
+    return linha.executores.map((nome) => ({ chave: nome, rotulo: nome }));
+  }
+  return linha.status === SEM_PROJETO
+    ? [{ chave: GRUPO_SEM_PROJETO, rotulo: 'Sem projeto aberto' }]
+    : [{ chave: GRUPO_SEM_RESPONSAVEL, rotulo: 'Projeto sem responsável' }];
+}
+
+/**
+ * Agrupa pelo critério pedido, PRESERVANDO a ordem que recebe: é isso que faz
+ * cada grupo abrir com o prazo mais próximo em cima, sem o agrupamento ter de
+ * saber da ordenação. `'nenhum'` devolve `null`, que é a tabela plana.
+ *
+ * A ORDEM DOS GRUPOS MUDA COM O CRITÉRIO, de propósito:
+ *
+ * - **Executor:** os dois grupos sem gente primeiro (ver o cabeçalho desta
+ *   seção), depois do maior para o menor — quem carrega dez produtos é quem a
+ *   tela precisa mostrar antes. Empate desempata por nome, para a ordem não
+ *   depender do que o banco devolveu.
+ * - **Cliente e produto:** alfabético, que é como se procura um nome que já se
+ *   sabe. Ordenar cliente por tamanho faria caçar. Mesma regra do
+ *   `groupProjects` de Projetos, incluindo o "Sem ..." por último.
+ */
+export function agruparControle(
+  linhas: LinhaDoControle[],
+  criterio: AgrupamentoDoControle,
+): GrupoDoControle[] | null {
+  if (criterio === 'nenhum') return null;
+
+  const porChave = new Map<string, GrupoDoControle>();
+  for (const linha of linhas) {
+    for (const { chave, rotulo } of chavesDoGrupo(linha, criterio)) {
+      const atual = porChave.get(chave);
+      if (atual) {
+        atual.linhas.push(linha);
+        continue;
+      }
+      porChave.set(chave, {
+        chave,
+        rotulo,
+        linhas: [linha],
+        clientes: 0,
+        vencidas: 0,
+        semProjeto: chave === GRUPO_SEM_PROJETO,
+        semResponsavel: chave === GRUPO_SEM_RESPONSAVEL,
+      });
+    }
+  }
+
+  const grupos = [...porChave.values()];
+  for (const grupo of grupos) {
+    grupo.clientes = new Set(grupo.linhas.map((linha) => linha.clienteId)).size;
+    grupo.vencidas = grupo.linhas.filter((linha) => linha.prazoVencido).length;
+  }
+
+  if (criterio !== 'executor') {
+    return grupos.sort((a, b) => {
+      const aSem = a.rotulo.startsWith('Sem ');
+      const bSem = b.rotulo.startsWith('Sem ');
+      if (aSem !== bSem) return aSem ? 1 : -1;
+      return a.rotulo.localeCompare(b.rotulo, 'pt-BR');
+    });
+  }
+
+  // Ordem fixa nos dois primeiros: "sem projeto" antes de "sem responsável",
+  // porque criar é o gesto maior e o grupo é trinta vezes maior.
+  const peso = (grupo: GrupoDoControle) => (grupo.semProjeto ? 0 : grupo.semResponsavel ? 1 : 2);
+  return grupos.sort((a, b) => {
+    if (peso(a) !== peso(b)) return peso(a) - peso(b);
+    if (a.linhas.length !== b.linhas.length) return b.linhas.length - a.linhas.length;
+    return a.rotulo.localeCompare(b.rotulo, 'pt-BR');
+  });
+}
