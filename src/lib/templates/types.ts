@@ -31,6 +31,14 @@ export interface Bloco {
    * de uma alteração contratual é um documento embutido e começa outra série.
    */
   reiniciaNumeracao?: boolean;
+  /**
+   * Abre PÁGINA NOVA antes deste bloco no .docx — o Anexo Único dos instrumentos
+   * agrários sai em folha própria, no mesmo arquivo. Declarado no catálogo
+   * (`tmpl_bloco.quebra_pagina_antes`), como `reiniciaNumeracao`.
+   *
+   * A prévia em tela não muda: página é coisa do arquivo, não do HTML.
+   */
+  quebraPaginaAntes?: boolean;
   /** Flags que precisam estar TODAS ativas para o bloco entrar (AND simples; sem OR, sem negação). */
   flagsRequeridas?: string[];
   /** Se true, entra sempre, ignorando flags. */

@@ -389,3 +389,29 @@ describe('export .docx (formatação do modelo de referência)', () => {
     expect(xml).not.toContain('}}');
   });
 });
+
+describe('quebra de página declarada no bloco', () => {
+  // `quebraPaginaAntes` vem de `tmpl_bloco.quebra_pagina_antes` (migration
+  // 20260916173000): é o que faz o Anexo Único sair em folha própria sem precisar
+  // virar arquivo separado.
+  const comAnexo = (quebra: boolean): Bloco[] => [
+    bloco('fecho', 'livre', 'Fulano de Tal'),
+    { ...bloco('anexo', 'livre', '*ANEXO ÚNICO*'), quebraPaginaAntes: quebra },
+  ];
+
+  it('bloco marcado abre página nova; sem a marca, nada muda', async () => {
+    const comQuebra = await parteXml(await montarDocx(comAnexo(true)), /word\/document\.xml$/);
+    const semQuebra = await parteXml(await montarDocx(comAnexo(false)), /word\/document\.xml$/);
+
+    expect(comQuebra).toContain('w:type="page"');
+    expect(semQuebra).not.toContain('w:type="page"');
+  });
+
+  it('o primeiro bloco do documento não leva quebra — sobraria uma folha em branco', async () => {
+    const doc = await montarDocx([
+      { ...bloco('capa', 'livre', '*INSTRUMENTO*'), quebraPaginaAntes: true },
+      bloco('corpo', 'clausula', 'Texto da cláusula.'),
+    ]);
+    expect(await parteXml(doc, /word\/document\.xml$/)).not.toContain('w:type="page"');
+  });
+});
