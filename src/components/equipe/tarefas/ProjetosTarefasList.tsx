@@ -69,6 +69,7 @@ import {
   type EsforcoTarefa,
 } from '@/lib/projetosTarefasEsforco';
 import type { ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface ProjetosTarefasListProps {
   area: AreaKey;
@@ -538,9 +539,9 @@ export function ProjetosTarefasList({
               junto do recuo e do cotovelo — e a única que funciona mesmo quando
               a subtarefa é a primeira coisa que se vê ao rolar. O desktop
               mantém as duas iguais, que é como sempre foi. */}
-          <button
+          <ButtonTooltip text={task.title}>
+            <button aria-label={task.title}
             type="button"
-            title={task.title}
             className={cn(
               'line-clamp-2 break-words text-left text-foreground hover:underline',
               depth > 0 ? 'font-medium max-md:text-[0.8125rem] max-md:font-normal' : 'font-medium',
@@ -549,6 +550,7 @@ export function ProjetosTarefasList({
           >
             {task.title}
           </button>
+          </ButtonTooltip>
           <ContadorTarefas total={children.length} concluidas={children.filter(child => child.task.status === 'done').length} />
         </div>
         <div className="flex items-center px-3 py-1.5">
@@ -784,7 +786,9 @@ export function ProjetosTarefasList({
                   />}
                 </span>
                 <FolderKanban className="h-4 w-4 shrink-0 text-primary" />
-                <button type="button" disabled={!projectNode.project} onClick={() => projectNode.project && onEditProject(projectNode.project)} title={projectNode.project?.name} className="line-clamp-2 break-words text-left font-semibold hover:underline disabled:no-underline">{projectNode.project ? shortProjectName(projectNode.project.name, group.clientName, group.os?.numero_os) : 'Sem projeto'}</button>
+                <ButtonTooltip text={projectNode.project?.name}>
+                  <button aria-label={projectNode.project?.name} type="button" disabled={!projectNode.project} onClick={() => projectNode.project && onEditProject(projectNode.project)} className="line-clamp-2 break-words text-left font-semibold hover:underline disabled:no-underline">{projectNode.project ? shortProjectName(projectNode.project.name, group.clientName, group.os?.numero_os) : 'Sem projeto'}</button>
+                </ButtonTooltip>
                 <ContadorTarefas total={projectNode.taskCount} concluidas={projectNode.completedTaskCount} />
               </div>
               {/* Pílula de status do projeto: a mesma fonte do modal de projeto

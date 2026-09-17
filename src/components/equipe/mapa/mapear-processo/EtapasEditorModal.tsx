@@ -12,6 +12,7 @@ import { formatDecimal } from '@/utils/format';
 import { dica } from '@/utils/tooltips';
 import { sumHorasEtapa } from '@/lib/mapearProcessoModel';
 import type { EtapasEditorController } from '@/components/equipe/mapa/mapear-processo/useEtapasEditor';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 const EXECUCAO_OPCOES = [
   { value: 'manual', label: 'Manual' },
@@ -57,7 +58,9 @@ export function EtapasEditorModal({ editor, docNames, sisNames, respNames }: Pro
                   </li>;
                 })}
               </ol>
-              {podeMexerEstrutura && <button className="etapas-sidebar-add" onClick={editor.add} title="Adicionar nova etapa ao final"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Adicionar etapa</button>}
+              {podeMexerEstrutura && <ButtonTooltip text="Adicionar nova etapa ao final">
+                <button aria-label="Adicionar nova etapa ao final" className="etapas-sidebar-add" onClick={editor.add}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Adicionar etapa</button>
+              </ButtonTooltip>}
             </aside>
             <div className="etapas-form-area">
               <div className="modal-section">
@@ -83,7 +86,9 @@ export function EtapasEditorModal({ editor, docNames, sisNames, respNames }: Pro
               <div className="modal-section"><div className="modal-section-title"><Tooltip text={dica('mapear.secao.sistemas')}>Sistemas</Tooltip></div><FormField label="Sistemas" compact tooltip={dica('mapear.etapa.sistemas')}><ChipSelector options={sisNames} value={active.sistemas || []} onChange={value => editor.updateField(editor.activeIndex, 'sistemas', value as string[])} compact onAddNew={() => { editor.setQuickAddCampo('sistemas'); editor.setCadastroRapido('sistema'); }} addNewLabel="Cadastrar novo sistema" /></FormField>{(active.sistemas || []).filter(Boolean).length > 0 && <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'hsl(var(--slate-500))' }}>O rateio (%) do custo por cluster é configurado em <strong>Sistemas → editar sistema → Rateio por cluster</strong>.</div>}</div>
             </div>
           </div>
-          <div className="modal-footer">{podeMexerEstrutura ? <button className="btn-delete-etapa" onClick={() => editor.remove(editor.activeIndex)} disabled={editor.list.length <= 1} title={editor.list.length <= 1 ? 'O processo precisa de ao menos uma etapa' : 'Excluir esta etapa'}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>Excluir esta etapa</button> : <span />}<div className="modal-footer-actions"><button className="btn-cancel" onClick={editor.requestClose}>Cancelar</button><button className="btn-save" onClick={editor.save} disabled={editor.saving}>{editor.saving ? 'Salvando...' : 'Salvar todas'}</button></div></div>
+          <div className="modal-footer">{podeMexerEstrutura ? <ButtonTooltip text={editor.list.length <= 1 ? 'O processo precisa de ao menos uma etapa' : 'Excluir esta etapa'}>
+            <button aria-label={editor.list.length <= 1 ? 'O processo precisa de ao menos uma etapa' : 'Excluir esta etapa'} className="btn-delete-etapa" onClick={() => editor.remove(editor.activeIndex)} disabled={editor.list.length <= 1}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>Excluir esta etapa</button>
+          </ButtonTooltip> : <span />}<div className="modal-footer-actions"><button className="btn-cancel" onClick={editor.requestClose}>Cancelar</button><button className="btn-save" onClick={editor.save} disabled={editor.saving}>{editor.saving ? 'Salvando...' : 'Salvar todas'}</button></div></div>
           {editor.confirmClose && <div className="mapear-confirm-sair" role="alertdialog" aria-modal="true"><div className="mapear-confirm-card"><h3>Sair sem salvar?</h3><p>Há alterações não salvas neste mapeamento. Elas ficam guardadas como rascunho para a próxima vez, mas não vão para o banco até você clicar em <strong>"Salvar todas"</strong>.</p><div className="modal-actions"><button type="button" className="btn-cancel" onClick={() => editor.setConfirmClose(false)}>Continuar editando</button><button type="button" className="btn-save" onClick={editor.leaveWithoutSaving}>Sair sem salvar</button></div></div></div>}
         </div>
       )}

@@ -5,6 +5,7 @@ import { HelpCircle } from 'lucide-react';
 import { useMapaTour } from '@/components/equipe/mapa/tour/useMapaTour';
 import { isTourSeen, markTourSeen } from '@/components/equipe/mapa/tour/tourStorage';
 import type { TourId } from '@/components/equipe/mapa/tour/tours';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface ModalProps {
   isOpen: boolean;
@@ -63,27 +64,29 @@ export default function Modal({ isOpen, onClose, children, tourId }: ModalProps)
           <div className="modal-shell">
             <div className="modal-toolbar">
               {tourId && (
-                <button
+                <ButtonTooltip text="Ver tour deste modal">
+                  <button
                   type="button"
                   className="mapa-tour-trigger modal-tour-trigger"
                   data-tour="modal-help"
                   onClick={() => startTour(tourId)}
                   aria-label="Ver tour deste modal"
-                  title="Ver tour deste modal"
                 >
                   <HelpCircle size={18} strokeWidth={2} />
                 </button>
+                </ButtonTooltip>
               )}
-              <button
+              <ButtonTooltip text="Sair">
+                <button
                 type="button"
                 className="modal-exit-button"
                 onClick={onClose}
                 aria-label="Sair do modal"
-                title="Sair"
               >
                 <span aria-hidden="true">×</span>
                 <span>Sair</span>
               </button>
+              </ButtonTooltip>
             </div>
             {children}
           </div>

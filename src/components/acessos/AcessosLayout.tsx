@@ -22,6 +22,7 @@ import {
   classesGavetaBarra,
   larguraBarraCss,
 } from '@/lib/sidebarMedidas';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * A barra lateral do Controle de Acessos.
@@ -111,19 +112,20 @@ export const AcessosLayout = ({ secao, onSecaoChange, children }: AcessosLayoutP
 
         <nav className="p-4 space-y-1">
           {SECOES_DE_ACESSOS.map((item) => (
-            <button
-              key={item.id}
+            <ButtonTooltip key={item.id} text={trilho ? item.label : undefined}>
+              <button aria-label={trilho ? item.label : undefined}
+             
               type="button"
               // O cromo é o compartilhado: pílula cheia no ativo, quadrado de
               // 40px no trilho. Sem ele esta barra nasceria com a tinta de 10%
               // que as outras oito já deixaram para trás.
               className={classesItemDaBarra({ ativo: secao === item.id, trilho })}
               onClick={() => escolher(item.id)}
-              title={trilho ? item.label : undefined}
             >
               <item.icon className="h-4 w-4 flex-shrink-0" />
               {!trilho && <span className="flex-1 text-left">{item.label}</span>}
             </button>
+            </ButtonTooltip>
           ))}
         </nav>
 

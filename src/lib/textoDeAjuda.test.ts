@@ -96,21 +96,20 @@ function titlesEmTagNativa(): { porArquivo: Record<string, number>; ambiguas: nu
 }
 
 /**
- * A dívida do `title=`: **215 ocorrências em 107 arquivos**, mais 1 tag ambígua.
+ * A dívida do `title=`: **89 ocorrências em 56 arquivos**, nenhuma ambígua.
  *
- * O número nasceu "143" em 17/09/2026 e foi corrigido no mesmo dia — **não porque a dívida
- * cresceu, mas porque a medição estava errada** (ver o parser, acima). Os dois `title` de
- * erro do `BoardPreenchimentoSistema`, pagos no lote 1, já estão descontados daqui.
+ * Histórico do número, em 17/09/2026, porque ele conta duas coisas diferentes:
  *
- * O documento **não manda converter as 215** — ele existe para impedir a 216ª. Essa
- * separação é deliberada: decidir o padrão é uma tarefa, pagar a dívida é outra, e
- * misturá-las foi o que fez o padrão não existir até agora.
+ * - nasceu **"143"**, e estava errado — a medição não via `title` depois de arrow function
+ *   (ver o parser, acima). O real era **217**;
+ * - **215** depois do lote 1 da conversão (os dois `title` de erro do Board);
+ * - **89** depois do lote 2, que converteu os **126 botões** para `ButtonTooltip`. O que
+ *   resta é `span` 61, `div` 16, `p` 6 e mais 6 avulsos — nenhum deles botão.
  *
- * Quando a conversão andar, este número desce junto, no mesmo commit. O teste reprovando
- * por queda é feature, não atrito: o número aqui é o retrato de uma dívida, e retrato
- * desatualizado é como o índice passou meses dizendo "142".
+ * Os 61 de `span` são o grupo do texto cortado em tabela, decidido por ela: converte. É o
+ * próximo lote, e este número desce junto com ele, no mesmo commit.
  */
-const TITLE_NATIVO_LEGADO = 215;
+const TITLE_NATIVO_LEGADO = 89;
 
 /**
  * Placeholder de escolha ou de busca fora das quatro formas canônicas (§3 do documento):
@@ -187,7 +186,7 @@ describe('o texto que explica a tela', () => {
     expect(
       quantos,
       'A dívida do `title=` mudou de tamanho.\n\n'
-        + `Congelado: ${TITLE_NATIVO_LEGADO} em 107 arquivos (mais ${ambiguas} ambígua).\n`
+        + `Congelado: ${TITLE_NATIVO_LEGADO} em 56 arquivos (mais ${ambiguas} ambígua).\n`
         + `Agora: ${quantos} em ${Object.keys(porArquivo).length}.\n\n`
         + 'SUBIU: `title=` não é mecanismo de explicação — o do navegador não aparece no\n'
         + 'toque, não tem tema e demora a abrir. Use `<Tooltip>` para explicar e\n'

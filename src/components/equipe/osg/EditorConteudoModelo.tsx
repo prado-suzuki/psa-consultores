@@ -15,6 +15,7 @@ import type { PlaceholderSugerido } from '@/lib/templates/binding';
 import { docParaString, stringParaDoc } from '@/lib/templates/editorDoc';
 import { PlaceholderChip } from './extensions/PlaceholderChip';
 import { SUGESTAO_PLUGIN_KEY, SugestaoPlaceholders } from './extensions/sugestaoPlaceholders';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 // Editor de conteúdo de modelos (TipTap): WYSIWYG de verdade — negrito/itálico/
 // sublinhado renderizados (sem delimitadores visíveis) e placeholders {{ }}
@@ -244,10 +245,10 @@ export function EditorConteudoModelo({
     <div ref={containerRef} className="relative">
       <div className="mb-1.5 flex items-center gap-0.5">
         {BOTOES.map(({ mark, titulo, Icone, aplicar }) => (
-          <button
-            key={mark}
+          <ButtonTooltip key={mark} text={titulo}>
+            <button aria-label={titulo}
+           
             type="button"
-            title={titulo}
             // preventDefault no mousedown: não rouba o foco nem desfaz a seleção do editor.
             onMouseDown={(e) => e.preventDefault()}
             onClick={aplicar}
@@ -260,17 +261,19 @@ export function EditorConteudoModelo({
           >
             <Icone className="h-3.5 w-3.5" />
           </button>
+          </ButtonTooltip>
         ))}
         <span className="mx-1 h-4 w-px bg-border" aria-hidden />
-        <button
+        <ButtonTooltip text="Inserir tabela">
+          <button aria-label="Inserir tabela"
           type="button"
-          title="Inserir tabela"
           onMouseDown={(e) => e.preventDefault()}
           onClick={inserirTabela}
           className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <TableIcon className="h-3.5 w-3.5" />
         </button>
+        </ButtonTooltip>
         <span className="ml-1.5 text-[10px] text-muted-foreground/70">
           a formatação sai igual na prévia e no .docx
         </span>

@@ -16,6 +16,7 @@ import { GanttBarraDeNavegacao } from './GanttBarraDeNavegacao';
 import { GanttCabecalhoDoEixo } from './GanttCabecalhoDoEixo';
 import { GanttFaixaDoTempo } from './GanttFaixaDoTempo';
 import type { GanttGrupo, GanttItem, GanttPapel } from './tiposDeGantt';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * O Gantt do sistema. Uma implementação só, alimentada por telas diferentes
@@ -149,7 +150,8 @@ export function GanttChart({
                 return (
                   <div key={grupo.id}>
                     <div className="flex hover:bg-muted/30">
-                      <button
+                      <ButtonTooltip text={`${grupo.nome} — ${grupo.resumo}`}>
+                        <button aria-label={`${grupo.nome} — ${grupo.resumo}`}
                         type="button"
                         onClick={() => alternarGrupo(grupo.id)}
                         aria-expanded={aberto}
@@ -157,7 +159,6 @@ export function GanttChart({
                         // MAIS. Mesma lição da Lista: texto cortado sem tooltip
                         // é texto perdido, e em toque não há hover para
                         // recuperá-lo — ao menos no desktop o mouse resolve.
-                        title={`${grupo.nome} — ${grupo.resumo}`}
                         className="sticky left-0 z-10 flex flex-shrink-0 items-center gap-2 border-r border-border bg-muted/20 px-4 py-3 text-left"
                         style={{ width: larguraDoNome }}
                       >
@@ -175,6 +176,7 @@ export function GanttChart({
                           <div className="truncate text-xs text-muted-foreground">{grupo.resumo}</div>
                         </div>
                       </button>
+                      </ButtonTooltip>
 
                       <GanttFaixaDoTempo eixo={eixo} agora={linhaDeAgora} altura="h-14">
                         {!aberto && geoDoGrupo?.fora === null && (
@@ -195,10 +197,10 @@ export function GanttChart({
 
                           return (
                             <div key={item.id} className="flex hover:bg-muted/20">
-                              <button
+                              <ButtonTooltip text={item.titulo}>
+                                <button aria-label={item.titulo}
                                 type="button"
                                 onClick={() => onSelecionarItem?.(item)}
-                                title={item.titulo}
                                 className="sticky left-0 z-10 flex-shrink-0 border-r border-border bg-card px-4 py-2 pl-10 text-left hover:text-primary"
                                 style={{ width: larguraDoNome }}
                               >
@@ -215,6 +217,7 @@ export function GanttChart({
                                   {periodo}
                                 </div>
                               </button>
+                              </ButtonTooltip>
 
                               <GanttFaixaDoTempo eixo={eixo} agora={linhaDeAgora} altura="h-11">
                                 {geo.fora ? (
@@ -224,7 +227,8 @@ export function GanttChart({
                                     onIr={() => setAncoraManual(item.inicio)}
                                   />
                                 ) : (
-                                  <button
+                                  <ButtonTooltip text={`${item.titulo} (${periodo})`}>
+                                    <button
                                     type="button"
                                     onClick={() => onSelecionarItem?.(item)}
                                     className={cn(
@@ -233,7 +237,6 @@ export function GanttChart({
                                       item.concluido && 'opacity-70',
                                     )}
                                     style={{ left: geo.esquerda, width: geo.largura }}
-                                    title={`${item.titulo} (${periodo})`}
                                     aria-label={`${item.titulo}, ${periodo}`}
                                   >
                                     {item.progresso != null && (
@@ -242,6 +245,7 @@ export function GanttChart({
                                       </span>
                                     )}
                                   </button>
+                                  </ButtonTooltip>
                                 )}
                               </GanttFaixaDoTempo>
                             </div>
@@ -286,10 +290,10 @@ function SetaDeBorda({
 }) {
   const Icone = lado === 'antes' ? ChevronLeft : ChevronRight;
   return (
-    <button
+    <ButtonTooltip text={`Fora do período exibido (${periodo}). Ir até lá.`}>
+      <button
       type="button"
       onClick={onIr}
-      title={`Fora do período exibido (${periodo}). Ir até lá.`}
       aria-label={`Ir até o período do item (${periodo})`}
       className={cn(
         'absolute top-3 flex h-5 items-center gap-0.5 rounded-full border border-border bg-muted px-1.5 text-muted-foreground hover:text-primary',
@@ -300,5 +304,6 @@ function SetaDeBorda({
       <span className="text-[10px]">{periodo}</span>
       {lado === 'depois' && <Icone className="h-3 w-3" />}
     </button>
+    </ButtonTooltip>
   );
 }

@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { Search, X } from 'lucide-react';
 import { DicaIcon } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface Props {
   busca: string;
@@ -39,15 +40,16 @@ export default function CadastroToolbar({ busca, onBusca, total, visiveis, subst
           aria-label="Buscar"
         />
         {busca && (
-          <button
+          <ButtonTooltip text="Limpar busca">
+            <button
             type="button"
             className="cadastro-busca-limpar"
             onClick={() => onBusca('')}
             aria-label="Limpar busca"
-            title="Limpar busca"
           >
             <X size={14} />
           </button>
+          </ButtonTooltip>
         )}
       </label>
       {extra}

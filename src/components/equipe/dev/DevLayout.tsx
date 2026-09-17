@@ -44,6 +44,7 @@ import { classesItemDaBarra } from '@/lib/barraLateralCromo';
 import { manualDaRota } from '@/constants/devManuais';
 import { resolverCabecalhoDoDev, type CabecalhoDoDev } from '@/config/telasDoDigitalDev';
 import { cn } from '@/lib/utils';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * Ou `tela` — o nome e a explicação vindos de `@/config/telasDoDigitalDev` — ou
@@ -164,7 +165,8 @@ const HubSidebarSection = ({
         !trilho && 'h-auto gap-1 py-1',
       )}
     >
-      <button
+      <ButtonTooltip text={trilho ? label : undefined}>
+        <button aria-label={trilho ? label : undefined}
         type="button"
         className={cn(
           'flex flex-1 items-center py-1.5',
@@ -174,11 +176,11 @@ const HubSidebarSection = ({
           onOpenChange(true);
           navigate(landingPath);
         }}
-        title={trilho ? label : undefined}
       >
         <Icon className="h-4 w-4 flex-shrink-0" />
         {!trilho && <span className="min-w-0 truncate">{label}</span>}
       </button>
+      </ButtonTooltip>
 
       {/* No trilho o grupo não abre: os filhos não teriam onde caber, e a seta
           ao lado de um ícone centralizado tira o ícone do centro. Clicar no

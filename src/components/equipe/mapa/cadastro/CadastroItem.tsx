@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { openOnActivationKey, shouldIgnoreOpenClick } from '@/utils/clickOpenGuard';
 import { IconTooltip } from '@/components/equipe/mapa/Tooltip';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 export interface CadastroItemMeta {
   icone: ReactNode;
@@ -80,26 +81,28 @@ export default function CadastroItem({ titulo, descricao, badge, badges, leading
       )}
       <div className="cadastro-item-acoes">
         <IconTooltip label={`Editar ${titulo}`} side="bottom">
-          <button
+          <ButtonTooltip text={`Editar ${titulo}`}>
+            <button
             type="button"
             className="cadastro-item-acao"
-            title={`Editar ${titulo}`}
             aria-label={`Editar ${titulo}`}
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
           >
             <Pencil size={14} />
           </button>
+          </ButtonTooltip>
         </IconTooltip>
         <IconTooltip label={`Excluir ${titulo}`} side="bottom">
-          <button
+          <ButtonTooltip text={`Excluir ${titulo}`}>
+            <button
             type="button"
             className="cadastro-item-acao cadastro-item-acao-danger"
-            title={`Excluir ${titulo}`}
             aria-label={`Excluir ${titulo}`}
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
           >
             <Trash2 size={14} />
           </button>
+          </ButtonTooltip>
         </IconTooltip>
       </div>
     </div>

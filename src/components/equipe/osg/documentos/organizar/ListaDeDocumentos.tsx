@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
 import { formatBytes, isPreviavel } from '@/components/equipe/osg/documentos/docMeta';
 import { FileIcon } from '@/components/equipe/osg/documentos/organizar/pecasArvore';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /** Um bloco da lista: os documentos de uma categoria da pasta aberta. */
 export interface GrupoDeCategoria {
@@ -76,14 +77,15 @@ export function ListaDeDocumentos({
                   <FileIcon nome={d.nome_original} mime={d.mime} />
                   <div className="min-w-0 flex-1">
                     {isPreviavel(d.nome_original, d.mime) ? (
-                      <button
+                      <ButtonTooltip text="Pré-visualizar">
+                        <button aria-label="Pré-visualizar"
                         type="button"
                         onClick={() => acoes.prever(d)}
                         className="block w-full min-w-0 truncate text-left font-medium text-foreground hover:text-osg-700 hover:underline"
-                        title="Pré-visualizar"
                       >
                         {d.nome_original}
                       </button>
+                      </ButtonTooltip>
                     ) : (
                       <p className="truncate font-medium text-foreground">{d.nome_original}</p>
                     )}

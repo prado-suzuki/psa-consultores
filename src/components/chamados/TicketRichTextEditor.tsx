@@ -20,6 +20,7 @@ import {
   parseTicketRichText,
   serializeTicketRichText,
 } from '@/components/chamados/ticketRichTextFormat';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface TicketRichTextEditorProps {
   value: string;
@@ -137,9 +138,9 @@ export function TicketRichTextEditor({
         {buttons.map(({ key, label, icon: Icon, active: isActive, action }, index) => (
           <Fragment key={key}>
             {index === 3 && <span className="mx-1 h-5 w-px bg-border" aria-hidden />}
-            <button
+            <ButtonTooltip text={label}>
+              <button
               type="button"
-              title={label}
               aria-label={label}
               aria-pressed={isActive}
               disabled={disabled}
@@ -152,6 +153,7 @@ export function TicketRichTextEditor({
             >
               <Icon className="h-4 w-4" />
             </button>
+            </ButtonTooltip>
           </Fragment>
         ))}
       </div>

@@ -4,6 +4,7 @@ import EmptyStateCadastro from '@/components/equipe/mapa/cadastro/EmptyStateCada
 import type { DocRef, Etapa, ResponsavelEtapa } from '@/types';
 import { formatDecimal } from '@/utils/format';
 import { sumHorasEtapa } from '@/lib/mapearProcessoModel';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 const EXEC_LABEL: Record<string, string> = {
   manual: 'Manual',
@@ -52,7 +53,9 @@ function TabHead({ titulo, subtitulo, onEditar }: { titulo: string; subtitulo: s
   return (
     <div className="mapear-tab-head">
       <div className="mapear-tab-head-txt"><h3 className="mapear-tab-titulo">{titulo}</h3><p className="mapear-tab-sub">{subtitulo}</p></div>
-      <button className="cadastro-cta" onClick={onEditar} title="Abrir o editor de etapas"><Pencil size={15} strokeWidth={2.2} /><span>Editar etapas</span></button>
+      <ButtonTooltip text="Abrir o editor de etapas">
+        <button aria-label="Abrir o editor de etapas" className="cadastro-cta" onClick={onEditar}><Pencil size={15} strokeWidth={2.2} /><span>Editar etapas</span></button>
+      </ButtonTooltip>
     </div>
   );
 }

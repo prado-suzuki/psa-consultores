@@ -18,6 +18,7 @@ import { processoCalculavel } from '@/utils/processoCalculavel';
 import { buildProcessComparison, buildProjectComparison } from '@/utils/processDiagram';
 import { slugFilename } from '@/utils/slugify';
 import { useMapaExports } from '@/hooks/useMapaExports';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 const formatarData = (iso?: string | null) => {
   if (!iso) return '—';
@@ -118,10 +119,12 @@ export default function ProjetoDetalheModal({
             </div>
           </div>
           <div className="processo-det-acoes">
-            <button className="btn-cancel" onClick={() => exports.exportProjetoZip(projeto.id)} title="Exportar .zip por processo: como-era e como-ficou (SOP em PDF + Markdown + Diagrama .mmd) e comparativo (PDF + Markdown)">
+            <ButtonTooltip text="Exportar .zip por processo: como-era e como-ficou (SOP em PDF + Markdown + Diagrama .mmd) e comparativo (PDF + Markdown)">
+              <button aria-label="Exportar .zip por processo: como-era e como-ficou (SOP em PDF + Markdown + Diagrama .mmd) e comparativo (PDF + Markdown)" className="btn-cancel" onClick={() => exports.exportProjetoZip(projeto.id)}>
               <FileArchive size={15} strokeWidth={2.2} />
               <span>Exportar projeto (.zip)</span>
             </button>
+            </ButtonTooltip>
             <button className="cadastro-cta" onClick={onEditar} data-tour="modal-acao">
               <Pencil size={15} strokeWidth={2.2} />
               <span>Editar projeto</span>

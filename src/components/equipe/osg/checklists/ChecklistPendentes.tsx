@@ -25,6 +25,7 @@ import {
   type StatusChecklist,
 } from '@/lib/checklistDerivado';
 import { contarEstados, ESTADOS_DOCUMENTO, type EstadoDocumento } from '@/lib/estadoDocumento';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * O checklist do consultor: a leitura da subtração, mais o veredito sobre o que
@@ -264,8 +265,9 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
             const ativo = filtroCategoria === value;
             const total = value === 'todos' ? gruposFiltrados.length : contagemPorCategoria.get(value) ?? 0;
             return (
-              <button
-                key={value}
+              <ButtonTooltip key={value} text={`${total} ${substantivo} com documentos nesta solicitação.`}>
+                <button aria-label={`${total} ${substantivo} com documentos nesta solicitação.`}
+               
                 type="button"
                 onClick={() => {
                   setFiltroCategoria(value);
@@ -273,7 +275,6 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
                 }}
                 /* O número conta ENTIDADES, e nada na aba dizia isso: ao lado de
                    "123 pendentes" no topo, o "4" daqui lia como documentos. */
-                title={`${total} ${substantivo} com documentos nesta solicitação.`}
                 className={cn(
                   'relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
                   ativo ? 'bg-card text-osg-700 shadow-sm' : 'text-osg-500 hover:bg-osg-100/60 hover:text-osg-700',
@@ -283,6 +284,7 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
                 <span className={cn('text-[10px] tabular-nums', ativo ? 'text-osg-600' : 'text-osg-500/70')}>{total}</span>
                 {ativo && <span aria-hidden className="absolute inset-x-3 bottom-0.5 h-0.5 rounded-full bg-osg-moss" />}
               </button>
+              </ButtonTooltip>
             );
           })}
         </div>
@@ -292,11 +294,11 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
             {STATUS_FILTRO.map(({ value, label, dica, dot }) => {
               const ativo = filtroStatus === value;
               return (
-                <button
-                  key={value}
+                <ButtonTooltip key={value} text={dica}>
+                  <button aria-label={dica}
+                 
                   type="button"
                   onClick={() => setFiltroStatus(value)}
-                  title={dica}
                   className={cn(
                     'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
                     ativo
@@ -307,6 +309,7 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
                   {dot && <span aria-hidden className={cn('h-2 w-2 rounded-full', dot)} />}
                   {label}
                 </button>
+                </ButtonTooltip>
               );
             })}
           </div>
@@ -568,13 +571,13 @@ function ChipsDeEstado({ contagem, onEscolher }: {
   return (
     <div className="pointer-events-none relative z-10 mt-3 flex flex-wrap gap-1.5">
       {visiveis.map((estado) => (
-        <button
-          key={estado}
+        <ButtonTooltip key={estado} text={`Abre a ficha desta entidade mostrando só os documentos em "${ESTADO_LABEL[estado]}".`}>
+          <button aria-label={`Abre a ficha desta entidade mostrando só os documentos em "${ESTADO_LABEL[estado]}".`}
+         
           type="button"
           onClick={() => onEscolher(estado)}
           /* O chip não é só um contador: ele ABRE a ficha, já recortada. Nada na
              tela diz isso, e sem o tooltip o analista lê como enfeite. */
-          title={`Abre a ficha desta entidade mostrando só os documentos em "${ESTADO_LABEL[estado]}".`}
           className={cn(
             'pointer-events-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
             ESTADO_CHIP[estado],
@@ -583,6 +586,7 @@ function ChipsDeEstado({ contagem, onEscolher }: {
           {ESTADO_LABEL[estado]}
           <span className="tabular-nums opacity-70">{contagem[estado]}</span>
         </button>
+        </ButtonTooltip>
       ))}
     </div>
   );

@@ -16,6 +16,7 @@ import {
   periodoLabels,
   type RecortePrazo,
 } from '@/lib/gestaoChamadosDashboardAnalytics';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface DashboardKpisProps {
   stats: DashboardStats;
@@ -42,11 +43,11 @@ function KpiDrill({
   children: ReactNode;
 }) {
   return (
-    <button
+    <ButtonTooltip text={titulo}>
+      <button aria-label={titulo}
       type="button"
       onClick={onClick}
       aria-pressed={ativo}
-      title={titulo}
       className={cn(
         'h-full rounded-2xl text-left transition-shadow',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
@@ -55,6 +56,7 @@ function KpiDrill({
     >
       {children}
     </button>
+    </ButtonTooltip>
   );
 }
 

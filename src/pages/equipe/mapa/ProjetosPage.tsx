@@ -21,6 +21,7 @@ import { useMelhoriasLista, useGargalosLista, useResponsaveisLista, useDocumento
 import { useEtapasPorCenario } from '@/hooks/useEtapasPorCenario';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { processoIdsDaMelhoria } from '@/utils/gargaloMelhorias';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 type MelhoriaComProjeto = Melhoria & { project_id?: string | null };
 
@@ -152,39 +153,44 @@ export default function ProjetosPage() {
               aria-label="Buscar"
             />
             {busca && (
-              <button type="button" className="cadastro-busca-limpar" onClick={() => setBusca('')} aria-label="Limpar busca" title="Limpar busca">
+              <ButtonTooltip text="Limpar busca">
+                <button type="button" className="cadastro-busca-limpar" onClick={() => setBusca('')} aria-label="Limpar busca">
                 <X size={14} />
               </button>
+              </ButtonTooltip>
             )}
           </label>
           <div className="cadastro-tags" data-tour="projetos-tags">
-            <button
+            <ButtonTooltip text="Mostrar todos os projetos">
+              <button aria-label="Mostrar todos os projetos"
               type="button"
               className={`cadastro-tag${fMapeado === 'todos' ? ' ativa' : ''}`}
               aria-pressed={fMapeado === 'todos'}
               onClick={() => setFMapeado('todos')}
-              title="Mostrar todos os projetos"
             >
               <strong>{visiveis.length}</strong> {visiveis.length === 1 ? 'projeto' : 'projetos'}
             </button>
-            <button
+            </ButtonTooltip>
+            <ButtonTooltip text="Filtrar só os projetos com processos mapeados">
+              <button aria-label="Filtrar só os projetos com processos mapeados"
               type="button"
               className={`cadastro-tag cadastro-tag-ok${fMapeado === 'mapeados' ? ' ativa' : ''}`}
               aria-pressed={fMapeado === 'mapeados'}
               onClick={() => setFMapeado(m => (m === 'mapeados' ? 'todos' : 'mapeados'))}
-              title="Filtrar só os projetos com processos mapeados"
             >
               <strong>{nMapeados}</strong> {nMapeados === 1 ? 'mapeado' : 'mapeados'}
             </button>
-            <button
+            </ButtonTooltip>
+            <ButtonTooltip text="Filtrar só os projetos que faltam mapear">
+              <button aria-label="Filtrar só os projetos que faltam mapear"
               type="button"
               className={`cadastro-tag cadastro-tag-warn${fMapeado === 'faltam' ? ' ativa' : ''}`}
               aria-pressed={fMapeado === 'faltam'}
               onClick={() => setFMapeado(m => (m === 'faltam' ? 'todos' : 'faltam'))}
-              title="Filtrar só os projetos que faltam mapear"
             >
               <strong>{nFaltam}</strong> {nFaltam === 1 ? 'falta' : 'faltam'}
             </button>
+            </ButtonTooltip>
           </div>
         </div>
       )}

@@ -6,6 +6,7 @@ import {
 } from '@/components/equipe/osg/OsgDialog';
 import { categoriaLabel, isImagem, isPreviavel } from '@/components/equipe/osg/documentos/docMeta';
 import type { DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface Props {
   doc: DocumentoArquivoRow | null;
@@ -96,16 +97,17 @@ export function DocumentoVisualizador({ doc, url, carregando, erro, onRecarregar
             {baixar}
             {/* Some com o documento expandido: quem recolhe é o modal. */}
             {!expandido && (
-              <button
+              <ButtonTooltip text="Expandir documento">
+                <button
                 type="button"
                 onClick={() => setExpandido(true)}
                 disabled={!doc}
                 aria-label="Expandir documento"
-                title="Expandir documento"
                 className="rounded-md p-1 text-osg-600 transition-colors hover:bg-osg-50 hover:text-osg-700 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss"
               >
                 <Maximize2 className="h-3.5 w-3.5" aria-hidden />
               </button>
+              </ButtonTooltip>
             )}
           </div>
         </div>
@@ -143,15 +145,16 @@ export function DocumentoVisualizador({ doc, url, carregando, erro, onRecarregar
               </span>
             )}
             {baixar}
-            <button
+            <ButtonTooltip text="Recolher documento">
+              <button
               type="button"
               onClick={() => setExpandido(false)}
               aria-label="Recolher documento"
-              title="Recolher documento"
               className="mr-8 shrink-0 rounded-md p-1.5 text-osg-600 transition-colors hover:bg-osg-50 hover:text-osg-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss"
             >
               <Minimize2 className="h-4 w-4" aria-hidden />
             </button>
+            </ButtonTooltip>
           </div>
           {expandido && preview}
         </DialogContent>

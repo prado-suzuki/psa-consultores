@@ -24,6 +24,7 @@ import {
   resolveLoteRoutes,
   type LoteOsCandidata,
 } from '@/lib/projetosLote';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface CriarProjetosOsDialogProps {
   open: boolean;
@@ -168,16 +169,17 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
                     : 'Nenhum cliente com OS aberta sem projeto vinculado.'}
                 </p>
               ) : clientOptions.map(client => (
-                <button
-                  key={client.id}
+                <ButtonTooltip key={client.id} text={client.nome}>
+                  <button aria-label={client.nome}
+                 
                   type="button"
                   onClick={() => setSelectedClientId(client.id)}
-                  title={client.nome}
                   className="flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-muted"
                 >
                   <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 flex-1 truncate">{client.nome}</span>
                 </button>
+                </ButtonTooltip>
               ))}
             </div>
           </div>

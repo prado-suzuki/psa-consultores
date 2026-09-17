@@ -15,6 +15,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Etapa, Processo, GargaloEtapaRef } from '@/types';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface Props {
   etapas: Etapa[];
@@ -227,14 +228,15 @@ export default function SeletorEtapasOrigem({
             <span className="seo-chip-text">
               {ref.processoNome ? `${ref.processoNome.split(' ')[0]} · ` : ''}{ref.etapaNome ?? ref.etapaId}
             </span>
-            <button
+            <ButtonTooltip text="Remover">
+              <button aria-label="Remover"
               type="button"
               className="seo-chip-x"
               onClick={() => removeEtapa(ref)}
-              title="Remover"
             >
               ×
             </button>
+            </ButtonTooltip>
           </span>
         ))}
         <button

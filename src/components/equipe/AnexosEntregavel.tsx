@@ -15,6 +15,7 @@ import {
   validateEquipeKanbanFile,
   type EquipeKanbanAttachment,
 } from '@/lib/equipeKanban';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface AnexosEntregavelProps {
   /** Sem id (tarefa ainda não salva) o bloco não aparece: o anexo precisa do vínculo. */
@@ -189,10 +190,10 @@ export function AnexosEntregavel({ deliverableId, ativo = true }: AnexosEntregav
               >
                 <div className="flex min-w-0 items-center gap-2">
                   {miniatura ? (
-                    <button
+                    <ButtonTooltip text="Baixar imagem">
+                      <button aria-label="Baixar imagem"
                       type="button"
                       onClick={() => baixar(anexo)}
-                      title="Baixar imagem"
                       className="shrink-0"
                     >
                       <img
@@ -201,6 +202,7 @@ export function AnexosEntregavel({ deliverableId, ativo = true }: AnexosEntregav
                         className="h-12 w-12 rounded border object-cover"
                       />
                     </button>
+                    </ButtonTooltip>
                   ) : (
                     <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                   )}

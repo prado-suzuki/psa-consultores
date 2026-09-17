@@ -12,6 +12,7 @@ import { Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useModeloDocumento } from '@/hooks/useModeloDocumento';
 import type { ModeloDocumento } from '@/lib/solicitacao';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * Onde o botão está sendo desenhado — e os dois são formas diferentes, não só
@@ -63,11 +64,11 @@ export function BotaoModelo({ modelo, tom, className }: BotaoModeloProps) {
   if (!modelo) return null;
 
   return (
-    <button
+    <ButtonTooltip text={`Baixar o modelo: ${modelo.nome}`}>
+      <button aria-label={`Baixar o modelo: ${modelo.nome}`}
       type="button"
       onClick={() => baixar.mutate(modelo)}
       disabled={baixar.isPending}
-      title={`Baixar o modelo: ${modelo.nome}`}
       className={cn(
         'inline-flex shrink-0 items-center transition-colors focus-visible:outline-none',
         TONS[tom],
@@ -80,6 +81,7 @@ export function BotaoModelo({ modelo, tom, className }: BotaoModeloProps) {
         : <Download className="h-3.5 w-3.5" />}
       Modelo
     </button>
+    </ButtonTooltip>
   );
 }
 

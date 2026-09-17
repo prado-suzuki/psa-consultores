@@ -21,6 +21,7 @@ import {
 import { dividirNomeServico, faixaDeSelecao } from '@/lib/produtoServicoNomes';
 import type { FiltroVinculo } from '@/lib/produtoServicoVinculo';
 import type { ProdutoSegmento } from '@/hooks/useCategorias';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 export interface ServicoNaLista {
   id: string;
@@ -232,10 +233,10 @@ export default function ServicosLista({
           <span className="w-[46px] shrink-0 truncate text-center font-mono text-[11px] text-muted-foreground">
             {codigo === codigoAcima ? '' : codigo || '—'}
           </span>
-          <button
+          <ButtonTooltip text="Clique para ver os detalhes · Shift+clique para selecionar a faixa">
+            <button aria-label="Clique para ver os detalhes · Shift+clique para selecionar a faixa"
             type="button"
             onClick={(evento) => clicarNome(servico, evento.shiftKey)}
-            title="Clique para ver os detalhes · Shift+clique para selecionar a faixa"
             {...listRowAria({ vinculado: aberto })}
             className={cn(
               'min-w-0 flex-1 truncate py-2 text-left text-[13px]',
@@ -245,6 +246,7 @@ export default function ServicosLista({
           >
             {nome}
           </button>
+          </ButtonTooltip>
           {/* O selo do cluster só aparece FORA do cluster do produto: dentro
               dele seria a mesma palavra repetida em toda linha. */}
           {comCluster && (

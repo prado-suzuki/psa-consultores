@@ -14,6 +14,7 @@ import { useMeuPerfil } from '@/hooks/useDomainMeuPerfil';
 import { AREAS as NOMES_DE_AREA } from '@/lib/nomeDaArea';
 import { nomeDeExibicao } from '@/lib/nomeDoUsuario';
 import { cn } from '@/lib/utils';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * O cartão do usuário no pé da barra lateral — um só, para as NOVE áreas.
@@ -215,7 +216,8 @@ export const SidebarCartaoUsuario = ({ area, collapsed }: SidebarCartaoUsuarioPr
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
+        <ButtonTooltip text={collapsed ? `${nome} · ${rotulo}` : undefined}>
+          <button
           type="button"
           className={cn(
             'flex items-center py-2 rounded-lg mb-3 w-full text-left',
@@ -227,7 +229,6 @@ export const SidebarCartaoUsuario = ({ area, collapsed }: SidebarCartaoUsuarioPr
             // texto reduzido a zero e é o que empurrava o círculo para fora.
             collapsed ? 'justify-center px-2' : 'gap-3 px-3',
           )}
-          title={collapsed ? `${nome} · ${rotulo}` : undefined}
           // Recolhido o texto ao lado sai da árvore de acessibilidade, e sobra um
           // botão com um ícone dentro. É o botão que passa a carregar o nome —
           // antes disto o cartão era um `div` e quem carregava era o avatar, com
@@ -257,6 +258,7 @@ export const SidebarCartaoUsuario = ({ area, collapsed }: SidebarCartaoUsuarioPr
             <span className={cn('block text-xs', cores.rotulo)}>{rotulo}</span>
           </span>
         </button>
+        </ButtonTooltip>
       </DropdownMenuTrigger>
 
       {/* Recolhida a barra tem 64px: um menu ancorado acima do trilho nasceria

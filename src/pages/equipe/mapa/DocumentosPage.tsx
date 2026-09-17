@@ -29,6 +29,7 @@ import type { Documento, DocRef } from '@/types';
 import { useEtapasLista, useEtapasToBeLista, useSistemasLista, useResponsaveisLista, useProcessosLista, useProjetosLista } from '@/hooks/useDominioListas';
 import { useDocumentos, useDeleteDocumento } from '@/hooks/useDocumentos';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 const SEM_PROJETO = '__sem__';
 
@@ -270,11 +271,11 @@ export default function DocumentosPage() {
       className="cadastro-grupo-titulo"
       style={{ background: 'var(--accent-50)', borderLeft: '3px solid var(--accent-color)', borderRadius: 10, padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 8 }}
     >
-      <button
+      <ButtonTooltip text={aberto ? 'Recolher documentos' : 'Expandir documentos'}>
+        <button aria-label={aberto ? 'Recolher documentos' : 'Expandir documentos'}
         type="button"
         onClick={() => toggleGrupo(projId)}
         aria-expanded={aberto}
-        title={aberto ? 'Recolher documentos' : 'Expandir documentos'}
         style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer', textAlign: 'left' }}
       >
         <ChevronDown
@@ -285,6 +286,7 @@ export default function DocumentosPage() {
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nome}</span>
         <span className="cadastro-grupo-count">{totalGrupo}</span>
       </button>
+      </ButtonTooltip>
     </div>
   );
 
@@ -319,9 +321,11 @@ export default function DocumentosPage() {
               aria-label="Buscar"
             />
             {busca && (
-              <button type="button" className="cadastro-busca-limpar" onClick={() => setBusca('')} aria-label="Limpar busca" title="Limpar busca">
+              <ButtonTooltip text="Limpar busca">
+                <button type="button" className="cadastro-busca-limpar" onClick={() => setBusca('')} aria-label="Limpar busca">
                 <X size={14} />
               </button>
+              </ButtonTooltip>
             )}
           </label>
           <div className="cadastro-toolbar-projeto">

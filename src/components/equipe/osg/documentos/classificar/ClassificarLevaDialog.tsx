@@ -19,6 +19,7 @@ import {
 import type { Alvo } from '@/lib/classificarFicha';
 import { cn } from '@/lib/utils';
 import type { DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /** Valor do select quando o consultor não quer classificar aquele arquivo. */
 const SEM_TIPO = 'sem-tipo';
@@ -272,21 +273,22 @@ export function ClassificarLevaDialog({
                       </span>
                     </span>
                     {/* Quando o nome não basta para lembrar que documento é aquele. */}
-                    <button
+                    <ButtonTooltip text={previavel
+                        ? aberto ? 'Fechar a olhada' : 'Olhar o documento'
+                        : 'Este formato não abre no navegador'}>
+                      <button
                       type="button"
                       onClick={() => alternarOlhar(doc)}
                       disabled={!previavel}
                       aria-expanded={aberto}
                       aria-label={`${aberto ? 'Fechar' : 'Olhar'} ${doc.nome_original}`}
-                      title={previavel
-                        ? aberto ? 'Fechar a olhada' : 'Olhar o documento'
-                        : 'Este formato não abre no navegador'}
                       className="shrink-0 rounded-md p-1.5 text-osg-600 transition-colors hover:bg-osg-50 hover:text-osg-700 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss"
                     >
                       {aberto
                         ? <EyeOff className="h-4 w-4" aria-hidden />
                         : <Eye className="h-4 w-4" aria-hidden />}
                     </button>
+                    </ButtonTooltip>
                     <span className="w-[250px] shrink-0">
                       <Label htmlFor={`tipo-${doc.id}`} className="sr-only">
                         Tipo de {doc.nome_original}
