@@ -1,0 +1,2 @@
+CREATE TABLE IF NOT EXISTS public.tmp_diag_role (quem text, quando timestamptz default now());
+INSERT INTO public.tmp_diag_role(quem) VALUES (current_user || ' | ' || session_user || ' | schema_owner=' || (select pg_get_userbyid(nspowner) from pg_namespace where nspname='public') || ' | tbl_owner=' || (select tableowner from pg_tables where schemaname='public' and tablename='exploracao_rural'));

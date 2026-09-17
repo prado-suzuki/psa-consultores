@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -58,8 +59,8 @@ const MontagemDocumentos = () => {
 
   return (
     <OsgLayout
-      title="Montagem de Documentos"
-      subtitle="Monte um modelo como um lego de contrato: arraste blocos da Biblioteca e organize a sequência"
+      title={TELAS_OSG_WORK.montagemDocumentos.label}
+      subtitle={TELAS_OSG_WORK.montagemDocumentos.descricao}
       headerActions={
         selecionado ? undefined : (
           <Button size="sm" className="bg-osg-600 hover:bg-osg-700" onClick={() => setModeloDialog({ open: true, form: MODELO_VAZIO })}>

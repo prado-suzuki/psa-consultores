@@ -71,7 +71,7 @@ export const T01ApuracaoTab = ({
 
   return (
     <div className="space-y-6">
-      <Card className="border-border shadow-sm">
+      <Card variant="tabela" className="border-border shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Calculator className="h-4 w-4 text-muted-foreground" />
@@ -190,7 +190,7 @@ const MatrizApuracaoCard = ({ matriz }: { matriz: T01MatrizSection }) => {
   );
 
   return (
-    <Card className="border-border shadow-sm">
+    <Card variant="tabela" className="border-border shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">

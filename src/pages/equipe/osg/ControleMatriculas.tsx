@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -84,8 +85,8 @@ const ControleMatriculas = () => {
   if (!clienteId) {
     return (
       <OsgLayout
-        title="Controle de Matrículas"
-        subtitle="Registro de matrículas do cliente, vinculadas ou órfãs"
+        title={TELAS_OSG_WORK.controleMatriculas.label}
+        subtitle={TELAS_OSG_WORK.controleMatriculas.descricao}
       >
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
@@ -99,8 +100,8 @@ const ControleMatriculas = () => {
 
   return (
     <OsgLayout
-      title="Controle de Matrículas"
-      subtitle="Registro de matrículas do cliente, vinculadas ou órfãs"
+      title={TELAS_OSG_WORK.controleMatriculas.label}
+      subtitle={TELAS_OSG_WORK.controleMatriculas.descricao}
     >
       <div className="space-y-4">
         <Card>
@@ -136,7 +137,7 @@ const ControleMatriculas = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card variant="tabela">
           <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-base flex items-center gap-2">
               <FileText className="h-4 w-4 text-muted-foreground" />

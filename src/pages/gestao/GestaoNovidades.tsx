@@ -450,7 +450,7 @@ const GestaoNovidades = () => {
       </div>
 
       {/* Novidades Table */}
-      <Card>
+      <Card variant="tabela">
         <CardHeader>
           <CardTitle>Novidades Cadastradas</CardTitle>
           <CardDescription>

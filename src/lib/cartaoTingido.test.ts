@@ -184,10 +184,26 @@ function razao(a: [number, number, number], b: [number, number, number]): number
  * contava a mesma caixa uma vez por linha do `cn()` — dez para as quatro do
  * `DailyQuickStatusDialog`. O raio vem do CONTEXTO, a ocorrência vem da LINHA.
  */
+/**
+ * O `<Card>` NÃO entra na própria medição.
+ *
+ * Desde 16/09/2026 ele cita as duas superfícies: a tinta na string base e o
+ * `bg-card` da variante `tabela` sobrepondo. Como o `rounded-lg` está no mesmo
+ * `cn()`, ele passou a casar com o padrão "caixa arredondada pintada à mão" — mas
+ * ele não é caixa desenhada à mão. É o componente que DEFINE as duas, e é
+ * exatamente o que esta catraca manda usar no lugar da caixa à mão.
+ * Inventariá-lo como dívida diria o contrário do que o arquivo inteiro diz.
+ *
+ * Ele não fica sem guarda: a asserção "o `<Card>` continua sendo a alavanca" lê
+ * este arquivo à parte, e a `caixaDeTabela.test.ts` cobra a variante.
+ */
+const DEFINE_AS_DUAS_SUPERFICIES = 'src/components/ui/card.tsx';
+
 function medirCaixaBranca(): Record<string, number> {
   const medido: Record<string, number> = {};
   for (const pasta of PASTAS_DE_TELA) {
     for (const caminho of arquivosDeCodigo(resolve(RAIZ, pasta))) {
+      if (relative(RAIZ, caminho).split(sep).join('/') === DEFINE_AS_DUAS_SUPERFICIES) continue;
       const texto = readFileSync(caminho, 'utf8');
       const contexto = linhasComAExpressaoDeClasse(texto);
       let achados = 0;
@@ -280,14 +296,12 @@ const CAIXA_QUE_FICA_BRANCA: Record<MotivoDeFicarBranca, Record<string, number>>
     // "nenhum arquivo aparece em dois motivos" —, então ela mora no motivo que
     // explica a maioria e o resto está escrito aqui.
     'src/components/equipe/daily/DailyQuickStatusDialog.tsx': 4,
-    // As quatro tabelas da OS do Adm & Fin, dentro da casca
-    // `ListaMestreDetalhe`, que é `bg-superficie-cartao`. Decidido OLHANDO, em
-    // 15/09/2026: tabela sem fundo próprio herda o tingido da casca e a tela
-    // inteira lê verde, porque o `--muted` desta casa puxa para lá ("tá tudo
-    // verde, o padrão não é sem fundo"). É o segundo degrau da escada — campo
-    // claro dentro de cartão tingido —, com a faixa de cabeçalho em `bg-muted`
-    // por cima. O motivo está escrito no próprio componente.
-    'src/components/equipe/adm-fin/TabelasDaOs.tsx': 1,
+    // O `TabelasDaOs.tsx` do Adm & Fin ESTEVE AQUI, por um dia, e saiu em
+    // 16/09/2026 — não porque a caixa deixou de ser branca, mas porque ela deixou
+    // de ser exceção. Ele foi o único caso do repositório, e a pergunta dela ao
+    // vê-lo inscrito aqui ("então não é padrão ser branco? aí tem que mudar o
+    // padrão") abriu a frente que virou a variante `tabela` do `<Card>`. Quem
+    // guarda o caso agora é a `caixaDeTabela.test.ts`, que cobra o contrário.
     'src/components/equipe/fiscal/tasks/kanban/TaskKanbanSubtaskRow.tsx': 1,
     'src/components/equipe/osg/diagnostico-patrimonial/titularidade/TitularidadeLinha.tsx': 1,
     'src/components/equipe/osg/diagnostico-patrimonial/exploracao-rural/ImoveisPanel.tsx': 1,
@@ -340,7 +354,11 @@ const SOBRE_BRANCO: Record<string, number> = {
   // POPOVER. `bg-popover`, que tem valor próprio e continua branco.
   'src/components/comentarios/feed/FeedFiltros.tsx': 1,
   'src/components/equipe/dev/pis-cofins/ColumnFilterDropdown.tsx': 1,
-  'src/components/notifications/NotificationPopover.tsx': 4,
+  // As quatro linhas do sino (chamado, revisão, menção, aviso interno). Saíram do
+  // `NotificationPopover.tsx` em 14/09/2026, quando o balão ganhou histórico e a
+  // fachada passou do teto de 600 linhas — o fundo delas não mudou, continua o
+  // `bg-popover`.
+  'src/components/notifications/ItensDoSino.tsx': 4,
 
   // CAIXA QUE FICOU BRANCA, e cada uma por um motivo já inventariado acima: o
   // relatório é papel, o aviso do chamado se apoia em `bg-background`. Os dois

@@ -9,8 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
-import { campoDaEntidade } from '@/lib/templates/vocabulario';
+import { campoDaEntidade, campoManual } from '@/lib/templates/vocabulario';
 import { labelDoBinding } from '@/lib/templates/binding';
+import { AjudaDoCampo } from '@/components/equipe/osg/ComAjuda';
 import { BlocosSemDado } from '@/components/equipe/osg/gerar/BlocosSemDado';
 import { fraseExcluidosPorFlag } from '@/components/equipe/osg/gerar/resumoDaComposicao';
 import { fmtBRL, fmtInt } from '@/components/equipe/osg/quadro-societario/quadroFmt';
@@ -178,7 +179,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                           <SecaoPainel icone={<Users />} titulo="Sócios" contagem={socios.length}>
                             {socios.length === 0 ? (
                               <AvisoPendencia
-                                acao={ehEmpresaPR ? 'Abrir Diagnóstico Patrimonial' : 'Abrir Quadro Societário'}
+                                acao={ehEmpresaPR ? 'Abrir Cadastro Patrimonial' : 'Abrir Quadro Societário'}
                                 onAcao={() =>
                                   navigate(
                                     ehEmpresaPR
@@ -188,7 +189,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                 }
                               >
                                 {ehEmpresaPR
-                                  ? 'Nenhum bem aprovado para integralização nesta empresa — os sócios da Proprietária vêm do Diagnóstico Patrimonial.'
+                                  ? 'Nenhum bem aprovado para integralização nesta empresa — os sócios da Proprietária vêm do Cadastro Patrimonial.'
                                   : 'Nenhum sócio no Quadro Societário desta empresa.'}
                               </AvisoPendencia>
                             ) : (
@@ -268,7 +269,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                           >
                             {integralizacoes.length === 0 ? (
                               <AvisoPendencia
-                                acao="Abrir Diagnóstico Patrimonial"
+                                acao="Abrir Cadastro Patrimonial"
                                 onAcao={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}
                               >
                                 Nenhum imóvel aprovado para integralização nesta empresa.
@@ -349,8 +350,29 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                         <div className="space-y-3">
                           {desconhecidosVisiveis.map((ph) => (
                             <div key={ph} className="space-y-1.5">
-                              <Label className={cn(labelCls, 'text-sm')}>{ph}</Label>
+                              {/*
+                                O RÓTULO, e não o id do placeholder.
+                                Os campos manuais já declaram `label` em CAMPOS_MANUAIS, e a
+                                tela mostrava "foroEleitoComarca" em vez de "Foro eleito —
+                                cidade". Placeholder que ninguém declarou continua aparecendo
+                                pelo id, que é o que permite a quem montou o modelo achá-lo.
+                              */}
+                              <Label className={cn(labelCls, 'text-sm')}>
+                                {campoManual(ph)?.label ?? ph}
+                                {campoManual(ph)?.ajuda && (
+                                  <AjudaDoCampo texto={campoManual(ph)!.ajuda!} />
+                                )}
+                              </Label>
+                              {/*
+                                CAMPO DE DATA É CALENDÁRIO, e o documento recebe o
+                                extenso. Digitado à mão, o fecho saía com o que a
+                                pessoa escrevesse: "10/10/26", "10 de out". O
+                                valor guardado continua sendo a data ISO do
+                                seletor, e `dataExtenso` a converte para "10 de
+                                outubro de 2.026" na hora de montar o contexto.
+                              */}
                               <Input
+                                type={campoManual(ph)?.tipo === 'data' ? 'date' : 'text'}
                                 value={valoresLivres[ph] ?? ''}
                                 onChange={(e) => {
                                   setValoresLivres((prev) => ({ ...prev, [ph]: e.target.value }));

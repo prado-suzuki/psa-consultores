@@ -49,6 +49,15 @@ export interface NotificacaoInterna {
   /** Sobras do evento. Hoje carrega `ambiente` nos avisos de documento. */
   metadata: unknown;
   created_at: string;
+  /**
+   * Quando o aviso foi lido, ou nulo se ainda não foi.
+   *
+   * A caixa passou a trazer os avisos LIDOS também (o balão do sino virou
+   * histórico, 14/09/2026), então esta coluna deixou de ser filtro de consulta e
+   * virou dado da linha: é o que separa o que ainda conta para a bolinha do que
+   * só está ali para ser relido.
+   */
+  lido_em: string | null;
 }
 
 /** Como cada tipo se apresenta na linha do sino. */

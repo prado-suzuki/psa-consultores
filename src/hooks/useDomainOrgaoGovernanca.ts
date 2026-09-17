@@ -41,17 +41,19 @@ type OrgaoRow = Database['public']['Tables']['orgao_governanca']['Row'];
  *
  * As seis colunas da migration `20260911201231` eram declaradas à mão aqui,
  * porque o `types.ts` da develop estava atrasado e não as conhecia. Ele foi
- * regenerado em `33ed57a8` e agora traz as seis — então a declaração paralela
- * saiu, como o comentário antigo mandava. Cinco delas vêm do banco com o tipo
- * certo e não precisam de nada.
+ * regenerado em `33ed57a8` e agora traz as seis, então a declaração paralela
+ * saiu, como o comentário antigo mandava: tipo repetido à mão é tipo que diverge
+ * do banco sem ninguém perceber. Cinco delas vêm com o tipo certo e não precisam
+ * de nada.
  *
- * `genero` é a exceção, e por isso sobra uma linha em vez de nenhuma: a coluna é
- * `text` no Postgres, então o gerador a descreve como `string | null` e o banco
- * não tem como dizer que só 'M' e 'F' valem. O modal
- * (`OrgaoGovernancaModal.tsx`) guarda o campo como `'M' | 'F' | null` e decide a
- * concordância da cláusula em cima disso; recebendo `string` ele para de
- * compilar. Quem sustenta o par é a escrita, em `OrgaoGovernancaInput`, que só
- * aceita os dois valores.
+ * `genero` é a exceção, e por isso sobra uma linha em vez de nenhuma. A coluna é
+ * `text` no Postgres e o gerador a descreve como `string | null`; quem promete os
+ * dois valores é o CHECK `orgao_governanca_genero_ck` (`genero IS NULL OR genero
+ * IN ('M','F')`), que o gerador não lê. Sem o aperto, o modal
+ * (`OrgaoGovernancaModal.tsx`), que guarda o campo como `'M' | 'F' | null` e decide
+ * a concordância da cláusula em cima disso, para de compilar, e `concordar`
+ * aceitaria qualquer string: a cláusula sairia "será compostO" por um dado que o
+ * banco jamais deixaria entrar.
  *
  * Se um dia a coluna virar enum no banco, esta linha some junto com o `Omit`.
  */
@@ -92,8 +94,8 @@ async function buscarPorCliente(clienteId: string): Promise<OrgaoGovernanca[]> {
 
   if (error) throw error;
   // O estreitamento de `genero` acontece AQUI, na fronteira, e não espalhado
-  // pelas telas: a coluna é `text` e o banco não promete os dois valores, mas
-  // quem escreve nela é só `OrgaoGovernancaInput`, que promete. Ver o tipo.
+  // pelas telas. Quem prova que só há 'M', 'F' e nulo é o CHECK do banco, que o
+  // gerador de tipos não lê; ver o tipo acima.
   return (data ?? []) as OrgaoGovernanca[];
 }
 

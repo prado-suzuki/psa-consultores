@@ -100,8 +100,7 @@ export const FiscalLayout = (props: FiscalLayoutProps) => {
             )}
 
             <NotificationPopover
-              navigateTo="/equipe/chamados"
-              espelho="tax"
+              baseDosChamados="/equipe/chamados"
               tasksNavigateTo="/equipe/tax/projetos/tarefas"
             />
           </div>

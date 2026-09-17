@@ -266,7 +266,7 @@ export function SprintHoursDashboard({ deliverables, profiles }: SprintHoursDash
 
       {/* Summary Table */}
       {personSummary.length > 0 && (
-        <Card className="border-border">
+        <Card variant="tabela" className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Resumo por Pessoa</CardTitle>
           </CardHeader>

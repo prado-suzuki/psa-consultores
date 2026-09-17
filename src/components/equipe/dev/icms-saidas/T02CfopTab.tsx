@@ -161,7 +161,7 @@ const CfopTable = ({ title, rows, isLoading }: CfopTableProps) => {
   );
 
   return (
-    <Card className="border-border shadow-sm">
+    <Card variant="tabela" className="border-border shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Calculator className="h-4 w-4 text-muted-foreground" />

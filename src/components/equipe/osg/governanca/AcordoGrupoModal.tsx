@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Plus, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
 import { AjudaDoCampo } from '@/components/equipe/osg/ComAjuda';
 import { FieldSection } from '@/components/equipe/osg/formKit';
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { MultiSelectCombobox, type ComboOption } from '@/components/ui/MultiSelectCombobox';
 import { SingleSelectCombobox } from '@/components/ui/SingleSelectCombobox';
+import { rotuloDoRamo } from '@/lib/acordoQuotistas';
 import { expressaoDoQuorum, type BaseQuorum, type TipoQuorum } from '@/lib/acordoQuotistasPadrao';
 import { cn } from '@/lib/utils';
 import type { CampoDoAcordo, GrupoDoAcordo } from '@/lib/acordoGrupos';
@@ -24,10 +26,47 @@ import type { CampoDoAcordo, GrupoDoAcordo } from '@/lib/acordoGrupos';
 /** O que o modal edita: os campos do cabeçalho mais as três listas. */
 export interface ValoresDoAcordo extends Record<string, unknown> {
   quoruns: { materia: string; chave?: string | null; tipo: TipoQuorum; percentual?: number | null; base: BaseQuorum }[];
-  ramos: { nome: string; rotulo: 'ramo' | 'descendentes' }[];
+  ramos: { nome: string }[];
   ordemPreferencia: string[];
   signatarios: string[];
   sociedades: string[];
+}
+
+/*
+ * O QUE IMPEDE DE SALVAR, e por que a checagem mora aqui.
+ *
+ * O banco já recusa linha vazia: `acordo_quorum_materia_ck` e
+ * `acordo_ramo_nome_ck` exigem texto. Só que a recusa chega como mensagem do
+ * Postgres num toast vermelho, sem dizer qual linha era, depois de a pessoa ter
+ * clicado em Salvar. Aqui ela chega antes, com o número da linha, e o modal
+ * continua aberto no campo que falta.
+ *
+ * Nada mais é obrigatório de propósito: acordo sem prazo de sigilo, sem opção
+ * de compra e sem cláusula de não concorrência existe no acervo, e travar o
+ * salvamento neles obrigaria a inventar resposta. O que se cobra é só o que o
+ * banco recusaria e o documento escreveria torto.
+ */
+function oQueFalta(v: ValoresDoAcordo): string | null {
+  const semAssunto = v.quoruns.findIndex((q) => q.materia.trim() === '');
+  if (semAssunto >= 0) {
+    return `O quórum da linha ${semAssunto + 1} está sem assunto. Escreva sobre o que ele decide, `
+      + 'como "Alterar o contrato social", ou tire a linha.';
+  }
+
+  const semNumero = v.quoruns.findIndex(
+    (q) => q.tipo === 'percentual' && !(q.percentual && q.percentual > 0),
+  );
+  if (semNumero >= 0) {
+    return `O quórum "${v.quoruns[semNumero].materia.trim()}" é por percentual e está sem o número.`;
+  }
+
+  const ramoSemNome = v.ramos.findIndex((r) => r.nome.trim() === '');
+  if (ramoSemNome >= 0) {
+    return `O ramo da linha ${ramoSemNome + 1} está sem nome. O rótulo do documento se monta com `
+      + 'ele, e sairia "DESCENDENTES DE " no acordo.';
+  }
+
+  return null;
 }
 
 /** Uma pessoa do cliente, como o seletor a mostra. */
@@ -73,7 +112,7 @@ function comoOpcao(p: PessoaParaEscolher): ComboOption {
  *
  * A PRÉVIA DA CLÁUSULA fica dentro do grupo que a alimenta, e não numa segunda
  * coluna: é onde ela muda decisão. No grupo dos quóruns, cada linha mostra a
- * frase que vai sair, "¾ (três quartos) dos presentes", enquanto o consultor
+ * frase que vai sair, "75% (setenta e cinco por cento) dos presentes", enquanto o consultor
  * escolhe o tipo e a base.
  */
 export function AcordoGrupoModal({
@@ -91,6 +130,17 @@ export function AcordoGrupoModal({
   const visivel = (c: CampoDoAcordo) => !c.dependeDe || form[c.dependeDe] === true;
 
   const opcoesDePessoa = useMemo(() => pessoas.map(comoOpcao), [pessoas]);
+  /*
+   * Representante e substituto são PESSOA FÍSICA. A cláusula escreve "os
+   * QUOTISTAS elegem o Sr. …", com o tratamento concordando pelo gênero, e
+   * empresa não tem gênero. Sem o filtro dava para eleger a própria sociedade
+   * como representante dos sócios dela, que foi o que aconteceu no cadastro de
+   * teste.
+   */
+  const opcoesDePessoaFisica = useMemo(
+    () => pessoas.filter((p) => p.tipo_pessoa !== 'PJ').map(comoOpcao),
+    [pessoas],
+  );
   // Sociedade relacionada é empresa, então a lista só oferece pessoa jurídica.
   const opcoesDeEmpresa = useMemo(
     () => pessoas.filter((p) => p.tipo_pessoa === 'PJ').map(comoOpcao),
@@ -121,6 +171,11 @@ export function AcordoGrupoModal({
   }, [grupo, form]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const salvar = async () => {
+    const falta = oQueFalta(form);
+    if (falta) {
+      toast.error(falta);
+      return;
+    }
     await onSalvar(form);
     onOpenChange(false);
   };
@@ -130,7 +185,12 @@ export function AcordoGrupoModal({
       <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{grupo.titulo}</DialogTitle>
-          <p className="text-sm text-muted-foreground">{grupo.resumo}</p>
+          {/*
+            `DialogDescription` e não `<p>`: o Radix procura um elemento descritor
+            para ligar em `aria-describedby`, e sem ele avisa no console a cada
+            abertura. Era um aviso por modal aberto, medido no QA.
+          */}
+          <DialogDescription>{grupo.resumo}</DialogDescription>
         </DialogHeader>
 
         <div className="py-2">
@@ -140,9 +200,14 @@ export function AcordoGrupoModal({
               number={String(i + 1).padStart(2, '0')}
               title={b.titulo ?? grupo.titulo}
             >
-              <div className="space-y-5">
+              {/*
+                Duas colunas, e o campo ocupa as duas por padrão. Cidade e UF do
+                foro são o par que pede meia linha: são um endereço só partido em
+                dois, e um embaixo do outro sugeria perguntas independentes.
+              */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-5">
                 {b.campos.map((c) => (
-            <div key={c.campo} className="space-y-1.5">
+            <div key={c.campo} className={cn('space-y-1.5', c.meiaLinha ? 'col-span-1' : 'col-span-2')}>
               <Label htmlFor={`ac-${c.campo}`} className={ROTULO}>
                 {c.rotulo}
                 {c.desceAoContrato && (
@@ -207,11 +272,29 @@ export function AcordoGrupoModal({
                 >
                   {c.opcoes?.map((o) => {
                     const marcados = (form[c.campo] as string[] | null) ?? [];
+                    /*
+                     * A OPÇÃO ESPELHADA MOSTRA, MAS NÃO PERGUNTA.
+                     *
+                     * Quatro dos dez mecanismos se respondem noutro bloco, com
+                     * os detalhes lá. Aqui eles continuam aparecendo, porque a
+                     * lista é o inventário do que o acordo tem, mas sem aceitar
+                     * clique e dizendo onde se muda. Duas respostas para o mesmo
+                     * fato é cláusula com cabeçalho e corpo em branco.
+                     */
+                    const espelho = o.espelha;
+                    const marcado = espelho ? espelho.ligado(form) : marcados.includes(o.valor);
                     return (
-                      <label key={o.valor} className="flex items-start gap-2 text-sm">
+                      <label
+                        key={o.valor}
+                        className={cn(
+                          'flex items-start gap-2 text-sm',
+                          espelho && 'cursor-default opacity-70',
+                        )}
+                      >
                         <Checkbox
                           className="mt-0.5"
-                          checked={marcados.includes(o.valor)}
+                          checked={marcado}
+                          disabled={!!espelho}
                           onCheckedChange={(v) => mexer(
                             c.campo,
                             v ? [...marcados, o.valor] : marcados.filter((x) => x !== o.valor),
@@ -222,6 +305,12 @@ export function AcordoGrupoModal({
                           {o.descricao && (
                             <span className="block text-xs text-muted-foreground">
                               {o.descricao}
+                            </span>
+                          )}
+                          {espelho && (
+                            <span className="block text-xs italic text-muted-foreground">
+                              Liga e desliga no bloco &ldquo;{espelho.bloco}&rdquo;, onde ficam os
+                              detalhes.
                             </span>
                           )}
                         </span>
@@ -266,13 +355,14 @@ export function AcordoGrupoModal({
                 )
               )}
 
-              {c.campo === 'representante_pessoa_id' && (
+              {(c.campo === 'representante_pessoa_id'
+                || c.campo === 'substituto_representante_pessoa_id') && (
                 pessoas.length === 0 ? (
                   <SemPessoas />
                 ) : (
                   <SingleSelectCombobox
                     id={`ac-${c.campo}`}
-                    options={opcoesDePessoa}
+                    options={opcoesDePessoaFisica}
                     value={(form[c.campo] as string | null) ?? null}
                     onChange={(v) => mexer(c.campo, v)}
                     placeholder="Escolha quem representa"
@@ -342,6 +432,7 @@ function ListaDeQuoruns({
               className="h-8 flex-1 text-sm"
               value={q.materia}
               aria-label={`Matéria do quórum ${i + 1}`}
+              placeholder="O assunto, por exemplo: Alterar o contrato social"
               onChange={(e) => trocar(i, 'materia', e.target.value)}
             />
             {!q.chave && (
@@ -386,9 +477,15 @@ function ListaDeQuoruns({
           </div>
 
           {/* A prévia, onde ela muda decisão: a frase que vai sair no documento. */}
+          {/*
+            A frase pronta embaixo de cada linha responde a dúvida antes de ela
+            existir: o consultor digita o ASSUNTO, e o sistema escreve o resto.
+          */}
           <p className="mt-2 text-xs text-muted-foreground">
-            No acordo:{' '}
-            <span className="font-medium text-foreground">{expressaoDoQuorum(q)}</span>
+            No acordo vai sair:{' '}
+            <span className="font-medium text-foreground">
+              {q.materia.trim() || 'o assunto'}, {expressaoDoQuorum(q)}
+            </span>
           </p>
         </div>
       ))}
@@ -404,6 +501,20 @@ function ListaDeQuoruns({
   );
 }
 
+/*
+ * SÓ O NOME SE DIGITA, e o rótulo deixou de ser escolha.
+ *
+ * Havia um seletor entre "RAMO [nome]" e "DESCENDENTES DE [nome]". Contado nos
+ * 14 documentos do acervo, "RAMO [nome]" não aparece em nenhum, e "ramo" já
+ * significa ramo de ATIVIDADE em três acordos. O mockup da governança tinha
+ * derrubado essa opção com a mesma medição, e ela voltou por eu ter seguido o
+ * levantamento de 11/09 em vez do documento.
+ *
+ * No lugar do seletor entra a prévia: quem digita vê a frase que vai sair.
+ *
+ * E o placeholder do campo é genérico, e não um nome: "CRISTINA" é a fundadora
+ * da AgroAliança, e num campo vazio ela parecia dado já preenchido do cliente.
+ */
 function ListaDeRamos({
   linhas, mexer,
 }: { linhas: ValoresDoAcordo['ramos']; mexer: (l: ValoresDoAcordo['ramos']) => void }) {
@@ -413,29 +524,20 @@ function ListaDeRamos({
         <div key={i} className="flex items-center gap-2">
           <Input
             className="h-8 flex-1 text-sm" value={r.nome}
-            aria-label={`Nome do ramo ${i + 1}`}
+            aria-label={`Nome do fundador do ramo ${i + 1}`}
+            placeholder="Nome do fundador"
             onChange={(e) => {
               const nova = [...linhas];
               nova[i] = { ...nova[i], nome: e.target.value };
               mexer(nova);
             }}
           />
-          <Select
-            value={r.rotulo}
-            onValueChange={(v) => {
-              const nova = [...linhas];
-              nova[i] = { ...nova[i], rotulo: v as 'ramo' | 'descendentes' };
-              mexer(nova);
-            }}
-          >
-            <SelectTrigger className="h-8 w-48 text-sm" aria-label={`Rótulo do ramo ${i + 1}`}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ramo">RAMO [nome]</SelectItem>
-              <SelectItem value="descendentes">DESCENDENTES DE [nome]</SelectItem>
-            </SelectContent>
-          </Select>
+          <span className="w-72 shrink-0 truncate text-xs text-muted-foreground">
+            {r.nome.trim()
+              ? `${rotuloDoRamo(r)}, formado por ${r.nome.trim().toUpperCase()} e seus `
+                + 'descendentes em linha vertical'
+              : 'digite o nome do fundador'}
+          </span>
           <Button
             size="icon" variant="ghost" className="h-8 w-8"
             aria-label={`Tirar ${r.nome || 'ramo'}`}
@@ -448,7 +550,7 @@ function ListaDeRamos({
       <Button
         variant="ghost" size="sm"
         className="h-8 gap-1 border border-dashed border-border px-2 text-xs font-normal text-osg-700 hover:border-osg-moss hover:bg-osg-50 hover:text-osg-moss"
-        onClick={() => mexer([...linhas, { nome: '', rotulo: 'ramo' }])}
+        onClick={() => mexer([...linhas, { nome: '' }])}
       >
         <Plus className="h-3 w-3" /> Outro ramo
       </Button>

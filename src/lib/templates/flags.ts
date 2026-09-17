@@ -40,20 +40,38 @@ export function flagDaPeca(numeroAlteracao: number): 'e_alteracao' | 'e_constitu
 }
 
 /**
- * Flags de um snapshot SELADO antes de as flags de peça existirem, completadas
- * com `e_constituicao`.
+ * Flags de um snapshot SELADO antes de uma flag de PAR existir, completadas com
+ * o lado que aquelas peças sempre foram.
  *
- * Documento validado renderiza dos flags congelados, e `e_constituicao` /
- * `e_alteracao` nasceram só em 26/08/2026. Todo snapshot anterior a elas é de
- * contrato social — a alteração contratual como documento próprio não existia —,
- * mas não diz isso, e os blocos que passaram a pender de `e_constituicao` saíam
- * dessas peças sem sinal nenhum: a cláusula de capital, a sede, o objeto. Aqui a
- * ausência das DUAS é lida como constituição, que é o que aqueles documentos são.
+ * Documento validado e não registrado renderiza a estrutura do modelo VIVO com
+ * as flags CONGELADAS, então uma flag nova exigida por um bloco antigo faz o
+ * bloco sumir de todo o acervo validado, sem sinal nenhum. Aqui se completa o
+ * que o snapshot não tinha como dizer.
  *
- * Só completa quando falta o par inteiro: snapshot que já traz uma delas é
- * decisão selada e não se mexe.
+ * `e_constituicao` / `e_alteracao` nasceram em 26/08/2026. Todo snapshot
+ * anterior a elas é de contrato social (a alteração contratual como documento
+ * próprio não existia), mas não diz isso, e os blocos que passaram a pender de
+ * `e_constituicao` saíam daquelas peças: a cláusula de capital, a sede, o
+ * objeto.
+ *
+ * `governanca_por_orgaos` / `administracao_simples` nasceram na frente de
+ * governança. Toda peça selada antes dela é de administração simples, e sem
+ * completar o par o capítulo inteiro da Administração sumiria dos validados,
+ * que é o mesmo defeito uma frente depois.
+ *
+ * Cada par só se completa quando falta INTEIRO: snapshot que já traz um dos
+ * dois lados é decisão selada e não se mexe.
  */
 export function comFlagDaPecaRetroativa(snapshotFlags: readonly string[]): string[] {
-  const tem = snapshotFlags.includes('e_constituicao') || snapshotFlags.includes('e_alteracao');
-  return tem ? [...snapshotFlags] : [...snapshotFlags, 'e_constituicao'];
+  const completas = [...snapshotFlags];
+  for (const [umLado, outroLado, ausente] of PARES_RETROATIVOS) {
+    if (!completas.includes(umLado) && !completas.includes(outroLado)) completas.push(ausente);
+  }
+  return completas;
 }
+
+/** Os pares mutuamente exclusivos, e o lado que o acervo antigo recebe. */
+const PARES_RETROATIVOS = [
+  ['e_constituicao', 'e_alteracao', 'e_constituicao'],
+  ['governanca_por_orgaos', 'administracao_simples', 'administracao_simples'],
+] as const;

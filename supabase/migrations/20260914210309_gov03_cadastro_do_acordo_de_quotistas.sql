@@ -432,51 +432,26 @@ CREATE TRIGGER update_acordo_sociedade_relacionada_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- O usufruto, na tabela que ja existe
+-- O usufruto NAO entra aqui, e este bloco foi removido em 16/09/2026
 -- ─────────────────────────────────────────────────────────────────────────────
 --
--- Ordem expressa do card, e o motivo e de conta: `quadro_societario` ja tem
--- `percentual` e `data_referencia`, que sao a base de qualquer quorum. Quem
--- detem a quota nao e necessariamente quem vota.
-
-ALTER TABLE public.quadro_societario
-  ADD COLUMN IF NOT EXISTS com_usufruto boolean NOT NULL DEFAULT false;
-
-ALTER TABLE public.quadro_societario
-  ADD COLUMN IF NOT EXISTS voto_exercido_por text;
-
-COMMENT ON COLUMN public.quadro_societario.com_usufruto IS
-  'GOV-03: esta participacao esta gravada com reserva de usufruto?';
-
-COMMENT ON COLUMN public.quadro_societario.voto_exercido_por IS
-  'GOV-03: quem exerce o voto desta quota, o nu-proprietario ou o usufrutuario. '
-  'Nas doacoes com reserva vitalicia o voto costuma ficar com o doador (art. 114 '
-  'da Lei das S/A via art. 1.053 do Codigo Civil), e o contrato do Perci escreve '
-  'isso. Qualquer conta de quorum que ignore este campo da resultado errado.';
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'quadro_societario_voto_ck'
-  ) THEN
-    ALTER TABLE public.quadro_societario
-      ADD CONSTRAINT quadro_societario_voto_ck CHECK (
-        voto_exercido_por IS NULL
-        OR voto_exercido_por IN ('nu_proprietario', 'usufrutuario')
-      );
-  END IF;
-
-  -- Voto so se decide onde ha usufruto: sem ele, a pergunta nao existe.
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'quadro_societario_usufruto_ck'
-  ) THEN
-    ALTER TABLE public.quadro_societario
-      ADD CONSTRAINT quadro_societario_usufruto_ck CHECK (
-        com_usufruto = true OR voto_exercido_por IS NULL
-      );
-  END IF;
-END
-$$;
+-- A versao original desta migration acrescentava `com_usufruto` e
+-- `voto_exercido_por` a `public.quadro_societario`. Duas coisas erradas nisso,
+-- e as duas so apareceram depois:
+--
+--   1. A TABELA NAO EXISTE. `20260820163000_limpeza_quadro_societario.sql` a
+--      derrubou em 20/08/2026, quando `movimentacao_quotas` virou a fonte unica
+--      do quadro. A copia que sobrou no sandbox e resto de drift, e nenhum
+--      arquivo de `src/` le essa tabela. Em producao o `ALTER TABLE` morria com
+--      42P01, e o autoteste do fim do arquivo transformava isso em excecao.
+--   2. O USUFRUTO JA ESTAVA MODELADO em `onus_quotas`, e em lugar melhor, junto
+--      do ato que criou o gravame. Foi o que a `20260915125745` concluiu no dia
+--      seguinte, desfazendo as duas colunas.
+--
+-- Removido em vez de guardado por `to_regclass`: as colunas nasciam para serem
+-- apagadas 24h depois, entao guardar so preservaria o vaivem. Quem procurar o
+-- usufruto acha em `onus_quotas`; a tela do Acordo LE de la e manda cadastrar
+-- no Quadro Societario.
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- RLS
@@ -630,22 +605,7 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- As duas colunas do usufruto, na tabela que ja existia.
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = 'quadro_societario'
-      AND column_name = 'com_usufruto'
-  ) THEN
-    v_falhas := v_falhas || 'quadro_societario nao ganhou com_usufruto';
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = 'quadro_societario'
-      AND column_name = 'voto_exercido_por'
-  ) THEN
-    v_falhas := v_falhas || 'quadro_societario nao ganhou voto_exercido_por';
-  END IF;
+  -- Nao ha o que conferir em `quadro_societario`: ver a nota do bloco removido.
 
   -- Nenhuma coluna `ambiente`: o ambiente vem do cliente, como na GOV-01 e 02.
   IF EXISTS (

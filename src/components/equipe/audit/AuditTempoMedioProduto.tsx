@@ -93,7 +93,7 @@ export const AuditTempoMedioProduto = ({
         </p>
       </div>
 
-      <Card>
+      <Card variant="tabela">
         <CardContent className="p-0">
           <Table>
             <TableHeader>

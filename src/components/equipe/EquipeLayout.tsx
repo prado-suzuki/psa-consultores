@@ -329,7 +329,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
             >
               <MessageSquare className="h-5 w-5" />
             </Button>
-            <NotificationPopover navigateTo="/equipe/chamados" backTo={location.pathname} />
+            <NotificationPopover baseDosChamados="/equipe/chamados" backTo={location.pathname} />
             {headerActions}
           </div>
         </header>

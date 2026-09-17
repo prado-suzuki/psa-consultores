@@ -53,7 +53,9 @@ const FIELD_LABELS: Record<string, string> = {
   simples_nacional: 'Simples Nacional',
   cargo: 'Cargo',
   email: 'E-mail',
-  acesso_chamados: 'Acesso a Chamados',
+  // A coluna continua `acesso_chamados`; o rótulo segue o do cadastro de
+  // representantes, que virou "Acesso à plataforma" em 16/09/2026.
+  acesso_chamados: 'Acesso à plataforma',
   observacoes: 'Observações',
   numero_os: 'Número OS',
   valor_projeto: 'Valor do Projeto',

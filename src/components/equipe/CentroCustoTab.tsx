@@ -55,7 +55,7 @@ export default function CentroCustoTab() {
         <p className="text-sm text-muted-foreground">{items.length} centros de custo cadastrados</p>
         <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />Adicionar</Button>
       </div>
-      <Card className="border-border/60">
+      <Card variant="tabela" className="border-border/60">
         <Table>
           <TableHeader>
             <TableRow>

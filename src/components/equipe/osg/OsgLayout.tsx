@@ -16,6 +16,12 @@ import {
   ChevronRight,
   ChevronDown,
   Menu,
+  // `Network` — nós ligados. Ícone do agrupador "Estrutura do Cliente", que
+  // reúne pessoas, empresas, quotas, bens e matrículas: o que os junta são os
+  // vínculos entre eles. NÃO reusa `Building2`, que já é o marcador de CLIENTE
+  // na barra de seleção logo acima — dois desenhos iguais para coisas
+  // diferentes é o tipo de ruído que a especificação veio corrigir.
+  Network,
   ArrowLeft,
   Shield,
   Users,
@@ -52,6 +58,8 @@ import {
   classesGavetaBarra,
 } from '@/lib/sidebarMedidas';
 import { FACE_DA_BARRA, classesItemDaBarra } from '@/lib/barraLateralCromo';
+import { GrupoDaBarra } from '@/components/equipe/osg/GrupoDaBarra';
+import { GRUPOS_OSG_WORK, INICIO_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
 import { linkEspelhado } from '@/lib/areaTheme';
@@ -216,51 +224,6 @@ export const OsgLayout = (props: OsgLayoutProps) => {
     { path: '/equipe/osg/gerencial/logs-equipe', label: 'Logs de Uso', icon: Shield },
   ];
   const isGerencialActive = location.pathname.startsWith('/equipe/osg/gerencial');
-
-  // Itens do agrupador "Documentos" — expande no hover (e fica aberto na rota ativa)
-  const docItems = [
-    { path: '/equipe/osg/work/biblioteca-modelos', label: 'Biblioteca de Modelos' },
-    { path: '/equipe/osg/work/montagem-documentos', label: 'Montagem de Documentos' },
-    { path: '/equipe/osg/work/gerar-documento', label: 'Gerar Documento' },
-  ];
-  const isDocsActive = docItems.some((item) => item.path === location.pathname);
-
-  // Itens do agrupador "Onboarding" — a solicitação inicial e a tela onde os
-  // arquivos que chegaram viram cadastro. Mesmo padrão de dropdown por hover.
-  const onbItems = [
-    // O rótulo acompanha o título da tela (10/09/2026, Patrícia): mesmo nome
-    // para a mesma coisa no menu e no cabeçalho. A rota segue `onboarding`
-    // porque está gravada em `page_permissions` — endereço é técnico, rótulo é
-    // do usuário, e os dois não precisam casar.
-    { path: '/equipe/osg/work/onboarding', label: 'Solicitação de documentos' },
-    { path: '/equipe/osg/work/onboarding/cadastro', label: 'Cadastro por Documento' },
-  ];
-  const isOnbActive = onbItems.some((item) => item.path === location.pathname);
-
-  // Itens do agrupador "Documentos do Cliente" — mesmo padrão de dropdown por hover
-  const docClienteItems = [
-    { path: '/equipe/osg/work/documentos', label: 'Explorador de arquivos' },
-    // Singular desde 10/09/2026: eram duas abas (Pendências e Planejamento
-    // tributário) e sobrou uma. A rota segue no plural — é endereço, não rótulo.
-    { path: '/equipe/osg/work/checklists', label: 'Checklist de documentos' },
-  ];
-  const isDocClienteActive = docClienteItems.some((item) => item.path === location.pathname);
-
-  // Itens do agrupador "Governança" (GOV-01). Nasce com um item só, de propósito:
-  // o levantamento mapeou seis documentos de governança, e cada um vira tela ou
-  // parte de tela. Criar o agrupador agora evita que o segundo entre solto e o
-  // terceiro obrigue a renomear endereço já com permissão concedida, o que exige
-  // migration com UPDATE porque o sincronizador de páginas casa por CAMINHO.
-  const govItems = [
-    { path: '/equipe/osg/work/governanca/orgaos', label: 'Órgãos de Governança' },
-    { path: '/equipe/osg/work/governanca/matriz', label: 'Matriz de Alçadas' },
-    // O acordo vem DEPOIS da matriz, e isso foi verificado no documento: o
-    // próprio acordo manda que composição, eleição e prazos de gestão obedeçam
-    // ao contrato social, e define o quórum PARA ALTERAR o contrato. Como a
-    // matriz é o que vira as cláusulas de competência dele, ela vem antes.
-    { path: '/equipe/osg/work/governanca/acordo', label: 'Acordo de Quotistas' },
-  ];
-  const isGovActive = govItems.some((item) => item.path === location.pathname);
 
   // Os NOMES moram em `@/lib/nomeDaArea`; a decisão de qual rota é qual fica
   // aqui, onde os predicados já existem para o menu.
@@ -428,316 +391,37 @@ export const OsgLayout = (props: OsgLayoutProps) => {
             )}
 
             {/* ───── OSG Work: ferramentas próprias (inalteradas) ───── */}
+            {/* ───── OSG Work: a barra inteira sai de `navegacaoOsgWork`, a
+                 mesma fonte que o painel de entrada lê. Eram duas listas da
+                 mesma coisa e elas divergiram — o menu com 14 telas em sete
+                 grupos, o painel com sete soltas e outras frases. ───── */}
             {isWork && (
               <>
-                {/* Agrupador "Onboarding" — expande no hover (e fica aberto na rota ativa) */}
-                <div className="group/onb">
-                  <button
-                    type="button"
-                    className={cn(
-                                            // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
-                      classesItemDaBarra({ ativo: false, ancestral: isOnbActive, trilho }),
-                    )}
-                  >
-                    <Rocket className="h-4 w-4 flex-shrink-0" />
-                    <span className={cn('flex-1 min-w-0 truncate text-left', rotuloCls)}>
-                      Onboarding
-                    </span>
-                    <ChevronDown
-                      className={cn(
-                        // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
-                        // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
-                        // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
-                        // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
-                        // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
-                        // cabeçalhos de grupo, que são os únicos itens com três filhos.
-                        'h-4 w-4 flex-shrink-0 duration-300',
-                        isOnbActive ? 'rotate-180' : 'group-hover/onb:rotate-180',
-                        rotuloCls,
-                      )}
-                    />
-                  </button>
+                {/* "Início" volta ao padrão das outras duas áreas (Tax e OSG
+                    Projects): a rota do painel existia e NENHUM item levava a
+                    ela. Você caía lá ao entrar na área e, depois do primeiro
+                    clique, não voltava mais. */}
+                <button
+                  onClick={() => navigate(INICIO_OSG_WORK)}
+                  className={cn(
+                    classesItemDaBarra({ ativo: location.pathname === INICIO_OSG_WORK, trilho }),
+                  )}
+                >
+                  <Home className="h-4 w-4 flex-shrink-0" />
+                  <span className={cn('whitespace-nowrap', rotuloCls)}>Início</span>
+                </button>
 
-                  <div
-                    className={cn(
-                      'grid transition-[grid-template-rows] duration-300 ease-out',
-                      trilho
-                        ? 'grid-rows-[0fr]'
-                        : isOnbActive
-                          ? 'grid-rows-[1fr]'
-                          : 'grid-rows-[0fr] group-hover/onb:grid-rows-[1fr]',
-                    )}
-                  >
-                    <div className="min-h-0 overflow-hidden">
-                      <div
-                        className={cn(
-                          'space-y-1 pt-1',
-                          trilho ? '' : 'ml-2 pl-2 border-l border-osg-100',
-                        )}
-                      >
-                        {onbItems.map(({ path, label }) => (
-                          <button
-                            key={path}
-                            onClick={() => navigate(path)}
-                            className={cn(
-                                                            classesItemDaBarra({ ativo: location.pathname === path, trilho }),
-                            )}
-                          >
-                            <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
-                  className={cn(
-                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/qualificacao-das-partes', trilho }),
-                  )}
-                >
-                  <Users className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn('whitespace-nowrap', rotuloCls)}>
-                    Qualificação das Partes
-                  </span>
-                </button>
-                <button
-                  onClick={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}
-                  className={cn(
-                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/diagnostico-patrimonial', trilho }),
-                  )}
-                >
-                  <Landmark className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn('whitespace-nowrap', rotuloCls)}>
-                    Diagnóstico Patrimonial
-                  </span>
-                </button>
-                <button
-                  onClick={() => navigate('/equipe/osg/work/controle-matriculas')}
-                  className={cn(
-                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/controle-matriculas', trilho }),
-                  )}
-                >
-                  <FileText className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn('whitespace-nowrap', rotuloCls)}>Controle de Matrículas</span>
-                </button>
-                {/* Agrupador "Oficina de Contratos" — expande no hover com animação suave */}
-                <div className="group/docs">
-                  <button
-                    type="button"
-                    className={cn(
-                                            // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
-                      classesItemDaBarra({ ativo: false, ancestral: isDocsActive, trilho }),
-                    )}
-                  >
-                    <FileSignature className="h-4 w-4 flex-shrink-0" />
-                    <span className={cn('whitespace-nowrap', rotuloCls)}>Oficina de Contratos</span>
-                    <ChevronDown
-                      className={cn(
-                        // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
-                        // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
-                        // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
-                        // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
-                        // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
-                        // cabeçalhos de grupo, que são os únicos itens com três filhos.
-                        'h-4 w-4 flex-shrink-0 duration-300',
-                        !trilho && 'ml-auto',
-                        isDocsActive ? 'rotate-180' : 'group-hover/docs:rotate-180',
-                        rotuloCls,
-                      )}
-                    />
-                  </button>
-
-                  <div
-                    className={cn(
-                      'grid transition-[grid-template-rows] duration-300 ease-out',
-                      trilho
-                        ? 'grid-rows-[0fr]'
-                        : isDocsActive
-                          ? 'grid-rows-[1fr]'
-                          : 'grid-rows-[0fr] group-hover/docs:grid-rows-[1fr]',
-                    )}
-                  >
-                    <div className="min-h-0 overflow-hidden">
-                      <div
-                        className={cn(
-                          'space-y-1 pt-1',
-                          trilho ? '' : 'ml-2 pl-2 border-l border-osg-100',
-                        )}
-                      >
-                        {docItems.map(({ path, label }) => (
-                          <button
-                            key={path}
-                            onClick={() => navigate(path)}
-                            className={cn(
-                                                            classesItemDaBarra({ ativo: location.pathname === path, trilho }),
-                            )}
-                          >
-                            <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => navigate('/equipe/osg/work/quadro-societario')}
-                  className={cn(
-                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/quadro-societario', trilho }),
-                  )}
-                >
-                  <PieChart className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn('whitespace-nowrap', rotuloCls)}>Quadro Societário</span>
-                </button>
-                {/* Ao lado do Quadro Societário porque é o irmão conceitual: cadastro
-              relacional (instrumento + partes), não cadastro atômico. */}
-                <button
-                  onClick={() => navigate('/equipe/osg/work/exploracao-rural')}
-                  className={cn(
-                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/exploracao-rural', trilho }),
-                  )}
-                >
-                  <Sprout className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn('whitespace-nowrap', rotuloCls)}>Exploração Rural</span>
-                </button>
-                <button
-                  onClick={() => navigate('/equipe/osg/work/calculadora-itcmd')}
-                  className={cn(
-                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/calculadora-itcmd', trilho }),
-                  )}
-                >
-                  <Calculator className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn('whitespace-nowrap', rotuloCls)}>Calculadora de ITCD</span>
-                </button>
-                {/* Agrupador "Governança" — mesmo padrão de dropdown por hover */}
-                <div className="group/gov">
-                  <button
-                    type="button"
-                    className={cn(
-                                            // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
-                      classesItemDaBarra({ ativo: false, ancestral: isGovActive, trilho }),
-                    )}
-                  >
-                    <Scale className="h-4 w-4 flex-shrink-0" />
-                    <span className={cn('flex-1 min-w-0 truncate text-left', rotuloCls)}>
-                      Governança
-                    </span>
-                    <ChevronDown
-                      className={cn(
-                        // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
-                        // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
-                        // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
-                        // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
-                        // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
-                        // cabeçalhos de grupo, que são os únicos itens com três filhos.
-                        'h-4 w-4 flex-shrink-0 duration-300',
-                        isGovActive ? 'rotate-180' : 'group-hover/gov:rotate-180',
-                        rotuloCls,
-                      )}
-                    />
-                  </button>
-
-                  <div
-                    className={cn(
-                      'grid transition-[grid-template-rows] duration-300 ease-out',
-                      trilho
-                        ? 'grid-rows-[0fr]'
-                        : isGovActive
-                          ? 'grid-rows-[1fr]'
-                          : 'grid-rows-[0fr] group-hover/gov:grid-rows-[1fr]',
-                    )}
-                  >
-                    <div className="min-h-0 overflow-hidden">
-                      <div
-                        className={cn(
-                          'space-y-1 pt-1',
-                          trilho ? '' : 'ml-2 pl-2 border-l border-osg-100',
-                        )}
-                      >
-                        {govItems.map(({ path, label }) => (
-                          <button
-                            key={path}
-                            onClick={() => navigate(path)}
-                            className={cn(
-                                                            classesItemDaBarra({ ativo: location.pathname === path, trilho }),
-                            )}
-                          >
-                            <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {/* Agrupador "Documentos do Cliente" — expande no hover com animação suave */}
-                <div className="group/docsCli">
-                  <button
-                    type="button"
-                    className={cn(
-                                            // Cabeçalho de grupo: quem está aberto é o filho — ver `ancestral`.
-                      classesItemDaBarra({ ativo: false, ancestral: isDocClienteActive, trilho }),
-                    )}
-                  >
-                    <FolderArchive className="h-4 w-4 flex-shrink-0" />
-                    <span className={cn('flex-1 min-w-0 truncate text-left', rotuloCls)}>
-                      Documentos
-                    </span>
-                    <ChevronDown
-                      className={cn(
-                        // `rotuloCls` por ÚLTIMO, e `ml-auto` só com a barra aberta. Antes o
-                        // `w-4` vinha depois do `w-0` do `rotuloCls` e o twMerge dava a vitória
-                        // ao `w-4`: no trilho a seta continuava com 16px e o `ml-auto` a jogava
-                        // na borda direita, empurrando o ícone para a esquerda. Medido no DOM:
-                        // ícone a 27,5px num trilho de centro 39,5 — 12,5px fora, só nos
-                        // cabeçalhos de grupo, que são os únicos itens com três filhos.
-                        'h-4 w-4 flex-shrink-0 duration-300',
-                        isDocClienteActive ? 'rotate-180' : 'group-hover/docsCli:rotate-180',
-                        rotuloCls,
-                      )}
-                    />
-                  </button>
-
-                  <div
-                    className={cn(
-                      'grid transition-[grid-template-rows] duration-300 ease-out',
-                      trilho
-                        ? 'grid-rows-[0fr]'
-                        : isDocClienteActive
-                          ? 'grid-rows-[1fr]'
-                          : 'grid-rows-[0fr] group-hover/docsCli:grid-rows-[1fr]',
-                    )}
-                  >
-                    <div className="min-h-0 overflow-hidden">
-                      <div
-                        className={cn(
-                          'space-y-1 pt-1',
-                          trilho ? '' : 'ml-2 pl-2 border-l border-osg-100',
-                        )}
-                      >
-                        {docClienteItems.map(({ path, label }) => (
-                          <button
-                            key={path}
-                            onClick={() => navigate(path)}
-                            className={cn(
-                                                            classesItemDaBarra({ ativo: location.pathname === path, trilho }),
-                            )}
-                          >
-                            <span className={cn('whitespace-nowrap', rotuloCls)}>{label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => navigate('/equipe/osg/work/relatorios')}
-                  className={cn(
-                                        classesItemDaBarra({ ativo: location.pathname === '/equipe/osg/work/relatorios', trilho }),
-                  )}
-                >
-                  <FileBarChart2 className="h-4 w-4 flex-shrink-0" />
-                  <span className={cn('whitespace-nowrap', rotuloCls)}>Relatórios</span>
-                </button>
+                {GRUPOS_OSG_WORK.map((grupo) => (
+                  <GrupoDaBarra
+                    key={grupo.id}
+                    icone={grupo.icone}
+                    rotulo={grupo.rotulo}
+                    ativo={grupo.telas.some((t) => t.path === location.pathname)}
+                    itens={grupo.telas}
+                    trilho={trilho}
+                    rotuloCls={rotuloCls}
+                  />
+                ))}
               </>
             )}
 
@@ -881,8 +565,7 @@ export const OsgLayout = (props: OsgLayoutProps) => {
           <div className="flex items-center gap-3">
             {headerActions}
             <NotificationPopover
-              navigateTo="/equipe/chamados"
-              espelho="osg"
+              baseDosChamados="/equipe/chamados"
               tasksNavigateTo="/equipe/osg/projetos/tarefas"
               mencoesArea="osg"
             />

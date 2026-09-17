@@ -138,7 +138,7 @@ const DesempenhoCiclos = () => {
       <Button onClick={() => setShowForm(true)} size="sm"><Plus className="h-4 w-4 mr-1" />Novo Ciclo</Button>
     }>
       {isLoading ? <Skeleton className="h-64" /> : (
-        <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+        <Card variant="tabela" className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
           <CardContent className="p-0">
             <Table>
               <TableHeader>

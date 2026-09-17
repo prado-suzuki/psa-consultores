@@ -254,7 +254,7 @@ function DeOndeSaiCadaSlide({ analise }: { analise: Analise }) {
     .join(', e ');
 
   return (
-    <Card>
+    <Card variant="tabela">
       <CardHeader className="pb-3">
         <CardTitle className="text-base">O que vai para a apresentação</CardTitle>
         <p className="text-sm text-muted-foreground">

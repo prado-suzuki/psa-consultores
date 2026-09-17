@@ -82,6 +82,7 @@ const linha = (extra: Record<string, unknown> = {}) => ({
   quantidade: 1,
   metadata: {},
   created_at: '2026-08-11T12:00:00.000Z',
+  lido_em: null,
   ...extra,
 });
 
@@ -114,20 +115,48 @@ describe('useNotificacoesInternas — registro da query', () => {
 });
 
 describe('useNotificacoesInternas — leitura da caixa', () => {
-  it('lê só os avisos meus ainda não lidos, mais recentes primeiro', async () => {
+  it('lê os avisos meus, lidos ou não, mais recentes primeiro', async () => {
     renderHook(() => useNotificacoesInternas());
     await queryRegistro().queryFn();
 
     expect(supabase.from).toHaveBeenCalledWith('notificacao');
     // `quantidade` e `metadata` fazem parte do contrato da leitura: a primeira é o
     // agrupamento visível na linha, a segunda carrega o ambiente do evento.
+    // `lido_em` entrou em 14/09/2026, quando deixou de ser filtro e virou o campo
+    // que separa o que ainda conta para a bolinha do que só está no histórico.
     expect(callsFor('select')[0].args).toEqual([
-      'id, tipo, titulo, corpo, entidade_tipo, entidade_id, href, quantidade, metadata, created_at',
+      'id, tipo, titulo, corpo, entidade_tipo, entidade_id, href, quantidade, metadata, created_at, lido_em',
     ]);
     expect(callsFor('eq')[0].args).toEqual(['destinatario_id', 'U1']);
-    expect(callsFor('is')[0].args).toEqual(['lido_em', null]);
     expect(callsFor('order')[0].args).toEqual(['created_at', { ascending: false }]);
-    expect(callsFor('limit')[0].args).toEqual([20]);
+    expect(callsFor('limit')[0].args).toEqual([30]);
+  });
+
+  /*
+   * A trava do histórico: o balão do sino mostra as últimas 30 notificações, e um
+   * `.is('lido_em', null)` de volta aqui esvaziaria a lista na frente de quem
+   * acabou de abri-la — abrir o balão carimba tudo como lido.
+   */
+  it('não filtra por lido_em, senão o balão se esvaziaria ao ser aberto', async () => {
+    renderHook(() => useNotificacoesInternas());
+    await queryRegistro().queryFn();
+
+    expect(callsFor('is')).toEqual([]);
+  });
+
+  it('separa o que ainda não foi lido, que é o que a bolinha soma', () => {
+    reactQueryMocks.useQuery.mockReturnValueOnce({
+      data: [
+        linha({ id: 'N1', lido_em: null }),
+        linha({ id: 'N2', lido_em: '2026-09-14T10:00:00Z' }),
+      ],
+    });
+
+    const { result } = renderHook(() => useNotificacoesInternas());
+
+    expect(result.current.count).toBe(2);
+    expect(result.current.naoLidas).toBe(1);
+    expect(result.current.idsNaoLidos).toEqual(['N1']);
   });
 
   it('vai ao banco uma vez só, ao contrário do hook de menção', async () => {

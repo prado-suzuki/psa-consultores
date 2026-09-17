@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -81,8 +82,8 @@ const ExploracaoRural = () => {
 
   return (
     <OsgLayout
-      title="Exploração Rural"
-      subtitle="Instrumentos de parceria e composse: partes, imóveis e origens da posse"
+      title={TELAS_OSG_WORK.exploracaoRural.label}
+      subtitle={TELAS_OSG_WORK.exploracaoRural.descricao}
     >
       <div className="space-y-4">
         {!clienteId ? (
@@ -159,7 +160,7 @@ const ExploracaoRural = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card variant="tabela">
               <CardHeader className="flex-row items-center justify-between pb-3">
                 <CardTitle className="text-base">
                   {filtradas.length} instrumento{filtradas.length === 1 ? '' : 's'}

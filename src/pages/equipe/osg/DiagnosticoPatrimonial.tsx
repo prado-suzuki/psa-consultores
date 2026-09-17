@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -72,15 +73,19 @@ const DiagnosticoPatrimonial = () => {
 
   return (
     <OsgLayout
-      title="Diagnóstico Patrimonial"
-      subtitle="Cadastro de bens, matrículas, titulares e impedimentos por cliente"
+      /* Vêm de `navegacaoOsgWork`, com a história toda: por que esta tela deixou
+         de se chamar "Diagnóstico Patrimonial" em 14/09/2026, por que o
+         relatório de mesmo nome NÃO acompanhou, e por que o arquivo, o hook e a
+         rota continuam com o nome antigo. */
+      title={TELAS_OSG_WORK.cadastroPatrimonial.label}
+      subtitle={TELAS_OSG_WORK.cadastroPatrimonial.descricao}
     >
       <div className="space-y-4">
         {!clienteId ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
               <Landmark className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Selecione um cliente na barra acima para visualizar e gerenciar o Diagnóstico Patrimonial.</p>
+              <p className="text-sm">Selecione um cliente na barra acima para visualizar e gerenciar o Cadastro Patrimonial.</p>
             </CardContent>
           </Card>
         ) : loadingBens ? (
@@ -127,7 +132,7 @@ const DiagnosticoPatrimonial = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card variant="tabela">
               <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Landmark className="h-4 w-4 text-muted-foreground" />

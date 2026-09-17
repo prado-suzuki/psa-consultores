@@ -312,7 +312,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
         </CardContent>
       </Card>
 
-      <Card className="border-border">
+      <Card variant="tabela" className="border-border">
         <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <CardTitle className="text-sm font-semibold text-foreground">
             Top NCMs por faturamento

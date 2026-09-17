@@ -53,7 +53,7 @@ function WorkloadAndClients({ dashboard }: { dashboard: AreaDashboardController 
 function DashboardTables({ dashboard }: { dashboard: AreaDashboardController }) {
   const navigate = useNavigate();
   return <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <Card className="border-border/60 shadow-sm rounded-2xl">
+    <Card variant="tabela" className="border-border/60 shadow-sm rounded-2xl">
       <CardHeader className="pb-2 flex flex-row items-center justify-between">
         <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2"><AlertCircle className="h-4 w-4 text-destructive" />Tarefas Atrasadas</CardTitle>
         {dashboard.overdueRows.length > 0 && <Badge className="bg-destructive/5 text-destructive border-0 text-[10px]">{dashboard.overdueRows.length}</Badge>}
@@ -70,7 +70,7 @@ function DashboardTables({ dashboard }: { dashboard: AreaDashboardController }) 
             <TableCell className="text-xs text-muted-foreground">{row.responsible}</TableCell><TableCell className="text-sm font-bold text-destructive text-right tabular-nums">{row.daysOverdue}d</TableCell>
           </TableRow>)}</TableBody></Table></div>}</CardContent>
     </Card>
-    <Card className="border-border/60 shadow-sm rounded-2xl">
+    <Card variant="tabela" className="border-border/60 shadow-sm rounded-2xl">
       <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2"><Users className="h-4 w-4 text-primary" />Carga por Membro</CardTitle></CardHeader>
       <CardContent>{dashboard.isLoading ? <LoadingSpinner area={dashboard.paleta} /> : dashboard.memberRows.length === 0
         ? <EmptyMessage message="Sem dados de atribuição" />

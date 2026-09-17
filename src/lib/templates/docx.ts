@@ -481,8 +481,14 @@ function paragrafosDoBloco(
       continue;
     }
 
-    // clausula/paragrafo: rótulo em negrito, corpo justificado, alíneas recuadas.
-    if (tipo === 'clausula' || tipo === 'paragrafo') {
+    /*
+     * clausula/paragrafo/item: rótulo em negrito, corpo justificado, alíneas
+     * recuadas. O item entra aqui, e não no `livre` de baixo, porque ele é
+     * corpo numerado: caindo no livre sairia sem justificação e sem recuo de
+     * alínea, que é a formatação de fecho e anexo.
+     */
+    if (tipo === 'clausula' || tipo === 'paragrafo' || tipo === 'item'
+        || tipo === 'subitem' || tipo === 'alinea' || tipo === 'inciso') {
       emitir(linhaComRotulo(docx, linha));
       continue;
     }

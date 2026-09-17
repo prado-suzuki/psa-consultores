@@ -2,23 +2,25 @@ import { useMemo, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Building2, Download, FolderArchive,
-  FolderOpen, Inbox, Landmark, Link2, Pencil, ScrollText, Trash2, Upload, User, Users,
+  FolderOpen, Inbox, Landmark, Loader2, ScrollText, Upload, User, Users, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Checkbox } from '@/components/ui/checkbox';
 import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
 import { useAllMatriculas, useBensByCliente } from '@/hooks/useDiagnosticoPatrimonial';
 import {
-  useBaixarDocumento, useDocumentosByCliente, useExcluirDocumento, usePreviewUrl, useUploaderNames,
+  useBaixarDocumento, useBaixarDocumentosEmLote, useDocumentosByCliente, useExcluirDocumento,
+  usePreviewUrl, useUploaderNames,
   type DocumentoArquivoRow, type VinculoDoc,
 } from '@/hooks/useDocumentoArquivo';
 import { separarSemVinculo } from '@/lib/exploradorDocumentos';
-import { CATEGORIAS, formatBytes, isPreviavel } from '@/components/equipe/osg/documentos/docMeta';
-import { Collapse, FileIcon, TreeRow } from '@/components/equipe/osg/documentos/organizar/pecasArvore';
+import { CATEGORIAS } from '@/components/equipe/osg/documentos/docMeta';
+import { Collapse, TreeRow } from '@/components/equipe/osg/documentos/organizar/pecasArvore';
+import { ListaDeDocumentos } from '@/components/equipe/osg/documentos/organizar/ListaDeDocumentos';
 import { DocUploadDialog } from '@/components/equipe/osg/documentos/DocUploadDialog';
 import { DocVinculoDialog } from '@/components/equipe/osg/documentos/DocVinculoDialog';
 import { DocRenomearDialog } from '@/components/equipe/osg/documentos/DocRenomearDialog';
@@ -68,6 +70,7 @@ export function OrganizarDocumentos({ clienteId }: Props) {
 
   const excluir = useExcluirDocumento(clienteId || '');
   const baixar = useBaixarDocumento();
+  const { baixarEmLote, baixando, progresso } = useBaixarDocumentosEmLote();
   const preview = usePreviewUrl();
 
   const uploaderIds = useMemo(
@@ -77,6 +80,8 @@ export function OrganizarDocumentos({ clienteId }: Props) {
   const { data: uploaderNames = {} } = useUploaderNames(uploaderIds);
 
   const [selected, setSelected] = useState<string>('all');
+  /** Ids marcados para o download em lote, sempre dentro da pasta aberta. */
+  const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [hoverOpen, setHoverOpen] = useState<Record<string, boolean>>({});
   const [uploadOpen, setUploadOpen] = useState(false);
   const [aExcluir, setAExcluir] = useState<DocumentoArquivoRow | null>(null);
@@ -237,6 +242,34 @@ export function OrganizarDocumentos({ clienteId }: Props) {
     return CATEGORIAS.filter((c) => byCat.has(c.value)).map((c) => ({ label: c.label, docs: byCat.get(c.value)! }));
   })();
 
+  // Trocar de pasta zera a seleção: o lote é o que está marcado NA pasta aberta,
+  // e seleção que sobrevive à navegação some da tela sem sumir do botão.
+  const abrirPasta = (key: string) => {
+    setSelected(key);
+    setMarcados(new Set());
+  };
+  const alternarDoc = (id: string) =>
+    setMarcados((s) => {
+      const proximo = new Set(s);
+      if (!proximo.delete(id)) proximo.add(id);
+      return proximo;
+    });
+  /** Marca o grupo inteiro; se já estava todo marcado, desmarca. */
+  const alternarGrupo = (docsDoGrupo: DocumentoArquivoRow[]) =>
+    setMarcados((s) => {
+      const proximo = new Set(s);
+      const todos = docsDoGrupo.every((d) => s.has(d.id));
+      for (const d of docsDoGrupo) {
+        if (todos) proximo.delete(d.id);
+        else proximo.add(d.id);
+      }
+      return proximo;
+    });
+  // Da seleção só valem os documentos que continuam na pasta: excluir ou
+  // vincular um marcado tira a linha da lista, e o id ficaria pendurado.
+  const docsMarcados = selectedDocs.filter((d) => marcados.has(d.id));
+  const todosMarcados = selectedDocs.length > 0 && docsMarcados.length === selectedDocs.length;
+
   const abrirPreview = (d: DocumentoArquivoRow) => {
     setAVisualizar(d);
     setPreviewUrl(null);
@@ -275,7 +308,7 @@ export function OrganizarDocumentos({ clienteId }: Props) {
         <aside className="w-72 shrink-0 overflow-y-auto border-r border-osg-100 bg-osg-50/30 p-2">
           <TreeRow
             active={selected === 'all'}
-            onClick={() => setSelected('all')}
+            onClick={() => abrirPasta('all')}
             Icon={FolderOpen}
             label="Todos os documentos"
             count={docs.length}
@@ -290,7 +323,7 @@ export function OrganizarDocumentos({ clienteId }: Props) {
               >
                 <TreeRow
                   active={selected === g.key}
-                  onClick={() => setSelected(g.key)}
+                  onClick={() => abrirPasta(g.key)}
                   Icon={g.Icon}
                   label={g.label}
                   count={g.docs.length}
@@ -308,7 +341,7 @@ export function OrganizarDocumentos({ clienteId }: Props) {
                           >
                             <TreeRow
                               active={selected === sg.key}
-                              onClick={() => setSelected(sg.key)}
+                              onClick={() => abrirPasta(sg.key)}
                               Icon={sg.Icon}
                               label={sg.label}
                               count={sg.docs.length}
@@ -321,7 +354,7 @@ export function OrganizarDocumentos({ clienteId }: Props) {
                                 <TreeRow
                                   key={lf.key}
                                   active={selected === lf.key}
-                                  onClick={() => setSelected(lf.key)}
+                                  onClick={() => abrirPasta(lf.key)}
                                   Icon={lf.Icon}
                                   label={lf.label}
                                   count={lf.docs.length}
@@ -336,7 +369,7 @@ export function OrganizarDocumentos({ clienteId }: Props) {
                         <TreeRow
                           key={lf.key}
                           active={selected === lf.key}
-                          onClick={() => setSelected(lf.key)}
+                          onClick={() => abrirPasta(lf.key)}
                           Icon={lf.Icon}
                           label={lf.label}
                           count={lf.docs.length}
@@ -349,7 +382,7 @@ export function OrganizarDocumentos({ clienteId }: Props) {
           })}
           <TreeRow
             active={selected === 'sem'}
-            onClick={() => setSelected('sem')}
+            onClick={() => abrirPasta('sem')}
             Icon={Inbox}
             label="Sem vínculo"
             count={semVinculoDocs.length}
@@ -359,15 +392,59 @@ export function OrganizarDocumentos({ clienteId }: Props) {
         {/* Conteúdo da pasta selecionada */}
         <section className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-center justify-between gap-3 border-b border-osg-100 px-4 py-3">
-            <div className="min-w-0">
-              <h3 className="truncate text-sm font-semibold text-osg-700">{selectedLabel}</h3>
-              <p className="text-xs text-muted-foreground">
-                {selectedDocs.length} {selectedDocs.length === 1 ? 'documento' : 'documentos'}
-              </p>
+            <div className="flex min-w-0 items-center gap-3">
+              {selectedDocs.length > 0 && (
+                <Checkbox
+                  checked={todosMarcados ? true : docsMarcados.length ? 'indeterminate' : false}
+                  onCheckedChange={() => alternarGrupo(selectedDocs)}
+                  aria-label="Selecionar todos os documentos da pasta"
+                />
+              )}
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-semibold text-osg-700">{selectedLabel}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {docsMarcados.length > 0
+                    ? `${docsMarcados.length} de ${selectedDocs.length} ${selectedDocs.length === 1 ? 'selecionado' : 'selecionados'}`
+                    : `${selectedDocs.length} ${selectedDocs.length === 1 ? 'documento' : 'documentos'}`}
+                </p>
+              </div>
             </div>
-            <Button size="sm" onClick={() => setUploadOpen(true)}>
-              <Upload className="mr-2 h-4 w-4" /> Anexar
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              {docsMarcados.length > 0 && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={baixando}
+                    onClick={() => baixarEmLote({ docs: docsMarcados, rotuloDaPasta: selectedLabel })}
+                  >
+                    {baixando ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" />
+                    )}
+                    {/* O texto do botão é o próprio andamento: são N downloads
+                        mais a compactação, e sem isso o clique parece travado. */}
+                    {!baixando
+                      ? `Baixar ${docsMarcados.length} em .zip`
+                      : progresso?.etapa === 'compactando'
+                        ? 'Compactando…'
+                        : `Baixando ${progresso?.concluidos ?? 0}/${progresso?.total ?? docsMarcados.length}…`}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={baixando}
+                    onClick={() => setMarcados(new Set())}
+                  >
+                    <X className="mr-1 h-4 w-4" /> Limpar
+                  </Button>
+                </>
+              )}
+              <Button size="sm" onClick={() => setUploadOpen(true)}>
+                <Upload className="mr-2 h-4 w-4" /> Anexar
+              </Button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-2">
@@ -382,82 +459,22 @@ export function OrganizarDocumentos({ clienteId }: Props) {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-3">
-                {gruposCategoria.map((g) => (
-                  <div key={g.label}>
-                    <div className="flex items-center gap-2 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-osg-700/80">
-                      <span>{g.label}</span>
-                      <span className="rounded-full bg-muted px-1.5 text-[11px] tabular-nums text-muted-foreground">
-                        {g.docs.length}
-                      </span>
-                    </div>
-                    <ul className="divide-y divide-osg-100/70">
-                      {g.docs.map((d) => (
-                        <li key={d.id} className="flex items-center gap-3 px-2 py-2.5 text-sm">
-                          <FileIcon nome={d.nome_original} mime={d.mime} />
-                          <div className="min-w-0 flex-1">
-                            {isPreviavel(d.nome_original, d.mime) ? (
-                              <button
-                                type="button"
-                                onClick={() => abrirPreview(d)}
-                                className="block w-full min-w-0 truncate text-left font-medium text-foreground hover:text-osg-700 hover:underline"
-                                title="Pré-visualizar"
-                              >
-                                {d.nome_original}
-                              </button>
-                            ) : (
-                              <p className="truncate font-medium text-foreground">{d.nome_original}</p>
-                            )}
-                            <p className="truncate text-xs text-muted-foreground">
-                              {vinculoLabel(d)} · {formatBytes(d.tamanho)} · enviado por{' '}
-                              {(d.created_by && uploaderNames[d.created_by]) || '—'} em{' '}
-                              {new Date(d.created_at).toLocaleDateString('pt-BR')}{' '}
-                              {new Date(d.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                          </div>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" onClick={() => setARenomear(d)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Renomear o nome exibido</TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" onClick={() => setAVincular(d)}>
-                                <Link2 className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Vincular a pessoa, matrícula ou bem</TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" onClick={() => baixar.mutate(d)}>
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Baixar o arquivo</TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setAExcluir(d)}
-                                disabled={excluir.isPending}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Excluir o documento e o arquivo</TooltipContent>
-                          </Tooltip>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
+              <ListaDeDocumentos
+                grupos={gruposCategoria}
+                marcados={marcados}
+                alternarDoc={alternarDoc}
+                alternarGrupo={alternarGrupo}
+                rotuloDoVinculo={vinculoLabel}
+                nomeDoUploader={(id) => (id && uploaderNames[id]) || '—'}
+                acoes={{
+                  prever: abrirPreview,
+                  renomear: setARenomear,
+                  vincular: setAVincular,
+                  baixar: (d) => baixar.mutate(d),
+                  excluir: setAExcluir,
+                  excluindo: excluir.isPending,
+                }}
+              />
             )}
           </div>
       </section>

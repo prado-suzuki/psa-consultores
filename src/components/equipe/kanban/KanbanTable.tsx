@@ -36,7 +36,7 @@ interface KanbanTableProps {
 
 export function KanbanTable(props: KanbanTableProps) {
   return (
-    <Card className="border-border">
+    <Card variant="tabela" className="border-border">
       <Table>
         <TableHeader>
           <TableRow>

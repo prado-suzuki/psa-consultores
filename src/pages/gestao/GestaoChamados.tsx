@@ -667,7 +667,7 @@ export function ChamadosGestaoContent({
       </div>
 
       {/* Tickets Table */}
-      <Card>
+      <Card variant="tabela">
         <CardHeader>
           <CardTitle>Chamados</CardTitle>
           <CardDescription>

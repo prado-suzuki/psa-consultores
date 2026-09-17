@@ -397,7 +397,7 @@ const ControleBalancetes = () => {
       </Card>
 
       {/* Results Card */}
-      <Card className="rounded-2xl border-border shadow-sm">
+      <Card variant="tabela" className="rounded-2xl border-border shadow-sm">
         <CardHeader className="p-6 md:px-8 flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-semibold text-foreground">Balancetes</CardTitle>
           {/*

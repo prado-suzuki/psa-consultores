@@ -122,18 +122,18 @@ describe('salvarAcordo', () => {
   });
 
   it('audita em nome de gente, e não pelo nome da coluna', async () => {
-    const { updates } = espiar({ prazo_balanco_dias: 60 });
+    const { updates } = espiar({ nao_concorrencia_prazo_anos: 3 });
     const { salvarAcordo } = useAcordoMutations('c1');
 
     await (salvarAcordo as unknown as ComMutationFn).mutationFn(
-      { id: 'ac1', campos: { prazo_balanco_dias: 90 } } as never,
+      { id: 'ac1', campos: { nao_concorrencia_prazo_anos: 5 } } as never,
     );
 
     expect(updates['acordo_quotistas']).toHaveLength(1);
     expect(logMock.logAction).toHaveBeenCalledWith(expect.objectContaining({
       entity_type: 'acordo_quotistas',
       action: 'updated',
-      changed_fields: { 'Prazo máximo do balanço, em dias': { old: '60', new: '90' } },
+      changed_fields: { 'Prazo da não concorrência, em anos': { old: '3', new: '5' } },
     }));
   });
 });

@@ -29,19 +29,17 @@
 -- CADASTRA usufruto, ele LE de `onus_quotas` e manda quem quiser cadastrar para
 -- o Quadro Societario, que e onde o gravame nasce, junto do ato que o criou.
 --
--- Reversao: reaplicar o bloco correspondente de `20260914210309`.
-
-ALTER TABLE public.quadro_societario
-  DROP CONSTRAINT IF EXISTS quadro_societario_usufruto_ck;
-
-ALTER TABLE public.quadro_societario
-  DROP CONSTRAINT IF EXISTS quadro_societario_voto_ck;
-
-ALTER TABLE public.quadro_societario
-  DROP COLUMN IF EXISTS voto_exercido_por;
-
-ALTER TABLE public.quadro_societario
-  DROP COLUMN IF EXISTS com_usufruto;
+-- Reversao: nao ha. Ver a nota abaixo.
+--
+-- OS QUATRO `ALTER TABLE` SAIRAM EM 16/09/2026, junto com o bloco que eles
+-- desfaziam na `20260914210309`. `public.quadro_societario` nao existe desde
+-- 20/08/2026 (`20260820163000_limpeza_quadro_societario.sql`), e `DROP COLUMN
+-- IF EXISTS` nao protege contra a TABELA ausente: em producao os quatro morriam
+-- com 42P01. No sandbox, onde uma copia da tabela sobrou por drift, as colunas
+-- ja foram derrubadas por este mesmo arquivo na primeira passada, entao remover
+-- o comando nao muda nada. O GATE abaixo continua valendo nos dois bancos: ele
+-- pergunta pela COLUNA em `information_schema`, e coluna de tabela que nao
+-- existe tambem nao aparece la.
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- GATE
