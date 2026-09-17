@@ -53,6 +53,8 @@ export type ItemDoCatalogo = ItemRow;
 
 export interface ProtocoloDoCliente {
   protocolo: ProtocoloRow;
+  /** O nome do cliente, só para nomear o arquivo gerado. */
+  cliente: string;
   beneficiarios: BeneficiarioDoProtocolo[];
   linhas: LinhaComItem[];
   regras: RegraDoProtocolo[];
@@ -166,6 +168,7 @@ export function useProtocoloDoCliente(clienteId?: string | null, protocoloId?: s
         .from('protocolo_remuneracao')
         .select(
           `*,
+           cliente ( nome ),
            protocolo_beneficiario ( id, nome, ordem, excluido ),
            protocolo_linha (
              id, ordem,
@@ -191,6 +194,7 @@ export function useProtocoloDoCliente(clienteId?: string | null, protocoloId?: s
 
       return {
         protocolo: data as unknown as ProtocoloRow,
+        cliente: (data.cliente as { nome: string } | null)?.nome ?? '',
 
         /*
          * Só as colunas DESTE protocolo vêm no aninhamento, porque o padrão da

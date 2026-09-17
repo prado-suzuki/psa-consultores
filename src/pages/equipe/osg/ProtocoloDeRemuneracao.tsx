@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Columns3, CopyPlus, MousePointerClick, Plus, ScrollText, Sparkles } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import {
+  Columns3, CopyPlus, FileSpreadsheet, MousePointerClick, Plus, ScrollText, Sparkles,
+} from 'lucide-react';
 
 import { AcrescentarItemModal } from '@/components/equipe/osg/governanca/AcrescentarItemModal';
 import { ColunasDoProtocoloModal } from '@/components/equipe/osg/governanca/ColunasDoProtocoloModal';
@@ -25,6 +28,7 @@ import {
   useVersoesDoProtocolo,
 } from '@/hooks/useDomainProtocoloRemuneracao';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
+import { nomeDoArquivo, planilhaDoProtocolo } from '@/lib/protocoloPlanilha';
 import {
   type LinhaDaGrade,
   diffDaLinha,
@@ -115,6 +119,28 @@ const ProtocoloDeRemuneracao = () => {
       0,
     );
 
+  /**
+   * Escreve a planilha.
+   *
+   * O layout inteiro vem do `planilhaDoProtocolo`, que é função pura e tem
+   * teste; aqui fica só o que não dá para testar sem navegador: montar o livro e
+   * mandar baixar. É o mesmo par que o resto da casa usa (`aoa_to_sheet`,
+   * `book_new`, `book_append_sheet`, `writeFile`).
+   */
+  const gerarPlanilha = () => {
+    if (!protocolo) return;
+    const { celulas, larguras } = planilhaDoProtocolo(
+      grade,
+      colunas,
+      protocolo.protocolo.preambulo,
+    );
+    const aba = XLSX.utils.aoa_to_sheet(celulas);
+    aba['!cols'] = larguras;
+    const livro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(livro, aba, 'Protocolo');
+    XLSX.writeFile(livro, nomeDoArquivo(protocolo.cliente, protocolo.protocolo.versao));
+  };
+
   const vazio = (icone: React.ReactNode, texto: React.ReactNode) => (
     <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 px-6 py-16 text-center">
       {icone}
@@ -180,6 +206,13 @@ const ProtocoloDeRemuneracao = () => {
             </Button>
             <Button size="sm" variant="outline" onClick={() => setAcrescentando(true)}>
               <Plus className="mr-2 h-4 w-4" /> Acrescentar item
+            </Button>
+            {/*
+              Gerar fica por último e é o único preenchido: é o fim do trabalho
+              desta tela, e as outras três ações servem para chegar até ele.
+            */}
+            <Button size="sm" onClick={gerarPlanilha}>
+              <FileSpreadsheet className="mr-2 h-4 w-4" /> Gerar planilha
             </Button>
           </div>
         ) : undefined
