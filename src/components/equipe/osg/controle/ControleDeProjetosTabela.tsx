@@ -1,16 +1,5 @@
-import { Fragment } from 'react';
-
 import { format } from 'date-fns';
-import {
-  AlertTriangle,
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  ChevronDown,
-  ChevronRight,
-  FolderPlus,
-  UserX,
-} from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import {
@@ -25,19 +14,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { parseDate } from '@/lib/dateUtils';
 import {
   SEM_PROJETO,
-  grupoLabel,
   statusLabel,
   type ColunaDoControle,
-  type GrupoDoControle,
   type LinhaDoControle,
   type OrdemDoControle,
 } from '@/lib/osgControleDeProjetos';
 import { getRegiaoLabel } from '@/lib/regioes';
 import { projectStatusConfig } from '@/lib/projetoStatusColors';
 import { cn } from '@/lib/utils';
-
-/** Quantas colunas a tabela tem, para o `colSpan` da cabeça de grupo. */
-const COLUNAS = 10;
 
 function data(valor: string | null): string {
   if (!valor) return '—';
@@ -135,6 +119,20 @@ function Descricao({ linha }: { linha: LinhaDoControle }) {
 }
 
 /**
+ * Uma lista de gente numa célula: executores ou líderes.
+ *
+ * A mesma célula para as duas colunas porque o par OS/produto pode ter mais de
+ * um projeto, e nos dois casos o que chega é uma lista sem repetição, já
+ * ordenada pelo `montarControleDeProjetos`. Vazio é traço, e é informação: no
+ * executor ele separa o produto vendido sem projeto criado do projeto aberto
+ * sem ninguém dentro — os dois se distinguem pela coluna Status ao lado.
+ */
+function Pessoas({ nomes }: { nomes: string[] }) {
+  if (nomes.length === 0) return <span className="text-muted-foreground">—</span>;
+  return <>{nomes.join(', ')}</>;
+}
+
+/**
  * Cabeçalho que ordena no clique.
  *
  * É `<button>` dentro do `<th>`, e não um `onClick` no `<th>`: a célula sozinha
@@ -179,97 +177,6 @@ function Cabecalho({
   );
 }
 
-
-/**
- * A cabeça de um grupo de executor.
- *
- * O grupo sem responsável vem primeiro e abre fechado: são 131 dos 169 produtos
- * em produção, e abertos eles empurrariam os executores para fora da primeira
- * tela. Ele é fila de delegação, não sobra, e por isso encabeça a lista em vez
- * de ficar no fim.
- *
- * A FAIXA É `bg-muted` — o neutro CHEIO da área, sem alfa —, e a linha embaixo é
- * branca. Chegou aqui em três passos, e o do meio foi recusado OLHANDO.
- *
- * Ela era `bg-superficie-realce` com a linha transparente sobre o cartão, e as
- * duas ficavam a **1,106:1** uma da outra na OSG (1,120 na Tax) — menos que o
- * 1,24:1 com que a borda de 1px se separa do cartão. Embranquecer a linha subiu
- * para 1,186, ainda pouco, e a faixa foi para a ÂNCORA (`bg-primary/10`), como a
- * faixa de cliente de `ProjetosTarefasList`: 1,250, com separação de MATIZ.
- *
- * ⚠️ **E ficou feia, na palavra dela (17/09/2026), por um motivo que só existe na
- * OSG.** A âncora é musgo (matiz 149) e a superfície é areia (matiz 32), 117° de
- * distância; compostas a 10%, dão **matiz 98** — um verde-amarelado embarrado.
- * Na Tax as duas concordam (192 contra 192) e o mesmo `primary/10` sai limpo, o
- * que é exatamente o que o levantamento de 03/09 já tinha medido sobre fill de
- * âncora na OSG.
- *
- * `bg-muted` cheio resolve sem tirar separação: **1,227** na OSG (1,260 na Tax),
- * contra 1,250 da âncora — três milésimos de diferença —, e a faixa volta a ser a
- * areia da própria área em vez de uma cor nova. O `primary/6` foi medido junto e
- * não serve: 1,175, abaixo do ponto de partida, e ainda verde.
- */
-function CabecaDoGrupo({
-  grupo,
-  aberto,
-  onAlternar,
-  colunas,
-}: {
-  grupo: GrupoDoControle;
-  aberto: boolean;
-  onAlternar: () => void;
-  colunas: number;
-}) {
-  const Seta = aberto ? ChevronDown : ChevronRight;
-  const semGente = grupo.semProjeto || grupo.semResponsavel;
-  const Icone = grupo.semProjeto ? FolderPlus : UserX;
-  return (
-    <TableRow className="hover:bg-transparent">
-      <TableCell colSpan={colunas} className="border-b bg-muted p-0">
-        <button
-          type="button"
-          onClick={onAlternar}
-          aria-expanded={aberto}
-          className="flex w-full flex-wrap items-center gap-x-2 gap-y-0.5 px-4 py-2 text-left"
-        >
-          <Seta className="h-4 w-4 shrink-0 text-muted-foreground" />
-          {semGente && <Icone className="h-4 w-4 shrink-0 text-destructive" />}
-          <span className={cn('font-medium', semGente && 'text-destructive')}>
-            {grupoLabel(grupo.executor)}
-          </span>
-          <span className="text-sm text-muted-foreground">
-            {grupo.linhas.length} {grupo.linhas.length === 1 ? 'produto' : 'produtos'}
-            {' · '}
-            {grupo.clientes} {grupo.clientes === 1 ? 'cliente' : 'clientes'}
-          </span>
-          {grupo.vencidas > 0 && (
-            <span className="text-sm font-medium text-destructive">
-              {grupo.vencidas} com prazo vencido
-            </span>
-          )}
-          {/*
-            O que o grupo é, em uma linha. Sem isto a contagem sozinha vira
-            acusação: parte dos "sem projeto aberto" é trabalho que aconteceu
-            fora da ferramenta e nunca foi registrado, e o banco não distingue os
-            dois casos.
-          */}
-          {grupo.semProjeto && (
-            <span className="basis-full pl-6 text-xs text-muted-foreground">
-              Vendido nesta OS e sem projeto criado: ou ninguém abriu, ou foi feito fora da
-              ferramenta. Clique numa linha para abrir o projeto.
-            </span>
-          )}
-          {grupo.semResponsavel && (
-            <span className="basis-full pl-6 text-xs text-muted-foreground">
-              O projeto existe e está sem executor. Clique para delegar.
-            </span>
-          )}
-        </button>
-      </TableCell>
-    </TableRow>
-  );
-}
-
 /**
  * Uma linha: um produto contratado.
  *
@@ -284,10 +191,9 @@ function LinhaDaTabela({ linha, onAbrir }: { linha: LinhaDoControle; onAbrir: ()
       key={linha.chave}
       onClick={onAbrir}
       className={cn(
-        // A linha de último nível volta ao `bg-card` LIMPO, e quem carrega tinta
-        // é a cabeça do grupo. Mesmo par de `ProjetosTarefasList`, pelo mesmo
-        // motivo medido lá: a faixa é o cabeçalho do bloco, então é ela que
-        // recebe a cor da área, e a linha embaixo volta ao branco.
+        // A linha fica no `bg-card` LIMPO: a tabela é uma lista plana, sem faixa
+        // de bloco para carregar tinta. Quem distingue as linhas é o conteúdo
+        // das colunas, não o fundo.
         'cursor-pointer bg-card',
         !linha.daArea && 'text-muted-foreground',
       )}
@@ -319,11 +225,10 @@ function LinhaDaTabela({ linha, onAbrir }: { linha: LinhaDoControle; onAbrir: ()
         <Status linha={linha} />
       </TableCell>
       <TableCell className="whitespace-normal break-words text-sm">
-        {linha.lideres.length > 0 ? (
-          linha.lideres.join(', ')
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
+        <Pessoas nomes={linha.executores} />
+      </TableCell>
+      <TableCell className="whitespace-normal break-words text-sm">
+        <Pessoas nomes={linha.lideres} />
       </TableCell>
       <TableCell className="text-sm">
         {linha.regiao ? (
@@ -349,23 +254,19 @@ function LinhaDaTabela({ linha, onAbrir }: { linha: LinhaDoControle; onAbrir: ()
 }
 
 export function ControleDeProjetosTabela({
-  grupos,
+  linhas,
   ordem,
   onOrdenar,
-  abertos,
-  onAlternar,
   onAbrirLinha,
 }: {
-  grupos: GrupoDoControle[];
+  /** Já filtradas e ordenadas pela página: a tabela só desenha. */
+  linhas: LinhaDoControle[];
   ordem: OrdemDoControle;
   onOrdenar: (campo: ColunaDoControle) => void;
-  /** Chaves de grupo abertas. O executor `''` é o grupo sem responsável. */
-  abertos: Set<string>;
-  onAlternar: (executor: string) => void;
   /** Clique numa linha: abre o modal de projeto (edição, ou criação se não houver). */
   onAbrirLinha: (linha: LinhaDoControle) => void;
 }) {
-  if (grupos.length === 0) {
+  if (linhas.length === 0) {
     return (
       <div className="rounded-lg border border-dashed py-12 text-center">
         <p className="text-sm text-muted-foreground">
@@ -394,49 +295,41 @@ export function ControleDeProjetosTabela({
             {/*
               Os rótulos são os do CADASTRO, não os da planilha nem invenção
               desta tela: "Produto Contratado" e "Região" saem do formulário de
-              OS, "Líder Geral", "Status" e "Descrição" do modal de projeto,
-              "Data Início" e "Data Fim" do bloco de período da OS. Coluna com nome próprio
-              obriga quem lê a traduzir de volta para achar onde se edita.
+              OS, "Responsável Executor", "Líder Geral", "Status" e "Descrição"
+              do modal de projeto, "Data Início" e "Data Fim" do bloco de período
+              da OS. Coluna com nome próprio obriga quem lê a traduzir de volta
+              para achar onde se edita.
 
               "Área Executora" é a exceção, e é deliberada:
               `produto_segmento.cluster_id` não tem rótulo em tela nenhuma, e
               chamá-la de "Área" a confundiria com "Área do Negócio" da OS, que é
               o setor do cliente (Agropecuária, Indústria) e é outra coisa.
+
+              Executor antes de Líder Geral porque é essa a ordem da planilha
+              (coluna B, Equipe OSG; coluna C, Gestor) e a da leitura: quem toca
+              o trabalho antes de quem responde por ele.
             */}
-            {coluna('cliente', 'Cliente', '13%')}
-            {coluna('os', 'OS', '7%', 'whitespace-nowrap')}
+            {coluna('cliente', 'Cliente', '12%')}
+            {coluna('os', 'OS', '6%', 'whitespace-nowrap')}
             {coluna('area', 'Área Executora', '8%')}
-            {coluna('produto', 'Produto Contratado', '15%')}
-            {coluna('status', 'Status', '10%')}
-            {coluna('gestor', 'Líder Geral', '12%')}
-            {coluna('regiao', 'Região', '6%')}
-            {coluna('inicio', 'Data Início', '7%', 'whitespace-nowrap')}
-            {coluna('prazo', 'Data Fim', '7%', 'whitespace-nowrap')}
-            {coluna('descricao', 'Descrição', '15%')}
+            {coluna('produto', 'Produto Contratado', '14%')}
+            {coluna('status', 'Status', '9%')}
+            {coluna('executor', 'Responsável Executor', '11%')}
+            {coluna('gestor', 'Líder Geral', '11%')}
+            {coluna('regiao', 'Região', '5%')}
+            {coluna('inicio', 'Data Início', '6%', 'whitespace-nowrap')}
+            {coluna('prazo', 'Data Fim', '6%', 'whitespace-nowrap')}
+            {coluna('descricao', 'Descrição', '12%')}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {grupos.map((grupo) => {
-            const aberto = abertos.has(grupo.executor);
-            return (
-              <Fragment key={grupo.executor || '__sem__'}>
-                <CabecaDoGrupo
-                  grupo={grupo}
-                  aberto={aberto}
-                  onAlternar={() => onAlternar(grupo.executor)}
-                  colunas={COLUNAS}
-                />
-                {aberto &&
-                  grupo.linhas.map((linha) => (
-                    <LinhaDaTabela
-                      key={linha.chave}
-                      linha={linha}
-                      onAbrir={() => onAbrirLinha(linha)}
-                    />
-                  ))}
-              </Fragment>
-            );
-          })}
+          {linhas.map((linha) => (
+            <LinhaDaTabela
+              key={linha.chave}
+              linha={linha}
+              onAbrir={() => onAbrirLinha(linha)}
+            />
+          ))}
         </TableBody>
       </Table>
     </div>

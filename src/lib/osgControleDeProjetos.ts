@@ -86,7 +86,14 @@ export interface LinhaDoControle {
   /**
    * Quem executa o produto: `org_projects.responsible_id` do projeto DESTE
    * produto. Vazio = produto contratado sem projeto criado. É a coluna B da
-   * planilha (Equipe OSG) e a chave do agrupamento da tela.
+   * planilha (Equipe OSG).
+   *
+   * É UMA COLUNA DA TABELA, e não o agrupamento da tela — decidido em
+   * 17/09/2026, depois de a tela ter aberto agrupada por executor. Agrupar
+   * cobrava dois preços: o produto de dois executores entrava nos dois grupos
+   * (a soma das contagens passava do total, de propósito, mas passava), e ler a
+   * tabela inteira exigia abrir e fechar bloco. Como coluna, ela ordena junto
+   * com as outras dez e a linha aparece uma vez só.
    */
   executores: string[];
   /**
@@ -417,14 +424,12 @@ export const ORDEM_PADRAO: OrdemDoControle = { campo: 'padrao', ascendente: true
  * área desta página, produto —, que continua sendo a leitura de referência da
  * tabela. Esta é só o estado inicial.
  *
- * Por que o prazo abre na frente: a tela é lida por grupo de executor, e dentro
- * do grupo a pergunta é "o que vence primeiro", não "qual cliente vem antes no
- * alfabeto". Como a ordenação é global e o agrupamento preserva a ordem que
- * recebe, ordenar por prazo aqui já entrega cada grupo com o mais próximo do fim
- * na primeira linha. O que já venceu sobe junto, porque está mais no passado que
- * qualquer prazo futuro — e é justamente o que a coluna marca com o ⚠.
+ * Por que o prazo abre na frente: a pergunta de quem abre a tela é "o que vence
+ * primeiro", não "qual cliente vem antes no alfabeto". O que já venceu sobe
+ * junto, porque está mais no passado que qualquer prazo futuro — e é justamente
+ * o que a coluna marca com o ⚠.
  *
- * Linha sem Data Fim continua por último dentro do grupo (ver `estaVazio`).
+ * Linha sem Data Fim continua por último (ver `estaVazio`).
  */
 export const ORDEM_INICIAL: OrdemDoControle = { campo: 'prazo', ascendente: true };
 
@@ -536,103 +541,5 @@ export function ordenarControle(
     }
     if (comparacao !== 0) return ordem.ascendente ? comparacao : -comparacao;
     return comparaPadrao(a, b);
-  });
-}
-
-/* ── Agrupamento por executor ────────────────────────────────────────────
- *
- * A tela abre agrupada por quem executa, que é `org_projects.responsible_id` do
- * projeto daquele produto. É a coluna B da planilha (Equipe OSG), onde a equipe
- * lia "o que é meu" antes de ler qualquer outra coisa.
- *
- * SÃO DOIS GRUPOS SEM GENTE, E NÃO UM. A primeira versão juntava os dois num
- * "sem responsável" de 131 linhas, e eles pedem ações diferentes:
- *
- * - **Sem projeto aberto** (127 em produção): produto vendido, numa OS assinada,
- *   sem linha em `org_projects`. Não há o que delegar, há o que CRIAR. Parte
- *   deles é trabalho que aconteceu fora da ferramenta e nunca foi registrado, e
- *   o banco não distingue os dois casos — a tela afirma só o que sabe, que é
- *   "isto foi vendido e não está sendo acompanhado aqui".
- * - **Projeto sem responsável** (4): a linha existe, o `responsible_id` está
- *   nulo. Aí sim é um campo a preencher.
- *
- * Os dois vêm PRIMEIRO, nessa ordem, porque não são sobra: são o que a tela
- * descobriu. Enterrá-los embaixo dos executores esconderia o achado.
- *
- * "Sem projeto aberto" abre FECHADO, apesar de vir primeiro: 127 linhas abertas
- * empurrariam todo o resto para fora da primeira tela, e o cabeçalho com a
- * contagem já diz o tamanho sem custar a rolagem.
- *
- * Produto com dois executores entra nos DOIS grupos. A soma das contagens passa
- * do total, e é o certo: a pergunta que o agrupamento responde é "o que é meu",
- * e uma linha que é de duas pessoas é de cada uma delas.
- */
-
-/** As duas chaves reservadas dos grupos sem gente. */
-export const GRUPO_SEM_PROJETO = '__sem_projeto__';
-export const GRUPO_SEM_RESPONSAVEL = '__sem_responsavel__';
-
-export interface GrupoDoControle {
-  /** Nome do executor, ou uma das duas chaves reservadas. */
-  executor: string;
-  linhas: LinhaDoControle[];
-  /** Clientes distintos dentro do grupo. */
-  clientes: number;
-  /** Linhas com prazo vencido dentro do grupo. */
-  vencidas: number;
-  /** Produto vendido sem projeto criado: não há o que delegar, há o que criar. */
-  semProjeto: boolean;
-  /** Projeto criado com `responsible_id` nulo: aí sim é um campo a preencher. */
-  semResponsavel: boolean;
-}
-
-/** O rótulo de um grupo, já resolvendo as duas chaves reservadas. */
-export function grupoLabel(executor: string): string {
-  if (executor === GRUPO_SEM_PROJETO) return 'Sem projeto aberto';
-  if (executor === GRUPO_SEM_RESPONSAVEL) return 'Projeto sem responsável';
-  return executor;
-}
-
-/**
- * Agrupa por executor: os dois grupos sem gente primeiro, depois do maior para
- * o menor.
- *
- * Maior primeiro, e não alfabético, porque quem carrega dez produtos é quem a
- * tela precisa mostrar antes; empate desempata por nome, para a ordem não
- * depender do que o banco devolveu.
- */
-export function agruparPorExecutor(linhas: LinhaDoControle[]): GrupoDoControle[] {
-  const porExecutor = new Map<string, LinhaDoControle[]>();
-  for (const linha of linhas) {
-    const chaves =
-      linha.executores.length > 0
-        ? linha.executores
-        : [linha.status === SEM_PROJETO ? GRUPO_SEM_PROJETO : GRUPO_SEM_RESPONSAVEL];
-    for (const chave of chaves) {
-      const atuais = porExecutor.get(chave) ?? [];
-      atuais.push(linha);
-      porExecutor.set(chave, atuais);
-    }
-  }
-
-  const grupos: GrupoDoControle[] = [];
-  for (const [executor, doGrupo] of porExecutor) {
-    grupos.push({
-      executor,
-      linhas: doGrupo,
-      clientes: new Set(doGrupo.map((linha) => linha.clienteId)).size,
-      vencidas: doGrupo.filter((linha) => linha.prazoVencido).length,
-      semProjeto: executor === GRUPO_SEM_PROJETO,
-      semResponsavel: executor === GRUPO_SEM_RESPONSAVEL,
-    });
-  }
-
-  // Ordem fixa nos dois primeiros: "sem projeto" antes de "sem responsável",
-  // porque criar é o gesto maior e o grupo é trinta vezes maior.
-  const peso = (grupo: GrupoDoControle) => (grupo.semProjeto ? 0 : grupo.semResponsavel ? 1 : 2);
-  return grupos.sort((a, b) => {
-    if (peso(a) !== peso(b)) return peso(a) - peso(b);
-    if (a.linhas.length !== b.linhas.length) return b.linhas.length - a.linhas.length;
-    return a.executor.localeCompare(b.executor, 'pt-BR');
   });
 }
