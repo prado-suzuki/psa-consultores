@@ -818,7 +818,7 @@ export function mapearCompetenciaMatriz(row: CompetenciaParaMapear): Campos {
  * concorrência, e o motor tem de escrever cada um desses documentos sem inventar
  * resposta. Campo ausente vira condicional apagada, e a cláusula não sai.
  *
- * As PROSAS (`ordemPreferencia`, `objetosPreferencia`) chegam prontas de quem
+ * A PROSA (`objetosPreferencia`) chega pronta de quem
  * traduz o banco, e não se montam aqui: os rótulos em português moram no
  * cadastro (`lib/acordoGrupos`), e o motor não deve depender da tela.
  */
@@ -840,7 +840,6 @@ export interface AcordoParaMapear {
   reuniaoPreviaObrigatoria?: boolean;
 
   // Preferência
-  ordemPreferencia?: string | null;
   objetosPreferencia?: string | null;
   objetosPreferenciaChaves?: string[] | null;
 
@@ -918,7 +917,6 @@ export function mapearAcordoQuotistas(entrada: AcordoParaMapear): Campos {
   set('quantosRamos', entrada.quantosRamos);
   condicional('reuniaoPreviaObrigatoria', entrada.reuniaoPreviaObrigatoria);
 
-  set('ordemPreferencia', entrada.ordemPreferencia);
   set('objetosPreferencia', entrada.objetosPreferencia);
   set('objetosPreferenciaChaves', chaves(entrada.objetosPreferenciaChaves));
   set('mecanismos', chaves(entrada.mecanismos));

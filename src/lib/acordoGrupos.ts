@@ -249,11 +249,6 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           + 'versão, e o recorte congela neles: o acordo fala em "descendentes dos '
           + 'QUOTISTAS signatários da primeira versão", que é outra coisa que o quadro '
           + 'societário de hoje.' },
-      { campo: 'ordemPreferencia', rotulo: 'Ordem do direito de preferência', tipo: 'especial',
-        secao: 'A quem se oferece a quota',
-        ajuda: 'A fila de quem tem direito de comprar antes de a quota poder ir a terceiro. '
-          + 'A Via Fértil oferece primeiro à holding; o modelo oferece primeiro aos '
-          + 'descendentes dos signatários, e é o que vale por decisão de 14/09.' },
       { campo: 'objetos_preferencia', rotulo: 'Objetos sujeitos à preferência',
         tipo: 'multi', opcoes: OBJETOS, secao: 'A quem se oferece a quota',
         ajuda: 'O que não pode ir a terceiro sem passar pelos sócios antes. A Cláusula '

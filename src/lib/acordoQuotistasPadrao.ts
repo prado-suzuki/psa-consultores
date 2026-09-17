@@ -140,6 +140,14 @@ export type ChaveMecanismo =
 export interface EspelhoDoMecanismo {
   /** O bloco que manda, para a tela dizer onde mexer. */
   bloco: string;
+  /**
+   * A chave do grupo, para a linha LEVAR até lá.
+   *
+   * Dizer onde se muda e não levar deixava a pessoa procurando o bloco no meio
+   * de oito: quem clica numa caixa travada quer justamente chegar ao
+   * interruptor, e é esse o clique que a linha passa a honrar.
+   */
+  grupo: string;
   /** Lê o interruptor de verdade nos valores do acordo. */
   ligado: (v: Record<string, unknown>) => boolean;
 }
@@ -184,6 +192,7 @@ export const MECANISMOS: readonly Mecanismo[] = [
     padrao: true,
     espelha: {
       bloco: 'Solução de conflitos',
+      grupo: 'conflitos',
       ligado: (v) => v.solucao_litigios === 'arbitragem',
     },
   },
@@ -195,6 +204,7 @@ export const MECANISMOS: readonly Mecanismo[] = [
     padrao: true,
     espelha: {
       bloco: 'Saída de sócio e preferência',
+      grupo: 'saida',
       ligado: (v) => v.nao_concorrencia === true,
     },
   },
@@ -228,6 +238,7 @@ export const MECANISMOS: readonly Mecanismo[] = [
     padrao: false,
     espelha: {
       bloco: 'Opções de compra e venda',
+      grupo: 'opcoes',
       ligado: (v) => v.opcao_compra_prevista === true,
     },
   },
@@ -247,6 +258,7 @@ export const MECANISMOS: readonly Mecanismo[] = [
     padrao: false,
     espelha: {
       bloco: 'Opções de compra e venda',
+      grupo: 'opcoes',
       ligado: (v) => v.opcao_venda_prevista === true,
     },
   },

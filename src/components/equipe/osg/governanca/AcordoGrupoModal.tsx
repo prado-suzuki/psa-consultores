@@ -23,11 +23,10 @@ import { expressaoDoQuorum, type BaseQuorum, type TipoQuorum } from '@/lib/acord
 import { cn } from '@/lib/utils';
 import type { CampoDoAcordo, GrupoDoAcordo } from '@/lib/acordoGrupos';
 
-/** O que o modal edita: os campos do cabeçalho mais as três listas. */
+/** O que o modal edita: os campos do cabeçalho mais as duas listas. */
 export interface ValoresDoAcordo extends Record<string, unknown> {
   quoruns: { materia: string; chave?: string | null; tipo: TipoQuorum; percentual?: number | null; base: BaseQuorum }[];
   ramos: { nome: string }[];
-  ordemPreferencia: string[];
   signatarios: string[];
 }
 
@@ -85,6 +84,11 @@ interface Props {
   pessoas: PessoaParaEscolher[];
   onSalvar: (valores: ValoresDoAcordo) => Promise<unknown>;
   salvando: boolean;
+  /**
+   * Levar a pessoa ao grupo que manda numa marcação espelhada. Opcional: sem
+   * ele a legenda só NOMEIA o bloco, que é o comportamento de antes.
+   */
+  onIrParaGrupo?: (chave: string) => void;
 }
 
 const ROTULO = 'flex h-5 items-center gap-1.5';
@@ -115,7 +119,7 @@ function comoOpcao(p: PessoaParaEscolher): ComboOption {
  * escolhe o tipo e a base.
  */
 export function AcordoGrupoModal({
-  open, onOpenChange, grupo, valores, pessoas, onSalvar, salvando,
+  open, onOpenChange, grupo, valores, pessoas, onSalvar, salvando, onIrParaGrupo,
 }: Props) {
   const [form, setForm] = useState<ValoresDoAcordo>(valores);
 
@@ -308,8 +312,19 @@ export function AcordoGrupoModal({
                           )}
                           {espelho && (
                             <span className="block text-xs italic text-muted-foreground">
-                              Só mostra se a regra existe. Quem liga e desliga é o bloco
-                              &ldquo;{espelho.bloco}&rdquo;, onde ficam os detalhes.
+                              Só mostra se a regra existe. Quem liga e desliga é o bloco{' '}
+                              {onIrParaGrupo ? (
+                                <button
+                                  type="button"
+                                  className="cursor-pointer font-medium text-osg-700 underline underline-offset-2 hover:text-foreground"
+                                  onClick={() => onIrParaGrupo(espelho.grupo)}
+                                >
+                                  {espelho.bloco}
+                                </button>
+                              ) : (
+                                <>&ldquo;{espelho.bloco}&rdquo;</>
+                              )}
+                              , onde ficam os detalhes.
                             </span>
                           )}
                         </span>
@@ -328,14 +343,6 @@ export function AcordoGrupoModal({
 
               {c.campo === 'ramos' && (
                 <ListaDeRamos linhas={form.ramos} mexer={(l) => mexer('ramos', l)} />
-              )}
-
-              {c.campo === 'ordemPreferencia' && (
-                <ListaOrdenada
-                  itens={form.ordemPreferencia}
-                  mexer={(l) => mexer('ordemPreferencia', l)}
-                  exemplo="Holding, descendentes dos signatários, demais quotistas"
-                />
               )}
 
               {c.campo === 'signatarios' && (

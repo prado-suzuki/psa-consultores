@@ -710,7 +710,7 @@
  {
   "nome": "Acordo 103 Cláusula — Do direito de retirada dos QUOTISTAS, da OPÇÃO DE VENDA, da ",
   "tipo": "clausula",
-  "titulo": "Do direito de retirada dos QUOTISTAS, da OPÇÃO DE VENDA, da OPÇÃO DE COMPRA e da CLÁUSULA DE QUARENTENA",
+  "titulo": "Do direito de retirada dos QUOTISTAS, da OPÇÃO DE VENDA e da OPÇÃO DE COMPRA{{#acordo.temQuarentena}} e da CLÁUSULA DE QUARENTENA{{/acordo.temQuarentena}}",
   "conteudo": ""
  },
  {
@@ -891,7 +891,10 @@
   "nome": "Acordo 129 Subitem — Os direitos de VOTO das QUOTAS vinculadas a este ACORDO obse",
   "tipo": "subitem",
   "titulo": null,
-  "conteudo": "Os direitos de VOTO das QUOTAS vinculadas a este ACORDO observarão os eventuais usufrutuários e/ou detentores dos direitos de voto vinculados à cada QUOTA, de modo que caso o titular (proprietário) das QUOTAS não seja o usufrutuário, o direito de VOTO objeto deste ACORDO será exercido pelo usufrutuário com direito a voto."
+  "conteudo": "Os direitos de VOTO das QUOTAS vinculadas a este ACORDO observarão os eventuais usufrutuários e/ou detentores dos direitos de voto vinculados à cada QUOTA, de modo que caso o titular (proprietário) das QUOTAS não seja o usufrutuário, o direito de VOTO objeto deste ACORDO será exercido pelo usufrutuário com direito a voto.",
+  "flags": [
+   "acordo_tem_usufruto_com_voto"
+  ]
  },
  {
   "nome": "Acordo 130 Subitem — Os votos dos QUOTISTAS em REUNIÕES PRÉVIAS, REUNIÕES DE QUOT",

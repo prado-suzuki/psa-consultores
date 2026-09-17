@@ -106,7 +106,6 @@ export function entradaDoAcordo(
     },
     quoruns,
     ramos: dados.ramos.map((r) => ({ nome: r.nome, ordem: r.ordem })),
-    ordemPreferencia: dados.ordemPreferencia.map((o) => ({ quem: o.quem, ordem: o.ordem })),
     signatarios: pessoas(dados.signatarios),
     objetosPreferencia: acordo.objetos_preferencia,
   };

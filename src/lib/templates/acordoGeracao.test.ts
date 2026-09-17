@@ -100,7 +100,6 @@ const ENTRADA: EntradaAcordo = {
     { nome: 'Cristina', ordem: 1 },
     { nome: 'Regina', ordem: 2 },
   ],
-  ordemPreferencia: [],
   signatarios: [],
 };
 
@@ -408,10 +407,10 @@ describe('os mecanismos que DESLIGAM texto', () => {
     'acordo_reuniao_previa_obrigatoria', 'acordo_por_arbitragem',
     'acordo_consolida_composse', 'acordo_preferencia_sobre_imoveis',
     'acordo_preferencia_sobre_participacoes', 'acordo_preferencia_sobre_oportunidades',
-    'acordo_tem_ramos',
+    'acordo_tem_ramos', 'acordo_tem_usufruto_com_voto',
   ];
 
-  it('sao catorze flags, e 64 blocos dependem de pelo menos uma', () => {
+  it('sao quinze flags, e 65 blocos dependem de pelo menos uma', () => {
     const porFlag = new Map<string, number>();
     for (const b of blocos) for (const f of b.flagsRequeridas ?? []) {
       porFlag.set(f, (porFlag.get(f) ?? 0) + 1);
@@ -431,13 +430,20 @@ describe('os mecanismos que DESLIGAM texto', () => {
        * juntas, porque a segunda cita o termo que a primeira define.
        */
       acordo_tem_ramos: 2,
+      /*
+       * O usufruto com voto TEM linha, ao contrario do que eu tinha medido: e a
+       * regra do voto quando o titular da quota nao e o usufrutuario, na
+       * Clausula Nona. Ela saia sempre, mesmo no acordo que nao trata de
+       * usufruto.
+       */
+      acordo_tem_usufruto_com_voto: 1,
     });
     /*
      * 204 sem flag, e nao 198: os cinco blocos das SOCIEDADES RELACIONADAS ja
      * dependiam da preferencia, porque moram na Clausula Decima. Eles ganharam
      * uma SEGUNDA flag, e um bloco com duas exige as duas.
      */
-    expect(blocos.filter((b) => !b.flagsRequeridas?.length)).toHaveLength(204);
+    expect(blocos.filter((b) => !b.flagsRequeridas?.length)).toHaveLength(203);
     // Seis com DUAS flags: os da Clausula Decima. O das oportunidades mora na
     // Decima Primeira, que a preferencia nao governa, entao tem uma so.
     expect(blocos.filter((b) => (b.flagsRequeridas?.length ?? 0) > 1)).toHaveLength(6);
@@ -542,7 +548,7 @@ describe('o acordo VAZIO nao derruba a geracao', () => {
    */
   const VAZIO: EntradaAcordo = {
     acordo: { clienteId: 'c1' },
-    quoruns: [], ramos: [], ordemPreferencia: [], signatarios: [],
+    quoruns: [], ramos: [], signatarios: [],
   };
 
   it('gera com o cadastro em branco, sem levantar', () => {

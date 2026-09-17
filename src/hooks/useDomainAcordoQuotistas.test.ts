@@ -141,7 +141,7 @@ describe('salvarAcordo', () => {
 describe('salvarListas', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  const antesVazio = { quoruns: 'nenhum', ramos: 'nenhum', ordem: 'nenhuma' };
+  const antesVazio = { quoruns: 'nenhum', ramos: 'nenhum' };
 
   it('zera o percentual em maioria e unanimidade antes de mandar ao banco', async () => {
     // O CHECK recusaria, e o consultor veria erro de banco na tela. Melhor o hook
@@ -157,7 +157,6 @@ describe('salvarListas', () => {
         { materia: 'Alterar o contrato', tipo: 'percentual', percentual: 75, base: 'presentes' },
       ],
       ramos: [],
-      ordemPreferencia: [],
       antes: antesVazio,
     } as never);
 
@@ -166,7 +165,7 @@ describe('salvarListas', () => {
     expect(linhas[1].percentual).toBe(75);
   });
 
-  it('apaga as três listas antes de regravar', async () => {
+  it('apaga as duas listas antes de regravar', async () => {
     const { deletes } = espiar();
     const { salvarListas } = useAcordoMutations('c1');
 
@@ -175,13 +174,10 @@ describe('salvarListas', () => {
       versao: 1,
       quoruns: [{ materia: 'X', tipo: 'maioria', base: 'presentes' }],
       ramos: [{ nome: 'Silva', rotulo: 'ramo' }],
-      ordemPreferencia: ['Holding'],
       antes: antesVazio,
     } as never);
 
-    expect(deletes).toEqual([
-      'acordo_quorum', 'acordo_ramo_familiar', 'acordo_ordem_preferencia',
-    ]);
+    expect(deletes).toEqual(['acordo_quorum', 'acordo_ramo_familiar']);
   });
 
   it('a posição na tela vira a ordem gravada, que é a ordem do documento', async () => {
@@ -192,14 +188,13 @@ describe('salvarListas', () => {
       acordoId: 'ac1',
       versao: 1,
       quoruns: [],
-      ramos: [],
-      ordemPreferencia: ['Holding', 'Descendentes', 'Demais quotistas'],
+      ramos: [{ nome: 'Cristina' }, { nome: 'Regina' }, { nome: 'Ana' }],
       antes: antesVazio,
     } as never);
 
-    const linhas = inserts['acordo_ordem_preferencia']![0] as Record<string, unknown>[];
-    expect(linhas.map((l) => [l.ordem, l.quem])).toEqual([
-      [0, 'Holding'], [1, 'Descendentes'], [2, 'Demais quotistas'],
+    const linhas = inserts['acordo_ramo_familiar']![0] as Record<string, unknown>[];
+    expect(linhas.map((l) => [l.ordem, l.nome])).toEqual([
+      [0, 'Cristina'], [1, 'Regina'], [2, 'Ana'],
     ]);
   });
 
@@ -212,7 +207,6 @@ describe('salvarListas', () => {
       versao: 1,
       quoruns: [],
       ramos: [],
-      ordemPreferencia: [],
       antes: antesVazio,
     } as never);
 
