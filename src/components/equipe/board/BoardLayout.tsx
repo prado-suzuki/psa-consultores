@@ -282,7 +282,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
           onClick={() => setCollapsed(c => !c)}
           className="absolute top-[22px] -right-3 z-40 w-6 h-6 rounded-full flex items-center justify-center border transition-colors"
           style={{
-            backgroundColor: 'var(--bd-surface)',
+            backgroundColor: 'var(--bd-control)',
             borderColor: 'var(--bd-line)',
             color: 'var(--bd-ink3)',
             boxShadow: 'var(--bd-sh)',

@@ -42,11 +42,12 @@ import { corDoTema, hslParaRgb, luminancia, TEMAS, type Hsl } from '@/lib/paleta
  * O QUE ESTE TESTE NÃO COBRE, de propósito:
  *
  * · **O Board.** Ele tem sistema de CSS próprio (`.v3-card`, `.v4-card`, `.kpi`,
- *   `.mc` no `index.css`), que pinta `var(--bd-surface)` — e `--bd-surface` é
- *   `hsl(var(--card))`. Ou seja: os cartões do Board continuam brancos, e essa
- *   divergência é REAL e está aberta. Não entrou nesta passada porque mexer no
- *   `--bd-surface` muda o Board inteiro de uma vez, e o Board tem medições
- *   próprias contra o branco (ver a nota do `--bd-*` no `index.css`).
+ *   `.mc` no `index.css`), que pinta `var(--bd-surface)` em vez de passar pelo
+ *   componente. A divergência que este bloco registrava — cartão do Board branco,
+ *   cartão do resto tingido — FECHOU em 17/09/2026: o `--bd-surface` passou a ser
+ *   o mesmo `hsl(var(--muted) / .35)`. Quem cobra o Board é a
+ *   `superficieDoBoard.test.ts`, e ela cobra o que esta aqui não cobra — o SINAL
+ *   do degrau, não só a razão.
  * · **A caixa de TABELA, que é decisão aberta.** A seção 6 da mesma página mede
  *   uma família inteira — 19 telas que são um aviso, um cartão de filtros e uma
  *   caixa grande com tabela ou estado vazio dentro, 90 a 99% de branco. A

@@ -147,7 +147,10 @@ export const td: React.CSSProperties = {
 
 // Matriz dimensão × mês: cabeçalho e coluna do nome ficam grudados na rolagem
 // (a tabela rola nos dois eixos quando o período pega muitos meses).
-const SURFACE = 'var(--bd-surface)';
+// `--bd-surface-op` e não `--bd-surface`: a superfície do Board virou tinta com
+// alfa em 17/09/2026, e célula `sticky` com fundo translúcido deixa passar a
+// coluna que rola por baixo. O `-op` é a MESMA cor composta sobre a página.
+const SURFACE = 'var(--bd-surface-op)';
 export const thFixo: React.CSSProperties = {
   padding: '9px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '.09em',
   textTransform: 'uppercase', color: 'var(--bd-ink4)',

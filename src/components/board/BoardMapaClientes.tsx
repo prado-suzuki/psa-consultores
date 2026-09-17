@@ -200,7 +200,10 @@ export const BoardMapaClientes = ({ clientes, escopoTotal }: BoardMapaClientesPr
                       estado.categoria === 'zero'
                         ? `url(#${PATTERN_ZERO})`
                         : corDaFaixa(estado.indiceFaixa ?? 0),
-                    stroke: selecionadoUf ? 'var(--board-t1)' : 'var(--board-card)',
+                    /* `--bd-control` e não `--board-card`: o risco separa dois
+                       estados PINTADOS, e o cartão virou tinta translúcida em
+                       17/09/2026 — a divisa sumiria por cima do fill. */
+                    stroke: selecionadoUf ? 'var(--board-t1)' : 'var(--bd-control)',
                     strokeWidth: selecionadoUf ? 4 : 1.6,
                     strokeLinejoin: 'round',
                   }}
@@ -258,7 +261,9 @@ export const BoardMapaClientes = ({ clientes, escopoTotal }: BoardMapaClientesPr
               style={{
                 left: Math.max(0, hover.x + 12),
                 top: Math.max(0, hover.y - 8),
-                background: 'var(--board-card)',
+                /* Tooltip flutua sobre o mapa: fundo opaco, pelo mesmo motivo do
+                   `TOOLTIP_STYLE` em `board-chart-defaults.ts`. */
+                background: 'var(--bd-control)',
                 border: '1px solid var(--board-border)',
                 color: 'var(--board-t1)',
               }}

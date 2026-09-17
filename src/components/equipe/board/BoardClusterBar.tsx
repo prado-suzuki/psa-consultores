@@ -58,7 +58,7 @@ export const BoardClusterBar = () => {
   const mostrarSeletorDeArea = !!cluster && areasDoCluster.length > 1;
   const mostrarSeletorDeEquipe = !!area && equipesDaArea.length > 1;
   const trigger = {
-    backgroundColor: 'var(--bd-surface)',
+    backgroundColor: 'var(--bd-control)',
     borderColor: cluster ? 'var(--bd-accent)' : 'var(--bd-line)',
   };
 
@@ -83,7 +83,7 @@ export const BoardClusterBar = () => {
       </Select>
       {mostrarSeletorDeArea && (
         <Select value={area || TODOS} onValueChange={(v) => setArea(v === TODOS ? '' : v)}>
-          <SelectTrigger className="h-8 w-[150px] rounded-md text-[12.5px] font-medium" style={{ backgroundColor: 'var(--bd-surface)', borderColor: 'var(--bd-line)' }}>
+          <SelectTrigger className="h-8 w-[150px] rounded-md text-[12.5px] font-medium" style={{ backgroundColor: 'var(--bd-control)', borderColor: 'var(--bd-line)' }}>
             <SelectValue placeholder="Áreas" />
           </SelectTrigger>
           <SelectContent>
@@ -98,7 +98,7 @@ export const BoardClusterBar = () => {
       )}
       {mostrarSeletorDeEquipe && (
         <Select value={equipe || TODOS} onValueChange={(v) => setEquipe(v === TODOS ? '' : v)}>
-          <SelectTrigger className="h-8 w-[150px] rounded-md text-[12.5px] font-medium" style={{ backgroundColor: 'var(--bd-surface)', borderColor: 'var(--bd-line)' }}>
+          <SelectTrigger className="h-8 w-[150px] rounded-md text-[12.5px] font-medium" style={{ backgroundColor: 'var(--bd-control)', borderColor: 'var(--bd-line)' }}>
             <SelectValue placeholder="Equipes" />
           </SelectTrigger>
           <SelectContent>

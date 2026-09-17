@@ -66,17 +66,35 @@ escuro que a superfície branca — listra que *desce*. Sobre o tingido ele fica
 
 | área | hoje | tingido |
 |---|---|---|
-| Base | 1,040:1, mais escuro | 1,045:1, **mais claro** |
-| Tax | 1,031:1, mais escuro | 1,049:1, **mais claro** |
-| OSG | 1,008:1, mais escuro | 1,064:1, **mais claro** |
+| Base | 1,036:1, mais escuro | 1,040:1, **mais claro** |
+| Tax | 1,260:1, mais escuro | 1,165:1, mais escuro |
+| OSG | 1,227:1, mais escuro | 1,144:1, mais escuro |
 
-O número quase não muda — e é exatamente por isso que é perigoso. Uma catraca que
-medisse só a razão daria verde nas três. **O que inverte é a direção**, e é o terceiro
-caso do mesmo defeito de classe nesta frente: degrau construído sobre uma superfície se
-move junto com ela, e nada falha.
+> **Correção de 17/09/2026, medindo para executar.** A primeira versão desta tabela
+> trazia 1,031 (Tax) e 1,008 (OSG), e estava errada: ela mediu o valor do `:root`
+> (`168 20% 98%`) contra o cartão de cada área, e **a Tax e a OSG não usam esse valor**.
+> O `index.css` tem um bloco `:root.tax-theme, :root.osg-theme` que sobrescreve
+> `--bd-surface2` e `--bd-line2` para `hsl(var(--muted))`. Com o valor certo, **o sinal
+> inverte só na casa** — a Tax e a OSG continuam com listra que desce, perdendo ~8%. É
+> uma área quebrada, não três, e isso encolhe o passo 2.
 
-**2. A divisória quase some.** `--bd-line2` (`168 16% 94%`) perde cerca de 70% do
-degrau: 1,129 → 1,039 (Base), 1,120 → 1,035 (Tax), 1,095 → 1,021 (OSG).
+O número da casa quase não muda — e é exatamente por isso que é perigoso. Uma catraca que
+medisse só a razão daria verde. **O que inverte é a direção**, e é o terceiro caso do
+mesmo defeito de classe nesta frente: degrau construído sobre uma superfície se move junto
+com ela, e nada falha.
+
+**2. A divisória quase some — na casa.** `--bd-line2` (`168 16% 94%`) perde cerca de 65%
+do degrau: 1,125 → 1,044. Na Tax e na OSG ele é `hsl(var(--muted))`, o mesmo valor da
+zebra, e perde ~8%: 1,260 → 1,165 e 1,227 → 1,144.
+
+**E aqui aparece o TETO, que é o que decide o passo 2.** Recompor os números da Tax e da
+OSG por alfa de `--muted` sobre a superfície tingida é **impossível**: a 100%, sem
+transparência, ele para em 1,154 / 1,165 / 1,144 — abaixo dos 1,260 e 1,227 de hoje. São
+os mesmos três números que a caixa de tabela encontrou em 16/09 (`1,154` · `1,165` ·
+`1,144`), porque é a mesma construção: `--muted` sobre um fundo que já é 35% de `--muted`.
+Fim de escala, não calibração. Quem alcança os alvos é `--border` opaco (1,122 / 1,248 /
+1,225, dentro de 1% dos de hoje) — mas aí `--bd-line2` fica **igual** a `--bd-line`, e os
+dois degraus de divisória viram um só.
 
 **3. E este é o dos gráficos:** `GRID_STYLE.stroke` é `var(--bd-line2)`
 ([`src/lib/board-chart-defaults.ts:56`](../../../src/lib/board-chart-defaults.ts)). A
@@ -94,7 +112,37 @@ Vale escrever, porque delimita o risco:
 - **Eixo:** `AXIS_STYLE` já está em `--bd-ink3`, que passa (5,13:1 no pior caso).
 - **Tooltip:** `TOOLTIP_STYLE.background` é `--bd-surface` — mas tooltip **flutua sobre
   conteúdo**, e pelo inventário de 12/09 isso é motivo declarado para ficar branco. Ele
-  não acompanha; vira `--bd-chrome`.
+  não acompanha; vira `--bd-control` (ver abaixo — **não** `--bd-chrome`, que é
+  `#FFFFFF` cravado e não segue a área).
+
+### Os SETE que não acompanham, e por que a lista não era de um
+
+**Achado de 17/09/2026, executando o passo 1: alfa não empilha de graça.** A tarefa
+previa só o tooltip. Medindo cada consumidor de `--bd-surface`, sete deles não se apoiam
+na página — pintam sobre outra superfície, ou precisam tapar o que está atrás — e com uma
+cor translúcida os sete escurecem em silêncio. Dois eram regressão de verdade:
+
+- **A pastilha ligada do segmentado** (`.v3-seg.on`, `.v4-seg-btn.on`) fica sobre o
+  trilho de acento, que já está sobre o cartão. Ela ia de **1,150:1 mais clara** que o
+  trilho para **1,003:1 mais escura** na casa (1,005 na Tax, 1,006 na OSG) — o controle
+  parava de dizer qual opção está ligada. É o mesmo defeito de classe da zebra, num
+  lugar que a tarefa não tinha olhado.
+- **A célula grudada** da matriz de `clientes-os/shared.ts` é `position: sticky`, e fundo
+  translúcido deixa passar a coluna que rola por baixo.
+
+Os outros cinco: os quatro blocos de `SelectTrigger` (`BoardFilterBar`, `BoardClusterBar`
+×3, `BoardRecorteBar`), o campo `.v3-fi`, o botão de recolher do `BoardLayout`, o tooltip
+do gráfico, o tooltip do mapa e o risco entre as UFs em `BoardMapaClientes` — este último
+separa dois *fills* pintados, e some por cima deles.
+
+**O recorte não é novo: é o mesmo que o produto já tinha declarado em 12/09.** O `--card`
+não desceu de valor naquele dia justamente porque pinta `SelectTrigger`, `Input` e a
+pastilha do segmentado. Daí os dois tokens novos, ao lado do `--bd-surface`:
+
+| token | o que é | quem usa |
+|---|---|---|
+| `--bd-control` | `hsl(var(--card))` — o branco que o `--bd-surface` era, **seguindo a área** | campo, pastilha, `SelectTrigger`, botão de cromo, os dois tooltips, o risco do mapa |
+| `--bd-surface-op` | a MESMA tinta, composta sobre a página, opaca | célula `sticky` da matriz |
 
 O único cravado de gráfico que se mexe é `--bd-accent-l` (série de comparação,
 `175 45% 72%`, opaco): 1,609 → 1,481 contra o fundo. Já era fraco no branco; fica mais
@@ -105,28 +153,42 @@ já mordeu antes (o rótulo "2025" a 1,48:1, na nota do `LEGEND_STYLE`).
 
 ## O que fazer
 
-1. **Trocar a fonte de `--bd-surface`** para a mesma tinta do `<Card>`, e só ela. Os
-   outros 22 derivados não se tocam.
-2. **Recompor os três degraus quebrados**, pelo mesmo método que o
-   `bg-superficie-realce` usou em 12/09 — achar o alfa que devolve o número, não
-   escolher um tom novo no olho:
-   - `--bd-surface2`: precisa voltar a ser **mais escuro** que a superfície. Deixar de
-     ser opaco e virar alfa sobre a superfície resolve os dois problemas de uma vez (o
-     sinal e o acompanhamento de área).
-   - `--bd-line2`: mesmo tratamento, mirando os 1,12 de hoje.
-   - a grade do gráfico vem de carona no `--bd-line2` — não precisa de token novo.
-3. **Tooltip e chrome ficam brancos**, por motivo inventariado (flutua sobre conteúdo).
-4. **Catraca `superficieDoBoard.test.ts`**, e ela tem de cobrar o que a do cartão não
-   cobra: **o SINAL do degrau**, não só a razão. Recalculando do `index.css`, como a
-   `cartaoTingido` faz — não com número copiado para dentro do teste.
-5. **Validar olhando**, nas três áreas, com um gráfico na tela. É o passo que decide se
-   "moderno e clean" sobreviveu, e nenhum número responde por ele.
+1. ✅ **FEITO em 17/09/2026 — trocar a fonte de `--bd-surface`** para a mesma tinta do
+   `<Card>`, e só ela. Os outros 22 derivados não se tocam. Saiu junto o passo 3, que
+   cresceu de um lugar para sete: ver "Os SETE que não acompanham", acima. Catraca no
+   mesmo commit (`superficieDoBoard.test.ts`, quatro asserções), com o defeito
+   reintroduzido nas quatro antes de commitar.
+2. 🔵 **ABERTO, e é decisão dela — recompor a zebra e a divisória.** A medição encolheu
+   o passo e mudou a pergunta: **quebra uma área, não três** (o bloco
+   `:root.tax-theme, :root.osg-theme` já leva os dois tokens para `hsl(var(--muted))`,
+   e lá o sinal não inverte). E o método previsto — "achar o alfa que devolve o
+   número" — **não fecha na Tax nem na OSG**: bate no teto de escala do `--muted`, o
+   mesmo de 16/09. As saídas medidas:
+   - **A** — os dois últimos cravados de superfície do Board saem, e as três áreas usam
+     `hsl(var(--muted))`, aceitando o teto. A casa GANHA zebra (1,036 → 1,154, e para
+     de ser a única área com listra invisível); a Tax e a OSG perdem ~8% (1,260 → 1,165,
+     1,227 → 1,144), que é o custo que ela já aceitou para o hover da tabela em 16/09.
+     O sinal deixa de inverter. Custo: na casa, zebra e divisória passam a ter o mesmo
+     valor — o que já é verdade na Tax e na OSG hoje.
+   - **B** — reproduzir os seis números de hoje, com alfa por área. Fecha, mas exige
+     `--border` opaco na Tax e na OSG, e aí `--bd-line2` fica idêntico ao `--bd-line`:
+     dois degraus de divisória viram um.
+   - A grade do gráfico vem de carona no `--bd-line2` nas duas — não precisa de token
+     novo.
+3. ✅ Saiu no commit do passo 1 (ver acima).
+4. 🔵 **A asserção do SINAL** entra junto com o passo 2, porque é ela que precisa da
+   decisão: enquanto não houver número certo, não há o que cobrar. As outras quatro
+   asserções da catraca já estão no ar.
+5. 🔵 **Validar olhando**, nas três áreas, com um gráfico na tela. É o passo que decide
+   se "moderno e clean" sobreviveu, e nenhum número responde por ele.
 
 ## Tamanho e raio de revert
 
-Quatro commits, na ordem acima. O passo 1 sozinho já muda o Board inteiro nas três
-rotas — então ele **não** vai junto com o passo 2 no mesmo commit, e sim antes, para o
-revert isolar "a tinta desceu" de "os degraus foram recompostos".
+Três commits, não quatro. O passo 1 sozinho já muda o Board inteiro nas três rotas —
+então ele **não** vai junto com o passo 2, e sim antes, para o revert isolar "a tinta
+desceu" de "os degraus foram recompostos". O passo 3 foi para dentro do 1 porque não é
+frente separada: decidir que uma caixa é cartão e decidir que a outra é controle é a
+mesma decisão, e separá-las deixaria a pastilha do segmentado apagada no commit do meio.
 
 ## O que esta tarefa não faz
 

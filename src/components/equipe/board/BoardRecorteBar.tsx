@@ -36,7 +36,7 @@ export const BoardRecorteBar = () => {
   );
 
   const trigger = {
-    backgroundColor: 'var(--bd-surface)',
+    backgroundColor: 'var(--bd-control)',
     borderColor: (cliente || ano || mes) ? 'var(--bd-accent)' : 'var(--bd-line)',
   };
 
