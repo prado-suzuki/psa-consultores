@@ -80,8 +80,11 @@ function prosaDasChaves(chaves: readonly string[], vocabulario: Record<string, s
 
 /** Uma linha de `acordo_quorum`, já com a expressão montada pelo cadastro. */
 export interface QuorumParaMapear {
-  /** A chave do catálogo (`alterar_contrato_social`…), que diz ONDE ele escreve. */
-  chave: string;
+  /**
+   * A chave do catálogo (`alterar_contrato_social`…), que diz ONDE ele escreve.
+   * Nula na linha que o consultor acrescentou à mão, que não tem lugar fixo.
+   */
+  chave: string | null;
   materia: string;
   /** "¾ (três quartos) do capital social", de `expressaoDoQuorum`. */
   expressao: string;
@@ -164,6 +167,14 @@ function ramoNoDocumento(nome: string): { rotulo: string; definicao: string } {
 function quorunsPorChave(quoruns: readonly QuorumParaMapear[]): Campos {
   const out: Campos = {};
   for (const q of quoruns) {
+    /*
+     * SEM CHAVE, o quórum não vira campo. `acordo_quorum.chave` é ANULÁVEL: o
+     * catálogo semeia as sete com chave, mas a tela deixa acrescentar linha
+     * livre, e essa não tem lugar fixo no documento. Sem esta guarda, uma linha
+     * dessas derrubava a geração inteira com "Cannot read properties of
+     * undefined", e foi o teste da cadeia que pegou.
+     */
+    if (!q.chave) continue;
     const nome = q.chave.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
     out[`quorum${nome[0].toUpperCase()}${nome.slice(1)}`] = q.quantidade;
     out[`quorum${nome[0].toUpperCase()}${nome.slice(1)}Fracao`] = q.quantidadeEmFracao;
