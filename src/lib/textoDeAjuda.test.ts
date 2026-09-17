@@ -38,36 +38,79 @@ import { PASTAS_DE_TELA, arquivosDeCodigo, medirCorCrua } from '@/lib/medirCorCr
 
 const RAIZ = resolve(__dirname, '../..');
 
-/**
- * As tags HTML nativas onde `title=` vira tooltip do navegador — sem `iframe`, que é o
- * caso permitido.
- *
- * A regex é de linha única, e isso foi **medido antes de escolher**: contra um parser de
- * tags que atravessa props multilinha, as duas contam exatamente as mesmas
- * ocorrências (143, na medição de 17/09/2026). Nenhum `title=` do repositório está separado da sua tag por uma quebra de
- * linha, então o parser seria complexidade sem resultado.
- */
+/** As tags HTML nativas onde `title=` vira tooltip do navegador — sem `iframe`. */
 const TAGS_NATIVAS =
   'div|span|button|a|p|td|th|tr|li|img|svg|section|label|input|textarea|select|option|h1|h2|h3|h4|strong|em';
 
-const RE_TITLE_NATIVO = new RegExp(String.raw`<(?:${TAGS_NATIVAS})\b[^<>]*\stitle=`, 'g');
+/**
+ * A tag de abertura INTEIRA, com strings e chaves opacas (três níveis, por causa de
+ * `style={{ … }}`).
+ *
+ * ⚠️ **A primeira versão desta catraca varria a tag com `[^<>]*`, e o furo era grande.**
+ * Aquilo para no primeiro `>` — e `>` aparece em toda arrow function (`onClick={() => …}`)
+ * e em toda comparação (`length <= 1`). Um `title=` escrito depois de um handler ficava
+ * invisível para a regra, e é assim que a maioria é escrita: a catraca media **141** de
+ * **215**, deixando 74 passarem caladas.
+ *
+ * Achado em 17/09/2026 **ao executar a conversão, não relendo**: o script de migração, que
+ * já usava este parser, encontrou 126 botões onde a contagem prometia 54. Três provas
+ * reais — `AgentePsaWidget.tsx` (`onClick={() => setAberto(true)} title={…}`),
+ * `ArquivoEnviado.tsx` (mesma forma) e `AcessosLayout.tsx` (comentário `//` dentro da
+ * tag). É o mesmo erro do "142" do índice: número que parecia medido e era de outro
+ * recorte.
+ */
+const TAG_NATIVA = new RegExp(
+  `<(?:${TAGS_NATIVAS})((?:[^<>'"{]|"[^"]*"|'[^']*'|\\{(?:[^{}]|\\{(?:[^{}]|\\{[^{}]*\\})*\\})*\\})*)\\/?>`,
+  'g',
+);
+
+const TITLE_NA_TAG = /\stitle=("[^"]*"|\{(?:[^{}]|\{[^{}]*\})*\})/;
 
 /**
- * A dívida do `title=`: **141 ocorrências em 80 arquivos** das pastas de tela.
+ * Quantos `title=` há em tag nativa, por arquivo.
  *
- * Nasceu 143 em 17/09/2026 e desceu para 141 no mesmo dia, com o primeiro lote da
- * conversão (os dois `title` de erro do `BoardPreenchimentoSistema`). A catraca
- * reprovou a QUEDA antes de este número mudar, que é o comportamento desenhado.
+ * Tag cujas props contenham `<` é **ignorada e contada à parte**: ali o parser não tem
+ * como saber se o `title` é dela ou de um elemento dentro de uma expressão. Hoje é uma só
+ * (`EtapasEditorModal.tsx`, um ternário com `<=` e JSX dentro), e fingir precisão sobre
+ * ela seria repetir o erro que esta catraca acabou de pagar.
+ */
+function titlesEmTagNativa(): { porArquivo: Record<string, number>; ambiguas: number } {
+  const porArquivo: Record<string, number> = {};
+  let ambiguas = 0;
+  for (const pasta of PASTAS_DE_TELA) {
+    for (const caminho of arquivosDeCodigo(resolve(RAIZ, pasta))) {
+      const fonte = readFileSync(caminho, 'utf8');
+      let achados = 0;
+      for (const tag of fonte.matchAll(TAG_NATIVA)) {
+        if (!TITLE_NA_TAG.test(tag[1])) continue;
+        if (tag[1].includes('<')) {
+          ambiguas++;
+          continue;
+        }
+        achados++;
+      }
+      if (achados) porArquivo[relative(RAIZ, caminho).split(sep).join('/')] = achados;
+    }
+  }
+  return { porArquivo, ambiguas };
+}
+
+/**
+ * A dívida do `title=`: **215 ocorrências em 107 arquivos**, mais 1 tag ambígua.
  *
- * O documento **não manda converter as 143** — ele existe para impedir a 144ª. Essa
+ * O número nasceu "143" em 17/09/2026 e foi corrigido no mesmo dia — **não porque a dívida
+ * cresceu, mas porque a medição estava errada** (ver o parser, acima). Os dois `title` de
+ * erro do `BoardPreenchimentoSistema`, pagos no lote 1, já estão descontados daqui.
+ *
+ * O documento **não manda converter as 215** — ele existe para impedir a 216ª. Essa
  * separação é deliberada: decidir o padrão é uma tarefa, pagar a dívida é outra, e
  * misturá-las foi o que fez o padrão não existir até agora.
  *
- * Quando a conversão acontecer, este número desce junto com ela, no mesmo commit. O teste
- * reprovando por queda é feature, não atrito: o número aqui é o retrato de uma dívida, e
- * retrato desatualizado é como o índice passou meses dizendo "142".
+ * Quando a conversão andar, este número desce junto, no mesmo commit. O teste reprovando
+ * por queda é feature, não atrito: o número aqui é o retrato de uma dívida, e retrato
+ * desatualizado é como o índice passou meses dizendo "142".
  */
-const TITLE_NATIVO_LEGADO = 141;
+const TITLE_NATIVO_LEGADO = 215;
 
 /**
  * Placeholder de escolha ou de busca fora das quatro formas canônicas (§3 do documento):
@@ -138,19 +181,20 @@ const comoAchar = (padrao: string) =>
 
 describe('o texto que explica a tela', () => {
   it('não nasce `title=` novo em tag nativa — explicação é `<Tooltip>`', () => {
-    const medido = medirCorCrua(RE_TITLE_NATIVO);
+    const { porArquivo, ambiguas } = titlesEmTagNativa();
+    const quantos = total(porArquivo);
 
     expect(
-      total(medido),
+      quantos,
       'A dívida do `title=` mudou de tamanho.\n\n'
-        + `Congelada em 17/09/2026: ${TITLE_NATIVO_LEGADO} em 80 arquivos.\n`
-        + `Agora: ${total(medido)} em ${Object.keys(medido).length}.\n\n`
-        + 'SUBIU: `title=` não é mecanismo de explicação (o do navegador não aparece no\n'
-        + 'toque, não tem tema e demora a abrir). Use `<Tooltip>` para explicar, e\n'
-        + '`aria-label` para dar nome a botão só de ícone — os dois em\n'
-        + 'docs/geral/texto-explicativo-na-tela.md §3.\n\n'
+        + `Congelado: ${TITLE_NATIVO_LEGADO} em 107 arquivos (mais ${ambiguas} ambígua).\n`
+        + `Agora: ${quantos} em ${Object.keys(porArquivo).length}.\n\n`
+        + 'SUBIU: `title=` não é mecanismo de explicação — o do navegador não aparece no\n'
+        + 'toque, não tem tema e demora a abrir. Use `<Tooltip>` para explicar e\n'
+        + '`aria-label` para dar nome a botão só de ícone; o `ButtonTooltip` de\n'
+        + '`ui/button-tooltip.tsx` faz os dois de uma vez.\n\n'
         + 'DESCEU: a dívida foi paga, e este número desce no mesmo commit.\n\n'
-        + comoAchar(String.raw`<(span|button|div|p|a|td|th|li|label)[^<>]*\stitle=`),
+        + comoAchar('title='),
     ).toBe(TITLE_NATIVO_LEGADO);
   });
 
