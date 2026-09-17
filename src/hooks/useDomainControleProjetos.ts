@@ -7,6 +7,7 @@ import { useDomainClusterPorCategoria } from '@/hooks/useDomainClusterPorCategor
 import { isDoAmbiente } from '@/lib/ambienteScope';
 import {
   montarControleDeProjetos,
+  type AreaDoControle,
   type ClienteCru,
   type LinhaDoControle,
   type OrdemCrua,
@@ -14,14 +15,16 @@ import {
   type ProdutoContratado,
   type ProdutoSegmento,
   type ProjetoDaOrdem,
-} from '@/lib/osgControleDeProjetos';
+} from '@/lib/controleDeProjetos';
 import { todayIsoBrazil } from '@/lib/dateUtils';
 
 /**
- * As linhas do Controle de Projetos da OSG: uma por PRODUTO contratado da OS.
+ * As linhas do Controle de Projetos de uma área: uma por PRODUTO contratado da
+ * OS. A área entra por parâmetro, e é ela que resolve o cluster — a mesma tela
+ * serve OSG e Tax, e o recorte é a única diferença entre as duas.
  *
  * As consultas são PLANAS e o cruzamento acontece em memória, na função pura de
- * `lib/osgControleDeProjetos.ts`. Não é preferência de estilo: embed aninhado
+ * `lib/controleDeProjetos.ts`. Não é preferência de estilo: embed aninhado
  * neste ponto do schema é caminho conhecido para o TS2589 (ver
  * `docs/geral/teto-de-instanciacoes-do-typescript`), e a regra de "quais OS
  * aparecem" tem de ser testável sem banco.
@@ -36,20 +39,22 @@ import { todayIsoBrazil } from '@/lib/dateUtils';
  * `docs/rls/mapa-do-banco.md` listar a flag. Conferido no schema em 15/09/2026.
  * Um `.eq('excluido', false)` aqui derrubaria a tela inteira.
  */
-export const osgControleProjetosKeys = {
-  lista: (cluster: string | null) => ['osg-controle-projetos', cluster, currentAmbiente] as const,
+export const controleProjetosKeys = {
+  lista: (cluster: string | null) => ['controle-projetos', cluster, currentAmbiente] as const,
 };
 
-export function useDomainOsgControleProjetos() {
+export function useDomainControleProjetos(area: AreaDoControle) {
   const queryClient = useQueryClient();
   const {
     clusterId,
     isLoading: carregandoCluster,
     error: erroCluster,
-  } = useDomainClusterPorCategoria('osg');
+  } = useDomainClusterPorCategoria(area);
 
   const query = useQuery<LinhaDoControle[]>({
-    queryKey: osgControleProjetosKeys.lista(clusterId),
+    // O cluster JÁ é a área: duas áreas nunca compartilham cluster, então a
+    // chave não precisa carregar as duas coisas.
+    queryKey: controleProjetosKeys.lista(clusterId),
     enabled: Boolean(clusterId),
     queryFn: async () => {
       const ambientePorCliente = await queryClient.fetchQuery(ambientePorClienteQuery());

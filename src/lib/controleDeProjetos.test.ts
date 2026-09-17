@@ -21,7 +21,7 @@ import {
   type PessoaCrua,
   type ProdutoSegmento,
   type ProjetoDaOrdem,
-} from '@/lib/osgControleDeProjetos';
+} from '@/lib/controleDeProjetos';
 
 const OSG = 'cluster-osg';
 const TAX = 'cluster-tax';
