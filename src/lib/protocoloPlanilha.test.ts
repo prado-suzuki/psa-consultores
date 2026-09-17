@@ -8,7 +8,8 @@ const COLUNAS: BeneficiarioDoProtocolo[] = [
   { id: 'b2', nome: 'Sucessores na Gestão', ordem: 20 },
 ];
 
-/* Um tema com duas linhas, que é onde se vê o tema aparecer só na primeira. */
+/* Um tema com duas linhas e outro com uma: é a diferença entre haver mesclagem
+   de tema e não haver. */
 const SECOES: SecaoDaGrade[] = [
   {
     tema_id: 't-vei',
@@ -28,78 +29,142 @@ const SECOES: SecaoDaGrade[] = [
         item_id: 'i2',
         item: 'Abastecimento',
         celulas: [
-          { beneficiario_id: 'b1', beneficiario: 'Sócios Fundadores', texto: 'Por conta da sociedade' },
+          { beneficiario_id: 'b1', beneficiario: 'Sócios Fundadores', texto: 'Pela sociedade' },
           { beneficiario_id: 'b2', beneficiario: 'Sucessores na Gestão', texto: 'Idem' },
+        ],
+      },
+    ],
+  },
+  {
+    tema_id: 't-out',
+    tema: 'Outros benefícios ou regras',
+    linhas: [
+      {
+        linha_id: 'l3',
+        item_id: 'i3',
+        item: 'Outros assuntos',
+        celulas: [
+          { beneficiario_id: 'b1', beneficiario: 'Sócios Fundadores', texto: null },
+          { beneficiario_id: 'b2', beneficiario: 'Sucessores na Gestão', texto: null },
         ],
       },
     ],
   },
 ];
 
-describe('planilhaDoProtocolo', () => {
-  it('reproduz o layout do modelo: tema, item, e uma coluna por beneficiário', () => {
+/* As posições do modelo: C = tema, E = item, H e J = beneficiários. */
+const C = 2;
+const E = 4;
+const H = 7;
+const J = 9;
+
+describe('a geometria é a do modelo da casa', () => {
+  it('põe cada coisa na coluna em que o modelo põe', () => {
     const { celulas } = planilhaDoProtocolo(SECOES, COLUNAS, null);
 
-    expect(celulas).toEqual([
-      ['Protocolo de Remuneração', '', '', ''],
-      ['', '', '', ''],
-      ['Critérios', '', 'Sócios Fundadores', 'Sucessores na Gestão'],
-      ['Veículos', 'Modelo do Veículo', 'Hilux SRX', ''],
-      ['', 'Abastecimento', 'Por conta da sociedade', 'Idem'],
-    ]);
+    /* Linha 0 título, 1 "Critérios", 2 nomes das colunas, 3 primeiro item. */
+    expect(celulas[0][C]).toBe('Protocolo de Remuneração');
+    expect(celulas[1][C]).toBe('Critérios');
+    expect(celulas[2][H]).toBe('Sócios Fundadores');
+    expect(celulas[2][J]).toBe('Sucessores na Gestão');
+    expect(celulas[3][C]).toBe('Veículos');
+    expect(celulas[3][E]).toBe('Modelo do Veículo');
+    expect(celulas[3][H]).toBe('Hilux SRX');
   });
 
-  it('escreve o tema só na primeira linha do grupo, como a célula mesclada', () => {
+  it('deixa as colunas de vão em branco, que é o que as faz vão', () => {
     const { celulas } = planilhaDoProtocolo(SECOES, COLUNAS, null);
 
-    expect(celulas[3][0]).toBe('Veículos');
-    expect(celulas[4][0]).toBe('');
+    for (const vao of [0, 1, 3, 5, 6, 8]) expect(celulas[3][vao]).toBe('');
   });
 
-  it('célula sem regra sai vazia, e a linha mantém todas as colunas', () => {
-    /* A saída é um quadro: coluna que some desalinha a leitura inteira. */
+  it('intercala linha em branco entre os itens, como o modelo faz', () => {
+    /* É por isso que o modelo tem 106 linhas para 52 itens. */
     const { celulas } = planilhaDoProtocolo(SECOES, COLUNAS, null);
 
-    expect(celulas[3]).toHaveLength(4);
-    expect(celulas[3][3]).toBe('');
+    expect(celulas[4].every((c) => c === '')).toBe(true);
+    expect(celulas[5][E]).toBe('Abastecimento');
   });
 
-  it('o texto de abertura entra como segunda linha quando existe', () => {
-    const { celulas } = planilhaDoProtocolo(SECOES, COLUNAS, '  Este Protocolo visa regrar…  ');
+  it('não deixa branco depois do último item do tema', () => {
+    /* A mesclagem do tema tem de terminar num item. No modelo, C4:C14 acaba na
+       linha 14, que é item, e não numa linha vazia. */
+    const { celulas } = planilhaDoProtocolo(SECOES, COLUNAS, null);
+    const ultimaDeVeiculos = celulas[5];
 
-    expect(celulas[1][0]).toBe('Este Protocolo visa regrar…');
-    expect(celulas[2]).toEqual(['', '', '', '']);
+    expect(ultimaDeVeiculos[E]).toBe('Abastecimento');
+    expect(celulas[6][C]).toBe('Outros benefícios ou regras');
+  });
+});
+
+describe('as mesclagens', () => {
+  it('mescla o título de ponta a ponta da grade', () => {
+    const { mesclagens } = planilhaDoProtocolo(SECOES, COLUNAS, null);
+
+    expect(mesclagens[0]).toEqual({ s: { r: 0, c: C }, e: { r: 0, c: J } });
   });
 
-  it('sem texto de abertura não sobra linha fantasma', () => {
-    /* O modelo da casa não tem preâmbulo e começa direto. Uma linha a mais
-       desalinharia a conferência contra ele. */
-    const semPreambulo = planilhaDoProtocolo(SECOES, COLUNAS, null).celulas;
-    const comPreambulo = planilhaDoProtocolo(SECOES, COLUNAS, 'Texto').celulas;
+  it('mescla o tema verticalmente, do primeiro ao último item dele', () => {
+    const { mesclagens } = planilhaDoProtocolo(SECOES, COLUNAS, null);
+    const doTema = mesclagens.find((m) => m.s.c === C && m.s.r === 3);
 
-    expect(comPreambulo).toHaveLength(semPreambulo.length + 1);
-    expect(semPreambulo[1]).toEqual(['', '', '', '']);
+    /* Veículos ocupa da linha 3 (Modelo) à 5 (Abastecimento), com a 4 em branco. */
+    expect(doTema).toEqual({ s: { r: 3, c: C }, e: { r: 5, c: C } });
   });
 
-  it('a coluna da regra nasce larga, porque ali mora parágrafo', () => {
+  it('tema de um item só não vira mesclagem, que o Excel recusa faixa de uma linha', () => {
+    const { mesclagens } = planilhaDoProtocolo(SECOES, COLUNAS, null);
+
+    expect(mesclagens.find((m) => m.s.c === C && m.s.r === 6)).toBeUndefined();
+  });
+
+  it('o texto de abertura empurra tudo para baixo e leva mesclagem própria', () => {
+    const { celulas, mesclagens } = planilhaDoProtocolo(SECOES, COLUNAS, 'Este Protocolo…');
+
+    expect(celulas[1][C]).toBe('Este Protocolo…');
+    expect(celulas[2][C]).toBe('Critérios');
+    expect(mesclagens[1]).toEqual({ s: { r: 1, c: C }, e: { r: 1, c: J } });
+  });
+});
+
+describe('as larguras', () => {
+  it('são as do modelo, inclusive as duas primeiras ocultas', () => {
     const { larguras } = planilhaDoProtocolo(SECOES, COLUNAS, null);
 
-    expect(larguras).toHaveLength(4);
-    expect(larguras[2].wch).toBeGreaterThan(40);
+    expect(larguras[0]).toEqual({ wch: 1.5, hidden: true });
+    expect(larguras[1]).toEqual({ wch: 3.125, hidden: true });
+    expect(larguras[C]).toEqual({ wch: 8.625 });
+    expect(larguras[E]).toEqual({ wch: 19.375 });
   });
 
-  it('protocolo sem linha nenhuma ainda sai com cabeçalho', () => {
+  it('a coluna do beneficiário nasce larga, porque ali mora parágrafo', () => {
+    const { larguras } = planilhaDoProtocolo(SECOES, COLUNAS, null);
+
+    expect(larguras[H].wch).toBe(24);
+    /* E o vão entre beneficiários é estreito, como o I e o K do modelo. */
+    expect(larguras[8]).toEqual({ wch: 4.5 });
+    expect(larguras[J].wch).toBe(24);
+  });
+});
+
+describe('os casos de borda', () => {
+  it('protocolo sem linha nenhuma ainda sai com título e cabeçalho', () => {
     const { celulas } = planilhaDoProtocolo([], COLUNAS, null);
 
     expect(celulas).toHaveLength(3);
-    expect(celulas[2]).toEqual(['Critérios', '', 'Sócios Fundadores', 'Sucessores na Gestão']);
+    expect(celulas[2][H]).toBe('Sócios Fundadores');
+  });
+
+  it('célula sem regra sai vazia, e a linha mantém a largura da grade', () => {
+    const { celulas } = planilhaDoProtocolo(SECOES, COLUNAS, null);
+
+    expect(celulas[3][J]).toBe('');
+    expect(celulas[3]).toHaveLength(J + 1);
   });
 });
 
 describe('nomeDoArquivo', () => {
   it('leva cliente e versão, porque as versões circulam juntas', () => {
-    /* No acervo o Toqueto tem V1 e VF lado a lado na mesma pasta: sem a versão
-       no nome, a segunda baixada vira "(1)" e ninguém sabe qual é qual. */
     expect(nomeDoArquivo('Toqueto', 2)).toBe('Protocolo-de-Remuneracao-Toqueto-v2.xlsx');
   });
 

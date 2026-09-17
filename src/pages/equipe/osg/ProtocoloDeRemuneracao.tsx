@@ -129,13 +129,14 @@ const ProtocoloDeRemuneracao = () => {
    */
   const gerarPlanilha = () => {
     if (!protocolo) return;
-    const { celulas, larguras } = planilhaDoProtocolo(
+    const { celulas, larguras, mesclagens } = planilhaDoProtocolo(
       grade,
       colunas,
       protocolo.protocolo.preambulo,
     );
     const aba = XLSX.utils.aoa_to_sheet(celulas);
     aba['!cols'] = larguras;
+    aba['!merges'] = mesclagens;
     const livro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(livro, aba, 'Protocolo');
     XLSX.writeFile(livro, nomeDoArquivo(protocolo.cliente, protocolo.protocolo.versao));
