@@ -1754,6 +1754,56 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         'solucaoLitigios', (v) => v.solucaoLitigios === 'arbitragem'),
       condicionalCampo('porJudicial', 'Conflito vai para o Judiciário? (condicional)',
         'solucaoLitigios', (v) => v.solucaoLitigios === 'judicial'),
+      /*
+       * OS SETE QUÓRUNS, um campo por matéria, mais a variante em fração.
+       *
+       * Não são sete alíneas de uma lista, e supor isso produziria documento
+       * errado. Cruzado com o modelo: quatro viram alíneas da escada do voto na
+       * Cláusula Nona, o aumento de capital sai na Quarta, a reunião prévia na
+       * Vigésima Quarta, e a INSTALAÇÃO não aparece no Acordo (é a cláusula de
+       * instalação do contrato social). Por isso cada um tem o seu campo, e o
+       * bloco cita o seu.
+       *
+       * Só a QUANTIDADE, porque a frase do modelo já traz a base com as palavras
+       * dela: "Conforme decidam 75% (setenta e cinco por cento) dos VOTOS dos
+       * QUOTISTAS presentes nas REUNIÕES...".
+       *
+       * A variante em FRAÇÃO existe porque o modelo é inconsistente consigo
+       * mesmo, e ser fiel a ele é reproduzir isso: os mesmos 75% saem
+       * "75% (setenta e cinco por cento)" na escada e "¾ (três quartos) das
+       * QUOTAS" no aumento de capital.
+       *
+       * `lacunaSeVazio` pelo mesmo motivo do apelido da empresa: a alínea é
+       * prosa que se sustenta sem o número, e some inteira se ele faltar.
+       */
+      { id: 'quorumInstalacao', label: 'Quórum: Para a reunião de sócios poder começar', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumInstalacaoFracao', label: 'Quórum em fração: Para a reunião de sócios poder começar', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumOrdinaria', label: 'Quórum: Assunto comum, sem regra própria', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumOrdinariaFracao', label: 'Quórum em fração: Assunto comum, sem regra própria', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumAlterarContratoSocial', label: 'Quórum: Alterar o contrato social', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumAlterarContratoSocialFracao', label: 'Quórum em fração: Alterar o contrato social', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumNomearAdministradorNaoSocio', label: 'Quórum: Nomear administrador não sócio', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumNomearAdministradorNaoSocioFracao', label: 'Quórum em fração: Nomear administrador não sócio', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumDestituirAdministrador', label: 'Quórum: Destituir administrador', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumDestituirAdministradorFracao', label: 'Quórum em fração: Destituir administrador', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumAumentoDeCapital', label: 'Quórum: Aumento de capital', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumAumentoDeCapitalFracao', label: 'Quórum em fração: Aumento de capital', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumReuniaoPrevia', label: 'Quórum: Reunião prévia', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumReuniaoPreviaFracao', label: 'Quórum em fração: Reunião prévia', tipo: 'texto',
+        lacunaSeVazio: true },
       { id: 'camaraArbitral', label: 'Câmara arbitral', tipo: 'texto' },
 
       /*

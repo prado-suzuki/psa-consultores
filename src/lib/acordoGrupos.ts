@@ -191,7 +191,13 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           + 'à alteração do '
           + 'contrato social". A frase inteira o sistema monta, e você a vê pronta embaixo '
           + 'de cada linha. Sete vêm preenchidos; acrescente linha só se este cliente tiver '
-          + 'uma matéria a mais, como o Perci, que exige 75% para emprestar a quotista.',
+          + 'uma matéria a mais, como o Perci, que exige 75% para emprestar a quotista. '
+          + 'CADA LINHA ESCREVE NUM LUGAR DIFERENTE, e não numa lista só: quatro viram '
+          + 'alíneas da escada do voto na Cláusula Nona, o aumento de capital sai na Quarta '
+          + 'e a reunião prévia na Vigésima Quarta. A primeira, "para a reunião de sócios '
+          + 'poder começar", NÃO sai no Acordo: ela é a cláusula de instalação do CONTRATO '
+          + 'SOCIAL. E linha que você acrescentar fica só no cadastro, porque não há frase '
+          + 'no modelo esperando por ela.',
       },
     ],
   },

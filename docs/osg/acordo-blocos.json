@@ -297,7 +297,7 @@
   "nome": "Acordo 048 Inciso — Independente de justificativa, se aprovado por QUOTISTAS que…",
   "tipo": "inciso",
   "titulo": null,
-  "conteudo": "Independente de justificativa, se aprovado por QUOTISTAS que representem ¾ (três quartos) das QUOTAS."
+  "conteudo": "Independente de justificativa, se aprovado por QUOTISTAS que representem {{ acordo.quorumAumentoDeCapitalFracao }} das QUOTAS."
  },
  {
   "nome": "Acordo 049 Item — Os QUOTISTAS obedecerão o DIREITO DE PREFERÊNCIA para subscr…",
@@ -828,7 +828,7 @@
   "nome": "Acordo 120 Alínea — Conforme decidam 75% (setenta e cinco por cento) dos VOTOS d…",
   "tipo": "alinea",
   "titulo": null,
-  "conteudo": "Conforme decidam 75% (setenta e cinco por cento) dos VOTOS dos QUOTISTAS presentes nas REUNIÕES DE QUOTISTAS, REUNIÕES PRÉVIAS e/ou REUNIÃO DE SÓCIOS em relação aos seguintes assuntos: alteração do contrato social, excetuadas as matérias com quóruns específicos descritas neste ACORDO e/ou para deliberações necessárias ao cumprimento de regras específicas relacionadas a alienação de QUOTAS e/ou direitos relacionados à elas, incluindo subscrição de novas QUOTAS, Opções de Compra, Tag Along e Drag Along, entre outras regras estipuladas neste ACORDO que tenha-se atribuído poderes aos QUOTISTAS para suprir a assinatura de outros QUOTISTAS; cisão, fusão, incorporação por outra sociedade ou incorporação de outra sociedade pela {{ sociedade.nomeFantasia }}; mudança do objeto social da {{ sociedade.nomeFantasia }}; integralização ou incorporação de todas ou parte das QUOTAS da {{ sociedade.nomeFantasia }} ao capital de outra sociedade e/ou a realização de tais atos pelas SOCIEDADES CONTROLADAS; para alterar a regra de distribuição de lucros prevista no contrato da {{ sociedade.nomeFantasia }}; a venda de bens imóveis etc."
+  "conteudo": "Conforme decidam {{ acordo.quorumAlterarContratoSocial }} dos VOTOS dos QUOTISTAS presentes nas REUNIÕES DE QUOTISTAS, REUNIÕES PRÉVIAS e/ou REUNIÃO DE SÓCIOS em relação aos seguintes assuntos: alteração do contrato social, excetuadas as matérias com quóruns específicos descritas neste ACORDO e/ou para deliberações necessárias ao cumprimento de regras específicas relacionadas a alienação de QUOTAS e/ou direitos relacionados à elas, incluindo subscrição de novas QUOTAS, Opções de Compra, Tag Along e Drag Along, entre outras regras estipuladas neste ACORDO que tenha-se atribuído poderes aos QUOTISTAS para suprir a assinatura de outros QUOTISTAS; cisão, fusão, incorporação por outra sociedade ou incorporação de outra sociedade pela {{ sociedade.nomeFantasia }}; mudança do objeto social da {{ sociedade.nomeFantasia }}; integralização ou incorporação de todas ou parte das QUOTAS da {{ sociedade.nomeFantasia }} ao capital de outra sociedade e/ou a realização de tais atos pelas SOCIEDADES CONTROLADAS; para alterar a regra de distribuição de lucros prevista no contrato da {{ sociedade.nomeFantasia }}; a venda de bens imóveis etc."
  },
  {
   "nome": "Acordo 121 Alínea — Conforme decidam todos os QUOTISTAS caso deseje-se designar …",
@@ -840,19 +840,19 @@
   "nome": "Acordo 122 Alínea — Conforme decidam 2/3 (dois terços) dos VOTOS dos QUOTISTAS p…",
   "tipo": "alinea",
   "titulo": null,
-  "conteudo": "Conforme decidam 2/3 (dois terços) dos VOTOS dos QUOTISTAS presentes na REUNIÃO PRÉVIA, REUNIÃO DE QUOTISTAS e/ou REUNIÃO DE SÓCIOS com relação à nomeação de administrador não sócio, nos casos em que o capital esteja totalmente integralizado;"
+  "conteudo": "Conforme decidam {{ acordo.quorumNomearAdministradorNaoSocio }} dos VOTOS dos QUOTISTAS presentes na REUNIÃO PRÉVIA, REUNIÃO DE QUOTISTAS e/ou REUNIÃO DE SÓCIOS com relação à nomeação de administrador não sócio, nos casos em que o capital esteja totalmente integralizado;"
  },
  {
   "nome": "Acordo 123 Alínea — Conforme decidam a maioria dos VOTOS dos QUOTISTAS presentes…",
   "tipo": "alinea",
   "titulo": null,
-  "conteudo": "Conforme decidam a maioria dos VOTOS dos QUOTISTAS presentes na REUNIÃO PRÉVIA, REUNIÃO DE QUOTISTAS e/ou REUNIÃO DE SÓCIOS com relação aos seguintes assuntos: a designação de administradores, quando feita em ato separado; a destituição de administradores; o modo e valor da remuneração dos administradores, quando não estabelecido no contrato; o pedido de recuperação judicial e o encerramento desta condição;"
+  "conteudo": "Conforme decidam {{ acordo.quorumDestituirAdministrador }} dos VOTOS dos QUOTISTAS presentes na REUNIÃO PRÉVIA, REUNIÃO DE QUOTISTAS e/ou REUNIÃO DE SÓCIOS com relação aos seguintes assuntos: a designação de administradores, quando feita em ato separado; a destituição de administradores; o modo e valor da remuneração dos administradores, quando não estabelecido no contrato; o pedido de recuperação judicial e o encerramento desta condição;"
  },
  {
   "nome": "Acordo 124 Alínea — Conforme decidam a maioria dos VOTOS dos QUOTISTAS presentes…",
   "tipo": "alinea",
   "titulo": null,
-  "conteudo": "Conforme decidam a maioria dos VOTOS dos QUOTISTAS presentes nas REUNIÕES PRÉVIAS, REUNIÕES DE QUOTISTAS ou REUNIÃO DE SÓCIOS para as demais matérias, incluindo a aprovação das contas da administração."
+  "conteudo": "Conforme decidam {{ acordo.quorumOrdinaria }} dos VOTOS dos QUOTISTAS presentes nas REUNIÕES PRÉVIAS, REUNIÕES DE QUOTISTAS ou REUNIÃO DE SÓCIOS para as demais matérias, incluindo a aprovação das contas da administração."
  },
  {
   "nome": "Acordo 125 Subitem — Havendo dissenso irreconciliável entre dois ou mais QUOTISTA…",
@@ -1503,7 +1503,7 @@
   "nome": "Acordo 226 Item — As REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS poderão ser conv…",
   "tipo": "item",
   "titulo": null,
-  "conteudo": "As REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS poderão ser convocadas por QUOTISTAS que representem, no mínimo, a maioria das QUOTAS na data da convocação, e deverá (i) constar data e horário da reunião; e (ii) ser encaminhada aos demais QUOTISTAS mediante notificação, por escrito, nos termos previstos neste ACORDO para tais fins; mas elas serão instaladas e as deliberações delas só serão consideradas válidas se, no momento de sua instalação, os QUOTISTAS detentores da maioria das QUOTAS estiverem presentes, pessoalmente ou com procuração específica outorgada nos termos da lei.",
+  "conteudo": "As REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS poderão ser convocadas por QUOTISTAS que representem, no mínimo, {{ acordo.quorumReuniaoPrevia }} das QUOTAS na data da convocação, e deverá (i) constar data e horário da reunião; e (ii) ser encaminhada aos demais QUOTISTAS mediante notificação, por escrito, nos termos previstos neste ACORDO para tais fins; mas elas serão instaladas e as deliberações delas só serão consideradas válidas se, no momento de sua instalação, os QUOTISTAS detentores da maioria das QUOTAS estiverem presentes, pessoalmente ou com procuração específica outorgada nos termos da lei.",
   "flags": [
    "acordo_reuniao_previa_obrigatoria"
   ]

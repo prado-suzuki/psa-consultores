@@ -130,6 +130,88 @@ describe('a geração do Acordo de ponta a ponta', () => {
   });
 });
 
+describe('os quoruns, cada um na frase que o modelo escreve para ele', () => {
+  /*
+   * NAO SAO SETE ALINEAS DE UMA LISTA, e supor isso teria produzido documento
+   * errado. Cruzado com o modelo, linha a linha: quatro viram alineas da escada
+   * do voto, o aumento de capital sai na Clausula Quarta, a reuniao previa na
+   * Vigesima Quarta, e a instalacao nao aparece no Acordo (e do contrato
+   * social). Um laco escreveria os sete em fila num lugar so.
+   */
+  const COM_QUORUM: EntradaAcordo = {
+    ...ENTRADA,
+    quoruns: [
+      { chave: 'instalacao', materia: 'Para a reunião de sócios poder começar', ordem: 0,
+        expressao: '80% do capital social', quantidade: '80% (oitenta por cento)',
+        quantidadeEmFracao: '80% (oitenta por cento)' },
+      { chave: 'ordinaria', materia: 'Assunto comum', ordem: 1,
+        expressao: 'a maioria dos presentes', quantidade: 'a maioria',
+        quantidadeEmFracao: 'a maioria' },
+      { chave: 'alterar_contrato_social', materia: 'Alterar o contrato social', ordem: 2,
+        expressao: '75% dos presentes', quantidade: '75% (setenta e cinco por cento)',
+        quantidadeEmFracao: '¾ (três quartos)' },
+      { chave: 'nomear_administrador_nao_socio', materia: 'Nomear administrador', ordem: 3,
+        expressao: '2/3 dos presentes', quantidade: '2/3 (dois terços)',
+        quantidadeEmFracao: '2/3 (dois terços)' },
+      { chave: 'destituir_administrador', materia: 'Destituir administrador', ordem: 4,
+        expressao: 'a maioria dos presentes', quantidade: 'a maioria',
+        quantidadeEmFracao: 'a maioria' },
+      { chave: 'aumento_de_capital', materia: 'Aumento de capital', ordem: 5,
+        expressao: '75% do capital', quantidade: '75% (setenta e cinco por cento)',
+        quantidadeEmFracao: '¾ (três quartos)' },
+      { chave: 'reuniao_previa', materia: 'Reunião prévia', ordem: 6,
+        expressao: 'a maioria do capital', quantidade: 'a maioria',
+        quantidadeEmFracao: 'a maioria' },
+    ],
+  };
+
+  it('cada quorum sai no lugar dele, e a base fica com as palavras da clausula', () => {
+    /*
+     * COM A FLAG DA REUNIAO PREVIA: o quorum dela mora na Clausula Vigesima
+     * Quarta, que o mecanismo governa. Sem a flag a clausula nao entra, e o
+     * teste procuraria uma frase que o documento nao tem por outro motivo.
+     */
+    const texto = gerarDocumento(
+      template, contextoDe(COM_QUORUM), ['acordo_reuniao_previa_obrigatoria'],
+    );
+    // A escada do voto: a quantidade entra, a base do modelo permanece.
+    expect(texto).toContain(
+      'Conforme decidam 75% (setenta e cinco por cento) dos VOTOS dos QUOTISTAS presentes',
+    );
+    expect(texto).toContain('Conforme decidam 2/3 (dois terços) dos VOTOS');
+    expect(texto).toContain('Conforme decidam a maioria dos VOTOS');
+    // Fora da escada, e o aumento de capital escreve a FRACAO dos mesmos 75%.
+    expect(texto).toContain('QUOTISTAS que representem ¾ (três quartos) das QUOTAS');
+    expect(texto).toContain('no mínimo, a maioria das QUOTAS');
+  });
+
+  it('trocar o numero no cadastro troca o numero no documento', () => {
+    const outro = {
+      ...COM_QUORUM,
+      quoruns: COM_QUORUM.quoruns.map((q) => (q.chave === 'alterar_contrato_social'
+        ? { ...q, quantidade: '90% (noventa por cento)' } : q)),
+    };
+    const texto = gerarDocumento(template, contextoDe(outro));
+    expect(texto).toContain('Conforme decidam 90% (noventa por cento) dos VOTOS');
+    expect(texto).not.toContain('Conforme decidam 75% (setenta e cinco por cento)');
+  });
+
+  it('a INSTALACAO nao sai no Acordo, porque a clausula dela e do contrato social', () => {
+    const texto = gerarDocumento(template, contextoDe(COM_QUORUM));
+    expect(texto).not.toContain('80% (oitenta por cento)');
+  });
+
+  it('e o caso de unanimidade da lei fica escrito, porque nao e escolha do cliente', () => {
+    /*
+     * "todos os QUOTISTAS caso o capital nao esteja totalmente integralizado" e o
+     * art. 1.061 do Codigo Civil. O cadastro tem UMA linha para administrador nao
+     * socio, e ela e a do capital integralizado, que e a que varia.
+     */
+    const texto = gerarDocumento(template, contextoDe(COM_QUORUM));
+    expect(texto).toContain('Conforme decidam todos os QUOTISTAS caso deseje-se designar');
+  });
+});
+
 describe('os mecanismos que DESLIGAM texto', () => {
   /*
    * ATE HOJE NENHUMA RESPOSTA DO CADASTRO TIRAVA CLAUSULA DO DOCUMENTO.
