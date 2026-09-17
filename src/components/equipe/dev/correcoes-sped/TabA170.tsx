@@ -599,7 +599,7 @@ export default function TabA170({
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-muted/60">{renderColumnLabel('VL COF', SPED_TOOLTIPS.vlCof)}</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-muted/60">{renderColumnLabel('PIS Ret', SPED_TOOLTIPS.pisRet)}</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-muted/60">{renderColumnLabel('COFINS Ret', SPED_TOOLTIPS.cofinsRet)}</TableHead>
-                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10"><span className="flex items-center gap-1 justify-center">Status<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Mostra se a linha já possui correção aplicada e se a tabela está em modo de edição.</TooltipContent></Tooltip></span></TableHead>
+                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10"><span className="flex items-center gap-1 justify-center">Status<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Mostra se a linha já tem correção aplicada.</TooltipContent></Tooltip></span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

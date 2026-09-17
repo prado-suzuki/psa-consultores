@@ -43,8 +43,8 @@ const RAIZ = resolve(__dirname, '../..');
  * caso permitido.
  *
  * A regex é de linha única, e isso foi **medido antes de escolher**: contra um parser de
- * tags que atravessa props multilinha, as duas contam exatamente as mesmas 143
- * ocorrências. Nenhum `title=` do repositório está separado da sua tag por uma quebra de
+ * tags que atravessa props multilinha, as duas contam exatamente as mesmas
+ * ocorrências (143, na medição de 17/09/2026). Nenhum `title=` do repositório está separado da sua tag por uma quebra de
  * linha, então o parser seria complexidade sem resultado.
  */
 const TAGS_NATIVAS =
@@ -53,8 +53,11 @@ const TAGS_NATIVAS =
 const RE_TITLE_NATIVO = new RegExp(String.raw`<(?:${TAGS_NATIVAS})\b[^<>]*\stitle=`, 'g');
 
 /**
- * A dívida do `title=`, congelada em 17/09/2026: **143 ocorrências em 80 arquivos** das
- * pastas de tela.
+ * A dívida do `title=`: **141 ocorrências em 80 arquivos** das pastas de tela.
+ *
+ * Nasceu 143 em 17/09/2026 e desceu para 141 no mesmo dia, com o primeiro lote da
+ * conversão (os dois `title` de erro do `BoardPreenchimentoSistema`). A catraca
+ * reprovou a QUEDA antes de este número mudar, que é o comportamento desenhado.
  *
  * O documento **não manda converter as 143** — ele existe para impedir a 144ª. Essa
  * separação é deliberada: decidir o padrão é uma tarefa, pagar a dívida é outra, e
@@ -64,7 +67,7 @@ const RE_TITLE_NATIVO = new RegExp(String.raw`<(?:${TAGS_NATIVAS})\b[^<>]*\stitl
  * reprovando por queda é feature, não atrito: o número aqui é o retrato de uma dívida, e
  * retrato desatualizado é como o índice passou meses dizendo "142".
  */
-const TITLE_NATIVO_LEGADO = 143;
+const TITLE_NATIVO_LEGADO = 141;
 
 /**
  * Placeholder de escolha ou de busca fora das quatro formas canônicas (§3 do documento):
@@ -151,7 +154,7 @@ describe('o texto que explica a tela', () => {
     ).toBe(TITLE_NATIVO_LEGADO);
   });
 
-  it('nenhum tooltip passa do teto sem ser um dos três já inventariados', () => {
+  it('nenhum tooltip passa do teto fora do que está inventariado', () => {
     const medido = tooltipsAcimaDoTeto();
 
     expect(
@@ -164,9 +167,7 @@ describe('o texto que explica a tela', () => {
         + 'e o histórico de versão do DocumentoCentroRail (158, com conteúdo certo e\n'
         + 'tamanho errado).',
     ).toEqual({
-      'src/components/equipe/dev/calculadora-ibs-cbs/AbaPorAnexo.tsx': 1,
       'src/components/equipe/dev/calculadora-ibs-cbs/AbaPorProduto.tsx': 1,
-      'src/components/equipe/osg/gerar/DocumentoCentroRail.tsx': 1,
     });
   });
 

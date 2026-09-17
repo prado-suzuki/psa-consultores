@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { BoardChip } from './BoardChip';
 import { BoardCard, BoardCardEmpty } from './ui/BoardCard';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   tituloLacuna,
   SEM_AREA_ID,
@@ -63,12 +64,17 @@ const LinhaArea: React.FC<{ linha: LinhaPreenchimentoArea }> = ({ linha }) => {
       </td>
       <td className="num">
         {linha.projetos === null ? (
-          <span
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--bd-risk)' }}
-            title="Não foi possível medir -- a consulta de projetos falhou."
-          >
-            <AlertTriangle style={{ width: 12, height: 12 }} />
-          </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--bd-risk)' }}
+                aria-label="Não foi possível medir — a consulta de projetos falhou."
+              >
+                <AlertTriangle style={{ width: 12, height: 12 }} />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Não foi possível medir — a consulta de projetos falhou.</TooltipContent>
+          </Tooltip>
         ) : (
           <span style={{ fontWeight: 600, color: 'var(--bd-ink)' }}>{linha.projetos}</span>
         )}
@@ -97,7 +103,6 @@ const LinhaFaixaEmpresa: React.FC<{ label: string; efeito: string; m: MetricaFai
     {m.comLacuna === null ? (
       <span
         style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--bd-risk-d)', fontSize: 12.5, fontWeight: 700 }}
-        title="Não foi possível medir -- a consulta falhou."
       >
         <AlertTriangle style={{ width: 13, height: 13 }} /> não foi possível medir
       </span>

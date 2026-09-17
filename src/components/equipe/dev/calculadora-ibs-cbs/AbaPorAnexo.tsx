@@ -117,46 +117,12 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
 
       <Card variant="tabela" className="border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 cursor-help">
-                  Apuração por anexo
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="max-w-md text-xs leading-relaxed">
-                <p className="font-semibold mb-1">Como ler esta tabela</p>
-                <p className="mb-1">
-                  As notas de saída são agrupadas pelo anexo da Lei Complementar 214/2025 (regra de
-                  redução de IBS/CBS). "Sem anexo" = operação sob regra geral (alíquota cheia de
-                  27,5%).
-                </p>
-                <ul className="list-disc pl-4 space-y-0.5">
-                  <li>
-                    <strong>Faturamento</strong>: Σ valor bruto das notas do anexo.
-                  </li>
-                  <li>
-                    <strong>% fat.</strong>: participação do anexo no faturamento total.
-                  </li>
-                  <li>
-                    <strong>Alíq. efetiva</strong>: alíquota IBS/CBS já após a redução.
-                  </li>
-                  <li>
-                    <strong>Redução média</strong>: % de desconto sobre a alíquota cheia.
-                  </li>
-                  <li>
-                    <strong>Trib. ANTES</strong>: PIS + COFINS + ICMS + IPI atuais.
-                  </li>
-                  <li>
-                    <strong>Trib. DEPOIS</strong>: somente IBS + CBS.
-                  </li>
-                  <li>
-                    <strong>Carga DEPOIS</strong>: Trib. DEPOIS ÷ Faturamento.
-                  </li>
-                </ul>
-              </TooltipContent>
-            </Tooltip>
-          </CardTitle>
+          <CardTitle className="text-sm font-semibold text-foreground">Apuração por anexo</CardTitle>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            As notas de saída são agrupadas pelo anexo da Lei Complementar 214/2025 (regra de
+            redução de IBS/CBS). "Sem anexo" é operação sob regra geral, com alíquota cheia de
+            27,5%.
+          </p>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

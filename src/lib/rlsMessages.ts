@@ -475,6 +475,19 @@ export interface TextoDeRecusa {
   detalhe: string;
 }
 
+/**
+ * A frase que diz qual papel falta — uma fonte só.
+ *
+ * Exportada em 17/09/2026 porque a tela escrevia a própria versão: o tooltip do botão
+ * de excluir contribuinte dizia "Excluir contribuinte já cadastrado exige o papel
+ * Sublíder ou superior", a dois arquivos daqui. Mesma informação, duas redações, e a
+ * segunda envelheceria sozinha — é o achado A6 do padrão de texto
+ * (`docs/geral/texto-explicativo-na-tela.md` §4).
+ */
+export function frasePapelNecessario(papel?: RlsRequiredRole | null): string {
+  return `É necessário ter o papel de ${ROLE_LABEL[papel ?? PAPEL_PADRAO]} ou superior para realizar esta ação.`;
+}
+
 export function textoDeRecusa(
   op: CadastroOperacao,
   categoria: RecusaCategoria,
@@ -483,7 +496,7 @@ export function textoDeRecusa(
   if (categoria === 'permissao') {
     return {
       titulo: `Você não tem permissão para ${fragmento(op, 'permissao')}.`,
-      detalhe: `É necessário ter o papel de ${ROLE_LABEL[papel ?? PAPEL_PADRAO]} ou superior para realizar esta ação.`,
+      detalhe: frasePapelNecessario(papel),
     };
   }
   return {

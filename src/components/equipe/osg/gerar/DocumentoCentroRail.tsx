@@ -244,8 +244,8 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs text-xs leading-relaxed">
-                        Fecha esta versão (fica preservada como está) e abre uma nova a partir dela, com os mesmos
-                        dados e ajustes — para seguir editando sem perder o que já validou.
+                        Fecha esta versão e abre uma nova a partir dela, para seguir editando sem
+                        perder o que já validou.
                       </TooltipContent>
                     </Tooltip>
                     <Tooltip>
