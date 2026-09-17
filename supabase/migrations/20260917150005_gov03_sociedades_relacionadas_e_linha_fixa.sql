@@ -1,4 +1,4 @@
--- 20260917160000_gov03_sociedades_relacionadas_e_linha_fixa.sql
+-- 20260917150005_gov03_sociedades_relacionadas_e_linha_fixa.sql
 -- GOV-03: cai `acordo_sociedade_relacionada`, e o substituto do representante.
 --
 -- ESCRITA EM 17/09/2026.
