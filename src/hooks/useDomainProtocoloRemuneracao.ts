@@ -437,6 +437,70 @@ export function useProtocoloMutations(clienteId?: string | null) {
   });
 
   /**
+   * Registra que a planilha foi gerada.
+   *
+   * **O arquivo não é guardado, e isso não é omissão minha: nenhum documento
+   * deste sistema guarda.** O `caminho_arquivo` de `documento_gerado` existe na
+   * tabela e não é escrito por linha de código nenhuma, e não há upload para
+   * storage no caminho de geração. O que se guarda é o REGISTRO e o SNAPSHOT, e
+   * é o snapshot que permite refazer o arquivo idêntico depois.
+   *
+   * **`documento_template_id` vai nulo**, porque o protocolo não sai de um
+   * `tmpl_documento`: ele é escrito direto pelo `xlsx`. Isso o torna invisível
+   * para as consultas da tela Gerar, que filtram por modelo, e visível para as
+   * consultas por cliente, que é o que se quer. Em especial o
+   * `useClienteTemDocumentoGerado`, que é o que liga o painel de histórico na
+   * caixa de editar item.
+   *
+   * A auditoria usa `created`, porque o vocabulário tem três ações e não existe
+   * "gerado". No histórico se lê "Criação, Protocolo de Remuneração, Planilha do
+   * Protocolo versão 1", que diz o que aconteceu.
+   */
+  const registrarGeracao = useMutation({
+    mutationFn: async (args: { protocoloId: string; versao: number; celulas: string[][] }) => {
+      const { data, error } = await supabase
+        .from('documento_gerado')
+        .insert({
+          cliente_id: clienteId as string,
+          documento_template_id: null,
+          gerado_em: new Date().toISOString(),
+          gerado_por_id: user?.id ?? null,
+          observacao: `Protocolo de Remuneração, versão ${args.versao}`,
+          snapshot_dados: { protocolo_id: args.protocoloId, celulas: args.celulas },
+          created_by: user?.id ?? null,
+          updated_by: user?.id ?? null,
+        })
+        .select('id')
+        .single();
+      if (error) throw error;
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'protocolo_remuneracao',
+        entity_id: args.protocoloId,
+        entity_name: `Planilha do Protocolo, versão ${args.versao}`,
+        action: 'created',
+      });
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cliente-tem-documento-gerado', clienteId] });
+    },
+    /*
+     * A falha aqui NÃO desfaz o download: o arquivo já está na máquina de quem
+     * clicou, e dizer "não consegui gerar" seria mentira. O aviso diz o que
+     * realmente falhou, que é o registro.
+     */
+    onError: (e: unknown) =>
+      toast.error(
+        e instanceof Error
+          ? `A planilha foi baixada, mas não consegui registrar a geração: ${e.message}`
+          : 'A planilha foi baixada, mas não consegui registrar a geração',
+      ),
+  });
+
+  /**
    * Substitui as regras de UMA linha.
    *
    * O `regrasParaSalvar` decide o que é gravação e o que é apagamento: célula em
@@ -756,6 +820,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
   return {
     criarProtocolo,
     novaVersao,
+    registrarGeracao,
     salvarLinha,
     removerLinha,
     adicionarItens,

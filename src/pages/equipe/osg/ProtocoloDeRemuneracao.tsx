@@ -64,7 +64,7 @@ const ProtocoloDeRemuneracao = () => {
   const { data: protocolo, isLoading } = useProtocoloDoCliente(clienteId, versaoAberta);
   const { data: temDocumento = false } = useClienteTemDocumentoGerado(clienteId ?? null);
   const {
-    criarProtocolo, novaVersao, salvarLinha, removerLinha, adicionarItens,
+    criarProtocolo, novaVersao, registrarGeracao, salvarLinha, removerLinha, adicionarItens,
     criarTemaDoCliente, criarItemDoCliente,
     adicionarBeneficiario, renomearBeneficiario, removerBeneficiario,
     salvarPreambulo,
@@ -140,6 +140,17 @@ const ProtocoloDeRemuneracao = () => {
     const livro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(livro, aba, 'Protocolo');
     XLSX.writeFile(livro, nomeDoArquivo(protocolo.cliente, protocolo.protocolo.versao));
+
+    /*
+      O registro vem DEPOIS do arquivo, e sem `await`: o download é o que a
+      pessoa pediu, e ele não pode esperar uma ida ao banco nem ser desfeito se
+      ela falhar. A mutação avisa sozinha se não conseguir registrar.
+    */
+    void registrarGeracao.mutateAsync({
+      protocoloId: protocolo.protocolo.id,
+      versao: protocolo.protocolo.versao,
+      celulas,
+    });
   };
 
   const vazio = (icone: React.ReactNode, texto: React.ReactNode) => (
