@@ -1743,7 +1743,7 @@
   "nome": "Acordo 260 Item — O local de arbitragem será a cidade de «foroEleitoComarca», …",
   "tipo": "item",
   "titulo": null,
-  "conteudo": "O local de arbitragem será a cidade de {{ acordo.foroEleitoComarca }}, estado de {{ acordo.foroEleitoEstado }}, onde a decisão arbitral será proferida.",
+  "conteudo": "O local de arbitragem será a cidade de {{ acordo.foroEleitoComarca }}, estado {{ acordo.foroEleitoEstadoComPreposicao }}, onde a decisão arbitral será proferida.",
   "flags": [
    "acordo_por_arbitragem"
   ]
@@ -1761,7 +1761,7 @@
   "nome": "Acordo 262 Item — Com o objetivo exclusivo de solicitar uma medida liminar ou …",
   "tipo": "item",
   "titulo": null,
-  "conteudo": "Com o objetivo exclusivo de solicitar uma medida liminar ou cautelar, seja ela preventiva, provisória ou permanente, os QUOTISTAS e a {{ sociedade.nomeFantasia }} elegem o foro da cidade de {{ acordo.foroEleitoComarca }}, estado de {{ acordo.foroEleitoEstado }}, por mais privilegiado outro o seja."
+  "conteudo": "Com o objetivo exclusivo de solicitar uma medida liminar ou cautelar, seja ela preventiva, provisória ou permanente, os QUOTISTAS e a {{ sociedade.nomeFantasia }} elegem o foro da cidade de {{ acordo.foroEleitoComarca }}, estado {{ acordo.foroEleitoEstadoComPreposicao }}, por mais privilegiado outro o seja."
  },
  {
   "nome": "Acordo 263 Item — Para fins do disposto nos artigos 165 e seguintes do Código …",

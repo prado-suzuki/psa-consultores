@@ -1925,6 +1925,16 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
        */
       { id: 'foroEleitoComarca', label: 'Foro eleito — cidade', tipo: 'texto' },
       { id: 'foroEleitoEstado', label: 'Foro eleito — estado por extenso', tipo: 'texto' },
+      /*
+       * "estado DO Paraná", e não "estado DE Paraná".
+       *
+       * `ufComPreposicao` já resolve pelo NOME, e não só pela sigla: ele faz a
+       * busca reversa do nome para a sigla justamente porque a matrícula publica
+       * o estado por extenso. Por isso não foi preciso trocar a coluna para
+       * guardar "PR".
+       */
+      ufComPreposicaoCampo('foroEleitoEstadoComPreposicao',
+        'Foro eleito — estado com a preposição', 'foroEleitoEstado'),
     ],
   },
 };

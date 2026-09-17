@@ -75,11 +75,21 @@ const METODOS = [
   { valor: 'dupla_avaliacao', rotulo: 'Dupla avaliação' },
 ] as const;
 
+/*
+ * OS QUATRO QUE O DOCUMENTO ESCREVE.
+ *
+ * Cada um acende um trecho real: as quotas são a Cláusula Quinta, as
+ * participações e os imóveis são a Décima, as oportunidades são a Décima
+ * Primeira. Máquinas e Equipamentos saíram em 17/09: o modelo não os escreve em
+ * bloco nenhum, e marcá-los não mudava o documento. Eram vocabulário do
+ * AgroAliança, que é um acordo do acervo, não o padrão da casa.
+ *
+ * Se um dia a casa redigir a cláusula que os alcance, os dois voltam com o
+ * bloco junto, e não antes.
+ */
 const OBJETOS = [
   { valor: 'quotas', rotulo: 'Quotas' },
   { valor: 'imoveis', rotulo: 'Imóveis' },
-  { valor: 'maquinas', rotulo: 'Máquinas' },
-  { valor: 'equipamentos', rotulo: 'Equipamentos' },
   { valor: 'oportunidades', rotulo: 'Oportunidades de negócio' },
   { valor: 'participacoes', rotulo: 'Participações' },
 ] as const;
@@ -340,13 +350,6 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           + 'acordos, três redações em quatro documentos: "QUOTISTAS que sejam titulares da '
           + 'maioria das QUOTAS" no modelo e no AgroAliança, "demais QUOTISTAS" no Perci, e '
           + '"QUOTISTAS e/ou seus curadores" no Horita.' },
-      { campo: 'opcao_compra_preco', rotulo: 'Preço na opção de compra', tipo: 'texto',
-        dependeDe: 'opcao_compra_prevista',
-        ajuda: 'Como o preço se forma quando alguém exerce a opção. No modelo é o MAIOR entre '
-          + 'dois: "o VALOR DAS QUOTAS na data da OPÇÃO DE COMPRA" e "o valor subscrito e '
-          + 'integralizado", este corrigido por juros e índice. O pagamento sai em até 36 '
-          + 'parcelas mensais. Responda diferente se o cliente combinou outra conta, por '
-          + 'exemplo só o valor apurado, ou com deságio.' },
       { campo: 'opcao_venda_prevista', rotulo: 'Opção de venda prevista', tipo: 'booleano',
         ajuda: 'O direito de exigir que os outros comprem a sua parte.' },
       { campo: 'juros_valor_subscrito', rotulo: 'Juros sobre o valor subscrito', tipo: 'texto',
