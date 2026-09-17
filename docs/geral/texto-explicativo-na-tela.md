@@ -66,9 +66,9 @@ nome que aquele botão tem.
 |---|---|
 | **Quando usar** | botão, aba ou ícone **sem texto visível** |
 | **Quando não usar** | o controle já tem texto — aí é redundância |
-| **Estrutura** | verbo no infinitivo + objeto: "Editar OS" |
+| **Estrutura** | a ação no infinitivo, direta e neutra: "Editar OS" |
 | **Tamanho** | até 30 caracteres, **sem ponto final** |
-| **Tom** | imperativo impessoal, nomeia a ação |
+| **Tom** | nomeia a ação; sem "clique", sem "aqui" |
 | **Terminologia** | o mesmo verbo do botão equivalente com texto |
 | **Marcação** | `aria-label` **sempre**; `<Tooltip>` com o mesmo texto quando a descoberta visual ajudar |
 | **Adequado** | `Remover contribuinte` |
@@ -80,7 +80,7 @@ nome que aquele botão tem.
 |---|---|
 | **Quando usar** | instrução ou restrição que vale **toda vez** que a pessoa preenche |
 | **Quando não usar** | é curiosidade, definição ou detalhe secundário → tooltip |
-| **Estrutura** | uma frase, afirmativa, começando pela consequência |
+| **Estrutura** | uma frase afirmativa; comece pela informação necessária para agir — condição, restrição ou consequência |
 | **Tamanho** | até 120 caracteres |
 | **Tom** | fala com a pessoa quando há ação; impessoal quando descreve o dado |
 | **Terminologia** | §4 |
@@ -111,7 +111,7 @@ nome que aquele botão tem.
 | **Estrutura** | duas partes: **o que aconteceu** · **o que fazer agora** |
 | **Tamanho** | até 140 caracteres por parte |
 | **Tom** | 2ª pessoa; nunca afirma causa que o sistema não conhece |
-| **Terminologia** | **sai do catálogo** `src/lib/rlsMessages.ts` — frase nova só entra ali, e só quando a orientação for diferente das que já existem |
+| **Terminologia** | **Recusa, permissão ou falha:** sai do catálogo `src/lib/rlsMessages.ts`, e frase nova só entra ali quando a orientação for diferente das que já existem. **Qualquer outra mensagem contextual** (estado, etapa, pré-requisito) segue §4 e mora onde o estado é tratado — o catálogo é de recusa, não repositório universal de microcopy |
 | **Adequado** | `Selecione um cliente para listar os contribuintes disponíveis.` |
 | **Inadequado** | `Erro ao atualizar cliente: violates row-level security policy` |
 
@@ -121,14 +121,21 @@ nome que aquele botão tem.
 |---|---|
 | **Quando usar** | mostrar **formato esperado**, ou marcar o estado vazio de um campo de escolha ou busca |
 | **Quando não usar** | no lugar do rótulo · para instrução essencial · repetindo o rótulo |
-| **Estrutura** | uma das quatro formas canônicas, e nada mais: `Selecione…` · `Buscar…` · `Ex: 12.345.678/0001-90` · vazio |
+| **Estrutura** | uma das quatro formas canônicas: `Selecione…` · `Buscar…` · `Ex: 12.345.678/0001-90` · vazio. A única coisa fora dessa lista é o rótulo da opção "todos", logo abaixo — e aquilo não é placeholder |
 | **Tamanho** | até 40 caracteres; reticências é `…`, nunca `...` |
 | **Tom** | instrução genérica, igual em todas as telas do mesmo componente |
 | **Terminologia** | quando o componente compartilhado já traz um texto, é ele que vale — texto sob medida compete com o rótulo em vez de ajudar |
 | **Adequado** | `Selecione…` |
 | **Inadequado** | `Selecionar gestor...` |
 
-**Texto de lista vazia é a exceção conhecida:** ele fica **específico** ("Nenhum cliente
+**"Todos os clientes", "Todas as OS" não é placeholder — é o valor do filtro.** Quando o filtro
+tem a opção "todos", o texto do estado vazio é o **rótulo dessa opção** e precisa casar com o
+`SelectItem` correspondente, palavra por palavra (há **58** deles com `value="all"`). `Selecione…`
+não se aplica aí: não há nada a selecionar, há um recorte já valendo. E a concordância acompanha o
+substantivo — "Todos os clientes", "Todas as empresas" —, que é a mesma exceção da palavra única
+de status: gênero em prosa é gramática, não rótulo.
+
+**Texto de lista vazia é a outra exceção conhecida:** ele fica **específico** ("Nenhum cliente
 encontrado."), porque nomeia o que não foi achado, e isso é informação.
 
 ## 4. Voz e terminologia
