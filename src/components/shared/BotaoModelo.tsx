@@ -28,7 +28,7 @@ export type TomDoModelo = 'osg' | 'portal';
 
 const TONS: Record<TomDoModelo, string> = {
   osg: cn(
-    'h-7 gap-1 rounded-md border border-osg-200/80 bg-white px-2 text-xs font-medium text-osg-700',
+    'h-7 gap-1 rounded-md border border-osg-200/80 bg-card px-2 text-xs font-medium text-osg-700',
     'hover:border-osg-moss/40 hover:bg-osg-moss/[0.07] hover:text-osg-moss',
     'focus-visible:ring-2 focus-visible:ring-osg-moss/40',
   ),

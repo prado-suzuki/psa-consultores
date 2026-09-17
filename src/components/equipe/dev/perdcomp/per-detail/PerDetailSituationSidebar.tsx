@@ -125,7 +125,7 @@ export function PerDetailSituationSidebar({
                     className={cn(
                       'p-2 rounded-lg border',
                       index === 0
-                        ?'bg-white border-primary/20'
+                        ?'bg-card border-primary/20'
                         :'bg-muted/50 border-transparent',
                     )}
                   >

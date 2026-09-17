@@ -337,7 +337,7 @@ export function ClassificarLevaDialog({
               <ul className="grid gap-1.5 sm:grid-cols-2">
                 {paraDecidir.map((item) => (
                   <li key={item.solicitacaoItemId}>
-                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-osg-100 bg-white px-2.5 py-2 text-[11.5px] text-osg-700">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-osg-100 bg-card px-2.5 py-2 text-[11.5px] text-osg-700">
                       <Checkbox
                         checked={naoAplicaveis.has(item.solicitacaoItemId)}
                         disabled={salvando}

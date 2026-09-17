@@ -57,7 +57,7 @@ export function EFDBlockTree({
               onClick={() => toggleBlock(bloco)}
               className={cn(
                 "flex items-center w-full px-3 py-2.5 text-sm font-bold rounded-lg transition-colors",
-                "bg-white border border-border shadow-sm",
+                "bg-card border border-border shadow-sm",
                 "hover:bg-muted",
                 "text-foreground"
               )}

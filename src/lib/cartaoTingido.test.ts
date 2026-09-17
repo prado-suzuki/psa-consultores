@@ -282,12 +282,46 @@ const CAIXA_QUE_FICA_BRANCA: Record<MotivoDeFicarBranca, Record<string, number>>
     'src/components/equipe/osg/documentos/classificar/FichaColuna.tsx': 1,
     'src/components/equipe/osg/montagem/MontadorWorkbench.tsx': 2,
     'src/components/equipe/projetos-cadastro/ProjetoDialog.tsx': 1,
+    // ── Chegaram em 17/09/2026, do lote 1 da fila do `bg-white` ──
+    //
+    // Não são caixa nova: são as MESMAS caixas, que estavam escritas em branco
+    // literal e passavam por esta catraca sem serem vistas — ela procura
+    // `bg-card`, e `bg-white` não é `bg-card`. Trocar o literal pelo token não
+    // moveu um pixel na casa (`--card` da `.base-theme` é `0 0% 100%`), e é o
+    // ponto: o que elas ganharam foi acompanhar TEMA e ÁREA, que o literal não
+    // faz. Na OSG, que é areia, era branco frio sobre superfície quente.
+    //
+    // Quatro das onze são a MESMA peça de novo — a pastilha ativa de um
+    // segmentado, branca sobre a canaleta rebaixada. Com as seis que já estavam
+    // acima, são DEZ cópias do mesmo controle escritas à mão em dez arquivos, e
+    // isso é sinal de componente que não existe, não de dívida de cor.
+    'src/components/cliente/ChecklistDocumentosCliente.tsx': 1,
+    'src/components/cliente/checklist/LinhaPendencia.tsx': 1,
+    // Duas, e a segunda é a moldura do dashboard embutido: ali o branco é do
+    // conteúdo de terceiro, que o `<iframe>` cobre inteiro. Fica no motivo do
+    // botão, que é o que explica a maioria do arquivo.
+    'src/components/dashboards/DashboardEmbedView.tsx': 2,
+    'src/components/equipe/dev/EFDBlockTree.tsx': 1,
+    'src/components/equipe/dev/calculadora-ibs-cbs/por-estado/PorEstadoUfs.tsx': 1,
+    'src/components/equipe/dev/procedimentos/AddProcedimentoModal.tsx': 1,
+    'src/components/equipe/kanban/KanbanBoard.tsx': 1,
+    'src/components/equipe/osg/checklists/ChecklistPendentes.tsx': 1,
+    'src/components/equipe/osg/documentos/classificar/ClassificarLevaDialog.tsx': 1,
+    'src/components/shared/BotaoModelo.tsx': 1,
+    'src/pages/equipe/osg/BibliotecaModelos.tsx': 1,
   },
   'sobre-o-rebaixado': {
     'src/components/acessos/DashboardsTab.tsx': 2,
     'src/components/dashboards/DashboardOverviewDialog.tsx': 1,
     'src/components/equipe/dev/efd-export/EFDRecordSelector.tsx': 2,
     'src/components/equipe/osg/montagem/BlocoMontadoCard.tsx': 1,
+    // Do lote 1 da fila do `bg-white`, 17/09/2026. As duas são o caso puro do
+    // motivo, e foram conferidas no pai: a tela de erro monta sobre
+    // `bg-muted`, e o histórico do PER/DCOMP mora numa `<aside className="bg-muted">`
+    // — nessa, o irmão de baixo já era `bg-muted/50`, então o par escuro/claro
+    // estava escrito ali do lado e só o claro é que era literal.
+    'src/components/ErrorBoundary.tsx': 1,
+    'src/components/equipe/dev/perdcomp/per-detail/PerDetailSituationSidebar.tsx': 1,
   },
   'dentro-do-cartao': {
     // As quatro do `DailyQuickStatusDialog` são três motivos no mesmo arquivo (o
@@ -296,6 +330,12 @@ const CAIXA_QUE_FICA_BRANCA: Record<MotivoDeFicarBranca, Record<string, number>>
     // "nenhum arquivo aparece em dois motivos" —, então ela mora no motivo que
     // explica a maioria e o resto está escrito aqui.
     'src/components/equipe/daily/DailyQuickStatusDialog.tsx': 4,
+    // Seis numa tela só, do lote 1 da fila do `bg-white` (17/09/2026), e é a
+    // maior concentração da fila inteira. São seis `div` irmãs dentro de um
+    // `<Card>` — a síntese e os cinco recortes da análise do Claude. O pai já
+    // pinta gradiente de acento, então aqui o claro é o segundo degrau da
+    // escada, exatamente o que este motivo descreve.
+    'src/components/equipe/dashboards/analise-inteligente/AnaliseInteligenteAnalysis.tsx': 6,
     // O `TabelasDaOs.tsx` do Adm & Fin ESTEVE AQUI, por um dia, e saiu em
     // 16/09/2026 — não porque a caixa deixou de ser branca, mas porque ela deixou
     // de ser exceção. Ele foi o único caso do repositório, e a pergunta dela ao

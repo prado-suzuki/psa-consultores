@@ -276,7 +276,7 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
                 title={`${total} ${substantivo} com documentos nesta solicitação.`}
                 className={cn(
                   'relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
-                  ativo ? 'bg-white text-osg-700 shadow-sm' : 'text-osg-500 hover:bg-osg-100/60 hover:text-osg-700',
+                  ativo ? 'bg-card text-osg-700 shadow-sm' : 'text-osg-500 hover:bg-osg-100/60 hover:text-osg-700',
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />{label}
