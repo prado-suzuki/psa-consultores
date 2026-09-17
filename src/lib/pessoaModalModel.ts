@@ -29,6 +29,7 @@ export type PessoaDraft = {
   documento_identidade_uf: string;
   conjuge_id: string;
   is_fundador: boolean;
+  nome_fantasia: string;
   nire: string;
   junta_comercial_uf: string;
   data_constituicao: string;
@@ -44,7 +45,8 @@ export const emptyPessoaDraft = (): PessoaDraft => ({
   estado_civil: '', regime_bens: '', data_nascimento: '', filiacao_pai: '', filiacao_pai_pessoa_id: '',
   filiacao_mae: '', filiacao_mae_pessoa_id: '', profissao: '', documento_identidade_tipo: '',
   documento_identidade_numero: '', documento_identidade_orgao: '', documento_identidade_uf: '',
-  conjuge_id: '', is_fundador: false, nire: '', junta_comercial_uf: '', data_constituicao: '',
+  conjuge_id: '', is_fundador: false, nome_fantasia: '', nire: '', junta_comercial_uf: '',
+  data_constituicao: '',
   objeto_social: '', status_constituicao: '', tipo_empresa: '',
 });
 
@@ -101,7 +103,8 @@ export function buildPessoaPayload(draft: PessoaDraft, clienteId: string): Pesso
       documento_identidade_uf: nullify(draft.documento_identidade_uf),
       // Estado civil sem cônjuge não grava cônjuge, venha o rascunho de onde vier.
       conjuge_id: ehEstadoCivilComConjuge(draft.estado_civil) ? draft.conjuge_id || null : null,
-      is_fundador: draft.is_fundador, nire: null, junta_comercial_uf: null, data_constituicao: null,
+      is_fundador: draft.is_fundador, nome_fantasia: null, nire: null, junta_comercial_uf: null,
+      data_constituicao: null,
       objeto_social: null, status_constituicao: null, tipo_empresa: null,
     };
   }
@@ -112,7 +115,8 @@ export function buildPessoaPayload(draft: PessoaDraft, clienteId: string): Pesso
     estado_civil: null, regime_bens: null, data_nascimento: null, filiacao_pai: null,
     filiacao_pai_pessoa_id: null, filiacao_mae: null, filiacao_mae_pessoa_id: null, profissao: null,
     documento_identidade_tipo: null, documento_identidade_numero: null, documento_identidade_orgao: null,
-    documento_identidade_uf: null, conjuge_id: null, is_fundador: false, nire: nullify(draft.nire),
+    documento_identidade_uf: null, conjuge_id: null, is_fundador: false,
+    nome_fantasia: nullify(draft.nome_fantasia), nire: nullify(draft.nire),
     junta_comercial_uf: nullify(draft.junta_comercial_uf), data_constituicao: nullify(draft.data_constituicao),
     objeto_social: nullify(draft.objeto_social), status_constituicao: nullify(draft.status_constituicao),
     tipo_empresa: draft.tipo_empresa || null,
