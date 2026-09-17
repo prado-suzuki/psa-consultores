@@ -67,6 +67,43 @@ export const catalogoTemasQueryKey = (clienteId?: string | null) =>
 export const catalogoItensQueryKey = (clienteId?: string | null) =>
   ['protocolo-itens-catalogo', clienteId ?? null] as const;
 
+export const versoesQueryKey = (clienteId?: string | null) =>
+  ['protocolo-versoes', clienteId ?? null] as const;
+
+export interface VersaoDoProtocolo {
+  id: string;
+  versao: number;
+  created_at: string;
+}
+
+/**
+ * As versões do protocolo deste cliente, da mais nova para a mais velha.
+ *
+ * **Versão é coisa medida, e não precaução.** O Toqueto tem V1 e VF do mesmo
+ * protocolo, e elas não diferem por detalhe: as colunas mudaram por inteiro
+ * ("Sócios Fundadores" e "Familiares Gestores" viraram "Gestores", "Fundadores"
+ * e "Sócios/Filhos 1a geração"), os itens passaram de 51 para 46, e dos textos
+ * que existiam nos itens comuns só 2 seguiram idênticos contra 12 reescritos.
+ * A prática da casa confirma: o sufixo `VF` (versão final) aparece em sete
+ * arquivos do acervo de governança, sempre depois de uma `V1`.
+ */
+export function useVersoesDoProtocolo(clienteId?: string | null) {
+  return useQuery<VersaoDoProtocolo[]>({
+    queryKey: versoesQueryKey(clienteId),
+    enabled: !!clienteId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('protocolo_remuneracao')
+        .select('id, versao, created_at')
+        .eq('cliente_id', clienteId as string)
+        .eq('excluido', false)
+        .order('versao', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 // ─── Catálogos ────────────────────────────────────────────────────────────────
 
 /**
@@ -120,12 +157,12 @@ export function useCatalogoDeItens(clienteId?: string | null) {
  * Traz a maior `versao` e não a mais recente por data: o Toqueto tem V1 e VF, e
  * é a versão que diz qual vale, não o carimbo de quando alguém mexeu por último.
  */
-export function useProtocoloDoCliente(clienteId?: string | null) {
+export function useProtocoloDoCliente(clienteId?: string | null, protocoloId?: string | null) {
   return useQuery<ProtocoloDoCliente | null>({
-    queryKey: protocoloQueryKey(clienteId),
+    queryKey: [...protocoloQueryKey(clienteId), protocoloId ?? 'vigente'],
     enabled: !!clienteId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const consulta = supabase
         .from('protocolo_remuneracao')
         .select(
           `*,
@@ -140,10 +177,13 @@ export function useProtocoloDoCliente(clienteId?: string | null) {
            )`,
         )
         .eq('cliente_id', clienteId as string)
-        .eq('excluido', false)
-        .order('versao', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .eq('excluido', false);
+
+      /* Sem versão escolhida, abre a mais nova. É o que a pessoa quer em 9 de
+         cada 10 vezes, e é como a tela se comportava antes de haver versão. */
+      const { data, error } = protocoloId
+        ? await consulta.eq('id', protocoloId).maybeSingle()
+        : await consulta.order('versao', { ascending: false }).limit(1).maybeSingle();
       if (error) throw error;
       if (!data) return null;
 
@@ -198,6 +238,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
     queryClient.invalidateQueries({ queryKey: protocoloQueryKey(clienteId) });
     queryClient.invalidateQueries({ queryKey: catalogoTemasQueryKey(clienteId) });
     queryClient.invalidateQueries({ queryKey: catalogoItensQueryKey(clienteId) });
+    queryClient.invalidateQueries({ queryKey: versoesQueryKey(clienteId) });
   };
 
   const autor = () => ({ created_by: user?.id ?? null, updated_by: user?.id ?? null });
@@ -281,6 +322,114 @@ export function useProtocoloMutations(clienteId?: string | null) {
       toast.success('Protocolo criado com os itens e as colunas padrão');
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui criar'),
+  });
+
+  /**
+   * Cria a versão seguinte, COPIANDO a atual inteira.
+   *
+   * **Copiar, e não recomeçar do modelo, e aqui eu divirjo do Acordo de
+   * Quotistas de propósito.** Lá a versão nova nasce da semente, com o argumento
+   * de que partir da anterior arrastaria valor que ninguém reviu justamente
+   * quando tudo está sendo revisto. O argumento é bom, e não vale aqui por uma
+   * diferença de natureza: os campos do acordo são curtos e têm padrão de casa,
+   * enquanto a célula do protocolo é parágrafo escrito à mão. Recomeçar do
+   * catálogo faria a consultoria redigitar 90 parágrafos, e ninguém faria isso:
+   * copiariam do arquivo antigo por fora, que é pior.
+   *
+   * A medição sustenta os dois lados, e é honesto dizer. No Toqueto, das 16
+   * células escritas na V1, 8 reaparecem literalmente na VF; nos itens comuns às
+   * duas, 2 textos ficaram idênticos e 12 mudaram. Metade se aproveita, metade
+   * se reescreve. Copiando, quem revisa apaga o que não vale; recomeçando, quem
+   * revisa redigita o que já valia.
+   *
+   * A anterior não some: fica com a versão menor, e é o que permite saber qual
+   * versão do protocolo virou qual documento assinado.
+   */
+  const novaVersao = useMutation({
+    mutationFn: async (args: { atual: ProtocoloDoCliente }) => {
+      if (!clienteId) throw new Error('Selecione um cliente.');
+
+      const { data: novo, error } = await supabase
+        .from('protocolo_remuneracao')
+        .insert({
+          cliente_id: clienteId,
+          versao: args.atual.protocolo.versao + 1,
+          preambulo: args.atual.protocolo.preambulo,
+          ...autor(),
+        })
+        .select()
+        .single();
+      if (error) throw error;
+
+      /*
+       * As colunas e as linhas voltam com id novo, e o `select` traz `nome` e
+       * `item_id` junto para eu casar velho com novo por chave de negócio. Casar
+       * pela ORDEM de retorno funcionaria hoje e quebraria calado no dia em que o
+       * Postgres devolvesse noutra ordem, e o estrago seria a regra do Fundador
+       * caindo na coluna do Gestor.
+       */
+      const { data: colunas, error: erroColunas } = await supabase
+        .from('protocolo_beneficiario')
+        .insert(
+          args.atual.beneficiarios.map((b) => ({
+            protocolo_id: novo.id,
+            nome: b.nome,
+            ordem: b.ordem,
+            ...autor(),
+          })),
+        )
+        .select('id, nome');
+      if (erroColunas) throw erroColunas;
+
+      const { data: linhas, error: erroLinhas } = await supabase
+        .from('protocolo_linha')
+        .insert(
+          args.atual.linhas.map((l) => ({
+            protocolo_id: novo.id,
+            item_id: l.item.id,
+            ordem: l.ordem,
+            ...autor(),
+          })),
+        )
+        .select('id, item_id');
+      if (erroLinhas) throw erroLinhas;
+
+      const colunaNova = new Map((colunas ?? []).map((c) => [c.nome, c.id]));
+      const linhaNova = new Map((linhas ?? []).map((l) => [l.item_id, l.id]));
+      const itemDaLinhaVelha = new Map(args.atual.linhas.map((l) => [l.id, l.item.id]));
+      const nomeDaColunaVelha = new Map(args.atual.beneficiarios.map((b) => [b.id, b.nome]));
+
+      const regras = args.atual.regras.flatMap((r) => {
+        const itemId = itemDaLinhaVelha.get(r.linha_id);
+        const nome = nomeDaColunaVelha.get(r.beneficiario_id);
+        const linhaId = itemId ? linhaNova.get(itemId) : undefined;
+        const colunaId = nome ? colunaNova.get(nome) : undefined;
+        if (!linhaId || !colunaId) return [];
+        return [{ linha_id: linhaId, beneficiario_id: colunaId, texto: r.texto, ...autor() }];
+      });
+
+      if (regras.length > 0) {
+        const { error: erroRegras } = await supabase.from('protocolo_regra').insert(regras);
+        if (erroRegras) throw erroRegras;
+      }
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'protocolo_remuneracao',
+        entity_id: novo.id,
+        entity_name: `Protocolo de Remuneração, versão ${novo.versao}`,
+        action: 'created',
+      });
+
+      return novo;
+    },
+    onSuccess: (p) => {
+      invalidar();
+      queryClient.invalidateQueries({ queryKey: versoesQueryKey(clienteId) });
+      toast.success(`Versão ${p.versao} criada como cópia da anterior. Revise item por item.`);
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : 'Não consegui criar a versão'),
   });
 
   /**
@@ -602,6 +751,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
 
   return {
     criarProtocolo,
+    novaVersao,
     salvarLinha,
     removerLinha,
     adicionarItens,

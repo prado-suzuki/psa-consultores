@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Columns3, MousePointerClick, Plus, ScrollText, Sparkles } from 'lucide-react';
+import { Columns3, CopyPlus, MousePointerClick, Plus, ScrollText, Sparkles } from 'lucide-react';
 
 import { AcrescentarItemModal } from '@/components/equipe/osg/governanca/AcrescentarItemModal';
 import { ColunasDoProtocoloModal } from '@/components/equipe/osg/governanca/ColunasDoProtocoloModal';
@@ -12,6 +12,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useClienteTemDocumentoGerado } from '@/hooks/useDocumentoGerado';
 import {
@@ -19,6 +22,7 @@ import {
   useCatalogoDeTemas,
   useProtocoloDoCliente,
   useProtocoloMutations,
+  useVersoesDoProtocolo,
 } from '@/hooks/useDomainProtocoloRemuneracao';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import {
@@ -51,10 +55,12 @@ const ProtocoloDeRemuneracao = () => {
   const { clienteId } = useOsgWork();
   const { data: temas = [] } = useCatalogoDeTemas(clienteId);
   const { data: itens = [] } = useCatalogoDeItens(clienteId);
-  const { data: protocolo, isLoading } = useProtocoloDoCliente(clienteId);
+  const [versaoAberta, setVersaoAberta] = useState<string | null>(null);
+  const { data: versoes = [] } = useVersoesDoProtocolo(clienteId);
+  const { data: protocolo, isLoading } = useProtocoloDoCliente(clienteId, versaoAberta);
   const { data: temDocumento = false } = useClienteTemDocumentoGerado(clienteId ?? null);
   const {
-    criarProtocolo, salvarLinha, removerLinha, adicionarItens,
+    criarProtocolo, novaVersao, salvarLinha, removerLinha, adicionarItens,
     criarTemaDoCliente, criarItemDoCliente,
     adicionarBeneficiario, renomearBeneficiario, removerBeneficiario,
     salvarPreambulo,
@@ -122,7 +128,40 @@ const ProtocoloDeRemuneracao = () => {
       subtitle={TELAS_OSG_WORK.protocoloRemuneracao.descricao}
       headerActions={
         protocolo ? (
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {/*
+              O seletor só aparece a partir da segunda versão: com uma só, ele
+              seria um campo que não escolhe nada. A mais nova vem primeiro e é a
+              que abre por padrão.
+            */}
+            {versoes.length > 1 && (
+              <Select
+                value={protocolo.protocolo.id}
+                onValueChange={(id) => setVersaoAberta(id)}
+              >
+                <SelectTrigger className="h-8 w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {versoes.map((v, i) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      Versão {v.versao}
+                      {i === 0 ? ' (atual)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={novaVersao.isPending}
+              onClick={() => {
+                void novaVersao.mutateAsync({ atual: protocolo }).then(() => setVersaoAberta(null));
+              }}
+            >
+              <CopyPlus className="mr-2 h-4 w-4" /> Nova versão
+            </Button>
             <Button size="sm" variant="outline" onClick={() => setGerindoColunas(true)}>
               <Columns3 className="mr-2 h-4 w-4" /> Colunas
             </Button>
