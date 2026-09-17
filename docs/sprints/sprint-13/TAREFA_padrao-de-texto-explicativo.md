@@ -1,18 +1,21 @@
 # TAREFA 14 — O padrão único das explicações contextuais
 
 > **Antes das próximas rotas.** O que se decide aqui é como a ferramenta explica a si mesma:
-> tooltip, texto de apoio, placeholder, rótulo e mensagem contextual. Hoje cada tela escolhe
-> sozinha, e o resultado tem duas vozes, dois mecanismos e nenhum teto de tamanho.
+> label, texto de apoio, tooltip, mensagem contextual e placeholder.
 >
-> **Só documento e catraca.** Nenhuma migração, nenhuma RPC, nenhuma policy. A conversão em
-> massa do que está fora do padrão **não** entra aqui — vira tarefa própria, depois que o
-> padrão existir.
+> **O risco desta tarefa tem nome** (dela, 17/09): virar documentação de UX Writing bonita e
+> pouco aplicável. O critério de sucesso é outro — **alguém abre o documento durante a
+> implementação e resolve em dois minutos.** Por isso a execução começa comparando exemplos
+> reais, não escrevendo regra, e o entregável cabe em seis seções curtas.
 >
-> **Entregável final:** `docs/geral/texto-explicativo-na-tela.md`, marcado 📘 REF no índice —
-> é texto em vigor, não plano. Esta tarefa é o caminho até ele.
+> **Só documento.** Nenhuma migração, nenhuma RPC, nenhuma policy. A catraca de teste é
+> **fase 2**, e a conversão em massa do que está fora do padrão é tarefa própria, depois.
+>
+> **Entregável:** `docs/geral/texto-explicativo-na-tela.md`, 📘 REF no índice — texto em vigor,
+> não plano.
 >
 > **Status: 🔵 ABERTO.** Medições de 17/09/2026, na `develop`, por varredura de JSX nos 1.043
-> `.tsx` versionados.
+> `.tsx` versionados. A etapa 1 (levantamento) **já está feita e está neste arquivo**.
 
 ## O estado de hoje, medido
 
@@ -28,161 +31,169 @@
 | Ícone de ajuda (`HelpCircle`/`Info`) | **65** | 52 arquivos · **39** dentro de `TooltipTrigger` |
 | `aria-label` | **323** | — |
 
-Nenhum documento do repositório trata de tooltip, texto de apoio ou microcopy — a busca por
-"tooltip", "microcopy" e "helper text" em `docs/**/*.md` volta vazia. Este é o primeiro.
+Nenhum documento do repositório trata de tooltip, texto de apoio ou microcopy. Este é o primeiro.
 
-## Os cinco achados que mudam a forma da tarefa
+## O que o levantamento achou
 
-**A1 — São dois mecanismos, e o maior é o que ninguém escolheu.**
-O `title=` nativo (151) supera o `<Tooltip>` (117). Ele não aparece no toque, espera cerca de um
-segundo para abrir, não tem estilo nem tema, e num elemento que já tem texto acessível é lido de
-forma inconsistente. Ou seja: **a explicação mais usada do sistema é a que menos aparece.** Antes
-de decidir o que escrever, a tarefa decide onde escrever — senão o padrão vale para 117 casos e
-ignora 151. Os 8 de `<iframe>` são outro papel (título do quadro, exigido) e ficam fora da conta:
-a dívida real é **143**.
+**A1 — São dois mecanismos, e o maior é o que ninguém escolheu.** O `title=` nativo (151) supera
+o `<Tooltip>` (117). Ele não aparece no toque, espera cerca de um segundo, não tem tema e é lido
+de forma inconsistente por leitor de tela. **A explicação mais usada do sistema é a que menos
+aparece.** Os 8 de `<iframe>` são outro papel e ficam fora: a dívida é **143**.
 
-**A2 — Metade do que se chama de tooltip é rótulo, não explicação.**
-A mediana do texto literal dentro de `<TooltipContent>` é **1 caractere**, porque o conteúdo é
-interpolação; entre os literais curtos estão "Editar OS", "Remover contribuinte", "Editar
-contribuinte", "Remover representante" — o **nome do botão de ícone**, que sem ele não tem nome
-nenhum. Do outro lado, **39 dos 117** estão atrás de um ícone (i)/(?), e esses são explicação de
-verdade. Os 54 `title=` em `<button>` são o mesmo papel de rótulo, feito pelo mecanismo pior.
+**A2 — Metade do que se chama tooltip é rótulo, não explicação.** A mediana do texto literal em
+`<TooltipContent>` é **1 caractere** (o resto é interpolação), e os literais curtos são "Editar
+OS", "Remover contribuinte", "Editar contribuinte" — o **único nome que aquele botão tem**. Do
+outro lado, **39 dos 117** estão atrás de um ícone (i) e são explicação de fato. Os 54 `title=`
+em `<button>` fazem o mesmo papel de nome, pelo mecanismo pior ("Serviu", "Dispensar",
+"Minimizar", "Responder").
 
-> **Se o padrão não separar os dois papéis, toda regra de tom e tamanho vai bater no caso
-> errado:** "não repita o rótulo", aplicado a um botão de ícone, apaga o único nome que ele tem.
+**A3 — O tamanho já estourou, e o maior caso não é tooltip.** **15** passam de 80 caracteres,
+**3** de 140, e o maior tem **521** e começa com "Como ler esta tabela" — nota de leitura da tela
+escondida atrás de hover.
 
-**A3 — O tamanho já estourou, e o maior caso não é tooltip.**
-**15** tooltips passam de 80 caracteres e **3** passam de 140. O maior tem **521** e começa com
-"Como ler esta tabela" — é **nota de leitura da tela**, um quarto papel que hoje não existe e por
-isso foi parar atrás de um hover. Um texto que todo mundo precisa ler uma vez não pode depender
-de passar o mouse.
+**A4 — O placeholder tem padrão não escrito.** `Selecione…` **130** × `Selecionar…` **23**;
+`Ex:` **57** × `ex:` **18**; `Todos` **25** × `Todas` **10**; `Buscar…` **57** (forma já decidida
+em 11/09). E 244 começam com verbo, 75 com exemplo, **328 com nenhum dos dois**.
 
-**A4 — O placeholder já tem um padrão; ele só não está escrito.**
-Nos 647 literais: `Selecione…` **130** contra `Selecionar…` **23**; `Ex:` **57** contra `ex:`
-**18**; `Todos` **25** contra `Todas` **10**; `Buscar…` **57**. Nenhuma dessas diferenças
-significa coisa alguma — é ausência de forma canônica. E 244 começam com verbo no imperativo, 75
-com exemplo, **328 com nenhum dos dois**.
+**A5 — A pontuação é sorteada:** 23 tooltips terminam com ponto final, 94 não. Nas reticências,
+`...` e `…` convivem no mesmo tipo de campo.
 
-**A5 — A pontuação é sorteada.** Dos 117 tooltips, **23** terminam com ponto final e **94** não.
-Mesmo componente, mesma tela, regra nenhuma.
+**A6 — Metade do vocabulário já foi decidida, e não é lida fora de onde nasceu.** O tooltip de
+`ContribuintesTab.tsx:425` diz *"Excluir contribuinte já cadastrado exige o papel Sublíder ou
+superior"*; o catálogo de recusa da sprint 12, para a **mesma** informação, diz *"É necessário
+ter o papel de Sublíder ou superior para realizar esta ação."* Duas redações do mesmo fato, a
+dois arquivos de distância. O padrão herda o catálogo (`src/lib/rlsMessages.ts`) e a palavra
+única de status — não reabre nenhum dos dois.
 
-**A6 — Metade do vocabulário já foi decidida, e não é lida fora de onde nasceu.**
-O [catálogo de mensagens de recusa](../sprint-12/TAREFA_mensagens-de-recusa.md) (sprint 12, em
-`src/lib/rlsMessages.ts`) já fixou: o item é nomeado **pelo nome que aparece na tela**, nunca por
-tabela, coluna, RPC, UUID ou código; `É necessário ter…` para condição; `Não foi possível {ação}
-{item}.` para falha; fecho fixo por categoria; e a regra de manutenção — **frase nova só entra se
-a orientação for diferente das que já existem**. O `rotulosDeStatus.test.ts` fixou a palavra de
-status. O padrão novo **herda os dois**; não reabre nenhum dos dois.
+## A árvore de decisão
 
-## As decisões que são dela
+A ordem decidida, do mais barato ao mais caro. **Só desce um degrau quem não resolveu no
+anterior.** É a parte mais importante do documento, porque é ela que impede tooltip para tudo.
 
-**D1 — O `title=` nativo sai?**
-Proposta: sai de todo elemento que a pessoa clica ou percorre com teclado (143 ocorrências),
-virando `<Tooltip>` quando é explicação e `aria-label` quando é só nome de botão de ícone; fica em
-`<iframe>` (8), que é outro papel. Alternativa: continua permitido onde o alvo não é clicável
-(célula truncada, por exemplo) — mais barato, mas mantém dois mecanismos, e aí o padrão precisa
-dizer a fronteira em uma frase que a próxima pessoa aplique sozinha.
+| | Pergunta | Recurso |
+|---|---|---|
+| **0** | O controle **tem nome visível**? | Se não (botão de ícone), o texto é o **nome**, não explicação — e as regras de tooltip abaixo não valem para ele |
+| **1** | O label pode ficar mais claro? | **Ajuste o label** e não acrescente nada |
+| **2** | A informação precisa ficar visível o tempo todo? | **Texto de apoio**, sob o campo |
+| **3** | É complementar, só ajuda em caso de dúvida? | **Tooltip** atrás de (i) |
+| **4** | Depende do estado, da etapa ou da situação? | **Mensagem contextual**, onde a situação acontece |
+| **5** | É só o formato esperado no campo? | **Placeholder** — nunca no lugar do label nem de instrução essencial |
 
-**D2 — Os quatro papéis, e a escada.**
-Proposta de escada, do mais barato ao mais caro — só desce um degrau quem não resolveu no
-anterior:
+**O degrau 0 não estava na proposta e a medição obriga.** Sem ele, a regra "não repita o label"
+manda apagar os 54 `title` de `<button>` e os "Editar OS"/"Remover contribuinte" — que não
+repetem label nenhum, porque **não existe label**: são o nome do controle. Custa uma linha no
+documento e evita que a primeira aplicação do padrão quebre acessibilidade.
 
-1. **rótulo melhor** (trocar "Tipo" por "Tipo de pessoa" resolve e não custa pixel nenhum);
-2. **valor visível na tela** (mostrar o que a pessoa procura, em vez de explicar onde achar);
-3. **texto de apoio permanente**, sob o campo — para instrução que vale toda vez;
-4. **tooltip atrás de (i)** — para explicação que vale uma vez e não pode ocupar espaço fixo;
-5. **nada.**
+**O degrau 4 já aparece misturado no 3, e o exemplo está medido.**
+`DevFilterFormPattern.tsx:204` tem, num tooltip só: *"Contribuinte é a inscrição estadual
+associada ao cliente."* (definição, degrau 3) **+** *"Selecione um cliente primeiro para listar
+os contribuintes disponíveis."* (depende do estado "nenhum cliente escolhido", degrau 4). A
+árvore separa os dois, e é isso que ela tem de fazer no documento.
 
-E o que confirmar: hoje **texto de apoio permanente não existe** (`FormDescription` = 0 usos).
-Entra como degrau 3, ou o padrão fica sem ele?
+## Duas coisas que o documento precisa responder, e não são de escrita
 
-**D3 — Teto por papel, e pontuação.** Proposta: rótulo de ícone ≤ 30 caracteres, sem ponto final,
-verbo no infinitivo ("Editar OS"); explicação ≤ 140, frase inteira com ponto; acima de 140 **não é
-tooltip**, é nota de leitura da tela e mora visível (os 3 casos de A3).
+**D1 — Qual mecanismo é "tooltip".** Se o documento disser "use tooltip" sem dizer qual, os 86
+arquivos com `title=` continuam como estão e o padrão nasce valendo para 117 casos de 268.
+Proposta em uma linha: **tooltip é `<Tooltip>`; `title=` fica só em `<iframe>` (8), que é título
+de quadro; nome de botão de ícone é `aria-label` + `<Tooltip>`.**
 
-**D4 — As formas canônicas de placeholder**, uma por tipo de campo: `Selecione…` (escolha),
-`Buscar…` (busca — já decidido em 11/09), `Ex: 12.345.678/0001-90` (formato não óbvio), vazio
-(texto livre com rótulo claro). Duas perguntas: `Todos`/`Todas` vira uma forma só? E placeholder
-pode carregar instrução, ou instrução é sempre degrau 3?
+**D2 — Onde mora o texto de apoio.** O degrau 2 é o mais recomendado antes do tooltip e **hoje
+não existe no código**: `FormDescription` tem 0 usos, e os 588 `<p>` com `text-xs
+text-muted-foreground` são uma mistura de apoio, legenda e nota. Sem isso resolvido, a primeira
+pessoa que aplicar a árvore inventa a marcação. Duas saídas: adotar o `FormDescription` do
+shadcn (já está em `ui/form.tsx`), ou documentar a classe padrão. **É escolha de quem escreve o
+documento, e cabe nele em uma linha.**
 
-**D5 — A voz.** O catálogo de recusa fala em 2ª pessoa com a pessoa ("Você não tem permissão
-para…"), e descrição de dado é impessoal ("Soma de todos os PERs que atendem aos filtros"). A
-proposta é manter os dois, com a fronteira escrita: **fala com a pessoa quando há ação a tomar;
-descreve o dado quando não há.**
+## Execução
 
-## Subtarefas
+**Etapa 1 — Levantamento · ✅ feita, está acima.** Os números e os candidatos saíram de varredura
+de JSX (expressão, não linha), no molde do `medirCorCrua.ts`. Quem executar lê, não remede.
 
-**T1 — Inventário por motivo, no molde das filas de cor.**
-Classificar as 117 + 143 nos quatro papéis (rótulo de ícone · explicação de dado · instrução de
-preenchimento · nota de leitura) e entregar a contagem de cada um mais **a lista dos que não cabem
-em nenhum** — são esses que decidem se o padrão tem quatro papéis ou cinco. Varredura por
-expressão JSX, no molde do `medirCorCrua.ts`, não por linha.
-**Aceite:** os quatro números somam o total, e cada caso não classificado tem uma linha dizendo
-por quê.
+**Etapa 2 — Fechar a árvore (30–40 min).** Confirmar os seis degraus, o degrau 0 e o D1/D2
+acima. É aqui que a tarefa é ganha ou perdida.
 
-**T2 — Escrever `docs/geral/texto-explicativo-na-tela.md`.**
-Seções, nesta ordem: os quatro papéis · a escada de decisão (D2) · o mecanismo de cada papel (D1)
-· tamanho, estrutura e pontuação (D3) · tom de voz (D5) · vocabulário (T4) · exemplos (T5) ·
-quando **não** escrever nada.
-**Aceite:** cabe em uma tela e meia. Padrão que não se lê inteiro não se aplica.
+**Etapa 3 — O padrão por recurso (45–60 min).** Para cada um dos cinco, sempre os mesmos campos,
+na mesma ordem: **quando usar · quando não usar · estrutura · tamanho · tom · terminologia ·
+exemplo adequado · exemplo inadequado.** Uma linha por campo. Tabela, não prosa.
 
-**T3 — A página de comparação, para ela decidir olhando.**
-Os casos de D1 a D4 montados **dentro da tela real**, nos dois estados — o de hoje e o proposto —,
-no molde das comparações de cor. Decisão de texto se toma vendo o texto no contexto, não lendo a
-regra.
-**Aceite:** cada decisão aberta tem duas ou três opções desenhadas lado a lado, para responder por
-letra.
+**Etapa 4 — Regras transversais (20 min).** No máximo **sete**, e nenhuma que o exemplo já
+ensine. As candidatas medidas: começar pela informação que faz decidir ou agir · voz ativa ·
+não repetir o label · não explicar o óbvio · uma orientação por texto · a mesma palavra para o
+mesmo conceito · reaproveitar a terminologia do catálogo da sprint 12 onde houver equivalência.
 
-**T4 — O vocabulário.**
-Uma tabela de termos: como cada item se chama na tela (herdada do catálogo de recusa: "o
-contribuinte", "a OS {número}", "o rateio de receita"), as formas canônicas de placeholder (D4) e
-a palavra de status (já fechada). Mais a lista do que **nunca** aparece: nome de tabela, coluna,
-RPC, UUID, código de erro, inglês do Postgres.
-**Aceite:** quem escreve a próxima tela encontra o termo sem perguntar.
+**Etapa 5 — Antes → depois, com casos reais (30–45 min).** Cinco a oito pares, todos do
+repositório, com arquivo e linha. **Os candidatos já estão selecionados:**
 
-**T5 — Exemplos, tirados do repositório.**
-Três pares bom/ruim por papel, **com arquivo e linha**, nenhum inventado. Os candidatos já estão
-medidos: o tooltip de 521 caracteres, os 54 `title` em `<button>`, o `Selecionar…` contra o
-`Selecione…`, e o tooltip que repete o rótulo do próprio botão.
-**Aceite:** cada exemplo ruim traz a versão corrigida e o motivo em uma linha.
+| Caso | Onde | Por quê |
+|---|---|---|
+| "Use os campos abaixo para filtrar a consulta das notas fiscais." | `ConsultaXmlFilters.tsx:36` | explica o óbvio — o depois é **sem tooltip** |
+| "Contribuinte é a inscrição estadual… Selecione um cliente primeiro…" | `DevFilterFormPattern.tsx:204` | duas ideias, e uma delas é do degrau 4 |
+| "Mostra se a linha já possui correção aplicada **e** se a tabela está em modo de edição." | `TabA170.tsx:602` | duas ideias num texto só |
+| "Excluir contribuinte já cadastrado exige o papel Sublíder ou superior" | `ContribuintesTab.tsx:425` | mesma informação do catálogo, redação própria (A6) |
+| "Como ler esta tabela…" (521 caracteres) | `AbaPorAnexo.tsx:127` | nota de leitura presa num hover |
+| `title="Não foi possível medir -- a consulta falhou."` | `BoardPreenchimentoSistema.tsx:66` e `:98` | **mensagem de erro** num tooltip do navegador: some no toque, e o travessão está escrito `--` |
+| `title="Serviu"` / `"Não serviu"` / `"Dispensar"` | `AgenteConversa.tsx:91,101` · `AgenteNotificacaoPopup.tsx:150` | nome de botão de ícone pelo mecanismo errado (degrau 0) |
+| `placeholder="Selecionar equipe"` · `"Selecionar cargo"` · `"Selecionar gestor..."` | `CreateProcessModal.tsx:326,443` · `EstruturaManager.tsx:393` | a forma minoritária (23) contra a canônica `Selecione…` (130), e `...` no lugar de `…` |
+| "Fecha esta versão (fica preservada como está) e abre uma nova a partir dela…" (158) | `DocumentoCentroRail.tsx:246` | **bom conteúdo, tamanho errado** — mostra que cortar não é piorar |
 
-**T6 — A catraca `textoDeAjuda.test.ts`.**
-No molde do `rotulosDeStatus.test.ts` e do `filaDoBranco.test.ts`: inventário por motivo mais
-asserção. Três regras, conforme D1/D3/D4: (a) nenhum `title=` em tag nativa fora do inventário;
-(b) nenhum `<TooltipContent>` literal acima do teto; (c) nenhum placeholder de escolha ou de busca
-fora das formas canônicas.
-**Aceite:** vista reprovando **antes** do conserto e passando **depois** — verde de primeira não
-prova nada. A mensagem de falha diz qual é a forma certa e onde ela mora, como as outras catracas
-da casa.
+E o exemplo do que **já está certo**, que o documento precisa ter para não parecer só correção:
+`ControleDeProjetosTabela.tsx:70` — *"Produto contratado nesta OS sem projeto criado. Clique para
+abrir um."* (uma ideia, ação no fim) e `CorrecoesSped.tsx:619`, que explica de onde o dado vem.
 
-**T7 — A conferência dela, na tela.**
-Numa rota real, não no documento: um tooltip de cada papel, um campo com placeholder canônico e um
-caso de nota de leitura.
+**Etapa 6 — Checklist de revisão (20 min).** O que a tarefa pede, mais os dois itens que a
+medição acrescenta:
 
-## Ordem
+- dois textos equivalentes sairiam parecidos?
+- está claro quando **não** usar tooltip?
+- o documento distingue texto de apoio de tooltip?
+- o placeholder está só como exemplo/formato, nunca como label?
+- a terminologia bate com o catálogo da sprint 12?
+- há exemplo adequado **e** inadequado em cada recurso?
+- alguém de produto ou de desenvolvimento aplica sem perguntar?
+- **o documento diz qual marcação usar**, não só qual recurso? (D1/D2)
+- **um botão de ícone continua tendo nome** depois de aplicada a regra? (degrau 0)
 
-`T1 → D1–D5 (ela decide, com a T3 na frente) → T2 · T4 · T5 → T6 → T7`
+**Tempo:** 2 h a 2 h 30 de trabalho focado, com a etapa 1 já pronta.
 
-A T1 vem antes das decisões de propósito: sem saber quantos casos há de cada papel, D1 e D3 viram
-preferência. E a T6 vem depois do texto, porque catraca escrita antes do padrão trava o estado de
-hoje.
+## O entregável, em seis seções
+
+1. **Princípio geral** — antes de acrescentar explicação, tornar o próprio controle mais claro.
+2. **Árvore de decisão** — os seis degraus, em tabela, numa tela.
+3. **Padrão por recurso** — cinco blocos, os mesmos oito campos em cada.
+4. **Voz e terminologia** — no máximo sete regras, mais o que nunca aparece no texto (nome de
+   tabela, coluna, RPC, UUID, código de erro, inglês do Postgres) e o link para o catálogo.
+5. **Antes → depois** — cinco a oito casos reais, com arquivo e linha.
+6. **Checklist de revisão** — para usar nas próximas rotas.
+
+**Teto: uma tela e meia.** Padrão que não se lê inteiro não se aplica, e o risco nomeado na
+abertura é exatamente esse.
+
+## Fase 2 — a catraca `textoDeAjuda.test.ts`
+
+Fora das 2 h 30, e proposta, não decidida. No molde do `rotulosDeStatus.test.ts` e do
+`filaDoBranco.test.ts`: inventário por motivo mais asserção — (a) nenhum `title=` em tag nativa
+fora do inventário; (b) nenhum `<TooltipContent>` literal acima do teto; (c) nenhum placeholder
+de escolha ou de busca fora das formas canônicas. Vista reprovando **antes** do conserto e
+passando depois; verde de primeira não prova nada.
+
+**Por que ela não é opcional para sempre:** todo padrão só de documento nesta casa voltou a
+divergir — foi assim com a palavra de status, com o cartão tingido e com o branco literal, e nos
+três casos quem segurou foi o teste, não o texto. Mas ela vem **depois** do padrão: catraca
+escrita antes trava o estado de hoje.
 
 ## O que fica de fora, e é decisão, não esquecimento
 
-- **A conversão dos 143 `title=`** e dos tooltips acima do teto. Tarefa própria, por inventário,
-  depois que o padrão existir. Aqui entra só o que a catraca precisa para nascer.
-- **A tradução de erro do banco** — fechada na sprint 12, com teste. O padrão **cita** e não
-  reabre.
+- **A conversão dos 143 `title=`** e dos tooltips acima do teto. Tarefa própria, por inventário.
+- **A tradução de erro do banco** — fechada na sprint 12, com teste. O padrão cita e não reabre.
 - **A palavra de status** — fechada em 03/09, com catraca. Idem.
 - **Os 337 textos de lista vazia.** Ficam específicos por decisão de 11/09 ("Nenhum cliente
-  encontrado." nomeia o que não foi achado, e isso é informação). O padrão registra a regra e não
-  uniformiza.
-- **Acessibilidade além do tooltip.** Os 323 `aria-label` não são desta tarefa, exceto onde D1 os
-  cria ao tirar um `title`.
+  encontrado." nomeia o que não foi achado, e isso é informação).
+- **Acessibilidade além do tooltip.** Os 323 `aria-label` não são desta tarefa, exceto onde o
+  degrau 0 os criar.
 
 ## Pronto quando
 
-Existe `docs/geral/texto-explicativo-na-tela.md`, lido em uma tela e meia, com exemplo real dos
-dois lados; a catraca reprova o caso que o padrão proíbe e passa depois do conserto; e a próxima
-rota escrita por outra pessoa sai com a mesma estrutura, o mesmo tamanho, o mesmo vocabulário e o
-mesmo tom sem ninguém perguntar.
+Existe `docs/geral/texto-explicativo-na-tela.md`, lido inteiro numa tela e meia, com árvore de
+decisão, exemplo real dos dois lados e checklist; e a próxima rota escrita por outra pessoa sai
+com a mesma estrutura, o mesmo tamanho, o mesmo vocabulário e o mesmo tom **sem ninguém
+perguntar** — que é a única forma de saber se o documento foi usado ou só arquivado.
