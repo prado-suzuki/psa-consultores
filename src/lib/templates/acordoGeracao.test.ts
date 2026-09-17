@@ -1,5 +1,5 @@
 /*
- * A GERAÇÃO DO ACORDO INTEIRO, os 266 blocos de uma vez.
+ * A GERAÇÃO DO ACORDO INTEIRO, os 268 blocos de uma vez.
  *
  * A tela travou na primeira geração de verdade. Este teste reproduz o caminho
  * sem navegador: monta o template com os blocos carregados, passa o contexto que
@@ -92,7 +92,14 @@ const ENTRADA: EntradaAcordo = {
     foroEleitoEstado: 'Mato Grosso',
   },
   quoruns: [],
-  ramos: [],
+  /*
+   * DOIS RAMOS, porque a definicao deles conta quantos sao ("os dois grupos de
+   * descendentes") e um fixture vazio mediria o bloco descartado, nao o bloco.
+   */
+  ramos: [
+    { nome: 'Cristina', ordem: 1 },
+    { nome: 'Regina', ordem: 2 },
+  ],
   ordemPreferencia: [],
   signatarios: [],
 };
@@ -104,6 +111,45 @@ describe('a geração do Acordo de ponta a ponta', () => {
     // O cliente do documento, e nunca o do modelo.
     expect(saida).not.toContain('DUAL');
     expect(saida).toContain('ABACAXI');
+  });
+
+  it('as duas clausulas dos ramos saem como o AgroAlianca as escreve', () => {
+    /*
+     * As duas ultimas do cadastro que nao viravam linha: `ramosFamiliares`
+     * aparecia ZERO vez nos 266 blocos, e a ordem da preferencia tambem. Nao
+     * sao redacao nova: a definicao e o item 1.1.7 do AgroAlianca e a ordem e o
+     * 5.5, num acordo assinado.
+     *
+     * A ordem NAO le a lista `ordemDaPreferencia` do cadastro: no acervo a fila
+     * nao e uma lista de nomes, e a regra de que a preferencia fica primeiro no
+     * ramo de quem vende. E por isso que as duas dependem da MESMA flag.
+     */
+    const saida = gerarDocumento(template, contextoDe(ENTRADA), ['acordo_tem_ramos']);
+    expect(saida).toContain(
+      'DESCENDENTES DOS QUOTISTAS:* os dois grupos de descendentes em linha vertical '
+      + 'dos QUOTISTAS que compõem ou poderão compor o quadro societário da ABACAXI, '
+      + 'assim definidos: (a) DESCENDENTES DE CRISTINA, formado por CRISTINA e seus '
+      + 'descendentes em linha vertical; e (b) DESCENDENTES DE REGINA, formado por '
+      + 'REGINA e seus descendentes em linha vertical.',
+    );
+    expect(saida).toContain(
+      'o DIREITO DE PREFERÊNCIA deverá ser exercido prioritariamente pelos integrantes '
+      + 'do mesmo grupo de DESCENDENTES DOS QUOTISTAS do QUOTISTA ofertante, antes que '
+      + 'a oferta seja estendida aos demais grupos',
+    );
+  });
+
+  it('sem ramos cadastrados, as duas clausulas somem inteiras', () => {
+    /*
+     * Sem a flag, e nao com a flag e a lista vazia: `temRamos` sai de
+     * `entrada.ramos.length > 0`, entao a flag nao pode estar acesa sem ramos.
+     * Forcar as duas coisas mediria um estado que o cadastro nao produz — e
+     * deixaria passar o que importa, que e a clausula 5.5 citando um termo que
+     * a definicao nao definiu.
+     */
+    const semRamos = gerarDocumento(template, contextoDe({ ...ENTRADA, ramos: [] }), []);
+    expect(semRamos).not.toContain('DESCENDENTES DOS QUOTISTAS');
+    expect(semRamos).not.toContain('prioritariamente pelos integrantes do mesmo grupo');
   });
 
   it('nenhum dado de identidade fica escrito no texto dos blocos', () => {
@@ -347,13 +393,13 @@ describe('os mecanismos que DESLIGAM texto', () => {
    * ATE HOJE NENHUMA RESPOSTA DO CADASTRO TIRAVA CLAUSULA DO DOCUMENTO.
    *
    * O motor sempre soube: `comporBlocos` descarta bloco cuja flag exigida nao
-   * esta ativa. Faltavam as duas pontas. De um lado, os 266 blocos entraram sem
+   * esta ativa. Faltavam as duas pontas. De um lado, os 268 blocos entraram sem
    * flag nenhuma. Do outro, `avaliarFlags` so recebia a EMPRESA como fonte, e
    * nenhum campo do acordo chegava ate ela.
    *
    * O MAPA NAO SAI DO TITULO DA CLAUSULA. A Clausula Sexta se chama "(Lock-up)"
    * e o corpo dela tem tres mecanismos: um item de lock-up, quatro de tag along
-   * e oito de drag along. Foi preciso ler os 266.
+   * e oito de drag along. Foi preciso ler os 268.
    */
   const TODAS = [
     'acordo_nao_concorrencia', 'acordo_tem_lock_up', 'acordo_tem_tag_along',
@@ -362,9 +408,10 @@ describe('os mecanismos que DESLIGAM texto', () => {
     'acordo_reuniao_previa_obrigatoria', 'acordo_por_arbitragem',
     'acordo_consolida_composse', 'acordo_preferencia_sobre_imoveis',
     'acordo_preferencia_sobre_participacoes', 'acordo_preferencia_sobre_oportunidades',
+    'acordo_tem_ramos',
   ];
 
-  it('sao treze flags, e 62 blocos dependem de pelo menos uma', () => {
+  it('sao catorze flags, e 64 blocos dependem de pelo menos uma', () => {
     const porFlag = new Map<string, number>();
     for (const b of blocos) for (const f of b.flagsRequeridas ?? []) {
       porFlag.set(f, (porFlag.get(f) ?? 0) + 1);
@@ -378,6 +425,12 @@ describe('os mecanismos que DESLIGAM texto', () => {
       acordo_consolida_composse: 1, acordo_preferencia_sobre_imoveis: 1,
       acordo_preferencia_sobre_participacoes: 5,
       acordo_preferencia_sobre_oportunidades: 1,
+      /*
+       * As duas clausulas do AgroAlianca parametrizadas em 17/09: a definicao
+       * dos ramos e a ordem da preferencia dentro do mesmo ramo. As duas saem
+       * juntas, porque a segunda cita o termo que a primeira define.
+       */
+      acordo_tem_ramos: 2,
     });
     /*
      * 204 sem flag, e nao 198: os cinco blocos das SOCIEDADES RELACIONADAS ja
@@ -392,7 +445,7 @@ describe('os mecanismos que DESLIGAM texto', () => {
 
   it('cada mecanismo tira SO os blocos dele, e o documento continua de pe', () => {
     const tudoLigado = gerarBlocos(template, contextoDe(ENTRADA), TODAS);
-    expect(tudoLigado).toHaveLength(266);
+    expect(tudoLigado).toHaveLength(268);
 
     for (const flag of TODAS) {
       const sem = gerarBlocos(template, contextoDe(ENTRADA), TODAS.filter((f) => f !== flag));
@@ -402,7 +455,7 @@ describe('os mecanismos que DESLIGAM texto', () => {
        * itens sai junto (`clausula-sem-corpo`), e e isso que impede o cabecalho
        * "CLAUSULA DECIMA - Do direito de preferencia" de sobrar sozinho.
        */
-      expect(sem.length, flag).toBeLessThanOrEqual(266 - quantos);
+      expect(sem.length, flag).toBeLessThanOrEqual(268 - quantos);
       expect(sem.length, flag).toBeGreaterThan(200);
       // O fecho com as assinaturas nunca sai, aconteca o que acontecer.
       expect(sem[sem.length - 1].conteudo, flag).toContain('TESTEMUNHAS');
@@ -425,7 +478,7 @@ describe('os mecanismos que DESLIGAM texto', () => {
     const sem = gerarBlocos(
       template, contextoDe(ENTRADA), TODAS.filter((f) => f !== 'acordo_nao_concorrencia'),
     );
-    expect(sem).toHaveLength(259);
+    expect(sem).toHaveLength(261);
     const texto = sem.map((b) => b.conteudo).join(String.fromCharCode(10));
     expect(texto).not.toContain('CLÁUSULA DE NÃO CONCORRÊNCIA');
     expect(texto).not.toContain('ATIVIDADE(S) CONCORRENTE(S):');
@@ -446,7 +499,8 @@ describe('o caminho da TELA, que o teste de motor nao cobre', () => {
     const d = detectarBindingsDeConteudo(conteudoTodo);
     expect(d.secoesDesconhecidas, 'secao sem papel some do Word inteira').toEqual([]);
     expect(d.bindings.map((b) => b.nome).sort()).toEqual(['acordo', 'sociedade']);
-    expect(d.listas.map((l) => l.nome).sort()).toEqual(['administradores', 'quotistasSignatarios']);
+    expect(d.listas.map((l) => l.nome).sort())
+      .toEqual(['administradores', 'quotistasSignatarios', 'ramosFamiliares']);
     /*
      * SOBRARAM SETE, e todos são do ATO DE ASSINAR: a data e as duas
      * testemunhas. É essa a régua do campo manual.
@@ -465,7 +519,7 @@ describe('o caminho da TELA, que o teste de motor nao cobre', () => {
     expect(d.desconhecidos.filter((ph) => !manuais.has(ph))).toEqual([]);
   });
 
-  it('o docx sai sem levantar, com os 266 blocos', async () => {
+  it('o docx sai sem levantar, com os 268 blocos', async () => {
     // `montarDocx` recebe os BLOCOS ja renderizados e numerados, nao o texto.
     const prontos = gerarBlocos(template, contextoDe(ENTRADA));
     await expect(montarDocx(prontos)).resolves.toBeTruthy();

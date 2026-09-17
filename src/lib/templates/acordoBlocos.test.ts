@@ -39,12 +39,19 @@ const prefixo = (conteudo: string, original: string) =>
 describe('os blocos do Acordo numeram como o modelo numera', () => {
   const numerados = numerarBlocos(blocos);
 
-  it('são 266 blocos, e a composição é a medida no modelo', () => {
+  it('são 268 blocos, e a composição é a medida no modelo', () => {
     const conta = blocos.reduce<Record<string, number>>(
       (a, b) => ({ ...a, [b.tipo ?? 'livre']: (a[b.tipo ?? 'livre'] ?? 0) + 1 }), {},
     );
+    /*
+     * 266 viraram 268 em 17/09, com as duas cláusulas do AgroAliança que o
+     * cadastro já perguntava e o documento não escrevia: a DEFINIÇÃO dos ramos
+     * (subitem da Cláusula Primeira, item 1.1.x) e a ORDEM da preferência
+     * dentro do mesmo ramo (item no fim da Cláusula Quinta). Nenhuma é redação
+     * nova; as duas são cópia de um acordo assinado.
+     */
     expect(conta).toEqual({
-      item: 141, subitem: 50, inciso: 32, clausula: 26, alinea: 14, livre: 3,
+      item: 142, subitem: 51, inciso: 32, clausula: 26, alinea: 14, livre: 3,
     });
   });
 

@@ -1,48 +1,48 @@
 [
  {
-  "nome": "Acordo 001 Livre — ACORDO DE QUOTISTAS DA SOCIEDADE «empresa» I. PARTES INTEGRA…",
+  "nome": "Acordo 001 Livre — ACORDO DE QUOTISTAS DA SOCIEDADE «empresa» I. PARTES INTEGRA",
   "tipo": "livre",
   "titulo": null,
   "conteudo": "ACORDO DE QUOTISTAS DA SOCIEDADE\n\n{{ sociedade.razaoSocialMaiuscula }}\n\n*I. PARTES INTEGRANTES:*\nNa condição de signatários do presente Acordo de Quotistas, doravante nominado “ACORDO”, dos atuais sócios da {{ sociedade.razaoSocialMaiuscula }}, as pessoas adiante qualificadas e doravante designadas quando em conjunto de “QUOTISTAS” e quando isoladamente de “QUOTISTA”:\n\n{{#quotistasSignatarios sep=\"\\n\\n\"}}{{ quotista.indice }}. {{ quotista.qualificacao }}{{/quotistasSignatarios}}\n\nNa condição de INTERVENIENTE ANUENTE dos termos do presente ACORDO, a sociedade empresária do tipo jurídico sociedade limitada abaixo qualificada, a qual declara ter recebido uma das vias deste ACORDO, que fora arquivada na sede da sociedade, na forma entabulada pelos artigos 1.053, parágrafo único da Lei 10.406/2.002 (doravante “Código Civil” e/ou “CC”) e 118 da Lei 6.404/1.976 e suas alterações (doravante “Lei das S/A”):\n\n{{ sociedade.razaoSocialMaiuscula }}, pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº {{ sociedade.cnpj }}, registrada na Junta Comercial do Estado {{ sociedade.juntaUfComPreposicao }} sob NIRE n° {{ sociedade.nire }}, com sede estabelecida {{ sociedade.sedeComPreposicao }}, neste ato representada por {{ sociedade.tituloColetivoAdministradores }} {{#administradores sep=\", \" fim=\" e \"}}{{ administrador.nomeMaiusculo }}{{/administradores}}; doravante nominada “{{ sociedade.nomeFantasia }}” ou “{{ sociedade.nomeFantasia }}”.\n\n*II. CONSIDERAÇÕES INICIAIS:*\nCONSIDERANDO que:"
  },
  {
-  "nome": "Acordo 002 Alínea — Os QUOTISTAS da «empresa» autorizaram no contrato social des…",
+  "nome": "Acordo 002 Alínea — Os QUOTISTAS da «empresa» autorizaram no contrato social des",
   "tipo": "alinea",
   "titulo": null,
   "conteudo": "Os QUOTISTAS da {{ sociedade.nomeFantasia }} autorizaram no contrato social desta sociedade que os sócios tabulem Acordos de Quotistas, nos termos do art. 1.053, parágrafo único do Código Civil e art. 118 da Lei das S/A;"
  },
  {
-  "nome": "Acordo 003 Alínea — Os QUOTISTAS por livre convicção, ausentes de qualquer vício…",
+  "nome": "Acordo 003 Alínea — Os QUOTISTAS por livre convicção, ausentes de qualquer vício",
   "tipo": "alinea",
   "titulo": null,
   "conteudo": "Os QUOTISTAS por livre convicção, ausentes de qualquer vício de consentimento, erro ou fraude decidiram firmar o presente ACORDO;"
  },
  {
-  "nome": "Acordo 004 Alínea — Como princípio, os QUOTISTAS objetivam o crescimento sustent…",
+  "nome": "Acordo 004 Alínea — Como princípio, os QUOTISTAS objetivam o crescimento sustent",
   "tipo": "alinea",
   "titulo": null,
   "conteudo": "Como princípio, os QUOTISTAS objetivam o crescimento sustentável e perene dos negócios e da própria {{ sociedade.nomeFantasia }}, tendo como premissas básicas a harmonia, o respeito, a união, a transparência, a lealdade e a fidelidade entre os QUOTISTAS;"
  },
  {
-  "nome": "Acordo 005 Alínea — Os QUOTISTAS buscam e exigirão dos administradores da «empre…",
+  "nome": "Acordo 005 Alínea — Os QUOTISTAS buscam e exigirão dos administradores da «empre",
   "tipo": "alinea",
   "titulo": null,
   "conteudo": "Os QUOTISTAS buscam e exigirão dos administradores da {{ sociedade.nomeFantasia }} a aplicação de princípios de Governança Corporativa na gestão estratégica, tática e operacional desta sociedade;"
  },
  {
-  "nome": "Acordo 006 Alínea — É desejo dos QUOTISTAS da «empresa» que o seu quadro societá…",
+  "nome": "Acordo 006 Alínea — É desejo dos QUOTISTAS da «empresa» que o seu quadro societá",
   "tipo": "alinea",
   "titulo": null,
   "conteudo": "É desejo dos QUOTISTAS da {{ sociedade.nomeFantasia }} que o seu quadro societário seja composto exclusivamente pelos próprios QUOTISTAS ora signatários, por seus descendentes e ascendentes em linha vertical, ressalvadas eventuais exceções previstas neste ACORDO;"
  },
  {
-  "nome": "Acordo 007 Alínea — Os QUOTISTAS, pelo presente e na busca dos ideais descritos …",
+  "nome": "Acordo 007 Alínea — Os QUOTISTAS, pelo presente e na busca dos ideais descritos ",
   "tipo": "alinea",
   "titulo": null,
   "conteudo": "Os QUOTISTAS, pelo presente e na busca dos ideais descritos acima, pretendem estabelecer compromissos e acordos entre si, com a anuência da {{ sociedade.nomeFantasia }}, relativamente aos assuntos dispostos neste ACORDO."
  },
  {
-  "nome": "Acordo 008 Livre — Considerando todo o exposto acima, as partes signatárias des…",
+  "nome": "Acordo 008 Livre — Considerando todo o exposto acima, as partes signatárias des",
   "tipo": "livre",
   "titulo": null,
   "conteudo": "Considerando todo o exposto acima, as partes signatárias deste acordo, quais sejam, os QUOTISTAS e a INTERVENIENTE ANUENTE, têm consensualmente como justo e acertado o presente ACORDO DE QUOTISTAS, doravante nominado ACORDO, na forma entabulada pelos artigos 1.053, parágrafo único do Código Civil e 118 da Lei das S/A, o que fazem segundo as cláusulas e condições seguintes, mutuamente aceitas e outorgadas entre si:\n*III.DAS DISPOSIÇÕES ACORDADAS:*"
@@ -54,7 +54,7 @@
   "conteudo": ""
  },
  {
-  "nome": "Acordo 010 Item — Para fins do presente ACORDO serão adotadas as definições ab…",
+  "nome": "Acordo 010 Item — Para fins do presente ACORDO serão adotadas as definições ab",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Para fins do presente ACORDO serão adotadas as definições abaixo, além daquelas que este ACORDO estabelecer denominações específicas, quando então grifará essas expressões em “CAIXA ALTA”:"
@@ -66,49 +66,49 @@
   "conteudo": "*ACORDO ou ACORDO DE QUOTISTAS:* este ACORDO DE QUOTISTAS;"
  },
  {
-  "nome": "Acordo 012 Subitem — QUOTAS: as QUOTAS da «empresa» de propriedade dos QUOTISTAS …",
+  "nome": "Acordo 012 Subitem — QUOTAS: as QUOTAS da «empresa» de propriedade dos QUOTISTAS ",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*QUOTAS:* as QUOTAS da {{ sociedade.nomeFantasia }} de propriedade dos QUOTISTAS na data da assinatura deste ACORDO e/ou aquelas que vierem a ser adquiridas a qualquer título (oneroso ou gratuito, inclusive por sucessão), subscritas, integralizadas ou não, que componham ou que venham a compor o capital social da {{ sociedade.nomeFantasia }};"
  },
  {
-  "nome": "Acordo 013 Subitem — QUOTISTA(S) RETIRANTE(S): um ou mais QUOTISTAS que, nos term…",
+  "nome": "Acordo 013 Subitem — QUOTISTA(S) RETIRANTE(S): um ou mais QUOTISTAS que, nos term",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*QUOTISTA(S) RETIRANTE(S):* um ou mais QUOTISTAS que, nos termos deste acordo, pretenda retirar-se da sociedade e/ou cujas QUOTAS sejam objeto do exercício de Opção de Compra, Opção de Venda e/ou outra regra prevista neste ACORDO ou no contrato social da {{ sociedade.nomeFantasia }} que autorize a venda de suas QUOTAS, a sua exclusão e/ou a sua retirada da sociedade;"
  },
  {
-  "nome": "Acordo 014 Subitem — ADMINISTRAÇÃO: a designação em conjunto do CONSELHO DE ADMIN…",
+  "nome": "Acordo 014 Subitem — ADMINISTRAÇÃO: a designação em conjunto do CONSELHO DE ADMIN",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*ADMINISTRAÇÃO:* a designação em conjunto do CONSELHO DE ADMINISTRAÇÃO e da DIRETORIA da {{ sociedade.nomeFantasia }}, previstos em seu contrato social;"
  },
  {
-  "nome": "Acordo 015 Subitem — ALTA ADMINISTRAÇÃO: o CONSELHO DE ADMINISTRAÇÃO, se instalad…",
+  "nome": "Acordo 015 Subitem — ALTA ADMINISTRAÇÃO: o CONSELHO DE ADMINISTRAÇÃO, se instalad",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*ALTA ADMINISTRAÇÃO:* o CONSELHO DE ADMINISTRAÇÃO, se instalado e previsto no contrato social, ou na ausência deste, a DIRETORIA;"
  },
  {
-  "nome": "Acordo 016 Subitem — REPRESENTANTE DA ADMINISTRAÇÃO: o(a) Presidente do CONSELHO …",
+  "nome": "Acordo 016 Subitem — REPRESENTANTE DA ADMINISTRAÇÃO: o(a) Presidente do CONSELHO ",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*REPRESENTANTE DA ADMINISTRAÇÃO:* o(a) Presidente do CONSELHO DE ADMINISTRAÇÃO, ou na ausência deste órgão de governança no contrato social, a DIRETORIA;"
  },
  {
-  "nome": "Acordo 017 Subitem — REUNIÃO DE SÓCIOS ou ASSEMBLEIA(S) DE SÓCIOS: a(s) Reunião(õ…",
+  "nome": "Acordo 017 Subitem — REUNIÃO DE SÓCIOS ou ASSEMBLEIA(S) DE SÓCIOS: a(s) Reunião(õ",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*REUNIÃO DE SÓCIOS ou ASSEMBLEIA(S) DE SÓCIOS:* a(s) Reunião(ões) de Sócios da {{ sociedade.nomeFantasia }}, enquanto sociedade possuir menos de 10 (dez) sócios, ou Assembleia de Sócios, caso opte por este tipo de formalidade e/ou possua mais de 10 (dez) sócios, cujas atribuições e forma de convocação, entre outros, estão previstas no contrato social da sociedade;"
  },
  {
-  "nome": "Acordo 018 Subitem — CONSELHO DE ADMINISTRAÇÃO: o Conselho de Administração da «e…",
+  "nome": "Acordo 018 Subitem — CONSELHO DE ADMINISTRAÇÃO: o Conselho de Administração da «e",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*CONSELHO DE ADMINISTRAÇÃO:* o Conselho de Administração da {{ sociedade.nomeFantasia }}, se instalado e previsto no contrato social desta empresa."
  },
  {
-  "nome": "Acordo 019 Subitem — DIREITO(S) DE PREFERÊNCIA: o direito de preferência para sub…",
+  "nome": "Acordo 019 Subitem — DIREITO(S) DE PREFERÊNCIA: o direito de preferência para sub",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*DIREITO(S) DE PREFERÊNCIA:* o direito de preferência para subscrição de novas QUOTAS no capital social da {{ sociedade.nomeFantasia }}, e/ou qualquer espécie de direito de preferência que poderá ser exercido pelos QUOTISTAS, incluindo a cessão, aquisição, compra ou venda de QUOTAS ou direitos da {{ sociedade.nomeFantasia }}, incluindo eventuais Opções de Compra e/ou Venda ou Tag Along, bem como de seus respectivos direitos (incluindo usufruto), direito este que, quando for utilizado como referência para este ACORDO, sempre observará os seguintes princípios: (i) o DIREITO DE PREFERÊNCIA sempre será assegurado aos QUOTISTAS, proporcionalmente a participação no capital social na data em que for deliberado ou formalizado o ato que originou tal direito; (ii) caso um ou mais QUOTISTAS não exerça o seu DIREITO DE PREFERÊNCIA, os demais QUOTISTAS poderão exercer o DIREITO DE PREFERÊNCIA previsto no item anterior; (iii) caso persistam bens, direitos e/ou QUOTAS sobre as quais possa recair o DIREITO DE PREFERÊNCIA, ainda que parcialmente (ou seja, apenas parte do exercício do DIREITO DE PREFERÊNCIA tenha sido exercido por algum QUOTISTA), os demais QUOTISTAS poderão exercer tal direito, respeitado os mesmos passos previstos nos itens “i” e “ii” descritos anteriormente, sempre obedecida a participação dos QUOTISTAS remanescentes no capital social da sociedade na data em que for deliberado e/ou ocorrer o ato em que originou o direito de preferência; (iv) o DIREITO DE PREFERÊNCIA deverá ser exercido pela parte interessada, em cada uma das etapas anteriores, em 15 (quinze) dias contados do fato que gerou o direito e a ausência de manifestação formal acarretará a decadência de exercê-lo; (v) a cessão, a desistência ou a decadência do DIREITO DE PREFERÊNCIA por qualquer um dos QUOTISTAS deverá ser informada aos demais QUOTISTAS pelo QUOTISTA que o cedeu, desistiu ou cujo direito decaiu, sempre com cópia ao REPRESENTANTE DA ADMINISTRAÇÃO, devendo a notificação esclarecer a quem foi cedido o DIREITO DE PREFERÊNCIA e o eventual saldo de QUOTAS (ou bens e direitos sujeitos ao DIREITO DE PREFERÊNCIA) que não fora exercido o DIREITO DE PREFERÊNCIA; (vi) na ausência de notificação, ou ocorrendo a decadência de qualquer DIREITO DE PREFERÊNCIA, o REPRESENTANTE DA ADMINISTRAÇÃO deverá comunicar os demais quotistas da cessão, desistência ou decadência para que, querendo, exerçam o direito previsto neste item; (vii) o DIREITO DE PREFERÊNCIA deverá ser assegurado entre os descendentes dos QUOTISTAS signatários da primeira versão deste ACORDO antes de ser exercido por outros QUOTISTAS ou descendentes destes últimos."
@@ -120,61 +120,61 @@
   "conteudo": "*DIRETORIA:* o(s) DIRETOR(ES) da {{ sociedade.nomeFantasia }}."
  },
  {
-  "nome": "Acordo 021 Subitem — ÍNDICE DE ATUALIZAÇÃO: Índice de atualização monetária a ser…",
+  "nome": "Acordo 021 Subitem — ÍNDICE DE ATUALIZAÇÃO: Índice de atualização monetária a ser",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*ÍNDICE DE ATUALIZAÇÃO:* Índice de atualização monetária a ser utilizado para valores, direitos e obrigações, devidos pelos ou a favor dos QUOTISTAS ou da {{ sociedade.nomeFantasia }} por força deste ACORDO, sendo que os QUOTISTAS desde já estabelecem que utilizarão a variação do CDI - Certificado de Depósito Interbancário para o período, ou, caso este deixe de existir ou ser publicado, pelo INPC – Índice Nacional de Preços ao Consumidor divulgado pelo IBGE – Instituto Brasileiro de Geografia e Estatística, ou, caso este deixe de ser publicado, por outro que vier a substituir oficialmente o último."
  },
  {
-  "nome": "Acordo 022 Subitem — PARTES RELACIONADAS: os descendentes e ascendentes de cada u…",
+  "nome": "Acordo 022 Subitem — PARTES RELACIONADAS: os descendentes e ascendentes de cada u",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*PARTES RELACIONADAS:* os descendentes e ascendentes de cada um dos QUOTISTAS em linha vertical."
  },
  {
-  "nome": "Acordo 023 Subitem — REUNIÃO(ÕES) DE(OS) QUOTISTA(S): reunião de QUOTISTAS convoc…",
+  "nome": "Acordo 023 Subitem — REUNIÃO(ÕES) DE(OS) QUOTISTA(S): reunião de QUOTISTAS convoc",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*REUNIÃO(ÕES) DE(OS) QUOTISTA(S):* reunião de QUOTISTAS convocada nos termos do presente ACORDO para que os seus signatários decidam sobre a matéria objeto de sua convocação e cuja deliberação, após aprovada, vincule os QUOTISTAS, sempre considerando o quórum estabelecido no presente ACORDO, incluindo aquelas eventualmente estabelecidas para algumas matérias específicas. Essas reuniões observarão, dentre outras, as seguintes regras: (i) as matérias objeto de deliberação nas REUNIÕES DOS QUOTISTAS não se restringirão as matérias sujeitas à REUNIÃO DE SÓCIOS; e, (ii) as deliberações serão transcritas em atas e constituirão Acordos de Voto, de forma a definir e vincular o voto dos QUOTISTAS a serem proferidos, sempre em bloco e de modo uniforme, nas REUNIÕES DE SÓCIOS, devendo tais acordos de voto serem rigorosamente observados pela {{ sociedade.nomeFantasia }} e pelos QUOTISTAS. Além disso, os assuntos levados à REUNIÃO DE QUOTISTAS serão aprovados conforme decisão dos QUOTISTAS que sejam titulares do direito de voto da maioria das QUOTAS presentes na ocasião, salvo este ACORDO previr quórum específico."
  },
  {
-  "nome": "Acordo 024 Subitem — REUNIÃO(ÕES) PRÉVIA(S): reunião a ser realizada entre os QUO…",
+  "nome": "Acordo 024 Subitem — REUNIÃO(ÕES) PRÉVIA(S): reunião a ser realizada entre os QUO",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*REUNIÃO(ÕES) PRÉVIA(S):* reunião a ser realizada entre os QUOTISTAS signatários do presente ACORDO, conforme situações previstas neste ACORDO, em até 05 (cinco) dias antes das REUNIÕES DE SÓCIOS, ou durante a suspensão da realização desta solenidade, nos termos previstos também neste ACORDO, a fim de que os QUOTISTAS deliberem previamente sobre a ordem do dia destas REUNIÕES DE SÓCIOS e cujas matérias sejam, direta ou indiretamente, objeto do presente ACORDO. As decisões tomadas nas REUNIÕES PRÉVIAS serão transcritas em Atas e constituirão Acordos de Voto, de forma a definir e vincular o voto dos QUOTISTAS a serem proferidos, sempre em bloco e de modo uniforme, nas respectivas REUNIÕES DE SÓCIOS, devendo tais acordos de voto serem rigorosamente observados pelos QUOTISTAS e pela {{ sociedade.nomeFantasia }}. Além disso, os assuntos levados à REUNIÃO PRÉVIA serão aprovados conforme decisão dos QUOTISTAS que sejam titulares do direito de voto da maioria das QUOTAS presentes na ocasião, salvo este ACORDO previr quórum específico."
  },
  {
-  "nome": "Acordo 025 Subitem — SOCIEDADE(S) RELACIONADA(S): qualquer pessoa jurídica que di…",
+  "nome": "Acordo 025 Subitem — SOCIEDADE(S) RELACIONADA(S): qualquer pessoa jurídica que di",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*SOCIEDADE(S) RELACIONADA(S):* qualquer pessoa jurídica que direta ou indiretamente, no Brasil e/ou no exterior esteja sob o controle da {{ sociedade.nomeFantasia }} e/ou até mesmo que a {{ sociedade.nomeFantasia }} figure como sócia/acionista independente da participação, incluindo sociedades controladas, subsidiárias e coligadas, bem como os condomínios, parcerias agropecuárias, joint ventures, sociedades em conta de participação, sociedades de fato e outros meios de exploração das atividades econômicas que a {{ sociedade.nomeFantasia }} e suas SOCIEDADES RELACIONADAS explorem em conjunto com TERCEIROS, com os QUOTISTAS ou até mesmo PARTES RELACIONADAS;"
  },
  {
-  "nome": "Acordo 026 Subitem — TERCEIRO(S): pessoa física ou jurídica, sócia ou não da «emp…",
+  "nome": "Acordo 026 Subitem — TERCEIRO(S): pessoa física ou jurídica, sócia ou não da «emp",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*TERCEIRO(S):* pessoa física ou jurídica, sócia ou não da {{ sociedade.nomeFantasia }} ou que apesar de pertencer ao quadro societário desta empresa, não seja signatária do presente ACORDO, incluindo eventuais PARTES RELACIONADAS;"
  },
  {
-  "nome": "Acordo 027 Subitem — VALOR DA(S) QUOTA(S): o valor atribuído a cada uma das QUOTA…",
+  "nome": "Acordo 027 Subitem — VALOR DA(S) QUOTA(S): o valor atribuído a cada uma das QUOTA",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*VALOR DA(S) QUOTA(S):* o valor atribuído a cada uma das QUOTAS da {{ sociedade.nomeFantasia }}, identificado através de uma das metodologias adiante indicadas dividido pelo total de quotas da sociedade (e não apenas das QUOTAS vinculadas ao ACORDO): (i) o valor do patrimônio líquido apurado em balanço, levantado, no máximo, 60 (sessenta) dias antes do evento, especificadamente para este fim, de acordo com as normas técnicas contábeis vigentes à época, no padrão IFRS - International Financial Reporting Standards ou outro que substituí-lo, devendo todos os ativos, passivos e subcontas serem reavaliados gerencialmente a valores de mercado para identificar o real valor da sociedade; ou, {{#acordo.usaFluxoDeCaixa}}(ii) através de fluxo de caixa projetado para um período de 05 (cinco) anos (fluxo de caixa descontado) calculado sobre o valor apurado no ano em que ocorrer o evento, calculado no máximo 60 (sessenta) dias antes do evento, acrescido de perpetuidade e descontado a valores presente, observadas as seguintes premissas: (a) o crescimento da perpetuidade será o índice projetado pelo IPCA – Índice de Preço ao Consumidor para o exercício (ano) do evento; (b) taxa de desconto correspondente ao maior valor apurado através das seguintes metodologias (maior valor): (b.i) CDI – Certificado de Depósito Interbancário, ou (b.ii) WACC - Weighted Average Capital Cost da sociedade, ou seja, o Custo Médio Ponderado do Capital; (c) avaliação de imóveis de propriedade da sociedade realizada por 02 (dois) corretores sediados no município em que estão localizados os bens imóveis da sociedade; e, (d) a inclusão de contingências estabelecidas nos balanços da sociedade e/ou reconhecidas em reuniões da ALTA ADMINISTRAÇÃO, REUNIÃO DE SÓCIOS ou recomendados por auditoria ou consultoria independente.{{/acordo.usaFluxoDeCaixa}} As avaliações descritas acima obrigatoriamente irão consolidar em sua composição as mesmas premissas correspondentes as SOCIEDADES RELACIONADAS e caso a {{ sociedade.nomeFantasia }} ou suas SOCIEDADES RELACIONADAS exerçam atividades econômicas em conjunto com TERCEIROS ou até mesmo QUOTISTAS através de parcerias agropecuárias, condomínio, sociedades em conta de participação ou qualquer outro meio de exploração conjunta que por qualquer razão, eventualmente, não estejam reconhecidas nas demonstrações contábeis da {{ sociedade.nomeFantasia }} ou SOCIEDADES RELACIONADAS, os QUOTISTAS poderão estabelecer em REUNIÃO DE QUOTISTAS ou documento apartado que tais atividades deverão compor a avaliação descrita nos termos anteriores;"
  },
  {
-  "nome": "Acordo 028 Subitem — OPÇÃO DE VENDA ou PUT: nas hipóteses especificadas neste aco…",
+  "nome": "Acordo 028 Subitem — OPÇÃO DE VENDA ou PUT: nas hipóteses especificadas neste aco",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*OPÇÃO DE VENDA ou PUT:* nas hipóteses especificadas neste acordo, é direito de qualquer QUOTISTA exigir que os outros QUOTISTAS comprem suas QUOTAS, hipótese em que serão observadas as seguintes premissas: (i) o preço de cada QUOTA será o valor atribuído neste ACORDO, para cada hipótese que a OPÇÃO DE VENDA for prevista, sendo que, caso não especifique, será considerado o VALOR DA QUOTA; (ii) os demais QUOTISTAS deverão obrigatoriamente comprar as QUOTAS daquele QUOTISTA que exerceu esta opção, respeitado o DIREITO DE PREFERÊNCIA, pagando o VALOR DAS QUOTAS em 10 (dez) parcelas anuais, com valor mínimo de US$ 500.000,00 (quinhentos mil dólares americanos) cada uma (devendo a quantidade de parcelas serem reduzidas caso o valor de cada parcela seja inferior ao valor mínimo de cada parcela descrito anteriormente), vencendo a primeira em 06 (seis) meses contados do exercício desta opção, observado ainda que o dólar para fins de liquidação será o dólar PTAX - Taxa de Câmbio de Referência no mercado brasileiro do dia útil imediatamente anterior ao do vencimento de cada parcela; (iii) o exercício desta opção deverá recair sobre todas as QUOTAS do QUOTISTA que a exerceu (exceto quando este ACORDO expressamente estabelecer que poderá recair apenas sobre parte das QUOTAS); (iv) o QUOTISTA que exerceu a OPÇÃO DE VENDA deverá transferir as suas QUOTAS da SOCIEDADE em até 30 (trinta) dias contados do exercício da opção, sob pena de multa penal e compensatória de 05% (cinco por cento) do valor total devido pelo exercício do direito da OPÇÃO DE VENDA; (v) as QUOTAS adquiridas por força da OPÇÃO DE VENDA permanecerão em garantia para pagamento das obrigações ora estabelecidas, proporcionalmente aos valores devidos pelos QUOTISTAS que adquiriram as QUOTAS, devendo tal condição ser descrita no contrato social da {{ sociedade.nomeFantasia }}; (vi) o procedimento para revisão do preço de cada QUOTA e/ou a impugnação do direito de opção serão realizados nos termos da Cláusula de Solução de Litígios prevista neste ACORDO; (vii) os custos decorrentes de eventuais avaliações e honorários, dentre outros, serão suportados pela {{ sociedade.nomeFantasia }}; (viii) os valores devidos por força desta opção serão atualizados até o efetivo pagamento de cada parcela pelo ÍNDICE DE ATUALIZAÇÃO; (ix) o ACORDO poderá alterar parte ou todas as regras descritas acima para hipóteses específicas que ele regular, inclusive em relação ao VALOR DA QUOTA, condições e prazo de pagamento, entre outros; e, (x) a {{ sociedade.nomeFantasia }} deverá outorgar garantias reais (imóveis) para o QUOTISTA cuja OPÇÃO DE VENDA recaiu até que quitado integralmente os valores devidos pela {{ sociedade.nomeFantasia }} ou pelos demais QUOTISTAS decorrentes do exercício da OPÇÃO DE VENDA, observada a proporção de imóveis de propriedade da sociedade e a participação do QUOTISTA que exerceu esta opção, admitida a redução da garantia proporcionalmente aos valores pagos; (xi) se o QUOTISTA não efetuar a transferência do domínio das QUOTAS objeto da OPÇÃO DE VENDA aos demais QUOTISTAS, os demais QUOTISTAS poderão consignar extrajudicialmente os valores correspondentes a cada parcela devida ao QUOTISTA que exerceu esta opção e requerer uma decisão arbitral que produza o mesmo efeito de contrato de compra e venda e substitua a assinatura de todos os QUOTISTAS em eventual alteração do contrato social da {{ sociedade.nomeFantasia }}; (xii) o depósito na conta objeto da consignação extrajudicial que trata o item anterior será exercido até que o juízo arbitral indique outra conta bancária, ficando assegurado ao QUOTISTA que discordar do preço atribuído a cada QUOTA sacar os valores consignados extrajudicialmente, bem como receber eventuais valores posteriores que lhe seriam devidos, até que definido o preço da QUOTA em procedimento específico para revisão desses valores."
  },
  {
-  "nome": "Acordo 029 Subitem — OPÇÃO DE COMPRA ou CALL: nas hipóteses especificadas neste a…",
+  "nome": "Acordo 029 Subitem — OPÇÃO DE COMPRA ou CALL: nas hipóteses especificadas neste a",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*OPÇÃO DE COMPRA ou CALL:* nas hipóteses especificadas neste acordo, é direito de qualquer QUOTISTA exigir que outro QUOTISTA venda suas QUOTAS para quem exerceu esta opção, sendo que, uma vez exercido, deverá obedecer as seguintes premissas: (i) o preço de cada QUOTA será o valor atribuído neste ACORDO, para cada hipótese que a OPÇÃO DE COMPRA for prevista, sendo que caso não especifique, será considerado o VALOR DA QUOTA; (ii) o direito de OPÇÃO DE COMPRA poderá ser exercido pelo QUOTISTA que este ACORDO prever como o detentor de tal direito, mas deverá ser assegurado o DIREITO DE PREFERÊNCIA no que se refere a esses direitos, obrigações, prazos, comunicações, rateios sucessivos etc., incluindo o DIREITO DE PREFERÊNCIA dos demais QUOTISTAS para também exercê-lo (exceto para o QUOTISTA cuja OPÇÃO DE COMPRA recair, que doravante será nominado “QUOTISTA EXCLUÍDO”), sendo pago o valor devido em 10 (dez) parcelas anuais, com valor mínimo de US$ 500.000,00 (quinhentos mil dólares americanos) cada uma (devendo a quantidade de parcelas serem reduzidas caso o valor de cada parcela seja inferior ao valor mínimo de cada parcela descrito anteriormente), vencendo a primeira em 06 (seis) meses contados do exercício desta opção, observado ainda que o dólar para fins de liquidação será o dólar PTAX - Taxa de Câmbio de Referência no mercado brasileiro do dia útil imediatamente anterior ao do vencimento de cada parcela; (iii) o QUOTISTA EXCLUÍDO deverá obrigatoriamente vender todas as suas QUOTAS aos QUOTISTAS que exerceram a OPÇÃO DE COMPRA (exceto quando este acordo estabelecer que poderá recair apenas sobre parte das QUOTAS), e estes poderão pagá-las aos demais QUOTISTAS de acordo com a previsão da Cláusula Oitava deste ACORDO, (iv) o exercício da OPÇÃO DE COMPRA deverá recair sobre todas as QUOTAS do QUOTISTA EXCLUÍDO; (v) o QUOTISTA EXCLUÍDO deverá transferir as QUOTAS da SOCIEDADE, objeto da OPÇÃO DE COMPRA, aos demais QUOTISTAS que exerceram essa opção em até 30 (trinta) dias contados da data do exercício de tal direito; (vi) o QUOTISTA EXCLUÍDO deverá transferir todas as QUOTAS objeto da OPÇÃO DE COMPRA aos QUOTISTAS que exerceram essa opção, independente da quitação dos valores devidos por esses últimos àquele primeiro, mas as QUOTAS deverão permanecer gravadas com ônus (garantia) a favor do QUOTISTA EXCLUÍDO; (vii) uma vez exercido o direito de OPÇÃO DE COMPRA por qualquer um dos QUOTISTAS, esse(s) estará(ão) obrigado(s) a adquirir todas as QUOTAS objeto da opção, de forma irretratável e irrevogável, sob pena de multa penal e compensatória de 05% (cinco por cento) do valor total devido pelo exercício do direito da OPÇÃO DE COMPRA que será paga a favor do QUOTISTA EXCLUÍDO; (viii) se o QUOTISTA EXCLUÍDO não efetuar a transferência do domínio das QUOTAS objeto da OPÇÃO DE COMPRA aos demais QUOTISTAS, os QUOTISTAS que exerceram esse direito poderão consignar extrajudicialmente os valores correspondentes a cada parcela devida ao QUOTISTA EXCLUÍDO e requerer uma decisão arbitral que produza o mesmo efeito de contrato de compra e venda e substitua a assinatura do QUOTISTA EXCLUÍDO em eventual alteração do contrato social da {{ sociedade.nomeFantasia }}; (ix) o depósito na conta, objeto da consignação extrajudicial que trata o item anterior, será exercido até que o juízo arbitral indique outra conta bancária, ficando assegurado aos QUOTISTAS que discordarem do preço atribuído a cada QUOTA sacarem os valores consignados extrajudicialmente, bem como receber eventuais valores posteriores que lhe seriam devidos, até que definido o preço da QUOTA em procedimento específico para revisão desses valores; (x) o procedimento para revisão do preço de cada QUOTA e/ou a impugnação do direito de opção serão realizados nos termos da Cláusula de Solução de Litígios prevista neste ACORDO; (xi) os custos decorrentes de eventuais avaliações e honorários, dentre outros, serão suportados pela {{ sociedade.nomeFantasia }}; (xii) os valores devidos por força desta opção serão atualizados até o efetivo pagamento de cada parcela, pelo ÍNDICE DE ATUALIZAÇÃO; (xiii) o ACORDO poderá alterar parte ou todas as regras descritas acima para hipóteses específicas que ele regular, inclusive em relação ao VALOR DA QUOTA, condições e prazo de pagamento; e, (xiv) a {{ sociedade.nomeFantasia }} deverá outorgar garantias reais (imóveis) para o QUOTISTA cuja a OPÇÃO DE COMPRA recaiu a OPÇÃO DE COMPRA até que quitado integralmente os valores devidos pela {{ sociedade.nomeFantasia }} ou pelos demais QUOTISTAS decorrentes do exercício da OPÇÃO DE COMPRA, observada a proporção de imóveis de propriedade da sociedade e a participação do QUOTISTA que exerceu esta OPÇÃO, admitida a redução da garantia proporcionalmente aos valores pagos."
  },
  {
-  "nome": "Acordo 030 Subitem — ATIVIDADE(S) CONCORRENTE(S): a(s) atividade(s) econômica(s) …",
+  "nome": "Acordo 030 Subitem — ATIVIDADE(S) CONCORRENTE(S): a(s) atividade(s) econômica(s) ",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*ATIVIDADE(S) CONCORRENTE(S):* a(s) atividade(s) econômica(s) descrita(s) como objeto social no contrato social da {{ sociedade.nomeFantasia }} ou de suas SOCIEDADES RELACIONADAS na data do evento em que for ser analisada a CLÁUSULA DE NÃO CONCORRÊNCIA ou imposição de não exercer atividade concorrente, nos termos de ACORDO, ou ainda, a(s) reconhecida(s) como concorrente(s) em REUNIÃO DE SÓCIOS, REUNIÃO PRÉVIA, REUNIÃO DE QUOTISTAS e/ou reunião da ALTA ADMINISTRAÇÃO de todas aquelas sociedades;",
@@ -183,7 +183,7 @@
   ]
  },
  {
-  "nome": "Acordo 031 Subitem — CLÁUSULA DE NÃO CONCORRÊNCIA: a obrigação que os QUOTISTAS a…",
+  "nome": "Acordo 031 Subitem — CLÁUSULA DE NÃO CONCORRÊNCIA: a obrigação que os QUOTISTAS a",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*CLÁUSULA DE NÃO CONCORRÊNCIA:* a obrigação que os QUOTISTAS assumem de não exercer (por ação ou omissão) qualquer ATIVIDADE CONCORRENTE na ÁREA DE ATUAÇÃO em um período de {{ acordo.naoConcorrenciaPrazoAnosNumeral }} ({{ acordo.naoConcorrenciaPrazoAnosExtenso }}) anos na ÁREA DE ATUAÇÃO ou face a CARTEIRA DE CLIENTES, sob pena de ser imputada a parte que descumprir esta obrigação, MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA. Esta obrigação poderá ser exigida de qualquer QUOTISTA caso alguma PARTE RELACIONADA, seu cônjuge ou companheiro(a), sócio e/ou acionista de qualquer QUOTISTA (bem como descendentes, cônjuge e/ou companheira destes) descumpra a CLÁUSULA DE NÃO CONCORRÊNCIA, hipótese que a {{ sociedade.nomeFantasia }} e/ou qualquer outro QUOTISTA poderá exigir qualquer direito que lhe for assegurado por este ACORDO face a tal descumprimento, como se aquele QUOTISTA tivesse descumprido o ACORDO, incluindo a MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA, eventuais OPÇÃO DE VENDA ou OPÇÃO DE COMPRA, além de multas, astreintes e perdas e danos.",
@@ -192,7 +192,7 @@
   ]
  },
  {
-  "nome": "Acordo 032 Subitem — MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA: mu…",
+  "nome": "Acordo 032 Subitem — MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA: mu",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA:* multa meramente punitiva a ser exigida de quem descumpriu a CLÁUSULA DE NÃO CONCORRÊNCIA de {{ acordo.naoConcorrenciaMulta }}, cujo valor será atualizado pelo ÍNDICE DE ATUALIZAÇÃO, pro rata die a partir da assinatura deste ACORDO, reservado ainda a {{ sociedade.nomeFantasia }} e/ou às suas SOCIEDADES RELACIONADAS exigir do QUOTISTA que descumpriu essa regra que cesse o descumprimento, sob pena de ser acrescida penalidade diária enquanto perdurar o descumprimento não inferior a 10% (dez por cento) da primeira multa, além de eventuais perdas e danos, honorários advocatícios desde já fixados em 20% (vinte por cento), custas periciais, eventualmente judiciais e/ou decorrentes de procedimentos de arbitragem, podendo ser exigidas daquele que descumpriu tal acordo;",
@@ -201,7 +201,7 @@
   ]
  },
  {
-  "nome": "Acordo 033 Subitem — ÁREA DE ATUAÇÃO: «naoConcorrenciaArea» e/ou regiões de atuaç…",
+  "nome": "Acordo 033 Subitem — ÁREA DE ATUAÇÃO: «naoConcorrenciaArea» e/ou regiões de atuaç",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*ÁREA DE ATUAÇÃO:* {{ acordo.naoConcorrenciaArea }} e/ou regiões de atuação da {{ sociedade.nomeFantasia }} que estão sujeitas a CLÁUSULA DE NÃO CONCORRÊNCIA, incluindo ainda, os municípios descritos no contrato social da SOCIEDADE e/ou de suas SOCIEDADES RELACIONADAS como sendo sua sede e/ou filiais.",
@@ -210,37 +210,46 @@
   ]
  },
  {
-  "nome": "Acordo 034 Subitem — ÁREA DE PROSPECÇÃO: ainda que não relacionadas na área de at…",
+  "nome": "Acordo 034 Subitem — ÁREA DE PROSPECÇÃO: ainda que não relacionadas na área de at",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*ÁREA DE PROSPECÇÃO:* ainda que não relacionadas na área de atuação, aquelas que a ADMINISTRAÇÃO reconhecer em atas de reunião como sendo áreas de interesse da {{ sociedade.nomeFantasia }} e SOCIEDADES RELACIONADAS, que pretendam desenvolver quaisquer atividades, ainda que não formalizadas nos objetos sociais das respectivas sociedades."
  },
  {
-  "nome": "Acordo 035 Subitem — CARTEIRA DE CLIENTES: Independente do município de atuação e…",
+  "nome": "Acordo 035 Subitem — CARTEIRA DE CLIENTES: Independente do município de atuação e",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*CARTEIRA DE CLIENTES:* Independente do município de atuação e/ou localização, os clientes que a {{ sociedade.nomeFantasia }} e as SOCIEDADES RELACIONADAS tenham mantido qualquer tipo de relação comercial (incluindo prospecções) antes ou após a assinatura deste ACORDO."
  },
  {
-  "nome": "Acordo 036 Subitem — VOTO(S): o direito de voto do titular e/ou usufrutuário das …",
+  "nome": "Acordo 036 Subitem — VOTO(S): o direito de voto do titular e/ou usufrutuário das ",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "*VOTO(S):* o direito de voto do titular e/ou usufrutuário das QUOTAS em REUNIÕES DE SÓCIOS, REUNIÃO DE QUOTISTAS e/ou REUNIÕES PRÉVIAS."
  },
  {
-  "nome": "Acordo 037 Cláusula — Das QUOTAS sujeitas a este ACORDO e das regras de liquidação…",
+  "nome": "Acordo 037 Subitem — *DESCENDENTES DOS QUOTISTAS:* os {{ acordo.quantosRamosExten",
+  "tipo": "subitem",
+  "titulo": null,
+  "conteudo": "*DESCENDENTES DOS QUOTISTAS:* os {{ acordo.quantosRamosExtenso }} grupos de descendentes em linha vertical dos QUOTISTAS que compõem ou poderão compor o quadro societário da {{ sociedade.nomeFantasia }}, assim definidos: {{#ramosFamiliares sep=\"; e \"}}({{ ramo.alinea }}) {{ ramo.rotulo }}, {{ ramo.definicao }}{{/ramosFamiliares}}. Para fins deste ACORDO, a referência a “DESCENDENTES DOS QUOTISTAS” designa todos os grupos conjuntamente. Os cônjuges e companheiros(as) dos QUOTISTAS e de seus descendentes não integram os DESCENDENTES DOS QUOTISTAS e não são admitidos no quadro societário da {{ sociedade.nomeFantasia }} em qualquer hipótese.",
+  "flags": [
+   "acordo_tem_ramos"
+  ]
+ },
+ {
+  "nome": "Acordo 038 Cláusula — Das QUOTAS sujeitas a este ACORDO e das regras de liquidação",
   "tipo": "clausula",
   "titulo": "Das QUOTAS sujeitas a este ACORDO e das regras de liquidação e pagamento de haveres",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 038 Item — Estão sujeitas ao presente ACORDO, todas as QUOTAS de propri…",
+  "nome": "Acordo 039 Item — Estão sujeitas ao presente ACORDO, todas as QUOTAS de propri",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Estão sujeitas ao presente ACORDO, todas as QUOTAS de propriedade dos QUOTISTAS, nesta data, que compõem o capital social da {{ sociedade.nomeFantasia }} e as demais que os QUOTISTAS tornarem-se proprietários durante a vigência deste ACORDO, inclusive as decorrentes de novas subscrições de QUOTAS, aquisição, doação, cisão, fusão, incorporação dos QUOTISTAS ou quaisquer outros atos ou fatos que impliquem aquisição de propriedade ou de direitos a serem exercidos sobre estas QUOTAS, ainda que adquiridos a título gratuito, por força de separação, herança, doação ou decisão judicial."
  },
  {
-  "nome": "Acordo 039 Item — As PARTES signatárias deste ACORDO estabelecem que caso os Q…",
+  "nome": "Acordo 040 Item — As PARTES signatárias deste ACORDO estabelecem que caso os Q",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As PARTES signatárias deste ACORDO estabelecem que caso os QUOTISTAS ou PARTES RELACIONADAS explorem qualquer atividade econômica em conjunto com a {{ sociedade.nomeFantasia }} ou suas SOCIEDADES RELACIONADAS, inclusive através de parceria rural, condomínio ou composse, serão descontados ou acrescidos (conforme o caso) dos haveres devidos a qualquer QUOTISTA por força da liquidação de suas QUOTAS, os eventuais direitos e créditos e as obrigações e débitos que possuam por força da exploração daquelas atividades, vincendos e à vencer, observado o disposto na descrição do termo VALOR DAS QUOTAS previsto na CLÁUSULA PRIMEIRA.",
@@ -249,139 +258,139 @@
   ]
  },
  {
-  "nome": "Acordo 040 Item — As regras estabelecidas neste ACORDO não poderão ser exigida…",
+  "nome": "Acordo 041 Item — As regras estabelecidas neste ACORDO não poderão ser exigida",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As regras estabelecidas neste ACORDO não poderão ser exigidas em desfavor dos FUNDADORES, inclusive aquelas relacionadas a poder de controle, cessão de QUOTAS, direito e acordos de voto, restrições ou imposições de alienação de QUOTAS (Tag Along, Drag Along ou Lock-Up), ou qualquer OPÇÃO DE COMPRA ou OPÇÃO DE VENDA."
  },
  {
-  "nome": "Acordo 041 Cláusula — Dos princípios que regerão o quadro de sócios da «empresa» e…",
+  "nome": "Acordo 042 Cláusula — Dos princípios que regerão o quadro de sócios da «empresa» e",
   "tipo": "clausula",
   "titulo": "Dos princípios que regerão o quadro de sócios da {{ sociedade.nomeFantasia }} e as cláusulas relacionadas ao Poder de Controle previstas neste ACORDO.",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 042 Item — Considerando a premissa disposta na alínea “e” das “CONSIDER…",
+  "nome": "Acordo 043 Item — Considerando a premissa disposta na alínea “e” das “CONSIDER",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Considerando a premissa disposta na alínea “e” das “CONSIDERAÇÕES INICIAIS” acima, os QUOTISTAS despenderão esforços para, sempre que possível, o quadro de sócios da {{ sociedade.nomeFantasia }} seja composto exclusivamente pelos próprios QUOTISTAS, pelas PARTES RELACIONADAS ou por pessoas jurídicas que constem apenas eles como sócios e/ou acionistas e que, por conseguinte, as QUOTAS da {{ sociedade.nomeFantasia }} permaneçam sob o controle de tais pessoas."
  },
  {
-  "nome": "Acordo 043 Item — Os direitos assegurados e as obrigações exigidas dos QUOTIST…",
+  "nome": "Acordo 044 Item — Os direitos assegurados e as obrigações exigidas dos QUOTIST",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os direitos assegurados e as obrigações exigidas dos QUOTISTAS da {{ sociedade.nomeFantasia }} serão igualmente assegurados e/ou exigidos de suas respectivas PARTES RELACIONADAS ou até mesmo de eventuais SOCIEDADES QUOTISTAS que constituírem, bem como suas respectivas sucessoras (se pessoa jurídica) ou sucessores (se pessoa física), incluindo o DIREITO DE PREFERÊNCIA."
  },
  {
-  "nome": "Acordo 044 Cláusula — Do aumento do capital e das condições para subscrição de QUO…",
+  "nome": "Acordo 045 Cláusula — Do aumento do capital e das condições para subscrição de QUO",
   "tipo": "clausula",
   "titulo": "Do aumento do capital e das condições para subscrição de QUOTAS no capital social da {{ sociedade.nomeFantasia }}, no capital social de suas SOCIEDADES RELACIONADAS e da eventual cessão de direitos de subscrição.",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 045 Item — O direito dos QUOTISTAS para subscreverem novas QUOTAS no ca…",
+  "nome": "Acordo 046 Item — O direito dos QUOTISTAS para subscreverem novas QUOTAS no ca",
   "tipo": "item",
   "titulo": null,
   "conteudo": "O direito dos QUOTISTAS para subscreverem novas QUOTAS no capital social da {{ sociedade.nomeFantasia }} observará o disposto no presente ACORDO, incluindo o descrito nos itens seguintes da presente Cláusula, sob pena de nulidade do ato realizado em desconformidade com as condições ora acordadas."
  },
  {
-  "nome": "Acordo 046 Item — Observadas as demais disposições deste ACORDO, os QUOTISTAS …",
+  "nome": "Acordo 047 Item — Observadas as demais disposições deste ACORDO, os QUOTISTAS ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Observadas as demais disposições deste ACORDO, os QUOTISTAS farão com que a ADMINISTRAÇÃO da {{ sociedade.nomeFantasia }} envide seus melhores esforços para que as suas necessidades de capital e das SOCIEDADES RELACIONADAS sejam satisfeitas sem a realização de aumentos de capital a serem subscritos e integralizados pelos QUOTISTAS, sendo que eventuais aumentos de capital somente serão realizados se obedecerem as seguintes premissas:"
  },
  {
-  "nome": "Acordo 047 Inciso — Se aprovado em REUNIÃO DE SÓCIOS da «empresa» por QUOTISTAS …",
+  "nome": "Acordo 048 Inciso — Se aprovado em REUNIÃO DE SÓCIOS da «empresa» por QUOTISTAS ",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "Se aprovado em REUNIÃO DE SÓCIOS da {{ sociedade.nomeFantasia }} por QUOTISTAS que representem o direito de voto da maioria das QUOTAS, se o aumento for sugerido pela ALTA ADMINISTRAÇÃO e fundamentado em risco de continuidade, reconhecido por empresa independente;"
  },
  {
-  "nome": "Acordo 048 Inciso — Independente de justificativa, se aprovado por QUOTISTAS que…",
+  "nome": "Acordo 049 Inciso — Independente de justificativa, se aprovado por QUOTISTAS que",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "Independente de justificativa, se aprovado por QUOTISTAS que representem {{ acordo.quorumAumentoDeCapitalFracao }} das QUOTAS."
  },
  {
-  "nome": "Acordo 049 Item — Os QUOTISTAS obedecerão o DIREITO DE PREFERÊNCIA para subscr…",
+  "nome": "Acordo 050 Item — Os QUOTISTAS obedecerão o DIREITO DE PREFERÊNCIA para subscr",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS obedecerão o DIREITO DE PREFERÊNCIA para subscreverem eventuais novas QUOTAS decorrentes do AUMENTO DE CAPITAL, de acordo com a participação deles no capital social da {{ sociedade.nomeFantasia }} na data em que o aumento fora deliberado em REUNIÃO DE SÓCIOS, REUNIÃO PRÉVIA e/ou REUNIÃO DE QUOTISTAS."
  },
  {
-  "nome": "Acordo 050 Item — O aumento de capital social da «empresa» ou de SOCIEDADES RE…",
+  "nome": "Acordo 051 Item — O aumento de capital social da «empresa» ou de SOCIEDADES RE",
   "tipo": "item",
   "titulo": null,
   "conteudo": "O aumento de capital social da {{ sociedade.nomeFantasia }} ou de SOCIEDADES RELACIONADAS só poderá ser realizado por TERCEIROS, ou seja, subscrito e integralizado, se aprovado previamente por todos os QUOTISTAS."
  },
  {
-  "nome": "Acordo 051 Item — Além do disposto nos itens acima, fica desde já acordado que…",
+  "nome": "Acordo 052 Item — Além do disposto nos itens acima, fica desde já acordado que",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Além do disposto nos itens acima, fica desde já acordado que, caso qualquer QUOTISTA não possa acompanhar os aumentos de capital da {{ sociedade.nomeFantasia }}, aquele poderá comunicar aos demais QUOTISTAS que deseja financiar os valores necessários à integralização de capital decorrente do aumento, hipótese em que os QUOTISTAS poderão financiar o respectivo aporte, desde que observem as seguintes premissas:"
  },
  {
-  "nome": "Acordo 052 Inciso — o QUOTISTA que desejar obter financiamento junto aos demais …",
+  "nome": "Acordo 053 Inciso — o QUOTISTA que desejar obter financiamento junto aos demais ",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "o QUOTISTA que desejar obter financiamento junto aos demais QUOTISTAS deverá encaminhar notificação a estes últimos no prazo máximo de 05 (cinco) dias contados da REUNIÃO DE SÓCIOS que deliberou o aumento de capital, com cópia ao REPRESENTANTE DA ADMINISTRAÇÃO, cientificando-os de sua decisão;"
  },
  {
-  "nome": "Acordo 053 Inciso — o(s) QUOTISTA(S) que desejar(em) financiar o aporte de outro…",
+  "nome": "Acordo 054 Inciso — o(s) QUOTISTA(S) que desejar(em) financiar o aporte de outro",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "o(s) QUOTISTA(S) que desejar(em) financiar o aporte de outro QUOTISTA deverá(ão) manifestar o interesse em até 10 (dez) dias contados da ciência da notificação descrita no item anterior, respondendo a notificação com cópia aos demais QUOTISTAS e ao REPRESENTANTE DA ADMINISTRAÇÃO;"
  },
  {
-  "nome": "Acordo 054 Inciso — caso mais de um QUOTISTA desejar financiar o aporte, o direi…",
+  "nome": "Acordo 055 Inciso — caso mais de um QUOTISTA desejar financiar o aporte, o direi",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "caso mais de um QUOTISTA desejar financiar o aporte, o direito de financiar obedecerá o DIREITO DE PREFERÊNCIA;"
  },
  {
-  "nome": "Acordo 055 Inciso — as QUOTAS do QUOTISTA que requereu o financiamento objeto da…",
+  "nome": "Acordo 056 Inciso — as QUOTAS do QUOTISTA que requereu o financiamento objeto da",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "as QUOTAS do QUOTISTA que requereu o financiamento objeto da subscrição e integralização poderão ser dadas em garantia para a operação de financiamento descrita acima."
  },
  {
-  "nome": "Acordo 056 Item — Caso algum QUOTISTA não exerça o DIREITO DE PREFERÊNCIA para…",
+  "nome": "Acordo 057 Item — Caso algum QUOTISTA não exerça o DIREITO DE PREFERÊNCIA para",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Caso algum QUOTISTA não exerça o DIREITO DE PREFERÊNCIA para subscrição do capital social prevista anteriormente e outro(s) QUOTISTA(s) exerça(m) este direito (doravante nominados “SUBSCRITORES SUBSTITUTOS”), aquele primeiro (doravante nominado “SUBSCRITOR DESISTENTE”) poderá, em um prazo de 03 (três) anos contados da REUNIÃO DE SÓCIOS que deliberou pelo aumento de capital, manifestar seu desejo em comprar todas ou parte das QUOTAS que os SUBSCRITORES SUBSTITUTOS tornaram-se proprietários ao subscreverem as QUOTAS que competiriam ao SUBSCRITOR DESISTENTE (“RECOMPRA”), observadas as seguintes premissas:"
  },
  {
-  "nome": "Acordo 057 Inciso — os SUBSCRITORES SUBSTITUTOS outorgam de modo irretratável e …",
+  "nome": "Acordo 058 Inciso — os SUBSCRITORES SUBSTITUTOS outorgam de modo irretratável e ",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "os SUBSCRITORES SUBSTITUTOS outorgam de modo irretratável e irrevogável uma OPÇÃO DE COMPRA ao SUBSCRITOR DESISTENTE, assegurando que este, no prazo de 03 (três) anos contados da REUNIÃO DE SÓCIOS que deliberou pelo aumento de capital, notifique-os sobre seu interesse em exercer este direito;"
  },
  {
-  "nome": "Acordo 058 Inciso — o preço de cada QUOTA objeto DA OPÇÃO DE COMPRA será o maior…",
+  "nome": "Acordo 059 Inciso — o preço de cada QUOTA objeto DA OPÇÃO DE COMPRA será o maior",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "o preço de cada QUOTA objeto DA OPÇÃO DE COMPRA será o maior dentre os valores adquiridos através das seguintes metodologias: (i) o VALOR DAS QUOTAS na data da OPÇÃO DE COMPRA; ou, (ii) o valor subscrito e integralizado pelos SUBSCRITORES SUBSTITUTOS para cada QUOTA na época da subscrição, acrescido de {{ acordo.jurosValorSubscrito }} ao mês e atualização monetária pelo ÍNDICE DE ATUALIZAÇÃO;"
  },
  {
-  "nome": "Acordo 059 Inciso — caso os SUBSCRITORES SUBSTITUTOS e o SUBSCRITOR DESISTENTE n…",
+  "nome": "Acordo 060 Inciso — caso os SUBSCRITORES SUBSTITUTOS e o SUBSCRITOR DESISTENTE n",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "caso os SUBSCRITORES SUBSTITUTOS e o SUBSCRITOR DESISTENTE não concordem com relação ao preço de cada QUOTA, o SUBSCRITOR DESISTENTE poderá consignar o valor que julgar correto extrajudicialmente, podendo os SUBSCRITORES SUBSTITUTOS sacarem os valores depositados, sem que isso caracterize aceitação desses valores, uma vez que poderão impugnar o preço de cada QUOTA através dos procedimentos de solução de litígios previstos neste ACORDO;"
  },
  {
-  "nome": "Acordo 060 Inciso — O pagamento da OPÇÃO DE COMPRA deverá ser realizado em até 3…",
+  "nome": "Acordo 061 Inciso — O pagamento da OPÇÃO DE COMPRA deverá ser realizado em até 3",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "O pagamento da OPÇÃO DE COMPRA deverá ser realizado em até 36 (trinta e seis) parcelas mensais, atualizado pelos índices descritos no item “II” acima (juros de 1% ao mês e ÍNDICE DE ATUALIZAÇÃO), salvo se realizado pelo SUBSCRITOR SUBSTITUTO em prazo inferior, o qual deverá ser obedecido (à vista e/ou em parcelas), permanecendo os juros e a atualização descrita anteriormente."
  },
  {
-  "nome": "Acordo 061 Item — São nulos de pleno direito e não poderão ser impostos à «emp…",
+  "nome": "Acordo 062 Item — São nulos de pleno direito e não poderão ser impostos à «emp",
   "tipo": "item",
   "titulo": null,
   "conteudo": "São nulos de pleno direito e não poderão ser impostos à {{ sociedade.nomeFantasia }}, independentemente da propositura de qualquer medida judicial ou extrajudicial, os atos de cessão do direito de subscrição ou qualquer outro ato relacionado ao aumento de capital em desacordo ao disposto no presente ACORDO, sendo terminantemente vedado os seus apontamentos em qualquer documento societário da {{ sociedade.nomeFantasia }}, ou qualquer outro expediente relacionado que implique em concretização do ato, desde já, tido por nulo."
  },
  {
-  "nome": "Acordo 062 Cláusula — Das condições e do DIREITO DE PREFERÊNCIA para os casos de a…",
+  "nome": "Acordo 063 Cláusula — Das condições e do DIREITO DE PREFERÊNCIA para os casos de a",
   "tipo": "clausula",
   "titulo": "Das condições e do DIREITO DE PREFERÊNCIA para os casos de alienação de QUOTAS da {{ sociedade.nomeFantasia }} de propriedade dos QUOTISTAS e da impossibilidade das QUOTAS serem gravadas com ônus e/ou serem penhoradas",
   "conteudo": "",
@@ -390,7 +399,7 @@
   ]
  },
  {
-  "nome": "Acordo 063 Item — O QUOTISTA que desejar alienar, transferir e/ou ceder suas Q…",
+  "nome": "Acordo 064 Item — O QUOTISTA que desejar alienar, transferir e/ou ceder suas Q",
   "tipo": "item",
   "titulo": null,
   "conteudo": "O QUOTISTA que desejar alienar, transferir e/ou ceder suas QUOTAS ou direitos relacionados a elas a outro QUOTISTA ou até mesmo a TERCEIROS, ainda que a título gratuito, deverá previamente obedecer aos procedimentos previstos neste ACORDO, sob pena de nulidade do ato praticado em desconformidade.",
@@ -399,7 +408,7 @@
   ]
  },
  {
-  "nome": "Acordo 064 Item — Os atos descritos no item anterior deverão assegurar o DIREI…",
+  "nome": "Acordo 065 Item — Os atos descritos no item anterior deverão assegurar o DIREI",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os atos descritos no item anterior deverão assegurar o DIREITO DE PREFERÊNCIA, sendo que eventuais propostas deverão ser feitas por meio escrito e formal, encaminhadas a todos os QUOTISTAS, com cópia ao REPRESENTANTE DA ADMINISTRAÇÃO e deverão conter: (i) quantas QUOTAS o QUOTISTA alienante deseja alienar e as condições de pagamento; (ii) cópia da proposta de aquisição emitida por TERCEIROS ou por outro QUOTISTA que desejar adquirir as QUOTAS do QUOTISTA alienante, com a apresentação da carta de oferta firme, vinculante, da qual deverá constar, necessariamente, as informações elencadas no item “iii” a seguir, a quantidade de QUOTAS que pretende adquirir, a forma e prazo de pagamento e a obrigação irrevogável e irretratável de que irá adquirir as QUOTAS objeto da proposta, sob pena de multa a ser revertida a todos os QUOTISTAS em valor não inferior a 05% (cinco por cento) da oferta a ser paga, solidariamente, pelo QUOTISTA alienante e/ou pelo TERCEIRO; (iii) o preço, a forma, o prazo e as condições constantes na oferta do interessado prevista no item “ii”; e, (iv) os custos e despesas incorridos na preparação e efetivação da alienação, suportados ou que serão suportados pelo QUOTISTA alienante, inclusive honorários de eventuais profissionais envolvidos para fins de definição do rateio de custos, caso algum QUOTISTA exerça os direitos de “Tag Along” ou “Drag Along” previstos neste ACORDO.",
@@ -408,7 +417,7 @@
   ]
  },
  {
-  "nome": "Acordo 065 Item — Caso o QUOTISTA ALIENANTE receba oferta dos demais QUOTISTAS…",
+  "nome": "Acordo 066 Item — Caso o QUOTISTA ALIENANTE receba oferta dos demais QUOTISTAS",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Caso o QUOTISTA ALIENANTE receba oferta dos demais QUOTISTAS para aquisição de apenas parte das QUOTAS, ele poderá decidir, isoladamente e em até 10 (dez) dias contados a partir do recebimento das manifestações de aquisição, se desistirá ou não da alienação das QUOTAS.",
@@ -417,7 +426,7 @@
   ]
  },
  {
-  "nome": "Acordo 066 Item — A cessão, onerosa ou gratuita, de QUOTAS de um QUOTISTA para…",
+  "nome": "Acordo 067 Item — A cessão, onerosa ou gratuita, de QUOTAS de um QUOTISTA para",
   "tipo": "item",
   "titulo": null,
   "conteudo": "A cessão, onerosa ou gratuita, de QUOTAS de um QUOTISTA para suas respectivas PARTES RELACIONADAS que não sejam QUOTISTAS poderá ser realizada independente de autorização dos demais QUOTISTAS e do DIREITO DE PREFERÊNCIA descrito anteriormente, inclusive no caso de sucessão natural (herança).",
@@ -426,7 +435,7 @@
   ]
  },
  {
-  "nome": "Acordo 067 Item — A cessão, onerosa ou gratuita, de QUOTAS de um QUOTISTA para…",
+  "nome": "Acordo 068 Item — A cessão, onerosa ou gratuita, de QUOTAS de um QUOTISTA para",
   "tipo": "item",
   "titulo": null,
   "conteudo": "A cessão, onerosa ou gratuita, de QUOTAS de um QUOTISTA para seus cônjuges ou companheiros(as) que não sejam QUOTISTAS somente poderá ser realizada se aprovada por todos os demais QUOTISTAS.",
@@ -435,7 +444,7 @@
   ]
  },
  {
-  "nome": "Acordo 068 Item — A alienação das QUOTAS de propriedade de qualquer QUOTISTA a…",
+  "nome": "Acordo 069 Item — A alienação das QUOTAS de propriedade de qualquer QUOTISTA a",
   "tipo": "item",
   "titulo": null,
   "conteudo": "A alienação das QUOTAS de propriedade de qualquer QUOTISTA alienante a TERCEIROS, só poderá ser realizada após a apresentação de declaração assinada por todos os QUOTISTAS de que estes não possuem interesse na aquisição dessas QUOTAS ou, se respeitado o DIREITO DE PREFERÊNCIA descrito nos itens anteriores, todos os demais QUOTISTAS não se oponham à alienação para TERCEIROS.",
@@ -444,7 +453,7 @@
   ]
  },
  {
-  "nome": "Acordo 069 Item — Se TERCEIROS ou até mesmo QUOTISTAS oferecerem quotas da «em…",
+  "nome": "Acordo 070 Item — Se TERCEIROS ou até mesmo QUOTISTAS oferecerem quotas da «em",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Se TERCEIROS ou até mesmo QUOTISTAS oferecerem quotas da {{ sociedade.nomeFantasia }} e/ou quotas ou ações de suas SOCIEDADES RELACIONADAS a qualquer QUOTISTA, esse QUOTISTA deverá oferecer tais participações societárias à {{ sociedade.nomeFantasia }} e na ausência de interesse desta sociedade, aos demais QUOTISTAS, em igualdade de condições e preço, observado neste caso o DIREITO DE PREFERÊNCIA entre os QUOTISTAS.",
@@ -453,7 +462,7 @@
   ]
  },
  {
-  "nome": "Acordo 070 Item — As QUOTAS e respectivos direitos de propriedade dos QUOTISTA…",
+  "nome": "Acordo 071 Item — As QUOTAS e respectivos direitos de propriedade dos QUOTISTA",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As QUOTAS e respectivos direitos de propriedade dos QUOTISTAS, não poderão ser gravadas por qualquer ônus, sem o consentimento prévio e escrito dos demais QUOTISTAS, ressalvadas as hipóteses previstas neste ACORDO. É nula a constituição de ônus efetuada em infração ao disposto nesta cláusula, sendo terminantemente vedada a respectiva averbação em contratos sociais, livros societários ou documento equivalente da {{ sociedade.nomeFantasia }}; e caso seja realizada qualquer penhora das QUOTAS e/ou de seus direitos, contrária às disposições deste ACORDO, serão aplicadas as penas previstas neste instrumento com relação a tais atos, incluindo eventuais penas ao QUOTISTA que agiu em desacordo.",
@@ -462,7 +471,7 @@
   ]
  },
  {
-  "nome": "Acordo 071 Item — Todas as cessões descritas acima, ainda que autorizadas nos …",
+  "nome": "Acordo 072 Item — Todas as cessões descritas acima, ainda que autorizadas nos ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Todas as cessões descritas acima, ainda que autorizadas nos termos descritos no ACORDO, só serão realizadas se o cessionário e/ou beneficiário tornar-se signatário deste ACORDO.",
@@ -471,7 +480,7 @@
   ]
  },
  {
-  "nome": "Acordo 072 Item — São nulos de pleno direito e inoponível à «empresa», indepen…",
+  "nome": "Acordo 073 Item — São nulos de pleno direito e inoponível à «empresa», indepen",
   "tipo": "item",
   "titulo": null,
   "conteudo": "São nulos de pleno direito e inoponível à {{ sociedade.nomeFantasia }}, independentemente da propositura de qualquer medida judicial ou extrajudicial, os atos de ALIENAÇÃO de QUOTAS em desacordo ao disposto no presente ACORDO, sendo terminantemente vedado os seus apontamentos nos documentos societários da {{ sociedade.nomeFantasia }}, ou qualquer outro expediente relacionado, que implique em concretização destes atos nulos.",
@@ -480,13 +489,22 @@
   ]
  },
  {
-  "nome": "Acordo 073 Cláusula — Da cláusula especial de venda: proibição de venda (Lock-up)",
+  "nome": "Acordo 074 Item — Em todas as hipóteses de DIREITO DE PREFERÊNCIA previstas ne",
+  "tipo": "item",
+  "titulo": null,
+  "conteudo": "Em todas as hipóteses de DIREITO DE PREFERÊNCIA previstas neste ACORDO, o DIREITO DE PREFERÊNCIA deverá ser exercido prioritariamente pelos integrantes do mesmo grupo de DESCENDENTES DOS QUOTISTAS do QUOTISTA ofertante, antes que a oferta seja estendida aos demais grupos, respeitada a proporcionalidade estabelecida neste ACORDO.",
+  "flags": [
+   "acordo_tem_ramos"
+  ]
+ },
+ {
+  "nome": "Acordo 075 Cláusula — Da cláusula especial de venda: proibição de venda (Lock-up)",
   "tipo": "clausula",
   "titulo": "Da cláusula especial de venda: proibição de venda (Lock-up)",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 074 Item — Almejando a sustentabilidade e perenidade da «empresa» e obs…",
+  "nome": "Acordo 076 Item — Almejando a sustentabilidade e perenidade da «empresa» e obs",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Almejando a sustentabilidade e perenidade da {{ sociedade.nomeFantasia }} e observada a estratégia macro de crescimento sustentável dos negócios da sociedade, durante o prazo de 05 (cinco) anos contados da assinatura deste ACORDO, nenhum QUOTISTA poderá alienar ou ceder, sob qualquer forma, direta ou indireta, suas QUOTAS ou seus direitos, entre si, para PARTES RELACIONADAS e/ou para TERCEIROS, ou exercer qualquer OPÇÃO DE COMPRA e/ou OPÇÃO DE VENDA, exceto nos casos de sucessão natural (morte) de um QUOTISTA ou doação de um QUOTISTA para sua(s) respectiva(s) PARTE(S) RELACIONADA(S), hipótese em que as PARTES RELACIONADAS poderão ingressar na sociedade, obedecidos os demais requisitos deste ACORDO, incluindo tornar(em)-se signatárias deste instrumento.",
@@ -495,7 +513,7 @@
   ]
  },
  {
-  "nome": "Acordo 075 Item — Alternativamente aos direitos descritos na Cláusula Quinta, …",
+  "nome": "Acordo 077 Item — Alternativamente aos direitos descritos na Cláusula Quinta, ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Alternativamente aos direitos descritos na Cláusula Quinta, qualquer QUOTISTA terá o direito de que seja incluída na alienação de QUOTAS de outro QUOTISTA ALIENANTE as suas QUOTAS (em idênticos valores, termos e condições), desde que a ALIENAÇÃO resulte na transferência da maioria das QUOTAS a um só QUOTISTAS, ou se autorizado nos termos deste ACORDO, para TERCEIROS (direito de “Tag Along”).",
@@ -504,7 +522,7 @@
   ]
  },
  {
-  "nome": "Acordo 076 Subitem — Para efeitos do disposto nesta cláusula, os demais QUOTISTAS…",
+  "nome": "Acordo 078 Subitem — Para efeitos do disposto nesta cláusula, os demais QUOTISTAS",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "Para efeitos do disposto nesta cláusula, os demais QUOTISTAS, que não o QUOTISTA ALIENANTE, deverão informar em até 15 (quinze) dias após recebida a NOTIFICAÇÃO DE OFERTA, se desejam exercer ou não o seu direito de Tag Along.",
@@ -513,7 +531,7 @@
   ]
  },
  {
-  "nome": "Acordo 077 Subitem — Caso algum QUOTISTA remanescente exerça o direito de Tag Alo…",
+  "nome": "Acordo 079 Subitem — Caso algum QUOTISTA remanescente exerça o direito de Tag Alo",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "Caso algum QUOTISTA remanescente exerça o direito de Tag Along, este deverá aderir integralmente aos termos e condições de venda que forem contratados pelo QUOTISTA ALIENANTE, observado que o exercício deste direito será irretratável e irrevogável.",
@@ -522,7 +540,7 @@
   ]
  },
  {
-  "nome": "Acordo 078 Subitem — Todos os custos e despesas incorridos na preparação e efetiv…",
+  "nome": "Acordo 080 Subitem — Todos os custos e despesas incorridos na preparação e efetiv",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "Todos os custos e despesas incorridos na preparação e efetivação da alienação, inclusive honorários legais e profissionais suportados pelo QUOTISTA ALIENANTE, serão rateados pelos demais QUOTISTAS que exerceram o direito de Tag Along na proporção de suas QUOTAS que forem objeto do exercício deste direito e serão pagos em até 30 (trinta) dias contados da manifestação e interesse em exercer o direito tratado nesta cláusula, salvo se outro prazo tiver sido contratado pelo QUOTISTA ALIENANTE.",
@@ -531,7 +549,7 @@
   ]
  },
  {
-  "nome": "Acordo 079 Item — Os QUOTISTAS que, em conjunto, sejam titulares de, no mínimo…",
+  "nome": "Acordo 081 Item — Os QUOTISTAS que, em conjunto, sejam titulares de, no mínimo",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS que, em conjunto, sejam titulares de, no mínimo, a maioria das QUOTAS da {{ sociedade.nomeFantasia }} e que desejarem alienar todas as QUOTAS da SOCIEDADE a um só QUOTISTA ou a TERCEIROS (se autorizado nos termos deste ACORDO), terão o direito de exigir que os demais QUOTISTAS alienem, em conjunto com aqueles primeiros, a totalidade das QUOTAS que estes últimos sejam titulares (Cláusula de Drag along); desde que:",
@@ -540,7 +558,7 @@
   ]
  },
  {
-  "nome": "Acordo 080 Inciso — o preço de cada QUOTA não seja inferior ao VALOR DA QUOTA e …",
+  "nome": "Acordo 082 Inciso — o preço de cada QUOTA não seja inferior ao VALOR DA QUOTA e ",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "o preço de cada QUOTA não seja inferior ao VALOR DA QUOTA e o índice de atualização objeto da negociação não seja considerado desfavorável se comparado ao ÍNDICE DE ATUALIZAÇÃO;",
@@ -549,7 +567,7 @@
   ]
  },
  {
-  "nome": "Acordo 081 Inciso — o QUOTISTA que se viu obrigado a alienar suas QUOTAS possa e…",
+  "nome": "Acordo 083 Inciso — o QUOTISTA que se viu obrigado a alienar suas QUOTAS possa e",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "o QUOTISTA que se viu obrigado a alienar suas QUOTAS possa escolher receber o preço que lhe for devido dentre os dois modos: (a) no prazo aplicável a OPÇÃO DE VENDA; ou, (b) no prazo contratual estabelecido pelo QUOTISTA que exerceu a cláusula de Drag Along com o TERCEIRO e/ou com o QUOTISTA adquirente das QUOTAS.",
@@ -558,7 +576,7 @@
   ]
  },
  {
-  "nome": "Acordo 082 Subitem — Para o exercício do direito de Drag Along, os QUOTISTAS que …",
+  "nome": "Acordo 084 Subitem — Para o exercício do direito de Drag Along, os QUOTISTAS que ",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "Para o exercício do direito de Drag Along, os QUOTISTAS que desejarem alienar as QUOTAS deverão enviar aos demais QUOTISTAS, em conjunto com a NOTIFICAÇÃO DE OFERTA, a informação de que estão exercendo este direito.",
@@ -567,7 +585,7 @@
   ]
  },
  {
-  "nome": "Acordo 083 Subitem — Os outros QUOTISTAS deverão responder se desejam exercer o D…",
+  "nome": "Acordo 085 Subitem — Os outros QUOTISTAS deverão responder se desejam exercer o D",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "Os outros QUOTISTAS deverão responder se desejam exercer o DIREITO DE PREFERÊNCIA que possuem por força do disposto na Cláusula Quinta. No caso de resposta negativa ou decadência do direito, os QUOTISTAS que exerceram o direito de Drag Along poderão efetivar a venda da totalidade das QUOTAS da {{ sociedade.nomeFantasia }} nas condições previstas naquela notificação, obrigando aos demais QUOTISTAS sobre cujas QUOTAS o direito de Drag Along foi exercido a praticar todos os atos necessários à efetivação da alienação de suas QUOTAS.",
@@ -576,7 +594,7 @@
   ]
  },
  {
-  "nome": "Acordo 084 Subitem — Se qualquer QUOTISTA obrigado a alienar suas QUOTAS por forç…",
+  "nome": "Acordo 086 Subitem — Se qualquer QUOTISTA obrigado a alienar suas QUOTAS por forç",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "Se qualquer QUOTISTA obrigado a alienar suas QUOTAS por força do direito de Drag Along não realizar a transferência da propriedade dessas QUOTAS, os QUOTISTAS que exercerem o direito poderão, inclusive isoladamente, consignar extrajudicialmente o preço das QUOTAS, conforme o caso, e requerer uma decisão arbitral que produza o mesmo efeito de contrato de compra e venda e substitua a assinatura daquele QUOTISTA no contrato social da {{ sociedade.nomeFantasia }}.",
@@ -585,7 +603,7 @@
   ]
  },
  {
-  "nome": "Acordo 085 Subitem — O depósito na conta objeto da consignação extrajudicial que …",
+  "nome": "Acordo 087 Subitem — O depósito na conta objeto da consignação extrajudicial que ",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "O depósito na conta objeto da consignação extrajudicial que trata o item anterior será exercido até que o juízo arbitral indique outra conta bancária, ficando assegurado aos QUOTISTAS que discordarem do valor a ser pago previsto para o direito de Drag Along sacarem os valores consignados extrajudicialmente, bem como receber eventuais valores posteriores que lhe seriam devidos, até que definido o preço da QUOTA em procedimento específico para revisão desses valores.",
@@ -594,7 +612,7 @@
   ]
  },
  {
-  "nome": "Acordo 086 Subitem — O procedimento para revisão descrito anteriormente e/ou a im…",
+  "nome": "Acordo 088 Subitem — O procedimento para revisão descrito anteriormente e/ou a im",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "O procedimento para revisão descrito anteriormente e/ou a impugnação da alienação serão realizados nos termos da Cláusula de Solução de Litígios previstas neste ACORDO.",
@@ -603,7 +621,7 @@
   ]
  },
  {
-  "nome": "Acordo 087 Subitem — O QUOTISTA cujas QUOTAS recair o direito de Drag Along e Tag…",
+  "nome": "Acordo 089 Subitem — O QUOTISTA cujas QUOTAS recair o direito de Drag Along e Tag",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "O QUOTISTA cujas QUOTAS recair o direito de Drag Along e Tag Along deverá cumprir a CLÁUSULA DE NÃO CONCORRÊNCIA, se assim for exigido pelo comprador ou novo sócio da {{ sociedade.nomeFantasia }}.",
@@ -612,91 +630,91 @@
   ]
  },
  {
-  "nome": "Acordo 088 Cláusula — Da eventual constituição de empresas pelos QUOTISTAS para in…",
+  "nome": "Acordo 090 Cláusula — Da eventual constituição de empresas pelos QUOTISTAS para in",
   "tipo": "clausula",
   "titulo": "Da eventual constituição de empresas pelos QUOTISTAS para integralização das QUOTAS de sua propriedade (“holdings familiares”)",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 089 Item — Será assegurado a qualquer QUOTISTA constituir Sociedades Li…",
+  "nome": "Acordo 091 Item — Será assegurado a qualquer QUOTISTA constituir Sociedades Li",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Será assegurado a qualquer QUOTISTA constituir Sociedades Limitadas e/ou Anônimas com suas PARTES RELACIONADAS (doravante nominada “SOCIEDADE QUOTISTA”) e naquelas integralizar as QUOTAS de sua propriedade, desde que o controle societário, direto ou indireto, permaneça com o QUOTISTA que constituiu a SOCIEDADE QUOTISTA e/ou com suas PARTES RELACIONADAS, bem como que a constituição desta sociedade seja aprovada por QUOTISTAS que representem a maioria dos direitos de voto das QUOTAS da {{ sociedade.nomeFantasia }} e a SOCIEDADE QUOTISTA torne-se signatária deste ACORDO."
  },
  {
-  "nome": "Acordo 090 Item — No caso de mudança, direta ou indireta, do quadro societário…",
+  "nome": "Acordo 092 Item — No caso de mudança, direta ou indireta, do quadro societário",
   "tipo": "item",
   "titulo": null,
   "conteudo": "No caso de mudança, direta ou indireta, do quadro societário de qualquer SOCIEDADE QUOTISTA, contrária à premissa descrita no item anterior, os demais QUOTISTAS terão o direito de adquirir para si, todas as QUOTAS de propriedade daquela SOCIEDADE QUOTISTA; observando, nesta hipótese, as demais disposições desta cláusula."
  },
  {
-  "nome": "Acordo 091 Item — É expressamente vedada a mudança do quadro societário da SOC…",
+  "nome": "Acordo 093 Item — É expressamente vedada a mudança do quadro societário da SOC",
   "tipo": "item",
   "titulo": null,
   "conteudo": "É expressamente vedada a mudança do quadro societário da SOCIEDADE QUOTISTA que importe: (i) na alienação da maioria das quotas e/ou ações da SOCIEDADE QUOTISTA para outras pessoas que não sejam PARTES RELACIONADAS do QUOTISTA que constituiu aquela sociedade, ainda que seja outro QUOTISTA; (ii) na inclusão, no quadro societário de cada SOCIEDADE QUOTISTA, de outro sócio que não seja PARTE RELACIONADA do QUOTISTA que constituiu a SOCIEDADE QUOTISTA, a exemplo de cisão, fusão, incorporação ou qualquer outro negócio ou ato jurídico; (iii) na mudança do controle societário, ainda que indireto e/ou gratuito, da SOCIEDADE QUOTISTA, para qualquer outra pessoa que não seja PARTE RELACIONADA do QUOTISTA que fundou esta sociedade."
  },
  {
-  "nome": "Acordo 092 Item — O QUOTISTA que mudar, direta ou indiretamente, o quadro soci…",
+  "nome": "Acordo 094 Item — O QUOTISTA que mudar, direta ou indiretamente, o quadro soci",
   "tipo": "item",
   "titulo": null,
   "conteudo": "O QUOTISTA que mudar, direta ou indiretamente, o quadro societário de qualquer SOCIEDADE QUOTISTA contrário a premissa descrita no item 7.1 ou o ato corresponda a alguma das hipóteses previstas no item 7.3 deverá comunicar por escrito o fato aos demais QUOTISTAS e à {{ sociedade.nomeFantasia }} no prazo máximo de 30 (trinta) dias contados da data do ato, informando na comunicação: (i) a identidade dos novos sócios da SOCIEDADE QUOTISTA; (ii) no caso de fusão, incorporação ou cisão, o nome da empresa sucessora e dos respectivos sócios; e, (ii) o valor que julgar como sendo o preço correspondente às QUOTAS de sua propriedade na {{ sociedade.nomeFantasia }}, doravante descrito como “VALOR DA PRIMEIRA AVALIAÇÃO”."
  },
  {
-  "nome": "Acordo 093 Item — Nos casos de fusão, incorporação ou cisão da SOCIEDADE QUOTI…",
+  "nome": "Acordo 095 Item — Nos casos de fusão, incorporação ou cisão da SOCIEDADE QUOTI",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Nos casos de fusão, incorporação ou cisão da SOCIEDADE QUOTISTA, a comunicação de que trata o item anterior deverá ser realizada pelo sucessor."
  },
  {
-  "nome": "Acordo 094 Item — Em até 30 (trinta) dias após o recebimento da comunicação de…",
+  "nome": "Acordo 096 Item — Em até 30 (trinta) dias após o recebimento da comunicação de",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Em até 30 (trinta) dias após o recebimento da comunicação descrita no item 7.4, os demais QUOTISTAS deverão notificar por escrito a SOCIEDADE QUOTISTA que modificou o quadro societário e ao REPRESENTANTE DA ADMINISTRAÇÃO da {{ sociedade.nomeFantasia }}, se aceitam ou não o “VALOR DA PRIMEIRA AVALIAÇÃO”. Se todos os demais QUOTISTAS, por unanimidade, concordarem com o valor proposto (considerando que a ausência de resposta por qualquer QUOTISTA será considerada aceite de sua parte), estes poderão exercer uma OPÇÃO DE COMPRA em desfavor da SOCIEDADE QUOTISTA, sendo descontado do valor devido à ela uma multa correspondente a 05% (cinco por cento) dos haveres que ela teria direito."
  },
  {
-  "nome": "Acordo 095 Item — Caso os demais QUOTISTAS não aceitem, por unanimidade, o VAL…",
+  "nome": "Acordo 097 Item — Caso os demais QUOTISTAS não aceitem, por unanimidade, o VAL",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Caso os demais QUOTISTAS não aceitem, por unanimidade, o VALOR DA PRIMEIRA AVALIAÇÃO ou o QUOTISTA descrito no item 7.4 não encaminhe a notificação tratada neste item, será utilizado o VALOR DAS QUOTAS que substituirá, para todos os fins de direito, o VALOR DA PRIMEIRA AVALIAÇÃO."
  },
  {
-  "nome": "Acordo 096 Item — Se a SOCIEDADE QUOTISTA que incorrer na modificação do seu q…",
+  "nome": "Acordo 098 Item — Se a SOCIEDADE QUOTISTA que incorrer na modificação do seu q",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Se a SOCIEDADE QUOTISTA que incorrer na modificação do seu quadro societário, seu novo controlador e/ou sucessor, obrigado a vender suas QUOTAS em razão do disposto nesta Cláusula não efetuar a transferência da propriedade dessas QUOTAS, os QUOTISTAS que exercerem seu direito de OPÇÃO DE COMPRA poderão, inclusive isoladamente, consignar extrajudicialmente o preço das QUOTAS, conforme o caso, e requerer uma decisão arbitral que produza o mesmo efeito de contrato de compra e venda e substitua a assinatura daquela SOCIEDADE QUOTISTA nos instrumentos societários da {{ sociedade.nomeFantasia }}, resguardado o direito de qualquer QUOTISTA, cautelarmente, propor eventual medida judicial para proteção dos direitos de preferência que trata esta cláusula, consoante ao que possibilita o disposto na Cláusula de Solução de Litígios deste ACORDO."
  },
  {
-  "nome": "Acordo 097 Item — O depósito na conta, objeto da consignação extrajudicial que…",
+  "nome": "Acordo 099 Item — O depósito na conta, objeto da consignação extrajudicial que",
   "tipo": "item",
   "titulo": null,
   "conteudo": "O depósito na conta, objeto da consignação extrajudicial que trata o item anterior, será exercido até que o juízo arbitral indique outra conta bancária, ficando assegurado à SOCIEDADE QUOTISTA que discordar do VALOR DA QUOTA sacar o valor consignado extrajudicialmente, bem como receber eventuais valores posteriores que lhe seriam devidos, até que revisto o VALOR DA QUOTA, se for o caso."
  },
  {
-  "nome": "Acordo 098 Item — O procedimento para revisão do VALOR DA QUOTA e/ou a impugna…",
+  "nome": "Acordo 100 Item — O procedimento para revisão do VALOR DA QUOTA e/ou a impugna",
   "tipo": "item",
   "titulo": null,
   "conteudo": "O procedimento para revisão do VALOR DA QUOTA e/ou a impugnação da alienação será realizado nos termos da Cláusula de Solução de Litígios previstas neste ACORDO."
  },
  {
-  "nome": "Acordo 099 Item — Na hipótese de qualquer ato que importe na aquisição ou modi…",
+  "nome": "Acordo 101 Item — Na hipótese de qualquer ato que importe na aquisição ou modi",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Na hipótese de qualquer ato que importe na aquisição ou modificação do controle societário de qualquer SOCIEDADE QUOTISTA prevista nesta cláusula, e que, por conseguinte, represente a aquisição indireta do controle da {{ sociedade.nomeFantasia }} (aquisição da maioria das QUOTAS da {{ sociedade.nomeFantasia }}), alternativamente ao disposto nesta cláusula, qualquer QUOTISTA poderá exigir que a SOCIEDADE QUOTISTA que descumpriu essa cláusula adquira todas as QUOTAS deste QUOTISTA (“OPÇÃO DE VENDA”)."
  },
  {
-  "nome": "Acordo 100 Item — Eventuais SOCIEDADES QUOTISTAS que venham aderir à este ACOR…",
+  "nome": "Acordo 102 Item — Eventuais SOCIEDADES QUOTISTAS que venham aderir à este ACOR",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Eventuais SOCIEDADES QUOTISTAS que venham aderir à este ACORDO, ao aceitá-lo, garantirão solidariamente e ilimitadamente as obrigações assumidas nesta cláusula pelo QUOTISTA ou PARTE RELACIONADA (bem como cônjuges e/ou companheiros(as)) que venham pertencer ao seu quadro societário, com renúncia expressa de qualquer benefício de ordem ou privilégio da SOCIEDADE QUOTISTA em relação aquele QUOTISTA, podendo a {{ sociedade.nomeFantasia }}, qualquer outro QUOTISTA e/ou as SOCIEDADES RELACIONADAS exigirem desta SOCIEDADE QUOTISTA o pagamento da multa e demais obrigações descritas no item anterior, ainda que o QUOTISTA não tenha dado causa ao descumprimento."
  },
  {
-  "nome": "Acordo 101 Cláusula — Do direito de retirada dos QUOTISTAS, da OPÇÃO DE VENDA, da …",
+  "nome": "Acordo 103 Cláusula — Do direito de retirada dos QUOTISTAS, da OPÇÃO DE VENDA, da ",
   "tipo": "clausula",
   "titulo": "Do direito de retirada dos QUOTISTAS, da OPÇÃO DE VENDA, da OPÇÃO DE COMPRA e da CLÁUSULA DE QUARENTENA",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 102 Item — Será assegurado a qualquer QUOTISTA o direito de se retirar …",
+  "nome": "Acordo 104 Item — Será assegurado a qualquer QUOTISTA o direito de se retirar ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Será assegurado a qualquer QUOTISTA o direito de se retirar da sociedade e, por conseguinte, exercer uma OPÇÃO DE VENDA de suas QUOTAS, de modo que os demais QUOTISTAS comprometem-se em adquirir as quotas do QUOTISTA que exerceu essa opção, votar, assinar todo e qualquer documento e exigir da ADMINISTRAÇÃO da {{ sociedade.nomeFantasia }} e das SOCIEDADES CONTROLADAS que adotem todas as eventuais medidas necessárias para concretizar a OPÇÃO DE VENDA disposta na presente cláusula, obedecendo os preceitos desse ACORDO, podendo qualquer QUOTISTA que se sentir prejudicado, valer-se das prerrogativas previstas na Cláusula de Solução de Litígios, objetivando a garantia do direito ora estabelecido.",
@@ -705,7 +723,7 @@
   ]
  },
  {
-  "nome": "Acordo 103 Item — Igualmente será assegurado aos QUOTISTAS que sejam titulares…",
+  "nome": "Acordo 105 Item — Igualmente será assegurado aos QUOTISTAS que sejam titulares",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Igualmente será assegurado aos {{ acordo.opcaoCompraQuem }} exercerem uma OPÇÃO DE COMPRA, hipótese que vinculará o QUOTISTA ao qual recair esta opção, de modo que este QUOTISTA se compromete a vender suas QUOTAS, bem como todos os demais QUOTISTAS se comprometem em adquirir as QUOTAS sobre as quais recaíram esta opção, bem como votar, assinar todo e qualquer documento e exigir da ADMINISTRAÇÃO da {{ sociedade.nomeFantasia }} e das SOCIEDADES CONTROLADAS que adotem todas as eventuais medidas necessárias para concretizar a OPÇÃO DE COMPRA, podendo qualquer QUOTISTA que se sentir prejudicado, valer-se das prerrogativas previstas na Cláusula de Solução de Litígios, objetivando a garantia do direito ora estabelecido.",
@@ -714,7 +732,7 @@
   ]
  },
  {
-  "nome": "Acordo 104 Item — Uma vez que qualquer QUOTISTA deixe de pertencer ao quadro s…",
+  "nome": "Acordo 106 Item — Uma vez que qualquer QUOTISTA deixe de pertencer ao quadro s",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Uma vez que qualquer QUOTISTA deixe de pertencer ao quadro societário da {{ sociedade.nomeFantasia }}, por força de eventual exercício de OPÇÃO DE COMPRA, OPÇÃO DE VENDA e/ou qualquer outro direito, ainda que, por força de decisão judicial e/ou arbitral, este se compromete expressamente a cumprir a CLÁUSULA DE NÃO CONCORRÊNCIA, observada a ÁREA DE ATUAÇÃO e o não exercício, direta ou indiretamente, de qualquer NEGÓCIO CONCORRENTE, sob pena do pagamento da MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA, exceto se os QUOTISTAS que representem a maioria das QUOTAS remanescentes (ou seja, excluído o QUOTISTA que retirou-se), manifestarem-se contrários neste sentido em REUNIÃO DE QUOTISTAS, REUNIÃO PRÉVIA ou REUNIÃO DE SÓCIOS.",
@@ -723,7 +741,7 @@
   ]
  },
  {
-  "nome": "Acordo 105 Item — QUOTISTAS que sejam detentores da maioria das QUOTAS poderão…",
+  "nome": "Acordo 107 Item — QUOTISTAS que sejam detentores da maioria das QUOTAS poderão",
   "tipo": "item",
   "titulo": null,
   "conteudo": "QUOTISTAS que sejam detentores da maioria das QUOTAS poderão exercer uma OPÇÃO DE COMPRA em desfavor de outro QUOTISTA, caso ocorra o falecimento ou incapacidade civil permanente desse outro QUOTISTA, ou ainda, caso seja assegurado algum direito a haveres ou QUOTAS da {{ sociedade.nomeFantasia }} ao cônjuge ou companheiro(a) de outro QUOTISTA por força de separação, divórcio ou dissolução de união estável, cujo pagamento se dará conforme estipulado para a OPÇÃO DE COMPRA, acrescido a esta forma de pagamento a obrigação de quem exerceu a OPÇÃO DE COMPRA pagar 06 (seis) parcelas mensais, sendo cada parcela correspondente ao valor que o QUOTISTA recebia a título de pró-labore, remuneração por participar de órgão de governança ou adiantamento de lucros mensais a época que ocorreu alguma das hipóteses acima,, vencendo a primeira a partir de 30 (trinta) dias contados da notificação dos detentores do direito (herdeiros, curador, ex-cônjuges etc.).",
@@ -732,7 +750,7 @@
   ]
  },
  {
-  "nome": "Acordo 106 Subitem — O disposto no item anterior não se aplica às hipóteses elenc…",
+  "nome": "Acordo 108 Subitem — O disposto no item anterior não se aplica às hipóteses elenc",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "O disposto no item anterior não se aplica às hipóteses elencadas nesta cláusula se o beneficiário das QUOTAS ou o curador do QUOTISTA for uma das PARTES RELACIONADAS, situação em que não poderá ser exercida a OPÇÃO DE COMPRA e será permitido o ingresso destes, se assim desejarem.",
@@ -741,7 +759,7 @@
   ]
  },
  {
-  "nome": "Acordo 107 Subitem — É assegurada a recompra das quotas pelo QUOTISTA que recaiu …",
+  "nome": "Acordo 109 Subitem — É assegurada a recompra das quotas pelo QUOTISTA que recaiu ",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "É assegurada a recompra das quotas pelo QUOTISTA que recaiu a OPÇÃO DE COMPRA descrita no item 8.5, observadas as condições descritas nos itens 17.3 e 17.4 deste ACORDO.",
@@ -750,7 +768,7 @@
   ]
  },
  {
-  "nome": "Acordo 108 Item — Caso não seja possível exercer a OPÇÃO DE COMPRA acima em de…",
+  "nome": "Acordo 110 Item — Caso não seja possível exercer a OPÇÃO DE COMPRA acima em de",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Caso não seja possível exercer a OPÇÃO DE COMPRA acima em desfavor de TERCEIROS (ou seja, pessoa física ou jurídica que não seja PARTE RELACIONADA ou QUOTISTA), ou ainda, caso o novo potencial sócio da {{ sociedade.nomeFantasia }} seja eventual PARTE RELACIONADA e não deseje anuir com o presente ACORDO, os QUOTISTAS acordam que o pagamento dos haveres dos eventuais herdeiros, legatários, testamentários ou beneficiários de qualquer natureza (incluindo ex-cônjuges ou ex-companheiros(as)) serão pagos nas condições definidas neste acordo para a OPÇÃO DE VENDA.",
@@ -759,7 +777,7 @@
   ]
  },
  {
-  "nome": "Acordo 109 Item — Os QUOTISTAS que sejam detentores da maioria das QUOTAS pode…",
+  "nome": "Acordo 111 Item — Os QUOTISTAS que sejam detentores da maioria das QUOTAS pode",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS que sejam detentores da maioria das QUOTAS poderão determinar a antecipação de valores previstos no item anterior (excluído deste computo o voto do QUOTISTA que recair o exercício da OPÇÃO DE COMPRA ou OPÇÃO DE VENDA).",
@@ -768,121 +786,121 @@
   ]
  },
  {
-  "nome": "Acordo 110 Item — Os QUOTISTAS comprometem-se a votar nas REUNIÕES DE SÓCIOS q…",
+  "nome": "Acordo 112 Item — Os QUOTISTAS comprometem-se a votar nas REUNIÕES DE SÓCIOS q",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS comprometem-se a votar nas REUNIÕES DE SÓCIOS que tenham como ordem do dia o ingresso de herdeiros, ex-cônjuges e/ou ex-companheiro(a), a penhora e/ou liquidação de QUOTAS de acordo com os princípios acima, caso não seja possível exercer a OPÇÃO DE COMPRA ou OPÇÃO DE VENDA previstas neste ACORDO."
  },
  {
-  "nome": "Acordo 111 Cláusula — Do Voto",
+  "nome": "Acordo 113 Cláusula — Do Voto",
   "tipo": "clausula",
   "titulo": "Do Voto",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 112 Item — Os QUOTISTAS se comprometem a votar nas deliberações das REU…",
+  "nome": "Acordo 114 Item — Os QUOTISTAS se comprometem a votar nas deliberações das REU",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS se comprometem a votar nas deliberações das REUNIÕES DE SÓCIOS da {{ sociedade.nomeFantasia }} de acordo com o que estiver previsto no presente ACORDO, e, por conseguinte, exercer os direitos de voto que possuem na qualidade de proprietários das QUOTAS, conforme estabelecido nesta cláusula."
  },
  {
-  "nome": "Acordo 113 Item — Os QUOTISTAS responderão perante a «empresa», bem como peran…",
+  "nome": "Acordo 115 Item — Os QUOTISTAS responderão perante a «empresa», bem como peran",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS responderão perante a {{ sociedade.nomeFantasia }}, bem como perante aos demais QUOTISTAS e TERCEIROS, pelos danos que causarem por omissão, em razão do não exercício de seus votos na forma estipulada neste ACORDO e em desacordo com a legislação."
  },
  {
-  "nome": "Acordo 114 Item — Para efeitos do presente ACORDO, os QUOTISTAS se comprometem…",
+  "nome": "Acordo 116 Item — Para efeitos do presente ACORDO, os QUOTISTAS se comprometem",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Para efeitos do presente ACORDO, os QUOTISTAS se comprometem e se obrigam a comparecer por si, ou a se fazer representar por procurador devidamente habilitado e apto a representá-los de acordo com a legislação brasileira, em todas as REUNIÕES PRÉVIAS, REUNIÕES DE QUOTISTAS e nas REUNIÕES DE SÓCIOS da {{ sociedade.nomeFantasia }}, exercendo o direito de voto na forma estabelecida neste ACORDO."
  },
  {
-  "nome": "Acordo 115 Item — É vetado ao QUOTISTA votar em matéria que lhe diga respeito …",
+  "nome": "Acordo 117 Item — É vetado ao QUOTISTA votar em matéria que lhe diga respeito ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "É vetado ao QUOTISTA votar em matéria que lhe diga respeito diretamente em eventual REUNIÃO PRÉVIA, REUNIÃO DE QUOTISTAS ou REUNIÕES DE SÓCIOS da {{ sociedade.nomeFantasia }}, nos termos do §º 1º do artigo 1.074 do Código Civil."
  },
  {
-  "nome": "Acordo 116 Item — Caso um QUOTISTA não compareça à REUNIÃO DE SÓCIOS, os demai…",
+  "nome": "Acordo 118 Item — Caso um QUOTISTA não compareça à REUNIÃO DE SÓCIOS, os demai",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Caso um QUOTISTA não compareça à REUNIÃO DE SÓCIOS, os demais QUOTISTAS deverão convocar uma nova REUNIÃO DE SÓCIOS, para a deliberação do ato. Se, nesta segunda reunião, aquele QUOTISTA não comparecer, ou ainda, abster-se de votar, os demais QUOTISTAS poderão votar com as QUOTAS de titularidade do QUOTISTA ausente ou omisso, na forma autorizada pelo parágrafo 9º do art. 118 da Lei das S/A c/c art. 1.053, parágrafo único do Código Civil, conforme decidam os QUOTISTAS presentes na REUNIÃO DE SÓCIOS que representem a maioria do direito de voto das QUOTAS, exceto se esse acordo prever quórum específico para alguma das matérias sujeitas a deliberação e respeitado o que dispõe o item 9.5.1."
  },
  {
-  "nome": "Acordo 117 Subitem — Independente do exposto nesta cláusula, incluindo o disposto…",
+  "nome": "Acordo 119 Subitem — Independente do exposto nesta cláusula, incluindo o disposto",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "Independente do exposto nesta cláusula, incluindo o disposto nos itens 9.4 e 9.5, os QUOTISTAS solicitarão ao Presidente da REUNIÃO DE SÓCIOS o cancelamento desta solenidade se não estiverem presentes QUOTISTAS que possuam a maioria absoluta do direito de voto das QUOTAS, ou, não sendo possível o seu cancelamento, ao menos a suspensão até que possuam QUOTISTAS que assegurem o exercício de voto correspondente a maioria absoluta do direito de voto das QUOTAS de propriedade dos QUOTISTAS, reservada a outorga de procurações entre os QUOTISTAS para se fazer representado nestas REUNIÕES DE SÓCIOS, nos limites do disposto no item 9.3 acima."
  },
  {
-  "nome": "Acordo 118 Item — Os QUOTISTAS se comprometem a adotar, nos votos que proferir…",
+  "nome": "Acordo 120 Item — Os QUOTISTAS se comprometem a adotar, nos votos que proferir",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS se comprometem a adotar, nos votos que proferirem nas REUNIÕES DE SÓCIOS da {{ sociedade.nomeFantasia }}, o disposto nos subitens seguintes."
  },
  {
-  "nome": "Acordo 119 Subitem — Os QUOTISTAS votarão sempre em bloco conforme deliberação to…",
+  "nome": "Acordo 121 Subitem — Os QUOTISTAS votarão sempre em bloco conforme deliberação to",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "Os QUOTISTAS votarão sempre em bloco conforme deliberação tomada em REUNIÃO DE QUOTISTAS ou REUNIÃO PRÉVIA, sendo que, com a exceção das matérias previstas neste ACORDO que demandarem quórum específico, prevalecerão os seguintes quóruns de deliberação:"
  },
  {
-  "nome": "Acordo 120 Alínea — Conforme decidam 75% (setenta e cinco por cento) dos VOTOS d…",
+  "nome": "Acordo 122 Alínea — Conforme decidam 75% (setenta e cinco por cento) dos VOTOS d",
   "tipo": "alinea",
   "titulo": null,
   "conteudo": "Conforme decidam {{ acordo.quorumAlterarContratoSocial }} dos VOTOS dos QUOTISTAS presentes nas REUNIÕES DE QUOTISTAS, REUNIÕES PRÉVIAS e/ou REUNIÃO DE SÓCIOS em relação aos seguintes assuntos: alteração do contrato social, excetuadas as matérias com quóruns específicos descritas neste ACORDO e/ou para deliberações necessárias ao cumprimento de regras específicas relacionadas a alienação de QUOTAS e/ou direitos relacionados à elas, incluindo subscrição de novas QUOTAS, Opções de Compra, Tag Along e Drag Along, entre outras regras estipuladas neste ACORDO que tenha-se atribuído poderes aos QUOTISTAS para suprir a assinatura de outros QUOTISTAS; cisão, fusão, incorporação por outra sociedade ou incorporação de outra sociedade pela {{ sociedade.nomeFantasia }}; mudança do objeto social da {{ sociedade.nomeFantasia }}; integralização ou incorporação de todas ou parte das QUOTAS da {{ sociedade.nomeFantasia }} ao capital de outra sociedade e/ou a realização de tais atos pelas SOCIEDADES CONTROLADAS; para alterar a regra de distribuição de lucros prevista no contrato da {{ sociedade.nomeFantasia }}; a venda de bens imóveis etc."
  },
  {
-  "nome": "Acordo 121 Alínea — Conforme decidam todos os QUOTISTAS caso deseje-se designar …",
+  "nome": "Acordo 123 Alínea — Conforme decidam todos os QUOTISTAS caso deseje-se designar ",
   "tipo": "alinea",
   "titulo": null,
   "conteudo": "Conforme decidam todos os QUOTISTAS caso deseje-se designar administrador não sócio e o capital social da sociedade não esteja totalmente integralizado e ainda, caso deseje-se modificar o tipo societário;"
  },
  {
-  "nome": "Acordo 122 Alínea — Conforme decidam 2/3 (dois terços) dos VOTOS dos QUOTISTAS p…",
+  "nome": "Acordo 124 Alínea — Conforme decidam 2/3 (dois terços) dos VOTOS dos QUOTISTAS p",
   "tipo": "alinea",
   "titulo": null,
   "conteudo": "Conforme decidam {{ acordo.quorumNomearAdministradorNaoSocio }} dos VOTOS dos QUOTISTAS presentes na REUNIÃO PRÉVIA, REUNIÃO DE QUOTISTAS e/ou REUNIÃO DE SÓCIOS com relação à nomeação de administrador não sócio, nos casos em que o capital esteja totalmente integralizado;"
  },
  {
-  "nome": "Acordo 123 Alínea — Conforme decidam a maioria dos VOTOS dos QUOTISTAS presentes…",
+  "nome": "Acordo 125 Alínea — Conforme decidam a maioria dos VOTOS dos QUOTISTAS presentes",
   "tipo": "alinea",
   "titulo": null,
   "conteudo": "Conforme decidam {{ acordo.quorumDestituirAdministrador }} dos VOTOS dos QUOTISTAS presentes na REUNIÃO PRÉVIA, REUNIÃO DE QUOTISTAS e/ou REUNIÃO DE SÓCIOS com relação aos seguintes assuntos: a designação de administradores, quando feita em ato separado; a destituição de administradores; o modo e valor da remuneração dos administradores, quando não estabelecido no contrato; o pedido de recuperação judicial e o encerramento desta condição;"
  },
  {
-  "nome": "Acordo 124 Alínea — Conforme decidam a maioria dos VOTOS dos QUOTISTAS presentes…",
+  "nome": "Acordo 126 Alínea — Conforme decidam a maioria dos VOTOS dos QUOTISTAS presentes",
   "tipo": "alinea",
   "titulo": null,
   "conteudo": "Conforme decidam {{ acordo.quorumOrdinaria }} dos VOTOS dos QUOTISTAS presentes nas REUNIÕES PRÉVIAS, REUNIÕES DE QUOTISTAS ou REUNIÃO DE SÓCIOS para as demais matérias, incluindo a aprovação das contas da administração."
  },
  {
-  "nome": "Acordo 125 Subitem — Havendo dissenso irreconciliável entre dois ou mais QUOTISTA…",
+  "nome": "Acordo 127 Subitem — Havendo dissenso irreconciliável entre dois ou mais QUOTISTA",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "Havendo dissenso irreconciliável entre dois ou mais QUOTISTAS e verificado empate nas deliberações, REUNIÕES DE SÓCIOS, REUNIÕES DE QUOTISTAS ou REUNIÕES PRÉVIAS que impossibilite atingir os quóruns para decisão estabelecidos neste ACORDO, a solução será alcançada pela mediação de árbitros, nos termos da Cláusula de Solução de Litígios previstas neste ACORDO."
  },
  {
-  "nome": "Acordo 126 Subitem — Se não forem realizadas REUNIÕES PRÉVIAS ou REUNIÕES DE QUOT…",
+  "nome": "Acordo 128 Subitem — Se não forem realizadas REUNIÕES PRÉVIAS ou REUNIÕES DE QUOT",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "Se não forem realizadas REUNIÕES PRÉVIAS ou REUNIÕES DE QUOTISTAS, qualquer QUOTISTA poderá requerer a suspensão da REUNIÃO DE SÓCIOS da {{ sociedade.nomeFantasia }} para que seja realizada uma REUNIÃO PRÉVIA durante esta suspensão, independente de convocação, a fim de que sejam deliberadas as matérias sujeitas a quórum específico tratadas neste ACORDO. Retomada a REUNIÃO DE SÓCIOS após a realização da REUNIÃO PRÉVIA, os QUOTISTAS votarão em conjunto consoante ao que decidirem aquela REUNIÃO PRÉVIA, aplicando-se, em todos os casos, o disposto nesta cláusula, podendo cada QUOTISTA valer-se da Ata da REUNIÃO PRÉVIA como instrumento de mandato irrevogável e irretratável para o exercício do direito de voto dos demais QUOTISTAS (inclusive dos ausentes), nos termos estabelecidos naquela solenidade e transcrito na ata, de acordo com o que prevê este ACORDO com relação a poderes das Atas das REUNIÕES PRÉVIAS e/ou de REUNIÕES DE QUOTISTAS."
  },
  {
-  "nome": "Acordo 127 Subitem — Os direitos de VOTO das QUOTAS vinculadas a este ACORDO obse…",
+  "nome": "Acordo 129 Subitem — Os direitos de VOTO das QUOTAS vinculadas a este ACORDO obse",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "Os direitos de VOTO das QUOTAS vinculadas a este ACORDO observarão os eventuais usufrutuários e/ou detentores dos direitos de voto vinculados à cada QUOTA, de modo que caso o titular (proprietário) das QUOTAS não seja o usufrutuário, o direito de VOTO objeto deste ACORDO será exercido pelo usufrutuário com direito a voto."
  },
  {
-  "nome": "Acordo 128 Subitem — Os votos dos QUOTISTAS em REUNIÕES PRÉVIAS, REUNIÕES DE QUOT…",
+  "nome": "Acordo 130 Subitem — Os votos dos QUOTISTAS em REUNIÕES PRÉVIAS, REUNIÕES DE QUOT",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "Os votos dos QUOTISTAS em REUNIÕES PRÉVIAS, REUNIÕES DE QUOTISTAS ou REUNIÕES DE SÓCIOS da {{ sociedade.nomeFantasia }} contrários às propostas submetidas à deliberação deverão ser fundamentados, cujas razões obrigatoriamente serão consignadas em Ata."
  },
  {
-  "nome": "Acordo 129 Cláusula — Do direito de preferência caso ocorra venda de SOCIEDADES RE…",
+  "nome": "Acordo 131 Cláusula — Do direito de preferência caso ocorra venda de SOCIEDADES RE",
   "tipo": "clausula",
   "titulo": "Do direito de preferência caso ocorra venda de SOCIEDADES RELACIONADAS, de imóveis ou oportunidades de negócios",
   "conteudo": "",
@@ -891,7 +909,7 @@
   ]
  },
  {
-  "nome": "Acordo 130 Item — Se a «empresa» pretender alienar a sua participação em qualq…",
+  "nome": "Acordo 132 Item — Se a «empresa» pretender alienar a sua participação em qualq",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Se a {{ sociedade.nomeFantasia }} pretender alienar a sua participação em qualquer uma das SOCIEDADES RELACIONADAS, será assegurado aos QUOTISTAS adquirirem as ações ou quotas daquelas sociedades, observadas as seguintes premissas:",
@@ -901,7 +919,7 @@
   ]
  },
  {
-  "nome": "Acordo 131 Inciso — a «empresa» deverá notificar os QUOTISTAS, para que, querend…",
+  "nome": "Acordo 133 Inciso — a «empresa» deverá notificar os QUOTISTAS, para que, querend",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "a {{ sociedade.nomeFantasia }} deverá notificar os QUOTISTAS, para que, querendo, adquiram preferencialmente todas as ações ou quotas das SOCIEDADES RELACIONADAS, em igualdade de condições com TERCEIROS ou até mesmo com outros QUOTISTAS, caso estes sejam os outros adquirentes descritos na notificação, observados os princípios e a proporcionalidade descritas no conceito de DIREITO DE PREFERÊNCIA;",
@@ -911,7 +929,7 @@
   ]
  },
  {
-  "nome": "Acordo 132 Inciso — o DIREITO DE PREFERÊNCIA para adquirir as quotas e/ou ações …",
+  "nome": "Acordo 134 Inciso — o DIREITO DE PREFERÊNCIA para adquirir as quotas e/ou ações ",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "o DIREITO DE PREFERÊNCIA para adquirir as quotas e/ou ações das SOCIEDADES RELACIONADAS será proporcional a participação de cada um dos QUOTISTAS no capital social da {{ sociedade.nomeFantasia }} na data da emissão da notificação descrita anteriormente;",
@@ -921,7 +939,7 @@
   ]
  },
  {
-  "nome": "Acordo 133 Inciso — somente após realizados os passos descritos nos itens I e II…",
+  "nome": "Acordo 135 Inciso — somente após realizados os passos descritos nos itens I e II",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "somente após realizados os passos descritos nos itens I e II acima, a participação da {{ sociedade.nomeFantasia }} em SOCIEDADES RELACIONADAS poderá ser cedida para TERCEIROS, observado ainda que a alienação de participações societárias (sejam ações ou quotas) e/ou títulos ou direitos de SOCIEDADES CONTROLADAS para TERCEIROS só poderá ser realizada após a apresentação de declaração assinada por todos os QUOTISTAS revelando que estes não possuem interesse na aquisição desses bens e direitos e que nenhum dos QUOTISTAS se opõe a referida alienação.",
@@ -931,7 +949,7 @@
   ]
  },
  {
-  "nome": "Acordo 134 Inciso — a «empresa» deverá exigir das SOCIEDADES CONTROLADAS que sej…",
+  "nome": "Acordo 136 Inciso — a «empresa» deverá exigir das SOCIEDADES CONTROLADAS que sej",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "a {{ sociedade.nomeFantasia }} deverá exigir das SOCIEDADES CONTROLADAS que seja respeitado o disposto nesta cláusula, bem como deverá assegurar nas sociedades em que seja sócia de TERCEIROS que o disposto nesta cláusula seja observado, inclusive tabulando com estes TERCEIROS eventuais acordos societários (acionistas ou quotistas), conforme o caso.",
@@ -941,7 +959,7 @@
   ]
  },
  {
-  "nome": "Acordo 135 Item — O disposto no item anterior (exceto o item III) também dever…",
+  "nome": "Acordo 137 Item — O disposto no item anterior (exceto o item III) também dever",
   "tipo": "item",
   "titulo": null,
   "conteudo": "O disposto no item anterior (exceto o item III) também deverá ser aplicado a todos os casos de alienação de bens imóveis, ou direitos relacionados a estes bens (incluindo imóveis arrendados, locados ou recebidos em parceria), vinculados ou não ao ativo circulante, de propriedade da {{ sociedade.nomeFantasia }} e/ou das SOCIEDADES RELACIONADAS a TERCEIROS ou até mesmo a um ou mais QUOTISTAS.",
@@ -951,13 +969,13 @@
   ]
  },
  {
-  "nome": "Acordo 136 Cláusula — Outros negócios dos QUOTISTAS e das PARTES RELACIONADAS, a u…",
+  "nome": "Acordo 138 Cláusula — Outros negócios dos QUOTISTAS e das PARTES RELACIONADAS, a u",
   "tipo": "clausula",
   "titulo": "Outros negócios dos QUOTISTAS e das PARTES RELACIONADAS, a utilização do nome ou marca da {{ sociedade.nomeFantasia }} e/ou de suas SOCIEDADES RELACIONADAS e a fruição de benefícios e serviços",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 137 Item — Todas as oportunidades de negócios e/ou novos investimentos …",
+  "nome": "Acordo 139 Item — Todas as oportunidades de negócios e/ou novos investimentos ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Todas as oportunidades de negócios e/ou novos investimentos relacionados aos ramos de atividade da {{ sociedade.nomeFantasia }} e das SOCIEDADES RELACIONADAS, que tenham como objeto bens imóveis (posse, propriedade, arrendamento ou parceria rurais, negócios jurídicos ou oportunidades que possam ser caracterizadas como ATIVIDADES CONCORRENTES que cheguem ao conhecimento dos QUOTISTAS deverão ser levados para conhecimento da ALTA ADMINISTRAÇÃO para que esta delibere sobre a viabilidade e execução, assegurado à {{ sociedade.nomeFantasia }} e suas SOCIEDADES RELACIONADAS a preferência para realizar tais negócios.",
@@ -966,19 +984,19 @@
   ]
  },
  {
-  "nome": "Acordo 138 Item — Os QUOTISTAS também se comprometem adotar o mesmo mecanismo …",
+  "nome": "Acordo 140 Item — Os QUOTISTAS também se comprometem adotar o mesmo mecanismo ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS também se comprometem adotar o mesmo mecanismo descrito acima caso os negócios e/ou novos investimentos pretendam ser realizados por seus cônjuges ou PARTES RELACIONADAS, ou, no caso de SOCIEDADES QUOTISTAS, se tais atos forem realizados ou levados a conhecimento de seus sócios, acionistas, cônjuges, companheiros(as) ou descendentes destes últimos, assegurada à {{ sociedade.nomeFantasia }} exercer o direito de preferência na realização destes negócios ou investimentos."
  },
  {
-  "nome": "Acordo 139 Item — Caso a «empresa» não exerça o direito de preferência para re…",
+  "nome": "Acordo 141 Item — Caso a «empresa» não exerça o direito de preferência para re",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Caso a {{ sociedade.nomeFantasia }} não exerça o direito de preferência para realizar o negócio trazido pelo QUOTISTA descrito nos itens anteriores e, quando for o caso, seja aprovada a realização do ato pelos QUOTISTAS, nos termos do item seguinte, o investimento poderá ser realizado pelos demais QUOTISTAS, desde que este investimento não interfira eventual atuação do QUOTISTA na ADMINISTRAÇÃO e/ou gestão da {{ sociedade.nomeFantasia }} e seja autorizado pela ALTA ADMINISTRAÇÃO."
  },
  {
-  "nome": "Acordo 140 Item — .Não será admitido à qualquer QUOTISTA, seus descendentes, c…",
+  "nome": "Acordo 142 Item — .Não será admitido à qualquer QUOTISTA, seus descendentes, c",
   "tipo": "item",
   "titulo": null,
   "conteudo": ".Não será admitido à qualquer QUOTISTA{{#acordo.naoConcorrenciaAlcancaParentes}}, seus descendentes, cônjuges e/ou companheiros(as){{/acordo.naoConcorrenciaAlcancaParentes}}, realizar qualquer ato ou negócio jurídico descrito como ATIVIDADE CONCORRENTE, sob pena de ser aplicada a MULTA POR DESCUMPRIMENTO DA CLÁUSULA DE NÃO CONCORRÊNCIA e até mesmo possa ser exercida uma OPÇÃO DE COMPRA em desfavor do QUOTISTA que descumpriu essa cláusula, devendo ser notificada a parte contrária para deixar de descumprir este ACORDO em até 30 (trinta) dias contados do recebimento da notificação; exceto se autorizado por todos os QUOTISTAS.",
@@ -987,487 +1005,487 @@
   ]
  },
  {
-  "nome": "Acordo 141 Item — Os QUOTISTAS não poderão ser sócios de outras atividades eco…",
+  "nome": "Acordo 143 Item — Os QUOTISTAS não poderão ser sócios de outras atividades eco",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS não poderão ser sócios de outras atividades econômicas enquanto figurarem como sócios da {{ sociedade.nomeFantasia }}, podendo apenas serem investidores em empresas de capital aberto, adquirindo participações societárias destas, fundos de investimentos, aplicações financeiras etc., vedado expressamente participarem de condomínios rurais, parcerias rurais, explorarem atividades rurais ou serem sócios ou acionistas de sociedades de capital fechado, independente do tipo societário, (S/A, Ltda. etc.), incluindo até mesmo sociedades de fato ou SCP’s."
  },
  {
-  "nome": "Acordo 142 Subitem — É expressamente vedado a QUOTISTAS participarem de cargos em…",
+  "nome": "Acordo 144 Subitem — É expressamente vedado a QUOTISTAS participarem de cargos em",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "É expressamente vedado a QUOTISTAS participarem de cargos em órgãos de administração ou governança de outras instituições públicas ou privadas."
  },
  {
-  "nome": "Acordo 143 Item — Os descendentes, cônjuges e/ou companheiros dos QUOTISTAS po…",
+  "nome": "Acordo 145 Item — Os descendentes, cônjuges e/ou companheiros dos QUOTISTAS po",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os descendentes, cônjuges e/ou companheiros dos QUOTISTAS poderão ser sócios de outras atividades e/ou sociedades, bem como participar de órgãos de governança destas instituições, desde que não sejam ATIVIDADES CONCORRENTES, em observância ainda, às seguintes premissas:"
  },
  {
-  "nome": "Acordo 144 Inciso — não sejam utilizados recursos, financeiros, humanos, informa…",
+  "nome": "Acordo 146 Inciso — não sejam utilizados recursos, financeiros, humanos, informa",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "não sejam utilizados recursos, financeiros, humanos, informações confidenciais ou materiais da {{ sociedade.nomeFantasia }} e das SOCIEDADES RELACIONADAS;"
  },
  {
-  "nome": "Acordo 145 Inciso — a atuação deste familiar ou até mesmo do QUOTISTA na ADMINIS…",
+  "nome": "Acordo 147 Inciso — a atuação deste familiar ou até mesmo do QUOTISTA na ADMINIS",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "a atuação deste familiar ou até mesmo do QUOTISTA na ADMINISTRAÇÃO ou gestão da {{ sociedade.nomeFantasia }} e/ou das SOCIEDADES RELACIONADAS não seja prejudicada, se for o caso e conforme avaliação da ALTA ADMINISTRAÇÃO;"
  },
  {
-  "nome": "Acordo 146 Inciso — quem desejar exercer cargo na gestão ou órgãos de administra…",
+  "nome": "Acordo 148 Inciso — quem desejar exercer cargo na gestão ou órgãos de administra",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "quem desejar exercer cargo na gestão ou órgãos de administração ou governança de outras instituições públicas ou privadas, busque, sempre que possível, exigir a contratação de seguro de responsabilidade civil;"
  },
  {
-  "nome": "Acordo 147 Inciso — que os negócios ou atividades empresariais não sejam ilícito…",
+  "nome": "Acordo 149 Inciso — que os negócios ou atividades empresariais não sejam ilícito",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "que os negócios ou atividades empresariais não sejam ilícitos ou contrários ao Código de Ética e Conduta da {{ sociedade.nomeFantasia }}."
  },
  {
-  "nome": "Acordo 148 Item — O uso do nome empresarial, das marcas, patentes, direitos, s…",
+  "nome": "Acordo 150 Item — O uso do nome empresarial, das marcas, patentes, direitos, s",
   "tipo": "item",
   "titulo": null,
   "conteudo": "O uso do nome empresarial, das marcas, patentes, direitos, sinais distintivos ou direitos de propriedade intelectual da {{ sociedade.nomeFantasia }} e das SOCIEDADES RELACIONADAS, pelos QUOTISTAS e PARTES RELACIONADAS ou cônjuges, companheiros(as), descendentes e/ou parentes até 3º grau em linha colateral de todos estes para fins não relacionados ao da {{ sociedade.nomeFantasia }} e/ou suas SOCIEDADES RELACIONADAS deverá ser aprovado previamente pela ADMINISTRAÇÃO e obedecidas as políticas da {{ sociedade.nomeFantasia }} e de suas SOCIEDADES RELACIONADAS com relação a essa prática."
  },
  {
-  "nome": "Acordo 149 Item — É vedado qualquer favorecimento ou benefícios contrários às …",
+  "nome": "Acordo 151 Item — É vedado qualquer favorecimento ou benefícios contrários às ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "É vedado qualquer favorecimento ou benefícios contrários às práticas da {{ sociedade.nomeFantasia }} e/ou das SOCIEDADES RELACIONADAS concedidos aos QUOTISTAS, PARTES RELACIONADAS ou cônjuges, companheiros(as), descendentes e/ou parentes até 3º grau em linha colateral na utilização de quaisquer bens, móveis ou imóveis, tangíveis ou intangíveis, de propriedade da {{ sociedade.nomeFantasia }} e/ou das SOCIEDADES RELACIONADAS, incluindo a utilização de recursos humanos e materiais, ainda que admitido pela ALTA ADMINISTRAÇÃO."
  },
  {
-  "nome": "Acordo 150 Item — As empresas de propriedade dos QUOTISTAS e PARTES RELACIONAD…",
+  "nome": "Acordo 152 Item — As empresas de propriedade dos QUOTISTAS e PARTES RELACIONAD",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As empresas de propriedade dos QUOTISTAS e PARTES RELACIONADAS e/ou cônjuges, companheiros(as), descendentes e/ou parentes até 3º grau em linha colateral de todos estes, ou qualquer um destes como “pessoas físicas”, poderão fornecer bens e serviços à {{ sociedade.nomeFantasia }} e/ou a qualquer de suas SOCIEDADES RELACIONADAS, desde que:"
  },
  {
-  "nome": "Acordo 151 Inciso — se enquadrem nos padrões de qualidade, preços, prazos e gara…",
+  "nome": "Acordo 153 Inciso — se enquadrem nos padrões de qualidade, preços, prazos e gara",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "se enquadrem nos padrões de qualidade, preços, prazos e garantias, exigidos dos demais fornecedores destas sociedades;"
  },
  {
-  "nome": "Acordo 152 Inciso — não sejam o único fornecedor de determinado bem à «empresa» …",
+  "nome": "Acordo 154 Inciso — não sejam o único fornecedor de determinado bem à «empresa» ",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "não sejam o único fornecedor de determinado bem à {{ sociedade.nomeFantasia }} e/ou de suas SOCIEDADES RELACIONADAS;"
  },
  {
-  "nome": "Acordo 153 Inciso — a «empresa» e/ou suas SOCIEDADES RELACIONADAS não seja(m) se…",
+  "nome": "Acordo 155 Inciso — a «empresa» e/ou suas SOCIEDADES RELACIONADAS não seja(m) se",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "a {{ sociedade.nomeFantasia }} e/ou suas SOCIEDADES RELACIONADAS não seja(m) seus(s) único(s) cliente(s);"
  },
  {
-  "nome": "Acordo 154 Inciso — a contratação seja realizada em igualdade de condições com d…",
+  "nome": "Acordo 156 Inciso — a contratação seja realizada em igualdade de condições com d",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "a contratação seja realizada em igualdade de condições com demais concorrentes, bem como o responsável pela contratação não seja sócio, acionista, ascendente, descendente, cônjuge ou familiar, em qualquer grau de parentesco, do fornecedor;"
  },
  {
-  "nome": "Acordo 155 Inciso — eventual prestação de serviços possua metodologia objetiva p…",
+  "nome": "Acordo 157 Inciso — eventual prestação de serviços possua metodologia objetiva p",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "eventual prestação de serviços possua metodologia objetiva para comparação de preços e qualidade, e, caso não seja possível comparar objetivamente os preços (a exemplo de serviços jurídicos, contábeis, de consultoria etc.) ou não possuam bens e serviços semelhantes para comparar preços e condições, a contratação deverá ser aprovada pela ALTA ADMINISTRAÇÃO;"
  },
  {
-  "nome": "Acordo 156 Inciso — seja reportada ao superior imediato caso ocorra algum confli…",
+  "nome": "Acordo 158 Inciso — seja reportada ao superior imediato caso ocorra algum confli",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "seja reportada ao superior imediato caso ocorra algum conflito de interesse entre a parte que está adquirindo, assinando ou representando a {{ sociedade.nomeFantasia }} e aquele que esteja fornecendo bens ou serviços."
  },
  {
-  "nome": "Acordo 157 Item — Caso algum QUOTISTA descumpra o disposto nesta cláusula, qua…",
+  "nome": "Acordo 159 Item — Caso algum QUOTISTA descumpra o disposto nesta cláusula, qua",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Caso algum QUOTISTA descumpra o disposto nesta cláusula, qualquer outro QUOTISTA poderá recorrer a Cláusula de Solução de Litígios e exigir que seja aplicada multa diária por descumprimento, além de eventuais perdas e danos a favor da {{ sociedade.nomeFantasia }} e dos demais QUOTISTAS."
  },
  {
-  "nome": "Acordo 158 Cláusula — Do apoio e candidatura política dos QUOTISTAS e da participa…",
+  "nome": "Acordo 160 Cláusula — Do apoio e candidatura política dos QUOTISTAS e da participa",
   "tipo": "clausula",
   "titulo": "Do apoio e candidatura política dos QUOTISTAS e da participação destes em Associações, ONGs, Clubes de Serviços e entidades religiosas",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 159 Item — A «empresa», as SOCIEDADES RELACIONADAS e/ou os QUOTISTAS nã…",
+  "nome": "Acordo 161 Item — A «empresa», as SOCIEDADES RELACIONADAS e/ou os QUOTISTAS nã",
   "tipo": "item",
   "titulo": null,
   "conteudo": "A {{ sociedade.nomeFantasia }}, as SOCIEDADES RELACIONADAS e/ou os QUOTISTAS não poderão apoiar (financeiramente ou não) candidatos a cargos públicos, na administração pública (direta ou indireta), ainda que aprovado previamente pela legislação brasileira,"
  },
  {
-  "nome": "Acordo 160 Item — Os QUOTISTAS, seus descendentes, cônjuges e companheiros(as)…",
+  "nome": "Acordo 162 Item — Os QUOTISTAS, seus descendentes, cônjuges e companheiros(as)",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS, seus descendentes, cônjuges e companheiros(as) poderão apoiar candidatos à cargos e empregos públicos (eletivos e/ou de confiança), se as respectivas ações e/ou atuações não contrariarem a legislação brasileira, os códigos de ética e as políticas da {{ sociedade.nomeFantasia }} e de suas SOCIEDADES RELACIONADAS, desde que não utilizem ou vinculem, ainda que indiretamente, a marca, razões sociais e/ou nomes fantasias da {{ sociedade.nomeFantasia }} e/ou das SOCIEDADES RELACIONADAS."
  },
  {
-  "nome": "Acordo 161 Item — QUOTISTAS, membros de órgãos de governança, diretores ou lid…",
+  "nome": "Acordo 163 Item — QUOTISTAS, membros de órgãos de governança, diretores ou lid",
   "tipo": "item",
   "titulo": null,
   "conteudo": "QUOTISTAS, membros de órgãos de governança, diretores ou lideranças da {{ sociedade.nomeFantasia }} não poderão se candidatar a cargos políticos ou assumirem cargos na administração pública, direta ou indiretamente."
  },
  {
-  "nome": "Acordo 162 Item — É livre a participação dos QUOTISTAS em associações, ONGs, c…",
+  "nome": "Acordo 164 Item — É livre a participação dos QUOTISTAS em associações, ONGs, c",
   "tipo": "item",
   "titulo": null,
   "conteudo": "É livre a participação dos QUOTISTAS em associações, ONGs, clubes de serviço, igrejas, fundações, sindicatos, cooperativas, entre outros, desde que: (i) tais fatos não prejudiquem as eventuais atribuições que possuírem na {{ sociedade.nomeFantasia }} e/ou nas SOCIEDADES RELACIONADAS; (ii) não gerem prejuízos financeiros, à imagem ou prejudiquem, de qualquer forma, os negócios da {{ sociedade.nomeFantasia }} e de suas SOCIEDADES RELACIONADAS; e, (iii) não pertençam a órgãos da administração ou atuem como conselheiros fiscais e/ou na gestão destas instituições, hipótese esta que deverá ser aprovada pela ALTA ADMINISTRAÇÃO."
  },
  {
-  "nome": "Acordo 163 Cláusula — Empréstimos e antecipação de distribuição de lucros aos QUOT…",
+  "nome": "Acordo 165 Cláusula — Empréstimos e antecipação de distribuição de lucros aos QUOT",
   "tipo": "clausula",
   "titulo": "Empréstimos e antecipação de distribuição de lucros aos QUOTISTAS e PARTES RELACIONADAS",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 164 Item — A «empresa» e/ou suas SOCIEDADES RELACIONADAS poderão conced…",
+  "nome": "Acordo 166 Item — A «empresa» e/ou suas SOCIEDADES RELACIONADAS poderão conced",
   "tipo": "item",
   "titulo": null,
   "conteudo": "A {{ sociedade.nomeFantasia }} e/ou suas SOCIEDADES RELACIONADAS poderão conceder empréstimos aos QUOTISTAS se aprovado pela ALTA ADMINISTRAÇÃO, cuja deliberação deverá estabelecer os índices de atualização monetária, juros, prazo de pagamento, multa, honorários advocatícios e limite para tomada de empréstimo, vedada a concessão de empréstimos às PARTES RELACIONADAS ou à cônjuges e/ou companheiros(as) dos QUOTISTAS, salvo deliberação em contrário em REUNIÃO DE SÓCIOS."
  },
  {
-  "nome": "Acordo 165 Subitem — O empréstimo descrito acima deverá ser realizado nas mesmas …",
+  "nome": "Acordo 167 Subitem — O empréstimo descrito acima deverá ser realizado nas mesmas ",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "O empréstimo descrito acima deverá ser realizado nas mesmas condições praticadas pelo mercado, de acordo com a natureza do negócio, sendo que o QUOTISTA que desejar tomar tais empréstimos da {{ sociedade.nomeFantasia }} deverá trazer duas propostas praticadas por duas instituições financeiras devidamente registradas junto ao BACEN."
  },
  {
-  "nome": "Acordo 166 Item — Os QUOTISTAS, as PARTES RELACIONADAS e os cônjuges e/ou comp…",
+  "nome": "Acordo 168 Item — Os QUOTISTAS, as PARTES RELACIONADAS e os cônjuges e/ou comp",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS, as PARTES RELACIONADAS e os cônjuges e/ou companheiros(as) de ambos poderão emprestar recursos à {{ sociedade.nomeFantasia }} e/ou às SOCIEDADES RELACIONADAS em igualdade de condições e preços praticados no mercado, observada a obrigatoriedade de ser aprovado pela ALTA ADMINISTRAÇÃO e que aqueles interessados em conceder o empréstimo forneçam as informações previstas nos itens acima (em especial a obtenção de pelo menos duas propostas para comparação)."
  },
  {
-  "nome": "Acordo 167 Item — A «empresa» e/ou as SOCIEDADES RELACIONADAS poderão adiantar…",
+  "nome": "Acordo 169 Item — A «empresa» e/ou as SOCIEDADES RELACIONADAS poderão adiantar",
   "tipo": "item",
   "titulo": null,
   "conteudo": "A {{ sociedade.nomeFantasia }} e/ou as SOCIEDADES RELACIONADAS poderão adiantar valores aos QUOTISTAS ou às PARTES RELACIONADAS e/ou cônjuges, companheiros(as), descendentes e/ou parentes até 3º grau em linha colateral de todos estes, ou qualquer um destes como “pessoas físicas” por serviços ou bens fornecidos por eles àquelas, conforme políticas da {{ sociedade.nomeFantasia }} e/ou de suas SOCIEDADES RELACIONADAS praticadas com demais fornecedores."
  },
  {
-  "nome": "Acordo 168 Cláusula — Avais e Fianças dos QUOTISTAS e das garantias prestadas pelo…",
+  "nome": "Acordo 170 Cláusula — Avais e Fianças dos QUOTISTAS e das garantias prestadas pelo",
   "tipo": "clausula",
   "titulo": "Avais e Fianças dos QUOTISTAS e das garantias prestadas pelos QUOTISTAS à {{ sociedade.nomeFantasia }}",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 169 Item — Os QUOTISTAS não poderão outorgar aval, fiança ou responsabi…",
+  "nome": "Acordo 171 Item — Os QUOTISTAS não poderão outorgar aval, fiança ou responsabi",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS não poderão outorgar aval, fiança ou responsabilizar-se solidariamente ou subsidiariamente por dívidas de TERCEIROS."
  },
  {
-  "nome": "Acordo 170 Item — Os QUOTISTAS poderão outorgar Aval, Fiança ou responsabiliza…",
+  "nome": "Acordo 172 Item — Os QUOTISTAS poderão outorgar Aval, Fiança ou responsabiliza",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS poderão outorgar Aval, Fiança ou responsabilizar-se solidariamente ou subsidiariamente por dívidas de seu respectivo cônjuge ou companheiro(a), de sua respectiva PARTE RELACIONADA ou até mesmo de outro QUOTISTA."
  },
  {
-  "nome": "Acordo 171 Item — Caso algum QUOTISTA garanta pessoalmente dívidas de outro QU…",
+  "nome": "Acordo 173 Item — Caso algum QUOTISTA garanta pessoalmente dívidas de outro QU",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Caso algum QUOTISTA garanta pessoalmente dívidas de outro QUOTISTA e por força de eventual inadimplemento deste último, torne-se proprietário de QUOTAS da sociedade que cabia àquele, estas QUOTAS deverão ser oferecidas aos demais QUOTISTAS para que, querendo exerçam uma OPÇÃO DE COMPRA e adquiram essas QUOTAS, assegurado o DIREITO DE PREFERÊNCIA e os valores desembolsados pelo QUOTISTA que se tornou o primeiro titular."
  },
  {
-  "nome": "Acordo 172 Item — Os QUOTISTAS, seus cônjuges e/ou companheiros(as) são obriga…",
+  "nome": "Acordo 174 Item — Os QUOTISTAS, seus cônjuges e/ou companheiros(as) são obriga",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS, seus cônjuges e/ou companheiros(as) são obrigados a avalizar, prestar fiança e/ou responsabilizar-se subsidiariamente por dívidas da {{ sociedade.nomeFantasia }} e de suas SOCIEDADES RELACIONADAS, se assim determinado pela ALTA ADMINISTRAÇÃO."
  },
  {
-  "nome": "Acordo 173 Item — É terminantemente proibido à «empresa» e suas SOCIEDADES REL…",
+  "nome": "Acordo 175 Item — É terminantemente proibido à «empresa» e suas SOCIEDADES REL",
   "tipo": "item",
   "titulo": null,
   "conteudo": "É terminantemente proibido à {{ sociedade.nomeFantasia }} e suas SOCIEDADES RELACIONADAS garantir operações de QUOTISTAS, PARTES RELACIONADAS e/ou cônjuges ou companheiros(as) de qualquer um destes e TERCEIROS, exceto para atos de comprovada operação ou negócio conjunto daquelas sociedades com as pessoas elencadas anteriormente e respeitada a decisão da ALTA ADMINISTRAÇÃO ."
  },
  {
-  "nome": "Acordo 174 Cláusula — Das orientações gerais às condutas dos QUOTISTAS, de seus cô…",
+  "nome": "Acordo 176 Cláusula — Das orientações gerais às condutas dos QUOTISTAS, de seus cô",
   "tipo": "clausula",
   "titulo": "Das orientações gerais às condutas dos QUOTISTAS, de seus cônjuges e/ou companheiros(as) e de suas PARTES RELACIONADAS",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 175 Item — Os QUOTISTAS, seus cônjuges e/ou companheiros(as) e suas res…",
+  "nome": "Acordo 177 Item — Os QUOTISTAS, seus cônjuges e/ou companheiros(as) e suas res",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS, seus cônjuges e/ou companheiros(as) e suas respectivas PARTES RELACIONADAS deverão sempre pautar suas condutas pessoais, pelos bons costumes e inspirados nas orientações da {{ sociedade.nomeFantasia }} expressas em seus eventuais Códigos de Ética e Conduta, sempre evitando que seus atos pessoais sejam vinculados à esta sociedade, e sendo, comprometem-se a defender a inexistência de vínculos entre suas condutas com as práticas empresariais da {{ sociedade.nomeFantasia }} e de suas SOCIEDADES RELACIONADAS."
  },
  {
-  "nome": "Acordo 176 Item — Visando assegurar a proteção e segregação do patrimônio pess…",
+  "nome": "Acordo 178 Item — Visando assegurar a proteção e segregação do patrimônio pess",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Visando assegurar a proteção e segregação do patrimônio pessoal dos QUOTISTAS, de seus cônjuges e/ou companheiros e das PARTES RELACIONADAS, a {{ sociedade.nomeFantasia }} recomenda que eventuais uniões estáveis ou casamentos destes sejam regrados pelo regime de separação convencional de bens, estabelecendo nos respectivos instrumentos que não se confundirão os patrimônios de cada cônjuge e/ou companheiro, ainda que adquiridos na constância da união e/ou do casamento."
  },
  {
-  "nome": "Acordo 177 Cláusula — Da ADMINISTRAÇÃO da «empresa» e das regras de contratação de…",
+  "nome": "Acordo 179 Cláusula — Da ADMINISTRAÇÃO da «empresa» e das regras de contratação de",
   "tipo": "clausula",
   "titulo": "Da ADMINISTRAÇÃO da {{ sociedade.nomeFantasia }} e das regras de contratação de familiares",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 178 Item — A «empresa» será administrada por um CONSELHO DE ADMINISTRAÇ…",
+  "nome": "Acordo 180 Item — A «empresa» será administrada por um CONSELHO DE ADMINISTRAÇ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "A {{ sociedade.nomeFantasia }} será administrada por um CONSELHO DE ADMINISTRAÇÃO composto por no mínimo 04 (três) membros e no máximo 05 (cinco) membros e uma DIRETORIA composta por no mínimo 03 (três) membros, cujas atribuições, composição, eleição e prazos de gestão obedecerão ao que dispor o contrato social da {{ sociedade.nomeFantasia }}, competindo aos QUOTISTAS compor ambos esses órgãos da administração e eleger seus membros, conforme decidam os QUOTISTAS que sejam titulares da maioria das QUOTAS, ressalvado que enquanto os QUOTISTAS estiverem vivos e capazes civilmente, não será admitida a indicação de TERCEIROS ou PARTES RELACIONADAS como CONSELHEIROS DE ADMINISTRAÇÃO, competindo a cada um dos QUOTISTAS eleger um dos membros do CONSELHO DE ADMINISTRAÇÃO (ou fração maior ou menor de um número inteiro em conjunto com outros QUOTISTAS, quando for o caso)."
  },
  {
-  "nome": "Acordo 179 Subitem — Se ocorrer a hipótese prevista ao final do item anterior (mo…",
+  "nome": "Acordo 181 Subitem — Se ocorrer a hipótese prevista ao final do item anterior (mo",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "Se ocorrer a hipótese prevista ao final do item anterior (morte ou incapacidade civil do QUOTISTA), este QUOTISTA ou seu representante poderá eleger um d para compor o CONSELHO DE ADMINISTRAÇÃO não seja um QUOTISTA ou PARTE RELACIONADA, o candidato deverá obrigatoriamente possuir: (i) certificação como conselheiro emitido por empresa especializada na formação de conselheiros, assim reconhecida pelo próprio CONSELHO DE ADMINISTRAÇÃO (a exemplo da Fundação Dom Cabral, IBGC – Instituto Brasileiro de Governança Corporativa etc.); (ii) experiência comprovada de pelo menos 01 ano como gestor estratégico (Diretor e/ou Conselheiro de Administração) de outras sociedades; e, (iii) não possuir vínculo empregatício e/ou de prestação de serviços com empresas que exerçam ATIVIDADES CONCORRENTES."
  },
  {
-  "nome": "Acordo 180 Item — Os QUOTISTAS se comprometem a votar nas REUNIÕES DE SÓCIOS, …",
+  "nome": "Acordo 182 Item — Os QUOTISTAS se comprometem a votar nas REUNIÕES DE SÓCIOS, ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS se comprometem a votar nas REUNIÕES DE SÓCIOS, REUNIÕES PRÉVIAS e/ou REUNIÃO DE QUOTISTAS com o intuito de aprovarem o nome dos membros da DIRETORIA sugerido pelo CONSELHO DE ADMINISTRAÇÃO."
  },
  {
-  "nome": "Acordo 181 Item — O Presidente do CONSELHO DE ADMINISTRAÇÃO, que será eleito p…",
+  "nome": "Acordo 183 Item — O Presidente do CONSELHO DE ADMINISTRAÇÃO, que será eleito p",
   "tipo": "item",
   "titulo": null,
   "conteudo": "O Presidente do CONSELHO DE ADMINISTRAÇÃO, que será eleito pelos próprios conselheiros, não poderá ocupar, simultaneamente, o cargo de principal executivo da {{ sociedade.nomeFantasia }}, quando for o caso, e este cargo será exercido preferencialmente por um dos QUOTISTAS."
  },
  {
-  "nome": "Acordo 182 Item — Só poderão ser contratados e/ou empregados da «empresa» e da…",
+  "nome": "Acordo 184 Item — Só poderão ser contratados e/ou empregados da «empresa» e da",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Só poderão ser contratados e/ou empregados da {{ sociedade.nomeFantasia }} e das SOCIEDADES CONTROLADAS, os familiares dos QUOTISTAS (incluindo PARTES RELACIONADAS, cônjuges, companheiros(as), parentes em linha reta ou colateral, incluindo os por afinidade) que se submeterem às regras de contratação previstas nas políticas de cargos e salários da {{ sociedade.nomeFantasia }} e de suas CONTROLADAS, vigentes a época da contratação, não sendo admitida a contratação de outros familiares, sendo que com exceção das PARTES RELACIONADAS, todos os demais deverão ser aprovados pelo superior hierárquico de quem for realizar a contratação."
  },
  {
-  "nome": "Acordo 183 Item — As carreiras das pessoas previstas nos item anterior obedece…",
+  "nome": "Acordo 185 Item — As carreiras das pessoas previstas nos item anterior obedece",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As carreiras das pessoas previstas nos item anterior obedecerão às políticas de cargos e salários estabelecidas pela {{ sociedade.nomeFantasia }} e/ou de suas SOCIEDADES RELACIONADAS, sempre baseada nas práticas de mercado e nos planos de carreiras, cargos e salários vigentes à época, incluindo, mas não se limitando, as movimentações verticais (promoções) e horizontais (transferências), aos aumentos salariais e ainda a quaisquer benefícios, diretos ou indiretos, aplicando-se à elas as mesmas regras adotadas aos demais empregados da {{ sociedade.nomeFantasia }} e/ou de suas SOCIEDADES RELACIONADAS, exceto se os QUOTISTAS, por unanimidade, adotarem outros critérios."
  },
  {
-  "nome": "Acordo 184 Item — Caso ocorram eventuais subordinações hierárquicas entre QUOT…",
+  "nome": "Acordo 186 Item — Caso ocorram eventuais subordinações hierárquicas entre QUOT",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Caso ocorram eventuais subordinações hierárquicas entre QUOTISTAS e respectivas PARTES RELACIONADAS, a ADMINISTRAÇÃO da {{ sociedade.nomeFantasia }} deverá assegurar que seja implantado mais um reporte hierárquico do mesmo nível hierárquico e/ou superior ao do QUOTISTA, assegurando a gestão compartilhada da carreira desses profissionais."
  },
  {
-  "nome": "Acordo 185 Item — Além do disposto acima, os QUOTISTAS se comprometem a implan…",
+  "nome": "Acordo 187 Item — Além do disposto acima, os QUOTISTAS se comprometem a implan",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Além do disposto acima, os QUOTISTAS se comprometem a implantar um Programa de Desenvolvimento de Sucessores – PDS para a {{ sociedade.nomeFantasia }} em até 05 (cinco) anos contados a partir da assinatura deste ACORDO, programa que terá, dentre seus objetivos, apresentar aos descendentes dos QUOTISTAS SIGNATÁRIOS a missão, visão, valores, estrutura organizacional, principais negócios, processos, departamentos, políticas e líderes da {{ sociedade.nomeFantasia }}, fomentar conhecimentos estratégicos, de empreendedorismo, de liderança, de governança e de gestão de pessoas e negócios."
  },
  {
-  "nome": "Acordo 186 Item — Se a «empresa» ou as SOCIEDADES RELACIONADAS deixarem de obs…",
+  "nome": "Acordo 188 Item — Se a «empresa» ou as SOCIEDADES RELACIONADAS deixarem de obs",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Se a {{ sociedade.nomeFantasia }} ou as SOCIEDADES RELACIONADAS deixarem de observar as regras para contratação estabelecidas no presente ACORDO, os QUOTISTAS notificarão o REPRESENTANTE DA ADMINISTRAÇÃO para que observe o previsto nesta cláusula e, em caso de inobservância, os QUOTISTAS deverão convocar REUNIÃO PRÉVIA, REUNIÃO DE QUOTISTAS e/ou REUNIÃO DE SÓCIOS para estabelecer e exigir o cumprimento destas regras e adotar as demais medidas que forem necessárias, incluindo a demissão ou afastamento dos que forem contratados em desacordo com o presente ACORDO."
  },
  {
-  "nome": "Acordo 187 Cláusula — Das medidas a serem adotadas caso dívidas particulares dos Q…",
+  "nome": "Acordo 189 Cláusula — Das medidas a serem adotadas caso dívidas particulares dos Q",
   "tipo": "clausula",
   "titulo": "Das medidas a serem adotadas caso dívidas particulares dos QUOTISTAS recaiam sobre suas QUOTAS ou prejudiquem negócios da {{ sociedade.nomeFantasia }} e/ou das SOCIEDADES RELACIONADAS",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 188 Item — Caso qualquer QUOTA de qualquer QUOTISTA, ou direitos decorr…",
+  "nome": "Acordo 190 Item — Caso qualquer QUOTA de qualquer QUOTISTA, ou direitos decorr",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Caso qualquer QUOTA de qualquer QUOTISTA, ou direitos decorrentes daquelas QUOTAS, sejam penhorados, com decisão transitada em julgado ou qualquer outra decisão que possibilite a adjudicação ou liquidação das QUOTAS, os demais QUOTISTAS poderão exercer uma OPÇÃO DE COMPRA, observados os critérios abaixo."
  },
  {
-  "nome": "Acordo 189 Item — O QUOTISTA que, por ventura, tiver suas QUOTAS penhoradas (d…",
+  "nome": "Acordo 191 Item — O QUOTISTA que, por ventura, tiver suas QUOTAS penhoradas (d",
   "tipo": "item",
   "titulo": null,
   "conteudo": "O QUOTISTA que, por ventura, tiver suas QUOTAS penhoradas (doravante nominado “QUOTISTA INADIMPLENTE”) será notificado por qualquer outro QUOTISTA para regularizar a situação em um prazo de até 30 (trinta) dias, sob pena de qualquer outro QUOTISTA poder exercer a OPÇÃO DE COMPRA, sendo que nesta hipótese, a opção poderá recair apenas sobre parte das QUOTAS do QUOTISTA INADIMPLENTE."
  },
  {
-  "nome": "Acordo 190 Item — O QUOTISTA INADIMPLENTE poderá recomprar as QUOTAS sobre as …",
+  "nome": "Acordo 192 Item — O QUOTISTA INADIMPLENTE poderá recomprar as QUOTAS sobre as ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "O QUOTISTA INADIMPLENTE poderá recomprar as QUOTAS sobre as quais recaíram a OPÇÃO DE COMPRA, desde que exerça tal direito em até 05 (cinco) anos contados do exercício da OPÇÃO DE COMPRA em moeda corrente nacional, salvo se o QUOTISTA que exerceu a OPÇÃO DE COMPRA aceitar outra condição, prazo ou forma de pagamento."
  },
  {
-  "nome": "Acordo 191 Item — O preço de cada QUOTA objeto da recompra descrita no item an…",
+  "nome": "Acordo 193 Item — O preço de cada QUOTA objeto da recompra descrita no item an",
   "tipo": "item",
   "titulo": null,
   "conteudo": "O preço de cada QUOTA objeto da recompra descrita no item anterior será o maior dentre os valores adquiridos através das seguintes metodologias: (i) o VALOR DAS QUOTAS na data da OPÇÃO DE COMPRA exercida pelos outros QUOTISTAS, acrescido de juros de 1% (um por cento) ao mês e atualização monetária pelo ÍNDICE DE ATUALIZAÇÃO; ou, (ii) o VALOR DAS QUOTAS na data do exercício da recompra."
  },
  {
-  "nome": "Acordo 192 Item — Além do disposto nos itens acima, se dívidas particulares ve…",
+  "nome": "Acordo 194 Item — Além do disposto nos itens acima, se dívidas particulares ve",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Além do disposto nos itens acima, se dívidas particulares vencidas dos QUOTISTAS prejudicarem as atividades da {{ sociedade.nomeFantasia }} e/ou das SOCIEDADES RELACIONADAS, assim reconhecidas aquelas que inviabilizem a obtenção de qualquer financiamento, crédito ou restrinja qualquer operação comercial da {{ sociedade.nomeFantasia }} e/ou das SOCIEDADES RELACIONADAS, conforme seja reconhecido pela ALTA ADMINISTRAÇÃO, será adotada uma das medidas descritas adiante, a critério exclusivo do que os QUOTISTAS que representam a maioria das QUOTAS deliberarem em REUNIÃO PRÉVIA, REUNIÃO DE QUOTISTAS e/ou REUNIÕES DE SÓCIOS da {{ sociedade.nomeFantasia }}:"
  },
  {
-  "nome": "Acordo 193 Alínea — Tratando-se de dívida(s) até R$ 100.000,00 (cem mil reais), …",
+  "nome": "Acordo 195 Alínea — Tratando-se de dívida(s) até R$ 100.000,00 (cem mil reais), ",
   "tipo": "alinea",
   "titulo": null,
   "conteudo": "Tratando-se de dívida(s) até R$ 100.000,00 (cem mil reais), o QUOTISTA/devedor será notificado para adimplir a obrigação no prazo de 05 (cinco) dias, sob pena da {{ sociedade.nomeFantasia }} sub-rogar-se na dívida, quitando-a e, posteriormente, reter dos lucros que seriam efetivamente distribuídos ao QUOTISTA;"
  },
  {
-  "nome": "Acordo 194 Alínea — Tratando-se de dívida(s) superior a R$ 100.000,00 (cem mil r…",
+  "nome": "Acordo 196 Alínea — Tratando-se de dívida(s) superior a R$ 100.000,00 (cem mil r",
   "tipo": "alinea",
   "titulo": null,
   "conteudo": "Tratando-se de dívida(s) superior a R$ 100.000,00 (cem mil reais) até o valor de R$ 300.000,00 (trezentos mil reais), o QUOTISTA/devedor será notificado para adimplir a obrigação no prazo de 05 (cinco) dias, sob pena da {{ sociedade.nomeFantasia }} sub-rogar-se na dívida, quitando-a e, posteriormente, reter dos lucros efetivamente distribuídos ao QUOTISTA, sendo que neste caso, o valor será atualizado, pro rata die, pela variação do ÍNDICE DE ATUALIZAÇÃO;"
  },
  {
-  "nome": "Acordo 195 Alínea — Tratando-se de dívida(s) superior a R$ 300.000,00 (trezentos…",
+  "nome": "Acordo 197 Alínea — Tratando-se de dívida(s) superior a R$ 300.000,00 (trezentos",
   "tipo": "alinea",
   "titulo": null,
   "conteudo": "Tratando-se de dívida(s) superior a R$ 300.000,00 (trezentos mil reais), o QUOTISTA/devedor será notificado para adimplir a obrigação no prazo de 05 (cinco) dias, sob pena da {{ sociedade.nomeFantasia }} sub-rogar-se na dívida, quitando-a e, posteriormente, reter dos lucros efetivamente distribuídos ao QUOTISTA, sendo que neste caso, o valor será atualizado, pro rata die, pela variação do ÍNDICE DE ATUALIZAÇÃO, sendo que as QUOTAS destes QUOTISTA/devedor serão penhoradas, em garantia, até a efetiva quitação;"
  },
  {
-  "nome": "Acordo 196 Item — Os valores utilizados como referência previstos nas alíneas …",
+  "nome": "Acordo 198 Item — Os valores utilizados como referência previstos nas alíneas ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os valores utilizados como referência previstos nas alíneas do item anterior serão atualizados independente de atualização deste ACORDO pelo ÍNDICE DE ATUALIZAÇÃO à data do efetivo exercício dos direitos previstos nele."
  },
  {
-  "nome": "Acordo 197 Item — Qualquer que seja a postura adotada pela «empresa» prevista …",
+  "nome": "Acordo 199 Item — Qualquer que seja a postura adotada pela «empresa» prevista ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Qualquer que seja a postura adotada pela {{ sociedade.nomeFantasia }} prevista nesta Cláusula, os QUOTISTAS obrigam-se, por si e/ou por seus sucessores a qualquer título, desde já, a aceitar e implementar a decisão da {{ sociedade.nomeFantasia }}, obrigando-se também, a adotar todos os procedimentos, a comparecer, a celebrar e/ou assinar todos os documentos, contratos, e atos societários que se fizerem necessários para a implementação e/ou adoção da referida postura adotada pela {{ sociedade.nomeFantasia }}, conforme acima previsto."
  },
  {
-  "nome": "Acordo 198 Cláusula — Política de reinvestimentos, reservas e distribuição de lucr…",
+  "nome": "Acordo 200 Cláusula — Política de reinvestimentos, reservas e distribuição de lucr",
   "tipo": "clausula",
   "titulo": "Política de reinvestimentos, reservas e distribuição de lucros.",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 199 Item — As políticas de reinvestimentos, reservas e de distribuição …",
+  "nome": "Acordo 201 Item — As políticas de reinvestimentos, reservas e de distribuição ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As políticas de reinvestimentos, reservas e de distribuição de lucros da {{ sociedade.nomeFantasia }} e de suas SOCIEDADES CONTROLADAS serão pautadas pelas normas previstas em seu contrato social e nos seguintes critérios:"
  },
  {
-  "nome": "Acordo 200 Inciso — austeridade na condução dos negócios, levando em consideraçã…",
+  "nome": "Acordo 202 Inciso — austeridade na condução dos negócios, levando em consideraçã",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "austeridade na condução dos negócios, levando em consideração o estabelecimento de reservas suficientes para garantia da manutenção da {{ sociedade.nomeFantasia }} e das demais SOCIEDADES RELACIONADAS em fase desfavorável de mercado;"
  },
  {
-  "nome": "Acordo 201 Inciso — a distribuição de lucros deve ser conservadora para permitir…",
+  "nome": "Acordo 203 Inciso — a distribuição de lucros deve ser conservadora para permitir",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "a distribuição de lucros deve ser conservadora para permitir o crescimento sustentável da {{ sociedade.nomeFantasia }} e das demais SOCIEDADES RELACIONADAS;"
  },
  {
-  "nome": "Acordo 202 Inciso — as decisões a serem tomadas pelos QUOTISTAS com relação a es…",
+  "nome": "Acordo 204 Inciso — as decisões a serem tomadas pelos QUOTISTAS com relação a es",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "as decisões a serem tomadas pelos QUOTISTAS com relação a estas matérias terão como base: (a) a situação patrimonial atual da {{ sociedade.nomeFantasia }} e eventualmente das SOCIEDADES RELACIONADAS; (b) a projeção de resultados para o período subsequente e os orçamentos previstos para os próximos 02 (dois) anos aprovados pela ALTA ADMINISTRAÇÃO, contendo, em ambos os casos, as perspectivas de novos endividamentos da {{ sociedade.nomeFantasia }} e eventualmente das SOCIEDADES RELACIONADAS, com a perspectiva de crescimento e de novos investimentos; e, (c) a recomendação da ALTA ADMINISTRAÇÃO, com relação a possibilidade, ou não, de se distribuir o total do lucro líquido apurado no exercício e até mesmo os lucros mínimos obrigatórios, sem colocar em risco a {{ sociedade.nomeFantasia }} e as SOCIEDADES RELACIONADAS."
  },
  {
-  "nome": "Acordo 203 Item — Os QUOTISTAS declaram, desde logo e expressamente, que pauta…",
+  "nome": "Acordo 205 Item — Os QUOTISTAS declaram, desde logo e expressamente, que pauta",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS declaram, desde logo e expressamente, que pautarão seus votos sobre as matérias específicas desta cláusula a partir da premissa de que o futuro e o desenvolvimento da {{ sociedade.nomeFantasia }} e das demais SOCIEDADES RELACIONADAS devem sempre ser privilegiados em detrimento dos interesses pessoais e individuais dos QUOTISTAS."
  },
  {
-  "nome": "Acordo 204 Cláusula — Do VALOR DA QUOTA",
+  "nome": "Acordo 206 Cláusula — Do VALOR DA QUOTA",
   "tipo": "clausula",
   "titulo": "Do VALOR DA QUOTA",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 205 Item — Para fins deste ACORDO, os QUOTISTAS declaram de modo irretr…",
+  "nome": "Acordo 207 Item — Para fins deste ACORDO, os QUOTISTAS declaram de modo irretr",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Para fins deste ACORDO, os QUOTISTAS declaram de modo irretratável e irrevogável que o preço de cada QUOTA será o VALOR DA QUOTA, o qual será calculado por empresa independente, eleita por quotistas que sejam titulares da maioria do direito a VOTO em REUNIÃO DE QUOTISTAS, REUNIÃO PRÉVIA ou REUNIÃO DE SÓCIOS."
  },
  {
-  "nome": "Acordo 206 Item — Apesar do disposto no item acima, os QUOTISTAS poderão, em s…",
+  "nome": "Acordo 208 Item — Apesar do disposto no item acima, os QUOTISTAS poderão, em s",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Apesar do disposto no item acima, os QUOTISTAS poderão, em substituição ao método de avaliação descrito, estabelecer em comum acordo o VALOR DA QUOTA em documento apartado, no qual sejam signatários todos os QUOTISTAS."
  },
  {
-  "nome": "Acordo 207 Cláusula — Do descumprimento das regras deste ACORDO",
+  "nome": "Acordo 209 Cláusula — Do descumprimento das regras deste ACORDO",
   "tipo": "clausula",
   "titulo": "Do descumprimento das regras deste ACORDO",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 208 Item — Caso qualquer um dos QUOTISTAS descumpra o disposto neste AC…",
+  "nome": "Acordo 210 Item — Caso qualquer um dos QUOTISTAS descumpra o disposto neste AC",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Caso qualquer um dos QUOTISTAS descumpra o disposto neste ACORDO, ou seja conivente com conduta da {{ sociedade.nomeFantasia }} e/ou de suas SOCIEDADES RELACIONADAS que incorra, direta ou indiretamente, no descumprimento daquelas cláusulas, qualquer outro QUOTISTA ou a própria {{ sociedade.nomeFantasia }} poderá notificá-lo para que, em um prazo máximo de 60 (sessenta) dias contados do recebimento da referida notificação, deixe de descumprir as normas estabelecidas naquelas cláusulas, sob pena de, a exclusivo critério do notificante, poder ser exercida as medidas abaixo “cumulativamente”:"
  },
  {
-  "nome": "Acordo 209 Inciso — exercer os direitos previstos na Cláusula de Solução de Lití…",
+  "nome": "Acordo 211 Inciso — exercer os direitos previstos na Cláusula de Solução de Lití",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "exercer os direitos previstos na Cláusula de Solução de Litígios e exigir a abertura de procedimento arbitral, solicitando ainda, que seja fixada uma multa diária até que cesse o descumprimento, multa esta em valor não inferior a 0,01% do Patrimônio Líquido da {{ sociedade.nomeFantasia }} apurado em seu último balanço levado à aprovação dos sócios ou R$ 30.000,00 (trinta mil reais), o valor que for maior, sendo que este valor será atualizado da data da assinatura deste ACORDO à data da fixação da multa pelo ÍNDICE DE ATUALIZAÇÃO;"
  },
  {
-  "nome": "Acordo 210 Inciso — aplicação de uma OPÇÃO DE VENDA que incidirá sobre todas ou …",
+  "nome": "Acordo 212 Inciso — aplicação de uma OPÇÃO DE VENDA que incidirá sobre todas ou ",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "aplicação de uma OPÇÃO DE VENDA que incidirá sobre todas ou parte das QUOTAS do QUOTISTA que descumpriu o ACORDO;"
  },
  {
-  "nome": "Acordo 211 Inciso — multa meramente punitiva correspondente a 05% (cinco) por ce…",
+  "nome": "Acordo 213 Inciso — multa meramente punitiva correspondente a 05% (cinco) por ce",
   "tipo": "inciso",
   "titulo": null,
   "conteudo": "multa meramente punitiva correspondente a 05% (cinco) por cento do VALOR DAS QUOTAS das QUOTAS do QUOTISTA que descumpriu o ACORDO."
  },
  {
-  "nome": "Acordo 212 Item — A OPÇÃO DE VENDA descrita no item acima só será exercida se …",
+  "nome": "Acordo 214 Item — A OPÇÃO DE VENDA descrita no item acima só será exercida se ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "A OPÇÃO DE VENDA descrita no item acima só será exercida se aprovada por QUOTISTAS que possuam a maioria do direito a VOTO, podendo ser exigido, além das penas previstas nesta e nas demais cláusulas, eventuais perdas e danos causados à {{ sociedade.nomeFantasia }}, às suas SOCIEDADES RELACIONADAS, aos QUOTISTAS e/ou TERCEIROS."
  },
  {
-  "nome": "Acordo 213 Cláusula — Do representante dos QUOTISTAS",
+  "nome": "Acordo 215 Cláusula — Do representante dos QUOTISTAS",
   "tipo": "clausula",
   "titulo": "Do representante dos QUOTISTAS",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 214 Item — Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/c art.…",
+  "nome": "Acordo 216 Item — Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/c art.",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/c art. 1.053, parágrafo único do Código Civil, os QUOTISTAS elegem {{ acordo.representanteArtigo }} {{ acordo.representanteTratamento }} {{ acordo.representanteNome }} como representante dos QUOTISTAS, o qual será substituído por outro QUOTISTA caso ocorra o falecimento ou seja declarada a sua incapacidade civil, conforme os QUOTISTAS decidam em REUNIÃO DE QUOTISTAS, convocada para este fim."
  },
  {
-  "nome": "Acordo 215 Cláusula — Da Vigência e do arquivamento deste ACORDO",
+  "nome": "Acordo 217 Cláusula — Da Vigência e do arquivamento deste ACORDO",
   "tipo": "clausula",
   "titulo": "Da Vigência e do arquivamento deste ACORDO",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 216 Item — Este ACORDO entrará em vigor na data de sua assinatura e ass…",
+  "nome": "Acordo 218 Item — Este ACORDO entrará em vigor na data de sua assinatura e ass",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Este ACORDO entrará em vigor na data de sua assinatura e assim permanecerá por um período de {{ acordo.vigenciaAnosNumeral }} ({{ acordo.vigenciaAnosExtenso }}) anos."
  },
  {
-  "nome": "Acordo 217 Item — É assegurada a modificação deste ACORDO, a qualquer tempo, d…",
+  "nome": "Acordo 219 Item — É assegurada a modificação deste ACORDO, a qualquer tempo, d",
   "tipo": "item",
   "titulo": null,
   "conteudo": "É assegurada a modificação deste ACORDO, a qualquer tempo, desde que todos os QUOTISTAS assinem em conjunto o respectivo termo aditivo."
  },
  {
-  "nome": "Acordo 218 Cláusula — Do arquivamento do presente ACORDO",
+  "nome": "Acordo 220 Cláusula — Do arquivamento do presente ACORDO",
   "tipo": "clausula",
   "titulo": "Do arquivamento do presente ACORDO",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 219 Item — Este ACORDO será arquivado na sede da «empresa» e as disposi…",
+  "nome": "Acordo 221 Item — Este ACORDO será arquivado na sede da «empresa» e as disposi",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Este ACORDO será arquivado na sede da {{ sociedade.nomeFantasia }} e as disposições nele contidas obrigarão aos QUOTISTAS e a {{ sociedade.nomeFantasia }} na qualidade de “INTERVENIENTE ANUENTE”, conforme artigo 118 da Lei das S/A c/c art. 1.053, parágrafo único do Código Civil."
  },
  {
-  "nome": "Acordo 220 Item — A «empresa» fará constar, nos seus livros e registros apropr…",
+  "nome": "Acordo 222 Item — A «empresa» fará constar, nos seus livros e registros apropr",
   "tipo": "item",
   "titulo": null,
   "conteudo": "A {{ sociedade.nomeFantasia }} fará constar, nos seus livros e registros apropriados, as obrigações decorrentes deste ACORDO, de forma a tornar suas disposições oponíveis a TERCEIROS."
  },
  {
-  "nome": "Acordo 221 Cláusula — REUNIÕES PRÉVIAS e REUNIÕES DOS QUOTISTAS",
+  "nome": "Acordo 223 Cláusula — REUNIÕES PRÉVIAS e REUNIÕES DOS QUOTISTAS",
   "tipo": "clausula",
   "titulo": "REUNIÕES PRÉVIAS e REUNIÕES DOS QUOTISTAS",
   "conteudo": "",
@@ -1476,7 +1494,7 @@
   ]
  },
  {
-  "nome": "Acordo 222 Item — As REUNIÕES PRÉVIAS ou REUNIÕES DE QUOTISTAS serão convocada…",
+  "nome": "Acordo 224 Item — As REUNIÕES PRÉVIAS ou REUNIÕES DE QUOTISTAS serão convocada",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As REUNIÕES PRÉVIAS ou REUNIÕES DE QUOTISTAS serão convocadas para que os QUOTISTAS deliberem sobre as matérias sujeitas ao presente ACORDO, na qual cada QUOTISTA terá direito a um VOTO para cada QUOTA da {{ sociedade.nomeFantasia }} que for proprietário na data em que for realizada a reunião, sendo que as reuniões e suas deliberações serão consignadas em Ata, que será registrada na sede da {{ sociedade.nomeFantasia }} e da qual serão extraídas cópias a serem entregues para cada um dos QUOTISTAS e demais sócios daquela sociedade.",
@@ -1485,7 +1503,7 @@
   ]
  },
  {
-  "nome": "Acordo 223 Item — As deliberações das REUNIÕES PRÉVIAS e REUNIÕES DOS QUOTISTA…",
+  "nome": "Acordo 225 Item — As deliberações das REUNIÕES PRÉVIAS e REUNIÕES DOS QUOTISTA",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As deliberações das REUNIÕES PRÉVIAS e REUNIÕES DOS QUOTISTAS serão consideradas aprovadas quando obtiverem votos favoráveis dos QUOTISTAS que representem a maioria das QUOTAS, tendo cada QUOTISTA direito a um VOTO para cada QUOTA que for proprietário na data da realização do ato, ressalvadas as matérias que este ACORDO demande quórum específico.",
@@ -1494,7 +1512,7 @@
   ]
  },
  {
-  "nome": "Acordo 224 Item — As deliberações adotadas pelos QUOTISTAS nas REUNIÕES PRÉVIA…",
+  "nome": "Acordo 226 Item — As deliberações adotadas pelos QUOTISTAS nas REUNIÕES PRÉVIA",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As deliberações adotadas pelos QUOTISTAS nas REUNIÕES PRÉVIAS e REUNIÃO DE QUOTISTAS constituirão Acordos de Voto, de forma a definir e vincular o voto dos QUOTISTAS a serem proferidos, sempre em bloco e de modo uniforme, nas respectivas REUNIÕES DE SÓCIOS; devendo tais acordos de voto serem rigorosamente observados pela {{ sociedade.nomeFantasia }} e pelos QUOTISTAS, nos termos da Lei das S/A c/c com o Parágrafo Único do Art. 1.053 do Código Civil.",
@@ -1503,7 +1521,7 @@
   ]
  },
  {
-  "nome": "Acordo 225 Item — Nas REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS serão eleitos u…",
+  "nome": "Acordo 227 Item — Nas REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS serão eleitos u",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Nas REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS serão eleitos um presidente para que conduza a reunião e um secretário de mesa para que este transcreva em ata os acontecimentos e deliberações da reunião.",
@@ -1512,7 +1530,7 @@
   ]
  },
  {
-  "nome": "Acordo 226 Item — As REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS poderão ser conv…",
+  "nome": "Acordo 228 Item — As REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS poderão ser conv",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS poderão ser convocadas por QUOTISTAS que representem, no mínimo, {{ acordo.quorumReuniaoPrevia }} das QUOTAS na data da convocação, e deverá (i) constar data e horário da reunião; e (ii) ser encaminhada aos demais QUOTISTAS mediante notificação, por escrito, nos termos previstos neste ACORDO para tais fins; mas elas serão instaladas e as deliberações delas só serão consideradas válidas se, no momento de sua instalação, os QUOTISTAS detentores da maioria das QUOTAS estiverem presentes, pessoalmente ou com procuração específica outorgada nos termos da lei.",
@@ -1521,7 +1539,7 @@
   ]
  },
  {
-  "nome": "Acordo 227 Item — As REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS sempre serão rea…",
+  "nome": "Acordo 229 Item — As REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS sempre serão rea",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS sempre serão realizadas na sede da {{ sociedade.nomeFantasia }}, a qual se compromete a fornecer espaço para a realização dos atos.",
@@ -1530,7 +1548,7 @@
   ]
  },
  {
-  "nome": "Acordo 228 Item — As REUNIÕES PRÉVIAS que precederem as REUNIÕES DE SÓCIOS dev…",
+  "nome": "Acordo 230 Item — As REUNIÕES PRÉVIAS que precederem as REUNIÕES DE SÓCIOS dev",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As REUNIÕES PRÉVIAS que precederem as REUNIÕES DE SÓCIOS deverão ser realizadas até 05 (cinco) dias antes da data da realização da REUNIÃO DE SÓCIOS em questão e deverão ser convocadas com antecedência mínima de 07 (sete) dias; e as demais, nominadas REUNIÃO DE QUOTISTAS, poderão ser realizadas há qualquer tempo desde que convocadas com 15 (quinze) dias de antecedência.",
@@ -1539,7 +1557,7 @@
   ]
  },
  {
-  "nome": "Acordo 229 Item — As REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS poderão ser real…",
+  "nome": "Acordo 231 Item — As REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS poderão ser real",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS poderão ser realizadas por teleconferência ou videoconferência, devendo-se observar as regras de convocação previstas neste ACORDO, caso em que os QUOTISTAS presentes de forma virtual assinarão a ata da reunião por fax, e-mail ou meios similares e enviarão via correio o documento original devidamente assinado; ou ainda, dependendo do teor das deliberações, celeridade e necessidade de formalização, poderão optar pela coleta das assinaturas com certificado digital.",
@@ -1548,7 +1566,7 @@
   ]
  },
  {
-  "nome": "Acordo 230 Item — Se não forem realizadas REUNIÕES PRÉVIAS ou REUNIÕES DE QUOT…",
+  "nome": "Acordo 232 Item — Se não forem realizadas REUNIÕES PRÉVIAS ou REUNIÕES DE QUOT",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Se não forem realizadas REUNIÕES PRÉVIAS ou REUNIÕES DE QUOTISTAS, qualquer QUOTISTA poderá requerer a suspensão da REUNIÃO DE SÓCIOS da {{ sociedade.nomeFantasia }} para que seja realizada uma REUNIÃO PRÉVIA durante esta suspensão, independente de convocação, a fim de que sejam deliberadas as matérias sujeitas a quórum específico tratado neste ACORDO. Retomada a REUNIÃO DE SÓCIOS após a realização da REUNIÃO PRÉVIA, os QUOTISTAS votarão em conjunto consoante ao que decidirem naquela REUNIÃO PRÉVIA, aplicando-se, em todos os casos, o disposto nesta cláusula, em especial com relação ao Acordo de Voto, podendo cada QUOTISTA valer-se da Ata da REUNIÃO PRÉVIA como instrumento de mandato irrevogável e irretratável para o exercício do direito de voto dos demais QUOTISTAS (inclusive dos ausentes), nos termos estabelecidos naquela solenidade e transcrito na ata.",
@@ -1557,163 +1575,163 @@
   ]
  },
  {
-  "nome": "Acordo 231 Cláusula — Estipulações Finais",
+  "nome": "Acordo 233 Cláusula — Estipulações Finais",
   "tipo": "clausula",
   "titulo": "Estipulações Finais",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 232 Item — Todas as obrigações assumidas neste ACORDO são irretratáveis…",
+  "nome": "Acordo 234 Item — Todas as obrigações assumidas neste ACORDO são irretratáveis",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Todas as obrigações assumidas neste ACORDO são irretratáveis e irrevogáveis e se sujeitam a execução específica, nos termos da Lei das S/A c/c o parágrafo único do artigo 1.053 do Código Civil, sendo facultado aos QUOTISTAS prejudicados, utilizar das QUOTAS dispostas neste ACORDO para verem respeitado o que estiver estabelecido nele, obrigando os QUOTISTAS e a {{ sociedade.nomeFantasia }}, por si, seus herdeiros e sucessores a qualquer título."
  },
  {
-  "nome": "Acordo 233 Item — Os QUOTISTAS deverão cumprir integralmente as obrigações obj…",
+  "nome": "Acordo 235 Item — Os QUOTISTAS deverão cumprir integralmente as obrigações obj",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS deverão cumprir integralmente as obrigações objeto deste ACORDO, inclusive comparecer às REUNIÕES DE SÓCIOS, as REUNIÕES PRÉVIAS e DE QUOTISTAS, pessoalmente, através de seu representante legal, ou através de procurador devidamente nomeado, nos termos da lei, nelas votando em estrita consonância com o disposto neste ACORDO, cientes de que referidas obrigações estão sujeitas à execução específica."
  },
  {
-  "nome": "Acordo 234 Item — Cada QUOTISTA terá o direito de solicitar separadamente à AD…",
+  "nome": "Acordo 236 Item — Cada QUOTISTA terá o direito de solicitar separadamente à AD",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Cada QUOTISTA terá o direito de solicitar separadamente à ADMINISTRAÇÃO da {{ sociedade.nomeFantasia }} que declare inválido e inoperante qualquer voto ou ato exercido contrariamente às disposições do presente, independentemente de qualquer medida judicial ou extrajudicial."
  },
  {
-  "nome": "Acordo 235 Item — O presente ACORDO substitui, no tocante às matérias versadas…",
+  "nome": "Acordo 237 Item — O presente ACORDO substitui, no tocante às matérias versadas",
   "tipo": "item",
   "titulo": null,
   "conteudo": "O presente ACORDO substitui, no tocante às matérias versadas no mesmo, todos os entendimentos anteriores havidos, orais ou escritos, inclusive aqueles assinados pelos QUOTISTAS, ainda que apenas parte dos QUOTISTAS sejam signatários destes outros entendimentos."
  },
  {
-  "nome": "Acordo 236 Item — Nenhum dos QUOTISTAS celebrará quaisquer outros instrumentos…",
+  "nome": "Acordo 238 Item — Nenhum dos QUOTISTAS celebrará quaisquer outros instrumentos",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Nenhum dos QUOTISTAS celebrará quaisquer outros instrumentos entre si ou com TERCEIROS regendo as matérias mencionadas neste ACORDO sem a aprovação prévia e por escrito de cada um dos demais QUOTISTAS."
  },
  {
-  "nome": "Acordo 237 Item — Os QUOTISTAS, desde logo, se obrigam a firmar, ratificar ou …",
+  "nome": "Acordo 239 Item — Os QUOTISTAS, desde logo, se obrigam a firmar, ratificar ou ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS, desde logo, se obrigam a firmar, ratificar ou retificar todos os instrumentos, termos, contratos ou requerimentos que se façam necessários, bem como a cumprir quaisquer formalidades necessárias a fim de garantir a eficácia do presente ACORDO e dar cumprimento às obrigações estabelecidas no mesmo."
  },
  {
-  "nome": "Acordo 238 Item — Os QUOTISTAS envidarão seus melhores esforços para resolver,…",
+  "nome": "Acordo 240 Item — Os QUOTISTAS envidarão seus melhores esforços para resolver,",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS envidarão seus melhores esforços para resolver, de boa-fé e em conformidade com os interesses da {{ sociedade.nomeFantasia }}, todas as disputas e controvérsias resultantes ou relacionadas a este ACORDO ou às relações entre os QUOTISTAS."
  },
  {
-  "nome": "Acordo 239 Item — A «empresa» anui expressamente com todas as disposições, obj…",
+  "nome": "Acordo 241 Item — A «empresa» anui expressamente com todas as disposições, obj",
   "tipo": "item",
   "titulo": null,
   "conteudo": "A {{ sociedade.nomeFantasia }} anui expressamente com todas as disposições, objeto deste ACORDO, obrigando-se a cumpri-las, naquilo que lhe for atinente, inclusive no dever de arquivamento do presente em sua sede e informação dos atos ou livros societários que forem necessários."
  },
  {
-  "nome": "Acordo 240 Item — Sempre que possível cada disposição deste ACORDO deverá ser …",
+  "nome": "Acordo 242 Item — Sempre que possível cada disposição deste ACORDO deverá ser ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Sempre que possível cada disposição deste ACORDO deverá ser interpretada de maneira a ser eficaz e válida segundo as leis brasileiras aplicáveis, mas caso qualquer disposição do presente seja entendida como sendo inválida, ilegal ou inexequível a qualquer título, a referida cláusula e tais fatos não deverão afetar qualquer outra disposição do ACORDO."
  },
  {
-  "nome": "Acordo 241 Item — As disposições deste ACORDO vincularão e reverterão, de form…",
+  "nome": "Acordo 243 Item — As disposições deste ACORDO vincularão e reverterão, de form",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As disposições deste ACORDO vincularão e reverterão, de forma irrevogável e irretratável, em benefício dos QUOTISTAS, de seus respectivos herdeiros, sucessores e cessionários, que deverão cumprir o presente ACORDO, conforme aqui previsto."
  },
  {
-  "nome": "Acordo 242 Item — Os direitos e obrigações dos QUOTISTAS nos termos deste inst…",
+  "nome": "Acordo 244 Item — Os direitos e obrigações dos QUOTISTAS nos termos deste inst",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os direitos e obrigações dos QUOTISTAS nos termos deste instrumento não poderão ser transferidos ou cedidos, em sua totalidade ou parcialmente, salvo se expressamente previsto neste ACORDO ou mediante o consentimento prévio por escrito dos outros QUOTISTAS."
  },
  {
-  "nome": "Acordo 243 Item — Todas as notificações ou comunicações mencionadas ou que dig…",
+  "nome": "Acordo 245 Item — Todas as notificações ou comunicações mencionadas ou que dig",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Todas as notificações ou comunicações mencionadas ou que digam respeito a este ACORDO, incluindo as convocações para as REUNIÕES PRÉVIAS e/ou REUNIÕES DE QUOTISTAS, serão enviadas por quaisquer QUOTISTAS aos demais, à {{ sociedade.nomeFantasia }} ou por esta aos QUOTISTAS, realizadas por escrito e enviadas ao endereço físico e ao e-mail (endereço eletrônico) da outra parte, se houver, sendo ambos endereços aqueles previstos na qualificação deste ACORDO; e, igualmente, deverá ser encaminhada cópia destas comunicações ao REPRESENTANTE DA ADMINISTRAÇÃO."
  },
  {
-  "nome": "Acordo 244 Item — As comunicações e/ou notificações aos endereços físicos desc…",
+  "nome": "Acordo 246 Item — As comunicações e/ou notificações aos endereços físicos desc",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As comunicações e/ou notificações aos endereços físicos descritos na qualificação serão consideradas recebidas, para fins deste ACORDO, quando confirmada a leitura (se enviadas ao endereço eletrônico) e/ou recebidas no endereço físico com a assinatura do QUOTISTA no aviso de recebimento."
  },
  {
-  "nome": "Acordo 245 Item — Caso as notificações descritas acima não sejam recebidas, em…",
+  "nome": "Acordo 247 Item — Caso as notificações descritas acima não sejam recebidas, em",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Caso as notificações descritas acima não sejam recebidas, em substituição àquelas comunicações, o REPRESENTANTE dos QUOTISTAS previsto neste ACORDO, poderá isoladamente emitir uma convocação por publicação em jornal, a qual, independente da leitura das partes, será considerada válida para todos os fins de direito."
  },
  {
-  "nome": "Acordo 246 Subitem — A publicação anterior, deverá ser realizada, por três vezes,…",
+  "nome": "Acordo 248 Subitem — A publicação anterior, deverá ser realizada, por três vezes,",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "A publicação anterior, deverá ser realizada, por três vezes, em dias úteis consecutivos, no jornal de maior circulação do município de {{ sociedade.sedeMunicipio }}, estado {{ sociedade.sedeUfComPreposicao }}."
  },
  {
-  "nome": "Acordo 247 Subitem — Fica dispensada a convocação formal nos termos propostos nos…",
+  "nome": "Acordo 249 Subitem — Fica dispensada a convocação formal nos termos propostos nos",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "Fica dispensada a convocação formal nos termos propostos nos itens acima para as REUNIÕES PRÉVIAS e REUNIÕES DE QUOTISTAS se todos se fizerem presentes nestes respectivos atos."
  },
  {
-  "nome": "Acordo 248 Item — Este ACORDO e quaisquer alterações posteriores será devidame…",
+  "nome": "Acordo 250 Item — Este ACORDO e quaisquer alterações posteriores será devidame",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Este ACORDO e quaisquer alterações posteriores será devidamente mencionado no contrato social da {{ sociedade.nomeFantasia }} e, de acordo com o os QUOTISTAS que representem a maioria das QUOTAS decidam, poderá ser levado à registro na Junta Comercial da sede da sociedade. A {{ sociedade.nomeFantasia }} será responsável por zelar pelo seu cumprimento, recusando-se a registrar nos seus livros e registros societários, quaisquer atos ou omissões em violação a este ACORDO, e a comunicar imediatamente aos QUOTISTAS qualquer ato ou omissão que possa causar uma violação deste ACORDO."
  },
  {
-  "nome": "Acordo 249 Item — Para certificar que os atos dos QUOTISTAS foram realizados e…",
+  "nome": "Acordo 251 Item — Para certificar que os atos dos QUOTISTAS foram realizados e",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Para certificar que os atos dos QUOTISTAS foram realizados em conformidade com o presente ACORDO, a {{ sociedade.nomeFantasia }} deverá notificar os QUOTISTAS de todo e qualquer ato que importe alteração ou inclusão de informações e apontamentos realizados nos livros e registros societários que sejam regulados por força deste ACORDO."
  },
  {
-  "nome": "Acordo 250 Item — Os QUOTISTAS reconhecem que sem prejuízo das perdas e danos …",
+  "nome": "Acordo 252 Item — Os QUOTISTAS reconhecem que sem prejuízo das perdas e danos ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS reconhecem que sem prejuízo das perdas e danos que possam ser reivindicados e de qualquer outro recurso ou medida disponível, qualquer obrigação referida no presente ACORDO que seja descumprida por quaisquer dos QUOTISTAS poderá ser objeto de execução específica, mediante ordem arbitral ou judicial, conforme definido na Cláusula de Solução de Litígios, para suprir ou substituir tal ato, voto ou medida praticada, recusado ou omitido em desacordo com as disposições deste ACORDO, nos termos do parágrafo 3° do artigo 118 da Lei 6.404/76."
  },
  {
-  "nome": "Acordo 251 Item — Os QUOTISTAS reconhecem que este ACORDO constitui um título …",
+  "nome": "Acordo 253 Item — Os QUOTISTAS reconhecem que este ACORDO constitui um título ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS reconhecem que este ACORDO constitui um título executivo extrajudicial, nos termos da legislação processual civil."
  },
  {
-  "nome": "Acordo 252 Item — Caso qualquer disposição deste ACORDO se torne nula, sem efe…",
+  "nome": "Acordo 254 Item — Caso qualquer disposição deste ACORDO se torne nula, sem efe",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Caso qualquer disposição deste ACORDO se torne nula, sem efeito ou inexequível, a validade ou eficácia das disposições restantes não serão afetadas, permanecendo em pleno vigor e efeito e, em tal caso, os QUOTISTAS negociarão em boa-fé visando substituir a disposição nula, sem efeito ou inexequível por outra que atinja os efeitos desejados."
  },
  {
-  "nome": "Acordo 253 Item — Nenhuma alteração deste ACORDO será considerada válida com r…",
+  "nome": "Acordo 255 Item — Nenhuma alteração deste ACORDO será considerada válida com r",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Nenhuma alteração deste ACORDO será considerada válida com relação a um QUOTISTA ou à {{ sociedade.nomeFantasia }}, ou o obrigará, a menos que essa alteração seja feita por escrito e devidamente assinada pelo QUOTISTA."
  },
  {
-  "nome": "Acordo 254 Item — O não exercício de qualquer direito, poder ou privilégio est…",
+  "nome": "Acordo 256 Item — O não exercício de qualquer direito, poder ou privilégio est",
   "tipo": "item",
   "titulo": null,
   "conteudo": "O não exercício de qualquer direito, poder ou privilégio estabelecido neste ACORDO, ou demora no seu exercício, não constituirá renúncia, desistência, novação ou remissão, nem qualquer exercício isolado ou parcial de direito impedirá qualquer outro exercício de direito, presente ou futuro, total ou parcial, que esteja previsto neste ACORDO, exceto com relação a prazos e condições que este ACORDO expressamente afirmar que a demora caracterizará renúncia, desistência e/ou decadência de eventual direito do QUOTISTA."
  },
  {
-  "nome": "Acordo 255 Item — Caso a ADMINISTRAÇÃO da «empresa» deixe de observar as regra…",
+  "nome": "Acordo 257 Item — Caso a ADMINISTRAÇÃO da «empresa» deixe de observar as regra",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Caso a ADMINISTRAÇÃO da {{ sociedade.nomeFantasia }} deixe de observar as regras estabelecidas no presente ACORDO, os QUOTISTAS se comprometem a encaminhar pedido a este órgão para que observem o previsto neste ACORDO, e, não sendo acolhido o pedido dos QUOTISTAS, estes convocarão REUNIÃO DE SÓCIOS da {{ sociedade.nomeFantasia }} onde será deliberado o que for necessário para que ele seja cumprido."
  },
  {
-  "nome": "Acordo 256 Cláusula — Da solução de Litígios",
+  "nome": "Acordo 258 Cláusula — Da solução de Litígios",
   "tipo": "clausula",
   "titulo": "Da solução de Litígios",
   "conteudo": ""
  },
  {
-  "nome": "Acordo 257 Item — Todas as disputas decorrentes de ou relacionadas a este ACOR…",
+  "nome": "Acordo 259 Item — Todas as disputas decorrentes de ou relacionadas a este ACOR",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Todas as disputas decorrentes de ou relacionadas a este ACORDO, incluindo qualquer questão com relação à sua existência, validade ou rescisão, deverão ser necessariamente, de forma definitiva e irrecorrível, resolvidas por arbitragem, a ser instituída e realizada de acordo com as Regras de Arbitragem da {{ acordo.camaraArbitral }} (“Regras de Arbitragem”), cuja decisão arbitral será definitiva e vinculará os QUOTISTAS, a {{ sociedade.nomeFantasia }} e seus sucessores.",
@@ -1722,7 +1740,7 @@
   ]
  },
  {
-  "nome": "Acordo 258 Item — As PARTES declaram expressamente que receberam uma via do RE…",
+  "nome": "Acordo 260 Item — As PARTES declaram expressamente que receberam uma via do RE",
   "tipo": "item",
   "titulo": null,
   "conteudo": "As PARTES declaram expressamente que receberam uma via do REGULAMENTO DE Arbitragem vigente na data da assinatura deste ACORDO e que debateram todos os aspectos do referido regulamento, aceitando-o em todos os seus termos e condições.",
@@ -1731,7 +1749,7 @@
   ]
  },
  {
-  "nome": "Acordo 259 Item — Os QUOTISTAS acordam desde já, que o número de árbitros será…",
+  "nome": "Acordo 261 Item — Os QUOTISTAS acordam desde já, que o número de árbitros será",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS acordam desde já, que o número de árbitros será de 03 (três){{#acordo.arbitrosPelasPartes}}, sendo um nomeado pelo reclamante, o outro pela parte reclamada e o terceiro a ser eleito por aqueles dois outros árbitros{{/acordo.arbitrosPelasPartes}}{{#acordo.arbitrosPelaCamara}}, os quais serão nomeados conforme o regulamento da {{ acordo.camaraArbitral }}{{/acordo.arbitrosPelaCamara}}.",
@@ -1740,7 +1758,7 @@
   ]
  },
  {
-  "nome": "Acordo 260 Item — O local de arbitragem será a cidade de «foroEleitoComarca», …",
+  "nome": "Acordo 262 Item — O local de arbitragem será a cidade de «foroEleitoComarca», ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "O local de arbitragem será a cidade de {{ acordo.foroEleitoComarca }}, estado {{ acordo.foroEleitoEstadoComPreposicao }}, onde a decisão arbitral será proferida.",
@@ -1749,7 +1767,7 @@
   ]
  },
  {
-  "nome": "Acordo 261 Item — Os QUOTISTAS têm plena consciência e ciência de todos os ter…",
+  "nome": "Acordo 263 Item — Os QUOTISTAS têm plena consciência e ciência de todos os ter",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Os QUOTISTAS têm plena consciência e ciência de todos os termos e efeitos da cláusula arbitral prevista neste instrumento, e irrevogavelmente concordam que quaisquer disputas decorrentes ou relacionadas ao presente ACORDO serão exclusivamente resolvidas por arbitragem.",
@@ -1758,31 +1776,31 @@
   ]
  },
  {
-  "nome": "Acordo 262 Item — Com o objetivo exclusivo de solicitar uma medida liminar ou …",
+  "nome": "Acordo 264 Item — Com o objetivo exclusivo de solicitar uma medida liminar ou ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Com o objetivo exclusivo de solicitar uma medida liminar ou cautelar, seja ela preventiva, provisória ou permanente, os QUOTISTAS e a {{ sociedade.nomeFantasia }} elegem o foro da cidade de {{ acordo.foroEleitoComarca }}, estado {{ acordo.foroEleitoEstadoComPreposicao }}, por mais privilegiado outro o seja."
  },
  {
-  "nome": "Acordo 263 Item — Para fins do disposto nos artigos 165 e seguintes do Código …",
+  "nome": "Acordo 265 Item — Para fins do disposto nos artigos 165 e seguintes do Código ",
   "tipo": "item",
   "titulo": null,
   "conteudo": "Para fins do disposto nos artigos 165 e seguintes do Código de Processo Civil, os QUOTISTAS e a INTERVENIENTE ANUENTE nomeiam como mediadora antes de ajuizarem qualquer medida judicial e/ou requerer qualquer procedimento arbitral a empresa PRADO SUZUKI & Associados S/S, inscrita no CNPJ/MF sob o nº 37.465.705/0001-04, sediada a Rua Desembargador José Barros do Vale, no 03, Bairro Duque de Caxias, no município de Cuiabá, estado de Mato Grosso, cujo nome só será substituído por decisão unânime dos QUOTISTAS."
  },
  {
-  "nome": "Acordo 264 Subitem — A mediadora descrita no item anterior proferirá certidão de …",
+  "nome": "Acordo 266 Subitem — A mediadora descrita no item anterior proferirá certidão de ",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "A mediadora descrita no item anterior proferirá certidão de que não fora possível mediar uma solução para as partes conflituosas, a qual poderá ser utilizada para todos os fins de direito."
  },
  {
-  "nome": "Acordo 265 Subitem — Todas as custas decorrentes de procedimentos arbitrais e/ou …",
+  "nome": "Acordo 267 Subitem — Todas as custas decorrentes de procedimentos arbitrais e/ou ",
   "tipo": "subitem",
   "titulo": null,
   "conteudo": "Todas as custas decorrentes de procedimentos arbitrais e/ou judiciais serão reembolsadas por aquele que der causa e de acordo com ambas as decisões"
  },
  {
-  "nome": "Acordo 266 Livre — E, por estarem assim justas e acordadas, os QUOTISTAS e a «e…",
+  "nome": "Acordo 268 Livre — E, por estarem assim justas e acordadas, os QUOTISTAS e a «e",
   "tipo": "livre",
   "titulo": null,
   "conteudo": "E, por estarem assim justas e acordadas, os QUOTISTAS e a {{ sociedade.nomeFantasia }} (“INTERVENIENTE ANUENTE”) assinam o presente instrumento em 06 (seis) vias de igual teor e forma, para um só efeito, na presença das 02 (duas) testemunhas abaixo qualificadas.\n\n{{ sociedade.sedeMunicipio }}/{{ sociedade.sedeUf }}, {{ dataAssinatura }}.\n\nSOCIEDADE INTERVENIENTE:\n\n_________________________________________\n{{ sociedade.razaoSocialMaiuscula }}\n\nQUOTISTAS:\n\n{{#quotistasSignatarios sep=\"\\n\\n\"}}_________________________________________\n{{ quotista.nomeMaiusculo }}{{/quotistasSignatarios}}\n\nTESTEMUNHAS:\n\n*NOME:* {{ testemunha1Nome }}\n*RG:* {{ testemunha1Rg }}\n*CPF/MF:* {{ testemunha1Cpf }}\n\n*NOME:* {{ testemunha2Nome }}\n*RG:* {{ testemunha2Rg }}\n*CPF/MF:* {{ testemunha2Cpf }}"
