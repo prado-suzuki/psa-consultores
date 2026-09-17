@@ -1,9 +1,11 @@
 ACORDO DE QUOTISTAS DA SOCIEDADE
+
 Zamo Governança Participações Ltda.
+
 I. PARTES INTEGRANTES:
 Na condição de signatários do presente Acordo de Quotistas, doravante nominado “ACORDO”, dos atuais sócios da Zamo Governança Participações Ltda., as pessoas adiante qualificadas e doravante designadas quando em conjunto de “QUOTISTAS” e quando isoladamente de “QUOTISTA”:
-*ANA ZAMO TESTE*, brasileira, solteira, nascida em 10/03/1.970, empresária, portadora do RG n.º 1234567 SESP, inscrita no CPF/MF sob o n.º 111.444.777-35, residente e domiciliada na Rua das Araucárias, n.º 100, Bairro Centro, no município de Curitiba, Estado do Paraná, CEP 80010-000
-*BRUNO ZAMO TESTE*, brasileiro, solteiro, nascido em 22/08/1.975, administrador, portador do RG n.º 7654321 SESP, inscrito no CPF/MF sob o n.º 123.456.789-09, residente e domiciliado na Rua das Araucárias, n.º 200, Bairro Centro, no município de Curitiba, Estado do Paraná, CEP 80010-000
+i. *ANA ZAMO TESTE*, brasileira, solteira, nascida em 10/03/1.970, empresária, portadora do RG n.º 1234567 SESP, inscrita no CPF/MF sob o n.º 111.444.777-35, residente e domiciliada na Rua das Araucárias, n.º 100, Bairro Centro, no município de Curitiba, Estado do Paraná, CEP 80010-000
+ii. *BRUNO ZAMO TESTE*, brasileiro, solteiro, nascido em 22/08/1.975, administrador, portador do RG n.º 7654321 SESP, inscrito no CPF/MF sob o n.º 123.456.789-09, residente e domiciliado na Rua das Araucárias, n.º 200, Bairro Centro, no município de Curitiba, Estado do Paraná, CEP 80010-000
 Na condição de INTERVENIENTE ANUENTE dos termos do presente ACORDO, a sociedade empresária do tipo jurídico sociedade limitada abaixo qualificada, a qual declara ter recebido uma das vias deste ACORDO, que fora arquivada na sede da sociedade, na forma entabulada pelos artigos 1.053, parágrafo único da Lei 10.406/2.002 (doravante “Código Civil” e/ou “CC”) e 118 da Lei 6.404/1.976 e suas alterações (doravante “Lei das S/A”):
 Zamo Governança Participações Ltda., pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 11.222.333/0001-81, registrada na Junta Comercial do Estado do Paraná sob NIRE n° 41200000001, com sede estabelecida Rua das Araucárias, n.º 300, Bairro Centro, no município de Curitiba, Estado do Paraná, CEP 80010-000, neste ato representada por Ana Zamo Teste; doravante nominada “ZAMO” ou “ZAMO”.
 II. CONSIDERAÇÕES INICIAIS:
@@ -416,7 +418,7 @@ c) Tratando-se de dívida(s) superior a R$ 300.000,00 (trezentos mil reais), o Q
 
 *CLÁUSULA VIGÉSIMA PRIMEIRA – Do representante dos QUOTISTAS*
 
-21.1 Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/c art. 1.053, parágrafo único do Código Civil, os QUOTISTAS elegem a Sra. Ana Zamo Teste como representante dos QUOTISTAS, sendo que na sua falta ou incapacidade civil, a incumbência passará ao Sr. Bruno Zamo Teste, os quais serão substituídos por outro QUOTISTA caso ocorra o falecimento ou seja declarada a incapacidade civil de ambos, conforme os QUOTISTAS decidam em REUNIÃO DE QUOTISTAS, convocada para este fim.
+21.1 Nos termos do §10º do artigo 118 da Lei 6.404/1.976 c/c art. 1.053, parágrafo único do Código Civil, os QUOTISTAS elegem a Sra. Ana Zamo Teste como representante dos QUOTISTAS, o qual será substituído por outro QUOTISTA caso ocorra o falecimento ou seja declarada a sua incapacidade civil, conforme os QUOTISTAS decidam em REUNIÃO DE QUOTISTAS, convocada para este fim.
 
 *CLÁUSULA VIGÉSIMA SEGUNDA – Da Vigência e do arquivamento deste ACORDO*
 
@@ -508,11 +510,11 @@ c) Tratando-se de dívida(s) superior a R$ 300.000,00 (trezentos mil reais), o Q
 
 26.3 Os QUOTISTAS acordam desde já, que o número de árbitros será de 03 (três), sendo um nomeado pelo reclamante, o outro pela parte reclamada e o terceiro a ser eleito por aqueles dois outros árbitros.
 
-26.4 O local de arbitragem será a cidade de Curitiba, estado de Paraná, onde a decisão arbitral será proferida.
+26.4 O local de arbitragem será a cidade de Curitiba, estado do Paraná, onde a decisão arbitral será proferida.
 
 26.5 Os QUOTISTAS têm plena consciência e ciência de todos os termos e efeitos da cláusula arbitral prevista neste instrumento, e irrevogavelmente concordam que quaisquer disputas decorrentes ou relacionadas ao presente ACORDO serão exclusivamente resolvidas por arbitragem.
 
-26.6 Com o objetivo exclusivo de solicitar uma medida liminar ou cautelar, seja ela preventiva, provisória ou permanente, os QUOTISTAS e a ZAMO elegem o foro da cidade de Curitiba, estado de Paraná, por mais privilegiado outro o seja.
+26.6 Com o objetivo exclusivo de solicitar uma medida liminar ou cautelar, seja ela preventiva, provisória ou permanente, os QUOTISTAS e a ZAMO elegem o foro da cidade de Curitiba, estado do Paraná, por mais privilegiado outro o seja.
 
 26.7 Para fins do disposto nos artigos 165 e seguintes do Código de Processo Civil, os QUOTISTAS e a INTERVENIENTE ANUENTE nomeiam como mediadora antes de ajuizarem qualquer medida judicial e/ou requerer qualquer procedimento arbitral a empresa PRADO SUZUKI & Associados S/S, inscrita no CNPJ/MF sob o nº 37.465.705/0001-04, sediada a Rua Desembargador José Barros do Vale, no 03, Bairro Duque de Caxias, no município de Cuiabá, estado de Mato Grosso, cujo nome só será substituído por decisão unânime dos QUOTISTAS.
 
