@@ -33,7 +33,9 @@ import { fileURLToPath } from 'node:url';
 import { entradaDoAcordo } from '../../src/lib/osg/entradaAcordo';
 import type { AcordoCompleto } from '../../src/hooks/useDomainAcordoQuotistas';
 import { camposDoAcordo, listasDoAcordo } from '../../src/lib/templates/contextoAcordo';
-import { mapearAdministrador, mapearSociedade } from '../../src/lib/templates/mapeadores';
+import {
+  mapearAdministrador, mapearSociedade, tituloColetivoDosAdministradores,
+} from '../../src/lib/templates/mapeadores';
 import { CAMPOS_MANUAIS } from '../../src/lib/templates/vocabulario';
 import type { PessoaRow } from '../../src/hooks/useQualificacaoDasPartes';
 import {
@@ -228,7 +230,9 @@ const administradores = admLinhas
 const listas = listasDoAcordo(entrada);
 const contexto: Contexto = {
   acordo: camposDoAcordo(entrada),
-  sociedade: mapearSociedade(empresa),
+  sociedade: mapearSociedade(empresa, undefined, {
+    tituloColetivoAdministradores: tituloColetivoDosAdministradores(administradores),
+  }),
   ...listas,
   administradores: administradores.map(mapearAdministrador),
 };

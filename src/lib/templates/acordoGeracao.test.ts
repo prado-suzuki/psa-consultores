@@ -11,7 +11,7 @@ import blocosDoAcordo from '../../../docs/osg/acordo-blocos.json';
 import { camposDoAcordo, listasDoAcordo, type EntradaAcordo } from './contextoAcordo';
 import { detectarBindingsDeConteudo } from './binding';
 import { gerarBlocos, gerarDocumento } from './index';
-import { CAMPOS_MANUAIS, camposDaEntidade } from './vocabulario';
+import { CAMPOS_MANUAIS, camposDaEntidade, derivarCampos } from './vocabulario';
 import { montarDocx } from './docx';
 import type { Bloco, Template, TipoBloco } from './types';
 
@@ -45,7 +45,7 @@ const contextoDe = (e: EntradaAcordo) => ({
    * verdade; aqui entram à mão porque montar uma `PessoaRow` inteira só para
    * isto esconderia o que o teste está medindo.
    */
-  sociedade: {
+  sociedade: derivarCampos('sociedade', {
     razaoSocial: 'ABACAXI ELÉTRICO MINERAÇÃO E BALÉ S.A.',
     cnpj: '11.222.333/0001-81',
     nire: '41200000001',
@@ -55,7 +55,13 @@ const contextoDe = (e: EntradaAcordo) => ({
     sedeUfComPreposicao: 'do Paraná',
     nomeFantasia: 'ABACAXI',
     sedeUf: 'PR',
-  },
+    /*
+     * O título coletivo NÃO é derivado: ele precisa da lista de administradores,
+     * que não é campo da sociedade. Quem o calcula é `tituloColetivoDosAdministradores`,
+     * no controller e no arnês; aqui entra pronto, como o mapeador o entrega.
+     */
+    tituloColetivoAdministradores: 'seu administrador',
+  }),
   dataAssinatura: '',
   testemunha1Nome: '', testemunha1Rg: '', testemunha1Cpf: '',
   testemunha2Nome: '', testemunha2Rg: '', testemunha2Cpf: '',
@@ -66,7 +72,7 @@ const contextoDe = (e: EntradaAcordo) => ({
    * carrega e o controller, a partir da empresa escolhida.
    */
   administradores: [
-    { administrador: { nome: 'SÉRGIO IGLESIAS' } },
+    { administrador: { nome: 'SÉRGIO IGLESIAS', nomeMaiusculo: 'SÉRGIO IGLESIAS' } },
   ],
   ...listasDoAcordo(e),
 });

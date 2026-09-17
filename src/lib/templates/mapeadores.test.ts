@@ -22,6 +22,7 @@ import {
   mapearSociedade,
   mapearSocio,
   reidratarItensPorLista,
+  tituloColetivoDosAdministradores,
   tituloColetivoDosSocios,
   type ItemLista,
   type MatriculaIntegralizacao,
@@ -443,6 +444,44 @@ describe('tituloColetivoDosSocios', () => {
     expect(tituloColetivoDosSocios([pessoa('PF', 'F')])).toBe('Única sócia');
     expect(tituloColetivoDosSocios([pessoa('PF', 'F'), pessoa('PJ', null)])).toBe('Únicas sócias');
     expect(tituloColetivoDosSocios([pessoa('PF', 'F'), pessoa('PF', 'M')])).toBe('Únicos sócios');
+  });
+});
+
+describe('tituloColetivoDosAdministradores', () => {
+  const adm = (genero: 'M' | 'F' | null, cargo: string | null) => ({
+    pessoa: { tipo_pessoa: 'PF', genero } as PessoaRow,
+    cargo,
+  });
+
+  it('o modelo escreve "seus administradores", e a palavra vem do cargo', () => {
+    expect(tituloColetivoDosAdministradores([adm('M', 'Administrador'), adm('M', 'Administrador')]))
+      .toBe('seus administradores');
+    expect(tituloColetivoDosAdministradores([adm('M', 'Diretor'), adm('F', 'Diretor')]))
+      .toBe('seus diretores');
+  });
+
+  it('um só administrador fica no singular', () => {
+    expect(tituloColetivoDosAdministradores([adm('M', 'Administrador')])).toBe('seu administrador');
+    expect(tituloColetivoDosAdministradores([adm('F', 'Administrador')])).toBe('sua administradora');
+  });
+
+  it('grupo só de mulheres concorda no feminino; misto fica no masculino', () => {
+    expect(tituloColetivoDosAdministradores([adm('F', 'Administrador'), adm('F', 'Administrador')]))
+      .toBe('suas administradoras');
+    expect(tituloColetivoDosAdministradores([adm('F', 'Administrador'), adm('M', 'Administrador')]))
+      .toBe('seus administradores');
+  });
+
+  it('cargo divergente, composto ou ausente cai no termo genérico', () => {
+    expect(tituloColetivoDosAdministradores([adm('M', 'Diretor'), adm('M', 'Gerente')]))
+      .toBe('seus administradores');
+    expect(tituloColetivoDosAdministradores([adm('M', 'Diretor Presidente')]))
+      .toBe('seu administrador');
+    expect(tituloColetivoDosAdministradores([adm('M', null)])).toBe('seu administrador');
+  });
+
+  it('sem administrador não inventa frase', () => {
+    expect(tituloColetivoDosAdministradores([])).toBe('');
   });
 });
 

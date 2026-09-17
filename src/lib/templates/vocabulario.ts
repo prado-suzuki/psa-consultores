@@ -4,7 +4,8 @@ import {
 } from './extenso';
 import { tituloDoInstrumento } from './instrumento';
 import {
-  PARES, concordar, concordarTexto, generoDeConcordancia, ufComPreposicao, ufPorExtenso, type Genero,
+  PARES, comPreposicaoDeLugar, concordar, concordarTexto, generoDeConcordancia, ufComPreposicao,
+  ufPorExtenso, type Genero,
 } from './concordancia';
 
 // Vocabulário de campos organizado POR ENTIDADE (pessoa/bem/matricula/cartorio).
@@ -670,6 +671,7 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         derivar: (v) => tituloDoInstrumento(paraInteiroBR(v.numeroAlteracao)),
       },
       { id: 'tituloColetivoSocios', label: 'Sócio(s) com concordância do quadro', tipo: 'texto' },
+      { id: 'tituloColetivoAdministradores', label: 'Administrador(es) com concordância', tipo: 'texto' },
       // Condicional (o engine não tem "else"): a administração passou a ser
       // exercida de fora do quadro societário. É o que autoriza a cláusula a
       // dizer "administradores não sócios", em vez de a redação afirmar isso
@@ -677,6 +679,22 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'temAdministradorNaoSocio', label: 'Há administrador não sócio? (condicional)', tipo: 'texto' },
       { id: 'semAdministradorNaoSocio', label: 'Todos os administradores são sócios? (condicional, o engine não tem else)', tipo: 'texto' },
       { id: 'razaoSocial', label: 'Razão social', tipo: 'texto', obrigatorio: true },
+      /*
+       * A RAZÃO SOCIAL EM CAIXA ALTA, que é como o documento a escreve.
+       *
+       * Os cinco acordos do acervo escrevem a razão social em caixa alta nas
+       * três aparições do preâmbulo e na folha de assinaturas, e nós já
+       * escrevíamos assim quando a PJ é signatária (`nomeMaiusculo`). O cadastro
+       * guarda "Aurora Administradora de Bens Ltda", que é o certo para a tela;
+       * quem faz a versão do documento é o campo derivado, e não a digitação.
+       */
+      {
+        id: 'razaoSocialMaiuscula',
+        label: 'Razão social em caixa alta',
+        tipo: 'texto',
+        derivadoDe: 'razaoSocial',
+        derivar: (v) => (v.razaoSocial ?? '').toLocaleUpperCase('pt-BR'),
+      },
       // CNPJ NÃO é obrigatório: o contrato de constituição é justamente o
       // documento que a sociedade leva à Junta para obtê-lo.
       { id: 'cnpj', label: 'CNPJ', tipo: 'texto' },
@@ -778,6 +796,22 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       // mais as partes atômicas (cobrem os placeholders legados sedeEndereco/
       // sedeMunicipio/sedeUf/sedeCep, agora sob o namespace sociedade.*).
       { id: 'sede', label: 'Sede (endereço completo)', tipo: 'textarea' },
+      /*
+       * "na Rua Carla Gomes…", "no Sítio Boa Vista…".
+       *
+       * O modelo escreve "com sede estabelecida NA Avenida Octaviano" e a
+       * AgroAliança "com sede estabelecida NA Rua Zulmar Bertuol"; sem a
+       * preposição a frase saía "com sede estabelecida Rua Carla Gomes". Ela
+       * não cabe fixa no bloco porque o gênero é do logradouro, e "na Sítio"
+       * estaria errado do mesmo jeito.
+       */
+      {
+        id: 'sedeComPreposicao',
+        label: 'Sede com preposição ("na Rua…", "no Sítio…")',
+        tipo: 'texto',
+        derivadoDe: 'sede',
+        derivar: (v) => comPreposicaoDeLugar(v.sede),
+      },
       { id: 'sedeEndereco', label: 'Sede — logradouro e número', tipo: 'texto' },
       { id: 'sedeLogradouro', label: 'Sede — logradouro', tipo: 'texto' },
       { id: 'sedeNumero', label: 'Sede — número', tipo: 'texto' },
