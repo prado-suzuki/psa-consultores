@@ -333,10 +333,11 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         ajuda: 'O direito de exigir que outro lhe venda a participação.' },
       { campo: 'opcao_compra_quem', rotulo: 'Quem detém a opção de compra', tipo: 'texto',
         dependeDe: 'opcao_compra_prevista',
-        ajuda: 'Quem pode exigir que o outro venda. No modelo é qualquer sócio: "é direito de '
-          + 'qualquer QUOTISTA exigir que outro QUOTISTA venda suas QUOTAS para quem exerceu '
-          + 'esta opção". Responda diferente se no cliente o direito for só de alguns, por '
-          + 'exemplo da holding, dos fundadores ou do ramo de quem sai.' },
+        ajuda: 'Quem pode exigir que o outro venda. O que você escrever entra na frase: '
+          + '"Igualmente será assegurado a ___ exercerem uma OPÇÃO DE COMPRA". Medido nos '
+          + 'acordos, três redações em quatro documentos: "QUOTISTAS que sejam titulares da '
+          + 'maioria das QUOTAS" no modelo e no AgroAliança, "demais QUOTISTAS" no Perci, e '
+          + '"QUOTISTAS e/ou seus curadores" no Horita.' },
       { campo: 'opcao_compra_preco', rotulo: 'Preço na opção de compra', tipo: 'texto',
         dependeDe: 'opcao_compra_prevista',
         ajuda: 'Como o preço se forma quando alguém exerce a opção. No modelo é o MAIOR entre '

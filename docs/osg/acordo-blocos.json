@@ -708,7 +708,7 @@
   "nome": "Acordo 103 Item — Igualmente será assegurado aos QUOTISTAS que sejam titulares…",
   "tipo": "item",
   "titulo": null,
-  "conteudo": "Igualmente será assegurado aos QUOTISTAS que sejam titulares da maioria das QUOTAS, em conjunto, exercerem uma OPÇÃO DE COMPRA, hipótese que vinculará o QUOTISTA ao qual recair esta opção, de modo que este QUOTISTA se compromete a vender suas QUOTAS, bem como todos os demais QUOTISTAS se comprometem em adquirir as QUOTAS sobre as quais recaíram esta opção, bem como votar, assinar todo e qualquer documento e exigir da ADMINISTRAÇÃO da {{ sociedade.nomeFantasia }} e das SOCIEDADES CONTROLADAS que adotem todas as eventuais medidas necessárias para concretizar a OPÇÃO DE COMPRA, podendo qualquer QUOTISTA que se sentir prejudicado, valer-se das prerrogativas previstas na Cláusula de Solução de Litígios, objetivando a garantia do direito ora estabelecido.",
+  "conteudo": "Igualmente será assegurado a {{ acordo.opcaoCompraQuem }} exercerem uma OPÇÃO DE COMPRA, hipótese que vinculará o QUOTISTA ao qual recair esta opção, de modo que este QUOTISTA se compromete a vender suas QUOTAS, bem como todos os demais QUOTISTAS se comprometem em adquirir as QUOTAS sobre as quais recaíram esta opção, bem como votar, assinar todo e qualquer documento e exigir da ADMINISTRAÇÃO da {{ sociedade.nomeFantasia }} e das SOCIEDADES CONTROLADAS que adotem todas as eventuais medidas necessárias para concretizar a OPÇÃO DE COMPRA, podendo qualquer QUOTISTA que se sentir prejudicado, valer-se das prerrogativas previstas na Cláusula de Solução de Litígios, objetivando a garantia do direito ora estabelecido.",
   "flags": [
    "acordo_opcao_compra_prevista"
   ]
