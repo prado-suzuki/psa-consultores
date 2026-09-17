@@ -188,14 +188,26 @@ function Cabecalho({
  * tela. Ele é fila de delegação, não sobra, e por isso encabeça a lista em vez
  * de ficar no fim.
  *
- * A FAIXA CARREGA A ÂNCORA DA ÁREA, e não o neutro — é o mesmo par que a faixa
- * de cliente de `ProjetosTarefasList` já usa, e pela mesma razão. Ela era
- * `bg-superficie-realce` com a linha logo abaixo transparente sobre o cartão, e
- * as duas ficavam a **1,106:1** uma da outra na OSG (1,120 na Tax) — menos que o
- * 1,24:1 com que a borda de 1px se separa do cartão, que é o piso que a lista de
- * Projetos já adotou. Só embranquecer a linha sobe para 1,186 e ainda não chega
- * lá; com a âncora na faixa vai a **1,250** (1,277 na Tax), e a separação passa a
- * ser de MATIZ, não só de claridade.
+ * A FAIXA É `bg-muted` — o neutro CHEIO da área, sem alfa —, e a linha embaixo é
+ * branca. Chegou aqui em três passos, e o do meio foi recusado OLHANDO.
+ *
+ * Ela era `bg-superficie-realce` com a linha transparente sobre o cartão, e as
+ * duas ficavam a **1,106:1** uma da outra na OSG (1,120 na Tax) — menos que o
+ * 1,24:1 com que a borda de 1px se separa do cartão. Embranquecer a linha subiu
+ * para 1,186, ainda pouco, e a faixa foi para a ÂNCORA (`bg-primary/10`), como a
+ * faixa de cliente de `ProjetosTarefasList`: 1,250, com separação de MATIZ.
+ *
+ * ⚠️ **E ficou feia, na palavra dela (17/09/2026), por um motivo que só existe na
+ * OSG.** A âncora é musgo (matiz 149) e a superfície é areia (matiz 32), 117° de
+ * distância; compostas a 10%, dão **matiz 98** — um verde-amarelado embarrado.
+ * Na Tax as duas concordam (192 contra 192) e o mesmo `primary/10` sai limpo, o
+ * que é exatamente o que o levantamento de 03/09 já tinha medido sobre fill de
+ * âncora na OSG.
+ *
+ * `bg-muted` cheio resolve sem tirar separação: **1,227** na OSG (1,260 na Tax),
+ * contra 1,250 da âncora — três milésimos de diferença —, e a faixa volta a ser a
+ * areia da própria área em vez de uma cor nova. O `primary/6` foi medido junto e
+ * não serve: 1,175, abaixo do ponto de partida, e ainda verde.
  */
 function CabecaDoGrupo({
   grupo,
@@ -213,7 +225,7 @@ function CabecaDoGrupo({
   const Icone = grupo.semProjeto ? FolderPlus : UserX;
   return (
     <TableRow className="hover:bg-transparent">
-      <TableCell colSpan={colunas} className="border-b border-primary/20 bg-primary/10 p-0">
+      <TableCell colSpan={colunas} className="border-b bg-muted p-0">
         <button
           type="button"
           onClick={onAlternar}
