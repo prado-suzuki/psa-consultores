@@ -42,7 +42,11 @@ if (existsSync(ARQUIVO_CRED)) {
   }
 }
 
-const PORT = 8080;
+// A porta é fixa em 8080 porque é a do `vite.config.ts` e a origem em que a
+// sessão salva (`e2e/.auth/user.json`) vale. `E2E_PORT` existe para quem sobe um
+// servidor próprio noutra porta — é o que `scripts/e2e-fluxo-osg.mjs` faz para
+// não esbarrar no `dev` que você já tem de pé, possivelmente de outro worktree.
+const PORT = Number(process.env.E2E_PORT ?? 8080);
 
 export default defineConfig({
   testDir: './e2e',
@@ -68,7 +72,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
+    command: `npm run dev -- --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: true,
     timeout: 120_000,

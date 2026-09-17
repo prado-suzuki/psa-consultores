@@ -32,6 +32,10 @@ import { aplicarEnderecosDeSocios, FLAG_QUALIFICACAO, FLAG_SEDE, SEDE, type Cand
 //   qualificação das pessoas  → a da base para quem já constava nela, com a
 //                               exceção acima: o endereço aprovado prevalece
 //   o resto do instrumento    → base (as matérias que a peça não altera)
+//   campo AUSENTE na base     → vivo, qualquer que seja a matéria: snapshot
+//                               selado antes de o campo existir não publicou
+//                               decisão nenhuma sobre ele (campo publicado
+//                               VAZIO é decisão, e fica)
 //
 // Nada aqui escreve redação: o resultado é um SnapshotDados, o mesmo contrato
 // que o motor já lê, e as resoluções continuam saindo dos blocos da Biblioteca
@@ -298,12 +302,23 @@ export function comporEstadoProposto(args: ArgsDoEstadoProposto): EstadoProposto
       const editado = editados.has(`${binding}.${k}`);
       if (editado) { daBase[k] = v; continue; }
       if ((SINTETIZADOS_DA_PECA as readonly string[]).includes(k)) { daBase[k] = v; continue; }
+      // AUSENTE NA BASE NÃO É "A BASE DECIDIU MANTER". As regras por matéria
+      // preservam o que o instrumento registrado PUBLICOU; um campo que nem
+      // existe no snapshot não foi publicado de jeito nenhum, e o snapshot é
+      // apenas mais velho que o campo. Sem esta queda, o valor fica indefinido,
+      // o motor recusa a composição inteira ("Placeholder não resolvido") e a
+      // peça não compõe nem se baixa — que é o que acontecia com
+      // `sociedade.tituloColetivoSocios` na Banana Quântica: os dois
+      // instrumentos registrados são de 25/08/2026 e o campo nasceu no dia
+      // seguinte, na migration `20260826145857`. Campo publicado VAZIO é outra
+      // coisa: aí houve decisão, e ela é preservada.
       if ((CAMPOS_DE_CAPITAL as readonly string[]).includes(k)) {
-        if (movimento) daBase[k] = v;
+        if (movimento || !(k in daBase)) daBase[k] = v;
         continue;
       }
       if ((SEDE as readonly string[]).includes(k) || k === 'sedeUfExtenso') {
         if (sedeConfirmada) daBase[k] = args.sede ? (args.sede.depois[k] ?? v) : v;
+        else if (!(k in daBase)) daBase[k] = v;
         continue;
       }
       if ((IDENTIFICACAO_DA_PJ as readonly string[]).includes(k)) {

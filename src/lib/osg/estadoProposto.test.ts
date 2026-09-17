@@ -382,6 +382,45 @@ describe('capital: os campos seguem o movimento, e todos existem', () => {
     expect(estado.selecao.sociedade.capitalValor).toBe('100,00');
     expect(estado.selecao.sociedade.capitalExtenso).toBe('cem reais');
   });
+
+  // Snapshot selado ANTES de o campo existir. Enquanto a ausencia era tratada
+  // como decisao da base, o valor ficava indefinido e o motor recusava a peca
+  // inteira com "Placeholder nao resolvido: {{sociedade.tituloColetivoSocios}}".
+  it('campo de capital que a base nem publicou entra do cadastro, sem evento nenhum', () => {
+    const b = base();
+    const v = vivo();
+    v.selecao.sociedade.tituloColetivoSocios = 'Unicos socios';
+    expect('tituloColetivoSocios' in b.selecao.sociedade).toBe(false);
+    const { estado } = comporEstadoProposto({
+      base: b, vivo: v, eventosConfirmados: new Set(['evento_alteracao_endereco']),
+      bindingsSociedade: ['sociedade'],
+    });
+    expect(estado.selecao.sociedade.tituloColetivoSocios).toBe('Unicos socios');
+  });
+
+  it('campo de capital publicado VAZIO e decisao da base, e continua vazio', () => {
+    const b = base();
+    const v = vivo();
+    b.selecao.sociedade.quotaValorNominal = '';
+    v.selecao.sociedade.quotaValorNominal = '1,00';
+    const { estado } = comporEstadoProposto({
+      base: b, vivo: v, eventosConfirmados: new Set(['evento_alteracao_endereco']),
+      bindingsSociedade: ['sociedade'],
+    });
+    expect(estado.selecao.sociedade.quotaValorNominal).toBe('');
+  });
+
+  it('campo de sede ausente na base tambem entra, sem o evento de sede', () => {
+    const b = base();
+    const v = vivo();
+    delete b.selecao.sociedade.sedeUfExtenso;
+    const { estado } = comporEstadoProposto({
+      base: b, vivo: v, eventosConfirmados: new Set(), bindingsSociedade: ['sociedade'],
+    });
+    expect(estado.selecao.sociedade.sedeUfExtenso).toBe('Mato Grosso');
+    // E a sede em si, que a base publicou, segue sendo a registrada.
+    expect(estado.selecao.sociedade.sedeNumero).toBe('10');
+  });
 });
 
 describe('a governança no estado proposto', () => {

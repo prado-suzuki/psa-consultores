@@ -75,6 +75,42 @@ Duas coisas que custam tempo se você não souber:
   só passaria a valer na sessão seguinte, a página de semeadura acima resolve o
   mesmo problema sem depender de restart.
 
+## O fluxo OSG sem ninguém dirigindo o navegador
+
+Quando o roteiro já é conhecido — o fluxo de alteração contratual e o download
+do contrato —, dirigir o navegador passo a passo (pelo Playwright MCP ou por um
+agente) é o caminho mais lento. Os dois estão scriptados e rodam juntos:
+
+```
+bun run e2e:osg            # os dois
+bun run e2e:osg --so-download
+bun run e2e:osg --so-ac
+```
+
+São dois programas diferentes por natureza. O download é um **spec** do harness
+(`e2e/osgBaixarDocumento.spec.ts`): abre o .docx baixado, lê o
+`word/document.xml` e cobra que o texto de dentro seja o da folha — conferir a
+folha não diz nada sobre o arquivo, que sai de outro adapter. O da alteração
+contratual é o **ensaio** `e2e/demos/ac-alteracao-contratual.mjs`, que mede e
+narra (e escreve: valida versão, registra na junta), rodado com `AC_HEADLESS=1`.
+
+O que o `scripts/e2e-fluxo-osg.mjs` acrescenta é a segurança de para onde isso
+aponta. Ele recusa branch de produção, sobe um servidor **próprio na 8099** e
+confere, pelo bundle servido, que o app naquela porta fala com o sandbox. Sem
+isso, o `reuseExistingServer` do Playwright pegaria em silêncio o `bun run dev`
+que já estivesse na 8080 — que pode ser de outro worktree, inclusive o da `main`,
+e aí o ensaio escreveria em produção. A credencial sai do mesmo
+`e2e/.auth/cred.local`; como a pasta é gitignored e não acompanha
+`git worktree add`, o script aceita a do checkout principal e diz que está usando
+aquela.
+
+Os dados de cada metade são diferentes de propósito, e isso está explicado no
+cabeçalho do spec: o download aponta para uma PJ com quadro e **sem**
+`documento_gerado`, porque a empresa do ensaio da AC tem o estado mexido pelo
+próprio ensaio a cada corrida. Trocar é por ambiente: `OSG_CLIENTE`,
+`OSG_EMPRESA`, `OSG_MODELO`. Lembre que a lista de clientes da tela só mostra
+quem é do ambiente `dev`.
+
 ## Conferir UI sem nenhuma credencial
 
 Quando a mudança é só visual e não precisa de dado real, não vale mexer em

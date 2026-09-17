@@ -15,6 +15,7 @@
     "typecheck:strict": "tsc -p tsconfig.strict.json",
     "db:sync": "bun scripts/db-sync.ts",
     "test": "vitest run",
+    "e2e:osg": "node scripts/e2e-fluxo-osg.mjs",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "status-report": "node scripts/gen-status-report.mjs",
