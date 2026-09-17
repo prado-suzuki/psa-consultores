@@ -308,8 +308,8 @@ export function AcordoGrupoModal({
                           )}
                           {espelho && (
                             <span className="block text-xs italic text-muted-foreground">
-                              Liga e desliga no bloco &ldquo;{espelho.bloco}&rdquo;, onde ficam os
-                              detalhes.
+                              Só mostra se a regra existe. Quem liga e desliga é o bloco
+                              &ldquo;{espelho.bloco}&rdquo;, onde ficam os detalhes.
                             </span>
                           )}
                         </span>
