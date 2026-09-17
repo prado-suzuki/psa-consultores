@@ -2,7 +2,7 @@ ACORDO DE QUOTISTAS DA SOCIEDADE
 
 AURORA ADMINISTRADORA DE BENS LTDA
 
-I. PARTES INTEGRANTES:
+*I. PARTES INTEGRANTES:*
 Na condição de signatários do presente Acordo de Quotistas, doravante nominado “ACORDO”, dos atuais sócios da AURORA ADMINISTRADORA DE BENS LTDA, as pessoas adiante qualificadas e doravante designadas quando em conjunto de “QUOTISTAS” e quando isoladamente de “QUOTISTA”:
 
 i. *AURORA ADMINISTRADORA DE BENS LTDA*, pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o n.º 51.938.484/4863-84, registrada na Junta Comercial do Estado de Mato Grosso sob o NIRE n.º 51202298061, com sede estabelecida na Rua Carla Gomes, n.º 1824, Sala 1, Bairro Centro, no município de Sorriso, Estado de Mato Grosso, CEP 31208-000
@@ -15,7 +15,7 @@ Na condição de INTERVENIENTE ANUENTE dos termos do presente ACORDO, a sociedad
 
 AURORA ADMINISTRADORA DE BENS LTDA, pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 51.938.484/4863-84, registrada na Junta Comercial do Estado de Mato Grosso sob NIRE n° 51202298061, com sede estabelecida na Rua Carla Gomes, n.º 1824, Sala 1, Bairro Centro, no município de Sorriso, Estado de Mato Grosso, CEP 31208-000, neste ato representada por seus administradores ÍRIS PIRES e KARINA TEIXEIRA; doravante nominada “____________________” ou “____________________”.
 
-II. CONSIDERAÇÕES INICIAIS:
+*II. CONSIDERAÇÕES INICIAIS:*
 CONSIDERANDO que:
 
 a) Os QUOTISTAS da ____________________ autorizaram no contrato social desta sociedade que os sócios tabulem Acordos de Quotistas, nos termos do art. 1.053, parágrafo único do Código Civil e art. 118 da Lei das S/A;
@@ -31,7 +31,7 @@ e) É desejo dos QUOTISTAS da ____________________ que o seu quadro societário 
 f) Os QUOTISTAS, pelo presente e na busca dos ideais descritos acima, pretendem estabelecer compromissos e acordos entre si, com a anuência da ____________________, relativamente aos assuntos dispostos neste ACORDO.
 
 Considerando todo o exposto acima, as partes signatárias deste acordo, quais sejam, os QUOTISTAS e a INTERVENIENTE ANUENTE, têm consensualmente como justo e acertado o presente ACORDO DE QUOTISTAS, doravante nominado ACORDO, na forma entabulada pelos artigos 1.053, parágrafo único do Código Civil e 118 da Lei das S/A, o que fazem segundo as cláusulas e condições seguintes, mutuamente aceitas e outorgadas entre si:
-III.DAS DISPOSIÇÕES ACORDADAS:
+*III.DAS DISPOSIÇÕES ACORDADAS:*
 
 *CLÁUSULA PRIMEIRA – Definições das expressões utilizadas neste ACORDO.*
 
@@ -440,11 +440,16 @@ c) Tratando-se de dívida(s) superior a R$ 300.000,00 (trezentos mil reais), o Q
 23.2.2 Todas as custas decorrentes de procedimentos arbitrais e/ou judiciais serão reembolsadas por aquele que der causa e de acordo com ambas as decisões
 
 E, por estarem assim justas e acordadas, os QUOTISTAS e a ____________________ (“INTERVENIENTE ANUENTE”) assinam o presente instrumento em 06 (seis) vias de igual teor e forma, para um só efeito, na presença das 02 (duas) testemunhas abaixo qualificadas.
+
 Sorriso/MT, ____ de ______________ de 20__.
+
 SOCIEDADE INTERVENIENTE:
+
 _________________________________________
 AURORA ADMINISTRADORA DE BENS LTDA
+
 QUOTISTAS:
+
 _________________________________________
 AURORA ADMINISTRADORA DE BENS LTDA
 
@@ -453,10 +458,13 @@ ELISA ESTEVES
 
 _________________________________________
 KARINA TEIXEIRA
+
 TESTEMUNHAS:
-NOME: ____________________
-RG: ____________________
-CPF/MF: ____________________
-NOME: ____________________
-RG: ____________________
-CPF/MF: ____________________
+
+*NOME:* ____________________
+*RG:* ____________________
+*CPF/MF:* ____________________
+
+*NOME:* ____________________
+*RG:* ____________________
+*CPF/MF:* ____________________
