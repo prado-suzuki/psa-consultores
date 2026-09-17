@@ -138,6 +138,31 @@ describe('a geração do Acordo de ponta a ponta', () => {
     );
   });
 
+  it('a quarentena aparece e some do TITULO da Oitava, conforme o mecanismo', () => {
+    /*
+     * A quarentena nao tem corpo em nenhum dos sete acordos: aparece so no
+     * titulo da Clausula Oitava, e em 3 dos 7. Entao o mecanismo governa um
+     * pedaco do TITULO, e nao um bloco — o mesmo tratamento dos objetos da
+     * preferencia na Clausula Decima.
+     *
+     * O titulo mora em `tituloDocumento`, fora do `conteudo`, e so passa pelo
+     * render por causa do `comTituloRenderizado`. Sem esta assercao, uma
+     * regressao ali sairia como `{{#acordo.temQuarentena}}` literal no Word.
+     */
+    const com = gerarDocumento(template, contextoDe({
+      ...ENTRADA,
+      acordo: { ...ENTRADA.acordo, mecanismos: ['quarentena'] },
+    }));
+    expect(com).toContain('da OPÇÃO DE COMPRA e da CLÁUSULA DE QUARENTENA');
+
+    const sem = gerarDocumento(template, contextoDe({
+      ...ENTRADA,
+      acordo: { ...ENTRADA.acordo, mecanismos: [] },
+    }));
+    expect(sem).toContain('da OPÇÃO DE VENDA e da OPÇÃO DE COMPRA*');
+    expect(sem).not.toContain('CLÁUSULA DE QUARENTENA');
+  });
+
   it('sem ramos cadastrados, as duas clausulas somem inteiras', () => {
     /*
      * Sem a flag, e nao com a flag e a lista vazia: `temRamos` sai de

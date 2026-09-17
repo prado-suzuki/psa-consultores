@@ -201,7 +201,7 @@ Considerando todo o exposto acima, as partes signatárias deste acordo, quais se
 
 7.12 Eventuais SOCIEDADES QUOTISTAS que venham aderir à este ACORDO, ao aceitá-lo, garantirão solidariamente e ilimitadamente as obrigações assumidas nesta cláusula pelo QUOTISTA ou PARTE RELACIONADA (bem como cônjuges e/ou companheiros(as)) que venham pertencer ao seu quadro societário, com renúncia expressa de qualquer benefício de ordem ou privilégio da SOCIEDADE QUOTISTA em relação aquele QUOTISTA, podendo a ZAMO, qualquer outro QUOTISTA e/ou as SOCIEDADES RELACIONADAS exigirem desta SOCIEDADE QUOTISTA o pagamento da multa e demais obrigações descritas no item anterior, ainda que o QUOTISTA não tenha dado causa ao descumprimento.
 
-*CLÁUSULA OITAVA – Do direito de retirada dos QUOTISTAS, da OPÇÃO DE VENDA, da OPÇÃO DE COMPRA e da CLÁUSULA DE QUARENTENA*
+*CLÁUSULA OITAVA – Do direito de retirada dos QUOTISTAS, da OPÇÃO DE VENDA e da OPÇÃO DE COMPRA*
 
 8.1 Será assegurado a qualquer QUOTISTA o direito de se retirar da sociedade e, por conseguinte, exercer uma OPÇÃO DE VENDA de suas QUOTAS, de modo que os demais QUOTISTAS comprometem-se em adquirir as quotas do QUOTISTA que exerceu essa opção, votar, assinar todo e qualquer documento e exigir da ADMINISTRAÇÃO da ZAMO e das SOCIEDADES CONTROLADAS que adotem todas as eventuais medidas necessárias para concretizar a OPÇÃO DE VENDA disposta na presente cláusula, obedecendo os preceitos desse ACORDO, podendo qualquer QUOTISTA que se sentir prejudicado, valer-se das prerrogativas previstas na Cláusula de Solução de Litígios, objetivando a garantia do direito ora estabelecido.
 
@@ -253,9 +253,7 @@ e) Conforme decidam a maioria dos VOTOS dos QUOTISTAS presentes nas REUNIÕES PR
 
 9.6.3 Se não forem realizadas REUNIÕES PRÉVIAS ou REUNIÕES DE QUOTISTAS, qualquer QUOTISTA poderá requerer a suspensão da REUNIÃO DE SÓCIOS da ZAMO para que seja realizada uma REUNIÃO PRÉVIA durante esta suspensão, independente de convocação, a fim de que sejam deliberadas as matérias sujeitas a quórum específico tratadas neste ACORDO. Retomada a REUNIÃO DE SÓCIOS após a realização da REUNIÃO PRÉVIA, os QUOTISTAS votarão em conjunto consoante ao que decidirem aquela REUNIÃO PRÉVIA, aplicando-se, em todos os casos, o disposto nesta cláusula, podendo cada QUOTISTA valer-se da Ata da REUNIÃO PRÉVIA como instrumento de mandato irrevogável e irretratável para o exercício do direito de voto dos demais QUOTISTAS (inclusive dos ausentes), nos termos estabelecidos naquela solenidade e transcrito na ata, de acordo com o que prevê este ACORDO com relação a poderes das Atas das REUNIÕES PRÉVIAS e/ou de REUNIÕES DE QUOTISTAS.
 
-9.6.4 Os direitos de VOTO das QUOTAS vinculadas a este ACORDO observarão os eventuais usufrutuários e/ou detentores dos direitos de voto vinculados à cada QUOTA, de modo que caso o titular (proprietário) das QUOTAS não seja o usufrutuário, o direito de VOTO objeto deste ACORDO será exercido pelo usufrutuário com direito a voto.
-
-9.6.5 Os votos dos QUOTISTAS em REUNIÕES PRÉVIAS, REUNIÕES DE QUOTISTAS ou REUNIÕES DE SÓCIOS da ZAMO contrários às propostas submetidas à deliberação deverão ser fundamentados, cujas razões obrigatoriamente serão consignadas em Ata.
+9.6.4 Os votos dos QUOTISTAS em REUNIÕES PRÉVIAS, REUNIÕES DE QUOTISTAS ou REUNIÕES DE SÓCIOS da ZAMO contrários às propostas submetidas à deliberação deverão ser fundamentados, cujas razões obrigatoriamente serão consignadas em Ata.
 
 *CLÁUSULA DÉCIMA – Do direito de preferência caso ocorra venda de SOCIEDADES RELACIONADAS, de imóveis ou oportunidades de negócios*
 
