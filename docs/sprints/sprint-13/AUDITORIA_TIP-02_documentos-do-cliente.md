@@ -326,9 +326,73 @@ rotas desta tarefa. Ficam listadas com o minuto para quem pegar a TIP-03 não re
 | Cadastro por documento | o que significa marcar "não se aplica", e que a marca vale para a fase seguinte | 00:23:28 |
 | Checklist | que o aviso ao cliente é **manual** por decisão, não por falta de automação | 00:37:08 |
 
-**Uma dúvida citada e não registrada:** a Patrícia menciona em 00:52:45 que *"a Daniela já até
-mandou algumas dúvidas"* pelo suporte. Não estão na transcrição. Se existirem em outro lugar,
-entram aqui.
+### O chat da OSG, do go-live até hoje
+
+Segunda fonte, e a mais rica: o espaço **OSG** no Google Chat, exportado por Takeout. **77
+mensagens com texto entre 09/09 e 18/09**, de sete pessoas. É onde a Patrícia mandou a equipe
+levar as dúvidas (*"vai mandando as dúvidas aqui q vamos respondendo"*, 16/09), e é onde a
+"Daniela já até mandou algumas dúvidas" que a reunião citou sem detalhar.
+
+**Cinco dúvidas de uso apareceram.** Três já foram fechadas; duas seguem abertas, e uma delas é
+desta rota.
+
+| # | Quem, quando | A dúvida | Rota | Estado |
+|---|---|---|---|---|
+| 1 | Thiago, 10/09 | solicitação parecia duplicar documento quando há mais de um produto | Solicitação Inicial | **aberta** |
+| 2 | Anne, 14/09 | não viu um comentário; queria os avisos no chat | sino / feed | fechada por entrega |
+| 3 | Anne, 16/09 | *"não possui destinatário cadastrado"* ao enviar a solicitação | Cadastro do cliente | **parcialmente fechada** |
+| 4 | Daniela, 16/09 | botão levava a Chamados, onde ela não tem acesso | sino | decidida (Bernardo: o botão sai) |
+| 5 | Thiago, **18/09** | o aviso do sino devia abrir a pasta de documentos daquele cliente | **Documentos do Cliente** | **aberta** |
+
+### E3 · Thiago, 18/09 — o aviso do sino não leva a lugar nenhum
+
+> *"Essas notificações que chegam através do sininho poderiam nos direcionar o campo que aconteceu
+> o movimento, é possível? Por exemplo, esse grifado, poderia direcionar, ao clicar nele, para a
+> pasta de documentos daquele cliente em específico…"*
+
+É a única dúvida do período que cai **nesta rota**, e está certa: o aviso de documento recebido
+não abre nada. Está escrito no código, como decisão: em `lib/notificacoesInternas.ts`, o
+`destinoDoAviso` resolve `org_task` e `org_project`, e devolve `null` para `cliente` — *"não tem
+tela de destino hoje"*.
+
+```
+Rota:          Documentos do Cliente
+Controle:      linha do sino para "documento recebido"
+Problema:      a pessoa clica e nada acontece. O aviso sabe de qual cliente é
+               (entidade_id), e a tela que ela quer existe
+Intervenção:   NENHUMA nesta tarefa — e não por ser pequena, mas porque não é de texto
+Texto final:   —
+Comportamento: —
+Marcação:      —
+Origem:        chat, 18/09
+```
+
+**Por que não entra aqui, medido antes de decidir.** O `OsgWorkContext` guarda o cliente
+selecionado em `useState` e mais nada — sem parâmetro de URL, sem `localStorage`. Um link para
+`/equipe/osg/work/documentos` chega com **nenhum cliente escolhido**, e a pessoa cai no
+"Selecione um cliente na barra acima" — que é pior do que o clique não fazer nada, porque promete
+e não entrega. Fazer o aviso levar ao lugar certo exige o cliente viajar na URL, e isso muda como
+as **16 telas do OSG Work** escolhem cliente. É tarefa própria, com decisão de desenho, e não um
+ajuste de clareza.
+
+**Vale abrir essa tarefa.** A dúvida é de hoje, tem nome e caso de uso concreto.
+
+### As outras quatro, para quem pegar as rotas delas
+
+**1 · Thiago, 10/09 — "teria alguma forma de unificar essa solicitação?"** Ele viu a lista de
+documentos repetida por produto e concluiu que sairiam três solicitações, com risco de "incômodo
+ao cliente pela duplicidade". **O sistema já consolida** — você respondeu no chat que a lista de
+cima é a que vai, e a de baixo é só para conferir por produto. **A tela não diz isso.** É o
+melhor item da TIP-03: um usuário leu a tela e entendeu o oposto do que ela faz.
+
+**3 · Anne, 16/09 — "não possui destinatário cadastrado".** Duas metades:
+a mensagem diz o que aconteceu e **não diz o que fazer** (a mensagem contextual do padrão tem as
+duas partes, §3); e a chave que resolve chamava-se "acesso ao chamado" quando governa o acesso ao
+portal inteiro. Você prometeu no chat renomear — **e cumpriu no mesmo dia**, commit `8261f54c`:
+hoje o rótulo é **"Acesso à plataforma"**. Sobra a mensagem, que é da Solicitação Inicial.
+
+**2 e 4** foram resolvidas por entrega, não por texto: o feed de menções entrou em produção
+(Patrícia, 18/09) e o botão que levava a Chamados sai na próxima atualização (Bernardo, 16/09).
 
 ---
 
