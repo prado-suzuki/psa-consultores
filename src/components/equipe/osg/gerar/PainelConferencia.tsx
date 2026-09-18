@@ -363,8 +363,30 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                 cidade". Placeholder que ninguém declarou continua aparecendo
                                 pelo id, que é o que permite a quem montou o modelo achá-lo.
                               */}
-                              <Label className={cn(labelCls, 'text-sm')}>
+                              {/*
+                                `flex items-center` no rótulo, e não texto solto.
+                                O preflight do Tailwind põe `display: block` em todo
+                                `svg`, então o ícone de ajuda caía para a LINHA DE
+                                BAIXO do rótulo em vez de ficar ao lado dele. É a
+                                mesma gramática que o `MatrizLinhaModal` já usa.
+
+                                E o aviso de obrigatório é o MESMO dos campos de
+                                binding, logo abaixo nesta tela, e não uma marca
+                                nova: a Data da assinatura declara `obrigatorio`
+                                desde sempre em `CAMPOS_MANUAIS`, mas só o bloco de
+                                binding mostrava, e quem preenchia descobria a
+                                obrigatoriedade ao tentar baixar. Dois idiomas de
+                                obrigatoriedade na mesma janela seria pior que
+                                nenhum.
+                              */}
+                              <Label className={cn(labelCls, 'flex items-center gap-1.5 text-sm')}>
                                 {campoManual(ph)?.label ?? ph}
+                                {campoManual(ph)?.obrigatorio && !(valoresLivres[ph] ?? '').trim() && (
+                                  <span className="inline-flex items-center gap-1 text-warning">
+                                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                                    obrigatório
+                                  </span>
+                                )}
                                 {campoManual(ph)?.ajuda && (
                                   <AjudaDoCampo texto={campoManual(ph)!.ajuda!} />
                                 )}
