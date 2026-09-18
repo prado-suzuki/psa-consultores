@@ -325,7 +325,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                 de cada bloco é um trecho do próprio texto dele, com
                                 dezenas de caracteres, e emendados por vírgula não
                                 dava para ver onde uma acabava e a outra começava.
-                                O `title` guarda o nome cru, para quem precisar
+                                O balão guarda o nome cru, para quem precisar
                                 casar com o bloco na Biblioteca.
                               */}
                               {blocosExcluidosPorPerfil.length > 0 && (
@@ -337,7 +337,9 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                         <span aria-hidden className="text-osg-600">
                                           ·
                                         </span>
-                                        <span title={nome}>{nomeLegivelDoBloco(nome)}</span>
+                                        <ElementTooltip text={nome}>
+                                          <span>{nomeLegivelDoBloco(nome)}</span>
+                                        </ElementTooltip>
                                       </li>
                                     );
                                   })}
