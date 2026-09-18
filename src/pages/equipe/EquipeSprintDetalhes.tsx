@@ -40,7 +40,7 @@ export default function EquipeSprintDetalhes() {
       <div className="space-y-6">
         <SprintHeaderFilters controller={controller} />
 
-        <div className="rounded-lg border border-border bg-white p-4">
+        <div className="rounded-lg border border-border bg-card p-4">
           <div className="flex items-center justify-between mb-1">
             <span className="text-sm font-semibold text-foreground">Descrição da sprint</span>
             {!controller.editingGoal && (

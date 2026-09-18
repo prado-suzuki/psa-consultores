@@ -21,6 +21,7 @@ import {
   type DistribuicaoExistente,
   type DistribuicaoLinha,
 } from '@/lib/dcompForm';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface DcompDistributionSectionProps {
   distribuicoes: DistribuicaoLinha[];
@@ -199,12 +200,13 @@ export function DcompDistributionSection({
                   </p>
                 )}
                 {codigoSelecionado && (
-                  <p
+                  <ElementTooltip text={codigoSelecionado.denominacao_receita}>
+                    <p
                     className="col-span-6 -mt-1 text-xs text-muted-foreground truncate"
-                    title={codigoSelecionado.denominacao_receita}
                   >
                     {codigoSelecionado.denominacao_receita}
                   </p>
+                  </ElementTooltip>
                 )}
               </div>
             );

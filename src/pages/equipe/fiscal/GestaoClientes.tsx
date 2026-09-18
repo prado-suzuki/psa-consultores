@@ -46,6 +46,7 @@ import { AreaLoader } from '@/components/equipe/AreaLoader';
 import ClientesFilterBar, {
   type ClientesFilterField,
 } from '@/components/equipe/clientes/ClientesFilterBar';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 /* ── Painel expandido: título de seção + estados ── */
 const SubSectionTitle = ({ label, count }: { label: string; count?: number }) => (
@@ -420,17 +421,18 @@ const GestaoClientes = ({
                         </div>
                       </TableCell>
                       <TableCell className="px-4 py-3 text-center">
-                        <span
+                        <ElementTooltip text={`${row._osCount} OS cadastrada${row._osCount === 1 ? '' : 's'}`}>
+                          <span
                           className={cn(
                             'inline-flex h-6 min-w-6 items-center justify-center rounded-md px-2 text-xs font-semibold',
                             row._osCount > 0
                               ? 'bg-primary/10 text-primary'
                               : 'bg-muted/60 text-muted-foreground',
                           )}
-                          title={`${row._osCount} OS cadastrada${row._osCount === 1 ? '' : 's'}`}
                         >
                           {row._osCount}
                         </span>
+                        </ElementTooltip>
                       </TableCell>
                       <TableCell className="px-4 py-3">{formatStatus(row.ativo)}</TableCell>
                       <TableCell className="px-4 py-3 text-sm text-muted-foreground">

@@ -4,7 +4,8 @@ import {
 } from './extenso';
 import { tituloDoInstrumento } from './instrumento';
 import {
-  PARES, concordar, concordarTexto, generoDeConcordancia, ufComPreposicao, ufPorExtenso, type Genero,
+  PARES, comPreposicaoDeLugar, concordar, concordarTexto, generoDeConcordancia, ufComPreposicao,
+  ufPorExtenso, type Genero,
 } from './concordancia';
 
 // Vocabulário de campos organizado POR ENTIDADE (pessoa/bem/matricula/cartorio).
@@ -245,6 +246,18 @@ function numeralCampo(id: string, label: string, derivadoDe: string): CampoEntid
  * da pergunta é publicado como um campo. `derivar` devolve string porque é isso
  * que uma seção {{#campo}} lê; booleano funcionaria por acaso.
  */
+/** Condicional ligado por UMA chave da lista de objetos da preferência. */
+function objetoDaPreferenciaCampo(id: string, chave: string, label: string): CampoEntidade {
+  return {
+    id,
+    label,
+    tipo: 'texto',
+    derivadoDe: 'objetosPreferenciaChaves',
+    derivar: (v) => ((v.objetosPreferenciaChaves ?? '')
+      .split(',').map((x) => x.trim()).includes(chave) ? 'sim' : ''),
+  };
+}
+
 function condicionalCampo(
   id: string,
   label: string,
@@ -658,6 +671,7 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         derivar: (v) => tituloDoInstrumento(paraInteiroBR(v.numeroAlteracao)),
       },
       { id: 'tituloColetivoSocios', label: 'Sócio(s) com concordância do quadro', tipo: 'texto' },
+      { id: 'tituloColetivoAdministradores', label: 'Administrador(es) com concordância', tipo: 'texto' },
       // Condicional (o engine não tem "else"): a administração passou a ser
       // exercida de fora do quadro societário. É o que autoriza a cláusula a
       // dizer "administradores não sócios", em vez de a redação afirmar isso
@@ -665,6 +679,22 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'temAdministradorNaoSocio', label: 'Há administrador não sócio? (condicional)', tipo: 'texto' },
       { id: 'semAdministradorNaoSocio', label: 'Todos os administradores são sócios? (condicional, o engine não tem else)', tipo: 'texto' },
       { id: 'razaoSocial', label: 'Razão social', tipo: 'texto', obrigatorio: true },
+      /*
+       * A RAZÃO SOCIAL EM CAIXA ALTA, que é como o documento a escreve.
+       *
+       * Os cinco acordos do acervo escrevem a razão social em caixa alta nas
+       * três aparições do preâmbulo e na folha de assinaturas, e nós já
+       * escrevíamos assim quando a PJ é signatária (`nomeMaiusculo`). O cadastro
+       * guarda "Aurora Administradora de Bens Ltda", que é o certo para a tela;
+       * quem faz a versão do documento é o campo derivado, e não a digitação.
+       */
+      {
+        id: 'razaoSocialMaiuscula',
+        label: 'Razão social em caixa alta',
+        tipo: 'texto',
+        derivadoDe: 'razaoSocial',
+        derivar: (v) => (v.razaoSocial ?? '').toLocaleUpperCase('pt-BR'),
+      },
       // CNPJ NÃO é obrigatório: o contrato de constituição é justamente o
       // documento que a sociedade leva à Junta para obtê-lo.
       { id: 'cnpj', label: 'CNPJ', tipo: 'texto' },
@@ -766,6 +796,22 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       // mais as partes atômicas (cobrem os placeholders legados sedeEndereco/
       // sedeMunicipio/sedeUf/sedeCep, agora sob o namespace sociedade.*).
       { id: 'sede', label: 'Sede (endereço completo)', tipo: 'textarea' },
+      /*
+       * "na Rua Carla Gomes…", "no Sítio Boa Vista…".
+       *
+       * O modelo escreve "com sede estabelecida NA Avenida Octaviano" e a
+       * AgroAliança "com sede estabelecida NA Rua Zulmar Bertuol"; sem a
+       * preposição a frase saía "com sede estabelecida Rua Carla Gomes". Ela
+       * não cabe fixa no bloco porque o gênero é do logradouro, e "na Sítio"
+       * estaria errado do mesmo jeito.
+       */
+      {
+        id: 'sedeComPreposicao',
+        label: 'Sede com preposição ("na Rua…", "no Sítio…")',
+        tipo: 'texto',
+        derivadoDe: 'sede',
+        derivar: (v) => comPreposicaoDeLugar(v.sede),
+      },
       { id: 'sedeEndereco', label: 'Sede — logradouro e número', tipo: 'texto' },
       { id: 'sedeLogradouro', label: 'Sede — logradouro', tipo: 'texto' },
       { id: 'sedeNumero', label: 'Sede — número', tipo: 'texto' },
@@ -1618,20 +1664,42 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
        * que acende o bloco inteiro do fluxo, com os números dentro dele fixos.
        */
       /*
-       * A PREFERÊNCIA: a fila em prosa, o que passa por ela, e o interruptor.
+       * A PREFERÊNCIA: o que passa por ela, e o interruptor.
        *
-       * `ordemPreferencia` é a fila já escrita ("aos descendentes dos
-       * SIGNATÁRIOS, depois aos demais QUOTISTAS"), para a cláusula que a diz
-       * numa frase só. A mesma fila também sai como LISTA, para o bloco que
-       * quer uma alínea por posição; as duas vêm da mesma tabela.
+       * A FILA saiu em 17/09: era lista de quem tem a vez, e nenhum dos sete
+       * acordos do acervo escreve uma fila assim. O que existe é a regra do
+       * AgroAliança 5.5, que diz outra coisa (a preferência fica primeiro no
+       * RAMO de quem vende), e essa lê a lista de ramos.
        */
-      { id: 'ordemPreferencia', label: 'Ordem do direito de preferência', tipo: 'texto' },
       { id: 'objetosPreferencia', label: 'Objetos sujeitos à preferência (em prosa)',
         tipo: 'texto' },
       { id: 'objetosPreferenciaChaves', label: 'Objetos sujeitos à preferência (chaves)',
         tipo: 'texto', interno: true },
       // A Cláusula Quinta trata das quotas; é a Décima que estende a imóveis,
       // máquinas e oportunidades, e ela só existe se houver algo além delas.
+      /*
+       * UM CONDICIONAL POR OBJETO, porque o modelo escreve cada um no seu lugar.
+       *
+       * Eu quase derrubei este campo por achar que o modelo não enumerava os
+       * objetos. Enumera, em prosa espalhada, e o título da Cláusula Décima já
+       * denuncia: "Do direito de preferência caso ocorra venda de SOCIEDADES
+       * RELACIONADAS, de imóveis ou oportunidades de negócios".
+       *
+       *   participacoes   os cinco blocos das SOCIEDADES RELACIONADAS
+       *   imoveis         o item que estende a bens imóveis
+       *   oportunidades   o item das oportunidades de negócio, na Décima Primeira
+       *
+       * `maquinas` e `equipamentos` NÃO ganham condicional: o modelo não os
+       * escreve em bloco nenhum, e a lista da tela nisso é vocabulário do
+       * AgroAliança. Marcá-los no cadastro não muda o documento, e é melhor que
+       * não mude a que eu invente cláusula que o escritório não redigiu.
+       */
+      objetoDaPreferenciaCampo('preferenciaSobreImoveis', 'imoveis',
+        'A preferência alcança bens imóveis? (condicional)'),
+      objetoDaPreferenciaCampo('preferenciaSobreParticipacoes', 'participacoes',
+        'A preferência alcança participações em SOCIEDADES RELACIONADAS? (condicional)'),
+      objetoDaPreferenciaCampo('preferenciaSobreOportunidades', 'oportunidades',
+        'A preferência alcança oportunidades de negócio? (condicional)'),
       {
         id: 'preferenciaAlemDasQuotas',
         label: 'A preferência vai além das quotas? (condicional)',
@@ -1736,7 +1804,6 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
        */
       { id: 'opcaoCompraPrevista', label: 'Tem opção de compra? (condicional)', tipo: 'texto' },
       { id: 'opcaoCompraQuem', label: 'Quem detém a opção de compra', tipo: 'texto' },
-      { id: 'opcaoCompraPreco', label: 'Preço na opção de compra', tipo: 'texto' },
       { id: 'opcaoVendaPrevista', label: 'Tem opção de venda? (condicional)', tipo: 'texto' },
       { id: 'jurosValorSubscrito', label: 'Juros sobre o valor subscrito', tipo: 'texto' },
 
@@ -1754,6 +1821,56 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         'solucaoLitigios', (v) => v.solucaoLitigios === 'arbitragem'),
       condicionalCampo('porJudicial', 'Conflito vai para o Judiciário? (condicional)',
         'solucaoLitigios', (v) => v.solucaoLitigios === 'judicial'),
+      /*
+       * OS SETE QUÓRUNS, um campo por matéria, mais a variante em fração.
+       *
+       * Não são sete alíneas de uma lista, e supor isso produziria documento
+       * errado. Cruzado com o modelo: quatro viram alíneas da escada do voto na
+       * Cláusula Nona, o aumento de capital sai na Quarta, a reunião prévia na
+       * Vigésima Quarta, e a INSTALAÇÃO não aparece no Acordo (é a cláusula de
+       * instalação do contrato social). Por isso cada um tem o seu campo, e o
+       * bloco cita o seu.
+       *
+       * Só a QUANTIDADE, porque a frase do modelo já traz a base com as palavras
+       * dela: "Conforme decidam 75% (setenta e cinco por cento) dos VOTOS dos
+       * QUOTISTAS presentes nas REUNIÕES...".
+       *
+       * A variante em FRAÇÃO existe porque o modelo é inconsistente consigo
+       * mesmo, e ser fiel a ele é reproduzir isso: os mesmos 75% saem
+       * "75% (setenta e cinco por cento)" na escada e "¾ (três quartos) das
+       * QUOTAS" no aumento de capital.
+       *
+       * `lacunaSeVazio` pelo mesmo motivo do apelido da empresa: a alínea é
+       * prosa que se sustenta sem o número, e some inteira se ele faltar.
+       */
+      { id: 'quorumInstalacao', label: 'Quórum: Para a reunião de sócios poder começar', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumInstalacaoFracao', label: 'Quórum em fração: Para a reunião de sócios poder começar', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumOrdinaria', label: 'Quórum: Assunto comum, sem regra própria', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumOrdinariaFracao', label: 'Quórum em fração: Assunto comum, sem regra própria', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumAlterarContratoSocial', label: 'Quórum: Alterar o contrato social', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumAlterarContratoSocialFracao', label: 'Quórum em fração: Alterar o contrato social', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumNomearAdministradorNaoSocio', label: 'Quórum: Nomear administrador não sócio', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumNomearAdministradorNaoSocioFracao', label: 'Quórum em fração: Nomear administrador não sócio', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumDestituirAdministrador', label: 'Quórum: Destituir administrador', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumDestituirAdministradorFracao', label: 'Quórum em fração: Destituir administrador', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumAumentoDeCapital', label: 'Quórum: Aumento de capital', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumAumentoDeCapitalFracao', label: 'Quórum em fração: Aumento de capital', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumReuniaoPrevia', label: 'Quórum: Reunião prévia', tipo: 'texto',
+        lacunaSeVazio: true },
+      { id: 'quorumReuniaoPreviaFracao', label: 'Quórum em fração: Reunião prévia', tipo: 'texto',
+        lacunaSeVazio: true },
       { id: 'camaraArbitral', label: 'Câmara arbitral', tipo: 'texto' },
 
       /*
@@ -1789,24 +1906,22 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         derivadoDe: 'representanteGenero',
         derivar: (v) => concordar(v.representanteGenero === 'F' ? 'F' : 'M', 'Sr.', 'Sra.'),
       },
+      /*
+       * O ARTIGO TAMBÉM CONCORDA, e ele estava escrito fixo no bloco.
+       *
+       * A cláusula saía "os QUOTISTAS elegem o Sra. Ana Zamo" quando o
+       * representante era mulher. O tratamento já concordava; o artigo antes
+       * dele, não. Mesmo par do órgão de governança, que tem `artigo` e `ao`.
+       */
+      {
+        id: 'representanteArtigo',
+        label: 'Artigo do representante (o/a)',
+        tipo: 'texto',
+        derivadoDe: 'representanteGenero',
+        derivar: (v) => concordar(v.representanteGenero === 'F' ? 'F' : 'M', 'o', 'a'),
+      },
       condicionalCampo('temRepresentante', 'Há representante eleito? (condicional)',
         'representanteNome', (v) => !!(v.representanteNome ?? '').trim()),
-      /*
-       * O SUBSTITUTO, que a mesma cláusula nomeia logo depois: "na sua falta ou
-       * incapacidade civil, a incumbência passará ao Sr. …". Mesma dupla de
-       * campos do titular, e pelo mesmo motivo: o tratamento concorda com o
-       * gênero da pessoa cadastrada, que texto livre não teria.
-       */
-      { id: 'substitutoRepresentanteNome', label: 'Substituto do representante', tipo: 'texto' },
-      { id: 'substitutoRepresentanteGenero', label: 'Gênero do substituto (M/F)', tipo: 'texto',
-        interno: true },
-      {
-        id: 'substitutoRepresentanteTratamento',
-        label: 'Tratamento do substituto (Sr./Sra.)',
-        tipo: 'texto',
-        derivadoDe: 'substitutoRepresentanteGenero',
-        derivar: (v) => concordar(v.substitutoRepresentanteGenero === 'F' ? 'F' : 'M', 'Sr.', 'Sra.'),
-      },
       /*
        * O FORO ELEITO, cláusula 26.6, e também a cidade da arbitragem, que é a
        * mesma em 5 dos 5 acordos que trazem as duas. Não deriva da sede: o
@@ -1815,6 +1930,16 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
        */
       { id: 'foroEleitoComarca', label: 'Foro eleito — cidade', tipo: 'texto' },
       { id: 'foroEleitoEstado', label: 'Foro eleito — estado por extenso', tipo: 'texto' },
+      /*
+       * "estado DO Paraná", e não "estado DE Paraná".
+       *
+       * `ufComPreposicao` já resolve pelo NOME, e não só pela sigla: ele faz a
+       * busca reversa do nome para a sigla justamente porque a matrícula publica
+       * o estado por extenso. Por isso não foi preciso trocar a coluna para
+       * guardar "PR".
+       */
+      ufComPreposicaoCampo('foroEleitoEstadoComPreposicao',
+        'Foro eleito — estado com a preposição', 'foroEleitoEstado'),
     ],
   },
 };

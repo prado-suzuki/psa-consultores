@@ -26,6 +26,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { iniciaisDoNome, type MentionCandidate } from '@/lib/orgCommentMentions';
 import { docDoCorpo, serializarDoc } from '@/lib/orgCommentRichText';
 import { cn } from '@/lib/utils';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface EstadoSugestao {
   items: MentionCandidate[];
@@ -298,9 +299,9 @@ export function OrgCommentEditor({
         {botoes.map(({ key, label, icon: Icon, ativo, acao }, index) => (
           <Fragment key={key}>
             {index === 3 && <span className="mx-1 h-4 w-px bg-border" aria-hidden />}
-            <button
+            <ButtonTooltip text={label}>
+              <button
               type="button"
-              title={label}
               aria-label={label}
               aria-pressed={ativo}
               onMouseDown={(event) => event.preventDefault()}
@@ -312,11 +313,12 @@ export function OrgCommentEditor({
             >
               <Icon className="h-3.5 w-3.5" />
             </button>
+            </ButtonTooltip>
           </Fragment>
         ))}
-        <button
+        <ButtonTooltip text="Mencionar pessoa">
+          <button
           type="button"
-          title="Mencionar pessoa"
           aria-label="Mencionar pessoa"
           onMouseDown={(event) => event.preventDefault()}
           onClick={inserirGatilhoDeMencao}
@@ -324,6 +326,7 @@ export function OrgCommentEditor({
         >
           <AtSign className="h-3.5 w-3.5" />
         </button>
+        </ButtonTooltip>
       </div>
 
       <EditorContent editor={editor} />

@@ -30,6 +30,7 @@ import { AgenteNotificacaoPopup } from '@/components/agente/AgenteNotificacaoPop
 import { BoardAgenteDiretoria } from '@/components/board/BoardAgenteDiretoria';
 import { BoardToolbar } from '@/components/board/BoardToolbar';
 import { rotaEhDiretoria } from '@/lib/agenteEscopos';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface BoardLayoutProps {
   children: React.ReactNode;
@@ -159,10 +160,10 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
           fechava 68px de altura contra os 88/72 do resto, e a linha divisória
           PULAVA ao trocar de área. */}
       <div className={classeRecuoCabecalho(collapsed)} style={{ borderBottom: '1px solid var(--bd-chrome-line)' }}>
-        <button
+        <ButtonTooltip text="Estratégico">
+          <button aria-label="Estratégico"
           onClick={() => { navigate('/equipe/board/dashboard'); setMobileOpen(false); }}
           className={`flex items-center gap-2.5 w-full ${collapsed ? 'justify-center' : ''}`}
-          title="Estratégico"
         >
           <div
             className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0"
@@ -180,6 +181,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
             </span>
           )}
         </button>
+        </ButtonTooltip>
       </div>
 
       {/* Navegação */}
@@ -191,18 +193,19 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
               se encostariam — ver `classesEyebrowDaBarra`. */}
           <p className={classesEyebrowDaBarra(collapsed)}>Diretoria</p>
           {navItems.filter(i => !i.adminOnly).map((item) => (
-            <button
-              key={item.path}
+            <ButtonTooltip key={item.path} text={collapsed ? item.label : undefined}>
+              <button aria-label={collapsed ? item.label : undefined}
+             
               onClick={() => { navigate(item.path); setMobileOpen(false); }}
               className={cn(
                 classesItemDaBarra({ ativo: isActive(item.path), trilho: collapsed }),
                 'relative mb-0.5',
               )}
-              title={collapsed ? item.label : undefined}
             >
               <item.icon className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isActive(item.path) ? 1 : 0.7 }} />
               {!collapsed && <span>{item.label}</span>}
             </button>
+            </ButtonTooltip>
           ))}
         </div>
 
@@ -212,18 +215,19 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
           <div className="mb-5">
             <p className={classesEyebrowDaBarra(collapsed)}>Gestão de Time</p>
             {navItems.filter(i => i.adminOnly).map((item) => (
-              <button
-                key={item.path}
+              <ButtonTooltip key={item.path} text={collapsed ? item.label : undefined}>
+                <button aria-label={collapsed ? item.label : undefined}
+               
                 onClick={() => { navigate(item.path); setMobileOpen(false); }}
                 className={cn(
                   classesItemDaBarra({ ativo: isActive(item.path), trilho: collapsed }),
                   'relative mb-0.5',
                 )}
-                title={collapsed ? item.label : undefined}
               >
                 <item.icon className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isActive(item.path) ? 1 : 0.7 }} />
                 {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
               </button>
+              </ButtonTooltip>
             ))}
           </div>
         )}
@@ -239,17 +243,18 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
         {/* O "Sair" que ficava aqui embaixo esta dentro do menu deste cartao
             desde 10/09/2026, como nas outras barras. */}
         <SidebarCartaoUsuario area="board" collapsed={collapsed} />
-        <button
+        <ButtonTooltip text={collapsed ? 'Voltar ao Portal' : undefined}>
+          <button aria-label={collapsed ? 'Voltar ao Portal' : undefined}
           onClick={() => navigate('/equipe/')}
           className="w-full flex items-center gap-2 rounded-[10px] text-[12.5px] transition-colors duration-150 px-2.5 py-2"
           style={{ color: 'var(--bd-ink3)' }}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--bd-chrome-hover)'; (e.currentTarget as HTMLElement).style.color = 'var(--bd-ink)'; }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--bd-ink3)'; }}
-          title={collapsed ? 'Voltar ao Portal' : undefined}
         >
           <ArrowLeft className="h-[14px] w-[14px] flex-shrink-0" />
           {!collapsed && <span>Voltar ao Portal</span>}
         </button>
+        </ButtonTooltip>
 
       </div>
     </div>
@@ -278,19 +283,20 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
       >
         <SidebarContent collapsed={collapsed} />
         {/* Toggle */}
-        <button
+        <ButtonTooltip text={collapsed ? 'Expandir menu' : 'Recolher menu'}>
+          <button aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
           onClick={() => setCollapsed(c => !c)}
           className="absolute top-[22px] -right-3 z-40 w-6 h-6 rounded-full flex items-center justify-center border transition-colors"
           style={{
-            backgroundColor: 'var(--bd-surface)',
+            backgroundColor: 'var(--bd-control)',
             borderColor: 'var(--bd-line)',
             color: 'var(--bd-ink3)',
             boxShadow: 'var(--bd-sh)',
           }}
-          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
         >
           {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
         </button>
+        </ButtonTooltip>
       </aside>
 
       {/* Mobile sidebar (drawer) */}

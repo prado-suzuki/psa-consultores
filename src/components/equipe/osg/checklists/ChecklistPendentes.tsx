@@ -25,6 +25,7 @@ import {
   type StatusChecklist,
 } from '@/lib/checklistDerivado';
 import { contarEstados, ESTADOS_DOCUMENTO, type EstadoDocumento } from '@/lib/estadoDocumento';
+import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * O checklist do consultor: a leitura da subtração, mais o veredito sobre o que
@@ -258,14 +259,15 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
         arquivosSemTipo={arquivosSemTipo}
       />
 
-      <div className="space-y-3 rounded-2xl border border-osg-200/70 bg-white/70 p-3 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)]">
+      <div className="space-y-3 rounded-2xl border border-osg-200/70 bg-card/70 p-3 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)]">
         <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-osg-100 bg-osg-50 p-1">
           {CATEGORIAS_FILTRO.map(({ value, label, substantivo, Icon }) => {
             const ativo = filtroCategoria === value;
             const total = value === 'todos' ? gruposFiltrados.length : contagemPorCategoria.get(value) ?? 0;
             return (
-              <button
-                key={value}
+              <ButtonTooltip key={value} text={`${total} ${substantivo} com documentos nesta solicitação.`}>
+                <button aria-label={`${total} ${substantivo} com documentos nesta solicitação.`}
+               
                 type="button"
                 onClick={() => {
                   setFiltroCategoria(value);
@@ -273,16 +275,16 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
                 }}
                 /* O número conta ENTIDADES, e nada na aba dizia isso: ao lado de
                    "123 pendentes" no topo, o "4" daqui lia como documentos. */
-                title={`${total} ${substantivo} com documentos nesta solicitação.`}
                 className={cn(
                   'relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
-                  ativo ? 'bg-white text-osg-700 shadow-sm' : 'text-osg-500 hover:bg-osg-100/60 hover:text-osg-700',
+                  ativo ? 'bg-card text-osg-700 shadow-sm' : 'text-osg-500 hover:bg-osg-100/60 hover:text-osg-700',
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />{label}
                 <span className={cn('text-[10px] tabular-nums', ativo ? 'text-osg-600' : 'text-osg-500/70')}>{total}</span>
                 {ativo && <span aria-hidden className="absolute inset-x-3 bottom-0.5 h-0.5 rounded-full bg-osg-moss" />}
               </button>
+              </ButtonTooltip>
             );
           })}
         </div>
@@ -292,11 +294,11 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
             {STATUS_FILTRO.map(({ value, label, dica, dot }) => {
               const ativo = filtroStatus === value;
               return (
-                <button
-                  key={value}
+                <ButtonTooltip key={value} text={dica}>
+                  <button aria-label={dica}
+                 
                   type="button"
                   onClick={() => setFiltroStatus(value)}
-                  title={dica}
                   className={cn(
                     'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
                     ativo
@@ -307,6 +309,7 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
                   {dot && <span aria-hidden className={cn('h-2 w-2 rounded-full', dot)} />}
                   {label}
                 </button>
+                </ButtonTooltip>
               );
             })}
           </div>
@@ -426,7 +429,7 @@ function EstadoVazio({ titulo, descricao, acao }: {
   acao: { para: string; rotulo: string };
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-osg-300/70 bg-white/60 px-6 py-16 text-center shadow-sm">
+    <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-osg-300/70 bg-card/60 px-6 py-16 text-center shadow-sm">
       <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-osg-100 text-osg-moss"><ClipboardCheck className="h-7 w-7" /></span>
       <div>
         <p className="font-semibold text-osg-700">{titulo}</p>
@@ -441,7 +444,7 @@ function ResumoHero({ clienteNome, pct, base, recebidos, pendentes, encerrados }
   clienteNome: string; pct: number; base: number; recebidos: number; pendentes: number; encerrados: number;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-osg-300/60 bg-white/75 p-5 shadow-[0_14px_40px_-28px_hsl(var(--osg-700)/0.35)] sm:p-7">
+    <section className="relative overflow-hidden rounded-2xl border border-osg-300/60 bg-card/75 p-5 shadow-[0_14px_40px_-28px_hsl(var(--osg-700)/0.35)] sm:p-7">
       <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-osg-moss/5 blur-3xl" />
       <div className="relative grid gap-7 lg:grid-cols-[1fr_280px] lg:items-center">
         <div>
@@ -482,10 +485,12 @@ function Metric({ label, value, tone, dica }: {
   dica?: string;
 }) {
   return (
-    <div className="flex flex-col items-center rounded-xl bg-osg-50/70 px-2 py-3 text-center" title={dica}>
+    <ElementTooltip text={dica}>
+      <div className="flex flex-col items-center rounded-xl bg-osg-50/70 px-2 py-3 text-center">
       <div className={cn('text-xl font-bold leading-none tabular-nums', tone === 'warning' ? 'text-osg-700' : 'text-osg-moss')}>{value}</div>
       <div className="mt-1 text-[10px] font-semibold uppercase leading-tight text-osg-500">{label}</div>
     </div>
+    </ElementTooltip>
   );
 }
 
@@ -512,7 +517,7 @@ function EntityCard({ grupo, onOpen }: {
    * para o clique atravessar; só os chips reativam o ponteiro.
    */
   return (
-    <div className="group relative flex h-full min-h-48 w-full flex-col rounded-2xl border border-osg-300/60 bg-white/75 p-5 text-left shadow-[0_8px_24px_-22px_hsl(var(--osg-700)/0.35)] transition-all duration-200 hover:-translate-y-1 hover:border-osg-moss/40 hover:shadow-[0_16px_30px_-20px_hsl(var(--osg-moss)/0.24)] focus-within:border-osg-moss/40">
+    <div className="group relative flex h-full min-h-48 w-full flex-col rounded-2xl border border-osg-300/60 bg-card/75 p-5 text-left shadow-[0_8px_24px_-22px_hsl(var(--osg-700)/0.35)] transition-all duration-200 hover:-translate-y-1 hover:border-osg-moss/40 hover:shadow-[0_16px_30px_-20px_hsl(var(--osg-moss)/0.24)] focus-within:border-osg-moss/40">
       <button
         type="button"
         onClick={() => onOpen()}
@@ -568,13 +573,13 @@ function ChipsDeEstado({ contagem, onEscolher }: {
   return (
     <div className="pointer-events-none relative z-10 mt-3 flex flex-wrap gap-1.5">
       {visiveis.map((estado) => (
-        <button
-          key={estado}
+        <ButtonTooltip key={estado} text={`Abre a ficha desta entidade mostrando só os documentos em "${ESTADO_LABEL[estado]}".`}>
+          <button aria-label={`Abre a ficha desta entidade mostrando só os documentos em "${ESTADO_LABEL[estado]}".`}
+         
           type="button"
           onClick={() => onEscolher(estado)}
           /* O chip não é só um contador: ele ABRE a ficha, já recortada. Nada na
              tela diz isso, e sem o tooltip o analista lê como enfeite. */
-          title={`Abre a ficha desta entidade mostrando só os documentos em "${ESTADO_LABEL[estado]}".`}
           className={cn(
             'pointer-events-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
             ESTADO_CHIP[estado],
@@ -583,6 +588,7 @@ function ChipsDeEstado({ contagem, onEscolher }: {
           {ESTADO_LABEL[estado]}
           <span className="tabular-nums opacity-70">{contagem[estado]}</span>
         </button>
+        </ButtonTooltip>
       ))}
     </div>
   );

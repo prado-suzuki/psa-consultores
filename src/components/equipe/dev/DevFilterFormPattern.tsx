@@ -11,6 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -202,9 +203,7 @@ export const DevFilterFormPattern = ({
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="top" className="max-w-xs">
-                            Contribuinte é a inscrição estadual associada ao cliente.
-                            Selecione um cliente primeiro para listar os contribuintes
-                            disponíveis.
+                            Inscrição estadual associada ao cliente.
                           </TooltipContent>
                         </Tooltip>
                       </FormLabel>
@@ -214,16 +213,15 @@ export const DevFilterFormPattern = ({
                           value={field.value}
                           onChange={field.onChange}
                           disabled={disabled}
-                          placeholder={
-                            !clienteId
-                              ? "Selecione um cliente primeiro"
-                              : loadingContribuintes
-                                ? "Carregando..."
-                                : "Selecione um contribuinte"
-                          }
+                          placeholder={loadingContribuintes ? "Carregando…" : "Selecione…"}
                           className="w-full min-w-0 h-10"
                         />
                       </FormControl>
+                      {!clienteId && (
+                        <FormDescription className="text-status-alerta">
+                          Selecione um cliente para listar os contribuintes.
+                        </FormDescription>
+                      )}
                       <FormMessage />
                     </FormItem>
                   );

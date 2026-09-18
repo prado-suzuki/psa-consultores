@@ -32,6 +32,7 @@ import { filterDailyTasksBySearch } from '@/lib/equipeDaily';
 import { markdownParaConteudo, pareceMarkdown } from '@/lib/markdownTarefa';
 import { LINGUAGENS_CODIGO, lowlight } from '@/lib/tarefaLowlight';
 import { parseTarefaRichText, serializeTarefaRichText } from '@/lib/tarefaRichText';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface TarefaRichTextEditorProps {
   value: string;
@@ -274,9 +275,9 @@ export function TarefaRichTextEditor({
         {buttons.map(({ key, label, icon: Icon, active: isActive, action }, index) => (
           <Fragment key={key}>
             {(index === 3 || index === 5) && <span className="mx-1 h-5 w-px bg-border" aria-hidden />}
-            <button
+            <ButtonTooltip text={label}>
+              <button
               type="button"
-              title={label}
               aria-label={label}
               aria-pressed={isActive}
               disabled={disabled}
@@ -289,6 +290,7 @@ export function TarefaRichTextEditor({
             >
               <Icon className="h-4 w-4" />
             </button>
+            </ButtonTooltip>
           </Fragment>
         ))}
 

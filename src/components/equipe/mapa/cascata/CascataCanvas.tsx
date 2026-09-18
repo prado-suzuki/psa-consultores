@@ -32,6 +32,7 @@ import {
   type CascataProcessNode,
 } from '@/utils/cascataGraph';
 import type { Gargalo } from '@/types';
+import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface MeasuredEdge {
   id: string;
@@ -208,52 +209,57 @@ export default function CascataCanvas({
   return (
     <div className="cascata-canvas-shell">
       <div className="cascata-toolbar" role="toolbar" aria-label="Controles do diagrama">
-        <button
+        <ButtonTooltip text="Reduzir zoom">
+          <button
           type="button"
           className="casc-tool-btn"
-          title="Reduzir zoom"
           aria-label="Reduzir zoom"
           onClick={() => setScale((s) => clampScale(s - 0.1))}
         >
           <Minus size={15} />
         </button>
-        <button
+        </ButtonTooltip>
+        <ButtonTooltip text="Restaurar 100%">
+          <button
           type="button"
           className="casc-tool-pct"
-          title="Restaurar 100%"
           aria-label="Restaurar zoom para 100%"
           onClick={() => setScale(1)}
         >
           {Math.round(scale * 100)}%
         </button>
-        <button
+        </ButtonTooltip>
+        <ButtonTooltip text="Aumentar zoom">
+          <button
           type="button"
           className="casc-tool-btn"
-          title="Aumentar zoom"
           aria-label="Aumentar zoom"
           onClick={() => setScale((s) => clampScale(s + 0.1))}
         >
           <Plus size={15} />
         </button>
+        </ButtonTooltip>
         <span className="casc-tool-sep" />
-        <button
+        <ButtonTooltip text="Ajustar à tela">
+          <button
           type="button"
           className="casc-tool-btn"
-          title="Ajustar à tela"
           aria-label="Ajustar diagrama à tela"
           onClick={fitToView}
         >
           <Maximize2 size={14} />
         </button>
-        <button
+        </ButtonTooltip>
+        <ButtonTooltip text="Reproduzir animação da cascata">
+          <button
           type="button"
           className="casc-tool-btn"
-          title="Reproduzir animação da cascata"
           aria-label="Reproduzir animação da cascata"
           onClick={() => setReplayKey((k) => k + 1)}
         >
           <RotateCcw size={14} />
         </button>
+        </ButtonTooltip>
       </div>
 
       <div className="cascata-viewport" ref={viewportRef}>
@@ -361,16 +367,17 @@ export default function CascataCanvas({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       transition={cardTransition(wi, idx)}
                     >
-                      <button
+                      <ButtonTooltip text={open ? 'Recolher etapas' : 'Expandir etapas afetadas'}>
+                        <button aria-label={open ? 'Recolher etapas' : 'Expandir etapas afetadas'}
                         type="button"
                         className="casc-node-head"
                         onClick={() => onToggleProcess(node.processId)}
                         aria-expanded={open}
-                        title={open ? 'Recolher etapas' : 'Expandir etapas afetadas'}
                       >
                         <span className="casc-node-nome">{node.nome}</span>
                         <ChevronDown size={16} className={`casc-chev${open ? ' open' : ''}`} />
                       </button>
+                      </ButtonTooltip>
 
                       <div className="casc-node-meta">
                         <span className={`casc-badge casc-badge--${node.intensidade.toLowerCase()}`}>
@@ -396,14 +403,15 @@ export default function CascataCanvas({
                       </div>
 
                       {node.docsAfetados.length > 0 && (
-                        <div
+                        <ElementTooltip text={`Docs a atualizar: ${node.docsAfetados.join(', ')}`}>
+                          <div
                           className="casc-node-docs"
-                          title={`Docs a atualizar: ${node.docsAfetados.join(', ')}`}
                         >
                           <FileStack size={12} />
                           {node.docsAfetados.length}{' '}
                           {node.docsAfetados.length === 1 ? 'doc a atualizar' : 'docs a atualizar'}
                         </div>
+                        </ElementTooltip>
                       )}
 
                       <AnimatePresence initial={false}>
@@ -439,22 +447,24 @@ export default function CascataCanvas({
                                     </span>
                                   )}
                                   {et.motivo === 'documento' && (
-                                    <span
+                                    <ElementTooltip text={et.viaDocNome ? `Consome: ${et.viaDocNome}` : 'Consome documento alterado'}>
+                                      <span
                                       className="casc-doc-chip"
-                                      title={et.viaDocNome ? `Consome: ${et.viaDocNome}` : 'Consome documento alterado'}
                                     >
                                       <FileInput size={10} />
                                       consome doc
                                     </span>
+                                    </ElementTooltip>
                                   )}
                                   {et.motivo === 'sequencial' && (
-                                    <span
+                                    <ElementTooltip text="Re-executa para regenerar os documentos seguintes do processo">
+                                      <span
                                       className="casc-seq-chip"
-                                      title="Re-executa para regenerar os documentos seguintes do processo"
                                     >
                                       <CornerDownRight size={10} />
                                       reexecução
                                     </span>
+                                    </ElementTooltip>
                                   )}
                                 </li>
                               ))}

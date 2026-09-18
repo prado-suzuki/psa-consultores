@@ -33,6 +33,7 @@ import { DEV_NAV_LABELS } from "@/constants/devNavLabels";
 import { MANUAIS_AVULSOS } from "@/constants/devManuais";
 import { KpiHero } from "@/components/dashboard/momentum";
 import { useToolsCounts } from "@/hooks/useToolsCounts";
+import { ButtonTooltip } from "@/components/ui/button-tooltip";
 
 /** Id de âncora da seção da categoria no catálogo, para o chip "Categorias" rolar até ela. */
 const toAnchorId = (label: string) =>
@@ -339,18 +340,19 @@ const DevDashboard = () => {
                       {!isSingleton && (
                         <div className="mt-4 flex flex-wrap gap-2">
                           {group.tools.map((tool) => (
-                            <button
-                              key={tool.path}
+                            <ButtonTooltip key={tool.path} text={`Abrir ${tool.name}`}>
+                              <button aria-label={`Abrir ${tool.name}`}
+                             
                               type="button"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 navigate(tool.path);
                               }}
-                              title={`Abrir ${tool.name}`}
                               className="rounded-full border border-primary-foreground/15 bg-primary-foreground/10 px-3.5 py-1.5 text-xs font-medium text-primary-foreground/90 transition-colors hover:border-primary-foreground/40 hover:bg-primary-foreground/15 hover:text-primary-foreground"
                             >
                               {tool.name}
                             </button>
+                            </ButtonTooltip>
                           ))}
                         </div>
                       )}

@@ -316,10 +316,8 @@ describe('GOV-03 · o motor conhece os parâmetros do acordo', () => {
     clienteId: 'c1',
     assinadoEm: '2025-09-29',
     vigenciaAnos: 10,
-    temSociedadesRelacionadas: true,
     temRamos: true,
     reuniaoPreviaObrigatoria: true,
-    ordemPreferencia: 'aos descendentes dos SIGNATÁRIOS, depois aos demais QUOTISTAS',
     objetosPreferencia: 'quotas, imóveis, máquinas e oportunidades de negócio',
     objetosPreferenciaChaves: ['quotas', 'imoveis', 'maquinas', 'oportunidades'],
     mecanismos: ['preferencia', 'lock_up', 'tag_along', 'drag_along', 'nao_concorrencia'],
@@ -332,7 +330,6 @@ describe('GOV-03 · o motor conhece os parâmetros do acordo', () => {
     naoConcorrenciaAlcancaParentes: true,
     opcaoCompraPrevista: true,
     opcaoCompraQuem: 'os demais QUOTISTAS',
-    opcaoCompraPreco: 'o VALOR DAS QUOTAS apurado na forma da Cláusula Décima Nona',
     opcaoVendaPrevista: false,
     jurosValorSubscrito: 'juros de 1% (um por cento) ao mês',
     solucaoLitigios: 'arbitragem',
@@ -437,7 +434,7 @@ describe('GOV-03 · o motor conhece os parâmetros do acordo', () => {
     // clientes tem de sair sem os cabeçalhos correspondentes.
     const c = mapearAcordoQuotistas({ clienteId: 'c1' });
     for (const campo of [
-      'reuniaoPreviaObrigatoria', 'temSociedadesRelacionadas', 'temRamos',
+      'reuniaoPreviaObrigatoria', 'temRamos',
       'naoConcorrencia', 'opcaoCompraPrevista', 'opcaoVendaPrevista', 'temRepresentante',
       'porArbitragem', 'porJudicial', 'temLockUp', 'temTagAlong', 'temDragAlong',
       'preferenciaAlemDasQuotas', 'usaFluxoDeCaixa', 'consolidaComposse',
@@ -469,7 +466,7 @@ describe('GOV-03 · o motor conhece os parâmetros do acordo', () => {
       '{{#acordo.temRamos}}Cada ramo vota como bloco único.{{/acordo.temRamos}}',
       '{{#acordo.reuniaoPreviaObrigatoria}}As deliberações constituirão Acordos de Voto.{{/acordo.reuniaoPreviaObrigatoria}}',
       '{{#acordo.semReuniaoPrevia}}Sem reunião prévia.{{/acordo.semReuniaoPrevia}}',
-      'A preferência é {{ acordo.ordemPreferencia }}, sobre {{ acordo.objetosPreferencia }}.',
+      'A preferência é sobre {{ acordo.objetosPreferencia }}.',
       '{{#acordo.preferenciaAlemDasQuotas}}Cláusula Décima.{{/acordo.preferenciaAlemDasQuotas}}',
       '{{#acordo.temLockUp}}lock-up{{/acordo.temLockUp}}{{#acordo.temTagAlong}}tag along{{/acordo.temTagAlong}}',
       '{{#acordo.temDragAlong}}drag along{{/acordo.temDragAlong}}{{#acordo.temQuarentena}}quarentena{{/acordo.temQuarentena}}',
@@ -483,7 +480,7 @@ describe('GOV-03 · o motor conhece os parâmetros do acordo', () => {
       'sob multa de {{ acordo.naoConcorrenciaMulta }}{{/acordo.naoConcorrencia}}',
       '{{#acordo.naoConcorrenciaAlcancaParentes}}e suas PARTES RELACIONADAS{{/acordo.naoConcorrenciaAlcancaParentes}}',
       '{{#acordo.opcaoCompraPrevista}}{{ acordo.opcaoCompraQuem }} por',
-      '{{ acordo.opcaoCompraPreco }}{{/acordo.opcaoCompraPrevista}}',
+      '{{ acordo.opcaoCompraQuem }}{{/acordo.opcaoCompraPrevista}}',
       '{{#acordo.opcaoVendaPrevista}}opção de venda{{/acordo.opcaoVendaPrevista}}',
       'acrescido de {{ acordo.jurosValorSubscrito }}.',
       '{{#acordo.porArbitragem}}Regras de Arbitragem da {{ acordo.camaraArbitral }}{{/acordo.porArbitragem}}',
@@ -531,8 +528,6 @@ describe('GOV-03 · as listas do Acordo', () => {
     '{{#quotistasSignatarios sep="; " fim="; e "}}{{ quotista.nome }}{{/quotistasSignatarios}}.',
     '',
     'O ACORDO alcança as SOCIEDADES RELACIONADAS:',
-    '{{#sociedadesRelacionadas sep="; " fim=" e "}}{{ sociedadeRelacionada.razaoSocial }}',
-    '{{/sociedadesRelacionadas}}.',
     '',
     'Os QUOTISTAS dividem-se em:',
     '{{#ramosFamiliares sep="; e "}}({{ ramo.alinea }}) {{ ramo.rotulo }}, {{ ramo.definicao }}',
@@ -541,18 +536,14 @@ describe('GOV-03 · as listas do Acordo', () => {
     'Prevalecerão os seguintes quóruns de deliberação:',
     '{{#quorunsDoAcordo sep="\n"}}{{ quorum.alinea }}) Conforme decidam {{ quorum.expressao }}',
     'em relação a {{ quorum.materia }};{{/quorunsDoAcordo}}',
-    '',
-    'O DIREITO DE PREFERÊNCIA será exercido nesta ordem:',
-    '{{#ordemDaPreferencia sep="\n"}}{{ preferente.alinea }}) {{ preferente.quem }};',
-    '{{/ordemDaPreferencia}}',
   ].join('\n');
 
-  it('as cinco seções são papéis conhecidos', () => {
+  it('as três seções são papéis conhecidos', () => {
     const deteccao = detectarBindingsDeConteudo(MODELO_LISTAS);
     expect(deteccao.secoesDesconhecidas, 'seção sem papel some do Word inteira').toEqual([]);
     expect(deteccao.listas.map((l) => l.nome).sort()).toEqual([
-      'ordemDaPreferencia', 'quorunsDoAcordo', 'quotistasSignatarios',
-      'ramosFamiliares', 'sociedadesRelacionadas',
+      'quorunsDoAcordo', 'quotistasSignatarios',
+      'ramosFamiliares',
     ]);
   });
 
@@ -561,10 +552,8 @@ describe('GOV-03 · as listas do Acordo', () => {
     // resolve '' e a alínea sai truncada. Quem confere é esta asserção.
     const porItem: Record<string, string> = {
       quotista: 'quotistasSignatarios',
-      sociedadeRelacionada: 'sociedadesRelacionadas',
       ramo: 'ramosFamiliares',
       quorum: 'quorunsDoAcordo',
-      preferente: 'ordemDaPreferencia',
     };
     /*
      * As três listas novas NÃO herdam campo da entidade.
@@ -575,7 +564,7 @@ describe('GOV-03 · as listas do Acordo', () => {
      * `{{ quorum.vigenciaAnos }}`, que resolve '' e trunca a alínea. Para elas,
      * só vale o que está em `camposExtras`.
      */
-    const herdaDaEntidade = ['quotistasSignatarios', 'sociedadesRelacionadas'];
+    const herdaDaEntidade = ['quotistasSignatarios'];
     const faltando: string[] = [];
     for (const [item, lista] of Object.entries(porItem)) {
       const papel = PAPEIS_LISTA[lista];
@@ -592,13 +581,12 @@ describe('GOV-03 · as listas do Acordo', () => {
     expect(faltando).toEqual([]);
   });
 
-  it('as cinco saem do cadastro do acordo, e não de escolha na tela', () => {
+  it('as três saem do cadastro do acordo, e não de escolha na tela', () => {
     // Enquanto fossem `selecao`, a tela Gerar pediria para escolher de novo o
     // que o cadastro já tem. Conferido em 15/09: nenhum bloco do sandbox usava
     // as duas que existiam antes, então a troca não reescreve documento nenhum.
     for (const nome of [
-      'quotistasSignatarios', 'sociedadesRelacionadas', 'ramosFamiliares',
-      'quorunsDoAcordo', 'ordemDaPreferencia',
+      'quotistasSignatarios', 'ramosFamiliares', 'quorunsDoAcordo',
     ]) {
       expect(PAPEIS_LISTA[nome].fonte, `${nome} saindo da fonte errada`).toBe('acordo_quotistas');
     }

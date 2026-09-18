@@ -322,7 +322,7 @@ const MapaNCMPisCofins = () => {
         </Card>
 
         {/* Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
+        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>

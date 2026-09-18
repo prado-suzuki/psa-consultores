@@ -4,7 +4,6 @@ import {
   diffDasListas,
   diffDoAcordo,
   mecanismoConhecido,
-  resumoDaOrdem,
   resumoDoQuorum,
   resumoDosMecanismos,
   resumoDosQuoruns,
@@ -46,20 +45,6 @@ describe('rotuloDoRamo', () => {
   it('junta os ramos por vírgula', () => {
     expect(resumoDosRamos([{ nome: 'Cristina' }, { nome: 'Regina' }]))
       .toBe('DESCENDENTES DE CRISTINA, DESCENDENTES DE REGINA');
-  });
-});
-
-describe('resumoDaOrdem', () => {
-  it('numera pela posição, e ordena antes de numerar', () => {
-    expect(resumoDaOrdem([
-      { quem: 'Demais quotistas', ordem: 2 },
-      { quem: 'Holding', ordem: 0 },
-      { quem: 'Descendentes dos signatários', ordem: 1 },
-    ])).toBe('1. Holding · 2. Descendentes dos signatários · 3. Demais quotistas');
-  });
-
-  it('sem ordem definida diz "nenhuma"', () => {
-    expect(resumoDaOrdem([])).toBe('nenhuma');
   });
 });
 
@@ -128,15 +113,15 @@ describe('diffDoAcordo', () => {
 describe('diffDasListas', () => {
   it('uma entrada por lista, e não uma por linha', () => {
     const d = diffDasListas(
-      { quoruns: 'A', ramos: 'RAMO SILVA', ordem: '1. Holding' },
-      { quoruns: 'B', ramos: 'RAMO SILVA', ordem: '1. Holding · 2. Filhos' },
+      { quoruns: 'A', ramos: 'RAMO SILVA' },
+      { quoruns: 'B', ramos: 'RAMO ANDRADE' },
     );
-    expect(Object.keys(d)).toEqual(['Quóruns', 'Ordem do direito de preferência']);
+    expect(Object.keys(d)).toEqual(['Quóruns', 'Ramos familiares']);
     expect(d['Quóruns']).toEqual({ old: 'A', new: 'B' });
   });
 
   it('nada mudou, nada registrado', () => {
-    const igual = { quoruns: 'A', ramos: 'B', ordem: 'C' };
+    const igual = { quoruns: 'A', ramos: 'B' };
     expect(diffDasListas(igual, igual)).toEqual({});
   });
 });

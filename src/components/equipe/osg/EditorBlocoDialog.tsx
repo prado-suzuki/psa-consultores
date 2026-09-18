@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { extrairCampos, LABEL_TIPO_BLOCO, TIPOS_BLOCO, type TipoBloco } from '@/lib/templates';
 import { PAPEIS_LISTA } from '@/lib/templates/binding';
 import { useFlags, useSalvarBloco, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface FormState {
   id?: string;
@@ -311,10 +312,10 @@ export function EditorBlocoDialog({ open, onOpenChange, bloco, onSaved }: Props)
                 {flags.map((f) => {
                   const marcada = form.flagIds.includes(f.id);
                   return (
-                    <button
-                      key={f.id}
+                    <ButtonTooltip key={f.id} text={f.descricao ?? undefined}>
+                      <button aria-label={f.descricao ?? undefined}
+                     
                       type="button"
-                      title={f.descricao ?? undefined}
                       onClick={() => alternarFlag(f.id)}
                       className={cn(
                         'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
@@ -325,6 +326,7 @@ export function EditorBlocoDialog({ open, onOpenChange, bloco, onSaved }: Props)
                     >
                       {f.nome}
                     </button>
+                    </ButtonTooltip>
                   );
                 })}
               </div>

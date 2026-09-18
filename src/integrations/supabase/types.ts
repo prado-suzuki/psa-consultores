@@ -72,47 +72,6 @@ export type Database = {
         }
         Relationships: []
       }
-      acordo_ordem_preferencia: {
-        Row: {
-          acordo_id: string
-          created_at: string
-          created_by: string | null
-          id: string
-          ordem: number
-          quem: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          acordo_id: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          ordem?: number
-          quem: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          acordo_id?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          ordem?: number
-          quem?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "acordo_ordem_preferencia_acordo_id_fkey"
-            columns: ["acordo_id"]
-            isOneToOne: false
-            referencedRelation: "acordo_quotistas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       acordo_quorum: {
         Row: {
           acordo_id: string
@@ -174,7 +133,6 @@ export type Database = {
           consolida_composse: boolean
           created_at: string
           created_by: string | null
-          data_referencia: string | null
           excluido: boolean
           foro_eleito_comarca: string | null
           foro_eleito_estado: string | null
@@ -189,16 +147,13 @@ export type Database = {
           nao_concorrencia_multa: string | null
           nao_concorrencia_prazo_anos: number | null
           objetos_preferencia: string[] | null
-          opcao_compra_preco: string | null
           opcao_compra_prevista: boolean
           opcao_compra_quem: string | null
           opcao_venda_prevista: boolean
-          prazo_sigilo_anos: number | null
           regime_nomeacao_arbitros: string | null
           representante_pessoa_id: string | null
           reuniao_previa_obrigatoria: boolean
           solucao_litigios: string | null
-          substituto_representante_pessoa_id: string | null
           updated_at: string
           updated_by: string | null
           versao: number
@@ -211,7 +166,6 @@ export type Database = {
           consolida_composse?: boolean
           created_at?: string
           created_by?: string | null
-          data_referencia?: string | null
           excluido?: boolean
           foro_eleito_comarca?: string | null
           foro_eleito_estado?: string | null
@@ -226,16 +180,13 @@ export type Database = {
           nao_concorrencia_multa?: string | null
           nao_concorrencia_prazo_anos?: number | null
           objetos_preferencia?: string[] | null
-          opcao_compra_preco?: string | null
           opcao_compra_prevista?: boolean
           opcao_compra_quem?: string | null
           opcao_venda_prevista?: boolean
-          prazo_sigilo_anos?: number | null
           regime_nomeacao_arbitros?: string | null
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
           solucao_litigios?: string | null
-          substituto_representante_pessoa_id?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
@@ -248,7 +199,6 @@ export type Database = {
           consolida_composse?: boolean
           created_at?: string
           created_by?: string | null
-          data_referencia?: string | null
           excluido?: boolean
           foro_eleito_comarca?: string | null
           foro_eleito_estado?: string | null
@@ -263,16 +213,13 @@ export type Database = {
           nao_concorrencia_multa?: string | null
           nao_concorrencia_prazo_anos?: number | null
           objetos_preferencia?: string[] | null
-          opcao_compra_preco?: string | null
           opcao_compra_prevista?: boolean
           opcao_compra_quem?: string | null
           opcao_venda_prevista?: boolean
-          prazo_sigilo_anos?: number | null
           regime_nomeacao_arbitros?: string | null
           representante_pessoa_id?: string | null
           reuniao_previa_obrigatoria?: boolean
           solucao_litigios?: string | null
-          substituto_representante_pessoa_id?: string | null
           updated_at?: string
           updated_by?: string | null
           versao?: number
@@ -289,13 +236,6 @@ export type Database = {
           {
             foreignKeyName: "acordo_quotistas_representante_pessoa_id_fkey"
             columns: ["representante_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "acordo_quotistas_substituto_representante_pessoa_id_fkey"
-            columns: ["substituto_representante_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
@@ -385,54 +325,6 @@ export type Database = {
           {
             foreignKeyName: "acordo_signatario_pessoa_id_fkey"
             columns: ["pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      acordo_sociedade_relacionada: {
-        Row: {
-          acordo_id: string
-          created_at: string
-          created_by: string | null
-          empresa_pessoa_id: string
-          id: string
-          ordem: number
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          acordo_id: string
-          created_at?: string
-          created_by?: string | null
-          empresa_pessoa_id: string
-          id?: string
-          ordem?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          acordo_id?: string
-          created_at?: string
-          created_by?: string | null
-          empresa_pessoa_id?: string
-          id?: string
-          ordem?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "acordo_sociedade_relacionada_acordo_id_fkey"
-            columns: ["acordo_id"]
-            isOneToOne: false
-            referencedRelation: "acordo_quotistas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "acordo_sociedade_relacionada_empresa_pessoa_id_fkey"
-            columns: ["empresa_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
@@ -8948,6 +8840,288 @@ export type Database = {
           },
         ]
       }
+      protocolo_beneficiario: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          excluido: boolean
+          id: string
+          nome: string
+          ordem: number
+          protocolo_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          nome: string
+          ordem?: number
+          protocolo_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          nome?: string
+          ordem?: number
+          protocolo_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolo_beneficiario_protocolo_id_fkey"
+            columns: ["protocolo_id"]
+            isOneToOne: false
+            referencedRelation: "protocolo_remuneracao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocolo_item_governanca: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          excluido: boolean
+          id: string
+          nome: string
+          ordem: number
+          tema_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          nome: string
+          ordem?: number
+          tema_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          nome?: string
+          ordem?: number
+          tema_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolo_item_governanca_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocolo_item_governanca_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "protocolo_tema_governanca"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocolo_linha: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          item_id: string
+          ordem: number
+          protocolo_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id: string
+          ordem?: number
+          protocolo_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string
+          ordem?: number
+          protocolo_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolo_linha_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "protocolo_item_governanca"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocolo_linha_protocolo_id_fkey"
+            columns: ["protocolo_id"]
+            isOneToOne: false
+            referencedRelation: "protocolo_remuneracao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocolo_regra: {
+        Row: {
+          beneficiario_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          linha_id: string
+          texto: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          beneficiario_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          linha_id: string
+          texto: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          beneficiario_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          linha_id?: string
+          texto?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolo_regra_beneficiario_id_fkey"
+            columns: ["beneficiario_id"]
+            isOneToOne: false
+            referencedRelation: "protocolo_beneficiario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocolo_regra_linha_id_fkey"
+            columns: ["linha_id"]
+            isOneToOne: false
+            referencedRelation: "protocolo_linha"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocolo_remuneracao: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          excluido: boolean
+          id: string
+          preambulo: string | null
+          updated_at: string
+          updated_by: string | null
+          versao: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          preambulo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          preambulo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolo_remuneracao_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocolo_tema_governanca: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          excluido: boolean
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          excluido?: boolean
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolo_tema_governanca_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       psa_migrations_aplicadas: {
         Row: {
           aplicada_em: string
@@ -12054,6 +12228,14 @@ export type Database = {
       }
       process_stage_cluster_visivel: {
         Args: { _etapa_id: string }
+        Returns: boolean
+      }
+      protocolo_linha_visivel_para: {
+        Args: { _linha_id: string }
+        Returns: boolean
+      }
+      protocolo_visivel_para: {
+        Args: { _protocolo_id: string }
         Returns: boolean
       }
       psa_mapa_uuid: { Args: { slug: string }; Returns: string }

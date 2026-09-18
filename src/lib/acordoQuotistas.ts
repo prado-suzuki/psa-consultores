@@ -61,15 +61,6 @@ export function resumoDosRamos(lista: readonly { nome: string }[]): string {
   return lista.length === 0 ? 'nenhum' : lista.map(rotuloDoRamo).join(', ');
 }
 
-/** "1. Holding · 2. Descendentes dos signatários · 3. Demais quotistas" */
-export function resumoDaOrdem(lista: readonly { quem: string; ordem: number }[]): string {
-  if (lista.length === 0) return 'nenhuma';
-  return [...lista]
-    .sort((a, b) => a.ordem - b.ordem)
-    .map((o, i) => `${i + 1}. ${o.quem}`)
-    .join(' · ');
-}
-
 /** Os mecanismos marcados, pelo rótulo que a tela mostra e não pela chave. */
 export function resumoDosMecanismos(chaves: readonly string[] | null | undefined): string {
   const marcados = (chaves ?? [])
@@ -83,7 +74,6 @@ export function resumoDosMecanismos(chaves: readonly string[] | null | undefined
 
 /** Como cada campo do acordo se chama para quem lê o histórico. */
 const ROTULO_DO_CAMPO: Record<string, string> = {
-  data_referencia: 'Data de referência',
   assinado_em: 'Assinado em',
   vigencia_anos: 'Vigência, em anos',
   metodos_avaliacao: 'Métodos de avaliação da quota',
@@ -98,7 +88,6 @@ const ROTULO_DO_CAMPO: Record<string, string> = {
   nao_concorrencia_alcanca_parentes: 'A não concorrência alcança parentes e sócios',
   opcao_compra_prevista: 'Opção de compra prevista',
   opcao_compra_quem: 'Quem detém a opção de compra',
-  opcao_compra_preco: 'Preço na opção de compra',
   opcao_venda_prevista: 'Opção de venda prevista',
   objetos_preferencia: 'Objetos sujeitos à preferência',
   juros_valor_subscrito: 'Juros sobre o valor subscrito',
@@ -149,18 +138,17 @@ export function diffDoAcordo(
 /**
  * O mesmo para as listas filhas, que são substituídas inteiras.
  *
- * Uma entrada por lista, e não uma por linha: quem lê quer saber que a ordem da
- * preferência mudou e como ela ficou, não que a linha 2 virou linha 3.
+ * Uma entrada por lista, e não uma por linha: quem lê quer saber que os ramos
+ * mudaram e como ficaram, não que a linha 2 virou linha 3.
  */
 export function diffDasListas(
-  antes: { quoruns: string; ramos: string; ordem: string },
-  depois: { quoruns: string; ramos: string; ordem: string },
+  antes: { quoruns: string; ramos: string },
+  depois: { quoruns: string; ramos: string },
 ): Record<string, { old: string; new: string }> {
   const mudou: Record<string, { old: string; new: string }> = {};
   const pares: [string, keyof typeof antes][] = [
     ['Quóruns', 'quoruns'],
     ['Ramos familiares', 'ramos'],
-    ['Ordem do direito de preferência', 'ordem'],
   ];
   for (const [rotulo, chave] of pares) {
     if (antes[chave] !== depois[chave]) {

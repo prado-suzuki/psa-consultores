@@ -23,6 +23,7 @@
 import * as React from 'react';
 import { ArrowUp, Square, type LucideIcon } from 'lucide-react';
 import { comAlfa } from '@/lib/corComAlfa';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 export interface ModoPrompt {
   value: string;
@@ -108,10 +109,10 @@ export const PromptInputBox = React.forwardRef<HTMLTextAreaElement, PromptInputB
               const ativo = m.value === modo;
               const Icone = m.icon;
               return (
-                <button
-                  key={m.value}
+                <ButtonTooltip key={m.value} text={m.descricao ?? m.label}>
+                  <button aria-label={m.descricao ?? m.label}
+                 
                   type="button"
-                  title={m.descricao ?? m.label}
                   aria-pressed={ativo}
                   onClick={() => onModoChange?.(m.value)}
                   className="agente-modo"
@@ -122,15 +123,16 @@ export const PromptInputBox = React.forwardRef<HTMLTextAreaElement, PromptInputB
                   <Icone style={{ width: 13, height: 13 }} />
                   <span>{m.label}</span>
                 </button>
+                </ButtonTooltip>
               );
             })}
           </div>
 
-          <button
+          <ButtonTooltip text={isLoading ? 'Interromper' : 'Enviar (Enter)'}>
+            <button
             type="button"
             className="agente-enviar"
             aria-label={isLoading ? 'Interromper' : 'Enviar pergunta'}
-            title={isLoading ? 'Interromper' : 'Enviar (Enter)'}
             disabled={isLoading ? !onStop : !temTexto || disabled}
             data-pronto={temTexto && !isLoading ? 'sim' : 'nao'}
             onClick={() => (isLoading ? onStop?.() : enviar())}
@@ -139,6 +141,7 @@ export const PromptInputBox = React.forwardRef<HTMLTextAreaElement, PromptInputB
               ? <Square style={{ width: 13, height: 13 }} />
               : <ArrowUp style={{ width: 15, height: 15 }} />}
           </button>
+          </ButtonTooltip>
         </div>
       </div>
     );

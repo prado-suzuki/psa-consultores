@@ -11,6 +11,7 @@ import { useEffect, useRef } from 'react';
 import { Lightbulb, Sparkles, ThumbsDown, ThumbsUp, Pencil } from 'lucide-react';
 import { renderSimpleBoldMarkdown } from '@/lib/safeBoldMarkdown';
 import type { InsightAgente } from '@/hooks/useDomainAgentePsa';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 export interface TurnoUI {
   id: string;
@@ -88,26 +89,28 @@ export function AgenteConversa({
                 </div>
                 <div>{renderSimpleBoldMarkdown(i.texto)}</div>
                 <div className="agente-insight-acoes">
-                  <button
+                  <ButtonTooltip text="Serviu">
+                    <button aria-label="Serviu"
                     type="button"
                     className="agente-icone-btn"
-                    title="Serviu"
                     aria-pressed={avaliados[i.id] === true}
                     style={avaliados[i.id] === true ? { color: 'var(--agente-go)' } : undefined}
                     onClick={() => onAvaliarInsight(i.id, true)}
                   >
                     <ThumbsUp style={{ width: 13, height: 13 }} />
                   </button>
-                  <button
+                  </ButtonTooltip>
+                  <ButtonTooltip text="Não serviu">
+                    <button aria-label="Não serviu"
                     type="button"
                     className="agente-icone-btn"
-                    title="Não serviu"
                     aria-pressed={avaliados[i.id] === false}
                     style={avaliados[i.id] === false ? { color: 'var(--agente-risk)' } : undefined}
                     onClick={() => onAvaliarInsight(i.id, false)}
                   >
                     <ThumbsDown style={{ width: 13, height: 13 }} />
                   </button>
+                  </ButtonTooltip>
                 </div>
               </div>
             ))}
@@ -119,15 +122,16 @@ export function AgenteConversa({
               {(t.camposUsados ?? []).slice(0, 6).map((c) => (
                 <span key={c} className="agente-campo">{c}</span>
               ))}
-              <button
+              <ButtonTooltip text="Corrigir esta resposta (ele guarda a lição)">
+                <button aria-label="Corrigir esta resposta (ele guarda a lição)"
                 type="button"
                 className="agente-icone-btn"
-                title="Corrigir esta resposta (ele guarda a lição)"
                 onClick={() => onCorrigir(t.id)}
                 style={{ width: 22, height: 22 }}
               >
                 <Pencil style={{ width: 12, height: 12 }} />
               </button>
+              </ButtonTooltip>
             </div>
           </div>
         )

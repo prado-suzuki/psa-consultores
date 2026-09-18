@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AGRUPAMENTO_PADRAO,
   FILTROS_VAZIOS,
-  ORDEM_INICIAL,
-  ORDEM_PADRAO,
   GRUPO_SEM_PROJETO,
   GRUPO_SEM_RESPONSAVEL,
+  ORDEM_INICIAL,
+  ORDEM_PADRAO,
   SEM_PROJETO,
-  agruparPorExecutor,
+  agruparControle,
   filtrarControle,
   montarControleDeProjetos,
   opcoesDoControle,
@@ -20,7 +21,7 @@ import {
   type PessoaCrua,
   type ProdutoSegmento,
   type ProjetoDaOrdem,
-} from '@/lib/osgControleDeProjetos';
+} from '@/lib/controleDeProjetos';
 
 const OSG = 'cluster-osg';
 const TAX = 'cluster-tax';
@@ -536,7 +537,64 @@ describe('ordenarControle', () => {
   });
 });
 
-describe('agruparPorExecutor', () => {
+describe('executor e gestor', () => {
+  // As duas colunas da tela que saem do projeto, e não da OS. Desde 17/09/2026
+  // o executor é COLUNA, e não mais o agrupamento da tela: o que a prova de que
+  // ele continua legível é a ordenação por ele, com o vazio no fim.
+  const linhas = montar(
+    [ordem(), ordem({ id: 'os-2', id_cliente: 'c-2' })],
+    [
+      { ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' },
+      { ordem_servico_id: 'os-1', produto_segmento_id: 'p-suc' },
+      { ordem_servico_id: 'os-2', produto_segmento_id: 'p-gov' },
+    ],
+    [
+      projeto({ id: 'proj-1', produto_segmento_id: 'p-gov', responsible_id: 'u-3' }),
+      projeto({ id: 'proj-2', produto_segmento_id: 'p-suc', responsible_id: 'u-2' }),
+    ],
+  );
+
+  it('separa gestor de executor, que na planilha são duas colunas', () => {
+    const governanca = linhas.find((l) => l.produtoNome === 'Governança' && l.osId === 'os-1');
+    expect(governanca?.executores).toEqual(['Monica Matunaga']);
+    expect(governanca?.lideres).toEqual(['Fernando Prado']);
+  });
+
+  it('ordena por executor com o produto sem projeto no fim, nos dois sentidos', () => {
+    // Produto sem projeto é a maioria esmagadora em produção (131 de 169). Se o
+    // vazio invertesse com a direção, o clique crescente enterraria as linhas
+    // que TÊM gente, que são o motivo de clicar na coluna.
+    const crescente = ordenarControle(linhas, { campo: 'executor', ascendente: true });
+    expect(crescente.map((l) => l.executores.join(', '))).toEqual([
+      'Elvis Souza',
+      'Monica Matunaga',
+      '',
+    ]);
+    const decrescente = ordenarControle(linhas, { campo: 'executor', ascendente: false });
+    expect(decrescente.map((l) => l.executores.join(', '))).toEqual([
+      'Monica Matunaga',
+      'Elvis Souza',
+      '',
+    ]);
+  });
+
+  it('a linha de dois executores aparece UMA vez, com os dois nomes', () => {
+    // Era o preço do agrupamento: ela entrava nos dois grupos e a soma das
+    // contagens passava do total.
+    const doisDonos = montar(
+      [ordem()],
+      [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
+      [
+        projeto({ id: 'proj-1', responsible_id: 'u-2' }),
+        projeto({ id: 'proj-2', responsible_id: 'u-3' }),
+      ],
+    );
+    expect(doisDonos).toHaveLength(1);
+    expect(doisDonos[0].executores).toEqual(['Elvis Souza', 'Monica Matunaga']);
+  });
+});
+
+describe('agruparControle', () => {
   const linhas = montar(
     [ordem(), ordem({ id: 'os-2', id_cliente: 'c-2' })],
     [
@@ -557,6 +615,11 @@ describe('agruparPorExecutor', () => {
     ],
   );
 
+  it('"nenhum" não agrupa: é a tabela plana, que é como a tela abre', () => {
+    expect(agruparControle(linhas, 'nenhum')).toBeNull();
+    expect(AGRUPAMENTO_PADRAO).toBe('nenhum');
+  });
+
   it('separa "sem projeto aberto" de "projeto sem responsável"', () => {
     // São ações diferentes: um precisa ser criado, o outro precisa de um campo.
     const mistas = montar(
@@ -567,28 +630,29 @@ describe('agruparPorExecutor', () => {
       ],
       [projeto({ produto_segmento_id: 'p-suc', responsible_id: null })],
     );
-    const grupos = agruparPorExecutor(mistas);
-    expect(grupos.map((g) => g.executor)).toEqual([GRUPO_SEM_PROJETO, GRUPO_SEM_RESPONSAVEL]);
+    const grupos = agruparControle(mistas, 'executor') ?? [];
+    expect(grupos.map((g) => g.chave)).toEqual([GRUPO_SEM_PROJETO, GRUPO_SEM_RESPONSAVEL]);
+    expect(grupos.map((g) => g.rotulo)).toEqual(['Sem projeto aberto', 'Projeto sem responsável']);
     expect(grupos[0].linhas[0].produtoNome).toBe('Governança');
     expect(grupos[1].linhas[0].produtoNome).toBe('Planejamento Sucessório');
   });
 
   it('põe os dois grupos sem gente PRIMEIRO, porque são o achado da tela', () => {
-    const grupos = agruparPorExecutor(linhas);
+    const grupos = agruparControle(linhas, 'executor') ?? [];
     expect(grupos[0].semProjeto).toBe(true);
     expect(grupos[0].linhas).toHaveLength(1);
   });
 
-  it('ordena os demais do maior para o menor', () => {
-    const grupos = agruparPorExecutor(linhas);
-    expect(grupos.slice(1).map((g) => `${g.executor}:${g.linhas.length}`)).toEqual([
+  it('ordena os executores do maior para o menor', () => {
+    const grupos = agruparControle(linhas, 'executor') ?? [];
+    expect(grupos.slice(1).map((g) => `${g.chave}:${g.linhas.length}`)).toEqual([
       'Elvis Souza:2',
       'Monica Matunaga:1',
     ]);
   });
 
   it('dentro do grupo, o prazo mais próximo fica na primeira linha', () => {
-    // É o que a tela entrega ao abrir, e ela só entrega porque o agrupamento
+    // É o que a tela entrega ao agrupar, e ela só entrega porque o agrupamento
     // PRESERVA a ordem que recebe. Agrupar reordenando quebraria isto sem
     // quebrar nenhum teste de `ordenarControle`.
     const doExecutor = montar(
@@ -608,20 +672,21 @@ describe('agruparPorExecutor', () => {
         projeto({ id: 'proj-3', ordem_servico_id: 'os-3' }),
       ],
     );
-    const grupos = agruparPorExecutor(ordenarControle(doExecutor, ORDEM_INICIAL));
-    expect(grupos[0].executor).toBe('Elvis Souza');
+    const grupos = agruparControle(ordenarControle(doExecutor, ORDEM_INICIAL), 'executor') ?? [];
+    expect(grupos[0].chave).toBe('Elvis Souza');
     expect(grupos[0].linhas.map((l) => l.dataFim)).toEqual(['2026-10-05', '2027-06-30', null]);
   });
 
   it('conta clientes distintos e vencidas por grupo', () => {
-    const grupos = agruparPorExecutor(linhas);
-    expect(grupos.find((g) => g.executor === 'Elvis Souza')?.clientes).toBe(1);
+    const grupos = agruparControle(linhas, 'executor') ?? [];
+    expect(grupos.find((g) => g.chave === 'Elvis Souza')?.clientes).toBe(1);
     expect(grupos.every((g) => g.vencidas === 0)).toBe(true);
   });
 
   it('põe o produto de dois executores nos dois grupos', () => {
     // A soma passa do total de propósito: a pergunta é "o que é meu", e uma
-    // linha de duas pessoas é de cada uma delas.
+    // linha de duas pessoas é de cada uma delas. Sem agrupamento ela continua
+    // aparecendo uma vez só, com os dois nomes na coluna.
     const doisDonos = montar(
       [ordem()],
       [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }],
@@ -630,17 +695,39 @@ describe('agruparPorExecutor', () => {
         projeto({ id: 'proj-2', responsible_id: 'u-3' }),
       ],
     );
-    const grupos = agruparPorExecutor(doisDonos);
-    expect(grupos.map((g) => g.executor).sort()).toEqual(['Elvis Souza', 'Monica Matunaga']);
+    const grupos = agruparControle(doisDonos, 'executor') ?? [];
+    expect(grupos.map((g) => g.chave).sort()).toEqual(['Elvis Souza', 'Monica Matunaga']);
     expect(grupos.every((g) => g.linhas.length === 1)).toBe(true);
   });
 
-  it('separa gestor de executor, que na planilha são duas colunas', () => {
-    // Há duas linhas de Governança (os-1 e os-2); a de os-1 é a que tem projeto.
-    const governanca = linhas.find(
-      (l) => l.produtoNome === 'Governança' && l.osId === 'os-1',
-    );
-    expect(governanca?.executores).toEqual(['Elvis Souza']);
-    expect(governanca?.lideres).toEqual(['Fernando Prado']);
+  it('por cliente, agrupa pelo ID e ordena alfabeticamente', () => {
+    // Pelo id, e não pelo nome: dois clientes podem ter o mesmo nome, e a linha
+    // do cliente fora do alcance da RLS se chama "Cliente não identificado".
+    const grupos = agruparControle(linhas, 'cliente') ?? [];
+    expect(grupos.map((g) => g.rotulo)).toEqual(['Anversa', 'Di Domenico']);
+    expect(grupos.map((g) => g.chave)).toEqual(['c-2', 'c-1']);
+    expect(grupos.map((g) => g.linhas.length)).toEqual([1, 3]);
+    expect(grupos.every((g) => g.clientes === 1)).toBe(true);
+  });
+
+  it('por produto, junta o mesmo produto de clientes diferentes', () => {
+    const grupos = agruparControle(linhas, 'produto') ?? [];
+    expect(grupos.map((g) => `${g.rotulo}:${g.linhas.length}`)).toEqual([
+      'Governança:2',
+      'Planejamento Sucessório:1',
+      'Planejamento Tributário:1',
+    ]);
+    expect(grupos[0].clientes).toBe(2);
+  });
+
+  it('não cria grupo sem gente fora do critério executor', () => {
+    // Produto sem projeto tem cliente e tem produto: só o executor é que falta.
+    const semProjeto = montar([ordem()], [{ ordem_servico_id: 'os-1', produto_segmento_id: 'p-gov' }]);
+    expect((agruparControle(semProjeto, 'cliente') ?? []).map((g) => g.rotulo)).toEqual([
+      'Di Domenico',
+    ]);
+    expect((agruparControle(semProjeto, 'executor') ?? []).map((g) => g.chave)).toEqual([
+      GRUPO_SEM_PROJETO,
+    ]);
   });
 });

@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import type { DocumentoBlocoComBloco } from '@/hooks/useModelosDocumento';
 import type { TipoBloco } from '@/lib/templates';
 import { PAPEIS_LISTA } from '@/lib/templates/binding';
+import { ButtonTooltip, ElementTooltip } from '@/components/ui/button-tooltip';
 
 /** Cor do chip de numeração conforme a hierarquia estrutural do bloco. */
 const CHIP_POR_TIPO: Record<Exclude<TipoBloco, 'livre'>, string> = {
@@ -102,12 +103,13 @@ export function BlocoMontadoCard({
               {bloco?.nome ?? '— bloco removido —'}
             </span>
             {bloco?.repete_colecao && (
-              <span
-                title={`Na geração, vira um parágrafo por item de: ${PAPEIS_LISTA[bloco.repete_colecao]?.label ?? bloco.repete_colecao}`}
+              <ElementTooltip text={`Na geração, vira um parágrafo por item de: ${PAPEIS_LISTA[bloco.repete_colecao]?.label ?? bloco.repete_colecao}`}>
+                <span
                 className="flex shrink-0 items-center gap-1 rounded-md bg-osg-moss/10 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-osg-moss"
               >
                 <Repeat2 className="h-3 w-3" /> {bloco.repete_colecao}
               </span>
+              </ElementTooltip>
             )}
             {carregados > 0 && (
               <span className="shrink-0 rounded-md bg-osg-moss/10 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-osg-moss">
@@ -117,10 +119,10 @@ export function BlocoMontadoCard({
 
             {/* Indicadores compactos (estado recolhido) */}
             <div className="ml-auto flex shrink-0 items-center gap-1">
-              <button
+              <ButtonTooltip text={db.obrigatorio ? 'Obrigatório — sempre incluído (clique p/ tornar condicional)' : 'Condicional — incluído conforme as flags (clique p/ tornar obrigatório)'}>
+                <button
                 type="button"
                 onClick={onToggleObrigatorio}
-                title={db.obrigatorio ? 'Obrigatório — sempre incluído (clique p/ tornar condicional)' : 'Condicional — incluído conforme as flags (clique p/ tornar obrigatório)'}
                 aria-label={db.obrigatorio ? 'Obrigatório' : 'Condicional'}
                 className={cn(
                   'flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-osg-50',
@@ -129,6 +131,7 @@ export function BlocoMontadoCard({
               >
                 {db.obrigatorio ? <Lock className="h-4 w-4" strokeWidth={1.5} /> : <LockOpen className="h-4 w-4" strokeWidth={1.5} />}
               </button>
+              </ButtonTooltip>
               {flags.length > 0 && (
                 <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
                   <Flag className="h-3 w-3" />{flags.length}

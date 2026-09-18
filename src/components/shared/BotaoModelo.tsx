@@ -12,6 +12,7 @@ import { Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useModeloDocumento } from '@/hooks/useModeloDocumento';
 import type { ModeloDocumento } from '@/lib/solicitacao';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * Onde o botão está sendo desenhado — e os dois são formas diferentes, não só
@@ -28,7 +29,7 @@ export type TomDoModelo = 'osg' | 'portal';
 
 const TONS: Record<TomDoModelo, string> = {
   osg: cn(
-    'h-7 gap-1 rounded-md border border-osg-200/80 bg-white px-2 text-xs font-medium text-osg-700',
+    'h-7 gap-1 rounded-md border border-osg-200/80 bg-card px-2 text-xs font-medium text-osg-700',
     'hover:border-osg-moss/40 hover:bg-osg-moss/[0.07] hover:text-osg-moss',
     'focus-visible:ring-2 focus-visible:ring-osg-moss/40',
   ),
@@ -63,11 +64,11 @@ export function BotaoModelo({ modelo, tom, className }: BotaoModeloProps) {
   if (!modelo) return null;
 
   return (
-    <button
+    <ButtonTooltip text={`Baixar o modelo: ${modelo.nome}`}>
+      <button aria-label={`Baixar o modelo: ${modelo.nome}`}
       type="button"
       onClick={() => baixar.mutate(modelo)}
       disabled={baixar.isPending}
-      title={`Baixar o modelo: ${modelo.nome}`}
       className={cn(
         'inline-flex shrink-0 items-center transition-colors focus-visible:outline-none',
         TONS[tom],
@@ -80,6 +81,7 @@ export function BotaoModelo({ modelo, tom, className }: BotaoModeloProps) {
         : <Download className="h-3.5 w-3.5" />}
       Modelo
     </button>
+    </ButtonTooltip>
   );
 }
 

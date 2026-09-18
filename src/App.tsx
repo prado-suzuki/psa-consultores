@@ -127,6 +127,7 @@ const FiscalDashboard = lazy(() => import("./pages/equipe/fiscal/FiscalDashboard
 const FiscalFeed = lazy(() => import("./pages/equipe/fiscal/FiscalFeed"));
 const FiscalProjetosCadastro = lazy(() => import("./pages/equipe/fiscal/FiscalProjetosCadastro"));
 const FiscalProjetosLote = lazy(() => import("./pages/equipe/fiscal/FiscalProjetosLote"));
+const FiscalControleProjetos = lazy(() => import("./pages/equipe/fiscal/FiscalControleProjetos"));
 const FiscalAuditoria = lazy(() => import("./pages/equipe/fiscal/FiscalAuditoria"));
 const FiscalCadastrosClientes = lazy(() => import("./pages/equipe/fiscal/FiscalCadastrosClientes"));
 const GestaoClientes = lazy(() => import("./pages/equipe/fiscal/GestaoClientes"));
@@ -170,6 +171,7 @@ const BibliotecaApresentacoes = lazy(() => import("./pages/equipe/osg/Biblioteca
 const OsgAuditoria = lazy(() => import("./pages/equipe/osg/OsgAuditoria"));
 const OrgaosGovernanca = lazy(() => import('./pages/equipe/osg/OrgaosGovernanca'));
 const MatrizDeAlcadas = lazy(() => import('./pages/equipe/osg/MatrizDeAlcadas'));
+const ProtocoloDeRemuneracao = lazy(() => import('./pages/equipe/osg/ProtocoloDeRemuneracao'));
 const AcordoDeQuotistas = lazy(() => import('./pages/equipe/osg/AcordoDeQuotistas'));
 const PapelDeTrabalho = lazy(() => import('./pages/equipe/dev/PapelDeTrabalho'));
 const GeradorDeSlides = lazy(() => import('./pages/equipe/dev/GeradorDeSlides'));
@@ -334,6 +336,7 @@ const App = () => (
               <Route path="/equipe/tax/projetos/clientes" element={<PageAccessGate pagePath="/equipe/tax/projetos/clientes"><FiscalCadastrosClientes /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/tax/projetos/cadastro"><FiscalProjetosCadastro /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/cadastro-lote" element={<PageAccessGate pagePath="/equipe/tax/projetos/cadastro-lote"><FiscalProjetosLote /></PageAccessGate>} />
+              <Route path="/equipe/tax/projetos/controle" element={<PageAccessGate pagePath="/equipe/tax/projetos/controle"><FiscalControleProjetos /></PageAccessGate>} />
               {/* Mesma tela de `/projetos/cadastro`, servida por duas rotas. Até
                   14/09/2026 havia DOIS arquivos com o corpo idêntico — o `diff`
                   devolvia só o nome da const. Vieram do redesign de 23/07, quando
@@ -404,6 +407,7 @@ const App = () => (
                 <Route path="/equipe/osg/work/apresentacoes" element={<ProtectedRoute><BibliotecaApresentacoes /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/governanca/orgaos" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/orgaos"> <OrgaosGovernanca /> </PageAccessGate> } />
                 <Route path="/equipe/osg/work/governanca/matriz" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/matriz"> <MatrizDeAlcadas /> </PageAccessGate> } />
+                <Route path="/equipe/osg/work/governanca/protocolo" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/protocolo"> <ProtocoloDeRemuneracao /> </PageAccessGate> } />
                 <Route path="/equipe/osg/work/governanca/acordo" element={ <PageAccessGate pagePath="/equipe/osg/work/governanca/acordo"> <AcordoDeQuotistas /> </PageAccessGate> } />
               </Route>
               {/* Gestão de Chamados dentro da Gerencial da OSG. Espelha a Tax. Hoje

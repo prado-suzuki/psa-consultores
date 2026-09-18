@@ -33,12 +33,16 @@ import { fileURLToPath } from 'node:url';
 import { entradaDoAcordo } from '../../src/lib/osg/entradaAcordo';
 import type { AcordoCompleto } from '../../src/hooks/useDomainAcordoQuotistas';
 import { camposDoAcordo, listasDoAcordo } from '../../src/lib/templates/contextoAcordo';
-import { mapearAdministrador, mapearSociedade } from '../../src/lib/templates/mapeadores';
+import {
+  mapearAdministrador, mapearSociedade, tituloColetivoDosAdministradores,
+} from '../../src/lib/templates/mapeadores';
 import { CAMPOS_MANUAIS } from '../../src/lib/templates/vocabulario';
+import { montarDocx } from '../../src/lib/templates/docx';
 import type { PessoaRow } from '../../src/hooks/useQualificacaoDasPartes';
 import {
   apararSegmentos,
   gerarComposicao,
+  pendenciasDoDocumento,
   type Bloco,
   type Contexto,
   type Template,
@@ -168,7 +172,7 @@ const pessoaPorId = new Map(pessoas.map((p) => [p.id, p]));
 
 const crus = await get<Record<string, never>>(
   'acordo_quotistas?select=*,acordo_quorum(*),acordo_ramo_familiar(*),'
-  + 'acordo_ordem_preferencia(*),acordo_signatario(*),acordo_sociedade_relacionada(*)'
+  + 'acordo_signatario(*)'
   + `&cliente_id=eq.${cliente.id}&excluido=eq.false&order=versao.desc`,
 );
 // A forma que `entradaDoAcordo` espera é a de `useAcordosDoCliente`: cabeçalho
@@ -178,13 +182,11 @@ const porOrdem = <T extends { ordem: number }>(l: T[] | null) =>
 const completos = crus.map((linha) => {
   const {
     acordo_quorum: quoruns, acordo_ramo_familiar: ramos,
-    acordo_ordem_preferencia: ordem, acordo_signatario: signatarios,
-    acordo_sociedade_relacionada: sociedades, ...acordo
+    acordo_signatario: signatarios, ...acordo
   } = linha as unknown as Record<string, never[]>;
   return {
     acordo, quoruns: porOrdem(quoruns), ramos: porOrdem(ramos),
-    ordemPreferencia: porOrdem(ordem), signatarios: porOrdem(signatarios),
-    sociedades: porOrdem(sociedades),
+    signatarios: porOrdem(signatarios),
   };
 });
 const escolhido = VERSAO
@@ -229,7 +231,9 @@ const administradores = admLinhas
 const listas = listasDoAcordo(entrada);
 const contexto: Contexto = {
   acordo: camposDoAcordo(entrada),
-  sociedade: mapearSociedade(empresa),
+  sociedade: mapearSociedade(empresa, undefined, {
+    tituloColetivoAdministradores: tituloColetivoDosAdministradores(administradores),
+  }),
   ...listas,
   administradores: administradores.map(mapearAdministrador),
 };
@@ -273,6 +277,10 @@ if (composicao.descartados.length > 15) {
   console.log(`  · … e mais ${composicao.descartados.length - 15}`);
 }
 
+const pendencias = pendenciasDoDocumento(composicao.blocos);
+console.log(`pendencias          : ${pendencias.length
+  ? pendencias.map((p) => `${p.label}${p.lista ? ' (lista vazia)' : ''}`).join(' | ')
+  : 'nenhuma'}`);
 const pendentes = [...new Set([...texto.matchAll(/\{\{[^}]*\}\}/g)].map((m) => m[0]))];
 console.log(`placeholder pendente: ${pendentes.length ? pendentes.join(', ') : 'nenhum'}`);
 console.log(`"undefined" no texto: ${texto.includes('undefined') ? 'SIM ✗' : 'não'}`);
@@ -312,7 +320,20 @@ for (const [nome, itens] of Object.entries(listas)) {
   console.log(`  ${itens.length ? ' ' : '✗'} ${nome}: ${itens.length}`);
 }
 
-const destino = resolve(RAIZ, 'docs/osg/acordo-gerado', `${cliente.nome.replace(/[^\w]+/g, '-')}-v${versao}.md`);
-mkdirSync(dirname(destino), { recursive: true });
-writeFileSync(destino, texto, 'utf8');
-console.log(`\nescrito em          : ${destino.slice(RAIZ.length + 1)}`);
+const base = resolve(RAIZ, 'docs/osg/acordo-gerado', `${cliente.nome.replace(/[^\w]+/g, '-')}-v${versao}`);
+mkdirSync(dirname(base), { recursive: true });
+writeFileSync(`${base}.md`, texto, 'utf8');
+console.log(`\nescrito em          : ${`${base}.md`.slice(RAIZ.length + 1)}`);
+
+/*
+ * O .docx TAMBÉM, porque metade dos defeitos de formatação não aparece no texto.
+ *
+ * O negrito do termo definido, o alinhamento do título de seção e o tamanho da
+ * capa são decisão do `montarDocx`, e não do render: medir só o markdown deixou
+ * passar a capa sem formatação por três semanas. O arquivo é o mesmo que a tela
+ * baixa, e abre no Word.
+ */
+const { Packer } = await import('docx');
+const doc = await montarDocx(composicao.blocos);
+writeFileSync(`${base}.docx`, await Packer.toBuffer(doc));
+console.log(`e o docx em         : ${`${base}.docx`.slice(RAIZ.length + 1)}`);

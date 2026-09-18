@@ -18,6 +18,7 @@ import { extrairCampos, extrairRunsLinha, removerMarcas, type TipoBloco } from '
 import { compilar, type No } from '@/lib/templates/render';
 import { PAPEIS_LISTA } from '@/lib/templates/binding';
 import type { BlocoComVersao } from '@/hooks/useBibliotecaModelos';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 // Prefixo do tipo no nome ("Capítulo — …") é redundante dentro do grupo — só na exibição.
 const PREFIXO_TIPO: Partial<Record<TipoBloco, RegExp>> = {
@@ -377,9 +378,11 @@ export const FichaBloco = ({
         </div>
       </div>
       {descricaoDaFamilia && (
-        <p className="line-clamp-1 text-xs leading-relaxed text-osg-600" title={descricaoDaFamilia}>
+        <ElementTooltip text={descricaoDaFamilia}>
+          <p className="line-clamp-1 text-xs leading-relaxed text-osg-600">
           {descricaoDaFamilia}
         </p>
+        </ElementTooltip>
       )}
       {legenda && (
         <FitaVariante
@@ -403,63 +406,69 @@ export const FichaBloco = ({
         <div className="flex flex-wrap items-center gap-1">
           {condicoes.length > 0 ? (
             condicoes.map(({ caminho, valor }) => (
-              <span
-                key={caminho}
+              <ElementTooltip key={caminho} text={`Escolhida quando ${caminho} = ${valor}`}>
+                <span
+               
                 className="inline-flex items-center gap-1 rounded bg-osg-100 px-1.5 py-px text-[10px] text-osg-700 ring-1 ring-osg-200/70"
-                title={`Escolhida quando ${caminho} = ${valor}`}
               >
                 <code className="font-medium">{caminho}</code>
                 <span className="text-osg-600">{valor}</span>
               </span>
+              </ElementTooltip>
             ))
           ) : (
-            <span
+            <ElementTooltip text="Sem condições: é a redação usada quando nenhuma outra variante casa">
+              <span
               className="inline-flex items-center rounded border border-dashed border-osg-300 bg-osg-50 px-1.5 py-px text-[10px] font-medium text-osg-600"
-              title="Sem condições: é a redação usada quando nenhuma outra variante casa"
             >
               variante padrão
             </span>
+            </ElementTooltip>
           )}
         </div>
       )}
       {(b.flag_ids.length > 0 || !b.ativo || inativoNaFrente || b.repete_colecao || ehDeck) && (
         <div className="flex flex-wrap items-center gap-1.5">
           {ehDeck && (
-            <span
+            <ElementTooltip text="Na geração, o engine escolhe uma destas redações por item">
+              <span
               className="inline-flex items-center gap-1 rounded bg-osg-100 px-1.5 py-px text-[10px] font-medium text-osg-700"
-              title="Na geração, o engine escolhe uma destas redações por item"
             >
               <Layers className="h-2.5 w-2.5" />
               {variantes.length} variantes
             </span>
+            </ElementTooltip>
           )}
           {variantesInativas.length > 0 && (
-            <span
-              className="inline-flex items-center rounded bg-warning/10 px-1.5 py-px text-[10px] font-medium text-warning"
-              title={`Redações desativadas nesta família: ${variantesInativas
+            <ElementTooltip text={`Redações desativadas nesta família: ${variantesInativas
                 .map((v) => v.variante_rotulo?.trim() || 'sem rótulo')
-                .join(', ')}`}
+                .join(', ')}`}>
+              <span
+              className="inline-flex items-center rounded bg-warning/10 px-1.5 py-px text-[10px] font-medium text-warning"
             >
               {variantesInativas.length} de {variantes.length} inativas
             </span>
+            </ElementTooltip>
           )}
           {b.repete_colecao && (
-            <span
+            <ElementTooltip text={`Na geração, vira um parágrafo por item de: ${PAPEIS_LISTA[b.repete_colecao]?.label ?? b.repete_colecao}`}>
+              <span
               className="inline-flex items-center gap-1 rounded bg-osg-moss/10 px-1.5 py-px text-[10px] font-medium text-osg-moss"
-              title={`Na geração, vira um parágrafo por item de: ${PAPEIS_LISTA[b.repete_colecao]?.label ?? b.repete_colecao}`}
             >
               <Repeat2 className="h-2.5 w-2.5" />
               {b.repete_colecao}
             </span>
+            </ElementTooltip>
           )}
           {b.flag_ids.length > 0 && (
-            <span
+            <ElementTooltip text={b.flag_ids.map((id) => nomeDaFlag.get(id) ?? '…').join(', ')}>
+              <span
               className="inline-flex items-center gap-1 rounded bg-warning/10 px-1.5 py-px text-[10px] font-medium text-warning"
-              title={b.flag_ids.map((id) => nomeDaFlag.get(id) ?? '…').join(', ')}
             >
               <Flag className="h-2.5 w-2.5" />
               {b.flag_ids.length}
             </span>
+            </ElementTooltip>
           )}
           {!b.ativo && (
             <Badge variant="outline" className="text-[10px]">

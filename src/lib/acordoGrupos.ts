@@ -52,6 +52,15 @@ export interface CampoDoAcordo {
   /** Só aparece quando este outro campo está ligado. */
   dependeDe?: string;
   /**
+   * Sem ele, o documento não fica de pé, e o bloco NÃO conta como conferido.
+   *
+   * Diferente do resto do cadastro, que nasce semeado e onde "conferido" quer
+   * dizer "alguém olhou". Aqui não há semente possível: os signatários são
+   * quem assinou, e o preâmbulo inteiro se monta a partir deles. Sem nenhum, o
+   * documento sai com "as pessoas adiante qualificadas" seguido de nada.
+   */
+  obrigatorio?: boolean;
+  /**
    * O bloco dentro do grupo. Existe por causa do "Saída de sócio e preferência",
    * que sozinho tem 15 campos e cobre três assuntos: a quem se oferece a quota,
    * quanto ela vale, e o que o sócio não pode fazer depois. Sem a divisão, o
@@ -75,11 +84,21 @@ const METODOS = [
   { valor: 'dupla_avaliacao', rotulo: 'Dupla avaliação' },
 ] as const;
 
+/*
+ * OS QUATRO QUE O DOCUMENTO ESCREVE.
+ *
+ * Cada um acende um trecho real: as quotas são a Cláusula Quinta, as
+ * participações e os imóveis são a Décima, as oportunidades são a Décima
+ * Primeira. Máquinas e Equipamentos saíram em 17/09: o modelo não os escreve em
+ * bloco nenhum, e marcá-los não mudava o documento. Eram vocabulário do
+ * AgroAliança, que é um acordo do acervo, não o padrão da casa.
+ *
+ * Se um dia a casa redigir a cláusula que os alcance, os dois voltam com o
+ * bloco junto, e não antes.
+ */
 const OBJETOS = [
   { valor: 'quotas', rotulo: 'Quotas' },
   { valor: 'imoveis', rotulo: 'Imóveis' },
-  { valor: 'maquinas', rotulo: 'Máquinas' },
-  { valor: 'equipamentos', rotulo: 'Equipamentos' },
   { valor: 'oportunidades', rotulo: 'Oportunidades de negócio' },
   { valor: 'participacoes', rotulo: 'Participações' },
 ] as const;
@@ -149,17 +168,6 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
     resumo: 'Sobre quais empresas o acordo vale, e como a família se divide em ramos',
     campos: [
       {
-        campo: 'sociedades',
-        rotulo: 'Sociedades relacionadas abrangidas',
-        tipo: 'especial',
-        ajuda:
-          'AS OUTRAS EMPRESAS DO GRUPO, e não os sócios. O acordo estende quase toda '
-          + 'regra a elas: a preferência na venda, a não concorrência e o dever de levar '
-          + 'oportunidade à administração valem para a holding e para cada operacional '
-          + 'listada aqui. Incluir ou tirar uma empresa muda o alcance do documento '
-          + 'inteiro.',
-      },
-      {
         campo: 'ramos',
         rotulo: 'Ramos familiares',
         tipo: 'especial',
@@ -191,7 +199,13 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           + 'à alteração do '
           + 'contrato social". A frase inteira o sistema monta, e você a vê pronta embaixo '
           + 'de cada linha. Sete vêm preenchidos; acrescente linha só se este cliente tiver '
-          + 'uma matéria a mais, como o Perci, que exige 75% para emprestar a quotista.',
+          + 'uma matéria a mais, como o Perci, que exige 75% para emprestar a quotista. '
+          + 'CADA LINHA ESCREVE NUM LUGAR DIFERENTE, e não numa lista só: quatro viram '
+          + 'alíneas da escada do voto na Cláusula Nona, o aumento de capital sai na Quarta '
+          + 'e a reunião prévia na Vigésima Quarta. A primeira, "para a reunião de sócios '
+          + 'poder começar", NÃO sai no Acordo: ela é a cláusula de instalação do CONTRATO '
+          + 'SOCIAL. E linha que você acrescentar fica só no cadastro, porque não há frase '
+          + 'no modelo esperando por ela.',
       },
     ],
   },
@@ -227,14 +241,14 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
     campos: [
       { campo: 'signatarios', rotulo: 'Quotistas signatários originais', tipo: 'especial',
         secao: 'A quem se oferece a quota',
-        ajuda: 'Quem assinou a primeira versão. Congela neles: o acordo fala em '
-          + '"descendentes dos signatários", e esse recorte não muda quando o quadro '
-          + 'societário muda.' },
-      { campo: 'ordemPreferencia', rotulo: 'Ordem do direito de preferência', tipo: 'especial',
-        secao: 'A quem se oferece a quota',
-        ajuda: 'A fila de quem tem direito de comprar antes de a quota poder ir a terceiro. '
-          + 'A Via Fértil oferece primeiro à holding; o modelo oferece primeiro aos '
-          + 'descendentes dos signatários, e é o que vale por decisão de 14/09.' },
+        obrigatorio: true,
+        ajuda: 'SEM ISTO O DOCUMENTO NÃO SAI: o preâmbulo inteiro se monta daqui, '
+          + 'qualificando cada um por nacionalidade, estado civil, RG, CPF e endereço, '
+          + 'que vêm da Qualificação das Partes. Vazio, o Acordo sai com "as pessoas '
+          + 'adiante qualificadas" seguido de nada. São os que assinaram a PRIMEIRA '
+          + 'versão, e o recorte congela neles: o acordo fala em "descendentes dos '
+          + 'QUOTISTAS signatários da primeira versão", que é outra coisa que o quadro '
+          + 'societário de hoje.' },
       { campo: 'objetos_preferencia', rotulo: 'Objetos sujeitos à preferência',
         tipo: 'multi', opcoes: OBJETOS, secao: 'A quem se oferece a quota',
         ajuda: 'O que não pode ir a terceiro sem passar pelos sócios antes. A Cláusula '
@@ -327,17 +341,13 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
         ajuda: 'O direito de exigir que outro lhe venda a participação.' },
       { campo: 'opcao_compra_quem', rotulo: 'Quem detém a opção de compra', tipo: 'texto',
         dependeDe: 'opcao_compra_prevista',
-        ajuda: 'Quem pode exigir que o outro venda. No modelo é qualquer sócio: "é direito de '
-          + 'qualquer QUOTISTA exigir que outro QUOTISTA venda suas QUOTAS para quem exerceu '
-          + 'esta opção". Responda diferente se no cliente o direito for só de alguns, por '
-          + 'exemplo da holding, dos fundadores ou do ramo de quem sai.' },
-      { campo: 'opcao_compra_preco', rotulo: 'Preço na opção de compra', tipo: 'texto',
-        dependeDe: 'opcao_compra_prevista',
-        ajuda: 'Como o preço se forma quando alguém exerce a opção. No modelo é o MAIOR entre '
-          + 'dois: "o VALOR DAS QUOTAS na data da OPÇÃO DE COMPRA" e "o valor subscrito e '
-          + 'integralizado", este corrigido por juros e índice. O pagamento sai em até 36 '
-          + 'parcelas mensais. Responda diferente se o cliente combinou outra conta, por '
-          + 'exemplo só o valor apurado, ou com deságio.' },
+        ajuda: 'Quem pode exigir que o outro venda. ESCREVA SEM O ARTIGO e em minúscula no '
+          + 'começo, porque a frase já traz o "aos": "Igualmente será assegurado aos ___ '
+          + 'exercerem uma OPÇÃO DE COMPRA". Escrevendo "Os demais quotistas", sai '
+          + '"assegurado a Os demais quotistas". Medido nos '
+          + 'acordos, três redações em quatro documentos: "QUOTISTAS que sejam titulares da '
+          + 'maioria das QUOTAS" no modelo e no AgroAliança, "demais QUOTISTAS" no Perci, e '
+          + '"QUOTISTAS e/ou seus curadores" no Horita.' },
       { campo: 'opcao_venda_prevista', rotulo: 'Opção de venda prevista', tipo: 'booleano',
         ajuda: 'O direito de exigir que os outros comprem a sua parte.' },
       { campo: 'juros_valor_subscrito', rotulo: 'Juros sobre o valor subscrito', tipo: 'texto',
@@ -446,16 +456,6 @@ export const GRUPOS_DO_ACORDO: readonly GrupoDoAcordo[] = [
           + 'oito contratos e não existe número nenhum, a cláusula diz quem pode garantir '
           + 'quem, não quanto.',
       },
-      {
-        campo: 'substituto_representante_pessoa_id',
-        rotulo: 'Substituto do representante',
-        tipo: 'especial',
-        ajuda:
-          'Quem assume se o representante faltar. A mesma cláusula continua: "sendo que na '
-          + 'sua falta ou incapacidade civil, a incumbência passará ao Sr. FLÁVIO". Faltando '
-          + 'os dois, o acordo manda os quotistas escolherem outro em reunião, e isso é linha '
-          + 'fixa, não se digita.',
-      },
     ],
   },
 ];
@@ -492,6 +492,29 @@ export function preenchidosNoGrupo(
     return true;
   };
   return { preenchidos: visiveis.filter(temValor).length, total: visiveis.length };
+}
+
+/**
+ * Os campos OBRIGATÓRIOS do grupo que continuam vazios.
+ *
+ * É o que impede o bloco de contar como conferido. Sem isto dava para abrir,
+ * salvar sem preencher nada e o cartão dizer "conferido": o Acordo ficava com
+ * todos os oito blocos verdes e sem um único signatário, e o problema só
+ * aparecia no documento, com o preâmbulo sem ninguém.
+ *
+ * Só olha campo VISÍVEL: o que depende de interruptor desligado não cobra nada.
+ */
+export function obrigatoriosEmFalta(
+  grupo: GrupoDoAcordo,
+  valores: Record<string, unknown>,
+): CampoDoAcordo[] {
+  return grupo.campos.filter((c) => {
+    if (!c.obrigatorio) return false;
+    if (c.dependeDe && valores[c.dependeDe] !== true) return false;
+    const v = valores[c.campo];
+    if (Array.isArray(v)) return v.length === 0;
+    return v === null || v === undefined || v === '';
+  });
 }
 
 /** O grupo de uma chave. */

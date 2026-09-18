@@ -3,6 +3,7 @@
 
 import { HelpCircle } from 'lucide-react';
 import { useTour } from './useTour';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 export interface TourTriggerProps {
   /** Tour específico. Omitido, abre o da rota atual. */
@@ -29,15 +30,16 @@ export default function TourTrigger({
   };
 
   return (
-    <button
+    <ButtonTooltip text={label}>
+      <button
       type="button"
       className={className}
       onClick={handleClick}
       aria-label={label}
-      title={label}
       data-tour={dataTour}
     >
       <HelpCircle size={tamanho} strokeWidth={2} />
     </button>
+    </ButtonTooltip>
   );
 }

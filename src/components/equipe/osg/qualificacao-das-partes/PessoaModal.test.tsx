@@ -139,6 +139,7 @@ describe('PessoaModal - matriz, drafts e persistência', () => {
     const original = pessoa({
       denominacao: '  Maria da Silva  ',
       nacionalidade: 'Brasileira',
+      nome_fantasia: 'Fantasia legada',
       nire: 'NIRE legado',
       junta_comercial_uf: 'SP',
       data_constituicao: '2001-02-03',
@@ -155,6 +156,7 @@ describe('PessoaModal - matriz, drafts e persistência', () => {
           tipo_pessoa: 'PF',
           denominacao: 'Maria da Silva',
           nacionalidade: 'Brasileira',
+          nome_fantasia: null,
           nire: null,
           junta_comercial_uf: null,
           data_constituicao: null,
@@ -171,6 +173,7 @@ describe('PessoaModal - matriz, drafts e persistência', () => {
   it('cria PJ, converte vazios em null e nullifica os campos exclusivos de PF', () => {
     renderModal({ defaultTipo: 'PJ' });
     fireEvent.change(controlByLabel(/Razão social/), { target: { value: '  Holding PSA  ' } });
+    fireEvent.change(controlByLabel('Nome fantasia'), { target: { value: 'HOLDING' } });
     fireEvent.change(controlByLabel('NIRE'), { target: { value: '  12345  ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Cadastrar pessoa' }));
 
@@ -188,6 +191,7 @@ describe('PessoaModal - matriz, drafts e persistência', () => {
       filiacao_pai_pessoa_id: null,
       conjuge_id: null,
       is_fundador: false,
+      nome_fantasia: 'HOLDING',
       nire: '  12345  ',
       objeto_social: null,
       tipo_empresa: null,

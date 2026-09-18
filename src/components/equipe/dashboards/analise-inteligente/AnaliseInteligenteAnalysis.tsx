@@ -68,24 +68,24 @@ export function AnaliseInteligenteAnalysis({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="p-3 bg-white/80 rounded-md border-l-4 border-primary">
+        <div className="p-3 bg-card/80 rounded-md border-l-4 border-primary">
           <p className="text-sm text-primary font-medium">{analise.sintese_executiva}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="bg-white/70 p-3 rounded-md border border-border">
+          <div className="bg-card/70 p-3 rounded-md border border-border">
             <h4 className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
               <TrendingUp className="h-3 w-3 text-primary" /> Evolução das Entregas
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed">{analise.evolucao_entregas}</p>
           </div>
-          <div className="bg-white/70 p-3 rounded-md border border-border">
+          <div className="bg-card/70 p-3 rounded-md border border-border">
             <h4 className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
               <Clock className="h-3 w-3 text-primary" /> Tempo vs Resultado
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed">{analise.tempo_vs_resultado}</p>
           </div>
-          <div className="bg-white/70 p-3 rounded-md border border-border">
+          <div className="bg-card/70 p-3 rounded-md border border-border">
             <h4 className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3 text-primary" /> Saudabilidade
             </h4>
@@ -94,13 +94,13 @@ export function AnaliseInteligenteAnalysis({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="bg-white/70 p-3 rounded-md border border-border">
+          <div className="bg-card/70 p-3 rounded-md border border-border">
             <h4 className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
               <Target className="h-3 w-3 text-blue-600" /> Aderência ao Escopo
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed">{analise.aderencia_escopo}</p>
           </div>
-          <div className="bg-white/70 p-3 rounded-md border border-border">
+          <div className="bg-card/70 p-3 rounded-md border border-border">
             <h4 className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
               <DollarSign className="h-3 w-3 text-status-ajuste" /> Gastos Extras
             </h4>

@@ -23,13 +23,11 @@ import { expressaoDoQuorum, type BaseQuorum, type TipoQuorum } from '@/lib/acord
 import { cn } from '@/lib/utils';
 import type { CampoDoAcordo, GrupoDoAcordo } from '@/lib/acordoGrupos';
 
-/** O que o modal edita: os campos do cabeçalho mais as três listas. */
+/** O que o modal edita: os campos do cabeçalho mais as duas listas. */
 export interface ValoresDoAcordo extends Record<string, unknown> {
   quoruns: { materia: string; chave?: string | null; tipo: TipoQuorum; percentual?: number | null; base: BaseQuorum }[];
   ramos: { nome: string }[];
-  ordemPreferencia: string[];
   signatarios: string[];
-  sociedades: string[];
 }
 
 /*
@@ -86,6 +84,11 @@ interface Props {
   pessoas: PessoaParaEscolher[];
   onSalvar: (valores: ValoresDoAcordo) => Promise<unknown>;
   salvando: boolean;
+  /**
+   * Levar a pessoa ao grupo que manda numa marcação espelhada. Opcional: sem
+   * ele a legenda só NOMEIA o bloco, que é o comportamento de antes.
+   */
+  onIrParaGrupo?: (chave: string) => void;
 }
 
 const ROTULO = 'flex h-5 items-center gap-1.5';
@@ -116,7 +119,7 @@ function comoOpcao(p: PessoaParaEscolher): ComboOption {
  * escolhe o tipo e a base.
  */
 export function AcordoGrupoModal({
-  open, onOpenChange, grupo, valores, pessoas, onSalvar, salvando,
+  open, onOpenChange, grupo, valores, pessoas, onSalvar, salvando, onIrParaGrupo,
 }: Props) {
   const [form, setForm] = useState<ValoresDoAcordo>(valores);
 
@@ -131,7 +134,7 @@ export function AcordoGrupoModal({
 
   const opcoesDePessoa = useMemo(() => pessoas.map(comoOpcao), [pessoas]);
   /*
-   * Representante e substituto são PESSOA FÍSICA. A cláusula escreve "os
+   * O representante é PESSOA FÍSICA. A cláusula escreve "os
    * QUOTISTAS elegem o Sr. …", com o tratamento concordando pelo gênero, e
    * empresa não tem gênero. Sem o filtro dava para eleger a própria sociedade
    * como representante dos sócios dela, que foi o que aconteceu no cadastro de
@@ -309,8 +312,19 @@ export function AcordoGrupoModal({
                           )}
                           {espelho && (
                             <span className="block text-xs italic text-muted-foreground">
-                              Liga e desliga no bloco &ldquo;{espelho.bloco}&rdquo;, onde ficam os
-                              detalhes.
+                              Só mostra se a regra existe. Quem liga e desliga é o bloco{' '}
+                              {onIrParaGrupo ? (
+                                <button
+                                  type="button"
+                                  className="cursor-pointer font-medium text-osg-700 underline underline-offset-2 hover:text-foreground"
+                                  onClick={() => onIrParaGrupo(espelho.grupo)}
+                                >
+                                  {espelho.bloco}
+                                </button>
+                              ) : (
+                                <>&ldquo;{espelho.bloco}&rdquo;</>
+                              )}
+                              , onde ficam os detalhes.
                             </span>
                           )}
                         </span>
@@ -331,32 +345,21 @@ export function AcordoGrupoModal({
                 <ListaDeRamos linhas={form.ramos} mexer={(l) => mexer('ramos', l)} />
               )}
 
-              {c.campo === 'ordemPreferencia' && (
-                <ListaOrdenada
-                  itens={form.ordemPreferencia}
-                  mexer={(l) => mexer('ordemPreferencia', l)}
-                  exemplo="Holding, descendentes dos signatários, demais quotistas"
-                />
-              )}
-
-              {(c.campo === 'signatarios' || c.campo === 'sociedades') && (
+              {c.campo === 'signatarios' && (
                 pessoas.length === 0 ? (
                   <SemPessoas />
                 ) : (
                   <MultiSelectCombobox
-                    options={c.campo === 'sociedades' ? opcoesDeEmpresa : opcoesDePessoa}
+                    options={opcoesDePessoa}
                     selected={(form[c.campo] as string[]) ?? []}
                     onChange={(v) => mexer(c.campo, v)}
-                    placeholder={c.campo === 'sociedades'
-                      ? 'Clique para incluir uma sociedade…'
-                      : 'Clique para incluir um signatário…'}
+                    placeholder="Clique para incluir um signatário…"
                     addLabel="incluir"
                   />
                 )
               )}
 
-              {(c.campo === 'representante_pessoa_id'
-                || c.campo === 'substituto_representante_pessoa_id') && (
+              {c.campo === 'representante_pessoa_id' && (
                 pessoas.length === 0 ? (
                   <SemPessoas />
                 ) : (

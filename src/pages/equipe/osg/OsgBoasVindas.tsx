@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronRight, LayoutDashboard, Users, FolderKanban, Shield, MessageSquare, LineChart } from 'lucide-react';
 import { linkEspelhado } from '@/lib/areaTheme';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface FerramentaOsg {
   id: string;
@@ -113,13 +114,14 @@ const OsgBoasVindas = () => {
                   Manual
                 </a>
               ) : (
-                <span
+                <ElementTooltip text="Manual em breve">
+                  <span
                   className="text-sm font-medium text-muted-foreground/60 cursor-default"
-                  title="Manual em breve"
                   onClick={(e) => e.stopPropagation()}
                 >
                   Manual (em breve)
                 </span>
+                </ElementTooltip>
               )}
             </div>
           </Card>

@@ -136,3 +136,43 @@ export function contrairPor(texto: string): string {
   if (!m) return `por ${t}`;
   return `${contracao[m[1].toLocaleLowerCase('pt-BR')]} ${m[2]}`;
 }
+
+/**
+ * Tipos de logradouro MASCULINOS, para a preposição da sede sair certa.
+ *
+ * A lista é curta de propósito: fora dela vale a terminação, e em português a
+ * esmagadora maioria dos logradouros femininos termina em "a" (Rua, Avenida,
+ * Rodovia, Travessa, Praça, Alameda, Estrada, Via, Vila, Quadra, Chácara,
+ * Ladeira, Marginal, Passagem, Ponte, Colônia). Os masculinos que também
+ * terminam em "a" são poucos e estão aqui.
+ */
+const LOGRADOURO_MASCULINO = new Set([
+  'sitio', 'loteamento', 'setor', 'jardim', 'largo', 'beco', 'condominio', 'parque',
+  'bairro', 'bloco', 'campo', 'conjunto', 'distrito', 'edificio', 'lago', 'morro',
+  'nucleo', 'patio', 'recanto', 'retiro', 'trecho', 'trevo', 'viaduto', 'balneario',
+  'quilometro', 'km', 'anel', 'acesso', 'aeroporto', 'porto', 'terminal', 'residencial',
+]);
+
+/**
+ * O endereço com a preposição de lugar: "na Rua Carla Gomes…", "no Sítio…".
+ *
+ * O modelo escreve "com sede estabelecida NA Avenida Octaviano Heraclio Duarte"
+ * e a AgroAliança "com sede estabelecida NA Rua Zulmar Bertuol". Sem isto a
+ * frase saía "com sede estabelecida Rua Carla Gomes", que é o defeito; com um
+ * "na" fixo no bloco sairia "na Sítio Boa Vista", que é o mesmo defeito do outro
+ * lado. Quem decide é o tipo de logradouro, que é a primeira palavra.
+ *
+ * Endereço que já começa com a preposição passa intacto: o cadastro antigo tem
+ * "na Rodovia BR-163" digitado inteiro em alguns clientes.
+ */
+export function comPreposicaoDeLugar(endereco: string | null | undefined): string {
+  const texto = (endereco ?? '').trim();
+  if (!texto) return '';
+  if (/^(na|no|em)\s/i.test(texto)) return texto;
+  const primeira = texto.split(/[\s,]+/)[0]
+    .toLocaleLowerCase('pt-BR')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\.$/, '');
+  const feminino = !LOGRADOURO_MASCULINO.has(primeira) && primeira.endsWith('a');
+  return `${feminino ? 'na' : 'no'} ${texto}`;
+}

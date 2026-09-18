@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O branco literal: as 27 que mudam pixel</title>
+<style>
+  /* ────────────────────────────────────────────────────────────────────────
+     Valores lidos do src/index.css em 17/09/2026. Duas áreas, porque a
+     conclusão MUDA entre elas — e é esse o assunto da página.
+
+       BASE  --background 168 22% 99.4%   --card 0 0% 100%     --muted 168 20% 89%
+       OSG   --background  32 28% 98.5%   --card 32 28% 98.5%  --muted  32 28% 89%
+
+     As superfícies tingidas estão COMPOSTAS (valor final, opaco), e não como
+     alfa sobre alfa: o que esta página compara são os números do produto.
+     ──────────────────────────────────────────────────────────────────────── */
+  :root{
+    --pagina:#FDFEFE; --branco:#FFFFFF; --literal:#FFFFFF;
+    --tingido:#F2F6F5; --realce:#E5EEEC; --linha:#D4E2E0;
+    --fg:#0B1F1C; --mf:#5A6866; --pr:#0A7A6E;
+  }
+  .osg{
+    --pagina:#FCFBFA; --branco:#FCFBFA; --literal:#FFFFFF;
+    --tingido:#F6F3EF; --realce:#EFE9E3; --linha:#E5DCD1;
+    --fg:#2B211C; --mf:#6E625A; --pr:#125837;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:34px 24px 90px;background:#FDFEFE;color:#0B1F1C;
+       font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1320px;margin:0 auto}
+  h1{font-size:27px;margin:0 0 8px;letter-spacing:-.015em}
+  .sub{color:#5A6866;margin:0;max-width:86ch}
+  h2{font-size:14px;text-transform:uppercase;letter-spacing:.07em;margin:56px 0 6px;color:#5A6866}
+  h2 + p{margin:0 0 14px;max-width:90ch;font-size:14.5px}
+  h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:26px 0 8px;color:#5A6866;font-weight:700}
+  p.nota{color:#5A6866;font-size:13.5px;max-width:90ch;margin:10px 0 0}
+  code{font:12.5px/1.4 ui-monospace,Menlo,Consolas,monospace;background:#EFF4F3;
+       padding:1px 5px;border-radius:4px;border:1px solid #D4E2E0}
+  .achado,.decisao{border:1px solid #D4E2E0;border-radius:10px;padding:16px 19px;
+       margin:22px 0 0;max-width:100ch;background:#F7FAF9}
+  .achado{border-left:3px solid #9C6007}
+  .decisao{border-left:3px solid #0A7A6E}
+  .achado b,.decisao b{display:block;margin-bottom:6px;font-size:15.5px}
+  table{border-collapse:collapse;margin-top:14px;font-size:13.5px}
+  th,td{border:1px solid #D4E2E0;padding:7px 11px;text-align:left}
+  th{background:#F2F6F5;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5A6866}
+  td.n{text-align:right;font-variant-numeric:tabular-nums}
+
+  /* ── palco: a caixa dentro da PÁGINA de verdade, que é o ponto ────────── */
+  .par{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:12px}
+  .palco{border:1px solid var(--linha);border-radius:12px;overflow:hidden}
+  .rotulo{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+          color:var(--mf);padding:9px 13px;background:var(--branco);
+          border-bottom:1px solid var(--linha);display:flex;gap:9px;align-items:baseline}
+  .rotulo em{font-style:normal;font-weight:500;text-transform:none;letter-spacing:0;opacity:.85}
+  .rotulo .tag{margin-left:auto;text-transform:none;letter-spacing:0}
+  .rotulo .hoje{color:#9C6007}
+  .rotulo .rec{color:#17603A}
+  .tela{padding:20px;background:var(--pagina)}
+
+  /* as peças, com o raio e a sombra que elas têm no produto */
+  .cartao{border:1px solid var(--linha);border-radius:16px;padding:20px;
+          box-shadow:0 8px 24px -22px rgba(15,23,42,.4);min-height:104px}
+  .hero{border:1px solid var(--linha);border-radius:16px;padding:22px;
+        box-shadow:0 14px 40px -28px rgba(15,23,42,.4)}
+  .barra{border:1px solid var(--linha);border-radius:16px;padding:12px}
+  .trilho{display:inline-flex;gap:4px;border:1px solid var(--linha);
+          background:var(--realce);border-radius:8px;padding:4px}
+  .pastilha{border-radius:6px;padding:5px 11px;font-size:12px;font-weight:600;color:var(--mf)}
+  .pastilha.on{background:var(--branco);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.07)}
+  .vazia{border:1px dashed var(--linha);border-radius:16px;padding:34px;text-align:center;color:var(--mf)}
+  .tabela{border:1px solid var(--linha);border-radius:12px;overflow:hidden}
+  .tabela .th{padding:8px 12px;font-size:10.5px;font-weight:700;text-transform:uppercase;
+              letter-spacing:.07em;color:var(--mf);border-bottom:1px solid var(--linha)}
+  .tabela .tr{padding:9px 12px;font-size:13px;border-bottom:1px solid var(--linha)}
+  .tabela .tr:last-child{border-bottom:0}
+  .tabela .tr.z{background:var(--realce)}
+  .b-lit{background:var(--literal)}
+  .b-card{background:var(--branco)}
+  .b-ting{background:var(--tingido)}
+  .t{font-weight:700;font-size:15px;margin:0 0 4px}
+  .d{margin:0;color:var(--mf);font-size:13px}
+  .et{text-transform:uppercase;letter-spacing:.2em;font-size:10px;font-weight:700;color:var(--pr);margin:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>O branco literal: as 27 que mudam pixel</h1>
+<p class="sub">
+  A fila do <code>bg-white</code> tinha 60 caixas. <b>20 saíram em 17/09 sem decisão nenhuma</b> —
+  eram controle, conteúdo dentro de cartão ou caixa sobre painel rebaixado, onde o claro já era a
+  resposta certa, e trocar o literal por <code>bg-card</code> não moveu um pixel na casa.
+  <b>13 ficam brancas</b> por motivo inventariado: site público, véu sobre fundo escuro, iframe de
+  PDF e tooltip. Esta página é sobre as <b>27 que sobraram</b>, que mudam de aparência — e sobre um
+  achado que mudou o desenho delas.
+</p>
+
+<div class="achado">
+  <b>Na OSG, <code>--card</code> é o MESMO valor da página.</b>
+  <code>--background</code> e <code>--card</code> da <code>.osg-theme</code> são os dois
+  <code>32 28% 98.5%</code>. Uma caixa que vire <code>bg-card</code> ali fica a <b>1,000:1</b>
+  contra a página — some, e quem a segura é só a borda. O branco literal de hoje, que é
+  <code>#FFFFFF</code> de verdade, está a <b>1,031:1</b>.
+  <br><br>
+  Ou seja: na OSG, <b>trocar <code>bg-white</code> por <code>bg-card</code> piora</b> — tira a
+  pouca separação que existia. A única das três superfícies que separa de fato é a tingida, a
+  <b>1,072:1</b>. Vale para as 12 caixas de tela da OSG, e é por isso que elas não podiam entrar
+  no lote 1 junto com o resto.
+</div>
+
+<h2>1 · O cartão de conteúdo</h2>
+<p>
+  O cartão de documento do checklist, a peça mais desenhada do lote: raio 16, sombra própria,
+  <code>hover:-translate-y-1</code>. Aparece nas duas áreas, escrito duas vezes — é a duplicação
+  registrada na tarefa (<code>ChecklistDocumentosCliente</code> e <code>ChecklistPendentes</code>).
+</p>
+
+<h3>Base — a casa</h3>
+<div class="par">
+  <div class="palco"><div class="rotulo">Hoje <em>bg-white/80</em><span class="tag hoje">literal</span></div>
+    <div class="tela"><div class="cartao b-lit">
+      <p class="t">Contrato social</p><p class="d">Enviado em 12/09 · aguardando conferência</p>
+    </div></div></div>
+  <div class="palco"><div class="rotulo">Candidato <em>bg-superficie-cartao</em><span class="tag rec">tingido</span></div>
+    <div class="tela"><div class="cartao b-ting">
+      <p class="t">Contrato social</p><p class="d">Enviado em 12/09 · aguardando conferência</p>
+    </div></div></div>
+</div>
+
+<h3>OSG — areia</h3>
+<div class="par osg">
+  <div class="palco"><div class="rotulo">Hoje <em>bg-white/75</em><span class="tag hoje">literal</span></div>
+    <div class="tela"><div class="cartao b-lit">
+      <p class="t">Contrato social</p><p class="d">Enviado em 12/09 · aguardando conferência</p>
+    </div></div></div>
+  <div class="palco"><div class="rotulo">Candidato <em>bg-superficie-cartao</em><span class="tag rec">tingido</span></div>
+    <div class="tela"><div class="cartao b-ting">
+      <p class="t">Contrato social</p><p class="d">Enviado em 12/09 · aguardando conferência</p>
+    </div></div></div>
+</div>
+<p class="nota">
+  Na OSG é onde se vê: o branco literal é frio no meio da areia. É o mesmo achado que fechou o
+  <code>acentoArea.tsx</code> em 11/09 — a OSG tem superfície quente com âncora verde, e ali um
+  neutro frio não some, denuncia.
+</p>
+
+<h2>2 · O cabeçalho de resumo</h2>
+<p>
+  Mesma peça com sombra mais funda (<code>0 14px 40px -28px</code>): o <code>ResumoHero</code> do
+  checklist do cliente e o hero equivalente na OSG.
+</p>
+<div class="par">
+  <div class="palco"><div class="rotulo">Hoje <em>bg-white/80</em><span class="tag hoje">literal</span></div>
+    <div class="tela"><div class="hero b-lit">
+      <p class="et">Resumo da solicitação</p>
+      <p class="t" style="font-size:22px;margin-top:5px">Documentos solicitados</p>
+      <p class="d">7 de 12 recebidos</p>
+    </div></div></div>
+  <div class="palco"><div class="rotulo">Candidato <em>bg-superficie-cartao</em><span class="tag rec">tingido</span></div>
+    <div class="tela"><div class="hero b-ting">
+      <p class="et">Resumo da solicitação</p>
+      <p class="t" style="font-size:22px;margin-top:5px">Documentos solicitados</p>
+      <p class="d">7 de 12 recebidos</p>
+    </div></div></div>
+</div>
+
+<h2>3 · A barra de filtros — e aqui o candidato é OUTRO</h2>
+<p>
+  A barra de filtros <b>é controle</b>, e controle não tinge: a escada da opção C põe o mais claro
+  onde a mão vai. O precedente é o Feed, cuja <code>FeedFiltros</code> está no inventário de caixa
+  clara desde 12/09. Então estas quatro — <code>KanbanFilters</code>, <code>GerencialFiltros</code>
+  e as duas faixas de checklist — vão para <code>bg-card</code>, não para tingido, e o que muda é
+  só passarem a acompanhar tema e área.
+</p>
+<div class="par">
+  <div class="palco"><div class="rotulo">Hoje <em>bg-white</em><span class="tag hoje">literal</span></div>
+    <div class="tela"><div class="barra b-lit">
+      <span class="trilho"><span class="pastilha on">Todos</span><span class="pastilha">Pendentes</span><span class="pastilha">Recebidos</span></span>
+    </div></div></div>
+  <div class="palco"><div class="rotulo">Candidato <em>bg-card</em><span class="tag rec">claro, com token</span></div>
+    <div class="tela"><div class="barra b-card">
+      <span class="trilho"><span class="pastilha on">Todos</span><span class="pastilha">Pendentes</span><span class="pastilha">Recebidos</span></span>
+    </div></div></div>
+</div>
+<p class="nota">
+  A pastilha ativa dentro do trilho já saiu no lote 1 — é a mesma peça que aparece <b>dez vezes</b>
+  escrita à mão no repositório. Está aqui só para a barra aparecer como ela é de verdade.
+</p>
+
+<h2>4 · A lista vazia</h2>
+<p>
+  Tracejada, marcador de ausência. Três casos: os dois checklists e o
+  <code>OnboardingEmptyState</code>. Desenhada na OSG, que é onde as três vivem ou têm irmã.
+</p>
+<div class="par osg">
+  <div class="palco"><div class="rotulo">Hoje <em>bg-white/60</em><span class="tag hoje">literal</span></div>
+    <div class="tela"><div class="vazia b-lit">Nenhum documento pendente</div></div></div>
+  <div class="palco"><div class="rotulo">Candidato <em>bg-superficie-cartao</em><span class="tag rec">tingido</span></div>
+    <div class="tela"><div class="vazia b-ting">Nenhum documento pendente</div></div></div>
+</div>
+
+<h2>5 · A caixa de tabela — esta já está decidida</h2>
+<p>
+  <code>MapaNCMPisCofins:325</code> e <code>EquipeRelatorios:416</code> são caixa de tabela
+  <b>fora de <code>&lt;Card&gt;</code></b> — exatamente o recorte que a contagem de 16/09 deixou de
+  fora, e o motivo de 53 em 49 ter virado 45 em 42. A decisão B daquele dia vale para elas sem
+  decisão nova: <b>tabela é branca</b>, porque tabela se lê pelas linhas e o hover tem teto.
+</p>
+<div class="par">
+  <div class="palco"><div class="rotulo">Hoje <em>bg-white</em><span class="tag hoje">literal</span></div>
+    <div class="tela"><div class="tabela b-lit">
+      <div class="th">NCM · descrição</div>
+      <div class="tr">2201.10.00 · Águas minerais</div>
+      <div class="tr z">2202.10.00 · Refrigerantes</div>
+      <div class="tr">2203.00.00 · Cervejas</div>
+    </div></div></div>
+  <div class="palco"><div class="rotulo">Candidato <em>variante tabela do Card</em><span class="tag rec">decidido em 16/09</span></div>
+    <div class="tela"><div class="tabela b-card">
+      <div class="th">NCM · descrição</div>
+      <div class="tr">2201.10.00 · Águas minerais</div>
+      <div class="tr z">2202.10.00 · Refrigerantes</div>
+      <div class="tr">2203.00.00 · Cervejas</div>
+    </div></div></div>
+</div>
+
+<h2>Os números</h2>
+<table>
+  <tr><th>superfície</th><th>Base — valor</th><th class="n">× página</th><th>OSG — valor</th><th class="n">× página</th></tr>
+  <tr><td>página <code>--background</code></td><td><code>#FDFEFE</code></td><td class="n">—</td><td><code>#FCFBFA</code></td><td class="n">—</td></tr>
+  <tr><td><b>hoje</b> · <code>bg-white</code> literal</td><td><code>#FFFFFF</code></td><td class="n">1,012:1</td><td><code>#FFFFFF</code></td><td class="n">1,031:1</td></tr>
+  <tr><td><code>bg-card</code></td><td><code>#FFFFFF</code></td><td class="n">1,012:1</td><td><code>#FCFBFA</code></td><td class="n"><b>1,000:1</b></td></tr>
+  <tr><td><code>bg-superficie-cartao</code></td><td><code>#F2F6F5</code></td><td class="n">1,074:1</td><td><code>#F6F3EF</code></td><td class="n">1,072:1</td></tr>
+  <tr><td><code>--border</code></td><td><code>#D4E2E0</code></td><td class="n">—</td><td><code>#E5DCD1</code></td><td class="n">—</td></tr>
+</table>
+
+<div class="decisao">
+  <b>O que preciso que você olhe</b>
+  <ol>
+    <li><b>Os cartões (§1) e o hero (§2) tingidos.</b> São 19 das 27, a maior parte do lote. A
+      pergunta é se as sombras próprias dessas telas ainda funcionam sobre superfície tingida —
+      elas foram desenhadas contra o branco.</li>
+    <li><b>A barra de filtros (§3) ficando clara, e não tingida.</b> Se você preferir tingida, o
+      precedente do Feed cai junto e passam a ser cinco telas, não quatro.</li>
+    <li><b>A OSG.</b> É onde o branco literal aparece como frio, e onde <code>bg-card</code> não
+      serve de saída. Se o tingido não te agradar ali, a alternativa não é voltar ao literal — é
+      criar superfície de área, que é decisão maior e foi recusada uma vez, em 11/09, olhando um
+      modal montado dos dois jeitos.</li>
+  </ol>
+</div>
+
+<p class="nota" style="margin-top:34px">
+  Páginas irmãs: <code>o-branco-que-sobrou.html</code> (12/09, a opção C) e
+  <code>a-caixa-da-tabela.html</code> (16/09, a decisão B).
+</p>
+
+</div>
+</body>
+</html>

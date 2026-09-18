@@ -140,6 +140,14 @@ export type ChaveMecanismo =
 export interface EspelhoDoMecanismo {
   /** O bloco que manda, para a tela dizer onde mexer. */
   bloco: string;
+  /**
+   * A chave do grupo, para a linha LEVAR até lá.
+   *
+   * Dizer onde se muda e não levar deixava a pessoa procurando o bloco no meio
+   * de oito: quem clica numa caixa travada quer justamente chegar ao
+   * interruptor, e é esse o clique que a linha passa a honrar.
+   */
+  grupo: string;
   /** Lê o interruptor de verdade nos valores do acordo. */
   ligado: (v: Record<string, unknown>) => boolean;
 }
@@ -184,6 +192,7 @@ export const MECANISMOS: readonly Mecanismo[] = [
     padrao: true,
     espelha: {
       bloco: 'Solução de conflitos',
+      grupo: 'conflitos',
       ligado: (v) => v.solucao_litigios === 'arbitragem',
     },
   },
@@ -195,6 +204,7 @@ export const MECANISMOS: readonly Mecanismo[] = [
     padrao: true,
     espelha: {
       bloco: 'Saída de sócio e preferência',
+      grupo: 'saida',
       ligado: (v) => v.nao_concorrencia === true,
     },
   },
@@ -228,6 +238,7 @@ export const MECANISMOS: readonly Mecanismo[] = [
     padrao: false,
     espelha: {
       bloco: 'Opções de compra e venda',
+      grupo: 'opcoes',
       ligado: (v) => v.opcao_compra_prevista === true,
     },
   },
@@ -247,6 +258,7 @@ export const MECANISMOS: readonly Mecanismo[] = [
     padrao: false,
     espelha: {
       bloco: 'Opções de compra e venda',
+      grupo: 'opcoes',
       ligado: (v) => v.opcao_venda_prevista === true,
     },
   },
@@ -368,11 +380,59 @@ export function expressaoDoQuorum(q: {
 }): string {
   if (q.tipo === 'unanimidade') return 'todos os quotistas';
   if (q.tipo === 'maioria') return `a maioria ${BASE_EM_PROSA[q.base]}`;
+  return `${quantidadeDoQuorum(q)} ${BASE_EM_PROSA[q.base]}`;
+}
 
+/**
+ * SÓ A QUANTIDADE, sem a base: "75% (setenta e cinco por cento)", "a maioria".
+ *
+ * É o que o DOCUMENTO pede, e a diferença não é estética. A alínea do modelo
+ * escreve "Conforme decidam 75% (setenta e cinco por cento) dos VOTOS dos
+ * QUOTISTAS presentes nas REUNIÕES DE QUOTISTAS, REUNIÕES PRÉVIAS e/ou REUNIÃO
+ * DE SÓCIOS": a base já está ali, com as palavras da cláusula. Encaixar a
+ * expressão inteira produziria "75% dos presentes dos VOTOS dos QUOTISTAS
+ * presentes".
+ *
+ * A tela continua mostrando a expressão completa, que é o que faz sentido para
+ * quem confere uma linha isolada.
+ */
+export function quantidadeDoQuorum(q: {
+  tipo: TipoQuorum;
+  percentual?: number | null;
+}): string {
+  if (q.tipo === 'unanimidade') return 'todos os QUOTISTAS';
+  if (q.tipo === 'maioria') return 'a maioria';
   const valor = q.percentual ?? 0;
   const fracao = FRACOES.find((f) => f.percentual === valor);
-  const quanto = fracao ? `${fracao.simbolo} (${fracao.extenso})` : porcentagem(valor);
-  return `${quanto} ${BASE_EM_PROSA[q.base]}`;
+  return fracao ? `${fracao.simbolo} (${fracao.extenso})` : porcentagem(valor);
+}
+
+/**
+ * A MESMA QUANTIDADE EM FRAÇÃO, para o único lugar que a escreve assim.
+ *
+ * O modelo é inconsistente consigo mesmo, e reproduzir isso é ser fiel a ele:
+ * os mesmos 75% saem "75% (setenta e cinco por cento)" na escada do voto e
+ * "¾ (três quartos) das QUOTAS" no aumento de capital. Por isso `FRACOES` não
+ * traz o 3/4 (senão a escada passaria a escrever a fração), e esta função o
+ * conhece à parte.
+ *
+ * Sem fração conhecida, devolve a mesma coisa que `quantidadeDoQuorum`.
+ */
+const FRACOES_DO_AUMENTO: Readonly<Record<number, string>> = {
+  75: '¾ (três quartos)',
+  50: '½ (metade)',
+  25: '¼ (um quarto)',
+};
+
+export function quantidadeDoQuorumEmFracao(q: {
+  tipo: TipoQuorum;
+  percentual?: number | null;
+}): string {
+  if (q.tipo === 'percentual') {
+    const f = FRACOES_DO_AUMENTO[Math.round(q.percentual ?? 0)];
+    if (f) return f;
+  }
+  return quantidadeDoQuorum(q);
 }
 
 /** O quórum de uma chave, do catálogo. */

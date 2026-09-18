@@ -198,6 +198,8 @@ interface Contagem {
   secoesDeRepeticao: number;
   /** Itens produzidos por essas seções, em qualquer nível. */
   itensDeRepeticao: number;
+  /** Os nomes das que produziram ZERO, para a pendência poder nomeá-las. */
+  secoesVazias: string[];
 }
 
 /**
@@ -255,6 +257,7 @@ function renderNos(
         const fim = no.atributos.fim ?? sep;
         contagem.secoesDeRepeticao += 1;
         contagem.itensDeRepeticao += valor.length;
+        if (valor.length === 0) contagem.secoesVazias.push(no.nome);
         valor.forEach((item, i) => {
           // Juntura ANTES de cada item após o primeiro: sep entre os do meio,
           // fim antes do último — mesma prosa "A; B; e C" da versão em string.
@@ -319,6 +322,16 @@ export interface RenderDeBloco {
    * rendeu linhas contra a que saiu só com cabeçalho.
    */
   itensDeRepeticao: number;
+  /**
+   * Os NOMES das seções que não produziram item nenhum.
+   *
+   * A contagem acima diz QUE faltou; esta diz O QUE faltou, e é o que permite
+   * nomear a pendência. Sem ela, um bloco que sobrevive por ter prosa em volta
+   * some com a lista em silêncio: o preâmbulo do Acordo saía com "as pessoas
+   * adiante qualificadas" seguido de nada, porque o cadastro não tinha
+   * signatário, e nenhuma tela dizia isso.
+   */
+  secoesVazias: string[];
 }
 
 /**
@@ -333,7 +346,7 @@ export function renderBloco(
   opcoes: OpcoesRender = {},
 ): RenderDeBloco {
   const segmentos: SegmentoRender[] = [];
-  const contagem: Contagem = { secoesDeRepeticao: 0, itensDeRepeticao: 0 };
+  const contagem: Contagem = { secoesDeRepeticao: 0, itensDeRepeticao: 0, secoesVazias: [] };
   renderNos(compilar(conteudo), [contexto, ...escoposExtras], segmentos, opcoes, contagem);
   return { segmentos, ...contagem };
 }

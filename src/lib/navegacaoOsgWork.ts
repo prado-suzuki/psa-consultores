@@ -183,6 +183,16 @@ export const TELAS_OSG_WORK = {
       'O contrato entre os sócios: o que acontece quando alguém quer sair, morre, se separa ou quer vender. O contrato social diz quem é dono e quem manda; o acordo diz o resto.',
   },
 
+  protocoloRemuneracao: {
+    path: '/equipe/osg/work/governanca/protocolo',
+    label: 'Protocolo de Remuneração',
+    // A descrição diz o que a pessoa faz, e não o que o sistema guarda. "Quem
+    // tem direito a o quê" é a frase que o próprio card usa para explicar o
+    // documento, e é como a consultoria fala dele na reunião com a família.
+    descricao:
+      'O que a família combinou sobre pró-labore, carro, plano de saúde, viagem e estudo: quem tem direito a o quê, item por item.',
+  },
+
   bibliotecaModelos: {
     path: '/equipe/osg/work/biblioteca-modelos',
     label: 'Biblioteca de Modelos',
@@ -297,6 +307,11 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
       // contrato. Como a matriz é o que vira as cláusulas de competência dele,
       // ela vem antes.
       TELAS_OSG_WORK.acordoQuotistas,
+      // O protocolo vem por último do grupo porque depende dos outros para fazer
+      // sentido, e não o contrário: ele regra o que os sócios e gestores
+      // recebem, e quem são esses grupos sai da conversa que a matriz e o acordo
+      // já organizaram. Nenhuma outra tela da governança depende dele.
+      TELAS_OSG_WORK.protocoloRemuneracao,
     ],
   },
   {

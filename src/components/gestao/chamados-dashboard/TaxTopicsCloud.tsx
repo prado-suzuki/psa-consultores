@@ -1,5 +1,6 @@
 import { Cloud } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface TaxTopicsCloudProps {
   topics: { label: string; value: number }[];
@@ -42,21 +43,22 @@ export function TaxTopicsCloud({ topics, totalTickets }: TaxTopicsCloudProps) {
         <>
           <div className="flex min-h-[160px] flex-wrap items-center justify-center gap-x-4 gap-y-3 rounded-xl bg-gradient-to-br from-muted via-card to-primary/10 px-4 py-6">
             {topics.map((topic) => (
-              <span
-                key={topic.label}
+              <ElementTooltip key={topic.label} text={`${topic.label} — ${topic.value} ${topic.value === 1 ? 'chamado' : 'chamados'}`}>
+                <span
+               
                 className={`inline-flex items-baseline gap-1 leading-none tracking-tight transition-transform hover:scale-110 ${colorFor(topic.value)}`}
                 style={{
                   fontSize: `${sizeFor(topic.value)}px`,
                   fontWeight: weightFor(topic.value),
                   fontFamily: "'Instrument Sans', system-ui, sans-serif",
                 }}
-                title={`${topic.label} — ${topic.value} ${topic.value === 1 ? 'chamado' : 'chamados'}`}
               >
                 {topic.label}
                 <sup className="text-[10px] font-medium text-muted-foreground tabular-nums">
                   {topic.value}
                 </sup>
               </span>
+              </ElementTooltip>
             ))}
           </div>
           <div className="mt-3 flex items-center justify-end gap-2 text-[10px] text-muted-foreground">

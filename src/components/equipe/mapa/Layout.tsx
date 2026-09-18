@@ -6,6 +6,7 @@ import { MEDIDAS_TRILHO_SIDEBAR } from '@/lib/sidebarMedidas';
 import { MapaClusterProvider } from '@/contexts/MapaClusterContext';
 import ClusterBar from './ClusterBar';
 import { MapaTourProvider } from './tour/MapaTourProvider';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 export const MAPA_BASE = '/equipe/digital/mapa';
 
@@ -155,18 +156,19 @@ export default function Layout() {
             </li>
           ))}
           <li className={`sidebar-group${rotaEmCadastros ? ' has-active' : ''}`}>
-            <button
+            <ButtonTooltip text="Cadastros">
+              <button aria-label="Cadastros"
               type="button"
               className="sidebar-group-toggle"
               onClick={toggleCadastros}
               aria-expanded={cadastrosOpen}
-              title="Cadastros"
               data-tour="nav-cadastros"
             >
               {cadastrosIcon}
               <span className="sidebar-label">Cadastros</span>
               <svg className={`sidebar-group-caret${cadastrosOpen ? ' open' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
+            </ButtonTooltip>
             {cadastrosOpen && (
               <ul className="sidebar-submenu">
                 {linksCadastros.map((l) => (
@@ -201,34 +203,36 @@ export default function Layout() {
           {/* O Mapeamento era a unica area sem NENHUMA saida: nao tinha "Sair"
               no rodape nem cartao. Quem entrava so saia por "Trocar area". */}
           <SidebarCartaoUsuario area="mapa" collapsed={trilho} />
-          <button
+          <ButtonTooltip text="Trocar área">
+            <button
             type="button"
             className="sidebar-action-btn"
             onClick={() => { closeSidebar(); navigate('/equipe/digital'); }}
             aria-label="Trocar área"
-            title="Trocar área"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             <span className="sidebar-label">Trocar área</span>
           </button>
-          <button
+          </ButtonTooltip>
+          <ButtonTooltip text="Voltar ao site">
+            <button
             type="button"
             className="sidebar-action-btn"
             onClick={() => { closeSidebar(); navigate('/'); }}
             aria-label="Voltar ao site"
-            title="Voltar ao site"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             <span className="sidebar-label">Voltar ao site</span>
           </button>
-          <button
+          </ButtonTooltip>
+          <ButtonTooltip text={trilho ? 'Expandir menu' : 'Minimizar menu'}>
+            <button
             type="button"
             // `max-md:hidden`: minimizar é uma escolha sobre a barra-coluna.
             // Na gaveta não há o que minimizar, e o botão ficaria sem efeito.
             className="sidebar-action-btn max-md:hidden"
             onClick={toggleCollapsed}
             aria-label={trilho ? 'Expandir menu' : 'Minimizar menu'}
-            title={trilho ? 'Expandir menu' : 'Minimizar menu'}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               {trilho
@@ -237,6 +241,7 @@ export default function Layout() {
             </svg>
             <span className="sidebar-label">{trilho ? 'Expandir' : 'Minimizar'}</span>
           </button>
+          </ButtonTooltip>
         </div>
       </nav>
 

@@ -20,6 +20,7 @@ import {
 } from '@/lib/orgCommentEventos';
 import { iniciaisDoNome } from '@/lib/orgCommentMentions';
 import { cn } from '@/lib/utils';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface FeedItemComentarioProps {
   comentario: FeedComentario;
@@ -195,15 +196,16 @@ export function FeedItemComentario({
          * No dedo fica sempre visível; no mouse aparece ao passar pela fala.
          */}
         {onResponder && !ehEvento && (
-          <button
+          <ButtonTooltip text="Responder">
+            <button
             type="button"
             onClick={onResponder}
-            title="Responder"
             aria-label="Responder"
             className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-lg border border-border/70 bg-card text-muted-foreground shadow-sm transition-all hover:border-primary/40 hover:text-primary focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:opacity-0 sm:group-hover/item:opacity-100"
           >
             <Reply aria-hidden className="h-3.5 w-3.5" />
           </button>
+          </ButtonTooltip>
         )}
       </div>
     </div>

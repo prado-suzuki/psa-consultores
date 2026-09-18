@@ -136,6 +136,7 @@ function PjFields({ draft, setDraft, number }: { draft: PessoaDraft; setDraft: R
   return (
     <FieldSection number={number} title="Dados da PJ">
       <div className={`${formGridCls(3)} gap-3`}>
+        <TextField label="Nome fantasia" value={draft.nome_fantasia} onChange={(value) => setField('nome_fantasia', value)} placeholder="Apelido da empresa" />
         <TextField label="NIRE" value={draft.nire} onChange={(value) => setField('nire', value)} />
         <SelectField label="UF da Junta Comercial" value={draft.junta_comercial_uf} onChange={(value) => setField('junta_comercial_uf', value)} options={UF_STATES} />
         <TextField type="date" label="Data de constituição" value={draft.data_constituicao} onChange={(value) => setField('data_constituicao', value)} />

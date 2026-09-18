@@ -10,7 +10,9 @@ import {
   type RawClienteNome,
   type RawClusterEmpresa,
   type RawContribuinteFaturamento,
+  type RawLogCriacaoOs,
   type RawOsFaturamento,
+  type RawPerfilNome,
   type RawProdutoDaOs,
   type RawProdutoSegmentoOs,
   type RawRateioOs,
@@ -21,7 +23,7 @@ import {
 /**
  * As OS do grupo com os dados de faturamento, para o dashboard da Adm & Fin.
  *
- * SEIS SELECTS EM PARALELO E O CRUZAMENTO NO FRONT, e não um `select` aninhado:
+ * SELECTS EM PARALELO E O CRUZAMENTO NO FRONT, e não um `select` aninhado:
  * o join do PostgREST por `contribuinte_id` traria o contribuinte SEM passar
  * pelo filtro de `ambiente` dele, e é a lista de clientes que recorta o ambiente
  * desta tela (`ordem_servico` não tem a coluna — ver AGENTS.md). É o mesmo
@@ -55,6 +57,8 @@ interface RawBundle {
   produtosDaOs: RawProdutoDaOs[];
   produtos: RawProdutoSegmentoOs[];
   representantes: RawRepresentante[];
+  logsCriacao: RawLogCriacaoOs[];
+  perfis: RawPerfilNome[];
 }
 
 /** O que qualquer uma das seis consultas devolve, visto daqui. */
@@ -106,7 +110,7 @@ export function useDomainFaturamentoOs() {
     queryKey: ['adm-fin-faturamento-os', currentAmbiente],
     staleTime: 60_000,
     queryFn: async () => {
-      const [cliRes, osRes, contribRes, cluRes, ratRes, ccRes, servRes, osProdRes, prodRes, repRes] = await Promise.all([
+      const [cliRes, osRes, contribRes, cluRes, ratRes, ccRes, servRes, osProdRes, prodRes, repRes, logRes, perfRes] = await Promise.all([
         tabela('cliente')
           .select('id, nome')
           .eq('excluido', false)
@@ -127,6 +131,19 @@ export function useDomainFaturamentoOs() {
         // 15/09/2026), e é de onde sai o contato: o contribuinte tem telefone e
         // não tem e-mail.
         tabela('representante').select('id_representante, id_cliente, nome, cargo, email, telefone, tipo_representante'),
+        // QUEM CRIOU A OS. Não sai de `ordem_servico` — ela não tem
+        // `created_by` —, e sim do log de criação, que vem indexado pelo id do
+        // CLIENTE com o número da OS no `entity_name`. O porquê está em
+        // `RawLogCriacaoOs`; aqui só importa que os dois `eq` reduzem a tabela
+        // inteira de auditoria às ~180 linhas de nascimento de OS.
+        tabela('audit_logs')
+          .select('entity_id, entity_name, performed_by, performed_at')
+          .eq('entity_type', 'ordem_servico')
+          .eq('action', 'created'),
+        // `profiles_safe`, e não `profiles`: a tabela crua só é legível por
+        // admin (policy `rls_profiles_select_admin`), e esta tela é da Adm &
+        // Fin. A view devolve id e nome para qualquer `team_member`.
+        tabela('profiles_safe').select('id, first_name, last_name'),
       ]);
 
       return {
@@ -140,6 +157,8 @@ export function useDomainFaturamentoOs() {
         produtosDaOs: linhasDe<RawProdutoDaOs>(osProdRes, 'produtos das OS'),
         produtos: linhasDe<RawProdutoSegmentoOs>(prodRes, 'catálogo de produtos'),
         representantes: linhasDe<RawRepresentante>(repRes, 'representantes'),
+        logsCriacao: linhasDe<RawLogCriacaoOs>(logRes, 'registros de criação das OS'),
+        perfis: linhasDe<RawPerfilNome>(perfRes, 'nomes dos usuários'),
       };
     },
   });

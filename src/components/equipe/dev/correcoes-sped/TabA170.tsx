@@ -26,6 +26,7 @@ import { renderColumnLabel } from '@/components/equipe/dev/pis-cofins/renderColu
 import { SPED_TOOLTIPS } from '@/components/equipe/dev/correcoes-sped/tooltipConstants';
 import type { A170Item, A170Snapshot, CampoAlteradoEfd } from '@/types/correcoesSped';
 import { BOTAO_CONFIRMA_COM_DISABLED } from './classesDeBotao';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 const A170_FILTERABLE_KEYS: { key: string; label: string }[] = [
   { key: 'NOME_0150', label: 'Prestador' },
@@ -475,12 +476,14 @@ export default function TabA170({
 
       if (field === 'DESCR_COMPL') {
         return (
-          <div className="space-y-0.5" title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
+          <ElementTooltip text={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
+            <div className="space-y-0.5">
             <div className={`text-xs truncate ${isChanged ?'text-status-alerta font-bold':''}`}>{item.DESCR_COMPL || item.DESCR_ITEM_0200 ||'—'}</div>
             {item.DESCR_ITEM_0200 && item.DESCR_ITEM_0200 !== item.DESCR_COMPL && (
               <div className="text-[10px] text-muted-foreground truncate">0200: {item.DESCR_ITEM_0200}</div>
             )}
           </div>
+          </ElementTooltip>
         );
       }
 
@@ -599,7 +602,7 @@ export default function TabA170({
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-muted/60">{renderColumnLabel('VL COF', SPED_TOOLTIPS.vlCof)}</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-muted/60">{renderColumnLabel('PIS Ret', SPED_TOOLTIPS.pisRet)}</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-muted/60">{renderColumnLabel('COFINS Ret', SPED_TOOLTIPS.cofinsRet)}</TableHead>
-                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10"><span className="flex items-center gap-1 justify-center">Status<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Mostra se a linha já possui correção aplicada e se a tabela está em modo de edição.</TooltipContent></Tooltip></span></TableHead>
+                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10"><span className="flex items-center gap-1 justify-center">Status<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Mostra se a linha já tem correção aplicada.</TooltipContent></Tooltip></span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

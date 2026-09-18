@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from 'react';
 import type { JSONContent } from '@tiptap/core';
 import { cn } from '@/lib/utils';
 import { hasTarefaRichTextDoc, parseTarefaRichText } from '@/lib/tarefaRichText';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 interface TarefaRichTextViewProps {
   value: string | null | undefined;
@@ -43,14 +44,15 @@ function renderNode(node: JSONContent, key: string): ReactNode {
   if (node.type === 'hardBreak') return <br key={key} />;
   if (node.type === 'dailyTaskReference') {
     return (
-      <a
-        key={key}
+      <ElementTooltip key={key} text={`Abrir tarefa: ${String(node.attrs?.title ?? '')}`}>
+        <a
+       
         href={String(node.attrs?.href ?? '')}
-        title={`Abrir tarefa: ${String(node.attrs?.title ?? '')}`}
         className="daily-task-reference"
       >
         [{String(node.attrs?.code ?? '')}]
       </a>
+      </ElementTooltip>
     );
   }
   if (node.type === 'doc') return <Fragment key={key}>{children}</Fragment>;

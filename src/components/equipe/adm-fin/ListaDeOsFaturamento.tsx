@@ -243,6 +243,11 @@ export function ListaDeOsFaturamento({ linhas, isLoading, error }: ListaDeOsFatu
                   <span className="min-w-0 truncate text-xs font-normal text-muted-foreground">
                     {selecionada.cliente_nome}
                     {selecionada.entrou_em && ` · entrou em ${dataHoraCurta(selecionada.entrou_em)}`}
+                    {/* Quem escreveu a OS, pedido dela em 17/09/2026 olhando o
+                        cabeçalho: a linha já dizia quando a OS entrou e não dizia
+                        por quem. Sai calado quando não há log de criação (as OS
+                        anteriores à trilha de auditoria) — ver `criado_por`. */}
+                    {selecionada.criado_por && ` · por ${selecionada.criado_por}`}
                   </span>
                 </span>
               )

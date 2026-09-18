@@ -250,7 +250,7 @@ const BibliotecaModelos = () => {
                   className={cn(
                     'relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
                     ativo
-                      ? 'bg-white text-osg-700 shadow-sm'
+                      ? 'bg-card text-osg-700 shadow-sm'
                       : 'text-muted-foreground hover:bg-osg-100/60 hover:text-osg-700',
                   )}
                 >

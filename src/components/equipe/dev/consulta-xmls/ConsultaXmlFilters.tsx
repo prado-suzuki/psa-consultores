@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowUpRight, CalendarIcon, Filter, FolderDown, Info, Loader2, Search } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, CalendarIcon, Filter, FolderDown, Loader2, Search } from "lucide-react";
 import { format, parse } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ export function ConsultaXmlFilters(props: ConsultaXmlFiltersProps) {
   const required = !!(values.cliente && values.contribuinte && values.tipoDocumento && values.startDate && values.endDate);
   const hasRecords = values.tipoDocumento === "nfe" ? props.nfeRecords.length > 0 : props.cteRecords.length > 0;
   return <Card>
-    <CardHeader className="pb-4"><CardTitle className="text-lg flex items-center gap-2 text-primary"><Filter className="h-5 w-5"/><span className="uppercase text-sm tracking-wider font-bold text-foreground">Filtros de Busca</span><Tooltip><TooltipTrigger asChild><Info className="h-4 w-4 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger><TooltipContent side="top"className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">Use os campos abaixo para filtrar a consulta das notas fiscais.</TooltipContent></Tooltip></CardTitle></CardHeader>
+    <CardHeader className="pb-4"><CardTitle className="text-lg flex items-center gap-2 text-primary"><Filter className="h-5 w-5"/><span className="uppercase text-sm tracking-wider font-bold text-foreground">Filtros de Busca</span></CardTitle></CardHeader>
     <CardContent className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         <div className="md:col-span-3"><Label text="Cliente"required tooltip={XML_TOOLTIPS.cliente} /><SelecaoDeCliente clientes={props.clientes} value={values.cliente} onChange={set.cliente} loading={props.loadingClientes} className="w-full min-w-0 h-11" /></div>

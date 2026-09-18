@@ -21,6 +21,7 @@ import {
 } from '@/lib/diagnosticoPatrimonialModalModels';
 import { buildPessoaPayload, emptyPessoaDraft, type PessoaDraft } from '@/lib/pessoaModalModel';
 import { cn } from '@/lib/utils';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface Props {
   doc: DocumentoArquivoRow | null;
@@ -396,18 +397,19 @@ export function FichaColuna({
             {/* Só em Cadastrar: em Vincular a coluna é uma lista de cadastros,
                 não tem formulário para levar a tela cheia. */}
             {modo === 'novo' && (
-              <button
+              <ButtonTooltip text={faltaImovel
+                  ? 'Escolha primeiro o imóvel a que a matrícula pertence'
+                  : 'Abrir o formulário em tela cheia'}>
+                <button
                 type="button"
                 onClick={() => setExpandido(true)}
                 disabled={faltaImovel}
                 aria-label="Abrir o formulário em tela cheia"
-                title={faltaImovel
-                  ? 'Escolha primeiro o imóvel a que a matrícula pertence'
-                  : 'Abrir o formulário em tela cheia'}
                 className="shrink-0 rounded-md p-1 text-osg-600 transition-colors hover:bg-osg-50 hover:text-osg-700 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss"
               >
                 <Maximize2 className="h-3.5 w-3.5" aria-hidden />
               </button>
+              </ButtonTooltip>
             )}
           </div>
           <div className="mt-2">{abasModo}</div>

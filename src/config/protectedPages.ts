@@ -542,6 +542,15 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/tax/projetos/controle',
+    page_name: 'Controle de Projetos Tax',
+    page_description:
+      'Onde cada cliente está, uma linha por produto contratado da ordem de serviço',
+    category: 'tax',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/tax/projetos/clientes',
     page_name: 'Tax Clientes',
     page_description: 'Consulte e gerencie os cadastros de clientes e contribuintes',
@@ -720,6 +729,15 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     page_path: '/equipe/osg/work/governanca/matriz',
     page_name: 'Matriz de Alçadas',
     page_description: 'Quem decide o quê na empresa do cliente, e até que valor cada instância decide sozinha',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/osg/work/governanca/protocolo',
+    page_name: 'Protocolo de Remuneração',
+    page_description:
+      'O que a família combinou sobre pró-labore, carro, plano de saúde, viagem e estudo, e quem tem direito a cada coisa',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,

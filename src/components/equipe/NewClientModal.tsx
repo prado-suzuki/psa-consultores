@@ -46,6 +46,7 @@ import ContratosTab from "./client-form/ContratosTab";
 import FaturamentoTab from "./client-form/FaturamentoTab";
 import PropostaTab from "./client-form/PropostaTab";
 import HistoricoTab from "./client-form/HistoricoTab";
+import { ElementTooltip } from "@/components/ui/button-tooltip";
 
 /**
  * Âncora do guia em cada aba, com o nome ESCRITO por extenso.
@@ -534,11 +535,12 @@ export default function NewClientModal({
                         {/* O ponto diz em qual aba está a falta sem obrigar a
                             abrir uma por uma até achar. */}
                         {mapaPendencias?.abas.has(tab as AbaCadastro) && (
-                          <span
-                            title="Campos obrigatórios em falta nesta aba"
-                            aria-label="Campos obrigatórios em falta nesta aba"
-                            className="h-1.5 w-1.5 shrink-0 rounded-full bg-destructive"
-                          />
+                          <ElementTooltip text="Campos obrigatórios em falta nesta aba">
+                            <span
+                              aria-label="Campos obrigatórios em falta nesta aba"
+                              className="h-1.5 w-1.5 shrink-0 rounded-full bg-destructive"
+                            />
+                          </ElementTooltip>
                         )}
                       </TabsTrigger>
                     ))}

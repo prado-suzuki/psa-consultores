@@ -102,31 +102,6 @@ export function TabelasDaOs({ linha }: TabelasDaOsProps) {
         </Table>
       </Quadro>
 
-      {/* Produtos só aparecem quando existem: OS sem produto contratado é comum, e
-          um quadro com uma linha de travessão não informa nada. */}
-      {linha.produtos.length > 0 && (
-        <Quadro titulo="Produtos contratados">
-          <Table className="text-xs">
-            <TableHeader>
-              <TableRow className="bg-muted hover:bg-muted">
-                <Th>Produto</Th>
-                <Th className={cn(NUMERICA, 'w-[8rem]')}>Horas contratadas</Th>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {linha.produtos.map((produto, i) => (
-                <TableRow key={`${produto.label}-${i}`} className="hover:bg-transparent">
-                  <TableCell>{produto.label}</TableCell>
-                  <TableCell className={NUMERICA}>
-                    {produto.horas != null ? produto.horas : '—'}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Quadro>
-      )}
-
       {linha.observacoes && (
         <Quadro titulo="Observação da OS">
           <Table className="text-xs">
@@ -320,6 +295,37 @@ export function TabelasDaOs({ linha }: TabelasDaOsProps) {
           </TableBody>
         </Table>
       </Quadro>
+
+      {/* PRODUTOS CONTRATADOS POR ÚLTIMO, pedido dela em 17/09/2026: o quadro
+          estava logo abaixo de "Serviço e prazos" e partia a leitura ao meio —
+          quem fatura desce do serviço para o contribuinte, o endereço, os
+          valores e o rateio, e a lista de produtos não entra em nenhum desses
+          passos. No fim ela vira anexo, que é o papel que tem.
+
+          Só aparece quando existe: OS sem produto contratado é comum, e um
+          quadro com uma linha de travessão não informa nada. */}
+      {linha.produtos.length > 0 && (
+        <Quadro titulo="Produtos contratados">
+          <Table className="text-xs">
+            <TableHeader>
+              <TableRow className="bg-muted hover:bg-muted">
+                <Th>Produto</Th>
+                <Th className={cn(NUMERICA, 'w-[8rem]')}>Horas contratadas</Th>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {linha.produtos.map((produto, i) => (
+                <TableRow key={`${produto.label}-${i}`} className="hover:bg-transparent">
+                  <TableCell>{produto.label}</TableCell>
+                  <TableCell className={NUMERICA}>
+                    {produto.horas != null ? produto.horas : '—'}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Quadro>
+      )}
     </div>
   );
 }

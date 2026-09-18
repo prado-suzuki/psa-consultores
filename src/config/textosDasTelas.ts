@@ -34,9 +34,13 @@ import { AREAS } from '@/lib/nomeDaArea';
  * mas tem registro próprio e deliberado — "Estratégico", "Projetos", "Logs",
  * "Capacidade · 14 dias · quem estoura" —, não usa o `TituloDaPagina` e monta o
  * cabeçalho dele. Espelhar a voz da Tax sobre a do Board apagaria uma decisão de
- * linguagem em vez de fechar uma divergência. As telas do OSG Work, o Controle
- * de Projetos e a Solicitação de documentos também ficam fora, por motivo mais
- * simples: não existem na Tax, então não há o que espelhar.
+ * linguagem em vez de fechar uma divergência. As telas do OSG Work e a
+ * Solicitação de documentos também ficam fora, por motivo mais simples: não
+ * existem na Tax, então não há o que espelhar.
+ *
+ * O CONTROLE DE PROJETOS estava nessa última lista e saiu dela em 17/09/2026,
+ * quando ganhou a tela da Tax: o miolo é o mesmo componente nas duas áreas, e o
+ * texto passou a ter onde ser espelhado.
  *
  * COMO ACRESCENTAR UMA TELA: escreva a entrada aqui e troque `title`/`subtitle`
  * por `tela` nos dois invólucros. Se os textos das duas áreas não forem o mesmo,
@@ -112,6 +116,13 @@ export const TELAS_ESPELHADAS = {
   chamadoDetalhe: {
     title: 'Detalhes do Chamado',
     subtitle: 'Chamado do cliente',
+  },
+  // Nasceu na OSG, substituindo a planilha `Relação de Projetos - OSG.xlsx`, e
+  // o título é o nome da planilha. O subtítulo não cita planilha nenhuma: ele
+  // vale para as duas áreas, e na Tax não há planilha que a tela substitua.
+  controleDeProjetos: {
+    title: 'Controle de Projetos',
+    subtitle: 'Onde cada cliente está, um produto contratado por linha.',
   },
   produtosServicos: {
     title: 'Produtos & Serviços',

@@ -63,6 +63,7 @@ import { GRUPOS_OSG_WORK, INICIO_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
 import { linkEspelhado } from '@/lib/areaTheme';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 const OsgWorkClienteBar = () => {
   const { clienteId, setClienteId } = useOsgWork();
@@ -476,12 +477,12 @@ export const OsgLayout = (props: OsgLayoutProps) => {
                       )}
                     >
                       {gerencialItems.map(({ path, label, icon: Icon }) => (
-                        <button
-                          key={path}
+                        <ButtonTooltip key={path} text={label}>
+                          <button aria-label={label}
+                         
                           onClick={() => navigate(path)}
                           // Rótulo comprido ("Dashboard de Chamados") corta com
                           // reticências em vez de vazar, e o título traz o inteiro.
-                          title={label}
                           className={cn(
                                                         classesItemDaBarra({ ativo: location.pathname === path, trilho, sub: true }),
                           )}
@@ -489,6 +490,7 @@ export const OsgLayout = (props: OsgLayoutProps) => {
                           <Icon className="h-4 w-4 flex-shrink-0" />
                           <span className={cn('min-w-0 truncate', rotuloCls)}>{label}</span>
                         </button>
+                        </ButtonTooltip>
                       ))}
                     </div>
                   </div>

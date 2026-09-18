@@ -120,7 +120,6 @@ const IDENTIDADE_POR_ENTIDADE: Record<TipoEntidade, { id: string; montar: () => 
       clienteId: 'cli1',
       assinadoEm: '2025-09-29',
       vigenciaAnos: 20,
-      ordemPreferencia: '1º a holding, 2º os demais quotistas',
       usaFluxoDeCaixa: true,
     }),
   },

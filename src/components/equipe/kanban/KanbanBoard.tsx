@@ -13,6 +13,7 @@ import {
 } from '@/lib/equipeKanban';
 import { formatBlockerTooltip, type DeliverableBlocker } from '@/hooks/useDeliverableBlockers';
 import { entregavelStatusColors } from '@/lib/entregavelStatusColors';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 // O rótulo da coluna sai do mapa do entregável (`entregavelStatusColors`), que é o
 // mesmo dado que o Gantt, o calendário e o formulário leem — antes as três palavras
@@ -111,12 +112,13 @@ export function KanbanBoard(props: KanbanBoardProps) {
                       )}
                       <div className="flex-1 min-w-0">
                         {props.getGroupLabel(deliverable) && (
-                          <div
+                          <ElementTooltip text={props.getGroupLabel(deliverable) ?? undefined}>
+                            <div
                             className="mb-1 truncate text-xs text-muted-foreground"
-                            title={props.getGroupLabel(deliverable) ?? undefined}
                           >
                             {props.getGroupLabel(deliverable)}
                           </div>
+                          </ElementTooltip>
                         )}
                         <h4 className="text-sm font-medium mb-2 line-clamp-2">
                           {deliverable.task_code && (
@@ -127,12 +129,13 @@ export function KanbanBoard(props: KanbanBoardProps) {
                           {deliverable.title}
                         </h4>
                         {props.getBlocker(deliverable) && (
-                          <div
-                            title={formatBlockerTooltip(props.getBlocker(deliverable)!)}
+                          <ElementTooltip text={formatBlockerTooltip(props.getBlocker(deliverable)!)}>
+                            <div
                             className="mb-2 inline-flex items-center gap-1 rounded border border-status-ajuste/40 bg-status-ajuste/10 px-1.5 py-0.5 text-xs font-medium text-status-ajuste"
                           >
                             🚩 Bloqueada
                           </div>
+                          </ElementTooltip>
                         )}
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span>{props.getProfileName(deliverable.assigned_to)}</span>
@@ -178,7 +181,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
                         key={subtask.id}
                         style={{ marginLeft: subtask.depth * 14 }}
                         className={cn(
-                          'flex items-center gap-2 p-2 rounded-md bg-white border border-border text-sm cursor-pointer hover:bg-muted',
+                          'flex items-center gap-2 p-2 rounded-md bg-card border border-border text-sm cursor-pointer hover:bg-muted',
                           subtask.status === 'completed' && 'opacity-60',
                         )}
                         onClick={() => props.onOpenDeliverable(subtask)}
@@ -202,9 +205,11 @@ export function KanbanBoard(props: KanbanBoardProps) {
                             {subtask.title}
                           </span>
                           {props.getBlocker(subtask) && (
-                            <span title={formatBlockerTooltip(props.getBlocker(subtask)!)} className="ml-1">
+                            <ElementTooltip text={formatBlockerTooltip(props.getBlocker(subtask)!)}>
+                              <span className="ml-1">
                               🚩
                             </span>
+                            </ElementTooltip>
                           )}
                         </div>
                         {subtask.hoursDisplay ? (

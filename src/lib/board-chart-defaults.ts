@@ -57,9 +57,13 @@ export const GRID_STYLE = {
   vertical: false as const,
 };
 
+/* O fundo é `--bd-control` e NÃO `--bd-surface`: quando o cartão do Board desceu
+   para a tinta (17/09/2026) ela virou translúcida, e tooltip flutua sobre
+   conteúdo — o alfa deixaria a barra passar por trás do número. É o mesmo motivo
+   que manteve seis caixas brancas no inventário de 12/09. */
 export const TOOLTIP_STYLE = {
   contentStyle: {
-    background: 'var(--bd-surface)',
+    background: 'var(--bd-control)',
     border: '1px solid var(--bd-line)',
     borderRadius: 12,
     fontSize: 12,

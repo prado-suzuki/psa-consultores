@@ -23,27 +23,26 @@ const VAZIA: EntradaAcordo = {
   acordo: { clienteId: 'c1' },
   quoruns: [],
   ramos: [],
-  ordemPreferencia: [],
   signatarios: [],
-  sociedadesRelacionadas: [],
 };
 
 /** A AgroAliança, que é o único acordo do acervo com ramos familiares. */
 const AGROALIANCA: EntradaAcordo = {
   acordo: { clienteId: 'c1', vigenciaAnos: 10, reuniaoPreviaObrigatoria: true },
   quoruns: [
-    { materia: 'Alterar o contrato social', ordem: 0,
-      expressao: '75% (setenta e cinco por cento) dos presentes' },
-    { materia: 'Nomear administrador não sócio', ordem: 1, expressao: 'todos os quotistas' },
-    { materia: 'Destituir administrador', ordem: 2, expressao: 'a maioria dos presentes' },
+    { chave: 'alterar_contrato_social', materia: 'Alterar o contrato social', ordem: 0,
+      expressao: '75% (setenta e cinco por cento) dos presentes',
+      quantidade: '75% (setenta e cinco por cento)',
+      quantidadeEmFracao: '¾ (três quartos)' },
+    { chave: 'nomear_administrador_nao_socio', materia: 'Nomear administrador não sócio',
+      ordem: 1, expressao: 'todos os quotistas',
+      quantidade: 'todos os QUOTISTAS', quantidadeEmFracao: 'todos os QUOTISTAS' },
+    { chave: 'destituir_administrador', materia: 'Destituir administrador', ordem: 2,
+      expressao: 'a maioria dos presentes',
+      quantidade: 'a maioria', quantidadeEmFracao: 'a maioria' },
   ],
   ramos: [{ nome: 'Cristina', ordem: 0 }, { nome: 'Regina', ordem: 1 }],
-  ordemPreferencia: [
-    { quem: 'os descendentes dos SIGNATÁRIOS', ordem: 0 },
-    { quem: 'os demais QUOTISTAS', ordem: 1 },
-  ],
   signatarios: [pessoa('p1', 'CRISTINA BOCOLLI'), pessoa('p2', 'REGINA BOCOLLI')],
-  sociedadesRelacionadas: [pessoa('e1', 'ALIANÇA PARTICIPAÇÕES LTDA.')],
   objetosPreferencia: ['quotas', 'imoveis', 'maquinas', 'equipamentos', 'participacoes',
     'oportunidades'],
 };
@@ -52,13 +51,11 @@ describe('contextoAcordo · o que se deduz das listas', () => {
   it('as duas condicionais de alcance saem do tamanho das listas, e não de um campo', () => {
     const cheio = camposDoAcordo(AGROALIANCA);
     expect(cheio.temRamos).toBe('sim');
-    expect(cheio.temSociedadesRelacionadas).toBe('sim');
     // Dois ramos: "os DOIS grupos de descendentes" (AgroAliança, 1.1.7).
     expect(cheio.quantosRamosExtenso).toBe('dois');
 
     const vazio = camposDoAcordo(VAZIA);
     expect(vazio.temRamos).toBe('');
-    expect(vazio.temSociedadesRelacionadas).toBe('');
     expect(vazio.quantosRamosExtenso).toBe('');
   });
 
@@ -83,11 +80,6 @@ describe('contextoAcordo · o que se deduz das listas', () => {
       .toBe('as QUOTAS, bens imóveis e oportunidades de negócio');
   });
 
-  it('a fila da preferência vira uma frase só, na ordem gravada', () => {
-    expect(camposDoAcordo(AGROALIANCA).ordemPreferencia)
-      .toBe('os descendentes dos SIGNATÁRIOS e os demais QUOTISTAS');
-  });
-
   it('a apuração em prosa usa as palavras do documento', () => {
     expect(metodosEmProsa(['patrimonio_liquido', 'fluxo_de_caixa_descontado']))
       .toBe('o patrimônio líquido e o fluxo de caixa descontado');
@@ -96,13 +88,14 @@ describe('contextoAcordo · o que se deduz das listas', () => {
   });
 });
 
-describe('contextoAcordo · as cinco listas', () => {
-  it('entrega as cinco, e nenhuma a menos', () => {
+describe('contextoAcordo · as três listas', () => {
+  it('entrega as três, e nenhuma a menos', () => {
     // Lista que o tradutor esquece some do Word em silêncio: o render não acha o
     // papel e o trecho inteiro desaparece. Foi o defeito número um da MOT-01.
+    // A fila da preferência saiu em 17/09: era lista de quem tem a vez, e
+    // nenhum dos sete acordos do acervo escreve uma fila assim.
     expect(Object.keys(listasDoAcordo(VAZIA)).sort()).toEqual([
-      'ordemDaPreferencia', 'quorunsDoAcordo', 'quotistasSignatarios',
-      'ramosFamiliares', 'sociedadesRelacionadas',
+      'quorunsDoAcordo', 'quotistasSignatarios', 'ramosFamiliares',
     ]);
   });
 
@@ -112,8 +105,6 @@ describe('contextoAcordo · as cinco listas', () => {
       .toEqual(['a', 'b', 'c']);
     expect(listas.ramosFamiliares.map((i) => (i.ramo as Record<string, string>).alinea))
       .toEqual(['a', 'b']);
-    expect(listas.ordemDaPreferencia.map((i) => (i.preferente as Record<string, string>).ordem))
-      .toEqual(['1', '2']);
   });
 
   it('a ordem gravada manda, e não a ordem em que o array chegou', () => {
@@ -184,13 +175,9 @@ describe('contextoAcordo · a cláusula sai igual à do documento', () => {
      */
     const contexto = { acordo: camposDoAcordo(VAZIA), ...listasDoAcordo(VAZIA) };
     const modelo = '{{#acordo.temRamos}}há ramos{{/acordo.temRamos}}'
-      + '{{#acordo.temSociedadesRelacionadas}}e relacionadas{{/acordo.temSociedadesRelacionadas}}'
       + '{{#quorunsDoAcordo}}{{ quorum.materia }}{{/quorunsDoAcordo}}'
       + '{{#ramosFamiliares}}{{ ramo.rotulo }}{{/ramosFamiliares}}'
-      + '{{#ordemDaPreferencia}}{{ preferente.quem }}{{/ordemDaPreferencia}}'
-      + '{{#quotistasSignatarios}}{{ quotista.nome }}{{/quotistasSignatarios}}'
-      + '{{#sociedadesRelacionadas}}{{ sociedadeRelacionada.razaoSocial }}'
-      + '{{/sociedadesRelacionadas}}';
+      + '{{#quotistasSignatarios}}{{ quotista.nome }}{{/quotistasSignatarios}}';
 
     expect(renderConteudo(modelo, contexto)).toBe('');
   });

@@ -36,7 +36,7 @@ export function AreaAccordion({ areas }: AreaAccordionProps) {
       {areas.map(area => {
         const key = area.group_id;
         return (
-          <AccordionItem key={key} value={key} className="border rounded-lg bg-white">
+          <AccordionItem key={key} value={key} className="border rounded-lg bg-card">
             <AccordionTrigger className="px-4 py-3 hover:no-underline">
               <div className="flex-1 flex items-center gap-3 pr-4">
                 <div

@@ -7,6 +7,7 @@
 import { Link } from 'react-router-dom';
 import { Eye, Pencil, Trash2, Waypoints, Workflow } from 'lucide-react';
 import { openOnActivationKey, shouldIgnoreOpenClick } from '@/utils/clickOpenGuard';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface Props {
   codigo: string;
@@ -52,24 +53,26 @@ export default function ProcessoItem({ codigo, nome, meta, badge, mapearTo, mape
 
       <div className="processo-item-acoes">
         <div className="cadastro-item-acoes">
-          <button
+          <ButtonTooltip text="Editar">
+            <button
             type="button"
             className="cadastro-item-acao"
-            title="Editar"
             aria-label={`Editar ${nome}`}
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
           >
             <Pencil size={14} />
           </button>
-          <button
+          </ButtonTooltip>
+          <ButtonTooltip text="Excluir">
+            <button
             type="button"
             className="cadastro-item-acao cadastro-item-acao-danger"
-            title="Excluir"
             aria-label={`Excluir ${nome}`}
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
           >
             <Trash2 size={14} />
           </button>
+          </ButtonTooltip>
         </div>
         <Link
           to={mapearTo}

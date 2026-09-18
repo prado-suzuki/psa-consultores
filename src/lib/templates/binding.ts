@@ -613,17 +613,13 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     tipo: 'pessoa',
     itemKey: 'quotista',
     fonte: 'acordo_quotistas',
-    camposExtras: [{ id: 'ordem', label: 'Ordem do quotista (1, 2…)' }],
+    camposExtras: [
+      { id: 'ordem', label: 'Ordem do quotista (1, 2…)' },
+      // O modelo enumera os signatários em romano minúsculo: "i.", "ii.", "iii.".
+      { id: 'indice', label: 'Número do quotista em romano (i, ii…)' },
+    ],
   },
 
-  sociedadesRelacionadas: {
-    label: 'Sociedades relacionadas (alcance do Acordo)',
-    tipo: 'sociedade',
-    itemKey: 'sociedadeRelacionada',
-    fonte: 'acordo_quotistas',
-    campoResumo: 'razaoSocial',
-    camposExtras: [],
-  },
 
   /*
    * OS QUÓRUNS, uma alínea cada, no bloco de deliberação.
@@ -677,25 +673,6 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
       { id: 'definicao', label: 'A definição que segue o rótulo' },
       { id: 'alinea', label: 'Letra da alínea (a, b, c…)' },
       { id: 'ordem', label: 'Ordem do ramo (1, 2…)' },
-    ],
-  },
-
-  /*
-   * A FILA DA PREFERÊNCIA, de quem compra antes de a quota poder ir a terceiro.
-   *
-   * O contrato social diz só "aos demais sócios, na proporção"; a ordem existe
-   * no acordo, e é o que esta lista escreve.
-   */
-  ordemDaPreferencia: {
-    label: 'Ordem do direito de preferência (a fila)',
-    tipo: 'acordoQuotistas',
-    itemKey: 'preferente',
-    fonte: 'acordo_quotistas',
-    campoResumo: 'quem',
-    camposExtras: [
-      { id: 'quem', label: 'Quem tem a vez ("os descendentes dos SIGNATÁRIOS")' },
-      { id: 'alinea', label: 'Letra da alínea (a, b, c…)' },
-      { id: 'ordem', label: 'Posição na fila (1, 2…)' },
     ],
   },
 };

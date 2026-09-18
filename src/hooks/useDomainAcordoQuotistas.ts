@@ -14,7 +14,6 @@ import {
 import {
   diffDasListas,
   diffDoAcordo,
-  resumoDaOrdem,
   resumoDosQuoruns,
   resumoDosRamos,
 } from '@/lib/acordoQuotistas';
@@ -46,9 +45,7 @@ import {
 type AcordoRow = Database['public']['Tables']['acordo_quotistas']['Row'];
 type QuorumRow = Database['public']['Tables']['acordo_quorum']['Row'];
 type RamoRow = Database['public']['Tables']['acordo_ramo_familiar']['Row'];
-type OrdemRow = Database['public']['Tables']['acordo_ordem_preferencia']['Row'];
 type SignatarioRow = Database['public']['Tables']['acordo_signatario']['Row'];
-type SociedadeRow = Database['public']['Tables']['acordo_sociedade_relacionada']['Row'];
 
 export type AcordoQuotistas = AcordoRow;
 export type QuorumDoAcordo = QuorumRow;
@@ -59,9 +56,7 @@ export interface AcordoCompleto {
   acordo: AcordoRow;
   quoruns: QuorumRow[];
   ramos: RamoRow[];
-  ordemPreferencia: OrdemRow[];
   signatarios: SignatarioRow[];
-  sociedades: SociedadeRow[];
 }
 
 /** O que a tela manda gravar no cabeçalho. Sem id, versão nem auditoria. */
@@ -95,7 +90,6 @@ export interface VersaoDoAcordo {
   id: string;
   versao: number;
   assinado_em: string | null;
-  data_referencia: string | null;
   created_at: string;
   created_by: string | null;
 }
@@ -131,7 +125,7 @@ export function useAcordoDoCliente(clienteId?: string | null, acordoId?: string 
         //
         // Passava calado num `tsc --noEmit` solto, que não checa nada neste
         // projeto de referências; quem acusa é o `bun run typecheck`.
-        .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*), acordo_signatario(*), acordo_sociedade_relacionada(*)')
+        .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_signatario(*)')
         .eq('cliente_id', clienteId as string)
         .eq('excluido', false);
 
@@ -144,9 +138,7 @@ export function useAcordoDoCliente(clienteId?: string | null, acordoId?: string 
       const {
         acordo_quorum: quoruns,
         acordo_ramo_familiar: ramos,
-        acordo_ordem_preferencia: ordem,
         acordo_signatario: signatarios,
-        acordo_sociedade_relacionada: sociedades,
         ...acordo
       } = data;
 
@@ -157,9 +149,7 @@ export function useAcordoDoCliente(clienteId?: string | null, acordoId?: string 
         acordo,
         quoruns: porOrdem(quoruns),
         ramos: porOrdem(ramos),
-        ordemPreferencia: porOrdem(ordem),
         signatarios: porOrdem(signatarios),
-        sociedades: porOrdem(sociedades),
       };
     },
   });
@@ -183,7 +173,7 @@ export function useVersoesDoAcordo(clienteId?: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('acordo_quotistas')
-        .select('id, versao, assinado_em, data_referencia, created_at, created_by')
+        .select('id, versao, assinado_em, created_at, created_by')
         .eq('cliente_id', clienteId as string)
         .eq('excluido', false)
         .order('versao', { ascending: false });
@@ -212,7 +202,7 @@ export function useAcordosDoCliente(clienteId?: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('acordo_quotistas')
-        .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*), acordo_signatario(*), acordo_sociedade_relacionada(*)')
+        .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_signatario(*)')
         .eq('cliente_id', clienteId as string)
         .eq('excluido', false)
         .order('versao', { ascending: false });
@@ -225,19 +215,15 @@ export function useAcordosDoCliente(clienteId?: string | null) {
         const {
           acordo_quorum: quoruns,
           acordo_ramo_familiar: ramos,
-          acordo_ordem_preferencia: ordem,
           acordo_signatario: signatarios,
-          acordo_sociedade_relacionada: sociedades,
           ...acordo
         } = linha;
         return {
           acordo,
           quoruns: porOrdem(quoruns),
           ramos: porOrdem(ramos),
-          ordemPreferencia: porOrdem(ordem),
           signatarios: porOrdem(signatarios),
-          sociedades: porOrdem(sociedades),
-        } as AcordoCompleto;
+          } as AcordoCompleto;
       });
     },
   });
@@ -286,7 +272,6 @@ export function useAcordoMutations(clienteId?: string | null) {
         .from('acordo_quotistas')
         .insert({
           cliente_id: clienteId,
-          data_referencia: new Date().toISOString().slice(0, 10),
           versao: 1,
           mecanismos: mecanismosPadrao(),
           ...carimbo(),
@@ -409,14 +394,12 @@ export function useAcordoMutations(clienteId?: string | null) {
       versao: number;
       quoruns: QuorumInput[];
       ramos: RamoInput[];
-      ordemPreferencia: string[];
-      /** Como as três estavam antes, já em prosa, para o log. */
-      antes: { quoruns: string; ramos: string; ordem: string };
+      /** Como as duas estavam antes, já em prosa, para o log. */
+      antes: { quoruns: string; ramos: string };
     }) => {
       const depois = {
         quoruns: resumoDosQuoruns(args.quoruns),
         ramos: resumoDosRamos(args.ramos),
-        ordem: resumoDaOrdem(args.ordemPreferencia.map((quem, ordem) => ({ quem, ordem }))),
       };
       const mudou = diffDasListas(args.antes, depois);
       if (Object.keys(mudou).length === 0) return;
@@ -424,7 +407,7 @@ export function useAcordoMutations(clienteId?: string | null) {
       // Apaga e regrava. O `ordem` de cada linha nasce da posição na tela, que é
       // a ordem em que o documento vai escrever.
       const trocar = async (
-        tabela: 'acordo_quorum' | 'acordo_ramo_familiar' | 'acordo_ordem_preferencia',
+        tabela: 'acordo_quorum' | 'acordo_ramo_familiar',
         linhas: Record<string, unknown>[],
       ) => {
         const { error: erroApagar } = await supabase
@@ -463,16 +446,6 @@ export function useAcordoMutations(clienteId?: string | null) {
         })),
       );
 
-      await trocar(
-        'acordo_ordem_preferencia',
-        args.ordemPreferencia.map((quem, i) => ({
-          acordo_id: args.acordoId,
-          quem: quem.trim(),
-          ordem: i,
-          ...carimbo(),
-        })),
-      );
-
       await logAction({
         area: 'osg',
         entity_type: 'acordo_quotistas',
@@ -490,14 +463,13 @@ export function useAcordoMutations(clienteId?: string | null) {
       toast.error(e instanceof Error ? e.message : 'Não consegui salvar as listas'),
   });
 
-  /** Os signatários originais e as sociedades alcançadas, que são vínculos a pessoas. */
+  /** Os signatários originais, que são vínculo a pessoas. */
   const salvarVinculos = useMutation({
     mutationFn: async (args: {
       acordoId: string;
       versao: number;
       signatarios: string[];
-      sociedades: string[];
-    }) => {
+        }) => {
       const { error: erroApagarS } = await supabase
         .from('acordo_signatario')
         .delete()
@@ -513,21 +485,6 @@ export function useAcordoMutations(clienteId?: string | null) {
         if (error) throw error;
       }
 
-      const { error: erroApagarE } = await supabase
-        .from('acordo_sociedade_relacionada')
-        .delete()
-        .eq('acordo_id', args.acordoId);
-      if (erroApagarE) throw erroApagarE;
-
-      if (args.sociedades.length > 0) {
-        const { error } = await supabase.from('acordo_sociedade_relacionada').insert(
-          args.sociedades.map((empresa_pessoa_id, ordem) => ({
-            acordo_id: args.acordoId, empresa_pessoa_id, ordem, ...carimbo(),
-          })),
-        );
-        if (error) throw error;
-      }
-
       await logAction({
         area: 'osg',
         entity_type: 'acordo_quotistas',
@@ -536,13 +493,12 @@ export function useAcordoMutations(clienteId?: string | null) {
         action: 'updated',
         changed_fields: {
           Signatários: { old: '', new: `${args.signatarios.length} pessoa(s)` },
-          'Sociedades relacionadas': { old: '', new: `${args.sociedades.length} sociedade(s)` },
         },
       });
     },
     onSuccess: () => {
       invalidar();
-      toast.success('Signatários e sociedades salvos');
+      toast.success('Signatários salvos');
     },
     onError: (e: unknown) =>
       toast.error(e instanceof Error ? e.message : 'Não consegui salvar os vínculos'),
@@ -567,7 +523,6 @@ export function useAcordoMutations(clienteId?: string | null) {
         .from('acordo_quotistas')
         .insert({
           cliente_id: clienteId,
-          data_referencia: new Date().toISOString().slice(0, 10),
           versao: args.versaoAtual + 1,
           mecanismos: mecanismosPadrao(),
           ...carimbo(),

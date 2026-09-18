@@ -16,6 +16,7 @@ import { useAgenteConversaController } from '@/hooks/useAgenteConversaController
 import { PromptInputBox } from '@/components/ui/ai-prompt-box';
 import { AgenteConversa } from '@/components/agente/AgenteConversa';
 import { escopoDaRota } from '@/lib/agenteEscopos';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 export function AgentePsaWidget() {
   const { user } = useAuth();
@@ -61,22 +62,24 @@ export function AgentePsaWidget() {
                 <div className="agente-painel-sub">{contextoEfetivo.rotulo}</div>
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 2 }}>
-                <button
+                <ButtonTooltip text="Começar outra conversa">
+                  <button aria-label="Começar outra conversa"
                   type="button"
                   className="agente-icone-btn"
-                  title="Começar outra conversa"
                   onClick={conversa.recomecar}
                 >
                   <RotateCcw style={{ width: 14, height: 14 }} />
                 </button>
-                <button
+                </ButtonTooltip>
+                <ButtonTooltip text="Minimizar">
+                  <button aria-label="Minimizar"
                   type="button"
                   className="agente-icone-btn"
-                  title="Minimizar"
                   onClick={() => setAberto(false)}
                 >
                   <Minus style={{ width: 16, height: 16 }} />
                 </button>
+                </ButtonTooltip>
               </div>
             </div>
 
@@ -116,16 +119,17 @@ export function AgentePsaWidget() {
       </AnimatePresence>
 
       {!aberto && (
-        <button
+        <ButtonTooltip text={`Agente PSA · ${contextoEfetivo.rotulo}`}>
+          <button
           type="button"
           className="agente-bolha"
           onClick={() => setAberto(true)}
-          title={`Agente PSA · ${contextoEfetivo.rotulo}`}
           aria-label="Abrir o Agente PSA"
         >
           <img src={logo} alt="" />
           {(contextoEfetivo.avisos?.length ?? 0) > 0 && <span className="agente-bolha-ping" />}
         </button>
+        </ButtonTooltip>
       )}
     </>
   );

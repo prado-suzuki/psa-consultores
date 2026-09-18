@@ -1,6 +1,11 @@
-// O que o Controle de Projetos da OSG mostra, e por que cada recorte é esse.
+// O que o Controle de Projetos mostra, e por que cada recorte é esse.
 //
-// Substitui a planilha `Relação de Projetos - OSG.xlsx`. A análise que sustenta
+// A TELA É DE ÁREA, não da OSG: o que muda entre OSG e Tax é o cluster que
+// entra em `clusterDaArea`, e mais nada. Ela nasceu na OSG em 15/09/2026 e
+// ganhou a Tax em 17/09; os números medidos nos comentários abaixo são os da
+// OSG em produção, que é onde eles foram levantados.
+//
+// Substitui, na OSG, a planilha `Relação de Projetos - OSG.xlsx`. A análise que sustenta
 // o desenho está em `docs/osg/relacao-de-projetos-planilha-x-ferramenta.md`;
 // aqui fica só a regra, pura, porque "quais linhas aparecem" é decisão que
 // precisa de teste e não de leitura de hook com I/O.
@@ -21,6 +26,16 @@
 
 import { STATUS_LABELS } from '@/lib/projetosCadastro';
 import { REGIAO_OPTIONS } from '@/lib/regioes';
+
+/**
+ * As áreas que têm Controle de Projetos.
+ *
+ * É um subconjunto de `PageCategory`, e não um tipo novo solto: a área serve
+ * para resolver o cluster (`useDomainClusterPorCategoria`) e para nomear a
+ * própria área na tela (`AREAS`, em `lib/nomeDaArea.ts`). Abrir a tela para uma
+ * terceira área é acrescentar a chave aqui — as três pontas são as mesmas.
+ */
+export type AreaDoControle = 'osg' | 'tax';
 
 /** OS crua, como as colunas de `ordem_servico` a devolvem. */
 export interface OrdemCrua {
@@ -86,7 +101,14 @@ export interface LinhaDoControle {
   /**
    * Quem executa o produto: `org_projects.responsible_id` do projeto DESTE
    * produto. Vazio = produto contratado sem projeto criado. É a coluna B da
-   * planilha (Equipe OSG) e a chave do agrupamento da tela.
+   * planilha (Equipe OSG).
+   *
+   * É UMA COLUNA DA TABELA, e não o agrupamento da tela — decidido em
+   * 17/09/2026, depois de a tela ter aberto agrupada por executor. Agrupar
+   * cobrava dois preços: o produto de dois executores entrava nos dois grupos
+   * (a soma das contagens passava do total, de propósito, mas passava), e ler a
+   * tabela inteira exigia abrir e fechar bloco. Como coluna, ela ordena junto
+   * com as outras dez e a linha aparece uma vez só.
    */
   executores: string[];
   /**
@@ -417,14 +439,12 @@ export const ORDEM_PADRAO: OrdemDoControle = { campo: 'padrao', ascendente: true
  * área desta página, produto —, que continua sendo a leitura de referência da
  * tabela. Esta é só o estado inicial.
  *
- * Por que o prazo abre na frente: a tela é lida por grupo de executor, e dentro
- * do grupo a pergunta é "o que vence primeiro", não "qual cliente vem antes no
- * alfabeto". Como a ordenação é global e o agrupamento preserva a ordem que
- * recebe, ordenar por prazo aqui já entrega cada grupo com o mais próximo do fim
- * na primeira linha. O que já venceu sobe junto, porque está mais no passado que
- * qualquer prazo futuro — e é justamente o que a coluna marca com o ⚠.
+ * Por que o prazo abre na frente: a pergunta de quem abre a tela é "o que vence
+ * primeiro", não "qual cliente vem antes no alfabeto". O que já venceu sobe
+ * junto, porque está mais no passado que qualquer prazo futuro — e é justamente
+ * o que a coluna marca com o ⚠.
  *
- * Linha sem Data Fim continua por último dentro do grupo (ver `estaVazio`).
+ * Linha sem Data Fim continua por último (ver `estaVazio`).
  */
 export const ORDEM_INICIAL: OrdemDoControle = { campo: 'prazo', ascendente: true };
 
@@ -539,44 +559,58 @@ export function ordenarControle(
   });
 }
 
-/* ── Agrupamento por executor ────────────────────────────────────────────
+/* ── Agrupar por ─────────────────────────────────────────────────────────
  *
- * A tela abre agrupada por quem executa, que é `org_projects.responsible_id` do
- * projeto daquele produto. É a coluna B da planilha (Equipe OSG), onde a equipe
- * lia "o que é meu" antes de ler qualquer outra coisa.
+ * A tabela é PLANA por padrão, e o agrupamento é uma escolha da barra — mesmo
+ * desenho do "Agrupar por" da tela de Projetos (`groupProjects` em
+ * `projetosCadastro.ts`), que é de onde esta tela já tira o modal.
  *
- * SÃO DOIS GRUPOS SEM GENTE, E NÃO UM. A primeira versão juntava os dois num
- * "sem responsável" de 131 linhas, e eles pedem ações diferentes:
+ * A tela abriu agrupada por executor até 17/09/2026. O agrupamento fixo era o
+ * problema, não o agrupamento: quem quer ler "o que é de cada um" liga o
+ * critério, e quem quer ler a tabela inteira não paga bloco para abrir.
  *
- * - **Sem projeto aberto** (127 em produção): produto vendido, numa OS assinada,
- *   sem linha em `org_projects`. Não há o que delegar, há o que CRIAR. Parte
- *   deles é trabalho que aconteceu fora da ferramenta e nunca foi registrado, e
- *   o banco não distingue os dois casos — a tela afirma só o que sabe, que é
- *   "isto foi vendido e não está sendo acompanhado aqui".
+ * TRÊS CRITÉRIOS, e não os nove que a tabela tem de coluna. Área, Status e
+ * Região já são FILTRO na mesma barra — agrupar por eles seria a mesma
+ * pergunta respondida duas vezes. Sobram os três eixos pelos quais a planilha
+ * era lida: quem toca, de quem é, e o que foi vendido.
+ *
+ * NO CRITÉRIO EXECUTOR, SÃO DOIS GRUPOS SEM GENTE, E NÃO UM. A primeira versão
+ * juntava os dois num "sem responsável" de 131 linhas, e eles pedem ações
+ * diferentes:
+ *
+ * - **Sem projeto aberto** (127 em produção): produto vendido, numa OS
+ *   assinada, sem linha em `org_projects`. Não há o que delegar, há o que
+ *   CRIAR. Parte deles é trabalho que aconteceu fora da ferramenta e nunca foi
+ *   registrado, e o banco não distingue os dois casos — a tela afirma só o que
+ *   sabe, que é "isto foi vendido e não está sendo acompanhado aqui".
  * - **Projeto sem responsável** (4): a linha existe, o `responsible_id` está
  *   nulo. Aí sim é um campo a preencher.
  *
  * Os dois vêm PRIMEIRO, nessa ordem, porque não são sobra: são o que a tela
  * descobriu. Enterrá-los embaixo dos executores esconderia o achado.
  *
- * "Sem projeto aberto" abre FECHADO, apesar de vir primeiro: 127 linhas abertas
- * empurrariam todo o resto para fora da primeira tela, e o cabeçalho com a
- * contagem já diz o tamanho sem custar a rolagem.
- *
  * Produto com dois executores entra nos DOIS grupos. A soma das contagens passa
  * do total, e é o certo: a pergunta que o agrupamento responde é "o que é meu",
- * e uma linha que é de duas pessoas é de cada uma delas.
+ * e uma linha que é de duas pessoas é de cada uma delas. Sem agrupamento a
+ * linha continua aparecendo uma vez só, com os dois nomes na coluna.
  */
 
-/** As duas chaves reservadas dos grupos sem gente. */
+export type AgrupamentoDoControle = 'nenhum' | 'executor' | 'cliente' | 'produto';
+
+/** Como a tela abre: plana. */
+export const AGRUPAMENTO_PADRAO: AgrupamentoDoControle = 'nenhum';
+
+/** As duas chaves reservadas dos grupos sem gente, no critério executor. */
 export const GRUPO_SEM_PROJETO = '__sem_projeto__';
 export const GRUPO_SEM_RESPONSAVEL = '__sem_responsavel__';
 
 export interface GrupoDoControle {
-  /** Nome do executor, ou uma das duas chaves reservadas. */
-  executor: string;
+  /** Única por grupo: nome do executor, id do cliente ou do produto, ou uma das reservadas. */
+  chave: string;
+  /** O que a faixa escreve. */
+  rotulo: string;
   linhas: LinhaDoControle[];
-  /** Clientes distintos dentro do grupo. */
+  /** Clientes distintos dentro do grupo. A faixa esconde isto quando agrupa POR cliente. */
   clientes: number;
   /** Linhas com prazo vencido dentro do grupo. */
   vencidas: number;
@@ -586,44 +620,78 @@ export interface GrupoDoControle {
   semResponsavel: boolean;
 }
 
-/** O rótulo de um grupo, já resolvendo as duas chaves reservadas. */
-export function grupoLabel(executor: string): string {
-  if (executor === GRUPO_SEM_PROJETO) return 'Sem projeto aberto';
-  if (executor === GRUPO_SEM_RESPONSAVEL) return 'Projeto sem responsável';
-  return executor;
+/** As chaves de grupo de uma linha. Só o executor pode devolver mais de uma. */
+function chavesDoGrupo(
+  linha: LinhaDoControle,
+  criterio: Exclude<AgrupamentoDoControle, 'nenhum'>,
+): Array<{ chave: string; rotulo: string }> {
+  if (criterio === 'cliente') {
+    return [{ chave: linha.clienteId, rotulo: linha.clienteNome }];
+  }
+  if (criterio === 'produto') {
+    return [{ chave: linha.produtoId, rotulo: linha.produtoNome }];
+  }
+  if (linha.executores.length > 0) {
+    return linha.executores.map((nome) => ({ chave: nome, rotulo: nome }));
+  }
+  return linha.status === SEM_PROJETO
+    ? [{ chave: GRUPO_SEM_PROJETO, rotulo: 'Sem projeto aberto' }]
+    : [{ chave: GRUPO_SEM_RESPONSAVEL, rotulo: 'Projeto sem responsável' }];
 }
 
 /**
- * Agrupa por executor: os dois grupos sem gente primeiro, depois do maior para
- * o menor.
+ * Agrupa pelo critério pedido, PRESERVANDO a ordem que recebe: é isso que faz
+ * cada grupo abrir com o prazo mais próximo em cima, sem o agrupamento ter de
+ * saber da ordenação. `'nenhum'` devolve `null`, que é a tabela plana.
  *
- * Maior primeiro, e não alfabético, porque quem carrega dez produtos é quem a
- * tela precisa mostrar antes; empate desempata por nome, para a ordem não
- * depender do que o banco devolveu.
+ * A ORDEM DOS GRUPOS MUDA COM O CRITÉRIO, de propósito:
+ *
+ * - **Executor:** os dois grupos sem gente primeiro (ver o cabeçalho desta
+ *   seção), depois do maior para o menor — quem carrega dez produtos é quem a
+ *   tela precisa mostrar antes. Empate desempata por nome, para a ordem não
+ *   depender do que o banco devolveu.
+ * - **Cliente e produto:** alfabético, que é como se procura um nome que já se
+ *   sabe. Ordenar cliente por tamanho faria caçar. Mesma regra do
+ *   `groupProjects` de Projetos, incluindo o "Sem ..." por último.
  */
-export function agruparPorExecutor(linhas: LinhaDoControle[]): GrupoDoControle[] {
-  const porExecutor = new Map<string, LinhaDoControle[]>();
+export function agruparControle(
+  linhas: LinhaDoControle[],
+  criterio: AgrupamentoDoControle,
+): GrupoDoControle[] | null {
+  if (criterio === 'nenhum') return null;
+
+  const porChave = new Map<string, GrupoDoControle>();
   for (const linha of linhas) {
-    const chaves =
-      linha.executores.length > 0
-        ? linha.executores
-        : [linha.status === SEM_PROJETO ? GRUPO_SEM_PROJETO : GRUPO_SEM_RESPONSAVEL];
-    for (const chave of chaves) {
-      const atuais = porExecutor.get(chave) ?? [];
-      atuais.push(linha);
-      porExecutor.set(chave, atuais);
+    for (const { chave, rotulo } of chavesDoGrupo(linha, criterio)) {
+      const atual = porChave.get(chave);
+      if (atual) {
+        atual.linhas.push(linha);
+        continue;
+      }
+      porChave.set(chave, {
+        chave,
+        rotulo,
+        linhas: [linha],
+        clientes: 0,
+        vencidas: 0,
+        semProjeto: chave === GRUPO_SEM_PROJETO,
+        semResponsavel: chave === GRUPO_SEM_RESPONSAVEL,
+      });
     }
   }
 
-  const grupos: GrupoDoControle[] = [];
-  for (const [executor, doGrupo] of porExecutor) {
-    grupos.push({
-      executor,
-      linhas: doGrupo,
-      clientes: new Set(doGrupo.map((linha) => linha.clienteId)).size,
-      vencidas: doGrupo.filter((linha) => linha.prazoVencido).length,
-      semProjeto: executor === GRUPO_SEM_PROJETO,
-      semResponsavel: executor === GRUPO_SEM_RESPONSAVEL,
+  const grupos = [...porChave.values()];
+  for (const grupo of grupos) {
+    grupo.clientes = new Set(grupo.linhas.map((linha) => linha.clienteId)).size;
+    grupo.vencidas = grupo.linhas.filter((linha) => linha.prazoVencido).length;
+  }
+
+  if (criterio !== 'executor') {
+    return grupos.sort((a, b) => {
+      const aSem = a.rotulo.startsWith('Sem ');
+      const bSem = b.rotulo.startsWith('Sem ');
+      if (aSem !== bSem) return aSem ? 1 : -1;
+      return a.rotulo.localeCompare(b.rotulo, 'pt-BR');
     });
   }
 
@@ -633,6 +701,6 @@ export function agruparPorExecutor(linhas: LinhaDoControle[]): GrupoDoControle[]
   return grupos.sort((a, b) => {
     if (peso(a) !== peso(b)) return peso(a) - peso(b);
     if (a.linhas.length !== b.linhas.length) return b.linhas.length - a.linhas.length;
-    return a.executor.localeCompare(b.executor, 'pt-BR');
+    return a.rotulo.localeCompare(b.rotulo, 'pt-BR');
   });
 }

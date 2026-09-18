@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Check, FileSignature, MousePointerClick, Sparkles } from 'lucide-react';
+import { AlertTriangle, Check, FileSignature, MousePointerClick, Sparkles } from 'lucide-react';
 
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
@@ -19,9 +19,9 @@ import {
 } from '@/hooks/useDomainAcordoQuotistas';
 import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
 import {
-  GRUPOS_DO_ACORDO, preenchidosNoGrupo, type GrupoDoAcordo,
+  GRUPOS_DO_ACORDO, obrigatoriosEmFalta, preenchidosNoGrupo, type GrupoDoAcordo,
 } from '@/lib/acordoGrupos';
-import { resumoDaOrdem, resumoDosQuoruns, resumoDosRamos } from '@/lib/acordoQuotistas';
+import { resumoDosQuoruns, resumoDosRamos } from '@/lib/acordoQuotistas';
 import { mecanismosCoerentes, type BaseQuorum, type TipoQuorum } from '@/lib/acordoQuotistasPadrao';
 import { cn } from '@/lib/utils';
 
@@ -94,14 +94,12 @@ const AcordoDeQuotistas = () => {
       base: q.base as BaseQuorum,
     })),
     ramos: (data?.ramos ?? []).map((r) => ({ nome: r.nome })),
-    ordemPreferencia: (data?.ordemPreferencia ?? []).map((o) => o.quem),
     signatarios: (data?.signatarios ?? []).map((x) => x.pessoa_id),
-    sociedades: (data?.sociedades ?? []).map((x) => x.empresa_pessoa_id),
   }), [data]);
 
   const salvarGrupo = async (novos: ValoresDoAcordo) => {
     if (!data) return;
-    const { quoruns, ramos, ordemPreferencia, signatarios, sociedades, ...cabecalho } = novos;
+    const { quoruns, ramos, signatarios, sociedades, ...cabecalho } = novos;
 
     /*
      * Os quatro mecanismos espelhados se acertam AQUI, e não na tela.
@@ -116,18 +114,16 @@ const AcordoDeQuotistas = () => {
       cabecalho.mecanismos as string[] | null, novos,
     );
 
-    // As três listas viajam juntas porque a auditoria delas é uma entrada por
+    // As duas listas viajam juntas porque a auditoria delas é uma entrada por
     // lista, e não uma por linha. Ver `lib/acordoQuotistas`.
     await salvarListas.mutateAsync({
       acordoId: data.acordo.id,
       versao: data.acordo.versao,
       quoruns,
       ramos,
-      ordemPreferencia: ordemPreferencia.filter((q) => q.trim() !== ''),
       antes: {
         quoruns: resumoDosQuoruns(valores.quoruns),
         ramos: resumoDosRamos(valores.ramos),
-        ordem: resumoDaOrdem(valores.ordemPreferencia.map((quem, ordem) => ({ quem, ordem }))),
       },
     });
 
@@ -135,7 +131,6 @@ const AcordoDeQuotistas = () => {
       acordoId: data.acordo.id,
       versao: data.acordo.versao,
       signatarios,
-      sociedades,
     });
 
     // O `grupo` é o que carimba o bloco como conferido. Ver `salvarAcordo`.
@@ -241,7 +236,17 @@ const AcordoDeQuotistas = () => {
             */}
             <div className="grid gap-4 sm:grid-cols-2">
               {GRUPOS_DO_ACORDO.map((g) => {
-                const conferido = conferidos.has(g.chave);
+                /*
+                 * CONFERIDO NÃO VENCE CAMPO OBRIGATÓRIO VAZIO.
+                 *
+                 * Antes dava para abrir o bloco, salvar sem preencher e o cartão
+                 * dizer "conferido": o Acordo ficava com os oito blocos verdes e
+                 * sem um único signatário, e o buraco só aparecia no documento,
+                 * com o preâmbulo sem ninguém. O carimbo diz que alguém olhou; o
+                 * que falta continua faltando.
+                 */
+                const faltando = obrigatoriosEmFalta(g, valores);
+                const conferido = conferidos.has(g.chave) && faltando.length === 0;
                 const { preenchidos, total } = preenchidosNoGrupo(g, valores, conferido);
                 /*
                  * NÃO EXISTE "PRONTO" AQUI, e a ausência é deliberada.
@@ -304,6 +309,14 @@ const AcordoDeQuotistas = () => {
                           className="shrink-0 gap-1 border-osg-200 bg-osg-50 text-osg-700"
                         >
                           <Check className="h-3 w-3" /> conferido
+                        </Badge>
+                      ) : faltando.length > 0 ? (
+                        <Badge
+                          variant="outline"
+                          className="shrink-0 gap-1 border-warning/40 bg-warning/10 text-warning"
+                        >
+                          <AlertTriangle className="h-3 w-3" />
+                          falta {faltando.map((c) => c.rotulo.toLowerCase()).join(', ')}
                         </Badge>
                       ) : (
                         <Badge
@@ -383,6 +396,16 @@ const AcordoDeQuotistas = () => {
           pessoas={pessoas}
           onSalvar={salvarGrupo}
           salvando={salvando}
+          /*
+           * Trocar de grupo sem passar pela lista: a marcação espelhada diz em
+           * que bloco se muda, e daqui ela LEVA. Salvar não entra no caminho de
+           * propósito — o que a pessoa fez nas caixas livres deste grupo segue
+           * no rascunho, e quem decide gravar continua sendo o botão.
+           */
+          onIrParaGrupo={(chave) => {
+            const destino = GRUPOS_DO_ACORDO.find((g) => g.chave === chave);
+            if (destino) setGrupoAberto(destino);
+          }}
         />
       )}
     </OsgLayout>

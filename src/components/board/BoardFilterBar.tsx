@@ -81,7 +81,7 @@ export const BoardFilterBar: React.FC<BoardFilterBarProps> = ({
                 style={{
                   width: vertical ? '100%' : (f.width || 'auto'),
                   minWidth: vertical ? undefined : (f.width || 128),
-                  backgroundColor: 'var(--bd-surface)',
+                  backgroundColor: 'var(--bd-control)',
                   borderColor: 'var(--bd-line)',
                 }}
               >

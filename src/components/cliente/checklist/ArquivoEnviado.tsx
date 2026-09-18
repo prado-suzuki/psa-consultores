@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import type { ArquivoDaPendencia } from '@/hooks/useDomainPendenciasCliente';
 import { revisaoArquivoColors } from '@/lib/estadoDocumentoColors';
 import { ESTADO_LABEL, FOCO } from './checklistKit';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * Um arquivo que o cliente já mandou, com o que aconteceu com ele.
@@ -49,10 +50,10 @@ export function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
             : aprovado ? ESTADO_LABEL.aprovado : ESTADO_LABEL.em_analise}
         </span>
         {!aprovado && !somenteLeitura && (
-          <button
+          <ButtonTooltip text="Remove este arquivo do envio. Você pode mandar outro no lugar.">
+            <button aria-label="Remove este arquivo do envio. Você pode mandar outro no lugar."
             type="button"
             onClick={() => onRemover(arquivo)}
-            title="Remove este arquivo do envio. Você pode mandar outro no lugar."
             className={cn(
               'shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive',
               FOCO,
@@ -61,6 +62,7 @@ export function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
             <Trash2 className="h-3.5 w-3.5" />
             <span className="sr-only">Remover {arquivo.nome}</span>
           </button>
+          </ButtonTooltip>
         )}
       </div>
       {recusado && arquivo.motivo && (
