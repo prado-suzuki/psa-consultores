@@ -119,7 +119,7 @@ function QuadroDoCenario({ cenario, ordem, saida, instituicao, total, falta }: {
             />
           ))}
 
-          <Secao>ITCD devido</Secao>
+          <Secao>ITCMD devido</Secao>
           {saida.linhas.map((l) => (
             <LinhaDeValor
               key={`imposto-${l.donatarioId}`}
@@ -151,11 +151,11 @@ function QuadroDoCenario({ cenario, ordem, saida, instituicao, total, falta }: {
                 />
               ))}
               <LinhaDeValor
-                rotulo="ITCD da doação"
+                rotulo="ITCMD da doação"
                 valor={brlDeDecimal(saida.totaisPorCenario[cenario])}
               />
               <LinhaDeValor
-                rotulo="ITCD da instituição"
+                rotulo="ITCMD da instituição"
                 valor={brlDeDecimal(instituicao.totaisPorCenario[cenario])}
               />
               <LinhaDeTotal

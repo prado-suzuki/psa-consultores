@@ -3334,4 +3334,13 @@ All colors MUST be HSL.
     left: 0;
     width: 100%;
   }
+
+  /* O DIAGRAMA NA VERTICAL É ALTO E ESTREITO, e o SVG sai com `width: 100%` e
+     `viewBox`: esticado à largura da folha, a proporção o faria transbordar
+     por baixo e a lista de imóveis terminaria cortada. Limitar a altura faz o
+     `viewBox` encolher o desenho até caber na página, que é o que a impressão
+     precisa entregar — a peça inteira, legível, numa folha. */
+  body:has([data-area-de-impressao]) [data-area-de-impressao] svg {
+    max-height: 230mm;
+  }
 }

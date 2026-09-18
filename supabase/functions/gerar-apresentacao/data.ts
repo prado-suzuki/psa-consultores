@@ -356,7 +356,7 @@ export async function carregarOrganograma(admin: SB, clienteId: string): Promise
   const [empresas, explRes] = await Promise.all([
     listarEmpresasPJ(admin, clienteId),
     admin.from("exploracao_rural")
-      .select("id,explorador_nome,explorador_pessoa_id,tipo_exploracao,referencia")
+      .select("id,tipo_exploracao,referencia,partes:exploracao_rural_parte(papel,pessoa:pessoa_id(denominacao))")
       .eq("cliente_id", clienteId),
   ]);
   if (explRes.error) throw new Error(`organograma.exploracao_rural: ${explRes.error.message}`);
@@ -389,8 +389,12 @@ export async function carregarOrganograma(admin: SB, clienteId: string): Promise
 
   const rural: string[] = [];
   for (const e of (explRes.data ?? []) as any[]) {
-    const label = e.referencia || e.explorador_nome;
+    const label = e.referencia;
     if (label) rural.push(label);
+    const partes = (e.partes ?? []) as any[];
+    for (const p of partes) {
+      if (p.papel === "explorador" && p.pessoa?.denominacao) rural.push(p.pessoa.denominacao);
+    }
   }
 
   const uniq = (xs: string[]) => [...new Set(xs)].sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -419,15 +423,17 @@ export async function carregarQuadro(admin: SB, clienteId: string): Promise<Quad
 export async function resolverTitular(admin: SB, clienteId: string): Promise<string> {
   // Titular = explorador principal da composse cadastrada.
   // Sem composse cadastrada → placeholder claro (nunca inventar via is_fundador).
-  const { data: expl } = await admin
+  const { data: expl, error } = await admin
     .from("exploracao_rural")
-    .select("explorador_nome,explorador:explorador_pessoa_id(denominacao)")
+    .select("id,partes:exploracao_rural_parte(papel,pessoa:pessoa_id(denominacao))")
     .eq("cliente_id", clienteId)
     .eq("tipo_exploracao", "composse")
     .limit(1);
+  if (error) throw new Error(`resolverTitular: ${error.message}`);
   if (expl && expl.length > 0) {
-    const e = expl[0] as any;
-    const n = e.explorador?.denominacao || e.explorador_nome;
+    const partes = (expl[0] as any)?.partes ?? [];
+    const explorador = partes.find((p: any) => p.papel === "explorador");
+    const n = explorador?.pessoa?.denominacao;
     if (n) return String(n);
   }
   return "[titular da composse — a definir]";

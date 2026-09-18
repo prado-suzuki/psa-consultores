@@ -35,7 +35,7 @@ const CadastroPorDocumento = () => {
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <FolderArchive className="mx-auto mb-3 h-10 w-10 opacity-50" />
-            <p className="text-sm">Selecione um cliente na barra acima para começar pelos documentos recebidos.</p>
+            <p className="text-sm">Selecione um cliente na barra acima para abrir os documentos recebidos deste cliente.</p>
           </CardContent>
         </Card>
       ) : (

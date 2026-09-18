@@ -183,7 +183,7 @@ export function TerrasExploradas({
   );
 
   if (loadingMat || loadingExpl) {
-    return <p className="py-16 text-center text-sm text-muted-foreground">Carregando a relação de terras…</p>;
+    return <p className="py-16 text-center text-sm text-muted-foreground">Carregando as terras exploradas…</p>;
   }
 
   // Se houver registros estruturados em exploracao_rural, usa-os; senão, fallback
@@ -238,7 +238,7 @@ export function TerrasExploradas({
 
   return (
     <div className="space-y-5">
-      <Secao icon={Landmark} titulo="Imóveis e áreas exploradas" meta={secaoMeta}>
+      <Secao icon={Landmark} titulo="Imóveis e áreas exploradas" meta={secaoMeta} semTitulo={modoPrevia}>
         {semLinhas ? (
           <p className={cn('px-4 py-8 text-center text-sm', erroExpl ? 'text-destructive' : 'text-muted-foreground')}>{emptyMsg}</p>
         ) : (
@@ -294,13 +294,26 @@ export function TerrasExploradas({
   );
 }
 
-function Secao({ icon: Icon, titulo, meta, action, children }: { icon: typeof Landmark; titulo: string; meta?: string; action?: React.ReactNode; children: React.ReactNode }) {
+/**
+ * SEM O TÍTULO NA PRÉVIA, e a contagem fica.
+ *
+ * O cartão passou a se chamar "Terras e áreas exploradas" (18/09/2026), e o
+ * modal já o escreve no topo — com o título da seção logo abaixo, a janela
+ * abriria com dois cabeçalhos quase idênticos, que é o que o `modoPrevia` da
+ * `EstruturaAtual` existe para evitar. Some o título, não a faixa: a contagem de
+ * instrumentos, imóveis e hectares é a única leitura de conjunto da peça.
+ */
+function Secao({ icon: Icon, titulo, meta, action, semTitulo = false, children }: { icon: typeof Landmark; titulo: string; meta?: string; action?: React.ReactNode; semTitulo?: boolean; children: React.ReactNode }) {
   return (
     <section className="overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm">
       <header className="flex flex-wrap items-center gap-3 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
-        <Icon className="h-4 w-4 shrink-0 text-osg-600" />
-        <h3 className="text-sm font-semibold text-osg-moss">{titulo}</h3>
-        <div className="ml-auto flex items-center gap-2">
+        {!semTitulo && (
+          <>
+            <Icon className="h-4 w-4 shrink-0 text-osg-600" />
+            <h3 className="text-sm font-semibold text-osg-moss">{titulo}</h3>
+          </>
+        )}
+        <div className={cn('flex items-center gap-2', !semTitulo && 'ml-auto')}>
           {meta && <span className="text-[11px] text-muted-foreground">{meta}</span>}
           {action}
         </div>

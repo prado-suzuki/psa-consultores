@@ -76,7 +76,7 @@ const QuadroSocietario = () => {
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
               <PieChart className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Selecione um cliente na barra acima para visualizar e gerenciar o quadro societário.</p>
+              <p className="text-sm">Selecione um cliente na barra acima para abrir o quadro societário deste cliente.</p>
             </CardContent>
           </Card>
         ) : isLoading ? (

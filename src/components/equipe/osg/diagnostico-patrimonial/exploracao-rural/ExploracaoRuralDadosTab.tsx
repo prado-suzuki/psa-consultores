@@ -113,7 +113,7 @@ export function ExploracaoRuralDadosTab({ draft, onChange, documentos }: Props) 
               value={draft.referencia}
               onChange={(e) => set('referencia', e.target.value)}
               className={fieldCls}
-              placeholder="ex: Parceria da Fazenda Boa Vista"
+              placeholder="Ex: Parceria da Fazenda Boa Vista"
             />
           </Campo>
           <Campo
@@ -389,7 +389,7 @@ export function ExploracaoRuralDadosTab({ draft, onChange, documentos }: Props) 
                 value={draft.liquidacao_numero_parcelas}
                 onChange={(e) => set('liquidacao_numero_parcelas', e.target.value)}
                 className={`${fieldCls} font-mono`}
-                placeholder="ex: 60"
+                placeholder="Ex: 60"
               />
             </Campo>
           </div>
@@ -434,7 +434,7 @@ function Percentual({ value, onChange }: { value: string; onChange: (v: string) 
       value={value}
       onChange={(e) => onChange(clampFracaoInput(e.target.value))}
       className={`${fieldCls} font-mono`}
-      placeholder="ex: 30"
+      placeholder="Ex: 30"
     />
   );
 }
@@ -455,7 +455,7 @@ function Prazo({
         value={quantidade}
         onChange={(e) => onQuantidade(e.target.value)}
         className={`${fieldCls} font-mono`}
-        placeholder="ex: 3"
+        placeholder="Ex: 3"
       />
       <Select value={unidade} onValueChange={(v: UnidadeDePrazo) => onUnidade(v)}>
         <SelectTrigger className={`${fieldCls} w-28 shrink-0`}><SelectValue /></SelectTrigger>

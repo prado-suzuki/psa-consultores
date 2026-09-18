@@ -152,7 +152,7 @@ const AcordoDeQuotistas = () => {
     >
       <div className="mx-auto max-w-6xl space-y-5">
         {!clienteId ? (
-          <Vazio texto="Selecione um cliente na barra acima para abrir o acordo dele." />
+          <Vazio texto="Selecione um cliente na barra acima para abrir o acordo deste cliente." />
         ) : isLoading ? (
           <p className="py-12 text-center text-sm text-muted-foreground">Carregando…</p>
         ) : !data ? (

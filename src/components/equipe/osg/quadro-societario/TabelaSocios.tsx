@@ -96,7 +96,7 @@ export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio }: TabelaSoci
         <Input
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar sócio..."
+          placeholder="Buscar…"
           className="h-9 pl-8"
         />
       </div>

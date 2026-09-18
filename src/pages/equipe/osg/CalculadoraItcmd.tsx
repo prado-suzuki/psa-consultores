@@ -43,7 +43,7 @@ const CalculadoraItcmd = () => {
     return (
       <Molde>
         <Vazio icone={<Calculator className="mx-auto mb-3 h-10 w-10 opacity-40" />}>
-          Selecione um cliente na barra acima para apurar o ITCD da doação de quotas.
+          Selecione um cliente na barra acima para apurar o ITCMD da doação de quotas.
         </Vazio>
       </Molde>
     );
@@ -169,8 +169,8 @@ function Molde({ children, acoes }: {
 }) {
   return (
     <OsgLayout
-      title={TELAS_OSG_WORK.calculadoraItcd.label}
-      subtitle={TELAS_OSG_WORK.calculadoraItcd.descricao}
+      title={TELAS_OSG_WORK.calculadoraItcmd.label}
+      subtitle={TELAS_OSG_WORK.calculadoraItcmd.descricao}
       headerActions={acoes}
     >
       {children}

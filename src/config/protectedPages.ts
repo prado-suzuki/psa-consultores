@@ -777,9 +777,9 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/osg/work/calculadora-itcmd',
-    page_name: 'Calculadora de ITCD',
+    page_name: 'Calculadora de ITCMD',
     page_description:
-      'Apuração do ITCD/MT na doação de quotas, em três cenários de avaliação, por donatário',
+      'Apuração do ITCMD/MT na doação de quotas, em três cenários de avaliação, por donatário',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,
@@ -787,15 +787,19 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/osg/work/relatorios',
     page_name: 'Relatórios',
-    page_description: 'Relatórios de tela do cliente: diagnóstico patrimonial e quadro societário',
+    // A descrição anterior era a das peças da OUTRA tela. Ver a nota da chave
+    // `relatorios` em `navegacaoOsgWork.ts`.
+    page_description: 'Imóveis explorados, produtores responsáveis e origem da posse, para consulta e impressão',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,
   },
   {
+    // O `page_path` fica: é a chave de `page_permissions` em produção. Só o
+    // nome muda, e o `useSyncProtectedPages` o leva ao banco.
     page_path: '/equipe/osg/work/apresentacoes',
-    page_name: 'Biblioteca de Apresentações',
-    page_description: 'Escolher e gerar a apresentação em .pptx por cliente',
+    page_name: 'Apresentações',
+    page_description: 'Selecionar e gerar as apresentações em .pptx por cliente',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,

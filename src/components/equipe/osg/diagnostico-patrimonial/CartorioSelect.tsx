@@ -122,7 +122,7 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
         </PopoverTrigger>
         <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
           <Command>
-            <CommandInput placeholder="Buscar cartório..." />
+            <CommandInput placeholder="Buscar…" />
             <CommandList>
               <CommandEmpty>Nenhum cartório encontrado.</CommandEmpty>
               <CommandGroup>

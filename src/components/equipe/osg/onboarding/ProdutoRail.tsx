@@ -9,7 +9,6 @@ import {
   riseCls,
   riseDelay,
 } from './onboardingKit';
-import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * O rail que recorta a lista por produto contratado.
@@ -74,11 +73,14 @@ export function ProdutoRail({
       {produtos.length > 0 && (
         <>
           <p className={`px-2.5 pb-1 pt-4 ${microLabelMutedCls}`}>Produtos contratados</p>
+          {/* SEM BALÃO NOS ITENS: o nome do produto está escrito no botão e
+              quebra em linha em vez de truncar, então um tooltip repetiria o
+              que já se lê — e cada `TooltipTrigger` mexe em foco e teclado sem
+              entregar nada. */}
           <div className="space-y-0.5">
             {produtos.map((produto) => (
-              <ButtonTooltip key={produto.id} text={produto.name}>
-                <button aria-label={produto.name}
-               
+              <button
+                key={produto.id}
                 type="button"
                 onClick={() => onSelecionar(produto.id)}
                 className={`${railItemCls(selecionado === produto.id)} flex items-center justify-between gap-2`}
@@ -88,7 +90,6 @@ export function ProdutoRail({
                 </span>
                 <span className={counterPillCls}>{contagemPorProduto.get(produto.id) ?? 0}</span>
               </button>
-              </ButtonTooltip>
             ))}
           </div>
         </>

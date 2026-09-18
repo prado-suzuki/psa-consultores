@@ -102,7 +102,7 @@ const DiagnosticoPatrimonial = () => {
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
               <Landmark className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Selecione um cliente na barra acima para visualizar e gerenciar o Cadastro Patrimonial.</p>
+              <p className="text-sm">Selecione um cliente na barra acima para abrir o Cadastro Patrimonial deste cliente.</p>
             </CardContent>
           </Card>
         ) : loadingBens ? (

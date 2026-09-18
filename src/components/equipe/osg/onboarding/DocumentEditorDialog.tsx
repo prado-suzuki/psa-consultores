@@ -282,7 +282,7 @@ export function DocumentEditorDialog({
                 }))}
               >
                 <SelectTrigger className={fieldCls}>
-                  <SelectValue placeholder="Selecione..." />
+                  <SelectValue placeholder="Selecione…" />
                 </SelectTrigger>
                 <SelectContent>
                   {GRAOS_DE_BENS_IMOVEIS.map((grao) => (

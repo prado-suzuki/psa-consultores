@@ -105,7 +105,7 @@ describe('TerrasExploradas, a fonte da tabela de áreas exploradas', () => {
 
     montar();
 
-    expect(screen.getByText(/Carregando a relação de terras/)).toBeInTheDocument();
+    expect(screen.getByText(/Carregando as terras exploradas/)).toBeInTheDocument();
     expect(screen.queryByText('Fazenda Banana Quântica')).not.toBeInTheDocument();
     exploracao.isLoading = false;
   });
