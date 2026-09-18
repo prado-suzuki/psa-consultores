@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
+import { aoFalhar } from '@/lib/falhaDaGovernanca';
+
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -308,8 +310,7 @@ export function useAcordoMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Acordo criado com os quóruns padrão');
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : 'Não consegui criar o acordo'),
+    onError: aoFalhar('criar o acordo'),
   });
 
   /**
@@ -377,8 +378,7 @@ export function useAcordoMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Acordo salvo');
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : 'Não consegui salvar o acordo'),
+    onError: aoFalhar('salvar o acordo'),
   });
 
   /**
@@ -459,8 +459,7 @@ export function useAcordoMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Quóruns e listas salvos');
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : 'Não consegui salvar as listas'),
+    onError: aoFalhar('salvar as listas'),
   });
 
   /** Os signatários originais, que são vínculo a pessoas. */
@@ -500,8 +499,7 @@ export function useAcordoMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Signatários salvos');
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : 'Não consegui salvar os vínculos'),
+    onError: aoFalhar('salvar os vínculos'),
   });
 
   /**
@@ -559,8 +557,7 @@ export function useAcordoMutations(clienteId?: string | null) {
       invalidar();
       toast.success(`Versão ${a.versao} criada, com os sete quóruns e os mecanismos padrão`);
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : 'Não consegui criar a versão'),
+    onError: aoFalhar('criar a versão'),
   });
 
   /**
@@ -590,8 +587,7 @@ export function useAcordoMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Acordo excluído');
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : 'Não consegui excluir o acordo'),
+    onError: aoFalhar('excluir o acordo'),
   });
 
   return {

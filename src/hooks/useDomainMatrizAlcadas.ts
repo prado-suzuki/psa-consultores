@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
+import { aoFalhar } from '@/lib/falhaDaGovernanca';
+
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -269,7 +271,7 @@ export function useMatrizMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Matriz criada com as atividades padrão');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui criar'),
+    onError: aoFalhar('criar a matriz'),
   });
 
   /**
@@ -358,7 +360,7 @@ export function useMatrizMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Linha salva');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui salvar'),
+    onError: aoFalhar('salvar a linha'),
   });
 
   /**
@@ -384,7 +386,7 @@ export function useMatrizMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Atividade tirada da matriz');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui tirar'),
+    onError: aoFalhar('tirar a atividade da matriz'),
   });
 
   /** Traz de volta, ou acrescenta pela primeira vez, atividades do catálogo. */
@@ -405,8 +407,7 @@ export function useMatrizMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Atividade acrescentada');
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : 'Não consegui acrescentar'),
+    onError: aoFalhar('acrescentar as atividades'),
   });
 
   /**
@@ -453,7 +454,7 @@ export function useMatrizMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Atividade criada e posta na matriz');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui criar'),
+    onError: aoFalhar('criar a atividade'),
   });
 
   /**
@@ -485,8 +486,7 @@ export function useMatrizMutations(clienteId?: string | null) {
       queryClient.invalidateQueries({ queryKey: catalogoPapeisQueryKey() });
       toast.success('Papel criado');
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : 'Nao consegui criar o papel'),
+    onError: aoFalhar('criar o papel'),
   });
 
   return {

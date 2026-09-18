@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
+import { aoFalhar } from '@/lib/falhaDaGovernanca';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { supabase } from '@/integrations/supabase/client';
@@ -326,7 +328,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Protocolo criado com os itens e as colunas padrão');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui criar'),
+    onError: aoFalhar('criar o protocolo'),
   });
 
   /**
@@ -432,8 +434,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       queryClient.invalidateQueries({ queryKey: versoesQueryKey(clienteId) });
       toast.success(`Versão ${p.versao} criada como cópia da anterior. Revise item por item.`);
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : 'Não consegui criar a versão'),
+    onError: aoFalhar('criar a versão'),
   });
 
   /**
@@ -560,7 +561,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Linha salva');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui salvar'),
+    onError: aoFalhar('salvar a linha'),
   });
 
   /**
@@ -583,7 +584,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Item tirado do protocolo');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui tirar'),
+    onError: aoFalhar('tirar o item do protocolo'),
   });
 
   /** Traz de volta, ou acrescenta pela primeira vez, itens do catálogo. */
@@ -603,8 +604,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Item acrescentado');
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : 'Não consegui acrescentar'),
+    onError: aoFalhar('acrescentar os itens'),
   });
 
   /**
@@ -641,7 +641,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Tema criado');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui criar'),
+    onError: aoFalhar('criar o tema'),
   });
 
   /**
@@ -691,7 +691,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Item criado e posto no protocolo');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui criar'),
+    onError: aoFalhar('criar o item'),
   });
 
   /**
@@ -731,8 +731,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Coluna acrescentada');
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : 'Não consegui acrescentar'),
+    onError: aoFalhar('acrescentar a coluna'),
   });
 
   const renomearBeneficiario = useMutation({
@@ -756,7 +755,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Coluna renomeada');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui renomear'),
+    onError: aoFalhar('renomear a coluna'),
   });
 
   /**
@@ -781,7 +780,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Coluna tirada do protocolo');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui tirar'),
+    onError: aoFalhar('tirar a coluna do protocolo'),
   });
 
   return {
