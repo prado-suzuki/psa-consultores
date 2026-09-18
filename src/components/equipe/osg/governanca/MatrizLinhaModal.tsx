@@ -268,7 +268,7 @@ export function MatrizLinhaModal({
                     <div className="space-y-1.5">
                       <Label className="flex items-center gap-1.5">
                         O que faz aqui
-                        <AjudaDoCampo texto="A participação deste órgão nesta atividade. Pode ter mais de uma: no modelo, a Diretoria define a estratégia, participa da negociação e delibera o fechamento, tudo na mesma atividade." />
+                        <AjudaDoCampo texto="A participação deste órgão nesta atividade. Pode ter mais de uma na mesma linha." />
                       </Label>
                       <div className="flex flex-wrap items-center gap-1.5">
                         {c.papeis.map((id) => (
@@ -329,7 +329,7 @@ export function MatrizLinhaModal({
                       <div className="space-y-1.5">
                         <Label className="flex items-center gap-1.5">
                           Depois disso, vai para
-                          <AjudaDoCampo texto="Para onde o assunto segue depois que este órgão faz a parte dele. É daqui que sai o Encaminhar à Reunião de Sócios das cláusulas do contrato. Deixe em Ninguém quando a palavra final é deste órgão mesmo." />
+                          <AjudaDoCampo texto="É daqui que sai o 'Encaminhar à Reunião de Sócios' das cláusulas do contrato." />
                         </Label>
                         <Select
                           value={c.sobe_para_orgao_id ?? NENHUM}
@@ -364,7 +364,7 @@ export function MatrizLinhaModal({
                       <div className="space-y-1.5">
                         <Label className="flex items-center gap-1.5">
                           Decide sozinho até
-                          <AjudaDoCampo texto="O limite até onde este órgão resolve sem consultar ninguém. Acima dele a decisão vai para o órgão do campo ao lado. Pode ser em reais ou em percentual de uma base: no modelo de contrato, dois dos cinco limites são percentuais." />
+                          <AjudaDoCampo texto="Acima deste limite, a decisão vai para o órgão do campo ao lado." />
                         </Label>
                         <div className="flex gap-1.5">
                           <ValorDaAlcada
@@ -443,7 +443,7 @@ export function MatrizLinhaModal({
                           }
                         />
                         Também o que foge da política ou do orçamento
-                        <AjudaDoCampo texto="Marque quando este órgão, além do que já está escrito acima, também trata do caso que a política ou o orçamento não previram. Na maioria das linhas fica desmarcado." />
+                        <AjudaDoCampo texto="O caso que a política ou o orçamento não previram. Na maioria das linhas fica desmarcado." />
                       </label>
                       {c.fora_da_politica && (
                         <p className="pl-6 text-xs text-muted-foreground">

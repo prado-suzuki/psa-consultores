@@ -304,13 +304,14 @@ export function OrgaoGovernancaModal({
               <div className="space-y-1.5">
                 <Label htmlFor="orgao-min" className={ROTULO}>
                   Mínimo de membros
-                  <AjudaDoCampo texto="A faixa que o contrato escreve: 'no mínimo 03 (três) e no máximo 06 (seis) membros'. Pondo o mesmo número nos dois campos, a cláusula encolhe para 'composto por 03 (três) membros'." />
+                  <AjudaDoCampo texto="A faixa que o contrato escreve: 'no mínimo 03 (três) e no máximo 06 (seis) membros'. Com o mesmo número nos dois, ela cita um número só." />
                 </Label>
                 <Input
                   id="orgao-min"
                   type="number"
                   min={1}
                   value={form.membros_minimo}
+                  aria-describedby="orgao-faixa-ajuda"
                   onChange={(e) => setForm((f) => ({ ...f, membros_minimo: e.target.value }))}
                   placeholder="3"
                 />
@@ -322,6 +323,7 @@ export function OrgaoGovernancaModal({
                   type="number"
                   min={1}
                   value={form.membros_maximo}
+                  aria-describedby="orgao-faixa-ajuda"
                   onChange={(e) => setForm((f) => ({ ...f, membros_maximo: e.target.value }))}
                   placeholder="6"
                 />
@@ -338,14 +340,14 @@ export function OrgaoGovernancaModal({
                 />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p id="orgao-faixa-ajuda" className="text-xs text-muted-foreground">
               Em branco, a cláusula não fala de quantidade nem de mandato.
             </p>
 
             <div className="space-y-1.5">
               <Label htmlFor="orgao-cargo" className={ROTULO}>
                 Cargos do órgão
-                <AjudaDoCampo texto="Os postos que o contrato nomeia, não quem os ocupa. Com Presidente e Secretário, a cláusula sai '...composto por 03 (três) membros, sendo Presidente e Secretário'. Em branco, ela não cita cargo." />
+                <AjudaDoCampo texto="Os postos que o contrato nomeia, não quem os ocupa. Com Presidente e Secretário, a cláusula cita os dois." />
               </Label>
               {form.cargos.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
@@ -378,7 +380,11 @@ export function OrgaoGovernancaModal({
                 }}
                 onBlur={() => acrescentarCargo(cargoDigitado)}
                 placeholder="Digite e tecle Enter"
+                aria-describedby="orgao-cargo-ajuda"
               />
+              <p id="orgao-cargo-ajuda" className="text-xs text-muted-foreground">
+                Em branco, a cláusula não cita cargo.
+              </p>
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-xs text-muted-foreground">Comuns:</span>
                 {CARGOS_SUGERIDOS.filter((s) => !form.cargos.includes(s)).map((sugestao) => (
