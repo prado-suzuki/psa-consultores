@@ -127,8 +127,14 @@ const TITLE_NATIVO_LEGADO = 0;
 const RE_PLACEHOLDER_FORA_DO_CANONE =
   /placeholder="(?!Selecione…"|Buscar…"|Ex: )(?:Selecion|Buscar|Busque|Pesquis|Digite|Procur)[^"]*"/g;
 
-/** Congelado em 17/09/2026: 226 em 140 arquivos. */
-const PLACEHOLDER_LEGADO = 226;
+/**
+ * Congelado em 17/09/2026: 226 em 140 arquivos.
+ *
+ * **225 em 18/09**, pela auditoria da TIP-02: o `Selecionar da lista (define a categoria)` do
+ * Anexar documento voltou à forma canônica, e a instrução que ele carregava desceu para texto de
+ * apoio — ver `docs/sprints/sprint-13/AUDITORIA_TIP-02_documentos-do-cliente.md`, ficha A3.
+ */
+const PLACEHOLDER_LEGADO = 225;
 
 /** O teto de caracteres da explicação contextual (§3). Acima disso é nota de leitura. */
 const TETO_DO_TOOLTIP = 140;

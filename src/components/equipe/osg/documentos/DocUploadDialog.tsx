@@ -130,7 +130,7 @@ export function DocUploadDialog({
     const rejeitados = lista.length - validos.length;
     if (rejeitados) {
       toast({
-        title: `${rejeitados} arquivo(s) ignorado(s)`,
+        title: rejeitados === 1 ? '1 arquivo ignorado' : `${rejeitados} arquivos ignorados`,
         description: 'Fora do tipo permitido ou acima de 50 MB.',
         variant: 'destructive',
       });
@@ -156,8 +156,10 @@ export function DocUploadDialog({
   const submit = async () => {
     if (!files.length) return;
     if (categoria === 'georreferenciamento' && !vinculoSelecionado.matriculaId) {
+      // Mesmo título dos outros dois pontos que aplicam esta regra (Vincular e
+      // Pré-visualizar): é o mesmo bloqueio, e não pode ter duas redações.
       toast({
-        title: 'Vincule uma matrícula',
+        title: 'Vincule a uma matrícula',
         description: 'Documentos de georreferenciamento precisam estar vinculados a uma matrícula.',
         variant: 'destructive',
       });
@@ -179,7 +181,7 @@ export function DocUploadDialog({
     if (r.ok) toast({ title: r.ok === 1 ? 'Documento anexado' : `${r.ok} documentos anexados` });
     if (r.erros) {
       toast({
-        title: `${r.erros} não enviado(s)`,
+        title: r.erros === 1 ? '1 arquivo não enviado' : `${r.erros} arquivos não enviados`,
         description: r.falhas.map((f) => f.name).join(', '),
         variant: 'destructive',
       });
@@ -228,9 +230,14 @@ export function DocUploadDialog({
             <label className={labelCls}>
               Tipo de documento <span className="font-normal text-muted-foreground">(opcional)</span>
             </label>
+            {/* O PLACEHOLDER VOLTA À FORMA CANÔNICA e a explicação desce para texto de
+                apoio. "Selecionar da lista (define a categoria)" fazia trabalho de três
+                recursos: era a forma minoritária (`Selecionar…` contra `Selecione…`),
+                carregava instrução dentro do placeholder e escondia um efeito que vale
+                toda vez — escolher o tipo preenche a categoria, três campos abaixo. */}
             <Select value={tipo || undefined} onValueChange={onTipoChange}>
-              <SelectTrigger className={fieldCls}>
-                <SelectValue placeholder="Selecionar da lista (define a categoria)" />
+              <SelectTrigger className={fieldCls} aria-describedby="doc-tipo-apoio">
+                <SelectValue placeholder="Selecione…" />
               </SelectTrigger>
               <SelectContent>
                 {gruposTipos.map((g) => (
@@ -243,13 +250,19 @@ export function DocUploadDialog({
                 ))}
               </SelectContent>
             </Select>
+            <p id="doc-tipo-apoio" className="text-sm text-muted-foreground">
+              Escolher o tipo preenche a categoria.
+            </p>
           </div>
 
           <div className="space-y-1.5">
             <label className={labelCls}>
               Vincular a{' '}
+              {/* Só "(obrigatório)": o porquê está na mensagem logo abaixo, que aparece
+                  quando falta a matrícula. Dizer as duas coisas põe a mesma ideia duas
+                  vezes, e uma delas dentro de um rótulo, que tem teto de 30. */}
               <span className="font-normal text-muted-foreground">
-                {categoria === 'georreferenciamento' ? '(obrigatório para georreferenciamento)' : '(opcional)'}
+                {categoria === 'georreferenciamento' ? '(obrigatório)' : '(opcional)'}
               </span>
             </label>
             <VinculoSelect
@@ -317,9 +330,13 @@ export function DocUploadDialog({
 
             {files.length > 0 && !rodando && (
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span><span className="font-medium">{files.length}</span> arquivo(s) selecionado(s)</span>
+                <span>
+                  <span className="font-medium">{files.length}</span>{' '}
+                  {files.length === 1 ? 'arquivo selecionado' : 'arquivos selecionados'}
+                </span>
+                {/* "Limpar" com maiúscula, como no cabeçalho da pasta: é a mesma ação. */}
                 <button type="button" onClick={() => setFiles([])} className="inline-flex items-center gap-1 hover:text-osg-700">
-                  <X className="h-3 w-3" /> limpar
+                  <X className="h-3 w-3" /> Limpar
                 </button>
               </div>
             )}
