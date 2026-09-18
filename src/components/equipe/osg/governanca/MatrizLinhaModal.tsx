@@ -64,10 +64,13 @@ function ValorDaAlcada({
   valor,
   unidade,
   onChange,
+  descritoPor,
 }: {
   valor: number | null;
   unidade: 'moeda' | 'percentual' | null;
   onChange: (n: number | null) => void;
+  /** O `id` do texto de apoio que explica o campo em branco. */
+  descritoPor?: string;
 }) {
   const [focado, setFocado] = useState(false);
   const [rascunho, setRascunho] = useState('');
@@ -84,7 +87,7 @@ function ValorDaAlcada({
     <Input
       inputMode="decimal"
       value={mostrado}
-      placeholder="sem limite"
+      aria-describedby={descritoPor}
       onFocus={() => {
         setRascunho(valor === null ? '' : String(valor));
         setFocado(true);
@@ -370,6 +373,7 @@ export function MatrizLinhaModal({
                           <ValorDaAlcada
                             valor={c.alcada_valor}
                             unidade={c.alcada_unidade}
+                            descritoPor={`alcada-ajuda-${c.orgao_id}`}
                             onChange={(n) =>
                               mexer(c.orgao_id, {
                                 alcada_valor: n,
@@ -396,6 +400,19 @@ export function MatrizLinhaModal({
                             </SelectContent>
                           </Select>
                         </div>
+                        {/*
+                          O que o campo em branco significa era um placeholder
+                          ("sem limite"), e placeholder some quando a pessoa digita,
+                          justamente quando ela compara o que escreveu com o que o
+                          branco faria. Virou apoio visível na revisão de copy de
+                          18/09/2026.
+                        */}
+                        <p
+                          id={`alcada-ajuda-${c.orgao_id}`}
+                          className="text-xs text-muted-foreground"
+                        >
+                          Em branco, não há limite.
+                        </p>
                         {c.alcada_unidade === 'percentual' && c.alcada_valor !== null && (
                           <Select
                             value={c.alcada_base ?? NENHUM}
@@ -470,6 +487,13 @@ export function MatrizLinhaModal({
         <div className="pt-1">
           {mostrarDetalhe || detalhamento ? (
             <div className="space-y-1.5 rounded-lg border border-dashed border-osg-200 p-3">
+{/*
+                ACIMA DO TETO DE 30 CARACTERES, e de propósito, conferido na revisão
+                de copy de 18/09/2026. Este rótulo encabeça uma LINHA COMPOSTA e diz a
+                ação dela, não o conteúdo de um campo. Encurtar para uma expressão
+                nominal apagaria a distinção entre os dois blocos, que é a razão de
+                existirem dois (docs/geral/texto-explicativo-na-tela.md, §3).
+              */}
               <Label htmlFor="mz-detalhe" className="flex items-center gap-1.5">
                 O que entra nesta atividade, neste cliente
               </Label>

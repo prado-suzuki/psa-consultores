@@ -199,6 +199,11 @@ export function OrgaoGovernancaModal({
 
           <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
             <div className="space-y-0.5">
+              {/*
+                Acima do teto de 30, e de propósito (revisão de copy de 18/09/2026):
+                rótulo de caixa de marcar é afirmação, e é ela que a pessoa marca
+                como verdadeira ou falsa. Expressão nominal não caberia aqui.
+              */}
               <Label htmlFor="orgao-contrato" className={ROTULO}>Recebe competência no contrato social</Label>
               {/*
                 A frase fala do contrato do cliente, e não do gerador de cláusula,

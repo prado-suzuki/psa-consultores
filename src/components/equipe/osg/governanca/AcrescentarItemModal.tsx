@@ -142,6 +142,13 @@ export function AcrescentarItemModal({
 
           <div className="space-y-3 border-t border-border pt-4">
             <div className="space-y-1.5">
+{/*
+                ACIMA DO TETO DE 30 CARACTERES, e de propósito, conferido na revisão
+                de copy de 18/09/2026. Este rótulo encabeça uma LINHA COMPOSTA e diz a
+                ação dela, não o conteúdo de um campo. Encurtar para uma expressão
+                nominal apagaria a distinção entre os dois blocos, que é a razão de
+                existirem dois (docs/geral/texto-explicativo-na-tela.md, §3).
+              */}
               <Label htmlFor="novo-item">Criar um item que não está na lista</Label>
               <div className="flex gap-2">
                 <Select value={temaDoNovoItem} onValueChange={setTemaDoNovoItem}>
