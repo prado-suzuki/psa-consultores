@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { FileBarChart2, Minus, Plus, Scan } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/equipe/osg/OsgDialog';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import { cn } from '@/lib/utils';
 
 /**
@@ -148,21 +149,24 @@ function BotaoDeZoom({
   desligado: boolean;
   children: ReactNode;
 }) {
+  // Botão só de ícone: o `ButtonTooltip` dá o nome (`aria-label`) e o balão de
+  // uma vez, que é o par que o `title` fazia mal — ver `ui/button-tooltip.tsx`.
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={desligado}
-      aria-label={rotulo}
-      title={rotulo}
-      className={cn(
-        'rounded-md p-1.5 text-osg-600 transition-colors',
-        'hover:bg-osg-100 hover:text-osg-700',
-        'disabled:pointer-events-none disabled:opacity-35',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss',
-      )}
-    >
-      {children}
-    </button>
+    <ButtonTooltip text={rotulo}>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={desligado}
+        aria-label={rotulo}
+        className={cn(
+          'rounded-md p-1.5 text-osg-600 transition-colors',
+          'hover:bg-osg-100 hover:text-osg-700',
+          'disabled:pointer-events-none disabled:opacity-35',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss',
+        )}
+      >
+        {children}
+      </button>
+    </ButtonTooltip>
   );
 }

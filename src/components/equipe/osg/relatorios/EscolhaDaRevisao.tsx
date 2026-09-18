@@ -1,4 +1,5 @@
 import { Pencil } from 'lucide-react';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -33,16 +34,22 @@ export function EscolhaDaRevisao({ estado }: { estado: ReturnType<typeof useRevi
 
       {revisoes.length > 0 && (
         <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              aria-label="Trocar a revisão que vai para os slides"
-              title="Trocar a revisão"
-              className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-osg-50 hover:text-osg-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss"
-            >
-              <Pencil className="h-3 w-3" aria-hidden />
-            </button>
-          </PopoverTrigger>
+          {/* O BALÃO POR FORA DO `PopoverTrigger`, e não por dentro: os dois são
+              `asChild` e precisam chegar ao mesmo `<button>` para pendurar o
+              `ref`. Com o `ButtonTooltip` por dentro, quem o `PopoverTrigger`
+              enxergaria seria um componente de função, que não repassa `ref`, e
+              o popover deixaria de ancorar no lápis. */}
+          <ButtonTooltip text="Trocar a revisão">
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label="Trocar a revisão que vai para os slides"
+                className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-osg-50 hover:text-osg-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss"
+              >
+                <Pencil className="h-3 w-3" aria-hidden />
+              </button>
+            </PopoverTrigger>
+          </ButtonTooltip>
 
           <PopoverContent align="start" className="w-80 space-y-3">
             <p className="text-xs font-semibold text-foreground">Qual revisão vai para os slides</p>

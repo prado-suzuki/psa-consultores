@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Presentation } from 'lucide-react';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 
 /**
  * A moldura que diz "isto é um slide", e não mais uma tabela.
@@ -32,16 +33,24 @@ export function MolduraDeSlide({
   meta?: string;
   children: ReactNode;
 }) {
+  // `bg-superficie-cartao`, e não `bg-card`: esta é a superfície do OBJETO
+  // cartão, desenhada à mão numa `section` porque a moldura não é o `<Card>` —
+  // ver a catraca em `cartaoTingido.test.ts`.
   return (
-    <section className="overflow-hidden rounded-xl border border-osg-300/60 bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <section className="overflow-hidden rounded-xl border border-osg-300/60 bg-superficie-cartao shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
         <span className="inline-flex items-center gap-1.5 rounded-md bg-osg-100 px-2 py-0.5 text-[11px] font-semibold text-osg-700">
           <Presentation className="h-3 w-3" />
           Slide {numero} de {total}
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground" title={titulo}>
-          {titulo}
-        </span>
+        {/* O título trunca, então o texto inteiro precisa de onde aparecer — e
+            `title` não serve: não abre no toque e não tem tema (a catraca de
+            `textoDeAjuda.test.ts` cobra isso). */}
+        <ElementTooltip text={titulo}>
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
+            {titulo}
+          </span>
+        </ElementTooltip>
         {meta && <span className="text-xs text-muted-foreground">{meta}</span>}
       </header>
 

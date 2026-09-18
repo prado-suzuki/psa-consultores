@@ -379,6 +379,14 @@ const SOBRE_BRANCO: Record<string, number> = {
   'src/components/equipe/mapeamento/AreaAccordion.tsx': 1,
   'src/pages/equipe/dev/MapaNCMPisCofins.tsx': 1,
 
+  // TABELA SOBRE A PÁGINA. As duas telas da Biblioteca de Slides (17/09/2026)
+  // desenham uma lista dentro de uma caixa de borda SEM tinta — `rounded-xl
+  // border`, sem `bg` —, então a faixa de cabeçalho se apoia direto no
+  // `bg-background` da página, não num cartão. É o mesmo chão do grupo MODAL
+  // acima, pelo mesmo motivo: o alfa de hoje foi calibrado contra ele.
+  'src/pages/equipe/osg/BibliotecaApresentacoes.tsx': 1,
+  'src/pages/equipe/osg/Relatorios.tsx': 1,
+
   // CONTROLE, e aqui o papel é outro: é campo DESABILITADO. O degrau dele não é
   // contra o cartão, é contra os campos habilitados ao lado, que são brancos e
   // não mudaram. Subir o alfa aqui não conserta nada e apaga a diferença.
