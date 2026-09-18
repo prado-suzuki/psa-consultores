@@ -252,7 +252,7 @@ export function AcordoGrupoModal({
                   onValueChange={(v) => mexer(c.campo, v)}
                 >
                   <SelectTrigger id={`ac-${c.campo}`} aria-label={c.rotulo}>
-                    <SelectValue placeholder="Escolha" />
+                    <SelectValue placeholder="Selecione…" />
                   </SelectTrigger>
                   <SelectContent>
                     {c.opcoes?.map((o) => (
@@ -353,7 +353,7 @@ export function AcordoGrupoModal({
                     options={opcoesDePessoa}
                     selected={(form[c.campo] as string[]) ?? []}
                     onChange={(v) => mexer(c.campo, v)}
-                    placeholder="Clique para incluir um signatário…"
+                    placeholder="Selecione…"
                     addLabel="incluir"
                   />
                 )
@@ -368,7 +368,7 @@ export function AcordoGrupoModal({
                     options={opcoesDePessoaFisica}
                     value={(form[c.campo] as string | null) ?? null}
                     onChange={(v) => mexer(c.campo, v)}
-                    placeholder="Escolha quem representa"
+                    placeholder="Selecione…"
                   />
                 )
               )}
@@ -435,7 +435,7 @@ function ListaDeQuoruns({
               className="h-8 flex-1 text-sm"
               value={q.materia}
               aria-label={`Matéria do quórum ${i + 1}`}
-              placeholder="O assunto, por exemplo: Alterar o contrato social"
+              placeholder="Ex: Alterar o contrato social"
               onChange={(e) => trocar(i, 'materia', e.target.value)}
             />
             {!q.chave && (
@@ -515,8 +515,11 @@ function ListaDeQuoruns({
  *
  * No lugar do seletor entra a prévia: quem digita vê a frase que vai sair.
  *
- * E o placeholder do campo é genérico, e não um nome: "CRISTINA" é a fundadora
- * da AgroAliança, e num campo vazio ela parecia dado já preenchido do cliente.
+ * E O CAMPO NÃO TEM PLACEHOLDER. A prévia ao lado já diz o que falta ("digite o
+ * nome do fundador"), e rótulo dentro do campo some justamente quando a pessoa
+ * começa a digitar (docs/geral/texto-explicativo-na-tela.md, §3). Chegou a ter um
+ * nome real, "CRISTINA", da AgroAliança, que num campo vazio parecia dado já
+ * preenchido do cliente.
  */
 function ListaDeRamos({
   linhas, mexer,
@@ -528,7 +531,6 @@ function ListaDeRamos({
           <Input
             className="h-8 flex-1 text-sm" value={r.nome}
             aria-label={`Nome do fundador do ramo ${i + 1}`}
-            placeholder="Nome do fundador"
             onChange={(e) => {
               const nova = [...linhas];
               nova[i] = { ...nova[i], nome: e.target.value };

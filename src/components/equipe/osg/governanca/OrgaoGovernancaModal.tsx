@@ -189,7 +189,7 @@ export function OrgaoGovernancaModal({
               id="orgao-nome"
               value={form.nome}
               onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
-              placeholder="Conselho de Administração"
+              placeholder="Ex: Conselho de Administração"
               autoFocus
             />
             <p className="text-xs text-muted-foreground">
@@ -313,7 +313,7 @@ export function OrgaoGovernancaModal({
                   value={form.membros_minimo}
                   aria-describedby="orgao-faixa-ajuda"
                   onChange={(e) => setForm((f) => ({ ...f, membros_minimo: e.target.value }))}
-                  placeholder="3"
+                  placeholder="Ex: 3"
                 />
               </div>
               <div className="space-y-1.5">
@@ -325,7 +325,7 @@ export function OrgaoGovernancaModal({
                   value={form.membros_maximo}
                   aria-describedby="orgao-faixa-ajuda"
                   onChange={(e) => setForm((f) => ({ ...f, membros_maximo: e.target.value }))}
-                  placeholder="6"
+                  placeholder="Ex: 6"
                 />
               </div>
               <div className="space-y-1.5">
@@ -336,7 +336,7 @@ export function OrgaoGovernancaModal({
                   min={1}
                   value={form.mandato_anos}
                   onChange={(e) => setForm((f) => ({ ...f, mandato_anos: e.target.value }))}
-                  placeholder="3"
+                  placeholder="Ex: 3"
                 />
               </div>
             </div>
@@ -379,11 +379,10 @@ export function OrgaoGovernancaModal({
                   acrescentarCargo(cargoDigitado);
                 }}
                 onBlur={() => acrescentarCargo(cargoDigitado)}
-                placeholder="Digite e tecle Enter"
                 aria-describedby="orgao-cargo-ajuda"
               />
               <p id="orgao-cargo-ajuda" className="text-xs text-muted-foreground">
-                Em branco, a cláusula não cita cargo.
+                Tecle Enter para acrescentar. Em branco, a cláusula não cita cargo.
               </p>
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-xs text-muted-foreground">Comuns:</span>

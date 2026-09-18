@@ -5,6 +5,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
 import { Button } from '@/components/ui/button';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -144,8 +145,8 @@ export function AcrescentarItemModal({
               <Label htmlFor="novo-item">Criar um item que não está na lista</Label>
               <div className="flex gap-2">
                 <Select value={temaDoNovoItem} onValueChange={setTemaDoNovoItem}>
-                  <SelectTrigger className="w-[45%]">
-                    <SelectValue placeholder="Em qual tema" />
+                  <SelectTrigger className="w-[45%]" aria-label="Tema do item novo">
+                    <SelectValue placeholder="Selecione…" />
                   </SelectTrigger>
                   <SelectContent>
                     {[...temas]
@@ -160,16 +161,18 @@ export function AcrescentarItemModal({
                 <Input
                   id="novo-item"
                   value={novoItem}
-                  placeholder="Nome do item"
                   onChange={(e) => setNovoItem(e.target.value)}
                 />
-                <Button
-                  variant="outline"
-                  disabled={salvando || !novoItem.trim() || !temaDoNovoItem}
-                  onClick={criarItem}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+                <ButtonTooltip text="Criar o item">
+                  <Button
+                    variant="outline"
+                    disabled={salvando || !novoItem.trim() || !temaDoNovoItem}
+                    onClick={criarItem}
+                    aria-label="Criar o item"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </ButtonTooltip>
               </div>
             </div>
 
@@ -179,7 +182,6 @@ export function AcrescentarItemModal({
                 <Input
                   id="novo-tema"
                   value={novoTema}
-                  placeholder="Nome do tema"
                   onChange={(e) => setNovoTema(e.target.value)}
                 />
                 <Button

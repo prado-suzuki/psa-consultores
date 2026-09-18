@@ -403,8 +403,8 @@ export function MatrizLinhaModal({
                               mexer(c.orgao_id, { alcada_base: v === NENHUM ? null : v })
                             }
                           >
-                            <SelectTrigger>
-                              <SelectValue placeholder="por cento do quê" />
+                            <SelectTrigger aria-label="Base do percentual">
+                              <SelectValue placeholder="Selecione…" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value={NENHUM}>sem base definida</SelectItem>
@@ -477,7 +477,7 @@ export function MatrizLinhaModal({
                 id="mz-detalhe"
                 value={detalhamento}
                 onChange={(e) => setDetalhamento(e.target.value)}
-                placeholder="de auditoria externa e de governança"
+                placeholder="Ex: de auditoria externa e de governança"
                 autoFocus
               />
               <p className="text-xs leading-relaxed text-muted-foreground">

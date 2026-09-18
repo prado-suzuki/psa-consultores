@@ -65,7 +65,7 @@ export function AcrescentarAtividadeModal({
               id="ma-nova"
               value={nova}
               onChange={(e) => setNova(e.target.value)}
-              placeholder="Planejamento Agropecuário"
+              placeholder="Ex: Planejamento Agropecuário"
             />
             {repetida && (
               <p className="text-xs font-medium text-destructive">
