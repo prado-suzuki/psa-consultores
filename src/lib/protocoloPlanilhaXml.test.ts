@@ -181,12 +181,45 @@ describe('a grade', () => {
 });
 
 describe('o texto de abertura', () => {
-  it('quando existe, entra como linha própria e empurra a grade', () => {
+  it('vem ANTES do cabeçalho, como no Potrich, e não depois', () => {
+    /*
+     * A primeira versão punha o preâmbulo depois da linha de "Critérios", e ele
+     * aparecia como uma nota espremida entre o cabeçalho e a grade. No Potrich
+     * entregue ele é a linha 4, logo acima da que traz "Critérios" e os nomes.
+     */
     const xml = gerar('Este Protocolo visa regrar…');
 
-    expect(xml).toContain('<is><t xml:space="preserve">Este Protocolo visa regrar…</t></is>');
-    expect(xml).toContain('<mergeCell ref="C4:J4"/>');
+    expect(xml).toContain(
+      '<c r="C3" s="2" t="inlineStr"><is><t xml:space="preserve">Este Protocolo visa regrar…',
+    );
+    /* O cabeçalho vem depois dele, e a grade depois do cabeçalho. */
+    expect(xml).toContain('<c r="H4" s="8" t="inlineStr"><is><t xml:space="preserve">Sócios Fundadores');
     expect(xml).toContain('<c r="C5" s="15" t="inlineStr"><is><t xml:space="preserve">Veículos');
+  });
+
+  it('é texto corrido, e não barra de cabeçalho', () => {
+    /*
+     * A primeira versão reusava o estilo 17, que é negrito de 12 sobre
+     * azul-escuro e centralizado, e o parágrafo saía como uma faixa de seção no
+     * meio do documento. O 2 é fonte normal de 10, fundo branco, sem borda e à
+     * esquerda. E a linha não leva altura fixa, para o Excel acomodar o
+     * parágrafo inteiro em vez de cortá-lo.
+     */
+    const xml = gerar('Este Protocolo visa regrar…');
+
+    expect(xml).toContain('<row r="3" spans="3:10" s="2" customFormat="1">');
+    expect(xml).not.toContain('<c r="C3" s="17"');
+    expect(xml).toContain('<mergeCell ref="C3:J3"/>');
+  });
+
+  it('com preâmbulo, o "Critérios" não desce da linha de apoio', () => {
+    /*
+     * No modelo o "Critérios" desce de C2 a E3, porque a linha de apoio e o
+     * cabeçalho são vizinhos. Com o preâmbulo no meio, essa faixa engoliria a
+     * célula dele, então ela fica só no cabeçalho.
+     */
+    expect(gerar('Este Protocolo visa regrar…')).toContain('<mergeCell ref="C4:E4"/>');
+    expect(gerar()).toContain('<mergeCell ref="C2:E3"/>');
   });
 
   it('quando não existe, a grade começa uma linha antes', () => {
