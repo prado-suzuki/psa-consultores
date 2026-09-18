@@ -62,8 +62,7 @@ const SECOES: SecaoDaGrade[] = [
   },
 ];
 
-const gerar = (preambulo: string | null = null) =>
-  planilhaXmlDoProtocolo(MODELO, SECOES, COLUNAS, preambulo).xml;
+const gerar = () => planilhaXmlDoProtocolo(MODELO, SECOES, COLUNAS).xml;
 
 describe('o que do modelo NÃO se toca', () => {
   it('preserva as larguras de coluna, que são metade da cara do arquivo', () => {
@@ -181,49 +180,22 @@ describe('a grade', () => {
 });
 
 describe('o texto de abertura', () => {
-  it('vem ANTES do cabeçalho, como no Potrich, e não depois', () => {
+  it('NÃO vai para a planilha, e a grade começa logo abaixo do cabeçalho', () => {
     /*
-     * A primeira versão punha o preâmbulo depois da linha de "Critérios", e ele
-     * aparecia como uma nota espremida entre o cabeçalho e a grade. No Potrich
-     * entregue ele é a linha 4, logo acima da que traz "Critérios" e os nomes.
+     * Ele foi escrito na entrega de 17/09, acima do cabeçalho, como no Potrich,
+     * e a consultoria tirou em 18/09: na planilha aquilo vira uma faixa de texto
+     * no topo que ninguém pediu. O campo continua no cadastro, com destino no
+     * instrumento em prosa.
+     *
+     * A linha 3 é o cabeçalho e a 4 é o primeiro tema. Sem esta asserção, um
+     * preâmbulo que voltasse a ser escrito empurraria a grade uma linha para
+     * baixo sem quebrar mais nada.
      */
-    const xml = gerar('Este Protocolo visa regrar…');
+    const xml = gerar();
 
-    expect(xml).toContain(
-      '<c r="C3" s="2" t="inlineStr"><is><t xml:space="preserve">Este Protocolo visa regrar…',
-    );
-    /* O cabeçalho vem depois dele, e a grade depois do cabeçalho. */
-    expect(xml).toContain('<c r="H4" s="8" t="inlineStr"><is><t xml:space="preserve">Sócios Fundadores');
-    expect(xml).toContain('<c r="C5" s="15" t="inlineStr"><is><t xml:space="preserve">Veículos');
-  });
-
-  it('é texto corrido, e não barra de cabeçalho', () => {
-    /*
-     * A primeira versão reusava o estilo 17, que é negrito de 12 sobre
-     * azul-escuro e centralizado, e o parágrafo saía como uma faixa de seção no
-     * meio do documento. O 2 é fonte normal de 10, fundo branco, sem borda e à
-     * esquerda. E a linha não leva altura fixa, para o Excel acomodar o
-     * parágrafo inteiro em vez de cortá-lo.
-     */
-    const xml = gerar('Este Protocolo visa regrar…');
-
-    expect(xml).toContain('<row r="3" spans="3:10" s="2" customFormat="1">');
-    expect(xml).not.toContain('<c r="C3" s="17"');
-    expect(xml).toContain('<mergeCell ref="C3:J3"/>');
-  });
-
-  it('com preâmbulo, o "Critérios" não desce da linha de apoio', () => {
-    /*
-     * No modelo o "Critérios" desce de C2 a E3, porque a linha de apoio e o
-     * cabeçalho são vizinhos. Com o preâmbulo no meio, essa faixa engoliria a
-     * célula dele, então ela fica só no cabeçalho.
-     */
-    expect(gerar('Este Protocolo visa regrar…')).toContain('<mergeCell ref="C4:E4"/>');
-    expect(gerar()).toContain('<mergeCell ref="C2:E3"/>');
-  });
-
-  it('quando não existe, a grade começa uma linha antes', () => {
-    expect(gerar()).toContain('<c r="C4" s="15" t="inlineStr"><is><t xml:space="preserve">Veículos');
+    expect(xml).not.toContain('Este Protocolo visa regrar');
+    expect(xml).toContain('<c r="H3" s="8" t="inlineStr"><is><t xml:space="preserve">Sócios Fundadores');
+    expect(xml).toContain('<c r="C4" s="15" t="inlineStr"><is><t xml:space="preserve">Veículos');
   });
 });
 
@@ -247,7 +219,7 @@ describe('o XML aceita o que a consultoria escreve', () => {
         ],
       },
     ];
-    const xml = planilhaXmlDoProtocolo(MODELO, comSimbolo, COLUNAS, null).xml;
+    const xml = planilhaXmlDoProtocolo(MODELO, comSimbolo, COLUNAS).xml;
 
     expect(xml).toContain('menor que 5 &amp; maior que 2 &lt;ver anexo&gt;');
     expect(xml).not.toContain('& maior');

@@ -359,7 +359,6 @@ export function useProtocoloMutations(clienteId?: string | null) {
         .insert({
           cliente_id: clienteId,
           versao: args.atual.protocolo.versao + 1,
-          preambulo: args.atual.protocolo.preambulo,
           ...autor(),
         })
         .select()
@@ -785,41 +784,6 @@ export function useProtocoloMutations(clienteId?: string | null) {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui tirar'),
   });
 
-  /**
-   * O texto de abertura. O Potrich tem um e o modelo não: "Este Protocolo visa
-   * regrar os acordos e combinados da família ao atual momento do negócio...".
-   * É onde a data do protocolo mora na vida real, e foi por isso que a migration
-   * não criou coluna de data.
-   */
-  const salvarPreambulo = useMutation({
-    mutationFn: async (args: { protocoloId: string; de: string | null; para: string | null }) => {
-      const texto = args.para?.trim() || null;
-      const { error } = await supabase
-        .from('protocolo_remuneracao')
-        .update({ preambulo: texto, updated_by: user?.id ?? null })
-        .eq('id', args.protocoloId);
-      if (error) throw error;
-
-      if ((args.de ?? '') !== (texto ?? '')) {
-        await logAction({
-          area: 'osg',
-          entity_type: 'protocolo_remuneracao',
-          entity_id: args.protocoloId,
-          entity_name: 'Texto de abertura',
-          action: 'updated',
-          changed_fields: {
-            'Texto de abertura': { old: args.de ?? 'vazio', new: texto ?? 'vazio' },
-          },
-        });
-      }
-    },
-    onSuccess: () => {
-      invalidar();
-      toast.success('Texto de abertura salvo');
-    },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui salvar'),
-  });
-
   return {
     criarProtocolo,
     novaVersao,
@@ -832,6 +796,5 @@ export function useProtocoloMutations(clienteId?: string | null) {
     adicionarBeneficiario,
     renomearBeneficiario,
     removerBeneficiario,
-    salvarPreambulo,
   };
 }

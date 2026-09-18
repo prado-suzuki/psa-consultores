@@ -1,4 +1,4 @@
-import type { Campos, ItemLista } from './mapeadores';
+import type { ItemLista } from './mapeadores';
 import type { BeneficiarioDoProtocolo, SecaoDaGrade } from '@/lib/protocoloRemuneracao';
 
 /**
@@ -20,17 +20,15 @@ import type { BeneficiarioDoProtocolo, SecaoDaGrade } from '@/lib/protocoloRemun
  * ausência.
  */
 
-/**
- * O texto de abertura, quando existe.
+/*
+ * NÃO HÁ CAMPO DE TEXTO DE ABERTURA, e é decisão da consultoria em 18/09/2026.
  *
- * É campo e não lista porque é um parágrafo só, acima da grade. No Potrich:
- * "Este Protocolo visa regrar os acordos e combinados da família ao atual
- * momento do negócio 10/03/26...". O modelo da casa não tem um, então o campo
- * sai vazio e o documento começa direto pela grade.
+ * Existiu um, porque o Potrich abre com um parágrafo ("Este Protocolo visa
+ * regrar os acordos e combinados da família ao atual momento do negócio
+ * 10/03/26..."). Mas o MODELO DA CASA não tem: medidos os quatro arquivos, só o
+ * Potrich traz. Era escolha de um cliente tratada como estrutura da casa, então
+ * o campo saiu da tela, do gerador e do cadastro.
  */
-export function camposDoProtocolo(preambulo: string | null): Campos {
-  return { protocoloTextoDeAbertura: preambulo?.trim() ?? '' };
-}
 
 /**
  * As colunas e as linhas do protocolo, para a tabela do documento.

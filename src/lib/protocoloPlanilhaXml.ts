@@ -40,17 +40,15 @@ const S_VAO_ESTREITO = 3;
 const S_ITEM = 4;
 const S_VAO_LARGO = 10;
 const S_VALOR = 9;
-/**
- * O parágrafo de abertura.
+/*
+ * NÃO EXISTE ESTILO DE PARÁGRAFO DE ABERTURA AQUI, e é de propósito.
  *
- * Estilo 2 do modelo: fonte normal de 10, fundo branco, sem borda, com quebra de
- * linha e alinhado à esquerda. A primeira versão reusava o 17, que é negrito de
- * 12 sobre azul-escuro e centralizado, e o preâmbulo saía como uma barra de
- * cabeçalho no meio do documento. O modelo da casa não tem preâmbulo, então não
- * havia estilo para copiar; a referência é o Potrich, que o escreve como texto
- * corrido.
+ * A planilha gerada não escreve o texto de abertura do protocolo. Ele foi
+ * escrito na entrega de 17/09, acima do cabeçalho, como no Potrich, e a
+ * consultoria tirou em 18/09: na planilha aquilo vira uma faixa de texto no topo
+ * que ninguém pediu. O campo continua no cadastro, e o destino dele é o
+ * instrumento em prosa (`templates/contextoProtocolo.ts`), não esta grade.
  */
-const S_PREAMBULO = 2;
 
 /* Atributos de `<row>` do modelo, incluindo altura e ocultação. */
 const ROW_TITULO = 'ht="24.95" hidden="1" customHeight="1"';
@@ -155,7 +153,6 @@ export function planilhaXmlDoProtocolo(
   modeloXml: string,
   secoes: SecaoDaGrade[],
   colunas: BeneficiarioDoProtocolo[],
-  preambulo: string | null,
 ): PlanilhaXml {
   const ultima = colunaDoValor(Math.max(colunas.length - 1, 0));
   const letraUltima = letraDaColuna(ultima);
@@ -202,35 +199,8 @@ export function planilhaXmlDoProtocolo(
   });
   mesclagens.push(`<mergeCell ref="G${n}:${letraUltima}${n}"/>`);
 
-  /*
-   * O texto de abertura, quando existe, vem ANTES do cabeçalho e não depois.
-   * O modelo da casa não tem um, então a referência é o Potrich entregue: lá ele
-   * é a linha 4, logo acima da linha que traz "Critérios" e os nomes das colunas.
-   * Sem altura fixa, para o Excel acomodar o parágrafo inteiro em vez de cortá-lo.
-   */
-  if (preambulo?.trim()) {
-    n += 1;
-    linhas.push({
-      numero: n,
-      xml:
-        `<row r="${n}" ${spans} s="${S_PREAMBULO}" customFormat="1">` +
-        Array.from({ length: ultima - COL_TEMA + 1 }, (_, k) => COL_TEMA + k)
-          .map((c) =>
-            celula(
-              `${letraDaColuna(c)}${n}`,
-              S_PREAMBULO,
-              c === COL_TEMA ? preambulo.trim() : undefined,
-            ),
-          )
-          .join('') +
-        '</row>',
-    });
-    mesclagens.push(`<mergeCell ref="C${n}:${letraUltima}${n}"/>`);
-  }
-
   /* O cabeçalho visível, com o nome de cada coluna. */
   n += 1;
-  const linhaCabecalho = n;
   const nomePorColuna = new Map(colunas.map((b, i) => [colunaDoValor(i), b.nome]));
   linhas.push({
     numero: n,
@@ -250,15 +220,14 @@ export function planilhaXmlDoProtocolo(
       '</row>',
   });
   /*
-   * "Critérios" encima tema e item. No modelo ele desce da linha de apoio até o
-   * cabeçalho (C2:E3), e isso só vale quando as duas são vizinhas: com o texto de
-   * abertura no meio, a faixa engoliria a célula dele.
+   * "Critérios" encima tema e item, e é o modelo que faz assim.
+   *
+   * A PALAVRA MORA NA LINHA DE APOIO, QUE É OCULTA. Ela só aparece porque esta
+   * mesclagem a estica da linha oculta até o cabeçalho visível (C2:E3 no modelo).
+   * Enquanto as duas forem vizinhas isso se resolve sozinho: foi o texto de
+   * abertura, que em 17/09 entrava entre elas, que deixou a faixa muda por um dia.
    */
-  mesclagens.push(
-    linhaCabecalho === linhaApoio + 1
-      ? `<mergeCell ref="C${linhaApoio}:E${linhaCabecalho}"/>`
-      : `<mergeCell ref="C${linhaCabecalho}:E${linhaCabecalho}"/>`,
-  );
+  mesclagens.push(`<mergeCell ref="C${linhaApoio}:E${n}"/>`);
 
   let primeiroTema = true;
   for (const secao of secoes) {
