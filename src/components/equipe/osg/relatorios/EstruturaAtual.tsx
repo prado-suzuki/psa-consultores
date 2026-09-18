@@ -30,7 +30,16 @@ const wrap = (s: string, max: number, maxLines = 2): string[] => {
 
 // Diagrama do ESTADO ATUAL (antes): produtores (PF) ── imóveis (com origem da exploração).
 // Sem percentuais; produtores ordenados por baricentro p/ reduzir cruzamento de linhas.
-export function EstruturaAtual({ bens, titulo = 'Estrutura atual (antes da reorganização)' }: { bens: DPBem[]; titulo?: string }) {
+export function EstruturaAtual({
+  bens,
+  titulo = 'Estrutura atual (antes da reorganização)',
+  modoPrevia = false,
+}: {
+  bens: DPBem[];
+  titulo?: string;
+  /** Dentro do modal de prévia: sem cabeçalho próprio e sem rolagem própria. */
+  modoPrevia?: boolean;
+}) {
   const layout = useMemo(() => {
     const fazendas = bens.map((b) => {
       const nomes = new Set<string>();
@@ -64,11 +73,15 @@ export function EstruturaAtual({ bens, titulo = 'Estrutura atual (antes da reorg
 
   return (
     <section className="overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm">
-      <header className="flex items-center gap-2.5 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
-        <Sprout className="h-4 w-4 text-osg-600" />
-        <h3 className="text-sm font-semibold text-osg-moss">{titulo}</h3>
-        <span className="ml-auto text-[11px] text-muted-foreground">como a atividade rural é explorada hoje</span>
-      </header>
+      {/* SEM CABEÇALHO NA PRÉVIA: o modal já nomeia a peça no topo, e os dois
+          títulos apareciam empilhados dizendo quase a mesma coisa. */}
+      {!modoPrevia && (
+        <header className="flex items-center gap-2.5 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
+          <Sprout className="h-4 w-4 text-osg-600" />
+          <h3 className="text-sm font-semibold text-osg-moss">{titulo}</h3>
+          <span className="ml-auto text-[11px] text-muted-foreground">como a atividade rural é explorada hoje</span>
+        </header>
+      )}
 
       {!layout ? (
         <p className="px-4 py-8 text-center text-sm text-muted-foreground">
@@ -76,7 +89,11 @@ export function EstruturaAtual({ bens, titulo = 'Estrutura atual (antes da reorg
         </p>
       ) : (
         <>
-          <div className="overflow-x-auto p-4">
+          {/* NA PRÉVIA O DIAGRAMA NÃO ROLA SOZINHO. Com a barra própria, a janela
+              tinha duas rolagens concorrentes e o zoom não resolvia nada: o
+              desenho continuava preso na largura do cartão. Solto, ele assume a
+              largura natural e quem governa é o zoom do modal. */}
+          <div className={modoPrevia ? 'p-4' : 'overflow-x-auto p-4'}>
             <svg viewBox={`0 0 ${layout.W} ${layout.H}`} width="100%" style={{ minWidth: layout.W > 1160 ? layout.W : undefined, fontFamily: 'system-ui, sans-serif' }} role="img" aria-label={titulo}>
               <text x={10} y={layout.yProd + layout.boxH / 2 + 3} fontSize={9} fontWeight={700} letterSpacing="0.06em" fill="#9aa7b4">PRODUTORES</text>
               <text x={10} y={layout.yFaz + layout.boxH / 2 + 3} fontSize={9} fontWeight={700} letterSpacing="0.06em" fill="#9aa7b4">IMÓVEIS</text>
@@ -119,7 +136,10 @@ export function EstruturaAtual({ bens, titulo = 'Estrutura atual (antes da reorg
             <span className="inline-flex items-center gap-1.5"><span className="h-3 w-4 rounded-sm border" style={{ background: '#eef7f2', borderColor: '#125837' }} /> Própria</span>
             <span className="inline-flex items-center gap-1.5"><span className="h-3 w-4 rounded-sm border" style={{ background: '#eef6f9', borderColor: '#1b8ea3' }} /> Parceria</span>
             <span className="inline-flex items-center gap-1.5"><span className="h-3 w-4 rounded-sm border" style={{ background: '#fffbeb', borderColor: '#b45309' }} /> Arrendamento</span>
-            <span className="ml-auto text-muted-foreground">contraparte (parceiro/arrendador) — pendência de migration</span>
+            {/* Saiu daqui "contraparte (parceiro/arrendador) — pendência de
+                migration": jargão de banco numa legenda de cores, anunciando ao
+                usuário uma pendência nossa em vez de explicar o desenho. */}
+            <span className="ml-auto text-muted-foreground">a cor é a origem da posse de cada imóvel</span>
           </div>
         </>
       )}

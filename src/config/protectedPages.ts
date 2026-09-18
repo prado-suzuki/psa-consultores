@@ -768,8 +768,16 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/osg/work/relatorios',
-    page_name: 'Relatórios OSG Work',
-    page_description: 'Relatórios por cliente (ex.: checklist de documentos pendentes)',
+    page_name: 'Relatórios',
+    page_description: 'Relatórios de tela do cliente: diagnóstico patrimonial e quadro societário',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/osg/work/apresentacoes',
+    page_name: 'Biblioteca de Apresentações',
+    page_description: 'Escolher e gerar a apresentação em .pptx por cliente',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,

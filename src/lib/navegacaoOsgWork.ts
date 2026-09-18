@@ -237,12 +237,21 @@ export const TELAS_OSG_WORK = {
 
   relatorios: {
     path: '/equipe/osg/work/relatorios',
+    // "Relatórios", e não "Biblioteca de Slides": a tela virou a lista de
+    // relatórios de tela do cliente (diagnóstico patrimonial e quadro
+    // societário), que não viram arquivo — existem para serem lidos e
+    // impressos. A geração do deck saiu para a "Biblioteca de Apresentações".
     label: 'Relatórios',
-    // AJUSTADA: "relatórios consolidados" é vago, e a tela tem quatro
-    // relatórios nomeáveis — diagnóstico patrimonial, quadro societário/
-    // organograma, abertura de demanda e papéis de trabalho do planejamento
-    // tributário. Ela pede nomear o conteúdo quando for possível.
-    descricao: 'Gere os relatórios de diagnóstico patrimonial, quadro societário e planejamento tributário do cliente.',
+    descricao: 'Os relatórios de tela do cliente: diagnóstico patrimonial e quadro societário.',
+  },
+
+  bibliotecaApresentacoes: {
+    path: '/equipe/osg/work/apresentacoes',
+    // A geração do deck, que antes morava junto dos relatórios de tela: a
+    // "Biblioteca de Slides" virou esta tela, e os relatórios ficaram em
+    // `Relatorios`. A rota é nova — `/equipe/osg/work/apresentacoes`.
+    label: 'Biblioteca de Apresentações',
+    descricao: 'Escolha o que vai para a apresentação do cliente e gere o deck.',
   },
 } satisfies Record<string, TelaOsgWork>;
 
@@ -321,10 +330,11 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
   },
   {
     id: 'relatorios',
-    rotulo: 'Relatórios',
+    rotulo: 'Relatórios e Slides',
     icone: FileBarChart2,
     telas: [
       TELAS_OSG_WORK.relatorios,
+      TELAS_OSG_WORK.bibliotecaApresentacoes,
     ],
   },
 ];

@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useClientesLista } from '@/hooks/useGestaoClientes';
 import {
   useApresentacoesDaRevisao,
   useBaixarApresentacao,
@@ -150,9 +149,6 @@ export function PapeisDeTrabalhoReport({
   paleta?: PaletaDaArea;
 }) {
   const cor = PALETA[paleta];
-  const { data: clientes = [] } = useClientesLista();
-  const clienteNome = clientes.find((c) => c.id === clienteId)?.nome ?? 'cliente';
-
   const { data: estudos = [], isLoading: carregandoEstudos } = useEstudosDoCliente(clienteId);
   const [estudoId, setEstudoId] = useState('');
   const estudoEscolhido = estudoId || estudos[0]?.id || '';
@@ -266,10 +262,14 @@ export function PapeisDeTrabalhoReport({
 
   return (
     <div className="space-y-5">
+      {/* SEM O NOME DO CLIENTE. Ele já está na barra de seleção, no alto de toda
+          tela da área, e aqui aparecia uma terceira vez — a barra, o "Trabalhando
+          em" ao lado dela, e este título. Nome longo repetido empurra o que
+          interessa para baixo e não informa nada que a pessoa não acabou de
+          escolher. */}
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-base font-semibold text-foreground">
-          Papéis de Trabalho, Planejamento Tributário ·{' '}
-          <span className={cor.destaque}>{clienteNome}</span>
+          Papéis de Trabalho, Planejamento Tributário
         </h2>
         <span className="text-xs text-muted-foreground">
           Os slides saem com tabelas editáveis, para ajustar no PowerPoint
@@ -295,13 +295,27 @@ export function PapeisDeTrabalhoReport({
         colunas={2}
         descricao="Saem quatro tabelas: premissas, carga tributária, transferência da atividade rural e resumo."
         acoes={
-          <Button size="sm" onClick={aoGerar} disabled={!revisaoEscolhida || gerar.isPending}>
+          /*
+            CONTORNADO, E NÃO SÓLIDO, porque não é o único gerador da tela.
+            A Biblioteca tem um "Gerar apresentação" sólido acima das abas, que
+            monta o deck da OSG — patrimonial e societária —, e este monta o
+            tributário desta revisão, por outra edge function. Com os dois sólidos
+            e verdes, a pessoa lia duas ações de mesmo peso para produtos
+            diferentes e não tinha como saber qual saía de qual. O escopo, que é
+            o que os distingue, foi para o rótulo: "desta revisão".
+          */
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={aoGerar}
+            disabled={!revisaoEscolhida || gerar.isPending}
+          >
             {gerar.isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
             ) : (
               <Presentation className="mr-2 h-4 w-4" aria-hidden />
             )}
-            {gerar.isPending ? 'Gerando…' : 'Gerar os slides'}
+            {gerar.isPending ? 'Gerando…' : 'Gerar os slides desta revisão'}
           </Button>
         }
       >

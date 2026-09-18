@@ -3246,3 +3246,35 @@ All colors MUST be HSL.
   pointer-events: auto !important;
   z-index: 3001;
 }
+
+/* ─── Impressão só do que foi marcado ───────────────────────────────────────
+   O projeto não tinha regra de impressão nenhuma: `window.print()` mandava a
+   página inteira — barra lateral, cabeçalho da área, abas e tudo. Dava para
+   conviver enquanto o relatório estava desenhado na tela e ia junto; deixou de
+   dar quando a Biblioteca de Slides passou a imprimir os relatórios MARCADOS,
+   que vivem num bloco que só existe na impressão.
+
+   A regra é OPT-IN, presa ao `data-area-de-impressao`. As outras duas telas que
+   imprimem — o Checklist de documentos e a evolução do setor no MAPA — não têm o
+   atributo, então o `:has()` não casa e elas seguem imprimindo como sempre. Sem
+   esse recorte, um `body *` global mudaria calado o que elas põem no papel.
+
+   `visibility` e não `display`: escondendo por `display` os ancestrais sumiriam
+   com o conteúdo junto. Com `visibility`, a cadeia de pais continua ocupando o
+   fluxo e só o que é visível volta a aparecer — e o bloco é reposicionado no
+   canto para não herdar o recuo da barra lateral. */
+@media print {
+  body:has([data-area-de-impressao]) * {
+    visibility: hidden;
+  }
+  body:has([data-area-de-impressao]) [data-area-de-impressao],
+  body:has([data-area-de-impressao]) [data-area-de-impressao] * {
+    visibility: visible;
+  }
+  body:has([data-area-de-impressao]) [data-area-de-impressao] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+}

@@ -33,7 +33,7 @@ import {
 //     assinar, vivem em `documento_gerado.snapshot_dados` versionados por minuta, e
 //     a tela real de "Gerar Documento" já os pede no painel "Preencher à mão"
 //     (achados #4/#5 do relatório 13 da ALE-3);
-//   · `declarado_irpf` e `sacas_por_hectare` — as colunas existem e o `FiscalReport`
+//   · `declarado_irpf` e `sacas_por_hectare` — as colunas existem e a `TerrasExploradas`
 //     as lê, mas nenhuma cláusula dos modelos as usa. O IRPF é anual e a coluna é um
 //     sim/não único, então o formato provavelmente está errado; ficou pendente com o
 //     time Fiscal (decisão de 01/09/2026).

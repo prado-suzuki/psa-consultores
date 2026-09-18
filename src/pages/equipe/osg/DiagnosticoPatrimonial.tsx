@@ -37,6 +37,17 @@ const DiagnosticoPatrimonial = () => {
   const { clienteId } = useOsgWork();
   const [busca, setBusca] = useState('');
   const [filtroTipo, setFiltroTipo] = useState<string>('__todos__');
+  /**
+   * Recorte por participação na estruturação.
+   *
+   * Existe porque a Biblioteca de Slides deixou de carregar a tabela dos não
+   * integralizados: lá ela era planilha de trabalho dentro de uma prévia de
+   * apresentação, com três colunas que não existem em template nenhum. A
+   * passada veio para cá, onde os dois campos editáveis já moravam — mas aqui
+   * só dava para filtrar por tipo de bem e por busca, e o conjunto ficava
+   * espalhado entre dezenas de linhas.
+   */
+  const [filtroEstruturacao, setFiltroEstruturacao] = useState<'__todos__' | 'dentro' | 'fora'>('__todos__');
 
   const { data: bens = [], isLoading: loadingBens } = useBensByCliente(clienteId || null);
   const { data: pessoasCliente = [] } = usePessoasByCliente(clienteId || null);
@@ -52,6 +63,11 @@ const DiagnosticoPatrimonial = () => {
     const q = busca.trim().toLowerCase();
     return bens.filter((b) => {
       if (filtroTipo !== '__todos__' && b.tipo_bem !== filtroTipo) return false;
+      // `participa_estruturacao` é nullable, e nulo conta como DENTRO — é a mesma
+      // régua da `carregarPatrimonial`, que só descarta o `false` explícito. Ler
+      // nulo como "fora" mostraria aqui bens que o deck está levando.
+      if (filtroEstruturacao === 'fora' && b.participa_estruturacao !== false) return false;
+      if (filtroEstruturacao === 'dentro' && b.participa_estruturacao === false) return false;
       if (q) {
         return (
           (b.referencia_dp ?? '').toLowerCase().includes(q) ||
@@ -62,14 +78,15 @@ const DiagnosticoPatrimonial = () => {
       }
       return true;
     });
-  }, [bens, busca, filtroTipo]);
+  }, [bens, busca, filtroTipo, filtroEstruturacao]);
 
   // Totais sobre o valor DERIVADO (soma das matrículas, ou o do próprio bem
   // quando não há matrícula) — nunca sobre a coluna do bem, que para imóvel
   // deixou de ser a fonte e ficaria em R$ 0,00. Ver `@/lib/osg/valoresDoBem`.
   const totais = useMemo(() => totalizarValoresDosBens(bensFiltrados), [bensFiltrados]);
 
-  const buscaAtiva = busca.trim().length > 0 || filtroTipo !== '__todos__';
+  const buscaAtiva =
+    busca.trim().length > 0 || filtroTipo !== '__todos__' || filtroEstruturacao !== '__todos__';
 
   return (
     <OsgLayout
@@ -125,6 +142,20 @@ const DiagnosticoPatrimonial = () => {
                             <span className="font-mono mr-2">{o.value}</span>{o.label}
                           </SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="w-full md:w-56 space-y-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground">Estruturação</Label>
+                    <Select
+                      value={filtroEstruturacao}
+                      onValueChange={(v) => setFiltroEstruturacao(v as typeof filtroEstruturacao)}
+                    >
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__todos__">Todos</SelectItem>
+                        <SelectItem value="dentro">Integralizados</SelectItem>
+                        <SelectItem value="fora">Não integralizados</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
