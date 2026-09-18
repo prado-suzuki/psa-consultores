@@ -9,7 +9,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import type { BeneficiarioDoProtocolo } from '@/lib/protocoloRemuneracao';
 
 /**
@@ -93,35 +95,46 @@ export function ColunasDoProtocoloModal({
                       sabe qual foi editado.
                     */}
                     {mudou && !vazio && (
+                      <ButtonTooltip text="Salvar o novo nome">
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          disabled={salvando}
+                          aria-label="Salvar o novo nome"
+                          onClick={() => onRenomear(c.id, c.nome, (nomes[c.id] ?? '').trim())}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                      </ButtonTooltip>
+                    )}
+                    <ButtonTooltip text={`Tirar a coluna ${c.nome}`}>
                       <Button
                         size="icon"
-                        variant="outline"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
                         disabled={salvando}
-                        title="Salvar o novo nome"
-                        onClick={() => onRenomear(c.id, c.nome, (nomes[c.id] ?? '').trim())}
+                        aria-label={`Tirar a coluna ${c.nome}`}
+                        onClick={() => setATirar(c)}
                       >
-                        <Check className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                    )}
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="text-destructive hover:text-destructive"
-                      disabled={salvando}
-                      title={`Tirar a coluna ${c.nome}`}
-                      onClick={() => setATirar(c)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </ButtonTooltip>
                   </div>
                 );
               })}
             </div>
 
-            <div className="flex items-center gap-2 border-t border-border pt-3">
+            <div className="space-y-1.5 border-t border-border pt-3">
+              {/*
+                O rotulo e visivel, e nao um placeholder com o nome do campo: o
+                placeholder some quando a pessoa digita, e o campo preenchido fica
+                sem dizer o que e (docs/geral/texto-explicativo-na-tela.md, §3).
+              */}
+              <Label htmlFor="protocolo-coluna-nova">Coluna nova</Label>
+              <div className="flex items-center gap-2">
               <Input
+                id="protocolo-coluna-nova"
                 value={nova}
-                placeholder="Nome de uma coluna nova"
                 onChange={(e) => setNova(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -133,6 +146,7 @@ export function ColunasDoProtocoloModal({
               <Button variant="outline" disabled={salvando || !nova.trim()} onClick={acrescentar}>
                 <Plus className="mr-2 h-4 w-4" /> Acrescentar
               </Button>
+              </div>
             </div>
           </div>
 

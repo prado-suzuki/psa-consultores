@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -20,8 +21,10 @@ import type {
  * **A célula mostra o começo da regra, não a regra inteira.** Aqui a célula JÁ É
  * a frase do documento, e ela é longa: no Potrich, "Modelo do Veículo" tem 160
  * caracteres numa célula só. Espremer isso tornaria as 52 linhas ilegíveis,
- * então corta em três linhas e o `title` leva o texto completo, para conferir
- * sem abrir a caixa item por item.
+ * então corta em três linhas e o balão leva o texto completo, para conferir
+ * sem abrir a caixa item por item. O balão é `<ElementTooltip>` e não `title=`:
+ * o do navegador não aparece no toque, não acompanha o tema e demora a abrir
+ * (`docs/geral/texto-explicativo-na-tela.md`, §3).
  */
 /** Linha preenchida é a que tem pelo menos uma regra escrita, em qualquer coluna. */
 const preenchidasNaSecao = (secao: SecaoDaGrade) =>
@@ -93,9 +96,9 @@ export function GradeDoProtocolo({
                         className="py-2.5 text-left align-top text-xs"
                       >
                         {c.texto ? (
-                          <span className="line-clamp-3 text-foreground" title={c.texto}>
-                            {c.texto}
-                          </span>
+                          <ElementTooltip text={c.texto}>
+                            <span className="line-clamp-3 text-foreground">{c.texto}</span>
+                          </ElementTooltip>
                         ) : (
                           <span className="text-muted-foreground/50">—</span>
                         )}

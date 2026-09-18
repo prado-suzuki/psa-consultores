@@ -130,9 +130,13 @@ const RE_PLACEHOLDER_FORA_DO_CANONE =
 /**
  * Congelado em 17/09/2026: 226 em 140 arquivos.
  *
- * **225 em 18/09**, pela auditoria da TIP-02: o `Selecionar da lista (define a categoria)` do
- * Anexar documento voltou à forma canônica, e a instrução que ele carregava desceu para texto de
- * apoio — ver `docs/sprints/sprint-13/AUDITORIA_TIP-02_documentos-do-cliente.md`, ficha A3.
+ * **225 em 18/09**, pela auditoria da TIP-02 e pela revisão de copy da governança:
+ * o `Selecionar da lista (define a categoria)` do Anexar documento voltou à forma
+ * canônica (TIP-02, ficha A3), e o `Digite e tecle Enter` do campo de cargos do
+ * `OrgaoGovernancaModal` virou texto de apoio visível. As outras seis trocas da
+ * governança não contam aqui, porque a regra só pega placeholder que COMEÇA por
+ * Selecion, Buscar, Busque, Pesquis, Digite ou Procur, e as outras eram rótulo
+ * disfarçado (`Nome do item`) ou exemplo sem forma (`Conselho de Administração`).
  */
 const PLACEHOLDER_LEGADO = 225;
 
@@ -230,7 +234,7 @@ describe('o texto que explica a tela', () => {
     expect(
       total(medido),
       'A fila do placeholder fora do cânone mudou de tamanho.\n\n'
-        + `Congelada em 17/09/2026: ${PLACEHOLDER_LEGADO} em 140 arquivos.\n`
+        + `Congelada, e hoje em ${PLACEHOLDER_LEGADO} em 139 arquivos.\n`
         + `Agora: ${total(medido)} em ${Object.keys(medido).length}.\n\n`
         + 'As quatro formas são `Selecione…`, `Buscar…`, `Ex: …` e vazio. Texto sob\n'
         + 'medida no placeholder compete com o rótulo em vez de ajudar: quem lê o print\n'

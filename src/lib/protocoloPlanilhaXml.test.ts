@@ -62,8 +62,7 @@ const SECOES: SecaoDaGrade[] = [
   },
 ];
 
-const gerar = (preambulo: string | null = null) =>
-  planilhaXmlDoProtocolo(MODELO, SECOES, COLUNAS, preambulo).xml;
+const gerar = () => planilhaXmlDoProtocolo(MODELO, SECOES, COLUNAS).xml;
 
 describe('o que do modelo NÃO se toca', () => {
   it('preserva as larguras de coluna, que são metade da cara do arquivo', () => {
@@ -181,16 +180,22 @@ describe('a grade', () => {
 });
 
 describe('o texto de abertura', () => {
-  it('quando existe, entra como linha própria e empurra a grade', () => {
-    const xml = gerar('Este Protocolo visa regrar…');
+  it('NÃO vai para a planilha, e a grade começa logo abaixo do cabeçalho', () => {
+    /*
+     * Ele foi escrito na entrega de 17/09, acima do cabeçalho, como no Potrich,
+     * e a consultoria tirou em 18/09: na planilha aquilo vira uma faixa de texto
+     * no topo que ninguém pediu. O campo continua no cadastro, com destino no
+     * instrumento em prosa.
+     *
+     * A linha 3 é o cabeçalho e a 4 é o primeiro tema. Sem esta asserção, um
+     * preâmbulo que voltasse a ser escrito empurraria a grade uma linha para
+     * baixo sem quebrar mais nada.
+     */
+    const xml = gerar();
 
-    expect(xml).toContain('<is><t xml:space="preserve">Este Protocolo visa regrar…</t></is>');
-    expect(xml).toContain('<mergeCell ref="C4:J4"/>');
-    expect(xml).toContain('<c r="C5" s="15" t="inlineStr"><is><t xml:space="preserve">Veículos');
-  });
-
-  it('quando não existe, a grade começa uma linha antes', () => {
-    expect(gerar()).toContain('<c r="C4" s="15" t="inlineStr"><is><t xml:space="preserve">Veículos');
+    expect(xml).not.toContain('Este Protocolo visa regrar');
+    expect(xml).toContain('<c r="H3" s="8" t="inlineStr"><is><t xml:space="preserve">Sócios Fundadores');
+    expect(xml).toContain('<c r="C4" s="15" t="inlineStr"><is><t xml:space="preserve">Veículos');
   });
 });
 
@@ -214,7 +219,7 @@ describe('o XML aceita o que a consultoria escreve', () => {
         ],
       },
     ];
-    const xml = planilhaXmlDoProtocolo(MODELO, comSimbolo, COLUNAS, null).xml;
+    const xml = planilhaXmlDoProtocolo(MODELO, comSimbolo, COLUNAS).xml;
 
     expect(xml).toContain('menor que 5 &amp; maior que 2 &lt;ver anexo&gt;');
     expect(xml).not.toContain('& maior');

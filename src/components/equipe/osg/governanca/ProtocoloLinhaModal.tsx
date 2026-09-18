@@ -89,18 +89,27 @@ export function ProtocoloLinhaModal({
           <DialogTitle>{linha.item}</DialogTitle>
         </DialogHeader>
 
+        {/*
+          A instrucao vale para todas as colunas, entao mora UMA vez acima delas e
+          nao dentro de cada campo: placeholder some quando a pessoa digita, que e
+          exatamente quando ela precisaria saber o que o branco faz.
+        */}
+        <p id="regra-ajuda" className="text-xs text-muted-foreground">
+          Em branco, nada é escrito no documento.
+        </p>
+
         <div className="space-y-4 py-1">
           {linha.celulas.map((c) => (
             <div key={c.beneficiario_id} className="space-y-1.5">
               <Label htmlFor={`regra-${c.beneficiario_id}`}>{c.beneficiario}</Label>
               <Textarea
                 id={`regra-${c.beneficiario_id}`}
+                aria-describedby="regra-ajuda"
                 rows={3}
                 value={textos[c.beneficiario_id] ?? ''}
                 onChange={(e) =>
                   setTextos((antes) => ({ ...antes, [c.beneficiario_id]: e.target.value }))
                 }
-                placeholder="O que vale para este grupo neste item. Em branco, nada é escrito no documento."
               />
             </div>
           ))}

@@ -97,13 +97,19 @@ export function resumoDaFolha({
 }
 
 /**
- * A frase do painel sobre as cláusulas que as FLAGS tiraram da composição
- * ("2 cláusulas não se aplicam a esta empresa e ficaram de fora: A, B.").
+ * A frase do painel sobre as cláusulas que as FLAGS tiraram da composição.
  *
  * Existe como função com teste porque a concordância aqui não é sufixo: o verbo
- * inteiro muda ("ficou" → "ficaram"), e montar o plural concatenando terminação
- * produziu por um tempo a palavra inexistente "ficouaram" na tela de todo
- * documento com mais de um bloco excluído. Cada forma vai escrita por extenso.
+ * inteiro muda ("ficou" para "ficaram"), e montar o plural concatenando
+ * terminação produziu por um tempo a palavra inexistente "ficouaram" na tela de
+ * todo documento com mais de um bloco excluído. Cada forma vai escrita por
+ * extenso.
+ *
+ * **Ela NÃO lista os nomes**, e isso mudou depois que a consultoria abriu a tela
+ * com três cláusulas fora: os nomes viravam um parágrafo corrido separado por
+ * vírgula, e como cada nome é um trecho longo do próprio texto do bloco, não dava
+ * para ver onde uma cláusula acabava e a outra começava. Quem lista é a tela, em
+ * lista de verdade, um item por linha.
  */
 export function fraseExcluidosPorFlag(nomes: string[]): string {
   if (nomes.length === 0) return 'Todas as cláusulas do modelo se aplicam a esta empresa.';
@@ -111,5 +117,42 @@ export function fraseExcluidosPorFlag(nomes: string[]): string {
   const substantivo = varias ? 'cláusulas' : 'cláusula';
   const aplicar = varias ? 'não se aplicam' : 'não se aplica';
   const ficar = varias ? 'ficaram' : 'ficou';
-  return `${nomes.length} ${substantivo} ${aplicar} a esta empresa e ${ficar} de fora: ${nomes.join(', ')}.`;
+  return `${nomes.length} ${substantivo} ${aplicar} a esta empresa e ${ficar} de fora:`;
+}
+
+/**
+ * O nome do bloco, limpo para caber numa linha de lista.
+ *
+ * **Os nomes vêm do texto do próprio bloco**, e é assim que os 268 do Acordo
+ * foram carregados. Isso traz três coisas que não deviam aparecer na tela:
+ *
+ *   `*DESCENDENTES DOS QUOTISTAS:*`   asterisco de negrito do markdown
+ *   `{{ acordo.quantosRamosExten`      placeholder cortado no meio
+ *   quebras de linha e espaço dobrado  do texto original
+ *
+ * O último é o pior: o nome é cortado no banco por comprimento, então o
+ * placeholder chega partido, sem as chaves de fechar, e aparecia cru para quem
+ * está só conferindo o que ficou de fora.
+ *
+ * Isto é limpeza de EXIBIÇÃO. O nome no banco continua como está, porque é dele
+ * que a outra frente depende para casar bloco com posição.
+ */
+export function nomeLegivelDoBloco(nome: string, limite = 72): string {
+  const limpo = nome
+    /* Placeholder inteiro, e também o partido no fim, que é o caso comum. */
+    .replace(/\{\{[^}]*\}\}/g, '')
+    .replace(/\{\{[^}]*$/g, '')
+    /* Ênfase do markdown: o asterisco marca negrito no bloco, não no rótulo. */
+    .replace(/[*_]+/g, '')
+    .replace(/\s+/g, ' ')
+    /* Pontuação e conectivo que sobraram pendurados depois do corte. */
+    .replace(/[\s,;:.\-–—]+$/g, '')
+    .trim();
+
+  if (limpo.length <= limite) return limpo || nome.trim();
+
+  /* Corta na palavra, não no meio dela. */
+  const cortado = limpo.slice(0, limite);
+  const ultimoEspaco = cortado.lastIndexOf(' ');
+  return `${(ultimoEspaco > limite / 2 ? cortado.slice(0, ultimoEspaco) : cortado).replace(/[\s,;:.\-–—]+$/g, '')}…`;
 }
