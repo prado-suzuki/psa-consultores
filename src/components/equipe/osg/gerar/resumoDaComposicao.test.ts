@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { BlocoDescartado, BlocoGerado } from '@/lib/templates';
-import { blocosForaDaFolha, fraseExcluidosPorFlag, resumoDaFolha } from '@/components/equipe/osg/gerar/resumoDaComposicao';
+import {
+  blocosForaDaFolha, fraseExcluidosPorFlag, nomeLegivelDoBloco, resumoDaFolha,
+} from '@/components/equipe/osg/gerar/resumoDaComposicao';
 
 const bloco = (id: string, instanciaDe?: string): BlocoGerado => ({
   id,
@@ -156,15 +158,58 @@ describe('fraseExcluidosPorFlag — o plural muda o verbo inteiro', () => {
 
   it('um excluído fica no singular', () => {
     expect(fraseExcluidosPorFlag(['Questões Diversas'])).toBe(
-      '1 cláusula não se aplica a esta empresa e ficou de fora: Questões Diversas.',
+      '1 cláusula não se aplica a esta empresa e ficou de fora:',
     );
   });
 
   it('mais de um: "ficaram", nunca a palavra inexistente "ficouaram"', () => {
     const frase = fraseExcluidosPorFlag(['Questões Diversas', 'Teste Tabela GeoRef']);
-    expect(frase).toBe(
-      '2 cláusulas não se aplicam a esta empresa e ficaram de fora: Questões Diversas, Teste Tabela GeoRef.',
-    );
+    expect(frase).toBe('2 cláusulas não se aplicam a esta empresa e ficaram de fora:');
     expect(frase).not.toContain('ficouaram');
+  });
+
+  it('NÃO emenda os nomes na frase: quem lista é a tela, em lista', () => {
+    /*
+     * Com três cláusulas fora, os nomes viravam um parágrafo corrido separado por
+     * vírgula. Como cada nome é um trecho longo do texto do próprio bloco, não
+     * dava para ver onde uma acabava e a outra começava.
+     */
+    const frase = fraseExcluidosPorFlag(['Questões Diversas', 'Teste Tabela GeoRef']);
+
+    expect(frase).not.toContain('Questões Diversas');
+    expect(frase.endsWith(':')).toBe(true);
+  });
+});
+
+describe('nomeLegivelDoBloco — o nome do bloco é um trecho do texto dele', () => {
+  it('tira o placeholder partido, que é o caso que apareceu na tela', () => {
+    /* Nome real do Acordo, cortado por comprimento no banco: o placeholder chega
+       sem as chaves de fechar e aparecia cru para quem conferia. */
+    expect(
+      nomeLegivelDoBloco('Acordo 037 Subitem — *DESCENDENTES DOS QUOTISTAS:* os {{ acordo.quantosRamosExten'),
+    ).toBe('Acordo 037 Subitem — DESCENDENTES DOS QUOTISTAS: os');
+  });
+
+  it('tira o asterisco de negrito do markdown', () => {
+    expect(nomeLegivelDoBloco('*DIREITO DE PREFERÊNCIA*')).toBe('DIREITO DE PREFERÊNCIA');
+  });
+
+  it('tira o placeholder inteiro quando ele está fechado', () => {
+    expect(nomeLegivelDoBloco('Sede em {{ empresa.cidade }} e filial')).toBe('Sede em e filial');
+  });
+
+  it('corta na palavra, e não no meio dela', () => {
+    const cortado = nomeLegivelDoBloco('Em todas as hipóteses de DIREITO DE PREFERÊNCIA previstas neste acordo', 30);
+
+    expect(cortado.endsWith('…')).toBe(true);
+    expect(cortado).toBe('Em todas as hipóteses de…');
+  });
+
+  it('nome curto passa inteiro, sem reticência', () => {
+    expect(nomeLegivelDoBloco('Questões Diversas')).toBe('Questões Diversas');
+  });
+
+  it('nome que vira nada devolve o original, para não sumir da lista', () => {
+    expect(nomeLegivelDoBloco('{{ acordo.algo }}')).toBe('{{ acordo.algo }}');
   });
 });

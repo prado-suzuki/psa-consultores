@@ -13,7 +13,7 @@ import { campoDaEntidade, campoManual } from '@/lib/templates/vocabulario';
 import { labelDoBinding } from '@/lib/templates/binding';
 import { AjudaDoCampo } from '@/components/equipe/osg/ComAjuda';
 import { BlocosSemDado } from '@/components/equipe/osg/gerar/BlocosSemDado';
-import { fraseExcluidosPorFlag } from '@/components/equipe/osg/gerar/resumoDaComposicao';
+import { fraseExcluidosPorFlag, nomeLegivelDoBloco } from '@/components/equipe/osg/gerar/resumoDaComposicao';
 import { fmtBRL, fmtInt } from '@/components/equipe/osg/quadro-societario/quadroFmt';
 import { fieldCls, labelCls, textareaCls } from '@/components/equipe/osg/formKit';
 import type { LinhaNotificacao } from '@/hooks/useGerarDocumentoController';
@@ -319,6 +319,30 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                   blocosExcluidosPorPerfil.map((b) => nomePorBlocoId.get(b.id) ?? b.id),
                                 )}
                               </p>
+                              {/*
+                                AS CLÁUSULAS VÃO EM LISTA, uma por linha, e não
+                                separadas por vírgula num parágrafo corrido. O nome
+                                de cada bloco é um trecho do próprio texto dele, com
+                                dezenas de caracteres, e emendados por vírgula não
+                                dava para ver onde uma acabava e a outra começava.
+                                O `title` guarda o nome cru, para quem precisar
+                                casar com o bloco na Biblioteca.
+                              */}
+                              {blocosExcluidosPorPerfil.length > 0 && (
+                                <ul className="space-y-1 pt-0.5">
+                                  {blocosExcluidosPorPerfil.map((b) => {
+                                    const nome = nomePorBlocoId.get(b.id) ?? b.id;
+                                    return (
+                                      <li key={b.id} className="flex gap-1.5 text-muted-foreground">
+                                        <span aria-hidden className="text-osg-600">
+                                          ·
+                                        </span>
+                                        <span title={nome}>{nomeLegivelDoBloco(nome)}</span>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              )}
                             </div>
                           )
                         )}
