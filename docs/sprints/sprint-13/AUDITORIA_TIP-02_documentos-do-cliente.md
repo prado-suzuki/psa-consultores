@@ -222,14 +222,113 @@ A árvore foi aplicada e parou no degrau 5. Estão aqui para ficar registrado qu
 
 ---
 
-## E. As fichas de origem `go-live` — em branco
+## E. O go-live — o que foi perguntado, e onde cai
 
-O GO-06 fechou sem anexo, e a lista de perguntas do dia 09/09 não está no repositório. O briefing
-do próprio GO-06 endereça essa lista à **TIP-03**, não à TIP-02 — os dois textos foram escritos em
-momentos diferentes e não conversam.
+Fonte: transcrição da reunião de **09/09/2026**, "Reunião OSG — Solicitação e cadastro de
+documentos" (13 participantes, 55 min). Ela não está no repositório; a leitura foi feita a partir
+do arquivo de anotações do Gemini.
 
-**Se a lista existir**, cada pergunta vira uma ficha aqui, com o mesmo formato e `Origem: go-live`.
-Enquanto não existir, esta seção fica vazia — e vazia é a resposta honesta, não uma omissão.
+**Duas perguntas foram feitas na sala.** O resto da reunião é o Alexandre narrando a demonstração
+— e narração não é pergunta. A distinção importa: o briefing da AUD-01 diz que *"pergunta feita no
+go-live é explicação que falta na tela"*, e o que alguém explica sem ser perguntado é evidência do
+mesmo tipo, mas mais fraca. As duas estão separadas abaixo, e nenhuma foi inventada.
+
+### E1 · Thiago Santos — "qual a finalidade de cadastrar aqueles documentos?"
+
+> *"Eu só queria perguntar sobre a qualificação das partes ali, qual que é a finalidade de
+> cadastrar aqueles documentos? Se ele vai ficar vinculado nesse sistema OSG Work ou se ele vai
+> nos dar um documento de qualificação pronto?"* — 00:29:35, repetida em 00:31:48 (*"mas então vai
+> sair uma qualificação pronta, não é isso ou não?"*)
+
+Precisou de **dois minutos e duas pessoas** para ser respondida (Alexandre e Bernardo): os dados
+alimentam o checklist, a calculadora de ITCMD, o quadro societário e a geração de contratos.
+
+**Rota: Qualificação das Partes.** Fora do escopo da TIP-02 → vai para a **TIP-03**. Registrada
+aqui com a citação para não se perder.
+
+### E2 · Luana Stelle — "quem é que vai receber a notificação?"
+
+> *"da forma que tá mostrando aí para mim, eu não consigo visualizar quais são os representantes
+> que estão dentro da plataforma do cliente, porque isso vai estar lá no cadastro inicial. Tudo
+> bem que a pessoa vai ser notificada, mas como que eu vou saber que os dados estão corretos?"*
+> — 00:39:01, retomada em 00:45:33 e fechada em 00:47:00
+
+Foi a discussão mais longa da reunião (8 minutos, três pessoas). O caso real: o cliente nomeia um
+administrador ou funcionário como representante, e o assistente que acompanha o projeto não tem
+acesso à OS para conferir quem está lá.
+
+**Já foi respondida por código.** Virou a **GO-09** — *"Destinatário do aviso: mostrar quem recebe,
+e deixar escolher"* —, concluída em 11/09. Intervenção de texto: **nenhuma**. Fica registrada
+porque é a única pergunta do go-live que já tem resposta entregue, e isso é informação.
+
+### O que foi explicado sem ninguém perguntar — e cai nesta rota
+
+Duas passagens da demonstração são sobre a tela **Documentos do Cliente**:
+
+> *"no módulo de documentos, na aba de explorador de arquivos, vocês vão ter a lista de todos os
+> documentos dos clientes. **Conforme vocês forem vinculando, ele já vai fazendo o cadastro
+> automático.**"* — 00:30:32
+
+> *"esse campo de anexar documentos aqui à parte é normalmente **quando o cliente manda pro
+> WhatsApp, ele manda por algum meio externo** e aí vocês precisam anexar manualmente."* — 00:30:32
+
+A segunda virou ficha. A primeira não — ver abaixo.
+
+```
+Rota:          Documentos do Cliente → Anexar documento
+Controle:      descrição do diálogo
+Problema:      "Anexar" não diz PARA QUE serve, e a resposta é a primeira coisa que o
+               Alexandre explicou ao chegar nela: é o caminho do arquivo que chegou FORA
+               da plataforma (WhatsApp, e-mail, em mãos). A descrição atual começa por
+               "Arraste ou escolha arquivos (ou uma pasta)", que é o que a área de soltar
+               e os dois botões abaixo já dizem — explica o óbvio (regra 4). E a segunda
+               frase ("Tipo, vínculo e categoria são opcionais") repete o "(opcional)" que
+               já está nos três rótulos
+Intervenção:   redação (§4, regras 1 e 4) — a informação que faz decidir vem primeiro, e
+               o que já está na tela sai
+Texto final:   Para arquivos que chegaram fora da plataforma — por WhatsApp, e-mail ou
+               em mãos.
+Comportamento: inalterado
+Marcação:      DialogDescription, como hoje
+Origem:        go-live (00:30:32, narração)
+```
+
+```
+Rota:          Documentos do Cliente
+Controle:      a árvore de pastas
+Problema:      ninguém na sala soube, pela tela, que as pastas nascem sozinhas dos
+               vínculos — o Alexandre precisou dizer
+Intervenção:   nenhuma
+Texto final:   —
+Comportamento: —
+Marcação:      —
+Origem:        go-live (00:30:32, narração)
+```
+
+**Por que nenhuma.** O vínculo não se faz aqui: ele se faz no *Cadastro por documento*, que é
+outra rota (Onboarding). Explicar nesta tela de onde vêm as pastas é explicar o efeito no lugar
+errado — e o degrau 2 já está cumprido, porque a contagem ao lado de cada pasta mostra o
+resultado em vez de descrevê-lo. Se a dúvida for real, ela pertence à tela onde o vínculo
+acontece, e é item da TIP-03.
+
+### O que a transcrição manda para a TIP-03
+
+Passagens em que a demonstração precisou explicar o que a tela não diz, todas **fora** das duas
+rotas desta tarefa. Ficam listadas com o minuto para quem pegar a TIP-03 não reassistir a gravação:
+
+| Onde | O que precisou ser explicado | Minuto |
+|---|---|---|
+| Solicitação Inicial | o que são os "documentos opcionais" (*"é basicamente o que não veio"*) | 00:12:43 |
+| Solicitação Inicial | que editar a descrição de um documento **vale só para aquele cliente**, e o padrão global continua — a Patrícia precisou dizer isso **duas vezes** | 00:14:13 e 00:15:34 |
+| Solicitação Inicial | o que faz "atualizar a partir da OS" (repuxar os documentos quando o produto estava errado) | 00:15:34 |
+| Solicitação Inicial | que finalizar **trava** a solicitação e grava um retrato do estado | 00:48:26 |
+| Solicitação Inicial | que editar a lista depois do checklist **vale para todas as pessoas** (*"se eu tirar CPF, ele tira de todas"*) | 00:49:47 |
+| Cadastro por documento | o que significa marcar "não se aplica", e que a marca vale para a fase seguinte | 00:23:28 |
+| Checklist | que o aviso ao cliente é **manual** por decisão, não por falta de automação | 00:37:08 |
+
+**Uma dúvida citada e não registrada:** a Patrícia menciona em 00:52:45 que *"a Daniela já até
+mandou algumas dúvidas"* pelo suporte. Não estão na transcrição. Se existirem em outro lugar,
+entram aqui.
 
 ---
 

@@ -198,9 +198,13 @@ export function DocUploadDialog({
       <DialogContent className="max-h-[88vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Anexar documento</DialogTitle>
+          {/* PARA QUE SERVE vem primeiro, e é a coisa que o treinamento do go-live
+              precisou explicar ao chegar aqui (09/09, 00:30:32): este é o caminho do
+              arquivo que chegou FORA da plataforma. O que saiu era duas vezes óbvio —
+              "arraste ou escolha arquivos" está escrito na área de soltar e nos dois
+              botões abaixo, e "são opcionais" já está nos três rótulos. */}
           <DialogDescription>
-            Arraste ou escolha arquivos (ou uma pasta). Tipo, vínculo e categoria são opcionais —
-            deixe como estão para organizar/vincular depois.
+            Para arquivos que chegaram fora da plataforma — por WhatsApp, e-mail ou em mãos.
           </DialogDescription>
         </DialogHeader>
 
