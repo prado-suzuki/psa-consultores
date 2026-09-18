@@ -19,6 +19,7 @@ const TODOS_OS_TIPOS: NotificacaoTipo[] = [
   'cobranca_pendencia',
   'tarefa_prazo_proximo',
   'tarefa_atrasada',
+  'tarefa_inativa',
 ];
 
 describe('apresentacaoDoAviso', () => {
@@ -43,6 +44,13 @@ describe('apresentacaoDoAviso', () => {
     // três dias antes e o de vence hoje (docs/geral/avisos-prazo-tarefa.md).
     expect(apresentacaoDoAviso('tarefa_prazo_proximo').rotulo).toBe('Prazo de tarefa');
     expect(apresentacaoDoAviso('tarefa_atrasada').rotulo).toBe('Tarefa atrasada');
+  });
+
+  it('coloca a tarefa inativa na família âmbar, porque parada não é estouro', () => {
+    // GES-01B: inatividade é lembrete de atenção, não prazo vencido. O vermelho
+    // fica para o atraso, que é fato consumado.
+    expect(apresentacaoDoAviso('tarefa_inativa').tom).toContain('amber');
+    expect(apresentacaoDoAviso('tarefa_inativa').rotulo).toBe('Tarefa inativa');
   });
 
   it('cai num rótulo genérico se o banco tiver um tipo que o types.ts ainda não conhece', () => {

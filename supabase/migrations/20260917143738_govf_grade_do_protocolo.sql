@@ -549,13 +549,23 @@ CREATE POLICY rls_protocolo_regra_delete ON public.protocolo_regra
 --
 -- Sao o ponto de partida, nao a lista fechada: nenhum dos clientes medidos usa as
 -- tres. A tela copia daqui para o protocolo novo e o consultor renomeia.
+--
+-- CORRIGIDO EM 18/09/2026. O conjunto anterior (Acionistas, Conselheiros de
+-- Administracao, Diretores) nunca esteve em banco: os DOIS ja tem o padrao da
+-- casa semeado como Fundadores, Socios e Socios Gestores (sandbox em 17/09,
+-- medido por SELECT), e a tela de copiar usa exatamente esses nomes. O seed
+-- velho, que nao casa por nome, inseria tres padroes a mais, e o GATE abaixo,
+-- que exige tres, contava seis e abortava a migracao NELA MESMA. Decisao do
+-- usuario: o padrao da casa e o que esta nos bancos, os nomes de hoje. Medido
+-- no sandbox por SELECT; producao se confirma no momento da aplicacao, e o
+-- GATE deste arquivo e quem barrar divergencia la.
 
 INSERT INTO public.protocolo_beneficiario (protocolo_id, nome, ordem)
 SELECT NULL, v.nome, v.ordem
 FROM (VALUES
-  ('Acionistas',                    10),
-  ('Conselheiros de Administração', 20),
-  ('Diretores',                     30)
+  ('Fundadores',       10),
+  ('Sócios',           20),
+  ('Sócios Gestores',  30)
 ) AS v(nome, ordem)
 WHERE NOT EXISTS (
   SELECT 1 FROM public.protocolo_beneficiario b

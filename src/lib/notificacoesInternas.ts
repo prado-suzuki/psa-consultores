@@ -122,6 +122,11 @@ const APRESENTACAO: Record<NotificacaoTipo, ApresentacaoDoAviso> = {
   // 02/09/2026, em docs/geral/avisos-prazo-tarefa.md.
   tarefa_prazo_proximo: { rotulo: 'Prazo de tarefa', tom: AMBAR },
   tarefa_atrasada: { rotulo: 'Tarefa atrasada', tom: VERMELHO },
+  // GES-01B, irmã do de prazo: tarefa de cliente aberta sem NENHUMA alteração a
+  // 15 dias. Âmbar e não vermelho porque parada não é estouro: não venceu coisa
+  // nenhuma, e o atrasado é o aviso vermelho da família. Nasce por
+  // `criar_notificacao`, na varredura diária de inatividade.
+  tarefa_inativa: { rotulo: 'Tarefa inativa', tom: AMBAR },
   /*
    * PT-04. Um tipo só no sino, porque o título vem como parâmetro na
    * `criar_notificacao` e muda entre primeira importação e revisão seguinte. O

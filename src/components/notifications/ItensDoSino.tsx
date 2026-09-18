@@ -15,6 +15,7 @@ import {
   UserPlus,
   type LucideIcon,
   FileSpreadsheet,
+  Hourglass,
 } from 'lucide-react';
 import type { TicketNotification } from '@/hooks/useTicketNotifications';
 import type { ReviewTaskNotification } from '@/hooks/useReviewTaskNotifications';
@@ -79,6 +80,8 @@ const ICONES_INTERNAS: Record<NotificacaoTipo, LucideIcon> = {
   // para o prazo que se aproxima, calendário riscado para o que já passou.
   tarefa_prazo_proximo: Clock,
   tarefa_atrasada: CalendarX,
+  // GES-01B: areia vazia no relógio de areia, a tarefa que ninguém mexe.
+  tarefa_inativa: Hourglass,
   // PT-04: papel de trabalho importado ou revisado, no projeto escolhido.
   papel_de_trabalho_importado: FileSpreadsheet,
 };
