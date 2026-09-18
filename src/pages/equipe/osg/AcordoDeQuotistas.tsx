@@ -158,7 +158,7 @@ const AcordoDeQuotistas = () => {
         ) : !data ? (
           <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 px-6 py-16 text-center">
             <FileSignature className="h-10 w-10 text-muted-foreground opacity-50" />
-            <p className="text-sm font-medium">Este cliente ainda não tem acordo cadastrado.</p>
+            <p className="text-sm font-medium">Este cliente ainda não tem acordo.</p>
             <p className="max-w-lg text-sm text-muted-foreground">
               O acordo nasce com os sete quóruns e os mecanismos mais comuns já preenchidos,
               medidos nos acordos que a OSG já fez. Você corrige o que este cliente tem de

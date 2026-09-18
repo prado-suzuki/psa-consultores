@@ -87,8 +87,7 @@ const OrgaosGovernanca = () => {
           <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center text-muted-foreground">
             <Landmark className="h-10 w-10 opacity-50" />
             <p className="max-w-md text-sm">
-              Selecione um cliente na barra acima para visualizar os órgãos já cadastrados ou
-              adicionar novos responsáveis pelas decisões.
+              Selecione um cliente na barra acima para abrir os órgãos dele.
             </p>
           </div>
         ) : (
