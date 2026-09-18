@@ -1789,14 +1789,13 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
        * que acende o bloco inteiro do fluxo, com os números dentro dele fixos.
        */
       /*
-       * A PREFERÊNCIA: a fila em prosa, o que passa por ela, e o interruptor.
+       * A PREFERÊNCIA: o que passa por ela, e o interruptor.
        *
-       * `ordemPreferencia` é a fila já escrita ("aos descendentes dos
-       * SIGNATÁRIOS, depois aos demais QUOTISTAS"), para a cláusula que a diz
-       * numa frase só. A mesma fila também sai como LISTA, para o bloco que
-       * quer uma alínea por posição; as duas vêm da mesma tabela.
+       * A FILA saiu em 17/09: era lista de quem tem a vez, e nenhum dos sete
+       * acordos do acervo escreve uma fila assim. O que existe é a regra do
+       * AgroAliança 5.5, que diz outra coisa (a preferência fica primeiro no
+       * RAMO de quem vende), e essa lê a lista de ramos.
        */
-      { id: 'ordemPreferencia', label: 'Ordem do direito de preferência', tipo: 'texto' },
       { id: 'objetosPreferencia', label: 'Objetos sujeitos à preferência (em prosa)',
         tipo: 'texto' },
       { id: 'objetosPreferenciaChaves', label: 'Objetos sujeitos à preferência (chaves)',

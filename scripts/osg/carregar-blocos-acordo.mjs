@@ -164,6 +164,10 @@ const FLAGS = [
     descricao: 'A preferencia alcanca oportunidades de negocio.' },
   { nome: 'acordo_por_arbitragem', campo: 'porArbitragem',
     descricao: 'A briga vai para arbitragem, e nao para o judiciario.' },
+  { nome: 'acordo_tem_ramos', campo: 'temRamos',
+    descricao: 'A familia se divide em ramos (grupos de descendentes).' },
+  { nome: 'acordo_tem_usufruto_com_voto', campo: 'temUsufrutoComVoto',
+    descricao: 'Trata de usufruto com direito de voto sobre as quotas.' },
 ];
 const flagIdPorNome = new Map();
 for (const f of FLAGS) {

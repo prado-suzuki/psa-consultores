@@ -675,25 +675,6 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
       { id: 'ordem', label: 'Ordem do ramo (1, 2…)' },
     ],
   },
-
-  /*
-   * A FILA DA PREFERÊNCIA, de quem compra antes de a quota poder ir a terceiro.
-   *
-   * O contrato social diz só "aos demais sócios, na proporção"; a ordem existe
-   * no acordo, e é o que esta lista escreve.
-   */
-  ordemDaPreferencia: {
-    label: 'Ordem do direito de preferência (a fila)',
-    tipo: 'acordoQuotistas',
-    itemKey: 'preferente',
-    fonte: 'acordo_quotistas',
-    campoResumo: 'quem',
-    camposExtras: [
-      { id: 'quem', label: 'Quem tem a vez ("os descendentes dos SIGNATÁRIOS")' },
-      { id: 'alinea', label: 'Letra da alínea (a, b, c…)' },
-      { id: 'ordem', label: 'Posição na fila (1, 2…)' },
-    ],
-  },
 };
 
 /** Condicionais de item conhecidas dentro de seções de lista. */

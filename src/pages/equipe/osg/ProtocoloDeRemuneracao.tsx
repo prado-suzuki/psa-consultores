@@ -1,5 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Columns3, CopyPlus, MousePointerClick, Plus, ScrollText, Sparkles } from 'lucide-react';
+import JSZip from 'jszip';
+import { toast } from 'sonner';
+import {
+  Columns3, CopyPlus, FileSpreadsheet, MousePointerClick, Plus, ScrollText, Sparkles,
+} from 'lucide-react';
 
 import { AcrescentarItemModal } from '@/components/equipe/osg/governanca/AcrescentarItemModal';
 import { ColunasDoProtocoloModal } from '@/components/equipe/osg/governanca/ColunasDoProtocoloModal';
@@ -25,6 +29,7 @@ import {
   useVersoesDoProtocolo,
 } from '@/hooks/useDomainProtocoloRemuneracao';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
+import { nomeDoArquivo, planilhaXmlDoProtocolo } from '@/lib/protocoloPlanilhaXml';
 import {
   type LinhaDaGrade,
   diffDaLinha,
@@ -60,7 +65,7 @@ const ProtocoloDeRemuneracao = () => {
   const { data: protocolo, isLoading } = useProtocoloDoCliente(clienteId, versaoAberta);
   const { data: temDocumento = false } = useClienteTemDocumentoGerado(clienteId ?? null);
   const {
-    criarProtocolo, novaVersao, salvarLinha, removerLinha, adicionarItens,
+    criarProtocolo, novaVersao, registrarGeracao, salvarLinha, removerLinha, adicionarItens,
     criarTemaDoCliente, criarItemDoCliente,
     adicionarBeneficiario, renomearBeneficiario, removerBeneficiario,
     salvarPreambulo,
@@ -114,6 +119,65 @@ const ProtocoloDeRemuneracao = () => {
       (maior, l) => Math.max(maior, protocolo?.linhas.find((x) => x.id === l.linha_id)?.ordem ?? 0),
       0,
     );
+
+  /**
+   * Escreve a planilha DENTRO do modelo da casa.
+   *
+   * Não monta um arquivo novo: abre o `.xlsx` do modelo, que é um zip, troca só
+   * a planilha de dentro e refecha. Assim `styles.xml`, fontes, cores, bordas,
+   * alturas de linha, congelamento de painel e configuração de impressão ficam
+   * intocados, e a saída é idêntica ao modelo por construção.
+   *
+   * A primeira versão montava o arquivo do zero com o `xlsx`, e saía cru: a
+   * versão community do SheetJS escreve valor, largura e mesclagem, mas não
+   * escreve estilo de célula. O arquivo saía com 1 fonte e 1 estilo contra as 6
+   * fontes e 18 estilos do modelo.
+   */
+  const gerarPlanilha = async () => {
+    if (!protocolo) return;
+    try {
+      const resposta = await fetch('/modelos/protocolo-remuneracao-modelo.xlsx');
+      if (!resposta.ok) throw new Error('não encontrei o modelo da casa');
+
+      const zip = await JSZip.loadAsync(await resposta.arrayBuffer());
+      const planilha = zip.file('xl/worksheets/sheet1.xml');
+      if (!planilha) throw new Error('o modelo não tem a planilha esperada');
+
+      const { xml } = planilhaXmlDoProtocolo(
+        await planilha.async('string'),
+        grade,
+        colunas,
+        protocolo.protocolo.preambulo,
+      );
+      zip.file('xl/worksheets/sheet1.xml', xml);
+
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nomeDoArquivo(protocolo.cliente, protocolo.protocolo.versao);
+      link.click();
+      URL.revokeObjectURL(url);
+
+      /*
+        O registro vem DEPOIS do arquivo e sem esperar: o download é o que a
+        pessoa pediu, e não pode ser desfeito se o banco falhar. A mutação avisa
+        sozinha se não conseguir registrar.
+      */
+      void registrarGeracao.mutateAsync({
+        protocoloId: protocolo.protocolo.id,
+        versao: protocolo.protocolo.versao,
+        /* O snapshot guarda a grade que produziu o arquivo, e e ela que permite
+           refazer a planilha identica depois. O arquivo em si nao e guardado,
+           como nenhum documento deste sistema e. */
+        grade,
+      });
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? `Não consegui gerar a planilha: ${e.message}` : 'Não consegui gerar a planilha',
+      );
+    }
+  };
 
   const vazio = (icone: React.ReactNode, texto: React.ReactNode) => (
     <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 px-6 py-16 text-center">
@@ -180,6 +244,13 @@ const ProtocoloDeRemuneracao = () => {
             </Button>
             <Button size="sm" variant="outline" onClick={() => setAcrescentando(true)}>
               <Plus className="mr-2 h-4 w-4" /> Acrescentar item
+            </Button>
+            {/*
+              Gerar fica por último e é o único preenchido: é o fim do trabalho
+              desta tela, e as outras três ações servem para chegar até ele.
+            */}
+            <Button size="sm" onClick={() => void gerarPlanilha()}>
+              <FileSpreadsheet className="mr-2 h-4 w-4" /> Gerar planilha
             </Button>
           </div>
         ) : undefined

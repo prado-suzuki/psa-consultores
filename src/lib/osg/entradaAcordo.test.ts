@@ -54,7 +54,6 @@ const CADASTRO = {
       base: 'capital', ordem: 2 },
   ],
   ramos: [{ nome: 'Cristina', ordem: 0 }],
-  ordemPreferencia: [{ quem: 'os descendentes dos SIGNATÁRIOS', ordem: 0 }],
   signatarios: [{ pessoa_id: 'p1' }, { pessoa_id: 'p2' }],
 } as unknown as AcordoCompleto;
 
@@ -218,14 +217,13 @@ describe('a cadeia do acordo, da coluna ao documento', () => {
     expect(semDePara, 'coluna sem de-para nunca chega ao documento').toEqual([]);
   });
 
-  it('as quatro listas chegam com item, e o item com os campos que o bloco usa', () => {
+  it('as três listas chegam com item, e o item com os campos que o bloco usa', () => {
     const listas = listasDoAcordo(entradaDoAcordo(CHEIO, PESSOAS)!);
     const campoDoItem = (lista: string, item: string, campo: string) =>
       (listas[lista]?.[0]?.[item] as Record<string, string> | undefined)?.[campo];
 
     expect(campoDoItem('quorunsDoAcordo', 'quorum', 'expressao')).toBeTruthy();
     expect(campoDoItem('ramosFamiliares', 'ramo', 'rotulo')).toBe('DESCENDENTES DE CRISTINA');
-    expect(campoDoItem('ordemDaPreferencia', 'preferente', 'quem')).toBeTruthy();
     expect(campoDoItem('quotistasSignatarios', 'quotista', 'nome')).toBe('CRISTINA BOCOLLI');
   });
 

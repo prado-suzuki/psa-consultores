@@ -101,19 +101,11 @@ export interface RamoParaMapear {
   ordem: number;
 }
 
-/** Uma linha de `acordo_ordem_preferencia`. */
-export interface PreferenteParaMapear {
-  quem: string;
-  ordem: number;
-}
-
 export interface EntradaAcordo {
   /** O cabeçalho, como o mapeador o espera, menos o que se deriva das listas. */
-  acordo: Omit<AcordoParaMapear, 'temRamos' | 'quantosRamos'
-    | 'ordemPreferencia' | 'objetosPreferencia'>;
+  acordo: Omit<AcordoParaMapear, 'temRamos' | 'quantosRamos' | 'objetosPreferencia'>;
   quoruns: QuorumParaMapear[];
   ramos: RamoParaMapear[];
-  ordemPreferencia: PreferenteParaMapear[];
   /** Os quotistas que assinaram a PRIMEIRA versão, já qualificados. */
   signatarios: PessoaRow[];
   /** As outras empresas do grupo alcançadas pelo acordo. */
@@ -217,14 +209,6 @@ export function camposDoAcordo(entrada: EntradaAcordo): Campos {
     ...entrada.acordo,
     temRamos: entrada.ramos.length > 0,
     quantosRamos: entrada.ramos.length || null,
-    /*
-     * A FILA EM PROSA, para a cláusula que a diz numa frase só. A mesma fila sai
-     * como lista, para o bloco que quer uma alínea por posição; as duas vêm da
-     * mesma tabela, e por isso se montam no mesmo lugar.
-     */
-    ordemPreferencia: emProsa(
-      [...entrada.ordemPreferencia].sort((a, b) => a.ordem - b.ordem).map((p) => p.quem),
-    ) || null,
     objetosPreferencia: prosaDasChaves(objetos, OBJETO_NO_DOCUMENTO) || null,
     objetosPreferenciaChaves: [...objetos],
     }),
@@ -275,14 +259,6 @@ export function listasDoAcordo(entrada: EntradaAcordo): Record<string, ItemLista
     } as Campos,
   }));
 
-  const ordemDaPreferencia: ItemLista[] = porOrdem(entrada.ordemPreferencia).map((p, i) => ({
-    preferente: {
-      quem: p.quem,
-      alinea: letraAlinea(i + 1),
-      ordem: String(i + 1),
-    } as Campos,
-  }));
-
   /*
    * OS SIGNATÁRIOS SÃO PESSOA, e por isso passam pelo mapeador de pessoa: o
    * documento os qualifica por inteiro no preâmbulo, com nacionalidade, estado
@@ -307,7 +283,6 @@ export function listasDoAcordo(entrada: EntradaAcordo): Record<string, ItemLista
   return {
     quorunsDoAcordo,
     ramosFamiliares,
-    ordemDaPreferencia,
     quotistasSignatarios,
   };
 }

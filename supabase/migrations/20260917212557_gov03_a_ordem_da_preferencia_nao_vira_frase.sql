@@ -1,0 +1,30 @@
+-- GOV-03 | A ORDEM DO DIREITO DE PREFERENCIA SAI DO CADASTRO
+--
+-- A regra da casa: campo que nao vira frase no documento nao devia existir.
+-- Esta tabela nao vira.
+--
+-- O QUE FOI MEDIDO, e nao deduzido:
+--
+--   1. O binding `ordemDaPreferencia` aparece ZERO vez nos 268 blocos do
+--      catalogo do Acordo. O consultor preenchia a fila e o documento saia sem
+--      uma linha sobre ela.
+--
+--   2. Procurada a fila nos SETE acordos do acervo (modelo VF, AgroAlianca,
+--      Horita, Perci, AgroFerragens Luizao, Via Fertil e Utida). Nenhum escreve
+--      uma ordem como LISTA de quem tem a vez. O unico que trata do assunto e o
+--      AgroAlianca, no item 5.5, e o que ele diz e outra coisa: a preferencia se
+--      exerce primeiro dentro do RAMO de quem esta vendendo, e so depois se
+--      estende aos demais. E regra sobre os ramos, e nao fila de nomes.
+--
+--   3. Essa regra do 5.5 foi parametrizada em 17/09 como item no fim da Clausula
+--      Quinta, governada pela flag `acordo_tem_ramos`. Ela le a lista de RAMOS,
+--      que fica, e nao esta tabela.
+--
+-- SEGURANCA. Producao tem 0 linhas em `acordo_ordem_preferencia` e 0 acordos
+-- cadastrados, conferido pelo MCP do Lovable antes de escrever. No sandbox ha 6
+-- linhas, todas do cliente de teste. Nada de cliente se perde.
+--
+-- PARA DESFAZER: recriar a tabela como esta na migration
+-- 20260914210309_gov03_cadastro_do_acordo_de_quotistas.sql, com a RLS dela.
+
+DROP TABLE IF EXISTS public.acordo_ordem_preferencia;

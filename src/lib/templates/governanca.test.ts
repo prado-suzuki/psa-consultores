@@ -318,7 +318,6 @@ describe('GOV-03 · o motor conhece os parâmetros do acordo', () => {
     vigenciaAnos: 10,
     temRamos: true,
     reuniaoPreviaObrigatoria: true,
-    ordemPreferencia: 'aos descendentes dos SIGNATÁRIOS, depois aos demais QUOTISTAS',
     objetosPreferencia: 'quotas, imóveis, máquinas e oportunidades de negócio',
     objetosPreferenciaChaves: ['quotas', 'imoveis', 'maquinas', 'oportunidades'],
     mecanismos: ['preferencia', 'lock_up', 'tag_along', 'drag_along', 'nao_concorrencia'],
@@ -467,7 +466,7 @@ describe('GOV-03 · o motor conhece os parâmetros do acordo', () => {
       '{{#acordo.temRamos}}Cada ramo vota como bloco único.{{/acordo.temRamos}}',
       '{{#acordo.reuniaoPreviaObrigatoria}}As deliberações constituirão Acordos de Voto.{{/acordo.reuniaoPreviaObrigatoria}}',
       '{{#acordo.semReuniaoPrevia}}Sem reunião prévia.{{/acordo.semReuniaoPrevia}}',
-      'A preferência é {{ acordo.ordemPreferencia }}, sobre {{ acordo.objetosPreferencia }}.',
+      'A preferência é sobre {{ acordo.objetosPreferencia }}.',
       '{{#acordo.preferenciaAlemDasQuotas}}Cláusula Décima.{{/acordo.preferenciaAlemDasQuotas}}',
       '{{#acordo.temLockUp}}lock-up{{/acordo.temLockUp}}{{#acordo.temTagAlong}}tag along{{/acordo.temTagAlong}}',
       '{{#acordo.temDragAlong}}drag along{{/acordo.temDragAlong}}{{#acordo.temQuarentena}}quarentena{{/acordo.temQuarentena}}',
@@ -537,17 +536,13 @@ describe('GOV-03 · as listas do Acordo', () => {
     'Prevalecerão os seguintes quóruns de deliberação:',
     '{{#quorunsDoAcordo sep="\n"}}{{ quorum.alinea }}) Conforme decidam {{ quorum.expressao }}',
     'em relação a {{ quorum.materia }};{{/quorunsDoAcordo}}',
-    '',
-    'O DIREITO DE PREFERÊNCIA será exercido nesta ordem:',
-    '{{#ordemDaPreferencia sep="\n"}}{{ preferente.alinea }}) {{ preferente.quem }};',
-    '{{/ordemDaPreferencia}}',
   ].join('\n');
 
-  it('as quatro seções são papéis conhecidos', () => {
+  it('as três seções são papéis conhecidos', () => {
     const deteccao = detectarBindingsDeConteudo(MODELO_LISTAS);
     expect(deteccao.secoesDesconhecidas, 'seção sem papel some do Word inteira').toEqual([]);
     expect(deteccao.listas.map((l) => l.nome).sort()).toEqual([
-      'ordemDaPreferencia', 'quorunsDoAcordo', 'quotistasSignatarios',
+      'quorunsDoAcordo', 'quotistasSignatarios',
       'ramosFamiliares',
     ]);
   });
@@ -559,7 +554,6 @@ describe('GOV-03 · as listas do Acordo', () => {
       quotista: 'quotistasSignatarios',
       ramo: 'ramosFamiliares',
       quorum: 'quorunsDoAcordo',
-      preferente: 'ordemDaPreferencia',
     };
     /*
      * As três listas novas NÃO herdam campo da entidade.
@@ -587,13 +581,12 @@ describe('GOV-03 · as listas do Acordo', () => {
     expect(faltando).toEqual([]);
   });
 
-  it('as quatro saem do cadastro do acordo, e não de escolha na tela', () => {
+  it('as três saem do cadastro do acordo, e não de escolha na tela', () => {
     // Enquanto fossem `selecao`, a tela Gerar pediria para escolher de novo o
     // que o cadastro já tem. Conferido em 15/09: nenhum bloco do sandbox usava
     // as duas que existiam antes, então a troca não reescreve documento nenhum.
     for (const nome of [
-      'quotistasSignatarios', 'ramosFamiliares',
-      'quorunsDoAcordo', 'ordemDaPreferencia',
+      'quotistasSignatarios', 'ramosFamiliares', 'quorunsDoAcordo',
     ]) {
       expect(PAPEIS_LISTA[nome].fonte, `${nome} saindo da fonte errada`).toBe('acordo_quotistas');
     }

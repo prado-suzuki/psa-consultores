@@ -172,7 +172,7 @@ const pessoaPorId = new Map(pessoas.map((p) => [p.id, p]));
 
 const crus = await get<Record<string, never>>(
   'acordo_quotistas?select=*,acordo_quorum(*),acordo_ramo_familiar(*),'
-  + 'acordo_ordem_preferencia(*),acordo_signatario(*)'
+  + 'acordo_signatario(*)'
   + `&cliente_id=eq.${cliente.id}&excluido=eq.false&order=versao.desc`,
 );
 // A forma que `entradaDoAcordo` espera é a de `useAcordosDoCliente`: cabeçalho
@@ -182,11 +182,11 @@ const porOrdem = <T extends { ordem: number }>(l: T[] | null) =>
 const completos = crus.map((linha) => {
   const {
     acordo_quorum: quoruns, acordo_ramo_familiar: ramos,
-    acordo_ordem_preferencia: ordem, acordo_signatario: signatarios, ...acordo
+    acordo_signatario: signatarios, ...acordo
   } = linha as unknown as Record<string, never[]>;
   return {
     acordo, quoruns: porOrdem(quoruns), ramos: porOrdem(ramos),
-    ordemPreferencia: porOrdem(ordem), signatarios: porOrdem(signatarios),
+    signatarios: porOrdem(signatarios),
   };
 });
 const escolhido = VERSAO

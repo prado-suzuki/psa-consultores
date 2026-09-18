@@ -21,7 +21,7 @@ import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
 import {
   GRUPOS_DO_ACORDO, obrigatoriosEmFalta, preenchidosNoGrupo, type GrupoDoAcordo,
 } from '@/lib/acordoGrupos';
-import { resumoDaOrdem, resumoDosQuoruns, resumoDosRamos } from '@/lib/acordoQuotistas';
+import { resumoDosQuoruns, resumoDosRamos } from '@/lib/acordoQuotistas';
 import { mecanismosCoerentes, type BaseQuorum, type TipoQuorum } from '@/lib/acordoQuotistasPadrao';
 import { cn } from '@/lib/utils';
 
@@ -94,13 +94,12 @@ const AcordoDeQuotistas = () => {
       base: q.base as BaseQuorum,
     })),
     ramos: (data?.ramos ?? []).map((r) => ({ nome: r.nome })),
-    ordemPreferencia: (data?.ordemPreferencia ?? []).map((o) => o.quem),
     signatarios: (data?.signatarios ?? []).map((x) => x.pessoa_id),
   }), [data]);
 
   const salvarGrupo = async (novos: ValoresDoAcordo) => {
     if (!data) return;
-    const { quoruns, ramos, ordemPreferencia, signatarios, sociedades, ...cabecalho } = novos;
+    const { quoruns, ramos, signatarios, sociedades, ...cabecalho } = novos;
 
     /*
      * Os quatro mecanismos espelhados se acertam AQUI, e não na tela.
@@ -115,18 +114,16 @@ const AcordoDeQuotistas = () => {
       cabecalho.mecanismos as string[] | null, novos,
     );
 
-    // As três listas viajam juntas porque a auditoria delas é uma entrada por
+    // As duas listas viajam juntas porque a auditoria delas é uma entrada por
     // lista, e não uma por linha. Ver `lib/acordoQuotistas`.
     await salvarListas.mutateAsync({
       acordoId: data.acordo.id,
       versao: data.acordo.versao,
       quoruns,
       ramos,
-      ordemPreferencia: ordemPreferencia.filter((q) => q.trim() !== ''),
       antes: {
         quoruns: resumoDosQuoruns(valores.quoruns),
         ramos: resumoDosRamos(valores.ramos),
-        ordem: resumoDaOrdem(valores.ordemPreferencia.map((quem, ordem) => ({ quem, ordem }))),
       },
     });
 
@@ -399,6 +396,16 @@ const AcordoDeQuotistas = () => {
           pessoas={pessoas}
           onSalvar={salvarGrupo}
           salvando={salvando}
+          /*
+           * Trocar de grupo sem passar pela lista: a marcação espelhada diz em
+           * que bloco se muda, e daqui ela LEVA. Salvar não entra no caminho de
+           * propósito — o que a pessoa fez nas caixas livres deste grupo segue
+           * no rascunho, e quem decide gravar continua sendo o botão.
+           */
+          onIrParaGrupo={(chave) => {
+            const destino = GRUPOS_DO_ACORDO.find((g) => g.chave === chave);
+            if (destino) setGrupoAberto(destino);
+          }}
         />
       )}
     </OsgLayout>

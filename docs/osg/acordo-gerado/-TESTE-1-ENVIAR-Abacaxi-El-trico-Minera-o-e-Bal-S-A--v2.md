@@ -2,8 +2,8 @@ ACORDO DE QUOTISTAS DA SOCIEDADE
 
 AURORA ADMINISTRADORA DE BENS LTDA
 
-I. PARTES INTEGRANTES:
-Na condição de signatários do presente Acordo de Quotistas, doravante nominado “ACORDO”, dos atuais sócios da AURORA ADMINISTRADORA DE BENS LTDA, as pessoas adiante qualificadas e doravante designadas quando em conjunto de “QUOTISTAS” e quando isoladamente de “QUOTISTA”:
+*I. PARTES INTEGRANTES:*
+Na condição de signatários do presente Acordo de Quotistas, doravante nominado “ACORDO”, dos atuais sócios da *AURORA ADMINISTRADORA DE BENS LTDA*, as pessoas adiante qualificadas e doravante designadas quando em conjunto de “QUOTISTAS” e quando isoladamente de “QUOTISTA”:
 
 i. *AURORA ADMINISTRADORA DE BENS LTDA*, pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o n.º 51.938.484/4863-84, registrada na Junta Comercial do Estado de Mato Grosso sob o NIRE n.º 51202298061, com sede estabelecida na Rua Carla Gomes, n.º 1824, Sala 1, Bairro Centro, no município de Sorriso, Estado de Mato Grosso, CEP 31208-000
 
@@ -13,9 +13,9 @@ iii. *KARINA TEIXEIRA*, brasileira, casada em regime de comunhão parcial de ben
 
 Na condição de INTERVENIENTE ANUENTE dos termos do presente ACORDO, a sociedade empresária do tipo jurídico sociedade limitada abaixo qualificada, a qual declara ter recebido uma das vias deste ACORDO, que fora arquivada na sede da sociedade, na forma entabulada pelos artigos 1.053, parágrafo único da Lei 10.406/2.002 (doravante “Código Civil” e/ou “CC”) e 118 da Lei 6.404/1.976 e suas alterações (doravante “Lei das S/A”):
 
-AURORA ADMINISTRADORA DE BENS LTDA, pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 51.938.484/4863-84, registrada na Junta Comercial do Estado de Mato Grosso sob NIRE n° 51202298061, com sede estabelecida na Rua Carla Gomes, n.º 1824, Sala 1, Bairro Centro, no município de Sorriso, Estado de Mato Grosso, CEP 31208-000, neste ato representada por seus administradores ÍRIS PIRES e KARINA TEIXEIRA; doravante nominada “____________________” ou “____________________”.
+*AURORA ADMINISTRADORA DE BENS LTDA*, pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 51.938.484/4863-84, registrada na Junta Comercial do Estado de Mato Grosso sob NIRE n° 51202298061, com sede estabelecida na Rua Carla Gomes, n.º 1824, Sala 1, Bairro Centro, no município de Sorriso, Estado de Mato Grosso, CEP 31208-000, neste ato representada por seus administradores ÍRIS PIRES e KARINA TEIXEIRA; doravante nominada “____________________” ou “____________________”.
 
-II. CONSIDERAÇÕES INICIAIS:
+*II. CONSIDERAÇÕES INICIAIS:*
 CONSIDERANDO que:
 
 a) Os QUOTISTAS da ____________________ autorizaram no contrato social desta sociedade que os sócios tabulem Acordos de Quotistas, nos termos do art. 1.053, parágrafo único do Código Civil e art. 118 da Lei das S/A;
@@ -31,7 +31,7 @@ e) É desejo dos QUOTISTAS da ____________________ que o seu quadro societário 
 f) Os QUOTISTAS, pelo presente e na busca dos ideais descritos acima, pretendem estabelecer compromissos e acordos entre si, com a anuência da ____________________, relativamente aos assuntos dispostos neste ACORDO.
 
 Considerando todo o exposto acima, as partes signatárias deste acordo, quais sejam, os QUOTISTAS e a INTERVENIENTE ANUENTE, têm consensualmente como justo e acertado o presente ACORDO DE QUOTISTAS, doravante nominado ACORDO, na forma entabulada pelos artigos 1.053, parágrafo único do Código Civil e 118 da Lei das S/A, o que fazem segundo as cláusulas e condições seguintes, mutuamente aceitas e outorgadas entre si:
-III.DAS DISPOSIÇÕES ACORDADAS:
+*III.DAS DISPOSIÇÕES ACORDADAS:*
 
 *CLÁUSULA PRIMEIRA – Definições das expressões utilizadas neste ACORDO.*
 
@@ -175,7 +175,7 @@ III.DAS DISPOSIÇÕES ACORDADAS:
 
 6.12 Eventuais SOCIEDADES QUOTISTAS que venham aderir à este ACORDO, ao aceitá-lo, garantirão solidariamente e ilimitadamente as obrigações assumidas nesta cláusula pelo QUOTISTA ou PARTE RELACIONADA (bem como cônjuges e/ou companheiros(as)) que venham pertencer ao seu quadro societário, com renúncia expressa de qualquer benefício de ordem ou privilégio da SOCIEDADE QUOTISTA em relação aquele QUOTISTA, podendo a ____________________, qualquer outro QUOTISTA e/ou as SOCIEDADES RELACIONADAS exigirem desta SOCIEDADE QUOTISTA o pagamento da multa e demais obrigações descritas no item anterior, ainda que o QUOTISTA não tenha dado causa ao descumprimento.
 
-*CLÁUSULA SÉTIMA – Do direito de retirada dos QUOTISTAS, da OPÇÃO DE VENDA, da OPÇÃO DE COMPRA e da CLÁUSULA DE QUARENTENA*
+*CLÁUSULA SÉTIMA – Do direito de retirada dos QUOTISTAS, da OPÇÃO DE VENDA e da OPÇÃO DE COMPRA*
 
 7.1 Os QUOTISTAS comprometem-se a votar nas REUNIÕES DE SÓCIOS que tenham como ordem do dia o ingresso de herdeiros, ex-cônjuges e/ou ex-companheiro(a), a penhora e/ou liquidação de QUOTAS de acordo com os princípios acima, caso não seja possível exercer a OPÇÃO DE COMPRA ou OPÇÃO DE VENDA previstas neste ACORDO.
 
@@ -211,9 +211,7 @@ e) Conforme decidam a maioria dos VOTOS dos QUOTISTAS presentes nas REUNIÕES PR
 
 8.6.3 Se não forem realizadas REUNIÕES PRÉVIAS ou REUNIÕES DE QUOTISTAS, qualquer QUOTISTA poderá requerer a suspensão da REUNIÃO DE SÓCIOS da ____________________ para que seja realizada uma REUNIÃO PRÉVIA durante esta suspensão, independente de convocação, a fim de que sejam deliberadas as matérias sujeitas a quórum específico tratadas neste ACORDO. Retomada a REUNIÃO DE SÓCIOS após a realização da REUNIÃO PRÉVIA, os QUOTISTAS votarão em conjunto consoante ao que decidirem aquela REUNIÃO PRÉVIA, aplicando-se, em todos os casos, o disposto nesta cláusula, podendo cada QUOTISTA valer-se da Ata da REUNIÃO PRÉVIA como instrumento de mandato irrevogável e irretratável para o exercício do direito de voto dos demais QUOTISTAS (inclusive dos ausentes), nos termos estabelecidos naquela solenidade e transcrito na ata, de acordo com o que prevê este ACORDO com relação a poderes das Atas das REUNIÕES PRÉVIAS e/ou de REUNIÕES DE QUOTISTAS.
 
-8.6.4 Os direitos de VOTO das QUOTAS vinculadas a este ACORDO observarão os eventuais usufrutuários e/ou detentores dos direitos de voto vinculados à cada QUOTA, de modo que caso o titular (proprietário) das QUOTAS não seja o usufrutuário, o direito de VOTO objeto deste ACORDO será exercido pelo usufrutuário com direito a voto.
-
-8.6.5 Os votos dos QUOTISTAS em REUNIÕES PRÉVIAS, REUNIÕES DE QUOTISTAS ou REUNIÕES DE SÓCIOS da ____________________ contrários às propostas submetidas à deliberação deverão ser fundamentados, cujas razões obrigatoriamente serão consignadas em Ata.
+8.6.4 Os votos dos QUOTISTAS em REUNIÕES PRÉVIAS, REUNIÕES DE QUOTISTAS ou REUNIÕES DE SÓCIOS da ____________________ contrários às propostas submetidas à deliberação deverão ser fundamentados, cujas razões obrigatoriamente serão consignadas em Ata.
 
 *CLÁUSULA NONA – Outros negócios dos QUOTISTAS e das PARTES RELACIONADAS, a utilização do nome ou marca da ____________________ e/ou de suas SOCIEDADES RELACIONADAS e a fruição de benefícios e serviços*
 
@@ -440,11 +438,16 @@ c) Tratando-se de dívida(s) superior a R$ 300.000,00 (trezentos mil reais), o Q
 23.2.2 Todas as custas decorrentes de procedimentos arbitrais e/ou judiciais serão reembolsadas por aquele que der causa e de acordo com ambas as decisões
 
 E, por estarem assim justas e acordadas, os QUOTISTAS e a ____________________ (“INTERVENIENTE ANUENTE”) assinam o presente instrumento em 06 (seis) vias de igual teor e forma, para um só efeito, na presença das 02 (duas) testemunhas abaixo qualificadas.
+
 Sorriso/MT, ____ de ______________ de 20__.
+
 SOCIEDADE INTERVENIENTE:
+
 _________________________________________
 AURORA ADMINISTRADORA DE BENS LTDA
+
 QUOTISTAS:
+
 _________________________________________
 AURORA ADMINISTRADORA DE BENS LTDA
 
@@ -453,10 +456,13 @@ ELISA ESTEVES
 
 _________________________________________
 KARINA TEIXEIRA
+
 TESTEMUNHAS:
-NOME: ____________________
-RG: ____________________
-CPF/MF: ____________________
-NOME: ____________________
-RG: ____________________
-CPF/MF: ____________________
+
+*NOME:* ____________________
+*RG:* ____________________
+*CPF/MF:* ____________________
+
+*NOME:* ____________________
+*RG:* ____________________
+*CPF/MF:* ____________________

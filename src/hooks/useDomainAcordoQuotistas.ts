@@ -14,7 +14,6 @@ import {
 import {
   diffDasListas,
   diffDoAcordo,
-  resumoDaOrdem,
   resumoDosQuoruns,
   resumoDosRamos,
 } from '@/lib/acordoQuotistas';
@@ -46,7 +45,6 @@ import {
 type AcordoRow = Database['public']['Tables']['acordo_quotistas']['Row'];
 type QuorumRow = Database['public']['Tables']['acordo_quorum']['Row'];
 type RamoRow = Database['public']['Tables']['acordo_ramo_familiar']['Row'];
-type OrdemRow = Database['public']['Tables']['acordo_ordem_preferencia']['Row'];
 type SignatarioRow = Database['public']['Tables']['acordo_signatario']['Row'];
 
 export type AcordoQuotistas = AcordoRow;
@@ -58,7 +56,6 @@ export interface AcordoCompleto {
   acordo: AcordoRow;
   quoruns: QuorumRow[];
   ramos: RamoRow[];
-  ordemPreferencia: OrdemRow[];
   signatarios: SignatarioRow[];
 }
 
@@ -128,7 +125,7 @@ export function useAcordoDoCliente(clienteId?: string | null, acordoId?: string 
         //
         // Passava calado num `tsc --noEmit` solto, que não checa nada neste
         // projeto de referências; quem acusa é o `bun run typecheck`.
-        .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*), acordo_signatario(*)')
+        .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_signatario(*)')
         .eq('cliente_id', clienteId as string)
         .eq('excluido', false);
 
@@ -141,7 +138,6 @@ export function useAcordoDoCliente(clienteId?: string | null, acordoId?: string 
       const {
         acordo_quorum: quoruns,
         acordo_ramo_familiar: ramos,
-        acordo_ordem_preferencia: ordem,
         acordo_signatario: signatarios,
         ...acordo
       } = data;
@@ -153,7 +149,6 @@ export function useAcordoDoCliente(clienteId?: string | null, acordoId?: string 
         acordo,
         quoruns: porOrdem(quoruns),
         ramos: porOrdem(ramos),
-        ordemPreferencia: porOrdem(ordem),
         signatarios: porOrdem(signatarios),
       };
     },
@@ -207,7 +202,7 @@ export function useAcordosDoCliente(clienteId?: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('acordo_quotistas')
-        .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_ordem_preferencia(*), acordo_signatario(*)')
+        .select('*, acordo_quorum(*), acordo_ramo_familiar(*), acordo_signatario(*)')
         .eq('cliente_id', clienteId as string)
         .eq('excluido', false)
         .order('versao', { ascending: false });
@@ -220,7 +215,6 @@ export function useAcordosDoCliente(clienteId?: string | null) {
         const {
           acordo_quorum: quoruns,
           acordo_ramo_familiar: ramos,
-          acordo_ordem_preferencia: ordem,
           acordo_signatario: signatarios,
           ...acordo
         } = linha;
@@ -228,7 +222,6 @@ export function useAcordosDoCliente(clienteId?: string | null) {
           acordo,
           quoruns: porOrdem(quoruns),
           ramos: porOrdem(ramos),
-          ordemPreferencia: porOrdem(ordem),
           signatarios: porOrdem(signatarios),
           } as AcordoCompleto;
       });
@@ -401,14 +394,12 @@ export function useAcordoMutations(clienteId?: string | null) {
       versao: number;
       quoruns: QuorumInput[];
       ramos: RamoInput[];
-      ordemPreferencia: string[];
-      /** Como as três estavam antes, já em prosa, para o log. */
-      antes: { quoruns: string; ramos: string; ordem: string };
+      /** Como as duas estavam antes, já em prosa, para o log. */
+      antes: { quoruns: string; ramos: string };
     }) => {
       const depois = {
         quoruns: resumoDosQuoruns(args.quoruns),
         ramos: resumoDosRamos(args.ramos),
-        ordem: resumoDaOrdem(args.ordemPreferencia.map((quem, ordem) => ({ quem, ordem }))),
       };
       const mudou = diffDasListas(args.antes, depois);
       if (Object.keys(mudou).length === 0) return;
@@ -416,7 +407,7 @@ export function useAcordoMutations(clienteId?: string | null) {
       // Apaga e regrava. O `ordem` de cada linha nasce da posição na tela, que é
       // a ordem em que o documento vai escrever.
       const trocar = async (
-        tabela: 'acordo_quorum' | 'acordo_ramo_familiar' | 'acordo_ordem_preferencia',
+        tabela: 'acordo_quorum' | 'acordo_ramo_familiar',
         linhas: Record<string, unknown>[],
       ) => {
         const { error: erroApagar } = await supabase
@@ -450,16 +441,6 @@ export function useAcordoMutations(clienteId?: string | null) {
         args.ramos.map((r, i) => ({
           acordo_id: args.acordoId,
           nome: r.nome.trim(),
-          ordem: i,
-          ...carimbo(),
-        })),
-      );
-
-      await trocar(
-        'acordo_ordem_preferencia',
-        args.ordemPreferencia.map((quem, i) => ({
-          acordo_id: args.acordoId,
-          quem: quem.trim(),
           ordem: i,
           ...carimbo(),
         })),
