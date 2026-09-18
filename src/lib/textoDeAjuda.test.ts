@@ -127,8 +127,17 @@ const TITLE_NATIVO_LEGADO = 0;
 const RE_PLACEHOLDER_FORA_DO_CANONE =
   /placeholder="(?!Selecione…"|Buscar…"|Ex: )(?:Selecion|Buscar|Busque|Pesquis|Digite|Procur)[^"]*"/g;
 
-/** Congelado em 17/09/2026: 226 em 140 arquivos. */
-const PLACEHOLDER_LEGADO = 226;
+/**
+ * Congelado em 17/09/2026: 226 em 140 arquivos.
+ *
+ * 18/09/2026, revisao de copy da governanca: 225 em 139. Saiu o
+ * `Digite e tecle Enter` do campo de cargos do `OrgaoGovernancaModal`, que virou
+ * texto de apoio visivel embaixo do campo. As outras seis trocas daquela revisao
+ * nao contam aqui, porque a regra so pega placeholder que COMECA por Selecion,
+ * Buscar, Busque, Pesquis, Digite ou Procur, e as outras eram rotulo disfarcado
+ * (`Nome do item`) ou exemplo sem forma (`Conselho de Administracao`).
+ */
+const PLACEHOLDER_LEGADO = 225;
 
 /** O teto de caracteres da explicação contextual (§3). Acima disso é nota de leitura. */
 const TETO_DO_TOOLTIP = 140;
@@ -224,7 +233,7 @@ describe('o texto que explica a tela', () => {
     expect(
       total(medido),
       'A fila do placeholder fora do cânone mudou de tamanho.\n\n'
-        + `Congelada em 17/09/2026: ${PLACEHOLDER_LEGADO} em 140 arquivos.\n`
+        + `Congelada, e hoje em ${PLACEHOLDER_LEGADO} em 139 arquivos.\n`
         + `Agora: ${total(medido)} em ${Object.keys(medido).length}.\n\n`
         + 'As quatro formas são `Selecione…`, `Buscar…`, `Ex: …` e vazio. Texto sob\n'
         + 'medida no placeholder compete com o rótulo em vez de ajudar: quem lê o print\n'

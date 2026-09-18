@@ -177,20 +177,23 @@ export const TELAS_OSG_WORK = {
     path: '/equipe/osg/work/governanca/acordo',
     label: 'Acordo de Quotistas',
     // A 17ª tela, e a única fora da especificação de 11/09: nasceu na frente
-    // GOV-03, depois. A descrição é a frase que a própria tela já exibia antes
-    // de haver lista, então card e cabeçalho continuam dizendo o mesmo.
-    descricao:
-      'O contrato entre os sócios: o que acontece quando alguém quer sair, morre, se separa ou quer vender. O contrato social diz quem é dono e quem manda; o acordo diz o resto.',
+    // GOV-03, depois.
+    //
+    // A descrição era a frase que a tela exibia antes de haver lista, e descrevia
+    // o documento em 170 caracteres. Na revisão de copy de 18/09 ela voltou para a
+    // forma da área: 15 das 17 telas começam com verbo no imperativo, dizendo o
+    // que a pessoa faz ali, entre 51 e 102 caracteres. Esta e a do Protocolo eram
+    // as duas exceções, e as duas mais longas.
+    descricao: 'Defina o que acontece quando um sócio sai, morre, se separa ou quer vender as quotas.',
   },
 
   protocoloRemuneracao: {
     path: '/equipe/osg/work/governanca/protocolo',
     label: 'Protocolo de Remuneração',
-    // A descrição diz o que a pessoa faz, e não o que o sistema guarda. "Quem
-    // tem direito a o quê" é a frase que o próprio card usa para explicar o
-    // documento, e é como a consultoria fala dele na reunião com a família.
-    descricao:
-      'O que a família combinou sobre pró-labore, carro, plano de saúde, viagem e estudo: quem tem direito a o quê, item por item.',
+    // Começa com verbo, como as outras 15 da área. A lista concreta fica: é como
+    // a consultoria fala do documento na reunião com a família, e é o que
+    // distingue esta tela das outras de governança.
+    descricao: 'Registre o que a família combinou sobre pró-labore, carro, plano de saúde, viagem e estudo.',
   },
 
   bibliotecaModelos: {
@@ -247,12 +250,21 @@ export const TELAS_OSG_WORK = {
 
   relatorios: {
     path: '/equipe/osg/work/relatorios',
+    // "Relatórios", e não "Biblioteca de Slides": a tela virou a lista de
+    // relatórios de tela do cliente (diagnóstico patrimonial e quadro
+    // societário), que não viram arquivo — existem para serem lidos e
+    // impressos. A geração do deck saiu para a "Biblioteca de Apresentações".
     label: 'Relatórios',
-    // AJUSTADA: "relatórios consolidados" é vago, e a tela tem quatro
-    // relatórios nomeáveis — diagnóstico patrimonial, quadro societário/
-    // organograma, abertura de demanda e papéis de trabalho do planejamento
-    // tributário. Ela pede nomear o conteúdo quando for possível.
-    descricao: 'Gere os relatórios de diagnóstico patrimonial, quadro societário e planejamento tributário do cliente.',
+    descricao: 'Os relatórios de tela do cliente: diagnóstico patrimonial e quadro societário.',
+  },
+
+  bibliotecaApresentacoes: {
+    path: '/equipe/osg/work/apresentacoes',
+    // A geração do deck, que antes morava junto dos relatórios de tela: a
+    // "Biblioteca de Slides" virou esta tela, e os relatórios ficaram em
+    // `Relatorios`. A rota é nova — `/equipe/osg/work/apresentacoes`.
+    label: 'Biblioteca de Apresentações',
+    descricao: 'Escolha o que vai para a apresentação do cliente e gere o deck.',
   },
 } satisfies Record<string, TelaOsgWork>;
 
@@ -336,10 +348,11 @@ export const GRUPOS_OSG_WORK: readonly GrupoOsgWork[] = [
   },
   {
     id: 'relatorios',
-    rotulo: 'Relatórios',
+    rotulo: 'Relatórios e Slides',
     icone: FileBarChart2,
     telas: [
       TELAS_OSG_WORK.relatorios,
+      TELAS_OSG_WORK.bibliotecaApresentacoes,
     ],
   },
 ];

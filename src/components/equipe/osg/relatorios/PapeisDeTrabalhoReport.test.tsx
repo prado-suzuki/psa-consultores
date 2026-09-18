@@ -72,7 +72,10 @@ describe('PapeisDeTrabalhoReport', () => {
     mocks.revisoes = [UMA_REVISAO];
     render(<PapeisDeTrabalhoReport clienteId="cli-1" />);
 
-    expect(screen.getByText(/Fazenda Aurora/)).toBeInTheDocument();
+    // O nome do CLIENTE não aparece: ele já está na barra de seleção da área, e
+    // aqui era a terceira vez na mesma tela (barra, "Trabalhando em" e título).
+    // O que a pessoa precisa ver é QUAL revisão vai para os slides.
+    expect(screen.queryByText('Fazenda Aurora')).not.toBeInTheDocument();
     expect(screen.getByText(/WP_Fazenda_Aurora\.xlsx/)).toBeInTheDocument();
     expect(screen.getByText(/2026 a 2028/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Gerar os slides/ })).toBeEnabled();

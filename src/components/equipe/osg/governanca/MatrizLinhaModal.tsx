@@ -64,10 +64,13 @@ function ValorDaAlcada({
   valor,
   unidade,
   onChange,
+  descritoPor,
 }: {
   valor: number | null;
   unidade: 'moeda' | 'percentual' | null;
   onChange: (n: number | null) => void;
+  /** O `id` do texto de apoio que explica o campo em branco. */
+  descritoPor?: string;
 }) {
   const [focado, setFocado] = useState(false);
   const [rascunho, setRascunho] = useState('');
@@ -84,7 +87,7 @@ function ValorDaAlcada({
     <Input
       inputMode="decimal"
       value={mostrado}
-      placeholder="sem limite"
+      aria-describedby={descritoPor}
       onFocus={() => {
         setRascunho(valor === null ? '' : String(valor));
         setFocado(true);
@@ -268,7 +271,7 @@ export function MatrizLinhaModal({
                     <div className="space-y-1.5">
                       <Label className="flex items-center gap-1.5">
                         O que faz aqui
-                        <AjudaDoCampo texto="A participação deste órgão nesta atividade. Pode ter mais de uma: no modelo, a Diretoria define a estratégia, participa da negociação e delibera o fechamento, tudo na mesma atividade." />
+                        <AjudaDoCampo texto="A participação deste órgão nesta atividade. Pode ter mais de uma na mesma linha." />
                       </Label>
                       <div className="flex flex-wrap items-center gap-1.5">
                         {c.papeis.map((id) => (
@@ -329,7 +332,7 @@ export function MatrizLinhaModal({
                       <div className="space-y-1.5">
                         <Label className="flex items-center gap-1.5">
                           Depois disso, vai para
-                          <AjudaDoCampo texto="Para onde o assunto segue depois que este órgão faz a parte dele. É daqui que sai o Encaminhar à Reunião de Sócios das cláusulas do contrato. Deixe em Ninguém quando a palavra final é deste órgão mesmo." />
+                          <AjudaDoCampo texto="É daqui que sai o 'Encaminhar à Reunião de Sócios' das cláusulas do contrato." />
                         </Label>
                         <Select
                           value={c.sobe_para_orgao_id ?? NENHUM}
@@ -364,12 +367,13 @@ export function MatrizLinhaModal({
                       <div className="space-y-1.5">
                         <Label className="flex items-center gap-1.5">
                           Decide sozinho até
-                          <AjudaDoCampo texto="O limite até onde este órgão resolve sem consultar ninguém. Acima dele a decisão vai para o órgão do campo ao lado. Pode ser em reais ou em percentual de uma base: no modelo de contrato, dois dos cinco limites são percentuais." />
+                          <AjudaDoCampo texto="Acima deste limite, a decisão vai para o órgão do campo ao lado." />
                         </Label>
                         <div className="flex gap-1.5">
                           <ValorDaAlcada
                             valor={c.alcada_valor}
                             unidade={c.alcada_unidade}
+                            descritoPor={`alcada-ajuda-${c.orgao_id}`}
                             onChange={(n) =>
                               mexer(c.orgao_id, {
                                 alcada_valor: n,
@@ -396,6 +400,19 @@ export function MatrizLinhaModal({
                             </SelectContent>
                           </Select>
                         </div>
+                        {/*
+                          O que o campo em branco significa era um placeholder
+                          ("sem limite"), e placeholder some quando a pessoa digita,
+                          justamente quando ela compara o que escreveu com o que o
+                          branco faria. Virou apoio visível na revisão de copy de
+                          18/09/2026.
+                        */}
+                        <p
+                          id={`alcada-ajuda-${c.orgao_id}`}
+                          className="text-xs text-muted-foreground"
+                        >
+                          Em branco, não há limite.
+                        </p>
                         {c.alcada_unidade === 'percentual' && c.alcada_valor !== null && (
                           <Select
                             value={c.alcada_base ?? NENHUM}
@@ -403,8 +420,8 @@ export function MatrizLinhaModal({
                               mexer(c.orgao_id, { alcada_base: v === NENHUM ? null : v })
                             }
                           >
-                            <SelectTrigger>
-                              <SelectValue placeholder="por cento do quê" />
+                            <SelectTrigger aria-label="Base do percentual">
+                              <SelectValue placeholder="Selecione…" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value={NENHUM}>sem base definida</SelectItem>
@@ -443,7 +460,7 @@ export function MatrizLinhaModal({
                           }
                         />
                         Também o que foge da política ou do orçamento
-                        <AjudaDoCampo texto="Marque quando este órgão, além do que já está escrito acima, também trata do caso que a política ou o orçamento não previram. Na maioria das linhas fica desmarcado." />
+                        <AjudaDoCampo texto="O caso que a política ou o orçamento não previram. Na maioria das linhas fica desmarcado." />
                       </label>
                       {c.fora_da_politica && (
                         <p className="pl-6 text-xs text-muted-foreground">
@@ -470,6 +487,13 @@ export function MatrizLinhaModal({
         <div className="pt-1">
           {mostrarDetalhe || detalhamento ? (
             <div className="space-y-1.5 rounded-lg border border-dashed border-osg-200 p-3">
+{/*
+                ACIMA DO TETO DE 30 CARACTERES, e de propósito, conferido na revisão
+                de copy de 18/09/2026. Este rótulo encabeça uma LINHA COMPOSTA e diz a
+                ação dela, não o conteúdo de um campo. Encurtar para uma expressão
+                nominal apagaria a distinção entre os dois blocos, que é a razão de
+                existirem dois (docs/geral/texto-explicativo-na-tela.md, §3).
+              */}
               <Label htmlFor="mz-detalhe" className="flex items-center gap-1.5">
                 O que entra nesta atividade, neste cliente
               </Label>
@@ -477,7 +501,7 @@ export function MatrizLinhaModal({
                 id="mz-detalhe"
                 value={detalhamento}
                 onChange={(e) => setDetalhamento(e.target.value)}
-                placeholder="de auditoria externa e de governança"
+                placeholder="Ex: de auditoria externa e de governança"
                 autoFocus
               />
               <p className="text-xs leading-relaxed text-muted-foreground">

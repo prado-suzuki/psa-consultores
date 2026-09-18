@@ -61,7 +61,7 @@ export function ExploracaoRuralModal({ open, clienteId, exploracao, onClose }: P
   const { data: exploracoes = [] } = useExploracaoRural(open ? clienteId : null);
   const initialDraftRef = useRef('');
 
-  // Mesmo recorte que o FiscalReport usa: a matrícula é do cliente pelo bem OU pelos
+  // Mesmo recorte que a TerrasExploradas usa: a matrícula é do cliente pelo bem OU pelos
   // titulares — matrícula órfã (sem bem) só se liga ao cliente por este segundo caminho.
   const matriculasDoCliente = useMemo(
     () =>

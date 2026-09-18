@@ -137,13 +137,19 @@ const FILA_DO_BRANCO = {
 /**
  * O total FORA do recorte de caixa, medido em 17/09/2026.
  *
- * São 92 ocorrências em 57 arquivos, e elas não são dívida escondida: é texto
- * branco sobre fundo escuro, ícone, borda, e `rounded-full`/`rounded-sm`, que a
- * definição de "objeto" deixa de fora de propósito — pílula e chip não são
- * superfície. O número está aqui para a próxima medição não confundir os dois
- * recortes, que foi exatamente o erro do "142" do índice.
+ * São 91 ocorrências, e elas não são dívida escondida: é texto branco sobre
+ * fundo escuro, ícone, borda, e `rounded-full`/`rounded-sm`, que a definição de
+ * "objeto" deixa de fora de propósito — pílula e chip não são superfície. O
+ * número está aqui para a próxima medição não confundir os dois recortes, que
+ * foi exatamente o erro do "142" do índice.
+ *
+ * DESCEU de 92 para 91 em 18/09/2026, e não por conversão: o `focus:bg-white`
+ * era do campo editável dos "imóveis não integralizados", no
+ * `DiagnosticoPatrimonialReport`. Aquele bloco inteiro saiu quando a Biblioteca
+ * de Slides passou a mostrar só o que vira slide, e a validação voltou para o
+ * Cadastro Patrimonial — o branco foi junto com o campo que ele pintava.
  */
-const TOTAL_FORA_DO_RECORTE_DE_CAIXA = 92;
+const TOTAL_FORA_DO_RECORTE_DE_CAIXA = 91;
 
 describe('fila do branco literal', () => {
   it('nenhuma caixa arredondada pinta `bg-white`, fora do que esta lista diz', () => {

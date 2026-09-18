@@ -3,7 +3,22 @@ import { Info, Network, PieChart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClientesLista } from '@/hooks/useGestaoClientes';
 import { useRelatorioSocietario, type EmpresaSocietaria, type SocioLinha } from '@/hooks/useRelatorioSocietario';
-import { GerarDeckButton } from '@/components/equipe/osg/relatorios/GerarApresentacao';
+import { MolduraDeSlide, NotaDaPrevia } from '@/components/equipe/osg/relatorios/MolduraDeSlide';
+import { nomeDaPeca } from '@/components/equipe/osg/relatorios/catalogoDaBiblioteca';
+
+/** O mesmo texto da ficha que abre esta peça — ver `nomeDaPeca`. */
+const NOME_DA_PECA = nomeDaPeca('societario');
+
+/**
+ * Os slides de CONTEÚDO do deck societário: organograma e quadro.
+ *
+ * Capa e divisor não entram na conta, pela mesma régua do Diagnóstico. E o
+ * número é fixo porque o gerador tem dois blocos fixos — só o quadro pode
+ * transbordar para uma página extra, e a altura que decide isso é calculada em
+ * EMU dentro da edge function. Reproduzir esse cálculo aqui seria copiar a
+ * diagramação do .pptx para a tela e esperar que as duas nunca divirjam.
+ */
+const TOTAL_DE_SLIDES = 2;
 
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtMoney = (v: number | null): string => (v === null || Number.isNaN(Number(v)) ? '—' : brl.format(Number(v)));
@@ -23,16 +38,22 @@ const papelTxt = (t: string | null): string => (t ? PAPEL_LABEL[t] ?? t : '');
 const th = 'whitespace-nowrap border-b border-osg-200 bg-muted px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground';
 const td = 'border-t border-osg-100 px-3 py-2 align-top text-muted-foreground';
 
-// ---------- tabela de quadro societário (= slides 17-18) ----------
+/**
+ * Uma empresa dentro do slide do quadro — NÃO um slide por empresa.
+ *
+ * A `gerarSocietaria` monta as tabelas em duas colunas no slide4 e só abre outro
+ * slide quando a altura estoura (`QUADRO_TOP_MAX`). Numerar uma por empresa
+ * dizia "Slide 1 de 2" para duas tabelas que saem lado a lado na mesma página.
+ */
 function QuadroTabela({ empresa }: { empresa: EmpresaSocietaria }) {
   const HEAD = ['Sócio', 'Quotas', 'Valor', '%'];
 
   return (
-    <section className="overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm">
+    <section className="overflow-hidden rounded-lg border border-osg-200 bg-background">
       <header className="flex flex-wrap items-center gap-3 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
         <PieChart className="h-4 w-4 shrink-0 text-osg-600" />
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold uppercase text-osg-moss">{empresa.nome}</h3>
+          <h4 className="text-sm font-semibold uppercase text-osg-moss">{empresa.nome}</h4>
           <p className="text-xs text-muted-foreground">
             {empresa.tipoEmpresa ? `${papelTxt(empresa.tipoEmpresa)} · ` : ''}
             {empresa.cnpj ? `CNPJ ${empresa.cnpj} · ` : ''}Capital social {fmtMoney(empresa.totalValor)} · {fmtInt(empresa.totalQuotas)} quotas
@@ -57,7 +78,12 @@ function QuadroTabela({ empresa }: { empresa: EmpresaSocietaria }) {
               <td className="border-t border-osg-200 px-3 py-2">TOTAL</td>
               <td className="border-t border-osg-200 px-3 py-2 text-right tabular-nums">{fmtInt(empresa.totalQuotas)}</td>
               <td className="border-t border-osg-200 px-3 py-2 text-right tabular-nums">{fmtMoney(empresa.totalValor)}</td>
-              <td className="border-t border-osg-200 px-3 py-2 text-right tabular-nums">100,00%</td>
+              {/* SOMA DAS LINHAS, e não "100,00%" cravado. Com `totalQuotas` em
+                  zero cada sócio mostra "—" e o total afirmava 100% assim mesmo,
+                  que é o único caso em que a linha podia mentir. */}
+              <td className="border-t border-osg-200 px-3 py-2 text-right tabular-nums">
+                {fmtPct(empresa.socios.reduce((s, socio) => s + (socioPct(empresa, socio) ?? 0), 0) || null)}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -87,8 +113,12 @@ const wrapLabel = (s: string, max = 20, maxLines = 2): string[] => {
 };
 
 // Organograma derivado do quadro societário: sócios (topo) → empresa/controladas (baixo),
-// caixas ligadas por arestas com o %. Reutilizado no Fiscal.
-export function EstruturaControle({ empresas, titulo = 'Organograma societário (atual)' }: { empresas: EmpresaSocietaria[]; titulo?: string }) {
+// caixas ligadas por arestas com o %.
+//
+// NÃO É EXPORTADO. O comentário aqui dizia "reutilizado no Fiscal" e o export
+// existia por causa disso — mas o Fiscal usa a `EstruturaAtual`, que é outro
+// componente, com outra fonte (bens e matrículas, não quadro societário).
+function EstruturaControle({ empresas, titulo = 'Organograma societário (atual)' }: { empresas: EmpresaSocietaria[]; titulo?: string }) {
   const layout = useMemo(() => {
     if (!empresas.length) return null;
     const empresaIds = new Set(empresas.map((e) => e.empresaId));
@@ -267,11 +297,10 @@ export function SocietarioReport({ clienteId }: { clienteId: string }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-foreground">
-            Quadro Societário — <span className="text-osg-700">{clienteNome}</span>
+            {NOME_DA_PECA} — <span className="text-osg-700">{clienteNome}</span>
           </h2>
           <span className="text-xs text-muted-foreground">Espelha os slides de Organização Societária · fonte: módulo Quadro Societário</span>
         </div>
-        <GerarDeckButton clienteId={clienteId} tipo="societaria" label="Gerar deck Societária" />
       </div>
 
       <div className="flex overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm max-sm:flex-col">
@@ -280,20 +309,41 @@ export function SocietarioReport({ clienteId }: { clienteId: string }) {
         <ResumoCel titulo="Sócios" valor={`${totais.nSocios}`} desc="pessoas distintas" dot="bg-muted-foreground" />
       </div>
 
-      {/* Estrutura de controle (organograma derivado) */}
-      <EstruturaControle empresas={empresas} />
+      {/* Os DOIS slides de conteúdo do deck societário, na ordem em que a
+          `gerarSocietaria` os monta: organograma no slide3, quadro no slide4. */}
+      <MolduraDeSlide numero={1} total={TOTAL_DE_SLIDES} titulo="Organograma societário">
+        <div className="-mx-4 -my-3">
+          <EstruturaControle empresas={empresas} />
+        </div>
+      </MolduraDeSlide>
 
-      {/* Uma tabela por empresa (= slides 17-18) */}
-      {empresas.map((e) => <QuadroTabela key={e.empresaId} empresa={e} />)}
+      <MolduraDeSlide
+        numero={2}
+        total={TOTAL_DE_SLIDES}
+        titulo="Quadro societário"
+        meta={`${empresas.length} empresa${empresas.length === 1 ? '' : 's'} · duas por página`}
+      >
+        {/* As tabelas dividem UMA página, em duas colunas. Quando a altura
+            estoura, o gerador abre outra — por isso a contagem de slides não
+            acompanha a de empresas. */}
+        <div className="grid gap-3 lg:grid-cols-2">
+          {empresas.map((e) => <QuadroTabela key={e.empresaId} empresa={e} />)}
+        </div>
+      </MolduraDeSlide>
 
       <div className="flex items-start gap-2 px-1 text-xs leading-relaxed text-muted-foreground">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        {/* O texto antigo mandava usar um botão "Gerar deck Societária" que não
+            existe mais — o gerador virou único, acima das abas — e explicava um
+            marcador (🔴) que nunca chegou a ser desenhado nesta tela. */}
         <span>
-          Tabelas idênticas aos slides de quadro societário/capital — use <b className="font-semibold text-muted-foreground">Gerar deck Societária</b> para montar os slides no modelo PSA.
-          A <b className="font-semibold text-muted-foreground">Estrutura de controle</b> mostra quem controla quem (holding → controladas) a partir do cadastro atual.
-          {' '}Pendências de migration (🔴): organograma <b className="font-semibold text-muted-foreground">antes (AS-IS) × depois (TO-BE)</b> e <b className="font-semibold text-muted-foreground">% de exploração por sócio</b> dependem de campo de cenário/versão.
+          O <b className="font-semibold text-muted-foreground">organograma</b> mostra quem controla quem
+          (holding → controladas) a partir do cadastro atual. Se as tabelas não couberem numa página, o
+          gerador abre outra — então o arquivo pode sair com mais de {TOTAL_DE_SLIDES} slides.
         </span>
       </div>
+
+      <NotaDaPrevia deck="Organização Societária" />
     </div>
   );
 }

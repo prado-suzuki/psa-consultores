@@ -60,12 +60,19 @@ export function AcrescentarAtividadeModal({
 
         <div className="space-y-4 py-1">
           <div className="space-y-1.5">
+{/*
+              ACIMA DO TETO DE 30 CARACTERES, e de propósito, conferido na revisão
+              de copy de 18/09/2026. Este rótulo encabeça uma LINHA COMPOSTA e diz a
+              ação dela, não o conteúdo de um campo. Encurtar para uma expressão
+              nominal apagaria a distinção entre os dois blocos, que é a razão de
+              existirem dois (docs/geral/texto-explicativo-na-tela.md, §3).
+            */}
             <Label htmlFor="ma-nova">Criar uma atividade que só existe neste cliente</Label>
             <Input
               id="ma-nova"
               value={nova}
               onChange={(e) => setNova(e.target.value)}
-              placeholder="Planejamento Agropecuário"
+              placeholder="Ex: Planejamento Agropecuário"
             />
             {repetida && (
               <p className="text-xs font-medium text-destructive">
@@ -78,6 +85,12 @@ export function AcrescentarAtividadeModal({
             <>
               <Separator />
               <div className="space-y-2">
+                {/*
+                  Acima do teto de 30, e de propósito (revisão de copy de
+                  18/09/2026): não é rótulo de campo, é o título do segundo bloco,
+                  e o "Ou" é o que diz que os dois blocos são caminhos
+                  alternativos para a mesma coisa.
+                */}
                 <Label>Ou trazer uma que está fora desta matriz</Label>
                 <div className="space-y-1.5">
                   {disponiveis.map((a) => (

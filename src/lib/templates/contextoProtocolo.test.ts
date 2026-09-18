@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { camposDoProtocolo, gradeDoProtocolo } from './contextoProtocolo';
+import { gradeDoProtocolo } from './contextoProtocolo';
 import type { BeneficiarioDoProtocolo, SecaoDaGrade } from '@/lib/protocoloRemuneracao';
 
 /*
@@ -58,18 +58,6 @@ const secoes: SecaoDaGrade[] = [
     ],
   },
 ];
-
-describe('camposDoProtocolo', () => {
-  it('leva o texto de abertura aparado', () => {
-    expect(camposDoProtocolo('  Este Protocolo visa regrar…  ')).toEqual({
-      protocoloTextoDeAbertura: 'Este Protocolo visa regrar…',
-    });
-  });
-
-  it('sem texto de abertura manda string vazia, e não a palavra null', () => {
-    expect(camposDoProtocolo(null)).toEqual({ protocoloTextoDeAbertura: '' });
-  });
-});
 
 describe('gradeDoProtocolo', () => {
   it('nomeia as listas com prefixo próprio, para não colidir no documento', () => {

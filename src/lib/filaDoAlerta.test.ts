@@ -173,7 +173,12 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     // mesma regra do item de menu. Eram QUATRO cópias da mesma classe, duas em cada
     // diálogo, e o tom foi para `classesDoPerfil.ts`. Era o pior contraste da
     // varredura do dia: 1,92 sobre o cartão branco, contra 6,72 agora.
-    'src/components/equipe/osg/relatorios/DiagnosticoPatrimonialReport.tsx': 3,
+    // O `DiagnosticoPatrimonialReport` saiu em 17/09/2026, e não por conversão de
+    // cor: os três âmbares eram o lápis de "campo que a OSG preenche à mão" — dois
+    // nos cabeçalhos das colunas editáveis e um na legenda. A tabela inteira dos
+    // não integralizados saiu da Biblioteca de Slides, que passou a mostrar só o
+    // que vira slide, e a validação voltou para o Cadastro Patrimonial. O lápis
+    // foi junto com o que ele marcava, então o arquivo zerou.
     'src/components/equipe/sprint-detalhes/SprintHeaderFilters.tsx': 6,
   },
   'paleta-categorica': {

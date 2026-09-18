@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
+import { aoFalhar } from '@/lib/falhaDaGovernanca';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { supabase } from '@/integrations/supabase/client';
@@ -326,7 +328,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Protocolo criado com os itens e as colunas padrão');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui criar'),
+    onError: aoFalhar('criar o protocolo'),
   });
 
   /**
@@ -359,7 +361,6 @@ export function useProtocoloMutations(clienteId?: string | null) {
         .insert({
           cliente_id: clienteId,
           versao: args.atual.protocolo.versao + 1,
-          preambulo: args.atual.protocolo.preambulo,
           ...autor(),
         })
         .select()
@@ -433,8 +434,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       queryClient.invalidateQueries({ queryKey: versoesQueryKey(clienteId) });
       toast.success(`Versão ${p.versao} criada como cópia da anterior. Revise item por item.`);
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : 'Não consegui criar a versão'),
+    onError: aoFalhar('criar a versão'),
   });
 
   /**
@@ -561,7 +561,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Linha salva');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui salvar'),
+    onError: aoFalhar('salvar a linha'),
   });
 
   /**
@@ -584,7 +584,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Item tirado do protocolo');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui tirar'),
+    onError: aoFalhar('tirar o item do protocolo'),
   });
 
   /** Traz de volta, ou acrescenta pela primeira vez, itens do catálogo. */
@@ -604,8 +604,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Item acrescentado');
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : 'Não consegui acrescentar'),
+    onError: aoFalhar('acrescentar os itens'),
   });
 
   /**
@@ -642,7 +641,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Tema criado');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui criar'),
+    onError: aoFalhar('criar o tema'),
   });
 
   /**
@@ -692,7 +691,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Item criado e posto no protocolo');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui criar'),
+    onError: aoFalhar('criar o item'),
   });
 
   /**
@@ -732,8 +731,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Coluna acrescentada');
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : 'Não consegui acrescentar'),
+    onError: aoFalhar('acrescentar a coluna'),
   });
 
   const renomearBeneficiario = useMutation({
@@ -757,7 +755,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Coluna renomeada');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui renomear'),
+    onError: aoFalhar('renomear a coluna'),
   });
 
   /**
@@ -782,42 +780,7 @@ export function useProtocoloMutations(clienteId?: string | null) {
       invalidar();
       toast.success('Coluna tirada do protocolo');
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui tirar'),
-  });
-
-  /**
-   * O texto de abertura. O Potrich tem um e o modelo não: "Este Protocolo visa
-   * regrar os acordos e combinados da família ao atual momento do negócio...".
-   * É onde a data do protocolo mora na vida real, e foi por isso que a migration
-   * não criou coluna de data.
-   */
-  const salvarPreambulo = useMutation({
-    mutationFn: async (args: { protocoloId: string; de: string | null; para: string | null }) => {
-      const texto = args.para?.trim() || null;
-      const { error } = await supabase
-        .from('protocolo_remuneracao')
-        .update({ preambulo: texto, updated_by: user?.id ?? null })
-        .eq('id', args.protocoloId);
-      if (error) throw error;
-
-      if ((args.de ?? '') !== (texto ?? '')) {
-        await logAction({
-          area: 'osg',
-          entity_type: 'protocolo_remuneracao',
-          entity_id: args.protocoloId,
-          entity_name: 'Texto de abertura',
-          action: 'updated',
-          changed_fields: {
-            'Texto de abertura': { old: args.de ?? 'vazio', new: texto ?? 'vazio' },
-          },
-        });
-      }
-    },
-    onSuccess: () => {
-      invalidar();
-      toast.success('Texto de abertura salvo');
-    },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Não consegui salvar'),
+    onError: aoFalhar('tirar a coluna do protocolo'),
   });
 
   return {
@@ -832,6 +795,5 @@ export function useProtocoloMutations(clienteId?: string | null) {
     adicionarBeneficiario,
     renomearBeneficiario,
     removerBeneficiario,
-    salvarPreambulo,
   };
 }

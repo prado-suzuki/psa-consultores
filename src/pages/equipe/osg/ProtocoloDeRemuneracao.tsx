@@ -10,7 +10,6 @@ import { ColunasDoProtocoloModal } from '@/components/equipe/osg/governanca/Colu
 import { GradeDoProtocolo } from '@/components/equipe/osg/governanca/GradeDoProtocolo';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { ProtocoloLinhaModal } from '@/components/equipe/osg/governanca/ProtocoloLinhaModal';
-import { TextoDeAberturaModal } from '@/components/equipe/osg/governanca/TextoDeAberturaModal';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -68,13 +67,11 @@ const ProtocoloDeRemuneracao = () => {
     criarProtocolo, novaVersao, registrarGeracao, salvarLinha, removerLinha, adicionarItens,
     criarTemaDoCliente, criarItemDoCliente,
     adicionarBeneficiario, renomearBeneficiario, removerBeneficiario,
-    salvarPreambulo,
   } = useProtocoloMutations(clienteId);
 
   const [emEdicao, setEmEdicao] = useState<LinhaDaGrade | null>(null);
   const [gerindoColunas, setGerindoColunas] = useState(false);
   const [acrescentando, setAcrescentando] = useState(false);
-  const [editandoAbertura, setEditandoAbertura] = useState(false);
   const [aTirar, setATirar] = useState<LinhaDaGrade | null>(null);
 
   const colunas = useMemo(
@@ -147,7 +144,6 @@ const ProtocoloDeRemuneracao = () => {
         await planilha.async('string'),
         grade,
         colunas,
-        protocolo.protocolo.preambulo,
       );
       zip.file('xl/worksheets/sheet1.xml', xml);
 
@@ -309,22 +305,6 @@ const ProtocoloDeRemuneracao = () => {
                   {preenchidas} de {totalDeLinhas} itens preenchidos
                   {` · versão ${protocolo.protocolo.versao}`}
                 </p>
-                {/*
-                  O texto de abertura fica aqui, e não no alto junto de Colunas,
-                  porque ele é parte do documento e não uma ação de estrutura.
-                  O rótulo muda conforme já exista ou não, senão "Texto de
-                  abertura" sozinho não diz se há um.
-                */}
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="h-auto p-0 text-xs text-osg-700"
-                  onClick={() => setEditandoAbertura(true)}
-                >
-                  {protocolo.protocolo.preambulo
-                    ? 'Ver e editar o texto de abertura'
-                    : 'Acrescentar um texto de abertura'}
-                </Button>
               </div>
             </div>
 
@@ -404,20 +384,6 @@ const ProtocoloDeRemuneracao = () => {
         }
         onRenomear={(id, de, para) => renomearBeneficiario.mutateAsync({ id, de, para })}
         onTirar={(id, nome) => removerBeneficiario.mutateAsync({ id, nome })}
-      />
-
-      <TextoDeAberturaModal
-        open={editandoAbertura}
-        onOpenChange={setEditandoAbertura}
-        preambulo={protocolo?.protocolo.preambulo ?? null}
-        salvando={salvarPreambulo.isPending}
-        onSalvar={(texto) =>
-          salvarPreambulo.mutateAsync({
-            protocoloId: protocolo!.protocolo.id,
-            de: protocolo!.protocolo.preambulo,
-            para: texto,
-          })
-        }
       />
 
       <AcrescentarItemModal

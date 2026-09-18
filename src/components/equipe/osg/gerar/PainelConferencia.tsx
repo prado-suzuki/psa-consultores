@@ -13,7 +13,7 @@ import { campoDaEntidade, campoManual } from '@/lib/templates/vocabulario';
 import { labelDoBinding } from '@/lib/templates/binding';
 import { AjudaDoCampo } from '@/components/equipe/osg/ComAjuda';
 import { BlocosSemDado } from '@/components/equipe/osg/gerar/BlocosSemDado';
-import { fraseExcluidosPorFlag } from '@/components/equipe/osg/gerar/resumoDaComposicao';
+import { fraseExcluidosPorFlag, nomeLegivelDoBloco } from '@/components/equipe/osg/gerar/resumoDaComposicao';
 import { fmtBRL, fmtInt } from '@/components/equipe/osg/quadro-societario/quadroFmt';
 import { fieldCls, labelCls, textareaCls } from '@/components/equipe/osg/formKit';
 import type { LinhaNotificacao } from '@/hooks/useGerarDocumentoController';
@@ -319,6 +319,32 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                   blocosExcluidosPorPerfil.map((b) => nomePorBlocoId.get(b.id) ?? b.id),
                                 )}
                               </p>
+                              {/*
+                                AS CLÁUSULAS VÃO EM LISTA, uma por linha, e não
+                                separadas por vírgula num parágrafo corrido. O nome
+                                de cada bloco é um trecho do próprio texto dele, com
+                                dezenas de caracteres, e emendados por vírgula não
+                                dava para ver onde uma acabava e a outra começava.
+                                O balão guarda o nome cru, para quem precisar
+                                casar com o bloco na Biblioteca.
+                              */}
+                              {blocosExcluidosPorPerfil.length > 0 && (
+                                <ul className="space-y-1 pt-0.5">
+                                  {blocosExcluidosPorPerfil.map((b) => {
+                                    const nome = nomePorBlocoId.get(b.id) ?? b.id;
+                                    return (
+                                      <li key={b.id} className="flex gap-1.5 text-muted-foreground">
+                                        <span aria-hidden className="text-osg-600">
+                                          ·
+                                        </span>
+                                        <ElementTooltip text={nome}>
+                                          <span>{nomeLegivelDoBloco(nome)}</span>
+                                        </ElementTooltip>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              )}
                             </div>
                           )
                         )}
@@ -363,8 +389,30 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                 cidade". Placeholder que ninguém declarou continua aparecendo
                                 pelo id, que é o que permite a quem montou o modelo achá-lo.
                               */}
-                              <Label className={cn(labelCls, 'text-sm')}>
+                              {/*
+                                `flex items-center` no rótulo, e não texto solto.
+                                O preflight do Tailwind põe `display: block` em todo
+                                `svg`, então o ícone de ajuda caía para a LINHA DE
+                                BAIXO do rótulo em vez de ficar ao lado dele. É a
+                                mesma gramática que o `MatrizLinhaModal` já usa.
+
+                                E o aviso de obrigatório é o MESMO dos campos de
+                                binding, logo abaixo nesta tela, e não uma marca
+                                nova: a Data da assinatura declara `obrigatorio`
+                                desde sempre em `CAMPOS_MANUAIS`, mas só o bloco de
+                                binding mostrava, e quem preenchia descobria a
+                                obrigatoriedade ao tentar baixar. Dois idiomas de
+                                obrigatoriedade na mesma janela seria pior que
+                                nenhum.
+                              */}
+                              <Label className={cn(labelCls, 'flex items-center gap-1.5 text-sm')}>
                                 {campoManual(ph)?.label ?? ph}
+                                {campoManual(ph)?.obrigatorio && !(valoresLivres[ph] ?? '').trim() && (
+                                  <span className="inline-flex items-center gap-1 text-warning">
+                                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                                    obrigatório
+                                  </span>
+                                )}
                                 {campoManual(ph)?.ajuda && (
                                   <AjudaDoCampo texto={campoManual(ph)!.ajuda!} />
                                 )}

@@ -30,7 +30,6 @@ const ATUAL = {
     id: 'p1',
     cliente_id: 'c1',
     versao: 1,
-    preambulo: 'Este Protocolo visa regrar os acordos e combinados da família.',
   },
   beneficiarios: [
     { id: 'bA', nome: 'Fundadores', ordem: 10 },
@@ -102,7 +101,6 @@ describe('novaVersao', () => {
 
     const cabecalho = inserts['protocolo_remuneracao']![0] as Record<string, unknown>;
     expect(cabecalho.versao).toBe(2);
-    expect(cabecalho.preambulo).toBe(ATUAL.protocolo.preambulo);
 
     expect(inserts['protocolo_beneficiario']![0]).toHaveLength(2);
     expect(inserts['protocolo_linha']![0]).toHaveLength(2);

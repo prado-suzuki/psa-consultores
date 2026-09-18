@@ -1,9 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
 
 // Dados do relatório de Diagnóstico Patrimonial, numa única leitura:
 // bem → matrícula(s) → titularidade → titular (pessoa). Só tabelas existentes.
+//
+// SÓ LEITURA. Havia aqui um `useUpdateBemCampo`, para as células editáveis que o
+// relatório mantinha na tabela dos não integralizados. Aquela tabela saiu: a
+// Biblioteca de Slides mostra só o que vira slide, e a validação voltou para o
+// Cadastro Patrimonial, onde os campos já eram editados.
 
 export interface DPTitular {
   denominacao: string;
@@ -114,22 +118,3 @@ export function useRelatorioDP(clienteId: string | null) {
   });
 }
 
-// Validação manual da OSG direto no relatório: valor de mercado e observações
-// (mesmos campos editados no módulo Diagnóstico Patrimonial). Só campos existentes.
-export type CampoValidacaoDP = 'vlr_mercado' | 'observacao' | 'motivo_nao_integralizacao';
-
-export function useUpdateBemCampo(clienteId: string | null) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ bemId, campo, valor }: { bemId: string; campo: CampoValidacaoDP; valor: string | number | null }) => {
-      const { error } = await supabase.from('bem').update({ [campo]: valor }).eq('id', bemId);
-      if (error) throw error;
-      return { bemId, campo };
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['relatorio-dp', clienteId] });
-      qc.invalidateQueries({ queryKey: ['bens-by-cliente', clienteId] });
-    },
-    onError: (e: Error) => toast({ title: 'Não foi possível salvar', description: e.message, variant: 'destructive' }),
-  });
-}
