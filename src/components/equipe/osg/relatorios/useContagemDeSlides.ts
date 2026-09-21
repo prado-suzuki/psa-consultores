@@ -28,16 +28,22 @@ export interface ContagemDeSlides {
 }
 
 /**
- * Os slides que a `gerar-slides-tributarios` preenche com a revisão escolhida.
+ * Os slides que a `gerar-slides-tributarios` entrega com a revisão escolhida.
  *
- * São os cinco do mapa `SLIDES` da função: DRE, farol, transferência da atividade
- * rural, resumo e comentários. Diferente dos outros dois decks, o número não
- * varia com o cadastro — o molde tributário é fixo, e o que muda é o conteúdo.
+ * **Passou de 5 para 6 em 21/09/2026**, com o padrão visual novo. Os cinco
+ * antigos eram DRE, farol, transferência, resumo e comentários; o capítulo novo
+ * tem Premissas, Cenários avaliados, Diferenças nos modelos, Quadro comparativo
+ * da carga, Transferência e Resumo. Sumiram o slide de comentários por tributo e
+ * o Farol como estava; nasceram três editoriais.
+ *
+ * Diferente dos outros dois decks, o número não varia com o cadastro: o molde
+ * tributário é fixo e o que muda é o conteúdo.
  *
  * A régua é a mesma das outras linhas: conta SLIDE DE CONTEÚDO, o que vem dos
- * dados. Capa e divisor não entram em nenhum dos três.
+ * dados. Capa e divisor não entram em nenhum dos três, e por isso a capa do
+ * capítulo, que é o slide 1 do molde, fica fora da conta.
  */
-export const SLIDES_DO_TRIBUTARIO = 5;
+export const SLIDES_DO_TRIBUTARIO = 6;
 
 export function useContagemDeSlides(clienteId: string | null): ContagemDeSlides {
   const { data: bens = [], isLoading: carregandoBens } = useRelatorioDP(clienteId);
