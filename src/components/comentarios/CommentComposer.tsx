@@ -36,6 +36,15 @@ interface CommentComposerProps {
   mentionCandidates: MentionCandidate[];
   /** Muda de valor quando alguém pede o foco daqui de fora. */
   focusSignal?: number;
+  /**
+   * Por que ainda não dá para publicar. A caixa continua de pé e aceita texto:
+   * só o botão de publicar fica desligado, com o motivo escrito ao lado dele.
+   *
+   * É do feed, onde a caixa é permanente e o destino pode não estar escolhido.
+   * Trocar a caixa por um aviso enquanto falta o projeto era o que deixava a
+   * tela sem lugar visível para escrever.
+   */
+  impedimento?: string | null;
   /** Autor do comentário raiz — vira o cabeçalho "Respondendo a ..." do compositor. */
   replyingToName?: string | null;
   onCancel?: () => void;
@@ -49,6 +58,7 @@ export function CommentComposer({
   isPending,
   mentionCandidates,
   focusSignal,
+  impedimento,
   replyingToName,
   onCancel,
   onSubmit,
@@ -78,7 +88,7 @@ export function CommentComposer({
   };
 
   const submit = async () => {
-    if (isPending) return;
+    if (isPending || impedimento) return;
     if (vazio && files.length === 0) return;
 
     // Anexo sem texto continua tendo corpo: a thread mostra a linha do anexo.
@@ -253,7 +263,12 @@ export function CommentComposer({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          {impedimento && (
+            <span className="hidden truncate text-[11px] text-muted-foreground sm:inline">
+              {impedimento}
+            </span>
+          )}
           {onCancel && (
             <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
               Cancelar
@@ -262,7 +277,7 @@ export function CommentComposer({
           <Button
             type="button"
             size="sm"
-            disabled={isPending || (vazio && files.length === 0)}
+            disabled={isPending || Boolean(impedimento) || (vazio && files.length === 0)}
             onClick={submit}
           >
             {isPending ? (

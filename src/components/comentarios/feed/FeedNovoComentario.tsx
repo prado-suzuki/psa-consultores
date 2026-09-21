@@ -1,10 +1,8 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Building2, FolderKanban, ListChecks, PenLine, X } from 'lucide-react';
+import { Building2, FolderKanban, ListChecks } from 'lucide-react';
 
 import { CommentComposer } from '@/components/comentarios/CommentComposer';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import type { ComboOption } from '@/components/ui/MultiSelectCombobox';
 import { SingleSelectCombobox } from '@/components/ui/SingleSelectCombobox';
 import { useAuth } from '@/contexts/AuthContext';
@@ -50,19 +48,24 @@ interface FeedNovoComentarioProps {
  * transacional, menções e auditoria. O que este componente acrescenta é a
  * escolha de para onde ela vai.
  *
- * Fechado, é uma linha só — o compositor aberto o tempo todo comeria a altura
- * da barra grudada, e quem chega ao feed chega para ler.
+ * A caixa fica ABERTA, sempre, como a do Slack. Ela já nasceu fechada atrás de
+ * um "Escrever no feed…" de uma linha, para poupar altura da barra grudada, e
+ * foi assim que ela deixou de existir para quem olha a tela: o lugar de
+ * escrever tinha de ser descoberto por um clique. O que se economizava em
+ * altura se perdia inteiro no primeiro gesto.
+ *
+ * Sem projeto escolhido a caixa continua de pé e aceita texto — é só o publicar
+ * que espera o destino (`impedimento`, no `CommentComposer`).
  */
 export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComentarioProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [aberto, setAberto] = useState(false);
   const [destino, setDestino] = useState<DestinoDaFala>(DESTINO_VAZIO);
 
   const { data: clientes = [] } = useExternalClients();
   const { data: projetos = [] } = useOrgProjectsForFilter();
   const { tarefas, isLoading: carregandoTarefas } = useDomainTarefasDoProjeto(
-    aberto ? destino.projetoId : null,
+    destino.projetoId,
   );
 
   const alvo = alvoDoDestino(destino);
@@ -132,35 +135,28 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
     [tarefas],
   );
 
-  const abrir = () => {
-    // O compositor abre onde a pessoa já está olhando: o recorte da tela vira o
-    // destino. Só na abertura — depois disso quem manda é a escolha dela.
+  /**
+   * O destino acompanha o RECORTE da tela: quem lê o feed filtrado num cliente
+   * quase sempre escreve para ele. Antes isso acontecia na abertura do
+   * compositor; sem abertura, é este efeito que faz o mesmo trabalho.
+   *
+   * A sincronia é pela chave do recorte, e não pelo objeto dos filtros: uma
+   * revalidação da lista de projetos ou um re-render à toa apagariam a escolha
+   * feita à mão. Escolha manual vale até o recorte mudar.
+   *
+   * Com projeto no filtro a sincronia ESPERA a lista chegar: é ela que traduz
+   * projeto em cliente, e sem ela o destino fixaria pela metade — projeto
+   * escolhido, cliente vazio, que é o estado que a lista de projetos abre com a
+   * casa inteira.
+   */
+  const recorte = `${filtros.clienteId ?? ''}|${filtros.projetoId ?? ''}`;
+  const recorteSincronizado = useRef<string | null>(null);
+  useEffect(() => {
+    if (filtros.projetoId && projetos.length === 0) return;
+    if (recorteSincronizado.current === recorte) return;
+    recorteSincronizado.current = recorte;
     setDestino(destinoDosFiltros(filtros, projetos));
-    setAberto(true);
-  };
-
-  const fechar = () => {
-    setAberto(false);
-    setDestino(DESTINO_VAZIO);
-  };
-
-  if (!aberto) {
-    return (
-      <button
-        type="button"
-        onClick={abrir}
-        className="flex w-full items-center gap-2.5 rounded-md border border-border/70 bg-card px-3 py-2 text-left text-sm text-muted-foreground shadow-sm transition-colors hover:border-primary/40 hover:text-foreground"
-      >
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-tool-icon-bg text-tool-icon">
-          <PenLine aria-hidden className="h-4 w-4" />
-        </span>
-        Escrever no feed…
-        <span className="ml-auto hidden text-[11px] text-muted-foreground sm:inline">
-          para um projeto ou uma tarefa
-        </span>
-      </button>
-    );
-  }
+  }, [recorte, filtros, projetos]);
 
   return (
     /*
@@ -168,148 +164,109 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
       externo punha uma segunda borda e mais recuo de cada lado em cima da caixa
       — justamente a peça que tem de ocupar a largura do feed inteiro.
     */
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-tool-icon-bg text-tool-icon">
-          <PenLine aria-hidden className="h-4 w-4" />
-        </span>
-        <p className="text-sm font-semibold">Nova conversa</p>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label="Fechar o compositor"
-          className="ml-auto h-7 w-7"
-          onClick={fechar}
-        >
-          <X aria-hidden className="h-4 w-4" />
-        </Button>
-      </div>
+    <div className="space-y-1.5">
+      {/*
+        Os três campos na mesma linha, e na ordem em que se pensa o destino: de
+        quem é, em que projeto, sobre qual tarefa. Sem rótulo em cima de cada
+        um: com a caixa aberta o tempo todo, três rótulos empilhados sobre os
+        campos custariam uma faixa inteira de altura do rodapé para repetir o
+        que o texto de espera já diz. O ícone dentro do gatilho é o que sobrou
+        do rótulo, e o nome completo vai no `aria-label` de cada campo.
+      */}
+      <div className="grid gap-1.5 sm:grid-cols-3">
+        <SingleSelectCombobox
+          options={opcoesDeCliente}
+          value={destino.clienteId}
+          onChange={(valor) => setDestino((atual) => aoEscolherCliente(atual, valor, projetos))}
+          placeholder="Todos os clientes"
+          searchPlaceholder="Buscar cliente…"
+          emptyText="Nenhum cliente encontrado."
+          opcaoVazia="Todos os clientes"
+          icone={<Building2 aria-hidden className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+          aria-label="Cliente da conversa"
+          className="h-8 w-full min-w-0 text-xs"
+        />
 
-      {/* Os três campos na mesma faixa, e na ordem em que se pensa o destino:
-          de quem é, em que projeto, sobre qual tarefa. */}
-      <div className="grid gap-2 sm:grid-cols-3">
-        <CampoDeDestino rotulo="Cliente" icone={Building2}>
-          <SingleSelectCombobox
-            options={opcoesDeCliente}
-            value={destino.clienteId}
-            onChange={(valor) =>
-              setDestino((atual) => aoEscolherCliente(atual, valor, projetos))
-            }
-            placeholder="Todos os clientes"
-            searchPlaceholder="Buscar cliente…"
-            emptyText="Nenhum cliente encontrado."
-            opcaoVazia="Todos os clientes"
-            className="w-full min-w-0"
-          />
-        </CampoDeDestino>
-
-        <CampoDeDestino rotulo="Projeto" icone={FolderKanban}>
-          <SingleSelectCombobox
-            options={opcoesDeProjeto}
-            value={destino.projetoId}
-            onChange={(valor) => setDestino((atual) => aoEscolherProjeto(atual, valor, projetos))}
-            placeholder={destino.clienteId ? 'Projetos do cliente' : 'Escolher projeto'}
-            searchPlaceholder="Buscar projeto…"
-            emptyText={
-              destino.clienteId
-                ? 'Esse cliente não tem projeto cadastrado.'
-                : 'Nenhum projeto encontrado.'
-            }
-            className="w-full min-w-0"
-          />
-        </CampoDeDestino>
+        <SingleSelectCombobox
+          options={opcoesDeProjeto}
+          value={destino.projetoId}
+          onChange={(valor) => setDestino((atual) => aoEscolherProjeto(atual, valor, projetos))}
+          placeholder={destino.clienteId ? 'Projetos do cliente' : 'Escolher projeto'}
+          searchPlaceholder="Buscar projeto…"
+          emptyText={
+            destino.clienteId
+              ? 'Esse cliente não tem projeto cadastrado.'
+              : 'Nenhum projeto encontrado.'
+          }
+          icone={
+            <FolderKanban aria-hidden className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          }
+          aria-label="Projeto que recebe a conversa"
+          className="h-8 w-full min-w-0 text-xs"
+        />
 
         {/*
-          Tarefa é OPCIONAL, e o campo diz isso de duas formas: no rótulo e na
-          linha que limpa. Sem tarefa a fala vai para o projeto — é o aviso que
-          não pertence a nenhuma delas, e o feed já sabe desenhar bloco de
+          Tarefa é OPCIONAL, e o campo diz isso duas vezes: no texto de espera e
+          na linha que limpa. Sem tarefa a fala vai para o projeto — é o aviso
+          que não pertence a nenhuma delas, e o feed já sabe desenhar bloco de
           projeto.
         */}
-        <CampoDeDestino rotulo="Tarefa (opcional)" icone={ListChecks}>
-          <SingleSelectCombobox
-            options={opcoesDeTarefa}
-            value={destino.tarefaId}
-            onChange={(valor) => setDestino((atual) => ({ ...atual, tarefaId: valor }))}
-            disabled={!destino.projetoId || carregandoTarefas}
-            placeholder={
-              !destino.projetoId
-                ? 'Escolha o projeto primeiro'
-                : carregandoTarefas
-                  ? 'Carregando tarefas…'
-                  : 'Publicar no projeto'
-            }
-            searchPlaceholder="Buscar tarefa…"
-            emptyText="Esse projeto não tem tarefa visível para você."
-            opcaoVazia="Publicar no projeto, sem tarefa"
-            className="w-full min-w-0"
-          />
-        </CampoDeDestino>
+        <SingleSelectCombobox
+          options={opcoesDeTarefa}
+          value={destino.tarefaId}
+          onChange={(valor) => setDestino((atual) => ({ ...atual, tarefaId: valor }))}
+          disabled={!destino.projetoId || carregandoTarefas}
+          placeholder={
+            !destino.projetoId
+              ? 'Tarefa (escolha o projeto)'
+              : carregandoTarefas
+                ? 'Carregando tarefas…'
+                : 'Tarefa (opcional)'
+          }
+          searchPlaceholder="Buscar tarefa…"
+          emptyText="Esse projeto não tem tarefa visível para você."
+          opcaoVazia="Publicar no projeto, sem tarefa"
+          icone={<ListChecks aria-hidden className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+          aria-label="Tarefa que recebe a conversa (opcional)"
+          className="h-8 w-full min-w-0 text-xs"
+        />
       </div>
 
-      {alvo ? (
-        <CommentComposer
-          caixa
-          area={area}
-          isPending={isCreating}
-          mentionCandidates={mentionCandidates}
-          onCancel={fechar}
-          onSubmit={async (body, files, mencoes) => {
-            // As menções são peneiradas pela roda de gente do destino ATUAL: o
-            // rascunho sobrevive à troca de projeto, e com ele sobreviveria a
-            // menção a quem não está no novo (ver `mencoesPermitidas`).
-            const permitidas = mencoesPermitidas(mencoes, mentionCandidates);
-            const id = await createComment.mutateAsync({
-              body,
-              files,
-              mentions: permitidas,
-            });
-            // A fala é o comentário mais novo do sistema, então entra no topo
-            // do feed. Invalidar pelo PREFIXO refaz também o recorte filtrado
-            // que está na tela.
-            await queryClient.invalidateQueries({ queryKey: feedComentariosQueryKeyPrefix() });
-            onPublicou(
-              id,
-              falaCabeNoRecorte(filtros, {
-                projetoId: alvo.projectId,
-                clienteId:
-                  projetos.find((projeto) => projeto.id === alvo.projectId)
-                    ?.external_client_id ?? null,
-                autorId: user?.id ?? null,
-                mencionados: permitidas,
-              }),
-            );
-          }}
-        />
-      ) : (
-        /* Sem destino não há o que gravar, e um campo de texto que não publica
-           é pior do que campo nenhum: a pessoa escreveria o parágrafo inteiro
-           para só então descobrir onde estava presa. */
-        <p className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-3 text-xs text-muted-foreground">
-          Escolha o projeto para começar a escrever. A tarefa é opcional: sem ela, a fala vai para
-          o projeto.
-        </p>
-      )}
-    </div>
-  );
-}
-
-function CampoDeDestino({
-  rotulo,
-  icone: Icone,
-  children,
-}: {
-  rotulo: string;
-  icone: typeof Building2;
-  children: ReactNode;
-}) {
-  return (
-    <div className="min-w-0 space-y-1">
-      <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        <Icone aria-hidden className="h-3.5 w-3.5" />
-        {rotulo}
-      </Label>
-      {children}
+      <CommentComposer
+        caixa
+        area={area}
+        isPending={isCreating}
+        mentionCandidates={mentionCandidates}
+        /* Sem destino a caixa continua escrevível: o que espera é o publicar. */
+        impedimento={alvo ? null : 'Escolha o projeto para publicar'}
+        onSubmit={async (body, files, mencoes) => {
+          if (!alvo) return;
+          // As menções são peneiradas pela roda de gente do destino ATUAL: o
+          // rascunho sobrevive à troca de projeto, e com ele sobreviveria a
+          // menção a quem não está no novo (ver `mencoesPermitidas`).
+          const permitidas = mencoesPermitidas(mencoes, mentionCandidates);
+          const id = await createComment.mutateAsync({
+            body,
+            files,
+            mentions: permitidas,
+          });
+          // A fala é o comentário mais novo do sistema, então entra no topo
+          // do feed. Invalidar pelo PREFIXO refaz também o recorte filtrado
+          // que está na tela.
+          await queryClient.invalidateQueries({ queryKey: feedComentariosQueryKeyPrefix() });
+          onPublicou(
+            id,
+            falaCabeNoRecorte(filtros, {
+              projetoId: alvo.projectId,
+              clienteId:
+                projetos.find((projeto) => projeto.id === alvo.projectId)
+                  ?.external_client_id ?? null,
+              autorId: user?.id ?? null,
+              mencionados: permitidas,
+            }),
+          );
+        }}
+      />
     </div>
   );
 }
