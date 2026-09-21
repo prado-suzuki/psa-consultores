@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 // Decks da apresentação PSA (segue a separação do pptx original).
 export type DeckDaApresentacao = 'patrimonial' | 'societaria';
@@ -20,6 +21,10 @@ const PPTX_MIME =
 // um Blob e baixa via object URL same-origin: respeita o `nome` e garante que todos
 // os arquivos venham (o navegador não dispara múltiplos downloads cross-origin de
 // forma confiável).
+//
+// NÃO DÁ PARA USAR O `baixarArquivoPorUrl`, que a peça tributária usa: aquele
+// recebe URL do Storage e busca os bytes, e aqui os bytes já estão na mão. Os dois
+// caminhos convergem no dia em que esta geração passar a persistir.
 function baixar(b64: string, nome: string) {
   const bin = atob(b64);
   const arr = new Uint8Array(bin.length);
@@ -47,6 +52,27 @@ export interface ResultadoDosDecks {
   arquivos: Pick<ArquivoGerado, 'tipo' | 'nome'>[];
   /** Por que não veio. `null` quando veio. */
   erro: string | null;
+  /**
+   * Buracos de cadastro: o arquivo **saiu**, e saiu faltando coisa — empresa fora
+   * do quadro, bem sem sociedade de destino, titular em placeholder.
+   *
+   * Nada disso impede a geração, e é por isso que ia calado até 09/2026: quem
+   * apresentava descobria na reunião. Mesmo vocabulário do gerador tributário
+   * (`origem` | `formatacao`), para a tela tratar os dois do mesmo jeito.
+   */
+  problemas?: ProblemaDoDeck[];
+  /** A exceção de UM deck, quando o outro veio. O servidor já mandava; ninguém lia. */
+  errosPorDeck?: ErroDeDeck[];
+}
+
+export interface ProblemaDoDeck {
+  tipo: 'origem' | 'formatacao';
+  detalhe: string;
+}
+
+export interface ErroDeDeck {
+  tipo: DeckDaApresentacao;
+  message: string;
 }
 
 /** O 404 do `invoke` é função não publicada no ambiente, e vale dizer isso. */
@@ -64,18 +90,37 @@ const statusDoErro = (erro: unknown): number | undefined =>
  *
  * A mensagem antiga também mandava "por ora, use 'Copiar tabela'" — botão que
  * saiu da tela quando ela deixou de mostrar as tabelas.
+ *
+ * ## Por que é `useMutation`, no molde do `useGerarApresentacaoTributaria`
+ *
+ * Esta geração e a do papel de trabalho saem da MESMA TELA e faziam a mesma
+ * coisa de dois jeitos: aquela em React Query com auditoria, esta em `useState`
+ * cru e sem rastro nenhum. Dois jeitos de gerar slide na mesma base é o que a
+ * migração existe para acabar, e `isPending` no lugar de um `gerando` caseiro é
+ * o que deixa a tela tratar as duas peças pelo mesmo caminho.
+ *
+ * **O que NÃO se copiou do molde, e por quê:** a invalidação de cache. Lá ela
+ * existe porque a geração grava uma linha em `wp_apresentacao` e a lista "já
+ * geradas" precisa recarregar. Aqui nada é persistido — a função devolve os
+ * bytes e esquece —, então não há consulta a invalidar. Copiar o
+ * `invalidateQueries` daria a impressão de que existe histórico onde não existe.
+ *
+ * **A mutation não rejeita por erro de negócio.** Quem marca as duas peças
+ * precisa saber qual das duas não veio, e um `throw` só diz que algo falhou.
+ * Por isso o resultado sai sempre preenchido e o `erro` é o campo que responde;
+ * é o `conferirDecksGerados` que confronta o pedido com o que voltou.
  */
 export function useGerarApresentacao(clienteId: string | null) {
-  const [gerando, setGerando] = useState<DeckTipo | null>(null);
+  const { logAction } = useAuditLog();
 
-  const gerar = async (tipo: DeckTipo): Promise<ResultadoDosDecks> => {
-    if (!clienteId) return { arquivos: [], erro: 'nenhum cliente selecionado' };
-    if (gerando) return { arquivos: [], erro: 'já há uma geração em andamento' };
-    setGerando(tipo);
-    try {
-      const { data, error } = await supabase.functions.invoke<{ arquivos: ArquivoGerado[] }>(EDGE_FN, {
-        body: { clienteId, tipo },
-      });
+  const mutation = useMutation({
+    mutationFn: async (tipo: DeckTipo): Promise<ResultadoDosDecks> => {
+      if (!clienteId) return { arquivos: [], erro: 'nenhum cliente selecionado' };
+      const { data, error } = await supabase.functions.invoke<{
+        arquivos: ArquivoGerado[];
+        erros?: ErroDeDeck[];
+        problemas?: ProblemaDoDeck[];
+      }>(EDGE_FN, { body: { clienteId, tipo } });
       if (error) {
         return {
           arquivos: [],
@@ -93,13 +138,34 @@ export function useGerarApresentacao(clienteId: string | null) {
       return {
         arquivos: arquivos.map(({ tipo, nome }) => ({ tipo, nome })),
         erro: null,
+        problemas: data?.problemas ?? [],
+        errosPorDeck: data?.erros ?? [],
       };
-    } catch (e) {
-      return { arquivos: [], erro: e instanceof Error ? e.message : 'a geração falhou' };
-    } finally {
-      setGerando(null);
-    }
-  };
+    },
 
-  return { gerar, gerando };
+    /**
+     * O rastro que faltava.
+     *
+     * O `entity_id` é o CLIENTE, e não o arquivo: nada é persistido, então não
+     * existe id de apresentação para apontar, e a pergunta que se faz ao log é
+     * "quem gerou deck de qual cliente". O nome dos arquivos vai no
+     * `entity_name`, que é o que identifica o que saiu.
+     */
+    onSuccess: async (resultado) => {
+      if (!clienteId || !resultado.arquivos.length) return;
+      await logAction({
+        area: 'osg',
+        entity_type: 'apresentacao_osg',
+        entity_id: clienteId,
+        entity_name: resultado.arquivos.map((a) => a.nome).join(', '),
+        action: 'created',
+        details:
+          resultado.arquivos.length === 1
+            ? `Deck ${resultado.arquivos[0].tipo} gerado.`
+            : `Decks gerados: ${resultado.arquivos.map((a) => a.tipo).join(' e ')}.`,
+      });
+    },
+  });
+
+  return mutation;
 }

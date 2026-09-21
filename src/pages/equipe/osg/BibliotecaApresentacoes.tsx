@@ -38,7 +38,7 @@ import { PECAS_COM_DECK, PECAS_DE_SLIDE } from '@/components/equipe/osg/relatori
  */
 const BibliotecaApresentacoes = () => {
   const { clienteId } = useOsgWork();
-  const { gerar, gerando } = useGerarApresentacao(clienteId ?? '');
+  const gerarDecks = useGerarApresentacao(clienteId ?? null);
   const contagem = useContagemDeSlides(clienteId || null);
   const revisao = useRevisaoParaSlides(clienteId || null);
   const gerarTributaria = useGerarApresentacaoTributaria();
@@ -67,7 +67,10 @@ const BibliotecaApresentacoes = () => {
   const marcadosValidos = geraveis.filter((p) => marcados.includes(p.id));
   const todos = geraveis.length > 0 && marcadosValidos.length === geraveis.length;
   const totalDeSlides = marcadosValidos.reduce((s, p) => s + slidesDaPeca(p.id), 0);
-  const ocupado = gerando !== null || gerarTributaria.isPending;
+  /* As duas peças respondem pelo mesmo `isPending` desde que a geração da OSG
+     virou mutation — antes era um `gerando` caseiro de um lado e React Query do
+     outro, para a mesma pergunta. */
+  const ocupado = gerarDecks.isPending || gerarTributaria.isPending;
 
   /**
    * UM BOTÃO, DUAS FUNÇÕES.
@@ -92,7 +95,9 @@ const BibliotecaApresentacoes = () => {
 
     if (decks.length > 0) {
       // `ambas` não é um terceiro deck: é o atalho do servidor para o conjunto.
-      const r = await gerar(decks.length === PECAS_COM_DECK.length ? 'ambas' : decks[0]);
+      const r = await gerarDecks.mutateAsync(
+        decks.length === PECAS_COM_DECK.length ? 'ambas' : decks[0],
+      );
       const resultado = conferirDecksGerados(
         marcadosValidos
           .filter((p) => p.deck !== null)
@@ -101,6 +106,25 @@ const BibliotecaApresentacoes = () => {
       );
       gerados.push(...resultado.gerados);
       falhas.push(...resultado.falhas);
+
+      /*
+        O QUE FALTOU NO CADASTRO, e não no PowerPoint.
+
+        A peça tributária avisa "ponto(s) para ajustar no PowerPoint", porque lá o
+        que sobra é diagramação. Aqui o arquivo saiu faltando DADO — empresa fora
+        do quadro, bem sem sociedade de destino —, e o conserto é no cadastro,
+        antes de gerar de novo. Por isso o texto diz onde ir, e os dois primeiros
+        pontos vêm escritos: "3 pontos" sem dizer quais não conserta nada.
+      */
+      const p = r.problemas ?? [];
+      if (p.length) {
+        const primeiros = p.slice(0, 2).map((x) => x.detalhe).join(' ');
+        avisos.push(
+          p.length <= 2
+            ? `Confira no cadastro: ${primeiros}`
+            : `Confira no cadastro: ${primeiros} (+${p.length - 2} ponto${p.length - 2 === 1 ? '' : 's'}).`,
+        );
+      }
     }
 
     if (comTributaria && revisao.revisaoId) {

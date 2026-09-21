@@ -23,8 +23,17 @@ export function conferirDecksGerados(
     if (arquivo) {
       gerados.push(arquivo.nome);
     } else {
+      /*
+        O MOTIVO DAQUELE DECK, e não o genérico.
+
+        A função já devolvia `erros` por peça — "Template ausente:
+        TEMPLATE_SOCIETARIA.pptx" — e o cliente jogava fora, então a pessoa lia
+        "o servidor não devolveu o arquivo" para uma falha que tinha nome. O
+        genérico só sobra quando nem o servidor sabe dizer.
+      */
+      const doDeck = resultado.errosPorDeck?.find((e) => e.tipo === peca.tipo)?.message;
       falhas.push(
-        `${peca.nome}: ${resultado.erro ?? 'o servidor não devolveu o arquivo desta apresentação'}`,
+        `${peca.nome}: ${doDeck ?? resultado.erro ?? 'o servidor não devolveu o arquivo desta apresentação'}`,
       );
     }
   }
