@@ -15,6 +15,7 @@ import {
   QUADRO_ROW_H,
   QUADRO_TOP_0,
   QUADRO_TOP_MAX,
+  paginasDoQuadro,
   repartirLinhas,
 } from './paginacao.ts';
 
@@ -97,5 +98,45 @@ describe('repartirLinhas', () => {
     const entrada = linhas(42);
     repartirLinhas(entrada, QUADRO_TOP_0);
     expect(entrada).toHaveLength(42);
+  });
+});
+
+describe('paginasDoQuadro', () => {
+  // Os tres clientes do sandbox, conferidos contra o .pptx que a funcao gerou em
+  // 21/09/2026. O deck societario tem capa + divisor + organograma antes do
+  // quadro, entao "7 slides no arquivo" e "4 paginas de quadro" sao o mesmo fato.
+  it('reproduz o Banana Quantica: 42 socios numa empresa e 1 na outra, 4 paginas', () => {
+    // O caso que denunciou a mentira: a tela prometia 2 e o arquivo saiu com 7.
+    expect(paginasDoQuadro([42, 1])).toBe(4);
+  });
+
+  it('reproduz o Agro Alianca e a Sta. Terezinha: quadro pequeno, 1 pagina', () => {
+    expect(paginasDoQuadro([3, 1, 1])).toBe(1);
+    expect(paginasDoQuadro([2, 2])).toBe(1);
+  });
+
+  it('nao ha quadro sem empresa, e empresa sem socio nao ocupa pagina', () => {
+    // O gerador remove o slide4 quando nao ha empresa; a tela mostra 0.
+    expect(paginasDoQuadro([])).toBe(0);
+    expect(paginasDoQuadro([0, 0])).toBe(0);
+    expect(paginasDoQuadro([0, 5])).toBe(1);
+  });
+
+  it('uma empresa sozinha ocupa ceil(socios / 13) paginas', () => {
+    // 13 e a coluna cheia. A invariante e a mesma do laco do gerador: toda linha
+    // termina em alguma pagina, e o numero de voltas nao depende de teto nenhum.
+    for (const n of [1, 13, 14, 26, 27, 42, 100, 500]) {
+      expect(paginasDoQuadro([n])).toBe(Math.ceil(n / 13));
+    }
+  });
+
+  it('converge para qualquer combinacao, sem laco infinito', () => {
+    // Era exatamente aqui que o gerador nao convergia: 42 socios devolviam os
+    // mesmos 42 para sempre, e o `guardBail < 20` disfarcava com slides vazios.
+    for (const caso of [[42, 42], [13, 13, 13], [1, 1, 1, 1, 1], [200, 3, 90]]) {
+      const paginas = paginasDoQuadro(caso);
+      expect(paginas).toBeGreaterThan(0);
+      expect(paginas).toBeLessThanOrEqual(caso.reduce((t, n) => t + n, 0));
+    }
   });
 });

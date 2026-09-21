@@ -18,6 +18,13 @@
  * As medidas sao EMU (914.400 por polegada) e vem do template `.pptx`. A altura
  * por linha e super-estimada de proposito, para nunca sobrepor: e melhor sobrar
  * espaco em branco do que uma tabela invadir a de baixo.
+ *
+ * ## Este arquivo tambem e importado pelo FRONT
+ *
+ * `useContagemDeSlides` usa a `paginasDoQuadro` para dizer na tela quantos slides
+ * o deck vai ter. Por isso ele nao pode ganhar import de nada — nem de modulo
+ * OOXML, nem de API so do Deno: e o unico arquivo de Edge Function que entra no
+ * bundle do Vite. Conta pura, sem dependencia, de proposito.
  */
 
 /** Onde a primeira tabela comeca, medido do topo do slide. 1,55". */
@@ -73,4 +80,74 @@ export function repartirLinhas<T>(
   const cabem = cabemQuantasLinhas(top);
   if (cabem <= 0) return { aqui: [], resto: [...linhas] };
   return { aqui: linhas.slice(0, cabem), resto: linhas.slice(cabem) };
+}
+
+/**
+ * O que sobra depois de encher UMA pagina de quadro.
+ *
+ * Espelha o `renderQuadroSlide` do gerador contando linhas em vez de desenhar
+ * tabela: uma empresa sozinha ocupa a coluna central; duas ou mais empilham em
+ * duas colunas, e a primeira que nao couber e partida — o pedaco que sobra volta
+ * para a frente da fila, com as empresas seguintes atras, preservando a ordem.
+ */
+function encherUmaPagina(socios: readonly number[]): number[] {
+  const validas = socios.filter((n) => n > 0);
+  if (validas.length === 0) return [];
+
+  const sobraDe = (n: number, top: number): number[] => {
+    const { aqui, resto } = repartirLinhas(Array.from({ length: n }), top);
+    if (aqui.length === 0) return [n]; // nem os cabecalhos cabem: vai inteira
+    return resto.length === 0 ? [] : [resto.length];
+  };
+
+  if (validas.length === 1) return sobraDe(validas[0], QUADRO_TOP_0);
+
+  const tops = [QUADRO_TOP_0, QUADRO_TOP_0];
+  for (let i = 0; i < validas.length; i++) {
+    const col = i % 2;
+    const h = estimarAltura(validas[i]);
+    if (tops[col] + h <= QUADRO_TOP_MAX) {
+      tops[col] += h;
+      continue;
+    }
+    return [...sobraDe(validas[i], tops[col]), ...validas.slice(i + 1)];
+  }
+  return [];
+}
+
+/**
+ * Quantas paginas o quadro societario vai ocupar, dado o numero de socios de
+ * cada empresa.
+ *
+ * ## Por que a tela precisa disto
+ *
+ * A Biblioteca promete ao consultor quantos slides o deck vai ter, e prometia
+ * **2** para a societaria: organograma + quadro, como se o quadro fosse sempre uma
+ * pagina. Um cliente de teste com 41 socios recebia 7 slides. O numero era o piso
+ * apresentado como exato, e quem lia decidia sem saber.
+ *
+ * Reproduzir a conta aqui, no modulo que o gerador ja usa, e o unico jeito de a
+ * tela nao voltar a mentir: uma copia no front divergiria no primeiro ajuste de
+ * molde, e divergiria em silencio.
+ *
+ * A guarda de progresso e a mesma do gerador — para quando uma volta deixa de
+ * reduzir o que falta, em vez de confiar num teto de paginas. O gerador, nesse
+ * caso, emite aviso e entrega o deck; aqui o numero fica no que foi possivel
+ * paginar, que e exatamente o que vai sair.
+ */
+export function paginasDoQuadro(socios: readonly number[]): number {
+  let restantes = socios.filter((n) => n > 0);
+  if (restantes.length === 0) return 0;
+
+  const soma = (ns: readonly number[]) => ns.reduce((t, n) => t + n, 0);
+  let paginas = 0;
+  let antes = Infinity;
+  while (restantes.length > 0) {
+    paginas++;
+    restantes = encherUmaPagina(restantes);
+    const agora = soma(restantes);
+    if (agora >= antes) break; // nao avancou
+    antes = agora;
+  }
+  return paginas;
 }
