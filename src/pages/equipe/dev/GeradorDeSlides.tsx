@@ -32,7 +32,7 @@ const GeradorDeSlides = () => {
       <div className="space-y-5">
         <DevPageHeader
           title="Como funciona"
-          description="O **Gerador de Slides** monta os slides tributários da apresentação do cliente. Usa a revisão escolhida do **papel de trabalho** — **os números vêm de lá, já conferidos**, e não do que está nesta tela. Escolha o cliente e a revisão para gerar as tabelas de premissas, carga tributária, transferência da atividade rural e resumo."
+          description="O **Gerador de Slides** monta os slides tributários da apresentação do cliente. Usa a revisão escolhida do **papel de trabalho** — **os números vêm de lá, já conferidos**, e não do que está nesta tela. Escolha o cliente e a revisão para gerar os seis slides do capítulo, das premissas ao resumo da tributação."
           icon={Presentation}
         />
 

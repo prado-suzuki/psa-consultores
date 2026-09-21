@@ -293,7 +293,7 @@ export function PapeisDeTrabalhoReport({
       <FiltroDeBusca
         titulo="Qual revisão vai para os slides"
         colunas={2}
-        descricao="Saem quatro tabelas: premissas, carga tributária, transferência da atividade rural e resumo."
+        descricao="Saem seis slides: premissas, cenários, diferenças dos modelos, carga tributária, transferência e resumo."
         acoes={
           /*
             CONTORNADO, E NÃO SÓLIDO, porque não é o único gerador da tela.
