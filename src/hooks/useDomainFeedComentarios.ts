@@ -145,5 +145,7 @@ export function useDomainFeedComentarios(filtros: FeedFiltros = FILTROS_VAZIOS) 
     hasNextPage: query.hasNextPage,
     isFetchingNextPage: query.isFetchingNextPage,
     fetchNextPage: query.fetchNextPage,
+    /** Refazer a busca do zero: é o "Tentar de novo" do estado de erro. */
+    refetch: query.refetch,
   };
 }

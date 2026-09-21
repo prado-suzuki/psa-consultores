@@ -2,6 +2,8 @@ import { resolverCabecalho, type TextoDoCabecalho } from '@/config/textosDasTela
 import { AREAS } from '@/lib/nomeDaArea';
 import { TituloDaPagina } from '@/components/layout/TituloDaPagina';
 import { Menu } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
 import { FiscalSidebar } from './FiscalSidebar';
 import { Button } from '@/components/ui/button';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
@@ -22,10 +24,24 @@ import { useLocation } from 'react-router-dom';
 type FiscalLayoutProps = {
   children: React.ReactNode;
   headerActions?: React.ReactNode;
+  /**
+   * Rolagem DENTRO da área de conteúdo, em vez de na janela.
+   *
+   * O padrão da casa é a janela rolar: a moldura sobe junto e o `sticky` de
+   * dentro da tela não tem contra o que grudar (`main` é `overflow-hidden`, e
+   * a área de conteúdo cresce com o filho, ninguém rola). Telas de leitura
+   * longa, como o Feed, pedem o contrário: cabeçalho e barra lateral parados,
+   * conteúdo correndo por baixo. Quem liga isto ganha os dois de uma vez, e o
+   * `sticky` da própria tela passa a funcionar.
+   *
+   * Opt-in de propósito: virar o modelo de rolagem para todas as telas da área
+   * é outra conversa, muito maior do que a tela que pediu.
+   */
+  rolagemNoConteudo?: boolean;
 } & TextoDoCabecalho;
 
 export const FiscalLayout = (props: FiscalLayoutProps) => {
-  const { children, headerActions } = props;
+  const { children, headerActions, rolagemNoConteudo = false } = props;
   // A ÁREA É DO LAYOUT, e não do invólucro. É isto que torna o espelho
   // estrutural: uma tela da Tax não tem como puxar o texto da OSG, porque ela
   // não escolhe a área — só nomeia a tela. Aqui é sempre `tax`, fixo, e não a
@@ -55,7 +71,7 @@ export const FiscalLayout = (props: FiscalLayoutProps) => {
       // Sem fundo de página: quem pinta é o `body`, uma vez, no `index.css`.
       // Oito layouts decidindo isso por conta própria foi como cinco deles
       // acabaram pintando com a superfície REBAIXADA. Ver a nota lá.
-      className="min-h-screen flex w-full"
+      className={cn('flex w-full', rolagemNoConteudo ? 'h-screen overflow-hidden' : 'min-h-screen')}
     >
       {/* Sidebar */}
       <FiscalSidebar

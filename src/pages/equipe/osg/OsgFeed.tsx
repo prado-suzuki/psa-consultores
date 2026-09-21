@@ -8,6 +8,8 @@ const OsgFeed = () => {
   return (
     <OsgLayout
       tela="feed"
+      // Mesmo motivo da Tax: o feed rola por dentro para os grudados grudarem.
+      rolagemNoConteudo
     >
       <FeedComentarios area="osg" />
     </OsgLayout>
