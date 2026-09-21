@@ -146,3 +146,52 @@ export function aplicarFiltrosNaUrl(
   }
   return proximo;
 }
+
+/**
+ * O que o recorte precisa saber de um projeto: de quem ele é.
+ *
+ * É um subconjunto do que `useOrgProjectsForFilter` devolve: o filtro não
+ * conhece o resto da linha de `org_projects`.
+ */
+export interface ProjetoDoFiltro {
+  id: string;
+  name: string;
+  external_client_id: string | null;
+}
+
+/**
+ * Os projetos que a lista pode oferecer com o cliente atual.
+ *
+ * Sem cliente escolhido, oferece todos. Com cliente, só os dele: uma lista de
+ * centenas de projetos em que a maioria não tem nenhum comentário possível no
+ * recorte não é uma lista, é um labirinto, e escolher projeto de outro cliente
+ * combinava dois filtros que se anulam, devolvendo feed vazio sem dizer por quê.
+ */
+export function projetosDoCliente<T extends { external_client_id: string | null }>(
+  projetos: T[],
+  clienteId: string | null,
+): T[] {
+  if (!clienteId) return projetos;
+  return projetos.filter((projeto) => projeto.external_client_id === clienteId);
+}
+
+/**
+ * Troca o cliente do recorte mantendo o resto coerente: o projeto selecionado
+ * cai junto quando pertence a outro cliente.
+ *
+ * Projeto que não está na lista é PRESERVADO de propósito: a lista pode não ter
+ * chegado ainda (é uma query) ou o projeto pode estar fora do ambiente. Derrubar
+ * o filtro por causa de uma lista vazia apagaria o recorte de um link colado
+ * antes de a página carregar.
+ */
+export function aoTrocarDeCliente(
+  filtros: FeedFiltros,
+  clienteId: string | null,
+  projetos: ProjetoDoFiltro[],
+): FeedFiltros {
+  if (!clienteId || !filtros.projetoId) return { ...filtros, clienteId };
+
+  const projeto = projetos.find((candidato) => candidato.id === filtros.projetoId);
+  const deOutroCliente = projeto !== undefined && projeto.external_client_id !== clienteId;
+  return { ...filtros, clienteId, projetoId: deOutroCliente ? null : filtros.projetoId };
+}
