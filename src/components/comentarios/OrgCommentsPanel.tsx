@@ -42,6 +42,7 @@ import {
   AUTOR_DO_EVENTO,
   corpoDoEvento,
   ehEventoDeSistema,
+  pessoasDoEvento,
   rotuloDoEvento,
 } from '@/lib/orgCommentEventos';
 import { iniciaisDoNome } from '@/lib/orgCommentMentions';
@@ -194,6 +195,8 @@ export function OrgCommentsPanel({
     { nested = false, ultima = false }: { nested?: boolean; ultima?: boolean } = {},
   ) => {
     const isSystem = ehEventoDeSistema(comment.kind);
+    /* Quem agiu e, quando existe, para quem. O avatar segue sendo o do sistema. */
+    const pessoas = isSystem ? pessoasDoEvento(comment) : '';
     const replies = repliesByRoot.get(comment.id) ?? [];
     if (comment.excluido && replies.length === 0) return null;
     const isReplying = replyingTo === comment.id;
@@ -247,10 +250,21 @@ export function OrgCommentsPanel({
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            {/* A linha do evento quebra: nesta coluna estreita, título, pessoas
+                e hora disputando a mesma linha truncavam os três de uma vez. No
+                comentário humano nada muda, que ali a linha continua sendo nome,
+                hora e o menu de ações. */}
+            <div className={cn('flex items-center gap-2', isSystem && 'flex-wrap')}>
               <span className={cn('truncate font-semibold', nested ? 'text-[13px]' : 'text-sm')}>
                 {isSystem ? rotuloDoEvento(comment.kind) : comment.author_name || 'Usuário removido'}
               </span>
+              {/* Quem agiu e para quem, no mesmo desenho do Feed: o aviso é o
+                  mesmo nas duas telas e tem de ler igual nas duas. */}
+              {pessoas && (
+                <span className="min-w-0 truncate text-[11px] text-muted-foreground">
+                  {pessoas}
+                </span>
+              )}
               <span className="shrink-0 text-[11px] text-muted-foreground">
                 {dataHoraCurta(comment.created_at)}
               </span>
