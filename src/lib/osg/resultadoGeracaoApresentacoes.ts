@@ -6,6 +6,18 @@ export interface PecaDeDeckEsperada {
 }
 
 /**
+ * O recorte do resultado que a conferência LÊ — e só ele.
+ *
+ * Não é o `ResultadoDosDecks` inteiro de propósito. Em 21/09/2026 a geração passou
+ * a persistir e cada arquivo ganhou `apresentacaoId` e `versao`; exigir o objeto
+ * completo obrigaria todo teste desta função a inventar id e número de versão que
+ * ela nunca olha. Ela confronta tipo e nome, e é isso que o tipo diz.
+ */
+type ResultadoConferivel = Pick<ResultadoDosDecks, 'erro' | 'errosPorDeck'> & {
+  arquivos: readonly { tipo: PecaDeDeckEsperada['tipo']; nome: string }[];
+};
+
+/**
  * Confere cada apresentação selecionada contra o retorno da Edge Function.
  *
  * A chamada `ambas` pode devolver dois arquivos. Por isso a confirmação não
@@ -13,7 +25,7 @@ export interface PecaDeDeckEsperada {
  */
 export function conferirDecksGerados(
   esperadas: readonly PecaDeDeckEsperada[],
-  resultado: ResultadoDosDecks,
+  resultado: ResultadoConferivel,
 ): { gerados: string[]; falhas: string[] } {
   const gerados: string[] = [];
   const falhas: string[] = [];

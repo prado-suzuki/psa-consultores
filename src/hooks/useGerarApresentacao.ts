@@ -1,43 +1,34 @@
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { baixarArquivoPorUrl } from '@/lib/osg/baixarArquivoPorUrl';
 
 // Decks da apresentação PSA (segue a separação do pptx original).
 export type DeckDaApresentacao = 'patrimonial' | 'societaria';
 export type DeckTipo = 'ambas' | DeckDaApresentacao;
 
-export type ArquivoGerado = { tipo: DeckDaApresentacao; nome: string; b64: string };
-
-// Contrato com a Edge Function `gerar-apresentacao` (Deno; SEM Storage — a função
-// gera e devolve os bytes inline em base64, não persiste mais nada):
-//   body → { clienteId: string; tipo: DeckTipo }
-//   resp → { arquivos: ArquivoGerado[] }   (cada deck em base64)
-const EDGE_FN = 'gerar-apresentacao';
-
-const PPTX_MIME =
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-
-// Os bytes voltam inline em base64 (a função não salva no Storage). Decodifica para
-// um Blob e baixa via object URL same-origin: respeita o `nome` e garante que todos
-// os arquivos venham (o navegador não dispara múltiplos downloads cross-origin de
-// forma confiável).
-//
-// NÃO DÁ PARA USAR O `baixarArquivoPorUrl`, que a peça tributária usa: aquele
-// recebe URL do Storage e busca os bytes, e aqui os bytes já estão na mão. Os dois
-// caminhos convergem no dia em que esta geração passar a persistir.
-function baixar(b64: string, nome: string) {
-  const bin = atob(b64);
-  const arr = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-  const obj = URL.createObjectURL(new Blob([arr], { type: PPTX_MIME }));
-  const a = document.createElement('a');
-  a.href = obj;
-  a.download = nome;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(obj);
+/**
+ * Um deck que o servidor gerou, gravou e devolveu por URL assinada.
+ *
+ * **Deixou de vir em base64 em 21/09/2026.** A geração passou a persistir: cada
+ * deck é um arquivo em `osg-apresentacoes` e uma linha em `osg_apresentacao`, com
+ * versão e checksum. Antes os bytes voltavam inline — 1,5 MB por deck no corpo da
+ * resposta — e nada ficava, então não havia como dizer o que foi entregue nem
+ * quando.
+ */
+export interface ArquivoGerado {
+  tipo: DeckDaApresentacao;
+  nome: string;
+  /** Assinada e de vida curta. `null` se o registro ficou e a assinatura falhou. */
+  url: string | null;
+  apresentacaoId: string;
+  versao: number;
 }
+
+// Contrato com a Edge Function `gerar-apresentacao` (Deno):
+//   body → { clienteId: string; tipo: DeckTipo }
+//   resp → { arquivos: ArquivoGerado[], erros?, problemas? }
+const EDGE_FN = 'gerar-apresentacao';
 
 /**
  * O que saiu da geração — quem avisa o usuário é quem chamou.
@@ -49,7 +40,7 @@ function baixar(b64: string, nome: string) {
  */
 export interface ResultadoDosDecks {
   /** Os arquivos que o navegador recebeu e disparou para download. */
-  arquivos: Pick<ArquivoGerado, 'tipo' | 'nome'>[];
+  arquivos: Pick<ArquivoGerado, 'tipo' | 'nome' | 'apresentacaoId' | 'versao'>[];
   /** Por que não veio. `null` quando veio. */
   erro: string | null;
   /**
@@ -99,11 +90,12 @@ const statusDoErro = (erro: unknown): number | undefined =>
  * migração existe para acabar, e `isPending` no lugar de um `gerando` caseiro é
  * o que deixa a tela tratar as duas peças pelo mesmo caminho.
  *
- * **O que NÃO se copiou do molde, e por quê:** a invalidação de cache. Lá ela
- * existe porque a geração grava uma linha em `wp_apresentacao` e a lista "já
- * geradas" precisa recarregar. Aqui nada é persistido — a função devolve os
- * bytes e esquece —, então não há consulta a invalidar. Copiar o
- * `invalidateQueries` daria a impressão de que existe histórico onde não existe.
+ * **Sobre a invalidação de cache, que ainda não está aqui.** No molde ela existe
+ * porque a geração grava uma linha e a lista "já geradas" precisa recarregar.
+ * Desde 21/09/2026 esta geração TAMBÉM grava — mas a lista da OSG ainda não
+ * existe, então não há consulta a invalidar. Ela entra junto com a lista, e não
+ * antes: `invalidateQueries` de uma chave que ninguém consulta é código que nunca
+ * roda e que faz parecer que o histórico já está na tela.
  *
  * **A mutation não rejeita por erro de negócio.** Quem marca as duas peças
  * precisa saber qual das duas não veio, e um `throw` só diz que algo falhou.
@@ -133,37 +125,66 @@ export function useGerarApresentacao(clienteId: string | null) {
       const arquivos = data?.arquivos ?? [];
       if (!arquivos.length) return { arquivos: [], erro: 'o servidor não devolveu nenhum arquivo' };
 
-      // baixa um a um (blob a blob) — garante todos os arquivos e o nome correto
-      for (const f of arquivos) baixar(f.b64, f.nome);
+      /*
+       * UM A UM, e em série. O navegador não dispara vários downloads seguidos de
+       * forma confiável se eles competirem, e o `baixarArquivoPorUrl` busca os
+       * bytes antes de clicar no link local — é a MESMA peça que a geração
+       * tributária usa, o que o comentário antigo prometia para o dia em que esta
+       * passasse a persistir.
+       *
+       * Falha de download NÃO invalida a geração: o arquivo está gravado e
+       * versionado, e a tela pode oferecê-lo de novo. Por isso o erro entra em
+       * `errosPorDeck`, ao lado dos do servidor, em vez de derrubar o resultado.
+       */
+      const falhasAoBaixar: ErroDeDeck[] = [];
+      for (const f of arquivos) {
+        if (!f.url) {
+          falhasAoBaixar.push({ tipo: f.tipo, message: 'o arquivo foi gravado, mas o link não foi assinado' });
+          continue;
+        }
+        try {
+          await baixarArquivoPorUrl(f.url, f.nome);
+        } catch (e) {
+          falhasAoBaixar.push({ tipo: f.tipo, message: (e as Error)?.message ?? 'o download falhou' });
+        }
+      }
+
       return {
-        arquivos: arquivos.map(({ tipo, nome }) => ({ tipo, nome })),
+        arquivos: arquivos.map(({ tipo, nome, apresentacaoId, versao }) => ({
+          tipo, nome, apresentacaoId, versao,
+        })),
         erro: null,
         problemas: data?.problemas ?? [],
-        errosPorDeck: data?.erros ?? [],
+        errosPorDeck: [...(data?.erros ?? []), ...falhasAoBaixar],
       };
     },
 
     /**
-     * O rastro que faltava.
+     * O rastro, agora APONTANDO PARA A APRESENTAÇÃO — uma linha por deck.
      *
-     * O `entity_id` é o CLIENTE, e não o arquivo: nada é persistido, então não
-     * existe id de apresentação para apontar, e a pergunta que se faz ao log é
-     * "quem gerou deck de qual cliente". O nome dos arquivos vai no
-     * `entity_name`, que é o que identifica o que saiu.
+     * Era uma linha só, com `entity_id` = cliente, porque nada era persistido e
+     * não havia id de apresentação para apontar; o log respondia "quem gerou deck
+     * de qual cliente" e nada mais. Com a `osg_apresentacao`, cada deck tem id e
+     * versão, então a pergunta que passa a ter resposta é "quem gerou a v3 do
+     * quadro societário deste cliente, e quando" — que é a que aparece quando
+     * alguém pergunta de onde veio o arquivo que está na mão do cliente.
+     *
+     * Duas chamadas quando saem os dois decks, de propósito: são dois artefatos
+     * distintos, com versões próprias, e juntá-los num registro só perderia
+     * exatamente o id que dá para rastrear.
      */
     onSuccess: async (resultado) => {
-      if (!clienteId || !resultado.arquivos.length) return;
-      await logAction({
-        area: 'osg',
-        entity_type: 'apresentacao_osg',
-        entity_id: clienteId,
-        entity_name: resultado.arquivos.map((a) => a.nome).join(', '),
-        action: 'created',
-        details:
-          resultado.arquivos.length === 1
-            ? `Deck ${resultado.arquivos[0].tipo} gerado.`
-            : `Decks gerados: ${resultado.arquivos.map((a) => a.tipo).join(' e ')}.`,
-      });
+      if (!clienteId) return;
+      for (const a of resultado.arquivos) {
+        await logAction({
+          area: 'osg',
+          entity_type: 'apresentacao_osg',
+          entity_id: a.apresentacaoId,
+          entity_name: a.nome,
+          action: 'created',
+          details: `Deck ${a.tipo} v${a.versao} gerado para o cliente ${clienteId}.`,
+        });
+      }
     },
   });
 

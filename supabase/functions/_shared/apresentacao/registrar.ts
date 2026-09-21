@@ -115,12 +115,35 @@ export interface RegistroDoDeck {
 }
 
 /*
- * NAO EXISTE UM CAMPO `extras` PARA COLUNA DE DOMINIO, e a ausencia e deliberada.
+ * O `snapshot` ENTROU EM 21/09/2026, com o consumidor dele.
  *
- * Houve um, criado para o `snapshot_dados` da OSG antes de a tabela existir —
- * superficie de API sem nenhum consumidor. Quando o snapshot tiver quem o
- * preencha, ele entra junto com o codigo que o usa, e nao antes.
+ * Houve antes um campo `extras` genérico, criado para isto quando a tabela da OSG
+ * ainda nao existia, e removido por ser superficie sem consumidor. Agora a
+ * `osg_apresentacao` existe, tem a coluna `snapshot_dados`, e o gerador da OSG a
+ * preenche — entao o campo entra nomeado, e nao como saco generico.
+ *
+ * SO A OSG PRECISA. O tributario ancora em `importacao_id`, que aponta para uma
+ * revisao imutavel: o ponteiro ja e retrato, de graca. A OSG ancora em
+ * `cliente_id`, e o cadastro anda — sem gravar o modelo de conteudo, um mes depois
+ * ninguem sabe o que aquele deck afirmava. O precedente e o `documento_gerado`
+ * das minutas, que nasce da mesma fonte viva e guarda `snapshot_dados` em 41 de 41.
  */
+
+/**
+ * O que o `montar` devolve.
+ *
+ * O `snapshot` sai DAQUI, e nao de um parametro de cima, porque ele nasce da mesma
+ * chamada que produz os bytes: e o modelo de conteudo que virou aquele arquivo.
+ * Tentei primeiro passar por fora e a casca tinha de ler a variavel DEPOIS do
+ * `montar` — dependencia de ordem invisivel, num arquivo de que dois geradores
+ * dependem. Vindo no retorno, a ordem deixa de existir.
+ */
+export interface Pacote {
+  bytes: Uint8Array;
+  avisos: string[];
+  /** Vai para `snapshot_dados`. Quem nao tem a coluna (o tributario) omite. */
+  snapshot?: unknown;
+}
 
 export interface ApresentacaoRegistrada {
   apresentacaoId: string;
@@ -164,8 +187,15 @@ export async function registrarApresentacao(args: {
   db: ClienteDeRegistro;
   molde: MoldeDoDeck;
   registro: RegistroDoDeck;
-  /** Monta o .pptx a partir dos bytes do molde. E a parte de cada gerador. */
-  montar: (bytesDoMolde: Uint8Array) => { bytes: Uint8Array; avisos: string[] };
+  /**
+   * Monta o .pptx a partir dos bytes do molde. E a parte de cada gerador.
+   *
+   * PODE SER ASSINCRONA. O tributario monta sincronamente, com a revisao ja lida;
+   * os geradores da OSG consultam o cadastro por dentro (organograma, quadro,
+   * titular) e por isso sao `async`. A assinatura sincrona atendia so ao primeiro
+   * consumidor — foi o segundo que mostrou.
+   */
+  montar: (bytesDoMolde: Uint8Array) => Pacote | Promise<Pacote>;
   /** O que o conteudo ja tinha a dizer antes de virar arquivo. */
   problemas: ProblemaDoDeck[];
   versaoDoGerador: string;
@@ -190,7 +220,7 @@ export async function registrarApresentacao(args: {
    */
   const checksumDoMolde = await resumoDosBytes(bytesDoMolde);
 
-  const { bytes, avisos } = montar(bytesDoMolde);
+  const { bytes, avisos, snapshot } = await montar(bytesDoMolde);
 
   /* Falha estrutural nao entrega arquivo: nada sobe e nada e gravado. */
   const doPacote = validatePptx(unpackPptx(bytes));
@@ -260,6 +290,9 @@ export async function registrarApresentacao(args: {
         template_checksum: checksumDoMolde,
         versao_do_gerador: versaoDoGerador,
         problemas,
+        /* Espalhado, e nao `snapshot_dados: args.snapshot`: a tabela do tributario
+           nao tem essa coluna, e mandar `undefined` no insert e mandar a coluna. */
+        ...(snapshot === undefined ? {} : { snapshot_dados: snapshot }),
       })
       .select("id")
       .single();

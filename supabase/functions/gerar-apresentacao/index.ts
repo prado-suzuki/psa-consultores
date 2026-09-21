@@ -3,13 +3,29 @@
 // Auth: JWT + role team_member+ + isolamento por cluster (intersecao entre
 //   resolve_user_cluster_ids(auth.uid()) e cliente_clusters).
 // Templates: bucket privado `osg-templates` (TEMPLATE_PATRIMONIAL.pptx / TEMPLATE_SOCIETARIA.pptx).
-// Saida: SEM persistencia. Os bytes de cada .pptx voltam inline em base64
-//   para o front baixar via Blob local (nao mexe em Storage nem em
-//   documento_gerado/documento_arquivo — isso segue reservado ao fluxo de minutas).
+//
+// Saida: PERSISTE, desde 21/09/2026. Cada deck vira um arquivo em
+//   `osg-apresentacoes` e uma linha em `osg_apresentacao`, com versao, checksum do
+//   arquivo, checksum do molde, versao do gerador, os problemas congelados e o
+//   SNAPSHOT do conteudo. O front recebe URL assinada, nao mais bytes em base64.
+//
+//   Antes disto a geracao nao deixava rastro: baixava e pronto. Nao havia como
+//   dizer o que foi entregue a um cliente, nem quando, nem de qual molde — e
+//   regerar depois dava outro arquivo, porque o cadastro anda.
+//
+//   Continua NAO mexendo em `documento_gerado`/`documento_arquivo`: aquelas tem
+//   `checklist_item_id` e `triado_em`, e a apresentacao apareceria no checklist do
+//   cliente como documento que ele deve entregar. A fronteira e antiga e vale.
+//
+// A sequencia de gravar (validar → versionar → subir → registrar → assinar) NAO
+//   mora aqui: e a casca `_shared/apresentacao/registrar.ts`, compartilhada com o
+//   `gerar-slides-tributarios`. O que e da OSG entra por parametro — a ancora
+//   `cliente_id` + `tipo`, o bucket, o nome do arquivo e o snapshot.
 //
 // Contrato:
 //   POST { clienteId: string, tipo: 'ambas' | 'patrimonial' | 'societaria' }
-//   → { arquivos: [{ tipo, nome, b64 }], erros?: [...], problemas?: [...] }
+//   → { arquivos: [{ tipo, nome, url, apresentacaoId, versao }],
+//       erros?: [...], problemas?: [...] }
 //
 // `erros` e `problemas` NAO sao a mesma coisa:
 //   erros    — excecao num deck (template ausente, PPTX invalido, erro de query).
@@ -19,8 +35,8 @@
 //              Ate 09/2026 isso ia calado, e quem apresentava descobria na reuniao.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { falhou, registrarApresentacao } from "../_shared/apresentacao/registrar.ts";
 import { handleCorsPreflightRequest, buildCorsHeaders } from "../_shared/cors.ts";
 import { unpackPptx, packPptx, readText, writeText, listPaths, type PptxParts } from "../_shared/ooxml/zip.ts";
 import { parseXml, serializeXml, qsa } from "../_shared/ooxml/xml.ts";
@@ -54,12 +70,34 @@ import {
 type DeckTipo = "patrimonial" | "societaria";
 type BodyTipo = DeckTipo | "ambas";
 
+/**
+ * O que um gerador devolve: os bytes, as contagens e o SNAPSHOT.
+ *
+ * O snapshot e o modelo de conteudo que virou aquele .pptx — o retorno das
+ * funcoes puras do `conteudo.ts`, que ja e JSON e ja tem gabarito. Vai para
+ * `osg_apresentacao.snapshot_dados` porque a ancora desta tabela e o CLIENTE, e o
+ * cadastro anda: sem gravar o que o deck afirmou, um mes depois ninguem sabe.
+ *
+ * Nao e dump de tabela. Linha crua teria de ser reinterpretada para dizer algo; o
+ * modelo montado JA e a resposta — quais sociedades, quais linhas do quadro, quais
+ * faixas do organograma, quem era o titular.
+ */
+interface DeckMontado {
+  bytes: Uint8Array;
+  contagens: Record<string, number>;
+  snapshot: Record<string, unknown>;
+}
+
 const TEMPLATE_PATHS: Record<DeckTipo, string> = {
   patrimonial: "TEMPLATE_PATRIMONIAL.pptx",
   societaria: "TEMPLATE_SOCIETARIA.pptx",
 };
 
 const BUCKET_TEMPLATES = "osg-templates";
+/* Provisionado em 14/08/2026 e vazio ate agora: a geracao nao persistia nada. */
+const BUCKET_SAIDA = "osg-apresentacoes";
+/* Muda quando a forma de montar o slide muda, e fica gravado na apresentacao. */
+const VERSAO_DO_GERADOR = "1.0";
 
 // Slide widescreen (16:9) — dimensoes usadas pra distribuicao horizontal e paginacao.
 const SLIDE_W = 12192000;
@@ -134,7 +172,7 @@ async function gerarPatrimonial(
   clienteId: string,
   clienteNome: string,
   probs?: ProblemaDoDeck[],
-): Promise<{ bytes: Uint8Array; contagens: Record<string, number> }> {
+): Promise<DeckMontado> {
   const parts = unpackPptx(bytesDoMolde);
 
   const sociedades = await carregarPatrimonial(admin, clienteId, probs);
@@ -197,7 +235,11 @@ async function gerarPatrimonial(
 
   const issues = validatePptx(parts);
   if (issues.length > 0) throw new Error(`PPTX inválido: ${JSON.stringify(issues).slice(0, 500)}`);
-  return { bytes: packPptx(parts), contagens: { sociedades: sociedades.length } };
+  return {
+    bytes: packPptx(parts),
+    contagens: { sociedades: sociedades.length },
+    snapshot: { sociedades },
+  };
 }
 
 // ============================================================================
@@ -523,7 +565,7 @@ async function gerarSocietaria(
   clienteId: string,
   clienteNome: string,
   probs?: ProblemaDoDeck[],
-): Promise<{ bytes: Uint8Array; contagens: Record<string, number> }> {
+): Promise<DeckMontado> {
   const parts = unpackPptx(bytesDoMolde);
 
   const [bands, empresas, titular] = await Promise.all([
@@ -593,7 +635,11 @@ async function gerarSocietaria(
 
   const issues = validatePptx(parts);
   if (issues.length > 0) throw new Error(`PPTX inválido: ${JSON.stringify(issues).slice(0, 500)}`);
-  return { bytes: packPptx(parts), contagens: { empresas: empresas.length } };
+  return {
+    bytes: packPptx(parts),
+    contagens: { empresas: empresas.length },
+    snapshot: { organograma: bands, quadro: empresas, titular },
+  };
 }
 
 // ============================================================================
@@ -657,39 +703,84 @@ serve(async (req) => {
     if (cliErr || !cli || cli.excluido) return json({ error: "Cliente não encontrado" }, 404);
 
     const decks: DeckTipo[] = tipoIn === "ambas" ? ["patrimonial", "societaria"] : [tipoIn];
-    const arquivos: Array<{ tipo: DeckTipo; nome: string; b64: string }> = [];
+    const arquivos: Array<{
+      tipo: DeckTipo;
+      nome: string;
+      url: string | null;
+      apresentacaoId: string;
+      versao: number;
+    }> = [];
     const erros: Array<{ tipo: DeckTipo; message: string }> = [];
 
-    // O que o deck nao conseguiu dizer. Diferente dos `erros`, que sao excecao e
-    // custam o arquivo inteiro, estes sao buracos de cadastro: o .pptx sai, e sai
-    // faltando coisa. Antes disso a falta ia calada para a mao de quem apresenta.
-    const problemas: ProblemaDoDeck[] = [];
+    /*
+     * UM `problemas` POR DECK, e nao um acumulador da chamada inteira.
+     *
+     * Antes era um só, compartilhado pelos dois geradores, porque a resposta
+     * também era uma só. Agora cada deck vira uma LINHA em `osg_apresentacao` com
+     * os seus problemas congelados — e misturar faria o registro do patrimonial
+     * carregar buraco que é do organograma. Quem quer os dois juntos é a tela, e
+     * ela soma o que voltou.
+     */
+    const problemasDeTodos: ProblemaDoDeck[] = [];
 
     for (const tipo of decks) {
       try {
-        /*
-          O MOLDE E BAIXADO AQUI, UMA VEZ, e entregue ao gerador.
-          Era cada gerador que baixava o seu — e o societario rebaixava dentro do
-          laco de paginacao, ate 20 vezes 1,5 MB na mesma geracao. Passar os bytes
-          tambem e o que faz a assinatura encaixar na `registrarApresentacao`, que ja baixa
-          o molde antes de chamar quem monta.
-        */
-        const dl = await admin.storage.from(BUCKET_TEMPLATES).download(TEMPLATE_PATHS[tipo]);
-        if (dl.error || !dl.data) throw new Error(`Template ausente: ${TEMPLATE_PATHS[tipo]}`);
-        const bytesDoMolde = new Uint8Array(await dl.data.arrayBuffer());
-
-        const { bytes } = tipo === "patrimonial"
-          ? await gerarPatrimonial(admin, bytesDoMolde, clienteId, cli.nome, problemas)
-          : await gerarSocietaria(admin, bytesDoMolde, clienteId, cli.nome, problemas);
-
+        const problemas: ProblemaDoDeck[] = [];
         const tipoLabel = tipo === "patrimonial" ? "Patrimonial" : "Societaria";
-        const nomeArquivo = `PSA_${tipoLabel}_${slugify(cli.nome)}.pptx`;
 
-        // std@0.168.0 base64.encode: (ArrayBuffer | string) => string. Uint8Array
-        // pode ser um sub-view de um buffer maior; slicei pra cobrir exatamente
-        // os bytes gerados e tipar como ArrayBuffer sem cast.
-        const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-        arquivos.push({ tipo, nome: nomeArquivo, b64: base64Encode(buf) });
+        /*
+         * A CASCA COMPARTILHADA assume daqui: baixar o molde, validar o pacote,
+         * versionar, subir, gravar a linha e assinar a URL são a mesma sequência
+         * do gerador tributário, e a ordem carrega as decisões (ver o cabeçalho
+         * de `_shared/apresentacao/registrar.ts`).
+         *
+         * O que é da OSG entra por parâmetro: a âncora é `cliente_id` + `tipo`,
+         * porque um cliente tem dois decks distintos e cada um versiona sozinho.
+         * E o `snapshot` é a coluna que só esta tabela tem — o tributário aponta
+         * para revisão imutável e ganha o retrato de graça; aqui o cadastro anda.
+         *
+         * QUEM GRAVA É A CONEXÃO DO USUÁRIO, sob RLS, mesmo o resto da função
+         * lendo com `admin`: a policy de INSERT exige team_member+ e a de SELECT
+         * passa pelo `cliente_visivel_para`. Gravar com `admin` puraria a linha
+         * por fora da regra que a própria migration escreveu.
+         */
+        const registrada = await registrarApresentacao({
+          admin,
+          db: userClient,
+          molde: { bucket: BUCKET_TEMPLATES, nome: TEMPLATE_PATHS[tipo] },
+          registro: {
+            tabela: "osg_apresentacao",
+            ancora: { cliente_id: clienteId, tipo },
+            bucketSaida: BUCKET_SAIDA,
+            pasta: clienteId,
+            nomeArquivo: (versao) =>
+              `PSA_${tipoLabel}_${slugify(cli.nome)}_v${versao}.pptx`,
+          },
+          montar: async (bytesDoMolde) => {
+            const montado = tipo === "patrimonial"
+              ? await gerarPatrimonial(admin, bytesDoMolde, clienteId, cli.nome, problemas)
+              : await gerarSocietaria(admin, bytesDoMolde, clienteId, cli.nome, problemas);
+            /* Os avisos ficam vazios de proposito: o que esta geracao tem a dizer
+               ja entrou no `problemas`, com `onde` e causa, pelas regras puras. */
+            return { bytes: montado.bytes, avisos: [], snapshot: montado.snapshot };
+          },
+          problemas,
+          versaoDoGerador: VERSAO_DO_GERADOR,
+        });
+
+        if (falhou(registrada)) {
+          erros.push({ tipo, message: registrada.erro });
+          continue;
+        }
+
+        problemasDeTodos.push(...registrada.problemas);
+        arquivos.push({
+          tipo,
+          nome: registrada.nomeArquivo,
+          url: registrada.url,
+          apresentacaoId: registrada.apresentacaoId,
+          versao: registrada.versao,
+        });
       } catch (e: any) {
         erros.push({ tipo, message: String(e?.message ?? e) });
       }
@@ -699,7 +790,7 @@ serve(async (req) => {
     return json({
       arquivos,
       erros: erros.length ? erros : undefined,
-      problemas: problemas.length ? problemas : undefined,
+      problemas: problemasDeTodos.length ? problemasDeTodos : undefined,
     });
   } catch (e: any) {
     return json({ error: String(e?.message ?? e) }, 500);
