@@ -92,6 +92,15 @@ no gerador tributário com segurança. Para reconstruí-la:
 Sem ela, mudança em `_shared/ooxml/` ou em `_shared/apresentacao/` vaza de um gerador para
 o outro sem ninguém notar.
 
+**O deck do vizinho sai da conferência quando ele estiver em obra.** O baseline do
+tributário provou, no dia da extração, que a casca não mudou a saída dele — e parou
+de servir no dia seguinte, quando o Eduardo começou a trocar o molde e o código que
+escreve o slide. A partir dali o deck muda todo dia, de propósito, e comparar deck
+inteiro acusaria o trabalho dele como regressão nossa. Pior: gerar o deck dele
+GRAVA, e em um dia a conferência empilhou 18 versões na revisão de teste que ele
+usa. O código compartilhado passou a ser guardado pelo hash dos módulos OOXML e
+pelos testes de unidade da casca — mais precisos, e sem escrever no domínio alheio.
+
 **Um aviso sobre o que o baseline NÃO prova.** Ele pega regressão — "o deck mudou" —
 e não correção. Em 21/09 o baseline do quadro societário foi gravado sobre uma saída
 que já estava truncada: a paginação não sabia partir uma empresa entre páginas, então

@@ -44,6 +44,12 @@ import {
   type ProblemaDoDeck,
 } from "./data.ts";
 import { anota, ONDE } from "../_shared/apresentacao-osg/regras.ts";
+/* A aritmetica da paginacao mora em `_shared` porque la ela tem teste: e a conta
+   que fazia o deck perder socio, e este arquivo o vitest nao alcanca. */
+import {
+  cabemQuantasLinhas, estimarAltura, repartirLinhas,
+  QUADRO_PAD_H, QUADRO_ROW_H, QUADRO_TOP_0, QUADRO_TOP_MAX,
+} from "../_shared/apresentacao-osg/paginacao.ts";
 
 type DeckTipo = "patrimonial" | "societaria";
 type BodyTipo = DeckTipo | "ambas";
@@ -355,31 +361,8 @@ const QUADRO_GAP_H = 274320;    // 0.3"
 const QUADRO_LEFT_0 = 548640;   // 0.6"
 const QUADRO_LEFT_1 = QUADRO_LEFT_0 + QUADRO_COL_W + QUADRO_GAP_H;
 const QUADRO_LEFT_CENTER = 2971800; // 3.25" (1 empresa)
-const QUADRO_TOP_0 = 1417320;   // 1.55"
-const QUADRO_TOP_MAX = 6492240; // 7.1"
-const QUADRO_ROW_H = 292608;    // ~0.32" (super-estimado pra evitar sobreposicao)
-const QUADRO_PAD_H = 365760;    // ~0.40" (respiro entre tabelas empilhadas)
 
-function estimarAltura(rowCount: number): number {
-  // header empresa + header colunas + linhas + TOTAL + padding
-  return (3 + rowCount) * QUADRO_ROW_H + QUADRO_PAD_H;
-}
 
-/**
- * Quantas linhas de socio cabem numa coluna que comeca em `top`.
- *
- * E a inversa da `estimarAltura`, e existe porque o quadro precisa PARTIR uma
- * empresa entre paginas. Antes ele so sabia responder "cabe inteira ou nao cabe",
- * e empresa que nao coubesse em uma pagina era adiada — para uma pagina do mesmo
- * tamanho, onde tambem nao cabia. Com 42 socios o adiamento era eterno: o laco
- * girava o teto de 20 voltas produzindo slides vazios e a empresa sumia do deck.
- *
- * Com a altura de hoje, uma coluna inteira comporta 13 linhas.
- */
-function cabemQuantasLinhas(top: number): number {
-  const disponivel = QUADRO_TOP_MAX - top - QUADRO_PAD_H;
-  return Math.max(0, Math.floor(disponivel / QUADRO_ROW_H) - 3);
-}
 
 /**
  * Localiza a row TOTAL (unica remanescente com celulas de dados apos remover template SOCIO).
@@ -488,17 +471,13 @@ function renderQuadroSlide(parts: PptxParts, slidePath: string, empresas: Quadro
   const desenharAteCaber = (
     emp: QuadroEmpresa, left: number, top: number,
   ): QuadroEmpresa | null => {
-    if (top + estimarAltura(emp.linhas.length) <= QUADRO_TOP_MAX) {
-      renderQuadroTable(spTree, gf, idCounter, emp, left, top);
-      return null;
-    }
-    const cabem = cabemQuantasLinhas(top);
-    if (cabem <= 0) return emp; // nem o cabecalho cabe: inteira para a proxima
+    const { aqui, resto } = repartirLinhas(emp.linhas, top);
+    if (aqui.length === 0) return emp; // nem os cabecalhos cabem: vai inteira
     renderQuadroTable(
-      spTree, gf, idCounter, { ...emp, linhas: emp.linhas.slice(0, cabem) }, left, top,
-      false, // nao e a ultima parte: sem TOTAL
+      spTree, gf, idCounter, { ...emp, linhas: aqui }, left, top,
+      resto.length === 0, // so o pedaco final fecha o TOTAL
     );
-    return { ...emp, linhas: emp.linhas.slice(cabem) };
+    return resto.length === 0 ? null : { ...emp, linhas: resto };
   };
 
   if (validas.length === 1) {
