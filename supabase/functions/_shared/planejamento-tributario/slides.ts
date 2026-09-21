@@ -99,16 +99,19 @@ export interface Revisao {
   crescimentoAnual?: number | null;
 }
 
-/** Um problema para registrar em `wp_apresentacao.problemas`. */
-export interface ProblemaDoDeck {
-  /**
-   * `formatacao` quando é sobre o espaço do slide, `origem` quando é sobre de
-   * onde o dado vem. A tela mostra só `formatacao`; os dois ficam gravados.
-   */
-  tipo: 'formatacao' | 'origem';
-  onde: string;
-  detalhe: string;
-}
+/**
+ * Um problema para registrar em `wp_apresentacao.problemas`.
+ *
+ * `formatacao` quando é sobre o espaço do slide, `origem` quando é sobre de onde
+ * o dado vem. A tela mostra só `formatacao`; os dois ficam gravados.
+ *
+ * O TIPO VEM DE `_shared/apresentacao/problema.ts`, compartilhado com o gerador da
+ * OSG. Estava declarado nos dois lados e já tinha divergido — o daqui com `onde`,
+ * o de lá sem. Como a Biblioteca junta os avisos dos dois num aviso só, duas
+ * definições eram duas línguas no mesmo parágrafo.
+ */
+import type { ProblemaDoDeck } from '../apresentacao/problema.ts';
+export type { ProblemaDoDeck };
 
 export type ValorDoSlide = string;
 

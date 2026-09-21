@@ -10,8 +10,11 @@
 // enxerga. É exigência do enunciado da PT-03 e é o que faz o slide sair do mesmo
 // lugar que a conferência da PT-02 olhou.
 //
-// **Falha estrutural não entrega arquivo.** Se o `validatePptx` achar problema no
-// pacote, nada sobe para o bucket e nada entra na tabela: volta erro.
+// **Falha estrutural não entrega arquivo.** Se a validação do pacote achar
+// problema, nada sobe para o bucket e nada entra na tabela: volta erro. A
+// validação, o versionamento e a gravação moram em `_shared/apresentacao/
+// registrar.ts`, compartilhados com o gerador da OSG; aqui fica o `montaPptx`,
+// que é o único pedaço específico deste molde.
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -20,7 +23,7 @@ import { buildCorsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts
 import { packPptx, readText, unpackPptx, writeText, type PptxParts } from '../_shared/ooxml/zip.ts';
 import { parseXml, qsa, serializeXml } from '../_shared/ooxml/xml.ts';
 import { applyTokensToNode, stripRemainingTokens } from '../_shared/ooxml/runs.ts';
-import { validatePptx } from '../_shared/ooxml/validate.ts';
+import { falhou, registrarApresentacao } from '../_shared/apresentacao/registrar.ts';
 import {
   montaDeck,
   type Deck,
@@ -47,7 +50,6 @@ const BUCKET_SAIDA = 'wp-apresentacoes';
  * que falta, que é falha visível e resolvível.
  */
 const MOLDE = 'TEMPLATE_TRIBUTARIO_V2.pptx';
-const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 
 /**
  * Os sete slides do capítulo, e quantos tokens cada um espera.
@@ -177,20 +179,14 @@ function slug(s: string): string {
     .slice(0, 60);
 }
 
-async function resumoDosBytes(bytes: Uint8Array): Promise<string> {
-  /* O checksum do arquivo gerado. `SHA-256` serve: aqui ele identifica o pacote,
-   * e não precisa casar com o do GCS como na importação. */
-  /*
-   * A cópia existe por causa de tipagem, não de comportamento: `bytes.buffer` é
-   * `ArrayBufferLike`, que admite `SharedArrayBuffer`, e as tipagens novas do
-   * Deno recusam isso onde o WebCrypto pede `BufferSource`. Copiar para um
-   * `ArrayBuffer` comum resolve sem mentir num cast.
-   */
-  const copia = new Uint8Array(bytes.length);
-  copia.set(bytes);
-  const hash = await crypto.subtle.digest('SHA-256', copia.buffer);
-  return btoa(String.fromCharCode(...new Uint8Array(hash).slice(0, 16)));
-}
+/*
+ * O `resumoDosBytes` SAIU DAQUI para `_shared/apresentacao/registrar.ts`.
+ *
+ * Os dois geradores precisavam do mesmo checksum, e quem grava a linha agora é a
+ * casca. A cópia para um `ArrayBuffer` próprio foi junto: `bytes.buffer` é
+ * `ArrayBufferLike`, admite `SharedArrayBuffer`, e o WebCrypto pede `BufferSource`
+ * — o mesmo tropeço de tipagem foi encontrado nos dois lados, em separado.
+ */
 
 function descreveErro(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -334,96 +330,40 @@ serve(async (req) => {
       })) as FarolDaRevisao[],
     });
 
-    const { data: molde, error: erroMolde } = await admin.storage
-      .from(BUCKET_MOLDES)
-      .download(MOLDE);
-    if (erroMolde || !molde) {
-      return json(
-        {
-          error:
-            `O molde "${MOLDE}" não está no bucket "${BUCKET_MOLDES}". ` +
-            'Ele não viaja no código: alguém precisa subir o arquivo neste ambiente.',
-        },
-        503,
-      );
-    }
-
-    const bytesDoMolde = new Uint8Array(await molde.arrayBuffer());
     /*
-     * O checksum DO MOLDE, e não do arquivo gerado: é ele que responde "quais
-     * apresentações saíram do deck velho" quando o modelo definitivo chegar.
-     * Sem isso a coluna existiria e nasceria vazia, que é o mesmo que não ter.
+     * DAQUI PARA BAIXO É COMPARTILHADO com o gerador da OSG, em
+     * `_shared/apresentacao/registrar.ts`: baixar o molde, validar o pacote,
+     * versionar, subir, registrar e assinar a URL são a mesma sequência nos dois,
+     * e a ORDEM carrega as decisões — valida antes de gravar, grava a linha antes
+     * do arquivo (para a `UNIQUE` decidir quem fica com a versão antes de algum
+     * byte ser escrito), nunca entrega URL de algo que não foi registrado.
+     *
+     * O que é DESTE gerador entra por parâmetro: o molde, a tabela, a âncora e o
+     * nome do arquivo. Montar o .pptx continua aqui, no `montaPptx`, porque os
+     * dois moldes são estruturalmente diferentes — um preenche célula de molde
+     * fixo, o outro duplica slide e posiciona em EMU.
      */
-    const checksumDoMolde = await resumoDosBytes(bytesDoMolde);
-
-    const { bytes, avisos } = montaPptx(bytesDoMolde, deck);
-
-    /* Falha estrutural não entrega arquivo: nada sobe e nada é gravado. */
-    const problemasDoPacote = validatePptx(unpackPptx(bytes));
-    if (problemasDoPacote.length > 0) {
-      return json(
-        {
-          error: 'O arquivo gerado saiu inconsistente e não foi salvo.',
-          detalhes: problemasDoPacote,
-        },
-        500,
-      );
-    }
-
-    const { data: anteriores } = await comoUsuario
-      .from('wp_apresentacao')
-      .select('versao')
-      .eq('importacao_id', importacaoId)
-      .order('versao', { ascending: false })
-      .limit(1);
-    const versao = (anteriores?.[0]?.versao ?? 0) + 1;
-
-    const nomeArquivo = `PSA_Tributario_${slug(deck.cliente ?? 'cliente')}_r${revisao.versao}_v${versao}.pptx`;
-    const caminho = `${revisao.estudo_id}/${nomeArquivo}`;
-
-    const { error: erroUpload } = await admin.storage
-      .from(BUCKET_SAIDA)
-      .upload(caminho, bytes, { contentType: PPTX_MIME, upsert: true });
-    if (erroUpload) throw erroUpload;
-
-    const problemas = [
-      ...deck.problemas,
-            /*
-       * Os avisos da montagem são sobre o molde e sobre o que veio do WP, nunca
-       * sobre espaço, então entram como `origem`.
-       */
-      ...avisos.map((a) => ({ tipo: 'origem' as const, onde: 'geração', detalhe: a })),
-    ];
-
-    const { data: gravada, error: erroGravar } = await comoUsuario
-      .from('wp_apresentacao')
-      .insert({
-        importacao_id: importacaoId,
-        versao,
-        storage_path: caminho,
-        nome_arquivo: nomeArquivo,
-        tamanho: bytes.byteLength,
-        checksum: await resumoDosBytes(bytes),
-        template_nome: MOLDE,
-        template_checksum: checksumDoMolde,
-        versao_do_gerador: VERSAO_DO_GERADOR,
-        problemas,
-      })
-      .select('id')
-      .single();
-    if (erroGravar) throw erroGravar;
-
-    const { data: assinada } = await admin.storage
-      .from(BUCKET_SAIDA)
-      .createSignedUrl(caminho, 60 * 15);
-
-    return json({
-      apresentacaoId: gravada.id,
-      versao,
-      nomeArquivo,
-      url: assinada?.signedUrl ?? null,
-      problemas,
+    const registrada = await registrarApresentacao({
+      admin,
+      db: comoUsuario,
+      molde: { bucket: BUCKET_MOLDES, nome: MOLDE },
+      registro: {
+        tabela: 'wp_apresentacao',
+        ancora: { importacao_id: importacaoId },
+        bucketSaida: BUCKET_SAIDA,
+        pasta: revisao.estudo_id,
+        nomeArquivo: (versao) =>
+          `PSA_Tributario_${slug(deck.cliente ?? 'cliente')}_r${revisao.versao}_v${versao}.pptx`,
+      },
+      montar: (bytesDoMolde) => montaPptx(bytesDoMolde, deck),
+      problemas: deck.problemas,
+      versaoDoGerador: VERSAO_DO_GERADOR,
     });
+
+    if (falhou(registrada)) {
+      return json({ error: registrada.erro, detalhes: registrada.detalhes }, registrada.status);
+    }
+    return json(registrada);
   } catch (e) {
     /*
      * **`String(e)` não serve aqui.** O erro do PostgREST é um objeto simples,

@@ -9,7 +9,14 @@
 //
 // Contrato:
 //   POST { clienteId: string, tipo: 'ambas' | 'patrimonial' | 'societaria' }
-//   → { arquivos: [{ tipo, nome, b64 }], erros?: [...] }
+//   → { arquivos: [{ tipo, nome, b64 }], erros?: [...], problemas?: [...] }
+//
+// `erros` e `problemas` NAO sao a mesma coisa:
+//   erros    — excecao num deck (template ausente, PPTX invalido, erro de query).
+//              Custa o arquivo inteiro; aquele deck nao vem.
+//   problemas — buraco de cadastro. O .pptx SAI, e sai faltando coisa: empresa fora
+//              do quadro, bem sem sociedade de destino, titular em placeholder.
+//              Ate 09/2026 isso ia calado, e quem apresentava descobria na reuniao.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
@@ -34,7 +41,9 @@ import {
   carregarPatrimonial, carregarOrganograma, carregarQuadro, resolverTitular,
   fmtBRL, fmtInt, fmtPct,
   type SociedadePatrimonial, type OrganogramaBands, type QuadroEmpresa,
+  type ProblemaDoDeck,
 } from "./data.ts";
+import { anota, ONDE } from "../_shared/apresentacao-osg/regras.ts";
 
 type DeckTipo = "patrimonial" | "societaria";
 type BodyTipo = DeckTipo | "ambas";
@@ -115,14 +124,14 @@ function renderPatrimonialSlide(
 
 async function gerarPatrimonial(
   admin: ReturnType<typeof createClient>,
+  bytesDoMolde: Uint8Array,
   clienteId: string,
   clienteNome: string,
+  probs?: ProblemaDoDeck[],
 ): Promise<{ bytes: Uint8Array; contagens: Record<string, number> }> {
-  const dl = await admin.storage.from(BUCKET_TEMPLATES).download(TEMPLATE_PATHS.patrimonial);
-  if (dl.error || !dl.data) throw new Error(`Template ausente: ${TEMPLATE_PATHS.patrimonial}`);
-  const parts = unpackPptx(new Uint8Array(await dl.data.arrayBuffer()));
+  const parts = unpackPptx(bytesDoMolde);
 
-  const sociedades = await carregarPatrimonial(admin, clienteId);
+  const sociedades = await carregarPatrimonial(admin, clienteId, probs);
 
   const TEMPLATE = "ppt/slides/slide3.xml";
   if (sociedades.length === 0) {
@@ -357,6 +366,22 @@ function estimarAltura(rowCount: number): number {
 }
 
 /**
+ * Quantas linhas de socio cabem numa coluna que comeca em `top`.
+ *
+ * E a inversa da `estimarAltura`, e existe porque o quadro precisa PARTIR uma
+ * empresa entre paginas. Antes ele so sabia responder "cabe inteira ou nao cabe",
+ * e empresa que nao coubesse em uma pagina era adiada — para uma pagina do mesmo
+ * tamanho, onde tambem nao cabia. Com 42 socios o adiamento era eterno: o laco
+ * girava o teto de 20 voltas produzindo slides vazios e a empresa sumia do deck.
+ *
+ * Com a altura de hoje, uma coluna inteira comporta 13 linhas.
+ */
+function cabemQuantasLinhas(top: number): number {
+  const disponivel = QUADRO_TOP_MAX - top - QUADRO_PAD_H;
+  return Math.max(0, Math.floor(disponivel / QUADRO_ROW_H) - 3);
+}
+
+/**
  * Localiza a row TOTAL (unica remanescente com celulas de dados apos remover template SOCIO).
  * Preenche os textos sobrescrevendo textContent do 1o <a:t> de cada <a:tc> a partir da col 1.
  */
@@ -442,9 +467,26 @@ function renderQuadroSlide(parts: PptxParts, slidePath: string, empresas: Quadro
   const validas = empresas.filter((e) => e.linhas.length > 0);
   const restantes: QuadroEmpresa[] = [];
 
+  /** Desenha o que couber e devolve as linhas que sobraram da mesma empresa. */
+  const desenharAteCaber = (
+    emp: QuadroEmpresa, left: number, top: number,
+  ): QuadroEmpresa | null => {
+    if (top + estimarAltura(emp.linhas.length) <= QUADRO_TOP_MAX) {
+      renderQuadroTable(spTree, gf, idCounter, emp, left, top);
+      return null;
+    }
+    const cabem = cabemQuantasLinhas(top);
+    if (cabem <= 0) return emp; // nem o cabecalho cabe: inteira para a proxima
+    renderQuadroTable(spTree, gf, idCounter, { ...emp, linhas: emp.linhas.slice(0, cabem) }, left, top);
+    return { ...emp, linhas: emp.linhas.slice(cabem) };
+  };
+
   if (validas.length === 1) {
-    // Centralizar tabela unica.
-    renderQuadroTable(spTree, gf, idCounter, validas[0], QUADRO_LEFT_CENTER, QUADRO_TOP_0);
+    // Tabela unica, centralizada. TAMBEM parte: antes esta ramificacao nao tinha
+    // checagem de altura nenhuma, e uma empresa grande transbordava para fora do
+    // slide — nao sumia do deck, mas saia ilegivel na apresentacao.
+    const sobrou = desenharAteCaber(validas[0], QUADRO_LEFT_CENTER, QUADRO_TOP_0);
+    if (sobrou) restantes.push(sobrou);
   } else {
     const tops = [QUADRO_TOP_0, QUADRO_TOP_0];
     const lefts = [QUADRO_LEFT_0, QUADRO_LEFT_1];
@@ -452,13 +494,17 @@ function renderQuadroSlide(parts: PptxParts, slidePath: string, empresas: Quadro
       const col = i % 2;
       const emp = validas[i];
       const h = estimarAltura(emp.linhas.length);
-      if (tops[col] + h > QUADRO_TOP_MAX) {
-        // Nao coube — adia esta e todas as demais.
-        restantes.push(...validas.slice(i));
-        break;
+      if (tops[col] + h <= QUADRO_TOP_MAX) {
+        renderQuadroTable(spTree, gf, idCounter, emp, lefts[col], tops[col]);
+        tops[col] += h;
+        continue;
       }
-      renderQuadroTable(spTree, gf, idCounter, emp, lefts[col], tops[col]);
-      tops[col] += h;
+      // Nao cabe inteira: desenha o pedaco que cabe e manda o resto adiante,
+      // junto com as empresas seguintes, preservando a ordem.
+      const sobrou = desenharAteCaber(emp, lefts[col], tops[col]);
+      if (sobrou) restantes.push(sobrou);
+      restantes.push(...validas.slice(i + 1));
+      break;
     }
   }
 
@@ -474,17 +520,17 @@ function renderQuadroSlide(parts: PptxParts, slidePath: string, empresas: Quadro
 
 async function gerarSocietaria(
   admin: ReturnType<typeof createClient>,
+  bytesDoMolde: Uint8Array,
   clienteId: string,
   clienteNome: string,
+  probs?: ProblemaDoDeck[],
 ): Promise<{ bytes: Uint8Array; contagens: Record<string, number> }> {
-  const dl = await admin.storage.from(BUCKET_TEMPLATES).download(TEMPLATE_PATHS.societaria);
-  if (dl.error || !dl.data) throw new Error(`Template ausente: ${TEMPLATE_PATHS.societaria}`);
-  const parts = unpackPptx(new Uint8Array(await dl.data.arrayBuffer()));
+  const parts = unpackPptx(bytesDoMolde);
 
   const [bands, empresas, titular] = await Promise.all([
-    carregarOrganograma(admin, clienteId),
-    carregarQuadro(admin, clienteId),
-    resolverTitular(admin, clienteId),
+    carregarOrganograma(admin, clienteId, probs),
+    carregarQuadro(admin, clienteId, probs),
+    resolverTitular(admin, clienteId, probs),
   ]);
 
   // Organograma (slide3)
@@ -496,20 +542,44 @@ async function gerarSocietaria(
     removeSlide(parts, SLIDE_QUADRO);
   } else {
     let restantes = renderQuadroSlide(parts, SLIDE_QUADRO, empresas);
-    // Se sobrou, duplica slide4 (do template original — mas ja foi mutado).
-    // Para simplificar: duplicamos slide4.xml antes de mutar. Como ja mutamos,
-    // usamos o proprio conteudo original: guardado na variavel below.
-    let guardBail = 0;
-    while (restantes.length > 0 && guardBail < 20) {
-      // Re-download template pra ter graphicFrame limpo com placeholders.
-      const dl2 = await admin.storage.from(BUCKET_TEMPLATES).download(TEMPLATE_PATHS.societaria);
-      const p2 = unpackPptx(new Uint8Array(await dl2.data!.arrayBuffer()));
-      const freshXml = readText(p2, SLIDE_QUADRO);
-      // Duplica um novo slide e sobrescreve com XML fresco
+
+    /*
+      A PAGINACAO PARAVA EM 20 PAGINAS E DESCARTAVA O RESTO EM SILENCIO.
+
+      O laco tinha `guardBail < 20` e ninguem conferia `restantes` no fim: quem
+      nao coubesse simplesmente nao ia para o deck. Medido em 21/09 no cliente de
+      teste com 41 socios — 24 nao apareciam, e nada na tela dizia. Um consultor
+      apresentaria o quadro de uma holding mostrando 17 de 41.
+
+      Duas correcoes. A guarda agora e de PROGRESSO, nao de contagem: o laco para
+      quando uma volta deixa de reduzir o que falta, que e o unico jeito de travar
+      laco infinito sem inventar um teto. E o que sobrar, se sobrar, vira aviso —
+      o deck sai, e quem gera fica sabendo.
+
+      O molde tambem deixou de ser rebaixado a cada volta. Eram ate 20 downloads
+      de 1,5 MB por geracao; os bytes ja estao na mao desde o inicio.
+     */
+    const moldeLimpo = readText(unpackPptx(bytesDoMolde), SLIDE_QUADRO);
+    /* Conta LINHAS, e nao empresas: agora que uma empresa pode ser partida entre
+       paginas, o numero de empresas pendentes fica igual enquanto as linhas
+       diminuem — medir empresa daria falso "nao avancou" na primeira volta. */
+    const linhasDe = (es: QuadroEmpresa[]) => es.reduce((n, e) => n + e.linhas.length, 0);
+    let antes = linhasDe(restantes);
+    while (restantes.length > 0) {
       const dup = duplicateSlide(parts, SLIDE_QUADRO);
-      writeText(parts, dup.newPath, freshXml);
+      writeText(parts, dup.newPath, moldeLimpo);
       restantes = renderQuadroSlide(parts, dup.newPath, restantes);
-      guardBail++;
+      const agora = linhasDe(restantes);
+      if (agora >= antes) break; // nao avancou: para, e relata abaixo
+      antes = agora;
+    }
+    if (restantes.length > 0) {
+      anota(
+        probs,
+        ONDE.quadro,
+        `${restantes.length === 1 ? "1 empresa nao coube" : `${restantes.length} empresas nao couberam`} no quadro societario e ficaram fora do deck.`,
+        "formatacao",
+      );
     }
   }
 
@@ -591,11 +661,27 @@ serve(async (req) => {
     const arquivos: Array<{ tipo: DeckTipo; nome: string; b64: string }> = [];
     const erros: Array<{ tipo: DeckTipo; message: string }> = [];
 
+    // O que o deck nao conseguiu dizer. Diferente dos `erros`, que sao excecao e
+    // custam o arquivo inteiro, estes sao buracos de cadastro: o .pptx sai, e sai
+    // faltando coisa. Antes disso a falta ia calada para a mao de quem apresenta.
+    const problemas: ProblemaDoDeck[] = [];
+
     for (const tipo of decks) {
       try {
+        /*
+          O MOLDE E BAIXADO AQUI, UMA VEZ, e entregue ao gerador.
+          Era cada gerador que baixava o seu — e o societario rebaixava dentro do
+          laco de paginacao, ate 20 vezes 1,5 MB na mesma geracao. Passar os bytes
+          tambem e o que faz a assinatura encaixar na `registrarApresentacao`, que ja baixa
+          o molde antes de chamar quem monta.
+        */
+        const dl = await admin.storage.from(BUCKET_TEMPLATES).download(TEMPLATE_PATHS[tipo]);
+        if (dl.error || !dl.data) throw new Error(`Template ausente: ${TEMPLATE_PATHS[tipo]}`);
+        const bytesDoMolde = new Uint8Array(await dl.data.arrayBuffer());
+
         const { bytes } = tipo === "patrimonial"
-          ? await gerarPatrimonial(admin, clienteId, cli.nome)
-          : await gerarSocietaria(admin, clienteId, cli.nome);
+          ? await gerarPatrimonial(admin, bytesDoMolde, clienteId, cli.nome, problemas)
+          : await gerarSocietaria(admin, bytesDoMolde, clienteId, cli.nome, problemas);
 
         const tipoLabel = tipo === "patrimonial" ? "Patrimonial" : "Societaria";
         const nomeArquivo = `PSA_${tipoLabel}_${slugify(cli.nome)}.pptx`;
@@ -611,7 +697,11 @@ serve(async (req) => {
     }
 
     if (arquivos.length === 0) return json({ error: "Falha ao gerar", detalhes: erros }, 500);
-    return json({ arquivos, erros: erros.length ? erros : undefined });
+    return json({
+      arquivos,
+      erros: erros.length ? erros : undefined,
+      problemas: problemas.length ? problemas : undefined,
+    });
   } catch (e: any) {
     return json({ error: String(e?.message ?? e) }, 500);
   }

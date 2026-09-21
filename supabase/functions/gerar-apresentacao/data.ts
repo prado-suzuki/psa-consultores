@@ -4,51 +4,36 @@
 // NAO tem coluna `ambiente` — isolamento e por cluster.
 
 // deno-lint-ignore-file no-explicit-any
+import {
+  anota, faixaDaEmpresa, lerTipoDeEmpresa, motivoDoQuadroAusente,
+  motivoForaDoOrganograma, ONDE, percentuaisSaemVazios, plural, relatoDePercentualVazio,
+  socioEntraNaFaixa,
+  type Probs,
+} from "../_shared/apresentacao-osg/regras.ts";
+import {
+  montaPatrimonial, montaQuadroDerivado,
+  type BemCru, type BemParaQuadro, type QuadroLinha, type QuadroResult,
+  type SociedadePatrimonial, type SocioIdent,
+} from "../_shared/apresentacao-osg/conteudo.ts";
+
 type SB = any;
 
-// ---------- helpers ----------
+/*
+ * A MODELAGEM DO CONTEUDO vive em `_shared/apresentacao-osg/conteudo.ts`: pura,
+ * sem banco e com gabarito — mesmo arranjo que o
+ * `_shared/planejamento-tributario/slides.ts` ja usa para o deck tributario.
+ * Daqui para baixo e so leitura do banco e delegacao.
+ *
+ * Os formatadores e os tipos sao reexportados porque o `index.ts` os importa
+ * daqui desde antes da separacao, e mover o import dele seria mexer na montagem
+ * do XML sem necessidade.
+ */
+export { fmtBRL, fmtInt, fmtPct } from "../_shared/apresentacao-osg/conteudo.ts";
+export type {
+  LinhaPatrimonial, SociedadePatrimonial,
+} from "../_shared/apresentacao-osg/conteudo.ts";
 
-export function fmtBRL(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(Number(n))) return "—";
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n));
-}
-
-export function fmtInt(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(Number(n))) return "—";
-  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Number(n));
-}
-
-export function fmtPct(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(Number(n))) return "—";
-  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n)) + "%";
-}
-
-// ---------- Patrimonial ----------
-
-export interface LinhaPatrimonial {
-  propriedade: string;
-  referencia: string;
-  matriculaLabel: string;
-  municipioUf: string;
-  valor: string;
-}
-
-export interface SociedadePatrimonial {
-  nome: string;
-  linhas: LinhaPatrimonial[];
-}
-
-function nomesTitulares(titularidades: any[] | null | undefined): string {
-  if (!titularidades || titularidades.length === 0) return "";
-  const nomes: string[] = [];
-  for (const t of titularidades) {
-    const n = t?.titular?.denominacao;
-    if (n && !nomes.includes(n)) nomes.push(n);
-  }
-  return nomes.join(", ");
-}
-
-export async function carregarPatrimonial(admin: SB, clienteId: string): Promise<SociedadePatrimonial[]> {
+export async function carregarPatrimonial(admin: SB, clienteId: string, probs?: Probs): Promise<SociedadePatrimonial[]> {
   const sel = `
     id,denominacao,vlr_contabil,participa_estruturacao,
     empresa_destino_pessoa_id,
@@ -59,47 +44,8 @@ export async function carregarPatrimonial(admin: SB, clienteId: string): Promise
   `.replace(/\s+/g, "");
   const { data, error } = await admin.from("bem").select(sel).eq("cliente_id", clienteId).order("denominacao");
   if (error) throw new Error(`carregarPatrimonial: ${error.message}`);
-  const bens = (data ?? []).filter((b: any) => b.participa_estruturacao !== false);
 
-  const buckets = new Map<string, LinhaPatrimonial[]>();
-  const fallback = "Sociedade a definir";
-
-  for (const b of bens) {
-    const soc = b.empresa_destino?.denominacao || fallback;
-    if (!buckets.has(soc)) buckets.set(soc, []);
-    const linhas = buckets.get(soc)!;
-    const refBem = b.denominacao ?? "";
-    const titulBem = nomesTitulares(b.titularidade);
-
-    const mats = (b.matricula ?? []) as any[];
-    if (mats.length === 0) {
-      linhas.push({
-        propriedade: titulBem || "—",
-        referencia: refBem,
-        matriculaLabel: "Não se aplica",
-        municipioUf: "—",
-        valor: fmtBRL(b.vlr_contabil),
-      });
-    } else {
-      for (const m of mats) {
-        const titulMat = nomesTitulares(m.titularidade) || titulBem;
-        const numero = m.numero ?? null;
-        const matLabel = numero ? `Mat. ${numero}` : "Não se aplica";
-        const mun = [m.municipio_imovel, m.uf_imovel].filter(Boolean).join("/") || "—";
-        linhas.push({
-          propriedade: titulMat || "—",
-          referencia: refBem,
-          matriculaLabel: matLabel,
-          municipioUf: mun,
-          valor: fmtBRL(m.vlr_contabil ?? b.vlr_contabil),
-        });
-      }
-    }
-  }
-
-  return [...buckets.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0], "pt-BR"))
-    .map(([nome, linhas]) => ({ nome, linhas }));
+  return montaPatrimonial((data ?? []) as BemCru[], probs);
 }
 
 // ---------- Organograma ----------
@@ -115,30 +61,26 @@ export interface OrganogramaBands {
 
 interface EmpresaPJ { id: string; denominacao: string; tipo_empresa: string | null }
 
-interface SocioIdent {
-  pessoaId: string | null;
-  denominacao: string;
-  tipoPessoa: string | null;
-  tipoEmpresa: string | null;
-}
 
-interface QuadroResult {
-  linhas: QuadroLinha[];
-  totalQuotas: number;
-  totalValor: number;
-  socios: SocioIdent[]; // reaproveitado pela faixa "Sócios" do organograma
-}
-
-async function listarEmpresasPJ(admin: SB, clienteId: string): Promise<EmpresaPJ[]> {
+async function listarEmpresasPJ(admin: SB, clienteId: string, probs?: Probs): Promise<EmpresaPJ[]> {
   const { data, error } = await admin
     .from("pessoa")
     .select("id,denominacao,tipo_pessoa,tipo_empresa")
     .eq("cliente_id", clienteId)
     .eq("tipo_pessoa", "PJ");
   if (error) throw new Error(`listarEmpresasPJ: ${error.message}`);
-  return ((data ?? []) as any[])
-    .filter((p) => p?.denominacao)
-    .map((p) => ({ id: p.id, denominacao: p.denominacao, tipo_empresa: p.tipo_empresa ?? null }));
+
+  const todas = (data ?? []) as any[];
+  const comNome = todas.filter((p) => p?.denominacao);
+  // `pessoa.denominacao` e NOT NULL no schema, entao isto so acontece com dado
+  // que entrou por fora. Se acontecer, a empresa some do deck inteiro — e ai o
+  // relato e a unica pista de que ela existia.
+  const semNome = todas.length - comNome.length;
+  if (semNome > 0) {
+    anota(probs, ONDE.quadro, `${plural(semNome, "empresa foi ignorada", "empresas foram ignoradas")}: sem denominacao no cadastro.`);
+  }
+
+  return comNome.map((p) => ({ id: p.id, denominacao: p.denominacao, tipo_empresa: p.tipo_empresa ?? null }));
 }
 
 // Quadro GRAVADO, igual para CN e PR: o acumulado dos movimentos de quota, lido
@@ -152,15 +94,38 @@ async function listarEmpresasPJ(admin: SB, clienteId: string): Promise<EmpresaPJ
 // São DUAS leituras e não um embed: o PostgREST só infere relacionamento de view
 // quando a coluna vem direto da tabela base, e `pessoa_id` aqui nasce de um
 // `union all` com `group by`.
-async function quadroGravado(admin: SB, empresaId: string): Promise<QuadroResult | null> {
-  const { data, error } = await admin
-    .from("v_quadro_societario")
-    .select("pessoa_id,quotas,vlr_total")
-    .eq("empresa_pessoa_id", empresaId);
-  if (error) throw new Error(`quadroGravado(${empresaId}): ${error.message}`);
+async function quadroGravado(
+  admin: SB, empresaId: string, denominacao = "", probs?: Probs,
+): Promise<QuadroGravado> {
+  /*
+    A SEGUNDA LEITURA E UMA PERGUNTA DE SIM OU NAO, e nao o razao inteiro.
 
-  const rows = ((data ?? []) as any[]).filter((r) => r?.pessoa_id);
-  if (rows.length === 0) return null;
+    O quadro e ESTADO FINAL: a view ja agrega `sum(quotas)` por pessoa, e e isso
+    que a tela `QuadroSocietario` mostra. Ex-socio que zerou nao aparece la nem
+    aqui, e esta certo — nao ha o que relatar.
+
+    O unico motivo de olhar `movimentacao_quotas` e distinguir duas empresas que a
+    view entrega IDENTICAS (nenhuma linha): a que nunca teve quadro lancado, e a
+    que tem lancamentos cujos saldos se anulam. Por isso `limit(1)`: precisa-se
+    saber SE existe movimento, nunca quais — o razao acumula para sempre e ler
+    linha a linha seria a unica consulta do gerador sem teto natural.
+  */
+  const [viewRes, movRes] = await Promise.all([
+    admin.from("v_quadro_societario").select("pessoa_id,quotas,vlr_total").eq("empresa_pessoa_id", empresaId),
+    admin.from("movimentacao_quotas").select("id").eq("empresa_pessoa_id", empresaId).limit(1),
+  ]);
+  if (viewRes.error) throw new Error(`quadroGravado(${empresaId}): ${viewRes.error.message}`);
+  if (movRes.error) throw new Error(`quadroGravado.movimentos(${empresaId}): ${movRes.error.message}`);
+
+  const todas = (viewRes.data ?? []) as any[];
+  const rows = todas.filter((r) => r?.pessoa_id);
+  const semPessoa = todas.length - rows.length;
+  if (semPessoa > 0) {
+    anota(probs, ONDE.quadro, `${plural(semPessoa, "linha do quadro de", "linhas do quadro de")} "${denominacao}" nao aponta para uma pessoa e ficou de fora.`);
+  }
+
+  const houveMovimento = ((movRes.data ?? []) as any[]).length > 0;
+  if (rows.length === 0) return { resultado: null, houveMovimento };
 
   const ids = [...new Set(rows.map((r) => String(r.pessoa_id)))];
   const { data: pessoas, error: errP } = await admin
@@ -194,165 +159,101 @@ async function quadroGravado(admin: SB, empresaId: string): Promise<QuadroResult
   }
   const tq = linhas.reduce((s, x) => s + x.quotas, 0);
   const tv = linhas.reduce((s, x) => s + x.valor, 0);
+  // Total zero faz TODO percentual virar NaN, e o `fmtPct` imprime "—" em cada
+  // linha: o quadro parece cheio de buracos quando falta um numero so.
+  if (percentuaisSaemVazios(tq)) anota(probs, ONDE.quadro, relatoDePercentualVazio(denominacao));
   for (const row of linhas) row.pct = tq > 0 ? (row.quotas / tq) * 100 : NaN;
   linhas.sort((a, b) => b.quotas - a.quotas || a.socio.localeCompare(b.socio, "pt-BR"));
-  return { linhas, totalQuotas: tq, totalValor: tv, socios };
+  return { resultado: { linhas, totalQuotas: tq, totalValor: tv, socios }, houveMovimento };
 }
 
-// Quadro DERIVADO: o FALLBACK da PR ainda sem movimentação de quota, espelhando
-// calcularParticipacoesPR do front
-// (src/lib/templates/mapeadores.ts): rateio em centavos por fração de
-// titularidade dos bens Aprovados para integralização; matrículas com
-// impedimento ativo entram fora; último sócio absorve resíduo de arredondamento.
-async function quadroPR(admin: SB, empresaId: string): Promise<QuadroResult> {
+// Quadro DERIVADO: o FALLBACK da PR ainda sem movimentacao de quota. A CONTA em
+// si — rateio em centavos por fracao, impedimento fora, ultimo socio absorvendo o
+// residuo — vive em `_shared/apresentacao-osg/conteudo.ts`, com gabarito proprio.
+// Aqui ficou so a leitura. Espelha `calcularParticipacoesPR` do front
+// (src/lib/templates/mapeadores.ts).
+async function quadroPR(
+  admin: SB, empresaId: string, denominacao = "", probs?: Probs,
+): Promise<QuadroResult> {
   const sel = `
-    vlr_contabil,
+    vlr_contabil,status_integralizacao,
     matricula(
       vlr_contabil,
       titularidade(integralizador,fracao,titular:titular_pessoa_id(id,denominacao,tipo_pessoa,tipo_empresa)),
       impedimento(id,cancelado)
     )
   `.replace(/\s+/g, "");
+  /*
+    O FILTRO DE STATUS NAO ESTA NA QUERY, e e de proposito: com
+    `.eq("status_integralizacao","Aprovado")` nao havia como contar quantos bens o
+    filtro tirou, e um cliente com tudo "Em analise" gerava quadro vazio sem aviso
+    nenhum. Quem separa e o `montaQuadroDerivado`, que enxerga os dois lados.
+  */
   const { data, error } = await admin
     .from("bem")
     .select(sel)
-    .eq("empresa_destino_pessoa_id", empresaId)
-    .eq("status_integralizacao", "Aprovado");
+    .eq("empresa_destino_pessoa_id", empresaId);
   if (error) throw new Error(`quadroPR(${empresaId}): ${error.message}`);
 
-  interface Tit {
-    pessoaId: string | null;
-    denominacao: string;
-    tipoPessoa: string | null;
-    tipoEmpresa: string | null;
-    integralizador: boolean;
-    fracao: number | null;
-  }
-  interface Acc {
-    pessoaId: string | null;
-    denominacao: string;
-    tipoPessoa: string | null;
-    tipoEmpresa: string | null;
-    cent: number;
-  }
-  const porChave = new Map<string, Acc>();
-
-  for (const b of (data ?? []) as any[]) {
-    const bemVlr = b.vlr_contabil;
-    for (const m of (b.matricula ?? []) as any[]) {
-      // impedimento ATIVO (algum sem cancelado=true) descarta a matrícula
-      const imp = (m.impedimento ?? []) as any[];
-      if (imp.some((i) => i && i.cancelado !== true)) continue;
-
-      const vlrRaw = m.vlr_contabil ?? bemVlr;
-      const vlr = vlrRaw == null ? null : Number(vlrRaw);
-      if (vlr == null || !Number.isFinite(vlr)) continue;
-
-      // Dedup titulares por pessoa (integralizador OR; primeira fração não-nula)
-      const raw: Tit[] = ((m.titularidade ?? []) as any[]).map((t) => ({
-        pessoaId: t?.titular?.id ?? null,
-        denominacao: t?.titular?.denominacao ?? "—",
-        tipoPessoa: t?.titular?.tipo_pessoa ?? null,
-        tipoEmpresa: t?.titular?.tipo_empresa ?? null,
-        integralizador: !!t?.integralizador,
-        fracao: t?.fracao == null ? null : Number(t.fracao),
-      }));
-      const porPessoa = new Map<string, Tit>();
-      const titulares: Tit[] = [];
-      for (const t of raw) {
-        if (!t.pessoaId) { titulares.push({ ...t }); continue; }
-        const ex = porPessoa.get(t.pessoaId);
-        if (ex) {
-          ex.integralizador = ex.integralizador || t.integralizador;
-          if (ex.fracao == null) ex.fracao = t.fracao;
-        } else {
-          const novo = { ...t };
-          porPessoa.set(t.pessoaId, novo);
-          titulares.push(novo);
-        }
-      }
-      if (titulares.length === 0) continue;
-
-      const totalCent = Math.round(vlr * 100);
-      const comFracao = titulares.filter((t) => t.fracao != null);
-      const semFracao = titulares.filter((t) => t.fracao == null);
-      // "Fechada": todos com fração e Σ ≈ 100 → último absorve resíduo
-      const fechada =
-        semFracao.length === 0 &&
-        Math.abs(comFracao.reduce((s, t) => s + (t.fracao as number), 0) - 100) < 0.001;
-
-      const centDe = new Map<Tit, number>();
-      let alocado = 0;
-      comFracao.forEach((t, i) => {
-        const cent = fechada && i === comFracao.length - 1
-          ? totalCent - alocado
-          : Math.round((totalCent * (t.fracao as number)) / 100);
-        alocado += cent;
-        centDe.set(t, cent);
-      });
-      const restante = totalCent - alocado;
-      let alocadoSem = 0;
-      semFracao.forEach((t, i) => {
-        const cent = i === semFracao.length - 1
-          ? restante - alocadoSem
-          : Math.round(restante / Math.max(semFracao.length, 1));
-        alocadoSem += cent;
-        centDe.set(t, cent);
-      });
-
-      for (const t of titulares) {
-        const chave = t.pessoaId ?? `nome:${t.denominacao}`;
-        const atual = porChave.get(chave);
-        const cent = centDe.get(t) ?? 0;
-        if (atual) atual.cent += cent;
-        else porChave.set(chave, {
-          pessoaId: t.pessoaId,
-          denominacao: t.denominacao,
-          tipoPessoa: t.tipoPessoa,
-          tipoEmpresa: t.tipoEmpresa,
-          cent,
-        });
-      }
-    }
-  }
-
-  const capitalCent = [...porChave.values()].reduce((s, a) => s + a.cent, 0);
-  if (capitalCent === 0) return { linhas: [], totalQuotas: 0, totalValor: 0, socios: [] };
-
-  const ordenados = [...porChave.values()].sort((a, z) => z.cent - a.cent);
-  const linhas: QuadroLinha[] = ordenados.map((a) => ({
-    socio: a.denominacao,
-    valor: a.cent / 100,
-    quotas: Math.round(a.cent / 100),
-    pct: (a.cent / capitalCent) * 100,
-  }));
-  const totalQuotas = Math.round(capitalCent / 100);
-  const somaQuotas = linhas.reduce((s, p) => s + p.quotas, 0);
-  if (linhas.length > 0) linhas[linhas.length - 1].quotas += totalQuotas - somaQuotas;
-
-  const socios: SocioIdent[] = ordenados.map((a) => ({
-    pessoaId: a.pessoaId,
-    denominacao: a.denominacao,
-    tipoPessoa: a.tipoPessoa,
-    tipoEmpresa: a.tipoEmpresa,
-  }));
-  return { linhas, totalQuotas, totalValor: capitalCent / 100, socios };
+  return montaQuadroDerivado((data ?? []) as BemParaQuadro[], denominacao, probs);
 }
 
 // Uma fonte só: o quadro gravado. A PR ainda SEM movimentação cai no derivado,
 // o mesmo fallback (e o mesmo critério, "a view voltou vazia") de
 // useListasDaEmpresa no front. Sem ele a apresentação das PR que ainda não
 // gravaram o quadro de constituição sairia sem quadro nenhum.
-async function quadroDaEmpresa(admin: SB, e: EmpresaPJ): Promise<QuadroResult | null> {
-  const te = String(e.tipo_empresa ?? "").toUpperCase();
-  if (te !== "CN" && te !== "PR") return null; // SC (sócio) ou sem tipo
-  const gravado = await quadroGravado(admin, e.id);
-  if (gravado) return gravado;
-  if (te === "PR") return await quadroPR(admin, e.id);
-  return { linhas: [], totalQuotas: 0, totalValor: 0, socios: [] };
+interface QuadroGravado {
+  resultado: QuadroResult | null;
+  /**
+   * Houve lancamento em `movimentacao_quotas`, mesmo que a view tenha zerado tudo.
+   *
+   * Separa duas situacoes que a view entrega IDENTICAS (nenhuma linha) e que pedem
+   * acoes opostas: empresa que nunca teve quadro lancado, e empresa cujos
+   * lancamentos se anulam. Dizer "nenhuma movimentacao" na segunda seria mentira.
+   */
+  houveMovimento: boolean;
 }
 
-export async function carregarOrganograma(admin: SB, clienteId: string): Promise<OrganogramaBands> {
+interface QuadroDaEmpresa {
+  resultado: QuadroResult | null;
+  /** A view tinha linhas? E o que separa "CN sem movimentacao" de "derivado vazio". */
+  temQuadroGravado: boolean;
+  houveMovimento: boolean;
+}
+
+/**
+ * QUEM PASSA `probs` AQUI E SO O `carregarQuadro`.
+ *
+ * O `carregarOrganograma` chama esta mesma funcao para descobrir os socios, entao
+ * passar o acumulador nos dois faria cada aviso de quadro sair DUAS vezes no
+ * mesmo deck. O organograma relata o que e dele (a faixa que faltou) e delega o
+ * resto.
+ */
+async function quadroDaEmpresa(admin: SB, e: EmpresaPJ, probs?: Probs): Promise<QuadroDaEmpresa> {
+  const tipo = lerTipoDeEmpresa(e.tipo_empresa);
+  if (tipo !== "CN" && tipo !== "PR") {
+    return { resultado: null, temQuadroGravado: false, houveMovimento: false };
+  }
+
+  const { resultado: gravado, houveMovimento } = await quadroGravado(admin, e.id, e.denominacao, probs);
+  if (gravado) return { resultado: gravado, temQuadroGravado: true, houveMovimento };
+  if (tipo === "PR") {
+    return {
+      resultado: await quadroPR(admin, e.id, e.denominacao, probs),
+      temQuadroGravado: false,
+      houveMovimento,
+    };
+  }
+  return {
+    resultado: { linhas: [], totalQuotas: 0, totalValor: 0, socios: [] },
+    temQuadroGravado: false,
+    houveMovimento,
+  };
+}
+
+export async function carregarOrganograma(admin: SB, clienteId: string, probs?: Probs): Promise<OrganogramaBands> {
+  /* Sem `probs` no `listarEmpresasPJ`: quem relata empresa sem denominacao e o
+     `carregarQuadro`, que chama a mesma funcao. Passar nos dois duplicaria. */
   const [empresas, explRes] = await Promise.all([
     listarEmpresasPJ(admin, clienteId),
     admin.from("exploracao_rural")
@@ -364,9 +265,16 @@ export async function carregarOrganograma(admin: SB, clienteId: string): Promise
   const controladoras: string[] = [];
   const controladas: string[] = [];
   for (const e of empresas) {
-    const te = String(e.tipo_empresa ?? "").toUpperCase();
-    if (te === "CN") controladoras.push(e.denominacao);
-    else if (te === "PR") controladas.push(e.denominacao);
+    const tipo = lerTipoDeEmpresa(e.tipo_empresa);
+    const faixa = faixaDaEmpresa(tipo);
+    if (faixa === "controladoras") controladoras.push(e.denominacao);
+    else if (faixa === "controladas") controladas.push(e.denominacao);
+    else {
+      // Sem faixa, a empresa some do organograma inteiro. A socia (SC) e excecao
+      // legitima — o lugar dela e a faixa de socios — e por isso nao vira aviso.
+      const motivo = motivoForaDoOrganograma(e.denominacao, tipo);
+      if (motivo) anota(probs, ONDE.organograma, motivo);
+    }
   }
 
   // Sócios: uniao dos socios de cada empresa (CN manual / PR derivado),
@@ -374,12 +282,14 @@ export async function carregarOrganograma(admin: SB, clienteId: string): Promise
   const seen = new Set<string>();
   const socios: string[] = [];
   for (const e of empresas) {
-    const r = await quadroDaEmpresa(admin, e);
-    if (!r) continue;
-    for (const s of r.socios) {
-      const tp = String(s.tipoPessoa ?? "").toUpperCase();
-      const te = String(s.tipoEmpresa ?? "").toUpperCase();
-      if (!(tp === "PF" || te === "SC")) continue;
+    /* Sem `probs`: o `carregarQuadro` ja percorre as mesmas empresas e relata o
+       que falta no quadro delas. Aqui so se aproveita a lista de socios. */
+    const { resultado } = await quadroDaEmpresa(admin, e);
+    if (!resultado) continue;
+    for (const s of resultado.socios) {
+      // PJ que nao e socia ja aparece como controladora/controlada: entrar aqui
+      // tambem a duplicaria no desenho. Nao e perda, entao nao vira aviso.
+      if (!socioEntraNaFaixa(s.tipoPessoa, s.tipoEmpresa)) continue;
       const chave = s.pessoaId ?? `nome:${s.denominacao}`;
       if (seen.has(chave)) continue;
       seen.add(chave);
@@ -403,16 +313,34 @@ export async function carregarOrganograma(admin: SB, clienteId: string): Promise
 
 // ---------- Quadro societario ----------
 
-export interface QuadroLinha { socio: string; quotas: number; valor: number; pct: number }
+export type { QuadroLinha } from "../_shared/apresentacao-osg/conteudo.ts";
 export interface QuadroEmpresa { empresa: string; linhas: QuadroLinha[]; totalQuotas: number; totalValor: number }
 
-export async function carregarQuadro(admin: SB, clienteId: string): Promise<QuadroEmpresa[]> {
-  const empresas = await listarEmpresasPJ(admin, clienteId);
+export async function carregarQuadro(admin: SB, clienteId: string, probs?: Probs): Promise<QuadroEmpresa[]> {
+  const empresas = await listarEmpresasPJ(admin, clienteId, probs);
   const out: QuadroEmpresa[] = [];
   for (const e of empresas) {
-    const r = await quadroDaEmpresa(admin, e);
-    if (!r || r.linhas.length === 0) continue;
-    out.push({ empresa: e.denominacao, linhas: r.linhas, totalQuotas: r.totalQuotas, totalValor: r.totalValor });
+    const { resultado, temQuadroGravado, houveMovimento } = await quadroDaEmpresa(admin, e, probs);
+    const linhas = resultado?.linhas ?? [];
+
+    /*
+      A empresa EXISTE no cadastro e nao aparece no slide, e a causa muda o
+      conserto: campo "tipo de empresa" vazio, CN sem movimentacao de quotas, ou
+      derivacao que nao achou bem aprovado. A primeira versao disto juntava as
+      tres numa frase so e mandava procurar socio — informacao errada, que e pior
+      que o silencio que ela veio substituir.
+    */
+    const motivo = motivoDoQuadroAusente({
+      denominacao: e.denominacao,
+      tipo: lerTipoDeEmpresa(e.tipo_empresa),
+      temQuadroGravado,
+      linhasApuradas: linhas.length,
+      houveMovimento,
+    });
+    if (motivo) anota(probs, ONDE.quadro, motivo);
+    if (!resultado || linhas.length === 0) continue;
+
+    out.push({ empresa: e.denominacao, linhas, totalQuotas: resultado.totalQuotas, totalValor: resultado.totalValor });
   }
   out.sort((a, b) => a.empresa.localeCompare(b.empresa, "pt-BR"));
   return out;
@@ -420,7 +348,7 @@ export async function carregarQuadro(admin: SB, clienteId: string): Promise<Quad
 
 // ---------- Titular ----------
 
-export async function resolverTitular(admin: SB, clienteId: string): Promise<string> {
+export async function resolverTitular(admin: SB, clienteId: string, probs?: Probs): Promise<string> {
   // Titular = explorador principal da composse cadastrada.
   // Sem composse cadastrada → placeholder claro (nunca inventar via is_fundador).
   const { data: expl, error } = await admin
@@ -436,5 +364,8 @@ export async function resolverTitular(admin: SB, clienteId: string): Promise<str
     const n = explorador?.pessoa?.denominacao;
     if (n) return String(n);
   }
+  // O placeholder vai IMPRESSO no slide, entao o aviso nao e opcional: e a unica
+  // chance de alguem trocar antes de a apresentacao chegar ao cliente.
+  anota(probs, ONDE.organograma, "O titular sai como \"[titular da composse — a definir]\" — nao ha composse com explorador cadastrado.");
   return "[titular da composse — a definir]";
 }

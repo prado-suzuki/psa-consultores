@@ -145,3 +145,8 @@ scripts/itcmd/
 # nomes do caso, e o Lovable roda o que estiver aqui.
 supabase/migrations/*_dev_*.sql
 docs/osg/acordo-gerado/*.docx
+
+# Conferencia dos decks gerados: ferramenta local, roda contra o sandbox e
+# guarda .pptx de 24 MB. O que o repositorio versiona sao os testes em
+# supabase/functions/_shared/apresentacao-osg/.
+docs/exemplos/
