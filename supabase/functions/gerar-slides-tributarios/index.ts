@@ -20,96 +20,57 @@ import { buildCorsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts
 import { packPptx, readText, unpackPptx, writeText, type PptxParts } from '../_shared/ooxml/zip.ts';
 import { parseXml, qsa, serializeXml } from '../_shared/ooxml/xml.ts';
 import { applyTokensToNode, stripRemainingTokens } from '../_shared/ooxml/runs.ts';
-import {
-  cloneRow,
-  insertRowBefore,
-  listRows,
-  removeRow,
-  rowContainsToken,
-} from '../_shared/ooxml/table.ts';
 import { validatePptx } from '../_shared/ooxml/validate.ts';
 import {
   montaDeck,
-  type TabelaDoSlide,
-  type ComentarioDaRevisao,
   type Deck,
-  type FarolDaRevisao,
-  type LinhaDaTabela,
   type ValorDaRevisao,
 } from '../_shared/planejamento-tributario/slides.ts';
+import { tokensDoDeck } from '../_shared/planejamento-tributario/tokens.ts';
 
 /** Muda quando a forma de montar o slide muda, e fica gravado na apresentação. */
-const VERSAO_DO_GERADOR = '1.0';
+const VERSAO_DO_GERADOR = '2.0';
 
 const BUCKET_MOLDES = 'osg-templates';
 const BUCKET_SAIDA = 'wp-apresentacoes';
-const MOLDE = 'TEMPLATE_TRIBUTARIO.pptx';
+
+/**
+ * O molde do capítulo 03 no padrão visual novo, de 21/09/2026.
+ *
+ * **Nome novo de propósito, em vez de trocar o conteúdo do arquivo antigo.** O
+ * molde mora no bucket de cada ambiente e não viaja no código, então os dois
+ * andam em passos diferentes. Sobrescrever o `TEMPLATE_TRIBUTARIO.pptx` faria a
+ * versão anterior desta função, ainda no ar em outro ambiente, escrever tokens
+ * que o arquivo novo não tem: sete slides em branco e nenhum erro. Com nome novo,
+ * o ambiente que ainda não recebeu o arquivo responde 503 dizendo exatamente o
+ * que falta, que é falha visível e resolvível.
+ */
+const MOLDE = 'TEMPLATE_TRIBUTARIO_V2.pptx';
 const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 
 /**
- * Onde cada tabela mora no molde, quais células são de valor, e quantas delas o
- * molde reserva por ano.
+ * Os sete slides do capítulo, e quantos tokens cada um espera.
  *
- * `porAno` é o que evita o pior defeito silencioso desta tela: a DRE tem dois
- * espaços por ano, e um estudo com um contribuinte só devolve três colunas.
- * Encaixando por posição, 2027 caía no espaço do segundo contribuinte de 2026,
- * com o número certo debaixo do cabeçalho errado.
- */
-const SLIDES = {
-  dre: { arquivo: 'ppt/slides/slide2.xml', colunas: [2, 3, 5, 6, 8, 9], porAno: 2 },
-  farol: { arquivo: 'ppt/slides/slide7.xml', colunas: [] as number[], porAno: 0 },
-  transferencia: {
-    arquivo: 'ppt/slides/slide8.xml',
-    colunas: [2, 4, 6, 8, 10, 12],
-    porAno: 1,
-  },
-  resumo: {
-    arquivo: 'ppt/slides/slide9.xml',
-    colunas: [2, 3, 4, 6, 7, 8, 10, 11, 12],
-    porAno: 3,
-  },
-  comentarios: { arquivo: 'ppt/slides/slide10.xml', colunas: [] as number[], porAno: 0 },
-};
-
-/**
- * A chave de cada espaço do molde, na ordem em que eles aparecem.
+ * **O molde deixou de ter tabela.** Medido no modelo da consultoria: o capítulo
+ * 03 não tem um único `<a:tbl>`, e cada quadro é um conjunto de caixas de texto
+ * em posição fixa. Por isso aqui não há mais clonagem de linha, moldura de
+ * tabela nem índice de coluna: há um mapa de token e uma substituição de texto.
  *
- * Vazio onde o estudo não tem o que pôr: um ano a menos, ou um contribuinte a
- * menos, deixa a célula em branco em vez de puxar o valor do vizinho.
+ * `tokens` é quantos tokens o slide tem no molde certo. Serve de conferência: se
+ * o arquivo do bucket não for este, a contagem não bate e sai aviso, em vez de o
+ * deck sair com os slots vazios e cara de pronto.
  */
-function chavesDosEspacos(t: TabelaDoSlide, porAno: number): string[] {
-  const chaves: string[] = [];
-  for (const ano of t.anos) {
-    if (t.subs.length === 0) {
-      chaves.push(ano);
-      continue;
-    }
-    for (let i = 0; i < porAno; i++) {
-      chaves.push(t.subs[i] ? `${ano}|${t.subs[i]}` : '');
-    }
-  }
-  return chaves;
-}
-
-const WINGDINGS = 'Wingdings 2';
-const A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
+const SLIDES = [
+  { arquivo: 'ppt/slides/slide1.xml', nome: 'capa do capítulo', tokens: 0 },
+  { arquivo: 'ppt/slides/slide2.xml', nome: 'Premissas e QUADRO 01', tokens: 40 },
+  { arquivo: 'ppt/slides/slide3.xml', nome: 'Cenários avaliados', tokens: 4 },
+  { arquivo: 'ppt/slides/slide4.xml', nome: 'Diferenças nos modelos', tokens: 0 },
+  { arquivo: 'ppt/slides/slide5.xml', nome: 'Quadro comparativo da carga', tokens: 0 },
+  { arquivo: 'ppt/slides/slide6.xml', nome: 'Transferência da atividade rural', tokens: 14 },
+  { arquivo: 'ppt/slides/slide7.xml', nome: 'Resumo e QUADRO 02', tokens: 140 },
+] as const;
 
 // ─── OOXML ───────────────────────────────────────────────────────────────────
-
-/**
- * A MOLDURA da tabela, não a tabela.
- *
- * O `listRows` do `_shared` recebe o `p:graphicFrame` e procura o `a:tbl` dentro
- * dele. Passando o `a:tbl` direto ele procura uma tabela dentro da tabela, não
- * acha, e devolve lista vazia: as linhas-modelo nunca eram encontradas e o slide
- * saía com a tabela em branco, sem erro nenhum.
- */
-function molduraDaTabela(doc: Document): Element | null {
-  for (const gf of qsa(doc, 'p:graphicFrame')) {
-    if (qsa(gf, 'a:tbl').length > 0) return gf;
-  }
-  return null;
-}
 
 function textoDe(no: Element): string {
   return qsa(no, 'a:t')
@@ -118,50 +79,14 @@ function textoDe(no: Element): string {
 }
 
 /**
- * Escreve numa célula, opcionalmente trocando a fonte.
- *
- * **A fonte vai junto de propósito.** No Farol, marcador e percentual convivem na
- * mesma linha e o molde congela a fonte de cada célula. Escrever só o texto faria
- * um percentual cair numa célula de Wingdings e sair como rabisco, **sem erro
- * nenhum**, que é o pior defeito possível num slide de imposto.
- */
-function escreveNaCelula(tc: Element, valor: string, fonte?: string): void {
-  const runs = qsa(tc, 'a:r');
-  if (runs.length === 0) return;
-  const t = qsa(runs[0], 'a:t')[0];
-  if (!t) return;
-  t.textContent = valor;
-
-  if (fonte) {
-    let rPr = qsa(runs[0], 'a:rPr')[0];
-    if (!rPr) {
-      rPr = runs[0].ownerDocument!.createElementNS(A, 'a:rPr');
-      runs[0].insertBefore(rPr, runs[0].firstChild);
-    }
-    for (const tag of ['latin', 'cs', 'sym']) {
-      let el = qsa(rPr, `a:${tag}`)[0];
-      if (!el) {
-        el = rPr.ownerDocument!.createElementNS(A, `a:${tag}`);
-        rPr.appendChild(el);
-      }
-      el.setAttribute('typeface', fonte);
-    }
-  }
-
-  for (let i = 1; i < runs.length; i++) runs[i].parentNode?.removeChild(runs[i]);
-}
-
-/**
  * Encolhe a fonte de um pedaço do slide.
  *
  * **Serve só para o nome do cliente no rodapé**, que é uma linha e um espaço
- * fixo. Tabela e caixa de comentário NÃO encolhem mais: em 08/09/2026 a DRE do
- * Grupo Mattei saiu inteira a 7pt, ilegível, e o cartão do CBS transbordou mesmo
- * assim. Encolher trocava um defeito visível por um pior, que é o slide que
- * ninguém lê e ainda parece pronto. Hoje o tamanho é o do molde e o que não cabe
- * vira aviso, para a poda acontecer no PowerPoint, onde as tabelas são nativas.
+ * fixo. Quadro NÃO encolhe: em 08/09/2026 a DRE do Grupo Mattei saiu inteira a
+ * 7pt, ilegível, e um cartão transbordou mesmo assim. Encolher trocava um defeito
+ * visível por um pior, que é o slide que ninguém lê e ainda parece pronto.
  *
- * Só mexe em `sz` que já existe. Célula que herda o tamanho do tema fica como
+ * Só mexe em `sz` que já existe. Texto que herda o tamanho do tema fica como
  * está, porque inventar um tamanho onde não havia mudaria o desenho.
  */
 const PISO_DA_FONTE = 700;
@@ -174,203 +99,40 @@ function encolheFonte(no: Element, fator: number): void {
   }
 }
 
-/**
- * Troca as linhas-modelo pelas linhas de dado.
- *
- * O molde traz uma linha por estilo, com token, e ela é clonada por linha que
- * vier. `prefixos` é a lista de estilos na ordem do nível: a DRE tem três, para
- * total, grupo e detalhe, e é o `nivel` que escolhe.
- */
-function preencheTabela(
-  moldura: Element,
-  prefixos: string[],
-  linhas: LinhaDaTabela[],
-  chavesPorEspaco: string[],
-  indicesDeValor: number[],
-): void {
-  const modelos = new Map<string, Element>();
-  for (const tr of listRows(moldura)) {
-    for (const p of prefixos) {
-      if (rowContainsToken(tr, `${p}ROTULO`)) modelos.set(p, tr);
-    }
-  }
-  if (modelos.size === 0) return;
-  const primeiro = [...modelos.values()][0];
-
-  for (const linha of linhas) {
-    const p =
-      prefixos.length === 1 ? prefixos[0] : prefixos[Math.min(linha.nivel, prefixos.length - 1)];
-    const molde = modelos.get(p) ?? primeiro;
-    const nova = cloneRow(molde);
-
-    const celulas = qsa(nova, 'a:tc');
-    celulas.forEach((tc, i) => {
-      const tok = textoDe(tc).trim();
-      if (!tok.includes('{{')) return;
-      if (tok.includes('ROTULO')) {
-        escreveNaCelula(tc, linha.rotulo);
-        return;
-      }
-      const pos = indicesDeValor.indexOf(i);
-      const chave = pos >= 0 ? (chavesPorEspaco[pos] ?? '') : '';
-      escreveNaCelula(tc, chave ? (linha.valores[chave] ?? '-') : '');
-    });
-
-    insertRowBefore(nova, primeiro);
-  }
-  for (const tr of modelos.values()) removeRow(tr);
-}
-
-/** Normaliza rótulo para casar molde e mapa, que divergem em acento e plural. */
-function normaliza(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '');
-}
-
-/**
- * O Farol é preenchido célula a célula, e não por clonagem.
- *
- * As linhas dele são fixas e a fonte varia por célula. O token traz a posição
- * (`{{F_L01_LP_PF}}`) porque casar por texto quebraria: o molde saiu de um deck e
- * o mapa de outro, e 5 dos 18 rótulos têm redação diferente.
- */
-function preencheFarol(moldura: Element, farol: Deck['farol'], deParaDoMolde: string[]): number {
-  const porChave = new Map<string, Deck['farol'][number]>();
-  for (const c of farol) {
-    const reg = c.regime === 'presumido' ? 'LP' : 'LR';
-    porChave.set(`${normaliza(c.rotulo)}|${reg}_${c.pessoa.toUpperCase()}`, c);
-  }
-
-  let semDado = 0;
-  for (const tr of listRows(moldura)) {
-    for (const tc of qsa(tr, 'a:tc')) {
-      const tok = textoDe(tc).trim();
-      if (!tok.startsWith('{{F_')) continue;
-      const [, li, reg, pes] = tok.replace(/[{}]/g, '').split('_');
-      const i = Number(li.slice(1)) - 1;
-      const rotulo = deParaDoMolde[i];
-      const cel = rotulo ? porChave.get(`${normaliza(rotulo)}|${reg}_${pes}`) : undefined;
-      if (cel) {
-        escreveNaCelula(tc, String(cel.valor), cel.eMarcador ? WINGDINGS : 'Arial');
-      } else {
-        escreveNaCelula(tc, '-', 'Arial');
-        semDado++;
-      }
-    }
-  }
-  return semDado;
-}
-
-/**
- * A ordem das linhas do Farol no molde.
- *
- * Vem do próprio molde, lida na hora: cada linha de dado tem o rótulo na primeira
- * célula e tokens nas demais. Ler em vez de fixar no código evita que a lista
- * envelheça quando o molde for trocado pelo da Mônica.
- */
-function deParaDoFarol(moldura: Element): string[] {
-  const lista: string[] = [];
-  for (const tr of listRows(moldura)) {
-    const celulas = qsa(tr, 'a:tc');
-    if (celulas.length === 0) continue;
-    const rotulo = textoDe(celulas[0]).trim();
-    const temToken = celulas.slice(1).some((tc) => textoDe(tc).includes('{{F_'));
-    if (rotulo && temToken) lista.push(rotulo);
-  }
-  return lista;
-}
-
-function tokensGlobais(deck: Deck): Record<string, string> {
-  const t: Record<string, string> = { CLIENTE: deck.cliente ?? 'Cliente' };
-  deck.anos.slice(0, 3).forEach((a, i) => {
-    t[`ANO${i + 1}`] = String(a);
-  });
-  deck.transferencia.colunas.slice(0, 6).forEach((a, i) => {
-    t[`TR_ANO${i + 1}`] = String(a);
-  });
-  /* O molde não fixa o nome dos cenários: quem escreve é o estudo. */
-  deck.cenarios.slice(0, 3).forEach((c, i) => {
-    t[`CEN${i + 1}`] = c;
-  });
-  /* Nomes de contribuinte: o molde tem duas colunas e o WP pode ter uma só. */
-  const contribuintes = [...new Set(deck.dre.colunas.map((c) => c.split('|')[1]).filter(Boolean))];
-  /*
-   * **Sem segundo contribuinte, o rótulo dele sai vazio.** Escrever "Pessoa
-   * Jurídica" sobre uma coluna que o estudo não tem promete um dado que não
-   * existe, e quem lê o slide fica procurando o número que falta.
-   */
-  t.PF = contribuintes[0] ?? 'Pessoa Física';
-  t.PJ = contribuintes[1] ?? '';
-  return t;
+/** Quantos `{{TOKEN}}` existem num XML, para conferir o molde antes de escrever. */
+function contaTokens(xml: string): number {
+  return (xml.match(/\{\{[A-Z0-9_]+\}\}/g) ?? []).length;
 }
 
 function montaPptx(molde: Uint8Array, deck: Deck): { bytes: Uint8Array; avisos: string[] } {
   const partes: PptxParts = unpackPptx(molde);
   const avisos: string[] = [];
-  const globais = tokensGlobais(deck);
+  const tokens = tokensDoDeck(deck);
 
-  const tabelas: [keyof typeof SLIDES, string[], LinhaDaTabela[]][] = [
-    ['dre', ['DRE0_', 'DRE1_', 'DRE2_'], deck.dre.linhas],
-    ['transferencia', ['TR_SECAO_', 'TR_ITEM_', 'TR_TOTAL_'], deck.transferencia.linhas],
-    ['resumo', ['RES0_', 'RES1_'], deck.resumo.linhas],
-  ];
-
-  for (const [chave, prefixos, linhas] of tabelas) {
-    const { arquivo, colunas: indices } = SLIDES[chave];
-    const doc = parseXml(readText(partes, arquivo));
-    const moldura = molduraDaTabela(doc);
-    if (!moldura) {
-      avisos.push(`O molde não tem tabela em ${arquivo}.`);
+  for (const { arquivo, nome, tokens: esperados } of SLIDES) {
+    let xml: string;
+    try {
+      xml = readText(partes, arquivo);
+    } catch {
+      avisos.push(`O molde não tem o slide de ${nome} (${arquivo}).`);
       continue;
     }
-    const daTabela =
-      chave === 'dre' ? deck.dre : chave === 'resumo' ? deck.resumo : deck.transferencia;
-    /* A Transferência tem linha de seção, que é título sem valor: nível 0. */
-    const comNivel = linhas.map((l) =>
-      chave === 'transferencia'
-        ? { ...l, nivel: Object.keys(l.valores).length === 0 ? 0 : l.nivel }
-        : l,
-    );
-    preencheTabela(
-      moldura,
-      prefixos,
-      comNivel,
-      chavesDosEspacos(daTabela, SLIDES[chave].porAno),
-      indices,
-    );
-    applyTokensToNode(doc.documentElement, globais);
-    stripRemainingTokens(doc.documentElement);
-    writeText(partes, arquivo, serializeXml(doc));
-  }
 
-  {
-    const { arquivo } = SLIDES.farol;
-    const doc = parseXml(readText(partes, arquivo));
-    const moldura = molduraDaTabela(doc);
-    if (moldura) {
-      const semDado = preencheFarol(moldura, deck.farol, deParaDoFarol(moldura));
-      if (semDado > 0) {
-        avisos.push(
-          `${semDado} célula(s) da Carga Tributária ficaram sem dado e saíram como traço.`,
-        );
-      }
-    }
-    applyTokensToNode(doc.documentElement, globais);
-    stripRemainingTokens(doc.documentElement);
-    writeText(partes, arquivo, serializeXml(doc));
-  }
-
-  {
-    const { arquivo } = SLIDES.comentarios;
-    const doc = parseXml(readText(partes, arquivo));
-    const tokens: Record<string, string> = { ...globais };
-    for (const c of deck.comentarios) {
-      tokens[`COM_${c.tributo.replace(/[^A-Za-z]/g, '').toUpperCase()}`] = c.texto;
+    /*
+     * **A conferência do molde vem antes da escrita.** O arquivo mora no bucket e
+     * pode estar desatualizado; sem isto, um molde antigo devolveria um deck de
+     * slots vazios com cara de pronto, que é o defeito que mais custou tempo
+     * nesta frente.
+     */
+    const achados = contaTokens(xml);
+    if (achados !== esperados) {
+      avisos.push(
+        `O slide de ${nome} tem ${achados} token(s) e o molde certo tem ${esperados}. ` +
+          `Confira se o "${MOLDE}" do bucket é o do padrão visual novo.`,
+      );
     }
 
+    const doc = parseXml(xml);
     applyTokensToNode(doc.documentElement, tokens);
     stripRemainingTokens(doc.documentElement);
     writeText(partes, arquivo, serializeXml(doc));
@@ -380,7 +142,7 @@ function montaPptx(molde: Uint8Array, deck: Deck): { bytes: Uint8Array; avisos: 
    * O rodapé mora no layout, não no slide, e o nome do cliente pode ser longo:
    * "Elefante de Pijama Colchões Industriais Eireli" quebrava em duas linhas e a
    * segunda saía cortada pela borda. Passando de 28 caracteres a fonte encolhe na
-   * proporção, com o mesmo piso das tabelas.
+   * proporção, com piso.
    */
   const CABE_NO_RODAPE = 28;
   for (const caminho of Object.keys(partes)) {
@@ -389,14 +151,14 @@ function montaPptx(molde: Uint8Array, deck: Deck): { bytes: Uint8Array; avisos: 
     if (!xml.includes('{{CLIENTE}}')) continue;
 
     const doc = parseXml(xml);
-    if (globais.CLIENTE.length > CABE_NO_RODAPE) {
+    if (tokens.CLIENTE.length > CABE_NO_RODAPE) {
       for (const sp of qsa(doc, 'p:sp')) {
         if (textoDe(sp).includes('{{CLIENTE}}')) {
-          encolheFonte(sp, CABE_NO_RODAPE / globais.CLIENTE.length);
+          encolheFonte(sp, CABE_NO_RODAPE / tokens.CLIENTE.length);
         }
       }
     }
-    applyTokensToNode(doc.documentElement, { CLIENTE: globais.CLIENTE });
+    applyTokensToNode(doc.documentElement, { CLIENTE: tokens.CLIENTE });
     writeText(partes, caminho, serializeXml(doc));
   }
 
@@ -417,7 +179,15 @@ function slug(s: string): string {
 async function resumoDosBytes(bytes: Uint8Array): Promise<string> {
   /* O checksum do arquivo gerado. `SHA-256` serve: aqui ele identifica o pacote,
    * e não precisa casar com o do GCS como na importação. */
-  const hash = await crypto.subtle.digest('SHA-256', bytes);
+  /*
+   * A cópia existe por causa de tipagem, não de comportamento: `bytes.buffer` é
+   * `ArrayBufferLike`, que admite `SharedArrayBuffer`, e as tipagens novas do
+   * Deno recusam isso onde o WebCrypto pede `BufferSource`. Copiar para um
+   * `ArrayBuffer` comum resolve sem mentir num cast.
+   */
+  const copia = new Uint8Array(bytes.length);
+  copia.set(bytes);
+  const hash = await crypto.subtle.digest('SHA-256', copia.buffer);
   return btoa(String.fromCharCode(...new Uint8Array(hash).slice(0, 16)));
 }
 
@@ -467,9 +237,12 @@ serve(async (req) => {
 
     const { data: revisao, error: erroRevisao } = await comoUsuario
       .from('wp_importacao')
-      .select(
-        'id, versao, cliente_no_wp, estudo_id, wp_estudo!inner(cliente_id, cliente!inner(nome))',
-      )
+      /* Literal numa linha só, e sem concatenar: o cliente do Supabase infere o
+       * tipo da resposta LENDO esta string. Quebrada em `'a' + 'b'` ele desiste,
+       * a linha volta como `GenericStringError` e `revisao.versao` deixa de
+       * existir para o TypeScript. */
+      // prettier-ignore
+      .select('id, versao, cliente_no_wp, estudo_id, ano_base, crescimento_anual, wp_estudo!inner(cliente_id, cliente!inner(nome))')
       .eq('id', importacaoId)
       .maybeSingle();
     if (erroRevisao) throw erroRevisao;
@@ -511,20 +284,27 @@ serve(async (req) => {
       (revisao as unknown as { wp_estudo?: { cliente?: { nome?: string } } }).wp_estudo?.cliente
         ?.nome ?? null;
 
-    const [valores, farol, comentarios] = await Promise.all([
-      buscaTudo<Record<string, never>>(
-        'wp_valor',
-        'bloco, rotulo, nivel, cenario, contribuinte, ano, valor_numerico, valor_texto, unidade, origem_celula',
-      ),
-      buscaTudo<Record<string, never>>(
-        'wp_farol',
-        'rotulo, regime, pessoa, valor_numerico, valor_texto',
-      ),
-      buscaTudo<Record<string, never>>('wp_comentario', 'cenario, tributo, ordem, texto', 'ordem'),
-    ]);
+    /*
+     * **Só `wp_valor` é lido.** O capítulo novo não tem o slide do Farol nem as
+     * caixas de comentário por tributo, então `wp_farol` e `wp_comentario`
+     * deixaram de ser consultados aqui. As duas tabelas seguem de pé e seguem
+     * sendo preenchidas pela importação: o dado não se perde, ele só não tem
+     * mais slide neste capítulo.
+     */
+    const valores = await buscaTudo<Record<string, never>>(
+      'wp_valor',
+      'bloco, rotulo, nivel, cenario, contribuinte, ano, valor_numerico, valor_texto, unidade, origem_celula',
+    );
+
+    const premissas = revisao as unknown as {
+      ano_base?: number | null;
+      crescimento_anual?: number | null;
+    };
 
     const deck = montaDeck({
       clienteNoWp: doCadastro ?? revisao.cliente_no_wp ?? undefined,
+      anoBase: premissas.ano_base ?? null,
+      crescimentoAnual: premissas.crescimento_anual ?? null,
       valores: valores.map((v) => ({
         bloco: v.bloco,
         rotulo: v.rotulo,
@@ -536,13 +316,6 @@ serve(async (req) => {
         unidade: v.unidade,
         origemCelula: v.origem_celula ?? undefined,
       })) as ValorDaRevisao[],
-      farol: farol.map((f) => ({
-        rotulo: f.rotulo,
-        regime: f.regime,
-        pessoa: f.pessoa,
-        valor: f.valor_numerico ?? f.valor_texto ?? '',
-      })) as FarolDaRevisao[],
-      comentarios: comentarios as unknown as ComentarioDaRevisao[],
     });
 
     const { data: molde, error: erroMolde } = await admin.storage
