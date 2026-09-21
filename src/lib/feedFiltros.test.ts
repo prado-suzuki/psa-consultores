@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  aoTrocarDeCliente,
   aplicarFiltrosNaUrl,
   contarFiltrosAtivos,
   desdeDoPeriodo,
   filtrosDaUrl,
   FILTROS_VAZIOS,
+  projetosDoCliente,
   temFiltroAtivo,
   type FeedFiltros,
+  type ProjetoDoFiltro,
 } from '@/lib/feedFiltros';
 
 /** Meia-noite local, que é onde os presets de período ancoram. */
@@ -139,5 +142,68 @@ describe('aplicarFiltrosNaUrl', () => {
       periodo: '30d',
     };
     expect(filtrosDaUrl(aplicarFiltrosNaUrl(new URLSearchParams(), filtros))).toEqual(filtros);
+  });
+});
+
+const PROJETOS: ProjetoDoFiltro[] = [
+  { id: 'proj-1', name: 'Recuperação', external_client_id: 'cli-1' },
+  { id: 'proj-2', name: 'Diagnóstico', external_client_id: 'cli-1' },
+  { id: 'proj-3', name: 'Sucessão', external_client_id: 'cli-2' },
+  { id: 'proj-sem-dono', name: 'Interno', external_client_id: null },
+];
+
+describe('projetosDoCliente', () => {
+  it('oferece a lista inteira quando não há cliente no recorte', () => {
+    expect(projetosDoCliente(PROJETOS, null)).toEqual(PROJETOS);
+  });
+
+  it('oferece só os projetos do cliente escolhido', () => {
+    expect(projetosDoCliente(PROJETOS, 'cli-1').map((projeto) => projeto.id)).toEqual([
+      'proj-1',
+      'proj-2',
+    ]);
+  });
+
+  it('deixa de fora o projeto sem cliente quando há cliente escolhido', () => {
+    expect(projetosDoCliente(PROJETOS, 'cli-2').map((projeto) => projeto.id)).toEqual(['proj-3']);
+  });
+
+  it('devolve lista vazia para cliente sem projeto nenhum', () => {
+    expect(projetosDoCliente(PROJETOS, 'cli-9')).toEqual([]);
+  });
+});
+
+describe('aoTrocarDeCliente', () => {
+  it('derruba o projeto que é de outro cliente', () => {
+    const filtros: FeedFiltros = { ...FILTROS_VAZIOS, clienteId: 'cli-1', projetoId: 'proj-1' };
+    expect(aoTrocarDeCliente(filtros, 'cli-2', PROJETOS)).toEqual({
+      ...FILTROS_VAZIOS,
+      clienteId: 'cli-2',
+      projetoId: null,
+    });
+  });
+
+  it('mantém o projeto que é do cliente escolhido', () => {
+    const filtros: FeedFiltros = { ...FILTROS_VAZIOS, projetoId: 'proj-2' };
+    expect(aoTrocarDeCliente(filtros, 'cli-1', PROJETOS).projetoId).toBe('proj-2');
+  });
+
+  it('mantém o projeto ao LIMPAR o cliente: sem cliente, todo projeto é válido', () => {
+    const filtros: FeedFiltros = { ...FILTROS_VAZIOS, clienteId: 'cli-1', projetoId: 'proj-1' };
+    expect(aoTrocarDeCliente(filtros, null, PROJETOS)).toEqual({
+      ...FILTROS_VAZIOS,
+      projetoId: 'proj-1',
+    });
+  });
+
+  it('preserva o projeto desconhecido: lista vazia é lista que ainda não chegou', () => {
+    const filtros: FeedFiltros = { ...FILTROS_VAZIOS, projetoId: 'proj-1' };
+    expect(aoTrocarDeCliente(filtros, 'cli-2', []).projetoId).toBe('proj-1');
+  });
+
+  it('não altera o recorte recebido', () => {
+    const filtros: FeedFiltros = { ...FILTROS_VAZIOS, clienteId: 'cli-1', projetoId: 'proj-1' };
+    aoTrocarDeCliente(filtros, 'cli-2', PROJETOS);
+    expect(filtros.projetoId).toBe('proj-1');
   });
 });
