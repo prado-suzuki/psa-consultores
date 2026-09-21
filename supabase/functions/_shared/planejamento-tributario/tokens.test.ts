@@ -18,7 +18,7 @@ import { TOKENS_DO_MOLDE, tokensDoDeck } from './tokens.ts';
  * mora no bucket e não no repositório, então nada compila junto com ele: se
  * alguém acrescentar uma linha num quadro e mexer só de um lado, o slide sai com
  * o slot em branco e ninguém é avisado. A contagem abaixo é a única trava que
- * existe para isso, e foi medida no arquivo: 194 tokens distintos.
+ * existe para isso, e foi medida no arquivo: 209 tokens distintos.
  */
 
 /** Um valor de DRE qualquer, só para o deck ter três exercícios. */
@@ -62,6 +62,8 @@ describe('o mapa de tokens', () => {
     expect(quantos(/^RES_VAR_C\d$/)).toBe(CENARIOS_NO_QUADRO - 1);
     expect(quantos(/^PARC_/)).toBe(4);
     expect(quantos(/^ANO\d$/)).toBe(ANOS_NO_QUADRO);
+    /* As quinze alíquotas do quadro comparativo da carga. */
+    expect(quantos(/^F5_/)).toBe(15);
   });
 
   /*

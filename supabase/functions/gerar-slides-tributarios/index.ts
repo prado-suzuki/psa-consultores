@@ -24,6 +24,7 @@ import { validatePptx } from '../_shared/ooxml/validate.ts';
 import {
   montaDeck,
   type Deck,
+  type FarolDaRevisao,
   type ValorDaRevisao,
 } from '../_shared/planejamento-tributario/slides.ts';
 import { tokensDoDeck } from '../_shared/planejamento-tributario/tokens.ts';
@@ -65,7 +66,7 @@ const SLIDES = [
   { arquivo: 'ppt/slides/slide2.xml', nome: 'Premissas e QUADRO 01', tokens: 40 },
   { arquivo: 'ppt/slides/slide3.xml', nome: 'Cenários avaliados', tokens: 4 },
   { arquivo: 'ppt/slides/slide4.xml', nome: 'Diferenças nos modelos', tokens: 0 },
-  { arquivo: 'ppt/slides/slide5.xml', nome: 'Quadro comparativo da carga', tokens: 0 },
+  { arquivo: 'ppt/slides/slide5.xml', nome: 'Quadro comparativo da carga', tokens: 28 },
   { arquivo: 'ppt/slides/slide6.xml', nome: 'Transferência da atividade rural', tokens: 14 },
   { arquivo: 'ppt/slides/slide7.xml', nome: 'Resumo e QUADRO 02', tokens: 140 },
 ] as const;
@@ -285,16 +286,24 @@ serve(async (req) => {
         ?.nome ?? null;
 
     /*
-     * **Só `wp_valor` é lido.** O capítulo novo não tem o slide do Farol nem as
-     * caixas de comentário por tributo, então `wp_farol` e `wp_comentario`
-     * deixaram de ser consultados aqui. As duas tabelas seguem de pé e seguem
-     * sendo preenchidas pela importação: o dado não se perde, ele só não tem
-     * mais slide neste capítulo.
+     * **`wp_comentario` deixou de ser lido**, porque o capítulo novo não tem as
+     * caixas de comentário por tributo. A tabela segue de pé e segue sendo
+     * preenchida pela importação: o dado não se perde, ele só não tem mais slide.
+     *
+     * **`wp_farol` continua sendo lido**, e com o `bloco`, que faz parte da
+     * chave: a aba repete rótulo entre blocos, e sem ele a busca pega a primeira
+     * linha que aparecer.
      */
-    const valores = await buscaTudo<Record<string, never>>(
-      'wp_valor',
-      'bloco, rotulo, nivel, cenario, contribuinte, ano, valor_numerico, valor_texto, unidade, origem_celula',
-    );
+    const [valores, farol] = await Promise.all([
+      buscaTudo<Record<string, never>>(
+        'wp_valor',
+        'bloco, rotulo, nivel, cenario, contribuinte, ano, valor_numerico, valor_texto, unidade, origem_celula',
+      ),
+      buscaTudo<Record<string, never>>(
+        'wp_farol',
+        'bloco, rotulo, regime, pessoa, valor_numerico, valor_texto',
+      ),
+    ]);
 
     const premissas = revisao as unknown as {
       ano_base?: number | null;
@@ -316,6 +325,13 @@ serve(async (req) => {
         unidade: v.unidade,
         origemCelula: v.origem_celula ?? undefined,
       })) as ValorDaRevisao[],
+      farol: farol.map((f) => ({
+        bloco: f.bloco,
+        rotulo: f.rotulo,
+        regime: f.regime,
+        pessoa: f.pessoa,
+        valor: f.valor_numerico ?? f.valor_texto ?? '',
+      })) as FarolDaRevisao[],
     });
 
     const { data: molde, error: erroMolde } = await admin.storage

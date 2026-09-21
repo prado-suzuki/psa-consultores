@@ -70,10 +70,29 @@ export interface ValorDaRevisao {
   origemCelula?: string;
 }
 
+/**
+ * Uma célula da aba `Farol`, no formato de `wp_farol`.
+ *
+ * **O `bloco` faz parte da chave, e sem ele a busca erra.** A aba repete rótulo
+ * entre blocos: `Tributação com base no faturamento` existe sob IRPF/IRPJ/CSLL
+ * (5,50%), sob PIS/Cofins (3,65%) e sob IBS e CBS (28%), e `Tributação com base
+ * no faturamento⁴` é a do FUNRURAL. Casar só por rótulo, regime e pessoa pega a
+ * primeira que aparecer.
+ */
+export interface FarolDaRevisao {
+  bloco: string;
+  rotulo: string;
+  regime: 'presumido' | 'real';
+  pessoa: 'pf' | 'pj';
+  valor: number | string;
+}
+
 /** O que a função lê do banco para montar o capítulo. */
 export interface Revisao {
   clienteNoWp?: string;
   valores: ValorDaRevisao[];
+  /** A aba `Farol`, que alimenta o quadro comparativo da carga. */
+  farol?: FarolDaRevisao[];
   /** `DRE Projetada!C7`, o último ano-calendário encerrado. */
   anoBase?: number | null;
   /** `DRE Projetada!C5`, em fração: `0.05` são 5%. */
@@ -124,6 +143,8 @@ export interface Deck {
   variacao: ValorDoSlide[][];
   /** Os três cartões do topo do Resumo: a soma dos exercícios e a variação. */
   cartoes: { soma: ValorDoSlide; variacao: ValorDoSlide }[];
+  /** As alíquotas do quadro comparativo da carga, por slot do slide. */
+  quadroComparativo: Record<string, ValorDoSlide>;
   problemas: ProblemaDoDeck[];
 }
 
@@ -779,17 +800,211 @@ function percentualDaAba(valores: ValorDaRevisao[], aba: string): number | undef
   return typeof achado?.valor === 'number' ? achado.valor : undefined;
 }
 
+// ─── O quadro comparativo da carga ───────────────────────────────────────────
+
+/**
+ * O quadro comparativo é **duas perguntas lado a lado**, e a aba responde uma.
+ *
+ * À esquerda, PARCERIA RURAL: o que custa cada regime quando a terra entra em
+ * parceria. À direita, ARRENDAMENTO: o que custa quando a terra é simplesmente
+ * arrendada. A aba `Farol` tem quatro colunas de dado, e está conferido número
+ * por número que as quatro são a metade da parceria: 5,50% é o `C12`, 11,20% é o
+ * `C25`, 1,63% é o `C31`, 27,50% é o `E13` e 34,00% é o `F13`.
+ *
+ * **Por isso este slide preenche o que dá e avisa o que não dá**, que é a regra
+ * do resto deste arquivo. O slide antigo do Farol já era movido pela aba, então
+ * deixá-lo estático seria perder capacidade, não preservá-la.
+ */
+
+/** Os blocos da aba, comparados por prefixo porque ela datou dois deles. */
+const BLOCO_IR = 'IRPF/IRPJ/CSLL';
+const BLOCO_CBS = 'IBS e CBS';
+const BLOCO_FUNRURAL = 'FUNRURAL';
+
+const LINHA_FATURAMENTO = 'Tributação com base no faturamento';
+const LINHA_LUCRO_EFETIVO = 'Tributação com base no lucro efetivo';
+const LINHA_REDUZIDA_AGRICOLA = 'Alíquota reduzida para os produtos agrícolas';
+
+/**
+ * As oito alíquotas base, e onde cada uma mora na aba.
+ *
+ * `padrao` é o valor de lei, usado quando o WP não tem aba `Farol`: os quatro
+ * estudos antigos não têm essa aba, porque o quadro era montado direto no
+ * PowerPoint. **Não é cópia do molde**, é a mesma lista que a aba declara, e
+ * quando ela é usada sai um aviso dizendo que a alíquota não veio da planilha.
+ */
+const ALIQUOTAS_BASE = {
+  irPfLp: {
+    bloco: BLOCO_IR, linha: LINHA_FATURAMENTO, regime: 'presumido', pessoa: 'pf', padrao: 0.055,
+  },
+  irPjLp: {
+    bloco: BLOCO_IR, linha: LINHA_FATURAMENTO, regime: 'presumido', pessoa: 'pj', padrao: 0.0322,
+  },
+  irPfLr: {
+    bloco: BLOCO_IR, linha: LINHA_LUCRO_EFETIVO, regime: 'real', pessoa: 'pf', padrao: 0.275,
+  },
+  irPjLr: {
+    bloco: BLOCO_IR, linha: LINHA_LUCRO_EFETIVO, regime: 'real', pessoa: 'pj', padrao: 0.34,
+  },
+  cbsAgricola: {
+    bloco: BLOCO_CBS, linha: LINHA_REDUZIDA_AGRICOLA, regime: 'presumido', pessoa: 'pf',
+    padrao: 0.112,
+  },
+  cbsPadrao: {
+    bloco: BLOCO_CBS, linha: LINHA_FATURAMENTO, regime: 'presumido', pessoa: 'pf', padrao: 0.28,
+  },
+  funruralPf: {
+    bloco: BLOCO_FUNRURAL, linha: LINHA_FATURAMENTO, regime: 'presumido', pessoa: 'pf',
+    padrao: 0.0163,
+  },
+  funruralPj: {
+    bloco: BLOCO_FUNRURAL, linha: LINHA_FATURAMENTO, regime: 'presumido', pessoa: 'pj',
+    padrao: 0.0223,
+  },
+} as const satisfies Record<
+  string,
+  { bloco: string; linha: string; regime: FarolDaRevisao['regime']; pessoa: FarolDaRevisao['pessoa']; padrao: number }
+>;
+
+/**
+ * As duas constantes que a aba NÃO calcula e que o arrendamento precisa.
+ *
+ * **A redução da CBS para arrendamento de bem imóvel** está citada na nota de
+ * rodapé da própria aba, mas ela só calcula a redução dos produtos agrícolas, que
+ * dá os 11,20%. Aqui o fator é o que resta da alíquota padrão.
+ *
+ * **A presunção sobre receita de aluguel** não existe em célula nenhuma da aba.
+ *
+ * As duas saem num aviso em toda geração, para a consultoria saber que aquela
+ * coluna é calculada e não acompanha a planilha.
+ */
+const FATOR_CBS_ARRENDAMENTO = 0.3;
+const PRESUNCAO_ARRENDAMENTO = 0.32;
+
+/** O percentual como a aba o escreve: duas casas e vírgula. */
+function escrevePercentual(fracao: number): ValorDoSlide {
+  const pct = (fracao * 100).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return pct + '%';
+}
+
+/**
+ * O número por trás de uma célula da aba.
+ *
+ * **A célula vem de dois jeitos e os dois são legítimos:** número puro quando é
+ * conta, e texto já formatado quando o consultor pendurou a chamada de nota de
+ * rodapé nela, como em `3,22%` seguido de expoente. Para somar é preciso o
+ * número; para escrever, o texto original, senão a chamada se perde e o rodapé do
+ * slide passa a citar uma marca que não está em lugar nenhum.
+ */
+function comoFracao(valor: number | string): number | undefined {
+  if (typeof valor === 'number') return valor;
+  const limpo = valor.replace(/\s/g, '');
+  const m = /(\d+)(?:[.,](\d+))?%/.exec(limpo);
+  if (!m) return undefined;
+  const inteiro = Number(m[1]);
+  const decimal = m[2] ? Number('0.' + m[2]) : 0;
+  if (!Number.isFinite(inteiro)) return undefined;
+  return (inteiro + decimal) / 100;
+}
+
+function montaQuadroComparativo(farol: FarolDaRevisao[]): {
+  slots: Record<string, ValorDoSlide>;
+  problemas: ProblemaDoDeck[];
+} {
+  const problemas: ProblemaDoDeck[] = [];
+  const ONDE = 'Quadro comparativo da carga';
+
+  const numero: Record<string, number> = {};
+  const texto: Record<string, ValorDoSlide> = {};
+  const doPadrao: string[] = [];
+
+  for (const [nome, def] of Object.entries(ALIQUOTAS_BASE)) {
+    const achado = farol.find(
+      (f) =>
+        chave(f.bloco).startsWith(chave(def.bloco)) &&
+        chave(f.rotulo) === chave(def.linha) &&
+        f.regime === def.regime &&
+        f.pessoa === def.pessoa,
+    );
+    const fracao = achado === undefined ? undefined : comoFracao(achado.valor);
+    if (achado === undefined || fracao === undefined) {
+      doPadrao.push(nome);
+      numero[nome] = def.padrao;
+      texto[nome] = escrevePercentual(def.padrao);
+      continue;
+    }
+    numero[nome] = fracao;
+    /* Texto da aba passa como está, para não perder a chamada de nota. */
+    texto[nome] = typeof achado.valor === 'string' ? achado.valor.trim() : escrevePercentual(fracao);
+  }
+
+  if (doPadrao.length > 0) {
+    problemas.push({
+      tipo: 'origem',
+      onde: ONDE,
+      detalhe:
+        doPadrao.length +
+        ' de ' +
+        Object.keys(ALIQUOTAS_BASE).length +
+        ' alíquotas não vieram da aba "Farol" e saíram pelo valor de lei. ' +
+        'Confira se este WP tem essa aba: os estudos antigos não têm.',
+    });
+  }
+
+  const cbsArrendamento = numero.cbsPadrao * FATOR_CBS_ARRENDAMENTO;
+  const irPjArrendamento = PRESUNCAO_ARRENDAMENTO * numero.irPjLr;
+  problemas.push({
+    tipo: 'origem',
+    onde: ONDE,
+    detalhe:
+      'A metade de arrendamento é calculada, não lida: a aba "Farol" só descreve parceria ' +
+      'rural. O IBS e CBS sai de 30% da alíquota padrão, pela redução que a nota de rodapé da ' +
+      'aba cita, e o IRPJ/CSLL de 32% de presunção sobre o aluguel.',
+  });
+
+  const soma = (...fracoes: number[]) => fracoes.reduce((t, f) => t + f, 0);
+
+  return {
+    slots: {
+      /* Parceria rural, pessoa física. */
+      F5_IR_PF_LP: texto.irPfLp,
+      F5_IR_PF_LR: texto.irPfLr,
+      F5_CBS_AGRO: texto.cbsAgricola,
+      F5_FUN_PF: texto.funruralPf,
+      F5_PAR_PF_LP: escrevePercentual(soma(numero.irPfLp, numero.cbsAgricola, numero.funruralPf)),
+      F5_PAR_PF_RE_REC: escrevePercentual(soma(numero.cbsAgricola, numero.funruralPf)),
+      /* Parceria rural, pessoa jurídica. */
+      F5_IR_PJ_LP: texto.irPjLp,
+      F5_IR_PJ_LR: texto.irPjLr,
+      F5_FUN_PJ: texto.funruralPj,
+      F5_PAR_PJ_LP: escrevePercentual(soma(numero.irPjLp, numero.cbsAgricola, numero.funruralPj)),
+      F5_PAR_PJ_LR_REC: escrevePercentual(soma(numero.cbsAgricola, numero.funruralPj)),
+      /* Arrendamento, onde o FUNRURAL não incide. */
+      F5_CBS_ARR: escrevePercentual(cbsArrendamento),
+      F5_IR_PJ_ARR: escrevePercentual(irPjArrendamento),
+      F5_ARR_PF: escrevePercentual(soma(numero.irPfLr, cbsArrendamento)),
+      F5_ARR_PJ_LP: escrevePercentual(soma(irPjArrendamento, cbsArrendamento)),
+    },
+    problemas,
+  };
+}
+
 // ─── O capítulo inteiro ──────────────────────────────────────────────────────
 
 export function montaDeck(leitura: Revisao): Deck {
   const doQuadro01 = montaQuadro01(leitura.valores);
   const doQuadro02 = montaQuadro02(leitura.valores);
   const daTransferencia = montaTransferencia(leitura.valores);
+  const doComparativo = montaQuadroComparativo(leitura.farol ?? []);
 
   const problemas: ProblemaDoDeck[] = [
     ...doQuadro01.problemas,
     ...doQuadro02.problemas,
     ...daTransferencia.problemas,
+    ...doComparativo.problemas,
   ];
 
   /*
@@ -857,6 +1072,7 @@ export function montaDeck(leitura: Revisao): Deck {
     quadro02: doQuadro02.linhas,
     variacao: doQuadro02.variacao,
     cartoes: doQuadro02.cartoes,
+    quadroComparativo: doComparativo.slots,
     problemas,
   };
 }

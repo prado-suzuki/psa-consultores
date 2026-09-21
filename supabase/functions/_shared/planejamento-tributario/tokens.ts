@@ -19,8 +19,13 @@ import {
   type Deck,
 } from './slides.ts';
 
-/** Quantos tokens distintos o molde do padrão visual novo tem. Medido no arquivo. */
-export const TOKENS_DO_MOLDE = 194;
+/**
+ * Quantos tokens distintos o molde do padrão visual novo tem. Medido no arquivo.
+ *
+ * Foram 194 até o quadro comparativo da carga virar dinâmico; as 15 alíquotas
+ * dele levaram a conta a 209.
+ */
+export const TOKENS_DO_MOLDE = 209;
 
 /**
  * O mapa de token do capítulo inteiro, do deck para o molde.
@@ -85,6 +90,13 @@ export function tokensDoDeck(deck: Deck): Record<string, string> {
       t[`Q2_VAR_A${ai + 1}C${ci + 1}`] = deck.variacao[ai]?.[ci] ?? '-';
     }
   }
+
+  /*
+   * O quadro comparativo da carga. As chaves já vêm no formato do slot, porque
+   * ali cada alíquota tem um lugar só e o nome dela é o endereço: `F5_CBS_ARR` é
+   * o IBS e CBS da coluna de arrendamento.
+   */
+  Object.assign(t, deck.quadroComparativo);
 
   /* Os cartões do topo do Resumo. O primeiro não tem variação: é o base. */
   for (let ci = 0; ci < CENARIOS_NO_QUADRO; ci += 1) {

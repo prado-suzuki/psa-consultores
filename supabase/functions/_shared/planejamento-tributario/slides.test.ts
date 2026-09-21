@@ -497,3 +497,130 @@ describe('as premissas e os cenários', () => {
     expect(deck.anos).toEqual([]);
   });
 });
+
+/*
+ * O quadro comparativo da carga.
+ *
+ * **Ele é a metade parceria lida da aba e a metade arrendamento calculada.** Os
+ * casos abaixo prendem as duas coisas, e prendem também o que acontece quando a
+ * aba não existe, que é o caso dos quatro estudos antigos.
+ */
+describe('o quadro comparativo da carga', () => {
+  function celula(
+    bloco: string,
+    rotulo: string,
+    regime: 'presumido' | 'real',
+    pessoa: 'pf' | 'pj',
+    valor: number | string,
+  ) {
+    return { bloco, rotulo, regime, pessoa, valor };
+  }
+
+  /** A aba como o WP a traz, com os oito valores de que o quadro precisa. */
+  function abaFarol() {
+    const IR = 'IRPF/IRPJ/CSLL';
+    const CBS = 'IBS e CBS - Vigente a partir de 2027';
+    const FUN = 'FUNRURAL';
+    return [
+      celula(IR, 'Tributação com base no faturamento', 'presumido', 'pf', 0.055),
+      /* Texto com a chamada de nota, como o consultor escreve. */
+      celula(IR, 'Tributação com base no faturamento', 'presumido', 'pj', '3,22%¹'),
+      celula(IR, 'Tributação com base no lucro efetivo', 'real', 'pf', 0.275),
+      celula(IR, 'Tributação com base no lucro efetivo', 'real', 'pj', 0.34),
+      celula(CBS, 'Alíquota reduzida para os produtos agrícolas', 'presumido', 'pf', 0.112),
+      celula(CBS, 'Tributação com base no faturamento', 'presumido', 'pf', 0.28),
+      celula(FUN, 'Tributação com base no faturamento⁴', 'presumido', 'pf', 0.0163),
+      celula(FUN, 'Tributação com base no faturamento⁴', 'presumido', 'pj', 0.0223),
+    ];
+  }
+
+  it('lê as alíquotas da aba, e não as inventa', () => {
+    const deck = montaDeck({ valores: [], farol: abaFarol() });
+    const q = deck.quadroComparativo;
+    expect(q.F5_IR_PF_LP).toBe('5,50%');
+    expect(q.F5_CBS_AGRO).toBe('11,20%');
+    expect(q.F5_FUN_PF).toBe('1,63%');
+    expect(q.F5_IR_PF_LR).toBe('27,50%');
+    expect(q.F5_IR_PJ_LR).toBe('34,00%');
+    expect(q.F5_FUN_PJ).toBe('2,23%');
+  });
+
+  /*
+   * O rótulo do FUNRURAL tem expoente e o do IR não, e os dois se chamam
+   * "Tributação com base no faturamento". Só o bloco distingue: sem ele a busca
+   * traria os 5,50% do IR onde deveria vir 1,63%.
+   */
+  it('o bloco distingue rótulos repetidos', () => {
+    const deck = montaDeck({ valores: [], farol: abaFarol() });
+    expect(deck.quadroComparativo.F5_FUN_PF).not.toBe('5,50%');
+    expect(deck.quadroComparativo.F5_CBS_AGRO).not.toBe('5,50%');
+  });
+
+  /*
+   * A célula vem como texto quando o consultor pendura a chamada de nota nela. O
+   * texto tem de passar como está, senão o rodapé do slide cita uma marca que não
+   * aparece em lugar nenhum; e o número tem de ser extraído dele para somar.
+   */
+  it('preserva a chamada de nota e ainda soma o número', () => {
+    const q = montaDeck({ valores: [], farol: abaFarol() }).quadroComparativo;
+    expect(q.F5_IR_PJ_LP).toBe('3,22%¹');
+    /* 3,22 + 11,20 + 2,23 = 16,65 */
+    expect(q.F5_PAR_PJ_LP).toBe('16,65%');
+  });
+
+  it('os compostos são a soma das partes', () => {
+    const q = montaDeck({ valores: [], farol: abaFarol() }).quadroComparativo;
+    /* 5,50 + 11,20 + 1,63 */
+    expect(q.F5_PAR_PF_LP).toBe('18,33%');
+    /* 11,20 + 1,63, porque no resultado efetivo o IR incide sobre o lucro */
+    expect(q.F5_PAR_PF_RE_REC).toBe('12,83%');
+    /* 11,20 + 2,23 */
+    expect(q.F5_PAR_PJ_LR_REC).toBe('13,43%');
+  });
+
+  /*
+   * A metade de arrendamento não existe na aba: o IBS e CBS sai de 30% da
+   * alíquota padrão e o IRPJ/CSLL de 32% de presunção. Os dois números do modelo
+   * da consultoria são 8,40% e 10,88%, e é isso que o cálculo tem de reproduzir.
+   */
+  it('calcula o arrendamento e chega nos números do modelo', () => {
+    const q = montaDeck({ valores: [], farol: abaFarol() }).quadroComparativo;
+    expect(q.F5_CBS_ARR).toBe('8,40%');
+    expect(q.F5_IR_PJ_ARR).toBe('10,88%');
+    /* 27,50 + 8,40 */
+    expect(q.F5_ARR_PF).toBe('35,90%');
+    /* 10,88 + 8,40 */
+    expect(q.F5_ARR_PJ_LP).toBe('19,28%');
+  });
+
+  it('avisa sempre que o arrendamento é calculado', () => {
+    const deck = montaDeck({ valores: [], farol: abaFarol() });
+    const aviso = deck.problemas.find((p) => p.detalhe.includes('arrendamento é calculada'));
+    expect(aviso, JSON.stringify(deck.problemas)).toBeDefined();
+    expect(aviso!.onde).toBe('Quadro comparativo da carga');
+  });
+
+  /*
+   * Os quatro estudos antigos não têm aba `Farol`: o quadro era montado direto no
+   * PowerPoint. Sem ela o slide sai pelo valor de lei, e o aviso diz que saiu.
+   */
+  it('sem a aba, cai no valor de lei e diz que caiu', () => {
+    const deck = montaDeck({ valores: [] });
+    expect(deck.quadroComparativo.F5_IR_PF_LP).toBe('5,50%');
+    expect(deck.quadroComparativo.F5_IR_PJ_LP).toBe('3,22%');
+    const aviso = deck.problemas.find((p) => p.detalhe.includes('não vieram da aba'));
+    expect(aviso, JSON.stringify(deck.problemas)).toBeDefined();
+    expect(aviso!.detalhe).toContain('8 de 8');
+  });
+
+  /*
+   * O padrão do código é 3,22%, que é o que a aba diz, e NÃO os 3,08% que o
+   * modelo da consultoria imprime. A decisão é do usuário, de 21/09: o slide não
+   * deve contradizer a planilha.
+   */
+  it('o padrão segue a planilha, não o texto do modelo', () => {
+    const q = montaDeck({ valores: [] }).quadroComparativo;
+    expect(q.F5_IR_PJ_LP).not.toBe('3,08%');
+    expect(q.F5_PAR_PJ_LP).not.toBe('16,51%');
+  });
+});
