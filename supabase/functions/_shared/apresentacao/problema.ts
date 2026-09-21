@@ -42,19 +42,15 @@ export interface ProblemaDoDeck {
   detalhe: string;
 }
 
-/**
- * O mesmo problema, como ele SAI do banco.
+/*
+ * NAO EXISTE AQUI UM TIPO "COMO SAI DO BANCO", e a ausencia e deliberada.
  *
- * Quem escreve usa a uniao fechada acima; quem le precisa tolerar valor
- * desconhecido, porque ha registros em producao com `tipo = "tipo_inesperado"`,
- * gravados por uma versao anterior. Codigo que faz `switch` exaustivo sobre o
- * tipo escrito quebraria ao ler esses — e o dado antigo nao vai mudar.
+ * Houve um `ProblemaGravado` (`tipo: string`, para tolerar o `tipo_inesperado`
+ * ja gravado) — e nenhum leitor o usou: quem le `problemas` hoje e o parser em
+ * `src/lib/planejamento-tributario/parser.ts`, que tem a propria uniao com esse
+ * valor dentro. Era tipo sem consumidor, o mesmo erro do campo `extras` que saiu
+ * da casca. Quando existir quem leia por aqui, o tipo entra junto com ele.
  */
-export interface ProblemaGravado {
-  tipo: string;
-  onde?: string;
-  detalhe: string;
-}
 
 /** Acumulador opcional: quem nao se importa com o relato chama sem ele. */
 export type Probs = ProblemaDoDeck[] | undefined;
