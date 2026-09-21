@@ -25,8 +25,8 @@ Na hora de gerar, **os dois leem tabela**; o xlsx é camada de cima. O que diver
 ## 2. Reusar não é replicar
 
 **Reusar** cabe onde a regra é idêntica: as primitivas de OOXML, que os dois já importam, e a
-casca de publicação — validar, versionar, subir, registrar, assinar URL. São ~90 das 646
-linhas do tributário, presas dentro do `serve` dele.
+casca de publicação — validar, versionar, subir, registrar, assinar URL. Eram ~90 linhas
+presas dentro do `serve` do tributário; extraídas em 21/09, servem aos dois.
 
 **Replicar** é o caso do conteúdo: os moldes diferem em estrutura, e unificar significaria
 reescrever o do tributário. Repete-se o arranjo — conteúdo puro, montagem à parte, gabarito.

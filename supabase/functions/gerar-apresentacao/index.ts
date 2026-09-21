@@ -403,6 +403,15 @@ function preencherTotal(gf: Element, totalQuotas: number, totalValor: number): v
   }
 }
 
+/**
+ * Desenha a tabela de UMA empresa numa posicao do slide.
+ *
+ * `fechaOTotal` diz se esta e a ultima parte da empresa. Quando a tabela e
+ * partida entre paginas, so a ultima leva a linha de TOTAL: o `preencherTotal`
+ * escreve o total da EMPRESA INTEIRA e um "100,00%" fixo, entao repeti-lo em cada
+ * pedaco faria quatro paginas dizerem 100% com treze socios cada — e nenhuma
+ * delas fecharia com as proprias linhas.
+ */
 function renderQuadroTable(
   spTree: Element,
   templateGf: Element,
@@ -410,6 +419,7 @@ function renderQuadroTable(
   empresa: QuadroEmpresa,
   x: number,
   y: number,
+  fechaOTotal = true,
 ): void {
   const clone = cloneGraphicFrameWithId(templateGf, idCounter.next++);
   // Substituir rows: encontrar row com {{SOCIO}}, clonar por linha.
@@ -429,7 +439,14 @@ function renderQuadroTable(
     removeRow(template);
   }
   applyTokensToNode(clone, { EMPRESA: empresa.empresa });
-  preencherTotal(clone, empresa.totalQuotas, empresa.totalValor);
+  if (fechaOTotal) {
+    preencherTotal(clone, empresa.totalQuotas, empresa.totalValor);
+  } else {
+    // Pedaco intermediario: a linha de TOTAL sai, e volta na ultima pagina.
+    const todas = listRows(clone);
+    const ultima = todas[todas.length - 1];
+    if (ultima) removeRow(ultima);
+  }
 
   // Escalar <a:gridCol> para somar QUADRO_COL_W — senao a tabela renderiza
   // pela largura do template (~6,83") e invade a coluna vizinha no layout 2-col.
@@ -477,7 +494,10 @@ function renderQuadroSlide(parts: PptxParts, slidePath: string, empresas: Quadro
     }
     const cabem = cabemQuantasLinhas(top);
     if (cabem <= 0) return emp; // nem o cabecalho cabe: inteira para a proxima
-    renderQuadroTable(spTree, gf, idCounter, { ...emp, linhas: emp.linhas.slice(0, cabem) }, left, top);
+    renderQuadroTable(
+      spTree, gf, idCounter, { ...emp, linhas: emp.linhas.slice(0, cabem) }, left, top,
+      false, // nao e a ultima parte: sem TOTAL
+    );
     return { ...emp, linhas: emp.linhas.slice(cabem) };
   };
 
