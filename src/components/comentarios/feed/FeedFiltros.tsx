@@ -17,9 +17,11 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useExternalClients, useOrgProjectsForFilter, useTeamProfilesSafe } from '@/hooks/useTaxReferenceData';
 import {
+  aoTrocarDeCliente,
   contarFiltrosAtivos,
   FILTROS_VAZIOS,
   PERIODOS_DO_FEED,
+  projetosDoCliente,
   temFiltroAtivo,
   type FeedFiltros as FeedFiltrosValor,
   type PeriodoDoFeed,
@@ -68,7 +70,28 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
     () => clientes.map((cliente) => ({ value: cliente.id, label: cliente.nome })),
     [clientes],
   );
+  /**
+   * A lista de projetos obedece ao cliente escolhido.
+   *
+   * Sem isso, o popover oferecia todos os projetos da casa depois de a pessoa já
+   * ter dito de qual cliente ela está falando, e escolher um projeto de outro
+   * cliente montava um recorte impossível (os dois filtros se cruzam no `WHERE`),
+   * devolvendo feed vazio sem explicar a causa.
+   */
+  const projetosOferecidos = useMemo(
+    () => projetosDoCliente(projetos, filtros.clienteId),
+    [projetos, filtros.clienteId],
+  );
   const opcoesDeProjeto = useMemo<ComboOption[]>(
+    () => projetosOferecidos.map((projeto) => ({ value: projeto.id, label: projeto.name })),
+    [projetosOferecidos],
+  );
+  /**
+   * A etiqueta lê a lista INTEIRA: o projeto continua nomeado enquanto o cliente
+   * está sendo trocado, mesmo no instante em que ele já não está entre os
+   * oferecidos.
+   */
+  const opcoesDeTodoProjeto = useMemo<ComboOption[]>(
     () => projetos.map((projeto) => ({ value: projeto.id, label: projeto.name })),
     [projetos],
   );
@@ -99,7 +122,7 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
     {
       chave: 'projeto',
       icone: FolderKanban,
-      texto: rotuloDe(opcoesDeProjeto, filtros.projetoId, 'Projeto'),
+      texto: rotuloDe(opcoesDeTodoProjeto, filtros.projetoId, 'Projeto'),
       limpar: () => alterar({ projetoId: null }),
     },
     {
@@ -181,7 +204,9 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
                 <SingleSelectCombobox
                   options={opcoesDeCliente}
                   value={filtros.clienteId}
-                  onChange={(valor) => alterar({ clienteId: valor })}
+                  /* Trocar de cliente derruba o projeto que era de outro, ver
+                     `aoTrocarDeCliente`. */
+                  onChange={(valor) => onFiltrosChange(aoTrocarDeCliente(filtros, valor, projetos))}
                   placeholder="Todos os clientes"
                   searchPlaceholder="Buscar cliente…"
                   emptyText="Nenhum cliente encontrado."
@@ -194,9 +219,13 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
                   options={opcoesDeProjeto}
                   value={filtros.projetoId}
                   onChange={(valor) => alterar({ projetoId: valor })}
-                  placeholder="Todos os projetos"
+                  placeholder={filtros.clienteId ? 'Todos os projetos do cliente' : 'Todos os projetos'}
                   searchPlaceholder="Buscar projeto…"
-                  emptyText="Nenhum projeto encontrado."
+                  emptyText={
+                    filtros.clienteId
+                      ? 'Esse cliente não tem projeto cadastrado.'
+                      : 'Nenhum projeto encontrado.'
+                  }
                   className="w-full min-w-0"
                 />
               </CampoDeFiltro>
