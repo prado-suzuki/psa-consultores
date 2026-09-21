@@ -13,7 +13,8 @@ interface FeedRespostaInlineProps {
   comentario: FeedComentario;
   area: AreaDeProjetos;
   onCancelar: () => void;
-  onRespondeu: () => void;
+  /** Recebe o id do comentário criado: é por ele que o feed leva até a resposta. */
+  onRespondeu: (id: string) => void;
 }
 
 /**
@@ -56,7 +57,7 @@ export function FeedRespostaInline({
       replyingToName={comentario.author_name}
       onCancel={onCancelar}
       onSubmit={async (body, files, mentions) => {
-        await createComment.mutateAsync({
+        const id = await createComment.mutateAsync({
           body,
           files,
           mentions,
@@ -72,7 +73,10 @@ export function FeedRespostaInline({
         // conhecidos, sem repetir nem perder item. Pelo PREFIXO, para valer
         // também no recorte filtrado que está na tela.
         await queryClient.invalidateQueries({ queryKey: feedComentariosQueryKeyPrefix() });
-        onRespondeu();
+        // O id volta para a tela porque o feed é cronológico: a resposta nasce no
+        // topo, longe de onde foi escrita, e sem ele não haveria como levar a
+        // pessoa até ela nem realçá-la.
+        onRespondeu(id);
       }}
     />
   );

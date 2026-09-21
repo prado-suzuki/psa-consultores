@@ -128,10 +128,24 @@ const OsgWorkClienteBar = () => {
 type OsgLayoutProps = {
   children: React.ReactNode;
   headerActions?: React.ReactNode;
+  /**
+   * Rolagem DENTRO da área de conteúdo, em vez de na janela.
+   *
+   * O padrão da casa é a janela rolar: a moldura sobe junto e o `sticky` de
+   * dentro da tela não tem contra o que grudar (`main` é `overflow-hidden`, e
+   * a área de conteúdo cresce com o filho, ninguém rola). Telas de leitura
+   * longa, como o Feed, pedem o contrário: cabeçalho e barra lateral parados,
+   * conteúdo correndo por baixo. Quem liga isto ganha os dois de uma vez, e o
+   * `sticky` da própria tela passa a funcionar.
+   *
+   * Opt-in de propósito: virar o modelo de rolagem para todas as telas da área
+   * é outra conversa, muito maior do que a tela que pediu.
+   */
+  rolagemNoConteudo?: boolean;
 } & TextoDoCabecalho;
 
 export const OsgLayout = (props: OsgLayoutProps) => {
-  const { children, headerActions } = props;
+  const { children, headerActions, rolagemNoConteudo = false } = props;
   // A ÁREA É DO LAYOUT (ver a mesma nota no `FiscalLayout`), e é `osg` fixo —
   // NÃO a apresentação da rota que o `areaLabel` resolve mais abaixo. As três
   // caras da OSG existem para o sobretítulo e para a barra; quem escreve "na
@@ -244,7 +258,7 @@ export const OsgLayout = (props: OsgLayoutProps) => {
       // Sem fundo de página: quem pinta é o `body`, uma vez, no `index.css`.
       // Oito layouts decidindo isso por conta própria foi como cinco deles
       // acabaram pintando com a superfície REBAIXADA. Ver a nota lá.
-      className="min-h-screen flex w-full"
+      className={cn('flex w-full', rolagemNoConteudo ? 'h-screen overflow-hidden' : 'min-h-screen')}
     >
       {/* Sidebar wrapper — keeps toggle button outside the scroll container */}
       <div

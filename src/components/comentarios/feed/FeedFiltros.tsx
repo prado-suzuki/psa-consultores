@@ -134,7 +134,10 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
   ].filter((etiqueta) => etiqueta.texto !== null);
 
   return (
-    <div className="mb-3 rounded-2xl border border-border/70 bg-card p-2 shadow-sm">
+    /* Sem margem embaixo: quem separa a barra do feed é a faixa grudada que a
+       embrulha em `FeedComentarios`: a margem ficaria fora da máscara e abriria
+       uma fresta por onde o conteúdo passaria rolando. */
+    <div className="rounded-2xl border border-border/70 bg-card p-2 shadow-sm">
       <div className="flex flex-wrap items-center gap-2">
         {/*
           Alternância, e não caixa de seleção: "tudo" e "só menções" são duas
