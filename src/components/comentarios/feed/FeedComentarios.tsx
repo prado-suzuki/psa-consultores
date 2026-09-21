@@ -5,6 +5,7 @@ import { AlertTriangle, MessagesSquare, RotateCcw, SearchX } from 'lucide-react'
 
 import { FeedFiltros } from '@/components/comentarios/feed/FeedFiltros';
 import { FeedGrupoOrigem } from '@/components/comentarios/feed/FeedGrupoOrigem';
+import { FeedNovoComentario } from '@/components/comentarios/feed/FeedNovoComentario';
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -69,7 +70,8 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
   const feedRef = useRef<HTMLDivElement>(null);
   const [alturaDaBarra, setAlturaDaBarra] = useState(0);
   const barraRef = useAlturaObservada(setAlturaDaBarra);
-  const { idEmRealce, realcar } = useRealceDaResposta(feedRef);
+  const limparFiltros = useCallback(() => aplicarFiltros(FILTROS_VAZIOS), [aplicarFiltros]);
+  const { idEmRealce, realcar } = useRealceDaFala(feedRef, limparFiltros);
 
   /**
    * O cliente vem de fora do feed, por projeto: todo comentário tem
@@ -161,7 +163,7 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
                   idEmRealce={idEmRealce}
                   onResponder={setRespondendoA}
                   onFecharResposta={() => setRespondendoA(null)}
-                  onRespondeu={realcar}
+                  onRespondeu={(id) => realcar(id, { resposta: true })}
                 />
               ))}
             </div>
@@ -205,6 +207,18 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
         className="sticky top-0 z-30 -mx-1 bg-background/85 px-1 pb-3 pt-1 backdrop-blur-sm"
       >
         <FeedFiltros filtros={filtros} onFiltrosChange={aplicarFiltros} />
+        {/* O compositor mora na faixa grudada, junto dos filtros: começar
+            assunto é o gesto que o feed não tinha, e ele não pode depender de
+            rolar duzentos comentários de volta até o topo. Fechado é uma linha;
+            aberto, cresce e a faixa cresce junto — o `top` do rótulo do dia é
+            MEDIDO, então o feed continua passando por baixo no lugar certo. */}
+        <div className="mt-2">
+          <FeedNovoComentario
+            area={area}
+            filtros={filtros}
+            onPublicou={(id, noRecorte) => realcar(id, { noRecorte })}
+          />
+        </div>
       </div>
       {conteudo}
     </div>
@@ -235,15 +249,30 @@ function useAlturaObservada(aoMedir: (altura: number) => void) {
   return ref;
 }
 
+interface OpcoesDoRealce {
+  /** A fala cabe no recorte que está na tela? Só o compositor sabe responder. */
+  noRecorte?: boolean;
+  /** Muda só o título do toast: resposta e conversa nova não são a mesma notícia. */
+  resposta?: boolean;
+}
+
 /**
- * O retorno visual da resposta publicada.
+ * O retorno visual da fala publicada — resposta ou conversa nova.
  *
- * O feed é cronológico, então a resposta escrita numa conversa de quatro dias
- * atrás nasce lá no topo, no bloco de "Hoje": o compositor fechava, nada mudava
- * na frente da pessoa e ela concluía que a resposta se perdeu. Aqui o toast diz
- * o que aconteceu e leva até ela, que chega realçada por alguns segundos.
+ * O feed é cronológico, então a fala escrita numa conversa de quatro dias atrás
+ * nasce lá no topo, no bloco de "Hoje": o compositor fechava, nada mudava na
+ * frente da pessoa e ela concluía que a fala se perdeu. Aqui o toast diz o que
+ * aconteceu e leva até ela, que chega realçada por alguns segundos.
+ *
+ * Quando a fala NÃO cabe no recorte da tela (escrita para outro cliente
+ * enquanto se lê o feed filtrado num deles), o "Ver no topo" levaria a lugar
+ * nenhum: o toast troca de texto e passa a oferecer a saída que resolve —
+ * limpar os filtros.
  */
-function useRealceDaResposta(feedRef: React.RefObject<HTMLDivElement>) {
+function useRealceDaFala(
+  feedRef: React.RefObject<HTMLDivElement>,
+  onLimparFiltros: () => void,
+) {
   const [idEmRealce, setIdEmRealce] = useState<string | null>(null);
 
   useEffect(() => {
@@ -253,10 +282,18 @@ function useRealceDaResposta(feedRef: React.RefObject<HTMLDivElement>) {
   }, [idEmRealce]);
 
   const realcar = useCallback(
-    (id: string) => {
+    (id: string, { noRecorte = true, resposta = false }: OpcoesDoRealce = {}) => {
+      const titulo = resposta ? 'Resposta publicada' : 'Comentário publicado';
       setIdEmRealce(id);
-      toast.success('Resposta publicada', {
-        description: 'Ela entrou no topo do feed, no bloco de hoje.',
+      if (!noRecorte) {
+        toast.success(titulo, {
+          description: 'Foi gravado, mas está fora dos filtros desta tela.',
+          action: { label: 'Limpar filtros', onClick: onLimparFiltros },
+        });
+        return;
+      }
+      toast.success(titulo, {
+        description: 'Entrou no topo do feed, no bloco de hoje.',
         action: {
           label: 'Ver no topo',
           onClick: () => {
@@ -268,7 +305,7 @@ function useRealceDaResposta(feedRef: React.RefObject<HTMLDivElement>) {
         },
       });
     },
-    [feedRef],
+    [feedRef, onLimparFiltros],
   );
 
   return { idEmRealce, realcar };

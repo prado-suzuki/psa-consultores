@@ -162,6 +162,16 @@ export interface OpcoesOrgComments {
    * na thread da própria tarefa, para o painel do projeto não virar log.
    */
   consolidarTarefas?: boolean;
+  /**
+   * Monta só a escrita: não lê a thread da entidade nem assina o realtime dela.
+   *
+   * Existe para o compositor de fala nova do feed, que precisa da mutation (e de
+   * tudo que ela já resolve: anexo, menção, auditoria) mas não mostra thread
+   * nenhuma — quem mostra é o feed. Sem isso, escolher um projeto no compositor
+   * puxaria a conversa inteira dele e abriria um canal de realtime para uma
+   * lista que ninguém vai desenhar.
+   */
+  somenteEscrita?: boolean;
 }
 
 interface SupabaseResult<T> {
@@ -347,6 +357,8 @@ export function useDomainOrgComments(
    */
   const consolidado = entityType === 'org_project' && !!opcoes?.consolidarTarefas;
   const queryKey = orgCommentsQueryKey(entityType, entityId, consolidado);
+  /** Quem só escreve não lê a thread nem escuta as mudanças dela. */
+  const leThread = !!entityId && !opcoes?.somenteEscrita;
 
   const commentsQuery = useQuery<OrgComment[]>({
     queryKey,
@@ -373,7 +385,7 @@ export function useDomainOrgComments(
         attachments: attachmentsByComment.get(comment.id) ?? [],
       }));
     },
-    enabled: !!entityId,
+    enabled: leThread,
   });
 
   const createComment = useMutation({
@@ -526,7 +538,7 @@ export function useDomainOrgComments(
   const downloadAttachment = useDownloadOrgCommentAttachment();
 
   useEffect(() => {
-    if (!entityId) return;
+    if (!leThread) return;
     // Na thread consolidada o gatilho é a etiqueta do projeto: comentário novo
     // numa tarefa dele não passaria por um filtro de `entity_id`.
     const filter = consolidado ? `project_id=eq.${entityId}` : `entity_id=eq.${entityId}`;
@@ -545,7 +557,7 @@ export function useDomainOrgComments(
     // `queryKey` é recriado a cada render; as três partes que o formam são as
     // dependências reais desta assinatura.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entityId, entityType, consolidado, queryClient]);
+  }, [entityId, entityType, consolidado, leThread, queryClient]);
 
   return {
     comments: commentsQuery.data ?? [],
