@@ -42,7 +42,7 @@ import {
   AUTOR_DO_EVENTO,
   corpoDoEvento,
   ehEventoDeSistema,
-  pessoasDoEvento,
+  pessoasDoEventoPartes,
   rotuloDoEvento,
 } from '@/lib/orgCommentEventos';
 import { iniciaisDoNome } from '@/lib/orgCommentMentions';
@@ -196,7 +196,7 @@ export function OrgCommentsPanel({
   ) => {
     const isSystem = ehEventoDeSistema(comment.kind);
     /* Quem agiu e, quando existe, para quem. O avatar segue sendo o do sistema. */
-    const pessoas = isSystem ? pessoasDoEvento(comment) : '';
+    const pessoas = pessoasDoEventoPartes(comment);
     const replies = repliesByRoot.get(comment.id) ?? [];
     if (comment.excluido && replies.length === 0) return null;
     const isReplying = replyingTo === comment.id;
@@ -259,10 +259,20 @@ export function OrgCommentsPanel({
                 {isSystem ? rotuloDoEvento(comment.kind) : comment.author_name || 'Usuário removido'}
               </span>
               {/* Quem agiu e para quem, no mesmo desenho do Feed: o aviso é o
-                  mesmo nas duas telas e tem de ler igual nas duas. */}
-              {pessoas && (
-                <span className="min-w-0 truncate text-[11px] text-muted-foreground">
-                  {pessoas}
+                  mesmo nas duas telas e tem de ler igual nas duas. Nome no
+                  corpo do rótulo, só a preposição no cinza. */}
+              {pessoas.autor && (
+                <span className={cn('min-w-0 truncate', nested ? 'text-[13px]' : 'text-sm')}>
+                  <span aria-hidden className="mr-2 text-muted-foreground">
+                    ·
+                  </span>
+                  <span className="font-medium">{pessoas.autor}</span>
+                  {pessoas.destinatario && (
+                    <>
+                      <span className="text-muted-foreground"> para </span>
+                      <span className="font-medium">{pessoas.destinatario}</span>
+                    </>
+                  )}
                 </span>
               )}
               <span className="shrink-0 text-[11px] text-muted-foreground">

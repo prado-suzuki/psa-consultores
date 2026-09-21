@@ -5,6 +5,7 @@ import {
   corpoDoEvento,
   ehEventoDeSistema,
   pessoasDoEvento,
+  pessoasDoEventoPartes,
   rotuloDoEvento,
 } from '@/lib/orgCommentEventos';
 
@@ -124,5 +125,27 @@ describe('pessoasDoEvento', () => {
 
   it('comentário humano não tem segmento de evento', () => {
     expect(pessoasDoEvento({ kind: 'comment', body: 'oi', author_name: 'Patricia Melo' })).toBe('');
+  });
+});
+
+describe('pessoasDoEventoPartes', () => {
+  it('entrega autor e destinatário separados, que a tela dá peso a cada nome', () => {
+    expect(
+      pessoasDoEventoPartes({
+        kind: 'review_submitted',
+        body: 'Enviado para revisão de Anne Strini: revisar x coisa',
+        author_name: 'Patricia Melo',
+      }),
+    ).toEqual({ autor: 'Patricia Melo', destinatario: 'Anne Strini' });
+  });
+
+  it('sem autor gravado não sobra nome nenhum para desenhar', () => {
+    expect(
+      pessoasDoEventoPartes({
+        kind: 'review_submitted',
+        body: 'Enviado para revisão de Anne Strini: revisar',
+        author_name: '',
+      }),
+    ).toEqual({ autor: '', destinatario: '' });
   });
 });
