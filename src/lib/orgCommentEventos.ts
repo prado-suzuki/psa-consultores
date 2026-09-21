@@ -80,3 +80,44 @@ export function corpoDoEvento(comment: Pick<OrgComment, 'kind' | 'body'>): strin
   if (comment.kind === 'review_approved' && comment.body === 'Tarefa aprovada') return '';
   return comment.body;
 }
+
+/**
+ * De onde sai o destinatário de cada evento que tem um.
+ *
+ * O corpo gravado carrega o nome no prefixo que o `corpoDoEvento` remove da
+ * leitura ("Enviado para revisão de Anne Strini: ..."), e não em coluna própria.
+ * Ler dali é o que permite mostrar para quem a peça foi sem migration nenhuma,
+ * e vale para o acervo inteiro: em 21/09/2026 as 33 linhas de `review_submitted`
+ * do sandbox traziam o prefixo.
+ *
+ * Os outros eventos não têm destinatário gravado em lugar nenhum. O de
+ * "Ajustes solicitados" volta para quem enviou, mas isso é inferência sobre o
+ * evento anterior, não dado: fica de fora em vez de virar chute na tela.
+ */
+const DESTINATARIO_NO_CORPO: Partial<Record<OrgCommentEventoKind, RegExp>> = {
+  review_submitted: /^Enviado para revisão de ([^:]+):/,
+  assignment_changed: /^Tarefa reatribuída para ([^.]+)\./,
+};
+
+/**
+ * Quem agiu e, quando existe, para quem: "Patricia Melo para Anne Strini".
+ *
+ * Vai no cinza, logo depois do rótulo do ato. Sem "por" antes do primeiro nome:
+ * ele ocupa a mesma posição em que a thread mostra quem falou em toda linha, e
+ * é lido como autor sem precisar ser anunciado. Sobra uma preposição só, a que
+ * carrega a informação que muda.
+ *
+ * Evento sem autor gravado (acervo antigo) devolve string vazia, e a tela não
+ * desenha o segmento: melhor o rótulo sozinho, como era antes, do que um "para"
+ * pendurado em ninguém.
+ */
+export function pessoasDoEvento(
+  comment: Pick<OrgComment, 'kind' | 'body' | 'author_name'>,
+): string {
+  if (!ehEventoDeSistema(comment.kind)) return '';
+
+  const autor = comment.author_name?.trim() ?? '';
+  const destinatario = DESTINATARIO_NO_CORPO[comment.kind]?.exec(comment.body)?.[1]?.trim() ?? '';
+  if (!autor) return '';
+  return destinatario ? `${autor} para ${destinatario}` : autor;
+}
