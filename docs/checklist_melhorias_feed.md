@@ -28,8 +28,10 @@ achar a tarefa e abrir o painel, que é exatamente o passo que o Slack não cobr
 Onde mexe: `FeedComentarios.tsx`, `CommentComposer`, `useDomainOrgComments.createComment`
 (a mutation já cuida de anexo, menção e auditoria, não precisa reimplementar).
 
-**Como ficou:** `FeedNovoComentario.tsx` na faixa grudada, fechado em uma linha ("Escrever no
-feed…") e aberto com os três campos de destino. Sem tarefa, a fala vai para o projeto. A gravação
+**Como ficou:** `FeedNovoComentario.tsx` grudado no RODAPÉ, como a caixa de mensagem do Slack,
+fechado em uma linha ("Escrever no feed…") e aberto com os três campos de destino. O rodapé pediu
+os layouts: sob `rolagemNoConteudo`, `OsgLayout` e `FiscalLayout` passaram a esticar o invólucro da
+página, senão a barra boiava logo abaixo do último comentário quando o recorte tinha pouca conversa. Sem tarefa, a fala vai para o projeto. A gravação
 é a mutation de sempre; as regras do destino são puras, em `src/lib/feedDestino.ts` (com testes).
 Quatro coisas que só apareceram no caminho, e ficam registradas porque valem para os itens
 seguintes:

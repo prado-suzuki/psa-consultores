@@ -196,7 +196,14 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
   }
 
   return (
-    <div ref={feedRef} className="mx-auto max-w-3xl pb-4">
+    /* Coluna: filtros em cima, conversa no meio, compositor no rodapé. O `flex`
+       existe por causa do rodapé — é o `mt-auto` dele que o empurra para baixo
+       quando há pouca conversa; sem isso a barra de escrever boiava logo abaixo
+       do último comentário, no meio da tela. O `grow` é a outra metade disso:
+       o invólucro da página estica sob `rolagemNoConteudo`, e sem crescer dentro
+       dele a coluna mediria só o que a conversa pede, e não sobraria espaço
+       nenhum para o `mt-auto` distribuir. */
+    <div ref={feedRef} className="mx-auto flex w-full max-w-3xl grow flex-col pb-2">
       {/* A barra gruda no topo junto com o rótulo do dia. Antes ela rolava para
           fora: depois de duzentos comentários, trocar o período obrigava a voltar
           ao começo da página: o controle sumia e a informação passiva ficava.
@@ -207,20 +214,25 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
         className="sticky top-0 z-30 -mx-1 bg-background/85 px-1 pb-3 pt-1 backdrop-blur-sm"
       >
         <FeedFiltros filtros={filtros} onFiltrosChange={aplicarFiltros} />
-        {/* O compositor mora na faixa grudada, junto dos filtros: começar
-            assunto é o gesto que o feed não tinha, e ele não pode depender de
-            rolar duzentos comentários de volta até o topo. Fechado é uma linha;
-            aberto, cresce e a faixa cresce junto — o `top` do rótulo do dia é
-            MEDIDO, então o feed continua passando por baixo no lugar certo. */}
-        <div className="mt-2">
-          <FeedNovoComentario
-            area={area}
-            filtros={filtros}
-            onPublicou={(id, noRecorte) => realcar(id, { noRecorte })}
-          />
-        </div>
       </div>
       {conteudo}
+      {/*
+        O compositor fica no RODAPÉ, grudado, como a caixa de mensagem do Slack:
+        é lá que a mão já está depois de ler, e ele não pode depender de rolar
+        duzentos comentários de volta até o topo. Antes ele morava na faixa de
+        cima, junto dos filtros — e ali, aberto, empurrava a conversa para fora
+        da tela justamente enquanto se escreve sobre ela.
+
+        A máscara é a mesma da faixa de cima e pelo mesmo motivo: a conversa
+        passa POR BAIXO, então o fundo tem que ser o que o `body` pinta.
+      */}
+      <div className="sticky bottom-0 z-30 -mx-1 mt-auto bg-background/85 px-1 pb-1 pt-3 backdrop-blur-sm">
+        <FeedNovoComentario
+          area={area}
+          filtros={filtros}
+          onPublicou={(id, noRecorte) => realcar(id, { noRecorte })}
+        />
+      </div>
     </div>
   );
 }
