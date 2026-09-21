@@ -16,7 +16,7 @@ import {
   AUTOR_DO_EVENTO,
   corpoDoEvento,
   ehEventoDeSistema,
-  pessoasDoEvento,
+  pessoasDoEventoPartes,
   rotuloDoEvento,
 } from '@/lib/orgCommentEventos';
 import { iniciaisDoNome } from '@/lib/orgCommentMentions';
@@ -69,7 +69,7 @@ export function FeedItemComentario({
   const corpo = ehEvento ? corpoDoEvento(comentario) : comentario.body;
   /* Quem agiu e para quem. O avatar continua sendo o do sistema: é ele que
      separa evento de fala, e o nome na linha já responde o quem. */
-  const pessoas = ehEvento ? pessoasDoEvento(comentario) : '';
+  const pessoas = pessoasDoEventoPartes(comentario);
 
   const abrirAnexo = async (attachment: OrgCommentAttachment) => {
     const resultado = await downloadAttachment.mutateAsync(attachment);
@@ -147,9 +147,30 @@ export function FeedItemComentario({
                   ? rotuloDoEvento(comentario.kind)
                   : comentario.author_name || 'Usuário removido'}
               </span>
-              {pessoas && (
-                <span className="min-w-0 truncate text-[11px] text-muted-foreground">
-                  {pessoas}
+              {/*
+                Nome de gente no mesmo corpo do rótulo, e não em cinza de 11px.
+                Na primeira versão os dois nomes eram legenda do ato, e a linha
+                lia "aconteceu isto" com as pessoas escondidas; quem varre o
+                feed procura primeiro por quem, e o quem tem de ter peso. Só a
+                preposição fica no cinza: ela é a costura, não a informação.
+              */}
+              {pessoas.autor && (
+                <span
+                  className={cn(
+                    'min-w-0 truncate leading-tight',
+                    nested ? 'text-[13px]' : 'text-sm',
+                  )}
+                >
+                  <span aria-hidden className="mr-2 text-muted-foreground">
+                    ·
+                  </span>
+                  <span className="font-medium">{pessoas.autor}</span>
+                  {pessoas.destinatario && (
+                    <>
+                      <span className="text-muted-foreground"> para </span>
+                      <span className="font-medium">{pessoas.destinatario}</span>
+                    </>
+                  )}
                 </span>
               )}
               {/*
