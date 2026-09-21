@@ -27,8 +27,12 @@ interface FeedGrupoOrigemProps {
   area: AreaDeProjetos;
   /** Thread com o campo de resposta aberto, no formato `chaveDoBloco:raizId`. */
   respondendoA: string | null;
+  /** Fala recém-publicada, realçada por alguns segundos depois de encontrada. */
+  idEmRealce: string | null;
   onResponder: (chaveDaThread: string) => void;
   onFecharResposta: () => void;
+  /** Recebe o id da resposta publicada, para o feed levar a pessoa até ela. */
+  onRespondeu: (id: string) => void;
 }
 
 /**
@@ -47,8 +51,10 @@ export function FeedGrupoOrigem({
   cliente,
   area,
   respondendoA,
+  idEmRealce,
   onResponder,
   onFecharResposta,
+  onRespondeu,
 }: FeedGrupoOrigemProps) {
   const primeiro = itens[0];
   const origem = origemDoComentario(primeiro, cliente);
@@ -146,8 +152,10 @@ export function FeedGrupoOrigem({
               area={area}
               continuaBloco={thread.continuaBloco && !anteriorRespondendo}
               respondendo={respondendoA === chaveDaThread}
+              idEmRealce={idEmRealce}
               onResponder={() => onResponder(chaveDaThread)}
               onFecharResposta={onFecharResposta}
+              onRespondeu={onRespondeu}
             />
           );
         })}
@@ -162,8 +170,10 @@ interface FeedThreadProps {
   /** Raiz sem avatar nem nome, por continuar o bloco de autor da thread de cima. */
   continuaBloco: boolean;
   respondendo: boolean;
+  idEmRealce: string | null;
   onResponder: () => void;
   onFecharResposta: () => void;
+  onRespondeu: (id: string) => void;
 }
 
 /**
@@ -179,8 +189,10 @@ function FeedThread({
   area,
   continuaBloco,
   respondendo,
+  idEmRealce,
   onResponder,
   onFecharResposta,
+  onRespondeu,
 }: FeedThreadProps) {
   /** A quem a resposta se pendura — a raiz, ou a própria resposta órfã. */
   const alvoDaResposta = thread.raiz ?? thread.respostas[0];
@@ -191,7 +203,10 @@ function FeedThread({
       comentario={alvoDaResposta}
       area={area}
       onCancelar={onFecharResposta}
-      onRespondeu={onFecharResposta}
+      onRespondeu={(id) => {
+        onFecharResposta();
+        onRespondeu(id);
+      }}
     />
   );
 
@@ -202,6 +217,7 @@ function FeedThread({
           <FeedItemComentario
             key={resposta.id}
             comentario={resposta}
+            realce={idEmRealce === resposta.id}
             onResponder={respondendo ? undefined : onResponder}
           />
         ))}
@@ -217,6 +233,7 @@ function FeedThread({
         /* O fio desce do avatar, então quem abre resposta volta a mostrá-lo. */
         continuaBloco={continuaBloco && !respondendo}
         abreThread={abreThread}
+        realce={idEmRealce === thread.raiz.id}
         onResponder={respondendo ? undefined : onResponder}
       />
 
@@ -228,6 +245,7 @@ function FeedThread({
               comentario={resposta}
               nested
               ultima={!respondendo && indice === thread.respostas.length - 1}
+              realce={idEmRealce === resposta.id}
             />
           ))}
           {composer}
@@ -251,7 +269,11 @@ function PilhaDeAutores({ autores }: { autores: ReturnType<typeof autoresDoGrupo
         <span
           key={autor.id ?? autor.nome}
           className={cn(
-            'grid h-6 w-6 place-items-center rounded-full text-[9px] font-semibold ring-2 ring-muted',
+            // O anel recorta o avatar contra o fundo do CABEÇALHO, que é
+            // `bg-primary/10` desde que a faixa ganhou o acento da área. Com
+            // `ring-muted` ele virava um halo cinza sobre fundo colorido, e na
+            // OSG, onde o muted é bege, o halo aparecia mais ainda.
+            'grid h-6 w-6 place-items-center rounded-full text-[9px] font-semibold ring-2 ring-primary/10',
             tomDoAutor(autor.id),
             indice > 0 && '-ml-1.5',
           )}
@@ -260,7 +282,7 @@ function PilhaDeAutores({ autores }: { autores: ReturnType<typeof autoresDoGrupo
         </span>
       ))}
       {restantes > 0 && (
-        <span className="-ml-1.5 grid h-6 w-6 place-items-center rounded-full bg-muted text-[9px] font-semibold text-muted-foreground ring-2 ring-muted">
+        <span className="-ml-1.5 grid h-6 w-6 place-items-center rounded-full bg-muted text-[9px] font-semibold text-muted-foreground ring-2 ring-primary/10">
           +{restantes}
         </span>
       )}

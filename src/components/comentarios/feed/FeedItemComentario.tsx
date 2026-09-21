@@ -32,6 +32,8 @@ interface FeedItemComentarioProps {
   abreThread?: boolean;
   /** Continuação da fala de cima (mesma pessoa, poucos minutos): sem avatar nem nome. */
   continuaBloco?: boolean;
+  /** Fala recém-publicada: realce breve para o olho achar onde ela caiu. */
+  realce?: boolean;
   onResponder?: () => void;
 }
 
@@ -51,6 +53,7 @@ export function FeedItemComentario({
   ultima = false,
   abreThread = false,
   continuaBloco = false,
+  realce = false,
   onResponder,
 }: FeedItemComentarioProps) {
   const downloadAttachment = useDownloadOrgCommentAttachment();
@@ -90,11 +93,15 @@ export function FeedItemComentario({
         </>
       )}
 
+      {/* `data-comentario` é a âncora da rolagem: é por ela que o feed acha a
+          resposta recém-publicada quando se clica em "Ver no topo" no toast. */}
       <div
+        data-comentario={comentario.id}
         className={cn(
           'group/item relative flex rounded-lg pr-10 transition-colors hover:bg-muted/40',
           nested ? 'gap-2.5 pb-2 pt-1.5' : 'gap-3 pb-2 pt-2.5',
           continuaBloco && 'pt-0.5',
+          realce && 'bg-primary/10 ring-1 ring-primary/40 hover:bg-primary/10',
         )}
       >
         {/* Trecho do fio que desce do avatar da raiz até o começo das respostas. */}
@@ -201,9 +208,12 @@ export function FeedItemComentario({
             type="button"
             onClick={onResponder}
             aria-label="Responder"
-            className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-lg border border-border/70 bg-card text-muted-foreground shadow-sm transition-all hover:border-primary/40 hover:text-primary focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:opacity-0 sm:group-hover/item:opacity-100"
+            /* 36px no dedo, 28px no mouse: no toque este botão é o único
+               caminho para responder e fica encostado na borda de rolagem; no
+               mouse ele só aparece no hover e não precisa de área. */
+            className="absolute right-1.5 top-1.5 grid h-9 w-9 place-items-center rounded-lg border border-border/70 bg-card text-muted-foreground shadow-sm transition-all hover:border-primary/40 hover:text-primary focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-7 sm:w-7 sm:opacity-0 sm:group-hover/item:opacity-100"
           >
-            <Reply aria-hidden className="h-3.5 w-3.5" />
+            <Reply aria-hidden className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
           </button>
           </ButtonTooltip>
         )}

@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { AlertTriangle, MessagesSquare, SearchX } from 'lucide-react';
+import { toast } from 'sonner';
+import { AlertTriangle, MessagesSquare, RotateCcw, SearchX } from 'lucide-react';
 
 import { FeedFiltros } from '@/components/comentarios/feed/FeedFiltros';
 import { FeedGrupoOrigem } from '@/components/comentarios/feed/FeedGrupoOrigem';
@@ -22,14 +23,17 @@ interface FeedComentariosProps {
   area: AreaDeProjetos;
 }
 
+/** Quanto tempo a fala recém-publicada fica realçada depois de encontrada. */
+const DURACAO_DO_REALCE = 6000;
+
 /**
  * Feed de comentários: stream único, cronológico, de tudo que está sendo
  * conversado nos projetos e tarefas do usuário.
  *
- * A leitura é em dois níveis: o dia marca o tempo (rótulo grudado no topo
- * enquanto se rola), e dentro dele cada bloco é uma conversa — a tarefa ou o
- * projeto de onde os comentários vieram, com as falas penduradas embaixo. Nunca
- * uma pilha de cards soltos repetindo a mesma origem.
+ * A leitura é em dois níveis: o dia marca o tempo (rótulo grudado logo abaixo da
+ * barra de filtros enquanto se rola), e dentro dele cada bloco é uma conversa:
+ * a tarefa ou o projeto de onde os comentários vieram, com as falas penduradas
+ * embaixo. Nunca uma pilha de cards soltos repetindo a mesma origem.
  *
  * Compartilhado entre Tax e OSG, no padrão do `PainelTarefas` — a única coisa
  * que difere entre as áreas é a moldura da página e a base dos links de origem.
@@ -51,9 +55,21 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
     [setSearchParams],
   );
 
-  const { comentarios, isLoading, error, hasNextPage, isFetchingNextPage, fetchNextPage } =
-    useDomainFeedComentarios(filtros);
+  const {
+    comentarios,
+    isLoading,
+    error,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    refetch,
+  } = useDomainFeedComentarios(filtros);
   const [respondendoA, setRespondendoA] = useState<string | null>(null);
+
+  const feedRef = useRef<HTMLDivElement>(null);
+  const [alturaDaBarra, setAlturaDaBarra] = useState(0);
+  const barraRef = useAlturaObservada(setAlturaDaBarra);
+  const { idEmRealce, realcar } = useRealceDaResposta(feedRef);
 
   /**
    * O cliente vem de fora do feed, por projeto: todo comentário tem
@@ -90,13 +106,7 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
   if (isLoading) {
     conteudo = <FeedCarregando />;
   } else if (error) {
-    conteudo = (
-      <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center">
-        <AlertTriangle aria-hidden className="mx-auto mb-3 h-8 w-8 text-destructive/70" />
-        <p className="font-semibold">Não foi possível carregar o feed</p>
-        <p className="mt-1 text-sm text-muted-foreground">{error.message}</p>
-      </div>
-    );
+    conteudo = <FeedComErro erro={error} onTentarDeNovo={() => refetch()} />;
   } else if (comentarios.length === 0) {
     conteudo = temFiltroAtivo(filtros) ? (
       <FeedSemResultado onLimpar={() => aplicarFiltros(FILTROS_VAZIOS)} />
@@ -106,14 +116,22 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
   } else {
     conteudo = (
       <>
-        {dias.map((dia) => (
+        {dias.map((dia, indiceDoDia) => (
           <section key={dia.dia} className="pb-5">
             {/* O fundo aqui é MÁSCARA, não decoração: a faixa do dia fica presa
-                no topo e o conteúdo passa por baixo dela. Por isso ele tem que
-                ser o mesmo token que o `body` pinta — em 12/09/2026 a página
-                foi para `bg-background` e este `bg-canvas/80` teria ficado como
-                a única mancha cinza da tela, justamente onde o texto atravessa. */}
-            <div className="sticky top-0 z-20 -mx-1 flex items-center gap-3 bg-background/80 px-1 py-2 backdrop-blur-sm">
+                logo abaixo da barra de filtros e o conteúdo passa por baixo dela.
+                Por isso ele tem que ser o mesmo token que o `body` pinta: em
+                12/09/2026 a página foi para `bg-background` e este `bg-canvas/80`
+                teria ficado como a única mancha cinza da tela, justamente onde o
+                texto atravessa.
+
+                O `top` é medido, e não uma constante: a barra ganha uma segunda
+                linha quando há filtro ligado, e um número fixo deixaria o rótulo
+                passando por trás dela ou flutuando abaixo dela. */}
+            <div
+              className="sticky z-20 -mx-1 flex items-center gap-3 bg-background/80 px-1 py-2 backdrop-blur-sm"
+              style={{ top: alturaDaBarra }}
+            >
               <h2 className="rounded-full border border-border/70 bg-card px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-foreground/75 shadow-sm">
                 {dia.rotulo}
               </h2>
@@ -121,9 +139,12 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
                 aria-hidden
                 className="h-px flex-1 bg-gradient-to-r from-border to-transparent"
               />
-              <span className="text-[11px] text-muted-foreground">
-                {dia.itens.length === 1 ? '1 comentário' : `${dia.itens.length} comentários`}
-              </span>
+              <ContagemDoDia
+                carregados={dia.itens.length}
+                /* Só o dia mais antigo da leva pode estar cortado pela paginação;
+                   os de cima já vieram inteiros. */
+                cortado={hasNextPage && indiceDoDia === dias.length - 1}
+              />
             </div>
 
             <div className="space-y-3">
@@ -137,8 +158,10 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
                   cliente={clientePorProjeto.get(conversa.itens[0].project_id) ?? null}
                   area={area}
                   respondendoA={respondendoA}
+                  idEmRealce={idEmRealce}
                   onResponder={setRespondendoA}
                   onFecharResposta={() => setRespondendoA(null)}
+                  onRespondeu={realcar}
                 />
               ))}
             </div>
@@ -171,10 +194,103 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
   }
 
   return (
-    <div className="mx-auto max-w-3xl pb-4">
-      <FeedFiltros filtros={filtros} onFiltrosChange={aplicarFiltros} />
+    <div ref={feedRef} className="mx-auto max-w-3xl pb-4">
+      {/* A barra gruda no topo junto com o rótulo do dia. Antes ela rolava para
+          fora: depois de duzentos comentários, trocar o período obrigava a voltar
+          ao começo da página: o controle sumia e a informação passiva ficava.
+          A faixa carrega a máscara e o espaçamento que antes eram `mb-3` na
+          barra, para o conteúdo não aparecer na fresta entre as duas. */}
+      <div
+        ref={barraRef}
+        className="sticky top-0 z-30 -mx-1 bg-background/85 px-1 pb-3 pt-1 backdrop-blur-sm"
+      >
+        <FeedFiltros filtros={filtros} onFiltrosChange={aplicarFiltros} />
+      </div>
       {conteudo}
     </div>
+  );
+}
+
+/**
+ * Altura viva de um elemento: a barra de filtros muda de altura quando ganha a
+ * linha das etiquetas, e é dela que sai o `top` do rótulo do dia.
+ */
+function useAlturaObservada(aoMedir: (altura: number) => void) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const elemento = ref.current;
+    if (!elemento) return;
+
+    aoMedir(elemento.offsetHeight);
+    // `ResizeObserver` não existe no jsdom antigo nem em navegador de teste sem
+    // polyfill: sem ele a medida inicial já vale, só deixa de acompanhar.
+    if (typeof ResizeObserver === 'undefined') return;
+
+    const observador = new ResizeObserver(() => aoMedir(elemento.offsetHeight));
+    observador.observe(elemento);
+    return () => observador.disconnect();
+  }, [aoMedir]);
+
+  return ref;
+}
+
+/**
+ * O retorno visual da resposta publicada.
+ *
+ * O feed é cronológico, então a resposta escrita numa conversa de quatro dias
+ * atrás nasce lá no topo, no bloco de "Hoje": o compositor fechava, nada mudava
+ * na frente da pessoa e ela concluía que a resposta se perdeu. Aqui o toast diz
+ * o que aconteceu e leva até ela, que chega realçada por alguns segundos.
+ */
+function useRealceDaResposta(feedRef: React.RefObject<HTMLDivElement>) {
+  const [idEmRealce, setIdEmRealce] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!idEmRealce) return;
+    const relogio = window.setTimeout(() => setIdEmRealce(null), DURACAO_DO_REALCE);
+    return () => window.clearTimeout(relogio);
+  }, [idEmRealce]);
+
+  const realcar = useCallback(
+    (id: string) => {
+      setIdEmRealce(id);
+      toast.success('Resposta publicada', {
+        description: 'Ela entrou no topo do feed, no bloco de hoje.',
+        action: {
+          label: 'Ver no topo',
+          onClick: () => {
+            const alvo = feedRef.current?.querySelector(`[data-comentario="${id}"]`);
+            if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            else feedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setIdEmRealce(id);
+          },
+        },
+      });
+    },
+    [feedRef],
+  );
+
+  return { idEmRealce, realcar };
+}
+
+/**
+ * Quantos comentários o dia teve.
+ *
+ * O número conta o que está CARREGADO, e o dia mais antigo da leva quase sempre
+ * está cortado pela página de 20: ele aparecia como "20 comentários" e virava
+ * "34 comentários" depois de um clique em ver mais. Número que muda sozinho é
+ * pior do que número nenhum, então o dia cortado ganha o `+` e diz por quê.
+ */
+function ContagemDoDia({ carregados, cortado }: { carregados: number; cortado: boolean }) {
+  const plural = carregados === 1 ? 'comentário' : 'comentários';
+  return (
+    <span
+      className="text-[11px] text-muted-foreground"
+      title={cortado ? 'Este dia tem mais comentários ainda não carregados' : undefined}
+    >
+      {cortado ? `${carregados}+ ${plural}` : `${carregados} ${plural}`}
+    </span>
   );
 }
 
@@ -185,7 +301,10 @@ function FeedCarregando() {
       <Skeleton className="h-5 w-20 rounded-full" />
       {[0, 1].map((bloco) => (
         <div key={bloco} className="overflow-hidden rounded-2xl border border-border/70 bg-superficie-cartao">
-          <div className="flex items-center gap-3 border-b border-border/60 bg-superficie-realce px-3.5 py-2.5">
+          {/* O cabeçalho do bloco real é lavado com o acento da área; o esqueleto
+              usa a MESMA cor, senão cada carregamento termina num solavanco de
+              cinza para colorido bem onde o olho está pousado. */}
+          <div className="flex items-center gap-3 border-b border-border/60 bg-primary/10 px-3.5 py-2.5">
             <Skeleton className="h-9 w-9 rounded-xl" />
             <div className="flex-1 space-y-1.5">
               <Skeleton className="h-2.5 w-28" />
@@ -205,6 +324,38 @@ function FeedCarregando() {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Falha de carregamento com saída.
+ *
+ * O texto do Postgres não é frase para quem veio ler conversa, e o estado ainda
+ * era um beco sem saída: nem tentar de novo, nem caminho alternativo. A mensagem
+ * técnica não some: fica no `<details>`, para quem vai reportar o problema.
+ */
+function FeedComErro({ erro, onTentarDeNovo }: { erro: Error; onTentarDeNovo: () => void }) {
+  return (
+    <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center">
+      <AlertTriangle aria-hidden className="mx-auto mb-3 h-8 w-8 text-destructive/70" />
+      <p className="font-semibold">Não foi possível carregar o feed</p>
+      <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
+        A conversa continua guardada: foi a busca que falhou. Tente de novo; se insistir, avise o
+        time com a mensagem técnica abaixo.
+      </p>
+      <Button type="button" variant="outline" size="sm" className="mt-5" onClick={onTentarDeNovo}>
+        <RotateCcw aria-hidden className="mr-2 h-3.5 w-3.5" />
+        Tentar de novo
+      </Button>
+      {erro.message && (
+        <details className="mx-auto mt-4 max-w-sm text-left">
+          <summary className="cursor-pointer text-[11px] text-muted-foreground">
+            Detalhe técnico
+          </summary>
+          <p className="mt-1 break-words text-[11px] text-muted-foreground">{erro.message}</p>
+        </details>
+      )}
     </div>
   );
 }
