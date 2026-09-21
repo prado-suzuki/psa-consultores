@@ -223,10 +223,11 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
         cima, junto dos filtros — e ali, aberto, empurrava a conversa para fora
         da tela justamente enquanto se escreve sobre ela.
 
-        A máscara é a mesma da faixa de cima e pelo mesmo motivo: a conversa
-        passa POR BAIXO, então o fundo tem que ser o que o `body` pinta.
+        A máscara é OPACA, diferente da faixa de cima: aqui embaixo ela cobre a
+        caixa de escrever inteira, e o borrão translúcido deixava a conversa
+        aparecer por trás do campo de texto e dos campos de destino.
       */}
-      <div className="sticky bottom-0 z-30 -mx-1 mt-auto bg-background/85 px-1 pb-1 pt-3 backdrop-blur-sm">
+      <div className="sticky bottom-0 z-30 -mx-1 mt-auto bg-background px-1 pb-1 pt-3">
         <FeedNovoComentario
           area={area}
           filtros={filtros}
@@ -349,12 +350,12 @@ function FeedCarregando() {
     <div className="space-y-3">
       <Skeleton className="h-5 w-20 rounded-full" />
       {[0, 1].map((bloco) => (
-        <div key={bloco} className="overflow-hidden rounded-2xl border border-border/70 bg-superficie-cartao">
+        <div key={bloco} className="overflow-hidden rounded-md border border-border/70 bg-superficie-cartao">
           {/* O cabeçalho do bloco real é lavado com o acento da área; o esqueleto
               usa a MESMA cor, senão cada carregamento termina num solavanco de
               cinza para colorido bem onde o olho está pousado. */}
           <div className="flex items-center gap-3 border-b border-border/60 bg-primary/10 px-3.5 py-2.5">
-            <Skeleton className="h-9 w-9 rounded-xl" />
+            <Skeleton className="h-9 w-9 rounded-md" />
             <div className="flex-1 space-y-1.5">
               <Skeleton className="h-2.5 w-28" />
               <Skeleton className="h-3 w-48" />
@@ -386,7 +387,7 @@ function FeedCarregando() {
  */
 function FeedComErro({ erro, onTentarDeNovo }: { erro: Error; onTentarDeNovo: () => void }) {
   return (
-    <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center">
+    <div className="rounded-md border border-destructive/30 bg-destructive/5 p-8 text-center">
       <AlertTriangle aria-hidden className="mx-auto mb-3 h-8 w-8 text-destructive/70" />
       <p className="font-semibold">Não foi possível carregar o feed</p>
       <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
@@ -411,8 +412,8 @@ function FeedComErro({ erro, onTentarDeNovo }: { erro: Error; onTentarDeNovo: ()
 
 function FeedVazio() {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-superficie-cartao px-6 py-16 text-center">
-      <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-tool-icon-bg text-tool-icon">
+    <div className="rounded-md border border-dashed border-border bg-superficie-cartao px-6 py-16 text-center">
+      <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-md bg-tool-icon-bg text-tool-icon">
         <MessagesSquare aria-hidden className="h-7 w-7" />
       </span>
       <p className="font-semibold">Nada no feed ainda</p>
@@ -432,8 +433,8 @@ function FeedVazio() {
  */
 function FeedSemResultado({ onLimpar }: { onLimpar: () => void }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-superficie-cartao px-6 py-16 text-center">
-      <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-muted text-muted-foreground">
+    <div className="rounded-md border border-dashed border-border bg-superficie-cartao px-6 py-16 text-center">
+      <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-md bg-muted text-muted-foreground">
         <SearchX aria-hidden className="h-7 w-7" />
       </span>
       <p className="font-semibold">Nenhuma conversa nesse recorte</p>

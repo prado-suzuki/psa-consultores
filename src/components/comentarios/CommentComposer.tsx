@@ -1,11 +1,12 @@
 import { useRef, useState, type DragEvent } from 'react';
-import { Paperclip, Reply, Send, X } from 'lucide-react';
+import { AtSign, Mic, Paperclip, Reply, Send, X } from 'lucide-react';
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import type { AreaKey } from '@/config/areaCategories';
 import { toast } from 'sonner';
 
 import { OrgCommentEditor } from '@/components/comentarios/OrgCommentEditor';
 import { Button } from '@/components/ui/button';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import type { MentionCandidate } from '@/lib/orgCommentMentions';
 import { docEstaVazio, lerCorpo, mencoesDoDoc, serializarDoc } from '@/lib/orgCommentRichText';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,15 @@ function primeiroNome(name: string | null) {
 
 interface CommentComposerProps {
   compact?: boolean;
+  /**
+   * Desenho de CAIXA, no formato da caixa de mensagem do Slack: uma moldura só,
+   * a barra de formatação como faixa colada no topo, o texto no meio e a barra
+   * de ações (anexo, menção, áudio) embaixo, tudo dentro da mesma borda.
+   *
+   * É opt-in porque o compositor também vive dentro do painel da tarefa, que é
+   * estreito: lá a caixa alta comeria a thread.
+   */
+  caixa?: boolean;
   /** Área da tela — define o glifo de carregamento (ver `AreaLoader`). */
   area?: AreaKey;
   isPending: boolean;
@@ -34,6 +44,7 @@ interface CommentComposerProps {
 
 export function CommentComposer({
   compact,
+  caixa,
   area,
   isPending,
   mentionCandidates,
@@ -48,6 +59,8 @@ export function CommentComposer({
   /** Zera o editor depois de publicar sem precisar sincronizar `value` de volta. */
   const [geracao, setGeracao] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  /** A ação de inserir "@" vem de dentro do editor — ver `inserirMencaoRef`. */
+  const inserirMencaoRef = useRef<(() => void) | null>(null);
 
   const corpo = lerCorpo(body);
   const vazio = corpo.formato === 'rich' ? docEstaVazio(corpo.doc) : !corpo.texto.trim();
@@ -87,7 +100,16 @@ export function CommentComposer({
   return (
     <div
       className={cn(
-        'relative rounded-xl border bg-background p-3 shadow-sm',
+        'relative rounded-md border bg-background shadow-sm',
+        // Na caixa o respiro vem de dentro de cada faixa, para as três encostarem
+        // na borda: barra de formatação no topo, texto no meio, ações embaixo.
+        //
+        // Sem `overflow-hidden`, e isso não é descuido: a lista de menção é
+        // posicionada por cima do editor e SOBE (ela nasce no rodapé da tela).
+        // Recortada pela moldura, o "@" inseria o caractere e a lista não
+        // aparecia. Quem arredonda o canto de cima é a própria faixa de
+        // formatação.
+        caixa ? 'focus-within:border-primary/40' : 'p-3',
         // O campo de resposta é ESTADO, não decoração: ele existe só enquanto se
         // responde, então é ele que carrega o acento da área. Antes tinha o
         // `bg-background` — que vale o MESMO que `--card`, a superfície do bloco
@@ -101,7 +123,12 @@ export function CommentComposer({
       onDrop={handleDrop}
     >
       {replyingToName && (
-        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-primary">
+        <p
+          className={cn(
+            'flex items-center gap-1.5 text-[11px] font-medium text-primary',
+            caixa ? 'border-b px-3 py-1.5' : 'mb-2',
+          )}
+        >
           <Reply className="h-3.5 w-3.5" aria-hidden />
           Respondendo a {primeiroNome(replyingToName)}
         </p>
@@ -115,7 +142,13 @@ export function CommentComposer({
         placeholder={
           compact ? 'Escreva uma resposta...' : 'Escreva um comentário... Use @ para mencionar'
         }
-        minHeight={compact ? 'min-h-12' : 'min-h-16'}
+        minHeight={compact ? 'min-h-12' : caixa ? 'min-h-20' : 'min-h-16'}
+        classeDoTexto={caixa ? 'px-3 py-2.5' : undefined}
+        barraEmFaixa={caixa}
+        // Na caixa o "@" desce para a barra de ações, junto de anexo e áudio,
+        // que é onde o Slack o põe; a barra de cima fica só com formatação.
+        botaoDeMencao={!caixa}
+        inserirMencaoRef={inserirMencaoRef}
         focusSignal={focusSignal}
         // O campo de resposta nasce com o cursor dentro: ele só existe depois do
         // clique em "Responder", então focar na montagem não rouba o foco.
@@ -126,7 +159,7 @@ export function CommentComposer({
       />
 
       {files.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div className={cn('flex flex-wrap gap-2', caixa ? 'px-3 pb-2' : 'mt-2')}>
           {files.map((file, index) => (
             <span
               key={`${file.name}-${index}`}
@@ -148,7 +181,12 @@ export function CommentComposer({
         </div>
       )}
 
-      <div className="mt-3 flex items-center justify-between border-t pt-2">
+      <div
+        className={cn(
+          'flex items-center justify-between border-t',
+          caixa ? 'px-2 py-1.5' : 'mt-3 pt-2',
+        )}
+      >
         <div className="flex items-center gap-1">
           <input
             ref={fileInputRef}
@@ -157,19 +195,63 @@ export function CommentComposer({
             className="hidden"
             onChange={(event) => addFiles(Array.from(event.target.files ?? []))}
           />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            aria-label="Adicionar anexos"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
-          <span className="hidden text-[11px] text-muted-foreground sm:inline">
-            Até 5 arquivos de 10 MB
-          </span>
+          <ButtonTooltip text="Anexar arquivo">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground"
+              aria-label="Adicionar anexos"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+          </ButtonTooltip>
+          {caixa && (
+            <>
+              <ButtonTooltip text="Mencionar pessoa">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground"
+                  aria-label="Mencionar pessoa"
+                  // O foco não pode sair do editor antes da inserção: o `@` é
+                  // inserido na posição do cursor.
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => inserirMencaoRef.current?.()}
+                >
+                  <AtSign className="h-4 w-4" />
+                </Button>
+              </ButtonTooltip>
+              {/*
+                O microfone é DESENHO, não função: gravar áudio (com transcrição
+                no ato) é o item 8 do checklist do feed, e entra depois. Ele fica
+                desabilitado e diz isso no balão — botão que não faz nada e não
+                avisa é pior do que botão nenhum. O balão precisa do `span` em
+                volta porque botão desabilitado não emite evento de ponteiro.
+              */}
+              <ButtonTooltip text="Gravar áudio — ainda não disponível">
+                <span className="inline-flex">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled
+                    className="h-8 w-8 text-muted-foreground"
+                    aria-label="Gravar áudio (ainda não disponível)"
+                  >
+                    <Mic className="h-4 w-4" />
+                  </Button>
+                </span>
+              </ButtonTooltip>
+            </>
+          )}
+          {!caixa && (
+            <span className="hidden text-[11px] text-muted-foreground sm:inline">
+              Até 5 arquivos de 10 MB
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {onCancel && (

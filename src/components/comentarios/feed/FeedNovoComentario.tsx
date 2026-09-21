@@ -149,9 +149,9 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
       <button
         type="button"
         onClick={abrir}
-        className="flex w-full items-center gap-2.5 rounded-2xl border border-border/70 bg-card px-3 py-2 text-left text-sm text-muted-foreground shadow-sm transition-colors hover:border-primary/40 hover:text-foreground"
+        className="flex w-full items-center gap-2.5 rounded-md border border-border/70 bg-card px-3 py-2 text-left text-sm text-muted-foreground shadow-sm transition-colors hover:border-primary/40 hover:text-foreground"
       >
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-tool-icon-bg text-tool-icon">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-tool-icon-bg text-tool-icon">
           <PenLine aria-hidden className="h-4 w-4" />
         </span>
         Escrever no feed…
@@ -163,9 +163,14 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
   }
 
   return (
-    <div className="rounded-2xl border border-primary/40 bg-card p-3 shadow-md ring-2 ring-primary/10">
-      <div className="mb-2.5 flex items-center gap-2">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-tool-icon-bg text-tool-icon">
+    /*
+      Sem cartão em volta: a MOLDURA é a caixa de texto, como no Slack. O cartão
+      externo punha uma segunda borda e mais recuo de cada lado em cima da caixa
+      — justamente a peça que tem de ocupar a largura do feed inteiro.
+    */
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-tool-icon-bg text-tool-icon">
           <PenLine aria-hidden className="h-4 w-4" />
         </span>
         <p className="text-sm font-semibold">Nova conversa</p>
@@ -243,45 +248,44 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
       </div>
 
       {alvo ? (
-        <div className="mt-3">
-          <CommentComposer
-            area={area}
-            isPending={isCreating}
-            mentionCandidates={mentionCandidates}
-            onCancel={fechar}
-            onSubmit={async (body, files, mencoes) => {
-              // As menções são peneiradas pela roda de gente do destino ATUAL: o
-              // rascunho sobrevive à troca de projeto, e com ele sobreviveria a
-              // menção a quem não está no novo (ver `mencoesPermitidas`).
-              const permitidas = mencoesPermitidas(mencoes, mentionCandidates);
-              const id = await createComment.mutateAsync({
-                body,
-                files,
-                mentions: permitidas,
-              });
-              // A fala é o comentário mais novo do sistema, então entra no topo
-              // do feed. Invalidar pelo PREFIXO refaz também o recorte filtrado
-              // que está na tela.
-              await queryClient.invalidateQueries({ queryKey: feedComentariosQueryKeyPrefix() });
-              onPublicou(
-                id,
-                falaCabeNoRecorte(filtros, {
-                  projetoId: alvo.projectId,
-                  clienteId:
-                    projetos.find((projeto) => projeto.id === alvo.projectId)
-                      ?.external_client_id ?? null,
-                  autorId: user?.id ?? null,
-                  mencionados: permitidas,
-                }),
-              );
-            }}
-          />
-        </div>
+        <CommentComposer
+          caixa
+          area={area}
+          isPending={isCreating}
+          mentionCandidates={mentionCandidates}
+          onCancel={fechar}
+          onSubmit={async (body, files, mencoes) => {
+            // As menções são peneiradas pela roda de gente do destino ATUAL: o
+            // rascunho sobrevive à troca de projeto, e com ele sobreviveria a
+            // menção a quem não está no novo (ver `mencoesPermitidas`).
+            const permitidas = mencoesPermitidas(mencoes, mentionCandidates);
+            const id = await createComment.mutateAsync({
+              body,
+              files,
+              mentions: permitidas,
+            });
+            // A fala é o comentário mais novo do sistema, então entra no topo
+            // do feed. Invalidar pelo PREFIXO refaz também o recorte filtrado
+            // que está na tela.
+            await queryClient.invalidateQueries({ queryKey: feedComentariosQueryKeyPrefix() });
+            onPublicou(
+              id,
+              falaCabeNoRecorte(filtros, {
+                projetoId: alvo.projectId,
+                clienteId:
+                  projetos.find((projeto) => projeto.id === alvo.projectId)
+                    ?.external_client_id ?? null,
+                autorId: user?.id ?? null,
+                mencionados: permitidas,
+              }),
+            );
+          }}
+        />
       ) : (
         /* Sem destino não há o que gravar, e um campo de texto que não publica
            é pior do que campo nenhum: a pessoa escreveria o parágrafo inteiro
            para só então descobrir onde estava presa. */
-        <p className="mt-3 rounded-xl border border-dashed border-border bg-muted/30 px-3 py-3 text-xs text-muted-foreground">
+        <p className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-3 text-xs text-muted-foreground">
           Escolha o projeto para começar a escrever. A tarefa é opcional: sem ela, a fala vai para
           o projeto.
         </p>

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import Bold from '@tiptap/extension-bold';
 import Document from '@tiptap/extension-document';
 import Italic from '@tiptap/extension-italic';
@@ -52,6 +52,29 @@ interface OrgCommentEditorProps {
   /** Atalho de publicar (Ctrl/Cmd+Enter). Enter continua quebrando linha. */
   onPublicar?: () => void;
   ariaLabel?: string;
+  /**
+   * Classes da área de escrita. Existe para a caixa no formato do Slack, onde a
+   * borda é do invólucro e o respiro do texto precisa vir de dentro.
+   */
+  classeDoTexto?: string;
+  /**
+   * A barra de formatação vira FAIXA colada no topo da caixa, em vez de uma
+   * linha solta acima do texto. É o que dá o desenho de caixa única: fundo
+   * próprio, sem margem, encostada na borda de cima.
+   */
+  barraEmFaixa?: boolean;
+  /**
+   * O "@" mora na barra de formatação (padrão) ou na barra de ações de baixo,
+   * desenhada por quem chama — que é o arranjo do Slack.
+   */
+  botaoDeMencao?: boolean;
+  /**
+   * Recebe a ação de inserir o "@", para quem desenha o botão fora do editor.
+   *
+   * Sai por `ref`, e não por callback de montagem, porque quem chama precisa de
+   * um alvo estável: o botão vive numa barra irmã, renderizada no mesmo passo.
+   */
+  inserirMencaoRef?: MutableRefObject<(() => void) | null>;
 }
 
 /**
@@ -77,6 +100,10 @@ export function OrgCommentEditor({
   onArquivos,
   onPublicar,
   ariaLabel,
+  classeDoTexto,
+  barraEmFaixa,
+  botaoDeMencao = true,
+  inserirMencaoRef,
 }: OrgCommentEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
@@ -179,6 +206,7 @@ export function OrgCommentEditor({
         class: cn(
           minHeight,
           'max-h-64 overflow-y-auto text-sm leading-6 outline-none',
+          classeDoTexto,
           '[&_p.is-editor-empty:first-child::before]:pointer-events-none',
           '[&_p.is-editor-empty:first-child::before]:float-left',
           '[&_p.is-editor-empty:first-child::before]:h-0',
@@ -244,6 +272,9 @@ export function OrgCommentEditor({
       .run();
   };
 
+  // A mesma ação, à disposição de quem desenha o botão fora daqui.
+  if (inserirMencaoRef) inserirMencaoRef.current = inserirGatilhoDeMencao;
+
   const marcas = useEditorState({
     editor,
     selector: ({ editor: atual }) => ({
@@ -295,7 +326,15 @@ export function OrgCommentEditor({
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="mb-2 flex items-center gap-0.5 border-b pb-1.5">
+      <div
+        className={cn(
+          'flex items-center gap-0.5 border-b',
+          // O arredondado é da FAIXA, e não da moldura: a caixa não pode ter
+          // `overflow-hidden` (ver `CommentComposer`), então o canto de cima
+          // tem de vir daqui, senão o fundo cinza sai por fora da borda.
+          barraEmFaixa ? 'rounded-t-md bg-muted/40 px-2 py-1' : 'mb-2 pb-1.5',
+        )}
+      >
         {botoes.map(({ key, label, icon: Icon, ativo, acao }, index) => (
           <Fragment key={key}>
             {index === 3 && <span className="mx-1 h-4 w-px bg-border" aria-hidden />}
@@ -316,17 +355,19 @@ export function OrgCommentEditor({
             </ButtonTooltip>
           </Fragment>
         ))}
-        <ButtonTooltip text="Mencionar pessoa">
-          <button
-          type="button"
-          aria-label="Mencionar pessoa"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={inserirGatilhoDeMencao}
-          className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <AtSign className="h-3.5 w-3.5" />
-        </button>
-        </ButtonTooltip>
+        {botaoDeMencao && (
+          <ButtonTooltip text="Mencionar pessoa">
+            <button
+              type="button"
+              aria-label="Mencionar pessoa"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={inserirGatilhoDeMencao}
+              className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <AtSign className="h-3.5 w-3.5" />
+            </button>
+          </ButtonTooltip>
+        )}
       </div>
 
       <EditorContent editor={editor} />
@@ -336,7 +377,7 @@ export function OrgCommentEditor({
           role="listbox"
           aria-label="Mencionar pessoa"
           style={{ left: sugestao.x, top: sugestao.y }}
-          className="absolute z-30 max-h-56 w-64 -translate-y-full overflow-y-auto rounded-lg border bg-popover p-1 shadow-md"
+          className="absolute z-30 max-h-56 w-64 -translate-y-full overflow-y-auto rounded-md border bg-popover p-1 shadow-md"
         >
           {sugestao.items.map((candidate, index) => (
             <li key={candidate.id}>
