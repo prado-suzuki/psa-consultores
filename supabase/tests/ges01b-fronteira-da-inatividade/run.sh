@@ -2,25 +2,32 @@
 # =============================================================================
 # Prova da fronteira da GES-01B (aviso de tarefa e projeto sem movimentacao)
 # =============================================================================
-# Nao faz parte do `bun run test`: precisa de Docker, e o repo nao tem harness
-# de SQL. Rode a mao:
+# Nao faz parte do `bun run test`: precisa de um Postgres descartavel, e o repo
+# nao tem harness de SQL. Rode a mao, num dos dois modos.
 #
-#   ./supabase/tests/ges01b-fronteira-da-inatividade/run.sh
+#   Docker (padrao):
+#     ./supabase/tests/ges01b-fronteira-da-inatividade/run.sh
 #
-# O que acontece: sobe um Postgres descartavel, cria o recorte de schema que as
-# funcoes leem (00-fixture.sql, com as datas plantadas RELATIVAS a hoje), aplica
-# a MIGRATION REAL do repo sem tocar nela, e roda as afirmacoes de fronteira
-# (02-fronteira.sql). Qualquer afirmacao falsa aborta com exit != 0.
+#   Binarios locais, sem Docker e sem instalar nada:
+#     PG_BIN=/caminho/para/pgsql/bin ./supabase/tests/ges01b-fronteira-da-inatividade/run.sh
+#
+# O SEGUNDO MODO EXISTE PORQUE A MAQUINA DE DESENVOLVIMENTO NAO TEM DOCKER, e
+# instalar exigiria WSL2, elevacao de administrador e reinicio. O zip de binarios
+# do Postgres (get.enterprisedb.com/postgresql, ~315 MB) resolve sem nada disso:
+# descompacta, `initdb`, sobe numa porta alta, roda, derruba. Foi assim que esta
+# prova rodou pela primeira vez, em 21/09/2026, com as 15 afirmacoes passando
+# contra o Postgres 17.6.
 #
 # O QUE ESTA PROVA COBRE, e e o que o "Como" do card pedia:
 #   * a borda do limiar: entra no 15o dia, nao no 14o;
-#   * a borda da escada: o gestor entra no 22o, nao junto com o dono;
+#   * a borda da escada: o gestor entra no 22o, nao junto com o dono, e com
+#     atraso 0 volta a ser junto;
 #   * a borda do que conta como movimentacao: alteracao cadastral de ontem NAO
 #     reinicia a contagem, comentario de gente reinicia, comentario de sistema
-#     nao;
+#     nao, e tarefa sem auditoria cai no created_at;
 #   * os status que nao alertam (waiting_client, done, backlog);
-#   * a borda do projeto: 29 nao, 30 sim, e projeto nao para enquanto uma tarefa
-#     aberta se move;
+#   * a borda do projeto: 29 nao, 29 com limiar 29 sim, e projeto nao para
+#     enquanto uma tarefa aberta se move;
 #   * o recorte por ambiente.
 #
 # O QUE NAO COBRE, de proposito: a escrita do aviso. As `alertar_*` sao criadas
@@ -28,13 +35,6 @@
 # `notificacao_envio` e as RPC de envio, e o que esta prova afirma e QUEM entra
 # na fila e com que data. A deduplicacao foi provada rodando a varredura duas
 # vezes no sandbox (1 criado / 0 negados, depois 0 criados / 1 negado).
-#
-# NOTA DE 21/09/2026: a maquina de desenvolvimento nao tem Docker, entao estas
-# afirmacoes foram verificadas de outra forma no dia em que nasceram: o mesmo
-# conjunto rodou contra as funcoes reais no sandbox, dentro de uma transacao
-# encerrada com RAISE para desfazer tudo, e as dez passaram sem deixar residuo
-# (conferido depois: zero linha com o prefixo da prova). Quando alguem com
-# Docker rodar este script, esta e a verificacao definitiva.
 # =============================================================================
 set -euo pipefail
 
@@ -42,8 +42,54 @@ AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_RAIZ="$(cd "$AQUI/../../.." && pwd)"
 MIGRATION="supabase/migrations/20260921110500_ges01b_escada_do_gestor_e_projeto.sql"
 TESTES="supabase/tests/ges01b-fronteira-da-inatividade"
+
+# --------------------------------------------------------------------------- #
+# Modo 2: binarios locais                                                      #
+# --------------------------------------------------------------------------- #
+if [[ -n "${PG_BIN:-}" ]]; then
+  PORTA="${PG_PORTA:-54329}"
+  DATA="$(mktemp -d)/data"
+
+  limpar() {
+    "$PG_BIN/pg_ctl" -D "$DATA" stop -m immediate >/dev/null 2>&1 || true
+    rm -rf "$(dirname "$DATA")"
+  }
+  trap limpar EXIT
+
+  echo "→ initdb em $DATA"
+  "$PG_BIN/initdb" -D "$DATA" -U postgres -A trust -E UTF8 --locale=C >/dev/null
+
+  echo "→ subindo na porta $PORTA"
+  "$PG_BIN/pg_ctl" -D "$DATA" -o "-p $PORTA" -l "$(dirname "$DATA")/log.txt" start >/dev/null
+  for _ in $(seq 1 30); do
+    "$PG_BIN/pg_isready" -p "$PORTA" -U postgres -q && break
+    sleep 1
+  done
+
+  rodar() {
+    echo "→ $1"
+    "$PG_BIN/psql" -p "$PORTA" -U postgres -d postgres -v ON_ERROR_STOP=1 -q -f "$REPO_RAIZ/$1"
+  }
+
+  rodar "$TESTES/00-fixture.sql"
+  rodar "$MIGRATION"
+  rodar "$TESTES/02-fronteira.sql"
+
+  echo "✓ prova da fronteira da GES-01B passou (binarios locais)"
+  exit 0
+fi
+
+# --------------------------------------------------------------------------- #
+# Modo 1: Docker                                                               #
+# --------------------------------------------------------------------------- #
 IMAGEM="${IMAGEM_POSTGRES:-postgres:17-alpine}"
 CONTAINER="psa-prova-ges01b-$$"
+
+command -v docker >/dev/null 2>&1 || {
+  echo "docker não encontrado. Use o modo de binários locais:"
+  echo "  PG_BIN=/caminho/para/pgsql/bin $0"
+  exit 1
+}
 
 limpar() { docker rm -f "$CONTAINER" >/dev/null 2>&1 || true; }
 trap limpar EXIT
@@ -66,4 +112,4 @@ rodar "$TESTES/00-fixture.sql"
 rodar "$MIGRATION"
 rodar "$TESTES/02-fronteira.sql"
 
-echo "✓ prova da fronteira da GES-01B passou"
+echo "✓ prova da fronteira da GES-01B passou (docker)"

@@ -118,7 +118,7 @@ painel e o nome da tarefa se perdia nas reticências.
 | **Sandbox** | aplicadas, com os dois crons ativos (07h e 07h05 de Cuiabá) |
 | **Produção** | **nada aplicado.** Não tem as funções nem os dois valores do enum |
 | **Front** | rótulo e ícone dos dois tipos no ar, e o `types.ts` regerado |
-| **Prova de fronteira** | `supabase/tests/ges01b-fronteira-da-inatividade/`, 14 afirmações |
+| **Prova de fronteira** | `supabase/tests/ges01b-fronteira-da-inatividade/`, 15 afirmações, **rodada e verde** em 21/09/2026 contra o Postgres 17.6 |
 
 **Ao ligar em produção, medir a fila primeiro.** A regra conta desde a última movimentação,
 sem data de largada, então no primeiro dia no ar todo o passivo dispara de uma vez. Rodar
