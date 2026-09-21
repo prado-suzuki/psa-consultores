@@ -1,5 +1,8 @@
 import { useRelatorioDP } from '@/hooks/useRelatorioDP';
-import { EstruturaAtual } from '@/components/equipe/osg/relatorios/EstruturaAtual';
+import {
+  EstruturaAtual,
+  type OrientacaoDoDesenho,
+} from '@/components/equipe/osg/relatorios/EstruturaAtual';
 
 /**
  * O desenho de quem explora cada imóvel hoje, como relatório de tela próprio.
@@ -17,18 +20,30 @@ import { EstruturaAtual } from '@/components/equipe/osg/relatorios/EstruturaAtua
 export function EstruturaAtualDoCliente({
   clienteId,
   modoPrevia = false,
+  orientacao,
+  onTrocarOrientacao,
 }: {
   clienteId: string;
   /** Repassado ao diagrama: sem cabeçalho e sem rolagem própria dentro do modal. */
   modoPrevia?: boolean;
+  /** Duas linhas ou duas colunas. Quem guarda a escolha é a página — ver `EstruturaAtual`. */
+  orientacao?: OrientacaoDoDesenho;
+  onTrocarOrientacao?: (proxima: OrientacaoDoDesenho) => void;
 }) {
   const { data: bens = [], isLoading } = useRelatorioDP(clienteId);
 
   if (isLoading) {
-    return <p className="py-16 text-center text-sm text-muted-foreground">Carregando a estrutura atual…</p>;
+    return <p className="py-16 text-center text-sm text-muted-foreground">Carregando os produtores e imóveis…</p>;
   }
 
-  return <EstruturaAtual bens={bens} modoPrevia={modoPrevia} />;
+  return (
+    <EstruturaAtual
+      bens={bens}
+      modoPrevia={modoPrevia}
+      orientacao={orientacao}
+      onTrocarOrientacao={onTrocarOrientacao}
+    />
+  );
 }
 
 export default EstruturaAtualDoCliente;

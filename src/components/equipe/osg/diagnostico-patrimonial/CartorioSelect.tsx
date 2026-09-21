@@ -122,7 +122,7 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
         </PopoverTrigger>
         <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
           <Command>
-            <CommandInput placeholder="Buscar cartório..." />
+            <CommandInput placeholder="Buscar…" />
             <CommandList>
               <CommandEmpty>Nenhum cartório encontrado.</CommandEmpty>
               <CommandGroup>
@@ -214,7 +214,10 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
               <Input
                 value={draft.nome_completo}
                 onChange={(e) => setDraft((p) => ({ ...p, nome_completo: e.target.value }))}
-                placeholder="Cartório de Registro de Imóveis de..."
+                // `Ex:` e não `Buscar…`: o campo é o NOME do cartório sendo
+                // cadastrado, não uma busca — a especificação leu a linha
+                // truncada e propôs a forma de busca para um campo de texto.
+                placeholder="Ex: Cartório de Registro de Imóveis de Cuiabá"
                 className="h-9"
               />
             </div>

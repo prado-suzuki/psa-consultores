@@ -370,6 +370,7 @@ const Onboarding = () => {
             produtosContratados={produtosDoRail}
             produtosPorDocumento={catalogo.data.produtosPorDocumento}
             somenteLeitura={encerrada}
+            status={solicitacao?.status ?? null}
             onAdicionarDoCatalogo={incluirDoCatalogo}
             onAdicionarManual={incluirManual}
             onEditar={editar}

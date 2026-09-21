@@ -308,13 +308,13 @@ const BibliotecaModelos = () => {
               </div>
               {flags.length > 0 && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Flag de composição</Label>
+                  <Label className="text-xs">Regra de composição</Label>
                   <Select value={filtroFlag} onValueChange={setFiltroFlag}>
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="Flag" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todas">Todas as flags</SelectItem>
+                      <SelectItem value="todas">Todas as regras</SelectItem>
                       {flags.map((f) => (
                         <SelectItem key={f.id} value={f.id}>
                           {f.nome}

@@ -260,14 +260,53 @@ Uma ficha por controle, e **a redação final está nela**. A implementação ex
 texto aprovado parecer errado, volta para quem escreveu — não se conserta no PR.
 
 ```
-Rota:          Documentos do Cliente
-Controle:      filtro de contribuinte
-Problema:      a pessoa não entende que precisa escolher o cliente antes
+Local:         Documentos do Cliente → filtro de contribuinte
+Campo:         mensagem de estado do campo
+Texto atual:   (não existe)
+Ajustar para:  Selecione um cliente para listar os contribuintes.
+Motivo:        a pessoa não entende que precisa escolher o cliente antes
 Intervenção:   mensagem contextual (fora da árvore: depende do estado)
-Texto final:   Selecione um cliente para listar os contribuintes.
-Comportamento: aparece enquanto nenhum cliente estiver selecionado
 Marcação:      <p> com id e aria-describedby no campo (§3)
+Origem:        tela
 ```
+
+**As cinco primeiras linhas são o formato da coordenação** — `Local · Campo · Texto atual ·
+Ajustar para · Motivo do ajuste` —, o mesmo das listas de ajuste do Tax, do Digital Dev e da
+especificação final do OSG Work. É o vocabulário em que a revisão acontece, e mudá-lo aqui só
+criaria duas línguas para a mesma coisa.
+
+**As duas seguintes são o que torna a ficha executável.** Sem **Intervenção**, quem implementa
+escolhe o mecanismo e o padrão se perde na implementação; sem **Marcação**, um texto de apoio
+nasce dentro de um balão de hover. Em lote grande, as duas cabem numa coluna só, "Como
+implementar".
+
+**"Intervenção: nenhuma" é resultado válido**, e é o resultado dos degraus 1, 2 e 5 — nesses
+casos a ficha registra o que muda no controle, ou que nada muda, e por quê. Auditoria que produz
+texto para todo controle não usou a árvore.
+
+## 7. De onde vem o achado
+
+A ficha diz o que muda. Esta seção diz **por que você sabe que precisa mudar** — e é o que separa
+auditoria de opinião. As fontes estão em ordem de peso, e a origem entra na ficha.
+
+| Peso | Fonte | Por que vale o que vale |
+|---|---|---|
+| **1** | **Pergunta feita** numa reunião, treinamento ou demonstração | alguém parou a sessão para perguntar. É explicação que falta na tela, sem interpretação |
+| **2** | **Dúvida escrita** no canal de suporte ou no chat da área | a pessoa tentou sozinha, não conseguiu, e teve o trabalho de escrever |
+| **3** | **Narração espontânea** de quem demonstra a tela | ninguém perguntou, mas quem apresenta sentiu que precisava explicar |
+| **4** | **Leitura da tela** pela árvore da §2 | é dedução, e a ficha tem que dizer que é |
+
+**Não invente pergunta.** Se a lista de dúvidas não existe, a seção correspondente fica vazia,
+dizendo que está vazia. Vazio é resposta; pergunta fabricada é evidência falsa e sobrevive ao
+documento.
+
+**O achado mais forte não é falta de explicação — é explicação que engana.** Em 10/09/2026 um
+usuário leu a lista de documentos repetida por produto e concluiu que sairiam três solicitações
+para o mesmo cliente, "com incômodo pela duplicidade". O sistema já consolidava. Quando alguém lê
+a tela e entende o oposto do que ela faz, o item entra na frente de todos os outros.
+
+O processo completo — onde procurar cada fonte, como filtrar, os critérios recorrentes de revisão
+e como fechar contra a catraca — está na skill `auditar-clareza-da-tela`.
 
 **"Intervenção: nenhuma" é resultado válido**, e é o resultado dos degraus 1, 2 e 5 — nesses
 casos a ficha registra o que muda no controle, ou que nada muda, e por quê. Auditoria que produz

@@ -7,8 +7,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { TerrasExploradas } from '@/components/equipe/osg/relatorios/TerrasExploradas';
 import { EstruturaAtualDoCliente } from '@/components/equipe/osg/relatorios/EstruturaAtualDoCliente';
+import type { OrientacaoDoDesenho } from '@/components/equipe/osg/relatorios/EstruturaAtual';
 import { PreviaEmModal } from '@/components/equipe/osg/relatorios/PreviaEmModal';
 import { PECAS_SO_DE_TELA, nomeDaPeca } from '@/components/equipe/osg/relatorios/catalogoDaBiblioteca';
+import { usePersistedState } from '@/hooks/usePersistedState';
 
 /**
  * Cada relatório de tela, pelo id do catálogo.
@@ -21,27 +23,43 @@ function RelatorioDeTela({
   id,
   clienteId,
   modoPrevia = false,
+  orientacao,
+  onTrocarOrientacao,
 }: {
   id: string;
   clienteId: string;
   /** Dentro do modal: o cabeçalho e a rolagem própria da peça saem de cena. */
   modoPrevia?: boolean;
+  /** Só o diagrama usa; a tabela ignora. */
+  orientacao?: OrientacaoDoDesenho;
+  onTrocarOrientacao?: (proxima: OrientacaoDoDesenho) => void;
 }) {
   if (id === 'terras') return <TerrasExploradas clienteId={clienteId} modoPrevia={modoPrevia} />;
   if (id === 'estrutura')
-    return <EstruturaAtualDoCliente clienteId={clienteId} modoPrevia={modoPrevia} />;
+    return (
+      <EstruturaAtualDoCliente
+        clienteId={clienteId}
+        modoPrevia={modoPrevia}
+        orientacao={orientacao}
+        onTrocarOrientacao={onTrocarOrientacao}
+      />
+    );
   return null;
 }
 
 /**
- * Os relatórios de tela do cliente: diagnóstico patrimonial e quadro
- * societário. Eles NÃO viram arquivo nenhum — existem para serem lidos e
- * impressos (em PDF, pela impressão do navegador), e para isso ficam atrás do
- * olho: marca-se o que entra na impressão e abre-se um por vez, em modal.
+ * Os relatórios de tela do cliente: as terras e áreas exploradas e os
+ * produtores por imóvel. Eles NÃO viram arquivo nenhum — existem para serem
+ * lidos e impressos (em PDF, pela impressão do navegador), e para isso ficam
+ * atrás do olho: marca-se o que entra na impressão e abre-se um por vez, em
+ * modal.
  *
- * A geração do deck saiu para a "Biblioteca de Apresentações". As duas coisas
- * eram a mesma tela com abas; viraram páginas separadas porque o que se faz em
- * cada uma é diferente (imprimir relatório vs. baixar .pptx).
+ * O cabeçalho da página dizia "diagnóstico patrimonial e quadro societário",
+ * que são as duas peças da OUTRA tela — corrigido em 18/09/2026.
+ *
+ * A geração do deck saiu para "Apresentações". As duas coisas eram a mesma tela
+ * com abas; viraram páginas separadas porque o que se faz em cada uma é
+ * diferente (imprimir relatório vs. baixar .pptx).
  */
 const Relatorios = () => {
   const { clienteId } = useOsgWork();
@@ -50,6 +68,23 @@ const Relatorios = () => {
   const [paraImprimir, setParaImprimir] = useState<string[]>([]);
   /** A única peça aberta por vez: a prévia em modal. */
   const [aberta, setAberta] = useState<string | null>(null);
+
+  /**
+   * COMO O DIAGRAMA SE ARRUMA, e por que a escolha mora AQUI.
+   *
+   * Esta página monta duas instâncias do mesmo relatório — a da prévia e a do
+   * bloco que só existe na impressão, mais abaixo. Com o estado dentro do
+   * componente, a orientação escolhida na tela não chegaria ao papel: sairia
+   * sempre a de abertura. Persistida, ela também sobrevive ao fechar o modal,
+   * como os filtros por página da casa.
+   *
+   * Abre na horizontal, que é o desenho que já existia e a forma convencional
+   * do organograma de estrutura.
+   */
+  const [orientacao, setOrientacao] = usePersistedState<OrientacaoDoDesenho>(
+    'osg.relatorios.estrutura.orientacao',
+    'horizontal',
+  );
 
   const alternarImpressao = (id: string) =>
     setParaImprimir((atual) => (atual.includes(id) ? atual.filter((x) => x !== id) : [...atual, id]));
@@ -66,7 +101,9 @@ const Relatorios = () => {
         {!clienteId ? (
           <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center text-muted-foreground">
             <FolderArchive className="h-10 w-10 opacity-50" />
-            <p className="text-sm">Selecione um cliente na barra acima para ver os relatórios de tela.</p>
+            {/* A forma canônica dos estados vazios do OSG Work: "Selecione um
+                cliente na barra acima para abrir {o quê} deste cliente." */}
+            <p className="text-sm">Selecione um cliente na barra acima para abrir os relatórios deste cliente.</p>
           </div>
         ) : (
           <>
@@ -82,8 +119,9 @@ const Relatorios = () => {
                   }
                   aria-label="Marcar todos os relatórios de tela"
                 />
+                {/* Plural: a coluna lista mais de um relatório. */}
                 <span className="flex-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Relatório de tela
+                  Relatórios
                 </span>
               </div>
 
@@ -113,7 +151,7 @@ const Relatorios = () => {
               <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/30 px-4 py-2.5">
                 <span className="text-xs text-muted-foreground">
                   {paraImprimir.length === 0
-                    ? 'Marque o que entra na impressão.'
+                    ? 'Selecione os relatórios que devem entrar na impressão.'
                     : `${paraImprimir.length} de ${PECAS_SO_DE_TELA.length} · sai em PDF pela impressão`}
                 </span>
                 {/* O botão APARECE com a marcação, em vez de ficar desligado:
@@ -128,8 +166,8 @@ const Relatorios = () => {
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Não viram .pptx. Vão para a área Fiscal no pacote de abertura de demanda, junto com o
-              que estiver em Documentos do Cliente.
+              Estes relatórios não geram arquivos .pptx. Eles serão incluídos na área Fiscal do
+              pacote de abertura de demanda, junto aos arquivos de Documentos do Cliente.
             </p>
 
             {/* O QUE VAI PARA O PAPEL. Fica fora da tela e só existe na
@@ -141,7 +179,8 @@ const Relatorios = () => {
               {PECAS_SO_DE_TELA.filter((p) => paraImprimir.includes(p.id)).map((peca) => (
                 <section key={peca.id} className="mb-6">
                   <h2 className="mb-3 text-base font-semibold text-foreground">{peca.nome}</h2>
-                  <RelatorioDeTela id={peca.id} clienteId={clienteId} />
+                  {/* Sem `onTrocarOrientacao`: no papel não há o que alternar. */}
+                  <RelatorioDeTela id={peca.id} clienteId={clienteId} orientacao={orientacao} />
                 </section>
               ))}
             </div>
@@ -150,7 +189,13 @@ const Relatorios = () => {
 
         {clienteId && emPrevia && (
           <PreviaEmModal aberta onFechar={() => setAberta(null)} titulo={nomeDaPeca(emPrevia.id)}>
-            <RelatorioDeTela id={emPrevia.id} clienteId={clienteId} modoPrevia />
+            <RelatorioDeTela
+              id={emPrevia.id}
+              clienteId={clienteId}
+              modoPrevia
+              orientacao={orientacao}
+              onTrocarOrientacao={setOrientacao}
+            />
           </PreviaEmModal>
         )}
       </div>

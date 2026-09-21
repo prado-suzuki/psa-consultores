@@ -1,6 +1,36 @@
 import type { ReactElement, ReactNode } from "react";
 
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+/**
+ * O BALÃO TRAZ O PRÓPRIO PROVEDOR, e isto não é zelo: sem ele o componente
+ * DERRUBA quem o usa fora da árvore do `App`.
+ *
+ * O `TooltipProvider` do Radix é obrigatório, e existe um só, na raiz do
+ * `App.tsx`. Enquanto a explicação era `title=` nativo isso não pesava; com a
+ * conversão dos 126 botões de ícone (sprint 13, tarefa 14) passou a pesar, e o
+ * preço apareceu no teste: **235 casos em cerca de 50 arquivos** quebraram com
+ * "`Tooltip` must be used within `TooltipProvider`", porque teste de unidade
+ * monta o componente sozinho, sem o `App`. A CI não acusou porque ela só roda
+ * em PR e em push para a `main` — a conversão inteira viveu na `develop`, fora
+ * do alcance dela.
+ *
+ * Aninhar provedor é o que a casa já faz em `Header`, `mapa/Tooltip`,
+ * `itcmdKit` e outros cinco pontos. O da raiz não passa props, então este, sem
+ * props também, repete a mesma configuração do Radix. A única diferença é o
+ * `skipDelayDuration`, que deixa de agrupar balões vizinhos — e ele já não
+ * agrupava nos pontos que aninham provedor com delay próprio.
+ *
+ * A alternativa era embrulhar cada teste na mão, arquivo por arquivo. Isso
+ * conserta o sintoma e deixa de pé a armadilha: componente compartilhado que
+ * só funciona debaixo de um ancestral específico volta a quebrar no próximo
+ * lugar novo.
+ */
 
 /**
  * A dica de um controle sem texto visível — o degrau 0 da árvore de decisão
@@ -35,10 +65,12 @@ export function ButtonTooltip({
   // e vários textos convertidos são condicionais (`cond ? texto : undefined`).
   if (text === null || text === undefined || text === "") return children;
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side={side}>{text}</TooltipContent>
-    </Tooltip>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipContent side={side}>{text}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -61,10 +93,13 @@ export function ElementTooltip({
   children: ReactElement;
 }) {
   if (text === null || text === undefined || text === "") return children;
+  // Mesmo motivo do `ButtonTooltip`: o provedor vem junto.
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side={side}>{text}</TooltipContent>
-    </Tooltip>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipContent side={side}>{text}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

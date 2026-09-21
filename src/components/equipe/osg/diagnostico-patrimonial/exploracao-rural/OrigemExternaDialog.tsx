@@ -93,7 +93,7 @@ export function OrigemExternaDialog({ open, origem, imoveisQueUsam, pessoas, onS
               value={draft.titulo_instrumento}
               onChange={(e) => set('titulo_instrumento', e.target.value)}
               className={fieldCls}
-              placeholder="ex: Contrato de Parceria Agrícola e Outras Avenças"
+              placeholder="Ex: Contrato de Parceria Agrícola e Outras Avenças"
             />
           </Campo>
           <Campo
@@ -126,7 +126,7 @@ export function OrigemExternaDialog({ open, origem, imoveisQueUsam, pessoas, onS
               value={draft.outorgante_representante}
               onChange={(e) => set('outorgante_representante', e.target.value)}
               className={fieldCls}
-              placeholder="ex: seus administradores Fulano e Beltrana"
+              placeholder="Ex: seus administradores Fulano e Beltrana"
             />
           </Campo>
         </div>

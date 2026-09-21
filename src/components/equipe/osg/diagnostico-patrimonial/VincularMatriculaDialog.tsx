@@ -33,7 +33,7 @@ export function VincularMatriculaDialog({ open, bemId, clienteId, onClose }: Vin
           </DialogTitle>
         </DialogHeader>
         <Command className="rounded-none border-t">
-          <CommandInput placeholder="Buscar matrícula órfã (nº, cartório, município)..." />
+          <CommandInput placeholder="Buscar…" />
           <CommandList>
             {isLoading ? (
               <div className="py-8 text-center text-sm text-muted-foreground">

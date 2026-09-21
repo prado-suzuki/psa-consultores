@@ -120,6 +120,12 @@ cliente órfão. O desfazer continua sem pegar.
 |---|---|---|---|
 | **[6 A redação dos avisos de prazo vai para produção](TAREFA_redacao-dos-avisos-de-prazo.md)** 🔴 | A GES-01A subiu a produção em 02/09 **com o texto de trabalho**, e o cron está **ativo**: toda manhã às 7h a equipe recebe `Tarefa atrasada:` com corpo `Prazo em …`, no futuro. Leva a redação fechada pela Patricia, os acentos, e o gestor passa a receber só o atraso. | Sim, **1 ⚠️ MIGRAÇÃO** (`20260902210245`), só duas funções, nada de schema. **Não aplicada** | 🔴 **Urgente pelo cron**: escrita, aguarda o passo humano no Lovable |
 
+## Relatórios e Apresentações
+
+| Tarefa | Escopo | Banco? | Status |
+|---|---|---|---|
+| [15 Relatórios e Apresentações](TAREFA_relatorios-e-apresentacoes.md) | Textos aprovados, alternador horizontal e vertical do diagrama, impressão e confirmação individual de cada arquivo gerado. | Sim, **⚠️ MUDANÇA DE RPC**: publicar `gerar-apresentacao` e `gerar-slides-tributarios`; o sandbox também precisa dos três modelos `.pptx` no bucket privado `osg-templates`. | 🟡 **Código pronto; validação sandbox pendente** |
+
 ## O padrão único das explicações contextuais
 
 | Tarefa | Escopo | Banco? | Status |

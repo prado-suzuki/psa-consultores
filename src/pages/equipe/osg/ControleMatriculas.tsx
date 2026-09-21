@@ -92,7 +92,7 @@ const ControleMatriculas = () => {
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">Selecione um cliente na barra acima para gerenciar suas matrículas.</p>
+            <p className="text-sm">Selecione um cliente na barra acima para abrir as matrículas deste cliente.</p>
           </CardContent>
         </Card>
       </OsgLayout>
@@ -129,7 +129,7 @@ const ControleMatriculas = () => {
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__todas__">Todas</SelectItem>
-                    <SelectItem value="orfas">Órfãs (!)</SelectItem>
+                    <SelectItem value="orfas">Órfãs</SelectItem>
                     <SelectItem value="vinculadas">Vinculadas</SelectItem>
                   </SelectContent>
                 </Select>
@@ -328,7 +328,7 @@ function VincularBemDialog({
           </DialogTitle>
         </DialogHeader>
         <Command className="rounded-none border-t">
-          <CommandInput placeholder="Buscar bem (referência, denominação)..." />
+          <CommandInput placeholder="Buscar…" />
           <CommandList>
             {isLoading ? (
               <div className="py-8 text-center text-sm text-muted-foreground">

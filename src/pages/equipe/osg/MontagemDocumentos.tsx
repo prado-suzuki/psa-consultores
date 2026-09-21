@@ -157,7 +157,7 @@ const MontagemDocumentos = () => {
               <Input
                 value={modeloDialog.form.nome}
                 onChange={(e) => setModeloDialog((d) => ({ ...d, form: { ...d.form, nome: e.target.value } }))}
-                placeholder="ex: Descrição de Imóvel Rural"
+                placeholder="Ex: Descrição de Imóvel Rural"
               />
             </div>
             <div className="space-y-1.5">
@@ -165,7 +165,7 @@ const MontagemDocumentos = () => {
               <Input
                 value={modeloDialog.form.tipo}
                 onChange={(e) => setModeloDialog((d) => ({ ...d, form: { ...d.form, tipo: e.target.value } }))}
-                placeholder="ex: descricao_imovel"
+                placeholder="Ex: descricao_imovel"
                 list="tipos-modelo"
               />
               <datalist id="tipos-modelo">
@@ -188,8 +188,8 @@ const MontagemDocumentos = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="avulso">Avulso — não mexe na sociedade</SelectItem>
-                  <SelectItem value="sociedade">Sociedade — vai à junta e carimba o ledger</SelectItem>
+                  <SelectItem value="avulso">Avulso — não altera a sociedade</SelectItem>
+                  <SelectItem value="sociedade">Sociedade — registra na junta comercial e movimenta as quotas</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-[11px] leading-relaxed text-muted-foreground">

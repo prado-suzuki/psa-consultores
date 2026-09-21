@@ -117,9 +117,9 @@ export function DocPreviewDialog({
               )}
               Salvar vínculo
             </Button>
-            <p className="text-[11px] text-muted-foreground">
-              Classifique o vínculo deste documento sem fechar a pré-visualização.
-            </p>
+            {/* A legenda "Classifique o vínculo deste documento sem fechar a
+                pré-visualização." saiu: descrevia o que a pessoa está vendo e fazendo.
+                Degrau 5 do padrão — não escreva nada. */}
           </aside>
         </div>
       </DialogContent>

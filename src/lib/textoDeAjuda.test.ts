@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
+import ts from 'typescript';
 
 import { describe, expect, it } from 'vitest';
 
@@ -115,6 +116,37 @@ function titlesEmTagNativa(): { porArquivo: Record<string, number>; ambiguas: nu
  */
 const TITLE_NATIVO_LEGADO = 0;
 
+const BOTOES_DA_TIP_02 = [
+  'src/components/equipe/osg/onboarding/SolicitacaoAcoes.tsx',
+  'src/components/equipe/osg/onboarding/DocumentGroups.tsx',
+  'src/components/equipe/osg/onboarding/OnboardingWorkspace.tsx',
+  'src/components/equipe/osg/checklists/BotaoAvisarCliente.tsx',
+  'src/components/equipe/osg/checklists/BotaoComprovante.tsx',
+  'src/components/equipe/osg/checklists/BotaoTrazerParaChecklist.tsx',
+  'src/pages/equipe/osg/ChecklistsDocumentos.tsx',
+];
+
+function titlesEmBotoesDaTip02(): Record<string, number> {
+  const porArquivo: Record<string, number> = {};
+  for (const arquivo of BOTOES_DA_TIP_02) {
+    const fonte = readFileSync(resolve(RAIZ, arquivo), 'utf8');
+    const arvore = ts.createSourceFile(arquivo, fonte, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    let encontrados = 0;
+    const visitar = (no: ts.Node) => {
+      if (
+        ts.isJsxOpeningElement(no)
+        && no.tagName.getText(arvore) === 'Button'
+        && no.attributes.properties.some((atributo) =>
+          ts.isJsxAttribute(atributo) && atributo.name.getText(arvore) === 'title')
+      ) encontrados++;
+      ts.forEachChild(no, visitar);
+    };
+    visitar(arvore);
+    if (encontrados) porArquivo[arquivo] = encontrados;
+  }
+  return porArquivo;
+}
+
 /**
  * Placeholder de escolha ou de busca fora das quatro formas canônicas (§3 do documento):
  * `Selecione…`, `Buscar…`, `Ex: …`, vazio.
@@ -130,14 +162,16 @@ const RE_PLACEHOLDER_FORA_DO_CANONE =
 /**
  * Congelado em 17/09/2026: 226 em 140 arquivos.
  *
- * 18/09/2026, revisao de copy da governanca: 225 em 139. Saiu o
- * `Digite e tecle Enter` do campo de cargos do `OrgaoGovernancaModal`, que virou
- * texto de apoio visivel embaixo do campo. As outras seis trocas daquela revisao
- * nao contam aqui, porque a regra so pega placeholder que COMECA por Selecion,
- * Buscar, Busque, Pesquis, Digite ou Procur, e as outras eram rotulo disfarcado
- * (`Nome do item`) ou exemplo sem forma (`Conselho de Administracao`).
+ * **225 em 18/09**, pela auditoria da TIP-02 e pela revisão de copy da governança:
+ * o `Selecionar da lista (define a categoria)` do Anexar documento voltou à forma
+ * canônica (TIP-02, ficha A3), e o `Digite e tecle Enter` do campo de cargos do
+ * `OrgaoGovernancaModal` virou texto de apoio visível. As outras seis trocas da
+ * governança não contam aqui, porque a regra só pega placeholder que COMEÇA por
+ * Selecion, Buscar, Busque, Pesquis, Digite ou Procur, e as outras eram rótulo
+ * disfarçado (`Nome do item`) ou exemplo sem forma (`Conselho de Administração`).
  */
-const PLACEHOLDER_LEGADO = 225;
+// A TIP-03 corrigiu dez placeholders de escolha/busca nas rotas OSG Work.
+const PLACEHOLDER_LEGADO = 215;
 
 /** O teto de caracteres da explicação contextual (§3). Acima disso é nota de leitura. */
 const TETO_DO_TOOLTIP = 140;
@@ -192,6 +226,9 @@ const comoAchar = (padrao: string) =>
   + '  (sem nada no diff, troque por `src/components src/pages`)';
 
 describe('o texto que explica a tela', () => {
+  it('não volta title nos botões da TIP-02', () => {
+    expect(titlesEmBotoesDaTip02()).toEqual({});
+  });
   it('não nasce `title=` novo em tag nativa — explicação é `<Tooltip>`', () => {
     const { porArquivo, ambiguas } = titlesEmTagNativa();
     const quantos = total(porArquivo);
@@ -200,7 +237,7 @@ describe('o texto que explica a tela', () => {
       quantos,
       'A dívida do `title=` mudou de tamanho.\n\n'
         + `Congelado: ${TITLE_NATIVO_LEGADO} em 0 arquivos (mais ${ambiguas} ambígua).\n`
-        + `Agora: ${quantos} em ${Object.keys(porArquivo).length}.\n\n`
+        + `Agora: ${quantos} em ${Object.keys(porArquivo).length}: ${JSON.stringify(porArquivo)}.\n\n`
         + 'SUBIU: `title=` não é mecanismo de explicação — o do navegador não aparece no\n'
         + 'toque, não tem tema e demora a abrir. Use `<Tooltip>` para explicar e\n'
         + '`aria-label` para dar nome a botão só de ícone; o `ButtonTooltip` de\n'

@@ -1,4 +1,4 @@
-import type { DeckTipo } from '@/hooks/useGerarApresentacao';
+import type { DeckDaApresentacao } from '@/hooks/useGerarApresentacao';
 
 /**
  * O que a Biblioteca de Slides guarda, e o que cada coisa gera.
@@ -30,7 +30,7 @@ export interface PecaDaBiblioteca {
    * cima a alcança. `null` quando não — o que NÃO significa que ela não gera
    * slide: ver `geraSlides`.
    */
-  deck: DeckTipo | null;
+  deck: DeckDaApresentacao | null;
   /**
    * A peça produz .pptx pelo caminho DELA, com controles próprios na tela.
    *
@@ -50,7 +50,8 @@ export const PECAS_DA_BIBLIOTECA: readonly PecaDaBiblioteca[] = [
   },
   {
     id: 'societario',
-    nome: 'Quadro Societário / Organograma',
+    // "e", não "/": a barra sugere alternativa, e a peça reúne as duas visões.
+    nome: 'Quadro Societário e Organograma',
     origem: 'Empresas, sócios e participações do quadro societário.',
     deck: 'societaria',
   },
@@ -61,8 +62,16 @@ export const PECAS_DA_BIBLIOTECA: readonly PecaDaBiblioteca[] = [
     // `deck: null` — o seletor de cima não o alcança — e `geraSlides: true`, que
     // é o que a aba usa para não tratá-lo como relatório de tela.
     id: 'papeis',
-    nome: 'Papéis de Trabalho — Planejamento Tributário',
-    origem: 'Premissas, carga tributária e transferência da atividade rural, por revisão.',
+    // SEM "PAPÉIS DE TRABALHO", por decisão da revisão de 18/09/2026: papel de
+    // trabalho é material interno de apoio, e o que chega ao cliente são as
+    // premissas e as análises tributárias. O nome interno não acompanha —
+    // `PapeisDeTrabalhoReport`, `useDomainPapelDeTrabalho` e `wp_apresentacao`
+    // ficam como estão.
+    nome: 'Planejamento Tributário',
+    // Os quatro assuntos que o arquivo entrega, na ordem em que o cliente os vê.
+    // Saiu o ", por revisão": qual revisão vai é a linha de baixo, e dizê-lo
+    // aqui duplicava o que o seletor já mostra.
+    origem: 'Premissas, carga tributária, transferência da atividade rural e resumo da tributação.',
     deck: null,
     geraSlides: true,
   },
@@ -72,14 +81,25 @@ export const PECAS_DA_BIBLIOTECA: readonly PecaDaBiblioteca[] = [
   // pacote para a área Fiscal —, e isso é dito uma vez na aba.
   {
     id: 'terras',
-    nome: 'Relação de terras exploradas',
-    origem: 'Instrumentos de exploração rural, com imóvel, área cedida e prazos.',
+    // Sem "Relação de", que não acrescentava significado ao título.
+    nome: 'Terras e áreas exploradas',
+    // A ORIGEM ANTERIOR PROMETIA CONTRATO SEMPRE. Sem registro em
+    // `exploracao_rural` a tabela cai para as matrículas e mostra 6 colunas em
+    // vez de 13 — outorgante, prazos e sacas/ha somem. O texto agora descreve o
+    // que existe sempre e condiciona o resto.
+    origem:
+      'Imóveis rurais explorados, com matrícula, localização, áreas e, quando houver, dados do instrumento de exploração.',
     deck: null,
   },
   {
     id: 'estrutura',
-    nome: 'Estrutura atual — produtores e imóveis',
-    origem: 'Quem explora cada imóvel hoje, e por qual origem de posse.',
+    nome: 'Produtores por imóvel e origem da posse',
+    // SEM FECHAR A LISTA DE ORIGENS. A revisão sugeria "…se a posse é própria,
+    // parceria ou arrendamento", mas `origemDe` (EstruturaAtual.tsx) devolve
+    // CINCO — própria, parceria, arrendamento, posse e o "a definir" —, e o
+    // subtítulo mentiria no primeiro cliente com composse. As categorias
+    // aparecem na legenda do desenho, que é onde elas cabem.
+    origem: 'Veja quem explora cada imóvel e qual é a origem da posse.',
     deck: null,
   },
 ];

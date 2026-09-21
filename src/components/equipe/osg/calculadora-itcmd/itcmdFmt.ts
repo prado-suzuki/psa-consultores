@@ -1,4 +1,4 @@
-// Formatação de exibição da Calculadora de ITCD.
+// Formatação de exibição da Calculadora de ITCMD.
 //
 // O motor devolve `string` decimal ("25678598.54"), e é dela que a tela formata:
 // passar por `Number` antes de exibir reintroduziria o float que a especificação

@@ -257,7 +257,7 @@ const ProtocoloDeRemuneracao = () => {
           vazio(
             <ScrollText className="h-10 w-10 text-muted-foreground opacity-50" />,
             <p className="max-w-md text-sm text-muted-foreground">
-              Selecione um cliente na barra acima para abrir o protocolo dele.
+              Selecione um cliente na barra acima para abrir o protocolo deste cliente.
             </p>,
           )
         ) : isLoading ? (

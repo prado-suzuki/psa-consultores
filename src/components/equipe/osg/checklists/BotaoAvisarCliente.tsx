@@ -22,6 +22,7 @@ import { useMemo, useState } from 'react';
 import { Send } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import { montarSituacaoDocumentos, temAlgoParaAvisar } from '@/lib/avisoSituacaoDocumentos';
 import type { LinhaChecklist } from '@/lib/checklistDerivado';
 import type { SolicitacaoStatus } from '@/lib/solicitacao';
@@ -49,13 +50,14 @@ export function BotaoAvisarCliente({ clienteId, linhas, solicitacao }: BotaoAvis
 
   return (
     <>
+      <ButtonTooltip text={temAlgo
+        ? 'Envia ao cliente a lista dos documentos que ainda faltam, por e-mail e WhatsApp.'
+        : 'Não há documento pendente nem recusado: nada a notificar ao cliente.'}>
+      <span tabIndex={!temAlgo ? 0 : undefined} className={!temAlgo ? 'cursor-not-allowed' : undefined}>
       <Button
         variant="outline"
         onClick={() => setAberto(true)}
         disabled={!temAlgo}
-        title={temAlgo
-          ? 'Envia ao cliente a lista dos documentos que ainda faltam, por e-mail e WhatsApp.'
-          : 'Não há documento pendente nem recusado: nada a notificar ao cliente.'}
       >
         <Send className="mr-2 h-4 w-4" />
         {/* "Notificar pendências" e não "Enviar notificação" (Patrícia,
@@ -64,6 +66,8 @@ export function BotaoAvisarCliente({ clienteId, linhas, solicitacao }: BotaoAvis
             O número é pendentes + recusados, que é o que vai na mensagem. */}
         Notificar pendências ({total})
       </Button>
+      </span>
+      </ButtonTooltip>
 
       {/* Montado só quando abre: as duas consultas do modal (destinatários e
           histórico) não devem rodar em toda renderização do checklist. */}

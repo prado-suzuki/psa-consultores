@@ -15,11 +15,15 @@ import { EscolhaDaRevisao } from '@/components/equipe/osg/relatorios/EscolhaDaRe
 import { useRevisaoParaSlides } from '@/components/equipe/osg/relatorios/useRevisaoParaSlides';
 import { useGerarApresentacaoTributaria } from '@/hooks/useDomainPapelDeTrabalho';
 import { baixarArquivoPorUrl } from '@/lib/osg/baixarArquivoPorUrl';
+import { conferirDecksGerados } from '@/lib/osg/resultadoGeracaoApresentacoes';
 import { toast } from '@/hooks/use-toast';
 import { PECAS_COM_DECK, PECAS_DE_SLIDE } from '@/components/equipe/osg/relatorios/catalogoDaBiblioteca';
 
 /**
- * A Biblioteca de Apresentações: escolher e gerar, em segundos.
+ * Apresentações: escolher e gerar, em segundos.
+ *
+ * O ARQUIVO CONTINUA `BibliotecaApresentacoes`. A tela passou a se chamar só
+ * "Apresentações" em 18/09/2026 — nome interno não acompanha rótulo.
  *
  * ESTA TELA NÃO MOSTRA DADO. Ela mostrou, por várias versões: cada peça abria a
  * tabela inteira que iria para o deck, com resumo, organograma e colunas de
@@ -72,34 +76,76 @@ const BibliotecaApresentacoes = () => {
    * `gerar-slides-tributarios`, que recebe a revisão escolhida. São arquivos
    * separados e continuam sendo — o que muda é que a pessoa marca tudo e pede
    * uma vez, em vez de caçar dois botões para montar a mesma apresentação.
+   *
+   * E UM AVISO SÓ, NO FIM. Cada geração dava o seu, e com `TOAST_LIMIT = 1` o
+   * segundo apagava o primeiro: marcando as três peças, a falha dos dois decks
+   * sumia atrás do sucesso do tributário, e a tela ficava dizendo que deu certo
+   * com um arquivo de três na mão. Revisão de 18/09/2026.
    */
   const disparar = async () => {
     const decks = marcadosValidos.filter((p) => p.deck !== null).map((p) => p.deck as DeckTipo);
     const comTributaria = marcadosValidos.some((p) => p.id === 'papeis');
 
+    const gerados: string[] = [];
+    const falhas: string[] = [];
+    const avisos: string[] = [];
+
     if (decks.length > 0) {
       // `ambas` não é um terceiro deck: é o atalho do servidor para o conjunto.
-      await gerar(decks.length === PECAS_COM_DECK.length ? 'ambas' : decks[0]);
+      const r = await gerar(decks.length === PECAS_COM_DECK.length ? 'ambas' : decks[0]);
+      const resultado = conferirDecksGerados(
+        marcadosValidos
+          .filter((p) => p.deck !== null)
+          .map((p) => ({ nome: p.nome, tipo: p.deck })),
+        r,
+      );
+      gerados.push(...resultado.gerados);
+      falhas.push(...resultado.falhas);
     }
 
     if (comTributaria && revisao.revisaoId) {
       try {
         const r = await gerarTributaria.mutateAsync(revisao.revisaoId);
-        if (r.url) await baixarArquivoPorUrl(r.url, r.nomeArquivo);
-        toast({
-          title: `Papéis de Trabalho: apresentação ${r.versao} gerada`,
-          description: r.problemas.length
-            ? `O arquivo baixou. Há ${r.problemas.length} ponto(s) para ajustar no PowerPoint.`
-            : 'O arquivo baixou.',
-        });
+        if (!r.url) {
+          falhas.push('Planejamento Tributário: a geração não devolveu um link para baixar o arquivo');
+        } else {
+          await baixarArquivoPorUrl(r.url, r.nomeArquivo);
+          gerados.push(r.nomeArquivo);
+        }
+        if (r.problemas.length) {
+          avisos.push(
+            `Planejamento Tributário: ${r.problemas.length} ponto(s) para ajustar no PowerPoint.`,
+          );
+        }
       } catch (e) {
-        toast({
-          title: 'Não consegui gerar os slides do planejamento tributário',
-          description: e instanceof Error ? e.message : 'Tente de novo.',
-          variant: 'destructive',
-        });
+        falhas.push(
+          `Planejamento Tributário: ${e instanceof Error ? e.message : 'a geração falhou'}`,
+        );
       }
     }
+
+    const quantos = `${gerados.length} de ${marcadosValidos.length}`;
+    if (falhas.length === 0) {
+      toast({
+        title: gerados.length === 1 ? 'Apresentação gerada' : 'Apresentações geradas',
+        description: [`Baixou: ${gerados.join(', ')}.`, ...avisos].join(' '),
+      });
+      return;
+    }
+
+    toast({
+      title:
+        gerados.length === 0
+          ? 'Não consegui gerar as apresentações'
+          : `${quantos} apresentações foram geradas`,
+      description: [
+        ...(gerados.length ? [`Baixou: ${gerados.join(', ')}.`] : []),
+        `Não veio — ${falhas.join('; ')}.`,
+        ...avisos,
+        'Entre em contato com o suporte da PSA Digital.',
+      ].join(' '),
+      variant: 'destructive',
+    });
   };
 
   return (
@@ -111,7 +157,8 @@ const BibliotecaApresentacoes = () => {
         {!clienteId ? (
           <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center text-muted-foreground">
             <FolderArchive className="h-10 w-10 opacity-50" />
-            <p className="text-sm">Selecione um cliente na barra acima para gerar a apresentação.</p>
+            {/* A forma canônica dos estados vazios do OSG Work. */}
+            <p className="text-sm">Selecione um cliente na barra acima para abrir as apresentações deste cliente.</p>
           </div>
         ) : (
           <>
@@ -153,13 +200,14 @@ const BibliotecaApresentacoes = () => {
                       <span className={cn('block truncate text-sm', vazio ? 'text-muted-foreground' : 'text-foreground')}>
                         {peca.nome}
                       </span>
-                      {/* Onde as outras dizem de ONDE vêm os dados, esta diz
-                          QUAL revisão vai — que é a escolha que ela tem. */}
-                      {tributaria ? (
-                        <EscolhaDaRevisao estado={revisao} />
-                      ) : (
-                        <span className="block truncate text-[11px] text-muted-foreground">{peca.origem}</span>
-                      )}
+                      {/* AS DUAS LINHAS, E A REVISÃO EMBAIXO. O seletor ocupava
+                          o lugar do subtítulo, e a peça tributária era a única
+                          da tabela sem dizer o que entrega — o texto existia no
+                          catálogo e não chegava à tela. Ela tem as duas coisas
+                          a dizer: o que vai no arquivo, como as outras, e QUAL
+                          revisão vai, que é a escolha que só ela tem. */}
+                      <span className="block truncate text-[11px] text-muted-foreground">{peca.origem}</span>
+                      {tributaria && <EscolhaDaRevisao estado={revisao} />}
                     </span>
 
                     <span className={cn('shrink-0 text-sm tabular-nums', vazio ? 'text-muted-foreground' : 'font-semibold text-osg-700')}>
@@ -186,7 +234,8 @@ const BibliotecaApresentacoes = () => {
                   ) : (
                     <Presentation className="mr-2 h-4 w-4" />
                   )}
-                  {ocupado ? 'Gerando…' : 'Gerar apresentação'}
+                  {/* Plural: marca-se mais de uma peça, e cada uma é um arquivo. */}
+                  {ocupado ? 'Gerando…' : 'Gerar apresentações'}
                 </Button>
               </div>
             </div>

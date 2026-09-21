@@ -1,6 +1,7 @@
 import { ChevronDown, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { BotaoModelo } from '@/components/shared/BotaoModelo';
 import { cn } from '@/lib/utils';
@@ -142,24 +143,28 @@ export function DocumentGroups({
                               <BotaoModelo modelo={document.modelo} tom="osg" />
                               {!somenteLeitura && (
                                 <>
+                                  <ButtonTooltip text="Editar nesta solicitação">
                                   <Button
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 text-osg-500/70 hover:bg-white hover:text-osg-moss"
                                     onClick={() => onEdit(document)}
-                                    title="Editar nesta solicitação"
+                                    aria-label="Editar nesta solicitação"
                                   >
                                     <Pencil className="h-3.5 w-3.5" />
                                   </Button>
+                                  </ButtonTooltip>
+                                  <ButtonTooltip text="Remover desta solicitação">
                                   <Button
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 text-osg-500/70 hover:bg-destructive/10 hover:text-destructive"
                                     onClick={() => onRemove(document)}
-                                    title="Remover desta solicitação"
+                                    aria-label="Remover desta solicitação"
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
+                                  </ButtonTooltip>
                                 </>
                               )}
                             </div>
@@ -196,16 +201,17 @@ export function DocumentGroups({
                                   parte da decisão — ver vem antes de incluir. */}
                               <div className="flex shrink-0 items-center gap-1">
                                 <BotaoModelo modelo={document.modelo} tom="osg" />
+                                <ButtonTooltip text="Incluir nesta solicitação">
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   className="h-7 shrink-0 gap-1 border-osg-200/80 bg-white px-2 text-xs text-osg-700 hover:border-osg-moss/40 hover:bg-osg-moss/[0.07] hover:text-osg-moss"
                                   onClick={() => onAddOptional(document)}
-                                  title="Incluir nesta solicitação"
                                 >
                                   <Plus className="h-3.5 w-3.5" />
                                   Incluir
                                 </Button>
+                                </ButtonTooltip>
                               </div>
                             </div>
                           ))}

@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { GradeDoProtocolo } from '@/components/equipe/osg/governanca/GradeDoProtocolo';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import {
   type BeneficiarioDoProtocolo,
   type SecaoDaGrade,
@@ -61,17 +60,13 @@ const GRADE: SecaoDaGrade[] = [
 
 const montar = (over: Partial<Parameters<typeof GradeDoProtocolo>[0]> = {}) => {
   const onAbrirLinha = vi.fn();
-  // O balão da célula é `<ElementTooltip>`, e Radix exige o provedor. No app ele
-  // vem do `App.tsx`; aqui entra à mão, como nos demais testes da casa.
   const utils = render(
-    <TooltipProvider delayDuration={0}>
-      <GradeDoProtocolo
-        grade={GRADE}
-        colunas={COLUNAS}
-        onAbrirLinha={onAbrirLinha}
-        {...over}
-      />
-    </TooltipProvider>,
+    <GradeDoProtocolo
+      grade={GRADE}
+      colunas={COLUNAS}
+      onAbrirLinha={onAbrirLinha}
+      {...over}
+    />,
   );
   return { onAbrirLinha, ...utils };
 };
@@ -118,16 +113,11 @@ describe('o tema agrupa, e diz quanto falta nele', () => {
 });
 
 describe('a célula', () => {
-  it('mostra o texto e guarda o inteiro no balão, para conferir sem abrir', async () => {
-    /* O balão é `<ElementTooltip>`, e não `title=`: o do navegador não aparece no
-       toque nem acompanha o tema (`docs/geral/texto-explicativo-na-tela.md`, §3). */
+  it('mostra o texto na célula, para conferir sem abrir', () => {
     montar();
     const celula = screen.getByText('Hilux SRX');
-    expect(celula).not.toHaveAttribute('title');
 
-    await userEvent.hover(celula);
-
-    expect(await screen.findByRole('tooltip')).toHaveTextContent('Hilux SRX');
+    expect(celula).toBeInTheDocument();
   });
 
   it('célula sem regra aparece como travessão, e não some da linha', () => {

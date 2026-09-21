@@ -96,7 +96,7 @@ const OsgWorkClienteBar = () => {
             value={clienteId}
             onChange={setClienteId}
             loading={isLoading}
-            placeholder="Selecione um cliente..."
+            placeholder="Selecione…"
             className={cn(
               'w-full min-w-0 h-10 font-medium',
               semCliente

@@ -2,6 +2,7 @@ import { ListChecks, Printer } from 'lucide-react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
+import { ButtonTooltip } from '@/components/ui/button-tooltip';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { ChecklistPendentes } from '@/components/equipe/osg/checklists/ChecklistPendentes';
 
@@ -41,14 +42,15 @@ const ChecklistsDocumentos = () => {
       subtitle={TELAS_OSG_WORK.checklistDocumentos.descricao}
       headerActions={
         clienteId ? (
+          <ButtonTooltip text="Abre a janela de impressão do navegador com o checklist desta tela.">
           <Button
             variant="outline"
             size="sm"
             onClick={() => window.print()}
-            title="Abre a janela de impressão do navegador com o checklist desta tela."
           >
             <Printer className="mr-2 h-4 w-4" /> Imprimir
           </Button>
+          </ButtonTooltip>
         ) : undefined
       }
     >

@@ -533,9 +533,11 @@ export function OrganizarDocumentos({ clienteId }: Props) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir documento?</AlertDialogTitle>
+            {/* "storage" é nome de infraestrutura, e a §4 do padrão tira termo técnico
+                interno da tela. O prazo continua, na forma direta. */}
             <AlertDialogDescription>
-              "{aExcluir?.nome_original}" sai da lista e o arquivo é apagado do storage. A recuperação só é
-              possível dentro de 7 dias.
+              "{aExcluir?.nome_original}" sai da lista e o arquivo é apagado. A recuperação é
+              possível por 7 dias.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
