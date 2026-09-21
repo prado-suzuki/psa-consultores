@@ -16,6 +16,7 @@ import {
   AUTOR_DO_EVENTO,
   corpoDoEvento,
   ehEventoDeSistema,
+  pessoasDoEvento,
   rotuloDoEvento,
 } from '@/lib/orgCommentEventos';
 import { iniciaisDoNome } from '@/lib/orgCommentMentions';
@@ -66,6 +67,9 @@ export function FeedItemComentario({
    */
   const ehEvento = ehEventoDeSistema(comentario.kind);
   const corpo = ehEvento ? corpoDoEvento(comentario) : comentario.body;
+  /* Quem agiu e para quem. O avatar continua sendo o do sistema: é ele que
+     separa evento de fala, e o nome na linha já responde o quem. */
+  const pessoas = ehEvento ? pessoasDoEvento(comentario) : '';
 
   const abrirAnexo = async (attachment: OrgCommentAttachment) => {
     const resultado = await downloadAttachment.mutateAsync(attachment);
@@ -143,6 +147,11 @@ export function FeedItemComentario({
                   ? rotuloDoEvento(comentario.kind)
                   : comentario.author_name || 'Usuário removido'}
               </span>
+              {pessoas && (
+                <span className="min-w-0 truncate text-[11px] text-muted-foreground">
+                  {pessoas}
+                </span>
+              )}
               {/*
                 Data e hora por extenso na própria fala, e não só a hora.
                 A Patricia se perdia tendo que subir até o rótulo do dia para
