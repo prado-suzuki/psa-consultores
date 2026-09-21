@@ -122,11 +122,20 @@ const APRESENTACAO: Record<NotificacaoTipo, ApresentacaoDoAviso> = {
   // 02/09/2026, em docs/geral/avisos-prazo-tarefa.md.
   tarefa_prazo_proximo: { rotulo: 'Prazo de tarefa', tom: AMBAR },
   tarefa_atrasada: { rotulo: 'Tarefa atrasada', tom: VERMELHO },
-  // GES-01B, irmã do de prazo: tarefa de cliente aberta sem NENHUMA alteração a
-  // 15 dias. Âmbar e não vermelho porque parada não é estouro: não venceu coisa
-  // nenhuma, e o atrasado é o aviso vermelho da família. Nasce por
-  // `criar_notificacao`, na varredura diária de inatividade.
-  tarefa_inativa: { rotulo: 'Tarefa inativa', tom: AMBAR },
+  // GES-01B, irmã do de prazo: tarefa de cliente aberta sem movimentação relevante
+  // a 15 dias. Âmbar e não vermelho porque falta de movimento não é estouro: não
+  // venceu coisa nenhuma, e o atrasado é o aviso vermelho da família. Nasce por
+  // `criar_notificacao`, na varredura diária.
+  //
+  // "Sem movimentação" e não "Tarefa inativa" por decisão da consultoria em
+  // 21/09/2026: "inativa" e "parada" são interpretativos, porque a tarefa pode
+  // estar legitimamente aguardando cliente, prazo ou dependência externa. A chave
+  // do enum segue `tarefa_inativa`, que é dado e não texto de tela.
+  tarefa_inativa: { rotulo: 'Sem movimentação', tom: AMBAR },
+  // GES-01B, o agregado do de cima: projeto cujas tarefas abertas TODAS pararam,
+  // a 30 dias. Rótulo diferente porque o gestor precisa distinguir de relance uma
+  // tarefa fria de um projeto frio; o tom é o mesmo, porque a natureza é a mesma.
+  projeto_inativo: { rotulo: 'Projeto sem movimentação', tom: AMBAR },
   /*
    * PT-04. Um tipo só no sino, porque o título vem como parâmetro na
    * `criar_notificacao` e muda entre primeira importação e revisão seguinte. O
