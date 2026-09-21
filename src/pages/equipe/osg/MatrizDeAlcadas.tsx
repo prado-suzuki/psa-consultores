@@ -117,7 +117,7 @@ const MatrizDeAlcadas = () => {
           vazio(
             <Grid3x3 className="h-10 w-10 text-muted-foreground opacity-50" />,
             <p className="max-w-md text-sm text-muted-foreground">
-              Selecione um cliente na barra acima para abrir a matriz dele.
+              Selecione um cliente na barra acima para abrir a matriz deste cliente.
             </p>,
           )
         ) : carregandoOrgaos || carregandoMatriz ? (
