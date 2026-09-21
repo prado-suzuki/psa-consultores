@@ -170,8 +170,8 @@ const RE_PLACEHOLDER_FORA_DO_CANONE =
  * Selecion, Buscar, Busque, Pesquis, Digite ou Procur, e as outras eram rótulo
  * disfarçado (`Nome do item`) ou exemplo sem forma (`Conselho de Administração`).
  */
-// A TIP-03 corrigiu nove placeholders de escolha/busca nas rotas OSG Work.
-const PLACEHOLDER_LEGADO = 216;
+// A TIP-03 corrigiu dez placeholders de escolha/busca nas rotas OSG Work.
+const PLACEHOLDER_LEGADO = 215;
 
 /** O teto de caracteres da explicação contextual (§3). Acima disso é nota de leitura. */
 const TETO_DO_TOOLTIP = 140;
