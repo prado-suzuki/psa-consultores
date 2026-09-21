@@ -36,15 +36,6 @@ interface CommentComposerProps {
   mentionCandidates: MentionCandidate[];
   /** Muda de valor quando alguém pede o foco daqui de fora. */
   focusSignal?: number;
-  /**
-   * Por que ainda não dá para publicar. A caixa continua de pé e aceita texto:
-   * só o botão de publicar fica desligado, com o motivo escrito ao lado dele.
-   *
-   * É do feed, onde a caixa é permanente e o destino pode não estar escolhido.
-   * Trocar a caixa por um aviso enquanto falta o projeto era o que deixava a
-   * tela sem lugar visível para escrever.
-   */
-  impedimento?: string | null;
   /** Autor do comentário raiz — vira o cabeçalho "Respondendo a ..." do compositor. */
   replyingToName?: string | null;
   onCancel?: () => void;
@@ -58,7 +49,6 @@ export function CommentComposer({
   isPending,
   mentionCandidates,
   focusSignal,
-  impedimento,
   replyingToName,
   onCancel,
   onSubmit,
@@ -88,7 +78,7 @@ export function CommentComposer({
   };
 
   const submit = async () => {
-    if (isPending || impedimento) return;
+    if (isPending) return;
     if (vazio && files.length === 0) return;
 
     // Anexo sem texto continua tendo corpo: a thread mostra a linha do anexo.
@@ -101,7 +91,18 @@ export function CommentComposer({
     const doc = lerCorpo(documento);
     const mencoes = doc.formato === 'rich' ? mencoesDoDoc(doc.doc) : [];
 
-    await onSubmit(documento, files, mencoes);
+    /*
+      O rascunho só some quando a fala foi gravada. Publicação que falha, e
+      envio que a pessoa desistiu no meio (no feed, o Enter abre a escolha de
+      destino e o Esc desfaz), devolvem o texto intacto: perder o parágrafo
+      escrito por causa de uma tecla é o pior desfecho possível aqui. Quem
+      avisa do erro é a mutation, que já mostra o toast.
+    */
+    try {
+      await onSubmit(documento, files, mencoes);
+    } catch {
+      return;
+    }
     setBody('');
     setFiles([]);
     setGeracao((atual) => atual + 1);
@@ -150,7 +151,11 @@ export function CommentComposer({
         onChange={setBody}
         candidates={mentionCandidates}
         placeholder={
-          compact ? 'Escreva uma resposta...' : 'Escreva um comentário... Use @ para mencionar'
+          compact
+            ? 'Escreva uma resposta...'
+            : caixa
+              ? 'Escreva e aperte Enter: o destino vem depois'
+              : 'Escreva um comentário... Use @ para mencionar'
         }
         minHeight={compact ? 'min-h-12' : caixa ? 'min-h-20' : 'min-h-16'}
         classeDoTexto={caixa ? 'px-3 py-2.5' : undefined}
@@ -165,6 +170,16 @@ export function CommentComposer({
         focarNaMontagem={compact}
         onArquivos={addFiles}
         onPublicar={submit}
+        // Na caixa do feed o Enter envia (e abre a escolha de destino); a
+        // quebra de linha passa a ser Shift+Enter, como no Slack.
+        enviarComEnter={caixa}
+        // A roda de gente vem do projeto, e no feed o projeto é escolhido no
+        // envio: antes da primeira fala o "@" não tem ninguém para oferecer.
+        avisoSemMencoes={
+          caixa
+            ? 'A lista de quem dá para mencionar vem do projeto, e ele é escolhido no envio.'
+            : undefined
+        }
         ariaLabel={compact ? 'Escrever resposta' : 'Escrever comentário'}
       />
 
@@ -264,9 +279,9 @@ export function CommentComposer({
           )}
         </div>
         <div className="flex min-w-0 items-center gap-2">
-          {impedimento && (
-            <span className="hidden truncate text-[11px] text-muted-foreground sm:inline">
-              {impedimento}
+          {caixa && (
+            <span className="hidden text-[11px] text-muted-foreground sm:inline">
+              Enter envia
             </span>
           )}
           {onCancel && (
@@ -277,7 +292,7 @@ export function CommentComposer({
           <Button
             type="button"
             size="sm"
-            disabled={isPending || Boolean(impedimento) || (vazio && files.length === 0)}
+            disabled={isPending || (vazio && files.length === 0)}
             onClick={submit}
           >
             {isPending ? (

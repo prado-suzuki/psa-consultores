@@ -8,6 +8,7 @@ import Text from '@tiptap/extension-text';
 import Underline from '@tiptap/extension-underline';
 import { Placeholder, UndoRedo } from '@tiptap/extensions';
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
+import { splitBlock } from '@tiptap/pm/commands';
 import { exitSuggestion, type SuggestionProps } from '@tiptap/suggestion';
 import {
   AtSign,
@@ -49,8 +50,29 @@ interface OrgCommentEditorProps {
   focarNaMontagem?: boolean;
   /** Arquivo colado ou arrastado sobre o texto continua virando anexo. */
   onArquivos?: (files: File[]) => void;
-  /** Atalho de publicar (Ctrl/Cmd+Enter). Enter continua quebrando linha. */
+  /** Atalho de publicar (Ctrl/Cmd+Enter, e Enter quando `enviarComEnter`). */
   onPublicar?: () => void;
+  /**
+   * Enter ENVIA, e a quebra de linha passa para Shift+Enter, como no Slack.
+   *
+   * É opt-in: no painel da tarefa o Enter continua quebrando linha. Quem liga
+   * isto é a caixa do feed, onde o Enter abre a escolha de destino e o gesto
+   * inteiro (escrever, enviar, escolher cliente e projeto) acontece sem a mão
+   * sair do teclado.
+   *
+   * A lista de menção tem precedência: com ela aberta o Enter escolhe a pessoa,
+   * e não envia.
+   */
+  enviarComEnter?: boolean;
+  /**
+   * O que dizer quando o "@" não tem ninguém para oferecer porque a lista de
+   * candidatos está vazia (e não porque a busca não casou).
+   *
+   * A lista de quem pode ser mencionado é derivada do projeto. Na caixa do
+   * feed o projeto só é escolhido no envio, então antes da primeira fala não
+   * há ninguém para oferecer, e uma lista que não abre parece defeito.
+   */
+  avisoSemMencoes?: string;
   ariaLabel?: string;
   /**
    * Classes da área de escrita. Existe para a caixa no formato do Slack, onde a
@@ -85,9 +107,11 @@ interface OrgCommentEditorProps {
  * marcador + JSON. O que ele acrescenta é a menção, que aqui é um nó do
  * documento em vez de texto — ver `MencaoUsuario`.
  *
- * Enter quebra linha e continua a lista; publicar é o botão (ou Ctrl/Cmd+Enter).
- * Trocar Enter por "publica" brigaria com lista e parágrafo, que são justamente
- * o que o editor rico traz.
+ * Por padrão Enter quebra linha e continua a lista; publicar é o botão (ou
+ * Ctrl/Cmd+Enter), porque trocar Enter por "publica" briga com lista e
+ * parágrafo, que são justamente o que o editor rico traz. `enviarComEnter`
+ * inverte isso para quem quer o gesto do Slack (a caixa do feed), e aí a quebra
+ * de linha é Shift+Enter.
  */
 export function OrgCommentEditor({
   value,
@@ -99,6 +123,8 @@ export function OrgCommentEditor({
   focarNaMontagem,
   onArquivos,
   onPublicar,
+  enviarComEnter,
+  avisoSemMencoes,
   ariaLabel,
   classeDoTexto,
   barraEmFaixa,
@@ -112,6 +138,8 @@ export function OrgCommentEditor({
   onPublicarRef.current = onPublicar;
   const onArquivosRef = useRef(onArquivos);
   onArquivosRef.current = onArquivos;
+  const enviarComEnterRef = useRef(enviarComEnter);
+  enviarComEnterRef.current = enviarComEnter;
   /** Lista viva para a extensão ler sem recriar o editor a cada chegada do hook. */
   const candidatesRef = useRef(candidates);
   candidatesRef.current = candidates;
@@ -229,8 +257,34 @@ export function OrgCommentEditor({
         onArquivosRef.current?.(files);
         return true;
       },
-      handleKeyDown: (_view, event) => {
-        if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey)) return false;
+      handleKeyDown: (view, event) => {
+        if (event.key !== 'Enter') return false;
+        /*
+          Com a lista de menção aberta E COM GENTE NELA o Enter é DELA. As props
+          diretas da view correm antes das dos plugins no ProseMirror, então sem
+          esta saída o envio atropelaria a escolha da pessoa que se acabou de
+          digitar.
+
+          A conferência do tamanho não é detalhe: o "@" fica ativo enquanto se
+          digita o nome, mesmo sem nenhum casamento, e o tratador da sugestão
+          devolve o Enter quando a lista está vazia. Sem ela, o Enter num "@abc"
+          sem resultado não enviava nem escolhia: caía no ProseMirror e abria
+          parágrafo novo (visto na tela).
+        */
+        if (sugestaoRef.current && sugestaoRef.current.items.length > 0) return false;
+        if (event.metaKey || event.ctrlKey) {
+          onPublicarRef.current?.();
+          return true;
+        }
+        if (!enviarComEnterRef.current) return false;
+        /*
+          Shift+Enter é a quebra de linha quando o Enter virou enviar, e ela
+          precisa ser feita à mão: o editor não carrega extensão de quebra
+          rígida, então sem isto a tecla não fazia NADA (medido na tela, com o
+          texto saindo todo numa linha só). O `splitBlock` é exatamente o que o
+          Enter fazia antes daqui: parágrafo novo, e item novo dentro de lista.
+        */
+        if (event.shiftKey) return splitBlock(view.state, view.dispatch);
         onPublicarRef.current?.();
         return true;
       },
@@ -371,6 +425,17 @@ export function OrgCommentEditor({
       </div>
 
       <EditorContent editor={editor} />
+
+      {sugestao && sugestao.items.length === 0 && (
+        <p
+          style={{ left: sugestao.x, top: sugestao.y }}
+          className="absolute z-30 w-64 -translate-y-full rounded-md border bg-popover p-2 text-xs text-muted-foreground shadow-md"
+        >
+          {candidates.length === 0
+            ? (avisoSemMencoes ?? 'Ninguém para mencionar por aqui.')
+            : 'Ninguém com esse nome.'}
+        </p>
+      )}
 
       {sugestao && sugestao.items.length > 0 && (
         <ul

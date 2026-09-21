@@ -127,7 +127,17 @@ export interface CreateOrgCommentInput {
    * — o trigger do banco exige que a resposta fique na mesma entidade da raiz.
    * Nulo mantém a entidade do painel, que é o caso de todo o resto.
    */
-  alvo?: { entityType: OrgCommentEntityType; entityId: string } | null;
+  alvo?: {
+    entityType: OrgCommentEntityType;
+    entityId: string;
+    /**
+     * Projeto do alvo, quando ele não é o do hook. É ele que carimba o caminho
+     * do anexo: o compositor do feed escolhe o destino só na hora de publicar,
+     * e sem isto o arquivo subiria na pasta do projeto errado (ou na de
+     * ninguém, quando o hook foi montado sem destino).
+     */
+    projectId?: string | null;
+  } | null;
   /**
    * Comentário em que a pessoa clicou "Responder", que é quem recebe a
    * notificação de resposta.
@@ -407,7 +417,7 @@ export function useDomainOrgComments(
       const attachmentInputs: OrgCommentAttachmentInput[] = [];
       try {
         for (const file of files) {
-          const filePath = `${projectId ?? commentsQuery.data?.[0]?.project_id ?? entityId}/${id}/${crypto.randomUUID()}${extensaoDoArquivo(file)}`;
+          const filePath = `${alvo?.projectId ?? projectId ?? commentsQuery.data?.[0]?.project_id ?? entityId}/${id}/${crypto.randomUUID()}${extensaoDoArquivo(file)}`;
           const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
           if (uploadError) throw uploadError;
           uploadedPaths.push(filePath);

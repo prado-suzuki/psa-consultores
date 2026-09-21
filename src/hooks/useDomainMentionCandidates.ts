@@ -35,73 +35,114 @@ interface QueryResult<T> {
   error: { message: string } | null;
 }
 
+/**
+ * Na thread do projeto a própria entidade é o projeto; na da tarefa, o projeto
+ * vem de quem abriu o painel.
+ */
+function projetoDaEntidade(
+  entityType: OrgCommentEntityType,
+  entityId: string,
+  projectId?: string | null,
+) {
+  return entityType === 'org_project' ? entityId : (projectId ?? null);
+}
+
+/**
+ * A busca, fora do hook.
+ *
+ * Existe separada porque o compositor do feed escolhe o destino DEPOIS de o
+ * texto estar escrito: no instante de publicar ele precisa da roda de gente do
+ * projeto recém-escolhido para peneirar as menções, e nesse instante não há
+ * render nenhum acontecendo. Ele busca com `queryClient.fetchQuery` e a mesma
+ * chave, então a ida ao banco é aproveitada pelo hook, e vice-versa.
+ */
+export async function buscarMentionCandidates(
+  entityType: OrgCommentEntityType,
+  entityId: string,
+  projectId?: string | null,
+): Promise<MentionCandidate[]> {
+  const resolvedProjectId = projetoDaEntidade(entityType, entityId, projectId);
+  if (!resolvedProjectId) return [];
+
+  const tarefaPromise: PromiseLike<QueryResult<TarefaPessoas>> =
+    entityType === 'org_task'
+      ? supabase
+          .from('org_tasks')
+          .select('assigned_to, reviewer_id')
+          .eq('id', entityId)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null });
+
+  const [membros, projeto, tarefa] = await Promise.all([
+    supabase.from('org_project_members').select('user_id').eq('project_id', resolvedProjectId),
+    supabase
+      .from('org_projects')
+      .select('responsible_id, leader_id')
+      .eq('id', resolvedProjectId)
+      .maybeSingle(),
+    tarefaPromise,
+  ]);
+
+  if (membros.error) throw membros.error;
+  if (projeto.error) throw projeto.error;
+  if (tarefa.error) throw tarefa.error;
+
+  const ids = new Set<string>();
+  for (const membro of membros.data ?? []) {
+    if (membro.user_id) ids.add(membro.user_id);
+  }
+  for (const id of [
+    projeto.data?.responsible_id,
+    projeto.data?.leader_id,
+    tarefa.data?.assigned_to,
+    tarefa.data?.reviewer_id,
+  ]) {
+    if (id) ids.add(id);
+  }
+  if (ids.size === 0) return [];
+
+  // Os nomes vêm de `profiles_safe` (só id + nome) e apenas para os ids já
+  // recortados acima — a view nunca é lida inteira daqui.
+  const { data: perfis, error } = await supabase
+    .from('profiles_safe')
+    .select('id, first_name, last_name')
+    .in('id', [...ids]);
+  if (error) throw error;
+
+  const candidatos = (perfis ?? []).flatMap<MentionCandidate>((perfil) => {
+    const name = [perfil.first_name, perfil.last_name].filter(Boolean).join(' ').trim();
+    return perfil.id && name ? [{ id: perfil.id, name }] : [];
+  });
+
+  return ordenarCandidatos(candidatos);
+}
+
+/** As opções da query, para o hook e para quem busca fora de render. */
+export function mentionCandidatesQueryOptions(
+  entityType: OrgCommentEntityType,
+  entityId: string,
+  projectId?: string | null,
+) {
+  return {
+    queryKey: mentionCandidatesQueryKey(
+      entityType,
+      entityId,
+      projetoDaEntidade(entityType, entityId, projectId),
+    ),
+    queryFn: () => buscarMentionCandidates(entityType, entityId, projectId),
+    // A equipe de um projeto muda por exceção, não a cada comentário.
+    staleTime: 5 * 60 * 1000,
+  };
+}
+
 export function useDomainMentionCandidates(
   entityType: OrgCommentEntityType,
   entityId: string,
   projectId?: string | null,
 ) {
-  // Na thread do projeto a própria entidade é o projeto; na da tarefa, o projeto
-  // vem de quem abriu o painel.
-  const resolvedProjectId = entityType === 'org_project' ? entityId : (projectId ?? null);
-
   const query = useQuery<MentionCandidate[]>({
-    queryKey: mentionCandidatesQueryKey(entityType, entityId, resolvedProjectId),
-    queryFn: async () => {
-      const tarefaPromise: PromiseLike<QueryResult<TarefaPessoas>> =
-        entityType === 'org_task'
-          ? supabase
-              .from('org_tasks')
-              .select('assigned_to, reviewer_id')
-              .eq('id', entityId)
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null });
-
-      const [membros, projeto, tarefa] = await Promise.all([
-        supabase.from('org_project_members').select('user_id').eq('project_id', resolvedProjectId!),
-        supabase
-          .from('org_projects')
-          .select('responsible_id, leader_id')
-          .eq('id', resolvedProjectId!)
-          .maybeSingle(),
-        tarefaPromise,
-      ]);
-
-      if (membros.error) throw membros.error;
-      if (projeto.error) throw projeto.error;
-      if (tarefa.error) throw tarefa.error;
-
-      const ids = new Set<string>();
-      for (const membro of membros.data ?? []) {
-        if (membro.user_id) ids.add(membro.user_id);
-      }
-      for (const id of [
-        projeto.data?.responsible_id,
-        projeto.data?.leader_id,
-        tarefa.data?.assigned_to,
-        tarefa.data?.reviewer_id,
-      ]) {
-        if (id) ids.add(id);
-      }
-      if (ids.size === 0) return [];
-
-      // Os nomes vêm de `profiles_safe` (só id + nome) e apenas para os ids já
-      // recortados acima — a view nunca é lida inteira daqui.
-      const { data: perfis, error } = await supabase
-        .from('profiles_safe')
-        .select('id, first_name, last_name')
-        .in('id', [...ids]);
-      if (error) throw error;
-
-      const candidatos = (perfis ?? []).flatMap<MentionCandidate>((perfil) => {
-        const name = [perfil.first_name, perfil.last_name].filter(Boolean).join(' ').trim();
-        return perfil.id && name ? [{ id: perfil.id, name }] : [];
-      });
-
-      return ordenarCandidatos(candidatos);
-    },
-    enabled: !!resolvedProjectId,
-    // A equipe de um projeto muda por exceção, não a cada comentário.
-    staleTime: 5 * 60 * 1000,
+    ...mentionCandidatesQueryOptions(entityType, entityId, projectId),
+    enabled: !!projetoDaEntidade(entityType, entityId, projectId),
   });
 
   return {
