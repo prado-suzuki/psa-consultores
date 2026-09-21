@@ -44,6 +44,9 @@ export interface OrgTask {
    
    estimated_hours: number | null;
    actual_hours: number | null;
+   /** Horas de quem REVISOU, acumuladas a cada despacho. Ver a migration
+    *  `20260921173000_revisao_horas_do_revisor.sql`. */
+   review_hours: number | null;
    parent_task_id: string | null;
   start_date: string | null;
   project_id: string | null;
@@ -99,6 +102,8 @@ export interface TaskFilters {
    tags?: string[];
    estimated_hours?: number;
    actual_hours?: number | null;
+   /** Horas de quem REVISOU, acumuladas. Nunca se mistura com `actual_hours`. */
+   review_hours?: number | null;
    parent_task_id?: string;
   project_id: string;
    client_id?: string;

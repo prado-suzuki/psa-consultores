@@ -42,6 +42,14 @@ interface TaskPropertyBarProps {
    * `useUpdateOrgTask`, que a busca no banco.
    */
   prazoDaMae?: string | null;
+  /**
+   * Horas ACUMULADAS de revisão da tarefa, vindas do registro salvo.
+   *
+   * Só de leitura aqui, e de propósito: quem escreve é o revisor, pelo diálogo de
+   * despacho. Escrever daqui seria recusado pelo gatilho da RLS-06 de todo jeito,
+   * e um campo que parece editável e não salva é pior que não ter campo.
+   */
+  horasDeRevisao?: number | null;
 }
 
 /**
@@ -58,6 +66,7 @@ export function TaskPropertyBar({
   reviewerName,
   disabled,
   prazoDaMae,
+  horasDeRevisao,
 }: TaskPropertyBarProps) {
   const { teamMembers, statusOptions } = options;
   const status = form.watch('status');
@@ -237,6 +246,27 @@ export function TaskPropertyBar({
               <span className="text-xs text-muted-foreground">h</span>
             </div>
           </div>
+
+          {/*
+            SÓ APARECE QUANDO EXISTE, e não é economia de espaço: a maioria das
+            tarefas nunca passa por revisão, e um "0 h" fixo ao lado do esforço
+            diria que a revisão aconteceu e não custou nada, que é outra coisa.
+
+            Separado do Esforço de propósito, que é o ponto da tarefa: somar a
+            hora de quem revisa com a de quem executa faria o esforço da tarefa
+            misturar dois trabalhos diferentes.
+          */}
+          {typeof horasDeRevisao === 'number' && horasDeRevisao > 0 && (
+            <div className="min-w-0 space-y-1.5">
+              <p className={CHIP_LABEL}>Revisão</p>
+              <div className="flex h-9 items-center gap-1 text-sm">
+                <span className="font-medium tabular-nums">
+                  {horasDeRevisao.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
+                </span>
+                <span className="text-xs text-muted-foreground">h</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <AvisoHorasDigitadas aviso={avisoHoras} className="mt-3" />

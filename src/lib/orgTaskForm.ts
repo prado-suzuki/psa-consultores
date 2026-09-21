@@ -72,6 +72,17 @@ export const taskSchema = z
       .union([z.coerce.number(), z.literal('')])
       .optional()
       .nullable(),
+    /**
+     * O que o revisor gastou NESTA revisão, não o total.
+     *
+     * O campo nasce vazio a cada despacho de propósito: a pergunta que o diálogo
+     * faz é "quanto levou esta revisão", e quem acumula é o `buildOrgTaskInput`.
+     * Pré-preencher com o total convidaria o revisor a somar de cabeça.
+     */
+    review_hours: z
+      .union([z.coerce.number(), z.literal('')])
+      .optional()
+      .nullable(),
   })
   .superRefine((data, ctx) => {
     // Único bloqueio das horas: concluir sem apontamento. Horas muito acima da
@@ -90,8 +101,38 @@ export type TaskFormValues = z.infer<typeof taskSchema>;
 
 /** Desfecho de uma ação de revisão disparada pelos botões do modal. */
 export type ReviewOutcome = 'approved' | 'adjustments' | 'send';
-/** Ações que abrem o diálogo de revisão (aprovar não abre diálogo). */
-export type ReviewAction = 'send' | 'adjustments';
+/**
+ * Ações que abrem o diálogo de revisão.
+ *
+ * **Aprovar passou a abrir em 21/09/2026**, e antes gravava direto no clique. O
+ * motivo é a hora do revisor: ela é informada no despacho, e aprovar é despacho.
+ * De quebra a aprovação ganhou a confirmação que não tinha — até aqui, clicar
+ * gravava sem chance de rever.
+ */
+export type ReviewAction = 'send' | 'adjustments' | 'approved';
+
+/**
+ * O total de horas de revisão depois deste despacho.
+ *
+ * **Acumula, e o número mandou:** medido em 21/09/2026, são 46 despachos de
+ * revisão em 28 tarefas, ou seja 1,64 revisões por tarefa. A tarefa volta para
+ * revisão mais de uma vez, e o que interessa nela é o esforço total, do mesmo
+ * jeito que `actual_hours` acumula o de execução.
+ *
+ * **Sem nada informado, o total anterior fica como está.** Todo salvamento do
+ * modal passa por aqui, não só o despacho do revisor: zerar quando o campo vem
+ * vazio apagaria a hora de revisão a cada edição de título.
+ */
+export function somaHorasDeRevisao(
+  jaGravadas: number | null | undefined,
+  informadas: number | string | null | undefined,
+): number | null {
+  const anterior = typeof jaGravadas === 'number' ? jaGravadas : null;
+  if (informadas === '' || informadas == null) return anterior;
+  const agora = Number(informadas);
+  if (!Number.isFinite(agora) || agora <= 0) return anterior;
+  return (anterior ?? 0) + agora;
+}
 
 /**
  * Status resultante do salvamento.
@@ -111,6 +152,7 @@ export function resolveNextStatus(
 export function buildOrgTaskInput(
   values: TaskFormValues,
   nextStatus: OrgTaskStatus,
+  horasDeRevisaoJaGravadas?: number | null,
 ): CreateOrgTaskInput {
   return {
     title: values.title,
@@ -136,6 +178,7 @@ export function buildOrgTaskInput(
       values.actual_hours === '' || values.actual_hours == null
         ? null
         : Number(values.actual_hours),
+    review_hours: somaHorasDeRevisao(horasDeRevisaoJaGravadas, values.review_hours),
   };
 }
 
