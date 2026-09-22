@@ -102,6 +102,8 @@ export function FeedItemComentario({
           resposta recém-publicada quando se clica em "Ver no topo" no toast. */}
       <div
         data-comentario={comentario.id}
+        data-nao-lida={naoLida || undefined}
+        data-realce={realce || undefined}
         className={cn(
           'group/item relative flex rounded-md pr-10 transition-colors hover:bg-muted/40',
           nested ? 'gap-2.5 pb-2 pt-1.5' : 'gap-3 pb-2 pt-2.5',
