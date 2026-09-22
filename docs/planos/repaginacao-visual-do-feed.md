@@ -444,8 +444,9 @@ Três commits, um por fatia: caracterização, hierarquia da conversa, moldura d
 - **Faixa de formatação do compositor sem fundo.** O `bg-muted/40` saiu e ficou só o fio
   inferior. A faixa é exclusiva do modo `caixa`, então o compositor da resposta inline e o
   do painel da tarefa não mudaram.
-- **Coluna com teto de `50rem`.** O §8 pede para não esticar o texto em monitor largo;
-  antes a coluna seguia a largura da tela a partir de `lg`.
+- **Coluna sem teto de largura.** Houve um teto de `50rem` para atender o §8, e ele saiu
+  em 22/09/2026: a coluna estreita desfazia as proporções da `feat/feed-fala-nova`, que
+  era o que se queria manter. A coluna segue a largura da tela a partir de `lg`.
 
 ### Conferido no app rodando (sandbox, Tax e OSG)
 

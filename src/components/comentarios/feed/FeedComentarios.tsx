@@ -207,11 +207,7 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
        dele a coluna mediria só o que a conversa pede, e não sobraria espaço
        nenhum para o `mt-auto` distribuir. `self-stretch` devolve a altura que o
        `items-start` do pai tirou, senão o compositor desgruda do rodapé. */}
-      {/* O teto de 50rem segura a linha de leitura em monitor largo; a coluna cresce até ele. */}
-      <div
-        ref={feedRef}
-        className="flex w-full min-w-0 max-w-[50rem] grow flex-col self-stretch pb-2"
-      >
+      <div ref={feedRef} className="flex w-full min-w-0 grow flex-col self-stretch pb-2">
         {/* A barra gruda no topo junto com o rótulo do dia. Antes ela rolava para
           fora: depois de duzentos comentários, trocar o período obrigava a voltar
           ao começo da página: o controle sumia e a informação passiva ficava.
