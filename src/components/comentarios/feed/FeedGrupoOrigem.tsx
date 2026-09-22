@@ -156,6 +156,11 @@ export function FeedGrupoOrigem({
            */
           const anteriorRespondendo =
             Boolean(anterior) && respondendoA === `${chaveDoBloco}:${anterior.raizId}`;
+          const proxima = threads[indice + 1];
+          const seguidaDeContinuacao =
+            Boolean(proxima?.continuaBloco) &&
+            respondendoA !== chaveDaThread &&
+            respondendoA !== `${chaveDoBloco}:${proxima.raizId}`;
 
           return (
             <FeedThread
@@ -163,6 +168,7 @@ export function FeedGrupoOrigem({
               thread={thread}
               area={area}
               continuaBloco={thread.continuaBloco && !anteriorRespondendo}
+              seguidaDeContinuacao={seguidaDeContinuacao}
               respondendo={respondendoA === chaveDaThread}
               idEmRealce={idEmRealce}
               vistoAte={vistoAte}
@@ -183,6 +189,8 @@ interface FeedThreadProps {
   area: AreaDeProjetos;
   /** Raiz sem avatar nem nome, por continuar o bloco de autor da thread de cima. */
   continuaBloco: boolean;
+  /** A raiz da thread de baixo continua esta: a caixa branca emenda nela. */
+  seguidaDeContinuacao: boolean;
   respondendo: boolean;
   idEmRealce: string | null;
   vistoAte: string | null;
@@ -204,6 +212,7 @@ function FeedThread({
   thread,
   area,
   continuaBloco,
+  seguidaDeContinuacao,
   respondendo,
   idEmRealce,
   vistoAte,
@@ -253,6 +262,7 @@ function FeedThread({
         comentario={thread.raiz}
         /* O fio desce do avatar, então quem abre resposta volta a mostrá-lo. */
         continuaBloco={continuaBloco && !respondendo}
+        seguidaDeContinuacao={seguidaDeContinuacao}
         abreThread={abreThread}
         realce={idEmRealce === thread.raiz.id}
         naoLida={naoLida(thread.raiz)}

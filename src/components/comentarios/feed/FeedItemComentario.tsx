@@ -34,6 +34,8 @@ interface FeedItemComentarioProps {
   abreThread?: boolean;
   /** Continuação da fala de cima (mesma pessoa, poucos minutos): sem avatar nem nome. */
   continuaBloco?: boolean;
+  /** A fala de baixo continua esta: a caixa branca desce colada até ela. */
+  seguidaDeContinuacao?: boolean;
   /** Fala recém-publicada: realce breve para o olho achar onde ela caiu. */
   realce?: boolean;
   /** Ainda não lida: chegou depois do carimbo deste cliente, e é de outra pessoa. */
@@ -65,6 +67,7 @@ export function FeedItemComentario({
   ultima = false,
   abreThread = false,
   continuaBloco = false,
+  seguidaDeContinuacao = false,
   realce = false,
   naoLida = false,
   onResponder,
@@ -103,7 +106,9 @@ export function FeedItemComentario({
           ehEvento && 'gap-2 py-1.5 pr-2',
           !ehEvento && 'pr-10 hover:bg-muted/40',
           !ehEvento && (nested ? 'gap-2.5 pb-2 pt-1.5' : 'gap-3 pb-2 pt-2.5'),
-          continuaBloco && 'pt-0.5',
+          // Sem folga entre falas do mesmo bloco: as caixas brancas se emendam.
+          continuaBloco && 'pt-0',
+          seguidaDeContinuacao && 'pb-0',
           // Fundo, e não anel: o anel é do realce, e os dois podem cair na mesma fala.
           naoLida && !realce && 'bg-primary/[0.055]',
           realce && 'bg-primary/10 ring-1 ring-primary/40 hover:bg-primary/10',
@@ -130,6 +135,7 @@ export function FeedItemComentario({
             nested={nested}
             abreThread={abreThread}
             continuaBloco={continuaBloco}
+            seguidaDeContinuacao={seguidaDeContinuacao}
           >
             {anexos}
           </FalaHumana>
@@ -170,8 +176,9 @@ function FalaHumana({
   nested,
   abreThread,
   continuaBloco,
+  seguidaDeContinuacao,
   children,
-}: PartesDaFala & { continuaBloco: boolean }) {
+}: PartesDaFala & { continuaBloco: boolean; seguidaDeContinuacao: boolean }) {
   const criadoEm = new Date(comentario.created_at);
 
   return (
@@ -185,7 +192,7 @@ function FalaHumana({
         <time
           dateTime={comentario.created_at}
           className={cn(
-            'shrink-0 pt-0.5 text-right text-[10px] tabular-nums leading-5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100',
+            'shrink-0 pt-2 text-right text-[10px] tabular-nums leading-5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100',
             nested ? 'w-9' : 'w-10',
           )}
         >
@@ -229,10 +236,19 @@ function FalaHumana({
           </div>
         )}
 
-        <div className={cn('text-sm leading-relaxed text-foreground', !continuaBloco && 'mt-0.5')}>
-          <OrgCommentBody body={comentario.body} />
+        {/* A caixa é do bloco de autor, não da fala: continuações emendam nela. */}
+        <div
+          className={cn(
+            'bg-card px-3 py-2',
+            !continuaBloco && 'mt-1 rounded-t-md',
+            !seguidaDeContinuacao && 'rounded-b-md',
+          )}
+        >
+          <div className="text-sm leading-relaxed text-foreground">
+            <OrgCommentBody body={comentario.body} />
+          </div>
+          {children}
         </div>
-        {children}
       </div>
     </>
   );
