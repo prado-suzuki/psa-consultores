@@ -53,7 +53,8 @@ class EnvioDesfeito extends Error {}
  * em que projeto) antes da frase que a pessoa veio escrever, ocupando uma faixa
  * do rodapé o tempo todo por uma escolha que só importa no instante de gravar.
  * Agora a ordem é a da conversa: escreve, Enter, cliente, projeto, publicado,
- * tudo no teclado (ver `EscolherDestinoDaFala`).
+ * tudo no teclado (ver `EscolherDestinoDaFala`). Se o "@" já perguntou o destino
+ * desta fala, o Enter publica sem perguntar de novo.
  *
  * A gravação não é reimplementada: é a mesma mutation da thread
  * (`useDomainOrgComments.createComment`), que já cuida de upload de anexo, RPC
@@ -79,6 +80,11 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
   const [motivoDoModal, setMotivoDoModal] = useState<MotivoDoDestino>('publicar');
   /** Quem está esperando a escolha: o `onSubmit` que abriu o modal. */
   const respostaDoModal = useRef<((destino: DestinoDaFala | null) => void) | null>(null);
+  /**
+   * O destino desta fala já foi escolhido pelo "@": o Enter publica direto, sem
+   * perguntar de novo o que a pessoa acabou de responder.
+   */
+  const destinoEscolhidoNaMencao = useRef(false);
 
   const { data: clientes = [] } = useExternalClients();
   const { data: projetos = [] } = useOrgProjectsForFilter();
@@ -96,11 +102,12 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
     alvo?.projectId ?? null,
     { somenteEscrita: true },
   );
-  const { candidates: mentionCandidates, isLoading: carregandoMencoes } = useDomainMentionCandidates(
-    alvo?.entityType ?? 'org_project',
-    alvo?.entityId ?? '',
-    alvo?.projectId ?? null,
-  );
+  const { candidates: mentionCandidates, isLoading: carregandoMencoes } =
+    useDomainMentionCandidates(
+      alvo?.entityType ?? 'org_project',
+      alvo?.entityId ?? '',
+      alvo?.projectId ?? null,
+    );
 
   /**
    * O destino de partida acompanha o RECORTE da tela: quem lê o feed filtrado
@@ -119,6 +126,7 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
     if (filtros.projetoId && projetos.length === 0) return;
     if (recorteSincronizado.current === recorte) return;
     recorteSincronizado.current = recorte;
+    destinoEscolhidoNaMencao.current = false;
     setDestino(destinoDosFiltros(filtros, projetos));
   }, [recorte, filtros, projetos]);
 
@@ -167,6 +175,7 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
     if (!escolhido || !alvoNovo) return false;
 
     setDestino(escolhido);
+    destinoEscolhidoNaMencao.current = true;
     const gente = await queryClient.fetchQuery(
       mentionCandidatesQueryOptions(alvoNovo.entityType, alvoNovo.entityId, alvoNovo.projectId),
     );
@@ -199,7 +208,8 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
         mentionCandidates={mentionCandidates}
         aoMencionarSemGente={destinoParaMencionar}
         onSubmit={async (body, files, mencoes) => {
-          const escolhido = await pedirDestino('publicar');
+          const escolhido =
+            destinoEscolhidoNaMencao.current && alvo ? destino : await pedirDestino('publicar');
           // Desistiu no modal: o `CommentComposer` guarda o rascunho porque o
           // `onSubmit` não chegou ao fim.
           if (!escolhido) throw new EnvioDesfeito();
@@ -240,8 +250,10 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
             mentions: permitidas,
             alvo: destinoDaFala,
           });
-          // O destino escolhido vira o de partida do próximo envio.
+          // O destino escolhido vira o de partida do próximo envio, que volta a
+          // perguntar.
           setDestino(escolhido);
+          destinoEscolhidoNaMencao.current = false;
           // A fala é o comentário mais novo do sistema, então entra no topo do
           // feed. Invalidar pelo PREFIXO refaz também o recorte filtrado que
           // está na tela.
