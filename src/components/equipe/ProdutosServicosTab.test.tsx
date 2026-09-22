@@ -17,6 +17,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ProdutoSegmento, ServicoPrestado } from '@/hooks/useCategorias';
+import { dicaDe } from '@/test/dica';
 
 const CLUSTER_TAX = 'c-tax';
 const CLUSTER_OSG = 'c-osg';
@@ -117,8 +118,12 @@ beforeEach(() => {
 
 const TITULO_DA_LINHA = 'Clique para ver os detalhes · Shift+clique para selecionar a faixa';
 
-/** Os nomes de serviço na ORDEM em que a tela os mostra. */
-const servicosNaTela = () => screen.getAllByTitle(TITULO_DA_LINHA).map((b) => b.textContent);
+/** Os nomes de serviço na ORDEM em que a tela os mostra; a linha é o botão com esse balão. */
+const servicosNaTela = () =>
+  screen
+    .getAllByRole('button')
+    .filter((b) => dicaDe(b) === TITULO_DA_LINHA)
+    .map((b) => b.textContent);
 
 const abrirProduto = async (user: ReturnType<typeof userEvent.setup>, nome: string) => {
   await user.click(screen.getByRole('button', { name: new RegExp(nome) }));
@@ -156,8 +161,8 @@ describe('produto sem serviço nenhum', () => {
     render(<ProdutosServicosTab />);
 
     const linha = screen.getByRole('button', { name: new RegExp(CHA) });
-    const contador = within(linha).getByTitle(/nascem sem tarefa/i);
-    expect(contador).toHaveTextContent('0/5');
+    const contador = within(linha).getByText('0/5');
+    expect(dicaDe(contador)).toMatch(/nascem sem tarefa/i);
     expect(contador.className).not.toMatch(/warning/);
   });
 });

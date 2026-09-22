@@ -953,7 +953,7 @@ describe('EquipeSprintDetalhes: UI pública', () => {
     expect(screen.getAllByTestId('gantt-day-grid')).toHaveLength(3);
     // Caracteriza inclusive a pluralização pública atual; refatoração não deve corrigi-la incidentalmente.
     expect(
-      screen.getByRole('button', { name: /Ana Silva 4 entregávelis • 9h • 1\/4 concluídos/ }),
+      screen.getByRole('button', { name: 'Ana Silva — 4 entregávelis • 9h • 1/4 concluídos' }),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: 'Agenda' }));

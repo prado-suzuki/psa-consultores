@@ -72,11 +72,13 @@ vi.mock('@/components/equipe/dev/ExportDialog', () => ({
     return <button disabled={Boolean(props.disabled)}>export-dialog</button>;
   },
 }));
+// O mock monta o balão aberto, e a célula truncada repete o nome nele.
+const SEM_BALAO = 'script, style, [role=tooltip]';
 vi.mock('@/components/ui/tooltip', () => ({
   TooltipProvider: ({ children }: PropsWithChildren) => children,
   Tooltip: ({ children }: PropsWithChildren) => children,
   TooltipTrigger: ({ children }: PropsWithChildren) => children,
-  TooltipContent: ({ children }: PropsWithChildren) => <span>{children}</span>,
+  TooltipContent: ({ children }: PropsWithChildren) => <span role="tooltip">{children}</span>,
 }));
 vi.mock('@/components/ui/popover', () => ({
   Popover: ({ children }: PropsWithChildren) => <div>{children}</div>,
@@ -199,7 +201,7 @@ describe('ConsultaXMLs', () => {
       'http://localhost:8000/api/v1/query/contribuintes/contrib-1/nfes?data_inicio=2026-02-15&data_fim=2026-02-15&page=1&page_size=10&emitente=123450001&chave=4455',
       { method: 'GET' },
     );
-    expect(screen.getByText('Emitente NFe')).toBeInTheDocument();
+    expect(screen.getByText('Emitente NFe', { ignore: SEM_BALAO })).toBeInTheDocument();
     expect(screen.getByText('21 nota(s) encontrada(s)')).toBeInTheDocument();
     expect(screen.getByText(/Página/)).toHaveTextContent('Página 1 de 3');
     expect(mocks.exportProps).toMatchObject({ tipoDocumento: 'nfe', totalRecords: 21, contribuinteId: 'contrib-1', emitente: '12.345/0001', disabled: false });
@@ -207,7 +209,7 @@ describe('ConsultaXMLs', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Próximo' }));
     expect(mocks.options.get('nfe-docs')?.queryKey[4]).toBe(2);
 
-    const row = screen.getByText('Emitente NFe').closest('tr')!;
+    const row = screen.getByText('Emitente NFe', { ignore: SEM_BALAO }).closest('tr')!;
     fireEvent.click(within(row).getByRole('button'));
     await waitFor(() => expect(mocks.fetchWithAuth).toHaveBeenCalledWith(
       'http://localhost:8000/api/v1/query/download/nfe/xml/NFE%2FCHAVE%201',
@@ -231,8 +233,8 @@ describe('ConsultaXMLs', () => {
       'http://localhost:8000/api/v1/query/contribuintes/contrib-1/ctes?data_inicio=2026-02-15&data_fim=2026-02-15&page=1&page_size=10',
       { method: 'GET' },
     );
-    expect(screen.getByText('Transportadora')).toBeInTheDocument();
-    expect(screen.getByText('Campinas')).toBeInTheDocument();
+    expect(screen.getByText('Transportadora', { ignore: SEM_BALAO })).toBeInTheDocument();
+    expect(screen.getByText('Campinas', { ignore: SEM_BALAO })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Baixar XMLs' }));
     await waitFor(() => expect(mocks.fetchWithAuth).toHaveBeenLastCalledWith(
       'http://localhost:8000/api/v1/query/download/contribuintes/contrib-1/cte/xml?data_inicio=2026-02-15&data_fim=2026-02-15',
