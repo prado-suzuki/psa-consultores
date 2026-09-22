@@ -208,7 +208,6 @@ const CAIXA_QUE_FICA_BRANCA: Record<MotivoDeFicarBranca, Record<string, number>>
   },
   controle: {
     'src/components/comentarios/feed/FeedFiltros.tsx': 1,
-    'src/components/comentarios/feed/FeedItemComentario.tsx': 1,
     // Seis das oito abaixo são a MESMA peça repetida: a pastilha ativa de um
     // segmentado, branca sobre a canaleta rebaixada — é o `.seg span.on` que a
     // seção 3 da página de comparação desenha, e lá ela é branca. As outras duas
