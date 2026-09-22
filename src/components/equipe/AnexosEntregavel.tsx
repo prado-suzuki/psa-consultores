@@ -6,7 +6,7 @@ import { Download, FileText, Paperclip, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { useEquipeKanbanAttachments } from '@/hooks/useDomainEquipeKanbanAttachments';
+import { useEquipeKanbanAttachments, type DonoDoAnexo } from '@/hooks/useDomainEquipeKanbanAttachments';
 import { isImagemAnexo, nomeDoPrintColado, primeiraImagemColada } from '@/lib/anexosEntregavel';
 import {
   EQUIPE_KANBAN_FILE_ACCEPT,
@@ -19,12 +19,18 @@ import { ButtonTooltip } from '@/components/ui/button-tooltip';
 
 interface AnexosEntregavelProps {
   /** Sem id (tarefa ainda não salva) o bloco não aparece: o anexo precisa do vínculo. */
-  deliverableId: string | undefined;
+  deliverableId?: string;
+  /** Item do backlog, no lugar do entregável. Os anexos vão com ele ao mover para a sprint. */
+  backlogItemId?: string;
   /** Falso enquanto o modal está fechado, para o Ctrl+V não capturar fora dele. */
   ativo?: boolean;
 }
 
-export function AnexosEntregavel({ deliverableId, ativo = true }: AnexosEntregavelProps) {
+export function AnexosEntregavel({ deliverableId, backlogItemId, ativo = true }: AnexosEntregavelProps) {
+  // Chave estável do dono, para os efeitos não reentrarem a cada render.
+  const donoId = deliverableId ?? backlogItemId;
+  const dono = (): DonoDoAnexo =>
+    deliverableId ? deliverableId : { backlogItemId: backlogItemId as string };
   const mutations = useEquipeKanbanAttachments();
   const [anexos, setAnexos] = useState<EquipeKanbanAttachment[]>([]);
   const [miniaturas, setMiniaturas] = useState<Record<string, string>>({});
@@ -53,7 +59,7 @@ export function AnexosEntregavel({ deliverableId, ativo = true }: AnexosEntregav
   );
 
   useEffect(() => {
-    if (!deliverableId) {
+    if (!donoId) {
       setAnexos([]);
       setMiniaturas({});
       return;
@@ -61,7 +67,7 @@ export function AnexosEntregavel({ deliverableId, ativo = true }: AnexosEntregav
     let cancelado = false;
     void (async () => {
       try {
-        const lista = await mutations.load.mutateAsync(deliverableId);
+        const lista = await mutations.load.mutateAsync(dono());
         if (!cancelado) await aplicar(lista);
       } catch (error) {
         console.error('Error loading attachments:', error);
@@ -72,11 +78,11 @@ export function AnexosEntregavel({ deliverableId, ativo = true }: AnexosEntregav
     };
     // `mutations` é recriado a cada render; depender dele reentraria em laço.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deliverableId]);
+  }, [donoId]);
 
   const enviar = useCallback(
     async (file: File, mensagem: string) => {
-      if (!deliverableId) return;
+      if (!donoId) return;
       const erro = validateEquipeKanbanFile(file);
       if (erro) {
         toast.error(erro);
@@ -84,7 +90,10 @@ export function AnexosEntregavel({ deliverableId, ativo = true }: AnexosEntregav
       }
       setEnviando(true);
       try {
-        await aplicar(await mutations.upload.mutateAsync({ deliverableId, file }));
+        const alvo = deliverableId
+          ? { deliverableId, file }
+          : { backlogItemId: backlogItemId as string, file };
+        await aplicar(await mutations.upload.mutateAsync(alvo));
         toast.success(mensagem);
       } catch (error) {
         console.error('Error uploading attachment:', error);
@@ -93,13 +102,13 @@ export function AnexosEntregavel({ deliverableId, ativo = true }: AnexosEntregav
         setEnviando(false);
       }
     },
-    [aplicar, deliverableId, mutations.upload],
+    [aplicar, backlogItemId, deliverableId, donoId, mutations.upload],
   );
 
   // Ctrl+V em qualquer ponto do modal aberto. Colar texto segue normal: sem
   // imagem no clipboard a função sai sem fazer nada.
   useEffect(() => {
-    if (!ativo || !deliverableId) return;
+    if (!ativo || !donoId) return;
     const aoColar = (event: ClipboardEvent) => {
       if (enviando) return;
       const imagem = primeiraImagemColada(Array.from(event.clipboardData?.files ?? []));
@@ -112,7 +121,7 @@ export function AnexosEntregavel({ deliverableId, ativo = true }: AnexosEntregav
     };
     document.addEventListener('paste', aoColar);
     return () => document.removeEventListener('paste', aoColar);
-  }, [ativo, deliverableId, enviando, enviar]);
+  }, [ativo, donoId, enviando, enviar]);
 
   const baixar = async (anexo: EquipeKanbanAttachment) => {
     try {
@@ -142,7 +151,7 @@ export function AnexosEntregavel({ deliverableId, ativo = true }: AnexosEntregav
     }
   };
 
-  if (!deliverableId) return null;
+  if (!donoId) return null;
 
   return (
     <div className="shrink-0 space-y-3 border-t pt-4">

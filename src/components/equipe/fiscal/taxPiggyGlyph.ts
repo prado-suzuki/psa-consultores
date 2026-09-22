@@ -24,9 +24,30 @@ export const TAX_PIG_BODY_PATH =
 export const TAX_PIG_TAIL_PATH =
   'M112.076632 593.733206S0 619.065595 0 496.455125c0-82.010412 99.282496-91.606014 99.282496-28.232394C96.638374 448.477115 42.64712 447.112407 42.64712 490.441881c0 53.3089 76.594228 55.953022 76.594228-0.682354 39.022115-16.547083 25.844155 105.466328-7.164716 103.973679z';
 
-/** Moeda estática do glyph: só a metade superior, apoiada no lombo. */
+/**
+ * Moeda estática do glyph: só a metade superior.
+ *
+ * ELA NÃO ESTÁ APOIADA NO LOMBO, e o comentário aqui dizia que estava. A base
+ * do semicírculo está em y 213,24 e o topo do corpo, na faixa de x que ela
+ * ocupa, está em y ≈ 250: sobram 37 unidades de ar, e a moeda lê como se
+ * estivesse flutuando. Quem desenha usa `TAX_PIG_COIN_DY` para encostá-la.
+ */
 export const TAX_PIG_COIN_PATH =
   'M582.133189 213.2356c9.297072-19.447087 14.926492-40.983882 14.926492-63.97068a149.26492 149.26492 0 1 0-298.529841 0c0 22.986798 5.62942 44.523593 14.926493 63.97068h268.676856z';
 
 /** Centro e raio da moeda completa, no viewBox 1024 do glyph. */
 export const TAX_COIN = { cx: 447.8, cy: 149.3, r: 149.26 } as const;
+
+/**
+ * Quanto a moeda estática desce para POUSAR no lombo, no viewBox 1024.
+ *
+ * A distância é a conta direta entre os dois números medidos acima: base da
+ * moeda em 213,24 e topo do corpo em 250. Foi apontado pela consultoria em
+ * 22/09/2026, olhando o ícone da barra lateral da Tax, e confirmado desenhando
+ * a cena com 0, 20, 37 e 50 de deslocamento: em 20 ainda sobra fresta, em 50 a
+ * moeda afunda no corpo.
+ *
+ * NÃO SE APLICA AO `TaxLoader`. Lá a moeda é o círculo completo e está em
+ * QUEDA: ela atravessa o lombo e some atrás do corpo, então não tem pouso.
+ */
+export const TAX_PIG_COIN_DY = 37;

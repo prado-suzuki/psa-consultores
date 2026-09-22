@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { prioridadeDoProjeto, prioridadeDoProjetoLista } from "@/lib/prioridadeDoProjeto";
@@ -18,6 +17,7 @@ import {
   useDeleteDomainBacklogItem,
   useDomainBacklog,
   useMoveDomainBacklogItem,
+  useTransferBacklogAttachments,
   useUpdateDomainBacklogItem,
   type BacklogItem,
   type BacklogCluster,
@@ -30,6 +30,9 @@ import {
 import { Plus, Edit2, Trash2, ArrowRight, Layers } from "lucide-react";
 import { format } from "date-fns";
 import { matchCluster, SEM_CLUSTER } from "@/lib/clusterFilter";
+import { isTarefaRichTextEmpty, tarefaRichTextToPlain } from "@/lib/tarefaRichText";
+import { BacklogItemDialog } from "@/components/equipe/backlog/BacklogItemDialog";
+import { blankBacklogItemForm, type BacklogItemForm } from "@/lib/backlogItemForm";
 
 const UNASSIGNED = '__unassigned__';
 const NONE = '__none__';
@@ -50,6 +53,7 @@ export default function EquipeBacklog() {
   const removeBacklogItem = useDeleteDomainBacklogItem();
   const createBacklogDeliverable = useCreateDomainBacklogDeliverable();
   const moveBacklogItem = useMoveDomainBacklogItem();
+  const transferAttachments = useTransferBacklogAttachments();
 
   const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
@@ -63,14 +67,7 @@ export default function EquipeBacklog() {
   // Modal de criação/edição
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<BacklogItem | null>(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    priority: 'medium',
-    estimated_hours: '',
-    project_id: '',
-    cluster_id: '',
-  });
+  const [formData, setFormData] = useState<BacklogItemForm>(blankBacklogItemForm);
   const [saving, setSaving] = useState(false);
 
   // Modal de mover para sprint
@@ -131,14 +128,7 @@ export default function EquipeBacklog() {
       });
     } else {
       setEditingItem(null);
-      setFormData({
-        title: '',
-        description: '',
-        priority: 'medium',
-        estimated_hours: '',
-        project_id: '',
-        cluster_id: '',
-      });
+      setFormData(blankBacklogItemForm());
     }
     setFormModalOpen(true);
   };
@@ -154,7 +144,8 @@ export default function EquipeBacklog() {
       
       const itemData = {
         title: formData.title,
-        description: formData.description || null,
+        // O editor rico devolve um documento mesmo vazio: sem texto, grava nulo.
+        description: isTarefaRichTextEmpty(formData.description) ? null : formData.description,
         priority: formData.priority,
         estimated_hours: formData.estimated_hours ? parseFloat(formData.estimated_hours) : null,
         sprint_id: null, // Backlog global, sem sprint
@@ -246,6 +237,10 @@ export default function EquipeBacklog() {
 
       const newDeliverable = await createBacklogDeliverable.mutateAsync(deliverableData);
 
+      // Antes de marcar como movido: se falhar, o item continua visível no backlog
+      // com os anexos, em vez de sumir levando-os para uma linha que ninguém abre.
+      await transferAttachments.mutateAsync({ item: movingItem, deliverableId: newDeliverable.id });
+
       // Atualizar status do item do backlog
       await moveBacklogItem.mutateAsync({
         itemId: movingItem.id,
@@ -299,7 +294,7 @@ export default function EquipeBacklog() {
       subtitle="Repositório de atividades para distribuir nas sprints"
       headerActions={
         <Button onClick={() => openFormModal()}>
-          <Plus className="h-4 w-4 mr-2" /> Novo Item
+          <Plus className="h-4 w-4 mr-2" /> Nova Tarefa
         </Button>
       }
     >
@@ -385,7 +380,9 @@ export default function EquipeBacklog() {
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium">{item.title}</h4>
                         {item.description && (
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                            {tarefaRichTextToPlain(item.description)}
+                          </p>
                         )}
                         <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                           {item.estimated_hours && (
@@ -461,119 +458,18 @@ export default function EquipeBacklog() {
         )}
       </div>
 
-      {/* Modal de Criação/Edição */}
-      <Dialog open={formModalOpen} onOpenChange={setFormModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingItem ? 'Editar Item' : 'Novo Item do Backlog'}</DialogTitle>
-            <DialogDescription className="sr-only">Formulário de item do backlog</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Título *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Nome da atividade"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Detalhes sobre a atividade"
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="priority">Prioridade</Label>
-                <Select value={formData.priority} onValueChange={(v) => setFormData({ ...formData, priority: v })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Baixa</SelectItem>
-                    <SelectItem value="medium">Média</SelectItem>
-                    <SelectItem value="high">Alta</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="hours">Horas Estimadas</Label>
-                <Input
-                  id="hours"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={formData.estimated_hours}
-                  onChange={(e) => setFormData({ ...formData, estimated_hours: e.target.value })}
-                  placeholder="Ex: 4"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cluster">Cluster</Label>
-              <Select
-                value={formData.cluster_id || NONE}
-                onValueChange={(v) => setFormData({
-                  ...formData,
-                  cluster_id: v === NONE ? '' : v,
-                  // Limpa projeto se o cluster do projeto atual não bate mais.
-                  project_id: (() => {
-                    if (!formData.project_id) return '';
-                    const proj = projects.find(p => p.id === formData.project_id);
-                    if (v === NONE) return formData.project_id;
-                    return proj && proj.cluster_id === v ? formData.project_id : '';
-                  })(),
-                })}
-              >
-                <SelectTrigger id="cluster">
-                  <SelectValue placeholder="Selecionar cluster (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>Nenhum</SelectItem>
-                  {clusters.map(c => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="project">Projeto</Label>
-              <Select
-                value={formData.project_id || NONE}
-                onValueChange={(v) => setFormData({ ...formData, project_id: v === NONE ? '' : v })}
-              >
-                <SelectTrigger id="project">
-                  <SelectValue placeholder="Selecionar projeto (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>Nenhum</SelectItem>
-                  {projects
-                    .filter(p => !formData.cluster_id || p.cluster_id === formData.cluster_id)
-                    .map(p => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFormModalOpen(false)}>Cancelar</Button>
-            <Button onClick={saveItem} disabled={saving}>
-              {saving ? 'Salvando...' : editingItem ? 'Salvar' : 'Adicionar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <BacklogItemDialog
+        open={formModalOpen}
+        onOpenChange={setFormModalOpen}
+        editing={editingItem !== null}
+        itemId={editingItem?.id}
+        form={formData}
+        setForm={setFormData}
+        clusters={clusters}
+        projects={projects}
+        saving={saving}
+        onSave={saveItem}
+      />
 
       {/* Modal de Mover para Sprint */}
       <Dialog open={moveModalOpen} onOpenChange={setMoveModalOpen}>

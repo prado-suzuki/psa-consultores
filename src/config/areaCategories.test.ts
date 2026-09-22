@@ -37,7 +37,11 @@ describe('AREA_CATEGORIES_MAP', () => {
     }
   });
 
-  it('Tax mapeia exatamente para ["tax"] (categorias fantasma removidas no PR #1)', () => {
+  it('Tax mapeia exatamente para ["tax"], cobrindo as duas portas da área', () => {
+    // As 30 ferramentas do ex-Digital Dev entraram nesta MESMA categoria em
+    // 22/09/2026, no desenho da OSG: uma categoria para TAX Projects e TAX Work.
+    // Uma versão intermediária separou `tax_work`, e foi desfeita — o argumento
+    // dela não se sustentou (ver o cabeçalho da migração do dia).
     expect(AREA_CATEGORIES_MAP.tax.categories).toEqual(['tax']);
   });
 });

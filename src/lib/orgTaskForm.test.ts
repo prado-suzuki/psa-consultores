@@ -10,6 +10,7 @@ import {
   resolveCommentAuthorName,
   resolveNextStatus,
   resolveReviewerName,
+  somaHorasDeRevisao,
   taskSchema,
   type TaskFormValues,
 } from '@/lib/orgTaskForm';
@@ -31,6 +32,7 @@ const baseValues: TaskFormValues = {
   contribuinte_id: 'CTB1',
   estimated_hours: 5,
   actual_hours: null,
+  review_hours: null,
 };
 
 describe('taskSchema', () => {
@@ -120,6 +122,7 @@ describe('buildOrgTaskInput', () => {
       contribuinte_id: 'CTB1',
       estimated_hours: 5,
       actual_hours: null,
+      review_hours: null,
     });
   });
 
@@ -353,5 +356,66 @@ describe('mergeTaskClientOptions', () => {
 
   it('sem cliente na tarefa devolve apenas a lista consultada', () => {
     expect(mergeTaskClientOptions(clients, null)).toEqual(clients);
+  });
+});
+
+/*
+ * A hora de quem revisa.
+ *
+ * O campo do diálogo guarda o que foi gasto NESTA revisão; o total é problema
+ * desta função. A regra existe porque a tarefa volta para revisão mais de uma
+ * vez: medido em 21/09/2026, 46 despachos em 28 tarefas.
+ */
+describe('somaHorasDeRevisao', () => {
+  it('acumula sobre o total já gravado', () => {
+    expect(somaHorasDeRevisao(2, 1.5)).toBe(3.5);
+    expect(somaHorasDeRevisao(null, 2)).toBe(2);
+  });
+
+  /*
+   * O caso que mais importa: TODO salvamento do modal passa por aqui, não só o
+   * despacho do revisor. Zerar quando o campo vem vazio apagaria a hora de
+   * revisão a cada edição de título.
+   */
+  it('sem nada informado, o total anterior fica como está', () => {
+    expect(somaHorasDeRevisao(3, '')).toBe(3);
+    expect(somaHorasDeRevisao(3, null)).toBe(3);
+    expect(somaHorasDeRevisao(3, undefined)).toBe(3);
+    expect(somaHorasDeRevisao(null, '')).toBeNull();
+  });
+
+  /* Zero e valor inválido contam como não informado, e não como "revisei em
+     zero hora": quem não quis apontar deixa o total onde estava. */
+  it('zero e lixo não mexem no total', () => {
+    expect(somaHorasDeRevisao(3, 0)).toBe(3);
+    expect(somaHorasDeRevisao(3, -1)).toBe(3);
+    expect(somaHorasDeRevisao(3, 'abc')).toBe(3);
+  });
+
+  it('aceita o número que o input devolve como texto', () => {
+    expect(somaHorasDeRevisao(1, '2.5')).toBe(3.5);
+  });
+});
+
+describe('buildOrgTaskInput e as horas de revisão', () => {
+  it('soma o informado ao total que já estava na tarefa', () => {
+    const input = buildOrgTaskInput({ ...baseValues, review_hours: 2 }, 'em_ajuste', 1);
+    expect(input.review_hours).toBe(3);
+  });
+
+  /* A separação é o ponto da tarefa: as duas horas nunca caem no mesmo campo. */
+  it('não encosta em actual_hours', () => {
+    const input = buildOrgTaskInput({ ...baseValues, actual_hours: 8, review_hours: 2 }, 'em_ajuste', null);
+    expect(input.actual_hours).toBe(8);
+    expect(input.review_hours).toBe(2);
+  });
+
+  it('salvamento comum preserva o total e não informa hora nenhuma', () => {
+    const input = buildOrgTaskInput(baseValues, 'in_progress', 4);
+    expect(input.review_hours).toBe(4);
+  });
+
+  it('tarefa que nunca foi revisada continua sem horas de revisão', () => {
+    expect(buildOrgTaskInput(baseValues, 'in_progress').review_hours).toBeNull();
   });
 });

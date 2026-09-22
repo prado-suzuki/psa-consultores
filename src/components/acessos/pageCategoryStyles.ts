@@ -5,7 +5,6 @@
  */
 export const PAGE_CATEGORY_LABELS: Record<string, string> = {
   rotina: 'Digital Rotina',
-  dev: 'Digital Dev',
   gestao: 'Gestão',
   geral: 'Geral',
   tax: 'Tax',
@@ -18,7 +17,6 @@ export const PAGE_CATEGORY_LABELS: Record<string, string> = {
 
 export const PAGE_CATEGORY_COLORS: Record<string, string> = {
   rotina: 'bg-primary/15 text-primary border-primary/20',
-  dev: 'bg-foreground/[0.05] text-foreground border-border',
   gestao: 'bg-primary/5 text-primary border-primary/15',
   geral: 'bg-muted text-muted-foreground border-border',
   tax: 'bg-emerald-100 text-emerald-700 border-emerald-200',
@@ -32,18 +30,25 @@ export const PAGE_CATEGORY_COLORS: Record<string, string> = {
 // Prefixo visual aplicado em /equipe/acessos para refletir a hierarquia pretendida
 // das rotas. As URLs reais em `page_path` ainda são `/equipe/X`; a mudança é só
 // de apresentação até a migração das rotas de verdade.
+//
+// A entrada `dev` saiu em 22/09/2026, e por ter dado certo: a migração de verdade
+// aconteceu. As páginas do Digital Dev foram para `/equipe/tax/work` e para a
+// categoria `tax`, então reescrever caminho nenhum para `/equipe/digital/dev`
+// mostraria um endereço que nunca existiu. As quatro entradas `dev` deste arquivo
+// saíram juntas: sem página na categoria, rótulo e cor não têm o que pintar.
+//
+// ATENÇÃO: `'dev'` continua vivo em `estrutura_areas.page_categories`, que o
+// Board lê para saber qual área absorve o trabalho da Digital (ver
+// `BOARD_AREAS`). É outra coisa com o mesmo nome, e não se limpa junto.
 export const CATEGORY_DISPLAY_PREFIX: Record<string, { from: string; to: string }> = {
   rotina: { from: '/equipe', to: '/equipe/digital/rotina' },
-  dev: { from: '/equipe/dev', to: '/equipe/digital/dev' },
 };
 
 // Agrupamento visual em /equipe/acessos: mapeia categorias para um "grupo de
-// exibição" único (ex.: `rotina` e `dev` compartilham o grupo `digital`, que
-// aparece como um bloco só rotulado "Digital"). Categorias sem entrada aqui
-// usam o próprio nome como grupo.
+// exibição" único (a `rotina` aparece sob um bloco rotulado "Digital").
+// Categorias sem entrada aqui usam o próprio nome como grupo.
 export const CATEGORY_TO_GROUP: Record<string, string> = {
   rotina: 'digital',
-  dev: 'digital',
 };
 
 const GROUP_LABELS: Record<string, string> = {
@@ -84,7 +89,6 @@ export const getDisplayPath = (category: string, pagePath: string): string => {
 // sobre `page_name` quando o nó da árvore corresponde a esse caminho.
 const TREE_NODE_LABEL_OVERRIDES: Record<string, string> = {
   '/equipe/digital/rotina': 'Rotina',
-  '/equipe/digital/dev': 'Dev',
 };
 
 export const getTreeNodeLabelOverride = (path: string): string | undefined =>

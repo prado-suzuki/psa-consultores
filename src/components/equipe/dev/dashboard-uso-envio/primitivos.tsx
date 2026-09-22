@@ -137,7 +137,7 @@ const TOM_VALOR_CLARO: Record<NonNullable<KpiItem['tom']>, string> = {
  * POR QUE ELA EXISTE. A faixa escura era o unico bloco do Board com layout de
  * outra familia -- a usuaria apontou exatamente isso ao abrir Ferramentas. A
  * referencia de design nao tem faixa escura: KPI e cartao claro. Mas o mesmo
- * componente serve `/equipe/dev`, que e outra area e nao passou por esta
+ * componente serve `/equipe/tax/work`, que e outra area e nao passou por esta
  * refatoracao; por isso a escolha e uma PROP explicita, e nao farejar a rota:
  * quem muda de layout e quem pediu.
  */
@@ -202,7 +202,7 @@ export const FaixaResumo = ({
   colunas?: 3 | 4 | 6;
   /**
    * `escura` = a faixa original (Dev). `cartoes` = os cartoes claros do design
-   * system do Board. Default na escura para NAO mexer em `/equipe/dev` sem
+   * system do Board. Default na escura para NAO mexer em `/equipe/tax/work` sem
    * alguem pedir.
    */
   variante?: 'escura' | 'cartoes';

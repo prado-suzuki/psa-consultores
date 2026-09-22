@@ -23,8 +23,8 @@ export const DASHBOARD_PAGES = [
   // aba Dashboards e o cartão mostram `DASHBOARD_PAGE_PATH`, ou seja o caminho.
   // Marcar isso na tela é mudança no `DashboardsTab`, não aqui.
   { key: 'cliente', label: 'Área do Cliente → Dashboards', path: '/cliente' },
-  { key: 'dev_gerenciar_dados', label: 'Digital DEV → Gerenciar Dados', path: '/equipe/dev/gerenciar-dados/dashboards' },
-  { key: 'dev_perdcomp', label: 'Digital DEV → PERDCOMP', path: '/equipe/dev/perdcomp/dashboard' },
+  { key: 'dev_gerenciar_dados', label: 'Tax Work → Gerenciar Dados', path: '/equipe/tax/work/gerenciar-dados/dashboards' },
+  { key: 'dev_perdcomp', label: 'Tax Work → PERDCOMP', path: '/equipe/tax/work/perdcomp/dashboard' },
   // Gerenciais: o seletor dessas duas telas já traz o painel nativo de Clientes
   // e OS como primeira opção; o que for cadastrado aqui entra em seguida.
   // Cadastre com filter_type = "cluster": as telas prometem "do seu cluster".

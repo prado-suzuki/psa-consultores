@@ -15,9 +15,9 @@ describe('homeDaArea', () => {
     expect(homeDaArea('/gestao')).toBe('/gestao');
   });
 
-  it('Board e Dev têm home própria, diferente do prefixo', () => {
+  it('a home pode diferir do prefixo, e o Tax Work volta para a Tax', () => {
     expect(homeDaArea('/equipe/board/relatorios')).toBe('/equipe/board/dashboard');
-    expect(homeDaArea('/equipe/dev/consulta-sped')).toBe('/equipe/digital');
+    expect(homeDaArea('/equipe/tax/work/consulta-sped')).toBe('/equipe/tax');
   });
 
   it('endereço fora das áreas cai no padrão', () => {

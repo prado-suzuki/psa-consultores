@@ -24,6 +24,13 @@ Impacto: tarefa aprovada volta para a fila do responsável.
 Travado em: `TaskModal.test.tsx > revisor delegado > aprovar grava o comentário
 "Tarefa aprovada"`.
 
+**Continua valendo depois de 21/09/2026**, e o aviso é para quem chegar aqui
+estranhando: naquele dia o botão Aprovar passou a abrir um diálogo de
+confirmação, para perguntar as horas do revisor (tarefa [1] da sprint 14). O
+caminho ganhou uma etapa, **o destino não mudou**: o `resolveNextStatus` segue
+mandando `approved` para `em_ajuste`, e o achado continua candidato a tarefa
+própria.
+
 ## 2. `actual_hours: null` vira `0` no update
 
 No `form.reset` de edição o campo recebe `''` (`task.actual_hours ?? ''`). O

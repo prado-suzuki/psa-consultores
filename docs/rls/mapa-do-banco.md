@@ -74,7 +74,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`dashboard_cluster_access`](#dashboardclusteraccess) | 5 | — | interno | estrutura_clusters, profiles, dashboards |
 | [`dashboards`](#dashboards) | 15 | — | interno | profiles |
 | [`dcomp`](#dcomp) | 10 | — | cluster-fiscal | dcomp, per, per_with_contribuinte |
-| [`deliverable_attachments`](#deliverableattachments) | 8 | — | sprint | sprint_deliverables |
+| [`deliverable_attachments`](#deliverableattachments) | 9 | — | sprint | sprint_backlog_items, sprint_deliverables |
 | [`demand_items`](#demanditems) | 10 | — | sprint | routines |
 | [`difal_decisao`](#difaldecisao) | 6 | — | cluster-cliente | difal_sessao |
 | [`difal_sessao`](#difalsessao) | 10 | — | cluster-cliente | cliente |
@@ -370,7 +370,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="deliverableattachments"></a>`deliverable_attachments`
 **Acesso:** sprint
-`deliverable_id` string · `file_name` string · `file_path` string · `file_size` number · `file_type` string? · `id` string · `uploaded_at` string · `uploaded_by` string?  ·  **FK:** `deliverable_id`→sprint_deliverables.id
+`backlog_item_id` string? · `deliverable_id` string? · `file_name` string · `file_path` string · `file_size` number · `file_type` string? · `id` string · `uploaded_at` string · `uploaded_by` string?  ·  **FK:** `backlog_item_id`→sprint_backlog_items.id · `deliverable_id`→sprint_deliverables.id
 
 ### <a id="demanditems"></a>`demand_items`
 **Acesso:** sprint

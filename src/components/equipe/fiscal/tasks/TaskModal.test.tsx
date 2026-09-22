@@ -243,6 +243,7 @@ const baseTask: OrgTask = {
   tags: [],
   estimated_hours: 5,
   actual_hours: null,
+  review_hours: null,
   parent_task_id: null,
   start_date: '2026-04-01',
   project_id: 'PRJ1',
@@ -454,6 +455,7 @@ describe('TaskModal — criação', () => {
       contribuinte_id: 'CTB1',
       estimated_hours: 4,
       actual_hours: null,
+      review_hours: null,
     });
     expect(Object.keys(payload).sort()).toEqual([
       'actual_hours',
@@ -467,6 +469,7 @@ describe('TaskModal — criação', () => {
       'parent_task_id',
       'priority',
       'project_id',
+      'review_hours',
       'reviewer_id',
       'start_date',
       'status',
@@ -587,6 +590,7 @@ describe('TaskModal — edição', () => {
       // preenche o campo com '' e o `z.coerce.number()` do union converte ''
       // para 0 antes do check `=== ''`. Ver docs/geral/achados-taskmodal.md.
       actual_hours: 0,
+      review_hours: null,
       reviewTransitionValidated: false,
     });
     expect(kinds()).toEqual(['update']);
@@ -1057,7 +1061,10 @@ describe('TaskModal — revisor delegado', () => {
     const user = userEvent.setup();
     renderModal({ task: reviewTask });
 
+    /* Aprovar passou a abrir o diálogo em 21/09/2026, para perguntar as horas do
+       revisor. O clique na barra só abre; quem grava é o Confirmar. */
     await user.click(screen.getByRole('button', { name: /Aprovar/ }));
+    await user.click(await screen.findByRole('button', { name: 'Confirmar aprovação' }));
 
     await waitFor(() => expect(mocks.createComment).toHaveBeenCalledTimes(1));
     expect(kinds()).toEqual(['update', 'comment']);
@@ -1134,12 +1141,59 @@ describe('TaskModal — revisor delegado', () => {
     ]);
   });
 
+  /*
+   * A hora de quem revisa, de ponta a ponta.
+   *
+   * O ponto da tarefa [1] da sprint 14 é que ela não se misture com a de quem
+   * executou, então o caso cobra as duas no mesmo payload.
+   */
+  it('aprovar com horas manda o total e não encosta em actual_hours', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: { ...reviewTask, actual_hours: 8, review_hours: 2 } });
+
+    await user.click(screen.getByRole('button', { name: /Aprovar/ }));
+    await user.type(await screen.findByLabelText('Horas desta revisão'), '1.5');
+    await user.click(screen.getByRole('button', { name: 'Confirmar aprovação' }));
+
+    await waitFor(() => expect(mocks.createComment).toHaveBeenCalledTimes(1));
+    /* 2 que já estavam mais 1,5 desta revisão. */
+    expect(payloadOf('update')).toMatchObject({ review_hours: 3.5, actual_hours: 8 });
+  });
+
+  it('devolver para ajustes também pergunta as horas', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: reviewTask });
+
+    await user.click(screen.getByRole('button', { name: /Solicitar ajustes/ }));
+    await user.type(await screen.findByLabelText('Horas desta revisão'), '0.5');
+    await user.type(screen.getByLabelText('comentario-revisao'), 'Faltou o anexo');
+    await user.click(screen.getByRole('button', { name: 'Devolver para ajustes' }));
+
+    await waitFor(() => expect(mocks.createComment).toHaveBeenCalledTimes(1));
+    expect(payloadOf('update')).toMatchObject({ review_hours: 0.5 });
+  });
+
+  /* Enviar para revisão é ação de quem executa, não de quem revisa: ali a
+     pergunta não faz sentido e o campo não pode aparecer. */
+  it('enviar para revisão não pergunta horas de revisão', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: { ...baseTask, assigned_to: 'U1', status: 'in_progress' } });
+
+    await user.click(screen.getByRole('button', { name: /Enviar para revisão/ }));
+
+    expect(await screen.findByRole('heading', { name: 'Enviar para revisão' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Horas desta revisão')).not.toBeInTheDocument();
+  });
+
   it('usa o nome do metadata/email quando o perfil do usuário não existe', async () => {
     const user = userEvent.setup();
     mocks.allProfiles = ALL_PROFILES.filter((p) => p.id !== 'U1');
     renderModal({ task: reviewTask });
 
+    /* Aprovar passou a abrir o diálogo em 21/09/2026, para perguntar as horas do
+       revisor. O clique na barra só abre; quem grava é o Confirmar. */
     await user.click(screen.getByRole('button', { name: /Aprovar/ }));
+    await user.click(await screen.findByRole('button', { name: 'Confirmar aprovação' }));
 
     await waitFor(() => expect(mocks.createComment).toHaveBeenCalledTimes(1));
     expect(payloadOf('comment')).toMatchObject({ userName: 'bernardo@psa.com' });

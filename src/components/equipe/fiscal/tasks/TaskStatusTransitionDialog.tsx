@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -29,6 +30,7 @@ import {
 } from '@/hooks/useOrgTasks';
 import { useOrgProjectClusterIds } from '@/hooks/useOrgProjects';
 import { useReviewerCandidates } from '@/hooks/useReviewerCandidates';
+import { somaHorasDeRevisao } from '@/lib/orgTaskForm';
 
 type TransitionStatus = 'review' | 'em_ajuste';
 
@@ -63,8 +65,20 @@ function TransitionDialog({
   const createComment = useCreateOrgTaskComment({ showToasts: false, area });
   const [reviewerId, setReviewerId] = useState('');
   const [details, setDetails] = useState('');
+  const [reviewHours, setReviewHours] = useState('');
   const [validationError, setValidationError] = useState('');
   const transitionSavedRef = useRef(false);
+
+  /**
+   * Devolver para ajustes é despacho de revisão, e arrastar o cartão é o mesmo
+   * ato que clicar em "Solicitar ajustes" dentro da tarefa. Sem o campo aqui, a
+   * hora do revisor se perdia em silêncio por este caminho.
+   *
+   * A pergunta só aparece para QUEM REVISA: a coluna é dele, e o gatilho da
+   * RLS-06 só a libera no ramo do revisor. Perguntar a um `team_member` que
+   * devolve a própria tarefa renderia um 42501 no salvamento.
+   */
+  const perguntaHoras = status === 'em_ajuste' && !!user?.id && task.reviewer_id === user.id;
 
   const { data: clusterIds = [] } = useOrgProjectClusterIds(task?.project_id || undefined);
   const { data: candidates = [], isLoading: candidatesLoading } = useReviewerCandidates(clusterIds);
@@ -77,6 +91,7 @@ function TransitionDialog({
     if (!open) return;
     setReviewerId(status === 'review' ? task?.reviewer_id || '' : '');
     setDetails('');
+    setReviewHours('');
     setValidationError('');
     transitionSavedRef.current = false;
   }, [open, status, task?.id, task?.reviewer_id]);
@@ -84,6 +99,7 @@ function TransitionDialog({
   const handleClose = (nextOpen: boolean) => {
     if (!nextOpen) {
       setDetails('');
+      setReviewHours('');
       setValidationError('');
       transitionSavedRef.current = false;
     }
@@ -109,10 +125,22 @@ function TransitionDialog({
     setValidationError('');
     try {
       if (!transitionSavedRef.current) {
+        /*
+          O total acumulado sai da tarefa salva, nunca do campo: somar em cima
+          do próprio valor dobraria a conta. E só entra no payload quando mudou
+          de fato, porque o hook grava tudo o que difere do estado atual, e o
+          espelho da RLS-06 lá dentro só admite `status` e `review_hours`.
+        */
+        const totalDeHoras = perguntaHoras
+          ? somaHorasDeRevisao(task.review_hours, reviewHours)
+          : null;
+        const gravaHoras = perguntaHoras && totalDeHoras !== (task.review_hours ?? null);
+
         await updateTask.mutateAsync({
           id: task.id,
           status,
           ...(status === 'review' ? { reviewer_id: reviewerId } : {}),
+          ...(gravaHoras ? { review_hours: totalDeHoras } : {}),
           reviewTransitionValidated: true,
         });
         transitionSavedRef.current = true;
@@ -189,6 +217,30 @@ function TransitionDialog({
                 <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                 {task?.assigned_to_name || 'Responsável não definido'}
               </div>
+            </div>
+          )}
+
+          {perguntaHoras && (
+            <div className="space-y-2">
+              <Label htmlFor="transition-review-hours">Horas desta revisão</Label>
+              <Input
+                id="transition-review-hours"
+                type="number"
+                min={0}
+                step="0.25"
+                inputMode="decimal"
+                placeholder="Ex: 1,5"
+                aria-describedby="transition-review-hours-ajuda"
+                value={reviewHours}
+                onChange={event => setReviewHours(event.target.value)}
+              />
+              {/* Mesmas palavras do diálogo dos botões da tarefa: é o mesmo
+                  despacho, e duas explicações diferentes para o mesmo campo
+                  fariam parecer que são coisas diferentes. */}
+              <p id="transition-review-hours-ajuda" className="text-sm text-muted-foreground">
+                O tempo que você levou nesta revisão. Soma ao total e fica separado das horas de
+                quem executou.
+              </p>
             </div>
           )}
 

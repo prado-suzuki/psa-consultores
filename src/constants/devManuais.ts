@@ -28,9 +28,9 @@ export const MANUAIS_AVULSOS = {
 
 function montarIndice(): Record<string, string> {
   const porRota: Record<string, string> = {
-    '/equipe/dev/consulta-xmls': MANUAIS_AVULSOS.consultaXmls,
-    '/equipe/dev/calculadora-ibs-cbs': MANUAIS_AVULSOS.calculadoraIbsCbs,
-    '/equipe/dev/controle-balancetes': MANUAIS_AVULSOS.controleBalancetes,
+    '/equipe/tax/work/consulta-xmls': MANUAIS_AVULSOS.consultaXmls,
+    '/equipe/tax/work/calculadora-ibs-cbs': MANUAIS_AVULSOS.calculadoraIbsCbs,
+    '/equipe/tax/work/controle-balancetes': MANUAIS_AVULSOS.controleBalancetes,
   };
 
   for (const hub of Object.values(DEV_HUBS)) {

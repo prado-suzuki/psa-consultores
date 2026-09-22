@@ -3,18 +3,31 @@ import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { supabase } from '@/integrations/supabase/client';
 import { buildEquipeKanbanFilePath, type EquipeKanbanAttachment } from '@/lib/equipeKanban';
 
-interface UploadAttachmentInput {
-  deliverableId: string;
-  file: File;
-}
+/**
+ * De quem é o anexo. Tarefa da sprint é o caso de sempre, e por isso segue
+ * aceitando o id cru; item do backlog vem em objeto (ver a migration
+ * 20260922201001_anexos_do_item_do_backlog.sql).
+ */
+export type DonoDoAnexo = string | { backlogItemId: string };
+
+type UploadAttachmentInput = { file: File } & (
+  | { deliverableId: string }
+  | { backlogItemId: string }
+);
+
+const colunaDoDono = (dono: DonoDoAnexo) =>
+  typeof dono === 'string'
+    ? { coluna: 'deliverable_id' as const, id: dono }
+    : { coluna: 'backlog_item_id' as const, id: dono.backlogItemId };
 
 const mutationOptions = { retry: false, networkMode: 'always', onError: () => undefined } as const;
 
-async function loadAttachments(deliverableId: string) {
+async function loadAttachments(dono: DonoDoAnexo) {
+  const { coluna, id } = colunaDoDono(dono);
   const { data } = await supabase
     .from('deliverable_attachments')
     .select('*')
-    .eq('deliverable_id', deliverableId)
+    .eq(coluna, id)
     .order('uploaded_at', { ascending: false });
   return (data || []) as EquipeKanbanAttachment[];
 }
@@ -28,16 +41,20 @@ export function useEquipeKanbanAttachments() {
 
   const upload = useMutation({
     mutationKey: ['domain-equipe-kanban', 'upload-attachment'],
-    mutationFn: async ({ deliverableId, file }: UploadAttachmentInput) => {
+    mutationFn: async (input: UploadAttachmentInput) => {
+      const { file } = input;
+      const dono: DonoDoAnexo =
+        'deliverableId' in input ? input.deliverableId : { backlogItemId: input.backlogItemId };
+      const { coluna, id } = colunaDoDono(dono);
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Usuário não autenticado');
-      const filePath = buildEquipeKanbanFilePath(deliverableId, file);
+      const filePath = buildEquipeKanbanFilePath(id, file);
       const { error: uploadError } = await supabase.storage
         .from('deliverable-attachments')
         .upload(filePath, file);
       if (uploadError) throw uploadError;
       const { error: metadataError } = await supabase.from('deliverable_attachments').insert({
-        deliverable_id: deliverableId,
+        [coluna]: id,
         file_name: file.name,
         file_path: filePath,
         file_size: file.size,
@@ -45,7 +62,7 @@ export function useEquipeKanbanAttachments() {
         uploaded_by: userData.user.id,
       });
       if (metadataError) throw metadataError;
-      return loadAttachments(deliverableId);
+      return loadAttachments(dono);
     },
     ...mutationOptions,
   });
