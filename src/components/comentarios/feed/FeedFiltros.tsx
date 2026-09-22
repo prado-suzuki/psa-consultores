@@ -1,10 +1,11 @@
-import { useMemo, useState, type ReactNode } from 'react';
-import { AtSign, Building2, CalendarClock, FolderKanban, ListFilter, MessagesSquare, User, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { AtSign, Building2, CalendarClock, FolderKanban, ListFilter, MessagesSquare, Search, User, X } from 'lucide-react';
 
 import { SingleSelectCombobox } from '@/components/ui/SingleSelectCombobox';
 import type { ComboOption } from '@/components/ui/MultiSelectCombobox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -15,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { cn } from '@/lib/utils';
 import { useExternalClients, useOrgProjectsForFilter, useTeamProfilesSafe } from '@/hooks/useTaxReferenceData';
 import {
   aoTrocarDeCliente,
@@ -23,9 +25,19 @@ import {
   PERIODOS_DO_FEED,
   projetosDoCliente,
   temFiltroAtivo,
+  termoDaBusca,
   type FeedFiltros as FeedFiltrosValor,
   type PeriodoDoFeed,
 } from '@/lib/feedFiltros';
+
+/**
+ * Quanto o campo de busca espera antes de virar recorte.
+ *
+ * Cada termo é uma lista paginada própria no React Query (a chave carrega o
+ * recorte), então tecla a tecla seriam oito consultas para escrever
+ * "balancete", cada uma abrindo o cursor do zero.
+ */
+const ESPERA_DA_BUSCA = 350;
 
 interface FeedFiltrosProps {
   filtros: FeedFiltrosValor;
@@ -110,7 +122,10 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
   const quantidade = contarFiltrosAtivos(filtros);
   /** O contador do botão não conta o que já está visível fora dele. */
   const quantidadeNoPopover =
-    quantidade - (filtros.apenasMencoes ? 1 : 0) - (filtros.periodo !== 'sempre' ? 1 : 0);
+    quantidade -
+    (filtros.apenasMencoes ? 1 : 0) -
+    (filtros.periodo !== 'sempre' ? 1 : 0) -
+    (termoDaBusca(filtros) ? 1 : 0);
 
   const etiquetas = [
     {
@@ -165,9 +180,25 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
           </ToggleGroupItem>
         </ToggleGroup>
 
+        {/*
+          A busca fica na PRIMEIRA linha, à vista, e não dentro do popover: ela é
+          o filtro que responde "onde ficou aquilo", a pergunta que trouxe a
+          pessoa ao feed sabendo o que procura. Escondida atrás de um clique ela
+          seria descoberta por quem já não precisa dela.
+
+          Ela cresce e toma o espaço que sobra entre a alternância e os controles
+          de período, porque é onde se digita: campo de texto curto num canto
+          mostra três palavras da frase buscada.
+        */}
+        <CampoDeBusca
+          valor={filtros.busca}
+          onBuscar={(busca) => alterar({ busca })}
+          className="min-w-40 flex-1 max-sm:order-last max-sm:w-full max-sm:flex-none"
+        />
+
         {/* Em tela estreita a linha quebra: aí os dois controles ocupam a largura
             toda em vez de ficarem pendurados num canto. */}
-        <div className="ml-auto flex items-center gap-2 max-sm:w-full">
+        <div className="flex items-center gap-2 max-sm:w-full">
           <Select
             value={filtros.periodo}
             onValueChange={(valor) => alterar({ periodo: valor as PeriodoDoFeed })}
@@ -314,6 +345,89 @@ function CampoDeFiltro({
         {rotulo}
       </Label>
       {children}
+    </div>
+  );
+}
+
+/**
+ * O campo de busca do feed.
+ *
+ * Ele tem estado PRÓPRIO porque o recorte mora na URL: escrever direto lá
+ * repintaria a página e refaria a consulta a cada tecla, e o cursor do feed é
+ * reaberto do zero em cada recorte novo. Aqui a letra aparece na hora e o
+ * recorte só muda quando a digitação para (ou no Enter, para quem não quer
+ * esperar).
+ *
+ * A sincronia de volta compara o termo APARADO. Sem isso, o espaço de
+ * "balancete " sumia debaixo do dedo: a URL guarda o termo sem as pontas, esse
+ * valor voltava para cá e apagava o espaço recém-digitado, colando a palavra
+ * seguinte na anterior.
+ */
+function CampoDeBusca({
+  valor,
+  onBuscar,
+  className,
+}: {
+  valor: string;
+  onBuscar: (busca: string) => void;
+  className?: string;
+}) {
+  const [texto, setTexto] = useState(valor);
+  /** O callback muda de identidade a cada render; o relógio não pode reiniciar por isso. */
+  const buscarRef = useRef(onBuscar);
+  buscarRef.current = onBuscar;
+
+  // O valor de fora manda quando ele muda por outro caminho: "Limpar filtros",
+  // F5, link colado por outra pessoa.
+  useEffect(() => {
+    setTexto((atual) => (atual.trim() === valor.trim() ? atual : valor));
+  }, [valor]);
+
+  useEffect(() => {
+    if (texto.trim() === valor.trim()) return;
+    const relogio = window.setTimeout(() => buscarRef.current(texto), ESPERA_DA_BUSCA);
+    return () => window.clearTimeout(relogio);
+  }, [texto, valor]);
+
+  return (
+    <div className={cn('relative', className)}>
+      <Search
+        aria-hidden
+        className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+      />
+      <Input
+        type="search"
+        value={texto}
+        onChange={(evento) => setTexto(evento.target.value)}
+        onKeyDown={(evento) => {
+          // Enter não espera o relógio; Esc limpa sem tirar a mão do teclado.
+          if (evento.key === 'Enter') onBuscar(texto);
+          if (evento.key === 'Escape' && texto) {
+            evento.stopPropagation();
+            setTexto('');
+            onBuscar('');
+          }
+        }}
+        placeholder="Buscar no que foi escrito…"
+        aria-label="Buscar no texto dos comentários"
+        /* `[&::-webkit-search-cancel-button]:hidden`: o × nativo do
+           `type="search"` ficaria ao lado do nosso, e o nativo some do estado
+           controlado sem avisar o React. */
+        className="h-9 pl-8 pr-8 text-xs [&::-webkit-search-cancel-button]:hidden"
+      />
+      {texto && (
+        <button
+          type="button"
+          aria-label="Limpar busca"
+          onClick={() => {
+            setTexto('');
+            onBuscar('');
+          }}
+          className="absolute right-2 top-1/2 grid h-4 w-4 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
+        >
+          <X aria-hidden className="h-3 w-3" />
+        </button>
+      )}
     </div>
   );
 }

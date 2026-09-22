@@ -74,7 +74,7 @@ seguintes:
   entidade nem assina o realtime dela. Com o destino escolhido só no envio, o `alvo` da chamada
   passou a carregar também o `projectId` — é ele que carimba o caminho do anexo.
 
-### 2. Busca textual no feed
+### 2. Busca textual no feed ✅ ENTREGUE (22/09/2026)
 
 Os filtros são cliente, projeto, autor, só menções e período. Não há campo de texto. Sem busca o
 feed responde "o que aconteceu hoje" e não responde "onde ficou aquilo", que é o caso da consultora
@@ -83,6 +83,34 @@ reenviado como `(3).pdf` porque ninguém achou o primeiro.
 Onde mexe: novo parâmetro de texto na RPC `feed_org_comments` (filtrar no `WHERE`, antes do
 `LIMIT`, como os outros), campo na `FeedFiltros` e na URL. A fase 3 do
 `planos/plano-comentarios-mencoes-feed.md` já previa "busca textual no corpo".
+
+**Como ficou:** `_busca` na RPC (migration `20260922133138_feed_org_comments_busca.sql`, aplicada no
+sandbox, **pendente em produção**), campo na primeira linha da barra de filtros e `?busca=` na URL,
+como os outros. O campo tem estado próprio e espera 350 ms antes de virar recorte: cada termo é uma
+lista paginada nova no React Query, e tecla a tecla seriam oito consultas para escrever "balancete".
+
+**A armadilha era o formato do corpo.** `org_comments.body` guarda JSON do TipTap, e um
+`body ILIKE '%termo%'` casaria "doc", "text" e "paragraph" com TODO comentário rico do sistema: a
+busca devolveria o feed inteiro dizendo que achou. A comparação passou a ser feita sobre o texto
+EXTRAÍDO (`org_comment_texto_pesquisavel`, por `jsonb`, que ainda desfaz as escapes do JSON, coisa
+que regex não faria). Medido no sandbox: buscar "paragraph" casava 31 linhas antes, zero depois.
+
+Três coisas que só apareceram no caminho:
+
+- O evento de revisão grava um PREFIXO em texto antes do marcador ("Devolvido para ajustes:
+  `[[review-rich-text:v1]]{...}`"), então procurar o marcador só no começo da string (como
+  `lerCorpo` faz na tela) deixava essas 31 linhas com o JSON inteiro como texto pesquisável. O
+  marcador é procurado em qualquer posição, e o prefixo entra na busca: é frase de gente.
+- A assinatura da função MUDA ao ganhar `_busca`, e `CREATE OR REPLACE` deixaria as duas de pé como
+  sobrecargas, tornando a chamada do PostgREST ambígua. A migration dropa a de oito parâmetros
+  antes, e o gate confere que sobrou uma só.
+- A URL guarda o termo aparado, e devolvê-lo ao campo apagava o espaço recém-digitado (escrever
+  "balancete " virava "balancete", e a palavra seguinte colava na anterior). A sincronia de volta
+  compara o termo já aparado dos dois lados.
+
+Os termos são E, não OU, em qualquer ordem, e `%` digitado é caractere, não curinga. O toast de
+"publicado" também aprendeu a busca: escrever com um termo ligado avisa que a fala ficou fora do
+recorte em vez de prometer "ver no topo" e levar a um feed onde ela não está.
 
 ### 3. @todos: menção ao grupo do projeto
 

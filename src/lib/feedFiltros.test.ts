@@ -9,6 +9,8 @@ import {
   FILTROS_VAZIOS,
   projetosDoCliente,
   temFiltroAtivo,
+  termoDaBusca,
+  textoCasaBusca,
   type FeedFiltros,
   type ProjetoDoFiltro,
 } from '@/lib/feedFiltros';
@@ -54,16 +56,22 @@ describe('contarFiltrosAtivos', () => {
     expect(temFiltroAtivo(FILTROS_VAZIOS)).toBe(false);
   });
 
-  it('conta um por filtro ligado, período incluído', () => {
+  it('conta um por filtro ligado, período e busca incluídos', () => {
     const filtros: FeedFiltros = {
       clienteId: 'cli-1',
       projetoId: 'proj-1',
       autorId: 'user-1',
       apenasMencoes: true,
       periodo: '7d',
+      busca: 'balancete',
     };
-    expect(contarFiltrosAtivos(filtros)).toBe(5);
+    expect(contarFiltrosAtivos(filtros)).toBe(6);
     expect(temFiltroAtivo(filtros)).toBe(true);
+  });
+
+  it('busca só com espaço não é filtro ligado', () => {
+    expect(contarFiltrosAtivos({ ...FILTROS_VAZIOS, busca: '   ' })).toBe(0);
+    expect(contarFiltrosAtivos({ ...FILTROS_VAZIOS, busca: 'nota' })).toBe(1);
   });
 
   it('trata o período padrão como filtro desligado', () => {
@@ -77,9 +85,9 @@ describe('filtrosDaUrl', () => {
     expect(filtrosDaUrl(new URLSearchParams())).toEqual(FILTROS_VAZIOS);
   });
 
-  it('lê os cinco filtros', () => {
+  it('lê os seis filtros', () => {
     const params = new URLSearchParams(
-      'cliente=cli-1&projeto=proj-1&autor=user-1&mencoes=1&periodo=30d',
+      'cliente=cli-1&projeto=proj-1&autor=user-1&mencoes=1&periodo=30d&busca=balancete+de+marco',
     );
     expect(filtrosDaUrl(params)).toEqual({
       clienteId: 'cli-1',
@@ -87,6 +95,7 @@ describe('filtrosDaUrl', () => {
       autorId: 'user-1',
       apenasMencoes: true,
       periodo: '30d',
+      busca: 'balancete de marco',
     });
   });
 
@@ -140,8 +149,46 @@ describe('aplicarFiltrosNaUrl', () => {
       autorId: 'user-1',
       apenasMencoes: true,
       periodo: '30d',
+      busca: 'balancete',
     };
     expect(filtrosDaUrl(aplicarFiltrosNaUrl(new URLSearchParams(), filtros))).toEqual(filtros);
+  });
+
+  it('escreve o termo aparado, e tira da URL a busca que virou só espaço', () => {
+    const params = aplicarFiltrosNaUrl(new URLSearchParams(), {
+      ...FILTROS_VAZIOS,
+      busca: '  nota fiscal  ',
+    });
+    expect(params.get('busca')).toBe('nota fiscal');
+    expect(aplicarFiltrosNaUrl(params, { ...FILTROS_VAZIOS, busca: '   ' }).has('busca')).toBe(
+      false,
+    );
+  });
+});
+
+describe('termoDaBusca', () => {
+  it('apara as pontas e trata só-espaço como ausência de busca', () => {
+    expect(termoDaBusca({ ...FILTROS_VAZIOS, busca: '  darf  ' })).toBe('darf');
+    expect(termoDaBusca({ ...FILTROS_VAZIOS, busca: '   ' })).toBeNull();
+    expect(termoDaBusca(FILTROS_VAZIOS)).toBeNull();
+  });
+});
+
+describe('textoCasaBusca', () => {
+  const texto = 'Balancete de março conferido com a Ana';
+
+  it('busca vazia passa tudo', () => {
+    expect(textoCasaBusca(texto, '')).toBe(true);
+    expect(textoCasaBusca(texto, '   ')).toBe(true);
+  });
+
+  it('acha pedaço de palavra e ignora maiúscula', () => {
+    expect(textoCasaBusca(texto, 'BALANC')).toBe(true);
+  });
+
+  it('exige TODAS as palavras, em qualquer ordem', () => {
+    expect(textoCasaBusca(texto, 'ana balancete')).toBe(true);
+    expect(textoCasaBusca(texto, 'balancete abril')).toBe(false);
   });
 });
 

@@ -164,6 +164,7 @@ describe('falaCabeNoRecorte', () => {
     clienteId: 'c1',
     autorId: 'eu',
     mencionados: [] as string[],
+    texto: 'Balancete de março conferido',
   };
 
   it('feed sem recorte sempre mostra a fala', () => {
@@ -202,5 +203,15 @@ describe('falaCabeNoRecorte', () => {
 
   it('o período não tira do recorte: a fala acabou de nascer', () => {
     expect(falaCabeNoRecorte({ ...FILTROS_VAZIOS, periodo: 'hoje' }, fala)).toBe(true);
+  });
+
+  it('busca que não casa com o texto da fala tira do recorte', () => {
+    expect(falaCabeNoRecorte({ ...FILTROS_VAZIOS, busca: 'balancete' }, fala)).toBe(true);
+    expect(falaCabeNoRecorte({ ...FILTROS_VAZIOS, busca: 'holerite' }, fala)).toBe(false);
+  });
+
+  it('a busca pede todas as palavras, e não se importa com a ordem', () => {
+    expect(falaCabeNoRecorte({ ...FILTROS_VAZIOS, busca: 'março balancete' }, fala)).toBe(true);
+    expect(falaCabeNoRecorte({ ...FILTROS_VAZIOS, busca: 'balancete abril' }, fala)).toBe(false);
   });
 });

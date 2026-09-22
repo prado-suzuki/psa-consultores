@@ -32,6 +32,7 @@ const SEM_FILTRO = {
   _author_ids: null,
   _only_mentions: false,
   _since: null,
+  _busca: null,
 };
 
 interface DbResult {
@@ -263,6 +264,21 @@ describe('useDomainFeedComentarios — filtros na chamada do banco', () => {
     // Mandar `[]` aqui esvaziaria o feed em vez de não filtrar por projeto.
     expect(parametros()._project_ids).toBeNull();
     expect(parametros()._author_ids).toBeNull();
+  });
+
+  it('manda o termo da busca aparado', async () => {
+    renderHook(() => useDomainFeedComentarios({ ...FILTROS_VAZIOS, busca: '  balancete  ' }));
+    await registro().queryFn({ pageParam: null });
+
+    expect(parametros()._busca).toBe('balancete');
+  });
+
+  it('manda NULO quando o campo de busca só tem espaço', async () => {
+    // Senão o feed passaria a filtrar por um termo que ninguém digitou.
+    renderHook(() => useDomainFeedComentarios({ ...FILTROS_VAZIOS, busca: '   ' }));
+    await registro().queryFn({ pageParam: null });
+
+    expect(parametros()._busca).toBeNull();
   });
 
   it('liga o recorte de menções', async () => {

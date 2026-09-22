@@ -25,6 +25,7 @@ import {
   type DestinoDaFala,
 } from '@/lib/feedDestino';
 import type { FeedFiltros } from '@/lib/feedFiltros';
+import { textoPlanoDoCorpo } from '@/lib/orgCommentRichText';
 
 interface FeedNovoComentarioProps {
   area: AreaDeProjetos;
@@ -243,6 +244,10 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
                   ?.external_client_id ?? null,
               autorId: user?.id ?? null,
               mencionados: permitidas,
+              // O filtro de busca compara o texto, não o cadastro em volta: sem
+              // isto, escrever com uma busca ligada prometia "veja no topo" e
+              // levava a um feed em que a fala não estava.
+              texto: textoPlanoDoCorpo(body),
             }),
           );
         }}

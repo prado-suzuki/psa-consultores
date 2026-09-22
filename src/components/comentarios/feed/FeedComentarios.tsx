@@ -17,6 +17,7 @@ import {
   filtrosDaUrl,
   FILTROS_VAZIOS,
   temFiltroAtivo,
+  termoDaBusca,
   type FeedFiltros as FeedFiltrosValor,
 } from '@/lib/feedFiltros';
 
@@ -111,7 +112,7 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
     conteudo = <FeedComErro erro={error} onTentarDeNovo={() => refetch()} />;
   } else if (comentarios.length === 0) {
     conteudo = temFiltroAtivo(filtros) ? (
-      <FeedSemResultado onLimpar={() => aplicarFiltros(FILTROS_VAZIOS)} />
+      <FeedSemResultado termo={termoDaBusca(filtros)} onLimpar={() => aplicarFiltros(FILTROS_VAZIOS)} />
     ) : (
       <FeedVazio />
     );
@@ -431,16 +432,26 @@ function FeedVazio() {
  * O texto tem que dizer que existe conversa, só não nesse recorte; senão a
  * pessoa lê "o feed está vazio" e conclui que a ferramenta não tem nada dentro.
  */
-function FeedSemResultado({ onLimpar }: { onLimpar: () => void }) {
+function FeedSemResultado({ termo, onLimpar }: { termo: string | null; onLimpar: () => void }) {
   return (
     <div className="rounded-md border border-dashed border-border bg-superficie-cartao px-6 py-16 text-center">
       <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-md bg-muted text-muted-foreground">
         <SearchX aria-hidden className="h-7 w-7" />
       </span>
-      <p className="font-semibold">Nenhuma conversa nesse recorte</p>
+      {/*
+        Com busca ligada o vazio tem uma causa provável, e ela vai no título: a
+        palavra procurada. "Nenhuma conversa nesse recorte" mandava conferir
+        cinco filtros quando o que não casou foi o termo digitado — e o termo é
+        o único filtro que a pessoa escreveu de cabeça, então é o mais fácil de
+        ter saído com um erro de digitação.
+      */}
+      <p className="font-semibold">
+        {termo ? <>Nada encontrado para “{termo}”</> : 'Nenhuma conversa nesse recorte'}
+      </p>
       <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-        Há conversas no feed, mas nenhuma que atenda aos filtros escolhidos. Tente ampliar o período
-        ou desligar um dos filtros.
+        {termo
+          ? 'A busca procura no texto do comentário, inteiro, e pede todas as palavras digitadas. Tente menos palavras, ou confira os outros filtros ligados.'
+          : 'Há conversas no feed, mas nenhuma que atenda aos filtros escolhidos. Tente ampliar o período ou desligar um dos filtros.'}
       </p>
       <Button type="button" variant="outline" size="sm" className="mt-5" onClick={onLimpar}>
         Limpar filtros

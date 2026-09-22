@@ -13,7 +13,7 @@
  */
 
 import type { OrgCommentEntityType } from '@/hooks/useDomainOrgComments';
-import type { FeedFiltros, ProjetoDoFiltro } from '@/lib/feedFiltros';
+import { textoCasaBusca, type FeedFiltros, type ProjetoDoFiltro } from '@/lib/feedFiltros';
 
 /**
  * O que a pessoa escolheu no compositor.
@@ -158,6 +158,12 @@ export interface FalaPublicada {
   /** Quem escreveu — neste caminho é sempre quem está lendo o feed. */
   autorId: string | null;
   mencionados: string[];
+  /**
+   * O texto da fala, já sem a marcação do editor. Só interessa à busca: é o
+   * único filtro que olha o CONTEÚDO do que acabou de ser escrito, e não o
+   * cadastro em volta dele.
+   */
+  texto: string;
 }
 
 /**
@@ -181,5 +187,6 @@ export function falaCabeNoRecorte(filtros: FeedFiltros, fala: FalaPublicada): bo
   if (filtros.apenasMencoes && !(fala.autorId && fala.mencionados.includes(fala.autorId))) {
     return false;
   }
+  if (!textoCasaBusca(fala.texto, filtros.busca)) return false;
   return true;
 }

@@ -32,6 +32,17 @@ export interface FeedFiltros {
   autorId: string | null;
   apenasMencoes: boolean;
   periodo: PeriodoDoFeed;
+  /**
+   * O que foi digitado na busca. String vazia é ausência de filtro — não `null`,
+   * porque este é o único filtro que a pessoa escreve, e o campo controlado
+   * precisa de um valor que não seja nulo a cada tecla.
+   *
+   * A comparação acontece no banco, sobre o texto extraído do documento (ver a
+   * migration `20260922133138_feed_org_comments_busca.sql`): o corpo é gravado
+   * como JSON do editor, e casar contra ele cru acharia "paragraph" em todo
+   * comentário rico do sistema.
+   */
+  busca: string;
 }
 
 export const FILTROS_VAZIOS: FeedFiltros = {
@@ -40,6 +51,7 @@ export const FILTROS_VAZIOS: FeedFiltros = {
   autorId: null,
   apenasMencoes: false,
   periodo: 'sempre',
+  busca: '',
 };
 
 /** Quantos dias cada preset abrange, contando hoje como o primeiro. */
@@ -71,6 +83,38 @@ export function desdeDoPeriodo(periodo: PeriodoDoFeed, agora: Date = new Date())
   return inicio.toISOString();
 }
 
+/**
+ * O termo que vai para o banco: sem os espaços das pontas, e nulo quando não
+ * sobrou nada.
+ *
+ * Espaço solto no campo (o que fica depois de apagar a busca com o cursor no
+ * meio) não é busca: sem isto ele viraria um filtro invisível que devolve o
+ * feed inteiro, mas mantém a etiqueta ligada na tela.
+ */
+export function termoDaBusca(filtros: FeedFiltros): string | null {
+  return filtros.busca.trim() || null;
+}
+
+/**
+ * O texto atende ao que foi digitado na busca?
+ *
+ * Espelho em TypeScript do `org_comment_casa_busca` do banco, com a mesma regra:
+ * todos os termos, em qualquer ordem, sem diferenciar maiúscula de minúscula.
+ * Quem filtra o feed é o banco — este espelho existe só para o compositor saber
+ * se a fala que acabou de ser publicada vai aparecer no recorte da tela (ver
+ * `falaCabeNoRecorte`), e por isso recebe o texto já extraído do documento.
+ *
+ * As duas cópias podem divergir, e o custo disso é um toast dizendo "veja no
+ * topo" quando a fala não está lá. Lado errado de errar é o outro: mandar
+ * limpar filtro que não atrapalhava.
+ */
+export function textoCasaBusca(texto: string, busca: string): boolean {
+  const termos = busca.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (termos.length === 0) return true;
+  const alvo = texto.toLowerCase();
+  return termos.every((termo) => alvo.includes(termo));
+}
+
 /** Quantos filtros estão ligados — alimenta o contador do botão de filtros. */
 export function contarFiltrosAtivos(filtros: FeedFiltros): number {
   return (
@@ -78,7 +122,8 @@ export function contarFiltrosAtivos(filtros: FeedFiltros): number {
     (filtros.projetoId ? 1 : 0) +
     (filtros.autorId ? 1 : 0) +
     (filtros.apenasMencoes ? 1 : 0) +
-    (filtros.periodo !== 'sempre' ? 1 : 0)
+    (filtros.periodo !== 'sempre' ? 1 : 0) +
+    (termoDaBusca(filtros) ? 1 : 0)
   );
 }
 
@@ -96,6 +141,7 @@ const PARAM = {
   autor: 'autor',
   mencoes: 'mencoes',
   periodo: 'periodo',
+  busca: 'busca',
 } as const;
 
 function ehPeriodo(valor: string | null): valor is PeriodoDoFeed {
@@ -118,6 +164,7 @@ export function filtrosDaUrl(params: URLSearchParams): FeedFiltros {
     autorId: params.get(PARAM.autor) || null,
     apenasMencoes: params.get(PARAM.mencoes) === '1',
     periodo: ehPeriodo(periodo) ? periodo : 'sempre',
+    busca: params.get(PARAM.busca) ?? '',
   };
 }
 
@@ -139,6 +186,9 @@ export function aplicarFiltrosNaUrl(
     [PARAM.autor]: filtros.autorId,
     [PARAM.mencoes]: filtros.apenasMencoes ? '1' : null,
     [PARAM.periodo]: filtros.periodo === 'sempre' ? null : filtros.periodo,
+    // O termo vai aparado: o link colado para outra pessoa não deve carregar o
+    // espaço que sobrou de uma edição no campo.
+    [PARAM.busca]: termoDaBusca(filtros),
   };
   for (const [chave, valor] of Object.entries(valores)) {
     if (valor) proximo.set(chave, valor);
