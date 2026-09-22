@@ -112,13 +112,39 @@ Os termos são E, não OU, em qualquer ordem, e `%` digitado é caractere, não 
 "publicado" também aprendeu a busca: escrever com um termo ligado avisa que a fala ficou fora do
 recorte em vez de prometer "ver no topo" e levar a um feed onde ela não está.
 
-### 3. @todos: menção ao grupo do projeto
+### 3. @todos: menção ao grupo do projeto ✅ ENTREGUE (22/09/2026)
 
 Mencionar hoje é pessoa a pessoa. O `useDomainMentionCandidates` já monta a roda de gente do
 projeto (membros, responsável, líder e, na tarefa, executor e revisor), então `@todos` é um
 candidato sintético que expande para essa lista na hora de gravar as menções. Cuidar de dois
 pontos: a regra de segurança do hook (a lista vem do projeto da thread, nunca do quadro da empresa)
 e o volume no sino de quem não tem nada com aquilo.
+
+**Como ficou:** sem migration e sem tocar na RPC. `MENCAO_TODOS` é candidato sintético em
+`src/lib/orgCommentMentions.ts`, e `expandirMencaoTodos` troca o sentinel pela roda de gente no
+instante de gravar. Os dois pontos que o item pedia:
+
+- **Segurança:** a expansão usa exatamente a lista do `useDomainMentionCandidates`, que vem do
+  projeto da thread. Nenhum caminho novo lê o quadro da empresa.
+- **Volume:** quem escreveu fica de fora. A notificação de menção não filtra o próprio autor
+  (`useNotificacoesMencao` lê `org_comment_mentions` por `mentioned_user_id`), então sem isso todo
+  `@todos` tocaria o sino de quem acabou de escrever a frase.
+
+Três decisões que valem registro:
+
+- **O id do sentinel não é uuid**, e isso é a trava: `criar_org_comment` recebe `_mentions uuid[]`,
+  então um "todos" que escapasse morreria no cast, na fronteira, em vez de virar linha de menção
+  apontando para gente nenhuma. Há teste dizendo que ele nunca sobra, nem quando não há ninguém
+  para expandir.
+- **A expansão mora em quem publica, não no compositor.** Na caixa do feed o destino é escolhido no
+  ENVIO, e a roda carregada enquanto se escrevia pode ser a de outro projeto: expandir cedo gravaria
+  menção a quem não está na conversa. São quatro chamadas (feed, resposta no feed e os dois
+  compositores do painel), e no feed a expansão vem antes da peneira de `mencoesPermitidas`.
+- **O `@todos` é o ÚLTIMO da lista**, nunca o primeiro. A lista de menção abre com o primeiro item
+  em destaque, e pôr o grupo na frente faria de "@" + Enter o gesto de avisar o projeto inteiro
+  bem onde a mão espera escolher alguém. Ele continua a um `↓` ou a duas letras de distância, tem
+  ícone de grupo em vez de avatar e a legenda "avisa o projeto" na linha. Só aparece com duas
+  pessoas ou mais: com uma, é um apelido mais longo para o nome dela.
 
 ---
 

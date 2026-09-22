@@ -45,7 +45,7 @@ import {
   pessoasDoEventoPartes,
   rotuloDoEvento,
 } from '@/lib/orgCommentEventos';
-import { iniciaisDoNome } from '@/lib/orgCommentMentions';
+import { expandirMencaoTodos, iniciaisDoNome } from '@/lib/orgCommentMentions';
 import { docEstaVazio, lerCorpo } from '@/lib/orgCommentRichText';
 import { cn } from '@/lib/utils';
 
@@ -423,7 +423,7 @@ export function OrgCommentsPanel({
                   await createComment.mutateAsync({
                     body,
                     files,
-                    mentions,
+                    mentions: expandirMencaoTodos(mentions, mentionCandidates, user?.id),
                     parentId: comment.id,
                     respondidoId: comment.id,
                     alvo: { entityType: comment.entity_type, entityId: comment.entity_id },
@@ -525,7 +525,13 @@ export function OrgCommentsPanel({
           mentionCandidates={mentionCandidates}
           focusSignal={focusComposerSignal}
           onSubmit={async (body, files, mentions) => {
-            await createComment.mutateAsync({ body, files, mentions });
+            await createComment.mutateAsync({
+              body,
+              files,
+              // O `@todos` vira a roda de gente do projeto no instante de
+              // gravar, sem quem escreveu: ver `expandirMencaoTodos`.
+              mentions: expandirMencaoTodos(mentions, mentionCandidates, user?.id),
+            });
             // O que acabei de publicar entra no fim da lista: desce até ele.
             ancoraPendente.current = true;
             ancorarNoFim();

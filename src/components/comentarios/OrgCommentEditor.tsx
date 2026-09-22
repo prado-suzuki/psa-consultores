@@ -12,6 +12,7 @@ import { splitBlock } from '@tiptap/pm/commands';
 import { exitSuggestion, type SuggestionProps } from '@tiptap/suggestion';
 import {
   AtSign,
+  Users,
   Bold as BoldIcon,
   Italic as ItalicIcon,
   List as BulletListIcon,
@@ -24,7 +25,7 @@ import {
   MencaoUsuario,
 } from '@/components/comentarios/extensions/MencaoUsuario';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { iniciaisDoNome, type MentionCandidate } from '@/lib/orgCommentMentions';
+import { ehMencaoTodos, iniciaisDoNome, type MentionCandidate } from '@/lib/orgCommentMentions';
 import { docDoCorpo, serializarDoc } from '@/lib/orgCommentRichText';
 import { cn } from '@/lib/utils';
 import { ButtonTooltip } from '@/components/ui/button-tooltip';
@@ -525,12 +526,32 @@ export function OrgCommentEditor({
                   index === destacado && 'bg-muted',
                 )}
               >
-                <Avatar className="h-6 w-6">
-                  <AvatarFallback className="text-[10px]">
-                    {iniciaisDoNome(candidate.name)}
-                  </AvatarFallback>
-                </Avatar>
+                {/*
+                  O `@todos` não é gente, e a linha diz isso: ícone de grupo no
+                  lugar das iniciais, e a legenda de quem vai ser avisado. Com
+                  avatar de pessoa ele passaria por mais um colega da lista, e
+                  ninguém descobriria que avisa o projeto inteiro sem usar.
+                */}
+                {ehMencaoTodos(candidate.id) ? (
+                  <span
+                    aria-hidden
+                    className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"
+                  >
+                    <Users className="h-3.5 w-3.5" />
+                  </span>
+                ) : (
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="text-[10px]">
+                      {iniciaisDoNome(candidate.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
                 <span className="truncate">{candidate.name}</span>
+                {ehMencaoTodos(candidate.id) && (
+                  <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+                    avisa o projeto
+                  </span>
+                )}
               </button>
             </li>
           ))}

@@ -25,6 +25,7 @@ import {
   type DestinoDaFala,
 } from '@/lib/feedDestino';
 import type { FeedFiltros } from '@/lib/feedFiltros';
+import { expandirMencaoTodos } from '@/lib/orgCommentMentions';
 import { textoPlanoDoCorpo } from '@/lib/orgCommentRichText';
 
 interface FeedNovoComentarioProps {
@@ -221,7 +222,17 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
               destinoDaFala.projectId,
             ),
           );
-          const permitidas = mencoesPermitidas(mencoes, candidatosDoDestino);
+          /*
+            O `@todos` só vira gente AQUI, com a roda do destino escolhido
+            agora: expandir no compositor usaria a lista carregada enquanto se
+            escrevia, que pode ser a de outro projeto. Depois da expansão a
+            peneira continua valendo, e é ela que garante que o sentinel não
+            chega ao banco (`_mentions` é `uuid[]`).
+          */
+          const permitidas = mencoesPermitidas(
+            expandirMencaoTodos(mencoes, candidatosDoDestino, user?.id),
+            candidatosDoDestino,
+          );
 
           const id = await createComment.mutateAsync({
             body,
