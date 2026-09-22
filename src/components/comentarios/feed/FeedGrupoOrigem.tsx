@@ -94,8 +94,8 @@ export function FeedGrupoOrigem({
                 className={cn(
                   'shrink-0 rounded border px-1.5 py-px text-xs font-medium',
                   ehProjeto
-                    ? 'border-emerald-600/25 bg-emerald-500/10 text-emerald-700'
-                    : 'border-indigo-600/25 bg-indigo-500/10 text-indigo-700',
+                    ? 'border-tag-a/30 bg-tag-a/10 text-tag-a'
+                    : 'border-tag-b/30 bg-tag-b/10 text-tag-b',
                 )}
               >
                 {ehProjeto ? 'Projeto' : 'Tarefa'}
