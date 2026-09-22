@@ -242,7 +242,7 @@ function FeedThread({
             onResponder={respondendo ? undefined : onResponder}
           />
         ))}
-        {composer && <div className="pb-2 pl-10">{composer}</div>}
+        {composer && <div className="pb-2 pl-11">{composer}</div>}
       </div>
     );
   }
@@ -260,7 +260,7 @@ function FeedThread({
       />
 
       {abreThread && (
-        <div className="relative pb-2 pl-10">
+        <div className="relative pb-2 pl-11">
           {thread.respostas.map((resposta, indice) => (
             <FeedItemComentario
               key={resposta.id}

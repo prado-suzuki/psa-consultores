@@ -83,11 +83,11 @@ export function FeedItemComentario({
     <div className="relative">
       {nested && (
         <>
-          {/* `-left-6` devolve o traço ao eixo do fio: o `pl-10` do bloco menos o centro do avatar da raiz. */}
+          {/* `-left-6` devolve o traço ao eixo do fio: o `pl-11` do bloco menos o centro do avatar da raiz. */}
           <span
             aria-hidden
             data-thread-connector
-            className="absolute -left-6 top-0 h-[22px] w-6 rounded-bl-md border-b border-l border-border"
+            className="absolute -left-6 top-0 h-6 w-6 rounded-bl-md border-b border-l border-border"
           />
           {!ultima && <span aria-hidden className="absolute -left-6 top-0 h-full w-px bg-border" />}
         </>
@@ -177,14 +177,17 @@ function FalaHumana({
   return (
     <>
       {abreThread && (
-        <span aria-hidden className="absolute bottom-0 left-4 top-11 w-px bg-border" />
+        <span aria-hidden className="absolute bottom-0 left-5 top-[52px] w-px bg-border" />
       )}
 
       {continuaBloco ? (
         /* A continuação não repete o avatar; a hora aparece na calha, no hover. */
         <time
           dateTime={comentario.created_at}
-          className="w-8 shrink-0 pt-0.5 text-right text-[10px] tabular-nums leading-5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100"
+          className={cn(
+            'shrink-0 pt-0.5 text-right text-[10px] tabular-nums leading-5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100',
+            nested ? 'w-9' : 'w-10',
+          )}
         >
           {format(criadoEm, 'HH:mm')}
         </time>
@@ -192,8 +195,8 @@ function FalaHumana({
         <span
           aria-hidden
           className={cn(
-            'relative z-10 grid shrink-0 place-items-center rounded-full font-semibold ring-2 ring-card',
-            nested ? 'h-7 w-7 text-[9px]' : 'h-8 w-8 text-[10px]',
+            'relative z-10 grid shrink-0 place-items-center rounded-lg font-semibold ring-2 ring-card',
+            nested ? 'h-9 w-9 text-[11px]' : 'h-10 w-10 text-xs',
             tomDoAutor(comentario.author_id),
           )}
         >
@@ -249,13 +252,13 @@ function LinhaDeEvento({ comentario, nested, abreThread, children }: PartesDaFal
 
   return (
     <>
-      {abreThread && <span aria-hidden className="absolute bottom-0 left-4 top-8 w-px bg-border" />}
+      {abreThread && <span aria-hidden className="absolute bottom-0 left-5 top-8 w-px bg-border" />}
 
       {/* Coluna estreita com a bolinha na borda direita: o centro dela fica no eixo
           do avatar e do fio, e o texto encosta nela. */}
       <span
         aria-hidden
-        className={cn('relative z-10 flex shrink-0 justify-end', nested ? 'w-[18px]' : 'w-5')}
+        className={cn('relative z-10 flex shrink-0 justify-end', nested ? 'w-[22px]' : 'w-6')}
       >
         <span className={cn('mt-2 h-2 w-2 rounded-full', cor)} />
       </span>
