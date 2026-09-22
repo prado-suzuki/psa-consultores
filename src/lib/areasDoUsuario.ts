@@ -22,9 +22,18 @@ export interface AreaVisivel {
  * `useUserAccessibleCategories`, que devolve `null` para admin em vez de a
  * lista completa.
  *
- * O casamento é por `some` e não por `every`: Digital vale por 'rotina' OU
- * 'dev', e quem tem só uma das duas trabalha na Digital do mesmo jeito. Exigir
- * as duas esconderia a área de quase todo mundo.
+ * O casamento é por `some` e não por `every`: bastava uma das categorias da
+ * área para a pessoa trabalhar nela. A Digital era o caso vivo, valendo por
+ * 'rotina' OU 'dev', e exigir as duas esconderia a área de quase todo mundo.
+ *
+ * ATENÇÃO, e é por isso que este parágrafo é mais longo do que a regra merece:
+ * desde 22/09/2026 **nenhuma área tem duas categorias**. O Digital Dev virou
+ * TAX Work e entrou na categoria `tax`, e com isso um `every` aqui passaria por
+ * toda a suíte sem ninguém ver — não existe mais dado real que os distinga.
+ *
+ * A regra segue certa e não deve ser "simplificada" para `every` nem para uma
+ * comparação direta. Quem der uma segunda categoria a qualquer área quebra a
+ * tripwire de `areasDoUsuario.test.ts`, que manda escrever o caso de verdade.
  */
 export function areasDoUsuario(categorias: readonly string[] | null): AreaVisivel[] {
   if (categorias === null) return [...AREAS_LIST];

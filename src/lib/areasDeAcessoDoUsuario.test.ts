@@ -8,13 +8,19 @@ import {
 } from './areasDeAcessoDoUsuario';
 
 /* Teste de CARACTERIZAÇÃO da inferência que morava no `useEffect` do
-   `EditUserDialog`. O caso que importa é o do `some` vs `every`: `digital` tem
-   DUAS categorias (`rotina` e `dev`), e quem alcança só uma delas tem a área. */
+   `EditUserDialog`. O caso que importa é o do `some` vs `every`: uma área pode
+   ter DUAS categorias, e quem alcança só uma delas já tem a área.
+
+   Até 22/09/2026 a área de duas categorias era a `digital` (`rotina` e `dev`).
+   O Digital Dev virou TAX Work e entrou na categoria `tax`, então HOJE NENHUMA
+   área tem duas. A regra do `some` continua no código e continua certa; o que
+   ela não tem mais é um caso real que a exercite. A tripwire que avisa quando
+   isso mudar está em `areasDoUsuario.test.ts`. */
 
 const paginas = [
   { id: 'p-rotina-1', category: 'rotina' },
   { id: 'p-rotina-2', category: 'rotina' },
-  { id: 'p-dev-1', category: 'dev' },
+  { id: 'p-tax-2', category: 'tax' },
   { id: 'p-tax-1', category: 'tax' },
   { id: 'p-osg-1', category: 'osg' },
   { id: 'p-geral-1', category: 'geral' },
@@ -22,8 +28,8 @@ const paginas = [
 
 const acessos = [
   { user_id: 'u-so-rotina', page_permission_id: 'p-rotina-1' },
-  { user_id: 'u-duas-areas', page_permission_id: 'p-dev-1' },
-  { user_id: 'u-duas-areas', page_permission_id: 'p-tax-1' },
+  { user_id: 'u-duas-areas', page_permission_id: 'p-tax-2' },
+  { user_id: 'u-duas-areas', page_permission_id: 'p-osg-1' },
   { user_id: 'u-so-geral', page_permission_id: 'p-geral-1' },
   { user_id: 'u-pagina-fantasma', page_permission_id: 'p-que-nao-existe' },
 ];
@@ -33,7 +39,7 @@ describe('areasDeAcessoPorUsuario', () => {
 
   it('UMA categoria já dá a área — `some`, não `every`', () => {
     expect([...porUsuario['u-so-rotina']]).toEqual(['digital']);
-    expect([...porUsuario['u-duas-areas']].sort()).toEqual(['digital', 'tax']);
+    expect([...porUsuario['u-duas-areas']].sort()).toEqual(['osg', 'tax']);
   });
 
   it('categoria fora de área nenhuma não inventa área', () => {
@@ -54,7 +60,7 @@ describe('areasDeAcessoPorUsuario', () => {
 
 describe('areasDeAcessoDoUsuario', () => {
   it('devolve lista na ordem do mapa, não na ordem dos acessos', () => {
-    expect(areasDeAcessoDoUsuario('u-duas-areas', paginas, acessos)).toEqual(['digital', 'tax']);
+    expect(areasDeAcessoDoUsuario('u-duas-areas', paginas, acessos)).toEqual(['tax', 'osg']);
   });
 
   it('quem não tem acesso nenhum devolve lista vazia, não `undefined`', () => {
@@ -67,8 +73,10 @@ describe('areasDeAcessoDoUsuario', () => {
 });
 
 describe('paginasDaArea', () => {
-  it('junta as páginas de TODAS as categorias da área', () => {
-    expect(paginasDaArea('digital', paginas).sort()).toEqual(['p-dev-1', 'p-rotina-1', 'p-rotina-2']);
+  it('junta todas as páginas da área', () => {
+    // Conceder a área leva tudo o que está na categoria dela, e a Tax cobre as
+    // duas portas: as telas de projeto e as ferramentas do Tax Work.
+    expect(paginasDaArea('tax', paginas).sort()).toEqual(['p-tax-1', 'p-tax-2']);
   });
 
   it('área sem página cadastrada devolve vazio em vez de quebrar', () => {

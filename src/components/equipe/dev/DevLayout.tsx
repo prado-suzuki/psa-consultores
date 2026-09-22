@@ -84,13 +84,13 @@ interface HubSidebarSectionProps {
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: DEV_NAV_LABELS.inicio, path: '/equipe/dev' },
-  { icon: Plus, label: DEV_NAV_LABELS.novaFerramenta, path: '/equipe/dev/nova-ferramenta' },
+  { icon: LayoutDashboard, label: DEV_NAV_LABELS.inicio, path: '/equipe/tax/work' },
+  { icon: Plus, label: DEV_NAV_LABELS.novaFerramenta, path: '/equipe/tax/work/nova-ferramenta' },
   // `FileCode2` e não `LayoutDashboard`: os dois itens vinham com o MESMO
   // ícone, e enquanto a barra não tinha trilho isso não aparecia — o ícone
   // sequer era desenhado. No trilho de 80px sobra só o ícone, e dois botões
   // idênticos não se distinguem.
-  { icon: FileCode2, label: DEV_NAV_LABELS.consultaXmls, path: '/equipe/dev/consulta-xmls' },
+  { icon: FileCode2, label: DEV_NAV_LABELS.consultaXmls, path: '/equipe/tax/work/consulta-xmls' },
 ];
 
 const spedSubItems: NavItem[] = DEV_HUBS.consultaSped.options.map((option) => ({
@@ -135,14 +135,14 @@ const navItemsAfterGroups: NavItem[] = [
   {
     icon: Calculator,
     label: DEV_NAV_LABELS.calculadoraIbsCbs,
-    path: '/equipe/dev/calculadora-ibs-cbs',
+    path: '/equipe/tax/work/calculadora-ibs-cbs',
   },
   {
     icon: FileText,
     label: DEV_NAV_LABELS.controleBalancetes,
-    path: '/equipe/dev/controle-balancetes',
+    path: '/equipe/tax/work/controle-balancetes',
   },
-  { icon: BookOpen, label: DEV_NAV_LABELS.procedimentos, path: '/equipe/dev/procedimentos' },
+  { icon: BookOpen, label: DEV_NAV_LABELS.procedimentos, path: '/equipe/tax/work/procedimentos' },
 ];
 
 const HubSidebarSection = ({
@@ -474,11 +474,11 @@ export const DevLayout = ({ children, headerActions, ...cabecalho }: DevLayoutPr
                   'w-full rounded-lg py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary',
                   trilho ? 'justify-center px-2' : 'justify-start px-3',
                 )}
-                onClick={() => navigate('/equipe/digital')}
-                title={trilho ? 'Voltar para Digital' : undefined}
+                onClick={() => navigate('/equipe/tax')}
+                title={trilho ? 'Voltar para Tax' : undefined}
               >
                 <ArrowLeft className={cn('h-4 w-4', !trilho && 'mr-3')} />
-                {!trilho && 'Voltar para Digital'}
+                {!trilho && 'Voltar para Tax'}
               </Button>
 
             </div>

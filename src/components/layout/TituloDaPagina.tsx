@@ -23,12 +23,12 @@ import { cn } from '@/lib/utils';
  *
  * O QUE MUDOU EM 10/09/2026, e é a razão de o componente nascer agora: o título
  * foi de `text-xl` (20px) para `text-3xl` (30px). O defeito era hierarquia
- * invertida — no `/equipe/dev` a caixa de abertura da tela tinha mais massa que
+ * invertida — no `/equipe/tax/work` a caixa de abertura da tela tinha mais massa que
  * o nome da tela, e a Patricia leu a seção antes da página. Havia duas saídas,
  * tirar peso da seção ou dar peso à página, e ela pediu as duas: a caixa foi
  * para branca e leve, e o título subiu.
  *
- * Foi medido antes: o título mais longo de todo o `/equipe/dev` tem 28
+ * Foi medido antes: o título mais longo de todo o `/equipe/tax/work` tem 28
  * caracteres ("Consulta EFD Contribuições"), nenhum passa de 30, e o mais longo
  * vindo do catálogo dinâmico tem 43. O comentário do `DevLayout` que dizia
  * "passam de 100 caracteres em CAIXA ALTA" estava errado, e era ele que fazia

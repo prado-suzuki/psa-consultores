@@ -10,10 +10,11 @@
 
 /** Home de cada área, na ordem em que os prefixos são testados. */
 const HOMES: ReadonlyArray<readonly [prefixo: string, home: string]> = [
+  // O Tax Work (ex-Digital Dev) mora sob `/equipe/tax` desde 22/09/2026, entao
+  // cai nesta linha e volta para a area Tax, e nao mais para a Digital.
   ['/equipe/tax', '/equipe/tax'],
   ['/equipe/osg', '/equipe/osg'],
   ['/equipe/board', '/equipe/board/dashboard'],
-  ['/equipe/dev', '/equipe/digital'],
   ['/gestao', '/gestao'],
   ['/cliente', '/cliente'],
 ];

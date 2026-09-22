@@ -209,6 +209,17 @@ export const MAPA_DE_ROTAS: RegraDeRota[] = [
   // linha FICA: a área continua existindo, e o dia em que o Dev precisar de
   // sinal próprio é aqui que se lê que ele já é uma área com nome.
   // Se um dia o Dev pertencer à Rotina, é trocar a palavra na linha.
+  // `/equipe/dev` e so o REDIRECIONAMENTO legado desde 22/09/2026: as 30
+  // ferramentas passaram para `/equipe/tax/work`, e por morarem sob
+  // `/equipe/tax` elas agora vestem a `.tax-theme`. A linha fica porque o
+  // caminho ainda e atendido, e `sistema` aponta para `null` (o piso da
+  // casa), que e exatamente o visual que elas tinham: o pisca do redirect
+  // nao muda de cor no meio.
+  //
+  // SE A COR NOVA INCOMODAR, o desfazer e uma linha aqui: um
+  // `{ prefixo: '/equipe/tax/work', area: 'sistema' }`, que ganha de
+  // `/equipe/tax` por ser o prefixo mais longo (as regras sao ordenadas por
+  // tamanho). Tira a cor sem mexer em rota nem em permissao.
   { prefixo: '/equipe/dev', area: 'sistema' },
 ];
 

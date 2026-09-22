@@ -20,7 +20,7 @@ import {
  * Onde as outras peças dizem de ONDE vêm os dados, esta diz QUAL revisão vai,
  * que é a escolha que ela tem. O lápis abre os dois seletores num popover; o
  * resto do que o painel antigo mostrava (o histórico de arquivos gerados) vive
- * no Gerador de Slides, no Digital Dev, e é dito ali dentro.
+ * no Gerador de Slides, no Tax Work, e é dito ali dentro.
  *
  * Sem revisão importada não há lápis: não há o que trocar, e o botão existiria
  * só para abrir uma lista vazia.
@@ -90,7 +90,7 @@ export function EscolhaDaRevisao({ estado }: { estado: ReturnType<typeof useRevi
             </div>
 
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              O histórico de arquivos já gerados fica no Gerador de Slides, no Digital Dev.
+              O histórico de arquivos já gerados fica no Gerador de Slides, no Tax Work.
             </p>
           </PopoverContent>
         </Popover>

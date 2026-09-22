@@ -20,7 +20,7 @@ const PerdcompDashboard = () => {
   return (
     <DevLayout tela="dashboardPerdcomp"
       headerActions={
-        <Button variant="outline" onClick={() => navigate('/equipe/dev/perdcomp')}>
+        <Button variant="outline" onClick={() => navigate('/equipe/tax/work/perdcomp')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar para PERDCOMP
         </Button>

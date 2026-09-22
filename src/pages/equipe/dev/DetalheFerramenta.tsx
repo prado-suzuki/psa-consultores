@@ -65,7 +65,7 @@ const DetalheFerramenta = () => {
         title: 'Ferramenta excluída',
         description: 'A ferramenta foi removida com sucesso.',
       });
-      navigate('/equipe/dev');
+      navigate('/equipe/tax/work');
     },
     onDeleteError: (error) => {
       toast({
@@ -127,7 +127,7 @@ const DetalheFerramenta = () => {
       <DevLayout title="Ferramenta não encontrada" subtitle="">
         <div className="text-center py-12">
           <p className="text-muted-foreground">Esta ferramenta não existe ou foi removida.</p>
-          <Button className="mt-4" onClick={() => navigate('/equipe/dev')}>
+          <Button className="mt-4" onClick={() => navigate('/equipe/tax/work')}>
             Voltar ao dashboard
           </Button>
         </div>
@@ -141,7 +141,7 @@ const DetalheFerramenta = () => {
       subtitle="Detalhes da ferramenta"
       headerActions={
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/equipe/dev')}>
+          <Button variant="outline" onClick={() => navigate('/equipe/tax/work')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar
           </Button>

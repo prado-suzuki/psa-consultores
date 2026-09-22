@@ -28,7 +28,7 @@ export interface TextoDeTelaDev {
 export const TELAS_DO_DEV = {
   // ── Entrada da área ────────────────────────────────────────
   inicio: {
-    titulo: 'Ferramentas Digital Dev',
+    titulo: 'Ferramentas Tax Work',
     subtitulo: 'Acesse as ferramentas da área e seus respectivos manuais de operação.',
   },
   novaFerramenta: { titulo: 'Solicitar ferramenta' },

@@ -62,7 +62,11 @@ const menuItems: MenuItem[] = [
     id: 'inicio',
     label: 'Início',
     icon: Home,
-    path: '/equipe/tax'
+    // Desceu de `/equipe/tax` para `/equipe/tax/inicio` em 22/09/2026, quando a
+    // raiz virou a escolha entre TAX Projects e TAX Work. Apontar para a raiz
+    // faria o "Início" EXPULSAR a pessoa da área, de volta para o seletor.
+    // Mesmo endereco que a OSG usa no item equivalente (`/equipe/osg/inicio`).
+    path: '/equipe/tax/inicio'
   },
   {
     // Item de primeiro nível, espelhando a OSG (Início, Dashboard, Projetos,

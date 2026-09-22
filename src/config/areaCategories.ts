@@ -23,7 +23,19 @@ export const AREA_CATEGORIES_MAP: Record<AreaKey, AreaDefinition> = {
   // URL. Por isso a CHAVE e o CAMINHO sao escritos aqui, a mao, e nunca
   // derivados do nome (ver `docs/geral/inventario-telas-por-cluster.md`).
   adm_fin: { label: 'Adm & Fin', categories: ['adm_fin'] },
-  digital: { label: 'Digital', categories: ['rotina', 'dev'] },
+  // A `dev` saiu em 22/09/2026: as 30 paginas do Digital Dev viraram Tax Work e
+  // foram para a categoria `tax`. Manter `dev` aqui a tornaria categoria
+  // FANTASMA, e o aviso no topo deste arquivo diz o que isso quebra: a
+  // inferencia `every()` de "esta pessoa ja tem a area Digital" nunca mais
+  // fecharia, porque nao existe pagina nenhuma para satisfazer.
+  digital: { label: 'Digital', categories: ['rotina'] },
+  // UMA categoria, cobrindo as DUAS portas da area (TAX Projects e TAX Work),
+  // no mesmo desenho da OSG — decisao do Bernardo em 22/09/2026.
+  //
+  // Houve uma versao com `tax_work` separada, justificada por um argumento que
+  // nao se sustentou: conceder a area em lote resolve pela LISTA de categorias,
+  // e a area listava as duas, entao o botao ja entregava as 42 paginas nos dois
+  // desenhos. A separacao so mudava o agrupamento da arvore de permissoes.
   tax: { label: 'Tax', categories: ['tax'] },
   osg: { label: 'OSG', categories: ['osg'] },
   board: { label: 'Board', categories: ['board'] },
