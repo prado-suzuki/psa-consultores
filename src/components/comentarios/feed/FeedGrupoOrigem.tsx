@@ -154,7 +154,7 @@ export function FeedGrupoOrigem({
         </span>
       </button>
 
-      <div className="mx-4 border-t border-border/50 py-1.5">
+      <div className="mx-4 border-t border-border py-1.5">
         {threads.map((thread, indice) => {
           const chaveDaThread = `${chaveDoBloco}:${thread.raizId}`;
           const anterior = threads[indice - 1];
