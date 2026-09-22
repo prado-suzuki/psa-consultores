@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { defaultFilter } from 'cmdk';
 import { Building2, CornerDownLeft, FolderKanban, ListChecks } from 'lucide-react';
 
@@ -30,8 +30,15 @@ export interface ClienteParaDestino {
   nome: string;
 }
 
+/**
+ * Por que o modal abriu. Muda o que o Enter faz no passo do projeto (publicar a
+ * fala, ou só fixar o destino para o "@" ter gente), e é o que o rodapé escreve.
+ */
+export type MotivoDoDestino = 'publicar' | 'mencionar';
+
 interface EscolherDestinoDaFalaProps {
   aberto: boolean;
+  motivo: MotivoDoDestino;
   /** O que o recorte do feed (ou a última fala) já disse — vem pré-selecionado. */
   inicial: DestinoDaFala;
   clientes: ClienteParaDestino[];
@@ -60,6 +67,7 @@ interface EscolherDestinoDaFalaProps {
  */
 export function EscolherDestinoDaFala({
   aberto,
+  motivo,
   inicial,
   clientes,
   projetos,
@@ -71,6 +79,17 @@ export function EscolherDestinoDaFala({
   const [projetoId, setProjetoId] = useState<string | null>(inicial.projetoId);
   /** Item em destaque na lista — o que o Enter (e o Tab) vai levar. */
   const [destacado, setDestacado] = useState('');
+  /**
+   * Quem DEVERIA estar em destaque neste passo: o que a tela já sabe.
+   *
+   * Vai por um estado à parte, e não direto no `destacado`, por causa de uma
+   * corrida do cmdk: ao montar a lista ele põe o primeiro item em destaque e
+   * avisa pelo `onValueChange`, o que atropelava qualquer escolha feita antes
+   * dos itens existirem. Medido na tela: o cliente do recorte nunca ficava em
+   * destaque, e o Enter caía sempre na primeira linha da lista. O efeito abaixo
+   * roda depois da montagem, então é ele quem dá a última palavra.
+   */
+  const [desejado, setDesejado] = useState('');
   const [busca, setBusca] = useState('');
 
   /*
@@ -88,7 +107,7 @@ export function EscolherDestinoDaFala({
     setClienteId(inicial.clienteId);
     setProjetoId(inicial.projetoId);
     setBusca('');
-    setDestacado(inicial.clienteId ?? TODOS_OS_CLIENTES);
+    setDesejado(inicial.clienteId ?? TODOS_OS_CLIENTES);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto]);
 
@@ -104,6 +123,36 @@ export function EscolherDestinoDaFala({
     passo === 'tarefa' ? projetoId : null,
   );
 
+  /*
+    O destaque desejado só vale se a linha EXISTIR na lista deste passo: um
+    `value` que não casa com item nenhum deixa a lista sem destaque, e aí o
+    Enter não faria nada. Sem a linha, quem manda é a escolha do cmdk (o
+    primeiro item).
+  */
+  const listaTemDesejado =
+    passo === 'cliente'
+      ? desejado === TODOS_OS_CLIENTES || clientes.some((cliente) => cliente.id === desejado)
+      : passo === 'projeto'
+        ? projetosOferecidos.some((projeto) => projeto.id === desejado)
+        : desejado === SEM_TAREFA || tarefas.some((tarefa) => tarefa.id === desejado);
+
+  const listaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!desejado || !listaTemDesejado) return;
+    setDestacado(desejado);
+    /*
+      O cmdk rola até a linha em destaque quando ela é alcançada por tecla, mas
+      não quando o destaque é posto por código: com sessenta clientes na lista,
+      a escolhida ficava fora da janela e a tela parecia não ter destaque
+      nenhum. O quadro seguinte é onde ela já está marcada no DOM.
+    */
+    requestAnimationFrame(() => {
+      listaRef.current
+        ?.querySelector('[cmdk-item][aria-selected="true"]')
+        ?.scrollIntoView({ block: 'nearest' });
+    });
+  }, [desejado, listaTemDesejado, passo]);
+
   const irParaProjeto = (escolhido: string | null) => {
     setClienteId(escolhido);
     setPasso('projeto');
@@ -113,14 +162,14 @@ export function EscolherDestinoDaFala({
     const daCasa = projetosDoCliente(projetos, escolhido).some(
       (projeto) => projeto.id === inicial.projetoId,
     );
-    setDestacado(daCasa && inicial.projetoId ? inicial.projetoId : '');
+    setDesejado(daCasa && inicial.projetoId ? inicial.projetoId : '');
   };
 
   const irParaTarefa = (escolhido: string) => {
     setProjetoId(escolhido);
     setPasso('tarefa');
     setBusca('');
-    setDestacado(SEM_TAREFA);
+    setDesejado(SEM_TAREFA);
   };
 
   const voltar = () => {
@@ -131,11 +180,11 @@ export function EscolherDestinoDaFala({
     setBusca('');
     if (passo === 'tarefa') {
       setPasso('projeto');
-      setDestacado(projetoId ?? '');
+      setDesejado(projetoId ?? '');
       return;
     }
     setPasso('cliente');
-    setDestacado(clienteId ?? TODOS_OS_CLIENTES);
+    setDesejado(clienteId ?? TODOS_OS_CLIENTES);
   };
 
   const publicarNoProjeto = (escolhido: string) => {
@@ -205,7 +254,7 @@ export function EscolherDestinoDaFala({
             }
           />
 
-          <CommandList className="max-h-[50vh]">
+          <CommandList ref={listaRef} className="max-h-[50vh]">
             {passo === 'cliente' && (
               <>
                 <CommandEmpty>Nenhum cliente com esse nome.</CommandEmpty>
@@ -306,7 +355,7 @@ export function EscolherDestinoDaFala({
             )}
           </CommandList>
 
-          <Rodape passo={passo} />
+          <Rodape passo={passo} motivo={motivo} />
         </Command>
       </DialogContent>
     </Dialog>
@@ -340,12 +389,15 @@ function Etapa({ ativa, children }: { ativa: boolean; children: string }) {
 }
 
 /** As teclas do passo, escritas: o fluxo inteiro existe para não usar o mouse. */
-function Rodape({ passo }: { passo: Passo }) {
+function Rodape({ passo, motivo }: { passo: Passo; motivo: MotivoDoDestino }) {
+  /* Pelo "@" o modal não publica nada: ele só resolve de onde sai a lista de
+     gente, e a pessoa volta para o texto de onde parou. */
+  const noFim = motivo === 'publicar' ? 'publica' : 'volta a escrever';
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t px-3 py-2 text-[11px] text-muted-foreground">
       <span className="flex items-center gap-1">
         <CornerDownLeft aria-hidden className="h-3 w-3" />
-        {passo === 'cliente' ? 'escolhe o cliente' : 'publica'}
+        {passo === 'cliente' ? 'escolhe o cliente' : noFim}
       </span>
       {passo === 'projeto' && (
         <span>
@@ -355,6 +407,12 @@ function Rodape({ passo }: { passo: Passo }) {
       <span className="ml-auto">
         <Tecla>Esc</Tecla> {passo === 'cliente' ? 'cancela, e o texto fica' : 'volta um passo'}
       </span>
+      {motivo === 'mencionar' && passo === 'cliente' && (
+        <span className="w-full text-[11px]">
+          A lista de quem dá para mencionar vem do projeto, por isso a pergunta
+          aparece agora.
+        </span>
+      )}
     </div>
   );
 }

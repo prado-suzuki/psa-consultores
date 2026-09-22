@@ -1,4 +1,4 @@
-import { useRef, useState, type DragEvent } from 'react';
+import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { AtSign, Mic, Paperclip, Reply, Send, X } from 'lucide-react';
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import type { AreaKey } from '@/config/areaCategories';
@@ -36,6 +36,12 @@ interface CommentComposerProps {
   mentionCandidates: MentionCandidate[];
   /** Muda de valor quando alguém pede o foco daqui de fora. */
   focusSignal?: number;
+  /**
+   * A pessoa apertou "@" e não há ninguém para oferecer. Quem passa isto vai
+   * atrás da lista (no feed, escolhendo o destino) e responde se agora há gente;
+   * respondendo `true`, o compositor reabre a menção sozinho.
+   */
+  aoMencionarSemGente?: () => Promise<boolean>;
   /** Autor do comentário raiz — vira o cabeçalho "Respondendo a ..." do compositor. */
   replyingToName?: string | null;
   onCancel?: () => void;
@@ -49,6 +55,7 @@ export function CommentComposer({
   isPending,
   mentionCandidates,
   focusSignal,
+  aoMencionarSemGente,
   replyingToName,
   onCancel,
   onSubmit,
@@ -61,6 +68,21 @@ export function CommentComposer({
   const fileInputRef = useRef<HTMLInputElement>(null);
   /** A ação de inserir "@" vem de dentro do editor — ver `inserirMencaoRef`. */
   const inserirMencaoRef = useRef<(() => void) | null>(null);
+  /** A de recomeçar a menção depois que a lista de gente chegou. */
+  const reabrirMencaoRef = useRef<(() => void) | null>(null);
+  /** Há um "@" esperando a lista de gente aparecer para ser reaberto. */
+  const [mencaoPendente, setMencaoPendente] = useState(false);
+
+  /*
+    A menção só reabre no render em que os candidatos JÁ ESTÃO aqui. Chamar
+    logo depois da promessa não serve: ela resolve num microtask, e o editor
+    ainda estaria com a lista velha (vazia), o que reabriria o "@" para nada.
+  */
+  useEffect(() => {
+    if (!mencaoPendente || mentionCandidates.length === 0) return;
+    setMencaoPendente(false);
+    reabrirMencaoRef.current?.();
+  }, [mencaoPendente, mentionCandidates]);
 
   const corpo = lerCorpo(body);
   const vazio = corpo.formato === 'rich' ? docEstaVazio(corpo.doc) : !corpo.texto.trim();
@@ -164,6 +186,13 @@ export function CommentComposer({
         // que é onde o Slack o põe; a barra de cima fica só com formatação.
         botaoDeMencao={!caixa}
         inserirMencaoRef={inserirMencaoRef}
+        reabrirMencaoRef={reabrirMencaoRef}
+        aoMencionarSemGente={
+          aoMencionarSemGente &&
+          (() => {
+            void aoMencionarSemGente().then((temGente) => setMencaoPendente(temGente));
+          })
+        }
         focusSignal={focusSignal}
         // O campo de resposta nasce com o cursor dentro: ele só existe depois do
         // clique em "Responder", então focar na montagem não rouba o foco.

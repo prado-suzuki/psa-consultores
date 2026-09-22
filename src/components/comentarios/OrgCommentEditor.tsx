@@ -73,6 +73,21 @@ interface OrgCommentEditorProps {
    * há ninguém para oferecer, e uma lista que não abre parece defeito.
    */
   avisoSemMencoes?: string;
+  /**
+   * O "@" foi disparado e NÃO HÁ NINGUÉM na lista de candidatos.
+   *
+   * Quem passa isto se encarrega de resolver a falta (no feed, é escolher o
+   * destino, que é de onde a roda de gente vem) e reabre a menção pelo
+   * `reabrirMencaoRef` quando houver gente. Sem a prop, o editor só mostra o
+   * aviso de lista vazia, que é o comportamento de quem já tem destino fixo.
+   */
+  aoMencionarSemGente?: () => void;
+  /**
+   * Reabre a menção: apaga o "@" que já está no texto e o digita de novo, para
+   * o Suggestion recomeçar agora que a lista tem gente. Repetir a digitação é o
+   * caminho porque o plugin só recalcula os itens quando o gatilho muda.
+   */
+  reabrirMencaoRef?: MutableRefObject<(() => void) | null>;
   ariaLabel?: string;
   /**
    * Classes da área de escrita. Existe para a caixa no formato do Slack, onde a
@@ -130,6 +145,8 @@ export function OrgCommentEditor({
   barraEmFaixa,
   botaoDeMencao = true,
   inserirMencaoRef,
+  aoMencionarSemGente,
+  reabrirMencaoRef,
 }: OrgCommentEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
@@ -140,6 +157,8 @@ export function OrgCommentEditor({
   onArquivosRef.current = onArquivos;
   const enviarComEnterRef = useRef(enviarComEnter);
   enviarComEnterRef.current = enviarComEnter;
+  const aoMencionarSemGenteRef = useRef(aoMencionarSemGente);
+  aoMencionarSemGenteRef.current = aoMencionarSemGente;
   /** Lista viva para a extensão ler sem recriar o editor a cada chegada do hook. */
   const candidatesRef = useRef(candidates);
   candidatesRef.current = candidates;
@@ -150,7 +169,30 @@ export function OrgCommentEditor({
   const sugestaoRef = useRef<EstadoSugestao | null>(null);
   const destacadoRef = useRef(0);
 
-  const atualizarSugestao = (props: SuggestionProps<MentionCandidate, MentionCandidate>) => {
+  const atualizarSugestao = (
+    props: SuggestionProps<MentionCandidate, MentionCandidate>,
+    inicio = false,
+  ) => {
+    /*
+      "@" apertado sem NINGUÉM na lista: quem passou `aoMencionarSemGente`
+      assume daqui (no feed, abre a escolha de destino, que é de onde a roda de
+      gente vem). Só na ABERTURA: nas atualizações seguintes a lista vazia quer
+      dizer que a busca não casou, e aí o aviso já responde.
+
+      A saída é adiada por `queueMicrotask` porque isto roda dentro do `update`
+      da view do ProseMirror, e despachar transação lá dentro é pedir
+      transação descasada.
+    */
+    if (inicio && candidatesRef.current.length === 0 && aoMencionarSemGenteRef.current) {
+      const aoMencionar = aoMencionarSemGenteRef.current;
+      fecharSugestao();
+      queueMicrotask(() => {
+        exitSuggestion(props.editor.view, MENCAO_PLUGIN_KEY);
+        aoMencionar();
+      });
+      return;
+    }
+
     const rect = props.clientRect?.();
     const container = containerRef.current?.getBoundingClientRect();
     const estado: EstadoSugestao = {
@@ -196,7 +238,7 @@ export function OrgCommentEditor({
       MencaoUsuario.configure({
         candidatos: () => candidatesRef.current,
         render: () => ({
-          onStart: atualizarSugestao,
+          onStart: (props) => atualizarSugestao(props, true),
           onUpdate: atualizarSugestao,
           onExit: fecharSugestao,
           onKeyDown: ({ view, event }) => {
@@ -326,8 +368,26 @@ export function OrgCommentEditor({
       .run();
   };
 
-  // A mesma ação, à disposição de quem desenha o botão fora daqui.
+  /**
+   * Recomeça a menção depois que a lista de gente chegou.
+   *
+   * O Suggestion só recalcula os itens quando o gatilho MUDA: com a lista
+   * vazia no momento do "@", nenhuma chegada posterior de candidatos reabre a
+   * lista sozinha. Então o "@" que a pessoa digitou é apagado e digitado de
+   * novo, o que dispara tudo outra vez, agora com gente para oferecer.
+   */
+  const reabrirMencao = () => {
+    if (!editor) return;
+    const { from } = editor.state.selection;
+    const antes = editor.state.doc.textBetween(Math.max(0, from - 1), from, ' ');
+    const acao = editor.chain().focus();
+    if (antes === '@') acao.deleteRange({ from: from - 1, to: from });
+    acao.insertContent('@').run();
+  };
+
+  // As duas ações, à disposição de quem desenha o botão (ou o modal) fora daqui.
   if (inserirMencaoRef) inserirMencaoRef.current = inserirGatilhoDeMencao;
+  if (reabrirMencaoRef) reabrirMencaoRef.current = reabrirMencao;
 
   const marcas = useEditorState({
     editor,
