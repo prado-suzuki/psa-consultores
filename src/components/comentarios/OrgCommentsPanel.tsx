@@ -6,7 +6,7 @@ import { CommentComposer } from '@/components/comentarios/CommentComposer';
 import { OrgCommentBody } from '@/components/comentarios/OrgCommentBody';
 import { OrgCommentEditor } from '@/components/comentarios/OrgCommentEditor';
 import { OrgCommentOrigem } from '@/components/comentarios/OrgCommentOrigem';
-import { AttachmentButton } from '@/components/comentarios/OrgCommentAttachments';
+import { AnexosDoComentario } from '@/components/comentarios/AnexosDoComentario';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -364,15 +364,7 @@ export function OrgCommentsPanel({
             )}
 
             {comment.attachments.length > 0 && !comment.excluido && (
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                {comment.attachments.map((attachment) => (
-                  <AttachmentButton
-                    key={attachment.id}
-                    attachment={attachment}
-                    onOpen={openAttachment}
-                  />
-                ))}
-              </div>
+              <AnexosDoComentario attachments={comment.attachments} onBaixar={openAttachment} />
             )}
 
             {!nested && !isSystem && !comment.excluido && !isReplying && (

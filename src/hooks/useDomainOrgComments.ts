@@ -343,6 +343,35 @@ export function useDownloadOrgCommentAttachment() {
   });
 }
 
+/** Validade da URL assinada da miniatura. O cache a descarta antes de ela vencer. */
+const VALIDADE_DA_MINIATURA_S = 60 * 60;
+
+/**
+ * URL assinada para DESENHAR a imagem no comentário.
+ *
+ * Diferente do download, que assina por 60 s na hora do clique: a miniatura
+ * fica na tela enquanto se lê, então a URL vale uma hora e o cache a troca aos
+ * 50 minutos, antes de o `<img>` apontar para endereço vencido. A chave é o
+ * caminho no bucket, que não muda: a mesma imagem no feed e no painel da
+ * tarefa assina uma vez só.
+ */
+export function useUrlDaImagemDoAnexo(filePath: string) {
+  return useQuery({
+    queryKey: ['org-comment-attachment-url', filePath],
+    queryFn: async () => {
+      const { data, error } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUrl(filePath, VALIDADE_DA_MINIATURA_S);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+    enabled: Boolean(filePath),
+    staleTime: 50 * 60 * 1000,
+    gcTime: 50 * 60 * 1000,
+    retry: 1,
+  });
+}
+
 /**
  * Abre a URL assinada do anexo em nova aba, preservando o nome original.
  * Mora em `@/lib/baixarArquivo` desde que a Biblioteca de Procedimentos passou

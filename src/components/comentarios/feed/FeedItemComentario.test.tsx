@@ -7,6 +7,7 @@ import { comentarioDoFeed } from '@/test/feedComentario';
 vi.mock('@/hooks/useDomainOrgComments', () => ({
   useDownloadOrgCommentAttachment: () => ({ mutateAsync: vi.fn() }),
   abrirAnexoEmNovaAba: vi.fn(),
+  useUrlDaImagemDoAnexo: () => ({ data: 'https://storage.exemplo/print.png', isError: false }),
 }));
 
 function falaDe(id: string) {
@@ -105,6 +106,37 @@ describe('FeedItemComentario: comentário humano', () => {
       />,
     );
     expect(screen.getByRole('button', { name: /balancete\.pdf/ })).toBeInTheDocument();
+  });
+
+  it('imagem aparece em miniatura, e o clique abre o visualizador', () => {
+    render(
+      <FeedItemComentario
+        comentario={comentarioDoFeed({
+          attachments: [
+            {
+              id: 'a2',
+              comment_id: 'c1',
+              file_path: 'x/print.png',
+              file_name: 'print.png',
+              file_size: 4096,
+              file_type: 'image/png',
+              width: 1920,
+              height: 1080,
+            } as FeedComentarioAnexo,
+          ],
+        })}
+      />,
+    );
+    const miniatura = screen.getByRole('button', { name: 'Ver a imagem print.png' });
+    expect(miniatura).toHaveStyle({ width: '360px' });
+    expect(screen.getByRole('img', { name: 'print.png' })).toHaveAttribute(
+      'src',
+      'https://storage.exemplo/print.png',
+    );
+
+    fireEvent.click(miniatura);
+    expect(screen.getByRole('dialog')).toHaveTextContent('print.png');
+    expect(screen.getByRole('button', { name: /Baixar/ })).toBeInTheDocument();
   });
 });
 

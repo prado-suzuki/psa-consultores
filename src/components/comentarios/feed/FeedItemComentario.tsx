@@ -4,7 +4,7 @@ import { ptBR } from 'date-fns/locale';
 import { CornerDownRight, Reply } from 'lucide-react';
 
 import { tomDoAutor } from '@/components/comentarios/feed/avatarDoAutor';
-import { AttachmentButton } from '@/components/comentarios/OrgCommentAttachments';
+import { AnexosDoComentario } from '@/components/comentarios/AnexosDoComentario';
 import { OrgCommentBody } from '@/components/comentarios/OrgCommentBody';
 import {
   abrirAnexoEmNovaAba,
@@ -77,13 +77,7 @@ export function FeedItemComentario({
     abrirAnexoEmNovaAba(resultado.url, resultado.fileName);
   };
 
-  const anexos = comentario.attachments.length > 0 && (
-    <div className="mt-2 grid gap-2 sm:grid-cols-2">
-      {comentario.attachments.map((attachment) => (
-        <AttachmentButton key={attachment.id} attachment={attachment} onOpen={abrirAnexo} />
-      ))}
-    </div>
-  );
+  const anexos = <AnexosDoComentario attachments={comentario.attachments} onBaixar={abrirAnexo} />;
 
   return (
     <div className="relative">
