@@ -87,7 +87,7 @@ export const AtosSocietarios = ({ movimentos, atos }: AtosSocietariosProps) => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-8 shrink-0 gap-1.5 transition-colors hover:bg-osg-red/10 hover:text-osg-red"
+                      className="h-8 shrink-0 gap-1.5 transition-colors hover:bg-destructive/10 hover:text-destructive"
                       disabled={reverter.isPending}
                     >
                       {reverter.isPending ? (

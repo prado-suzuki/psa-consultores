@@ -3,6 +3,7 @@ import type { JSONContent } from '@tiptap/core';
 import { ExternalLink } from 'lucide-react';
 
 import { MENCAO_CLASS } from '@/components/comentarios/extensions/MencaoUsuario';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 import { partesDoTexto } from '@/lib/linksNoTexto';
 import { lerCorpo, NO_DE_MENCAO } from '@/lib/orgCommentRichText';
 
@@ -28,17 +29,18 @@ function Mencao({ children }: { children: ReactNode }) {
  */
 function Link({ href, rotulo, original }: { href: string; rotulo: string; original: string }) {
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      title={original}
-      onClick={(evento) => evento.stopPropagation()}
-      className="break-all rounded-sm bg-primary/5 px-1 font-medium text-primary underline decoration-primary/30 underline-offset-2 transition-colors hover:bg-primary/10 hover:decoration-primary"
-    >
-      {rotulo}
-      <ExternalLink aria-hidden className="ml-0.5 inline h-3 w-3 align-[-0.1em]" />
-    </a>
+    <ElementTooltip text={original}>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(evento) => evento.stopPropagation()}
+        className="break-all rounded-sm bg-primary/5 px-1 font-medium text-primary underline decoration-primary/30 underline-offset-2 transition-colors hover:bg-primary/10 hover:decoration-primary"
+      >
+        {rotulo}
+        <ExternalLink aria-hidden className="ml-0.5 inline h-3 w-3 align-[-0.1em]" />
+      </a>
+    </ElementTooltip>
   );
 }
 
