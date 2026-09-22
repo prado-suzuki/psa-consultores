@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AtSign, Building2, CalendarClock, FolderKanban, ListFilter, MessagesSquare, Search, User, X } from 'lucide-react';
+import { AtSign, Building2, CalendarClock, FolderKanban, ListFilter, MessagesSquare, Paperclip, Search, User, X } from 'lucide-react';
 
 import { SingleSelectCombobox } from '@/components/ui/SingleSelectCombobox';
 import type { ComboOption } from '@/components/ui/MultiSelectCombobox';
@@ -59,7 +59,8 @@ const ITEM_DA_ALTERNANCIA =
  * A barra de recorte do feed.
  *
  * Dois níveis, por frequência de uso. **Menções** é o recorte do dia a dia —
- * "onde me chamaram" — e fica a um clique, em alternância com o feed inteiro; o
+ * "onde me chamaram" — e fica a um clique, em alternância com o feed inteiro e
+ * com **Anexos** ("onde está o arquivo que mandaram"); o
  * **período** também fica à vista, porque é o eixo que se mexe junto com
  * qualquer outro. Cliente, projeto e usuário entram num popover: são listas
  * grandes, precisam de busca e não se troca a cada minuto.
@@ -124,6 +125,7 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
   const quantidadeNoPopover =
     quantidade -
     (filtros.apenasMencoes ? 1 : 0) -
+    (filtros.apenasAnexos ? 1 : 0) -
     (filtros.periodo !== 'sempre' ? 1 : 0) -
     (termoDaBusca(filtros) ? 1 : 0);
 
@@ -154,15 +156,17 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
     <div>
       <div className="flex flex-wrap items-center gap-2">
         {/*
-          Alternância, e não caixa de seleção: "tudo" e "só menções" são duas
-          leituras do feed, não um filtro que se soma aos outros. `type="single"`
-          do Radix devolve string vazia ao desmarcar o item ativo — aí o valor
-          cai em 'tudo' em vez de virar um terceiro estado sem sentido.
+          Alternância, e não caixa de seleção: "tudo", "só menções" e "só
+          anexos" são leituras do feed, não um filtro que se soma aos outros.
+          `type="single"` do Radix devolve string vazia ao desmarcar o item
+          ativo — aí o valor cai em 'tudo' em vez de virar um estado sem sentido.
         */}
         <ToggleGroup
           type="single"
-          value={filtros.apenasMencoes ? 'mencoes' : 'tudo'}
-          onValueChange={(valor) => alterar({ apenasMencoes: valor === 'mencoes' })}
+          value={filtros.apenasMencoes ? 'mencoes' : filtros.apenasAnexos ? 'anexos' : 'tudo'}
+          onValueChange={(valor) =>
+            alterar({ apenasMencoes: valor === 'mencoes', apenasAnexos: valor === 'anexos' })
+          }
           className="justify-start gap-0.5 rounded-md bg-muted/60 p-0.5"
         >
           <ToggleGroupItem value="tudo" aria-label="Ver todas as conversas" className={ITEM_DA_ALTERNANCIA}>
@@ -176,6 +180,14 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
           >
             <AtSign aria-hidden className="h-3.5 w-3.5" />
             Menções
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="anexos"
+            aria-label="Ver só as conversas com anexo"
+            className={ITEM_DA_ALTERNANCIA}
+          >
+            <Paperclip aria-hidden className="h-3.5 w-3.5" />
+            Anexos
           </ToggleGroupItem>
         </ToggleGroup>
 

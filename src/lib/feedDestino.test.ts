@@ -165,6 +165,7 @@ describe('falaCabeNoRecorte', () => {
     autorId: 'eu',
     mencionados: [] as string[],
     texto: 'Balancete de março conferido',
+    temAnexo: false,
   };
 
   it('feed sem recorte sempre mostra a fala', () => {
@@ -199,6 +200,12 @@ describe('falaCabeNoRecorte', () => {
         mencionados: ['eu'],
       }),
     ).toBe(true);
+  });
+
+  it('em "só anexos", fala sem arquivo fica de fora', () => {
+    expect(falaCabeNoRecorte({ ...FILTROS_VAZIOS, apenasAnexos: true }, fala)).toBe(false);
+    expect(falaCabeNoRecorte({ ...FILTROS_VAZIOS, apenasAnexos: true }, { ...fala, temAnexo: true }))
+      .toBe(true);
   });
 
   it('o período não tira do recorte: a fala acabou de nascer', () => {

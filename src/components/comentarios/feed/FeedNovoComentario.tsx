@@ -271,6 +271,7 @@ export function FeedNovoComentario({ area, filtros, onPublicou }: FeedNovoComent
               // isto, escrever com uma busca ligada prometia "veja no topo" e
               // levava a um feed em que a fala não estava.
               texto: textoPlanoDoCorpo(body),
+              temAnexo: files.length > 0,
             }),
           );
         }}

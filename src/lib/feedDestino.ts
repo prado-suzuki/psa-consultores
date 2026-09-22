@@ -164,6 +164,7 @@ export interface FalaPublicada {
    * cadastro em volta dele.
    */
   texto: string;
+  temAnexo: boolean;
 }
 
 /**
@@ -187,6 +188,7 @@ export function falaCabeNoRecorte(filtros: FeedFiltros, fala: FalaPublicada): bo
   if (filtros.apenasMencoes && !(fala.autorId && fala.mencionados.includes(fala.autorId))) {
     return false;
   }
+  if (filtros.apenasAnexos && !fala.temAnexo) return false;
   if (!textoCasaBusca(fala.texto, filtros.busca)) return false;
   return true;
 }

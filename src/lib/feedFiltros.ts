@@ -31,6 +31,11 @@ export interface FeedFiltros {
   /** Quem escreveu. Não é "quem está na conversa" — ver `apenasMencoes`. */
   autorId: string | null;
   apenasMencoes: boolean;
+  /**
+   * Só as falas com arquivo anexado. É uma LEITURA do feed, como as menções, e
+   * a tela a oferece em alternância com elas; o banco aceita as duas juntas.
+   */
+  apenasAnexos: boolean;
   periodo: PeriodoDoFeed;
   /**
    * O que foi digitado na busca. String vazia é ausência de filtro — não `null`,
@@ -50,6 +55,7 @@ export const FILTROS_VAZIOS: FeedFiltros = {
   projetoId: null,
   autorId: null,
   apenasMencoes: false,
+  apenasAnexos: false,
   periodo: 'sempre',
   busca: '',
 };
@@ -122,6 +128,7 @@ export function contarFiltrosAtivos(filtros: FeedFiltros): number {
     (filtros.projetoId ? 1 : 0) +
     (filtros.autorId ? 1 : 0) +
     (filtros.apenasMencoes ? 1 : 0) +
+    (filtros.apenasAnexos ? 1 : 0) +
     (filtros.periodo !== 'sempre' ? 1 : 0) +
     (termoDaBusca(filtros) ? 1 : 0)
   );
@@ -140,6 +147,7 @@ const PARAM = {
   projeto: 'projeto',
   autor: 'autor',
   mencoes: 'mencoes',
+  anexos: 'anexos',
   periodo: 'periodo',
   busca: 'busca',
 } as const;
@@ -163,6 +171,7 @@ export function filtrosDaUrl(params: URLSearchParams): FeedFiltros {
     projetoId: params.get(PARAM.projeto) || null,
     autorId: params.get(PARAM.autor) || null,
     apenasMencoes: params.get(PARAM.mencoes) === '1',
+    apenasAnexos: params.get(PARAM.anexos) === '1',
     periodo: ehPeriodo(periodo) ? periodo : 'sempre',
     busca: params.get(PARAM.busca) ?? '',
   };
@@ -185,6 +194,7 @@ export function aplicarFiltrosNaUrl(
     [PARAM.projeto]: filtros.projetoId,
     [PARAM.autor]: filtros.autorId,
     [PARAM.mencoes]: filtros.apenasMencoes ? '1' : null,
+    [PARAM.anexos]: filtros.apenasAnexos ? '1' : null,
     [PARAM.periodo]: filtros.periodo === 'sempre' ? null : filtros.periodo,
     // O termo vai aparado: o link colado para outra pessoa não deve carregar o
     // espaço que sobrou de uma edição no campo.

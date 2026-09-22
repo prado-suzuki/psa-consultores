@@ -86,6 +86,8 @@ interface FeedRpcParams {
    * `20260922133138_feed_org_comments_busca.sql`.
    */
   _busca: string | null;
+  /** Só comentários com linha em `org_comment_attachments`. */
+  _only_attachments: boolean;
 }
 
 interface SupabaseResult<T> {
@@ -116,6 +118,7 @@ async function buscarPagina(
     _only_mentions: filtros.apenasMencoes,
     _since: desdeDoPeriodo(filtros.periodo),
     _busca: termoDaBusca(filtros),
+    _only_attachments: filtros.apenasAnexos,
   });
   if (error) throw error;
 

@@ -62,10 +62,11 @@ describe('contarFiltrosAtivos', () => {
       projetoId: 'proj-1',
       autorId: 'user-1',
       apenasMencoes: true,
+      apenasAnexos: true,
       periodo: '7d',
       busca: 'balancete',
     };
-    expect(contarFiltrosAtivos(filtros)).toBe(6);
+    expect(contarFiltrosAtivos(filtros)).toBe(7);
     expect(temFiltroAtivo(filtros)).toBe(true);
   });
 
@@ -85,15 +86,16 @@ describe('filtrosDaUrl', () => {
     expect(filtrosDaUrl(new URLSearchParams())).toEqual(FILTROS_VAZIOS);
   });
 
-  it('lê os seis filtros', () => {
+  it('lê os sete filtros', () => {
     const params = new URLSearchParams(
-      'cliente=cli-1&projeto=proj-1&autor=user-1&mencoes=1&periodo=30d&busca=balancete+de+marco',
+      'cliente=cli-1&projeto=proj-1&autor=user-1&mencoes=1&anexos=1&periodo=30d&busca=balancete+de+marco',
     );
     expect(filtrosDaUrl(params)).toEqual({
       clienteId: 'cli-1',
       projetoId: 'proj-1',
       autorId: 'user-1',
       apenasMencoes: true,
+      apenasAnexos: true,
       periodo: '30d',
       busca: 'balancete de marco',
     });
@@ -148,6 +150,7 @@ describe('aplicarFiltrosNaUrl', () => {
       projetoId: 'proj-1',
       autorId: 'user-1',
       apenasMencoes: true,
+      apenasAnexos: true,
       periodo: '30d',
       busca: 'balancete',
     };

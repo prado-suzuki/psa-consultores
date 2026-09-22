@@ -33,6 +33,7 @@ const SEM_FILTRO = {
   _only_mentions: false,
   _since: null,
   _busca: null,
+  _only_attachments: false,
 };
 
 interface DbResult {
@@ -286,6 +287,13 @@ describe('useDomainFeedComentarios — filtros na chamada do banco', () => {
     await registro().queryFn({ pageParam: null });
 
     expect(parametros()._only_mentions).toBe(true);
+  });
+
+  it('liga o recorte de anexos', async () => {
+    renderHook(() => useDomainFeedComentarios({ ...FILTROS_VAZIOS, apenasAnexos: true }));
+    await registro().queryFn({ pageParam: null });
+
+    expect(parametros()._only_attachments).toBe(true);
   });
 
   it('traduz o preset de período no piso de data', async () => {

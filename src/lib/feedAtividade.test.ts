@@ -174,6 +174,7 @@ describe('podeCarimbar', () => {
   it('não carimba quem está procurando coisa velha', () => {
     expect(podeCarimbar({ ...FILTROS_VAZIOS, busca: 'balancete' })).toBe(false);
     expect(podeCarimbar({ ...FILTROS_VAZIOS, periodo: '30d' })).toBe(false);
+    expect(podeCarimbar({ ...FILTROS_VAZIOS, apenasAnexos: true })).toBe(false);
   });
 
   it('espaço solto no campo de busca não desliga o carimbo', () => {

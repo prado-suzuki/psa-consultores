@@ -182,12 +182,12 @@ export function ehNaoLida(
 }
 
 /**
- * Com busca ou período ligados a pessoa procura coisa velha, não lê o dia:
- * carimbar apagaria novidade que ela nem viu, e o carimbo não volta atrás.
- * Cliente e projeto não desligam, porque filtrar e ler é exatamente ler.
+ * Com busca, período ou "só anexos" ligados a pessoa procura coisa velha, não
+ * lê o dia: carimbar apagaria novidade que ela nem viu, e o carimbo não volta
+ * atrás. Cliente e projeto não desligam, porque filtrar e ler é exatamente ler.
  */
 export function podeCarimbar(filtros: FeedFiltros): boolean {
-  return filtros.periodo === 'sempre' && filtros.busca.trim() === '';
+  return filtros.periodo === 'sempre' && filtros.busca.trim() === '' && !filtros.apenasAnexos;
 }
 
 /** "1 atualização" / "12 atualizações", para a linha do cliente sem novidade. */

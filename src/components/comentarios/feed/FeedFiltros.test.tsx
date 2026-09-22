@@ -30,6 +30,12 @@ describe('FeedFiltros', () => {
     expect(onFiltrosChange).toHaveBeenCalledWith({ ...FILTROS_VAZIOS, apenasMencoes: true });
   });
 
+  it('Anexos desliga Menções: são leituras em alternância', () => {
+    const { onFiltrosChange } = renderizar({ apenasMencoes: true });
+    fireEvent.click(screen.getByRole('radio', { name: /só as conversas com anexo/ }));
+    expect(onFiltrosChange).toHaveBeenCalledWith({ ...FILTROS_VAZIOS, apenasAnexos: true });
+  });
+
   it('a busca fica à vista e só vira recorte depois de 350 ms', () => {
     vi.useFakeTimers();
     const { onFiltrosChange } = renderizar();
