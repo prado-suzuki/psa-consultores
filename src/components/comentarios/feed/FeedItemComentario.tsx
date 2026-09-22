@@ -106,7 +106,7 @@ export function FeedItemComentario({
         data-realce={realce || undefined}
         className={cn(
           'group/item relative flex rounded-md transition-colors',
-          ehEvento && 'gap-3 py-1.5 pr-2',
+          ehEvento && 'gap-2 py-1.5 pr-2',
           !ehEvento && 'pr-10 hover:bg-muted/40',
           !ehEvento && (nested ? 'gap-2.5 pb-2 pt-1.5' : 'gap-3 pb-2 pt-2.5'),
           continuaBloco && 'pt-0.5',
@@ -257,9 +257,11 @@ function LinhaDeEvento({ comentario, nested, abreThread, children }: PartesDaFal
     <>
       {abreThread && <span aria-hidden className="absolute bottom-0 left-4 top-8 w-px bg-border" />}
 
+      {/* Coluna estreita com a bolinha na borda direita: o centro dela fica no eixo
+          do avatar e do fio, e o texto encosta nela. */}
       <span
         aria-hidden
-        className={cn('relative z-10 flex shrink-0 justify-center', nested ? 'w-7' : 'w-8')}
+        className={cn('relative z-10 flex shrink-0 justify-end', nested ? 'w-[18px]' : 'w-5')}
       >
         <span className={cn('mt-1.5 h-2 w-2 rounded-full', cor)} />
       </span>
