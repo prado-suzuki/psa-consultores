@@ -1,14 +1,13 @@
-import { Link } from 'react-router-dom';
-import { ArrowUpRight, ChevronRight, FolderKanban, ListChecks, MessagesSquare } from 'lucide-react';
+import { ChevronRight, Maximize2, FolderKanban, ListChecks, MessagesSquare } from 'lucide-react';
 
 import { tomDoAutor } from '@/components/comentarios/feed/avatarDoAutor';
 import { FeedItemComentario } from '@/components/comentarios/feed/FeedItemComentario';
+import type { OrigemAberta } from '@/components/comentarios/feed/FeedOrigemAberta';
 import { FeedRespostaInline } from '@/components/comentarios/feed/FeedRespostaInline';
 import type { FeedComentario } from '@/hooks/useDomainFeedComentarios';
 import { ehNaoLida, rotuloDeNovas } from '@/lib/feedAtividade';
 import {
   autoresDoGrupo,
-  hrefDeOrigem,
   montarThreads,
   origemDoComentario,
   type AreaDeProjetos,
@@ -40,6 +39,8 @@ interface FeedGrupoOrigemProps {
   meuId?: string | null;
   /** `ref` de callback que carimba a leitura quando o bloco fica na tela. */
   registrarLeitura?: (elemento: HTMLElement | null) => void;
+  /** Abre a tarefa ou o projeto por cima do feed, sem sair dele. */
+  onAbrirOrigem: (origem: OrigemAberta) => void;
 }
 
 /**
@@ -59,6 +60,7 @@ export function FeedGrupoOrigem({
   vistoAte = null,
   meuId = null,
   registrarLeitura,
+  onAbrirOrigem,
 }: FeedGrupoOrigemProps) {
   const primeiro = itens[0];
   const origem = origemDoComentario(primeiro, cliente);
@@ -79,9 +81,10 @@ export function FeedGrupoOrigem({
       data-leitura={`${primeiro.project_id}|${primeiro.created_at}`}
       className="group/origem rounded-lg border border-border/60 bg-superficie-cartao transition-colors hover:border-border"
     >
-      <Link
-        to={hrefDeOrigem(primeiro, area)}
-        className="flex items-start gap-3 rounded-t-lg px-4 pb-2.5 pt-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      <button
+        type="button"
+        onClick={() => onAbrirOrigem({ tipo: primeiro.entity_type, id: primeiro.entity_id })}
+        className="flex w-full items-start text-left gap-3 rounded-t-lg px-4 pb-2.5 pt-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
         <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-tool-icon-bg text-tool-icon">
           <IconeDoTipo aria-hidden className="h-3.5 w-3.5" />
@@ -138,12 +141,12 @@ export function FeedGrupoOrigem({
             {itens.length}
           </span>
 
-          <ArrowUpRight
+          <Maximize2
             aria-hidden
             className="hidden h-4 w-4 text-muted-foreground/70 transition-colors group-hover/origem:text-primary sm:block"
           />
         </span>
-      </Link>
+      </button>
 
       <div className="mx-4 border-t border-border/50 py-1.5">
         {threads.map((thread, indice) => {

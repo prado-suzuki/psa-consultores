@@ -7,6 +7,7 @@ import { FeedBarraDeAtividade } from '@/components/comentarios/feed/FeedBarraDeA
 import { FeedFiltros } from '@/components/comentarios/feed/FeedFiltros';
 import { FeedGrupoOrigem } from '@/components/comentarios/feed/FeedGrupoOrigem';
 import { FeedNovoComentario } from '@/components/comentarios/feed/FeedNovoComentario';
+import { FeedOrigemAberta, type OrigemAberta } from '@/components/comentarios/feed/FeedOrigemAberta';
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { Button } from '@/components/ui/button';
 import { ElementTooltip } from '@/components/ui/button-tooltip';
@@ -63,6 +64,8 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
   const { comentarios, isLoading, error, hasNextPage, isFetchingNextPage, fetchNextPage, refetch } =
     useDomainFeedComentarios(filtros);
   const [respondendoA, setRespondendoA] = useState<string | null>(null);
+  const [origemAberta, setOrigemAberta] = useState<OrigemAberta | null>(null);
+  const fecharOrigem = useCallback(() => setOrigemAberta(null), []);
 
   const feedRef = useRef<HTMLDivElement>(null);
   const [alturaDaBarra, setAlturaDaBarra] = useState(0);
@@ -158,6 +161,7 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
                   onResponder={setRespondendoA}
                   onFecharResposta={() => setRespondendoA(null)}
                   onRespondeu={(id) => realcar(id, { resposta: true })}
+                  onAbrirOrigem={setOrigemAberta}
                 />
               ))}
             </div>
@@ -239,6 +243,8 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
           />
         </div>
       </div>
+
+      <FeedOrigemAberta origem={origemAberta} area={area} onFechar={fecharOrigem} />
     </div>
   );
 }

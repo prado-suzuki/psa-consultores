@@ -31,6 +31,7 @@ function renderizar(itens: FeedComentario[], extra: Partial<Props> = {}) {
     onResponder: vi.fn(),
     onFecharResposta: vi.fn(),
     onRespondeu: vi.fn(),
+    onAbrirOrigem: vi.fn(),
     ...extra,
   };
   render(
@@ -53,19 +54,21 @@ const resposta = comentarioDoFeed({
 });
 
 describe('FeedGrupoOrigem: cabeçalho', () => {
-  it('é um link para a tarefa, com tipo, cliente, projeto e título', () => {
-    renderizar([resposta, raiz]);
+  it('abre a tarefa no próprio feed, com tipo, cliente, projeto e título', () => {
+    const props = renderizar([resposta, raiz]);
 
-    const cabecalho = screen.getByRole('link');
-    expect(cabecalho).toHaveAttribute('href', '/equipe/tax/projetos/tarefas?taskId=T1');
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    const cabecalho = screen.getByRole('button', { name: /Conferir balancete de agosto/ });
+    fireEvent.click(cabecalho);
+    expect(props.onAbrirOrigem).toHaveBeenCalledWith({ tipo: 'org_task', id: 'T1' });
     expect(within(cabecalho).getByText('Tarefa')).toBeInTheDocument();
     expect(within(cabecalho).getByText('Frigorífico Vale')).toBeInTheDocument();
     expect(within(cabecalho).getByText('Fechamento mensal')).toBeInTheDocument();
     expect(within(cabecalho).getByText('Conferir balancete de agosto')).toBeInTheDocument();
   });
 
-  it('conversa de projeto leva ao cadastro do projeto e não repete o projeto no caminho', () => {
-    renderizar([
+  it('conversa de projeto abre o projeto e não repete o projeto no caminho', () => {
+    const props = renderizar([
       comentarioDoFeed({
         entity_type: 'org_project',
         entity_id: 'P1',
@@ -73,15 +76,17 @@ describe('FeedGrupoOrigem: cabeçalho', () => {
       }),
     ]);
 
-    const cabecalho = screen.getByRole('link');
-    expect(cabecalho).toHaveAttribute('href', '/equipe/tax/projetos/cadastro?projetoId=P1');
+    const cabecalho = screen.getByRole('button', { name: /Fechamento mensal/ });
+    fireEvent.click(cabecalho);
+    expect(props.onAbrirOrigem).toHaveBeenCalledWith({ tipo: 'org_project', id: 'P1' });
     expect(within(cabecalho).getByText('Projeto')).toBeInTheDocument();
     expect(within(cabecalho).getAllByText('Fechamento mensal')).toHaveLength(1);
   });
 
   it('conta as falas do bloco', () => {
     renderizar([resposta, raiz]);
-    expect(within(screen.getByRole('link')).getByText('2')).toBeInTheDocument();
+    const cabecalho = screen.getByRole('button', { name: /Conferir balancete de agosto/ });
+    expect(within(cabecalho).getByText('2')).toBeInTheDocument();
   });
 
   it('etiqueta de novas conta só o que chegou depois do carimbo e não é meu', () => {
