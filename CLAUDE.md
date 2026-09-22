@@ -4,6 +4,33 @@ As convenções, regras inegociáveis e padrões de arquitetura deste repositór
 
 OBRIGATORIAMENTE Leia-o antes de qualquer alteração e siga-o como fonte única de verdade.
 
+## Convencao de comentarios no codigo
+
+- Comente apenas restricoes, riscos ou comportamentos inesperados que o codigo nao consegue
+  expressar sozinho. Explique o motivo da decisao atual, nao narre a implementacao.
+- Um comentario comum deve ter no maximo duas linhas. Se a explicacao exigir um paragrafo,
+  mova-a para `docs/` e deixe no codigo apenas uma frase ou referencia.
+- Nao registre alternativas rejeitadas, tentativas anteriores, datas de reuniao, nomes de
+  pessoas, historico de bugs ou justificativas defensivas. Isso pertence a issues, commits ou
+  documentacao.
+- So mencione uma alternativa rejeitada quando ela parecer obviamente correta e puder causar
+  um erro real. Mesmo nesse caso, explique a restricao concreta em uma unica frase.
+- Nao deixe codigo desativado em comentarios. Apague-o; o Git preserva o historico.
+- Nao repita nomes de funcoes, tipos ou variaveis em linguagem natural. JSDoc descreve apenas
+  contratos, entradas, saidas, erros e efeitos que nao sejam evidentes pela assinatura.
+- Use comentarios para invariantes concretas, efeitos colaterais, limitacoes externas e regras
+  de negocio dificeis de perceber. `TODO` deve indicar uma acao objetiva e, quando houver, a
+  issue correspondente.
+- Ao alterar um trecho, revise os comentarios proximos. Comentario desatualizado e pior que
+  comentario ausente.
+
+Antes de comentar, confirme que a informacao evita um bug, nao esta clara no codigo, continuara
+verdadeira apos uma refatoracao e nao pode ser dita em uma frase. Se algum criterio falhar, nao
+escreva o comentario.
+
+Regra curta: comentarios explicam restricoes atuais e nao obvias. Nao contam historia, nao
+defendem decisoes e nao descrevem caminhos que o codigo nao tomou.
+
 ## Antes de abrir qualquer plano em `docs/`
 
 Leia `docs/INDICE-PLANOS.md` primeiro. Ele classifica cada documento de `docs/` em feito,
@@ -36,5 +63,5 @@ Existem dois: o sandbox (desenvolvimento) e producao. A regra completa esta na s
 - Para acompanhar erros TypeScript durante alteracoes extensas, prefira `bunx tsc --build --watch --noEmit`; execute `bun run typecheck` na validacao final.
 - Nao execute o build completo a cada mudanca. Use `bun run dev` durante o desenvolvimento e reserve `bun run build` para a validacao final.
 - Mantenha lint, typecheck e build completos na CI e antes da entrega; as verificacoes rapidas locais nao os substituem.
-- As rotas do `App.tsx` **sao** `lazy`, e ja estiveram nos dois lados dessa decisao: o commit `ba0c461b` reverteu a primeira tentativa porque o Vite compila chunk sob demanda em DEV e a navegacao no preview do Lovable ficou lenta. As duas pecas que impedem a volta do problema sao `server.warmup` (no `vite.config.ts`, so dev) e `src/components/PrefetchDeRotas.tsx` (traz os chunks depois do primeiro paint). Mexer no lazy sem elas e repetir 15/04 — o historico esta escrito no proprio `App.tsx`.
-- **Nao reintroduza `manualChunks`.** O historico esta em `vite.config.ts`: forcar agrupamento de vendor causou erro de inicializacao circular/TDZ em producao. A divisao de hoje vem dos `import()` das rotas, que e outro mecanismo; se um chunk especifico incomodar, mexa no `import()` que o gerou.
+- As rotas do `App.tsx` **sao** `lazy`. O commit `ba0c461b` registra a regressao anterior. As duas pecas que evitam lentidao no preview sao `server.warmup` (no `vite.config.ts`, so dev) e `src/components/PrefetchDeRotas.tsx` (traz os chunks depois do primeiro paint). Nao altere o lazy sem considerar as duas.
+- **Nao reintroduza `manualChunks`.** O agrupamento forcado de vendor causou erro de inicializacao circular/TDZ em producao. A divisao atual vem dos `import()` das rotas; ajuste o `import()` especifico se um chunk precisar mudar.

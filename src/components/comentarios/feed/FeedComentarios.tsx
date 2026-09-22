@@ -3,11 +3,16 @@ import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AlertTriangle, MessagesSquare, RotateCcw, SearchX } from 'lucide-react';
 
+import { FeedBarraDeAtividade } from '@/components/comentarios/feed/FeedBarraDeAtividade';
 import { FeedFiltros } from '@/components/comentarios/feed/FeedFiltros';
 import { FeedGrupoOrigem } from '@/components/comentarios/feed/FeedGrupoOrigem';
+import { FeedNovoComentario } from '@/components/comentarios/feed/FeedNovoComentario';
+import { FeedOrigemAberta, type OrigemAberta } from '@/components/comentarios/feed/FeedOrigemAberta';
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { Button } from '@/components/ui/button';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAtividadeDoFeedController } from '@/hooks/useAtividadeDoFeedController';
 import { useDomainFeedClientes } from '@/hooks/useDomainFeedClientes';
 import { useDomainFeedComentarios } from '@/hooks/useDomainFeedComentarios';
 import { agruparPorDia, agruparPorOrigem, type AreaDeProjetos } from '@/lib/feedComentarios';
@@ -16,6 +21,7 @@ import {
   filtrosDaUrl,
   FILTROS_VAZIOS,
   temFiltroAtivo,
+  termoDaBusca,
   type FeedFiltros as FeedFiltrosValor,
 } from '@/lib/feedFiltros';
 
@@ -55,21 +61,17 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
     [setSearchParams],
   );
 
-  const {
-    comentarios,
-    isLoading,
-    error,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-    refetch,
-  } = useDomainFeedComentarios(filtros);
+  const { comentarios, isLoading, error, hasNextPage, isFetchingNextPage, fetchNextPage, refetch } =
+    useDomainFeedComentarios(filtros);
   const [respondendoA, setRespondendoA] = useState<string | null>(null);
+  const [origemAberta, setOrigemAberta] = useState<OrigemAberta | null>(null);
+  const fecharOrigem = useCallback(() => setOrigemAberta(null), []);
 
   const feedRef = useRef<HTMLDivElement>(null);
   const [alturaDaBarra, setAlturaDaBarra] = useState(0);
   const barraRef = useAlturaObservada(setAlturaDaBarra);
-  const { idEmRealce, realcar } = useRealceDaResposta(feedRef);
+  const limparFiltros = useCallback(() => aplicarFiltros(FILTROS_VAZIOS), [aplicarFiltros]);
+  const { idEmRealce, realcar } = useRealceDaFala(feedRef, limparFiltros);
 
   /**
    * O cliente vem de fora do feed, por projeto: todo comentário tem
@@ -81,6 +83,10 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
     [comentarios],
   );
   const { clientePorProjeto } = useDomainFeedClientes(projectIds);
+
+  // A barra de clientes e a marca de não lido saem do mesmo controlador: a
+  // barra diz quais clientes têm fala nova, o stream marca quais falas são.
+  const atividade = useAtividadeDoFeedController(filtros);
 
   /**
    * Dois agrupamentos encadeados: o dia por fora, a conversa por dentro. O de
@@ -109,7 +115,10 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
     conteudo = <FeedComErro erro={error} onTentarDeNovo={() => refetch()} />;
   } else if (comentarios.length === 0) {
     conteudo = temFiltroAtivo(filtros) ? (
-      <FeedSemResultado onLimpar={() => aplicarFiltros(FILTROS_VAZIOS)} />
+      <FeedSemResultado
+        termo={termoDaBusca(filtros)}
+        onLimpar={() => aplicarFiltros(FILTROS_VAZIOS)}
+      />
     ) : (
       <FeedVazio />
     );
@@ -117,28 +126,15 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
     conteudo = (
       <>
         {dias.map((dia, indiceDoDia) => (
-          <section key={dia.dia} className="pb-5">
-            {/* O fundo aqui é MÁSCARA, não decoração: a faixa do dia fica presa
-                logo abaixo da barra de filtros e o conteúdo passa por baixo dela.
-                Por isso ele tem que ser o mesmo token que o `body` pinta: em
-                12/09/2026 a página foi para `bg-background` e este `bg-canvas/80`
-                teria ficado como a única mancha cinza da tela, justamente onde o
-                texto atravessa.
-
-                O `top` é medido, e não uma constante: a barra ganha uma segunda
-                linha quando há filtro ligado, e um número fixo deixaria o rótulo
-                passando por trás dela ou flutuando abaixo dela. */}
+          <section key={dia.dia} className="pb-6">
+            {/* O fundo é máscara do conteúdo que rola por baixo, então segue o token do `body`.
+                O `top` é medido porque a barra de filtros ganha uma linha com filtro ligado. */}
             <div
-              className="sticky z-20 -mx-1 flex items-center gap-3 bg-background/80 px-1 py-2 backdrop-blur-sm"
+              className="sticky z-20 -mx-1 flex items-center gap-3 bg-background/85 px-1 pb-2 pt-1.5 backdrop-blur-sm"
               style={{ top: alturaDaBarra }}
             >
-              <h2 className="rounded-full border border-border/70 bg-card px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-foreground/75 shadow-sm">
-                {dia.rotulo}
-              </h2>
-              <span
-                aria-hidden
-                className="h-px flex-1 bg-gradient-to-r from-border to-transparent"
-              />
+              <h2 className="shrink-0 text-xs font-semibold text-foreground/70">{dia.rotulo}</h2>
+              <span aria-hidden className="h-px flex-1 bg-border/70" />
               <ContagemDoDia
                 carregados={dia.itens.length}
                 /* Só o dia mais antigo da leva pode estar cortado pela paginação;
@@ -157,11 +153,15 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
                   itens={conversa.itens}
                   cliente={clientePorProjeto.get(conversa.itens[0].project_id) ?? null}
                   area={area}
+                  vistoAte={atividade.carimbos.get(conversa.itens[0].project_id)?.vistoAte ?? null}
+                  meuId={atividade.meuId}
+                  registrarLeitura={atividade.registrarBloco}
                   respondendoA={respondendoA}
                   idEmRealce={idEmRealce}
                   onResponder={setRespondendoA}
                   onFecharResposta={() => setRespondendoA(null)}
-                  onRespondeu={realcar}
+                  onRespondeu={(id) => realcar(id, { resposta: true })}
+                  onAbrirOrigem={setOrigemAberta}
                 />
               ))}
             </div>
@@ -174,7 +174,7 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
               type="button"
               variant="outline"
               size="sm"
-              className="rounded-full bg-card px-5 shadow-sm"
+              className="rounded-full px-5"
               disabled={isFetchingNextPage}
               onClick={() => fetchNextPage()}
             >
@@ -194,19 +194,57 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
   }
 
   return (
-    <div ref={feedRef} className="mx-auto max-w-3xl pb-4">
-      {/* A barra gruda no topo junto com o rótulo do dia. Antes ela rolava para
+    /* `items-start` para a barra poder grudar: esticada pelo `stretch` padrão,
+       ela teria a altura da conversa inteira e o `sticky` não teria folga. */
+    <div className="flex w-full max-w-3xl grow items-start gap-5 lg:max-w-none lg:gap-6 lg:pr-8 2xl:gap-8">
+      <FeedBarraDeAtividade
+        atividade={atividade}
+        filtros={filtros}
+        onFiltrosChange={aplicarFiltros}
+      />
+
+      {/* Coluna: filtros em cima, conversa no meio, compositor no rodapé. O `flex`
+       existe por causa do rodapé — é o `mt-auto` dele que o empurra para baixo
+       quando há pouca conversa; sem isso a barra de escrever boiava logo abaixo
+       do último comentário, no meio da tela. O `grow` é a outra metade disso:
+       o invólucro da página estica sob `rolagemNoConteudo`, e sem crescer dentro
+       dele a coluna mediria só o que a conversa pede, e não sobraria espaço
+       nenhum para o `mt-auto` distribuir. `self-stretch` devolve a altura que o
+       `items-start` do pai tirou, senão o compositor desgruda do rodapé. */}
+      <div ref={feedRef} className="flex w-full min-w-0 grow flex-col self-stretch pb-2">
+        {/* A barra gruda no topo junto com o rótulo do dia. Antes ela rolava para
           fora: depois de duzentos comentários, trocar o período obrigava a voltar
           ao começo da página: o controle sumia e a informação passiva ficava.
           A faixa carrega a máscara e o espaçamento que antes eram `mb-3` na
           barra, para o conteúdo não aparecer na fresta entre as duas. */}
-      <div
-        ref={barraRef}
-        className="sticky top-0 z-30 -mx-1 bg-background/85 px-1 pb-3 pt-1 backdrop-blur-sm"
-      >
-        <FeedFiltros filtros={filtros} onFiltrosChange={aplicarFiltros} />
+        <div
+          ref={barraRef}
+          className="sticky top-0 z-30 -mx-1 bg-background/85 px-1 pb-3 pt-1 backdrop-blur-sm"
+        >
+          <FeedFiltros filtros={filtros} onFiltrosChange={aplicarFiltros} />
+        </div>
+        {conteudo}
+        {/*
+        O compositor fica no RODAPÉ, grudado, como a caixa de mensagem do Slack:
+        é lá que a mão já está depois de ler, e ele não pode depender de rolar
+        duzentos comentários de volta até o topo. Antes ele morava na faixa de
+        cima, junto dos filtros — e ali, aberto, empurrava a conversa para fora
+        da tela justamente enquanto se escreve sobre ela.
+
+        A máscara é OPACA, diferente da faixa de cima: aqui embaixo ela cobre a
+        caixa de escrever inteira, e o borrão translúcido deixava a conversa
+        aparecer por trás do campo de texto e dos campos de destino.
+      */}
+        <div className="sticky bottom-0 z-30 -mx-1 mt-auto bg-background px-1 pb-1 pt-3 shadow-[0_-10px_14px_-14px_hsl(var(--foreground)/0.12)]">
+          <FeedNovoComentario
+            area={area}
+            filtros={filtros}
+            onPublicou={(id, noRecorte) => realcar(id, { noRecorte })}
+          />
+        </div>
       </div>
-      {conteudo}
+
+      <FeedOrigemAberta origem={origemAberta} area={area} onFechar={fecharOrigem} />
     </div>
   );
 }
@@ -235,15 +273,27 @@ function useAlturaObservada(aoMedir: (altura: number) => void) {
   return ref;
 }
 
+interface OpcoesDoRealce {
+  /** A fala cabe no recorte que está na tela? Só o compositor sabe responder. */
+  noRecorte?: boolean;
+  /** Muda só o título do toast: resposta e conversa nova não são a mesma notícia. */
+  resposta?: boolean;
+}
+
 /**
- * O retorno visual da resposta publicada.
+ * O retorno visual da fala publicada — resposta ou conversa nova.
  *
- * O feed é cronológico, então a resposta escrita numa conversa de quatro dias
- * atrás nasce lá no topo, no bloco de "Hoje": o compositor fechava, nada mudava
- * na frente da pessoa e ela concluía que a resposta se perdeu. Aqui o toast diz
- * o que aconteceu e leva até ela, que chega realçada por alguns segundos.
+ * O feed é cronológico, então a fala escrita numa conversa de quatro dias atrás
+ * nasce lá no topo, no bloco de "Hoje": o compositor fechava, nada mudava na
+ * frente da pessoa e ela concluía que a fala se perdeu. Aqui o toast diz o que
+ * aconteceu e leva até ela, que chega realçada por alguns segundos.
+ *
+ * Quando a fala NÃO cabe no recorte da tela (escrita para outro cliente
+ * enquanto se lê o feed filtrado num deles), o "Ver no topo" levaria a lugar
+ * nenhum: o toast troca de texto e passa a oferecer a saída que resolve —
+ * limpar os filtros.
  */
-function useRealceDaResposta(feedRef: React.RefObject<HTMLDivElement>) {
+function useRealceDaFala(feedRef: React.RefObject<HTMLDivElement>, onLimparFiltros: () => void) {
   const [idEmRealce, setIdEmRealce] = useState<string | null>(null);
 
   useEffect(() => {
@@ -253,10 +303,18 @@ function useRealceDaResposta(feedRef: React.RefObject<HTMLDivElement>) {
   }, [idEmRealce]);
 
   const realcar = useCallback(
-    (id: string) => {
+    (id: string, { noRecorte = true, resposta = false }: OpcoesDoRealce = {}) => {
+      const titulo = resposta ? 'Resposta publicada' : 'Comentário publicado';
       setIdEmRealce(id);
-      toast.success('Resposta publicada', {
-        description: 'Ela entrou no topo do feed, no bloco de hoje.',
+      if (!noRecorte) {
+        toast.success(titulo, {
+          description: 'Foi gravado, mas está fora dos filtros desta tela.',
+          action: { label: 'Limpar filtros', onClick: onLimparFiltros },
+        });
+        return;
+      }
+      toast.success(titulo, {
+        description: 'Entrou no topo do feed, no bloco de hoje.',
         action: {
           label: 'Ver no topo',
           onClick: () => {
@@ -268,7 +326,7 @@ function useRealceDaResposta(feedRef: React.RefObject<HTMLDivElement>) {
         },
       });
     },
-    [feedRef],
+    [feedRef, onLimparFiltros],
   );
 
   return { idEmRealce, realcar };
@@ -285,33 +343,32 @@ function useRealceDaResposta(feedRef: React.RefObject<HTMLDivElement>) {
 function ContagemDoDia({ carregados, cortado }: { carregados: number; cortado: boolean }) {
   const plural = carregados === 1 ? 'comentário' : 'comentários';
   return (
-    <span
-      className="text-[11px] text-muted-foreground"
-      title={cortado ? 'Este dia tem mais comentários ainda não carregados' : undefined}
-    >
-      {cortado ? `${carregados}+ ${plural}` : `${carregados} ${plural}`}
-    </span>
+    <ElementTooltip text={cortado ? 'Este dia tem mais comentários ainda não carregados' : null}>
+      <span className="shrink-0 text-[11px] text-muted-foreground">
+        {cortado ? `${carregados}+ ${plural}` : `${carregados} ${plural}`}
+      </span>
+    </ElementTooltip>
   );
 }
 
-/** Esqueleto no formato do feed: rótulo do dia, cabeçalho de origem e falas. */
+/** Esqueleto com a geometria final: rótulo do dia, cabeçalho em dois níveis e falas. */
 function FeedCarregando() {
   return (
-    <div className="space-y-3">
-      <Skeleton className="h-5 w-20 rounded-full" />
+    <div className="space-y-3" aria-busy="true" aria-label="Carregando o feed">
+      <div className="flex items-center gap-3 pb-2 pt-1.5">
+        <Skeleton className="h-3 w-12" />
+        <span aria-hidden className="h-px flex-1 bg-border/70" />
+      </div>
       {[0, 1].map((bloco) => (
-        <div key={bloco} className="overflow-hidden rounded-2xl border border-border/70 bg-superficie-cartao">
-          {/* O cabeçalho do bloco real é lavado com o acento da área; o esqueleto
-              usa a MESMA cor, senão cada carregamento termina num solavanco de
-              cinza para colorido bem onde o olho está pousado. */}
-          <div className="flex items-center gap-3 border-b border-border/60 bg-primary/10 px-3.5 py-2.5">
-            <Skeleton className="h-9 w-9 rounded-xl" />
-            <div className="flex-1 space-y-1.5">
-              <Skeleton className="h-2.5 w-28" />
-              <Skeleton className="h-3 w-48" />
+        <div key={bloco} className="rounded-lg border border-border/60 bg-superficie-cartao">
+          <div className="flex items-start gap-3 px-4 pb-2.5 pt-3">
+            <Skeleton className="mt-0.5 h-7 w-7 rounded-md" />
+            <div className="flex-1 space-y-1.5 pt-0.5">
+              <Skeleton className="h-2.5 w-40" />
+              <Skeleton className="h-3.5 w-64 max-w-full" />
             </div>
           </div>
-          <div className="space-y-3 px-3.5 py-3">
+          <div className="mx-4 space-y-3 border-t border-border/50 py-3">
             {[0, 1].map((linha) => (
               <div key={linha} className="flex gap-3">
                 <Skeleton className="h-8 w-8 rounded-full" />
@@ -337,8 +394,10 @@ function FeedCarregando() {
  */
 function FeedComErro({ erro, onTentarDeNovo }: { erro: Error; onTentarDeNovo: () => void }) {
   return (
-    <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center">
-      <AlertTriangle aria-hidden className="mx-auto mb-3 h-8 w-8 text-destructive/70" />
+    <div className="rounded-lg border border-destructive/25 px-6 py-12 text-center">
+      <span className="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-full bg-destructive/10 text-destructive">
+        <AlertTriangle aria-hidden className="h-5 w-5" />
+      </span>
       <p className="font-semibold">Não foi possível carregar o feed</p>
       <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
         A conversa continua guardada: foi a busca que falhou. Tente de novo; se insistir, avise o
@@ -362,9 +421,9 @@ function FeedComErro({ erro, onTentarDeNovo }: { erro: Error; onTentarDeNovo: ()
 
 function FeedVazio() {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-superficie-cartao px-6 py-16 text-center">
-      <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-tool-icon-bg text-tool-icon">
-        <MessagesSquare aria-hidden className="h-7 w-7" />
+    <div className="px-6 py-16 text-center">
+      <span className="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-full bg-tool-icon-bg text-tool-icon">
+        <MessagesSquare aria-hidden className="h-5 w-5" />
       </span>
       <p className="font-semibold">Nada no feed ainda</p>
       <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
@@ -381,16 +440,26 @@ function FeedVazio() {
  * O texto tem que dizer que existe conversa, só não nesse recorte; senão a
  * pessoa lê "o feed está vazio" e conclui que a ferramenta não tem nada dentro.
  */
-function FeedSemResultado({ onLimpar }: { onLimpar: () => void }) {
+function FeedSemResultado({ termo, onLimpar }: { termo: string | null; onLimpar: () => void }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-superficie-cartao px-6 py-16 text-center">
-      <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-muted text-muted-foreground">
-        <SearchX aria-hidden className="h-7 w-7" />
+    <div className="px-6 py-16 text-center">
+      <span className="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-full bg-muted text-muted-foreground">
+        <SearchX aria-hidden className="h-5 w-5" />
       </span>
-      <p className="font-semibold">Nenhuma conversa nesse recorte</p>
+      {/*
+        Com busca ligada o vazio tem uma causa provável, e ela vai no título: a
+        palavra procurada. "Nenhuma conversa nesse recorte" mandava conferir
+        cinco filtros quando o que não casou foi o termo digitado — e o termo é
+        o único filtro que a pessoa escreveu de cabeça, então é o mais fácil de
+        ter saído com um erro de digitação.
+      */}
+      <p className="font-semibold">
+        {termo ? <>Nada encontrado para “{termo}”</> : 'Nenhuma conversa nesse recorte'}
+      </p>
       <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-        Há conversas no feed, mas nenhuma que atenda aos filtros escolhidos. Tente ampliar o período
-        ou desligar um dos filtros.
+        {termo
+          ? 'A busca procura no texto do comentário, inteiro, e pede todas as palavras digitadas. Tente menos palavras, ou confira os outros filtros ligados.'
+          : 'Há conversas no feed, mas nenhuma que atenda aos filtros escolhidos. Tente ampliar o período ou desligar um dos filtros.'}
       </p>
       <Button type="button" variant="outline" size="sm" className="mt-5" onClick={onLimpar}>
         Limpar filtros

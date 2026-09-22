@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 
 import { CommentComposer } from '@/components/comentarios/CommentComposer';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   feedComentariosQueryKeyPrefix,
   type FeedComentario,
@@ -8,6 +9,7 @@ import {
 import { useDomainMentionCandidates } from '@/hooks/useDomainMentionCandidates';
 import { useDomainOrgComments } from '@/hooks/useDomainOrgComments';
 import { parentIdParaResposta, type AreaDeProjetos } from '@/lib/feedComentarios';
+import { expandirMencaoTodos } from '@/lib/orgCommentMentions';
 
 interface FeedRespostaInlineProps {
   comentario: FeedComentario;
@@ -36,6 +38,7 @@ export function FeedRespostaInline({
   onRespondeu,
 }: FeedRespostaInlineProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { createComment, isCreating } = useDomainOrgComments(
     comentario.entity_type,
     comentario.entity_id,
@@ -60,7 +63,9 @@ export function FeedRespostaInline({
         const id = await createComment.mutateAsync({
           body,
           files,
-          mentions,
+          // Aqui a roda de gente é a do projeto da thread, que não muda no meio
+          // do envio: dá para expandir o `@todos` direto.
+          mentions: expandirMencaoTodos(mentions, mentionCandidates, user?.id),
           parentId: parentIdParaResposta(comentario),
           // Aqui os dois divergem: no feed responde-se a qualquer item, e
           // responder a uma resposta pendura na raiz dela. Quem recebe a

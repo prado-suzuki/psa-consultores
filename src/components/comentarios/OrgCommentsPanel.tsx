@@ -6,7 +6,7 @@ import { CommentComposer } from '@/components/comentarios/CommentComposer';
 import { OrgCommentBody } from '@/components/comentarios/OrgCommentBody';
 import { OrgCommentEditor } from '@/components/comentarios/OrgCommentEditor';
 import { OrgCommentOrigem } from '@/components/comentarios/OrgCommentOrigem';
-import { AttachmentButton } from '@/components/comentarios/OrgCommentAttachments';
+import { AnexosDoComentario } from '@/components/comentarios/AnexosDoComentario';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,7 +45,7 @@ import {
   pessoasDoEventoPartes,
   rotuloDoEvento,
 } from '@/lib/orgCommentEventos';
-import { iniciaisDoNome } from '@/lib/orgCommentMentions';
+import { expandirMencaoTodos, iniciaisDoNome } from '@/lib/orgCommentMentions';
 import { docEstaVazio, lerCorpo } from '@/lib/orgCommentRichText';
 import { cn } from '@/lib/utils';
 
@@ -219,7 +219,7 @@ export function OrgCommentsPanel({
             <span
               aria-hidden
               data-thread-connector
-              className="absolute -left-6 top-0 h-[22px] w-6 rounded-bl-lg border-b border-l border-border"
+              className="absolute -left-6 top-0 h-[22px] w-6 rounded-bl-md border-b border-l border-border"
             />
             {/* Enquanto houver resposta abaixo, o fio segue descendo. */}
             {!ultima && (
@@ -318,7 +318,7 @@ export function OrgCommentsPanel({
             {comment.excluido ? (
               <p className="mt-1 text-sm italic text-muted-foreground">Comentário excluído</p>
             ) : editingId === comment.id ? (
-              <div className="mt-2 space-y-2 rounded-lg border bg-background p-2">
+              <div className="mt-2 space-y-2 rounded-md border bg-background p-2">
                 <OrgCommentEditor
                   value={editingBody}
                   onChange={setEditingBody}
@@ -351,7 +351,7 @@ export function OrgCommentsPanel({
               <div
                 className={cn(
                   'mt-1',
-                  isSystem && 'rounded-lg border-l-2 border-primary/40 bg-muted/35 px-3 py-2',
+                  isSystem && 'rounded-md border-l-2 border-primary/40 bg-muted/35 px-3 py-2',
                 )}
               >
                 {(!isSystem || corpoDoEvento(comment)) && (
@@ -364,15 +364,7 @@ export function OrgCommentsPanel({
             )}
 
             {comment.attachments.length > 0 && !comment.excluido && (
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                {comment.attachments.map((attachment) => (
-                  <AttachmentButton
-                    key={attachment.id}
-                    attachment={attachment}
-                    onOpen={openAttachment}
-                  />
-                ))}
-              </div>
+              <AnexosDoComentario attachments={comment.attachments} onBaixar={openAttachment} />
             )}
 
             {!nested && !isSystem && !comment.excluido && !isReplying && (
@@ -423,7 +415,7 @@ export function OrgCommentsPanel({
                   await createComment.mutateAsync({
                     body,
                     files,
-                    mentions,
+                    mentions: expandirMencaoTodos(mentions, mentionCandidates, user?.id),
                     parentId: comment.id,
                     respondidoId: comment.id,
                     alvo: { entityType: comment.entity_type, entityId: comment.entity_id },
@@ -525,7 +517,13 @@ export function OrgCommentsPanel({
           mentionCandidates={mentionCandidates}
           focusSignal={focusComposerSignal}
           onSubmit={async (body, files, mentions) => {
-            await createComment.mutateAsync({ body, files, mentions });
+            await createComment.mutateAsync({
+              body,
+              files,
+              // O `@todos` vira a roda de gente do projeto no instante de
+              // gravar, sem quem escreveu: ver `expandirMencaoTodos`.
+              mentions: expandirMencaoTodos(mentions, mentionCandidates, user?.id),
+            });
             // O que acabei de publicar entra no fim da lista: desce até ele.
             ancoraPendente.current = true;
             ancorarNoFim();

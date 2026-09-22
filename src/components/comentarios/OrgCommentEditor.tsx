@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import Bold from '@tiptap/extension-bold';
 import Document from '@tiptap/extension-document';
 import Italic from '@tiptap/extension-italic';
@@ -8,9 +8,11 @@ import Text from '@tiptap/extension-text';
 import Underline from '@tiptap/extension-underline';
 import { Placeholder, UndoRedo } from '@tiptap/extensions';
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
+import { splitBlock } from '@tiptap/pm/commands';
 import { exitSuggestion, type SuggestionProps } from '@tiptap/suggestion';
 import {
   AtSign,
+  Users,
   Bold as BoldIcon,
   Italic as ItalicIcon,
   List as BulletListIcon,
@@ -23,7 +25,7 @@ import {
   MencaoUsuario,
 } from '@/components/comentarios/extensions/MencaoUsuario';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { iniciaisDoNome, type MentionCandidate } from '@/lib/orgCommentMentions';
+import { ehMencaoTodos, iniciaisDoNome, type MentionCandidate } from '@/lib/orgCommentMentions';
 import { docDoCorpo, serializarDoc } from '@/lib/orgCommentRichText';
 import { cn } from '@/lib/utils';
 import { ButtonTooltip } from '@/components/ui/button-tooltip';
@@ -49,9 +51,68 @@ interface OrgCommentEditorProps {
   focarNaMontagem?: boolean;
   /** Arquivo colado ou arrastado sobre o texto continua virando anexo. */
   onArquivos?: (files: File[]) => void;
-  /** Atalho de publicar (Ctrl/Cmd+Enter). Enter continua quebrando linha. */
+  /** Atalho de publicar (Ctrl/Cmd+Enter, e Enter quando `enviarComEnter`). */
   onPublicar?: () => void;
+  /**
+   * Enter ENVIA, e a quebra de linha passa para Shift+Enter, como no Slack.
+   *
+   * É opt-in: no painel da tarefa o Enter continua quebrando linha. Quem liga
+   * isto é a caixa do feed, onde o Enter abre a escolha de destino e o gesto
+   * inteiro (escrever, enviar, escolher cliente e projeto) acontece sem a mão
+   * sair do teclado.
+   *
+   * A lista de menção tem precedência: com ela aberta o Enter escolhe a pessoa,
+   * e não envia.
+   */
+  enviarComEnter?: boolean;
+  /**
+   * O que dizer quando o "@" não tem ninguém para oferecer porque a lista de
+   * candidatos está vazia (e não porque a busca não casou).
+   *
+   * A lista de quem pode ser mencionado é derivada do projeto. Na caixa do
+   * feed o projeto só é escolhido no envio, então antes da primeira fala não
+   * há ninguém para oferecer, e uma lista que não abre parece defeito.
+   */
+  avisoSemMencoes?: string;
+  /**
+   * O "@" foi disparado e NÃO HÁ NINGUÉM na lista de candidatos.
+   *
+   * Quem passa isto se encarrega de resolver a falta (no feed, é escolher o
+   * destino, que é de onde a roda de gente vem) e reabre a menção pelo
+   * `reabrirMencaoRef` quando houver gente. Sem a prop, o editor só mostra o
+   * aviso de lista vazia, que é o comportamento de quem já tem destino fixo.
+   */
+  aoMencionarSemGente?: () => void;
+  /**
+   * Reabre a menção: apaga o "@" que já está no texto e o digita de novo, para
+   * o Suggestion recomeçar agora que a lista tem gente. Repetir a digitação é o
+   * caminho porque o plugin só recalcula os itens quando o gatilho muda.
+   */
+  reabrirMencaoRef?: MutableRefObject<(() => void) | null>;
   ariaLabel?: string;
+  /**
+   * Classes da área de escrita. Existe para a caixa no formato do Slack, onde a
+   * borda é do invólucro e o respiro do texto precisa vir de dentro.
+   */
+  classeDoTexto?: string;
+  /**
+   * A barra de formatação vira FAIXA colada no topo da caixa, em vez de uma
+   * linha solta acima do texto. É o que dá o desenho de caixa única: fundo
+   * próprio, sem margem, encostada na borda de cima.
+   */
+  barraEmFaixa?: boolean;
+  /**
+   * O "@" mora na barra de formatação (padrão) ou na barra de ações de baixo,
+   * desenhada por quem chama — que é o arranjo do Slack.
+   */
+  botaoDeMencao?: boolean;
+  /**
+   * Recebe a ação de inserir o "@", para quem desenha o botão fora do editor.
+   *
+   * Sai por `ref`, e não por callback de montagem, porque quem chama precisa de
+   * um alvo estável: o botão vive numa barra irmã, renderizada no mesmo passo.
+   */
+  inserirMencaoRef?: MutableRefObject<(() => void) | null>;
 }
 
 /**
@@ -62,9 +123,11 @@ interface OrgCommentEditorProps {
  * marcador + JSON. O que ele acrescenta é a menção, que aqui é um nó do
  * documento em vez de texto — ver `MencaoUsuario`.
  *
- * Enter quebra linha e continua a lista; publicar é o botão (ou Ctrl/Cmd+Enter).
- * Trocar Enter por "publica" brigaria com lista e parágrafo, que são justamente
- * o que o editor rico traz.
+ * Por padrão Enter quebra linha e continua a lista; publicar é o botão (ou
+ * Ctrl/Cmd+Enter), porque trocar Enter por "publica" briga com lista e
+ * parágrafo, que são justamente o que o editor rico traz. `enviarComEnter`
+ * inverte isso para quem quer o gesto do Slack (a caixa do feed), e aí a quebra
+ * de linha é Shift+Enter.
  */
 export function OrgCommentEditor({
   value,
@@ -76,7 +139,15 @@ export function OrgCommentEditor({
   focarNaMontagem,
   onArquivos,
   onPublicar,
+  enviarComEnter,
+  avisoSemMencoes,
   ariaLabel,
+  classeDoTexto,
+  barraEmFaixa,
+  botaoDeMencao = true,
+  inserirMencaoRef,
+  aoMencionarSemGente,
+  reabrirMencaoRef,
 }: OrgCommentEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
@@ -85,6 +156,10 @@ export function OrgCommentEditor({
   onPublicarRef.current = onPublicar;
   const onArquivosRef = useRef(onArquivos);
   onArquivosRef.current = onArquivos;
+  const enviarComEnterRef = useRef(enviarComEnter);
+  enviarComEnterRef.current = enviarComEnter;
+  const aoMencionarSemGenteRef = useRef(aoMencionarSemGente);
+  aoMencionarSemGenteRef.current = aoMencionarSemGente;
   /** Lista viva para a extensão ler sem recriar o editor a cada chegada do hook. */
   const candidatesRef = useRef(candidates);
   candidatesRef.current = candidates;
@@ -95,7 +170,30 @@ export function OrgCommentEditor({
   const sugestaoRef = useRef<EstadoSugestao | null>(null);
   const destacadoRef = useRef(0);
 
-  const atualizarSugestao = (props: SuggestionProps<MentionCandidate, MentionCandidate>) => {
+  const atualizarSugestao = (
+    props: SuggestionProps<MentionCandidate, MentionCandidate>,
+    inicio = false,
+  ) => {
+    /*
+      "@" apertado sem NINGUÉM na lista: quem passou `aoMencionarSemGente`
+      assume daqui (no feed, abre a escolha de destino, que é de onde a roda de
+      gente vem). Só na ABERTURA: nas atualizações seguintes a lista vazia quer
+      dizer que a busca não casou, e aí o aviso já responde.
+
+      A saída é adiada por `queueMicrotask` porque isto roda dentro do `update`
+      da view do ProseMirror, e despachar transação lá dentro é pedir
+      transação descasada.
+    */
+    if (inicio && candidatesRef.current.length === 0 && aoMencionarSemGenteRef.current) {
+      const aoMencionar = aoMencionarSemGenteRef.current;
+      fecharSugestao();
+      queueMicrotask(() => {
+        exitSuggestion(props.editor.view, MENCAO_PLUGIN_KEY);
+        aoMencionar();
+      });
+      return;
+    }
+
     const rect = props.clientRect?.();
     const container = containerRef.current?.getBoundingClientRect();
     const estado: EstadoSugestao = {
@@ -141,7 +239,7 @@ export function OrgCommentEditor({
       MencaoUsuario.configure({
         candidatos: () => candidatesRef.current,
         render: () => ({
-          onStart: atualizarSugestao,
+          onStart: (props) => atualizarSugestao(props, true),
           onUpdate: atualizarSugestao,
           onExit: fecharSugestao,
           onKeyDown: ({ view, event }) => {
@@ -179,6 +277,7 @@ export function OrgCommentEditor({
         class: cn(
           minHeight,
           'max-h-64 overflow-y-auto text-sm leading-6 outline-none',
+          classeDoTexto,
           '[&_p.is-editor-empty:first-child::before]:pointer-events-none',
           '[&_p.is-editor-empty:first-child::before]:float-left',
           '[&_p.is-editor-empty:first-child::before]:h-0',
@@ -201,8 +300,34 @@ export function OrgCommentEditor({
         onArquivosRef.current?.(files);
         return true;
       },
-      handleKeyDown: (_view, event) => {
-        if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey)) return false;
+      handleKeyDown: (view, event) => {
+        if (event.key !== 'Enter') return false;
+        /*
+          Com a lista de menção aberta E COM GENTE NELA o Enter é DELA. As props
+          diretas da view correm antes das dos plugins no ProseMirror, então sem
+          esta saída o envio atropelaria a escolha da pessoa que se acabou de
+          digitar.
+
+          A conferência do tamanho não é detalhe: o "@" fica ativo enquanto se
+          digita o nome, mesmo sem nenhum casamento, e o tratador da sugestão
+          devolve o Enter quando a lista está vazia. Sem ela, o Enter num "@abc"
+          sem resultado não enviava nem escolhia: caía no ProseMirror e abria
+          parágrafo novo (visto na tela).
+        */
+        if (sugestaoRef.current && sugestaoRef.current.items.length > 0) return false;
+        if (event.metaKey || event.ctrlKey) {
+          onPublicarRef.current?.();
+          return true;
+        }
+        if (!enviarComEnterRef.current) return false;
+        /*
+          Shift+Enter é a quebra de linha quando o Enter virou enviar, e ela
+          precisa ser feita à mão: o editor não carrega extensão de quebra
+          rígida, então sem isto a tecla não fazia NADA (medido na tela, com o
+          texto saindo todo numa linha só). O `splitBlock` é exatamente o que o
+          Enter fazia antes daqui: parágrafo novo, e item novo dentro de lista.
+        */
+        if (event.shiftKey) return splitBlock(view.state, view.dispatch);
         onPublicarRef.current?.();
         return true;
       },
@@ -243,6 +368,27 @@ export function OrgCommentEditor({
       .insertContent(antes && !/\s/.test(antes) ? ' @' : '@')
       .run();
   };
+
+  /**
+   * Recomeça a menção depois que a lista de gente chegou.
+   *
+   * O Suggestion só recalcula os itens quando o gatilho MUDA: com a lista
+   * vazia no momento do "@", nenhuma chegada posterior de candidatos reabre a
+   * lista sozinha. Então o "@" que a pessoa digitou é apagado e digitado de
+   * novo, o que dispara tudo outra vez, agora com gente para oferecer.
+   */
+  const reabrirMencao = () => {
+    if (!editor) return;
+    const { from } = editor.state.selection;
+    const antes = editor.state.doc.textBetween(Math.max(0, from - 1), from, ' ');
+    const acao = editor.chain().focus();
+    if (antes === '@') acao.deleteRange({ from: from - 1, to: from });
+    acao.insertContent('@').run();
+  };
+
+  // As duas ações, à disposição de quem desenha o botão (ou o modal) fora daqui.
+  if (inserirMencaoRef) inserirMencaoRef.current = inserirGatilhoDeMencao;
+  if (reabrirMencaoRef) reabrirMencaoRef.current = reabrirMencao;
 
   const marcas = useEditorState({
     editor,
@@ -295,7 +441,12 @@ export function OrgCommentEditor({
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="mb-2 flex items-center gap-0.5 border-b pb-1.5">
+      <div
+        className={cn(
+          'flex items-center gap-0.5 border-b',
+          barraEmFaixa ? 'border-border/60 px-2 py-1' : 'mb-2 pb-1.5',
+        )}
+      >
         {botoes.map(({ key, label, icon: Icon, ativo, acao }, index) => (
           <Fragment key={key}>
             {index === 3 && <span className="mx-1 h-4 w-px bg-border" aria-hidden />}
@@ -316,27 +467,40 @@ export function OrgCommentEditor({
             </ButtonTooltip>
           </Fragment>
         ))}
-        <ButtonTooltip text="Mencionar pessoa">
-          <button
-          type="button"
-          aria-label="Mencionar pessoa"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={inserirGatilhoDeMencao}
-          className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <AtSign className="h-3.5 w-3.5" />
-        </button>
-        </ButtonTooltip>
+        {botaoDeMencao && (
+          <ButtonTooltip text="Mencionar pessoa">
+            <button
+              type="button"
+              aria-label="Mencionar pessoa"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={inserirGatilhoDeMencao}
+              className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <AtSign className="h-3.5 w-3.5" />
+            </button>
+          </ButtonTooltip>
+        )}
       </div>
 
       <EditorContent editor={editor} />
+
+      {sugestao && sugestao.items.length === 0 && (
+        <p
+          style={{ left: sugestao.x, top: sugestao.y }}
+          className="absolute z-30 w-64 -translate-y-full rounded-md border bg-popover p-2 text-xs text-muted-foreground shadow-md"
+        >
+          {candidates.length === 0
+            ? (avisoSemMencoes ?? 'Ninguém para mencionar por aqui.')
+            : 'Ninguém com esse nome.'}
+        </p>
+      )}
 
       {sugestao && sugestao.items.length > 0 && (
         <ul
           role="listbox"
           aria-label="Mencionar pessoa"
           style={{ left: sugestao.x, top: sugestao.y }}
-          className="absolute z-30 max-h-56 w-64 -translate-y-full overflow-y-auto rounded-lg border bg-popover p-1 shadow-md"
+          className="absolute z-30 max-h-56 w-64 -translate-y-full overflow-y-auto rounded-md border bg-popover p-1 shadow-md"
         >
           {sugestao.items.map((candidate, index) => (
             <li key={candidate.id}>
@@ -359,12 +523,32 @@ export function OrgCommentEditor({
                   index === destacado && 'bg-muted',
                 )}
               >
-                <Avatar className="h-6 w-6">
-                  <AvatarFallback className="text-[10px]">
-                    {iniciaisDoNome(candidate.name)}
-                  </AvatarFallback>
-                </Avatar>
+                {/*
+                  O `@todos` não é gente, e a linha diz isso: ícone de grupo no
+                  lugar das iniciais, e a legenda de quem vai ser avisado. Com
+                  avatar de pessoa ele passaria por mais um colega da lista, e
+                  ninguém descobriria que avisa o projeto inteiro sem usar.
+                */}
+                {ehMencaoTodos(candidate.id) ? (
+                  <span
+                    aria-hidden
+                    className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"
+                  >
+                    <Users className="h-3.5 w-3.5" />
+                  </span>
+                ) : (
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="text-[10px]">
+                      {iniciaisDoNome(candidate.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
                 <span className="truncate">{candidate.name}</span>
+                {ehMencaoTodos(candidate.id) && (
+                  <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+                    avisa o projeto
+                  </span>
+                )}
               </button>
             </li>
           ))}

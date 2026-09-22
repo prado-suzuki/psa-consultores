@@ -124,7 +124,11 @@ export const FiscalLayout = (props: FiscalLayoutProps) => {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6">
+          {/* Com a rolagem no conteúdo, o invólucro precisa ESTICAR: é ele que
+              dá altura para a tela grudar algo no rodapé (o compositor do Feed)
+              quando há pouco conteúdo. Sem isto ele mede só o que o filho pede,
+              e a barra de escrever ficava boiando no meio da tela. */}
+          <div className={cn('p-4 md:p-6', rolagemNoConteudo && 'flex min-h-full flex-col')}>
             {children}
           </div>
         </div>

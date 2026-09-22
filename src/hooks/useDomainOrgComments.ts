@@ -127,7 +127,17 @@ export interface CreateOrgCommentInput {
    * — o trigger do banco exige que a resposta fique na mesma entidade da raiz.
    * Nulo mantém a entidade do painel, que é o caso de todo o resto.
    */
-  alvo?: { entityType: OrgCommentEntityType; entityId: string } | null;
+  alvo?: {
+    entityType: OrgCommentEntityType;
+    entityId: string;
+    /**
+     * Projeto do alvo, quando ele não é o do hook. É ele que carimba o caminho
+     * do anexo: o compositor do feed escolhe o destino só na hora de publicar,
+     * e sem isto o arquivo subiria na pasta do projeto errado (ou na de
+     * ninguém, quando o hook foi montado sem destino).
+     */
+    projectId?: string | null;
+  } | null;
   /**
    * Comentário em que a pessoa clicou "Responder", que é quem recebe a
    * notificação de resposta.
@@ -162,6 +172,16 @@ export interface OpcoesOrgComments {
    * na thread da própria tarefa, para o painel do projeto não virar log.
    */
   consolidarTarefas?: boolean;
+  /**
+   * Monta só a escrita: não lê a thread da entidade nem assina o realtime dela.
+   *
+   * Existe para o compositor de fala nova do feed, que precisa da mutation (e de
+   * tudo que ela já resolve: anexo, menção, auditoria) mas não mostra thread
+   * nenhuma — quem mostra é o feed. Sem isso, escolher um projeto no compositor
+   * puxaria a conversa inteira dele e abriria um canal de realtime para uma
+   * lista que ninguém vai desenhar.
+   */
+  somenteEscrita?: boolean;
 }
 
 interface SupabaseResult<T> {
@@ -323,6 +343,35 @@ export function useDownloadOrgCommentAttachment() {
   });
 }
 
+/** Validade da URL assinada da miniatura. O cache a descarta antes de ela vencer. */
+const VALIDADE_DA_MINIATURA_S = 60 * 60;
+
+/**
+ * URL assinada para DESENHAR a imagem no comentário.
+ *
+ * Diferente do download, que assina por 60 s na hora do clique: a miniatura
+ * fica na tela enquanto se lê, então a URL vale uma hora e o cache a troca aos
+ * 50 minutos, antes de o `<img>` apontar para endereço vencido. A chave é o
+ * caminho no bucket, que não muda: a mesma imagem no feed e no painel da
+ * tarefa assina uma vez só.
+ */
+export function useUrlDaImagemDoAnexo(filePath: string) {
+  return useQuery({
+    queryKey: ['org-comment-attachment-url', filePath],
+    queryFn: async () => {
+      const { data, error } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUrl(filePath, VALIDADE_DA_MINIATURA_S);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+    enabled: Boolean(filePath),
+    staleTime: 50 * 60 * 1000,
+    gcTime: 50 * 60 * 1000,
+    retry: 1,
+  });
+}
+
 /**
  * Abre a URL assinada do anexo em nova aba, preservando o nome original.
  * Mora em `@/lib/baixarArquivo` desde que a Biblioteca de Procedimentos passou
@@ -347,6 +396,8 @@ export function useDomainOrgComments(
    */
   const consolidado = entityType === 'org_project' && !!opcoes?.consolidarTarefas;
   const queryKey = orgCommentsQueryKey(entityType, entityId, consolidado);
+  /** Quem só escreve não lê a thread nem escuta as mudanças dela. */
+  const leThread = !!entityId && !opcoes?.somenteEscrita;
 
   const commentsQuery = useQuery<OrgComment[]>({
     queryKey,
@@ -373,7 +424,7 @@ export function useDomainOrgComments(
         attachments: attachmentsByComment.get(comment.id) ?? [],
       }));
     },
-    enabled: !!entityId,
+    enabled: leThread,
   });
 
   const createComment = useMutation({
@@ -395,7 +446,7 @@ export function useDomainOrgComments(
       const attachmentInputs: OrgCommentAttachmentInput[] = [];
       try {
         for (const file of files) {
-          const filePath = `${projectId ?? commentsQuery.data?.[0]?.project_id ?? entityId}/${id}/${crypto.randomUUID()}${extensaoDoArquivo(file)}`;
+          const filePath = `${alvo?.projectId ?? projectId ?? commentsQuery.data?.[0]?.project_id ?? entityId}/${id}/${crypto.randomUUID()}${extensaoDoArquivo(file)}`;
           const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
           if (uploadError) throw uploadError;
           uploadedPaths.push(filePath);
@@ -526,7 +577,7 @@ export function useDomainOrgComments(
   const downloadAttachment = useDownloadOrgCommentAttachment();
 
   useEffect(() => {
-    if (!entityId) return;
+    if (!leThread) return;
     // Na thread consolidada o gatilho é a etiqueta do projeto: comentário novo
     // numa tarefa dele não passaria por um filtro de `entity_id`.
     const filter = consolidado ? `project_id=eq.${entityId}` : `entity_id=eq.${entityId}`;
@@ -545,7 +596,7 @@ export function useDomainOrgComments(
     // `queryKey` é recriado a cada render; as três partes que o formam são as
     // dependências reais desta assinatura.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entityId, entityType, consolidado, queryClient]);
+  }, [entityId, entityType, consolidado, leThread, queryClient]);
 
   return {
     comments: commentsQuery.data ?? [],

@@ -6,7 +6,12 @@ import {
 } from '@/hooks/useDomainOrgComments';
 import { supabase } from '@/integrations/supabase/client';
 import { cursorDoComentario, type FeedCursor } from '@/lib/feedComentarios';
-import { desdeDoPeriodo, FILTROS_VAZIOS, type FeedFiltros } from '@/lib/feedFiltros';
+import {
+  desdeDoPeriodo,
+  FILTROS_VAZIOS,
+  termoDaBusca,
+  type FeedFiltros,
+} from '@/lib/feedFiltros';
 import { STALE_TIMES } from '@/lib/queryClient';
 
 /**
@@ -75,6 +80,14 @@ interface FeedRpcParams {
   _author_ids: string[] | null;
   _only_mentions: boolean;
   _since: string | null;
+  /**
+   * Busca textual no corpo. A comparação é feita sobre o texto EXTRAÍDO do
+   * documento do editor, nunca sobre a coluna crua — ver a migration
+   * `20260922133138_feed_org_comments_busca.sql`.
+   */
+  _busca: string | null;
+  /** Só comentários com linha em `org_comment_attachments`. */
+  _only_attachments: boolean;
 }
 
 interface SupabaseResult<T> {
@@ -104,6 +117,8 @@ async function buscarPagina(
     _author_ids: listaOuNada(filtros.autorId),
     _only_mentions: filtros.apenasMencoes,
     _since: desdeDoPeriodo(filtros.periodo),
+    _busca: termoDaBusca(filtros),
+    _only_attachments: filtros.apenasAnexos,
   });
   if (error) throw error;
 
