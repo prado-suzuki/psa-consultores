@@ -632,6 +632,42 @@ describe('o que o revisor pode mandar no despacho', () => {
       }),
     ).rejects.toThrow(/não pode concluir/i);
   });
+
+  /* A mesma tarefa depois de devolvida: o ramo estrito não vale mais aqui. */
+  const emAjuste = { ...emRevisao, status: 'em_ajuste', review_hours: 3 };
+
+  /*
+   * O ramo estrito do gatilho é `OLD.status = 'review'`, e a condição faltava
+   * neste espelho: a trava pegava o revisor em QUALQUER status, então mandar de
+   * volta para revisão uma tarefa em ajuste morria com a mensagem de devolução.
+   * Apareceu ao arrastar o cartão de Em Ajuste para Em Revisão no quadro.
+   */
+  it('deixa o revisor mandar de volta para revisão uma tarefa que está em ajuste', async () => {
+    dbQueue.push({ data: emAjuste, error: null });
+    dbQueue.push({ data: { ...emAjuste, status: 'review' }, error: null });
+
+    await expect(
+      updateMutation().mutationFn({
+        id: 'tarefa-1',
+        status: 'review',
+        reviewer_id: 'user-1',
+        reviewTransitionValidated: true,
+      }),
+    ).resolves.toBeTruthy();
+  });
+
+  /* Concluir segue vedado ao revisor fora da revisão, como no gatilho. */
+  it('recusa o revisor concluindo a tarefa a partir do ajuste', async () => {
+    dbQueue.push({ data: emAjuste, error: null });
+
+    await expect(
+      updateMutation().mutationFn({
+        id: 'tarefa-1',
+        status: 'done',
+        actual_hours: 8,
+      }),
+    ).rejects.toThrow(/não pode concluir/i);
+  });
 });
 
 describe('prazo da subtarefa contra o da tarefa-mãe', () => {
