@@ -129,14 +129,9 @@ type OsgLayoutProps = {
   children: React.ReactNode;
   headerActions?: React.ReactNode;
   /**
-   * Rolagem DENTRO da área de conteúdo, em vez de na janela.
-   *
-   * O padrão da casa é a janela rolar: a moldura sobe junto e o `sticky` de
-   * dentro da tela não tem contra o que grudar (`main` é `overflow-hidden`, e
-   * a área de conteúdo cresce com o filho, ninguém rola). Telas de leitura
-   * longa, como o Feed, pedem o contrário: cabeçalho e barra lateral parados,
-   * conteúdo correndo por baixo. Quem liga isto ganha os dois de uma vez, e o
-   * `sticky` da própria tela passa a funcionar.
+   * A tela é dona da própria rolagem: a área de conteúdo ganha a altura da
+   * janela e não rola, e o filho decide qual pedaço dele rola (no Feed, só a
+   * lista). O padrão da casa é a janela rolar, com a moldura subindo junto.
    *
    * Opt-in de propósito: virar o modelo de rolagem para todas as telas da área
    * é outra conversa, muito maior do que a tela que pediu.
@@ -591,12 +586,8 @@ export const OsgLayout = (props: OsgLayoutProps) => {
         {isWork && <OsgWorkClienteBar />}
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Com a rolagem no conteúdo, o invólucro precisa ESTICAR: é ele que
-              dá altura para a tela grudar algo no rodapé (o compositor do Feed)
-              quando há pouco conteúdo. Sem isto ele mede só o que o filho pede,
-              e a barra de escrever ficava boiando no meio da tela. */}
-          <div className={cn('p-4 md:p-6', rolagemNoConteudo && 'flex min-h-full flex-col')}>
+        <div className={rolagemNoConteudo ? 'min-h-0 flex-1 overflow-hidden' : 'flex-1 overflow-y-auto'}>
+          <div className={cn('p-4 md:p-6', rolagemNoConteudo && 'flex h-full flex-col')}>
             {children}
           </div>
         </div>

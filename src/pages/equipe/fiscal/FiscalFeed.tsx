@@ -9,8 +9,7 @@ const FiscalFeed = () => {
   return (
     <FiscalLayout
       tela="feed"
-      // Tela de leitura longa: a rolagem fica no conteúdo, e não na janela, para
-      // a barra de filtros e o rótulo do dia grudarem no topo enquanto se rola.
+      // Só a lista do feed rola; moldura, filtros e barra lateral ficam parados.
       rolagemNoConteudo
     >
       <FeedComentarios area="tax" />

@@ -68,11 +68,7 @@ export function FeedBarraDeAtividade({
   };
 
   return (
-    <aside
-      // `sticky` só funciona porque o Feed pede `rolagemNoConteudo` no layout da
-      // área, e `self-start` porque esticada ela não teria folga para grudar.
-      className="sticky top-0 hidden h-[calc(100dvh-9.5rem)] min-h-[28rem] w-64 shrink-0 self-start lg:block xl:w-72 2xl:w-80"
-    >
+    <aside className="hidden min-h-0 w-64 shrink-0 lg:block xl:w-72 2xl:w-80">
       <div className="flex h-full flex-col overflow-hidden rounded-lg border border-border/60 bg-superficie-cartao">
         <header className="flex items-center gap-2 border-b border-border/50 px-3 py-2.5">
           <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-tool-icon-bg text-tool-icon">

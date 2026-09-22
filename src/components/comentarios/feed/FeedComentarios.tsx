@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AlertTriangle, MessagesSquare, RotateCcw, SearchX } from 'lucide-react';
@@ -68,8 +68,6 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
   const fecharOrigem = useCallback(() => setOrigemAberta(null), []);
 
   const feedRef = useRef<HTMLDivElement>(null);
-  const [alturaDaBarra, setAlturaDaBarra] = useState(0);
-  const barraRef = useAlturaObservada(setAlturaDaBarra);
   const limparFiltros = useCallback(() => aplicarFiltros(FILTROS_VAZIOS), [aplicarFiltros]);
   const { idEmRealce, realcar } = useRealceDaFala(feedRef, limparFiltros);
 
@@ -127,12 +125,8 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
       <>
         {dias.map((dia, indiceDoDia) => (
           <section key={dia.dia} className="pb-6">
-            {/* O fundo é máscara do conteúdo que rola por baixo, então segue o token do `body`.
-                O `top` é medido porque a barra de filtros ganha uma linha com filtro ligado. */}
-            <div
-              className="sticky z-20 -mx-1 flex items-center gap-3 bg-background/85 px-1 pb-2 pt-1.5 backdrop-blur-sm"
-              style={{ top: alturaDaBarra }}
-            >
+            {/* O fundo é máscara do conteúdo que rola por baixo, então segue o token do `body`. */}
+            <div className="sticky top-0 z-20 -mx-1 flex items-center gap-3 bg-background/85 px-1 pb-2 pt-1.5 backdrop-blur-sm">
               <h2 className="shrink-0 text-xs font-semibold text-foreground/70">{dia.rotulo}</h2>
               <span aria-hidden className="h-px flex-1 bg-border/70" />
               <ContagemDoDia
@@ -194,48 +188,25 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
   }
 
   return (
-    /* `items-start` para a barra poder grudar: esticada pelo `stretch` padrão,
-       ela teria a altura da conversa inteira e o `sticky` não teria folga. */
-    <div className="flex w-full max-w-3xl grow items-start gap-5 lg:max-w-none lg:gap-6 lg:pr-8 2xl:gap-8">
+    // Só a lista rola: barra lateral, filtros e compositor ficam parados. Depende
+    // do `rolagemNoConteudo` no layout da área, que dá a altura da janela.
+    <div className="flex min-h-0 w-full max-w-3xl grow gap-5 lg:max-w-none lg:gap-6 lg:pr-8 2xl:gap-8">
       <FeedBarraDeAtividade
         atividade={atividade}
         filtros={filtros}
         onFiltrosChange={aplicarFiltros}
       />
 
-      {/* Coluna: filtros em cima, conversa no meio, compositor no rodapé. O `flex`
-       existe por causa do rodapé — é o `mt-auto` dele que o empurra para baixo
-       quando há pouca conversa; sem isso a barra de escrever boiava logo abaixo
-       do último comentário, no meio da tela. O `grow` é a outra metade disso:
-       o invólucro da página estica sob `rolagemNoConteudo`, e sem crescer dentro
-       dele a coluna mediria só o que a conversa pede, e não sobraria espaço
-       nenhum para o `mt-auto` distribuir. `self-stretch` devolve a altura que o
-       `items-start` do pai tirou, senão o compositor desgruda do rodapé. */}
-      <div ref={feedRef} className="flex w-full min-w-0 grow flex-col self-stretch pb-2">
-        {/* A barra gruda no topo junto com o rótulo do dia. Antes ela rolava para
-          fora: depois de duzentos comentários, trocar o período obrigava a voltar
-          ao começo da página: o controle sumia e a informação passiva ficava.
-          A faixa carrega a máscara e o espaçamento que antes eram `mb-3` na
-          barra, para o conteúdo não aparecer na fresta entre as duas. */}
-        <div
-          ref={barraRef}
-          className="sticky top-0 z-30 -mx-1 bg-background/85 px-1 pb-3 pt-1 backdrop-blur-sm"
-        >
+      <div className="flex min-h-0 w-full min-w-0 grow flex-col pb-2">
+        <div className="shrink-0 pb-3 pt-1">
           <FeedFiltros filtros={filtros} onFiltrosChange={aplicarFiltros} />
         </div>
-        {conteudo}
-        {/*
-        O compositor fica no RODAPÉ, grudado, como a caixa de mensagem do Slack:
-        é lá que a mão já está depois de ler, e ele não pode depender de rolar
-        duzentos comentários de volta até o topo. Antes ele morava na faixa de
-        cima, junto dos filtros — e ali, aberto, empurrava a conversa para fora
-        da tela justamente enquanto se escreve sobre ela.
-
-        A máscara é OPACA, diferente da faixa de cima: aqui embaixo ela cobre a
-        caixa de escrever inteira, e o borrão translúcido deixava a conversa
-        aparecer por trás do campo de texto e dos campos de destino.
-      */}
-        <div className="sticky bottom-0 z-30 -mx-1 mt-auto bg-background px-1 pb-1 pt-3 shadow-[0_-10px_14px_-14px_hsl(var(--foreground)/0.12)]">
+        {/* `-mx-1 px-1`: o anel de foco e a sombra dos cartões não são cortados
+            pelo `overflow` da lista. */}
+        <div ref={feedRef} className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
+          {conteudo}
+        </div>
+        <div className="z-30 -mx-1 shrink-0 bg-background px-1 pb-1 pt-3 shadow-[0_-10px_14px_-14px_hsl(var(--foreground)/0.12)]">
           <FeedNovoComentario
             area={area}
             filtros={filtros}
@@ -247,30 +218,6 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
       <FeedOrigemAberta origem={origemAberta} area={area} onFechar={fecharOrigem} />
     </div>
   );
-}
-
-/**
- * Altura viva de um elemento: a barra de filtros muda de altura quando ganha a
- * linha das etiquetas, e é dela que sai o `top` do rótulo do dia.
- */
-function useAlturaObservada(aoMedir: (altura: number) => void) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    const elemento = ref.current;
-    if (!elemento) return;
-
-    aoMedir(elemento.offsetHeight);
-    // `ResizeObserver` não existe no jsdom antigo nem em navegador de teste sem
-    // polyfill: sem ele a medida inicial já vale, só deixa de acompanhar.
-    if (typeof ResizeObserver === 'undefined') return;
-
-    const observador = new ResizeObserver(() => aoMedir(elemento.offsetHeight));
-    observador.observe(elemento);
-    return () => observador.disconnect();
-  }, [aoMedir]);
-
-  return ref;
 }
 
 interface OpcoesDoRealce {
