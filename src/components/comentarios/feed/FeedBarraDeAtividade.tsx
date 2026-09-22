@@ -41,7 +41,16 @@ export function FeedBarraDeAtividade({
   filtros,
   onFiltrosChange,
 }: FeedBarraDeAtividadeProps) {
-  const { clientes, carregando, desatualizada, atualizar, marcarTudo, marcandoTudo } = atividade;
+  const {
+    clientes,
+    carregando,
+    desatualizada,
+    atualizar,
+    marcarTudo,
+    marcandoTudo,
+    lerCliente,
+    lerProjeto,
+  } = atividade;
   const { novidade, resto } = partirPorNovidade(clientes);
   const [restoAberto, setRestoAberto] = useState(false);
   const totalNovo = contarNovos(clientes);
@@ -56,6 +65,7 @@ export function FeedBarraDeAtividade({
       clienteId: jaEstava ? null : cliente.clienteId,
       projetoId: null,
     });
+    if (!jaEstava) lerCliente(cliente);
   };
 
   const irParaProjeto = (cliente: ClienteComAtividade, projeto: ProjetoComAtividade) => {
@@ -65,6 +75,7 @@ export function FeedBarraDeAtividade({
       clienteId: jaEstava || cliente.clienteId === CLIENTE_SEM_CADASTRO ? null : cliente.clienteId,
       projetoId: jaEstava ? null : projeto.projetoId,
     });
+    if (!jaEstava) lerProjeto(projeto);
   };
 
   return (

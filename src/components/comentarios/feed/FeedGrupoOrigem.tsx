@@ -37,8 +37,6 @@ interface FeedGrupoOrigemProps {
   vistoAte?: string | null;
   /** A minha própria fala nunca é novidade para mim. */
   meuId?: string | null;
-  /** `ref` de callback que carimba a leitura quando o bloco fica na tela. */
-  registrarLeitura?: (elemento: HTMLElement | null) => void;
   /** Abre a tarefa ou o projeto por cima do feed, sem sair dele. */
   onAbrirOrigem: (origem: OrigemAberta) => void;
 }
@@ -59,7 +57,6 @@ export function FeedGrupoOrigem({
   onRespondeu,
   vistoAte = null,
   meuId = null,
-  registrarLeitura,
   onAbrirOrigem,
 }: FeedGrupoOrigemProps) {
   const primeiro = itens[0];
@@ -74,10 +71,6 @@ export function FeedGrupoOrigem({
 
   return (
     <article
-      // `data-leitura` carimba até a fala mais nova do bloco (os itens vêm em
-      // ordem decrescente), nunca até o relógio de agora.
-      ref={registrarLeitura}
-      data-leitura={`${primeiro.project_id}|${primeiro.created_at}`}
       className="rounded-lg border border-border/60 bg-superficie-cartao transition-colors hover:border-border"
     >
       <button

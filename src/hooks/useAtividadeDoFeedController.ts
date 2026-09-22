@@ -6,18 +6,16 @@ import {
   useDomainFeedAtividade,
   useMarcarTudoVisto,
 } from '@/hooks/useDomainFeedAtividade';
-import { useLeituraPorVisibilidade } from '@/hooks/useLeituraPorVisibilidade';
 import {
   agruparAtividadePorCliente,
   aplicarLeituraDaSessao,
   carimbosPorProjeto,
   consolidarCarimbos,
-  podeCarimbar,
   type CarimboDoProjeto,
   type ClienteComAtividade,
   type LinhaDeAtividade,
+  type ProjetoComAtividade,
 } from '@/lib/feedAtividade';
-import type { FeedFiltros } from '@/lib/feedFiltros';
 
 /**
  * O estado da barra de atividade e da leitura do feed.
@@ -35,14 +33,13 @@ export interface AtividadeDoFeed {
   /** Chegou movimento novo depois que a barra congelou. */
   desatualizada: boolean;
   atualizar: () => void;
-  /** `ref` de callback do bloco: é ela que carimba por visibilidade. */
-  registrarBloco: (elemento: HTMLElement | null) => void;
+  /** Clicar no cliente ou no projeto da barra é o único gesto que dá por lido. */
+  lerCliente: (cliente: ClienteComAtividade) => void;
+  lerProjeto: (projeto: ProjetoComAtividade) => void;
   /** Projetos lidos nesta sessão, já descontados das contagens. */
   lidosAgora: ReadonlySet<string>;
   marcarTudo: () => void;
   marcandoTudo: boolean;
-  /** Busca e período desligam o carimbo. */
-  carimbando: boolean;
 }
 
 /** Constante de módulo: um literal remontaria os `useMemo` a cada render. */
@@ -61,7 +58,7 @@ function assinatura(linhas: readonly LinhaDeAtividade[]): string {
   return `${ultimo}|${novos}|${total}|${linhas.length}`;
 }
 
-export function useAtividadeDoFeedController(filtros: FeedFiltros): AtividadeDoFeed {
+export function useAtividadeDoFeedController(): AtividadeDoFeed {
   const { user } = useAuth();
   const meuId = user?.id ?? null;
   const { linhas, isLoading, refetch } = useDomainFeedAtividade();
@@ -104,34 +101,34 @@ export function useAtividadeDoFeedController(filtros: FeedFiltros): AtividadeDoF
     [doRetrato, lidosAgora],
   );
 
-  /**
-   * A chave vem do bloco como `projeto|instante da fala mais nova`: carimbar
-   * com o relógio de agora daria por lido o que ainda vai chegar.
-   */
-  const aoLer = useCallback(
-    (chave: string) => {
-      const separador = chave.indexOf('|');
-      if (separador < 0) return;
-      const projetoId = chave.slice(0, separador);
-      const ate = chave.slice(separador + 1);
-
-      const porCliente = consolidarCarimbos([{ projetoId, ate }], carimbos);
+  // Carimba até a fala mais nova do retrato, nunca até o relógio de agora: o
+  // que chegou depois da barra congelar ainda não foi visto.
+  const ler = useCallback(
+    (projetos: readonly ProjetoComAtividade[]) => {
+      const lidos = projetos.map((projeto) => ({
+        projetoId: projeto.projetoId,
+        ate: projeto.ultimoEm,
+      }));
+      const porCliente = consolidarCarimbos(lidos, carimbos);
       if (porCliente.size === 0) return;
       carimbar(porCliente);
       // Por PROJETO: ler um projeto de um cliente com quatro não pode zerar os
       // outros três na lateral.
       setLidosAgora((atuais) => {
-        if (atuais.has(projetoId)) return atuais;
+        if (lidos.every(({ projetoId }) => atuais.has(projetoId))) return atuais;
         const proximos = new Set(atuais);
-        proximos.add(projetoId);
+        for (const { projetoId } of lidos) proximos.add(projetoId);
         return proximos;
       });
     },
     [carimbar, carimbos],
   );
 
-  const carimbando = podeCarimbar(filtros);
-  const registrarBloco = useLeituraPorVisibilidade({ ativo: carimbando, aoLer });
+  const lerCliente = useCallback(
+    (cliente: ClienteComAtividade) => ler(cliente.projetos),
+    [ler],
+  );
+  const lerProjeto = useCallback((projeto: ProjetoComAtividade) => ler([projeto]), [ler]);
 
   // Por assinatura, e não por identidade: o React Query devolve objeto novo a
   // cada `refetch`, e o "Atualizar" acenderia sem nada ter mudado.
@@ -147,10 +144,10 @@ export function useAtividadeDoFeedController(filtros: FeedFiltros): AtividadeDoF
     carregando: isLoading && congelada === null,
     desatualizada,
     atualizar,
-    registrarBloco,
+    lerCliente,
+    lerProjeto,
     lidosAgora,
     marcarTudo,
     marcandoTudo: marcarTudoVisto.isPending,
-    carimbando,
   };
 }

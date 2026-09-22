@@ -43,14 +43,12 @@ workspace. A tabela nasceu com chave composta na migration
 produção**, junto de `feed_atividade_por_cliente`, `marcar_feed_visto` e
 `marcar_feed_visto_tudo`.
 
-**Ler é ficar na tela, não passar o mouse.** A primeira ideia era carimbar no hover, para
-não obrigar ninguém a clicar. Hover resolve a coisa certa com o sinal errado: o cursor
-ATRAVESSA a tela (sair da barra e ir até a caixa de escrever, grudada no rodapé, passa por
-cima de tudo no caminho, e carimbar é destrutivo); no celular não existe hover, e o feed vai
-para o celular; e hover é sobre uma fala, enquanto o carimbo é do cliente. O sinal é
-visibilidade com permanência: 60% do bloco à vista por 1 segundo
-(`useLeituraPorVisibilidade.ts`). Rolar lendo carimba sozinho, cursor parado não carimba
-nada, e funciona no toque.
+**Ler é clicar na barra, não passar o mouse nem rolar.** Hover foi descartado primeiro: o
+cursor ATRAVESSA a tela a caminho da caixa de escrever, não existe no celular, e é sobre uma
+fala enquanto o carimbo é do cliente. Visibilidade com permanência (60% do bloco à vista por
+1 segundo) chegou a ser entregue e também saiu: carimbava o que só passou pela tela. Hoje o
+carimbo vem só de gesto explícito: clicar no cliente ou no projeto da barra lateral (carimba
+até a fala mais nova do retrato congelado) e o "Marcar tudo como visto".
 
 Cinco decisões que valem registro, porque a maioria só apareceu na tela:
 
