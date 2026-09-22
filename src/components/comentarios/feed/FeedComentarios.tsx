@@ -3,12 +3,14 @@ import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AlertTriangle, MessagesSquare, RotateCcw, SearchX } from 'lucide-react';
 
+import { FeedBarraDeAtividade } from '@/components/comentarios/feed/FeedBarraDeAtividade';
 import { FeedFiltros } from '@/components/comentarios/feed/FeedFiltros';
 import { FeedGrupoOrigem } from '@/components/comentarios/feed/FeedGrupoOrigem';
 import { FeedNovoComentario } from '@/components/comentarios/feed/FeedNovoComentario';
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAtividadeDoFeedController } from '@/hooks/useAtividadeDoFeedController';
 import { useDomainFeedClientes } from '@/hooks/useDomainFeedClientes';
 import { useDomainFeedComentarios } from '@/hooks/useDomainFeedComentarios';
 import { agruparPorDia, agruparPorOrigem, type AreaDeProjetos } from '@/lib/feedComentarios';
@@ -57,15 +59,8 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
     [setSearchParams],
   );
 
-  const {
-    comentarios,
-    isLoading,
-    error,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-    refetch,
-  } = useDomainFeedComentarios(filtros);
+  const { comentarios, isLoading, error, hasNextPage, isFetchingNextPage, fetchNextPage, refetch } =
+    useDomainFeedComentarios(filtros);
   const [respondendoA, setRespondendoA] = useState<string | null>(null);
 
   const feedRef = useRef<HTMLDivElement>(null);
@@ -84,6 +79,10 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
     [comentarios],
   );
   const { clientePorProjeto } = useDomainFeedClientes(projectIds);
+
+  // A barra de clientes e a marca de não lido saem do mesmo controlador: a
+  // barra diz quais clientes têm fala nova, o stream marca quais falas são.
+  const atividade = useAtividadeDoFeedController(filtros);
 
   /**
    * Dois agrupamentos encadeados: o dia por fora, a conversa por dentro. O de
@@ -112,7 +111,10 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
     conteudo = <FeedComErro erro={error} onTentarDeNovo={() => refetch()} />;
   } else if (comentarios.length === 0) {
     conteudo = temFiltroAtivo(filtros) ? (
-      <FeedSemResultado termo={termoDaBusca(filtros)} onLimpar={() => aplicarFiltros(FILTROS_VAZIOS)} />
+      <FeedSemResultado
+        termo={termoDaBusca(filtros)}
+        onLimpar={() => aplicarFiltros(FILTROS_VAZIOS)}
+      />
     ) : (
       <FeedVazio />
     );
@@ -160,6 +162,9 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
                   itens={conversa.itens}
                   cliente={clientePorProjeto.get(conversa.itens[0].project_id) ?? null}
                   area={area}
+                  vistoAte={atividade.carimbos.get(conversa.itens[0].project_id)?.vistoAte ?? null}
+                  meuId={atividade.meuId}
+                  registrarLeitura={atividade.registrarBloco}
                   respondendoA={respondendoA}
                   idEmRealce={idEmRealce}
                   onResponder={setRespondendoA}
@@ -197,27 +202,37 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
   }
 
   return (
-    /* Coluna: filtros em cima, conversa no meio, compositor no rodapé. O `flex`
+    /* `items-start` para a barra poder grudar: esticada pelo `stretch` padrão,
+       ela teria a altura da conversa inteira e o `sticky` não teria folga. */
+    <div className="flex w-full max-w-3xl grow items-start gap-5 lg:max-w-none lg:gap-6 lg:pr-8 2xl:gap-8">
+      <FeedBarraDeAtividade
+        atividade={atividade}
+        filtros={filtros}
+        onFiltrosChange={aplicarFiltros}
+      />
+
+      {/* Coluna: filtros em cima, conversa no meio, compositor no rodapé. O `flex`
        existe por causa do rodapé — é o `mt-auto` dele que o empurra para baixo
        quando há pouca conversa; sem isso a barra de escrever boiava logo abaixo
        do último comentário, no meio da tela. O `grow` é a outra metade disso:
        o invólucro da página estica sob `rolagemNoConteudo`, e sem crescer dentro
        dele a coluna mediria só o que a conversa pede, e não sobraria espaço
-       nenhum para o `mt-auto` distribuir. */
-    <div ref={feedRef} className="mx-auto flex w-full max-w-3xl grow flex-col pb-2">
-      {/* A barra gruda no topo junto com o rótulo do dia. Antes ela rolava para
+       nenhum para o `mt-auto` distribuir. `self-stretch` devolve a altura que o
+       `items-start` do pai tirou, senão o compositor desgruda do rodapé. */}
+      <div ref={feedRef} className="flex w-full min-w-0 grow flex-col self-stretch pb-2">
+        {/* A barra gruda no topo junto com o rótulo do dia. Antes ela rolava para
           fora: depois de duzentos comentários, trocar o período obrigava a voltar
           ao começo da página: o controle sumia e a informação passiva ficava.
           A faixa carrega a máscara e o espaçamento que antes eram `mb-3` na
           barra, para o conteúdo não aparecer na fresta entre as duas. */}
-      <div
-        ref={barraRef}
-        className="sticky top-0 z-30 -mx-1 bg-background/85 px-1 pb-3 pt-1 backdrop-blur-sm"
-      >
-        <FeedFiltros filtros={filtros} onFiltrosChange={aplicarFiltros} />
-      </div>
-      {conteudo}
-      {/*
+        <div
+          ref={barraRef}
+          className="sticky top-0 z-30 -mx-1 bg-background/85 px-1 pb-3 pt-1 backdrop-blur-sm"
+        >
+          <FeedFiltros filtros={filtros} onFiltrosChange={aplicarFiltros} />
+        </div>
+        {conteudo}
+        {/*
         O compositor fica no RODAPÉ, grudado, como a caixa de mensagem do Slack:
         é lá que a mão já está depois de ler, e ele não pode depender de rolar
         duzentos comentários de volta até o topo. Antes ele morava na faixa de
@@ -228,12 +243,13 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
         caixa de escrever inteira, e o borrão translúcido deixava a conversa
         aparecer por trás do campo de texto e dos campos de destino.
       */}
-      <div className="sticky bottom-0 z-30 -mx-1 mt-auto bg-background px-1 pb-1 pt-3">
-        <FeedNovoComentario
-          area={area}
-          filtros={filtros}
-          onPublicou={(id, noRecorte) => realcar(id, { noRecorte })}
-        />
+        <div className="sticky bottom-0 z-30 -mx-1 mt-auto bg-background px-1 pb-1 pt-3">
+          <FeedNovoComentario
+            area={area}
+            filtros={filtros}
+            onPublicou={(id, noRecorte) => realcar(id, { noRecorte })}
+          />
+        </div>
       </div>
     </div>
   );
@@ -283,10 +299,7 @@ interface OpcoesDoRealce {
  * nenhum: o toast troca de texto e passa a oferecer a saída que resolve —
  * limpar os filtros.
  */
-function useRealceDaFala(
-  feedRef: React.RefObject<HTMLDivElement>,
-  onLimparFiltros: () => void,
-) {
+function useRealceDaFala(feedRef: React.RefObject<HTMLDivElement>, onLimparFiltros: () => void) {
   const [idEmRealce, setIdEmRealce] = useState<string | null>(null);
 
   useEffect(() => {
@@ -351,7 +364,10 @@ function FeedCarregando() {
     <div className="space-y-3">
       <Skeleton className="h-5 w-20 rounded-full" />
       {[0, 1].map((bloco) => (
-        <div key={bloco} className="overflow-hidden rounded-md border border-border/70 bg-superficie-cartao">
+        <div
+          key={bloco}
+          className="overflow-hidden rounded-md border border-border/70 bg-superficie-cartao"
+        >
           {/* O cabeçalho do bloco real é lavado com o acento da área; o esqueleto
               usa a MESMA cor, senão cada carregamento termina num solavanco de
               cinza para colorido bem onde o olho está pousado. */}

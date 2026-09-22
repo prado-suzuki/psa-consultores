@@ -5,6 +5,7 @@ import { tomDoAutor } from '@/components/comentarios/feed/avatarDoAutor';
 import { FeedItemComentario } from '@/components/comentarios/feed/FeedItemComentario';
 import { FeedRespostaInline } from '@/components/comentarios/feed/FeedRespostaInline';
 import type { FeedComentario } from '@/hooks/useDomainFeedComentarios';
+import { ehNaoLida, rotuloDeNovas } from '@/lib/feedAtividade';
 import {
   autoresDoGrupo,
   hrefDeOrigem,
@@ -33,6 +34,12 @@ interface FeedGrupoOrigemProps {
   onFecharResposta: () => void;
   /** Recebe o id da resposta publicada, para o feed levar a pessoa até ela. */
   onRespondeu: (id: string) => void;
+  /** Até onde a leitura chegou neste cliente. `null` = fora da janela da barra. */
+  vistoAte?: string | null;
+  /** A minha própria fala nunca é novidade para mim. */
+  meuId?: string | null;
+  /** `ref` de callback que carimba a leitura quando o bloco fica na tela. */
+  registrarLeitura?: (elemento: HTMLElement | null) => void;
 }
 
 /**
@@ -55,6 +62,9 @@ export function FeedGrupoOrigem({
   onResponder,
   onFecharResposta,
   onRespondeu,
+  vistoAte = null,
+  meuId = null,
+  registrarLeitura,
 }: FeedGrupoOrigemProps) {
   const primeiro = itens[0];
   const origem = origemDoComentario(primeiro, cliente);
@@ -62,9 +72,16 @@ export function FeedGrupoOrigem({
   const IconeDoTipo = ehProjeto ? FolderKanban : ListChecks;
   const autores = autoresDoGrupo(itens);
   const threads = montarThreads(itens);
+  const naoLidas = itens.filter((item) => ehNaoLida(item, vistoAte ?? undefined, meuId)).length;
 
   return (
-    <article className="group/origem overflow-hidden rounded-md border border-border/70 bg-superficie-cartao shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
+    <article
+      // `data-leitura` carimba até a fala mais nova do bloco (os itens vêm em
+      // ordem decrescente), nunca até o relógio de agora.
+      ref={registrarLeitura}
+      data-leitura={`${primeiro.project_id}|${primeiro.created_at}`}
+      className="group/origem overflow-hidden rounded-md border border-border/70 bg-superficie-cartao shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
+    >
       <Link
         to={hrefDeOrigem(primeiro, area)}
         /*
@@ -122,6 +139,18 @@ export function FeedGrupoOrigem({
 
         <PilhaDeAutores autores={autores} />
 
+        {/*
+          Não some enquanto se lê: é a referência de onde a leitura parou. O
+          contador da barra lateral zera na hora e é cheio; este é contornado.
+        */}
+        {naoLidas > 0 && (
+          <ElementTooltip text={`${rotuloDeNovas(naoLidas)} desde que você leu este projeto`}>
+            <span className="shrink-0 rounded-full border border-primary/50 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-primary">
+              {naoLidas} {naoLidas === 1 ? 'nova' : 'novas'}
+            </span>
+          </ElementTooltip>
+        )}
+
         <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground">
           <MessagesSquare aria-hidden className="h-3.5 w-3.5" />
           {itens.length}
@@ -153,6 +182,8 @@ export function FeedGrupoOrigem({
               continuaBloco={thread.continuaBloco && !anteriorRespondendo}
               respondendo={respondendoA === chaveDaThread}
               idEmRealce={idEmRealce}
+              vistoAte={vistoAte}
+              meuId={meuId}
               onResponder={() => onResponder(chaveDaThread)}
               onFecharResposta={onFecharResposta}
               onRespondeu={onRespondeu}
@@ -171,6 +202,8 @@ interface FeedThreadProps {
   continuaBloco: boolean;
   respondendo: boolean;
   idEmRealce: string | null;
+  vistoAte: string | null;
+  meuId: string | null;
   onResponder: () => void;
   onFecharResposta: () => void;
   onRespondeu: (id: string) => void;
@@ -190,10 +223,14 @@ function FeedThread({
   continuaBloco,
   respondendo,
   idEmRealce,
+  vistoAte,
+  meuId,
   onResponder,
   onFecharResposta,
   onRespondeu,
 }: FeedThreadProps) {
+  const naoLida = (comentario: FeedComentario) =>
+    ehNaoLida(comentario, vistoAte ?? undefined, meuId);
   /** A quem a resposta se pendura — a raiz, ou a própria resposta órfã. */
   const alvoDaResposta = thread.raiz ?? thread.respostas[0];
   const abreThread = thread.respostas.length > 0 || respondendo;
@@ -218,6 +255,7 @@ function FeedThread({
             key={resposta.id}
             comentario={resposta}
             realce={idEmRealce === resposta.id}
+            naoLida={naoLida(resposta)}
             onResponder={respondendo ? undefined : onResponder}
           />
         ))}
@@ -234,6 +272,7 @@ function FeedThread({
         continuaBloco={continuaBloco && !respondendo}
         abreThread={abreThread}
         realce={idEmRealce === thread.raiz.id}
+        naoLida={naoLida(thread.raiz)}
         onResponder={respondendo ? undefined : onResponder}
       />
 
@@ -246,6 +285,7 @@ function FeedThread({
               nested
               ultima={!respondendo && indice === thread.respostas.length - 1}
               realce={idEmRealce === resposta.id}
+              naoLida={naoLida(resposta)}
             />
           ))}
           {composer}
@@ -262,31 +302,29 @@ function PilhaDeAutores({ autores }: { autores: ReturnType<typeof autoresDoGrupo
 
   return (
     <ElementTooltip text={autores.map((autor) => autor.nome).join(', ')}>
-      <span
-      className="hidden shrink-0 items-center sm:flex"
-    >
-      {visiveis.map((autor, indice) => (
-        <span
-          key={autor.id ?? autor.nome}
-          className={cn(
-            // O anel recorta o avatar contra o fundo do CABEÇALHO, que é
-            // `bg-primary/10` desde que a faixa ganhou o acento da área. Com
-            // `ring-muted` ele virava um halo cinza sobre fundo colorido, e na
-            // OSG, onde o muted é bege, o halo aparecia mais ainda.
-            'grid h-6 w-6 place-items-center rounded-full text-[9px] font-semibold ring-2 ring-primary/10',
-            tomDoAutor(autor.id),
-            indice > 0 && '-ml-1.5',
-          )}
-        >
-          {iniciaisDoNome(autor.nome)}
-        </span>
-      ))}
-      {restantes > 0 && (
-        <span className="-ml-1.5 grid h-6 w-6 place-items-center rounded-full bg-muted text-[9px] font-semibold text-muted-foreground ring-2 ring-primary/10">
-          +{restantes}
-        </span>
-      )}
-    </span>
+      <span className="hidden shrink-0 items-center sm:flex">
+        {visiveis.map((autor, indice) => (
+          <span
+            key={autor.id ?? autor.nome}
+            className={cn(
+              // O anel recorta o avatar contra o fundo do CABEÇALHO, que é
+              // `bg-primary/10` desde que a faixa ganhou o acento da área. Com
+              // `ring-muted` ele virava um halo cinza sobre fundo colorido, e na
+              // OSG, onde o muted é bege, o halo aparecia mais ainda.
+              'grid h-6 w-6 place-items-center rounded-full text-[9px] font-semibold ring-2 ring-primary/10',
+              tomDoAutor(autor.id),
+              indice > 0 && '-ml-1.5',
+            )}
+          >
+            {iniciaisDoNome(autor.nome)}
+          </span>
+        ))}
+        {restantes > 0 && (
+          <span className="-ml-1.5 grid h-6 w-6 place-items-center rounded-full bg-muted text-[9px] font-semibold text-muted-foreground ring-2 ring-primary/10">
+            +{restantes}
+          </span>
+        )}
+      </span>
     </ElementTooltip>
   );
 }

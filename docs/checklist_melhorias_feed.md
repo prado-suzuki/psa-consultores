@@ -19,6 +19,71 @@ A ordem abaixo é por dor observada dividida por custo aparente, não por facili
 
 ## P1 · Destrava a substituição do Slack
 
+### 0. Barra de clientes com novidade, e a marca de "até onde eu li" ✅ ENTREGUE (22/09/2026)
+
+Não estava nesta lista: nasceu de um desenho do Bernardo em 22/09/2026, e é o item que
+tirou a **marca de não lido** da seção "fora desta lista, e é decisão" logo abaixo. O feed
+responde "o que aconteceu" e nunca respondeu "o que aconteceu DESDE QUE EU SAÍ": quem abre
+a tela três vezes por dia relê o mesmo topo três vezes e caça o que mudou no olho.
+
+**Como ficou:** barra lateral à esquerda da conversa (`FeedBarraDeAtividade.tsx`), com os
+clientes que têm fala nova em cima, os que só têm movimento recolhidos em "Sem novidade", e
+os projetos de cada um na expansão. Cada linha é também o filtro para ir até lá, reusando o
+`?cliente=` / `?projeto=` que já existiam. No stream, o bloco ganha etiqueta "N novas" e
+cada fala não lida ganha um traço na margem.
+
+**O carimbo é POR CLIENTE, e isso derruba o §3.7 do
+[`planos/plano-comentarios-mencoes-feed.md`](planos/plano-comentarios-mencoes-feed.md)**, que
+desenhou `org_feed_visto` como uma linha por usuário. Aquele desenho é de um feed que se lê
+inteiro: no instante em que alguém lê o Cliente A e não o Cliente B, um carimbo único ou
+marca os dois como vistos (e o B some sem ter sido lido) ou não marca nenhum (e o A fica
+"novidade" para sempre). É o mesmo motivo por que o Slack carimba por canal, e não por
+workspace. A tabela nasceu com chave composta na migration
+`20260922145129_feed_carimbo_de_leitura_por_cliente.sql`, **aplicada no sandbox e PENDENTE em
+produção**, junto de `feed_atividade_por_cliente`, `marcar_feed_visto` e
+`marcar_feed_visto_tudo`.
+
+**Ler é ficar na tela, não passar o mouse.** A primeira ideia era carimbar no hover, para
+não obrigar ninguém a clicar. Hover resolve a coisa certa com o sinal errado: o cursor
+ATRAVESSA a tela (sair da barra e ir até a caixa de escrever, grudada no rodapé, passa por
+cima de tudo no caminho, e carimbar é destrutivo); no celular não existe hover, e o feed vai
+para o celular; e hover é sobre uma fala, enquanto o carimbo é do cliente. O sinal é
+visibilidade com permanência: 60% do bloco à vista por 1 segundo
+(`useLeituraPorVisibilidade.ts`). Rolar lendo carimba sozinho, cursor parado não carimba
+nada, e funciona no toque.
+
+Cinco decisões que valem registro, porque a maioria só apareceu na tela:
+
+- **Congela a LINHA, não o número.** Primeira tentativa congelou os dois, e a tela mostrou
+  na hora que estava errado: com o projeto aberto na frente, a lateral insistia que ele
+  tinha duas novidades ("ta vendo que eu cliquei ali em consultoria tributária da
+  bandeirante, e o numero ainda ta aparecendo?"). São duas perguntas diferentes. Onde a
+  linha FICA vem do retrato congelado, senão o cliente sai da lista no instante em que é
+  lido e a barra se desmancha embaixo do olho. O que a linha MOSTRA responde "o que ainda
+  me espera", e zera na hora, virando um visto no lugar do número. É o Slack: o canal perde
+  o contador ao ser aberto, e é a linha de não lidas DENTRO dele que fica de pé.
+- **A etiqueta "N novas" no bloco é a exceção, e por isso mudou de desenho.** Ela é a
+  referência de onde a leitura tinha parado e não some enquanto se lê, ao contrário do
+  contador da lateral. Virou contornada (a da lateral é cheia): desenho diferente para
+  papel diferente, senão os dois números lado a lado pareceriam um deles quebrado.
+- **O "Há movimento novo" exigiu um `refetchInterval`.** O `queryClient` da casa tem
+  `refetchOnWindowFocus: false`, então, com a lista congelada, nada revalidaria e o aviso
+  seria botão morto. A atividade é reconferida a cada minuto, só com a aba à frente.
+- **Piso de 7 dias para quem nunca foi carimbado.** Sem carimbo, "tudo é novidade" faria a
+  primeira abertura acusar três anos de conversa: a barra nasceria com todos os clientes
+  dentro, que é a tela que ela existe para substituir.
+- **A própria fala não é novidade para quem escreveu**, e busca ou período ligados
+  DESLIGAM o carimbo: quem procura coisa velha não está lendo o dia, e apagaria da barra a
+  novidade que nem viu.
+- **Duas armadilhas de código**, ambas mudas: `const chamar = supabase.rpc` perde o `this`
+  e a função estoura por dentro (o sintoma é a barra presa no esqueleto, com o React Query
+  tentando de novo); e o retorno do `rpc` é PREGUIÇOSO, então um `void chamar(...)` sem
+  `.then()` nunca chega ao banco, e o carimbo sumiria sem erro nenhum.
+
+Fica de fora, de propósito: a barra não aparece abaixo de `lg`. Numa coluna ela empurraria
+a conversa para fora da primeira tela para dizer o que a própria conversa já diz, e no toque
+a leitura carimba do mesmo jeito.
+
 ### 1. Escrever comentário direto do feed ✅ ENTREGUE (21/09/2026)
 
 Hoje o feed só **responde**: o `FeedRespostaInline` nasce preso a um comentário existente e
@@ -208,9 +273,9 @@ redescobertas do zero:
 - **Notificação fora do app para a equipe.** Menção e resposta só aparecem no sino, que exige o app
   aberto; e-mail e WhatsApp via n8n hoje só saem para o cliente. É o motivo mais provável de alguém
   continuar no Slack.
-- **Marca de "até onde eu li".** Já desenhada como `org_feed_visto` no §3.7 do plano de
-  comentários, e nunca entrou.
-- **Seguir projeto ou cliente sem ser mencionado** (e silenciar). Fase 3 do mesmo plano.
+- **Seguir projeto ou cliente sem ser mencionado** (e silenciar). Fase 3 do mesmo plano. A
+  barra de clientes do item 0 é o vizinho mais próximo disso, e não o substitui: ela mostra o
+  que você já pode ver, e seguir é mudar o que se pode ver.
 - **Comentário vira tarefa em um clique**, e pergunta que fica em aberto até ser respondida.
 - **Colaborador externo** (advogado, contador) comentando em tarefa específica.
 - **Post sem vínculo a tarefa**, para aviso geral do tipo "o sistema mudou".

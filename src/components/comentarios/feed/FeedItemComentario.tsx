@@ -35,6 +35,8 @@ interface FeedItemComentarioProps {
   continuaBloco?: boolean;
   /** Fala recém-publicada: realce breve para o olho achar onde ela caiu. */
   realce?: boolean;
+  /** Ainda não lida: chegou depois do carimbo deste cliente, e é de outra pessoa. */
+  naoLida?: boolean;
   onResponder?: () => void;
 }
 
@@ -55,6 +57,7 @@ export function FeedItemComentario({
   abreThread = false,
   continuaBloco = false,
   realce = false,
+  naoLida = false,
   onResponder,
 }: FeedItemComentarioProps) {
   const downloadAttachment = useDownloadOrgCommentAttachment();
@@ -91,9 +94,7 @@ export function FeedItemComentario({
             className="absolute -left-6 top-0 h-[22px] w-6 rounded-bl-md border-b border-l border-border"
           />
           {/* Enquanto houver resposta abaixo, o fio segue descendo. */}
-          {!ultima && (
-            <span aria-hidden className="absolute -left-6 top-0 h-full w-px bg-border" />
-          )}
+          {!ultima && <span aria-hidden className="absolute -left-6 top-0 h-full w-px bg-border" />}
         </>
       )}
 
@@ -105,9 +106,19 @@ export function FeedItemComentario({
           'group/item relative flex rounded-md pr-10 transition-colors hover:bg-muted/40',
           nested ? 'gap-2.5 pb-2 pt-1.5' : 'gap-3 pb-2 pt-2.5',
           continuaBloco && 'pt-0.5',
+          // Fundo, e não anel: o realce da fala recém-publicada é o anel, e os
+          // dois podem cair na mesma linha.
+          naoLida && !realce && 'bg-primary/[0.055]',
           realce && 'bg-primary/10 ring-1 ring-primary/40 hover:bg-primary/10',
         )}
       >
+        {/* Mora na calha do `px-4` do bloco, então não empurra nada. */}
+        {naoLida && (
+          <span
+            aria-hidden
+            className="absolute inset-y-1 -left-2 w-0.5 rounded-full bg-primary/70"
+          />
+        )}
         {/* Trecho do fio que desce do avatar da raiz até o começo das respostas. */}
         {abreThread && (
           <span aria-hidden className="absolute bottom-0 left-4 top-11 w-px bg-border" />
@@ -235,16 +246,16 @@ export function FeedItemComentario({
         {onResponder && !ehEvento && (
           <ButtonTooltip text="Responder">
             <button
-            type="button"
-            onClick={onResponder}
-            aria-label="Responder"
-            /* 36px no dedo, 28px no mouse: no toque este botão é o único
+              type="button"
+              onClick={onResponder}
+              aria-label="Responder"
+              /* 36px no dedo, 28px no mouse: no toque este botão é o único
                caminho para responder e fica encostado na borda de rolagem; no
                mouse ele só aparece no hover e não precisa de área. */
-            className="absolute right-1.5 top-1.5 grid h-9 w-9 place-items-center rounded-md border border-border/70 bg-card text-muted-foreground shadow-sm transition-all hover:border-primary/40 hover:text-primary focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-7 sm:w-7 sm:opacity-0 sm:group-hover/item:opacity-100"
-          >
-            <Reply aria-hidden className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
-          </button>
+              className="absolute right-1.5 top-1.5 grid h-9 w-9 place-items-center rounded-md border border-border/70 bg-card text-muted-foreground shadow-sm transition-all hover:border-primary/40 hover:text-primary focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-7 sm:w-7 sm:opacity-0 sm:group-hover/item:opacity-100"
+            >
+              <Reply aria-hidden className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+            </button>
           </ButtonTooltip>
         )}
       </div>
