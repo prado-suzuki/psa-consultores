@@ -78,12 +78,12 @@ export function FeedGrupoOrigem({
       // ordem decrescente), nunca até o relógio de agora.
       ref={registrarLeitura}
       data-leitura={`${primeiro.project_id}|${primeiro.created_at}`}
-      className="group/origem rounded-lg border border-border/60 bg-superficie-cartao transition-colors hover:border-border"
+      className="rounded-lg border border-border/60 bg-superficie-cartao transition-colors hover:border-border"
     >
       <button
         type="button"
         onClick={() => onAbrirOrigem({ tipo: primeiro.entity_type, id: primeiro.entity_id })}
-        className="flex w-full items-start text-left gap-3 rounded-t-lg px-4 pb-2.5 pt-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        className="group/cabecalho flex w-full items-start text-left gap-3 rounded-t-lg px-4 pb-2.5 pt-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
         {/* O balão devolve o caminho inteiro que o truncamento cortou. */}
         <ElementTooltip text={caminhoCompleto}>
@@ -124,7 +124,7 @@ export function FeedGrupoOrigem({
                 </span>
               )}
             </span>
-            <span className="mt-0.5 block truncate text-[15px] font-semibold leading-5 text-foreground transition-colors group-hover/origem:text-primary">
+            <span className="mt-0.5 block truncate text-[15px] font-semibold leading-5 text-primary decoration-primary/40 underline-offset-4 group-hover/cabecalho:underline">
               {origem.titulo}
             </span>
           </span>
@@ -149,7 +149,7 @@ export function FeedGrupoOrigem({
 
           <Maximize2
             aria-hidden
-            className="hidden h-4 w-4 text-muted-foreground/70 transition-colors group-hover/origem:text-primary sm:block"
+            className="hidden h-4 w-4 text-muted-foreground/70 transition-colors group-hover/cabecalho:text-primary sm:block"
           />
         </span>
       </button>
