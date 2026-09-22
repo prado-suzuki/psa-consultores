@@ -106,7 +106,7 @@ export function FeedGrupoOrigem({
                     •
                   </span>
                   <span className="min-w-0 truncate">
-                    Cliente: <span className="font-medium text-foreground/85">{origem.cliente}</span>
+                    Cliente: <span className="font-semibold text-foreground">{origem.cliente}</span>
                   </span>
                 </>
               )}
@@ -124,7 +124,7 @@ export function FeedGrupoOrigem({
                 </span>
               )}
             </span>
-            <span className="mt-0.5 block truncate text-sm font-semibold leading-5 text-foreground transition-colors group-hover/origem:text-primary">
+            <span className="mt-0.5 block truncate text-[15px] font-semibold leading-5 text-foreground transition-colors group-hover/origem:text-primary">
               {origem.titulo}
             </span>
           </span>
@@ -154,7 +154,7 @@ export function FeedGrupoOrigem({
         </span>
       </button>
 
-      <div className="mx-4 border-t border-border py-1.5">
+      <div className="mx-4 border-t border-foreground/15 py-1.5">
         {threads.map((thread, indice) => {
           const chaveDaThread = `${chaveDoBloco}:${thread.raizId}`;
           const anterior = threads[indice - 1];
