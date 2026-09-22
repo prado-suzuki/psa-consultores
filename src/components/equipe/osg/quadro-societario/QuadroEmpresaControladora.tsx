@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Users } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Plus } from 'lucide-react';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { useMovimentosDaEmpresa, useQuadroDaEmpresa } from '@/hooks/useMovimentacaoQuotas';
 import { procedenciaDosMovimentos } from '@/lib/osg/projecaoQuadro';
 import { AjudaSocietaria } from './AjudaSocietaria';
 import { AtosSocietarios } from './AtosSocietarios';
+import { CardDoQuadro } from './CardDoQuadro';
 import { DoarQuotasDialog } from './DoarQuotasDialog';
 import { EscolherMovimentoDialog } from './EscolherMovimentoDialog';
 import {
@@ -19,8 +18,7 @@ import {
 import { InstituirUsufrutoDialog } from './InstituirUsufrutoDialog';
 import { MovimentoModal } from './MovimentoModal';
 import { fmtBRL, fmtInt } from './quadroFmt';
-import { CabecalhoDoCard, cardDoQuadroCls, FaixaDeResumo } from './quadroKit';
-import { TabelaSocios, type LinhaSocio } from './TabelaSocios';
+import { type LinhaSocio } from './TabelaSocios';
 import { UsufrutoEVotoCard } from './UsufrutoEVoto';
 
 /**
@@ -139,65 +137,50 @@ export const QuadroEmpresaControladora = ({
 
   return (
     <div className="space-y-4">
-      <Card
-        className={cn(cardDoQuadroCls, 'animate-osg-rise motion-reduce:animate-none')}
-        style={{ animationDelay: '60ms' }}
-      >
-        <CabecalhoDoCard
-          icone={<Users className="h-4 w-4 text-muted-foreground" />}
-          titulo={`Lista de Sócios (${quadro.length})`}
-          acoes={
-            <Button
-              ref={botaoRegistrar}
-              size="sm"
-              className="h-9 gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
-              onClick={() => setPorta({ aberta: true, inicial: null })}
+      <CardDoQuadro
+        delay={60}
+        titulo={`Lista de Sócios (${quadro.length})`}
+        acoes={
+          <Button
+            ref={botaoRegistrar}
+            size="sm"
+            className="h-9 gap-1.5 bg-osg-moss text-white shadow-sm shadow-osg-moss/20 transition-all hover:bg-osg-moss/90 hover:shadow-md hover:shadow-osg-moss/25 active:scale-[0.98]"
+            onClick={() => setPorta({ aberta: true, inicial: null })}
+          >
+            <Plus className="h-3.5 w-3.5" /> Registrar movimento
+          </Button>
+        }
+        itensDoResumo={[
+          { rotulo: 'Capital social', valor: capitalTotal, formatar: (n) => fmtBRL.format(n) },
+          { rotulo: 'Quotas', valor: totalQuotas, formatar: (n) => fmtInt.format(Math.round(n)) },
+          {
+            rotulo: 'Valor nominal',
+            valor: valorNominal,
+            formatar: (n) => fmtBRL.format(n),
+            ajuda: <AjudaSocietaria chave="valorNominal" rotulo="valor nominal" />,
+          },
+        ]}
+        nota="Saldo apurado pelos movimentos de quotas."
+        linhas={linhas}
+        totalQuotas={totalQuotas}
+        capital={capitalTotal}
+        carregando={isLoading}
+        vazio={
+          <div className="py-8 text-center text-muted-foreground">
+            <p className="text-sm">
+              O quadro começa com um aporte. Use Registrar movimento para informar quem recebe
+              as quotas.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
+              className="mt-2 text-sm font-medium text-osg-700 underline-offset-2 hover:underline"
             >
-              <Plus className="h-3.5 w-3.5" /> Registrar movimento
-            </Button>
-          }
-          apoio={
-            <FaixaDeResumo
-              itens={[
-                { rotulo: 'Capital social', valor: fmtBRL.format(capitalTotal) },
-                { rotulo: 'Quotas', valor: fmtInt.format(totalQuotas) },
-                {
-                  rotulo: 'Valor nominal',
-                  valor: valorNominal != null ? fmtBRL.format(valorNominal) : '—',
-                  ajuda: <AjudaSocietaria chave="valorNominal" rotulo="valor nominal" />,
-                },
-              ]}
-              nota="Saldo apurado pelos movimentos de quotas."
-            />
-          }
-        />
-        <CardContent>
-          {isLoading ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Carregando...</p>
-          ) : (
-            <TabelaSocios
-              linhas={linhas}
-              totalQuotas={totalQuotas}
-              capital={capitalTotal}
-              vazio={
-                <div className="py-8 text-center text-muted-foreground">
-                  <p className="text-sm">
-                    O quadro começa com um aporte. Use Registrar movimento para informar quem recebe
-                    as quotas.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
-                    className="mt-2 text-sm font-medium text-osg-700 underline-offset-2 hover:underline"
-                  >
-                    Ir para Qualificação das Partes
-                  </button>
-                </div>
-              }
-            />
-          )}
-        </CardContent>
-      </Card>
+              Ir para Qualificação das Partes
+            </button>
+          </div>
+        }
+      />
 
       <UsufrutoEVotoCard empresa={empresa} quadro={quadro} pessoasCliente={pessoasCliente} />
 

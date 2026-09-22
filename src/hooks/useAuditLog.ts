@@ -79,6 +79,12 @@ type AuditEntityType =
   | 'wp_importacao'
   | 'wp_apresentacao'
   | 'wp_estudo'
+  // Os decks .pptx da OSG (patrimonial e societária), da `gerar-apresentacao`.
+  // NÃO é o `wp_apresentacao`, que é a tabela do deck tributário: aquela geração
+  // grava uma linha e esta não persiste nada. Sem linha para apontar, o
+  // `entity_id` aqui é o CLIENTE — a pergunta que se faz ao log é "quem gerou
+  // deck de qual cliente", e os nomes dos arquivos vão no `entity_name`.
+  | 'apresentacao_osg'
   // GOV-F: o Protocolo de Remuneracao. Mesmo recorte da GOV-02 na grade: audita-se
   // o PROTOCOLO e a LINHA, e nao cada celula, porque a linha e o que a pessoa
   // abre, preenche e salva de uma vez. Os catalogos (tema e item) entram porque

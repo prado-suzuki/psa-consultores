@@ -100,6 +100,8 @@ Separar a identidade semantica da clausula de sua numeracao de exibicao. Preserv
 
 O cadastro atual e fonte de candidatos, nao fonte irrestrita do consolidado. Se sede e profissao mudaram, mas somente sede foi aprovada, a qualificacao contratual antiga permanece. A mudanca de profissao continua pendente, salvo decisao juridica explicita de outro tratamento.
 
+Campo que a base nao publicou nao e decisao da base. Um snapshot selado antes de o campo existir no vocabulario nao decidiu nada sobre ele; preserva-lo como ausente deixa o placeholder sem valor, e ai o motor recusa a composicao inteira ("Placeholder nao resolvido") e a peca nao compoe nem se baixa. A regra, desde 17/09/2026, e cair no valor vivo SO nesse caso: campo publicado vazio continua sendo decisao e permanece vazio. O caso que a escreveu foi `sociedade.tituloColetivoSocios` na Banana Quantica (instrumentos de 25/08/2026, campo criado em 26/08 pela migration `20260826145857`). Vive em `estadoProposto.ts`, com teste.
+
 Para eventos acoplados, o sistema exige o conjunto coerente ou adia a operacao inteira. Nao permitir aceitar uma cessao e omitir sua alteracao do quadro final. Nao criar automaticamente renuncia, preco, anuencia, poderes ou causa juridica ausentes.
 
 Datas de instrumento, fato/efeito declarado, protocolo, registro e captura do snapshot sao distintas. Confirmacao do registro promove a base operacional; isso nao afirma que todo efeito juridico nasce naquela data. Modelar datas pertinentes por evento homologado.

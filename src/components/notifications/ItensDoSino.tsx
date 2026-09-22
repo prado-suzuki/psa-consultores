@@ -15,6 +15,7 @@ import {
   UserPlus,
   type LucideIcon,
   FileSpreadsheet,
+  Hourglass,
 } from 'lucide-react';
 import type { TicketNotification } from '@/hooks/useTicketNotifications';
 import type { ReviewTaskNotification } from '@/hooks/useReviewTaskNotifications';
@@ -79,6 +80,12 @@ const ICONES_INTERNAS: Record<NotificacaoTipo, LucideIcon> = {
   // para o prazo que se aproxima, calendário riscado para o que já passou.
   tarefa_prazo_proximo: Clock,
   tarefa_atrasada: CalendarX,
+  // GES-01B: areia vazia no relógio de areia, a tarefa que ninguém mexe.
+  tarefa_inativa: Hourglass,
+  // GES-01B: o mesmo relógio, para o projeto inteiro frio. Mesmo ícone de
+  // propósito: o que distingue os dois é o rótulo, e o gestor lê os dois como a
+  // mesma categoria de aviso.
+  projeto_inativo: Hourglass,
   // PT-04: papel de trabalho importado ou revisado, no projeto escolhido.
   papel_de_trabalho_importado: FileSpreadsheet,
 };
@@ -288,7 +295,17 @@ export function InternaNotificationItem({
           <Icone className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">
+          {/*
+            DUAS LINHAS, E NÃO UMA. O painel é `w-80`, 320px, e descontando ícone
+            e margens sobram cerca de 200 para o título: umas 30 letras. Com uma
+            linha só, todo título desta família perdia justamente o fim, que é
+            onde está o NOME da tarefa. Medido na tela em 21/09/2026: o prefixo
+            "Sem movimentação há 40 dias: " tem 29 caracteres, ou seja consumia a
+            largura inteira sozinho, e o aviso chegava ao gestor sem dizer de qual
+            tarefa falava. O de prazo sofria do mesmo mal ("Tarefa atrasada:
+            Chamado: E2…").
+          */}
+          <p className="font-medium text-sm text-foreground line-clamp-2 group-hover:text-primary transition-colors">
             {notification.titulo}
           </p>
           {/* De que projeto o aviso fala. O texto dele diz "este planejamento",

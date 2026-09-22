@@ -1,23 +1,43 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { TELAS_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Building2, PieChart } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
-import { osgTabsListCls, osgTabTriggerCls } from '@/components/equipe/osg/formKit';
 import { usePessoasByCliente, type PessoaRow } from '@/hooks/useQualificacaoDasPartes';
+import { BarraDeEmpresas } from '@/components/equipe/osg/quadro-societario/BarraDeEmpresas';
+import { cardDoQuadroCls } from '@/components/equipe/osg/quadro-societario/quadroKit';
 import { QuadroEmpresaControladora } from '@/components/equipe/osg/quadro-societario/QuadroEmpresaControladora';
 import { QuadroEmpresaProprietaria } from '@/components/equipe/osg/quadro-societario/QuadroEmpresaProprietaria';
+import { cn } from '@/lib/utils';
 
 // Só PJs Proprietária (PR) e Controladora (CN) têm quadro societário nesta tela.
 const TIPOS_EMPRESA_ELEGIVEIS = ['PR', 'CN'] as const;
-const TIPO_EMPRESA_LABELS: Record<string, string> = {
-  PR: 'Proprietária',
-  CN: 'Controladora',
-};
+
+/**
+ * O card de quando não há quadro a mostrar — sem cliente, ou sem empresa
+ * elegível. O ícone vem dentro de um disco bege com um halo que pulsa devagar:
+ * a tela vazia continua sendo a tela vazia, mas deixa de ser um retângulo de
+ * canvas com uma frase solta no meio.
+ */
+const CardDeEspera = ({ icone, children }: { icone: ReactNode; children: ReactNode }) => (
+  <Card className={cn(cardDoQuadroCls, 'animate-osg-rise motion-reduce:animate-none')}>
+    <CardContent className="flex flex-col items-center px-6 py-14 text-center text-muted-foreground">
+      <span className="relative mb-4 flex h-16 w-16 items-center justify-center">
+        <span
+          aria-hidden
+          className="absolute inset-0 animate-ping rounded-full bg-osg-100/60 [animation-duration:3.5s] motion-reduce:animate-none"
+        />
+        <span className="relative flex h-16 w-16 items-center justify-center rounded-full border border-osg-200/70 bg-osg-50 text-osg-moss">
+          {icone}
+        </span>
+      </span>
+      {children}
+    </CardContent>
+  </Card>
+);
 
 // Quadro societário de uma empresa. Nos dois casos ele é o mesmo objeto, o
 // acumulado dos movimentos de quota (`v_quadro_societario`), e o que muda é o
@@ -73,49 +93,36 @@ const QuadroSocietario = () => {
     >
       <div className="space-y-4">
         {!clienteId ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <PieChart className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Selecione um cliente na barra acima para abrir o quadro societário deste cliente.</p>
-            </CardContent>
-          </Card>
+          <CardDeEspera icone={<PieChart className="h-7 w-7" />}>
+            <p className="max-w-md text-sm">
+              Selecione um cliente na barra acima para visualizar e gerenciar o quadro societário.
+            </p>
+          </CardDeEspera>
         ) : isLoading ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <p className="text-sm">Carregando...</p>
-            </CardContent>
-          </Card>
+          <CardDeEspera icone={<Building2 className="h-7 w-7 animate-pulse" />}>
+            <p className="text-sm">Carregando as empresas deste cliente...</p>
+          </CardDeEspera>
         ) : empresas.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <Building2 className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm mb-4">
-                Este cliente não possui empresas Proprietária (PR) ou Controladora (CN) cadastradas.
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
-              >
-                Ir para Qualificação das Partes
-              </Button>
-            </CardContent>
-          </Card>
+          <CardDeEspera icone={<Building2 className="h-7 w-7" />}>
+            <p className="mb-4 max-w-md text-sm">
+              Este cliente não possui empresas Proprietária (PR) ou Controladora (CN) cadastradas.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
+            >
+              Ir para Qualificação das Partes
+            </Button>
+          </CardDeEspera>
         ) : (
           <>
-            <Tabs value={empresaAtiva!.id} onValueChange={setEmpresaSel}>
-              <TabsList className={osgTabsListCls}>
-                {empresas.map((e) => (
-                  <TabsTrigger key={e.id} value={e.id} className={osgTabTriggerCls}>
-                    <span className="flex items-center gap-2">
-                      {e.denominacao}
-                      <span className="rounded-md bg-osg-100 px-1.5 py-0.5 text-[10px] font-semibold text-osg-700">
-                        {TIPO_EMPRESA_LABELS[e.tipo_empresa ?? ''] ?? e.tipo_empresa}
-                      </span>
-                    </span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+            <div className="animate-osg-rise motion-reduce:animate-none">
+              <BarraDeEmpresas
+                empresas={empresas}
+                ativa={empresaAtiva!.id}
+                onEscolher={setEmpresaSel}
+              />
+            </div>
 
             {empresaAtiva && (
               <QuadroEmpresa

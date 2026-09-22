@@ -68,10 +68,14 @@ export const PECAS_DA_BIBLIOTECA: readonly PecaDaBiblioteca[] = [
     // `PapeisDeTrabalhoReport`, `useDomainPapelDeTrabalho` e `wp_apresentacao`
     // ficam como estão.
     nome: 'Planejamento Tributário',
-    // Os quatro assuntos que o arquivo entrega, na ordem em que o cliente os vê.
+    // Os assuntos que o arquivo entrega, na ordem em que o cliente os vê.
     // Saiu o ", por revisão": qual revisão vai é a linha de baixo, e dizê-lo
     // aqui duplicava o que o seletor já mostra.
-    origem: 'Premissas, carga tributária, transferência da atividade rural e resumo da tributação.',
+    //
+    // ERAM QUATRO ATÉ 21/09/2026, quando o padrão visual novo entrou: o capítulo
+    // ganhou os cenários avaliados e as diferenças entre os modelos de
+    // exploração, e perdeu as caixas de comentário por tributo.
+    origem: 'Premissas, cenários, diferenças dos modelos, carga tributária, transferência e resumo.',
     deck: null,
     geraSlides: true,
   },

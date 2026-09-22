@@ -30,4 +30,32 @@ describe('conferirDecksGerados', () => {
       falhas: ['Quadro Societário e Organograma: o servidor não devolveu o arquivo desta apresentação'],
     });
   });
+
+  // A função sempre mandou o motivo por deck em `erros`; o cliente descartava e a
+  // pessoa lia o genérico para uma falha que tinha nome.
+  it('usa o motivo daquele deck, e não o genérico, quando o servidor diz qual foi', () => {
+    expect(
+      conferirDecksGerados(esperadas, {
+        arquivos: [{ tipo: 'patrimonial', nome: 'patrimonial.pptx' }],
+        erro: null,
+        errosPorDeck: [
+          { tipo: 'societaria', message: 'Template ausente: TEMPLATE_SOCIETARIA.pptx' },
+        ],
+      }),
+    ).toEqual({
+      gerados: ['patrimonial.pptx'],
+      falhas: ['Quadro Societário e Organograma: Template ausente: TEMPLATE_SOCIETARIA.pptx'],
+    });
+  });
+
+  it('o erro de outro deck não é usado no lugar do genérico', () => {
+    const r = conferirDecksGerados(esperadas, {
+      arquivos: [{ tipo: 'patrimonial', nome: 'patrimonial.pptx' }],
+      erro: null,
+      errosPorDeck: [{ tipo: 'patrimonial', message: 'algo do patrimonial' }],
+    });
+    expect(r.falhas).toEqual([
+      'Quadro Societário e Organograma: o servidor não devolveu o arquivo desta apresentação',
+    ]);
+  });
 });

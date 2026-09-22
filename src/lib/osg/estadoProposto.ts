@@ -25,11 +25,17 @@ import { aplicarEnderecosDeSocios, FLAG_QUALIFICACAO, FLAG_SEDE, SEDE, type Cand
 //   ônus (usufruto, gravame)  → SEMPRE vivo: é fato da sociedade, não deliberação
 //                               desta peça (ver LISTAS_VIVAS_SEMPRE)
 //   administração             → viva se `evento_mudanca_administracao` confirmado
+//   órgãos de governança      → vivos se `evento_governanca` confirmado; VAZIOS
+//                               sem ele, e não os da base (ver LISTAS_DE_GOVERNANCA)
 //   assinaturas               → vivas se movimento OU administração confirmados
 //   identificação da PJ       → base; vazio na base é completado do cadastro
 //   qualificação das pessoas  → a da base para quem já constava nela, com a
 //                               exceção acima: o endereço aprovado prevalece
 //   o resto do instrumento    → base (as matérias que a peça não altera)
+//   campo AUSENTE na base     → vivo, qualquer que seja a matéria: snapshot
+//                               selado antes de o campo existir não publicou
+//                               decisão nenhuma sobre ele (campo publicado
+//                               VAZIO é decisão, e fica)
 //
 // Nada aqui escreve redação: o resultado é um SnapshotDados, o mesmo contrato
 // que o motor já lê, e as resoluções continuam saindo dos blocos da Biblioteca
@@ -46,6 +52,7 @@ export const EVENTOS_DE_MOVIMENTO = [
   'evento_mudanca_socios',
 ] as const;
 export const EVENTO_ADMINISTRACAO = 'evento_mudanca_administracao';
+export const EVENTO_GOVERNANCA = 'evento_governanca';
 export const EVENTO_QUALIFICACAO = FLAG_QUALIFICACAO;
 
 /** Listas que descrevem o livro de movimentos e o quadro que ele produz. */
@@ -56,6 +63,23 @@ const LISTAS_DE_MOVIMENTO = [
 /** As coleções do ato de doação: existem só quando `evento_doacao_quotas` entra. */
 const LISTAS_DA_DOACAO = ['doacoes', 'usufrutos', 'gravamesQuotas'] as const;
 const LISTAS_DE_ADMINISTRACAO = ['administradores'] as const;
+/**
+ * Os órgãos com as suas competências: o capítulo inteiro da governança.
+ *
+ * Sem declaração, a regra de fallback produzia três comportamentos, e dois eram
+ * errados. O certo, por matéria:
+ *
+ *   primeira AC de governança            → entra a viva (a base não conhecia)
+ *   AC alheia depois dela (sede, cessão) → prevalece a base: republica o
+ *                                          registrado
+ *   AC de sede logo após alguém preencher a matriz, SEM evento → lista VAZIA
+ *   a AC que existe para mudar as alçadas → entra a viva
+ *
+ * O terceiro caso é o que o fallback errava mais feio: a governança inteira
+ * entrava no contrato sem ninguém ter pedido. O quarto é o oposto: a peça que
+ * existe para mudar as alçadas republicava as competências velhas, em silêncio.
+ */
+export const LISTAS_DE_GOVERNANCA = ['orgaosComCompetencia'] as const;
 /** Os sócios que a resolução de qualificação nomeia: só existem se o evento entrar. */
 const LISTAS_DE_QUALIFICACAO = ['requalificados'] as const;
 const LISTAS_DE_ASSINATURA = ['signatarios'] as const;
@@ -250,6 +274,7 @@ export function comporEstadoProposto(args: ArgsDoEstadoProposto): EstadoProposto
   const cessao = eventosConfirmados.has('evento_cessao_quotas');
   const doacao = eventosConfirmados.has('evento_doacao_quotas');
   const administracao = eventosConfirmados.has(EVENTO_ADMINISTRACAO);
+  const governanca = eventosConfirmados.has(EVENTO_GOVERNANCA);
   const sedeConfirmada = eventosConfirmados.has(FLAG_SEDE);
   const qualificacaoConfirmada = eventosConfirmados.has(EVENTO_QUALIFICACAO);
   const enderecos = qualificacaoConfirmada ? (args.enderecosDeSocios ?? []) : [];
@@ -277,12 +302,23 @@ export function comporEstadoProposto(args: ArgsDoEstadoProposto): EstadoProposto
       const editado = editados.has(`${binding}.${k}`);
       if (editado) { daBase[k] = v; continue; }
       if ((SINTETIZADOS_DA_PECA as readonly string[]).includes(k)) { daBase[k] = v; continue; }
+      // AUSENTE NA BASE NÃO É "A BASE DECIDIU MANTER". As regras por matéria
+      // preservam o que o instrumento registrado PUBLICOU; um campo que nem
+      // existe no snapshot não foi publicado de jeito nenhum, e o snapshot é
+      // apenas mais velho que o campo. Sem esta queda, o valor fica indefinido,
+      // o motor recusa a composição inteira ("Placeholder não resolvido") e a
+      // peça não compõe nem se baixa — que é o que acontecia com
+      // `sociedade.tituloColetivoSocios` na Banana Quântica: os dois
+      // instrumentos registrados são de 25/08/2026 e o campo nasceu no dia
+      // seguinte, na migration `20260826145857`. Campo publicado VAZIO é outra
+      // coisa: aí houve decisão, e ela é preservada.
       if ((CAMPOS_DE_CAPITAL as readonly string[]).includes(k)) {
-        if (movimento) daBase[k] = v;
+        if (movimento || !(k in daBase)) daBase[k] = v;
         continue;
       }
       if ((SEDE as readonly string[]).includes(k) || k === 'sedeUfExtenso') {
         if (sedeConfirmada) daBase[k] = args.sede ? (args.sede.depois[k] ?? v) : v;
+        else if (!(k in daBase)) daBase[k] = v;
         continue;
       }
       if ((IDENTIFICACAO_DA_PJ as readonly string[]).includes(k)) {
@@ -309,6 +345,7 @@ export function comporEstadoProposto(args: ArgsDoEstadoProposto): EstadoProposto
   if (cessao) listasVivas.add('cessoes');
   if (doacao) LISTAS_DA_DOACAO.forEach((l) => listasVivas.add(l));
   if (administracao) LISTAS_DE_ADMINISTRACAO.forEach((l) => listasVivas.add(l));
+  if (governanca) LISTAS_DE_GOVERNANCA.forEach((l) => listasVivas.add(l));
   if (qualificacaoConfirmada) LISTAS_DE_QUALIFICACAO.forEach((l) => listasVivas.add(l));
   if (movimento || administracao) LISTAS_DE_ASSINATURA.forEach((l) => listasVivas.add(l));
   for (const [nome, itens] of Object.entries(vivoCopia.itensPorLista)) {
@@ -321,7 +358,8 @@ export function comporEstadoProposto(args: ArgsDoEstadoProposto): EstadoProposto
       // de movimento e de administração NÃO: sem evento confirmado, a peça não
       // narra nada delas, e vazio é a declaração certa.
       const governada = ([...LISTAS_DE_MOVIMENTO, ...LISTAS_DE_ADMINISTRACAO,
-        ...LISTAS_DE_ASSINATURA, ...LISTAS_DE_QUALIFICACAO] as readonly string[]).includes(nome);
+        ...LISTAS_DE_ASSINATURA, ...LISTAS_DE_QUALIFICACAO,
+        ...LISTAS_DE_GOVERNANCA] as readonly string[]).includes(nome);
       estado.itensPorLista[nome] = governada ? [] : itens;
     }
   }

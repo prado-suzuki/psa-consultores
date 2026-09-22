@@ -289,6 +289,18 @@ function percentualCartorialCampo(id: string, label: string, derivadoDe: string)
   };
 }
 
+/**
+ * Primeira letra em minúscula, para o texto entrar no meio de uma frase. Palavra
+ * inteiramente maiúscula (sigla) passa intacta.
+ */
+function minusculaNoMeioDaFrase(texto: string | undefined): string {
+  const t = (texto ?? '').trim();
+  if (!t) return '';
+  const primeira = t.split(/\s+/)[0];
+  if (primeira.length > 1 && primeira === primeira.toUpperCase()) return t;
+  return t[0].toLocaleLowerCase('pt-BR') + t.slice(1);
+}
+
 /** Campo derivado que expande uma UF (sigla) por extenso ("MT" → "Mato Grosso"). */
 /**
  * Uma chave está marcada numa lista de múltipla escolha do cadastro?
@@ -1518,6 +1530,21 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
     label: 'Competência da Matriz de Alçadas',
     campos: [
       { id: 'atividade', label: 'Atividade', tipo: 'texto', obrigatorio: true },
+      /*
+       * A MESMA atividade em meio de frase. O catálogo guarda o nome
+       * capitalizado, que é como a grade da Matriz o mostra; a alínea o emenda
+       * depois do verbo ("Autorizar a contratação de prestadores de serviços"),
+       * e ali a maiúscula do catálogo vira erro de digitação no contrato.
+       *
+       * Sigla fica intacta: "ITCMD" não vira "iTCMD".
+       */
+      {
+        id: 'atividadeMinuscula',
+        label: 'Atividade em meio de frase',
+        tipo: 'texto',
+        derivadoDe: 'atividade',
+        derivar: (v) => minusculaNoMeioDaFrase(v.atividade),
+      },
       { id: 'detalhamento', label: 'O que a atividade abrange neste cliente', tipo: 'texto' },
       { id: 'papeis', label: 'Papéis na decisão', tipo: 'texto' },
       /*
@@ -1529,18 +1556,116 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
        */
       { id: 'papeisInfinitivo', label: 'Papéis no infinitivo', tipo: 'texto' },
       /*
+       * O QUE A CÉLULA FAZ, por grupo de papel — as cinco condicionais que
+       * separam a redação do Conselho da redação da Diretoria na mesma linha da
+       * Matriz. Quem as publica é `mapearCompetenciaMatriz`, a partir de
+       * `papel_governanca.grupo`; aqui elas só se declaram, para não caírem em
+       * "desconhecidos" e para o painel saber o que são.
+       *
+       * `interno` pelo mesmo motivo do `genero` do órgão: descrevem o PAPEL
+       * escolhido na Matriz, não um dado a conferir. Quem digitasse "sim" aqui
+       * não corrigiria nada, trocaria a redação da alínea por outra.
+       */
+      { id: 'decide', label: 'A célula decide? (condicional)', tipo: 'texto', interno: true },
+      { id: 'analisa', label: 'A célula analisa/encaminha? (condicional)', tipo: 'texto', interno: true },
+      { id: 'prepara', label: 'A célula prepara/valida? (condicional)', tipo: 'texto', interno: true },
+      { id: 'negocia', label: 'A célula negocia? (condicional)', tipo: 'texto', interno: true },
+      { id: 'executa', label: 'A célula executa/monitora? (condicional)', tipo: 'texto', interno: true },
+      /*
        * A preposição do órgão de destino, que concorda com o gênero DELE e não
        * com o desta célula. Sem ela saía "encaminhando a Conselho" e
        * "encaminhando a Reunião de Sócios", no documento gerado em 14/09.
        */
       { id: 'sobeParaAo', label: 'Preposição do destino (ao/à)', tipo: 'texto' },
       { id: 'alcada', label: 'Alçada (valor ou percentual, já formatada)', tipo: 'texto' },
+
+      /*
+       * A ALÇADA EM PEÇAS, que é o que a alínea de verdade precisa.
+       *
+       * A frase pronta acima traz "até R$ 5.000.000,00" e serve à grade da
+       * Matriz. A cláusula do contrato escreve outra coisa em cada degrau da
+       * escada: a Diretoria do Zamo sai "superior a R$ 500.000,00 e até
+       * R$ 5.000.000,00" e o Conselho "superior a R$ 5.000.000,00". Com o "até"
+       * grudado no texto não há como escrever nenhuma das duas, e sem um NÚMERO
+       * irmão não há de onde derivar o extenso — campo derivado precisa de base
+       * numérica, e prosa não é.
+       *
+       * O PISO não é campo de cadastro: é o teto de quem sobe para este órgão na
+       * mesma linha, derivado em `pisosDaLinha` (matrizAlcadas.ts). Nada aqui
+       * pede tela nova.
+       */
+      { id: 'alcadaValor', label: 'Alçada — teto (R$ ou %)', tipo: 'valor' },
+      {
+        id: 'alcadaExtenso',
+        label: 'Alçada — teto em reais (por extenso)',
+        tipo: 'texto',
+        derivadoDe: 'alcadaValor',
+        derivar: (v) => {
+          const n = paraNumeroBR(v.alcadaValor);
+          return Number.isFinite(n) ? valorExtenso(n) : '';
+        },
+      },
+      percentualCartorialCampo(
+        'alcadaPercentualExtenso', 'Alçada — teto em percentual (por extenso)', 'alcadaValor',
+      ),
+      { id: 'alcadaPiso', label: 'Alçada — piso (R$ ou %)', tipo: 'valor' },
+      {
+        id: 'alcadaPisoExtenso',
+        label: 'Alçada — piso em reais (por extenso)',
+        tipo: 'texto',
+        derivadoDe: 'alcadaPiso',
+        derivar: (v) => {
+          const n = paraNumeroBR(v.alcadaPiso);
+          return Number.isFinite(n) ? valorExtenso(n) : '';
+        },
+      },
+      percentualCartorialCampo(
+        'alcadaPisoPercentualExtenso', 'Alçada — piso em percentual (por extenso)', 'alcadaPiso',
+      ),
+      /*
+       * `interno` porque descreve a MEDIDA, não a decisão: quem digitasse
+       * "percentual" aqui não corrigiria um dado errado, faria a alínea imprimir
+       * "%" onde o cadastro diz reais. Corrige-se na Matriz. Mesma razão do
+       * `genero` do órgão.
+       */
+      { id: 'alcadaUnidade', label: 'Unidade da alçada (moeda/percentual)', tipo: 'texto', interno: true },
+      { id: 'alcadaBase', label: 'Base do percentual ("do orçamento aprovado")', tipo: 'texto' },
+
       { id: 'sobePara', label: 'Sobe para', tipo: 'texto' },
       { id: 'foraDaPolitica', label: 'Trata do que foge da política? (condicional)', tipo: 'texto' },
       { id: 'resumo', label: 'A célula inteira em uma linha (para a grade)', tipo: 'texto' },
       condicionalCampo('temDetalhamento', 'Tem detalhamento? (condicional)', 'detalhamento', (v) => !!v.detalhamento),
       condicionalCampo('temAlcada', 'Tem alçada? (condicional)', 'alcada', (v) => !!v.alcada),
       condicionalCampo('sobe', 'Escala para outro órgão? (condicional)', 'sobePara', (v) => !!v.sobePara),
+      /*
+       * O outro lado de `sobe`, porque o motor não tem else e a ressalva do que
+       * foge da política se lê ao contrário nos dois lados da escada: quem tem
+       * destino SUBMETE o que não está previsto, quem não tem AUTORIZA. É a
+       * mesma distinção que `resumoDaCompetencia` já faz na grade.
+       */
+      condicionalCampo('naoSobe', 'Decide sem escalar? (condicional)', 'sobePara', (v) => !v.sobePara),
+
+      /*
+       * Os três degraus da escada, publicados como condicionais porque é isso que
+       * o SELETOR DA FAMÍLIA sabe ler: ele compara string no escopo do item, e
+       * condicional derivada existe sempre (vale 'sim' ou ''), enquanto campo
+       * base some quando o cadastro não o tem — e o que some vira "classificação
+       * ausente" na cara do consultor, não uma variante escolhida.
+       */
+      condicionalCampo('temTeto', 'Tem teto de alçada? (condicional)', 'alcadaValor', (v) => !!v.alcadaValor),
+      condicionalCampo('temPiso', 'Tem piso de alçada? (condicional)', 'alcadaPiso', (v) => !!v.alcadaPiso),
+      condicionalCampo(
+        'temFaixa', 'Alçada em faixa (piso e teto)? (condicional)',
+        ['alcadaValor', 'alcadaPiso'], (v) => !!v.alcadaValor && !!v.alcadaPiso,
+      ),
+      condicionalCampo(
+        'emMoeda', 'Alçada em reais? (condicional)', ['alcadaUnidade', 'alcadaValor', 'alcadaPiso'],
+        (v) => v.alcadaUnidade !== 'percentual' && (!!v.alcadaValor || !!v.alcadaPiso),
+      ),
+      condicionalCampo(
+        'emPercentual', 'Alçada em percentual? (condicional)', ['alcadaUnidade', 'alcadaValor', 'alcadaPiso'],
+        (v) => v.alcadaUnidade === 'percentual' && (!!v.alcadaValor || !!v.alcadaPiso),
+      ),
     ],
   },
 
