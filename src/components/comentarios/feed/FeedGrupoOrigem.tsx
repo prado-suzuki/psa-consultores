@@ -92,7 +92,7 @@ export function FeedGrupoOrigem({
             <span className="flex min-w-0 items-center gap-1.5 text-[11px] leading-4 text-muted-foreground">
               <span
                 className={cn(
-                  'shrink-0 border-b text-xs font-semibold',
+                  'shrink-0 border-b text-[13px] font-semibold',
                   ehProjeto ? 'border-status-feito/50 text-status-feito' : 'border-tag-c/50 text-tag-c',
                 )}
               >
