@@ -1,8 +1,7 @@
 // Campos do modal de tarefa da sprint (criar/editar), organizados em seções.
 // A descrição tem modo "tela cheia": quem controla o estado é o modal, porque
 // ele precisa crescer junto para o campo ocupar a altura toda.
-import { CalendarClock, Link2, Maximize2, Minimize2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { CalendarClock, Link2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RequiredMark } from '@/components/ui/required-mark';
@@ -15,7 +14,13 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AvisoHorasDigitadas } from '@/components/equipe/AvisoHorasDigitadas';
-import { TarefaRichTextEditor } from '@/components/equipe/TarefaRichTextEditor';
+import {
+  DescricaoDaTarefa,
+  DescricaoExpandida,
+  PropertySection,
+  SectionLabel,
+} from '@/components/equipe/sprint-detalhes/tarefaModalVisual';
+import { tarefaModalTabTriggerClass as tabTriggerClass } from '@/components/equipe/sprint-detalhes/tarefaModalClasses';
 import { avaliarHorasApontadas } from '@/lib/horasApontamento';
 import { cn } from '@/lib/utils';
 import type {
@@ -34,21 +39,6 @@ interface DeliverableFormFieldsProps {
   onToggleDescription: () => void;
 }
 
-// Rótulo de seção com o traço do accent da área (teal): é o que dá cor ao
-// formulário sem mexer no fundo dos cartões.
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-      <span className="h-[3px] w-5 shrink-0 rounded-full bg-primary" aria-hidden />
-      {children}
-    </h3>
-  );
-}
-
-// Aba ativa marcada no accent: texto, ícone e um contorno fino em teal.
-const tabTriggerClass =
-  'data-[state=active]:text-foreground data-[state=active]:ring-1 data-[state=active]:ring-accent/25';
-
 /** Status com cor semântica: leitura rápida de andamento dentro do formulário. */
 const statusOptions = [
   { value: 'pending', label: entregavelStatusColors.pending.label, dot: entregavelStatusColors.pending.dot },
@@ -62,17 +52,6 @@ function StatusOption({ label, dot }: { label: string; dot: string }) {
       <span className={cn('h-2 w-2 shrink-0 rounded-full', dot)} aria-hidden />
       {label}
     </span>
-  );
-}
-
-function PropertySection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="border-t border-primary/35 pt-4 first:border-t-0 first:pt-0">
-      <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary/70">
-        {title}
-      </h3>
-      {children}
-    </section>
   );
 }
 
@@ -97,62 +76,16 @@ export function DeliverableFormFields({
   );
 
   const description = (
-    <div className={cn('space-y-3', descriptionExpanded && 'flex min-h-0 flex-1 flex-col')}>
-      <div className="flex items-center justify-between gap-2">
-        {/* Sem htmlFor: o editor rico não é um <textarea>, o rótulo vai por aria-label. */}
-        <div>
-          <Label className="text-sm font-semibold">Descrição</Label>
-          {!descriptionExpanded && (
-            <p className="text-xs text-muted-foreground">
-              Detalhe o objetivo, critérios de aceite e contexto da entrega.
-            </p>
-          )}
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-7 gap-1.5 px-2 text-xs font-normal text-muted-foreground hover:text-primary"
-          onClick={onToggleDescription}
-        >
-          {descriptionExpanded ? (
-            <>
-              <Minimize2 className="h-3.5 w-3.5" />
-              Reduzir
-            </>
-          ) : (
-            <>
-              <Maximize2 className="h-3.5 w-3.5" />
-              Expandir
-            </>
-          )}
-        </Button>
-      </div>
-      <TarefaRichTextEditor
-        value={form.description}
-        onChange={(next) => update('description', next)}
-        ariaLabel="Descrição"
-        // Sombra suave e tonal: destaca o campo de descrição dentro do cartão.
-        className="shadow-md shadow-primary/15"
-        fillHeight={descriptionExpanded}
-        minHeight={descriptionExpanded ? 'min-h-[360px]' : 'min-h-[280px]'}
-        maxHeight={descriptionExpanded ? undefined : 'max-h-[420px]'}
-      />
-    </div>
+    <DescricaoDaTarefa
+      value={form.description}
+      onChange={(next) => update('description', next)}
+      expanded={descriptionExpanded}
+      onToggle={onToggleDescription}
+    />
   );
 
   if (descriptionExpanded) {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col gap-3">
-        <p className="truncate text-sm font-medium text-foreground">
-          {form.title || 'Tarefa sem título'}
-        </p>
-        {description}
-        <p className="text-xs text-muted-foreground">
-          Pressione Esc ou clique em “Reduzir” para voltar aos demais campos.
-        </p>
-      </div>
-    );
+    return <DescricaoExpandida title={form.title}>{description}</DescricaoExpandida>;
   }
 
   return (

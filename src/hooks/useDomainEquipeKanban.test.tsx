@@ -416,6 +416,23 @@ describe('mutations de anexos', () => {
     expect(calls.at(-1)?.args).toEqual(['uploaded_at', { ascending: false }]);
   });
 
+  it('anexo de item do backlog grava em backlog_item_id e recarrega por ele', async () => {
+    const file = new File(['png'], 'print.png', { type: 'image/png' });
+    results.set('deliverable_attachments:select', { data: [{ id: 'fresh' }], error: null });
+    renderHook(() => useEquipeKanbanAttachments());
+    await mutation('upload-attachment').mutationFn({ backlogItemId: 'b-1', file } as never);
+
+    const insert = calls.find(
+      ({ scope, method }) => scope === 'deliverable_attachments' && method === 'insert',
+    );
+    expect(insert?.args[0]).toMatchObject({
+      backlog_item_id: 'b-1',
+      file_path: expect.stringMatching(/^b-1\/\d+\.png$/),
+    });
+    expect(insert?.args[0]).not.toHaveProperty('deliverable_id');
+    expect(calls.find(({ method }) => method === 'eq')?.args).toEqual(['backlog_item_id', 'b-1']);
+  });
+
   it('remove arquivo com precheck primeiro e ignora erros de storage e banco', async () => {
     supabaseMocks.remove.mockResolvedValue({ error: new Error('ignored') });
     results.set('deliverable_attachments:delete', { data: null, error: new Error('ignored') });

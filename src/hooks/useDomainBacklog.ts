@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 export interface BacklogItem {
   id: string;
@@ -113,7 +114,13 @@ const DOMAIN_BACKLOG_MUTATION_KEYS = {
   deleteItem: ['domain-backlog', 'delete-item'] as const,
   createDeliverable: ['domain-backlog', 'create-deliverable'] as const,
   moveItem: ['domain-backlog', 'move-item'] as const,
+  transferAttachments: ['domain-backlog', 'transfer-attachments'] as const,
 };
+
+interface TransferBacklogAttachmentsInput {
+  item: Pick<BacklogItem, 'id' | 'title'>;
+  deliverableId: string;
+}
 
 export function useDomainBacklog() {
   return useQuery<DomainBacklogData>({
@@ -223,6 +230,18 @@ export function useDeleteDomainBacklogItem() {
     mutationKey: DOMAIN_BACKLOG_MUTATION_KEYS.deleteItem,
     mutationFn: async (itemId: string) => {
       await assertCanPerform('sprint_backlog_items', 'delete', itemId);
+      // A linha do anexo cai por cascade junto com o item; o arquivo no bucket
+      // não, então sai antes. Falha aqui não impede a exclusão (mesmo critério
+      // da exclusão de entregável).
+      const { data: anexos } = await supabase
+        .from('deliverable_attachments')
+        .select('file_path')
+        .eq('backlog_item_id', itemId);
+      if (anexos?.length) {
+        await supabase.storage
+          .from('deliverable-attachments')
+          .remove(anexos.map((anexo) => anexo.file_path));
+      }
       const { error } = await supabase.from('sprint_backlog_items').delete().eq('id', itemId);
 
       if (error) throw error;
@@ -265,6 +284,40 @@ export function useMoveDomainBacklogItem() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: domainBacklogQueryKeys.data });
+    },
+  });
+}
+
+/**
+ * Ao mover o item para a sprint, os anexos passam para o entregável novo: troca
+ * o dono na mesma linha, o arquivo no bucket fica onde está.
+ */
+export function useTransferBacklogAttachments() {
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationKey: DOMAIN_BACKLOG_MUTATION_KEYS.transferAttachments,
+    mutationFn: async ({ item, deliverableId }: TransferBacklogAttachmentsInput) => {
+      const { data, error } = await supabase
+        .from('deliverable_attachments')
+        .update({ deliverable_id: deliverableId, backlog_item_id: null })
+        .eq('backlog_item_id', item.id)
+        .select('id');
+
+      if (error) throw error;
+      const total = data?.length ?? 0;
+      if (total > 0) {
+        await logAction({
+          area: 'dev',
+          entity_type: 'backlog_item',
+          entity_id: item.id,
+          entity_name: item.title,
+          action: 'updated',
+          changed_fields: { anexos: { old: total, new: 0 } },
+          details: `${total} anexo(s) transferido(s) para a tarefa da sprint ${deliverableId}`,
+        });
+      }
+      return total;
     },
   });
 }
