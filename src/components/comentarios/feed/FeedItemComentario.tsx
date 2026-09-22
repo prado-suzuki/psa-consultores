@@ -103,15 +103,14 @@ export function FeedItemComentario({
         data-realce={realce || undefined}
         className={cn(
           'group/item relative flex rounded-md transition-colors',
-          ehEvento && 'gap-2 py-1.5 pr-2',
-          !ehEvento && 'pr-10 hover:bg-muted/40',
           !ehEvento && (nested ? 'gap-2.5 pb-2 pt-1.5' : 'gap-3 pb-2 pt-2.5'),
           // Sem folga entre falas do mesmo bloco: as caixas brancas se emendam.
           continuaBloco && 'pt-0',
           seguidaDeContinuacao && 'pb-0',
-          // Fundo, e não anel: o anel é do realce, e os dois podem cair na mesma fala.
-          naoLida && !realce && 'bg-primary/[0.055]',
-          realce && 'bg-primary/10 ring-1 ring-primary/40 hover:bg-primary/10',
+          // Na fala humana o destaque é da caixa branca; aqui só o evento o carrega.
+          ehEvento && 'gap-2 py-1.5 pr-2',
+          ehEvento && naoLida && !realce && 'bg-primary/[0.055]',
+          ehEvento && realce && 'bg-primary/10 ring-1 ring-primary/40',
         )}
       >
         {naoLida && (
@@ -136,30 +135,35 @@ export function FeedItemComentario({
             abreThread={abreThread}
             continuaBloco={continuaBloco}
             seguidaDeContinuacao={seguidaDeContinuacao}
+            naoLida={naoLida}
+            realce={realce}
+            acao={onResponder && <BotaoResponder onResponder={onResponder} />}
           >
             {anexos}
           </FalaHumana>
         )}
-
-        {onResponder && !ehEvento && (
-          <ButtonTooltip text="Responder">
-            <button
-              type="button"
-              onClick={onResponder}
-              aria-label="Responder"
-              /* Some só onde há mouse de verdade: tablet largo não tem hover, e o botão
-                 é o único caminho para responder. 36px no dedo, 28px no mouse. */
-              className="absolute right-1 top-1.5 grid h-9 w-9 place-items-center rounded-md text-muted-foreground transition-[opacity,color,background-color] hover:bg-background hover:text-primary focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [@media(pointer:fine)]:h-7 [@media(pointer:fine)]:w-7 [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover/item:opacity-100"
-            >
-              <Reply
-                aria-hidden
-                className="h-4 w-4 [@media(pointer:fine)]:h-3.5 [@media(pointer:fine)]:w-3.5"
-              />
-            </button>
-          </ButtonTooltip>
-        )}
       </div>
     </div>
+  );
+}
+
+function BotaoResponder({ onResponder }: { onResponder: () => void }) {
+  return (
+    <ButtonTooltip text="Responder">
+      <button
+        type="button"
+        onClick={onResponder}
+        aria-label="Responder"
+        /* Some só onde há mouse de verdade: tablet largo não tem hover, e o botão
+                 é o único caminho para responder. 36px no dedo, 28px no mouse. */
+        className="absolute right-1 top-1 grid h-9 w-9 place-items-center rounded-md text-muted-foreground transition-[opacity,color,background-color] hover:bg-muted hover:text-primary focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [@media(pointer:fine)]:h-7 [@media(pointer:fine)]:w-7 [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover/item:opacity-100"
+      >
+        <Reply
+          aria-hidden
+          className="h-4 w-4 [@media(pointer:fine)]:h-3.5 [@media(pointer:fine)]:w-3.5"
+        />
+      </button>
+    </ButtonTooltip>
   );
 }
 
@@ -177,8 +181,18 @@ function FalaHumana({
   abreThread,
   continuaBloco,
   seguidaDeContinuacao,
+  naoLida,
+  realce,
+  acao,
   children,
-}: PartesDaFala & { continuaBloco: boolean; seguidaDeContinuacao: boolean }) {
+}: PartesDaFala & {
+  continuaBloco: boolean;
+  seguidaDeContinuacao: boolean;
+  naoLida: boolean;
+  realce: boolean;
+  /** Responder, no canto da caixa. */
+  acao?: ReactNode;
+}) {
   const criadoEm = new Date(comentario.created_at);
 
   return (
@@ -239,11 +253,20 @@ function FalaHumana({
         {/* A caixa é do bloco de autor, não da fala: continuações emendam nela. */}
         <div
           className={cn(
-            'bg-card px-3 py-2',
+            'relative bg-card px-3 py-2 transition-colors',
+            acao && 'pr-11',
             !continuaBloco && 'mt-1 rounded-t-md',
             !seguidaDeContinuacao && 'rounded-b-md',
+            // A tinta vem por cima do branco, em imagem, para não trocar a cor da caixa.
+            !naoLida && !realce && 'group-hover/item:bg-muted/60',
+            naoLida &&
+              !realce &&
+              'bg-[linear-gradient(hsl(var(--primary)/0.055),hsl(var(--primary)/0.055))]',
+            realce &&
+              'bg-[linear-gradient(hsl(var(--primary)/0.1),hsl(var(--primary)/0.1))] ring-1 ring-primary/40',
           )}
         >
+          {acao}
           <div className="text-sm leading-relaxed text-foreground">
             <OrgCommentBody body={comentario.body} />
           </div>
