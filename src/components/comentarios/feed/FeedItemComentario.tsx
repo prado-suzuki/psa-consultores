@@ -1,21 +1,7 @@
 import type { ReactNode } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import {
-  Activity,
-  CircleCheck,
-  CircleDot,
-  CornerDownRight,
-  FileCheck2,
-  FileClock,
-  FileSpreadsheet,
-  FileText,
-  Reply,
-  Send,
-  Undo2,
-  UserRound,
-  type LucideIcon,
-} from 'lucide-react';
+import { CornerDownRight, Reply } from 'lucide-react';
 
 import { tomDoAutor } from '@/components/comentarios/feed/avatarDoAutor';
 import { AttachmentButton } from '@/components/comentarios/OrgCommentAttachments';
@@ -55,24 +41,20 @@ interface FeedItemComentarioProps {
   onResponder?: () => void;
 }
 
-/** Kind sem ícone aqui cai no genérico, como o rótulo cai em "Atualização do sistema". */
-const ICONE_DO_EVENTO: Partial<Record<OrgCommentEventoKind, LucideIcon>> = {
-  assignment_changed: UserRound,
-  review_submitted: Send,
-  review_approved: CircleCheck,
-  review_adjustments: Undo2,
-  status_changed: CircleDot,
-  documentos_solicitados: FileText,
-  documentos_cobrados: FileClock,
-  documentos_conferidos: FileCheck2,
-  papel_de_trabalho_importado: FileSpreadsheet,
-  papel_de_trabalho_revisado: FileSpreadsheet,
+/**
+ * Kind fora daqui fica com a bolinha neutra. O roxo vem de `tag-c` porque o papel
+ * `status-revisao` é verde no tema e se confundiria com o aprovado.
+ */
+const COR_DO_EVENTO: Partial<Record<OrgCommentEventoKind, string>> = {
+  review_submitted: 'bg-tag-c',
+  review_approved: 'bg-status-feito',
+  review_adjustments: 'bg-status-alerta',
 };
 
 /**
  * Uma fala do feed. Comentário humano e evento de sistema moram no mesmo
  * `org_comments` e na mesma thread, mas o evento é histórico: entra como linha
- * compacta, com ícone no lugar do avatar, e nunca oferece Responder.
+ * compacta, com uma bolinha no lugar do avatar, e nunca oferece Responder.
  *
  * A thread segue o desenho do `OrgCommentsPanel`: fio descendo do avatar da raiz
  * e cotovelo entrando em cada resposta.
@@ -260,15 +242,16 @@ function FalaHumana({
 }
 
 /**
- * Evento de sistema como linha de histórico. O ícone ocupa a coluna do avatar
+ * Evento de sistema como linha de histórico. A bolinha ocupa a coluna do avatar
  * para o texto alinhar com as falas; o corpo só aparece quando não é vazio.
  */
 function LinhaDeEvento({ comentario, nested, abreThread, children }: PartesDaFala) {
   const criadoEm = new Date(comentario.created_at);
   const corpo = corpoDoEvento(comentario);
   const pessoas = pessoasDoEventoPartes(comentario);
-  const Icone =
-    (ehEventoDeSistema(comentario.kind) && ICONE_DO_EVENTO[comentario.kind]) || Activity;
+  const cor =
+    (ehEventoDeSistema(comentario.kind) && COR_DO_EVENTO[comentario.kind]) ||
+    'bg-muted-foreground/50';
 
   return (
     <>
@@ -278,9 +261,7 @@ function LinhaDeEvento({ comentario, nested, abreThread, children }: PartesDaFal
         aria-hidden
         className={cn('relative z-10 flex shrink-0 justify-center', nested ? 'w-7' : 'w-8')}
       >
-        <span className="grid h-6 w-6 place-items-center rounded-full bg-background text-primary/80 ring-1 ring-border/70">
-          <Icone className="h-3 w-3" />
-        </span>
+        <span className={cn('mt-1.5 h-2 w-2 rounded-full', cor)} />
       </span>
 
       <div className="min-w-0 flex-1 pt-0.5">
