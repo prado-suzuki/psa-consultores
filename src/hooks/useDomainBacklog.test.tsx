@@ -112,10 +112,46 @@ describe('useDomainBacklog — query', () => {
     expect(callsFor('sprint_backlog_items', 'select')[0].args).toEqual(['*']);
     expect(callsFor('sprint_backlog_items', 'is')[0].args).toEqual(['sprint_id', null]);
     expect(callsFor('sprint_backlog_items', 'neq')[0].args).toEqual(['status', 'moved_to_sprint']);
+    // Só `created_at`: a prioridade é texto e ordená-la no banco punha 'low'
+    // acima de 'medium'. Quem ordena por urgência é `ordemDePrioridade`.
     expect(callsFor('sprint_backlog_items', 'order').map((c) => c.args)).toEqual([
-      ['priority', { ascending: true }],
       ['created_at', { ascending: false }],
     ]);
+  });
+
+  it('ordena por urgência, e não pelo alfabeto do banco', async () => {
+    setDbResult('sprint_backlog_items', 'select', {
+      data: [
+        { id: '1', title: 'média', priority: 'medium', created_at: '2026-09-22T10:00:00Z' },
+        { id: '2', title: 'baixa', priority: 'low', created_at: '2026-09-22T09:00:00Z' },
+        { id: '3', title: 'crítica', priority: 'urgent', created_at: '2026-09-22T08:00:00Z' },
+        { id: '4', title: 'desconhecida', priority: '—', created_at: '2026-09-22T07:00:00Z' },
+        { id: '5', title: 'alta', priority: 'high', created_at: '2026-09-22T06:00:00Z' },
+      ],
+      error: null,
+    });
+    renderHook(() => useDomainBacklog());
+    const dados = await (queryRegistrations()[0].queryFn as () => Promise<{
+      backlogItems: Array<{ id: string }>;
+    }>)();
+
+    expect(dados.backlogItems.map((i) => i.id)).toEqual(['3', '5', '1', '2', '4']);
+  });
+
+  it('empate de prioridade preserva o created_at desc que veio do banco', async () => {
+    setDbResult('sprint_backlog_items', 'select', {
+      data: [
+        { id: 'novo', title: 'novo', priority: 'medium', created_at: '2026-09-22T10:00:00Z' },
+        { id: 'velho', title: 'velho', priority: 'medium', created_at: '2026-09-01T10:00:00Z' },
+      ],
+      error: null,
+    });
+    renderHook(() => useDomainBacklog());
+    const dados = await (queryRegistrations()[0].queryFn as () => Promise<{
+      backlogItems: Array<{ id: string }>;
+    }>)();
+
+    expect(dados.backlogItems.map((i) => i.id)).toEqual(['novo', 'velho']);
   });
 
   it('busca sprints ativos/planejamento e demais catálogos', async () => {

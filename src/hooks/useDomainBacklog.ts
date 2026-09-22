@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { ordemDePrioridade } from '@/lib/prioridadeDoProjeto';
 
 export interface BacklogItem {
   id: string;
@@ -127,12 +128,13 @@ export function useDomainBacklog() {
     queryKey: domainBacklogQueryKeys.data,
     queryFn: async () => {
       // Fetch backlog items (apenas os que não foram movidos e não têm sprint)
+      // `priority` é texto: ordenar no banco alfabeticamente põe 'low' acima de
+      // 'medium'. A escada sai de `ordemDePrioridade`, já com o empate resolvido.
       const { data: backlogData, error: backlogError } = await supabase
         .from('sprint_backlog_items')
         .select('*')
         .is('sprint_id', null)
         .neq('status', 'moved_to_sprint')
-        .order('priority', { ascending: true })
         .order('created_at', { ascending: false });
 
       if (backlogError) throw backlogError;
@@ -161,8 +163,12 @@ export function useDomainBacklog() {
         ],
       );
 
+      // `sort` é estável, então o `created_at desc` do banco segura o empate.
+      const backlogItems = ((backlogData || []) as unknown as BacklogItem[])
+        .sort((a, b) => ordemDePrioridade(a.priority) - ordemDePrioridade(b.priority));
+
       return {
-        backlogItems: (backlogData || []) as unknown as BacklogItem[],
+        backlogItems,
         sprints: sprintsData || [],
         profiles: profilesData || [],
         projects: (projectsData || []) as unknown as Project[],

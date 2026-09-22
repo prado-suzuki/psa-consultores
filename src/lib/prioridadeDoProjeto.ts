@@ -101,3 +101,14 @@ export const prioridadeDoProjetoLista: PrioridadeDoProjetoConfig[] = [
   ESCADA.alta,
   ESCADA.critica,
 ];
+
+/**
+ * Posição para ORDENAR, com 0 na mais urgente. Deriva da lista acima para não
+ * nascer uma segunda escada; palavra desconhecida vai para o fim.
+ */
+export function ordemDePrioridade(valor: string | null | undefined): number {
+  const config = prioridadeDoProjeto(valor);
+  if (!config) return prioridadeDoProjetoLista.length;
+  return prioridadeDoProjetoLista.length - 1
+    - prioridadeDoProjetoLista.findIndex((degrau) => degrau.key === config.key);
+}

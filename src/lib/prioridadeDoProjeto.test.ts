@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { OrgTaskPriority } from '@/hooks/useOrgTasks';
 import { medirCorCrua } from '@/lib/medirCorCrua';
 import {
+  ordemDePrioridade,
   prioridadeDoProjeto,
   prioridadeDoProjetoLista,
   type PrioridadeDoProjetoConfig,
@@ -78,5 +79,24 @@ describe('prioridade do projeto', () => {
     for (const degrau of prioridadeDoProjetoLista) {
       expect(degrau.badge, degrau.key).toMatch(/bg-(status-|muted)/);
     }
+  });
+
+  it('ordena da mais urgente para a menos, com a desconhecida no fim', () => {
+    const fora = ['low', 'urgent', '—', 'medium', 'high'];
+    const ordenado = [...fora].sort((a, b) => ordemDePrioridade(a) - ordemDePrioridade(b));
+    expect(ordenado).toEqual(['urgent', 'high', 'medium', 'low', '—']);
+  });
+
+  it('o alfabético do banco não serve — era o defeito do backlog', () => {
+    // `order by priority` em coluna de texto devolve high, low, medium.
+    expect(ordemDePrioridade('medium')).toBeLessThan(ordemDePrioridade('low'));
+  });
+
+  it('a ordem deriva da lista, sem segunda escada', () => {
+    const daLista = [...prioridadeDoProjetoLista].reverse().map((degrau) => degrau.key);
+    const ordenado = [...prioridadeDoProjetoLista]
+      .map((degrau) => degrau.key)
+      .sort((a, b) => ordemDePrioridade(a) - ordemDePrioridade(b));
+    expect(ordenado).toEqual(daLista);
   });
 });
