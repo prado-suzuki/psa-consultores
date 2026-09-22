@@ -28,11 +28,36 @@ achar a tarefa e abrir o painel, que é exatamente o passo que o Slack não cobr
 Onde mexe: `FeedComentarios.tsx`, `CommentComposer`, `useDomainOrgComments.createComment`
 (a mutation já cuida de anexo, menção e auditoria, não precisa reimplementar).
 
-**Como ficou:** `FeedNovoComentario.tsx` grudado no RODAPÉ, como a caixa de mensagem do Slack,
-fechado em uma linha ("Escrever no feed…") e aberto com os três campos de destino. O rodapé pediu
-os layouts: sob `rolagemNoConteudo`, `OsgLayout` e `FiscalLayout` passaram a esticar o invólucro da
-página, senão a barra boiava logo abaixo do último comentário quando o recorte tinha pouca conversa. Sem tarefa, a fala vai para o projeto. A gravação
-é a mutation de sempre; as regras do destino são puras, em `src/lib/feedDestino.ts` (com testes).
+**Como ficou:** `FeedNovoComentario.tsx` grudado no RODAPÉ, como a caixa de mensagem do Slack. O
+rodapé pediu os layouts: sob `rolagemNoConteudo`, `OsgLayout` e `FiscalLayout` passaram a esticar o
+invólucro da página, senão a barra boiava logo abaixo do último comentário quando o recorte tinha
+pouca conversa. Sem tarefa, a fala vai para o projeto. A gravação é a mutation de sempre; as regras
+do destino são puras, em `src/lib/feedDestino.ts` (com testes).
+
+**O desenho foi refeito em 21 e 22/09/2026, e as duas formas anteriores ficam registradas porque a
+segunda parecia a boa:** a caixa nasceu FECHADA numa linha ("Escrever no feed…") para poupar altura
+da barra grudada, e assim ela deixou de existir para quem olha a tela — o lugar de escrever tinha de
+ser descoberto por um clique ("pq ta só esse chatzinho choncho"). Aberta o tempo todo, sobraram os
+três campos de destino parados acima dela, cobrando uma decisão administrativa (de quem é, em que
+projeto) antes da frase que a pessoa veio escrever. Hoje **o destino é perguntado no ENVIO**: Enter
+envia (Shift+Enter quebra linha), e um modal de busca pergunta cliente e depois projeto, no teclado,
+com o que a tela já sabe em destaque — três Enters para a fala seguinte na mesma conversa. Tarefa
+não virou um terceiro Enter obrigatório: é `Tab` no projeto em destaque
+(`EscolherDestinoDaFala.tsx`). Quatro armadilhas medidas na tela, que valem para os outros itens:
+
+- As props diretas da view correm ANTES das dos plugins no ProseMirror, então o Enter de enviar
+  atropelava a escolha da menção. Ele sai fora enquanto a lista de menção tem gente; com a lista
+  vazia (o "@" fica ativo mesmo sem casar nada), envia.
+- O editor não carrega extensão de quebra rígida: sem `splitBlock` explícito, Shift+Enter não fazia
+  NADA, e o texto saía todo numa linha só.
+- O cmdk põe o primeiro item em destaque ao montar a lista e avisa pelo `onValueChange`, atropelando
+  qualquer escolha feita antes de os itens existirem: o Enter caía sempre na primeira linha. O
+  destaque desejado é aplicado num efeito, depois da montagem, e só quando a linha existe naquele
+  passo.
+- A lista de quem dá para mencionar vem do PROJETO, então perguntar o destino só no envio deixava o
+  "@" sem ninguém para oferecer em quem chega para escrever a primeira fala. O próprio "@" passou a
+  abrir o modal quando não há candidatos, e o Suggestion só recalcula os itens quando o gatilho
+  muda, então o "@" digitado é apagado e digitado de novo depois que a gente chega.
 Quatro coisas que só apareceram no caminho, e ficam registradas porque valem para os itens
 seguintes:
 
@@ -46,7 +71,8 @@ seguintes:
   anterior é peneirada antes de gravar (`mencoesPermitidas`): o chip fica no texto, a notificação
   não sai.
 - `useDomainOrgComments` ganhou a opção `somenteEscrita`: quem só publica não lê a thread da
-  entidade nem assina o realtime dela.
+  entidade nem assina o realtime dela. Com o destino escolhido só no envio, o `alvo` da chamada
+  passou a carregar também o `projectId` — é ele que carimba o caminho do anexo.
 
 ### 2. Busca textual no feed
 
@@ -109,6 +135,9 @@ do comentário. Nada depende dela, então entra sem retrabalho. Falta a migratio
 `FeedItemComentario` e a mesma peça no `OrgCommentsPanel`, que precisam ler igual.
 
 ### 8. Anexar áudio
+
+O botão de microfone **já está na barra de ações da caixa**, desde 21/09/2026, desabilitado e com o
+balão "ainda não disponível": ele é desenho, e diz isso. Falta a função inteira.
 
 Parte do repasse de contexto nasce em áudio de WhatsApp, que hoje chega ao Slack como `.ogg` solto.
 Gravar ou anexar áudio curto no comentário, com player embutido. **Transcrever automático no ato**,
