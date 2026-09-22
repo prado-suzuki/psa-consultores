@@ -104,7 +104,7 @@ export default function ProjectCard({
           <span className="pcv2-cluster">Cluster: {projeto.clusterName}</span>
         ) : <span />}
         <ButtonTooltip text="Ver processos vinculados">
-          <button aria-label="Ver processos vinculados"
+          <button
           type="button"
           className="pcv2-processos"
           onClick={(e) => { stop(e); onShowProcessos(); }}

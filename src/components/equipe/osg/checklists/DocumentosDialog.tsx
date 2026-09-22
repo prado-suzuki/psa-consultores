@@ -350,7 +350,7 @@ function BotaoVeredito({ tom, onClick, children }: {
 }) {
   return (
     <ButtonTooltip text={DICA_VEREDITO[tom]}>
-      <button aria-label={DICA_VEREDITO[tom]}
+      <button
       type="button"
       onClick={onClick}
       className={cn(

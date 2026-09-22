@@ -376,7 +376,7 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
             >+</button>
             </ButtonTooltip>
             <ButtonTooltip text="Ajustar à tela">
-              <button aria-label="Ajustar à tela"
+              <button
               type="button"
               className="btn-action-sm"
               onClick={() => fitToContainer()}
@@ -431,7 +431,7 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
           <button className="btn-cancel" onClick={onClose}>Fechar</button>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <ButtonTooltip text="Código-fonte Mermaid (.mmd)">
-              <button aria-label="Código-fonte Mermaid (.mmd)"
+              <button
               className="btn-action"
               onClick={handleDownloadMmd}
             >
@@ -439,7 +439,7 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
             </button>
             </ButtonTooltip>
             <ButtonTooltip text="SVG vetorial (escalável)">
-              <button aria-label="SVG vetorial (escalável)"
+              <button
               className="btn-action"
               onClick={handleDownloadSvg}
               disabled={!svg}
@@ -448,7 +448,7 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
             </button>
             </ButtonTooltip>
             <ButtonTooltip text="Abre o diagrama no editor mermaid.live, em nova guia, já carregado">
-              <button aria-label="Abre o diagrama no editor mermaid.live, em nova guia, já carregado"
+              <button
               className="btn-save"
               onClick={handleOpenMermaidLive}
               disabled={!code}

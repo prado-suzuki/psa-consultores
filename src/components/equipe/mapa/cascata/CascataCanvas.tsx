@@ -368,7 +368,7 @@ export default function CascataCanvas({
                       transition={cardTransition(wi, idx)}
                     >
                       <ButtonTooltip text={open ? 'Recolher etapas' : 'Expandir etapas afetadas'}>
-                        <button aria-label={open ? 'Recolher etapas' : 'Expandir etapas afetadas'}
+                        <button
                         type="button"
                         className="casc-node-head"
                         onClick={() => onToggleProcess(node.processId)}

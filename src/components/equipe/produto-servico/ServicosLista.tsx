@@ -234,7 +234,7 @@ export default function ServicosLista({
             {codigo === codigoAcima ? '' : codigo || '—'}
           </span>
           <ButtonTooltip text="Clique para ver os detalhes · Shift+clique para selecionar a faixa">
-            <button aria-label="Clique para ver os detalhes · Shift+clique para selecionar a faixa"
+            <button
             type="button"
             onClick={(evento) => clicarNome(servico, evento.shiftKey)}
             {...listRowAria({ vinculado: aberto })}
