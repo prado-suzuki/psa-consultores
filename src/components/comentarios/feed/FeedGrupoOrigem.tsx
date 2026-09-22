@@ -64,7 +64,7 @@ export function FeedGrupoOrigem({
   const threads = montarThreads(itens);
 
   return (
-    <article className="group/origem overflow-hidden rounded-2xl border border-border/70 bg-superficie-cartao shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
+    <article className="group/origem overflow-hidden rounded-md border border-border/70 bg-superficie-cartao shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
       <Link
         to={hrefDeOrigem(primeiro, area)}
         /*
@@ -74,7 +74,7 @@ export function FeedGrupoOrigem({
         */
         className="flex items-center gap-3 border-b border-border/60 bg-primary/10 px-3.5 py-2.5 transition-colors hover:bg-primary/15"
       >
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-tool-icon-bg text-tool-icon">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-tool-icon-bg text-tool-icon">
           <IconeDoTipo className="h-[18px] w-[18px]" />
         </span>
 

@@ -137,7 +137,7 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
     /* Sem margem embaixo: quem separa a barra do feed é a faixa grudada que a
        embrulha em `FeedComentarios`: a margem ficaria fora da máscara e abriria
        uma fresta por onde o conteúdo passaria rolando. */
-    <div className="rounded-2xl border border-border/70 bg-card p-2 shadow-sm">
+    <div className="rounded-md border border-border/70 bg-card p-2 shadow-sm">
       <div className="flex flex-wrap items-center gap-2">
         {/*
           Alternância, e não caixa de seleção: "tudo" e "só menções" são duas
@@ -149,7 +149,7 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
           type="single"
           value={filtros.apenasMencoes ? 'mencoes' : 'tudo'}
           onValueChange={(valor) => alterar({ apenasMencoes: valor === 'mencoes' })}
-          className="justify-start gap-0.5 rounded-lg bg-muted/60 p-0.5"
+          className="justify-start gap-0.5 rounded-md bg-muted/60 p-0.5"
         >
           <ToggleGroupItem value="tudo" aria-label="Ver todas as conversas" className={ITEM_DA_ALTERNANCIA}>
             <MessagesSquare aria-hidden className="h-3.5 w-3.5" />

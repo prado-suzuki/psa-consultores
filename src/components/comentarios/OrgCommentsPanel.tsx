@@ -219,7 +219,7 @@ export function OrgCommentsPanel({
             <span
               aria-hidden
               data-thread-connector
-              className="absolute -left-6 top-0 h-[22px] w-6 rounded-bl-lg border-b border-l border-border"
+              className="absolute -left-6 top-0 h-[22px] w-6 rounded-bl-md border-b border-l border-border"
             />
             {/* Enquanto houver resposta abaixo, o fio segue descendo. */}
             {!ultima && (
@@ -318,7 +318,7 @@ export function OrgCommentsPanel({
             {comment.excluido ? (
               <p className="mt-1 text-sm italic text-muted-foreground">Comentário excluído</p>
             ) : editingId === comment.id ? (
-              <div className="mt-2 space-y-2 rounded-lg border bg-background p-2">
+              <div className="mt-2 space-y-2 rounded-md border bg-background p-2">
                 <OrgCommentEditor
                   value={editingBody}
                   onChange={setEditingBody}
@@ -351,7 +351,7 @@ export function OrgCommentsPanel({
               <div
                 className={cn(
                   'mt-1',
-                  isSystem && 'rounded-lg border-l-2 border-primary/40 bg-muted/35 px-3 py-2',
+                  isSystem && 'rounded-md border-l-2 border-primary/40 bg-muted/35 px-3 py-2',
                 )}
               >
                 {(!isSystem || corpoDoEvento(comment)) && (

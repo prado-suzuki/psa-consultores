@@ -88,7 +88,7 @@ export function FeedItemComentario({
           <span
             aria-hidden
             data-thread-connector
-            className="absolute -left-6 top-0 h-[22px] w-6 rounded-bl-lg border-b border-l border-border"
+            className="absolute -left-6 top-0 h-[22px] w-6 rounded-bl-md border-b border-l border-border"
           />
           {/* Enquanto houver resposta abaixo, o fio segue descendo. */}
           {!ultima && (
@@ -102,7 +102,7 @@ export function FeedItemComentario({
       <div
         data-comentario={comentario.id}
         className={cn(
-          'group/item relative flex rounded-lg pr-10 transition-colors hover:bg-muted/40',
+          'group/item relative flex rounded-md pr-10 transition-colors hover:bg-muted/40',
           nested ? 'gap-2.5 pb-2 pt-1.5' : 'gap-3 pb-2 pt-2.5',
           continuaBloco && 'pt-0.5',
           realce && 'bg-primary/10 ring-1 ring-primary/40 hover:bg-primary/10',
@@ -211,7 +211,7 @@ export function FeedItemComentario({
               className={cn(
                 'text-sm',
                 continuaBloco ? 'mt-0' : 'mt-1',
-                ehEvento && 'rounded-lg border-l-2 border-primary/40 bg-muted/35 px-3 py-2',
+                ehEvento && 'rounded-md border-l-2 border-primary/40 bg-muted/35 px-3 py-2',
               )}
             >
               <OrgCommentBody body={corpo} />
@@ -241,7 +241,7 @@ export function FeedItemComentario({
             /* 36px no dedo, 28px no mouse: no toque este botão é o único
                caminho para responder e fica encostado na borda de rolagem; no
                mouse ele só aparece no hover e não precisa de área. */
-            className="absolute right-1.5 top-1.5 grid h-9 w-9 place-items-center rounded-lg border border-border/70 bg-card text-muted-foreground shadow-sm transition-all hover:border-primary/40 hover:text-primary focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-7 sm:w-7 sm:opacity-0 sm:group-hover/item:opacity-100"
+            className="absolute right-1.5 top-1.5 grid h-9 w-9 place-items-center rounded-md border border-border/70 bg-card text-muted-foreground shadow-sm transition-all hover:border-primary/40 hover:text-primary focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-7 sm:w-7 sm:opacity-0 sm:group-hover/item:opacity-100"
           >
             <Reply aria-hidden className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
           </button>
