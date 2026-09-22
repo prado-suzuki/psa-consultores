@@ -474,10 +474,18 @@ export const useUpdateOrgTask = (
            if (changedOnly.status === 'done') {
              throw new Error('O revisor não pode concluir a tarefa. Devolva-a para ajustes.');
            }
+           /*
+            * ESPELHO DA RLS-06 NO FRONT, e ele tem de andar junto com o gatilho.
+            * Em 21/09/2026 o ramo do revisor no banco passou a aceitar
+            * `review_hours`, a hora que ele informa no despacho; aqui a lista
+            * ficou para trás e o despacho com hora morria com a mensagem abaixo,
+            * antes de chegar ao banco. Quem mexer num dos dois mexe no outro.
+            */
+           const CAMPOS_DO_DESPACHO = new Set(['status', 'review_hours']);
            const changedKeys = Object.keys(changedOnly);
            const isValidReturn = reviewTransitionValidated &&
              changedOnly.status === 'em_ajuste' &&
-             changedKeys.every(key => key === 'status');
+             changedKeys.every((key) => CAMPOS_DO_DESPACHO.has(key));
            if (!isValidReturn) {
              throw new Error('Abra a tarefa e informe o ajuste necessário para devolvê-la.');
            }

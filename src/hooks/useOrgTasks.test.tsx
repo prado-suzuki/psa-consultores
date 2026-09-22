@@ -564,6 +564,76 @@ describe('useDeleteOrgTask (guarda do cascade)', () => {
   });
 });
 
+/*
+ * O DESPACHO DO REVISOR, e este bloco existe por causa de um defeito real.
+ *
+ * A regra da RLS-06 tem um espelho aqui no front, e em 22/09/2026 o gatilho do
+ * banco passou a aceitar `review_hours` enquanto esta lista ficou para trás: o
+ * despacho com hora morria antes de chegar ao banco, com a mensagem de "informe
+ * o ajuste". Nenhum teste pegou, porque a regra não tinha nenhum.
+ */
+describe('o que o revisor pode mandar no despacho', () => {
+  function updateMutation() {
+    const { result } = renderHook(() => useUpdateOrgTask('tax'));
+    return result.current as unknown as {
+      mutationFn: (input: Record<string, unknown> & { id: string }) => Promise<unknown>;
+    };
+  }
+
+  /** `user-1` é quem o AuthContext devolve no mock; o responsável é outro. */
+  const emRevisao = {
+    id: 'tarefa-1',
+    title: 'Apuração ICMS',
+    status: 'review',
+    assigned_to: 'user-9',
+    reviewer_id: 'user-1',
+    project_id: 'project-1',
+    actual_hours: 8,
+    review_hours: null,
+  };
+
+  it('deixa passar o status com as horas da revisão', async () => {
+    dbQueue.push({ data: emRevisao, error: null });
+    dbQueue.push({ data: null, error: null });
+
+    await expect(
+      updateMutation().mutationFn({
+        id: 'tarefa-1',
+        status: 'em_ajuste',
+        review_hours: 0.5,
+        reviewTransitionValidated: true,
+      }),
+    ).resolves.toBeTruthy();
+  });
+
+  /* O ramo continua fechado: hora é a única companhia do status. */
+  it('recusa qualquer outro campo junto', async () => {
+    dbQueue.push({ data: emRevisao, error: null });
+
+    await expect(
+      updateMutation().mutationFn({
+        id: 'tarefa-1',
+        status: 'em_ajuste',
+        title: 'outro título',
+        reviewTransitionValidated: true,
+      }),
+    ).rejects.toThrow(/informe o ajuste/i);
+  });
+
+  it('recusa o revisor concluindo a tarefa', async () => {
+    dbQueue.push({ data: emRevisao, error: null });
+
+    await expect(
+      updateMutation().mutationFn({
+        id: 'tarefa-1',
+        status: 'done',
+        actual_hours: 8,
+        reviewTransitionValidated: true,
+      }),
+    ).rejects.toThrow(/não pode concluir/i);
+  });
+});
+
 describe('prazo da subtarefa contra o da tarefa-mãe', () => {
   function updateMutation() {
     const { result } = renderHook(() => useUpdateOrgTask('tax'));
