@@ -2,6 +2,7 @@ import React from 'react';
 import { TaxSeal } from '@/components/equipe/fiscal/TaxSeal';
 import {
   TAX_PIG_BODY_PATH,
+  TAX_PIG_COIN_DY,
   TAX_PIG_COIN_PATH,
   TAX_PIG_TAIL_PATH,
 } from '@/components/equipe/fiscal/taxPiggyGlyph';
@@ -19,7 +20,10 @@ const TaxGlyph = ({ fill }: { fill: string }) => (
   <g transform="translate(146, 150) scale(0.215)" fill={fill}>
     <path d={TAX_PIG_BODY_PATH} />
     <path d={TAX_PIG_TAIL_PATH} />
-    <path d={TAX_PIG_COIN_PATH} />
+    {/* A moeda desce para pousar no lombo; o porquê está em `TAX_PIG_COIN_DY`. */}
+    <g transform={`translate(0 ${TAX_PIG_COIN_DY})`}>
+      <path d={TAX_PIG_COIN_PATH} />
+    </g>
   </g>
 );
 
