@@ -1,4 +1,5 @@
-import type { ReactElement, ReactNode } from "react";
+import { forwardRef, type ComponentPropsWithoutRef, type ReactElement, type ReactNode, type Ref } from "react";
+import { Slot } from "@radix-ui/react-slot";
 
 import {
   Tooltip,
@@ -32,6 +33,43 @@ import {
  * lugar novo.
  */
 
+interface DicaProps extends Omit<ComponentPropsWithoutRef<typeof Slot>, "children"> {
+  /** O nome do controle. Curto, no infinitivo, sem ponto final: "Editar OS". */
+  text: ReactNode;
+  side?: "top" | "right" | "bottom" | "left";
+  /** Um único elemento que aceite `ref` — o botão. */
+  children: ReactElement;
+}
+
+/**
+ * Props e `ref` extras seguem para o filho: um `DropdownMenuTrigger asChild` por fora
+ * entrega aqui os handlers que abrem o menu, e sem repassá-los o menu não abre.
+ */
+const Dica = forwardRef<HTMLElement, DicaProps>(
+  ({ text, side = "top", children, ...repasse }, ref) => {
+    // Sem texto não há balão: um `<Tooltip>` vazio abriria em branco no hover, e vários
+    // textos convertidos são condicionais (`cond ? texto : undefined`).
+    if (text === null || text === undefined || text === "") {
+      return (
+        <Slot ref={ref} {...repasse}>
+          {children}
+        </Slot>
+      );
+    }
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger ref={ref as Ref<HTMLButtonElement>} asChild {...repasse}>
+            {children}
+          </TooltipTrigger>
+          <TooltipContent side={side}>{text}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  },
+);
+Dica.displayName = "Dica";
+
 /**
  * A dica de um controle sem texto visível — o degrau 0 da árvore de decisão
  * (`docs/geral/texto-explicativo-na-tela.md`).
@@ -49,30 +87,7 @@ import {
  * decisão dela, e está registrada na tarefa 14 da sprint 13 com o número dos dois lados.
  * Código novo usa **este**.
  */
-export function ButtonTooltip({
-  text,
-  side = "top",
-  children,
-}: {
-  /** O nome do controle. Curto, no infinitivo, sem ponto final: "Editar OS". */
-  text: ReactNode;
-  side?: "top" | "right" | "bottom" | "left";
-  /** Um único elemento que aceite `ref` — o botão. */
-  children: ReactElement;
-}) {
-  // Sem texto não há balão. O `title` vazio ou `undefined` simplesmente não
-  // aparecia; um `<Tooltip>` sem esta guarda abriria um balão em branco no hover,
-  // e vários textos convertidos são condicionais (`cond ? texto : undefined`).
-  if (text === null || text === undefined || text === "") return children;
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent side={side}>{text}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
+export const ButtonTooltip = Dica;
 
 /**
  * A mesma dica, para um elemento que **não é controle** — a célula que corta o texto, o
@@ -83,23 +98,4 @@ export function ButtonTooltip({
  * na tela (ou é explicação do que está), e um `aria-label` sobreporia o conteúdo que o
  * leitor de tela já lê. Por isso este não põe `aria-label` nenhum.
  */
-export function ElementTooltip({
-  text,
-  side = "top",
-  children,
-}: {
-  text: ReactNode;
-  side?: "top" | "right" | "bottom" | "left";
-  children: ReactElement;
-}) {
-  if (text === null || text === undefined || text === "") return children;
-  // Mesmo motivo do `ButtonTooltip`: o provedor vem junto.
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent side={side}>{text}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
+export const ElementTooltip = Dica;

@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { dicaDe } from '@/test/dica';
 import { AREAS_DO_CARTAO, SidebarCartaoUsuario } from './SidebarCartaoUsuario';
 
 const mocks = vi.hoisted(() => ({
@@ -77,12 +78,10 @@ describe('SidebarCartaoUsuario', () => {
   });
 
   it('recolhido, o nome também fica ao alcance do mouse', () => {
-    // Era `administracao`, que saiu do mapa em 14/09/2026 com o `AdminLayout`.
-    // A asserção é sobre o TÍTULO do botão recolhido, não sobre a área: qualquer
-    // entrada do mapa serve, e `acessos` é a que tem barra viva hoje.
+    // A asserção é sobre a dica do botão recolhido; qualquer área do mapa serve.
     render(<SidebarCartaoUsuario area="acessos" collapsed />);
 
-    expect(screen.getByRole('button')).toHaveAttribute('title', 'joana.silva · Acessos');
+    expect(dicaDe(screen.getByRole('button'))).toBe('joana.silva · Acessos');
   });
 
   it('sem e-mail no perfil, cai em "Usuário" em vez de deixar o cartão vazio', () => {
