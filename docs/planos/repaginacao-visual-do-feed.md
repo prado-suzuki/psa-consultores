@@ -1,6 +1,6 @@
 # Repaginação visual do feed
 
-**Status:** especificação pronta para implementação
+**Status:** fatias 1 a 3 entregues em 22/09/2026 na branch `feat/feed-repaginado`; fatia 4 parcial (ver §16)
 **Data da leitura:** 22/09/2026
 **Branch observada:** `feat/feed-fala-nova`
 **Escopo:** somente apresentação e interação visual da coluna principal do feed compartilhado entre Tax e OSG
@@ -428,3 +428,40 @@ Verificação manual no navegador:
 Começar lendo este arquivo e [`docs/checklist_melhorias_feed.md`](../checklist_melhorias_feed.md). Abrir a tela rodando antes de editar. A especificação pede uma mudança visual grande com mudança funcional mínima.
 
 Se uma escolha de UI exigir alterar query key, filtro, paginação, mutation, marca de leitura, destino da fala ou estrutura persistida, ela saiu do escopo. Pare e trate como tarefa separada.
+
+## 16. Execução (22/09/2026, branch `feat/feed-repaginado`)
+
+Três commits, um por fatia: caracterização, hierarquia da conversa, moldura da página.
+
+### Onde a execução divergiu da especificação
+
+- **Tooltip, não `title`.** O §7.2 permite `title` no caminho truncado, mas a catraca
+  `textoDeAjuda.test.ts` proíbe `title=` em tag nativa. O cabeçalho usa um `ElementTooltip`
+  com o caminho inteiro (`cliente › projeto › título`).
+- **Responder some por capacidade do ponteiro, não por largura.** O desenho anterior o
+  escondia a partir de `sm`, e tablet largo não tem hover. Agora ele só some com
+  `(hover: hover) and (pointer: fine)`, e tem 36px em ponteiro grosso.
+- **Faixa de formatação do compositor sem fundo.** O `bg-muted/40` saiu e ficou só o fio
+  inferior. A faixa é exclusiva do modo `caixa`, então o compositor da resposta inline e o
+  do painel da tarefa não mudaram.
+- **Coluna com teto de `50rem`.** O §8 pede para não esticar o texto em monitor largo;
+  antes a coluna seguia a largura da tela a partir de `lg`.
+
+### Conferido no app rodando (sandbox, Tax e OSG)
+
+- 1440, 1024, 768 e 390 px, sem overflow horizontal em nenhuma.
+- Rolagem longa com filtros, dia e compositor grudados.
+- Resposta inline aberta, hover de fala, filtros ligados, vazio por filtro e esqueleto
+  (RPC segurado por 4 s).
+
+### Não conferido
+
+- Publicar uma fala nova e o realce com o toast "Ver no topo".
+- Carimbo de leitura por permanência, com a etiqueta de novas descendo.
+- Teclado virtual no celular, como o §8 já previa.
+
+### Suíte
+
+`bun run test` tem 16 arquivos falhando **já na `feat/feed-fala-nova`**, antes desta
+frente (59 testes). Depois dela, 58: a dívida de `title=` que a `ContagemDoDia` escondia foi
+paga. O placeholder da `textoDeAjuda` (217 contra 215) também vem da branch de origem.

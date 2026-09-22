@@ -444,10 +444,7 @@ export function OrgCommentEditor({
       <div
         className={cn(
           'flex items-center gap-0.5 border-b',
-          // O arredondado é da FAIXA, e não da moldura: a caixa não pode ter
-          // `overflow-hidden` (ver `CommentComposer`), então o canto de cima
-          // tem de vir daqui, senão o fundo cinza sai por fora da borda.
-          barraEmFaixa ? 'rounded-t-md bg-muted/40 px-2 py-1' : 'mb-2 pb-1.5',
+          barraEmFaixa ? 'border-border/60 px-2 py-1' : 'mb-2 pb-1.5',
         )}
       >
         {botoes.map(({ key, label, icon: Icon, ativo, acao }, index) => (

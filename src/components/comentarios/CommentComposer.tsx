@@ -134,15 +134,11 @@ export function CommentComposer({
     <div
       className={cn(
         'relative rounded-md border bg-background shadow-sm',
-        // Na caixa o respiro vem de dentro de cada faixa, para as três encostarem
-        // na borda: barra de formatação no topo, texto no meio, ações embaixo.
-        //
-        // Sem `overflow-hidden`, e isso não é descuido: a lista de menção é
-        // posicionada por cima do editor e SOBE (ela nasce no rodapé da tela).
-        // Recortada pela moldura, o "@" inseria o caractere e a lista não
-        // aparecia. Quem arredonda o canto de cima é a própria faixa de
-        // formatação.
-        caixa ? 'focus-within:border-primary/40' : 'p-3',
+        // Sem `overflow-hidden`: a lista de menção SOBE a partir do rodapé da tela, e
+        // recortada pela moldura o "@" inseria o caractere sem mostrar a lista.
+        caixa
+          ? 'rounded-lg border-border/80 shadow-none transition-shadow focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10'
+          : 'p-3',
         // O campo de resposta é ESTADO, não decoração: ele existe só enquanto se
         // responde, então é ele que carrega o acento da área. Antes tinha o
         // `bg-background` — que vale o MESMO que `--card`, a superfície do bloco
@@ -238,7 +234,7 @@ export function CommentComposer({
       <div
         className={cn(
           'flex items-center justify-between border-t',
-          caixa ? 'px-2 py-1.5' : 'mt-3 pt-2',
+          caixa ? 'border-border/60 px-2 py-1.5' : 'mt-3 pt-2',
         )}
       >
         <div className="flex items-center gap-1">

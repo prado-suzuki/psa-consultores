@@ -149,10 +149,9 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
   ].filter((etiqueta) => etiqueta.texto !== null);
 
   return (
-    /* Sem margem embaixo: quem separa a barra do feed é a faixa grudada que a
-       embrulha em `FeedComentarios`: a margem ficaria fora da máscara e abriria
-       uma fresta por onde o conteúdo passaria rolando. */
-    <div className="rounded-md border border-border/70 bg-card p-2 shadow-sm">
+    /* Sem moldura nem margem: a faixa grudada de `FeedComentarios` é a máscara, e uma
+       margem aqui abriria fresta por onde o conteúdo passaria rolando. */
+    <div>
       <div className="flex flex-wrap items-center gap-2">
         {/*
           Alternância, e não caixa de seleção: "tudo" e "só menções" são duas
@@ -286,7 +285,7 @@ export function FeedFiltros({ filtros, onFiltrosChange }: FeedFiltrosProps) {
       </div>
 
       {(etiquetas.length > 0 || temFiltroAtivo(filtros)) && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border/60 pt-2">
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {etiquetas.map((etiqueta) => (
             <span
               key={etiqueta.chave}

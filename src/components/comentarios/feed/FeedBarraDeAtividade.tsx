@@ -73,10 +73,10 @@ export function FeedBarraDeAtividade({
       // área, e `self-start` porque esticada ela não teria folga para grudar.
       className="sticky top-0 hidden h-[calc(100dvh-9.5rem)] min-h-[28rem] w-64 shrink-0 self-start lg:block xl:w-72 2xl:w-80"
     >
-      <div className="flex h-full flex-col overflow-hidden rounded-md border border-border/70 bg-superficie-cartao shadow-sm">
-        <header className="flex items-center gap-2 border-b border-border/60 bg-primary/10 px-3 py-2.5">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-tool-icon-bg text-tool-icon">
-            <FolderKanban aria-hidden className="h-4 w-4" />
+      <div className="flex h-full flex-col overflow-hidden rounded-lg border border-border/60 bg-superficie-cartao">
+        <header className="flex items-center gap-2 border-b border-border/50 px-3 py-2.5">
+          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-tool-icon-bg text-tool-icon">
+            <FolderKanban aria-hidden className="h-3.5 w-3.5" />
           </span>
           <h2 className="min-w-0 flex-1 truncate text-[13px] font-semibold">
             Atividade dos projetos
@@ -92,7 +92,7 @@ export function FeedBarraDeAtividade({
                 type="button"
                 aria-label="Limpar todos os filtros do feed"
                 onClick={() => onFiltrosChange(FILTROS_VAZIOS)}
-                className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-background/60 hover:text-foreground"
+                className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
               >
                 <FilterX aria-hidden className="h-3.5 w-3.5" />
               </button>
@@ -158,7 +158,7 @@ export function FeedBarraDeAtividade({
           )}
         </div>
 
-        <footer className="flex items-center gap-1 border-t border-border/60 px-2 py-1.5">
+        <footer className="flex items-center gap-1 border-t border-border/50 px-2 py-1.5">
           {desatualizada && (
             <Button
               type="button"

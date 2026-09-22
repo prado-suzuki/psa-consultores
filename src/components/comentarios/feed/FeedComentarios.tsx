@@ -9,6 +9,7 @@ import { FeedGrupoOrigem } from '@/components/comentarios/feed/FeedGrupoOrigem';
 import { FeedNovoComentario } from '@/components/comentarios/feed/FeedNovoComentario';
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { Button } from '@/components/ui/button';
+import { ElementTooltip } from '@/components/ui/button-tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAtividadeDoFeedController } from '@/hooks/useAtividadeDoFeedController';
 import { useDomainFeedClientes } from '@/hooks/useDomainFeedClientes';
@@ -122,28 +123,15 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
     conteudo = (
       <>
         {dias.map((dia, indiceDoDia) => (
-          <section key={dia.dia} className="pb-5">
-            {/* O fundo aqui é MÁSCARA, não decoração: a faixa do dia fica presa
-                logo abaixo da barra de filtros e o conteúdo passa por baixo dela.
-                Por isso ele tem que ser o mesmo token que o `body` pinta: em
-                12/09/2026 a página foi para `bg-background` e este `bg-canvas/80`
-                teria ficado como a única mancha cinza da tela, justamente onde o
-                texto atravessa.
-
-                O `top` é medido, e não uma constante: a barra ganha uma segunda
-                linha quando há filtro ligado, e um número fixo deixaria o rótulo
-                passando por trás dela ou flutuando abaixo dela. */}
+          <section key={dia.dia} className="pb-6">
+            {/* O fundo é máscara do conteúdo que rola por baixo, então segue o token do `body`.
+                O `top` é medido porque a barra de filtros ganha uma linha com filtro ligado. */}
             <div
-              className="sticky z-20 -mx-1 flex items-center gap-3 bg-background/80 px-1 py-2 backdrop-blur-sm"
+              className="sticky z-20 -mx-1 flex items-center gap-3 bg-background/85 px-1 pb-2 pt-1.5 backdrop-blur-sm"
               style={{ top: alturaDaBarra }}
             >
-              <h2 className="rounded-full border border-border/70 bg-card px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-foreground/75 shadow-sm">
-                {dia.rotulo}
-              </h2>
-              <span
-                aria-hidden
-                className="h-px flex-1 bg-gradient-to-r from-border to-transparent"
-              />
+              <h2 className="shrink-0 text-xs font-semibold text-foreground/70">{dia.rotulo}</h2>
+              <span aria-hidden className="h-px flex-1 bg-border/70" />
               <ContagemDoDia
                 carregados={dia.itens.length}
                 /* Só o dia mais antigo da leva pode estar cortado pela paginação;
@@ -182,7 +170,7 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
               type="button"
               variant="outline"
               size="sm"
-              className="rounded-full bg-card px-5 shadow-sm"
+              className="rounded-full px-5"
               disabled={isFetchingNextPage}
               onClick={() => fetchNextPage()}
             >
@@ -219,7 +207,11 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
        dele a coluna mediria só o que a conversa pede, e não sobraria espaço
        nenhum para o `mt-auto` distribuir. `self-stretch` devolve a altura que o
        `items-start` do pai tirou, senão o compositor desgruda do rodapé. */}
-      <div ref={feedRef} className="flex w-full min-w-0 grow flex-col self-stretch pb-2">
+      {/* O teto de 50rem segura a linha de leitura em monitor largo; a coluna cresce até ele. */}
+      <div
+        ref={feedRef}
+        className="flex w-full min-w-0 max-w-[50rem] grow flex-col self-stretch pb-2"
+      >
         {/* A barra gruda no topo junto com o rótulo do dia. Antes ela rolava para
           fora: depois de duzentos comentários, trocar o período obrigava a voltar
           ao começo da página: o controle sumia e a informação passiva ficava.
@@ -243,7 +235,7 @@ export function FeedComentarios({ area }: FeedComentariosProps) {
         caixa de escrever inteira, e o borrão translúcido deixava a conversa
         aparecer por trás do campo de texto e dos campos de destino.
       */}
-        <div className="sticky bottom-0 z-30 -mx-1 mt-auto bg-background px-1 pb-1 pt-3">
+        <div className="sticky bottom-0 z-30 -mx-1 mt-auto bg-background px-1 pb-1 pt-3 shadow-[0_-10px_14px_-14px_hsl(var(--foreground)/0.12)]">
           <FeedNovoComentario
             area={area}
             filtros={filtros}
@@ -349,36 +341,32 @@ function useRealceDaFala(feedRef: React.RefObject<HTMLDivElement>, onLimparFiltr
 function ContagemDoDia({ carregados, cortado }: { carregados: number; cortado: boolean }) {
   const plural = carregados === 1 ? 'comentário' : 'comentários';
   return (
-    <span
-      className="text-[11px] text-muted-foreground"
-      title={cortado ? 'Este dia tem mais comentários ainda não carregados' : undefined}
-    >
-      {cortado ? `${carregados}+ ${plural}` : `${carregados} ${plural}`}
-    </span>
+    <ElementTooltip text={cortado ? 'Este dia tem mais comentários ainda não carregados' : null}>
+      <span className="shrink-0 text-[11px] text-muted-foreground">
+        {cortado ? `${carregados}+ ${plural}` : `${carregados} ${plural}`}
+      </span>
+    </ElementTooltip>
   );
 }
 
-/** Esqueleto no formato do feed: rótulo do dia, cabeçalho de origem e falas. */
+/** Esqueleto com a geometria final: rótulo do dia, cabeçalho em dois níveis e falas. */
 function FeedCarregando() {
   return (
-    <div className="space-y-3">
-      <Skeleton className="h-5 w-20 rounded-full" />
+    <div className="space-y-3" aria-busy="true" aria-label="Carregando o feed">
+      <div className="flex items-center gap-3 pb-2 pt-1.5">
+        <Skeleton className="h-3 w-12" />
+        <span aria-hidden className="h-px flex-1 bg-border/70" />
+      </div>
       {[0, 1].map((bloco) => (
-        <div
-          key={bloco}
-          className="overflow-hidden rounded-md border border-border/70 bg-superficie-cartao"
-        >
-          {/* O cabeçalho do bloco real é lavado com o acento da área; o esqueleto
-              usa a MESMA cor, senão cada carregamento termina num solavanco de
-              cinza para colorido bem onde o olho está pousado. */}
-          <div className="flex items-center gap-3 border-b border-border/60 bg-primary/10 px-3.5 py-2.5">
-            <Skeleton className="h-9 w-9 rounded-md" />
-            <div className="flex-1 space-y-1.5">
-              <Skeleton className="h-2.5 w-28" />
-              <Skeleton className="h-3 w-48" />
+        <div key={bloco} className="rounded-lg border border-border/60 bg-superficie-cartao">
+          <div className="flex items-start gap-3 px-4 pb-2.5 pt-3">
+            <Skeleton className="mt-0.5 h-7 w-7 rounded-md" />
+            <div className="flex-1 space-y-1.5 pt-0.5">
+              <Skeleton className="h-2.5 w-40" />
+              <Skeleton className="h-3.5 w-64 max-w-full" />
             </div>
           </div>
-          <div className="space-y-3 px-3.5 py-3">
+          <div className="mx-4 space-y-3 border-t border-border/50 py-3">
             {[0, 1].map((linha) => (
               <div key={linha} className="flex gap-3">
                 <Skeleton className="h-8 w-8 rounded-full" />
@@ -404,8 +392,10 @@ function FeedCarregando() {
  */
 function FeedComErro({ erro, onTentarDeNovo }: { erro: Error; onTentarDeNovo: () => void }) {
   return (
-    <div className="rounded-md border border-destructive/30 bg-destructive/5 p-8 text-center">
-      <AlertTriangle aria-hidden className="mx-auto mb-3 h-8 w-8 text-destructive/70" />
+    <div className="rounded-lg border border-destructive/25 px-6 py-12 text-center">
+      <span className="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-full bg-destructive/10 text-destructive">
+        <AlertTriangle aria-hidden className="h-5 w-5" />
+      </span>
       <p className="font-semibold">Não foi possível carregar o feed</p>
       <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
         A conversa continua guardada: foi a busca que falhou. Tente de novo; se insistir, avise o
@@ -429,9 +419,9 @@ function FeedComErro({ erro, onTentarDeNovo }: { erro: Error; onTentarDeNovo: ()
 
 function FeedVazio() {
   return (
-    <div className="rounded-md border border-dashed border-border bg-superficie-cartao px-6 py-16 text-center">
-      <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-md bg-tool-icon-bg text-tool-icon">
-        <MessagesSquare aria-hidden className="h-7 w-7" />
+    <div className="px-6 py-16 text-center">
+      <span className="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-full bg-tool-icon-bg text-tool-icon">
+        <MessagesSquare aria-hidden className="h-5 w-5" />
       </span>
       <p className="font-semibold">Nada no feed ainda</p>
       <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
@@ -450,9 +440,9 @@ function FeedVazio() {
  */
 function FeedSemResultado({ termo, onLimpar }: { termo: string | null; onLimpar: () => void }) {
   return (
-    <div className="rounded-md border border-dashed border-border bg-superficie-cartao px-6 py-16 text-center">
-      <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-md bg-muted text-muted-foreground">
-        <SearchX aria-hidden className="h-7 w-7" />
+    <div className="px-6 py-16 text-center">
+      <span className="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-full bg-muted text-muted-foreground">
+        <SearchX aria-hidden className="h-5 w-5" />
       </span>
       {/*
         Com busca ligada o vazio tem uma causa provável, e ela vai no título: a
