@@ -58,7 +58,7 @@ import {
   classesGavetaBarra,
 } from '@/lib/sidebarMedidas';
 import { FACE_DA_BARRA, classesItemDaBarra } from '@/lib/barraLateralCromo';
-import { GrupoDaBarra } from '@/components/equipe/osg/GrupoDaBarra';
+import { GrupoDaBarra } from '@/components/layout/GrupoDaBarra';
 import { GRUPOS_OSG_WORK, INICIO_OSG_WORK } from '@/lib/navegacaoOsgWork';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';

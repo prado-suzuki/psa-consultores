@@ -30,7 +30,8 @@ const SLIDE_DURATION_MS = 280;
   escondê-lo. A OSG pode fazer isso porque os dois tons dela já são escuros. O
   que se copia é o EFEITO, não os números.
 
-  O anel dourado a 30% fecha o conjunto com a borda do selo.
+  O anel a 30% fecha o conjunto com a borda do selo, e é o teal da marca da
+  Tax, não o dourado da OSG — ver a nota no `TaxSeal`.
 
   Por que não token: pelo mesmo motivo do `TaxSeal`. O selo é marca, tem que ser
   igual nos dois temas e em qualquer fundo; a caixa que o encosta precisa seguir
@@ -106,7 +107,7 @@ const TaxAreaSelector = () => {
       label: 'TAX Projects',
       description: 'Projetos, tarefas, clientes e a gerencial da área Tax',
       path: '/equipe/tax/inicio',
-      color: 'from-[#0e4b5a] to-[#0b3d4a] ring-1 ring-[#c49a6c]/30',
+      color: 'from-[#0e4b5a] to-[#0b3d4a] ring-1 ring-[#0d9488]/30',
       iconNode: <TaxIcon size={46} className="rounded-md" />,
       visivel: isAdmin || !!categories?.includes('tax'),
     },
@@ -115,7 +116,7 @@ const TaxAreaSelector = () => {
       label: 'TAX Work',
       description: 'Ferramentas e aplicações desenvolvidas para a área Tax',
       path: '/equipe/tax/work',
-      color: 'from-[#0b3d4a] to-[#0e4b5a] ring-1 ring-[#c49a6c]/30',
+      color: 'from-[#0b3d4a] to-[#0e4b5a] ring-1 ring-[#0d9488]/30',
       iconNode: <TaxWorkIcon size={46} className="rounded-md" />,
       visivel: podeVerOWork,
     },
