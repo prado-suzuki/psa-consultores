@@ -195,7 +195,7 @@ function FalaHumana({
         <span
           aria-hidden
           className={cn(
-            'relative z-10 grid shrink-0 place-items-center rounded-lg font-semibold ring-2 ring-card',
+            'relative z-10 grid shrink-0 place-items-center rounded-lg font-semibold',
             nested ? 'h-9 w-9 text-[11px]' : 'h-10 w-10 text-xs',
             tomDoAutor(comentario.author_id),
           )}
