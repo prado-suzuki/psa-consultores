@@ -263,7 +263,7 @@ function LinhaDeEvento({ comentario, nested, abreThread, children }: PartesDaFal
         aria-hidden
         className={cn('relative z-10 flex shrink-0 justify-end', nested ? 'w-[18px]' : 'w-5')}
       >
-        <span className={cn('mt-1.5 h-2 w-2 rounded-full', cor)} />
+        <span className={cn('mt-2 h-2 w-2 rounded-full', cor)} />
       </span>
 
       <div className="min-w-0 flex-1 pt-0.5">
@@ -287,7 +287,7 @@ function LinhaDeEvento({ comentario, nested, abreThread, children }: PartesDaFal
         </p>
 
         {corpo && (
-          <div className="mt-1 border-l-2 border-primary/30 pl-3 text-[13px] leading-relaxed text-foreground/85">
+          <div className="ml-3 mt-1 border-l-2 border-primary/30 pl-3 text-[13px] leading-relaxed text-foreground/85">
             <OrgCommentBody body={corpo} />
           </div>
         )}
