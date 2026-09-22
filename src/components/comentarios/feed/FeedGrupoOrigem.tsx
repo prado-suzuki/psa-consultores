@@ -1,4 +1,4 @@
-import { ChevronRight, Maximize2, FolderKanban, ListChecks, MessagesSquare } from 'lucide-react';
+import { ChevronRight, Maximize2, MessagesSquare } from 'lucide-react';
 
 import { tomDoAutor } from '@/components/comentarios/feed/avatarDoAutor';
 import { FeedItemComentario } from '@/components/comentarios/feed/FeedItemComentario';
@@ -65,7 +65,6 @@ export function FeedGrupoOrigem({
   const primeiro = itens[0];
   const origem = origemDoComentario(primeiro, cliente);
   const ehProjeto = primeiro.entity_type === 'org_project';
-  const IconeDoTipo = ehProjeto ? FolderKanban : ListChecks;
   const autores = autoresDoGrupo(itens);
   const threads = montarThreads(itens);
   const naoLidas = itens.filter((item) => ehNaoLida(item, vistoAte ?? undefined, meuId)).length;
@@ -86,35 +85,42 @@ export function FeedGrupoOrigem({
         onClick={() => onAbrirOrigem({ tipo: primeiro.entity_type, id: primeiro.entity_id })}
         className="flex w-full items-start text-left gap-3 rounded-t-lg px-4 pb-2.5 pt-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
-        <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-tool-icon-bg text-tool-icon">
-          <IconeDoTipo aria-hidden className="h-3.5 w-3.5" />
-        </span>
-
         {/* O balão devolve o caminho inteiro que o truncamento cortou. */}
         <ElementTooltip text={caminhoCompleto}>
           <span className="min-w-0 flex-1">
             {/* O cliente é o elo de varredura; com os dois nomes na linha, o projeto cede primeiro. */}
-            <span className="flex min-w-0 items-center gap-1 text-[11px] leading-4 text-muted-foreground">
-              <span className="shrink-0 font-medium text-primary">
+            <span className="flex min-w-0 items-center gap-1.5 text-[11px] leading-4 text-muted-foreground">
+              <span
+                className={cn(
+                  'shrink-0 rounded border px-1.5 py-px font-medium',
+                  ehProjeto
+                    ? 'border-emerald-600/25 bg-emerald-500/10 text-emerald-700'
+                    : 'border-indigo-600/25 bg-indigo-500/10 text-indigo-700',
+                )}
+              >
                 {ehProjeto ? 'Projeto' : 'Tarefa'}
               </span>
               {origem.cliente && (
                 <>
-                  <span aria-hidden className="shrink-0 opacity-60">
-                    ·
+                  <span aria-hidden className="shrink-0 opacity-50">
+                    •
                   </span>
-                  <span className="truncate font-medium text-foreground/75">{origem.cliente}</span>
+                  <span className="min-w-0 truncate">
+                    Cliente: <span className="font-medium text-foreground/85">{origem.cliente}</span>
+                  </span>
                 </>
               )}
               {origem.projeto && (
                 <span
                   className={cn(
-                    'min-w-0 items-center gap-1',
+                    'min-w-0 items-center gap-1.5',
                     origem.cliente ? 'hidden sm:flex' : 'flex',
                   )}
                 >
                   <ChevronRight aria-hidden className="h-3 w-3 shrink-0 opacity-60" />
-                  <span className="truncate">{origem.projeto}</span>
+                  <span className="min-w-0 truncate rounded bg-muted px-1.5 py-px">
+                    Projeto: <span className="font-medium text-foreground/85">{origem.projeto}</span>
+                  </span>
                 </span>
               )}
             </span>
