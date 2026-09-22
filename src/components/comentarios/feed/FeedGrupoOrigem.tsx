@@ -92,10 +92,8 @@ export function FeedGrupoOrigem({
             <span className="flex min-w-0 items-center gap-1.5 text-[11px] leading-4 text-muted-foreground">
               <span
                 className={cn(
-                  'shrink-0 rounded border px-1.5 py-px text-xs font-semibold',
-                  ehProjeto
-                    ? 'border-tag-c/40 bg-tag-c/[0.12] text-tag-c'
-                    : 'border-tag-d/40 bg-tag-d/[0.12] text-tag-d',
+                  'shrink-0 border-b text-xs font-semibold',
+                  ehProjeto ? 'border-status-feito/50 text-status-feito' : 'border-tag-c/50 text-tag-c',
                 )}
               >
                 {ehProjeto ? 'Projeto' : 'Tarefa'}
