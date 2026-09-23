@@ -41,6 +41,8 @@ interface EscolherDestinoDaFalaProps {
   motivo: MotivoDoDestino;
   /** O que o recorte do feed (ou a última fala) já disse — vem pré-selecionado. */
   inicial: DestinoDaFala;
+  /** Cliente filtrado no feed: o modal já abre no passo do projeto dele. */
+  clienteDoRecorte: string | null;
   clientes: ClienteParaDestino[];
   projetos: ProjetoDoFiltro[];
   onEscolher: (destino: DestinoDaFala) => void;
@@ -69,6 +71,7 @@ export function EscolherDestinoDaFala({
   aberto,
   motivo,
   inicial,
+  clienteDoRecorte,
   clientes,
   projetos,
   onEscolher,
@@ -91,25 +94,6 @@ export function EscolherDestinoDaFala({
    */
   const [desejado, setDesejado] = useState('');
   const [busca, setBusca] = useState('');
-
-  /*
-    Cada abertura recomeça do primeiro passo, com o que a tela já sabe em
-    destaque: o cliente do recorte, e depois o projeto dele. É o que faz a
-    segunda fala seguida para a mesma conversa custar Enter, Enter, Enter.
-
-    `inicial` fica FORA das dependências de propósito: ele muda quando o filtro
-    do feed muda, e reagir a isso com o modal aberto reiniciaria a escolha no
-    meio do caminho.
-  */
-  useEffect(() => {
-    if (!aberto) return;
-    setPasso('cliente');
-    setClienteId(inicial.clienteId);
-    setProjetoId(inicial.projetoId);
-    setBusca('');
-    setDesejado(inicial.clienteId ?? TODOS_OS_CLIENTES);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aberto]);
 
   const projetosOferecidos = useMemo(
     () => projetosDoCliente(projetos, clienteId),
@@ -164,6 +148,26 @@ export function EscolherDestinoDaFala({
     );
     setDesejado(daCasa && inicial.projetoId ? inicial.projetoId : '');
   };
+
+  /*
+    Cada abertura recomeça com o que a tela já sabe em destaque; com cliente no
+    filtro, a pergunta dele já foi respondida e o modal abre no projeto (Esc volta).
+    `inicial` fica fora das dependências: mudar o filtro com o modal aberto
+    reiniciaria a escolha no meio do caminho.
+  */
+  useEffect(() => {
+    if (!aberto) return;
+    setProjetoId(inicial.projetoId);
+    setBusca('');
+    if (clienteDoRecorte) {
+      irParaProjeto(clienteDoRecorte);
+      return;
+    }
+    setPasso('cliente');
+    setClienteId(inicial.clienteId);
+    setDesejado(inicial.clienteId ?? TODOS_OS_CLIENTES);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto]);
 
   const irParaTarefa = (escolhido: string) => {
     setProjetoId(escolhido);
