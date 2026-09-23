@@ -58,9 +58,8 @@ export interface ConcessaoDeUsufruto {
   /** Quem fica com a quota e sem o voto. */
   deId: string;
   /**
-   * Quem passa a usufruir. É LISTA porque o casal usufrui EM CONJUNTO: o direito não
-   * se divide, e no falecimento de um acresce ao sobrevivente (art. 1.411 do Código
-   * Civil). Cada um lê o bloco inteiro, e o total conta o bloco uma vez.
+   * Quem passa a usufruir. É LISTA porque o casal usufrui EM CONJUNTO, cada um com o
+   * seu quinhão, que acresce ao sobrevivente (art. 1.411 do Código Civil).
    */
   paraIds: string[];
   quotas: bigint;
@@ -128,6 +127,12 @@ export interface EntradaDoUsufruto {
   concessoes: ConcessaoDeUsufruto[];
   /** Universo de quotas da sociedade — divisor dos percentuais. */
   capital: bigint;
+  /**
+   * `quinhao` (padrão) reparte o bloco conjunto em partes iguais, o resto indivisível
+   * no primeiro usufrutuário, e as linhas somam o capital. `bloco` dá a cada um o
+   * bloco inteiro: responde "quanto o casal controla", e as linhas passam de 100%.
+   */
+  leituraDoConjunto?: 'quinhao' | 'bloco';
 }
 
 import { repartirProporcional } from './rateioDoAto';
@@ -156,20 +161,23 @@ export function montarUsufruto(entrada: EntradaDoUsufruto): {
   totais: TotaisDoUsufruto;
   problemas: ProblemaDoUsufruto[];
 } {
-  const { participantes, concessoes, capital } = entrada;
+  const { participantes, concessoes, capital, leituraDoConjunto = 'quinhao' } = entrada;
   const nomeDe = new Map(participantes.map((p) => [p.pessoaId, p.nome]));
   const validas = concessoes.filter((c) => c.quotas > 0n);
+  const usufrutoDe = (pessoaId: string) => validas.reduce((total, c) => {
+    const posicao = c.paraIds.indexOf(pessoaId);
+    if (c.comVoto === false || posicao < 0) return total;
+    if (leituraDoConjunto === 'bloco') return total + c.quotas;
+    return total + repartirInstituicao(c.quotas, c.paraIds.length)[posicao];
+  }, 0n);
 
   const linhas = participantes.map<LinhaDoUsufruto>((p) => {
     const dela = validas.filter((c) => c.deId === p.pessoaId);
-    const paraElaComVoto = validas.filter(
-      (c) => c.comVoto !== false && c.paraIds.includes(p.pessoaId),
-    );
     const somar = (cs: ConcessaoDeUsufruto[]) => cs.reduce((a, c) => a + c.quotas, 0n);
 
     const nua = somar(dela);
     const nuaComVotoDoTitular = somar(dela.filter((c) => c.comVoto === false));
-    const usufruto = somar(paraElaComVoto);
+    const usufruto = usufrutoDe(p.pessoaId);
     const plena = naoNegativo(p.quotas - nua);
     const vozEVoto = plena + nuaComVotoDoTitular + usufruto;
 
@@ -188,8 +196,7 @@ export function montarUsufruto(entrada: EntradaDoUsufruto): {
     };
   });
 
-  // O bloco concedido entra UMA vez, mesmo com dois usufrutuários: o direito é
-  // conjunto, e somar por cabeça daria 151% num casal.
+  // O total conta o bloco conjunto uma vez também na leitura `bloco`.
   const concedidoComVoto = validas
     .filter((c) => c.comVoto !== false)
     .reduce((a, c) => a + c.quotas, 0n);

@@ -1223,10 +1223,12 @@ export function useCalculadoraItcmdController() {
       .filter((c) => c.quotas > 0n),
   ];
 
+  // O alvo digitado é o controle do casal em conjunto, por isso cada um lê o bloco inteiro.
   const usufruto = montarUsufruto({
     capital: totalDeQuotas,
     concessoes,
     participantes: participantesDoUsufruto,
+    leituraDoConjunto: 'bloco',
   });
 
   /** O que a reserva da doacao ja colocou sob usufruto. */

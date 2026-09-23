@@ -126,3 +126,57 @@ describe('os três ecos do ônus no contrato consolidado', () => {
     expect(por('cl-alienacao')).toMatch(/^\*CLÁUSULA SEGUNDA:\*/);
   });
 });
+
+type Campos = Record<string, string>;
+
+// Resolução da AC, cópia literal de `20260910212126_resolucao_doacao_quotas_usufruto.sql`.
+const RESOLUCAO_USUFRUTO = `*Do usufruto e do direito de voto.* Considerando as reservas de usufruto vigentes, a propriedade e o exercício do direito de voto sobre as quotas da sociedade ficam distribuídos da seguinte forma:
+
+{{#quadroUsufruto sep="\\n"}}{{ usufruto.ordemRomana }}) *{{ titular.nomeMaiusculo }}*: {{ usufruto.quotas }} quotas, das quais {{ usufruto.plena }} em propriedade plena e {{ usufruto.nua }} em nua propriedade; usufruto com voto sobre {{ usufruto.usufruto }} quotas; voz e voto correspondentes a {{ usufruto.vozEVoto }} quotas ({{ usufruto.pctVozEVoto }}%).{{/quadroUsufruto}}`;
+
+describe('usufruto conjunto do Jatobá na resolução e no consolidado', () => {
+  const LUCAS = pf('lucas', 'Lucas Nogueira');
+  const MARINA = pf('marina', 'Marina Salgado');
+  const HEITOR = pf('heitor', 'Heitor Nogueira');
+  const pessoas = new Map([LUCAS, MARINA, HEITOR].map((p) => [p.id, p]));
+  const quadro: SocioParaMapear[] = [
+    { pessoa: LUCAS, quotas: 1_662_451, vlr_total: 1_662_451, representante: null },
+    { pessoa: MARINA, quotas: 367_166, vlr_total: 367_166, representante: null },
+    { pessoa: HEITOR, quotas: 599_925, vlr_total: 599_925, representante: null },
+  ];
+  const onus = (usufrutuarioIds: string[]): OnusParaMapear => ({
+    ...ONUS, nuProprietarioId: HEITOR.id, usufrutuarioIds, quotas: 184_716,
+  });
+  const compor = (usufrutuarioIds: string[]) => {
+    const estado = mapearEstadoDosOnus([onus(usufrutuarioIds)], quadro, (id) => pessoas.get(id), 2_629_542);
+    const template: Template = {
+      id: 'jatoba',
+      nome: 'Jatobá (recorte)',
+      blocos: [bloco('res-usufruto', 'livre', RESOLUCAO_USUFRUTO), bloco('cl-usufruto', 'clausula', CLAUSULA_USUFRUTO)],
+    };
+    const composicao = gerarComposicao(template, { quadroUsufruto: estado.quadroUsufruto });
+    const por = (id: string) => composicao.blocos.find((b) => b.id === id)!.conteudo;
+    return { estado, resolucao: por('res-usufruto'), clausula: por('cl-usufruto') };
+  };
+
+  it('o casal cousufrutuário divide o bloco em quinhões e o voto fecha 100%', () => {
+    const { estado, resolucao, clausula } = compor([LUCAS.id, MARINA.id]);
+    expect(estado.problemas).toEqual([]);
+
+    expect(clausula).toContain('| Lucas Nogueira | 1.662.451 | 0 | 92.358 | 66,7344 |');
+    expect(clausula).toContain('| Marina Salgado | 367.166 | 0 | 92.358 | 17,4754 |');
+    expect(clausula).toContain('| Heitor Nogueira | 415.209 | 184.716 | 0 | 15,7902 |');
+
+    expect(resolucao).toContain('*LUCAS NOGUEIRA*: 1.662.451 quotas, das quais 1.662.451 em propriedade plena e 0 em nua propriedade; usufruto com voto sobre 92.358 quotas; voz e voto correspondentes a 1.754.809 quotas (66,7344%).');
+    expect(resolucao).toContain('*MARINA SALGADO*: 367.166 quotas, das quais 367.166 em propriedade plena e 0 em nua propriedade; usufruto com voto sobre 92.358 quotas; voz e voto correspondentes a 459.524 quotas (17,4754%).');
+
+    const pcts = estado.quadroUsufruto.map((i) => Number((i.usufruto as Campos).pctVozEVoto.replace(',', '.')));
+    expect(pcts.reduce((a, p) => a + p, 0).toFixed(4)).toBe('100.0000');
+  });
+
+  it('usufruto de uma pessoa só continua com o bloco inteiro', () => {
+    const { clausula } = compor([LUCAS.id]);
+    expect(clausula).toContain('| Lucas Nogueira | 1.662.451 | 0 | 184.716 | 70,2467 |');
+    expect(clausula).toContain('| Marina Salgado | 367.166 | 0 | 0 | 13,9631 |');
+  });
+});

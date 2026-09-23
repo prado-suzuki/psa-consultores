@@ -130,11 +130,36 @@ describe('planejarDoacaoDeQuotas: o ato da MMS 3ª', () => {
     expect(lancamentos[0].onus?.usufrutuarioIds).toEqual([JOSE, MARIA]);
     expect(lancamentos[2].onus?.usufrutuarioIds).toEqual([MARIA, JOSE]);
     const porId = new Map(usufruto!.linhas.map((l) => [l.pessoaId, l]));
-    // Os dois leem o bloco inteiro…
-    expect(porId.get(JOSE)?.usufruto).toBe(9_541_796n);
-    expect(porId.get(MARIA)?.usufruto).toBe(9_541_796n);
-    // …e o total continua fechando em 100%, não em 200%.
+    // Cada bloco conjunto se reparte em quinhões, e as linhas fecham 100%, não 200%.
+    expect(porId.get(JOSE)).toMatchObject({ usufruto: 4_770_898n, pctVozEVoto: '50.0000' });
+    expect(porId.get(MARIA)).toMatchObject({ usufruto: 4_770_898n, pctVozEVoto: '50.0000' });
     expect(usufruto!.totais.pctVozEVoto).toBe('100.0000');
+  });
+
+  it('Jatobá: doação com o cônjuge sócio cousufrutuário não passa de 100% de voto', () => {
+    const quadro = [
+      { pessoaId: 'lucas', denominacao: 'Lucas Nogueira', quotas: 1_847_167 },
+      { pessoaId: 'marina', denominacao: 'Marina Salgado', quotas: 367_166 },
+      { pessoaId: 'heitor', denominacao: 'Heitor', quotas: 415_209 },
+    ];
+    const { usufruto, problema } = planejarDoacaoDeQuotas({
+      empresaPessoaId: 'jatoba',
+      quadro,
+      nomes: new Map(quadro.map((s) => [s.pessoaId, s.denominacao])),
+      pares: [par('lucas', 'heitor', 184_716)],
+      usufruto: { reservado: true, usufrutuariosPorDoador: { lucas: ['marina'] }, comVoto: true },
+      gravames: [...GRAVAMES_PADRAO],
+      dataInstrumento: '2026-09-23',
+      dataMovimento: '2026-09-23',
+    });
+    expect(problema).toBeNull();
+    const votos = usufruto!.linhas.map((l) => [l.pessoaId, l.vozEVoto, l.pctVozEVoto]);
+    expect(votos).toEqual([
+      ['lucas', 1_754_809n, '66.7344'],
+      ['marina', 459_524n, '17.4754'],
+      ['heitor', 415_209n, '15.7902'],
+    ]);
+    expect(usufruto!.linhas.reduce((a, l) => a + l.vozEVoto, 0n)).toBe(2_629_542n);
   });
 
   it('nomeia o ato para a procedência do quadro', () => {

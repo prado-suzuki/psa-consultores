@@ -196,6 +196,15 @@ zero, sumindo com a diferença); Σ voz e voto = capital (o mesmo bloco contado 
 substitui isso: os quatro decimais arredondam, e 100,0000% sai de números que não fecham. O
 resultado entra nas **pendências** da folha, que avisam sem travar a prévia.
 
+**Usufruto conjunto se publica em quinhões.** Com dois usufrutuários no mesmo ônus (o
+doador e o cônjuge), cada linha da tabela recebe a sua parte do bloco, em partes iguais e
+com a quota indivisível que sobrar no primeiro usufrutuário (o doador, que é quem reserva).
+Antes cada um lia o bloco inteiro: o total fechava, mas a coluna de percentuais somava mais
+de 100% (107,02% no ensaio do Jatobá). A regra segue o art. 1.411 do Código Civil, que
+fala da parte de cada usufrutuário, e a própria cláusula consolidada, que diz que "o
+respectivo quinhão acrescerá à sobrevivente". A calculadora de ITCD continua lendo o bloco
+inteiro (`leituraDoConjunto: 'bloco'`), porque o alvo que ela persegue é o controle do casal.
+
 **Achado, não corrigido:** dois blocos do consolidado citam "Cláusula Oitava" e "Cláusula
 Oitava, Parágrafo Terceiro" em texto fixo (a ressalva de haveres na alienação e a cláusula
 de penhora), e esses números não correspondem à posição real de nenhuma cláusula do modelo

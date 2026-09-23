@@ -160,8 +160,8 @@ describe('instituição de usufruto avulsa', () => {
     // 600 para cada um. Somar por cabeça daria 160% do capital.
     const porNome = new Map(plano.usufruto!.linhas.map((l) => [l.nome, l]));
     expect(porNome.get('Ana')).toMatchObject({ quotas: 600n, plena: 0n, nua: 600n, vozEVoto: 0n });
-    expect(porNome.get('João')).toMatchObject({ quotas: 0n, usufruto: 600n, vozEVoto: 600n });
-    expect(porNome.get('Maria')).toMatchObject({ quotas: 0n, usufruto: 600n, vozEVoto: 600n });
+    expect(porNome.get('João')).toMatchObject({ quotas: 0n, usufruto: 300n, vozEVoto: 300n });
+    expect(porNome.get('Maria')).toMatchObject({ quotas: 0n, usufruto: 300n, vozEVoto: 300n });
     expect(plano.usufruto!.totais.vozEVoto).toBe(1000n);
   });
 

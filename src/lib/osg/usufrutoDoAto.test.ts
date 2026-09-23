@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  montarUsufruto, quotasAInstituir, redistribuirConcessoes, repartirInstituicao,
+  conferirSomasDoUsufruto, montarUsufruto, quotasAInstituir, redistribuirConcessoes, repartirInstituicao,
   type ConcessaoDeUsufruto, type ParticipanteDoUsufruto,
 } from '@/lib/osg/usufrutoDoAto';
 
@@ -99,10 +99,8 @@ describe('quadro do usufruto', () => {
     expect(problemas).toEqual([]);
   });
 
-  it('o casal usufrui EM CONJUNTO: o total não conta duas vezes', () => {
-    // Direito conjunto, com acrescimento ao sobrevivente (art. 1.411 CC). Somar por
-    // cabeça daria 151% num casal.
-    const { linhas, totais } = montarUsufruto({
+  it('o casal usufrui EM CONJUNTO: cada um com o seu quinhão, e o total não conta duas vezes', () => {
+    const entrada = {
       capital: CAPITAL,
       participantes: [
         pessoa('avelino', 'Avelino', 0n),
@@ -110,16 +108,32 @@ describe('quadro do usufruto', () => {
         pessoa('regina', 'Regina', CAPITAL),
       ],
       concessoes: [concede('regina', ['avelino', 'iracema'], 4_874_550n)],
-    });
+    };
+    const { linhas, totais } = montarUsufruto(entrada);
 
-    expect(linhas[0].usufruto).toBe(4_874_550n);
-    expect(linhas[1].usufruto).toBe(4_874_550n);
-    expect(linhas[0].pctVozEVoto).toBe('51.0000');
-    expect(linhas[1].pctVozEVoto).toBe('51.0000');
+    expect(linhas[0].usufruto).toBe(2_437_275n);
+    expect(linhas[1].usufruto).toBe(2_437_275n);
+    expect(linhas[0].pctVozEVoto).toBe('25.5000');
+    expect(linhas[1].pctVozEVoto).toBe('25.5000');
     expect(linhas[2].concedePara).toEqual(['Avelino', 'Iracema']);
-    // E o total continua fechando em 100%, não em 151%.
     expect(totais.vozEVoto).toBe(CAPITAL);
     expect(totais.pctVozEVoto).toBe('100.0000');
+
+    // A leitura `bloco` é a da calculadora: quanto o casal controla em conjunto.
+    const emBloco = montarUsufruto({ ...entrada, leituraDoConjunto: 'bloco' });
+    expect(emBloco.linhas[0].pctVozEVoto).toBe('51.0000');
+    expect(emBloco.linhas[1].pctVozEVoto).toBe('51.0000');
+    expect(emBloco.totais.vozEVoto).toBe(CAPITAL);
+  });
+
+  it('quota é indivisível: o resto do bloco conjunto fica com o primeiro usufrutuário', () => {
+    const { linhas, totais } = montarUsufruto({
+      capital: 1_001n,
+      participantes: [pessoa('a', 'A', 0n), pessoa('b', 'B', 0n), pessoa('c', 'C', 1_001n)],
+      concessoes: [concede('c', ['a', 'b'], 1_001n)],
+    });
+    expect(linhas.map((l) => l.usufruto)).toEqual([501n, 500n, 0n]);
+    expect(linhas.reduce((a, l) => a + l.vozEVoto, 0n)).toBe(totais.vozEVoto);
   });
 
   it('só a reserva, sem instituição: é o Santa Terezinha e o MMS', () => {
@@ -138,7 +152,8 @@ describe('quadro do usufruto', () => {
       ],
     });
 
-    expect(linhas[0].pctVozEVoto).toBe('100.0000');
+    expect(linhas[0].pctVozEVoto).toBe('50.0000');
+    expect(linhas[1].pctVozEVoto).toBe('50.0000');
     expect(linhas[2]).toMatchObject({ plena: 0n, nua: 4_509_384n, vozEVoto: 0n });
     expect(totais.vozEVoto).toBe(9_018_768n);
     expect(problemas).toEqual([]);
@@ -182,6 +197,56 @@ describe('quadro do usufruto', () => {
     });
     expect(linhas[0]).toMatchObject({ plena: 1_000n, nua: 0n, concedePara: [] });
     expect(problemas).toEqual([]);
+  });
+});
+
+// Caso do ensaio: Jatobá, Lucas doa 184.716 quotas a Heitor e reserva o usufruto com voto,
+// em conjunto com Marina, cônjuge dele e sócia.
+describe('usufruto conjunto do Jatobá: o voto soma 100%', () => {
+  const JATOBA = 2_629_542n;
+  const entrada = {
+    capital: JATOBA,
+    participantes: [
+      pessoa('lucas', 'Lucas', 1_847_167n - 184_716n),
+      pessoa('marina', 'Marina', 367_166n),
+      pessoa('heitor', 'Heitor', 415_209n + 184_716n),
+    ],
+    concessoes: [concede('heitor', ['lucas', 'marina'], 184_716n)],
+  };
+  const somaDosPercentuais = (linhas: { pctVozEVoto: string }[]) =>
+    linhas.reduce((a, l) => a + Number(l.pctVozEVoto), 0).toFixed(4);
+
+  it('contando o bloco inteiro para cada um, as linhas somavam 107,02%', () => {
+    const { linhas } = montarUsufruto({ ...entrada, leituraDoConjunto: 'bloco' });
+    expect(linhas.map((l) => l.pctVozEVoto)).toEqual(['70.2467', '20.9878', '15.7902']);
+    expect(somaDosPercentuais(linhas)).toBe('107.0247');
+  });
+
+  it('repartido em quinhões, cada quota vota uma vez e as linhas fecham o capital', () => {
+    const { linhas, totais } = montarUsufruto(entrada);
+    expect(linhas.map((l) => [l.usufruto, l.vozEVoto])).toEqual([
+      [92_358n, 1_754_809n],
+      [92_358n, 459_524n],
+      [0n, 415_209n],
+    ]);
+    expect(linhas.map((l) => l.pctVozEVoto)).toEqual(['66.7344', '17.4754', '15.7902']);
+    expect(somaDosPercentuais(linhas)).toBe('100.0000');
+    expect(linhas.reduce((a, l) => a + l.vozEVoto, 0n)).toBe(JATOBA);
+    expect(totais.usufruto).toBe(184_716n);
+    expect(conferirSomasDoUsufruto(linhas, totais, JATOBA)).toEqual([]);
+  });
+
+  it('usufruto de uma pessoa só não muda: ela vota o bloco inteiro', () => {
+    const { linhas } = montarUsufruto({
+      ...entrada,
+      concessoes: [concede('heitor', ['lucas'], 184_716n)],
+    });
+    expect(linhas.map((l) => [l.usufruto, l.pctVozEVoto])).toEqual([
+      [184_716n, '70.2467'],
+      [0n, '13.9631'],
+      [0n, '15.7902'],
+    ]);
+    expect(linhas.reduce((a, l) => a + l.vozEVoto, 0n)).toBe(JATOBA);
   });
 });
 
