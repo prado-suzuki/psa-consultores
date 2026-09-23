@@ -423,7 +423,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                 pessoa escrevesse: "10/10/26", "10 de out". O
                                 valor guardado continua sendo a data ISO do
                                 seletor, e `dataExtenso` a converte para "10 de
-                                outubro de 2.026" na hora de montar o contexto.
+                                outubro de 2026" na hora de montar o contexto.
                               */}
                               <Input
                                 type={campoManual(ph)?.tipo === 'data' ? 'date' : 'text'}

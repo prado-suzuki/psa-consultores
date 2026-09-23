@@ -329,11 +329,8 @@ const MESES = [
 ];
 
 /**
- * Data na redação dos instrumentos: `10 de outubro de 2.025`.
- *
- * Repare o PONTO no ano — não é acidente de digitação, é como os contratos
- * assinados escrevem ("2.022", "1.957", "Lei 4.504/1.964"). Sai de
- * `agruparMilhar`, o mesmo separador do resto do arquivo.
+ * Data na redação dos instrumentos: `10 de outubro de 2025`. O ano é data, não
+ * quantidade, e por isso não leva separador de milhar.
  *
  * Recebe a data ISO do banco e NÃO passa por `Date`: `new Date('2022-10-10')`
  * interpreta como UTC e, em fuso negativo, devolve o dia 9. Contrato com a data
@@ -346,11 +343,8 @@ export function dataExtenso(data: string | null | undefined): string {
   // campo DERIVADO recebe — a base dele foi publicada por `formatarDataBR`, e é
   // essa que o consultor edita no "Ajustar dados manualmente".
   const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(bruto);
-  // O ano da forma brasileira vem COM o ponto de milhar ("10/10/2.025"), porque é
-  // assim que `formatarDataBR` o escreve — e era assim que este parser deixava de
-  // reconhecê-lo. Sem o `\.?`, a data de encerramento da vigência e a do fecho
-  // saíam "10/10/2.025" no lugar de "10 de outubro de 2.025": o campo derivado
-  // recebia a base já formatada, não casava, e devolvia a entrada intacta.
+  // `formatarDataBR` publica o ano com ponto ("10/10/2.025"); sem o `\.?` o
+  // campo derivado não casaria e devolveria a data crua.
   const br = /^(\d{1,2})\/(\d{1,2})\/(\d\.?\d{3})$/.exec(bruto.trim());
   const partes = iso
     ? { ano: iso[1], mes: iso[2], dia: iso[3] }
@@ -360,7 +354,7 @@ export function dataExtenso(data: string | null | undefined): string {
   if (!partes) return bruto;
   const nomeDoMes = MESES[Number(partes.mes) - 1];
   if (!nomeDoMes) return bruto;
-  return `${Number(partes.dia)} de ${nomeDoMes} de ${agruparMilhar(partes.ano)}`;
+  return `${Number(partes.dia)} de ${nomeDoMes} de ${partes.ano}`;
 }
 
 /** Percentual pt-BR com 3 casas e sufixo "%". Ex.: 23.8999 → "23,900%". */

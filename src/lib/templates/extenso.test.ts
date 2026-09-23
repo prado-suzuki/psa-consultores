@@ -168,18 +168,18 @@ describe('cardinalExtenso — feminino (conta quotas)', () => {
   });
 });
 
-// A data na redação dos instrumentos. Duas coisas se defendem aqui: o PONTO no
-// ano ("10 de outubro de 2.025", como os assinados escrevem) e a INDEPENDÊNCIA
-// DE FUSO — `new Date('2022-10-10')` é lida como UTC e, em fuso negativo, volta o
+// A data na redação dos instrumentos. Duas coisas se defendem aqui: o ano sem
+// separador de milhar ("10 de outubro de 2025") e a INDEPENDÊNCIA DE FUSO — `new Date('2022-10-10')` é lida como UTC e, em fuso negativo, volta o
 // dia 9. Um contrato com a data errada por um dia é o tipo de defeito que ninguém
 // revisa.
 describe('dataExtenso', () => {
   it.each([
-    ['2025-10-10', '10 de outubro de 2.025'],
-    ['2022-10-11', '11 de outubro de 2.022'],
-    ['2024-08-28', '28 de agosto de 2.024'],
-    ['1957-05-23', '23 de maio de 1.957'],
-    ['2026-01-01', '1 de janeiro de 2.026'],
+    ['2025-10-10', '10 de outubro de 2025'],
+    ['2022-10-11', '11 de outubro de 2022'],
+    ['2024-08-28', '28 de agosto de 2024'],
+    ['1957-05-23', '23 de maio de 1957'],
+    ['2026-01-01', '1 de janeiro de 2026'],
+    ['2026-09-14', '14 de setembro de 2026'],
   ])('ISO %s → "%s"', (iso, esperado) => {
     expect(dataExtenso(iso)).toBe(esperado);
   });
@@ -188,14 +188,14 @@ describe('dataExtenso', () => {
   // `formatarDataBR` e é essa que o consultor edita no "Ajustar dados
   // manualmente". Sem aceitar as duas, o derivado devolvia a própria data crua.
   it.each([
-    ['10/10/2025', '10 de outubro de 2.025'],
-    ['1/1/2026', '1 de janeiro de 2.026'],
+    ['10/10/2025', '10 de outubro de 2025'],
+    ['1/1/2026', '1 de janeiro de 2026'],
     // COM o ponto de milhar no ano, que é a forma que `formatarDataBR` publica
     // desde 02/09/2026. Sem isto o derivado devolvia "10/10/2.025" intacto, e a
     // vigência da parceria saía em dd/mm/aaaa no lugar do extenso.
-    ['10/10/2.025', '10 de outubro de 2.025'],
-    ['23/05/1.957', '23 de maio de 1.957'],
-    ['1/1/2.026', '1 de janeiro de 2.026'],
+    ['10/10/2.025', '10 de outubro de 2025'],
+    ['23/05/1.957', '23 de maio de 1957'],
+    ['1/1/2.026', '1 de janeiro de 2026'],
   ])('dd/mm/aaaa %s → "%s"', (br, esperado) => {
     expect(dataExtenso(br)).toBe(esperado);
   });
@@ -210,7 +210,7 @@ describe('dataExtenso', () => {
   });
 
   it('não passa por Date: o primeiro dia do mês em ISO não retrocede um dia', () => {
-    expect(dataExtenso('2022-10-01')).toBe('1 de outubro de 2.022');
+    expect(dataExtenso('2022-10-01')).toBe('1 de outubro de 2022');
   });
 
   it('o que não é data volta como veio, sem inventar', () => {

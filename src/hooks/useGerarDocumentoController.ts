@@ -2263,7 +2263,7 @@ export function useGerarDocumentoController() {
     const livresFonte = dados?.valoresLivres ?? valoresLivres;
     /*
      * O campo de DATA guarda o ISO do seletor e o documento recebe o EXTENSO.
-     * O fecho escreve "Cuiabá/MT, 10 de outubro de 2.026", e sem esta conversão
+     * O fecho escreve "Cuiabá/MT, 10 de outubro de 2026", e sem esta conversão
      * sairia "2026-10-10", que é o valor do <input type="date">.
      */
     const livres = Object.fromEntries(desconhecidosVisiveis.map((ph) => {
